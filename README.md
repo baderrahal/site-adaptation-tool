@@ -10,6 +10,8 @@ Phase 1 to 3. There is no placement logic yet.
 | PDF reader | Python, pdfplumber (MIT) | pdf_labels.json, pdf_shapes.json |
 | Excel reader | Python, openpyxl (MIT) | coords.json, coords_headers.json |
 
+For a project file the Revit reader also writes the Revit links with the family instances inside them, the walls and the ramps (rules R16 and R17).
+
 Every reader only reads. None of them changes a model, a drawing, a PDF or a workbook.
 The rules are in [docs/rules.md](docs/rules.md). The latest round is the top entry of [steps/log.md](steps/log.md).
 

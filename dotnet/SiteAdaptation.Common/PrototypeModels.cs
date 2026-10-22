@@ -21,6 +21,61 @@ namespace SiteAdaptation.Common
         public ProjectPointInfo BasePoint { get; set; }
         public double? AngleToTrueNorthDeg { get; set; }
         public List<PrototypeRow> Prototypes { get; set; }
+        public List<LinkEntry> Links { get; set; }
+        public List<WallRow> Walls { get; set; }
+        public List<RampRow> Ramps { get; set; }
+        public List<string> Errors { get; set; }
+    }
+
+    // One Revit link. Instance points are in the linked model's own coordinates, the transform takes them to the host
+    public class LinkEntry
+    {
+        public string File { get; set; }
+        public LinkTransform Transform { get; set; }
+        public List<PrototypeRow> Instances { get; set; }
+        public List<LinkEntry> Links { get; set; }
+        public int? DeeperLinks { get; set; }
+        public List<string> Errors { get; set; }
+    }
+
+    public class LinkTransform
+    {
+        public double[] Origin { get; set; }
+        public double RotationDeg { get; set; }
+        public bool Mirrored { get; set; }
+        public double[] AxisX { get; set; }
+        public double[] AxisY { get; set; }
+        public double[] AxisZ { get; set; }
+    }
+
+    // Kind is line, arc, point or the Revit curve class name. Arcs add Center and Radius
+    public class LocationInfo
+    {
+        public string Kind { get; set; }
+        public double[] Start { get; set; }
+        public double[] End { get; set; }
+        public double[] Center { get; set; }
+        public double? Radius { get; set; }
+        public double[] Point { get; set; }
+    }
+
+    public class WallRow
+    {
+        public string TypeName { get; set; }
+        public long? ElementId { get; set; }
+        public LocationInfo Location { get; set; }
+        public double? Length { get; set; }
+        public double? Height { get; set; }
+        public Dictionary<string, object> Parameters { get; set; }
+    }
+
+    public class RampRow
+    {
+        public string TypeName { get; set; }
+        public long? ElementId { get; set; }
+        public LocationInfo Location { get; set; }
+        public BoxInfo BoundingBox { get; set; }
+        public Dictionary<string, object> Parameters { get; set; }
     }
 
     public class ProjectPointInfo
@@ -46,5 +101,6 @@ namespace SiteAdaptation.Common
         public double[] InsertionPoint { get; set; }
         public double? RotationDeg { get; set; }
         public string Level { get; set; }
+        public bool? Mirrored { get; set; }
     }
 }
