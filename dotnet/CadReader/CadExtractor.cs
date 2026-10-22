@@ -112,6 +112,7 @@ namespace CadReader
                     });
                 }
             }
+            plots.AddRange(PlotShapes.Build(entities));
             return plots;
         }
 

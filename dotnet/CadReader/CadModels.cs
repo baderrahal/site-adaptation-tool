@@ -16,6 +16,14 @@ namespace CadReader
         public List<LayerEntry> Layers { get; set; }
     }
 
+    public class ArcEntry
+    {
+        public int Segment { get; set; }
+        public double[] Center { get; set; }
+        public double Radius { get; set; }
+        public bool Ccw { get; set; }
+    }
+
     public class PlotEntry
     {
         public string Kind { get; set; }
@@ -26,6 +34,9 @@ namespace CadReader
         public double[] InsertPoint { get; set; }
         public double? RotationDeg { get; set; }
         public Dictionary<string, string> Attributes { get; set; }
+        public double? Area { get; set; }
+        public List<ArcEntry> Arcs { get; set; }
+        public List<double[]> Segments { get; set; }
     }
 
     public class PlotsFile
