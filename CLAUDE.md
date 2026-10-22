@@ -17,7 +17,7 @@ The rules live in docs/rules.md and nowhere else. This file points to them and a
 
 ## Repo map
 
-- python/ holds the PDF reader, the Excel reader, the link table and the full run script, plus tests in python/tests.
+- python/ holds the PDF reader, the Excel reader, the link table, the link summary and the full run script, plus tests in python/tests.
 - dotnet/CadReader reads DWG and DXF with ACadSharp.
 - dotnet/RevitPrototypeReader is the Revit 2024 add-in. Do not change it unless the round says so.
 - dotnet/SiteAdaptation.Common holds JSON output and unit helpers.
@@ -36,7 +36,7 @@ The full text is docs/rules.md. Ids are the contract, a test names the id it pro
 - R10 No invented data. Tests use small dummy files built in code.
 - R11 Zero tests is a failure.
 - R12 Every rule has a test whose name carries the rule id.
-- R16 and R17 cover the Revit links, walls and ramps. R18 to R26 cover the main guard, explode, layer filter, texts and xrefs, plot labels, PDF rows, the link table, the full run and the harness files.
+- R16 and R17 cover the Revit links, walls, floors and ramps. R27 covers the link summary. R18 to R26 cover the main guard, explode, layer filter, texts and xrefs, plot labels, PDF rows, the link table, the full run and the harness files.
 
 ## Real files
 

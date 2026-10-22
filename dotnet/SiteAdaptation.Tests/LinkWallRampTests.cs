@@ -11,12 +11,16 @@ namespace SiteAdaptation.Tests
     // They prove the logic and the JSON shape. They do not prove that RevitModelSource reads a real model correctly
     public class LinkWallRampTests
     {
-        private sealed class FakeSource : IModelSource
+        internal sealed class FakeSource : IModelSource
         {
             public IList<string> Errors { get; } = new List<string>();
             public List<SourceLink> LinkList { get; } = new List<SourceLink>();
             public List<PrototypeRow> InstanceList { get; } = new List<PrototypeRow>();
             public List<WallRow> WallList { get; } = new List<WallRow>();
+            public List<FloorRow> FloorList { get; } = new List<FloorRow>();
+            public Func<IEnumerable<FloorRow>> FloorsFailure { get; set; }
+            public int InstanceCalls { get; private set; }
+            public int FloorCalls { get; private set; }
             public List<RampRow> RampList { get; } = new List<RampRow>();
             public Func<IEnumerable<SourceLink>> LinksFailure { get; set; }
 
@@ -31,6 +35,7 @@ namespace SiteAdaptation.Tests
 
             public IEnumerable<PrototypeRow> Instances()
             {
+                InstanceCalls++;
                 return InstanceList;
             }
 
@@ -39,15 +44,38 @@ namespace SiteAdaptation.Tests
                 return WallList;
             }
 
+            public IEnumerable<FloorRow> Floors()
+            {
+                FloorCalls++;
+                if (FloorsFailure != null)
+                {
+                    return FloorsFailure();
+                }
+                return FloorList;
+            }
+
             public IEnumerable<RampRow> Ramps()
             {
                 return RampList;
             }
         }
 
-        private static readonly double[] North = { 0, 0, 1 };
+        internal static readonly double[] North = { 0, 0, 1 };
 
-        private static SourceLink Link(string file, double[] origin, double angleDeg, bool mirrored, IModelSource inside)
+        // A link instance with a complete name and the five named parameters, so a clean link has no error lines
+        internal static Dictionary<string, object> FullParameters(string plot = "17", string prototype = "VA")
+        {
+            return ParameterBag.Collect(new Dictionary<string, object>
+            {
+                { LinkFields.Case, "C1" },
+                { LinkFields.PlotNumber, plot },
+                { LinkFields.Prototype, prototype },
+                { LinkFields.Ffl, "10.500" },
+                { LinkFields.Steps, "2" },
+            });
+        }
+
+        internal static SourceLink Link(string file, double[] origin, double angleDeg, bool mirrored, IModelSource inside)
         {
             double radians = angleDeg * Math.PI / 180;
             double c = Math.Cos(radians);
@@ -59,11 +87,13 @@ namespace SiteAdaptation.Tests
             {
                 File = file,
                 Transform = LinkMath.Describe(origin, axisX, axisY, North),
+                Name = "17 | VA | 2 | XX | XX",
+                Parameters = FullParameters(),
                 Open = () => inside,
             };
         }
 
-        private static PrototypeRow Villa(string mark, bool mirrored)
+        internal static PrototypeRow Villa(string mark, bool mirrored)
         {
             // Built the way RevitModelSource builds it, instance parameters merged over type parameters
             var instance = ParameterBag.Collect(new Dictionary<string, object>
@@ -94,15 +124,15 @@ namespace SiteAdaptation.Tests
             };
         }
 
-        private static JObject Run(IModelSource host)
+        internal static JObject Run(IModelSource host, ReaderOptions options = null)
         {
             var entry = new DocumentEntry { File = "site.rvt", Kind = "project", Prototypes = new List<PrototypeRow>() };
-            ModelReader.ReadSections(host, entry);
+            ModelReader.ReadSections(host, entry, options ?? new ReaderOptions());
             var file = new PrototypesFile { Tool = "RevitPrototypeReader", Documents = new List<DocumentEntry> { entry } };
             return (JObject)JObject.Parse(JsonOut.ToJson(file))["documents"][0];
         }
 
-        private static double[] Numbers(JToken token)
+        internal static double[] Numbers(JToken token)
         {
             return token.Select(item => (double)item).ToArray();
         }
@@ -119,13 +149,17 @@ namespace SiteAdaptation.Tests
             JToken link = document["links"].Single();
 
             Assert.Equal("Villa Prototypes.rvt", (string)link["file"]);
+            Assert.Equal("Villa Prototypes.rvt", (string)link["contentsRef"]);
+            Assert.Null(link["instances"]);
             Assert.Equal(new[] { 100.5, 200.25, 3 }, Numbers(link["transform"]["origin"]));
             Assert.Equal(30, (double)link["transform"]["rotationDeg"], 3);
             Assert.False((bool)link["transform"]["mirrored"]);
             Assert.Equal(new[] { 0.866, 0.5, 0 }, Numbers(link["transform"]["axisX"]));
             Assert.Equal(new[] { -0.5, 0.866, 0 }, Numbers(link["transform"]["axisY"]));
 
-            JToken instance = link["instances"].Single();
+            JToken file = document["linkedFiles"].Single();
+            Assert.Equal("Villa Prototypes.rvt", (string)file["file"]);
+            JToken instance = file["instances"].Single();
             Assert.Equal("Villa A", (string)instance["familyName"]);
             Assert.Equal("Type 1", (string)instance["typeName"]);
             Assert.Equal(new[] { 10.0, 5, 0 }, Numbers(instance["insertionPoint"]));
@@ -142,7 +176,7 @@ namespace SiteAdaptation.Tests
             var host = new FakeSource();
             host.LinkList.Add(Link("Villa Prototypes.rvt", new[] { 0.0, 0, 0 }, 0, false, villas));
 
-            JToken parameters = Run(host)["links"][0]["instances"][0]["parameters"];
+            JToken parameters = Run(host)["linkedFiles"][0]["instances"][0]["parameters"];
 
             Assert.Equal("V-01", (string)parameters["Mark"]);
             Assert.Equal(17, (int)parameters["Plot Number"]);
@@ -161,12 +195,13 @@ namespace SiteAdaptation.Tests
             var host = new FakeSource();
             host.LinkList.Add(Link("Mirrored Villas.rvt", new[] { -40.0, 12, 0 }, 30, true, villas));
 
-            JToken link = Run(host)["links"].Single();
+            JObject document = Run(host);
+            JToken link = document["links"].Single();
 
             Assert.True((bool)link["transform"]["mirrored"]);
             Assert.Equal(30, (double)link["transform"]["rotationDeg"], 3);
             Assert.Equal(new[] { 0.5, -0.866, 0 }, Numbers(link["transform"]["axisY"]));
-            Assert.True((bool)link["instances"][0]["mirrored"]);
+            Assert.True((bool)document["linkedFiles"][0]["instances"][0]["mirrored"]);
         }
 
         [Fact]
@@ -202,16 +237,22 @@ namespace SiteAdaptation.Tests
             var host = new FakeSource();
             host.LinkList.Add(Link("First.rvt", new[] { 0.0, 0, 0 }, 0, false, first));
 
-            JToken top = Run(host)["links"].Single();
-            JToken nested = top["links"].Single();
+            JObject document = Run(host);
+            JToken top = document["links"].Single();
+            JToken firstFile = document["linkedFiles"].Single(item => (string)item["file"] == "First.rvt");
+            JToken nested = firstFile["links"].Single();
+            JToken secondFile = document["linkedFiles"].Single(item => (string)item["file"] == "Second.rvt");
 
             Assert.Equal("First.rvt", (string)top["file"]);
+            Assert.Null(top["links"]);
             Assert.Equal("Second.rvt", (string)nested["file"]);
+            Assert.Equal("Second.rvt", (string)nested["contentsRef"]);
             Assert.Equal(90, (double)nested["transform"]["rotationDeg"], 3);
-            Assert.Equal("V-03", (string)nested["instances"][0]["parameters"]["Mark"]);
-            Assert.Null(nested["links"]);
-            Assert.Equal(2, (int)nested["deeperLinks"]);
-            Assert.DoesNotContain("Third.rvt", nested.ToString());
+            Assert.Equal("V-03", (string)secondFile["instances"][0]["parameters"]["Mark"]);
+            Assert.Null(secondFile["links"]);
+            Assert.Equal(2, (int)secondFile["deeperLinks"]);
+            Assert.Equal(2, document["linkedFiles"].Count());
+            Assert.DoesNotContain("Third", document.ToString());
         }
 
         [Fact]
@@ -225,19 +266,25 @@ namespace SiteAdaptation.Tests
             host.LinkList.Add(new SourceLink
             {
                 File = "B Broken.rvt",
+                Name = "17 | VA | 2 | XX | XX",
+                Parameters = FullParameters(),
                 Transform = LinkMath.Describe(new[] { 0.0, 0, 0 }, new[] { 1.0, 0, 0 }, new[] { 0.0, 1, 0 }, North),
                 Open = () => { throw new InvalidOperationException("boom"); },
             });
             host.LinkList.Add(Link("C Good.rvt", new[] { 0.0, 0, 0 }, 0, false, good));
 
-            JToken links = Run(host)["links"];
+            JObject document = Run(host);
+            JToken links = document["links"];
 
             Assert.Equal(3, links.Count());
             Assert.Equal("Link is not loaded", (string)links[0]["errors"][0]);
-            Assert.Empty(links[0]["instances"]);
+            Assert.Null(links[0]["contentsRef"]);
             Assert.Equal("InvalidOperationException: boom", (string)links[1]["errors"][0]);
-            Assert.Single(links[2]["instances"]);
-            Assert.Equal("instance 99: ArgumentException: bad element", (string)links[2]["errors"][0]);
+            Assert.Null(links[2]["errors"]);
+            Assert.Equal("C Good.rvt", (string)links[2]["contentsRef"]);
+            JToken file = document["linkedFiles"].Single();
+            Assert.Single(file["instances"]);
+            Assert.Equal("instance 99: ArgumentException: bad element", (string)file["errors"][0]);
         }
 
         [Fact]
@@ -263,7 +310,7 @@ namespace SiteAdaptation.Tests
             var family = new DocumentEntry { File = "villa.rfa", Kind = "family", Prototypes = new List<PrototypeRow> { Villa("F", false) } };
             family.Prototypes[0].Mirrored = null;
             string familyJson = JsonOut.ToJson(family);
-            foreach (string absent in new[] { "\"links\"", "\"walls\"", "\"ramps\"", "\"errors\"", "\"mirrored\"" })
+            foreach (string absent in new[] { "\"links\"", "\"linkedFiles\"", "\"walls\"", "\"floors\"", "\"ramps\"", "\"errors\"", "\"mirrored\"" })
             {
                 Assert.DoesNotContain(absent, familyJson);
             }
@@ -272,10 +319,12 @@ namespace SiteAdaptation.Tests
             ModelReader.ReadSections(new FakeSource(), project);
             string projectJson = JsonOut.ToJson(project);
             Assert.Contains("\"links\": []", projectJson);
+            Assert.Contains("\"linkedFiles\": []", projectJson);
             Assert.Contains("\"walls\": []", projectJson);
+            Assert.Contains("\"floors\": []", projectJson);
             Assert.Contains("\"ramps\": []", projectJson);
             Assert.DoesNotContain("\"errors\"", projectJson);
-            int[] order = new[] { "\"file\"", "\"kind\"", "\"angleToTrueNorthDeg\"", "\"prototypes\"", "\"links\"", "\"walls\"", "\"ramps\"" }
+            int[] order = new[] { "\"file\"", "\"kind\"", "\"angleToTrueNorthDeg\"", "\"prototypes\"", "\"links\"", "\"linkedFiles\"", "\"walls\"", "\"floors\"", "\"ramps\"" }
                 .Select(key => projectJson.IndexOf(key, StringComparison.Ordinal)).ToArray();
             Assert.Equal(order.OrderBy(position => position).ToArray(), order);
             Assert.DoesNotContain(-1, order);

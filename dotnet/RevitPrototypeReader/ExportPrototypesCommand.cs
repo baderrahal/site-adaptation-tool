@@ -37,7 +37,18 @@ namespace RevitPrototypeReader
                 return Result.Cancelled;
             }
 
-            IList<string> keyNames = KeyParameters.Load(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+            string folder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            IList<string> keyNames = KeyParameters.Load(folder);
+            ReaderOptions options;
+            try
+            {
+                options = ReaderOptions.Load(folder);
+            }
+            catch (ArgumentException failure)
+            {
+                TaskDialog.Show("Read Prototypes", ReaderOptions.FileName + ": " + failure.Message);
+                return Result.Failed;
+            }
             var file = new PrototypesFile
             {
                 Tool = "RevitPrototypeReader",
@@ -49,7 +60,7 @@ namespace RevitPrototypeReader
 
             if (answer == TaskDialogResult.CommandLink1 && active != null)
             {
-                file.Documents.Add(RevitExtractor.Read(active, active.Title, keyNames));
+                file.Documents.Add(RevitExtractor.Read(active, active.Title, keyNames, options));
             }
             else
             {
@@ -60,7 +71,7 @@ namespace RevitPrototypeReader
                 }
                 foreach (string path in paths)
                 {
-                    file.Documents.Add(ReadFile(app, path, keyNames));
+                    file.Documents.Add(ReadFile(app, path, keyNames, options));
                 }
             }
 
@@ -69,19 +80,23 @@ namespace RevitPrototypeReader
 
             int rows = 0;
             int links = 0;
+            int linkedFiles = 0;
             int walls = 0;
+            int floors = 0;
             int ramps = 0;
             int errors = 0;
             foreach (DocumentEntry document in file.Documents)
             {
                 rows += document.Prototypes == null ? 0 : document.Prototypes.Count;
                 links += document.Links == null ? 0 : document.Links.Count;
+                linkedFiles += document.LinkedFiles == null ? 0 : document.LinkedFiles.Count;
                 walls += document.Walls == null ? 0 : document.Walls.Count;
+                floors += document.Floors == null ? 0 : document.Floors.Count;
                 ramps += document.Ramps == null ? 0 : document.Ramps.Count;
                 errors += document.Errors == null ? 0 : document.Errors.Count;
             }
             string summary = file.Documents.Count + " document(s), " + rows + " prototype row(s), " + links + " link(s), "
-                + walls + " wall(s), " + ramps + " ramp(s).";
+                + linkedFiles + " linked file(s) read, " + walls + " wall(s), " + floors + " floor(s), " + ramps + " ramp(s).";
             if (errors > 0)
             {
                 summary += "\n" + errors + " problem(s) are listed under errors in the file.";
@@ -102,7 +117,7 @@ namespace RevitPrototypeReader
         }
 
         // A file that cannot be opened is recorded in the output with its error, and the rest still run
-        private static DocumentEntry ReadFile(RevitApp app, string path, IList<string> keyNames)
+        private static DocumentEntry ReadFile(RevitApp app, string path, IList<string> keyNames, ReaderOptions readerOptions)
         {
             Document doc = null;
             try
@@ -114,7 +129,7 @@ namespace RevitPrototypeReader
                     options.SetOpenWorksetsConfiguration(new WorksetConfiguration(WorksetConfigurationOption.OpenAllWorksets));
                 }
                 doc = app.OpenDocumentFile(ModelPathUtils.ConvertUserVisiblePathToModelPath(path), options);
-                return RevitExtractor.Read(doc, Path.GetFileName(path), keyNames);
+                return RevitExtractor.Read(doc, Path.GetFileName(path), keyNames, readerOptions);
             }
             catch (Autodesk.Revit.Exceptions.ApplicationException failure)
             {

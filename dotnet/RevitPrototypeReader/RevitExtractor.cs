@@ -9,7 +9,7 @@ namespace RevitPrototypeReader
 {
     internal static class RevitExtractor
     {
-        public static DocumentEntry Read(Document doc, string file, IList<string> keyNames)
+        public static DocumentEntry Read(Document doc, string file, IList<string> keyNames, ReaderOptions options)
         {
             var entry = new DocumentEntry
             {
@@ -25,7 +25,7 @@ namespace RevitPrototypeReader
             {
                 ReadProjectPoints(doc, entry);
                 ReadProject(doc, keyNames, entry);
-                ModelReader.ReadSections(new RevitModelSource(doc), entry);
+                ModelReader.ReadSections(new RevitModelSource(doc), entry, options);
             }
             return entry;
         }
