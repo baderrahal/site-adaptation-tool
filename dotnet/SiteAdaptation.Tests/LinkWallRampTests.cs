@@ -22,6 +22,8 @@ namespace SiteAdaptation.Tests
             public int InstanceCalls { get; private set; }
             public int FloorCalls { get; private set; }
             public List<RampRow> RampList { get; } = new List<RampRow>();
+            public List<SpotRow> SpotList { get; } = new List<SpotRow>();
+            public Func<IEnumerable<SpotRow>> SpotsFailure { get; set; }
             public Func<IEnumerable<SourceLink>> LinksFailure { get; set; }
 
             public IEnumerable<SourceLink> Links()
@@ -57,6 +59,15 @@ namespace SiteAdaptation.Tests
             public IEnumerable<RampRow> Ramps()
             {
                 return RampList;
+            }
+
+            public IEnumerable<SpotRow> SpotElevations()
+            {
+                if (SpotsFailure != null)
+                {
+                    return SpotsFailure();
+                }
+                return SpotList;
             }
         }
 
@@ -124,10 +135,11 @@ namespace SiteAdaptation.Tests
             };
         }
 
+        // The default of the reader is none (R39). The older tests here read the contents of linked files, so this helper asks for once
         internal static JObject Run(IModelSource host, ReaderOptions options = null)
         {
             var entry = new DocumentEntry { File = "site.rvt", Kind = "project", Prototypes = new List<PrototypeRow>() };
-            ModelReader.ReadSections(host, entry, options ?? new ReaderOptions());
+            ModelReader.ReadSections(host, entry, options ?? new ReaderOptions { LinkContents = LinkContents.Once });
             var file = new PrototypesFile { Tool = "RevitPrototypeReader", Documents = new List<DocumentEntry> { entry } };
             return (JObject)JObject.Parse(JsonOut.ToJson(file))["documents"][0];
         }
@@ -316,7 +328,7 @@ namespace SiteAdaptation.Tests
             }
 
             var project = new DocumentEntry { File = "site.rvt", Kind = "project", AngleToTrueNorthDeg = 1, Prototypes = new List<PrototypeRow>() };
-            ModelReader.ReadSections(new FakeSource(), project);
+            ModelReader.ReadSections(new FakeSource(), project, new ReaderOptions { LinkContents = LinkContents.Once });
             string projectJson = JsonOut.ToJson(project);
             Assert.Contains("\"links\": []", projectJson);
             Assert.Contains("\"linkedFiles\": []", projectJson);

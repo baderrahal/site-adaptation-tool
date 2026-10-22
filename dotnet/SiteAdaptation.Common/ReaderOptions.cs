@@ -5,11 +5,11 @@ using System.Linq;
 
 namespace SiteAdaptation.Common
 {
-    // once reads the contents of each linked file one time into linkedFiles. none reads no contents at all
+    // none reads the link instances only and no contents, which is the default. once reads the contents of each linked file one time into linkedFiles
     public enum LinkContents
     {
-        Once,
         None,
+        Once,
     }
 
     public class ReaderOptions
@@ -17,7 +17,7 @@ namespace SiteAdaptation.Common
         public const string FileName = "reader-options.txt";
         public const string LinkContentsFlag = "--link-contents";
 
-        public LinkContents LinkContents { get; set; } = LinkContents.Once;
+        public LinkContents LinkContents { get; set; } = LinkContents.None;
 
         // Accepts "--link-contents none" and "--link-contents=none". Anything else is an ArgumentException
         public static ReaderOptions Parse(IEnumerable<string> args)

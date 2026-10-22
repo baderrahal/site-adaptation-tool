@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace SiteAdaptation.Common
 {
@@ -12,19 +13,43 @@ namespace SiteAdaptation.Common
         public const string Ffl = "RRE_ZZ_SP_Prototype-FFL";
         public const string Steps = "RRE_ZZ_SP_Number-of-Steps";
         public const string Case = "CASE";
+        public const string RvtName = "RRE_ZZ_SP_RVT-Name";
+        private const string LocationSuffix = @"\s*:\s*location\b.*$";
+        private const string FilePrefix = " : ";
 
         private static readonly string[] PartNames = { "plot", "prototype", "steps", "facadeColor", "designOption" };
 
         public static void Apply(LinkEntry entry, string name, Dictionary<string, object> parameters, IList<string> errors)
         {
-            entry.Name = name;
+            entry.RawName = name;
             entry.Parameters = parameters;
             entry.PlotNumber = Pick(parameters, PlotNumber, errors);
             entry.Prototype = Pick(parameters, Prototype, errors);
             entry.Ffl = Pick(parameters, Ffl, errors);
             entry.Steps = Pick(parameters, Steps, errors);
             entry.Case = Pick(parameters, Case, errors);
-            entry.NameParts = Split(name, errors);
+            entry.NameParts = Split(CleanName(name, parameters), errors);
+        }
+
+        // The shared parameter RRE_ZZ_SP_RVT-Name holds the name without the file name and the location text, so it wins when it is there.
+        // Without it the file name in front of the first part and the location suffix on the last part are cut from the raw name
+        public static string CleanName(string rawName, Dictionary<string, object> parameters)
+        {
+            object shared;
+            var fromParameter = parameters != null && parameters.TryGetValue(RvtName, out shared) ? shared as string : null;
+            if (!string.IsNullOrWhiteSpace(fromParameter))
+            {
+                return fromParameter.Trim();
+            }
+            if (string.IsNullOrWhiteSpace(rawName))
+            {
+                return rawName;
+            }
+            string clean = Regex.Replace(rawName, LocationSuffix, "", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            int firstPart = clean.IndexOf(NameSeparator, System.StringComparison.Ordinal);
+            string head = firstPart < 0 ? clean : clean.Substring(0, firstPart);
+            int prefix = head.IndexOf(FilePrefix, System.StringComparison.Ordinal);
+            return prefix < 0 ? clean : clean.Substring(prefix + FilePrefix.Length);
         }
 
         public static NameParts Split(string name, IList<string> errors)

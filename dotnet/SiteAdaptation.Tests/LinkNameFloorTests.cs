@@ -55,7 +55,7 @@ namespace SiteAdaptation.Tests
             JToken link = document["links"].Single();
 
             Assert.Equal("Type A.rvt", (string)link["file"]);
-            Assert.Equal("9001 | VX1 | 1 | XX | XX", (string)link["name"]);
+            Assert.Equal("9001 | VX1 | 1 | XX | XX", (string)link["rawName"]);
             Assert.Equal("9001", (string)link["plotNumber"]);
             Assert.Equal("VX1", (string)link["prototype"]);
             Assert.Equal("10.500", (string)link["ffl"]);
@@ -202,10 +202,10 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R16_link_contents_flag_is_parsed_from_arguments_and_from_the_options_file()
+        public void R39_link_contents_flag_is_parsed_from_arguments_and_from_the_options_file()
         {
-            Assert.Equal(LinkContents.Once, new ReaderOptions().LinkContents);
-            Assert.Equal(LinkContents.Once, ReaderOptions.Parse(new string[0]).LinkContents);
+            Assert.Equal(LinkContents.None, new ReaderOptions().LinkContents);
+            Assert.Equal(LinkContents.None, ReaderOptions.Parse(new string[0]).LinkContents);
             Assert.Equal(LinkContents.None, ReaderOptions.Parse(new[] { "--link-contents", "none" }).LinkContents);
             Assert.Equal(LinkContents.Once, ReaderOptions.Parse(new[] { "--link-contents=ONCE" }).LinkContents);
             Assert.Throws<ArgumentException>(() => ReaderOptions.Parse(new[] { "--link-contents", "all" }));
@@ -216,9 +216,9 @@ namespace SiteAdaptation.Tests
             Directory.CreateDirectory(folder);
             try
             {
-                Assert.Equal(LinkContents.Once, ReaderOptions.Load(folder).LinkContents);
-                File.WriteAllText(Path.Combine(folder, ReaderOptions.FileName), "# comment\n--link-contents none\n");
                 Assert.Equal(LinkContents.None, ReaderOptions.Load(folder).LinkContents);
+                File.WriteAllText(Path.Combine(folder, ReaderOptions.FileName), "# comment\n--link-contents once\n");
+                Assert.Equal(LinkContents.Once, ReaderOptions.Load(folder).LinkContents);
             }
             finally
             {
@@ -305,7 +305,7 @@ namespace SiteAdaptation.Tests
                 TopElevation = 3.15,
                 Thickness = 0.15,
                 Area = 139.27,
-                Boundary = boundary,
+                SketchBoundary = boundary,
                 Arcs = arcs,
                 Parameters = ParameterBag.Collect(new Dictionary<string, object> { { "Mark", "F-01" }, { "Comments", "arc side" }, { "Room Bounding", 1 } }),
             });
@@ -319,8 +319,8 @@ namespace SiteAdaptation.Tests
             Assert.Equal(3.15, (double)floor["topElevation"], 3);
             Assert.Equal(0.15, (double)floor["thickness"], 3);
             Assert.Equal(139.27, (double)floor["area"], 3);
-            Assert.Equal(4, floor["boundary"].Count());
-            Assert.Equal(new[] { 10.0, 10, 0 }, LinkWallRampTests.Numbers(floor["boundary"][2]));
+            Assert.Equal(4, floor["sketchBoundary"].Count());
+            Assert.Equal(new[] { 10.0, 10, 0 }, LinkWallRampTests.Numbers(floor["sketchBoundary"][2]));
             JToken arc = floor["arcs"].Single();
             Assert.Equal(2, (int)arc["edge"]);
             Assert.Equal(new[] { 5.0, 10, 0 }, LinkWallRampTests.Numbers(arc["center"]));
