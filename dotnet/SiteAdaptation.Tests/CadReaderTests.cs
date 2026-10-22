@@ -153,6 +153,133 @@ namespace SiteAdaptation.Tests
             Assert.Throws<ArgumentException>(() => CadExtractor.Open(path, new List<string>()));
         }
 
+        private CadExtract RoundTripPlotLines(string layerName, Action<CadDocument, Layer> fill)
+        {
+            var document = new CadDocument();
+            var layer = new Layer(layerName);
+            document.Layers.Add(layer);
+            fill(document, layer);
+            string path = Path.Combine(folder, "plotlines.dxf");
+            using (var writer = new DxfWriter(path, document, false)) { writer.Write(); }
+            return CadExtractor.Extract(CadExtractor.Open(path, new List<string>()), "plotlines.dxf");
+        }
+
+        private static void AddLine(CadDocument document, Layer layer, double x1, double y1, double x2, double y2)
+        {
+            var line = new Line { StartPoint = new XYZ(x1, y1, 0), EndPoint = new XYZ(x2, y2, 0) };
+            line.Layer = layer;
+            document.Entities.Add(line);
+        }
+
+        private static List<PlotEntry> Shapes(CadExtract extract)
+        {
+            return extract.Plots.Plots.Where(plot => plot.Kind == "plot_shape").ToList();
+        }
+
+        private static List<PlotEntry> OpenPieces(CadExtract extract)
+        {
+            return extract.Plots.Plots.Where(plot => plot.Kind == "plot_open").ToList();
+        }
+
+        [Fact]
+        public void R5_plot_lines_that_meet_end_to_end_form_one_closed_shape()
+        {
+            var extract = RoundTripPlotLines("MP_PLOT_LINE", (document, layer) =>
+            {
+                AddLine(document, layer, 0, 0, 10, 0);
+                AddLine(document, layer, 10, 0, 10, 5);
+                AddLine(document, layer, 10, 5, 0, 5);
+                AddLine(document, layer, 0, 5, 0, 0);
+            });
+            var shape = Shapes(extract).Single();
+            Assert.True(shape.Closed);
+            Assert.Equal(4, shape.Vertices.Count);
+            Assert.Equal(50, shape.Area.Value, 3);
+            Assert.Equal("MP_PLOT_LINE", shape.Layer);
+            Assert.Empty(OpenPieces(extract));
+        }
+
+        [Fact]
+        public void R5_plot_line_ending_on_the_middle_of_another_splits_the_outline_into_two_shapes()
+        {
+            var extract = RoundTripPlotLines("MP_PLOT_LINE", (document, layer) =>
+            {
+                AddLine(document, layer, 0, 0, 20, 0);
+                AddLine(document, layer, 20, 0, 20, 10);
+                AddLine(document, layer, 20, 10, 0, 10);
+                AddLine(document, layer, 0, 10, 0, 0);
+                AddLine(document, layer, 10, 0, 10, 10);
+            });
+            var shapes = Shapes(extract);
+            Assert.Equal(2, shapes.Count);
+            Assert.All(shapes, shape => Assert.Equal(100, shape.Area.Value, 3));
+            Assert.All(shapes, shape => Assert.Equal(4, shape.Vertices.Count));
+        }
+
+        [Fact]
+        public void R5_plot_lines_that_cross_without_sharing_an_end_still_close_a_shape()
+        {
+            var extract = RoundTripPlotLines("MP_PLOT_LINE", (document, layer) =>
+            {
+                AddLine(document, layer, -5, 3, 15, 3);
+                AddLine(document, layer, -5, 6, 15, 6);
+                AddLine(document, layer, 2, -5, 2, 15);
+                AddLine(document, layer, 8, -5, 8, 15);
+            });
+            var shape = Shapes(extract).Single();
+            Assert.Equal(18, shape.Area.Value, 3);
+            Assert.Equal(4, OpenPieces(extract).Count);
+        }
+
+        [Fact]
+        public void R5_plot_line_arc_closes_a_shape_and_is_listed_with_its_centre_and_radius()
+        {
+            var extract = RoundTripPlotLines("MP_PLOT_LINE", (document, layer) =>
+            {
+                AddLine(document, layer, -5, 0, 5, 0);
+                var arc = new Arc { Center = new XYZ(0, 0, 0), Radius = 5, StartAngle = 0, EndAngle = Math.PI };
+                arc.Layer = layer;
+                document.Entities.Add(arc);
+            });
+            var shape = Shapes(extract).Single();
+            Assert.Equal(Math.PI * 25 / 2, shape.Area.Value, 2);
+            Assert.Equal(2, shape.Vertices.Count);
+            var arcEntry = shape.Arcs.Single();
+            Assert.Equal(5, arcEntry.Radius, 3);
+            Assert.Equal(0, arcEntry.Center[0], 3);
+            Assert.Equal(0, arcEntry.Center[1], 3);
+        }
+
+        [Fact]
+        public void R5_plot_line_that_bounds_nothing_is_kept_as_an_open_piece()
+        {
+            var extract = RoundTripPlotLines("MP_PLOT_LINE", (document, layer) =>
+            {
+                AddLine(document, layer, 0, 0, 10, 0);
+                AddLine(document, layer, 10, 0, 10, 5);
+                AddLine(document, layer, 10, 5, 0, 5);
+                AddLine(document, layer, 0, 5, 0, 0);
+                AddLine(document, layer, 20, 0, 30, 0);
+            });
+            Assert.Single(Shapes(extract));
+            var open = OpenPieces(extract).Single();
+            Assert.False(open.Closed.Value);
+            Assert.Equal(new[] { 20.0, 0.0, 30.0, 0.0 }, open.Segments.Single());
+        }
+
+        [Fact]
+        public void R5_lines_on_other_layers_are_not_plot_shapes()
+        {
+            var extract = RoundTripPlotLines("OTHER", (document, layer) =>
+            {
+                AddLine(document, layer, 0, 0, 10, 0);
+                AddLine(document, layer, 10, 0, 10, 5);
+                AddLine(document, layer, 10, 5, 0, 5);
+                AddLine(document, layer, 0, 5, 0, 0);
+            });
+            Assert.Empty(extract.Plots.Plots);
+        }
+
         [Fact]
         public void MText_cleaner_strips_underline_toggles_fonts_and_braces()
         {
