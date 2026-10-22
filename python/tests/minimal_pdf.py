@@ -1,8 +1,11 @@
-def build_pdf(text_items, lines, rects, width=200, height=200):
-    """Smallest valid one page PDF. text_items are (x, y, text), y from the bottom."""
+def build_pdf(text_items, lines, rects, width=200, height=200, font_size=12, extra_ops=()):
+    """Smallest valid one page PDF. text_items are (x, y, text) or (x, y, text, size), y from the bottom."""
     content = []
-    for x, y, text in text_items:
-        content.append("BT /F1 12 Tf " + str(x) + " " + str(y) + " Td (" + text + ") Tj ET")
+    for item in text_items:
+        x, y, text = item[:3]
+        size = item[3] if len(item) > 3 else font_size
+        content.append("BT /F1 " + str(size) + " Tf " + str(x) + " " + str(y) + " Td (" + text + ") Tj ET")
+    content.extend(extra_ops)
     for x1, y1, x2, y2 in lines:
         content.append(str(x1) + " " + str(y1) + " m " + str(x2) + " " + str(y2) + " l S")
     for x, y, w, h in rects:
