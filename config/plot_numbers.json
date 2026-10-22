@@ -1,0 +1,9 @@
+{
+  "note": "The PDF and Excel plot numbers are official. The baseplan CAD labels are lower. Official number minus shift gives the CAD label, so CAD label plus shift gives the official number. Measured on the full run, a few edge plots sit one more or one less.",
+  "neighbourhoods": {
+    "IMC": {"shift": 10},
+    "IMD": {"shift": 11}
+  },
+  "sourceCodePattern": "-(IMC|IMD)-",
+  "searchRange": 1
+}

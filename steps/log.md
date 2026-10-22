@@ -2,42 +2,50 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
-## Round 5, 2026-10-22, Revit link names, shared parameters and floors
+## Round 6, 2026-10-22, plot number shift, second source, no type check
 
 Done:
-- Branch round/link-names-floors. Changed dotnet/RevitPrototypeReader, dotnet/SiteAdaptation.Common, the tests, docs/rules.md (R16 and R17 rewritten, R27 new), README.md and CLAUDE.md. Not touched: dotnet/CadReader, python/excel_reader.py, python/pdf_reader.py
-- THIS CANNOT BE PROVEN AGAINST THE REAL FILE. There was no Revit here. The Revit API code (RevitModelSource.cs) compiles against the Revit 2024 API package and has never run. The tests prove the reader logic and the JSON shape on test doubles. Bader must rebuild, reinstall and run it in Revit to confirm anything about the real model
-- Item 1, link data. Every link entry, loaded or not, now has name, parameters (every instance parameter, text included), plotNumber, prototype, ffl, steps, case and nameParts. A missing or blank value is written as an explicit null and a line is added to that entry's errors. Name with fewer or more than 5 parts also adds a line. file, transform and errors are as before. A link whose transform, name or one parameter fails to read now stays in the list with a problem line, before it was dropped
-- Item 2, small output. New top level linkedFiles, one entry per file name, read from the first loaded link of that file. Each link keeps contentsRef. Links inside a file now sit under its linkedFiles entry and not under every link. Flag --link-contents none|once, default once. An add-in has no command line, so the flag is read from reader-options.txt next to the DLL, or from ReaderOptions.Parse in tests. Dummy case, 90 links to 3 files with 61 instances each: 237879 characters with once, 4473767 characters with the contents copied into every link, 19 times smaller
-- Item 3, floors. New floors array after walls: type name, level, heightOffset, topElevation, thickness, area, boundary, arcs and all instance parameters. boundary is the outer loop (largest area) as vertices, arcs hold edge index, centre, radius and ccw. Only floors in the host are read. Walls and ramps unchanged
-- Item 4, python/link_summary.py with 10 tests on dummy json built in code. It loads with an object hook that drops the repeated contents, so the 223 MB file loads in 2 seconds
-- Real file run, old shape, 223 MB: 338 links, 289 not loaded, 14 distinct files, 167 mirrored links, 5 distinct rotation values. Second method, grep on the raw text: 651 not loaded lines and 700 transforms, which is 289 + 362 and 338 + 362, so 362 nested link entries and all of them not loaded. The script counts host links only
-- NOT COMPUTED on the real file, the old shape has no such fields: links per prototype parameter, mirrored per prototype, CASE against mirrored and against rotation, Prototype-FFL against origin Z, repeated plot numbers and the plot name check
-- Mutation check: making the reader read every link made the two read once tests fail, then it was put back
-- Gate: build 0 errors, .NET 77 passed (63 before), Python 70 passed (60 before)
+- Branch fix/plot-shift. Not touched: dotnet/RevitPrototypeReader and the Revit branch. This session started in C:\Users\bader, outside the repo, so the main guard hook was NOT live. I worked on the branch and never committed to main. Main did not move during the round
+- Shift config (R28): config/plot_numbers.json holds IMC 10, IMD 11, the direction in a note, the file name pattern and a search range of 1. The link table joins the official number to the CAD label at number minus shift, runs the same location check at 1 m and tries the shifts one lower and one higher for a plot that fails. New conflict kinds: shift_edge, cad_claimed_twice, cad_unclaimed, no_neighbourhood, neighbourhood_mixed, not_numeric
+- Real files: 734 of 746 joined plots pass the location check (IMC 328 of 337, IMD 406 of 409). shiftFound differs from the config for 0 plots, so conflicts.json has no shift_edge. The 3 edge plots at plus 12 from the last run did not show up. No plot gets a better fit from a shift one lower or higher. Widened to 3 lower and higher for the 12 failures, no shift brings any of them within 1 m. The best other shift gains only 1.2 m for plot 1384 and 0.4 m for plot 1401
+- Type check (R30): CAD plot type is now the info field cadType. PDF unit type equals Excel unit on all 746
+- Skip list (R29): R06 and R06_0001 are skipped with their reasons in full_run_summary.json. Full run: 26 of 26 files ran (11 DWG, 12 PDF, 2 schedule workbooks, the masterplan workbook), the link, second source and face stages ran ok
+- Checked decision C against the old outputs. R06_0001 equals R06_0000 (731 layers with equal counts, 121042 of 121042 handles equal). R06 has 45 model space entities but they explode to 140064 pieces and only 1 insert points at the missing xref, so it is not empty after exploding. The skip stays as decided
+- Second source (R31), R06_0000 against the baseplan: 3757 faces (1053 repeats removed) against 2991. Matched 2657, only baseplan 334, only R06_0000 1100, 32 matched faces differ in area by more than 1 percent. 696 of the 1100 hold two or more baseplan faces
+- Masterplan workbook (R32): 9 sheets, header rows 14 (2 sheets), 3 (5 sheets), 2 (2 sheets), rows 128, 128, 123, 75, 60, 127, 97, 97, 97. No sheet has a plot number column, only Plot Count and No. of plots. It is a land use summary with no per plot rows, so the numbering test cannot run on it
+- Other faces and stray labels (R33): 29 faces are 17 many_labels (15 consecutive runs, 1 run plus an outlier, 1 not consecutive) and 12 no_label (1 sliver, 4 small, 7 large). All 18 stray labels are road or buffer labels (12 ROW Internal, 4 ROW External, 2 Buffer Area), numbers 3134 to 3153, 6.5 to 32.5 m from the nearest face. No stray label lies within 30 m of a no_label face
+- Second method: shapely on the plots.json faces and the raw PDF points with its own shift search gives 734 ok and 12 bad, shift differs 0, and 0 plots where it disagrees with the link table. Six random plots (2587, 1508, 2480, 1435, 1320, 1192): every PDF row is in the PDF text, every Excel row matches the raw cell for plot and unit, PDF unit equals Excel unit, CAD area equals the link
+- Mutation check: search range off made 2 shift tests fail, skip list off made 2 skip tests fail, both put back. shapely 2.2.0 added to requirements.txt
+- Gate: Python 96 passed (70 before), .NET 77 passed, build 0 errors
 
 Remains:
-- The Revit run on the real model, by Bader. Nothing new is confirmed until then
+- Revit run on the real model, by Bader. Placement work. A look at the 12 failures and the 17 many label faces
 
 Known bugs:
-- UNPROVEN Revit API behaviour: RevitLinkInstance.Name may not give the text shown as Name in Properties. Floor.SketchId and Sketch.Profile for the loops. The arc sweep from Arc.Normal. Level elevation plus offset as the floor top. Thickness and area parameters
-- A floor with no sketch gets no boundary and a line in errors. Foundation slabs are Floor elements too and are included
-- Floor coordinates are internal, like every other point, not survey coordinates
-- link_summary reads ffl as metres and only as a plain number. It counts host links, not the 362 nested ones. In the new shape nested entries sit under linkedFiles
-- Added beyond the brief: nested link entries are read once per file, a plot name check in the summary, linked file counts in the Revit dialog, per parameter read failures on a link kept as problem lines
-- Links are now sorted by file name and then name
-- Still open and untouched: the items under Round 4 and earlier
+- 12 plots fail the location check with their config shift: 1278, 1384, 1401, 2311, 2312, 2377, 2388, 2544, 2545, 2548, 2549, 2589. Ten have unit corners 1.4 to 20 m outside the plot. In 8 of them most points lie in the config plot, in 2312 and 2544 most points lie in the plot one number lower
+- Plot 2549 sheet 009027 block 4 row 129 code 5 has a point millions of metres off, same kind as plot 2589 on sheet 009028. The odd list only catches a missing decimal point, so 2549 is not in it
+- Plot 1453 has an Excel row and no PDF rows. 4 PDF plots repeat a point code, 58 plots sit on 2 or more sheets
+- Old output folders of R06 and R06_0001 stay in sample_output/full_run from the last run and are not used
+- Still open: unclosed face and plot_open pieces, arc crossings not noded, Civil 3D surfaces, Revit not run
 
 Next:
-- Bader runs the add-in and sends back prototypes.json, then the shape and values are checked against the model, link by link
-- Run link_summary.py on that file and read the CASE, mirror and rotation tables
+- Decide the 12 failures and the 17 many label faces, then placement only after the Revit result is in
 
 Your turn:
-1. Rebuild the add-in, copy the new files into the Revit Addins folder as before, and run it on the attached site model, with the links loaded if possible, and send back prototypes.json
-2. Does name on a link entry match the Name shown in Revit for the same link? Recommended: check three links and tell me
-3. Is Prototype-FFL in metres? Recommended: yes, tell me if it is millimetres and I change the summary
-4. Keep foundation slabs in floors? Recommended: keep, filter later by type name
-5. Count nested links in the summary? Recommended: no, they are all unloaded in the old run
+1. Plots 1278, 1384, 1401, 2311, 2312, 2377, 2388, 2544, 2545, 2548 have unit corners 1.4 to 20 m outside the plot. Can unit corners lie outside the plot edge? Recommended: look at 3 of them in CAD with me before the tolerance changes
+2. Sheet 009027 plot 2549 code 5 and sheet 009028 plot 2589 code 2 hold bad northing values. Recommended: tell the drawing owner, I keep them as found
+3. R06.dwg is not empty after exploding (140064 pieces). Keep the skip? Recommended: yes, R06_0000 stays the only Master Plan drawing
+4. 696 of the 1100 faces only in R06_0000 hold two or more baseplan faces, so R06_0000 is less subdivided there. Which is the master for plot faces? Recommended: the baseplan
+5. The masterplan workbook has no per plot rows. Recommended: it is a summary, send a per plot Master Plan schedule if one exists
+6. The 18 stray labels are road and buffer labels with no face. Recommended: leave them, filter them by the ROW and Buffer words
+7. The 15 many label faces hold consecutive plot numbers, so lines between those plots are probably missing in the baseplan. Recommended: send the CAD owner the list in sample_output/full_run/other_faces
+8. Revit still waits for you, steps are in steps/history/round-5-revit.md
+
+## Round 5, 2026-10-22, Revit link names, shared parameters and floors
+
+Stub. The full entry is in steps/history/round-5-revit.md.
+- Link names, shared parameters, floors and link_summary.py were added and merged as PR 6. The Revit API code has never run in Revit, so nothing new is confirmed until Bader runs it. Gate then: Python 70 passed, .NET 77 passed
+- Open for Bader: rebuild and run the add-in, send prototypes.json, check three link names, Prototype-FFL units, foundation slabs, nested links
 
 ## Round 4, 2026-10-22, explode, label join, PDF rows, full run
 

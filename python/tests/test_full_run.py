@@ -28,10 +28,10 @@ def test_r25_plan_reads_the_three_dwg_folders_and_skips_output_bak_and_lock_file
     jobs, skipped = full_run.plan(tmp_path)
     assert [(kind, path.name) for kind, path in jobs] == [
         ("dwg", "a.dwg"), ("dwg", "b.DWG"), ("dwg", "m.dwg"), ("dwg", "r.dwg"),
-        ("pdf", "s1.pdf"), ("pdf", "s2.pdf"), ("xlsx", "w.xlsx"),
+        ("pdf", "s1.pdf"), ("pdf", "s2.pdf"), ("xlsx", "w.xlsx"), ("survey", "plan.xlsx"),
     ]
     reasons = {entry["file"]: entry for entry in skipped}
-    assert "c.bak" in reasons and "m.bak" in reasons and "plan.xlsx" in reasons
+    assert "c.bak" in reasons and "m.bak" in reasons and "plan.xlsx" not in reasons
     assert reasons["~$w.xlsx"]["why"] == "Excel lock file"
     assert reasons["DWG files under 01_Output"]["count"] == 2
 
@@ -89,3 +89,49 @@ def test_r25_run_carries_on_after_a_failed_file_and_writes_one_folder_per_file(t
     assert "Sheet 'MP_Phase 1_Zone21' not found" in failed["error"]
     assert (out / "a.pdf" / "pdf_rows.json").exists()
     assert (out / "good.xlsx" / "coords.json").exists()
+
+
+def test_r29_the_two_skipped_master_plan_drawings_are_listed_with_a_reason_and_not_read(tmp_path):
+    for name in ("221229_MP-SK-01-03-001_R06.dwg", "221229_MP-SK-01-03-001_R06_0000.dwg", "221229_MP-SK-01-03-001_R06_0001.dwg"):
+        touch(tmp_path / "Master Plan" / name)
+    jobs, skipped = full_run.plan(tmp_path, ("dwg",))
+    assert [path.name for _, path in jobs] == ["221229_MP-SK-01-03-001_R06_0000.dwg"]
+    reasons = {entry["file"]: entry["why"] for entry in skipped}
+    assert "xref" in reasons["221229_MP-SK-01-03-001_R06.dwg"]
+    assert "Identical copy" in reasons["221229_MP-SK-01-03-001_R06_0001.dwg"]
+    assert "221229_MP-SK-01-03-001_R06_0000.dwg" not in reasons
+
+
+def test_r29_skip_reasons_reach_full_run_summary_json(tmp_path):
+    root = tmp_path / "real"
+    touch(root / "Master Plan/221229_MP-SK-01-03-001_R06_0001.dwg")
+    out = tmp_path / "out"
+    assert full_run.main([str(root), str(out), "--kinds", "dwg"]) == 0
+    summary = json.loads((out / "full_run_summary.json").read_text(encoding="utf-8"))
+    assert summary["files"] == 0
+    skipped = {entry["file"]: entry["why"] for entry in summary["skipped"]}
+    assert skipped["221229_MP-SK-01-03-001_R06_0001.dwg"].startswith("Decision C")
+
+
+def test_r25_stages_run_only_when_their_inputs_exist_and_say_why_when_they_do_not(tmp_path):
+    none = full_run.stage_commands(tmp_path, [], "second.dwg", "shifts.json")
+    assert [stage["why"] for stage in none] == ["no baseplan output"] * 3
+    touch(tmp_path / full_run.BASEPLAN / "plots.json")
+    touch(tmp_path / "s.pdf" / "pdf_rows.json")
+    touch(tmp_path / "w.xlsx" / "coords.json")
+    touch(tmp_path / "a.dwg" / "layers.json")
+    touch(tmp_path / "second.dwg" / "pieces.json")
+    ran = ["s.pdf", "w.xlsx", "a.dwg", full_run.BASEPLAN, "second.dwg"]
+    stages = {stage["name"]: stage for stage in full_run.stage_commands(tmp_path, ran, "second.dwg", "shifts.json")}
+    link = stages["link"]["args"]
+    assert "shifts.json" in link and str(tmp_path / "s.pdf" / "pdf_rows.json") in link
+    assert str(tmp_path / "a.dwg" / "layers.json") in link
+    assert str(tmp_path / full_run.BASEPLAN / "layers.json") not in link
+    assert "args" in stages["second_source"] and "args" in stages["other_faces"]
+    no_second = {stage["name"]: stage for stage in full_run.stage_commands(tmp_path, ["s.pdf", "w.xlsx"], "missing.dwg", "shifts.json")}
+    assert no_second["second_source"]["why"] == "no output for missing.dwg"
+
+
+def test_r32_survey_job_gets_the_baseplan_plots_and_the_shift_config(tmp_path):
+    args = full_run.command("survey", tmp_path / "m.xlsx", tmp_path / "out", "cad.exe", "layers.json", "sheet", tmp_path / "plots.json", "shifts.json")
+    assert "--survey" in args and str(tmp_path / "plots.json") in args and "shifts.json" in args
