@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Command">
+    <Name>Read Prototypes</Name>
+    <Assembly>C:\Path\To\RevitPrototypeReader.dll</Assembly>
+    <FullClassName>RevitPrototypeReader.ExportPrototypesCommand</FullClassName>
+    <AddInId>895f6ce7-9b1d-4b94-bf39-608da3e13c01</AddInId>
+    <AvailabilityClassName>RevitPrototypeReader.AlwaysAvailable</AvailabilityClassName>
+    <VendorId>SITEADAPT</VendorId>
+    <VendorDescription>Site Adaptation Tool</VendorDescription>
+  </AddIn>
+</RevitAddIns>
