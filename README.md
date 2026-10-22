@@ -12,7 +12,7 @@ Phase 1 to 3. There is no placement logic yet.
 | Link table | Python | links.json, conflicts.json, extents.json |
 | Full run | Python | one folder per file, full_run_summary.json |
 
-For a project file the Revit reader also writes the Revit links with the family instances inside them, the walls and the ramps (rules R16 and R17).
+For a project file the Revit reader also writes the Revit links with their names and parameters, the contents of each linked file once, the walls, the floors and the ramps (rules R16 and R17).
 
 Every reader only reads. None of them changes a model, a drawing, a PDF or a workbook.
 The rules are in [docs/rules.md](docs/rules.md). The working agreement is in [CLAUDE.md](CLAUDE.md).
@@ -52,12 +52,22 @@ Edit it to change what is written. Without --layers the reader uses cad_layers.j
 Each file runs in place with a time limit of 600 seconds. A failure or a timeout is recorded and the run goes on.
 sample_output is ignored by git.
 
+## Count the links
+
+```
+.venv\Scripts\python python\link_summary.py prototypes.json out
+```
+
+Prints the counts and writes out\link_summary.json (rule R27).
+
 ## Install the Revit add-in
 
 Build the solution, then copy `dotnet\RevitPrototypeReader\bin\Release\net48\` and
 `dotnet\RevitPrototypeReader\SiteAdaptation.addin` to
 `%APPDATA%\Autodesk\Revit\Addins\2024\`. Edit the Assembly line in the .addin file to the full path of
 `RevitPrototypeReader.dll`.
+
+To leave out the contents of the linked files, put the line `--link-contents none` in a file named reader-options.txt next to the DLL. The default is `--link-contents once`.
 
 ## Tests
 

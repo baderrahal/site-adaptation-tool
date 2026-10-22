@@ -5,9 +5,9 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 ## State
 
 - Round 4 (CAD, PDF, Excel) done on branch feat/explode-join-rows. Extraction only, no placement logic.
-- Revit round 4 (links, walls, ramps) was merged separately as PR 4 and still needs a run by Bader.
+- Revit round 4 (links, walls, ramps) was merged separately as PR 4. Round 5 adds link names and parameters, linkedFiles, floors and python/link_summary.py. Neither has run in Revit.
 - Readers: CAD (C#, ACadSharp), PDF (pdfplumber), Excel (openpyxl), link table and full run script (Python).
-- Gate: Python 60 passed, .NET 63 passed.
+- Gate: Python 70 passed, .NET 77 passed.
 - Real files stay in C:\02-Site Adaptation and are read in place. Nothing real is in git.
 - The full run covered 13 DWG, 12 PDF and 2 workbooks, 27 of 27 ran, outputs in sample_output/full_run.
 
@@ -29,7 +29,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 ## Bader's turn
 
 1. Answer the numbered questions in the top entry of steps/log.md, the first is the number shift.
-2. Run the Revit add-in by hand and send back prototypes.json.
+2. Rebuild the add-in, run it on the site model with the links loaded if possible and send back prototypes.json.
 
 ## Next three steps
 
