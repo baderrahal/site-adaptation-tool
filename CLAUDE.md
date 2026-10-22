@@ -40,6 +40,7 @@ The full text is docs/rules.md. Ids are the contract, a test names the id it pro
 - R12 Every rule has a test whose name carries the rule id.
 - R16 and R17 cover the Revit links, walls, floors and ramps. R27 covers the link summary. R18 to R26 cover the main guard, explode, layer filter, texts and xrefs, plot labels, PDF rows, the link table, the full run and the harness files.
 - R28 to R33 cover the plot number shift, the Master Plan skip list, the dropped plot type check, the second source check, the workbook survey and the face reasons.
+- R34 to R39 cover the floor corners, the corner source and slope, the spot elevations, the floor and wall plot numbers, the link name parse and the link contents default.
 - R40 to R46 cover the LandXML reader, invisible faces, the surface lookup, the surface roles, the ramp road levels, the gap bands and the road stages with their second check.
 
 ## Real files

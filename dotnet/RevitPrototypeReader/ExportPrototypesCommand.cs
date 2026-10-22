@@ -84,7 +84,9 @@ namespace RevitPrototypeReader
             int walls = 0;
             int floors = 0;
             int ramps = 0;
+            int spots = 0;
             int errors = 0;
+            var tally = new FloorTally();
             foreach (DocumentEntry document in file.Documents)
             {
                 rows += document.Prototypes == null ? 0 : document.Prototypes.Count;
@@ -93,10 +95,20 @@ namespace RevitPrototypeReader
                 walls += document.Walls == null ? 0 : document.Walls.Count;
                 floors += document.Floors == null ? 0 : document.Floors.Count;
                 ramps += document.Ramps == null ? 0 : document.Ramps.Count;
+                spots += document.SpotElevations == null ? 0 : document.SpotElevations.Count;
+                if (document.Floors != null)
+                {
+                    FloorTally part = FloorMath.Tally(document.Floors);
+                    tally.Floors += part.Floors;
+                    tally.ShapeEditing += part.ShapeEditing;
+                    tally.Slope += part.Slope;
+                    tally.Neither += part.Neither;
+                }
                 errors += document.Errors == null ? 0 : document.Errors.Count;
             }
             string summary = file.Documents.Count + " document(s), " + rows + " prototype row(s), " + links + " link(s), "
-                + linkedFiles + " linked file(s) read, " + walls + " wall(s), " + floors + " floor(s), " + ramps + " ramp(s).";
+                + linkedFiles + " linked file(s) read, " + walls + " wall(s), " + floors + " floor(s), " + ramps + " ramp(s), " + spots + " spot elevation(s).";
+            summary += "\nFloors: " + tally.ShapeEditing + " use shape editing, " + tally.Slope + " report a slope, " + tally.Neither + " use neither.";
             if (errors > 0)
             {
                 summary += "\n" + errors + " problem(s) are listed under errors in the file.";

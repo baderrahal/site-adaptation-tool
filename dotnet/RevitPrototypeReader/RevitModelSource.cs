@@ -158,16 +158,127 @@ namespace RevitPrototypeReader
             };
             List<double[]> boundary;
             List<FloorArc> arcs;
-            if (FloorMath.TryOuter(BoundaryLoops(floor), out boundary, out arcs))
+            List<double[]> ends;
+            if (FloorMath.TryOuter(BoundaryLoops(floor), out boundary, out arcs, out ends))
             {
-                row.Boundary = boundary;
+                row.SketchBoundary = boundary;
                 row.Arcs = arcs.Count > 0 ? arcs : null;
+                row.BoundaryEnds = ends;
             }
             else
             {
                 Errors.Add("floor " + floor.Id.Value + ": no boundary found");
             }
+            row.Shape = ShapeOf(floor);
+            row.Slope = SlopeOf(floor);
             return row;
+        }
+
+        // Slab shape editing gives the real corner levels. The editor is null for a floor that is not flat and horizontal,
+        // and a failure is noted and leaves the floor to the boundary fallback
+        private ShapeEditing ShapeOf(Floor floor)
+        {
+            try
+            {
+                SlabShapeEditor editor = floor.GetSlabShapeEditor();
+                if (editor == null || !editor.IsEnabled)
+                {
+                    return new ShapeEditing { Enabled = false };
+                }
+                var shape = new ShapeEditing { Enabled = true, Corners = new List<double[]>(), Others = new List<double[]>() };
+                foreach (SlabShapeVertex vertex in editor.SlabShapeVertices)
+                {
+                    double[] point = RevitExtractor.Metres(vertex.Position);
+                    (vertex.VertexType == SlabShapeVertexType.Corner ? shape.Corners : shape.Others).Add(point);
+                }
+                return shape;
+            }
+            catch (Exception failure)
+            {
+                Errors.Add("floor " + floor.Id.Value + " shape editing: " + ModelReader.Describe(failure));
+                return null;
+            }
+        }
+
+        // The Slope parameter as Revit holds it, and whether the floor sketch holds a slope arrow
+        private SlopeInfo SlopeOf(Floor floor)
+        {
+            var info = new SlopeInfo();
+            Parameter parameter = floor.get_Parameter(BuiltInParameter.ROOF_SLOPE) ?? floor.LookupParameter("Slope");
+            if (parameter != null && parameter.HasValue)
+            {
+                info.Parameter = RevitExtractor.ParameterValue(parameter);
+            }
+            try
+            {
+                var sketch = document.GetElement(floor.SketchId) as Sketch;
+                info.Arrow = sketch == null ? (bool?)null : HasSlopeArrow(sketch);
+            }
+            catch (Exception failure)
+            {
+                Errors.Add("floor " + floor.Id.Value + " slope arrow: " + ModelReader.Describe(failure));
+            }
+            return info;
+        }
+
+        // A slope arrow is the sketch element that carries the tail height or tail level of a slope
+        private bool HasSlopeArrow(Sketch sketch)
+        {
+            foreach (ElementId id in sketch.GetAllElements())
+            {
+                Element item = document.GetElement(id);
+                if (item != null && (item.get_Parameter(BuiltInParameter.SLOPE_START_HEIGHT) != null || item.get_Parameter(BuiltInParameter.SLOPE_ARROW_LEVEL_START) != null))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Spot dimensions of the style spot elevation. Value and ValueString of the API are empty for spots,
+        // so the shown value is read from the top or bottom value parameter of the annotation
+        public IEnumerable<SpotRow> SpotElevations()
+        {
+            var rows = new List<SpotRow>();
+            foreach (SpotDimension spot in new FilteredElementCollector(document).OfClass(typeof(SpotDimension)).Cast<SpotDimension>())
+            {
+                try
+                {
+                    if (spot.DimensionType == null || spot.DimensionType.StyleType != DimensionStyleType.SpotElevation)
+                    {
+                        continue;
+                    }
+                    rows.Add(new SpotRow
+                    {
+                        ElementId = spot.Id.Value,
+                        Origin = RevitExtractor.Metres(spot.Origin),
+                        Value = MetresOf(spot, BuiltInParameter.SPOT_ELEV_TOP_VALUE) ?? MetresOf(spot, BuiltInParameter.SPOT_ELEV_BOT_VALUE),
+                        View = spot.View == null ? null : spot.View.Name,
+                        Target = TargetOf(spot),
+                    });
+                }
+                catch (Exception failure)
+                {
+                    Errors.Add("spot elevation " + spot.Id.Value + ": " + ModelReader.Describe(failure));
+                }
+            }
+            return rows.OrderBy(row => row.ElementId).ToList();
+        }
+
+        private static long? TargetOf(SpotDimension spot)
+        {
+            if (!spot.AreReferencesAvailable)
+            {
+                return null;
+            }
+            foreach (Reference reference in spot.References)
+            {
+                if (reference.ElementId != ElementId.InvalidElementId)
+                {
+                    return reference.ElementId.Value;
+                }
+            }
+            return null;
         }
 
         private double? ThicknessOf(Floor floor)

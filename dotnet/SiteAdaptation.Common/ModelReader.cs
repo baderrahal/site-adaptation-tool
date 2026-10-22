@@ -26,11 +26,74 @@ namespace SiteAdaptation.Common
             entry.Walls = Guard("walls", errors, () => host.Walls().ToList());
             entry.Floors = Guard("floors", errors, () => host.Floors().ToList());
             entry.Ramps = Guard("ramps", errors, () => host.Ramps().ToList());
+            entry.SpotElevations = Guard("spotElevations", errors, () => host.SpotElevations().ToList());
+            foreach (WallRow wall in entry.Walls)
+            {
+                ReadWallPlot(wall, errors);
+            }
+            foreach (FloorRow floor in entry.Floors)
+            {
+                ReadFloorPlot(floor, errors);
+                ChooseCorners(floor, errors);
+            }
             errors.AddRange(host.Errors);
             if (errors.Count > 0)
             {
                 entry.Errors = errors;
             }
+        }
+
+        // A floor always gets plotNumber and unit, null when the Plot parameter is missing or does not parse, with a line in errors
+        private static void ReadFloorPlot(FloorRow floor, IList<string> errors)
+        {
+            object value = null;
+            bool has = floor.Parameters != null && floor.Parameters.TryGetValue(PlotParts.ParameterName, out value);
+            string unit;
+            string number;
+            if (PlotParts.TryParse(value, out unit, out number))
+            {
+                floor.Unit = unit;
+                floor.PlotNumber = number;
+                return;
+            }
+            errors.Add("floor " + floor.ElementId + ": " + (has ? "Plot parameter does not read as unit and number" : "Plot parameter is missing"));
+        }
+
+        // A wall gets plotNumber and unit only when it holds a Plot parameter
+        private static void ReadWallPlot(WallRow wall, IList<string> errors)
+        {
+            object value;
+            if (wall.Parameters == null || !wall.Parameters.TryGetValue(PlotParts.ParameterName, out value))
+            {
+                return;
+            }
+            string unit;
+            string number;
+            if (PlotParts.TryParse(value, out unit, out number))
+            {
+                wall.Unit = unit;
+                wall.PlotNumber = number;
+                return;
+            }
+            errors.Add("wall " + wall.ElementId + ": Plot parameter does not read as unit and number");
+        }
+
+        // Real corner levels, from shape editing when it is on and from the outer loop end points otherwise
+        private static void ChooseCorners(FloorRow floor, IList<string> errors)
+        {
+            List<double[]> corners;
+            string source;
+            if (FloorMath.TryCorners(floor.Shape, floor.BoundaryEnds, floor.TopElevation, out corners, out source))
+            {
+                floor.Corners = corners;
+                floor.CornersSource = source;
+                if (source == FloorMath.FromShapeEditor && floor.Shape.Others != null && floor.Shape.Others.Count > 0)
+                {
+                    floor.ShapePoints = floor.Shape.Others;
+                }
+                return;
+            }
+            errors.Add("floor " + floor.ElementId + ": no corners found");
         }
 
         // Reads the link entries and, in once mode, the contents of each distinct file from its first loaded link.

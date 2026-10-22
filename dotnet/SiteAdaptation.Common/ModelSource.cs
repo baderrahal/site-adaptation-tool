@@ -20,6 +20,9 @@ namespace SiteAdaptation.Common
         IEnumerable<FloorRow> Floors();
 
         IEnumerable<RampRow> Ramps();
+
+        // Spot elevation annotations of this document
+        IEnumerable<SpotRow> SpotElevations();
     }
 
     public class SourceLink
