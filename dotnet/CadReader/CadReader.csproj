@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>CadReader</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ACadSharp" Version="3.8.0" />
+    <ProjectReference Include="..\SiteAdaptation.Common\SiteAdaptation.Common.csproj" />
+  </ItemGroup>
+</Project>

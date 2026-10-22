@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RevitPrototypeReader</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="2024.3.60" ExcludeAssets="runtime" />
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="2024.3.60" ExcludeAssets="runtime" />
+    <ProjectReference Include="..\SiteAdaptation.Common\SiteAdaptation.Common.csproj" />
+    <Reference Include="System.Windows.Forms" />
+    <None Include="SiteAdaptation.addin" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
