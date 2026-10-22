@@ -260,6 +260,7 @@ def build(plots, rows_files, coords_files, tolerance=EDGE_TOLERANCE):
         "pdf": len(pdf),
         "excel": len(excel),
         "all3": len(both),
+        "pdfMultiSheet": sum(1 for rows in pdf.values() if len({row["sheet"] for row in rows}) > 1),
         "located": len(located),
         "locationOk": sum(1 for item in located if item["ok"]),
         "locationBad": sum(1 for item in located if not item["ok"]),

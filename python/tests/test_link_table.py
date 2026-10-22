@@ -141,3 +141,12 @@ def test_r22_main_writes_links_conflicts_and_extents_and_keeps_four_decimals(tmp
     assert links["links"][0]["excel"]["ffl"] == 10.5
     assert json.loads((out / "conflicts.json").read_text(encoding="utf-8"))["conflicts"] == []
     assert json.loads((out / "extents.json").read_text(encoding="utf-8"))["pdfOverlapCadPlots"] == "yes"
+
+
+def test_r22_plot_read_from_two_pdf_sheets_is_counted_and_kept_in_order():
+    plots = {"plots": [square(1, 0, 0)]}
+    rows = [rows_file("a.pdf", [pdf_row(1, 1, 2, 3)]), rows_file("b.pdf", [pdf_row(1, 2, 8, 7)])]
+    summary, links, conflicts = link_table.build(plots, rows, [excel_file("c.xlsx", [(1, "DT3")])])
+    assert summary["pdfMultiSheet"] == 1
+    assert [row["sheet"] for row in links[0]["pdf"]] == ["a.pdf", "b.pdf"]
+    assert conflicts == []

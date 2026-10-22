@@ -36,7 +36,7 @@ The full text is docs/rules.md. Ids are the contract, a test names the id it pro
 - R10 No invented data. Tests use small dummy files built in code.
 - R11 Zero tests is a failure.
 - R12 Every rule has a test whose name carries the rule id.
-- R16 and up cover explode, layer filter, plot labels, PDF rows and the link table.
+- R16 to R24 cover the main guard, explode, layer filter, texts and xrefs, plot labels, PDF rows, the link table, the full run and the harness files.
 
 ## Real files
 
