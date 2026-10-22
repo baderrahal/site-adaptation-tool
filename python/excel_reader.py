@@ -10,6 +10,7 @@ from common import write_json
 HEADER_MARKER = "Plot No."
 # Columns that keep 4 decimals, matched on the header text without trailing stars
 WIDE_COLUMNS = {"el @ entry", "height"}
+EXTRA_LIMIT = 200
 
 
 def find_sheet(workbook, wanted):
@@ -69,14 +70,41 @@ def read_sheet(xlsx_path, sheet_name):
     headers = unique_headers(header_row)
     plot_column = next(index for index, cell in enumerate(header_row) if not is_blank(cell) and HEADER_MARKER.lower() in str(cell).lower())
     records = []
-    for row in rows[header_index + 1:]:
+    for offset, row in enumerate(rows[header_index + 1:]):
         if all(is_blank(cell) for cell in row) or is_total_row(row, plot_column):
             break
-        record = {}
+        record = {"sheetRow": header_index + 2 + offset}
         for header, cell in zip(headers, row):
             record[header] = cell.isoformat() if hasattr(cell, "isoformat") else cell
         records.append(record)
     return sheet_title, header_index + 1, headers, records
+
+
+def cells_of(row, number):
+    cells = {}
+    for index, cell in enumerate(row, start=1):
+        if not is_blank(cell):
+            cells[get_column_letter(index)] = cell.isoformat() if hasattr(cell, "isoformat") else cell
+    return {"row": number, "cells": cells} if cells else None
+
+
+def read_extra(xlsx_path, sheet_name, header_row, row_count):
+    """Rows outside the plot table and the formulas of the first plot row, kept because notes and legends hold the rules."""
+    workbook = load_workbook(str(xlsx_path), read_only=True, data_only=False)
+    try:
+        rows = [row for row in find_sheet(workbook, sheet_name).iter_rows(values_only=True)]
+    finally:
+        workbook.close()
+    end = header_row + row_count
+    above = [entry for entry in (cells_of(row, number) for number, row in enumerate(rows[:header_row - 1], start=1)) if entry]
+    below = [entry for entry in (cells_of(row, number) for number, row in enumerate(rows[end:], start=end + 1)) if entry]
+    formulas = {}
+    if row_count and header_row < len(rows):
+        headers = unique_headers(rows[header_row - 1])
+        for header, cell in zip(headers, rows[header_row]):
+            if isinstance(cell, str) and cell.startswith("="):
+                formulas[header] = cell
+    return {"above": above[:EXTRA_LIMIT], "below": below[:EXTRA_LIMIT], "formulas": formulas}
 
 
 def write_outputs(xlsx_path, out_dir, sheet_name):
@@ -85,6 +113,8 @@ def write_outputs(xlsx_path, out_dir, sheet_name):
     wide = wide_headers(headers)
     write_json(out_dir / "coords.json", {"source": Path(xlsx_path).name, "sheet": sheet_title, "headerRow": header_row, "rows": records}, wide)
     write_json(out_dir / "coords_headers.json", {"sheet": sheet_title, "headerRow": header_row, "headers": headers})
+    extra = read_extra(xlsx_path, sheet_name, header_row, len(records))
+    write_json(out_dir / "coords_extra.json", dict({"source": Path(xlsx_path).name, "sheet": sheet_title}, **extra))
     return headers, records
 
 

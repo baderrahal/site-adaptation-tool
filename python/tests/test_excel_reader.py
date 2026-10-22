@@ -126,3 +126,28 @@ def test_missing_workbook_returns_error_code(tmp_path):
 
 def test_missing_sheet_returns_error_code(dummy_book, tmp_path):
     assert excel_reader.main([str(dummy_book), str(tmp_path / "out"), "--sheet", "Nope"]) == 3
+
+
+def test_r9_each_row_carries_its_sheet_row_number(dummy_book, tmp_path):
+    out = tmp_path / "out"
+    excel_reader.write_outputs(dummy_book, out, "Coordinates")
+    rows = json.loads((out / "coords.json").read_text(encoding="utf-8"))["rows"]
+    assert [row["sheetRow"] for row in rows] == [5, 6]
+
+
+def test_r9_extra_file_keeps_rows_outside_the_table_and_the_formulas_of_the_first_row(tmp_path):
+    path = make_book(tmp_path, [
+        ["Notes about plots"],
+        [],
+        ["Plot No.", "FFL", "Steps"],
+        [1, 10.5, "=B4-10"],
+        [2, 11.5, "=B5-10"],
+        [None, 410, None],
+        ["Legend", "x"],
+    ])
+    out = tmp_path / "out"
+    excel_reader.write_outputs(path, out, "Plots")
+    extra = json.loads((out / "coords_extra.json").read_text(encoding="utf-8"))
+    assert extra["above"] == [{"row": 1, "cells": {"A": "Notes about plots"}}]
+    assert extra["below"] == [{"row": 6, "cells": {"B": 410}}, {"row": 7, "cells": {"A": "Legend", "B": "x"}}]
+    assert extra["formulas"] == {"Steps": "=B4-10"}
