@@ -6,5 +6,6 @@
   <ItemGroup>
     <PackageReference Include="ACadSharp" Version="3.8.0" />
     <ProjectReference Include="..\SiteAdaptation.Common\SiteAdaptation.Common.csproj" />
+    <None Include="..\..\config\cad_layers.json" Link="cad_layers.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

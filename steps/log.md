@@ -1,6 +1,50 @@
 # Round log
 
-Newest entry first.
+Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
+
+## Round 4, 2026-10-22, explode, label join, PDF rows, full run
+
+Done:
+- Branch feat/explode-join-rows. Revit code untouched (diff against main is empty). Main moved during the round: another session merged PR 4 (Revit links, walls, ramps, also called round 4) and took R16 and R17, so my rules are R18 to R26. Nothing real is in git. This log holds counts only
+- Housekeeping: CLAUDE.md, steps/PROGRESS.md, steps/history/ (rounds 2 and 3), 3 merged remote branches deleted, main guard hook. The hook script passed 17 offline cases and pytest, but it is NOT live in this session (it started outside the repo, a dry run of git push to main went through)
+- Full run on the real files, in place, outputs in sample_output/full_run: 27 of 27 ran, 1 min 47 s, slowest 26 s, no timeout, no failure. 13 DWG, 12 PDF, 2 workbooks. Not read: 145 DWG under 01_Output, 2 Excel lock files, the Master Plan folder has no .bak but holds a masterplan .xlsx I was not asked to read
+- CAD explode: pieces now carry layer, handle, insert path, world coordinates, attributes and extended data. Entities before and after exploding: Building Footprint 4271 to 20458, Master Plan R06 45 to 140064, Phase 1 Road Layout 7049 to 211479, Typical Cross Sections 1548 to 129100, baseplan 15791 to 15771. Second method, AutoCAD DXF export read by ezdxf: before cells match 527 of 527, after cells 1022 of 1026, totals equal in 12 of 13 files. The 4 cells: 3 are ARC and CIRCLE that ezdxf names ELLIPSE (Road Layout), 1 is 2 POLYLINE in R06 that ACadSharp does not read (2 of 140066)
+- Layer filter: config/cad_layers.json (keep, drop, plot line layers, plot label layers). Dropped and counted: 2705 pieces on Defpoints in Building Footprint, 61 in Road Layout, 26 in R06. pieces.json is up to 46 MB per drawing
+- Xrefs: baseplan 3 of 3 found next to the file. 4 other xrefs are not found (one in each of the 3 Master Plan files and one in Typical Cross Sections), the run went on without them. Reader notes are grouped with counts. MULTILEADER: 18 exist in 2 drawings and none holds text, ezdxf agrees for the 15 on the baseplan
+- Plot join, baseplan: MP_PLOT_LINE alone gave 777 faces, 390 plots, 375 faces with many labels. Adding MP_PLOT_SUBD gives 2991 faces, 2962 plots with one label each, 29 other faces (12 no label, 17 many labels), 18 labels outside every face, 0 duplicate numbers. Second method, shapely on the DXF: 2960 of my 2962 plots match by number and area, 2 not in the reference, 1 reference face not in mine
+- PDF rows: 3346 rows from 12 sheets (round 3 counted 3306, it missed 3 rows per full block). PDFium text agrees on 3345, 0 missed. The 1 extra is a source typo, plot 2589 code 2 on sheet 009028 has N with no decimal point, kept as found and listed in odd. shapes file 2 to 3 MB to 74 KB on sheet 009003
+- Excel: sheetRow on every row, coords_extra.json (notes, legend, formulas). Both workbooks read with MP_Phase 1_Zone21, 410 rows (sheet rows 40 to 449) and 337 rows. Raw sheet XML second method: 8290 of 8290 cells match, the row after each table has an empty plot cell
+- Link table, join by plot number: 2962 CAD plots, 746 PDF plots, 747 Excel plots, 746 with all three. PDF unit type equals Excel unit on all 746. Location check fails on 746 of 746, see Known bugs 1. Coordinate space: PDF sheets overlap the CAD plots yes, 3319 of 3346 PDF points lie inside some CAD plot. 213 of 259 drawing pairs overlap
+- Six random plots opened across CAD, PDF and Excel (1192, 1319, 1432, 1505, 2473, 2576). Each PDF row is in the PDFium text, each Excel plot cell is in the raw sheet, PDF type equals Excel unit, and each plot sits in the CAD plot numbered 10 or 11 lower
+- Civil 3D roads: Road Surface C3D (180 MB) holds 105 model space entities and Rough Grading (216 MB) holds 5, one reader error each. ezdxf on AutoCAD's DXF export finds the same 105 and 5, so the surfaces and grading are Civil 3D objects outside model space, not read
+- Gate: Python 60 passed, .NET 63 passed. New tests built on dummy data in code
+
+Remains:
+- Revit run on the real file, by Bader. Plot join only for the baseplan layer names. Everything under Known bugs
+
+Known bugs:
+- 1. NUMBER SHIFT: every PDF plot sits in the CAD plot whose label is lower by 11 (IMD sheets, 404 plots) or 10 (IMC sheets, 333 plots), a few edge plots differ by one more or less. 0 of 805 sheet plots sit in the plot of the same number, independent shapely faces agree. Nothing is corrected, all 746 are in conflicts.json
+- CAD label type (DP4, VL4) is a plot type and PDF and Excel type (DT3, VD2) is a unit type, so they cannot be compared
+- 4 PDF plots repeat a point code, 58 plots appear on 2 or more sheets, 1 Excel plot has no PDF rows
+- Typical Cross Sections, CEC Building Footprint and Rough Grading do not share the site coordinate space with the PDF sheets
+- Master Plan layers use other names (X_MP_Plots$0$MP_Plot), so no plot faces come from them
+- Block that contains itself: the guard is in code and untested, ACadSharp overflows the stack when a test builds one
+- Still open: one unclosed face and 28 plot_open pieces, arc crossings not noded, Revit not run
+
+Next:
+- Decide the numbering with Bader, then put the shift in a small config the link step reads
+- Look at the 29 other faces and 18 stray labels, then placement only after the conflicts are understood
+
+Your turn:
+1. The baseplan labels and the schedules differ by 11 (IMD) or 10 (IMC). Which numbering is right, and where does the shift come from? Recommended: the PDF and Excel numbers are official, tell me the source and I add the shift as a config map
+2. Keep MP_PLOT_SUBD as a plot line layer? Recommended: yes, without it 375 faces hold many plots
+3. Is it right that the PDF points are unit corners that must lie inside the plot? Recommended: yes, the check stays at inside or within 1 m
+4. Is there a table from plot type to unit type? Recommended: send it, until then no type check against CAD
+5. Review config/cad_layers.json drop list (Defpoints, logo, title, border, viewport, legend). Recommended: keep
+6. Civil 3D road files hold no readable entities. Recommended: export from Civil 3D by hand, the same as Revit
+7. Sheet 009028 plot 2589 code 2 has N 2363719462 in the source. Recommended: tell the drawing owner, I keep it as found
+8. Two rounds are called round 4 in this log. Recommended: leave it, say Round 4 CAD or Round 4 Revit
+9. Revit still waits for you, steps are in the Revit round entry below
 
 ## Round 4, 2026-10-22, Revit links, walls and ramps
 
@@ -52,105 +96,13 @@ Your turn:
 
 ## Round 3, 2026-10-22, fixes against the real files
 
-Done:
-- Branch fix/excel-header-cad-plots-pdf-second-sheet. sample_data/ and sample_output/ are still gitignored and nothing real is committed. This log holds counts, row numbers and distances only, no real coordinates or levels
-- Gate run locally before the PR: Python 24 passed, .NET 28 passed
-- Excel, 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, FIXED. python/excel_reader.py now finds the header row as the first row with a cell containing Plot No. and reads only the rows below it. It stops at the first fully empty row, at a row with a cell starting with Total, or at a row with no plot number. The real workbook has an unlabeled total row at sheet row 450 with an empty plot number cell, so the third condition is what stops it there. I added that condition on my own reading of that row, say if you want it removed
-- Excel real run, sheet MP_Phase 1_Zone21: exit 0, header row 39, 12 headers (Plot & Unit, Plot No., Unit, FFL, SSL, El @ Entry*, Height**, Site Steps Needed, Steps Needed and col_A, col_K, col_L for blank headers), 410 rows from sheet row 40 to 449. The three note lines, the Villa Prototype counts and the Steps Legend are no longer in the rows. All 4920 cells (410 rows by 12 columns) match the workbook with 0 differences. The first and last plot numbers match rows 40 and 449. Row 450 is not read
-- Excel default run without --sheet still fails with Sheet 'Coordinates' not found, exit 3. Not changed, the sheet name is still an argument
-- Excel El @ Entry and Height now keep 4 decimals, every other column keeps 3. Test of whether this changes a step decision, using the workbook's own rules read from its formulas (Site Steps Needed switches at Height 0.24, Steps Needed switches at 0.205 and 0.38, SSL is FFL minus 0.075). Results over all 410 rows
-- Excel 3 against 4 decimals: Height differs between the 3 and 4 decimal value on 356 of 410 rows, by at most 0.0005. Step results compared with the full precision value the workbook uses: with 3 decimals 2 rows change (sheet rows 189 and 423, both Steps Needed going from 1 to 2), with 4 decimals 0 rows change. Recomputing Height from rounded El @ Entry changes 0 rows at either precision
-- Excel sample rows, distance to the nearest threshold (full, 3 decimals, 4 decimals) and the Site Steps Needed / Steps Needed result (full, 3 decimals, 4 decimals): row 189 threshold 0.205, -0.000248, 0.0000, -0.0002, results 1/1, 1/2, 1/1. Row 423 threshold 0.205, -0.000082, 0.0000, -0.0001, results 1/1, 1/2, 1/1. Row 415 threshold 0.205, -0.000876, -0.0010, -0.0009, results 1/1 on all three. Row 225 threshold 0.205, -0.000944, -0.0010, -0.0009, results 1/1 on all three. Row 203 threshold 0.205, -0.001834, -0.0020, -0.0018, results 1/1 on all three. Row 40 threshold 0.205, -0.105323, -0.1050, -0.1053, results 1/1 on all three. Row 41 threshold 0.24, +0.034414, +0.0340, +0.0344, results 2/2 on all three
-- CAD, ROSHN Makkah Baseplan.dwg, FIXED for plot geometry. CadReader now reads LINE and ARC entities on MP_PLOT_LINE (1645 lines and 23 arcs) as plot geometry, and still reads polylines and blocks as before. New file dotnet/CadReader/PlotShapes.cs. Method: snap ends within 0.01 units, add a node where two lines cross, split lines at every node that lies on them, drop dangling pieces, then take every bounded face of what is left as one closed shape. Each shape has vertices, area and any arcs as centre and radius. Pieces that bound no face are written as plot_open with their segments
-- CAD real run: exit 0, 0.65 s, plots 912 (was 107). Kinds: 777 plot_shape, 87 polyline, 28 plot_open, 20 block. The 87 polylines and 20 blocks are unchanged from round 2. plots.json is 320 KB. Of the shapes 584 have 4 vertices, 19 have arcs, 130 are under 100 square units and 20 are over 10000. Repeating areas look like real plot sizes (51 shapes of one size and 23 of another)
-- CAD check, independent: the DXF export from round 2 was read with ezdxf and shapely, nodes were added in the reference, and its faces were found with the shapely polygonizer. Reference 778 faces, mine 777. All 777 of mine match a reference face by area (within 0.5 percent or 0.5 square units), 0 of mine unmatched. Before the line crossing step the count was 757 with 6 unmatched, the 15 real crossings explained the gap. Why the endpoint only method is not enough: of 1352 free line ends on that layer, 1289 sit in the middle of another line, so grouping by shared ends gives only about 62 closed loops
-- CAD gate: 6 new tests, named R5, on dummy shapes built in code (rectangle by ends, T junction into 2 shapes, crossing lines, half disc with an arc, dangling line kept as open, other layer ignored)
-- PDF, 01101-PSN-IMD-ZZZ-DWG-TU-009003.pdf (new, copied into sample_data), RAN with the reader unchanged. Exit 0, 1 page 2384 x 1684 pt (same as the first sheet), 2985 labels, 24806 shapes (24767 lines, 39 rects)
-- PDF layout against 009018: same header of 10 words (Point Plot No., Point Code, Point Unit Type, N, E), same 5 columns and 6 vertical rules per block, same repeating rows of exactly 5 labels. Different: the schedule runs across 4 table blocks side by side (block starts at x 161, 548, 935 and 1322, 387 pt apart) with 150, 150, 150 and 47 rows, 497 data rows in all, where 009018 has 1 block of 82 rows. Every one of the 497 rows reads as whole number, whole number, text, number, number. Plot numbers do not decrease in reading order, and a plot can continue from the foot of one block to the top of the next
-- PDF cross check with the workbook: the 497 rows hold 94 distinct plots. All 94 are in the Excel plot table with the same unit type. The 16 plots on 009018 are a different range and are not in that workbook, which is expected
-- PDF other 10 sheets in the same folder, read in place with the reader and not copied, structure only: all 12 sheets are 1 page of the same size and all hold 1 to 5 blocks of 5 label rows, 3306 data rows in total, every row of the same type pattern, 0 bands with another label count. The block spacing is 387 pt on most sheets, 327 pt on 009027 and 304 pt on 009011
-- PDF garbled text: same as 009018. Key plan area has 199 labels under 1.5 pt wide on both sheets and 6 labels with doubled letters on both. The margin stamp text at the left edge comes out with its letters in reverse order on both sheets. The label count gap (835 against 2985) is the 3 extra table blocks and not extra garble
-- Correction to round 2: the two labels I logged as carrying U+FFFD are U+201C and U+201D, proper curly quotes, and the reader output them correctly. That item was my misreading of console output and is not a bug. It is marked withdrawn in the round 2 entry
-- docs/rules.md updated for R2 (4 decimals for El @ Entry and Height), R5 (plot_shape and plot_open) and R9 (header row and stop rules)
-
-Remains:
-- Revit run on the real file, still needs a person at Revit 2024. Nothing changed since round 2
-- Everything under Known bugs
-
-Known bugs:
-- ROSHN Makkah Baseplan.dwg, 1 face not closed: the reference finds one face of about 11432 square units that CadReader writes only as open pieces. It touches 2 plot_open pieces, one of which holds a 0.05 unit segment, which is more than the 0.01 snap. Cause not confirmed
-- ROSHN Makkah Baseplan.dwg, plot_open holds 28 pieces with 51 segments (1 piece has an arc). These are dangling or unclosed lines on MP_PLOT_LINE and the one face above. They need a look in the drawing
-- ROSHN Makkah Baseplan.dwg, plot_shape is every closed face, not only plots. 130 are under 100 square units and 20 are over 10000, so road, park and boundary faces are in there with the plots. Nothing links a shape to a plot number yet, the numbers are in texts.json as MTEXT. A shape that encloses another shape is written as its outer boundary with no hole, so its area includes the inner one
-- ROSHN Makkah Baseplan.dwg, crossings between an arc and a line, or two arcs, are not noded. The check above found none that matter on this file, but the code does not cover them
-- ROSHN Makkah Baseplan.dwg, STILL OPEN from round 2: three xrefs not found next to the file, 17 of 20 block rows are the anonymous block *U0, 15 MULTILEADER entities are not in texts.json
-- 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, the default sheet name Coordinates still fails on this workbook, run it with --sheet MP_Phase 1_Zone21
-- 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, the 3 decimal rounding of Height would have flipped Steps Needed on 2 plots, which 4 decimals fixes. The margin is thin: the closest row is 0.000082 from the 0.205 threshold and a 4 decimal value flips only inside 0.00005. The reader writes the number and does not apply the threshold
-- 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, headers col_A, col_K and col_L come from blank header cells and hold no data
-- PDF, all sheets: labels are still single words and rows are not rebuilt. The reader gives no table structure, so nothing joins a row, a block or a plot that continues into the next block. A person or the next round has to stitch 5 label rows in block order
-- PDF, all sheets: margin stamp text at the left edge is reversed, key plan text is garbled. Neither is in the table. The shapes file is 2 to 3 MB per sheet and about 95 percent of it is key plan and logo lines
-- RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3100.rvt, NOT RUN, unchanged from round 2
-
-Next:
-- Run the Revit command on the real file and compare prototypes.json, as in round 2
-- Decide how a plot shape gets its plot number (nearest MTEXT label inside the shape is the obvious first try) and how to drop non plot faces
-- Rebuild PDF table rows and stitch the blocks in order, then join to the workbook by plot number and unit type
-- Decide what to do with the 28 open pieces
-
-Your turn:
-1. Revit still waits for you. Steps are in README.md, send back Documents\SiteAdaptation\prototypes.json
-2. Excel: do you want 4 decimals for El @ Entry and Height kept, given that 3 decimals flips 2 plots at the 0.205 threshold and 4 does not? Recommended: yes
-3. Excel: is it right that reading stops at a row with no plot number, which is how the unlabeled total at row 450 is caught? Recommended: yes
-4. CAD: should plot_shape keep every closed face, or only faces that hold one plot number label? Recommended: keep only faces with one plot number label, once labels are joined
-5. PDF: should the reader rebuild table rows (and stitch the blocks) in the next round, or leave that to the matching step? Recommended: rebuild them in the reader, the layout is the same on all 12 sheets
-6. The round 2 list of questions about the xrefs and the .rfa is still open. Send the three xref DWGs or the TH1 .rfa when you can
+Detail: [steps/history/round-3.md](history/round-3.md).
+Excel header row and stop rules fixed, El @ Entry and Height kept at 4 decimals. CAD plot geometry read from MP_PLOT_LINE (777 closed shapes, 28 open pieces). One more PDF sheet read and the layout held on all 12. Gate at the end of the round was Python 24 passed and .NET 28 passed.
 
 ## Round 2, 2026-10-22, readers run on real ROSHN Makkah files
 
-Done:
-- Branch test/readers-real-files. sample_data/ and sample_output/ are in .gitignore. The four real files were copied into sample_data/ and none is committed. This log holds counts and cell positions only, no real coordinates, levels or text, because the repo is public
-- Machine DESKTOP-5VL7LTJ. The four source files were present in C:\02-Site Adaptation
-- Method for the checks: Excel was re-read with a separate openpyxl load and compared cell by cell. PDF was rendered to an image (pypdfium2) and read by eye next to the JSON. DWG was copied, exported to DXF 2018 by the AutoCAD 2026 core console, and read with ezdxf (a different parser from ACadSharp). The original DWG was never opened in AutoCAD
-- Excel, 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, FAILED on the default run. Exit 3, error text: Sheet 'Coordinates' not found. Sheets present: MP_Phase 1_Zone21
-- Excel second run, same file, only the existing --sheet argument set to MP_Phase 1_Zone21 (no code change). Exit 0, 12 headers, 439 rows. All 5268 cells of the 439 rows match the workbook (0 differences, floats rounded to 3 decimals as R2 says). 2066 formula cells all had cached values, so none read as empty. Spot rows 40, 41, 448 and 449 were read by hand for Plot No., Unit, FFL, SSL, El @ Entry, Height, Site Steps Needed and Steps Needed and every value matches. The 410 plot rows (sheet rows 40 to 449) agree with the Total Units cell of 410
-- PDF, 01101-PSN-IMC-ZZZ-DWG-TU-009018.pdf, RAN. Exit 0, 1 page of 2384 x 1684 pt, 835 labels, 20095 shapes (20056 lines, 39 rects). The page is a coordinates table with columns Point Plot No., Point Code, Point Unit Type, N and E. In the table area there are 82 rows of exactly 5 labels each and a 10 word header. I compared the first 15 and last 12 rows to the render by eye and all match. The other rows were checked by structure only. The grid has 84 distinct horizontal positions (header, 82 rows, bottom edge) and 6 vertical positions, which matches the render
-- CAD, ROSHN Makkah Baseplan.dwg, RAN with ACadSharp, exit 0, 0.65 s, 48 layers, 107 plots, 3318 texts. No ezdxf fallback was needed for R6. Matched against the DXF: 48 layers equal the layer table. The 17 layers that hold model space entities (15791 entities) match on entity count and on count per type. The other 31 layers have 0 entities in both. All 3318 texts match as a set of layer, x, y and text (whitespace normalised), nothing extra on either side. 87 polylines match the 87 LWPOLYLINE entities including every vertex and the closed flag. 20 block rows match the 20 INSERT entities and their insert points. Units Meters match INSUNITS 6
-- Revit, RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3100.rvt, NOT RUN. See Known bugs and Your turn
-- Gate, run locally on this branch: Python 18 passed, .NET 22 passed
-
-Remains:
-- Revit run on the real file. It needs a person at Revit 2024
-- Every item under Known bugs. No reader logic was changed this round
-- Only one of the 12 PDFs in 1.5 Coordinates Schedules was read
-
-Known bugs:
-- 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, FAILED: the default sheet name Coordinates does not exist. The only sheet is MP_Phase 1_Zone21
-- 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, MISMATCH: the header row is wrong. The reader takes the first non-empty row, which is the title in sheet row 2. Headers come out as col_A, then the title text, then col_C to col_L. The real header row is sheet row 39 (Plot & Unit, Plot No., Unit, FFL, SSL, El @ Entry*, Height**, Site Steps Needed, Steps Needed). Because of this the 410 plot rows have no usable keys, so a lookup by FFL or SSL finds nothing
-- 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, MISMATCH: three other blocks sit in the same sheet and come out as rows with the plot rows. They are 3 note lines (rows 4 to 6), the Villa Prototype count table (rows 9 to 24) and the Steps Legend (rows 27 to 34). There is also a total row at 450. Nothing marks where the plot table starts
-- 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, NOTE: El @ Entry and Height are rounded to 3 decimals by R2. A Height such as 0.0997 is written as 0.1. Check this does not change a steps decision before the placement work
-- WITHDRAWN in round 3, not a bug: 01101-PSN-IMC-ZZZ-DWG-TU-009018.pdf, two labels in the sheet notes were logged as carrying U+FFFD. They are U+201C and U+201D, correct curly quotes
-- 01101-PSN-IMC-ZZZ-DWG-TU-009018.pdf, MISMATCH: the key plan area at about x 2104 and y 715 to 720 holds tiny overlapping glyphs (about 0.7 pt wide). They come out as garbled strings with doubled letters. None of it is legible in the render
-- 01101-PSN-IMC-ZZZ-DWG-TU-009018.pdf, KNOWN, now confirmed: labels are single words, so a row of the table is 5 labels and the header Point Plot No. is 3 labels. The reader gives positions only and does not rebuild rows
-- 01101-PSN-IMC-ZZZ-DWG-TU-009018.pdf, SIZE: pdf_shapes.json is 2.4 MB for one sheet. Only 918 of the 20056 lines belong to the table grid and those come as 420 horizontal and 498 vertical segments, not one line per rule. The rest are in the key plan, logos and title block
-- ROSHN Makkah Baseplan.dwg, MISMATCH with the purpose: plots.json holds no plots. Its 107 rows are 87 polylines (road centrelines, wadi, boundaries, existing) and 20 blocks. Plot outlines are on layer MP_PLOT_LINE as 1645 LINE and 23 ARC entities, which the reader does not list (known from round 1)
-- ROSHN Makkah Baseplan.dwg, UNRESOLVED XREFS: the drawing references CEC Building Footprint, Makkah_Road Layout and Makkah Building Footprint. AutoCAD reported all three as not found next to the copy. 31 layers named like xref|layer exist with 0 entities here. The reader reports only one block row per xref and does not follow it
-- ROSHN Makkah Baseplan.dwg, 17 of the 20 block rows are the anonymous block *U0 (15 at 0,0,0 and 2 at -5000,0,0) with no attributes, so they identify nothing
-- ROSHN Makkah Baseplan.dwg, NOT READ: 15 MULTILEADER entities on layer MP_BOUN_CNTL_PNT are counted in layers.json and absent from texts.json, so their text is not read. Plot labels in texts.json are single strings with a line feed inside, a type name then a four digit number
-- RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3100.rvt, NOT RUN. Reasons: the command shows a task dialog and a file picker and has no unattended mode, no SiteAdaptation.addin is installed in %APPDATA%\Autodesk\Revit\Addins\2024, and the .addin Assembly line still says C:\Path\To. I did not install into the Revit config or script the Revit window. Nothing in prototypes.json is confirmed
-- RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3100.rvt, FROM THE FILE HEADER ONLY (no Revit): the file is a project .rvt and not a family .rfa, saved by Revit 2021 (build 20200715_1022 x64), workshared, central path on a company server. Revit 2024 will upgrade it on open. The command detaches from central and closes with no save, so R1 should hold, but that is unproven
-- RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3100.rvt, UNKNOWN, from reading the code: for a project file the command lists family types and placed family instances only. If the TH1 house is modelled in place and is not a loaded family instance, no row will carry the prototype name, bounding box or insertion point you want to check. This is a prediction and not a result
-
-Next:
-- Run the Revit command on the real file (steps below under Your turn), then compare prototypes.json to the model
-- Fix round, in this order, once the Revit result is in: Excel header row search and sheet choice, CAD plot lines and xref handling, PDF row rebuild and U+FFFD, Revit as the run shows
-- Read two more PDFs from the same folder to see if the table layout holds
-
-Your turn:
-1. The repo is PUBLIC, not private as the round 1 entry said. Real files and their values stay out of git. Do you want it made private before any real sample goes in? Recommended: yes
-2. Run the Revit add-in. Build is in dotnet\RevitPrototypeReader\bin\Release\net48\. Follow the install steps in README.md, open Revit 2024, run External Tools, Read Prototypes, choose Choose .rfa or .rvt files, pick RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3100.rvt, send back Documents\SiteAdaptation\prototypes.json and say what the Revit window showed for the prototype name, size and origin
-3. Is there an .rfa of the TH1 prototype family? Recommended: send it too, because the family branch gives a bounding box and the project branch may not
-4. Excel: confirm the plot table is the one to read, and that the reader may find its header row by looking for the row that holds Plot No. Recommended: yes
-5. CAD: should plots come from the LINE and ARC entities on MP_PLOT_LINE, or from the three xref files? If xrefs, send the three DWGs
-6. I used the first PDF in the folder (009018). Say if a different sheet is the one you care about
+Detail: [steps/history/round-2.md](history/round-2.md).
+First run of the four readers on the real files. Excel, PDF and CAD ran, Revit did not. The list of mismatches found there drove round 3. Gate at the end of the round was Python 18 passed and .NET 22 passed.
 
 ## Round 1, 2026-10-22, read-only readers
 

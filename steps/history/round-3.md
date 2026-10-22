@@ -1,0 +1,53 @@
+## Round 3, 2026-10-22, fixes against the real files
+
+Done:
+- Branch fix/excel-header-cad-plots-pdf-second-sheet. sample_data/ and sample_output/ are still gitignored and nothing real is committed. This log holds counts, row numbers and distances only, no real coordinates or levels
+- Gate run locally before the PR: Python 24 passed, .NET 28 passed
+- Excel, 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, FIXED. python/excel_reader.py now finds the header row as the first row with a cell containing Plot No. and reads only the rows below it. It stops at the first fully empty row, at a row with a cell starting with Total, or at a row with no plot number. The real workbook has an unlabeled total row at sheet row 450 with an empty plot number cell, so the third condition is what stops it there. I added that condition on my own reading of that row, say if you want it removed
+- Excel real run, sheet MP_Phase 1_Zone21: exit 0, header row 39, 12 headers (Plot & Unit, Plot No., Unit, FFL, SSL, El @ Entry*, Height**, Site Steps Needed, Steps Needed and col_A, col_K, col_L for blank headers), 410 rows from sheet row 40 to 449. The three note lines, the Villa Prototype counts and the Steps Legend are no longer in the rows. All 4920 cells (410 rows by 12 columns) match the workbook with 0 differences. The first and last plot numbers match rows 40 and 449. Row 450 is not read
+- Excel default run without --sheet still fails with Sheet 'Coordinates' not found, exit 3. Not changed, the sheet name is still an argument
+- Excel El @ Entry and Height now keep 4 decimals, every other column keeps 3. Test of whether this changes a step decision, using the workbook's own rules read from its formulas (Site Steps Needed switches at Height 0.24, Steps Needed switches at 0.205 and 0.38, SSL is FFL minus 0.075). Results over all 410 rows
+- Excel 3 against 4 decimals: Height differs between the 3 and 4 decimal value on 356 of 410 rows, by at most 0.0005. Step results compared with the full precision value the workbook uses: with 3 decimals 2 rows change (sheet rows 189 and 423, both Steps Needed going from 1 to 2), with 4 decimals 0 rows change. Recomputing Height from rounded El @ Entry changes 0 rows at either precision
+- Excel sample rows, distance to the nearest threshold (full, 3 decimals, 4 decimals) and the Site Steps Needed / Steps Needed result (full, 3 decimals, 4 decimals): row 189 threshold 0.205, -0.000248, 0.0000, -0.0002, results 1/1, 1/2, 1/1. Row 423 threshold 0.205, -0.000082, 0.0000, -0.0001, results 1/1, 1/2, 1/1. Row 415 threshold 0.205, -0.000876, -0.0010, -0.0009, results 1/1 on all three. Row 225 threshold 0.205, -0.000944, -0.0010, -0.0009, results 1/1 on all three. Row 203 threshold 0.205, -0.001834, -0.0020, -0.0018, results 1/1 on all three. Row 40 threshold 0.205, -0.105323, -0.1050, -0.1053, results 1/1 on all three. Row 41 threshold 0.24, +0.034414, +0.0340, +0.0344, results 2/2 on all three
+- CAD, ROSHN Makkah Baseplan.dwg, FIXED for plot geometry. CadReader now reads LINE and ARC entities on MP_PLOT_LINE (1645 lines and 23 arcs) as plot geometry, and still reads polylines and blocks as before. New file dotnet/CadReader/PlotShapes.cs. Method: snap ends within 0.01 units, add a node where two lines cross, split lines at every node that lies on them, drop dangling pieces, then take every bounded face of what is left as one closed shape. Each shape has vertices, area and any arcs as centre and radius. Pieces that bound no face are written as plot_open with their segments
+- CAD real run: exit 0, 0.65 s, plots 912 (was 107). Kinds: 777 plot_shape, 87 polyline, 28 plot_open, 20 block. The 87 polylines and 20 blocks are unchanged from round 2. plots.json is 320 KB. Of the shapes 584 have 4 vertices, 19 have arcs, 130 are under 100 square units and 20 are over 10000. Repeating areas look like real plot sizes (51 shapes of one size and 23 of another)
+- CAD check, independent: the DXF export from round 2 was read with ezdxf and shapely, nodes were added in the reference, and its faces were found with the shapely polygonizer. Reference 778 faces, mine 777. All 777 of mine match a reference face by area (within 0.5 percent or 0.5 square units), 0 of mine unmatched. Before the line crossing step the count was 757 with 6 unmatched, the 15 real crossings explained the gap. Why the endpoint only method is not enough: of 1352 free line ends on that layer, 1289 sit in the middle of another line, so grouping by shared ends gives only about 62 closed loops
+- CAD gate: 6 new tests, named R5, on dummy shapes built in code (rectangle by ends, T junction into 2 shapes, crossing lines, half disc with an arc, dangling line kept as open, other layer ignored)
+- PDF, 01101-PSN-IMD-ZZZ-DWG-TU-009003.pdf (new, copied into sample_data), RAN with the reader unchanged. Exit 0, 1 page 2384 x 1684 pt (same as the first sheet), 2985 labels, 24806 shapes (24767 lines, 39 rects)
+- PDF layout against 009018: same header of 10 words (Point Plot No., Point Code, Point Unit Type, N, E), same 5 columns and 6 vertical rules per block, same repeating rows of exactly 5 labels. Different: the schedule runs across 4 table blocks side by side (block starts at x 161, 548, 935 and 1322, 387 pt apart) with 150, 150, 150 and 47 rows, 497 data rows in all, where 009018 has 1 block of 82 rows. Every one of the 497 rows reads as whole number, whole number, text, number, number. Plot numbers do not decrease in reading order, and a plot can continue from the foot of one block to the top of the next
+- PDF cross check with the workbook: the 497 rows hold 94 distinct plots. All 94 are in the Excel plot table with the same unit type. The 16 plots on 009018 are a different range and are not in that workbook, which is expected
+- PDF other 10 sheets in the same folder, read in place with the reader and not copied, structure only: all 12 sheets are 1 page of the same size and all hold 1 to 5 blocks of 5 label rows, 3306 data rows in total, every row of the same type pattern, 0 bands with another label count. The block spacing is 387 pt on most sheets, 327 pt on 009027 and 304 pt on 009011
+- PDF garbled text: same as 009018. Key plan area has 199 labels under 1.5 pt wide on both sheets and 6 labels with doubled letters on both. The margin stamp text at the left edge comes out with its letters in reverse order on both sheets. The label count gap (835 against 2985) is the 3 extra table blocks and not extra garble
+- Correction to round 2: the two labels I logged as carrying U+FFFD are U+201C and U+201D, proper curly quotes, and the reader output them correctly. That item was my misreading of console output and is not a bug. It is marked withdrawn in the round 2 entry
+- docs/rules.md updated for R2 (4 decimals for El @ Entry and Height), R5 (plot_shape and plot_open) and R9 (header row and stop rules)
+
+Remains:
+- Revit run on the real file, still needs a person at Revit 2024. Nothing changed since round 2
+- Everything under Known bugs
+
+Known bugs:
+- ROSHN Makkah Baseplan.dwg, 1 face not closed: the reference finds one face of about 11432 square units that CadReader writes only as open pieces. It touches 2 plot_open pieces, one of which holds a 0.05 unit segment, which is more than the 0.01 snap. Cause not confirmed
+- ROSHN Makkah Baseplan.dwg, plot_open holds 28 pieces with 51 segments (1 piece has an arc). These are dangling or unclosed lines on MP_PLOT_LINE and the one face above. They need a look in the drawing
+- ROSHN Makkah Baseplan.dwg, plot_shape is every closed face, not only plots. 130 are under 100 square units and 20 are over 10000, so road, park and boundary faces are in there with the plots. Nothing links a shape to a plot number yet, the numbers are in texts.json as MTEXT. A shape that encloses another shape is written as its outer boundary with no hole, so its area includes the inner one
+- ROSHN Makkah Baseplan.dwg, crossings between an arc and a line, or two arcs, are not noded. The check above found none that matter on this file, but the code does not cover them
+- ROSHN Makkah Baseplan.dwg, STILL OPEN from round 2: three xrefs not found next to the file, 17 of 20 block rows are the anonymous block *U0, 15 MULTILEADER entities are not in texts.json
+- 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, the default sheet name Coordinates still fails on this workbook, run it with --sheet MP_Phase 1_Zone21
+- 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, the 3 decimal rounding of Height would have flipped Steps Needed on 2 plots, which 4 decimals fixes. The margin is thin: the closest row is 0.000082 from the 0.205 threshold and a 4 decimal value flips only inside 0.00005. The reader writes the number and does not apply the threshold
+- 00101-PSN-IMD-XXX-SCH-TU-090000.xlsx, headers col_A, col_K and col_L come from blank header cells and hold no data
+- PDF, all sheets: labels are still single words and rows are not rebuilt. The reader gives no table structure, so nothing joins a row, a block or a plot that continues into the next block. A person or the next round has to stitch 5 label rows in block order
+- PDF, all sheets: margin stamp text at the left edge is reversed, key plan text is garbled. Neither is in the table. The shapes file is 2 to 3 MB per sheet and about 95 percent of it is key plan and logo lines
+- RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3100.rvt, NOT RUN, unchanged from round 2
+
+Next:
+- Run the Revit command on the real file and compare prototypes.json, as in round 2
+- Decide how a plot shape gets its plot number (nearest MTEXT label inside the shape is the obvious first try) and how to drop non plot faces
+- Rebuild PDF table rows and stitch the blocks in order, then join to the workbook by plot number and unit type
+- Decide what to do with the 28 open pieces
+
+Your turn:
+1. Revit still waits for you. Steps are in README.md, send back Documents\SiteAdaptation\prototypes.json
+2. Excel: do you want 4 decimals for El @ Entry and Height kept, given that 3 decimals flips 2 plots at the 0.205 threshold and 4 does not? Recommended: yes
+3. Excel: is it right that reading stops at a row with no plot number, which is how the unlabeled total at row 450 is caught? Recommended: yes
+4. CAD: should plot_shape keep every closed face, or only faces that hold one plot number label? Recommended: keep only faces with one plot number label, once labels are joined
+5. PDF: should the reader rebuild table rows (and stitch the blocks) in the next round, or leave that to the matching step? Recommended: rebuild them in the reader, the layout is the same on all 12 sheets
+6. The round 2 list of questions about the xrefs and the .rfa is still open. Send the three xref DWGs or the TH1 .rfa when you can
