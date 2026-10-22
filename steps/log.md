@@ -2,44 +2,44 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
-## Round 6, 2026-10-22, plot number shift, second source, no type check
+## Round 7, 2026-10-22, LandXML road surfaces and the ramp level test
 
 Done:
-- Branch fix/plot-shift. Not touched: dotnet/RevitPrototypeReader and the Revit branch. This session started in C:\Users\bader, outside the repo, so the main guard hook was NOT live. I worked on the branch and never committed to main. Main did not move during the round
-- Shift config (R28): config/plot_numbers.json holds IMC 10, IMD 11, the direction in a note, the file name pattern and a search range of 1. The link table joins the official number to the CAD label at number minus shift, runs the same location check at 1 m and tries the shifts one lower and one higher for a plot that fails. New conflict kinds: shift_edge, cad_claimed_twice, cad_unclaimed, no_neighbourhood, neighbourhood_mixed, not_numeric
-- Real files: 734 of 746 joined plots pass the location check (IMC 328 of 337, IMD 406 of 409). shiftFound differs from the config for 0 plots, so conflicts.json has no shift_edge. The 3 edge plots at plus 12 from the last run did not show up. No plot gets a better fit from a shift one lower or higher. Widened to 3 lower and higher for the 12 failures, no shift brings any of them within 1 m. The best other shift gains only 1.2 m for plot 1384 and 0.4 m for plot 1401
-- Type check (R30): CAD plot type is now the info field cadType. PDF unit type equals Excel unit on all 746
-- Skip list (R29): R06 and R06_0001 are skipped with their reasons in full_run_summary.json. Full run: 26 of 26 files ran (11 DWG, 12 PDF, 2 schedule workbooks, the masterplan workbook), the link, second source and face stages ran ok
-- Checked decision C against the old outputs. R06_0001 equals R06_0000 (731 layers with equal counts, 121042 of 121042 handles equal). R06 has 45 model space entities but they explode to 140064 pieces and only 1 insert points at the missing xref, so it is not empty after exploding. The skip stays as decided
-- Second source (R31), R06_0000 against the baseplan: 3757 faces (1053 repeats removed) against 2991. Matched 2657, only baseplan 334, only R06_0000 1100, 32 matched faces differ in area by more than 1 percent. 696 of the 1100 hold two or more baseplan faces
-- Masterplan workbook (R32): 9 sheets, header rows 14 (2 sheets), 3 (5 sheets), 2 (2 sheets), rows 128, 128, 123, 75, 60, 127, 97, 97, 97. No sheet has a plot number column, only Plot Count and No. of plots. It is a land use summary with no per plot rows, so the numbering test cannot run on it
-- Other faces and stray labels (R33): 29 faces are 17 many_labels (15 consecutive runs, 1 run plus an outlier, 1 not consecutive) and 12 no_label (1 sliver, 4 small, 7 large). All 18 stray labels are road or buffer labels (12 ROW Internal, 4 ROW External, 2 Buffer Area), numbers 3134 to 3153, 6.5 to 32.5 m from the nearest face. No stray label lies within 30 m of a no_label face
-- Second method: shapely on the plots.json faces and the raw PDF points with its own shift search gives 734 ok and 12 bad, shift differs 0, and 0 plots where it disagrees with the link table. Six random plots (2587, 1508, 2480, 1435, 1320, 1192): every PDF row is in the PDF text, every Excel row matches the raw cell for plot and unit, PDF unit equals Excel unit, CAD area equals the link
-- Mutation check: search range off made 2 shift tests fail, skip list off made 2 skip tests fail, both put back. shapely 2.2.0 added to requirements.txt
-- Gate: Python 96 passed (70 before), .NET 77 passed, build 0 errors
+- Branch feat/road-levels in the second clone (site-adaptation-tool v2). The first clone is on round/ramp-corners for the other session and was not touched, nor was dotnet/ (git diff of dotnet/ is empty). This session started in C:\Users\bader, outside the repo, so the main guard hook was NOT live. I never committed to main. Main did not move during the round. Rule ids R40 to R46 were free on main and on every remote branch
+- LandXML reader (R40, R41): python/landxml_reader.py streams the 222 MB file with expat in 1 MB blocks and keeps numpy arrays. 7 surfaces, 1260324 points, 2511038 faces, 288402 invisible. It ran in 6 s. Point counts per surface equal the chat counts for all 7. Coordinate system code 32637 and metre units. No surface is missing from the config and none is extra. EXISTING has 47846 of 56528 faces invisible, the other six 2.2 to 11.4 percent
+- Lookup (R42): python/surface_lookup.py, grid index, visible triangles only, None outside, lowest triangle index wins on an edge. All 337 ramps (1348 corners) on 7 surfaces take 3.3 s
+- Config (R43): config/road_surfaces.json, EXISTING_11.5 Sqkm is ground, the other six are design, with the note that the finished road is not confirmed
+- Ramp test (R44): 337 ramp floors, all with 4 corners. Ramps by covered corners over all design surfaces: 0 corners 119, 1 corner 39, 2 corners 162, 3 corners 17, 4 corners 0. Chat said 119, 39, 162, 17, so I agree on every count. The 162 ramps with 2 covered corners are all neighbouring, none opposite, which chat did not say. Only Top Surface-02 covers any corner (414 corners). The other 5 design surfaces cover 0, agree. EXISTING covers all 1348 corners and the floor top is above it at every corner by 0.156 to 2.131 m, chat said 0.16 to 2.13, agree. Against Top Surface-02 the floor top is above the road at 71 of 414 corners and below at 343
+- Gaps (R45): corners with no cover are 934. Distance to the nearest visible triangle, up to 1 m, up to 5 m, up to 20 m, more. Top Surface-02: 327, 1, 606, 0. Top Surface-01: 0, 0, 63, 871. The other four: 0, 0, 0, 934. For the 119 ramps with no covered corner, Top Surface-02 is within 1 m for all 119, Top Surface-01 within 20 m for 4, the other five surfaces are more than 20 m for all 119. I did not compare against the surface bounding boxes
+- Plot check against Bader's Revit tag: the chat match within 0.02 m was NOT reproduced. The result is in sample_output/full_run/road_levels/plot_check.json and nowhere else. I cannot tell which Revit value Bader tagged or which corner is the street corner, so the file lists every corner against the floor top, the link Prototype-FFL and the other floor of the plot
+- Full run (R46): stages landxml (limit 600 s) and road_levels added to python/full_run.py. Run on the real file, ok in 6.2 s and 3.3 s. A broken file is recorded with its exact text and the run goes on, road_levels is then skipped, tested
+- Second method (R46, python/road_check.py, seed 821895143): tag counts from the raw bytes equal the reader on 7 of 7 surfaces. Every point and every visible face read again with regular expressions equal the arrays, 1260324 points and 2222636 faces, 0 differ. shapely with a plane fit on 200 random corner points against 7 surfaces (1400 pairs): 264 both give a level, 1136 both give none, 0 where only one gives a level, largest difference 0.0000000000001 m. 6 random ramps (plots 2459, 2621, 2406, 2401, 2334, 2513), 168 corner levels recomputed from the raw prototypes.json, 0 mismatches, largest difference 0.0005 m (the file rounds to 3 decimals)
+- Mutation check: swapping northing and easting made 14 tests fail, ignoring the invisible flag made 5 fail, both put back and the file is byte identical. numpy 2.5.4 added to requirements.txt, it was already installed with shapely
+- Gate: Python 127 passed (96 before), .NET 77 passed, build 0 errors
 
 Remains:
-- Revit run on the real model, by Bader. Placement work. A look at the 12 failures and the 17 many label faces
+- Which design surface is the finished road. The 119 ramps and 934 corners with no cover. The plot check. Placement work
 
 Known bugs:
-- 12 plots fail the location check with their config shift: 1278, 1384, 1401, 2311, 2312, 2377, 2388, 2544, 2545, 2548, 2549, 2589. Ten have unit corners 1.4 to 20 m outside the plot. In 8 of them most points lie in the config plot, in 2312 and 2544 most points lie in the plot one number lower
-- Plot 2549 sheet 009027 block 4 row 129 code 5 has a point millions of metres off, same kind as plot 2589 on sheet 009028. The odd list only catches a missing decimal point, so 2549 is not in it
-- Plot 1453 has an Excel row and no PDF rows. 4 PDF plots repeat a point code, 58 plots sit on 2 or more sheets
-- Old output folders of R06 and R06_0001 stay in sample_output/full_run from the last run and are not used
-- Still open: unclosed face and plot_open pieces, arc crossings not noded, Civil 3D surfaces, Revit not run
+- A corner on the exact edge of a visible triangle counts as covered (barycentric tolerance 1e-9), a library that treats the edge as outside would differ, the shapely check found none in 1400 pairs
+- The gap bands do not say whether a far corner lies inside the surface bounding box
+- Revit z of the boundary is not used, topElevation shifted by the survey point offset is the only floor level. The offset in z is 0 in this file
+- Still open from earlier rounds: 12 failing plots, many label faces, Revit not run on the link round
 
 Next:
-- Decide the 12 failures and the 17 many label faces, then placement only after the Revit result is in
+- Decide the finished road surface and the rule for the 119 ramps with no covered corner. Then take the level per ramp edge, not before
 
 Your turn:
-1. Plots 1278, 1384, 1401, 2311, 2312, 2377, 2388, 2544, 2545, 2548 have unit corners 1.4 to 20 m outside the plot. Can unit corners lie outside the plot edge? Recommended: look at 3 of them in CAD with me before the tolerance changes
-2. Sheet 009027 plot 2549 code 5 and sheet 009028 plot 2589 code 2 hold bad northing values. Recommended: tell the drawing owner, I keep them as found
-3. R06.dwg is not empty after exploding (140064 pieces). Keep the skip? Recommended: yes, R06_0000 stays the only Master Plan drawing
-4. 696 of the 1100 faces only in R06_0000 hold two or more baseplan faces, so R06_0000 is less subdivided there. Which is the master for plot faces? Recommended: the baseplan
-5. The masterplan workbook has no per plot rows. Recommended: it is a summary, send a per plot Master Plan schedule if one exists
-6. The 18 stray labels are road and buffer labels with no face. Recommended: leave them, filter them by the ROW and Buffer words
-7. The 15 many label faces hold consecutive plot numbers, so lines between those plots are probably missing in the baseplan. Recommended: send the CAD owner the list in sample_output/full_run/other_faces
-8. Revit still waits for you, steps are in steps/history/round-5-revit.md
+1. Which design surface is the finished road? Recommended: Top Surface-02 for the ramps, it is the only one that covers any corner. The other five cover none of the 337 ramps, so nothing here tests them
+2. 119 ramps have no corner on Top Surface-02 but all are within 1 m of it, and 606 corners are 5 to 20 m away. Should a ramp with no covered corner take its level from the nearest edge of Top Surface-02? Recommended: no. Look at 3 of them in CAD with me first, extending a surface is a guess
+3. The 0.02 m match on one plot did not reproduce, see sample_output/full_run/road_levels/plot_check.json. Which Revit value did you tag and which corner is the street corner? Recommended: send me the parameter name and the corner, then I compare that one pair
+4. 39 ramps have 1 covered corner and 17 have 3. Is one covered corner enough to set that ramp edge? Recommended: no, only the two neighbouring corners of the 162 give an edge, the rest wait for answer 2
+
+## Round 6, 2026-10-22, plot number shift, second source, no type check
+
+Stub. The full entry is in steps/history/round-6.md.
+- Shift config IMC 10 and IMD 11, Master Plan skip list, second source check, workbook survey and face reasons were added and merged as PR 7. Location check 734 of 746 joined plots pass, 12 fail. Gate then: Python 96 passed, .NET 77 passed
+- Open for Bader: the 12 failing plots, the 17 many label faces, the numbered questions that are in steps/history/round-6.md
 
 ## Round 5, 2026-10-22, Revit link names, shared parameters and floors
 

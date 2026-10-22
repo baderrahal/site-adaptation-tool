@@ -12,6 +12,7 @@ PDF_FOLDER = Path("01_Output") / "1.5 Coordinates Schedules" / "PDF"
 XLSX_FOLDER = Path("01_Output") / "1.11 References"
 DEFAULT_SHEET = "MP_Phase 1_Zone21"
 TIMEOUT = 600
+LANDXML_TIMEOUT = 600
 TEXT_LIMIT = 20000
 BASEPLAN = "ROSHN Makkah Baseplan.dwg"
 SECOND_DEFAULT = "221229_MP-SK-01-03-001_R06_0000.dwg"
@@ -133,6 +134,26 @@ def stage_commands(out_root, ran, second, shifts):
     return stages
 
 
+def road_stages(out_root, config_path, landxml=None, prototypes=None):
+    """The LandXML reader with its own 600 second limit, then the ramp road levels, which need the reader output."""
+    config_path = Path(config_path)
+    if not config_path.is_file():
+        return [{"name": "landxml", "why": "no " + config_path.name}, {"name": "road_levels", "why": "no " + config_path.name}]
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    folder = Path(config.get("folder", "."))
+    xml = Path(landxml) if landxml else folder / config["landxml"]
+    levels = Path(prototypes) if prototypes else folder / config["prototypes"]
+    out_root = Path(out_root)
+    if not xml.is_file():
+        return [{"name": "landxml", "why": "no file " + xml.name}, {"name": "road_levels", "why": "no LandXML output"}]
+    stages = [{"name": "landxml", "timeout": LANDXML_TIMEOUT, "args": [sys.executable, str(HERE / "landxml_reader.py"), str(xml), str(out_root / "landxml"), "--config", str(config_path)]}]
+    if levels.is_file():
+        stages.append({"name": "road_levels", "needs": "landxml", "args": [sys.executable, str(HERE / "ramp_levels.py"), str(out_root / "road_levels"), "--config", str(config_path), "--prototypes", str(levels), "--landxml-dir", str(out_root / "landxml")]})
+    else:
+        stages.append({"name": "road_levels", "why": "no file " + levels.name})
+    return stages
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Run the readers in place on the real files, one time limit per file.")
     parser.add_argument("root", help="folder that holds Base Plans, Master Plan, Roads and 01_Output")
@@ -144,6 +165,9 @@ def main(argv=None):
     parser.add_argument("--kinds", default="dwg,pdf,xlsx")
     parser.add_argument("--shifts", default=str(HERE.parent / "config" / "plot_numbers.json"))
     parser.add_argument("--second", default=str(HERE.parent / "config" / "second_source.json"))
+    parser.add_argument("--roads", default=str(HERE.parent / "config" / "road_surfaces.json"))
+    parser.add_argument("--landxml")
+    parser.add_argument("--prototypes")
     args = parser.parse_args(argv)
     jobs, skipped = plan(args.root, tuple(args.kinds.split(",")))
     out_root = Path(args.out_dir)
@@ -163,11 +187,16 @@ def main(argv=None):
     second = json.loads(Path(args.second).read_text(encoding="utf-8")).get("file", SECOND_DEFAULT) if Path(args.second).is_file() else SECOND_DEFAULT
     ran = [entry["file"] for entry in results if entry["status"] == "ok"]
     stage_results = []
-    for stage in stage_commands(out_root, ran, second, args.shifts):
+    done = {}
+    for stage in stage_commands(out_root, ran, second, args.shifts) + road_stages(out_root, args.roads, args.landxml, args.prototypes):
         if "args" not in stage:
             stage_results.append({"stage": stage["name"], "status": "skipped", "why": stage["why"]})
             continue
-        record = run_one(stage["args"], out_root / stage["name"], args.timeout)
+        if stage.get("needs") and done.get(stage["needs"]) != "ok":
+            stage_results.append({"stage": stage["name"], "status": "skipped", "why": "stage " + stage["needs"] + " did not finish ok"})
+            continue
+        record = run_one(stage["args"], out_root / stage["name"], stage.get("timeout", args.timeout))
+        done[stage["name"]] = record["status"]
         entry = {"stage": stage["name"], "status": record["status"], "exit": record["exit"], "seconds": record["seconds"]}
         if record["status"] != "ok":
             entry["error"] = (record["stderr"].strip() or record["stdout"].strip())[-500:]
