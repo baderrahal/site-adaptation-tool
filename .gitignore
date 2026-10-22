@@ -12,3 +12,5 @@ out/
 *.rfa
 *.pdf
 *.xlsx
+sample_data/
+sample_output/
