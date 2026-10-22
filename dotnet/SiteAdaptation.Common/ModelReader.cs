@@ -31,10 +31,15 @@ namespace SiteAdaptation.Common
             {
                 ReadWallPlot(wall, errors);
             }
+            var noPlot = new SortedDictionary<string, List<long?>>(StringComparer.Ordinal);
             foreach (FloorRow floor in entry.Floors)
             {
-                ReadFloorPlot(floor, errors);
+                ReadFloorPlot(floor, errors, noPlot);
                 ChooseCorners(floor, errors);
+            }
+            foreach (KeyValuePair<string, List<long?>> type in noPlot)
+            {
+                errors.Add(NoPlotLine(type.Key, type.Value));
             }
             errors.AddRange(host.Errors);
             if (errors.Count > 0)
@@ -43,8 +48,12 @@ namespace SiteAdaptation.Common
             }
         }
 
-        // A floor always gets plotNumber and unit, null when the Plot parameter is missing or does not parse, with a line in errors
-        private static void ReadFloorPlot(FloorRow floor, IList<string> errors)
+        // The most element ids one missing Plot line names. The count in that line is always the full count
+        private const int MaxIdsInLine = 5;
+
+        // A floor always gets plotNumber and unit, null when the Plot parameter is missing or does not parse.
+        // A floor that does not parse gets its own line in errors. Floors with no Plot parameter are collected by type and get one line per type
+        private static void ReadFloorPlot(FloorRow floor, IList<string> errors, IDictionary<string, List<long?>> noPlot)
         {
             object value = null;
             bool has = floor.Parameters != null && floor.Parameters.TryGetValue(PlotParts.ParameterName, out value);
@@ -56,7 +65,26 @@ namespace SiteAdaptation.Common
                 floor.PlotNumber = number;
                 return;
             }
-            errors.Add("floor " + floor.ElementId + ": " + (has ? "Plot parameter does not read as unit and number" : "Plot parameter is missing"));
+            if (has)
+            {
+                errors.Add("floor " + floor.ElementId + ": Plot parameter does not read as unit and number");
+                return;
+            }
+            string type = string.IsNullOrEmpty(floor.TypeName) ? "(no type)" : floor.TypeName;
+            List<long?> ids;
+            if (!noPlot.TryGetValue(type, out ids))
+            {
+                ids = new List<long?>();
+                noPlot[type] = ids;
+            }
+            ids.Add(floor.ElementId);
+        }
+
+        private static string NoPlotLine(string type, IList<long?> ids)
+        {
+            string shown = string.Join(", ", ids.Take(MaxIdsInLine).Select(id => id.HasValue ? id.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "?"));
+            string more = ids.Count > MaxIdsInLine ? "first " + MaxIdsInLine + " element ids " : "element ids ";
+            return "Plot parameter is missing on " + ids.Count + (ids.Count == 1 ? " floor" : " floors") + " of type " + type + ", " + more + shown;
         }
 
         // A wall gets plotNumber and unit only when it holds a Plot parameter

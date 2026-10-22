@@ -7,7 +7,7 @@ import full_run
 import landxml_reader
 import ramp_levels
 import road_check
-from landxml_fixture import write_config, write_landxml, write_prototypes
+from landxml_fixture import prototypes_dict, write_config, write_landxml, write_prototypes
 
 
 @pytest.fixture
@@ -145,3 +145,111 @@ def test_r46_a_good_landxml_runs_both_stages_through_the_full_run(tmp_path):
     assert stages["landxml"]["status"] == "ok" and stages["road_levels"]["status"] == "ok"
     assert (out / "road_levels" / "ramp_road_levels.json").is_file()
     assert (out / "landxml" / "Road" / "points.npy").is_file()
+
+
+def run_with(tmp_path, data):
+    """Runs the ramp test on the fixture surfaces with a changed prototypes dict. Returns the summary and the records by plot."""
+    xml = write_landxml(tmp_path / "road.xml")
+    config = ramp_levels.load_config(write_config(tmp_path / "config.json"))
+    landxml_reader.read_landxml(xml, tmp_path / "landxml", set(config["surfaces"]))
+    summary = ramp_levels.run(write_prototypes(tmp_path / "p.json", data), tmp_path / "landxml", config, tmp_path / "levels")
+    records = json.loads((tmp_path / "levels" / "ramp_road_levels.json").read_text(encoding="utf-8"))["ramps"]
+    return summary, {record["plot"]: record for record in records}
+
+
+def ramp_floor(data, plot):
+    return next(item for item in data["documents"][0]["floors"] if item["parameters"]["Plot"] == "DT1-" + plot and item["typeName"] == "Ramps 2%")
+
+
+def test_r47_corner_level_comes_from_the_corners_key_and_never_from_the_sketch_boundary(ramps):
+    _, summary, records = ramps
+    levels = [corner["cornerLevel"] for corner in records["77"]["corners"]]
+    assert levels == [20.0, 23.02, 101.0, 101.0]
+    assert 150 not in [corner["cornerLevel"] for record in records.values() for corner in record["corners"]]
+    assert summary["cornerSource"] == {"corners": 5, "sketchBoundary": 0, "noCorners": 0, "notFourCorners": 0}
+
+
+def test_r47_survey_offset_is_shared_minus_position_on_every_axis(tmp_path):
+    data = prototypes_dict()
+    data["documents"][0]["surveyPoint"] = {"position": [10, 20, 3], "sharedPosition": [1010, 5020, 10]}
+    _, records = run_with(tmp_path, data)
+    corner = records["77"]["corners"][0]
+    assert ramp_levels.offset_of(data["documents"][0]) == [1000, 5000, 7]
+    assert corner["roadLevel"] == pytest.approx(20)
+    assert corner["cornerLevel"] == pytest.approx(27.0)
+    assert corner["difference"] == pytest.approx(7.0)
+    assert records["77"]["topElevation"] == pytest.approx(108.0)
+
+
+def test_r47_floor_without_corners_uses_the_sketch_outline_with_the_top_elevation_and_is_counted(tmp_path):
+    data = prototypes_dict()
+    del ramp_floor(data, "79")["corners"]
+    summary, records = run_with(tmp_path, data)
+    assert [corner["cornerLevel"] for corner in records["79"]["corners"]] == [103.0] * 4
+    assert summary["cornerSource"] == {"corners": 4, "sketchBoundary": 1, "noCorners": 0, "notFourCorners": 0}
+
+
+def test_r47_old_boundary_key_is_not_read_and_does_not_crash(tmp_path):
+    data = prototypes_dict()
+    old = ramp_floor(data, "79")
+    old["boundary"] = [[x, y, 0] for x, y, z in old.pop("corners")]
+    del old["sketchBoundary"]
+    five = ramp_floor(data, "80")
+    five["corners"].append([100, 102, 104.0])
+    summary, records = run_with(tmp_path, data)
+    assert summary["rampCount"] == 3 and "79" not in records and "80" not in records
+    assert summary["cornerSource"]["noCorners"] == 1 and summary["cornerSource"]["notFourCorners"] == 1
+
+
+def test_r47_record_holds_corner_level_road_level_and_difference(ramps):
+    _, _, records = ramps
+    first, second = records["78"]["corners"][0], records["78"]["corners"][1]
+    assert (first["cornerLevel"], first["roadLevel"], first["difference"]) == (21.5, 21.0, 0.5)
+    assert (second["cornerLevel"], second["roadLevel"], second["difference"]) == (102.0, None, None)
+
+
+def test_r47_differences_fall_in_bands_of_absolute_size(ramps):
+    _, summary, _ = ramps
+    assert summary["roadSurface"] == "Road"
+    assert summary["roadDifference"] == {
+        "covered": 8,
+        "bands": {"upTo10mm": 4, "upTo30mm": 2, "upTo100mm": 0, "upTo300mm": 1, "more": 1},
+        "cumulative": {"upTo10mm": 4, "upTo30mm": 6, "upTo100mm": 6, "upTo300mm": 7},
+    }
+
+
+def test_r47_band_edges_are_inclusive_and_the_sign_does_not_matter():
+    assert ramp_levels.diff_band(0.01) == "upTo10mm" and ramp_levels.diff_band(0.0101) == "upTo30mm"
+    assert ramp_levels.diff_band(-0.03) == "upTo30mm" and ramp_levels.diff_band(-0.05) == "upTo100mm"
+    assert ramp_levels.diff_band(0.3) == "upTo300mm" and ramp_levels.diff_band(0.31) == "more"
+
+
+def test_r47_neighbouring_pairs_count_both_one_none_within_30mm_by_floor_type():
+    rows = [{"type": "A"}, {"type": "A"}, {"type": "B"}, {"type": "B"}]
+    differences = [[0.0, 0.01, None, None], [None, 0.5, 0.5, None], [0.0, 0.5, None, None], [0.0, None, 0.0, None]]
+    covered = [[0, 1], [1, 2], [0, 1], [0, 2]]
+    counted = ramp_levels.neighbouring_pairs(rows, differences, covered)
+    assert counted["A"] == {"both": 1, "one": 0, "none": 1}
+    assert counted["B"] == {"both": 0, "one": 1, "none": 0}
+    assert counted["all types"] == {"both": 1, "one": 1, "none": 1}
+
+
+def test_r47_fixture_pairs_are_counted_in_the_summary(ramps):
+    _, summary, _ = ramps
+    assert summary["roadNeighbouringPairs"] == {"Ramps 2%": {"both": 1, "one": 0, "none": 0}, "all types": {"both": 1, "one": 0, "none": 0}}
+    assert summary["roadCoveredCorners"] == {"0": 2, "1": 0, "2": 2, "3": 0, "4": 1}
+
+
+def test_r47_spots_within_5_cm_of_a_corner_are_counted_with_the_spot_minus_corner_spread(ramps):
+    _, summary, _ = ramps
+    spots = summary["spots"]
+    assert (spots["spots"], spots["corners"], spots["spotsNearCorner"], spots["cornersWithSpot"]) == (5, 20, 3, 3)
+    assert spots["spotMinusCorner"]["median"] == pytest.approx(0.001)
+    assert (spots["spotMinusCorner"]["min"], spots["spotMinusCorner"]["max"], spots["spotMinusCorner"]["withinOneMm"]) == (pytest.approx(0), pytest.approx(0.01), 2)
+
+
+def test_r47_a_file_with_no_spot_elevations_gives_zero_counts(tmp_path):
+    data = prototypes_dict()
+    del data["documents"][0]["spotElevations"]
+    summary, _ = run_with(tmp_path, data)
+    assert summary["spots"] == {"spots": 0, "corners": 20, "spotsNearCorner": 0, "cornersWithSpot": 0}

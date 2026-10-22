@@ -19,6 +19,8 @@ EXCEL_UNIT = "Unit"
 EXCEL_FFL = "FFL"
 EXCEL_STEPS = "Steps Needed"
 LEVEL_TOLERANCE = 0.0005
+GENERIC_TYPE = "Generic 150mm"
+YARD_TYPE = "yard"
 
 
 def drop_instances(node):
@@ -237,6 +239,57 @@ def sketch_z(floors):
     return counts
 
 
+def floor_plot(floor):
+    # The plotNumber field of the new shape, else the digits after the last dash of the Plot parameter
+    if floor.get("plotNumber") is not None:
+        return str(floor["plotNumber"])
+    text = (floor.get("parameters") or {}).get("Plot")
+    return str(text).rpartition("-")[2] if text and "-" in str(text) else None
+
+
+def floor_kind(floor):
+    name = str(floor.get("typeName") or "")
+    if is_ramp(floor):
+        return "ramp"
+    if name == GENERIC_TYPE:
+        return "generic"
+    return "yard" if name.lower() == YARD_TYPE else None
+
+
+def floor_count_check(floors):
+    # Every plot with a ramp floor needs one Generic floor, one yard floor and one ramp floor.
+    # A yard floor reaches a plot only through its plot number, so the yard count per plot runs only when some yard floor has one
+    counts = {}
+    yards = [floor for floor in floors if floor_kind(floor) == "yard"]
+    for floor in floors:
+        plot, kind = floor_plot(floor), floor_kind(floor)
+        if plot is not None and kind is not None:
+            counts.setdefault(plot, Counter())[kind] += 1
+    yard_per_plot = any(floor_plot(floor) is not None for floor in yards)
+    kinds = ("generic", "yard", "ramp") if yard_per_plot else ("generic", "ramp")
+    ramp_plots = sorted((plot for plot in counts if counts[plot]["ramp"] > 0), key=sort_key)
+    findings, missing, twice = [], Counter(), Counter()
+    for plot in ramp_plots:
+        problems = []
+        for kind in kinds:
+            found = counts[plot][kind]
+            if found != 1:
+                problems.append({"floor": kind, "found": found, "problem": "missing" if found == 0 else "more than one"})
+                (missing if found == 0 else twice)[kind] += 1
+        if problems:
+            findings.append({"plot": plot, "problems": problems})
+    return {
+        "rampPlots": len(ramp_plots),
+        "yardPerPlot": yard_per_plot,
+        "yardFloors": len(yards),
+        "yardFloorsWithoutPlot": sum(1 for floor in yards if floor_plot(floor) is None),
+        "plotsWithFinding": len(findings),
+        "missingByKind": {kind: missing[kind] for kind in kinds},
+        "moreThanOneByKind": {kind: twice[kind] for kind in kinds},
+        "findings": findings,
+    }
+
+
 def uses_slope(floor):
     info = floor.get("slope") or {}
     return info.get("parameter") is not None or info.get("arrow") is True
@@ -256,6 +309,7 @@ def floor_summary(data):
         "wallTypes": ordered(Counter(text_key(wall.get("typeName")) for wall in walls)),
         "sketchZ": sketch_z(ramps),
         "spotElevations": spots,
+        "floorCount": floor_count_check(floors),
         "corners": None,
     }
     if any("cornersSource" in floor for floor in floors):
@@ -351,6 +405,9 @@ def summarize(data):
 
     summary["notComputable"] = missing
     summary["floorSummary"] = floor_summary(data)
+    check = summary["floorSummary"]["floorCount"]
+    if check["rampPlots"] and not check["yardPerPlot"]:
+        missing.append({"part": "yard floor per plot", "reason": "no yard floor holds a plot number, " + str(check["yardFloorsWithoutPlot"]) + " yard floors for " + str(check["rampPlots"]) + " plots with a ramp floor"})
     return summary
 
 
@@ -395,6 +452,7 @@ def render_floors(info):
     z = info["sketchZ"]
     lines.append("ramp floor sketch z: " + str(z["floors"]) + " floors, one z on " + str(z["oneZ"]) + ", equals top " + str(z["equalsTop"]) + ", equals level " + str(z["equalsLevel"]) + ", equals neither " + str(z["equalsNeither"]))
     lines.append("spot elevations " + str(info["spotElevations"]))
+    lines.extend(render_floor_count(info["floorCount"]))
     if info["corners"] is None:
         lines.append("NOT COMPUTED corners and slope: no floor has cornersSource, the file has the old shape")
     else:
@@ -403,6 +461,13 @@ def render_floors(info):
         lines.append("ramp floor slope: report a slope " + str(item["reportSlope"]) + ", shape editing and slope " + str(item["shapeAndSlope"]) + ", neither " + str(item["neither"]))
         lines.append("corner height spread: over 5 mm on " + str(item["cornerHeightSpreadOver5mm"]) + " floors, largest " + str(item["largestCornerHeightSpreadMm"]) + " mm")
         lines.append("floors with plotNumber null " + str(item["plotNumberNull"]))
+    return lines
+
+
+def render_floor_count(item):
+    lines = ["floor count per plot: " + str(item["rampPlots"]) + " plots with a ramp floor, " + str(item["plotsWithFinding"]) + " with a finding"]
+    lines.append("  missing " + ", ".join(kind + " " + str(count) for kind, count in item["missingByKind"].items()) + ", more than one " + ", ".join(kind + " " + str(count) for kind, count in item["moreThanOneByKind"].items()))
+    lines.extend("  plot " + finding["plot"] + ": " + ", ".join(problem["floor"] + " " + problem["problem"] + " (" + str(problem["found"]) + ")" for problem in finding["problems"]) for finding in item["findings"])
     return lines
 
 

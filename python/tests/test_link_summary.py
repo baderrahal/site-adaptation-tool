@@ -289,3 +289,73 @@ def test_r27_main_with_the_excel_option_writes_and_prints_the_check(tmp_path, ca
     assert written["floorSummary"]["floors"] == 0
     link_summary.main([str(path), str(out)])
     assert json.loads((out / "link_summary.json").read_text(encoding="utf-8"))["verify"] is None
+
+
+def counted(kind_plots):
+    # A floor of the new shape with only what the count needs
+    return [{"typeName": kind, "plotNumber": plot, "parameters": {}} for kind, plot in kind_plots]
+
+
+def full_plot(plot):
+    return [("Generic 150mm", plot), ("yard", plot), ("Ramps 2%", plot)]
+
+
+def test_r49_a_plot_with_one_generic_one_yard_and_one_ramp_floor_has_no_finding():
+    result = link_summary.floor_count_check(counted(full_plot("1") + full_plot("2")))
+    assert (result["rampPlots"], result["plotsWithFinding"], result["yardPerPlot"]) == (2, 0, True)
+    assert result["findings"] == []
+
+
+def test_r49_a_plot_without_a_generic_floor_is_listed_by_plot_number():
+    floors = counted(full_plot("1") + [("yard", "2441"), ("Flat Ramps", "2441")])
+    result = link_summary.floor_count_check(floors)
+    assert result["findings"] == [{"plot": "2441", "problems": [{"floor": "generic", "found": 0, "problem": "missing"}]}]
+    assert result["missingByKind"] == {"generic": 1, "yard": 0, "ramp": 0}
+
+
+def test_r49_a_plot_with_two_floors_of_a_kind_is_listed_and_counted_apart_from_the_missing():
+    floors = counted(full_plot("1") + full_plot("2") + [("Generic 150mm", "2"), ("Ramps 0.5%", "3"), ("Generic 150mm", "3")])
+    result = link_summary.floor_count_check(floors)
+    assert [(item["plot"], [problem["floor"] + " " + problem["problem"] for problem in item["problems"]]) for item in result["findings"]] == [
+        ("2", ["generic more than one"]),
+        ("3", ["yard missing"]),
+    ]
+    assert result["moreThanOneByKind"] == {"generic": 1, "yard": 0, "ramp": 0}
+    assert result["missingByKind"] == {"generic": 0, "yard": 1, "ramp": 0}
+
+
+def test_r49_a_plot_without_a_ramp_floor_is_not_checked_and_ramp_types_all_count_as_ramps():
+    floors = counted(full_plot("1")[:2] + [("Generic 150mm", "9")] + [("Ramps 0.5%", "5"), ("Generic 150mm", "5"), ("yard", "5"), ("Ramps 2%", "5")])
+    result = link_summary.floor_count_check(floors)
+    assert result["rampPlots"] == 1
+    assert result["findings"] == [{"plot": "5", "problems": [{"floor": "ramp", "found": 2, "problem": "more than one"}]}]
+
+
+def test_r49_when_no_yard_floor_has_a_plot_number_the_yard_is_counted_in_total_only():
+    floors = counted([("Generic 150mm", "1"), ("Ramps 2%", "1"), ("Generic 150mm", "2"), ("Ramps 2%", "2")]) + [{"typeName": "yard", "plotNumber": None, "parameters": {}}] * 2
+    result = link_summary.floor_count_check(floors)
+    assert (result["yardPerPlot"], result["yardFloors"], result["yardFloorsWithoutPlot"], result["rampPlots"]) == (False, 2, 2, 2)
+    assert result["findings"] == [] and list(result["missingByKind"]) == ["generic", "ramp"]
+    data = project([])
+    data["documents"][0]["floors"] = floors
+    notes = [item["part"] for item in link_summary.summarize(data)["notComputable"]]
+    assert "yard floor per plot" in notes
+
+
+def test_r49_an_old_file_without_plotNumber_reads_the_plot_parameter():
+    floors = [{"typeName": "Generic 150mm", "parameters": {"Plot": "VD2-2441"}}, {"typeName": "Ramps 2%", "parameters": {"Plot": "VD2-2441"}}, {"typeName": "yard", "parameters": {"Plot": "VD2-2441"}}]
+    result = link_summary.floor_count_check(floors)
+    assert (result["rampPlots"], result["plotsWithFinding"], result["yardPerPlot"]) == (1, 0, True)
+
+
+def test_r49_main_writes_the_plot_numbers_to_the_file_and_the_counts_to_the_text(tmp_path, capsys):
+    data = project([])
+    data["documents"][0]["floors"] = counted(full_plot("1") + [("yard", "2441"), ("Ramps 2%", "2441")])
+    path = tmp_path / "prototypes.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert link_summary.main([str(path), str(tmp_path / "out")]) == 0
+    text = capsys.readouterr().out
+    assert "floor count per plot: 2 plots with a ramp floor, 1 with a finding" in text
+    assert "plot 2441: generic missing (0)" in text
+    written = json.loads((tmp_path / "out" / "link_summary.json").read_text(encoding="utf-8"))
+    assert [item["plot"] for item in written["floorSummary"]["floorCount"]["findings"]] == ["2441"]
