@@ -17,11 +17,12 @@ The rules live in docs/rules.md and nowhere else. This file points to them and a
 
 ## Repo map
 
-- python/ holds the PDF reader, the Excel reader, the link table, the link summary, the second source check, the face reasons and the full run script, plus tests in python/tests.
+- python/ holds the PDF reader, the Excel reader, the link table, the link summary, the second source check, the face reasons, the LandXML reader, the surface lookup, the ramp levels, the road check and the full run script, plus tests in python/tests.
 - config/plot_numbers.json holds the plot number shift of each neighbourhood. config/second_source.json names the second Master Plan drawing and its plot layers.
 - dotnet/CadReader reads DWG and DXF with ACadSharp.
 - dotnet/RevitPrototypeReader is the Revit 2024 add-in. Do not change it unless the round says so.
 - dotnet/SiteAdaptation.Common holds JSON output and unit helpers.
+- config/road_surfaces.json gives each LandXML surface its role, ground or design, and names the ramp types and the input files.
 - config/cad_layers.json is the keep and drop list of CAD layers. Bader edits it.
 - docs/rules.md holds the rules with ids R1 and up.
 - steps/log.md holds the round log. steps/PROGRESS.md holds the live state. steps/history/ holds old rounds.
@@ -39,6 +40,7 @@ The full text is docs/rules.md. Ids are the contract, a test names the id it pro
 - R12 Every rule has a test whose name carries the rule id.
 - R16 and R17 cover the Revit links, walls, floors and ramps. R27 covers the link summary. R18 to R26 cover the main guard, explode, layer filter, texts and xrefs, plot labels, PDF rows, the link table, the full run and the harness files.
 - R28 to R33 cover the plot number shift, the Master Plan skip list, the dropped plot type check, the second source check, the workbook survey and the face reasons.
+- R40 to R46 cover the LandXML reader, invisible faces, the surface lookup, the surface roles, the ramp road levels, the gap bands and the road stages with their second check.
 
 ## Real files
 

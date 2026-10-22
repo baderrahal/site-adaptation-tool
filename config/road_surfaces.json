@@ -1,0 +1,17 @@
+{
+  "note": "Bader has not confirmed which design surface is the finished road. He only said that Top Surface-02 touches the ramps. Every design surface is looked up and none is picked as the road.",
+  "folder": "C:/Users/bader/Documents/SiteAdaptation",
+  "landxml": "Makkah Phase 1_Road Surface C3D.xml",
+  "prototypes": "prototypes.json",
+  "rampTypes": ["Ramps 0.5%", "Ramps 2%", "Flat Ramps"],
+  "bands": [1, 5, 20],
+  "surfaces": {
+    "EXISTING_11.5 Sqkm": {"role": "ground"},
+    "Compiled West_MM": {"role": "design"},
+    "Missed from Paste": {"role": "design"},
+    "Part 4 Top Surfaces": {"role": "design"},
+    "Top Surface-01": {"role": "design"},
+    "Top Surface-02": {"role": "design"},
+    "Top Surface Part 2 East Of East": {"role": "design"}
+  }
+}
