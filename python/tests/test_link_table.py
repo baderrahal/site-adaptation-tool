@@ -62,18 +62,20 @@ def test_r24_point_just_outside_the_edge_is_inside_the_tolerance():
 
 
 def test_r24_missing_matches_are_listed_by_kind_with_plot_numbers():
-    plots = {"plots": [square(1, 0, 0), square(2, 20, 0)]}
-    rows = [rows_file("a.pdf", [pdf_row(1, 1, 2, 3), pdf_row(7, 1, 100, 100)])]
-    coords = [excel_file("b.xlsx", [(1, "DT3"), (9, "DT3")])]
+    plots = {"plots": [square(1, 0, 0), square(2, 20, 0), square(3, 40, 0), square(4, 60, 0)]}
+    rows = [rows_file("a.pdf", [pdf_row(1, 1, 2, 3), pdf_row(7, 1, 100, 100), pdf_row(4, 1, 62, 3)])]
+    coords = [excel_file("b.xlsx", [(1, "DT3"), (9, "DT3"), (3, "DT3")])]
     summary, links, conflicts = link_table.build(plots, rows, coords)
-    missing = {conflict["kind"]: conflict["plots"] for conflict in conflicts if "plots" in conflict}
-    assert missing["no_pdf"] == [2]
-    assert missing["no_excel"] == [2]
+    missing = {conflict["kind"]: conflict.get("plots", conflict.get("cadLabels")) for conflict in conflicts if "count" in conflict}
+    assert missing["no_pdf"] == [3]
+    assert missing["no_excel"] == [4]
     assert missing["pdf_no_cad"] == [7]
     assert missing["excel_no_cad"] == [9]
-    assert missing["pdf_no_excel"] == [7]
-    assert missing["excel_no_pdf"] == [9]
+    assert missing["pdf_no_excel"] == [4, 7]
+    assert missing["excel_no_pdf"] == [3, 9]
+    assert missing["cad_unclaimed"] == [2]
     assert summary["conflicts"]["no_pdf"] == 1
+    assert summary["conflicts"]["cad_unclaimed"] == 1
 
 
 def test_r24_duplicates_are_conflicts_and_are_never_picked_silently():
@@ -130,10 +132,11 @@ def test_r24_main_writes_links_conflicts_and_extents_and_keeps_four_decimals(tmp
     cad = tmp_path / "cad"
     cad.mkdir()
     (cad / "plots.json").write_text(json.dumps({"plots": [square(1, 0, 0)]}), encoding="utf-8")
-    (tmp_path / "rows.json").write_text(json.dumps(rows_file("a.pdf", [pdf_row(1, 1, 2, 3)])), encoding="utf-8")
-    (tmp_path / "coords.json").write_text(json.dumps(excel_file("b.xlsx", [(1, "DT3")])), encoding="utf-8")
+    (tmp_path / "rows.json").write_text(json.dumps(rows_file("a-IMC-.pdf", [pdf_row(1, 1, 2, 3)])), encoding="utf-8")
+    (tmp_path / "coords.json").write_text(json.dumps(excel_file("b-IMC-.xlsx", [(1, "DT3")])), encoding="utf-8")
+    (tmp_path / "shifts.json").write_text(json.dumps({"neighbourhoods": {"IMC": {"shift": 0}}, "sourceCodePattern": "-(IMC)-"}), encoding="utf-8")
     out = tmp_path / "out"
-    code = link_table.main([str(out), "--cad", str(cad), "--rows", str(tmp_path / "rows.json"), "--coords", str(tmp_path / "coords.json")])
+    code = link_table.main([str(out), "--cad", str(cad), "--rows", str(tmp_path / "rows.json"), "--coords", str(tmp_path / "coords.json"), "--shifts", str(tmp_path / "shifts.json")])
     assert code == 0
     links = json.loads((out / "links.json").read_text(encoding="utf-8"))
     assert links["summary"]["all3"] == 1

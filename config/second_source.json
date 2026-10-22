@@ -1,0 +1,7 @@
+{
+  "note": "The second source is a Master Plan drawing with plot geometry and no plot number labels. Its faces are compared with the baseplan faces by location and area only.",
+  "file": "221229_MP-SK-01-03-001_R06_0000.dwg",
+  "layers": ["X_MP_Plots$0$MP_Plot", "X_MP_Bldg.$0$MP_Plot_Sub", "MP_Single Family"],
+  "minOverlap": 0.5,
+  "areaPercent": 1.0
+}

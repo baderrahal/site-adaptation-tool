@@ -1,4 +1,5 @@
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -11,6 +12,9 @@ HEADER_MARKER = "Plot No."
 # Columns that keep 4 decimals, matched on the header text without trailing stars
 WIDE_COLUMNS = {"el @ entry", "height"}
 EXTRA_LIMIT = 200
+PLOT_WORDS = ("plot no", "plot number", "plot id", "plot #")
+AREA_FIT = 0.01
+HEADER_SCAN = 30
 
 
 def find_sheet(workbook, wanted):
@@ -118,15 +122,97 @@ def write_outputs(xlsx_path, out_dir, sheet_name):
     return headers, records
 
 
+def plot_column_of(headers):
+    for index, header in enumerate(headers):
+        text = str(header).strip().lower()
+        if any(word in text for word in PLOT_WORDS):
+            return index
+    return None
+
+
+def survey_header_row(rows):
+    """The row with Plot No. when there is one, else the row with the most text cells in the first rows. Title rows have few."""
+    found = find_header_row(rows)
+    if found is not None:
+        return found
+    best, best_count = None, 2
+    for index, row in enumerate(rows[:HEADER_SCAN]):
+        count = sum(1 for cell in row if isinstance(cell, str) and cell.strip())
+        if count > best_count:
+            best, best_count = index, count
+    return best
+
+
+def numbering_counts(plots, areas, cad_areas, shifts):
+    """For each reading of the numbers (as found, then minus each shift) how many plots have a CAD plot of the same area."""
+    readings = {"asFound": 0}
+    readings.update({"minus" + str(shift): 0 for shift in shifts})
+    for plot, area in zip(plots, areas):
+        if not isinstance(plot, (int, float)) or not isinstance(area, (int, float)) or area <= 0:
+            continue
+        for name, shift in [("asFound", 0)] + [("minus" + str(value), value) for value in shifts]:
+            cad = cad_areas.get(int(plot) - shift)
+            if cad and abs(cad - area) / area <= AREA_FIT:
+                readings[name] += 1
+    return readings
+
+
+def survey(xlsx_path, cad_areas=None, shifts=()):
+    """Sheets, header rows, row counts and the plot number column of a workbook, counts and header texts only."""
+    workbook = load_workbook(str(xlsx_path), read_only=True, data_only=True)
+    try:
+        sheets = [(sheet.title, [row for row in sheet.iter_rows(values_only=True)]) for sheet in workbook.worksheets]
+    finally:
+        workbook.close()
+    report = []
+    for title, rows in sheets:
+        header_index = survey_header_row(rows)
+        entry = {"sheet": title, "rows": len(rows), "headerRow": None if header_index is None else header_index + 1, "dataRows": 0, "plotColumn": None}
+        if header_index is not None:
+            headers = unique_headers(rows[header_index])
+            body = [row for row in rows[header_index + 1:] if any(not is_blank(cell) for cell in row)]
+            entry["dataRows"] = len(body)
+            entry["headers"] = [header for header in headers if not header.startswith("col_")]
+            entry["plotHeaders"] = [header for header in headers if "plot" in header.lower()]
+            column = plot_column_of(headers)
+            if column is not None:
+                entry["plotColumn"] = headers[column]
+                plots = [row[column] if column < len(row) else None for row in body]
+                entry["plotNumbers"] = sum(1 for plot in plots if isinstance(plot, (int, float)))
+                area_column = next((index for index, header in enumerate(headers) if "area" in header.lower()), None)
+                if cad_areas and area_column is not None:
+                    areas = [row[area_column] if area_column < len(row) else None for row in body]
+                    entry["numbering"] = numbering_counts(plots, areas, cad_areas, shifts)
+        report.append(entry)
+    return {"source": Path(xlsx_path).name, "sheets": report, "sheetCount": len(report), "plotColumnSheets": sum(1 for entry in report if entry["plotColumn"])}
+
+
+def cad_areas_of(plots_path):
+    plots = json.loads(Path(plots_path).read_text(encoding="utf-8"))
+    return {int(shape["plot"]): shape["area"] for shape in plots["plots"] if shape["kind"] == "plot_shape" and str(shape.get("plot", "")).isdigit()}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Read the coordinates sheet of a workbook.")
     parser.add_argument("xlsx")
     parser.add_argument("out_dir")
     parser.add_argument("--sheet", default="Coordinates")
+    parser.add_argument("--survey", action="store_true", help="report sheets, header rows, row counts and the plot number column instead of reading one sheet")
+    parser.add_argument("--cad-plots", help="plots.json of the baseplan, for the numbering test of a survey")
+    parser.add_argument("--shifts", help="plot_numbers.json, for the numbering test of a survey")
     args = parser.parse_args(argv)
     if not Path(args.xlsx).is_file():
         print("Workbook not found: " + args.xlsx, file=sys.stderr)
         return 2
+    if args.survey:
+        cad = cad_areas_of(args.cad_plots) if args.cad_plots and Path(args.cad_plots).is_file() else None
+        shifts = []
+        if args.shifts and Path(args.shifts).is_file():
+            shifts = sorted({entry["shift"] for entry in json.loads(Path(args.shifts).read_text(encoding="utf-8"))["neighbourhoods"].values()})
+        report = survey(args.xlsx, cad, shifts)
+        write_json(Path(args.out_dir) / "survey.json", report)
+        print("sheets " + str(report["sheetCount"]) + ", sheets with a plot number column " + str(report["plotColumnSheets"]))
+        return 0
     try:
         headers, records = write_outputs(args.xlsx, args.out_dir, args.sheet)
     except ValueError as problem:
