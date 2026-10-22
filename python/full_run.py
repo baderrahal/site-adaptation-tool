@@ -19,7 +19,7 @@ SECOND_DEFAULT = "221229_MP-SK-01-03-001_R06_0000.dwg"
 MASTER_FOLDER = "Master Plan"
 # Decision C. These two Master Plan drawings are never read, the reason is written to the summary.
 SKIP_FILES = {
-    "221229_MP-SK-01-03-001_R06.dwg": "Decision C. Shell with 45 model space entities, its xref Makkah Phase 1_Road Layout_new.dwg is not found. The block content explodes to 140064 pieces, so it is not empty after exploding. R06_0000 is used instead.",
+    "221229_MP-SK-01-03-001_R06.dwg": "Decision C. No plot faces, only 45 model space entities, its xref Makkah Phase 1_Road Layout_new.dwg is not found. The block content explodes to 140064 pieces, so it is not empty after exploding. R06_0000 is used instead.",
     "221229_MP-SK-01-03-001_R06_0001.dwg": "Decision C. Identical copy of 221229_MP-SK-01-03-001_R06_0000.dwg with the same layer counts and the same handles. R06_0000 is used instead.",
 }
 

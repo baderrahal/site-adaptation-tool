@@ -137,13 +137,23 @@ def test_r43_a_surface_that_is_not_in_the_config_is_reported_and_a_missing_one_t
 
 def test_r43_roles_come_from_the_config_and_an_unlisted_surface_is_never_looked_up(tmp_path):
     config = ramp_levels.load_config(write_config(tmp_path / "config.json"))
-    assert config["design"] == ["Road"] and config["ground"] == ["Ground"]
+    assert config["design"] == ["Road"] and config["ground"] == ["Ground"] and config["road"] == "Road"
     assert "Spare" not in config["design"] + config["ground"]
 
 
-def test_r43_real_config_names_one_ground_surface_six_design_surfaces_and_the_open_question():
+def test_r43_real_config_names_one_ground_surface_one_road_and_five_design_surfaces():
     config = ramp_levels.load_config(ramp_levels.DEFAULT_CONFIG)
     assert config["ground"] == ["EXISTING_11.5 Sqkm"]
-    assert len(config["design"]) == 6
-    assert "has not confirmed which design surface is the finished road" in config["note"]
-    assert "Top Surface-02" in config["note"]
+    assert config["road"] == "Top Surface-02"
+    assert len(config["design"]) == 6 and "Top Surface-02" in config["design"]
+    assert [name for name, role in config["roles"].items() if role == "design"] == ["Compiled West_MM", "Missed from Paste", "Part 4 Top Surfaces", "Top Surface-01", "Top Surface Part 2 East Of East"]
+    assert "finished road for the ramps" in config["note"] and "none of them is confirmed" in config["note"]
+
+
+def test_r43_two_road_surfaces_in_one_config_are_refused(tmp_path):
+    path = write_config(tmp_path / "config.json")
+    broken = json.loads(path.read_text(encoding="utf-8"))
+    broken["surfaces"]["Ground"]["role"] = "road"
+    path.write_text(json.dumps(broken), encoding="utf-8")
+    with pytest.raises(ValueError, match="more than one surface"):
+        ramp_levels.load_config(path)

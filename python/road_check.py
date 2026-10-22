@@ -92,7 +92,10 @@ def corner_points(document, types):
     ramps = []
     for floor in document["floors"]:
         if floor["typeName"] in types:
-            ramps.append({"plot": str(floor["parameters"]["Plot"]).split("-")[-1], "type": floor["typeName"], "top": floor["topElevation"] + shift[2], "corners": [(p[0] + shift[0], p[1] + shift[1]) for p in floor["boundary"]]})
+            top = floor["topElevation"] + shift[2]
+            points = floor.get("corners") or [[p[0], p[1], floor["topElevation"]] for p in floor.get("sketchBoundary") or []]
+            ramps.append({"plot": str(floor["parameters"]["Plot"]).split("-")[-1], "type": floor["typeName"], "top": top,
+                          "corners": [(p[0] + shift[0], p[1] + shift[1]) for p in points], "levels": [p[2] + shift[2] for p in points]})
     return ramps
 
 
@@ -175,6 +178,9 @@ def check(xml_path, landxml_dir, levels_path, prototypes, config, seed):
         record = stored[(ramp["plot"], ramp["type"])]
         if abs(record["topElevation"] - ramp["top"]) > STORED_TOLERANCE:
             rampChecks["mismatch"].append(ramp["plot"] + " top elevation")
+        for index, level in enumerate(ramp["levels"]):
+            if abs(record["corners"][index]["cornerLevel"] - level) > STORED_TOLERANCE:
+                rampChecks["mismatch"].append(ramp["plot"] + " corner " + str(index) + " corner level")
     result["shapelyLookup"] = tally
     result["rampFile"] = rampChecks
     return result

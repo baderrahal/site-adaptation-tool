@@ -17,12 +17,12 @@ The rules live in docs/rules.md and nowhere else. This file points to them and a
 
 ## Repo map
 
-- python/ holds the PDF reader, the Excel reader, the link table, the link summary, the second source check, the face reasons, the LandXML reader, the surface lookup, the ramp levels, the road check and the full run script, plus tests in python/tests.
+- python/ holds the PDF reader, the Excel reader, the link table, the link summary, the second source check, the face reasons, the LandXML reader, the surface lookup, the ramp levels, the surface roles, the road check and the full run script, plus tests in python/tests.
 - config/plot_numbers.json holds the plot number shift of each neighbourhood. config/second_source.json names the second Master Plan drawing and its plot layers.
 - dotnet/CadReader reads DWG and DXF with ACadSharp.
 - dotnet/RevitPrototypeReader is the Revit 2024 add-in. Do not change it unless the round says so.
 - dotnet/SiteAdaptation.Common holds JSON output and unit helpers.
-- config/road_surfaces.json gives each LandXML surface its role, ground or design, and names the ramp types and the input files.
+- config/road_surfaces.json gives each LandXML surface its role, ground, road or design, and names the ramp types and the input files.
 - config/cad_layers.json is the keep and drop list of CAD layers. Bader edits it.
 - docs/rules.md holds the rules with ids R1 and up.
 - steps/log.md holds the round log. steps/PROGRESS.md holds the live state. steps/history/ holds old rounds.
@@ -42,6 +42,7 @@ The full text is docs/rules.md. Ids are the contract, a test names the id it pro
 - R28 to R33 cover the plot number shift, the Master Plan skip list, the dropped plot type check, the second source check, the workbook survey and the face reasons.
 - R34 to R39 cover the floor corners, the corner source and slope, the spot elevations, the floor and wall plot numbers, the link name parse and the link contents default.
 - R40 to R46 cover the LandXML reader, invisible faces, the surface lookup, the surface roles, the ramp road levels, the gap bands and the road stages with their second check.
+- R47 to R50 cover the ramp corner levels, the role proposal, the floor count per plot and the one error line for floors with no Plot parameter.
 
 ## Real files
 

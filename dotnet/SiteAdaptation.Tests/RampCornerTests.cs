@@ -356,7 +356,79 @@ namespace SiteAdaptation.Tests
                 Assert.Equal(JTokenType.Null, floor["plotNumber"].Type);
                 Assert.Equal(JTokenType.Null, floor["unit"].Type);
             }
-            Assert.Equal(new[] { "floor 1: Plot parameter is missing", "floor 2: Plot parameter does not read as unit and number" }, Errors(document));
+            Assert.Equal(new[] { "floor 2: Plot parameter does not read as unit and number", "Plot parameter is missing on 1 floor of type Ramps 0.5%, element ids 1" }, Errors(document));
+        }
+
+        private static FloorRow NoPlotFloor(long id, string type)
+        {
+            FloorRow floor = Ramp(id, Edited());
+            floor.TypeName = type;
+            floor.Parameters.Remove("Plot");
+            return floor;
+        }
+
+        private static string[] NoPlotErrors(params FloorRow[] floors)
+        {
+            var host = new LinkWallRampTests.FakeSource();
+            host.FloorList.AddRange(floors);
+            return Errors(LinkWallRampTests.Run(host));
+        }
+
+        [Fact]
+        public void R50_floors_with_no_Plot_parameter_get_one_line_per_type_with_the_full_count_and_five_ids()
+        {
+            var floors = new List<FloorRow>();
+            for (long id = 10; id < 17; id++)
+            {
+                floors.Add(NoPlotFloor(id, "yard"));
+            }
+            string[] errors = NoPlotErrors(floors.ToArray());
+
+            Assert.Equal(new[] { "Plot parameter is missing on 7 floors of type yard, first 5 element ids 10, 11, 12, 13, 14" }, errors);
+        }
+
+        [Fact]
+        public void R50_each_type_gets_its_own_line_in_type_order_and_up_to_five_ids_are_all_named()
+        {
+            string[] errors = NoPlotErrors(
+                NoPlotFloor(5, "yard"),
+                NoPlotFloor(1, "Generic 150mm"),
+                NoPlotFloor(6, "yard"),
+                NoPlotFloor(2, "Generic 150mm"),
+                NoPlotFloor(7, "yard"),
+                NoPlotFloor(8, "yard"),
+                NoPlotFloor(9, "yard"));
+
+            Assert.Equal(
+                new[]
+                {
+                    "Plot parameter is missing on 2 floors of type Generic 150mm, element ids 1, 2",
+                    "Plot parameter is missing on 5 floors of type yard, element ids 5, 6, 7, 8, 9",
+                },
+                errors);
+        }
+
+        [Fact]
+        public void R50_a_floor_that_has_a_Plot_value_gets_no_missing_line_and_a_bad_value_keeps_its_own_line()
+        {
+            FloorRow good = Ramp(1, Edited());
+            FloorRow odd = Ramp(2, Edited());
+            odd.Parameters["Plot"] = "bad";
+            string[] errors = NoPlotErrors(good, odd, NoPlotFloor(3, "yard"));
+
+            Assert.Equal(new[] { "floor 2: Plot parameter does not read as unit and number", "Plot parameter is missing on 1 floor of type yard, element ids 3" }, errors);
+        }
+
+        [Fact]
+        public void R50_a_floor_with_no_type_name_is_grouped_as_no_type_and_the_null_fields_stay_explicit()
+        {
+            var host = new LinkWallRampTests.FakeSource();
+            host.FloorList.Add(NoPlotFloor(4, null));
+            JObject document = LinkWallRampTests.Run(host);
+
+            Assert.Equal(new[] { "Plot parameter is missing on 1 floor of type (no type), element ids 4" }, Errors(document));
+            Assert.Equal(JTokenType.Null, document["floors"][0]["plotNumber"].Type);
+            Assert.Equal(JTokenType.Null, document["floors"][0]["unit"].Type);
         }
 
         [Fact]

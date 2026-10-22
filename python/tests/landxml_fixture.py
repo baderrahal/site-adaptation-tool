@@ -38,7 +38,7 @@ def write_landxml(path, with_spare=True):
 
 
 def config_dict():
-    return {"note": "test", "folder": ".", "landxml": "x.xml", "prototypes": "p.json", "rampTypes": ["Ramps 2%"], "bands": [1, 5, 20], "surfaces": {"Road": {"role": "design"}, "Ground": {"role": "ground"}}}
+    return {"note": "test", "folder": ".", "landxml": "x.xml", "prototypes": "p.json", "rampTypes": ["Ramps 2%"], "bands": [1, 5, 20], "surfaces": {"Road": {"role": "road"}, "Ground": {"role": "ground"}}}
 
 
 def write_config(path):
@@ -46,23 +46,35 @@ def write_config(path):
     return path
 
 
-def floor(plot, type_name, top, boundary):
-    return {"typeName": type_name, "elementId": 1, "topElevation": top, "boundary": [[x, y, 0] for x, y in boundary], "parameters": {"Plot": plot}}
+def floor(plot, type_name, top, boundary, levels=None):
+    """A floor of the new shape. corners hold the real level of each corner and sketchBoundary holds the sketch plane, 150, which is never a level."""
+    levels = levels or [top] * len(boundary)
+    return {"typeName": type_name, "elementId": 1, "topElevation": top, "corners": [[x, y, z] for (x, y), z in zip(boundary, levels)], "cornersSource": "shapeEditor",
+            "sketchBoundary": [[x, y, 150] for x, y in boundary], "parameters": {"Plot": plot}}
 
 
 # Survey point shared position is the internal origin shifted by 1000 east and 5000 north
+# Corner levels are the road level of the corner plus a chosen gap, so the gap bands are known
 def prototypes_dict():
     floors = [
-        floor("DT1-77", "Ramps 2%", 101.0, [(5, 5), (8, 5), (8, -3), (5, -3)]),
-        floor("DT1-78", "Ramps 2%", 102.0, [(5, 5), (30, 5), (7, 8), (30, 30)]),
-        floor("DT1-79", "Ramps 2%", 103.0, [(2, 2), (8, 2), (8, 7), (2, 8)]),
+        floor("DT1-77", "Ramps 2%", 101.0, [(5, 5), (8, 5), (8, -3), (5, -3)], [20.0, 23.02, 101.0, 101.0]),
+        floor("DT1-78", "Ramps 2%", 102.0, [(5, 6), (30, 5), (7, 8), (30, 30)], [21.5, 102.0, 25.0, 102.0]),
+        floor("DT1-79", "Ramps 2%", 103.0, [(2, 2), (8, 2), (8, 7), (2, 8)], [14.005, 20.02, 25.2, 20.0]),
         floor("DT1-80", "Ramps 2%", 104.0, [(100, 100), (101, 100), (101, 101), (100, 101)]),
         floor("DT1-81", "Ramps 2%", 105.0, [(-0.5, 5), (-0.5, 6), (-0.5, 7), (-0.5, 8)]),
         floor("DT1-77", "Generic 150mm", 106.0, [(0, 0), (1, 0), (1, 1), (0, 1)]),
     ]
-    return {"documents": [{"kind": "project", "surveyPoint": {"position": [0, 0, 100], "sharedPosition": [1000, 5000, 100]}, "floors": floors, "links": [{"plotNumber": "77", "ffl": "105.500"}]}]}
+    spots = [
+        {"elementId": 1, "origin": [5.0, 5.04, 20.01], "view": "Plan"},
+        {"elementId": 2, "origin": [8.0, 5.0, 23.02], "view": "Plan"},
+        {"elementId": 3, "origin": [50.0, 50.0, 1.0], "view": "Plan"},
+        {"elementId": 4, "origin": [2.0, 2.0, 14.006], "view": "Plan"},
+        {"elementId": 5, "origin": [5.0, 5.06, 20.0], "view": "Plan"},
+    ]
+    return {"documents": [{"kind": "project", "surveyPoint": {"position": [0, 0, 100], "sharedPosition": [1000, 5000, 100]}, "floors": floors, "spotElevations": spots,
+                           "links": [{"plotNumber": "77", "ffl": "105.500"}]}]}
 
 
-def write_prototypes(path):
-    path.write_text(json.dumps(prototypes_dict()), encoding="utf-8")
+def write_prototypes(path, data=None):
+    path.write_text(json.dumps(data or prototypes_dict()), encoding="utf-8")
     return path
