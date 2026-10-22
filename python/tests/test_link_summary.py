@@ -228,9 +228,9 @@ def floor(type_name, top, offset, sketch_z, source=None, corners=None, slope=Non
 def test_r27_old_floor_shape_counts_types_and_the_sketch_z_and_says_corners_are_not_computed():
     data = project([])
     data["documents"][0]["floors"] = [
-        floor("Ramps 2%", 175.0, 175.0, 150),
-        floor("Ramps 2%", 175.0, 175.0, 0),
-        floor("Flat Ramps", 175.0, 175.0, 175.0),
+        floor("Ramps 2%", 85.0, 85.0, 150),
+        floor("Ramps 2%", 85.0, 85.0, 0),
+        floor("Flat Ramps", 85.0, 85.0, 85.0),
         floor("yard", 4.2, 0.2, 4.2),
     ]
     data["documents"][0]["walls"] = [{"typeName": "BW"}, {"typeName": "BW"}, {"typeName": "Garden"}]
@@ -246,14 +246,14 @@ def test_r27_old_floor_shape_counts_types_and_the_sketch_z_and_says_corners_are_
 
 def test_r27_new_floor_shape_counts_corner_sources_slope_and_height_spread():
     data = project([])
-    spread = [[0, 0, 173.1], [1, 0, 173.3], [1, 1, 173.2]]
-    flat = [[0, 0, 173.2], [1, 0, 173.2], [1, 1, 173.2]]
+    spread = [[0, 0, 83.1], [1, 0, 83.3], [1, 1, 83.2]]
+    flat = [[0, 0, 83.2], [1, 0, 83.2], [1, 1, 83.2]]
     data["documents"][0]["floors"] = [
-        floor("Ramps 0.5%", 173.2, 173.2, 150, "shapeEditor", spread, {"parameter": None, "arrow": False}),
-        floor("Ramps 0.5%", 173.2, 173.2, 150, "shapeEditor", flat, {"parameter": 0.005, "arrow": False}),
-        floor("Ramps 0.5%", 173.2, 173.2, 150, "boundary", flat, {"parameter": None, "arrow": True}),
-        floor("Flat Ramps", 173.2, 173.2, 150, "boundary", flat, {"parameter": None, "arrow": False}),
-        floor("Ramps 2%", 173.2, 173.2, 150, None, None, None, None),
+        floor("Ramps 0.5%", 83.2, 83.2, 150, "shapeEditor", spread, {"parameter": None, "arrow": False}),
+        floor("Ramps 0.5%", 83.2, 83.2, 150, "shapeEditor", flat, {"parameter": 0.005, "arrow": False}),
+        floor("Ramps 0.5%", 83.2, 83.2, 150, "boundary", flat, {"parameter": None, "arrow": True}),
+        floor("Flat Ramps", 83.2, 83.2, 150, "boundary", flat, {"parameter": None, "arrow": False}),
+        floor("Ramps 2%", 83.2, 83.2, 150, None, None, None, None),
     ]
     data["documents"][0]["floors"][4]["boundary"] = []
     data["documents"][0]["spotElevations"] = [{"elementId": 1}, {"elementId": 2}]

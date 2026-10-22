@@ -25,7 +25,7 @@ namespace SiteAdaptation.Tests
         }
 
         // A ramp floor whose sketch plane is at 150 and whose real corners differ by up to 0.2 in height
-        private static FloorRow Ramp(long id, ShapeEditing shape, double top = 173.2)
+        private static FloorRow Ramp(long id, ShapeEditing shape, double top = 83.2)
         {
             return new FloorRow
             {
@@ -45,7 +45,7 @@ namespace SiteAdaptation.Tests
             return new ShapeEditing
             {
                 Enabled = true,
-                Corners = new List<double[]> { P(0, 0, 173.1), P(10, 0, 173.25), P(10, 5, 173.3), P(0, 5, 173.15) },
+                Corners = new List<double[]> { P(0, 0, 83.1), P(10, 0, 83.25), P(10, 5, 83.3), P(0, 5, 83.15) },
                 Others = new List<double[]>(),
             };
         }
@@ -82,8 +82,8 @@ namespace SiteAdaptation.Tests
             JToken floor = OneFloor(Ramp(1, Edited()), out document);
 
             Assert.Equal(4, floor["corners"].Count());
-            Assert.Equal(new[] { 0.0, 0, 173.1 }, LinkWallRampTests.Numbers(floor["corners"][0]));
-            Assert.Equal(new[] { 10.0, 5, 173.3 }, LinkWallRampTests.Numbers(floor["corners"][2]));
+            Assert.Equal(new[] { 0.0, 0, 83.1 }, LinkWallRampTests.Numbers(floor["corners"][0]));
+            Assert.Equal(new[] { 10.0, 5, 83.3 }, LinkWallRampTests.Numbers(floor["corners"][2]));
             double lowest = floor["corners"].Min(corner => (double)corner[2]);
             double highest = floor["corners"].Max(corner => (double)corner[2]);
             Assert.Equal(0.2, highest - lowest, 3);
@@ -94,11 +94,11 @@ namespace SiteAdaptation.Tests
         public void R34_corner_values_are_rounded_to_three_decimals()
         {
             ShapeEditing shape = Edited();
-            shape.Corners[1] = P(10.00049, 0, 173.254999);
+            shape.Corners[1] = P(10.00049, 0, 83.254999);
             JObject document;
             JToken floor = OneFloor(Ramp(1, shape), out document);
 
-            Assert.Equal(new[] { 10.0, 0, 173.255 }, LinkWallRampTests.Numbers(floor["corners"][1]));
+            Assert.Equal(new[] { 10.0, 0, 83.255 }, LinkWallRampTests.Numbers(floor["corners"][1]));
         }
 
         [Fact]
@@ -108,7 +108,7 @@ namespace SiteAdaptation.Tests
             JToken floor = OneFloor(Ramp(1, Edited()), out document);
 
             Assert.Equal("shapeEditor", (string)floor["cornersSource"]);
-            Assert.Equal(173.25, (double)floor["corners"][1][2], 3);
+            Assert.Equal(83.25, (double)floor["corners"][1][2], 3);
             Assert.Null(floor["shapePoints"]);
             Assert.Empty(Errors(document));
         }
@@ -117,12 +117,12 @@ namespace SiteAdaptation.Tests
         public void R35_boundary_end_points_at_the_top_elevation_are_used_when_shape_editing_is_off()
         {
             JObject document;
-            JToken floor = OneFloor(Ramp(1, new ShapeEditing { Enabled = false }, 173.2), out document);
+            JToken floor = OneFloor(Ramp(1, new ShapeEditing { Enabled = false }, 83.2), out document);
 
             Assert.Equal("boundary", (string)floor["cornersSource"]);
             Assert.Equal(4, floor["corners"].Count());
-            Assert.All(floor["corners"], corner => Assert.Equal(173.2, (double)corner[2], 3));
-            Assert.Equal(new[] { 10.0, 5, 173.2 }, LinkWallRampTests.Numbers(floor["corners"][2]));
+            Assert.All(floor["corners"], corner => Assert.Equal(83.2, (double)corner[2], 3));
+            Assert.Equal(new[] { 10.0, 5, 83.2 }, LinkWallRampTests.Numbers(floor["corners"][2]));
         }
 
         [Fact]
@@ -155,7 +155,7 @@ namespace SiteAdaptation.Tests
             JToken floor = OneFloor(Ramp(1, shape), out document);
 
             Assert.Equal("boundary", (string)floor["cornersSource"]);
-            Assert.All(floor["corners"], corner => Assert.Equal(173.2, (double)corner[2], 3));
+            Assert.All(floor["corners"], corner => Assert.Equal(83.2, (double)corner[2], 3));
         }
 
         [Fact]
@@ -210,12 +210,12 @@ namespace SiteAdaptation.Tests
         public void R35_shape_points_that_are_not_corners_are_listed_only_when_there_are_some()
         {
             ShapeEditing shape = Edited();
-            shape.Others.Add(P(5, 2.5, 173.4));
+            shape.Others.Add(P(5, 2.5, 83.4));
             JObject document;
             JToken floor = OneFloor(Ramp(1, shape), out document);
 
             Assert.Equal(4, floor["corners"].Count());
-            Assert.Equal(new[] { 5.0, 2.5, 173.4 }, LinkWallRampTests.Numbers(floor["shapePoints"].Single()));
+            Assert.Equal(new[] { 5.0, 2.5, 83.4 }, LinkWallRampTests.Numbers(floor["shapePoints"].Single()));
         }
 
         [Fact]
@@ -270,15 +270,15 @@ namespace SiteAdaptation.Tests
         public void R36_spot_elevations_are_written_on_the_document_entry_with_the_fields_that_were_read()
         {
             var host = new LinkWallRampTests.FakeSource();
-            host.SpotList.Add(new SpotRow { ElementId = 90, Origin = P(1.25, 2.5, 173.4), Value = 173.4, View = "Site Plan", Target = 4001 });
-            host.SpotList.Add(new SpotRow { ElementId = 91, Origin = P(3, 4, 172.9) });
+            host.SpotList.Add(new SpotRow { ElementId = 90, Origin = P(1.25, 2.5, 83.4), Value = 83.4, View = "Site Plan", Target = 4001 });
+            host.SpotList.Add(new SpotRow { ElementId = 91, Origin = P(3, 4, 82.9) });
             JObject document = LinkWallRampTests.Run(host);
 
             JToken spots = document["spotElevations"];
             Assert.Equal(2, spots.Count());
             Assert.Equal(90, (long)spots[0]["elementId"]);
-            Assert.Equal(new[] { 1.25, 2.5, 173.4 }, LinkWallRampTests.Numbers(spots[0]["origin"]));
-            Assert.Equal(173.4, (double)spots[0]["value"], 3);
+            Assert.Equal(new[] { 1.25, 2.5, 83.4 }, LinkWallRampTests.Numbers(spots[0]["origin"]));
+            Assert.Equal(83.4, (double)spots[0]["value"], 3);
             Assert.Equal("Site Plan", (string)spots[0]["view"]);
             Assert.Equal(4001, (long)spots[0]["target"]);
             Assert.Null(spots[1]["value"]);
@@ -505,7 +505,7 @@ namespace SiteAdaptation.Tests
                 host.FloorList.Add(ramp);
                 host.FloorList.Add(Ramp(plot * 3 + 1, new ShapeEditing { Enabled = false }));
                 host.FloorList.Add(Ramp(plot * 3 + 2, null));
-                host.SpotList.Add(new SpotRow { ElementId = plot, Origin = P(1.5, 2.5, 173.4), Value = 173.4, View = "Site Plan", Target = plot * 3 });
+                host.SpotList.Add(new SpotRow { ElementId = plot, Origin = P(1.5, 2.5, 83.4), Value = 83.4, View = "Site Plan", Target = plot * 3 });
             }
             int none = JsonOut.ToJson(LinkWallRampTests.Run(host, new ReaderOptions())).Length;
             int once = JsonOut.ToJson(LinkWallRampTests.Run(host, new ReaderOptions { LinkContents = LinkContents.Once })).Length;

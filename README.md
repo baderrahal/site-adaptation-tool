@@ -67,7 +67,7 @@ Build the solution, then copy `dotnet\RevitPrototypeReader\bin\Release\net48\` a
 `%APPDATA%\Autodesk\Revit\Addins\2024\`. Edit the Assembly line in the .addin file to the full path of
 `RevitPrototypeReader.dll`.
 
-To leave out the contents of the linked files, put the line `--link-contents none` in a file named reader-options.txt next to the DLL. The default is `--link-contents once`.
+The add-in reads the link instances and not what is inside the linked files. To read the contents of each linked file once, put the line `--link-contents once` in a file named reader-options.txt next to the DLL. The default is `--link-contents none`.
 
 ## Tests
 
