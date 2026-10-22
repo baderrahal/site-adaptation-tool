@@ -21,9 +21,14 @@ namespace SiteAdaptation.Common
 
         public static string ToJson(object payload)
         {
+            return JsonConvert.SerializeObject(payload, Settings(Formatting.Indented));
+        }
+
+        public static JsonSerializerSettings Settings(Formatting formatting)
+        {
             var settings = new JsonSerializerSettings
             {
-                Formatting = Formatting.Indented,
+                Formatting = formatting,
                 NullValueHandling = NullValueHandling.Ignore,
                 ContractResolver = new DefaultContractResolver
                 {
@@ -32,7 +37,7 @@ namespace SiteAdaptation.Common
             };
             settings.Converters.Add(new Round3Converter());
             settings.Converters.Add(new InlinePointConverter());
-            return JsonConvert.SerializeObject(payload, settings);
+            return settings;
         }
 
         public static void Write(string path, object payload)
@@ -40,6 +45,45 @@ namespace SiteAdaptation.Common
             string folder = Path.GetDirectoryName(Path.GetFullPath(path));
             Directory.CreateDirectory(folder);
             File.WriteAllText(path, ToJson(payload), new UTF8Encoding(false));
+        }
+
+        // Writes {"source": ..., "<name>": [ item per line ]} one item at a time, so a large drawing never sits in memory twice
+        public sealed class ArrayWriter : IDisposable
+        {
+            private readonly StreamWriter file;
+            private readonly JsonTextWriter writer;
+            private readonly JsonSerializer serializer;
+
+            public int Count { get; private set; }
+
+            public ArrayWriter(string path, string source, string arrayName)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)));
+                file = new StreamWriter(path, false, new UTF8Encoding(false));
+                writer = new JsonTextWriter(file) { Formatting = Formatting.None };
+                serializer = JsonSerializer.Create(Settings(Formatting.None));
+                writer.WriteStartObject();
+                writer.WritePropertyName("source");
+                writer.WriteValue(source);
+                writer.WritePropertyName(arrayName);
+                writer.WriteStartArray();
+            }
+
+            public void Add(object item)
+            {
+                writer.WriteWhitespace("\n");
+                serializer.Serialize(writer, item);
+                Count++;
+            }
+
+            public void Dispose()
+            {
+                writer.WriteWhitespace("\n");
+                writer.WriteEndArray();
+                writer.WriteEndObject();
+                writer.Flush();
+                file.Dispose();
+            }
         }
 
         // A point is written on one line so a polyline with many vertices stays small

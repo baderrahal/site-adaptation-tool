@@ -1,0 +1,6 @@
+{
+  "plotLineLayers": ["MP_PLOT_LINE", "MP_PLOT_SUBD"],
+  "plotLabelLayers": ["MP_PLOT_TEXT"],
+  "keep": ["MP_*", "RD-*", "G-CUTSHT", "G-SHTNO", "Phase*"],
+  "drop": ["Defpoints", "*LOGO*", "*TITLE*", "*TTLB*", "*BORDER*", "*VPORT*", "LEGEND"]
+}

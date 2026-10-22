@@ -11,13 +11,12 @@ namespace CadReader
     // Pieces that bound no closed shape are still written, as open pieces, so nothing on the layer is lost.
     public static class PlotShapes
     {
-        public const string PlotLineLayer = "MP_PLOT_LINE";
 
         // Drawing units, metres on the real baseplan
         public const double Tolerance = 0.01;
         private const double MinArea = 0.001;
 
-        private sealed class Piece
+        private sealed class Edge
         {
             public int A;
             public int B;
@@ -32,7 +31,8 @@ namespace CadReader
         private sealed class Graph
         {
             public readonly List<double[]> Nodes = new List<double[]>();
-            public readonly List<Piece> Pieces = new List<Piece>();
+            public readonly List<Edge> Pieces = new List<Edge>();
+            public string Layer;
             private readonly Dictionary<Tuple<long, long>, List<int>> grid = new Dictionary<Tuple<long, long>, List<int>>();
 
             public int Node(double x, double y)
@@ -68,24 +68,53 @@ namespace CadReader
             }
         }
 
-        public static bool IsPlotLine(Entity entity)
+        // A straight piece, or an arc that runs counter clockwise from angle A0 to angle A1
+        public sealed class Seg
         {
-            string layer = entity.Layer == null ? "0" : entity.Layer.Name;
-            return string.Equals(layer, PlotLineLayer, StringComparison.OrdinalIgnoreCase) && (entity is Line || entity is Arc);
+            public bool IsArc;
+            public double X1;
+            public double Y1;
+            public double X2;
+            public double Y2;
+            public double Cx;
+            public double Cy;
+            public double Radius;
+            public double A0;
+            public double A1;
+
+            public static Seg FromPiece(CadReader.Piece piece)
+            {
+                if (piece.Kind == "line")
+                {
+                    return new Seg { X1 = piece.Pts[0][0], Y1 = piece.Pts[0][1], X2 = piece.Pts[1][0], Y2 = piece.Pts[1][1] };
+                }
+                double[] from = piece.Ccw == false ? piece.End : piece.Start;
+                double[] to = piece.Ccw == false ? piece.Start : piece.End;
+                return new Seg
+                {
+                    IsArc = true,
+                    Cx = piece.Center[0],
+                    Cy = piece.Center[1],
+                    Radius = piece.Radius.Value,
+                    A0 = Math.Atan2(from[1] - piece.Center[1], from[0] - piece.Center[0]),
+                    A1 = Math.Atan2(to[1] - piece.Center[1], to[0] - piece.Center[0]),
+                };
+            }
         }
 
-        public static List<PlotEntry> Build(IEnumerable<Entity> entities)
+        public static List<PlotEntry> Build(IEnumerable<Seg> segs, string layer)
         {
-            var graph = new Graph();
-            foreach (Entity entity in entities.Where(IsPlotLine))
+            var graph = new Graph { Layer = layer };
+            foreach (Seg seg in segs)
             {
-                var line = entity as Line;
-                if (line != null)
+                if (seg.IsArc)
                 {
-                    AddLine(graph, line.StartPoint.X, line.StartPoint.Y, line.EndPoint.X, line.EndPoint.Y);
-                    continue;
+                    AddArc(graph, seg);
                 }
-                AddArc(graph, (Arc)entity);
+                else
+                {
+                    AddLine(graph, seg.X1, seg.Y1, seg.X2, seg.Y2);
+                }
             }
             SplitAtJunctions(graph);
             RemoveDuplicates(graph);
@@ -102,33 +131,22 @@ namespace CadReader
             int b = graph.Node(x2, y2);
             if (a != b)
             {
-                graph.Pieces.Add(new Piece { A = a, B = b });
+                graph.Pieces.Add(new Edge { A = a, B = b });
             }
         }
 
-        private static void AddArc(Graph graph, Arc arc)
+        private static void AddArc(Graph graph, Seg arc)
         {
-            // An arc drawn on a flipped plane is mirrored in x and runs the other way round
-            double side = arc.Normal.Z < 0 ? -1 : 1;
-            double cx = side * arc.Center.X;
-            double cy = arc.Center.Y;
-            double start = arc.StartAngle;
-            double end = arc.EndAngle;
-            if (side < 0)
-            {
-                start = Math.PI - arc.EndAngle;
-                end = Math.PI - arc.StartAngle;
-            }
-            int a = graph.Node(cx + arc.Radius * Math.Cos(start), cy + arc.Radius * Math.Sin(start));
-            int b = graph.Node(cx + arc.Radius * Math.Cos(end), cy + arc.Radius * Math.Sin(end));
+            int a = graph.Node(arc.Cx + arc.Radius * Math.Cos(arc.A0), arc.Cy + arc.Radius * Math.Sin(arc.A0));
+            int b = graph.Node(arc.Cx + arc.Radius * Math.Cos(arc.A1), arc.Cy + arc.Radius * Math.Sin(arc.A1));
             if (a != b)
             {
-                graph.Pieces.Add(new Piece { A = a, B = b, IsArc = true, Cx = cx, Cy = cy, Radius = arc.Radius });
+                graph.Pieces.Add(new Edge { A = a, B = b, IsArc = true, Cx = arc.Cx, Cy = arc.Cy, Radius = arc.Radius });
             }
         }
 
         // Counter clockwise sweep from the first node to the second node of an arc piece, in (0, 2 pi)
-        private static double Sweep(Graph graph, Piece piece)
+        private static double Sweep(Graph graph, Edge piece)
         {
             double[] a = graph.Nodes[piece.A];
             double[] b = graph.Nodes[piece.B];
@@ -186,7 +204,7 @@ namespace CadReader
             int count = graph.Pieces.Count;
             for (int index = 0; index < count; index++)
             {
-                Piece piece = graph.Pieces[index];
+                Edge piece = graph.Pieces[index];
                 var hits = new List<KeyValuePair<double, int>>();
                 for (int node = 0; node < graph.Nodes.Count; node++)
                 {
@@ -210,14 +228,14 @@ namespace CadReader
                 int previous = hits[0].Value;
                 for (int hit = 1; hit < hits.Count; hit++)
                 {
-                    graph.Pieces.Add(new Piece { A = previous, B = hits[hit].Value, IsArc = piece.IsArc, Cx = piece.Cx, Cy = piece.Cy, Radius = piece.Radius });
+                    graph.Pieces.Add(new Edge { A = previous, B = hits[hit].Value, IsArc = piece.IsArc, Cx = piece.Cx, Cy = piece.Cy, Radius = piece.Radius });
                     previous = hits[hit].Value;
                 }
-                graph.Pieces.Add(new Piece { A = previous, B = last, IsArc = piece.IsArc, Cx = piece.Cx, Cy = piece.Cy, Radius = piece.Radius });
+                graph.Pieces.Add(new Edge { A = previous, B = last, IsArc = piece.IsArc, Cx = piece.Cx, Cy = piece.Cy, Radius = piece.Radius });
             }
         }
 
-        private static bool OnLine(Graph graph, Piece piece, int node, out double along)
+        private static bool OnLine(Graph graph, Edge piece, int node, out double along)
         {
             double[] a = graph.Nodes[piece.A];
             double[] b = graph.Nodes[piece.B];
@@ -234,7 +252,7 @@ namespace CadReader
             return distance <= Tolerance;
         }
 
-        private static bool OnArc(Graph graph, Piece piece, int node, out double along)
+        private static bool OnArc(Graph graph, Edge piece, int node, out double along)
         {
             along = 0;
             double[] p = graph.Nodes[node];
@@ -255,7 +273,7 @@ namespace CadReader
         private static void RemoveDuplicates(Graph graph)
         {
             var seen = new HashSet<string>();
-            foreach (Piece piece in graph.Pieces)
+            foreach (Edge piece in graph.Pieces)
             {
                 int low = Math.Min(piece.A, piece.B);
                 int high = Math.Max(piece.A, piece.B);
@@ -269,18 +287,18 @@ namespace CadReader
         }
 
         // Half edge 2 * i runs A to B of piece i and half edge 2 * i + 1 runs B to A
-        private static int From(Piece piece, int half)
+        private static int From(Edge piece, int half)
         {
             return (half & 1) == 0 ? piece.A : piece.B;
         }
 
-        private static int To(Piece piece, int half)
+        private static int To(Edge piece, int half)
         {
             return (half & 1) == 0 ? piece.B : piece.A;
         }
 
         // Signed bulge of a half edge, positive when the travel bends to the left
-        private static double Bulge(Graph graph, Piece piece, int half)
+        private static double Bulge(Graph graph, Edge piece, int half)
         {
             if (!piece.IsArc)
             {
@@ -290,7 +308,7 @@ namespace CadReader
             return (half & 1) == 0 ? bulge : -bulge;
         }
 
-        private static double LeavingAngle(Graph graph, Piece piece, int half)
+        private static double LeavingAngle(Graph graph, Edge piece, int half)
         {
             double[] from = graph.Nodes[From(piece, half)];
             double[] to = graph.Nodes[To(piece, half)];
@@ -359,7 +377,7 @@ namespace CadReader
         private static void Prune(Graph graph)
         {
             var degree = new int[graph.Nodes.Count];
-            foreach (Piece piece in graph.Pieces)
+            foreach (Edge piece in graph.Pieces)
             {
                 degree[piece.A]++;
                 degree[piece.B]++;
@@ -368,7 +386,7 @@ namespace CadReader
             while (changed)
             {
                 changed = false;
-                foreach (Piece piece in graph.Pieces)
+                foreach (Edge piece in graph.Pieces)
                 {
                     if (!piece.Removed && (degree[piece.A] == 1 || degree[piece.B] == 1))
                     {
@@ -387,7 +405,7 @@ namespace CadReader
             double segments = 0;
             foreach (int half in cycle)
             {
-                Piece piece = graph.Pieces[half / 2];
+                Edge piece = graph.Pieces[half / 2];
                 double[] a = graph.Nodes[From(piece, half)];
                 double[] b = graph.Nodes[To(piece, half)];
                 twice += a[0] * b[1] - b[0] * a[1];
@@ -420,7 +438,7 @@ namespace CadReader
             var entry = new PlotEntry
             {
                 Kind = "plot_shape",
-                Layer = PlotLineLayer,
+                Layer = graph.Layer,
                 Closed = true,
                 Area = area,
                 Vertices = new List<double[]>(),
@@ -428,7 +446,7 @@ namespace CadReader
             for (int index = 0; index < sides.Count; index++)
             {
                 int half = sides[index];
-                Piece piece = graph.Pieces[half / 2];
+                Edge piece = graph.Pieces[half / 2];
                 double[] point = graph.Nodes[From(piece, half)];
                 entry.Vertices.Add(new[] { point[0], point[1] });
                 if (piece.IsArc)
@@ -446,8 +464,8 @@ namespace CadReader
         // The two half edges meet at a node, are both straight and keep the same direction
         private static bool Joinable(Graph graph, int first, int second)
         {
-            Piece one = graph.Pieces[first / 2];
-            Piece two = graph.Pieces[second / 2];
+            Edge one = graph.Pieces[first / 2];
+            Edge two = graph.Pieces[second / 2];
             if (one.IsArc || two.IsArc || To(one, first) != From(two, second))
             {
                 return false;
@@ -484,19 +502,19 @@ namespace CadReader
                 parent[node] = find(root);
                 return parent[node];
             };
-            foreach (Piece piece in open)
+            foreach (Edge piece in open)
             {
                 parent[find(piece.A)] = find(piece.B);
             }
             var groups = new List<PlotEntry>();
             var byRoot = new Dictionary<int, PlotEntry>();
-            foreach (Piece piece in open)
+            foreach (Edge piece in open)
             {
                 int root = find(piece.A);
                 PlotEntry entry;
                 if (!byRoot.TryGetValue(root, out entry))
                 {
-                    entry = new PlotEntry { Kind = "plot_open", Layer = PlotLineLayer, Closed = false, Segments = new List<double[]>() };
+                    entry = new PlotEntry { Kind = "plot_open", Layer = graph.Layer, Closed = false, Segments = new List<double[]>() };
                     byRoot[root] = entry;
                     groups.Add(entry);
                 }

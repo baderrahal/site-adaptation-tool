@@ -173,7 +173,7 @@ namespace SiteAdaptation.Tests
 
         private static List<PlotEntry> Shapes(CadExtract extract)
         {
-            return extract.Plots.Plots.Where(plot => plot.Kind == "plot_shape").ToList();
+            return extract.Plots.Plots.Where(plot => plot.Kind == "plot_shape").Concat(extract.OtherFaces.Faces).ToList();
         }
 
         private static List<PlotEntry> OpenPieces(CadExtract extract)
