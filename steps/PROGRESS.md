@@ -4,35 +4,35 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 
 ## State
 
-- Round 4 in progress on branch feat/explode-join-rows. Goal: extraction only, no placement logic.
-- Readers: CAD (C#, ACadSharp), PDF (pdfplumber), Excel (openpyxl) run on the real files. Revit has never run and Bader runs it by hand.
-- Gate before this round: Python 24 passed, .NET 28 passed.
+- Round 4 (CAD, PDF, Excel) done on branch feat/explode-join-rows. Extraction only, no placement logic.
+- Revit round 4 (links, walls, ramps) was merged separately as PR 4 and still needs a run by Bader.
+- Readers: CAD (C#, ACadSharp), PDF (pdfplumber), Excel (openpyxl), link table and full run script (Python).
+- Gate: Python 60 passed, .NET 63 passed.
 - Real files stay in C:\02-Site Adaptation and are read in place. Nothing real is in git.
+- The full run covered 13 DWG, 12 PDF and 2 workbooks, 27 of 27 ran, outputs in sample_output/full_run.
 
 ## Done
 
-- Round 1: four read-only readers and the test gate.
-- Round 2: first run on the real files and the list of mismatches.
-- Round 3: Excel header row and stop rules, 4 decimals for El @ Entry and Height, CAD plot shapes from MP_PLOT_LINE, PDF layout checked on all 12 sheets.
-- Round 4 housekeeping: CLAUDE.md, this file, steps/history/, main guard hook, three merged remote branches deleted.
+- Round 1 to 3: four read-only readers, first run on the real files, Excel header and stop rules, CAD plot shapes.
+- Round 4: blocks exploded with a layer filter, plot faces joined to their labels, PDF table rows rebuilt, Excel row numbers, link table with location check and conflicts, full run script, main guard hook, CLAUDE.md.
 
 ## Open bugs
 
-- CAD: 1 face of about 11432 square units is not closed and 28 open pieces remain on MP_PLOT_LINE.
-- CAD: arc to line and arc to arc crossings are not noded.
-- CAD: 3 xrefs of the base plan, anonymous block rows and MULTILEADER text were open before round 4.
-- PDF: rows are not rebuilt before round 4, key plan text is garbled, the margin stamp is reversed.
-- Excel: the default sheet name Coordinates fails on the real workbook, run it with --sheet MP_Phase 1_Zone21.
-- Revit: not run on the real file.
-- The hook that guards main is not live in a session that started outside the repo.
+- The numbers in the PDF and Excel schedules are 11 (IMD) or 10 (IMC) higher than the baseplan labels. All 746 joined plots fail the location check because of it.
+- Baseplan: 29 faces with no or many labels and 18 labels outside every face are not looked at.
+- Civil 3D road surface and rough grading files hold almost no model space entities.
+- Sheet 009028 plot 2589 code 2 has N with no decimal point in the source.
+- Master Plan layer names differ, so no plot faces come from it.
+- One unclosed face, 28 plot_open pieces, arc crossings not noded.
+- The main guard hook only loads in a session that starts inside the repo.
 
 ## Bader's turn
 
-1. Run the Revit add-in by hand on the TH1 file and send back prototypes.json.
-2. The open questions of round 4 are the numbered list in the top entry of steps/log.md.
+1. Answer the numbered questions in the top entry of steps/log.md, the first is the number shift.
+2. Run the Revit add-in by hand and send back prototypes.json.
 
 ## Next three steps
 
-1. Finish round 4: explode, label join, PDF rows, link table, full run on the real files.
-2. Read the conflicts list of the link table with Bader and decide what each kind means.
-3. Placement work only after the conflicts are understood and the Revit prototypes are in.
+1. Settle the numbering and store the shift in a small config that the link step reads.
+2. Look at the other faces and stray labels of the baseplan, then rerun the link table.
+3. Placement work only after the conflicts list is understood and the Revit result is in.
