@@ -58,7 +58,7 @@ def read(path, tmp_path):
     return json.loads((out / "pdf_rows.json").read_text(encoding="utf-8")), out
 
 
-def test_r21_rows_are_rebuilt_as_five_values_and_blocks_are_stitched_in_order(table_pdf, tmp_path):
+def test_r23_rows_are_rebuilt_as_five_values_and_blocks_are_stitched_in_order(table_pdf, tmp_path):
     data, _ = read(table_pdf, tmp_path)
     got = [(row["plot"], row["code"], row["type"], row["n"], row["e"]) for row in data["rows"]]
     assert got == [(101, 1, "DT3", 1000.123, 2000.456), (101, 2, "DT3", 1001.5, 2001.5), (102, 1, "VD2", 1010.25, 2010.75),
@@ -67,13 +67,13 @@ def test_r21_rows_are_rebuilt_as_five_values_and_blocks_are_stitched_in_order(ta
     assert [block["rows"] for block in data["blocks"]] == [3, 2]
 
 
-def test_r21_plot_that_runs_from_the_foot_of_one_block_to_the_top_of_the_next_is_counted(table_pdf, tmp_path):
+def test_r23_plot_that_runs_from_the_foot_of_one_block_to_the_top_of_the_next_is_counted(table_pdf, tmp_path):
     data, _ = read(table_pdf, tmp_path)
     assert data["continued"] == 1
     assert [row["plot"] for row in data["rows"] if row["plot"] == 102] == [102, 102]
 
 
-def test_r21_margin_stamp_and_key_plan_text_are_not_in_rows_or_labels(table_pdf, tmp_path):
+def test_r23_margin_stamp_and_key_plan_text_are_not_in_rows_or_labels(table_pdf, tmp_path):
     data, out = read(table_pdf, tmp_path)
     labels = {label["text"] for label in json.loads((out / "pdf_labels.json").read_text(encoding="utf-8"))["labels"]}
     assert "Ref" not in labels
@@ -84,7 +84,7 @@ def test_r21_margin_stamp_and_key_plan_text_are_not_in_rows_or_labels(table_pdf,
     assert data["skipped"]["keyPlan"] == 26
 
 
-def test_r21_short_strokes_outside_the_table_are_skipped_and_cell_rules_are_merged(table_pdf, tmp_path):
+def test_r23_short_strokes_outside_the_table_are_skipped_and_cell_rules_are_merged(table_pdf, tmp_path):
     data, out = read(table_pdf, tmp_path)
     shapes = json.loads((out / "pdf_shapes.json").read_text(encoding="utf-8"))["shapes"]
     horizontal = [shape for shape in shapes if shape["top"] == shape["bottom"]]
@@ -93,7 +93,7 @@ def test_r21_short_strokes_outside_the_table_are_skipped_and_cell_rules_are_merg
     assert data["skipped"]["lines"] == 30
 
 
-def test_r21_text_inside_a_block_that_is_not_a_row_is_rejected_and_listed(tmp_path):
+def test_r23_text_inside_a_block_that_is_not_a_row_is_rejected_and_listed(tmp_path):
     items = header(BLOCK_ONE, 270) + data_rows(BLOCK_ONE, ROWS_ONE, 250) + [(BLOCK_ONE[1], 200, "Sheet"), (BLOCK_ONE[0], 190, "5"), (BLOCK_ONE[1], 190, "6"), (BLOCK_ONE[2], 190, "7")]
     path = tmp_path / "bad.pdf"
     path.write_bytes(build_pdf(items, [], [], width=660, height=HEIGHT, font_size=6))
@@ -103,7 +103,7 @@ def test_r21_text_inside_a_block_that_is_not_a_row_is_rejected_and_listed(tmp_pa
     assert data["rejected"][0]["why"].startswith("cells")
 
 
-def test_r21_number_without_a_decimal_point_is_kept_as_found_and_flagged(tmp_path):
+def test_r23_number_without_a_decimal_point_is_kept_as_found_and_flagged(tmp_path):
     rows = [(101, 1, "DT3", "1000123", "2000.456")]
     path = tmp_path / "odd.pdf"
     path.write_bytes(build_pdf(header(BLOCK_ONE, 270) + data_rows(BLOCK_ONE, rows, 250), [], [], width=660, height=HEIGHT, font_size=6))
@@ -119,7 +119,7 @@ def test_r2_row_coordinates_have_at_most_three_decimals(table_pdf, tmp_path):
     assert "1020.123" in text
 
 
-def test_r21_page_without_a_table_gives_no_rows_and_keeps_every_shape(tmp_path):
+def test_r23_page_without_a_table_gives_no_rows_and_keeps_every_shape(tmp_path):
     path = tmp_path / "plain.pdf"
     path.write_bytes(build_pdf([(20, 150, "PLOT")], [(10, 10, 12, 10)], [], font_size=6))
     data, out = read(path, tmp_path)

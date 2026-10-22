@@ -68,11 +68,25 @@ namespace RevitPrototypeReader
             JsonOut.Write(outPath, file);
 
             int rows = 0;
+            int links = 0;
+            int walls = 0;
+            int ramps = 0;
+            int errors = 0;
             foreach (DocumentEntry document in file.Documents)
             {
                 rows += document.Prototypes == null ? 0 : document.Prototypes.Count;
+                links += document.Links == null ? 0 : document.Links.Count;
+                walls += document.Walls == null ? 0 : document.Walls.Count;
+                ramps += document.Ramps == null ? 0 : document.Ramps.Count;
+                errors += document.Errors == null ? 0 : document.Errors.Count;
             }
-            TaskDialog.Show("Read Prototypes", file.Documents.Count + " document(s), " + rows + " prototype row(s).\n" + outPath);
+            string summary = file.Documents.Count + " document(s), " + rows + " prototype row(s), " + links + " link(s), "
+                + walls + " wall(s), " + ramps + " ramp(s).";
+            if (errors > 0)
+            {
+                summary += "\n" + errors + " problem(s) are listed under errors in the file.";
+            }
+            TaskDialog.Show("Read Prototypes", summary + "\n" + outPath);
             return Result.Succeeded;
         }
 

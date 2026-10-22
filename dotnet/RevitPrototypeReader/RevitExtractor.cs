@@ -25,6 +25,7 @@ namespace RevitPrototypeReader
             {
                 ReadProjectPoints(doc, entry);
                 ReadProject(doc, keyNames, entry);
+                ModelReader.ReadSections(new RevitModelSource(doc), entry);
             }
             return entry;
         }
@@ -168,13 +169,20 @@ namespace RevitPrototypeReader
 
         private static PrototypeRow InstanceRow(Document doc, FamilySymbol symbol, FamilyInstance instance, IList<string> keyNames)
         {
+            PrototypeRow row = PlaceRow(doc, symbol, instance);
+            row.Parameters = ParameterValues(instance, symbol, keyNames);
+            return row;
+        }
+
+        // Everything about a placed instance except its parameters, shared by the host rows and the link rows
+        internal static PrototypeRow PlaceRow(Document doc, FamilySymbol symbol, FamilyInstance instance)
+        {
             var row = new PrototypeRow
             {
                 FamilyName = symbol.FamilyName,
                 TypeName = symbol.Name,
                 Placement = "placed",
                 ElementId = instance.Id.Value,
-                Parameters = ParameterValues(instance, symbol, keyNames),
                 Level = LevelName(doc, instance),
             };
 
@@ -234,7 +242,7 @@ namespace RevitPrototypeReader
             return values;
         }
 
-        private static object ParameterValue(Parameter parameter)
+        internal static object ParameterValue(Parameter parameter)
         {
             switch (parameter.StorageType)
             {
@@ -251,7 +259,7 @@ namespace RevitPrototypeReader
             }
         }
 
-        private static double Convert(double internalValue, ForgeTypeId spec)
+        internal static double Convert(double internalValue, ForgeTypeId spec)
         {
             if (spec == SpecTypeId.Length)
             {
@@ -277,7 +285,7 @@ namespace RevitPrototypeReader
             return keyNames.Any(key => string.Equals(key, name, StringComparison.OrdinalIgnoreCase));
         }
 
-        private static double[] Metres(XYZ point)
+        internal static double[] Metres(XYZ point)
         {
             return new[] { UnitMath.FeetToMetres(point.X), UnitMath.FeetToMetres(point.Y), UnitMath.FeetToMetres(point.Z) };
         }

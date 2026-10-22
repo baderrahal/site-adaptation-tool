@@ -27,55 +27,55 @@ def hook(branch, command):
     return done.returncode, done.stderr
 
 
-def test_r16_commit_on_main_is_blocked_and_the_message_says_why():
+def test_r18_commit_on_main_is_blocked_and_the_message_says_why():
     code, message = hook("main", "git commit -m x")
     assert code == 2
     assert "Blocked" in message
 
 
-def test_r16_commit_on_a_round_branch_is_allowed():
+def test_r18_commit_on_a_round_branch_is_allowed():
     assert hook("feat/round", "git commit -m x")[0] == 0
 
 
-def test_r16_push_that_names_main_is_blocked_from_any_branch():
+def test_r18_push_that_names_main_is_blocked_from_any_branch():
     assert hook("feat/round", "git push origin main")[0] == 2
     assert hook("feat/round", "git push origin HEAD:main")[0] == 2
     assert hook("feat/round", "git push -u origin feat/round")[0] == 0
 
 
-def test_r16_chained_and_multi_line_commands_are_checked_too():
+def test_r18_chained_and_multi_line_commands_are_checked_too():
     assert hook("main", "cd repo && git commit -m x")[0] == 2
     assert hook("main", "echo hi\ngit commit -m x")[0] == 2
     assert hook("feat/round", "git commit -m x && git push origin main")[0] == 2
 
 
-def test_r16_reading_deleting_remote_branches_and_message_text_are_allowed_on_main():
+def test_r18_reading_deleting_remote_branches_and_message_text_are_allowed_on_main():
     assert hook("main", "git status && git log --oneline")[0] == 0
     assert hook("main", "git push origin --delete old-branch")[0] == 0
     assert hook("feat/round", 'git commit -m "do not git push origin main"')[0] == 0
 
 
-def test_r16_settings_register_the_hook_for_bash_and_powershell():
+def test_r18_settings_register_the_hook_for_bash_and_powershell():
     settings = json.loads((ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
     entry = settings["hooks"]["PreToolUse"][0]
     assert entry["matcher"] == "Bash|PowerShell"
     assert "guard-main.sh" in entry["hooks"][0]["command"]
 
 
-def test_r24_claude_md_is_under_200_lines_and_points_to_the_rules():
+def test_r26_claude_md_is_under_200_lines_and_points_to_the_rules():
     text = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
     assert len(text.splitlines()) < 200
     assert "docs/rules.md" in text
 
 
-def test_r24_progress_file_is_at_most_60_lines_with_the_five_parts():
+def test_r26_progress_file_is_at_most_60_lines_with_the_five_parts():
     text = (ROOT / "steps" / "PROGRESS.md").read_text(encoding="utf-8")
     assert len(text.splitlines()) <= 60
     for heading in ("## State", "## Done", "## Open bugs", "## Bader's turn", "## Next three steps"):
         assert heading in text
 
 
-def test_r24_top_log_entry_fits_one_page_and_has_the_five_headings_in_order():
+def test_r26_top_log_entry_fits_one_page_and_has_the_five_headings_in_order():
     text = (ROOT / "steps" / "log.md").read_text(encoding="utf-8")
     top = re.split(r"^## ", text, flags=re.MULTILINE)[1]
     assert len(top.splitlines()) <= 70

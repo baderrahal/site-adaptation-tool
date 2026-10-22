@@ -27,7 +27,7 @@ def kinds(conflicts):
     return sorted(conflict["kind"] for conflict in conflicts)
 
 
-def test_r22_plots_are_joined_by_number_to_pdf_rows_and_the_excel_row():
+def test_r24_plots_are_joined_by_number_to_pdf_rows_and_the_excel_row():
     plots = {"plots": [square(1, 0, 0), square(2, 20, 0)]}
     rows = [rows_file("a.pdf", [pdf_row(1, 1, 2, 3), pdf_row(1, 2, 8, 7), pdf_row(2, 1, 22, 3, row=3)])]
     summary, links, conflicts = link_table.build(plots, rows, [excel_file("book.xlsx", [(1, "DT3"), (2, "DT3")])])
@@ -42,7 +42,7 @@ def test_r22_plots_are_joined_by_number_to_pdf_rows_and_the_excel_row():
     assert conflicts == []
 
 
-def test_r22_points_inside_the_plot_agree_and_points_outside_are_a_location_conflict():
+def test_r24_points_inside_the_plot_agree_and_points_outside_are_a_location_conflict():
     plots = {"plots": [square(1, 0, 0), square(2, 20, 0)]}
     rows = [rows_file("a.pdf", [pdf_row(1, 1, 2, 3), pdf_row(2, 1, 5, 5)])]
     summary, links, conflicts = link_table.build(plots, rows, [excel_file("book.xlsx", [(1, "DT3"), (2, "DT3")])])
@@ -54,14 +54,14 @@ def test_r22_points_inside_the_plot_agree_and_points_outside_are_a_location_conf
     assert summary["holderOffsets"] == {"-1": 1, "0": 1}
 
 
-def test_r22_point_just_outside_the_edge_is_inside_the_tolerance():
+def test_r24_point_just_outside_the_edge_is_inside_the_tolerance():
     plots = {"plots": [square(1, 0, 0)]}
     rows = [rows_file("a.pdf", [pdf_row(1, 1, 10.5, 5)])]
     assert link_table.build(plots, rows, [excel_file("b.xlsx", [(1, "DT3")])], 1.0)[0]["locationOk"] == 1
     assert link_table.build(plots, rows, [excel_file("b.xlsx", [(1, "DT3")])], 0.2)[0]["locationBad"] == 1
 
 
-def test_r22_missing_matches_are_listed_by_kind_with_plot_numbers():
+def test_r24_missing_matches_are_listed_by_kind_with_plot_numbers():
     plots = {"plots": [square(1, 0, 0), square(2, 20, 0)]}
     rows = [rows_file("a.pdf", [pdf_row(1, 1, 2, 3), pdf_row(7, 1, 100, 100)])]
     coords = [excel_file("b.xlsx", [(1, "DT3"), (9, "DT3")])]
@@ -76,7 +76,7 @@ def test_r22_missing_matches_are_listed_by_kind_with_plot_numbers():
     assert summary["conflicts"]["no_pdf"] == 1
 
 
-def test_r22_duplicates_are_conflicts_and_are_never_picked_silently():
+def test_r24_duplicates_are_conflicts_and_are_never_picked_silently():
     plots = {"plots": [square(1, 0, 0), square(1, 50, 0), square(2, 20, 0)]}
     rows = [rows_file("a.pdf", [pdf_row(2, 1, 22, 3), pdf_row(2, 1, 23, 3, row=2), pdf_row(1, 1, 2, 3)])]
     coords = [excel_file("a.xlsx", [(2, "DT3")]), excel_file("b.xlsx", [(2, "DT3")])]
@@ -90,14 +90,14 @@ def test_r22_duplicates_are_conflicts_and_are_never_picked_silently():
     assert "excel" not in next(link for link in links if link["plot"] == 2)
 
 
-def test_r22_unit_type_that_differs_between_pdf_and_excel_is_a_conflict():
+def test_r24_unit_type_that_differs_between_pdf_and_excel_is_a_conflict():
     plots = {"plots": [square(1, 0, 0)]}
     rows = [rows_file("a.pdf", [pdf_row(1, 1, 2, 3, "DT3")])]
     _, _, conflicts = link_table.build(plots, rows, [excel_file("b.xlsx", [(1, "VD2")])])
     assert conflicts[0] == {"kind": "type_mismatch", "plot": 1, "types": {"pdf": "DT3", "excel": "VD2"}}
 
 
-def test_r22_several_unit_types_on_one_plot_and_odd_values_are_conflicts():
+def test_r24_several_unit_types_on_one_plot_and_odd_values_are_conflicts():
     plots = {"plots": [square(1, 0, 0)]}
     odd = [{"page": 1, "block": 1, "row": 2, "plot": 1, "why": "no decimal point in n"}]
     rows = [rows_file("a.pdf", [pdf_row(1, 1, 2, 3, "DT3"), pdf_row(1, 2, 3, 3, "DT1", row=2)], odd)]
@@ -106,14 +106,14 @@ def test_r22_several_unit_types_on_one_plot_and_odd_values_are_conflicts():
     assert "pdf_odd_value" in kinds(conflicts)
 
 
-def test_r22_arc_edge_of_a_plot_holds_a_point_inside_the_curve():
+def test_r24_arc_edge_of_a_plot_holds_a_point_inside_the_curve():
     half_disc = {"kind": "plot_shape", "plot": "1", "area": 39.3, "center": [0, 2], "vertices": [[5, 0], [-5, 0]], "arcs": [{"segment": 0, "center": [0, 0], "radius": 5, "ccw": True}]}
     outline = link_table.ring(half_disc)
     assert link_table.contains(outline, 0, 4.5)
     assert not link_table.contains(outline, 0, -1)
 
 
-def test_r22_extents_say_yes_or_no_for_overlap():
+def test_r24_extents_say_yes_or_no_for_overlap():
     plots = {"plots": [square(1, 0, 0), square(2, 20, 0)]}
     near = rows_file("near.pdf", [pdf_row(1, 1, 5, 5)])
     far = rows_file("far.pdf", [pdf_row(1, 1, 5000, 5000)])
@@ -126,7 +126,7 @@ def test_r22_extents_say_yes_or_no_for_overlap():
     assert {pair["b"]: pair["overlap"] for pair in apart["pairs"] if pair["a"] == "cad plots"}["far.pdf"] is False
 
 
-def test_r22_main_writes_links_conflicts_and_extents_and_keeps_four_decimals(tmp_path):
+def test_r24_main_writes_links_conflicts_and_extents_and_keeps_four_decimals(tmp_path):
     cad = tmp_path / "cad"
     cad.mkdir()
     (cad / "plots.json").write_text(json.dumps({"plots": [square(1, 0, 0)]}), encoding="utf-8")
@@ -143,7 +143,7 @@ def test_r22_main_writes_links_conflicts_and_extents_and_keeps_four_decimals(tmp
     assert json.loads((out / "extents.json").read_text(encoding="utf-8"))["pdfOverlapCadPlots"] == "yes"
 
 
-def test_r22_plot_read_from_two_pdf_sheets_is_counted_and_kept_in_order():
+def test_r24_plot_read_from_two_pdf_sheets_is_counted_and_kept_in_order():
     plots = {"plots": [square(1, 0, 0)]}
     rows = [rows_file("a.pdf", [pdf_row(1, 1, 2, 3)]), rows_file("b.pdf", [pdf_row(1, 2, 8, 7)])]
     summary, links, conflicts = link_table.build(plots, rows, [excel_file("c.xlsx", [(1, "DT3")])])

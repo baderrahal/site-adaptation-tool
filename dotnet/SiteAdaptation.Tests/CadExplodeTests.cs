@@ -66,7 +66,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R17_nested_inserts_are_exploded_with_every_transform_applied()
+        public void R19_nested_inserts_are_exploded_with_every_transform_applied()
         {
             var document = new CadDocument();
             var inner = Block(document, "INNER");
@@ -85,7 +85,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R17_layer_zero_inside_a_block_takes_the_layer_of_its_insert()
+        public void R19_layer_zero_inside_a_block_takes_the_layer_of_its_insert()
         {
             var document = new CadDocument();
             var block = Block(document, "B", Line(document, "0", 0, 0, 5, 0));
@@ -100,7 +100,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R17_layers_file_counts_entities_before_and_after_exploding()
+        public void R19_layers_file_counts_entities_before_and_after_exploding()
         {
             var document = new CadDocument();
             var block = Block(document, "B", Line(document, "A", 0, 0, 1, 0), Line(document, "A", 0, 0, 2, 0), Line(document, "B", 0, 0, 3, 0));
@@ -115,7 +115,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R17_mirrored_insert_flips_arc_direction_and_polyline_bulge()
+        public void R19_mirrored_insert_flips_arc_direction_and_polyline_bulge()
         {
             var document = new CadDocument();
             var arc = new Arc { Center = new XYZ(0, 0, 0), Radius = 1, StartAngle = 0, EndAngle = Math.PI / 2, Layer = Layer(document, "A") };
@@ -133,7 +133,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R17_arc_drawn_on_a_flipped_plane_is_read_in_world_coordinates()
+        public void R19_arc_drawn_on_a_flipped_plane_is_read_in_world_coordinates()
         {
             var document = new CadDocument();
             document.Entities.Add(new Arc { Center = new XYZ(3, 0, 0), Radius = 1, StartAngle = 0, EndAngle = Math.PI / 2, Normal = new XYZ(0, 0, -1), Layer = Layer(document, "A") });
@@ -145,7 +145,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R17_blocks_nested_deeper_than_the_limit_stop_and_are_counted()
+        public void R19_blocks_nested_deeper_than_the_limit_stop_and_are_counted()
         {
             var document = new CadDocument();
             BlockRecord below = Block(document, "LEVEL0");
@@ -165,7 +165,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R17_insert_attributes_and_extended_data_are_read()
+        public void R19_insert_attributes_and_extended_data_are_read()
         {
             var document = new CadDocument();
             var block = Block(document, "TAG");
@@ -191,7 +191,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R17_hatch_boundary_loops_are_read_in_world_coordinates()
+        public void R19_hatch_boundary_loops_are_read_in_world_coordinates()
         {
             var document = new CadDocument();
             var hatch = new Hatch { Layer = Layer(document, "A") };
@@ -210,7 +210,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R17_extents_cover_the_kept_pieces()
+        public void R19_extents_cover_the_kept_pieces()
         {
             var document = new CadDocument();
             document.Entities.Add(Line(document, "A", -2, 1, 7, 9));
@@ -221,7 +221,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R17_pieces_are_streamed_one_per_line_into_valid_json()
+        public void R19_pieces_are_streamed_one_per_line_into_valid_json()
         {
             string path = Path.Combine(folder, "pieces.json");
             var document = new CadDocument();
@@ -239,7 +239,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R18_drop_wins_over_keep_and_unlisted_layers_are_kept_and_flagged()
+        public void R20_drop_wins_over_keep_and_unlisted_layers_are_kept_and_flagged()
         {
             var config = new LayerConfig { KeepLayers = new List<string> { "T*", "road" }, DropLayers = new List<string> { "title" } };
             Assert.Equal("drop", config.Status("TITLE"));
@@ -249,7 +249,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R18_dropped_layers_are_counted_and_not_written()
+        public void R20_dropped_layers_are_counted_and_not_written()
         {
             var document = new CadDocument();
             document.Entities.Add(Line(document, "TITLE_BLOCK", 0, 0, 1, 1));
@@ -268,7 +268,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R18_children_of_an_insert_on_a_dropped_layer_are_dropped_with_it()
+        public void R20_children_of_an_insert_on_a_dropped_layer_are_dropped_with_it()
         {
             var document = new CadDocument();
             var block = Block(document, "LOGO", Line(document, "0", 0, 0, 1, 1), Line(document, "ART", 0, 0, 2, 2));
@@ -281,7 +281,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R18_config_file_is_read_with_keep_drop_and_plot_layers()
+        public void R20_config_file_is_read_with_keep_drop_and_plot_layers()
         {
             string path = Path.Combine(folder, "layers.json");
             File.WriteAllText(path, "{\"plotLineLayers\": [\"P1\", \"P2\"], \"plotLabelLayers\": [\"T1\"], \"keep\": [\"K*\"], \"drop\": [\"D?\"]}");
@@ -296,7 +296,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R19_text_in_blocks_and_multileader_text_are_read()
+        public void R21_text_in_blocks_and_multileader_text_are_read()
         {
             var document = new CadDocument();
             var note = new MText { Value = "{\\fArial;DT3}", InsertPoint = new XYZ(1, 2, 0), Layer = Layer(document, "A") };
@@ -319,7 +319,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R19_xref_is_recorded_with_name_path_and_found_and_the_run_carries_on()
+        public void R21_xref_is_recorded_with_name_path_and_found_and_the_run_carries_on()
         {
             var document = new CadDocument();
             var missing = Block(document, "GONE");
@@ -342,7 +342,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R19_reader_notes_are_grouped_with_counts()
+        public void R21_reader_notes_are_grouped_with_counts()
         {
             var document = new CadDocument();
             var problems = new List<string> { "Error: entry A already exists", "Error: entry A already exists", "NotImplemented: Proxy object" };
@@ -367,7 +367,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R20_face_with_one_plot_label_becomes_a_plot_with_number_type_and_centre()
+        public void R22_face_with_one_plot_label_becomes_a_plot_with_number_type_and_centre()
         {
             var document = new CadDocument();
             Square(document, "MP_PLOT_LINE", 0, 0, 10);
@@ -384,7 +384,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R20_face_with_no_label_or_many_labels_goes_to_other_faces_with_the_reason()
+        public void R22_face_with_no_label_or_many_labels_goes_to_other_faces_with_the_reason()
         {
             var document = new CadDocument();
             Square(document, "MP_PLOT_LINE", 0, 0, 10);
@@ -405,7 +405,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R20_label_outside_every_face_and_text_without_a_number_are_counted_not_joined()
+        public void R22_label_outside_every_face_and_text_without_a_number_are_counted_not_joined()
         {
             var document = new CadDocument();
             Square(document, "MP_PLOT_LINE", 0, 0, 10);
@@ -422,7 +422,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R20_subdivision_layer_lines_split_a_block_into_plots_and_duplicate_numbers_are_listed()
+        public void R22_subdivision_layer_lines_split_a_block_into_plots_and_duplicate_numbers_are_listed()
         {
             var document = new CadDocument();
             Square(document, "MP_PLOT_LINE", 0, 0, 10);
@@ -437,7 +437,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R20_face_bounded_by_an_arc_holds_its_label()
+        public void R22_face_bounded_by_an_arc_holds_its_label()
         {
             var document = new CadDocument();
             document.Entities.Add(Line(document, "MP_PLOT_LINE", -5, 0, 5, 0));
@@ -451,7 +451,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R20_plots_and_other_faces_are_written_to_separate_files()
+        public void R22_plots_and_other_faces_are_written_to_separate_files()
         {
             var document = new CadDocument();
             Square(document, "MP_PLOT_LINE", 0, 0, 10);

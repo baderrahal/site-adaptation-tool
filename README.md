@@ -12,6 +12,8 @@ Phase 1 to 3. There is no placement logic yet.
 | Link table | Python | links.json, conflicts.json, extents.json |
 | Full run | Python | one folder per file, full_run_summary.json |
 
+For a project file the Revit reader also writes the Revit links with the family instances inside them, the walls and the ramps (rules R16 and R17).
+
 Every reader only reads. None of them changes a model, a drawing, a PDF or a workbook.
 The rules are in [docs/rules.md](docs/rules.md). The working agreement is in [CLAUDE.md](CLAUDE.md).
 The latest round is the top entry of [steps/log.md](steps/log.md) and the live state is [steps/PROGRESS.md](steps/PROGRESS.md).
