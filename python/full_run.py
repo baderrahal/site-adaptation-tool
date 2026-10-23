@@ -6,6 +6,8 @@ import sys
 import time
 from pathlib import Path
 
+import project_profile
+
 HERE = Path(__file__).resolve().parent
 DWG_FOLDERS = ("Base Plans", "Master Plan", "Roads")
 PDF_FOLDER = Path("01_Output") / "1.5 Coordinates Schedules" / "PDF"
@@ -14,29 +16,21 @@ DEFAULT_SHEET = "MP_Phase 1_Zone21"
 TIMEOUT = 600
 LANDXML_TIMEOUT = 600
 TEXT_LIMIT = 20000
-BASEPLAN = "ROSHN Makkah Baseplan.dwg"
-SECOND_DEFAULT = "221229_MP-SK-01-03-001_R06_0000.dwg"
 MASTER_FOLDER = "Master Plan"
-# Decision C. These two Master Plan drawings are never read, the reason is written to the summary.
-SKIP_FILES = {
-    "221229_MP-SK-01-03-001_R06.dwg": "Decision C. No plot faces, only 45 model space entities, its xref Makkah Phase 1_Road Layout_new.dwg is not found. The block content explodes to 140064 pieces, so it is not empty after exploding. R06_0000 is used instead.",
-    "221229_MP-SK-01-03-001_R06_0001.dwg": "Decision C. Identical copy of 221229_MP-SK-01-03-001_R06_0000.dwg with the same layer counts and the same handles. R06_0000 is used instead.",
-}
 
 
-SKIP_LOWER = {name.lower(): why for name, why in SKIP_FILES.items()}
-
-
-def plan(root, kinds=("dwg", "pdf", "xlsx")):
+def plan(root, kinds=("dwg", "pdf", "xlsx"), settings=None):
     """Files to read and files left alone, each with the reason."""
     root = Path(root)
+    settings = settings or project_profile.load_settings()
+    skip_lower = {entry["file"].lower(): entry["why"] for entry in settings.get("drawings.skip")}
     jobs, skipped = [], []
     if "dwg" in kinds:
         for folder in DWG_FOLDERS:
             for path in sorted((root / folder).glob("*")):
                 if path.suffix.lower() == ".dwg":
-                    if path.name.lower() in SKIP_LOWER:
-                        skipped.append({"file": path.name, "why": SKIP_LOWER[path.name.lower()]})
+                    if path.name.lower() in skip_lower:
+                        skipped.append({"file": path.name, "why": skip_lower[path.name.lower()]})
                     else:
                         jobs.append(("dwg", path))
                 elif path.suffix.lower() == ".xlsx" and folder == MASTER_FOLDER and "xlsx" in kinds:
@@ -112,16 +106,18 @@ def cad_notes(out_dir):
     return {"total": sum(note["count"] for note in notes), "notImplemented": sum(note["count"] for note in notes if note["text"].startswith("NotImplemented")), "groups": len(notes)}
 
 
-def stage_commands(out_root, ran, second, shifts):
+def stage_commands(out_root, ran, second, shifts, settings=None):
     """The join and check steps that follow the readers, each with its inputs, or the reason it cannot run yet."""
     out_root = Path(out_root)
-    base = out_root / BASEPLAN
+    settings = settings or project_profile.load_settings()
+    baseplan = settings.get("drawings.baseplan")
+    base = out_root / baseplan
     rows = sorted(str(out_root / name / "pdf_rows.json") for name in ran if (out_root / name / "pdf_rows.json").is_file())
     coords = sorted(str(out_root / name / "coords.json") for name in ran if (out_root / name / "coords.json").is_file())
-    layers = sorted(str(out_root / name / "layers.json") for name in ran if name != BASEPLAN and (out_root / name / "layers.json").is_file())
+    layers = sorted(str(out_root / name / "layers.json") for name in ran if name != baseplan and (out_root / name / "layers.json").is_file())
     stages = []
     if not (base / "plots.json").is_file():
-        return [{"name": name, "why": "no baseplan output"} for name in ("link", "second_source", "other_faces")]
+        return [{"name": name, "why": "no baseplan output"} for name in ("link", "second_source", "other_faces", "analysis")]
     if rows and coords:
         stages.append({"name": "link", "args": [sys.executable, str(HERE / "link_table.py"), str(out_root / "link"), "--cad", str(base), "--rows"] + rows + ["--coords"] + coords + ["--layers"] + layers + ["--shifts", str(shifts)]})
     else:
@@ -131,6 +127,7 @@ def stage_commands(out_root, ran, second, shifts):
     else:
         stages.append({"name": "second_source", "why": "no output for " + second})
     stages.append({"name": "other_faces", "args": [sys.executable, str(HERE / "face_reasons.py"), str(out_root / "other_faces"), "--cad", str(base)]})
+    stages.append({"name": "analysis", "args": [sys.executable, str(HERE / "cad_analysis.py"), str(out_root / "analysis"), "--cad", str(base), "--profile", str(project_profile.profile_path(settings)), "--project", str(settings.path)]})
     return stages
 
 
@@ -159,6 +156,7 @@ def main(argv=None):
     parser.add_argument("root", help="folder that holds Base Plans, Master Plan, Roads and 01_Output")
     parser.add_argument("out_dir", help="where each file gets its own folder")
     parser.add_argument("--cad-exe", default=str(HERE.parent / "dotnet" / "CadReader" / "bin" / "Release" / "net48" / "CadReader.exe"))
+    parser.add_argument("--project", default=str(project_profile.SETTINGS_PATH))
     parser.add_argument("--layers", default=str(HERE.parent / "config" / "cad_layers.json"))
     parser.add_argument("--sheet", default=DEFAULT_SHEET)
     parser.add_argument("--timeout", type=int, default=TIMEOUT)
@@ -169,12 +167,14 @@ def main(argv=None):
     parser.add_argument("--landxml")
     parser.add_argument("--prototypes")
     args = parser.parse_args(argv)
-    jobs, skipped = plan(args.root, tuple(args.kinds.split(",")))
+    settings = project_profile.load_settings(args.project)
+    baseplan = settings.get("drawings.baseplan")
+    jobs, skipped = plan(args.root, tuple(args.kinds.split(",")), settings)
     out_root = Path(args.out_dir)
     results = []
     for kind, path in jobs:
         out_dir = out_root / path.name
-        cad_plots = out_root / BASEPLAN / "plots.json"
+        cad_plots = out_root / baseplan / "plots.json"
         record = run_one(command(kind, path, out_dir, args.cad_exe, args.layers, args.sheet, cad_plots, args.shifts), out_dir, args.timeout)
         entry = {"file": path.name, "kind": kind, "status": record["status"], "exit": record["exit"], "seconds": record["seconds"]}
         if kind == "dwg":
@@ -184,11 +184,12 @@ def main(argv=None):
         results.append(entry)
         print(path.name + ": " + record["status"] + " in " + str(record["seconds"]) + " s", flush=True)
     out_root.mkdir(parents=True, exist_ok=True)
-    second = json.loads(Path(args.second).read_text(encoding="utf-8")).get("file", SECOND_DEFAULT) if Path(args.second).is_file() else SECOND_DEFAULT
+    second_default = settings.get("drawings.secondDefault")
+    second = json.loads(Path(args.second).read_text(encoding="utf-8")).get("file", second_default) if Path(args.second).is_file() else second_default
     ran = [entry["file"] for entry in results if entry["status"] == "ok"]
     stage_results = []
     done = {}
-    for stage in stage_commands(out_root, ran, second, args.shifts) + road_stages(out_root, args.roads, args.landxml, args.prototypes):
+    for stage in stage_commands(out_root, ran, second, args.shifts, settings) + road_stages(out_root, args.roads, args.landxml, args.prototypes):
         if "args" not in stage:
             stage_results.append({"stage": stage["name"], "status": "skipped", "why": stage["why"]})
             continue

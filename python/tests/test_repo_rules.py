@@ -68,3 +68,11 @@ def test_r12_every_rule_in_the_rules_file_is_named_by_a_test():
     process_rules = {"R6", "R10", "R11"}
     missing = [rule for rule in rules if rule not in process_rules and not re.search(rule + r"(?!\d)", test_text, re.IGNORECASE)]
     assert missing == []
+
+
+PROJECT_NAMES = re.compile("ro" + "shn|mak" + "kah", re.IGNORECASE)
+
+
+def test_r63_no_project_name_in_any_python_file():
+    offenders = [str(path.relative_to(ROOT)) for path in repo_text_files() if path.suffix == ".py" and PROJECT_NAMES.search(path.read_text(encoding="utf-8"))]
+    assert offenders == []

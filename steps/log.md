@@ -2,41 +2,51 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
-## Round 10, 2026-10-24, ROSHN Makkah rules profile and loader
+## Round 11, 2026-10-24, project settings, cluster derivation, checks 1 and 2
 
 Done:
-- Branch round/roshn-profile from main at 5b4414e. This session started in C:\Users\bader, outside the repo, so the main guard hook was NOT live. I never committed to main. The untracked folder Claude outputs/ is not mine and stays out of the commit. R62 was free
-- rules/roshn-makkah.json holds the content as Bader gave it, keys unchanged, 13 top level keys, riser_height null. A script confirmed it parses and holds no semicolon and no em dash
-- python/project_profile.py: load_profile(path) and profile.get("clusters.Q01"). A missing file, bad JSON, a file that is not one object and a missing key each raise ProfileError with the file name. A key that holds null returns None. The loader and the test logic hold no project key and no project value. A search of the Python and C# source outside the tests for the typology codes, cluster ids and profile key names found only older lines: DP4 in a comment and the Generic 150mm type name in link_summary.py, and drawing file names with ROSHN and Makkah in full_run.py. They are not profile values and I left them
-- One test, test_r62_profile_file_loads_with_cluster_q01_of_four_units_and_front_max_two. It checks Q01 has 4 units, front_max is 2.0, a missing key raises with its name in the message and a null in a temp file reads as None. The missing file, bad JSON and not-an-object paths have no test. Mutation check, run after the review fixes below: Q01 cut to 3 units failed it, front_max 2.5 failed it, a loader that returns None for a missing key failed it, and both files were put back and compared equal
-- rules/README.md with the ten checks, R62 in docs/rules.md, two lines in CLAUDE.md, steps/round-rules.md with 13 steps, the round 9 detail moved to steps/history/round-9.md, PROGRESS.md rewritten
-- A fresh reviewer agent read the pull request diff (it ran nothing). I fixed what held up: the README and R62 said the tool already loads the profile and no code holds a value, now they say what is true, check 5 is back to the wording Bader gave, checks 4 and 5 name their full keys because front_min and front_max exist twice, the steps are one action each with git commands, the invented riser example is gone, the loader reads a file with a byte order mark and wraps read errors, the error match is tested, and the log no longer claims what the repo cannot show about checks 1 and 2
-- Gate after the fixes: Python 202 passed (201 before), .NET 143 passed (143 before), build 0 errors
+- Branch round/clusters-checks from main at b0a174c. This session started in C:\Users\bader, outside the repo, so the main guard hook was NOT live. I never committed to main. The untracked folder Claude outputs/ is not mine and stays out of the commit
+- The plan was written before the first edit. One change of order: the units helper (item 6) came before the cluster step (item 4), because the cluster step uses it
+- The prompt named analysis data, analysis.json and a villa block with a scale per plot. None of them existed. I made python/cad_analysis.py, which reads plots.json of the baseplan from the CAD reader and writes analysis.json (R64)
+- config/project.json (R63) holds profile, drawings (baseplan, second default, the two skipped drawings with their reasons) and an analysis block (toleranceM 0.01, partyWallShare 0.75, endShare 0.25). full_run.py reads it, has a --project option and a new analysis stage that takes the profile path from the config. No ROSHN or Makkah string is left in any .py file, a repo test scans for it. test_project_profile.py takes the profile path from the config too
+- Profile: every key kept, cluster_split_meaning added next to cluster_split_positions, plot.vl4_width "derive" added. rules/README.md checks 3 and 8 say the same in one line each. Checks 1 and 2 left it with a pointer to R65 and R66
+- project_profile.py rejects a duplicate key with ProfileError naming it, one test. profile.metres(key) is the one mm to metres helper, one test, used for plot.long_side
+- cad_analysis.derive_clusters: a plot is in a cluster when its typology kind in the profile is duplex or townhouse, never by code letters. Villa kinds are never in one. Side by side means the shared edge is at least 0.75 of plot.long_side. Back to back plots share a shorter edge and stay apart, a plain shared segment test would merge rows. Plots back onto other plots and front onto a road, so the front of a row is away from its one end that touches plots outside the row. Rows run left to right facing the road from the plots. When the front is not known the row keeps its chain, starts at the lower plot number, orderSure is false and the sequence is also tried reversed. The unit typologies are matched to the profile clusters and the code is written or unknown. mirrored comes from the block scale and is null when a plot has none
+- python/rules_checks.py: check 1 is R65, check 2 is R66, one test each. R64 has 17 tests. Steps for you: steps/round-11.md, 22 steps. The round 10 steps moved to steps/history/round-10-steps.md because their counts are stale
+- Checked, RAN: baseline before any edit Python 202 passed and .NET 143 passed. After the last edit Python 229 passed, .NET 143 passed (no C# changed), build 0 errors
+- Checked, RAN: 21 mutations of the new code each failed a test and the files were put back. Real baseplan through the built CAD reader: 2962 plot faces, 1342 duplex and townhouse plots in 330 clusters: D02 85, D04 98, Q01 4, Q02 2, unknown 141, 577 issues (141 R66, 436 R65). A second method with plain Python collinear edge overlap and no shapely gave the same 330 groups and the same 1460 shared pairs. The analysis stage ran from the exact command line full_run builds, on a copy of the baseplan output, status ok
+- Checked, RAN: the front of a row against the Revit link axes of prototypes.json. 240 links joined to a baseplan face by position, 100 of them in duplex or townhouse rows. The neighbour rule decides 76 and all 76 point along the link axis Y in the minus direction, 24 are left open. The first rule I wrote, the nearest road centreline, split 54 to 46, which is chance
+- Found on the real files, RAN, nothing real in git: the baseplan holds no villa block per plot. Makkah Building Footprint.dwg holds them but the reader writes no scale, the insert points sit on plot edges, duplex blocks are about one per pair and townhouse blocks do not touch their plots. Shared edges between duplex and townhouse plots run from 2 to 27.5 m, back to back edges end at 13.5 m and party walls start at 25.0 m with nothing between
+- A fresh reviewer read the pull request, ran the suite and about 60 mutations in a scratch copy. Fixed from its report: the road centreline signal was wrong (the nearest MP_Road CL line is 39 m away at best and 370 m at the median, so back to back rows were both marked sure with fronts the same way), a row with no known front lost its chain and could turn a valid Q01 into unknown, the margin case ordered by a guess, odd input could crash (a face with under 3 vertices, no label, a bad plots.json, a missing setting, a null profile), check 1 treated non-rows as rows, and some behaviour had no test (the summary fields, the printed line, the --project option, a bool in metres, the degree clause). Claims corrected: the 436 R65 issues are 88 in four unit rows and 348 in longer rows, the shared edge gap is 13.5 to 25.0 m, the README stage wording and the run sheet step numbers. Not changed: the party wall rule stays, and a lone duplex plot passes check 1 and is caught by check 2
 
 Remains:
-- The ten checks are not coded. There is no project settings file, so nothing picks the profile by name and the loader takes a path
-- riser_height is null until the KEO value is supplied, so check 5 cannot compute steps
-- Bader's Revit run of round 9 (steps/for-bader-round-9.md) is still waiting
+- Villa blocks to plots and the real mirror flags, they are null today. Checks 3 to 10. The Revit run of round 9. riser_height is null
+- A full run of all 26 files with the new stage was not repeated, UNKNOWN
 
 Known bugs:
-- The values are as pasted. The source report 380159-SAPL-ROSHN-DSN-RPT-000252 is not in the repo, so I did not check them against it
-- cluster_split_positions is [2, 3] but D02 and D04 have two units. The file does not say what a position counts, so check 3 cannot be coded
-- The profile has vl3_width and th1_width and no standard width for VL4, so check 8 has nothing to compare against
-- The profile is in mm and prototypes.json is in metres (R4). No check joins them yet, the first one must convert
-- The ten checks sit in rules/README.md as asked, while docs/rules.md says it is the only source of rules. R62 points to the README for now
-- A duplicate key in the JSON silently takes the last value, the loader does not warn
+- 141 clusters are unknown: 44 of four units (35 DP4 x4, 9 DP2 x4) and 97 of 6 to 12 units. They may be listed clusters standing side by side. The 436 R65 issues sit in those unknown rows, 88 in the four unit rows and 348 in the longer rows, and are noise until the rows are explained
+- The order along the road is not sure on 95 of 330 clusters, 55 listed and 40 unknown. For the other 235 the front rule is used, and on the 76 units I could join to Revit it agrees every time. A plot with a typology that is not in the profile is in no cluster and nobody is told
+- Plot numbers in analysis.json are baseplan labels, not official numbers
+- tolerance, party wall share and end share are my choices (CHOSEN). The profile values are still not checked against the source report
 
 Next:
-- After the answers below, find where the cluster of a plot and the order of its units come from, then code checks 1 and 2. UNKNOWN whether the schedule workbook has it, the columns the rules name hold no cluster
+- Explain the unknown clusters with Bader, read the block scale in the CAD reader and match blocks to plots, then code check 3
 
 Your turn:
-1. Split positions. Recommended: position n is the wall between unit n and unit n+1, counted from 1. Then Q01 and Q02 can split between units 2 and 3 or between 3 and 4, and D02 and D04 cannot split. Say if the manual means something else
-2. VL4 standard plot width. Recommended: give me the width in mm from the manual and I add it as plot.vl4_width. Without it check 8 cannot run
-3. Project settings. Recommended: a file config/project.json with one line, profile, that names rules/roshn-makkah.json, read by the full run and by every check. Say yes or no
-4. Where the ten checks live. Recommended: keep them in rules/README.md until each one is coded, then move it into docs/rules.md as R63 to R72 together with its test
-5. Cluster membership. Recommended: tell me which file or sheet says which plots form a cluster and in what order. Without it checks 1 and 2 have no input
-6. Run steps/round-rules.md, 13 steps, and tell me if a Look for line did not match
-7. The older open questions, the yard rule and the ramp slope, are in steps/history/round-9.md
+1. Unknown clusters. 35 rows are DP4 DP4 DP4 DP4 and 9 are DP2 DP2 DP2 DP2. Recommended: a row may be several listed clusters side by side, so the tool splits a long row into listed clusters first and only the leftover is unknown. Say yes or no
+2. Villa blocks. Recommended: one block per unit, matched by the block outline lying inside the plot, so the CAD reader must write the block scale and outline. Tell me if a duplex block really stands for a pair of plots
+3. Facing the road means standing in the plot and looking at the road, so left to right runs one way from there. Recommended: keep. All four listed clusters read the same both ways
+4. Front of a row. Recommended: keep the rule that plots back onto other plots and front onto a road. It matched the Revit link axes on 76 of 76. For 95 rows no end or both ends touch plots, say how you want those placed, for example by the Revit link rotation
+5. My settings in config/project.json: tolerance 0.01 m (the CAD reader's own), party wall 0.75 of the 25 m long side (18.75 m, inside the empty gap between 13.5 m and 25.0 m), end share 0.25. Recommended: keep. Say if you want other values
+6. Plot numbers. Recommended: keep the baseplan labels in analysis.json until the blocks are matched, then join the official numbers. Say if you need official numbers now
+7. Run steps/round-11.md and tell me if a Look for line did not match
+8. The older open questions, the yard rule and the ramp slope, are in steps/history/round-9.md
+
+## Round 10, 2026-10-24, ROSHN Makkah rules profile and loader
+
+Stub. The full entry is in steps/history/round-10.md.
+- rules/roshn-makkah.json, the loader python/project_profile.py (R62) and rules/README.md were added and merged as PR 12. Gate then: Python 202 passed, .NET 143 passed
+- Its questions are answered in the round 11 entry: split positions, VL4 width, project settings, where the ten checks live, cluster membership. Still open from it: the yard rule and the ramp slope, in steps/history/round-9.md
 
 ## Round 9, 2026-10-23, floor, ramp and link relations
 

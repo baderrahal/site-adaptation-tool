@@ -21,6 +21,7 @@
   },
   "cluster_max_units": 4,
   "cluster_split_positions": [2, 3],
+  "cluster_split_meaning": "wall after unit n, counted from 1, 4-unit clusters only",
   "slopes_percent": {
     "front_min": 0.5,
     "front_max": 2.0,
@@ -50,7 +51,8 @@
     "vl3_width": 12000,
     "vl3_front_yard": 5520,
     "vl3_back_yard": 4420,
-    "th1_width": 8000
+    "th1_width": 8000,
+    "vl4_width": "derive"
   },
   "levels": {
     "ground_ssl": -75,
