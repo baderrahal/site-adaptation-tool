@@ -4,18 +4,20 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 
 ## State
 
-- Round 8 (ramp levels from the real corners, surface roles, floor count per plot, one error line) done on branch round/ramp-corner-levels. Extraction and checks only, no placement logic.
+- Round 9 (floor, ramp and link relations) done on branch round/floor-link-relations. The Revit reader gained floor measurements, parameter details, link state and spot hosts, and python/plot_relations.py measures how the ramp, Generic floor, yard floor and link of each plot relate. Measurement only, no placement logic. The new Revit code has NOT run in Revit yet, Bader runs steps/for-bader-round-9.md.
+- Round 8 (ramp levels from the real corners, surface roles, floor count per plot, one error line) is merged.
 - The Revit round 7 HAS run in Revit (Bader, 22 Oct 23:12 UTC, 5.2 MB). It showed 1010 floors, 337 ramp floors all read with the shape editor (4 corners each), 987 spot elevations, 337 error lines (all yard floors with no Plot parameter) and no slope parameter on any floor. Plot 2441 has no Generic 150mm floor in it, Bader deleted it by mistake and will restore it.
 - Revit round 5 (link names, floors) ran on 22 Oct before: 338 links (289 not loaded), 926 walls, 1011 floors, 0 ramps.
 - Top Surface-02 is the finished road for the ramps (Bader decided, role road in config/road_surfaces.json). The other five design surfaces are not confirmed.
 - Readers: CAD (C#, ACadSharp), PDF (pdfplumber), Excel (openpyxl), link table, second source check, face reasons, LandXML reader, surface lookup, ramp levels, surface roles, road check and full run script (Python, shapely, numpy).
-- Gate: Python 166 passed, .NET 109 passed.
+- Gate: Python 201 passed, .NET 143 passed.
 - Real files stay in C:\02-Site Adaptation and C:\Users\bader\Documents\SiteAdaptation and are read in place. Nothing real is in git.
 - The full run covered 11 DWG, 12 PDF, 2 schedule workbooks and the masterplan workbook, 26 of 26 ran, then 3 stages. The LandXML file runs as 2 more stages (6 s and 3 s). Outputs are in sample_output/full_run.
 
 ## Done
 
-- Round 8: ramp_levels.py reads the corners of the floors with the survey offset (R47). Per corner it holds the corner level, the road level and the difference. 414 corners are covered by Top Surface-02, 338 within 30 mm. Spots: 983 of 987 near a corner, 1339 of 1348 corners with a spot. Role proposal per surface (R48), floor count per plot in link_summary.py (R49, one finding: plot 2441 has no Generic floor), one error line per floor type with no Plot parameter (R50).
+- Round 9: floor measurements, parameter details, floor types, link state and spot hosts in the Revit reader (R51 to R56) and plot_relations.py with the CSV and summary (R57 to R61). The made-up model estimate for the new file is 12.7 MB. On the old real file the report ran on 337 plots: Generic top equals FFL on 336 and El @ Entry on 0, every plot has 2 to 6 yard candidates, the largest overlap with the Generic floor picks one on 336 of 336, the type name slope matches the short edges on 216 of 327 ramps.
+- Round 8: ramp_levels.py reads the corners with the survey offset (R47). 414 corners are covered by Top Surface-02, 338 within 30 mm. Role proposal per surface (R48), floor count per plot (R49, one finding: plot 2441 has no Generic floor), one error line per floor type with no Plot parameter (R50).
 - Revit round 7: floors get corners and cornersSource, slope info, plotNumber and unit, sketchBoundary, spotElevations, link rawName with the name parsed from RRE_ZZ_SP_RVT-Name, link contents default none, rules R34 to R39. Prototype-FFL is lower than the Excel on 298 plots, equal on 39, higher on 0 (the earlier number 282 was wrong).
 - Round 7: LandXML reader (7 surfaces), lookup with grid index, config/road_surfaces.json, ramp test on 337 ramps, gap bands, second check with shapely and raw bytes, rules R40 to R46.
 - Round 1 to 4: four readers, explode, layer filter, plot labels, PDF rows, link table, full run, main guard hook.
@@ -33,16 +35,17 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 - 119 ramps have no covered corner on Top Surface-02 and 934 corners have no cover. A corner that does not match the road is a design choice.
 - Yard floors have no Plot parameter, so the floor count cannot check the yard per plot. Spots carry no value or target.
 - Still unproven in Revit: the sketch plane at 150 m, the floor slope parameter and arrow on a sloped floor, spots inside links.
+- Unproven, round 9 code: the bounding box of a link instance (assumed in host space), top face outlines of shape edited slabs, the bottom range from the solid, spot references, the real file size (estimate 12.7 MB).
 - One unclosed face, 28 plot_open pieces, arc crossings not noded. Plots 2589 and 2594 carry a stale link Name.
 - The main guard hook only loads in a session that starts inside the repo.
 
 ## Bader's turn
 
-1. Restore the Generic 150mm floor of plot 2441, rebuild the add-in and rerun Read Prototypes (steps in the top entry of steps/log.md).
-2. Answer the numbered questions in the top entry of steps/log.md, the first is how the yard floors get a plot number.
+1. Restore the Generic 150mm floor of plot 2441, then run the 11 steps in steps/for-bader-round-9.md (build, copy, reload links, Read Prototypes, run the report) and give me the File size line and plot_relations_summary.md.
+2. Answer the numbered questions in the top entry of steps/log.md, the first is the yard rule.
 
 ## Next three steps
 
-1. Run link_summary.py on the new prototypes.json, the floor count should show 0 findings.
-2. Decide the yard plot numbers and the rule for the 119 ramps with no covered corner, then the 12 failing plots and the 17 many label faces.
+1. Read plot_relations_summary.md from the new file and check it against the top face outlines, then decide the yard rule and what the ramp slope in the type name means.
+2. Run link_summary.py on the new prototypes.json, the floor count should show 0 findings.
 3. Placement work only after the conflicts list and the Revit result are understood.

@@ -26,6 +26,14 @@ namespace SiteAdaptation.Common
 
         public static JsonSerializerSettings Settings(Formatting formatting)
         {
+            return Build(formatting, true);
+        }
+
+        // Used to write one parameter detail on one line
+        private static readonly JsonSerializerSettings OneLine = Build(Formatting.None, false);
+
+        private static JsonSerializerSettings Build(Formatting formatting, bool detailOnOneLine)
+        {
             var settings = new JsonSerializerSettings
             {
                 Formatting = formatting,
@@ -37,6 +45,10 @@ namespace SiteAdaptation.Common
             };
             settings.Converters.Add(new Round3Converter());
             settings.Converters.Add(new InlinePointConverter());
+            if (detailOnOneLine)
+            {
+                settings.Converters.Add(new InlineDetailConverter());
+            }
             return settings;
         }
 
@@ -100,6 +112,27 @@ namespace SiteAdaptation.Common
             {
                 var parts = ((double[])value).Select(number => Round3(number).ToString("0.###", CultureInfo.InvariantCulture));
                 writer.WriteRawValue("[" + string.Join(", ", parts) + "]");
+            }
+
+            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                throw new NotSupportedException();
+            }
+        }
+
+        // A file holds a hundred thousand parameter details, so each one is a single line and not seven
+        private sealed class InlineDetailConverter : JsonConverter
+        {
+            public override bool CanRead { get { return false; } }
+
+            public override bool CanConvert(Type objectType)
+            {
+                return objectType == typeof(ParameterDetail);
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                writer.WriteRawValue(JsonConvert.SerializeObject(value, OneLine));
             }
 
             public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)

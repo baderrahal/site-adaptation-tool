@@ -60,6 +60,14 @@ sample_output is ignored by git.
 
 Prints the counts and writes out\link_summary.json (rule R27). Add --excel coords.json to check the villa links against the schedule rows.
 
+## Relate the floors and the link of each plot
+
+```
+.venv\Scripts\python python\plot_relations.py C:\Users\bader\Documents\SiteAdaptation\prototypes.json --excel "C:\02-Site Adaptation\01_Output\1.11 References\00101-PSN-IMC-XXX-SCH-TU-090000.xlsx"
+```
+
+Writes plot_relations.csv and plot_relations_summary.md next to prototypes.json, never inside the repo (rules R57 to R61). It measures and sets no rule. It needs the file from the round 9 add-in for the top faces, outlines and link boxes, and falls back to the sketch outline of an older file.
+
 ## Install the Revit add-in
 
 Build the solution, then copy `dotnet\RevitPrototypeReader\bin\Release\net48\` and

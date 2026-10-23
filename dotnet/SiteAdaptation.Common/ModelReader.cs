@@ -27,6 +27,8 @@ namespace SiteAdaptation.Common
             entry.Floors = Guard("floors", errors, () => host.Floors().ToList());
             entry.Ramps = Guard("ramps", errors, () => host.Ramps().ToList());
             entry.SpotElevations = Guard("spotElevations", errors, () => host.SpotElevations().ToList());
+            entry.FloorTypes = Guard("floorTypes", errors, () => host.FloorTypes().ToList());
+            ReadSpotHostFailures(entry.SpotElevations, errors);
             foreach (WallRow wall in entry.Walls)
             {
                 ReadWallPlot(wall, errors);
@@ -45,6 +47,15 @@ namespace SiteAdaptation.Common
             if (errors.Count > 0)
             {
                 entry.Errors = errors;
+            }
+        }
+
+        // Spots whose host could not be read are one line per reason, the spots themselves stay in the list
+        private static void ReadSpotHostFailures(IEnumerable<SpotRow> spots, IList<string> errors)
+        {
+            foreach (IGrouping<string, SpotRow> group in spots.Where(spot => spot.HostFailure != null).GroupBy(spot => spot.HostFailure, StringComparer.Ordinal).OrderBy(item => item.Key, StringComparer.Ordinal))
+            {
+                errors.Add(ErrorLines.Grouped("spotElevations host", group.Key, group.Select(spot => spot.ElementId).ToList()));
             }
         }
 
@@ -172,6 +183,12 @@ namespace SiteAdaptation.Common
                         errors.AddRange(link.Problems);
                     }
                     LinkFields.Apply(entry, link.Name, link.Parameters, errors);
+                    entry.ElementId = link.ElementId;
+                    entry.Status = link.Status;
+                    entry.Loaded = link.Loaded;
+                    entry.BoundingBoxCorners = link.BoxCorners;
+                    entry.TransformShared = link.TransformShared;
+                    entry.ParameterDetails = link.ParameterDetails;
                     try
                     {
                         IModelSource linked = link.Open == null ? null : link.Open();
