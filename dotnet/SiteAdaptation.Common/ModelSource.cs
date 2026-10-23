@@ -23,6 +23,9 @@ namespace SiteAdaptation.Common
 
         // Spot elevation annotations of this document
         IEnumerable<SpotRow> SpotElevations();
+
+        // The types of the floors placed in this document, each once
+        IEnumerable<FloorTypeRow> FloorTypes();
     }
 
     public class SourceLink
@@ -36,6 +39,14 @@ namespace SiteAdaptation.Common
 
         // Problems met while reading the name or the parameters, one line each
         public IList<string> Problems { get; set; }
+
+        // State of the link instance for the relation study. Box corners and the shared transform are set for a loaded link only
+        public long? ElementId { get; set; }
+        public string Status { get; set; }
+        public bool? Loaded { get; set; }
+        public List<double[]> BoxCorners { get; set; }
+        public LinkTransform TransformShared { get; set; }
+        public List<ParameterDetail> ParameterDetails { get; set; }
 
         // Gives the linked document, or null when the link is not loaded
         public Func<IModelSource> Open { get; set; }

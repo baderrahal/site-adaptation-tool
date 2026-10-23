@@ -69,6 +69,13 @@ namespace SiteAdaptation.Tests
                 }
                 return SpotList;
             }
+
+            public List<FloorTypeRow> FloorTypeList { get; } = new List<FloorTypeRow>();
+
+            public IEnumerable<FloorTypeRow> FloorTypes()
+            {
+                return FloorTypeList;
+            }
         }
 
         internal static readonly double[] North = { 0, 0, 1 };

@@ -71,6 +71,14 @@ namespace SiteAdaptation.Common
             return tally;
         }
 
+        // A side face of a floor is vertical, so its normal has z equal to 0 within rounding and is not a bottom face
+        public const double BottomNormalLimit = -0.001;
+
+        public static bool IsBottomFace(double normalZ)
+        {
+            return normalZ < BottomNormalLimit;
+        }
+
         public const string FromShapeEditor = "shapeEditor";
         public const string FromBoundary = "boundary";
 

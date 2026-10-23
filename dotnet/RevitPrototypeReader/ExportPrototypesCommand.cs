@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
@@ -109,6 +110,8 @@ namespace RevitPrototypeReader
             string summary = file.Documents.Count + " document(s), " + rows + " prototype row(s), " + links + " link(s), "
                 + linkedFiles + " linked file(s) read, " + walls + " wall(s), " + floors + " floor(s), " + ramps + " ramp(s), " + spots + " spot elevation(s).";
             summary += "\nFloors: " + tally.ShapeEditing + " use shape editing, " + tally.Slope + " report a slope, " + tally.Neither + " use neither.";
+            double megabytes = new FileInfo(outPath).Length / 1048576.0;
+            summary += "\nFile size: " + megabytes.ToString("0.0", CultureInfo.InvariantCulture) + " MB, the target is under 20 MB.";
             if (errors > 0)
             {
                 summary += "\n" + errors + " problem(s) are listed under errors in the file.";

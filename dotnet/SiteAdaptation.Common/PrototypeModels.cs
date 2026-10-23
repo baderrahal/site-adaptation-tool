@@ -29,6 +29,16 @@ namespace SiteAdaptation.Common
         public List<RampRow> Ramps { get; set; }
         public List<SpotRow> SpotElevations { get; set; }
         public List<string> Errors { get; set; }
+
+        // Every type of the floors above once, with all its parameters
+        public List<FloorTypeRow> FloorTypes { get; set; }
+    }
+
+    public class FloorTypeRow
+    {
+        public long? TypeId { get; set; }
+        public string Name { get; set; }
+        public List<ParameterDetail> ParameterDetails { get; set; }
     }
 
     // One Revit link instance. The name and parameters live on the instance, so they are read even when the link is not loaded.
@@ -62,6 +72,14 @@ namespace SiteAdaptation.Common
         // The file name to look up in linkedFiles, present when that file has contents there
         public string ContentsRef { get; set; }
         public List<string> Errors { get; set; }
+
+        // Added for the relation study. Corners and the shared transform are written for a loaded link only, in shared coordinates
+        public long? ElementId { get; set; }
+        public string Status { get; set; }
+        public bool? Loaded { get; set; }
+        public List<double[]> BoundingBoxCorners { get; set; }
+        public LinkTransform TransformShared { get; set; }
+        public List<ParameterDetail> ParameterDetails { get; set; }
     }
 
     // The Name of a link instance split on " | ". A part the name does not hold is null
@@ -160,6 +178,19 @@ namespace SiteAdaptation.Common
         public string Unit { get; set; }
         public Dictionary<string, object> Parameters { get; set; }
 
+        // Added for the relation study. All of it is in shared coordinates in metres. Outline is a list of closed loops
+        // of [x, y, z], each closed by going from its last point back to its first
+        public long? TypeId { get; set; }
+        public double? LevelElevation { get; set; }
+        public ElevationRange TopElevationRange { get; set; }
+        public ElevationRange BottomElevationRange { get; set; }
+        public BoxInfo BoundingBox { get; set; }
+        public List<List<double[]>> Outline { get; set; }
+        public string Workset { get; set; }
+        public string PhaseCreated { get; set; }
+        public string DesignOption { get; set; }
+        public List<ParameterDetail> ParameterDetails { get; set; }
+
         // What the source saw, so the reader can choose the corners. Not written.
         // BoundaryEnds is the start of every edge of the outer loop and holds no points cut out of a spline
         [JsonIgnore]
@@ -197,6 +228,22 @@ namespace SiteAdaptation.Common
         public double? Value { get; set; }
         public string View { get; set; }
         public long? Target { get; set; }
+
+        // The element the first reference points to, when the API gives it
+        public SpotHost Host { get; set; }
+
+        // Why the host could not be read. Not written, the reader turns it into one error line per reason
+        [JsonIgnore]
+        public string HostFailure { get; set; }
+    }
+
+    // LinkedElementId is set when the reference points into a Revit link. Nothing inside the link is read
+    public class SpotHost
+    {
+        public long? ElementId { get; set; }
+        public string Category { get; set; }
+        public string TypeName { get; set; }
+        public long? LinkedElementId { get; set; }
     }
 
     // Edge i runs from boundary vertex i to vertex i + 1. Ccw is the sweep from start to end seen from above
