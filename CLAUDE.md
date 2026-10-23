@@ -22,7 +22,7 @@ The rules live in docs/rules.md and nowhere else. This file points to them and a
 - dotnet/CadReader reads DWG and DXF with ACadSharp.
 - dotnet/RevitPrototypeReader is the Revit 2024 add-in. Do not change it unless the round says so.
 - dotnet/SiteAdaptation.Common holds JSON output and unit helpers.
-- rules/ holds one project profile JSON per project and a README with the ten checks. python/project_profile.py loads a profile by path (R62). Project rule values live there and in no code.
+- rules/ holds one project profile JSON per project and a README with the ten checks. python/project_profile.py loads a profile by path (R62). New project rule values go there and not in code.
 - config/road_surfaces.json gives each LandXML surface its role, ground, road or design, and names the ramp types and the input files.
 - config/cad_layers.json is the keep and drop list of CAD layers. Bader edits it.
 - docs/rules.md holds the rules with ids R1 and up.
@@ -44,8 +44,8 @@ The full text is docs/rules.md. Ids are the contract, a test names the id it pro
 - R34 to R39 cover the floor corners, the corner source and slope, the spot elevations, the floor and wall plot numbers, the link name parse and the link contents default.
 - R40 to R46 cover the LandXML reader, invisible faces, the surface lookup, the surface roles, the ramp road levels, the gap bands and the road stages with their second check.
 - R47 to R50 cover the ramp corner levels, the role proposal, the floor count per plot and the one error line for floors with no Plot parameter.
-- R62 covers the project profile in rules/ and its loader.
 - R51 to R56 cover the shared coordinates, the floor measurements, the parameter details and floor types, the link state, the spot host and the output size. R57 to R61 cover the plot relation report, the yard and shared edges, the ramp geometry, the gaps and link box, and the summary.
+- R62 covers the project profile in rules/ and its loader.
 
 ## Real files
 

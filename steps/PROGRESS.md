@@ -51,4 +51,4 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 
 1. Read plot_relations_summary.md from the new file and check it against the top face outlines, then decide the yard rule and what the ramp slope in the type name means.
 2. Run link_summary.py on the new prototypes.json, the floor count should show 0 findings.
-3. Code rules checks 1 and 2 once the round 10 questions are answered. Placement work only after the conflicts list and the Revit result are understood.
+3. Find where cluster membership comes from, then code rules checks 1 and 2 once the round 10 questions are answered. Placement work only after the conflicts list and the Revit result are understood.

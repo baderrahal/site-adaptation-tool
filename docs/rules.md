@@ -83,7 +83,7 @@ Every rule has an id. A test that proves a rule names the id in its function nam
 
 ## Round 10 rules
 
-- **R62 Project profile.** The rule values of a project live in one JSON file in rules/, one file per project, and no code holds one of them. python/project_profile.py loads a profile by path and returns a value by dotted key such as clusters.Q01. A key the file lacks raises ProfileError with the file name and the key. A key that holds null returns None, so riser_height before the KEO value is supplied is told apart from a missing key. rules/README.md lists the ten checks the profile feeds. None of them is coded yet.
+- **R62 Project profile.** The rule values of a project live in one JSON file in rules/, one file per project. The loader and every new check read the values from the file and hold none of them. Older constants such as the Generic floor type name in python/link_summary.py are not moved yet. python/project_profile.py loads a profile by path and returns a value by dotted key such as clusters.Q01. A key the file lacks raises ProfileError with the file name and the key. A key that holds null returns None, so riser_height before the KEO value is supplied is told apart from a missing key. rules/README.md lists the ten checks the profile feeds. None of them is coded yet.
 
 ## Test rules
 

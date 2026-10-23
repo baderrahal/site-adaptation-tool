@@ -27,7 +27,10 @@ def load_profile(path):
     if not path.is_file():
         raise ProfileError("profile file not found: " + str(path))
     try:
-        values = json.loads(path.read_text(encoding="utf-8"))
+        # utf-8-sig so a file saved with a byte order mark by a Windows editor still reads
+        values = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, UnicodeDecodeError) as error:
+        raise ProfileError(path.name + " cannot be read: " + str(error)) from error
     except json.JSONDecodeError as error:
         raise ProfileError(path.name + " is not valid JSON: " + str(error)) from error
     if not isinstance(values, dict):
