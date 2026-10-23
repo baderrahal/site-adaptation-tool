@@ -18,8 +18,8 @@ def profile_in(tmp_path):
     return project_profile.load_profile(path)
 
 
-def cluster(code, plots, typologies, sure=True):
-    return {"code": code, "plots": plots, "typologies": typologies, "mirrored": [None] * len(plots), "orderSure": sure}
+def cluster(code, plots, typologies, sure=True, row=True):
+    return {"code": code, "plots": plots, "typologies": typologies, "mirrored": [None] * len(plots), "orderSure": sure, "row": row}
 
 
 def test_r65_one_side_sits_at_a_cluster_end_both_sides_inside_and_detached_has_no_cluster(tmp_path):
@@ -33,10 +33,15 @@ def test_r65_one_side_sits_at_a_cluster_end_both_sides_inside_and_detached_has_n
     assert "attached on one side, but it is inside a cluster" in issues[1]["text"]
     assert "detached, but it is in a cluster" in issues[3]["text"]
     assert "no attachment in the profile" in issues[5]["text"]
+    not_a_row = [cluster("unknown", ["1", "2", "3"], ["DP2", "DP2", "DP2"], sure=False, row=False)]
+    assert rules_checks.check_attachment(not_a_row, profile) == []
 
 
 def test_r66_a_cluster_with_the_code_unknown_is_a_conflict_named_in_the_issue_list():
-    clusters = [cluster("D02", ["1", "2"], ["DP2", "DP2"]), cluster("unknown", ["3", "4", "5"], ["DP2", "TH1", "DP2"], sure=False)]
+    clusters = [cluster("D02", ["1", "2"], ["DP2", "DP2"]), cluster("unknown", ["3", "4", "5"], ["DP2", "TH1", "DP2"], sure=False),
+                cluster("unknown", ["6", "7"], ["DP2", "DP2"]), cluster("unknown", ["8", "9"], ["DP2", "DP2"], sure=False, row=False)]
     issues = rules_checks.check_known_clusters(clusters)
-    assert len(issues) == 1 and issues[0]["rule"] == "R66" and issues[0]["plots"] == ["3", "4", "5"]
+    assert [(found["rule"], found["plots"]) for found in issues] == [("R66", ["3", "4", "5"]), ("R66", ["6", "7"]), ("R66", ["8", "9"])]
     assert issues[0]["text"] == "Plots 3, 4, 5 (DP2, TH1, DP2) match no cluster in the profile. The order along the road is not sure"
+    assert issues[1]["text"] == "Plots 6, 7 (DP2, DP2) match no cluster in the profile"
+    assert issues[2]["text"].endswith("The plots do not form one straight row")

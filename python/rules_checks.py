@@ -12,6 +12,9 @@ def check_attachment(clusters, profile):
     typologies = profile.get("typologies")
     issues = []
     for cluster in clusters:
+        # Ends and inside mean nothing for plots that are not one row, so only R66 reports them
+        if not cluster.get("row", True):
+            continue
         size = len(cluster["plots"])
         for index, (plot, typology) in enumerate(zip(cluster["plots"], cluster["typologies"])):
             attachment = (typologies.get(typology) or {}).get("attachment")
@@ -36,7 +39,9 @@ def check_known_clusters(clusters):
         if cluster["code"] != UNKNOWN:
             continue
         text = "Plots " + ", ".join(cluster["plots"]) + " (" + ", ".join(cluster["typologies"]) + ") match no cluster in the profile"
-        if not cluster.get("orderSure", True):
+        if not cluster.get("row", True):
+            text += ". The plots do not form one straight row"
+        elif not cluster.get("orderSure", True):
             text += ". The order along the road is not sure"
         issues.append(issue("R66", cluster["plots"], text))
     return issues

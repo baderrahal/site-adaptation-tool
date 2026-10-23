@@ -164,3 +164,16 @@ def test_r63_the_baseplan_and_the_skip_list_come_from_the_project_config(tmp_pat
     assert {entry["file"]: entry["why"] for entry in skipped if entry["file"] == "Skip.dwg"} == {"Skip.dwg": "Decision X. Test reason."}
     touch(tmp_path / "out" / "base.dwg" / "plots.json")
     assert "args" in {stage["name"]: stage for stage in full_run.stage_commands(tmp_path / "out", ["base.dwg"], "second.dwg", "shifts.json", settings)}["other_faces"]
+
+
+def test_r63_main_reads_the_skip_list_and_the_drawing_names_from_the_project_option(tmp_path):
+    write_settings(tmp_path / "project.json", "rules/other-profile.json")
+    root = tmp_path / "real"
+    touch(root / "Master Plan/Skip.dwg")
+    touch(root / "Master Plan/221229_MP-SK-01-03-001_R06_0001.dwg", "x")
+    out = tmp_path / "out"
+    assert full_run.main([str(root), str(out), "--kinds", "dwg", "--project", str(tmp_path / "project.json"), "--cad-exe", "no-such-reader-xyz"]) == 0
+    summary = json.loads((out / "full_run_summary.json").read_text(encoding="utf-8"))
+    assert {entry["file"]: entry["why"] for entry in summary["skipped"] if entry["file"] == "Skip.dwg"} == {"Skip.dwg": "Decision X. Test reason."}
+    assert [entry["file"] for entry in summary["results"]] == ["221229_MP-SK-01-03-001_R06_0001.dwg"]
+    assert {stage["stage"]: stage["why"] for stage in summary["stages"] if stage["stage"] == "analysis"} == {"analysis": "no baseplan output"}

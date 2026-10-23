@@ -1,5 +1,5 @@
 {
-  "note": "Names the rules profile and the drawings of this project, so no project name sits in the Python files. Paths are relative to the repo root. The analysis block holds how the CAD analysis reads the drawings: lengths are in metres, partyWallShare is the share of plot.long_side that a shared edge must reach to count as a party wall, frontMarginM is how much nearer a road must be on one end of a cluster before the order along the road is called sure.",
+  "note": "Names the rules profile and the drawings of this project, so no project name sits in the Python files. Paths are relative to the repo root. The analysis block holds how the CAD analysis reads the drawings: lengths are in metres, partyWallShare is the share of plot.long_side that a shared edge must reach to count as a party wall, endShare is how far from the centre of a row, as a share of plot.long_side, a shared edge must lie to count as the front or the back of the row.",
   "profile": "rules/roshn-makkah.json",
   "drawings": {
     "baseplan": "ROSHN Makkah Baseplan.dwg",
@@ -18,7 +18,6 @@
   "analysis": {
     "toleranceM": 0.01,
     "partyWallShare": 0.75,
-    "frontMarginM": 3,
-    "roadLayers": ["MP_Road CL"]
+    "endShare": 0.25
   }
 }

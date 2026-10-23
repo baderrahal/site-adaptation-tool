@@ -1,6 +1,6 @@
 import pytest
 
-from project_profile import ProfileError, load_profile, load_settings, profile_path
+from project_profile import ROOT, ProfileError, load_profile, load_settings, profile_path
 
 PROFILE = profile_path(load_settings())
 
@@ -34,7 +34,19 @@ def test_r62_a_length_in_mm_reads_as_metres_and_a_profile_without_mm_is_refused(
     assert profile.metres("steps.riser_height") is None
     with pytest.raises(ProfileError, match="plot.vl4_width is not a number"):
         profile.metres("plot.vl4_width")
+    with pytest.raises(ProfileError, match="units_mm is not a number"):
+        profile.metres("units_mm")
     metres = tmp_path / "metres.json"
     metres.write_text('{"units_mm": false, "plot": {"long_side": 25}}', encoding="utf-8")
     with pytest.raises(ProfileError, match="does not say its lengths are in mm"):
         load_profile(metres).metres("plot.long_side")
+
+
+def test_r63_settings_without_a_profile_path_are_refused_and_a_relative_path_starts_at_the_repo_root(tmp_path):
+    empty = tmp_path / "project.json"
+    empty.write_text('{"profile": null}', encoding="utf-8")
+    with pytest.raises(ProfileError, match="project.json has no profile path"):
+        profile_path(load_settings(empty))
+    empty.write_text('{"profile": "rules/x.json"}', encoding="utf-8")
+    assert profile_path(load_settings(empty)) == ROOT / "rules" / "x.json"
+    assert profile_path(load_settings()).is_file()

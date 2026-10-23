@@ -75,5 +75,8 @@ def load_settings(path=SETTINGS_PATH):
 
 
 def profile_path(settings):
-    path = Path(settings.get("profile"))
+    name = settings.get("profile")
+    if not isinstance(name, str) or not name:
+        raise ProfileError(settings.path.name + " has no profile path")
+    path = Path(name)
     return path if path.is_absolute() else ROOT / path

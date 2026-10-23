@@ -10,7 +10,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from shapely.geometry import LineString, Point, Polygon
+from shapely.geometry import Polygon
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
 
@@ -20,17 +20,18 @@ import rules_checks
 from rules_checks import UNKNOWN
 
 CLUSTER_KINDS = ("duplex", "townhouse")
+SETTINGS = ("toleranceM", "partyWallShare", "endShare")
 # A shared segment is longer than this many tolerances, so two plots that only touch at a corner are not adjacent
 SEGMENT_FACTOR = 4
 
 
 def plot_key(label):
     text = str(label)
-    return (0, int(text), text) if text.isdigit() else (1, 0, text)
+    return (0, int(text), text) if text.isdecimal() else (1, 0, text)
 
 
 def kind_of(profile, typology):
-    entry = profile.get("typologies").get(typology)
+    entry = profile.get("typologies").get(typology) if isinstance(typology, str) else None
     return entry.get("kind") if entry else None
 
 
@@ -58,9 +59,9 @@ def adjacent_pairs(outlines, tolerance):
     return pairs
 
 
-def groups_of(count, links):
+def groups_of(nodes, links):
     seen, groups = set(), []
-    for start in range(count):
+    for start in nodes:
         if start in seen:
             continue
         seen.add(start)
@@ -102,95 +103,139 @@ def direction_of(shared):
     return None if length == 0 else ((x2 - x1) / length, (y2 - y1) / length)
 
 
-def front_of(centre, direction, road, half, margin):
-    """The unit vector from the cluster towards the road and whether one end is clearly nearer, or (None, False)."""
-    if direction is None or road is None:
-        return None, False
-    ahead = road.distance(Point(centre.x + direction[0] * half, centre.y + direction[1] * half))
-    behind = road.distance(Point(centre.x - direction[0] * half, centre.y - direction[1] * half))
-    front = direction if ahead <= behind else (-direction[0], -direction[1])
-    return front, abs(ahead - behind) > margin
+def end_neighbours(union, group, direction, tree, outlines, tolerance, reach):
+    """Boundary length a row shares with plots outside it, at its end along the party walls and at the other end.
+
+    A shared edge counts for an end when its middle lies more than reach from the centre of the row along the
+    party walls. The side walls to the next plot in the row lie near the centre and do not count.
+    """
+    centre = union.centroid
+    near = union.boundary.buffer(tolerance)
+    ends = [0.0, 0.0]
+    for other in tree.query(near):
+        other = int(other)
+        if other in group:
+            continue
+        shared = near.intersection(outlines[other].boundary)
+        if shared.length <= SEGMENT_FACTOR * tolerance:
+            continue
+        point = shared.centroid
+        offset = (point.x - centre.x) * direction[0] + (point.y - centre.y) * direction[1]
+        if abs(offset) > reach:
+            ends[0 if offset > 0 else 1] += shared.length
+    return ends
 
 
-def left_to_right(chain, centres, front):
+def front_of(ends, direction):
+    """The unit vector from the row towards the road, or None. Plots back onto other plots and front onto a road,
+    so the front is away from the one end that touches other plots. Both ends or neither gives None."""
+    plus, minus = ends[0] > 0, ends[1] > 0
+    if plus == minus:
+        return None
+    return (-direction[0], -direction[1]) if plus else direction
+
+
+def left_to_right(chain, outlines, front):
     """Facing the road from the plots, the left side is a quarter turn anticlockwise from the front."""
     right = (front[1], -front[0])
-    first, last = centres[chain[0]], centres[chain[-1]]
+    first, last = outlines[chain[0]].centroid, outlines[chain[-1]].centroid
     start = first.x * right[0] + first.y * right[1]
     end = last.x * right[0] + last.y * right[1]
     return chain if start <= end else chain[::-1]
 
 
-def derive_clusters(plots, roads, profile, analysis):
+def derive_clusters(plots, profile, analysis):
     """Clusters of side by side duplex and townhouse plots.
 
-    plots are baseplan faces with plot, type and vertices, and a block with a scale when one is known.
-    roads is a list of road centreline vertex lists, or None. Two plots are side by side when they share
-    a party wall, which is at least partyWallShare of the long side of a plot. Back to back plots share a
-    shorter edge and stay in separate clusters.
+    plots are all the baseplan faces with plot, type and vertices, and a block with a scale when one is known.
+    Two plots are side by side when they share a party wall, which is at least partyWallShare of the long
+    side of a plot. Back to back plots share a shorter edge and stay in separate clusters.
     """
     tolerance = analysis["toleranceM"]
     long_side = profile.metres("plot.long_side")
-    members = [plot for plot in plots if kind_of(profile, plot.get("type")) in CLUSTER_KINDS]
-    outlines = [Polygon([(vertex[0], vertex[1]) for vertex in plot["vertices"]]) for plot in members]
-    walls = {pair: shared for pair, shared in adjacent_pairs(outlines, tolerance).items() if shared.length >= analysis["partyWallShare"] * long_side}
-    links = {node: [] for node in range(len(members))}
+    outlines = [Polygon([(vertex[0], vertex[1]) for vertex in plot["vertices"]]) for plot in plots]
+    tree = STRtree(outlines)
+    members = [index for index, plot in enumerate(plots) if kind_of(profile, plot.get("type")) in CLUSTER_KINDS]
+    pairs = adjacent_pairs([outlines[index] for index in members], tolerance)
+    walls = {(members[first], members[second]): shared for (first, second), shared in pairs.items() if shared.length >= analysis["partyWallShare"] * long_side}
+    links = {index: [] for index in members}
     for first, second in walls:
         links[first].append(second)
         links[second].append(first)
-    road = unary_union([LineString(line) for line in roads]) if roads else None
-    centres = [shape.centroid for shape in outlines]
     known = {code: tuple(units) for code, units in profile.get("clusters").items()}
+
+    def code_of(typologies):
+        return next((code for code, units in known.items() if units == tuple(typologies)), UNKNOWN)
+
     clusters = []
-    for group in groups_of(len(members), links):
+    for group in groups_of(members, links):
         chain = chain_of(group, links)
         row = chain is not None
-        sure = row
-        by_number = sorted(group, key=lambda node: plot_key(members[node]["plot"]))
+        sure = False
         if not row:
-            chain = by_number
-        elif len(chain) > 1:
+            chain = sorted(group, key=lambda index: plot_key(plots[index]["plot"]))
+        elif len(chain) == 1:
+            sure = True
+        else:
             shared = max((shared for (first, _), shared in walls.items() if first in group), key=lambda shared: shared.length)
-            centre = unary_union([outlines[node] for node in chain]).centroid
-            front, sure = front_of(centre, direction_of(shared), road, long_side / 2, analysis["frontMarginM"])
-            chain = by_number if front is None else left_to_right(chain, centres, front)
-        typologies = [members[node]["type"] for node in chain]
-        code = next((name for name, units in known.items() if units == tuple(typologies)), UNKNOWN) if row else UNKNOWN
+            direction = direction_of(shared)
+            union = unary_union([outlines[index] for index in chain])
+            front = None if direction is None else front_of(end_neighbours(union, set(group), direction, tree, outlines, tolerance, analysis["endShare"] * long_side), direction)
+            if front is not None:
+                sure = True
+                chain = left_to_right(chain, outlines, front)
+            elif plot_key(plots[chain[0]]["plot"]) > plot_key(plots[chain[-1]]["plot"]):
+                chain = chain[::-1]
+        typologies = [plots[index]["type"] for index in chain]
+        code = code_of(typologies) if row else UNKNOWN
+        if row and not sure and code == UNKNOWN and code_of(typologies[::-1]) != UNKNOWN:
+            chain, typologies = chain[::-1], typologies[::-1]
+            code = code_of(typologies)
         clusters.append({
             "code": code,
-            "plots": [str(members[node]["plot"]) for node in chain],
+            "plots": [str(plots[index]["plot"]) for index in chain],
             "typologies": typologies,
-            "mirrored": [mirrored_from_scale(members[node].get("block")) for node in chain],
+            "mirrored": [mirrored_from_scale(plots[index].get("block")) for index in chain],
             "orderSure": sure,
+            "row": row,
         })
     clusters.sort(key=lambda cluster: min(plot_key(label) for label in cluster["plots"]))
     return clusters
 
 
 def plot_faces(entries):
-    return [entry for entry in entries if entry.get("kind") == "plot_shape" and entry.get("vertices")]
-
-
-def road_lines(entries, layers):
-    wanted = set(layers)
-    return [[(vertex[0], vertex[1]) for vertex in entry["vertices"]] for entry in entries if entry.get("kind") == "polyline" and entry.get("layer") in wanted and len(entry.get("vertices") or []) >= 2]
+    return [entry for entry in entries if entry.get("kind") == "plot_shape" and entry.get("plot") not in (None, "") and len(entry.get("vertices") or []) >= 3]
 
 
 def analyse(entries, profile, analysis):
     faces = plot_faces(entries)
-    clusters = derive_clusters(faces, road_lines(entries, analysis["roadLayers"]), profile, analysis)
+    clusters = derive_clusters(faces, profile, analysis)
     issues = rules_checks.check_attachment(clusters, profile) + rules_checks.check_known_clusters(clusters)
     summary = {
         "plotFaces": len(faces),
         "clusters": len(clusters),
         "clusterPlots": sum(len(cluster["plots"]) for cluster in clusters),
         "byCode": dict(sorted(Counter(cluster["code"] for cluster in clusters).items())),
+        "notRows": sum(1 for cluster in clusters if not cluster["row"]),
         "orderNotSure": sum(1 for cluster in clusters if not cluster["orderSure"]),
         "unitsWithMirrorFlag": sum(1 for cluster in clusters for flag in cluster["mirrored"] if flag is not None),
         "issues": len(issues),
         "numbering": "baseplan labels",
     }
     return {"summary": summary, "clusters": clusters, "issues": issues}
+
+
+def read_plots(folder):
+    plots_file = Path(folder) / "plots.json"
+    if not plots_file.is_file():
+        raise project_profile.ProfileError("no plots.json in " + str(folder))
+    try:
+        data = json.loads(plots_file.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise project_profile.ProfileError("plots.json is not valid JSON: " + str(error)) from error
+    if not isinstance(data, dict) or not isinstance(data.get("plots"), list):
+        raise project_profile.ProfileError("plots.json has no plots list")
+    return data
 
 
 def main(argv=None):
@@ -203,11 +248,9 @@ def main(argv=None):
     try:
         settings = project_profile.load_settings(args.project)
         profile = project_profile.load_profile(args.profile or project_profile.profile_path(settings))
-        plots_file = Path(args.cad) / "plots.json"
-        if not plots_file.is_file():
-            raise project_profile.ProfileError("no plots.json in " + str(args.cad))
-        data = json.loads(plots_file.read_text(encoding="utf-8"))
-        result = analyse(data["plots"], profile, settings.get("analysis"))
+        analysis = {key: settings.get("analysis." + key) for key in SETTINGS}
+        data = read_plots(args.cad)
+        result = analyse(data["plots"], profile, analysis)
     except project_profile.ProfileError as error:
         print("cad_analysis: " + str(error), file=sys.stderr)
         return 2

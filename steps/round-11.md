@@ -1,6 +1,6 @@
 # Steps for Bader, round 11 (project settings, clusters, checks 1 and 2)
 
-This round adds config/project.json, the cluster step python/cad_analysis.py and the first two coded checks. Nothing runs in Revit. Steps 1 to 4 open the folder and the terminal, step 5 pulls main, steps 6 to 11 run the tests, steps 12 to 14 run the cluster step on the real baseplan, steps 15 to 20 read analysis.json, steps 21 and 22 check the two small file changes.
+This round adds config/project.json, the cluster step python/cad_analysis.py and the first two coded checks. Nothing runs in Revit. Do it after pull request 13 is merged, the top entry of steps/log.md says when. Steps 1 to 4 open the folder and the terminal, steps 5 and 6 switch to main and pull it, step 7 installs, steps 8 to 11 run the tests, steps 12 and 13 run the cluster step on the real baseplan, steps 14 to 20 read analysis.json, steps 21 and 22 check the two small file changes.
 
 1. Open VS Code.
    Look for: the VS Code window opens.
@@ -28,11 +28,11 @@ This round adds config/project.json, the cluster step python/cad_analysis.py and
 
 8. In the terminal run the new tests:
    `.venv\Scripts\python -m pytest python\tests\test_cad_analysis.py python\tests\test_rules_checks.py python\tests\test_project_profile.py -v`
-   Look for: 14 passed and no failed. The names start with test_r64, test_r65, test_r66 and test_r62.
+   Look for: 24 passed and no failed. The names start with test_r64, test_r65, test_r66 and test_r62.
 
 9. In the terminal run all Python tests:
    `.venv\Scripts\python -m pytest python`
-   Look for: 218 passed and no failed. A machine without Git Bash also shows some skipped, which is fine.
+   Look for: 229 passed and no failed. A machine without Git Bash also shows some skipped, which is fine.
 
 10. In the terminal run the .NET build:
     `dotnet build dotnet\SiteAdaptation.sln -c Release`
@@ -54,10 +54,10 @@ This round adds config/project.json, the cluster step python/cad_analysis.py and
     Look for: the file opens and the first line under the opening bracket is "source".
 
 15. Press Ctrl+F and type `"clusters": [`
-    Look for: one match. The lines under it are clusters, each with code, plots, typologies, mirrored and orderSure.
+    Look for: one match. The lines under it are clusters, each with code, plots, typologies, mirrored, orderSure and row.
 
 16. In the search box type `"code": "Q01"` and look at the first match.
-    Look for: 4 matches in all. Each cluster has 4 plot numbers in plots and the typologies DP2, TH1, TH1, DP2.
+    Look for: 4 matches in all. Each cluster has 4 plot numbers in plots and the typologies DP2, TH1, TH1, DP2. The plot numbers are the baseplan labels, 10 or 11 below the official numbers.
 
 17. In the search box type `"code": "Q02"`.
     Look for: 2 matches, each with the typologies DP4, TH3, TH3, DP4.
@@ -81,7 +81,7 @@ This round adds config/project.json, the cluster step python/cad_analysis.py and
 
 - The villa blocks are not matched to plots, so every mirror flag is null. The reasons are under Known bugs.
 - Check 3 and the checks 4 to 10 are not coded. They stay in rules/README.md.
-- The ordering and the road side use settings I chose. They are in the Your turn list of the top log entry.
+- The settings I chose and the front rule are in the Your turn list of the top log entry.
 - The full run (python\full_run.py) has the new analysis stage and its command ran on the real baseplan output. A full run of all 26 files was not repeated this round.
 - The Revit run of round 9 (steps/for-bader-round-9.md) is still waiting for you.
 - riser_height is still null.
@@ -90,11 +90,12 @@ This round adds config/project.json, the cluster step python/cad_analysis.py and
 
 - The baseplan drawing holds no villa block per plot. The blocks are in Makkah Building Footprint.dwg: 491 Villa_VL4, 291 Duplex_DP4, 280 Villa_C10, 275 Villa_VL3, 248 Villa_VL2, 149 Duplex_DP2, 66 Townhouse_TH3 and 65 Townhouse_TH1. Their insert points sit on plot edges, the duplex counts are about one per pair of plots, and the townhouse blocks do not touch their own plots. The CAD reader writes no block scale. So no honest match to a plot exists yet.
 - 141 clusters are unknown. 44 have four units, 35 of them DP4 DP4 DP4 DP4 and 9 of them DP2 DP2 DP2 DP2. 97 are rows of 6 to 12 units. They may be listed clusters standing side by side. The tool calls them unknown, as the rule says.
-- The 436 R65 issues come from duplex plots inside those long unknown rows. They are right under the rule and add noise until the unknown rows are explained.
-- The order along the road is not sure for 18 of 330 clusters, because no end of the row is clearly nearer the road centreline. 14 of them are listed clusters.
+- Of the 436 R65 issues, 88 sit in the four unit unknown rows and 348 in the longer rows. They are right under the rule and add noise until the unknown rows are explained.
+- The order along the road is not sure for 95 of 330 clusters, because no end or both ends of the row touch other plots. 55 of them are listed clusters. The tool then keeps the chain and starts at the lower plot number.
 - Plot numbers in analysis.json are the baseplan labels. The official number is the label plus the shift in config/plot_numbers.json.
-- The front side comes from the road centreline layer MP_Road CL. UNKNOWN whether every plot front lies on the end nearest that line.
-- Plot faces from CAD only. The Excel and PDF units are not compared, as decided in round 6.
+- A plot whose typology is not in the profile is in no cluster and is not reported.
+- The front rule says plots back onto other plots and front onto a road. It agrees with the Revit link axes on 76 of 76 units it decides, but UNKNOWN for the 95 rows it leaves open.
+- The settings in config/project.json are my choices: tolerance 0.01 m, party wall 0.75 of the long side, end share 0.25.
 
 ## What comes next
 
