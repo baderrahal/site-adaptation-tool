@@ -318,7 +318,7 @@ def test_r60_the_link_box_is_inside_partly_inside_or_outside_the_generic_floor()
     found = by_plot(pr.build_rows(data, excel)[0])
 
     assert found["9001"]["link_box_vs_generic"] == "inside"
-    assert found["9001"]["link_box_inside_share"] == 1.0
+    assert found["9001"]["link_box_inside_share"] == pytest.approx(1.0)
     assert found["9003"]["link_box_vs_generic"] == "partly inside"
     assert found["9003"]["link_box_inside_share"] == pytest.approx(0.5)
     shape = box(0, 0, 10, 6)
