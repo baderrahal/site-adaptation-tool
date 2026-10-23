@@ -4,7 +4,11 @@ import sys
 from openpyxl import Workbook
 
 import full_run
+import project_profile
 from minimal_pdf import build_pdf
+
+SETTINGS = project_profile.load_settings()
+BASEPLAN = SETTINGS.get("drawings.baseplan")
 
 
 def touch(path, text="x"):
@@ -115,19 +119,19 @@ def test_r29_skip_reasons_reach_full_run_summary_json(tmp_path):
 
 def test_r25_stages_run_only_when_their_inputs_exist_and_say_why_when_they_do_not(tmp_path):
     none = full_run.stage_commands(tmp_path, [], "second.dwg", "shifts.json")
-    assert [stage["why"] for stage in none] == ["no baseplan output"] * 3
-    touch(tmp_path / full_run.BASEPLAN / "plots.json")
+    assert [stage["why"] for stage in none] == ["no baseplan output"] * 4
+    touch(tmp_path / BASEPLAN / "plots.json")
     touch(tmp_path / "s.pdf" / "pdf_rows.json")
     touch(tmp_path / "w.xlsx" / "coords.json")
     touch(tmp_path / "a.dwg" / "layers.json")
     touch(tmp_path / "second.dwg" / "pieces.json")
-    ran = ["s.pdf", "w.xlsx", "a.dwg", full_run.BASEPLAN, "second.dwg"]
+    ran = ["s.pdf", "w.xlsx", "a.dwg", BASEPLAN, "second.dwg"]
     stages = {stage["name"]: stage for stage in full_run.stage_commands(tmp_path, ran, "second.dwg", "shifts.json")}
     link = stages["link"]["args"]
     assert "shifts.json" in link and str(tmp_path / "s.pdf" / "pdf_rows.json") in link
     assert str(tmp_path / "a.dwg" / "layers.json") in link
-    assert str(tmp_path / full_run.BASEPLAN / "layers.json") not in link
-    assert "args" in stages["second_source"] and "args" in stages["other_faces"]
+    assert str(tmp_path / BASEPLAN / "layers.json") not in link
+    assert "args" in stages["second_source"] and "args" in stages["other_faces"] and "args" in stages["analysis"]
     no_second = {stage["name"]: stage for stage in full_run.stage_commands(tmp_path, ["s.pdf", "w.xlsx"], "missing.dwg", "shifts.json")}
     assert no_second["second_source"]["why"] == "no output for missing.dwg"
 
@@ -135,3 +139,28 @@ def test_r25_stages_run_only_when_their_inputs_exist_and_say_why_when_they_do_no
 def test_r32_survey_job_gets_the_baseplan_plots_and_the_shift_config(tmp_path):
     args = full_run.command("survey", tmp_path / "m.xlsx", tmp_path / "out", "cad.exe", "layers.json", "sheet", tmp_path / "plots.json", "shifts.json")
     assert "--survey" in args and str(tmp_path / "plots.json") in args and "shifts.json" in args
+
+
+def write_settings(path, profile):
+    path.write_text(json.dumps({"profile": profile, "drawings": {"baseplan": "base.dwg", "secondDefault": "second.dwg", "skip": [{"file": "Skip.dwg", "why": "Decision X. Test reason."}]}}), encoding="utf-8")
+    return project_profile.load_settings(path)
+
+
+def test_r63_the_analysis_stage_gets_the_profile_path_from_the_project_config(tmp_path):
+    settings = write_settings(tmp_path / "project.json", "rules/other-profile.json")
+    touch(tmp_path / "out" / "base.dwg" / "plots.json")
+    stages = {stage["name"]: stage for stage in full_run.stage_commands(tmp_path / "out", ["base.dwg"], "second.dwg", "shifts.json", settings)}
+    args = stages["analysis"]["args"]
+    assert args[args.index("--profile") + 1] == str(project_profile.ROOT / "rules" / "other-profile.json")
+    assert args[args.index("--project") + 1] == str(tmp_path / "project.json")
+
+
+def test_r63_the_baseplan_and_the_skip_list_come_from_the_project_config(tmp_path):
+    settings = write_settings(tmp_path / "project.json", "rules/other-profile.json")
+    touch(tmp_path / "real" / "Master Plan" / "Skip.dwg")
+    touch(tmp_path / "real" / "Master Plan" / "Read.dwg")
+    jobs, skipped = full_run.plan(tmp_path / "real", ("dwg",), settings)
+    assert [path.name for _, path in jobs] == ["Read.dwg"]
+    assert {entry["file"]: entry["why"] for entry in skipped if entry["file"] == "Skip.dwg"} == {"Skip.dwg": "Decision X. Test reason."}
+    touch(tmp_path / "out" / "base.dwg" / "plots.json")
+    assert "args" in {stage["name"]: stage for stage in full_run.stage_commands(tmp_path / "out", ["base.dwg"], "second.dwg", "shifts.json", settings)}["other_faces"]

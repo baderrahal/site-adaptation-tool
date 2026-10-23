@@ -1,0 +1,24 @@
+{
+  "note": "Names the rules profile and the drawings of this project, so no project name sits in the Python files. Paths are relative to the repo root. The analysis block holds how the CAD analysis reads the drawings: lengths are in metres, partyWallShare is the share of plot.long_side that a shared edge must reach to count as a party wall, frontMarginM is how much nearer a road must be on one end of a cluster before the order along the road is called sure.",
+  "profile": "rules/roshn-makkah.json",
+  "drawings": {
+    "baseplan": "ROSHN Makkah Baseplan.dwg",
+    "secondDefault": "221229_MP-SK-01-03-001_R06_0000.dwg",
+    "skip": [
+      {
+        "file": "221229_MP-SK-01-03-001_R06.dwg",
+        "why": "Decision C. No plot faces, only 45 model space entities, its xref Makkah Phase 1_Road Layout_new.dwg is not found. The block content explodes to 140064 pieces, so it is not empty after exploding. R06_0000 is used instead."
+      },
+      {
+        "file": "221229_MP-SK-01-03-001_R06_0001.dwg",
+        "why": "Decision C. Identical copy of 221229_MP-SK-01-03-001_R06_0000.dwg with the same layer counts and the same handles. R06_0000 is used instead."
+      }
+    ]
+  },
+  "analysis": {
+    "toleranceM": 0.01,
+    "partyWallShare": 0.75,
+    "frontMarginM": 3,
+    "roadLayers": ["MP_Road CL"]
+  }
+}

@@ -52,6 +52,12 @@ Edit it to change what is written. Without --layers the reader uses cad_layers.j
 Each file runs in place with a time limit of 600 seconds. A failure or a timeout is recorded and the run goes on.
 sample_output is ignored by git.
 
+The names of the baseplan, the second drawing and the skipped drawings come from config/project.json (R63). The last stage, analysis, writes sample_output/full_run/analysis/analysis.json with the clusters of duplex and townhouse plots (R64) and the issues of checks 1 and 2 (R65, R66). To run only that stage on a CAD output folder of the baseplan:
+
+```
+.venv\Scripts\python python\cad_analysis.py sample_output\analysis --cad "sample_output\full_run\ROSHN Makkah Baseplan.dwg"
+```
+
 ## Count the links
 
 ```

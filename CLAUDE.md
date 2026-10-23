@@ -22,7 +22,9 @@ The rules live in docs/rules.md and nowhere else. This file points to them and a
 - dotnet/CadReader reads DWG and DXF with ACadSharp.
 - dotnet/RevitPrototypeReader is the Revit 2024 add-in. Do not change it unless the round says so.
 - dotnet/SiteAdaptation.Common holds JSON output and unit helpers.
-- rules/ holds one project profile JSON per project and a README with the ten checks. python/project_profile.py loads a profile by path (R62). New project rule values go there and not in code.
+- config/project.json names the rules profile and the drawings, and holds the CAD analysis settings (R63). No project name goes in a Python file.
+- rules/ holds one project profile JSON per project and a README with the checks not coded yet. python/project_profile.py loads a profile by path (R62). New project rule values go there and not in code.
+- python/cad_analysis.py derives the clusters of duplex and townhouse plots from CAD adjacency and writes analysis.json (R64). python/rules_checks.py holds the coded checks (R65, R66).
 - config/road_surfaces.json gives each LandXML surface its role, ground, road or design, and names the ramp types and the input files.
 - config/cad_layers.json is the keep and drop list of CAD layers. Bader edits it.
 - docs/rules.md holds the rules with ids R1 and up.
@@ -45,7 +47,7 @@ The full text is docs/rules.md. Ids are the contract, a test names the id it pro
 - R40 to R46 cover the LandXML reader, invisible faces, the surface lookup, the surface roles, the ramp road levels, the gap bands and the road stages with their second check.
 - R47 to R50 cover the ramp corner levels, the role proposal, the floor count per plot and the one error line for floors with no Plot parameter.
 - R51 to R56 cover the shared coordinates, the floor measurements, the parameter details and floor types, the link state, the spot host and the output size. R57 to R61 cover the plot relation report, the yard and shared edges, the ramp geometry, the gaps and link box, and the summary.
-- R62 covers the project profile in rules/ and its loader.
+- R62 covers the project profile in rules/ and its loader. R63 covers the project settings. R64 covers the cluster derivation. R65 and R66 are checks 1 and 2.
 
 ## Real files
 
