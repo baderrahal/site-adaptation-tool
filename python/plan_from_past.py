@@ -6,6 +6,7 @@ Two sources that give a value differently are listed in conflicts with the value
 import argparse
 import math
 import os
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -39,6 +40,8 @@ PROOF_LIMIT_MM = 1.0
 EPS = 1e-9
 # Without these values the placer cannot place the link, so a plot that lacks one is not written
 LINK_KEYS = ("prototypeFile", "insert", "rotationDeg", "mirrored", "levels.ffl")
+# A step count is a whole number, alone or before the word step or steps, so 2.5 is not read as 2
+STEPS_TEXT = re.compile(r"^\s*(\d+)\s*(steps?)?\s*$", re.IGNORECASE)
 LEVEL_COLUMNS = (("ffl", "FFL"), ("ssl", "SSL"), ("entry", "El @ Entry"), ("height", "Height"))
 WIDE_LEVELS = ("entry", "height")
 
@@ -98,10 +101,30 @@ def axes_fit(transform):
     return True
 
 
+def is_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def plot_number(value):
+    """A plot number as text when it is a whole number, held as a number or as digits, else None, so 101.5 never joins 101."""
+    if is_number(value):
+        return str(int(value)) if float(value).is_integer() else None
+    text = str(value).strip() if value is not None else ""
+    return text if text.isdigit() else None
+
+
 def shared_origin(link, offset):
-    """The link origin in shared coordinates, the transform origin plus the survey point offset of R51."""
+    """The link origin in shared coordinates, the transform origin plus the survey point offset of R51. None unless it has three numbers."""
     origin = (link.get("transform") or {}).get("origin")
-    return None if not origin else [origin[axis] + offset[axis] for axis in range(3)]
+    if not isinstance(origin, list) or len(origin) != 3 or not all(is_number(value) for value in origin):
+        return None
+    return [origin[axis] + offset[axis] for axis in range(3)]
+
+
+def plan_rotation(degrees):
+    """R2 rounding can turn 359.9996 into 360, which R80 writes as 0."""
+    rounded = common.r3(degrees % 360.0)
+    return 0 if rounded >= 360 else rounded
 
 
 def position_proof(links, offset):
@@ -183,13 +206,13 @@ def link_values(builder, link, offset, job, folder_files):
         builder.entry["prototypeFile"] = sourced(file_name)
     transform = link.get("transform")
     origin = shared_origin(link, offset)
-    if not transform or origin is None or transform.get("rotationDeg") is None or transform.get("mirrored") is None:
+    if not transform or origin is None or not is_number(transform.get("rotationDeg")) or not isinstance(transform.get("mirrored"), bool):
         builder.lack("transform", "the link has no transform")
     elif not axes_fit(transform):
         builder.lack("transform", "the link axes are not a turn about Z with or without a mirror")
     else:
         builder.entry["insert"] = sourced(point(origin[:2]) + [None])
-        builder.entry["rotationDeg"] = sourced(common.r3(transform["rotationDeg"]))
+        builder.entry["rotationDeg"] = sourced(plan_rotation(transform["rotationDeg"]))
         builder.entry["mirrored"] = sourced(bool(transform["mirrored"]))
     written = {}
     for name in job["parameters"]:
@@ -205,16 +228,16 @@ def link_values(builder, link, offset, job, folder_files):
 def schedule_values(builder, row):
     levels = {}
     for key, label in LEVEL_COLUMNS:
-        value = link_summary.parse_number(plot_relations.excel_cell(row, label))
-        if value is None:
+        value = plot_relations.excel_cell(row, label)
+        if not is_number(value):
             builder.lack("levels." + key, "the schedule cell " + label + " holds no number")
         else:
-            levels[key] = sourced(common.r3(value, 4 if key in WIDE_LEVELS else 3))
-    steps = link_summary.leading_integer(plot_relations.excel_cell(row, "Steps Needed"))
+            levels[key] = sourced(common.r3(float(value), 4 if key in WIDE_LEVELS else 3))
+    steps = STEPS_TEXT.match(str(plot_relations.excel_cell(row, "Steps Needed") or ""))
     if steps is None:
-        builder.lack("levels.steps", "the schedule cell Steps Needed holds no number")
+        builder.lack("levels.steps", "the schedule cell Steps Needed holds no whole step count")
     else:
-        levels["steps"] = sourced(steps)
+        levels["steps"] = sourced(int(steps.group(1)))
     builder.entry["levels"] = levels
 
 
@@ -302,8 +325,9 @@ def floor_values(builder, index, offset):
     return status
 
 
-def build_plot(plot, plot_links, row, index, offset, job, folder_files):
+def build_plot(plot, plot_links, rows, index, offset, job, folder_files):
     builder = PlotBuilder(plot)
+    row = rows[0] if len(rows) == 1 else None
     origin = None
     if not plot_links:
         builder.lack("link", "no link names the plot")
@@ -311,7 +335,10 @@ def build_plot(plot, plot_links, row, index, offset, job, folder_files):
         builder.lack("links", str(len(plot_links)) + " links name the plot: " + " ".join(str(link.get("elementId")) for link in plot_links))
     else:
         origin = link_values(builder, plot_links[0], offset, job, folder_files)
-    if row is None:
+    if len(rows) > 1:
+        builder.lack("scheduleRow", str(len(rows)) + " schedule rows hold the plot, sheet rows " + " ".join(str(item.get("sheetRow")) for item in rows))
+        builder.entry["levels"] = {}
+    elif row is None:
         builder.lack("scheduleRow", "the schedule has no row for the plot")
         builder.entry["levels"] = {}
     else:
@@ -329,24 +356,41 @@ def build_plot(plot, plot_links, row, index, offset, job, folder_files):
     return builder, not lacking, yard_status
 
 
+def schedule_by_plot(rows):
+    """Every schedule row by plot number. Two rows for one plot are both kept, so the plot is listed and never picks one."""
+    found, bad = {}, []
+    for row in rows:
+        value = plot_relations.excel_cell(row, "Plot No.")
+        plot = plot_number(value)
+        if plot is None:
+            bad.append({"sheetRow": row.get("sheetRow"), "plotNo": str(value)})
+            continue
+        found.setdefault(plot, []).append(row)
+    return found, bad
+
+
 def build_plan(data, rows, job, folder_files, prototype_folder):
     """The plan of R80 from the host document of prototypes.json and the schedule rows."""
     document = host_of(data)
     offset = ramp_levels.offset_of(document)
     links = document.get("links") or []
-    by_plot, without_plot = {}, 0
+    by_plot, without_plot, bad_links = {}, 0, []
     for link in links:
-        plot = (link.get("parameters") or {}).get(PLOT_PARAMETER)
-        if plot is None or not str(plot).strip():
+        value = (link.get("parameters") or {}).get(PLOT_PARAMETER)
+        if value is None or not str(value).strip():
             without_plot += 1
             continue
-        by_plot.setdefault(link_summary.plot_key(plot), []).append(link)
-    schedule = plot_relations.excel_by_plot(rows)
+        plot = plot_number(value)
+        if plot is None:
+            bad_links.append({"elementId": link.get("elementId"), "plotNumber": str(value)})
+            continue
+        by_plot.setdefault(plot, []).append(link)
+    schedule, bad_rows = schedule_by_plot(rows)
     index = floor_index(document, offset)
     plots, missing, conflicts = [], [], []
     missing_keys, floors_found, yard_status = Counter(), Counter(), Counter()
     for plot in sorted(set(by_plot) | set(schedule), key=link_summary.sort_key):
-        builder, complete, status = build_plot(plot, by_plot.get(plot, []), schedule.get(plot), index, offset, job, folder_files)
+        builder, complete, status = build_plot(plot, by_plot.get(plot, []), schedule.get(plot, []), index, offset, job, folder_files)
         yard_status[status] += 1
         floors_found.update(builder.entry["floors"].keys())
         if complete:
@@ -357,16 +401,15 @@ def build_plan(data, rows, job, folder_files, prototype_folder):
         conflicts.extend(builder.conflicts)
     proof, over = position_proof(links, offset)
     for link, gap in over:
-        conflicts.append({"plot": link_summary.plot_key((link.get("parameters") or {}).get(PLOT_PARAMETER)), "field": "insert",
+        conflicts.append({"plot": plot_number((link.get("parameters") or {}).get(PLOT_PARAMETER)), "field": "insert",
                           "kept": "transform origin plus offset", "other": common.r3(gap), "otherSource": "transformShared, difference in mm"})
     survey = document["surveyPoint"]
-    return {
+    plan = {
         "format": FORMAT,
         "formatVersion": FORMAT_VERSION,
         "neighbourhood": job["neighbourhood"],
         "coordinateSystem": {"name": "shared", "lengthUnit": "m", "angleUnit": "deg"},
         "surveyPoint": {"position": point(survey["position"]), "sharedPosition": point(survey["sharedPosition"])},
-        "angleToTrueNorthDeg": common.r3(document.get("angleToTrueNorthDeg") or 0.0),
         "prototypeFolder": str(prototype_folder),
         "sources": {"prototypes": Path(job["prototypes"]).name, "schedule": job["schedule"], "sheet": job["sheet"]},
         "summary": {
@@ -374,7 +417,9 @@ def build_plan(data, rows, job, folder_files, prototype_folder):
             "written": len(plots),
             "notWritten": len(set(by_plot) | set(schedule)) - len(plots),
             "linksWithoutPlot": without_plot,
-            "scheduleRows": len(schedule),
+            "scheduleRows": len(rows),
+            "linksWithBadPlotNumber": bad_links,
+            "scheduleRowsWithBadPlotNumber": bad_rows,
             "missingByKey": dict(sorted(missing_keys.items())),
             "floorsFound": {kind: floors_found[kind] for kind in ("generic", "yard", "ramp")},
             "yardStatus": dict(sorted(yard_status.items())),
@@ -385,6 +430,11 @@ def build_plan(data, rows, job, folder_files, prototype_folder):
         "missing": missing,
         "conflicts": conflicts,
     }
+    # Never guessed. A plan without the angle stops the placer under R83
+    angle = document.get("angleToTrueNorthDeg")
+    if is_number(angle):
+        plan["angleToTrueNorthDeg"] = common.r3(angle)
+    return plan
 
 
 def folder_listing(folder):
@@ -418,6 +468,7 @@ def main(argv=None):
     data = link_summary.load(prototypes)
     rows = excel_reader.read_sheet(schedule, job["sheet"])[3]
     plan = build_plan(data, rows, job, folder_listing(folder), folder)
+    plan["sources"]["prototypes"] = prototypes.name
     write_plan(out, plan)
     summary = plan["summary"]
     print("plots written %d of %d, missing a value %d" % (summary["written"], summary["plots"], len(plan["missing"])))

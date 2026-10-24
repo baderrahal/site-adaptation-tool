@@ -58,7 +58,9 @@ def compare(plan, data):
     for link in document.get("links") or []:
         plot = (link.get("parameters") or {}).get(plan_from_past.PLOT_PARAMETER)
         if plot is not None and str(plot).strip():
-            links.setdefault(link_summary.plot_key(plot), []).append(link)
+            key = plan_from_past.plot_number(plot)
+            if key is not None:
+                links.setdefault(key, []).append(link)
     matches, mismatches, differing = Counter(), Counter(), []
     planned = set()
     for entry in plan["plots"]:

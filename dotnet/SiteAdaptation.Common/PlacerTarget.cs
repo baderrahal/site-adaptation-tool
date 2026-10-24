@@ -13,12 +13,12 @@ namespace SiteAdaptation.Common
         // The RRE_ZZ_SP_Plot-Number of every link instance of the document, null where it has none
         IList<string> LinkPlotNumbers();
 
-        // The Revit link types of the document by the file name of their path
+        // The Revit link types of the document by the file name of their path, with whether a new instance can be made from each
         IList<LinkTypeEntry> LinkTypes();
 
         bool FileExists(string path);
 
-        // The rest is called in a real run only, between Begin and Commit or RollBack
+        // The rest is called in a real run only, between Begin and Commit or RollBack. LinkTypes is asked in the dry run too
         void Begin();
 
         string LoadLinkType(string fullPath);
@@ -44,10 +44,13 @@ namespace SiteAdaptation.Common
         public double AngleToTrueNorthDeg { get; set; }
     }
 
+    // Usable is false for a type a new instance cannot be made from, a nested link or one that is not loaded, and Why says which
     public class LinkTypeEntry
     {
         public string FileName { get; set; }
         public string Key { get; set; }
+        public bool Usable { get; set; } = true;
+        public string Why { get; set; }
     }
 
     // What the Revit side does to one new link instance, in this order: place it origin to origin, move it by Move,

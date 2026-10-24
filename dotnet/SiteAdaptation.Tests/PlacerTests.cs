@@ -30,6 +30,7 @@ namespace SiteAdaptation.Tests
             public int RollBacks;
             public int Commits;
             public bool CommitFails;
+            public bool FailBegin;
             public int FailPlaceAt = -1;
             public Func<PlacedTransform, PlacedTransform> Distort;
             public List<string> WarningLines = new List<string>();
@@ -73,6 +74,10 @@ namespace SiteAdaptation.Tests
 
             public void Begin()
             {
+                if (FailBegin)
+                {
+                    throw new InvalidOperationException("the transaction did not start");
+                }
                 Begins++;
                 savedInstances = new Dictionary<long, PlacedTransform>(Instances);
                 savedTypes = new List<LinkTypeEntry>(Types);
@@ -138,6 +143,10 @@ namespace SiteAdaptation.Tests
 
             private void Restore()
             {
+                if (savedInstances == null)
+                {
+                    return;
+                }
                 Instances = savedInstances;
                 Types.Clear();
                 Types.AddRange(savedTypes);
@@ -444,7 +453,85 @@ namespace SiteAdaptation.Tests
             PlacerReport report = Real(Plan(Plot("101", 1003, 2004, 10), Plot(" 101", 1020, 2004, 10)), target);
 
             Assert.Single(target.Instances);
-            Assert.Equal("the plan lists this plot twice, the first one is used", report.Skipped.Single().Reason);
+            Assert.Equal("the plan lists this plot number more than once, only its first entry is tried", report.Skipped.Single().Reason);
+        }
+
+        [Fact]
+        public void R84_the_second_entry_of_a_plot_number_is_skipped_even_when_the_first_cannot_be_placed()
+        {
+            PlanPlot first = Plot("101", 1003, 2004, 10);
+            first.Mirrored = null;
+            var target = new FakeTarget();
+            PlacerReport report = Real(Plan(first, Plot("101", 1020, 2004, 10)), target);
+
+            Assert.Empty(report.Placed);
+            Assert.Equal(new[] { "the plan lacks mirrored", "the plan lists this plot number more than once, only its first entry is tried" }, report.Skipped.Select(item => item.Reason).ToArray());
+        }
+
+        [Fact]
+        public void R84_an_empty_entry_or_a_file_name_that_is_not_valid_is_skipped_and_the_rest_go_on()
+        {
+            PlanFile plan = Plan(Plot("101", 1003, 2004, 10, file: "a|b.rvt"), Plot("102", 1020, 2004, 10));
+            plan.Plots.Insert(0, null);
+            PlacerReport report = Placer.Run(plan, "plan.json", new FakeTarget(), false);
+
+            Assert.False(report.Stopped);
+            Assert.Equal("an empty entry in plots", report.Skipped[0].Reason);
+            Assert.StartsWith("the entry could not be read", report.Skipped[1].Reason);
+            Assert.Equal("102", report.Placed.Single().Plot);
+        }
+
+        [Fact]
+        public void R84_a_plan_without_a_full_prototype_folder_stops()
+        {
+            foreach (string folder in new[] { null, "", "Prototypes" })
+            {
+                PlanFile plan = Plan(Plot("101", 1003, 2004, 10));
+                plan.PrototypeFolder = folder;
+                var target = new FakeTarget();
+                PlacerReport report = Real(plan, target);
+
+                Assert.True(report.Stopped);
+                Assert.Contains("prototypeFolder", report.Failure);
+                Assert.Empty(target.Loads);
+            }
+        }
+
+        [Fact]
+        public void R84_a_link_type_of_the_document_that_cannot_be_used_skips_its_plots_in_the_dry_run_and_the_real_run()
+        {
+            foreach (bool real in new[] { false, true })
+            {
+                var target = new FakeTarget();
+                target.Types.Add(new LinkTypeEntry { FileName = "VD2.rvt", Key = "unloaded", Usable = false, Why = "its status is Unloaded" });
+                PlacerReport report = Placer.Run(Plan(Plot("101", 1003, 2004, 10), Plot("102", 1020, 2004, 10, file: "DP4.rvt")), "plan.json", target, real);
+
+                Assert.StartsWith("the document has a link type for VD2.rvt that cannot be used, its status is Unloaded", report.Skipped.Single().Reason);
+                Assert.Equal("102", report.Placed.Single().Plot);
+                Assert.DoesNotContain(Path.Combine(Folder, "VD2.rvt"), target.Loads);
+            }
+        }
+
+        [Fact]
+        public void R84_a_usable_link_type_wins_over_one_with_the_same_file_name_that_cannot_be_used()
+        {
+            var target = new FakeTarget();
+            target.Types.Add(new LinkTypeEntry { FileName = "VD2.rvt", Key = "nested", Usable = false, Why = "it is a nested link" });
+            target.Types.Add(new LinkTypeEntry { FileName = "vd2.rvt", Key = "good" });
+            PlacerReport report = Real(Plan(Plot("101", 1003, 2004, 10)), target);
+
+            Assert.Equal("good", target.TypeOf[report.Placed.Single().InstanceId.Value]);
+            Assert.Empty(target.Loads);
+        }
+
+        [Fact]
+        public void R84_every_link_is_loaded_from_a_full_path()
+        {
+            var target = new FakeTarget();
+            Real(Plan(Plot("101", 1003, 2004, 10), Plot("102", 1020, 2004, 10, file: "DP4.rvt")), target);
+
+            Assert.Equal(2, target.Loads.Count);
+            Assert.All(target.Loads, path => Assert.True(Path.IsPathRooted(path)));
         }
 
         [Fact]
@@ -511,6 +598,31 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R85_a_plot_number_that_cannot_be_written_rolls_the_run_back_so_no_plot_is_placed_twice()
+        {
+            var target = new FakeTarget();
+            target.InstanceParameters.Remove("RRE_ZZ_SP_Plot-Number");
+            PlacerReport report = Real(Plan(Plot("101", 1003, 2004, 10)), target);
+
+            Assert.True(report.RolledBack);
+            Assert.Contains("the link instance has no parameter RRE_ZZ_SP_Plot-Number", report.Failure);
+            Assert.Empty(target.Instances);
+        }
+
+        [Fact]
+        public void R85_a_plot_whose_plan_holds_no_matching_plot_number_parameter_is_skipped()
+        {
+            PlanPlot none = Plot("101", 1003, 2004, 10);
+            none.Parameters.Remove("RRE_ZZ_SP_Plot-Number");
+            PlanPlot other = Plot("102", 1020, 2004, 10);
+            other.Parameters["RRE_ZZ_SP_Plot-Number"] = S("999");
+            PlacerReport report = Placer.Run(Plan(none, other), "plan.json", new FakeTarget(), false);
+
+            Assert.Empty(report.Placed);
+            Assert.All(report.Skipped, item => Assert.StartsWith("the plan has no RRE_ZZ_SP_Plot-Number equal to the plot", item.Reason));
+        }
+
+        [Fact]
         public void R85_the_prototype_ffl_parameter_is_never_written()
         {
             PlanPlot plot = Plot("101", 1003, 2004, 10);
@@ -522,6 +634,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("plot 101: RRE_ZZ_SP_Prototype-FFL is in the plan and is never written", report.Issues);
             PlacerReport dry = Placer.Run(Plan(plot), "plan.json", new FakeTarget(), false);
             Assert.DoesNotContain("RRE_ZZ_SP_Prototype-FFL", dry.Placed.Single().Parameters);
+            Assert.Contains("plot 101: RRE_ZZ_SP_Prototype-FFL is in the plan and is never written", dry.Issues);
         }
 
         // R86 dry run and one transaction
@@ -606,6 +719,29 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R87_a_survey_point_that_cannot_be_read_stops_with_a_report_and_places_nothing()
+        {
+            var target = new FakeTarget { SurveyValue = null };
+            PlacerReport report = Real(Plan(Plot("101", 1003, 2004, 10)), target);
+
+            Assert.True(report.Stopped);
+            Assert.StartsWith("Stopped before anything was placed", report.Failure);
+            Assert.Equal(0, target.Begins);
+            Assert.Equal(1, report.Counts.PlotsInPlan);
+        }
+
+        [Fact]
+        public void R86_a_transaction_that_does_not_start_is_rolled_back_and_reported()
+        {
+            var target = new FakeTarget { FailBegin = true };
+            PlacerReport report = Real(Plan(Plot("101", 1003, 2004, 10)), target);
+
+            Assert.True(report.RolledBack);
+            Assert.Contains("the transaction did not start", report.Failure);
+            Assert.Empty(target.Instances);
+        }
+
+        [Fact]
         public void R86_a_revit_warning_is_an_issue_and_does_not_stop_the_run()
         {
             var target = new FakeTarget();
@@ -679,6 +815,21 @@ namespace SiteAdaptation.Tests
             Assert.True(run > 0 && write > run);
             Assert.DoesNotContain("return", text.Substring(run, write - run));
             Assert.Contains("\"placer_report.json\"", text);
+            int read = text.IndexOf("PlanFile.Read(planPath)", StringComparison.Ordinal);
+            string unread = text.Substring(read, text.IndexOf("return Result.Failed", read, StringComparison.Ordinal) - read);
+            Assert.Contains("JsonOut.Write(reportPath, unread)", unread);
+            Assert.Contains("Common.Placer.StoppedReport(", text.Substring(run, write - run));
+        }
+
+        [Fact]
+        public void R87_a_stopped_report_has_counts_and_empty_lists()
+        {
+            JObject json = JObject.Parse(JsonOut.ToJson(Placer.StoppedReport("none", "plan.json", "copy.rvt", "The plan file could not be read: bad")));
+
+            Assert.True((bool)json["stopped"]);
+            Assert.Equal("The plan file could not be read: bad", (string)json["failure"]);
+            Assert.Equal(0, (int)json["counts"]["plotsInPlan"]);
+            Assert.Empty(json["placed"]);
         }
 
         // R88 placer install

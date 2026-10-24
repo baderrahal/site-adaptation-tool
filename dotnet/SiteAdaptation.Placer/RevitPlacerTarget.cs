@@ -69,10 +69,23 @@ namespace SiteAdaptation.Placer
                 {
                     // A type with no usable file reference cannot stand in for a prototype file
                 }
-                if (name != null)
+                if (name == null)
                 {
-                    types.Add(new LinkTypeEntry { FileName = name, Key = Key(type.Id) });
+                    continue;
                 }
+                var entry = new LinkTypeEntry { FileName = name, Key = Key(type.Id) };
+                // RevitLinkInstance.Create refuses a nested link and a link type that is not loaded
+                if (type.IsNestedLink)
+                {
+                    entry.Usable = false;
+                    entry.Why = "it is a nested link";
+                }
+                else if (type.GetLinkedFileStatus() != LinkedFileStatus.Loaded)
+                {
+                    entry.Usable = false;
+                    entry.Why = "its status is " + type.GetLinkedFileStatus();
+                }
+                types.Add(entry);
             }
             return types;
         }
@@ -106,6 +119,11 @@ namespace SiteAdaptation.Placer
         {
             RevitLinkInstance instance = RevitLinkInstance.Create(document, new ElementId(long.Parse(linkTypeKey, CultureInfo.InvariantCulture)), ImportPlacement.Origin);
             ElementId id = instance.Id;
+            // A pinned element cannot be moved, so a pin a new link might get is taken off before the steps
+            if (instance.Pinned)
+            {
+                instance.Pinned = false;
+            }
             XYZ point = Feet(steps.Move);
             ElementTransformUtils.MoveElement(document, id, point);
             ElementTransformUtils.RotateElement(document, id, Line.CreateBound(point, point + XYZ.BasisZ), steps.RotationRad);

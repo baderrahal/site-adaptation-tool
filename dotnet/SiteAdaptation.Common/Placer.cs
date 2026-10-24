@@ -15,6 +15,7 @@ namespace SiteAdaptation.Common
         public const double ReadBackOrigin = 0.001;
         public const double ReadBackAngle = 0.01;
         public const string FflParameter = "RRE_ZZ_SP_Prototype-FFL";
+        public const string PlotParameter = LinkFields.PlotNumber;
 
         // A failure that rolls the whole real run back
         public sealed class PlacerFailure : Exception
@@ -30,6 +31,7 @@ namespace SiteAdaptation.Common
             public string File;
             public PlacementSteps Steps;
             public double[] Internal;
+            public string ExistingType;
         }
 
         public static PlacerReport Run(PlanFile plan, string planPath, IPlacerTarget target, bool real)
@@ -43,26 +45,58 @@ namespace SiteAdaptation.Common
                 Skipped = new List<SkippedPlot>(),
                 Issues = new List<string>(),
             };
-            SurveyReading survey = target.Survey();
-            report.Coordinates = CheckCoordinates(plan, survey);
-            string stop = CheckFormat(plan) ?? report.Coordinates.Message;
-            if (stop != null)
+            List<Candidate> candidates;
+            try
             {
+                SurveyReading survey = target.Survey();
+                report.Coordinates = CheckCoordinates(plan, survey);
+                string stop = CheckFormat(plan) ?? report.Coordinates.Message;
+                if (stop != null)
+                {
+                    report.Stopped = true;
+                    report.Failure = stop;
+                    return Count(report, plan);
+                }
+                candidates = Choose(plan, survey, target, report);
+            }
+            catch (Exception failure)
+            {
+                // Nothing has changed yet, so the run stops and the report still says why
                 report.Stopped = true;
-                report.Failure = stop;
+                report.Failure = "Stopped before anything was placed: " + failure.Message;
                 return Count(report, plan);
             }
-            List<Candidate> candidates = Choose(plan, survey, target, report);
             if (!real)
             {
                 foreach (Candidate candidate in candidates)
                 {
                     report.Placed.Add(Entry(candidate, null, WritableNames(candidate.Plot)));
+                    if (candidate.Plot.Parameters.ContainsKey(FflParameter))
+                    {
+                        report.Issues.Add(FflIssue(candidate.Plot.Plot));
+                    }
                 }
                 return Count(report, plan);
             }
             PlaceAll(plan, candidates, target, report);
             return Count(report, plan);
+        }
+
+        // The report of a run that stopped before Run could start, such as a plan file that does not read
+        public static PlacerReport StoppedReport(string mode, string planPath, string document, string failure)
+        {
+            var report = new PlacerReport
+            {
+                Mode = mode,
+                PlanFile = planPath,
+                Document = document,
+                Stopped = true,
+                Failure = failure,
+                Placed = new List<PlacedPlot>(),
+                Skipped = new List<SkippedPlot>(),
+                Issues = new List<string>(),
+            };
+            return Count(report, null);
         }
 
         public static string CheckFormat(PlanFile plan)
@@ -74,6 +108,10 @@ namespace SiteAdaptation.Common
             if (plan.SurveyPoint == null || !IsPoint(plan.SurveyPoint.Position) || !IsPoint(plan.SurveyPoint.SharedPosition) || !plan.AngleToTrueNorthDeg.HasValue)
             {
                 return "The plan file has no survey point or no angle to true north, nothing was placed.";
+            }
+            if (string.IsNullOrWhiteSpace(plan.PrototypeFolder) || !Path.IsPathRooted(plan.PrototypeFolder))
+            {
+                return "The plan file has no full path in prototypeFolder, nothing was placed.";
             }
             return null;
         }
@@ -136,43 +174,111 @@ namespace SiteAdaptation.Common
         private static List<Candidate> Choose(PlanFile plan, SurveyReading survey, IPlacerTarget target, PlacerReport report)
         {
             var placedAlready = new HashSet<string>(target.LinkPlotNumbers().Where(number => number != null).Select(number => number.Trim()), StringComparer.Ordinal);
+            Dictionary<string, LinkTypeEntry> types = TypesByFile(target.LinkTypes());
             var seen = new HashSet<string>(StringComparer.Ordinal);
             double[] offset = SharedCoordinates.Offset(survey.Position, survey.SharedPosition);
             var candidates = new List<Candidate>();
             foreach (PlanPlot plot in plan.Plots ?? new List<PlanPlot>())
             {
+                if (plot == null)
+                {
+                    report.Skipped.Add(new SkippedPlot { Reason = "an empty entry in plots" });
+                    continue;
+                }
                 string number = plot.Plot == null ? null : plot.Plot.Trim();
-                string reason = Lacking(plot);
-                if (reason == null && !seen.Add(number))
+                string reason;
+                Candidate candidate = null;
+                // The second entry of a plot number is skipped whatever happens to the first, as R84 says
+                if (!string.IsNullOrEmpty(number) && !seen.Add(number))
                 {
-                    reason = "the plan lists this plot twice, the first one is used";
+                    reason = "the plan lists this plot number more than once, only its first entry is tried";
                 }
-                if (reason == null && placedAlready.Contains(number))
+                else
                 {
-                    reason = "already placed, a link instance of the document has this plot number";
-                }
-                if (reason == null && Path.GetFileName(plot.PrototypeFile.Value) != plot.PrototypeFile.Value)
-                {
-                    reason = "prototypeFile must be a file name in the prototype folder, not a path";
-                }
-                string file = reason == null ? Path.Combine(plan.PrototypeFolder ?? "", plot.PrototypeFile.Value) : null;
-                if (reason == null && !target.FileExists(file))
-                {
-                    reason = "prototype file not found: " + file;
-                }
-                if (reason == null && Math.Abs(plot.Insert.Value[2] - plot.Levels.Ffl.Value.Value) > ZTolerance)
-                {
-                    reason = "insert Z and FFL differ by " + Text((plot.Insert.Value[2] - plot.Levels.Ffl.Value.Value) * 1000) + " mm";
+                    try
+                    {
+                        reason = Check(plan, plot, number, placedAlready, types, target, offset, out candidate);
+                    }
+                    catch (Exception failure)
+                    {
+                        reason = "the entry could not be read: " + failure.Message;
+                    }
                 }
                 if (reason != null)
                 {
                     report.Skipped.Add(new SkippedPlot { Plot = plot.Plot, Reason = reason });
                     continue;
                 }
-                double[] point = PlacementMath.InternalPoint(plot.Insert.Value, offset);
-                candidates.Add(new Candidate { Plot = plot, File = file, Internal = point, Steps = PlacementMath.Steps(point, plot.RotationDeg.Value.Value, plot.Mirrored.Value.Value) });
+                candidates.Add(candidate);
             }
             return candidates;
+        }
+
+        // Null and the candidate when the plot can be placed, else the reason it is skipped
+        private static string Check(PlanFile plan, PlanPlot plot, string number, HashSet<string> placedAlready, Dictionary<string, LinkTypeEntry> types,
+            IPlacerTarget target, double[] offset, out Candidate candidate)
+        {
+            candidate = null;
+            string reason = Lacking(plot);
+            if (reason != null)
+            {
+                return reason;
+            }
+            Sourced<string> held;
+            if (plot.Parameters == null || !plot.Parameters.TryGetValue(PlotParameter, out held) || held == null || held.Value == null || held.Value.Trim() != number)
+            {
+                return "the plan has no " + PlotParameter + " equal to the plot, so a later run could not tell it is placed";
+            }
+            if (placedAlready.Contains(number))
+            {
+                return "already placed, a link instance of the document has this plot number";
+            }
+            string name = plot.PrototypeFile.Value;
+            if (Path.GetFileName(name) != name)
+            {
+                return "prototypeFile must be a file name in the prototype folder, not a path";
+            }
+            string file = Path.Combine(plan.PrototypeFolder, name);
+            if (!target.FileExists(file))
+            {
+                return "prototype file not found: " + file;
+            }
+            LinkTypeEntry type;
+            if (types.TryGetValue(name, out type) && !type.Usable)
+            {
+                return "the document has a link type for " + name + " that cannot be used, " + type.Why + ". Reload or remove it first";
+            }
+            double gap = plot.Insert.Value[2] - plot.Levels.Ffl.Value.Value;
+            if (Math.Abs(gap) > ZTolerance)
+            {
+                return "insert Z and FFL differ by " + Text(gap * 1000) + " mm";
+            }
+            double[] point = PlacementMath.InternalPoint(plot.Insert.Value, offset);
+            candidate = new Candidate
+            {
+                Plot = plot,
+                File = file,
+                Internal = point,
+                ExistingType = type == null ? null : type.Key,
+                Steps = PlacementMath.Steps(point, plot.RotationDeg.Value.Value, plot.Mirrored.Value.Value),
+            };
+            return null;
+        }
+
+        // One entry per file name without case. A usable type wins over one that cannot be used
+        private static Dictionary<string, LinkTypeEntry> TypesByFile(IEnumerable<LinkTypeEntry> types)
+        {
+            var found = new Dictionary<string, LinkTypeEntry>(StringComparer.OrdinalIgnoreCase);
+            foreach (LinkTypeEntry type in types ?? new List<LinkTypeEntry>())
+            {
+                LinkTypeEntry before;
+                if (type == null || type.FileName == null || (found.TryGetValue(type.FileName, out before) && (before.Usable || !type.Usable)))
+                {
+                    continue;
+                }
+                found[type.FileName] = type;
+            }
+            return found;
         }
 
         private static string Lacking(PlanPlot plot)
@@ -210,29 +316,22 @@ namespace SiteAdaptation.Common
         {
             var placed = new List<PlacedPlot>();
             int written = 0;
-            target.Begin();
             try
             {
-                var existing = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                foreach (LinkTypeEntry type in target.LinkTypes())
-                {
-                    if (type.FileName != null && !existing.ContainsKey(type.FileName))
-                    {
-                        existing[type.FileName] = type.Key;
-                    }
-                }
+                target.Begin();
+                var loaded = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 foreach (Candidate candidate in candidates)
                 {
                     string fileName = Path.GetFileName(candidate.File);
-                    string key;
-                    if (!existing.TryGetValue(fileName, out key))
+                    string key = candidate.ExistingType;
+                    if (key == null && !loaded.TryGetValue(fileName, out key))
                     {
                         key = target.LoadLinkType(candidate.File);
                         if (key == null)
                         {
                             throw new PlacerFailure("plot " + candidate.Plot.Plot + ": the link " + candidate.File + " did not load");
                         }
-                        existing[fileName] = key;
+                        loaded[fileName] = key;
                     }
                     long id = target.Place(key, candidate.Steps);
                     string mismatch = PlacementMath.Mismatch(target.ReadBack(id), candidate.Internal, candidate.Plot.RotationDeg.Value.Value, candidate.Plot.Mirrored.Value.Value);
@@ -248,6 +347,11 @@ namespace SiteAdaptation.Common
                         {
                             names.Add(parameter.Key);
                             written++;
+                        }
+                        else if (parameter.Key == PlotParameter)
+                        {
+                            // Without its plot number a later run could not tell the link is placed and would place it twice
+                            throw new PlacerFailure(issue);
                         }
                         else
                         {
@@ -290,7 +394,7 @@ namespace SiteAdaptation.Common
         {
             if (name == FflParameter)
             {
-                return "plot " + plot + ": " + FflParameter + " is in the plan and is never written";
+                return FflIssue(plot);
             }
             if (value == null || value.Value == null)
             {
@@ -310,6 +414,11 @@ namespace SiteAdaptation.Common
                 default:
                     return "plot " + plot + ": " + name + " was not written";
             }
+        }
+
+        private static string FflIssue(string plot)
+        {
+            return "plot " + plot + ": " + FflParameter + " is in the plan and is never written";
         }
 
         private static List<string> WritableNames(PlanPlot plot)

@@ -28,6 +28,7 @@ namespace SiteAdaptation.Placer
             {
                 return Result.Cancelled;
             }
+            string reportPath = Path.Combine(folder, "placer_report.json");
             PlanFile plan;
             try
             {
@@ -35,7 +36,9 @@ namespace SiteAdaptation.Placer
             }
             catch (Exception failure)
             {
-                TaskDialog.Show(Title, "The plan file could not be read: " + failure.Message);
+                PlacerReport unread = Common.Placer.StoppedReport("none", planPath, active.Document.Title, "The plan file could not be read: " + failure.Message);
+                JsonOut.Write(reportPath, unread);
+                TaskDialog.Show(Title, unread.Failure + "\n" + reportPath);
                 return Result.Failed;
             }
 
@@ -53,9 +56,19 @@ namespace SiteAdaptation.Placer
                 return Result.Cancelled;
             }
 
+            bool real = answer == TaskDialogResult.CommandLink2;
             var target = new RevitPlacerTarget(active.Document);
-            PlacerReport report = Common.Placer.Run(plan, planPath, target, answer == TaskDialogResult.CommandLink2);
-            string reportPath = Path.Combine(folder, "placer_report.json");
+            PlacerReport report;
+            try
+            {
+                report = Common.Placer.Run(plan, planPath, target, real);
+            }
+            catch (Exception failure)
+            {
+                // Run rolls its own transaction back, so only a failure outside it lands here
+                target.RollBack();
+                report = Common.Placer.StoppedReport(real ? "real" : "dryRun", planPath, active.Document.Title, "The run failed, nothing stays: " + failure.Message);
+            }
             JsonOut.Write(reportPath, report);
             TaskDialog.Show(Title, Summary(report) + "\n" + reportPath);
             return Result.Succeeded;

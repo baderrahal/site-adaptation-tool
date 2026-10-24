@@ -34,7 +34,7 @@ def link(plot, x=0.0, y=0.0, z=10.0, rotation=30.0, mirrored=False, file="KEO-AR
                   "RRE_ZZ_SP_RVT-Name": str(plot) + " | " + unit, "CASE": "A", "RRE_ZZ_SP_Prototype-FFL": ffl}
     if plot is None:
         parameters = {}
-    entry = {"file": file, "elementId": 1000 + (int(plot) if plot else 0), "transform": transform(x, y, z, rotation, mirrored), "parameters": parameters}
+    entry = {"file": file, "elementId": 1000 + (int(plot) if plot and plot.isdigit() else 0), "transform": transform(x, y, z, rotation, mirrored), "parameters": parameters}
     if shared_origin is not None:
         entry["transformShared"] = {"origin": shared_origin}
     return entry
@@ -352,3 +352,77 @@ def test_r89_the_report_is_never_written_inside_the_repo(tmp_path):
     plan.write_text("{}", encoding="utf-8")
     with pytest.raises(ValueError, match="inside"):
         plan_compare.main([str(plan), str(project_profile.ROOT / "prototypes.json")])
+
+
+def test_r81_two_schedule_rows_for_one_plot_are_listed_and_never_picked():
+    first, second = row("101", ffl=10.0), row("101", ffl=10.5)
+    first["sheetRow"], second["sheetRow"] = 40, 41
+    plan = build([link("101")], plot_floors("101", 0, 10), [first, second])
+    assert plan["plots"] == []
+    assert missing_of(plan, "101")["scheduleRow"] == "2 schedule rows hold the plot, sheet rows 40 41"
+
+
+def test_r81_a_plot_number_that_is_not_whole_joins_nothing_and_is_listed():
+    bad = row("101")
+    bad["Plot No."] = 101.5
+    bad["sheetRow"] = 40
+    plan = build([link("101")], plot_floors("101", 0, 10), [bad])
+    assert plan["plots"] == []
+    assert plan["summary"]["scheduleRowsWithBadPlotNumber"] == [{"sheetRow": 40, "plotNo": "101.5"}]
+    odd = build([link("10x")], [], [])
+    assert odd["summary"]["linksWithBadPlotNumber"][0]["plotNumber"] == "10x"
+
+
+def test_r81_levels_need_real_numbers_and_steps_a_whole_count():
+    plan = build([link("101")], plot_floors("101", 0, 10), [row("101", ssl="1,234", steps="2.5")])
+    missing = missing_of(plan, "101")
+    assert "levels.ssl" in missing
+    assert "levels.steps" in missing
+    assert by_plot(build([link("101")], plot_floors("101", 0, 10), [row("101", steps="2 step")]))["101"]["levels"]["steps"]["value"] == 2
+
+
+def test_r81_a_partial_transform_is_listed_under_transform_and_does_not_crash():
+    for origin in ([1.0, 2.0], [1.0, 2.0, None]):
+        broken = link("101")
+        broken["transform"]["origin"] = origin
+        plan = build([broken], plot_floors("101", 0, 10), [row("101")])
+        assert plan["plots"] == []
+        assert "transform" in missing_of(plan, "101")
+
+
+def test_r80_a_rotation_that_rounds_to_360_is_written_as_0():
+    assert pf.plan_rotation(359.9996) == 0
+    assert pf.plan_rotation(-30.0) == 330.0
+    entry = by_plot(one_plot_plan(rotation=359.9996))["101"]
+    assert entry["rotationDeg"]["value"] == 0
+
+
+def test_r80_an_angle_to_true_north_the_reader_did_not_give_is_left_out():
+    data = document([link("101")], plot_floors("101", 0, 10))
+    del data["documents"][0]["angleToTrueNorthDeg"]
+    plan = pf.build_plan(data, [row("101")], JOB, FILES, "C:\\Prototypes")
+    assert "angleToTrueNorthDeg" not in plan
+
+
+def test_r81_sources_name_the_prototypes_file_that_was_read(tmp_path, monkeypatch):
+    from openpyxl import Workbook
+    root = tmp_path / "input"
+    (root / "01_Output" / "1.11 References").mkdir(parents=True)
+    (root / "Prototypes").mkdir()
+    (root / "Prototypes" / "KEO-ARC-VD2-ZZ.rvt").write_text("x", encoding="utf-8")
+    book = Workbook()
+    sheet = book.active
+    sheet.title = "Sheet1"
+    sheet.append(["Plot No.", "Unit", "FFL", "SSL", "El @ Entry*", "Height**", "Steps Needed"])
+    sheet.append([101, "VD2", 10.0, 9.925, 9.8123, 0.1877, "1 steps"])
+    book.save(root / "01_Output" / "1.11 References" / "book.xlsx")
+    prototypes = tmp_path / "other_prototypes.json"
+    prototypes.write_text(json.dumps(document([link("101")], plot_floors("101", 0, 10))), encoding="utf-8")
+    settings = tmp_path / "project.json"
+    settings.write_text(json.dumps({"schedules": ["book.xlsx"], "inputRoot": str(root), "pastJob": JOB}), encoding="utf-8")
+    monkeypatch.delenv(pf.ROOT_VARIABLE, raising=False)
+    out = tmp_path / "plan.json"
+    assert pf.main(["--settings", str(settings), "--prototypes", str(prototypes), "--out", str(out)]) == 0
+    plan = json.loads(out.read_text(encoding="utf-8"))
+    assert plan["sources"]["prototypes"] == "other_prototypes.json"
+    assert plan["summary"]["written"] == 1
