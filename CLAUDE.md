@@ -22,7 +22,8 @@ The rules live in docs/rules.md and nowhere else. This file points to them and a
 - dotnet/CadReader reads DWG and DXF with ACadSharp. It also writes blocks.json, one entry per block insert with scale, rotation and a world outline (R68).
 - dotnet/RevitPrototypeReader is the Revit 2024 add-in. Do not change it unless the round says so.
 - dotnet/SiteAdaptation.Placer is the Place from plan add-in. dotnet/SiteAdaptation.TestHost runs the placer and the reader in Revit with no clicks, only for a job of its run script (R103, R104). dotnet/SiteAdaptation.DialogWatcher answers the add-in security boxes with Do Not Load (R108). python/placer_check.py checks a test host run (R105).
-- dotnet/SiteAdaptation.Placer is the second Revit 2024 add-in, Place from plan (R83 to R88). Its math and decisions live in SiteAdaptation.Common behind IPlacerTarget, the Revit side only carries them out.
+- dotnet/SiteAdaptation.Placer is the second Revit 2024 add-in, Place from plan (R83 to R88). Its math and decisions live in SiteAdaptation.Common behind IPlacerTarget, the Revit side only carries them out. Its second step, Floors, lives in FloorPlacer behind IFloorTarget (R113 to R116).
+- python/yard_rule.py gives each yard floor its plot by baseplan share (R111). config/project.json floors names the floor types, levels and Plot parameter (R112). python/scenario_files.py makes the test master and the work files of the floor scenarios and deletes them (R118). placer_check.py --floors checks a floor scenario (R119).
 - python/plan_from_past.py builds plan.json (R80) from a past job, prototypes.json and the schedule, named by pastJob in config/project.json (R81). The plan goes outside the repo. python/plan_compare.py compares a plan with the model the placer built (R89).
 - dotnet/SiteAdaptation.Common holds JSON output and unit helpers.
 - config/project.json names the rules profile and the drawings, and holds the CAD analysis settings (R63). No project name goes in a Python file.
@@ -58,6 +59,7 @@ The full text is docs/rules.md. Ids are the contract, a test names the id it pro
 - R67 is the level rule, check 5. R68 to R72 cover the block data, the unit code per plot (the Excel unit only), the row split, the front by road edge and the xref lookup. R73 to R77 cover the block scan, the Excel unit, the clusters with no Rev 6 match, the second block match and the block against the link.
 - R80 to R82 cover plan.json, the plan from the past job and the shared position proof. R83 to R88 cover the placer: coordinates check, link placement, parameters, dry run and one transaction, report and skip, install. R89 compares the plan with the placed model.
 - R102 to R110 cover the placer filter, the test host guard, its steps, the placer check, the registry hook, the link instance name, the security dialogs, the prototype upgrade job and the parallel windows.
+- R111 to R119 cover the yard rule, the floors in the plan, the floor step and its stops, the plot value and skip with the ramp corners, the floor geometry, the floor run and report, the floor jobs of the test host, the work file life cycle and the floor check.
 
 ## Real files
 

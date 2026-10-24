@@ -826,8 +826,8 @@ namespace SiteAdaptation.Tests
         {
             string text = File.ReadAllText(RepoFile("dotnet", "SiteAdaptation.Placer", "PlaceFromPlanCommand.cs"));
             string entry = File.ReadAllText(RepoFile("dotnet", "SiteAdaptation.Placer", "PlaceFromPlan.cs"));
-            int run = text.IndexOf("PlaceFromPlan.Run(", StringComparison.Ordinal);
-            int write = text.IndexOf("JsonOut.Write(reportPath, report)", StringComparison.Ordinal);
+            int run = text.IndexOf("PlaceFromPlan.RunSteps(", StringComparison.Ordinal);
+            int write = text.IndexOf("JsonOut.Write(reportPath, run", StringComparison.Ordinal);
 
             Assert.True(run > 0 && write > run);
             Assert.DoesNotContain("return", text.Substring(run, write - run));

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.IO;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
@@ -9,7 +11,8 @@ namespace SiteAdaptation.Common
     // testhost_job.json as the run script writes it (R103)
     public class TestHostJob
     {
-        // place (the default) runs the placer and the reader on a model copy, upgrade saves one prototype as a Revit 2024 file (R109)
+        // place (the default) runs the placer and the reader on a model copy, upgrade saves one prototype as a Revit 2024 file (R109).
+        // master makes the start file of the floor tests, floors and linksAndFloors run the floor step on a work file (R117)
         public string Kind { get; set; }
         public string Source { get; set; }
         public string Target { get; set; }
@@ -21,6 +24,15 @@ namespace SiteAdaptation.Common
         public DateTime? CreatedUtc { get; set; }
         // Minutes for the whole job, counted from the claim. Null takes TestHostGuard.DefaultTotalMinutes
         public double? TotalMinutes { get; set; }
+        // R117. all deletes every floor of the types of floorSettings before the step, plots only those of the plots in DeletePlots
+        public string DeleteFloors { get; set; }
+        public List<string> DeletePlots { get; set; }
+        // The plot numbers the floor step tries. Null is every plot
+        public List<string> Plots { get; set; }
+        public bool? DryRunOnly { get; set; }
+        public bool? RunTwice { get; set; }
+        // stop or rollBack when the scenario wants the floor step to end that way, else the step must place cleanly
+        public string Expect { get; set; }
     }
 
     public sealed class GuardResult
@@ -44,6 +56,19 @@ namespace SiteAdaptation.Common
         public const string TestTag = "_TEST-";
         public const string PlaceKind = "place";
         public const string UpgradeKind = "upgrade";
+        public const string MasterKind = "master";
+        public const string FloorsKind = "floors";
+        public const string LinksAndFloorsKind = "linksAndFloors";
+        // R117. The one master file and the work files of the floor scenarios, named after the site model
+        public const string MasterCode = "MST";
+        public const string MasterTag = "_TEST-MASTER";
+        public const string WorkTag = "_TEST-WORK-";
+        public const int MaxPlots = 1000;
+        private static readonly string[] Kinds = { PlaceKind, UpgradeKind, MasterKind, FloorsKind, LinksAndFloorsKind };
+        private static readonly string[] Deletes = { "all", "plots" };
+        private static readonly string[] Expects = { "stop", "rollBack" };
+        private static readonly Regex WorkCode = new Regex(@"\AS[1-9][0-9]{0,2}\z", RegexOptions.CultureInvariant);
+        private static readonly Regex PlotText = new Regex(@"\A[0-9]{1,6}\z", RegexOptions.CultureInvariant);
 
         private static readonly Regex CodeText = new Regex(@"\A[A-Z][A-Z0-9]{1,3}\z", RegexOptions.CultureInvariant);
         private static readonly Regex TokenText = new Regex(@"\A[A-Za-z0-9]+\z", RegexOptions.CultureInvariant);
@@ -174,8 +199,11 @@ namespace SiteAdaptation.Common
             {
                 return Refuse("the job code is not a prototype code such as C10 or TH1");
             }
-            string prototype = new Regex(@"\ARRE-WP-NSP-KEO-ARC-" + Regex.Escape(job.Code) + @"-ZZ-MOD-\d+\.rvt\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant).IsMatch(job.PrototypeFile ?? "")
-                ? null : "the prototype file is not RRE-WP-NSP-KEO-ARC-" + job.Code + "-ZZ-MOD-<n>.rvt";
+            if (job.Kind != null && !Kinds.Contains(job.Kind))
+            {
+                return Refuse("the job kind is not " + string.Join(", ", Kinds));
+            }
+            string prototype = CheckPrototype(job);
             if (prototype != null)
             {
                 return Refuse(prototype);
@@ -189,13 +217,14 @@ namespace SiteAdaptation.Common
             {
                 return CheckUpgrade(job, fileExists, folderExists);
             }
-            if (job.Kind != null && job.Kind != PlaceKind)
-            {
-                return Refuse("the job kind is not " + PlaceKind + " or " + UpgradeKind);
-            }
             if (job.Source != null || job.Target != null)
             {
-                return Refuse("a place job names no source and no target");
+                return Refuse("a " + (job.Kind ?? PlaceKind) + " job names no source and no target");
+            }
+            string options = CheckFloorOptions(job);
+            if (options != null)
+            {
+                return Refuse(options);
             }
             string model = CheckModel(job);
             if (model != null)
@@ -253,7 +282,71 @@ namespace SiteAdaptation.Common
             return new GuardResult { Act = true, Job = job };
         }
 
-        // Only a copy named <name>_TEST-<code>.rvt is ever opened, saved or changed
+        // The links steps need the prototype file of the code, the master and floors jobs name none
+        private static string CheckPrototype(TestHostJob job)
+        {
+            if (job.Kind == MasterKind || job.Kind == FloorsKind)
+            {
+                return job.PrototypeFile == null ? null : "a " + job.Kind + " job names no prototype file";
+            }
+            string code = job.Kind == LinksAndFloorsKind ? @"[A-Z][A-Z0-9]{1,3}" : Regex.Escape(job.Code);
+            bool fits = new Regex(@"\ARRE-WP-NSP-KEO-ARC-" + code + @"-ZZ-MOD-\d+\.rvt\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant).IsMatch(job.PrototypeFile ?? "");
+            return fits ? null : "the prototype file is not RRE-WP-NSP-KEO-ARC-" + (job.Kind == LinksAndFloorsKind ? "<code>" : job.Code) + "-ZZ-MOD-<n>.rvt";
+        }
+
+        public static bool PlacesFloors(TestHostJob job)
+        {
+            return job.Kind == FloorsKind || job.Kind == LinksAndFloorsKind;
+        }
+
+        // R117. The options of the floor scenarios, each only where it means something
+        private static string CheckFloorOptions(TestHostJob job)
+        {
+            bool floors = PlacesFloors(job);
+            if (!floors && (job.Plots != null || job.DeletePlots != null || job.DryRunOnly.HasValue || job.RunTwice.HasValue || job.Expect != null))
+            {
+                return "plots, deletePlots, dryRunOnly, runTwice and expect go with a floors or linksAndFloors job only";
+            }
+            if (job.Kind == MasterKind ? job.DeleteFloors != "all" : !floors && job.DeleteFloors != null)
+            {
+                return job.Kind == MasterKind ? "a master job deletes all floors, deleteFloors is all" : "deleteFloors goes with a master, floors or linksAndFloors job only";
+            }
+            if (job.DeleteFloors != null && !Deletes.Contains(job.DeleteFloors))
+            {
+                return "deleteFloors is all or plots";
+            }
+            foreach (List<string> plots in new[] { job.Plots, job.DeletePlots })
+            {
+                if (plots != null && (plots.Count == 0 || plots.Count > MaxPlots || plots.Any(plot => plot == null || !PlotText.IsMatch(plot)) || plots.Distinct().Count() != plots.Count))
+                {
+                    return "plots and deletePlots are lists of 1 to " + MaxPlots + " different plot numbers in digits";
+                }
+            }
+            if ((job.DeleteFloors == "plots") != (job.DeletePlots != null))
+            {
+                return "deleteFloors plots goes with deletePlots and nothing else does";
+            }
+            if (job.DryRunOnly == true && job.RunTwice == true)
+            {
+                return "a dry run only job does not run twice";
+            }
+            if (job.Expect != null && !Expects.Contains(job.Expect))
+            {
+                return "expect is stop or rollBack";
+            }
+            if (job.Kind == MasterKind && job.Code != MasterCode)
+            {
+                return "the master job has the code " + MasterCode;
+            }
+            if (floors && !WorkCode.IsMatch(job.Code))
+            {
+                return "a floors job has a scenario code S1 to S999";
+            }
+            return null;
+        }
+
+        // Only a copy named <name>_TEST-<code>.rvt is ever opened, saved or changed. The master is <name>_TEST-MASTER.rvt
+        // and the work file of a floor scenario <name>_TEST-WORK-S<n>.rvt (R117)
         private static string CheckModel(TestHostJob job)
         {
             if (!IsPlainFullPath(job.Model))
@@ -261,7 +354,7 @@ namespace SiteAdaptation.Common
                 return "the model is not a full path";
             }
             string name = Path.GetFileName(job.Model);
-            string tail = TestTag + job.Code + ".rvt";
+            string tail = (job.Kind == MasterKind ? MasterTag : PlacesFloors(job) ? WorkTag + job.Code : TestTag + job.Code) + ".rvt";
             if (!name.EndsWith(tail, StringComparison.OrdinalIgnoreCase) || name.Length <= tail.Length)
             {
                 return "the model is not a copy named <name>" + tail;
@@ -283,6 +376,14 @@ namespace SiteAdaptation.Common
                 }
             }
             return false;
+        }
+
+        // R117. The master next to a work file. A work file must be a copy of its own and never the master itself
+        public static string MasterOf(string model)
+        {
+            string name = Path.GetFileName(model);
+            int at = name.LastIndexOf(TestTag, StringComparison.OrdinalIgnoreCase);
+            return at <= 0 ? null : Path.Combine(Path.GetDirectoryName(model), name.Substring(0, at) + MasterTag + ".rvt");
         }
 
         // The file the original copy came from, which the test host must never open

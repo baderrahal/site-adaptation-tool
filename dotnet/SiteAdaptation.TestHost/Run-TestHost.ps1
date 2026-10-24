@@ -4,17 +4,40 @@
 # The original model is never opened. Nothing in the registry is read or written.
 # With -Upgrade it saves one prototype as a Revit 2024 file in the upgraded prototype folder of config/project.json (R109).
 # -NewUpgradeFolder makes that folder and stops when it is there already, so it goes on the first upgrade only.
+# With -FloorSpec it runs a master, floors or linksAndFloors job of R117 on a copy python/scenario_files.py made beforehand.
+# The spec names kind, code, model and the options, and this script never copies, moves or deletes a model.
 param(
     [ValidatePattern('^[A-Z][A-Z0-9]{1,3}$')]
     [string]$Code,
     [switch]$DryStart,
     [switch]$Upgrade,
     [switch]$NewUpgradeFolder,
+    [string]$FloorSpec,
     [int]$TimeoutMinutes = 30,
     [int]$NoLogMinutes = 8
 )
 
 $ErrorActionPreference = 'Stop'
+$spec = $null
+if ($FloorSpec) {
+    if ($Code -or $DryStart -or $Upgrade) {
+        throw '-FloorSpec goes alone, its code is in the spec.'
+    }
+    $spec = Get-Content -Raw $FloorSpec | ConvertFrom-Json
+    if (@('master', 'floors', 'linksAndFloors') -notcontains $spec.kind) {
+        throw "The spec kind is not master, floors or linksAndFloors: $($spec.kind)"
+    }
+    if ($spec.code -notmatch '^(MST|S[1-9][0-9]{0,2})$') {
+        throw "The spec code is not MST or S<n>: $($spec.code)"
+    }
+    # An empty list would reach the job as no list, which tries every plot
+    foreach ($list in 'plots', 'deletePlots') {
+        if ($spec.PSObject.Properties.Name -contains $list -and @($spec.$list).Count -eq 0) {
+            throw "The spec $list is empty, leave it out to mean every plot"
+        }
+    }
+    $Code = $spec.code
+}
 if (-not $DryStart -and -not $Code) {
     throw 'Give -Code, or -DryStart for a start with no job.'
 }
@@ -74,18 +97,38 @@ $token = $null
 if (-not $DryStart) {
     $root = if ($env:SITE_ADAPTATION_INPUT) { $env:SITE_ADAPTATION_INPUT } else { $config.inputRoot }
     $original = Join-Path $root $config.testHost.model
-    $planPath = $config.pastJob.output
+    $planPath = if ($spec -and $spec.plan) { $spec.plan } else { $config.pastJob.output }
 
-    # The prototype file of the code comes from the plan, never from the code alone
+    # The prototype file of the code comes from the plan, never from the code alone. A floor spec names its prototype code, if any
     $plan = Get-Content -Raw $planPath | ConvertFrom-Json
-    $files = @($plan.plots | ForEach-Object { $_.prototypeFile.value } | Where-Object { $_ -match ('-' + $Code + '-ZZ-MOD-') } | Sort-Object -Unique)
-    if ($files.Count -ne 1) {
-        throw "The plan names $($files.Count) prototype files for $Code, one is needed: $($files -join ', ')"
+    $prototypeCode = if ($spec) { $spec.prototypeCode } else { $Code }
+    $prototype = $null
+    $plots = @($plan.plots).Count
+    if ($prototypeCode) {
+        $files = @($plan.plots | ForEach-Object { $_.prototypeFile.value } | Where-Object { $_ -match ('-' + $prototypeCode + '-ZZ-MOD-') } | Sort-Object -Unique)
+        if ($files.Count -ne 1) {
+            throw "The plan names $($files.Count) prototype files for $prototypeCode, one is needed: $($files -join ', ')"
+        }
+        $prototype = $files[0]
+        $plots = @($plan.plots | Where-Object { $_.prototypeFile.value -eq $prototype }).Count
     }
-    $prototype = $files[0]
-    $plots = @($plan.plots | Where-Object { $_.prototypeFile.value -eq $prototype }).Count
 
-    if ($Upgrade) {
+    $master = $null
+    if ($spec) {
+        # R117. The copy is the master or a work file next to the site model, made beforehand. Its name must fit the kind and the code
+        $folder = Split-Path $original
+        $base = [IO.Path]::GetFileNameWithoutExtension($original)
+        $master = Join-Path $folder ($base + '_TEST-MASTER.rvt')
+        $wanted = if ($spec.kind -eq 'master') { $master } else { Join-Path $folder ($base + '_TEST-WORK-' + $Code + '.rvt') }
+        if ($spec.model -ne $wanted) {
+            throw "The spec model is not $wanted"
+        }
+        if (-not (Test-Path $wanted)) {
+            throw "The copy is not there, make it with python/scenario_files.py first: $wanted"
+        }
+        $copy = $wanted
+    }
+    elseif ($Upgrade) {
         # The source is the past prototype folder, kept in the config. It is only read, the run checks it is unchanged
         $source = Join-Path (Join-Path $root $config.pastJob.prototypeFolder) $prototype
         $targetFolder = Join-Path $root $config.pastJob.upgradedPrototypeFolder
@@ -120,7 +163,11 @@ if (-not $DryStart) {
     }
     $before = Get-Item $original
     $hashBefore = (Get-FileHash $original).Hash
-    if (-not $Upgrade) {
+    $masterBefore = $null
+    if ($spec -and $spec.kind -ne 'master') {
+        $masterBefore = (Get-FileHash $master).Hash
+    }
+    if (-not $Upgrade -and -not $spec) {
         Copy-Item $original $copy
     }
 }
@@ -146,7 +193,34 @@ try {
     $info.WorkingDirectory = Split-Path $revit
     if (-not $DryStart) {
         $token = [guid]::NewGuid().ToString('N')
-        if ($Upgrade) {
+        if ($spec) {
+            # Assigned outside $() so a list of one plot stays a list and is written as a JSON array
+            $deletePlots = $null
+            if ($spec.deletePlots) {
+                $deletePlots = [string[]]@($spec.deletePlots | ForEach-Object { [string]$_ })
+            }
+            $planPlots = $null
+            if ($spec.plots) {
+                $planPlots = [string[]]@($spec.plots | ForEach-Object { [string]$_ })
+            }
+            $job = [ordered]@{
+                kind          = $spec.kind
+                token         = $token
+                code          = $Code
+                model         = $copy
+                prototypeFile = $prototype
+                plan          = $planPath
+                deleteFloors  = $spec.deleteFloors
+                deletePlots   = $deletePlots
+                plots         = $planPlots
+                dryRunOnly    = $spec.dryRunOnly
+                runTwice      = $spec.runTwice
+                expect        = $spec.expect
+                createdUtc    = (Get-Date).ToUniversalTime().ToString('o')
+                totalMinutes  = [Math]::Min(29, $TimeoutMinutes - 1)
+            }
+        }
+        elseif ($Upgrade) {
             $job = [ordered]@{
                 kind          = 'upgrade'
                 token         = $token
@@ -169,7 +243,7 @@ try {
                 totalMinutes  = [Math]::Min(27, $TimeoutMinutes - 2)
             }
         }
-        $job | ConvertTo-Json | Set-Content -Path $jobPath -Encoding utf8
+        $job | ConvertTo-Json -Depth 5 | Set-Content -Path $jobPath -Encoding utf8
         # The token goes to the Revit process alone, this console never holds it
         $info.Environment['SITEADAPTATION_TESTHOST_TOKEN'] = $token
         $info.Environment['SITEADAPT_JOB'] = $jobPath
@@ -330,6 +404,9 @@ if (-not $DryStart) {
     }
     else {
         "Original model unchanged: $same"
+    }
+    if ($masterBefore) {
+        "Master unchanged: $((Get-FileHash $master).Hash -eq $masterBefore)"
     }
 }
 

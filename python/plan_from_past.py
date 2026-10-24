@@ -11,13 +11,17 @@ import sys
 from collections import Counter
 from pathlib import Path, PureWindowsPath
 
+from shapely.geometry import Polygon
+
 import common
 import excel_reader
 import full_run
 import link_summary
 import plot_relations
+import link_table
 import project_profile
 import ramp_levels
+import yard_rule
 
 FORMAT = "site-adaptation-plan"
 FORMAT_VERSION = 1
@@ -32,8 +36,17 @@ CASE_PARAMETER = "CASE"
 NAME_PARAMETER = "Name"
 RVT_NAME_PARAMETER = "RRE_ZZ_SP_RVT-Name"
 JOB_KEYS = ("neighbourhood", "schedule", "sheet", "prototypes", "prototypeFolder", "output", "parameters")
-# The yard floor sits this far below the FFL, in metres (Bader, 24 Oct)
-YARD_BELOW_FFL = 0.100
+FLOOR_KINDS = ("generic", "yard", "ramp")
+FLOOR_KEYS = ("types", "levels", "plotParameter", "yardBelowFflM", "yardShareTie", "yardMinShare")
+# A ramp corner sits on an outline vertex when it lies this close in plan, in metres. Both are rounded to the mm by R2
+CORNER_ON_VERTEX = 0.002
+# An arc end must lie this close to its circle, in metres
+ARC_FIT = 0.001
+# A top face loop is the sketch loop again when the area they do not share is under this share of the sketch loop.
+# It leaves room for an arc the top face cuts into chords
+SAME_LOOP_SHARE = 0.01
+# An arc is compared with other shapes as chords that stand off it by this much at most, in metres
+ARC_SAG = 0.0001
 # The link axes are written to 3 decimals, so a turned axis within this of the expected one is taken as exact
 AXIS_TOLERANCE = 0.002
 LEVEL_CONFLICT = 0.0015
@@ -71,20 +84,52 @@ def load_job(settings):
     return job
 
 
+def load_floors(settings):
+    """R112. The floors block of the project settings: the type names and the level of each floor kind, the Plot parameter,
+    the yard depth below the FFL and the tie limit of R111. Anything missing or of the wrong kind is refused, no name is guessed."""
+    floors = settings.values.get("floors")
+    name = settings.path.name
+    if not isinstance(floors, dict):
+        raise project_profile.ProfileError(name + " has no floors block")
+    missing = [key for key in FLOOR_KEYS if key not in floors]
+    if missing:
+        raise project_profile.ProfileError(name + " floors has no " + ", ".join(missing))
+    types, levels = floors["types"], floors["levels"]
+    if not isinstance(types, dict) or not isinstance(levels, dict) or set(types) != set(FLOOR_KINDS) or set(levels) != set(FLOOR_KINDS):
+        raise project_profile.ProfileError(name + " floors.types and floors.levels must each name " + ", ".join(FLOOR_KINDS))
+    seen = set()
+    for kind in FLOOR_KINDS:
+        names = types[kind]
+        if not isinstance(names, list) or not names or not all(isinstance(item, str) and item.strip() == item and item for item in names):
+            raise project_profile.ProfileError(name + " floors.types." + kind + " must be a list of type names")
+        if seen & set(names):
+            raise project_profile.ProfileError(name + " floors.types names " + ", ".join(sorted(seen & set(names))) + " under two kinds")
+        seen |= set(names)
+        if not isinstance(levels[kind], str) or not levels[kind].strip():
+            raise project_profile.ProfileError(name + " floors.levels." + kind + " must be a level name")
+    if not isinstance(floors["plotParameter"], str) or not floors["plotParameter"].strip():
+        raise project_profile.ProfileError(name + " floors.plotParameter must be a parameter name")
+    below, tie = floors["yardBelowFflM"], floors["yardShareTie"]
+    if not is_number(below) or not 0 <= below < 1:
+        raise project_profile.ProfileError(name + " floors.yardBelowFflM must be metres from 0 to below 1")
+    if not is_number(tie) or not 0 <= tie < 1:
+        raise project_profile.ProfileError(name + " floors.yardShareTie must be a share from 0 to below 1")
+    if not is_number(floors["yardMinShare"]) or not 0 <= floors["yardMinShare"] < 1:
+        raise project_profile.ProfileError(name + " floors.yardMinShare must be a share from 0 to below 1")
+    return floors
+
+
+def kind_of(floor, floors):
+    """The floor kind of a floor by its type name, exact, from floors.types, else None."""
+    name = floor.get("typeName")
+    for kind in FLOOR_KINDS:
+        if name in floors["types"][kind]:
+            return kind
+    return None
+
+
 def input_root(settings):
     return Path(os.environ.get(ROOT_VARIABLE) or settings.get("inputRoot"))
-
-
-def rings_of(shape):
-    """The closed rings of a plan shape as [E, N] lists, outer ring then holes, first point not repeated, read even odd."""
-    if shape is None:
-        return None
-    polygons = list(shape.geoms) if hasattr(shape, "geoms") else [shape]
-    rings = []
-    for polygon in polygons:
-        for ring in [polygon.exterior] + list(polygon.interiors):
-            rings.append([point(xy) for xy in list(ring.coords)[:-1]])
-    return rings or None
 
 
 def axes_fit(transform):
@@ -153,23 +198,29 @@ def host_of(data):
     raise ValueError("no project document in the file")
 
 
-def floor_index(document, offset):
-    """The Generic and ramp floors by plot number, the plan shape of every floor and the yard search of R58."""
+def floor_index(document, offset, floors_config, faces):
+    """The Generic and ramp floors by plot number and the yards by the plot of R111. faces are the baseplan plot faces by official number."""
     floors = document.get("floors") or []
-    shapes = {floor["elementId"]: plot_relations.floor_shape(floor, offset) for floor in floors}
-    by_plot, bad = {}, []
+    by_plot, bad, yards = {}, [], []
     for floor in floors:
-        kind = link_summary.floor_kind(floor)
+        kind = kind_of(floor, floors_config)
+        if kind == "yard":
+            yards.append((floor["elementId"], plot_relations.floor_shape(floor, offset)[0]))
+            continue
         named = link_summary.floor_plot(floor)
-        if kind not in ("generic", "ramp") or named is None:
+        if kind is None or named is None:
             continue
         plot = plot_number(named)
         if plot is None:
             bad.append({"elementId": floor.get("elementId"), "plotNumber": str(named)})
             continue
         by_plot.setdefault(plot, {}).setdefault(kind, []).append(floor)
-    yards, tree = plot_relations.yard_index(floors, shapes)
-    return {"byPlot": by_plot, "shapes": shapes, "yards": yards, "tree": tree, "badFloors": bad}
+    results = yard_rule.assign(yards, faces, floors_config["yardShareTie"], floors_config["yardMinShare"])
+    owned = yard_rule.by_plot(results)
+    by_id = {floor["elementId"]: floor for floor in floors}
+    for plot, ids in owned.items():
+        by_plot.setdefault(plot, {})["yard"] = [by_id[element_id] for element_id in ids]
+    return {"byPlot": by_plot, "badFloors": bad, "yards": results, "config": floors_config, "faces": set(faces)}
 
 
 class PlotBuilder:
@@ -290,53 +341,193 @@ def only_one(builder, key, found):
     return found[0]
 
 
-def flat_floor(builder, key, floor, shape, z, offset):
-    """A Generic or yard floor as type, outline and the computed z, with its past top compared to that z."""
-    rings = rings_of(shape)
-    if rings is None:
-        builder.lack(key, "floor " + str(floor["elementId"]) + " has no outline")
+def outer_loop(floor, offset):
+    """R112. The outer loop of the floor sketch in shared plan coordinates with its arcs, and None, or None and why.
+
+    The reader gives the sketch vertices and, for each arc, the edge from vertex edge to the next one with centre, radius
+    and direction (R34). An arc whose ends do not lie on its circle is refused, so the placer never builds a wrong curve.
+    """
+    sketch = link_summary.sketch_points(floor)
+    if len(sketch) < 3:
+        return None, "has no sketch outline"
+    raw = [(vertex[0] + offset[0], vertex[1] + offset[1]) for vertex in sketch]
+    arcs, edges = [], set()
+    for arc in floor.get("arcs") or []:
+        edge, center, radius = arc.get("edge"), arc.get("center"), arc.get("radius")
+        if not isinstance(edge, int) or isinstance(edge, bool) or not 0 <= edge < len(raw) or edge in edges:
+            return None, "has an arc on an edge that is not in its outline"
+        if not isinstance(center, list) or len(center) < 2 or not all(is_number(value) for value in center[:2]) or not is_number(radius) or radius <= 0:
+            return None, "has an arc with no centre or radius"
+        if not isinstance(arc.get("ccw"), bool):
+            return None, "has an arc with no direction"
+        middle = (center[0] + offset[0], center[1] + offset[1])
+        for end in (raw[edge], raw[(edge + 1) % len(raw)]):
+            if abs(math.dist(end, middle) - radius) > ARC_FIT + EPS:
+                return None, "has an arc on edge " + str(edge) + " whose ends are not on its circle"
+        edges.add(edge)
+        arcs.append({"edge": edge, "center": point(middle), "radius": common.r3(radius), "ccw": arc["ccw"]})
+    return {"points": [point(xy) for xy in raw], "arcs": sorted(arcs, key=lambda item: item["edge"])}, None
+
+
+def loop_points(loop):
+    """The points of a plan loop with each arc cut into chords that stand off it by ARC_SAG at most, for comparing shapes only."""
+    points, arcs = loop["points"], {arc["edge"]: arc for arc in loop.get("arcs") or []}
+    found = []
+    for edge, start in enumerate(points):
+        found.append(start)
+        arc = arcs.get(edge)
+        if arc is None:
+            continue
+        end = points[(edge + 1) % len(points)]
+        cx, cy = arc["center"]
+        first = math.atan2(start[1] - cy, start[0] - cx)
+        last = math.atan2(end[1] - cy, end[0] - cx)
+        sweep = (last - first) % (2 * math.pi) if arc["ccw"] else -((first - last) % (2 * math.pi))
+        radius = arc["radius"]
+        step = 2 * math.acos(max(-1.0, 1 - ARC_SAG / radius)) if radius > ARC_SAG else math.pi
+        steps = max(1, int(math.ceil(abs(sweep) / step)))
+        for step in range(1, steps):
+            angle = first + sweep * step / steps
+            found.append([cx + arc["radius"] * math.cos(angle), cy + arc["radius"] * math.sin(angle)])
+    return found
+
+
+def floor_loops(floor, offset):
+    """R112. Every loop of the floor in shared plan coordinates, the outer sketch loop with its arcs first, and None, or None and why.
+
+    The reader keeps only the outer loop of the sketch, so a second piece or a hole comes from the top face outline of R52,
+    which holds straight edges only. A top face loop that is the sketch loop again is left out.
+    """
+    first, why = outer_loop(floor, offset)
+    if first is None:
+        return None, why
+    loops = [first]
+    sketch = Polygon(loop_points(first)).buffer(0)
+    for ring in floor.get("outline") or []:
+        if len(ring) < 3:
+            continue
+        shape = Polygon([(vertex[0], vertex[1]) for vertex in ring]).buffer(0)
+        if sketch.area > 0 and shape.symmetric_difference(sketch).area <= SAME_LOOP_SHARE * sketch.area:
+            continue
+        loops.append({"points": [point(vertex[:2]) for vertex in ring], "arcs": []})
+    return loops, None
+
+
+def corners_on_outline(corners, points):
+    """True when the outline has four vertices and each corner sits on its own vertex in plan."""
+    if len(points) != len(corners):
+        return False
+    used = set()
+    for corner in corners:
+        near = [index for index, vertex in enumerate(points) if index not in used and math.dist(corner[:2], vertex) <= CORNER_ON_VERTEX + EPS]
+        if not near:
+            return False
+        used.add(near[0])
+    return True
+
+
+def floor_entry(builder, kind, floor, offset, config, unit):
+    """R112. One floor of a plot with all the placer needs, or None when a part is missing and the plot says why."""
+    key = "floors." + kind
+    label = "floor " + str(floor["elementId"]) + " "
+    level = floor.get("level")
+    if level != config["levels"][kind]:
+        builder.lack(key, label + "is on level " + str(level) + ", floors.levels." + kind + " is " + config["levels"][kind])
         return None
-    low, high, _ = plot_relations.top_range(floor, offset)
-    if z is not None and low is not None and max(abs(low - z), abs(high - z)) > TOP_CONFLICT + EPS:
-        builder.clash(key + ".z", common.r3(z), [common.r3(low), common.r3(high)], "past floor top")
-    entry = {"type": sourced(floor.get("typeName")), "outline": sourced(rings)}
+    if not is_number(floor.get("levelElevation")):
+        builder.lack(key, label + "has no level elevation")
+        return None
+    loops, why = floor_loops(floor, offset)
+    if loops is None:
+        builder.lack(key, label + why)
+        return None
+    if not unit:
+        builder.lack(key, "the plot has no unit for the " + config["plotParameter"] + " value")
+        return None
+    plot_value = unit + "-" + builder.plot
+    past_value = (floor.get("parameters") or {}).get(config["plotParameter"])
+    if past_value not in (None, "") and str(past_value) != plot_value:
+        builder.clash(key + ".plotValue", plot_value, str(past_value), "past floor " + config["plotParameter"])
+    entry = {
+        "type": sourced(floor.get("typeName")),
+        "level": sourced(level),
+        "levelElevation": sourced(common.r3(floor["levelElevation"])),
+        "outline": sourced({"loops": loops}),
+        "plotValue": sourced(plot_value, COMPUTED),
+    }
+    if kind == "ramp":
+        corners, source = ramp_levels.corner_points(floor, offset)
+        if source != "corners":
+            builder.lack(key, label + "has no corner levels")
+            return None
+        if len(corners) != ramp_levels.CORNERS:
+            builder.lack(key, label + "has " + str(len(corners)) + " corners")
+            return None
+        if len(loops) != 1 or not corners_on_outline(corners, loops[0]["points"]):
+            builder.lack(key, label + "has corners that are not the vertices of its outline")
+            return None
+        entry["corners"] = sourced([point(corner) for corner in corners])
+        lowest = min(corner[2] for corner in corners)
+        entry["heightOffset"] = sourced(common.r3(lowest - floor["levelElevation"]), COMPUTED)
+    return entry
+
+
+def flat_top(builder, kind, entry, floor, z, offset):
+    """The top z of a Generic or yard floor and its height offset from the level, with the past top compared to that z."""
+    key = "floors." + kind
     if z is None:
         builder.lack(key + ".z", "no FFL")
-    else:
-        entry["z"] = sourced(common.r3(z), COMPUTED)
+        return None
+    low, high, _ = plot_relations.top_range(floor, offset)
+    if low is not None and max(abs(low - z), abs(high - z)) > TOP_CONFLICT + EPS:
+        builder.clash(key + ".z", common.r3(z), [common.r3(low), common.r3(high)], "past floor top")
+    entry["z"] = sourced(common.r3(z), COMPUTED)
+    entry["heightOffset"] = sourced(common.r3(z - entry["levelElevation"]["value"]), COMPUTED)
     return entry
+
+
+def yard_why(index, plot):
+    """Why a plot has no yard under R111."""
+    tied = yard_rule.tied_with(index["yards"], plot, index["config"]["yardShareTie"])
+    if tied:
+        return "tie, yards " + " ".join(str(element_id) for element_id in tied) + " hold shares within " + str(index["config"]["yardShareTie"]) + " of another plot"
+    low = yard_rule.low_with(index["yards"], plot)
+    if low:
+        return "lowShare, yards " + " ".join(str(element_id) for element_id in low) + " hold less than " + str(index["config"]["yardMinShare"]) + " of their area on the face of this plot"
+    if plot not in index["faces"]:
+        return "no baseplan face carries the label of this plot"
+    return "no yard has its largest share on the baseplan face of this plot"
 
 
 def floor_values(builder, index, offset):
     kinds = index["byPlot"].get(builder.plot, {})
     ffl = builder.entry.get("levels", {}).get("ffl", {}).get("value")
+    unit = builder.entry.get("unit", {}).get("value")
+    config = index["config"]
+    below = config["yardBelowFflM"]
     floors = {}
     generic = only_one(builder, "floors.generic", kinds.get("generic", []))
-    ramp = only_one(builder, "floors.ramp", kinds.get("ramp", []))
-    generic_shape = index["shapes"][generic["elementId"]][0] if generic is not None else None
-    ramp_shape = index["shapes"][ramp["elementId"]][0] if ramp is not None else None
     if generic is not None:
-        made = flat_floor(builder, "floors.generic", generic, generic_shape, ffl, offset)
-        if made is not None:
+        made = floor_entry(builder, "generic", generic, offset, config, unit)
+        if made is not None and flat_top(builder, "generic", made, generic, ffl, offset) is not None:
             floors["generic"] = made
-    status, candidates = plot_relations.find_yard(index["yards"], index["tree"], generic_shape, ramp_shape)
-    if status == "assigned":
-        yard, yard_shape = candidates[0]
-        made = flat_floor(builder, "floors.yard", yard, yard_shape, None if ffl is None else ffl - YARD_BELOW_FFL, offset)
-        if made is not None:
-            floors["yard"] = made
-    elif status == "ambiguous":
-        builder.lack("floors.yard", "ambiguous, candidates " + " ".join(str(floor["elementId"]) for floor, _ in candidates))
+    yards = kinds.get("yard", [])
+    if not yards:
+        status = "none"
+        builder.lack("floors.yard", yard_why(index, builder.plot))
+    elif len(yards) > 1:
+        status = "several"
+        builder.lack("floors.yard", str(len(yards)) + " yards have their largest share on this plot: " + " ".join(str(floor["elementId"]) for floor in plot_relations.first_by_id(yards)))
     else:
-        builder.lack("floors.yard", "no yard floor touches the Generic floor or the ramp")
+        status = "assigned"
+        made = floor_entry(builder, "yard", yards[0], offset, config, unit)
+        if made is not None and flat_top(builder, "yard", made, yards[0], None if ffl is None else ffl - below, offset) is not None:
+            floors["yard"] = made
+    ramp = only_one(builder, "floors.ramp", kinds.get("ramp", []))
     if ramp is not None:
-        corners, source = ramp_levels.corner_points(ramp, offset)
-        if source != "corners":
-            builder.lack("floors.ramp", "floor " + str(ramp["elementId"]) + " has no corner levels")
-        elif len(corners) != ramp_levels.CORNERS:
-            builder.lack("floors.ramp", "floor " + str(ramp["elementId"]) + " has " + str(len(corners)) + " corners")
-        else:
-            floors["ramp"] = {"type": sourced(ramp.get("typeName")), "corners": sourced([point(corner) for corner in corners])}
+        made = floor_entry(builder, "ramp", ramp, offset, config, unit)
+        if made is not None:
+            floors["ramp"] = made
     builder.entry["floors"] = floors
     return status
 
@@ -385,8 +576,23 @@ def schedule_by_plot(rows):
     return found, bad
 
 
-def build_plan(data, rows, job, folder_files, prototype_folder):
-    """The plan of R80 from the host document of prototypes.json and the schedule rows."""
+def yard_summary(results, plots):
+    """R111 in counts: the yards by status, and the yards that go to no plot of the plan, a tie, none or a plot outside it."""
+    status = Counter(result["status"] for result in results.values())
+    left = []
+    for element_id in sorted(results):
+        result = results[element_id]
+        if result["status"] != "assigned" or result["plot"] not in plots:
+            left.append({"elementId": element_id, "status": result["status"] if result["status"] != "assigned" else "plotNotInPlan",
+                         "plot": result["plot"], "candidates": result["candidates"][:3]})
+    return {"yards": len(results), "byStatus": dict(sorted(status.items())), "withNoPlanPlot": len(left), "left": left}
+
+
+def build_plan(data, rows, job, folder_files, prototype_folder, floors_config, faces):
+    """The plan of R80 from the host document of prototypes.json and the schedule rows.
+
+    floors_config is the floors block of the settings (R112) and faces the baseplan plot faces by official plot number (R111).
+    """
     document = host_of(data)
     offset = ramp_levels.offset_of(document)
     links = document.get("links") or []
@@ -402,13 +608,15 @@ def build_plan(data, rows, job, folder_files, prototype_folder):
             continue
         by_plot.setdefault(plot, []).append(link)
     schedule, bad_rows = schedule_by_plot(rows)
-    index = floor_index(document, offset)
+    index = floor_index(document, offset, floors_config, faces)
     plots, missing, conflicts = [], [], []
-    missing_keys, floors_found, yard_status = Counter(), Counter(), Counter()
+    missing_keys, floors_found, yard_status, floor_types = Counter(), Counter(), Counter(), Counter()
     for plot in sorted(set(by_plot) | set(schedule), key=link_summary.sort_key):
         builder, complete, status = build_plot(plot, by_plot.get(plot, []), schedule.get(plot, []), index, offset, job, folder_files)
         yard_status[status] += 1
         floors_found.update(builder.entry["floors"].keys())
+        if complete:
+            floor_types.update(kind + ": " + floor["type"]["value"] for kind, floor in builder.entry["floors"].items())
         if complete:
             plots.append(builder.entry)
         if builder.missing:
@@ -427,6 +635,8 @@ def build_plan(data, rows, job, folder_files, prototype_folder):
         "coordinateSystem": {"name": "shared", "lengthUnit": "m", "angleUnit": "deg"},
         "surveyPoint": {"position": point(survey["position"]), "sharedPosition": point(survey["sharedPosition"])},
         "prototypeFolder": str(prototype_folder),
+        # R112. The placer reads every floor type, level and parameter name from here, none sits in its code
+        "floorSettings": {"types": floors_config["types"], "levels": floors_config["levels"], "plotParameter": floors_config["plotParameter"]},
         "sources": {"prototypes": PureWindowsPath(job["prototypes"]).name, "schedule": job["schedule"], "sheet": job["sheet"]},
         "summary": {
             "plots": len(set(by_plot) | set(schedule)),
@@ -438,8 +648,10 @@ def build_plan(data, rows, job, folder_files, prototype_folder):
             "scheduleRowsWithBadPlotNumber": bad_rows,
             "floorsWithBadPlotNumber": index["badFloors"],
             "missingByKey": dict(sorted(missing_keys.items())),
-            "floorsFound": {kind: floors_found[kind] for kind in ("generic", "yard", "ramp")},
+            "floorsFound": {kind: floors_found[kind] for kind in FLOOR_KINDS},
+            "floorTypes": dict(sorted(floor_types.items())),
             "yardStatus": dict(sorted(yard_status.items())),
+            "yardRule": yard_summary(index["yards"], set(by_plot) | set(schedule)),
             "conflictsByField": dict(sorted(Counter(item["field"] + " against " + item["otherSource"] for item in conflicts).items())),
             "positionProof": proof,
         },
@@ -471,33 +683,55 @@ def prototype_folders(root, job):
     return (root / upgraded if upgraded else source), source
 
 
+def baseplan_faces(path, shifts_path, neighbourhood):
+    """R111. The plot faces of the baseplan by official plot number, with the shift of the neighbourhood, which is never guessed."""
+    shifts = link_table.load_shifts(shifts_path)["shifts"]
+    if neighbourhood not in shifts:
+        raise project_profile.ProfileError("config/plot_numbers.json has no shift for " + str(neighbourhood))
+    data = link_summary.load(path)
+    if not isinstance(data, dict) or not isinstance(data.get("plots"), list):
+        raise project_profile.ProfileError(str(path) + " has no plots list")
+    faces, bad = yard_rule.face_shapes(data["plots"], shifts[neighbourhood])
+    return faces, bad
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Build plan.json from a past job, prototypes.json of the past model and its schedule.")
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH), help="project settings, default config/project.json")
     parser.add_argument("--prototypes", help="prototypes.json, default pastJob.prototypes")
+    parser.add_argument("--baseplan", help="plots.json of the baseplan, default pastJob.baseplanPlots")
+    parser.add_argument("--shifts", default=str(project_profile.ROOT / "config" / "plot_numbers.json"))
     parser.add_argument("--out", help="plan file, default pastJob.output")
     args = parser.parse_args(argv)
     settings = project_profile.load_settings(args.settings)
     job = load_job(settings)
+    floors = load_floors(settings)
     prototypes = Path(args.prototypes or job["prototypes"])
+    baseplan = Path(args.baseplan or (project_profile.ROOT / job["baseplanPlots"] if job.get("baseplanPlots") else ""))
     out = Path(args.out or job["output"])
     plot_relations.refuse_inside_repo(out.resolve().parent)
     root = input_root(settings)
     schedule = root / full_run.XLSX_FOLDER / job["schedule"]
     folder, source_folder = prototype_folders(root, job)
-    for path in (prototypes, schedule):
+    for path in (prototypes, schedule, baseplan):
         if not path.is_file():
             print("not found: " + str(path), file=sys.stderr)
             return 2
+    faces, bad_labels = baseplan_faces(baseplan, args.shifts, job["neighbourhood"])
     data = link_summary.load(prototypes)
     rows = excel_reader.read_sheet(schedule, job["sheet"])[3]
-    plan = build_plan(data, rows, job, folder_listing(folder), folder)
+    plan = build_plan(data, rows, job, folder_listing(folder), folder, floors, faces)
     plan["sources"]["prototypes"] = prototypes.name
     plan["sources"]["prototypeSourceFolder"] = str(source_folder)
+    plan["sources"]["baseplanPlots"] = baseplan.name
+    plan["summary"]["yardRule"]["facesWithBadLabel"] = len(bad_labels)
     write_plan(out, plan)
     summary = plan["summary"]
     print("plots written %d of %d, missing a value %d" % (summary["written"], summary["plots"], len(plan["missing"])))
     print("floors found %s" % summary["floorsFound"])
+    print("floor types %s" % summary["floorTypes"])
+    rule = summary["yardRule"]
+    print("yard rule: yards %d, %s, with no plan plot %d, plot yard status %s" % (rule["yards"], rule["byStatus"], rule["withNoPlanPlot"], summary["yardStatus"]))
     print("position proof on %d links, largest difference %s mm" % (summary["positionProof"]["links"], summary["positionProof"]["largestMm"]))
     print(out)
     return 0

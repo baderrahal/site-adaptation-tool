@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Autodesk.Revit.DB;
 using SiteAdaptation.Common;
@@ -29,6 +30,38 @@ namespace SiteAdaptation.Placer
                 report.RolledBack = real;
                 return report;
             }
+        }
+
+        // R113. The floor step, every plot of the plan or the plots listed
+        public static FloorReport RunFloors(Document document, PlanFile plan, string planPath, bool real, ICollection<string> plots)
+        {
+            var target = new RevitFloorTarget(document);
+            try
+            {
+                return FloorPlacer.Run(plan, planPath, target, real, plots);
+            }
+            catch (Exception failure)
+            {
+                target.RollBack();
+                FloorReport report = FloorPlacer.StoppedReport(real ? "real" : "dryRun", planPath, document.Title, "The floor step failed, nothing stays: " + failure.Message);
+                report.RolledBack = real;
+                return report;
+            }
+        }
+
+        // R116. Links, floors or both. With both the links step runs first in its own transaction, then the floors step in its own
+        public static PlacerRunReport RunSteps(Document document, PlanFile plan, string planPath, bool real, bool links, bool floors, string prototypeFile, ICollection<string> plots)
+        {
+            var report = new PlacerRunReport { Steps = links && floors ? "linksAndFloors" : links ? "links" : "floors" };
+            if (links)
+            {
+                report.Links = Run(document, plan, planPath, real, prototypeFile);
+            }
+            if (floors)
+            {
+                report.Floors = RunFloors(document, plan, planPath, real, plots);
+            }
+            return report;
         }
     }
 }

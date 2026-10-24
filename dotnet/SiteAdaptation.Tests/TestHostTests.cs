@@ -140,7 +140,7 @@ namespace SiteAdaptation.Tests
         {
             string command = RepoText("dotnet", "SiteAdaptation.Placer", "PlaceFromPlanCommand.cs");
 
-            Assert.Contains("PlaceFromPlan.Run(active.Document, plan, planPath, real, prototypeFile)", command);
+            Assert.Contains("PlaceFromPlan.RunSteps(active.Document, plan, planPath, real, links, floors, prototypeFile, null)", command);
             Assert.Contains("The plots of one prototype file", command);
             Assert.DoesNotContain("Common.Placer.Run(", command);
         }
@@ -855,7 +855,7 @@ namespace SiteAdaptation.Tests
             string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
             string steps = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSteps.cs");
 
-            Assert.Contains("RollBackSteps = new HashSet<string>(StringComparer.Ordinal) { \"removePrototypeType\", \"realRun\" }", session);
+            Assert.Contains("RollBackSteps = new HashSet<string>(StringComparer.Ordinal) { \"removePrototypeType\", \"realRun\", \"deleteFloors\", \"realRun2\" }", session);
             Assert.Contains("if (error && RollBackSteps.Contains(runner.CurrentStep ?? \"\"))", session);
             Assert.Contains("type.Unload(new KeepLinkPositions())", steps);
             Assert.Contains("SaveModifiedLinksOptions.DoNotSaveLinks", steps);

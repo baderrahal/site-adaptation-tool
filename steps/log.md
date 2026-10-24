@@ -2,6 +2,51 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round 15b, 2026-10-24, placer step 2, Generic, yard and ramp floors, eight scenarios in Revit
+
+Done:
+- Session started in the 15a folder while the 15a session was busy there, so that folder was only read. Work in the main folder on feat/placer-floors-15b. The main guard hook reads the branch of the start folder, which went back to main, so it blocked every commit of this session. Nothing was committed around it. Plan written before the first edit. Gate A passed 08:22 (PR 18, main 6e0da3d). Gate B passed, 13 prototypes Format 2024 by BasicFileInfo, no Revit running. Free memory 3 to 3.6 GB, so one window at a time. Full record: steps/history/round-15b.md
+- Gate: Python 620 to 673 passed and 1 skipped (no symlink rights), .NET 319 to 347 passed, locally
+- Rules R111 to R119: yard rule, floors in the plan, floor step and its stops, plot value and skip with ramp corners, geometry, run and report, test host floor jobs, work file life cycle, floor check
+- Plan: 337 plots, Generic 336, yard 336, ramp 337 (Ramps 0.5% 280, Ramps 2% 47, Flat Ramps 10). Yard rule: 337 yards assigned, 0 ties, 0 low share, 1 goes to official 336, which is no plan plot. Listed: 2441 no Generic floor, 2311 no yard. No arc in the past model. 47 yards are two pieces, both kept
+- API: Floor.Create with CurveLoops of Line.CreateBound and Arc.Create through 3 points, FLOOR_HEIGHTABOVELEVEL_PARAM, and for ramps SlabShapeEditor.Enable and ModifySubElement per corner from the lowest corner, because the past ramps are shape edited and this sets each corner exactly. Two regenerations per run
+- Review: 9 points, all fixed with tests (arc loop taken for a second piece, past data hid outline faults, equal ignored the plan, uncompared and filtered floors passed, sliver yards, second method, one plot list in the run script, delete before refuse, ramp read back). A second short review found 6 small points (arc chords too coarse, two rule texts, a WORK name in clean-old, an empty plot list, a crash in the second method), all fixed with tests. S1 and S8 rerun on fresh copies after the fixes, both pass. The last small fixes were checked by the suite and the S1 and S8 checks, not by a third review
+
+| Scenario | Runs | Run min | Result | Against the answer key |
+|---|---|---|---|---|
+| Master | 1 | 1.1 | ok | 14 links unloaded, 1010 floors deleted, 0 left |
+| S1 full | 2 | 1.8 | pass | 1009 placed, all checks equal, outline worst 0 mm, 288 yard tops past data |
+| S2 run twice | 1 | 0.7 | pass | both runs placed 0, 1009 skipped as placed, 2 not in plan, 1009 before and after |
+| S3 dry run | 1 | 0.5 | pass | would place 1009 on 337 plots, model 0 floors |
+| S4 partial | 1 | 0.7 | pass | seed 15, 10 plots, 30 deleted, 30 placed, 981 skipped, all 337 match |
+| S5 missing type | 1 | 0.5 | pass | stopped before any change, 0 before and after |
+| S6 rollback | 1 | 0.6 | pass | crossed loop of plot 2458 refused by Revit, all rolled back, 0 after |
+| S7 ramp types | 0 | 0 | pass | 0.5% 280 of 280, 2% 47 of 47, Flat 10 of 10, arc plots 0 |
+| S8 links and floors | 2 | 0.7 | pass | C10 15 links within 1 mm, 45 floors equal, 15 yard tops past data |
+
+- Deleted: the 27 TEST files of the 15a test, 1,413,824,512 bytes, each listed in the history file, then the work files S1 to S8 after their checks. Left: 01101-PSN-IMC-ZZZ-PIM-TU-000001_TEST-MASTER.rvt, 48,742,400 bytes, links unloaded, no floor of the five types. The site model was unchanged by hash after every run
+
+Remains:
+- Commit, push, pull request, gate on GitHub and merge, blocked by the hook (question 1)
+- Not run: parallel windows (memory under 8 GB), a plan with arcs in Revit (the past model has none, proven on fakes only)
+
+Known bugs:
+- 288 yard tops differ from the past model: it has FFL minus 0.100 on TH1, TH3, VL6 and the FFL on every other unit
+- Each full run gives 767 Revit warnings Highlighted floors overlap. The outlines are the past ones to 0 mm
+- link_summary.py still holds the Generic and yard type names of round 7, the new code reads config only
+- A second piece of a floor comes from the top face outline, so an arc on it would be chords
+
+Next:
+- Merge, then the combined Revit test with parallel windows once more than 8 GB is free
+- Fill plan.json from CAD and LandXML in the same format
+
+Your turn:
+1. The hook blocks my commits. Recommended: let me commit and push from the main folder with a script that refuses main, then open the PR, run the gate and merge. Else start a session in the main folder
+2. Yard depth. Recommended: ask the architect whether it is per unit, keep FFL minus 0.100 until then
+3. Plot 2311. Recommended: check the baseplan label 326 beside plot 2301, it holds the yard and half the Generic floor of 2311
+4. floors.yardMinShare 0.5, added after the review. Recommended: keep it, every real yard holds 0.549 or more
+5. The 15a folder and the 13 _backup folders in Prototypes_2024. Recommended: delete both after this merge
+
 ## Round 15a test, 2026-10-24, the test host drives Revit, one prototype per run
 
 Done:
