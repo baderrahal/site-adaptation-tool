@@ -220,6 +220,22 @@ def test_r67_a_height_outside_the_legend_span_is_flagged_and_one_on_the_edge_is_
     assert low["1"]["flags"] == ["height under 0.1 m"] and low["1"]["height"] == 0.09
 
 
+def test_r67_the_height_is_compared_with_the_span_to_the_millimetre_so_the_rounding_of_the_ffl_flags_nothing(tmp_path):
+    profile = dummy_profile(tmp_path)
+    # 10.0004 plus 0.1 is 10.1004, which the FFL takes to 10.1, so the top plot has the height 0.0996 and that is 0.1 to the millimetre
+    top = by_plot(levels.compute(profile, [], entries_of(("1", "VL4", 10.0004))))
+    assert (top["1"]["ffl"], top["1"]["height"], top["1"]["flags"]) == (10.1, 0.0996, [])
+    # 0.5404 is 0.540 to the millimetre and is not over the span, 0.5406 is 0.541 and is
+    rows = by_plot(levels.compute(profile, [{"plots": ["1", "2", "3"]}], entries_of(("1", "VL4", 10.0), ("2", "VL4", 9.5596), ("3", "VL4", 9.5594))))
+    assert [rows[plot]["height"] for plot in "123"] == [0.1, 0.5404, 0.5406]
+    assert [rows[plot]["flags"] for plot in "123"] == [[], [], ["height over 0.54 m"]]
+    low = by_plot(levels.compute(dummy_profile(tmp_path, base_height={"default": 99.6}), [], entries_of(("1", "VL4", 10.0))))
+    assert (low["1"]["ffl"], low["1"]["height"], low["1"]["flags"]) == (10.1, 0.1, [])
+    # A base of 99.4 gives the FFL 10.099 and the height 0.099, which is under the span
+    lower = by_plot(levels.compute(dummy_profile(tmp_path, base_height={"default": 99.4}), [], entries_of(("1", "VL4", 10.0))))
+    assert (lower["1"]["height"], lower["1"]["flags"]) == (0.099, ["height under 0.1 m"])
+
+
 def test_r67_the_height_flag_reads_its_span_from_the_profile(tmp_path):
     profile = dummy_profile(tmp_path, legend=[[0.15, 1], [0.3, 2]])
     rows = by_plot(levels.compute(profile, [{"plots": ["1", "2"]}], entries_of(("1", "VL4", 10.0), ("2", "VL4", 9.6))))

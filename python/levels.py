@@ -124,10 +124,11 @@ def compute(profile, clusters, entries):
                 height = ffl - entries[plot]["entry"]
                 row.update({"entry": common.r3(entries[plot]["entry"], ENTRY_DECIMALS), "baseHeight": common.r3(base), "ffl": common.r3(ffl),
                             "ssl": common.r3(ffl + ground), "height": common.r3(height, HEIGHT_DECIMALS), "steps": steps_for(height, rule)})
-                # Rounded to a micrometre like the band, so a height on the edge of the span is inside it
-                if round(height, BAND_DECIMALS) < span[0]:
+                # Compared to the millimetre like the FFL. The top plot of a cluster has the base height less the rounding of the FFL, 0.0996 for 0.1, and that is not under the span
+                shown = round(height, FFL_DECIMALS)
+                if shown < span[0]:
                     row["flags"].append("height under " + str(span[0]) + " m")
-                if round(height, BAND_DECIMALS) > span[1]:
+                if shown > span[1]:
                     row["flags"].append("height over " + str(span[1]) + " m")
                 if row["steps"] < least:
                     row["flags"].append("steps under " + str(least))
