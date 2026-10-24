@@ -21,3 +21,4 @@ One JSON file per project. config/project.json names the profile the tool reads 
 8. The standard VL4 plot width is not a constant. plot.vl4_width is "derive", so the tool takes the most common VL4 plot width in the CAD analysis and flags the VL4 plots that differ from it with wide_plot.
 9. Four tie ins per unit, checked between the Revit model and the Civil 3D network.
 10. Yard sewage with cover under sewage_encasement_cover_under gets an encasement flag.
+- typology_codes is the old to new code table of the Rev 9 workbook sheet 2024-01-30_New Typo Names (R188). Each row keeps the old client code and the new ROSHN code side by side as written, neither renamed, with the plot size and areas of the sheet. No code reads it yet.

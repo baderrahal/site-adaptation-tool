@@ -26,6 +26,16 @@ namespace CadReader
         public int Count { get; set; }
     }
 
+    // The DWG class list says which application objects a drawing holds, Civil 3D ones among them, which ACadSharp drops as entities (R189).
+    public class ClassEntry
+    {
+        public string DxfName { get; set; }
+        public string CppClassName { get; set; }
+        public string ApplicationName { get; set; }
+        public int InstanceCount { get; set; }
+        public bool IsAnEntity { get; set; }
+    }
+
     public class TotalsEntry
     {
         public int Before { get; set; }
@@ -51,10 +61,14 @@ namespace CadReader
     {
         public string Source { get; set; }
         public string Units { get; set; }
+        // R196. The created and last saved times of the drawing header, so two exports of one sheet can be told apart by age
+        public string Created { get; set; }
+        public string Updated { get; set; }
         public TotalsEntry Totals { get; set; }
         public ExtentsEntry Extents { get; set; }
         public List<XrefEntry> Xrefs { get; set; }
         public List<NoteEntry> Notes { get; set; }
+        public List<ClassEntry> Classes { get; set; }
         public List<LayerEntry> Layers { get; set; }
     }
 

@@ -1,6 +1,6 @@
-# Data book, rounds DATA and DATA-2, 2026-10-24
+# Data book, rounds DATA, DATA-2 and DATA-3, 2026-10-24
 
-The data book lives outside the repo in Documents\SiteAdaptation\data_book. Counts and distances only here, no coordinates or levels. The 15 sources and the 15 working copies hash the same before and after both rounds.
+The data book lives outside the repo in Documents\SiteAdaptation\data_book. Counts and distances only here, no coordinates or levels. The 15 sources and the 15 working copies hash the same before and after rounds DATA and DATA-2, the 10 sources and copies of DATA-3 the same before and after DATA-3.
 
 ## Phase 1 border
 
@@ -102,7 +102,7 @@ rules/roshn-makkah.json names the width plot_width_m in every typology and vl3_w
 ## Part L, the Zone 4 location plan
 
 - File: C:\02-Site Adaptation\Roshn Makkah - Master Plan Rev.09\01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf, copied with the two Rev 9 DLUS workbooks into data_book\work, all three hash the same before and after. A second PDF of the same number in 01_Output\1.0 General\PDF is another export (other hash, 33,321 words), and 01_Output\1.0 General\DWG holds a 6.9 MB DWG of the sheet. Neither was read.
-- Checked against the chat: one page, Rotate 90, A1 (2,384 by 1,684 pt, "Original Sheet Size:A1"), vector text (40,300 characters, 2 images), title PHASE 1 - Zone 4, LOCATION PLAN, created 25 Mar 2024, revisions 00 Nov 2023 and 01 Jan 2024. The Revit model name 01101-PSN-IMG-ZZZ-PIM-TU-000001 is not in the PDF, no text and no stream holds PIM. There are three control points, not one, the one the chat quoted is among them.
+- Checked against the chat: one page, Rotate 90, A1 (2,384 by 1,684 pt, "Original Sheet Size:A1"), vector text (40,300 characters, 2 images), title PHASE 1 - Zone 4, LOCATION PLAN, created 25 Mar 2024, revisions 00 Nov 2023 and 01 Jan 2024. Corrected in round DATA-3: the title block does hold it. Its characters read "Plot Layout: 01101-PSN-IMG-ZZZ-PIM-TU-000001" and "CAD Ref: 2.1 Site Adapatation\Zone 4 \4.1.10 BIM Models\01101-PSN-IMG-ZZZ-PIM-TU-000001", PIM and IMG twice each. The DATA-2 search missed them. There are three control points, not one, the one the chat quoted is among them.
 - Text lines: 3,182 numbers, 2,704 client codes, 206 OS, 71 SS, 241 other land uses. Pairs 3,181, 41 codes with no number, 1 number with no code, 0 duplicate numbers. Unit numbers run 428 to 3147, all labels 1 to 3183.
 - Fit on 337 IMC plots, 316 kept: residual median 0.082 m, p95 0.145 m, max 0.234 m, 1.764 m per point (1:5000). On 410 IMD plots with shift 11: median 0.095 m, p95 0.179 m. The three control point marks land 0.265 to 0.305 m from their stated coordinates.
 - Number to face: IMC shift 10 on 337 of 337, IMD 11 on 410 of 410. By NBH of the sales sheet: 012 (IMC) 10, 013 (IMD) 11, 021 11 on 432 of 432, 02 10 on 323 of 324, 022 10 on 274 of 301, 03 -8 on 259 and -2 on 223 of 490, 01A -8 on 196 and 10 on 85 of 297. 360 plots break the modal shift of their NBH, so a fixed shift holds for 012, 013, 021 and 02 only.
@@ -114,3 +114,45 @@ rules/roshn-makkah.json names the width plot_width_m in every typology and vl3_w
 ## Data quality
 
 0 duplicated labels. 22 open faces inside Phase 1. 18 labels outside any face (baseplan reader). 3 plots cross the border. 275 plots have no front edge (mostly non-residential and corner plots). 0 plots claimed by both schedules. R06_0000 and R06_0001 are the same drawing.
+
+## Round DATA-3, the Master Plan Rev 9 folder, El @ Entry by terms, the units on no plot and the location plan DWG
+
+Sources read from copies in data_book\work: the Rev 9 DWG and its PDF plot, the two Rev 9 workbooks, the 01_Output location plan DWG and PDF, the Typical Cross Sections drawing, and the VL4 and VL6 prototypes (copied, not opened). All 10 sources and copies hash the same before and after. The 01_Output PDF was read once in place before its copy was made, then only from the copy.
+
+### Part R, the two workbooks (R185 to R188)
+
+- Both by the same author on 2024-06-25, the accommodation workbook saved 06:30 and TBD 08:42, 31 sheets each. Only the accommodation workbook holds JN Sales Data_Base_Rev09, Sheet1 and PH_1-SubPhase_ID (8.4.1). Only TBD holds Time Line, PH_1-Phase & Zone_ID (8.4.3) and Phase 1 Data (ROSHN)_2023-11-13.
+- TBD is newer. Its Time Line has one row, Rev 9 on 2024-06-24: 3 utility plots deleted (112, 84, 3165), phase boundary revised, approved Amana plot numbers added. Its PH_1-DLUS lacks exactly those 3 plots and carries Amanah_PID on all 3,194 of its plots, where the accommodation workbook (3,197 plots) has it on none. Neighbourhood_ID changes on 474 plots by case only (01A to 01a, 01B to 01b). PH_1-SDF: 3 plots only in the accommodation workbook, 5 only in TBD. PH_1-DLUS-(Without Formulas), PH_2 to PH_4-SDF, the code table and Phase-02 to Phase-04 are equal cell for cell.
+- Setbacks (R186), 2,897 DLUS plots joined, 2,559 unit plots: Front 5.50 m on 1,521 (villas and duplexes), 7.00 m on 1,031 (every TH type), none, 0.00 or 6.00 on 7. The drawn line of plots.csv (5.00 m on 2,514, 3.00 m on 34) equals the DLUS front on 0 of 2,552. Against Rev 6: 1,521 equal (5.50 against 5.52 and 5.50), 1,035 differ (the 7.00 m townhouses). Sides are written "0 / 2" (C10 "0 / 4.5", TH 0). Rear 5.00 m duplex, 3.50 m villa, 3.00 m C10, 7.00 m TH.
+- Widths (R187), 2,555 unit plots with a sales row: Land Width equals the CAD width on 2,493 and Land Length the CAD depth on 2,538. C10: 61 plots wider than Rev 6 in CAD, Land Width equals CAD on 59, Typology_Rev9 C10 47 and VL6 14, the code width 16 m on all. VL3: 43 plots between the two Rev 6 widths (12.5 to 14 m), Land Width equals CAD on 42, Typology_Rev9 VL4 16, VD4 15, DP4 9, DP2 3, none VL3.
+- Code table (R188): 18 rows, 16 old and 16 new codes, DP1 and DP4 give two new codes by form, DP2 and DP4-0 give none. In rules/roshn-makkah.json as typology_codes, 18 of 18 rows equal the sheet. Of the 20 codes the location plan prints (2,704 labels), 9 are in the table as written and 11 by their base, 0 outside it. Typology_Rev9 holds 15 codes, all new codes of the table.
+
+### Part R, the Rev 9 drawing (R189 to R191)
+
+- The DWG copy holds 641 classes, 308 of Civil 3D, with 3,480 AECC_PARCEL and 3,263 AECC_PARCEL_SEGMENT. ACadSharp drops them, so CadReader now writes the class list. Inside Phase 1: 226 of 469 layers hold entities, 8,938 texts, 2,687 unit code texts (old codes, TH3-0 500, DP4 455, DP2-0 350 and so on) and 787 cluster codes (T02, T01, D05 and so on) on MP_BLDG_ANNO_TYPENAME, a second copy of 3,467 on the Cabin Only layer, 171 number texts (stair numbers only), no setback layer, boundary layers Phasing-01 and Phasing-04. The plot line layer MP_Plot lies outside Phase 1 (795 faces, 0 inside).
+- The full Civil 3D read for the parcels did not run. Civil 3D showed "Annotation Scale - Large Number of Scales" and the own-only watcher left it, as rule 3 of the round says. The run was stopped after 100 s, the copy unchanged, lowest free memory 2.82 GB.
+- The PDF plot (title MP-SK-01-03-002-Phase-01(BLDG), CAD file MP-SK-01-03-006_R9.0.dwg, M9.0 25-JUN-24, note PLOTS AS PER CMP (REV-06) APPROVAL): 3,190 numbers, 2,704 new codes, 3,171 pairs. Fit on 2,874 location plan numbers, 2,502 kept, median 0.031 m. Wiring: pointInside 746 agree, 1 ambiguous, 0 wrong of the 747 schedule plots (chosen), nearest 744, 3, 0. DWG unit texts by pointInside: 2,491 agree with the location plan code by base, 21 ambiguous, 21 wrong.
+- Faces: the plot strokes of the PDF close 3,086 faces. A second fit on the face centroids moves them 0.264 m and 0.08 m (median residual 0.010 m). Unit plots: 2,481 same, 58 shape differs (median Hausdorff 2.0 m), 39 with no Rev 9 face, all Hausdorff median 0.03 m. Numbers: 2,552 same, 3 differ (one number off), 6 with two labels, 13 with no plan number, 4 with no label. Codes: 2,551 same as Typology_Rev9, 5 differ (4 OS on faces with two plan numbers, plot 1770 DP2 against VD4). DWG unit text: 2,495 same, 21 differ (18 TH1 on TH1-IM plots). 115 unit plots differ in shape, number or code.
+- Nothing in the DWG texts, layers or the PDF names IME, IMC, IMD, IMG, NBH or a zone, so Rev 9 does not tell NBH 02 from 03.
+
+### Part E, El @ Entry (R192, R193)
+
+- Cross sections, read whole: 13 titles A to L, 50 curbs with a sidewalk. Every curb is 0.12 by 0.20 m. The up-stand reads 0.070 m on most (local road 8 of 14, the others 0.020 and 0.150). The sidewalk carries a 2.0 percent text, widths 1.65 to 13.1 m by section (local road H and I 6.05 m). The rules profile holds no curb or sidewalk value.
+- 747 schedule plots, within 5 mm, 30 mm, worse, no level: road at curb plus all terms 40, 156, 550, 1. Without up-stand 99, 289, 358, 1. Without sidewalk 39, 274, 433, 1. Without ramp 52, 270, 424, 1. The R170 corner variant 221, 193, 330, 3, still the best. By neighbourhood the best curb variant (no up-stand) IMC 38, IMD 61 within 5 mm. Curb plus up-stand plus sidewalk lands a median 64 mm above the road surface at the plot line, 9 of 743 within 30 mm.
+
+### Part U, the units on no plot (R194)
+
+- The 81 blocks (120 units) all lie in one unlabelled other face of the baseplan, the nearest labelled face a median 99 m away, the nearest unit face 188 m. By the TBD DLUS all are Zone 4: NBH 01b 72 blocks (109 units), NBH 01a 9 blocks (11 units). Both the location plan and the Rev 9 PDF have a plot label inside every block. Only 9 blocks have a sales row, the sales sheet holds no 01b plot.
+
+### Part V, the VL6 hand
+
+- Not run. Every Revit start shows the security dialogs of two other add-ins before ours, and rule 3 of the round lets the watcher click no dialog but its own. The CAD frame of R123 puts the VL4 link origin at the end front corner and the VL6 origin at the start corner, a hint and not the check. Steps for Bader: steps/bader-data-3.md.
+
+### Part L2, the location plan DWG (R196)
+
+- The 01_Output DWG is a Revit export (millimetres, created and saved 2024-03-26 02:15, logo images named after 01101-PSN-IMC-ZZZ-PIM-TU-000001). 3,182 plot texts, 3,181 numbers also in the PDF with the same code on every one, plot 17 only in the DWG (its land use holds a bar the PDF pattern does not read). DWG to page fit median 0.051 pt.
+- The Rev.09 PDF was created 2024-03-25 17:08 and modified 2024-03-26 15:44, it holds the Plot Layout and CAD Ref lines and four ZONE notes. The 01_Output PDF was created 2024-03-25 17:15 and holds neither. So the Rev.09 PDF is the latest, the DWG its source with the same labels.
+
+### Second method (R198)
+
+- Seeds 14 and 7, 20 plots each: DLUS front, drawn front and class 20 of 20. Land Width, Length, Typology_Rev9 and width class 20 of 20. Rev 9 face overlap, class and number 20 of 20. The best El @ Entry variant (corner by typology) 20 of 20.

@@ -2,6 +2,68 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round DATA-3, 2026-10-24, the Master Plan Rev 9 folder, El @ Entry by terms, the units on no plot and the location plan DWG
+
+Goal:
+- R the Rev 9 workbooks, drawing and PDF, E El @ Entry from the cross sections, U the units on no plot, V the VL6 hand, L2 the location plan DWG. Summary: steps/investigations/data-book.md, steps for Bader: steps/bader-data-3.md
+
+Done:
+- Session started in the repo, hooks live. Worktree site-adaptation-tool-data3 on data/data-book-3 from main at a203d0a, rebased on 54dbcfb after Z4 merged PRs 30 and 31. Plan written before the first edit. 10 sources copied into data_book\work, all 10 sources and copies hash the same before and after. The 01_Output PDF was read once in place before its copy was made
+- Windows (R197): one Civil 3D run under the lock (5.26 GB free at the lock, lowest 2.82 GB, 0 waits, no lock of Z4 met). The own-only watcher left "Annotation Scale - Large Number of Scales" as rule 3 says, I stopped my own acad.exe after 100 s and removed its .dwl files, the copy unchanged. No Revit window: every Revit start shows the dialogs of two other add-ins first. Z4 merged its own lock (R200), the Civil 3D runner now uses it, my lock module is gone
+- R1 (R185): TBD is newer, its Time Line says Rev 9 deleted plots 112, 84, 3165 and added the Amana numbers, its PH_1-DLUS lacks those 3 and has Amanah_PID on all 3,194 plots. Only the accommodation workbook holds the sales sheet. DLUS without formulas and the code table are equal in both
+- R2 (R186): DLUS front 5.50 m on 1,521 unit plots, 7.00 m on 1,031 (TH), the drawn 5.00 m line equals it on 0 of 2,552, Rev 6 equal on 1,521
+- R3 (R187): Land Width equals CAD on 2,493 of 2,555. C10 61 wide, 59 confirmed by the sales sheet, Rev 9 C10 47, VL6 14. VL3 43 between 12 and 16 m, 42 confirmed, Rev 9 VL4 16, VD4 15, DP4 9, DP2 3
+- R4 (R188): typology_codes in rules/roshn-makkah.json, 18 rows, 18 equal the sheet. Location plan codes 9 exact and 11 by base, 0 outside, Typology_Rev9 15 codes all new
+- R5 to R7 (R189 to R191): CadReader writes the DWG class list (3,480 Civil 3D parcels the DWG holds) and the header dates. The DWG has no plot number text and no setback layer. The PDF plot gives 3,171 labels, fit median 0.031 m, pointInside 746 of 747. Faces from the PDF strokes, refit median 0.010 m: 2,481 of 2,578 unit plots same, 58 shape, 39 no face, numbers differ 3, codes 5. Nothing names IME or tells NBH 02 from 03
+- E (R192, R193): curbs 0.12 by 0.20 m, up-stand 0.070 m on most, sidewalk 2.0 percent, the profile holds no curb value. Curb terms within 5 mm: all 40, no up-stand 99, no sidewalk 39, no ramp 52, against 221 of the R170 corner variant
+- U (R194): the 81 blocks, 120 units, all Zone 4 (01b 72 blocks 109 units, 01a 9 blocks 11 units), in one unlabelled baseplan face, a location plan and a Rev 9 label inside every block
+- V: not run, see above. The CAD frame of R123 gives VL4 and VL6 their link origin at opposite front corners
+- L2 (R196): the DWG and the Rev.09 PDF hold the same 3,181 numbers and codes, the DWG plot 17 too, positions within 0.051 pt. The Rev.09 PDF is the latest (modified 2024-03-26 15:44). Its title block holds "Plot Layout: 01101-PSN-IMG-ZZZ-PIM-TU-000001", the DATA-2 line that it does not is corrected
+- New: python/rev9_workbooks.py, rev9_drawing.py, cross_sections.py, entry_terms.py, stray_units.py, location_dwg.py, data3_check.py, the class list and dates in CadReader, parcel outlines in the probe, own-only in the watcher, the R200 lock in c3d_window.py, data book README lines. R195 unused. Gate: Python 852 to 892 passed and 1 skipped, .NET 405 to 408 passed
+
+Checked:
+- Second method (R198), seeds 14 and 7, 20 plots each by separate code: DLUS setbacks 20 of 20, land widths 20 of 20, Rev 9 faces 20 of 20 (grid overlap, class, number), best El @ Entry variant 20 of 20
+- The baseline corner variant gives 221, 193, 330, 3 again, the same as DATA-2
+
+Remains:
+- The Rev 9 parcels in Civil 3D and the VL6 hand in Revit wait for Your turn 40
+
+Known bugs:
+- The strict reading of rule 3 blocks every window whose own dialog is not the probe dialog
+- plots.csv was not rebuilt, the Rev 9 columns live in the data book rev9 folder only
+
+Next:
+- The ramp type and El @ Entry rules once answered, the Rev 9 parcels and VL6 once 40 is answered
+
+Your turn:
+1. El @ Entry rule: not coded, the curb terms fit 99 of 747 at best, the road at the plot line by typology 221: ask the architect for the ramp slope and the civil engineer if the road surface holds the sidewalk
+2. Ramp type: Ramps 2% for C10, VL4, VL6 and 0.5% for the rest, and what makes a Flat Ramp. 3. Villa mirror: one hand per row set by the open end, VL6 the other hand, and the villa alone between cluster units
+4. Setback: take the DLUS front (5.50 m villa and duplex, 7.00 m TH), the drawn 5.00 m line equals it on 0 of 2,552, ramp stays 5.52 m. 5. Plot front level: the road surface snapped within 5 mm
+6. Back corners parallel to the front, mean at El @ Entry. 7. Generic floor: the whole baseplan face. 8. Round 16 test host run: yes, on a work file, once 2 is settled
+9. Units: 2,698 from the footprint blocks, the 120 on no plot are all Zone 4 (01b 109, 01a 11): count them, ask for a baseplan with 01b. 10. Unit codes with no schedule: Typology_Rev9 by the location plan number
+11. Widths: take the sales Land Width (equals CAD on 59 of 61 wide C10, 42 of 43 VL3) and Typology_Rev9 (C10 47, VL6 14, the VL3 ones VL4, VD4, DP4, DP2). 12. IME: Rev 9 names none, send its schedule or boundary
+13. FFL split: ask why M07 and M08 split and M11 never. 14. CASE: the second letter is the hand as built
+15. VL6 hand: look in Revit by hand, steps/bader-data-3.md, the CAD frame puts the VL4 and VL6 link origins at opposite front corners. 16. Yard depth: FFL minus 0.100 until answered
+17. Plots 2311 and 2312: follow the baseplan and footprint (VL4, VL4, OS), listed apart. 18. Plots 2301 and 2302: take VD4 from Rev 9
+19. The 58 past ramps a median 97 mm above the surface: a past design choice, listed apart. 20. RRE_ZZ_SP_Prototype-FFL: keep the schedule FFL. 21. Angle to true north: keep the stop, CAD gives grid north only
+22. Parallel windows: more than 8 GB free, Z4 had 3.5 to 4.9 GB. 23. TEST copies in Zone 02\ARC: delete when done
+24. The empty site-adaptation-tool-15a folder: close what holds it and delete it, steps/bader-data-2.md
+25. Curb and ROW distance from the R94 edge (312 and 336 of 336), the R122 front stays for width, links, levels
+26. The 13 plots the PDF check refuses: keep label plus shift, listed. 27. The two curbs differ by over 1 m on about 15 percent: keep the Roads curb, ask which is current
+28. Two DP4 labels in a face with many labels: ask for that face to be split. 29. Zone 4 IMG past job: the location plan names 2.1 Site Adapatation\Zone 4\4.1.10 BIM Models\01101-PSN-IMG-ZZZ-PIM-TU-000001, send it
+30. Official numbers: take the location plan number per face (746 of 747), a fixed shift fails in 01A, 03, 022
+31. 113 plan plots with no sales row: the sales sheet has no plot of NBH 01b, ask for its 01b rows
+32. Rev 9 plot faces: 115 unit plots differ (58 shape, 39 no face, 3 numbers, 5 codes, 18 TH1 for TH1-IM): keep the baseplan faces, list them, ask which plot layout is current
+33. The 1.4 model named IMD holds NBH 012 (336) and 022 (294), no 01A: Z4 built 022, send a 01A past model if one exists
+34. The 1.4 key levels sit a constant datum above its FFL parameter (643 of 643): treat the parameter as the design level
+35. Estimated FFL a median 349 mm under the 1.4 key, its ramp fronts 210 mm off Top Surface-02: ask which road it used
+36. The 1.4 key links 8 old prototypes (D2, D4 and others) not on this machine: send 20221206 - Links, until then floors only
+37. Three pairs with the key ramp on the other edge (19.5 m): look at them in the two images. 38. The DT3 plot alone on a VL3 face: list it apart until 3 is answered
+39. Reader fix of Z4 (rotation from the transform when Revit gives none): keep it, the reader changes only for a round
+40. Rule 3: Do Not Load and the safe button inside our own window only, never another process, for both sessions. DATA-3 read it strictly and could not read the Rev 9 parcels or VL6
+41. round_z4\work keeps the 2024 key copy (74 MB) and the new file (7 MB): keep until the next round, then delete
+42. Rev 9 workbooks: take TBD for the DLUS and the Amana numbers, the accommodation workbook for the sales sheet it alone holds, ask for one workbook with both
+
 ## Round Z4, 2026-10-24, a new site file for one neighbourhood from CAD only, compared with the past site model
 
 Goal:
@@ -66,70 +128,9 @@ Your turn:
 
 ## Round DATA-2, 2026-10-24, the full Civil 3D read, the analysis fixes, the wiring (Part W) and the location plan (Part L)
 
-Goal:
-- A the full Civil 3D read, B El @ Entry, units, width, conflicts, W the wiring per source, L the Zone 4 location plan. Summary: steps/investigations/data-book.md and wiring.md, full record steps/history/round-data-2.md
-
-Done:
-- Session started in the repo, hooks live. Worktree site-adaptation-tool-data2 on data/data-book-2 from main at a94bf1e. Plan written before the first edit. All 15 sources and 15 copies hash the same before and after
-- A: free memory 5.62 GB at the start, 6.16 GB after dotnet build-server shutdown, floor kept at 2 GB. Road Layout try 1: the watcher clicked Do Not Load on the probe dialog, because Civil 3D 2026 shows the DLL as a Name and a Location line. Fixed in R161, try 2 and the other two drawings ran once each (40, 25, 25 s, lowest free 3.11 GB). The three folders now hold reader C3DProbe tables, 18 surfaces exported to LandXML (R169), plots.csv 98 columns with no old cell changed
-- B1 (R170), 747 schedule plots, within 5 mm, 30 mm, worse: slope 0.5 percent 217, 171, 356. 2 percent 35, 135, 574. By typology 221, 193, 330 (3 no level). Rough Grading surfaces sit 0.6 to 1.3 m below, none gives El @ Entry
-- B2 (R171): every unit face holds one unit. Units 2,698 from the footprint blocks (2,578 on faces, 120 in 81 blocks on no face), Rev 6 2,704 (gap 6), Phase1 sheet 2,701 (gap 3, all villas VL2 to VL4). C10, duplex and townhouse rows match the sheet
-- B4, B5: plot_width_m is a plot width, each plot holds one unit. V9 numbering and VL4 width left the R167 conflicts
-- W (R174 to R178): the 12 coordinate PDFs copied and read (3,346 rows, 746 plots). python/wiring.py scores 2 to 7 methods per source against the past plan (336 plots) and the 747 schedule plots. Chosen: footprint and R06 blocks everyShare (336 of 336, was 304), curb and ROW anyEdge (312 and 336, was 308 and 331), setback bestShare (no neighbour line, was 26), the rest stay. plots.csv 110 columns with a method column per wired column. Summary: steps/investigations/wiring.md
-- W findings: setback, widths, El @ Entry and units unchanged, 246 DP row ends get their row block, 9 OS plots lose a neighbour's setback, the PDF check refuses 13 schedule plots
-- L (R179 to R184): the Zone 4 location plan read, 3,181 labels, 2,704 client codes. Fit on IMC 0.082 m median (316 of 337), IMD 0.095 m, control marks 0.27 to 0.31 m. IMC shift 10 337 of 337, IMD 11 410 of 410, a fixed shift holds for NBH 012, 013, 021 and 02 only. Codes equal Typology_Rev9 on 2,591 of 2,591 and Landuse_Level_4 on 16 of 16 codes, 113 plan plots have no sales row. 1,819 of 1,831 unit plots with no schedule unit now get Typology_Rev9. IMC is NBH 012 and IMD 013, Zone 4 is 01A, nothing names IME
-- New: python/data_book_retest.py, python/data_book_retest_check.py, python/wiring.py, python/wiring_check.py, python/location_plan.py, python/location_plan_check.py, the retest settings in c3d_probe.json, exportKnownSurfaces, README lines for the new files. Gate: Python 768 to 808 passed and 1 skipped, .NET 369 to 371 passed
-
-Checked:
-- Second method (R173): fronts seed 14 20 of 20 on width, width class and setback class, seed 7 19, 20, 19. Per line at 3.00 m seed 14 20, 20, 20, seed 7 19, 19, 20. The misses are corner chamfers (plot 735). El @ Entry bands 20 of 20 at both seeds for all three variants. Export against the earlier LandXML: 0 corners differ over 1 mm
-- R168 again: rows match data.json on 14 of 14 drawings, plots.csv seed 14 and 7 20 of 20, the share wired blocks left to R178
-- L second method (R184): fit on IMD, label spelled, face and code 20 of 20 at seeds 14 and 7 (3 with no sales row). The PDF and both Rev 9 workbooks hash the same before and after
-- W second method (R178): footprint block, R06 block, setback owner, curb, ROW, cutsheet, V9 and label plus shift 20 of 20 at seeds 14 and 7. All 27 sources and copies hash the same after Part W
-
-Remains:
-- A later round should change, not this one: the El @ Entry rule (not coded, see Your turn 1), the 5.00 m setback line in rules/
-
-Known bugs:
-- Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT, after data.json is written, the copies stay unchanged
-- Road Layout counts differ between the stand-in and the full read (texts 1,537 against 688), listed in the conflicts, not resolved
-
-Next:
-- The ramp type and the El @ Entry rule once Bader answers, then Round 16, a test host run of plan_imc_cad.json on a work file
-
-Your turn:
-1. El @ Entry rule. Recommended: do not code it yet, by typology fits 221 of 747 within 5 mm. Ask the architect what sets the ramp slope of a plot
-2. Ramp type. Recommended: Ramps 2% for C10, VL4, VL6 and Ramps 0.5% for the rest (311 of 321), and say what makes a Flat Ramp
-3. Villa mirror. Recommended: confirm one hand per row set by the open end, VL6 the other hand, and say what decides a villa alone between two cluster units
-4. Setback line. Recommended: the drawn line sits at 5.00 m (2,530) or 3.00 m (40), keep the ramp at 5.52 m and treat the line as the building setback
-5. Plot front level. Recommended: the road surface snapped within 5 mm at the plot line, Top Surface-02 for IMC and Top Surface-01 for IMD
-6. Back corners. Recommended: the back edge parallel to the front with its mean at El @ Entry
-7. Generic floor. Recommended: the whole baseplan face
-8. Round 16 test host run. Recommended: yes, on a work file, once 2 is settled
-9. Units. Recommended: count from the footprint blocks (2,698) and ask the master planner for the 3 villas the sheet holds more and the 6 of Rev 6
-10. Unit codes for new zones. Recommended: ask the client for the Rev 6 unit schedule of Phase 1 by plot
-11. Widths over Rev 6, C10 58 and VL3 41. Recommended: list them for the architect to confirm the unit fits
-12. IME. Recommended: send its schedule or its boundary
-13. FFL split. Recommended: ask the architect why M07 and M08 split at the middle wall and M11 never
-14. CASE. Recommended: confirm the second letter is the hand as built
-15. VL6 hand. Recommended: confirm in Revit that the VL6 file is drawn the other hand from VL4
-16. Yard depth per unit. Recommended: ask the architect, the plan keeps FFL minus 0.100 until then
-17. Plots 2311 and 2312. Recommended: follow the baseplan and the footprint drawing (VL4, VL4, OS) and keep them listed apart
-18. Plots 2301 and 2302. Recommended: DP4, as the schedule and the file say
-19. The 58 plots whose past ramp sits a median 97 mm above the surface. Recommended: a design choice of the past job, list them apart
-20. RRE_ZZ_SP_Prototype-FFL. Recommended: keep the schedule FFL and never write the parameter
-21. Angle to true north. Recommended: keep the stop until a project has one
-22. Free memory for the parallel windows. Recommended: more than 8 GB free before the combined test, this round had 6.2 GB
-23. TEST copies in Zone 02\ARC. Recommended: delete them when you no longer need them, keep Prototypes_2024
-24. The empty site-adaptation-tool-15a folder. Recommended: close what holds it and delete it, steps/bader-data-2.md
-25. Curb and ROW distance. Recommended: keep anyEdge (312 and 336 of 336) for the distances and the R122 front for width, links and levels
-26. The 13 schedule plots the PDF location check refuses. Recommended: keep label plus shift, it agrees on all 336 IMC plots, and keep the 13 listed
-27. The two curbs differ by more than 1 m on about 15 percent of their length. Recommended: keep the Roads Road Layout curb, it scores against the past plan, and ask which road layout is current
-28. Two DP4 labels in a face with many labels. Recommended: ask for that baseplan face to be split, until then they stay unwired
-29. The Zone 4 IMG past job (Revit model, coordinate sheets, Excel) as a second answer key. Recommended: send it if it exists, no IMG file is on this machine and 00_Revit Models holds Zone 02 only
-30. Unit codes for plots with no schedule. Recommended: take Typology_Rev9 by the location plan number (1,819 of 1,831), replaces question 10
-31. Official numbers. Recommended: take the location plan number per face for every NBH, it agrees on 746 of 747, a fixed shift fails in 01A, 03 and 022
-32. 113 plan plots with no Rev 9 sales row (81 in Zone 4). Recommended: ask whether the sales sheet is complete for Zone 4
-33. Location plan versions. Recommended: keep the Rev.09 PDF and read the DWG of 01_Output next, the other PDF is a later export
+Stub. The full entry is in steps/history/round-data-2.md.
+- The full Civil 3D read of three road drawings, El @ Entry from the road and the ramp, units per face, the wiring per source and the Zone 4 location plan (R169 to R184) were added and merged as PR 28. Gate then: Python 808 passed and 1 skipped, .NET 371 passed
+- Its questions are carried in the list of the DATA-3 entry. Answered in DATA-3: the location plan versions (its 33), the IMG name in the title block
 
 ## Round DATA, 2026-10-24, the data book of Phase 1
 

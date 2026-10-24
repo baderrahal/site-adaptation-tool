@@ -90,6 +90,37 @@ namespace SiteAdaptation.Tests
             Assert.Equal(0, layers["EMPTY"].Entities);
         }
 
+        [Fact]
+        public void R189_layers_file_lists_the_dwg_classes_with_their_instance_count()
+        {
+            var document = BuildDummy();
+            document.Classes.AddOrUpdate(new ACadSharp.Classes.DxfClass
+            {
+                DxfName = "AECC_TIN_SURFACE",
+                CppClassName = "AeccDbSurfaceTin",
+                ApplicationName = "AeccDbSurface",
+                InstanceCount = 3,
+                IsAnEntity = true,
+            });
+            var classes = CadExtractor.Extract(document, "dummy.dwg").Layers.Classes;
+            var surface = Assert.Single(classes, entry => entry.DxfName == "AECC_TIN_SURFACE");
+            Assert.Equal("AeccDbSurfaceTin", surface.CppClassName);
+            Assert.Equal(3, surface.InstanceCount);
+            Assert.True(surface.IsAnEntity);
+            Assert.Equal(classes.Select(entry => entry.DxfName).OrderBy(name => name, StringComparer.Ordinal), classes.Select(entry => entry.DxfName));
+        }
+
+        [Fact]
+        public void R196_layers_file_carries_the_created_and_saved_time_of_the_header()
+        {
+            var document = BuildDummy();
+            document.Header.CreateDateTime = new DateTime(2024, 3, 25, 9, 30, 0);
+            document.Header.UpdateDateTime = new DateTime(2024, 6, 25, 17, 25, 0);
+            var layers = CadExtractor.Extract(document, "dummy.dwg").Layers;
+            Assert.Equal("2024-03-25 09:30", layers.Created);
+            Assert.Equal("2024-06-25 17:25", layers.Updated);
+        }
+
         [Theory]
         [InlineData(".dxf")]
         [InlineData(".dwg")]

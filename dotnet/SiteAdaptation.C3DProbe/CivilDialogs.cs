@@ -77,9 +77,19 @@ namespace SiteAdaptation.C3DProbe
             return found.Success ? found.Groups["value"].Value : null;
         }
 
-        public static DialogAnswer Decide(string title, IList<string> texts, IList<string> buttons, string probePath)
+        // R197. With ownOnly, while another session shares the machine, only the security dialog of the probe DLL is clicked and
+        // every other dialog is logged and left as it is
+        public static DialogAnswer Decide(string title, IList<string> texts, IList<string> buttons, string probePath, bool ownOnly = false)
         {
             var plain = (buttons ?? new List<string>()).Select(Plain).ToList();
+            if (ownOnly)
+            {
+                if (IsSecurity(title, texts) && NamesProbe(texts, probePath) && Has(plain, LoadOnceButton) != null)
+                {
+                    return new DialogAnswer { Action = DialogAction.LoadOnce, Button = Has(plain, LoadOnceButton), Why = "the security dialog names the probe DLL" };
+                }
+                return new DialogAnswer { Action = DialogAction.Leave, Why = "own only, a dialog that does not name the probe DLL is left" };
+            }
             if (IsSecurity(title, texts))
             {
                 if (NamesProbe(texts, probePath) && Has(plain, LoadOnceButton) != null)
