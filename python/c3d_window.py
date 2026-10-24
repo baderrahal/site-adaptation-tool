@@ -4,7 +4,8 @@ Bader decided for round DATA that the full window runs the probe the way the Rev
 the Civil 3D product switch on a copy and a script that NETLOADs the probe, runs C3DDATA and C3DQUIT, and the watcher of
 R161 answers the dialogs. The runner refuses a drawing outside the data book work folder, hashes the copy before and after,
 stops the run when free memory falls under minFreeGB or the time runs out, and only ever stops the processes it started.
-SECURELOAD, TRUSTEDPATHS and the registry are never touched.
+SECURELOAD, TRUSTEDPATHS and the registry are never touched. With dataBook.windowLock the window opens only under the shared
+window lock of R200 (R197), and with watcherOwnOnly the watcher clicks only the security dialog that names the probe DLL.
 """
 import argparse
 import ctypes
@@ -17,6 +18,7 @@ from datetime import datetime
 from pathlib import Path
 
 import c3d_run
+import window_lock
 
 REPO = Path(__file__).resolve().parent.parent
 COMMANDS = ("C3DDATA", "C3DQUIT")
@@ -59,8 +61,8 @@ def window_args(acad, drawing, script, language):
     return [str(acad), str(drawing), "/product", "C3D", "/language", language, "/nologo", "/b", str(script)]
 
 
-def watch_args(watcher, pid, dll, out, minutes):
-    return [str(watcher), "--pid", str(pid), "--probe", str(dll), "--out", str(out), "--minutes", str(minutes)]
+def watch_args(watcher, pid, dll, out, minutes, own_only=False):
+    return [str(watcher), "--pid", str(pid), "--probe", str(dll), "--out", str(out), "--minutes", str(minutes)] + (["--own-only", "true"] if own_only else [])
 
 
 def probe_dll(config):
@@ -83,7 +85,24 @@ def probe_done(summary, started):
     return found.get("reader") == "C3DProbe" and found.get("done") is True
 
 
-def run(config, role, launcher=None, memory=free_gb, sleep=time.sleep, clock=time.time):
+def run(config, role, launcher=None, memory=free_gb, sleep=time.sleep, clock=time.time, processes=None):
+    """With dataBook.windowLock the window opens only under the lock of R200 and the lock is given back however the run ends (R197)."""
+    book = config["dataBook"]
+    block = book.get("windowLock")
+    if not block:
+        return _run(config, role, launcher, memory, sleep, clock)
+    lock = window_lock.Lock(block, block["round"], Path(book["root"]) / block["log"], sleep=sleep, free=memory,
+                            processes=processes or window_lock.running)
+    seen = lock.acquire(role, block["maxWaitMinutes"])
+    try:
+        record = _run(config, role, launcher, memory, sleep, clock)
+        record["lockSeen"] = seen
+        return record
+    finally:
+        lock.release(role)
+
+
+def _run(config, role, launcher, memory, sleep, clock):
     book = config["dataBook"]
     root = Path(book["root"])
     drawing = work_root(book) / book["drawings"][role]
@@ -111,7 +130,7 @@ def run(config, role, launcher=None, memory=free_gb, sleep=time.sleep, clock=tim
     window = launch(window_args(book["acad"], drawing, script, config["language"]), env)
     record["pids"].append(window.pid)
     watch_log = logs / f"{stamp}_{role}.watch.json"
-    watcher = launch(watch_args(REPO / book["watcher"], window.pid, dll, watch_log, book["timeoutMinutes"]), env)
+    watcher = launch(watch_args(REPO / book["watcher"], window.pid, dll, watch_log, book["timeoutMinutes"], book.get("watcherOwnOnly", False)), env)
     record["pids"].append(watcher.pid)
     started = clock()
     lowest = start_free

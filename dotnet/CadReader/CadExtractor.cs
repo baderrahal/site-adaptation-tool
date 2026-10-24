@@ -136,8 +136,21 @@ namespace CadReader
                 Extents = exploder.Extents(),
                 Xrefs = BuildXrefs(document, exploder, sourcePath),
                 Notes = BuildNotes(problems),
+                Classes = BuildClasses(document),
                 Layers = layers,
             };
+        }
+
+        private static List<ClassEntry> BuildClasses(CadDocument document)
+        {
+            return document.Classes.Select(entry => new ClassEntry
+            {
+                DxfName = entry.DxfName,
+                CppClassName = entry.CppClassName,
+                ApplicationName = entry.ApplicationName,
+                InstanceCount = entry.InstanceCount,
+                IsAnEntity = entry.IsAnEntity,
+            }).OrderBy(entry => entry.DxfName, StringComparer.Ordinal).ToList();
         }
 
         private static List<XrefEntry> BuildXrefs(CadDocument document, Exploder exploder, string sourcePath)

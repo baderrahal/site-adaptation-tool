@@ -90,6 +90,26 @@ namespace SiteAdaptation.Tests
             Assert.Equal(0, layers["EMPTY"].Entities);
         }
 
+        [Fact]
+        public void R189_layers_file_lists_the_dwg_classes_with_their_instance_count()
+        {
+            var document = BuildDummy();
+            document.Classes.AddOrUpdate(new ACadSharp.Classes.DxfClass
+            {
+                DxfName = "AECC_TIN_SURFACE",
+                CppClassName = "AeccDbSurfaceTin",
+                ApplicationName = "AeccDbSurface",
+                InstanceCount = 3,
+                IsAnEntity = true,
+            });
+            var classes = CadExtractor.Extract(document, "dummy.dwg").Layers.Classes;
+            var surface = Assert.Single(classes, entry => entry.DxfName == "AECC_TIN_SURFACE");
+            Assert.Equal("AeccDbSurfaceTin", surface.CppClassName);
+            Assert.Equal(3, surface.InstanceCount);
+            Assert.True(surface.IsAnEntity);
+            Assert.Equal(classes.Select(entry => entry.DxfName).OrderBy(name => name, StringComparer.Ordinal), classes.Select(entry => entry.DxfName));
+        }
+
         [Theory]
         [InlineData(".dxf")]
         [InlineData(".dwg")]

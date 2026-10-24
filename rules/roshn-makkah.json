@@ -86,6 +86,30 @@
   "villa": {
     "driver_house": ["C10", "VL6"]
   },
+  "typology_codes": {
+    "source": "PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx, sheet 2024-01-30_New Typo Names, the same in the TBD workbook",
+    "note": "The old client code and the new ROSHN code of each row side by side as the sheet writes them, neither is renamed. form is empty where the sheet leaves it empty. Plot size in metres, areas in m2",
+    "rows": [
+      {"form": null, "old": "C10", "new": "C10", "width_m": 16, "depth_m": 25, "plot_area_m2": 400, "gfa_m2": 407, "bua_m2": 499},
+      {"form": "Duplex", "old": "DP1", "new": "DP1", "width_m": 10, "depth_m": 25, "plot_area_m2": 250, "gfa_m2": 232, "bua_m2": 331},
+      {"form": "Villa", "old": "DP1", "new": "VD1", "width_m": 10, "depth_m": 25, "plot_area_m2": 250, "gfa_m2": 232, "bua_m2": 331},
+      {"form": null, "old": "DP2", "new": null, "width_m": 10, "depth_m": 25, "plot_area_m2": 250, "gfa_m2": 249, "bua_m2": 349.96},
+      {"form": "Duplex", "old": "DP2-0 (BB)", "new": "DP2", "width_m": 12, "depth_m": 25, "plot_area_m2": 300, "gfa_m2": 248, "bua_m2": 349.96},
+      {"form": "Villa", "old": "DP2-0 (SA)", "new": "VD2", "width_m": 12, "depth_m": 25, "plot_area_m2": 300, "gfa_m2": 248, "bua_m2": 349.96},
+      {"form": null, "old": "DP3", "new": "DP3", "width_m": 10, "depth_m": 25, "plot_area_m2": 250, "gfa_m2": 258, "bua_m2": 359},
+      {"form": "Duplex", "old": "DP4", "new": "DP4", "width_m": 12, "depth_m": 25, "plot_area_m2": 300, "gfa_m2": 273, "bua_m2": 380},
+      {"form": "Villa", "old": "DP4", "new": "VD4", "width_m": 12, "depth_m": 25, "plot_area_m2": 300, "gfa_m2": 273, "bua_m2": 380},
+      {"form": null, "old": "DP4-0", "new": null, "width_m": 12, "depth_m": 25, "plot_area_m2": 300, "gfa_m2": 274, "bua_m2": 380},
+      {"form": null, "old": "TH1", "new": "TH1", "width_m": 8, "depth_m": 25, "plot_area_m2": 200, "gfa_m2": 191, "bua_m2": 249},
+      {"form": null, "old": "TH1-0 (BB)", "new": "DT1", "width_m": 10, "depth_m": 25, "plot_area_m2": 250, "gfa_m2": 191, "bua_m2": 249},
+      {"form": null, "old": "TH1-IM", "new": "TH1-IM", "width_m": 8, "depth_m": 25, "plot_area_m2": 200, "gfa_m2": 191, "bua_m2": 249},
+      {"form": null, "old": "TH3", "new": "TH3", "width_m": 8, "depth_m": 25, "plot_area_m2": 200, "gfa_m2": 209, "bua_m2": 257},
+      {"form": null, "old": "TH3-0 (BB)", "new": "DT3", "width_m": 10, "depth_m": 25, "plot_area_m2": 250, "gfa_m2": 209, "bua_m2": 257},
+      {"form": null, "old": "VL3", "new": "VL3", "width_m": 12, "depth_m": 25, "plot_area_m2": 300, "gfa_m2": 361, "bua_m2": 446},
+      {"form": null, "old": "VL3-0", "new": "VL6", "width_m": 16, "depth_m": 25, "plot_area_m2": 400, "gfa_m2": 361, "bua_m2": 463},
+      {"form": null, "old": "VL4", "new": "VL4", "width_m": 12, "depth_m": 25, "plot_area_m2": 300, "gfa_m2": 318, "bua_m2": 425}
+    ]
+  },
   "plot": {
     "long_side": 25000,
     "boundary_wall_thickness": 200,

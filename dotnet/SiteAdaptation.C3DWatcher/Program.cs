@@ -30,6 +30,7 @@ namespace SiteAdaptation.C3DWatcher
             string probe = null;
             string output = null;
             double minutes = 90;
+            bool ownOnly = false;
             for (int at = 0; at + 1 < args.Length; at += 2)
             {
                 switch (args[at])
@@ -46,6 +47,9 @@ namespace SiteAdaptation.C3DWatcher
                     case "--minutes":
                         minutes = double.Parse(args[at + 1], System.Globalization.CultureInfo.InvariantCulture);
                         break;
+                    case "--own-only":
+                        ownOnly = string.Equals(args[at + 1], "true", StringComparison.OrdinalIgnoreCase);
+                        break;
                 }
             }
             if (pid <= 0 || string.IsNullOrEmpty(probe) || string.IsNullOrEmpty(output))
@@ -53,14 +57,14 @@ namespace SiteAdaptation.C3DWatcher
                 Console.Error.WriteLine("C3D watcher: --pid, --probe and --out are needed");
                 return 2;
             }
-            var report = new WatchLog { Pid = pid, Probe = probe, StartedUtc = DateTime.UtcNow };
-            Watch(pid, probe, minutes, report, output);
+            var report = new WatchLog { Pid = pid, Probe = probe, OwnOnly = ownOnly, StartedUtc = DateTime.UtcNow };
+            Watch(pid, probe, minutes, ownOnly, report, output);
             report.FinishedUtc = DateTime.UtcNow;
             JsonOut.Write(output, report);
             return 0;
         }
 
-        private static void Watch(int pid, string probe, double minutes, WatchLog report, string output)
+        private static void Watch(int pid, string probe, double minutes, bool ownOnly, WatchLog report, string output)
         {
             DateTime deadline = DateTime.UtcNow.AddMinutes(minutes);
             var seen = new Dictionary<string, string>();
@@ -112,7 +116,7 @@ namespace SiteAdaptation.C3DWatcher
                         seen[key] = picture;
                         continue;
                     }
-                    DialogAnswer answer = CivilDialogs.Decide(title, texts, buttons, probe);
+                    DialogAnswer answer = CivilDialogs.Decide(title, texts, buttons, probe, ownOnly);
                     var entry = new SeenDialog
                     {
                         Utc = DateTime.UtcNow, Title = title, WindowClass = windowClass, Texts = texts, Buttons = buttons,
@@ -237,6 +241,7 @@ namespace SiteAdaptation.C3DWatcher
     {
         public int Pid { get; set; }
         public string Probe { get; set; }
+        public bool OwnOnly { get; set; }
         public DateTime StartedUtc { get; set; }
         public DateTime? FinishedUtc { get; set; }
         public string Result { get; set; }

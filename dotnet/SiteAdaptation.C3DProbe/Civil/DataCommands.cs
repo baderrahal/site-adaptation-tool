@@ -744,7 +744,9 @@ namespace SiteAdaptation.C3DProbe.Civil
                         {
                             if (Inside(parcel))
                             {
-                                Rows("parcel", Reflect.Get(parcel, "Name") as string, parcel.Layer, Reflect.Get(site, "Name") as string, Reflect.Plain(parcel));
+                                var parcelValues = Reflect.Plain(parcel);
+                                parcelValues["outline"] = ParcelOutline(parcel);
+                                Rows("parcel", Reflect.Get(parcel, "Name") as string, parcel.Layer, Reflect.Get(site, "Name") as string, parcelValues);
                             }
                             else
                             {
@@ -840,6 +842,42 @@ namespace SiteAdaptation.C3DProbe.Civil
                 }
             }
             return false;
+        }
+
+        // R189. The boundary of a parcel as x y pairs joined by semicolons, from its base curve, so plot faces drawn as Civil 3D
+        // parcels can be compared with the baseplan. The exploded pieces stand in when the base curve cannot be read
+        private static string ParcelOutline(Entity parcel)
+        {
+            var points = new List<Point3d>();
+            try
+            {
+                if (Reflect.Get(parcel, "BaseCurve") is Curve curve)
+                {
+                    points = Sample(curve);
+                }
+            }
+            catch (Exception)
+            {
+            }
+            if (points.Count < 3)
+            {
+                try
+                {
+                    var pieces = new DBObjectCollection();
+                    parcel.Explode(pieces);
+                    points = pieces.OfType<Curve>().SelectMany(Sample).ToList();
+                    foreach (DBObject piece in pieces)
+                    {
+                        piece.Dispose();
+                    }
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            }
+            var culture = CultureInfo.InvariantCulture;
+            return points.Count < 3 ? null : string.Join(";", points.Select(p => p.X.ToString("0.###", culture) + " " + p.Y.ToString("0.###", culture)));
         }
 
         private static double[] Xyz(Point3d point)

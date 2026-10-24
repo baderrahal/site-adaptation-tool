@@ -96,6 +96,19 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R197_own_only_clicks_the_probe_dialog_and_leaves_every_other_dialog()
+        {
+            var own = CivilDialogs.Decide("Security - Unsigned Executable File", new List<string> { "File: " + Probe }, new List<string> { "Always Load", "Load Once", "Do Not Load" }, Probe, true);
+            Assert.Equal(DialogAction.LoadOnce, own.Action);
+            var other = CivilDialogs.Decide("Security - Unsigned Executable File", new List<string> { @"File: C:\other\Z4.dll" }, new List<string> { "Always Load", "Load Once", "Do Not Load" }, Probe, true);
+            Assert.Equal(DialogAction.Leave, other.Action);
+            Assert.Null(other.Button);
+            var scale = CivilDialogs.Decide("Annotation Scale", new List<string> { "Annotation scale changed" }, new List<string> { "Yes", "No" }, Probe, true);
+            Assert.Equal(DialogAction.Leave, scale.Action);
+            Assert.Null(scale.Button);
+        }
+
+        [Fact]
         public void R161_do_not_load_for_another_file_even_of_the_same_name()
         {
             var answer = CivilDialogs.Decide("Security - Unsigned Executable File", new List<string> { @"File: C:\other\SiteAdaptation.C3DProbe.dll" }, new List<string> { "Always Load", "Load Once", "Do Not Load" }, Probe);

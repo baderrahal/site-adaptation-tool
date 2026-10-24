@@ -213,7 +213,8 @@
       "masterR06": "Master Plan/221229_MP-SK-01-03-001_R06.dwg",
       "masterR06_0000": "Master Plan/221229_MP-SK-01-03-001_R06_0000.dwg",
       "masterR06_0001": "Master Plan/221229_MP-SK-01-03-001_R06_0001.dwg",
-      "masterV9": "Master Plan/25.06.2025 Phase 1 Amana_V9.dwg"
+      "masterV9": "Master Plan/25.06.2025 Phase 1 Amana_V9.dwg",
+      "masterR9": "Master Plan Rev.09/MP-SK-01-03-006_R9.0.dwg"
     },
     "border": {
       "drawing": "phaseBoundaries",
@@ -225,6 +226,17 @@
     "cadReader": "dotnet/CadReader/bin/Release/net48/CadReader.exe",
     "minFreeGB": 2,
     "timeoutMinutes": 90,
+    "watcherOwnOnly": true,
+    "windowLock": {
+      "lock": "C:/Users/bader/Documents/SiteAdaptation/window.lock",
+      "round": "DATA-3",
+      "windowProcesses": ["acad", "accoreconsole", "Revit"],
+      "waitMinutes": 5,
+      "staleHours": 2,
+      "minFreeGB": 2,
+      "maxWaitMinutes": 240,
+      "log": "logs/window_lock.jsonl"
+    },
     "exportKnownSurfaces": true,
     "knownSurfaces": {
       "roadSurface": [
@@ -468,6 +480,61 @@
         "roadSurfaces": "snapOrder",
         "locationPlan": "pointInside"
       }
+    },
+    "rev9": {
+      "outFolder": "rev9",
+      "workbooks": {
+        "accommodation": "Master Plan Rev.09/PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx",
+        "tbd": "Master Plan Rev.09/TBD-PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_Rev9.0.xlsx"
+      },
+      "diffOrder": ["accommodation", "tbd"],
+      "keyNames": ["PLOT_NO", "Plot_No", "Plot No", "Plot Number", "Number", "AMANA Plot No / Land Number"],
+      "keySearchRows": 5,
+      "dlus": {
+        "workbook": "accommodation",
+        "sheet": "PH_1-DLUS-(Without Formulas)",
+        "headerRow": 3,
+        "columns": {
+          "plot": "Plot Number",
+          "typology": "Typology",
+          "nbh": "Neighbourhood ID",
+          "front": "Front",
+          "right": "Side (right)",
+          "left": "Side (left)",
+          "rear": "Rear"
+        }
+      },
+      "sales": {
+        "workbook": "accommodation",
+        "sheet": "JN Sales Data_Base_Rev09",
+        "headerRow": 1,
+        "columns": {
+          "plot": "Plot No",
+          "typology": "Typology_Rev9",
+          "typologyOld": "Typology_Rev8.1",
+          "nbh": "NBH",
+          "zone": "Zone",
+          "landWidth": "Land Width (m)",
+          "landLength": "Land Length (m)"
+        }
+      },
+      "codeTable": {
+        "workbook": "accommodation",
+        "sheet": "2024-01-30_New Typo Names",
+        "headerRow": 2,
+        "columns": {
+          "form": "Typology Form",
+          "old": "Old Typologies Code",
+          "new": "New Typologies Code_Roshn",
+          "gfaM2": "GFA (m2)",
+          "buaM2": "BUA (m2)",
+          "widthM": "Width (m)",
+          "depthM": "Depth (m)",
+          "plotAreaM2": "Plot area (m2)"
+        }
+      },
+      "setbackLinesM": [5.0, 3.0],
+      "wideTypes": ["C10", "VL3"]
     },
     "retest": {
       "steepUnits": [
