@@ -74,7 +74,14 @@
     "riser_added": 170,
     "count_rule": "under 0.205 is 1, 0.205 to under 0.38 is 2, 0.38 and over is 3",
     "base_height": {"default": 100, "DP2": 200, "DP3": 200, "DP4": 200, "VD2": 200, "VD4": 200},
+    "one_step_only": ["C10", "VL4", "VL6"],
     "base_height_source": "past job schedules, 747 plots. Rev 6 Appendix A groups DP2, DP3, DP4, VD2, VD4 on one sheet, which supports it. Not confirmed by the architect"
+  },
+  "ramp": {
+    "front_setback": {
+      "default": 5520,
+      "C10": 5500
+    }
   },
   "plot": {
     "long_side": 25000,
@@ -106,9 +113,6 @@
     "boundary_wall_top_above_ffl": 1700,
     "boundary_wall_continuity_limit": 500,
     "garden_wall_top_above_ffl": 1700,
-    "utility_cabinet_raise": 100,
-    "front_setback": 5520,
-    "front_setback_c10": 5500,
-    "one_step_only_typologies": ["C10", "VL4", "VL6"]
+    "utility_cabinet_raise": 100
   }
 }
