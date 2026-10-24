@@ -1,4 +1,4 @@
-STATE 2026-10-25, Round DATA-5 done on data/data-book-5: the DATA-4 audit, the missing xrefs, the reader counts, the area key per plot, the IFC in Downloads and the coverage table. Round DATA-4 done and merged (PR 36)
+STATE 2026-10-25, Round DATA-5 done and merged (PR 38): the DATA-4 audit, the missing xrefs, the reader counts, the area key per plot, the IFC in Downloads and the coverage table. Round DATA-4 done and merged (PR 36)
 
 # Progress
 
@@ -15,7 +15,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 
 ## Done
 
-- DATA-5: R251 to R260. DATA-4: R240 to R250, PR 36. 16: R220 to R236, PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c: PR 24, 25. C3D: PR 22, 23. 14: PR 20, 21. 1 to 15b: PRs 1 to 19
+- DATA-5: R251 to R260, PR 38. DATA-4: R240 to R250, PR 36. 16: R220 to R236, PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c: PR 24, 25. C3D: PR 22, 23. 14: PR 20, 21. 1 to 15b: PRs 1 to 19
 
 ## Open bugs
 
