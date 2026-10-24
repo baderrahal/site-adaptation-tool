@@ -6,7 +6,7 @@
 # -NewUpgradeFolder makes that folder and stops when it is there already, so it goes on the first upgrade only.
 # With -FloorSpec it runs a master, floors or linksAndFloors job of R117 on a copy python/scenario_files.py made beforehand.
 # The spec names kind, code, model and the options, and this script never copies, moves or deletes a model.
-# With -RoundSpec it runs a siteUpgrade, read, newSite, image or linksAndFloors job of R204 to R214 on the files of
+# With -RoundSpec it runs a siteUpgrade, read, newSite, image or linksAndFloors job of R204 to R214 (a read of R245 may name a test copy of handCheck.folders) on the files of
 # siteBuild in config/project.json, all in its work folder. It never copies, moves or deletes a model either.
 param(
     [ValidatePattern('^[A-Z][A-Z0-9]{1,3}$')]
@@ -133,10 +133,15 @@ if ($round) {
             $roundJob.target = $target
         }
         'read' {
-            # R227. A read may name its own test copy in the work folder, such as a prototype, else it reads the key copy
+            # R227. A read may name its own test copy in the work folder, such as a prototype, else it reads the key copy.
+            # R245. It may also name a test copy <name>_TEST-<code>.rvt made beforehand in a folder of handCheck.folders
             $copy = if ($round.model) { [string]$round.model } else { Join-Path $work ($keyStem + '_TEST-' + $Code + '.rvt') }
-            if ((Split-Path $copy) -ne $work) {
-                throw "The read model is not in the work folder $work"
+            $handCheck = @($config.handCheck.folders) -contains (Split-Path $copy)
+            if ((Split-Path $copy) -ne $work -and -not $handCheck) {
+                throw "The read model is not in the work folder $work or a folder of handCheck.folders in config/project.json: $copy"
+            }
+            if ($handCheck -and [IO.Path]::GetFileName($copy) -notmatch ('_TEST-' + $Code + '\.rvt$')) {
+                throw "The read model is not named <name>_TEST-$Code.rvt: $copy"
             }
             $original = $copy
             $roundJob.model = $copy

@@ -111,6 +111,18 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R241_header_only_gives_dates_units_entities_and_classes_without_exploding()
+        {
+            var document = BuildDummy();
+            document.Header.UpdateDateTime = new DateTime(2023, 11, 6, 8, 0, 0);
+            document.Classes.AddOrUpdate(new ACadSharp.Classes.DxfClass { DxfName = "AECC_TIN_SURFACE", CppClassName = "AeccDbSurfaceTin", InstanceCount = 2, IsAnEntity = true });
+            var header = CadExtractor.Header(document, "dummy.dwg");
+            Assert.Equal("2023-11-06 08:00", header.Updated);
+            Assert.Equal(4, header.ModelSpaceEntities);
+            Assert.Equal(2, header.Classes.Single(entry => entry.DxfName == "AECC_TIN_SURFACE").InstanceCount);
+        }
+
+        [Fact]
         public void R196_layers_file_carries_the_created_and_saved_time_of_the_header()
         {
             var document = BuildDummy();

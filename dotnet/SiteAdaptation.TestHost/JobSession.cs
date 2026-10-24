@@ -233,6 +233,7 @@ namespace SiteAdaptation.TestHost
                 if (job.Kind == TestHostGuard.ReadKind)
                 {
                     yield return new JobStep { Name = "read", LimitMinutes = 15, Action = () => steps.Read(document) };
+                    yield return new JobStep { Name = "rooms", LimitMinutes = 5, Action = () => new HandSteps(job, documents).Rooms(document) };
                 }
                 else
                 {

@@ -226,10 +226,10 @@
     "cadReader": "dotnet/CadReader/bin/Release/net48/CadReader.exe",
     "minFreeGB": 2,
     "timeoutMinutes": 90,
-    "watcherOwnOnly": true,
+    "watcherOwnOnly": false,
     "windowLock": {
       "lock": "C:/Users/bader/Documents/SiteAdaptation/window.lock",
-      "round": "DATA-3",
+      "round": "DATA-4",
       "windowProcesses": ["acad", "accoreconsole", "Revit"],
       "waitMinutes": 5,
       "staleHours": 2,
@@ -521,6 +521,29 @@
         "headerRow": 1,
         "columns": {"plot": "PLOT_NO", "nbh": "Neighbourhood_ID", "zone": "Construction_Zone"}
       }
+    },
+    "pastFormulas": {
+      "outFolder": "past_formulas",
+      "workbooks": ["01_Output/1.11 References/00101-PSN-IMC-XXX-SCH-TU-090000.xlsx", "01_Output/1.11 References/00101-PSN-IMD-XXX-SCH-TU-090000.xlsx"],
+      "table": "Table137",
+      "plotColumn": "Plot No.",
+      "columns": ["El @ Entry*", "FFL", "Height**"],
+      "noteCells": ["B4", "B5", "B6"]
+    },
+    "surfaceEntry": {
+      "outFolder": "surface_entry",
+      "key": {
+        "plan": "C:/Users/bader/Documents/SiteAdaptation/round_z4/plan_z4_past.json",
+        "model": "C:/Users/bader/Documents/SiteAdaptation/round_z4/prototypes_z4_past.json",
+        "fflParameter": "FFL",
+        "neighbourhood": "022"
+      }
+    },
+    "surfaceVersions": {
+      "outFolder": "surface_versions",
+      "suffixes": [".dwg", ".xml"],
+      "renames": {"Roshn Makkah - Master Plan Rev.09": "Master Plan Rev.09"},
+      "surfaceClasses": ["AECC_TIN_SURFACE", "AECC_GRID_SURFACE", "AECC_TIN_VOLUME_SURFACE", "AECC_GRID_VOLUME_SURFACE"]
     },
     "data3Check": {
       "seeds": [14, 7],
