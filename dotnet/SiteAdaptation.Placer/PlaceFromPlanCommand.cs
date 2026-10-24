@@ -59,15 +59,63 @@ namespace SiteAdaptation.Placer
             }
 
             bool real = answer == TaskDialogResult.CommandLink2;
-            string prototypeFile;
-            if (!PickFilter(plan, out prototypeFile))
+            bool links;
+            bool floors;
+            if (!PickSteps(out links, out floors))
             {
                 return Result.Cancelled;
             }
-            PlacerReport report = PlaceFromPlan.Run(active.Document, plan, planPath, real, prototypeFile);
-            JsonOut.Write(reportPath, report);
-            TaskDialog.Show(Title, Summary(report) + "\n" + reportPath);
+            string prototypeFile = null;
+            if (links && !PickFilter(plan, out prototypeFile))
+            {
+                return Result.Cancelled;
+            }
+            PlacerRunReport run = PlaceFromPlan.RunSteps(active.Document, plan, planPath, real, links, floors, prototypeFile, null);
+            // A links only run keeps the report of R87, a run with floors writes both steps (R116)
+            if (floors)
+            {
+                JsonOut.Write(reportPath, run);
+            }
+            else
+            {
+                JsonOut.Write(reportPath, run.Links);
+            }
+            string text = (run.Links == null ? "" : "Links: " + Summary(run.Links) + "\n") + (run.Floors == null ? "" : "Floors: " + FloorSummary(run.Floors) + "\n");
+            TaskDialog.Show(Title, text + reportPath);
             return Result.Succeeded;
+        }
+
+        // R116. Links, floors or both, false when the choice is cancelled
+        private static bool PickSteps(out bool links, out bool floors)
+        {
+            var which = new TaskDialog(Title)
+            {
+                MainInstruction = "What should be placed?",
+                CommonButtons = TaskDialogCommonButtons.Cancel,
+            };
+            which.AddCommandLink(TaskDialogCommandLinkId.CommandLink1, "Links", "The villa links of the plan, step 1.");
+            which.AddCommandLink(TaskDialogCommandLinkId.CommandLink2, "Floors", "The Generic, yard and ramp floors of the plan, step 2.");
+            which.AddCommandLink(TaskDialogCommandLinkId.CommandLink3, "Links and floors", "Links first in one transaction, then the floors in another.");
+            TaskDialogResult answer = which.Show();
+            links = answer == TaskDialogResult.CommandLink1 || answer == TaskDialogResult.CommandLink3;
+            floors = answer == TaskDialogResult.CommandLink2 || answer == TaskDialogResult.CommandLink3;
+            return links || floors;
+        }
+
+        private static string FloorSummary(FloorReport report)
+        {
+            string mode = report.Mode == "real" ? "Real run" : "Dry run, nothing was changed";
+            if (report.Stopped)
+            {
+                return mode + ". Stopped: " + report.Failure;
+            }
+            string text = mode + ". " + (report.Mode == "real" ? "Placed " : "Would place ") + report.Counts.Placed + " floors, skipped " + report.Counts.Skipped
+                + ", plot values written " + report.Counts.PlotValuesWritten + ", issues " + report.Counts.Issues + ". Floors before " + report.FloorsBefore + ", after " + report.FloorsAfter + ".";
+            if (report.RolledBack)
+            {
+                text += "\nRolled back: " + report.Failure;
+            }
+            return text;
         }
 
         private static string Summary(PlacerReport report)

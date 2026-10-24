@@ -6,12 +6,18 @@ import pytest
 import plan_compare
 import plan_from_past as pf
 import project_profile
+import yard_rule
 
 OFFSET = [1000.0, 2000.0, 0.0]
 FILES = {"keo-arc-vd2-zz.rvt", "keo-arc-dp4-zz.rvt"}
 PARAMETERS = ["RRE_ZZ_SP_Plot-Number", "RRE_ZZ_SP_Prototype", "RRE_ZZ_SP_Number-of-Steps", "RRE_ZZ_SP_RVT-Name", "CASE"]
 JOB = {"neighbourhood": "AAA", "schedule": "book.xlsx", "sheet": "Sheet1", "prototypes": "C:\\x\\prototypes.json",
        "prototypeFolder": "Prototypes", "output": "C:\\x\\plan.json", "parameters": PARAMETERS}
+# Made up floor type and level names, the real ones live in config/project.json only
+FLOORS = {"types": {"generic": ["Slab G"], "yard": ["Yard Y"], "ramp": ["Ramp A", "Ramp B"]},
+          "levels": {"generic": "L1", "yard": "L2", "ramp": "L1"},
+          "plotParameter": "Plot", "yardBelowFflM": 0.1, "yardShareTie": 0.01, "yardMinShare": 0.5}
+LEVEL_ELEVATIONS = {"L1": 0.0, "L2": 4.0}
 
 
 def shared(x, y, z=0.0):
@@ -41,23 +47,37 @@ def link(plot, x=0.0, y=0.0, z=10.0, rotation=30.0, mirrored=False, file="KEO-AR
     return entry
 
 
-def flat(element_id, type_name, plot, loop, top):
+def internal(points):
+    return [[point[0] - OFFSET[0], point[1] - OFFSET[1], 150.0] for point in points]
+
+
+def flat(element_id, type_name, plot, loop, top, level="L1"):
     return {"typeName": type_name, "elementId": element_id, "topElevation": top, "topElevationRange": {"min": top, "max": top},
-            "outline": [loop], "plotNumber": None if plot is None else str(plot)}
+            "outline": [loop], "sketchBoundary": internal(loop), "level": level, "levelElevation": LEVEL_ELEVATIONS[level],
+            "plotNumber": None if plot is None else str(plot)}
 
 
-def ramp(element_id, plot, corners):
-    floor = flat(element_id, "Ramps 2%", plot, corners, min(corner[2] for corner in corners))
+def ramp(element_id, plot, corners, type_name="Ramp B"):
+    floor = flat(element_id, type_name, plot, corners, min(corner[2] for corner in corners))
     floor["corners"] = [[corner[0] - OFFSET[0], corner[1] - OFFSET[1], corner[2] - OFFSET[2]] for corner in corners]
     return floor
 
 
 def plot_floors(plot, x0, first_id, yard=True, ffl=10.0):
-    floors = [flat(first_id, "Generic 150mm", plot, rect(x0, 0, x0 + 10, 10), ffl),
+    floors = [flat(first_id, "Slab G", plot, rect(x0, 0, x0 + 10, 10), ffl),
               ramp(first_id + 1, plot, [shared(x0 + 10, 0, 9.8), shared(x0 + 12, 0, 9.81), shared(x0 + 12, 10, 9.82), shared(x0 + 10, 10, 9.83)])]
     if yard:
-        floors.append(flat(first_id + 2, "yard", None, rect(x0 - 5, 0, x0, 10), ffl - 0.1))
+        floors.append(flat(first_id + 2, "Yard Y", None, rect(x0 - 5, 0, x0, 10), ffl - 0.1, level="L2"))
     return floors
+
+
+def face(label, x0, x1=None, y0=0, y1=10):
+    """A baseplan plot face in the shape plots.json holds, from x0 - 5 to x0 + 12 so it holds the three floors of plot_floors."""
+    x1 = x0 + 12 if x1 is None else x1
+    return {"kind": "plot_shape", "plot": label, "vertices": [[OFFSET[0] + x, OFFSET[1] + y] for x, y in ((x0 - 5, y0), (x1, y0), (x1, y1), (x0 - 5, y1))]}
+
+
+FACES = yard_rule.face_shapes([face("101", 0), face("102", 50), face("103", 100)], 0)[0]
 
 
 def document(links, floors):
@@ -69,8 +89,8 @@ def row(plot, ffl=10.0, ssl=9.925, entry=9.81234, height=0.18766, steps="1 steps
     return {"Plot No.": int(plot), "Unit": unit, "FFL": ffl, "SSL": ssl, "El @ Entry*": entry, "Height**": height, "Steps Needed": steps}
 
 
-def build(links, floors, rows, files=FILES):
-    return pf.build_plan(document(links, floors), rows, JOB, files, "C:\\Prototypes")
+def build(links, floors, rows, files=FILES, faces=None, config=None):
+    return pf.build_plan(document(links, floors), rows, JOB, files, "C:\\Prototypes", config or FLOORS, FACES if faces is None else faces)
 
 
 def one_plot_plan(**link_options):
@@ -125,18 +145,131 @@ def test_r80_floors_generic_at_ffl_yard_at_ffl_minus_0_100_ramp_corners_with_the
     floors = by_plot(one_plot_plan())["101"]["floors"]
     assert floors["generic"]["z"] == {"value": 10.0, "source": "computed"}
     assert floors["yard"]["z"] == {"value": 9.9, "source": "computed"}
-    assert floors["generic"]["outline"]["value"] == [[[1000.0, 2000.0], [1010.0, 2000.0], [1010.0, 2010.0], [1000.0, 2010.0]]]
-    assert floors["yard"]["type"]["value"] == "yard"
-    assert floors["ramp"]["type"]["value"] == "Ramps 2%"
+    assert floors["generic"]["outline"]["value"] == {"loops": [{"points": [[1000.0, 2000.0], [1010.0, 2000.0], [1010.0, 2010.0], [1000.0, 2010.0]], "arcs": []}]}
+    assert floors["yard"]["type"]["value"] == "Yard Y"
+    assert floors["ramp"]["type"]["value"] == "Ramp B"
     assert [corner[2] for corner in floors["ramp"]["corners"]["value"]] == [9.8, 9.81, 9.82, 9.83]
 
 
-def test_r80_a_yard_in_two_pieces_keeps_both_rings():
+def test_r112_a_yard_in_two_pieces_keeps_the_sketch_loop_first_and_the_second_piece_from_the_top_face():
     floors = plot_floors("101", 0, 10, yard=False)
-    two = flat(12, "yard", None, rect(-5, 0, 0, 10), 9.9)
-    two["outline"].append(rect(-5, 20, 0, 30))
+    two = flat(12, "Yard Y", None, rect(-5, 0, 0, 10), 9.9, level="L2")
+    two["outline"] = [rect(-5, 20, 0, 30), rect(-5, 0, 0, 10)]
     plan = build([link("101")], floors + [two], [row("101")])
-    assert len(by_plot(plan)["101"]["floors"]["yard"]["outline"]["value"]) == 2
+    loops = by_plot(plan)["101"]["floors"]["yard"]["outline"]["value"]["loops"]
+    assert [loop["points"][0] for loop in loops] == [[995.0, 2000.0], [995.0, 2020.0]]
+    assert all(loop["arcs"] == [] for loop in loops)
+
+
+def test_r112_each_floor_holds_type_level_level_elevation_height_offset_outline_and_plot_value():
+    floors = by_plot(one_plot_plan())["101"]["floors"]
+    assert set(floors["generic"]) == {"type", "level", "levelElevation", "heightOffset", "outline", "plotValue", "z"}
+    assert set(floors["yard"]) == {"type", "level", "levelElevation", "heightOffset", "outline", "plotValue", "z"}
+    assert set(floors["ramp"]) == {"type", "level", "levelElevation", "heightOffset", "outline", "plotValue", "corners"}
+    assert floors["generic"]["level"]["value"] == "L1" and floors["yard"]["level"]["value"] == "L2"
+    assert floors["generic"]["heightOffset"]["value"] == 10.0
+    # The yard is 0.1 below the FFL on a level at 4 m
+    assert floors["yard"]["heightOffset"]["value"] == 5.9
+    # A ramp sits on its lowest corner, the slab shape editor lifts the others
+    assert floors["ramp"]["heightOffset"]["value"] == 9.8
+    assert {floor["plotValue"]["value"] for floor in floors.values()} == {"VD2-101"}
+
+
+def test_r112_an_arc_edge_keeps_centre_radius_and_direction_in_shared_coordinates():
+    floors = plot_floors("101", 0, 10)
+    # Edge 1 from (10, 0) to (10, 10) bulges out as a half circle round (10, 5)
+    floors[0]["arcs"] = [{"edge": 1, "center": [10.0, 5.0, 150.0], "radius": 5.0, "ccw": True}]
+    floors[0]["sketchBoundary"] = [[0, 0, 150], [10, 0, 150], [10, 10, 150], [0, 10, 150]]
+    plan = build([link("101")], floors, [row("101")])
+    loop = by_plot(plan)["101"]["floors"]["generic"]["outline"]["value"]["loops"][0]
+    assert loop["arcs"] == [{"edge": 1, "center": [1010.0, 2005.0], "radius": 5.0, "ccw": True}]
+
+
+def test_r112_an_arc_whose_ends_are_off_its_circle_or_on_no_edge_keeps_the_floor_out():
+    for arc in ({"edge": 1, "center": [10.0, 5.0], "radius": 4.0, "ccw": True}, {"edge": 9, "center": [10.0, 5.0], "radius": 5.0, "ccw": True},
+                {"edge": 1, "center": [10.0, 5.0], "radius": 5.0}):
+        floors = plot_floors("101", 0, 10)
+        floors[0]["sketchBoundary"] = [[0, 0, 150], [10, 0, 150], [10, 10, 150], [0, 10, 150]]
+        floors[0]["arcs"] = [arc]
+        plan = build([link("101")], floors, [row("101")])
+        assert "generic" not in by_plot(plan)["101"]["floors"]
+        assert "arc" in missing_of(plan, "101")["floors.generic"]
+
+
+def test_r112_a_floor_on_another_level_than_the_config_is_listed_and_not_written():
+    floors = plot_floors("101", 0, 10)
+    floors[0]["level"] = "L2"
+    plan = build([link("101")], floors, [row("101")])
+    assert "generic" not in by_plot(plan)["101"]["floors"]
+    assert missing_of(plan, "101")["floors.generic"] == "floor 10 is on level L2, floors.levels.generic is L1"
+
+
+def test_r112_a_floor_type_the_config_does_not_name_is_no_floor_of_the_plan():
+    floors = plot_floors("101", 0, 10)
+    floors[1]["typeName"] = "Ramp C"
+    plan = build([link("101")], floors, [row("101")])
+    assert "ramp" not in by_plot(plan)["101"]["floors"]
+    assert missing_of(plan, "101")["floors.ramp"] == "no floor names the plot"
+
+
+def test_r112_ramp_corners_that_are_not_its_outline_vertices_keep_the_ramp_out():
+    floors = plot_floors("101", 0, 10)
+    floors[1]["corners"][2][0] += 0.01
+    plan = build([link("101")], floors, [row("101")])
+    assert missing_of(plan, "101")["floors.ramp"] == "floor 11 has corners that are not the vertices of its outline"
+
+
+def test_r112_a_past_plot_value_that_differs_is_a_conflict():
+    floors = plot_floors("101", 0, 10)
+    floors[0]["parameters"] = {"Plot": "DP4-101"}
+    plan = build([link("101")], floors, [row("101")])
+    assert {"plot": "101", "field": "floors.generic.plotValue", "kept": "VD2-101", "other": "DP4-101", "otherSource": "past floor Plot"} in plan["conflicts"]
+
+
+def test_r112_the_summary_counts_the_floor_types_per_kind():
+    plan = one_plot_plan()
+    assert plan["summary"]["floorTypes"] == {"generic: Slab G": 1, "ramp: Ramp B": 1, "yard: Yard Y": 1}
+
+
+def test_r112_the_plan_names_the_floor_types_levels_and_plot_parameter_for_the_placer():
+    plan = one_plot_plan()
+    assert plan["floorSettings"] == {"types": FLOORS["types"], "levels": FLOORS["levels"], "plotParameter": "Plot"}
+
+
+def test_r112_settings_floors_block_is_checked_and_nothing_is_guessed(tmp_path):
+    def settings_with(floors):
+        path = tmp_path / "project.json"
+        path.write_text(json.dumps({"floors": floors}), encoding="utf-8")
+        return project_profile.load_settings(path)
+    assert pf.load_floors(settings_with(FLOORS)) == FLOORS
+    bad = [None, {k: v for k, v in FLOORS.items() if k != "levels"}, dict(FLOORS, types={"generic": ["A"], "yard": ["A"], "ramp": ["B"]}),
+           dict(FLOORS, types={"generic": [], "yard": ["Y"], "ramp": ["B"]}), dict(FLOORS, levels={"generic": "L1", "yard": "", "ramp": "L1"}),
+           dict(FLOORS, yardBelowFflM=-0.1), dict(FLOORS, yardShareTie=2), dict(FLOORS, plotParameter="")]
+    for floors in bad:
+        with pytest.raises(project_profile.ProfileError):
+            pf.load_floors(settings_with(floors))
+
+
+def test_r112_the_real_settings_name_the_five_floor_types_and_no_python_file_does():
+    floors = pf.load_floors(project_profile.load_settings())
+    names = [name for kind in pf.FLOOR_KINDS for name in floors["types"][kind]]
+    assert len(names) == 5
+    for path in (project_profile.ROOT / "python").glob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        # A type name that is also the name of a kind, such as yard, cannot be told from the kind in code
+        assert not [name for name in names if name not in pf.FLOOR_KINDS and '"' + name + '"' in text], path.name
+
+
+def test_r112_link_summary_takes_the_generic_and_yard_names_from_the_config(monkeypatch):
+    import link_summary
+    monkeypatch.setattr(link_summary, "floor_types", lambda: (frozenset({"Slab G"}), frozenset({"yard y"})))
+    assert link_summary.floor_kind({"typeName": "Slab G"}) == "generic"
+    assert link_summary.floor_kind({"typeName": "Yard Y"}) == "yard"
+    assert link_summary.floor_kind({"typeName": "Ramp B"}) == "ramp"
+    assert link_summary.floor_kind({"typeName": "Generic 150mm"}) is None
+    monkeypatch.undo()
+    real = pf.load_floors(project_profile.load_settings())["types"]
+    assert link_summary.floor_types() == (frozenset(real["generic"]), frozenset(name.lower() for name in real["yard"]))
 
 
 def test_r80_prototype_ffl_is_never_a_parameter_to_write():
@@ -232,12 +365,12 @@ def test_r81_axes_that_are_not_a_turn_with_or_without_mirror_are_not_used():
 
 
 def test_r81_a_plot_with_no_generic_floor_is_written_and_listed_in_missing():
-    floors = [floor for floor in plot_floors("101", 0, 10) if floor["typeName"] != "Generic 150mm"]
+    floors = [floor for floor in plot_floors("101", 0, 10) if floor["typeName"] != "Slab G"]
     plan = build([link("101")], floors, [row("101")])
     assert "generic" not in by_plot(plan)["101"]["floors"]
     assert missing_of(plan, "101")["floors.generic"] == "no floor names the plot"
     assert plan["missing"][0]["written"] is True
-    assert plan["summary"]["missingByKey"] == {"floors.generic": 1, "floors.yard": 1}
+    assert plan["summary"]["missingByKey"] == {"floors.generic": 1}
 
 
 def test_r81_two_ramps_for_one_plot_are_listed_and_not_chosen():
@@ -247,17 +380,88 @@ def test_r81_two_ramps_for_one_plot_are_listed_and_not_chosen():
     assert missing_of(plan, "101")["floors.ramp"].startswith("2 floors")
 
 
-def test_r81_the_yard_is_found_by_geometry_with_the_r58_code():
+def test_r111_the_yard_goes_to_the_plot_whose_baseplan_face_holds_most_of_it():
     plan = one_plot_plan()
     assert plan["summary"]["yardStatus"] == {"assigned": 1}
     assert plan["summary"]["floorsFound"] == {"generic": 1, "yard": 1, "ramp": 1}
+    assert plan["summary"]["yardRule"]["byStatus"] == {"assigned": 1}
+    assert plan["summary"]["yardRule"]["withNoPlanPlot"] == 0
 
 
-def test_r81_an_ambiguous_yard_is_missing_and_never_guessed():
-    floors = plot_floors("101", 0, 10) + [flat(50, "yard", None, rect(0, -5, 10, 0), 9.9)]
+def test_r111_a_yard_that_touches_two_plots_goes_to_the_larger_share_and_r58_touching_does_not_decide():
+    # The face of 101 runs to x 45 here, and its yard reaches 1 m into the face of 102, which starts at x 45
+    faces = yard_rule.face_shapes([face("101", 0, x1=45), face("102", 50)], 0)[0]
+    floors = plot_floors("101", 0, 10) + plot_floors("102", 50, 20)
+    floors[2]["outline"] = [rect(-5, 0, 46, 10)]
+    floors[2]["sketchBoundary"] = internal(rect(-5, 0, 46, 10))
+    plan = build([link("101"), link("102", x=50)], floors, [row("101"), row("102")], faces=faces)
+    assert "yard" in by_plot(plan)["101"]["floors"]
+    assert by_plot(plan)["102"]["floors"]["yard"]["outline"]["value"]["loops"][0]["points"][0] == [1045.0, 2000.0]
+
+
+def test_r111_a_tie_within_the_limit_is_listed_for_both_plots_and_never_guessed():
+    floors = plot_floors("101", 0, 10, yard=False) + plot_floors("102", 50, 20, yard=False)
+    # 5 m on the face of 101 (to x 12) and 5 m on the face of 102 (from x 45), the gap between holds no face
+    floors.append(flat(70, "Yard Y", None, rect(7, 0, 50, 10), 9.9, level="L2"))
+    plan = build([link("101"), link("102", x=50)], floors, [row("101"), row("102")])
+    for plot in ("101", "102"):
+        assert "yard" not in by_plot(plan)[plot]["floors"]
+        assert missing_of(plan, plot)["floors.yard"] == "tie, yards 70 hold shares within 0.01 of another plot"
+    assert plan["summary"]["yardRule"]["byStatus"] == {"tie": 1}
+
+
+def test_r111_a_yard_mostly_off_every_usable_face_goes_to_no_plot_and_says_low_share():
+    floors = plot_floors("101", 0, 10)
+    # 2 m of the 20 m yard lie on the face of 101, the rest on no face with a usable label
+    floors[2]["outline"] = [rect(-20, 0, 0, 10)]
+    floors[2]["sketchBoundary"] = internal(rect(-20, 0, 0, 10))
+    faces = yard_rule.face_shapes([face("101", 3)], 0)[0]
+    plan = build([link("101")], floors, [row("101")], faces=faces)
+    assert "yard" not in by_plot(plan)["101"]["floors"]
+    assert missing_of(plan, "101")["floors.yard"] == "lowShare, yards 12 hold less than 0.5 of their area on the face of this plot"
+    assert plan["summary"]["yardRule"]["byStatus"] == {"lowShare": 1}
+
+
+def test_r112_an_arc_edge_is_not_taken_for_a_second_piece_when_the_top_face_cuts_it_into_chords():
+    floors = plot_floors("101", 0, 10)
+    floors[0]["sketchBoundary"] = [[0, 0, 150], [10, 0, 150], [10, 10, 150], [0, 10, 150]]
+    floors[0]["arcs"] = [{"edge": 1, "center": [10.0, 5.0], "radius": 5.0, "ccw": True}]
+
+    bulge = [[OFFSET[0] + 10 + 5 * math.sin(math.pi * step / 36), OFFSET[1] + 5 - 5 * math.cos(math.pi * step / 36), 10.0] for step in range(37)]
+    floors[0]["outline"] = [[[OFFSET[0], OFFSET[1], 10.0]] + bulge + [[OFFSET[0], OFFSET[1] + 10, 10.0]]]
+    plan = build([link("101")], floors, [row("101")])
+    loops = by_plot(plan)["101"]["floors"]["generic"]["outline"]["value"]["loops"]
+    assert len(loops) == 1 and len(loops[0]["arcs"]) == 1
+
+
+def test_r111_a_plot_whose_face_holds_no_yard_is_listed_with_why():
+    floors = plot_floors("101", 0, 10, yard=False)
+    plan = build([link("101")], floors, [row("101")])
+    assert missing_of(plan, "101")["floors.yard"] == "no yard has its largest share on the baseplan face of this plot"
+    plan = build([link("101")], plot_floors("101", 0, 10), [row("101")], faces={})
+    assert missing_of(plan, "101")["floors.yard"] == "no baseplan face carries the label of this plot"
+    assert plan["summary"]["yardRule"]["left"] == [{"elementId": 12, "status": "none", "plot": None, "candidates": []}]
+
+
+def test_r111_two_yards_on_one_plot_are_listed_and_neither_is_chosen():
+    floors = plot_floors("101", 0, 10) + [flat(50, "Yard Y", None, rect(-5, 0, -1, 10), 9.9, level="L2")]
+    floors[2]["outline"] = [rect(-1, 0, 0, 10)]
+    floors[2]["sketchBoundary"] = internal(rect(-1, 0, 0, 10))
     plan = build([link("101")], floors, [row("101")])
     assert "yard" not in by_plot(plan)["101"]["floors"]
-    assert missing_of(plan, "101")["floors.yard"] == "ambiguous, candidates 12 50"
+    assert missing_of(plan, "101")["floors.yard"] == "2 yards have their largest share on this plot: 12 50"
+    assert plan["summary"]["yardStatus"] == {"several": 1}
+
+
+def test_r111_a_yard_whose_plot_is_not_in_the_plan_is_counted():
+    faces = yard_rule.face_shapes([face("101", 0), face("336", -20, x1=0)], 0)[0]
+    floors = plot_floors("101", 0, 10)
+    floors[2]["outline"] = [rect(-12, 0, -1, 10)]
+    floors[2]["sketchBoundary"] = internal(rect(-12, 0, -1, 10))
+    plan = build([link("101")], floors, [row("101")], faces=faces)
+    rule = plan["summary"]["yardRule"]
+    assert rule["withNoPlanPlot"] == 1
+    assert rule["left"][0]["status"] == "plotNotInPlan" and rule["left"][0]["plot"] == "336"
 
 
 def test_r81_a_past_floor_top_off_its_computed_z_is_a_conflict():
@@ -401,7 +605,7 @@ def test_r80_a_rotation_that_rounds_to_360_is_written_as_0():
 def test_r80_an_angle_to_true_north_the_reader_did_not_give_is_left_out():
     data = document([link("101")], plot_floors("101", 0, 10))
     del data["documents"][0]["angleToTrueNorthDeg"]
-    plan = pf.build_plan(data, [row("101")], JOB, FILES, "C:\\Prototypes")
+    plan = pf.build_plan(data, [row("101")], JOB, FILES, "C:\\Prototypes", FLOORS, FACES)
     assert "angleToTrueNorthDeg" not in plan
 
 
@@ -419,14 +623,24 @@ def test_r81_sources_name_the_prototypes_file_that_was_read(tmp_path, monkeypatc
     book.save(root / "01_Output" / "1.11 References" / "book.xlsx")
     prototypes = tmp_path / "other_prototypes.json"
     prototypes.write_text(json.dumps(document([link("101")], plot_floors("101", 0, 10))), encoding="utf-8")
+    baseplan = tmp_path / "plots.json"
+    # Labels sit 10 below the official numbers, as the shift of AAA says
+    baseplan.write_text(json.dumps({"plots": [dict(face("91", 0))]}), encoding="utf-8")
+    shifts = tmp_path / "plot_numbers.json"
+    shifts.write_text(json.dumps({"neighbourhoods": {"AAA": {"shift": 10}}, "sourceCodePattern": "-(AAA)-"}), encoding="utf-8")
     settings = tmp_path / "project.json"
-    settings.write_text(json.dumps({"schedules": ["book.xlsx"], "inputRoot": str(root), "pastJob": JOB}), encoding="utf-8")
+    settings.write_text(json.dumps({"schedules": ["book.xlsx"], "inputRoot": str(root), "pastJob": JOB, "floors": FLOORS}), encoding="utf-8")
     monkeypatch.delenv(pf.ROOT_VARIABLE, raising=False)
     out = tmp_path / "plan.json"
-    assert pf.main(["--settings", str(settings), "--prototypes", str(prototypes), "--out", str(out)]) == 0
+    assert pf.main(["--settings", str(settings), "--prototypes", str(prototypes), "--baseplan", str(baseplan), "--shifts", str(shifts), "--out", str(out)]) == 0
     plan = json.loads(out.read_text(encoding="utf-8"))
     assert plan["sources"]["prototypes"] == "other_prototypes.json"
+    assert plan["sources"]["baseplanPlots"] == "plots.json"
     assert plan["summary"]["written"] == 1
+    assert set(plan["plots"][0]["floors"]) == {"generic", "yard", "ramp"}
+    shifts.write_text(json.dumps({"neighbourhoods": {"BBB": {"shift": 10}}, "sourceCodePattern": "-(BBB)-"}), encoding="utf-8")
+    with pytest.raises(project_profile.ProfileError, match="no shift for AAA"):
+        pf.main(["--settings", str(settings), "--prototypes", str(prototypes), "--baseplan", str(baseplan), "--shifts", str(shifts), "--out", str(out)])
 
 
 def test_r81_a_floor_whose_plot_number_is_not_whole_joins_nothing():
@@ -498,5 +712,5 @@ def test_r109_the_real_settings_keep_the_2021_folder_as_source_and_name_the_2024
 
 
 def test_r81_the_prototypes_source_is_named_by_its_file_name_on_any_system():
-    plan = pf.build_plan(document([link("101")], plot_floors("101", 0, 10)), [row("101")], dict(JOB, prototypes=r"C:\Docs\SiteAdaptation\prototypes.json"), FILES, r"C:\Prototypes")
+    plan = pf.build_plan(document([link("101")], plot_floors("101", 0, 10)), [row("101")], dict(JOB, prototypes=r"C:\Docs\SiteAdaptation\prototypes.json"), FILES, r"C:\Prototypes", FLOORS, FACES)
     assert plan["sources"]["prototypes"] == "prototypes.json"

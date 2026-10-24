@@ -104,9 +104,8 @@ namespace SiteAdaptation.TestHost
                     }
                 }
             }
-            var save = new SaveAsOptions { OverwriteExistingFile = true, MaximumBackups = 1 };
-            document.SaveAs(job.Model, save);
-            return "removed link types " + types.Count + " with " + instances + " instances, saved over the copy. " + LinkState(document);
+            string saved = FloorSteps.SaveOver(document, job.Model);
+            return "removed link types " + types.Count + " with " + instances + " instances, " + saved + ". " + LinkState(document);
         }
 
         public string Place(Document document, bool real)
@@ -129,10 +128,10 @@ namespace SiteAdaptation.TestHost
             return line + (real ? ". " + LinkState(document) : "");
         }
 
+        // R117. Saved over the copy and the backup the save leaves is deleted
         public string Save(Document document)
         {
-            document.Save();
-            return "saved " + document.PathName;
+            return FloorSteps.SaveOver(document, job.Model) + ", " + document.PathName;
         }
 
         // Only the prototype under test stays loaded before the read. Links nested in it come with it and are counted

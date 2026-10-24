@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace SiteAdaptation.Common
 {
-    // plan.json as R80 writes it. Only the parts the placer uses are read, the floors wait for a later round
+    // plan.json as R80 and R112 write it. Only the parts the placer uses are read
     public class PlanFile
     {
         public const string FormatName = "site-adaptation-plan";
@@ -16,6 +16,7 @@ namespace SiteAdaptation.Common
         public PlanSurveyPoint SurveyPoint { get; set; }
         public double? AngleToTrueNorthDeg { get; set; }
         public string PrototypeFolder { get; set; }
+        public PlanFloorSettings FloorSettings { get; set; }
         public List<PlanPlot> Plots { get; set; }
 
         public static PlanFile Parse(string json)
@@ -55,6 +56,7 @@ namespace SiteAdaptation.Common
         public Sourced<bool?> Mirrored { get; set; }
         public PlanLevels Levels { get; set; }
         public Dictionary<string, Sourced<string>> Parameters { get; set; }
+        public PlanFloors Floors { get; set; }
     }
 
     public class PlanLevels
@@ -64,5 +66,53 @@ namespace SiteAdaptation.Common
         public Sourced<double?> Entry { get; set; }
         public Sourced<double?> Height { get; set; }
         public Sourced<int?> Steps { get; set; }
+    }
+
+    // R112. The floor type names of each kind, the level of each kind and the parameter that holds unit-plot, all from config/project.json
+    public class PlanFloorSettings
+    {
+        public Dictionary<string, List<string>> Types { get; set; }
+        public Dictionary<string, string> Levels { get; set; }
+        public string PlotParameter { get; set; }
+    }
+
+    public class PlanFloors
+    {
+        public PlanFloor Generic { get; set; }
+        public PlanFloor Yard { get; set; }
+        public PlanFloor Ramp { get; set; }
+    }
+
+    // One floor of a plot in shared coordinates. Z is the top of a flat floor, a ramp has its four Corners with their own z instead
+    public class PlanFloor
+    {
+        public Sourced<string> Type { get; set; }
+        public Sourced<string> Level { get; set; }
+        public Sourced<double?> LevelElevation { get; set; }
+        public Sourced<double?> HeightOffset { get; set; }
+        public Sourced<double?> Z { get; set; }
+        public Sourced<PlanOutline> Outline { get; set; }
+        public Sourced<string> PlotValue { get; set; }
+        public Sourced<List<double[]>> Corners { get; set; }
+    }
+
+    public class PlanOutline
+    {
+        public List<PlanLoop> Loops { get; set; }
+    }
+
+    // Points in order. An arc replaces the straight edge from point Edge to the next one
+    public class PlanLoop
+    {
+        public List<double[]> Points { get; set; }
+        public List<PlanArc> Arcs { get; set; }
+    }
+
+    public class PlanArc
+    {
+        public int Edge { get; set; }
+        public double[] Center { get; set; }
+        public double Radius { get; set; }
+        public bool Ccw { get; set; }
     }
 }

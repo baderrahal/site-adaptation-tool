@@ -391,6 +391,9 @@ def main(argv=None):
     parser.add_argument("--entries", help="entry_proof.json of entry_proof.py, adds the run with the computed entry levels, used with --analysis")
     args = parser.parse_args(argv)
     try:
+        # A wrong pair of options is refused before any file is looked for, so the message is the same on every machine
+        if args.entries and not args.analysis:
+            raise project_profile.ProfileError("--entries needs --analysis")
         settings = project_profile.load_settings(args.project)
         profile = project_profile.load_profile(args.profile or project_profile.profile_path(settings))
         paths = schedule_paths(args.root or input_root(settings), settings)
@@ -399,8 +402,6 @@ def main(argv=None):
             raise project_profile.ProfileError("schedule not found: " + ", ".join(absent))
         clusters, coded = read_analysis(args.analysis) if args.analysis else (None, None)
         shifts = link_table.load_shifts(args.shifts) if args.analysis else None
-        if args.entries and not args.analysis:
-            raise project_profile.ProfileError("--entries needs --analysis")
         computed = read_entries(args.entries) if args.entries else None
         report = build_report(profile, paths, clusters, shifts, coded, computed)
     except (project_profile.ProfileError, ValueError, KeyError, OSError) as error:

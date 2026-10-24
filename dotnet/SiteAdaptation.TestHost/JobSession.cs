@@ -20,7 +20,7 @@ namespace SiteAdaptation.TestHost
         public const string PlacerFolderName = "SiteAdaptationPlacer";
         public const string ReaderFolderName = "SiteAdaptation";
         private const double ExitMinutes = 5;
-        private static readonly HashSet<string> RollBackSteps = new HashSet<string>(StringComparer.Ordinal) { "removePrototypeType", "realRun" };
+        private static readonly HashSet<string> RollBackSteps = new HashSet<string>(StringComparer.Ordinal) { "removePrototypeType", "realRun", "deleteFloors", "realRun2" };
 
         private readonly UIControlledApplication application;
         private readonly TestHostJob job;
@@ -94,6 +94,11 @@ namespace SiteAdaptation.TestHost
                 string copy = guard.Job.Kind == TestHostGuard.UpgradeKind
                     ? FileIdentity.CheckTargetFolder(Path.GetDirectoryName(guard.Job.Target))
                     : FileIdentity.CheckCopy(guard.Job.Model, TestHostGuard.OriginalOf(guard.Job.Model));
+                // R117. A work file is a copy of the master and never the master itself
+                if (copy == null && TestHostGuard.PlacesFloors(guard.Job))
+                {
+                    copy = FileIdentity.CheckCopy(guard.Job.Model, TestHostGuard.MasterOf(guard.Job.Model));
+                }
                 if (copy != null)
                 {
                     guard = new GuardResult { Act = false, Reason = copy };
@@ -171,6 +176,14 @@ namespace SiteAdaptation.TestHost
                 yield return new JobStep { Name = "jobFile", LimitMinutes = 1, Always = true, Action = () => File.Exists(jobPath) ? "a new job file is waiting, it is left for its own session" : "the job file is gone" };
                 yield break;
             }
+            if (job.Kind == TestHostGuard.MasterKind || job.Kind == TestHostGuard.FloorsKind || job.Kind == TestHostGuard.LinksAndFloorsKind)
+            {
+                foreach (JobStep step in FloorJobSteps(steps))
+                {
+                    yield return step;
+                }
+                yield break;
+            }
             yield return new JobStep { Name = "unloadLinks", LimitMinutes = 3, Action = steps.UnloadOtherLinks };
             yield return new JobStep { Name = "openModel", LimitMinutes = 20, Action = () => steps.Open(out document) };
             yield return new JobStep { Name = "removePrototypeType", LimitMinutes = 15, Action = () => steps.RemovePrototypeType(document) };
@@ -179,6 +192,47 @@ namespace SiteAdaptation.TestHost
             yield return new JobStep { Name = "saveAfterPlace", LimitMinutes = 15, Action = () => steps.Save(document) };
             yield return new JobStep { Name = "keepOnlyPrototype", LimitMinutes = 5, Action = () => steps.KeepOnlyPrototype(document) };
             yield return new JobStep { Name = "read", LimitMinutes = 15, Action = () => steps.Read(document) };
+            yield return new JobStep { Name = "close", LimitMinutes = 5, Always = true, Action = () => steps.Close(document) };
+            yield return new JobStep { Name = "jobFile", LimitMinutes = 1, Always = true, Action = () => File.Exists(jobPath) ? "a new job file is waiting, it is left for its own session" : "the job file is gone" };
+        }
+
+        // R117. The master job leaves every link unloaded and no floor of the five types. A floors job runs the floor step on a work file,
+        // and linksAndFloors places the links of one prototype first. Every save deletes the backup it leaves
+        private IEnumerable<JobStep> FloorJobSteps(JobSteps steps)
+        {
+            var floors = new FloorSteps(job, documents);
+            bool links = job.Kind == TestHostGuard.LinksAndFloorsKind;
+            yield return new JobStep { Name = "unloadLinks", LimitMinutes = 3, Action = steps.UnloadOtherLinks };
+            yield return new JobStep { Name = "openModel", LimitMinutes = 20, Action = () => steps.Open(out document) };
+            if (links)
+            {
+                yield return new JobStep { Name = "removePrototypeType", LimitMinutes = 15, Action = () => steps.RemovePrototypeType(document) };
+            }
+            if (job.DeleteFloors != null)
+            {
+                yield return new JobStep { Name = "deleteFloors", LimitMinutes = 10, Action = () => floors.DeleteFloors(document) };
+            }
+            if (job.Kind != TestHostGuard.MasterKind)
+            {
+                yield return new JobStep { Name = "dryRun", LimitMinutes = 5, Action = () => floors.Place(document, false, "placer_dryrun") };
+                if (job.DryRunOnly != true)
+                {
+                    yield return new JobStep { Name = "realRun", LimitMinutes = 20, Action = () => floors.Place(document, true, "placer_report") };
+                }
+                if (job.RunTwice == true)
+                {
+                    yield return new JobStep { Name = "realRun2", LimitMinutes = 10, Action = () => floors.Place(document, true, "placer_report2") };
+                }
+            }
+            yield return new JobStep { Name = "save", LimitMinutes = 15, Action = () => FloorSteps.SaveOver(document, job.Model) };
+            if (job.Kind != TestHostGuard.MasterKind)
+            {
+                if (links)
+                {
+                    yield return new JobStep { Name = "keepOnlyPrototype", LimitMinutes = 5, Action = () => steps.KeepOnlyPrototype(document) };
+                }
+                yield return new JobStep { Name = "read", LimitMinutes = 15, Action = () => steps.Read(document) };
+            }
             yield return new JobStep { Name = "close", LimitMinutes = 5, Always = true, Action = () => steps.Close(document) };
             yield return new JobStep { Name = "jobFile", LimitMinutes = 1, Always = true, Action = () => File.Exists(jobPath) ? "a new job file is waiting, it is left for its own session" : "the job file is gone" };
         }

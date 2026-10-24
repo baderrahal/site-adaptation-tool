@@ -135,3 +135,73 @@ def test_r106_settings_register_the_registry_hook_for_bash_and_powershell():
     entry = settings["hooks"]["PreToolUse"][0]
     assert entry["matcher"] == "Bash|PowerShell"
     assert any("guard-registry.sh" in hook["command"] for hook in entry["hooks"])
+
+
+def run_git(*args, cwd=None):
+    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True)
+
+
+@pytest.fixture()
+def repos(tmp_path):
+    """A repo on main, a worktree of it on a branch, and a clone on a branch, as git sees them."""
+    if shutil.which("git") is None:
+        pytest.skip("no git on this machine")
+    main = tmp_path / "main"
+    main.mkdir()
+    run_git("init", "-q", "-b", "main", cwd=main)
+    run_git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "start", cwd=main)
+    run_git("worktree", "add", "-q", "-b", "feat/tree", str(tmp_path / "tree"), cwd=main)
+    run_git("clone", "-q", str(main), str(tmp_path / "clone"))
+    run_git("checkout", "-q", "-b", "feat/clone", cwd=tmp_path / "clone")
+    return {name: (tmp_path / name).as_posix() for name in ("main", "tree", "clone")}
+
+
+def real_hook(command, project, cwd=None, tool="Bash"):
+    """The hook as Claude Code runs it, with no GUARD_BRANCH, so git itself gives the branch of each folder."""
+    bash = find_bash()
+    if bash is None:
+        pytest.skip("no bash on this machine")
+    payload = json.dumps({"tool_name": tool, "cwd": cwd or project, "tool_input": {"command": command}})
+    env = {"PATH": "/mingw64/bin:/usr/bin:/bin", "CLAUDE_PROJECT_DIR": project, "HOME": project}
+    done = subprocess.run([bash, HOOK.as_posix()], input=payload, text=True, capture_output=True, env=env)
+    return done.returncode, done.stderr
+
+
+def test_r18_a_session_started_on_main_may_commit_in_another_clone_on_a_branch(repos):
+    assert real_hook("git -C " + repos["clone"] + " commit -m x", repos["main"])[0] == 0
+    assert real_hook("cd " + repos["clone"] + " && git commit -m x", repos["main"])[0] == 0
+    assert real_hook("git commit -m x", repos["main"])[0] == 2
+
+
+def test_r18_a_session_started_on_a_branch_is_blocked_on_main_elsewhere(repos):
+    code, message = real_hook("git -C " + repos["main"] + " commit -m x", repos["clone"])
+    assert code == 2 and "git commit on main" in message
+    assert real_hook("cd '" + repos["main"] + "' && git add . && git commit -m x", repos["clone"])[0] == 2
+    assert real_hook('bash -c "git -C ' + repos["main"] + ' commit -m x"', repos["clone"])[0] == 2
+    assert real_hook("git commit -m x", repos["clone"])[0] == 0
+
+
+def test_r18_a_worktree_on_a_branch_passes_and_its_main_checkout_does_not(repos):
+    assert real_hook("git -C " + repos["tree"] + " commit -m x", repos["main"])[0] == 0
+    assert real_hook("git commit -m x", repos["main"], cwd=repos["tree"])[0] == 0
+    assert real_hook("git -C " + repos["main"] + " commit -m x", repos["tree"])[0] == 2
+
+
+def test_r18_powershell_set_location_and_windows_paths_are_followed(repos):
+    assert real_hook("Set-Location '" + repos["clone"] + "'" + chr(59) + " git commit -m x", repos["main"], tool="PowerShell")[0] == 0
+    assert real_hook("Set-Location -Path '" + repos["main"] + "'" + chr(59) + " git commit -m x", repos["clone"], tool="PowerShell")[0] == 2
+    windows = repos["clone"].replace("/", "\\")
+    assert real_hook('git -C "' + windows + '" commit -m x', repos["main"])[0] == 0
+
+
+def test_r18_push_is_judged_by_the_repo_it_runs_in_and_never_to_main(repos):
+    assert real_hook("git -C " + repos["clone"] + " push -u origin feat/clone", repos["main"])[0] == 0
+    assert real_hook("git -C " + repos["main"] + " push origin feat/x", repos["clone"])[0] == 2
+    assert real_hook("git -C " + repos["main"] + " push origin --delete old", repos["clone"])[0] == 0
+    assert real_hook("git -C " + repos["clone"] + " push origin HEAD:main", repos["main"])[0] == 2
+
+
+def test_r18_text_that_only_mentions_a_commit_is_not_a_commit(repos):
+    # A heredoc or a message that holds the words is no git command
+    assert real_hook("cat >> notes.txt <<'EOF'" + chr(10) + "then git commit on main" + chr(10) + "EOF", repos["main"])[0] == 0
+    assert real_hook('git -C ' + repos["clone"] + ' commit -m "git commit on main later"', repos["main"])[0] == 0
