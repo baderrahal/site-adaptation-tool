@@ -35,6 +35,11 @@ def plot_key(label):
     return (0, int(text), text) if text.isdecimal() else (1, 0, text)
 
 
+def clean(polygon):
+    """A face that crosses itself would stop the union of a row, so it is repaired first."""
+    return polygon if polygon.is_valid else polygon.buffer(0)
+
+
 def kind_of(profile, typology):
     entry = profile.get("typologies").get(typology) if isinstance(typology, str) else None
     return entry.get("kind") if entry else None
@@ -272,7 +277,7 @@ def derive_clusters(plots, profile, analysis, roads=None):
     tolerance = analysis["toleranceM"]
     long_side = profile.metres("plot.long_side")
     reach = analysis["endShare"] * long_side
-    outlines = [Polygon([(vertex[0], vertex[1]) for vertex in plot["vertices"]]) for plot in plots]
+    outlines = [clean(Polygon([(vertex[0], vertex[1]) for vertex in plot["vertices"]])) for plot in plots]
     tree = STRtree(outlines)
     road_tree = STRtree(roads) if roads else None
     members = [index for index, plot in enumerate(plots) if kind_of(profile, plot.get("type")) in CLUSTER_KINDS]
@@ -287,7 +292,19 @@ def derive_clusters(plots, profile, analysis, roads=None):
     def label(index):
         return str(plots[index]["plot"])
 
-    def cluster_of(indexes, code, sure, row, rule, whole):
+    used_ids = set()
+
+    def row_id_of(whole):
+        """The lowest plot number of the row. Two rows that share it, which a duplicate label makes possible, get a number after it."""
+        base = min((label(index) for index in whole), key=plot_key)
+        found, number = base, 1
+        while found in used_ids:
+            number += 1
+            found = base + "#" + str(number)
+        used_ids.add(found)
+        return found
+
+    def cluster_of(indexes, code, sure, row, rule, whole, row_id):
         blocks = [plots[index].get("block") or {} for index in indexes]
         return {
             "code": code,
@@ -299,7 +316,7 @@ def derive_clusters(plots, profile, analysis, roads=None):
             "orderSure": sure,
             "row": row,
             "frontRule": rule,
-            "rowId": min((label(index) for index in whole), key=plot_key),
+            "rowId": row_id,
             "rowUnits": len(whole),
         }
 
@@ -308,7 +325,7 @@ def derive_clusters(plots, profile, analysis, roads=None):
         chain = chain_of(group, links)
         if chain is None:
             chain = sorted(group, key=lambda index: plot_key(plots[index]["plot"]))
-            clusters.append(cluster_of(chain, UNKNOWN, False, False, "not a row", chain))
+            clusters.append(cluster_of(chain, UNKNOWN, False, False, "not a row", chain, row_id_of(chain)))
             continue
         sure, rule = False, "none"
         if len(chain) == 1:
@@ -335,9 +352,10 @@ def derive_clusters(plots, profile, analysis, roads=None):
         flags = [mirrored_of(plots[index].get("block")) for index in chain]
         # Without a known front the direction of the row is a guess, so each piece may also read reversed
         pieces, ways = best_split(units, flags, known, profile, reverse_ok=not sure)
+        row_id = row_id_of(chain)
         for start, end, code, flipped in split_pieces(len(chain), pieces):
             indexes = chain[start:end][::-1] if flipped else chain[start:end]
-            clusters.append(cluster_of(indexes, code, sure and ways == 1, True, rule, chain))
+            clusters.append(cluster_of(indexes, code, sure and ways == 1, True, rule, chain, row_id))
     clusters.sort(key=lambda cluster: min(plot_key(label) for label in cluster["plots"]))
     return clusters
 
@@ -345,10 +363,6 @@ def derive_clusters(plots, profile, analysis, roads=None):
 def plot_faces(entries):
     """Copies of the faces, so the blocks attached later never reach the caller's data."""
     return [dict(entry) for entry in entries if entry.get("kind") == "plot_shape" and entry.get("plot") not in (None, "") and len(entry.get("vertices") or []) >= 3]
-
-
-def clean(polygon):
-    return polygon if polygon.is_valid else polygon.buffer(0)
 
 
 def villa_blocks(blocks, profile):
@@ -430,22 +444,29 @@ def plot_records(faces, owned, profile):
     return records
 
 
-def block_summary(faces, owned, stats, records, villas, source):
-    agree = sum(1 for face, found in zip(faces, owned) if len(found) == 1 and found[0].get("code") == face.get("type"))
-    single = sum(1 for found in owned if len(found) == 1)
+def block_summary(faces, owned, stats, records, villas, source, profile):
+    """Counts of the plots of a listed typology, which is the one population of plotsOneBlock, plotsNoBlock and plotsTwoBlocks."""
+    typologies = profile.get("typologies")
+
+    def listed(face):
+        return isinstance(face.get("type"), str) and face["type"] in typologies
+
+    single = [(face, found[0]) for face, found in zip(faces, owned) if len(found) == 1 and listed(face)]
+    agree = sum(1 for face, block in single if block.get("code") == face.get("type"))
     return {
         "source": source,
         "villaBlocks": len(villas),
-        "plotsOneBlock": single,
+        "plotsOneBlock": len(single),
         "plotsNoBlock": sum(1 for record in records if record["blocks"] == 0),
-        "plotsTwoBlocks": sum(1 for found in owned if len(found) >= 2),
+        "plotsTwoBlocks": sum(1 for record in records if record["blocks"] >= 2),
+        "otherPlotsWithBlocks": sum(1 for face, found in zip(faces, owned) if found and not listed(face)),
         "tiedBlocks": stats["tied"],
         "blocksOnNoPlot": stats["noPlot"],
         "blocksCovering": {str(count): number for count, number in sorted(stats["covering"].items())},
         "mirrored": sum(1 for record in records if record["mirrored"] is True),
         "notMirrored": sum(1 for record in records if record["mirrored"] is False),
         "typeAgrees": agree,
-        "typeDiffers": single - agree,
+        "typeDiffers": len(single) - agree,
     }
 
 
@@ -456,9 +477,10 @@ def analyse(entries, profile, analysis, blocks=None, roads=None, blocks_source=N
         villas = villa_blocks(blocks, profile)
         owned, stats = match_blocks(faces, villas)
         attach_blocks(faces, owned)
-        issues_blocks = block_issues(faces, owned, profile)
+        # With no unit block in the drawing every plot lacks one, so the one issue says so instead of 2000 repeats of it
+        issues_blocks = block_issues(faces, owned, profile) if villas else [rules_checks.issue("R69", [], "The block drawing holds no unit block, none of its " + str(len(blocks)) + " inserts is named after a typology of the profile")]
         records = plot_records(faces, owned, profile)
-        block_facts = block_summary(faces, owned, stats, records, villas, blocks_source)
+        block_facts = block_summary(faces, owned, stats, records, villas, blocks_source, profile)
     clusters = derive_clusters(faces, profile, analysis, roads)
     issues = rules_checks.check_attachment(clusters, profile) + rules_checks.check_known_clusters(clusters) + issues_blocks
     row_rules = {cluster["rowId"]: cluster["frontRule"] for cluster in clusters}

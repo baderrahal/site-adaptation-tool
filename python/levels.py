@@ -14,6 +14,9 @@ UNCONFIRMED = "not confirmed"
 RULE_FORM = re.compile(r"^under ([0-9.]+) is (\d+), ([0-9.]+) to under ([0-9.]+) is (\d+), ([0-9.]+) and over is (\d+)$")
 ENTRY_DECIMALS = 4
 HEIGHT_DECIMALS = 4
+# A height is rounded to a micrometre before its band is taken, so binary float noise (150.38 minus 150.0 is 0.37999999999999545)
+# cannot move a height off a limit. The closest real height is 27 micrometres from a limit
+BAND_DECIMALS = 6
 
 
 def count_rule(profile):
@@ -23,14 +26,22 @@ def count_rule(profile):
     if not found:
         raise project_profile.ProfileError(profile.path.name + " steps.count_rule is not of the form: under A is N, A to under B is M, B and over is K")
     first, low, second_start, second, middle, top_start, high = found.groups()
-    if float(first) != float(second_start) or float(second) != float(top_start) or float(first) >= float(second):
+    try:
+        limits = [float(first), float(second_start), float(second), float(top_start)]
+    except ValueError as error:
+        raise project_profile.ProfileError(profile.path.name + " steps.count_rule holds a limit that is not a number") from error
+    if limits[0] != limits[1] or limits[2] != limits[3] or limits[0] >= limits[2]:
         raise project_profile.ProfileError(profile.path.name + " steps.count_rule limits do not follow each other")
-    return [(float(first), int(low)), (float(second), int(middle))], int(high)
+    counts = [int(low), int(middle), int(high)]
+    if counts != sorted(counts):
+        raise project_profile.ProfileError(profile.path.name + " steps.count_rule steps fall as the height grows")
+    return [(limits[0], counts[0]), (limits[2], counts[1])], counts[2]
 
 
 def steps_for(height, rule):
     """The step count for a height in metres. A height equal to a limit counts with the band that starts there."""
     limits, top = rule
+    height = round(height, BAND_DECIMALS)
     for limit, steps in limits:
         if height < limit:
             return steps
@@ -69,6 +80,8 @@ def compute(profile, clusters, entries):
     level that is in no cluster is a cluster of one. The base height of a cluster is the base height of its end
     units, the larger one when the two ends differ. The FFL of a cluster is its highest entry level plus the base
     height. The height of a plot is the FFL minus its entry level, the SSL is the FFL plus levels.ground_ssl.
+    A cluster whose first or last plot has no entry level takes its end units from the plots that have one, and each
+    row of it says so in flags.
     """
     rule = count_rule(profile)
     ground = profile.metres("levels.ground_ssl")
@@ -83,6 +96,7 @@ def compute(profile, clusters, entries):
         base = max(bases) if bases else None
         top = max(entries[plot]["entry"] for plot in known) if known else None
         ffl = None if top is None else top + base
+        end_missing = plots[0] not in entries or plots[-1] not in entries
         for plot in plots:
             row = {"plot": plot, "unit": entries[plot]["unit"] if plot in entries else None, "cluster": code, "size": len(plots),
                    "entry": None, "baseHeight": None, "ffl": None, "ssl": None, "height": None, "steps": None, "flags": [], "notes": []}
@@ -100,5 +114,7 @@ def compute(profile, clusters, entries):
                     row["flags"].append("steps over " + str(most))
                 if len(set(bases)) > 1:
                     row["flags"].append("end units have different base heights")
+                if end_missing:
+                    row["flags"].append("end unit has no entry level")
             rows.append(row)
     return rows

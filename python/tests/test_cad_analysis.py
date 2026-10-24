@@ -1,7 +1,10 @@
 import json
+import math
 
 import pytest
 from shapely.geometry import LineString, Polygon
+from shapely.ops import unary_union
+from shapely.strtree import STRtree
 
 import cad_analysis
 import project_profile
@@ -461,3 +464,132 @@ def test_r69_on_the_real_profile_a_villa_block_of_a_typology_that_is_not_listed_
     outline = [[0, 0], [10, 0], [10, 25], [0, 25]]
     blocks = [{"name": "X$0$Villa_VL4", "outline": outline}, {"name": "X$0$Villa_VL2", "outline": outline}, {"name": "X$0$Townhouse_TH1", "outline": outline}]
     assert [block["code"] for block in cad_analysis.villa_blocks(blocks, REAL_PROFILE)] == ["VL4", "TH1"]
+
+
+def outlines_of(plots):
+    return [Polygon([(vertex[0], vertex[1]) for vertex in plot["vertices"]]) for plot in plots]
+
+
+def test_r64_a_short_shared_wall_makes_plots_adjacent_but_not_side_by_side(tmp_path):
+    profile = profile_in(tmp_path)
+    plots = [face("1", "DP2", 0, 0), face("2", "DP2", 10, 24)]
+    assert sorted(cad_analysis.adjacent_pairs(outlines_of(plots), 0.01)) == [(0, 1)]
+    clusters = cad_analysis.derive_clusters(plots, profile, ANALYSIS)
+    assert sorted(len(cluster["plots"]) for cluster in clusters) == [1, 1]
+
+
+def test_r64_a_shared_wall_exactly_as_long_as_the_party_wall_share_is_a_party_wall_and_a_hair_shorter_is_not(tmp_path):
+    profile = profile_in(tmp_path)
+    plots = row(["DP2", "DP2"], ["1", "2"])
+    wall = max(cad_analysis.adjacent_pairs(outlines_of(plots), 0.01).values(), key=lambda shared: shared.length).length
+    share = wall / 25.0
+    for candidate in (share, math.nextafter(share, 2.0), math.nextafter(share, 0.0)):
+        if candidate * 25.0 == wall:
+            share = candidate
+            break
+    else:
+        pytest.fail("no share gives the wall length back")
+    on_the_limit = cad_analysis.derive_clusters(plots, profile, {**ANALYSIS, "partyWallShare": share})
+    assert [(c["code"], len(c["plots"])) for c in on_the_limit] == [("D02", 2)]
+    over = cad_analysis.derive_clusters(plots, profile, {**ANALYSIS, "partyWallShare": share * 1.0001})
+    assert sorted(len(c["plots"]) for c in over) == [1, 1]
+
+
+def test_r64_a_shared_edge_lying_exactly_at_the_end_distance_does_not_count_as_an_end(tmp_path):
+    plots = row(["DP2", "DP2"], ["1", "2"]) + [behind(2, 25)]
+    outlines = outlines_of(plots)
+    union = unary_union(outlines[:2])
+    wall = max(cad_analysis.adjacent_pairs(outlines[:2], 0.01).values(), key=lambda shared: shared.length)
+    direction = cad_analysis.direction_of(wall)
+    tree = STRtree(outlines)
+    # The offset of the shared edge from the centre of the row, worked out the way end_neighbours works it out
+    shared = union.boundary.buffer(0.01).intersection(outlines[2].boundary)
+    offset = abs((shared.centroid.x - union.centroid.x) * direction[0] + (shared.centroid.y - union.centroid.y) * direction[1])
+    assert 12.4 < offset < 12.6
+    at_the_distance = cad_analysis.end_neighbours(union, {0, 1}, direction, tree, outlines, 0.01, offset)
+    nearer = cad_analysis.end_neighbours(union, {0, 1}, direction, tree, outlines, 0.01, math.nextafter(offset, 0.0))
+    assert at_the_distance == [0.0, 0.0] and sum(nearer) > 0
+
+
+def test_r71_two_ends_whose_road_distances_differ_by_exactly_the_tolerance_decide_nothing(tmp_path):
+    profile = profile_in(tmp_path)
+    analysis = {**ANALYSIS, "toleranceM": 0.5}
+    pair = row(["DP2", "DP2"], ["1", "2"])
+    tied = cad_analysis.derive_clusters(pair, profile, analysis, [road(-5), road(30.5)])[0]
+    assert (tied["frontRule"], tied["orderSure"]) == ("none", False)
+    apart = cad_analysis.derive_clusters(pair, profile, analysis, [road(-5), road(31)])[0]
+    assert (apart["frontRule"], apart["plots"]) == ("road edge", ["2", "1"])
+
+
+def test_r70_with_two_listed_sizes_that_tie_the_longest_cluster_comes_first(tmp_path):
+    profile = profile_in(tmp_path)
+    known = {"A": ("X", "X"), "B": ("X", "X", "X")}
+    pieces, ways = cad_analysis.best_split(["X"] * 5, [None] * 5, known, profile, reverse_ok=False)
+    assert pieces == [(0, 3, "B", False), (3, 5, "A", False)] and ways == 2
+
+
+def test_r69_a_plot_holding_exactly_the_cover_share_of_a_block_counts_in_blocks_covering(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = [face("1", "VL3", 0, 0, width=2, depth=10), face("2", "VL3", 2, 0, width=8, depth=10)]
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, [villa("Villa_VL3", box(0, 0, 10, 10))])
+    assert result["summary"]["blocks"]["blocksCovering"] == {"2": 1}
+    assert [record["blocks"] for record in result["plots"]] == [0, 1]
+
+
+def test_r69_an_outline_needs_three_points_to_make_a_unit_block(tmp_path):
+    profile = profile_in(tmp_path)
+    two = {"name": "X$0$Villa_VL3", "outline": [[0, 0], [5, 5]]}
+    three = {"name": "X$0$Villa_VL3", "outline": [[0, 0], [5, 0], [5, 5]]}
+    assert cad_analysis.villa_blocks([two, three], profile) == [{**three, "code": "VL3"}]
+
+
+def test_r69_a_block_that_only_touches_a_plot_belongs_to_no_plot(tmp_path):
+    profile = profile_in(tmp_path)
+    result = cad_analysis.analyse([face("1", "VL3", 0, 0)], profile, ANALYSIS, [villa("Villa_VL3", box(10, 0, 20, 25))])
+    assert result["summary"]["blocks"]["blocksOnNoPlot"] == 1 and result["plots"][0]["blocks"] == 0
+
+
+def test_r69_shares_that_differ_by_less_than_a_millionth_are_a_tie_and_go_to_the_lowest_plot_number(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = [face("9", "VL3", 0, 0), face("4", "VL3", 10, 0)]
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, [villa("Villa_VL3", box(4.9999999, 5, 14.9999999, 20))])
+    assert [(record["plot"], record["blocks"]) for record in result["plots"]] == [("4", 1), ("9", 0)]
+    assert result["summary"]["blocks"]["tiedBlocks"] == 1
+
+
+def test_r69_the_block_counts_are_over_the_listed_plots_and_other_plots_with_blocks_are_counted_apart(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = [face("1", "VL3", 0, 0), face("2", "OS", 10, 0), face("3", "OS", 20, 0), face("4", "VL3", 30, 0), face("5", "VL3", 40, 0)]
+    blocks = [villa("Villa_VL3", box(31, 1, 39, 20)), villa("Villa_VL3", box(21, 1, 29, 20)), villa("Villa_VL3", box(41, 1, 49, 9)), villa("Villa_VL3", box(41, 11, 49, 24))]
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, blocks)
+    summary = result["summary"]["blocks"]
+    assert (summary["plotsOneBlock"], summary["plotsNoBlock"], summary["plotsTwoBlocks"], summary["otherPlotsWithBlocks"]) == (1, 1, 1, 1)
+    assert (summary["plotsOneBlock"] + summary["plotsNoBlock"] + summary["plotsTwoBlocks"], len(result["plots"])) == (3, 3)
+    assert [(issue["plots"], issue["text"].split(" has ")[1]) for issue in result["issues"]] == [(["1"], "no block"), (["5"], "2 blocks: X$0$Villa_VL3, X$0$Villa_VL3")]
+
+
+def test_r69_when_the_block_drawing_holds_no_unit_block_one_issue_says_so_instead_of_one_for_every_plot(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = [face(str(number), "VL3", 10 * number, 0) for number in range(1, 6)]
+    parking = {"name": "X$0$MP-Parking_6mx2.5m", "outline": box(0, 0, 3, 3)}
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, [parking, {"name": "Villa_ZZ9", "outline": box(0, 0, 3, 3)}])
+    assert result["issues"] == [{"rule": "R69", "plots": [], "text": "The block drawing holds no unit block, none of its 2 inserts is named after a typology of the profile"}]
+    assert result["summary"]["blocks"]["villaBlocks"] == 0 and result["summary"]["blocks"]["plotsNoBlock"] == 5
+
+
+def test_r69_a_plot_face_that_crosses_itself_is_repaired_before_blocks_are_matched_and_rows_are_built(tmp_path):
+    profile = profile_in(tmp_path)
+    bowtie = {"kind": "plot_shape", "plot": "1", "type": "VL3", "vertices": [[0, 0], [10, 10], [10, 0], [0, 10]]}
+    result = cad_analysis.analyse([bowtie], profile, ANALYSIS, [villa("Villa_VL3", box(0, 0, 10, 10))])
+    assert result["plots"][0]["blocks"] == 1
+    twisted = {"kind": "plot_shape", "plot": "2", "type": "DP2", "vertices": [[10, 25], [20, 0], [20, 25], [10, 0]]}
+    pair = cad_analysis.derive_clusters([face("1", "DP2", 0, 0), twisted], profile, ANALYSIS)
+    assert [(cluster["code"], cluster["plots"]) for cluster in pair] == [("D02", ["1", "2"])]
+
+
+def test_r64_two_rows_that_share_their_lowest_plot_number_get_different_row_ids_and_count_as_two_rows(tmp_path):
+    profile = profile_in(tmp_path)
+    plots = row(["DP2", "DP2"], ["1", "2"]) + row(["DP2", "DP2"], ["1", "3"], y=200)
+    clusters = cad_analysis.derive_clusters(plots, profile, ANALYSIS)
+    assert sorted(cluster["rowId"] for cluster in clusters) == ["1", "1#2"]
+    assert cad_analysis.analyse(plots, profile, ANALYSIS)["summary"]["rows"] == 2

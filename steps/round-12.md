@@ -1,6 +1,6 @@
 # Steps for Bader, round 12 (blocks, row split, road fronts, levels, master plan V9)
 
-This round adds the block file of the CAD reader, the block to plot match, the row split, the front of a row from the road edges, the level rule with its proof on the past schedules, the corrected Rev 6 profile and the new master plan roles with the V9 drawing. Nothing runs in Revit. Do it after the pull request of this round is merged, the top entry of steps/log.md says when. Steps 1 to 4 open the folder and the terminal, steps 5 and 6 switch to main and pull it, step 7 installs, steps 8 to 10 run the tests, steps 11 to 13 run the proof on the past schedules, steps 14 to 19 read the drawings, steps 20 to 22 run the cluster step and the second source check, steps 23 to 29 read analysis.json, steps 30 to 32 check the profile and the two config files.
+This round adds the block file of the CAD reader, the block to plot match, the row split, the front of a row from the road edges, the level rule with its proof on the past schedules, the corrected Rev 6 profile and the new master plan roles with the V9 drawing. Nothing runs in Revit. Do it after the pull request of this round is merged, the top entry of steps/log.md says when. Steps 1 to 4 open the folder and the terminal, steps 5 and 6 switch to main and pull it, step 7 installs, steps 8 to 10 run the tests, steps 11 to 13 run the proof on the past schedules, steps 14 to 19 read the drawings, steps 20 to 22 run the cluster step and the second source check, step 23 runs the proof on the CAD clusters, steps 24 to 30 read analysis.json, steps 31 to 33 check the profile and the two config files.
 
 1. Open VS Code.
    Look for: the VS Code window opens.
@@ -28,7 +28,7 @@ This round adds the block file of the CAD reader, the block to plot match, the r
 
 8. In the terminal run all Python tests:
    `.venv\Scripts\python -m pytest python`
-   Look for: 288 passed and no failed, and a line that starts with R67 proof: in the middle of the dots. A machine without the schedules shows 287 passed and 1 skipped, and without Git Bash a few more skipped, which is fine.
+   Look for: 322 passed and no failed, and a line that starts with R67 proof: in the middle of the dots. A machine without the schedules shows 321 passed and 1 skipped, and without Git Bash a few more skipped, which is fine.
 
 9. In the terminal run the .NET build:
    `dotnet build dotnet\SiteAdaptation.sln -c Release`
@@ -36,11 +36,11 @@ This round adds the block file of the CAD reader, the block to plot match, the r
 
 10. In the terminal run the .NET tests:
     `dotnet test dotnet\SiteAdaptation.sln -c Release --no-build`
-    Look for: a line that starts with Passed! and has 0 after Failed: and 148 after Passed:.
+    Look for: a line that starts with Passed! and has 0 after Failed: and 155 after Passed:.
 
 11. In the terminal run the proof test on the two past schedules. They are only read:
     `.venv\Scripts\python -m pytest python\tests\test_levels_proof.py`
-    Look for: 11 passed and the line R67 proof: FFL matches 633 of 747, steps matches 744 of 747, both 632, SSL 633, count rule alone 747. The first number is how many plots the level rule reproduces.
+    Look for: 19 passed and the line R67 proof: FFL matches 633 of 747, steps matches 744 of 747, both 632, SSL 633, count rule alone 747. The first number is how many plots the level rule reproduces.
 
 12. In the terminal run the proof as a script, to get the list of every mismatch:
     `.venv\Scripts\python python\levels_proof.py sample_output\round12\proof`
@@ -74,44 +74,48 @@ This round adds the block file of the CAD reader, the block to plot match, the r
 
 20. In the terminal run the cluster step with the blocks of R06_0000, as config\project.json says:
     `.venv\Scripts\python python\cad_analysis.py sample_output\round12\analysis_r06_0000 --cad sample_output\round12\baseplan --blocks sample_output\round12\r06_0000 --roads sample_output\round12\roads`
-    Look for: three lines. The first is clusters 548 {"M02": 143, "M04": 282, "M09": 61, "Q02": 62}, issues 2346. The second starts with blocks and holds "villaBlocks": 0, because R06_0000 has only Villa_VL2 blocks and VL2 is not in the manual set. The third is fronts {"neighbour": 235, "road edge": 88, "none": 7}.
+    Look for: three lines. The first is clusters 548 {"M02": 143, "M04": 282, "M09": 61, "Q02": 62}, issues 1. The one issue says the block drawing holds no unit block. The second line starts with blocks and holds "villaBlocks": 0, because R06_0000 has only Villa_VL2 blocks and VL2 is not in the manual set. The third is fronts {"neighbour": 235, "road edge": 88, "none": 7}.
 
 21. In the terminal run the cluster step with the blocks of R06 instead, as a comparison:
     `.venv\Scripts\python python\cad_analysis.py sample_output\round12\analysis_r06 --cad sample_output\round12\baseplan --blocks sample_output\round12\r06 --roads sample_output\round12\roads`
-    Look for: the first line clusters 548 {"M02": 143, "M04": 281, "M09": 61, "Q02": 62, "unknown": 1}, issues 795. The second line holds "villaBlocks": 1620, "plotsOneBlock": 1554, "plotsNoBlock": 793, "tiedBlocks": 203. The third line is the same fronts line as in step 20.
+    Look for: the first line clusters 548 {"M02": 143, "M04": 281, "M09": 61, "Q02": 62, "unknown": 1}, issues 795. The second line holds "villaBlocks": 1620, "plotsOneBlock": 1553, "plotsNoBlock": 793, "tiedBlocks": 203. The third line is the same fronts line as in step 20.
 
 22. In the terminal run the second source check of V9 against the baseplan:
     `.venv\Scripts\python python\second_source.py sample_output\round12\second --cad sample_output\round12\baseplan --second sample_output\round12\v9`
     Look for: the line matched 1771, only baseplan 1220, only second 197, area differs 114. The check builds fewer V9 faces than there are plots, see Known bugs.
 
-23. In the Explorer panel open sample_output, then round12, then analysis_r06, then analysis.json.
+23. In the terminal run the proof again with the CAD clusters of the cluster step (the file from step 21):
+    `.venv\Scripts\python python\levels_proof.py sample_output\round12\proof --analysis sample_output\round12\analysis_r06\analysis.json`
+    Look for: the first three lines are the same as in step 12 and the fourth is CAD clusters: FFL matches 561 of 747, steps matches 663 of 747, clusters with more than one sheet FFL: 2 units 8 of 130, 4 units 24 of 37. The sheet gives two FFLs to 24 of 37 four unit clusters, so check 3 comes before the level rule can be used on the CAD clusters.
+
+24. In the Explorer panel open sample_output, then round12, then analysis_r06, then analysis.json.
     Look for: the file opens and the first line under the opening bracket is "source".
 
-24. Press Ctrl+F and type `"code": "M09"`
+25. Press Ctrl+F and type `"code": "M09"`
     Look for: 61 matches. Each cluster has 4 plot numbers in plots and the typologies DP2, TH1, TH1, DP2. The plot numbers are the baseplan labels, 10 or 11 below the official numbers. Then search `"code": "Q02"` and look for 62 matches with the typologies DP4, TH3, TH3, DP4.
 
-25. In the search box type `"code": "unknown"`
+26. In the search box type `"code": "unknown"`
     Look for: 1 match, plots 438 and 437 with the typologies DP4, DP4. Under block you see Villa_VL4 and Duplex_DP4, so a villa block landed on a duplex plot. This is the only unknown left, 141 before this round.
 
-26. In the search box type `"mirrored"` and look at the first match inside a cluster that is not the unknown one.
+27. In the search box type `"mirrored"` and look at the first match inside a cluster that is not the unknown one.
     Look for: values true, false or null. In a pair or a cluster exactly one unit is not null, because one block covers the whole pair or cluster. Searching `"mirrored": true` gives 753 matches, one for each mirrored plot.
 
-27. In the search box type `"frontRule": "road edge"`
+28. In the search box type `"frontRule": "road edge"`
     Look for: 138 matches. These are clusters, 88 rows. Each cluster also has rowId and rowUnits, so the pieces of one row share both. Then search `"frontRule": "none"` and look for 14 matches, 7 rows.
 
-28. In the search box type `"orderSure": false`
+29. In the search box type `"orderSure": false`
     Look for: 14 matches. They are the same 14 clusters as the none rule. The order of every other cluster is sure.
 
-29. In the search box type `"blocks": 0`
+30. In the search box type `"blocks": 0`
     Look for: 793 matches. These are plots of a listed typology that got no block, mostly the second plot of a duplex pair and the three other plots of a townhouse cluster, because one block covers them all.
 
-30. In the Explorer panel open rules\roshn-makkah.json, press Ctrl+F and type `"M10"`
+31. In the Explorer panel open rules\roshn-makkah.json, press Ctrl+F and type `"M10"`
     Look for: 2 matches, the cluster DP2, TH3, TH3, DP2 and the alias Q02 that points at it. Then search `"Q02"`: the cluster has DP4 ends. That difference is question 4 in the log.
 
-31. In the Explorer panel open config\project.json.
+32. In the Explorer panel open config\project.json.
     Look for: under drawings the roles baseplan, masterplan (the V9 file), previousMasterplan (R06.dwg), villaBlocks (R06_0000.dwg), roadLayout, xrefRoles, and a skip list with one entry, R06_0001. There is no secondDefault any more.
 
-32. In the Explorer panel open config\second_source.json.
+33. In the Explorer panel open config\second_source.json.
     Look for: no file line, and three layers whose names have Arabic text after the English name: residential plots outlines, residential and commercial mixed use, commercial.
 
 ## What remains
@@ -131,11 +135,13 @@ This round adds the block file of the CAD reader, the block to plot match, the r
 - The sheet FFL sits 1 to 5 mm below the rule in 53 of 473 clusters and 100 mm below in plots 2560 to 2563. The FFL is not rounded to the mm before the height, which is why plot 1526 differs.
 - The road edge front is weak where both ends of a row lie within about 1 m of a curb. It agreed with the Revit link axes on 8 of 9 rows.
 - The steps flag under 1 or over 3 cannot fire with this count rule.
+- The sheet gives more than one FFL to 24 of 37 four unit CAD clusters and to 8 of 130 pairs, so one FFL per cluster (check 3) comes before the level rule works on CAD clusters (step 23).
+- A fresh reviewer ran 142 mutants of the new code. 38 real gaps are closed with tests, 2 are left and explained in steps/history/round-12.md.
 - Plot numbers in analysis.json are the baseplan labels. The V9 numbers are another sequence and are not used anywhere.
 - One xref is nowhere in the input folders, XR-TITLE BLOCK.dwg of the Typical Cross Sections. It is listed in full_run_summary.json under issues.
 
 ## What comes next
 
 1. You answer the questions in the top entry of steps/log.md, first the baseplan or V9, the unit block source, VL2 and Q02 against M10.
-2. I join the official plot numbers to analysis.json and feed levels.py from it.
-3. I code check 3, one FFL per cluster, with the split positions of the profile.
+2. I code check 3, one FFL per cluster, with the split positions of the profile, and rerun the proof on the CAD clusters.
+3. I join the official plot numbers to analysis.json and feed levels.py from it.

@@ -193,7 +193,13 @@ namespace CadReader
                 if (hull.Count >= 3)
                 {
                     var full = new List<Transform>(chain) { insert.GetTransform() };
-                    entry.Outline = hull.Select(point => { XYZ world = World(full, point); return new[] { world.X, world.Y }; }).ToList();
+                    var ring = hull.Select(point => { XYZ world = World(full, point); return new[] { world.X, world.Y }; }).ToList();
+                    // A flip turns the ring the other way round, so it is turned back to counter clockwise
+                    if (Mirrored(full))
+                    {
+                        ring.Reverse();
+                    }
+                    entry.Outline = ring;
                 }
             }
             return entry;

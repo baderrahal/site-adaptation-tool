@@ -144,3 +144,54 @@ def test_r67_the_real_profile_gives_the_base_heights_the_ffl_and_the_steps_of_a_
     rows = by_plot(levels.compute(REAL, [{"plots": ["1", "2", "3", "4"], "code": "Q02"}], entries))
     assert {row["ffl"] for row in rows.values()} == {100.58} and {row["ssl"] for row in rows.values()} == {100.505}
     assert [rows[plot]["steps"] for plot in "1234"] == [3, 3, 2, 1]
+
+
+def test_r67_a_height_that_float_noise_puts_a_hair_under_a_limit_still_takes_the_band_that_starts_there(tmp_path):
+    profile = dummy_profile(tmp_path)
+    # 150.38 minus 150.0 is 0.37999999999999545 in binary floats and 100.205 minus 100.0 is 0.20500000000000540 off the limit the other way
+    rows = by_plot(levels.compute(profile, [{"plots": ["1", "2"]}], entries_of(("1", "DP2", 150.0), ("2", "DP2", 150.18))))
+    assert rows["1"]["height"] == 0.38 and rows["1"]["steps"] == 3
+    rows = by_plot(levels.compute(profile, [{"plots": ["1", "2"]}], entries_of(("1", "DP2", 100.0), ("2", "DP2", 100.005))))
+    assert rows["1"]["height"] == 0.205 and rows["1"]["steps"] == 2
+    rule = levels.count_rule(profile)
+    assert [levels.steps_for(0.37999999999999545, rule), levels.steps_for(0.20499999999999, rule), levels.steps_for(0.2049, rule)] == [3, 2, 1]
+
+
+def test_r67_the_closest_real_style_height_to_a_limit_is_not_moved_by_the_rounding_before_the_band(tmp_path):
+    rule = levels.count_rule(dummy_profile(tmp_path))
+    assert levels.steps_for(0.205 - 2.7e-5, rule) == 1 and levels.steps_for(0.205 + 2.7e-5, rule) == 2
+    assert levels.steps_for(0.38 - 5.6e-5, rule) == 2 and levels.steps_for(0.38 + 5.6e-5, rule) == 3
+
+
+@pytest.mark.parametrize("text", [
+    "under 0.2.5 is 1, 0.2.5 to under 0.38 is 2, 0.38 and over is 3",
+    "under 0.2 is 1, 0.2 to under 0.4 is 2, 0.5 and over is 3",
+    "under 0.3 is 1, 0.3 to under 0.3 is 2, 0.3 and over is 3",
+    "under 0.2 is 3, 0.2 to under 0.3 is 2, 0.3 and over is 1",
+    "under 0.2 is 1, 0.2 to under 0.3 is 3, 0.3 and over is 2",
+])
+def test_r67_a_count_rule_with_a_bad_number_a_broken_limit_or_falling_steps_is_refused_in_one_error(tmp_path, text):
+    with pytest.raises(project_profile.ProfileError, match="steps.count_rule"):
+        levels.count_rule(dummy_profile(tmp_path, count_rule=text))
+
+
+def test_r67_steps_equal_to_the_profile_limits_are_not_flagged_and_the_values_keep_four_decimals(tmp_path):
+    profile = dummy_profile(tmp_path)
+    rows = by_plot(levels.compute(profile, [{"plots": ["1", "2", "3"]}], entries_of(("1", "VL4", 10.0), ("2", "VL4", 10.4567), ("3", "VL4", 10.3))))
+    assert [(rows[plot]["steps"], rows[plot]["flags"]) for plot in "123"] == [(3, []), (1, []), (2, [])]
+    assert (rows["1"]["height"], rows["2"]["height"], rows["2"]["entry"], rows["1"]["ffl"], rows["1"]["baseHeight"]) == (0.5567, 0.1, 10.4567, 10.557, 0.1)
+
+
+def test_r67_a_cluster_whose_end_unit_has_no_entry_level_says_so_on_every_row_of_it(tmp_path):
+    profile = dummy_profile(tmp_path)
+    rows = by_plot(levels.compute(profile, [{"plots": ["1", "2", "3"]}], entries_of(("2", "VL4", 3.0), ("3", "VL4", 3.1))))
+    assert rows["1"]["flags"] == ["no entry level"]
+    assert rows["2"]["flags"] == ["end unit has no entry level"] and rows["3"]["flags"] == ["end unit has no entry level"]
+    complete = levels.compute(profile, [{"plots": ["1", "2", "3"]}], entries_of(("1", "DP2", 3.0), ("2", "DP2", 3.0), ("3", "VL4", 3.1)))
+    assert all("end unit has no entry level" not in row["flags"] for row in complete)
+
+
+def test_r67_a_base_height_with_three_decimals_is_written_with_three_decimals(tmp_path):
+    profile = dummy_profile(tmp_path, base_height={"default": 125})
+    rows = levels.compute(profile, [], entries_of(("1", "VL4", 10.0)))
+    assert (rows[0]["baseHeight"], rows[0]["ffl"], rows[0]["height"]) == (0.125, 10.125, 0.125)

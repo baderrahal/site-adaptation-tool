@@ -589,5 +589,160 @@ namespace SiteAdaptation.Tests
             Assert.False(written["chainMirrored"] != null);
             Assert.False(entries["EMPTY"]["outline"] != null);
         }
+
+        private static double SignedArea(List<double[]> ring)
+        {
+            double sum = 0;
+            for (int index = 0; index < ring.Count; index++)
+            {
+                double[] a = ring[index];
+                double[] b = ring[(index + 1) % ring.Count];
+                sum += a[0] * b[1] - b[0] * a[1];
+            }
+            return sum / 2;
+        }
+
+        private static LwPolyline Closed(CadDocument document, params double[][] corners)
+        {
+            var outline = new LwPolyline(corners.Select(corner => new LwPolyline.Vertex(new XY(corner[0], corner[1]))).ToArray());
+            outline.IsClosed = true;
+            outline.Layer = Layer(document, "A");
+            return outline;
+        }
+
+        private static List<double[]> OutlineOf(CadDocument document, string name = null)
+        {
+            var blocks = Run(document).Blocks.Blocks;
+            return (name == null ? blocks.First() : blocks.First(entry => entry.Name == name)).Outline;
+        }
+
+        [Fact]
+        public void R68_the_outline_is_counter_clockwise_for_every_insert_also_a_mirrored_one_or_one_inside_a_mirrored_insert()
+        {
+            var document = new CadDocument();
+            var block = Block(document, "B", Rectangle(document, "A", 4, 2));
+            var outer = Block(document, "OUTER");
+            outer.Entities.Add(new Insert(block) { InsertPoint = new XYZ(10, 0, 0), Layer = Layer(document, "A") });
+            document.Entities.Add(new Insert(block) { InsertPoint = new XYZ(0, 0, 0), Layer = Layer(document, "A") });
+            document.Entities.Add(new Insert(block) { InsertPoint = new XYZ(20, 0, 0), XScale = -1, Layer = Layer(document, "A") });
+            document.Entities.Add(new Insert(block) { InsertPoint = new XYZ(30, 0, 0), XScale = -1, YScale = -1, Rotation = 0.3, Layer = Layer(document, "A") });
+            document.Entities.Add(new Insert(outer) { XScale = -1, Layer = Layer(document, "A") });
+
+            var withOutline = Run(document).Blocks.Blocks.Where(entry => entry.Outline != null).ToList();
+            Assert.Equal(5, withOutline.Count);
+            foreach (var entry in withOutline)
+            {
+                Assert.True(SignedArea(entry.Outline) > 0, entry.Name + " at " + entry.InsertPoint[0]);
+            }
+            foreach (var entry in withOutline.Where(entry => entry.Name == "B"))
+            {
+                Assert.Equal(8, SignedArea(entry.Outline), 6);
+            }
+        }
+
+        [Fact]
+        public void R68_a_block_whose_hull_is_a_triangle_has_a_three_point_outline()
+        {
+            var document = new CadDocument();
+            document.Entities.Add(new Insert(Block(document, "T", Closed(document, new[] { 0.0, 0 }, new[] { 4.0, 0 }, new[] { 0.0, 3 }))) { InsertPoint = new XYZ(5, 5, 0), Layer = Layer(document, "A") });
+
+            var outline = OutlineOf(document);
+            Assert.Equal(3, outline.Count);
+            Assert.Equal(6, SignedArea(outline), 6);
+        }
+
+        [Fact]
+        public void R68_a_point_on_an_edge_of_the_hull_is_left_out_and_equal_x_values_in_any_order_give_the_same_hull()
+        {
+            var document = new CadDocument();
+            document.Entities.Add(new Insert(Block(document, "C", Closed(document, new[] { 0.0, 0 }, new[] { 2.0, 0 }, new[] { 4.0, 0 }, new[] { 4.0, 2 }, new[] { 0.0, 2 }))) { Layer = Layer(document, "A") });
+            Assert.Equal(4, OutlineOf(document).Count);
+
+            var order = new CadDocument();
+            var block = Block(order, "O", Closed(order, new[] { 0.0, 5 }, new[] { 0.0, 0 }, new[] { 4.0, 0 }, new[] { 4.0, 5 }), Line(order, "A", 0, 2, 0, 2.5));
+            order.Entities.Add(new Insert(block) { Layer = Layer(order, "A") });
+            var outline = OutlineOf(order);
+            Assert.Equal(4, outline.Count);
+            Assert.Equal(20, SignedArea(outline), 6);
+        }
+
+        [Fact]
+        public void R68_the_hull_walk_skips_a_block_that_contains_itself()
+        {
+            var document = new CadDocument();
+            var self = Block(document, "SELF", Rectangle(document, "A", 2, 1));
+            // The library recurses on a block that already holds itself when the model space insert is added, so the order matters
+            document.Entities.Add(new Insert(self) { Layer = Layer(document, "A") });
+            self.Entities.Add(new Insert(self) { InsertPoint = new XYZ(10, 0, 0), XScale = 2, YScale = 2, ZScale = 2, Layer = Layer(document, "A") });
+            var cycle = OutlineOf(document, "SELF");
+            Assert.Equal(4, cycle.Count);
+            Assert.Equal(2, cycle.Max(point => point[0]), 6);
+        }
+
+        [Fact]
+        public void R68_the_hull_walk_stops_at_the_depth_limit()
+        {
+            var deep = new CadDocument();
+            var inner = Block(deep, "LEVEL20", Rectangle(deep, "A", 2, 1));
+            for (int level = 19; level >= 0; level--)
+            {
+                var up = Block(deep, "LEVEL" + level);
+                up.Entities.Add(new Insert(inner) { InsertPoint = new XYZ(1, 0, 0), Layer = Layer(deep, "A") });
+                inner = up;
+            }
+            deep.Entities.Add(new Insert(inner) { Layer = Layer(deep, "A") });
+            Assert.Null(OutlineOf(deep, "LEVEL0"));
+            Assert.NotNull(OutlineOf(deep, "LEVEL5"));
+        }
+
+        [Fact]
+        public void R68_a_point_does_not_stretch_the_outline_but_circles_arcs_ellipses_and_hatches_count()
+        {
+            var withPoint = new CadDocument();
+            withPoint.Entities.Add(new Insert(Block(withPoint, "P", Rectangle(withPoint, "A", 4, 2), new Point { Location = new XYZ(500, 500, 0), Layer = Layer(withPoint, "A") })) { Layer = Layer(withPoint, "A") });
+            var flat = OutlineOf(withPoint);
+            Assert.Equal(4, flat.Max(point => point[0]), 6);
+            Assert.Equal(2, flat.Max(point => point[1]), 6);
+
+            var circle = new CadDocument();
+            circle.Entities.Add(new Insert(Block(circle, "C", new Circle { Center = new XYZ(5, 5, 0), Radius = 2, Layer = Layer(circle, "A") })) { Layer = Layer(circle, "A") });
+            var round = OutlineOf(circle);
+            Assert.Equal(4, round.Count);
+            Assert.Equal(3, round.Min(point => point[0]), 6);
+            Assert.Equal(7, round.Max(point => point[1]), 6);
+
+            var arc = new CadDocument();
+            var arcs = Block(arc, "ARC", new Arc { Center = new XYZ(0, 0, 0), Radius = 1, StartAngle = 0, EndAngle = Math.PI / 2, Layer = Layer(arc, "A") }, Line(arc, "A", 2, 2, 2, 2.5));
+            arc.Entities.Add(new Insert(arcs) { Layer = Layer(arc, "A") });
+            var curved = OutlineOf(arc);
+            Assert.Equal(0, curved.Min(point => point[0]), 6);
+            Assert.Equal(0, curved.Min(point => point[1]), 6);
+
+            var ellipse = new CadDocument();
+            var oval = new Ellipse { Center = new XYZ(5, 5, 0), MajorAxisEndPoint = new XYZ(3, 0, 0), RadiusRatio = 0.5, Layer = Layer(ellipse, "A") };
+            ellipse.Entities.Add(new Insert(Block(ellipse, "E", oval, Line(ellipse, "A", 5, 0, 5, 1))) { Layer = Layer(ellipse, "A") });
+            var stretched = OutlineOf(ellipse);
+            Assert.Equal(2, stretched.Min(point => point[0]), 6);
+            Assert.Equal(8, stretched.Max(point => point[0]), 6);
+
+            var hatched = new CadDocument();
+            var hatch = new Hatch { Layer = Layer(hatched, "A") };
+            var path = new Hatch.BoundaryPath();
+            path.Edges.Add(new Hatch.BoundaryPath.Line { Start = new XY(0, 0), End = new XY(4, 0) });
+            path.Edges.Add(new Hatch.BoundaryPath.Line { Start = new XY(4, 0), End = new XY(4, 3) });
+            hatch.Paths.Add(path);
+            hatched.Entities.Add(new Insert(Block(hatched, "H", hatch)) { InsertPoint = new XYZ(10, 20, 0), Layer = Layer(hatched, "A") });
+            var triangle = OutlineOf(hatched);
+            Assert.Equal(3, triangle.Count);
+            Assert.Equal(14, triangle.Max(point => point[0]), 6);
+        }
+
+        [Fact]
+        public void R68_the_three_scales_are_written_as_they_are_stored()
+        {
+            var document = new CadDocument();
+            document.Entities.Add(new Insert(Block(document, "S", Rectangle(document, "A", 1, 1))) { XScale = 2, YScale = 3, ZScale = 5, Layer = Layer(document, "A") });
+            Assert.Equal(new[] { 2.0, 3.0, 5.0 }, Run(document).Blocks.Blocks.Single().Scale);
+        }
     }
 }

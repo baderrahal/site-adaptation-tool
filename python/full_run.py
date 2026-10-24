@@ -238,7 +238,7 @@ def main(argv=None):
         print(path.name + ": " + record["status"] + " in " + str(record["seconds"]) + " s", flush=True)
     out_root.mkdir(parents=True, exist_ok=True)
     second = settings.get("drawings.masterplan")
-    ran =[entry["file"] for entry in results if entry["status"] == "ok"]
+    ran = [entry["file"] for entry in results if entry["status"] == "ok"]
     xrefs, xref_issues = resolve_xrefs(args.root, out_root, [entry["file"] for entry in results if entry["kind"] == "dwg" and entry["status"] == "ok"], settings)
     for issue in xref_issues:
         print("issue: " + issue["text"], flush=True)

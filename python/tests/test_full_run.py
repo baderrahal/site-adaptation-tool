@@ -1,5 +1,6 @@
 import json
 import sys
+from pathlib import Path
 
 from openpyxl import Workbook
 
@@ -240,3 +241,54 @@ def test_r72_an_xref_that_is_nowhere_is_an_issue_and_the_drawing_is_still_listed
     # The stand in drawing has to exist too, a role alone is not enough
     touch(root / "Roads" / "other.dwg")
     assert full_run.resolve_xrefs(root, out, ["b.dwg"], settings)[0][0]["status"] == "not found"
+
+
+def test_r29_a_reason_in_the_skip_list_wins_over_the_previous_master_plan_reason(tmp_path):
+    write_settings(tmp_path / "project.json", "rules/other-profile.json")
+    values = json.loads((tmp_path / "project.json").read_text(encoding="utf-8"))
+    values["drawings"]["skip"].append({"file": "old.dwg", "why": "Decision Y. Its own reason."})
+    (tmp_path / "project.json").write_text(json.dumps(values), encoding="utf-8")
+    settings = project_profile.load_settings(tmp_path / "project.json")
+    touch(tmp_path / "real" / "Master Plan" / "old.dwg")
+    jobs, skipped = full_run.plan(tmp_path / "real", ("dwg",), settings)
+    assert jobs == []
+    assert {entry["file"]: entry["why"] for entry in skipped if entry["file"] == "old.dwg"} == {"old.dwg": "Decision Y. Its own reason."}
+
+
+def test_r72_an_xref_found_by_name_is_not_replaced_by_the_drawing_of_its_role(tmp_path):
+    settings = write_settings(tmp_path / "project.json", "rules/other-profile.json")
+    root, out = tmp_path / "real", tmp_path / "out"
+    touch(root / "Roads" / "Roads_new.dwg")
+    touch(root / "Roads" / "roads.dwg")
+    xref_layers(out, "plan.dwg", ("Roads_new", "./Roads_new.dwg", False))
+    found, issues = full_run.resolve_xrefs(root, out, ["plan.dwg"], settings)
+    assert [(entry["status"], entry["file"]) for entry in found] == [("found by name", "Roads_new.dwg")] and issues == []
+
+
+def fake_reader(failing):
+    """Stands in for the CAD reader. It writes a layers.json with one xref that is nowhere, and fails for the names given."""
+
+    def run_one(args, out_dir, timeout=600):
+        out_dir = Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "layers.json").write_text(json.dumps({"xrefs": [{"name": "Lost", "path": "./Lost.dwg", "found": False, "inserts": 1}]}), encoding="utf-8")
+        bad = out_dir.name in failing
+        return {"status": "failed" if bad else "ok", "exit": 3 if bad else 0, "seconds": 0.0, "stdout": "", "stderr": "boom" if bad else ""}
+
+    return run_one
+
+
+def test_r72_only_the_drawings_that_were_read_ok_are_looked_up_and_the_issues_reach_the_main_summary(tmp_path, monkeypatch):
+    write_settings(tmp_path / "project.json", "rules/other-profile.json")
+    root = tmp_path / "real"
+    touch(root / "Master Plan" / "good.dwg")
+    touch(root / "Master Plan" / "bad.dwg")
+    monkeypatch.setattr(full_run, "run_one", fake_reader({"bad.dwg"}))
+    monkeypatch.setattr(full_run, "stage_commands", lambda out_root, ran, second, shifts, settings=None: [])
+    monkeypatch.setattr(full_run, "road_stages", lambda *args, **more: [])
+    out = tmp_path / "out"
+    assert full_run.main([str(root), str(out), "--kinds", "dwg", "--project", str(tmp_path / "project.json")]) == 0
+    summary = json.loads((out / "full_run_summary.json").read_text(encoding="utf-8"))
+    assert {entry["file"]: entry["status"] for entry in summary["results"]} == {"bad.dwg": "failed", "good.dwg": "ok"}
+    assert [(item["drawing"], item["xref"]) for item in summary["xrefs"]] == [("good.dwg", "Lost.dwg")]
+    assert [(item["drawing"], item["xref"]) for item in summary["issues"]] == [("good.dwg", "Lost.dwg")]
