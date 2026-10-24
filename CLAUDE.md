@@ -1,6 +1,6 @@
 # Site Adaptation Tool
 
-Read-only data readers for the ROSHN Makkah site adaptation work. No placement logic yet.
+Data readers for the ROSHN Makkah site adaptation work, and the placer, which reads plan.json and places the villa links.
 The rules live in docs/rules.md and nowhere else. This file points to them and adds the working agreement.
 
 ## Roles
@@ -17,10 +17,12 @@ The rules live in docs/rules.md and nowhere else. This file points to them and a
 
 ## Repo map
 
-- python/ holds the PDF reader, the Excel reader, the link table, the link summary, the second source check, the face reasons, the LandXML reader, the surface lookup, the ramp levels, the surface roles, the road check, the plot relation report (plot_relations.py) and the full run script, plus tests in python/tests.
+- python/ holds the PDF reader, the Excel reader, the link table, the link summary, the second source check, the face reasons, the LandXML reader, the surface lookup, the ramp levels, the surface roles, the road check, the plot relation report (plot_relations.py), the plan builder (plan_from_past.py) and the full run script, plus tests in python/tests.
 - config/plot_numbers.json holds the plot number shift of each neighbourhood. config/second_source.json names the plot layers of the master plan drawing, which drawings.masterplan in config/project.json names.
 - dotnet/CadReader reads DWG and DXF with ACadSharp. It also writes blocks.json, one entry per block insert with scale, rotation and a world outline (R68).
 - dotnet/RevitPrototypeReader is the Revit 2024 add-in. Do not change it unless the round says so.
+- dotnet/SiteAdaptation.Placer is the second Revit 2024 add-in, Place from plan (R83 to R88). Its math and decisions live in SiteAdaptation.Common behind IPlacerTarget, the Revit side only carries them out.
+- python/plan_from_past.py builds plan.json (R80) from a past job, prototypes.json and the schedule, named by pastJob in config/project.json (R81). The plan goes outside the repo.
 - dotnet/SiteAdaptation.Common holds JSON output and unit helpers.
 - config/project.json names the rules profile and the drawings, and holds the CAD analysis settings (R63). No project name goes in a Python file.
 - rules/ holds one project profile JSON per project and a README with the checks not coded yet. python/project_profile.py loads a profile by path (R62). New project rule values go there and not in code.
@@ -50,6 +52,7 @@ The full text is docs/rules.md. Ids are the contract, a test names the id it pro
 - R51 to R56 cover the shared coordinates, the floor measurements, the parameter details and floor types, the link state, the spot host and the output size. R57 to R61 cover the plot relation report, the yard and shared edges, the ramp geometry, the gaps and link box, and the summary.
 - R62 covers the project profile in rules/ and its loader. R63 covers the project settings. R64 covers the cluster derivation. R65 and R66 are checks 1 and 2.
 - R67 is the level rule, check 5. R68 to R72 cover the block data, the block to plot match, the row split, the front by road edge and the xref lookup.
+- R80 to R82 cover plan.json, the plan from the past job and the shared position proof. R83 to R88 cover the placer: coordinates check, link placement, parameters, dry run and one transaction, report and skip, install.
 
 ## Real files
 
@@ -58,7 +61,7 @@ The full text is docs/rules.md. Ids are the contract, a test names the id it pro
 - Never commit real coordinates or levels. Logs and reports hold counts, row numbers and distances only.
 - Full run outputs go to sample_output/full_run/<file name>/.
 - A file that fails or times out is recorded with its exact error and the run carries on. Never swap in a dummy file.
-- The Revit reader is run by Bader by hand.
+- The Revit reader and the placer are run by Bader by hand. The placer runs only on a copy of a model.
 
 ## Commands
 

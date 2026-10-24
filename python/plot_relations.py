@@ -289,6 +289,21 @@ def candidate_yards(yards, tree, targets):
     return [found[key] for key in sorted(found)]
 
 
+def yard_index(floors, shapes):
+    """The yard floors that have a plan shape, with a search tree over them, which is None when there is no yard."""
+    yards = []
+    for floor in floors:
+        if link_summary.floor_kind(floor) == "yard" and shapes[floor["elementId"]][0] is not None:
+            yards.append((floor, shapes[floor["elementId"]][0]))
+    return yards, (STRtree([shape for _, shape in yards]) if yards else None)
+
+
+def find_yard(yards, tree, generic_shape, ramp_shape):
+    """The R58 yard of a plot as a status, assigned, ambiguous or none, and the candidates in element id order."""
+    candidates = candidate_yards(yards, tree, [generic_shape, ramp_shape]) if tree is not None else []
+    return ("none" if not candidates else "assigned" if len(candidates) == 1 else "ambiguous"), candidates
+
+
 def plot_of(floor):
     plot = link_summary.floor_plot(floor)
     return None if plot is None else link_summary.plot_key(plot)
@@ -326,18 +341,12 @@ def build_rows(data, excel_rows=None):
         shapes[floor["elementId"]] = floor_shape(floor, offset)
 
     by_plot = {}
-    yards = []
     for floor in floors:
         kind = link_summary.floor_kind(floor)
-        if kind == "yard":
-            shape = shapes[floor["elementId"]][0]
-            if shape is not None:
-                yards.append((floor, shape))
-            continue
         plot = plot_of(floor)
-        if kind is not None and plot is not None:
+        if kind not in (None, "yard") and plot is not None:
             by_plot.setdefault(plot, {}).setdefault(kind, []).append(floor)
-    tree = STRtree([shape for _, shape in yards]) if yards else None
+    yards, tree = yard_index(floors, shapes)
 
     links = {}
     links_without_plot = 0
@@ -418,10 +427,7 @@ def plot_row(plot, kinds, plot_links, excel_row, shapes, yards, tree, offset):
         row["generic_top_is_ssl"] = equals(low, high, ssl)
         level_columns(row, "generic", generic)
 
-    candidates = []
-    if tree is not None:
-        candidates = candidate_yards(yards, tree, [generic_shape, ramp_shape])
-    row["yard_status"] = "none" if not candidates else "assigned" if len(candidates) == 1 else "ambiguous"
+    row["yard_status"], candidates = find_yard(yards, tree, generic_shape, ramp_shape)
     row["yard_candidates"] = " ".join(str(floor["elementId"]) for floor, _ in candidates)
     row["yard_candidate_overlaps"] = " ".join(
         "%s:%g/%g" % (floor["elementId"], overlap_area(generic_shape, shape) or 0, overlap_area(ramp_shape, shape) or 0) for floor, shape in candidates)

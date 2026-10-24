@@ -45,6 +45,7 @@ namespace SiteAdaptation.Common
         public string Status { get; set; }
         public bool? Loaded { get; set; }
         public List<double[]> BoxCorners { get; set; }
+        public string BoxSource { get; set; }
         public LinkTransform TransformShared { get; set; }
         public List<ParameterDetail> ParameterDetails { get; set; }
 

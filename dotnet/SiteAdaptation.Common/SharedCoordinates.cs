@@ -47,6 +47,45 @@ namespace SiteAdaptation.Common
                 new[] { min[0], max[1], max[2] },
             };
         }
+
+        // The box around every box given as its min and max corner, or null when there is none
+        public static double[][] Union(IEnumerable<double[][]> boxes)
+        {
+            double[] min = null;
+            double[] max = null;
+            foreach (double[][] box in boxes)
+            {
+                if (min == null)
+                {
+                    min = (double[])box[0].Clone();
+                    max = (double[])box[1].Clone();
+                    continue;
+                }
+                for (int axis = 0; axis < 3; axis++)
+                {
+                    min[axis] = Math.Min(min[axis], box[0][axis]);
+                    max[axis] = Math.Max(max[axis], box[1][axis]);
+                }
+            }
+            return min == null ? null : new[] { min, max };
+        }
+
+        // The 8 corners of a box put through a transform, origin plus each axis times its coordinate, and the box around them.
+        // A turned box grows to hold its corners, so the result can be larger than the turned box itself
+        public static double[][] Through(double[] min, double[] max, double[] origin, double[] axisX, double[] axisY, double[] axisZ)
+        {
+            var moved = new List<double[][]>();
+            foreach (double[] corner in Corners(min, max))
+            {
+                var point = new double[3];
+                for (int axis = 0; axis < 3; axis++)
+                {
+                    point[axis] = origin[axis] + axisX[axis] * corner[0] + axisY[axis] * corner[1] + axisZ[axis] * corner[2];
+                }
+                moved.Add(new[] { point, point });
+            }
+            return Union(moved);
+        }
     }
 
     // Lowest and highest z of a set of points

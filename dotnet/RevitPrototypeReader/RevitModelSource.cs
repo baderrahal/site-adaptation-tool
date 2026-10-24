@@ -20,6 +20,12 @@ namespace RevitPrototypeReader
 
         private const char FailureSplit = '\u0001';
 
+        // The model extents of each link document, measured once however many instances it has (R54)
+        private readonly Dictionary<string, double[][]> linkExtents = new Dictionary<string, double[][]>(StringComparer.Ordinal);
+
+        // Spot id to the ids of the elements that hold it as a dependent, worked out on first use (R55)
+        private Dictionary<long, List<long>> spotHolders;
+
         public RevitModelSource(Document document)
         {
             this.document = document;
@@ -172,13 +178,14 @@ namespace RevitPrototypeReader
             try
             {
                 BoundingBoxXYZ box = instance.get_BoundingBox(null);
-                if (box == null)
+                if (box != null)
                 {
-                    problems.Add("bounding box: the API gives none");
+                    link.BoxCorners = BoxMath.Corners(Shared(box.Min), Shared(box.Max));
+                    link.BoxSource = "api";
                 }
                 else
                 {
-                    link.BoxCorners = BoxMath.Corners(Shared(box.Min), Shared(box.Max));
+                    BoxFromLinkExtents(instance, link, problems);
                 }
             }
             catch (Exception failure)
@@ -195,6 +202,59 @@ namespace RevitPrototypeReader
             {
                 problems.Add("shared transform: " + ModelReader.Describe(failure));
             }
+        }
+
+        // The API knows no model box for a link instance, so the extents of the loaded link document are put through the link transform
+        private void BoxFromLinkExtents(RevitLinkInstance instance, SourceLink link, IList<string> problems)
+        {
+            Document linked = instance.GetLinkDocument();
+            if (linked == null)
+            {
+                problems.Add("bounding box: the API gives none and the link document is not available");
+                return;
+            }
+            string key = linked.PathName + FailureSplit + linked.Title;
+            double[][] extents;
+            if (!linkExtents.TryGetValue(key, out extents))
+            {
+                extents = ModelExtents(linked);
+                linkExtents[key] = extents;
+            }
+            if (extents == null)
+            {
+                problems.Add("bounding box: the API gives none and the link document has no model element with a box");
+                return;
+            }
+            Transform transform = instance.GetTotalTransform();
+            double[][] host = BoxMath.Through(extents[0], extents[1], Axis(transform.Origin), Axis(transform.BasisX), Axis(transform.BasisY), Axis(transform.BasisZ));
+            link.BoxCorners = BoxMath.Corners(Shared(Point(host[0])), Shared(Point(host[1])));
+            link.BoxSource = "linkExtents";
+        }
+
+        // The union of the bounding boxes of the model elements of a document, in feet in its internal coordinates.
+        // Only bounding boxes are asked for. View specific elements, base points and nested links and imports are left out
+        private static double[][] ModelExtents(Document linked)
+        {
+            var boxes = new List<double[][]>();
+            foreach (Element element in new FilteredElementCollector(linked).WhereElementIsNotElementType())
+            {
+                if (element.ViewSpecific || element.Category == null || element.Category.CategoryType != CategoryType.Model
+                    || element is BasePoint || element is InternalOrigin || element is RevitLinkInstance || element is ImportInstance)
+                {
+                    continue;
+                }
+                BoundingBoxXYZ box = element.get_BoundingBox(null);
+                if (box != null)
+                {
+                    boxes.Add(new[] { Axis(box.Min), Axis(box.Max) });
+                }
+            }
+            return BoxMath.Union(boxes);
+        }
+
+        private static XYZ Point(double[] feet)
+        {
+            return new XYZ(feet[0], feet[1], feet[2]);
         }
 
         public IEnumerable<PrototypeRow> Instances()
@@ -597,43 +657,112 @@ namespace RevitPrototypeReader
 
         // The element the spot points to, with its category and type. A reference into a link gives the ids only,
         // because nothing inside a link is read. When the API gives no host the reason goes on the row and the reader writes it once
+        // The references are not available for a view specific dimension whose view is not open, so the element that holds the spot
+        // as a dependent stands in for them
         private SpotHost HostOf(SpotDimension spot, SpotRow row)
         {
             try
             {
-                if (!spot.AreReferencesAvailable)
+                bool available = spot.AreReferencesAvailable;
+                if (available)
                 {
-                    row.HostFailure = "the references are not available";
+                    SpotHost fromReferences = HostFromReferences(spot);
+                    if (fromReferences != null)
+                    {
+                        row.HostSource = "references";
+                        return fromReferences;
+                    }
+                }
+                List<long> holders;
+                if (!SpotHolders().TryGetValue(spot.Id.Value, out holders))
+                {
+                    row.HostFailure = available ? "no reference points to an element and no element holds it as a dependent" : "the references are not available and no element holds it as a dependent";
                     return null;
                 }
-                foreach (Reference reference in spot.References)
+                if (holders.Count > 1)
                 {
-                    if (reference.ElementId == ElementId.InvalidElementId)
-                    {
-                        continue;
-                    }
-                    var host = new SpotHost { ElementId = reference.ElementId.Value };
-                    if (reference.LinkedElementId != ElementId.InvalidElementId)
-                    {
-                        host.LinkedElementId = reference.LinkedElementId.Value;
-                        return host;
-                    }
-                    Element element = document.GetElement(reference.ElementId);
-                    if (element != null)
-                    {
-                        host.Category = element.Category == null ? null : element.Category.Name;
-                        host.TypeName = TypeNameOf(element);
-                    }
-                    return host;
+                    row.HostFailure = "several elements hold it as a dependent";
+                    return null;
                 }
-                row.HostFailure = "no reference points to an element";
-                return null;
+                row.HostSource = "dependents";
+                return HostElement(holders[0]);
             }
             catch (Exception failure)
             {
                 row.HostFailure = ModelReader.Describe(failure);
                 return null;
             }
+        }
+
+        private SpotHost HostFromReferences(SpotDimension spot)
+        {
+            foreach (Reference reference in spot.References)
+            {
+                if (reference.ElementId == ElementId.InvalidElementId)
+                {
+                    continue;
+                }
+                if (reference.LinkedElementId != ElementId.InvalidElementId)
+                {
+                    return new SpotHost { ElementId = reference.ElementId.Value, LinkedElementId = reference.LinkedElementId.Value };
+                }
+                return HostElement(reference.ElementId.Value);
+            }
+            return null;
+        }
+
+        private SpotHost HostElement(long id)
+        {
+            var host = new SpotHost { ElementId = id };
+            Element element = document.GetElement(new ElementId(id));
+            if (element != null)
+            {
+                host.Category = element.Category == null ? null : element.Category.Name;
+                host.TypeName = TypeNameOf(element);
+            }
+            return host;
+        }
+
+        // Every floor, ramp, toposurface, toposolid and link instance asked once for the spot dimensions that depend on it
+        private Dictionary<long, List<long>> SpotHolders()
+        {
+            if (spotHolders != null)
+            {
+                return spotHolders;
+            }
+            spotHolders = new Dictionary<long, List<long>>();
+            var spots = new ElementClassFilter(typeof(SpotDimension));
+            var holders = new List<Element>();
+            holders.AddRange(new FilteredElementCollector(document).OfClass(typeof(Floor)));
+            holders.AddRange(new FilteredElementCollector(document).OfCategory(BuiltInCategory.OST_Ramps).WhereElementIsNotElementType());
+            holders.AddRange(new FilteredElementCollector(document).OfCategory(BuiltInCategory.OST_Topography).WhereElementIsNotElementType());
+            holders.AddRange(new FilteredElementCollector(document).OfClass(typeof(Toposolid)));
+            holders.AddRange(new FilteredElementCollector(document).OfClass(typeof(RevitLinkInstance)));
+            foreach (Element holder in holders)
+            {
+                try
+                {
+                    foreach (ElementId id in holder.GetDependentElements(spots))
+                    {
+                        List<long> found;
+                        if (!spotHolders.TryGetValue(id.Value, out found))
+                        {
+                            found = new List<long>();
+                            spotHolders[id.Value] = found;
+                        }
+                        if (!found.Contains(holder.Id.Value))
+                        {
+                            found.Add(holder.Id.Value);
+                        }
+                    }
+                }
+                catch (Exception failure)
+                {
+                    Fail("spot holders", holder.Id.Value, ModelReader.Describe(failure));
+                }
+            }
+            FlushFailures();
+            return spotHolders;
         }
 
         private static long? TargetOf(SpotDimension spot)

@@ -1,0 +1,413 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+
+namespace SiteAdaptation.Common
+{
+    // Every decision of Place from plan (R83 to R87). The Revit side only carries out what this class asks for
+    public static class Placer
+    {
+        public const double CoordinateTolerance = 0.001;
+        public const double AngleTolerance = 0.001;
+        public const double ZTolerance = 0.001;
+        public const double ReadBackOrigin = 0.001;
+        public const double ReadBackAngle = 0.01;
+        public const string FflParameter = "RRE_ZZ_SP_Prototype-FFL";
+
+        // A failure that rolls the whole real run back
+        public sealed class PlacerFailure : Exception
+        {
+            public PlacerFailure(string message) : base(message)
+            {
+            }
+        }
+
+        private sealed class Candidate
+        {
+            public PlanPlot Plot;
+            public string File;
+            public PlacementSteps Steps;
+            public double[] Internal;
+        }
+
+        public static PlacerReport Run(PlanFile plan, string planPath, IPlacerTarget target, bool real)
+        {
+            var report = new PlacerReport
+            {
+                Mode = real ? "real" : "dryRun",
+                PlanFile = planPath,
+                Document = target.DocumentTitle,
+                Placed = new List<PlacedPlot>(),
+                Skipped = new List<SkippedPlot>(),
+                Issues = new List<string>(),
+            };
+            SurveyReading survey = target.Survey();
+            report.Coordinates = CheckCoordinates(plan, survey);
+            string stop = CheckFormat(plan) ?? report.Coordinates.Message;
+            if (stop != null)
+            {
+                report.Stopped = true;
+                report.Failure = stop;
+                return Count(report, plan);
+            }
+            List<Candidate> candidates = Choose(plan, survey, target, report);
+            if (!real)
+            {
+                foreach (Candidate candidate in candidates)
+                {
+                    report.Placed.Add(Entry(candidate, null, WritableNames(candidate.Plot)));
+                }
+                return Count(report, plan);
+            }
+            PlaceAll(plan, candidates, target, report);
+            return Count(report, plan);
+        }
+
+        public static string CheckFormat(PlanFile plan)
+        {
+            if (plan == null || plan.Format != PlanFile.FormatName || plan.FormatVersion != PlanFile.Version)
+            {
+                return "The plan file is not " + PlanFile.FormatName + " version " + PlanFile.Version + ", nothing was placed.";
+            }
+            if (plan.SurveyPoint == null || !IsPoint(plan.SurveyPoint.Position) || !IsPoint(plan.SurveyPoint.SharedPosition) || !plan.AngleToTrueNorthDeg.HasValue)
+            {
+                return "The plan file has no survey point or no angle to true north, nothing was placed.";
+            }
+            return null;
+        }
+
+        // R83. Both survey points and the angle must agree within the tolerances, and the angle must be 0 in this round
+        public static CoordinateCheck CheckCoordinates(PlanFile plan, SurveyReading survey)
+        {
+            var check = new CoordinateCheck
+            {
+                DocumentPosition = survey.Position,
+                DocumentSharedPosition = survey.SharedPosition,
+                DocumentAngleDeg = survey.AngleToTrueNorthDeg,
+                Match = true,
+            };
+            if (plan == null || plan.SurveyPoint == null || !IsPoint(plan.SurveyPoint.Position) || !IsPoint(plan.SurveyPoint.SharedPosition) || !plan.AngleToTrueNorthDeg.HasValue)
+            {
+                check.Match = false;
+                return check;
+            }
+            check.PlanPosition = plan.SurveyPoint.Position;
+            check.PlanSharedPosition = plan.SurveyPoint.SharedPosition;
+            check.PlanAngleDeg = plan.AngleToTrueNorthDeg.Value;
+            var problems = new List<string>();
+            Compare("survey point position", plan.SurveyPoint.Position, survey.Position, problems);
+            Compare("survey point shared position", plan.SurveyPoint.SharedPosition, survey.SharedPosition, problems);
+            if (AngleGap(plan.AngleToTrueNorthDeg.Value, survey.AngleToTrueNorthDeg) > AngleTolerance)
+            {
+                problems.Add("angle to true north: plan " + Text(plan.AngleToTrueNorthDeg.Value) + " deg, document " + Text(survey.AngleToTrueNorthDeg) + " deg");
+            }
+            else if (AngleGap(survey.AngleToTrueNorthDeg, 0) > AngleTolerance)
+            {
+                problems.Add("angle to true north is " + Text(survey.AngleToTrueNorthDeg) + " deg, only 0 is handled in this round");
+            }
+            if (problems.Count > 0)
+            {
+                check.Match = false;
+                check.Message = "Coordinates do not match the plan, nothing was placed and the project coordinates were not changed: " + string.Join(". ", problems) + ".";
+            }
+            return check;
+        }
+
+        private static void Compare(string label, double[] plan, double[] document, IList<string> problems)
+        {
+            string[] axes = { "X", "Y", "Z" };
+            if (!IsPoint(document))
+            {
+                problems.Add(label + ": the document gives none");
+                return;
+            }
+            for (int axis = 0; axis < 3; axis++)
+            {
+                if (Math.Abs(plan[axis] - document[axis]) > CoordinateTolerance)
+                {
+                    problems.Add(label + " " + axes[axis] + ": plan " + Text(plan[axis]) + " m, document " + Text(document[axis]) + " m");
+                }
+            }
+        }
+
+        // R84 and R87. The plots that can be placed, in plan order, each with its steps. Every other plot is skipped with its reason
+        private static List<Candidate> Choose(PlanFile plan, SurveyReading survey, IPlacerTarget target, PlacerReport report)
+        {
+            var placedAlready = new HashSet<string>(target.LinkPlotNumbers().Where(number => number != null).Select(number => number.Trim()), StringComparer.Ordinal);
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            double[] offset = SharedCoordinates.Offset(survey.Position, survey.SharedPosition);
+            var candidates = new List<Candidate>();
+            foreach (PlanPlot plot in plan.Plots ?? new List<PlanPlot>())
+            {
+                string number = plot.Plot == null ? null : plot.Plot.Trim();
+                string reason = Lacking(plot);
+                if (reason == null && !seen.Add(number))
+                {
+                    reason = "the plan lists this plot twice, the first one is used";
+                }
+                if (reason == null && placedAlready.Contains(number))
+                {
+                    reason = "already placed, a link instance of the document has this plot number";
+                }
+                if (reason == null && Path.GetFileName(plot.PrototypeFile.Value) != plot.PrototypeFile.Value)
+                {
+                    reason = "prototypeFile must be a file name in the prototype folder, not a path";
+                }
+                string file = reason == null ? Path.Combine(plan.PrototypeFolder ?? "", plot.PrototypeFile.Value) : null;
+                if (reason == null && !target.FileExists(file))
+                {
+                    reason = "prototype file not found: " + file;
+                }
+                if (reason == null && Math.Abs(plot.Insert.Value[2] - plot.Levels.Ffl.Value.Value) > ZTolerance)
+                {
+                    reason = "insert Z and FFL differ by " + Text((plot.Insert.Value[2] - plot.Levels.Ffl.Value.Value) * 1000) + " mm";
+                }
+                if (reason != null)
+                {
+                    report.Skipped.Add(new SkippedPlot { Plot = plot.Plot, Reason = reason });
+                    continue;
+                }
+                double[] point = PlacementMath.InternalPoint(plot.Insert.Value, offset);
+                candidates.Add(new Candidate { Plot = plot, File = file, Internal = point, Steps = PlacementMath.Steps(point, plot.RotationDeg.Value.Value, plot.Mirrored.Value.Value) });
+            }
+            return candidates;
+        }
+
+        private static string Lacking(PlanPlot plot)
+        {
+            var lacking = new List<string>();
+            if (string.IsNullOrWhiteSpace(plot.Plot))
+            {
+                lacking.Add("plot");
+            }
+            if (plot.PrototypeFile == null || string.IsNullOrWhiteSpace(plot.PrototypeFile.Value))
+            {
+                lacking.Add("prototypeFile");
+            }
+            if (plot.Insert == null || !IsPoint(plot.Insert.Value))
+            {
+                lacking.Add("insert");
+            }
+            if (plot.RotationDeg == null || !plot.RotationDeg.Value.HasValue)
+            {
+                lacking.Add("rotationDeg");
+            }
+            if (plot.Mirrored == null || !plot.Mirrored.Value.HasValue)
+            {
+                lacking.Add("mirrored");
+            }
+            if (plot.Levels == null || plot.Levels.Ffl == null || !plot.Levels.Ffl.Value.HasValue)
+            {
+                lacking.Add("levels.ffl");
+            }
+            return lacking.Count == 0 ? null : "the plan lacks " + string.Join(", ", lacking);
+        }
+
+        // R84 to R86. One transaction, and any failure rolls all of it back
+        private static void PlaceAll(PlanFile plan, List<Candidate> candidates, IPlacerTarget target, PlacerReport report)
+        {
+            var placed = new List<PlacedPlot>();
+            int written = 0;
+            target.Begin();
+            try
+            {
+                var existing = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (LinkTypeEntry type in target.LinkTypes())
+                {
+                    if (type.FileName != null && !existing.ContainsKey(type.FileName))
+                    {
+                        existing[type.FileName] = type.Key;
+                    }
+                }
+                foreach (Candidate candidate in candidates)
+                {
+                    string fileName = Path.GetFileName(candidate.File);
+                    string key;
+                    if (!existing.TryGetValue(fileName, out key))
+                    {
+                        key = target.LoadLinkType(candidate.File);
+                        if (key == null)
+                        {
+                            throw new PlacerFailure("plot " + candidate.Plot.Plot + ": the link " + candidate.File + " did not load");
+                        }
+                        existing[fileName] = key;
+                    }
+                    long id = target.Place(key, candidate.Steps);
+                    string mismatch = PlacementMath.Mismatch(target.ReadBack(id), candidate.Internal, candidate.Plot.RotationDeg.Value.Value, candidate.Plot.Mirrored.Value.Value);
+                    if (mismatch != null)
+                    {
+                        throw new PlacerFailure("plot " + candidate.Plot.Plot + ": the placed link does not match the plan, " + mismatch);
+                    }
+                    var names = new List<string>();
+                    foreach (KeyValuePair<string, Sourced<string>> parameter in candidate.Plot.Parameters ?? new Dictionary<string, Sourced<string>>())
+                    {
+                        string issue = WriteOne(target, id, candidate.Plot.Plot, parameter.Key, parameter.Value);
+                        if (issue == null)
+                        {
+                            names.Add(parameter.Key);
+                            written++;
+                        }
+                        else
+                        {
+                            report.Issues.Add(issue);
+                        }
+                    }
+                    placed.Add(Entry(candidate, id, names));
+                }
+                CommitResult commit = target.Commit();
+                AddWarnings(target, report);
+                if (commit == null || !commit.Committed)
+                {
+                    report.RolledBack = true;
+                    report.Failure = "the transaction did not commit, nothing stays: " + (commit == null ? "no result" : commit.Reason);
+                    return;
+                }
+            }
+            catch (Exception failure)
+            {
+                target.RollBack();
+                AddWarnings(target, report);
+                report.RolledBack = true;
+                report.Failure = "rolled back, nothing stays: " + failure.Message;
+                return;
+            }
+            report.Placed.AddRange(placed);
+            report.ParametersWritten = written;
+        }
+
+        private static void AddWarnings(IPlacerTarget target, PlacerReport report)
+        {
+            foreach (string warning in target.Warnings ?? new List<string>())
+            {
+                report.Issues.Add("Revit warning: " + warning);
+            }
+        }
+
+        // R85. Null when the value was written, else the issue line
+        private static string WriteOne(IPlacerTarget target, long id, string plot, string name, Sourced<string> value)
+        {
+            if (name == FflParameter)
+            {
+                return "plot " + plot + ": " + FflParameter + " is in the plan and is never written";
+            }
+            if (value == null || value.Value == null)
+            {
+                return "plot " + plot + ": " + name + " has no value in the plan";
+            }
+            ParameterWrite result = target.Write(id, name, value.Value);
+            switch (result)
+            {
+                case ParameterWrite.Written:
+                    return null;
+                case ParameterWrite.Missing:
+                    return "plot " + plot + ": the link instance has no parameter " + name;
+                case ParameterWrite.ReadOnly:
+                    return "plot " + plot + ": " + name + " is read only";
+                case ParameterWrite.NotText:
+                    return "plot " + plot + ": " + name + " does not hold text";
+                default:
+                    return "plot " + plot + ": " + name + " was not written";
+            }
+        }
+
+        private static List<string> WritableNames(PlanPlot plot)
+        {
+            return (plot.Parameters ?? new Dictionary<string, Sourced<string>>()).Keys.Where(name => name != FflParameter).ToList();
+        }
+
+        private static PlacedPlot Entry(Candidate candidate, long? id, List<string> parameters)
+        {
+            return new PlacedPlot
+            {
+                Plot = candidate.Plot.Plot,
+                File = Path.GetFileName(candidate.File),
+                RotationDeg = candidate.Plot.RotationDeg.Value.Value,
+                Mirrored = candidate.Plot.Mirrored.Value.Value,
+                InstanceId = id,
+                Parameters = parameters,
+            };
+        }
+
+        private static PlacerReport Count(PlacerReport report, PlanFile plan)
+        {
+            report.Counts = new PlacerCounts
+            {
+                PlotsInPlan = plan == null || plan.Plots == null ? 0 : plan.Plots.Count,
+                Placed = report.Placed.Count,
+                Skipped = report.Skipped.Count,
+                ParametersWritten = report.ParametersWritten,
+                Issues = report.Issues.Count,
+            };
+            return report;
+        }
+
+        private static bool IsPoint(double[] point)
+        {
+            return point != null && point.Length == 3;
+        }
+
+        public static double AngleGap(double a, double b)
+        {
+            double gap = Math.Abs(a - b) % 360.0;
+            return gap > 180.0 ? 360.0 - gap : gap;
+        }
+
+        private static string Text(double value)
+        {
+            return value.ToString("0.###", CultureInfo.InvariantCulture);
+        }
+    }
+
+    public static class PlacementMath
+    {
+        // R84. Shared coordinates minus the survey point offset of the open document
+        public static double[] InternalPoint(double[] shared, double[] offset)
+        {
+            return new[] { shared[0] - offset[0], shared[1] - offset[1], shared[2] - offset[2] };
+        }
+
+        // The mirror plane holds the turned X axis and the vertical, so its normal is the turned Y axis.
+        // Mirroring across it flips Y and keeps X, which is what a mirrored link of the past job holds
+        public static PlacementSteps Steps(double[] internalPoint, double rotationDeg, bool mirrored)
+        {
+            double turn = UnitMath.DegreesToRadians(rotationDeg);
+            return new PlacementSteps
+            {
+                Move = internalPoint,
+                RotationRad = turn,
+                MirrorNormal = mirrored ? new[] { -Math.Sin(turn), Math.Cos(turn), 0.0 } : null,
+            };
+        }
+
+        // Null when the read back transform is the planned one, else what differs
+        public static string Mismatch(PlacedTransform actual, double[] internalPoint, double rotationDeg, bool mirrored)
+        {
+            if (actual == null || actual.Origin == null || actual.AxisX == null || actual.AxisY == null || actual.AxisZ == null)
+            {
+                return "no transform was read back";
+            }
+            var problems = new List<string>();
+            double gap = Math.Sqrt(Enumerable.Range(0, 3).Sum(axis => Math.Pow(actual.Origin[axis] - internalPoint[axis], 2)));
+            if (gap > Placer.ReadBackOrigin)
+            {
+                problems.Add("origin is " + (gap * 1000).ToString("0.###", CultureInfo.InvariantCulture) + " mm off");
+            }
+            LinkTransform found = LinkMath.Describe(actual.Origin, actual.AxisX, actual.AxisY, actual.AxisZ);
+            if (Placer.AngleGap(found.RotationDeg, rotationDeg) > Placer.ReadBackAngle)
+            {
+                problems.Add("rotation is " + found.RotationDeg.ToString("0.###", CultureInfo.InvariantCulture) + " deg, the plan says " + rotationDeg.ToString("0.###", CultureInfo.InvariantCulture));
+            }
+            if (found.Mirrored != mirrored)
+            {
+                problems.Add("mirrored is " + found.Mirrored + ", the plan says " + mirrored);
+            }
+            if (Math.Abs(actual.AxisZ[2] - 1.0) > 1e-6)
+            {
+                problems.Add("the Z axis is not up");
+            }
+            return problems.Count == 0 ? null : string.Join(", ", problems);
+        }
+    }
+}

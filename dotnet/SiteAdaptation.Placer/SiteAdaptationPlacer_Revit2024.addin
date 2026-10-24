@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Command">
+    <Name>Place from plan</Name>
+    <Assembly>C:\Users\bader\AppData\Roaming\Autodesk\Revit\Addins\2024\SiteAdaptationPlacer\SiteAdaptation.Placer.dll</Assembly>
+    <FullClassName>SiteAdaptation.Placer.PlaceFromPlanCommand</FullClassName>
+    <AddInId>3c6f1d52-7a0e-4b8e-9c41-5e2b8d07a915</AddInId>
+    <AvailabilityClassName>SiteAdaptation.Placer.ProjectOpen</AvailabilityClassName>
+    <VendorId>SITEADAPT</VendorId>
+    <VendorDescription>Site Adaptation Tool</VendorDescription>
+  </AddIn>
+</RevitAddIns>
