@@ -70,8 +70,28 @@ One step was added while working: python/plan_compare.py (R89), so step f of the
 
 ## Gate
 
-- Python 323 to 356 passed. .NET 155 to 194 passed.
+- Python 323 to 366 passed. .NET 155 to 205 passed.
 
 ## Review
 
-Filled in after the review.
+First review, a fresh agent in its own worktree at 46bcb63 with its own venv. Gate there: Python 352, .NET 194. It found 15 points:
+
+1. No yard on any real plot. R58 as written, kept, question for Bader.
+2. Two schedule rows for one plot were dropped silently by setdefault. Fixed, both rows are listed and the plot is not written.
+3. A missing angle to true north was written as 0. Fixed, it is left out and the placer stops.
+4. No report on several placer failure paths: an unreadable plan, Begin outside the try, a bad file name character, a null entry. Fixed, a report on every path.
+5. The second entry of a plot number could be placed when the first was skipped. Fixed, every later entry is skipped.
+6. A plan with no prototypeFolder gave a relative load path. Fixed, the plan stops.
+7. The dry run said nothing about RRE_ZZ_SP_Prototype-FFL. Fixed.
+8. A plot whose plot number could not be written would be placed again by the next run. Fixed, the plan must hold the plot number and a failed write rolls back.
+9. rotationDeg could round to 360. Fixed, written as 0.
+10. A partial transform crashed the builder. Fixed, listed under transform.
+11. sources.prototypes named the config file and not the file read. Fixed.
+12. Old number parsing let 101.5 join 101 and read 2.5 steps as 2. Fixed in the builder with its own whole number rule. link_summary.py is not changed.
+13. An unloaded or nested link type of the document would stop the run. Fixed, such a type is never used and its plots are skipped.
+14. A pinned new link could not be moved. Fixed, the pin is taken off. The reviewer was not sure Revit pins a new link.
+15. The mm rounding chain of the reader. Kept, Known bugs.
+
+It also said the unit against file name conflict was not in R81 and the report fields Tool and Stopped were not in R87. Both rule texts now name them.
+
+Second short review on 46bcb63 to 4bdffd5, read only in this worktree. Gate there: Python 363, .NET 205. Found: floors still joined 101.5 to 101, IsPathRooted took C:Prototypes and a root relative path as full, 0101 no longer joined 101, plan_compare dropped links with a bad plot number. All four fixed with tests, plus the rolledBack flag of the command catch. These last fixes were checked by the gate and the real run, not by a third review.

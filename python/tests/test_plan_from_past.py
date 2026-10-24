@@ -426,3 +426,30 @@ def test_r81_sources_name_the_prototypes_file_that_was_read(tmp_path, monkeypatc
     plan = json.loads(out.read_text(encoding="utf-8"))
     assert plan["sources"]["prototypes"] == "other_prototypes.json"
     assert plan["summary"]["written"] == 1
+
+
+def test_r81_a_floor_whose_plot_number_is_not_whole_joins_nothing():
+    plan = build([link("101")], plot_floors("101.5", 0, 10), [row("101")])
+    entry = by_plot(plan)["101"]
+    assert "generic" not in entry["floors"]
+    assert "ramp" not in entry["floors"]
+    assert {item["plotNumber"] for item in plan["summary"]["floorsWithBadPlotNumber"]} == {"101.5"}
+
+
+def test_r81_a_plot_number_with_leading_zeros_joins_its_plot():
+    assert pf.plot_number("0101") == "101"
+    assert pf.plot_number("\u00b2") is None
+    plan = build([link("0101")], plot_floors("101", 0, 10), [row("101")])
+    assert [entry["plot"] for entry in plan["plots"]] == ["101"]
+
+
+def test_r89_a_placed_link_whose_plot_number_is_not_whole_is_listed():
+    links = [link("101")]
+    floors = plot_floors("101", 0, 10)
+    plan = build(links, floors, [row("101")])
+    odd = link("101")
+    odd["parameters"]["RRE_ZZ_SP_Plot-Number"] = "101.5"
+    odd["elementId"] = 77
+    report = plan_compare.compare(plan, placed_model(links + [odd], floors))
+    assert report["linksWithBadPlotNumber"] == [{"elementId": 77, "plotNumber": "101.5"}]
+    assert report["fullMatch"] == 1

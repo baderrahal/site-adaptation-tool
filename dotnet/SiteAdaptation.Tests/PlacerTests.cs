@@ -484,7 +484,7 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R84_a_plan_without_a_full_prototype_folder_stops()
         {
-            foreach (string folder in new[] { null, "", "Prototypes" })
+            foreach (string folder in new[] { null, "", "Prototypes", "C:Prototypes", @"\Prototypes" })
             {
                 PlanFile plan = Plan(Plot("101", 1003, 2004, 10));
                 plan.PrototypeFolder = folder;
@@ -531,7 +531,8 @@ namespace SiteAdaptation.Tests
             Real(Plan(Plot("101", 1003, 2004, 10), Plot("102", 1020, 2004, 10, file: "DP4.rvt")), target);
 
             Assert.Equal(2, target.Loads.Count);
-            Assert.All(target.Loads, path => Assert.True(Path.IsPathRooted(path)));
+            Assert.All(target.Loads, path => Assert.True(Placer.IsFullPath(path)));
+            Assert.True(Placer.IsFullPath(@"\\server\share\Prototypes"));
         }
 
         [Fact]

@@ -68,6 +68,7 @@ namespace SiteAdaptation.Placer
                 // Run rolls its own transaction back, so only a failure outside it lands here
                 target.RollBack();
                 report = Common.Placer.StoppedReport(real ? "real" : "dryRun", planPath, active.Document.Title, "The run failed, nothing stays: " + failure.Message);
+                report.RolledBack = real;
             }
             JsonOut.Write(reportPath, report);
             TaskDialog.Show(Title, Summary(report) + "\n" + reportPath);

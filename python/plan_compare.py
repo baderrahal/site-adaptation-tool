@@ -54,12 +54,14 @@ def compare_plot(entry, links, offset):
 def compare(plan, data):
     document = plan_from_past.host_of(data)
     offset = ramp_levels.offset_of(document)
-    links = {}
+    links, bad = {}, []
     for link in document.get("links") or []:
         plot = (link.get("parameters") or {}).get(plan_from_past.PLOT_PARAMETER)
         if plot is not None and str(plot).strip():
             key = plan_from_past.plot_number(plot)
-            if key is not None:
+            if key is None:
+                bad.append({"elementId": link.get("elementId"), "plotNumber": str(plot)})
+            else:
                 links.setdefault(key, []).append(link)
     matches, mismatches, differing = Counter(), Counter(), []
     planned = set()
@@ -79,6 +81,7 @@ def compare(plan, data):
         "matches": {field: matches[field] for field in FIELDS},
         "mismatches": {field: mismatches[field] for field in FIELDS},
         "linksNotInPlan": sorted((plot for plot in links if plot not in planned), key=link_summary.sort_key),
+        "linksWithBadPlotNumber": bad,
         "differing": differing,
     }
 

@@ -110,7 +110,7 @@ def plot_number(value):
     if is_number(value):
         return str(int(value)) if float(value).is_integer() else None
     text = str(value).strip() if value is not None else ""
-    return text if text.isdigit() else None
+    return str(int(text)) if text.isascii() and text.isdigit() else None
 
 
 def shared_origin(link, offset):
@@ -155,14 +155,19 @@ def floor_index(document, offset):
     """The Generic and ramp floors by plot number, the plan shape of every floor and the yard search of R58."""
     floors = document.get("floors") or []
     shapes = {floor["elementId"]: plot_relations.floor_shape(floor, offset) for floor in floors}
-    by_plot = {}
+    by_plot, bad = {}, []
     for floor in floors:
         kind = link_summary.floor_kind(floor)
-        plot = plot_relations.plot_of(floor)
-        if kind in ("generic", "ramp") and plot is not None:
-            by_plot.setdefault(plot, {}).setdefault(kind, []).append(floor)
+        named = link_summary.floor_plot(floor)
+        if kind not in ("generic", "ramp") or named is None:
+            continue
+        plot = plot_number(named)
+        if plot is None:
+            bad.append({"elementId": floor.get("elementId"), "plotNumber": str(named)})
+            continue
+        by_plot.setdefault(plot, {}).setdefault(kind, []).append(floor)
     yards, tree = plot_relations.yard_index(floors, shapes)
-    return {"byPlot": by_plot, "shapes": shapes, "yards": yards, "tree": tree}
+    return {"byPlot": by_plot, "shapes": shapes, "yards": yards, "tree": tree, "badFloors": bad}
 
 
 class PlotBuilder:
@@ -401,7 +406,7 @@ def build_plan(data, rows, job, folder_files, prototype_folder):
         conflicts.extend(builder.conflicts)
     proof, over = position_proof(links, offset)
     for link, gap in over:
-        conflicts.append({"plot": plot_number((link.get("parameters") or {}).get(PLOT_PARAMETER)), "field": "insert",
+        conflicts.append({"plot": plot_number((link.get("parameters") or {}).get(PLOT_PARAMETER)) or "link " + str(link.get("elementId")), "field": "insert",
                           "kept": "transform origin plus offset", "other": common.r3(gap), "otherSource": "transformShared, difference in mm"})
     survey = document["surveyPoint"]
     plan = {
@@ -420,6 +425,7 @@ def build_plan(data, rows, job, folder_files, prototype_folder):
             "scheduleRows": len(rows),
             "linksWithBadPlotNumber": bad_links,
             "scheduleRowsWithBadPlotNumber": bad_rows,
+            "floorsWithBadPlotNumber": index["badFloors"],
             "missingByKey": dict(sorted(missing_keys.items())),
             "floorsFound": {kind: floors_found[kind] for kind in ("generic", "yard", "ramp")},
             "yardStatus": dict(sorted(yard_status.items())),

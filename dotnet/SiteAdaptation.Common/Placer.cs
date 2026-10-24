@@ -109,7 +109,7 @@ namespace SiteAdaptation.Common
             {
                 return "The plan file has no survey point or no angle to true north, nothing was placed.";
             }
-            if (string.IsNullOrWhiteSpace(plan.PrototypeFolder) || !Path.IsPathRooted(plan.PrototypeFolder))
+            if (!IsFullPath(plan.PrototypeFolder))
             {
                 return "The plan file has no full path in prototypeFolder, nothing was placed.";
             }
@@ -450,6 +450,17 @@ namespace SiteAdaptation.Common
                 Issues = report.Issues.Count,
             };
             return report;
+        }
+
+        // A drive and a backslash, or a server share. IsPathRooted alone takes C:Prototypes and \Prototypes, which are not full
+        public static bool IsFullPath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return false;
+            }
+            bool drive = path.Length > 2 && char.IsLetter(path[0]) && path[1] == ':' && (path[2] == '\\' || path[2] == '/');
+            return drive || path.StartsWith(@"\\", StringComparison.Ordinal);
         }
 
         private static bool IsPoint(double[] point)
