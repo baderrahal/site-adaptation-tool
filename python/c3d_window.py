@@ -53,8 +53,11 @@ def refusal(config, drawing):
     return None
 
 
-def script_text(dll):
-    return c3d_run.checked("\n".join(["NETLOAD", '"' + str(dll) + '"'] + list(COMMANDS)) + "\n")
+def script_text(dll, dxf=None):
+    """NETLOAD, C3DDATA and C3DQUIT, or with dxf DXFOUT to that file in place of C3DDATA (R253). DXFOUT writes a new file and
+    the drawing is never saved, its hash is checked after."""
+    commands = ["DXFOUT", '"' + str(dxf) + '"', "16", "C3DQUIT"] if dxf else list(COMMANDS)
+    return c3d_run.checked("\n".join(["NETLOAD", '"' + str(dll) + '"'] + commands) + "\n")
 
 
 def window_args(acad, drawing, script, language):
@@ -85,28 +88,30 @@ def probe_done(summary, started):
     return found.get("reader") == "C3DProbe" and found.get("done") is True
 
 
-def run(config, role, launcher=None, memory=free_gb, sleep=time.sleep, clock=time.time, processes=None):
+def run(config, role, launcher=None, memory=free_gb, sleep=time.sleep, clock=time.time, processes=None, dxf=None):
     """With dataBook.windowLock the window opens only under the lock of R200 and the lock is given back however the run ends (R197)."""
     book = config["dataBook"]
     block = book.get("windowLock")
     if not block:
-        return _run(config, role, launcher, memory, sleep, clock)
+        return _run(config, role, launcher, memory, sleep, clock, dxf)
     lock = window_lock.Lock(block, block["round"], Path(book["root"]) / block["log"], sleep=sleep, free=memory,
                             processes=processes or window_lock.running)
     seen = lock.acquire(role, block["maxWaitMinutes"])
     try:
-        record = _run(config, role, launcher, memory, sleep, clock)
+        record = _run(config, role, launcher, memory, sleep, clock, dxf)
         record["lockSeen"] = seen
         return record
     finally:
         lock.release(role)
 
 
-def _run(config, role, launcher, memory, sleep, clock):
+def _run(config, role, launcher, memory, sleep, clock, dxf=None):
     book = config["dataBook"]
     root = Path(book["root"])
     drawing = work_root(book) / book["drawings"][role]
     reason = refusal(config, drawing)
+    if not reason and dxf and (c3d_run.under(config["sourceRoot"], dxf) or c3d_run.under(work_root(book), dxf)):
+        reason = "the DXF must go outside the source and work folders"
     if reason:
         raise ValueError(reason)
     logs = root / "logs"
@@ -114,7 +119,7 @@ def _run(config, role, launcher, memory, sleep, clock):
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     dll = probe_dll(config)
     script = logs / f"{stamp}_{role}.scr"
-    script.write_text(script_text(dll), encoding="ascii")
+    script.write_text(script_text(dll, dxf), encoding="ascii")
     out = root / drawing.stem
     env = dict(os.environ)
     env.update({"C3DPROBE_WORK": str(work_root(book)), "C3DPROBE_OUT": str(out), "C3DPROBE_BORDER": str(root / "phase1_border.csv"),
@@ -156,7 +161,11 @@ def _run(config, role, launcher, memory, sleep, clock):
     record["freeGbLowest"] = round(lowest, 2)
     record["unchanged"] = c3d_run.sha256(drawing) == hash_before
     record["newFiles"] = sorted(set(p.name for p in drawing.parent.iterdir()) - set(folder_before))
-    record["done"] = probe_done(out / "data.json", started)
+    if dxf:
+        record["dxf"] = str(dxf)
+        record["done"] = Path(dxf).is_file() and Path(dxf).stat().st_mtime >= started and Path(dxf).stat().st_size > 0
+    else:
+        record["done"] = probe_done(out / "data.json", started)
     if (out / "data.error.txt").is_file():
         record["error"] = (out / "data.error.txt").read_text(encoding="utf-8").splitlines()[0]
     if watch_log.is_file():
@@ -170,12 +179,16 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Run the data book probe in the full Civil 3D window, one drawing at a time (R160)")
     parser.add_argument("roles", nargs="*", help="drawing roles of dataBook.drawings, all when left out")
     parser.add_argument("--config", default=str(c3d_run.CONFIG))
+    parser.add_argument("--dxf-folder", help="write a DXF of each copy into this folder by DXFOUT in place of the probe read (R253)")
     args = parser.parse_args(argv)
     config = c3d_run.load_config(args.config)
     failed = 0
     for role in args.roles or list(config["dataBook"]["drawings"]):
-        record = run(config, role)
-        print(json.dumps({k: record.get(k) for k in ("role", "pids", "exit", "seconds", "unchanged", "done", "stopped", "skipped", "error", "freeGbLowest", "dialogs")}))
+        dxf = Path(args.dxf_folder) / (Path(config["dataBook"]["drawings"][role]).stem + ".dxf") if args.dxf_folder else None
+        if dxf:
+            dxf.parent.mkdir(parents=True, exist_ok=True)
+        record = run(config, role, dxf=dxf)
+        print(json.dumps({k: record.get(k) for k in ("role", "pids", "exit", "seconds", "unchanged", "done", "dxf", "stopped", "skipped", "error", "freeGbLowest", "dialogs")}))
         failed += not record.get("done")
     return 1 if failed else 0
 

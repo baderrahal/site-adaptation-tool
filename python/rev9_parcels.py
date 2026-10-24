@@ -106,6 +106,15 @@ def redo(differing, by_label, pdf_outlines, parcels_by_number):
     return rows
 
 
+def write_matches(path, by_label):
+    """One row per baseplan face, since two faces may match one parcel and parcels.csv names one face per parcel (R251)."""
+    with open(path, "w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle, lineterminator="\n")
+        writer.writerow(["baseplanLabel", "parcel", "style", "iou", "faceClass", "numberClass", "codeClass"])
+        for label, found in by_label.items():
+            writer.writerow([label, found["parcel"], found["style"], found["iou"], found["faceClass"], found["numberClass"], found["codeClass"]])
+
+
 def run(config):
     book = config["dataBook"]
     settings = book["rev9"]
@@ -157,6 +166,7 @@ def run(config):
             label = label_of.get(k)
             writer.writerow([p["number"], p["style"], p["description"], p["area"], p["parent"], label, matches[label]["iou"] if label else None,
                              matches[label]["class"] if label else None])
+    write_matches(out / "parcel_matches.csv", by_label)
     with open(out / "parcel_redo.csv", "w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, list(redone[0]) if redone else ["baseplanLabel"], lineterminator="\n")
         writer.writeheader()

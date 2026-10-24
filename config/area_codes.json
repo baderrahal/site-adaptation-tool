@@ -1,0 +1,20 @@
+{
+  "note": "Proposed table of round DATA-5 (R257), for Bader to confirm. It names the IM code each neighbourhood of Phase 1 is known by in the file names of the past jobs. The tool reads the area of a plot from its Neighbourhood_ID and Construction_Zone in the Rev 9 DLUS (R256), never from an IM letter, so this table only names files. status is measured when files of that code hold plots and the area key puts them in that neighbourhood, text when only a title or a path names the code, guessed when nothing on this machine names it and the row follows the letter order of the measured rows. conflicts lists the files of the code that hold other neighbourhoods.",
+  "codes": [
+    {"code": "IMA", "zone": "Zone 1", "nbh": ["021"], "status": "guessed",
+     "evidence": "Only file names: four models in Native Files 1.1, not opened. Guessed from the letter order, C and D are the two neighbourhoods of Zone 2, so A and B would be the two large ones of Zone 1."},
+    {"code": "IMB", "zone": "Zone 1", "nbh": ["022"], "status": "guessed",
+     "evidence": "Only file names: four models in Native Files 1.2, not opened. Guessed from the letter order as for IMA."},
+    {"code": "IMC", "zone": "Zone 2", "nbh": ["012"], "status": "measured",
+     "evidence": "The IMC schedule holds 337 plots, all in 012. The IMC past model 01101-PSN-IMC-ZZZ-PIM-TU-000001 holds 337 plots, all in 012."},
+    {"code": "IMD", "zone": "Zone 2", "nbh": ["013"], "status": "measured",
+     "evidence": "The IMD schedule holds 410 plots, all in 013.",
+     "conflicts": ["The 1.4 past model 01101-PSN-IMD-ZZZ-PIM-TU-000004 is named IMD and holds 336 plots of 012 and 296 of 022, 1 plot with no key. Its central path is Site Adaptation, Phase 4."]},
+    {"code": "IME", "zone": "Zone 3", "nbh": ["02"], "status": "guessed",
+     "evidence": "No file, text or path on this machine names IME. Guessed from the letter order: Zone 3 holds 02 and 03, the first letter of the pair taken for the lower number as C is 012 and D is 013."},
+    {"code": "IMF", "zone": "Zone 3", "nbh": ["03"], "status": "guessed",
+     "evidence": "No file, text or path names IMF. Guessed as the second letter of the Zone 3 pair."},
+    {"code": "IMG", "zone": "Zone 4", "nbh": ["01A", "01B"], "status": "text",
+     "evidence": "The title block of the Rev.09 location plan PHASE 1 - Zone 4 reads Plot Layout and CAD Ref 01101-PSN-IMG-ZZZ-PIM-TU-000001. No IMG file is on this machine, so no plot of it is counted."}
+  ]
+}
