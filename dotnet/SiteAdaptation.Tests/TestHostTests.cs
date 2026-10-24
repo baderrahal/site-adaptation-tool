@@ -28,7 +28,7 @@ namespace SiteAdaptation.Tests
             return File.ReadAllText(Path.Combine(new[] { folder }.Concat(parts).ToArray()));
         }
 
-        // R100 placer filter
+        // R102 placer filter
 
         private static PlanFile MixedPlan()
         {
@@ -39,7 +39,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R100_a_filter_places_only_the_plots_of_its_file_without_case_and_counts_the_rest()
+        public void R102_a_filter_places_only_the_plots_of_its_file_without_case_and_counts_the_rest()
         {
             var target = new PlacerTests.FakeTarget();
 
@@ -57,7 +57,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R100_the_dry_run_filters_the_same_way()
+        public void R102_the_dry_run_filters_the_same_way()
         {
             var target = new PlacerTests.FakeTarget();
 
@@ -74,7 +74,7 @@ namespace SiteAdaptation.Tests
         [InlineData(@"C:\Prototypes\DP4.rvt")]
         [InlineData("")]
         [InlineData("  ")]
-        public void R100_a_filter_no_plot_uses_or_that_is_not_a_file_name_stops_and_places_nothing(string filter)
+        public void R102_a_filter_no_plot_uses_or_that_is_not_a_file_name_stops_and_places_nothing(string filter)
         {
             var target = new PlacerTests.FakeTarget();
 
@@ -87,7 +87,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R100_no_filter_tries_every_plot_as_before()
+        public void R102_no_filter_tries_every_plot_as_before()
         {
             PlacerReport all = Placer.Run(MixedPlan(), "plan.json", new PlacerTests.FakeTarget(), true, null);
             PlacerReport before = Placer.Run(MixedPlan(), "plan.json", new PlacerTests.FakeTarget(), true);
@@ -99,7 +99,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R100_the_first_entry_of_a_plot_number_is_found_over_the_whole_plan()
+        public void R102_the_first_entry_of_a_plot_number_is_found_over_the_whole_plan()
         {
             PlanFile plan = PlacerTests.Plan(
                 PlacerTests.Plot("7", 1010, 2010, 7, file: "VD2.rvt"),
@@ -113,7 +113,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R100_plots_of_other_files_already_in_the_document_are_left_out_and_not_skipped()
+        public void R102_plots_of_other_files_already_in_the_document_are_left_out_and_not_skipped()
         {
             var target = new PlacerTests.FakeTarget();
             target.PlotNumbers.AddRange(new[] { "1", "3" });
@@ -125,7 +125,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R100_the_report_file_holds_the_filter_and_the_count_left_out()
+        public void R102_the_report_file_holds_the_filter_and_the_count_left_out()
         {
             PlacerReport report = Placer.Run(MixedPlan(), "plan.json", new PlacerTests.FakeTarget(), false, "DP4.rvt");
 
@@ -136,7 +136,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R100_the_button_offers_the_filter_and_calls_the_shared_entry()
+        public void R102_the_button_offers_the_filter_and_calls_the_shared_entry()
         {
             string command = RepoText("dotnet", "SiteAdaptation.Placer", "PlaceFromPlanCommand.cs");
 
@@ -145,10 +145,10 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain("Common.Placer.Run(", command);
         }
 
-        // R105 link instance name
+        // R107 link instance name
 
         [Fact]
-        public void R105_the_real_run_writes_the_link_instance_name_of_the_plan_and_counts_it()
+        public void R107_the_real_run_writes_the_link_instance_name_of_the_plan_and_counts_it()
         {
             var target = new PlacerTests.FakeTarget();
 
@@ -161,7 +161,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R105_a_name_that_cannot_be_written_or_is_missing_is_an_issue_and_the_run_goes_on()
+        public void R107_a_name_that_cannot_be_written_or_is_missing_is_an_issue_and_the_run_goes_on()
         {
             var target = new PlacerTests.FakeTarget { NameReadOnly = true };
             PlanFile plan = MixedPlan();
@@ -177,7 +177,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R105_the_dry_run_lists_the_name_writes_none_and_flags_a_missing_one()
+        public void R107_the_dry_run_lists_the_name_writes_none_and_flags_a_missing_one()
         {
             var target = new PlacerTests.FakeTarget();
             PlanFile plan = MixedPlan();
@@ -191,7 +191,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R105_the_revit_side_writes_the_built_in_instance_name_parameter()
+        public void R107_the_revit_side_writes_the_built_in_instance_name_parameter()
         {
             string text = RepoText("dotnet", "SiteAdaptation.Placer", "RevitPlacerTarget.cs");
 
@@ -199,14 +199,14 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R105_the_plan_reader_takes_link_name_from_plan_json()
+        public void R107_the_plan_reader_takes_link_name_from_plan_json()
         {
             PlanFile plan = PlanFile.Parse("{\"plots\": [{\"plot\": \"1\", \"linkName\": {\"value\": \"1 | C10 | 1 | XX | XX\", \"source\": \"pastJob\"}}]}");
 
             Assert.Equal("1 | C10 | 1 | XX | XX", plan.Plots[0].LinkName.Value);
         }
 
-        // R101 test host guard
+        // R103 test host guard
 
         private static string Job(Action<JObject> change = null)
         {
@@ -229,7 +229,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R101_without_a_token_or_a_job_file_the_test_host_never_wakes()
+        public void R103_without_a_token_or_a_job_file_the_test_host_never_wakes()
         {
             Assert.False(TestHostGuard.ShouldWake(null, true));
             Assert.False(TestHostGuard.ShouldWake("", true));
@@ -238,7 +238,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R101_a_good_job_is_accepted_with_its_values()
+        public void R103_a_good_job_is_accepted_with_its_values()
         {
             GuardResult result = Check(Job());
 
@@ -256,13 +256,13 @@ namespace SiteAdaptation.Tests
         [InlineData("a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6x")]
         [InlineData("A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6")]
         [InlineData("a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d-")]
-        public void R101_a_session_token_that_is_missing_short_or_not_the_job_token_is_refused(string token)
+        public void R103_a_session_token_that_is_missing_short_or_not_the_job_token_is_refused(string token)
         {
             Assert.False(Check(Job(), token).Act);
         }
 
         [Fact]
-        public void R101_a_job_without_a_token_or_with_another_one_is_refused()
+        public void R103_a_job_without_a_token_or_with_another_one_is_refused()
         {
             Assert.False(Check(Job(job => job.Remove("token"))).Act);
             Assert.False(Check(Job(job => job["token"] = "")).Act);
@@ -273,13 +273,13 @@ namespace SiteAdaptation.Tests
         [InlineData(61)]
         [InlineData(600)]
         [InlineData(-6)]
-        public void R101_a_job_older_than_an_hour_or_from_the_future_is_refused(int minutesAgo)
+        public void R103_a_job_older_than_an_hour_or_from_the_future_is_refused(int minutesAgo)
         {
             Assert.False(Check(Job(job => job["createdUtc"] = Now.AddMinutes(-minutesAgo).ToString("o"))).Act);
         }
 
         [Fact]
-        public void R101_a_job_with_no_date_is_refused()
+        public void R103_a_job_with_no_date_is_refused()
         {
             Assert.False(Check(Job(job => job.Remove("createdUtc"))).Act);
         }
@@ -294,13 +294,13 @@ namespace SiteAdaptation.Tests
         [InlineData(@"C:Models\site_TEST-C10.rvt")]
         [InlineData(@"C:\Models\..\Other\site_TEST-C10.rvt")]
         [InlineData("")]
-        public void R101_only_a_copy_named_for_its_code_is_ever_opened(string model)
+        public void R103_only_a_copy_named_for_its_code_is_ever_opened(string model)
         {
             Assert.False(Check(Job(job => job["model"] = model)).Act);
         }
 
         [Fact]
-        public void R101_a_missing_model_key_is_refused()
+        public void R103_a_missing_model_key_is_refused()
         {
             Assert.False(Check(Job(job => job.Remove("model"))).Act);
         }
@@ -310,7 +310,7 @@ namespace SiteAdaptation.Tests
         [InlineData(@"C:\P\RRE-WP-NSP-KEO-ARC-C10-ZZ-MOD-1500.rvt")]
         [InlineData("RRE-WP-NSP-KEO-ARC-C10-ZZ-MOD-1500.rfa")]
         [InlineData("")]
-        public void R101_the_prototype_file_must_be_the_keo_file_of_the_code(string file)
+        public void R103_the_prototype_file_must_be_the_keo_file_of_the_code(string file)
         {
             Assert.False(Check(Job(job => job["prototypeFile"] = file)).Act);
         }
@@ -320,13 +320,13 @@ namespace SiteAdaptation.Tests
         [InlineData("C10X1")]
         [InlineData("C1/")]
         [InlineData("")]
-        public void R101_a_code_that_is_not_a_prototype_code_is_refused(string code)
+        public void R103_a_code_that_is_not_a_prototype_code_is_refused(string code)
         {
             Assert.False(Check(Job(job => job["code"] = code)).Act);
         }
 
         [Fact]
-        public void R101_a_model_or_plan_that_does_not_exist_or_a_plan_that_is_not_full_json_is_refused()
+        public void R103_a_model_or_plan_that_does_not_exist_or_a_plan_that_is_not_full_json_is_refused()
         {
             Assert.False(Check(Job(), exists: path => path != Model).Act);
             Assert.False(Check(Job(), exists: path => path != PlanPath).Act);
@@ -341,7 +341,7 @@ namespace SiteAdaptation.Tests
         [InlineData("null")]
         [InlineData("[]")]
         [InlineData("\"text\"")]
-        public void R101_a_job_file_that_does_not_read_is_refused(string text)
+        public void R103_a_job_file_that_does_not_read_is_refused(string text)
         {
             Assert.False(Check(text).Act);
         }
@@ -350,20 +350,20 @@ namespace SiteAdaptation.Tests
         [InlineData(0)]
         [InlineData(-1)]
         [InlineData(30)]
-        public void R101_a_total_limit_outside_0_to_29_minutes_is_refused(double minutes)
+        public void R103_a_total_limit_outside_0_to_29_minutes_is_refused(double minutes)
         {
             Assert.False(Check(Job(job => job["totalMinutes"] = minutes)).Act);
         }
 
         [Fact]
-        public void R101_the_original_of_a_copy_is_its_name_without_the_test_tag()
+        public void R103_the_original_of_a_copy_is_its_name_without_the_test_tag()
         {
             Assert.Equal(@"C:\Models\site.rvt", TestHostGuard.OriginalOf(Model));
             Assert.Null(TestHostGuard.OriginalOf(@"C:\Models\site.rvt"));
         }
 
         [Fact]
-        public void R101_the_app_reads_the_token_then_the_job_file_and_loads_nothing_before()
+        public void R103_the_app_reads_the_token_then_the_job_file_and_loads_nothing_before()
         {
             string app = RepoText("dotnet", "SiteAdaptation.TestHost", "TestHostApp.cs");
             int token = app.IndexOf("GetEnvironmentVariable(TokenVariable)", StringComparison.Ordinal);
@@ -378,7 +378,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R101_the_job_is_claimed_by_a_move_then_checked_and_only_then_subscribed()
+        public void R103_the_job_is_claimed_by_a_move_then_checked_and_only_then_subscribed()
         {
             string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
             int move = session.IndexOf("File.Move(jobPath, claimed);", StringComparison.Ordinal);
@@ -394,7 +394,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R101_a_failure_while_waking_never_reaches_revit()
+        public void R103_a_failure_while_waking_never_reaches_revit()
         {
             string app = RepoText("dotnet", "SiteAdaptation.TestHost", "TestHostApp.cs");
             int wake = app.IndexOf("Wake(application, token, jobPath);", StringComparison.Ordinal);
@@ -409,7 +409,7 @@ namespace SiteAdaptation.Tests
         [InlineData("code")]
         [InlineData("prototypeFile")]
         [InlineData("token")]
-        public void R101_nan_and_a_final_newline_are_refused(string key)
+        public void R103_nan_and_a_final_newline_are_refused(string key)
         {
             string text = Job(job =>
             {
@@ -436,14 +436,14 @@ namespace SiteAdaptation.Tests
         [InlineData(@"C:/Models/site_TEST-C10.rvt")]
         [InlineData(@"C:\Models\.\site_TEST-C10.rvt")]
         [InlineData(@"C:\Models\\site_TEST-C10.rvt")]
-        public void R101_stream_device_and_changed_paths_are_refused(string model)
+        public void R103_stream_device_and_changed_paths_are_refused(string model)
         {
             Assert.False(Check(Job(job => job["model"] = model)).Act);
             Assert.False(Check(Job(job => job["plan"] = model.Replace(".rvt", ".json"))).Act);
         }
 
         [Fact]
-        public void R101_a_job_of_the_wrong_types_is_refused_and_the_check_never_throws()
+        public void R103_a_job_of_the_wrong_types_is_refused_and_the_check_never_throws()
         {
             Assert.False(Check(Job(job => job["code"] = 5)).Act);
             Assert.False(Check(Job(job => job["createdUtc"] = "yesterday")).Act);
@@ -457,7 +457,7 @@ namespace SiteAdaptation.Tests
         private static extern bool CreateHardLink(string link, string existing, IntPtr security);
 
         [Fact]
-        public void R101_a_copy_must_be_a_file_of_its_own_and_not_a_hard_link_or_the_original()
+        public void R103_a_copy_must_be_a_file_of_its_own_and_not_a_hard_link_or_the_original()
         {
             string folder = Path.Combine(Path.GetTempPath(), "testhost-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
@@ -483,7 +483,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R101_the_test_host_runs_the_button_code_of_the_placer_and_the_reader_and_no_copy()
+        public void R103_the_test_host_runs_the_button_code_of_the_placer_and_the_reader_and_no_copy()
         {
             string steps = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSteps.cs");
             string project = RepoText("dotnet", "SiteAdaptation.TestHost", "SiteAdaptation.TestHost.csproj");
@@ -500,7 +500,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("SiteAdaptation.Common.csproj\" Private=\"false\"", project);
         }
 
-        // R102 test host steps and log
+        // R104 test host steps and log
 
         private sealed class Clock
         {
@@ -513,7 +513,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R102_steps_run_in_order_and_each_is_logged_when_it_starts_and_ends()
+        public void R104_steps_run_in_order_and_each_is_logged_when_it_starts_and_ends()
         {
             var log = new TestHostLog();
             var clock = new Clock();
@@ -538,7 +538,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R102_a_failed_step_keeps_the_full_exception_and_skips_the_rest_but_the_always_steps()
+        public void R104_a_failed_step_keeps_the_full_exception_and_skips_the_rest_but_the_always_steps()
         {
             var log = new TestHostLog();
             var ran = new List<string>();
@@ -560,7 +560,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R102_the_watchdog_writes_the_timeout_and_then_kills_once_when_a_step_runs_over()
+        public void R104_the_watchdog_writes_the_timeout_and_then_kills_once_when_a_step_runs_over()
         {
             var log = new TestHostLog();
             var clock = new Clock();
@@ -592,7 +592,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R102_the_whole_job_has_a_limit_and_a_late_exit_after_the_job_keeps_its_result()
+        public void R104_the_whole_job_has_a_limit_and_a_late_exit_after_the_job_keeps_its_result()
         {
             var log = new TestHostLog();
             var clock = new Clock();
@@ -625,7 +625,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R102_a_dialog_gets_the_first_answer_revit_takes_and_a_missing_link_is_ignored()
+        public void R104_a_dialog_gets_the_first_answer_revit_takes_and_a_missing_link_is_ignored()
         {
             var offered = new List<int>();
 
@@ -640,7 +640,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R102_an_unlisted_dialog_never_gets_a_command_link()
+        public void R104_an_unlisted_dialog_never_gets_a_command_link()
         {
             foreach (string kind in new[] { "taskDialog", "messageBox", "dialogBox" })
             {
@@ -650,7 +650,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R102_errors_roll_back_only_in_the_test_host_transactions_and_unload_never_saves_link_positions()
+        public void R104_errors_roll_back_only_in_the_test_host_transactions_and_unload_never_saves_link_positions()
         {
             string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
             string steps = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSteps.cs");
@@ -663,7 +663,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R102_the_outputs_are_testhost_files_and_never_prototypes_json()
+        public void R104_the_outputs_are_testhost_files_and_never_prototypes_json()
         {
             string path = TestHostGuard.OutputPath(@"C:\Docs", "C10", "prototypes");
             string steps = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSteps.cs");
@@ -676,7 +676,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R102_the_job_steps_run_in_the_order_of_the_rule()
+        public void R104_the_job_steps_run_in_the_order_of_the_rule()
         {
             string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
             string[] names = { "unloadLinks", "openModel", "removePrototypeType", "dryRun", "realRun", "saveAfterPlace", "keepOnlyPrototype", "read", "close", "jobFile" };
@@ -688,7 +688,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R102_the_unload_step_marks_every_revit_link_but_the_prototype_and_writes_before_the_open()
+        public void R104_the_unload_step_marks_every_revit_link_but_the_prototype_and_writes_before_the_open()
         {
             string steps = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSteps.cs");
 

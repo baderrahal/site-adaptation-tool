@@ -1,4 +1,4 @@
-# Builds the solution and installs the reader, the placer and the test host from that one build (R101).
+# Builds the solution and installs the reader, the placer and the test host from that one build (R103).
 # Each add-in sits in its own folder with its own manifest that names the full DLL path.
 # Revit must be closed, it holds the DLLs open. -SkipSigningReport leaves the add-in security answers unread.
 param(
@@ -64,7 +64,7 @@ Install-Folder $reader $readerFolder @('RevitPrototypeReader.dll', 'RevitPrototy
 Install-Folder $placer $placerFolder @('SiteAdaptation.Placer.dll', 'SiteAdaptation.Placer.pdb', 'SiteAdaptation.Common.dll', 'SiteAdaptation.Common.pdb', 'Newtonsoft.Json.dll')
 # The test host folder holds the test host only. It loads the placer, the reader and Common from their own folders
 Install-Folder $host_ $hostFolder @('SiteAdaptation.TestHost.dll', 'SiteAdaptation.TestHost.pdb')
-# The dialog watcher of R106 is a program and not an add-in. Revit reads manifests in the Addins root only, so this folder is never loaded
+# The dialog watcher of R108 is a program and not an add-in. Revit reads manifests in the Addins root only, so this folder is never loaded
 $watcher = Join-Path $repo 'dotnet\SiteAdaptation.DialogWatcher\bin\Release\net48'
 $watcherFolder = Join-Path $hostFolder 'Watcher'
 Install-Folder $watcher $watcherFolder @('SiteAdaptation.DialogWatcher.exe', 'SiteAdaptation.DialogWatcher.exe.config', 'SiteAdaptation.DialogWatcher.pdb', 'SiteAdaptation.Common.dll', 'Newtonsoft.Json.dll')

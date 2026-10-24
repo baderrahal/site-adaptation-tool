@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Blocks every command that changes the Windows registry (R104). Reads the hook JSON on stdin.
+# Blocks every command that changes the Windows registry (R106). Reads the hook JSON on stdin.
 # reg.exe is blocked whatever it does. A PowerShell item cmdlet or its alias, the .NET registry classes and winreg
 # are blocked when the command names a registry path or a registry class.
 input=$(cat)

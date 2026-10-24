@@ -1,6 +1,6 @@
-# One run of the Revit test host for one prototype (R101, R102), or with -DryStart one start of Revit with no job.
+# One run of the Revit test host for one prototype (R103, R104), or with -DryStart one start of Revit with no job.
 # It copies the site model to <name>_TEST-<code>.rvt by a file copy, writes the job file, starts Revit 2024 with the
-# token of this run on Revit alone, runs the dialog watcher of R106 beside it and waits for Revit to exit.
+# token of this run on Revit alone, runs the dialog watcher of R108 beside it and waits for Revit to exit.
 # The original model is never opened. Nothing in the registry is read or written.
 param(
     [ValidatePattern('^[A-Z][A-Z0-9]{1,3}$')]

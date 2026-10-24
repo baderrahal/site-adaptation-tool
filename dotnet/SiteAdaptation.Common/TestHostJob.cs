@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace SiteAdaptation.Common
 {
-    // testhost_job.json as the run script writes it (R101)
+    // testhost_job.json as the run script writes it (R103)
     public class TestHostJob
     {
         public string Token { get; set; }
@@ -26,7 +26,7 @@ namespace SiteAdaptation.Common
         public TestHostJob Job { get; set; }
     }
 
-    // R101. The test host acts only on a job that passes every check here, and never in a Revit session the run script did not start
+    // R103. The test host acts only on a job that passes every check here, and never in a Revit session the run script did not start
     public static class TestHostGuard
     {
         public const string JobFileName = "testhost_job.json";
@@ -57,7 +57,7 @@ namespace SiteAdaptation.Common
             return jobFileExists && !string.IsNullOrEmpty(token);
         }
 
-        // Every check of R101 on the text of the job file. fileExists is asked only for full paths
+        // Every check of R103 on the text of the job file. fileExists is asked only for full paths
         public static GuardResult Check(string jobText, string token, DateTime nowUtc, Func<string, bool> fileExists)
         {
             try
@@ -198,7 +198,7 @@ namespace SiteAdaptation.Common
             return at <= 0 ? null : Path.Combine(Path.GetDirectoryName(model), name.Substring(0, at) + ".rvt");
         }
 
-        // R102. The outputs of one job. The reader output is never prototypes.json
+        // R104. The outputs of one job. The reader output is never prototypes.json
         public static string OutputPath(string documents, string code, string part)
         {
             string name = "testhost_" + code + "_" + part + ".json";

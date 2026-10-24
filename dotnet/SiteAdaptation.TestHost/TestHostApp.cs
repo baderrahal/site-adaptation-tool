@@ -6,7 +6,7 @@ using Autodesk.Revit.UI;
 
 namespace SiteAdaptation.TestHost
 {
-    // R101. Revit loads this at every start. It does nothing, not even an event subscription, unless the run script
+    // R103. Revit loads this at every start. It does nothing, not even an event subscription, unless the run script
     // started this Revit with a token and a job file waits in Documents\SiteAdaptation
     public class TestHostApp : IExternalApplication
     {

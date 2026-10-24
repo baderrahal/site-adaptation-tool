@@ -5,7 +5,7 @@ using Microsoft.Win32.SafeHandles;
 
 namespace SiteAdaptation.Common
 {
-    // R101. A name that looks like a test copy is not enough, the file itself must be a copy of its own.
+    // R103. A name that looks like a test copy is not enough, the file itself must be a copy of its own.
     // A hard link, a symbolic link or a junction to the original would let a step change the original
     public static class FileIdentity
     {

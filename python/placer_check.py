@@ -1,4 +1,4 @@
-"""Checks one test host run of one prototype against the answer key, the reader output of the past model (R103).
+"""Checks one test host run of one prototype against the answer key, the reader output of the past model (R105).
 
 It joins the links of prototypes_original_imc.json and testhost_<code>_prototypes.json by the official plot number,
 for the plots the plan gives that prototype file, and counts what matches. It changes nothing and fixes nothing.
@@ -61,7 +61,7 @@ def plan_plots(plan, prototype):
 
 
 def compare(plan, original, test, prototype, parameters, report=None):
-    """The counts of R103 for the plots of one prototype file."""
+    """The counts of R105 for the plots of one prototype file."""
     expected = plan_plots(plan, prototype)
     old_doc = plan_from_past.host_of(original)
     new_doc = plan_from_past.host_of(test)
@@ -121,7 +121,7 @@ def compare(plan, original, test, prototype, parameters, report=None):
         else:
             row["z"] = "differs from the plan FFL"
         old_p, new_p = old.get("parameters") or {}, new.get("parameters") or {}
-        # R105. The instance Name the placer writes, a real check like the parameters
+        # R107. The instance Name the placer writes, a real check like the parameters
         if old_p.get(NAME_PARAMETER) and text(old_p.get(NAME_PARAMETER)) == text(new_p.get(NAME_PARAMETER)):
             counts["nameEqual"] += 1
         else:
@@ -174,7 +174,7 @@ def differs(row):
 
 
 def passes(result, parameters):
-    """R103 and R105. Every plot placed once, position within 1 mm, rotation, mirror, Z, the instance Name and every written parameter equal, and a placer run that neither stopped nor rolled back."""
+    """R105 and R107. Every plot placed once, position within 1 mm, rotation, mirror, Z, the instance Name and every written parameter equal, and a placer run that neither stopped nor rolled back."""
     plots = result["plots"]
     n = plots["expected"]
     ok = plots["placed"] == n and plots["missing"] == 0 and plots["extra"] == 0 and plots["placedTwice"] == 0 and plots["noSingleOriginal"] == 0
@@ -228,7 +228,7 @@ def by_hand(link, survey):
 
 
 def second_method(plan, original, test, prototype, seed):
-    """R103. SECOND_METHOD_PLOTS random placed plots, both raw files, recomputed by hand."""
+    """R105. SECOND_METHOD_PLOTS random placed plots, both raw files, recomputed by hand."""
     old_doc, new_doc = plan_from_past.host_of(original), plan_from_past.host_of(test)
     old_links, new_links = links_by_plot(old_doc), links_by_plot(new_doc)
     plots = sorted((plot for plot in plan_plots(plan, prototype)

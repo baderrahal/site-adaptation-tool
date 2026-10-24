@@ -11,7 +11,7 @@ using SiteAdaptation.Placer;
 
 namespace SiteAdaptation.TestHost
 {
-    // The Revit work of each step of R102. Each returns one line of what it found and throws when the step fails
+    // The Revit work of each step of R104. Each returns one line of what it found and throws when the step fails
     internal sealed class JobSteps
     {
         private readonly Application app;

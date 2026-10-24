@@ -39,7 +39,7 @@ namespace SiteAdaptation.Common
             return Run(plan, planPath, target, real, null);
         }
 
-        // R100. prototypeFile null places every plot, a file name places only the plots of that prototype file
+        // R102. prototypeFile null places every plot, a file name places only the plots of that prototype file
         public static PlacerReport Run(PlanFile plan, string planPath, IPlacerTarget target, bool real, string prototypeFile)
         {
             var report = new PlacerReport
@@ -181,7 +181,7 @@ namespace SiteAdaptation.Common
             }
         }
 
-        // R100. A filter is a file name that at least one plot of the plan uses, so a typing error places nothing and says why
+        // R102. A filter is a file name that at least one plot of the plan uses, so a typing error places nothing and says why
         public static string CheckFilter(PlanFile plan, string prototypeFile)
         {
             if (prototypeFile == null)
@@ -209,7 +209,7 @@ namespace SiteAdaptation.Common
                 && string.Equals(plot.PrototypeFile.Value.Trim(), prototypeFile, StringComparison.OrdinalIgnoreCase);
         }
 
-        // R84, R87 and R100. The plots that can be placed, in plan order, each with its steps. Every other plot of the filter is skipped with its reason
+        // R84, R87 and R102. The plots that can be placed, in plan order, each with its steps. Every other plot of the filter is skipped with its reason
         private static List<Candidate> Choose(PlanFile plan, SurveyReading survey, IPlacerTarget target, PlacerReport report, string prototypeFile)
         {
             var placedAlready = new HashSet<string>(target.LinkPlotNumbers().Where(number => number != null).Select(number => number.Trim()), StringComparer.Ordinal);
@@ -473,7 +473,7 @@ namespace SiteAdaptation.Common
             }
         }
 
-        // R105. Null when the instance Name was written, else the issue line. A missing name is an issue, not a stop
+        // R107. Null when the instance Name was written, else the issue line. A missing name is an issue, not a stop
         private static string WriteName(IPlacerTarget target, long id, PlanPlot plot)
         {
             if (plot.LinkName == null || string.IsNullOrWhiteSpace(plot.LinkName.Value))

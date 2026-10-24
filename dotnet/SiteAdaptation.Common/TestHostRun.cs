@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace SiteAdaptation.Common
 {
-    // testhost_<code>_log.json (R102). Written again after every step, so a run that hangs still shows where
+    // testhost_<code>_log.json (R104). Written again after every step, so a run that hangs still shows where
     public class TestHostLog
     {
         public string Tool { get; set; } = "SiteAdaptation.TestHost";
@@ -68,7 +68,7 @@ namespace SiteAdaptation.Common
         public Func<string> Action;
     }
 
-    // R102. Runs the steps in order and logs each one. A failed step skips the rest except the Always steps.
+    // R104. Runs the steps in order and logs each one. A failed step skips the rest except the Always steps.
     // The watchdog kills the process when a step or the whole job runs over its limit, after it has written the log
     public sealed class TestHostRunner
     {
@@ -299,7 +299,7 @@ namespace SiteAdaptation.Common
             }
         }
 
-        // R102. The first answer Revit takes, or null when it takes none
+        // R104. The first answer Revit takes, or null when it takes none
         public static int? Answer(string kind, string dialogId, Func<int, bool> offer)
         {
             return For(kind, dialogId).Select(code => (int?)code).FirstOrDefault(code => offer(code.Value));

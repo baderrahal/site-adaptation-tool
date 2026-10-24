@@ -14,7 +14,7 @@ using SiteAdaptation.Placer;
 
 namespace SiteAdaptation.TestHost
 {
-    // One job of R101 and R102, from the claim of the job file to the exit of Revit
+    // One job of R103 and R104, from the claim of the job file to the exit of Revit
     internal sealed class JobSession
     {
         public const string PlacerFolderName = "SiteAdaptationPlacer";

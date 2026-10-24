@@ -10,7 +10,7 @@ using SiteAdaptation.Common;
 
 namespace SiteAdaptation.DialogWatcher
 {
-    // R106. Watches the windows of one Revit process while it starts, from outside Revit. It clicks Do Not Load on the
+    // R108. Watches the windows of one Revit process while it starts, from outside Revit. It clicks Do Not Load on the
     // security dialog of every add-in that is not one of this tool, Load Once on the box of one of the three installed DLLs
     // of this tool, and stops Revit on any dialog it cannot answer that way. It never clicks anything else
     public static class Program

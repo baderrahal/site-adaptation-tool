@@ -6,7 +6,7 @@ using SiteAdaptation.Common;
 
 namespace RevitPrototypeReader
 {
-    // The one way into the reader, for the button and for the test host (R101), so neither holds a copy of the read
+    // The one way into the reader, for the button and for the test host (R103), so neither holds a copy of the read
     public static class PrototypeReading
     {
         // The key parameter list and the reader options sit next to this DLL

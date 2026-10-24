@@ -88,7 +88,7 @@ namespace SiteAdaptation.Placer
             return text;
         }
 
-        // R100. Every plot, or the plots of one prototype file of the plan. False when the choice is cancelled
+        // R102. Every plot, or the plots of one prototype file of the plan. False when the choice is cancelled
         private static bool PickFilter(PlanFile plan, out string prototypeFile)
         {
             prototypeFile = null;

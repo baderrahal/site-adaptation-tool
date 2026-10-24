@@ -112,7 +112,7 @@ def registry_hook(command, tool="PowerShell"):
     r"[Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Software\X')",
     "python -c \"import winreg, winreg.SetValueEx(k, 'a', 0, 4, 1)\"",
 ])
-def test_r104_registry_changes_and_reg_exe_are_blocked(command):
+def test_r106_registry_changes_and_reg_exe_are_blocked(command):
     code, message = registry_hook(command)
     assert code == 2
     assert "guard-registry.sh" in message
@@ -125,12 +125,12 @@ def test_r104_registry_changes_and_reg_exe_are_blocked(command):
     r"Get-ChildItem $env:APPDATA\Autodesk",
     r".venv\Scripts\python -m pytest python",
 ])
-def test_r104_file_commands_and_ordinary_work_are_allowed(command):
+def test_r106_file_commands_and_ordinary_work_are_allowed(command):
     assert registry_hook(command)[0] == 0
     assert registry_hook(command, tool="Bash")[0] == 0
 
 
-def test_r104_settings_register_the_registry_hook_for_bash_and_powershell():
+def test_r106_settings_register_the_registry_hook_for_bash_and_powershell():
     settings = json.loads((ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
     entry = settings["hooks"]["PreToolUse"][0]
     assert entry["matcher"] == "Bash|PowerShell"

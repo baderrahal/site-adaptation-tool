@@ -5,7 +5,7 @@ using SiteAdaptation.Common;
 
 namespace SiteAdaptation.Placer
 {
-    // The one way into the placer, for the button and for the test host (R101), so neither holds a copy of the run
+    // The one way into the placer, for the button and for the test host (R103), so neither holds a copy of the run
     public static class PlaceFromPlan
     {
         public static string ReportPath

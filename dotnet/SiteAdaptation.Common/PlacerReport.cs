@@ -9,7 +9,7 @@ namespace SiteAdaptation.Common
         public string Mode { get; set; }
         public string PlanFile { get; set; }
         public string Document { get; set; }
-        // R100. The one prototype file this run places, null for all of them
+        // R102. The one prototype file this run places, null for all of them
         public string PrototypeFilter { get; set; }
         public CoordinateCheck Coordinates { get; set; }
         public PlacerCounts Counts { get; set; }

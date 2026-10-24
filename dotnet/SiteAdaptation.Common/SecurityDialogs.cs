@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace SiteAdaptation.Common
 {
-    // One dialog the watcher of R106 met while Revit started
+    // One dialog the watcher of R108 met while Revit started
     public class SecurityDialogEntry
     {
         public DateTime Utc { get; set; }
@@ -33,7 +33,7 @@ namespace SiteAdaptation.Common
         StopNoButton,
     }
 
-    // R106. How the watcher reads an add-in security dialog of Revit and what it does with it.
+    // R108. How the watcher reads an add-in security dialog of Revit and what it does with it.
     // It clicks Do Not Load for an add-in that is not one of this tool and Load Once for the three DLLs of this tool,
     // which leaves nothing kept. It never clicks the third button, the one that keeps an answer
     public static class SecurityDialogs
