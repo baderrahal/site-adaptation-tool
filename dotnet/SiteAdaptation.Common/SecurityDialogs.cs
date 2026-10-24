@@ -9,6 +9,8 @@ namespace SiteAdaptation.Common
     public class SecurityDialogEntry
     {
         public DateTime Utc { get; set; }
+        // R110. The Revit process the dialog belongs to, so parallel windows are told apart in the log
+        public int Pid { get; set; }
         public string Title { get; set; }
         public string WindowClass { get; set; }
         public string AddInName { get; set; }

@@ -6,13 +6,13 @@ using Autodesk.Revit.UI;
 
 namespace SiteAdaptation.TestHost
 {
-    // R103. Revit loads this at every start. It does nothing, not even an event subscription, unless the run script
-    // started this Revit with a token and a job file waits in Documents\SiteAdaptation
+    // R103 and R110. Revit loads this at every start. It does nothing, not even an event subscription, unless the run script
+    // started this Revit with a token and the path of its own job file, and that file is there
     public class TestHostApp : IExternalApplication
     {
         // Kept as text here, a type of SiteAdaptation.Common must not load before the resolver is in place
         private const string TokenVariable = "SITEADAPTATION_TESTHOST_TOKEN";
-        private const string JobFileName = "testhost_job.json";
+        private const string JobVariable = "SITEADAPT_JOB";
 
         private static string addinsFolder;
 
@@ -23,8 +23,8 @@ namespace SiteAdaptation.TestHost
             {
                 return Result.Succeeded;
             }
-            string jobPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SiteAdaptation", JobFileName);
-            if (!File.Exists(jobPath))
+            string jobPath = Environment.GetEnvironmentVariable(JobVariable);
+            if (string.IsNullOrEmpty(jobPath) || !File.Exists(jobPath))
             {
                 return Result.Succeeded;
             }
@@ -41,7 +41,7 @@ namespace SiteAdaptation.TestHost
                 {
                     string line = "{\"utc\": \"" + DateTime.UtcNow.ToString("o") + "\", \"reason\": \"the test host failed to start: "
                         + failure.GetType().Name + " " + failure.Message.Replace("\\", "/").Replace("\"", "'") + "\"}";
-                    File.WriteAllText(Path.Combine(Path.GetDirectoryName(jobPath), "testhost_refused.json"), line);
+                    File.WriteAllText(Path.ChangeExtension(jobPath, ".refused.json"), line);
                 }
                 catch (Exception)
                 {

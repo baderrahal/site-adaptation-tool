@@ -33,7 +33,8 @@ namespace SiteAdaptation.Common
     // R103. The test host acts only on a job that passes every check here, and never in a Revit session the run script did not start
     public static class TestHostGuard
     {
-        public const string JobFileName = "testhost_job.json";
+        // R110. Each Revit the run script starts gets the full path of its own job file in JobVariable and its own token in TokenVariable
+        public const string JobVariable = "SITEADAPT_JOB";
         public const string TokenVariable = "SITEADAPTATION_TESTHOST_TOKEN";
         public const int MinTokenLength = 32;
         public const double MaxAgeMinutes = 60;
@@ -52,15 +53,55 @@ namespace SiteAdaptation.Common
             return Path.Combine(documents, "SiteAdaptation");
         }
 
-        public static string JobPath(string documents)
+        private static readonly Regex JobName = new Regex(@"\Atesthost_job_(?<code>[A-Z][A-Z0-9]{1,3})(_upgrade)?\.json\z", RegexOptions.CultureInvariant);
+
+        // R110. The job file of one window: testhost_job_<code>.json, or testhost_job_<code>_upgrade.json for an upgrade
+        public static string JobPath(string documents, string code, bool upgrade)
         {
-            return Path.Combine(SiteAdaptationFolder(documents), JobFileName);
+            return Path.Combine(SiteAdaptationFolder(documents), "testhost_job_" + code + (upgrade ? "_upgrade" : "") + ".json");
         }
 
-        // The cheap first look at Revit start. Without both, the test host subscribes to nothing and touches no file
-        public static bool ShouldWake(string token, bool jobFileExists)
+        // The code a job path names, or null when the path is not a job file of the SiteAdaptation folder
+        public static string CodeOfJobPath(string path, string documents)
         {
-            return jobFileExists && !string.IsNullOrEmpty(token);
+            if (!IsPlainFullPath(path) || !string.Equals(Path.GetDirectoryName(path), SiteAdaptationFolder(documents), StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+            Match name = JobName.Match(Path.GetFileName(path));
+            return name.Success ? name.Groups["code"].Value : null;
+        }
+
+        // R110. Null when the job sits in the file of its own code and kind, else why not
+        public static string CheckJobPath(string path, TestHostJob job, string documents)
+        {
+            string code = CodeOfJobPath(path, documents);
+            if (code == null)
+            {
+                return "the job file is not testhost_job_<code>.json in " + SiteAdaptationFolder(documents);
+            }
+            if (job == null || job.Code != code)
+            {
+                return "the job file names " + code + " and the job another code";
+            }
+            bool upgradeFile = Path.GetFileName(path).EndsWith("_upgrade.json", StringComparison.Ordinal);
+            if (upgradeFile != (job.Kind == UpgradeKind))
+            {
+                return "the job kind does not fit its file name";
+            }
+            return null;
+        }
+
+        // Where a refusal of this job is written, next to its job file, so two windows never write one file
+        public static string RefusedPath(string jobPath)
+        {
+            return Path.ChangeExtension(jobPath, ".refused.json");
+        }
+
+        // The cheap first look at Revit start. Without the token, the job variable and its file, the test host subscribes to nothing and touches no file
+        public static bool ShouldWake(string token, string jobPath, bool jobFileExists)
+        {
+            return !string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(jobPath) && jobFileExists;
         }
 
         // Every check of R103 on the text of the job file. fileExists and folderExists are asked only for full paths
@@ -256,7 +297,7 @@ namespace SiteAdaptation.Common
         public static string OutputPath(string documents, string code, string part)
         {
             string name = "testhost_" + code + "_" + part + ".json";
-            if (string.Equals(name, "prototypes.json", StringComparison.OrdinalIgnoreCase) || string.Equals(name, JobFileName, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(name, "prototypes.json", StringComparison.OrdinalIgnoreCase) || name.StartsWith("testhost_job", StringComparison.OrdinalIgnoreCase))
             {
                 throw new ArgumentException("the test host never writes " + name);
             }

@@ -2,6 +2,54 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round 15a test, 2026-10-24, the test host drives Revit, one prototype per run
+
+Done:
+- Folder C:\Users\bader\Documents\GitHub\site-adaptation-tool-15a, a fresh clone of main at e73da18 (the session folder was empty, the main folder ran 12b), branch test/revit-testhost-15a. The main guard hook loaded at session start, the new registry hook is not live in this session. Main moved to 907bb0c (Round 13, PR 17), merged into the branch, my rules renumbered to R102 to R110 and their tests with them, no Round 13 file changed. Plan written before the first edit. Full record: steps/history/round-15a-test.md
+- Gate: Python 619 passed, .NET 319 passed (main had 573 and 205)
+- Rules: R102 placer filter, R103 test host guard, R104 steps and log, R105 placer_check.py, R106 registry hook, R107 link instance Name, R108 security box watcher, R109 upgrade job, R110 parallel windows. R80, R81, R89 amended for linkName and the 2024 folder
+- Answer key copied once to prototypes_original_imc.json, 10,355,725 bytes, 2026-10-24 01:51:15 kept, hash equal. Plan: 337 of 337 plots, linkName on 337, 2 differ from RVT-Name and are conflicts
+- The watcher answered 5 boxes per Revit start: Do Not Load for RCRC Green and RCRC Green Audit, Load Once for the reader, the placer and the test host (Bader). The boxes show no GUID, the publisher is logged as vendor
+- Prototype runs, each on a fresh TEST copy, first run each, original model unchanged every time:
+
+| Code | Folder | Runs | Run min | Plots placed | Result |
+|---|---|---|---|---|---|
+| C10 | 2021 | 1 | 3.7 | 15 of 15 | pass |
+| TH1 | 2021 | 1 | 4.0 | 16 of 16 | pass |
+| VD2 | 2021 | 1 | 2.4 | 29 of 29 | pass |
+| DP1 | 2021 | 1 | 4.2 | 34 of 34 | pass |
+| DP2 | 2021 | 1 | 2.3 | 12 of 12 | pass |
+| DP3 | 2021 | 1 | 2.4 | 10 of 10 | pass |
+| DP4 | 2021 | 1 | 2.3 | 32 of 32 | pass |
+| DT1 | 2021 | 1 | 3.2 | 44 of 44 | pass |
+| DT3 | 2024 | 1 | 1.1 | 68 of 68 | pass |
+| TH3 | 2024 | 1 | 0.9 | 16 of 16 | pass |
+| VD4 | 2024 | 1 | 0.9 | 27 of 27 | pass |
+| VL4 | 2024 | 1 | 0.8 | 15 of 15 | pass |
+| VL6 | 2024 | 1 | 0.9 | 19 of 19 | pass |
+
+- Every check: position within 1 mm (worst 0 mm), rotation, mirror, Z equal FFL, instance Name and the 9 parameters equal on every plot, missing, extra and skipped 0. RRE_ZZ_SP_Prototype-FFL empty on every new link. Reader fixes: every loaded link has a box, spots with a host 986 of 987. Second method 3 of 3 on every run, seeds in the history file. PowerShell spot check of 5 random plots, seed 24: 5 of 5
+- Upgrade: the 13 prototypes saved as Revit 2024 centrals in Zone 02\ARC\Prototypes_2024, one per run, one after another, 07:24 to 07:57. Sources unchanged. Each new file Format 2024 by BasicFileInfo and again from its bytes, same names. Upgrade time 86 to 142 s, sizes in the history file. plan.json gives the 2024 folder to the placer, the 2021 folder stays in the config as the source
+- Review: a fresh reviewer found no way to make a normal session act and 9 edge points, all fixed with tests
+
+Remains:
+- Not proven in Revit: the parallel windows of R110 (one job file and token per window, per job outputs) and Run-Parallel.ps1. They wait for the combined test after Round 15b. The parallel upgrade was not run: the 13 targets already exist and are never overwritten, and free memory was 5.2 of 15.8 GB, under the 8 GB rule
+- The R110 guard had no fresh review
+
+Known bugs:
+- My first install recreated the CodeSigning key in the registry and removed four Always Load answers of other add-ins. Restoring them was blocked and you said to leave them. Since then nothing in the registry was read or written
+- On 9 of 13 runs TransmissionData did not get the prototype loaded at open. The placer loads it anyway, so no result changed
+- 1 spot of 987 has no host, element 996508
+
+Next:
+- Round 15b, then the combined Revit test with parallel windows on the 2024 copies
+
+Your turn:
+1. Free memory for the parallel windows. Recommended: close what you can so more than 8 GB is free before the combined test. The peak memory of one window was not measured in this round, Run-TestHost.ps1 logs it from now on
+2. You can delete C:\Users\bader\Documents\GitHub\site-adaptation-tool-15a. Next rounds work in the main folder or a git worktree. Recommended: yes, after this merge
+3. The TEST copies in Zone 02\ARC (14 models and their backups) and the 13 _backup folders in Prototypes_2024 stay. Recommended: delete the TEST copies when you no longer need them, keep Prototypes_2024
+4. The yard rule of Round 15a is still open. Recommended: as in the Round 15a entry
+
 ## Round 13, 2026-10-24, unit codes, road levels, entry level per plot, block to link offset
 
 Done:

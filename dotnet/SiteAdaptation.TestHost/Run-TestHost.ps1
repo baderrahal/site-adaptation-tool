@@ -24,17 +24,17 @@ if ($NewUpgradeFolder -and -not $Upgrade) {
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $config = Get-Content -Raw (Join-Path $repo 'config\project.json') | ConvertFrom-Json
 $docs = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'SiteAdaptation'
-$jobPath = Join-Path $docs 'testhost_job.json'
 $addins = Join-Path $env:APPDATA 'Autodesk\Revit\Addins\2024'
 $watcherExe = Join-Path $addins 'SiteAdaptationTestHost\Watcher\SiteAdaptation.DialogWatcher.exe'
 $name = if ($DryStart) { 'dry_start' } elseif ($Upgrade) { $Code + '_upgrade' } else { $Code }
+# R110. One job file per window, its path goes to that Revit alone in SITEADAPT_JOB. Other Revit windows may run beside it
+$jobPath = if ($DryStart) { $null } else { Join-Path $docs ('testhost_job_' + $name + '.json') }
+$refused = if ($jobPath) { [IO.Path]::ChangeExtension($jobPath, '.refused.json') } else { $null }
 $logPath = Join-Path $docs ('testhost_' + $name + '_log.json')
 $watchPath = Join-Path $docs ('testhost_' + $name + '_watcher.json')
+$runPath = Join-Path $docs ('testhost_' + $name + '_run.json')
 
-if (Get-Process -Name Revit -ErrorAction SilentlyContinue) {
-    throw 'Revit is running. The test host needs a Revit of its own, close the other one first.'
-}
-if (Test-Path $jobPath) {
+if ($jobPath -and (Test-Path $jobPath)) {
     throw "A job file is already waiting at $jobPath. Look at it before you run again."
 }
 if (-not (Test-Path $watcherExe)) {
@@ -172,8 +172,10 @@ try {
         $job | ConvertTo-Json | Set-Content -Path $jobPath -Encoding utf8
         # The token goes to the Revit process alone, this console never holds it
         $info.Environment['SITEADAPTATION_TESTHOST_TOKEN'] = $token
+        $info.Environment['SITEADAPT_JOB'] = $jobPath
     }
     $process = [Diagnostics.Process]::Start($info)
+    $peak = 0
     $watchArgs = @('--pid', $process.Id, '--out', $watchPath, '--stop-log', $logPath, '--minutes', '10', '--ours', ($ourIds -join ','), '--marks', ($ourMarks -join '|'), '--our-paths', ($ourPaths -join '|'))
     $watcher = Start-Process -FilePath $watcherExe -ArgumentList ($watchArgs | ForEach-Object { '"' + $_ + '"' }) -PassThru -WindowStyle Hidden
     if ($DryStart) {
@@ -202,8 +204,14 @@ try {
             $stopReason = 'the watcher stopped Revit on a dialog it may not answer'
             break
         }
-        $refused = Join-Path $docs 'testhost_refused.json'
-        if ((Test-Path $refused) -and (Get-Item $refused).LastWriteTime -gt $start) {
+        try {
+            $process.Refresh()
+            $peak = [Math]::Max($peak, $process.PeakWorkingSet64)
+        }
+        catch {
+            # The process ended between two looks, the next WaitForExit sees it
+        }
+        if ($refused -and (Test-Path $refused) -and (Get-Item $refused).LastWriteTime -gt $start) {
             $stopReason = 'the test host refused the job: ' + (Get-Content -Raw $refused | ConvertFrom-Json).reason
             break
         }
@@ -300,7 +308,20 @@ else {
     'The watcher wrote no report.'
 }
 
-"Run time {0:0.0} minutes, exit code {1}" -f ($end - $start).TotalMinutes, $(if ($exited) { $process.ExitCode } else { 'stopped' })
+"Run time {0:0.0} minutes, exit code {1}, Revit process {2}, peak memory {3:0} MB" -f ($end - $start).TotalMinutes, $(if ($exited) { $process.ExitCode } else { 'stopped' }), $process.Id, ($peak / 1MB)
+# R110. One line per job for the parallel report
+$logResult = if (Test-Path $logPath) { (Get-Content -Raw $logPath | ConvertFrom-Json).result } else { $null }
+[ordered]@{
+    name       = $name
+    pid        = $process.Id
+    startUtc   = $start.ToUniversalTime().ToString('o')
+    endUtc     = $end.ToUniversalTime().ToString('o')
+    minutes    = [Math]::Round(($end - $start).TotalMinutes, 2)
+    peakMb     = [Math]::Round($peak / 1MB)
+    exitCode   = $(if ($exited) { $process.ExitCode } else { $null })
+    stopReason = $stopReason
+    logResult  = $logResult
+} | ConvertTo-Json | Set-Content -Path $runPath -Encoding utf8
 if (-not $DryStart) {
     $after = Get-Item $original
     $same = ((Get-FileHash $original).Hash -eq $hashBefore) -and ($after.LastWriteTimeUtc -eq $before.LastWriteTimeUtc) -and ($after.Length -eq $before.Length)

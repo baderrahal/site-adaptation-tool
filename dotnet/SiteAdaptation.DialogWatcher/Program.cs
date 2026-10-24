@@ -127,6 +127,7 @@ namespace SiteAdaptation.DialogWatcher
                         continue;
                     }
                     SecurityDialogEntry entry = SecurityDialogs.Read(title, windowClass, texts, buttons);
+                    entry.Pid = options.Pid;
                     WatchAction action = SecurityDialogs.Decide(entry, options.OurIds, options.OurMarks, options.OurPaths);
                     entry.Action = action.ToString();
                     handled.Add(handle);

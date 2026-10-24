@@ -57,7 +57,7 @@ The full text is docs/rules.md. Ids are the contract, a test names the id it pro
 - R90 is the block as a cluster hint. R91 and R92 cover the road level lookup and the ramp test with it. R93 to R96 cover the entry level measurement, rule, proof and its run through the level rule. R97 to R101 cover the block offsets, the fit and test, the entrance point, the measured offsets file and the second methods.
 - R67 is the level rule, check 5. R68 to R72 cover the block data, the unit code per plot (the Excel unit only), the row split, the front by road edge and the xref lookup. R73 to R77 cover the block scan, the Excel unit, the clusters with no Rev 6 match, the second block match and the block against the link.
 - R80 to R82 cover plan.json, the plan from the past job and the shared position proof. R83 to R88 cover the placer: coordinates check, link placement, parameters, dry run and one transaction, report and skip, install. R89 compares the plan with the placed model.
-- R102 to R109 cover the placer filter, the test host guard, its steps, the placer check, the registry hook, the link instance name, the security dialogs and the prototype upgrade job.
+- R102 to R110 cover the placer filter, the test host guard, its steps, the placer check, the registry hook, the link instance name, the security dialogs, the prototype upgrade job and the parallel windows.
 
 ## Real files
 

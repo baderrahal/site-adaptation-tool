@@ -64,13 +64,14 @@ namespace SiteAdaptation.TestHost
         public static void Start(UIControlledApplication application, string token, string jobPath, string addinsFolder)
         {
             string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            if (!TestHostGuard.ShouldWake(token, File.Exists(jobPath)) || jobPath != TestHostGuard.JobPath(documents))
+            // A path that is not a job file of the SiteAdaptation folder is never touched, not even to write a refusal
+            if (!TestHostGuard.ShouldWake(token, jobPath, File.Exists(jobPath)) || TestHostGuard.CodeOfJobPath(jobPath, documents) == null)
             {
                 return;
             }
             // The claim comes first. The job file moves to a name of this process and only the moved file is read and checked,
             // so a job written in between is never run unchecked, and no job runs twice
-            string claimed = Path.Combine(TestHostGuard.SiteAdaptationFolder(documents), "testhost_job.claimed-" + Process.GetCurrentProcess().Id + "-" + DateTime.UtcNow.Ticks + ".json");
+            string claimed = Path.ChangeExtension(jobPath, ".claimed-" + Process.GetCurrentProcess().Id + "-" + DateTime.UtcNow.Ticks + ".json");
             string text;
             try
             {
@@ -79,10 +80,15 @@ namespace SiteAdaptation.TestHost
             }
             catch (Exception failure)
             {
-                Refused(documents, "the job file could not be claimed: " + failure.Message);
+                Refused(jobPath, "the job file could not be claimed: " + failure.Message);
                 return;
             }
             GuardResult guard = TestHostGuard.Check(text, token, DateTime.UtcNow, File.Exists);
+            string place = guard.Act ? TestHostGuard.CheckJobPath(jobPath, guard.Job, documents) : null;
+            if (place != null)
+            {
+                guard = new GuardResult { Act = false, Reason = place };
+            }
             if (guard.Act)
             {
                 string copy = guard.Job.Kind == TestHostGuard.UpgradeKind
@@ -95,7 +101,7 @@ namespace SiteAdaptation.TestHost
             }
             if (!guard.Act)
             {
-                Refused(documents, guard.Reason + ". The job stays in " + Path.GetFileName(claimed) + " and never runs");
+                Refused(jobPath, guard.Reason + ". The job stays in " + Path.GetFileName(claimed) + " and never runs");
                 return;
             }
             File.Delete(claimed);
@@ -104,11 +110,11 @@ namespace SiteAdaptation.TestHost
         }
 
         // A refused job leaves its job file alone and writes one line of why, and nothing else happens
-        private static void Refused(string documents, string reason)
+        private static void Refused(string jobPath, string reason)
         {
             try
             {
-                JsonOut.Write(Path.Combine(TestHostGuard.SiteAdaptationFolder(documents), "testhost_refused.json"),
+                JsonOut.Write(TestHostGuard.RefusedPath(jobPath),
                     new Dictionary<string, string> { { "utc", DateTime.UtcNow.ToString("o") }, { "reason", reason } });
             }
             catch (Exception)

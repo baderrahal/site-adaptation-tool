@@ -341,12 +341,97 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R103_without_a_token_or_a_job_file_the_test_host_never_wakes()
+        public void R110_without_a_token_a_job_variable_or_its_file_the_test_host_never_wakes()
         {
-            Assert.False(TestHostGuard.ShouldWake(null, true));
-            Assert.False(TestHostGuard.ShouldWake("", true));
-            Assert.False(TestHostGuard.ShouldWake(Token, false));
-            Assert.True(TestHostGuard.ShouldWake(Token, true));
+            const string job = @"C:\Docs\SiteAdaptation\testhost_job_C10.json";
+            Assert.False(TestHostGuard.ShouldWake(null, job, true));
+            Assert.False(TestHostGuard.ShouldWake("", job, true));
+            Assert.False(TestHostGuard.ShouldWake(Token, null, true));
+            Assert.False(TestHostGuard.ShouldWake(Token, "", true));
+            Assert.False(TestHostGuard.ShouldWake(Token, job, false));
+            Assert.True(TestHostGuard.ShouldWake(Token, job, true));
+        }
+
+        [Fact]
+        public void R110_each_window_has_its_own_job_file_by_code_and_kind_in_the_site_adaptation_folder()
+        {
+            Assert.Equal(@"C:\Docs\SiteAdaptation\testhost_job_C10.json", TestHostGuard.JobPath(@"C:\Docs", "C10", false));
+            Assert.Equal(@"C:\Docs\SiteAdaptation\testhost_job_C10_upgrade.json", TestHostGuard.JobPath(@"C:\Docs", "C10", true));
+            Assert.Equal("TH1", TestHostGuard.CodeOfJobPath(@"C:\Docs\SiteAdaptation\testhost_job_TH1_upgrade.json", @"C:\Docs"));
+            Assert.Null(TestHostGuard.CodeOfJobPath(@"C:\Docs\SiteAdaptation\testhost_job.json", @"C:\Docs"));
+            Assert.Null(TestHostGuard.CodeOfJobPath(@"C:\Other\testhost_job_C10.json", @"C:\Docs"));
+            Assert.Null(TestHostGuard.CodeOfJobPath(@"C:\Docs\SiteAdaptation\sub\testhost_job_C10.json", @"C:\Docs"));
+            Assert.Null(TestHostGuard.CodeOfJobPath(@"C:\Docs\SiteAdaptation\testhost_job_c10.json", @"C:\Docs"));
+            Assert.Null(TestHostGuard.CodeOfJobPath(@"testhost_job_C10.json", @"C:\Docs"));
+            Assert.Equal(@"C:\Docs\SiteAdaptation\testhost_job_C10.refused.json", TestHostGuard.RefusedPath(@"C:\Docs\SiteAdaptation\testhost_job_C10.json"));
+        }
+
+        [Fact]
+        public void R110_the_run_script_gives_each_revit_its_own_job_path_and_token_and_writes_per_job_files()
+        {
+            string script = RepoText("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
+
+            Assert.Contains("$jobPath = if ($DryStart) { $null } else { Join-Path $docs ('testhost_job_' + $name + '.json') }", script);
+            Assert.Contains("$info.Environment['SITEADAPT_JOB'] = $jobPath", script);
+            Assert.Contains("$info.Environment['SITEADAPTATION_TESTHOST_TOKEN'] = $token", script);
+            Assert.Contains("[IO.Path]::ChangeExtension($jobPath, '.refused.json')", script);
+            Assert.Contains("$runPath = Join-Path $docs ('testhost_' + $name + '_run.json')", script);
+            Assert.Contains("PeakWorkingSet64", script);
+            Assert.DoesNotContain("'testhost_job.json'", script);
+            Assert.DoesNotContain("'testhost_refused.json'", script);
+            Assert.DoesNotContain("$env:SITEADAPT", script);
+        }
+
+        [Fact]
+        public void R110_the_launcher_reads_memory_first_keeps_8_gb_free_runs_at_most_3_and_stops_one_window_only()
+        {
+            string launcher = RepoText("dotnet", "SiteAdaptation.TestHost", "Run-Parallel.ps1");
+
+            Assert.Contains("[double]$MinFreeGB = 8", launcher);
+            Assert.Contains("[int]$MaxWindows = 3", launcher);
+            Assert.Contains("if ($MaxWindows -lt 1 -or $MaxWindows -gt 3)", launcher);
+            Assert.Contains("Get-CimInstance Win32_OperatingSystem", launcher);
+            Assert.True(launcher.IndexOf("\"Memory: total", StringComparison.Ordinal) < launcher.IndexOf("while ($queue.Count", StringComparison.Ordinal));
+            Assert.Contains("if ($free -gt $MinFreeGB)", launcher);
+            Assert.Contains("$running.Count -lt $MaxWindows", launcher);
+            Assert.Contains("Sort-Object WorkingSetSize -Descending | Select-Object -First 1", launcher);
+            Assert.Contains("$shells -contains $_.ParentProcessId", launcher);
+            Assert.DoesNotContain("HKCU", launcher);
+            Assert.DoesNotContain("HKLM", launcher);
+        }
+
+        [Fact]
+        public void R110_the_watcher_logs_the_revit_process_of_each_dialog()
+        {
+            string program = RepoText("dotnet", "SiteAdaptation.DialogWatcher", "Program.cs");
+
+            Assert.Contains("entry.Pid = options.Pid;", program);
+            Assert.Contains("new PropertyCondition(AutomationElement.ProcessIdProperty, options.Pid)", program);
+        }
+
+        [Fact]
+        public void R110_a_job_must_sit_in_the_file_of_its_own_code_and_kind()
+        {
+            var place = new TestHostJob { Code = "C10" };
+            var upgrade = new TestHostJob { Code = "C10", Kind = TestHostGuard.UpgradeKind };
+
+            Assert.Null(TestHostGuard.CheckJobPath(@"C:\Docs\SiteAdaptation\testhost_job_C10.json", place, @"C:\Docs"));
+            Assert.Null(TestHostGuard.CheckJobPath(@"C:\Docs\SiteAdaptation\testhost_job_C10_upgrade.json", upgrade, @"C:\Docs"));
+            Assert.NotNull(TestHostGuard.CheckJobPath(@"C:\Docs\SiteAdaptation\testhost_job_TH1.json", place, @"C:\Docs"));
+            Assert.NotNull(TestHostGuard.CheckJobPath(@"C:\Docs\SiteAdaptation\testhost_job_C10.json", upgrade, @"C:\Docs"));
+            Assert.NotNull(TestHostGuard.CheckJobPath(@"C:\Docs\SiteAdaptation\testhost_job_C10_upgrade.json", place, @"C:\Docs"));
+        }
+
+        [Fact]
+        public void R110_the_session_touches_no_path_outside_the_job_files_and_writes_its_refusal_beside_its_own_job()
+        {
+            string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
+
+            Assert.Contains("TestHostGuard.CodeOfJobPath(jobPath, documents) == null", session);
+            Assert.Contains("TestHostGuard.CheckJobPath(jobPath, guard.Job, documents)", session);
+            Assert.Contains("JsonOut.Write(TestHostGuard.RefusedPath(jobPath),", session);
+            Assert.DoesNotContain("testhost_refused.json", session);
+            Assert.DoesNotContain("testhost_job.json", session);
         }
 
         [Fact]
@@ -475,18 +560,21 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R103_the_app_reads_the_token_then_the_job_file_and_loads_nothing_before()
+        public void R110_the_app_reads_the_token_then_its_job_variable_then_the_file_and_loads_nothing_before()
         {
             string app = RepoText("dotnet", "SiteAdaptation.TestHost", "TestHostApp.cs");
             int token = app.IndexOf("GetEnvironmentVariable(TokenVariable)", StringComparison.Ordinal);
+            int variable = app.IndexOf("GetEnvironmentVariable(JobVariable)", StringComparison.Ordinal);
             int file = app.IndexOf("File.Exists(jobPath)", StringComparison.Ordinal);
             int resolve = app.IndexOf("AssemblyResolve += Resolve", StringComparison.Ordinal);
             int wake = app.IndexOf("Wake(application, token, jobPath);", StringComparison.Ordinal);
 
-            Assert.True(token > 0 && token < file && file < resolve && resolve < wake);
-            Assert.Equal(TestHostGuard.TokenVariable, "SITEADAPTATION_TESTHOST_TOKEN");
+            Assert.True(token > 0 && token < variable && variable < file && file < resolve && resolve < wake);
+            Assert.Equal("SITEADAPTATION_TESTHOST_TOKEN", TestHostGuard.TokenVariable);
+            Assert.Equal("SITEADAPT_JOB", TestHostGuard.JobVariable);
             Assert.Contains("\"" + TestHostGuard.TokenVariable + "\"", app);
-            Assert.Contains("\"" + TestHostGuard.JobFileName + "\"", app);
+            Assert.Contains("\"" + TestHostGuard.JobVariable + "\"", app);
+            Assert.DoesNotContain("testhost_job.json", app);
         }
 
         [Fact]
@@ -513,7 +601,7 @@ namespace SiteAdaptation.Tests
 
             Assert.True(app.LastIndexOf("try", wake, StringComparison.Ordinal) > app.IndexOf("AssemblyResolve += Resolve", StringComparison.Ordinal));
             Assert.Contains("catch (Exception failure)", app.Substring(wake));
-            Assert.Contains("testhost_refused.json", app.Substring(wake));
+            Assert.Contains("Path.ChangeExtension(jobPath, \".refused.json\")", app.Substring(wake));
         }
 
         [Theory]
