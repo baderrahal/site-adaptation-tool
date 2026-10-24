@@ -14,6 +14,8 @@ UNCONFIRMED = "not confirmed"
 RULE_FORM = re.compile(r"^under ([0-9.]+) is (\d+), ([0-9.]+) to under ([0-9.]+) is (\d+), ([0-9.]+) and over is (\d+)$")
 ENTRY_DECIMALS = 4
 HEIGHT_DECIMALS = 4
+# The FFL is taken to the millimetre before the height, as the sheets write it, so a height is never worked out from a hidden fourth decimal
+FFL_DECIMALS = 3
 # A height is rounded to a micrometre before its band is taken, so binary float noise (150.38 minus 150.0 is 0.37999999999999545)
 # cannot move a height off a limit. The closest real height is 27 micrometres from a limit
 BAND_DECIMALS = 6
@@ -36,6 +38,19 @@ def count_rule(profile):
     if counts != sorted(counts):
         raise project_profile.ProfileError(profile.path.name + " steps.count_rule steps fall as the height grows")
     return [(limits[0], counts[0]), (limits[2], counts[1])], counts[2]
+
+
+def height_span(profile):
+    """The lowest and the highest height of steps.legend in metres, which is the span a height may lie in."""
+    legend = profile.get("steps.legend")
+    heights = []
+    if isinstance(legend, list):
+        for entry in legend:
+            valid = isinstance(entry, list) and len(entry) == 2 and not isinstance(entry[0], bool) and isinstance(entry[0], (int, float))
+            heights.append(float(entry[0]) if valid else None)
+    if not heights or None in heights or heights != sorted(heights):
+        raise project_profile.ProfileError(profile.path.name + " steps.legend is not a list of [height, steps] pairs with rising heights")
+    return heights[0], heights[-1]
 
 
 def steps_for(height, rule):
@@ -84,6 +99,7 @@ def compute(profile, clusters, entries):
     row of it says so in flags.
     """
     rule = count_rule(profile)
+    span = height_span(profile)
     ground = profile.metres("levels.ground_ssl")
     least, most = profile.get("steps.front_min"), profile.get("steps.front_max")
     unconfirmed = UNCONFIRMED in str(profile.get("steps.base_height_source")).lower()
@@ -95,7 +111,7 @@ def compute(profile, clusters, entries):
         bases = [base_height(profile, unit) for unit in ends]
         base = max(bases) if bases else None
         top = max(entries[plot]["entry"] for plot in known) if known else None
-        ffl = None if top is None else top + base
+        ffl = None if top is None else round(top + base, FFL_DECIMALS)
         end_missing = plots[0] not in entries or plots[-1] not in entries
         for plot in plots:
             row = {"plot": plot, "unit": entries[plot]["unit"] if plot in entries else None, "cluster": code, "size": len(plots),
@@ -108,6 +124,11 @@ def compute(profile, clusters, entries):
                 height = ffl - entries[plot]["entry"]
                 row.update({"entry": common.r3(entries[plot]["entry"], ENTRY_DECIMALS), "baseHeight": common.r3(base), "ffl": common.r3(ffl),
                             "ssl": common.r3(ffl + ground), "height": common.r3(height, HEIGHT_DECIMALS), "steps": steps_for(height, rule)})
+                # Rounded to a micrometre like the band, so a height on the edge of the span is inside it
+                if round(height, BAND_DECIMALS) < span[0]:
+                    row["flags"].append("height under " + str(span[0]) + " m")
+                if round(height, BAND_DECIMALS) > span[1]:
+                    row["flags"].append("height over " + str(span[1]) + " m")
                 if row["steps"] < least:
                     row["flags"].append("steps under " + str(least))
                 if row["steps"] > most:
