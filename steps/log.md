@@ -2,7 +2,7 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
-## Round DATA-2, 2026-10-24, the full Civil 3D read and the analysis fixes
+## Round DATA-2, 2026-10-24, the full Civil 3D read, the analysis fixes and the wiring (Part W)
 
 Goal:
 - Part A the full Civil 3D read of Road Surface, Roads Road Layout and Rough Grading. Part B El @ Entry from the road and the ramp, units per face, the second method, the width meaning, two conflicts out. Summary: steps/investigations/data-book.md
@@ -15,11 +15,14 @@ Done:
 - B2 (R171): every unit face holds one unit. Units 2,698 from the footprint blocks (2,578 on faces, 120 in 81 blocks on no face), Rev 6 2,704 (gap 6), Phase1 sheet 2,701 (gap 3, all villas VL2 to VL4). C10, duplex and townhouse rows match the sheet
 - B4 (R172): the profile key is plot_width_m, a plot width, and each plot holds one unit
 - B5: V9 numbering moved to referenceV9 and VL4 width to widthFromCad in R167, C10 and VL3 widths stay as conflicts
-- New: python/data_book_retest.py, python/data_book_retest_check.py, the retest settings in c3d_probe.json, exportKnownSurfaces, README lines for the new files. Gate: Python 768 to 782 passed and 1 skipped, .NET 369 to 371 passed
+- W (R174 to R178): the 12 coordinate PDFs copied and read (3,346 rows, 746 plots). python/wiring.py scores 2 to 7 methods per source against the past plan (336 plots) and the 747 schedule plots. Chosen: footprint and R06 blocks everyShare (336 of 336, was 304), curb and ROW anyEdge (312 and 336, was 308 and 331), setback bestShare (no neighbour line, was 26), the rest stay. plots.csv 110 columns with a method column per wired column. Summary: steps/investigations/wiring.md
+- W findings: setback, widths, El @ Entry bands and units unchanged. 246 DP ends of townhouse rows now carry their row block, 9 OS plots lost a neighbour's setback, curb on all 2,956 plots. The PDF check refuses 13 schedule plots (IMC 9, 6 of them cut plots), no edge plot one label off. Footprint against R06 1,865 same, about 15 percent of each curb has no partner in the other road layout within 1 m
+- New: python/data_book_retest.py, python/data_book_retest_check.py, python/wiring.py, python/wiring_check.py, the retest settings in c3d_probe.json, exportKnownSurfaces, README lines for the new files. Gate: Python 768 to 797 passed and 1 skipped, .NET 369 to 371 passed
 
 Checked:
 - Second method (R173): fronts seed 14 20 of 20 on width, width class and setback class, seed 7 19, 20, 19. Per line at 3.00 m seed 14 20, 20, 20, seed 7 19, 19, 20. The misses are corner chamfers (plot 735). El @ Entry bands 20 of 20 at both seeds for all three variants. Export against the earlier LandXML: 0 corners differ over 1 mm
-- R168 again: rows match data.json on 14 of 14 drawings, plots.csv seed 14 and 7 20 of 20
+- R168 again: rows match data.json on 14 of 14 drawings, plots.csv seed 14 and 7 20 of 20, the share wired blocks left to R178
+- W second method (R178): footprint block, R06 block, setback owner, curb, ROW, cutsheet, V9 and label plus shift 20 of 20 at seeds 14 and 7. All 27 sources and copies hash the same after Part W
 
 Remains:
 - A later round should change, not this one: the El @ Entry rule (not coded, see Your turn 1), the 5.00 m setback line in rules/
@@ -56,6 +59,10 @@ Your turn:
 22. Free memory for the parallel windows. Recommended: more than 8 GB free before the combined test, this round had 6.2 GB
 23. TEST copies in Zone 02\ARC. Recommended: delete them when you no longer need them, keep Prototypes_2024
 24. The empty site-adaptation-tool-15a folder. Recommended: close what holds it and delete it, steps/bader-data-2.md
+25. Curb and ROW distance. Recommended: keep anyEdge (312 and 336 of 336) for the distances and the R122 front for width, links and levels
+26. The 13 schedule plots the PDF location check refuses. Recommended: keep label plus shift, it agrees on all 336 IMC plots, and keep the 13 listed
+27. The two curbs differ by more than 1 m on about 15 percent of their length. Recommended: keep the Roads Road Layout curb, it scores against the past plan, and ask which road layout is current
+28. Two DP4 labels in a face with many labels. Recommended: ask for that baseplan face to be split, until then they stay unwired
 
 ## Round DATA, 2026-10-24, the data book of Phase 1
 

@@ -22,7 +22,7 @@ All Phase Boundaries holds 8 rings. Layer Phase 1 Bound, labelled PHASE - 1, is 
 | Road Surface | 42, 0, 0 | 7, the same names as the earlier LandXML | 1 point group (_All Points, 0 points) |
 | Rough Grading | 17, 0, 0 | 9 of 10: Grading - North, Total Top of Roads Subgrade (-0.70), New Existing, Phase - 01 Grading, compiled CEC RG, CHR-4, CHR-5, CHR-9, CHR-10. Difference Between Ph-01 & NGL is a volume surface with no triangles | none |
 
-18 surfaces were exported to data_book\landxml, triangles inside Phase 1 (R169). plots.csv now has 98 columns, a left and right level for each of the 18 exports added, and none of the 62 old columns changed a cell.
+18 surfaces were exported to data_book\landxml, triangles inside Phase 1 (R169). plots.csv got 98 columns, a left and right level for each of the 18 exports added, and none of the 62 old columns changed a cell. Part W then wired it by the method that scored best per source and added a method column per wired column, 110 columns. The scores and the changes are in steps/investigations/wiring.md.
 
 ## What each source adds inside Phase 1
 
@@ -85,7 +85,7 @@ rules/roshn-makkah.json names the width plot_width_m in every typology and vl3_w
 
 ## Conflicts
 
-- Plot type: footprint blocks agree with the baseplan type on all 2,332 unit plots that have one. R06 agrees on 1,773, R06_0000 on 232, with no disagreement.
+- Plot type: footprint blocks agree with the baseplan type on all 2,332 unit plots that sit under a block of their own type. Since Part W the other 246 (DP ends of townhouse rows) are wired to the townhouse row block they sit under, which is the row block and no type conflict. R06 agrees the same way on 2,578, R06_0000 on 232.
 - Width against Rev 6: DP2 403 of 408 and DP4 684 of 688 at 10 or 12 m. TH1 and TH3 all match. C10 58 and VL3 41 plots are wider than Rev 6. VL4 is left out, its width comes from CAD (Bader, DATA-2). VL2 has no Rev 6 width.
 - Setback: the drawn setback line sits 5.00 m behind the front on 2,530 plots and 3.00 m on 40, never at the Rev 6 5.52 m (C10 5.50 m).
 - Road Layout counts: the stand-in had 202,320 entities, 5,464 blocks and 1,537 texts, the full read 208,363, 5,869 and 688. Road Surface 39 against 42 entities, Rough Grading 107 against 17. The two readers count nested and proxy pieces another way, not resolved.

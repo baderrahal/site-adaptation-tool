@@ -25,6 +25,7 @@ import c3d_connect
 import c3d_run
 import cad_analysis
 import cad_links
+import entry_levels
 import full_run
 import landxml_reader
 import levels_proof
@@ -32,17 +33,19 @@ import link_summary
 import project_profile
 import prototype_offsets
 import surface_lookup
+import wiring
 import yard_rule
 
 SHARED_M = 0.5
 
 BASE_COLUMNS = [
-    "officialNumber", "neighbourhood", "baseplanLabel", "clientType", "centroidX", "centroidY", "faceAreaM2", "cutsheet",
+    "officialNumber", "officialNumberMethod", "neighbourhood", "baseplanLabel", "clientType", "centroidX", "centroidY", "faceAreaM2", "cutsheet", "cutsheetMethod",
     "frontLengthM", "widthM", "depthM", "frontBearingDeg", "facingDeg", "unitRev6", "unitRev6Source", "scheduleFile", "scheduleRow",
-    "footprintBlock", "footprintRotationDeg", "footprintMirrored", "footprintShared", "footprintSource", "cluster", "clusterRow",
-    "r06Block", "r06_0000Block", "masterBlocksSource", "r06Number", "r06_0000Number", "v9PlotNumber", "v9Source",
-    "setbackFromFrontM", "rowDistanceM", "curbDistanceM", "sidewalkWidthM",
-    "roadLevelLeft", "roadLevelRight", "roadLevelSurface",
+    "footprintBlock", "footprintBlockMethod", "footprintRotationDeg", "footprintMirrored", "footprintShared", "footprintSource", "cluster", "clusterRow",
+    "r06Block", "r06BlockMethod", "r06_0000Block", "r06_0000BlockMethod", "masterBlocksSource", "r06Number", "r06NumberMethod", "r06_0000Number", "r06_0000NumberMethod",
+    "v9PlotNumber", "v9PlotNumberMethod", "v9Source",
+    "setbackFromFrontM", "setbackFromFrontMMethod", "rowDistanceM", "rowDistanceMMethod", "curbDistanceM", "curbDistanceMMethod", "sidewalkWidthM",
+    "roadLevelLeft", "roadLevelRight", "roadLevelSurface", "roadLevelMethod",
     "pastFfl", "pastEntry", "pastSteps", "pastSource",
     "inCutList", "duplicateLabel", "inManyLabelFace", "crossesBorder", "noFront", "twoNeighbourhoods",
 ]
@@ -219,6 +222,38 @@ def build(config, settings, scratch):
     for entry in plots:
         if entry.get("kind") == "plot_shape" and yard_rule.whole_label(entry.get("plot")) is not None:
             types[str(yard_rule.whole_label(entry.get("plot")))] = entry.get("type")
+    chosen = book["wiring"]["chosen"]
+    all_faces = wiring.Faces(faces)
+    supported = {"footprintBlocks": ("centreWidened", "everyShare"), "r06Blocks": ("centreInside", "everyShare"), "r06_0000Blocks": ("centreInside",),
+                 "setback": ("intersects", "bestShare"), "curb": ("frontFrame", "anyEdge"), "row": ("frontFrame", "anyEdge"),
+                 "schedules": ("labelShift",), "v9Numbers": ("pointInside",), "r06Numbers": ("pointInside",), "cutsheet": ("centroidIn",), "roadSurfaces": ("snapOrder",)}
+    for source, methods in supported.items():
+        if chosen.get(source) not in methods:
+            raise ValueError("data_book.py cannot wire %s with %s, it knows %s" % (source, chosen.get(source), ", ".join(methods)))
+    shared_blocks = {}
+
+    def share_wired(source, folder):
+        """The blocks of every face over minShare, largest share first, and the faces of each block (R177)."""
+        shapes = wiring.unit_shapes(json.loads((Path(folder) / "blocks.json").read_text(encoding="utf-8"))["blocks"], None)
+        per_block = wiring.every_share(all_faces, [b["shape"] for b in shapes], book["wiring"]["minShare"])
+        found = defaultdict(list)
+        for item, hits in enumerate(per_block):
+            for hit in hits:
+                found[hit].append(item)
+        for hit, items in found.items():
+            items.sort(key=lambda item: -faces[hit].intersection(shapes[item]["shape"]).area)
+        shared_blocks[source] = (shapes, found, per_block)
+
+    if chosen["footprintBlocks"] == "everyShare":
+        share_wired("footprintBlocks", folder_of(book, join["footprint"]["drawing"], roots)[1])
+    if chosen["r06Blocks"] == "everyShare":
+        share_wired("r06Blocks", book["wiring"].get("r06Outlines") or folder_of(book, "masterR06", roots)[1])
+    owned_setbacks = {}
+    if chosen["setback"] == "bestShare":
+        polygons = wiring.setback_shapes(json.loads((foot_folder / "pieces.json").read_text(encoding="utf-8"))["pieces"], join["footprint"]["setbackLayer"])
+        for item, owners in enumerate(wiring.best_share(all_faces, polygons, book["wiring"]["ownerShareMin"], 0)):
+            for owner in owners:
+                owned_setbacks.setdefault(owner, []).append(polygons[item])
     surface_columns = []
     for name in surfaces:
         surface_columns += ["level_" + name + "_left", "level_" + name + "_right"]
@@ -246,26 +281,52 @@ def build(config, settings, scratch):
             levels = past[official]
             row.update({"pastFfl": (levels.get("ffl") or {}).get("value"), "pastEntry": (levels.get("entry") or {}).get("value"),
                         "pastSteps": (levels.get("steps") or {}).get("value"), "pastSource": "past job plan"})
-        on = in_face(foot_blocks, face, tree_of("foot", foot_blocks))
-        shared = False
-        if not on:
-            # A block of a pair or a row of townhouses has its centre on a shared wall, so it is looked for within SHARED_M
-            on = in_face(foot_blocks, face.buffer(SHARED_M), tree_of("foot", foot_blocks))
-            shared = bool(on)
-        if on:
-            row.update({"footprintBlock": "|".join(b["name"] for b in on), "footprintRotationDeg": on[0]["rotation"], "footprintMirrored": on[0]["mirrored"],
-                        "footprintShared": shared})
-        row["footprintSource"] = foot_source
-        for role, column in zip(join["masterBlocks"], ("r06Block", "r06_0000Block")):
-            items, source = master[role]
-            hits = in_face(items, face, tree_of(role, items))
-            row[column] = "|".join(sorted({b["name"] for b in hits})) or None
+        if chosen["footprintBlocks"] == "everyShare":
+            shapes, found, per_block = shared_blocks["footprintBlocks"]
+            on = [shapes[item] for item in found.get(label, [])]
+            if on:
+                first = found[label][0]
+                row.update({"footprintBlock": "|".join(b["name"] for b in on), "footprintRotationDeg": on[0]["rotation"], "footprintMirrored": on[0]["mirrored"],
+                            "footprintShared": len(per_block[first]) > 1})
+            row["footprintSource"] = "earlier CadReader outlines"
+        else:
+            on = in_face(foot_blocks, face, tree_of("foot", foot_blocks))
+            shared = False
+            if not on:
+                # A block of a pair or a row of townhouses has its centre on a shared wall, so it is looked for within SHARED_M
+                on = in_face(foot_blocks, face.buffer(SHARED_M), tree_of("foot", foot_blocks))
+                shared = bool(on)
+            if on:
+                row.update({"footprintBlock": "|".join(b["name"] for b in on), "footprintRotationDeg": on[0]["rotation"], "footprintMirrored": on[0]["mirrored"],
+                            "footprintShared": shared})
+            row["footprintSource"] = foot_source
+        row["footprintBlockMethod"] = chosen["footprintBlocks"]
+        for role, column, source_name in zip(join["masterBlocks"], ("r06Block", "r06_0000Block"), ("r06Blocks", "r06_0000Blocks")):
+            if chosen[source_name] == "everyShare":
+                shapes, found, _ = shared_blocks[source_name]
+                row[column] = "|".join(sorted({shapes[item]["name"] for item in found.get(label, [])})) or None
+            else:
+                items, source = master[role]
+                hits = in_face(items, face, tree_of(role, items))
+                row[column] = "|".join(sorted({b["name"] for b in hits})) or None
+            row[column + "Method"] = chosen[source_name]
         row["masterBlocksSource"] = " ".join("%s:%s" % (role, master[role][1]) for role in join["masterBlocks"])
         for role, column in zip(join["masterBlocks"], ("r06Number", "r06_0000Number")):
             items = master_numbers[role]
             row[column] = "|".join(sorted({t["text"].strip() for t in in_face(items, face, tree_of(role + "#", items))})) or None
+        row["r06NumberMethod"] = row["r06_0000NumberMethod"] = chosen["r06Numbers"]
         numbers = [t["text"].strip() for t in in_face(v9_texts, face, tree_of("v9", v9_texts))]
         row["v9PlotNumber"] = "|".join(numbers) or None
+        row["v9PlotNumberMethod"] = chosen["v9Numbers"]
+        row["officialNumberMethod"] = chosen["schedules"] if official else None
+        row["cutsheetMethod"] = chosen["cutsheet"]
+        if "anyEdge" in (chosen["curb"], chosen["row"]):
+            edge = entry_levels.front_edge(face, curbs.tree, curbs.lines) if curbs.tree is not None else None
+            if edge is not None:
+                if chosen["curb"] == "anyEdge":
+                    row["curbDistanceM"], row["curbDistanceMMethod"] = curbs.nearest(*edge["mid"])[0], "anyEdge"
+                if chosen["row"] == "anyEdge":
+                    row["rowDistanceM"], row["rowDistanceMMethod"] = rows_of_way.nearest(*edge["mid"])[0], "anyEdge"
         row["v9Source"] = v9_source
         cluster = cluster_of.get(label)
         if cluster:
@@ -273,27 +334,37 @@ def build(config, settings, scratch):
         frame = cad_links.front_frame(face, curbs.tree, curbs.lines, limits)
         if frame is None:
             row["noFront"] = True
+            sidewalk(row)
             rows.append(row)
             continue
         row["noFront"] = False
         middle = ((frame["left"][0] + frame["right"][0]) / 2, (frame["left"][1] + frame["right"][1]) / 2)
         along = (frame["right"][0] - frame["left"][0], frame["right"][1] - frame["left"][1])
         row.update({"frontLengthM": frame["length"], "widthM": frame["length"], "depthM": depth_of(face, frame),
-                    "frontBearingDeg": bearing(along), "facingDeg": bearing((-frame["n"][0], -frame["n"][1])),
-                    "curbDistanceM": frame["distance"], "rowDistanceM": rows_of_way.nearest(*middle)[0]})
-        if row["rowDistanceM"] is not None and row["rowDistanceM"] < frame["distance"]:
-            row["sidewalkWidthM"] = frame["distance"] - row["rowDistanceM"]
-        if setback_tree is not None:
+                    "frontBearingDeg": bearing(along), "facingDeg": bearing((-frame["n"][0], -frame["n"][1]))})
+        if chosen["curb"] == "frontFrame":
+            row["curbDistanceM"], row["curbDistanceMMethod"] = frame["distance"], "frontFrame"
+        if chosen["row"] == "frontFrame":
+            row["rowDistanceM"], row["rowDistanceMMethod"] = rows_of_way.nearest(*middle)[0], "frontFrame"
+        if chosen["setback"] == "bestShare":
+            owned = owned_setbacks.get(label)
+            if owned:
+                row["setbackFromFrontM"] = min(polygon.exterior.distance(Point(middle)) for polygon in owned)
+                row["setbackFromFrontMMethod"] = "bestShare"
+        elif setback_tree is not None:
             near = [setbacks[int(k)] for k in setback_tree.query(face, predicate="intersects")]
             if near:
                 row["setbackFromFrontM"] = min(line.distance(Point(middle)) for line in near)
+                row["setbackFromFrontMMethod"] = "intersects"
         for side, corner in (("Left", frame["left"]), ("Right", frame["right"])):
             for name in road_order:
                 level = c3d_connect.snap_z(surfaces[name], corner[0], corner[1], connect["snapM"])
                 if level is not None:
                     row["roadLevel" + side] = level
                     row["roadLevelSurface"] = name
+                    row["roadLevelMethod"] = chosen["roadSurfaces"]
                     break
+        sidewalk(row)
         for name, surface in surfaces.items():
             row["level_" + name + "_left"] = surface.z_at(*frame["left"])
             row["level_" + name + "_right"] = surface.z_at(*frame["right"])
@@ -309,6 +380,12 @@ def cell(value):
     if isinstance(value, float):
         return repr(round(value, 4))
     return str(value)
+
+
+def sidewalk(row):
+    """Curb distance less ROW distance where the ROW lies nearer, both by the method of the row."""
+    if row["rowDistanceM"] is not None and row["curbDistanceM"] is not None and row["rowDistanceM"] < row["curbDistanceM"]:
+        row["sidewalkWidthM"] = row["curbDistanceM"] - row["rowDistanceM"]
 
 
 def write_plots(path, rows, columns):

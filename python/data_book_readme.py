@@ -16,6 +16,8 @@ FILES = {
     "retest.md": "The round DATA-2 tests (R170 to R172), counts only. retest.json holds the same as data.",
     "retest.json": "The tests of R170 to R172 as JSON: El @ Entry from the road plus the ramp, the units per face, the unit gap and the width keys.",
     "retest_entry.csv": "One row per schedule plot, surface and slope variant: El @ Entry from the front corners plus slope times ramp depth, less the schedule value (R170).",
+    "wiring.md": "The wiring methods tried per source with their scores against the answer key and the method chosen (R174 to R177), counts only.",
+    "wiring.json": "The same as wiring.md as data, with the lists of plots left unwired or ambiguous.",
     "units.csv": "One row per baseplan face inside Phase 1 with the footprint unit blocks that cover it, one unit each (R171).",
     "layers.csv": "Every layer of the drawing with the entities inside Phase 1 by type. Colour, on, frozen, locked and linetype are filled by the Civil 3D read only.",
     "entities.csv": "Every entity inside Phase 1, blocks exploded with the parent kept. A line is kept where any part is inside and cut at the border, one row per part. A table over the size limit is split by layer into the folder entities.",
@@ -54,13 +56,13 @@ COLUMNS = {
     "frontBearingDeg": "Bearing of the front edge from left to right seen from the road, clockwise from grid north.", "facingDeg": "Bearing the plot faces, towards the road.",
     "unitRev6": "The Rev 6 unit code from the schedule.", "unitRev6Source": "Where unitRev6 comes from.", "scheduleFile": "The schedule workbook.", "scheduleRow": "The sheet row.",
     "footprintBlock": "The footprint block on the face, by its outline centre (Building Footprint).", "footprintRotationDeg": "Its rotation.", "footprintMirrored": "Its mirror flag.",
-    "footprintShared": "yes when the block centre lies on a shared wall within 0.5 m of the face, a pair or row block.", "footprintSource": "The reader the block came from.",
+    "footprintShared": "yes when the block also covers another face by the share of its wiring, a pair or row block.", "footprintSource": "The reader the block came from.",
     "cluster": "The cluster of analysis.json (R64) with its code.", "clusterRow": "The row id of the cluster.",
     "r06Block": "Block names on the face in R06.", "r06_0000Block": "Block names on the face in R06_0000.", "masterBlocksSource": "The readers of the master plan blocks.",
     "r06Number": "Whole number texts on the face in R06.", "r06_0000Number": "Whole number texts on the face in R06_0000.",
     "v9PlotNumber": "Plot number texts of V9 on the face.", "v9Source": "The reader of the V9 texts.",
-    "setbackFromFrontM": "Distance from the middle of the front to the nearest setback line on the face.", "rowDistanceM": "Distance from the middle of the front to the ROW line.",
-    "curbDistanceM": "Distance from the middle of the front to the curb (RD-CURB-LINE).", "sidewalkWidthM": "Curb distance less ROW distance where the ROW lies nearer.",
+    "setbackFromFrontM": "Distance from the middle of the front to the setback line the face owns by its wiring method.", "rowDistanceM": "Distance from the middle of the front edge of its wiring method to the ROW line.",
+    "curbDistanceM": "Distance from the middle of the front edge of its wiring method to the curb (RD-CURB-LINE).", "sidewalkWidthM": "Curb distance less ROW distance where the ROW lies nearer.",
     "roadLevelLeft": "Road level at the left front corner, snapped within 5 mm as in R157.", "roadLevelRight": "The same at the right corner.", "roadLevelSurface": "The surface that gave it.",
     "pastFfl": "FFL of the past job or schedule.", "pastEntry": "El @ Entry of the past job or schedule.", "pastSteps": "Steps.", "pastSource": "past job plan or schedule.",
     "inCutList": "yes for the plots of the R120 cut list.", "duplicateLabel": "yes when two faces carry the label.", "inManyLabelFace": "yes when the label also sits in a face with many labels.",
@@ -86,6 +88,8 @@ def describe(column):
         return "Level of surface " + column[len("level_"):column.rfind("_")] + " at the " + side + " front corner, where the corner lies on it."
     if column.startswith("attr_"):
         return "Block attribute " + column[len("attr_"):] + "."
+    if column.endswith("Method") and column != "Method":
+        return "The wiring method that filled " + column[:-len("Method")] + ", chosen by score in wiring.md (R177)."
     return COLUMNS.get(column, "")
 
 
