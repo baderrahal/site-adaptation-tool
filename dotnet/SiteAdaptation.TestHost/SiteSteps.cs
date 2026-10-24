@@ -236,6 +236,50 @@ namespace SiteAdaptation.TestHost
                 + ", floors in the view " + new FilteredElementCollector(document, view.Id).OfClass(typeof(Floor)).GetElementCount();
         }
 
+        // R234. Before the open every Revit link is set to load, from its saved path when that file is there, else from the link
+        // folder by file name. Only the transmission data of the copy changes, the link files are only read
+        public string LoadAllLinks()
+        {
+            ModelPath path = ModelPathUtils.ConvertUserVisiblePathToModelPath(job.Model);
+            TransmissionData data = TransmissionData.ReadTransmissionData(path);
+            if (data == null)
+            {
+                return "no transmission data, no link to load";
+            }
+            int links = 0;
+            int there = 0;
+            int found = 0;
+            int missing = 0;
+            foreach (ElementId id in data.GetAllExternalFileReferenceIds())
+            {
+                ExternalFileReference reference = data.GetLastSavedReferenceData(id);
+                if (reference.ExternalFileReferenceType != ExternalFileReferenceType.RevitLink)
+                {
+                    continue;
+                }
+                links++;
+                string saved = ModelPathUtils.ConvertModelPathToUserVisiblePath(reference.GetAbsolutePath());
+                string other = job.LinkFolder == null ? null : Path.Combine(job.LinkFolder, Path.GetFileName(saved));
+                if (File.Exists(saved))
+                {
+                    data.SetDesiredReferenceData(id, reference.GetPath(), reference.PathType, true);
+                    there++;
+                }
+                else if (other != null && File.Exists(other))
+                {
+                    data.SetDesiredReferenceData(id, ModelPathUtils.ConvertUserVisiblePathToModelPath(other), PathType.Absolute, true);
+                    found++;
+                }
+                else
+                {
+                    missing++;
+                }
+            }
+            data.IsTransmitted = true;
+            TransmissionData.WriteTransmissionData(path, data);
+            return "Revit links " + links + ", set to load from their path " + there + ", from the link folder " + found + ", not found " + missing;
+        }
+
         private static void Commit(Document document, string name, Action action)
         {
             using (var transaction = new Transaction(document, name))

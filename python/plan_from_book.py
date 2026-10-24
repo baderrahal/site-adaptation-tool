@@ -11,6 +11,10 @@ No value comes from a past model. Per plot:
   floors.yardBelowFflM, the ramp the Rev 6 outline of R127 with its front corners on the snapped road and its back corners
   parallel to them with their mean at El @ Entry, of the ramp type of its slope band (R210)
 The survey point, the angle and the level elevations are those the newSite job read back from the new file (R212).
+With the Rev 9 sales sheet the front of a plot with two or more road edges is the edge of the orientation rule (R226), and
+such a plot with no Orientation gets no front. The plots are those of cover.json, or every unit plot of a neighbourhood.
+With the footprint blocks the clusters are the plots that share one Building Footprint block, a duplex pair or a townhouse
+row, and a plot no such block joins to another keeps its cluster of the CAD analysis, less the plots a block took (R236).
 """
 import argparse
 import csv
@@ -24,9 +28,11 @@ from shapely.strtree import STRtree
 import c3d_connect
 import cad_analysis
 import cad_links
+import corner_front
 import common
 import data_book_retest
 import floor_fit
+import footprint_check
 import landxml_reader
 import levels
 import link_summary
@@ -49,6 +55,32 @@ def book_rows(plots_csv):
     with open(plots_csv, encoding="utf-8") as handle:
         rows = [row for row in csv.DictReader(handle) if row.get("locationPlanNumber")]
     return {row["locationPlanNumber"]: row for row in rows}, {row["baseplanLabel"]: row["locationPlanNumber"] for row in rows if row.get("baseplanLabel")}
+
+
+def footprint_clusters(numbers, rows, faces, block_index):
+    """R236. The plots of the numbers that share one Building Footprint block of the name the data book wired to them, the block
+    that shares the most of each face, two or more to a cluster, in the shape of the clusters of the CAD analysis."""
+    groups = {}
+    for number in numbers:
+        row, face = rows.get(number), faces.get(number)
+        if row is None or face is None or not row.get("footprintBlock"):
+            continue
+        best, held = None, 0.0
+        for index, shape in enumerate(block_index.get(row["footprintBlock"], [])):
+            if shape.intersects(face):
+                share = shape.intersection(face).area
+                if share > held:
+                    best, held = (row["footprintBlock"], index), share
+        if best is not None:
+            groups.setdefault(best, []).append(number)
+    return [{"code": name, "plots": sorted(plots, key=link_summary.sort_key)} for (name, _), plots in sorted(groups.items()) if len(plots) > 1]
+
+
+def joined_clusters(footprint, analysis):
+    """R236. The footprint clusters, then each analysis cluster less the plots a footprint cluster holds, when two or more stay."""
+    taken = {plot for cluster in footprint for plot in cluster["plots"]}
+    rest = [{**cluster, "plots": [plot for plot in cluster["plots"] if plot not in taken]} for cluster in analysis]
+    return footprint + [cluster for cluster in rest if len(cluster["plots"]) > 1]
 
 
 def numbered_clusters(clusters, number_of):
@@ -137,14 +169,21 @@ def level_values(builder, row):
         builder.entry["insert"]["value"][2] = row["ffl"]
 
 
-def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile):
-    """R209. The frame, ramp outline and road level of each plot's front corners, with the surface that gave each level."""
+def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=None, sales=None):
+    """R209, R226. The frame, ramp outline and road level of each plot's front corners, with the surface that gave each level.
+    With corner settings and sales rows the frame comes from the corner rule, else from the R122 front."""
     tree = STRtree(roads)
     found = {}
     for number in numbers:
         face = faces.get(number)
-        frame = cad_links.front_frame(face, tree, roads, limits) if face is not None else None
-        item = {"face": face, "frame": frame, "corners": None, "front": None, "surfaces": [], "unit": rows[number].get("typologyRev9") or None}
+        rule = "nearestCurb"
+        if face is None:
+            frame = None
+        elif corner is not None and sales is not None:
+            frame, rule = corner_front.corner_frame(face, tree, roads, limits, corner, sales.get(number))
+        else:
+            frame = cad_links.front_frame(face, tree, roads, limits)
+        item = {"face": face, "frame": frame, "corners": None, "front": None, "surfaces": [], "unit": rows.get(number, {}).get("typologyRev9") or None, "frontRule": rule}
         if frame is not None and item["unit"]:
             depth = ramp_outline.setback(profile, item["unit"])
             item["depth"] = depth
@@ -157,16 +196,16 @@ def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile):
     return found
 
 
-def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh):
+def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales=None, numbered=False):
     """R208. The plan of R80 for the plots numbers, every value from CAD, the data book and the new site file."""
     block = settings.get("siteBuild")
     floors_config = plan_from_past.load_floors(settings)
     steep = set(block["steepUnits"])
     snap = block["snapM"]
     limits = cad_links.front_limits(profile, settings.get("analysis"))
-    mine = [cluster for cluster in numbered_clusters(clusters, number_of) if set(cluster["plots"]) & set(numbers)]
+    mine = [cluster for cluster in (clusters if numbered else numbered_clusters(clusters, number_of)) if set(cluster["plots"]) & set(numbers)]
     members = sorted({plot for cluster in mine for plot in cluster["plots"]} | set(numbers), key=link_summary.sort_key)
-    front = fronts(members, rows, faces, roads, limits, surfaces, snap, profile)
+    front = fronts(members, rows, faces, roads, limits, surfaces, snap, profile, block.get("corner") if sales is not None else None, sales)
     frames = {number: item["frame"] for number, item in front.items()}
     roles = cad_links.cluster_roles(mine, 0, {number: item["face"] for number, item in front.items() if item["face"] is not None}, frames)
     entries, slopes = {}, {}
@@ -182,6 +221,12 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         item = front[number]
         builder = plan_from_past.PlotBuilder(number)
         unit = item["unit"]
+        if unit is None:
+            # R230. A location plan number with no plots.csv row or no Typology_Rev9, such as a label sharing its face, is listed
+            builder.lack("unit", "plots.csv holds no row or no Typology_Rev9 for the plot")
+            missing.append({"plot": number, "written": False, "missing": builder.missing})
+            lacking.update(entry["key"] for entry in builder.missing)
+            continue
         builder.entry["unit"] = sourced(unit, LOCATION)
         plan_from_cad.link_values(builder, unit, item["face"], item["frame"], roles.get(number), frame_section, files)
         level_values(builder, level_rows.get(number))
@@ -194,7 +239,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             no_level.append(number)
         else:
             for z, column in zip(item["front"], ("roadLevelLeft", "roadLevelRight")):
-                other = rows[number].get(column)
+                other = rows.get(number, {}).get(column)
                 book_check["within 5 mm" if other and abs(float(other) - z) <= 0.005 else "other or empty"] += 1
         complete = all(builder.has(key) for key in plan_from_past.LINK_KEYS)
         floors = {}
@@ -232,6 +277,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             "plots": len(numbers), "written": len(plots), "notWritten": len(numbers) - len(plots), "missingByKey": dict(sorted(lacking.items())),
             "clusters": len(mine), "clusterPlots": len(members), "inACluster": sum(1 for number in numbers if number in roles),
             "roadSurfacesOfFrontCorners": dict(surface_count.most_common()), "plotsWithNoRoadLevel": no_level,
+            "frontRule": dict(Counter(front[number]["frontRule"] for number in numbers).most_common()),
             "frontLevelAgainstPlotsCsv": dict(book_check),
             "floorsFound": {kind: sum(1 for entry in plots if kind in entry["floors"]) for kind in plan_from_past.FLOOR_KINDS},
             "floorTypes": dict(sorted(Counter(kind + ": " + floor["type"]["value"] for entry in plots for kind, floor in entry["floors"].items()).items())),
@@ -240,6 +286,13 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         "missing": missing,
         "conflicts": [],
     }
+
+
+def nbh_plots(labels_path, nbh):
+    """Every unit plot of a neighbourhood on the location plan, by its number, in order."""
+    with open(labels_path, encoding="utf-8") as handle:
+        rows = [row for row in csv.DictReader(handle) if row.get("nbh") == nbh and row.get("kind") == "clientCode"]
+    return sorted({row["number"] for row in rows}, key=link_summary.sort_key)
 
 
 def site_report(path):
@@ -257,14 +310,17 @@ def folder_files(folder, profile):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="plan.json from CAD and the data book only (R208 to R210).")
-    parser.add_argument("cover", help="cover.json of key_cover.py, its neighbourhood and plots are built")
+    parser.add_argument("cover", help="cover.json of key_cover.py, its neighbourhood and plots are built, or nbh=<NBH> with --labels")
+    parser.add_argument("--labels", help="location_plan/labels.csv of the snapshot, for nbh=<NBH>")
+    parser.add_argument("--sales", help="the Rev 9 workbook of the snapshot, with it the corner rule of R226 sets the front")
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH))
     parser.add_argument("--plots-csv", required=True, help="plots.csv of the snapshot")
     parser.add_argument("--landxml", required=True, help="the landxml folder of the snapshot")
     parser.add_argument("--site", required=True, help="testhost_<code>_site.json of the newSite job")
     parser.add_argument("--baseplan", required=True, help="plots.json of the baseplan reader")
     parser.add_argument("--roads", required=True, help="folder with pieces.json of the road layout reader")
-    parser.add_argument("--analysis", required=True, help="analysis.json of cad_analysis.py")
+    parser.add_argument("--analysis", help="analysis.json of cad_analysis.py, its clusters are used when no footprint blocks are given")
+    parser.add_argument("--footprint-blocks", help="R236. blocks.json of the footprint drawing, the plots that share a block are the clusters")
     parser.add_argument("--offsets", default=str(prototype_offsets.DEFAULT_PATH))
     parser.add_argument("--floors", default=str(floor_fit.DEFAULT_PATH))
     parser.add_argument("--scratch", required=True, help="a folder outside the repo for the LandXML reader")
@@ -274,20 +330,37 @@ def main(argv=None):
         settings = project_profile.load_settings(args.settings)
         profile = project_profile.load_profile(project_profile.profile_path(settings))
         block = settings.get("siteBuild")
-        cover = json.loads(Path(args.cover).read_text(encoding="utf-8"))
+        if args.cover.startswith("nbh="):
+            if not args.labels:
+                raise project_profile.ProfileError("nbh=<NBH> needs --labels")
+            nbh = args.cover.partition("=")[2]
+            cover = {"neighbourhood": nbh, "plots": nbh_plots(args.labels, nbh)}
+        else:
+            cover = json.loads(Path(args.cover).read_text(encoding="utf-8"))
+        sales = None
+        if args.sales:
+            sheet = json.loads((project_profile.ROOT / "python" / "c3d_probe.json").read_text(encoding="utf-8"))["dataBook"]["locationPlan"]["sales"]
+            sales = corner_front.sales_rows(args.sales, sheet["sheet"], sheet["columns"]["plot"])
         out = Path(args.out)
         plot_relations.refuse_inside_repo(out.resolve().parent)
         rows, number_of = book_rows(args.plots_csv)
         by_label, _ = yard_rule.face_shapes(link_summary.load(args.baseplan)["plots"], 0)
         faces = {number_of[label]: shape for label, shape in by_label.items() if label in number_of}
         roads = cad_analysis.read_road_edges(args.roads, settings.get("analysis")["roadEdgeLayers"])
-        clusters = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"]
+        if args.footprint_blocks:
+            clusters = footprint_clusters(cover["plots"], rows, faces, footprint_check.block_shapes(link_summary.load(args.footprint_blocks)["blocks"]))
+            if args.analysis:
+                clusters = joined_clusters(clusters, numbered_clusters(json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"], number_of))
+        elif args.analysis:
+            clusters = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"]
+        else:
+            raise project_profile.ProfileError("give --analysis or --footprint-blocks for the clusters")
         job = plan_from_past.load_job(settings)
         folder, _ = plan_from_past.prototype_folders(plan_from_past.input_root(settings), job)
         surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in block["roadSurfaces"]], args.scratch)
         plan = build(cover["plots"], rows, number_of, faces, roads, clusters, profile, settings,
                      prototype_offsets.plot_frame(prototype_offsets.load(args.offsets)), folder_files(folder, profile), folder,
-                     site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"])
+                     site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, bool(args.footprint_blocks))
         plan_from_past.write_plan(out, plan)
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
         print("plan_from_book: " + str(error), file=sys.stderr)
@@ -296,7 +369,7 @@ def main(argv=None):
     print("plots written %d of %d, missing %s" % (summary["written"], summary["plots"], summary["missingByKey"]))
     print("in a cluster %d, clusters %d with %d plots" % (summary["inACluster"], summary["clusters"], summary["clusterPlots"]))
     print("road surfaces of the front corners %s, plots with no road level %s" % (summary["roadSurfacesOfFrontCorners"], summary["plotsWithNoRoadLevel"]))
-    print("front level against plots.csv %s" % summary["frontLevelAgainstPlotsCsv"])
+    print("front level against plots.csv %s, front rule %s" % (summary["frontLevelAgainstPlotsCsv"], summary["frontRule"]))
     print("floors %s, types %s" % (summary["floorsFound"], summary["floorTypes"]))
     print(out)
     return 0
