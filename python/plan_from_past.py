@@ -666,6 +666,90 @@ def build_plan(data, rows, job, folder_files, prototype_folder, floors_config, f
     return plan
 
 
+def location_numbers(labels_path):
+    """R206. The location plan number of each baseplan face that holds exactly one plan label (R182), by face label."""
+    import csv
+    with open(labels_path, encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    found = {}
+    for row in rows:
+        if row.get("face"):
+            found.setdefault(row["face"], []).append(row)
+    return {face: items[0]["number"] for face, items in found.items() if len(items) == 1}, {face: len(items) for face, items in found.items() if len(items) > 1}
+
+
+def names_dialect(data, floors_config, faces, numbers):
+    """R206. A past model that keeps no plot parameter on its links and has no schedule here: each link instance Name and each floor
+    Plot value is <unit>-<number> in the model's own numbering. The official number of a plot is the location plan number of the
+    baseplan face its generic floor stands on, so the number is taken by position and never by a shift. The links and floors get that
+    official number, and one row per plot with the unit and the generic floor top as FFL stands in for the schedule the past job lacks.
+    faces are the baseplan faces by label with shift 0, numbers the face to location plan number of location_numbers."""
+    from shapely.geometry import Point
+    from shapely.strtree import STRtree
+
+    document = host_of(data)
+    offset = ramp_levels.offset_of(document)
+    labels = sorted(faces, key=link_summary.sort_key)
+    tree = STRtree([faces[label] for label in labels])
+    parameter = floors_config["plotParameter"]
+    official, report, rows = {}, Counter(), {}
+    for floor in document.get("floors") or []:
+        if kind_of(floor, floors_config) != "generic":
+            continue
+        value = str((floor.get("parameters") or {}).get(parameter) or "")
+        shape, _ = plot_relations.floor_shape(floor, offset)
+        if "-" not in value or shape is None:
+            report["generic floor with no plot value"] += 1
+            continue
+        hits = [labels[index] for index in tree.query(Point(shape.representative_point()), predicate="within")]
+        number = numbers.get(hits[0]) if len(hits) == 1 else None
+        if number is None:
+            report["generic floor on no face with one plan label"] += 1
+            continue
+        if value in official or number in rows:
+            report["plot value or official number given twice"] += 1
+            official.pop(value, None)
+            rows.pop(number, None)
+            continue
+        low, high, _ = plot_relations.top_range(floor, offset)
+        official[value] = number
+        rows[number] = {"Plot No.": int(number), "Unit": value.rpartition("-")[0], "FFL": high if low is not None and abs(high - low) <= EPS else None,
+                        "modelPlot": value.rpartition("-")[2], "sheetRow": None}
+    for link in document.get("links") or []:
+        parameters = link.setdefault("parameters", {})
+        number = official.get(str(parameters.get(NAME_PARAMETER) or ""))
+        if number is None:
+            report["link with no mapped name"] += 1
+            continue
+        parameters[PLOT_PARAMETER] = number
+        parameters[UNIT_PARAMETER] = parameters[NAME_PARAMETER].rpartition("-")[0]
+        report["link mapped"] += 1
+    for floor in document.get("floors") or []:
+        value = str((floor.get("parameters") or {}).get(parameter) or "")
+        if value in official:
+            floor["modelPlot"] = value
+            floor["plotNumber"] = official[value]
+            floor["parameters"][parameter] = value.rpartition("-")[0] + "-" + official[value]
+            report["floor mapped"] += 1
+    report["plots"] = len(rows)
+    return data, [rows[number] for number in sorted(rows, key=link_summary.sort_key)], dict(sorted(report.items()))
+
+
+def answer_key_listing(listing, data):
+    """R206. The folder listing with the link files of the model added, and those of them the folder lacks, by count.
+    A past model may link prototypes that are not on this machine, its plan still says which file each plot had."""
+    files = Counter(link.get("file") for link in host_of(data).get("links") or [] if link.get("file"))
+    known = set(listing or set())
+    lacking = {name: count for name, count in sorted(files.items()) if name.lower() not in known}
+    return known | {name.lower() for name in files}, lacking
+
+
+def mark_answer_key(plan, lacking):
+    """R206. Such a plan is for comparing only, the placer must never be given it."""
+    plan["answerKeyOnly"] = True
+    plan["summary"]["linkFilesNotInPrototypeFolder"] = lacking
+
+
 def folder_listing(folder):
     folder = Path(folder)
     return {path.name.lower() for path in folder.iterdir() if path.is_file()} if folder.is_dir() else None
@@ -702,7 +786,14 @@ def main(argv=None):
     parser.add_argument("--baseplan", help="plots.json of the baseplan, default pastJob.baseplanPlots")
     parser.add_argument("--shifts", default=str(project_profile.ROOT / "config" / "plot_numbers.json"))
     parser.add_argument("--out", help="plan file, default pastJob.output")
+    parser.add_argument("--answer-key", action="store_true",
+                        help="R206. A plan to compare with only: link files not in the prototype folder are kept and counted, the plan is marked answerKeyOnly")
+    parser.add_argument("--names", metavar="LABELS_CSV",
+                        help="R206. The past model keeps <unit>-<number> in link names and floor Plot values and has no schedule here. "
+                             "The official number comes from the location plan labels.csv of the data book by the face of the generic floor")
     args = parser.parse_args(argv)
+    if args.names and not args.answer_key:
+        parser.error("--names goes with --answer-key, such a plan is never placed")
     settings = project_profile.load_settings(args.settings)
     job = load_job(settings)
     floors = load_floors(settings)
@@ -713,18 +804,35 @@ def main(argv=None):
     root = input_root(settings)
     schedule = root / full_run.XLSX_FOLDER / job["schedule"]
     folder, source_folder = prototype_folders(root, job)
-    for path in (prototypes, schedule, baseplan):
+    for path in (prototypes, baseplan, Path(args.names) if args.names else schedule):
         if not path.is_file():
             print("not found: " + str(path), file=sys.stderr)
             return 2
-    faces, bad_labels = baseplan_faces(baseplan, args.shifts, job["neighbourhood"])
     data = link_summary.load(prototypes)
-    rows = excel_reader.read_sheet(schedule, job["sheet"])[3]
-    plan = build_plan(data, rows, job, folder_listing(folder), folder, floors, faces)
+    dialect = None
+    if args.names:
+        numbers, many = location_numbers(args.names)
+        by_label, bad_labels = yard_rule.face_shapes(link_summary.load(baseplan)["plots"], 0)
+        data, rows, dialect = names_dialect(data, floors, by_label, numbers)
+        faces = {numbers[label]: shape for label, shape in by_label.items() if label in numbers}
+    else:
+        faces, bad_labels = baseplan_faces(baseplan, args.shifts, job["neighbourhood"])
+        rows = excel_reader.read_sheet(schedule, job["sheet"])[3]
+    listing = folder_listing(folder)
+    if args.answer_key:
+        listing, not_in_folder = answer_key_listing(listing, data)
+    plan = build_plan(data, rows, job, listing, folder, floors, faces)
+    if args.answer_key:
+        mark_answer_key(plan, not_in_folder)
     plan["sources"]["prototypes"] = prototypes.name
     plan["sources"]["prototypeSourceFolder"] = str(source_folder)
     plan["sources"]["baseplanPlots"] = baseplan.name
     plan["summary"]["yardRule"]["facesWithBadLabel"] = len(bad_labels)
+    if dialect is not None:
+        plan["sources"]["schedule"] = "none, the generic floor tops of the model stand in for FFL"
+        plan["sources"]["locationLabels"] = Path(args.names).name
+        plan["summary"]["namesDialect"] = dialect
+        print("names dialect %s" % dialect)
     write_plan(out, plan)
     summary = plan["summary"]
     print("plots written %d of %d, missing a value %d" % (summary["written"], summary["plots"], len(plan["missing"])))

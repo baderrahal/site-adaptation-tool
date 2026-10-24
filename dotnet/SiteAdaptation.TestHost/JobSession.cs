@@ -20,7 +20,7 @@ namespace SiteAdaptation.TestHost
         public const string PlacerFolderName = "SiteAdaptationPlacer";
         public const string ReaderFolderName = "SiteAdaptation";
         private const double ExitMinutes = 5;
-        private static readonly HashSet<string> RollBackSteps = new HashSet<string>(StringComparer.Ordinal) { "removePrototypeType", "realRun", "deleteFloors", "realRun2" };
+        private static readonly HashSet<string> RollBackSteps = new HashSet<string>(StringComparer.Ordinal) { "removePrototypeType", "realRun", "deleteFloors", "realRun2", "coordinates", "levels", "floorTypes", "parameters", "image" };
 
         private readonly UIControlledApplication application;
         private readonly TestHostJob job;
@@ -39,7 +39,7 @@ namespace SiteAdaptation.TestHost
             this.job = job;
             this.jobPath = jobPath;
             this.documents = documents;
-            string logPath = TestHostGuard.OutputPath(documents, job.Code, job.Kind == TestHostGuard.UpgradeKind ? "upgrade_log" : "log");
+            string logPath = TestHostGuard.OutputPath(documents, job.Code, TestHostGuard.IsUpgrade(job) ? "upgrade_log" : "log");
             log = new TestHostLog
             {
                 Code = job.Code,
@@ -91,11 +91,16 @@ namespace SiteAdaptation.TestHost
             }
             if (guard.Act)
             {
-                string copy = guard.Job.Kind == TestHostGuard.UpgradeKind
-                    ? FileIdentity.CheckTargetFolder(Path.GetDirectoryName(guard.Job.Target))
+                string copy = TestHostGuard.IsUpgrade(guard.Job) ? FileIdentity.CheckTargetFolder(Path.GetDirectoryName(guard.Job.Target))
+                    : guard.Job.Kind == TestHostGuard.NewSiteKind ? FileIdentity.CheckTargetFolder(Path.GetDirectoryName(guard.Job.Model))
                     : FileIdentity.CheckCopy(guard.Job.Model, TestHostGuard.OriginalOf(guard.Job.Model));
-                // R117. A work file is a copy of the master and never the master itself
-                if (copy == null && TestHostGuard.PlacesFloors(guard.Job))
+                // R204. The source of a site upgrade is a plain file of its own, never a link to the site model it was copied from
+                if (copy == null && guard.Job.Kind == TestHostGuard.SiteUpgradeKind)
+                {
+                    copy = FileIdentity.CheckCopy(guard.Job.Source, null);
+                }
+                // R117. A work file is a copy of the master and never the master itself. R213 a new site file has no master
+                if (copy == null && TestHostGuard.PlacesFloors(guard.Job) && !TestHostGuard.IsNewSite(guard.Job.Model))
                 {
                     copy = FileIdentity.CheckCopy(guard.Job.Model, TestHostGuard.MasterOf(guard.Job.Model));
                 }
@@ -165,7 +170,7 @@ namespace SiteAdaptation.TestHost
         private IEnumerable<JobStep> Steps(Application app)
         {
             var steps = new JobSteps(app, job, documents);
-            if (job.Kind == TestHostGuard.UpgradeKind)
+            if (TestHostGuard.IsUpgrade(job))
             {
                 // R109. One prototype saved as a Revit 2024 file, the source only read
                 yield return new JobStep { Name = "sourceInfo", LimitMinutes = 2, Action = () => steps.FileLine(job.Source) };
@@ -184,6 +189,14 @@ namespace SiteAdaptation.TestHost
                 }
                 yield break;
             }
+            if (job.Kind == TestHostGuard.ReadKind || job.Kind == TestHostGuard.NewSiteKind || job.Kind == TestHostGuard.ImageKind)
+            {
+                foreach (JobStep step in SiteJobSteps(steps, app))
+                {
+                    yield return step;
+                }
+                yield break;
+            }
             yield return new JobStep { Name = "unloadLinks", LimitMinutes = 3, Action = steps.UnloadOtherLinks };
             yield return new JobStep { Name = "openModel", LimitMinutes = 20, Action = () => steps.Open(out document) };
             yield return new JobStep { Name = "removePrototypeType", LimitMinutes = 15, Action = () => steps.RemovePrototypeType(document) };
@@ -192,6 +205,36 @@ namespace SiteAdaptation.TestHost
             yield return new JobStep { Name = "saveAfterPlace", LimitMinutes = 15, Action = () => steps.Save(document) };
             yield return new JobStep { Name = "keepOnlyPrototype", LimitMinutes = 5, Action = () => steps.KeepOnlyPrototype(document) };
             yield return new JobStep { Name = "read", LimitMinutes = 15, Action = () => steps.Read(document) };
+            yield return new JobStep { Name = "close", LimitMinutes = 5, Always = true, Action = () => steps.Close(document) };
+            yield return new JobStep { Name = "jobFile", LimitMinutes = 1, Always = true, Action = () => File.Exists(jobPath) ? "a new job file is waiting, it is left for its own session" : "the job file is gone" };
+        }
+
+        // R205 a read opens a test copy and reads it, R212 a newSite job makes the new site file, R214 an image job exports one plan view.
+        // None of them saves the model it opened, the newSite job saves only the file it made
+        private IEnumerable<JobStep> SiteJobSteps(JobSteps steps, Application app)
+        {
+            var site = new SiteSteps(app, job, documents);
+            if (job.Kind == TestHostGuard.NewSiteKind)
+            {
+                yield return new JobStep { Name = "create", LimitMinutes = 5, Action = () => site.Create(out document) };
+                yield return new JobStep { Name = "coordinates", LimitMinutes = 2, Action = () => site.Coordinates(document) };
+                yield return new JobStep { Name = "levels", LimitMinutes = 2, Action = () => site.LevelsByName(document) };
+                yield return new JobStep { Name = "floorTypes", LimitMinutes = 2, Action = () => site.FloorTypesByName(document) };
+                yield return new JobStep { Name = "parameters", LimitMinutes = 2, Action = () => site.Parameters(document) };
+                yield return new JobStep { Name = "saveNew", LimitMinutes = 5, Action = () => site.SaveNew(document) };
+            }
+            else
+            {
+                yield return new JobStep { Name = "openModel", LimitMinutes = 20, Action = () => steps.Open(out document) };
+                if (job.Kind == TestHostGuard.ReadKind)
+                {
+                    yield return new JobStep { Name = "read", LimitMinutes = 15, Action = () => steps.Read(document) };
+                }
+                else
+                {
+                    yield return new JobStep { Name = "image", LimitMinutes = 10, Action = () => site.Image(document) };
+                }
+            }
             yield return new JobStep { Name = "close", LimitMinutes = 5, Always = true, Action = () => steps.Close(document) };
             yield return new JobStep { Name = "jobFile", LimitMinutes = 1, Always = true, Action = () => File.Exists(jobPath) ? "a new job file is waiting, it is left for its own session" : "the job file is gone" };
         }

@@ -187,15 +187,21 @@ namespace RevitPrototypeReader
             };
 
             var location = instance.Location as LocationPoint;
+            double? rotation = null;
             if (location != null)
             {
                 row.InsertionPoint = Metres(location.Point);
-                row.RotationDeg = UnitMath.RadiansToDegrees(location.Rotation);
+                rotation = PointRotation(location);
+            }
+            // R205. Revit cannot give the rotation of some placed instances, a past site model holds such ones, and the transform still does
+            if (rotation.HasValue)
+            {
+                row.RotationDeg = UnitMath.RadiansToDegrees(rotation.Value);
             }
             else
             {
                 Transform transform = instance.GetTransform();
-                row.InsertionPoint = Metres(transform.Origin);
+                row.InsertionPoint = row.InsertionPoint ?? Metres(transform.Origin);
                 row.RotationDeg = UnitMath.RadiansToDegrees(Math.Atan2(transform.BasisX.Y, transform.BasisX.X));
             }
 
@@ -205,6 +211,18 @@ namespace RevitPrototypeReader
                 row.BoundingBox = new BoxInfo { Min = Metres(box.Min), Max = Metres(box.Max) };
             }
             return row;
+        }
+
+        private static double? PointRotation(LocationPoint location)
+        {
+            try
+            {
+                return location.Rotation;
+            }
+            catch (Autodesk.Revit.Exceptions.InternalException)
+            {
+                return null;
+            }
         }
 
         private static string LevelName(Document doc, FamilyInstance instance)

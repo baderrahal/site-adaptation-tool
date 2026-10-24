@@ -6,6 +6,8 @@
 # -NewUpgradeFolder makes that folder and stops when it is there already, so it goes on the first upgrade only.
 # With -FloorSpec it runs a master, floors or linksAndFloors job of R117 on a copy python/scenario_files.py made beforehand.
 # The spec names kind, code, model and the options, and this script never copies, moves or deletes a model.
+# With -RoundSpec it runs a siteUpgrade, read, newSite, image or linksAndFloors job of R204 to R214 on the files of
+# siteBuild in config/project.json, all in its work folder. It never copies, moves or deletes a model either.
 param(
     [ValidatePattern('^[A-Z][A-Z0-9]{1,3}$')]
     [string]$Code,
@@ -13,6 +15,7 @@ param(
     [switch]$Upgrade,
     [switch]$NewUpgradeFolder,
     [string]$FloorSpec,
+    [string]$RoundSpec,
     [int]$TimeoutMinutes = 30,
     [int]$NoLogMinutes = 8
 )
@@ -38,6 +41,20 @@ if ($FloorSpec) {
     }
     $Code = $spec.code
 }
+$round = $null
+if ($RoundSpec) {
+    if ($Code -or $DryStart -or $Upgrade -or $FloorSpec) {
+        throw '-RoundSpec goes alone, its code is in the spec.'
+    }
+    $round = Get-Content -Raw $RoundSpec | ConvertFrom-Json
+    if (@('siteUpgrade', 'read', 'newSite', 'image', 'linksAndFloors') -notcontains $round.kind) {
+        throw "The round spec kind is not siteUpgrade, read, newSite, image or linksAndFloors: $($round.kind)"
+    }
+    if ($round.code -notmatch '^[A-Z][A-Z0-9]{1,3}$') {
+        throw "The round spec code is not a code of 2 to 4 capitals and digits: $($round.code)"
+    }
+    $Code = $round.code
+}
 if (-not $DryStart -and -not $Code) {
     throw 'Give -Code, or -DryStart for a start with no job.'
 }
@@ -49,7 +66,7 @@ $config = Get-Content -Raw (Join-Path $repo 'config\project.json') | ConvertFrom
 $docs = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'SiteAdaptation'
 $addins = Join-Path $env:APPDATA 'Autodesk\Revit\Addins\2024'
 $watcherExe = Join-Path $addins 'SiteAdaptationTestHost\Watcher\SiteAdaptation.DialogWatcher.exe'
-$name = if ($DryStart) { 'dry_start' } elseif ($Upgrade) { $Code + '_upgrade' } else { $Code }
+$name = if ($DryStart) { 'dry_start' } elseif ($Upgrade -or ($round -and $round.kind -eq 'siteUpgrade')) { $Code + '_upgrade' } else { $Code }
 # R110. One job file per window, its path goes to that Revit alone in SITEADAPT_JOB. Other Revit windows may run beside it
 $jobPath = if ($DryStart) { $null } else { Join-Path $docs ('testhost_job_' + $name + '.json') }
 $refused = if ($jobPath) { [IO.Path]::ChangeExtension($jobPath, '.refused.json') } else { $null }
@@ -94,7 +111,71 @@ $ourPaths = @(
 $original = $null
 $copy = $null
 $token = $null
-if (-not $DryStart) {
+$roundJob = $null
+if ($round) {
+    # R204 to R214. Every file sits in the work folder of siteBuild, and the file named in $original must not change
+    $build = $config.siteBuild
+    $work = Join-Path $build.folder 'work'
+    $roundJob = [ordered]@{
+        kind  = $round.kind
+        token = $null
+        code  = $Code
+    }
+    $keyStem = [IO.Path]::GetFileNameWithoutExtension($build.answerKey.model)
+    switch ($round.kind) {
+        'siteUpgrade' {
+            $original = Join-Path $work $build.answerKey.model
+            $target = Join-Path $work ($keyStem + '_TEST-' + $Code + '.rvt')
+            if (Test-Path $target) {
+                throw "The upgraded copy is already there, it is never overwritten: $target"
+            }
+            $roundJob.source = $original
+            $roundJob.target = $target
+        }
+        'read' {
+            $copy = Join-Path $work ($keyStem + '_TEST-' + $Code + '.rvt')
+            $original = $copy
+            $roundJob.model = $copy
+        }
+        'image' {
+            $copy = [string]$round.model
+            if ((Split-Path $copy) -ne $work) {
+                throw "The image model is not in the work folder $work"
+            }
+            $original = $copy
+            $roundJob.model = $copy
+            $roundJob.imageFolder = Join-Path $build.folder 'images'
+            $roundJob.imageLevel = [string]$round.imageLevel
+            $roundJob.area = [double[]]@($round.area)
+        }
+        'newSite' {
+            $copy = Join-Path $work $build.newFile
+            if (-not ([string]$round.site).StartsWith($build.folder + [IO.Path]::DirectorySeparatorChar)) {
+                throw "The site file is not in $($build.folder)"
+            }
+            $original = $build.template
+            $roundJob.model = $copy
+            $roundJob.template = $build.template
+            $roundJob.site = [string]$round.site
+        }
+        'linksAndFloors' {
+            $copy = Join-Path $work $build.newFile
+            $planPath = [string]$round.plan
+            $plan = Get-Content -Raw $planPath | ConvertFrom-Json
+            $files = @($plan.plots | ForEach-Object { $_.prototypeFile.value } | Where-Object { $_ -match ('-' + $round.prototypeCode + '-ZZ-MOD-') } | Sort-Object -Unique)
+            if ($files.Count -ne 1) {
+                throw "The plan names $($files.Count) prototype files for $($round.prototypeCode), one is needed: $($files -join ', ')"
+            }
+            $original = $planPath
+            $roundJob.model = $copy
+            $roundJob.prototypeFile = $files[0]
+            $roundJob.plan = $planPath
+        }
+    }
+    $before = Get-Item $original
+    $hashBefore = (Get-FileHash $original).Hash
+}
+if (-not $DryStart -and -not $round) {
     $root = if ($env:SITE_ADAPTATION_INPUT) { $env:SITE_ADAPTATION_INPUT } else { $config.inputRoot }
     $original = Join-Path $root $config.testHost.model
     $planPath = if ($spec -and $spec.plan) { $spec.plan } else { $config.pastJob.output }
@@ -193,7 +274,13 @@ try {
     $info.WorkingDirectory = Split-Path $revit
     if (-not $DryStart) {
         $token = [guid]::NewGuid().ToString('N')
-        if ($spec) {
+        if ($round) {
+            $job = $roundJob
+            $job.token = $token
+            $job.createdUtc = (Get-Date).ToUniversalTime().ToString('o')
+            $job.totalMinutes = [Math]::Min(27, $TimeoutMinutes - 2)
+        }
+        elseif ($spec) {
             # Assigned outside $() so a list of one plot stays a list and is written as a JSON array
             $deletePlots = $null
             if ($spec.deletePlots) {
@@ -399,7 +486,10 @@ $logResult = if (Test-Path $logPath) { (Get-Content -Raw $logPath | ConvertFrom-
 if (-not $DryStart) {
     $after = Get-Item $original
     $same = ((Get-FileHash $original).Hash -eq $hashBefore) -and ($after.LastWriteTimeUtc -eq $before.LastWriteTimeUtc) -and ($after.Length -eq $before.Length)
-    if ($Upgrade) {
+    if ($round) {
+        "Unchanged, $(Split-Path $original -Leaf): $same"
+    }
+    elseif ($Upgrade) {
         "Source prototype unchanged: $same"
     }
     else {
@@ -432,6 +522,10 @@ if (Test-Path $logPath) {
 if ($Upgrade) {
     'The upgraded prototype folder:'
     Get-ChildItem $targetFolder | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 200
+}
+elseif ($round) {
+    'Files of the work folder:'
+    Get-ChildItem $work | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 200
 }
 elseif (-not $DryStart) {
     'TEST copies next to the model:'

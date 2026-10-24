@@ -37,6 +37,11 @@ namespace SiteAdaptation.TestHost
             TransmissionData data = TransmissionData.ReadTransmissionData(path);
             if (data == null)
             {
+                // R213. A new site file made by the newSite job may hold no reference at all
+                if (TestHostGuard.IsNewSite(job.Model))
+                {
+                    return "the new site file holds no transmission data, no link to unload";
+                }
                 throw new InvalidOperationException("the copy holds no transmission data");
             }
             int links = 0;
@@ -71,7 +76,8 @@ namespace SiteAdaptation.TestHost
         public string Open(out Document document)
         {
             string original = TestHostGuard.OriginalOf(job.Model);
-            if (original == null || string.Equals(Path.GetFullPath(original), Path.GetFullPath(job.Model), StringComparison.OrdinalIgnoreCase))
+            bool newSite = TestHostGuard.IsNewSite(job.Model);
+            if (!newSite && (original == null || string.Equals(Path.GetFullPath(original), Path.GetFullPath(job.Model), StringComparison.OrdinalIgnoreCase)))
             {
                 throw new InvalidOperationException("the model is not a test copy, it is not opened");
             }
@@ -175,18 +181,20 @@ namespace SiteAdaptation.TestHost
         }
 
         // The source opens detached when it is workshared, so nothing is written to it or to its central.
-        // The links in it stay as they are, they are counted and not loaded or changed here
+        // The links in it stay as they are, they are counted and not loaded or changed here.
+        // R204. A site model drops its worksets, so its test copy is a plain file the read and the image open as it is
         public string OpenSource(out Document document)
         {
             var options = new OpenOptions { Audit = false };
             bool workshared = BasicFileInfo.Extract(job.Source).IsWorkshared;
+            bool site = job.Kind == TestHostGuard.SiteUpgradeKind;
             if (workshared)
             {
-                options.DetachFromCentralOption = DetachFromCentralOption.DetachAndPreserveWorksets;
+                options.DetachFromCentralOption = site ? DetachFromCentralOption.DetachAndDiscardWorksets : DetachFromCentralOption.DetachAndPreserveWorksets;
             }
             document = app.OpenDocumentFile(ModelPathUtils.ConvertUserVisiblePathToModelPath(job.Source), options);
             List<RevitLinkType> links = Types(document).ToList();
-            return "opened " + document.Title + (workshared ? ", detached with worksets kept" : "")
+            return "opened " + document.Title + (workshared ? (site ? ", detached with worksets discarded" : ", detached with worksets kept") : "")
                 + ". Links in it " + links.Count + ", loaded " + links.Count(type => type.GetLinkedFileStatus() == LinkedFileStatus.Loaded);
         }
 
@@ -219,7 +227,7 @@ namespace SiteAdaptation.TestHost
             {
                 throw new InvalidOperationException("the target is saved in " + info.Format + ", not " + app.VersionNumber + ": " + line);
             }
-            if (Path.GetFileName(job.Target) != Path.GetFileName(job.Source))
+            if (job.Kind == TestHostGuard.UpgradeKind && Path.GetFileName(job.Target) != Path.GetFileName(job.Source))
             {
                 throw new InvalidOperationException("the target name is not the source name");
             }
