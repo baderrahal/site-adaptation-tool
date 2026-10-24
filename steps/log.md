@@ -2,6 +2,68 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round Z4, 2026-10-24, a new site file for one neighbourhood from CAD only, compared with the past site model
+
+Goal:
+- Build a new Revit site file from CAD only for one NBH and one prototype, with links, ramps and floors, and compare it with the past site model. Summary: steps/investigations/round-z4.md, steps for Bader: steps/bader-z4.md
+
+Done:
+- Session started in the repo, hooks live. Worktree site-adaptation-tool-z4 on test/site-z4 from main at a203d0a. Plan written before the first edit. DATA-3 ran beside it, coordinated by the shared window lock (R200)
+- Snapshot of 209 data book files read all round, equal at the end (R201). The four 1.4 originals equal by hash before and after (R202)
+- Part 0: BasicFileInfo from the bytes (R203): all four Format 2021, TU, PP, EL workshared. TU upgraded to a Revit 2024 test copy (R204), read (R205) after a reader fix, 643 links, 1,286 floors. The key is another dialect (plot in the link Name, FFL and Ramps floors, no yard, old client type prototypes), plan_z4_past.json by --names, 633 plots (R206)
+- Part 0.5 and 0.6: the key holds NBH 012 (336 plots) and 022 (294 of 301), no 01A and no 013. Chosen 022, the NBH the CAD fits were not made on
+- Part 1 (R207): DT3, RRE-WP-NSP-KEO-ARC-DT3-ZZ-MOD-3300.rvt, 62 plots, all in the key
+- Part 2 (R208 to R210): plan_z4_cad.json 61 of 62 (one alone on a VL3 face has no mirror rule). Road surface of all 124 front corners Top Surface-02, no plot without a road level, front levels equal plots.csv within 5 mm 124 of 124. Ramps 0.5% 61
+- Part 3 (R211 to R213): 01101-PSN-Z4-TEST-NEW.rvt from DefaultMetric.rte, coordinates from CAD with 5 check points within 0 mm, angle 0, levels, 4 floor types and 10 parameters by name. linksAndFloors placed 61 links and 183 floors in one run and saved. No fallback needed
+- Part 4 (R214 to R216): the new file equals the CAD plan on every field of 61 plots (plan_compare 61 of 61 full match), so no Revit fault. Against the key: Generic outline within 10 mm 59 of 61, ramp outline within 10 mm 53, FFL a median 349 mm low, ramp front corners 210 mm off, link origin 20 to 32 m and rotation 180 deg off since the key links other prototypes. Worst 10 with reasons in the summary. Images of both files in round_z4\images
+- New: window_lock.py, round_files.py, rvt_info.py, key_cover.py, site_spec.py, plan_from_book.py, z4_compare.py, z4_check.py, --answer-key and --names in plan_from_past.py, siteUpgrade, read, newSite and image jobs with SiteSpec and SiteCoordinates in Common, -RoundSpec in Run-TestHost.ps1, siteBuild in config/project.json. Gate: Python 808 to 852 passed and 1 skipped, .NET 371 to 405 passed
+- Clean up (R218): 5 work entries deleted, 293,987,711 bytes. Kept the 2024 key copy, the new file and the images
+
+Checked:
+- Second method (R217): seed 14 38 of 38 plan values and 19 of 19 links agree, seed 7 40 of 40 and 20 of 20
+- 8 windows one at a time, one 5 min wait for memory, no lock of DATA-3 met, the watcher only acted inside our own Revit
+
+Remains:
+- Coding the El @ Entry and ramp type rules, a 01A answer key, the link compare with the 1.4 prototypes
+
+Known bugs:
+- newSite try 1 stopped in its coordinates check (transform taken the wrong way), fixed. The first second method disagreed on 16 values on a band edge, fixed
+- placer_check.py reads only the IMC dialect of a key, it reports FAIL on the 1.4 key by construction
+
+Next:
+- The rules of 1, 2 and 35 once answered, then a 01A or 1.4 prototype answer key
+
+Your turn:
+1. El @ Entry rule: not coded, by typology fits 221 of 747 within 5 mm, ask the architect what sets the ramp slope
+2. Ramp type: Ramps 2% for C10, VL4, VL6 and 0.5% for the rest, and what makes a Flat Ramp
+3. Villa mirror: one hand per row set by the open end, VL6 the other hand, and the villa alone between cluster units
+4. Setback line: 5.00 m (2,530) or 3.00 m (37) is the building setback, the ramp stays 5.52 m. 5. Plot front level: the road surface snapped within 5 mm, Top Surface-02 for IMC, Top Surface-01 for IMD
+6. Back corners parallel to the front, mean at El @ Entry. 7. Generic floor: the whole baseplan face
+8. Round 16 test host run: yes, on a work file, once 2 is settled
+9. Units: count from the footprint blocks (2,698), ask for the 3 villas of the sheet and the 6 of Rev 6. 10. Unit codes with no schedule: take Typology_Rev9 by the location plan number (1,819 of 1,831)
+11. Widths over Rev 6, C10 58 and VL3 41: the architect confirms the unit fits. 12. IME: send its schedule or boundary
+13. FFL split: ask why M07 and M08 split and M11 never. 14. CASE: the second letter is the hand as built
+15. VL6 hand: confirm in Revit it is drawn the other hand from VL4. 16. Yard depth: FFL minus 0.100 until answered
+17. Plots 2311 and 2312: follow the baseplan and footprint (VL4, VL4, OS), listed apart. 18. Plots 2301 and 2302: Rev 9 and the link say VD4, the schedule DP4, take VD4 from Rev 9
+19. The 58 past ramps a median 97 mm above the surface: a past design choice, listed apart
+20. RRE_ZZ_SP_Prototype-FFL: keep the schedule FFL. 21. Angle to true north: keep the stop, CAD gives grid north only
+22. Parallel windows: more than 8 GB free, Z4 had 3.5 to 4.9 GB. 23. TEST copies in Zone 02\ARC: delete when done
+24. The empty site-adaptation-tool-15a folder: close what holds it and delete it, steps/bader-data-2.md
+25. Curb and ROW distance from the R94 edge (312 and 336 of 336), the R122 front stays for width, links, levels
+26. The 13 plots the PDF check refuses: keep label plus shift (336 of 336 IMC agree), listed. 27. The two curbs differ by over 1 m on about 15 percent: keep the Roads curb, ask which is current
+28. Two DP4 labels in a face with many labels: ask for that face to be split. 29. The Zone 4 IMG past job as a second answer key: send it if it exists, none is on this machine
+30. Official numbers: take the location plan number per face (746 of 747), a fixed shift fails in 01A, 03, 022
+31. 113 plan plots with no Rev 9 sales row (81 in Zone 4): ask whether the sales sheet is complete
+32. Location plan versions: keep the Rev.09 PDF, read the DWG of 01_Output next
+33. The 1.4 model named IMD holds NBH 012 (336) and 022 (294), no 01A: Z4 built 022, send a 01A past model if one exists
+34. The 1.4 key levels sit a constant datum above its FFL parameter (643 of 643): treat the parameter as the design level
+35. Estimated FFL a median 349 mm under the 1.4 key, its ramp fronts 210 mm off Top Surface-02: ask which road it used
+36. The 1.4 key links 8 old prototypes (D2, D4 and others) not on this machine: send 20221206 - Links, until then floors only
+37. Three pairs with the key ramp on the other edge (19.5 m): look at them in the two images, the R122 front stays. 38. The DT3 plot alone on a VL3 face has no mirror rule: list it apart until 3 is answered
+39. Reader fix of Z4 (rotation from the transform when Revit gives none): keep it, the reader changes only for a round
+40. Watcher: Do Not Load for other add-ins inside our own Revit only, never another process: keep this reading of rule 3
+41. round_z4\work keeps the 2024 key copy (74 MB) and the new file (7 MB): keep until the next round, then delete
+
 ## Round DATA-2, 2026-10-24, the full Civil 3D read, the analysis fixes, the wiring (Part W) and the location plan (Part L)
 
 Goal:

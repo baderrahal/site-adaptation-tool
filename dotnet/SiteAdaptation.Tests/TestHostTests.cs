@@ -855,7 +855,7 @@ namespace SiteAdaptation.Tests
             string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
             string steps = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSteps.cs");
 
-            Assert.Contains("RollBackSteps = new HashSet<string>(StringComparer.Ordinal) { \"removePrototypeType\", \"realRun\", \"deleteFloors\", \"realRun2\" }", session);
+            Assert.Contains("RollBackSteps = new HashSet<string>(StringComparer.Ordinal) { \"removePrototypeType\", \"realRun\", \"deleteFloors\", \"realRun2\", \"coordinates\", \"levels\", \"floorTypes\", \"parameters\", \"image\" }", session);
             Assert.Contains("if (error && RollBackSteps.Contains(runner.CurrentStep ?? \"\"))", session);
             Assert.Contains("type.Unload(new KeepLinkPositions())", steps);
             Assert.Contains("SaveModifiedLinksOptions.DoNotSaveLinks", steps);

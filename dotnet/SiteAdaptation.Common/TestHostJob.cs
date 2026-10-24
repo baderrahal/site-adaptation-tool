@@ -33,6 +33,13 @@ namespace SiteAdaptation.Common
         public bool? RunTwice { get; set; }
         // stop or rollBack when the scenario wants the floor step to end that way, else the step must place cleanly
         public string Expect { get; set; }
+        // R212. The template a newSite job starts from and the site file of SiteSpec it sets up the new file with
+        public string Template { get; set; }
+        public string Site { get; set; }
+        // R214. The folder an image job writes to, the level of its plan view and the area [minE, minN, maxE, maxN] in shared metres
+        public string ImageFolder { get; set; }
+        public string ImageLevel { get; set; }
+        public List<double> Area { get; set; }
     }
 
     public sealed class GuardResult
@@ -59,12 +66,20 @@ namespace SiteAdaptation.Common
         public const string MasterKind = "master";
         public const string FloorsKind = "floors";
         public const string LinksAndFloorsKind = "linksAndFloors";
+        // R204, R205, R212, R214. A site model saved as a new Revit 2024 test copy, a read of a test copy, a new site file
+        // made from a template, and a plan view image of a test copy or a new site file
+        public const string SiteUpgradeKind = "siteUpgrade";
+        public const string ReadKind = "read";
+        public const string NewSiteKind = "newSite";
+        public const string ImageKind = "image";
         // R117. The one master file and the work files of the floor scenarios, named after the site model
         public const string MasterCode = "MST";
         public const string MasterTag = "_TEST-MASTER";
         public const string WorkTag = "_TEST-WORK-";
+        // R213. The one name a new site file may have. Only the newSite job makes it, and only where nothing of that name is
+        public const string NewSiteTag = "-TEST-NEW";
         public const int MaxPlots = 1000;
-        private static readonly string[] Kinds = { PlaceKind, UpgradeKind, MasterKind, FloorsKind, LinksAndFloorsKind };
+        private static readonly string[] Kinds = { PlaceKind, UpgradeKind, MasterKind, FloorsKind, LinksAndFloorsKind, SiteUpgradeKind, ReadKind, NewSiteKind, ImageKind };
         private static readonly string[] Deletes = { "all", "plots" };
         private static readonly string[] Expects = { "stop", "rollBack" };
         private static readonly Regex WorkCode = new Regex(@"\AS[1-9][0-9]{0,2}\z", RegexOptions.CultureInvariant);
@@ -110,7 +125,7 @@ namespace SiteAdaptation.Common
                 return "the job file names " + code + " and the job another code";
             }
             bool upgradeFile = Path.GetFileName(path).EndsWith("_upgrade.json", StringComparison.Ordinal);
-            if (upgradeFile != (job.Kind == UpgradeKind))
+            if (upgradeFile != IsUpgrade(job))
             {
                 return "the job kind does not fit its file name";
             }
@@ -213,9 +228,18 @@ namespace SiteAdaptation.Common
             {
                 return Refuse("totalMinutes must be above 0 and at most " + MaxTotalMinutes);
             }
+            string extras = CheckExtras(job);
+            if (extras != null)
+            {
+                return Refuse(extras);
+            }
             if (job.Kind == UpgradeKind)
             {
                 return CheckUpgrade(job, fileExists, folderExists);
+            }
+            if (job.Kind == SiteUpgradeKind)
+            {
+                return CheckSiteUpgrade(job, fileExists);
             }
             if (job.Source != null || job.Target != null)
             {
@@ -230,6 +254,14 @@ namespace SiteAdaptation.Common
             if (model != null)
             {
                 return Refuse(model);
+            }
+            if (job.Kind == NewSiteKind)
+            {
+                return CheckNewSite(job, fileExists, folderExists);
+            }
+            if (job.Kind == ReadKind || job.Kind == ImageKind)
+            {
+                return CheckLook(job, fileExists, folderExists);
             }
             if (!IsPlainFullPath(job.Plan) || !job.Plan.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
             {
@@ -282,10 +314,146 @@ namespace SiteAdaptation.Common
             return new GuardResult { Act = true, Job = job };
         }
 
-        // The links steps need the prototype file of the code, the master and floors jobs name none
+        // R204. A site model becomes <its name>_TEST-<code>.rvt next to it, a new file it never was. The source is only read
+        private static GuardResult CheckSiteUpgrade(TestHostJob job, Func<string, bool> fileExists)
+        {
+            if (job.Model != null || job.Plan != null)
+            {
+                return Refuse("a site upgrade job names no model and no plan");
+            }
+            if (!IsPlainFullPath(job.Source) || !job.Source.EndsWith(".rvt", StringComparison.OrdinalIgnoreCase))
+            {
+                return Refuse("the source is not a plain full path to a .rvt file");
+            }
+            string sourceName = Path.GetFileName(job.Source);
+            if (sourceName.IndexOf(TestTag, StringComparison.OrdinalIgnoreCase) >= 0 || IsNewSiteName(sourceName))
+            {
+                return Refuse("the source is a test copy or a new site file, a site upgrade starts from a copy of a site model");
+            }
+            string wanted = Path.Combine(Path.GetDirectoryName(job.Source), Path.GetFileNameWithoutExtension(job.Source) + TestTag + job.Code + ".rvt");
+            if (!IsPlainFullPath(job.Target) || !string.Equals(job.Target, wanted, StringComparison.Ordinal))
+            {
+                return Refuse("the target is not " + wanted);
+            }
+            if (!fileExists(job.Source))
+            {
+                return Refuse("the source does not exist: " + job.Source);
+            }
+            if (fileExists(job.Target))
+            {
+                return Refuse("the target already exists, it is never overwritten: " + job.Target);
+            }
+            return new GuardResult { Act = true, Job = job };
+        }
+
+        // R212. The new file must not be there yet, the template and the site file must
+        private static GuardResult CheckNewSite(TestHostJob job, Func<string, bool> fileExists, Func<string, bool> folderExists)
+        {
+            if (job.Plan != null)
+            {
+                return Refuse("a newSite job names no plan");
+            }
+            if (!IsPlainFullPath(job.Template) || !job.Template.EndsWith(".rte", StringComparison.OrdinalIgnoreCase))
+            {
+                return Refuse("the template is not a plain full path to a .rte file");
+            }
+            if (!IsPlainFullPath(job.Site) || !job.Site.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                return Refuse("the site file is not a plain full path to a .json file");
+            }
+            if (!fileExists(job.Template))
+            {
+                return Refuse("the template does not exist: " + job.Template);
+            }
+            if (!fileExists(job.Site))
+            {
+                return Refuse("the site file does not exist: " + job.Site);
+            }
+            if (fileExists(job.Model))
+            {
+                return Refuse("the new site file already exists, it is never overwritten: " + job.Model);
+            }
+            if (!folderExists(Path.GetDirectoryName(job.Model)))
+            {
+                return Refuse("the folder of the new site file does not exist");
+            }
+            return new GuardResult { Act = true, Job = job };
+        }
+
+        // R205, R214. A read or an image looks at a model and never saves it, so it names no plan
+        private static GuardResult CheckLook(TestHostJob job, Func<string, bool> fileExists, Func<string, bool> folderExists)
+        {
+            if (job.Plan != null)
+            {
+                return Refuse("a " + job.Kind + " job names no plan");
+            }
+            if (job.Kind == ImageKind)
+            {
+                if (!IsPlainFullPath(job.ImageFolder) || !folderExists(job.ImageFolder))
+                {
+                    return Refuse("the image folder is not a plain full path to a folder that exists");
+                }
+                if (string.IsNullOrWhiteSpace(job.ImageLevel) || job.ImageLevel.Length > 100)
+                {
+                    return Refuse("the image level is not a level name");
+                }
+                List<double> area = job.Area;
+                // Written so that NaN fails too
+                if (area == null || area.Count != 4 || !area.All(value => value > -1e8 && value < 1e8)
+                    || !(area[2] - area[0] > 0 && area[2] - area[0] <= MaxImageSpanM) || !(area[3] - area[1] > 0 && area[3] - area[1] <= MaxImageSpanM))
+                {
+                    return Refuse("the area is not [minE, minN, maxE, maxN] with each side above 0 and at most " + MaxImageSpanM + " m");
+                }
+            }
+            if (!fileExists(job.Model))
+            {
+                return Refuse("the model copy does not exist: " + job.Model);
+            }
+            return new GuardResult { Act = true, Job = job };
+        }
+
+        public const double MaxImageSpanM = 5000;
+
+        // The fields of the newSite and image jobs belong to those jobs alone
+        private static string CheckExtras(TestHostJob job)
+        {
+            if (job.Kind != NewSiteKind && (job.Template != null || job.Site != null))
+            {
+                return "template and site go with a newSite job only";
+            }
+            if (job.Kind != ImageKind && (job.ImageFolder != null || job.ImageLevel != null || job.Area != null))
+            {
+                return "imageFolder, imageLevel and area go with an image job only";
+            }
+            return null;
+        }
+
+        public static bool IsUpgrade(TestHostJob job)
+        {
+            return job != null && (job.Kind == UpgradeKind || job.Kind == SiteUpgradeKind);
+        }
+
+        // R213. <name>-TEST-NEW.rvt with the tag once and no _TEST- in it, so it is never mistaken for a copy of a site model
+        public static bool IsNewSiteName(string name)
+        {
+            string tail = NewSiteTag + ".rvt";
+            if (name == null || name.Length <= tail.Length || !name.EndsWith(tail, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            return name.IndexOf(NewSiteTag, StringComparison.OrdinalIgnoreCase) == name.Length - tail.Length
+                && name.IndexOf(TestTag, StringComparison.OrdinalIgnoreCase) < 0;
+        }
+
+        public static bool IsNewSite(string model)
+        {
+            return IsPlainFullPath(model) && IsNewSiteName(Path.GetFileName(model));
+        }
+
+        // The links steps need the prototype file of the code, the master and floors jobs name none, nor do the jobs of R204 to R214
         private static string CheckPrototype(TestHostJob job)
         {
-            if (job.Kind == MasterKind || job.Kind == FloorsKind)
+            if (job.Kind == MasterKind || job.Kind == FloorsKind || job.Kind == SiteUpgradeKind || job.Kind == ReadKind || job.Kind == NewSiteKind || job.Kind == ImageKind)
             {
                 return job.PrototypeFile == null ? null : "a " + job.Kind + " job names no prototype file";
             }
@@ -354,6 +522,15 @@ namespace SiteAdaptation.Common
                 return "the model is not a full path";
             }
             string name = Path.GetFileName(job.Model);
+            // R213. Only the newSite job makes a new site file, and only the floor steps and the image may open one after it
+            if (job.Kind == NewSiteKind)
+            {
+                return IsNewSiteName(name) ? null : "a newSite job makes a file named <name>" + NewSiteTag + ".rvt";
+            }
+            if (IsNewSiteName(name) && (PlacesFloors(job) || job.Kind == ImageKind))
+            {
+                return null;
+            }
             string tail = (job.Kind == MasterKind ? MasterTag : PlacesFloors(job) ? WorkTag + job.Code : TestTag + job.Code) + ".rvt";
             if (!name.EndsWith(tail, StringComparison.OrdinalIgnoreCase) || name.Length <= tail.Length)
             {

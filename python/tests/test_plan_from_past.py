@@ -714,3 +714,24 @@ def test_r109_the_real_settings_keep_the_2021_folder_as_source_and_name_the_2024
 def test_r81_the_prototypes_source_is_named_by_its_file_name_on_any_system():
     plan = pf.build_plan(document([link("101")], plot_floors("101", 0, 10)), [row("101")], dict(JOB, prototypes=r"C:\Docs\SiteAdaptation\prototypes.json"), FILES, r"C:\Prototypes", FLOORS, FACES)
     assert plan["sources"]["prototypes"] == "prototypes.json"
+
+
+def test_r206_an_answer_key_keeps_link_files_the_prototype_folder_lacks_counts_them_and_is_marked():
+    links = [link("101"), link("102", x=50, file="KEO-ARC-D4-OLD.rvt", unit="D4")]
+    data = document(links, plot_floors("101", 0, 10) + plot_floors("102", 50, 20))
+
+    listing, lacking = pf.answer_key_listing(FILES, data)
+    plan = pf.build_plan(data, [row("101"), row("102", unit="D4")], JOB, listing, "C:\\Prototypes", FLOORS, FACES)
+    pf.mark_answer_key(plan, lacking)
+
+    assert lacking == {"KEO-ARC-D4-OLD.rvt": 1}
+    assert by_plot(plan)["102"]["prototypeFile"] == {"value": "KEO-ARC-D4-OLD.rvt", "source": "pastJob"}
+    assert plan["answerKeyOnly"] is True and plan["summary"]["linkFilesNotInPrototypeFolder"] == lacking
+
+
+def test_r206_without_the_answer_key_a_file_the_folder_lacks_leaves_the_plot_out():
+    plan = build([link("102", x=50, file="KEO-ARC-D4-OLD.rvt", unit="D4")], plot_floors("102", 50, 20), [row("102", unit="D4")])
+
+    assert "102" not in by_plot(plan)
+    assert "answerKeyOnly" not in plan
+    assert "not in the prototype folder" in missing_of(plan, "102")["prototypeFile"]

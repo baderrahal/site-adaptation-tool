@@ -145,7 +145,7 @@ namespace SiteAdaptation.TestHost
         // R117. Saved over the copy with one backup at most, and the backup the save leaves is deleted at once
         public static string SaveOver(Document document, string model)
         {
-            if (!TestHostFiles.IsTestCopy(model))
+            if (!TestHostFiles.IsSavable(model))
             {
                 throw new InvalidOperationException("only a test copy is saved: " + model);
             }

@@ -17,6 +17,8 @@ namespace SiteAdaptation.Common
         public double? AngleToTrueNorthDeg { get; set; }
         public string PrototypeFolder { get; set; }
         public PlanFloorSettings FloorSettings { get; set; }
+        // R206. A plan of a past model to compare with. The placer never places from it
+        public bool? AnswerKeyOnly { get; set; }
         public List<PlanPlot> Plots { get; set; }
 
         public static PlanFile Parse(string json)

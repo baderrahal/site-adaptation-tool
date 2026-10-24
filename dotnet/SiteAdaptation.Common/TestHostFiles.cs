@@ -22,10 +22,16 @@ namespace SiteAdaptation.Common
             return at > 0 && at == name.LastIndexOf(TestHostGuard.TestTag, StringComparison.OrdinalIgnoreCase);
         }
 
+        // R213. The test host saves only a test copy or the new site file a newSite job made
+        public static bool IsSavable(string model)
+        {
+            return IsTestCopy(model) || TestHostGuard.IsNewSite(model);
+        }
+
         // The backup files of the copy among the file names of its folder, <name>.<4 digits>.rvt and nothing else
         public static List<string> BackupFiles(string model, IEnumerable<string> fileNames)
         {
-            if (!IsTestCopy(model))
+            if (!IsSavable(model))
             {
                 return new List<string>();
             }
@@ -38,13 +44,13 @@ namespace SiteAdaptation.Common
         // The backup folder of the copy, <name>_backup next to it, or null for a file that is not a test copy
         public static string BackupFolder(string model)
         {
-            return IsTestCopy(model) ? Path.Combine(Path.GetDirectoryName(model), Path.GetFileNameWithoutExtension(model) + "_backup") : null;
+            return IsSavable(model) ? Path.Combine(Path.GetDirectoryName(model), Path.GetFileNameWithoutExtension(model) + "_backup") : null;
         }
 
         // Deletes what a save of the test copy left behind and says what went. Only names built from the copy are ever touched
         public static string DeleteBackups(string model)
         {
-            if (!IsTestCopy(model))
+            if (!IsSavable(model))
             {
                 throw new InvalidOperationException("not a test copy, no backup of it is deleted: " + model);
             }

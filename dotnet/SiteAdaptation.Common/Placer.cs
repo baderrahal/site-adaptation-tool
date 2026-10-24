@@ -116,6 +116,10 @@ namespace SiteAdaptation.Common
             {
                 return "The plan file is not " + PlanFile.FormatName + " version " + PlanFile.Version + ", nothing was placed.";
             }
+            if (plan.AnswerKeyOnly == true)
+            {
+                return "The plan is an answer key to compare with and is never placed, nothing was placed.";
+            }
             if (plan.SurveyPoint == null || !IsPoint(plan.SurveyPoint.Position) || !IsPoint(plan.SurveyPoint.SharedPosition) || !plan.AngleToTrueNorthDeg.HasValue)
             {
                 return "The plan file has no survey point or no angle to true north, nothing was placed.";
