@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Reflection;
 using System.Windows.Forms;
 using RevitApp = Autodesk.Revit.ApplicationServices.Application;
 using Autodesk.Revit.Attributes;
@@ -38,30 +37,22 @@ namespace RevitPrototypeReader
                 return Result.Cancelled;
             }
 
-            string folder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            IList<string> keyNames = KeyParameters.Load(folder);
+            IList<string> keyNames = PrototypeReading.KeyNames();
             ReaderOptions options;
             try
             {
-                options = ReaderOptions.Load(folder);
+                options = PrototypeReading.Options();
             }
             catch (ArgumentException failure)
             {
                 TaskDialog.Show("Read Prototypes", ReaderOptions.FileName + ": " + failure.Message);
                 return Result.Failed;
             }
-            var file = new PrototypesFile
-            {
-                Tool = "RevitPrototypeReader",
-                RevitVersion = app.VersionNumber,
-                LengthUnit = "m",
-                AngleUnit = "deg",
-                Documents = new List<DocumentEntry>(),
-            };
+            PrototypesFile file = PrototypeReading.NewFile(app);
 
             if (answer == TaskDialogResult.CommandLink1 && active != null)
             {
-                file.Documents.Add(RevitExtractor.Read(active, active.Title, keyNames, options));
+                file.Documents.Add(PrototypeReading.ReadDocument(active, keyNames, options));
             }
             else
             {

@@ -100,6 +100,8 @@ namespace SiteAdaptation.Placer
             transaction = new Transaction(document, "Place from plan");
             FailureHandlingOptions options = transaction.GetFailureHandlingOptions();
             options.SetFailuresPreprocessor(collector);
+            // A roll back then shows no error box, which would stop the test host of R101 until someone clicks
+            options.SetClearAfterRollback(true);
             transaction.SetFailureHandlingOptions(options);
             transaction.Start();
         }
@@ -186,7 +188,7 @@ namespace SiteAdaptation.Placer
 
         public void RollBack()
         {
-            if (transaction != null && transaction.GetStatus() == TransactionStatus.Started)
+            if (transaction != null && transaction.IsValidObject && transaction.GetStatus() == TransactionStatus.Started)
             {
                 transaction.RollBack();
             }

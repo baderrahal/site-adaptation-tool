@@ -810,16 +810,22 @@ namespace SiteAdaptation.Tests
         public void R87_the_command_writes_the_report_after_every_run_a_stop_included()
         {
             string text = File.ReadAllText(RepoFile("dotnet", "SiteAdaptation.Placer", "PlaceFromPlanCommand.cs"));
-            int run = text.IndexOf("Common.Placer.Run(", StringComparison.Ordinal);
+            string entry = File.ReadAllText(RepoFile("dotnet", "SiteAdaptation.Placer", "PlaceFromPlan.cs"));
+            int run = text.IndexOf("PlaceFromPlan.Run(", StringComparison.Ordinal);
             int write = text.IndexOf("JsonOut.Write(reportPath, report)", StringComparison.Ordinal);
 
             Assert.True(run > 0 && write > run);
             Assert.DoesNotContain("return", text.Substring(run, write - run));
-            Assert.Contains("\"placer_report.json\"", text);
+            Assert.Contains("string reportPath = PlaceFromPlan.ReportPath", text);
+            Assert.Contains("\"placer_report.json\"", entry);
             int read = text.IndexOf("PlanFile.Read(planPath)", StringComparison.Ordinal);
             string unread = text.Substring(read, text.IndexOf("return Result.Failed", read, StringComparison.Ordinal) - read);
             Assert.Contains("JsonOut.Write(reportPath, unread)", unread);
-            Assert.Contains("Common.Placer.StoppedReport(", text.Substring(run, write - run));
+            // A failure outside the transaction still gives a report, from the shared entry the button calls
+            int inner = entry.IndexOf("Common.Placer.Run(", StringComparison.Ordinal);
+            int caught = entry.IndexOf("catch (Exception failure)", inner, StringComparison.Ordinal);
+            Assert.True(inner > 0 && caught > inner);
+            Assert.Contains("Common.Placer.StoppedReport(", entry.Substring(caught));
         }
 
         [Fact]

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
@@ -28,7 +30,7 @@ namespace SiteAdaptation.Placer
             {
                 return Result.Cancelled;
             }
-            string reportPath = Path.Combine(folder, "placer_report.json");
+            string reportPath = PlaceFromPlan.ReportPath;
             PlanFile plan;
             try
             {
@@ -57,19 +59,12 @@ namespace SiteAdaptation.Placer
             }
 
             bool real = answer == TaskDialogResult.CommandLink2;
-            var target = new RevitPlacerTarget(active.Document);
-            PlacerReport report;
-            try
+            string prototypeFile;
+            if (!PickFilter(plan, out prototypeFile))
             {
-                report = Common.Placer.Run(plan, planPath, target, real);
+                return Result.Cancelled;
             }
-            catch (Exception failure)
-            {
-                // Run rolls its own transaction back, so only a failure outside it lands here
-                target.RollBack();
-                report = Common.Placer.StoppedReport(real ? "real" : "dryRun", planPath, active.Document.Title, "The run failed, nothing stays: " + failure.Message);
-                report.RolledBack = real;
-            }
+            PlacerReport report = PlaceFromPlan.Run(active.Document, plan, planPath, real, prototypeFile);
             JsonOut.Write(reportPath, report);
             TaskDialog.Show(Title, Summary(report) + "\n" + reportPath);
             return Result.Succeeded;
@@ -83,6 +78,7 @@ namespace SiteAdaptation.Placer
                 return mode + ". Stopped: " + report.Failure;
             }
             string text = mode + ". Plots in plan " + report.Counts.PlotsInPlan + ", "
+                + (report.PrototypeFilter == null ? "" : "left out by the filter " + report.Counts.FilteredOut + ", ")
                 + (report.Mode == "real" ? "placed " : "would place ") + report.Counts.Placed + ", skipped " + report.Counts.Skipped
                 + ", parameters written " + report.Counts.ParametersWritten + ", issues " + report.Counts.Issues + ".";
             if (report.RolledBack)
@@ -90,6 +86,54 @@ namespace SiteAdaptation.Placer
                 text += "\nRolled back: " + report.Failure;
             }
             return text;
+        }
+
+        // R100. Every plot, or the plots of one prototype file of the plan. False when the choice is cancelled
+        private static bool PickFilter(PlanFile plan, out string prototypeFile)
+        {
+            prototypeFile = null;
+            var files = (plan.Plots ?? new List<PlanPlot>())
+                .Where(plot => plot != null && plot.PrototypeFile != null && !string.IsNullOrWhiteSpace(plot.PrototypeFile.Value))
+                .Select(plot => plot.PrototypeFile.Value.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var which = new TaskDialog(Title)
+            {
+                MainInstruction = "Which plots should be placed?",
+                CommonButtons = TaskDialogCommonButtons.Cancel,
+            };
+            which.AddCommandLink(TaskDialogCommandLinkId.CommandLink1, "Every plot of the plan");
+            which.AddCommandLink(TaskDialogCommandLinkId.CommandLink2, "The plots of one prototype file", files.Count + " file(s) in the plan");
+            TaskDialogResult answer = which.Show();
+            if (answer == TaskDialogResult.CommandLink1)
+            {
+                return true;
+            }
+            if (answer != TaskDialogResult.CommandLink2)
+            {
+                return false;
+            }
+            using (var form = new System.Windows.Forms.Form { Text = Title, Width = 520, Height = 150, FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog, StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen, MinimizeBox = false, MaximizeBox = false })
+            {
+                var list = new System.Windows.Forms.ComboBox { Left = 12, Top = 12, Width = 480, DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList };
+                list.Items.AddRange(files.Cast<object>().ToArray());
+                if (files.Count > 0)
+                {
+                    list.SelectedIndex = 0;
+                }
+                var ok = new System.Windows.Forms.Button { Text = "OK", Left = 336, Top = 60, Width = 75, DialogResult = DialogResult.OK };
+                var cancel = new System.Windows.Forms.Button { Text = "Cancel", Left = 417, Top = 60, Width = 75, DialogResult = DialogResult.Cancel };
+                form.Controls.AddRange(new System.Windows.Forms.Control[] { list, ok, cancel });
+                form.AcceptButton = ok;
+                form.CancelButton = cancel;
+                if (form.ShowDialog() != DialogResult.OK || list.SelectedItem == null)
+                {
+                    return false;
+                }
+                prototypeFile = (string)list.SelectedItem;
+                return true;
+            }
         }
 
         private static string PickPlan(string folder)

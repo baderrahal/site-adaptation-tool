@@ -9,6 +9,8 @@ namespace SiteAdaptation.Common
         public string Mode { get; set; }
         public string PlanFile { get; set; }
         public string Document { get; set; }
+        // R100. The one prototype file this run places, null for all of them
+        public string PrototypeFilter { get; set; }
         public CoordinateCheck Coordinates { get; set; }
         public PlacerCounts Counts { get; set; }
         public bool Stopped { get; set; }
@@ -21,6 +23,9 @@ namespace SiteAdaptation.Common
         // Kept out of the file, the counts carry it
         [Newtonsoft.Json.JsonIgnore]
         public int ParametersWritten { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore]
+        public int FilteredOut { get; set; }
     }
 
     public class CoordinateCheck
@@ -38,6 +43,8 @@ namespace SiteAdaptation.Common
     public class PlacerCounts
     {
         public int PlotsInPlan { get; set; }
+        // Plots of other prototype files, left out by the filter before any check
+        public int FilteredOut { get; set; }
         public int Placed { get; set; }
         public int Skipped { get; set; }
         public int ParametersWritten { get; set; }

@@ -1,0 +1,188 @@
+using System;
+using System.Globalization;
+using System.IO;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+
+namespace SiteAdaptation.Common
+{
+    // testhost_job.json as the run script writes it (R101)
+    public class TestHostJob
+    {
+        public string Token { get; set; }
+        public string Code { get; set; }
+        public string Model { get; set; }
+        public string PrototypeFile { get; set; }
+        public string Plan { get; set; }
+        public DateTime? CreatedUtc { get; set; }
+        // Minutes for the whole job, counted from the claim. Null takes TestHostGuard.DefaultTotalMinutes
+        public double? TotalMinutes { get; set; }
+    }
+
+    public sealed class GuardResult
+    {
+        public bool Act { get; set; }
+        public string Reason { get; set; }
+        public TestHostJob Job { get; set; }
+    }
+
+    // R101. The test host acts only on a job that passes every check here, and never in a Revit session the run script did not start
+    public static class TestHostGuard
+    {
+        public const string JobFileName = "testhost_job.json";
+        public const string TokenVariable = "SITEADAPTATION_TESTHOST_TOKEN";
+        public const int MinTokenLength = 32;
+        public const double MaxAgeMinutes = 60;
+        public const double MaxClockSkewMinutes = 5;
+        public const double DefaultTotalMinutes = 27;
+        public const double MaxTotalMinutes = 29;
+        public const string TestTag = "_TEST-";
+
+        private static readonly Regex CodeText = new Regex("^[A-Z][A-Z0-9]{1,3}$", RegexOptions.CultureInvariant);
+        private static readonly Regex TokenText = new Regex("^[A-Za-z0-9]+$", RegexOptions.CultureInvariant);
+
+        public static string SiteAdaptationFolder(string documents)
+        {
+            return Path.Combine(documents, "SiteAdaptation");
+        }
+
+        public static string JobPath(string documents)
+        {
+            return Path.Combine(SiteAdaptationFolder(documents), JobFileName);
+        }
+
+        // The cheap first look at Revit start. Without both, the test host subscribes to nothing and touches no file
+        public static bool ShouldWake(string token, bool jobFileExists)
+        {
+            return jobFileExists && !string.IsNullOrEmpty(token);
+        }
+
+        // Every check of R101 on the text of the job file. fileExists is asked only for full paths
+        public static GuardResult Check(string jobText, string token, DateTime nowUtc, Func<string, bool> fileExists)
+        {
+            if (string.IsNullOrEmpty(token) || token.Length < MinTokenLength || !TokenText.IsMatch(token))
+            {
+                return Refuse("the token in " + TokenVariable + " is missing or shorter than " + MinTokenLength + " letters and digits");
+            }
+            if (string.IsNullOrWhiteSpace(jobText))
+            {
+                return Refuse("the job file is empty");
+            }
+            TestHostJob job;
+            try
+            {
+                job = JsonConvert.DeserializeObject<TestHostJob>(jobText, new JsonSerializerSettings { DateTimeZoneHandling = DateTimeZoneHandling.Utc });
+            }
+            catch (JsonException failure)
+            {
+                return Refuse("the job file does not read: " + failure.Message);
+            }
+            if (job == null)
+            {
+                return Refuse("the job file holds no job");
+            }
+            // Ordinal on equal length, a token from an older job or another session never matches
+            if (!string.Equals(job.Token, token, StringComparison.Ordinal))
+            {
+                return Refuse("the job token is not the token of this Revit session");
+            }
+            if (!job.CreatedUtc.HasValue)
+            {
+                return Refuse("the job has no createdUtc");
+            }
+            double age = (nowUtc - job.CreatedUtc.Value.ToUniversalTime()).TotalMinutes;
+            if (age > MaxAgeMinutes || age < -MaxClockSkewMinutes)
+            {
+                return Refuse("the job was written " + age.ToString("0.#", CultureInfo.InvariantCulture) + " minutes ago, only a job younger than " + MaxAgeMinutes + " minutes is run");
+            }
+            if (job.Code == null || !CodeText.IsMatch(job.Code))
+            {
+                return Refuse("the job code is not a prototype code such as C10 or TH1");
+            }
+            string prototype = new Regex("^RRE-WP-NSP-KEO-ARC-" + Regex.Escape(job.Code) + @"-ZZ-MOD-\d+\.rvt$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant).IsMatch(job.PrototypeFile ?? "")
+                ? null : "the prototype file is not RRE-WP-NSP-KEO-ARC-" + job.Code + "-ZZ-MOD-<n>.rvt";
+            if (prototype != null)
+            {
+                return Refuse(prototype);
+            }
+            string model = CheckModel(job);
+            if (model != null)
+            {
+                return Refuse(model);
+            }
+            if (!Placer.IsFullPath(job.Plan) || !job.Plan.EndsWith(".json", StringComparison.OrdinalIgnoreCase) || HasParentStep(job.Plan))
+            {
+                return Refuse("the plan is not a full path to a .json file");
+            }
+            if (job.TotalMinutes.HasValue && (job.TotalMinutes.Value <= 0 || job.TotalMinutes.Value > MaxTotalMinutes))
+            {
+                return Refuse("totalMinutes must be above 0 and at most " + MaxTotalMinutes);
+            }
+            if (!fileExists(job.Model))
+            {
+                return Refuse("the model copy does not exist: " + job.Model);
+            }
+            if (!fileExists(job.Plan))
+            {
+                return Refuse("the plan does not exist: " + job.Plan);
+            }
+            return new GuardResult { Act = true, Job = job };
+        }
+
+        // Only a copy named <name>_TEST-<code>.rvt is ever opened, saved or changed
+        private static string CheckModel(TestHostJob job)
+        {
+            if (!Placer.IsFullPath(job.Model) || HasParentStep(job.Model))
+            {
+                return "the model is not a full path";
+            }
+            string name = Path.GetFileName(job.Model);
+            string tail = TestTag + job.Code + ".rvt";
+            if (!name.EndsWith(tail, StringComparison.OrdinalIgnoreCase) || name.Length <= tail.Length)
+            {
+                return "the model is not a copy named <name>" + tail;
+            }
+            if (name.IndexOf(TestTag, StringComparison.OrdinalIgnoreCase) != name.Length - tail.Length)
+            {
+                return "the model name holds " + TestTag + " more than once";
+            }
+            return null;
+        }
+
+        private static bool HasParentStep(string path)
+        {
+            foreach (string part in path.Split('\\', '/'))
+            {
+                if (part == "..")
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // The file the original copy came from, which the test host must never open
+        public static string OriginalOf(string model)
+        {
+            string name = Path.GetFileName(model);
+            int at = name.LastIndexOf(TestTag, StringComparison.OrdinalIgnoreCase);
+            return at <= 0 ? null : Path.Combine(Path.GetDirectoryName(model), name.Substring(0, at) + ".rvt");
+        }
+
+        // R102. The outputs of one job. The reader output is never prototypes.json
+        public static string OutputPath(string documents, string code, string part)
+        {
+            string name = "testhost_" + code + "_" + part + ".json";
+            if (string.Equals(name, "prototypes.json", StringComparison.OrdinalIgnoreCase) || string.Equals(name, JobFileName, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("the test host never writes " + name);
+            }
+            return Path.Combine(SiteAdaptationFolder(documents), name);
+        }
+
+        private static GuardResult Refuse(string reason)
+        {
+            return new GuardResult { Act = false, Reason = reason };
+        }
+    }
+}
