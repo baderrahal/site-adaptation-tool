@@ -9,7 +9,7 @@ import os
 import re
 import sys
 from collections import Counter
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import common
 import excel_reader
@@ -427,7 +427,7 @@ def build_plan(data, rows, job, folder_files, prototype_folder):
         "coordinateSystem": {"name": "shared", "lengthUnit": "m", "angleUnit": "deg"},
         "surveyPoint": {"position": point(survey["position"]), "sharedPosition": point(survey["sharedPosition"])},
         "prototypeFolder": str(prototype_folder),
-        "sources": {"prototypes": Path(job["prototypes"]).name, "schedule": job["schedule"], "sheet": job["sheet"]},
+        "sources": {"prototypes": PureWindowsPath(job["prototypes"]).name, "schedule": job["schedule"], "sheet": job["sheet"]},
         "summary": {
             "plots": len(set(by_plot) | set(schedule)),
             "written": len(plots),

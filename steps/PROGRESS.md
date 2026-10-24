@@ -16,12 +16,12 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 - Rounds 12, 11 and 10 are PRs 14, 13 and 12. Round 9 (floor, ramp and link relations) is PR 11 and its Revit code has NOT run in Revit yet.
 - Top Surface-02 is the finished road for the ramps (Bader decided). The other five design surfaces are not confirmed.
 - Readers: CAD (C#, ACadSharp), PDF, Excel, link table, second source check, face reasons, LandXML, surface lookup, ramp levels, surface roles, road check, cluster analysis, block scan, levels, the proofs, plan builder, plan compare and full run (Python).
-- Gate: Python 619 passed, .NET 319 passed.
+- Gate: Python 620 passed, .NET 319 passed.
 - Real files stay in C:\02-Site Adaptation and C:\Users\bader\Documents\SiteAdaptation and are read in place. Nothing real is in git.
 
 ## Done
 
-- Round 15a test: R102 to R110, the test host, the watcher, the upgrade job, the registry hook. Python 573 to 619 and .NET 205 to 319 after the merge with Round 13.
+- Round 15a test: R102 to R110, the test host, the watcher, the upgrade job, the registry hook. Python 573 to 620 and .NET 205 to 319 after the merge with Round 13.
 - Round 12b: R73 to R77, R62 R64 R67 R69 updated. Python 323 to 425 on its own. Round 15a: R80 to R89, the placer, the plan builder and compare. Python 323 to 366, .NET 155 to 205 on its own.
 - Round 12: R67 to R72, the corrected Rev 6 profile, drawing roles in config/project.json. Round 11: R63 to R66. Round 10: profile and loader (R62). Round 9: R51 to R61.
 - Round 8: R47 to R50. Rounds 1 to 7: readers, road, LandXML, explode, layer filter, plot labels, PDF rows, link table, full run, main guard hook. Revit round 7 ran in Revit on 22 Oct.

@@ -6,7 +6,7 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 
 Done:
 - Folder C:\Users\bader\Documents\GitHub\site-adaptation-tool-15a, a fresh clone of main at e73da18 (the session folder was empty, the main folder ran 12b), branch test/revit-testhost-15a. The main guard hook loaded at session start, the new registry hook is not live in this session. Main moved to 907bb0c (Round 13, PR 17), merged into the branch, my rules renumbered to R102 to R110 and their tests with them, no Round 13 file changed. Plan written before the first edit. Full record: steps/history/round-15a-test.md
-- Gate: Python 619 passed, .NET 319 passed (main had 573 and 205)
+- Gate: Python 620 passed, .NET 319 passed (main had 573 and 205), locally. On GitHub the Linux Python job fails one Round 13 test, as on PR 17, see Known bugs
 - Rules: R102 placer filter, R103 test host guard, R104 steps and log, R105 placer_check.py, R106 registry hook, R107 link instance Name, R108 security box watcher, R109 upgrade job, R110 parallel windows. R80, R81, R89 amended for linkName and the 2024 folder
 - Answer key copied once to prototypes_original_imc.json, 10,355,725 bytes, 2026-10-24 01:51:15 kept, hash equal. Plan: 337 of 337 plots, linkName on 337, 2 differ from RVT-Name and are conflicts
 - The watcher answered 5 boxes per Revit start: Do Not Load for RCRC Green and RCRC Green Audit, Load Once for the reader, the placer and the test host (Bader). The boxes show no GUID, the publisher is logged as vendor
@@ -40,6 +40,7 @@ Known bugs:
 - My first install recreated the CodeSigning key in the registry and removed four Always Load answers of other add-ins. Restoring them was blocked and you said to leave them. Since then nothing in the registry was read or written
 - On 9 of 13 runs TransmissionData did not get the prototype loaded at open. The placer loads it anyway, so no result changed
 - 1 spot of 987 has no host, element 996508
+- On the Linux CI runner test_r96_entries_without_analysis_are_refused_in_one_line of Round 13 fails, it looks for the real schedules first. Not changed, it is a Round 13 file. test_r80 failed there since PR 15 and is fixed here (the file name of a Windows path on Linux)
 
 Next:
 - Round 15b, then the combined Revit test with parallel windows on the 2024 copies

@@ -495,3 +495,8 @@ def test_r109_the_real_settings_keep_the_2021_folder_as_source_and_name_the_2024
     job = pf.load_job(project_profile.load_settings())
     assert job["prototypeFolder"].endswith("Prototypes")
     assert job["upgradedPrototypeFolder"] == job["prototypeFolder"] + "_2024"
+
+
+def test_r81_the_prototypes_source_is_named_by_its_file_name_on_any_system():
+    plan = pf.build_plan(document([link("101")], plot_floors("101", 0, 10)), [row("101")], dict(JOB, prototypes=r"C:\Docs\SiteAdaptation\prototypes.json"), FILES, r"C:\Prototypes")
+    assert plan["sources"]["prototypes"] == "prototypes.json"
