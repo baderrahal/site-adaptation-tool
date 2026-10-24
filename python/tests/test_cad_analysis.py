@@ -24,7 +24,8 @@ PROFILE_VALUES = {
     "cluster_block_max": 4,
     "plot": {"long_side": 25000},
 }
-ANALYSIS = {"toleranceM": 0.01, "partyWallShare": 0.75, "endShare": 0.25, "unitPlotTypes": ["DP2", "TH1", "ZZ1", "VL3", "DX9"], "noRev6Match": []}
+ANALYSIS = {"toleranceM": 0.01, "partyWallShare": 0.75, "endShare": 0.25, "unitPlotTypes": ["DP2", "TH1", "ZZ1", "VL3", "DX9"], "noRev6Match": [],
+            "blockClusters": {"Duplex_DP2": "D02", "Townhouse_TH1": "Q01"}, "pairRule": True}
 SHIFT = 10
 BOOK = "00101-PSN-IMC-XXX-SCH-TU-090000.xlsx"
 
@@ -188,14 +189,14 @@ def test_r64_main_writes_the_clusters_the_issues_and_no_coordinates_to_analysis_
     args = write_inputs(tmp_path, plots)
     assert cad_analysis.main([str(tmp_path / "out")] + args) == 0
     lines = capsys.readouterr().out.strip().splitlines()
-    units = {"plots": 5, "bySource": {"block": 0, "excel": 5, "none": 0}, "byCode": {"DP2": 4, "TH1": 1}, "byCodeFromBlock": {}, "notInProfile": 0, "plotsWithBoth": 0,
-             "blockUnitAgrees": 0, "blockUnitDiffers": 0, "excel": {"rows": 5, "used": 5, "ambiguous": 0, "noFace": 0}}
-    assert lines == ['clusters 3 {"D02": 1, "E02": 1, "unknown": 1}, issues 2', "units " + json.dumps(units), 'fronts {"neighbour": 1, "none": 1}']
+    units = {"plots": 5, "bySource": {"excel": 5, "none": 0}, "byCode": {"DP2": 4, "TH1": 1}, "notInProfile": 0, "excel": {"rows": 5, "used": 5, "ambiguous": 0, "noFace": 0}}
+    hints = {"blocks": 0, "groups": 0, "byStatus": {}, "byHint": {}, "equalCluster": 0, "equalGroups": 0, "codeAgrees": 0, "codeDiffers": 0, "clustersOfSeveralPlots": 2, "clustersWithHintGroup": 0}
+    assert lines == ['clusters 3 {"D02": 1, "E02": 1, "unknown": 1}, issues 2', "units " + json.dumps(units), "hints " + json.dumps(hints), 'fronts {"neighbour": 1, "none": 1}']
     result = json.loads((tmp_path / "out" / "analysis.json").read_text(encoding="utf-8"))
-    assert list(result) == ["source", "summary", "clusters", "plots", "issues", "conflicts"] and result["source"] == "base.dwg" and result["conflicts"] == []
+    assert list(result) == ["source", "summary", "clusters", "plots", "hints", "issues", "conflicts"] and result["source"] == "base.dwg" and result["conflicts"] == []
     assert result["summary"] == {"plotFaces": 6, "clusters": 3, "clusterPlots": 5, "byCode": {"D02": 1, "E02": 1, "unknown": 1}, "notRows": 0,
                                  "orderNotSure": 2, "unitsWithMirrorFlag": 0, "rows": 2, "cutFromLongerRow": 2, "frontRules": {"neighbour": 1, "none": 1},
-                                 "roadEdges": None, "blocks": None, "units": {**units, "differing": {}}, "issues": 2, "numbering": "baseplan labels"}
+                                 "roadEdges": None, "blocks": None, "units": units, "hints": hints, "issues": 2, "numbering": "baseplan labels"}
     assert [(c["code"], c["plots"], c["orderSure"]) for c in result["clusters"]] == [("D02", ["2", "1"], True), ("E02", ["3", "4"], False), ("unknown", ["5"], False)]
     assert set(result["clusters"][0]) == {"code", "plots", "typologies", "sources", "mirrored", "rotation", "block", "orderSure", "row", "frontRule", "rowId", "rowUnits"}
     assert [c["sources"] for c in result["clusters"]] == [["excel", "excel"], ["excel", "excel"], ["excel"]]
@@ -400,27 +401,27 @@ def villa(name, outline, mirrored=False, rotation=0.0, **extra):
     return {"name": "X$0$" + name, "outline": outline, "mirrored": mirrored, "rotationDeg": rotation, **extra}
 
 
-def test_r69_a_block_belongs_to_the_plot_with_the_largest_share_of_its_outline_and_a_plot_with_no_unit_code_is_an_issue(tmp_path):
+def test_r69_a_block_belongs_to_the_plot_with_the_largest_share_of_its_outline_and_never_gives_a_unit_code(tmp_path):
     profile = profile_in(tmp_path)
-    faces = [face("1", "VL3", 0, 0), face("2", "VL3", 10, 0)]
+    faces = [face("1", "VL3", 0, 0), face("2", "VL3", 10, 0), face("3", "VL3", 20, 0)]
     # Plot 1 holds a tenth of the block, below the cover share, so only plot 2 gets the block
-    result = cad_analysis.analyse(faces, profile, ANALYSIS, [villa("Villa_VL3", box(9, 5, 19, 20), True, 30.0)])
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, [villa("Villa_VL3", box(9, 5, 19, 20), True, 30.0)], excel=given({"3": "VL3"}))
     assert [(p["plot"], p["block"], p["mirrored"], p["rotation"], p["blocks"], p["unit"], p["unitSource"]) for p in result["plots"]] == [
-        ("1", None, None, None, 0, None, None), ("2", "X$0$Villa_VL3", True, 30.0, 1, "VL3", "block")]
-    assert [(i["rule"], i["plots"], i["text"]) for i in result["issues"]] == [("R69", ["1"], "Plot 1 (VL3) has no unit code, no block and no Excel unit")]
+        ("1", None, None, None, 0, None, None), ("2", "X$0$Villa_VL3", True, 30.0, 1, None, None), ("3", None, None, None, 0, "VL3", "excel")]
+    assert [(i["rule"], i["plots"], i["text"]) for i in result["issues"]] == [("R69", ["1", "2"], "2 plots have no unit code, the schedules give none and a block never does")]
     blocks = result["summary"]["blocks"]
-    assert (blocks["villaBlocks"], blocks["plotsOneBlock"], blocks["plotsNoBlock"], blocks["tiedBlocks"], blocks["mirrored"], blocks["notMirrored"], blocks["mirrorNull"]) == (1, 1, 1, 0, 1, 0, 0)
-    assert blocks["blocksCovering"] == {"1": 1} and result["summary"]["units"]["bySource"] == {"block": 1, "excel": 0, "none": 1}
+    assert (blocks["villaBlocks"], blocks["plotsOneBlock"], blocks["plotsNoBlock"], blocks["tiedBlocks"], blocks["mirrored"], blocks["notMirrored"], blocks["mirrorNull"]) == (1, 1, 2, 0, 1, 0, 0)
+    assert blocks["blocksCovering"] == {"1": 1} and result["summary"]["units"]["bySource"] == {"excel": 1, "none": 2}
 
 
-def test_r69_a_block_that_covers_several_plots_gives_its_unit_code_to_each_with_mirrored_null_and_a_flag(tmp_path):
+def test_r69_a_block_that_covers_several_plots_is_attached_to_each_with_mirrored_null_and_a_flag_and_gives_no_unit_code(tmp_path):
     profile = profile_in(tmp_path)
     faces = [face("1", "VL3", 0, 0), face("2", "VL3", 10, 0)]
-    result = cad_analysis.analyse(faces, profile, ANALYSIS, [villa("Villa_VL3", box(6, 5, 16, 20), True, 30.0)])
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, [villa("Villa_VL3", box(6, 5, 16, 20), True, 30.0)], excel=given({"1": "VL3"}))
     assert [(p["plot"], p["unit"], p["unitSource"], p["block"], p["mirrored"], p["rotation"], p["blocks"], p["blockPlots"]) for p in result["plots"]] == [
-        ("1", "VL3", "block", "X$0$Villa_VL3", None, 30.0, 1, 2), ("2", "VL3", "block", "X$0$Villa_VL3", None, 30.0, 1, 2)]
+        ("1", "VL3", "excel", "X$0$Villa_VL3", None, 30.0, 1, 2), ("2", None, None, "X$0$Villa_VL3", None, 30.0, 1, 2)]
     assert [p["flags"] for p in result["plots"]] == [["block X$0$Villa_VL3 covers 2 plots"]] * 2
-    assert result["issues"] == []
+    assert [(i["rule"], i["plots"]) for i in result["issues"]] == [("R69", ["2"])]
     blocks = result["summary"]["blocks"]
     assert (blocks["plotsOneBlock"], blocks["plotsCoveredOnly"], blocks["plotsOfSeveralPlotBlocks"], blocks["mirrored"], blocks["mirrorNull"]) == (2, 1, 2, 0, 2)
     assert blocks["blocksCovering"] == {"2": 1}
@@ -430,45 +431,47 @@ def test_r69_equal_shares_go_to_the_lowest_plot_number_and_are_counted_as_tied(t
     profile = profile_in(tmp_path)
     faces = [face("9", "VL3", 10, 0), face("4", "VL3", 0, 0)]
     result = cad_analysis.analyse(faces, profile, ANALYSIS, [villa("Duplex_DP2", box(5, 5, 15, 20))])
-    assert [(p["plot"], p["unit"], p["blockPlots"]) for p in result["plots"]] == [("4", "DP2", 2), ("9", "DP2", 2)]
+    assert [(p["plot"], p["unit"], p["blockPlots"]) for p in result["plots"]] == [("4", None, 2), ("9", None, 2)]
     assert [p["flags"] for p in result["plots"]] == [["block X$0$Duplex_DP2 covers 2 plots"]] * 2
     assert result["summary"]["blocks"]["tiedBlocks"] == 1
 
 
-def test_r69_a_plot_with_two_blocks_is_an_issue_and_keeps_no_flag(tmp_path):
+def test_r90_a_plot_with_two_blocks_is_an_issue_and_keeps_no_flag(tmp_path):
     profile = profile_in(tmp_path)
     faces = [face("1", "VL3", 0, 0)]
     blocks = [villa("Villa_VL3", box(1, 1, 9, 9), True), villa("Villa_VL3", box(1, 10, 9, 20), False)]
     result = cad_analysis.analyse(faces, profile, ANALYSIS, blocks)
-    assert [(i["rule"], i["plots"]) for i in result["issues"]] == [("R69", ["1"])]
-    assert result["issues"][0]["text"] == "Plot 1 (VL3) has 2 blocks: X$0$Villa_VL3, X$0$Villa_VL3"
+    assert [(i["rule"], i["plots"]) for i in result["issues"] if i["rule"] == "R90"] == [("R90", ["1"])]
+    assert [i["text"] for i in result["issues"] if i["rule"] == "R90"] == ["Plot 1 (VL3) has 2 blocks: X$0$Villa_VL3, X$0$Villa_VL3"]
     assert (result["plots"][0]["block"], result["plots"][0]["mirrored"], result["plots"][0]["blocks"]) == (None, None, 2)
     assert result["summary"]["blocks"]["plotsTwoBlocks"] == 1
 
 
-def test_r69_only_listed_plot_types_need_a_block_and_only_unit_blocks_are_matched(tmp_path):
+def test_r69_only_listed_plot_types_need_a_unit_code_and_only_unit_blocks_are_matched(tmp_path):
     profile = profile_in(tmp_path)
     faces = [face("1", "VL3", 0, 0), face("2", "OS", 10, 0)]
     blocks = [villa("Villa_VL3", box(1, 1, 9, 20)), villa("MP-Parking_6mx2.5m", box(11, 1, 14, 5)), villa("Villa_ZZ9", box(11, 6, 14, 9)),
               {"name": "X$0$Villa_VL3", "outline": None}, villa("Villa_VL3", box(500, 500, 510, 510))]
-    result = cad_analysis.analyse(faces, profile, ANALYSIS, blocks)
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, blocks, excel=given({"1": "VL3"}))
     assert result["issues"] == []
     assert [p["plot"] for p in result["plots"]] == ["1"]
     assert result["summary"]["blocks"]["villaBlocks"] == 2 and result["summary"]["blocks"]["blocksOnNoPlot"] == 1
 
 
-def test_r69_the_block_of_each_plot_reaches_the_cluster_and_without_blocks_nothing_is_matched(tmp_path):
+def test_r69_the_block_of_each_plot_reaches_the_cluster_and_without_a_schedule_no_plot_has_a_unit_code(tmp_path):
     profile = profile_in(tmp_path)
     plots = row(["DP2", "DP2"], ["1", "2"]) + [behind(2, -25)]
     blocks = [villa("Duplex_DP2", box(1, 1, 9, 24), True, 30.0), villa("Duplex_DP2", box(11, 1, 19, 24), False, 210.0)]
-    result = cad_analysis.analyse(plots, profile, ANALYSIS, blocks, blocks_source="villas.dwg")
+    result = cad_analysis.analyse(plots, profile, ANALYSIS, blocks, blocks_source="villas.dwg", excel=excel_of(plots))
     cluster = result["clusters"][0]
     assert (cluster["code"], cluster["plots"], cluster["mirrored"], cluster["rotation"], cluster["block"]) == ("D02", ["1", "2"], [True, False], [30.0, 210.0], ["X$0$Duplex_DP2"] * 2)
     assert result["summary"]["blocks"]["source"] == "villas.dwg" and result["summary"]["unitsWithMirrorFlag"] == 2
-    assert cluster["typologies"] == ["DP2", "DP2"] and cluster["sources"] == ["block", "block"]
-    none_given = cad_analysis.analyse(plots, profile, ANALYSIS)
-    assert none_given["summary"]["blocks"] is None and none_given["clusters"] == []
-    assert [i["text"] for i in none_given["issues"]] == ["No block drawing and no Excel unit was given, so no plot has a unit code and no cluster can be built"]
+    assert cluster["typologies"] == ["DP2", "DP2"] and cluster["sources"] == ["excel", "excel"]
+    none_given = cad_analysis.analyse(plots, profile, ANALYSIS, blocks)
+    assert none_given["summary"]["blocks"]["villaBlocks"] == 2 and none_given["clusters"] == []
+    assert [i["text"] for i in none_given["issues"]] == ["No schedule was given, so no plot has a unit code and no cluster can be built"]
+    nothing = cad_analysis.analyse(plots, profile, ANALYSIS)
+    assert nothing["summary"]["blocks"] is None and nothing["clusters"] == []
 
 
 def test_r69_main_reads_blocks_json_and_prints_the_block_counts(tmp_path, capsys):
@@ -602,19 +605,19 @@ def test_r69_the_block_counts_are_over_the_plot_records_and_other_plots_with_blo
     profile = profile_in(tmp_path)
     faces = [face("1", "VL3", 0, 0), face("2", "OS", 10, 0), face("3", "OS", 20, 0), face("4", "VL3", 30, 0), face("5", "VL3", 40, 0)]
     blocks = [villa("Villa_VL3", box(31, 1, 39, 20)), villa("Villa_VL3", box(21, 1, 29, 20)), villa("Villa_VL3", box(41, 1, 49, 9)), villa("Villa_VL3", box(41, 11, 49, 24))]
-    result = cad_analysis.analyse(faces, profile, ANALYSIS, blocks)
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, blocks, excel=given({"4": "VL3"}))
     summary = result["summary"]["blocks"]
     assert (summary["plotsOneBlock"], summary["plotsNoBlock"], summary["plotsTwoBlocks"], summary["otherPlotsWithBlocks"]) == (2, 1, 1, 1)
     assert (summary["plotsOneBlock"] + summary["plotsNoBlock"] + summary["plotsTwoBlocks"], len(result["plots"])) == (4, 4)
-    assert [(issue["plots"], issue["text"].split(" has ")[1]) for issue in result["issues"]] == [(["1"], "no unit code, no block and no Excel unit"), (["5"], "2 blocks: X$0$Villa_VL3, X$0$Villa_VL3")]
+    assert [(issue["rule"], issue["plots"]) for issue in result["issues"]] == [("R90", ["5"]), ("R69", ["1", "5"])]
 
 
-def test_r69_when_the_block_drawing_holds_no_unit_block_one_issue_says_so_instead_of_one_for_every_plot(tmp_path):
+def test_r90_when_the_block_drawing_holds_no_unit_block_one_issue_says_so_instead_of_one_for_every_plot(tmp_path):
     profile = profile_in(tmp_path)
     faces = [face(str(number), "VL3", 10 * number, 0) for number in range(1, 6)]
     parking = {"name": "X$0$MP-Parking_6mx2.5m", "outline": box(0, 0, 3, 3)}
     result = cad_analysis.analyse(faces, profile, ANALYSIS, [parking, {"name": "Villa_ZZ9", "outline": box(0, 0, 3, 3)}])
-    assert result["issues"] == [{"rule": "R69", "plots": [], "text": "The block drawing holds no unit block, none of its 2 inserts is named after a typology of the profile"}]
+    assert [issue for issue in result["issues"] if issue["rule"] == "R90"] == [{"rule": "R90", "plots": [], "text": "The block drawing holds no unit block, none of its 2 inserts is named after a typology of the profile"}]
     assert result["summary"]["blocks"]["villaBlocks"] == 0 and result["summary"]["blocks"]["plotsNoBlock"] == 5
 
 
@@ -682,26 +685,27 @@ def test_r74_a_workbook_whose_neighbourhood_has_no_shift_is_refused_and_the_shif
         cad_analysis.read_excel_units([sheet((11, "DP2"), source="book.xlsx")], shifts)
 
 
-def test_r69_a_plot_with_no_block_takes_the_excel_unit_and_the_source_says_so(tmp_path):
+def test_r69_a_plot_takes_the_excel_unit_and_the_source_says_so(tmp_path):
     profile = profile_in(tmp_path)
     faces = [face("1", "VL3", 0, 0), face("2", "ZZ", 10, 0), face("3", "VL3", 20, 0)]
     result = cad_analysis.analyse(faces, profile, ANALYSIS, excel=given({"1": "DP2", "2": "TH1"}))
     assert [(p["plot"], p["unit"], p["unitSource"], p["excelUnit"], p["blocks"]) for p in result["plots"]] == [
         ("1", "DP2", "excel", "DP2", 0), ("2", "TH1", "excel", "TH1", 0), ("3", None, None, None, 0)]
     assert [(i["rule"], i["plots"]) for i in result["issues"] if i["rule"] == "R69"] == [("R69", ["3"])]
-    assert result["summary"]["units"]["bySource"] == {"block": 0, "excel": 2, "none": 1}
+    assert result["summary"]["units"]["bySource"] == {"excel": 2, "none": 1}
     assert result["summary"]["units"]["excel"]["noFace"] == 0
 
 
-def test_r69_the_baseplan_label_type_never_gives_the_unit_code_and_a_block_unit_beats_the_excel_unit(tmp_path):
+def test_r69_the_baseplan_label_type_and_the_block_never_give_the_unit_code_only_the_excel_unit_does(tmp_path):
     profile = profile_in(tmp_path)
     faces = [face("1", "DP2", 0, 0), face("2", "DP2", 10, 0)]
     blocks = [villa("Villa_VL3", box(1, 1, 9, 24)), villa("Villa_ZZ1", box(11, 1, 19, 24))]
     result = cad_analysis.analyse(faces, profile, ANALYSIS, blocks, excel=given({"1": "TH1", "2": "ZZ1"}))
-    assert [(p["plot"], p["cadType"], p["unit"], p["unitSource"], p["excelUnit"]) for p in result["plots"]] == [("1", "DP2", "VL3", "block", "TH1"), ("2", "DP2", "ZZ1", "block", "ZZ1")]
+    assert [(p["plot"], p["cadType"], p["unit"], p["unitSource"], p["excelUnit"], p["block"]) for p in result["plots"]] == [
+        ("1", "DP2", "TH1", "excel", "TH1", "X$0$Villa_VL3"), ("2", "DP2", "ZZ1", "excel", "ZZ1", "X$0$Villa_ZZ1")]
     units = result["summary"]["units"]
-    assert (units["plotsWithBoth"], units["blockUnitAgrees"], units["blockUnitDiffers"], units["differing"]) == (2, 1, 1, {"VL3>TH1": 1})
-    assert "typeAgrees" not in result["summary"]["blocks"] and "typeDiffers" not in result["summary"]["blocks"]
+    assert units["bySource"] == {"excel": 2, "none": 0} and "blockUnitDiffers" not in units and "byCodeFromBlock" not in units
+    assert result["conflicts"] == []
 
 
 def test_r64_clusters_are_built_from_the_unit_code_and_not_from_the_baseplan_label_type(tmp_path):
@@ -714,18 +718,18 @@ def test_r64_clusters_are_built_from_the_unit_code_and_not_from_the_baseplan_lab
     duplex = cad_analysis.analyse(other_pair, profile, ANALYSIS, [], excel=given({"1": "DP2", "2": "DP2"}))
     assert [(c["code"], c["plots"], c["typologies"], c["sources"]) for c in duplex["clusters"]] == [("D02", ["1", "2"], ["DP2", "DP2"], ["excel", "excel"])]
     no_unit = cad_analysis.analyse(labelled_pair, profile, ANALYSIS, [villa("Villa_DX9", box(500, 500, 510, 510))])
-    assert no_unit["clusters"] == [] and [i["plots"] for i in no_unit["issues"]] == [["1"], ["2"]]
+    assert no_unit["clusters"] == [] and [i["plots"] for i in no_unit["issues"]] == [[]]
 
 
-def test_r69_a_plot_with_two_blocks_takes_no_excel_unit_and_stays_out_of_every_cluster(tmp_path):
+def test_r90_a_plot_with_two_blocks_keeps_its_excel_unit_and_stays_in_its_cluster(tmp_path):
     profile = profile_in(tmp_path)
     faces = [face("1", "DP2", 0, 0), face("2", "DP2", 10, 0)]
     blocks = [villa("Villa_VL3", box(1, 1, 9, 9)), villa("Villa_VL3", box(1, 12, 9, 24)), villa("Duplex_DP2", box(11, 1, 19, 24))]
     result = cad_analysis.analyse(faces, profile, ANALYSIS, blocks, excel=given({"1": "DP2", "2": "DP2"}))
     first = result["plots"][0]
-    assert (first["unit"], first["unitSource"], first["excelUnit"], first["blocks"]) == (None, None, "DP2", 2)
-    assert [(c["code"], c["plots"]) for c in result["clusters"]] == [("unknown", ["2"])]
-    assert [(i["rule"], i["plots"]) for i in result["issues"] if i["rule"] == "R69"] == [("R69", ["1"])]
+    assert (first["unit"], first["unitSource"], first["excelUnit"], first["blocks"]) == ("DP2", "excel", "DP2", 2)
+    assert [(c["code"], c["plots"]) for c in result["clusters"]] == [("D02", ["1", "2"])]
+    assert [(i["rule"], i["plots"]) for i in result["issues"]] == [("R90", ["1"])]
 
 
 def test_r69_a_block_that_also_covers_a_plot_that_owns_another_block_leaves_the_owned_block_and_flags_it(tmp_path):
@@ -734,9 +738,9 @@ def test_r69_a_block_that_also_covers_a_plot_that_owns_another_block_leaves_the_
     blocks = [villa("Villa_VL3", box(1, 1, 9, 24)), villa("Duplex_DP2", box(7, 1, 19, 24))]
     result = cad_analysis.analyse(faces, profile, ANALYSIS, blocks)
     first = result["plots"][0]
-    assert (first["unit"], first["block"], first["blockPlots"]) == ("VL3", "X$0$Villa_VL3", 1)
+    assert (first["unit"], first["block"], first["blockPlots"]) == (None, "X$0$Villa_VL3", 1)
     assert first["flags"] == ["also covered by X$0$Duplex_DP2"]
-    assert result["plots"][1]["unit"] == "DP2" and result["plots"][1]["flags"] == ["block X$0$Duplex_DP2 covers 2 plots"]
+    assert result["plots"][1]["block"] == "X$0$Duplex_DP2" and result["plots"][1]["flags"] == ["block X$0$Duplex_DP2 covers 2 plots"]
 
 
 def test_r75_a_cluster_with_a_no_match_code_is_an_issue_in_the_analysis_and_a_code_that_is_not_a_cluster_is_refused(tmp_path):
@@ -791,18 +795,18 @@ def test_r69_an_excel_unit_that_is_not_a_unit_code_of_the_profile_gives_no_unit_
     assert [(p["plot"], p["unit"], p["unitSource"]) for p in result["plots"]] == [("1", None, None), ("2", None, None), ("3", "TH1", "excel")]
     texts = [i["text"] for i in result["issues"] if i["rule"] == "R69" and i["plots"] == ["1"]]
     assert "Plot 1 has the Excel unit 'dp2', which is not a unit code of the profile, so it gives no unit code" in texts
-    assert result["summary"]["units"]["notInProfile"] == 2 and result["summary"]["units"]["bySource"] == {"block": 0, "excel": 1, "none": 2}
+    assert result["summary"]["units"]["notInProfile"] == 2 and result["summary"]["units"]["bySource"] == {"excel": 1, "none": 2}
 
 
 def test_r69_a_schedule_with_no_unit_says_so_and_a_unit_block_with_no_outline_is_counted(tmp_path):
     profile = profile_in(tmp_path)
     faces = [face("1", "VL3", 0, 0)]
     empty = cad_analysis.analyse(faces, profile, ANALYSIS, excel={"units": {}, "stats": {"rows": 0, "used": 0, "ambiguous": 0}, "issues": []})
-    assert [i["text"] for i in empty["issues"]] == ["The schedule workbooks gave no unit code of the profile, so they give no plot a unit code"]
+    assert [i["text"] for i in empty["issues"]] == ["The schedule workbooks gave no unit code of the profile, so no plot has a unit code"]
     two_points = {"name": "X$0$Villa_VL3", "outline": [[0, 0], [5, 5]]}
-    only = cad_analysis.analyse(faces, profile, ANALYSIS, [two_points])
+    only = cad_analysis.analyse(faces, profile, ANALYSIS, [two_points], excel=given({"1": "VL3"}))
     assert [i["text"] for i in only["issues"]] == ["The block drawing holds no unit block with an outline, 1 of its 1 inserts are named after a typology of the profile but have no outline of three points"]
-    some = cad_analysis.analyse(faces, profile, ANALYSIS, [two_points, villa("Villa_VL3", box(1, 1, 9, 24))])
+    some = cad_analysis.analyse(faces, profile, ANALYSIS, [two_points, villa("Villa_VL3", box(1, 1, 9, 24))], excel=given({"1": "VL3"}))
     assert some["summary"]["blocks"]["unitBlocksNoOutline"] == 1 and some["issues"] == []
 
 
@@ -813,21 +817,22 @@ def test_r74_a_plot_number_cell_is_a_whole_number_or_it_is_not_and_a_superscript
     assert read["units"] == {"1": "TH1"} and [i["text"] for i in read["issues"]] == [BOOK + " row 40 has no numeric plot number"]
 
 
-def test_r69_where_the_block_and_the_schedule_give_different_units_the_block_wins_and_the_pair_is_listed_as_a_conflict(tmp_path):
+def test_r90_a_block_hint_that_names_other_plots_than_the_schedule_cluster_is_listed_as_a_conflict(tmp_path):
     profile = profile_in(tmp_path)
-    faces = [face("1", "DP2", 0, 0), face("2", "DP2", 10, 0)]
-    blocks = [villa("Villa_VL3", box(1, 1, 9, 24)), villa("Villa_DX9", box(11, 1, 19, 24))]
-    result = cad_analysis.analyse(faces, profile, ANALYSIS, blocks, excel=given({"1": "TH1", "2": "DX9"}))
-    assert result["conflicts"] == [{"plot": "1", "block": "X$0$Villa_VL3", "blockUnit": "VL3", "excelUnit": "TH1"}]
-    assert cad_analysis.analyse(faces, profile, ANALYSIS, blocks)["conflicts"] == []
+    faces = row(["DP2", "DP2", "DP2"], ["1", "2", "3"]) + [behind(3, -25)]
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, [villa("Duplex_DP2", box(11, 1, 29, 24))], excel=excel_of(faces))
+    assert [(c["code"], c["plots"]) for c in result["clusters"]] == [("D02", ["1", "2"]), ("unknown", ["3"])]
+    assert [(h["status"], h["plots"], h["cluster"]) for h in result["conflicts"]] == [("differs", ["2", "3"], ["D02", "unknown"])]
+    assert result["conflicts"] == [h for h in result["hints"] if h["status"] == "differs"]
 
 
-def test_r69_a_block_that_stands_for_more_plots_than_the_biggest_cluster_is_an_issue_naming_the_block_and_the_plots(tmp_path):
+def test_r90_a_block_that_stands_for_more_plots_than_the_biggest_cluster_is_an_issue_naming_the_block_and_the_plots(tmp_path):
     profile = profile_in(tmp_path)
     faces = [face(str(number), "VL3", 10 * (number - 1), 0) for number in range(1, 6)]
     result = cad_analysis.analyse(faces, profile, ANALYSIS, [villa("Duplex_DP2", box(0, 5, 50, 20))])
-    assert [(i["rule"], i["plots"], i["text"]) for i in result["issues"] if i["rule"] == "R69"] == [("R69", ["1", "2", "3", "4", "5"], "Block X$0$Duplex_DP2 stands for 5 plots, more than the 4 of the biggest cluster")]
-    assert [p["unit"] for p in result["plots"]] == ["DP2"] * 5
+    assert [(i["rule"], i["plots"], i["text"]) for i in result["issues"] if i["rule"] == "R90"] == [("R90", ["1", "2", "3", "4", "5"], "Block X$0$Duplex_DP2 stands for 5 plots, more than the 4 of the biggest cluster")]
+    assert [p["unit"] for p in result["plots"]] == [None] * 5
+    assert [(h["status"], len(h["plots"])) for h in result["hints"]] == [("size", 5)]
 
 
 def test_r69_a_schedule_whose_units_are_all_dropped_as_not_profile_codes_says_so_once_and_leaves_no_plot_unissued(tmp_path):
@@ -835,9 +840,9 @@ def test_r69_a_schedule_whose_units_are_all_dropped_as_not_profile_codes_says_so
     faces = [face("1", "DP2", 0, 0), face("5", "DP2", 10, 0), face("7", "OS", 20, 0)]
     result = cad_analysis.analyse(faces, profile, ANALYSIS, excel=given({"1": "XX9", "5": "XX9"}))
     texts = [i["text"] for i in result["issues"] if i["rule"] == "R69"]
-    assert "The schedule workbooks gave no unit code of the profile, so they give no plot a unit code" in texts
+    assert "The schedule workbooks gave no unit code of the profile, so no plot has a unit code" in texts
     assert sum(1 for text in texts if "is not a unit code of the profile" in text) == 2
-    assert result["summary"]["units"]["bySource"] == {"block": 0, "excel": 0, "none": 2}
+    assert result["summary"]["units"]["bySource"] == {"excel": 0, "none": 2}
 
 
 @pytest.mark.parametrize("value", [None, "4", 4.0, True, 0, -1, 2.5])
@@ -850,3 +855,104 @@ def test_r69_a_profile_cluster_block_max_that_is_not_a_whole_number_of_plots_is_
 
 def test_r74_a_negative_number_a_huge_text_and_a_float_with_a_fraction_are_not_plot_numbers():
     assert [cad_analysis.whole_number(value) for value in (-5, -3.0, "-5", float("nan"), float("inf"), "9" * 5000, 0, "0.0")] == [None, None, None, None, None, None, 0, 0]
+
+
+def two_rows():
+    """Two duplex rows, plots 1 and 2 and plots 3 and 4, with an open face behind each."""
+    return row(["DP2", "DP2"], ["1", "2"]) + [behind(2, -25)] + row(["DP2", "DP2"], ["3", "4"], y=200) + [face("98", "OS", 0, 175, width=20)]
+
+
+def test_r90_a_block_that_stands_for_two_plots_hints_at_a_cluster_and_is_equal_when_the_schedule_cluster_has_the_same_plots(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = two_rows()
+    blocks = [villa("Duplex_DP2", box(1, 1, 19, 24)), villa("Duplex_DP2", box(1, 201, 19, 224))]
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, blocks, excel=excel_of(faces))
+    assert [(h["status"], h["hint"], h["plots"], h["cluster"], h["codeAgrees"]) for h in result["hints"]] == [("equal", "D02", ["1", "2"], "D02", True), ("equal", "D02", ["3", "4"], "D02", True)]
+    summary = result["summary"]["hints"]
+    assert (summary["blocks"], summary["groups"], summary["equalCluster"], summary["codeAgrees"], summary["codeDiffers"]) == (2, 2, 2, 2, 0)
+    assert (summary["clustersOfSeveralPlots"], summary["clustersWithHintGroup"], summary["byStatus"], summary["byHint"]) == (2, 2, {"equal": 2}, {"D02": 2})
+    assert result["conflicts"] == []
+
+
+def test_r90_the_hint_never_gives_a_unit_code_and_never_changes_a_cluster(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = two_rows()
+    blocks = [villa("Duplex_DP2", box(1, 1, 19, 24)), villa("Duplex_DP2", box(1, 201, 19, 224))]
+    with_hints = cad_analysis.analyse(faces, profile, ANALYSIS, blocks, excel=excel_of(faces))
+    without = cad_analysis.analyse(faces, profile, {**ANALYSIS, "blockClusters": {}}, blocks, excel=excel_of(faces))
+    assert without["hints"] == [] and with_hints["clusters"] == without["clusters"]
+    assert [(p["plot"], p["unit"], p["unitSource"]) for p in with_hints["plots"]] == [(p["plot"], p["unit"], p["unitSource"]) for p in without["plots"]]
+    # The same block over plots the schedules do not cover hints at a cluster and leaves every plot with no unit code
+    bare = cad_analysis.analyse(faces, profile, ANALYSIS, blocks)
+    assert [h["status"] for h in bare["hints"]] == ["no schedule", "no schedule"] and bare["clusters"] == []
+    assert all(p["unit"] is None for p in bare["plots"])
+
+
+def test_r90_a_hint_is_no_schedule_when_no_plot_has_a_unit_and_partly_schedule_when_only_some_do(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = two_rows()
+    blocks = [villa("Duplex_DP2", box(1, 1, 19, 24)), villa("Duplex_DP2", box(1, 201, 19, 224))]
+    partly = cad_analysis.analyse(faces, profile, ANALYSIS, blocks, excel=given({"1": "DP2", "3": "DP2", "4": "DP2"}))
+    assert [h["status"] for h in partly["hints"]] == ["partly schedule", "equal"]
+    assert partly["summary"]["hints"]["byStatus"] == {"equal": 1, "partly schedule": 1}
+    none = cad_analysis.analyse(faces, profile, ANALYSIS, blocks, excel=given({"98": "DP2"}))
+    assert [h["status"] for h in none["hints"]] == ["no schedule", "no schedule"]
+
+
+def test_r90_a_hint_is_size_when_the_block_stands_for_another_number_of_plots_than_the_cluster_it_names_and_a_one_plot_block_is_no_hint(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = [face("1", "DP2", 0, 0), face("2", "DP2", 10, 0), face("3", "DP2", 20, 0), face("4", "DP2", 100, 0)]
+    blocks = [villa("Townhouse_TH1", box(1, 1, 29, 24)), villa("Duplex_DP2", box(101, 1, 109, 24))]
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, blocks, excel=excel_of(faces))
+    assert [(h["hint"], h["status"], len(h["plots"])) for h in result["hints"]] == [("Q01", "size", 3)]
+    assert [h["plots"] for h in result["conflicts"]] == [["1", "2", "3"]]
+
+
+def test_r90_the_block_name_is_read_without_the_xref_prefix_and_a_name_that_is_not_listed_is_no_hint(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = row(["DP2", "DP2"], ["1", "2"]) + [behind(2, -25)]
+    plain = {"name": "Duplex_DP2", "outline": box(1, 1, 19, 24), "rotationDeg": 0.0}
+    nested = {"name": "A$0$B$3$Duplex_DP2", "outline": box(1, 1, 19, 24), "rotationDeg": 0.0}
+    other = {"name": "Villa_VL3", "outline": box(1, 1, 19, 24), "rotationDeg": 0.0}
+    for block, count in ((plain, 1), (nested, 1), (other, 0)):
+        assert len(cad_analysis.analyse(faces, profile, ANALYSIS, [block], excel=excel_of(faces))["hints"]) == count
+    assert cad_analysis.base_name("A$0$B$3$Duplex_DP2") == "Duplex_DP2" and cad_analysis.base_name(None) == ""
+
+
+def test_r90_a_hint_code_agrees_through_cluster_aliases_and_an_equal_group_with_another_code_is_counted_apart(tmp_path):
+    values = {**PROFILE_VALUES, "clusters": {**PROFILE_VALUES["clusters"], "M02": ["DP2", "DP2"], "M03": ["ZZ1", "ZZ1"]}, "cluster_aliases": {"D02": "M02"}}
+    path = tmp_path / "aliased.json"
+    path.write_text(json.dumps(values), encoding="utf-8")
+    profile = project_profile.load_profile(path)
+    faces = row(["DP2", "DP2"], ["1", "2"]) + [behind(2, -25)] + row(["ZZ1", "ZZ1"], ["3", "4"], y=200) + [face("98", "OS", 0, 175, width=20)]
+    blocks = [villa("Duplex_DP2", box(1, 1, 19, 24)), villa("Duplex_DP2", box(1, 201, 19, 224))]
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, blocks, excel=excel_of(faces))
+    assert [(h["cluster"], h["codeAgrees"]) for h in result["hints"]] == [("D02", True), ("M03", False)]
+    summary = result["summary"]["hints"]
+    assert (summary["codeAgrees"], summary["codeDiffers"], summary["equalGroups"]) == (1, 1, 2)
+
+
+def test_r90_two_blocks_over_the_same_plots_are_two_hints_and_one_group(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = row(["DP2", "DP2"], ["1", "2"]) + [behind(2, -25)]
+    blocks = [villa("Duplex_DP2", box(1, 1, 19, 24)), villa("Duplex_DP2", box(2, 2, 18, 23))]
+    summary = cad_analysis.analyse(faces, profile, ANALYSIS, blocks, excel=excel_of(faces))["summary"]["hints"]
+    assert (summary["blocks"], summary["groups"], summary["equalGroups"], summary["equalCluster"]) == (2, 1, 1, 2)
+
+
+def test_r90_analysis_block_clusters_must_map_a_name_to_a_cluster_of_the_profile(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = row(["DP2", "DP2"], ["1", "2"])
+    for bad, text in (({"blockClusters": {"Duplex_DP2": "ZZ"}}, "maps Duplex_DP2 to ZZ, which is not a cluster of the profile"), ({"blockClusters": ["D02"]}, "must map a block name to a cluster code"),
+                      ({"blockClusters": {"Duplex_DP2": 2}}, "must map a block name to a cluster code")):
+        with pytest.raises(project_profile.ProfileError, match=text):
+            cad_analysis.analyse(faces, profile, {**ANALYSIS, **bad})
+
+
+def test_r70_with_pair_rule_false_the_block_mirror_flags_are_left_out_of_the_row_split(tmp_path):
+    profile = profile_in(tmp_path)
+    equal = with_flags(row(["DP2", "DP2"], ["1", "2"]), [True, True]) + [behind(2, -25)]
+    assert [c["code"] for c in cad_analysis.derive_clusters(equal, profile, ANALYSIS)] == ["unknown"]
+    assert [c["code"] for c in cad_analysis.derive_clusters(equal, profile, {**ANALYSIS, "pairRule": False})] == ["D02"]
+    # The flags still reach the cluster record
+    assert cad_analysis.derive_clusters(equal, profile, {**ANALYSIS, "pairRule": False})[0]["mirrored"] == [True, True]
