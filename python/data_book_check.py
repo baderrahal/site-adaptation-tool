@@ -130,6 +130,12 @@ def check_plots(rows, faces, ring, schedules, blocks, v9, seed, size):
         homes = [name for name, (shift, numbers) in schedules.items() if str(int(row["baseplanLabel"]) + shift) in numbers]
         mine = homes[0] if len(homes) == 1 else ""
         counts["neighbourhoodMatch" if mine == row["neighbourhood"] else "neighbourhoodMismatch"] += 1
+        if row.get("footprintBlockMethod") not in (None, "", "centreWidened"):
+            # The block was wired by outline share (R177), wiring_check.py checks that join a second way (R178)
+            counts["blockCheckedByR178"] += 1
+            numbers = sorted({t for t, x, y in v9 if inside(face, x, y)})
+            counts["v9Match" if numbers == sorted(filter(None, (row["v9PlotNumber"] or "").split("|"))) else "v9Mismatch"] += 1
+            continue
         on = sorted(b["name"] for b in blocks if inside(face, b["x"], b["y"]))
         if not on:
             on = sorted(b["name"] for b in blocks if edge_distance(face, b["x"], b["y"]) <= SHARED_M and not inside(face, b["x"], b["y"]))

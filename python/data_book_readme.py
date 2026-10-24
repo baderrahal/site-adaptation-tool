@@ -13,6 +13,17 @@ FILES = {
     "analysis.md": "The analysis of the data book (R167), counts only. analysis.json holds the same as data.",
     "analysis.json": "The analysis of R167 as JSON.",
     "README.md": "This file.",
+    "retest.md": "The round DATA-2 tests (R170 to R172), counts only. retest.json holds the same as data.",
+    "retest.json": "The tests of R170 to R172 as JSON: El @ Entry from the road plus the ramp, the units per face, the unit gap and the width keys.",
+    "retest_entry.csv": "One row per schedule plot, surface and slope variant: El @ Entry from the front corners plus slope times ramp depth, less the schedule value (R170).",
+    "wiring.md": "The wiring methods tried per source with their scores against the answer key and the method chosen (R174 to R177), counts only.",
+    "wiring.json": "The same as wiring.md as data, with the lists of plots left unwired or ambiguous.",
+    "locationPlan.md": "The Zone 4 location plan read and tied to the plots (R179 to R183), counts only.",
+    "locationPlan.json": "The same as locationPlan.md as data, with the lists of plots with no sales row, shift breaks and unit differences.",
+    "labels.csv": "One row per label of the location plan: number, old code, new code, Rev 9 typology, NBH, zone, page point, site point and face (R180 to R182).",
+    "lines.csv": "Every text line of the location plan with its kind and page point (R179).",
+    "fit.json": "The affine map from location plan page points to site metres (R181).",
+    "units.csv": "One row per baseplan face inside Phase 1 with the footprint unit blocks that cover it, one unit each (R171).",
     "layers.csv": "Every layer of the drawing with the entities inside Phase 1 by type. Colour, on, frozen, locked and linetype are filled by the Civil 3D read only.",
     "entities.csv": "Every entity inside Phase 1, blocks exploded with the parent kept. A line is kept where any part is inside and cut at the border, one row per part. A table over the size limit is split by layer into the folder entities.",
     "blocks.csv": "Every block insert whose insert point lies inside Phase 1, attributes as attr_ columns.",
@@ -50,13 +61,13 @@ COLUMNS = {
     "frontBearingDeg": "Bearing of the front edge from left to right seen from the road, clockwise from grid north.", "facingDeg": "Bearing the plot faces, towards the road.",
     "unitRev6": "The Rev 6 unit code from the schedule.", "unitRev6Source": "Where unitRev6 comes from.", "scheduleFile": "The schedule workbook.", "scheduleRow": "The sheet row.",
     "footprintBlock": "The footprint block on the face, by its outline centre (Building Footprint).", "footprintRotationDeg": "Its rotation.", "footprintMirrored": "Its mirror flag.",
-    "footprintShared": "yes when the block centre lies on a shared wall within 0.5 m of the face, a pair or row block.", "footprintSource": "The reader the block came from.",
+    "footprintShared": "yes when the block also covers another face by the share of its wiring, a pair or row block.", "footprintSource": "The reader the block came from.",
     "cluster": "The cluster of analysis.json (R64) with its code.", "clusterRow": "The row id of the cluster.",
     "r06Block": "Block names on the face in R06.", "r06_0000Block": "Block names on the face in R06_0000.", "masterBlocksSource": "The readers of the master plan blocks.",
     "r06Number": "Whole number texts on the face in R06.", "r06_0000Number": "Whole number texts on the face in R06_0000.",
     "v9PlotNumber": "Plot number texts of V9 on the face.", "v9Source": "The reader of the V9 texts.",
-    "setbackFromFrontM": "Distance from the middle of the front to the nearest setback line on the face.", "rowDistanceM": "Distance from the middle of the front to the ROW line.",
-    "curbDistanceM": "Distance from the middle of the front to the curb (RD-CURB-LINE).", "sidewalkWidthM": "Curb distance less ROW distance where the ROW lies nearer.",
+    "setbackFromFrontM": "Distance from the middle of the front to the setback line the face owns by its wiring method.", "rowDistanceM": "Distance from the middle of the front edge of its wiring method to the ROW line.",
+    "curbDistanceM": "Distance from the middle of the front edge of its wiring method to the curb (RD-CURB-LINE).", "sidewalkWidthM": "Curb distance less ROW distance where the ROW lies nearer.",
     "roadLevelLeft": "Road level at the left front corner, snapped within 5 mm as in R157.", "roadLevelRight": "The same at the right corner.", "roadLevelSurface": "The surface that gave it.",
     "pastFfl": "FFL of the past job or schedule.", "pastEntry": "El @ Entry of the past job or schedule.", "pastSteps": "Steps.", "pastSource": "past job plan or schedule.",
     "inCutList": "yes for the plots of the R120 cut list.", "duplicateLabel": "yes when two faces carry the label.", "inManyLabelFace": "yes when the label also sits in a face with many labels.",
@@ -65,9 +76,18 @@ COLUMNS = {
     "description": "Surface description.", "style": "Surface style.", "points": "Points of the surface.", "triangles": "Triangles of the surface.",
     "pointsInside": "Points inside Phase 1.", "trianglesInside": "Triangles whose centroid lies inside Phase 1.", "zMinInside": "Lowest level inside.", "zMaxInside": "Highest level inside.",
     "boundaries": "Surface boundaries.", "definitions": "Definition parts with counts.", "operations": "Surface operations with counts.", "isReference": "yes for a data shortcut.",
-    "inExistingLandxml": "yes when the surface is in the LandXML of the earlier rounds.", "exportedLandxml": "The LandXML file this round wrote for it.",
+    "inExistingLandxml": "yes when the surface is in the LandXML of the earlier rounds and was left out of the export, no when exportKnownSurfaces exported every surface (R169).", "exportedLandxml": "The LandXML file this round wrote for it.",
     "vertex": "Vertex order.", "perimeter": "Perimeter in metres.", "drawing": "Source drawing.",
     "sheet": "Sheet name.", "file": "CSV file of the sheet.", "rows": "Rows of the sheet.", "columns": "Columns of the sheet.", "headerRow": "Row of the header, 1 based.",
+    "plot": "The official plot number.", "unit": "The Rev 6 unit code from the schedule.", "surface": "roadLevel for the snapped road level, else the surface of the level columns.",
+    "variant": "slope0.5 and slope2 for one front slope on every plot, byTypology for the steep slope on the steepUnits only.", "slopePercent": "The front slope in percent.",
+    "rampDepthM": "The Rev 6 ramp depth of the unit, ramp.front_setback of the profile.", "difference": "Predicted El @ Entry less the schedule value, in metres.",
+    "band": "within5mm, within30mm, worse or noLevel.", "units": "Rev 6 units on the face.", "blocks": "The footprint unit blocks that cover the face.",
+    "locationPlanNumber": "The plot number of the location plan label on the face.", "locationPlanCode": "Its old client code.",
+    "locationPlanNewCode": "Its new code by the old to new table.", "typologyRev9": "Typology_Rev9 of the Rev 9 sales row of that number.",
+    "size": "Font size of the text line in points.", "number": "Plot number of the location plan.", "code": "Old client code of the location plan.", "newCode": "New code by the table.", "rev9": "Typology_Rev9.",
+    "nbh": "NBH of the sales sheet.", "zone": "Construction zone of the sales sheet.", "face": "Baseplan face label.", "offset": "Number less face label.",
+    "group": "IMC or IMD when its schedule holds the number, else rest.", "pageX": "Page point x.", "pageY": "Page point y.", "east": "Site easting.", "north": "Site northing.",
     "header": "The header cells.", "plotOrLocationColumns": "Columns naming a plot number or a location.", "cutToPhase1": "Whether the rows were cut to Phase 1.",
 }
 
@@ -78,6 +98,8 @@ def describe(column):
         return "Level of surface " + column[len("level_"):column.rfind("_")] + " at the " + side + " front corner, where the corner lies on it."
     if column.startswith("attr_"):
         return "Block attribute " + column[len("attr_"):] + "."
+    if column.endswith("Method") and column != "Method":
+        return "The wiring method that filled " + column[:-len("Method")] + ", chosen by score in wiring.md (R177)."
     return COLUMNS.get(column, "")
 
 
@@ -87,14 +109,18 @@ def rows_of(path):
 
 
 def write(root):
-    lines = ["# Data book, Phase 1", "", "Read only from working copies, only data inside the Phase 1 border. Metres, UTM 37N. Written by the readers of round DATA (R160 to R168).", "",
+    lines = ["# Data book, Phase 1", "", "Read only from working copies, only data inside the Phase 1 border. Metres, UTM 37N. Written by the readers of rounds DATA and DATA-2 (R160 to R173).", "",
              "## Files", ""]
     seen_columns = set()
     for path in sorted(p for p in root.rglob("*") if p.is_file() and "work" not in p.relative_to(root).parts and "logs" not in p.relative_to(root).parts):
         relative = path.relative_to(root).as_posix()
+        parts = path.relative_to(root).parts
         meaning = FILES.get(path.name) or ("Sheet of the master plan workbook, cell for cell, column letters as header." if path.parent.name == "master_plan_excel" else
+                                           "PDF reader output of a coordinate PDF copy, read for the location check of the schedules (R174)." if parts[0] == "pdf" else
+                                           "CadReader output of the R06 copy, read for its block outlines (R174)." if parts[:2] == ("wiring", "cad") else
+                                           "plots.csv or a report as it was before Part W or Part L rebuilt it, kept for the before and after counts." if "_before_" in path.name else
                                            "Part of a table split by layer." if path.parent.name in ("entities", "blocks", "texts") else
-                                           "LandXML of a surface not in the earlier LandXML, triangles inside Phase 1." if path.suffix == ".xml" else "")
+                                           "LandXML of a surface the full Civil 3D read exported, triangles inside Phase 1 (R162, R169)." if path.suffix == ".xml" else "")
         count = (" (%d rows)" % rows_of(path)) if path.suffix == ".csv" else ""
         lines.append("- " + relative + count + ": " + meaning)
         if path.suffix == ".csv" and path.parent.name not in ("entities", "master_plan_excel"):

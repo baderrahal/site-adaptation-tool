@@ -68,6 +68,13 @@ def probe_dll(config):
     return dll if dll.is_absolute() else (REPO / dll).resolve()
 
 
+def known_surfaces(book, role):
+    """The surfaces the probe skips on export. Round DATA-2 exports every surface, so exportKnownSurfaces empties it (R169)."""
+    if book.get("exportKnownSurfaces"):
+        return []
+    return book.get("knownSurfaces", {}).get(role, [])
+
+
 def probe_done(summary, started):
     """True only for a data.json the probe wrote during this run. The stand-in tables of R164 leave their own data.json."""
     if not summary.is_file() or summary.stat().st_mtime < started:
@@ -92,7 +99,7 @@ def run(config, role, launcher=None, memory=free_gb, sleep=time.sleep, clock=tim
     out = root / drawing.stem
     env = dict(os.environ)
     env.update({"C3DPROBE_WORK": str(work_root(book)), "C3DPROBE_OUT": str(out), "C3DPROBE_BORDER": str(root / "phase1_border.csv"),
-                "C3DPROBE_LANDXML": str(root / "landxml"), "C3DPROBE_KNOWN": "|".join(book.get("knownSurfaces", {}).get(role, []))})
+                "C3DPROBE_LANDXML": str(root / "landxml"), "C3DPROBE_KNOWN": "|".join(known_surfaces(book, role))})
     start_free = memory()
     record = {"role": role, "drawing": str(drawing), "freeGbAtStart": round(start_free, 2), "pids": []}
     if start_free < book["minFreeGB"]:
