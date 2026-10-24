@@ -61,6 +61,9 @@ namespace CadReader
     {
         public string Source { get; set; }
         public string Units { get; set; }
+        // R196. The created and last saved times of the drawing header, so two exports of one sheet can be told apart by age
+        public string Created { get; set; }
+        public string Updated { get; set; }
         public TotalsEntry Totals { get; set; }
         public ExtentsEntry Extents { get; set; }
         public List<XrefEntry> Xrefs { get; set; }

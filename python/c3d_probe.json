@@ -501,6 +501,27 @@
       "percentPattern": "([0-9]+(?:[.][0-9]+)?)%",
       "profileWords": ["sidewalk", "curb", "kerb", "cross_fall", "upstand"]
     },
+    "locationDwg": {
+      "cadOut": "location_dwg/cad",
+      "outFolder": "location_dwg",
+      "labelLayer": "MP_PLOT_TEXT",
+      "fitDropFactor": 3,
+      "fitRounds": 3,
+      "fitFloorPt": 0.001,
+      "fitFloorM": 0.001,
+      "pdfs": ["Master Plan Rev.09/01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf", "01_Output/1.0 General/PDF/01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf"],
+      "titleWords": ["Plot Layout", "CAD Ref", "PIM", "IMG", "BIM Models", "Printed Date", "Last Saved", "Printed By"]
+    },
+    "strayUnits": {
+      "outFolder": "stray_units",
+      "labelBufferM": 0.5,
+      "nbhLookup": {
+        "workbook": "tbd",
+        "sheet": "PH_1-DLUS",
+        "headerRow": 1,
+        "columns": {"plot": "PLOT_NO", "nbh": "Neighbourhood_ID", "zone": "Construction_Zone"}
+      }
+    },
     "entryTerms": {
       "outFolder": "entry_terms",
       "minSidewalkM": 1.0,

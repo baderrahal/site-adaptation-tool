@@ -120,6 +120,8 @@ namespace CadReader
             {
                 Source = sourceName,
                 Units = document.Header.InsUnits.ToString(),
+                Created = document.Header.CreateDateTime.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture),
+                Updated = document.Header.UpdateDateTime.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture),
                 Totals = new TotalsEntry
                 {
                     Before = entities.Count,
