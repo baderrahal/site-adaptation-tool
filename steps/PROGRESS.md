@@ -1,4 +1,4 @@
-STATE 2026-10-25, Round 17 done (PR open): fixed question IDs, placer_check split, the four Native models read, the majority rule with an override list, the IMC file rebuilt with it. Round DATA-5 done and merged (PR 38)
+STATE 2026-10-25, Round 17 done and merged (PR 39): fixed question IDs, placer_check split, the four Native models read, the majority rule with an override list, the IMC file rebuilt with it. Round DATA-5 done and merged (PR 38)
 
 # Progress
 
@@ -15,7 +15,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 
 ## Done
 
-- 17: R261 to R282, PR open. DATA-5: R251 to R260, PR 38. DATA-4: PR 36. 16: PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c: PR 24, 25. C3D: PR 22, 23. 14: PR 20, 21. 1 to 15b: PRs 1 to 19
+- 17: R261 to R282, PR 39. DATA-5: R251 to R260, PR 38. DATA-4: PR 36. 16: PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c: PR 24, 25. C3D: PR 22, 23. 14: PR 20, 21. 1 to 15b: PRs 1 to 19
 
 ## Open bugs
 
