@@ -140,7 +140,7 @@ def prove(books, faces, lookup, roads, offset):
                 continue
             difference = answer["level"] - row["entry"]
             errors.append(difference)
-            entries[row["label"]] = round(answer["level"], 4)
+            entries[row["label"]] = {"entry": round(answer["level"], 4)}
             curbs.append([round(answer["point"][0], 3), round(answer["point"][1], 3)])
             surfaces[answer["surface"]] += 1
             worst.append({"plot": row["plot"], "unit": row["unit"], "difference": round(difference, 4), "surface": answer["surface"], "tied": bool(front["tied"])})
@@ -211,7 +211,7 @@ def main(argv=None):
             if args.write_offsets and result["roadOffsetM"] is not None:
                 section = {"roadOffsetM": result["roadOffsetM"], "plots": result["roadRule"]["n"], "rule": "road level at the curb point nearest the front edge plus the offset", "rampRule": result["rule"]["entryPoint"],
                            "source": MEASURED, "surfaceOrder": lookup.names}
-                prototype_offsets.write_section(args.offsets, "entry", section, prototype_offsets.NOTE)
+                prototype_offsets.write_section(args.offsets, "entry", section, prototype_offsets.note_for(job["neighbourhood"]))
             print("plots " + str(result["counts"].get("plots")) + ", ramp rule " + json.dumps({key: result["rule"][key] for key in ("n", "median", "within5mm", "within10mm", "within30mm", "maxAbs")}) + ", road offset " + str(result["roadOffsetM"]))
         else:
             shifts = link_table.load_shifts(args.shifts)
@@ -220,7 +220,7 @@ def main(argv=None):
                 books[path.name] = (levels_proof.shift_of(path, shifts), levels_proof.read_schedule(path))
             offset = prototype_offsets.entry_offset(prototype_offsets.load(args.offsets))
             report = prove(books, faces, lookup, roads, offset)
-            common.write_json(Path(args.out_dir) / "entry_proof.json", {"roadOffsetM": offset, "surfaceOrder": lookup.names, "workbooks": report, "total": merge_totals(report)})
+            common.write_json(Path(args.out_dir) / "entry_proof.json", {"roadOffsetM": offset, "surfaceOrder": lookup.names, "workbooks": report, "total": merge_totals(report)}, wide_keys=frozenset({"entry", "roadOffsetM"}))
             for name, entry in report.items():
                 print(name + ": plots " + str(entry["plots"]) + ", road level " + str(entry["withRoadLevel"]) + ", none " + str(entry["noRoadLevel"]) + ", bands " + json.dumps(entry["bands"]))
     except (project_profile.ProfileError, ValueError, KeyError, OSError) as error:

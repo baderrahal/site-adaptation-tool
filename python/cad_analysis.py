@@ -645,6 +645,8 @@ def check_settings(profile, analysis):
         values = analysis.get(name, [])
         if not isinstance(values, list) or any(not isinstance(value, str) for value in values):
             raise project_profile.ProfileError("analysis." + name + " must be a list of codes")
+    if not isinstance(analysis.get("pairRule", False), bool):
+        raise project_profile.ProfileError("analysis.pairRule must be true or false")
     hints = analysis.get("blockClusters", {})
     if not isinstance(hints, dict) or any(not isinstance(name, str) or not isinstance(code, str) for name, code in hints.items()):
         raise project_profile.ProfileError("analysis.blockClusters must map a block name to a cluster code")

@@ -36,7 +36,6 @@ ROTATION_DECIMALS = 1
 # A scale that is not 1 or -1 makes the relation of the link a scaling too, which the fit does not model
 SCALE_TOLERANCE = 1e-6
 BLOCK_SIZES = (1, 2, 4)
-MEASURED = "measured from the IMC past job"
 
 
 def block_matrix(block):
@@ -46,6 +45,8 @@ def block_matrix(block):
     the other way in the world, which is why the unit position is counted in local axes.
     """
     scale = block.get("scale") or [1, 1, 1]
+    if not isinstance(scale, (list, tuple)) or len(scale) < 2 or any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in scale[:2]):
+        return None
     sx, sy = scale[0], scale[1]
     if not sx or not sy:
         return None
@@ -137,9 +138,11 @@ def positions(faces, villas, stands_for):
         back = invert(matrix)
         local = []
         for index in held:
-            local.append((index, to_local(block, back, polygons[index].centroid.coords[0])[0]))
-        local.sort(key=lambda item: item[1])
-        for rank, (index, _) in enumerate(local, start=1):
+            at = to_local(block, back, polygons[index].centroid.coords[0])
+            local.append((index, round(at[0], 3), at[1]))
+        # Plots in one column of a block of four tie in x, so y and then the face index decide and the position is never arbitrary
+        local.sort(key=lambda item: (item[1], item[2], item[0]))
+        for rank, (index, _, _) in enumerate(local, start=1):
             found[(number, index)] = rank
     return found
 
@@ -354,7 +357,7 @@ def main(argv=None):
         summary = summarise(report)
         common.write_json(Path(args.out_dir) / "block_offsets.json", {"seed": args.seed, "plotsWithLink": len(links), "measured": len(rows), "leftOut": left_out, "summary": summary, "groups": report, "rows": rows})
         if args.write_offsets:
-            prototype_offsets.write_section(args.offsets, "groups", groups_for_config(report, args.seed), prototype_offsets.NOTE)
+            prototype_offsets.write_section(args.offsets, "groups", groups_for_config(report, args.seed), prototype_offsets.note_for(job["neighbourhood"]))
         print("links " + str(len(links)) + ", measured " + str(len(rows)) + ", left out " + json.dumps(left_out) + ", " + json.dumps(summary))
     except (project_profile.ProfileError, ValueError, KeyError, OSError) as error:
         print("block_offsets: " + str(error), file=sys.stderr)

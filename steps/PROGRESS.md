@@ -4,7 +4,8 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 
 ## State
 
-- Round 12b (unit codes from blocks and schedule rows, building footprint drawing) is pull request 16. python/cad_analysis.py gives each baseplan plot a unit code from its block, else its schedule row, else none (R69, R74), and builds the clusters from that code only. The baseplan label type stays on the plot as cadType. drawings.villaBlocks in config/project.json is Makkah Building Footprint.dwg. Q02 has no alias and each Q02 cluster is an issue (R75). New scripts: block_scan.py (R73), block_proof.py (R76), link_proof.py (R77). levels.py rounds the FFL to the mm and flags a height outside 0.10 to 0.54 m.
+- Round 13 (pull request 17): the Excel unit is the only unit code and a footprint block is a cluster hint (R90), 225 clusters, none unknown. python/road_lookup.py asks the surfaces in file order, Top Surface-02 first (R91). Entry rule (R94): ramp entry at the midpoint of the higher long edge, 205 of 337 within 5 mm, no ramp the road at the curb plus 0.140 m, 43 of 747 within 5 mm and 361 within 30 mm. Block offsets and the entrance are in config/prototype_offsets.json (R97 to R100), 15 groups, a second relation in villas.
+- Round 12b (unit codes from blocks and schedule rows, building footprint drawing) was pull request 16, its block unit source is replaced by round 13. python/cad_analysis.py gives each baseplan plot a unit code from its block, else its schedule row, else none (R69, R74), and builds the clusters from that code only. The baseplan label type stays on the plot as cadType. drawings.villaBlocks in config/project.json is Makkah Building Footprint.dwg. Q02 has no alias and each Q02 cluster is an issue (R75). New scripts: block_scan.py (R73), block_proof.py (R76), link_proof.py (R77). levels.py rounds the FFL to the mm and flags a height outside 0.10 to 0.54 m.
 - Real baseplan: 535 clusters, M02 153, M04 293, unknown 89, Q02 0 (round 12 had 548: M02 143, M04 282, M09 61, Q02 62). Unit code source: block 2346, excel 73, none 159. The block names are client plot types and a block names a whole cluster, so 123 old M09 and Q02 clusters become unknown. The schedule units alone give 225 real Rev 6 clusters and no unknown.
 - Level proof on the past schedules: FFL 633 of 747, steps 745, count rule alone 747. With the CAD clusters: FFL 548, steps 649. The sheet FFL is not the computed FFL rounded down to the cm or to 5 mm.
 - Round 15a (plan.json from the past IMC job and the placer step 1) is pull request 15, merged. python/plan_from_past.py builds plan_imc_past.json outside the repo (R80 to R82). dotnet/SiteAdaptation.Placer is the Revit command Place from plan (R83 to R88), dry run by default, its logic in Common and tested on fakes. python/plan_compare.py compares a plan with the placed model (R89). Nothing of it has run in Revit yet.
@@ -13,7 +14,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 - Rounds 12, 11 and 10 are PRs 14, 13 and 12. Round 9 (floor, ramp and link relations) is PR 11 and its Revit code has NOT run in Revit yet.
 - Top Surface-02 is the finished road for the ramps (Bader decided). The other five design surfaces are not confirmed.
 - Readers: CAD (C#, ACadSharp), PDF, Excel, link table, second source check, face reasons, LandXML, surface lookup, ramp levels, surface roles, road check, cluster analysis, block scan, levels, the proofs, plan builder, plan compare and full run (Python).
-- Gate: Python 468 passed, .NET 205 passed.
+- Gate: Python 565 passed, .NET 205 passed.
 - Real files stay in C:\02-Site Adaptation and C:\Users\bader\Documents\SiteAdaptation and are read in place. Nothing real is in git.
 
 ## Done
@@ -38,12 +39,12 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 
 ## Bader's turn
 
-1. Answer the numbered questions in the top entry of steps/log.md, first the unit code source of round 12b. Then run steps/round-12b.md.
+1. Answer the numbered questions in the top entry of steps/log.md, first the entry rule. Then run steps/round-13.md.
 2. Run steps/round-15a.md on a copy of the IMC model and answer the questions of the Round 15a entry, first the yard rule.
 3. Restore the Generic 150mm floor of plot 2441, then run steps/for-bader-round-9.md and give me the File size line and plot_relations_summary.md.
 
 ## Next three steps
 
-1. Settle the unit code source, then code check 3 (one FFL per cluster) and wire levels.py to the official plot numbers.
+1. Group the offsets by relation, settle the entry rule, then code check 3 (one FFL per cluster) and wire levels.py to the official plot numbers.
 2. Fix what the Revit run of round 15a shows, then place the floors from plan.json once the yard rule is set.
 3. Fill plan.json from CAD and LandXML with the same format, so the placer does not change.

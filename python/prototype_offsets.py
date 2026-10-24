@@ -11,7 +11,7 @@ import project_profile
 
 DEFAULT_PATH = Path(__file__).resolve().parent.parent / "config" / "prototype_offsets.json"
 SECTIONS = ("entry", "groups")
-NOTE = ("Measured from the IMC past job (prototypes_imc_past.json and the IMC schedule), not a rule of the client. "
+NOTE = ("Measured from the {job} past job (the answer key and the schedule of that job in config/project.json), not a rule of the client. "
         "entry: roadOffsetM is the median of El @ Entry minus the road level at the curb point nearest the front edge of the plot, R94. "
         "groups: one per footprint block name and unit position, counted along the X axis of the block. offset is the link origin in the axes of the block "
         "from its insert point, relative is the turn of the link against the block and whether it is mirrored, entrance is the entry point of the ramp in the same axes, "
@@ -19,6 +19,11 @@ NOTE = ("Measured from the IMC past job (prototypes_imc_past.json and the IMC sc
         "Each group was also split in half with the seed in splitSeed, fitted on the first half and tested on the second, and fitError and testError count the plots by the distance "
         "between the predicted and the measured link origin. entranceTestError does the same for the entrance. A group with tooFew true was not tested. "
         "Lengths are in metres and angles in degrees. No Python file holds these values, R100.")
+
+
+def note_for(job):
+    """The note of the file with the name of the neighbourhood of the past job, which comes from pastJob in config/project.json."""
+    return NOTE.format(job=job)
 GROUP_KEYS = ("block", "position", "plots", "offset", "relative", "entrance")
 
 

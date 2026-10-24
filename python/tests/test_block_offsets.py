@@ -222,3 +222,18 @@ def test_r97_read_links_takes_the_shared_origin_of_the_villa_link_of_each_plot_a
     ]}
     found = block_offsets.read_links(document, [1000.0, 5000.0, 100.0])
     assert list(found) == ["101"] and found["101"]["origin"] == [1001.0, 5002.0, 103.0]
+
+
+@pytest.mark.parametrize("scale", [[1], "x", ["a", 1], [True, 1], [0, 1, 1]])
+def test_r97_a_scale_that_is_not_two_numbers_or_is_zero_gives_no_matrix_and_no_crash(scale):
+    assert block_offsets.block_matrix({"insertPoint": [0, 0], "scale": scale}) is None
+
+
+def test_r97_four_plots_in_two_columns_get_a_position_that_does_not_depend_on_the_face_order():
+    faces = [face("1", 0, 0), face("2", 10, 0), face("3", 0, 25), face("4", 10, 25)]
+    villas = [block("Townhouse_TH1", box(0, 0, 20, 50))]
+    first = block_offsets.positions(faces, villas, [[0, 1, 2, 3]])
+    reversed_faces = [faces[3], faces[2], faces[1], faces[0]]
+    second = block_offsets.positions(reversed_faces, villas, [[0, 1, 2, 3]])
+    by_label = lambda found, source: {source[index]["plot"]: rank for (_, index), rank in found.items()}
+    assert by_label(first, faces) == by_label(second, reversed_faces) == {"1": 1, "3": 2, "2": 3, "4": 4}

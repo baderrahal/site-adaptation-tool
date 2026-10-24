@@ -357,7 +357,7 @@ def read_entries(path):
             for label, level in book["entries"].items():
                 if label in found:
                     raise project_profile.ProfileError("two workbooks give an entry level to the baseplan label " + label)
-                found[label] = level
+                found[label] = level["entry"] if isinstance(level, dict) else level
         return found
     except (OSError, json.JSONDecodeError, KeyError, AttributeError, TypeError) as error:
         raise project_profile.ProfileError("the entry proof cannot be read: " + str(error)) from error
@@ -399,6 +399,8 @@ def main(argv=None):
             raise project_profile.ProfileError("schedule not found: " + ", ".join(absent))
         clusters, coded = read_analysis(args.analysis) if args.analysis else (None, None)
         shifts = link_table.load_shifts(args.shifts) if args.analysis else None
+        if args.entries and not args.analysis:
+            raise project_profile.ProfileError("--entries needs --analysis")
         computed = read_entries(args.entries) if args.entries else None
         report = build_report(profile, paths, clusters, shifts, coded, computed)
     except (project_profile.ProfileError, ValueError, KeyError, OSError) as error:

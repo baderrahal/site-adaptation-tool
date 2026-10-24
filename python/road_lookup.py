@@ -10,6 +10,7 @@ import surface_lookup
 # The two ways the order is known, said in the reports so a reader sees which one ran
 FILE_ORDER = "file order, road first"
 CONFIG_ORDER = "order in config"
+ROLES = ("ground", "design", "road")
 
 
 def order_of(config):
@@ -21,6 +22,9 @@ def order_of(config):
     order on a ground surface, since the ground must never answer.
     """
     surfaces = config["surfaces"]
+    for name, entry in surfaces.items():
+        if entry.get("role") not in ROLES:
+            raise ValueError("the surface " + name + " has the role " + repr(entry.get("role")) + ", which is not one of " + ", ".join(ROLES))
     roads = [name for name, entry in surfaces.items() if entry["role"] == "road"]
     if len(roads) > 1:
         raise ValueError("more than one surface has the role road: " + ", ".join(roads))

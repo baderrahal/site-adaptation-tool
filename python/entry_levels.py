@@ -34,7 +34,7 @@ def spread(values):
     ordered = sorted(values)
     count = len(ordered)
     median = statistics.median(ordered)
-    result = {"n": count, "median": round(median, 4), "p5": round(ordered[int(0.05 * count)], 4), "p95": round(ordered[max(int(0.95 * count) - 1, 0)], 4), "maxAbs": round(max(abs(value) for value in ordered), 4)}
+    result = {"n": count, "median": round(median, 4), "p5": round(ordered[int(0.05 * count)], 4), "p95": round(ordered[min(int(0.95 * count), count - 1)], 4), "maxAbs": round(max(abs(value) for value in ordered), 4)}
     for label, limit in zip(BAND_LABELS, BANDS):
         result[label] = sum(1 for value in ordered if abs(value) <= limit + EPSILON)
         result[label + "AfterMedian"] = sum(1 for value in ordered if abs(value - median) <= limit + EPSILON)
@@ -123,7 +123,7 @@ def front_edge(polygon, road_tree, roads):
     FRONT_TIE of the nearest one, which is a corner plot. The curb point is the point of the nearest road edge line
     that is nearest to the midpoint of the front edge. None when the face has no edge or there is no road line.
     """
-    if roads is None or len(roads) == 0:
+    if roads is None or len(roads) == 0 or polygon.geom_type != "Polygon":
         return None
     candidates = []
     for first, second in ring_edges(polygon):

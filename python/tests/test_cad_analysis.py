@@ -956,3 +956,10 @@ def test_r70_with_pair_rule_false_the_block_mirror_flags_are_left_out_of_the_row
     assert [c["code"] for c in cad_analysis.derive_clusters(equal, profile, {**ANALYSIS, "pairRule": False})] == ["D02"]
     # The flags still reach the cluster record
     assert cad_analysis.derive_clusters(equal, profile, {**ANALYSIS, "pairRule": False})[0]["mirrored"] == [True, True]
+
+
+@pytest.mark.parametrize("value", ["false", "no", 0, None, []])
+def test_r70_pair_rule_must_be_true_or_false_and_a_text_never_turns_it_on(tmp_path, value):
+    profile = profile_in(tmp_path)
+    with pytest.raises(project_profile.ProfileError, match="analysis.pairRule must be true or false"):
+        cad_analysis.analyse(row(["DP2", "DP2"], ["1", "2"]), profile, {**ANALYSIS, "pairRule": value})

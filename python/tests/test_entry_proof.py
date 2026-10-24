@@ -64,7 +64,7 @@ def test_r95_the_proof_works_out_the_entry_level_from_the_road_and_the_front_edg
     report = entry_proof.prove(books(rows), faces, lookup, road_line(-4), 0.14)["a.xlsx"]
     assert report["plots"] == 2 and report["withRoadLevel"] == 2 and report["noRoadLevel"] == 0 and report["noFace"] == 0
     assert report["bands"] == {"within5mm": 1, "within10mm": 1, "within30mm": 1, "worse": 1}
-    assert report["surfaces"] == {"Road": 2} and report["entries"] == {"1": 3.14, "2": 3.14}
+    assert report["surfaces"] == {"Road": 2} and report["entries"] == {"1": {"entry": 3.14}, "2": {"entry": 3.14}}
     assert [(w["plot"], w["difference"]) for w in report["worst"]] == [("12", -0.06), ("11", 0.0)]
     assert report["curbPoints"] == [[5.0, -4.0], [25.0, -4.0]]
 
@@ -117,8 +117,8 @@ def test_r96_the_causes_add_up_to_the_misses_and_a_computed_entry_that_equals_th
 
 def test_r96_read_entries_joins_the_workbooks_by_baseplan_label_and_a_label_twice_stops(tmp_path):
     path = tmp_path / "entry_proof.json"
-    path.write_text(json.dumps({"workbooks": {"a": {"entries": {"1": 3.14}}, "b": {"entries": {"2": 3.2}}}}), encoding="utf-8")
-    assert levels_proof.read_entries(path) == {"1": 3.14, "2": 3.2}
+    path.write_text(json.dumps({"workbooks": {"a": {"entries": {"1": {"entry": 3.1415}}}, "b": {"entries": {"2": 3.2}}}}), encoding="utf-8")
+    assert levels_proof.read_entries(path) == {"1": 3.1415, "2": 3.2}
     path.write_text(json.dumps({"workbooks": {"a": {"entries": {"1": 3.14}}, "b": {"entries": {"1": 3.2}}}}), encoding="utf-8")
     with pytest.raises(project_profile.ProfileError, match="two workbooks give an entry level to the baseplan label 1"):
         levels_proof.read_entries(path)
@@ -136,3 +136,10 @@ def test_r96_the_levels_proof_causes_now_name_entry_level_first():
 def test_r95_main_refuses_a_missing_offsets_file_in_one_line(tmp_path, capsys):
     code = entry_proof.main(["proof", str(tmp_path / "out"), "--cad", str(tmp_path), "--roads", str(tmp_path), "--landxml-dir", str(tmp_path), "--offsets", str(tmp_path / "none.json")])
     assert code == 2 and capsys.readouterr().err.startswith("entry_proof: ")
+
+
+def test_r96_entries_without_analysis_are_refused_in_one_line(tmp_path, capsys):
+    path = tmp_path / "entry_proof.json"
+    path.write_text(json.dumps({"workbooks": {}}), encoding="utf-8")
+    assert levels_proof.main([str(tmp_path / "out"), "--entries", str(path)]) == 2
+    assert "--entries needs --analysis" in capsys.readouterr().err

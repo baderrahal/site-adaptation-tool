@@ -84,7 +84,7 @@ def hand_offset(block, link_origin, link_transform):
     The relation is the angle of the link X axis in those axes and whether the link is mirrored against the block.
     """
     turn = math.radians(block.get("rotationDeg") or 0.0)
-    sx, sy = block["scale"][0], block["scale"][1]
+    sx, sy = block["scale"][0], block["scale"][1]  # block_offsets has already refused a block without a usable scale
     dx, dy = link_origin[0] - block["insertPoint"][0], link_origin[1] - block["insertPoint"][1]
     local = ((dx * math.cos(turn) + dy * math.sin(turn)) / sx, (-dx * math.sin(turn) + dy * math.cos(turn)) / sy)
     ax, ay = link_transform["axisX"][0], link_transform["axisX"][1]

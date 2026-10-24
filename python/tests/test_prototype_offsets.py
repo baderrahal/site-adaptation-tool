@@ -121,7 +121,7 @@ def test_r100_write_section_replaces_one_section_keeps_the_other_and_rounds_to_t
 
 def test_r100_write_section_starts_a_file_that_does_not_exist_with_empty_sections(tmp_path):
     path = tmp_path / "sub" / "offsets.json"
-    prototype_offsets.write_section(path, "entry", {"roadOffsetM": 0.1}, prototype_offsets.NOTE)
+    prototype_offsets.write_section(path, "entry", {"roadOffsetM": 0.1}, prototype_offsets.note_for("ABC"))
     data = prototype_offsets.load(path)
     assert data["groups"] == [] and prototype_offsets.entry_offset(data) == 0.1
-    assert prototype_offsets.NOTE.startswith("Measured from the IMC past job") and chr(59) not in prototype_offsets.NOTE
+    assert prototype_offsets.note_for("ABC").startswith("Measured from the ABC past job") and chr(59) not in prototype_offsets.NOTE

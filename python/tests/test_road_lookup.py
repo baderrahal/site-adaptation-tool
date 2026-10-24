@@ -127,3 +127,10 @@ def test_r92_lookup_summary_counts_a_ramp_a_later_surface_covers_and_names_the_s
     assert summary["noFirstSurfaceCorner"] == 3 and summary["gainedFromLaterSurfaces"] == 1 and summary["gainedBySurface"] == {"Design": 1}
     assert summary["coveredCorners"] == {"0": 2, "1": 1, "2": 1, "3": 0, "4": 0}
     assert summary["corners"] == 16
+
+
+@pytest.mark.parametrize("role", ["Ground", "desgin", None, ""])
+def test_r91_a_role_that_is_not_ground_design_or_road_is_refused_so_the_ground_can_never_answer(role):
+    config = {"surfaces": {"a": {"role": "road"}, "g": {"role": role}}}
+    with pytest.raises(ValueError, match="the surface g has the role"):
+        road_lookup.order_of(config)
