@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The plain parts of the probe for the tests and the CI build. Civil 3D 2026 loads .NET 8 plug-ins only, so the
+       commands live in Civil/SiteAdaptation.C3DProbe.Civil.csproj, built by hand where Civil 3D is installed (R150) -->
+  <PropertyGroup>
+    <AssemblyName>SiteAdaptation.C3DProbe</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Civil\**" />
+    <None Remove="Civil\**" />
+  </ItemGroup>
+</Project>

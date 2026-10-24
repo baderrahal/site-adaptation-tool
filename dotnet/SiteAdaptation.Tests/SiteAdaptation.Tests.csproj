@@ -9,4 +9,7 @@
     <ProjectReference Include="..\SiteAdaptation.Common\SiteAdaptation.Common.csproj" />
     <ProjectReference Include="..\CadReader\CadReader.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SiteAdaptation.C3DProbe\SiteAdaptation.C3DProbe.csproj" />
+  </ItemGroup>
 </Project>
