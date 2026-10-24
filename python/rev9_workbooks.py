@@ -178,7 +178,7 @@ def line_class(value, lines, tolerance):
     return "other"
 
 
-def setbacks(dlus, plots, lines, rev6, tolerance, unit_types):
+def setbacks(dlus, plots, lines, manual, tolerance, unit_types):
     """The DLUS setbacks joined to plots.csv by plot number. Front against the drawn line and against Rev 6, counted by typology,
     and the four values as they are written, counted by typology."""
     by_number, many = plots_by_number(plots)
@@ -197,7 +197,7 @@ def setbacks(dlus, plots, lines, rev6, tolerance, unit_types):
         joined += 1
         front = number(item.get("front"))
         drawn = number(row["setbackFromFrontM"])
-        wanted = rev6.get(row["clientType"], rev6["default"])
+        wanted = manual.get(row["clientType"], manual["default"])
         drawn_class = line_class(drawn, lines, tolerance)
         counts[typology]["plots"] += 1
         counts[typology]["drawn " + drawn_class] += 1
@@ -210,13 +210,13 @@ def setbacks(dlus, plots, lines, rev6, tolerance, unit_types):
             counts[typology]["frontEqualsRev6" if abs(front - wanted) <= tolerance else "frontDiffersRev6"] += 1
         rows.append({"plot": key, "typology": item.get("typology"), "clientType": row["clientType"], "neighbourhood": row["neighbourhood"],
                      "front": front, "right": number(item.get("right")), "left": number(item.get("left")), "rear": number(item.get("rear")),
-                     "drawnFront": drawn, "drawnClass": drawn_class, "rev6Front": wanted, "unitPlot": row["clientType"] in unit_types})
+                     "drawnFront": drawn, "drawnClass": drawn_class, "manualFront": wanted, "unitPlot": row["clientType"] in unit_types})
     unit_rows = [r for r in rows if r["unitPlot"]]
     summary = {"dlusRows": len(dlus), "joined": joined, "numbersOnManyFaces": len(many),
                "unitPlots": len(unit_rows),
                "unitFront": dict(Counter("%.2f" % r["front"] if r["front"] is not None else "none" for r in unit_rows).most_common()),
                "unitFrontAgainstDrawn": dict(Counter(_against(r["front"], r["drawnFront"], tolerance) for r in unit_rows)),
-               "unitFrontAgainstRev6": dict(Counter(_against(r["front"], r["rev6Front"], tolerance) for r in unit_rows)),
+               "unitFrontAgainstRev6": dict(Counter(_against(r["front"], r["manualFront"], tolerance) for r in unit_rows)),
                "unitDrawnClass": dict(Counter(r["drawnClass"] for r in unit_rows)),
                "byTypology": {k: dict(v) for k, v in sorted(counts.items())},
                "valuesByTypology": {k: dict(v.most_common(12)) for k, v in sorted(values.items())}}
@@ -243,7 +243,7 @@ def against_widths(width, allowed, tolerance):
     return "wider" if width > max(allowed) else "narrower" if width < min(allowed) else "between"
 
 
-def widths(sales, plots, rev6_widths, code_widths, from_cad, tolerance, unit_types):
+def widths(sales, plots, manual_widths, code_widths, from_cad, tolerance, unit_types):
     """Land Width and Land Length of the sales sheet against the CAD width and depth of plots.csv, against the Rev 6 widths of
     the client type and against the width of the Typology_Rev9 code in the code table."""
     by_number, _ = plots_by_number(plots)
@@ -255,7 +255,7 @@ def widths(sales, plots, rev6_widths, code_widths, from_cad, tolerance, unit_typ
             continue
         width, length = number(item.get("landWidth")), number(item.get("landLength"))
         cad_width, cad_depth = number(row["widthM"]), number(row["depthM"])
-        allowed = rev6_widths.get(row["clientType"])
+        allowed = manual_widths.get(row["clientType"])
         code_width = code_widths.get(item.get("typology"))
         rows.append({"plot": key, "clientType": row["clientType"], "typologyRev9": item.get("typology"), "typologyRev81": item.get("typologyOld"),
                      "neighbourhood": row["neighbourhood"], "landWidth": width, "landLength": length, "cadWidth": cad_width, "cadDepth": cad_depth,
