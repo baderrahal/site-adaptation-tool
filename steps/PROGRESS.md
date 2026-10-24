@@ -1,4 +1,4 @@
-STATE 2026-10-24 21:40, Round Z4 done: a new Revit site file built from CAD only for DT3 of NBH 022 and compared with the 1.4 past model
+STATE 2026-10-24 21:55, Round Z4 done and merged (PR 30): a new Revit site file built from CAD only for DT3 of NBH 022 and compared with the 1.4 past model
 
 # Progress
 
@@ -13,7 +13,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 
 ## Done
 
-- Z4: R200 to R218. DATA-2: PR 28. DATA: PR 26. 14c: PR 24, 25. C3D: PR 22, 23. 14: PR 20, 21. 15b: PR 19. 1 to 15a: PRs 1 to 18
+- Z4: R200 to R218, PR 30. DATA-2: PR 28. DATA: PR 26. 14c: PR 24, 25. C3D: PR 22, 23. 14: PR 20, 21. 15b: PR 19. 1 to 15a: PRs 1 to 18
 
 ## Open bugs
 
