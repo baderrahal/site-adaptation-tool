@@ -181,6 +181,9 @@ def stage_commands(out_root, ran, second, shifts, settings=None):
         analysis += ["--blocks", str(villa)]
     if (road / "pieces.json").is_file():
         analysis += ["--roads", str(road)]
+    # The Unit column of the schedules gives the unit of a plot that has no block (R74)
+    if coords:
+        analysis += ["--coords"] + coords + ["--shifts", str(shifts)]
     stages.append({"name": "analysis", "args": analysis})
     return stages
 

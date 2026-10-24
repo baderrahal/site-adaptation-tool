@@ -152,7 +152,9 @@ def test_r67_the_proof_command_reads_the_two_schedules_in_place_and_writes_its_r
     assert lines[0] == "FFL matches 5 of 6, steps matches 6 of 6, both 5, SSL 5, count rule alone 6"
     assert lines[1].startswith("base height source: past job schedules")
     assert lines[2] == "FFL mismatches 1, steps mismatches 0, largest FFL difference 0.05 m"
-    assert lines[3] == "FFL plot 1004 VL4 sheet 30.05 computed 30.0 (-0.05)"
+    assert lines[3] == "sheet FFL against the computed FFL rounded down: to the cm matches 5 of 6 (fixes 0, breaks 0), to 5 mm matches 5 of 6 (fixes 0, breaks 0)"
+    assert lines[4] == 'sheet grouping misses by cause: FFL {"base height": 1}, steps none'
+    assert lines[5] == "FFL plot 1004 VL4 sheet 30.05 computed 30.0 (-0.05)"
     report = json.loads((tmp_path / "out" / "levels_proof.json").read_text(encoding="utf-8"))
     assert report["summary"]["files"] == SCHEDULES and report["summary"]["cadClusters"] is None
 
@@ -164,7 +166,8 @@ def test_r67_the_proof_command_adds_the_run_on_the_cad_clusters_when_it_gets_ana
     analysis = write_analysis(tmp_path / "analysis.json", CAD_CLUSTERS)
     assert levels_proof.main([str(tmp_path / "out"), "--root", str(tmp_path / "input"), "--analysis", str(analysis)]) == 0
     lines = capsys.readouterr().out.strip().splitlines()
-    assert lines[3] == "CAD clusters: FFL matches 4 of 5, steps matches 4 of 5, clusters with more than one sheet FFL: 2 units 1 of 2"
+    assert lines[5] == "CAD clusters: FFL matches 4 of 5, steps matches 4 of 5, clusters with more than one sheet FFL: 2 units 1 of 2"
+    assert lines[6] == 'CAD cluster misses by cause: FFL {"wrong cluster": 1}, steps {"wrong cluster": 1}'
     report = json.loads((tmp_path / "out" / "levels_proof.json").read_text(encoding="utf-8"))
     assert report["summary"]["cadClusters"]["fflMatches"] == 4
 
@@ -224,3 +227,76 @@ def test_r67_proof_on_the_real_schedules_reports_matches_out_of_747_and_changes_
     assert summary["countRuleAloneMatches"] == 747
     # The Excel unit codes are the profile codes as they are
     assert summary["unitsNotInProfile"] == []
+
+
+def test_r67_the_sheet_ffl_is_measured_against_the_computed_ffl_rounded_down_to_the_cm_and_to_5_mm_and_the_rule_is_not_changed():
+    rule = levels.count_rule(PROFILE)
+    # A lone VL4 plot has the computed FFL entry plus 0.1, taken to the millimetre first: 10.0123 gives 10.112, 10.0143 gives 10.114, 10.0173 gives 10.117
+    rows = [lone(1, 10.11, entry=10.0123), lone(2, 10.112, entry=10.0123), lone(3, 10.11, entry=10.0143), lone(4, 10.115, entry=10.0173), lone(5, 10.1, entry=10.0123)]
+    found, _ = levels_proof.compare_schedule(PROFILE, rows, rule)
+    assert [(item["computedFfl"], item["fflMatch"], item["floorCm"], item["floorFiveMm"]) for item in found] == [
+        (10.112, False, True, True), (10.112, True, False, False), (10.114, False, True, True), (10.117, False, False, True), (10.112, False, False, False)]
+    assert levels_proof.flooring(found) == {"cm": {"matches": 2, "fixed": 2, "broken": 1}, "fiveMm": {"matches": 3, "fixed": 3, "broken": 1}}
+    assert [item["computedFfl"] for item in found][:2] == [10.112, 10.112]
+
+
+def test_r67_the_flooring_is_worked_out_in_whole_millimetres_so_float_noise_cannot_move_it():
+    assert levels_proof.mm_of(10.115) == 10115 and levels_proof.mm_of(171.5129999999) == 171513
+    assert [levels_proof.floored(value, 10) for value in (10.119, 10.11, 10.1099999999)] == [10110, 10110, 10110]
+    assert [levels_proof.floored(value, 5) for value in (10.119, 10.115, 10.114, 10.12)] == [10115, 10115, 10110, 10120]
+
+
+@pytest.mark.parametrize("coded,in_run,in_sheet,difference,cause", [
+    (False, {"1"}, {"1", "2"}, 0.1, "no unit code"),
+    (True, {"1"}, {"1", "2"}, 0.1, "wrong cluster"),
+    (True, {"1", "2"}, {"1", "2"}, 0.1, "base height"),
+    (True, {"1", "2"}, {"1", "2"}, -0.01, "base height"),
+    (True, {"1", "2"}, {"1", "2"}, 0.0099, "rounding"),
+    (True, {"1", "2"}, {"1", "2"}, -0.001, "rounding"),
+    (True, {"1", "2"}, {"1", "2"}, 0.0, "other"),
+])
+def test_r67_a_miss_gets_the_first_cause_that_applies_from_no_unit_code_to_other(coded, in_run, in_sheet, difference, cause):
+    assert levels_proof.miss_cause(coded, in_run, in_sheet, difference) == cause
+
+
+def test_r67_the_misses_of_the_sheet_grouping_are_split_by_cause_and_a_steps_miss_with_a_right_ffl_is_other(tmp_path):
+    # A lone plot has the computed FFL entry plus the base height, 0.1 for VL4 and for a unit the profile lacks
+    rows = [(1, "VL4", 10.1, 10.0, "1 steps"), (2, "VL4", 11.095, 11.0, "1 steps"), (3, "VL4", 12.15, 12.0, "2 step"), (4, "ZZ9", 13.2, 13.0, "1 steps"), (5, "VL4", 14.1, 14.0, "2 step")]
+    report = levels_proof.build_report(PROFILE, [schedule(tmp_path / "a.xlsx", rows)])
+    summary = report["summary"]
+    assert (summary["fflMatches"], summary["stepsMatches"]) == (2, 3)
+    assert summary["missCauses"] == {"ffl": {"base height": 1, "rounding": 1, "no unit code": 1}, "steps": {"base height": 1, "other": 1}}
+    assert levels_proof.causes_line("sheet grouping", summary["missCauses"]) == 'sheet grouping misses by cause: FFL {"base height": 1, "rounding": 1, "no unit code": 1}, steps {"base height": 1, "other": 1}'
+    assert levels_proof.causes_line("x", {"ffl": {}, "steps": {}}) == "x misses by cause: FFL none, steps none"
+
+
+def cad_book(folder):
+    return schedule(folder / SCHEDULES[0], [(1011, "DP2", 10.3, 10.0, "2 step"), (1012, "DP2", 10.3, 10.1, "1 steps"), (1013, "VL4", 11.1, 11.0, "1 steps"), (1014, "VL4", 12.1, 12.0, "1 steps")])
+
+
+def cad_report(tmp_path, clusters, coded):
+    return levels_proof.build_report(PROFILE, [cad_book(tmp_path)], clusters, SHIFTS, coded)["summary"]["cadClusters"]
+
+
+def test_r67_in_the_cad_run_a_cluster_that_differs_from_the_sheet_is_a_wrong_cluster(tmp_path):
+    # The CAD cluster takes plot 1003 in, so the three plots share the FFL 11.2 and the sheet has 10.3, 10.3 and 11.1
+    found = cad_report(tmp_path, [{"code": "M02", "plots": ["1001", "1002", "1003"]}], {"1001", "1002", "1003", "1004"})
+    assert (found["fflMatches"], found["missCauses"]["ffl"]) == (1, {"wrong cluster": 3})
+    right = cad_report(tmp_path, [{"code": "M02", "plots": ["1001", "1002"]}], {"1001", "1002", "1003", "1004"})
+    assert (right["fflMatches"], right["missCauses"]) == (4, {"ffl": {}, "steps": {}})
+
+
+def test_r67_in_the_cad_run_a_missing_plot_with_no_unit_code_in_the_analysis_is_told_no_unit_code_and_not_wrong_cluster(tmp_path):
+    clusters = [{"code": "M02", "plots": ["1002"]}]
+    found = cad_report(tmp_path, clusters, {"1002"})
+    # Plot 1001 is alone with the entry 10.0, so 10.2 against the sheet 10.3, and its steps follow its FFL
+    assert (found["fflMatches"], found["missCauses"]) == (3, {"ffl": {"no unit code": 1}, "steps": {"no unit code": 1}})
+    assert cad_report(tmp_path, clusters, None)["missCauses"]["ffl"] == {"wrong cluster": 1}
+
+
+def test_r67_analysis_json_gives_the_labels_with_a_unit_code_and_a_file_with_no_plots_list_leaves_them_unknown(tmp_path):
+    (tmp_path / "a.json").write_text(json.dumps({"clusters": [{"plots": ["1"]}], "plots": [{"plot": "1", "unit": "DP2"}, {"plot": "2", "unit": None}, {"plot": 3, "unit": "TH1"}, "x"]}), encoding="utf-8")
+    assert levels_proof.read_analysis(tmp_path / "a.json") == ([{"plots": ["1"]}], {"1", "3"})
+    (tmp_path / "b.json").write_text(json.dumps({"clusters": []}), encoding="utf-8")
+    assert levels_proof.read_analysis(tmp_path / "b.json") == ([], None)
+    assert levels_proof.read_clusters(tmp_path / "b.json") == []

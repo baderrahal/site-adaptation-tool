@@ -45,3 +45,13 @@ def check_known_clusters(clusters):
             text += ". The order along the road is not sure"
         issues.append(issue("R66", cluster["plots"], text))
     return issues
+
+
+def check_unmatched_codes(clusters, codes):
+    """R75. A cluster written with an old client code that has no Rev 6 cluster is an issue, one for each cluster."""
+    issues = []
+    for cluster in clusters:
+        if cluster["code"] in codes:
+            plots = ", ".join(cluster["plots"])
+            issues.append(issue("R75", cluster["plots"], "Plots " + plots + " (" + ", ".join(cluster["typologies"]) + ") form cluster " + cluster["code"] + ", an old client code with no Rev 6 cluster"))
+    return issues

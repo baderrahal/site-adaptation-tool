@@ -40,8 +40,7 @@
   "cluster_aliases": {
     "D02": "M02",
     "D04": "M04",
-    "Q01": "M09",
-    "Q02": "M10"
+    "Q01": "M09"
   },
   "cluster_max_units": 4,
   "cluster_split_positions": [2, 3],

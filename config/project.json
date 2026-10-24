@@ -1,5 +1,5 @@
 {
-  "note": "Names the rules profile and the drawings of this project, so no project name sits in the Python files. Paths are relative to the repo root, except inputRoot, which is the folder of the real input files on this machine. schedules names the two past schedule workbooks that the level proof reads from the References folder under inputRoot. drawings holds one file name per role. baseplan has the plot faces and labels. masterplan is the current master plan drawing, the second source check reads it and config/second_source.json names its plot layers. previousMasterplan is the master plan it replaced, kept for reference and not read in the full run. villaBlocks is the drawing the villa block of each unit is read from. roadLayout is the road layout drawing, its road edges give the front of a row. xrefRoles maps the name of an xref file that is not on disk to the role of the drawing that stands in for it. skip lists the other drawings the full run does not read, each with its reason. The analysis block holds how the CAD analysis reads the drawings. Lengths are in metres. partyWallShare is the share of plot.long_side that a shared edge must reach to count as a party wall. endShare is how far from the centre of a row, as a share of plot.long_side, a shared edge must lie to count as the front or the back of the row. roadEdgeLayers names the layers of the road layout drawing that hold the road edge polylines. pastJob names what python/plan_from_past.py reads to build plan.json from a past job (R81). schedule is one of schedules and sheet is its sheet. prototypes is the full path of a kept copy of the prototypes.json the Revit reader wrote on the past model, since a later reader run writes prototypes.json again. prototypeFolder is the folder of the KEO prototype files under inputRoot. output is the full path of the plan file, outside the repo. parameters lists the shared parameters to write on each link, RRE_ZZ_SP_Prototype-FFL is never one of them.",
+  "note": "Names the rules profile and the drawings of this project, so no project name sits in the Python files. Paths are relative to the repo root, except inputRoot, which is the folder of the real input files on this machine. schedules names the two past schedule workbooks that the level proof reads from the References folder under inputRoot. drawings holds one file name per role. baseplan has the plot faces and labels. masterplan is the current master plan drawing, the second source check reads it and config/second_source.json names its plot layers. previousMasterplan is the master plan it replaced, kept for reference and not read in the full run. villaBlocks is the drawing the villa block of each unit is read from. roadLayout is the road layout drawing, its road edges give the front of a row. xrefRoles maps the name of an xref file that is not on disk to the role of the drawing that stands in for it. skip lists the other drawings the full run does not read, each with its reason. The analysis block holds how the CAD analysis reads the drawings. Lengths are in metres. partyWallShare is the share of plot.long_side that a shared edge must reach to count as a party wall. endShare is how far from the centre of a row, as a share of plot.long_side, a shared edge must lie to count as the front or the back of the row. roadEdgeLayers names the layers of the road layout drawing that hold the road edge polylines. unitPlotTypes lists the client plot types of the baseplan labels that stand for a plot with a unit on it, so only those plots get an issue when no unit code is found for them (R69). It is a list of plot types and never maps a plot type to a unit code (R30). noRev6Match lists the cluster codes of the profile that are old client codes with no Rev 6 cluster, and every cluster written with one of them gets an issue (R75).pastJob names what python/plan_from_past.py reads to build plan.json from a past job (R81). schedule is one of schedules and sheet is its sheet. prototypes is the full path of a kept copy of the prototypes.json the Revit reader wrote on the past model, since a later reader run writes prototypes.json again. prototypeFolder is the folder of the KEO prototype files under inputRoot. output is the full path of the plan file, outside the repo. parameters lists the shared parameters to write on each link, RRE_ZZ_SP_Prototype-FFL is never one of them.",
   "profile": "rules/roshn-makkah.json",
   "inputRoot": "C:\\02-Site Adaptation",
   "schedules": ["00101-PSN-IMC-XXX-SCH-TU-090000.xlsx", "00101-PSN-IMD-XXX-SCH-TU-090000.xlsx"],
@@ -7,7 +7,7 @@
     "baseplan": "ROSHN Makkah Baseplan.dwg",
     "masterplan": "25.06.2025 Phase 1 Amana_V9.dwg",
     "previousMasterplan": "221229_MP-SK-01-03-001_R06.dwg",
-    "villaBlocks": "221229_MP-SK-01-03-001_R06_0000.dwg",
+    "villaBlocks": "Makkah Building Footprint.dwg",
     "roadLayout": "Makkah Phase 1_Road Layout.dwg",
     "xrefRoles": {
       "Makkah Phase 1_Road Layout_new.dwg": "roadLayout"
@@ -23,7 +23,9 @@
     "toleranceM": 0.01,
     "partyWallShare": 0.75,
     "endShare": 0.25,
-    "roadEdgeLayers": ["RD-CURB-LINE"]
+    "roadEdgeLayers": ["RD-CURB-LINE"],
+    "unitPlotTypes": ["C10", "DP2", "DP4", "TH1", "TH3", "VL2", "VL3", "VL4"],
+    "noRev6Match": ["Q02"]
   },
   "pastJob": {
     "neighbourhood": "IMC",
