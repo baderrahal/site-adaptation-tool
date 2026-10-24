@@ -1,8 +1,9 @@
 # Builds the solution and installs the reader, the placer and the test host from that one build (R101).
 # Each add-in sits in its own folder with its own manifest that names the full DLL path.
-# Revit must be closed, it holds the DLLs open.
+# Revit must be closed, it holds the DLLs open. -SkipSigningReport leaves the add-in security answers unread.
 param(
-    [switch]$NoBuild
+    [switch]$NoBuild,
+    [switch]$SkipSigningReport
 )
 
 $ErrorActionPreference = 'Stop'
@@ -63,6 +64,10 @@ Install-Folder $reader $readerFolder @('RevitPrototypeReader.dll', 'RevitPrototy
 Install-Folder $placer $placerFolder @('SiteAdaptation.Placer.dll', 'SiteAdaptation.Placer.pdb', 'SiteAdaptation.Common.dll', 'SiteAdaptation.Common.pdb', 'Newtonsoft.Json.dll')
 # The test host folder holds the test host only. It loads the placer, the reader and Common from their own folders
 Install-Folder $host_ $hostFolder @('SiteAdaptation.TestHost.dll', 'SiteAdaptation.TestHost.pdb')
+# The dialog watcher of R106 is a program and not an add-in. Revit reads manifests in the Addins root only, so this folder is never loaded
+$watcher = Join-Path $repo 'dotnet\SiteAdaptation.DialogWatcher\bin\Release\net48'
+$watcherFolder = Join-Path $hostFolder 'Watcher'
+Install-Folder $watcher $watcherFolder @('SiteAdaptation.DialogWatcher.exe', 'SiteAdaptation.DialogWatcher.exe.config', 'SiteAdaptation.DialogWatcher.pdb', 'SiteAdaptation.Common.dll', 'Newtonsoft.Json.dll')
 
 $manifests = @(
     (Install-Manifest (Join-Path $repo 'dotnet\RevitPrototypeReader\SiteAdaptation.addin') 'SiteAdaptation_Revit2024.addin' (Join-Path $readerFolder 'RevitPrototypeReader.dll'))
@@ -72,7 +77,7 @@ $manifests = @(
 
 # Revit loads one SiteAdaptation.Common.dll for all three, so all must come from this build
 $built = (Get-FileHash (Join-Path $placer 'SiteAdaptation.Common.dll')).Hash
-$hashes = @((Get-FileHash (Join-Path $readerFolder 'SiteAdaptation.Common.dll')).Hash, (Get-FileHash (Join-Path $placerFolder 'SiteAdaptation.Common.dll')).Hash, (Get-FileHash (Join-Path $reader 'SiteAdaptation.Common.dll')).Hash)
+$hashes = @((Get-FileHash (Join-Path $readerFolder 'SiteAdaptation.Common.dll')).Hash, (Get-FileHash (Join-Path $placerFolder 'SiteAdaptation.Common.dll')).Hash, (Get-FileHash (Join-Path $watcherFolder 'SiteAdaptation.Common.dll')).Hash, (Get-FileHash (Join-Path $reader 'SiteAdaptation.Common.dll')).Hash)
 $same = @($hashes | Where-Object { $_ -ne $built }).Count -eq 0
 
 # Revit asks once per add-in with no signature whether to load it, and keeps the answer under CodeSigning.
@@ -80,6 +85,10 @@ $same = @($hashes | Where-Object { $_ -ne $built }).Count -eq 0
 foreach ($entry in $manifests) {
     $id = [string]$entry.AddInId
     $now = $null
+    if ($SkipSigningReport) {
+        $entry | Add-Member -NotePropertyName CodeSigning -NotePropertyValue 'not read'
+        continue
+    }
     if (Test-Path $signing) {
         $now = (Get-ItemProperty -Path $signing -ErrorAction SilentlyContinue).$id
     }
@@ -88,14 +97,14 @@ foreach ($entry in $manifests) {
 }
 
 $manifests | Format-Table -AutoSize | Out-String -Width 250 | Out-Host
-foreach ($folder in @($readerFolder, $placerFolder, $hostFolder)) {
+foreach ($folder in @($readerFolder, $placerFolder, $hostFolder, $watcherFolder)) {
     $leaf = Split-Path $folder -Leaf
-    Get-ChildItem $folder -Filter *.dll | Select-Object @{
+    Get-ChildItem $folder -File | Where-Object { $_.Extension -in '.dll', '.exe' } | Select-Object @{
         n = 'Folder'
         e = { $leaf }
     }, Name, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 200 | Out-Host
 }
-"SiteAdaptation.Common.dll the same in the reader, the placer and the build: $same"
+"SiteAdaptation.Common.dll the same in the reader, the placer, the watcher and the build: $same"
 if (-not $same) {
     throw 'The Common DLLs differ, run the install again with Revit closed.'
 }

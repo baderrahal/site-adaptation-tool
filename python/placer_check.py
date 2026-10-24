@@ -25,6 +25,7 @@ WORST = 5
 SECOND_METHOD_PLOTS = 3
 ORIGINAL_NAME = "prototypes_original_imc.json"
 FFL_PARAMETER = plan_from_past.FFL_PARAMETER
+NAME_PARAMETER = plan_from_past.NAME_PARAMETER
 EPS = 1e-9
 
 
@@ -113,13 +114,18 @@ def compare(plan, original, test, prototype, parameters, report=None):
         else:
             row["mirrored"] = "differs"
         counts["fileEqual" if (old.get("file") or "").lower() == (new.get("file") or "").lower() else "fileDiffers"] += 1
-        counts["nameEqual" if old.get("rawName") == new.get("rawName") else "nameDiffers"] += 1
+        counts["rawNameEqual" if old.get("rawName") == new.get("rawName") else "rawNameDiffers"] += 1
         ffl_value = ((expected[plot].get("levels") or {}).get("ffl") or {}).get("value")
         if new_origin is not None and ffl_value is not None and abs(new_origin[2] - ffl_value) * 1000.0 <= Z_MM + EPS:
             counts["zEqualFfl"] += 1
         else:
             row["z"] = "differs from the plan FFL"
         old_p, new_p = old.get("parameters") or {}, new.get("parameters") or {}
+        # R105. The instance Name the placer writes, a real check like the parameters
+        if old_p.get(NAME_PARAMETER) and text(old_p.get(NAME_PARAMETER)) == text(new_p.get(NAME_PARAMETER)):
+            counts["nameEqual"] += 1
+        else:
+            row["name"] = "differs"
         for name in parameters:
             if text(old_p.get(name)) == text(new_p.get(name)):
                 parameter_equal[name] += 1
@@ -149,6 +155,7 @@ def compare(plan, original, test, prototype, parameters, report=None):
         "mirroredEqual": counts["mirroredEqual"],
         "fileEqual": counts["fileEqual"],
         "nameEqual": counts["nameEqual"],
+        "rawNameEqual": counts["rawNameEqual"],
         "zEqualFfl": counts["zEqualFfl"],
         "compared": compared,
         "parameters": {name: {"equal": parameter_equal[name], "differ": len(parameter_differ[name]), "plots": parameter_differ[name][:WORST]} for name in parameters},
@@ -167,11 +174,12 @@ def differs(row):
 
 
 def passes(result, parameters):
-    """R103. Every plot placed once, position within 1 mm, rotation, mirror, Z and every written parameter equal, and a placer run that neither stopped nor rolled back."""
+    """R103 and R105. Every plot placed once, position within 1 mm, rotation, mirror, Z, the instance Name and every written parameter equal, and a placer run that neither stopped nor rolled back."""
     plots = result["plots"]
     n = plots["expected"]
     ok = plots["placed"] == n and plots["missing"] == 0 and plots["extra"] == 0 and plots["placedTwice"] == 0 and plots["noSingleOriginal"] == 0
     ok = ok and result["position"]["within1mm"] == n and result["rotationEqual"] == n and result["mirroredEqual"] == n and result["zEqualFfl"] == n
+    ok = ok and result["nameEqual"] == n
     ok = ok and all(result["parameters"][name]["equal"] == n for name in parameters)
     report = result["placerReport"]
     return bool(ok and report is not None and not report["stopped"] and not report["rolledBack"])
@@ -274,8 +282,8 @@ def main(argv=None):
     print("%s %s" % (args.code, files[0]))
     print("plots expected %d, placed %d, missing %d, extra %d, placed twice %d" % (plots["expected"], plots["placed"], plots["missing"], plots["extra"], plots["placedTwice"]))
     print("position within 1 mm %d, within 10 mm %d, worse %d, worst %s" % (position["within1mm"], position["within10mm"], position["worse"], position["worst"]))
-    print("rotation equal %d, mirrored equal %d, file equal %d, link name equal %d, Z equal FFL %d, of %d compared" % (
-        result["rotationEqual"], result["mirroredEqual"], result["fileEqual"], result["nameEqual"], result["zEqualFfl"], result["compared"]))
+    print("rotation equal %d, mirrored equal %d, file equal %d, link name equal %d, full raw name equal %d, Z equal FFL %d, of %d compared" % (
+        result["rotationEqual"], result["mirroredEqual"], result["fileEqual"], result["nameEqual"], result["rawNameEqual"], result["zEqualFfl"], result["compared"]))
     print("parameters equal " + ", ".join("%s %d" % (name, value["equal"]) for name, value in result["parameters"].items()))
     print("Prototype-FFL apart %s" % result["prototypeFfl"])
     print("reader fixes %s" % result["readerFixes"])

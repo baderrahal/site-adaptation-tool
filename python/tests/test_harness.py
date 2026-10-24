@@ -84,3 +84,54 @@ def test_r26_top_log_entry_fits_one_page_and_has_the_five_headings_in_order():
     positions = [top.find(heading + ":") for heading in ("Done", "Remains", "Known bugs", "Next", "Your turn")]
     assert all(position >= 0 for position in positions)
     assert positions == sorted(positions)
+
+
+REGISTRY_HOOK = ROOT / ".claude" / "hooks" / "guard-registry.sh"
+
+
+def registry_hook(command, tool="PowerShell"):
+    bash = find_bash()
+    if bash is None:
+        pytest.skip("no bash on this machine")
+    payload = json.dumps({"tool_name": tool, "tool_input": {"command": command}})
+    done = subprocess.run([bash, REGISTRY_HOOK.as_posix()], input=payload, text=True, capture_output=True, env={"PATH": "/usr/bin:/bin"})
+    return done.returncode, done.stderr
+
+
+@pytest.mark.parametrize("command", [
+    r"reg add HKCU\Software\X /v a /d 1",
+    r"reg.exe query HKLM\SOFTWARE",
+    r"cd x && REG delete HKCU\Software\X /f",
+    r"New-ItemProperty -Path 'HKCU:\Software\Autodesk\Revit\Autodesk Revit 2024\CodeSigning' -Name a -Value 1",
+    r"Set-ItemProperty HKCU:\Software\X -Name a -Value 1",
+    r"Remove-ItemProperty -Path HKLM:\SOFTWARE\X -Name a",
+    r"New-Item -Force -Path 'HKCU:\Software\Autodesk'",
+    r"Remove-Item -Recurse 'Registry::HKEY_CURRENT_USER\Software\X'",
+    r"ni HKCU:\Software\X",
+    r"sp -Path HKCU:\Software\X -Name a -Value 1",
+    r"[Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Software\X')",
+    "python -c \"import winreg, winreg.SetValueEx(k, 'a', 0, 4, 1)\"",
+])
+def test_r104_registry_changes_and_reg_exe_are_blocked(command):
+    code, message = registry_hook(command)
+    assert code == 2
+    assert "guard-registry.sh" in message
+
+
+@pytest.mark.parametrize("command", [
+    r"Remove-Item C:\Temp\old.txt",
+    r"New-Item -ItemType Directory -Force C:\Temp\x",
+    "git commit -m \"Round 15a test\"",
+    r"Get-ChildItem $env:APPDATA\Autodesk",
+    r".venv\Scripts\python -m pytest python",
+])
+def test_r104_file_commands_and_ordinary_work_are_allowed(command):
+    assert registry_hook(command)[0] == 0
+    assert registry_hook(command, tool="Bash")[0] == 0
+
+
+def test_r104_settings_register_the_registry_hook_for_bash_and_powershell():
+    settings = json.loads((ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    entry = settings["hooks"]["PreToolUse"][0]
+    assert entry["matcher"] == "Bash|PowerShell"
+    assert any("guard-registry.sh" in hook["command"] for hook in entry["hooks"])

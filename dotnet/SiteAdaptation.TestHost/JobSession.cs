@@ -20,6 +20,7 @@ namespace SiteAdaptation.TestHost
         public const string PlacerFolderName = "SiteAdaptationPlacer";
         public const string ReaderFolderName = "SiteAdaptation";
         private const double ExitMinutes = 5;
+        private static readonly HashSet<string> RollBackSteps = new HashSet<string>(StringComparer.Ordinal) { "removePrototypeType", "realRun" };
 
         private readonly UIControlledApplication application;
         private readonly TestHostJob job;
@@ -46,7 +47,7 @@ namespace SiteAdaptation.TestHost
                 PrototypeFile = job.PrototypeFile,
                 Plan = job.Plan,
                 StartedUtc = DateTime.UtcNow,
-                Guard = "job accepted, the job file was deleted at the claim",
+                Guard = "job accepted, the job file was moved at the claim and deleted after the check",
             };
             log.Assemblies["testHost"] = typeof(JobSession).Assembly.Location;
             log.Assemblies["placer"] = typeof(PlaceFromPlan).Assembly.Location;
@@ -64,24 +65,35 @@ namespace SiteAdaptation.TestHost
             {
                 return;
             }
+            // The claim comes first. The job file moves to a name of this process and only the moved file is read and checked,
+            // so a job written in between is never run unchecked, and no job runs twice
+            string claimed = Path.Combine(TestHostGuard.SiteAdaptationFolder(documents), "testhost_job.claimed-" + Process.GetCurrentProcess().Id + "-" + DateTime.UtcNow.Ticks + ".json");
             string text;
             try
             {
-                text = File.ReadAllText(jobPath);
+                File.Move(jobPath, claimed);
+                text = File.ReadAllText(claimed);
             }
             catch (Exception failure)
             {
-                Refused(documents, "the job file does not read: " + failure.Message);
+                Refused(documents, "the job file could not be claimed: " + failure.Message);
                 return;
             }
             GuardResult guard = TestHostGuard.Check(text, token, DateTime.UtcNow, File.Exists);
+            if (guard.Act)
+            {
+                string copy = FileIdentity.CheckCopy(guard.Job.Model, TestHostGuard.OriginalOf(guard.Job.Model));
+                if (copy != null)
+                {
+                    guard = new GuardResult { Act = false, Reason = copy };
+                }
+            }
             if (!guard.Act)
             {
-                Refused(documents, guard.Reason);
+                Refused(documents, guard.Reason + ". The job stays in " + Path.GetFileName(claimed) + " and never runs");
                 return;
             }
-            // The claim. A job that fails half way can never run again in a later Revit session
-            File.Delete(jobPath);
+            File.Delete(claimed);
             var session = new JobSession(application, guard.Job, jobPath, documents, addinsFolder);
             session.Subscribe();
         }
@@ -192,13 +204,18 @@ namespace SiteAdaptation.TestHost
                     error = true;
                 }
             }
-            if (error)
+            // Only the transactions of the test host roll back here. An error of Revit itself, in an open or a link load, is left to Revit
+            if (error && RollBackSteps.Contains(runner.CurrentStep ?? ""))
             {
                 FailureHandlingOptions options = accessor.GetFailureHandlingOptions();
                 options.SetClearAfterRollback(true);
                 accessor.SetFailureHandlingOptions(options);
                 e.SetProcessingResult(FailureProcessingResult.ProceedWithRollBack);
                 lines.Add("rolled back");
+            }
+            else if (error)
+            {
+                lines.Add("left to Revit, not a transaction of the test host");
             }
             else
             {

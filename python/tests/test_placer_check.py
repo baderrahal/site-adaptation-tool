@@ -20,7 +20,7 @@ def axes(rotation, mirrored):
 
 def link(plot, file=FILE, origin=(1.0, 2.0, 7.5), rotation=30.0, mirrored=False, extra=None):
     x, y = axes(rotation, mirrored)
-    parameters = {"RRE_ZZ_SP_Plot-Number": plot, "RRE_ZZ_SP_Prototype": "C10", "CASE": "A", "RRE_ZZ_SP_Prototype-FFL": "7.5"}
+    parameters = {"RRE_ZZ_SP_Plot-Number": plot, "RRE_ZZ_SP_Prototype": "C10", "CASE": "A", "RRE_ZZ_SP_Prototype-FFL": "7.5", "Name": plot + " | C10 | 1 | XX | XX"}
     parameters.update(extra or {})
     return {
         "file": file,
@@ -60,7 +60,7 @@ def test_r103_a_run_that_places_every_plot_as_the_answer_key_passes():
     assert result["pass"] is True
     assert result["plots"] == {"expected": 2, "placed": 2, "missing": 0, "extra": 0, "placedTwice": 0, "unnumberedLinksOfThisFile": 0, "noSingleOriginal": 0}
     assert result["position"]["within1mm"] == 2
-    assert (result["rotationEqual"], result["mirroredEqual"], result["zEqualFfl"], result["fileEqual"], result["nameEqual"]) == (2, 2, 2, 2, 2)
+    assert (result["rotationEqual"], result["mirroredEqual"], result["zEqualFfl"], result["fileEqual"], result["nameEqual"], result["rawNameEqual"]) == (2, 2, 2, 2, 2, 2)
     assert result["differing"] == []
 
 
@@ -181,15 +181,36 @@ def test_r103_each_written_parameter_is_compared_and_prototype_ffl_is_reported_a
     assert check(only_ffl)["pass"] is True
 
 
-def test_r103_a_link_name_that_differs_is_counted_and_does_not_fail_the_run():
+def test_r105_a_link_instance_name_that_differs_alone_fails_the_run():
     test = copy.deepcopy(original())
-    for item in test["documents"][0]["links"]:
-        item["rawName"] = item["file"] + " : 1 : location <Not Shared>"
+    test["documents"][0]["links"][0]["parameters"]["Name"] = "1"
 
     result = check(test)
 
-    assert result["nameEqual"] == 0
+    assert result["nameEqual"] == 1
+    assert [row for row in result["differing"] if row["plot"] == "1"] == [{"plot": "1", "positionMm": 0.0, "name": "differs"}]
+    assert result["pass"] is False
+
+
+def test_r105_the_full_raw_name_is_counted_apart_and_does_not_decide():
+    test = copy.deepcopy(original())
+    for item in test["documents"][0]["links"]:
+        item["rawName"] = item["file"] + " : other : location <Not Shared>"
+
+    result = check(test)
+
+    assert (result["nameEqual"], result["rawNameEqual"]) == (2, 0)
     assert result["pass"] is True
+
+
+def test_r105_a_name_missing_on_both_sides_is_not_equal():
+    old = original()
+    test = copy.deepcopy(old)
+    for document in (old, test):
+        for item in document["documents"][0]["links"]:
+            del item["parameters"]["Name"]
+
+    assert placer_check.compare(PLAN, old, test, FILE, PARAMETERS, REPORT)["nameEqual"] == 0
 
 
 def test_r103_a_placer_report_that_stopped_rolled_back_or_is_missing_fails():

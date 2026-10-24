@@ -179,6 +179,21 @@ namespace SiteAdaptation.Placer
             return parameter.Set(value) ? ParameterWrite.Written : ParameterWrite.Refused;
         }
 
+        public ParameterWrite WriteLinkName(long instanceId, string value)
+        {
+            Element element = document.GetElement(new ElementId(instanceId));
+            Parameter parameter = element == null ? null : element.get_Parameter(BuiltInParameter.RVT_LINK_INSTANCE_NAME);
+            if (parameter == null)
+            {
+                return ParameterWrite.Missing;
+            }
+            if (parameter.IsReadOnly)
+            {
+                return ParameterWrite.ReadOnly;
+            }
+            return parameter.Set(value) ? ParameterWrite.Written : ParameterWrite.Refused;
+        }
+
         public CommitResult Commit()
         {
             TransactionStatus status = transaction.Commit();

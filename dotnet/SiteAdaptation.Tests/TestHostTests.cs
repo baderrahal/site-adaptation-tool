@@ -145,6 +145,67 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain("Common.Placer.Run(", command);
         }
 
+        // R105 link instance name
+
+        [Fact]
+        public void R105_the_real_run_writes_the_link_instance_name_of_the_plan_and_counts_it()
+        {
+            var target = new PlacerTests.FakeTarget();
+
+            PlacerReport report = Placer.Run(MixedPlan(), "plan.json", target, true, null);
+
+            Assert.Equal(3, report.Counts.NamesWritten);
+            Assert.Equal(new[] { "1 | VD2 | 1 | XX | XX", "2 | VD2 | 1 | XX | XX", "3 | VD2 | 1 | XX | XX" }, target.Names.OrderBy(pair => pair.Key).Select(pair => pair.Value));
+            Assert.Empty(report.Issues);
+            Assert.Equal("2 | VD2 | 1 | XX | XX", report.Placed[1].LinkName);
+        }
+
+        [Fact]
+        public void R105_a_name_that_cannot_be_written_or_is_missing_is_an_issue_and_the_run_goes_on()
+        {
+            var target = new PlacerTests.FakeTarget { NameReadOnly = true };
+            PlanFile plan = MixedPlan();
+            plan.Plots[2].LinkName = null;
+
+            PlacerReport report = Placer.Run(plan, "plan.json", target, true, null);
+
+            Assert.False(report.RolledBack);
+            Assert.Equal(3, report.Counts.Placed);
+            Assert.Equal(0, report.Counts.NamesWritten);
+            Assert.Equal(2, report.Issues.Count(issue => issue.Contains("Name was not written, ReadOnly")));
+            Assert.Single(report.Issues, issue => issue.StartsWith("plot 3: the plan has no linkName"));
+        }
+
+        [Fact]
+        public void R105_the_dry_run_lists_the_name_writes_none_and_flags_a_missing_one()
+        {
+            var target = new PlacerTests.FakeTarget();
+            PlanFile plan = MixedPlan();
+            plan.Plots[0].LinkName = new Sourced<string> { Value = " ", Source = "pastJob" };
+
+            PlacerReport report = Placer.Run(plan, "plan.json", target, false, null);
+
+            Assert.Empty(target.Names);
+            Assert.Equal("3 | VD2 | 1 | XX | XX", report.Placed[2].LinkName);
+            Assert.Single(report.Issues, issue => issue.StartsWith("plot 1: the plan has no linkName"));
+        }
+
+        [Fact]
+        public void R105_the_revit_side_writes_the_built_in_instance_name_parameter()
+        {
+            string text = RepoText("dotnet", "SiteAdaptation.Placer", "RevitPlacerTarget.cs");
+
+            Assert.Contains("element.get_Parameter(BuiltInParameter.RVT_LINK_INSTANCE_NAME)", text);
+        }
+
+        [Fact]
+        public void R105_the_plan_reader_takes_link_name_from_plan_json()
+        {
+            PlanFile plan = PlanFile.Parse("{\"plots\": [{\"plot\": \"1\", \"linkName\": {\"value\": \"1 | C10 | 1 | XX | XX\", \"source\": \"pastJob\"}}]}");
+
+            Assert.Equal("1 | C10 | 1 | XX | XX", plan.Plots[0].LinkName.Value);
+        }
+
         // R101 test host guard
 
         private static string Job(Action<JObject> change = null)
@@ -317,16 +378,108 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R101_the_job_is_checked_then_claimed_before_any_event_is_subscribed()
+        public void R101_the_job_is_claimed_by_a_move_then_checked_and_only_then_subscribed()
         {
             string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
+            int move = session.IndexOf("File.Move(jobPath, claimed);", StringComparison.Ordinal);
+            int read = session.IndexOf("File.ReadAllText(claimed)", StringComparison.Ordinal);
             int check = session.IndexOf("TestHostGuard.Check(", StringComparison.Ordinal);
+            int copy = session.IndexOf("FileIdentity.CheckCopy(", StringComparison.Ordinal);
             int refuse = session.IndexOf("if (!guard.Act)", StringComparison.Ordinal);
-            int claim = session.IndexOf("File.Delete(jobPath);", StringComparison.Ordinal);
             int subscribe = session.IndexOf("session.Subscribe();", StringComparison.Ordinal);
 
-            Assert.True(check > 0 && check < refuse && refuse < claim && claim < subscribe);
+            Assert.True(move > 0 && move < read && read < check && check < copy && copy < refuse && refuse < subscribe);
+            Assert.DoesNotContain("File.ReadAllText(jobPath)", session);
             Assert.Single(System.Text.RegularExpressions.Regex.Matches(session, @"\+= OnFirstIdling").Cast<object>());
+        }
+
+        [Fact]
+        public void R101_a_failure_while_waking_never_reaches_revit()
+        {
+            string app = RepoText("dotnet", "SiteAdaptation.TestHost", "TestHostApp.cs");
+            int wake = app.IndexOf("Wake(application, token, jobPath);", StringComparison.Ordinal);
+
+            Assert.True(app.LastIndexOf("try", wake, StringComparison.Ordinal) > app.IndexOf("AssemblyResolve += Resolve", StringComparison.Ordinal));
+            Assert.Contains("catch (Exception failure)", app.Substring(wake));
+            Assert.Contains("testhost_refused.json", app.Substring(wake));
+        }
+
+        [Theory]
+        [InlineData("totalMinutes")]
+        [InlineData("code")]
+        [InlineData("prototypeFile")]
+        [InlineData("token")]
+        public void R101_nan_and_a_final_newline_are_refused(string key)
+        {
+            string text = Job(job =>
+            {
+                if (key == "totalMinutes")
+                {
+                    job[key] = double.NaN;
+                }
+                else
+                {
+                    job[key] = (string)job[key] + "\n";
+                }
+            });
+
+            Assert.False(Check(text).Act);
+            Assert.False(Check(text, Token + "\n").Act);
+        }
+
+        [Theory]
+        [InlineData(@"C:\Models\site.rvt:x_TEST-C10.rvt")]
+        [InlineData(@"\\?\C:\Models\site_TEST-C10.rvt")]
+        [InlineData(@"\\.\C:\Models\site_TEST-C10.rvt")]
+        [InlineData(@"C:\Models\site_TEST-C10.rvt.")]
+        [InlineData(@"C:\Models\site_TEST-C10.rvt ")]
+        [InlineData(@"C:/Models/site_TEST-C10.rvt")]
+        [InlineData(@"C:\Models\.\site_TEST-C10.rvt")]
+        [InlineData(@"C:\Models\\site_TEST-C10.rvt")]
+        public void R101_stream_device_and_changed_paths_are_refused(string model)
+        {
+            Assert.False(Check(Job(job => job["model"] = model)).Act);
+            Assert.False(Check(Job(job => job["plan"] = model.Replace(".rvt", ".json"))).Act);
+        }
+
+        [Fact]
+        public void R101_a_job_of_the_wrong_types_is_refused_and_the_check_never_throws()
+        {
+            Assert.False(Check(Job(job => job["code"] = 5)).Act);
+            Assert.False(Check(Job(job => job["createdUtc"] = "yesterday")).Act);
+            Assert.False(Check(Job(job => job["model"] = new JArray())).Act);
+            GuardResult thrown = TestHostGuard.Check(Job(), Token, Now, path => { throw new IOException("disk"); });
+            Assert.False(thrown.Act);
+            Assert.Contains("could not be checked", thrown.Reason);
+        }
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+        private static extern bool CreateHardLink(string link, string existing, IntPtr security);
+
+        [Fact]
+        public void R101_a_copy_must_be_a_file_of_its_own_and_not_a_hard_link_or_the_original()
+        {
+            string folder = Path.Combine(Path.GetTempPath(), "testhost-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                string original = Path.Combine(folder, "site.rvt");
+                string copy = Path.Combine(folder, "site_TEST-C10.rvt");
+                string linked = Path.Combine(folder, "other_TEST-C10.rvt");
+                File.WriteAllText(original, "model");
+                File.Copy(original, copy);
+                Assert.True(CreateHardLink(linked, original, IntPtr.Zero));
+
+                Assert.Null(FileIdentity.CheckCopy(copy, original));
+                Assert.Contains("hard links", FileIdentity.CheckCopy(linked, Path.Combine(folder, "other.rvt")));
+                Assert.Contains("is the original", FileIdentity.CheckCopy(copy, copy));
+                Assert.Contains("hard links", FileIdentity.CheckCopy(original, copy));
+                Assert.Contains("could not be checked", FileIdentity.CheckCopy(Path.Combine(folder, "none_TEST-C10.rvt"), original));
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
         }
 
         [Fact]
@@ -476,13 +629,37 @@ namespace SiteAdaptation.Tests
         {
             var offered = new List<int>();
 
-            int? answer = DialogAnswers.Answer("taskDialog", "Some_Unknown_Dialog", code => { offered.Add(code); return code == DialogAnswers.Close; });
+            int? answer = DialogAnswers.Answer("taskDialog", "Some_Unknown_Dialog", code => { offered.Add(code); return code == DialogAnswers.Ok; });
 
-            Assert.Equal(DialogAnswers.Close, answer);
-            Assert.Equal(new[] { DialogAnswers.Ok, DialogAnswers.Close }, offered);
+            Assert.Equal(DialogAnswers.Ok, answer);
+            Assert.Equal(new[] { DialogAnswers.Close, DialogAnswers.Cancel, DialogAnswers.Ok }, offered);
             Assert.Equal(DialogAnswers.SecondLink, DialogAnswers.For("taskDialog", "TaskDialog_Unresolved_References")[0]);
             Assert.Null(DialogAnswers.Answer("messageBox", null, code => false));
-            Assert.Equal(new[] { DialogAnswers.Ok }, DialogAnswers.For("dialogBox", "Dialog_Something"));
+            Assert.Equal(new[] { DialogAnswers.Cancel, DialogAnswers.No, DialogAnswers.Ok }, DialogAnswers.For("messageBox", "Some_Box"));
+            Assert.Equal(new[] { DialogAnswers.Cancel }, DialogAnswers.For("dialogBox", "Dialog_Something"));
+        }
+
+        [Fact]
+        public void R102_an_unlisted_dialog_never_gets_a_command_link()
+        {
+            foreach (string kind in new[] { "taskDialog", "messageBox", "dialogBox" })
+            {
+                Assert.DoesNotContain(DialogAnswers.FirstLink, DialogAnswers.For(kind, "TaskDialog_Location_Position_Changed"));
+                Assert.DoesNotContain(DialogAnswers.SecondLink, DialogAnswers.For(kind, "TaskDialog_Local_Changes_Not_Synchronized_With_Central"));
+            }
+        }
+
+        [Fact]
+        public void R102_errors_roll_back_only_in_the_test_host_transactions_and_unload_never_saves_link_positions()
+        {
+            string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
+            string steps = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSteps.cs");
+
+            Assert.Contains("RollBackSteps = new HashSet<string>(StringComparer.Ordinal) { \"removePrototypeType\", \"realRun\" }", session);
+            Assert.Contains("if (error && RollBackSteps.Contains(runner.CurrentStep ?? \"\"))", session);
+            Assert.Contains("type.Unload(new KeepLinkPositions())", steps);
+            Assert.Contains("SaveModifiedLinksOptions.DoNotSaveLinks", steps);
+            Assert.DoesNotContain("Unload(null)", steps);
         }
 
         [Fact]

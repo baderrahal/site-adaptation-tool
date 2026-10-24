@@ -29,6 +29,8 @@ UNIT_PARAMETER = "RRE_ZZ_SP_Prototype"
 STEPS_PARAMETER = "RRE_ZZ_SP_Number-of-Steps"
 FFL_PARAMETER = "RRE_ZZ_SP_Prototype-FFL"
 CASE_PARAMETER = "CASE"
+NAME_PARAMETER = "Name"
+RVT_NAME_PARAMETER = "RRE_ZZ_SP_RVT-Name"
 JOB_KEYS = ("neighbourhood", "schedule", "sheet", "prototypes", "prototypeFolder", "output", "parameters")
 # The yard floor sits this far below the FFL, in metres (Bader, 24 Oct)
 YARD_BELOW_FFL = 0.100
@@ -202,6 +204,15 @@ def link_values(builder, link, offset, job, folder_files):
             builder.entry[key] = sourced(value.strip())
         else:
             builder.lack(key, "the link has no " + name)
+    # The instance Name, kept as the link holds it. RRE_ZZ_SP_RVT-Name is built from the same values, a difference is a conflict
+    link_name = parameters.get(NAME_PARAMETER)
+    if isinstance(link_name, str) and link_name.strip():
+        builder.entry["linkName"] = sourced(link_name)
+        rvt_name = parameters.get(RVT_NAME_PARAMETER)
+        if isinstance(rvt_name, str) and rvt_name.strip() and rvt_name != link_name:
+            builder.clash("linkName", link_name, rvt_name, RVT_NAME_PARAMETER)
+    else:
+        builder.lack("linkName", "the link has no instance Name")
     file_name = link.get("file")
     if not file_name:
         builder.lack("prototypeFile", "the link has no file name")

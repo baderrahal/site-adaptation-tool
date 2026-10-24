@@ -141,7 +141,7 @@ namespace SiteAdaptation.TestHost
             int unloaded = 0;
             foreach (RevitLinkType type in Types(document).Where(type => !type.IsNestedLink && type.GetLinkedFileStatus() == LinkedFileStatus.Loaded && !IsPrototype(FileOf(type))).ToList())
             {
-                type.Unload(null);
+                type.Unload(new KeepLinkPositions());
                 unloaded++;
             }
             List<RevitLinkType> prototype = Types(document).Where(type => !type.IsNestedLink && IsPrototype(FileOf(type))).ToList();
@@ -175,6 +175,15 @@ namespace SiteAdaptation.TestHost
             }
             bool closed = document.Close(false);
             return closed ? "closed without saving again" : "Revit did not close the document";
+        }
+
+        // Positions of a link that changed are never saved back into the link file on unload
+        private sealed class KeepLinkPositions : ISaveSharedCoordinatesCallback
+        {
+            public SaveModifiedLinksOptions GetSaveModifiedLinksOption(RevitLinkType link)
+            {
+                return SaveModifiedLinksOptions.DoNotSaveLinks;
+            }
         }
 
         private static IEnumerable<RevitLinkType> Types(Document document)

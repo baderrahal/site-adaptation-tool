@@ -26,6 +26,9 @@ namespace SiteAdaptation.Common
 
         [Newtonsoft.Json.JsonIgnore]
         public int FilteredOut { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore]
+        public int NamesWritten { get; set; }
     }
 
     public class CoordinateCheck
@@ -48,6 +51,7 @@ namespace SiteAdaptation.Common
         public int Placed { get; set; }
         public int Skipped { get; set; }
         public int ParametersWritten { get; set; }
+        public int NamesWritten { get; set; }
         public int Issues { get; set; }
     }
 
@@ -59,6 +63,7 @@ namespace SiteAdaptation.Common
         public double RotationDeg { get; set; }
         public bool Mirrored { get; set; }
         public long? InstanceId { get; set; }
+        public string LinkName { get; set; }
         public List<string> Parameters { get; set; }
     }
 

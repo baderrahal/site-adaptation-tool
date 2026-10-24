@@ -48,6 +48,8 @@ namespace SiteAdaptation.Common
         public Sourced<string> Unit { get; set; }
         public Sourced<string> PrototypeFile { get; set; }
         public Sourced<string> Case { get; set; }
+        // The link instance Name, built from the same values as RRE_ZZ_SP_RVT-Name
+        public Sourced<string> LinkName { get; set; }
         public Sourced<double[]> Insert { get; set; }
         public Sourced<double?> RotationDeg { get; set; }
         public Sourced<bool?> Mirrored { get; set; }

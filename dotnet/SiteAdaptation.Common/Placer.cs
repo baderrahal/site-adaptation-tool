@@ -82,6 +82,10 @@ namespace SiteAdaptation.Common
                     {
                         report.Issues.Add(FflIssue(candidate.Plot.Plot));
                     }
+                    if (candidate.Plot.LinkName == null || string.IsNullOrWhiteSpace(candidate.Plot.LinkName.Value))
+                    {
+                        report.Issues.Add(NoNameIssue(candidate.Plot.Plot));
+                    }
                 }
                 return Count(report, plan);
             }
@@ -358,6 +362,7 @@ namespace SiteAdaptation.Common
         {
             var placed = new List<PlacedPlot>();
             int written = 0;
+            int names = 0;
             try
             {
                 target.Begin();
@@ -381,13 +386,13 @@ namespace SiteAdaptation.Common
                     {
                         throw new PlacerFailure("plot " + candidate.Plot.Plot + ": the placed link does not match the plan, " + mismatch);
                     }
-                    var names = new List<string>();
+                    var writtenNames = new List<string>();
                     foreach (KeyValuePair<string, Sourced<string>> parameter in candidate.Plot.Parameters ?? new Dictionary<string, Sourced<string>>())
                     {
                         string issue = WriteOne(target, id, candidate.Plot.Plot, parameter.Key, parameter.Value);
                         if (issue == null)
                         {
-                            names.Add(parameter.Key);
+                            writtenNames.Add(parameter.Key);
                             written++;
                         }
                         else if (parameter.Key == PlotParameter)
@@ -400,7 +405,16 @@ namespace SiteAdaptation.Common
                             report.Issues.Add(issue);
                         }
                     }
-                    placed.Add(Entry(candidate, id, names));
+                    string nameIssue = WriteName(target, id, candidate.Plot);
+                    if (nameIssue == null)
+                    {
+                        names++;
+                    }
+                    else
+                    {
+                        report.Issues.Add(nameIssue);
+                    }
+                    placed.Add(Entry(candidate, id, writtenNames));
                 }
                 CommitResult commit = target.Commit();
                 AddWarnings(target, report);
@@ -421,6 +435,7 @@ namespace SiteAdaptation.Common
             }
             report.Placed.AddRange(placed);
             report.ParametersWritten = written;
+            report.NamesWritten = names;
         }
 
         private static void AddWarnings(IPlacerTarget target, PlacerReport report)
@@ -458,6 +473,22 @@ namespace SiteAdaptation.Common
             }
         }
 
+        // R105. Null when the instance Name was written, else the issue line. A missing name is an issue, not a stop
+        private static string WriteName(IPlacerTarget target, long id, PlanPlot plot)
+        {
+            if (plot.LinkName == null || string.IsNullOrWhiteSpace(plot.LinkName.Value))
+            {
+                return NoNameIssue(plot.Plot);
+            }
+            ParameterWrite result = target.WriteLinkName(id, plot.LinkName.Value);
+            return result == ParameterWrite.Written ? null : "plot " + plot.Plot + ": the link instance Name was not written, " + result;
+        }
+
+        private static string NoNameIssue(string plot)
+        {
+            return "plot " + plot + ": the plan has no linkName, the link keeps the name Revit gives it";
+        }
+
         private static string FflIssue(string plot)
         {
             return "plot " + plot + ": " + FflParameter + " is in the plan and is never written";
@@ -477,6 +508,7 @@ namespace SiteAdaptation.Common
                 RotationDeg = candidate.Plot.RotationDeg.Value.Value,
                 Mirrored = candidate.Plot.Mirrored.Value.Value,
                 InstanceId = id,
+                LinkName = candidate.Plot.LinkName == null ? null : candidate.Plot.LinkName.Value,
                 Parameters = parameters,
             };
         }
@@ -490,6 +522,7 @@ namespace SiteAdaptation.Common
                 Placed = report.Placed.Count,
                 Skipped = report.Skipped.Count,
                 ParametersWritten = report.ParametersWritten,
+                NamesWritten = report.NamesWritten,
                 Issues = report.Issues.Count,
             };
             return report;

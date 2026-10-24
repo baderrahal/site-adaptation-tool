@@ -124,6 +124,19 @@ namespace SiteAdaptation.Tests
                 return ParameterWrite.Written;
             }
 
+            public bool NameReadOnly;
+            public Dictionary<long, string> Names = new Dictionary<long, string>();
+
+            public ParameterWrite WriteLinkName(long instanceId, string value)
+            {
+                if (NameReadOnly)
+                {
+                    return ParameterWrite.ReadOnly;
+                }
+                Names[instanceId] = value;
+                return ParameterWrite.Written;
+            }
+
             public CommitResult Commit()
             {
                 Commits++;
@@ -208,6 +221,7 @@ namespace SiteAdaptation.Tests
                 Unit = S("VD2"),
                 PrototypeFile = S(file),
                 Case = S("A"),
+                LinkName = S(plot + " | VD2 | 1 | XX | XX"),
                 Insert = S(new[] { e, n, ffl }),
                 RotationDeg = S<double?>(rotation),
                 Mirrored = S<bool?>(mirrored),
@@ -715,6 +729,7 @@ namespace SiteAdaptation.Tests
             public long Place(string linkTypeKey, PlacementSteps steps) { throw new InvalidOperationException("never reached"); }
             public PlacedTransform ReadBack(long instanceId) { return null; }
             public ParameterWrite Write(long instanceId, string name, string value) { return ParameterWrite.Missing; }
+            public ParameterWrite WriteLinkName(long instanceId, string value) { return ParameterWrite.Missing; }
             public CommitResult Commit() { return new CommitResult { Committed = true }; }
             public void RollBack() { RollBacks++; }
         }

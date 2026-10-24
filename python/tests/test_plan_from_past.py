@@ -29,9 +29,10 @@ def transform(x, y, z, rotation, mirrored):
             "axisX": [round(math.cos(turn), 3), round(math.sin(turn), 3), 0], "axisY": [round(-sign * math.sin(turn), 3), round(sign * math.cos(turn), 3), 0], "axisZ": [0, 0, 1]}
 
 
-def link(plot, x=0.0, y=0.0, z=10.0, rotation=30.0, mirrored=False, file="KEO-ARC-VD2-ZZ.rvt", unit="VD2", steps="1", ffl="10.000", shared_origin=None):
+def link(plot, x=0.0, y=0.0, z=10.0, rotation=30.0, mirrored=False, file="KEO-ARC-VD2-ZZ.rvt", unit="VD2", steps="1", ffl="10.000", shared_origin=None, name=None):
     parameters = {"RRE_ZZ_SP_Plot-Number": plot, "RRE_ZZ_SP_Prototype": unit, "RRE_ZZ_SP_Number-of-Steps": steps,
-                  "RRE_ZZ_SP_RVT-Name": str(plot) + " | " + unit, "CASE": "A", "RRE_ZZ_SP_Prototype-FFL": ffl}
+                  "RRE_ZZ_SP_RVT-Name": str(plot) + " | " + unit, "CASE": "A", "RRE_ZZ_SP_Prototype-FFL": ffl,
+                  "Name": str(plot) + " | " + unit if name is None else name}
     if plot is None:
         parameters = {}
     entry = {"file": file, "elementId": 1000 + (int(plot) if plot and plot.isdigit() else 0), "transform": transform(x, y, z, rotation, mirrored), "parameters": parameters}
@@ -111,7 +112,7 @@ def test_r80_top_level_names_format_neighbourhood_coordinates_survey_point_angle
 
 def test_r80_every_value_of_a_plot_has_a_value_and_a_source():
     entry = by_plot(one_plot_plan())["101"]
-    assert set(entry) == {"plot", "unit", "case", "prototypeFile", "insert", "rotationDeg", "mirrored", "levels", "parameters", "floors"}
+    assert set(entry) == {"plot", "unit", "case", "linkName", "prototypeFile", "insert", "rotationDeg", "mirrored", "levels", "parameters", "floors"}
     every_leaf_is_sourced(entry)
 
 
@@ -333,7 +334,7 @@ def test_r89_each_field_that_differs_is_counted_and_its_plot_listed():
     assert differs["101"]["position"] == "1.2 mm off"
     assert set(differs["102"]) == {"mirrored", "file"}
     assert differs["103"] == {"parameters": "differ: RRE_ZZ_SP_Number-of-Steps"}
-    assert report["mismatches"] == {"link": 0, "file": 1, "position": 1, "rotation": 1, "mirrored": 1, "parameters": 1}
+    assert report["mismatches"] == {"link": 0, "file": 1, "position": 1, "rotation": 1, "mirrored": 1, "linkName": 0, "parameters": 1}
     assert report["linksNotInPlan"] == ["104"]
     assert report["fullMatch"] == 0
 
@@ -453,3 +454,29 @@ def test_r89_a_placed_link_whose_plot_number_is_not_whole_is_listed():
     report = plan_compare.compare(plan, placed_model(links + [odd], floors))
     assert report["linksWithBadPlotNumber"] == [{"elementId": 77, "plotNumber": "101.5"}]
     assert report["fullMatch"] == 1
+
+
+def test_r81_the_link_name_is_the_instance_name_of_the_past_link():
+    entry = by_plot(one_plot_plan(name="101 | VD2 | 1 | XX | XX"))["101"]
+    assert entry["linkName"] == {"value": "101 | VD2 | 1 | XX | XX", "source": "pastJob"}
+
+
+def test_r81_a_link_name_that_differs_from_rvt_name_is_a_conflict_and_the_name_is_kept():
+    plan = one_plot_plan(name="101 | VD2 | 2")
+    assert by_plot(plan)["101"]["linkName"]["value"] == "101 | VD2 | 2"
+    assert {"plot": "101", "field": "linkName", "kept": "101 | VD2 | 2", "other": "101 | VD2", "otherSource": "RRE_ZZ_SP_RVT-Name"} in plan["conflicts"]
+
+
+def test_r81_a_link_with_no_instance_name_is_written_and_lists_link_name_as_missing():
+    plan = one_plot_plan(name="")
+    assert "linkName" not in by_plot(plan)["101"]
+    assert "linkName" in missing_of(plan, "101")
+
+
+def test_r89_a_link_name_that_differs_is_its_own_mismatch():
+    links = [link("101")]
+    floors = plot_floors("101", 0, 10)
+    plan = build(links, floors, [row("101")])
+    report = plan_compare.compare(plan, placed_model([link("101", name="1")], floors))
+    assert report["mismatches"]["linkName"] == 1
+    assert report["differing"] == [{"plot": "101", "differs": {"linkName": "link name differs"}}]

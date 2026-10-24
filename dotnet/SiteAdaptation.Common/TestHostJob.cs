@@ -38,8 +38,8 @@ namespace SiteAdaptation.Common
         public const double MaxTotalMinutes = 29;
         public const string TestTag = "_TEST-";
 
-        private static readonly Regex CodeText = new Regex("^[A-Z][A-Z0-9]{1,3}$", RegexOptions.CultureInvariant);
-        private static readonly Regex TokenText = new Regex("^[A-Za-z0-9]+$", RegexOptions.CultureInvariant);
+        private static readonly Regex CodeText = new Regex(@"\A[A-Z][A-Z0-9]{1,3}\z", RegexOptions.CultureInvariant);
+        private static readonly Regex TokenText = new Regex(@"\A[A-Za-z0-9]+\z", RegexOptions.CultureInvariant);
 
         public static string SiteAdaptationFolder(string documents)
         {
@@ -59,6 +59,34 @@ namespace SiteAdaptation.Common
 
         // Every check of R101 on the text of the job file. fileExists is asked only for full paths
         public static GuardResult Check(string jobText, string token, DateTime nowUtc, Func<string, bool> fileExists)
+        {
+            try
+            {
+                return CheckJob(jobText, token, nowUtc, fileExists);
+            }
+            catch (Exception failure)
+            {
+                // A check can refuse and never throw, so Revit never sees an add-in failure from it
+                return Refuse("the job could not be checked: " + failure.GetType().Name + ": " + failure.Message);
+            }
+        }
+
+        // A drive path or a share that Windows would not change: no stream or device colon, no \\?\ or \\.\ prefix,
+        // no parent step and no trailing dot or space, so the name checked is the file opened
+        public static bool IsPlainFullPath(string path)
+        {
+            if (!Placer.IsFullPath(path) || HasParentStep(path) || path.IndexOf(':', 2) >= 0 || path.IndexOf('/') >= 0)
+            {
+                return false;
+            }
+            if (path.StartsWith(@"\\?\", StringComparison.Ordinal) || path.StartsWith(@"\\.\", StringComparison.Ordinal))
+            {
+                return false;
+            }
+            return string.Equals(Path.GetFullPath(path), path, StringComparison.Ordinal);
+        }
+
+        private static GuardResult CheckJob(string jobText, string token, DateTime nowUtc, Func<string, bool> fileExists)
         {
             if (string.IsNullOrEmpty(token) || token.Length < MinTokenLength || !TokenText.IsMatch(token))
             {
@@ -99,7 +127,7 @@ namespace SiteAdaptation.Common
             {
                 return Refuse("the job code is not a prototype code such as C10 or TH1");
             }
-            string prototype = new Regex("^RRE-WP-NSP-KEO-ARC-" + Regex.Escape(job.Code) + @"-ZZ-MOD-\d+\.rvt$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant).IsMatch(job.PrototypeFile ?? "")
+            string prototype = new Regex(@"\ARRE-WP-NSP-KEO-ARC-" + Regex.Escape(job.Code) + @"-ZZ-MOD-\d+\.rvt\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant).IsMatch(job.PrototypeFile ?? "")
                 ? null : "the prototype file is not RRE-WP-NSP-KEO-ARC-" + job.Code + "-ZZ-MOD-<n>.rvt";
             if (prototype != null)
             {
@@ -110,11 +138,12 @@ namespace SiteAdaptation.Common
             {
                 return Refuse(model);
             }
-            if (!Placer.IsFullPath(job.Plan) || !job.Plan.EndsWith(".json", StringComparison.OrdinalIgnoreCase) || HasParentStep(job.Plan))
+            if (!IsPlainFullPath(job.Plan) || !job.Plan.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
             {
                 return Refuse("the plan is not a full path to a .json file");
             }
-            if (job.TotalMinutes.HasValue && (job.TotalMinutes.Value <= 0 || job.TotalMinutes.Value > MaxTotalMinutes))
+            // Written so that NaN fails too
+            if (job.TotalMinutes.HasValue && !(job.TotalMinutes.Value > 0 && job.TotalMinutes.Value <= MaxTotalMinutes))
             {
                 return Refuse("totalMinutes must be above 0 and at most " + MaxTotalMinutes);
             }
@@ -132,7 +161,7 @@ namespace SiteAdaptation.Common
         // Only a copy named <name>_TEST-<code>.rvt is ever opened, saved or changed
         private static string CheckModel(TestHostJob job)
         {
-            if (!Placer.IsFullPath(job.Model) || HasParentStep(job.Model))
+            if (!IsPlainFullPath(job.Model))
             {
                 return "the model is not a full path";
             }

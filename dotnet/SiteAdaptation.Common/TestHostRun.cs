@@ -286,14 +286,16 @@ namespace SiteAdaptation.Common
             {
                 return answers;
             }
+            // Never a command link for a dialog that is not listed, a link can write a file such as the central or a link source.
+            // OK comes last, Revit only takes it on a box that has nothing else, which only tells
             switch (kind)
             {
                 case "taskDialog":
-                    return new[] { Ok, Close, FirstLink, Cancel };
+                    return new[] { Close, Cancel, Ok };
                 case "messageBox":
-                    return new[] { Ok, Cancel, No };
+                    return new[] { Cancel, No, Ok };
                 default:
-                    return new[] { Ok };
+                    return new[] { Cancel };
             }
         }
 

@@ -29,6 +29,9 @@ namespace SiteAdaptation.Common
 
         ParameterWrite Write(long instanceId, string name, string value);
 
+        // The Name of the link instance, the built in parameter RVT_LINK_INSTANCE_NAME
+        ParameterWrite WriteLinkName(long instanceId, string value);
+
         CommitResult Commit();
 
         void RollBack();

@@ -30,7 +30,24 @@ namespace SiteAdaptation.TestHost
             }
             addinsFolder = Path.GetDirectoryName(Path.GetDirectoryName(typeof(TestHostApp).Assembly.Location));
             AppDomain.CurrentDomain.AssemblyResolve += Resolve;
-            Wake(application, token, jobPath);
+            try
+            {
+                Wake(application, token, jobPath);
+            }
+            catch (Exception failure)
+            {
+                // Revit never sees a failure of the test host. Common may be what failed to load, so the line is written by hand
+                try
+                {
+                    string line = "{\"utc\": \"" + DateTime.UtcNow.ToString("o") + "\", \"reason\": \"the test host failed to start: "
+                        + failure.GetType().Name + " " + failure.Message.Replace("\\", "/").Replace("\"", "'") + "\"}";
+                    File.WriteAllText(Path.Combine(Path.GetDirectoryName(jobPath), "testhost_refused.json"), line);
+                }
+                catch (Exception)
+                {
+                    // Nothing more can be done, Revit goes on as a normal session
+                }
+            }
             return Result.Succeeded;
         }
 
@@ -49,12 +66,20 @@ namespace SiteAdaptation.TestHost
         private static Assembly Resolve(object sender, ResolveEventArgs args)
         {
             string name = new AssemblyName(args.Name).Name;
+            string asking = args.RequestingAssembly == null ? null : args.RequestingAssembly.GetName().Name;
             string folder;
             switch (name)
             {
                 case "SiteAdaptation.Placer":
                 case "SiteAdaptation.Common":
+                    folder = JobSession.PlacerFolderName;
+                    break;
                 case "Newtonsoft.Json":
+                    // Only for the assemblies of this tool, another add-in keeps its own resolution
+                    if (asking != "SiteAdaptation.Common" && asking != "SiteAdaptation.Placer" && asking != "RevitPrototypeReader" && asking != "SiteAdaptation.TestHost")
+                    {
+                        return null;
+                    }
                     folder = JobSession.PlacerFolderName;
                     break;
                 case "RevitPrototypeReader":
