@@ -28,7 +28,7 @@ This round reads the unit blocks from Makkah Building Footprint.dwg, gives every
 
 8. In the terminal run all Python tests:
    `.venv\Scripts\python -m pytest python`
-   Look for: 405 passed and no failed, and a line that starts with R67 proof: in the middle of the dots, FFL matches 633 of 747, steps matches 745 of 747. A machine without the schedules shows one skipped, and without Git Bash a few more, which is fine.
+   Look for: 415 passed and no failed, and a line that starts with R67 proof: in the middle of the dots, FFL matches 633 of 747, steps matches 745 of 747. A machine without the schedules shows one skipped, and without Git Bash a few more, which is fine.
 
 9. In the terminal run the .NET build:
    `dotnet build dotnet\SiteAdaptation.sln -c Release`
@@ -60,27 +60,27 @@ This round reads the unit blocks from Makkah Building Footprint.dwg, gives every
 
 16. In the terminal run the block scan. It matches nothing, it only counts:
     `.venv\Scripts\python python\block_scan.py sample_output\round12b\scan --cad sample_output\round12b\baseplan --blocks sample_output\round12b\footprint`
-    Look for: the first line inserts 3780, names 19, names by kind {'unit': 7, 'old': 1, 'none': 11}, then one line for each of the 19 names with the biggest first (MP-Parking_6mx2.5m 1806, Villa_VL4 491, Duplex_DP4 291), and two last lines. The first of them holds {'0': 84, '1': 3148, '2': 425, '4': 123}, so no block covers 3 plots, 425 cover 2 and 123 cover 4. The second holds 'inBestPlot': 3116, 'inOtherPlot': 413, 'inNoPlot': 171, 'noPlotHoldsPart': 80.
+    Look for: the first line inserts 3780, names 19, names by kind {'unit': 7, 'old': 1, 'none': 11}, then one line for each of the 19 names with the biggest first (MP-Parking_6mx2.5m 1806, Villa_VL4 491, Duplex_DP4 291), and two last lines. The first of them holds {'0': 84, '1': 3148, '2': 425, '4': 123}, so no block covers 3 plots, 425 cover 2 and 123 cover 4. The second holds 'inBestPlot': 3115, 'inOtherPlot': 413, 'inNoPlot': 168, 'noPlotHoldsPart': 84.
 
 17. In the Explorer panel open sample_output, then round12b, then scan, then block_scan.json. Press Ctrl+F and type `"kind": "unit"`
     Look for: 7 matches. Then `"kind": "old"` gives 1 match (Villa_VL2) and `"kind": "none"` gives 11. Every name with a code has "endsWithCode": true, so config/block_codes.json is not needed.
 
 18. In the terminal run the cluster step with the footprint blocks and the two schedules:
     `.venv\Scripts\python python\cad_analysis.py sample_output\round12b\analysis --cad sample_output\round12b\baseplan --blocks sample_output\round12b\footprint --roads sample_output\round12b\roads --coords sample_output\round12b\IMC\coords.json sample_output\round12b\IMD\coords.json`
-    Look for: four lines. The first is clusters 535 {"M02": 153, "M04": 292, "unknown": 90}, issues 427. The second starts with blocks and holds "villaBlocks": 1617, "plotsOneBlock": 2347, "plotsNoBlock": 232, "plotsTwoBlocks": 0, "tiedBlocks": 36, "mirrored": 503, "notMirrored": 503, "mirrorNull": 1341. The third starts with units and holds "bySource": {"block": 2347, "excel": 73, "none": 159}, "plotsWithBoth": 674, "blockUnitAgrees": 138, "blockUnitDiffers": 536. The fourth is fronts {"single plot": 1, "neighbour": 240, "road edge": 90, "none": 7}.
+    Look for: four lines. The first is clusters 535 {"M02": 153, "M04": 293, "unknown": 89}, issues 426. The second starts with blocks and holds "villaBlocks": 1617, "plotsOneBlock": 2346, "plotsNoBlock": 232, "plotsTwoBlocks": 0, "tiedBlocks": 36, "blocksOnNoPlot": 65, "mirrored": 503, "notMirrored": 501, "mirrorNull": 1342. The third starts with units and holds "bySource": {"block": 2346, "excel": 73, "none": 159}, "plotsWithBoth": 674, "blockUnitAgrees": 138, "blockUnitDiffers": 536. The fourth is fronts {"neighbour": 240, "road edge": 91, "none": 7}.
 
 19. In the Explorer panel open sample_output, then round12b, then analysis, then analysis.json. Press Ctrl+F and type `"unitSource": "block"`
-    Look for: 2347 matches. Then `"unitSource": "excel"` gives 73 and `"unitSource": null` gives 159. The 232 plots without a block are all label type VL2.
+    Look for: 2346 matches. Then `"unitSource": "excel"` gives 73 and `"unitSource": null` gives 159. The 232 plots without a block are all label type VL2.
 
 20. In the search box type `"code": "unknown"`
-    Look for: 90 matches. In all but one of them typologies is a run of TH1 or TH3 with 4, 8 or 12 units, and one holds a single DP4. This is the finding of the round: a townhouse block names the whole cluster, DP2 TH1 TH1 DP2 or DP4 TH3 TH3 DP4, and gives TH1 or TH3 to all four plots, so no listed cluster fits. Then search `"code": "Q02"` and look for 0 matches, and `"rule": "R75"` for 0 matches.
+    Look for: 89 matches. In every one of them typologies is a run of TH1 or TH3 with 4, 8 or 12 units. This is the finding of the round: a townhouse block names the whole cluster, DP2 TH1 TH1 DP2 or DP4 TH3 TH3 DP4, and gives TH1 or TH3 to all four plots, so no listed cluster fits. Then search `"code": "Q02"` and look for 0 matches, and `"rule": "R75"` for 0 matches.
 
 21. In the search box type `covers 4 plots`
-    Look for: 492 matches, 123 blocks with 4 plots each. Then `covers 2 plots` gives 849. These plots have "mirrored": null, since one flag cannot say which unit of the block is mirrored. Then search `"cadType"` and look for 2579 matches, one record for each plot. Each record has cadType, the client plot type from the baseplan label, and unit, the unit code. The two are equal except on 248 plots, the end duplex plots of the 4 plot blocks.
+    Look for: 492 matches, 123 blocks with 4 plots each. Then `covers 2 plots` gives 850. These plots have "mirrored": null, since one flag cannot say which unit of the block is mirrored. Then search `"cadType"` and look for 2578 matches, one record for each plot. Each record has cadType, the client plot type from the baseplan label, and unit, the unit code. The two are equal except on 246 plots, the end duplex plots of the 4 plot blocks. Then search `"blockUnit"` and look for 536 matches. Each is a plot where the block and the schedule give different units. The block wins and the pair is listed here under conflicts.
 
 22. In the terminal run the second method for the block to plot match. It uses plain polygon clipping and no geometry library:
     `.venv\Scripts\python python\block_proof.py sample_output\round12b\block_proof --cad sample_output\round12b\baseplan --blocks sample_output\round12b\footprint`
-    Look for: blocks 1617: agree 1595, owner flips on a near tie 22, differ 0, not comparable 0 and plots 2962: agree 2962, differ 0, faces crossing themselves 0, with a block 2347.
+    Look for: blocks 1617: agree 1595, owner flips on a near tie 22, differ 0, not comparable 0 and plots 2962: agree 2962, differ 0, faces crossing themselves 0, with a block 2346.
 
 23. In the terminal run the mirror flag and rotation against the 338 Revit links. Both files are only read:
     `.venv\Scripts\python python\link_proof.py sample_output\round12b\link_proof --analysis sample_output\round12b\analysis\analysis.json --prototypes C:\Users\bader\Documents\SiteAdaptation\prototypes.json --coords sample_output\round12b\IMC\coords.json sample_output\round12b\IMD\coords.json`
@@ -111,7 +111,7 @@ This round reads the unit blocks from Makkah Building Footprint.dwg, gives every
 
 ## Known bugs
 
-- The block names carry the client plot type and a block names a whole cluster. The unit code from a block equals the baseplan label type on 2099 of 2347 plots, and equals the Excel unit on 138 of 674. The townhouse blocks turn 123 old M09 and Q02 clusters into unknown. Question 1 in the log.
+- The block names carry the client plot type and a block names a whole cluster. The unit code from a block equals the baseplan label type on 2100 of 2346 plots, and equals the Excel unit on 138 of 674. The townhouse blocks turn 123 old M09 and Q02 clusters into unknown. Question 1 in the log.
 - 159 plots labelled VL2 have no unit code. The schedule gives units to 73 other VL2 plots, DP4, DP2, VD4, VD2, VL4 and VL6.
 - The plot at the edge of a neighbourhood can sit one label off the shift (R28). The Excel unit uses the config shift only.
 - The mirror flag of a block is not the mirrored flag of its Revit link by plain comparison, 28 same and 86 opposite.

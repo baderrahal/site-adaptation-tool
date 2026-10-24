@@ -30,7 +30,7 @@ def record(plot, unit="VL4", block="B", mirrored=None, rotation=30.1):
 
 def test_r77_the_neighbourhood_of_an_official_plot_number_is_the_one_of_the_workbook_that_lists_it(tmp_path):
     shifts = cad_analysis.read_shifts(shifts_in(tmp_path))
-    found, twice = link_proof.shift_by_plot([book(BOOK_C, 1011, "1012", 1013.0), book(BOOK_D, 2021, 1013)], shifts)
+    found, twice = link_proof.shift_by_plot([book(BOOK_C, 1011, "1012", 1013.0, "²"), book(BOOK_D, 2021, 1013)], shifts)
     assert found == {1011: 10, 1012: 10, 1013: 11, 2021: 11} and twice == {1013}
     with pytest.raises(project_profile.ProfileError, match="no plot number shift for the workbook other.xlsx"):
         link_proof.shift_by_plot([book("other.xlsx", 1)], shifts)

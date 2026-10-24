@@ -164,3 +164,9 @@ def test_r73_main_refuses_a_missing_folder_and_a_blocks_file_with_no_blocks_list
 @pytest.mark.parametrize("count,expected", [(0, "0"), (1, "1"), (4, "4"), (5, "more"), (40, "more")])
 def test_r73_the_bucket_of_a_covering_count_stops_at_four(count, expected):
     assert block_scan.bucket(count) == expected
+
+
+def test_r73_a_block_with_only_an_edge_in_a_plot_has_no_best_plot_and_no_plot_holding_a_fifth(tmp_path):
+    scan = block_scan.scan([block("A_DP2", -9.9, 5, 0.1, 20, insert=[3, 3, 0])], faces_row(1), profile_in(tmp_path), OLD)
+    row = scan["names"][0]
+    assert row["covering"] == {"0": 1} and row["insertPoint"] == {"noPlotHoldsPart": 1}

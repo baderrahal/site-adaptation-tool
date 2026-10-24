@@ -47,6 +47,20 @@ def kind_of(profile, typology):
     return entry.get("kind") if entry else None
 
 
+def whole_number(value):
+    """The whole number a plot number cell holds, else None. A superscript digit or a fraction is not one."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value) if value.is_integer() else None
+    text = str(value).strip() if value is not None else ""
+    if text.endswith(".0"):
+        text = text[:-2]
+    return int(text) if text.isascii() and text.isdecimal() else None
+
+
 def has_unit_type(label_type, unit_types):
     """The label type of a face is read as text, so a face with a list or a number there is not a unit plot."""
     return isinstance(label_type, str) and label_type in unit_types
@@ -385,6 +399,23 @@ def villa_blocks(blocks, profile):
     return found
 
 
+def unit_blocks_without_outline(blocks, profile):
+    """How many inserts are named like a unit block but have no outline of three points, so villa_blocks leaves them out."""
+    codes = set(profile.get("typologies"))
+    count = 0
+    for block in blocks:
+        name = block.get("name") or ""
+        code = name.rsplit("_", 1)[-1] if "_" in name else None
+        if code in codes and len(block.get("outline") or []) < 3:
+            count += 1
+    return count
+
+
+def holds_cover(share):
+    """True when a face holds at least COVER_SHARE of a block. A true 0.2 can come out a hair under at coordinates this size, so a tie width of slack is allowed."""
+    return share >= COVER_SHARE - TIE
+
+
 def face_polygons(faces):
     return [clean(Polygon([(vertex[0], vertex[1]) for vertex in face["vertices"]])) for face in faces]
 
@@ -419,7 +450,9 @@ def claim_blocks(faces, villas):
 
     A block belongs to the face that holds the largest share of its outline, and shares that tie go to the lowest
     plot number. A face that holds at least COVER_SHARE of it is covered by it too. A block stands for its owner and
-    for every face it covers, so a duplex block stands for two plots and a townhouse block for four.
+    for every face it covers, so a duplex block stands for two plots and a townhouse block for four. A block whose
+    largest share is under COVER_SHARE only touches the edge of a plot, or is spread too thin over many, so it
+    belongs to no plot.
     """
     polygons = face_polygons(faces)
     tree = STRtree(polygons)
@@ -429,13 +462,13 @@ def claim_blocks(faces, villas):
     stats = {"tied": 0, "noPlot": 0, "covering": Counter()}
     for number, block in enumerate(villas):
         shares = shares_of(outline_of(block), polygons, tree)
-        if not shares:
+        if not shares or not holds_cover(max(share for share, _ in shares)):
             stats["noPlot"] += 1
             stands_for.append([])
             continue
         owner, tied = owner_of(shares, faces)
         stats["tied"] += tied
-        held = {index for share, index in shares if share >= COVER_SHARE}
+        held = {index for share, index in shares if holds_cover(share)}
         stats["covering"][len(held)] += 1
         owned[owner].append(number)
         for index in held - {owner}:
@@ -513,6 +546,7 @@ def block_summary(records, stats, counts, villas, source, unit_types):
         "otherPlotsWithBlocks": sum(1 for record in with_block if not has_unit_type(record["cadType"], unit_types)),
         "tiedBlocks": stats["tied"],
         "blocksOnNoPlot": stats["noPlot"],
+        "unitBlocksNoOutline": stats["noOutline"],
         "blocksCovering": {str(count): number for count, number in sorted(stats["covering"].items())},
         "mirrored": sum(1 for record in with_block if record["mirrored"] is True),
         "notMirrored": sum(1 for record in with_block if record["mirrored"] is False),
@@ -520,18 +554,17 @@ def block_summary(records, stats, counts, villas, source, unit_types):
     }
 
 
-def unit_summary(records, profile, read):
+def unit_summary(records, profile, read, dropped):
     """Where the unit codes come from, and the block unit against the Excel unit for the plots that have both."""
     sources = Counter(record["unitSource"] or "none" for record in records)
     both = [record for record in records if record["unitSource"] == "block" and record["excelUnit"]]
     differ = Counter(record["unit"] + ">" + record["excelUnit"] for record in both if record["unit"] != record["excelUnit"])
-    typologies = profile.get("typologies")
     return {
         "plots": len(records),
         "bySource": {key: sources[key] for key in ("block", "excel", "none")},
         "byCode": dict(sorted(Counter(record["unit"] for record in records if record["unit"]).items())),
         "byCodeFromBlock": dict(sorted(Counter(record["unit"] for record in records if record["unitSource"] == "block").items())),
-        "notInProfile": sum(1 for record in records if record["unit"] and record["unit"] not in typologies),
+        "notInProfile": dropped,
         "plotsWithBoth": len(both),
         "blockUnitAgrees": len(both) - sum(differ.values()),
         "blockUnitDiffers": sum(differ.values()),
@@ -562,18 +595,38 @@ def analyse(entries, profile, analysis, blocks=None, roads=None, blocks_source=N
     unit_types = set(analysis.get("unitPlotTypes", []))
     villas = villa_blocks(blocks, profile) if blocks is not None else []
     claims = claim_blocks(faces, villas)
+    claims[3]["noOutline"] = 0 if blocks is None else unit_blocks_without_outline(blocks, profile)
+    # A unit text that is not a code of the profile is left out with an issue and never normalised
+    typologies = profile.get("typologies")
+    units = {label: unit for label, unit in (excel["units"] if excel else {}).items() if unit in typologies}
+    dropped = [(label, unit) for label, unit in (excel["units"] if excel else {}).items() if unit not in typologies]
     # When no source gave any unit every plot lacks one, so one issue says so instead of 2000 repeats of it
-    report = bool(villas) or bool(excel and excel["units"])
-    issues_units, counts = give_units(faces, villas, claims, excel["units"] if excel else {}, unit_types, report)
+    report = bool(villas) or bool(units)
+    issues_units, counts = give_units(faces, villas, claims, units, unit_types, report)
     if blocks is None and excel is None:
         issues_units.append(rules_checks.issue("R69", [], "No block drawing and no Excel unit was given, so no plot has a unit code and no cluster can be built"))
     elif blocks is not None and not villas:
-        issues_units.append(rules_checks.issue("R69", [], "The block drawing holds no unit block, none of its " + str(len(blocks)) + " inserts is named after a typology of the profile"))
+        if claims[3]["noOutline"]:
+            text = "The block drawing holds no unit block with an outline, " + str(claims[3]["noOutline"]) + " of its " + str(len(blocks)) + " inserts are named after a typology of the profile but have no outline of three points"
+        else:
+            text = "The block drawing holds no unit block, none of its " + str(len(blocks)) + " inserts is named after a typology of the profile"
+        issues_units.append(rules_checks.issue("R69", [], text))
+    if excel is not None and not excel["units"]:
+        issues_units.append(rules_checks.issue("R69", [], "The schedule workbooks gave no unit, so they give no plot a unit code"))
     if excel:
         issues_units += excel["issues"]
+    issues_units += [rules_checks.issue("R69", [label], "Plot " + label + " has the Excel unit " + repr(unit) + ", which is not a unit code of the profile, so it gives no unit code") for label, unit in dropped]
+    biggest = profile.get("cluster_block_max")
+    labels_of = [str(face["plot"]) for face in faces]
+    for number, held in enumerate(claims[2]):
+        if len(held) > biggest:
+            issues_units.append(rules_checks.issue("R69", [labels_of[index] for index in held], "Block " + str(villas[number].get("name")) + " stands for " + str(len(held)) + " plots, more than the " + str(biggest) + " of the biggest cluster"))
     records = plot_records(faces, unit_types)
-    labels = {str(face["plot"]) for face in faces}
+    labels = set(labels_of)
     read = None if excel is None else {**excel["stats"], "noFace": sum(1 for label in excel["units"] if label not in labels)}
+    # Where the block and the schedule give a plot different units the block wins, and the pair is listed so the conflict is never silent
+    conflicts = [{"plot": record["plot"], "block": record["block"], "blockUnit": record["unit"], "excelUnit": record["excelUnit"]}
+                 for record in records if record["unitSource"] == "block" and record["excelUnit"] and record["unit"] != record["excelUnit"]]
     clusters = derive_clusters(faces, profile, analysis, roads)
     issues = rules_checks.check_attachment(clusters, profile) + rules_checks.check_known_clusters(clusters) + rules_checks.check_unmatched_codes(clusters, analysis.get("noRev6Match", [])) + issues_units
     row_rules = {cluster["rowId"]: cluster["frontRule"] for cluster in clusters}
@@ -591,11 +644,11 @@ def analyse(entries, profile, analysis, blocks=None, roads=None, blocks_source=N
         "frontRules": {rule: rules[rule] for rule in FRONT_RULES if rules[rule]},
         "roadEdges": None if roads is None else len(roads),
         "blocks": None if blocks is None else block_summary(records, claims[3], counts, villas, blocks_source, unit_types),
-        "units": unit_summary(records, profile, read),
+        "units": unit_summary(records, profile, read, len(dropped)),
         "issues": len(issues),
         "numbering": "baseplan labels",
     }
-    return {"summary": summary, "clusters": clusters, "plots": records, "issues": issues}
+    return {"summary": summary, "clusters": clusters, "plots": records, "issues": issues, "conflicts": conflicts}
 
 
 def read_excel_units(books, shifts):
@@ -618,8 +671,8 @@ def read_excel_units(books, shifts):
             place = source + " row " + str(row.get("sheetRow"))
             plot = next((row[header] for header in row if header.strip().lower().startswith("plot no")), None)
             unit = next((row[header] for header in row if header.strip().rstrip("*").strip().lower() == "unit"), None)
-            key = link_table.plot_key(plot) if plot is not None and str(plot).strip() else None
-            if not isinstance(key, int):
+            key = whole_number(plot)
+            if key is None:
                 issues.append(rules_checks.issue("R69", [], place + " has no numeric plot number"))
             elif not isinstance(unit, str) or not unit.strip():
                 issues.append(rules_checks.issue("R69", [], place + " (plot " + str(key) + ") has no unit"))

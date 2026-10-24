@@ -6,6 +6,7 @@ from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
 
+import block_proof
 import cad_analysis
 import project_profile
 
@@ -20,6 +21,7 @@ PROFILE_VALUES = {
     },
     "clusters": {"D02": ["DP2", "DP2"], "Q01": ["DP2", "TH1", "TH1", "DP2"], "E02": ["DP2", "TH1"]},
     "cluster_aliases": {},
+    "cluster_block_max": 4,
     "plot": {"long_side": 25000},
 }
 ANALYSIS = {"toleranceM": 0.01, "partyWallShare": 0.75, "endShare": 0.25, "unitPlotTypes": ["DP2", "TH1", "ZZ1", "VL3", "DX9"], "noRev6Match": []}
@@ -190,7 +192,7 @@ def test_r64_main_writes_the_clusters_the_issues_and_no_coordinates_to_analysis_
              "blockUnitAgrees": 0, "blockUnitDiffers": 0, "excel": {"rows": 5, "used": 5, "ambiguous": 0, "noFace": 0}}
     assert lines == ['clusters 3 {"D02": 1, "E02": 1, "unknown": 1}, issues 2', "units " + json.dumps(units), 'fronts {"neighbour": 1, "none": 1}']
     result = json.loads((tmp_path / "out" / "analysis.json").read_text(encoding="utf-8"))
-    assert list(result) == ["source", "summary", "clusters", "plots", "issues"] and result["source"] == "base.dwg"
+    assert list(result) == ["source", "summary", "clusters", "plots", "issues", "conflicts"] and result["source"] == "base.dwg" and result["conflicts"] == []
     assert result["summary"] == {"plotFaces": 6, "clusters": 3, "clusterPlots": 5, "byCode": {"D02": 1, "E02": 1, "unknown": 1}, "notRows": 0,
                                  "orderNotSure": 2, "unitsWithMirrorFlag": 0, "rows": 2, "cutFromLongerRow": 2, "frontRules": {"neighbour": 1, "none": 1},
                                  "roadEdges": None, "blocks": None, "units": {**units, "differing": {}}, "issues": 2, "numbering": "baseplan labels"}
@@ -754,3 +756,72 @@ def test_r75_a_code_that_cluster_aliases_points_at_a_rev_6_cluster_cannot_be_a_n
     path.write_text(json.dumps(values), encoding="utf-8")
     with pytest.raises(project_profile.ProfileError, match="which cluster_aliases gives a Rev 6 cluster"):
         cad_analysis.analyse(row(["DP2", "DP2"], ["1", "2"]), project_profile.load_profile(path), {**ANALYSIS, "noRev6Match": ["D02"]})
+
+
+def test_r69_a_block_whose_largest_share_is_under_the_cover_share_belongs_to_no_plot_and_gives_no_unit(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = [face("1", "VL3", 0, 0)]
+    # A hundredth of the block lies in plot 1, so it only touches the edge of the plot
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, [villa("Villa_VL3", box(-9.9, 5, 0.1, 20))], excel=given({"1": "TH1"}))
+    assert result["summary"]["blocks"]["blocksOnNoPlot"] == 1 and result["summary"]["blocks"]["blocksCovering"] == {}
+    assert [(p["unit"], p["unitSource"], p["blocks"]) for p in result["plots"]] == [("TH1", "excel", 0)]
+
+
+def test_r69_a_share_a_tie_width_under_the_cover_share_still_covers_and_one_two_tie_widths_under_does_not():
+    assert cad_analysis.holds_cover(0.2) and cad_analysis.holds_cover(0.2 - 5e-7)
+    assert not cad_analysis.holds_cover(0.2 - 2e-6) and not cad_analysis.holds_cover(0.0)
+
+
+def test_r69_a_fifth_of_a_block_at_site_coordinates_covers_in_both_methods(tmp_path):
+    profile = profile_in(tmp_path)
+    x, y = 569433.0, 2362915.0
+    faces = [face("1", "VL3", x, y, width=2, depth=10), face("2", "VL3", x + 2, y, width=8, depth=10)]
+    villas = [{**villa("Villa_VL3", box(x, y, x + 10, y + 10)), "code": "VL3"}]
+    assert cad_analysis.claim_blocks(cad_analysis.plot_faces(faces), villas)[2] == [[0, 1]]
+    assert block_proof.compare(cad_analysis.plot_faces(faces), villas)["blocksAgree"] == 1
+
+
+def test_r69_an_excel_unit_that_is_not_a_unit_code_of_the_profile_gives_no_unit_code_and_one_issue_and_is_never_normalised(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = [face("1", "DP2", 0, 0), face("2", "DP2", 10, 0), face("3", "TH1", 20, 0)]
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, excel=given({"1": "dp2", "2": "XX9", "3": "TH1"}))
+    assert [(p["plot"], p["unit"], p["unitSource"]) for p in result["plots"]] == [("1", None, None), ("2", None, None), ("3", "TH1", "excel")]
+    texts = [i["text"] for i in result["issues"] if i["rule"] == "R69" and i["plots"] == ["1"]]
+    assert "Plot 1 has the Excel unit 'dp2', which is not a unit code of the profile, so it gives no unit code" in texts
+    assert result["summary"]["units"]["notInProfile"] == 2 and result["summary"]["units"]["bySource"] == {"block": 0, "excel": 1, "none": 2}
+
+
+def test_r69_a_schedule_with_no_unit_says_so_and_a_unit_block_with_no_outline_is_counted(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = [face("1", "VL3", 0, 0)]
+    empty = cad_analysis.analyse(faces, profile, ANALYSIS, excel={"units": {}, "stats": {"rows": 0, "used": 0, "ambiguous": 0}, "issues": []})
+    assert [i["text"] for i in empty["issues"]] == ["The schedule workbooks gave no unit, so they give no plot a unit code"]
+    two_points = {"name": "X$0$Villa_VL3", "outline": [[0, 0], [5, 5]]}
+    only = cad_analysis.analyse(faces, profile, ANALYSIS, [two_points])
+    assert [i["text"] for i in only["issues"]] == ["The block drawing holds no unit block with an outline, 1 of its 1 inserts are named after a typology of the profile but have no outline of three points"]
+    some = cad_analysis.analyse(faces, profile, ANALYSIS, [two_points, villa("Villa_VL3", box(1, 1, 9, 24))])
+    assert some["summary"]["blocks"]["unitBlocksNoOutline"] == 1 and some["issues"] == []
+
+
+def test_r74_a_plot_number_cell_is_a_whole_number_or_it_is_not_and_a_superscript_digit_is_not(tmp_path):
+    assert [cad_analysis.whole_number(value) for value in (11, "11", " 12.0 ", 13.0, 13.5, True, "²", "١٢", None, "", "x1")] == [11, 11, 12, 13, None, None, None, None, None, None, None]
+    shifts = shifts_in(tmp_path)
+    read = cad_analysis.read_excel_units([sheet(("²", "DP2"), (11, "TH1"))], shifts)
+    assert read["units"] == {"1": "TH1"} and [i["text"] for i in read["issues"]] == [BOOK + " row 40 has no numeric plot number"]
+
+
+def test_r69_where_the_block_and_the_schedule_give_different_units_the_block_wins_and_the_pair_is_listed_as_a_conflict(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = [face("1", "DP2", 0, 0), face("2", "DP2", 10, 0)]
+    blocks = [villa("Villa_VL3", box(1, 1, 9, 24)), villa("Villa_DX9", box(11, 1, 19, 24))]
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, blocks, excel=given({"1": "TH1", "2": "DX9"}))
+    assert result["conflicts"] == [{"plot": "1", "block": "X$0$Villa_VL3", "blockUnit": "VL3", "excelUnit": "TH1"}]
+    assert cad_analysis.analyse(faces, profile, ANALYSIS, blocks)["conflicts"] == []
+
+
+def test_r69_a_block_that_stands_for_more_plots_than_the_biggest_cluster_is_an_issue_naming_the_block_and_the_plots(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = [face(str(number), "VL3", 10 * (number - 1), 0) for number in range(1, 6)]
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, [villa("Duplex_DP2", box(0, 5, 50, 20))])
+    assert [(i["rule"], i["plots"], i["text"]) for i in result["issues"] if i["rule"] == "R69"] == [("R69", ["1", "2", "3", "4", "5"], "Block X$0$Duplex_DP2 stands for 5 plots, more than the 4 of the biggest cluster")]
+    assert [p["unit"] for p in result["plots"]] == ["DP2"] * 5

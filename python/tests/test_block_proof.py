@@ -160,3 +160,9 @@ def test_r76_main_refuses_a_missing_folder_with_one_line(tmp_path, capsys):
     assert block_proof.main([str(tmp_path / "out")] + args) == 2
     error = capsys.readouterr().err
     assert error.startswith("block_proof: ") and error.count("\n") == 1
+
+
+def test_r76_a_block_whose_largest_share_is_under_the_cover_share_belongs_to_no_plot_in_both_methods():
+    faces = [face("1", 0, 0)]
+    result = block_proof.compare(faces, [villa("Villa_VL3", -9.9, 5, 0.1, 20)])
+    assert (result["blocksAgree"], result["blocksDiffer"], result["blocksNearTie"], result["withABlock"]) == (1, 0, 0, 0)

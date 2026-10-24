@@ -51,8 +51,8 @@ def shift_by_plot(books, shifts):
             raise project_profile.ProfileError("no plot number shift for the workbook " + str(book.get("source")))
         for row in book.get("rows") or []:
             plot = next((row[header] for header in row if header.strip().lower().startswith("plot no")), None)
-            key = link_table.plot_key(plot) if plot is not None and str(plot).strip() else None
-            if isinstance(key, int):
+            key = cad_analysis.whole_number(plot)
+            if key is not None:
                 if key in found and found[key] != shifts["shifts"][code]:
                     twice.add(key)
                 found[key] = shifts["shifts"][code]

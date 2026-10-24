@@ -120,12 +120,13 @@ def claim(faces, villas):
                     share = clip_area(ring, outline) / total
                     if share > 0:
                         shares.append((share, index))
-        if not shares:
+        # A block whose largest share is under the cover share belongs to no plot, as in claim_blocks
+        if not shares or not cad_analysis.holds_cover(max(share for share, _ in shares)):
             found.append(None)
             continue
         top = max(share for share, _ in shares)
         owner = sorted((index for share, index in shares if top - share <= cad_analysis.TIE), key=lambda index: cad_analysis.plot_key(faces[index]["plot"]))[0]
-        held = {index for share, index in shares if share >= cad_analysis.COVER_SHARE}
+        held = {index for share, index in shares if cad_analysis.holds_cover(share)}
         found.append({"owner": owner, "stands": sorted(held | {owner}), "top": top, "shares": {index: share for share, index in shares}})
     return found, comparable
 

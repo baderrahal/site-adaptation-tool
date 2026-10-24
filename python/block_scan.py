@@ -87,8 +87,8 @@ def scan(blocks, faces, profile, old_codes):
             entry["insertPoint"]["noOutline"] += 1
             continue
         shares = cad_analysis.shares_of(cad_analysis.outline_of(block), polygons, tree)
-        entry["covering"][bucket(sum(1 for share, _ in shares if share >= cad_analysis.COVER_SHARE))] += 1
-        best = cad_analysis.owner_of(shares, faces)[0] if shares else None
+        entry["covering"][bucket(sum(1 for share, _ in shares if cad_analysis.holds_cover(share)))] += 1
+        best = cad_analysis.owner_of(shares, faces)[0] if shares and cad_analysis.holds_cover(max(share for share, _ in shares)) else None
         entry["insertPoint"][point_class(block.get("insertPoint"), best, polygons, tree)] += 1
     rows = []
     for name, entry in names.items():
