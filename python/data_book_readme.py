@@ -47,6 +47,15 @@ FILES = {
     "stray_units.json": "The footprint unit blocks on no baseplan plot and what the location plan and Rev 9 have there (R194), counts only.",
     "stray_units.csv": "One row per footprint unit block on no baseplan plot (R194).",
     "location_dwg.json": "The location plan DWG of 01_Output against the Rev.09 location plan PDF, with the dates of every export (R196).",
+    "surface_versions.csv": "One row per DWG and XML under the source root: size, file date, header dates and the Civil 3D surfaces it holds (R242).",
+    "surface_versions.json": "The same as surface_versions.csv in counts, with the files that hold a surface (R242).",
+    "surface_entry.json": "El @ Entry of the schedule plots and of the past key against every surface version, by neighbourhood, with the shape fit (R248, R249).",
+    "surface_entry.csv": "One row per schedule plot and surface of R248 with the predicted less the schedule El @ Entry and its band.",
+    "past_formulas.json": "Typed values and formulas of El @ Entry, FFL and Height in the past schedules, by pattern, with the table formulas and notes (R247).",
+    "rev9_parcels.json": "The Civil 3D parcels of Rev 9 against the baseplan, the location plan and the Rev 9 PDF, and the redo of the Rev 9 differences (R243, R244).",
+    "parcels.csv": "One row per plot parcel of Rev 9: number, style, area, the baseplan face it matches and its overlap over union (R244).",
+    "parcel_redo.csv": "One row per unit plot R191 found different, with the parcel verdict of each difference (R244).",
+    "villa_hand.json": "The gate, entrance doors and driver's room of the VL6 and VL4 prototypes across their plot front, and the hand verdict (R246).",
 }
 
 COLUMNS = {
@@ -124,7 +133,7 @@ def rows_of(path):
 
 
 def write(root):
-    lines = ["# Data book, Phase 1", "", "Read only from working copies, only data inside the Phase 1 border. Metres, UTM 37N. Written by the readers of rounds DATA, DATA-2 and DATA-3 (R160 to R198).", "",
+    lines = ["# Data book, Phase 1", "", "Read only from working copies, only data inside the Phase 1 border. Metres, UTM 37N. Written by the readers of rounds DATA to DATA-4 (R160 to R198 and R240 to R250).", "",
              "## Files", ""]
     seen_columns = set()
     for path in sorted(p for p in root.rglob("*") if p.is_file() and "work" not in p.relative_to(root).parts and "logs" not in p.relative_to(root).parts):

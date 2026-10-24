@@ -1,4 +1,4 @@
-# Data book, rounds DATA, DATA-2 and DATA-3, 2026-10-24
+# Data book, rounds DATA to DATA-4, 2026-10-24
 
 The data book lives outside the repo in Documents\SiteAdaptation\data_book. Counts and distances only here, no coordinates or levels. The 15 sources and the 15 working copies hash the same before and after rounds DATA and DATA-2, the 10 sources and copies of DATA-3 the same before and after DATA-3.
 
@@ -156,3 +156,33 @@ Sources read from copies in data_book\work: the Rev 9 DWG and its PDF plot, the 
 ### Second method (R198)
 
 - Seeds 14 and 7, 20 plots each: DLUS front, drawn front and class 20 of 20. Land Width, Length, Typology_Rev9 and width class 20 of 20. Rev 9 face overlap, class and number 20 of 20. The best El @ Entry variant (corner by typology) 20 of 20.
+
+## Round DATA-4, the Rev 9 parcels, the VL6 hand and where El @ Entry came from
+
+Every DWG, XML and workbook under the source root and the two prototypes, 167 files, were copied into data_book\work with their layout before they were opened (146 new copies). All 167 sources hash the same before and after and all 167 copies equal their source. Four windows, one at a time under the shared lock, no wait: Civil 3D twice on the Rev 9 copy (65 s and 45 s, lowest free memory 3.10 and 3.31 GB), Revit twice (VL6 1.0 min, VL4 0.55 min, 5.88 and 5.70 GB free at the lock). The Civil 3D watcher answered Annotation Scale - Large Number of Scales with No and the probe dialog with Load Once. In each Revit start the watcher answered Do Not Load for RCRC Green and RCRC Green Audit and Load Once for the three DLLs of this tool, inside our own process only. The registry was not read or written, the install ran with -SkipSigningReport.
+
+### Part P, the Rev 9 parcels (R243, R244)
+
+- The 3,480 parcels of the class list sit in the bound block MP-Base, so no site of the drawing holds them. The probe now reads parcels met inside a block. Inside Phase 1: 3,276 parcels, 3,266 with a number. Name equals Number on all 3,266, no number twice. StyleName holds the new code or the land use (DT3 500, DT1 298, DP2 244, VD4 229, DP4 226, C10 204, OS 203, VL4 201 and so on, 85 xx), Description the unit code.
+- Numbers: 3,160 of the 3,266 are location plan numbers, 21 location plan numbers have no parcel. 3,159 are Rev 9 PDF numbers, 12 PDF numbers have no parcel. 90 parcel numbers are in neither: 85 xx (numbers over 4,000), 4 ROW, 1 hotel.
+- Faces: the parcels coincide with the baseplan faces, median Hausdorff 0.000 m. Unit plots: 2,481 same, 65 shape differs, 32 with no parcel face. Numbers 2,554 same, 5 differ. Codes 2,554 same as Typology_Rev9, 6 differ (VD4 to OS 2, DP4 to OS 1, VD2 to OS 1, DP2 to OS 1, DP2 to VD4 1).
+- The 115 differing unit plots of DATA-3 taken again: all 97 shape differences are real, the parcels hold them too, and the PDF faces equal the parcels at a median overlap over union of 0.997. Of the 3 number differences 2 are real (plots 1759 and 2000) and 1 came from the PDF read (488). All 5 code differences are real. The 21 DWG unit text differences (18 TH1 on TH1-IM plots) stay a matter of the DWG texts.
+
+### Part V, the VL6 hand (R245, R246)
+
+- The VL6 and VL4 test copies were read in Revit 2024 by a read job, detached with worksets discarded and closed without saving. VL6 holds 82 rooms (built on the VL3 rooms, with unplaced C10 rooms beside them) and 57 doors, VL4 37 rooms and 68 doors. Many elements repeat at one place, design options, and are taken once.
+- In the link axes, by the plot frame of R123: VL4 plot 12 m, its gate at 0.325 of the front from the start corner, on the left seen from the road. VL6 plot 16 m, its gate at 0.631, on the right. The VL6 main doors sit at 0.618 and 0.517, its driver's room at 0.941, on the right with the gate. VL4 has no driver's room, its main doors sit at 0.903 (front) and 0.342 (side).
+- So VL6 is drawn the other hand from VL4. All four prototype files hash the same after the reads.
+
+### Part X, where El @ Entry came from (R242, R247 to R249)
+
+- The two past schedules: in all 747 rows El @ Entry and FFL are typed values, Height is the formula FFL less El @ Entry (747 of 747), SSL a table formula FFL less 0.075. No external link. The note of both sheets says "FFL levels determined based on the plot entrance spot elevation information provided in the Infrastructure IFC Package", and El @ Entry is "the elevation at the top of the ramp infront of the Villa's entrance".
+- No IFC file and no LandXML is under the source root. One IFC sits outside it in Downloads (1TB02012-012D03-UNA-00-XX-MOD-UT-00010.ifc), not opened.
+- Surfaces on this machine: of 160 DWGs only the three road drawings hold Civil 3D surfaces: Road Layout 2 (saved 2023-03-06), Road Surface C3D 11 (saved 2023-03-06), Rough Grading 10 (saved 2023-02-12). No older version exists. The 01_Output grading plans are Revit exports of the past model with its own spot elevation texts.
+- The 747 schedule plots on every surface version, within 5 mm, 30 mm, worse, no level: the snapped road level 221, 193, 330, 3 (IMC 96, 92, 149, 0, IMD 125, 101, 181, 3), median 10 mm low, and its shape fit after the median is worse (61 within 5 mm), so no constant datum hides behind it. Top Surface-01 alone (IMD) 58, 42, 87 and Top Surface-02 alone (IMC) 47, 43, 65 where they have a level. Every other surface sits 0.59 to 1.51 m low with 0 within 5 mm.
+- The 1.4 key on NBH 022, 294 plots: by its El @ Entry parameter the road level gives 3 within 5 mm, median 178 mm low, shape fit 37. By its ramp corners less the datum, 3 within 5 mm, median 212 mm low, but 164 within 5 mm once the 212 mm is taken off. So the 1.4 ramps follow the shape of today's Top Surface-02 a steady 0.21 m higher.
+- Most likely: the IMC and IMD schedules took their levels from today's road surfaces through the plot entrance spots of the Infrastructure IFC package, the 1.4 job from the same road shape 0.21 m higher, an older or raised version that is not on this machine.
+
+### Second method (R250)
+
+- Parcels: seeds 14 and 7, 20 unit plots each, parcel, location plan number and class 20 of 20. The VL6 hand from the reader rows: the gate shares of both prototypes and the verdict agree. The best surface version (snapped road level): bands 20 of 20 at both seeds by brute force.

@@ -116,7 +116,8 @@ def run(config, settings_path):
     steep = set(book["retest"]["steepUnits"])
     limits = book["analysis"]["bandsM"]
     names = data_book_retest.surface_names(rows)
-    schedule = summarise(schedule_items(rows, profile, steep, names, limits), limits)
+    items_of_schedule = schedule_items(rows, profile, steep, names, limits)
+    schedule = summarise(items_of_schedule, limits)
     report = {"surfaces": len(names), "schedule": schedule, "scheduleRanked": ranked(schedule)}
 
     key = settings["key"]
@@ -148,6 +149,7 @@ def run(config, settings_path):
     out = root / settings["outFolder"]
     out.mkdir(parents=True, exist_ok=True)
     (out / "surface_entry.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
+    data_book_retest.write_rows(out / "surface_entry.csv", items_of_schedule, list(items_of_schedule[0]) if items_of_schedule else ["plot"])
     return report
 
 

@@ -563,6 +563,11 @@
       "renames": {"Roshn Makkah - Master Plan Rev.09": "Master Plan Rev.09"},
       "surfaceClasses": ["AECC_TIN_SURFACE", "AECC_GRID_SURFACE", "AECC_TIN_VOLUME_SURFACE", "AECC_GRID_VOLUME_SURFACE"]
     },
+    "data4Check": {
+      "seeds": [14, 7],
+      "size": 20,
+      "gridM": 0.1
+    },
     "data3Check": {
       "seeds": [14, 7],
       "size": 20,
