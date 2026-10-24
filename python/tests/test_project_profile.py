@@ -77,8 +77,10 @@ def test_r62_the_rev_6_block_holds_the_new_values_and_no_code_reads_it_yet():
     assert profile.get("rev6") == {
         "back_slope_to_front_min_percent": 0.3, "back_slope_to_front_max_percent": 0.5, "th_back_slope_percent": 2.0,
         "boundary_wall_top_above_ffl": 1700, "boundary_wall_continuity_limit": 500, "garden_wall_top_above_ffl": 1700,
-        "utility_cabinet_raise": 100, "front_setback": 5520, "front_setback_c10": 5500, "one_step_only_typologies": ["C10", "VL4", "VL6"]}
-    assert profile.metres("rev6.front_setback") == 5.52
+        "utility_cabinet_raise": 100}
+    # The front setback and the one step typologies left rev6 when the plan from CAD began to read them (R126, R127)
+    assert profile.metres("ramp.front_setback.default") == 5.52 and profile.metres("ramp.front_setback.C10") == 5.5
+    assert profile.get("steps.one_step_only") == ["C10", "VL4", "VL6"]
     python_files = [path for path in (ROOT / "python").glob("*.py")]
     assert [path.name for path in python_files if "rev6" in path.read_text(encoding="utf-8")] == []
 

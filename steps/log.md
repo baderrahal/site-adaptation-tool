@@ -2,6 +2,42 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round 14 Part B, 2026-10-24, clusters and levels for the computed plan
+
+Goal:
+- Check 3, levels from El @ Entry, the Rev 6 ramp outline tested on the past ramps, and plan_imc_cad.json compared with plan_imc_past.json field by field
+
+Done:
+- Branch feat/cad-levels-14b from main at 497855c after PR 20. Full record: steps/history/round-14b.md
+- New: check_one_ffl in rules_checks.py (R125), python/plan_from_cad.py (R126, R128), python/ramp_outline.py (R127), plan_compare.py --against-plan (R129), python/cad_plan_check.py (R130). ramp.front_setback (5520, C10 5500) and steps.one_step_only left rev6 of the profile. Check 3 left rules/README.md. Gate: Python 694 to 708 passed and 1 skipped, .NET 347 passed
+- B1 (R125): splits allowed at every inner wall of a 4-unit cluster, counted from either end, never in a pair. IMC schedule FFL: 85 of 96 clusters one FFL, 11 split at allowed walls (10 middle, 1 DP to TH), 0 not allowed
+- B2 (R126): levels.py with the raw El @ Entry on 337 plots, link Z is the FFL. No C10, VL4 or VL6 with more than 1 step. Height over 0.54 m on 4 plots
+- B3 (R127): ramp of full width by 5.52 m (C10 5.50) from the plot front line matches the past ramp within 10 mm on 321 of 325, the 4 others are next to A1 plots. Top Surface-02 covers 414 of 1348 corners and 1346 of their curb points, all 119 uncovered ramps lie on the sidewalk
+- B4 (R128, R129): plan_imc_cad.json writes 224 of 337 plots, 113 have no mirror rule (107 villas, 6 A1). Against the past plan on 218 plots outside A1: rotation, mirror and file equal 218, insert in plan within 1 mm 109 and within 10 mm 217, FFL equal 163 and within 10 mm 193, steps equal 196
+
+Checked:
+- Second method (R130): levels seed 14 20 of 20, seed 7 20 of 20, all 224 (24 on a half millimetre). ramps seed 14 20 of 20, seed 7 20 of 20, all 337. compare 4 of 4 counts
+
+UNKNOWN:
+- The villa mirror, so 107 villas are not in the CAD plan
+- Whether the CAD plan should split the FFL where the schedule does, 25 FFLs are worse because levels.py never splits
+
+Remains:
+- Floors in the CAD plan, a Revit run of plan_imc_cad.json, IMD, the villa mirror, case and linkName
+
+Known bugs:
+- The FFL of 24 plots lies on a half millimetre and the 5th decimal of El @ Entry decides it
+- 2338 is 10 mm off, 2543 and 2546 are 4 m off. 2374 and 2391 have ramps 2 m narrower than their faces
+
+Next:
+- Answer the villa mirror, then floors in the CAD plan and a test host run of it on a work file
+
+Your turn:
+1. Villa mirror. Recommended: tell me what decides it, the plan leaves the 107 villas out until then
+2. FFL split. Recommended: keep one FFL per cluster in the CAD plan and list the 11 split clusters of the schedule, a split needs the slope rule first
+3. Split positions [2, 3]. Recommended: confirm they are walls after unit n counted from either end, so all three inner walls of a 4-unit cluster may split
+4. Plots 2374, 2391, 2543 and 2546. Recommended: list them apart with A1, their ramps and links follow the past cut of their neighbours
+
 ## Round 14 Part A, 2026-10-24, links from CAD for IMC
 
 Goal:
