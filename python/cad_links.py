@@ -331,16 +331,17 @@ def predicted_origin(frame, mirrored, fit):
     return from_axes(anchor_corner(frame, mirrored, fit["anchor"]), axis_x, axis_y, fit["offset"])
 
 
-def measure(links, generics, faces, roads, clusters, shift, limits, least, labels):
+def measure(links, generics, faces, roads, clusters, shift, limits, least, labels, neighbours=()):
     """R120 to R123 on the past links. Returns the report and the plotFrame section of the offsets file.
 
-    labels maps an official plot number to the baseplan label and type of its face, for the cut list.
+    labels maps an official plot number to the baseplan label and type of its face, for the cut list. neighbours are the
+    plots of cadLinks.cutNeighbours, listed apart with the cut list.
     """
     road_tree = STRtree(roads) if roads else None
     frames = {plot: front_frame(faces.get(plot), road_tree, roads, limits) for plot in links}
     old_front = {plot: entry_levels.front_edge(faces[plot], road_tree, roads) if plot in faces else None for plot in links}
     shares, listed = cut_list(generics, faces, least)
-    apart = set(listed)
+    apart = set(listed) | set(neighbours)
     roles = cluster_roles(clusters, shift, faces, frames)
     sides = drawn_sides(links, roles, apart)
     fits = fit_origins(links, frames, apart)
@@ -495,7 +496,8 @@ def main(argv=None):
         analysis = settings.get("analysis")
         job = plan_from_past.load_job(settings)
         floors_config = plan_from_past.load_floors(settings)
-        least = cad_links_settings(settings)["cutShareMin"]
+        block = cad_links_settings(settings)
+        least = block["cutShareMin"]
         shift = link_table.load_shifts(args.shifts)["shifts"][job["neighbourhood"]]
         baseplan = Path(args.baseplan or project_profile.ROOT / job["baseplanPlots"])
         plots = link_summary.load(baseplan)["plots"]
@@ -504,7 +506,7 @@ def main(argv=None):
         links, generics, twice = read_past(document, ramp_levels.offset_of(document), floors_config)
         roads = cad_analysis.read_road_edges(args.roads, analysis["roadEdgeLayers"])
         clusters = levels_proof.read_clusters(args.analysis)
-        report, section = measure(links, generics, faces, roads, clusters, shift, front_limits(profile, analysis), least, face_labels(plots, shift))
+        report, section = measure(links, generics, faces, roads, clusters, shift, front_limits(profile, analysis), least, face_labels(plots, shift), block.get("cutNeighbours", []))
         report["linksOnTwoPlots"] = twice
         common.write_json(Path(args.out_dir) / "cad_links.json", report)
         if args.write_offsets:
@@ -527,6 +529,9 @@ def cad_links_settings(settings):
     least = block.get("cutShareMin")
     if not plan_from_past.is_number(least) or not 0 < least <= 1:
         raise project_profile.ProfileError(settings.path.name + " cadLinks.cutShareMin must be a share above 0 up to 1")
+    neighbours = block.get("cutNeighbours", [])
+    if not isinstance(neighbours, list) or not all(isinstance(plot, str) and plot.isdigit() for plot in neighbours):
+        raise project_profile.ProfileError(settings.path.name + " cadLinks.cutNeighbours must be a list of plot numbers as text")
     return block
 
 
