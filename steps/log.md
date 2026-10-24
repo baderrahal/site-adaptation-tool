@@ -2,6 +2,49 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round C3D, 2026-10-24, the road drawings in Civil 3D 2026 tied to the plots
+
+Goal:
+- What the road surface drawing, the Roads folder and the Base Plans folder hold, read only, and the best source for the level at the plot front. Summary: steps/investigations/civil3d.md
+
+Done:
+- Session started in the repo, both hooks live. Worktree site-adaptation-tool-c3d on probe/civil3d from main at 588d7a5 after PR 21 (Part B merged first). Plan written before the first edit
+- Civil 3D 2026 in Program Files\Autodesk\AutoCAD 2026: acad.exe R25.1.74, accoreconsole.exe 25.1.74, C3D\AeccDbMgd.dll 13.8.280, ACA\AecBaseMgd.dll 8.8.58. Free memory 4.87 of 15.78 GB, core console only. No acad.exe or accoreconsole.exe ran at the start, so the open session of the prompt was not on this machine
+- The 10 drawings copied to c3d_probe\work with their layout, equal by SHA-256. Every run left its copy unchanged, the sources hash the same at the end. Run logs and process ids in c3d_probe\logs
+- New: dotnet/SiteAdaptation.C3DProbe (R150, R152), python/c3d_run.py (R151), c3d_inventory.py (R153), c3d_drawings.py (R154), c3d_surfaces.py (R155), c3d_connect.py (R156 to R158), c3d_check.py (R159), settings in python/c3d_probe.json. The net48 probe project was added to the solution and to the test project, its Civil 3D commands sit in Civil/SiteAdaptation.C3DProbe.Civil.csproj
+- Part 1: 7 TIN surfaces and no corridor, alignment, feature line, grading, COGO point or pipe. Top Surface-01 and 02 do not overlap on a 2 m grid, 768 seam vertices differ by median 0 and worst 2 mm
+- Part 2: Road Layout holds 2 surfaces, 1 alignment, 3 profiles and 1 assembly, Rough Grading 10 surfaces, the rest is plain AutoCAD. No corridor in any drawing, so no sidewalk link or point code. No site level text. The two road layouts line up
+- Part 3: ROW lies on the plot front of all 337 IMC plots, sidewalk curb to ROW median 4.15 m. Top Surface-02 reaches the plot line: 403 of 674 front corners on it, 271 within 2 mm of its edge. Snapped within 5 mm it gives 672 ramp front corners, 539 within 5 mm, 41 within 30 mm, 92 worse, and covers all 119 uncovered ramps. Coverage IMC 100, IMD 99.3, other unit plots 98.6 percent. Building Footprint shows two VL4 on 2301 and 2302, the baseplan cut
+
+Checked:
+- Second method (R159): levels seed 14 40 of 40, seed 7 40 of 40, all 672 of 672 and 2 with no level either way. curb seed 14 20 of 20, seed 7 20 of 20, all 335 of 337 and ROW on the front 335 of 337. inventory LISP against ACadSharp 8 of 8 classes on all 10 drawings
+- Gate: Python 708 to 731 passed and 1 skipped, .NET 347 to 358 passed. The Civil project builds by hand only (not in the solution), it built with 0 errors here
+
+UNKNOWN:
+- The names, counts and definitions of the 7 surfaces inside the drawing, the 10 Rough Grading and 2 Road Layout surfaces, the assembly, point groups, data shortcuts and the drawing coordinate system. They need the probe
+- IME: no schedule, no shift, no boundary on this machine
+
+Remains:
+- Run the probe once it may load: C3DDUMP on the road surface, road layout and rough grading copies, C3DBORDER against the LandXML border counts
+- A later round should change, not this one: road_surfaces.json and levels.py to take the plot front level from the snapped road surface, plan_from_cad.py to write it as the ramp front level, rules/ for the sidewalk width
+
+Known bugs:
+- CadReader puts some pieces nested in anonymous blocks of the Road Layout at swapped coordinates (HS-PVMT-ARR), they fall outside the site and were left out
+- The LISP inventory of CEC Building Footprint takes 924 s for 186,192 entities
+- Conflict: Part B wrote that Top Surface-02 stops at the curb. Measured here its edge lies on the plot line within 2 mm on every IMC front corner
+
+Next:
+- The probe on the copies once Bader answers 1, then the plot front level into the CAD plan
+
+Your turn:
+1. Probe load. Recommended: add only C:\Users\bader\Documents\SiteAdaptation\c3d_probe\bundle to Trusted Locations in Civil 3D Options yourself, then I run the probe read only. Else allow a copy of the DLL into your C3D Support folder, or stay on LandXML
+2. Rough Grading surfaces. Recommended: if 1 is no, ask the designer for a LandXML of the 10 Rough Grading and 2 Road Layout surfaces
+3. Plot front level. Recommended: take it from the road surface snapped within 5 mm at the plot line, Top Surface-02 for IMC and Top Surface-01 for IMD
+4. The 58 plots whose past ramp sits a median 97 mm above the surface. Recommended: a design choice of the past job, keep the surface level and list them apart
+5. Plots 2311 and 2312. Recommended: follow the baseplan and the footprint drawing (VL4, VL4, OS) for new work and keep them listed apart
+6. IME. Recommended: send its schedule or its boundary, until then it counts under other unit plots
+7. The Part B line on Top Surface-02. Recommended: replace it with this measurement in PROGRESS
+
 ## Round 14 Part B, 2026-10-24, clusters and levels for the computed plan
 
 Goal:

@@ -1,0 +1,195 @@
+{
+  "note": "Settings of the Civil 3D probe round (R150 to R159). Every ROSHN file name, layer name and surface name the c3d_*.py files use sits here. accoreconsole is the core console of Civil 3D 2026 and product the switch that loads Civil 3D in it. probeDll is the .NET 8 build of dotnet/SiteAdaptation.C3DProbe/Civil, relative to the repo root. sourceRoot holds the real drawings, folders names the folders copied into probeRoot/work with their layout kept, so xrefs resolve. Nothing is ever written under sourceRoot. probeRoot holds work, out and logs, outside the repo. drawings gives each drawing of the round a short role and its path under work. timeoutSeconds is how long one core console run may take before the runner stops the process it started. survey holds what python/c3d_drawings.py looks for in the ACadSharp output of each copy (R154): levelWords are words that mark a level text, levelRange the band a bare number must fall in to look like a level, levelDecimals the least decimals it must have, and lineRoles the layer patterns, matched without case, of the lines that may be a curb, an edge of road, a back of sidewalk, a right of way, a building line or a setback. connect holds what python/c3d_connect.py reads to tie the drawings to the plots (R156 to R158). baseplanPlots and landxmlDir are earlier reader outputs on this machine, plan and prototypes the answer key of the past job. curb names the drawing role and layers of the curb lines the plot front is taken from. lines names the other line sets to measure, and backOfSidewalk which of them stands for the back of the sidewalk. searchM is how far a surface edge is looked for, textRadiusM and lineRadiusM how near a level text or a 3D line must be to give a level. bandsM are the 5 mm and 30 mm bands. neighbourhoods names the schedule and plot number shift of each neighbourhood, null where none is on this machine. unitPlotTypes are the baseplan types that carry a unit. cutPlots are the plots whose cut is checked against the footprint blocks of cutDrawing, cutLabels the baseplan labels and types of that cut. snapM is how far outside its last triangle a point may lie and still take the level of the nearest surface edge (R157). surfacePair are the two surfaces whose overlap python/c3d_surfaces.py samples on a grid of overlapStepM (R155). checkSurface is the surface whose snapped level python/c3d_check.py recomputes by brute force (R159).",
+  "accoreconsole": "C:\\Program Files\\Autodesk\\AutoCAD 2026\\accoreconsole.exe",
+  "product": "C3D",
+  "language": "en-US",
+  "probeDll": "dotnet/SiteAdaptation.C3DProbe/Civil/bin/Release/net8.0-windows/SiteAdaptation.C3DProbe.dll",
+  "sourceRoot": "C:\\02-Site Adaptation",
+  "probeRoot": "C:\\Users\\bader\\Documents\\SiteAdaptation\\c3d_probe",
+  "folders": [
+    "Roads",
+    "Base Plans"
+  ],
+  "timeoutSeconds": 1800,
+  "drawings": {
+    "roadSurface": "Roads\\Makkah Phase 1_Road Surface C3D.dwg",
+    "roadLayout": "Roads\\Makkah Phase 1_Road Layout.dwg",
+    "roughGrading": "Roads\\Makkah Phase 1_Rough Grading.dwg",
+    "crossSections": "Roads\\Makkah Phase 1_Typical Cross Sections.dwg",
+    "cecFootprint": "Base Plans\\CEC Building Footprint.dwg",
+    "phaseBoundaries": "Base Plans\\Makkah All Phase Boundaries.dwg",
+    "buildingFootprint": "Base Plans\\Makkah Building Footprint.dwg",
+    "cutsheet": "Base Plans\\Makkah Phase 1 Cutsheet - 500.dwg",
+    "baseRoadLayout": "Base Plans\\Makkah_Road Layout.dwg",
+    "baseplan": "Base Plans\\ROSHN Makkah Baseplan.dwg"
+  },
+  "survey": {
+    "levelWords": [
+      "FFL",
+      "FGL",
+      "SSL",
+      "EL",
+      "TOC",
+      "TOW",
+      "INV",
+      "LVL",
+      "LEVEL",
+      "IL",
+      "GL",
+      "NGL"
+    ],
+    "levelRange": [
+      150,
+      320
+    ],
+    "levelDecimals": 2,
+    "lineRoles": {
+      "curb": [
+        "*CURB*",
+        "*KERB*",
+        "*CRB*",
+        "*KRB*"
+      ],
+      "edgeOfRoad": [
+        "*EDGE*",
+        "*EOP*",
+        "*SHLDR*",
+        "*SHY*",
+        "*ASPHAL*",
+        "*PVMT*"
+      ],
+      "backOfSidewalk": [
+        "*SIDEWALK*",
+        "*SIDE WALK*",
+        "*SDWK*",
+        "*FOOTPATH*",
+        "*WALKWAY*",
+        "*PAVE*",
+        "*BOS*"
+      ],
+      "rightOfWay": [
+        "ROW",
+        "*_ROW",
+        "*$ROW",
+        "MP_ROW",
+        "*ROW LINE*",
+        "*-ROW"
+      ],
+      "buildingLine": [
+        "*BUILD*LINE*",
+        "*BLDG*LINE*",
+        "*BUILDI*"
+      ],
+      "setback": [
+        "*SETBACK*",
+        "*SET BACK*",
+        "*SET-BACK*",
+        "*SBK*"
+      ]
+    }
+  },
+  "connect": {
+    "baseplanPlots": "C:/Users/bader/Documents/GitHub/site-adaptation-tool/sample_output/round12/full/ROSHN Makkah Baseplan.dwg/plots.json",
+    "landxmlDir": "C:/Users/bader/Documents/GitHub/site-adaptation-tool/sample_output/round12/full/landxml",
+    "plan": "C:/Users/bader/Documents/SiteAdaptation/plan_imc_past.json",
+    "prototypes": "C:/Users/bader/Documents/SiteAdaptation/prototypes_imc_past.json",
+    "surfaces": [
+      "Compiled West_MM",
+      "EXISTING_11.5 Sqkm",
+      "Missed from Paste",
+      "Part 4 Top Surfaces",
+      "Top Surface-01",
+      "Top Surface-02",
+      "Top Surface Part 2 East Of East"
+    ],
+    "curb": {
+      "drawing": "roadLayout",
+      "layers": [
+        "RD-CURB-LINE"
+      ]
+    },
+    "lines": {
+      "rowRoads": {
+        "drawing": "roadLayout",
+        "layers": [
+          "ROW"
+        ]
+      },
+      "shyRoads": {
+        "drawing": "roadLayout",
+        "layers": [
+          "RD-SHY"
+        ]
+      },
+      "curbBase": {
+        "drawing": "baseRoadLayout",
+        "layers": [
+          "RD-CRB-LN"
+        ]
+      },
+      "shyBase": {
+        "drawing": "baseRoadLayout",
+        "layers": [
+          "RD-SHY-LN"
+        ]
+      },
+      "rowBaseplan": {
+        "drawing": "baseplan",
+        "layers": [
+          "MP_ROW"
+        ]
+      }
+    },
+    "backOfSidewalk": "rowRoads",
+    "searchM": 40,
+    "textRadiusM": 10,
+    "lineRadiusM": 5,
+    "bandsM": [
+      0.005,
+      0.03
+    ],
+    "rampTypes": [
+      "Ramps 0.5%",
+      "Ramps 2%",
+      "Flat Ramps"
+    ],
+    "neighbourhoods": {
+      "IMC": {
+        "schedule": "00101-PSN-IMC-XXX-SCH-TU-090000.xlsx",
+        "shift": 10
+      },
+      "IMD": {
+        "schedule": "00101-PSN-IMD-XXX-SCH-TU-090000.xlsx",
+        "shift": 11
+      },
+      "IME": null
+    },
+    "unitPlotTypes": [
+      "C10",
+      "DP2",
+      "DP4",
+      "TH1",
+      "TH3",
+      "VL2",
+      "VL3",
+      "VL4"
+    ],
+    "cutPlots": [
+      "2311",
+      "2312"
+    ],
+    "cutLabels": {
+      "2301": "VL4",
+      "2302": "VL4",
+      "326": "OS"
+    },
+    "cutDrawing": "buildingFootprint",
+    "snapM": 0.005
+  },
+  "surfacePair": [
+    "Top Surface-01",
+    "Top Surface-02"
+  ],
+  "overlapStepM": 2,
+  "checkSurface": "Top Surface-02"
+}
