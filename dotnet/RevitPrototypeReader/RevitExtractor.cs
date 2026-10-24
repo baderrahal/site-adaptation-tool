@@ -193,17 +193,13 @@ namespace RevitPrototypeReader
                 row.InsertionPoint = Metres(location.Point);
                 rotation = PointRotation(location);
             }
-            // R205. Revit cannot give the rotation of some placed instances, a past site model holds such ones, and the transform still does
-            if (rotation.HasValue)
+            // R205, R220. Revit cannot give the rotation of some placed instances, a past site model holds such ones, and the transform still does
+            Transform transform = PlacementRotation.NeedsTransform(rotation) ? instance.GetTransform() : null;
+            if (transform != null)
             {
-                row.RotationDeg = UnitMath.RadiansToDegrees(rotation.Value);
-            }
-            else
-            {
-                Transform transform = instance.GetTransform();
                 row.InsertionPoint = row.InsertionPoint ?? Metres(transform.Origin);
-                row.RotationDeg = UnitMath.RadiansToDegrees(Math.Atan2(transform.BasisX.Y, transform.BasisX.X));
             }
+            row.RotationDeg = PlacementRotation.Degrees(rotation, transform == null ? 0 : transform.BasisX.X, transform == null ? 0 : transform.BasisX.Y);
 
             BoundingBoxXYZ box = instance.get_BoundingBox(null);
             if (box != null)

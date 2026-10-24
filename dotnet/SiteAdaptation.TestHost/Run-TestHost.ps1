@@ -133,7 +133,11 @@ if ($round) {
             $roundJob.target = $target
         }
         'read' {
-            $copy = Join-Path $work ($keyStem + '_TEST-' + $Code + '.rvt')
+            # R227. A read may name its own test copy in the work folder, such as a prototype, else it reads the key copy
+            $copy = if ($round.model) { [string]$round.model } else { Join-Path $work ($keyStem + '_TEST-' + $Code + '.rvt') }
+            if ((Split-Path $copy) -ne $work) {
+                throw "The read model is not in the work folder $work"
+            }
             $original = $copy
             $roundJob.model = $copy
         }
@@ -147,6 +151,13 @@ if ($round) {
             $roundJob.imageFolder = Join-Path $build.folder 'images'
             $roundJob.imageLevel = [string]$round.imageLevel
             $roundJob.area = [double[]]@($round.area)
+            # R234. The links load for the image, from linkFolder by file name when their saved path is not there
+            if ($round.loadLinks) {
+                $roundJob.loadLinks = $true
+                if ($round.linkFolder) {
+                    $roundJob.linkFolder = [string]$round.linkFolder
+                }
+            }
         }
         'newSite' {
             $copy = Join-Path $work $build.newFile
@@ -170,6 +181,8 @@ if ($round) {
             $roundJob.model = $copy
             $roundJob.prototypeFile = $files[0]
             $roundJob.plan = $planPath
+            # R231. One run per prototype code places the links and the floors of the plots of that code only
+            $roundJob.plots = [string[]]@($plan.plots | Where-Object { $_.prototypeFile.value -eq $files[0] } | ForEach-Object { [string]$_.plot })
         }
     }
     $before = Get-Item $original

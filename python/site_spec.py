@@ -85,13 +85,12 @@ def build(settings, plots, controls, turn):
 
 
 def plot_centroids(plots_csv, numbers):
-    """The face centroid of each official number of the location plan in plots.csv of the snapshot, in the order given."""
+    """The face centroid of each official number of the location plan in plots.csv of the snapshot, in the order given, and the
+    numbers plots.csv holds no row for, such as a label that shares its face with another. Those only leave the box of the site."""
     with open(plots_csv, encoding="utf-8") as handle:
         rows = {row["locationPlanNumber"]: row for row in csv.DictReader(handle) if row.get("locationPlanNumber")}
     missing = [number for number in numbers if number not in rows]
-    if missing:
-        raise project_profile.ProfileError("plots.csv has no row for " + ", ".join(missing))
-    return [[float(rows[number]["centroidX"]), float(rows[number]["centroidY"])] for number in numbers]
+    return [[float(rows[number]["centroidX"]), float(rows[number]["centroidY"])] for number in numbers if number in rows], missing
 
 
 def main(argv=None):
@@ -108,7 +107,9 @@ def main(argv=None):
         numbers = json.loads(Path(args.cover).read_text(encoding="utf-8"))["plots"]
         controls = control_points(page_words(args.pdf))
         turn = fit_turn_deg(json.loads(Path(args.fit).read_text(encoding="utf-8"))["matrix"])
-        spec = build(settings, plot_centroids(args.plots_csv, numbers), controls, turn)
+        centroids, missing = plot_centroids(args.plots_csv, numbers)
+        spec = build(settings, centroids, controls, turn)
+        spec["plotsWithNoRow"] = missing
         out = Path(args.out)
         plot_relations.refuse_inside_repo(out.resolve().parent)
         if out.exists():
@@ -118,8 +119,8 @@ def main(argv=None):
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
         print("site_spec: " + str(error), file=sys.stderr)
         return 2
-    print("plots %d, control points %d, check points %d, angle %s, page fit turn %s deg" % (
-        len(numbers), len(controls), len(spec["checkPoints"]), spec["projectPosition"]["angleDeg"], spec["pageFitTurnDeg"]))
+    print("plots %d, with no plots.csv row %d, control points %d, check points %d, angle %s, page fit turn %s deg" % (
+        len(numbers), len(spec["plotsWithNoRow"]), len(controls), len(spec["checkPoints"]), spec["projectPosition"]["angleDeg"], spec["pageFitTurnDeg"]))
     print(out)
     return 0
 

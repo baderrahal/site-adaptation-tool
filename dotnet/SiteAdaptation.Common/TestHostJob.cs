@@ -40,6 +40,9 @@ namespace SiteAdaptation.Common
         public string ImageFolder { get; set; }
         public string ImageLevel { get; set; }
         public List<double> Area { get; set; }
+        // R234. An image job may load every Revit link first, from LinkFolder by file name when its saved path is not there
+        public bool? LoadLinks { get; set; }
+        public string LinkFolder { get; set; }
     }
 
     public sealed class GuardResult
@@ -404,6 +407,10 @@ namespace SiteAdaptation.Common
                 {
                     return Refuse("the area is not [minE, minN, maxE, maxN] with each side above 0 and at most " + MaxImageSpanM + " m");
                 }
+                if (job.LinkFolder != null && (!IsPlainFullPath(job.LinkFolder) || !folderExists(job.LinkFolder)))
+                {
+                    return Refuse("the link folder is not a plain full path to a folder that exists");
+                }
             }
             if (!fileExists(job.Model))
             {
@@ -421,9 +428,13 @@ namespace SiteAdaptation.Common
             {
                 return "template and site go with a newSite job only";
             }
-            if (job.Kind != ImageKind && (job.ImageFolder != null || job.ImageLevel != null || job.Area != null))
+            if (job.Kind != ImageKind && (job.ImageFolder != null || job.ImageLevel != null || job.Area != null || job.LoadLinks.HasValue || job.LinkFolder != null))
             {
-                return "imageFolder, imageLevel and area go with an image job only";
+                return "imageFolder, imageLevel, area, loadLinks and linkFolder go with an image job only";
+            }
+            if (job.LinkFolder != null && job.LoadLinks != true)
+            {
+                return "linkFolder goes with loadLinks";
             }
             return null;
         }

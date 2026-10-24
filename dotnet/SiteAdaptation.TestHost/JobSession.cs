@@ -225,6 +225,10 @@ namespace SiteAdaptation.TestHost
             }
             else
             {
+                if (job.LoadLinks == true)
+                {
+                    yield return new JobStep { Name = "loadLinks", LimitMinutes = 3, Action = site.LoadAllLinks };
+                }
                 yield return new JobStep { Name = "openModel", LimitMinutes = 20, Action = () => steps.Open(out document) };
                 if (job.Kind == TestHostGuard.ReadKind)
                 {

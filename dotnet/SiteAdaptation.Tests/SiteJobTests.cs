@@ -121,7 +121,7 @@ namespace SiteAdaptation.Tests
 
             Assert.Contains("catch (Autodesk.Revit.Exceptions.InternalException)", reader);
             Assert.Contains("rotation = PointRotation(location);", reader);
-            Assert.Contains("Math.Atan2(transform.BasisX.Y, transform.BasisX.X)", reader);
+            Assert.Contains("PlacementRotation.Degrees(rotation, transform == null ? 0 : transform.BasisX.X, transform == null ? 0 : transform.BasisX.Y)", reader);
             Assert.DoesNotContain("UnitMath.RadiansToDegrees(location.Rotation)", reader);
         }
 
