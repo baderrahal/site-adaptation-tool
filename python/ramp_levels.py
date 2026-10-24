@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
+import road_lookup
 import surface_lookup
 import surface_roles
 from common import write_json
@@ -31,6 +32,7 @@ def load_config(path):
     # The road is a design surface too, so the tables over the design surfaces keep their meaning
     config["design"] = [name for name, role in roles.items() if role in ("design", "road")]
     config["ground"] = [name for name, role in roles.items() if role == "ground"]
+    config["order"], config["orderSource"] = road_lookup.order_of(config)
     return config
 
 
@@ -107,9 +109,9 @@ def pairs_kind(covered):
     return "neighbouring" if (second - first) % CORNERS in (1, CORNERS - 1) else "opposite"
 
 
-def surface_pass(landxml_dir, name, rows, limit):
+def surface_pass(landxml_dir, name, rows, limit, surface=None):
     """z at every corner and the distance to the nearest visible triangle for the corners the surface does not cover."""
-    surface = surface_lookup.load_surface(landxml_dir, name)
+    surface = surface or surface_lookup.load_surface(landxml_dir, name)
     levels, distances = [], []
     for row in rows:
         row_levels = [surface.z_at(easting, northing) for easting, northing in row["corners"]]
@@ -206,7 +208,10 @@ def run(prototypes, landxml_dir, config, out_dir, check_plot=None):
     bands = config["bands"]
     design, ground, road = config["design"], config["ground"], config["road"]
     names = design + ground
-    got = {name: surface_pass(landxml_dir, name, rows, max(bands)) for name in names}
+    surfaces = {name: surface_lookup.load_surface(landxml_dir, name) for name in names}
+    got = {name: surface_pass(landxml_dir, name, rows, max(bands), surfaces[name]) for name in names}
+    lookup = road_lookup.RoadLevels([(name, surfaces[name]) for name in config["order"]])
+    answers = [lookup.levels(row["corners"]) for row in rows]
     road_levels = got[road][0] if road else [[None] * CORNERS for _ in rows]
     differences = road_differences(rows, road_levels)
 
@@ -216,7 +221,8 @@ def run(prototypes, landxml_dir, config, out_dir, check_plot=None):
         for corner in range(CORNERS):
             levels = {name: got[name][0][index][corner] for name in design if got[name][0][index][corner] is not None}
             under = {name: got[name][0][index][corner] for name in ground if got[name][0][index][corner] is not None}
-            corners.append({"corner": corner, "cornerLevel": row["levels"][corner], "roadLevel": road_levels[index][corner], "difference": differences[index][corner], "levels": levels, "ground": under})
+            corners.append({"corner": corner, "cornerLevel": row["levels"][corner], "roadLevel": road_levels[index][corner], "difference": differences[index][corner], "levels": levels, "ground": under,
+                            "lookupLevel": answers[index][corner][0], "lookupSurface": answers[index][corner][1]})
             if levels:
                 covered.append(corner)
         covered_by.append(covered)
@@ -242,6 +248,7 @@ def run(prototypes, landxml_dir, config, out_dir, check_plot=None):
         summary["roadDifference"] = difference_bands(differences)
         summary["roadCoveredCorners"] = count_by_corners(road_covered)
         summary["roadNeighbouringPairs"] = neighbouring_pairs(rows, differences, road_covered)
+    summary["lookup"] = lookup_summary(config, answers)
     summary["spots"] = spot_check(document, rows, offset_of(document))
     roles = role_report(landxml_dir, config, rows, got)
     write_json(Path(out_dir) / "role_proposal.json", roles)
@@ -250,6 +257,32 @@ def run(prototypes, landxml_dir, config, out_dir, check_plot=None):
     if check_plot is not None:
         write_json(Path(out_dir) / "plot_check.json", plot_check(document, rows, records, check_plot, set(config["rampTypes"])))
     return summary
+
+
+def lookup_summary(config, answers):
+    """R92. The corners the ordered lookup of R91 answers, by the surface that answered first.
+
+    A ramp with no corner covered by the first surface alone is counted, and so is how many of those the lookup
+    covers with a later surface and by which one.
+    """
+    first = config["order"][0] if config["order"] else None
+    by_surface = Counter(name for ramp in answers for _, name in ramp if name is not None)
+    covered = Counter(sum(1 for z, _ in ramp if z is not None) for ramp in answers)
+    bare = [ramp for ramp in answers if not any(name == first for _, name in ramp)]
+    gained = Counter()
+    for ramp in bare:
+        for name in sorted({name for _, name in ramp if name is not None}, key=config["order"].index):
+            gained[name] += 1
+    return {
+        "order": config["order"], "orderSource": config["orderSource"],
+        "corners": sum(len(ramp) for ramp in answers),
+        "answeredBy": {name: by_surface.get(name, 0) for name in config["order"]},
+        "noAnswer": sum(1 for ramp in answers for z, _ in ramp if z is None),
+        "coveredCorners": {str(count): covered.get(count, 0) for count in range(CORNERS + 1)},
+        "noFirstSurfaceCorner": len(bare),
+        "gainedFromLaterSurfaces": sum(1 for ramp in bare if any(z is not None for z, _ in ramp)),
+        "gainedBySurface": {name: gained[name] for name in config["order"] if gained[name]},
+    }
 
 
 def gap_bands(rows, got, design, covered_by, bands):

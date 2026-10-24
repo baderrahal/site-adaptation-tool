@@ -21,13 +21,15 @@ import rules_checks
 from rules_checks import UNKNOWN
 
 CLUSTER_KINDS = ("duplex", "townhouse")
-SETTINGS = ("toleranceM", "partyWallShare", "endShare", "unitPlotTypes", "noRev6Match")
+SETTINGS = ("toleranceM", "partyWallShare", "endShare", "unitPlotTypes", "noRev6Match", "blockClusters", "pairRule")
 # A shared segment is longer than this many tolerances, so two plots that only touch at a corner are not adjacent
 SEGMENT_FACTOR = 4
 # A plot counts as covered by a block when it holds at least this share of the block outline. Only the report uses it
 COVER_SHARE = 0.2
 # Two shares closer than this are a tie. The two halves of a duplex block always tie
 TIE = 1e-6
+# A block that stands for fewer plots than this is no cluster hint
+HINT_MIN_PLOTS = 2
 FRONT_RULES = ("single plot", "neighbour", "road edge", "none", "not a row")
 DEFAULT_SHIFTS = Path(__file__).resolve().parent.parent / "config" / "plot_numbers.json"
 
@@ -296,7 +298,8 @@ def derive_clusters(plots, profile, analysis, roads=None):
     """Clusters of side by side duplex and townhouse plots.
 
     plots are all the baseplan faces with plot, vertices and the unit code of R69 (unit, unitSource), and a block with
-    name, mirrored and rotation when one is known. The unit code and never the baseplan label type decides the kind. Two plots are side by side when they share a party wall, which is at least partyWallShare
+    name, mirrored and rotation when one is known. The unit code and never the baseplan label type decides the kind.
+    Two plots are side by side when they share a party wall, which is at least partyWallShare
     of the long side of a plot. Back to back plots share a shorter edge and stay in separate clusters. A row of
     side by side plots is cut into the listed clusters of the profile (R70). roads is a list of road edge lines
     and gives the front of a row that the neighbours leave open (R71).
@@ -377,7 +380,8 @@ def derive_clusters(plots, profile, analysis, roads=None):
                 if plot_key(plots[chain[0]]["plot"]) > plot_key(plots[chain[-1]]["plot"]):
                     chain = chain[::-1]
         units = [plots[index]["unit"] for index in chain]
-        flags = [mirrored_of(plots[index].get("block")) for index in chain]
+        # The pair rule on block mirror flags waits for the original and mirror convention (R70), so by default no flag is used
+        flags = [mirrored_of(plots[index].get("block")) if analysis.get("pairRule") else None for index in chain]
         # Without a known front the direction of the row is a guess, so each piece may also read reversed
         pieces, ways = best_split(units, flags, known, profile, reverse_ok=not sure)
         row_id = row_id_of(chain)
@@ -484,16 +488,16 @@ def claim_blocks(faces, villas):
 
 
 def give_units(faces, villas, claims, units, unit_types, report):
-    """R69. The unit code of each plot, from the block first, then from the Excel unit, else none.
+    """R69. The unit code of each plot is its Excel unit, else none. A block never gives one.
 
-    The block of a plot is the one block it owns. A plot that owns none takes the one block that covers it, and a
-    plot whose deciding blocks are two or more takes none and gets an issue. A block that stands for several plots
-    gives its code to each of them with mirrored null and a flag, since one flag cannot say which unit is mirrored.
+    The block of a plot is still attached for its mirror flag and rotation. It is the one block the plot owns, else
+    the one block that covers it, and a plot with two or more deciding blocks gets an issue (R90) and no block. A block
+    that stands for several plots has mirrored null and a flag, since one flag cannot say which unit is mirrored.
     The Excel unit comes in by baseplan label. The baseplan label type decides nothing here, it only says which plots
     get an issue when no unit code is found, and report false leaves that issue out. Returns the issues and counts.
     """
     owned, covered, stands_for, _ = claims
-    issues, counts = [], Counter()
+    issues, counts, lacking = [], Counter(), []
     for index, face in enumerate(faces):
         for key in ("unit", "unitSource", "block", "excelUnit"):
             face.pop(key, None)
@@ -503,12 +507,11 @@ def give_units(faces, villas, claims, units, unit_types, report):
         face["blocks"], face["flags"] = len(deciding), []
         if len(deciding) >= 2:
             counts["two"] += 1
-            issues.append(rules_checks.issue("R69", [plot], head + str(len(deciding)) + " blocks: " + ", ".join(str(villas[number].get("name")) for number in deciding)))
+            issues.append(rules_checks.issue("R90", [plot], head + str(len(deciding)) + " blocks: " + ", ".join(str(villas[number].get("name")) for number in deciding)))
         elif deciding:
             counts["own" if owned[index] else "coveredOnly"] += 1
             block = villas[deciding[0]]
             count = len(stands_for[deciding[0]])
-            face["unit"], face["unitSource"] = block["code"], "block"
             face["block"] = {"name": block.get("name"), "mirrored": mirrored_of(block) if count == 1 else None, "rotation": block.get("rotationDeg"), "plots": count}
             if count > 1:
                 face["flags"].append("block " + str(block.get("name")) + " covers " + str(count) + " plots")
@@ -516,13 +519,74 @@ def give_units(faces, villas, claims, units, unit_types, report):
                 face["flags"].append("also covered by " + ", ".join(str(villas[number].get("name")) for number in covered[index]))
         found = units.get(plot)
         if found is not None:
-            face["excelUnit"] = found
-            # A plot with two blocks is a conflict, so the schedule does not settle it
-            if "unit" not in face and len(deciding) < 2:
-                face["unit"], face["unitSource"] = found, "excel"
-        if "unit" not in face and len(deciding) < 2 and report and has_unit_type(face.get("type"), unit_types):
-            issues.append(rules_checks.issue("R69", [plot], head + "no unit code, no block and no Excel unit"))
+            face["unit"], face["unitSource"], face["excelUnit"] = found, "excel", found
+        elif report and has_unit_type(face.get("type"), unit_types):
+            lacking.append(plot)
+    # The schedules cover some of the plots and no other source gives a unit, so one issue lists the rest and not one for each plot
+    if lacking:
+        issues.append(rules_checks.issue("R69", lacking, str(len(lacking)) + " plots have no unit code, the schedules give none and a block never does"))
     return issues, counts
+
+
+def base_name(name):
+    """The name of a block without the xref prefix the CAD reader puts in front, xref$n$name."""
+    return str(name or "").rsplit("$", 1)[-1]
+
+
+def block_hints(faces, villas, claims, clusters, profile, hint_codes):
+    """R90. A block that stands for 2 or more plots and is named in hint_codes says those plots are one cluster.
+
+    Each hint gets one status. size: the block stands for another number of plots than the cluster it names has
+    units. no schedule: none of its plots has an Excel unit. partly schedule: some have. equal: the plots are exactly
+    the plots of one cluster of this run. differs: they are not. codeAgrees tells for an equal hint whether that cluster
+    has the code the hint names, both taken through cluster_aliases. The hint never changes a unit code or a cluster.
+    """
+    listed, aliases = profile.get("clusters"), profile.get("cluster_aliases")
+    by_set = {frozenset(cluster["plots"]): cluster for cluster in clusters}
+    hints = []
+    for number, block in enumerate(villas):
+        code = hint_codes.get(base_name(block.get("name")))
+        held = claims[2][number]
+        if code is None or len(held) < HINT_MIN_PLOTS:
+            continue
+        labels = sorted((str(faces[index]["plot"]) for index in held), key=plot_key)
+        units = [faces[index].get("unit") for index in held]
+        hint = {"block": block.get("name"), "hint": code, "plots": labels, "cluster": None, "codeAgrees": None}
+        if len(labels) != len(listed[code]):
+            hint["status"] = "size"
+        elif all(unit is None for unit in units):
+            hint["status"] = "no schedule"
+        elif None in units:
+            hint["status"] = "partly schedule"
+        else:
+            found = by_set.get(frozenset(labels))
+            hint["status"] = "equal" if found else "differs"
+            hint["cluster"] = found["code"] if found else sorted({cluster["code"] for cluster in clusters if set(cluster["plots"]) & set(labels)})
+            if found:
+                hint["codeAgrees"] = aliases.get(found["code"], found["code"]) == aliases.get(code, code)
+        hints.append(hint)
+    hints.sort(key=lambda hint: plot_key(hint["plots"][0]))
+    return hints
+
+
+def hint_summary(hints, clusters):
+    """Counts over the hints, over the distinct plot groups since two blocks can stand for the same plots, and over the clusters."""
+    status = Counter(hint["status"] for hint in hints)
+    groups = {frozenset(hint["plots"]) for hint in hints}
+    equal = [hint for hint in hints if hint["status"] == "equal"]
+    multi = [cluster for cluster in clusters if len(cluster["plots"]) >= HINT_MIN_PLOTS]
+    return {
+        "blocks": len(hints),
+        "groups": len(groups),
+        "byStatus": {key: status[key] for key in ("equal", "differs", "partly schedule", "no schedule", "size") if status[key]},
+        "byHint": dict(sorted(Counter(hint["hint"] for hint in hints).items())),
+        "equalCluster": len(equal),
+        "equalGroups": len({frozenset(hint["plots"]) for hint in equal}),
+        "codeAgrees": sum(1 for hint in equal if hint["codeAgrees"]),
+        "codeDiffers": sum(1 for hint in equal if hint["codeAgrees"] is False),
+        "clustersOfSeveralPlots": len(multi),
+        "clustersWithHintGroup": sum(1 for cluster in multi if frozenset(cluster["plots"]) in groups),
+    }
 
 
 def plot_records(faces, unit_types):
@@ -560,27 +624,20 @@ def block_summary(records, stats, counts, villas, source, unit_types):
     }
 
 
-def unit_summary(records, profile, read, dropped):
-    """Where the unit codes come from, and the block unit against the Excel unit for the plots that have both."""
+def unit_summary(records, read, dropped):
+    """Where the unit codes come from. Only the schedules give one (R69)."""
     sources = Counter(record["unitSource"] or "none" for record in records)
-    both = [record for record in records if record["unitSource"] == "block" and record["excelUnit"]]
-    differ = Counter(record["unit"] + ">" + record["excelUnit"] for record in both if record["unit"] != record["excelUnit"])
     return {
         "plots": len(records),
-        "bySource": {key: sources[key] for key in ("block", "excel", "none")},
+        "bySource": {key: sources[key] for key in ("excel", "none")},
         "byCode": dict(sorted(Counter(record["unit"] for record in records if record["unit"]).items())),
-        "byCodeFromBlock": dict(sorted(Counter(record["unit"] for record in records if record["unitSource"] == "block").items())),
         "notInProfile": dropped,
-        "plotsWithBoth": len(both),
-        "blockUnitAgrees": len(both) - sum(differ.values()),
-        "blockUnitDiffers": sum(differ.values()),
-        "differing": dict(sorted(differ.items(), key=lambda item: (-item[1], item[0]))),
         "excel": read,
     }
 
 
 def check_settings(profile, analysis):
-    """The two lists in the analysis settings must agree with the profile, so a typo is an error and not a silent miss."""
+    """The lists and the map in the analysis settings must agree with the profile, so a typo is an error and not a silent miss."""
     biggest = profile.get("cluster_block_max")
     if isinstance(biggest, bool) or not isinstance(biggest, int) or biggest < 1:
         raise project_profile.ProfileError("cluster_block_max must be a whole number of plots, 1 or more")
@@ -588,6 +645,14 @@ def check_settings(profile, analysis):
         values = analysis.get(name, [])
         if not isinstance(values, list) or any(not isinstance(value, str) for value in values):
             raise project_profile.ProfileError("analysis." + name + " must be a list of codes")
+    if not isinstance(analysis.get("pairRule", False), bool):
+        raise project_profile.ProfileError("analysis.pairRule must be true or false")
+    hints = analysis.get("blockClusters", {})
+    if not isinstance(hints, dict) or any(not isinstance(name, str) or not isinstance(code, str) for name, code in hints.items()):
+        raise project_profile.ProfileError("analysis.blockClusters must map a block name to a cluster code")
+    for name, code in hints.items():
+        if code not in profile.get("clusters"):
+            raise project_profile.ProfileError("analysis.blockClusters maps " + name + " to " + code + ", which is not a cluster of the profile")
     if analysis.get("noRev6Match"):
         clusters, aliases = profile.get("clusters"), profile.get("cluster_aliases")
         for code in analysis["noRev6Match"]:
@@ -609,19 +674,19 @@ def analyse(entries, profile, analysis, blocks=None, roads=None, blocks_source=N
     typologies = profile.get("typologies")
     units = {label: unit for label, unit in (excel["units"] if excel else {}).items() if unit in typologies}
     dropped = [(label, unit) for label, unit in (excel["units"] if excel else {}).items() if unit not in typologies]
-    # When no source gave any unit every plot lacks one, so one issue says so instead of 2000 repeats of it
-    report = bool(villas) or bool(units)
+    # When the schedules gave no unit every plot lacks one, so one issue says so instead of 2000 repeats of it
+    report = bool(units)
     issues_units, counts = give_units(faces, villas, claims, units, unit_types, report)
-    if blocks is None and excel is None:
-        issues_units.append(rules_checks.issue("R69", [], "No block drawing and no Excel unit was given, so no plot has a unit code and no cluster can be built"))
-    elif blocks is not None and not villas:
+    if excel is None:
+        issues_units.append(rules_checks.issue("R69", [], "No schedule was given, so no plot has a unit code and no cluster can be built"))
+    elif not units:
+        issues_units.append(rules_checks.issue("R69", [], "The schedule workbooks gave no unit code of the profile, so no plot has a unit code"))
+    if blocks is not None and not villas:
         if claims[3]["noOutline"]:
             text = "The block drawing holds no unit block with an outline, " + str(claims[3]["noOutline"]) + " of its " + str(len(blocks)) + " inserts are named after a typology of the profile but have no outline of three points"
         else:
             text = "The block drawing holds no unit block, none of its " + str(len(blocks)) + " inserts is named after a typology of the profile"
-        issues_units.append(rules_checks.issue("R69", [], text))
-    if excel is not None and not units:
-        issues_units.append(rules_checks.issue("R69", [], "The schedule workbooks gave no unit code of the profile, so they give no plot a unit code"))
+        issues_units.append(rules_checks.issue("R90", [], text))
     if excel:
         issues_units += excel["issues"]
     issues_units += [rules_checks.issue("R69", [label], "Plot " + label + " has the Excel unit " + repr(unit) + ", which is not a unit code of the profile, so it gives no unit code") for label, unit in dropped]
@@ -629,14 +694,14 @@ def analyse(entries, profile, analysis, blocks=None, roads=None, blocks_source=N
     labels_of = [str(face["plot"]) for face in faces]
     for number, held in enumerate(claims[2]):
         if len(held) > biggest:
-            issues_units.append(rules_checks.issue("R69", [labels_of[index] for index in held], "Block " + str(villas[number].get("name")) + " stands for " + str(len(held)) + " plots, more than the " + str(biggest) + " of the biggest cluster"))
+            issues_units.append(rules_checks.issue("R90", [labels_of[index] for index in held], "Block " + str(villas[number].get("name")) + " stands for " + str(len(held)) + " plots, more than the " + str(biggest) + " of the biggest cluster"))
     records = plot_records(faces, unit_types)
     labels = set(labels_of)
     read = None if excel is None else {**excel["stats"], "noFace": sum(1 for label in excel["units"] if label not in labels)}
-    # Where the block and the schedule give a plot different units the block wins, and the pair is listed so the conflict is never silent
-    conflicts = [{"plot": record["plot"], "block": record["block"], "blockUnit": record["unit"], "excelUnit": record["excelUnit"]}
-                 for record in records if record["unitSource"] == "block" and record["excelUnit"] and record["unit"] != record["excelUnit"]]
     clusters = derive_clusters(faces, profile, analysis, roads)
+    hints = block_hints(faces, villas, claims, clusters, profile, analysis.get("blockClusters", {}))
+    # A hint that names other plots than the cluster of the schedule units is a conflict and is listed, never settled
+    conflicts = [hint for hint in hints if hint["status"] in ("differs", "size")]
     issues = rules_checks.check_attachment(clusters, profile) + rules_checks.check_known_clusters(clusters) + rules_checks.check_unmatched_codes(clusters, analysis.get("noRev6Match", [])) + issues_units
     row_rules = {cluster["rowId"]: cluster["frontRule"] for cluster in clusters}
     rules = Counter(row_rules.values())
@@ -653,11 +718,12 @@ def analyse(entries, profile, analysis, blocks=None, roads=None, blocks_source=N
         "frontRules": {rule: rules[rule] for rule in FRONT_RULES if rules[rule]},
         "roadEdges": None if roads is None else len(roads),
         "blocks": None if blocks is None else block_summary(records, claims[3], counts, villas, blocks_source, unit_types),
-        "units": unit_summary(records, profile, read, len(dropped)),
+        "units": unit_summary(records, read, len(dropped)),
+        "hints": hint_summary(hints, clusters),
         "issues": len(issues),
         "numbering": "baseplan labels",
     }
-    return {"summary": summary, "clusters": clusters, "plots": records, "issues": issues, "conflicts": conflicts}
+    return {"summary": summary, "clusters": clusters, "plots": records, "hints": hints, "issues": issues, "conflicts": conflicts}
 
 
 def read_excel_units(books, shifts):
@@ -774,7 +840,7 @@ def main(argv=None):
     parser.add_argument("--cad", required=True, help="folder with plots.json from the CAD reader, run on the baseplan")
     parser.add_argument("--blocks", help="folder with blocks.json from the CAD reader, run on the villa block drawing")
     parser.add_argument("--roads", help="folder with pieces.json from the CAD reader, run on the road layout drawing")
-    parser.add_argument("--coords", nargs="+", help="coords.json files of the schedule workbooks, their Unit column gives the unit of a plot that has no block")
+    parser.add_argument("--coords", nargs="+", help="coords.json files of the schedule workbooks, their Unit column gives the unit code of a plot")
     parser.add_argument("--shifts", default=str(DEFAULT_SHIFTS), help="plot number shift config, used with --coords")
     parser.add_argument("--project", default=str(project_profile.SETTINGS_PATH))
     parser.add_argument("--profile", help="rules profile, default is the one named in the project settings")
@@ -796,7 +862,8 @@ def main(argv=None):
     print("clusters " + str(summary["clusters"]) + " " + json.dumps(summary["byCode"]) + ", issues " + str(summary["issues"]))
     if summary["blocks"] is not None:
         print("blocks " + json.dumps(summary["blocks"]))
-    print("units " + json.dumps({key: value for key, value in summary["units"].items() if key != "differing"}))
+    print("units " + json.dumps(summary["units"]))
+    print("hints " + json.dumps(summary["hints"]))
     print("fronts " + json.dumps(summary["frontRules"]))
     return 0
 

@@ -30,7 +30,7 @@ FFL_TOLERANCE = 0.0005
 EPSILON = 1e-9
 # A miss of the FFL within this many metres, with the cluster right, is told as rounding. A larger one is the base height
 ROUNDING_LIMIT = 0.01
-CAUSES = ("wrong cluster", "base height", "rounding", "no unit code", "other")
+CAUSES = ("entry level", "wrong cluster", "base height", "rounding", "no unit code", "other")
 # The FFL is compared in whole millimetres when it is rounded down, so binary float noise cannot move it across a step
 FLOORS = {"cm": 10, "fiveMm": 5}
 COLUMNS = {"plot": "plot no.", "unit": "unit", "ffl": "ffl", "ssl": "ssl", "entry": "el @ entry", "steps": "steps needed"}
@@ -221,7 +221,70 @@ def cad_cluster_report(profile, books, clusters, coded=None):
     }
 
 
-def build_report(profile, paths, clusters=None, shifts=None, coded=None):
+def entry_cluster_report(profile, books, clusters, computed, coded=None):
+    """R96. The level rule fed with the clusters of analysis.json and the computed entry levels of R95.
+
+    computed maps a baseplan label to its computed entry level. The same clusters are also run with the entry levels
+    of the sheet, and a plot that misses only with the computed entry level has the cause entry level. A plot that misses
+    in both runs takes the cause of the run with the sheet entry (R67), so the causes add up. A plot with no computed
+    entry level gets no FFL, it misses with the cause entry level when the sheet entry would have matched.
+    """
+    entries, sheet = {}, {}
+    for shift, rows in books:
+        for row in rows:
+            label = str(int(row["plot"]) - shift)
+            if label in entries:
+                raise project_profile.ProfileError("two sheet plots end on the baseplan label " + label)
+            entries[label] = {"unit": row["unit"], "entry": row["entry"]}
+            sheet[label] = row
+    mine_entries = {label: {"unit": entries[label]["unit"], "entry": level} for label, level in computed.items() if label in entries}
+    exact = {row["plot"]: row for row in levels.compute(profile, clusters, entries) if row["plot"] in entries}
+    mine = {row["plot"]: row for row in levels.compute(profile, clusters, mine_entries) if row["plot"] in entries}
+    in_sheet, in_run = {}, {}
+    for shift, rows in books:
+        for group in clusters_by_ffl(rows):
+            labels = frozenset(str(int(row["plot"]) - shift) for row in group)
+            in_sheet.update({label: labels for label in labels})
+    for cluster in clusters:
+        members = frozenset(str(plot) for plot in cluster["plots"])
+        in_run.update({member: members for member in members})
+    ffl_causes, steps_causes, errors = [], [], []
+    ffl_ok = steps_ok = both_ok = 0
+    for label, row in sheet.items():
+        mine_row, exact_row = mine.get(label) or {"ffl": None, "steps": None}, exact[label]
+        ffl_match = mine_row["ffl"] is not None and fflmatch(mine_row["ffl"], row["ffl"])
+        steps_match = mine_row["steps"] is not None and mine_row["steps"] == row["steps"]
+        exact_cause = None
+        if not fflmatch(exact_row["ffl"], row["ffl"]):
+            exact_cause = miss_cause(coded is None or label in coded, in_run.get(label, frozenset({label})), in_sheet[label], exact_row["ffl"] - row["ffl"])
+        if label in computed:
+            errors.append(computed[label] - row["entry"])
+        ffl_ok += ffl_match
+        steps_ok += steps_match
+        both_ok += ffl_match and steps_match
+        if not ffl_match:
+            ffl_causes.append("entry level" if exact_cause is None else exact_cause)
+        if not steps_match:
+            steps_causes.append("entry level" if exact_row["steps"] == row["steps"] else (exact_cause or "other"))
+    return {
+        "plots": len(sheet), "withComputedEntry": len(mine_entries), "noComputedEntry": len(sheet) - len(mine_entries),
+        "entryErrorBands": band_counts(errors),
+        "fflMatches": ffl_ok, "stepsMatches": steps_ok, "bothMatch": both_ok,
+        "missCauses": {"ffl": count_causes(ffl_causes), "steps": count_causes(steps_causes)},
+    }
+
+
+def band_counts(errors):
+    """Computed entry level minus sheet entry level by size: within 5 mm, 10 mm, 30 mm (cumulative) and worse."""
+    counts = {"within5mm": 0, "within10mm": 0, "within30mm": 0}
+    for value in errors:
+        for key, limit in (("within5mm", 0.005), ("within10mm", 0.010), ("within30mm", 0.030)):
+            counts[key] += abs(value) <= limit + EPSILON
+    counts["worse"] = sum(1 for value in errors if abs(value) > 0.030 + EPSILON)
+    return counts
+
+
+def build_report(profile, paths, clusters=None, shifts=None, coded=None, computed=None):
     rule = levels.count_rule(profile)
     plots, cluster_count, books = [], 0, []
     for path in paths:
@@ -249,6 +312,7 @@ def build_report(profile, paths, clusters=None, shifts=None, coded=None):
         "largestDifference": max((abs(plot["difference"]) for plot in plots), default=0),
         "baseHeightSource": profile.get("steps.base_height_source"),
         "cadClusters": None if clusters is None else cad_cluster_report(profile, books, clusters, coded),
+        "computedEntry": None if clusters is None or computed is None else entry_cluster_report(profile, books, clusters, computed, coded),
     }
     return {"summary": summary, "fflMismatches": [mismatch(plot) for plot in ffl_bad], "stepsMismatches": [mismatch(plot) for plot in steps_bad]}
 
@@ -284,6 +348,21 @@ def cad_line(report):
             + ", clusters with more than one sheet FFL: " + split)
 
 
+def read_entries(path):
+    """The computed entry levels of entry_proof.py by baseplan label, from every workbook of its report."""
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        found = {}
+        for book in data["workbooks"].values():
+            for label, level in book["entries"].items():
+                if label in found:
+                    raise project_profile.ProfileError("two workbooks give an entry level to the baseplan label " + label)
+                found[label] = level["entry"] if isinstance(level, dict) else level
+        return found
+    except (OSError, json.JSONDecodeError, KeyError, AttributeError, TypeError) as error:
+        raise project_profile.ProfileError("the entry proof cannot be read: " + str(error)) from error
+
+
 def read_analysis(path):
     """The clusters of analysis.json and the set of baseplan labels that have a unit code, None when the file has no plots list."""
     try:
@@ -309,6 +388,7 @@ def main(argv=None):
     parser.add_argument("--profile", help="rules profile, default is the one named in the project settings")
     parser.add_argument("--analysis", help="analysis.json of the cluster step, adds the run on the CAD clusters")
     parser.add_argument("--shifts", default=str(DEFAULT_SHIFTS), help="plot number shift config, used with --analysis")
+    parser.add_argument("--entries", help="entry_proof.json of entry_proof.py, adds the run with the computed entry levels, used with --analysis")
     args = parser.parse_args(argv)
     try:
         settings = project_profile.load_settings(args.project)
@@ -319,7 +399,10 @@ def main(argv=None):
             raise project_profile.ProfileError("schedule not found: " + ", ".join(absent))
         clusters, coded = read_analysis(args.analysis) if args.analysis else (None, None)
         shifts = link_table.load_shifts(args.shifts) if args.analysis else None
-        report = build_report(profile, paths, clusters, shifts, coded)
+        if args.entries and not args.analysis:
+            raise project_profile.ProfileError("--entries needs --analysis")
+        computed = read_entries(args.entries) if args.entries else None
+        report = build_report(profile, paths, clusters, shifts, coded, computed)
     except (project_profile.ProfileError, ValueError, KeyError, OSError) as error:
         print("levels_proof: " + str(error), file=sys.stderr)
         return 2
@@ -332,6 +415,11 @@ def main(argv=None):
     if cad_line(report):
         print(cad_line(report))
         print(causes_line("CAD cluster", report["summary"]["cadClusters"]["missCauses"]))
+    if report["summary"]["computedEntry"]:
+        found = report["summary"]["computedEntry"]
+        print("computed entry levels: FFL matches " + str(found["fflMatches"]) + " of " + str(found["plots"]) + ", steps matches " + str(found["stepsMatches"]) + " of " + str(found["plots"])
+              + ", both " + str(found["bothMatch"]) + ", no entry level " + str(found["noComputedEntry"]) + ", entry error " + json.dumps(found["entryErrorBands"]))
+        print(causes_line("computed entry", found["missCauses"]))
     for found in report["fflMismatches"]:
         print("FFL plot " + found["plot"] + " " + str(found["unit"]) + " sheet " + str(found["sheetFfl"]) + " computed " + str(found["computedFfl"]) + " (" + str(found["difference"]) + ")")
     for found in report["stepsMismatches"]:

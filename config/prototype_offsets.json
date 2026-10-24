@@ -1,0 +1,925 @@
+{
+ "note": "Measured from the IMC past job (the answer key and the schedule of that job in config/project.json), not a rule of the client. entry: roadOffsetM is the median of El @ Entry minus the road level at the curb point nearest the front edge of the plot, R94. groups: one per footprint block name and unit position, counted along the X axis of the block. offset is the link origin in the axes of the block from its insert point, relative is the turn of the link against the block and whether it is mirrored, entrance is the entry point of the ramp in the same axes, variants hold the relations a group has with their own offsets. Offset, relative and entrance are the medians over all plots of the group. Each group was also split in half with the seed in splitSeed, fitted on the first half and tested on the second, and fitError and testError count the plots by the distance between the predicted and the measured link origin. entranceTestError does the same for the entrance. A group with tooFew true was not tested. Lengths are in metres and angles in degrees. No Python file holds these values, R100.",
+ "entry": {
+  "roadOffsetM": 0.14,
+  "plots": 336,
+  "rule": "road level at the curb point nearest the front edge plus the offset",
+  "rampRule": "midpoint of the higher long edge of the ramp",
+  "source": "measured from past work",
+  "surfaceOrder": [
+   "Top Surface-02",
+   "Compiled West_MM",
+   "Missed from Paste",
+   "Part 4 Top Surfaces",
+   "Top Surface-01",
+   "Top Surface Part 2 East Of East"
+  ]
+ },
+ "groups": [
+  {
+   "block": "Duplex_DP2",
+   "position": 1,
+   "plots": 19,
+   "tooFew": false,
+   "offset": [
+    20.0,
+    25.0
+   ],
+   "relative": {
+    "rotationDeg": 180.0,
+    "mirrored": false,
+    "plotsWithIt": 19,
+    "differentRelations": 1
+   },
+   "entrance": [
+    5.0,
+    19.48
+   ],
+   "entrancePlots": 19,
+   "variants": [
+    {
+     "rotationDeg": 180.0,
+     "mirrored": false,
+     "plots": 19,
+     "offset": [
+      20.0,
+      25.0
+     ],
+     "entrance": [
+      5.0,
+      19.48
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 6,
+    "within10mm": 9,
+    "worse": 1,
+    "n": 10
+   },
+   "testError": {
+    "within1mm": 6,
+    "within10mm": 8,
+    "worse": 1,
+    "n": 9
+   },
+   "relationRightOnTest": 9,
+   "entranceTestError": {
+    "within10mm": 8,
+    "within100mm": 8,
+    "worse": 1,
+    "n": 9
+   }
+  },
+  {
+   "block": "Duplex_DP2",
+   "position": 2,
+   "plots": 19,
+   "tooFew": false,
+   "offset": [
+    0,
+    25.0
+   ],
+   "relative": {
+    "rotationDeg": 0,
+    "mirrored": true,
+    "plotsWithIt": 19,
+    "differentRelations": 1
+   },
+   "entrance": [
+    15.0,
+    19.48
+   ],
+   "entrancePlots": 19,
+   "variants": [
+    {
+     "rotationDeg": 0,
+     "mirrored": true,
+     "plots": 19,
+     "offset": [
+      0,
+      25.0
+     ],
+     "entrance": [
+      15.0,
+      19.48
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 3,
+    "within10mm": 9,
+    "worse": 1,
+    "n": 10
+   },
+   "testError": {
+    "within1mm": 6,
+    "within10mm": 8,
+    "worse": 1,
+    "n": 9
+   },
+   "relationRightOnTest": 9,
+   "entranceTestError": {
+    "within10mm": 8,
+    "within100mm": 8,
+    "worse": 1,
+    "n": 9
+   }
+  },
+  {
+   "block": "Duplex_DP4",
+   "position": 1,
+   "plots": 43,
+   "tooFew": false,
+   "offset": [
+    20.0,
+    25.0
+   ],
+   "relative": {
+    "rotationDeg": 180.0,
+    "mirrored": false,
+    "plotsWithIt": 37,
+    "differentRelations": 2
+   },
+   "entrance": [
+    5.0,
+    19.48
+   ],
+   "entrancePlots": 43,
+   "variants": [
+    {
+     "rotationDeg": 180.0,
+     "mirrored": false,
+     "plots": 37,
+     "offset": [
+      20.0,
+      25.0
+     ],
+     "entrance": [
+      5.0,
+      19.48
+     ]
+    },
+    {
+     "rotationDeg": 0,
+     "mirrored": true,
+     "plots": 6,
+     "offset": [
+      0,
+      24.852
+     ],
+     "entrance": [
+      5.001,
+      19.481
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 10,
+    "within10mm": 20,
+    "worse": 2,
+    "n": 22
+   },
+   "testError": {
+    "within1mm": 7,
+    "within10mm": 15,
+    "worse": 6,
+    "n": 21
+   },
+   "relationRightOnTest": 16,
+   "entranceTestError": {
+    "within10mm": 20,
+    "within100mm": 20,
+    "worse": 1,
+    "n": 21
+   }
+  },
+  {
+   "block": "Duplex_DP4",
+   "position": 2,
+   "plots": 43,
+   "tooFew": false,
+   "offset": [
+    0,
+    25.0
+   ],
+   "relative": {
+    "rotationDeg": 0,
+    "mirrored": true,
+    "plotsWithIt": 37,
+    "differentRelations": 2
+   },
+   "entrance": [
+    15.0,
+    19.48
+   ],
+   "entrancePlots": 43,
+   "variants": [
+    {
+     "rotationDeg": 0,
+     "mirrored": true,
+     "plots": 37,
+     "offset": [
+      0,
+      25.0
+     ],
+     "entrance": [
+      15.0,
+      19.48
+     ]
+    },
+    {
+     "rotationDeg": 180.0,
+     "mirrored": false,
+     "plots": 6,
+     "offset": [
+      20.001,
+      24.852
+     ],
+     "entrance": [
+      15.001,
+      19.481
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 8,
+    "within10mm": 20,
+    "worse": 2,
+    "n": 22
+   },
+   "testError": {
+    "within1mm": 7,
+    "within10mm": 15,
+    "worse": 6,
+    "n": 21
+   },
+   "relationRightOnTest": 16,
+   "entranceTestError": {
+    "within10mm": 20,
+    "within100mm": 20,
+    "worse": 1,
+    "n": 21
+   }
+  },
+  {
+   "block": "Townhouse_TH1",
+   "position": 1,
+   "plots": 8,
+   "tooFew": false,
+   "offset": [
+    0,
+    24.85
+   ],
+   "relative": {
+    "rotationDeg": 0,
+    "mirrored": true,
+    "plotsWithIt": 8,
+    "differentRelations": 1
+   },
+   "entrance": [
+    5.0,
+    19.48
+   ],
+   "entrancePlots": 8,
+   "variants": [
+    {
+     "rotationDeg": 0,
+     "mirrored": true,
+     "plots": 8,
+     "offset": [
+      0,
+      24.85
+     ],
+     "entrance": [
+      5.0,
+      19.48
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 3,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "testError": {
+    "within1mm": 3,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "relationRightOnTest": 4,
+   "entranceTestError": {
+    "within10mm": 4,
+    "within100mm": 4,
+    "worse": 0,
+    "n": 4
+   }
+  },
+  {
+   "block": "Townhouse_TH1",
+   "position": 2,
+   "plots": 8,
+   "tooFew": false,
+   "offset": [
+    28.0,
+    25.0
+   ],
+   "relative": {
+    "rotationDeg": 180.0,
+    "mirrored": false,
+    "plotsWithIt": 8,
+    "differentRelations": 1
+   },
+   "entrance": [
+    14.0,
+    19.48
+   ],
+   "entrancePlots": 8,
+   "variants": [
+    {
+     "rotationDeg": 180.0,
+     "mirrored": false,
+     "plots": 8,
+     "offset": [
+      28.0,
+      25.0
+     ],
+     "entrance": [
+      14.0,
+      19.48
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 2,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "testError": {
+    "within1mm": 3,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "relationRightOnTest": 4,
+   "entranceTestError": {
+    "within10mm": 4,
+    "within100mm": 4,
+    "worse": 0,
+    "n": 4
+   }
+  },
+  {
+   "block": "Townhouse_TH1",
+   "position": 3,
+   "plots": 8,
+   "tooFew": false,
+   "offset": [
+    8.0,
+    25.0
+   ],
+   "relative": {
+    "rotationDeg": 0,
+    "mirrored": true,
+    "plotsWithIt": 8,
+    "differentRelations": 1
+   },
+   "entrance": [
+    22.0,
+    19.48
+   ],
+   "entrancePlots": 8,
+   "variants": [
+    {
+     "rotationDeg": 0,
+     "mirrored": true,
+     "plots": 8,
+     "offset": [
+      8.0,
+      25.0
+     ],
+     "entrance": [
+      22.0,
+      19.48
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 2,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "testError": {
+    "within1mm": 3,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "relationRightOnTest": 4,
+   "entranceTestError": {
+    "within10mm": 4,
+    "within100mm": 4,
+    "worse": 0,
+    "n": 4
+   }
+  },
+  {
+   "block": "Townhouse_TH1",
+   "position": 4,
+   "plots": 8,
+   "tooFew": false,
+   "offset": [
+    36.0,
+    24.85
+   ],
+   "relative": {
+    "rotationDeg": 180.0,
+    "mirrored": false,
+    "plotsWithIt": 8,
+    "differentRelations": 1
+   },
+   "entrance": [
+    32.0,
+    19.48
+   ],
+   "entrancePlots": 8,
+   "variants": [
+    {
+     "rotationDeg": 180.0,
+     "mirrored": false,
+     "plots": 8,
+     "offset": [
+      36.0,
+      24.85
+     ],
+     "entrance": [
+      32.0,
+      19.48
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 4,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "testError": {
+    "within1mm": 3,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "relationRightOnTest": 4,
+   "entranceTestError": {
+    "within10mm": 4,
+    "within100mm": 4,
+    "worse": 0,
+    "n": 4
+   }
+  },
+  {
+   "block": "Townhouse_TH3",
+   "position": 1,
+   "plots": 8,
+   "tooFew": false,
+   "offset": [
+    0.009,
+    24.85
+   ],
+   "relative": {
+    "rotationDeg": 0,
+    "mirrored": true,
+    "plotsWithIt": 8,
+    "differentRelations": 1
+   },
+   "entrance": [
+    5.0,
+    19.48
+   ],
+   "entrancePlots": 8,
+   "variants": [
+    {
+     "rotationDeg": 0,
+     "mirrored": true,
+     "plots": 8,
+     "offset": [
+      0.009,
+      24.85
+     ],
+     "entrance": [
+      5.0,
+      19.48
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 0,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "testError": {
+    "within1mm": 0,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "relationRightOnTest": 4,
+   "entranceTestError": {
+    "within10mm": 4,
+    "within100mm": 4,
+    "worse": 0,
+    "n": 4
+   }
+  },
+  {
+   "block": "Townhouse_TH3",
+   "position": 2,
+   "plots": 8,
+   "tooFew": false,
+   "offset": [
+    28.0,
+    25.0
+   ],
+   "relative": {
+    "rotationDeg": 180.0,
+    "mirrored": false,
+    "plotsWithIt": 8,
+    "differentRelations": 1
+   },
+   "entrance": [
+    14.0,
+    19.48
+   ],
+   "entrancePlots": 8,
+   "variants": [
+    {
+     "rotationDeg": 180.0,
+     "mirrored": false,
+     "plots": 8,
+     "offset": [
+      28.0,
+      25.0
+     ],
+     "entrance": [
+      14.0,
+      19.48
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 3,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "testError": {
+    "within1mm": 2,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "relationRightOnTest": 4,
+   "entranceTestError": {
+    "within10mm": 4,
+    "within100mm": 4,
+    "worse": 0,
+    "n": 4
+   }
+  },
+  {
+   "block": "Townhouse_TH3",
+   "position": 3,
+   "plots": 8,
+   "tooFew": false,
+   "offset": [
+    8.0,
+    25.0
+   ],
+   "relative": {
+    "rotationDeg": 0,
+    "mirrored": true,
+    "plotsWithIt": 8,
+    "differentRelations": 1
+   },
+   "entrance": [
+    22.0,
+    19.48
+   ],
+   "entrancePlots": 8,
+   "variants": [
+    {
+     "rotationDeg": 0,
+     "mirrored": true,
+     "plots": 8,
+     "offset": [
+      8.0,
+      25.0
+     ],
+     "entrance": [
+      22.0,
+      19.48
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 3,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "testError": {
+    "within1mm": 2,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "relationRightOnTest": 4,
+   "entranceTestError": {
+    "within10mm": 4,
+    "within100mm": 4,
+    "worse": 0,
+    "n": 4
+   }
+  },
+  {
+   "block": "Townhouse_TH3",
+   "position": 4,
+   "plots": 8,
+   "tooFew": false,
+   "offset": [
+    35.99,
+    24.85
+   ],
+   "relative": {
+    "rotationDeg": 180.0,
+    "mirrored": false,
+    "plotsWithIt": 8,
+    "differentRelations": 1
+   },
+   "entrance": [
+    31.5,
+    19.48
+   ],
+   "entrancePlots": 8,
+   "variants": [
+    {
+     "rotationDeg": 180.0,
+     "mirrored": false,
+     "plots": 8,
+     "offset": [
+      35.99,
+      24.85
+     ],
+     "entrance": [
+      31.5,
+      19.48
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 0,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "testError": {
+    "within1mm": 0,
+    "within10mm": 4,
+    "worse": 0,
+    "n": 4
+   },
+   "relationRightOnTest": 4,
+   "entranceTestError": {
+    "within10mm": 1,
+    "within100mm": 1,
+    "worse": 3,
+    "n": 4
+   }
+  },
+  {
+   "block": "Villa_C10",
+   "position": 1,
+   "plots": 34,
+   "tooFew": false,
+   "offset": [
+    0.151,
+    -6.0
+   ],
+   "relative": {
+    "rotationDeg": 270.0,
+    "mirrored": false,
+    "plotsWithIt": 19,
+    "differentRelations": 2
+   },
+   "entrance": [
+    5.52,
+    -8.0
+   ],
+   "entrancePlots": 34,
+   "variants": [
+    {
+     "rotationDeg": 270.0,
+     "mirrored": false,
+     "plots": 19,
+     "offset": [
+      1.593,
+      -6.0
+     ],
+     "entrance": [
+      5.5,
+      -8.0
+     ]
+    },
+    {
+     "rotationDeg": 90.0,
+     "mirrored": true,
+     "plots": 15,
+     "offset": [
+      0.151,
+      -16.0
+     ],
+     "entrance": [
+      5.521,
+      -8.0
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 5,
+    "within10mm": 9,
+    "worse": 8,
+    "n": 17
+   },
+   "testError": {
+    "within1mm": 2,
+    "within10mm": 6,
+    "worse": 11,
+    "n": 17
+   },
+   "relationRightOnTest": 8,
+   "entranceTestError": {
+    "within10mm": 6,
+    "within100mm": 14,
+    "worse": 3,
+    "n": 17
+   }
+  },
+  {
+   "block": "Villa_VL3",
+   "position": 1,
+   "plots": 20,
+   "tooFew": false,
+   "offset": [
+    2.004,
+    24.85
+   ],
+   "relative": {
+    "rotationDeg": 0,
+    "mirrored": true,
+    "plotsWithIt": 18,
+    "differentRelations": 2
+   },
+   "entrance": [
+    6.0,
+    19.48
+   ],
+   "entrancePlots": 20,
+   "variants": [
+    {
+     "rotationDeg": 0,
+     "mirrored": true,
+     "plots": 18,
+     "offset": [
+      2.004,
+      24.85
+     ],
+     "entrance": [
+      6.0,
+      19.48
+     ]
+    },
+    {
+     "rotationDeg": 180.0,
+     "mirrored": false,
+     "plots": 2,
+     "offset": [
+      9.989,
+      24.851
+     ],
+     "entrance": [
+      6.0,
+      19.481
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 0,
+    "within10mm": 10,
+    "worse": 0,
+    "n": 10
+   },
+   "testError": {
+    "within1mm": 0,
+    "within10mm": 7,
+    "worse": 3,
+    "n": 10
+   },
+   "relationRightOnTest": 8,
+   "entranceTestError": {
+    "within10mm": 9,
+    "within100mm": 9,
+    "worse": 1,
+    "n": 10
+   }
+  },
+  {
+   "block": "Villa_VL4",
+   "position": 1,
+   "plots": 60,
+   "tooFew": false,
+   "offset": [
+    2.001,
+    24.849
+   ],
+   "relative": {
+    "rotationDeg": 0,
+    "mirrored": true,
+    "plotsWithIt": 53,
+    "differentRelations": 2
+   },
+   "entrance": [
+    6.0,
+    19.48
+   ],
+   "entrancePlots": 60,
+   "variants": [
+    {
+     "rotationDeg": 0,
+     "mirrored": true,
+     "plots": 53,
+     "offset": [
+      2.001,
+      24.849
+     ],
+     "entrance": [
+      6.0,
+      19.48
+     ]
+    },
+    {
+     "rotationDeg": 180.0,
+     "mirrored": false,
+     "plots": 7,
+     "offset": [
+      9.99,
+      24.85
+     ],
+     "entrance": [
+      6.0,
+      19.481
+     ]
+    }
+   ],
+   "splitSeed": 13,
+   "fitError": {
+    "within1mm": 3,
+    "within10mm": 25,
+    "worse": 5,
+    "n": 30
+   },
+   "testError": {
+    "within1mm": 2,
+    "within10mm": 26,
+    "worse": 4,
+    "n": 30
+   },
+   "relationRightOnTest": 28,
+   "entranceTestError": {
+    "within10mm": 18,
+    "within100mm": 18,
+    "worse": 12,
+    "n": 30
+   }
+  }
+ ]
+}
