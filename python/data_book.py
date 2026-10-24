@@ -38,7 +38,7 @@ SHARED_M = 0.5
 
 BASE_COLUMNS = [
     "officialNumber", "neighbourhood", "baseplanLabel", "clientType", "centroidX", "centroidY", "faceAreaM2", "cutsheet",
-    "frontLengthM", "widthM", "depthM", "frontBearingDeg", "facingDeg", "rev6Unit", "rev6UnitSource", "scheduleFile", "scheduleRow",
+    "frontLengthM", "widthM", "depthM", "frontBearingDeg", "facingDeg", "unitRev6", "unitRev6Source", "scheduleFile", "scheduleRow",
     "footprintBlock", "footprintRotationDeg", "footprintMirrored", "footprintShared", "footprintSource", "cluster", "clusterRow",
     "r06Block", "r06_0000Block", "masterBlocksSource", "r06Number", "r06_0000Number", "v9PlotNumber", "v9Source",
     "setbackFromFrontM", "rowDistanceM", "curbDistanceM", "sidewalkWidthM",
@@ -240,7 +240,7 @@ def build(config, settings, scratch):
         sheets = [t["text"] for frame in frames if frame.contains(centre) for t in cut_texts if frame.contains(Point(t["x"], t["y"]))]
         row["cutsheet"] = "|".join(sorted(set(sheets))) or None
         if schedule:
-            row.update({"rev6Unit": schedule["unit"], "rev6UnitSource": "schedule " + home, "scheduleFile": schedule["file"], "scheduleRow": schedule["sheetRow"],
+            row.update({"unitRev6": schedule["unit"], "unitRev6Source": "schedule " + home, "scheduleFile": schedule["file"], "scheduleRow": schedule["sheetRow"],
                         "pastFfl": schedule["ffl"], "pastEntry": schedule["entry"], "pastSteps": schedule["steps"], "pastSource": "schedule " + home})
         if official and official in past and home == plan.get("neighbourhood"):
             levels = past[official]

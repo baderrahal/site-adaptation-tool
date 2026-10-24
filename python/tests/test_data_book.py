@@ -243,9 +243,9 @@ def test_r167_unit_source_entry_bands_and_coverage():
     analysis = {"unitPlotTypes": ["DP2"], "bandsM": [0.005, 0.03]}
     rows = [row(clientType="DP2", footprintBlock="Duplex_VD2", neighbourhood="IMC", pastEntry="170.0", roadLevelLeft="170.002", roadLevelRight="170.0"),
             row(clientType="DP2", neighbourhood="", pastEntry="", roadLevelLeft="")]
-    rows[0]["rev6Unit"] = "VD2"
+    rows[0]["unitRev6"] = "VD2"
     found = data_book_analysis.unit_source(rows, {"DP2", "VD2"}, analysis)
-    assert found["unitPlotsWithoutUnit"] == 1 and found["rev6OnlyCodes"] == ["VD2"]
+    assert found["unitPlotsWithoutUnit"] == 1 and found["codesOnlyInRev6"] == ["VD2"]
     rows[1]["footprintBlock"] = "Duplex_VD2"
     assert data_book_analysis.unit_source(rows, {"DP2", "VD2"}, analysis)["plotsWhereColumnNamesARev6OnlyCode"] == {"footprintBlock": 1}
     entry = data_book_analysis.entry_source(rows, analysis)

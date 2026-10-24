@@ -2,6 +2,47 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round DATA, 2026-10-24, the data book of Phase 1
+
+Goal:
+- Every drawing of Roads, Base Plans and Master Plan and the master plan workbook as tables inside the Phase 1 border, joined per plot and analysed, read only. Summary: steps/investigations/data-book.md
+
+Done:
+- Session started in the repo, hooks live. Worktree site-adaptation-tool-data on data/data-book from main at 16b59cf, rebased on c9cbd3b after 14c merged PRs 24 and 25. Plan written before the first edit. No acad.exe ran at the start, free memory 4.00 of 15.78 GB
+- 15 sources copied to data_book\work with their layout, equal by SHA-256, all 15 sources and copies hash the same at the end
+- Border (R163): Phase 1 Bound, label PHASE - 1, 9 vertices, 2,517,500 m2, holds 747 of 747 schedule plots, the other 7 rings 0
+- New: C3DDATA and C3DQUIT in the probe (R162), Border, CsvTable and CivilDialogs, dotnet/SiteAdaptation.C3DWatcher (R161), python/c3d_window.py (R160), data_book_border.py, data_book_cad.py (R164), data_book_excel.py (R165), data_book.py and data_book_readme.py (R166), data_book_analysis.py (R167), data_book_check.py (R168)
+- Full window: three tries on the cutsheet copy, each stopped by the runner within 16 s because free memory fell under 2 GB (1.75, 1.72, 1.94), before NETLOAD, no dialog. Stopped after three, see Your turn 1. vlax needs the same window, not tried
+- Stand-in tables from CadReader for all 14 drawings, marked reader CadReader, the road surface drawing with surfaces.csv from its LandXML. Workbook 9 sheets, none with a plot or location column, kept whole. plots.csv 2,956 plots kept, 6 dropped as outside, 62 columns. README.md and analysis.md written. Two tables split by layer, no file over 20 MB
+- Answers: no source gives a Rev 6 unit code for the 1,831 unit plots with no schedule. Road level snapped against El @ Entry within 5 mm 2, within 30 mm 259, worse 483 of 747, median 55 mm below. No source names IME
+
+Checked:
+- Second method (R168): border samples all inside on 14 drawings, row counts match data.json on 14 of 14, fresh CadReader recount equal on 4 of 4 (cutsheet, phase boundaries, Base Plans road layout, V9), plots.csv seed 14 20 of 20 and seed 7 20 of 20 on inside, area, neighbourhood, footprint block and V9 number
+- Gate: Python 768 passed and 1 skipped (18 new), .NET 369 passed (11 new). The Civil project builds by hand with 0 errors. R62 forbids the text rev6 in Python, so the plots.csv column is unitRev6
+
+UNKNOWN:
+- Everything only Civil 3D shows inside Phase 1: names and levels of the 10 Rough Grading surfaces and 2 Road Layout surfaces, the alignment, profiles, assembly codes, the CEC parcel, point groups, data shortcuts, layer colours and states. Whether the security dialog shows the full DLL path, the watcher never met it
+- The IME boundary and plots
+
+Remains:
+- The full Civil 3D read of the 14 copies once memory allows, it overwrites the stand-in tables. Then Rough Grading against El @ Entry
+- A later round should change, not this one: config/project.json and rules/ for the 5.00 m setback line against 5.52 m and the plot widths over Rev 6
+
+Known bugs:
+- The runner first counted the stand-in data.json as done, fixed: done needs reader C3DProbe written in that run
+- The build nodes of another session held about 1.3 GB, they were left alone
+
+Next:
+- The full window read when Bader answers 1, then the Rough Grading levels against the schedules
+
+Your turn:
+1. Memory for the full window. Recommended: close Firefox and the VS Code windows you do not need before the next run (about 3.3 GB), or let the floor go to 1.5 GB for the small drawings only
+2. Setback line. Recommended: the drawn line sits at 5.00 m, keep the Rev 6 ramp at 5.52 m and treat the line as the building setback, not the ramp edge
+3. Unit codes for new zones. Recommended: no drawing has them, ask the client for the Rev 6 unit schedule of Phase 1 by plot
+4. V9 numbers. Recommended: treat V9 as its own numbering and keep the baseplan label plus shift as the official number
+5. IME. Recommended: send the IME schedule or its boundary, no source names it
+6. Plot widths over Rev 6 (C10 58, VL3 41, VL4 70). Recommended: list them for the architect to confirm the unit fits, plots.csv holds each width
+
 ## Round 14c Part B, 2026-10-24, floors in the CAD plan
 
 Goal:

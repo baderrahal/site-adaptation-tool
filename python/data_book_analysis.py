@@ -124,7 +124,7 @@ def conflicts(rows, profile_units, analysis):
 def unit_source(rows, profile_units, analysis):
     """For unit plots with no schedule unit, which column names a Rev 6 unit code."""
     unit_types = set(analysis["unitPlotTypes"])
-    missing = [r for r in rows if r["clientType"] in unit_types and not r["rev6Unit"]]
+    missing = [r for r in rows if r["clientType"] in unit_types and not r["unitRev6"]]
     columns = ["footprintBlock", "r06Block", "r06_0000Block", "v9PlotNumber", "cluster", "clientType"]
     by_column = Counter()
     other_code = Counter()
@@ -137,14 +137,14 @@ def unit_source(rows, profile_units, analysis):
             if codes - {r["clientType"]}:
                 other_code[column] += 1
     # The codes of Rev 6 that are never a client plot type, a source naming one of them gives what the baseplan cannot
-    rev6_only = profile_units - unit_types
+    only_codes = profile_units - unit_types
     only = Counter()
     for r in missing:
         for column in columns:
-            if {t.upper() for t in TOKEN.findall(r[column] or "")} & rev6_only:
+            if {t.upper() for t in TOKEN.findall(r[column] or "")} & only_codes:
                 only[column] += 1
     return {"unitPlotsWithoutUnit": len(missing), "plotsWhereColumnNamesAProfileCode": dict(by_column),
-            "plotsWhereColumnNamesACodeOtherThanTheClientType": dict(other_code), "rev6OnlyCodes": sorted(rev6_only),
+            "plotsWhereColumnNamesACodeOtherThanTheClientType": dict(other_code), "codesOnlyInRev6": sorted(only_codes),
             "plotsWhereColumnNamesARev6OnlyCode": dict(only)}
 
 
@@ -248,7 +248,7 @@ def main(argv=None):
     report = {
         "drawings": drawing_tables(root),
         "workbook": read_csv(root / "master_plan_excel" / "sheets.csv") if (root / "master_plan_excel" / "sheets.csv").is_file() else None,
-        "plotCount": {"phase1Plots": len(rows), "unitPlots": sum(1 for r in rows if r["clientType"] in unit_types), "rev6Units": book["join"]["rev6Units"],
+        "plotCount": {"phase1Plots": len(rows), "unitPlots": sum(1 for r in rows if r["clientType"] in unit_types), "unitsRev6": book["join"]["unitsRev6"],
                       "byClientType": dict(Counter(r["clientType"] or "none" for r in rows).most_common())},
         "coverage": coverage(rows, columns),
         "conflicts": conflicts(rows, profile_units, analysis),

@@ -48,7 +48,7 @@ COLUMNS = {
     "faceAreaM2": "Face area in square metres.", "cutsheet": "The cutsheet frame number the centroid lies in.",
     "frontLengthM": "Length of the front edge (R122).", "widthM": "Plot width, the front edge length.", "depthM": "Depth of the face along the inward normal of the front.",
     "frontBearingDeg": "Bearing of the front edge from left to right seen from the road, clockwise from grid north.", "facingDeg": "Bearing the plot faces, towards the road.",
-    "rev6Unit": "The Rev 6 unit code from the schedule.", "rev6UnitSource": "Where rev6Unit comes from.", "scheduleFile": "The schedule workbook.", "scheduleRow": "The sheet row.",
+    "unitRev6": "The Rev 6 unit code from the schedule.", "unitRev6Source": "Where unitRev6 comes from.", "scheduleFile": "The schedule workbook.", "scheduleRow": "The sheet row.",
     "footprintBlock": "The footprint block on the face, by its outline centre (Building Footprint).", "footprintRotationDeg": "Its rotation.", "footprintMirrored": "Its mirror flag.",
     "footprintShared": "yes when the block centre lies on a shared wall within 0.5 m of the face, a pair or row block.", "footprintSource": "The reader the block came from.",
     "cluster": "The cluster of analysis.json (R64) with its code.", "clusterRow": "The row id of the cluster.",
