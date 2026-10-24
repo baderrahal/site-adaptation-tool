@@ -167,6 +167,66 @@ namespace SiteAdaptation.TestHost
                 + ", file " + (new FileInfo(path).Length / 1048576.0).ToString("0.0", CultureInfo.InvariantCulture) + " MB";
         }
 
+        // R109. The saved version and the worksharing of a file, read without opening it
+        public string FileLine(string path)
+        {
+            BasicFileInfo info = BasicFileInfo.Extract(path);
+            return "format " + info.Format + ", workshared " + info.IsWorkshared + ", central " + info.IsCentral
+                + ", size " + new FileInfo(path).Length + " bytes";
+        }
+
+        // The source opens detached when it is workshared, so nothing is written to it or to its central.
+        // The links in it stay as they are, they are counted and not loaded or changed here
+        public string OpenSource(out Document document)
+        {
+            var options = new OpenOptions { Audit = false };
+            bool workshared = BasicFileInfo.Extract(job.Source).IsWorkshared;
+            if (workshared)
+            {
+                options.DetachFromCentralOption = DetachFromCentralOption.DetachAndPreserveWorksets;
+            }
+            document = app.OpenDocumentFile(ModelPathUtils.ConvertUserVisiblePathToModelPath(job.Source), options);
+            List<RevitLinkType> links = Types(document).ToList();
+            return "opened " + document.Title + (workshared ? ", detached with worksets kept" : "")
+                + ". Links in it " + links.Count + ", loaded " + links.Count(type => type.GetLinkedFileStatus() == LinkedFileStatus.Loaded);
+        }
+
+        // A workshared file becomes a new central in the target folder, any other file a copy. Nothing is ever overwritten
+        public string SaveTarget(Document document)
+        {
+            if (File.Exists(job.Target))
+            {
+                throw new InvalidOperationException("the target exists, it is never overwritten: " + job.Target);
+            }
+            var save = new SaveAsOptions { OverwriteExistingFile = false, MaximumBackups = 1 };
+            bool workshared = document.IsWorkshared;
+            if (workshared)
+            {
+                save.SetWorksharingOptions(new WorksharingSaveAsOptions { SaveAsCentral = true });
+            }
+            document.SaveAs(job.Target, save);
+            return "saved " + (workshared ? "as a new central " : "as a copy ") + job.Target;
+        }
+
+        public string CheckTarget()
+        {
+            if (!File.Exists(job.Target))
+            {
+                throw new InvalidOperationException("the target was not written: " + job.Target);
+            }
+            BasicFileInfo info = BasicFileInfo.Extract(job.Target);
+            string line = FileLine(job.Target);
+            if (info.Format != app.VersionNumber)
+            {
+                throw new InvalidOperationException("the target is saved in " + info.Format + ", not " + app.VersionNumber + ": " + line);
+            }
+            if (Path.GetFileName(job.Target) != Path.GetFileName(job.Source))
+            {
+                throw new InvalidOperationException("the target name is not the source name");
+            }
+            return line;
+        }
+
         public string Close(Document document)
         {
             if (document == null || !document.IsValidObject)

@@ -464,6 +464,13 @@ def write_plan(path, plan):
     return common.write_json(path, plan, frozenset(WIDE_LEVELS))
 
 
+def prototype_folders(root, job):
+    """R109. The folder the placer loads from and the past folder it came from. The upgraded Revit 2024 copies win when the config names them."""
+    source = root / job["prototypeFolder"]
+    upgraded = job.get("upgradedPrototypeFolder")
+    return (root / upgraded if upgraded else source), source
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Build plan.json from a past job, prototypes.json of the past model and its schedule.")
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH), help="project settings, default config/project.json")
@@ -477,7 +484,7 @@ def main(argv=None):
     plot_relations.refuse_inside_repo(out.resolve().parent)
     root = input_root(settings)
     schedule = root / full_run.XLSX_FOLDER / job["schedule"]
-    folder = root / job["prototypeFolder"]
+    folder, source_folder = prototype_folders(root, job)
     for path in (prototypes, schedule):
         if not path.is_file():
             print("not found: " + str(path), file=sys.stderr)
@@ -486,6 +493,7 @@ def main(argv=None):
     rows = excel_reader.read_sheet(schedule, job["sheet"])[3]
     plan = build_plan(data, rows, job, folder_listing(folder), folder)
     plan["sources"]["prototypes"] = prototypes.name
+    plan["sources"]["prototypeSourceFolder"] = str(source_folder)
     write_plan(out, plan)
     summary = plan["summary"]
     print("plots written %d of %d, missing a value %d" % (summary["written"], summary["plots"], len(plan["missing"])))

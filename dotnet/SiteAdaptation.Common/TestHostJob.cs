@@ -9,6 +9,10 @@ namespace SiteAdaptation.Common
     // testhost_job.json as the run script writes it (R103)
     public class TestHostJob
     {
+        // place (the default) runs the placer and the reader on a model copy, upgrade saves one prototype as a Revit 2024 file (R109)
+        public string Kind { get; set; }
+        public string Source { get; set; }
+        public string Target { get; set; }
         public string Token { get; set; }
         public string Code { get; set; }
         public string Model { get; set; }
@@ -37,6 +41,8 @@ namespace SiteAdaptation.Common
         public const double DefaultTotalMinutes = 27;
         public const double MaxTotalMinutes = 29;
         public const string TestTag = "_TEST-";
+        public const string PlaceKind = "place";
+        public const string UpgradeKind = "upgrade";
 
         private static readonly Regex CodeText = new Regex(@"\A[A-Z][A-Z0-9]{1,3}\z", RegexOptions.CultureInvariant);
         private static readonly Regex TokenText = new Regex(@"\A[A-Za-z0-9]+\z", RegexOptions.CultureInvariant);
@@ -57,12 +63,12 @@ namespace SiteAdaptation.Common
             return jobFileExists && !string.IsNullOrEmpty(token);
         }
 
-        // Every check of R103 on the text of the job file. fileExists is asked only for full paths
-        public static GuardResult Check(string jobText, string token, DateTime nowUtc, Func<string, bool> fileExists)
+        // Every check of R103 on the text of the job file. fileExists and folderExists are asked only for full paths
+        public static GuardResult Check(string jobText, string token, DateTime nowUtc, Func<string, bool> fileExists, Func<string, bool> folderExists = null)
         {
             try
             {
-                return CheckJob(jobText, token, nowUtc, fileExists);
+                return CheckJob(jobText, token, nowUtc, fileExists, folderExists ?? Directory.Exists);
             }
             catch (Exception failure)
             {
@@ -86,7 +92,7 @@ namespace SiteAdaptation.Common
             return string.Equals(Path.GetFullPath(path), path, StringComparison.Ordinal);
         }
 
-        private static GuardResult CheckJob(string jobText, string token, DateTime nowUtc, Func<string, bool> fileExists)
+        private static GuardResult CheckJob(string jobText, string token, DateTime nowUtc, Func<string, bool> fileExists, Func<string, bool> folderExists)
         {
             if (string.IsNullOrEmpty(token) || token.Length < MinTokenLength || !TokenText.IsMatch(token))
             {
@@ -133,6 +139,23 @@ namespace SiteAdaptation.Common
             {
                 return Refuse(prototype);
             }
+            // Written so that NaN fails too
+            if (job.TotalMinutes.HasValue && !(job.TotalMinutes.Value > 0 && job.TotalMinutes.Value <= MaxTotalMinutes))
+            {
+                return Refuse("totalMinutes must be above 0 and at most " + MaxTotalMinutes);
+            }
+            if (job.Kind == UpgradeKind)
+            {
+                return CheckUpgrade(job, fileExists, folderExists);
+            }
+            if (job.Kind != null && job.Kind != PlaceKind)
+            {
+                return Refuse("the job kind is not " + PlaceKind + " or " + UpgradeKind);
+            }
+            if (job.Source != null || job.Target != null)
+            {
+                return Refuse("a place job names no source and no target");
+            }
             string model = CheckModel(job);
             if (model != null)
             {
@@ -142,11 +165,6 @@ namespace SiteAdaptation.Common
             {
                 return Refuse("the plan is not a full path to a .json file");
             }
-            // Written so that NaN fails too
-            if (job.TotalMinutes.HasValue && !(job.TotalMinutes.Value > 0 && job.TotalMinutes.Value <= MaxTotalMinutes))
-            {
-                return Refuse("totalMinutes must be above 0 and at most " + MaxTotalMinutes);
-            }
             if (!fileExists(job.Model))
             {
                 return Refuse("the model copy does not exist: " + job.Model);
@@ -154,6 +172,42 @@ namespace SiteAdaptation.Common
             if (!fileExists(job.Plan))
             {
                 return Refuse("the plan does not exist: " + job.Plan);
+            }
+            return new GuardResult { Act = true, Job = job };
+        }
+
+        // R109. The source is only read. The target is a new file of the same name in another folder that exists, and it must not exist yet
+        private static GuardResult CheckUpgrade(TestHostJob job, Func<string, bool> fileExists, Func<string, bool> folderExists)
+        {
+            if (job.Model != null || job.Plan != null)
+            {
+                return Refuse("an upgrade job names no model and no plan");
+            }
+            if (!IsPlainFullPath(job.Source) || Path.GetFileName(job.Source) != job.PrototypeFile)
+            {
+                return Refuse("the source is not a plain full path to the prototype file");
+            }
+            if (!IsPlainFullPath(job.Target) || Path.GetFileName(job.Target) != job.PrototypeFile)
+            {
+                return Refuse("the target is not a plain full path with the same file name");
+            }
+            string sourceFolder = Path.GetDirectoryName(job.Source);
+            string targetFolder = Path.GetDirectoryName(job.Target);
+            if (string.Equals(sourceFolder, targetFolder, StringComparison.OrdinalIgnoreCase))
+            {
+                return Refuse("the target folder is the source folder, the source is never overwritten");
+            }
+            if (!fileExists(job.Source))
+            {
+                return Refuse("the source does not exist: " + job.Source);
+            }
+            if (fileExists(job.Target))
+            {
+                return Refuse("the target already exists, it is never overwritten: " + job.Target);
+            }
+            if (!folderExists(targetFolder))
+            {
+                return Refuse("the target folder does not exist: " + targetFolder);
             }
             return new GuardResult { Act = true, Job = job };
         }

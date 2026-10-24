@@ -228,6 +228,118 @@ namespace SiteAdaptation.Tests
             return TestHostGuard.Check(text, token, Now, exists ?? (path => true));
         }
 
+        // R109 upgrade job
+
+        private const string Source = @"C:\Models\Prototypes\RRE-WP-NSP-KEO-ARC-C10-ZZ-MOD-1500.rvt";
+        private const string Target = @"C:\Models\Prototypes_2024\RRE-WP-NSP-KEO-ARC-C10-ZZ-MOD-1500.rvt";
+
+        private static string UpgradeJob(Action<JObject> change = null)
+        {
+            var job = new JObject
+            {
+                ["kind"] = "upgrade",
+                ["token"] = Token,
+                ["code"] = "C10",
+                ["prototypeFile"] = Prototype,
+                ["source"] = Source,
+                ["target"] = Target,
+                ["createdUtc"] = Now.AddMinutes(-2).ToString("o"),
+            };
+            change?.Invoke(job);
+            return job.ToString();
+        }
+
+        private static GuardResult CheckUpgrade(string text, Func<string, bool> exists = null, Func<string, bool> folder = null)
+        {
+            return TestHostGuard.Check(text, Token, Now, exists ?? (path => path == Source), folder ?? (path => true));
+        }
+
+        [Fact]
+        public void R109_an_upgrade_job_with_a_source_and_a_new_target_of_the_same_name_is_accepted()
+        {
+            GuardResult result = CheckUpgrade(UpgradeJob());
+
+            Assert.True(result.Act, result.Reason);
+            Assert.Equal(TestHostGuard.UpgradeKind, result.Job.Kind);
+            Assert.Equal(Target, result.Job.Target);
+        }
+
+        [Fact]
+        public void R109_a_target_that_exists_is_in_the_source_folder_or_has_another_name_is_refused()
+        {
+            Assert.Contains("never overwritten", CheckUpgrade(UpgradeJob(), exists: path => true).Reason);
+            Assert.False(CheckUpgrade(UpgradeJob(job => job["target"] = @"C:\Models\Prototypes\RRE-WP-NSP-KEO-ARC-C10-ZZ-MOD-1500.rvt")).Act);
+            Assert.False(CheckUpgrade(UpgradeJob(job => job["target"] = @"C:\Models\Prototypes_2024\rre-wp-nsp-keo-arc-c10-zz-mod-1500.rvt")).Act);
+            Assert.False(CheckUpgrade(UpgradeJob(job => job["target"] = @"C:\Models\Prototypes_2024\Other.rvt")).Act);
+            Assert.False(CheckUpgrade(UpgradeJob(job => job["target"] = @"C:\Models\Prototypes_2024\..\Prototypes\RRE-WP-NSP-KEO-ARC-C10-ZZ-MOD-1500.rvt")).Act);
+        }
+
+        [Fact]
+        public void R109_a_missing_source_or_target_folder_and_a_source_of_another_file_are_refused()
+        {
+            Assert.False(CheckUpgrade(UpgradeJob(), exists: path => false).Act);
+            Assert.Contains("target folder does not exist", CheckUpgrade(UpgradeJob(), folder: path => false).Reason);
+            Assert.False(CheckUpgrade(UpgradeJob(job => job["source"] = @"C:\Models\Prototypes\RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3100.rvt")).Act);
+        }
+
+        [Fact]
+        public void R109_an_upgrade_job_names_no_model_or_plan_and_a_place_job_no_source_or_target()
+        {
+            Assert.False(CheckUpgrade(UpgradeJob(job => job["model"] = Model)).Act);
+            Assert.False(CheckUpgrade(UpgradeJob(job => job["plan"] = PlanPath)).Act);
+            Assert.False(Check(Job(job => job["source"] = Source)).Act);
+            Assert.False(Check(Job(job => job["target"] = Target)).Act);
+            Assert.False(CheckUpgrade(UpgradeJob(job => job["kind"] = "Upgrade")).Act);
+            Assert.False(CheckUpgrade(UpgradeJob(job => job["kind"] = "save")).Act);
+            Assert.True(Check(Job(job => job["kind"] = "place")).Act);
+        }
+
+        [Fact]
+        public void R109_the_upgrade_opens_detached_keeps_worksets_saves_a_new_central_and_checks_the_version()
+        {
+            string steps = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSteps.cs");
+            string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
+
+            Assert.Contains("DetachFromCentralOption.DetachAndPreserveWorksets", steps);
+            Assert.Contains("new SaveAsOptions { OverwriteExistingFile = false, MaximumBackups = 1 }", steps);
+            Assert.Contains("new WorksharingSaveAsOptions { SaveAsCentral = true }", steps);
+            Assert.Contains("document.SaveAs(job.Target, save)", steps);
+            Assert.Contains("if (info.Format != app.VersionNumber)", steps);
+            Assert.DoesNotContain("SaveAs(job.Source", steps);
+            string[] names = { "sourceInfo", "openSource", "saveTarget", "close", "targetInfo", "jobFile" };
+            int[] at = names.Select(name => session.IndexOf("Name = \"" + name + "\"", StringComparison.Ordinal)).ToArray();
+            Assert.All(at, index => Assert.True(index > 0));
+            Assert.Equal(at.OrderBy(index => index), at);
+            Assert.Contains("FileIdentity.CheckTargetFolder(Path.GetDirectoryName(guard.Job.Target))", session);
+        }
+
+        [Fact]
+        public void R109_a_target_folder_under_a_junction_is_refused_and_a_plain_one_passes()
+        {
+            string folder = Path.Combine(Path.GetTempPath(), "testhost-" + Guid.NewGuid().ToString("N"));
+            string real = Path.Combine(folder, "real");
+            string junction = Path.Combine(folder, "junction");
+            Directory.CreateDirectory(real);
+            try
+            {
+                var make = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe", "/c mklink /J \"" + junction + "\" \"" + real + "\"") { UseShellExecute = false, CreateNoWindow = true });
+                make.WaitForExit();
+                Assert.True(Directory.Exists(junction));
+
+                Assert.Null(FileIdentity.CheckTargetFolder(real));
+                Assert.Contains("link or junction", FileIdentity.CheckTargetFolder(junction));
+                Assert.Contains("link or junction", FileIdentity.CheckTargetFolder(Path.Combine(junction, "inner")));
+            }
+            finally
+            {
+                if (Directory.Exists(junction))
+                {
+                    Directory.Delete(junction);
+                }
+                Directory.Delete(folder, true);
+            }
+        }
+
         [Fact]
         public void R103_without_a_token_or_a_job_file_the_test_host_never_wakes()
         {
@@ -680,7 +792,8 @@ namespace SiteAdaptation.Tests
         {
             string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
             string[] names = { "unloadLinks", "openModel", "removePrototypeType", "dryRun", "realRun", "saveAfterPlace", "keepOnlyPrototype", "read", "close", "jobFile" };
-            int[] at = names.Select(name => session.IndexOf("Name = \"" + name + "\"", StringComparison.Ordinal)).ToArray();
+            int place = session.IndexOf("yield break;", StringComparison.Ordinal);
+            int[] at = names.Select(name => session.IndexOf("Name = \"" + name + "\"", place, StringComparison.Ordinal)).ToArray();
 
             Assert.All(at, index => Assert.True(index > 0));
             Assert.Equal(at.OrderBy(index => index), at);

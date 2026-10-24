@@ -480,3 +480,18 @@ def test_r89_a_link_name_that_differs_is_its_own_mismatch():
     report = plan_compare.compare(plan, placed_model([link("101", name="1")], floors))
     assert report["mismatches"]["linkName"] == 1
     assert report["differing"] == [{"plot": "101", "differs": {"linkName": "link name differs"}}]
+
+
+def test_r109_the_placer_folder_is_the_upgraded_one_and_the_past_folder_stays_the_source(tmp_path):
+    job = dict(JOB, prototypeFolder="Prototypes", upgradedPrototypeFolder="Prototypes_2024")
+    place, source = pf.prototype_folders(tmp_path, job)
+    assert place == tmp_path / "Prototypes_2024"
+    assert source == tmp_path / "Prototypes"
+    place, source = pf.prototype_folders(tmp_path, dict(JOB, prototypeFolder="Prototypes"))
+    assert place == source == tmp_path / "Prototypes"
+
+
+def test_r109_the_real_settings_keep_the_2021_folder_as_source_and_name_the_2024_copies_beside_it():
+    job = pf.load_job(project_profile.load_settings())
+    assert job["prototypeFolder"].endswith("Prototypes")
+    assert job["upgradedPrototypeFolder"] == job["prototypeFolder"] + "_2024"

@@ -39,11 +39,14 @@ namespace SiteAdaptation.TestHost
             this.job = job;
             this.jobPath = jobPath;
             this.documents = documents;
-            string logPath = TestHostGuard.OutputPath(documents, job.Code, "log");
+            string logPath = TestHostGuard.OutputPath(documents, job.Code, job.Kind == TestHostGuard.UpgradeKind ? "upgrade_log" : "log");
             log = new TestHostLog
             {
                 Code = job.Code,
+                Kind = job.Kind ?? TestHostGuard.PlaceKind,
                 Model = job.Model,
+                Source = job.Source,
+                Target = job.Target,
                 PrototypeFile = job.PrototypeFile,
                 Plan = job.Plan,
                 StartedUtc = DateTime.UtcNow,
@@ -82,7 +85,9 @@ namespace SiteAdaptation.TestHost
             GuardResult guard = TestHostGuard.Check(text, token, DateTime.UtcNow, File.Exists);
             if (guard.Act)
             {
-                string copy = FileIdentity.CheckCopy(guard.Job.Model, TestHostGuard.OriginalOf(guard.Job.Model));
+                string copy = guard.Job.Kind == TestHostGuard.UpgradeKind
+                    ? FileIdentity.CheckTargetFolder(Path.GetDirectoryName(guard.Job.Target))
+                    : FileIdentity.CheckCopy(guard.Job.Model, TestHostGuard.OriginalOf(guard.Job.Model));
                 if (copy != null)
                 {
                     guard = new GuardResult { Act = false, Reason = copy };
@@ -149,6 +154,17 @@ namespace SiteAdaptation.TestHost
         private IEnumerable<JobStep> Steps(Application app)
         {
             var steps = new JobSteps(app, job, documents);
+            if (job.Kind == TestHostGuard.UpgradeKind)
+            {
+                // R109. One prototype saved as a Revit 2024 file, the source only read
+                yield return new JobStep { Name = "sourceInfo", LimitMinutes = 2, Action = () => steps.FileLine(job.Source) };
+                yield return new JobStep { Name = "openSource", LimitMinutes = 25, Action = () => steps.OpenSource(out document) };
+                yield return new JobStep { Name = "saveTarget", LimitMinutes = 10, Action = () => steps.SaveTarget(document) };
+                yield return new JobStep { Name = "close", LimitMinutes = 5, Always = true, Action = () => steps.Close(document) };
+                yield return new JobStep { Name = "targetInfo", LimitMinutes = 2, Action = () => steps.CheckTarget() };
+                yield return new JobStep { Name = "jobFile", LimitMinutes = 1, Always = true, Action = () => File.Exists(jobPath) ? "a new job file is waiting, it is left for its own session" : "the job file is gone" };
+                yield break;
+            }
             yield return new JobStep { Name = "unloadLinks", LimitMinutes = 3, Action = steps.UnloadOtherLinks };
             yield return new JobStep { Name = "openModel", LimitMinutes = 20, Action = () => steps.Open(out document) };
             yield return new JobStep { Name = "removePrototypeType", LimitMinutes = 15, Action = () => steps.RemovePrototypeType(document) };

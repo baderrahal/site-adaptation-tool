@@ -2,10 +2,14 @@
 # It copies the site model to <name>_TEST-<code>.rvt by a file copy, writes the job file, starts Revit 2024 with the
 # token of this run on Revit alone, runs the dialog watcher of R108 beside it and waits for Revit to exit.
 # The original model is never opened. Nothing in the registry is read or written.
+# With -Upgrade it saves one prototype as a Revit 2024 file in the upgraded prototype folder of config/project.json (R109).
+# -NewUpgradeFolder makes that folder and stops when it is there already, so it goes on the first upgrade only.
 param(
     [ValidatePattern('^[A-Z][A-Z0-9]{1,3}$')]
     [string]$Code,
     [switch]$DryStart,
+    [switch]$Upgrade,
+    [switch]$NewUpgradeFolder,
     [int]$TimeoutMinutes = 30,
     [int]$NoLogMinutes = 8
 )
@@ -14,13 +18,16 @@ $ErrorActionPreference = 'Stop'
 if (-not $DryStart -and -not $Code) {
     throw 'Give -Code, or -DryStart for a start with no job.'
 }
+if ($NewUpgradeFolder -and -not $Upgrade) {
+    throw '-NewUpgradeFolder goes with -Upgrade only.'
+}
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $config = Get-Content -Raw (Join-Path $repo 'config\project.json') | ConvertFrom-Json
 $docs = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'SiteAdaptation'
 $jobPath = Join-Path $docs 'testhost_job.json'
 $addins = Join-Path $env:APPDATA 'Autodesk\Revit\Addins\2024'
 $watcherExe = Join-Path $addins 'SiteAdaptationTestHost\Watcher\SiteAdaptation.DialogWatcher.exe'
-$name = if ($DryStart) { 'dry_start' } else { $Code }
+$name = if ($DryStart) { 'dry_start' } elseif ($Upgrade) { $Code + '_upgrade' } else { $Code }
 $logPath = Join-Path $docs ('testhost_' + $name + '_log.json')
 $watchPath = Join-Path $docs ('testhost_' + $name + '_watcher.json')
 
@@ -78,25 +85,49 @@ if (-not $DryStart) {
     $prototype = $files[0]
     $plots = @($plan.plots | Where-Object { $_.prototypeFile.value -eq $prototype }).Count
 
-    # A fresh copy every run. An earlier copy of the same code is kept under the next free run number
-    $folder = Split-Path $original
-    $base = [IO.Path]::GetFileNameWithoutExtension($original)
-    $copy = Join-Path $folder ($base + '_TEST-' + $Code + '.rvt')
-    if (Test-Path $copy) {
-        $n = 1
-        while (Test-Path (Join-Path $folder ($base + '_TEST-' + $Code + '_run' + $n + '.rvt'))) {
-            $n++
+    if ($Upgrade) {
+        # The source is the past prototype folder, kept in the config. It is only read, the run checks it is unchanged
+        $source = Join-Path (Join-Path $root $config.pastJob.prototypeFolder) $prototype
+        $targetFolder = Join-Path $root $config.pastJob.upgradedPrototypeFolder
+        $target = Join-Path $targetFolder $prototype
+        if ($NewUpgradeFolder) {
+            if (Test-Path $targetFolder) {
+                throw "The upgraded prototype folder is already there, nothing was done: $targetFolder"
+            }
+            New-Item -ItemType Directory $targetFolder | Out-Null
+            "Made the folder $targetFolder"
         }
-        Rename-Item $copy ($base + '_TEST-' + $Code + '_run' + $n + '.rvt')
+        elseif (-not (Test-Path $targetFolder)) {
+            throw "The upgraded prototype folder is not there, the first upgrade takes -NewUpgradeFolder: $targetFolder"
+        }
+        if (Test-Path $target) {
+            throw "The upgraded file is already there, it is never overwritten: $target"
+        }
+        $original = $source
+    }
+    else {
+        # A fresh copy every run. An earlier copy of the same code is kept under the next free run number
+        $folder = Split-Path $original
+        $base = [IO.Path]::GetFileNameWithoutExtension($original)
+        $copy = Join-Path $folder ($base + '_TEST-' + $Code + '.rvt')
+        if (Test-Path $copy) {
+            $n = 1
+            while (Test-Path (Join-Path $folder ($base + '_TEST-' + $Code + '_run' + $n + '.rvt'))) {
+                $n++
+            }
+            Rename-Item $copy ($base + '_TEST-' + $Code + '_run' + $n + '.rvt')
+        }
     }
     $before = Get-Item $original
     $hashBefore = (Get-FileHash $original).Hash
-    Copy-Item $original $copy
+    if (-not $Upgrade) {
+        Copy-Item $original $copy
+    }
 }
 
 # Outputs of an earlier run of this name are moved aside, so a run that writes nothing cannot pass on old files
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$old = @(Get-ChildItem $docs -Filter ('testhost_' + $name + '_*.json'))
+$old = @(Get-ChildItem $docs -Filter ('testhost_' + $name + '_*.json') | Where-Object { $Upgrade -or $_.Name -notlike ('testhost_' + $Code + '_upgrade_*') })
 if ($old.Count -gt 0) {
     $aside = Join-Path $docs ('testhost_old\' + $name + '_' + $stamp)
     New-Item -ItemType Directory -Force $aside | Out-Null
@@ -115,14 +146,28 @@ try {
     $info.WorkingDirectory = Split-Path $revit
     if (-not $DryStart) {
         $token = [guid]::NewGuid().ToString('N')
-        $job = [ordered]@{
-            token         = $token
-            code          = $Code
-            model         = $copy
-            prototypeFile = $prototype
-            plan          = $planPath
-            createdUtc    = (Get-Date).ToUniversalTime().ToString('o')
-            totalMinutes  = [Math]::Min(27, $TimeoutMinutes - 2)
+        if ($Upgrade) {
+            $job = [ordered]@{
+                kind          = 'upgrade'
+                token         = $token
+                code          = $Code
+                prototypeFile = $prototype
+                source        = $source
+                target        = $target
+                createdUtc    = (Get-Date).ToUniversalTime().ToString('o')
+                totalMinutes  = [Math]::Min(27, $TimeoutMinutes - 2)
+            }
+        }
+        else {
+            $job = [ordered]@{
+                token         = $token
+                code          = $Code
+                model         = $copy
+                prototypeFile = $prototype
+                plan          = $planPath
+                createdUtc    = (Get-Date).ToUniversalTime().ToString('o')
+                totalMinutes  = [Math]::Min(27, $TimeoutMinutes - 2)
+            }
         }
         $job | ConvertTo-Json | Set-Content -Path $jobPath -Encoding utf8
         # The token goes to the Revit process alone, this console never holds it
@@ -133,6 +178,9 @@ try {
     $watcher = Start-Process -FilePath $watcherExe -ArgumentList ($watchArgs | ForEach-Object { '"' + $_ + '"' }) -PassThru -WindowStyle Hidden
     if ($DryStart) {
         "Revit $($process.Id) started at $($start.ToString('HH:mm:ss')) with no job, the watcher answers the security dialogs"
+    }
+    elseif ($Upgrade) {
+        "Revit $($process.Id) started at $($start.ToString('HH:mm:ss')) to upgrade $prototype into $targetFolder"
     }
     else {
         "Revit $($process.Id) started at $($start.ToString('HH:mm:ss')) for $Code, $prototype, $plots plots in the plan, copy $copy"
@@ -256,7 +304,12 @@ else {
 if (-not $DryStart) {
     $after = Get-Item $original
     $same = ((Get-FileHash $original).Hash -eq $hashBefore) -and ($after.LastWriteTimeUtc -eq $before.LastWriteTimeUtc) -and ($after.Length -eq $before.Length)
-    "Original model unchanged: $same"
+    if ($Upgrade) {
+        "Source prototype unchanged: $same"
+    }
+    else {
+        "Original model unchanged: $same"
+    }
 }
 
 if (Test-Path $logPath) {
@@ -278,7 +331,11 @@ if (Test-Path $logPath) {
         }
     }
 }
-if (-not $DryStart) {
+if ($Upgrade) {
+    'The upgraded prototype folder:'
+    Get-ChildItem $targetFolder | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 200
+}
+elseif (-not $DryStart) {
     'TEST copies next to the model:'
     Get-ChildItem (Split-Path $original) | Where-Object { $_.Name -like ($base + '_TEST-*') } | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 200
 }

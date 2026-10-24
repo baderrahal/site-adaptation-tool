@@ -61,6 +61,26 @@ namespace SiteAdaptation.Common
             }
         }
 
+        // R109. Null when no folder from the target folder up is a link or junction, so a save lands where its name says
+        public static string CheckTargetFolder(string folder)
+        {
+            try
+            {
+                for (string step = folder; !string.IsNullOrEmpty(step); step = Path.GetDirectoryName(step))
+                {
+                    if (Directory.Exists(step) && (File.GetAttributes(step) & FileAttributes.ReparsePoint) != 0)
+                    {
+                        return "the target folder or a folder above it is a link or junction: " + step;
+                    }
+                }
+                return null;
+            }
+            catch (Exception failure)
+            {
+                return "the target folder could not be checked: " + failure.Message;
+            }
+        }
+
         // Null when the copy is a plain file of its own, else why not
         public static string CheckCopy(string copy, string original)
         {

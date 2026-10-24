@@ -11,7 +11,10 @@ namespace SiteAdaptation.Common
     {
         public string Tool { get; set; } = "SiteAdaptation.TestHost";
         public string Code { get; set; }
+        public string Kind { get; set; }
         public string Model { get; set; }
+        public string Source { get; set; }
+        public string Target { get; set; }
         public string PrototypeFile { get; set; }
         public string Plan { get; set; }
         public string Guard { get; set; }
