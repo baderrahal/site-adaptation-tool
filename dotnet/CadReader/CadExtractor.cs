@@ -70,6 +70,7 @@ namespace CadReader
                 Plots = new PlotsFile { Source = sourceName, Summary = join.Summary, Plots = plots },
                 OtherFaces = new OtherFacesFile { Source = sourceName, Faces = join.Other },
                 Texts = new TextsFile { Source = sourceName, Texts = exploder.KeptTexts },
+                Blocks = new BlocksFile { Source = sourceName, Blocks = exploder.Blocks },
                 Pieces = kept == null ? null : new PiecesFile { Source = sourceName, Pieces = kept },
             };
         }
@@ -80,6 +81,7 @@ namespace CadReader
             JsonOut.Write(Path.Combine(outDir, "plots.json"), extract.Plots);
             JsonOut.Write(Path.Combine(outDir, "other_faces.json"), extract.OtherFaces);
             JsonOut.Write(Path.Combine(outDir, "texts.json"), extract.Texts);
+            JsonOut.Write(Path.Combine(outDir, "blocks.json"), extract.Blocks);
             if (extract.Pieces != null)
             {
                 JsonOut.Write(Path.Combine(outDir, "pieces.json"), extract.Pieces);

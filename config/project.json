@@ -1,23 +1,26 @@
 {
-  "note": "Names the rules profile and the drawings of this project, so no project name sits in the Python files. Paths are relative to the repo root. The analysis block holds how the CAD analysis reads the drawings: lengths are in metres, partyWallShare is the share of plot.long_side that a shared edge must reach to count as a party wall, endShare is how far from the centre of a row, as a share of plot.long_side, a shared edge must lie to count as the front or the back of the row.",
+  "note": "Names the rules profile and the drawings of this project, so no project name sits in the Python files. Paths are relative to the repo root. drawings holds one file name per role. baseplan has the plot faces and labels. masterplan is the current master plan drawing, the second source check reads it and config/second_source.json names its plot layers. previousMasterplan is the master plan it replaced, kept for reference and not read in the full run. villaBlocks is the drawing the villa block of each unit is read from. roadLayout is the road layout drawing, its road edges give the front of a row. xrefRoles maps the name of an xref file that is not on disk to the role of the drawing that stands in for it. skip lists the other drawings the full run does not read, each with its reason. The analysis block holds how the CAD analysis reads the drawings. Lengths are in metres. partyWallShare is the share of plot.long_side that a shared edge must reach to count as a party wall. endShare is how far from the centre of a row, as a share of plot.long_side, a shared edge must lie to count as the front or the back of the row. roadEdgeLayers names the layers of the road layout drawing that hold the road edge polylines.",
   "profile": "rules/roshn-makkah.json",
   "drawings": {
     "baseplan": "ROSHN Makkah Baseplan.dwg",
-    "secondDefault": "221229_MP-SK-01-03-001_R06_0000.dwg",
+    "masterplan": "25.06.2025 Phase 1 Amana_V9.dwg",
+    "previousMasterplan": "221229_MP-SK-01-03-001_R06.dwg",
+    "villaBlocks": "221229_MP-SK-01-03-001_R06_0000.dwg",
+    "roadLayout": "Makkah Phase 1_Road Layout.dwg",
+    "xrefRoles": {
+      "Makkah Phase 1_Road Layout_new.dwg": "roadLayout"
+    },
     "skip": [
       {
-        "file": "221229_MP-SK-01-03-001_R06.dwg",
-        "why": "Decision C. No plot faces, only 45 model space entities, its xref Makkah Phase 1_Road Layout_new.dwg is not found. The block content explodes to 140064 pieces, so it is not empty after exploding. R06_0000 is used instead."
-      },
-      {
         "file": "221229_MP-SK-01-03-001_R06_0001.dwg",
-        "why": "Decision C. Identical copy of 221229_MP-SK-01-03-001_R06_0000.dwg with the same layer counts and the same handles. R06_0000 is used instead."
+        "why": "Decision C. Identical copy of 221229_MP-SK-01-03-001_R06_0000.dwg with the same layer counts and the same handles. R06_0000 is read for the villa blocks instead."
       }
     ]
   },
   "analysis": {
     "toleranceM": 0.01,
     "partyWallShare": 0.75,
-    "endShare": 0.25
+    "endShare": 0.25,
+    "roadEdgeLayers": ["RD-CURB-LINE"]
   }
 }

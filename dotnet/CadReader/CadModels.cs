@@ -170,12 +170,37 @@ namespace CadReader
         public List<TextEntry> Texts { get; set; }
     }
 
+    // One block insert at any depth. InsertPoint and Outline are in world coordinates. Scale and RotationDeg are the
+    // values stored on the insert itself. Mirrored is scale X times scale Y below zero, taken before rounding so a
+    // small scale keeps its sign. ChainMirrored is set when the inserts that hold this one flip it again.
+    public class BlockEntry
+    {
+        public string Name { get; set; }
+        public string Layer { get; set; }
+        public string Handle { get; set; }
+        public string Path { get; set; }
+        public double[] InsertPoint { get; set; }
+        public double[] Scale { get; set; }
+        public double RotationDeg { get; set; }
+        public bool Mirrored { get; set; }
+        public bool? ChainMirrored { get; set; }
+        public List<double[]> Outline { get; set; }
+        public string Note { get; set; }
+    }
+
+    public class BlocksFile
+    {
+        public string Source { get; set; }
+        public List<BlockEntry> Blocks { get; set; }
+    }
+
     public class CadExtract
     {
         public LayersFile Layers { get; set; }
         public PlotsFile Plots { get; set; }
         public OtherFacesFile OtherFaces { get; set; }
         public TextsFile Texts { get; set; }
+        public BlocksFile Blocks { get; set; }
         public PiecesFile Pieces { get; set; }
     }
 }

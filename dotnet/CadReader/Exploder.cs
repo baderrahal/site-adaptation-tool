@@ -4,6 +4,7 @@ using System.Linq;
 using ACadSharp.Blocks;
 using ACadSharp.Entities;
 using ACadSharp.Objects;
+using ACadSharp.Tables;
 using CSMath;
 
 namespace CadReader
@@ -24,11 +25,13 @@ namespace CadReader
         private readonly List<double> coreX = new List<double>();
         private readonly List<double> coreY = new List<double>();
         private readonly double[] box = { double.MaxValue, double.MaxValue, double.MinValue, double.MinValue };
+        private readonly Dictionary<string, List<XYZ>> hulls = new Dictionary<string, List<XYZ>>();
 
         public readonly SortedDictionary<string, SortedDictionary<string, int>> After = new SortedDictionary<string, SortedDictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
         public readonly Dictionary<string, int> XrefInserts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         public readonly List<TextEntry> AllTexts = new List<TextEntry>();
         public readonly List<TextEntry> KeptTexts = new List<TextEntry>();
+        public readonly List<BlockEntry> Blocks = new List<BlockEntry>();
         public int Inserts;
         public int MaxDepth;
         public int Written;
@@ -134,6 +137,7 @@ namespace CadReader
             {
                 Emit(piece);
                 AddAttributeTexts(insert, layer, chain, path);
+                Blocks.Add(BlockOf(insert, layer, chain, path, piece.Note));
             }
             else
             {
@@ -165,6 +169,162 @@ namespace CadReader
             blocks.RemoveAt(blocks.Count - 1);
             path.RemoveAt(path.Count - 1);
             chain.RemoveAt(chain.Count - 1);
+        }
+
+        private BlockEntry BlockOf(Insert insert, string layer, List<Transform> chain, List<ulong> path, string note)
+        {
+            var block = insert.Block;
+            var entry = new BlockEntry
+            {
+                Name = block == null ? null : block.Name,
+                Layer = layer,
+                Handle = Hex(insert.Handle),
+                Path = PathText(path),
+                InsertPoint = Pt(World(chain, ToWcs(insert.InsertPoint, insert.Normal))),
+                Scale = new[] { insert.XScale, insert.YScale, insert.ZScale },
+                RotationDeg = insert.Rotation * 180.0 / Math.PI,
+                Mirrored = insert.XScale * insert.YScale < 0,
+                ChainMirrored = Mirrored(chain) ? (bool?)true : null,
+                Note = note,
+            };
+            if (block != null && (block.Flags & BlockTypeFlags.XRef) == 0)
+            {
+                var hull = LocalHull(block);
+                if (hull.Count >= 3)
+                {
+                    var full = new List<Transform>(chain) { insert.GetTransform() };
+                    entry.Outline = hull.Select(point => { XYZ world = World(full, point); return new[] { world.X, world.Y }; }).ToList();
+                }
+            }
+            return entry;
+        }
+
+        // The outline of a block is the convex hull of its drawn content in the block's own coordinates.
+        // One hull per block name, since an insert only moves, turns and scales it.
+        private List<XYZ> LocalHull(BlockRecord block)
+        {
+            List<XYZ> hull;
+            if (hulls.TryGetValue(block.Name, out hull))
+            {
+                return hull;
+            }
+            var points = new List<XYZ>();
+            CollectPoints(block, new List<Transform>(), new List<string> { block.Name }, points);
+            hull = ConvexHull(points);
+            hulls[block.Name] = hull;
+            return hull;
+        }
+
+        private void CollectPoints(BlockRecord block, List<Transform> local, List<string> names, List<XYZ> points)
+        {
+            foreach (Entity child in block.Entities)
+            {
+                if (config.Status(EffectiveLayer(child, null)) == LayerConfig.Drop)
+                {
+                    continue;
+                }
+                var nested = child as Insert;
+                if (nested != null)
+                {
+                    var inner = nested.Block;
+                    if (inner == null || (inner.Flags & BlockTypeFlags.XRef) != 0 || local.Count >= DepthLimit || names.Contains(inner.Name))
+                    {
+                        continue;
+                    }
+                    local.Add(nested.GetTransform());
+                    names.Add(inner.Name);
+                    CollectPoints(inner, local, names, points);
+                    names.RemoveAt(names.Count - 1);
+                    local.RemoveAt(local.Count - 1);
+                    continue;
+                }
+                Piece piece = Geometry(child, local);
+                if (piece != null && piece.Kind != "point")
+                {
+                    AddOutlinePoints(piece, points);
+                }
+            }
+        }
+
+        // Only x and y count. Arcs add their end points and circles their four extremes, which is enough for an outline.
+        private static void AddOutlinePoints(Piece piece, List<XYZ> points)
+        {
+            Action<double[]> add = point =>
+            {
+                if (point != null && point.Length >= 2 && !double.IsNaN(point[0]) && !double.IsNaN(point[1]) && !double.IsInfinity(point[0]) && !double.IsInfinity(point[1]))
+                {
+                    points.Add(new XYZ(point[0], point[1], 0));
+                }
+            };
+            if (piece.Pts != null)
+            {
+                piece.Pts.ForEach(add);
+            }
+            if (piece.Loops != null)
+            {
+                piece.Loops.ForEach(loop => loop.ForEach(add));
+            }
+            if (piece.Kind == "circle" && piece.Center != null && piece.Radius.HasValue)
+            {
+                double x = piece.Center[0], y = piece.Center[1], r = piece.Radius.Value;
+                add(new[] { x + r, y });
+                add(new[] { x - r, y });
+                add(new[] { x, y + r });
+                add(new[] { x, y - r });
+            }
+            if (piece.Kind == "arc")
+            {
+                add(piece.Start);
+                add(piece.End);
+            }
+            if (piece.Kind == "ellipse" && piece.Center != null && piece.Start != null)
+            {
+                add(piece.Start);
+                add(new[] { 2 * piece.Center[0] - piece.Start[0], 2 * piece.Center[1] - piece.Start[1] });
+            }
+        }
+
+        // Counter clockwise, no repeated first point. Fewer than three corners gives an empty list.
+        private static List<XYZ> ConvexHull(List<XYZ> points)
+        {
+            var sorted = points.OrderBy(point => point.X).ThenBy(point => point.Y).ToList();
+            var unique = new List<XYZ>();
+            foreach (XYZ point in sorted)
+            {
+                if (unique.Count == 0 || point.X != unique[unique.Count - 1].X || point.Y != unique[unique.Count - 1].Y)
+                {
+                    unique.Add(point);
+                }
+            }
+            if (unique.Count < 3)
+            {
+                return new List<XYZ>();
+            }
+            var hull = new List<XYZ>();
+            foreach (XYZ point in unique)
+            {
+                while (hull.Count >= 2 && Turn(hull[hull.Count - 2], hull[hull.Count - 1], point) <= 0)
+                {
+                    hull.RemoveAt(hull.Count - 1);
+                }
+                hull.Add(point);
+            }
+            int lower = hull.Count + 1;
+            for (int index = unique.Count - 2; index >= 0; index--)
+            {
+                while (hull.Count >= lower && Turn(hull[hull.Count - 2], hull[hull.Count - 1], unique[index]) <= 0)
+                {
+                    hull.RemoveAt(hull.Count - 1);
+                }
+                hull.Add(unique[index]);
+            }
+            hull.RemoveAt(hull.Count - 1);
+            return hull.Count >= 3 ? hull : new List<XYZ>();
+        }
+
+        private static double Turn(XYZ origin, XYZ a, XYZ b)
+        {
+            return (a.X - origin.X) * (b.Y - origin.Y) - (a.Y - origin.Y) * (b.X - origin.X);
         }
 
         private void AddAttributeTexts(Insert insert, string layer, List<Transform> chain, List<ulong> path)

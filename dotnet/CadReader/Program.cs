@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using SiteAdaptation.Common;
 
 namespace CadReader
@@ -69,6 +70,7 @@ namespace CadReader
 
             CadExtractor.WriteFiles(extract, outDir);
             Console.WriteLine("layers " + extract.Layers.Layers.Count + ", pieces " + pieces + ", plots " + extract.Plots.Summary.Plots + ", other faces " + extract.OtherFaces.Faces.Count + ", texts " + extract.Texts.Texts.Count);
+            Console.WriteLine("blocks " + extract.Blocks.Blocks.Count + ", mirrored " + extract.Blocks.Blocks.Count(block => block.Mirrored));
             if (problems.Count > 0)
             {
                 Console.Error.WriteLine("reader notes " + problems.Count + ", first: " + problems[0]);

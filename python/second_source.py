@@ -125,12 +125,13 @@ def main(argv=None):
     load = link_table.load
     plots = load(Path(args.cad) / "plots.json")
     other = load(Path(args.cad) / "other_faces.json")
-    pieces = load(Path(args.second) / "pieces.json")["pieces"]
-    faces, per_layer, repeated = second_faces(pieces, config["layers"])
+    second = load(Path(args.second) / "pieces.json")
+    faces, per_layer, repeated = second_faces(second["pieces"], config["layers"])
     counts, details = compare(base_faces(plots, other), faces, config["minOverlap"], config["areaPercent"])
     counts["secondLayers"] = per_layer
     counts["secondRepeated"] = repeated
-    counts["secondFile"] = config["file"]
+    # The name comes from the file the reader read, so the report never names a drawing it did not use
+    counts["secondFile"] = second.get("source")
     write_json(Path(args.out_dir) / "second_source.json", {"counts": counts, "details": details})
     print("matched " + str(counts["matched"]) + ", only baseplan " + str(counts["onlyBase"]) + ", only second " + str(counts["onlySecond"]) + ", area differs " + str(counts["areaDiffOver"]))
     return 0

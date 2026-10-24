@@ -1,7 +1,10 @@
 {
-  "note": "The second source is a Master Plan drawing with plot geometry and no plot number labels. Its faces are compared with the baseplan faces by location and area only.",
-  "file": "221229_MP-SK-01-03-001_R06_0000.dwg",
-  "layers": ["X_MP_Plots$0$MP_Plot", "X_MP_Bldg.$0$MP_Plot_Sub", "MP_Single Family"],
+  "note": "The second source is the master plan drawing named by drawings.masterplan in config/project.json. Its faces are compared with the baseplan faces by location and area only, the plot numbers of the two drawings are not compared here. layers names the layers of that drawing whose outlines hold numbered plots: residential plots, residential and commercial mixed use, commercial.",
+  "layers": [
+    "Residential plots outlines - حدود قطع السكني",
+    "Residential - Commercial Mixeduse - استعمال سكني تجاري متعدد",
+    "Commercial - استعمال تجاري"
+  ],
   "minOverlap": 0.5,
   "areaPercent": 1.0
 }

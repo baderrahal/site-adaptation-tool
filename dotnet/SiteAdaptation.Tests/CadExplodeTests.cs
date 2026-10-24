@@ -465,5 +465,129 @@ namespace SiteAdaptation.Tests
             Assert.Equal(1, plots["plots"].Count(entry => (string)entry["kind"] == "plot_shape"));
             Assert.Equal("no_label", (string)other["faces"][0]["reason"]);
         }
+
+        private static LwPolyline Rectangle(CadDocument document, string layer, double width, double height)
+        {
+            var outline = new LwPolyline(new[]
+            {
+                new LwPolyline.Vertex(new XY(0, 0)),
+                new LwPolyline.Vertex(new XY(width, 0)),
+                new LwPolyline.Vertex(new XY(width, height)),
+                new LwPolyline.Vertex(new XY(0, height)),
+            });
+            outline.IsClosed = true;
+            outline.Layer = Layer(document, layer);
+            return outline;
+        }
+
+        [Fact]
+        public void R68_every_insert_at_every_depth_has_scale_rotation_insert_point_and_a_world_outline()
+        {
+            var document = new CadDocument();
+            var inner = Block(document, "INNER", Rectangle(document, "A", 2, 1));
+            var outer = Block(document, "OUTER");
+            outer.Entities.Add(new Insert(inner) { InsertPoint = new XYZ(10, 0, 0), XScale = 2, YScale = 2, ZScale = 2, Layer = Layer(document, "A") });
+            document.Entities.Add(new Insert(outer) { InsertPoint = new XYZ(100, 100, 0), Rotation = Math.PI / 2, Layer = Layer(document, "A") });
+
+            var blocks = Run(document).Blocks.Blocks.ToDictionary(block => block.Name);
+            Assert.Equal(2, blocks.Count);
+            var top = blocks["OUTER"];
+            Assert.Null(top.Path);
+            Assert.Equal(90, top.RotationDeg, 6);
+            Assert.Equal(new[] { 100.0, 100.0 }, top.InsertPoint);
+            Assert.Equal(new[] { 1.0, 1.0, 1.0 }, top.Scale);
+            Assert.Equal(4, top.Outline.Count);
+            var nested = blocks["INNER"];
+            Assert.Single(nested.Path.Split('/'));
+            Assert.Equal(new[] { 2.0, 2.0, 2.0 }, nested.Scale);
+            Assert.Equal(100, nested.InsertPoint[0], 6);
+            Assert.Equal(110, nested.InsertPoint[1], 6);
+            Assert.Equal(4, nested.Outline.Count);
+            Assert.Equal(98, nested.Outline.Min(point => point[0]), 6);
+            Assert.Equal(100, nested.Outline.Max(point => point[0]), 6);
+            Assert.Equal(110, nested.Outline.Min(point => point[1]), 6);
+            Assert.Equal(114, nested.Outline.Max(point => point[1]), 6);
+        }
+
+        [Fact]
+        public void R68_mirrored_is_scale_x_times_scale_y_below_zero_even_for_a_scale_that_rounds_to_zero()
+        {
+            var document = new CadDocument();
+            var block = Block(document, "B", Rectangle(document, "A", 1, 1));
+            document.Entities.Add(new Insert(block) { InsertPoint = new XYZ(0, 0, 0), XScale = -1, Layer = Layer(document, "A") });
+            document.Entities.Add(new Insert(block) { InsertPoint = new XYZ(5, 0, 0), XScale = -1, YScale = -1, Layer = Layer(document, "A") });
+            document.Entities.Add(new Insert(block) { InsertPoint = new XYZ(9, 0, 0), YScale = -1, Layer = Layer(document, "A") });
+            document.Entities.Add(new Insert(block) { InsertPoint = new XYZ(12, 0, 0), XScale = -0.0001, YScale = 0.0001, Layer = Layer(document, "A") });
+
+            var flags = Run(document).Blocks.Blocks.OrderBy(entry => entry.InsertPoint[0]).Select(entry => entry.Mirrored).ToArray();
+            Assert.Equal(new[] { true, false, true, true }, flags);
+        }
+
+        [Fact]
+        public void R68_an_insert_inside_a_mirrored_insert_is_marked_chain_mirrored_and_its_outline_is_flipped()
+        {
+            var document = new CadDocument();
+            var inner = Block(document, "INNER", Rectangle(document, "A", 2, 1));
+            var outer = Block(document, "OUTER");
+            outer.Entities.Add(new Insert(inner) { InsertPoint = new XYZ(10, 0, 0), Layer = Layer(document, "A") });
+            document.Entities.Add(new Insert(outer) { XScale = -1, Layer = Layer(document, "A") });
+
+            var blocks = Run(document).Blocks.Blocks.ToDictionary(block => block.Name);
+            Assert.True(blocks["OUTER"].Mirrored);
+            Assert.Null(blocks["OUTER"].ChainMirrored);
+            Assert.False(blocks["INNER"].Mirrored);
+            Assert.True(blocks["INNER"].ChainMirrored);
+            Assert.Equal(-12, blocks["INNER"].Outline.Min(point => point[0]), 6);
+            Assert.Equal(-10, blocks["INNER"].Outline.Max(point => point[0]), 6);
+        }
+
+        [Fact]
+        public void R68_content_on_a_dropped_layer_and_text_do_not_stretch_the_outline_and_an_xref_has_none()
+        {
+            var document = new CadDocument();
+            var far = Line(document, "Defpoints", 500, 500, 600, 600);
+            var label = new MText { Value = "far", InsertPoint = new XYZ(900, 900, 0), Layer = Layer(document, "A") };
+            var block = Block(document, "B", Rectangle(document, "A", 4, 3), far, label);
+            var gone = Block(document, "GONE");
+            gone.Flags = BlockTypeFlags.XRef;
+            gone.BlockEntity.XRefPath = ".\\gone.dwg";
+            document.Entities.Add(new Insert(block) { Layer = Layer(document, "A") });
+            document.Entities.Add(new Insert(gone) { Layer = Layer(document, "A") });
+            var config = new LayerConfig { DropLayers = new List<string> { "Defpoints" } };
+
+            var blocks = Run(document, config).Blocks.Blocks.ToDictionary(entry => entry.Name);
+            Assert.Equal(4, blocks["B"].Outline.Count);
+            Assert.Equal(4, blocks["B"].Outline.Max(point => point[0]), 6);
+            Assert.Equal(3, blocks["B"].Outline.Max(point => point[1]), 6);
+            Assert.Null(blocks["GONE"].Outline);
+            Assert.Equal("xref", blocks["GONE"].Note);
+        }
+
+        [Fact]
+        public void R68_blocks_json_holds_the_fields_and_leaves_out_a_block_on_a_dropped_layer_and_the_outline_of_an_empty_block()
+        {
+            var document = new CadDocument();
+            var full = Block(document, "FULL", Rectangle(document, "A", 3, 2));
+            var empty = Block(document, "EMPTY");
+            var hidden = Block(document, "HIDDEN", Rectangle(document, "A", 1, 1));
+            document.Entities.Add(new Insert(full) { InsertPoint = new XYZ(7, 8, 0), XScale = -1, Rotation = Math.PI, Layer = Layer(document, "A") });
+            document.Entities.Add(new Insert(empty) { Layer = Layer(document, "A") });
+            document.Entities.Add(new Insert(hidden) { Layer = Layer(document, "Defpoints") });
+            string outDir = Path.Combine(folder, "out");
+
+            CadExtractor.WriteFiles(Run(document, new LayerConfig { DropLayers = new List<string> { "Defpoints" } }), outDir);
+            var file = JObject.Parse(File.ReadAllText(Path.Combine(outDir, "blocks.json")));
+            Assert.Equal("dummy", (string)file["source"]);
+            var entries = file["blocks"].ToDictionary(entry => (string)entry["name"]);
+            Assert.Equal(new[] { "EMPTY", "FULL" }, entries.Keys.OrderBy(name => name).ToArray());
+            var written = entries["FULL"];
+            Assert.Equal(new[] { 7.0, 8.0 }, written["insertPoint"].Select(number => (double)number).ToArray());
+            Assert.Equal(new[] { -1.0, 1.0, 1.0 }, written["scale"].Select(number => (double)number).ToArray());
+            Assert.Equal(180, (double)written["rotationDeg"], 3);
+            Assert.True((bool)written["mirrored"]);
+            Assert.Equal(4, written["outline"].Count());
+            Assert.False(written["chainMirrored"] != null);
+            Assert.False(entries["EMPTY"]["outline"] != null);
+        }
     }
 }

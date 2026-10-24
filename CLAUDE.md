@@ -18,13 +18,14 @@ The rules live in docs/rules.md and nowhere else. This file points to them and a
 ## Repo map
 
 - python/ holds the PDF reader, the Excel reader, the link table, the link summary, the second source check, the face reasons, the LandXML reader, the surface lookup, the ramp levels, the surface roles, the road check, the plot relation report (plot_relations.py) and the full run script, plus tests in python/tests.
-- config/plot_numbers.json holds the plot number shift of each neighbourhood. config/second_source.json names the second Master Plan drawing and its plot layers.
-- dotnet/CadReader reads DWG and DXF with ACadSharp.
+- config/plot_numbers.json holds the plot number shift of each neighbourhood. config/second_source.json names the plot layers of the master plan drawing, which drawings.masterplan in config/project.json names.
+- dotnet/CadReader reads DWG and DXF with ACadSharp. It also writes blocks.json, one entry per block insert with scale, rotation and a world outline (R68).
 - dotnet/RevitPrototypeReader is the Revit 2024 add-in. Do not change it unless the round says so.
 - dotnet/SiteAdaptation.Common holds JSON output and unit helpers.
 - config/project.json names the rules profile and the drawings, and holds the CAD analysis settings (R63). No project name goes in a Python file.
 - rules/ holds one project profile JSON per project and a README with the checks not coded yet. python/project_profile.py loads a profile by path (R62). New project rule values go there and not in code.
-- python/cad_analysis.py derives the clusters of duplex and townhouse plots from CAD adjacency and writes analysis.json (R64). python/rules_checks.py holds the coded checks (R65, R66).
+- python/cad_analysis.py derives the clusters of duplex and townhouse plots from CAD adjacency and writes analysis.json (R64). It matches unit blocks to plots (R69), cuts long rows into listed clusters (R70) and takes the front of a row from the road edges (R71). python/rules_checks.py holds the coded checks (R65, R66).
+- python/levels.py gives the FFL, SSL and steps of a cluster (R67, check 5). python/levels_proof.py compares it with the two past schedules in the input folder and copies nothing.
 - config/road_surfaces.json gives each LandXML surface its role, ground, road or design, and names the ramp types and the input files.
 - config/cad_layers.json is the keep and drop list of CAD layers. Bader edits it.
 - docs/rules.md holds the rules with ids R1 and up.
@@ -48,6 +49,7 @@ The full text is docs/rules.md. Ids are the contract, a test names the id it pro
 - R47 to R50 cover the ramp corner levels, the role proposal, the floor count per plot and the one error line for floors with no Plot parameter.
 - R51 to R56 cover the shared coordinates, the floor measurements, the parameter details and floor types, the link state, the spot host and the output size. R57 to R61 cover the plot relation report, the yard and shared edges, the ramp geometry, the gaps and link box, and the summary.
 - R62 covers the project profile in rules/ and its loader. R63 covers the project settings. R64 covers the cluster derivation. R65 and R66 are checks 1 and 2.
+- R67 is the level rule, check 5. R68 to R72 cover the block data, the block to plot match, the row split, the front by road edge and the xref lookup.
 
 ## Real files
 
