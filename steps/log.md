@@ -2,6 +2,61 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round DATA-2, 2026-10-24, the full Civil 3D read and the analysis fixes
+
+Goal:
+- Part A the full Civil 3D read of Road Surface, Roads Road Layout and Rough Grading. Part B El @ Entry from the road and the ramp, units per face, the second method, the width meaning, two conflicts out. Summary: steps/investigations/data-book.md
+
+Done:
+- Session started in the repo, hooks live. Worktree site-adaptation-tool-data2 on data/data-book-2 from main at a94bf1e. Plan written before the first edit. All 15 sources and 15 copies hash the same before and after
+- A: free memory 5.62 GB at the start, 6.16 GB after dotnet build-server shutdown, floor kept at 2 GB. Road Layout try 1: the watcher clicked Do Not Load on the probe dialog, because Civil 3D 2026 shows the DLL as a Name and a Location line. Fixed in R161, try 2 and the other two drawings ran once each (40, 25, 25 s, lowest free 3.11 GB). The three folders now hold reader C3DProbe tables, 18 surfaces exported to LandXML (R169), plots.csv 98 columns with no old cell changed
+- A found: Road Layout 2 surfaces, its alignment and assembly lie outside Phase 1, site CEC holds 0 parcels. Road Surface 7 surfaces, 1 empty point group. Rough Grading 9 surfaces with triangles inside and 1 volume surface
+- B1 (R170), 747 schedule plots, within 5 mm, 30 mm, worse: slope 0.5 percent 217, 171, 356. 2 percent 35, 135, 574. By typology 221, 193, 330 (3 no level). Rough Grading surfaces sit 0.6 to 1.3 m below, none gives El @ Entry
+- B2 (R171): every unit face holds one unit. Units 2,698 from the footprint blocks (2,578 on faces, 120 in 81 blocks on no face), Rev 6 2,704 (gap 6), Phase1 sheet 2,701 (gap 3, all villas VL2 to VL4). C10, duplex and townhouse rows match the sheet
+- B4 (R172): the profile key is plot_width_m, a plot width, and each plot holds one unit
+- B5: V9 numbering moved to referenceV9 and VL4 width to widthFromCad in R167, C10 and VL3 widths stay as conflicts
+- New: python/data_book_retest.py, python/data_book_retest_check.py, the retest settings in c3d_probe.json, exportKnownSurfaces, README lines for the new files. Gate: Python 768 to 782 passed and 1 skipped, .NET 369 to 371 passed
+
+Checked:
+- Second method (R173): fronts seed 14 20 of 20 on width, width class and setback class, seed 7 19, 20, 19. Per line at 3.00 m seed 14 20, 20, 20, seed 7 19, 19, 20. The misses are corner chamfers (plot 735). El @ Entry bands 20 of 20 at both seeds for all three variants. Export against the earlier LandXML: 0 corners differ over 1 mm
+- R168 again: rows match data.json on 14 of 14 drawings, plots.csv seed 14 and 7 20 of 20
+
+Remains:
+- A later round should change, not this one: the El @ Entry rule (not coded, see Your turn 1), the 5.00 m setback line in rules/
+
+Known bugs:
+- Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT, after data.json is written, the copies stay unchanged
+- Road Layout counts differ between the stand-in and the full read (texts 1,537 against 688), listed in the conflicts, not resolved
+
+Next:
+- The ramp type and the El @ Entry rule once Bader answers, then Round 16, a test host run of plan_imc_cad.json on a work file
+
+Your turn:
+1. El @ Entry rule. Recommended: do not code it yet, by typology fits 221 of 747 within 5 mm. Ask the architect what sets the ramp slope of a plot
+2. Ramp type. Recommended: Ramps 2% for C10, VL4, VL6 and Ramps 0.5% for the rest (311 of 321), and say what makes a Flat Ramp
+3. Villa mirror. Recommended: confirm one hand per row set by the open end, VL6 the other hand, and say what decides a villa alone between two cluster units
+4. Setback line. Recommended: the drawn line sits at 5.00 m (2,530) or 3.00 m (40), keep the ramp at 5.52 m and treat the line as the building setback
+5. Plot front level. Recommended: the road surface snapped within 5 mm at the plot line, Top Surface-02 for IMC and Top Surface-01 for IMD
+6. Back corners. Recommended: the back edge parallel to the front with its mean at El @ Entry
+7. Generic floor. Recommended: the whole baseplan face
+8. Round 16 test host run. Recommended: yes, on a work file, once 2 is settled
+9. Units. Recommended: count from the footprint blocks (2,698) and ask the master planner for the 3 villas the sheet holds more and the 6 of Rev 6
+10. Unit codes for new zones. Recommended: ask the client for the Rev 6 unit schedule of Phase 1 by plot
+11. Widths over Rev 6, C10 58 and VL3 41. Recommended: list them for the architect to confirm the unit fits
+12. IME. Recommended: send its schedule or its boundary
+13. FFL split. Recommended: ask the architect why M07 and M08 split at the middle wall and M11 never
+14. CASE. Recommended: confirm the second letter is the hand as built
+15. VL6 hand. Recommended: confirm in Revit that the VL6 file is drawn the other hand from VL4
+16. Yard depth per unit. Recommended: ask the architect, the plan keeps FFL minus 0.100 until then
+17. Plots 2311 and 2312. Recommended: follow the baseplan and the footprint drawing (VL4, VL4, OS) and keep them listed apart
+18. Plots 2301 and 2302. Recommended: DP4, as the schedule and the file say
+19. The 58 plots whose past ramp sits a median 97 mm above the surface. Recommended: a design choice of the past job, list them apart
+20. RRE_ZZ_SP_Prototype-FFL. Recommended: keep the schedule FFL and never write the parameter
+21. Angle to true north. Recommended: keep the stop until a project has one
+22. Free memory for the parallel windows. Recommended: more than 8 GB free before the combined test, this round had 6.2 GB
+23. TEST copies in Zone 02\ARC. Recommended: delete them when you no longer need them, keep Prototypes_2024
+24. The empty site-adaptation-tool-15a folder. Recommended: close what holds it and delete it, steps/bader-data-2.md
+
 ## Round DATA, 2026-10-24, the data book of Phase 1
 
 Goal:

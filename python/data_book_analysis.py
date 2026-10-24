@@ -59,10 +59,8 @@ def suffix(name):
     return name.split("_")[-1].upper() if name else None
 
 
-def conflicts(rows, profile_units, analysis):
-    unit_types = set(analysis["unitPlotTypes"])
-    units = [r for r in rows if r["clientType"] in unit_types]
-    result = {}
+def v9_reference(rows):
+    """The V9 plot numbers against the baseplan. Bader decided in round DATA-2 that V9 is reference only, so this is no conflict."""
     v9 = Counter()
     for r in rows:
         if not r["v9PlotNumber"]:
@@ -75,7 +73,13 @@ def conflicts(rows, profile_units, analysis):
             v9["equalsOfficialNumber"] += 1
         else:
             v9["differs"] += 1
-    result["plotNumberV9"] = dict(v9)
+    return dict(v9)
+
+
+def conflicts(rows, profile_units, analysis):
+    unit_types = set(analysis["unitPlotTypes"])
+    units = [r for r in rows if r["clientType"] in unit_types]
+    result = {}
     for column in ("r06Number", "r06_0000Number"):
         found = Counter()
         for r in rows:
@@ -97,7 +101,12 @@ def conflicts(rows, profile_units, analysis):
                 found["otherType " + suffix(names[0])] += 1
         result["typeBaseplanAgainst_" + column] = dict(found)
     widths = defaultdict(Counter)
+    # Bader decided in round DATA-2 that these widths come from CAD, so they are no conflict with Rev 6
+    from_cad = set(analysis.get("widthFromCad") or [])
+    result["widthFromCad"] = dict(Counter(r["clientType"] for r in units if r["clientType"] in from_cad))
     for r in units:
+        if r["clientType"] in from_cad:
+            continue
         width = number(r["widthM"])
         allowed = analysis["widthsByClientType"].get(r["clientType"])
         if width is None or allowed is None:
@@ -252,6 +261,7 @@ def main(argv=None):
                       "byClientType": dict(Counter(r["clientType"] or "none" for r in rows).most_common())},
         "coverage": coverage(rows, columns),
         "conflicts": conflicts(rows, profile_units, analysis),
+        "referenceV9": v9_reference(rows),
         "unitCodeSource": unit_source(rows, profile_units, analysis),
         "entryLevelSource": entry_source(rows, analysis),
         "neighbourhoodWords": ime_search(root, analysis["neighbourhoodWords"]),

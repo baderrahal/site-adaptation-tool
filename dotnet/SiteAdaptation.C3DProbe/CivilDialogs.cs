@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace SiteAdaptation.C3DProbe
 {
@@ -46,7 +47,8 @@ namespace SiteAdaptation.C3DProbe
                    || all.IndexOf("Unsigned Executable", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        // The dialog must show the full path of the probe, a file name alone could be another DLL of the same name
+        // The dialog must show the full path of the probe, a file name alone could be another DLL of the same name. Civil 3D 2026
+        // shows it in two lines, Name and Location, so a text whose Name and Location join to the probe path names it too
         public static bool NamesProbe(IEnumerable<string> texts, string probePath)
         {
             if (string.IsNullOrWhiteSpace(probePath))
@@ -54,7 +56,25 @@ namespace SiteAdaptation.C3DProbe
                 return false;
             }
             string wanted = Normal(probePath);
-            return (texts ?? Enumerable.Empty<string>()).Any(text => Normal(text).IndexOf(wanted, StringComparison.OrdinalIgnoreCase) >= 0);
+            return (texts ?? Enumerable.Empty<string>()).Any(text => Normal(text).IndexOf(wanted, StringComparison.OrdinalIgnoreCase) >= 0
+                                                                     || string.Equals(NameAndLocation(text), wanted, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string NameAndLocation(string text)
+        {
+            string name = Field(text, "Name");
+            string location = Field(text, "Location");
+            if (name == null || location == null)
+            {
+                return null;
+            }
+            return Normal(location.TrimEnd('\\', '/') + Path.DirectorySeparatorChar + name);
+        }
+
+        private static string Field(string text, string label)
+        {
+            var found = Regex.Match(text ?? "", @"^\s*" + label + @":[ \t]*(?<value>[^\r\n]+?)[ \t]*\r?$", RegexOptions.Multiline | RegexOptions.IgnoreCase);
+            return found.Success ? found.Groups["value"].Value : null;
         }
 
         public static DialogAnswer Decide(string title, IList<string> texts, IList<string> buttons, string probePath)

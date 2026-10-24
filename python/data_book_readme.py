@@ -13,6 +13,10 @@ FILES = {
     "analysis.md": "The analysis of the data book (R167), counts only. analysis.json holds the same as data.",
     "analysis.json": "The analysis of R167 as JSON.",
     "README.md": "This file.",
+    "retest.md": "The round DATA-2 tests (R170 to R172), counts only. retest.json holds the same as data.",
+    "retest.json": "The tests of R170 to R172 as JSON: El @ Entry from the road plus the ramp, the units per face, the unit gap and the width keys.",
+    "retest_entry.csv": "One row per schedule plot, surface and slope variant: El @ Entry from the front corners plus slope times ramp depth, less the schedule value (R170).",
+    "units.csv": "One row per baseplan face inside Phase 1 with the footprint unit blocks that cover it, one unit each (R171).",
     "layers.csv": "Every layer of the drawing with the entities inside Phase 1 by type. Colour, on, frozen, locked and linetype are filled by the Civil 3D read only.",
     "entities.csv": "Every entity inside Phase 1, blocks exploded with the parent kept. A line is kept where any part is inside and cut at the border, one row per part. A table over the size limit is split by layer into the folder entities.",
     "blocks.csv": "Every block insert whose insert point lies inside Phase 1, attributes as attr_ columns.",
@@ -65,9 +69,13 @@ COLUMNS = {
     "description": "Surface description.", "style": "Surface style.", "points": "Points of the surface.", "triangles": "Triangles of the surface.",
     "pointsInside": "Points inside Phase 1.", "trianglesInside": "Triangles whose centroid lies inside Phase 1.", "zMinInside": "Lowest level inside.", "zMaxInside": "Highest level inside.",
     "boundaries": "Surface boundaries.", "definitions": "Definition parts with counts.", "operations": "Surface operations with counts.", "isReference": "yes for a data shortcut.",
-    "inExistingLandxml": "yes when the surface is in the LandXML of the earlier rounds.", "exportedLandxml": "The LandXML file this round wrote for it.",
+    "inExistingLandxml": "yes when the surface is in the LandXML of the earlier rounds and was left out of the export, no when exportKnownSurfaces exported every surface (R169).", "exportedLandxml": "The LandXML file this round wrote for it.",
     "vertex": "Vertex order.", "perimeter": "Perimeter in metres.", "drawing": "Source drawing.",
     "sheet": "Sheet name.", "file": "CSV file of the sheet.", "rows": "Rows of the sheet.", "columns": "Columns of the sheet.", "headerRow": "Row of the header, 1 based.",
+    "plot": "The official plot number.", "unit": "The Rev 6 unit code from the schedule.", "surface": "roadLevel for the snapped road level, else the surface of the level columns.",
+    "variant": "slope0.5 and slope2 for one front slope on every plot, byTypology for the steep slope on the steepUnits only.", "slopePercent": "The front slope in percent.",
+    "rampDepthM": "The Rev 6 ramp depth of the unit, ramp.front_setback of the profile.", "difference": "Predicted El @ Entry less the schedule value, in metres.",
+    "band": "within5mm, within30mm, worse or noLevel.", "units": "Rev 6 units on the face.", "blocks": "The footprint unit blocks that cover the face.",
     "header": "The header cells.", "plotOrLocationColumns": "Columns naming a plot number or a location.", "cutToPhase1": "Whether the rows were cut to Phase 1.",
 }
 
@@ -87,14 +95,14 @@ def rows_of(path):
 
 
 def write(root):
-    lines = ["# Data book, Phase 1", "", "Read only from working copies, only data inside the Phase 1 border. Metres, UTM 37N. Written by the readers of round DATA (R160 to R168).", "",
+    lines = ["# Data book, Phase 1", "", "Read only from working copies, only data inside the Phase 1 border. Metres, UTM 37N. Written by the readers of rounds DATA and DATA-2 (R160 to R173).", "",
              "## Files", ""]
     seen_columns = set()
     for path in sorted(p for p in root.rglob("*") if p.is_file() and "work" not in p.relative_to(root).parts and "logs" not in p.relative_to(root).parts):
         relative = path.relative_to(root).as_posix()
         meaning = FILES.get(path.name) or ("Sheet of the master plan workbook, cell for cell, column letters as header." if path.parent.name == "master_plan_excel" else
                                            "Part of a table split by layer." if path.parent.name in ("entities", "blocks", "texts") else
-                                           "LandXML of a surface not in the earlier LandXML, triangles inside Phase 1." if path.suffix == ".xml" else "")
+                                           "LandXML of a surface the full Civil 3D read exported, triangles inside Phase 1 (R162, R169)." if path.suffix == ".xml" else "")
         count = (" (%d rows)" % rows_of(path)) if path.suffix == ".csv" else ""
         lines.append("- " + relative + count + ": " + meaning)
         if path.suffix == ".csv" and path.parent.name not in ("entities", "master_plan_excel"):

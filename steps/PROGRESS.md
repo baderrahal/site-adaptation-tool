@@ -1,4 +1,4 @@
-STATE 2026-10-24 18:10, Round DATA done and merged (PR 26), the data book holds stand-in tables until the full Civil 3D read has the memory to run
+STATE 2026-10-24 19:10, Round DATA-2 done, the full Civil 3D read ran on the three Civil 3D drawings and the data book analysis is fixed
 
 # Progress
 
@@ -6,45 +6,55 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 
 ## State
 
-- Round DATA (R160 to R168, PR 26): the data book of Phase 1 in Documents\SiteAdaptation\data_book. Border Phase 1 Bound holds 747 of 747 schedule plots. The full Civil 3D window runner and watcher are built, but three tries were stopped by the 2 GB memory floor before NETLOAD, so the 14 drawings have CadReader stand-in tables. plots.csv 2,956 plots, 62 columns. No source gives a Rev 6 unit code for plots with no schedule, no source names IME, the drawn setback line sits at 5.00 m. Summary: steps/investigations/data-book.md
-- Round 14c Part A (R131 to R134): cad_rules.py tests the villa mirror, the CASE second letter and the FFL split. None holds on every plot outside the 16 cut plots, so none is coded
-- Round 14c Part B (R135 to R139): plan_imc_cad.json holds Generic, yard and ramp floors for its 224 plots. On 218 plots: Generic outline within 10 mm 217, yard 215, ramp 218, ramp corners within 30 mm 164, ramp type 140
-- 16 cut plots (R120 and cadLinks.cutNeighbours) are counted apart everywhere, plotFrame measured with all 16 apart
-- Round C3D (R150 to R159, PR 22): ROW is the plot line, sidewalk median 4.15 m. Top Surface-02 snapped within 5 mm gives 672 of 674 IMC ramp front corners, its edge on the plot line within 2 mm conflicts with the curb reading of R127
-- Round 14 (R120 to R130, PR 20 and 21): links from CAD, rotation 337 of 337, mirror by drawn side 218 of 218. plan_imc_cad.json with links and levels for 224 of 337 plots
-- Round 15b (R111 to R119): floors in plan.json and the Floors step of the placer, proven in Revit on IMC
-- Round 15a (R80 to R89, R102 to R110): plan_from_past.py, the placer, the test host and the watcher, 337 of 337 links within 1 mm in Revit
+- Round DATA-2 (R169 to R173): Road Layout, Road Surface and Rough Grading have reader C3DProbe tables, 18 surfaces exported to LandXML. El @ Entry from road plus ramp, by typology: 221, 193, 330 of 747 within 5 mm, 30 mm, worse. Rough Grading gives no El @ Entry. Units 2,698 against Rev 6 2,704 and the Phase1 sheet 2,701, one unit per face. Summary: steps/investigations/data-book.md
+- Round DATA (R160 to R168): the data book of Phase 1 in Documents\SiteAdaptation\data_book, border Phase 1 Bound with 747 of 747 schedule plots, plots.csv 2,956 plots, now 98 columns. The other 11 drawings keep CadReader stand-in tables
+- Round 14c (R131 to R139): villa mirror, CASE and FFL split tested and not coded. plan_imc_cad.json holds Generic, yard and ramp floors for 224 plots. The 16 cut plots (R120) are counted apart everywhere
+- Round C3D (R150 to R159): ROW is the plot line, Top Surface-02 snapped within 5 mm gives 672 of 674 IMC ramp front corners. Rounds 14, 15a, 15b: links from CAD, the placer with links and floors, proven in Revit on IMC
 - Rounds 1 to 13: readers, road, LandXML, profile, clusters, levels, road lookup, entry rule, block offsets (R1 to R101)
-- Gate: Python 768 passed and 1 skipped, .NET 369 passed
+- Gate: Python 782 passed and 1 skipped, .NET 371 passed
 - Real files stay in C:\02-Site Adaptation and C:\Users\bader\Documents\SiteAdaptation and are read in place. Nothing real is in git
 
 ## Done
 
-- Round DATA: R160 to R168, PR 26. Round 14c: Part A R131 to R134 (PR 24), Part B R135 to R139 (PR 25). Round C3D: R150 to R159, PR 22 and 23
-- Round 14: Part A R120 to R124 (PR 20), Part B R125 to R130 (PR 21). Round 15b: R111 to R119, PR 19
-- Rounds 1 to 15a: PRs 1 to 18
+- Round DATA-2: R169 to R173. Round DATA: R160 to R168, PR 26. Round 14c: R131 to R139, PR 24 and 25. Round C3D: R150 to R159, PR 22 and 23. Round 14: R120 to R130, PR 20 and 21. Round 15b: R111 to R119, PR 19. Rounds 1 to 15a: PRs 1 to 18
 
 ## Open bugs
 
-- The full Civil 3D read has not run, so the Civil 3D objects inside Phase 1 (Rough Grading and Road Layout surfaces, alignment, assembly, parcel) are UNKNOWN and the watcher has not met the security dialog yet
-- No villa mirror rule, the CAD plan leaves the 107 villas out. No CASE or linkName rule
-- The ramp type from the slope bands differs on 78 of 218
-- levels.py never splits, so 25 FFLs of split clusters differ from the schedule. 24 FFLs lie on a half millimetre
-- CadReader puts some nested Road Layout pieces at swapped coordinates
-- The site-adaptation-tool-15a folder is empty but held open by another process
-- 2338 is 10 mm off the fitted origin. Plots 2301 and 2302 are VD4 on the link and DP4 in the schedule
-- The placer stops on an angle to true north other than 0
-- Unproven in Revit: the parallel windows of R110, the round 9 code, plan_imc_cad.json
+- Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT, after the tables are written. Road Layout counts of the stand-in and the full read differ (texts 1,537 against 688)
+- No villa mirror rule, no CASE or linkName rule, no El @ Entry rule. The ramp type from the slope bands differs on 78 of 218
+- levels.py never splits, so 25 FFLs of split clusters differ from the schedule
+- CadReader puts some nested Road Layout pieces at swapped coordinates. 2338 is 10 mm off the fitted origin
+- The placer stops on an angle to true north other than 0. Unproven in Revit: R110, the round 9 code, plan_imc_cad.json
 
 ## Bader's turn
 
-1. Answer the 6 questions of round DATA, first the memory for the full Civil 3D window
-2. Answer the questions of Round 14c, first the ramp type and the villa mirror
-3. Answer the 7 questions of round C3D, first where Top Surface-02 ends
-4. Close the session held in site-adaptation-tool-15a so the empty folder can go
+1. El @ Entry rule: not coded yet, by typology fits 221 of 747 within 5 mm, ask the architect what sets the ramp slope
+2. Ramp type: Ramps 2% for C10, VL4, VL6 and 0.5% for the rest, and what makes a Flat Ramp
+3. Villa mirror: confirm one hand per row set by the open end, VL6 the other hand, and the villa alone between cluster units
+4. Setback line: 5.00 m (2,530) or 3.00 m (40) is the building setback, the ramp stays 5.52 m
+5. Plot front level: the road surface snapped within 5 mm, Top Surface-02 for IMC and Top Surface-01 for IMD
+6. Back corners: parallel to the front with the mean at El @ Entry
+7. Generic floor: the whole baseplan face
+8. Round 16 test host run: yes, on a work file, once 2 is settled
+9. Units: count from the footprint blocks, ask for the 3 villas of the sheet and the 6 of Rev 6
+10. Unit codes for new zones: ask the client for the Rev 6 unit schedule of Phase 1 by plot
+11. Widths over Rev 6, C10 58 and VL3 41: the architect confirms the unit fits
+12. IME: send its schedule or its boundary
+13. FFL split: ask why M07 and M08 split and M11 never
+14. CASE: the second letter is the hand as built
+15. VL6 hand: confirm in Revit it is drawn the other hand from VL4
+16. Yard depth per unit: ask the architect, FFL minus 0.100 until then
+17. Plots 2311 and 2312: follow the baseplan and footprint (VL4, VL4, OS), listed apart
+18. Plots 2301 and 2302: DP4, as the schedule and the file say
+19. The 58 past ramps a median 97 mm above the surface: a past design choice, listed apart
+20. RRE_ZZ_SP_Prototype-FFL: keep the schedule FFL, never write the parameter
+21. Angle to true north: keep the stop
+22. Parallel windows: more than 8 GB free before the combined test, this round had 6.2 GB
+23. TEST copies in Zone 02\ARC: delete when no longer needed, keep Prototypes_2024
+24. The empty site-adaptation-tool-15a folder: close what holds it and delete it, steps/bader-data-2.md
 
 ## Next three steps
 
-1. The full Civil 3D read of the 14 copies once memory allows, then Rough Grading against El @ Entry
-2. The ramp type, the villa mirror and the front level from the snapped road surface once Bader answers
+1. The ramp type and the El @ Entry rule once Bader answers 1 and 2
+2. The villa mirror and the 5.00 m setback line in rules/ once Bader answers 3 and 4
 3. Round 16, a test host run of plan_imc_cad.json on a work file

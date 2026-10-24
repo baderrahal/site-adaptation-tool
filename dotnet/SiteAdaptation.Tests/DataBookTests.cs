@@ -104,6 +104,25 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R161_load_once_when_name_and_location_lines_join_to_the_probe_path()
+        {
+            string shown = "Name:                SiteAdaptation.C3DProbe.dll\r\nPublisher:           Unknown Publisher\r\nLocation:            " + Path.GetDirectoryName(Probe) + "\r\nIssuer:                 None";
+            var answer = CivilDialogs.Decide("Security - Unsigned Executable File", new List<string> { "MainInstructionIcon", shown }, new List<string> { "Always Load", "Load Once", "Do Not Load" }, Probe);
+            Assert.Equal(DialogAction.LoadOnce, answer.Action);
+        }
+
+        [Fact]
+        public void R161_do_not_load_when_the_location_line_is_another_folder()
+        {
+            foreach (string folder in new[] { @"C:\other", Path.GetDirectoryName(Probe) + @"\sub", @"C:\repo" })
+            {
+                string shown = "Name:                SiteAdaptation.C3DProbe.dll\r\nLocation:            " + folder + "\r\n";
+                var answer = CivilDialogs.Decide("Security - Unsigned Executable File", new List<string> { shown }, new List<string> { "Always Load", "Load Once", "Do Not Load" }, Probe);
+                Assert.Equal(DialogAction.DoNotLoad, answer.Action);
+            }
+        }
+
+        [Fact]
         public void R161_other_dialogs_get_the_safe_button_and_never_yes_or_save()
         {
             Assert.Equal("No", CivilDialogs.Decide("AutoCAD", new List<string> { "Save changes to a.dwg?" }, new List<string> { "Yes", "No", "Cancel" }, Probe).Button);

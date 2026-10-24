@@ -233,10 +233,21 @@ def test_r167_conflicts_widths_setback_and_types():
             row(baseplanLabel="2", clientType="C10", widthM="16.0", setbackFromFrontM="5.5", footprintBlock="Villa_VL4", officialNumber="12", v9PlotNumber="12"),
             row(baseplanLabel="3", clientType="OS")]
     result = data_book_analysis.conflicts(rows, {"DP2", "C10"}, analysis)
-    assert result["plotNumberV9"] == {"equalsBaseplanLabel": 1, "equalsOfficialNumber": 1, "noV9Number": 1}
     assert result["typeBaseplanAgainst_footprintBlock"] == {"sameType": 1, "otherType VL4": 1}
     assert result["widthAgainstRev6"]["DP2"] == {"matches": 1} and result["widthAgainstRev6"]["C10"] == {"notChecked": 1}
     assert result["setbackAgainstRev6"] == {"differs": 1, "within": 1} and result["unitPlotsInPhase1"] == 2
+
+
+def test_r167_v9_is_reference_and_vl4_width_comes_from_cad():
+    analysis = {"unitPlotTypes": ["VL4", "VL3"], "widthsByClientType": {"VL3": [12, 16]}, "widthFromCad": ["VL4"], "widthToleranceM": 0.1,
+                "setbackM": {"default": 5.52}, "setbackToleranceM": 0.05}
+    rows = [row(baseplanLabel="1", clientType="VL4", widthM="15.0", v9PlotNumber="9"),
+            row(baseplanLabel="2", clientType="VL3", widthM="20.0", officialNumber="12", v9PlotNumber="12"),
+            row(baseplanLabel="3", clientType="OS")]
+    result = data_book_analysis.conflicts(rows, {"VL4", "VL3"}, analysis)
+    assert "plotNumberV9" not in result and "VL4" not in result["widthAgainstRev6"]
+    assert result["widthFromCad"] == {"VL4": 1} and result["widthAgainstRev6"]["VL3"] == {"differs 20.0": 1}
+    assert data_book_analysis.v9_reference(rows) == {"differs": 1, "equalsOfficialNumber": 1, "noV9Number": 1}
 
 
 def test_r167_unit_source_entry_bands_and_coverage():
