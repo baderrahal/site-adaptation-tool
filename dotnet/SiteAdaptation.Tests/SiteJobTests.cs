@@ -105,6 +105,22 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R245_a_read_of_a_prototype_test_copy_passes_the_guard_and_the_script_keeps_it_to_the_hand_check_folders()
+        {
+            const string copy = @"C:\Docs\book\work\Prototypes_2024\RRE-WP-NSP-KEO-ARC-VL6-ZZ-MOD-1300_TEST-V6H.rvt";
+            Assert.True(Check(Job("read", "V6H", job => job["model"] = copy), path => path == copy).Act);
+            Assert.False(Check(Job("read", "V4H", job => job["model"] = copy), path => true).Act);
+            Assert.Equal(@"C:\Docs\book\work\Prototypes_2024\RRE-WP-NSP-KEO-ARC-VL6-ZZ-MOD-1300.rvt", TestHostGuard.OriginalOf(copy));
+            string script = SourceText("SiteAdaptation.TestHost", "Run-TestHost.ps1");
+            Assert.Contains("$handCheck = @($config.handCheck.folders) -contains (Split-Path $copy)", script);
+            Assert.Contains("if ((Split-Path $copy) -ne $work -and -not $handCheck)", script);
+            Assert.Contains("$handCheck -and [IO.Path]::GetFileName($copy) -notmatch ('_TEST-' + $Code + '\\.rvt$')", script);
+            string session = SourceText("SiteAdaptation.TestHost", "JobSession.cs");
+            Assert.Contains("Name = \"rooms\"", session);
+            Assert.Contains("OutputPath(documents, job.Code, \"rooms\")", SourceText("SiteAdaptation.TestHost", "HandSteps.cs"));
+        }
+
+        [Fact]
         public void R205_a_read_only_opens_reads_and_closes()
         {
             string session = SourceText("SiteAdaptation.TestHost", "JobSession.cs");

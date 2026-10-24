@@ -13,10 +13,15 @@ namespace CadReader
         private static int Main(string[] args)
         {
             string layersPath = null;
+            bool headerOnly = false;
             var positional = new List<string>();
             for (int index = 0; index < args.Length; index++)
             {
-                if (args[index] == "--layers" && index + 1 < args.Length)
+                if (args[index] == "--header-only")
+                {
+                    headerOnly = true;
+                }
+                else if (args[index] == "--layers" && index + 1 < args.Length)
                 {
                     layersPath = args[++index];
                 }
@@ -27,7 +32,7 @@ namespace CadReader
             }
             if (positional.Count != 2)
             {
-                Console.Error.WriteLine("Usage: CadReader <file.dwg|file.dxf> <output folder> [--layers cad_layers.json]");
+                Console.Error.WriteLine("Usage: CadReader <file.dwg|file.dxf> <output folder> [--layers cad_layers.json] [--header-only]");
                 return 1;
             }
             string input = positional[0];
@@ -50,6 +55,22 @@ namespace CadReader
             }
 
             var problems = new List<string>();
+            if (headerOnly)
+            {
+                try
+                {
+                    var header = CadExtractor.Header(CadExtractor.Open(input, problems), Path.GetFileName(input));
+                    Directory.CreateDirectory(outDir);
+                    JsonOut.Write(Path.Combine(outDir, "header.json"), header);
+                    Console.WriteLine("header, classes " + header.Classes.Count + ", entities " + header.ModelSpaceEntities);
+                    return 0;
+                }
+                catch (Exception failure)
+                {
+                    Console.Error.WriteLine("Could not read " + input + ": " + failure.GetType().Name + ": " + failure.Message);
+                    return 3;
+                }
+            }
             CadExtract extract;
             int pieces;
             try

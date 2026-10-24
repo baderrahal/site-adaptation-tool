@@ -143,6 +143,20 @@ namespace CadReader
             };
         }
 
+        // R241. The header of a drawing alone: units, the created and saved times and the class list, for a survey of many files
+        public static HeaderFile Header(CadDocument document, string sourceName)
+        {
+            return new HeaderFile
+            {
+                Source = sourceName,
+                Units = document.Header.InsUnits.ToString(),
+                Created = document.Header.CreateDateTime.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture),
+                Updated = document.Header.UpdateDateTime.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture),
+                ModelSpaceEntities = document.ModelSpace.Entities.Count(),
+                Classes = BuildClasses(document),
+            };
+        }
+
         private static List<ClassEntry> BuildClasses(CadDocument document)
         {
             return document.Classes.Select(entry => new ClassEntry

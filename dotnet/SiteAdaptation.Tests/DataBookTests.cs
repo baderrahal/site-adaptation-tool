@@ -96,6 +96,20 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R240_annotation_scale_dialog_gets_no_and_a_purge_button_is_never_clicked()
+        {
+            var scale = CivilDialogs.Decide("Annotation Scale - Large Number of Scales", new List<string> { "Annotation Scale - Large Number of Scales" }, new List<string> { "Yes", "No", "Close" }, Probe);
+            Assert.Equal(DialogAction.Safe, scale.Action);
+            Assert.Equal("No", scale.Button);
+            var purge = CivilDialogs.Decide("Annotation Scale", new List<string> { "Purge?" }, new List<string> { "Purge and Continue", "Close" }, Probe);
+            Assert.Equal("Close", purge.Button);
+            var only = CivilDialogs.Decide("Scales", new List<string> { "x" }, new List<string> { "Reset", "Purge all" }, Probe);
+            Assert.Equal(DialogAction.Leave, only.Action);
+            var other = CivilDialogs.Decide("Security - Unsigned Executable File", new List<string> { @"File: C:\other\RcrcGreen.dll" }, new List<string> { "Always Load", "Load Once", "Do Not Load" }, Probe);
+            Assert.Equal("Do Not Load", other.Button);
+        }
+
+        [Fact]
         public void R197_own_only_clicks_the_probe_dialog_and_leaves_every_other_dialog()
         {
             var own = CivilDialogs.Decide("Security - Unsigned Executable File", new List<string> { "File: " + Probe }, new List<string> { "Always Load", "Load Once", "Do Not Load" }, Probe, true);

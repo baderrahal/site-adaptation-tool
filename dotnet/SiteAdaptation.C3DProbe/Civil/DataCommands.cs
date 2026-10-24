@@ -41,6 +41,8 @@ namespace SiteAdaptation.C3DProbe.Civil
         private readonly SortedSet<string> attributeTags = new SortedSet<string>(StringComparer.Ordinal);
         private readonly Dictionary<string, Dictionary<string, int>> layerCounts = new Dictionary<string, Dictionary<string, int>>();
         private readonly Dictionary<string, Dictionary<string, int>> counts = new Dictionary<string, Dictionary<string, int>>();
+        // R243. Parcels met inside a block, such as a bound xref, with the transform of that block. They belong to no site of this drawing
+        private readonly List<Tuple<ObjectId, Matrix3d, string>> nestedParcels = new List<Tuple<ObjectId, Matrix3d, string>>();
 
         private static readonly string[] EntityHeader =
         {
@@ -162,6 +164,10 @@ namespace SiteAdaptation.C3DProbe.Civil
             if (TextRow(entity, transform, path, parent, type, handle))
             {
                 return;
+            }
+            if (type == "AECC_PARCEL" && depth > 0)
+            {
+                nestedParcels.Add(Tuple.Create(id, transform, parent));
             }
             PointRow(entity, transform, path, parent, type, handle);
         }
@@ -745,7 +751,7 @@ namespace SiteAdaptation.C3DProbe.Civil
                             if (Inside(parcel))
                             {
                                 var parcelValues = Reflect.Plain(parcel);
-                                parcelValues["outline"] = ParcelOutline(parcel);
+                                parcelValues["outline"] = ParcelOutline(parcel, Matrix3d.Identity);
                                 Rows("parcel", Reflect.Get(parcel, "Name") as string, parcel.Layer, Reflect.Get(site, "Name") as string, parcelValues);
                             }
                             else
@@ -754,6 +760,22 @@ namespace SiteAdaptation.C3DProbe.Civil
                             }
                         }
                     }
+                }
+                foreach (var nested in nestedParcels)
+                {
+                    if (!(tr.GetObject(nested.Item1, OpenMode.ForRead, false, true) is Entity parcel))
+                    {
+                        continue;
+                    }
+                    string outline = ParcelOutline(parcel, nested.Item2);
+                    if (!OutlineInside(outline))
+                    {
+                        Count("civil", "nestedParcelOutside");
+                        continue;
+                    }
+                    var parcelValues = Reflect.Plain(parcel);
+                    parcelValues["outline"] = outline;
+                    Rows("parcel", Reflect.Get(parcel, "Name") as string, parcel.Layer, "block:" + nested.Item3, parcelValues);
                 }
                 foreach (ObjectId id in model)
                 {
@@ -846,7 +868,19 @@ namespace SiteAdaptation.C3DProbe.Civil
 
         // R189. The boundary of a parcel as x y pairs joined by bars, from its base curve, so plot faces drawn as Civil 3D
         // parcels can be compared with the baseplan. The exploded pieces stand in when the base curve cannot be read
-        private static string ParcelOutline(Entity parcel)
+        // The centre of the box of an outline written by ParcelOutline lies inside the border
+        private bool OutlineInside(string outline)
+        {
+            if (string.IsNullOrEmpty(outline))
+            {
+                return false;
+            }
+            var culture = CultureInfo.InvariantCulture;
+            var points = outline.Split('|').Select(pair => pair.Split(' ')).Select(xy => new[] { double.Parse(xy[0], culture), double.Parse(xy[1], culture) }).ToList();
+            return border.Contains((points.Min(p => p[0]) + points.Max(p => p[0])) / 2, (points.Min(p => p[1]) + points.Max(p => p[1])) / 2);
+        }
+
+        private static string ParcelOutline(Entity parcel, Matrix3d transform)
         {
             var points = new List<Point3d>();
             try
@@ -877,7 +911,7 @@ namespace SiteAdaptation.C3DProbe.Civil
                 }
             }
             var culture = CultureInfo.InvariantCulture;
-            return points.Count < 3 ? null : string.Join("|", points.Select(p => p.X.ToString("0.###", culture) + " " + p.Y.ToString("0.###", culture)));
+            return points.Count < 3 ? null : string.Join("|", points.Select(p => p.TransformBy(transform)).Select(p => p.X.ToString("0.###", culture) + " " + p.Y.ToString("0.###", culture)));
         }
 
         private static double[] Xyz(Point3d point)

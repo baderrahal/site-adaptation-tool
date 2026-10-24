@@ -34,6 +34,9 @@ namespace SiteAdaptation.C3DProbe
 
         private static readonly string[] Never = { "Yes", "Save", "Always Load", "Always", "Trust", "Add" };
 
+        // R240. A button that changes the drawing, such as the purge of a scale list, is never clicked, whatever its full label
+        private static readonly string[] NeverWords = { "Purge", "Reset", "Remove", "Delete", "Erase", "Repair" };
+
         public static string Plain(string label)
         {
             return (label ?? "").Replace("&", "").Trim();
@@ -107,7 +110,8 @@ namespace SiteAdaptation.C3DProbe
             foreach (string safe in SafeButtons)
             {
                 string found = Has(plain, safe);
-                if (found != null && !Never.Any(word => string.Equals(found, word, StringComparison.OrdinalIgnoreCase)))
+                if (found != null && !Never.Any(word => string.Equals(found, word, StringComparison.OrdinalIgnoreCase))
+                    && !NeverWords.Any(word => found.IndexOf(word, StringComparison.OrdinalIgnoreCase) >= 0))
                 {
                     return new DialogAnswer { Action = DialogAction.Safe, Button = found, Why = "the safe button of another dialog" };
                 }

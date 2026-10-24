@@ -226,10 +226,10 @@
     "cadReader": "dotnet/CadReader/bin/Release/net48/CadReader.exe",
     "minFreeGB": 2,
     "timeoutMinutes": 90,
-    "watcherOwnOnly": true,
+    "watcherOwnOnly": false,
     "windowLock": {
       "lock": "C:/Users/bader/Documents/SiteAdaptation/window.lock",
-      "round": "DATA-3",
+      "round": "DATA-4",
       "windowProcesses": ["acad", "accoreconsole", "Revit"],
       "waitMinutes": 5,
       "staleHours": 2,
@@ -522,6 +522,52 @@
         "columns": {"plot": "PLOT_NO", "nbh": "Neighbourhood_ID", "zone": "Construction_Zone"}
       }
     },
+    "villaHand": {
+      "outFolder": "villa_hand",
+      "offsets": "config/prototype_offsets.json",
+      "prototypes": {
+        "VL6": "C:/Users/bader/Documents/SiteAdaptation/testhost_V6H_rooms.json",
+        "VL4": "C:/Users/bader/Documents/SiteAdaptation/testhost_V4H_rooms.json"
+      },
+      "readerFiles": {
+        "VL6": "C:/Users/bader/Documents/SiteAdaptation/testhost_V6H_prototypes.json",
+        "VL4": "C:/Users/bader/Documents/SiteAdaptation/testhost_V4H_prototypes.json"
+      },
+      "compare": ["VL6", "VL4"],
+      "groundLevel": "GROUND",
+      "gateFamily": "GATE",
+      "entranceDoorFamily": "Roshn Door",
+      "driverRoom": "Driver Room"
+    },
+    "pastFormulas": {
+      "outFolder": "past_formulas",
+      "workbooks": ["01_Output/1.11 References/00101-PSN-IMC-XXX-SCH-TU-090000.xlsx", "01_Output/1.11 References/00101-PSN-IMD-XXX-SCH-TU-090000.xlsx"],
+      "table": "Table137",
+      "plotColumn": "Plot No.",
+      "columns": ["El @ Entry*", "FFL", "Height**"],
+      "noteCells": ["B4", "B5", "B6"]
+    },
+    "surfaceEntry": {
+      "outFolder": "surface_entry",
+      "key": {
+        "plan": "C:/Users/bader/Documents/SiteAdaptation/round_z4/plan_z4_past.json",
+        "model": "C:/Users/bader/Documents/SiteAdaptation/round_z4/prototypes_z4_past.json",
+        "settings": "C:/Users/bader/Documents/SiteAdaptation/round_z4/work/project_z4_past.json",
+        "fflParameter": "FFL",
+        "neighbourhood": "022"
+      }
+    },
+    "surfaceVersions": {
+      "outFolder": "surface_versions",
+      "suffixes": [".dwg", ".xml"],
+      "renames": {"Roshn Makkah - Master Plan Rev.09": "Master Plan Rev.09"},
+      "surfaceClasses": ["AECC_TIN_SURFACE", "AECC_GRID_SURFACE", "AECC_TIN_VOLUME_SURFACE", "AECC_GRID_VOLUME_SURFACE"]
+    },
+    "data4Check": {
+      "seeds": [14, 7],
+      "size": 20,
+      "gridM": 0.1
+    },
     "data3Check": {
       "seeds": [14, 7],
       "size": 20,
@@ -587,6 +633,7 @@
       },
       "setbackLinesM": [5.0, 3.0],
       "wideTypes": ["C10", "VL3"],
+      "parcels": {"sameShareMin": 0.98, "matchShareMin": 0.5},
       "drawing": {
         "role": "masterR9",
         "cadOut": "rev9/cad/MP-SK-01-03-006_R9.0",

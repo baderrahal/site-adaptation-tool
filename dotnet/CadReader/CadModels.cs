@@ -57,6 +57,16 @@ namespace CadReader
         public int Points { get; set; }
     }
 
+    public class HeaderFile
+    {
+        public string Source { get; set; }
+        public string Units { get; set; }
+        public string Created { get; set; }
+        public string Updated { get; set; }
+        public int ModelSpaceEntities { get; set; }
+        public List<ClassEntry> Classes { get; set; }
+    }
+
     public class LayersFile
     {
         public string Source { get; set; }
