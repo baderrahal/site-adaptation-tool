@@ -1,27 +1,53 @@
 {
   "project": "ROSHN Makkah Phase 1",
-  "source": "380159-SAPL-ROSHN-DSN-RPT-000252 Rev 01, Dec 2022",
+  "source": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations",
   "units_mm": true,
   "typologies": {
-    "VL2": {"kind": "villa", "attachment": "detached"},
-    "VL3": {"kind": "villa", "attachment": "detached"},
-    "VL4": {"kind": "villa", "attachment": "detached", "wide_plot_variant": true},
-    "C10": {"kind": "villa", "attachment": "detached"},
-    "DP1": {"kind": "duplex", "attachment": "one_side", "note": "no structure or facade rules in manual"},
-    "DP2": {"kind": "duplex", "attachment": "one_side"},
-    "DP4": {"kind": "duplex", "attachment": "one_side"},
-    "TH1": {"kind": "townhouse", "attachment": "both_sides"},
-    "TH3": {"kind": "townhouse", "attachment": "both_sides"}
+    "C10": {"kind": "villa", "attachment": "detached", "keo_file": "C10", "plot_width_m": 16},
+    "VL4": {"kind": "villa", "attachment": "detached", "keo_file": "VL4", "plot_width_m": 12},
+    "VL6": {"kind": "villa", "attachment": "detached", "keo_file": "VL3", "plot_width_m": 16},
+    "VL3": {"kind": "villa", "attachment": "detached", "keo_file": "VL3", "plot_width_m": 12},
+    "VD1": {"kind": "villa", "attachment": "detached", "keo_file": "DP1", "plot_width_m": 10},
+    "VD2": {"kind": "villa", "attachment": "detached", "keo_file": "DP2", "plot_width_m": 12},
+    "VD4": {"kind": "villa", "attachment": "detached", "keo_file": "DP4", "plot_width_m": 12},
+    "DP1": {"kind": "duplex", "attachment": "one_side", "keo_file": "DP1", "plot_width_m": 10},
+    "DP2": {"kind": "duplex", "attachment": "one_side", "keo_file": "DP2", "plot_width_m": 12, "note": "count table says 10"},
+    "DP3": {"kind": "duplex", "attachment": "one_side", "keo_file": "DP3", "plot_width_m": 10},
+    "DP4": {"kind": "duplex", "attachment": "one_side", "keo_file": "DP4", "plot_width_m": 12, "note": "count table says 10"},
+    "DT1": {"kind": "duplex", "attachment": "one_side", "keo_file": "TH1", "plot_width_m": 10},
+    "DT3": {"kind": "duplex", "attachment": "one_side", "keo_file": "TH3", "plot_width_m": 10},
+    "TH1": {"kind": "townhouse", "attachment": "both_sides", "keo_file": "TH1", "plot_width_m": 8},
+    "TH3": {"kind": "townhouse", "attachment": "both_sides", "keo_file": "TH3", "plot_width_m": 8},
+    "TH1-IM": {"kind": "townhouse", "attachment": "both_sides", "keo_file": "TH1", "plot_width_m": 8, "note": "18 units in the count, not explained"}
   },
   "clusters": {
+    "M01": ["DP1", "DP1"],
+    "M02": ["DP2", "DP2"],
+    "M03": ["DP3", "DP3"],
+    "M04": ["DP4", "DP4"],
+    "M05": ["DT1", "DT1"],
+    "M06": ["DT3", "DT3"],
+    "M07": ["DP1", "TH1", "TH1", "DP1"],
+    "M08": ["DP1", "TH3", "TH3", "DP1"],
+    "M09": ["DP2", "TH1", "TH1", "DP2"],
+    "M10": ["DP2", "TH3", "TH3", "DP2"],
+    "M11": ["DP3", "TH3", "TH3", "DP3"],
     "D02": ["DP2", "DP2"],
     "D04": ["DP4", "DP4"],
     "Q01": ["DP2", "TH1", "TH1", "DP2"],
     "Q02": ["DP4", "TH3", "TH3", "DP4"]
   },
+  "cluster_aliases": {
+    "D02": "M02",
+    "D04": "M04",
+    "Q01": "M09",
+    "Q02": "M10"
+  },
   "cluster_max_units": 4,
   "cluster_split_positions": [2, 3],
   "cluster_split_meaning": "wall after unit n, counted from 1, 4-unit clusters only",
+  "cluster_block_max": 4,
+  "cluster_six_unit_joint_after": 4,
   "slopes_percent": {
     "front_min": 0.5,
     "front_max": 2.0,
@@ -34,6 +60,7 @@
     "front_min": 1,
     "front_max": 3,
     "riser_max": 180,
+    "riser_min": 100,
     "riser_height": null,
     "tread_min": 280,
     "tread_added": 300,
@@ -43,7 +70,12 @@
     "planter_width": 300,
     "back_step": 100,
     "landing_required_from_steps": 3,
-    "handrail_required_from_steps": 4
+    "handrail_required_from_steps": 4,
+    "legend": [[0.10, 1], [0.20, 1], [0.27, 2], [0.37, 2], [0.44, 3], [0.54, 3]],
+    "riser_added": 170,
+    "count_rule": "under 0.205 is 1, 0.205 to under 0.38 is 2, 0.38 and over is 3",
+    "base_height": {"default": 100, "DP2": 200, "DP3": 200, "DP4": 200, "VD2": 200, "VD4": 200},
+    "base_height_source": "past job schedules, 747 plots. Rev 6 Appendix A groups DP2, DP3, DP4, VD2, VD4 on one sheet, which supports it. Not confirmed by the architect"
   },
   "plot": {
     "long_side": 25000,
@@ -67,5 +99,17 @@
   "mep": {
     "tie_ins": ["sewage", "water", "power", "telecom"],
     "sewage_encasement_cover_under": 1000
+  },
+  "rev6": {
+    "back_slope_to_front_min_percent": 0.3,
+    "back_slope_to_front_max_percent": 0.5,
+    "th_back_slope_percent": 2.0,
+    "boundary_wall_top_above_ffl": 1700,
+    "boundary_wall_continuity_limit": 500,
+    "garden_wall_top_above_ffl": 1700,
+    "utility_cabinet_raise": 100,
+    "front_setback": 5520,
+    "front_setback_c10": 5500,
+    "one_step_only_typologies": ["C10", "VL4", "VL6"]
   }
 }

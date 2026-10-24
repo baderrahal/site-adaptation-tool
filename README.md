@@ -52,11 +52,13 @@ Edit it to change what is written. Without --layers the reader uses cad_layers.j
 Each file runs in place with a time limit of 600 seconds. A failure or a timeout is recorded and the run goes on.
 sample_output is ignored by git.
 
-The names of the baseplan, the second drawing and the skipped drawings come from config/project.json (R63). The analysis stage writes sample_output/full_run/analysis/analysis.json with the clusters of duplex and townhouse plots (R64) and the issues of checks 1 and 2 (R65, R66). To run only that stage on a CAD output folder of the baseplan:
+The roles of the drawings (baseplan, masterplan, previousMasterplan, villaBlocks, roadLayout) and the skipped drawings come from config/project.json (R63). The analysis stage writes sample_output/full_run/analysis/analysis.json with the clusters of duplex and townhouse plots cut from their rows (R64, R70), the issues of checks 1 and 2 (R65, R66) and, when the block drawing and the road layout were read, the block of each plot (R69) and the front of each row (R71). To run only that stage on a CAD output folder of the baseplan, add --blocks and --roads with the output folders of the block drawing and the road layout:
 
 ```
 .venv\Scripts\python python\cad_analysis.py sample_output\analysis --cad "sample_output\full_run\ROSHN Makkah Baseplan.dwg"
 ```
+
+The level rule (R67) is checked against the two past schedules, read in place, with python\levels_proof.py. Add --analysis with an analysis.json to feed the rule with the CAD clusters.
 
 ## Count the links
 

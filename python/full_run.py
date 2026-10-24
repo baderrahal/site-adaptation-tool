@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import sys
 import time
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import project_profile
 
@@ -17,6 +17,7 @@ TIMEOUT = 600
 LANDXML_TIMEOUT = 600
 TEXT_LIMIT = 20000
 MASTER_FOLDER = "Master Plan"
+PREVIOUS_WHY = "Previous master plan, kept for reference and not read in the run"
 
 
 def plan(root, kinds=("dwg", "pdf", "xlsx"), settings=None):
@@ -24,6 +25,8 @@ def plan(root, kinds=("dwg", "pdf", "xlsx"), settings=None):
     root = Path(root)
     settings = settings or project_profile.load_settings()
     skip_lower = {entry["file"].lower(): entry["why"] for entry in settings.get("drawings.skip")}
+    # The master plan it replaced is kept for reference, a reason in the skip list wins over this one
+    skip_lower.setdefault(str(settings.get("drawings.previousMasterplan")).lower(), PREVIOUS_WHY)
     jobs, skipped = [], []
     if "dwg" in kinds:
         for folder in DWG_FOLDERS:
@@ -54,6 +57,51 @@ def plan(root, kinds=("dwg", "pdf", "xlsx"), settings=None):
             else:
                 jobs.append(("survey", path))
     return jobs, skipped
+
+
+def find_by_name(root, name):
+    """The drawing with this file name in the input folders, matched without case, or None."""
+    wanted = str(name).lower()
+    for folder in DWG_FOLDERS:
+        for path in sorted((Path(root) / folder).glob("*")):
+            if path.is_file() and path.name.lower() == wanted:
+                return path
+    return None
+
+
+def resolve_xrefs(root, out_root, drawings, settings):
+    """Where each xref of each drawing that was read is (R72), and an issue for each one that is nowhere.
+
+    An xref the CAD reader found next to its drawing is found. Any other is looked up by file name in the input
+    folders. A name that is still not there is looked up in drawings.xrefRoles, which names the role of the
+    drawing that stands in for it. Whatever is still missing is an issue and the run goes on.
+    """
+    roles = {name.lower(): role for name, role in settings.get("drawings.xrefRoles").items()}
+    found, issues = [], []
+    for drawing in drawings:
+        layers = Path(out_root) / drawing / "layers.json"
+        if not layers.is_file():
+            continue
+        for xref in json.loads(layers.read_text(encoding="utf-8")).get("xrefs", []):
+            name = PureWindowsPath(xref["path"]).name if xref.get("path") else str(xref["name"]) + ".dwg"
+            entry = {"drawing": drawing, "xref": name}
+            if xref.get("found"):
+                entry["status"] = "found next to the drawing"
+                found.append(entry)
+                continue
+            path = find_by_name(root, name)
+            entry["status"] = "found by name"
+            role = roles.get(name.lower())
+            if path is None and role is not None:
+                path = find_by_name(root, settings.get("drawings." + role))
+                entry["status"] = "found by role " + role
+            if path is None:
+                entry["status"] = "not found"
+                issues.append({"drawing": drawing, "xref": name, "text": "The xref " + name + " of " + drawing + " is not in the input folders and no role stands in for it"})
+            else:
+                entry["file"] = path.name
+            found.append(entry)
+    return found, issues
 
 
 def command(kind, path, out_dir, cad_exe, layers, sheet, cad_plots=None, shifts=None):
@@ -127,7 +175,13 @@ def stage_commands(out_root, ran, second, shifts, settings=None):
     else:
         stages.append({"name": "second_source", "why": "no output for " + second})
     stages.append({"name": "other_faces", "args": [sys.executable, str(HERE / "face_reasons.py"), str(out_root / "other_faces"), "--cad", str(base)]})
-    stages.append({"name": "analysis", "args": [sys.executable, str(HERE / "cad_analysis.py"), str(out_root / "analysis"), "--cad", str(base), "--profile", str(project_profile.profile_path(settings)), "--project", str(settings.path)]})
+    analysis = [sys.executable, str(HERE / "cad_analysis.py"), str(out_root / "analysis"), "--cad", str(base), "--profile", str(project_profile.profile_path(settings)), "--project", str(settings.path)]
+    villa, road = out_root / settings.get("drawings.villaBlocks"), out_root / settings.get("drawings.roadLayout")
+    if (villa / "blocks.json").is_file():
+        analysis += ["--blocks", str(villa)]
+    if (road / "pieces.json").is_file():
+        analysis += ["--roads", str(road)]
+    stages.append({"name": "analysis", "args": analysis})
     return stages
 
 
@@ -162,7 +216,6 @@ def main(argv=None):
     parser.add_argument("--timeout", type=int, default=TIMEOUT)
     parser.add_argument("--kinds", default="dwg,pdf,xlsx")
     parser.add_argument("--shifts", default=str(HERE.parent / "config" / "plot_numbers.json"))
-    parser.add_argument("--second", default=str(HERE.parent / "config" / "second_source.json"))
     parser.add_argument("--roads", default=str(HERE.parent / "config" / "road_surfaces.json"))
     parser.add_argument("--landxml")
     parser.add_argument("--prototypes")
@@ -184,9 +237,11 @@ def main(argv=None):
         results.append(entry)
         print(path.name + ": " + record["status"] + " in " + str(record["seconds"]) + " s", flush=True)
     out_root.mkdir(parents=True, exist_ok=True)
-    second_default = settings.get("drawings.secondDefault")
-    second = json.loads(Path(args.second).read_text(encoding="utf-8")).get("file", second_default) if Path(args.second).is_file() else second_default
+    second = settings.get("drawings.masterplan")
     ran = [entry["file"] for entry in results if entry["status"] == "ok"]
+    xrefs, xref_issues = resolve_xrefs(args.root, out_root, [entry["file"] for entry in results if entry["kind"] == "dwg" and entry["status"] == "ok"], settings)
+    for issue in xref_issues:
+        print("issue: " + issue["text"], flush=True)
     stage_results = []
     done = {}
     for stage in stage_commands(out_root, ran, second, args.shifts, settings) + road_stages(out_root, args.roads, args.landxml, args.prototypes):
@@ -203,7 +258,7 @@ def main(argv=None):
             entry["error"] = (record["stderr"].strip() or record["stdout"].strip())[-500:]
         stage_results.append(entry)
         print("stage " + stage["name"] + ": " + record["status"] + " in " + str(record["seconds"]) + " s", flush=True)
-    summary = {"files": len(results), "ok": sum(1 for entry in results if entry["status"] == "ok"), "results": results, "stages": stage_results, "skipped": skipped}
+    summary = {"files": len(results), "ok": sum(1 for entry in results if entry["status"] == "ok"), "results": results, "stages": stage_results, "skipped": skipped, "xrefs": xrefs, "issues": xref_issues}
     (out_root / "full_run_summary.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False), encoding="utf-8")
     print("files " + str(summary["files"]) + ", ok " + str(summary["ok"]))
     return 0

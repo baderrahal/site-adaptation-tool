@@ -60,11 +60,12 @@ def test_r31_main_writes_counts_and_changes_nothing(tmp_path):
     second.mkdir()
     (cad / "plots.json").write_text(json.dumps({"plots": [square(0, 0)]}), encoding="utf-8")
     (cad / "other_faces.json").write_text(json.dumps({"faces": []}), encoding="utf-8")
-    (second / "pieces.json").write_text(json.dumps({"pieces": [closed("Plots", 0, 0)]}), encoding="utf-8")
+    (second / "pieces.json").write_text(json.dumps({"source": "read.dwg", "pieces": [closed("Plots", 0, 0)]}), encoding="utf-8")
     config = tmp_path / "config.json"
-    config.write_text(json.dumps({"file": "x.dwg", "layers": ["Plots"], "minOverlap": 0.5, "areaPercent": 1.0}), encoding="utf-8")
+    config.write_text(json.dumps({"layers": ["Plots"], "minOverlap": 0.5, "areaPercent": 1.0}), encoding="utf-8")
     before = (cad / "plots.json").read_text(encoding="utf-8")
     assert second_source.main([str(tmp_path / "out"), "--cad", str(cad), "--second", str(second), "--config", str(config)]) == 0
     counts = json.loads((tmp_path / "out" / "second_source.json").read_text(encoding="utf-8"))["counts"]
     assert counts["matched"] == 1 and counts["onlyBase"] == 0 and counts["onlySecond"] == 0
+    assert counts["secondFile"] == "read.dwg"
     assert (cad / "plots.json").read_text(encoding="utf-8") == before

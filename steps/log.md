@@ -2,45 +2,63 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
-## Round 11, 2026-10-24, project settings, cluster derivation, checks 1 and 2
+## Round 12, 2026-10-24, villa blocks, row split, road fronts, levels, master plan V9
 
 Done:
-- Branch round/clusters-checks from main at b0a174c. This session started in C:\Users\bader, outside the repo, so the main guard hook was NOT live. I never committed to main. The untracked folder Claude outputs/ is not mine and stays out of the commit
-- The plan was written before the first edit. One change of order: the units helper (item 6) came before the cluster step (item 4), because the cluster step uses it
-- The prompt named analysis data, analysis.json and a villa block with a scale per plot. None of them existed. I made python/cad_analysis.py, which reads plots.json of the baseplan from the CAD reader and writes analysis.json (R64)
-- config/project.json (R63) holds profile, drawings (baseplan, second default, the two skipped drawings with their reasons) and an analysis block (toleranceM 0.01, partyWallShare 0.75, endShare 0.25). full_run.py reads it, has a --project option and a new analysis stage that takes the profile path from the config. No ROSHN or Makkah string is left in any .py file, a repo test scans for it. test_project_profile.py takes the profile path from the config too
-- Profile: every key kept, cluster_split_meaning added next to cluster_split_positions, plot.vl4_width "derive" added. rules/README.md checks 3 and 8 say the same in one line each. Checks 1 and 2 left it with a pointer to R65 and R66
-- project_profile.py rejects a duplicate key with ProfileError naming it, one test. profile.metres(key) is the one mm to metres helper, one test, used for plot.long_side
-- cad_analysis.derive_clusters: a plot is in a cluster when its typology kind in the profile is duplex or townhouse, never by code letters. Villa kinds are never in one. Side by side means the shared edge is at least 0.75 of plot.long_side. Back to back plots share a shorter edge and stay apart, a plain shared segment test would merge rows. Plots back onto other plots and front onto a road, so the front of a row is away from its one end that touches plots outside the row. Rows run left to right facing the road from the plots. When the front is not known the row keeps its chain, starts at the lower plot number, orderSure is false and the sequence is also tried reversed. The unit typologies are matched to the profile clusters and the code is written or unknown. mirrored comes from the block scale and is null when a plot has none
-- python/rules_checks.py: check 1 is R65, check 2 is R66, one test each. R64 has 17 tests. Steps for you: steps/round-11.md, 22 steps. The round 10 steps moved to steps/history/round-10-steps.md because their counts are stale
-- Checked, RAN: baseline before any edit Python 202 passed and .NET 143 passed. After the last edit Python 229 passed, .NET 143 passed (no C# changed), build 0 errors
-- Checked, RAN: 21 mutations of the new code each failed a test and the files were put back. Real baseplan through the built CAD reader: 2962 plot faces, 1342 duplex and townhouse plots in 330 clusters: D02 85, D04 98, Q01 4, Q02 2, unknown 141, 577 issues (141 R66, 436 R65). A second method with plain Python collinear edge overlap and no shapely gave the same 330 groups and the same 1460 shared pairs. The analysis stage ran from the exact command line full_run builds, on a copy of the baseplan output, status ok
-- Checked, RAN: the front of a row against the Revit link axes of prototypes.json. 240 links joined to a baseplan face by position, 100 of them in duplex or townhouse rows. The neighbour rule decides 76 and all 76 point along the link axis Y in the minus direction, 24 are left open. The first rule I wrote, the nearest road centreline, split 54 to 46, which is chance
-- Found on the real files, RAN, nothing real in git: the baseplan holds no villa block per plot. Makkah Building Footprint.dwg holds them but the reader writes no scale, the insert points sit on plot edges, duplex blocks are about one per pair and townhouse blocks do not touch their plots. Shared edges between duplex and townhouse plots run from 2 to 27.5 m, back to back edges end at 13.5 m and party walls start at 25.0 m with nothing between
-- A fresh reviewer read the pull request, ran the suite and about 60 mutations in a scratch copy. Fixed from its report: the road centreline signal was wrong (the nearest MP_Road CL line is 39 m away at best and 370 m at the median, so back to back rows were both marked sure with fronts the same way), a row with no known front lost its chain and could turn a valid Q01 into unknown, the margin case ordered by a guess, odd input could crash (a face with under 3 vertices, no label, a bad plots.json, a missing setting, a null profile), check 1 treated non-rows as rows, and some behaviour had no test (the summary fields, the printed line, the --project option, a bool in metres, the degree clause). Claims corrected: the 436 R65 issues are 88 in four unit rows and 348 in longer rows, the shared edge gap is 13.5 to 25.0 m, the README stage wording and the run sheet step numbers. Not changed: the party wall rule stays, and a lone duplex plot passes check 1 and is caught by check 2
+- Branch round/levels-blocks-fronts from main at afd8034, pull request 14. This session started in C:\Users\bader, outside the repo, so the main guard hook was NOT live. I never committed to main. The untracked folder Claude outputs/ is not mine and stays out of the commit. The plan was written before the first edit. Two corrections came while I worked, the Rev 6 profile (step 5 redone) and the V9 master plan. Full record: steps/history/round-12.md
+- Gate: Python 229 to 323 passed, .NET 143 to 155 passed. A fresh reviewer ran 142 mutants of the new code, 50 survived, and I closed the 38 real gaps but 2. Its findings are fixed or listed below
+- 1 Roles in config/project.json: masterplan V9, previousMasterplan R06 (kept, not read in the run), villaBlocks R06_0000, roadLayout, xrefRoles, skip R06_0001 only. secondDefault is gone. second_source.json names three V9 layers (my choice) and no file. The V9 file name is in the config only and a test checks it
+- 2 The CAD reader writes blocks.json (R68). Real: baseplan 20 inserts, V9 595 (345 mirrored), R06 4639 (2151), R06_0000 2287 (1093), road layout 6157 (2158)
+- 3 and 4 cad_analysis: block to plot (R69), rows cut into listed clusters (R70), front by the nearer road edge, RD-CURB-LINE (R71). Baseplan: 330 rows are 548 clusters, M02 143, M04 282, M09 61, Q02 62, unknown 0 (was 141), 1342 plots as before. Fronts per row: neighbour 235, road edge 88, none 7 (95 were open). With the roles as given the run finds 0 unit blocks and says so in one issue. With the R06.dwg blocks as a comparison: 1553 plots one block, 793 none, 203 blocks tie
+- 5 Profile from the manual Rev 6: 16 typologies, M01 to M11, old codes as aliases, rev6 block. Top level keys kept, typologies and clusters replaced as you said, which drops VL2, VL4.wide_plot_variant and DP1.note
+- 6 and 7 Level rule R67 and its proof on the 747 past plots: FFL 633, steps 744, the count rule alone 747. 114 FFL mismatches: 110 plots 1 to 5 mm (computed above the sheet), plots 2560 to 2563 100 mm (the sheet uses base 100 there). The rule is not changed. This proof groups by the sheet FFL, so it cannot fail on cluster membership. Fed with the CAD clusters (--analysis) the same rule gives FFL 561 and steps 663, because the sheet gives two FFLs to 24 of 37 four unit clusters and to 8 of 130 pairs. Check 3 comes first
+- 8 Full run of the DWG files with the roles: 12 of 12 ok in 1 min 10 s, R06 skipped as the previous master plan. One xref is nowhere, XR-TITLE BLOCK.dwg (R72). Second source check on V9: 1771 matched, only baseplan 1220, only V9 197, area differs 114 (low, see Known bugs)
+- Second method checks, ad hoc and defined in the history file: row split by an independent tiling search, 330 of 330 rows. Block match by sample points, no disagreement on 1313 plots with a clear owner. Fronts against the Revit link axes, as a check only: road edge 8 of 9 rows, neighbour rule 37 of 38
+
+V9 scan (25.06.2025 Phase 1 Amana_V9.dwg, nothing assumed, the full layer list is in steps/history/round-12.md):
+- File: Master Plan folder, 29,703,086 bytes, saved here 2026-10-24 02:53, the name says 25.06.2025. A real DWG, header AC1032 (AutoCAD 2018 to 2025), metres, no xrefs, read in 11 s
+- Layers: 43, Arabic and English names. After exploding: Dim 10027, RD-PARKING 6330, highway 4720, RD-Marking 3464, Residential plots outlines 2938 (2877 polylines, 413 closed, and 61 lines), Plots No. 2781 texts, RD-CURB-LINE 1418, BLOCK No. 694, Culverts 542, then 34 smaller layers
+- Plot faces: the reader finds 0, its face builder takes LINE and ARC pieces on the configured plot layers. My count: the residential layer noded and polygonized gives 2542 faces over 1 m2 (79 slivers left out), 2421 hold one number, 121 hold two to four. Mixed use 54 and commercial 19 more
+- Labels: 2781 plain numbers on Plots No., no type word, all different, 1 to 2783 without 2604 and 2605, 2618 inside one block named tttt. 2670 sit in residential faces, 54 mixed use, 19 commercial, 3 other, 35 in no usable face. BLOCK No. holds 347 block numbers
+- Blocks: 595 inserts, 18 names, 526 parking, 42 anonymous, 7 Mosque, 3 KG, the rest facilities. Scale is carried: -1,1,1 on 345, 1,1,1 on 230, 2.25 to 3 on 20. No villa, duplex or townhouse block, so no unit block with a scale
+- Coordinates: metres, same system as the baseplan. Faces span 2324 by 2074 m in V9 and 2338 by 2315 m in the baseplan. West edges equal, V9 south edge 107 m north, east edge 14 m inside, north edge 134 m inside
+- Plots, Rev 6 (MP rev 8.4) | V9 | baseplan: 2704 | 2781 numbered, 2670 in residential faces | 2962 faces, 2578 of the eight residential types
+- Typology, Rev 6: VL3 8, VL4 201, VL6 80, C10 204, DP1/VD1 202, DP2 24, VD2 350, DP3 118, DP4 18, VD4 437, TH1-IM 18, TH1 114, DT1 298, TH3 132, DT3 500. V9: no count possible, no label, layer or block carries a type. Baseplan CAD types: DP4 688, VL4 477, DP2 408, VL3 267, C10 260, VL2 232, TH3 124, TH1 122, client codes, not one to one with Rev 6
+- By area, which is not typology: V9 faces with one number 200 m2 209, 250 m2 985, 300 m2 847, 350 m2 89, 400 m2 242, 450 and 500 m2 49. Rev 6 by width times 25 m: 264, 1118, 996, 284, DP2 and DP4 42. V9 leaves out 249 plots in merged faces
+- Plot numbers: the faces of the three plot layers with one number (2494) joined to baseplan faces by overlap. 2339 match, 1 has the same number and 2338 differ, 3 are the baseplan label plus 10 or 11. 10 examples V9/baseplan: 2746/1, 973/649, 742/898, 2179/1181, 2076/1436, 2271/1688, 2562/1957, 1447/2219, 1332/2482, 472/2746. The numbering rule is not changed
+- Roles: V9 holds plot faces and labels, so baseplan could move to it. NOT switched, question 1. villaBlocks stays R06_0000 because V9 has no unit block
 
 Remains:
-- Villa blocks to plots and the real mirror flags, they are null today. Checks 3 to 10. The Revit run of round 9. riser_height is null
-- A full run of all 26 files with the new stage was not repeated, UNKNOWN
+- Checks 3, 4, 6 to 10. The Revit run of round 9. riser_height is null. levels.py is not wired to analysis.json, official plot numbers need the shift of R28 first. A full run with the PDF and Excel readers was not repeated, UNKNOWN
 
 Known bugs:
-- 141 clusters are unknown: 44 of four units (35 DP4 x4, 9 DP2 x4) and 97 of 6 to 12 units. They may be listed clusters standing side by side. The 436 R65 issues sit in those unknown rows, 88 in the four unit rows and 348 in the longer rows, and are noise until the rows are explained
-- The order along the road is not sure on 95 of 330 clusters, 55 listed and 40 unknown. For the other 235 the front rule is used, and on the 76 units I could join to Revit it agrees every time. A plot with a typology that is not in the profile is in no cluster and nobody is told
-- Plot numbers in analysis.json are baseplan labels, not official numbers
-- tolerance, party wall share and end share are my choices (CHOSEN). The profile values are still not checked against the source report
+- The only drawing with unit blocks is R06.dwg (1868) and the roles keep it out of the run. R06_0000 has 248 inserts, all Villa_VL2, and VL2 is not in the manual set. A duplex block covers 2 plots and a townhouse block 4, so one block carries one flag for a pair or cluster
+- Q02 has DP4 ends and M10 has DP2 ends, so 62 rows are written Q02. VL2 has 232 plots and no profile entry
+- The second source check builds faces from closed polylines and loose lines apart, so on V9 it finds 1968 faces where noding all lines gives about 2600. Its V9 counts are low
+- The road edge front is weak where both ends lie within about 1 m of a curb, and arcs and bulges of the road lines are left out. The FFL is not rounded to the mm before the height, which is why plot 1526 differs. The steps flag under 1 or over 3 cannot fire with this count rule
 
 Next:
-- Explain the unknown clusters with Bader, read the block scale in the CAD reader and match blocks to plots, then code check 3
+- Code check 3 first, then rerun the CAD cluster proof. Decide the baseplan and the unit block source, then wire levels.py to analysis.json with the official plot numbers
 
 Your turn:
-1. Unknown clusters. 35 rows are DP4 DP4 DP4 DP4 and 9 are DP2 DP2 DP2 DP2. Recommended: a row may be several listed clusters side by side, so the tool splits a long row into listed clusters first and only the leftover is unknown. Say yes or no
-2. Villa blocks. Recommended: one block per unit, matched by the block outline lying inside the plot, so the CAD reader must write the block scale and outline. Tell me if a duplex block really stands for a pair of plots
-3. Facing the road means standing in the plot and looking at the road, so left to right runs one way from there. Recommended: keep. All four listed clusters read the same both ways
-4. Front of a row. Recommended: keep the rule that plots back onto other plots and front onto a road. It matched the Revit link axes on 76 of 76. For 95 rows no end or both ends touch plots, say how you want those placed, for example by the Revit link rotation
-5. My settings in config/project.json: tolerance 0.01 m (the CAD reader's own), party wall 0.75 of the 25 m long side (18.75 m, inside the empty gap between 13.5 m and 25.0 m), end share 0.25. Recommended: keep. Say if you want other values
-6. Plot numbers. Recommended: keep the baseplan labels in analysis.json until the blocks are matched, then join the official numbers. Say if you need official numbers now
-7. Run steps/round-11.md and tell me if a Look for line did not match
-8. The older open questions, the yard rule and the ramp slope, are in steps/history/round-9.md
+1. Baseplan or V9. Recommended: keep the baseplan for now. V9 has no typology, its numbers are a new sequence, and the reader would need polylines as plot lines. Tell me if V9 becomes the baseplan and how its numbers map to the official ones
+2. Unit blocks. Recommended: set villaBlocks to R06.dwg, it is the only drawing with them. The roles keep it out of the run, so say if that stays
+3. VL2. Recommended: add it to typologies (villa, detached). Send its keo_file and plot width
+4. Q02 against M10. Recommended: tell me if the manual has a DP4 TH3 TH3 DP4 cluster, or if DP2 and DP4 count as the same for clusters
+5. A duplex block is a pair and a townhouse block a cluster. Recommended: the flag of a block stands for all its plots. Tell me what original and mirror mean in the master plan before I code the pair rule on blocks
+6. Check 3. The sheet gives two FFLs to 24 of 37 four unit CAD clusters. Recommended: code check 3 next with the split positions 2 and 3
+7. Base heights. Plots 2560 to 2563 use 100 where the profile says 200 for DP3. Recommended: ask the architect how the sheet FFL is set. Keep the profile as it is
+8. Round the FFL to the mm before the height. Recommended: yes, it gives 745 of 747 steps. Not applied
+9. Steps flag. Recommended: flag a height outside the legend span 0.10 to 0.54 m, since steps under 1 or over 3 cannot happen
+10. The road edge layer RD-CURB-LINE and the three V9 layers of second_source.json are my choices. Recommended: keep
+11. Run steps/round-12.md and tell me if a Look for line did not match
+12. The older open questions, the yard rule and the ramp slope, are in steps/history/round-9.md
+
+## Round 11, 2026-10-24, project settings, cluster derivation, checks 1 and 2
+
+Stub. The full entry is in steps/history/round-11.md.
+- config/project.json (R63), python/cad_analysis.py (R64) and checks 1 and 2 (R65, R66) were added and merged as PR 13. Gate then: Python 229 passed, .NET 143 passed
+- Its questions are answered in the round 12 entry: split long rows into listed clusters, the villa blocks, the front of a row, my settings stay. Still open from it: the official plot numbers in analysis.json
 
 ## Round 10, 2026-10-24, ROSHN Makkah rules profile and loader
 
