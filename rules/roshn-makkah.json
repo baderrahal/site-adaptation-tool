@@ -83,6 +83,9 @@
       "C10": 5500
     }
   },
+  "villa": {
+    "driver_house": ["C10", "VL6"]
+  },
   "plot": {
     "long_side": 25000,
     "boundary_wall_thickness": 200,

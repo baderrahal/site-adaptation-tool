@@ -2,6 +2,43 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round 14c Part A, 2026-10-24, villa mirror, CASE and FFL split tested on the data
+
+Goal:
+- Find the rules for the villa mirror, the CASE second letter and the FFL split, and code each only when it holds on every plot outside the 16 cut plots
+
+Done:
+- Session started in the repo, main at 588d7a5, worktree site-adaptation-tool-14c on feat/cad-rules-14c. The c3d probe worktree and its files were not touched. Plan written before the first edit. Full record: steps/history/round-14c-a.md
+- New: python/cad_rules.py (R131 to R133), python/cad_rules_check.py (R134), cadLinks.cutNeighbours and caseParameters in config/project.json, villa.driver_house in the profile, plotFrame measured again with the 16 cut plots apart (fits unchanged). Gate: Python 731 to 740 passed and 1 skipped, .NET 358 passed (main holds round C3D)
+- A1 villa mirror (R131), 113 villas: VL6 runs the other hand (10 of 11). a one hand per row 33 of 33 rows, b blind side to the neighbour 62 of 63 (breaks 2534), c C10 15 of 15 and VL6 10 of 11, d the Round 14 pattern holds on C10, VD2, VD4, VL4 and breaks on VL6 because of its hand. The full rule holds on 93, breaks on 2 (2534, 2535) and leaves 8 undecided. Not coded, villas stay out of the plan
+- A2 CASE (R132): facade option and colour are XX on all 337. The hand explains 331 of 337 and 317 of 321 outside the cut plots, breaks 2547, 2548, 2589, 2594. Steps 209, unit 182, corner 182. Not coded
+- A3 FFL split (R133): the height rule reproduces 0 of 11 IMC and 0 of 13 IMD schedule splits and adds 4 M11 splits the schedule does not make. The schedule splits M07 and M08 in 24 of 25 and never M11 or a pair. Not coded, one FFL per cluster stays
+- A4: PROGRESS rewritten, Round 14 merged, the yard answer is in
+
+Checked:
+- Second method (R134): villas seed 14 20 of 20, seed 7 20 of 20, all 113. split seed 14 20 of 20, seed 7 20 of 20, all 225. case count and breaks agree
+
+UNKNOWN:
+- Why VL6 runs the other hand, the KEO VL3 and VL6 files are not read
+- Where Top Surface-02 ends: R127 counted it covering the curb points and not the ramp corners, round C3D measured its edge on the plot line within 2 mm. This decides the front corner levels of Part B (C3D Bader's turn 1)
+- What decides a schedule split of M07 and M08 when every height stays under 0.54 m
+- The side of the driver's house in the C10 and VL6 files
+
+Remains:
+- Part B, floors in the CAD plan
+
+Known bugs:
+- 8 villas between two cluster units have no row end, 2534 and 2535 break the row rule
+
+Next:
+- Part B from main after the merge
+
+Your turn:
+1. Villa mirror. Recommended: confirm the hand rule (one hand per row, set by the open end, VL6 the other hand) and say what decides a villa alone between two cluster units, then I code it with 2534 and 2535 listed
+2. FFL split. Recommended: ask the architect why M07 and M08 split at the middle wall and M11 never, the height rule is not it
+3. CASE. Recommended: confirm the second letter is the hand as built, the 4 breaks are then past data
+4. VL6 hand. Recommended: confirm in Revit that the VL6 file is drawn the other hand from VL4
+
 ## Round C3D, 2026-10-24, the road drawings in Civil 3D 2026 tied to the plots
 
 Goal:
