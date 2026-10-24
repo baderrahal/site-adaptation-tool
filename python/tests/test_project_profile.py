@@ -58,12 +58,14 @@ def test_r62_the_clusters_are_the_eleven_of_the_manual_and_the_old_codes_stay_as
     assert {code: clusters[code] for code in MANUAL_CLUSTERS} == MANUAL_CLUSTERS
     assert list(clusters)[:11] == list(MANUAL_CLUSTERS)
     aliases = profile.get("cluster_aliases")
-    assert aliases == {"D02": "M02", "D04": "M04", "Q01": "M09", "Q02": "M10"}
-    assert sorted(clusters) == sorted(list(MANUAL_CLUSTERS) + list(aliases))
+    assert aliases == {"D02": "M02", "D04": "M04", "Q01": "M09"}
+    # Q02 is an old client code with no Rev 6 cluster, so it stays in clusters and has no alias
+    assert sorted(clusters) == sorted(list(MANUAL_CLUSTERS) + list(aliases) + ["Q02"])
     # The old codes keep their own units, so profile.get("clusters.Q01") still answers
-    assert all(clusters[old] == clusters[new] for old, new in aliases.items() if old != "Q02")
-    # Q02 has DP4 ends and M10 has DP2 ends. It is kept as it was and reported to the person who decides
+    assert all(clusters[old] == clusters[new] for old, new in aliases.items())
+    # Q02 has DP4 ends and M10 has DP2 ends, and Rev 6 has no DP4 TH3 TH3 DP4 cluster
     assert clusters["Q02"] == ["DP4", "TH3", "TH3", "DP4"] and clusters["M10"] == ["DP2", "TH3", "TH3", "DP2"]
+    assert all(units != clusters["Q02"] for code, units in clusters.items() if code != "Q02")
     assert (profile.get("cluster_max_units"), profile.get("cluster_block_max"), profile.get("cluster_six_unit_joint_after")) == (4, 4, 4)
     assert profile.get("cluster_split_positions") == [2, 3]
     typologies = set(profile.get("typologies"))
@@ -121,7 +123,9 @@ def test_r63_the_project_config_names_a_drawing_for_each_role_and_skips_only_the
     assert set(drawings) == {"baseplan", "masterplan", "previousMasterplan", "villaBlocks", "roadLayout", "xrefRoles", "skip"}
     assert drawings["masterplan"].lower().endswith(".dwg") and drawings["masterplan"] != drawings["previousMasterplan"]
     assert drawings["previousMasterplan"] == "221229_MP-SK-01-03-001_R06.dwg"
-    assert drawings["villaBlocks"] == "221229_MP-SK-01-03-001_R06_0000.dwg"
+    # The unit blocks come from the building footprint drawing. Not the R06 copies, whose inserts are one client plot type only
+    assert drawings["villaBlocks"].endswith(" Building Footprint.dwg") and not drawings["villaBlocks"].startswith("CEC")
+    assert drawings["villaBlocks"] not in (drawings["masterplan"], drawings["previousMasterplan"], drawings["baseplan"])
     assert drawings["roadLayout"].endswith("Road Layout.dwg")
     assert list(drawings["xrefRoles"].values()) == ["roadLayout"]
     assert [entry["file"] for entry in drawings["skip"]] == ["221229_MP-SK-01-03-001_R06_0001.dwg"]
@@ -131,12 +135,13 @@ def test_r63_the_project_config_names_a_drawing_for_each_role_and_skips_only_the
     assert "file" not in second and len(second["layers"]) == 3
 
 
-def test_r63_the_current_master_plan_file_name_is_in_the_config_only_and_in_no_python_file():
-    name = load_settings().get("drawings.masterplan")
-    stem = name.rsplit(".", 1)[0]
-    offenders = [str(path.relative_to(ROOT)) for path in (ROOT / "python").rglob("*.py") if name in path.read_text(encoding="utf-8") or stem in path.read_text(encoding="utf-8")]
-    assert offenders == []
-    assert name in (ROOT / "config" / "project.json").read_text(encoding="utf-8")
+def test_r63_the_current_master_plan_and_unit_block_file_names_are_in_the_config_only_and_in_no_python_file():
+    for role in ("masterplan", "villaBlocks"):
+        name = load_settings().get("drawings." + role)
+        stem = name.rsplit(".", 1)[0]
+        offenders = [str(path.relative_to(ROOT)) for path in (ROOT / "python").rglob("*.py") if name in path.read_text(encoding="utf-8") or stem in path.read_text(encoding="utf-8")]
+        assert offenders == [], role
+        assert name in (ROOT / "config" / "project.json").read_text(encoding="utf-8")
 
 
 def test_r63_settings_without_a_profile_path_are_refused_and_a_relative_path_starts_at_the_repo_root(tmp_path):

@@ -212,6 +212,22 @@ def test_r72_the_analysis_stage_gets_the_block_and_road_folders_when_the_reader_
     assert full[full.index("--roads") + 1] == str(out / "roads.dwg")
 
 
+def test_r74_the_analysis_stage_gets_the_workbook_coordinates_and_the_shift_config_when_the_excel_reader_wrote_them(tmp_path):
+    settings = write_settings(tmp_path / "project.json", "rules/other-profile.json")
+    out = tmp_path / "out"
+    touch(out / "base.dwg" / "plots.json")
+
+    def analysis_args(ran):
+        return {stage["name"]: stage for stage in full_run.stage_commands(out, ran, "second.dwg", "shifts.json", settings)}["analysis"]["args"]
+
+    assert "--coords" not in analysis_args(["base.dwg"])
+    touch(out / "b.xlsx" / "coords.json")
+    touch(out / "a.xlsx" / "coords.json")
+    args = analysis_args(["base.dwg", "b.xlsx", "a.xlsx"])
+    assert args[args.index("--coords") + 1:args.index("--shifts")] == [str(out / "a.xlsx" / "coords.json"), str(out / "b.xlsx" / "coords.json")]
+    assert args[args.index("--shifts") + 1] == "shifts.json"
+
+
 def xref_layers(out, drawing, *xrefs):
     touch(out / drawing / "layers.json", json.dumps({"xrefs": [{"name": name, "path": path, "found": found, "inserts": 1} for name, path, found in xrefs]}))
 

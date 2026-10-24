@@ -6,6 +6,9 @@ and the report goes to a folder that git ignores. The rule is never changed to m
 
 Grouping by the sheet FFL cannot fail on which plots belong together. With --analysis the same rule is fed with
 the clusters of analysis.json instead, the way the pipeline will use it, and that run can fail on membership.
+
+Every miss gets one cause, and the report also measures, without changing the rule, whether the sheet FFL is the
+computed FFL rounded down to the centimetre or to 5 mm.
 """
 import argparse
 import json
@@ -25,6 +28,11 @@ ROOT_VARIABLE = "SITE_ADAPTATION_INPUT"
 # The sheet writes FFL to the millimetre in most rows, so a computed FFL within half a millimetre is a match
 FFL_TOLERANCE = 0.0005
 EPSILON = 1e-9
+# A miss of the FFL within this many metres, with the cluster right, is told as rounding. A larger one is the base height
+ROUNDING_LIMIT = 0.01
+CAUSES = ("entry level", "wrong cluster", "base height", "rounding", "no unit code", "other")
+# The FFL is compared in whole millimetres when it is rounded down, so binary float noise cannot move it across a step
+FLOORS = {"cm": 10, "fiveMm": 5}
 COLUMNS = {"plot": "plot no.", "unit": "unit", "ffl": "ffl", "ssl": "ssl", "entry": "el @ entry", "steps": "steps needed"}
 DEFAULT_SHIFTS = Path(__file__).resolve().parent.parent / "config" / "plot_numbers.json"
 
@@ -78,18 +86,65 @@ def fflmatch(computed, sheet):
     return abs(computed - sheet) <= FFL_TOLERANCE + EPSILON
 
 
+def mm_of(value):
+    return int(round(value * 1000))
+
+
+def floored(ffl, step):
+    """The FFL rounded down to a multiple of step millimetres."""
+    millimetres = mm_of(ffl)
+    return millimetres - millimetres % step
+
+
+def miss_cause(coded, in_run, in_sheet, difference):
+    """The one cause of an FFL miss, the first that applies.
+
+    A plot with no unit code, a plot whose cluster is not the cluster the sheet gives it, a larger miss with the right
+    cluster (the base height), a smaller one (rounding), else other.
+    """
+    if not coded:
+        return "no unit code"
+    if in_run != in_sheet:
+        return "wrong cluster"
+    if abs(difference) >= ROUNDING_LIMIT:
+        return "base height"
+    return "rounding" if difference else "other"
+
+
+def count_causes(causes):
+    counts = {cause: sum(1 for found in causes if found == cause) for cause in CAUSES}
+    return {cause: number for cause, number in counts.items() if number}
+
+
+def flooring(plots):
+    """How many plots a rounding down of the computed FFL would match, fix and break. Measured only, the rule is not changed."""
+    found = {}
+    for name in FLOORS:
+        key = "floor" + name[0].upper() + name[1:]
+        found[name] = {"matches": sum(1 for plot in plots if plot[key]),
+                       "fixed": sum(1 for plot in plots if plot[key] and not plot["fflMatch"]),
+                       "broken": sum(1 for plot in plots if not plot[key] and plot["fflMatch"])}
+    return found
+
+
 def compare_schedule(profile, rows, rule):
     groups = clusters_by_ffl(rows)
     clusters = [{"plots": [row["plot"] for row in group]} for group in groups]
     entries = {row["plot"]: {"unit": row["unit"], "entry": row["entry"]} for row in rows}
     computed = {row["plot"]: row for row in levels.compute(profile, clusters, entries)}
     found = []
+    units = profile.get("typologies")
     for row in rows:
         mine = computed[row["plot"]]
+        match = fflmatch(mine["ffl"], row["ffl"])
         found.append({
             "plot": row["plot"], "unit": row["unit"], "sheetRow": row["sheetRow"],
             "sheetFfl": row["ffl"], "computedFfl": mine["ffl"], "difference": common.r3(mine["ffl"] - row["ffl"]),
-            "fflMatch": fflmatch(mine["ffl"], row["ffl"]),
+            "fflMatch": match,
+            "floorCm": floored(mine["ffl"], FLOORS["cm"]) == mm_of(row["ffl"]),
+            "floorFiveMm": floored(mine["ffl"], FLOORS["fiveMm"]) == mm_of(row["ffl"]),
+            # Grouped by the sheet FFL the cluster is right by construction, so only the unit code and the size of the miss decide
+            "cause": None if match else miss_cause(row["unit"] in units, 1, 1, mine["ffl"] - row["ffl"]),
             "sheetSteps": row["steps"], "computedSteps": mine["steps"], "stepsMatch": mine["steps"] == row["steps"],
             "sslMatch": fflmatch(mine["ssl"], row["ssl"]),
             # The count rule on its own, from the sheet's own FFL, so it is told apart from the base heights
@@ -107,12 +162,14 @@ def shift_of(path, shifts):
     return shifts["shifts"][code]
 
 
-def cad_cluster_report(profile, books, clusters):
+def cad_cluster_report(profile, books, clusters, coded=None):
     """The level rule fed with the clusters of analysis.json.
 
     books are (shift, rows) of each schedule. A sheet plot enters under its baseplan label, the official number minus
     the shift of its neighbourhood. A plot that is in no cluster is a cluster of one. Clusters that are only partly in
     the sheet are counted apart. For clusters wholly in the sheet it counts, by size, how many hold more than one FFL.
+    coded is the set of baseplan labels that have a unit code in analysis.json, None when every plot counts as coded.
+    Each miss gets a cause.
     """
     entries, sheet = {}, {}
     for shift, rows in books:
@@ -125,6 +182,23 @@ def cad_cluster_report(profile, books, clusters):
             entries[label] = {"unit": row["unit"], "entry": row["entry"]}
             sheet[label] = row
     computed = {row["plot"]: row for row in levels.compute(profile, clusters, entries) if row["plot"] in entries}
+    in_sheet, in_run = {}, {}
+    for shift, rows in books:
+        for group in clusters_by_ffl(rows):
+            labels = frozenset(str(int(row["plot"]) - shift) for row in group)
+            in_sheet.update({label: labels for label in labels})
+    for cluster in clusters:
+        members = frozenset(str(plot) for plot in cluster["plots"])
+        in_run.update({member: members for member in members})
+    ffl_causes, steps_causes = [], []
+    for label, row in computed.items():
+        ffl_cause = None
+        if not fflmatch(row["ffl"], sheet[label]["ffl"]):
+            ffl_cause = miss_cause(coded is None or label in coded, in_run.get(label, frozenset({label})), in_sheet[label], row["ffl"] - sheet[label]["ffl"])
+            ffl_causes.append(ffl_cause)
+        if row["steps"] != sheet[label]["steps"]:
+            # A steps miss with a right FFL is the count rule itself
+            steps_causes.append(ffl_cause or "other")
     wholly, partly, held = {}, 0, set()
     for cluster in clusters:
         plots = [str(plot) for plot in cluster["plots"]]
@@ -143,10 +217,74 @@ def cad_cluster_report(profile, books, clusters):
         "fflMatches": sum(1 for label, row in computed.items() if fflmatch(row["ffl"], sheet[label]["ffl"])),
         "stepsMatches": sum(1 for label, row in computed.items() if row["steps"] == sheet[label]["steps"]),
         "clustersWhollyInTheSheet": dict(sorted(wholly.items(), key=lambda item: int(item[0]))),
+        "missCauses": {"ffl": count_causes(ffl_causes), "steps": count_causes(steps_causes)},
     }
 
 
-def build_report(profile, paths, clusters=None, shifts=None):
+def entry_cluster_report(profile, books, clusters, computed, coded=None):
+    """R96. The level rule fed with the clusters of analysis.json and the computed entry levels of R95.
+
+    computed maps a baseplan label to its computed entry level. The same clusters are also run with the entry levels
+    of the sheet, and a plot that misses only with the computed entry level has the cause entry level. A plot that misses
+    in both runs takes the cause of the run with the sheet entry (R67), so the causes add up. A plot with no computed
+    entry level gets no FFL, it misses with the cause entry level when the sheet entry would have matched.
+    """
+    entries, sheet = {}, {}
+    for shift, rows in books:
+        for row in rows:
+            label = str(int(row["plot"]) - shift)
+            if label in entries:
+                raise project_profile.ProfileError("two sheet plots end on the baseplan label " + label)
+            entries[label] = {"unit": row["unit"], "entry": row["entry"]}
+            sheet[label] = row
+    mine_entries = {label: {"unit": entries[label]["unit"], "entry": level} for label, level in computed.items() if label in entries}
+    exact = {row["plot"]: row for row in levels.compute(profile, clusters, entries) if row["plot"] in entries}
+    mine = {row["plot"]: row for row in levels.compute(profile, clusters, mine_entries) if row["plot"] in entries}
+    in_sheet, in_run = {}, {}
+    for shift, rows in books:
+        for group in clusters_by_ffl(rows):
+            labels = frozenset(str(int(row["plot"]) - shift) for row in group)
+            in_sheet.update({label: labels for label in labels})
+    for cluster in clusters:
+        members = frozenset(str(plot) for plot in cluster["plots"])
+        in_run.update({member: members for member in members})
+    ffl_causes, steps_causes, errors = [], [], []
+    ffl_ok = steps_ok = both_ok = 0
+    for label, row in sheet.items():
+        mine_row, exact_row = mine.get(label) or {"ffl": None, "steps": None}, exact[label]
+        ffl_match = mine_row["ffl"] is not None and fflmatch(mine_row["ffl"], row["ffl"])
+        steps_match = mine_row["steps"] is not None and mine_row["steps"] == row["steps"]
+        exact_cause = None
+        if not fflmatch(exact_row["ffl"], row["ffl"]):
+            exact_cause = miss_cause(coded is None or label in coded, in_run.get(label, frozenset({label})), in_sheet[label], exact_row["ffl"] - row["ffl"])
+        if label in computed:
+            errors.append(computed[label] - row["entry"])
+        ffl_ok += ffl_match
+        steps_ok += steps_match
+        both_ok += ffl_match and steps_match
+        if not ffl_match:
+            ffl_causes.append("entry level" if exact_cause is None else exact_cause)
+        if not steps_match:
+            steps_causes.append("entry level" if exact_row["steps"] == row["steps"] else (exact_cause or "other"))
+    return {
+        "plots": len(sheet), "withComputedEntry": len(mine_entries), "noComputedEntry": len(sheet) - len(mine_entries),
+        "entryErrorBands": band_counts(errors),
+        "fflMatches": ffl_ok, "stepsMatches": steps_ok, "bothMatch": both_ok,
+        "missCauses": {"ffl": count_causes(ffl_causes), "steps": count_causes(steps_causes)},
+    }
+
+
+def band_counts(errors):
+    """Computed entry level minus sheet entry level by size: within 5 mm, 10 mm, 30 mm (cumulative) and worse."""
+    counts = {"within5mm": 0, "within10mm": 0, "within30mm": 0}
+    for value in errors:
+        for key, limit in (("within5mm", 0.005), ("within10mm", 0.010), ("within30mm", 0.030)):
+            counts[key] += abs(value) <= limit + EPSILON
+    counts["worse"] = sum(1 for value in errors if abs(value) > 0.030 + EPSILON)
+    return counts
+
+
+def build_report(profile, paths, clusters=None, shifts=None, coded=None, computed=None):
     rule = levels.count_rule(profile)
     plots, cluster_count, books = [], 0, []
     for path in paths:
@@ -167,11 +305,14 @@ def build_report(profile, paths, clusters=None, shifts=None):
         "bothMatch": sum(1 for plot in plots if plot["fflMatch"] and plot["stepsMatch"]),
         "sslMatches": sum(1 for plot in plots if plot["sslMatch"]),
         "countRuleAloneMatches": sum(1 for plot in plots if plot["countRuleAlone"]),
+        "flooring": flooring(plots),
+        "missCauses": {"ffl": count_causes([plot["cause"] for plot in ffl_bad]), "steps": count_causes([plot["cause"] or "other" for plot in steps_bad])},
         # The unit codes of the sheets are the codes of the profile, so a code the profile lacks is reported and never mapped
         "unitsNotInProfile": sorted({str(plot["unit"]) for plot in plots if plot["unit"] not in profile.get("typologies")}),
         "largestDifference": max((abs(plot["difference"]) for plot in plots), default=0),
         "baseHeightSource": profile.get("steps.base_height_source"),
-        "cadClusters": None if clusters is None else cad_cluster_report(profile, books, clusters),
+        "cadClusters": None if clusters is None else cad_cluster_report(profile, books, clusters, coded),
+        "computedEntry": None if clusters is None or computed is None else entry_cluster_report(profile, books, clusters, computed, coded),
     }
     return {"summary": summary, "fflMismatches": [mismatch(plot) for plot in ffl_bad], "stepsMismatches": [mismatch(plot) for plot in steps_bad]}
 
@@ -186,6 +327,18 @@ def summary_line(report):
             + ", both " + str(summary["bothMatch"]) + ", SSL " + str(summary["sslMatches"]) + ", count rule alone " + str(summary["countRuleAloneMatches"]))
 
 
+def flooring_line(report):
+    found = report["summary"]["flooring"]
+    total = str(report["summary"]["plots"])
+    names = {"cm": "to the cm", "fiveMm": "to 5 mm"}
+    return "sheet FFL against the computed FFL rounded down: " + ", ".join(
+        names[name] + " matches " + str(counts["matches"]) + " of " + total + " (fixes " + str(counts["fixed"]) + ", breaks " + str(counts["broken"]) + ")" for name, counts in found.items())
+
+
+def causes_line(label, causes):
+    return label + " misses by cause: FFL " + (json.dumps(causes["ffl"]) if causes["ffl"] else "none") + ", steps " + (json.dumps(causes["steps"]) if causes["steps"] else "none")
+
+
 def cad_line(report):
     found = report["summary"]["cadClusters"]
     if found is None:
@@ -195,14 +348,36 @@ def cad_line(report):
             + ", clusters with more than one sheet FFL: " + split)
 
 
-def read_clusters(path):
+def read_entries(path):
+    """The computed entry levels of entry_proof.py by baseplan label, from every workbook of its report."""
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        found = {}
+        for book in data["workbooks"].values():
+            for label, level in book["entries"].items():
+                if label in found:
+                    raise project_profile.ProfileError("two workbooks give an entry level to the baseplan label " + label)
+                found[label] = level["entry"] if isinstance(level, dict) else level
+        return found
+    except (OSError, json.JSONDecodeError, KeyError, AttributeError, TypeError) as error:
+        raise project_profile.ProfileError("the entry proof cannot be read: " + str(error)) from error
+
+
+def read_analysis(path):
+    """The clusters of analysis.json and the set of baseplan labels that have a unit code, None when the file has no plots list."""
     try:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise project_profile.ProfileError("analysis.json cannot be read: " + str(error)) from error
     if not isinstance(data, dict) or not isinstance(data.get("clusters"), list):
         raise project_profile.ProfileError("analysis.json has no clusters list")
-    return data["clusters"]
+    records = data.get("plots")
+    coded = {str(record["plot"]) for record in records if isinstance(record, dict) and record.get("unit")} if isinstance(records, list) else None
+    return data["clusters"], coded
+
+
+def read_clusters(path):
+    return read_analysis(path)[0]
 
 
 def main(argv=None):
@@ -213,6 +388,7 @@ def main(argv=None):
     parser.add_argument("--profile", help="rules profile, default is the one named in the project settings")
     parser.add_argument("--analysis", help="analysis.json of the cluster step, adds the run on the CAD clusters")
     parser.add_argument("--shifts", default=str(DEFAULT_SHIFTS), help="plot number shift config, used with --analysis")
+    parser.add_argument("--entries", help="entry_proof.json of entry_proof.py, adds the run with the computed entry levels, used with --analysis")
     args = parser.parse_args(argv)
     try:
         settings = project_profile.load_settings(args.project)
@@ -221,9 +397,12 @@ def main(argv=None):
         absent = [str(path) for path in paths if not path.is_file()]
         if absent:
             raise project_profile.ProfileError("schedule not found: " + ", ".join(absent))
-        clusters = read_clusters(args.analysis) if args.analysis else None
+        clusters, coded = read_analysis(args.analysis) if args.analysis else (None, None)
         shifts = link_table.load_shifts(args.shifts) if args.analysis else None
-        report = build_report(profile, paths, clusters, shifts)
+        if args.entries and not args.analysis:
+            raise project_profile.ProfileError("--entries needs --analysis")
+        computed = read_entries(args.entries) if args.entries else None
+        report = build_report(profile, paths, clusters, shifts, coded, computed)
     except (project_profile.ProfileError, ValueError, KeyError, OSError) as error:
         print("levels_proof: " + str(error), file=sys.stderr)
         return 2
@@ -231,8 +410,16 @@ def main(argv=None):
     print(summary_line(report))
     print("base height source: " + str(report["summary"]["baseHeightSource"]))
     print("FFL mismatches " + str(len(report["fflMismatches"])) + ", steps mismatches " + str(len(report["stepsMismatches"])) + ", largest FFL difference " + str(report["summary"]["largestDifference"]) + " m")
+    print(flooring_line(report))
+    print(causes_line("sheet grouping", report["summary"]["missCauses"]))
     if cad_line(report):
         print(cad_line(report))
+        print(causes_line("CAD cluster", report["summary"]["cadClusters"]["missCauses"]))
+    if report["summary"]["computedEntry"]:
+        found = report["summary"]["computedEntry"]
+        print("computed entry levels: FFL matches " + str(found["fflMatches"]) + " of " + str(found["plots"]) + ", steps matches " + str(found["stepsMatches"]) + " of " + str(found["plots"])
+              + ", both " + str(found["bothMatch"]) + ", no entry level " + str(found["noComputedEntry"]) + ", entry error " + json.dumps(found["entryErrorBands"]))
+        print(causes_line("computed entry", found["missCauses"]))
     for found in report["fflMismatches"]:
         print("FFL plot " + found["plot"] + " " + str(found["unit"]) + " sheet " + str(found["sheetFfl"]) + " computed " + str(found["computedFfl"]) + " (" + str(found["difference"]) + ")")
     for found in report["stepsMismatches"]:

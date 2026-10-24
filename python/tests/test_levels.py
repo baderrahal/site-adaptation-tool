@@ -16,6 +16,7 @@ def dummy_profile(tmp_path, **steps):
             "front_min": 1,
             "front_max": 3,
             "count_rule": "under 0.205 is 1, 0.205 to under 0.38 is 2, 0.38 and over is 3",
+            "legend": [[0.10, 1], [0.54, 3]],
             "base_height": {"default": 100, "DP2": 200},
             "base_height_source": "past job schedules, not confirmed by the architect",
             **steps,
@@ -92,7 +93,7 @@ def test_r67_a_plot_in_no_cluster_is_a_cluster_of_one_and_the_ssl_is_the_ffl_min
     profile = dummy_profile(tmp_path)
     rows = by_plot(levels.compute(profile, [], entries_of(("7", "DP2", 20.1234567), ("8", "VL4", 20.0))))
     assert rows["7"]["size"] == 1 and rows["7"]["cluster"] is None
-    assert (rows["7"]["entry"], rows["7"]["ffl"], rows["7"]["ssl"], rows["7"]["height"], rows["7"]["steps"]) == (20.1235, 20.323, 20.248, 0.2, 1)
+    assert (rows["7"]["entry"], rows["7"]["ffl"], rows["7"]["ssl"], rows["7"]["height"], rows["7"]["steps"]) == (20.1235, 20.323, 20.248, 0.1995, 1)
     assert (rows["8"]["ffl"], rows["8"]["ssl"], rows["8"]["height"], rows["8"]["steps"]) == (20.1, 20.025, 0.1, 1)
 
 
@@ -178,8 +179,10 @@ def test_r67_a_count_rule_with_a_bad_number_a_broken_limit_or_falling_steps_is_r
 def test_r67_steps_equal_to_the_profile_limits_are_not_flagged_and_the_values_keep_four_decimals(tmp_path):
     profile = dummy_profile(tmp_path)
     rows = by_plot(levels.compute(profile, [{"plots": ["1", "2", "3"]}], entries_of(("1", "VL4", 10.0), ("2", "VL4", 10.4567), ("3", "VL4", 10.3))))
-    assert [(rows[plot]["steps"], rows[plot]["flags"]) for plot in "123"] == [(3, []), (1, []), (2, [])]
-    assert (rows["1"]["height"], rows["2"]["height"], rows["2"]["entry"], rows["1"]["ffl"], rows["1"]["baseHeight"]) == (0.5567, 0.1, 10.4567, 10.557, 0.1)
+    assert [rows[plot]["steps"] for plot in "123"] == [3, 1, 2]
+    assert [[flag for flag in rows[plot]["flags"] if flag.startswith("steps")] for plot in "123"] == [[], [], []]
+    # The FFL is 10.557 after the rounding to the millimetre, so the height of the first plot is 0.557
+    assert (rows["1"]["height"], rows["2"]["height"], rows["2"]["entry"], rows["1"]["ffl"], rows["1"]["baseHeight"]) == (0.557, 0.1003, 10.4567, 10.557, 0.1)
 
 
 def test_r67_a_cluster_whose_end_unit_has_no_entry_level_says_so_on_every_row_of_it(tmp_path):
@@ -195,3 +198,64 @@ def test_r67_a_base_height_with_three_decimals_is_written_with_three_decimals(tm
     profile = dummy_profile(tmp_path, base_height={"default": 125})
     rows = levels.compute(profile, [], entries_of(("1", "VL4", 10.0)))
     assert (rows[0]["baseHeight"], rows[0]["ffl"], rows[0]["height"]) == (0.125, 10.125, 0.125)
+
+
+def test_r67_the_ffl_is_rounded_to_the_millimetre_before_the_height_is_taken(tmp_path):
+    profile = dummy_profile(tmp_path)
+    # 100.0049 plus 0.2 is 100.2049, which would give a height of 0.2049 and one step. The sheet writes 100.205, a height of 0.205 and two steps
+    rows = by_plot(levels.compute(profile, [{"plots": ["1", "2"]}], entries_of(("1", "DP2", 100.0), ("2", "DP2", 100.0049))))
+    assert (rows["1"]["ffl"], rows["1"]["height"], rows["1"]["steps"]) == (100.205, 0.205, 2)
+    assert (rows["2"]["ffl"], rows["2"]["height"], rows["2"]["ssl"]) == (100.205, 0.2001, 100.13)
+
+
+def test_r67_the_height_span_is_the_lowest_and_highest_height_of_the_profile_legend():
+    assert levels.height_span(REAL) == (0.10, 0.54)
+
+
+def test_r67_a_height_outside_the_legend_span_is_flagged_and_one_on_the_edge_is_not(tmp_path):
+    profile = dummy_profile(tmp_path)
+    rows = by_plot(levels.compute(profile, [{"plots": ["1", "2", "3", "4"]}], entries_of(("1", "VL4", 10.0), ("2", "VL4", 9.56), ("3", "VL4", 9.559), ("4", "VL4", 9.9))))
+    assert {plot: rows[plot]["flags"] for plot in "1234"} == {"1": [], "2": [], "3": ["height over 0.54 m"], "4": []}
+    low = by_plot(levels.compute(dummy_profile(tmp_path, base_height={"default": 90}), [], entries_of(("1", "VL4", 10.0))))
+    assert low["1"]["flags"] == ["height under 0.1 m"] and low["1"]["height"] == 0.09
+
+
+def test_r67_the_height_is_compared_with_the_span_to_the_millimetre_so_the_rounding_of_the_ffl_flags_nothing(tmp_path):
+    profile = dummy_profile(tmp_path)
+    # 10.0004 plus 0.1 is 10.1004, which the FFL takes to 10.1, so the top plot has the height 0.0996 and that is 0.1 to the millimetre
+    top = by_plot(levels.compute(profile, [], entries_of(("1", "VL4", 10.0004))))
+    assert (top["1"]["ffl"], top["1"]["height"], top["1"]["flags"]) == (10.1, 0.0996, [])
+    # 0.5404 is 0.540 to the millimetre and is not over the span, 0.5406 is 0.541 and is
+    rows = by_plot(levels.compute(profile, [{"plots": ["1", "2", "3"]}], entries_of(("1", "VL4", 10.0), ("2", "VL4", 9.5596), ("3", "VL4", 9.5594))))
+    assert [rows[plot]["height"] for plot in "123"] == [0.1, 0.5404, 0.5406]
+    assert [rows[plot]["flags"] for plot in "123"] == [[], [], ["height over 0.54 m"]]
+    low = by_plot(levels.compute(dummy_profile(tmp_path, base_height={"default": 99.6}), [], entries_of(("1", "VL4", 10.0))))
+    assert (low["1"]["ffl"], low["1"]["height"], low["1"]["flags"]) == (10.1, 0.1, [])
+    # A base of 99.4 gives the FFL 10.099 and the height 0.099, which is under the span
+    lower = by_plot(levels.compute(dummy_profile(tmp_path, base_height={"default": 99.4}), [], entries_of(("1", "VL4", 10.0))))
+    assert (lower["1"]["height"], lower["1"]["flags"]) == (0.099, ["height under 0.1 m"])
+
+
+def test_r67_the_height_flag_reads_its_span_from_the_profile(tmp_path):
+    profile = dummy_profile(tmp_path, legend=[[0.15, 1], [0.3, 2]])
+    rows = by_plot(levels.compute(profile, [{"plots": ["1", "2"]}], entries_of(("1", "VL4", 10.0), ("2", "VL4", 9.6))))
+    assert rows["1"]["flags"] == ["height under 0.15 m"] and rows["2"]["flags"] == ["height over 0.3 m"]
+    single = by_plot(levels.compute(profile, [], entries_of(("3", "DP2", 10.0))))
+    assert single["3"]["flags"] == []
+
+
+@pytest.mark.parametrize("legend", [None, [], "0.1", [[0.5, 1], [0.1, 2]], [[True, 1], [0.5, 2]], [["0.1", 1]], [0.1, 0.5], [[0.1]]])
+def test_r67_a_legend_that_is_not_a_list_of_height_and_steps_pairs_with_rising_heights_is_refused_in_one_error(tmp_path, legend):
+    profile = dummy_profile(tmp_path, legend=legend)
+    with pytest.raises(project_profile.ProfileError, match="steps.legend is not a list of"):
+        levels.compute(profile, [], entries_of(("1", "VL4", 10.0)))
+
+
+def test_r67_a_height_exactly_half_a_millimetre_off_the_span_is_inside_it_whatever_the_float_noise(tmp_path):
+    profile = dummy_profile(tmp_path)
+    # 119.3075 plus 0.1 is 119.4075, the FFL takes it to 119.407 and the height is 0.0995, half a millimetre under 0.1. round(0.0995, 3) would be 0.099 and flag it
+    top = by_plot(levels.compute(profile, [], entries_of(("1", "VL4", 119.3075))))
+    assert (top["1"]["ffl"], top["1"]["height"], top["1"]["flags"]) == (119.407, 0.0995, [])
+    rows = by_plot(levels.compute(profile, [{"plots": ["1", "2", "3"]}], entries_of(("1", "VL4", 10.0), ("2", "VL4", 9.5595), ("3", "VL4", 9.5594))))
+    assert [rows[plot]["height"] for plot in "123"] == [0.1, 0.5405, 0.5406]
+    assert [rows[plot]["flags"] for plot in "123"] == [[], [], ["height over 0.54 m"]]

@@ -45,3 +45,13 @@ def test_r66_a_cluster_with_the_code_unknown_is_a_conflict_named_in_the_issue_li
     assert issues[0]["text"] == "Plots 3, 4, 5 (DP2, TH1, DP2) match no cluster in the profile. The order along the road is not sure"
     assert issues[1]["text"] == "Plots 6, 7 (DP2, DP2) match no cluster in the profile"
     assert issues[2]["text"].endswith("The plots do not form one straight row")
+
+
+def test_r75_every_cluster_written_with_an_old_code_that_has_no_rev_6_match_gets_one_issue():
+    clusters = [cluster("Q02", ["1", "2", "3", "4"], ["DP4", "TH1", "TH1", "DP4"]), cluster("D02", ["5", "6"], ["DP2", "DP2"]),
+                cluster("Q02", ["7", "8", "9", "10"], ["DP4", "TH1", "TH1", "DP4"]), cluster("unknown", ["11"], ["DP2"])]
+    issues = rules_checks.check_unmatched_codes(clusters, ["Q02"])
+    assert [(found["rule"], found["plots"]) for found in issues] == [("R75", ["1", "2", "3", "4"]), ("R75", ["7", "8", "9", "10"])]
+    assert issues[0]["text"] == "Plots 1, 2, 3, 4 (DP4, TH1, TH1, DP4) form cluster Q02, an old client code with no Rev 6 cluster"
+    assert rules_checks.check_unmatched_codes(clusters, []) == []
+    assert rules_checks.check_unmatched_codes([], ["Q02"]) == []
