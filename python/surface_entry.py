@@ -4,8 +4,9 @@ A surface version is every surface with a left and a right plot front level in p
 For the 747 schedule plots the prediction is the mean of the two front corner levels on that surface plus the ramp slope by
 typology times the ramp depth of the profile (R170), against the schedule El @ Entry, banded per surface and by neighbourhood.
 The same differences less their median per surface give the shape fit, which shows a surface that would fit once a constant
-datum is taken off. The past key model of round Z4 on one neighbourhood is tested the same way: its El @ Entry is the mean of
-the two ramp corners farthest from the curb, the entrance side, less the datum of the key model (z4_compare.key_datum).
+datum is taken off. The past key model of round Z4 on one neighbourhood is tested the same way, read two ways: its El @ Entry
+parameter on the FFL floor of each plot (a design level, level_cross.key14_plots of R221), and the mean of the two ramp corners
+farthest from the curb, the entrance side, less the datum of the key model (z4_compare.key_datum).
 """
 import argparse
 import json
@@ -19,9 +20,12 @@ import c3d_run
 import data_book
 import data_book_analysis
 import data_book_retest
+import level_cross
 import link_summary
+import plan_from_past
 import project_profile
 import wiring
+import yard_rule
 import z4_compare
 
 number = data_book_analysis.number
@@ -75,16 +79,22 @@ def one_typology(row):
     return value if value and "|" not in value else None
 
 
-def key_items(plan, datum, rows_by_number, curbs, profile, steep, names, nbh_of, wanted_nbh, limits):
+def ramp_entries(plan, curbs, datum):
+    """The El @ Entry of each plot of the key plan from its ramp corners, by plot number."""
+    found = {}
+    for plot in plan["plots"]:
+        ramp = (((plot.get("floors") or {}).get("ramp") or {}).get("corners") or {}).get("value")
+        found[plot["plot"]] = key_entry(ramp, curbs, datum)
+    return found
+
+
+def key_items(entries, rows_by_number, profile, steep, names, nbh_of, wanted_nbh, limits):
     """One item per key plot of the wanted neighbourhood and surface with the prediction less the key El @ Entry."""
     items = []
-    for plot in plan["plots"]:
-        number_ = plot["plot"]
+    for number_, entry in sorted(entries.items()):
         if nbh_of.get(number_) != wanted_nbh:
             continue
         row = rows_by_number.get(number_)
-        ramp = (((plot.get("floors") or {}).get("ramp") or {}).get("corners") or {}).get("value")
-        entry = key_entry(ramp, curbs, datum)
         unit = one_typology(row) if row else None
         for name in names:
             item = {"plot": number_, "neighbourhood": wanted_nbh, "unit": unit, "surface": name, "difference": None}
@@ -124,10 +134,17 @@ def run(config, settings_path):
     nbh_of = {l["number"]: l["nbh"] for l in labels if l.get("nbh")}
     _, road_folder = data_book.folder_of(book, book["join"]["curb"]["drawing"], book["join"]["fallbackOutputs"])
     curbs = c3d_connect.LineSet(data_book.lines_of(road_folder, book["join"]["curb"]["layers"]))
-    items = key_items(plan, datum, rows_by_number, curbs, profile, steep, names, nbh_of, key["neighbourhood"], limits)
-    key_summary = summarise(items, limits)
-    report["key"] = {"neighbourhood": key["neighbourhood"], "datumProof": proof, "plots": len({i["plot"] for i in items}),
-                     "surfaces": key_summary, "ranked": ranked(key_summary)}
+    site = project_profile.load_settings(settings_path)
+    faces = yard_rule.face_shapes(link_summary.load(config["connect"]["baseplanPlots"])["plots"], 0)[0]
+    numbers, _ = plan_from_past.location_numbers(root / book["locationPlan"]["outFolder"] / "labels.csv")
+    floors = plan_from_past.load_floors(project_profile.load_settings(key["settings"]))
+    key14, _, _ = level_cross.key14_plots(link_summary.load(key["model"]), floors, faces, numbers, site.get("siteBuild")["key14"])
+    readings = {"parameter": {n: data_book_analysis.number(v.get("entry")) for n, v in key14.items()}, "rampCorners": ramp_entries(plan, curbs, datum)}
+    report["key"] = {"neighbourhood": key["neighbourhood"], "datumProof": proof, "readings": {}}
+    for reading, entries in readings.items():
+        items = key_items(entries, rows_by_number, profile, steep, names, nbh_of, key["neighbourhood"], limits)
+        key_summary = summarise(items, limits)
+        report["key"]["readings"][reading] = {"plots": len({i["plot"] for i in items}), "surfaces": key_summary, "ranked": ranked(key_summary)}
     out = root / settings["outFolder"]
     out.mkdir(parents=True, exist_ok=True)
     (out / "surface_entry.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
@@ -142,8 +159,8 @@ def main(argv=None):
     report = run(c3d_run.load_config(args.config), args.settings)
     top = report["scheduleRanked"][:5]
     print(json.dumps({"schedule": {s: {k: report["schedule"][s][k] for k in ("within5mm", "within30mm", "worse", "noLevel", "medianDifference", "shapeFit")} for s in top},
-                      "key": {s: {k: report["key"]["surfaces"][s][k] for k in ("within5mm", "within30mm", "worse", "noLevel", "medianDifference", "shapeFit")}
-                              for s in report["key"]["ranked"][:5]}}, indent=1))
+                      "key": {reading: {s: {k: entry["surfaces"][s][k] for k in ("within5mm", "within30mm", "worse", "noLevel", "medianDifference", "shapeFit")}
+                                        for s in entry["ranked"][:3]} for reading, entry in report["key"]["readings"].items()}}, indent=1))
     return 0
 
 

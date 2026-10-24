@@ -112,8 +112,9 @@ namespace SiteAdaptation.Tests
             Assert.False(Check(Job("read", "V4H", job => job["model"] = copy), path => true).Act);
             Assert.Equal(@"C:\Docs\book\work\Prototypes_2024\RRE-WP-NSP-KEO-ARC-VL6-ZZ-MOD-1300.rvt", TestHostGuard.OriginalOf(copy));
             string script = SourceText("SiteAdaptation.TestHost", "Run-TestHost.ps1");
-            Assert.Contains("@($config.handCheck.folders) -notcontains (Split-Path $copy)", script);
-            Assert.Contains("-notmatch ('_TEST-' + $Code + '\\.rvt$')", script);
+            Assert.Contains("$handCheck = @($config.handCheck.folders) -contains (Split-Path $copy)", script);
+            Assert.Contains("if ((Split-Path $copy) -ne $work -and -not $handCheck)", script);
+            Assert.Contains("$handCheck -and [IO.Path]::GetFileName($copy) -notmatch ('_TEST-' + $Code + '\\.rvt$')", script);
             string session = SourceText("SiteAdaptation.TestHost", "JobSession.cs");
             Assert.Contains("Name = \"rooms\"", session);
             Assert.Contains("OutputPath(documents, job.Code, \"rooms\")", SourceText("SiteAdaptation.TestHost", "HandSteps.cs"));
