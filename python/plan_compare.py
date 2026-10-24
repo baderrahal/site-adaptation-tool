@@ -1,5 +1,5 @@
 """Compares plan.json with the links of a model the placer built, read back by the Revit reader into prototypes.json (R89),
-or with another plan field by field (R129).
+or with another plan field by field with its floors per kind (R129, R138).
 
 It counts matches and mismatches per field and lists the plots that differ. It changes nothing and sets no rule.
 """
@@ -10,6 +10,7 @@ from collections import Counter
 from pathlib import Path
 
 import common
+import floor_fit
 import link_summary
 import plan_from_past
 import plot_relations
@@ -133,12 +134,53 @@ def plan_gaps(entry, other):
     return found
 
 
+# R138. The bands of a floor outline gap and of a level, in metres
+OUTLINE_BANDS = (("within1mm", 0.001), ("within10mm", 0.010))
+TOP_BANDS = (("within5mm", 0.005),)
+CORNER_BANDS = (("within5mm", 0.005), ("within30mm", 0.030))
+
+
+def band(gap, bands):
+    for label, limit in bands:
+        if gap <= limit + 1e-9:
+            return label
+    return "worse"
+
+
+def floor_shape(floor):
+    return floor_fit.shape_of([loop["points"] for loop in floor["outline"]["value"]["loops"]])
+
+
+def corner_gap(mine, theirs):
+    """The largest level gap of the corners, each paired with the nearest corner of the other floor in plan."""
+    return max(abs(corner[2] - min(theirs, key=lambda other: math.dist(corner[:2], other[:2]))[2]) for corner in mine)
+
+
+def floor_gaps(entry, other):
+    """R138. Per floor kind whether both plans hold it, and the band of its type, outline, top and ramp corners."""
+    found = {}
+    for kind in plan_from_past.FLOOR_KINDS:
+        mine, theirs = (entry.get("floors") or {}).get(kind), (other.get("floors") or {}).get(kind)
+        if mine is None or theirs is None:
+            found[kind] = {"presence": "both missing" if mine is None and theirs is None else "only in plan" if theirs is None else "only in other"}
+            continue
+        result = {"presence": "both", "type": "equal" if mine["type"]["value"] == theirs["type"]["value"] else "worse",
+                  "outline": band(floor_fit.outline_gap(floor_shape(mine), floor_shape(theirs)), OUTLINE_BANDS)}
+        if "z" in mine and "z" in theirs:
+            result["top"] = band(abs(mine["z"]["value"] - theirs["z"]["value"]), TOP_BANDS)
+        if "corners" in mine and "corners" in theirs:
+            result["corners"] = band(corner_gap(mine["corners"]["value"], theirs["corners"]["value"]), CORNER_BANDS)
+        found[kind] = result
+    return found
+
+
 def compare_plans(plan, other, apart):
     """R129. plan against other field by field, per field the plots equal, within 1 mm, within 10 mm and worse, a rotation
     equal within 0.01 degrees and the other fields equal or not. The plots of apart are counted on their own, the plots of
     one plan only are listed."""
     theirs = {entry["plot"]: entry for entry in other["plots"]}
     counts = {"outside": {}, "apart": {}}
+    floors = {"outside": {}, "apart": {}}
     worse, missing_in_other = [], []
     for entry in plan["plots"]:
         match = theirs.get(entry["plot"])
@@ -151,11 +193,15 @@ def compare_plans(plan, other, apart):
             table["missing" if result is None else result[0]] += 1
             if result is not None and result[0] == "worse" and group == "outside":
                 worse.append({"plot": entry["plot"], "field": name, "gap": result[1]})
+        for kind, result in floor_gaps(entry, match).items():
+            for field, value in result.items():
+                floors[group].setdefault(kind, {}).setdefault(field, Counter())[value] += 1
     mine = {entry["plot"] for entry in plan["plots"]}
     return {
         "plots": len(plan["plots"]), "otherPlots": len(other["plots"]), "compared": len(plan["plots"]) - len(missing_in_other),
         "apart": sorted(apart, key=link_summary.sort_key),
         "counts": {group: {name: dict(table) for name, table in sorted(fields.items())} for group, fields in counts.items()},
+        "floors": {group: {kind: {field: dict(table) for field, table in sorted(fields.items())} for kind, fields in sorted(kinds.items())} for group, kinds in floors.items()},
         "onlyInPlan": missing_in_other, "onlyInOther": sorted((plot for plot in theirs if plot not in mine), key=link_summary.sort_key),
         "worse": worse,
     }
@@ -176,6 +222,8 @@ def main(argv=None):
         print("plots %d, compared %d, only in the other plan %d" % (report["plots"], report["compared"], len(report["onlyInOther"])))
         for name, table in report["counts"]["outside"].items():
             print("%s %s" % (name, table))
+        for kind, fields in report["floors"]["outside"].items():
+            print("floor %s %s" % (kind, fields))
         print(out)
         return 0
     if not args.prototypes:
