@@ -610,6 +610,7 @@
       },
       "setbackLinesM": [5.0, 3.0],
       "wideTypes": ["C10", "VL3"],
+      "parcels": {"sameShareMin": 0.98, "matchShareMin": 0.5},
       "drawing": {
         "role": "masterR9",
         "cadOut": "rev9/cad/MP-SK-01-03-006_R9.0",
