@@ -1,5 +1,5 @@
 {
- "note": "Measured from the IMC past job (the answer key and the schedule of that job in config/project.json), not a rule of the client. entry: roadOffsetM is the median of El @ Entry minus the road level at the curb point nearest the front edge of the plot, R94. groups: one per footprint block name and unit position, counted along the X axis of the block. offset is the link origin in the axes of the block from its insert point, relative is the turn of the link against the block and whether it is mirrored, entrance is the entry point of the ramp in the same axes, variants hold the relations a group has with their own offsets. Offset, relative and entrance are the medians over all plots of the group. Each group was also split in half with the seed in splitSeed, fitted on the first half and tested on the second, and fitError and testError count the plots by the distance between the predicted and the measured link origin. entranceTestError does the same for the entrance. A group with tooFew true was not tested. Lengths are in metres and angles in degrees. No Python file holds these values, R100.",
+ "note": "Measured from the IMC past job (the answer key and the schedule of that job in config/project.json), not a rule of the client. entry: roadOffsetM is the median of El @ Entry minus the road level at the curb point nearest the front edge of the plot, R94. groups: one per footprint block name and unit position, counted along the X axis of the block. offset is the link origin in the axes of the block from its insert point, relative is the turn of the link against the block and whether it is mirrored, entrance is the entry point of the ramp in the same axes, variants hold the relations a group has with their own offsets. Offset, relative and entrance are the medians over all plots of the group. Each group was also split in half with the seed in splitSeed, fitted on the first half and tested on the second, and fitError and testError count the plots by the distance between the predicted and the measured link origin. entranceTestError does the same for the entrance. A group with tooFew true was not tested. plotFrame: the link of each typology in the frame of its plot face, R121 to R123. front says which face edge is the front, linkAxes how the link axes follow it, and per typology anchor is the front corner the link X axis starts from or runs to, offset is the link origin from that corner along the link X and Y axes, and drawnSide is the side of its cluster, seen from the road, where the unit is not mirrored, null when no side holds on every plot. apart lists the plots of R120 left out of the fit. Lengths are in metres and angles in degrees. No Python file holds these values, R100.",
  "entry": {
   "roadOffsetM": 0.14,
   "plots": 336,
@@ -921,5 +921,138 @@
     "n": 30
    }
   }
- ]
+ ],
+ "plotFrame": {
+  "front": "the face edge from 7.99 m up to below 18.75 m long whose midpoint is nearest to a road edge line",
+  "linkAxes": "Y is the inward normal of the front edge, X is Y turned by minus 90 degrees, plus 90 when mirrored",
+  "units": {
+   "C10": {
+    "anchor": "start",
+    "offset": [
+     6.0,
+     1.593
+    ],
+    "drawnSide": null
+   },
+   "DP1": {
+    "anchor": "end",
+    "offset": [
+     -10.0,
+     0.15
+    ],
+    "drawnSide": "left"
+   },
+   "DP2": {
+    "anchor": "end",
+    "offset": [
+     -9.995,
+     0.155
+    ],
+    "drawnSide": "left"
+   },
+   "DP3": {
+    "anchor": "end",
+    "offset": [
+     -9.99,
+     0.15
+    ],
+    "drawnSide": "left"
+   },
+   "DP4": {
+    "anchor": "end",
+    "offset": [
+     -9.99,
+     0.15
+    ],
+    "drawnSide": "left"
+   },
+   "DT1": {
+    "anchor": "start",
+    "offset": [
+     -10.0,
+     0
+    ],
+    "drawnSide": "right"
+   },
+   "DT3": {
+    "anchor": "start",
+    "offset": [
+     -10.0,
+     0
+    ],
+    "drawnSide": "right"
+   },
+   "TH1": {
+    "anchor": "start",
+    "offset": [
+     -10.0,
+     0
+    ],
+    "drawnSide": "right"
+   },
+   "TH3": {
+    "anchor": "start",
+    "offset": [
+     -10.0,
+     0
+    ],
+    "drawnSide": "right"
+   },
+   "VD1": {
+    "anchor": "start",
+    "offset": [
+     0,
+     0.149
+    ],
+    "drawnSide": null
+   },
+   "VD2": {
+    "anchor": "end",
+    "offset": [
+     -10.0,
+     0.155
+    ],
+    "drawnSide": null
+   },
+   "VD4": {
+    "anchor": "end",
+    "offset": [
+     -9.995,
+     0.15
+    ],
+    "drawnSide": "left"
+   },
+   "VL4": {
+    "anchor": "end",
+    "offset": [
+     -10.0,
+     0.15
+    ],
+    "drawnSide": null
+   },
+   "VL6": {
+    "anchor": "start",
+    "offset": [
+     0,
+     0.15
+    ],
+    "drawnSide": null
+   }
+  },
+  "measuredOn": 325,
+  "apart": [
+   "2311",
+   "2312",
+   "2375",
+   "2376",
+   "2377",
+   "2378",
+   "2387",
+   "2388",
+   "2389",
+   "2390",
+   "2544",
+   "2545"
+  ]
+ }
 }
