@@ -14,7 +14,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 - Rounds 12, 11 and 10 are PRs 14, 13 and 12. Round 9 (floor, ramp and link relations) is PR 11 and its Revit code has NOT run in Revit yet.
 - Top Surface-02 is the finished road for the ramps (Bader decided). The other five design surfaces are not confirmed.
 - Readers: CAD (C#, ACadSharp), PDF, Excel, link table, second source check, face reasons, LandXML, surface lookup, ramp levels, surface roles, road check, cluster analysis, block scan, levels, the proofs, plan builder, plan compare and full run (Python).
-- Gate: Python 565 passed, .NET 205 passed.
+- Gate: Python 573 passed, .NET 205 passed.
 - Real files stay in C:\02-Site Adaptation and C:\Users\bader\Documents\SiteAdaptation and are read in place. Nothing real is in git.
 
 ## Done

@@ -48,7 +48,7 @@ def block_matrix(block):
     if not isinstance(scale, (list, tuple)) or len(scale) < 2 or any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in scale[:2]):
         return None
     sx, sy = scale[0], scale[1]
-    if not sx or not sy:
+    if not sx or not sy or not math.isfinite(sx) or not math.isfinite(sy):
         return None
     turn = math.radians(block.get("rotationDeg") or 0.0)
     cosine, sine = math.cos(turn), math.sin(turn)
@@ -139,7 +139,7 @@ def positions(faces, villas, stands_for):
         local = []
         for index in held:
             at = to_local(block, back, polygons[index].centroid.coords[0])
-            local.append((index, round(at[0], 3), at[1]))
+            local.append((index, round(at[0]), at[1]))  # plots of one column differ in x by centimetres and a column is 8 m or more wide, so x counts to the metre
         # Plots in one column of a block of four tie in x, so y and then the face index decide and the position is never arbitrary
         local.sort(key=lambda item: (item[1], item[2], item[0]))
         for rank, (index, _, _) in enumerate(local, start=1):

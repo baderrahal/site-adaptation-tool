@@ -134,3 +134,9 @@ def test_r91_a_role_that_is_not_ground_design_or_road_is_refused_so_the_ground_c
     config = {"surfaces": {"a": {"role": "road"}, "g": {"role": role}}}
     with pytest.raises(ValueError, match="the surface g has the role"):
         road_lookup.order_of(config)
+
+
+@pytest.mark.parametrize("surfaces", [{}, {"a": {"role": "ground"}}, {"a": "road"}, {"a": None}])
+def test_r91_a_config_that_asks_no_surface_or_has_a_surface_that_is_no_object_is_refused_with_a_message(surfaces):
+    with pytest.raises(ValueError):
+        road_lookup.order_of({"surfaces": surfaces})

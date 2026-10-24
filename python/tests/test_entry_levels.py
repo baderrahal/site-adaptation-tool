@@ -119,9 +119,9 @@ def test_r94_the_offset_is_the_median_of_entry_minus_road_and_none_without_a_dif
     assert entry_levels.MEASURED_NOTE == "measured from past work"
 
 
-def test_r94_a_face_that_is_not_one_polygon_has_no_front_edge_and_the_p95_is_the_nearest_rank():
+def test_r94_a_face_that_is_not_one_polygon_has_no_front_edge_and_the_p95_is_the_nearest_rank_of_20_values():
     from shapely.geometry import MultiPolygon
     roads, tree = roads_tree([(-5, -4), (15, -4)])
     parts = MultiPolygon([square_plot(), Polygon([(30, 0), (40, 0), (40, 25)])])
     assert entry_levels.front_edge(parts, tree, roads) is None
-    assert entry_levels.spread(list(range(1, 21)))["p95"] == 20
+    assert entry_levels.spread(list(range(1, 21)))["p95"] == 19 and entry_levels.spread([5])["p95"] == 5

@@ -28,7 +28,7 @@ This round makes the Excel unit the only unit code, reads a footprint block as a
 
 8. In the terminal run all Python tests:
    `.venv\Scripts\python -m pytest python`
-   Look for: 565 passed and no failed. A machine without the schedules shows one skipped, and without Git Bash a few more, which is fine.
+   Look for: 573 passed and no failed. A machine without the schedules shows one skipped, and without Git Bash a few more, which is fine.
 
 9. In the terminal run the .NET build:
    `dotnet build dotnet\SiteAdaptation.sln -c Release`

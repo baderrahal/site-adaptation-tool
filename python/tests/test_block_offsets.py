@@ -237,3 +237,15 @@ def test_r97_four_plots_in_two_columns_get_a_position_that_does_not_depend_on_th
     second = block_offsets.positions(reversed_faces, villas, [[0, 1, 2, 3]])
     by_label = lambda found, source: {source[index]["plot"]: rank for (_, index), rank in found.items()}
     assert by_label(first, faces) == by_label(second, reversed_faces) == {"1": 1, "3": 2, "2": 3, "4": 4}
+
+
+@pytest.mark.parametrize("scale", [[float("nan"), 1], [float("inf"), 1], [1, float("-inf")]])
+def test_r97_a_scale_that_is_not_finite_gives_no_matrix(scale):
+    assert block_offsets.block_matrix({"insertPoint": [0, 0], "scale": scale}) is None
+
+
+def test_r97_centimetre_jitter_in_the_centroids_of_one_column_does_not_change_the_positions():
+    faces = [face("1", 0.002, 0), face("2", 0, 25), face("3", 10, 0), face("4", 10.002, 25)]
+    villas = [block("Townhouse_TH1", box(0, 0, 20, 50))]
+    found = block_offsets.positions(faces, villas, [[0, 1, 2, 3]])
+    assert {faces[index]["plot"]: rank for (_, index), rank in found.items()} == {"1": 1, "2": 2, "3": 3, "4": 4}

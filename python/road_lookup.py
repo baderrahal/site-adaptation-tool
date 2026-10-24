@@ -23,12 +23,16 @@ def order_of(config):
     """
     surfaces = config["surfaces"]
     for name, entry in surfaces.items():
+        if not isinstance(entry, dict):
+            raise ValueError("the surface " + name + " is not an object with a role")
         if entry.get("role") not in ROLES:
             raise ValueError("the surface " + name + " has the role " + repr(entry.get("role")) + ", which is not one of " + ", ".join(ROLES))
     roads = [name for name, entry in surfaces.items() if entry["role"] == "road"]
     if len(roads) > 1:
         raise ValueError("more than one surface has the role road: " + ", ".join(roads))
     asked = [name for name, entry in surfaces.items() if entry["role"] != "ground"]
+    if not asked:
+        raise ValueError("no surface is asked for a road level, every surface is ground or the list is empty")
     for name, entry in surfaces.items():
         if entry["role"] == "ground" and "order" in entry:
             raise ValueError("the ground surface " + name + " has an order, the ground is never a road level")
