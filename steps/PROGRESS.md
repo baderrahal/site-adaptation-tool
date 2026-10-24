@@ -1,4 +1,4 @@
-STATE 2026-10-24 18:20, Round 14 and round C3D merged (PR 20 to 23), Round 14c Part A open on feat/cad-rules-14c
+STATE 2026-10-24 18:45, Round 14c Part A merged (PR 24, main 2119fe9), Part B open on feat/cad-floors-14c
 
 # Progress
 
@@ -18,7 +18,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 
 ## Done
 
-- Round 14c Part A: R131 to R134. Round C3D: R150 to R159, PR 22 and 23
+- Round 14c Part A: R131 to R134, PR 24. Round C3D: R150 to R159, PR 22 and 23
 - Round 14: Part A R120 to R124 (PR 20), Part B R125 to R130 (PR 21). Round 15b: R111 to R119, PR 19
 - Rounds 1 to 15a: PRs 1 to 18
 
