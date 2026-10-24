@@ -34,8 +34,8 @@ def ring(x, y, size=10):
 
 # R242 the surface survey
 def test_r242_copy_path_renames_the_first_folder_and_counts_surface_classes(tmp_path):
-    copy = surface_versions.copy_path(Path(r"C:\src\Plan Rev9\a.dwg"), Path(r"C:\src"), Path(r"C:\work"), {"Plan Rev9": "Rev9"})
-    assert copy == Path(r"C:\work\Rev9\a.dwg")
+    copy = surface_versions.copy_path(tmp_path / "src" / "Plan Rev9" / "a.dwg", tmp_path / "src", tmp_path / "work", {"Plan Rev9": "Rev9"})
+    assert copy == tmp_path / "work" / "Rev9" / "a.dwg"
     header = {"classes": [{"dxfName": "AECC_TIN_SURFACE", "instanceCount": 2}, {"dxfName": "AECC_PARCEL", "instanceCount": 9}]}
     assert surface_versions.surface_count(header, {"AECC_TIN_SURFACE"}) == (2, {"AECC_TIN_SURFACE": 2})
 
