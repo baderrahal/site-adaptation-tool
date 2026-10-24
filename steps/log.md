@@ -2,6 +2,57 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
+
+Goal:
+- Fixed question IDs, placer_check split, the large El @ Entry gaps, the four Native models read, every decision by the majority rule with an override list, IMC rebuilt with it. Summary: steps/investigations/round-17.md, steps for Bader: steps/bader-17.md
+
+Done:
+- Session started in the repo, hooks live. Worktree site-adaptation-tool-17 on test/round-17 from main at 3a5dd48, rebased on dfb6a0c after DATA-5 merged PR 38. Plan written before the first edit. Snapshot of 74 files, 32 originals and 5 key inputs equal before and after. Windows one at a time under the lock, 0 waits, 4.78 to 8.9 GB free at the lock, dialogs by rule 3 in our own Revit only, registry untouched. R260 is DATA-5's, this round used R261 to R282
+- Q: open questions keep their number as a fixed ID, Q043 closed by DATA-5, DATA-5's 44 to 49 are Q044 to Q049, new ones Q050 on. steps/questions-closed.md maps the old numbers of Z4, DATA-3 and 16. CLAUDE.md holds the ID rule and the majority rule
+- K (R261 to R263): plan position and level apart, the footprint as an edge only third check, the Native dialect. On the round 16 and Z4 files it gives the counts of round 16, so their FAIL was the level
+- 0 (R264 to R268): 1.1, 1.2, 1.3 upgraded and read (407, 696, 832 links). 1.1 writes levels and wrong plots in link Names, now mapped by the house frame (252 links). Key plans 394, 585, 783 plots. The four models hold 2,386 of 2,591 Phase 1 unit plots, 01A in 1.1 and 1.2. All link 20221206 - Links. Native saved 2022-11 to 2022-12, Parsons IMC job 2024-03: Parsons is newer
+- 1, G (R269, R270): past_all.csv 2,732 rows. 6 El @ Entry gaps over 0.5 m between 1.4 and IMC, no wrong join: 5 typed 1.4 parameter faults, 1 real (2609)
+- 2 (R271 to R277): strong rules: ramp class by code (Parsons 0.970, Native 2% 0.977), hands by block mirror and open end (0.913, 0.945), cluster side (0.981, 0.983), corner front by Orientation (0.967), Parsons FFL one per cluster at the highest El @ Entry plus base (0.905), steps by Rev 6 count (1.000). Weak: El @ Entry, ramp front, Native levels, CASE. The Parsons key follows Rev 6, the Native job levelled to the road 0.70 m over the roads subgrade surface. Two level profiles, no default. 5,709 overrides
+- 3 (R278 to R280, R282): plan_imc_r17b.json 336 of 337 IMC plots with villas, lone duplexes, VD1, TH1-IM, placed 13 runs into 01101-PSN-IMC-R17B-TEST-NEW.rvt. Against the key: position within 1 mm 285, mirror 335, Z within 10 mm 336 (130 worse before), ramp type 336, steps 336. NBH 03 from CAD 404 of 490, hands as built 301 equal, 6 differ
+- Gate: Python 950 to 995 passed and 1 skipped, .NET 421 passed
+
+Checked:
+- Second method (R281): table, join, rules, split and rebuilt file 20 of 20 (join 25 and 26) at seeds 14 and 7, after two faults of the check itself were fixed
+
+Remains:
+- El @ Entry and the Native levels stay weak until the Infrastructure IFC package and Rev 01 come (Q001, Q051)
+
+Known bugs:
+- The image job of the 404 links of NBH 03 ran over the 10 minute image step three times, the file opens in 78 s with its links loaded, no image of it was made
+
+Next:
+- The rules of Q050, Q001 and Q051 once answered, then the other neighbourhoods of Phase 1
+
+Your turn:
+Q050. Level profile: no profile is the default. The Parsons IMC key follows Rev 6 (heights 0.985 given its steps, steps 1.000) and the Native models follow no step rule: use parsons2024Rev6 for every new build, since you decided Rev 6 prevails
+Q001. El @ Entry rule: the IFC in Downloads is another project, ask the client for the Infrastructure IFC package and the architect for the ramp slope. The road plus the ramp slope holds 0.285 of the IMC key within 5 mm, the 241 others are overrides until then
+Q002. Ramp type: coded by Rev 9 code (0.970), 2% for C10, VL4, VL6, 0.5% for the rest. The 10 Flat Ramps of the IMC key slope like the others, keep them as overrides. Q003. Villa mirror: coded, the block mirror flag with the open end (0.913 IMC, 0.945 Native): accept
+Q004. Setback: DLUS front. Q005. Front level: road snapped. Q006. Back corners parallel. Q007. Generic floor: whole face (0.955 IMC)
+Q008. Units: ask for a baseplan with 01b. Q009. Typology_Rev9 for codes with no schedule. Q010. Sales Land Width. Q011. IME: nothing names it, ask which neighbourhood each IM letter is (see Q044)
+Q012. FFL split: ask why. Q013. CASE second letter as built (CASE follows no tested logic, 0.424). Q015. Yard FFL minus 0.100 (0.997). Q016. Plots 2311, 2312 by baseplan. Q017. Plots 2301, 2302 VD4. Q018. 58 past ramps listed. Q019. Schedule FFL. Q020. Keep the north stop
+Q021. Parallel windows over 8 GB free. Q022. TEST copies in Zone 02\ARC: delete when done. Q023. Delete the empty 15a folder. Q024. Curb and ROW from the R94 edge. Q025. 13 PDF refusals listed
+Q026. Two curbs from one 2021 drawing, they differ at junction corners and curb breaks: keep the Roads curb, ask which is current
+Q027. Two DP4 labels: ask for a split. Q028. Zone 4: the 1.1 and 1.2 models hold 234 of the 297 plots of 01A, use them as its past key, still send the IMG job if it exists. Q029. Location plan number per face. Q030. Ask for the 01b sales rows. Q031. Rev 9 faces: 97 differ, keep the baseplan, ask which is current
+Q032. 1.4 FFL parameter as the design level. Q033. The lone DT3 on a VL3 face: now a unit alone with the hand rule of Q042. Q035. round_z4\work and round_16\work: delete next round. Q036. TBD for DLUS, accommodation for sales. Q037. Orientation side coded (909 of 940 corner plots): confirm
+Q038. The Native ramp fronts sit 0.698 to 0.700 m over Total Top of Roads Subgrade (-0.70) in all four models, so the 2022 job used the road that surface was cut from: confirm, and keep the IMC schedule as the level key. Q039. Footprint test in every placer check: done as the edge only third check. Q040. Footprint clusters
+Q041. Rows 2290 to 2299: the 4 middle DT1 are overrides of the IMC key: accept. Q042. Lone duplex hand: coded, block mirror flag with the open end (15 of 16): accept
+Q044. config/area_codes.json: approve as names only, the area stays the Neighbourhood_ID, but correct its guessed rows: the Native Files show IMA to IMD name sub-phases 1.1 to 1.4, IMA holds 02 and 01A and IMB 03 and 01A, not 021 and 022. Q045. R06_0000 and R06_0001 were saved here on 2026-10-22: confirm their source
+Q046. A probe pass for the unread alignments and parcels. Q047. Delete the IFC copy next round. Q048. Delete the old Cutsheet lock files. Q049. Leave attribute values out of the probe
+Q051. Rev 01 values are not in the repo, only its date for the foundations: send the Rev 01 sections on steps, base heights and ramps, to tell whether native2022 follows Rev 01
+Q052. Weak rules, each coded with its overrides: El @ Entry, ramp front and fall, Native height (0.353), Native Generic floor (0.899), foundation type (0.685), CASE: accept until Q001 and Q051 are answered
+Q053. The override list holds 5,709 overrides, 5,222 from the Native models, most from their weak level rules: keep all as the majority rule says, a build applies only its source
+Q054. R260 is used by DATA-5 outside its range, Round 17 used R261 to R282: keep both as they are. Q055. The 1.4 ELl@Entry parameter is typed 0.41 to 1.59 m off its own ramp on 2461, 2470, 2473, 2481, 2557: read El @ Entry off the ramp there
+Q056. The Native models use the 2022 layout with old client units, other than Rev 9 on most plots: use them for hands, fronts and ramps, never for unit codes. Q057. Ramp front fall: 97 IMC overrides list a fall with no direction, not applied: accept
+Q058. Old prototype files of 20221206 - Links are not here, their hand comes from the CAD reference (V3 and V2 opposite to VL6 and VD2, the others the same): send the folder to check it on the files
+Q059. NBH 03 build: native2022 levels, the 1.2 El @ Entry and front overrides, no mirror or height overrides (old files, other units): accept. Q060. round_17\work keeps the three 2024 key copies and the two new files: delete next round
+Q061. The image of the NBH 03 file ran over the 10 minute image step three times, links on and off (it opens in 78 s with its 404 links, file B made its image in 91.5 s): raise the image step to 30 minutes next round, open the file by hand until then
+
 ## Round DATA-5, 2026-10-25, the audit of DATA-4, the missing xrefs, the reader counts, the area key, the IFC and the coverage table
 
 Goal:
@@ -56,61 +107,9 @@ Stub. The full entry is in steps/history/round-data-4.md.
 
 ## Round 16, 2026-10-24, links against the CAD footprint, the corner front, two past jobs and a full IMC file from CAD
 
-Goal:
-- Prove links without the old prototypes, find the ramp front of corner plots, test the levels of two past jobs, build a full IMC file from CAD. Summary: steps/investigations/round-16.md, steps for Bader: steps/bader-16.md
-
-Done:
-- Session started in the repo, hooks live. Worktree site-adaptation-tool-16 on test/round-16 from main at 54dbcfb. Plan written before the first edit. Snapshot of 45 files and 14 originals equal before and after. 36 windows one at a time under the shared lock
-- E (R220): the reader rotation choice moved into PlacementRotation of Common with tests for both paths
-- C (R221 to R223): on the 336 plots both keys hold, the 1.4 FFL sits a median 194 mm over IMC (30 within 30 mm), El @ Entry 143 mm, ramp corners 129 mm in the same plan place. DT, TH and DP1 about 300 mm, DP2 and DP4 about 0. The 1.4 ramp fronts of 022 fit no data book surface, Top Surface-02 is nearest at 128 mm on 415 of 590. No level rule coded
-- B (R224 to R226): orientation of the sales sheet picks the past ramp edge on 109 of 109 IMC and 229 of 229 1.4 corner plots, 3 with no sales row. Today's nearest curb breaks on 19 (16 in 022). Coded, on the 6 Z4 plots it picks the past edge 6 of 6
-- A (R227 to R229): 13 prototypes read once each. The footprint band of the IMC key is 7 mm or less for C10, DP1, DP3, DT3, TH1, TH3. Z4: 55 of 61 DT3 links pass, the 6 that fail are the 6 corner plots. It does not see a wrong hand
-- D (R230, R231, R234, R236): 01101-PSN-IMC-TEST-NEW.rvt, plan_imc_new.json 205 of 337 (106 villas and 15 lone duplex units left out). First build with the 12b clusters had 36 wrong hands, rebuilt with footprint block clusters: 5. Nine codes placed one run each, 0.5 to 0.8 min, no code left, 205 links and 614 floors
-- D compare, equal to its plan on 205 of 205. Against the IMC key: file 205, plan position within 30 mm 196, hand 200, Generic and ramp outline within 10 mm 200, yard 194, ramp type 199, FFL within 30 mm 75. placer_check: placed 205, missing 0, FAIL by its 3D position. Images of both files in round_16\images
-- New: footprint_check.py, corner_front.py, level_cross.py, place_codes.py, z16_check.py, PlacementRotation, loadLinks of the image job, plots per code in Run-TestHost.ps1, nbh=, the corner rule and footprint clusters in plan_from_book.py. Gate after the rebase on DATA-3: Python 892 to 912 passed and 1 skipped, .NET 408 to 418 passed
-- Clean up: 16 work entries deleted, 1,292,409,380 bytes. Kept the new IMC file and the images
-
-Checked:
-- Second method (R235): footprint, corner rule in both keys, levels and the new IMC file each 20 of 20 at seeds 14 and 7, after two faults of the check itself were fixed
-
-Remains:
-- The villa and lone duplex hand, the El @ Entry rule, the footprint test inside placer_check.py
-
-Known bugs:
-- The footprint test passes a wrong hand on near symmetric units (5 of 5). placer_check.py counts the FFL in its position and reads only the IMC dialect
-
-Next:
-- The rules of 1, 3, 36 and 40 once answered, then the rest of the IMC file
-
-Your turn:
-1. El @ Entry rule: not coded, the curb terms fit 99 of 747 at best, by typology 221: ask the architect for the ramp slope and the civil engineer if the road surface holds the sidewalk (see 38)
-2. Ramp type: Ramps 2% for C10, VL4, VL6 and 0.5% for the rest (199 of 205 IMC). 3. Villa mirror: one hand per row set by the open end, VL6 the other hand (106 IMC villas not built)
-4. Setback: take the DLUS front (5.50 m villa and duplex, 7.00 m TH), the ramp stays 5.52 m. 5. Plot front level: the road surface snapped within 5 mm
-6. Back corners parallel to the front, mean at El @ Entry. 7. Generic floor: the whole baseplan face
-8. Units: 2,698 from the footprint blocks, the 120 on no plot are all Zone 4: ask for a baseplan with 01b. 9. Unit codes with no schedule: Typology_Rev9 by the location plan number
-10. Widths: take the sales Land Width and Typology_Rev9 for the wide C10 and VL3. 11. IME: Rev 9 names none, send its schedule or boundary
-12. FFL split: ask why M07 and M08 split and M11 never. 13. CASE: the second letter is the hand as built
-14. VL6 hand: look in Revit by hand, steps/bader-data-3.md. 15. Yard depth: FFL minus 0.100 until answered
-16. Plots 2311 and 2312: follow the baseplan and footprint (VL4, VL4, OS), listed apart. 17. Plots 2301 and 2302: take VD4 from Rev 9
-18. The 58 past ramps a median 97 mm above the surface: listed apart. 19. RRE_ZZ_SP_Prototype-FFL: keep the schedule FFL. 20. Angle to true north: keep the stop
-21. Parallel windows: more than 8 GB free, round 16 had 2.6 to 8.5 GB. 22. TEST copies in Zone 02\ARC: delete when done
-23. The empty site-adaptation-tool-15a folder: close what holds it and delete it, steps/bader-data-2.md. 24. Curb and ROW distance from the R94 edge, the R122 front stays for width, links, levels. 25. The 13 plots the PDF check refuses: listed
-26. The two curbs differ by over 1 m on about 15 percent: keep the Roads curb, ask which is current. 27. Two DP4 labels in one face: ask for a split
-28. Zone 4 IMG past job: the location plan names 01101-PSN-IMG-ZZZ-PIM-TU-000001, send it, the 1.4 model holds 012 and 022 only
-29. Official numbers: take the location plan number per face (746 of 747), a fixed shift fails in 01A, 03, 022
-30. 113 plan plots and 3 corner plots with no sales row: ask for the 01b rows and their Orientation
-31. Rev 9 plot faces: 115 unit plots differ: keep the baseplan faces, list them, ask which plot layout is current
-32. The 1.4 key levels sit a constant datum above its FFL parameter (643 of 643): treat the parameter as the design level
-33. The DT3 plot alone on a VL3 face has no mirror rule: list it apart until 3 is answered
-34. Rule 3: Do Not Load inside our own Revit only, never another process, as round 16 did: keep it for both sessions so DATA-3 can read the parcels and VL6
-35. round_z4\work and round_16\work keep the key copy and the new files: keep until the next round, then delete
-36. Rev 9 workbooks: take TBD for the DLUS and the Amana numbers, the accommodation workbook for the sales sheet, ask for one workbook with both
-37. Corner front: the Orientation quadrant of the sales sheet is coded (338 of 338, today's rule breaks 19): confirm it is the side the ramp faces
-38. The 1.4 job sits a median 194 mm over IMC on the same plots (DT, TH, DP1 about 300, DP2, DP4 about 0) and fits no road of the data book: keep the IMC schedule as the level key, ask which job is current
-39. Footprint test: add it to every placer check, it caught the 6 Z4 links on the wrong edge, it cannot see a wrong hand
-40. Clusters from the footprint blocks (R236): keep them for the mirror rule, wrong hands 36 down to 5 of 205
-41. Rows 2290 to 2293 and 2296 to 2299: the key draws the middle DT1 the other hand from the drawn side, keep the rule and list them
-42. Duplex plots in no cluster (DP4 12, DP2 3 in 012): need a rule for the hand of a duplex unit alone, left out until then
+Stub. The full entry is in steps/history/round-16.md.
+- The footprint test, the corner front by the sales Orientation, the levels of two past jobs and 205 IMC plots from CAD (R220 to R236) were added and merged as PR 34. Gate then: Python 912 passed and 1 skipped, .NET 418 passed
+- Its questions are carried by fixed ID in the list of the Round 17 entry
 
 ## Round DATA-3, 2026-10-24, the Master Plan Rev 9 folder, El @ Entry by terms, the units on no plot and the location plan DWG
 

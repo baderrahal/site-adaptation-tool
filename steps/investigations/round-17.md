@@ -6,7 +6,7 @@ Counts and distances only. The files are in Documents\SiteAdaptation\round_17 ou
 
 - Snapshot of 74 files (402 MB): plots.csv, units.csv, wiring.json, locationPlan.json, retest.json, analysis.json, the location plan tables, the 18 LandXML surfaces, the baseplan and footprint tables, the rev9 tables, the round 12 CAD outputs (baseplan plots, footprint blocks, road pieces, analysis), the two Rev 9 workbooks with the two PDFs and the IMC and IMD schedules. plots.csv has 119 columns, 4 more than round 16, written by the area key of round DATA-5 before the snapshot. Only the snapshot was read.
 - 32 originals hashed before and after: the 16 Native Files models, the Parsons IMC key, the 13 files of Prototypes_2024 and the two schedules. 5 key inputs hashed too (the two IMC key JSONs, the two Z4 key JSONs, the template). All 16 Native models and the Parsons IMC key were copied into round_17\work and every copy equals its original. BasicFileInfo and the dates were read from the copies.
-- 40 windows of 2 kinds, one at a time under the shared lock, 0 waits, no lock of another session met, 4.78 to 8.9 GB free at the lock, 0.35 to 3.45 min each. The watcher answered 5 dialogs per start inside our own Revit only: Do Not Load for RCRC Green and RCRC Green Audit, Load Once for the three DLLs of this tool. The registry was not read or written.
+- 58 windows, one at a time under the shared lock, 0 waits, no lock of another session met, 4.78 to 9.3 GB free at the lock: 3 upgrades, 4 reads, 6 newSite, 39 linksAndFloors, 6 images. 0.35 to 3.45 min each but the 3 image tries of the NBH 03 file (12.0, 11.7, 11.7 min). Refused before any work: one newSite whose file name lacked -TEST-NEW, one read of a new file (a read takes only a _TEST- copy, the read-back of the last placement run stands for it), and two newSite whose shared parameter file was there already. Each refusal left its file unchanged by hash. The watcher answered 5 dialogs per start inside our own Revit only: Do Not Load for RCRC Green and RCRC Green Audit, Load Once for the three DLLs of this tool. The registry was not read or written.
 - R260 is used by round DATA-5 outside its R240 to R259, so this round used R261 to R282 (conflict listed).
 
 ## Part Q, fixed question IDs
@@ -135,6 +135,17 @@ Native is the four 2022 models (2,389 to 2,395 plots), Parsons the IMC key (337)
 - Floors and hands only, 370 plots both hold: Generic outline within 10 mm 369, worse 1. Ramp outline within 10 mm 349, within 30 mm 19, worse 2. The floor type names differ by dialect (FFL against Generic 150mm, Ramps against Ramps 2%) on every plot.
 - Hands as built by hands.oldFiles (R282): equal 301, differs 6, another unit 63 (DP2 and DP4 plots the 2022 job built with villa files, no common reference). The raw mirror flag is equal on 167 of 370, which is why the old file note is needed.
 - Levels were not compared. For the record the Generic top is within 30 mm of the key on 127 of 370, worse on 243.
+
+## Images (round_17\images, not in git)
+
+- testhost_I18_plan, the new IMC file, 336 links and 999 floors in the view, image in 91.5 s. testhost_IMK_plan, the Parsons IMC key with its Prototypes_2024 links, same area of 613 by 608 m. testhost_U12_plan, the 1.2 Native model, floors only, its old prototype files are not on this machine, NBH 03 area of 735 by 733 m.
+- The NBH 03 file has no image: the image step ran over its 10 minute limit three times, twice with the links set to load and once without, though the file opens in 78 s with its 404 links loaded (Q061).
+
+## Clean up
+
+- Deleted from round_17\work: the 16 Native copies in native (777,273,344 bytes), the three 2021 TU copies (28,856,320, 77,832,192, 74,371,072), the first IMC file built before the ramp front fix 01101-PSN-IMC-R17-TEST-NEW.rvt (9,887,744) and the Parsons IMC key copy of the image (52,495,116). Total 1,020,715,788 bytes in 6 entries. The LandXML reader cache round_17\scratch, 91,417,420 bytes.
+- Kept: the 2024 key copies of 1.1, 1.2 and 1.3 (the 1.4 one is in round_z4\work), 01101-PSN-IMC-R17B-TEST-NEW.rvt, 01101-PSN-IMB-R17-TEST-NEW.rvt, the site specs and reports, the images.
+- After the round: 32 of 32 originals, 5 of 5 key inputs and 74 of 74 snapshot files equal their hashes.
 
 ## Second method (R281)
 
