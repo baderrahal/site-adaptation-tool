@@ -27,16 +27,19 @@ namespace SiteAdaptation.Common
     public enum WatchAction
     {
         DoNotLoad,
+        LoadOnceOurs,
         StopOurs,
         StopUnreadable,
         StopNoButton,
     }
 
     // R106. How the watcher reads an add-in security dialog of Revit and what it does with it.
-    // It only ever clicks Do Not Load, and only for an add-in that is not one of this tool
+    // It clicks Do Not Load for an add-in that is not one of this tool and Load Once for the three DLLs of this tool,
+    // which leaves nothing kept. It never clicks the third button, the one that keeps an answer
     public static class SecurityDialogs
     {
         public const string DoNotLoad = "Do Not Load";
+        public const string LoadOnce = "Load Once";
         private static readonly Regex Guid = new Regex(@"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", RegexOptions.CultureInvariant);
         private static readonly Regex NameLine = new Regex(@"(?im)^\s*(add-?in\s+)?name\s*:\s*(?<value>.+?)\s*$", RegexOptions.CultureInvariant);
         private static readonly Regex VendorLine = new Regex(@"(?im)^\s*(vendor|publisher)[^:\r\n]*:\s*(?<value>.+?)\s*$", RegexOptions.CultureInvariant);
@@ -75,24 +78,50 @@ namespace SiteAdaptation.Common
             };
         }
 
-        // ourIds are the AddInIds of the three .addin files of this tool, ourMarks their names and DLL file names
-        public static WatchAction Decide(SecurityDialogEntry entry, ICollection<string> ourIds, IEnumerable<string> ourMarks)
+        public static bool IsLoadOnce(string button)
+        {
+            return button != null && button.Trim().StartsWith(LoadOnce, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // ourIds are the AddInIds of the three .addin files of this tool, ourMarks their names and DLL file names,
+        // ourPaths the full paths of the three installed DLLs. Only a box whose Location is one of ourPaths gets Load Once,
+        // a box that looks like this tool in any other way stops Revit
+        public static WatchAction Decide(SecurityDialogEntry entry, ICollection<string> ourIds, IEnumerable<string> ourMarks, IEnumerable<string> ourPaths)
         {
             if (string.IsNullOrWhiteSpace(entry.AddInName) && entry.AddInId == null)
             {
                 return WatchAction.StopUnreadable;
             }
-            bool ours = (entry.AddInId != null && ourIds.Contains(entry.AddInId, StringComparer.OrdinalIgnoreCase))
+            bool exact = entry.Location != null && (ourPaths ?? new string[0]).Any(path => string.Equals(path, entry.Location.Trim(), StringComparison.OrdinalIgnoreCase));
+            bool ours = exact || (entry.AddInId != null && ourIds.Contains(entry.AddInId, StringComparer.OrdinalIgnoreCase))
                 || ourMarks.Any(mark => !string.IsNullOrWhiteSpace(mark) && (entry.Text ?? "").IndexOf(mark, StringComparison.OrdinalIgnoreCase) >= 0);
             if (ours)
             {
-                return WatchAction.StopOurs;
+                if (!exact)
+                {
+                    return WatchAction.StopOurs;
+                }
+                return entry.Buttons.Any(IsLoadOnce) ? WatchAction.LoadOnceOurs : WatchAction.StopNoButton;
             }
             if (!entry.Buttons.Any(IsDoNotLoad))
             {
                 return WatchAction.StopNoButton;
             }
             return WatchAction.DoNotLoad;
+        }
+
+        // The one button each action clicks, null for a stop
+        public static string ButtonFor(WatchAction action)
+        {
+            switch (action)
+            {
+                case WatchAction.DoNotLoad:
+                    return DoNotLoad;
+                case WatchAction.LoadOnceOurs:
+                    return LoadOnce;
+                default:
+                    return null;
+            }
         }
     }
 }

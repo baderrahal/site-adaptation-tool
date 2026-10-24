@@ -14,6 +14,9 @@ namespace SiteAdaptation.Tests
         private static readonly string[] OurIds = { Ours, "3c6f1d52-7a0e-4b8e-9c41-5e2b8d07a915", "895f6ce7-9b1d-4b94-bf39-608da3e13c01" };
         private static readonly string[] OurMarks = { "Site Adaptation test host", "SiteAdaptation.TestHost.dll", "RevitPrototypeReader.dll" };
         private static readonly string[] Buttons = { "Always Load", "Load Once", "Do Not Load" };
+        private const string ReaderDll = @"C:\Users\x\AppData\Roaming\Autodesk\Revit\Addins\2024\SiteAdaptation\RevitPrototypeReader.dll";
+        private const string HostDll = @"C:\Users\x\AppData\Roaming\Autodesk\Revit\Addins\2024\SiteAdaptationTestHost\SiteAdaptation.TestHost.dll";
+        private static readonly string[] OurPaths = { ReaderDll, HostDll, @"C:\Users\x\AppData\Roaming\Autodesk\Revit\Addins\2024\SiteAdaptationPlacer\SiteAdaptation.Placer.dll" };
 
         private static SecurityDialogEntry Dialog(string name, string id, string[] buttons = null, string vendor = "Some Vendor")
         {
@@ -52,25 +55,25 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R106_another_add_in_gets_do_not_load()
         {
-            Assert.Equal(WatchAction.DoNotLoad, SecurityDialogs.Decide(Dialog("Green Audit", "51c9c81c-c2e2-4d7e-8301-1ccbb187a928"), OurIds, OurMarks));
-            Assert.Equal(WatchAction.DoNotLoad, SecurityDialogs.Decide(Dialog("Green Audit", null), OurIds, OurMarks));
+            Assert.Equal(WatchAction.DoNotLoad, SecurityDialogs.Decide(Dialog("Green Audit", "51c9c81c-c2e2-4d7e-8301-1ccbb187a928"), OurIds, OurMarks, OurPaths));
+            Assert.Equal(WatchAction.DoNotLoad, SecurityDialogs.Decide(Dialog("Green Audit", null), OurIds, OurMarks, OurPaths));
         }
 
         [Fact]
         public void R106_an_add_in_of_this_tool_stops_by_guid_name_or_dll()
         {
-            Assert.Equal(WatchAction.StopOurs, SecurityDialogs.Decide(Dialog("Anything", Ours.ToUpperInvariant()), OurIds, OurMarks));
-            Assert.Equal(WatchAction.StopOurs, SecurityDialogs.Decide(Dialog("Site Adaptation test host", null), OurIds, OurMarks));
+            Assert.Equal(WatchAction.StopOurs, SecurityDialogs.Decide(Dialog("Anything", Ours.ToUpperInvariant()), OurIds, OurMarks, OurPaths));
+            Assert.Equal(WatchAction.StopOurs, SecurityDialogs.Decide(Dialog("Site Adaptation test host", null), OurIds, OurMarks, OurPaths));
             SecurityDialogEntry byPath = SecurityDialogs.Read("Security - Unsigned Add-In", "#32770", new[] { "Name: X", @"Path: C:\Addins\RevitPrototypeReader.dll" }, Buttons);
-            Assert.Equal(WatchAction.StopOurs, SecurityDialogs.Decide(byPath, OurIds, OurMarks));
+            Assert.Equal(WatchAction.StopOurs, SecurityDialogs.Decide(byPath, OurIds, OurMarks, OurPaths));
         }
 
         [Fact]
         public void R106_a_dialog_it_cannot_read_or_with_no_do_not_load_stops_revit()
         {
-            Assert.Equal(WatchAction.StopUnreadable, SecurityDialogs.Decide(Dialog(null, null), OurIds, OurMarks));
-            Assert.Equal(WatchAction.StopNoButton, SecurityDialogs.Decide(Dialog("Green Audit", null, new[] { "OK" }), OurIds, OurMarks));
-            Assert.Equal(WatchAction.StopNoButton, SecurityDialogs.Decide(Dialog("Green Audit", null, new[] { "Always Load", "Load Once" }), OurIds, OurMarks));
+            Assert.Equal(WatchAction.StopUnreadable, SecurityDialogs.Decide(Dialog(null, null), OurIds, OurMarks, OurPaths));
+            Assert.Equal(WatchAction.StopNoButton, SecurityDialogs.Decide(Dialog("Green Audit", null, new[] { "OK" }), OurIds, OurMarks, OurPaths));
+            Assert.Equal(WatchAction.StopNoButton, SecurityDialogs.Decide(Dialog("Green Audit", null, new[] { "Always Load", "Load Once" }), OurIds, OurMarks, OurPaths));
         }
 
         [Fact]
@@ -103,15 +106,49 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Unknown Publisher", entry.Vendor);
             Assert.Equal(@"C:\Addins\2024\OtherAudit\Other.Audit.dll", entry.Location);
             Assert.Null(entry.AddInId);
-            Assert.Equal(WatchAction.DoNotLoad, SecurityDialogs.Decide(entry, OurIds, OurMarks));
+            Assert.Equal(WatchAction.DoNotLoad, SecurityDialogs.Decide(entry, OurIds, OurMarks, OurPaths));
         }
 
         [Fact]
-        public void R106_a_box_whose_location_is_a_dll_of_this_tool_stops_revit()
+        public void R106_a_box_that_names_a_dll_of_this_tool_somewhere_else_stops_revit()
         {
             SecurityDialogEntry entry = RevitBox("Renamed", @"C:\Addins\2024\SiteAdaptationTestHost\SiteAdaptation.TestHost.dll");
 
-            Assert.Equal(WatchAction.StopOurs, SecurityDialogs.Decide(entry, OurIds, OurMarks));
+            Assert.Equal(WatchAction.StopOurs, SecurityDialogs.Decide(entry, OurIds, OurMarks, OurPaths));
+            Assert.Equal(WatchAction.StopOurs, SecurityDialogs.Decide(RevitBox("X", ReaderDll + ".old"), OurIds, OurMarks, OurPaths));
+        }
+
+        [Fact]
+        public void R106_the_box_of_an_installed_dll_of_this_tool_gets_load_once()
+        {
+            SecurityDialogEntry reader = RevitBox("RevitPrototypeReader.ExportPrototypesCommand", ReaderDll);
+            SecurityDialogEntry host = RevitBox("Site Adaptation test host", HostDll.ToUpperInvariant());
+
+            Assert.Equal(WatchAction.LoadOnceOurs, SecurityDialogs.Decide(reader, OurIds, OurMarks, OurPaths));
+            Assert.Equal(WatchAction.LoadOnceOurs, SecurityDialogs.Decide(host, OurIds, OurMarks, OurPaths));
+            Assert.Equal(SecurityDialogs.LoadOnce, SecurityDialogs.ButtonFor(WatchAction.LoadOnceOurs));
+        }
+
+        [Fact]
+        public void R106_an_installed_dll_of_this_tool_with_no_load_once_button_stops_revit()
+        {
+            SecurityDialogEntry entry = SecurityDialogs.Read("Security - Unsigned Add-In", "#32770", new[] { "Name: X", "Location: " + ReaderDll }, new[] { "Always Load", "Do Not Load" });
+
+            Assert.Equal(WatchAction.StopNoButton, SecurityDialogs.Decide(entry, OurIds, OurMarks, OurPaths));
+        }
+
+        [Fact]
+        public void R106_no_action_ever_clicks_the_button_that_keeps_an_answer()
+        {
+            foreach (WatchAction action in Enum.GetValues(typeof(WatchAction)).Cast<WatchAction>())
+            {
+                string button = SecurityDialogs.ButtonFor(action);
+                Assert.True(button == null || button == SecurityDialogs.DoNotLoad || button == SecurityDialogs.LoadOnce);
+            }
+            Assert.Equal(SecurityDialogs.DoNotLoad, SecurityDialogs.ButtonFor(WatchAction.DoNotLoad));
+            Assert.Null(SecurityDialogs.ButtonFor(WatchAction.StopOurs));
+            Assert.False(SecurityDialogs.IsLoadOnce("Always Load"));
+            Assert.True(SecurityDialogs.IsLoadOnce(" Load Once "));
         }
 
         [Fact]
@@ -125,20 +162,22 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R106_the_watcher_clicks_only_do_not_load_and_names_no_other_button()
+        public void R106_the_watcher_clicks_only_the_button_the_decision_names_and_never_always_load()
         {
             string program = RepoText("dotnet", "SiteAdaptation.DialogWatcher", "Program.cs");
 
             Assert.DoesNotContain("Always Load", program);
-            Assert.DoesNotContain("Load Once", program);
+            Assert.DoesNotContain("Always Load", RepoText("dotnet", "SiteAdaptation.Common", "SecurityDialogs.cs"));
             Assert.Single(Regex.Matches(program, @"\.Invoke\(\)").Cast<Match>());
             Assert.Single(Regex.Matches(program, @"PostMessage\(new IntPtr").Cast<Match>());
-            int check = program.IndexOf("if (!IsButton(part) || !SecurityDialogs.IsDoNotLoad(part.Current.Name))", StringComparison.Ordinal);
+            Assert.Contains("bool wanted = label == SecurityDialogs.DoNotLoad ? SecurityDialogs.IsDoNotLoad(part.Current.Name) : SecurityDialogs.IsLoadOnce(part.Current.Name);", program);
+            int check = program.IndexOf("if (!IsButton(part) || !wanted)", StringComparison.Ordinal);
             int invoke = program.IndexOf(".Invoke()", StringComparison.Ordinal);
             int message = program.IndexOf("PostMessage(new IntPtr(buttonHandle), ButtonClick", StringComparison.Ordinal);
             Assert.True(check > 0 && check < invoke && invoke < message);
-            Assert.Contains("action == WatchAction.DoNotLoad && Click(window, entry)", program);
-            Assert.Contains("the dialog stayed open after Do Not Load", program);
+            Assert.Contains("string label = SecurityDialogs.ButtonFor(action);", program);
+            Assert.Contains("if (label != null && Click(window, entry, label))", program);
+            Assert.Contains("the dialog stayed open after \" + label", program);
         }
 
         [Fact]

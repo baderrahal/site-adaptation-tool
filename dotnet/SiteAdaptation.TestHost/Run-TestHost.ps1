@@ -54,6 +54,13 @@ foreach ($manifest in $manifests) {
     $ourMarks += Split-Path ([string]$xml.RevitAddIns.AddIn.Assembly) -Leaf
 }
 
+# The three DLLs as Install-TestHost.ps1 puts them. Only a box that names one of these paths gets Load Once
+$ourPaths = @(
+    (Join-Path $addins 'SiteAdaptation\RevitPrototypeReader.dll')
+    (Join-Path $addins 'SiteAdaptationPlacer\SiteAdaptation.Placer.dll')
+    (Join-Path $addins 'SiteAdaptationTestHost\SiteAdaptation.TestHost.dll')
+)
+
 $original = $null
 $copy = $null
 $token = $null
@@ -122,7 +129,7 @@ try {
         $info.Environment['SITEADAPTATION_TESTHOST_TOKEN'] = $token
     }
     $process = [Diagnostics.Process]::Start($info)
-    $watchArgs = @('--pid', $process.Id, '--out', $watchPath, '--stop-log', $logPath, '--minutes', '10', '--ours', ($ourIds -join ','), '--marks', ($ourMarks -join '|'))
+    $watchArgs = @('--pid', $process.Id, '--out', $watchPath, '--stop-log', $logPath, '--minutes', '10', '--ours', ($ourIds -join ','), '--marks', ($ourMarks -join '|'), '--our-paths', ($ourPaths -join '|'))
     $watcher = Start-Process -FilePath $watcherExe -ArgumentList ($watchArgs | ForEach-Object { '"' + $_ + '"' }) -PassThru -WindowStyle Hidden
     if ($DryStart) {
         "Revit $($process.Id) started at $($start.ToString('HH:mm:ss')) with no job, the watcher answers the security dialogs"
@@ -234,7 +241,7 @@ if (Test-Path $watchPath) {
     $log | ConvertTo-Json -Depth 20 | Set-Content -Path $logPath -Encoding utf8
     "Security dialogs: $(@($watch.dialogs).Count), watcher: $($watch.result)"
     @($watch.dialogs) | Select-Object utc, addInName, vendor, addInId, button, action | Format-Table -AutoSize | Out-String -Width 250
-    foreach ($stopped in @($watch.dialogs | Where-Object { $_.action -ne 'DoNotLoad' })) {
+    foreach ($stopped in @($watch.dialogs | Where-Object { $_.action -ne 'DoNotLoad' -and $_.action -ne 'LoadOnceOurs' })) {
         "Dialog the watcher stopped on, full text:"
         $stopped.title
         $stopped.text

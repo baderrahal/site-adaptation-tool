@@ -11,8 +11,8 @@ using SiteAdaptation.Common;
 namespace SiteAdaptation.DialogWatcher
 {
     // R106. Watches the windows of one Revit process while it starts, from outside Revit. It clicks Do Not Load on the
-    // security dialog of every add-in that is not one of this tool and stops Revit on any dialog it cannot answer that way.
-    // It never clicks anything else
+    // security dialog of every add-in that is not one of this tool, Load Once on the box of one of the three installed DLLs
+    // of this tool, and stops Revit on any dialog it cannot answer that way. It never clicks anything else
     public static class Program
     {
         private const int Answered = 0;
@@ -27,6 +27,7 @@ namespace SiteAdaptation.DialogWatcher
             public double Minutes = 10;
             public List<string> OurIds = new List<string>();
             public List<string> OurMarks = new List<string>();
+            public List<string> OurPaths = new List<string>();
         }
 
         [STAThread]
@@ -126,10 +127,11 @@ namespace SiteAdaptation.DialogWatcher
                         continue;
                     }
                     SecurityDialogEntry entry = SecurityDialogs.Read(title, windowClass, texts, buttons);
-                    WatchAction action = SecurityDialogs.Decide(entry, options.OurIds, options.OurMarks);
+                    WatchAction action = SecurityDialogs.Decide(entry, options.OurIds, options.OurMarks, options.OurPaths);
                     entry.Action = action.ToString();
                     handled.Add(handle);
-                    if (action == WatchAction.DoNotLoad && Click(window, entry))
+                    string label = SecurityDialogs.ButtonFor(action);
+                    if (label != null && Click(window, entry, label))
                     {
                         entry.Text = null;
                         report.Dialogs.Add(entry);
@@ -210,13 +212,14 @@ namespace SiteAdaptation.DialogWatcher
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool IsWindow(IntPtr window);
 
-        // Do Not Load and nothing else. By Invoke when the button offers it, else by BM_CLICK to the button window itself.
+        // The one button the decision names, Do Not Load or for this tool Load Once, and nothing else. By Invoke when the button offers it, else by BM_CLICK to the button window itself.
         // False when the button is not there, takes no click or the dialog is still open 5 seconds later
-        private static bool Click(AutomationElement window, SecurityDialogEntry entry)
+        private static bool Click(AutomationElement window, SecurityDialogEntry entry, string label)
         {
             foreach (AutomationElement part in window.FindAll(TreeScope.Descendants, Condition.TrueCondition))
             {
-                if (!IsButton(part) || !SecurityDialogs.IsDoNotLoad(part.Current.Name))
+                bool wanted = label == SecurityDialogs.DoNotLoad ? SecurityDialogs.IsDoNotLoad(part.Current.Name) : SecurityDialogs.IsLoadOnce(part.Current.Name);
+                if (!IsButton(part) || !wanted)
                 {
                     continue;
                 }
@@ -225,16 +228,16 @@ namespace SiteAdaptation.DialogWatcher
                 if (part.TryGetCurrentPattern(InvokePattern.Pattern, out pattern))
                 {
                     ((InvokePattern)pattern).Invoke();
-                    entry.Button = SecurityDialogs.DoNotLoad + " (invoke)";
+                    entry.Button = label + " (invoke)";
                 }
                 else if (buttonHandle != 0)
                 {
                     PostMessage(new IntPtr(buttonHandle), ButtonClick, IntPtr.Zero, IntPtr.Zero);
-                    entry.Button = SecurityDialogs.DoNotLoad + " (click message)";
+                    entry.Button = label + " (click message)";
                 }
                 else
                 {
-                    entry.Action = "StopNoButton, Do Not Load takes no click";
+                    entry.Action = "StopNoButton, " + label + " takes no click";
                     return false;
                 }
                 int dialogHandle = window.Current.NativeWindowHandle;
@@ -244,7 +247,7 @@ namespace SiteAdaptation.DialogWatcher
                 }
                 if (dialogHandle != 0 && IsWindow(new IntPtr(dialogHandle)))
                 {
-                    entry.Action = "StopNoButton, the dialog stayed open after Do Not Load";
+                    entry.Action = "StopNoButton, the dialog stayed open after " + label;
                     return false;
                 }
                 return true;
@@ -319,6 +322,9 @@ namespace SiteAdaptation.DialogWatcher
                         break;
                     case "--ours":
                         options.OurIds.AddRange(value.Split(',').Select(id => id.Trim().ToLowerInvariant()).Where(id => id.Length > 0));
+                        break;
+                    case "--our-paths":
+                        options.OurPaths.AddRange(value.Split('|').Select(path => path.Trim()).Where(path => path.Length > 0));
                         break;
                     case "--marks":
                         options.OurMarks.AddRange(value.Split('|').Select(mark => mark.Trim()).Where(mark => mark.Length > 0));
