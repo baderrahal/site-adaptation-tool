@@ -32,6 +32,21 @@ FILES = {
     "civil.csv": "Civil 3D objects inside Phase 1 in long form: kind, name, layer, parent, property, value. Written by the Civil 3D read only.",
     "data.json": "What wrote the tables of the folder (reader C3DProbe for the full Civil 3D read, CadReader for the stand-in) and the rows kept and dropped per table.",
     "sheets.csv": "The sheet list of the master plan workbook: rows, columns, header row, header and the plot or location columns.",
+    "rev9_workbooks.md": "The two Rev 9 workbooks of round DATA-3 (R185 to R188): inventory, diff, setbacks, widths and the code table, counts only.",
+    "rev9_workbooks.json": "The same as rev9_workbooks.md as data.",
+    "setbacks.csv": "One row per DLUS plot joined to plots.csv: the four setbacks, the drawn front and the Rev 6 front (R186).",
+    "widths.csv": "One row per unit plot with a sales row: Land Width and Land Length against the CAD width and depth, Rev 6 and the code width (R187).",
+    "rev9_drawing.md": "The Rev 9 drawing and its PDF against the baseplan (R189 to R191), counts only.",
+    "rev9_drawing.json": "The same as rev9_drawing.md as data.",
+    "rev9_faces.csv": "One row per unit plot: the Rev 9 face match, number, code and DWG unit text against the baseplan and the location plan (R191).",
+    "rev9_labels.csv": "One row per label of the Rev 9 PDF plot: number, code, page point, site point and the baseplan face that holds it (R190).",
+    "rev9_face_outlines.json": "The outline of the Rev 9 face matched to each unit plot, site metres, for the second method (R191, R198).",
+    "cross_sections.json": "Each curb of the Typical Cross Sections drawing: section, road type, up-stand, sidewalk width and cross fall (R192).",
+    "entry_terms.json": "El @ Entry from the road at the curb, the up-stand, the sidewalk and the ramp, with each term left out (R193), counts only.",
+    "entry_terms.csv": "One row per schedule plot and variant of R193 with the predicted less the schedule El @ Entry and its band.",
+    "stray_units.json": "The footprint unit blocks on no baseplan plot and what the location plan and Rev 9 have there (R194), counts only.",
+    "stray_units.csv": "One row per footprint unit block on no baseplan plot (R194).",
+    "location_dwg.json": "The location plan DWG of 01_Output against the Rev.09 location plan PDF, with the dates of every export (R196).",
 }
 
 COLUMNS = {
@@ -109,7 +124,7 @@ def rows_of(path):
 
 
 def write(root):
-    lines = ["# Data book, Phase 1", "", "Read only from working copies, only data inside the Phase 1 border. Metres, UTM 37N. Written by the readers of rounds DATA and DATA-2 (R160 to R173).", "",
+    lines = ["# Data book, Phase 1", "", "Read only from working copies, only data inside the Phase 1 border. Metres, UTM 37N. Written by the readers of rounds DATA, DATA-2 and DATA-3 (R160 to R198).", "",
              "## Files", ""]
     seen_columns = set()
     for path in sorted(p for p in root.rglob("*") if p.is_file() and "work" not in p.relative_to(root).parts and "logs" not in p.relative_to(root).parts):
@@ -118,6 +133,7 @@ def write(root):
         meaning = FILES.get(path.name) or ("Sheet of the master plan workbook, cell for cell, column letters as header." if path.parent.name == "master_plan_excel" else
                                            "PDF reader output of a coordinate PDF copy, read for the location check of the schedules (R174)." if parts[0] == "pdf" else
                                            "CadReader output of the R06 copy, read for its block outlines (R174)." if parts[:2] == ("wiring", "cad") else
+                                           "CadReader output of a copy read whole, not cut to the border (R189, R192, R196)." if len(parts) > 2 and parts[1] == "cad" else
                                            "plots.csv or a report as it was before Part W or Part L rebuilt it, kept for the before and after counts." if "_before_" in path.name else
                                            "Part of a table split by layer." if path.parent.name in ("entities", "blocks", "texts") else
                                            "LandXML of a surface the full Civil 3D read exported, triangles inside Phase 1 (R162, R169)." if path.suffix == ".xml" else "")

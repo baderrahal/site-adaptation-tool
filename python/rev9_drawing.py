@@ -301,6 +301,9 @@ def run(config):
         writer = csv.DictWriter(handle, list(rows[0]) if rows else ["baseplanLabel"], lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
+    outlines = {label: [[round(x, 3), round(y, 3)] for x, y in rev9_faces[matches[label]["face"]].exterior.coords]
+                for label in unit_labels if matches[label]["face"] is not None}
+    (out / "rev9_face_outlines.json").write_text(json.dumps(outlines), encoding="utf-8")
     with open(out / "rev9_labels.csv", "w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle, lineterminator="\n")
         writer.writerow(["number", "code", "kind", "pageX", "pageY", "east", "north", "face"])

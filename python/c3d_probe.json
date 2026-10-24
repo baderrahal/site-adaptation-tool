@@ -522,6 +522,12 @@
         "columns": {"plot": "PLOT_NO", "nbh": "Neighbourhood_ID", "zone": "Construction_Zone"}
       }
     },
+    "data3Check": {
+      "seeds": [14, 7],
+      "size": 20,
+      "gridM": 0.1,
+      "iouSlack": 0.01
+    },
     "entryTerms": {
       "outFolder": "entry_terms",
       "minSidewalkM": 1.0,

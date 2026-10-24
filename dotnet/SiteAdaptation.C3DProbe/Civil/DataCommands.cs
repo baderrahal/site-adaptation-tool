@@ -844,7 +844,7 @@ namespace SiteAdaptation.C3DProbe.Civil
             return false;
         }
 
-        // R189. The boundary of a parcel as x y pairs joined by semicolons, from its base curve, so plot faces drawn as Civil 3D
+        // R189. The boundary of a parcel as x y pairs joined by bars, from its base curve, so plot faces drawn as Civil 3D
         // parcels can be compared with the baseplan. The exploded pieces stand in when the base curve cannot be read
         private static string ParcelOutline(Entity parcel)
         {
@@ -877,7 +877,7 @@ namespace SiteAdaptation.C3DProbe.Civil
                 }
             }
             var culture = CultureInfo.InvariantCulture;
-            return points.Count < 3 ? null : string.Join(";", points.Select(p => p.X.ToString("0.###", culture) + " " + p.Y.ToString("0.###", culture)));
+            return points.Count < 3 ? null : string.Join("|", points.Select(p => p.X.ToString("0.###", culture) + " " + p.Y.ToString("0.###", culture)));
         }
 
         private static double[] Xyz(Point3d point)
