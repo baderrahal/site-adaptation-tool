@@ -104,8 +104,9 @@ def prototype_files(listing, profile):
     return files, sorted(twice)
 
 
-def link_values(builder, unit, face, frame, role, frame_section, files):
-    """R128. Prototype file, insert in plan, rotation and mirror of one plot, each only when its rule gives it."""
+def link_values(builder, unit, face, frame, role, frame_section, files, mirrored=None, fit_unit=None):
+    """R128. Prototype file, insert in plan, rotation and mirror of one plot, each only when its rule gives it. R279: a mirror
+    the hand rule gave is taken as it is, and fit_unit names the unit whose plotFrame fit a code with none of its own takes."""
     if unit in files:
         builder.entry["prototypeFile"] = sourced(files[unit])
     else:
@@ -117,11 +118,12 @@ def link_values(builder, unit, face, frame, role, frame_section, files):
         builder.lack("transform", "the face has no front edge")
         return
     sides = {code: {"drawnSide": value.get("drawnSide")} for code, value in frame_section["units"].items()}
-    mirrored = cad_links.mirror_of(unit, role, sides)
+    if mirrored is None:
+        mirrored = cad_links.mirror_of(fit_unit or unit, role, sides)
     if mirrored is None:
         builder.lack("mirrored", "no rule gives the mirror flag of " + unit + (" in no cluster" if role is None else " in this cluster"))
         return
-    fit = frame_section["units"].get(unit)
+    fit = frame_section["units"].get(fit_unit or unit)
     if fit is None:
         builder.lack("insert", "plotFrame holds no anchor and offset for " + unit)
         return

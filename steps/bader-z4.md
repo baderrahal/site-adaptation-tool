@@ -18,7 +18,7 @@ Invoke-Item "C:\Users\bader\Documents\SiteAdaptation\round_z4\images\testhost_Z4
 Invoke-Item "C:\Users\bader\Documents\SiteAdaptation\round_z4\images\testhost_K24_plan - Floor Plan - testhost K24 area.png"
 ```
 
-Or open the folder C:\Users\bader\Documents\SiteAdaptation\round_z4\images in VS Code (File, Open Folder) and click each PNG. Look at plots 2252 and 2253, 2021 and 2022, 2031 and 2032: there the past ramp sits on the other edge of the plot (question 37).
+Or open the folder C:\Users\bader\Documents\SiteAdaptation\round_z4\images in VS Code (File, Open Folder) and click each PNG. Look at plots 2252 and 2253, 2021 and 2022, 2031 and 2032: there the past ramp sits on the other edge of the plot (Q037).
 
 ## 3. Optional, open the new file in Revit 2024
 
@@ -43,11 +43,11 @@ Test-Path C:\Users\bader\Documents\SiteAdaptation\window.lock
 
 ## 5. Answer the questions
 
-Questions 33 to 41 of Your turn in steps/PROGRESS.md are new in this round, each with the recommended answer first.
+The questions this round added are Q028, Q032, Q033, Q034, Q035, Q037 and Q038 by fixed ID, each with the recommended answer first in Bader's turn of steps/PROGRESS.md. steps/questions-closed.md maps the old numbers 33 to 41 to these IDs.
 
 ## 6. When you no longer need the round files
 
-Delete the look copy of step 3 and, once question 41 is answered, the folder C:\Users\bader\Documents\SiteAdaptation\round_z4\work.
+Delete the look copy of step 3 and, once Q035 is answered, the folder C:\Users\bader\Documents\SiteAdaptation\round_z4\work.
 
 ```
 Remove-Item "C:\Users\bader\Documents\SiteAdaptation\round_z4\work\01101-PSN-Z4-LOOK.rvt"

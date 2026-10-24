@@ -8,6 +8,7 @@ import re
 import struct
 import sys
 import xml.etree.ElementTree as ElementTree
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import common
@@ -17,6 +18,7 @@ FREE, END, FAT_SECTOR, DIFAT_SECTOR = 0xFFFFFFFF, 0xFFFFFFFE, 0xFFFFFFFD, 0xFFFF
 NO_STREAM = 0xFFFFFFFF
 STREAM, ROOT = 2, 5
 ENTRY_SIZE = 128
+CLOSING = "</TransmissionData>"
 # The keys of BasicFileInfo this tool reports. Other lines of the stream are kept out (R3)
 INFO_KEYS = {
     "Worksharing": "worksharing",
@@ -106,7 +108,8 @@ class Compound:
             size = struct.unpack_from("<Q", raw, at + 120)[0]
             if self.sector == 512:
                 size &= 0xFFFFFFFF
-            entries.append({"name": name, "type": kind, "start": start_sector, "size": size})
+            created, modified = struct.unpack_from("<QQ", raw, at + 100)
+            entries.append({"name": name, "type": kind, "start": start_sector, "size": size, "created": created, "modified": modified})
         return entries
 
     def names(self):
@@ -158,8 +161,10 @@ def link_references(raw):
     at = text.find("<?xml")
     if at < 0:
         raise CfbError("TransmissionData holds no XML")
-    # The declaration names no encoding, so the text after it is parsed as it is
-    body = text[text.index("?>", at) + 2: text.rfind(">") + 1].strip()
+    # The declaration names no encoding, so the text after it is parsed as it is. R265. A stream rewritten shorter keeps the
+    # tail of its older XML after the closing tag, so the body ends at the first closing tag
+    end = text.find(CLOSING, at)
+    body = text[text.index("?>", at) + 2: end + len(CLOSING) if end >= 0 else text.rfind(">") + 1].strip()
     references = []
     for node in ElementTree.fromstring(body).iter("ExternalFileReference"):
         entry = {key: (node.findtext(tag) or "").strip() for tag, key in REFERENCE_KEYS.items()}
@@ -180,7 +185,22 @@ def read(path):
     info = basic_info(raw)
     links = link_references(compound.stream("TransmissionData"))
     return {"file": path.name, "bytes": len(data), "info": info, "references": links,
-            "revitLinks": [link for link in links if link["type"] == "Revit Link"]}
+            "revitLinks": [link for link in links if link["type"] == "Revit Link"], "storageTimes": storage_times(compound.entries)}
+
+
+def filetime(value):
+    """A Windows FILETIME, 100 ns steps since 1601, as UTC text to the minute, or None for 0."""
+    if not value:
+        return None
+    return (datetime(1601, 1, 1, tzinfo=timezone.utc) + timedelta(microseconds=value // 10)).strftime("%Y-%m-%d %H:%M")
+
+
+def storage_times(entries):
+    """R266. The earliest time a storage of the file was written and the latest it was changed. Revit writes the whole compound
+    file again on a save as, so the first is the save as that made the file and the second its last save."""
+    created = [entry["created"] for entry in entries if entry.get("created")]
+    modified = [entry["modified"] for entry in entries if entry.get("modified")]
+    return {"firstWritten": filetime(min(created)) if created else None, "lastSaved": filetime(max(modified)) if modified else None}
 
 
 def main(argv=None):

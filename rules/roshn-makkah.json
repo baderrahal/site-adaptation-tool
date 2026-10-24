@@ -141,5 +141,51 @@
     "boundary_wall_continuity_limit": 500,
     "garden_wall_top_above_ffl": 1700,
     "utility_cabinet_raise": 100
+  },
+  "hands": {
+    "source": "Round 17, the majority rule on the Parsons IMC key with the Prototypes_2024 files (R274). mirrored by the mirror flag of the Building Footprint block of the plot and its open end, the side of the row with no unit plot beside it, seen from the road. A pair the key never showed falls back to the block mirror flag alone",
+    "villa": {
+      "rule": "blockMirrorOpenEnd",
+      "share": 0.913,
+      "byCode": {"C10": {"blockMirrorOpenEnd": {"no left": false, "no none": false, "yes none": true, "yes right": true}, "blockMirror": {"no": false, "yes": true}}, "DP1": {"blockMirrorOpenEnd": {"no none": true, "yes none": false}, "blockMirror": {"no": true, "yes": false}}, "DP4": {"blockMirrorOpenEnd": {"yes left": false, "yes none": true}, "blockMirror": {"yes": false}}, "VD2": {"blockMirrorOpenEnd": {"no none": true, "no right": true, "yes left": false, "yes none": false}, "blockMirror": {"no": true, "yes": false}}, "VD4": {"blockMirrorOpenEnd": {"no none": true, "no right": true, "yes left": false, "yes none": false}, "blockMirror": {"no": true, "yes": false}}, "VL4": {"blockMirrorOpenEnd": {"no none": true, "no right": true, "yes left": false, "yes none": false}, "blockMirror": {"no": true, "yes": false}}, "VL6": {"blockMirrorOpenEnd": {"no left": true, "no none": true, "no right": false, "yes none": false, "yes right": false}, "blockMirror": {"no": true, "yes": false}}}
+    },
+    "alone": {
+      "rule": "blockMirrorOpenEnd",
+      "share": 0.938,
+      "byCode": {"DP2": {"blockMirrorOpenEnd": {"no none": false, "no right": true, "yes left": false}, "blockMirror": {"no": true, "yes": false}}, "DP4": {"blockMirrorOpenEnd": {"no none": false, "no right": true, "yes left": false, "yes none": true}, "blockMirror": {"no": false, "yes": false}}}
+    },
+    "cluster": {
+      "rule": "clusterSide",
+      "share": 0.981,
+      "note": "the drawn side of plotFrame in config/prototype_offsets.json, R123"
+    }
+,
+    "oldFiles": {"note": "Round 17 (R282). The hand of each old prototype file of the Native models of 2022 against the Prototypes_2024 files, by the rules both generations follow on one CAD reference: the cluster side for a cluster unit, the block mirror flag of the Building Footprint for a villa. same lists the codes whose 2024 file takes the same mirror on that reference, so it is drawn the same hand, opposite those drawn the other hand. A code in neither list has no common reference", "D2": {"same": ["DP1", "DP2", "DP3", "DP4"], "opposite": ["DT1", "DT3", "TH1", "TH3", "TH1-IM"]}, "D4": {"same": ["DP1", "DP2", "DP3", "DP4"], "opposite": ["DT1", "DT3", "TH1", "TH3", "TH1-IM"]}, "T1": {"same": ["DT1", "DT3", "TH1", "TH3", "TH1-IM"], "opposite": ["DP1", "DP2", "DP3", "DP4"]}, "T3": {"same": ["DT1", "DT3", "TH1", "TH3", "TH1-IM"], "opposite": ["DP1", "DP2", "DP3", "DP4"]}, "C1": {"same": ["C10"], "opposite": ["VD1", "VD2", "VD4", "VL4", "VL6"]}, "V2": {"same": ["C10"], "opposite": ["VD1", "VD2", "VD4", "VL4", "VL6"]}, "V3": {"same": ["C10"], "opposite": ["VD1", "VD2", "VD4", "VL4", "VL6"]}, "V4": {"same": ["VD1", "VD2", "VD4", "VL4", "VL6"], "opposite": ["C10"]}}
+  },
+  "levelProfiles": {
+    "note": "Round 17 (R277). The level rule of each generation of past site models, by name. No profile is the default, a plan from CAD names the profile it follows. Bader chooses (Q050).",
+    "parsons2024Rev6": {
+      "source": "the Parsons IMC key 01101-PSN-IMC-ZZZ-PIM-TU-000001 with its schedule, saved March 2024, prototypes of 2024-02-09",
+      "matches": "Rev 06 June 2024: base steps of steps.base_height, risers of steps.riser_added, steps by steps.count_rule, ramps 0.5 percent and 2 percent for the steep units",
+      "frontRoad": {"surface": "roadLevel", "offsetM": 0.0},
+      "rampSlopePercent": {"default": 0.5, "C10": 2.0, "VL4": 2.0, "VL6": 2.0},
+      "rampTypes": {"0.5": "Ramps 0.5%", "2": "Ramps 2%", "flat": "Flat Ramps"},
+      "height": "oneFflPerClusterAtTheHighestEntry",
+      "steps": "countRule",
+      "stepBands": [[0.205, 1], [0.38, 2], [99.0, 3]],
+      "yardBelowFflM": 0.1
+    },
+    "native2022": {
+      "source": "the Native site models of sub-phases 1.1 to 1.4, saved November and December 2022, prototypes of 2022-12-06",
+      "matches": "not Rev 06. Its ramps slope 2 percent on every unit and its heights over El @ Entry are no step rule, Rev 01 values are not in the repo. Its own ramp type was Ramps, a new file takes Ramps 2% of floors.types",
+      "frontRoad": {"surface": "Makkah Phase 1_Rough Grading__Total Top of Roads Subgrade (-0.70)", "offsetM": 0.7},
+      "rampSlopePercent": {"default": 2.0},
+      "rampTypes": {"2": "Ramps 2%"},
+      "height": "medianPerUnit",
+      "medianOf": "the Native plots by their Typology_Rev9 code, El @ Entry off its own ramp by more than majority.entryRampM left out",
+      "medianHeightM": {"C10": 0.1, "DP1": 0.24, "DP2": 0.12, "DP3": 0.24, "DP4": 0.12, "DT1": 0.254, "DT3": 0.244, "TH1": 0.297, "TH1-IM": 0.289, "TH3": 0.3, "VD1": 0.28, "VD2": 0.1, "VD4": 0.141, "VL4": 0.182, "VL6": 0.1},
+      "steps": null,
+      "yardBelowFflM": null
+    }
   }
 }

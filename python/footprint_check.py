@@ -229,7 +229,8 @@ def judge(results, units, learned, slack):
     rows.sort(key=lambda row: (row["pass"], -(row["residualM"] if row["residualM"] is not None else 1e9)))
     return {"pass": sum(1 for row in rows if row["pass"]), "fail": sum(1 for row in rows if not row["pass"]),
             "residualBands": dict(Counter(band(row["residualM"], OFFSET_BANDS, False) if row["residualM"] is not None else "noGroup" for row in rows)),
-            "shareBands": dict(Counter(band(row["share"], SHARE_BANDS, True) for row in rows)), "worst10": rows[:10]}
+            "shareBands": dict(Counter(band(row["share"], SHARE_BANDS, True) for row in rows)), "worst10": rows[:10],
+            "rows": [{"plot": row["plot"], "residualM": row["residualM"], "pass": row["pass"]} for row in rows]}
 
 
 def summary(results):
@@ -254,6 +255,23 @@ def run(outlines, sets, rows, index, faces, block):
     return report
 
 
+def load_and_run(settings, reads, key, key_plan, test, test_plan, plots_csv, blocks, baseplan, labels):
+    """R228, R229 from the file paths, also for the third check of placer_check.py (R262)."""
+    block = settings.get("siteBuild")["footprint"]
+    outlines = {}
+    for path in reads:
+        document = link_summary.load(path)["documents"][0]
+        outlines[Path(document["file"]).name.split("_TEST-")[0].lower() + ".rvt"] = house_outline(document, block["groundSpanM"])
+    numbers, _ = plan_from_past.location_numbers(labels)
+    by_label, _ = yard_rule.face_shapes(link_summary.load(baseplan)["plots"], 0)
+    faces = {numbers[label]: shape for label, shape in by_label.items() if label in numbers}
+    sets = {"key": (plan_from_past.host_of(link_summary.load(key)), link_summary.load(key_plan)),
+            "test": (plan_from_past.host_of(link_summary.load(test)), link_summary.load(test_plan))}
+    report = run(outlines, sets, footprints(plots_csv, faces), block_shapes(link_summary.load(blocks)["blocks"]), faces, block)
+    report["prototypeOutlinesM2"] = {name: round(shape.area, 2) if shape is not None else None for name, shape in outlines.items()}
+    return report
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Placed links against the CAD footprint blocks (R227 to R229).")
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH))
@@ -269,20 +287,10 @@ def main(argv=None):
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
     try:
-        block = project_profile.load_settings(args.settings).get("siteBuild")["footprint"]
         out = Path(args.out)
         plot_relations.refuse_inside_repo(out.resolve().parent)
-        outlines = {}
-        for path in args.prototype_reads:
-            document = link_summary.load(path)["documents"][0]
-            outlines[Path(document["file"]).name.split("_TEST-")[0].lower() + ".rvt"] = house_outline(document, block["groundSpanM"])
-        numbers, _ = plan_from_past.location_numbers(args.labels)
-        by_label, _ = yard_rule.face_shapes(link_summary.load(args.baseplan)["plots"], 0)
-        faces = {numbers[label]: shape for label, shape in by_label.items() if label in numbers}
-        sets = {"key": (plan_from_past.host_of(link_summary.load(args.key)), link_summary.load(args.key_plan)),
-                "test": (plan_from_past.host_of(link_summary.load(args.test)), link_summary.load(args.test_plan))}
-        report = run(outlines, sets, footprints(args.plots_csv, faces), block_shapes(link_summary.load(args.blocks)["blocks"]), faces, block)
-        report["prototypeOutlinesM2"] = {name: round(shape.area, 2) if shape is not None else None for name, shape in outlines.items()}
+        report = load_and_run(project_profile.load_settings(args.settings), args.prototype_reads, args.key, args.key_plan, args.test, args.test_plan,
+                              args.plots_csv, args.blocks, args.baseplan, args.labels)
         common.write_json(out, report)
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
         print("footprint_check: " + str(error), file=sys.stderr)

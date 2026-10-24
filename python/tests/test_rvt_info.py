@@ -85,3 +85,26 @@ def test_r203_main_reads_only_and_records_an_error_per_file(tmp_path):
     rows = json.loads(out.read_text(encoding="utf-8"))["files"]
     assert code == 1 and rows[0]["info"]["formatYear"] == 2021 and "error" in rows[1]
     assert good.read_bytes() == before
+
+
+def test_r265_a_transmission_stream_rewritten_shorter_is_read_up_to_its_first_closing_tag(tmp_path):
+    stale = XML[XML.index("<ExternalFileReference>", 100):]
+    path = model(tmp_path, [("BasicFileInfo", utf16(INFO)), ("TransmissionData", utf16(XML + "\r\n" + stale[40:], b"\x84-\x00\x00"))])
+
+    row = rvt_info.read(path)
+
+    assert [reference["file"] for reference in row["references"]] == ["RRE-WP-NSP-KEO-ARC-D4-ZZ-MOD-2400.rvt", "roads.dwg"]
+
+
+def test_r266_the_storage_times_give_the_save_as_that_wrote_the_file_and_its_last_save(tmp_path):
+    # 2022-11-10 06:40 and 2022-12-11 13:32 UTC as FILETIME
+    first, last = 133125360000000000, 133152391200000000
+    times = {"Root Entry": (0, last), "BasicFileInfo": (first, first + 10 ** 9)}
+    path = tmp_path / "site.rvt"
+    path.write_bytes(build([("BasicFileInfo", utf16(INFO)), ("TransmissionData", utf16(XML, b"\x84-\x00\x00"))], times))
+
+    row = rvt_info.read(path)
+
+    assert row["storageTimes"] == {"firstWritten": rvt_info.filetime(first), "lastSaved": rvt_info.filetime(last)}
+    assert rvt_info.filetime(first) == "2022-11-10 06:40" and rvt_info.filetime(last) == "2022-12-11 13:32"
+    assert rvt_info.filetime(0) is None

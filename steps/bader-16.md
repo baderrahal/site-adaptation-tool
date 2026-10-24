@@ -18,7 +18,7 @@ Invoke-Item "C:\Users\bader\Documents\SiteAdaptation\round_16\images\testhost_I1
 Invoke-Item "C:\Users\bader\Documents\SiteAdaptation\round_16\images\testhost_IMK_plan - Floor Plan - testhost IMK area.png"
 ```
 
-Or open the folder C:\Users\bader\Documents\SiteAdaptation\round_16\images in VS Code (File, Open Folder) and click each PNG. The villas and the duplex plots in no cluster are empty in the new file on purpose (questions 3 and 46).
+Or open the folder C:\Users\bader\Documents\SiteAdaptation\round_16\images in VS Code (File, Open Folder) and click each PNG. The villas and the duplex plots in no cluster are empty in the new file on purpose (Q003 and Q042).
 
 ## 3. Optional, open the new IMC file in Revit 2024
 
@@ -40,11 +40,11 @@ The first command must print False.
 
 ## 5. Answer the questions
 
-The new questions of Your turn in steps/PROGRESS.md are at the end of the list, each with the recommended answer first.
+The questions this round added or changed are Q037 to Q042 by fixed ID, each with the recommended answer first in Bader's turn of steps/PROGRESS.md. steps/questions-closed.md maps the old numbers to these IDs.
 
 ## 6. When you no longer need the round files
 
-Delete the look copy of step 3 and, once the last question is answered, the folders round_z4\work and round_16\work under C:\Users\bader\Documents\SiteAdaptation.
+Delete the look copy of step 3 and, once Q035 is answered, the folders round_z4\work and round_16\work under C:\Users\bader\Documents\SiteAdaptation.
 
 ```
 Remove-Item "C:\Users\bader\Documents\SiteAdaptation\round_16\work\01101-PSN-IMC-LOOK.rvt"

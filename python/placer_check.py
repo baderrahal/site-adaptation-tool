@@ -2,9 +2,12 @@
 
 It joins the links of prototypes_original_imc.json and testhost_<code>_prototypes.json by the official plot number,
 for the plots the plan gives that prototype file, and counts what matches. With --floors it checks the floors of a floor
-scenario the same way (R119). It changes nothing and fixes nothing.
+scenario the same way (R119). With --split it checks a whole built file against an answer key in three checks, plan
+position, level and the footprint as an edge test, and reads a key of the IMC or the Native dialect (R261 to R263).
+It changes nothing and fixes nothing.
 """
 import argparse
+import copy
 import math
 import random
 import sys
@@ -29,6 +32,7 @@ ORIGINAL_NAME = "prototypes_original_imc.json"
 FFL_PARAMETER = plan_from_past.FFL_PARAMETER
 NAME_PARAMETER = plan_from_past.NAME_PARAMETER
 EPS = 1e-9
+EQUAL_MM = 0.001
 
 
 def angle_gap(a, b):
@@ -627,8 +631,239 @@ def floors_main(args, job, folder, settings):
     return 0 if result["pass"] else 1
 
 
+# R261 to R263. The split check: plan position and level apart, the footprint as an edge test, and the Native dialect
+
+def load_split(settings):
+    """R261. The placerCheck block: bands and pass limit of the position and of the level check, and the key dialects."""
+    block = settings.get("placerCheck")
+    name = settings.path.name
+    if not isinstance(block, dict):
+        raise project_profile.ProfileError(name + " has no placerCheck block")
+    for check in ("position", "level"):
+        part = block.get(check)
+        if not isinstance(part, dict) or not isinstance(part.get("bandsMm"), list) or not part["bandsMm"] or part["bandsMm"][0] != 0:
+            raise project_profile.ProfileError(name + " placerCheck." + check + ".bandsMm must be a list of mm that starts with 0")
+        if not plan_from_past.is_number(part.get("passMm")) or part["passMm"] < 0:
+            raise project_profile.ProfileError(name + " placerCheck." + check + ".passMm must be mm of 0 or more")
+    dialects = block.get("dialects")
+    if not isinstance(dialects, dict) or not dialects:
+        raise project_profile.ProfileError(name + " placerCheck.dialects must name each key dialect")
+    for key, dialect in dialects.items():
+        if dialect.get("plot") not in ("parameter", "name") or dialect.get("datum") not in ("none", "surveyElevation"):
+            raise project_profile.ProfileError(name + " placerCheck.dialects." + key + " needs plot parameter or name and datum none or surveyElevation")
+    return block
+
+
+def dialect_floors(floors, dialect):
+    """The floors block a key is read with: the project floor types, or the types the dialect names, with no yard when it has none."""
+    if not dialect.get("floorTypes"):
+        return floors
+    types = {kind: list(dialect["floorTypes"].get(kind) or []) for kind in FLOOR_KINDS}
+    return dict(floors, types=types)
+
+
+def key_views(data, dialect, floors, faces=None, numbers=None):
+    """R261, R263. Each plot of the answer key: link file, origin in shared coordinates less the datum, plan rotation, mirror
+    and FFL, the Generic floor top less the datum. A Native key holds its plot in the link Name and its floors by type FFL
+    and Ramps, so its links and floors get the official number by the face of their FFL floor (R206) first."""
+    data = copy.deepcopy(data)
+    mapping = None
+    if dialect["plot"] == "name":
+        data, _, mapping = plan_from_past.names_dialect(data, floors, faces, numbers)
+    document = plan_from_past.host_of(data)
+    offset = ramp_levels.offset_of(document)
+    datum = offset[2] if dialect["datum"] == "surveyElevation" else 0.0
+    views, twice = {}, Counter()
+    for link in document.get("links") or []:
+        plot = plan_from_past.plot_number((link.get("parameters") or {}).get(plan_from_past.PLOT_PARAMETER))
+        if plot is None:
+            continue
+        twice[plot] += 1
+        views[plot] = view_of(link, offset, datum)
+    for floor in document.get("floors") or []:
+        plot = plan_from_past.plot_number(link_summary.floor_plot(floor))
+        if plot in views and plan_from_past.kind_of(floor, floors) == "generic":
+            views[plot]["ffl"] = plot_relations.top_range(floor, offset)[1] - datum
+    for plot, count in twice.items():
+        if count > 1:
+            views[plot]["twice"] = True
+    return views, {"datumM": common.r3(datum), "names": mapping}
+
+
+def view_of(link, offset, datum=0.0):
+    transform = link.get("transform") or {}
+    origin = plan_from_past.shared_origin(link, offset)
+    if origin is not None:
+        origin = [origin[0], origin[1], origin[2] - datum]
+    rotation = transform.get("rotationDeg")
+    return {"file": link.get("file"), "origin": origin, "rotation": None if rotation is None else plan_from_past.plan_rotation(rotation),
+            "mirrored": transform.get("mirrored"), "ffl": None}
+
+
+def test_views(data):
+    """The links of a file this tool built, by their plot number parameter, origin in shared coordinates."""
+    document = plan_from_past.host_of(data)
+    offset = ramp_levels.offset_of(document)
+    views = {}
+    for link in document.get("links") or []:
+        plot = plan_from_past.plot_number((link.get("parameters") or {}).get(plan_from_past.PLOT_PARAMETER))
+        if plot is not None:
+            views.setdefault(plot, []).append(view_of(link, offset))
+    return views
+
+
+def band_of(gap_mm, bands):
+    """equal at 0, then within<n>mm for the first band that holds the gap, else worse."""
+    if gap_mm is None:
+        return "notCompared"
+    # Shared coordinates near 2.4e6 m carry float noise, so equal is held to a thousandth of a mm as in R215
+    if gap_mm <= EQUAL_MM:
+        return "equal"
+    for limit in bands[1:]:
+        if gap_mm <= limit + 1e-6:
+            return "within%gmm" % limit
+    return "worse"
+
+
+def split_compare(plan, key, test, block):
+    """R261. Plan position (X and Y against the key link) and level (link Z against the key FFL and against the plan FFL) as two
+    checks with their own bands and pass rule. Rotation and mirror are counted with the position, and a link of another file
+    than the key is counted apart, its origin sits elsewhere in the house."""
+    expected = {entry["plot"]: entry for entry in plan["plots"] if (entry.get("prototypeFile") or {}).get("value")}
+    position, level, to_plan = Counter(), Counter(), Counter()
+    orientation = Counter()
+    worst_position, worst_level, rows = [], [], []
+    plots = Counter()
+    for plot in sorted(expected, key=link_summary.sort_key):
+        mine = test.get(plot, [])
+        if not mine:
+            plots["missing"] += 1
+            continue
+        if len(mine) > 1:
+            plots["placedTwice"] += 1
+            continue
+        plots["placed"] += 1
+        new, old = mine[0], key.get(plot)
+        planned_ffl = ((expected[plot].get("levels") or {}).get("ffl") or {}).get("value")
+        z_plan = None if new["origin"] is None or planned_ffl is None else abs(new["origin"][2] - planned_ffl) * 1000.0
+        to_plan[band_of(z_plan, block["level"]["bandsMm"])] += 1
+        if old is None or old.get("twice"):
+            plots["noSingleKeyLink"] += 1
+            continue
+        plots["compared"] += 1
+        same = (old["file"] or "").lower() == (new["file"] or "").lower()
+        orientation["fileEqual" if same else "fileDiffers"] += 1
+        gap = None if new["origin"] is None or old["origin"] is None else math.dist(new["origin"][:2], old["origin"][:2]) * 1000.0
+        name = band_of(gap, block["position"]["bandsMm"])
+        position[name if same else "otherFile " + name] += 1
+        if gap is not None:
+            worst_position.append((gap, plot))
+        turn = None if new["rotation"] is None or old["rotation"] is None else angle_gap(new["rotation"], old["rotation"])
+        orientation["rotationEqual" if turn is not None and turn <= ANGLE_TOLERANCE + EPS else "rotationDiffers"] += 1
+        orientation["mirroredEqual" if old["mirrored"] is not None and old["mirrored"] == new["mirrored"] else "mirroredDiffers"] += 1
+        z_key = None if new["origin"] is None or old["ffl"] is None else abs(new["origin"][2] - old["ffl"]) * 1000.0
+        level[band_of(z_key, block["level"]["bandsMm"])] += 1
+        if z_key is not None:
+            worst_level.append((z_key, plot))
+        rows.append({"plot": plot, "positionMm": None if gap is None else common.r3(gap), "levelMm": None if z_key is None else common.r3(z_key), "sameFile": same})
+    n = len(expected)
+    worst_position.sort(reverse=True)
+    worst_level.sort(reverse=True)
+    position_ok = sum(count for label, count in position.items() if not label.startswith("otherFile") and within_pass(label, block["position"]["passMm"]))
+    level_ok = sum(count for label, count in level.items() if within_pass(label, block["level"]["passMm"]))
+    plan_ok = sum(count for label, count in to_plan.items() if within_pass(label, block["level"]["passMm"]))
+    placed_ok = plots["placed"] == n and not plots["missing"] and not plots["placedTwice"]
+    return {
+        "plots": dict(plots, expected=n),
+        "position": {"bands": dict(position), "passMm": block["position"]["passMm"], "withinPass": position_ok,
+                     "rotationAndMirror": dict(orientation), "worst": [{"plot": plot, "mm": common.r3(gap)} for gap, plot in worst_position[:WORST]],
+                     "pass": bool(placed_ok and position_ok == n and orientation["rotationEqual"] == n and orientation["mirroredEqual"] == n)},
+        "level": {"againstKeyFfl": dict(level), "againstPlanFfl": dict(to_plan), "passMm": block["level"]["passMm"], "withinPassOfKey": level_ok,
+                  "withinPassOfPlan": plan_ok, "worst": [{"plot": plot, "mm": common.r3(gap)} for gap, plot in worst_level[:WORST]],
+                  "pass": bool(placed_ok and level_ok == n)},
+        "rows": rows,
+    }
+
+
+def within_pass(label, limit):
+    if label == "equal":
+        return True
+    if label.startswith("within") and label.endswith("mm"):
+        return float(label[len("within"):-2]) <= limit + EPS
+    return False
+
+
+def footprint_part(report):
+    """R262. The footprint test of R227 to R229 as the third check. It sees a link on the wrong edge or far off its block, and a
+    mirrored house only where the unit is not near symmetric across its front, so it is an edge test and never a hand test."""
+    judged = report["testJudged"]
+    return {"edgeOnly": True, "note": "the footprint test cannot see a wrong hand on a near symmetric unit, it checks the edge and the place",
+            "measured": report["test"]["measured"], "notMeasured": report["test"]["notMeasured"], "pass": judged["fail"] == 0 and report["test"]["measured"] > 0,
+            "passed": judged["pass"], "failed": judged["fail"], "residualBands": judged["residualBands"], "worst": judged["worst10"][:WORST]}
+
+
+def split_main(args, settings):
+    block = load_split(settings)
+    floors = plan_from_past.load_floors(settings)
+    if args.dialect not in block["dialects"]:
+        print("placerCheck.dialects has no " + args.dialect, file=sys.stderr)
+        return 2
+    dialect = block["dialects"][args.dialect]
+    key_floors = dialect_floors(floors, dialect)
+    out = Path(args.out)
+    plot_relations.refuse_inside_repo(out.resolve().parent)
+    faces = numbers = None
+    if dialect["plot"] == "name":
+        if not args.labels or not args.baseplan:
+            print("a key of plot by name needs --labels and --baseplan", file=sys.stderr)
+            return 2
+        numbers, _ = plan_from_past.location_numbers(args.labels)
+        faces, _ = yard_rule.face_shapes(link_summary.load(args.baseplan)["plots"], 0)
+    plan = link_summary.load(args.plan)
+    key, key_info = key_views(link_summary.load(args.original), dialect, key_floors, faces, numbers)
+    result = split_compare(plan, key, test_views(link_summary.load(args.test)), block)
+    result["dialect"] = args.dialect
+    result["keyDatumM"] = key_info["datumM"]
+    result["keyNames"] = key_info["names"]
+    if args.footprint_reads:
+        import footprint_check
+        result["footprint"] = footprint_part(footprint_check.load_and_run(settings, args.footprint_reads, args.footprint_key, args.footprint_key_plan, args.test, args.plan,
+                                                                          args.plots_csv, args.blocks, args.baseplan, args.labels))
+    common.write_json(out, result)
+    print("%s, %s key, datum %s m" % (args.code, args.dialect, result["keyDatumM"]))
+    print("plots %s" % result["plots"])
+    for name in ("position", "level"):
+        part = result[name]
+        print("%s %s, %s" % (name, "PASS" if part["pass"] else "FAIL", {key: value for key, value in part.items() if key not in ("pass", "worst")}))
+        print("  worst %s" % part["worst"])
+    if "footprint" in result:
+        part = result["footprint"]
+        print("footprint, edge only, %s: passed %d, failed %d, %s" % ("PASS" if part["pass"] else "FAIL", part["passed"], part["failed"], part["residualBands"]))
+    print(out)
+    return 0
+
+
 def main(argv=None):
     settings = project_profile.load_settings()
+    if argv is None:
+        argv = sys.argv[1:]
+    if "--split" in argv:
+        parser = argparse.ArgumentParser(description="The split check of a built file against an answer key (R261 to R263).")
+        parser.add_argument("code", help="a label of the run, such as I16")
+        parser.add_argument("--split", action="store_true")
+        parser.add_argument("--plan", required=True, help="the plan the file was built from")
+        parser.add_argument("--original", required=True, help="the reader output of the answer key")
+        parser.add_argument("--test", required=True, help="the reader output of the built file")
+        parser.add_argument("--dialect", required=True, help="a key dialect of placerCheck.dialects")
+        parser.add_argument("--labels", help="labels.csv of the location plan, for a key of plot by name")
+        parser.add_argument("--baseplan", help="plots.json of the baseplan")
+        parser.add_argument("--footprint-reads", nargs="*", help="R262. testhost_P<code>_prototypes.json of each prototype")
+        parser.add_argument("--footprint-key", help="the reader output of a key whose links are right and whose prototypes are read")
+        parser.add_argument("--footprint-key-plan", help="the plan of that key")
+        parser.add_argument("--plots-csv")
+        parser.add_argument("--blocks")
+        parser.add_argument("--out", required=True)
+        return split_main(parser.parse_args(argv), settings)
     job = plan_from_past.load_job(settings)
     folder = Path(job["output"]).parent
     parser = argparse.ArgumentParser(description="Check one test host run of one prototype against the answer key.")
