@@ -3,6 +3,7 @@ import math
 
 import pytest
 
+import plan_compare
 import plan_from_past as pf
 import project_profile
 
@@ -304,3 +305,50 @@ def test_r82_a_difference_over_1_mm_is_a_conflict_and_links_without_transform_sh
     assert plan["summary"]["positionProof"]["links"] == 1
     assert [(item["plot"], item["field"]) for item in plan["conflicts"]] == [("101", "insert")]
     assert by_plot(plan)["102"]["insert"]["value"][:2] == [1050.0, 2000.0]
+
+
+def placed_model(links, floors):
+    """prototypes.json of a model the placer built from a plan of the same links."""
+    return document(links, floors)
+
+
+def test_r89_a_model_built_from_the_plan_matches_on_every_field():
+    links = [link("101", x=3.0, rotation=210.106, mirrored=True), link("102", x=50)]
+    floors = plot_floors("101", 0, 10) + plot_floors("102", 50, 20)
+    plan = build(links, floors, [row("101"), row("102")])
+    report = plan_compare.compare(plan, placed_model(links, floors))
+    assert report["fullMatch"] == 2
+    assert report["matches"] == dict.fromkeys(plan_compare.FIELDS, 2)
+    assert report["differing"] == []
+
+
+def test_r89_each_field_that_differs_is_counted_and_its_plot_listed():
+    links = [link("101"), link("102", x=50), link("103", x=100)]
+    floors = plot_floors("101", 0, 10) + plot_floors("102", 50, 20) + plot_floors("103", 100, 30)
+    plan = build(links, floors, [row("101"), row("102"), row("103")])
+    placed = [link("101", x=0.0012, rotation=30.02), link("102", x=50, mirrored=True, file="KEO-ARC-DP4-ZZ.rvt"), link("103", x=100, steps="2"), link("104", x=150)]
+    report = plan_compare.compare(plan, placed_model(placed, floors))
+    differs = {item["plot"]: item["differs"] for item in report["differing"]}
+    assert set(differs["101"]) == {"position", "rotation"}
+    assert differs["101"]["position"] == "1.2 mm off"
+    assert set(differs["102"]) == {"mirrored", "file"}
+    assert differs["103"] == {"parameters": "differ: RRE_ZZ_SP_Number-of-Steps"}
+    assert report["mismatches"] == {"link": 0, "file": 1, "position": 1, "rotation": 1, "mirrored": 1, "parameters": 1}
+    assert report["linksNotInPlan"] == ["104"]
+    assert report["fullMatch"] == 0
+
+
+def test_r89_a_plot_with_no_link_or_two_links_is_a_link_mismatch_only():
+    links = [link("101"), link("102", x=50)]
+    floors = plot_floors("101", 0, 10) + plot_floors("102", 50, 20)
+    plan = build(links, floors, [row("101"), row("102")])
+    report = plan_compare.compare(plan, placed_model([link("102", x=50), link("102", x=50)], floors))
+    assert report["mismatches"]["link"] == 2
+    assert sum(report["matches"].values()) == 0
+
+
+def test_r89_the_report_is_never_written_inside_the_repo(tmp_path):
+    plan = tmp_path / "plan.json"
+    plan.write_text("{}", encoding="utf-8")
+    with pytest.raises(ValueError, match="inside"):
+        plan_compare.main([str(plan), str(project_profile.ROOT / "prototypes.json")])
