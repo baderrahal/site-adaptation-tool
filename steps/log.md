@@ -5,8 +5,11 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 ## Round 15b, 2026-10-24, placer step 2, Generic, yard and ramp floors, eight scenarios in Revit
 
 Done:
-- Session started in the 15a folder while the 15a session was busy there, so that folder was only read. Work in the main folder on feat/placer-floors-15b. The main guard hook reads the branch of the start folder, which went back to main, so it blocked every commit of this session. Nothing was committed around it. Plan written before the first edit. Gate A passed 08:22 (PR 18, main 6e0da3d). Gate B passed, 13 prototypes Format 2024 by BasicFileInfo, no Revit running. Free memory 3 to 3.6 GB, so one window at a time. Full record: steps/history/round-15b.md
-- Gate: Python 620 to 673 passed and 1 skipped (no symlink rights), .NET 319 to 347 passed, locally
+- Session started in the 15a folder while the 15a session was busy there, so that folder was only read. Work in the main folder on feat/placer-floors-15b. The main guard hook read the branch of the start folder, which went back to main, so it blocked every commit of this session. At Bader's answer the first commit went through a script that refuses main, PR 19. Plan written before the first edit. Gate A passed 08:22 (PR 18, main 6e0da3d). Gate B passed, 13 prototypes Format 2024 by BasicFileInfo, no Revit running. Free memory was 3 to 3.6 GB the whole round, under the 8 GB of R110, so every Revit run was one window alone. Full record: steps/history/round-15b.md
+- Gate: Python 620 to 680 passed and 1 skipped (no symlink rights), .NET 319 to 347 passed, locally
+- Hook fix (Bader answer 2): guard-main.sh now takes the branch of the repo each git command acts on (cd, Set-Location, git -C, the hook cwd), not of the start folder. It splits on separators outside quotes, so a message or a heredoc that holds the words is no command, and walks bash -c and powershell -Command. Tests on real repos: a session started on main elsewhere, a worktree, git -C, cd, PowerShell paths, push, main blocked. A 27 KB command with 280 git segments takes 0.6 s. The second commit went through the fixed hook: it was copied into the 15a folder this session loads its hook from, and a commit on main there was blocked by it
+- link_summary.py takes the Generic and yard type names from config/project.json floors (answer 6), no Python file holds a floor type name now
+- Plot 2311 (answer 4), read in the baseplan output: face 326 holds one text, OS 326, an open space of 150 m2, and face 2301 holds VL4 2301, 300 m2. The labels are right and no face holds two plots. The past model sets its DP2 pair 2311 and 2312 half a plot over: each Generic floor lies 0.5 on face 2301 and 0.5 on face 326 or 2302, and the link of 2311 stands in face 326. So in that block the baseplan cut (two VL4 plots and an open space) is not the plot cut of the past model. 10 more Generic floors lie 0.75 to 0.83 on one face (2375 to 2378, 2387 to 2390, 2544, 2545), their yards still resolve. The yard rule is not changed
 - Rules R111 to R119: yard rule, floors in the plan, floor step and its stops, plot value and skip with ramp corners, geometry, run and report, test host floor jobs, work file life cycle, floor check
 - Plan: 337 plots, Generic 336, yard 336, ramp 337 (Ramps 0.5% 280, Ramps 2% 47, Flat Ramps 10). Yard rule: 337 yards assigned, 0 ties, 0 low share, 1 goes to official 336, which is no plan plot. Listed: 2441 no Generic floor, 2311 no yard. No arc in the past model. 47 yards are two pieces, both kept
 - API: Floor.Create with CurveLoops of Line.CreateBound and Arc.Create through 3 points, FLOOR_HEIGHTABOVELEVEL_PARAM, and for ramps SlabShapeEditor.Enable and ModifySubElement per corner from the lowest corner, because the past ramps are shape edited and this sets each corner exactly. Two regenerations per run
@@ -27,13 +30,13 @@ Done:
 - Deleted: the 27 TEST files of the 15a test, 1,413,824,512 bytes, each listed in the history file, then the work files S1 to S8 after their checks. Left: 01101-PSN-IMC-ZZZ-PIM-TU-000001_TEST-MASTER.rvt, 48,742,400 bytes, links unloaded, no floor of the five types. The site model was unchanged by hash after every run
 
 Remains:
-- Commit, push, pull request, gate on GitHub and merge, blocked by the hook (question 1)
+- After the merge: delete the 15a folder and the 13 _backup folders of Prototypes_2024 (answer 7), listed in the reply of the round
 - Not run: parallel windows (memory under 8 GB), a plan with arcs in Revit (the past model has none, proven on fakes only)
 
 Known bugs:
-- 288 yard tops differ from the past model: it has FFL minus 0.100 on TH1, TH3, VL6 and the FFL on every other unit
-- Each full run gives 767 Revit warnings Highlighted floors overlap. The outlines are the past ones to 0 mm
-- link_summary.py still holds the Generic and yard type names of round 7, the new code reads config only
+- Yard depth, a question for the architect: the plan keeps FFL minus 0.100 on every yard (Bader). The past model has FFL minus 0.100 on TH1, TH3 and VL6 only and the FFL on every other unit, so 288 yard tops differ from it and are counted as past data
+- Past model data: each full run gives 767 Revit warnings Highlighted floors overlap, since the floors are placed on the outlines of the past model to 0 mm and those overlap there too
+- The past plots 2311 and 2312 do not follow the baseplan cut, so plot 2311 has no yard (see Done)
 - A second piece of a floor comes from the top face outline, so an arc on it would be chords
 
 Next:
@@ -41,11 +44,9 @@ Next:
 - Fill plan.json from CAD and LandXML in the same format
 
 Your turn:
-1. The hook blocks my commits. Recommended: let me commit and push from the main folder with a script that refuses main, then open the PR, run the gate and merge. Else start a session in the main folder
-2. Yard depth. Recommended: ask the architect whether it is per unit, keep FFL minus 0.100 until then
-3. Plot 2311. Recommended: check the baseplan label 326 beside plot 2301, it holds the yard and half the Generic floor of 2311
-4. floors.yardMinShare 0.5, added after the review. Recommended: keep it, every real yard holds 0.549 or more
-5. The 15a folder and the 13 _backup folders in Prototypes_2024. Recommended: delete both after this merge
+1. Ask the architect for the yard depth per unit. Recommended: ask with the list above, the plan keeps FFL minus 0.100 until the answer
+2. Plots 2311 and 2312. Recommended: ask which plot cut is current in that block, the baseplan (VL4 2301, VL4 2302, OS 326) or the past model (DP2 pair), before the CAD plan is built for it
+3. Free memory for the parallel windows. Recommended: close what you can so more than 8 GB is free before the combined test
 
 ## Round 15a test, 2026-10-24, the test host drives Revit, one prototype per run
 

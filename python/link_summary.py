@@ -3,8 +3,10 @@ import json
 import re
 import sys
 from collections import Counter
+from functools import lru_cache
 from pathlib import Path
 
+import project_profile
 from common import write_json
 
 FFL_TOLERANCE = 0.0015
@@ -19,8 +21,6 @@ EXCEL_UNIT = "Unit"
 EXCEL_FFL = "FFL"
 EXCEL_STEPS = "Steps Needed"
 LEVEL_TOLERANCE = 0.0005
-GENERIC_TYPE = "Generic 150mm"
-YARD_TYPE = "yard"
 
 
 def drop_instances(node):
@@ -247,13 +247,21 @@ def floor_plot(floor):
     return str(text).rpartition("-")[2] if text and "-" in str(text) else None
 
 
+@lru_cache(maxsize=1)
+def floor_types():
+    """The Generic and yard type names of floors.types in config/project.json (R112). A yard name matches without case, as before."""
+    types = project_profile.load_settings().values["floors"]["types"]
+    return frozenset(types["generic"]), frozenset(name.lower() for name in types["yard"])
+
+
 def floor_kind(floor):
     name = str(floor.get("typeName") or "")
     if is_ramp(floor):
         return "ramp"
-    if name == GENERIC_TYPE:
+    generic, yard = floor_types()
+    if name in generic:
         return "generic"
-    return "yard" if name.lower() == YARD_TYPE else None
+    return "yard" if name.lower() in yard else None
 
 
 def floor_count_check(floors):

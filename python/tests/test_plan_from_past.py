@@ -255,11 +255,21 @@ def test_r112_the_real_settings_name_the_five_floor_types_and_no_python_file_doe
     names = [name for kind in pf.FLOOR_KINDS for name in floors["types"][kind]]
     assert len(names) == 5
     for path in (project_profile.ROOT / "python").glob("*.py"):
-        if path.name == "link_summary.py":
-            continue
         text = path.read_text(encoding="utf-8")
         # A type name that is also the name of a kind, such as yard, cannot be told from the kind in code
         assert not [name for name in names if name not in pf.FLOOR_KINDS and '"' + name + '"' in text], path.name
+
+
+def test_r112_link_summary_takes_the_generic_and_yard_names_from_the_config(monkeypatch):
+    import link_summary
+    monkeypatch.setattr(link_summary, "floor_types", lambda: (frozenset({"Slab G"}), frozenset({"yard y"})))
+    assert link_summary.floor_kind({"typeName": "Slab G"}) == "generic"
+    assert link_summary.floor_kind({"typeName": "Yard Y"}) == "yard"
+    assert link_summary.floor_kind({"typeName": "Ramp B"}) == "ramp"
+    assert link_summary.floor_kind({"typeName": "Generic 150mm"}) is None
+    monkeypatch.undo()
+    real = pf.load_floors(project_profile.load_settings())["types"]
+    assert link_summary.floor_types() == (frozenset(real["generic"]), frozenset(name.lower() for name in real["yard"]))
 
 
 def test_r80_prototype_ffl_is_never_a_parameter_to_write():

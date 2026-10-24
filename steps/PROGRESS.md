@@ -18,12 +18,12 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 - Rounds 12, 11 and 10 are PRs 14, 13 and 12. Round 9 (floor, ramp and link relations) is PR 11 and its Revit code has NOT run in Revit yet.
 - Top Surface-02 is the finished road for the ramps (Bader decided). The other five design surfaces are not confirmed.
 - Readers: CAD (C#, ACadSharp), PDF, Excel, link table, second source check, face reasons, LandXML, surface lookup, ramp levels, surface roles, road check, cluster analysis, block scan, levels, the proofs, plan builder, plan compare and full run (Python).
-- Gate: Python 673 passed and 1 skipped, .NET 347 passed.
+- Gate: Python 680 passed and 1 skipped, .NET 347 passed.
 - Real files stay in C:\02-Site Adaptation and C:\Users\bader\Documents\SiteAdaptation and are read in place. Nothing real is in git.
 
 ## Done
 
-- Round 15b: R111 to R119, floors in the plan and the placer, eight scenarios in Revit. Python 620 to 673, .NET 319 to 347. Not committed yet, the hook blocked the session (log question 1).
+- Round 15b: R111 to R119, floors in the plan and the placer, eight scenarios in Revit. Python 620 to 680, .NET 319 to 347, PR 19. The main guard hook now checks the repo each git command acts on.
 - Round 15a test: R102 to R110, the test host, the watcher, the upgrade job, the registry hook. Python 573 to 620 and .NET 205 to 319 after the merge with Round 13.
 - Round 12b: R73 to R77, R62 R64 R67 R69 updated. Python 323 to 425 on its own. Round 15a: R80 to R89, the placer, the plan builder and compare. Python 323 to 366, .NET 155 to 205 on its own.
 - Round 12: R67 to R72, the corrected Rev 6 profile, drawing roles in config/project.json. Round 11: R63 to R66. Round 10: profile and loader (R62). Round 9: R51 to R61.
@@ -41,11 +41,11 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 - The placer stops on an angle to true north other than 0. The reader, the placer, the test host and the watcher share one SiteAdaptation.Common.dll, so all come from one build.
 - Unproven in Revit: the parallel windows of R110, the round 9 code. 1 of 987 spots has no host (element 996508). Four Always Load answers of other add-ins were removed from the registry by my install of 24 Oct, Bader keeps them off.
 - Plot numbers in analysis.json are baseplan labels. 12 plots fail the location check. Sheet 009027 plot 2549 and sheet 009028 plot 2589 hold bad values in the source.
-- The main guard hook only loads in a session that starts inside the repo.
+- The main guard hook only loads in a session that starts inside the repo, and a session runs the hook file of the folder it started in.
 
 ## Bader's turn
 
-1. Answer the questions of the Round 15b entry in steps/log.md, first the commit block, then the yard depth.
+1. Answer the questions of the Round 15b entry in steps/log.md, first the yard depth for the architect, then the plot cut of 2311 and 2312.
 2. Answer the open questions of the Round 15a test and Round 13 entries, first the free memory for the parallel windows and the entry rule.
 3. Restore the Generic 150mm floor of plot 2441, then run steps/for-bader-round-9.md and give me the File size line and plot_relations_summary.md.
 
