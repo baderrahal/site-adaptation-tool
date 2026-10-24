@@ -1,4 +1,4 @@
-STATE 2026-10-24 21:40, Round DATA-2 done with Parts W and L, the full Civil 3D read ran, every source is wired by its best method and the Zone 4 location plan ties every plot to Rev 9
+STATE 2026-10-24 21:50, Round DATA-2 done and merged (PR 28) with Parts A, B, W and L, the data book is read in full, wired by the best method per source and tied to Rev 9 by the Zone 4 location plan
 
 # Progress
 
@@ -15,7 +15,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 
 ## Done
 
-- DATA-2: R169 to R184. DATA: R160 to R168, PR 26. 14c: R131 to R139, PR 24, 25. C3D: R150 to R159, PR 22, 23. 14: R120 to R130, PR 20, 21. 15b: PR 19. 1 to 15a: PRs 1 to 18
+- DATA-2: R169 to R184, PR 28. DATA: R160 to R168, PR 26. 14c: R131 to R139, PR 24, 25. C3D: R150 to R159, PR 22, 23. 14: R120 to R130, PR 20, 21. 15b: PR 19. 1 to 15a: PRs 1 to 18
 
 ## Open bugs
 
