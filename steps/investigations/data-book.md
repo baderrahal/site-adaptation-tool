@@ -1,4 +1,4 @@
-# Data book, rounds DATA to DATA-4, 2026-10-24
+# Data book, rounds DATA to DATA-5, 2026-10-24 to 2026-10-25
 
 The data book lives outside the repo in Documents\SiteAdaptation\data_book. Counts and distances only here, no coordinates or levels. The 15 sources and the 15 working copies hash the same before and after rounds DATA and DATA-2, the 10 sources and copies of DATA-3 the same before and after DATA-3.
 
@@ -186,3 +186,147 @@ Every DWG, XML and workbook under the source root and the two prototypes, 167 fi
 ### Second method (R250)
 
 - Parcels: seeds 14 and 7, 20 unit plots each, parcel, location plan number and class 20 of 20. The VL6 hand from the reader rows: the gate shares of both prototypes and the verdict agree. The best surface version (snapped road level): bands 20 of 20 at both seeds by brute force.
+
+## Round DATA-5, the audit of DATA-4, the missing xrefs, the reader counts, the area key, the IFC and the coverage
+
+All 576 files under the source root and the IFC in Downloads hash the same before and after the round. The 170 copies of the data book and the new IFC copy (work\Downloads) equal their source after. Five Civil 3D windows, one at a time under the shared lock (round DATA-5), only in our own process: the first stopped at the 2 GB floor after 16 s (free 4.24 GB at the start, 1.65 GB lowest, copy unchanged, its two lock files removed), then Road Surface 30 s, Road Layout 25 s, Rough Grading 25 s, the Base Plans road layout 30 s, lowest free 2.05 to 3.00 GB. Road Layout and Rough Grading ended with 0xC0000005 and 0xC0000409 after C3DQUIT, after the DXF was written. The watcher answered Annotation Scale - Large Number of Scales with No once and the probe dialog with Load Once four times. The registry was not read or written.
+
+### Part Q, the audit of DATA-4 (R251)
+
+- The 115 rows of parcel_redo.csv: 97 plots hold a shape, number or code verdict (87 shape only, 4 shape and code, 1 shape, number and code, 1 shape and number, 1 shape and the PDF number, 3 shape and DWG text) and 18 hold only the DWG unit text (16 TH1, 2 TH3). DATA-4 added the verdicts up, 97 shape, 3 number (2 real, 1 PDF read) and 5 code, to 105, but every number and code verdict sits on a plot that also differs in shape. So 97 plots, not 105, and the other 18, not 10, are the DWG text plots.
+- The sixth parcel code difference is plot 2302 (a VL4 face, Typology_Rev9 DP2). Its face holds two location plan numbers (2312 and 216), so the PDF compare had no code to compare (noLabel) and only a shape verdict was set. The parcel that matches the face is 216, an OS parcel. Four of the five real code differences are the same case, an OS parcel on a face with two plan numbers. Only plot 1759 (DP2 to VD4, one plan number) is a code change on its own.
+- Recount: 29 of 30 counts the DATA-4 records give equal the tables. The one that does not is the 105 above. Counted from parcels.csv alone 5 of them fall short (shape 62 against 65, no face 35 against 32, numbers 2,550 and 4 against 2,554 and 5, codes 2,551 against 2,554), since 8 unit plots share their parcel with another face and parcels.csv names one face per parcel. rev9_parcels.py now also writes parcel_matches.csv, one row per face, the three old outputs byte equal. Seeds 14 and 7: 20 of 20 recounted plots equal their stored classes.
+
+### Part X, the four missing xrefs (R252)
+
+| Xref | Asked by | Path asked | Inserts in model space | Found |
+|---|---|---|---|---|
+| Makkah Phase 1_Road Layout_new | R06 | .\Makkah Phase 1_Road Layout_new.dwg | 1, at the origin, scale 1 | no |
+| the same | R06_0000 | the same | 0 | no |
+| the same | R06_0001 | the same | 0 | no |
+| XR-TITLE BLOCK | Typical Cross Sections | XR-TITLE BLOCK.dwg | 0 | no |
+
+- Searched by file name under the source root (Native Files and 01_Output included), Downloads and the data book work folder, 15 drawings read, 7 xrefs, the 3 of the baseplan found. Nearest names of the road xref: the two road layouts on disk. Downloads holds a ZONE 1 CAD Title Block.dwg, another name, not opened.
+- What they hold inside Phase 1 cannot be read without the files. The road xref sits at the origin at scale 1, so it keeps its own coordinates. R06 was saved 2022-12-29 22:59. Both road layouts on disk were created 2021-11-27 04:30 like R06 and saved later (Base Plans 2023-01-31 01:49, Roads 2023-03-06 17:29), so the _new layout R06 asked for is older than both. The title block xref has no model space insert and holds no plan data.
+- R06_0000 and R06_0001 carry a header save of 2026-10-22, the day the folder came to this machine (file time 14:29 +03, header time 23:29 as CadReader reads it, the two do not agree). They look like local saves of R06, not client files.
+
+### Part C, the reader counts and the two road layouts (R253 to R255)
+
+Third count: DXFOUT of each copy in our own window, read as plain group code pairs, every insert expanded through its blocks. Rows per type with one row per entity, cut parts apart, LWPOLYLINE and POLYLINE as one type:
+
+| Road Layout type | DXF | Probe | CadReader |
+|---|---|---|---|
+| LINE | 165,529 | 165,529 | 163,289 |
+| POLYLINE | 16,829 | 16,831 | 15,600 |
+| ARC | 14,655 | 14,761 | 14,213 |
+| HATCH | 6,554 | 6,534 | 6,091 |
+| SPLINE | 1,267 | 1,267 | 1,203 |
+| CIRCLE | 1,101 | 1,101 | 1,002 |
+| ELLIPSE | 902 | 902 | 902 |
+| TEXT, MTEXT | 487, 198 | 487, 201 | in texts.csv |
+| DIMENSION, WIPEOUT, LEADER | 439, 281, 9 | 439, 281, 9 | none |
+| AECC_TIN_SURFACE | not written | 1 | none |
+| Inserts top and nested | 824 and 5,045 | 824 and 5,045 | 5,464 in one list |
+| Attributes | 879 | none | 852 as ATTRIB texts |
+
+- Road Layout 208,363 against 202,320: the probe writes TEXT, MTEXT, DIMENSION, WIPEOUT, LEADER and the surface as entity rows (1,418), CadReader writes none of them. CadReader also misses 4,625 geometry rows, and the two make the whole gap of 6,043: 3,423 under the one insert of MP_CEC (the CEC footprint bound in, its insert point outside Phase 1), 1,083 under 34 dynamic ARROW blocks, 128 under 4 External Road ARROW blocks. Blocks 5,869 against 5,464: the probe counts 824 top and 5,045 nested inserts, CadReader keeps 5,464 with no parent. Texts 688 against 1,537: CadReader counts 852 attribute values as texts (vehicle tracking tags such as atenv and atelem on layer 0), the probe writes none.
+- Road Surface 42 against 39: both hold the same 30 polylines, cut at the border into 7 extra parts by the probe and 9 by CadReader, and the probe adds 1 dimension and 4 surface rows. Rough Grading 17 against 107: both hold the same 5 polylines, CadReader writes 102 parts of the cut and the probe 6, and the probe adds 6 surface rows.
+- The probe count is right. The DXF agrees with it on every type but 106 arcs (the DXF judges an arc by its centre), 20 hatches and 3 MTEXT at the border. The probe loses only the 879 attribute values, which are no plot or road data. DXFOUT writes no Civil 3D object at all (the Road Layout classes list 2 surfaces, 1 alignment, 3 profiles, 1 parcel and 1 assembly with no record), so only the probe reads them.
+
+The two road layouts, facts for Bader to ask which is current:
+
+| | Roads Road Layout | Base Plans Makkah_Road Layout |
+|---|---|---|
+| Created | 2021-11-27 04:30 | 2021-11-27 04:30 |
+| Last saved (header) | 2023-03-06 17:29 | 2023-01-31 01:49 |
+| Size, model space entities | 82 MB, 7,049 | 1.5 MB, 9,554 |
+| Paper space, title block, revision text | none, none, none | none, none, none |
+| Model space texts | 406 (road names, ROW names) | 8 (control points, bus stops) |
+| Curb points with no other curb within 1 m | 13,335 of 92,346 (14.4 percent), 954 stretches, 13 over 50 m, longest 288 m | 14,859 of 92,250 (16.1 percent), 1,007 stretches, 17 over 50 m, longest 328 m |
+| Where, by a 3 by 3 grid of Phase 1 | middle 3,163, W 2,884, NE 2,771, N 1,983, E 1,632 | E 3,322, middle 3,004, NE 2,765, W 2,592, N 1,204, S 1,075 |
+
+- On the plan image (data book data5\road_layouts\curb_difference.svg) the Roads curb parts from the other at nearly every junction, on the corner returns, and along the arterial edges of the north and east border. The Base Plans curb parts as short breaks mid block on the local streets, small closed shapes and a stepped edge of bays along the south border, with one straight stretch across it. So the two differ in junction corners and curb breaks, not by a shift.
+
+### Part A, the area key (R256, R257)
+
+| Zone and NBH (TBD PH_1-DLUS) | Plots |
+|---|---|
+| Zone 1 021, 022 | 475, 340 |
+| Zone 2 012, 013 | 380, 467 |
+| Zone 3 02, 03 | 357, 540 |
+| Zone 4 01A | 323 |
+| Zone 5 010, 011 | 40, 12 |
+
+- 2,934 of 2,956 plots get one key (2,904 by the location plan number, 30 by the Rev 9 parcel), 0 with two values. 22 have no DLUS row: 11 public parking (plan numbers 3167 to 3177), 8 SS, 1 OS, 1 buffer, and the DP4 face 2000 whose plan number 3178 is past the DLUS. Unit plots 2,577 of 2,578. Against the sales sheet 2,580 same, 0 differ, 354 with no sales row (OS 190, SS 40, then other land uses, 4 VL4). No baseplan face lies in 01B, its 120 units sit on no face.
+- IM codes, file names and texts only, no Revit file opened:
+
+| Code | File names | Texts | Plots of its files by NBH |
+|---|---|---|---|
+| IMA | 4, Native Files 1.1 | none | not read |
+| IMB | 4, Native Files 1.2 | none | not read |
+| IMC | 221 (00_Revit Models Zone 02, 01_Output, Native Files 1.3) | 1 (the past model record) | IMC schedule 337 in 012, IMC past model 337 in 012 |
+| IMD | 198 (00_Revit Models Zone 02, 01_Output, Native Files 1.4) | 15 (the 1.4 model record and paths) | IMD schedule 410 in 013, 1.4 model 336 in 012 and 296 in 022, 1 no key |
+| IMG | 0 | 2, title block of the Rev.09 location plan, Zone 4 | no file |
+| IME, IMF and any other | 0 | 0 | none |
+
+- In Native Files the letter follows the folder, 1.1 IMA, 1.2 IMB, 1.3 IMC, 1.4 IMD, numbered 000001 to 000004, and the 1.4 model paths read 4. Phase 1.4 and Site Adaptation\Phase 4. The one of them read (1.4, IMD) holds 012 and 022, not 013. So an IM letter may name a delivery package rather than a neighbourhood. PH_1-SubPhase_ID of the accommodation workbook names sub-phases 1A (Zones 1 to 3), 1B (Zones 3 and 4) and 1C (Zone 5), no IM letter.
+- config/area_codes.json, proposed: IMC 012 and IMD 013 measured (with the 1.4 model listed as a conflict), IMG Zone 4 by text, IMA 021, IMB 022, IME 02 and IMF 03 guessed from the letter order. The table agrees with the IMC and IMD schedules and the IMC model and lists the 1.4 model as its conflict.
+- IME: nothing on this machine names it. If the letters go two to a zone in order, as C and D are 012 and 013, IME would be 02 and IMF 03. That is a guess from letter order only.
+
+### Part I, the IFC in Downloads (R258)
+
+- Found in Downloads\New folder, not in Downloads itself, beside a DWG, an NWC and an SDW of the same number. Copied to work\Downloads, source and copy hash the same before and after.
+- Header: FILE_NAME of 2023-08-06 17:47:21, author LEGION, no organisation, written by Autodesk Civil 3D 2023 through the EXPRESS Data Manager, schema IFC4X1, view CoordinationView_V2.0 for Architecture. IfcProject 1TB02012-012D03-UNA-00-XX-MOD-UT-00010, IfcSite with no name and latitude and longitude 0, the projected CRS empty and the map conversion all zero.
+- 181,190 records: 43,289 points, 40,665 faces, 342 building element proxies (BUILDINGELEMENTPROXY(n), all Wall Construction), 32 alignments with 2D horizontal segments only, 188 property sets of AMA_ fields (project and program 1TB02012, contract 012D03, originator UNA, discipline UT, phase DD, level GF, 01).
+- 0 of 42,539 points lie inside Phase 1 and their box does not meet the box of the border, their heights do not meet the Phase 1 road levels. No spot, entrance, plot, surface or level entity, the only level word is AMA_Level (GF, 01).
+- It is not the Infrastructure IFC package the schedule notes name: another project and client numbering (1TB02012 and AMA_ fields against 01101 and 00101-PSN), utility walls, no site position, nothing inside Phase 1 and nothing at the plot front. Its sibling folders in Downloads are named Four Seas Resort and IFCs Dated 27-07-23 Four seasons. Nothing was wired from it.
+
+### Part T, the coverage (R259)
+
+| File | Reader | Space | Kept inside Phase 1 | Civil 3D in the file | Civil 3D read | Not read and why |
+|---|---|---|---|---|---|---|
+| Roads/Road Layout | C3DProbe | site | entities 208,363, blocks 5,869, texts 688, surfaces 2 | 2 surfaces, 1 alignment, 3 profiles, 1 assembly, 1 parcel | 2 surfaces, alignment and assembly outside | 879 attribute values (vehicle tracking tags). 1 parcel in a block, the R243 run not repeated |
+| Roads/Road Surface C3D | C3DProbe | site | entities 42, surfaces 7 | 11 surfaces, 154 alignments with label groups | 7 surfaces, 1 point group of 0 points | 154 alignments the probe does not reach (no siteless alignment, no site, none in model space or its 7 inserts) |
+| Roads/Rough Grading | C3DProbe | site | entities 17, surfaces 9 | 10 surfaces | 9 surfaces | the volume surface has no triangles |
+| Roads/Typical Cross Sections | CadReader | own | 0 by design | none | none | read whole for curbs and sidewalks (R192), xref XR-TITLE BLOCK missing |
+| Base Plans/CEC Building Footprint | CadReader | site | entities 186,046, blocks 1, texts 12 | 1 parcel | none | the parcel, the probe never ran on it |
+| Base Plans/All Phase Boundaries | CadReader | site | entities 12, texts 1 | none | none | nothing known |
+| Base Plans/Building Footprint | CadReader | site | entities 20,453, blocks 3,780, texts 6 | none | none | 81 unit blocks on no face (01b, 01a) |
+| Base Plans/Cutsheet | CadReader | site | entities 54, texts 31 | none | none | nothing known, two old lock files beside its copy |
+| Base Plans/Road Layout | CadReader | site | entities 8,389, texts 2 | none | none | which layout is current is open |
+| Base Plans/Baseplan | CadReader | site | entities 3,706, texts 3,148 | none | none | 15 MULTILEADER with no text, no face for 01b |
+| Master Plan/LUS Rev06 workbook | openpyxl (R165) | none | 9 sheets | none | none | no plot rows |
+| Master Plan/R06 | CadReader | site | entities 119,761, blocks 3,893, texts 80 | 5 parcels | none | xref Road Layout_new missing, the 5 parcels |
+| Master Plan/R06_0000 | CadReader | site | entities 118,458, blocks 2,267, texts 79 | 1 parcel | none | the same xref, the parcel, saved on this machine |
+| Master Plan/R06_0001 | CadReader | site | the same as R06_0000 | 1 parcel | none | identical to R06_0000, skipped by decision C |
+| Master Plan/Amana V9 | CadReader | site | entities 16,563, blocks 586, texts 3,459 | none | none | reference only |
+| Rev.09/location plan PDF | pdfplumber (R179) | page fitted to site | 3,181 labels | none | none | 1 number with no face, 41 codes with no number |
+| Rev.09/Rev 9 DWG | C3DProbe | site | entities 252,741, blocks 16,065, texts 9,274 | 3,480 parcels | 3,276 parcels inside | the Cabin Only text copies not used, MP_Plot outside |
+| Rev.09/Rev 9 PDF | pdfplumber (R189) | page fitted to site | 3,190 numbers | none | none | 6 faces with two labels |
+| Rev.09/accommodation workbook | openpyxl (R185) | none | sales sheet 2,591 plots | none | none | no 01b sales row |
+| Rev.09/TBD workbook | openpyxl (R185, R256) | none | PH_1-DLUS 3,161 plots | none | none | 13 plan numbers past its last plot |
+
+Which source is the truth for what:
+
+| What | Source | Check |
+|---|---|---|
+| Plot faces | Baseplan faces | Rev 9 parcels 2,481 of 2,578 unit plots the same, median Hausdorff 0.000 m, 20 of 20 at both seeds (R250, R260) |
+| Unit blocks | Building Footprint blocks | type agrees on 2,332 of 2,332, R06 on 2,578, units 2,698 against the sheet 2,701 |
+| Coordinates | Site metres of the drawings, the Phase 1 ring | 747 of 747 schedule plots inside, location plan fit median 0.082 m |
+| Curb and ROW | Roads Road Layout (probe) | 79,011 of 92,346 Roads curb points within 1 m of the Base Plans curb, which is current is open |
+| Road level at the plot front | Top Surface-02 and -01, snapped | 221 of 747 within 5 mm, bands 20 of 20 by brute force (R173, R250) |
+| Area key | TBD PH_1-DLUS Zone and Neighbourhood_ID | sales sheet 2,580 of 2,580 the same, 20 of 20 and 19 of 20 plus 1 with no row at seeds 14 and 7 (R260) |
+
+Data no file on this machine holds, to ask the client for:
+- IME: no file, text or path names it, and none of IMF or another letter. Which neighbourhood each IM letter is, or that the letters name packages.
+- 01b: no baseplan face (120 units on no face) and no sales row (113 plan plots with no sales row, 81 under the Zone 4 hatch).
+- The El @ Entry rule or the Infrastructure IFC package with the plot entrance spots. The IFC in Downloads is another project.
+- The Zone 4 IMG past job 01101-PSN-IMG-ZZZ-PIM-TU-000001, named only by the location plan.
+- Which road layout is current, neither carries a revision text. The xref Makkah Phase 1_Road Layout_new of R06 and XR-TITLE BLOCK of the cross sections.
+- The ramp slope (architect), the road version the 1.4 job used.
+
+### Second method (R260)
+
+- Area key from the DLUS xlsx XML: seed 14 20 of 20, seed 7 19 of 20 and 1 plot correctly with no DLUS row. Parcels by ray cast on the raw civil.csv lines: parcel, plan number and class 20 of 20 at both seeds. Curb distance by brute force over every segment: far or near 20 of 20 at both seeds.
+- DXF line scan against the parser: 13, 4 and 8 types equal, BLOCK records 1,109, 80 and 67 equal. IFC types by one regular expression per line: 49 of 49 equal. IM file names by pathlib: IMA 4, IMB 4, IMC 221, IMD 198, all equal.
+- The check found a fault in itself: the line scan counted the EOF record when ENTITIES was the last section, fixed before the run on the real files.
