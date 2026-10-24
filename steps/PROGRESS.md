@@ -1,4 +1,4 @@
-STATE 2026-10-24 23:00, Round 16 done: links against the CAD footprint, the corner front coded, two past jobs compared, a full IMC file from CAD. Round DATA-3 done and merged (PR 32)
+STATE 2026-10-24 23:10, Round 16 done and merged (PR 34): links against the CAD footprint, the corner front coded, two past jobs compared, a full IMC file from CAD. Round DATA-3 done and merged (PR 32)
 
 # Progress
 
@@ -14,7 +14,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 
 ## Done
 
-- 16: R220 to R236. DATA-3: R185 to R198, PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c: PR 24, 25. C3D: PR 22, 23. 14: PR 20, 21. 1 to 15b: PRs 1 to 19
+- 16: R220 to R236, PR 34. DATA-3: R185 to R198, PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c: PR 24, 25. C3D: PR 22, 23. 14: PR 20, 21. 1 to 15b: PRs 1 to 19
 
 ## Open bugs
 
