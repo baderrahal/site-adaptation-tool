@@ -434,6 +434,25 @@ def evaluate(config, settings):
                                       "locationFailedCutPlots": sum(1 for name, official, _ in failed if official in cut)}
     report["lists"] = {"scheduleEdgePlots": ["%s %s %+d" % e for e in edges], "scheduleLocationFailed": ["%s %s %s" % f for f in failed]}
 
+    # The location plan of Part L, each label at the site point of its fit (R183)
+    plan_labels = root / book["locationPlan"]["outFolder"] / "labels.csv"
+    if plan_labels.is_file():
+        items = [r for r in data_book_analysis.read_csv(plan_labels) if r["east"] and r["north"]]
+        points = [(float(r["east"]), float(r["north"])) for r in items]
+        truth = {"%s %s" % key: None for key in keys}
+        by_label_truth = {}
+        for (name, official) in keys:
+            label = str(int(official) - shifts[name])
+            by_label_truth[label] = official
+        wired = {"pointInside": point_inside(faces, points), "nearest": nearest(faces, points, wiring["nearestM"], wiring["tieM"])}
+        found = {}
+        for method, labels_of_item in wired.items():
+            per_face = {label: [items[k]["number"] for k in ks] for label, ks in by_plot(labels_of_item).items()}
+            found[method] = {"key": score(per_face, by_label_truth, sorted(by_label_truth, key=int)), "phase1": coverage(per_face, phase1)}
+        report["sources"]["locationPlan"] = {"labels": len(items), "methods": found, "note": "key: the 747 schedule plots, label plus shift"}
+    else:
+        report["sources"]["locationPlan"] = {"missing": "run python/location_plan.py first"}
+
     # Unit blocks of three drawings
     kinds = set(wiring["unitBlockKinds"])
     block_sources = {}

@@ -2,26 +2,26 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
-## Round DATA-2, 2026-10-24, the full Civil 3D read, the analysis fixes and the wiring (Part W)
+## Round DATA-2, 2026-10-24, the full Civil 3D read, the analysis fixes, the wiring (Part W) and the location plan (Part L)
 
 Goal:
-- Part A the full Civil 3D read of Road Surface, Roads Road Layout and Rough Grading. Part B El @ Entry from the road and the ramp, units per face, the second method, the width meaning, two conflicts out. Summary: steps/investigations/data-book.md
+- A the full Civil 3D read, B El @ Entry, units, width, conflicts, W the wiring per source, L the Zone 4 location plan. Summary: steps/investigations/data-book.md and wiring.md, full record steps/history/round-data-2.md
 
 Done:
 - Session started in the repo, hooks live. Worktree site-adaptation-tool-data2 on data/data-book-2 from main at a94bf1e. Plan written before the first edit. All 15 sources and 15 copies hash the same before and after
 - A: free memory 5.62 GB at the start, 6.16 GB after dotnet build-server shutdown, floor kept at 2 GB. Road Layout try 1: the watcher clicked Do Not Load on the probe dialog, because Civil 3D 2026 shows the DLL as a Name and a Location line. Fixed in R161, try 2 and the other two drawings ran once each (40, 25, 25 s, lowest free 3.11 GB). The three folders now hold reader C3DProbe tables, 18 surfaces exported to LandXML (R169), plots.csv 98 columns with no old cell changed
-- A found: Road Layout 2 surfaces, its alignment and assembly lie outside Phase 1, site CEC holds 0 parcels. Road Surface 7 surfaces, 1 empty point group. Rough Grading 9 surfaces with triangles inside and 1 volume surface
 - B1 (R170), 747 schedule plots, within 5 mm, 30 mm, worse: slope 0.5 percent 217, 171, 356. 2 percent 35, 135, 574. By typology 221, 193, 330 (3 no level). Rough Grading surfaces sit 0.6 to 1.3 m below, none gives El @ Entry
 - B2 (R171): every unit face holds one unit. Units 2,698 from the footprint blocks (2,578 on faces, 120 in 81 blocks on no face), Rev 6 2,704 (gap 6), Phase1 sheet 2,701 (gap 3, all villas VL2 to VL4). C10, duplex and townhouse rows match the sheet
-- B4 (R172): the profile key is plot_width_m, a plot width, and each plot holds one unit
-- B5: V9 numbering moved to referenceV9 and VL4 width to widthFromCad in R167, C10 and VL3 widths stay as conflicts
+- B4, B5: plot_width_m is a plot width, each plot holds one unit. V9 numbering and VL4 width left the R167 conflicts
 - W (R174 to R178): the 12 coordinate PDFs copied and read (3,346 rows, 746 plots). python/wiring.py scores 2 to 7 methods per source against the past plan (336 plots) and the 747 schedule plots. Chosen: footprint and R06 blocks everyShare (336 of 336, was 304), curb and ROW anyEdge (312 and 336, was 308 and 331), setback bestShare (no neighbour line, was 26), the rest stay. plots.csv 110 columns with a method column per wired column. Summary: steps/investigations/wiring.md
-- W findings: setback, widths, El @ Entry bands and units unchanged. 246 DP ends of townhouse rows now carry their row block, 9 OS plots lost a neighbour's setback, curb on all 2,956 plots. The PDF check refuses 13 schedule plots (IMC 9, 6 of them cut plots), no edge plot one label off. Footprint against R06 1,865 same, about 15 percent of each curb has no partner in the other road layout within 1 m
-- New: python/data_book_retest.py, python/data_book_retest_check.py, python/wiring.py, python/wiring_check.py, the retest settings in c3d_probe.json, exportKnownSurfaces, README lines for the new files. Gate: Python 768 to 797 passed and 1 skipped, .NET 369 to 371 passed
+- W findings: setback, widths, El @ Entry and units unchanged, 246 DP row ends get their row block, 9 OS plots lose a neighbour's setback, the PDF check refuses 13 schedule plots
+- L (R179 to R184): the Zone 4 location plan read, 3,181 labels, 2,704 client codes. Fit on IMC 0.082 m median (316 of 337), IMD 0.095 m, control marks 0.27 to 0.31 m. IMC shift 10 337 of 337, IMD 11 410 of 410, a fixed shift holds for NBH 012, 013, 021 and 02 only. Codes equal Typology_Rev9 on 2,591 of 2,591 and Landuse_Level_4 on 16 of 16 codes, 113 plan plots have no sales row. 1,819 of 1,831 unit plots with no schedule unit now get Typology_Rev9. IMC is NBH 012 and IMD 013, Zone 4 is 01A, nothing names IME
+- New: python/data_book_retest.py, python/data_book_retest_check.py, python/wiring.py, python/wiring_check.py, python/location_plan.py, python/location_plan_check.py, the retest settings in c3d_probe.json, exportKnownSurfaces, README lines for the new files. Gate: Python 768 to 808 passed and 1 skipped, .NET 369 to 371 passed
 
 Checked:
 - Second method (R173): fronts seed 14 20 of 20 on width, width class and setback class, seed 7 19, 20, 19. Per line at 3.00 m seed 14 20, 20, 20, seed 7 19, 19, 20. The misses are corner chamfers (plot 735). El @ Entry bands 20 of 20 at both seeds for all three variants. Export against the earlier LandXML: 0 corners differ over 1 mm
 - R168 again: rows match data.json on 14 of 14 drawings, plots.csv seed 14 and 7 20 of 20, the share wired blocks left to R178
+- L second method (R184): fit on IMD, label spelled, face and code 20 of 20 at seeds 14 and 7 (3 with no sales row). The PDF and both Rev 9 workbooks hash the same before and after
 - W second method (R178): footprint block, R06 block, setback owner, curb, ROW, cutsheet, V9 and label plus shift 20 of 20 at seeds 14 and 7. All 27 sources and copies hash the same after Part W
 
 Remains:
@@ -63,6 +63,11 @@ Your turn:
 26. The 13 schedule plots the PDF location check refuses. Recommended: keep label plus shift, it agrees on all 336 IMC plots, and keep the 13 listed
 27. The two curbs differ by more than 1 m on about 15 percent of their length. Recommended: keep the Roads Road Layout curb, it scores against the past plan, and ask which road layout is current
 28. Two DP4 labels in a face with many labels. Recommended: ask for that baseplan face to be split, until then they stay unwired
+29. The Zone 4 IMG past job (Revit model, coordinate sheets, Excel) as a second answer key. Recommended: send it if it exists, no IMG file is on this machine and 00_Revit Models holds Zone 02 only
+30. Unit codes for plots with no schedule. Recommended: take Typology_Rev9 by the location plan number (1,819 of 1,831), replaces question 10
+31. Official numbers. Recommended: take the location plan number per face for every NBH, it agrees on 746 of 747, a fixed shift fails in 01A, 03 and 022
+32. 113 plan plots with no Rev 9 sales row (81 in Zone 4). Recommended: ask whether the sales sheet is complete for Zone 4
+33. Location plan versions. Recommended: keep the Rev.09 PDF and read the DWG of 01_Output next, the other PDF is a later export
 
 ## Round DATA, 2026-10-24, the data book of Phase 1
 

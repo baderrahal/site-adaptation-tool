@@ -44,6 +44,7 @@ BASE_COLUMNS = [
     "footprintBlock", "footprintBlockMethod", "footprintRotationDeg", "footprintMirrored", "footprintShared", "footprintSource", "cluster", "clusterRow",
     "r06Block", "r06BlockMethod", "r06_0000Block", "r06_0000BlockMethod", "masterBlocksSource", "r06Number", "r06NumberMethod", "r06_0000Number", "r06_0000NumberMethod",
     "v9PlotNumber", "v9PlotNumberMethod", "v9Source",
+    "locationPlanNumber", "locationPlanNumberMethod", "locationPlanCode", "locationPlanNewCode", "typologyRev9",
     "setbackFromFrontM", "setbackFromFrontMMethod", "rowDistanceM", "rowDistanceMMethod", "curbDistanceM", "curbDistanceMMethod", "sidewalkWidthM",
     "roadLevelLeft", "roadLevelRight", "roadLevelSurface", "roadLevelMethod",
     "pastFfl", "pastEntry", "pastSteps", "pastSource",
@@ -248,6 +249,18 @@ def build(config, settings, scratch):
         share_wired("footprintBlocks", folder_of(book, join["footprint"]["drawing"], roots)[1])
     if chosen["r06Blocks"] == "everyShare":
         share_wired("r06Blocks", book["wiring"].get("r06Outlines") or folder_of(book, "masterR06", roots)[1])
+    plan_by_face = defaultdict(list)
+    plan_file = Path(book["root"]) / book["locationPlan"]["outFolder"] / "labels.csv"
+    if plan_file.is_file() and chosen.get("locationPlan"):
+        if chosen["locationPlan"] not in ("pointInside", "nearest"):
+            raise ValueError("data_book.py cannot wire locationPlan with " + chosen["locationPlan"])
+        plan_items = [r for r in read_csv(plan_file) if r["east"] and r["north"]]
+        points = [(float(r["east"]), float(r["north"])) for r in plan_items]
+        hits = wiring.point_inside(all_faces, points) if chosen["locationPlan"] == "pointInside" else \
+            wiring.nearest(all_faces, points, book["wiring"]["nearestM"], book["wiring"]["tieM"])
+        for item, faces_hit in zip(plan_items, hits):
+            for hit in faces_hit:
+                plan_by_face[hit].append(item)
     owned_setbacks = {}
     if chosen["setback"] == "bestShare":
         polygons = wiring.setback_shapes(json.loads((foot_folder / "pieces.json").read_text(encoding="utf-8"))["pieces"], join["footprint"]["setbackLayer"])
@@ -318,6 +331,11 @@ def build(config, settings, scratch):
         numbers = [t["text"].strip() for t in in_face(v9_texts, face, tree_of("v9", v9_texts))]
         row["v9PlotNumber"] = "|".join(numbers) or None
         row["v9PlotNumberMethod"] = chosen["v9Numbers"]
+        on_plan = plan_by_face.get(label) or []
+        if on_plan:
+            row.update({"locationPlanNumber": "|".join(i["number"] for i in on_plan), "locationPlanNumberMethod": chosen["locationPlan"],
+                        "locationPlanCode": "|".join(i["code"] for i in on_plan), "locationPlanNewCode": "|".join(i["newCode"] or "" for i in on_plan).strip("|") or None,
+                        "typologyRev9": "|".join(i["rev9"] or "" for i in on_plan).strip("|") or None})
         row["officialNumberMethod"] = chosen["schedules"] if official else None
         row["cutsheetMethod"] = chosen["cutsheet"]
         if "anyEdge" in (chosen["curb"], chosen["row"]):

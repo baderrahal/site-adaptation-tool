@@ -24,6 +24,7 @@ Score is wired, agree, ambiguous, wrong, unwired over the key plots. With no key
 | ROW | the same 3 | 336, 331, 5, 0, 0. 336, 336, 0, 0, 0. 336, 336, 0, 0, 0 | anyEdge (was frontFrame) | 0 |
 | Setback line (2,699) | intersects, bestShare, centroidInside, nearest | 336, 334, 0, 0, 0 for all (2 no key). Wrong owner on Phase 1: 26, 0, 0, 0 | bestShare (was intersects) | 378 non-unit plots, 1 ambiguous |
 | Cutsheet frames (44) | centroidIn, bestShare, nearestFrame | one 2,956 for all | centroidIn (R166, tie) | 0, no key |
+| Location plan (3,181 labels, Part L) | pointInside, nearest | 747, 746, 1, 0, 0. 747, 745, 2, 0, 0 | pointInside | 30 Phase 1 plots unwired, 29 with two labels |
 | Road surfaces (672 ramp front corners) | snapOrder, plainOrder, snapAll, nearestVertex | 672, 522, 0, 150, 0. 390, 301, 0, 89, 282. 672, 522, 0, 150, 0. 0 wired | snapOrder (R166) | 150 corners off by more than 5 mm |
 
 The pick takes the most agree, then the fewest wrong plus wrong owner, the fewest ambiguous and the most wired. On a tie the R166 method stays.

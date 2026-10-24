@@ -99,6 +99,18 @@ rules/roshn-makkah.json names the width plot_width_m in every typology and vl3_w
 - Export against the earlier LandXML of the same name: 0 corners differ by more than 1 mm on the 7 road surfaces (Top Surface-02 773 equal, Top Surface-01 934 equal, EXISTING 5,362 equal). 124 corners have a level from one file only, at the border cut of the export.
 - R168 again: rows match data.json on 14 of 14 drawings, the three new probe folders included, plots.csv seed 14 and seed 7 20 of 20.
 
+## Part L, the Zone 4 location plan
+
+- File: C:\02-Site Adaptation\Roshn Makkah - Master Plan Rev.09\01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf, copied with the two Rev 9 DLUS workbooks into data_book\work, all three hash the same before and after. A second PDF of the same number in 01_Output\1.0 General\PDF is another export (other hash, 33,321 words), and 01_Output\1.0 General\DWG holds a 6.9 MB DWG of the sheet. Neither was read.
+- Checked against the chat: one page, Rotate 90, A1 (2,384 by 1,684 pt, "Original Sheet Size:A1"), vector text (40,300 characters, 2 images), title PHASE 1 - Zone 4, LOCATION PLAN, created 25 Mar 2024, revisions 00 Nov 2023 and 01 Jan 2024. The Revit model name 01101-PSN-IMG-ZZZ-PIM-TU-000001 is not in the PDF, no text and no stream holds PIM. There are three control points, not one, the one the chat quoted is among them.
+- Text lines: 3,182 numbers, 2,704 client codes, 206 OS, 71 SS, 241 other land uses. Pairs 3,181, 41 codes with no number, 1 number with no code, 0 duplicate numbers. Unit numbers run 428 to 3147, all labels 1 to 3183.
+- Fit on 337 IMC plots, 316 kept: residual median 0.082 m, p95 0.145 m, max 0.234 m, 1.764 m per point (1:5000). On 410 IMD plots with shift 11: median 0.095 m, p95 0.179 m. The three control point marks land 0.265 to 0.305 m from their stated coordinates.
+- Number to face: IMC shift 10 on 337 of 337, IMD 11 on 410 of 410. By NBH of the sales sheet: 012 (IMC) 10, 013 (IMD) 11, 021 11 on 432 of 432, 02 10 on 323 of 324, 022 10 on 274 of 301, 03 -8 on 259 and -2 on 223 of 490, 01A -8 on 196 and 10 on 85 of 297. 360 plots break the modal shift of their NBH, so a fixed shift holds for 012, 013, 021 and 02 only.
+- Codes: through the old to new table every one of 2,591 codes with a sales row equals Typology_Rev9, 0 differ. 113 coded plots have no sales row (81 of them under the Zone 4 hatch). The 16 new codes equal Landuse_Level_4 of PH_1-SDF on every code, 2,704 and 2,704. On the 747 schedule plots Typology_Rev9 differs from the schedule unit on 8: 6 TH1 are TH1-IM in Rev 9, and 2301 and 2302 are VD4 in Rev 9 (DP4 in the schedule, VD4 on the link).
+- Zones: the sales sheet gives Zone 1 to NBH 021 and 022, Zone 2 to 012 and 013, Zone 3 to 02 and 03, Zone 4 to 01A. The plan hatches 253 of the 297 01A plots and no plot of another zone. The zone outlines are drawn only in the key plan of the title block (one magenta and one red outline), not on the plan. No text names IME, IMC, IMD or IMG, so nothing on the sheet tells whether 02 or 03 is IME.
+- Wiring (R183): point inside agrees with the 747 schedule plots on 746, 1 ambiguous, 0 wrong. plots.csv 115 columns: 2,570 of 2,578 unit plots carry a plan number and 2,566 a Rev 9 typology, 1,819 of the 1,831 unit plots with no schedule unit now have Typology_Rev9.
+- Second method (R184), fit on IMD: label spelled 20 of 20 at seeds 14 and 7, face 20 of 20, code 18 and 19 of 20 with 2 and 1 with no sales row.
+
 ## Data quality
 
 0 duplicated labels. 22 open faces inside Phase 1. 18 labels outside any face (baseplan reader). 3 plots cross the border. 275 plots have no front edge (mostly non-residential and corner plots). 0 plots claimed by both schedules. R06_0000 and R06_0001 are the same drawing.

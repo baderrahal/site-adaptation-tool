@@ -18,6 +18,11 @@ FILES = {
     "retest_entry.csv": "One row per schedule plot, surface and slope variant: El @ Entry from the front corners plus slope times ramp depth, less the schedule value (R170).",
     "wiring.md": "The wiring methods tried per source with their scores against the answer key and the method chosen (R174 to R177), counts only.",
     "wiring.json": "The same as wiring.md as data, with the lists of plots left unwired or ambiguous.",
+    "locationPlan.md": "The Zone 4 location plan read and tied to the plots (R179 to R183), counts only.",
+    "locationPlan.json": "The same as locationPlan.md as data, with the lists of plots with no sales row, shift breaks and unit differences.",
+    "labels.csv": "One row per label of the location plan: number, old code, new code, Rev 9 typology, NBH, zone, page point, site point and face (R180 to R182).",
+    "lines.csv": "Every text line of the location plan with its kind and page point (R179).",
+    "fit.json": "The affine map from location plan page points to site metres (R181).",
     "units.csv": "One row per baseplan face inside Phase 1 with the footprint unit blocks that cover it, one unit each (R171).",
     "layers.csv": "Every layer of the drawing with the entities inside Phase 1 by type. Colour, on, frozen, locked and linetype are filled by the Civil 3D read only.",
     "entities.csv": "Every entity inside Phase 1, blocks exploded with the parent kept. A line is kept where any part is inside and cut at the border, one row per part. A table over the size limit is split by layer into the folder entities.",
@@ -78,6 +83,11 @@ COLUMNS = {
     "variant": "slope0.5 and slope2 for one front slope on every plot, byTypology for the steep slope on the steepUnits only.", "slopePercent": "The front slope in percent.",
     "rampDepthM": "The Rev 6 ramp depth of the unit, ramp.front_setback of the profile.", "difference": "Predicted El @ Entry less the schedule value, in metres.",
     "band": "within5mm, within30mm, worse or noLevel.", "units": "Rev 6 units on the face.", "blocks": "The footprint unit blocks that cover the face.",
+    "locationPlanNumber": "The plot number of the location plan label on the face.", "locationPlanCode": "Its old client code.",
+    "locationPlanNewCode": "Its new code by the old to new table.", "typologyRev9": "Typology_Rev9 of the Rev 9 sales row of that number.",
+    "size": "Font size of the text line in points.", "number": "Plot number of the location plan.", "code": "Old client code of the location plan.", "newCode": "New code by the table.", "rev9": "Typology_Rev9.",
+    "nbh": "NBH of the sales sheet.", "zone": "Construction zone of the sales sheet.", "face": "Baseplan face label.", "offset": "Number less face label.",
+    "group": "IMC or IMD when its schedule holds the number, else rest.", "pageX": "Page point x.", "pageY": "Page point y.", "east": "Site easting.", "north": "Site northing.",
     "header": "The header cells.", "plotOrLocationColumns": "Columns naming a plot number or a location.", "cutToPhase1": "Whether the rows were cut to Phase 1.",
 }
 
@@ -104,7 +114,11 @@ def write(root):
     seen_columns = set()
     for path in sorted(p for p in root.rglob("*") if p.is_file() and "work" not in p.relative_to(root).parts and "logs" not in p.relative_to(root).parts):
         relative = path.relative_to(root).as_posix()
+        parts = path.relative_to(root).parts
         meaning = FILES.get(path.name) or ("Sheet of the master plan workbook, cell for cell, column letters as header." if path.parent.name == "master_plan_excel" else
+                                           "PDF reader output of a coordinate PDF copy, read for the location check of the schedules (R174)." if parts[0] == "pdf" else
+                                           "CadReader output of the R06 copy, read for its block outlines (R174)." if parts[:2] == ("wiring", "cad") else
+                                           "plots.csv or a report as it was before Part W or Part L rebuilt it, kept for the before and after counts." if "_before_" in path.name else
                                            "Part of a table split by layer." if path.parent.name in ("entities", "blocks", "texts") else
                                            "LandXML of a surface the full Civil 3D read exported, triangles inside Phase 1 (R162, R169)." if path.suffix == ".xml" else "")
         count = (" (%d rows)" % rows_of(path)) if path.suffix == ".csv" else ""
