@@ -18,6 +18,9 @@ NOTE = ("Measured from the {job} past job (the answer key and the schedule of th
         "variants hold the relations a group has with their own offsets. Offset, relative and entrance are the medians over all plots of the group. "
         "Each group was also split in half with the seed in splitSeed, fitted on the first half and tested on the second, and fitError and testError count the plots by the distance "
         "between the predicted and the measured link origin. entranceTestError does the same for the entrance. A group with tooFew true was not tested. "
+        "plotFrame: the link of each typology in the frame of its plot face, R121 to R123. front says which face edge is the front, linkAxes how the link axes follow it, "
+        "and per typology anchor is the front corner the link X axis starts from or runs to, offset is the link origin from that corner along the link X and Y axes, "
+        "and drawnSide is the side of its cluster, seen from the road, where the unit is not mirrored, null when no side holds on every plot. apart lists the plots of R120 left out of the fit. "
         "Lengths are in metres and angles in degrees. No Python file holds these values, R100.")
 
 
@@ -64,6 +67,18 @@ def group_index(data):
             raise project_profile.ProfileError("prototype_offsets.json lists the group " + str(key) + " twice")
         found[key] = group
     return found
+
+
+def plot_frame(data):
+    """R121 to R123. The plotFrame section, each typology with an anchor of start or end, an offset of two numbers and a drawnSide of left, right or null."""
+    frame = data.get("plotFrame")
+    if not isinstance(frame, dict) or not isinstance(frame.get("units"), dict):
+        raise project_profile.ProfileError("prototype_offsets.json has no plotFrame section with units")
+    for unit, entry in frame["units"].items():
+        offset = entry.get("offset") if isinstance(entry, dict) else None
+        if (entry.get("anchor") if isinstance(entry, dict) else None) not in ("start", "end") or not isinstance(offset, list) or len(offset) != 2                 or any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in offset) or entry.get("drawnSide") not in ("left", "right", None):
+            raise project_profile.ProfileError("prototype_offsets.json plotFrame unit " + str(unit) + " needs anchor start or end, an offset of two numbers and drawnSide left, right or null")
+    return frame
 
 
 def write_section(path, key, value, note=None):

@@ -2,6 +2,44 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round 14 Part A, 2026-10-24, links from CAD for IMC
+
+Goal:
+- For every IMC plot, the link origin, rotation and mirror from the baseplan face, the road edges and the clusters, against the answer key prototypes_imc_past.json
+
+Done:
+- Session started in the repo, both hooks live, main equal to origin/main at 82a8f1e, branch feat/cad-links-14a. .claude/rules does not exist. Plan written before the first edit. Full record: steps/history/round-14a.md
+- Part 0: the 15a folder is empty (no file, no .git) but held open by another process, rmdir and Remove-Item failed, not deleted. The 13 _backup folders of Prototypes_2024 were already gone, nothing deleted, no sizes to list. CLAUDE.md has the merge rule (gh pr checks --watch, both pass)
+- New: python/cad_links.py (R120 to R123), python/cad_links_check.py (R124), plotFrame in config/prototype_offsets.json, cadLinks.cutShareMin 0.9 in config/project.json, R100 amended. Gate: Python 680 to 694 passed and 1 skipped, .NET 347 passed
+- A1 (R120): 12 plots under 0.9, the list of the prompt (2311 2312 at 0.5, 2375 to 2378 and 2387 to 2390 at 0.8 to 0.833, 2544 2545 at 0.75). 2441 has no Generic floor. All counts below keep them apart
+- A2 (R121): no origin within 10 mm of a corner of its face (0 of 337), so no corner rule. DT pairs sit on a front corner of the pair outline, 107 of 108. The origin is a fixed offset from one front corner per typology in link axes, within 10 mm on 322 of 325, misses 2338 (11 mm), 2543 and 2546 (4 m, the neighbours of 2544 and 2545)
+- A3 (R122): front edge from 7.99 m up to below 18.75 m nearest RD-CURB-LINE, link Y axis into the plot. Rotation holds on 337 of 337. With the R94 front 329, the 8 others are corner plots
+- A4a (R123): the Rev 6 lead holds on every DP pair and DP end (78) and breaks on every DT pair (108) and every middle townhouse (32). Coded as drawn side per typology, DP left, DT and TH right: 218 of 218 cluster plots hold, 0 break. 107 villas have no rule. pairRule stays false
+- A4b (R123): no CASE letter maps to one rotation and mirror pair, each holds two. Each letter has one facing of the link Y axis, A B 300.1, C D 210.1, E F 120.1, G H 30.1
+
+Checked:
+- Second method (R124), json and math only: seed 14 20 of 20, seed 7 20 of 20, all 337 agree with 1 share not checked (2320, face and floor not convex)
+
+UNKNOWN:
+- What tells CASE A from B, C from D, E from F, G from H
+- The mirror of a detached villa: one side neighbour on the left gives mirrored on C10, VD2, VD4, VL4 (54 of 54), VL6 breaks and two neighbours are mixed
+
+Remains:
+- Part B: check 3, levels, ramp outline, plan_from_cad.py and the compare
+
+Known bugs:
+- The empty 15a folder stays until the process that holds it closes
+- 2543 and 2546 lie 4 m from the fitted origin, the 2544 2545 block is cut another way in the past model
+
+Next:
+- Merge, then Part B from main
+
+Your turn:
+1. Close the Claude or VS Code window that started in site-adaptation-tool-15a, then delete that empty folder. Recommended: yes, it holds nothing
+2. Villa mirror. Recommended: tell me what decides it, else I keep villas out of the CAD plan as missing mirror
+3. Plots 2543 and 2546. Recommended: list them apart like A1, they are the neighbours of the 2544 2545 cut
+4. CASE A against B. Recommended: tell me what the second letter means, it is not the mirror
+
 ## Round 15b, 2026-10-24, placer step 2, Generic, yard and ramp floors, eight scenarios in Revit
 
 Done:
