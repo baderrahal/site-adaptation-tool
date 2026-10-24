@@ -52,8 +52,8 @@ namespace SiteAdaptation.DialogWatcher
         private static int Watch(Options options, WatchReport report)
         {
             DateTime deadline = DateTime.UtcNow.AddMinutes(options.Minutes);
-            var handled = new HashSet<int>();
-            var seenOnce = new Dictionary<int, string>();
+            var handled = new HashSet<string>(StringComparer.Ordinal);
+            var seenOnce = new Dictionary<string, string>(StringComparer.Ordinal);
             var windows = new HashSet<string>();
             while (true)
             {
@@ -84,20 +84,29 @@ namespace SiteAdaptation.DialogWatcher
                     Thread.Sleep(500);
                     continue;
                 }
-                foreach (AutomationElement window in tops)
+                // Revit shows the security box as a child window of its main window, so the windows one level down are looked at too
+                foreach (AutomationElement window in Candidates(tops))
                 {
-                    int handle;
+                    string key;
                     string title;
                     string windowClass;
                     List<string> texts;
                     List<string> buttons;
                     try
                     {
-                        handle = window.Current.NativeWindowHandle;
+                        key = Key(window);
                         title = window.Current.Name;
                         windowClass = window.Current.ClassName;
-                        if (handled.Contains(handle))
+                        if (handled.Contains(key))
                         {
+                            continue;
+                        }
+                        if (!SecurityDialogs.IsDialog(windowClass, title))
+                        {
+                            if (windows.Add(windowClass + " | " + title))
+                            {
+                                report.Windows.Add(new WindowSeen { Utc = DateTime.UtcNow, WindowClass = windowClass, Title = title });
+                            }
                             continue;
                         }
                         ReadParts(window, out texts, out buttons);
@@ -107,14 +116,7 @@ namespace SiteAdaptation.DialogWatcher
                         // The window closed while it was read
                         continue;
                     }
-                    if (!SecurityDialogs.IsDialog(windowClass, title, buttons))
-                    {
-                        if (windows.Add(windowClass + " | " + title))
-                        {
-                            report.Windows.Add(new WindowSeen { Utc = DateTime.UtcNow, WindowClass = windowClass, Title = title });
-                        }
-                        continue;
-                    }
+                    string handle = key;
                     // A dialog is answered when it reads the same twice, so a box still filling its text is not judged half drawn
                     string picture = title + "\n" + string.Join("\n", texts) + "\n" + string.Join("\n", buttons);
                     string before;
@@ -143,6 +145,41 @@ namespace SiteAdaptation.DialogWatcher
             }
         }
 
+        // The top windows of Revit and the windows directly inside them
+        private static IEnumerable<AutomationElement> Candidates(AutomationElementCollection tops)
+        {
+            var inner = new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window);
+            foreach (AutomationElement top in tops)
+            {
+                yield return top;
+                AutomationElementCollection children;
+                try
+                {
+                    children = top.FindAll(TreeScope.Children, inner);
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+                foreach (AutomationElement child in children)
+                {
+                    yield return child;
+                }
+            }
+        }
+
+        // The runtime id names one element for as long as it lives, a WPF window may have no native handle of its own
+        private static string Key(AutomationElement element)
+        {
+            return string.Join(".", element.GetRuntimeId());
+        }
+
+        // A button is a Button control or a CCPushButton pane, which is how the Revit task dialog shows its buttons
+        private static bool IsButton(AutomationElement part)
+        {
+            return part.Current.ControlType == ControlType.Button || part.Current.ClassName == "CCPushButton";
+        }
+
         private static void ReadParts(AutomationElement window, out List<string> texts, out List<string> buttons)
         {
             texts = new List<string>();
@@ -154,7 +191,7 @@ namespace SiteAdaptation.DialogWatcher
                 {
                     continue;
                 }
-                if (part.Current.ControlType == ControlType.Button)
+                if (IsButton(part))
                 {
                     buttons.Add(name.Trim());
                 }
@@ -165,24 +202,51 @@ namespace SiteAdaptation.DialogWatcher
             }
         }
 
-        // Do Not Load and nothing else. False when the button is not there or does not take the click
+        private const uint ButtonClick = 0x00F5;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool IsWindow(IntPtr window);
+
+        // Do Not Load and nothing else. By Invoke when the button offers it, else by BM_CLICK to the button window itself.
+        // False when the button is not there, takes no click or the dialog is still open 5 seconds later
         private static bool Click(AutomationElement window, SecurityDialogEntry entry)
         {
-            foreach (AutomationElement part in window.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button)))
+            foreach (AutomationElement part in window.FindAll(TreeScope.Descendants, Condition.TrueCondition))
             {
-                string name = part.Current.Name;
-                if (!SecurityDialogs.IsDoNotLoad(name))
+                if (!IsButton(part) || !SecurityDialogs.IsDoNotLoad(part.Current.Name))
                 {
                     continue;
                 }
                 object pattern;
-                if (!part.TryGetCurrentPattern(InvokePattern.Pattern, out pattern))
+                int buttonHandle = part.Current.NativeWindowHandle;
+                if (part.TryGetCurrentPattern(InvokePattern.Pattern, out pattern))
+                {
+                    ((InvokePattern)pattern).Invoke();
+                    entry.Button = SecurityDialogs.DoNotLoad + " (invoke)";
+                }
+                else if (buttonHandle != 0)
+                {
+                    PostMessage(new IntPtr(buttonHandle), ButtonClick, IntPtr.Zero, IntPtr.Zero);
+                    entry.Button = SecurityDialogs.DoNotLoad + " (click message)";
+                }
+                else
                 {
                     entry.Action = "StopNoButton, Do Not Load takes no click";
                     return false;
                 }
-                ((InvokePattern)pattern).Invoke();
-                entry.Button = SecurityDialogs.DoNotLoad;
+                int dialogHandle = window.Current.NativeWindowHandle;
+                for (int wait = 0; wait < 50 && dialogHandle != 0 && IsWindow(new IntPtr(dialogHandle)); wait++)
+                {
+                    Thread.Sleep(100);
+                }
+                if (dialogHandle != 0 && IsWindow(new IntPtr(dialogHandle)))
+                {
+                    entry.Action = "StopNoButton, the dialog stayed open after Do Not Load";
+                    return false;
+                }
                 return true;
             }
             entry.Action = WatchAction.StopNoButton.ToString();

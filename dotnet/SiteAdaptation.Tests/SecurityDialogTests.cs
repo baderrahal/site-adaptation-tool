@@ -74,12 +74,44 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R106_any_standard_dialog_or_security_window_counts_and_a_plain_window_does_not()
+        public void R106_any_standard_dialog_or_security_window_counts_and_the_revit_main_window_does_not()
         {
-            Assert.True(SecurityDialogs.IsDialog("#32770", "Autodesk Revit 2024", new string[0]));
-            Assert.True(SecurityDialogs.IsDialog("HwndWrapper", "Security - Unsigned Add-In", new string[0]));
-            Assert.True(SecurityDialogs.IsDialog("HwndWrapper", "", new[] { "Do Not Load" }));
-            Assert.False(SecurityDialogs.IsDialog("Afx:00007FF6", "Autodesk Revit 2024.3", new[] { "Minimize" }));
+            Assert.True(SecurityDialogs.IsDialog("#32770", "Autodesk Revit 2024"));
+            Assert.True(SecurityDialogs.IsDialog("HwndWrapper", "Security - Unsigned Add-In"));
+            Assert.False(SecurityDialogs.IsDialog("Afx:00007FF6", "Autodesk Revit 2024.3"));
+            // The WPF main window of Revit, class Window and no title, holds the security box as a child and is not a dialog itself
+            Assert.False(SecurityDialogs.IsDialog("Window", ""));
+        }
+
+        // The text as the Revit 2024 box shows it: one text block with padded labels and no GUID
+        private static SecurityDialogEntry RevitBox(string name, string location)
+        {
+            var texts = new[]
+            {
+                "The publisher of this add-in could not be verified. What do you want to do?",
+                "Name:                " + name + "\r\nPublisher:           Unknown Publisher\r\nLocation:            " + location + "\r\nIssuer:                 None\r\nDate:                   2026-09-20 13:43:03\r\n\r\nMake sure that this add-in comes from a trusted source.",
+            };
+            return SecurityDialogs.Read("Security - Unsigned Add-In", "#32770", texts, Buttons);
+        }
+
+        [Fact]
+        public void R106_the_revit_2024_box_gives_name_publisher_and_location_and_no_guid()
+        {
+            SecurityDialogEntry entry = RevitBox("Other Audit", @"C:\Addins\2024\OtherAudit\Other.Audit.dll");
+
+            Assert.Equal("Other Audit", entry.AddInName);
+            Assert.Equal("Unknown Publisher", entry.Vendor);
+            Assert.Equal(@"C:\Addins\2024\OtherAudit\Other.Audit.dll", entry.Location);
+            Assert.Null(entry.AddInId);
+            Assert.Equal(WatchAction.DoNotLoad, SecurityDialogs.Decide(entry, OurIds, OurMarks));
+        }
+
+        [Fact]
+        public void R106_a_box_whose_location_is_a_dll_of_this_tool_stops_revit()
+        {
+            SecurityDialogEntry entry = RevitBox("Renamed", @"C:\Addins\2024\SiteAdaptationTestHost\SiteAdaptation.TestHost.dll");
+
+            Assert.Equal(WatchAction.StopOurs, SecurityDialogs.Decide(entry, OurIds, OurMarks));
         }
 
         [Fact]
@@ -100,10 +132,25 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain("Always Load", program);
             Assert.DoesNotContain("Load Once", program);
             Assert.Single(Regex.Matches(program, @"\.Invoke\(\)").Cast<Match>());
-            int check = program.IndexOf("if (!SecurityDialogs.IsDoNotLoad(name))", StringComparison.Ordinal);
+            Assert.Single(Regex.Matches(program, @"PostMessage\(new IntPtr").Cast<Match>());
+            int check = program.IndexOf("if (!IsButton(part) || !SecurityDialogs.IsDoNotLoad(part.Current.Name))", StringComparison.Ordinal);
             int invoke = program.IndexOf(".Invoke()", StringComparison.Ordinal);
-            Assert.True(check > 0 && check < invoke);
+            int message = program.IndexOf("PostMessage(new IntPtr(buttonHandle), ButtonClick", StringComparison.Ordinal);
+            Assert.True(check > 0 && check < invoke && invoke < message);
             Assert.Contains("action == WatchAction.DoNotLoad && Click(window, entry)", program);
+            Assert.Contains("the dialog stayed open after Do Not Load", program);
+        }
+
+        [Fact]
+        public void R106_the_watcher_looks_inside_the_main_window_and_keys_dialogs_by_runtime_id()
+        {
+            string program = RepoText("dotnet", "SiteAdaptation.DialogWatcher", "Program.cs");
+
+            Assert.Contains("foreach (AutomationElement window in Candidates(tops))", program);
+            Assert.Contains("top.FindAll(TreeScope.Children, inner)", program);
+            Assert.Contains("string.Join(\".\", element.GetRuntimeId())", program);
+            Assert.DoesNotContain("new HashSet<int>()", program);
+            Assert.Contains("part.Current.ClassName == \"CCPushButton\"", program);
         }
 
         [Fact]
