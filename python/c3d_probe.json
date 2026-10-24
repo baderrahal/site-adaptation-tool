@@ -481,6 +481,31 @@
         "locationPlan": "pointInside"
       }
     },
+    "crossSections": {
+      "cadOut": "cross_sections/cad",
+      "outFolder": "cross_sections",
+      "titlePattern": "CROSS SECTION",
+      "titleColumnM": 3.0,
+      "titleBelowM": 1.6,
+      "roadTypePattern": "ROAD",
+      "rowPattern": "ROW",
+      "pavementLayers": ["PAR_LA_SITE-PAVE"],
+      "curbWidthM": [0.08, 0.3],
+      "curbHeightM": [0.15, 0.45],
+      "touchM": 0.01,
+      "minRoadLineM": 0.5,
+      "sidewalkStartM": 0.4,
+      "sidewalkBelowTopM": 0.1,
+      "flatSlope": 0.05,
+      "percentAboveM": 0.5,
+      "percentPattern": "([0-9]+(?:[.][0-9]+)?)%",
+      "profileWords": ["sidewalk", "curb", "kerb", "cross_fall", "upstand"]
+    },
+    "entryTerms": {
+      "outFolder": "entry_terms",
+      "minSidewalkM": 1.0,
+      "data2ByTypology": {"within5mm": 221, "within30mm": 193, "worse": 330, "noLevel": 3}
+    },
     "rev9": {
       "outFolder": "rev9",
       "workbooks": {
@@ -534,7 +559,38 @@
         }
       },
       "setbackLinesM": [5.0, 3.0],
-      "wideTypes": ["C10", "VL3"]
+      "wideTypes": ["C10", "VL3"],
+      "drawing": {
+        "role": "masterR9",
+        "cadOut": "rev9/cad/MP-SK-01-03-006_R9.0",
+        "plotLayers": ["MP_RM_Base_Overall$0$MP_Plot"],
+        "unitCodeLayers": ["MP_RM_BuildingFP_Phase-01$0$MP_BLDG_ANNO_TYPENAME"],
+        "unitCodeCopyLayers": ["Buildings - Cabin Only$0$MP_BLDG_ANNO_TYPENAME"],
+        "clusterCodePattern": "[DQT][0-9]{2}",
+        "setbackLayers": ["*SETBACK*", "*SET BACK*", "*SET-BACK*", "*SBK*", "*BUILD*LINE*"],
+        "boundaryLayers": ["*boundary*", "*Phasing*", "*ZONE*", "*NBH*"],
+        "extraWords": ["NEIGHBOURHOOD", "NEIGHBORHOOD", "NBH 02", "NBH 03", "SUB-PHASE", "PHASE-1B", "PHASE-1C"],
+        "minFaceAreaM2": 20,
+        "plotStroke": {"colour": "(0.0, 0.0, 0.0)", "width": 7.0},
+        "refineIouMin": 0.9,
+        "pdf": "Master Plan Rev.09/MP-SK-01-03-006_R9.pdf",
+        "labelSize": [2.1, 2.4],
+        "joinGapPt": 0.45,
+        "lineTolerancePt": 0.08,
+        "titleSize": [6.0, 16.0],
+        "titleGapPt": 1.5,
+        "codeKinds": ["clientCode", "openSpace", "substation", "landUse"],
+        "pairDyPt": [2.2, 2.6],
+        "pairDxPt": 1.0,
+        "fitDropFactor": 3,
+        "fitRounds": 3,
+        "fitFloorM": 0.001,
+        "sameShareMin": 0.98,
+        "matchShareMin": 0.5,
+        "nearestM": 3.0,
+        "tieM": 0.01,
+        "current": "pointInside"
+      }
     },
     "retest": {
       "steepUnits": [
