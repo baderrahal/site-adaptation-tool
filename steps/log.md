@@ -5,7 +5,7 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 ## Round 15a, 2026-10-24, plan.json from the past IMC job and the placer step 1
 
 Done:
-- pwd /c/Users/bader/Documents/GitHub/site-adaptation-tool-15a, a git worktree, branch round/addin-15a from main at 5874ae5, pull request 15. The session started in the worktree, so the main guard hook was live. Round 12b ran at the same time in the main folder, which I did not touch, and none of its five files changed. The Round 12 entry below is kept in full for it. The plan was written before the first edit. Full record: steps/history/round-15a.md
+- pwd /c/Users/bader/Documents/GitHub/site-adaptation-tool-15a, a git worktree, branch round/addin-15a from main at 5874ae5, pull request 15. The session started in the worktree, so the main guard hook was live. Round 12b ran at the same time in the main folder, which I did not touch, and none of its five files changed. The Round 12 entry below is kept in full for it. Before the merge main was still at 5874ae5, 12b had not merged, so there was no rebase. The plan was written before the first edit. Full record: steps/history/round-15a.md
 - Gate: Python 323 to 366 passed, .NET 155 to 205 passed
 - Rules: R80 plan.json, R81 python/plan_from_past.py with names from pastJob in config/project.json, R82 position proof, R83 to R88 the placer dotnet/SiteAdaptation.Placer (Place from plan, logic in Common behind IPlacerTarget), R89 python/plan_compare.py. R1, R54 and R55 amended
 - plan_imc_past.json: plots written 337 of 337. Missing: floors.yard 337, floors.generic 1 (plot 2441). Floors found: Generic 336, yard 0, ramp 337
