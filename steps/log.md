@@ -2,6 +2,43 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round 14c Part B, 2026-10-24, floors in the CAD plan
+
+Goal:
+- Generic, yard and ramp floors in plan_imc_cad.json from fitted outlines, the Rev 6 ramp and the road, compared per kind with plan_imc_past.json
+
+Done:
+- Branch feat/cad-floors-14c from main at 2119fe9 after PR 24. The first 14c worktree and the c3d worktree were removed outside this session and a data worktree appeared, so Part B runs in a fresh worktree, nothing was lost. Full record: steps/history/round-14c-b.md
+- New: python/floor_fit.py (R135, R136), config/floor_outlines.json (written by it), cadLinks.floorWidthStepM, floors in plan_from_cad.py (R137), floor compare in plan_compare.py (R138), python/cad_floor_check.py (R139). Gate: Python 740 to 750 passed and 1 skipped, .NET 358 passed
+- B1 (R135): outlines in link axes per unit and mirror, test halves within 10 mm Generic 116 of 152, yard 115 of 152. Adding the plot width: Generic 138 of 139, yard 135 of 139, so the plan groups by width. The whole face holds the Generic floor within 10 mm on 319 of 320
+- B2 (R136, R137): slope bands Ramps 0.5% under 1.25 percent, Ramps 2% above, Flat Ramps not separable, they pick the past type on 233 of 321. Front corners at the road of their curb point plus 0.098 m (234 of 640 within 5 mm). Back corners parallel to the front pair, mean at El @ Entry, since both at El @ Entry put 6 of 436 back corners within 5 mm
+- B3 (R137, R138), 218 plots outside the cut plots: Generic outline within 10 mm 217 of 217, top within 5 mm 192, type 217. Yard outline 215 of 217, top 192, type 217. Ramp outline 218 of 218, corners within 5 mm 44 and within 30 mm 164, type 140. The 25 tops off are the split clusters
+- B4: no Revit run, see Next
+
+Checked:
+- Second method (R139): fit 40 of 40 at seeds 14 and 7, all 641. outlines and ramps 20 of 20 at seeds 14 and 7, all 224. compare 6 of 6 counts
+
+UNKNOWN:
+- What sets the ramp type: the depth slope breaks on 78 Ramps 0.5%, the typology (2% on C10, VL4, VL6) holds on 311 of 321 and is not coded
+- What sets a Flat Ramp
+- Where Top Surface-02 ends (C3D question), the front corners take the road at the curb point plus 0.098 m
+
+Remains:
+- The villa floors, after the villa mirror. Floors for plot widths with no past group
+
+Known bugs:
+- Ramp type differs on 78 of 218 and the ramp corners are within 30 mm on 164 of 218
+- The plan writes a mirrored loop the other way round, the placer has not built one from a CAD plan yet
+
+Next:
+- Round 16, a test host run of plan_imc_cad.json: make a work file from the test master (scenario_files.py work), a linksAndFloors job on the 2024 prototype folder with the plan path, the floor types Ramps 0.5% and Ramps 2% and the levels of floorSettings in the master, then placer_check --floors against the answer key and plan_compare against the placed model. Known gaps to expect: no villas, 25 split cluster tops, ramp types and corners as above. Free memory under 8 GB keeps it to one window
+
+Your turn:
+1. Ramp type. Recommended: take Ramps 2% for the steps.one_step_only typologies (C10, VL4, VL6) and Ramps 0.5% for the rest, 311 of 321, and tell me what makes a Flat Ramp
+2. Back corners. Recommended: keep the back edge parallel to the front with its mean at El @ Entry, both at El @ Entry is off on 430 of 436 back corners
+3. Generic floor. Recommended: take the whole baseplan face (319 of 320 within 10 mm), it serves every plot width
+4. Round 16 test host run. Recommended: yes, on a work file, once the ramp type is settled
+
 ## Round 14c Part A, 2026-10-24, villa mirror, CASE and FFL split tested on the data
 
 Goal:

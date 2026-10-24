@@ -1,10 +1,10 @@
-"""Builds plan.json from CAD and the schedule, so the placer can serve plots with no past job (R126, R128).
+"""Builds plan.json from CAD and the schedule, so the placer can serve plots with no past job (R126, R128, R137).
 
 The link of a plot comes from the frame of its baseplan face (R122) and the plotFrame section of the offsets file: the
 rotation from the front edge, the mirror from the drawn side of its typology in its cluster (R123) and the origin from the
 fitted front corner offset (R121). The levels come from levels.py with El @ Entry of the schedule (R67), and the link Z is
-the FFL. A value no rule gives is left out and its plot is listed in missing with the reason, nothing is guessed. The plan
-holds no floors yet. The model it is placed in is the site model of the past job, whose survey point and angle it takes.
+the FFL. A value no rule gives is left out and its plot is listed in missing with the reason, nothing is guessed. With the LandXML
+folder it also holds the floors of R137. The model it is placed in is the site model of the past job, whose survey point and angle it takes.
 """
 import argparse
 import sys
@@ -17,6 +17,7 @@ import cad_analysis
 import cad_links
 import common
 import excel_reader
+import floor_fit
 import full_run
 import levels
 import levels_proof
@@ -26,6 +27,9 @@ import plan_from_past
 import plot_relations
 import project_profile
 import prototype_offsets
+import ramp_levels
+import ramp_outline
+import road_lookup
 import rules_checks
 import yard_rule
 
@@ -140,15 +144,100 @@ def level_values(builder, row):
         builder.entry["insert"]["value"][2] = row["ffl"]
 
 
-def build_plan(entries, faces, roads, clusters, profile, analysis, frame_section, listing, document, job, folder, floors_config):
-    """R128. The plan of R80 from the schedule entries, the baseplan faces, the road edges and the clusters, links and levels only."""
+def model_levels(document):
+    """R137. The elevation of each level of the site model, from its floors, a level with two elevations is refused."""
+    found = {}
+    for floor in document.get("floors") or []:
+        name, value = floor.get("level"), floor.get("levelElevation")
+        if name is None or not plan_from_past.is_number(value):
+            continue
+        if name in found and abs(found[name] - value) > floor_fit.EPSILON:
+            raise project_profile.ProfileError("the level " + str(name) + " has two elevations in the site model")
+        found[name] = value
+    return found
+
+
+def loops_of(points_list):
+    return {"loops": [{"points": [plan_from_past.point(point) for point in points], "arcs": []} for points in points_list]}
+
+
+def flat_floor(builder, kind, unit, frame, inputs, z):
+    """R137. A Generic or yard floor from the fitted outline of its unit, mirror flag and plot width, placed by the link of the plot."""
+    insert, rotation, mirrored = builder.entry["insert"]["value"], builder.entry["rotationDeg"]["value"], builder.entry["mirrored"]["value"]
+    width = floor_fit.width_key(frame["length"], inputs["step"])
+    group = floor_fit.outline_for(inputs["outlines"], kind, unit, mirrored, width)
+    if group is None:
+        builder.lack("floors." + kind, "no fitted outline for " + unit + (" mirrored" if mirrored else " not mirrored") + " on a plot " + str(width) + " m wide")
+        return None
+    level = inputs["floors"]["levels"][kind]
+    if level not in inputs["levels"]:
+        builder.lack("floors." + kind, "the site model has no level " + level)
+        return None
+    elevation = inputs["levels"][level]
+    return {"type": sourced(group["type"]), "level": sourced(level), "levelElevation": sourced(common.r3(elevation)),
+            "outline": sourced(loops_of([floor_fit.to_world(loop, insert, rotation, mirrored) for loop in group["loops"]])),
+            "plotValue": sourced(unit + "-" + builder.plot), "z": sourced(common.r3(z)), "heightOffset": sourced(common.r3(z - elevation))}
+
+
+def ramp_floor(builder, unit, frame, inputs, entry_level):
+    """R137. The ramp of R127 with its corners: the front pair at the road level of its curb point plus rampFront.offsetM and
+    the back pair parallel to it with its mean at El @ Entry, its type from the slope along its depth by rampTypes.bands (R136)."""
+    depth = ramp_outline.setback(inputs["profile"], unit)
+    corners = ramp_outline.outline(frame, depth)
+    front = []
+    for corner in corners[:2]:
+        road, _ = floor_fit.curb_level(corner, inputs["roads"], inputs["roadTree"], inputs["lookup"])
+        if road is None:
+            builder.lack("floors.ramp", "no road surface covers the curb point of a front corner")
+            return None
+        front.append(road + inputs["frontOffset"])
+    # The back edge follows the fall of the road. Two back corners both at El @ Entry put 6 of 436 past back corners within 5 mm, this puts 192
+    middle = sum(front) / 2.0
+    levels = front + [entry_level + front[1] - middle, entry_level + front[0] - middle]
+    slope = (entry_level - middle) / depth * 100.0
+    kind = floor_fit.type_of(slope, inputs["bands"])
+    level = inputs["floors"]["levels"]["ramp"]
+    if kind is None:
+        builder.lack("floors.ramp", "no ramp type for a slope of " + str(common.r3(slope)) + " percent")
+        return None
+    if level not in inputs["levels"]:
+        builder.lack("floors.ramp", "the site model has no level " + level)
+        return None
+    elevation = inputs["levels"][level]
+    points = [(corner[0], corner[1], z) for corner, z in zip(corners, levels)]
+    return {"type": sourced(kind), "level": sourced(level), "levelElevation": sourced(common.r3(elevation)), "outline": sourced(loops_of([corners])),
+            "plotValue": sourced(unit + "-" + builder.plot), "corners": sourced([plan_from_past.point(point) for point in points]),
+            "heightOffset": sourced(common.r3(min(levels) - elevation)), "slopePercent": sourced(common.r3(slope))}
+
+
+def floor_values(builder, unit, frame, inputs):
+    """R137. The Generic, yard and ramp floors of a plot the plan holds a link and levels for."""
+    floors = {}
+    ffl = builder.entry["levels"].get("ffl", {}).get("value")
+    entry_level = builder.entry["levels"].get("entry", {}).get("value")
+    if ffl is None or entry_level is None or frame is None:
+        builder.lack("floors", "no FFL, no entry level or no front edge")
+        return floors
+    for kind, z in (("generic", ffl), ("yard", ffl - inputs["floors"]["yardBelowFflM"])):
+        made = flat_floor(builder, kind, unit, frame, inputs, z)
+        if made is not None:
+            floors[kind] = made
+    made = ramp_floor(builder, unit, frame, inputs, entry_level)
+    if made is not None:
+        floors["ramp"] = made
+    return floors
+
+
+def build_plan(entries, faces, roads, clusters, profile, analysis, frame_section, listing, document, job, folder, floors_config, floor_inputs=None):
+    """R128. The plan of R80 from the schedule entries, the baseplan faces, the road edges and the clusters. With floor_inputs
+    (R137) every written plot also gets its Generic, yard and ramp floors, else it holds links and levels only."""
     road_tree = STRtree(roads) if roads else None
     limits = cad_links.front_limits(profile, analysis)
     frames = {plot: cad_links.front_frame(faces.get(plot), road_tree, roads, limits) for plot in entries}
     roles = cad_links.cluster_roles(clusters, 0, faces, frames)
     rows = plot_levels(profile, clusters, entries)
     files, twice = prototype_files(listing, profile)
-    plots, missing, lacking_keys, flags = [], [], Counter(), Counter()
+    plots, missing, lacking_keys, flags, floors_found, floor_types = [], [], Counter(), Counter(), Counter(), Counter()
     for plot in sorted(entries, key=link_summary.sort_key):
         unit = entries[plot]["unit"]
         builder = plan_from_past.PlotBuilder(plot)
@@ -159,9 +248,11 @@ def build_plan(entries, faces, roads, clusters, profile, analysis, frame_section
         builder.entry["parameters"] = {plan_from_past.PLOT_PARAMETER: sourced(plot, SCHEDULE), plan_from_past.UNIT_PARAMETER: sourced(unit, SCHEDULE)}
         if steps is not None:
             builder.entry["parameters"][plan_from_past.STEPS_PARAMETER] = sourced(str(steps))
-        builder.entry["floors"] = {}
-        flags.update(builder.entry.get("levelFlags", []))
         complete = all(builder.has(key) for key in LINK_KEYS)
+        builder.entry["floors"] = floor_values(builder, unit, frames.get(plot), floor_inputs) if complete and floor_inputs else {}
+        floors_found.update(builder.entry["floors"].keys())
+        floor_types.update(kind + ": " + floor["type"]["value"] for kind, floor in builder.entry["floors"].items())
+        flags.update(builder.entry.get("levelFlags", []))
         if complete:
             plots.append(builder.entry)
         if builder.missing:
@@ -186,6 +277,7 @@ def build_plan(entries, faces, roads, clusters, profile, analysis, frame_section
             "missingByKey": dict(sorted(lacking_keys.items())), "levelFlags": dict(sorted(flags.items())),
             "frontTied": sum(1 for frame in frames.values() if frame and frame["tied"]),
             "clusterPlots": len(roles), "prototypeCodesWithTwoFiles": twice,
+            "floorsFound": {kind: floors_found[kind] for kind in plan_from_past.FLOOR_KINDS}, "floorTypes": dict(sorted(floor_types.items())),
             "check3": {"byStatus": dict(sorted(Counter(record["status"] for record in records).items())), "issues": len(issues)},
             "check3ScheduleFfl": {"byStatus": dict(sorted(Counter(record["status"] for record in sheet_records).items())), "issues": len(sheet_issues),
                                   "splitWalls": dict(sorted(Counter(record["code"] + " after " + str(wall["after"]) for record in sheet_records for wall in record["walls"]).items()))},
@@ -211,6 +303,9 @@ def main(argv=None):
     parser.add_argument("--shifts", default=str(cad_analysis.DEFAULT_SHIFTS))
     parser.add_argument("--offsets", default=str(prototype_offsets.DEFAULT_PATH))
     parser.add_argument("--out", help="plan file, default cadLinks.planOutput")
+    parser.add_argument("--landxml-dir", help="folder of the LandXML surfaces, with it the plan also holds floors (R137)")
+    parser.add_argument("--surfaces", default=str(ramp_levels.DEFAULT_CONFIG))
+    parser.add_argument("--floors", default=str(floor_fit.DEFAULT_PATH), help="config/floor_outlines.json")
     args = parser.parse_args(argv)
     try:
         settings = project_profile.load_settings(args.settings)
@@ -231,14 +326,21 @@ def main(argv=None):
         entries, lacking, bad = schedule_entries(rows)
         folder, _ = plan_from_past.prototype_folders(root, job)
         document = plan_from_past.host_of(link_summary.load(job["prototypes"]))
+        floor_inputs = None
+        if args.landxml_dir:
+            data = floor_fit.load(args.floors)
+            floor_inputs = {"outlines": data, "step": floor_fit.width_step(settings), "levels": model_levels(document), "floors": floors_config, "profile": profile,
+                            "roads": roads, "roadTree": STRtree(roads), "lookup": road_lookup.load(ramp_levels.load_config(args.surfaces), args.landxml_dir),
+                            "frontOffset": data["rampFront"]["offsetM"], "bands": data["rampTypes"]["bands"]}
         plan = build_plan(entries, faces, roads, clusters, profile, settings.get("analysis"), prototype_offsets.plot_frame(prototype_offsets.load(args.offsets)),
-                          plan_from_past.folder_listing(folder), document, job, folder, floors_config)
+                          plan_from_past.folder_listing(folder), document, job, folder, floors_config, floor_inputs)
         plan["summary"]["scheduleRowsLacking"] = lacking
         plan["summary"]["scheduleRowsWithBadPlotNumber"] = bad
         plan_from_past.write_plan(out, plan)
         summary = plan["summary"]
         print("plots written %d of %d, missing %s" % (summary["written"], summary["plots"], summary["missingByKey"]))
         print("level flags %s, check 3 %s" % (summary["levelFlags"], summary["check3"]))
+        print("floors %s, types %s" % (summary["floorsFound"], summary["floorTypes"]))
         print("check 3 on the schedule FFL %s" % summary["check3ScheduleFfl"])
         print(out)
     except (project_profile.ProfileError, ValueError, KeyError, OSError) as error:

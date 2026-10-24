@@ -1,0 +1,4666 @@
+{
+ "note": "Measured from the IMC past job, not a rule of the client, written by python/floor_fit.py --write and never by hand (R135, R136). outlines: per floor kind one group per unit, mirror flag and plot width, the width being the front edge of the baseplan face (R122) rounded to cadLinks.floorWidthStepM. loops are in the axes of the link, x along its X axis and y along its Y axis from its origin, so the outline is placed by the insert, rotation and mirror flag of the link. type is the floor type most of the group carry. The loops are the outline of the plot of the fit half nearest all the others (the medoid), fitError and testError count the plots of each half by the Hausdorff distance of the boundaries, a group with tooFew true was fitted on all its plots and not tested. rampTypes: the slope of each past ramp along its depth, back corners over front corners, per type, and the bands that pick a type, cut halfway between the medians. A type whose median lies in the band of another is listed in notSeparable. rampFront: the median of the front corner level minus the road level at the curb point nearest the corner (R91, R94). Lengths are in metres, slopes in percent.",
+ "outlines": {
+  "generic": [
+   {
+    "unit": "C10",
+    "mirrored": false,
+    "width": 16.0,
+    "plots": 8,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 4,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 2,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2527",
+    "loops": [
+     [
+      [
+       -5.999,
+       23.407
+      ],
+      [
+       -6.0,
+       -1.594
+      ],
+      [
+       10.0,
+       -1.593
+      ],
+      [
+       10.0,
+       23.407
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "C10",
+    "mirrored": true,
+    "width": 16.0,
+    "plots": 7,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 2,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 3,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "fromPlot": "2516",
+    "loops": [
+     [
+      [
+       -6.0,
+       23.407
+      ],
+      [
+       -6.001,
+       -1.593
+      ],
+      [
+       10.0,
+       -1.593
+      ],
+      [
+       10.0,
+       23.408
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP1",
+    "mirrored": false,
+    "width": 10.0,
+    "plots": 9,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 5,
+     "within10mm": 5,
+     "worse": 0,
+     "n": 5
+    },
+    "testError": {
+     "within1mm": 3,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2460",
+    "loops": [
+     [
+      [
+       10.0,
+       24.85
+      ],
+      [
+       10.0,
+       -0.15
+      ],
+      [
+       0,
+       -0.15
+      ],
+      [
+       0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP1",
+    "mirrored": false,
+    "width": 12.0,
+    "plots": 4,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 2,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "testError": {
+     "within1mm": 1,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "fromPlot": "2491",
+    "loops": [
+     [
+      [
+       10.001,
+       24.85
+      ],
+      [
+       10.001,
+       -0.151
+      ],
+      [
+       -2.0,
+       -0.15
+      ],
+      [
+       -1.999,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP1",
+    "mirrored": true,
+    "width": 10.0,
+    "plots": 8,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 4,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 4,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2418",
+    "loops": [
+     [
+      [
+       10.0,
+       24.85
+      ],
+      [
+       10.0,
+       -0.149
+      ],
+      [
+       0,
+       -0.149
+      ],
+      [
+       0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP1",
+    "mirrored": true,
+    "width": 12.0,
+    "plots": 5,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 3,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "testError": {
+     "within1mm": 0,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "fromPlot": "2500",
+    "loops": [
+     [
+      [
+       10.0,
+       24.85
+      ],
+      [
+       10.0,
+       -0.15
+      ],
+      [
+       -2.0,
+       -0.149
+      ],
+      [
+       -2.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP2",
+    "mirrored": false,
+    "width": 12.0,
+    "plots": 5,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 2,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "testError": {
+     "within1mm": 1,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "fromPlot": "2551",
+    "loops": [
+     [
+      [
+       9.996,
+       24.845
+      ],
+      [
+       9.995,
+       -0.156
+      ],
+      [
+       -2.005,
+       -0.155
+      ],
+      [
+       -2.005,
+       24.845
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP2",
+    "mirrored": true,
+    "width": 12.0,
+    "plots": 4,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 1,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "testError": {
+     "within1mm": 0,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "fromPlot": "2342",
+    "loops": [
+     [
+      [
+       9.995,
+       24.845
+      ],
+      [
+       9.995,
+       -0.154
+      ],
+      [
+       -2.005,
+       -0.155
+      ],
+      [
+       -2.005,
+       24.846
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP2",
+    "mirrored": true,
+    "width": 14.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2602",
+    "loops": [
+     [
+      [
+       9.995,
+       24.845
+      ],
+      [
+       9.995,
+       -0.155
+      ],
+      [
+       -4.004,
+       -0.155
+      ],
+      [
+       -4.004,
+       24.845
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP3",
+    "mirrored": false,
+    "width": 10.0,
+    "plots": 3,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2563",
+    "loops": [
+     [
+      [
+       -0.01,
+       24.849
+      ],
+      [
+       -0.011,
+       -0.15
+      ],
+      [
+       9.989,
+       -0.15
+      ],
+      [
+       9.99,
+       24.849
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP3",
+    "mirrored": false,
+    "width": 12.0,
+    "plots": 2,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2475",
+    "loops": [
+     [
+      [
+       -2.011,
+       24.85
+      ],
+      [
+       -2.01,
+       -0.15
+      ],
+      [
+       9.989,
+       -0.15
+      ],
+      [
+       9.989,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP3",
+    "mirrored": true,
+    "width": 10.0,
+    "plots": 4,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 2,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "testError": {
+     "within1mm": 2,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "fromPlot": "2467",
+    "loops": [
+     [
+      [
+       -0.01,
+       24.85
+      ],
+      [
+       -0.01,
+       -0.15
+      ],
+      [
+       9.99,
+       -0.15
+      ],
+      [
+       9.99,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP3",
+    "mirrored": true,
+    "width": 12.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2468",
+    "loops": [
+     [
+      [
+       -2.01,
+       24.85
+      ],
+      [
+       -2.01,
+       -0.15
+      ],
+      [
+       9.99,
+       -0.15
+      ],
+      [
+       9.99,
+       24.849
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP4",
+    "mirrored": false,
+    "width": 12.0,
+    "plots": 14,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 5,
+     "within10mm": 6,
+     "worse": 1,
+     "n": 7
+    },
+    "testError": {
+     "within1mm": 6,
+     "within10mm": 7,
+     "worse": 0,
+     "n": 7
+    },
+    "fromPlot": "2309",
+    "loops": [
+     [
+      [
+       -2.009,
+       24.85
+      ],
+      [
+       -2.009,
+       -0.15
+      ],
+      [
+       9.99,
+       -0.15
+      ],
+      [
+       9.991,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP4",
+    "mirrored": false,
+    "width": 13.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2409",
+    "loops": [
+     [
+      [
+       -0.456,
+       24.849
+      ],
+      [
+       -3.01,
+       22.286
+      ],
+      [
+       -3.01,
+       -0.151
+      ],
+      [
+       9.99,
+       -0.15
+      ],
+      [
+       9.99,
+       24.849
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP4",
+    "mirrored": true,
+    "width": 12.0,
+    "plots": 13,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 7,
+     "within10mm": 7,
+     "worse": 0,
+     "n": 7
+    },
+    "testError": {
+     "within1mm": 5,
+     "within10mm": 5,
+     "worse": 1,
+     "n": 6
+    },
+    "fromPlot": "2453",
+    "loops": [
+     [
+      [
+       -2.01,
+       24.85
+      ],
+      [
+       -2.01,
+       -0.15
+      ],
+      [
+       9.99,
+       -0.15
+      ],
+      [
+       9.99,
+       24.849
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP4",
+    "mirrored": true,
+    "width": 14.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2356",
+    "loops": [
+     [
+      [
+       -4.011,
+       24.85
+      ],
+      [
+       -4.009,
+       -0.15
+      ],
+      [
+       9.99,
+       -0.15
+      ],
+      [
+       9.99,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP4",
+    "mirrored": true,
+    "width": 15.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2320",
+    "loops": [
+     [
+      [
+       -3.261,
+       24.85
+      ],
+      [
+       -8.26,
+       19.85
+      ],
+      [
+       -8.26,
+       4.849
+      ],
+      [
+       -5.26,
+       4.85
+      ],
+      [
+       -5.26,
+       -0.151
+      ],
+      [
+       9.99,
+       -0.15
+      ],
+      [
+       9.99,
+       24.849
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DT1",
+    "mirrored": false,
+    "width": 10.0,
+    "plots": 20,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 10,
+     "within10mm": 10,
+     "worse": 0,
+     "n": 10
+    },
+    "testError": {
+     "within1mm": 10,
+     "within10mm": 10,
+     "worse": 0,
+     "n": 10
+    },
+    "fromPlot": "2402",
+    "loops": [
+     [
+      [
+       20.0,
+       25.0
+      ],
+      [
+       20.0,
+       0
+      ],
+      [
+       10.0,
+       0
+      ],
+      [
+       10.0,
+       25.0
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DT1",
+    "mirrored": true,
+    "width": 10.0,
+    "plots": 19,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 10,
+     "within10mm": 10,
+     "worse": 0,
+     "n": 10
+    },
+    "testError": {
+     "within1mm": 9,
+     "within10mm": 9,
+     "worse": 0,
+     "n": 9
+    },
+    "fromPlot": "2336",
+    "loops": [
+     [
+      [
+       20.0,
+       25.0
+      ],
+      [
+       20.0,
+       0
+      ],
+      [
+       10.0,
+       0
+      ],
+      [
+       10.0,
+       25.0
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DT1",
+    "mirrored": true,
+    "width": 13.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2612",
+    "loops": [
+     [
+      [
+       20.5,
+       25.001
+      ],
+      [
+       23.0,
+       22.5
+      ],
+      [
+       22.999,
+       0.001
+      ],
+      [
+       10.0,
+       0
+      ],
+      [
+       10.0,
+       25.0
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DT3",
+    "mirrored": false,
+    "width": 10.0,
+    "plots": 34,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 15,
+     "within10mm": 17,
+     "worse": 0,
+     "n": 17
+    },
+    "testError": {
+     "within1mm": 15,
+     "within10mm": 17,
+     "worse": 0,
+     "n": 17
+    },
+    "fromPlot": "2536",
+    "loops": [
+     [
+      [
+       20.0,
+       25.0
+      ],
+      [
+       20.0,
+       0
+      ],
+      [
+       10.0,
+       0
+      ],
+      [
+       10.0,
+       25.0
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DT3",
+    "mirrored": true,
+    "width": 10.0,
+    "plots": 34,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 17,
+     "within10mm": 17,
+     "worse": 0,
+     "n": 17
+    },
+    "testError": {
+     "within1mm": 17,
+     "within10mm": 17,
+     "worse": 0,
+     "n": 17
+    },
+    "fromPlot": "2578",
+    "loops": [
+     [
+      [
+       20.0,
+       25.0
+      ],
+      [
+       20.0,
+       0
+      ],
+      [
+       10.0,
+       0
+      ],
+      [
+       10.0,
+       25.0
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "TH1",
+    "mirrored": false,
+    "width": 8.0,
+    "plots": 8,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 4,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 2,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2485",
+    "loops": [
+     [
+      [
+       18.0,
+       25.0
+      ],
+      [
+       18.0,
+       -0.001
+      ],
+      [
+       10.0,
+       0
+      ],
+      [
+       10.0,
+       25.0
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "TH1",
+    "mirrored": true,
+    "width": 8.0,
+    "plots": 8,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 4,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 2,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2486",
+    "loops": [
+     [
+      [
+       18.0,
+       25.0
+      ],
+      [
+       18.0,
+       0
+      ],
+      [
+       10.0,
+       0
+      ],
+      [
+       10.0,
+       25.0
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "TH3",
+    "mirrored": false,
+    "width": 8.0,
+    "plots": 8,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 4,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 4,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2557",
+    "loops": [
+     [
+      [
+       18.0,
+       25.0
+      ],
+      [
+       18.0,
+       0
+      ],
+      [
+       10.0,
+       0
+      ],
+      [
+       10.0,
+       25.0
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "TH3",
+    "mirrored": true,
+    "width": 8.0,
+    "plots": 8,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 4,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 3,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2474",
+    "loops": [
+     [
+      [
+       18.0,
+       25.0
+      ],
+      [
+       18.0,
+       0
+      ],
+      [
+       10.0,
+       0
+      ],
+      [
+       10.0,
+       25.0
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD1",
+    "mirrored": false,
+    "width": 10.0,
+    "plots": 2,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2290",
+    "loops": [
+     [
+      [
+       10.0,
+       24.849
+      ],
+      [
+       10.001,
+       -0.151
+      ],
+      [
+       0.001,
+       -0.151
+      ],
+      [
+       0,
+       24.849
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD1",
+    "mirrored": true,
+    "width": 10.0,
+    "plots": 2,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2293",
+    "loops": [
+     [
+      [
+       10.0,
+       24.85
+      ],
+      [
+       10.0,
+       -0.149
+      ],
+      [
+       0,
+       -0.149
+      ],
+      [
+       0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD2",
+    "mirrored": false,
+    "width": 12.0,
+    "plots": 13,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 4,
+     "within10mm": 7,
+     "worse": 0,
+     "n": 7
+    },
+    "testError": {
+     "within1mm": 5,
+     "within10mm": 6,
+     "worse": 0,
+     "n": 6
+    },
+    "fromPlot": "2432",
+    "loops": [
+     [
+      [
+       10.0,
+       24.845
+      ],
+      [
+       10.0,
+       -0.155
+      ],
+      [
+       -2.0,
+       -0.156
+      ],
+      [
+       -2.0,
+       24.845
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD2",
+    "mirrored": false,
+    "width": 13.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2422",
+    "loops": [
+     [
+      [
+       10.0,
+       24.845
+      ],
+      [
+       10.0,
+       -0.155
+      ],
+      [
+       -3.0,
+       -0.155
+      ],
+      [
+       -3.0,
+       24.844
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD2",
+    "mirrored": false,
+    "width": 15.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2321",
+    "loops": [
+     [
+      [
+       10.0,
+       24.845
+      ],
+      [
+       10.0,
+       -0.155
+      ],
+      [
+       -5.0,
+       -0.155
+      ],
+      [
+       -5.0,
+       24.844
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD2",
+    "mirrored": true,
+    "width": 12.0,
+    "plots": 11,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 6,
+     "within10mm": 6,
+     "worse": 0,
+     "n": 6
+    },
+    "testError": {
+     "within1mm": 5,
+     "within10mm": 5,
+     "worse": 0,
+     "n": 5
+    },
+    "fromPlot": "2308",
+    "loops": [
+     [
+      [
+       9.999,
+       24.845
+      ],
+      [
+       10.0,
+       -0.155
+      ],
+      [
+       -2.0,
+       -0.155
+      ],
+      [
+       -2.0,
+       24.845
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD2",
+    "mirrored": true,
+    "width": 15.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2324",
+    "loops": [
+     [
+      [
+       10.0,
+       24.845
+      ],
+      [
+       10.0,
+       -0.156
+      ],
+      [
+       -5.0,
+       -0.156
+      ],
+      [
+       -5.0,
+       24.844
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": false,
+    "width": 12.0,
+    "plots": 8,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 3,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 3,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2367",
+    "loops": [
+     [
+      [
+       -2.005,
+       24.85
+      ],
+      [
+       -2.005,
+       -0.151
+      ],
+      [
+       9.995,
+       -0.151
+      ],
+      [
+       9.995,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": false,
+    "width": 12.5,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2289",
+    "loops": [
+     [
+      [
+       -2.505,
+       24.85
+      ],
+      [
+       -2.505,
+       -0.15
+      ],
+      [
+       9.995,
+       -0.15
+      ],
+      [
+       9.995,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": false,
+    "width": 13.0,
+    "plots": 2,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2436",
+    "loops": [
+     [
+      [
+       -3.005,
+       24.849
+      ],
+      [
+       -3.005,
+       -0.15
+      ],
+      [
+       9.995,
+       -0.151
+      ],
+      [
+       9.995,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": false,
+    "width": 16.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2301",
+    "loops": [
+     [
+      [
+       -3.26,
+       24.85
+      ],
+      [
+       -5.761,
+       22.349
+      ],
+      [
+       -5.76,
+       -0.15
+      ],
+      [
+       9.989,
+       -0.15
+      ],
+      [
+       9.989,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": true,
+    "width": 12.0,
+    "plots": 10,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 3,
+     "within10mm": 5,
+     "worse": 0,
+     "n": 5
+    },
+    "testError": {
+     "within1mm": 4,
+     "within10mm": 5,
+     "worse": 0,
+     "n": 5
+    },
+    "fromPlot": "2571",
+    "loops": [
+     [
+      [
+       -2.006,
+       24.85
+      ],
+      [
+       -2.005,
+       -0.15
+      ],
+      [
+       9.994,
+       -0.15
+      ],
+      [
+       9.995,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": true,
+    "width": 13.0,
+    "plots": 2,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2427",
+    "loops": [
+     [
+      [
+       -3.005,
+       24.85
+      ],
+      [
+       -3.005,
+       -0.151
+      ],
+      [
+       9.994,
+       -0.15
+      ],
+      [
+       9.995,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": true,
+    "width": 14.5,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2300",
+    "loops": [
+     [
+      [
+       -2.005,
+       24.85
+      ],
+      [
+       -4.505,
+       22.349
+      ],
+      [
+       -4.505,
+       -0.15
+      ],
+      [
+       9.994,
+       -0.15
+      ],
+      [
+       9.995,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": true,
+    "width": 15.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2576",
+    "loops": [
+     [
+      [
+       -5.005,
+       24.85
+      ],
+      [
+       -5.005,
+       -0.15
+      ],
+      [
+       9.995,
+       -0.149
+      ],
+      [
+       9.996,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL4",
+    "mirrored": false,
+    "width": 12.0,
+    "plots": 6,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 3,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "testError": {
+     "within1mm": 0,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "fromPlot": "2608",
+    "loops": [
+     [
+      [
+       10.001,
+       24.85
+      ],
+      [
+       10.0,
+       -0.15
+      ],
+      [
+       -2.0,
+       -0.15
+      ],
+      [
+       -2.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL4",
+    "mirrored": false,
+    "width": 13.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2588",
+    "loops": [
+     [
+      [
+       10.0,
+       24.85
+      ],
+      [
+       10.0,
+       -0.15
+      ],
+      [
+       -3.0,
+       -0.15
+      ],
+      [
+       -3.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL4",
+    "mirrored": false,
+    "width": 15.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2601",
+    "loops": [
+     [
+      [
+       10.001,
+       24.85
+      ],
+      [
+       10.0,
+       -0.15
+      ],
+      [
+       -5.0,
+       -0.15
+      ],
+      [
+       -5.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL4",
+    "mirrored": true,
+    "width": 12.0,
+    "plots": 6,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 2,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "testError": {
+     "within1mm": 2,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "fromPlot": "2397",
+    "loops": [
+     [
+      [
+       10.0,
+       24.85
+      ],
+      [
+       10.0,
+       -0.149
+      ],
+      [
+       -2.0,
+       -0.149
+      ],
+      [
+       -2.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL4",
+    "mirrored": true,
+    "width": 13.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2583",
+    "loops": [
+     [
+      [
+       10.0,
+       24.85
+      ],
+      [
+       10.0,
+       -0.15
+      ],
+      [
+       -3.0,
+       -0.15
+      ],
+      [
+       -2.999,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL6",
+    "mirrored": false,
+    "width": 16.0,
+    "plots": 7,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 4,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 2,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "fromPlot": "2522",
+    "loops": [
+     [
+      [
+       16.0,
+       24.85
+      ],
+      [
+       15.999,
+       -0.149
+      ],
+      [
+       0,
+       -0.15
+      ],
+      [
+       0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL6",
+    "mirrored": false,
+    "width": 16.5,
+    "plots": 2,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2382",
+    "loops": [
+     [
+      [
+       16.5,
+       24.85
+      ],
+      [
+       16.5,
+       -0.15
+      ],
+      [
+       0,
+       -0.15
+      ],
+      [
+       0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL6",
+    "mirrored": true,
+    "width": 16.0,
+    "plots": 6,
+    "tooFew": false,
+    "type": "Generic 150mm",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 2,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "testError": {
+     "within1mm": 2,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "fromPlot": "2534",
+    "loops": [
+     [
+      [
+       16.001,
+       24.85
+      ],
+      [
+       16.001,
+       -0.15
+      ],
+      [
+       0,
+       -0.15
+      ],
+      [
+       0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL6",
+    "mirrored": true,
+    "width": 16.5,
+    "plots": 2,
+    "tooFew": true,
+    "type": "Generic 150mm",
+    "fromPlot": "2373",
+    "loops": [
+     [
+      [
+       16.5,
+       24.85
+      ],
+      [
+       16.5,
+       -0.15
+      ],
+      [
+       0,
+       -0.15
+      ],
+      [
+       0,
+       24.85
+      ]
+     ]
+    ]
+   }
+  ],
+  "yard": [
+   {
+    "unit": "C10",
+    "mirrored": false,
+    "width": 16.0,
+    "plots": 8,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 3,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 2,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2527",
+    "loops": [
+     [
+      [
+       -2.94,
+       3.907
+      ],
+      [
+       -2.94,
+       5.617
+      ],
+      [
+       -6.0,
+       5.617
+      ],
+      [
+       -5.999,
+       23.407
+      ],
+      [
+       10.0,
+       23.407
+      ],
+      [
+       10.001,
+       20.432
+      ],
+      [
+       -1.11,
+       20.432
+      ],
+      [
+       -1.11,
+       13.322
+      ],
+      [
+       4.29,
+       13.322
+      ],
+      [
+       4.291,
+       8.467
+      ],
+      [
+       -1.11,
+       8.467
+      ],
+      [
+       -1.11,
+       3.907
+      ]
+     ],
+     [
+      [
+       9.46,
+       3.907
+      ],
+      [
+       9.46,
+       4.932
+      ],
+      [
+       6.55,
+       4.932
+      ],
+      [
+       6.55,
+       3.906
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "C10",
+    "mirrored": true,
+    "width": 16.0,
+    "plots": 7,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 2,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 0,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "fromPlot": "2528",
+    "loops": [
+     [
+      [
+       -2.94,
+       3.908
+      ],
+      [
+       -2.941,
+       5.618
+      ],
+      [
+       -6.0,
+       5.618
+      ],
+      [
+       -6.0,
+       23.408
+      ],
+      [
+       10.0,
+       23.408
+      ],
+      [
+       10.0,
+       20.432
+      ],
+      [
+       -1.11,
+       20.433
+      ],
+      [
+       -1.11,
+       13.322
+      ],
+      [
+       4.29,
+       13.323
+      ],
+      [
+       4.29,
+       8.468
+      ],
+      [
+       -1.11,
+       8.467
+      ],
+      [
+       -1.11,
+       3.907
+      ]
+     ],
+     [
+      [
+       9.46,
+       3.908
+      ],
+      [
+       6.55,
+       3.908
+      ],
+      [
+       6.55,
+       4.933
+      ],
+      [
+       9.46,
+       4.933
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP1",
+    "mirrored": false,
+    "width": 10.0,
+    "plots": 9,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 3,
+     "within10mm": 5,
+     "worse": 0,
+     "n": 5
+    },
+    "testError": {
+     "within1mm": 3,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2460",
+    "loops": [
+     [
+      [
+       0,
+       24.85
+      ],
+      [
+       0,
+       5.371
+      ],
+      [
+       5.37,
+       5.37
+      ],
+      [
+       5.37,
+       9.365
+      ],
+      [
+       1.999,
+       9.365
+      ],
+      [
+       2.0,
+       19.33
+      ],
+      [
+       10.0,
+       19.331
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP1",
+    "mirrored": false,
+    "width": 12.0,
+    "plots": 4,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 2,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "testError": {
+     "within1mm": 0,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "fromPlot": "2491",
+    "loops": [
+     [
+      [
+       -1.999,
+       24.85
+      ],
+      [
+       -2.0,
+       5.369
+      ],
+      [
+       5.37,
+       5.37
+      ],
+      [
+       5.371,
+       9.364
+      ],
+      [
+       2.0,
+       9.365
+      ],
+      [
+       2.001,
+       19.33
+      ],
+      [
+       10.001,
+       19.329
+      ],
+      [
+       10.001,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP1",
+    "mirrored": true,
+    "width": 10.0,
+    "plots": 8,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 2,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 0,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2496",
+    "loops": [
+     [
+      [
+       0,
+       24.85
+      ],
+      [
+       0,
+       5.371
+      ],
+      [
+       5.371,
+       5.37
+      ],
+      [
+       5.369,
+       9.366
+      ],
+      [
+       2.0,
+       9.366
+      ],
+      [
+       2.0,
+       19.331
+      ],
+      [
+       10.0,
+       19.331
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP1",
+    "mirrored": true,
+    "width": 12.0,
+    "plots": 5,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 3,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "testError": {
+     "within1mm": 1,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "fromPlot": "2484",
+    "loops": [
+     [
+      [
+       -2.0,
+       24.85
+      ],
+      [
+       -2.0,
+       5.37
+      ],
+      [
+       5.37,
+       5.37
+      ],
+      [
+       5.37,
+       9.365
+      ],
+      [
+       2.0,
+       9.366
+      ],
+      [
+       2.0,
+       19.33
+      ],
+      [
+       10.0,
+       19.331
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP2",
+    "mirrored": false,
+    "width": 12.0,
+    "plots": 5,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 2,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "testError": {
+     "within1mm": 2,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "fromPlot": "2551",
+    "loops": [
+     [
+      [
+       -2.005,
+       24.85
+      ],
+      [
+       -2.005,
+       5.349
+      ],
+      [
+       2.0,
+       5.349
+      ],
+      [
+       2.0,
+       19.559
+      ],
+      [
+       10.0,
+       19.56
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP2",
+    "mirrored": true,
+    "width": 12.0,
+    "plots": 4,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 1,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "testError": {
+     "within1mm": 0,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "fromPlot": "2342",
+    "loops": [
+     [
+      [
+       -2.005,
+       24.851
+      ],
+      [
+       -2.005,
+       5.35
+      ],
+      [
+       2.0,
+       5.351
+      ],
+      [
+       2.0,
+       19.561
+      ],
+      [
+       10.0,
+       19.561
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP2",
+    "mirrored": true,
+    "width": 14.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2602",
+    "loops": [
+     [
+      [
+       -4.005,
+       24.849
+      ],
+      [
+       -4.005,
+       5.35
+      ],
+      [
+       2.0,
+       5.35
+      ],
+      [
+       2.0,
+       19.56
+      ],
+      [
+       10.001,
+       19.56
+      ],
+      [
+       10.001,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP3",
+    "mirrored": false,
+    "width": 10.0,
+    "plots": 3,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2464",
+    "loops": [
+     [
+      [
+       -0.001,
+       24.849
+      ],
+      [
+       -0.001,
+       5.35
+      ],
+      [
+       1.999,
+       5.35
+      ],
+      [
+       2.0,
+       19.61
+      ],
+      [
+       10.0,
+       19.609
+      ],
+      [
+       9.999,
+       24.849
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP3",
+    "mirrored": false,
+    "width": 12.0,
+    "plots": 2,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2475",
+    "loops": [
+     [
+      [
+       -2.011,
+       24.85
+      ],
+      [
+       -2.011,
+       5.35
+      ],
+      [
+       1.999,
+       5.35
+      ],
+      [
+       2.0,
+       19.609
+      ],
+      [
+       10.0,
+       19.609
+      ],
+      [
+       9.999,
+       24.849
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP3",
+    "mirrored": true,
+    "width": 10.0,
+    "plots": 4,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 2,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "testError": {
+     "within1mm": 1,
+     "within10mm": 2,
+     "worse": 0,
+     "n": 2
+    },
+    "fromPlot": "2467",
+    "loops": [
+     [
+      [
+       0,
+       24.85
+      ],
+      [
+       0,
+       5.349
+      ],
+      [
+       2.0,
+       5.35
+      ],
+      [
+       1.999,
+       19.61
+      ],
+      [
+       9.999,
+       19.61
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP3",
+    "mirrored": true,
+    "width": 12.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2468",
+    "loops": [
+     [
+      [
+       -2.01,
+       24.85
+      ],
+      [
+       -2.01,
+       5.35
+      ],
+      [
+       2.0,
+       5.35
+      ],
+      [
+       2.001,
+       19.61
+      ],
+      [
+       10.001,
+       19.61
+      ],
+      [
+       10.001,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP4",
+    "mirrored": false,
+    "width": 12.0,
+    "plots": 14,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 4,
+     "within10mm": 7,
+     "worse": 0,
+     "n": 7
+    },
+    "testError": {
+     "within1mm": 4,
+     "within10mm": 7,
+     "worse": 0,
+     "n": 7
+    },
+    "fromPlot": "2309",
+    "loops": [
+     [
+      [
+       -2.01,
+       5.35
+      ],
+      [
+       -2.009,
+       24.85
+      ],
+      [
+       10.001,
+       24.85
+      ],
+      [
+       10.0,
+       20.71
+      ],
+      [
+       2.001,
+       20.71
+      ],
+      [
+       2.001,
+       5.35
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP4",
+    "mirrored": false,
+    "width": 13.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2409",
+    "loops": [
+     [
+      [
+       -3.01,
+       5.349
+      ],
+      [
+       -3.01,
+       24.849
+      ],
+      [
+       10.0,
+       24.849
+      ],
+      [
+       10.0,
+       20.71
+      ],
+      [
+       2.001,
+       20.709
+      ],
+      [
+       2.0,
+       5.349
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP4",
+    "mirrored": true,
+    "width": 12.0,
+    "plots": 13,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 5,
+     "within10mm": 7,
+     "worse": 0,
+     "n": 7
+    },
+    "testError": {
+     "within1mm": 3,
+     "within10mm": 6,
+     "worse": 0,
+     "n": 6
+    },
+    "fromPlot": "2327",
+    "loops": [
+     [
+      [
+       -2.01,
+       5.35
+      ],
+      [
+       -2.01,
+       24.85
+      ],
+      [
+       10.001,
+       24.85
+      ],
+      [
+       10.0,
+       20.71
+      ],
+      [
+       2.0,
+       20.71
+      ],
+      [
+       2.0,
+       5.35
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP4",
+    "mirrored": true,
+    "width": 14.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2356",
+    "loops": [
+     [
+      [
+       -4.011,
+       5.35
+      ],
+      [
+       -4.011,
+       24.85
+      ],
+      [
+       10.0,
+       24.85
+      ],
+      [
+       10.0,
+       20.71
+      ],
+      [
+       2.0,
+       20.71
+      ],
+      [
+       2.0,
+       5.35
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DP4",
+    "mirrored": true,
+    "width": 15.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2320",
+    "loops": [
+     [
+      [
+       -8.26,
+       5.35
+      ],
+      [
+       -8.26,
+       19.85
+      ],
+      [
+       -3.261,
+       24.85
+      ],
+      [
+       10.001,
+       24.85
+      ],
+      [
+       10.0,
+       20.71
+      ],
+      [
+       2.0,
+       20.71
+      ],
+      [
+       2.0,
+       5.35
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DT1",
+    "mirrored": false,
+    "width": 10.0,
+    "plots": 20,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 8,
+     "within10mm": 10,
+     "worse": 0,
+     "n": 10
+    },
+    "testError": {
+     "within1mm": 4,
+     "within10mm": 10,
+     "worse": 0,
+     "n": 10
+    },
+    "fromPlot": "2592",
+    "loops": [
+     [
+      [
+       10.0,
+       17.56
+      ],
+      [
+       10.0,
+       25.0
+      ],
+      [
+       20.0,
+       25.0
+      ],
+      [
+       20.0,
+       5.5
+      ],
+      [
+       10.01,
+       5.5
+      ],
+      [
+       10.01,
+       7.6
+      ],
+      [
+       14.589,
+       7.6
+      ],
+      [
+       14.59,
+       8.23
+      ],
+      [
+       15.92,
+       8.23
+      ],
+      [
+       15.92,
+       7.6
+      ],
+      [
+       17.999,
+       7.6
+      ],
+      [
+       18.0,
+       17.56
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DT1",
+    "mirrored": true,
+    "width": 10.0,
+    "plots": 19,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 7,
+     "within10mm": 10,
+     "worse": 0,
+     "n": 10
+    },
+    "testError": {
+     "within1mm": 8,
+     "within10mm": 9,
+     "worse": 0,
+     "n": 9
+    },
+    "fromPlot": "2401",
+    "loops": [
+     [
+      [
+       10.0,
+       17.56
+      ],
+      [
+       10.0,
+       25.0
+      ],
+      [
+       20.0,
+       25.0
+      ],
+      [
+       20.0,
+       5.5
+      ],
+      [
+       10.01,
+       5.5
+      ],
+      [
+       10.01,
+       7.6
+      ],
+      [
+       14.59,
+       7.601
+      ],
+      [
+       14.59,
+       8.231
+      ],
+      [
+       15.921,
+       8.23
+      ],
+      [
+       15.921,
+       7.6
+      ],
+      [
+       18.0,
+       7.6
+      ],
+      [
+       18.0,
+       17.561
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DT1",
+    "mirrored": true,
+    "width": 13.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2612",
+    "loops": [
+     [
+      [
+       9.999,
+       17.561
+      ],
+      [
+       10.0,
+       25.0
+      ],
+      [
+       20.5,
+       25.001
+      ],
+      [
+       23.0,
+       22.5
+      ],
+      [
+       23.0,
+       5.501
+      ],
+      [
+       10.01,
+       5.5
+      ],
+      [
+       10.01,
+       7.6
+      ],
+      [
+       14.59,
+       7.601
+      ],
+      [
+       14.59,
+       8.231
+      ],
+      [
+       15.92,
+       8.231
+      ],
+      [
+       15.92,
+       7.601
+      ],
+      [
+       18.0,
+       7.6
+      ],
+      [
+       18.0,
+       17.561
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DT3",
+    "mirrored": false,
+    "width": 10.0,
+    "plots": 34,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 13,
+     "within10mm": 17,
+     "worse": 0,
+     "n": 17
+    },
+    "testError": {
+     "within1mm": 12,
+     "within10mm": 17,
+     "worse": 0,
+     "n": 17
+    },
+    "fromPlot": "2586",
+    "loops": [
+     [
+      [
+       20.0,
+       25.0
+      ],
+      [
+       20.0,
+       5.496
+      ],
+      [
+       10.0,
+       5.496
+      ],
+      [
+       10.0,
+       7.6
+      ],
+      [
+       14.606,
+       7.6
+      ],
+      [
+       14.606,
+       8.23
+      ],
+      [
+       15.945,
+       8.23
+      ],
+      [
+       15.945,
+       7.6
+      ],
+      [
+       18.001,
+       7.6
+      ],
+      [
+       18.0,
+       17.56
+      ],
+      [
+       10.0,
+       17.56
+      ],
+      [
+       10.0,
+       25.0
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "DT3",
+    "mirrored": true,
+    "width": 10.0,
+    "plots": 34,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 13,
+     "within10mm": 17,
+     "worse": 0,
+     "n": 17
+    },
+    "testError": {
+     "within1mm": 10,
+     "within10mm": 17,
+     "worse": 0,
+     "n": 17
+    },
+    "fromPlot": "2425",
+    "loops": [
+     [
+      [
+       20.0,
+       25.0
+      ],
+      [
+       20.0,
+       5.496
+      ],
+      [
+       10.0,
+       5.496
+      ],
+      [
+       10.0,
+       7.599
+      ],
+      [
+       14.605,
+       7.6
+      ],
+      [
+       14.605,
+       8.229
+      ],
+      [
+       15.945,
+       8.229
+      ],
+      [
+       15.945,
+       7.599
+      ],
+      [
+       18.0,
+       7.6
+      ],
+      [
+       18.0,
+       17.56
+      ],
+      [
+       10.0,
+       17.56
+      ],
+      [
+       10.0,
+       25.0
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "TH1",
+    "mirrored": false,
+    "width": 8.0,
+    "plots": 8,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 3,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 2,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2485",
+    "loops": [
+     [
+      [
+       10.0,
+       25.0
+      ],
+      [
+       10.0,
+       17.56
+      ],
+      [
+       18.0,
+       17.56
+      ],
+      [
+       18.0,
+       25.0
+      ]
+     ],
+     [
+      [
+       18.0,
+       5.499
+      ],
+      [
+       18.0,
+       7.599
+      ],
+      [
+       15.92,
+       7.6
+      ],
+      [
+       15.92,
+       8.23
+      ],
+      [
+       14.59,
+       8.23
+      ],
+      [
+       14.59,
+       7.6
+      ],
+      [
+       10.0,
+       7.599
+      ],
+      [
+       10.0,
+       5.5
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "TH1",
+    "mirrored": true,
+    "width": 8.0,
+    "plots": 8,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 3,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 1,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2486",
+    "loops": [
+     [
+      [
+       10.0,
+       25.0
+      ],
+      [
+       10.0,
+       17.56
+      ],
+      [
+       18.0,
+       17.56
+      ],
+      [
+       18.0,
+       25.0
+      ]
+     ],
+     [
+      [
+       18.0,
+       5.5
+      ],
+      [
+       10.0,
+       5.5
+      ],
+      [
+       10.0,
+       7.599
+      ],
+      [
+       14.59,
+       7.6
+      ],
+      [
+       14.59,
+       8.23
+      ],
+      [
+       15.92,
+       8.229
+      ],
+      [
+       15.92,
+       7.6
+      ],
+      [
+       18.0,
+       7.6
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "TH3",
+    "mirrored": false,
+    "width": 8.0,
+    "plots": 8,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 4,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 4,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2557",
+    "loops": [
+     [
+      [
+       10.0,
+       25.0
+      ],
+      [
+       10.0,
+       17.56
+      ],
+      [
+       18.0,
+       17.56
+      ],
+      [
+       18.0,
+       25.0
+      ]
+     ],
+     [
+      [
+       14.606,
+       7.6
+      ],
+      [
+       10.0,
+       7.6
+      ],
+      [
+       10.0,
+       5.496
+      ],
+      [
+       18.0,
+       5.497
+      ],
+      [
+       18.001,
+       7.6
+      ],
+      [
+       15.945,
+       7.6
+      ],
+      [
+       15.945,
+       8.23
+      ],
+      [
+       14.606,
+       8.23
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "TH3",
+    "mirrored": true,
+    "width": 8.0,
+    "plots": 8,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 3,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 4,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2558",
+    "loops": [
+     [
+      [
+       10.0,
+       25.0
+      ],
+      [
+       10.0,
+       17.56
+      ],
+      [
+       18.0,
+       17.56
+      ],
+      [
+       18.0,
+       25.0
+      ]
+     ],
+     [
+      [
+       14.605,
+       7.6
+      ],
+      [
+       14.605,
+       8.23
+      ],
+      [
+       15.945,
+       8.23
+      ],
+      [
+       15.945,
+       7.6
+      ],
+      [
+       18.0,
+       7.6
+      ],
+      [
+       18.0,
+       5.497
+      ],
+      [
+       10.0,
+       5.496
+      ],
+      [
+       10.0,
+       7.6
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD1",
+    "mirrored": false,
+    "width": 10.0,
+    "plots": 2,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2290",
+    "loops": [
+     [
+      [
+       0,
+       24.849
+      ],
+      [
+       0,
+       5.369
+      ],
+      [
+       5.37,
+       5.37
+      ],
+      [
+       5.371,
+       9.364
+      ],
+      [
+       2.0,
+       9.364
+      ],
+      [
+       2.0,
+       19.329
+      ],
+      [
+       10.001,
+       19.329
+      ],
+      [
+       10.0,
+       24.849
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD1",
+    "mirrored": true,
+    "width": 10.0,
+    "plots": 2,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2293",
+    "loops": [
+     [
+      [
+       0,
+       24.85
+      ],
+      [
+       0,
+       5.371
+      ],
+      [
+       5.37,
+       5.371
+      ],
+      [
+       5.37,
+       9.366
+      ],
+      [
+       2.0,
+       9.366
+      ],
+      [
+       2.0,
+       19.331
+      ],
+      [
+       10.0,
+       19.331
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD2",
+    "mirrored": false,
+    "width": 12.0,
+    "plots": 13,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 4,
+     "within10mm": 5,
+     "worse": 2,
+     "n": 7
+    },
+    "testError": {
+     "within1mm": 4,
+     "within10mm": 4,
+     "worse": 2,
+     "n": 6
+    },
+    "fromPlot": "2598",
+    "loops": [
+     [
+      [
+       -2.08,
+       24.85
+      ],
+      [
+       -2.08,
+       5.35
+      ],
+      [
+       2.001,
+       5.35
+      ],
+      [
+       2.0,
+       19.56
+      ],
+      [
+       9.92,
+       19.56
+      ],
+      [
+       9.92,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD2",
+    "mirrored": false,
+    "width": 13.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2422",
+    "loops": [
+     [
+      [
+       -3.0,
+       24.85
+      ],
+      [
+       -3.0,
+       5.35
+      ],
+      [
+       2.0,
+       5.349
+      ],
+      [
+       2.0,
+       19.559
+      ],
+      [
+       10.0,
+       19.56
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD2",
+    "mirrored": false,
+    "width": 15.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2321",
+    "loops": [
+     [
+      [
+       -5.0,
+       24.849
+      ],
+      [
+       -5.0,
+       5.35
+      ],
+      [
+       2.0,
+       5.349
+      ],
+      [
+       2.0,
+       19.559
+      ],
+      [
+       9.92,
+       19.56
+      ],
+      [
+       9.92,
+       24.849
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD2",
+    "mirrored": true,
+    "width": 12.0,
+    "plots": 11,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 2,
+     "within10mm": 4,
+     "worse": 2,
+     "n": 6
+    },
+    "testError": {
+     "within1mm": 1,
+     "within10mm": 3,
+     "worse": 2,
+     "n": 5
+    },
+    "fromPlot": "2529",
+    "loops": [
+     [
+      [
+       -2.08,
+       24.851
+      ],
+      [
+       -2.08,
+       5.35
+      ],
+      [
+       2.0,
+       5.351
+      ],
+      [
+       2.0,
+       19.561
+      ],
+      [
+       9.92,
+       19.56
+      ],
+      [
+       9.92,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD2",
+    "mirrored": true,
+    "width": 13.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2441",
+    "loops": [
+     [
+      [
+       -3.001,
+       24.85
+      ],
+      [
+       -3.0,
+       5.35
+      ],
+      [
+       2.0,
+       5.35
+      ],
+      [
+       1.999,
+       19.56
+      ],
+      [
+       9.999,
+       19.56
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD2",
+    "mirrored": true,
+    "width": 15.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2324",
+    "loops": [
+     [
+      [
+       -5.0,
+       24.849
+      ],
+      [
+       -5.0,
+       5.35
+      ],
+      [
+       1.999,
+       5.35
+      ],
+      [
+       2.0,
+       19.56
+      ],
+      [
+       9.92,
+       19.56
+      ],
+      [
+       9.92,
+       24.849
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": false,
+    "width": 12.0,
+    "plots": 8,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 3,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 3,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "fromPlot": "2367",
+    "loops": [
+     [
+      [
+       -2.0,
+       24.85
+      ],
+      [
+       -2.0,
+       5.35
+      ],
+      [
+       2.0,
+       5.349
+      ],
+      [
+       2.0,
+       20.71
+      ],
+      [
+       10.0,
+       20.71
+      ],
+      [
+       9.999,
+       24.849
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": false,
+    "width": 12.5,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2289",
+    "loops": [
+     [
+      [
+       -2.505,
+       24.85
+      ],
+      [
+       -2.505,
+       5.35
+      ],
+      [
+       2.0,
+       5.351
+      ],
+      [
+       2.0,
+       20.711
+      ],
+      [
+       10.0,
+       20.71
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": false,
+    "width": 13.0,
+    "plots": 2,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2436",
+    "loops": [
+     [
+      [
+       -3.005,
+       24.849
+      ],
+      [
+       -3.005,
+       5.35
+      ],
+      [
+       2.0,
+       5.349
+      ],
+      [
+       2.0,
+       20.71
+      ],
+      [
+       10.0,
+       20.71
+      ],
+      [
+       9.999,
+       24.849
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": false,
+    "width": 16.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2301",
+    "loops": [
+     [
+      [
+       -5.76,
+       5.35
+      ],
+      [
+       -5.761,
+       22.349
+      ],
+      [
+       -3.26,
+       24.85
+      ],
+      [
+       9.999,
+       24.849
+      ],
+      [
+       10.0,
+       20.71
+      ],
+      [
+       2.0,
+       20.71
+      ],
+      [
+       1.999,
+       5.35
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": true,
+    "width": 12.0,
+    "plots": 10,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 4,
+     "within10mm": 5,
+     "worse": 0,
+     "n": 5
+    },
+    "testError": {
+     "within1mm": 3,
+     "within10mm": 5,
+     "worse": 0,
+     "n": 5
+    },
+    "fromPlot": "2571",
+    "loops": [
+     [
+      [
+       -2.001,
+       24.85
+      ],
+      [
+       -2.001,
+       5.35
+      ],
+      [
+       2.0,
+       5.35
+      ],
+      [
+       2.0,
+       20.71
+      ],
+      [
+       10.0,
+       20.71
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": true,
+    "width": 13.0,
+    "plots": 2,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2427",
+    "loops": [
+     [
+      [
+       -3.005,
+       24.85
+      ],
+      [
+       -3.006,
+       5.349
+      ],
+      [
+       1.999,
+       5.35
+      ],
+      [
+       2.0,
+       20.71
+      ],
+      [
+       10.0,
+       20.71
+      ],
+      [
+       9.999,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": true,
+    "width": 14.5,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2300",
+    "loops": [
+     [
+      [
+       -2.005,
+       24.85
+      ],
+      [
+       -4.505,
+       22.349
+      ],
+      [
+       -4.505,
+       5.35
+      ],
+      [
+       1.999,
+       5.35
+      ],
+      [
+       2.0,
+       20.71
+      ],
+      [
+       10.0,
+       20.71
+      ],
+      [
+       9.999,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VD4",
+    "mirrored": true,
+    "width": 15.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2576",
+    "loops": [
+     [
+      [
+       -5.005,
+       24.85
+      ],
+      [
+       -5.005,
+       5.35
+      ],
+      [
+       2.0,
+       5.35
+      ],
+      [
+       2.0,
+       20.71
+      ],
+      [
+       10.0,
+       20.71
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL4",
+    "mirrored": false,
+    "width": 12.0,
+    "plots": 6,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 3,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "testError": {
+     "within1mm": 0,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "fromPlot": "2608",
+    "loops": [
+     [
+      [
+       -2.0,
+       24.85
+      ],
+      [
+       -2.0,
+       5.37
+      ],
+      [
+       2.0,
+       5.37
+      ],
+      [
+       2.0,
+       13.369
+      ],
+      [
+       0,
+       13.369
+      ],
+      [
+       0.001,
+       21.03
+      ],
+      [
+       10.001,
+       21.03
+      ],
+      [
+       10.001,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL4",
+    "mirrored": false,
+    "width": 13.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2588",
+    "loops": [
+     [
+      [
+       -3.0,
+       24.85
+      ],
+      [
+       -3.0,
+       5.37
+      ],
+      [
+       2.0,
+       5.37
+      ],
+      [
+       2.0,
+       13.37
+      ],
+      [
+       -0.001,
+       13.37
+      ],
+      [
+       0,
+       21.03
+      ],
+      [
+       10.0,
+       21.03
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL4",
+    "mirrored": false,
+    "width": 15.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2601",
+    "loops": [
+     [
+      [
+       -5.0,
+       24.85
+      ],
+      [
+       -5.0,
+       5.369
+      ],
+      [
+       2.0,
+       5.37
+      ],
+      [
+       2.0,
+       13.369
+      ],
+      [
+       0,
+       13.369
+      ],
+      [
+       0.001,
+       21.03
+      ],
+      [
+       10.001,
+       21.03
+      ],
+      [
+       10.001,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL4",
+    "mirrored": true,
+    "width": 12.0,
+    "plots": 6,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 2,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "testError": {
+     "within1mm": 2,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "fromPlot": "2404",
+    "loops": [
+     [
+      [
+       -2.0,
+       24.85
+      ],
+      [
+       -2.0,
+       5.37
+      ],
+      [
+       2.0,
+       5.37
+      ],
+      [
+       2.0,
+       13.37
+      ],
+      [
+       0.001,
+       13.37
+      ],
+      [
+       0,
+       21.03
+      ],
+      [
+       10.0,
+       21.03
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL4",
+    "mirrored": true,
+    "width": 13.0,
+    "plots": 1,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2583",
+    "loops": [
+     [
+      [
+       -2.999,
+       24.85
+      ],
+      [
+       -3.0,
+       5.37
+      ],
+      [
+       2.0,
+       5.37
+      ],
+      [
+       2.0,
+       13.37
+      ],
+      [
+       0.001,
+       13.37
+      ],
+      [
+       0,
+       21.03
+      ],
+      [
+       10.0,
+       21.03
+      ],
+      [
+       10.0,
+       24.85
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL6",
+    "mirrored": false,
+    "width": 16.0,
+    "plots": 7,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 4,
+     "within10mm": 4,
+     "worse": 0,
+     "n": 4
+    },
+    "testError": {
+     "within1mm": 1,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "fromPlot": "2522",
+    "loops": [
+     [
+      [
+       10.0,
+       8.74
+      ],
+      [
+       10.0,
+       20.43
+      ],
+      [
+       0,
+       20.43
+      ],
+      [
+       0,
+       24.85
+      ],
+      [
+       16.0,
+       24.85
+      ],
+      [
+       16.0,
+       7.06
+      ],
+      [
+       12.94,
+       7.06
+      ],
+      [
+       12.939,
+       5.37
+      ],
+      [
+       8.359,
+       5.37
+      ],
+      [
+       8.36,
+       8.74
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL6",
+    "mirrored": false,
+    "width": 16.5,
+    "plots": 2,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2382",
+    "loops": [
+     [
+      [
+       10.0,
+       8.74
+      ],
+      [
+       10.0,
+       20.43
+      ],
+      [
+       0,
+       20.43
+      ],
+      [
+       0,
+       24.85
+      ],
+      [
+       16.5,
+       24.85
+      ],
+      [
+       16.499,
+       7.06
+      ],
+      [
+       12.94,
+       7.06
+      ],
+      [
+       12.939,
+       5.37
+      ],
+      [
+       8.359,
+       5.37
+      ],
+      [
+       8.36,
+       8.74
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL6",
+    "mirrored": true,
+    "width": 16.0,
+    "plots": 6,
+    "tooFew": false,
+    "type": "yard",
+    "splitSeed": 13,
+    "fitError": {
+     "within1mm": 2,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "testError": {
+     "within1mm": 2,
+     "within10mm": 3,
+     "worse": 0,
+     "n": 3
+    },
+    "fromPlot": "2534",
+    "loops": [
+     [
+      [
+       10.0,
+       8.74
+      ],
+      [
+       10.0,
+       20.43
+      ],
+      [
+       0,
+       20.43
+      ],
+      [
+       0,
+       24.85
+      ],
+      [
+       16.001,
+       24.85
+      ],
+      [
+       16.0,
+       7.06
+      ],
+      [
+       12.94,
+       7.06
+      ],
+      [
+       12.94,
+       5.37
+      ],
+      [
+       8.36,
+       5.37
+      ],
+      [
+       8.361,
+       8.74
+      ]
+     ]
+    ]
+   },
+   {
+    "unit": "VL6",
+    "mirrored": true,
+    "width": 16.5,
+    "plots": 2,
+    "tooFew": true,
+    "type": "yard",
+    "fromPlot": "2373",
+    "loops": [
+     [
+      [
+       10.0,
+       8.74
+      ],
+      [
+       10.0,
+       20.43
+      ],
+      [
+       0,
+       20.43
+      ],
+      [
+       0,
+       24.85
+      ],
+      [
+       16.5,
+       24.85
+      ],
+      [
+       16.5,
+       7.06
+      ],
+      [
+       12.94,
+       7.06
+      ],
+      [
+       12.94,
+       5.37
+      ],
+      [
+       8.36,
+       5.37
+      ],
+      [
+       8.36,
+       8.739
+      ]
+     ]
+    ]
+   }
+  ]
+ },
+ "rampTypes": {
+  "measured": {
+   "Flat Ramps": {
+    "ramps": 10,
+    "median": 0.507,
+    "least": 0.489,
+    "largest": 1.993
+   },
+   "Ramps 0.5%": {
+    "ramps": 266,
+    "median": 0.507,
+    "least": 0.489,
+    "largest": 1.957
+   },
+   "Ramps 2%": {
+    "ramps": 45,
+    "median": 1.993,
+    "least": 1.993,
+    "largest": 2.0
+   }
+  },
+  "bands": [
+   {
+    "type": "Ramps 0.5%",
+    "belowPercent": 1.25
+   },
+   {
+    "type": "Ramps 2%",
+    "belowPercent": null
+   }
+  ],
+  "notSeparable": [
+   "Flat Ramps"
+  ],
+  "picks": {
+   "Flat Ramps as Ramps 0.5%": 8,
+   "Flat Ramps as Ramps 2%": 2,
+   "Ramps 0.5% as Ramps 0.5%": 188,
+   "Ramps 0.5% as Ramps 2%": 78,
+   "Ramps 2% as Ramps 2%": 45
+  }
+ },
+ "rampFront": {
+  "offsetM": 0.098,
+  "corners": 640,
+  "within5mm": 234,
+  "within30mm": 496
+ }
+}
