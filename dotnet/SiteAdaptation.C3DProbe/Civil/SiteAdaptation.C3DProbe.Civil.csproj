@@ -8,8 +8,12 @@
     <MSBuildWarningsAsMessages>MSB3277</MSBuildWarningsAsMessages>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\TinBorder.cs" Link="TinBorder.cs" />
-    <Compile Include="..\ProbeFiles.cs" Link="ProbeFiles.cs" />
+    <Compile Include="..\*.cs" LinkBase="Plain" />
+    <!-- The full window only, for the command that closes Civil 3D after a data book read (R162) -->
+    <Reference Include="AcMgd">
+      <HintPath>$(AcadDir)\AcMgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="AcDbMgd">
       <HintPath>$(AcadDir)\AcDbMgd.dll</HintPath>
       <Private>false</Private>

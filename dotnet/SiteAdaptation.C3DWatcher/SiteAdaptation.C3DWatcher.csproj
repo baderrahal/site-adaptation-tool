@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>SiteAdaptation.C3DWatcher</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SiteAdaptation.Common\SiteAdaptation.Common.csproj" />
+    <ProjectReference Include="..\SiteAdaptation.C3DProbe\SiteAdaptation.C3DProbe.csproj" />
+    <Reference Include="UIAutomationClient" />
+    <Reference Include="UIAutomationTypes" />
+  </ItemGroup>
+</Project>
