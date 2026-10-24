@@ -21,6 +21,7 @@ The rules live in docs/rules.md and nowhere else. This file points to them and a
 - config/plot_numbers.json holds the plot number shift of each neighbourhood. config/second_source.json names the plot layers of the master plan drawing, which drawings.masterplan in config/project.json names.
 - dotnet/CadReader reads DWG and DXF with ACadSharp. It also writes blocks.json, one entry per block insert with scale, rotation and a world outline (R68).
 - dotnet/RevitPrototypeReader is the Revit 2024 add-in. Do not change it unless the round says so.
+- dotnet/SiteAdaptation.Placer is the Place from plan add-in. dotnet/SiteAdaptation.TestHost runs the placer and the reader in Revit with no clicks, only for a job of its run script (R103, R104). dotnet/SiteAdaptation.DialogWatcher answers the add-in security boxes with Do Not Load (R108). python/placer_check.py checks a test host run (R105).
 - dotnet/SiteAdaptation.Placer is the second Revit 2024 add-in, Place from plan (R83 to R88). Its math and decisions live in SiteAdaptation.Common behind IPlacerTarget, the Revit side only carries them out.
 - python/plan_from_past.py builds plan.json (R80) from a past job, prototypes.json and the schedule, named by pastJob in config/project.json (R81). The plan goes outside the repo. python/plan_compare.py compares a plan with the model the placer built (R89).
 - dotnet/SiteAdaptation.Common holds JSON output and unit helpers.
@@ -56,6 +57,7 @@ The full text is docs/rules.md. Ids are the contract, a test names the id it pro
 - R90 is the block as a cluster hint. R91 and R92 cover the road level lookup and the ramp test with it. R93 to R96 cover the entry level measurement, rule, proof and its run through the level rule. R97 to R101 cover the block offsets, the fit and test, the entrance point, the measured offsets file and the second methods.
 - R67 is the level rule, check 5. R68 to R72 cover the block data, the unit code per plot (the Excel unit only), the row split, the front by road edge and the xref lookup. R73 to R77 cover the block scan, the Excel unit, the clusters with no Rev 6 match, the second block match and the block against the link.
 - R80 to R82 cover plan.json, the plan from the past job and the shared position proof. R83 to R88 cover the placer: coordinates check, link placement, parameters, dry run and one transaction, report and skip, install. R89 compares the plan with the placed model.
+- R102 to R110 cover the placer filter, the test host guard, its steps, the placer check, the registry hook, the link instance name, the security dialogs, the prototype upgrade job and the parallel windows.
 
 ## Real files
 
@@ -121,4 +123,5 @@ steps/PROGRESS.md is 60 lines at most and holds state, done, open bugs, Bader's 
 ## Hooks
 
 .claude/settings.json holds a hook that stops git commit on main and git push to main.
+.claude/hooks/guard-registry.sh blocks every registry change (R106). Nothing in the registry is read or written.
 A hook only loads when a session starts in the repo. A session that started elsewhere has no hooks, say so in the log.

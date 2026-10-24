@@ -3,7 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SKIP_DIRS = {".git", ".venv", "bin", "obj", "__pycache__", ".pytest_cache", ".vs"}
-TEXT_SUFFIXES = {".md", ".py", ".yml", ".yaml", ".json", ".txt", ".props", ".csproj", ".addin", ".cs", ".gitignore", ".gitattributes"}
+TEXT_SUFFIXES = {".md", ".py", ".yml", ".yaml", ".json", ".txt", ".props", ".csproj", ".addin", ".cs", ".ps1", ".gitignore", ".gitattributes"}
 NO_SEMICOLON_SUFFIXES = TEXT_SUFFIXES - {".cs"}
 
 EM_DASH = chr(0x2014)

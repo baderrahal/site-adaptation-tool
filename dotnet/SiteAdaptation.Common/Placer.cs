@@ -36,11 +36,18 @@ namespace SiteAdaptation.Common
 
         public static PlacerReport Run(PlanFile plan, string planPath, IPlacerTarget target, bool real)
         {
+            return Run(plan, planPath, target, real, null);
+        }
+
+        // R102. prototypeFile null places every plot, a file name places only the plots of that prototype file
+        public static PlacerReport Run(PlanFile plan, string planPath, IPlacerTarget target, bool real, string prototypeFile)
+        {
             var report = new PlacerReport
             {
                 Mode = real ? "real" : "dryRun",
                 PlanFile = planPath,
                 Document = target.DocumentTitle,
+                PrototypeFilter = prototypeFile,
                 Placed = new List<PlacedPlot>(),
                 Skipped = new List<SkippedPlot>(),
                 Issues = new List<string>(),
@@ -50,14 +57,14 @@ namespace SiteAdaptation.Common
             {
                 SurveyReading survey = target.Survey();
                 report.Coordinates = CheckCoordinates(plan, survey);
-                string stop = CheckFormat(plan) ?? report.Coordinates.Message;
+                string stop = CheckFormat(plan) ?? report.Coordinates.Message ?? CheckFilter(plan, prototypeFile);
                 if (stop != null)
                 {
                     report.Stopped = true;
                     report.Failure = stop;
                     return Count(report, plan);
                 }
-                candidates = Choose(plan, survey, target, report);
+                candidates = Choose(plan, survey, target, report, prototypeFile);
             }
             catch (Exception failure)
             {
@@ -74,6 +81,10 @@ namespace SiteAdaptation.Common
                     if (candidate.Plot.Parameters.ContainsKey(FflParameter))
                     {
                         report.Issues.Add(FflIssue(candidate.Plot.Plot));
+                    }
+                    if (candidate.Plot.LinkName == null || string.IsNullOrWhiteSpace(candidate.Plot.LinkName.Value))
+                    {
+                        report.Issues.Add(NoNameIssue(candidate.Plot.Plot));
                     }
                 }
                 return Count(report, plan);
@@ -170,8 +181,36 @@ namespace SiteAdaptation.Common
             }
         }
 
-        // R84 and R87. The plots that can be placed, in plan order, each with its steps. Every other plot is skipped with its reason
-        private static List<Candidate> Choose(PlanFile plan, SurveyReading survey, IPlacerTarget target, PlacerReport report)
+        // R102. A filter is a file name that at least one plot of the plan uses, so a typing error places nothing and says why
+        public static string CheckFilter(PlanFile plan, string prototypeFile)
+        {
+            if (prototypeFile == null)
+            {
+                return null;
+            }
+            if (string.IsNullOrWhiteSpace(prototypeFile) || Path.GetFileName(prototypeFile) != prototypeFile)
+            {
+                return "The prototype filter must be a file name, not a path or blank, nothing was placed.";
+            }
+            if (!(plan.Plots ?? new List<PlanPlot>()).Any(plot => InFilter(plot, prototypeFile)))
+            {
+                return "No plot of the plan uses " + prototypeFile + ", nothing was placed.";
+            }
+            return null;
+        }
+
+        public static bool InFilter(PlanPlot plot, string prototypeFile)
+        {
+            if (prototypeFile == null)
+            {
+                return true;
+            }
+            return plot != null && plot.PrototypeFile != null && plot.PrototypeFile.Value != null
+                && string.Equals(plot.PrototypeFile.Value.Trim(), prototypeFile, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // R84, R87 and R102. The plots that can be placed, in plan order, each with its steps. Every other plot of the filter is skipped with its reason
+        private static List<Candidate> Choose(PlanFile plan, SurveyReading survey, IPlacerTarget target, PlacerReport report, string prototypeFile)
         {
             var placedAlready = new HashSet<string>(target.LinkPlotNumbers().Where(number => number != null).Select(number => number.Trim()), StringComparer.Ordinal);
             Dictionary<string, LinkTypeEntry> types = TypesByFile(target.LinkTypes());
@@ -180,16 +219,23 @@ namespace SiteAdaptation.Common
             var candidates = new List<Candidate>();
             foreach (PlanPlot plot in plan.Plots ?? new List<PlanPlot>())
             {
+                string number = plot == null || plot.Plot == null ? null : plot.Plot.Trim();
+                // The first entry of a plot number is found over the whole plan, so a filter never changes which entry counts
+                bool first = string.IsNullOrEmpty(number) || seen.Add(number);
+                if (!InFilter(plot, prototypeFile))
+                {
+                    report.FilteredOut++;
+                    continue;
+                }
                 if (plot == null)
                 {
                     report.Skipped.Add(new SkippedPlot { Reason = "an empty entry in plots" });
                     continue;
                 }
-                string number = plot.Plot == null ? null : plot.Plot.Trim();
                 string reason;
                 Candidate candidate = null;
                 // The second entry of a plot number is skipped whatever happens to the first, as R84 says
-                if (!string.IsNullOrEmpty(number) && !seen.Add(number))
+                if (!first)
                 {
                     reason = "the plan lists this plot number more than once, only its first entry is tried";
                 }
@@ -316,6 +362,7 @@ namespace SiteAdaptation.Common
         {
             var placed = new List<PlacedPlot>();
             int written = 0;
+            int names = 0;
             try
             {
                 target.Begin();
@@ -339,13 +386,13 @@ namespace SiteAdaptation.Common
                     {
                         throw new PlacerFailure("plot " + candidate.Plot.Plot + ": the placed link does not match the plan, " + mismatch);
                     }
-                    var names = new List<string>();
+                    var writtenNames = new List<string>();
                     foreach (KeyValuePair<string, Sourced<string>> parameter in candidate.Plot.Parameters ?? new Dictionary<string, Sourced<string>>())
                     {
                         string issue = WriteOne(target, id, candidate.Plot.Plot, parameter.Key, parameter.Value);
                         if (issue == null)
                         {
-                            names.Add(parameter.Key);
+                            writtenNames.Add(parameter.Key);
                             written++;
                         }
                         else if (parameter.Key == PlotParameter)
@@ -358,7 +405,16 @@ namespace SiteAdaptation.Common
                             report.Issues.Add(issue);
                         }
                     }
-                    placed.Add(Entry(candidate, id, names));
+                    string nameIssue = WriteName(target, id, candidate.Plot);
+                    if (nameIssue == null)
+                    {
+                        names++;
+                    }
+                    else
+                    {
+                        report.Issues.Add(nameIssue);
+                    }
+                    placed.Add(Entry(candidate, id, writtenNames));
                 }
                 CommitResult commit = target.Commit();
                 AddWarnings(target, report);
@@ -379,6 +435,7 @@ namespace SiteAdaptation.Common
             }
             report.Placed.AddRange(placed);
             report.ParametersWritten = written;
+            report.NamesWritten = names;
         }
 
         private static void AddWarnings(IPlacerTarget target, PlacerReport report)
@@ -416,6 +473,22 @@ namespace SiteAdaptation.Common
             }
         }
 
+        // R107. Null when the instance Name was written, else the issue line. A missing name is an issue, not a stop
+        private static string WriteName(IPlacerTarget target, long id, PlanPlot plot)
+        {
+            if (plot.LinkName == null || string.IsNullOrWhiteSpace(plot.LinkName.Value))
+            {
+                return NoNameIssue(plot.Plot);
+            }
+            ParameterWrite result = target.WriteLinkName(id, plot.LinkName.Value);
+            return result == ParameterWrite.Written ? null : "plot " + plot.Plot + ": the link instance Name was not written, " + result;
+        }
+
+        private static string NoNameIssue(string plot)
+        {
+            return "plot " + plot + ": the plan has no linkName, the link keeps the name Revit gives it";
+        }
+
         private static string FflIssue(string plot)
         {
             return "plot " + plot + ": " + FflParameter + " is in the plan and is never written";
@@ -435,6 +508,7 @@ namespace SiteAdaptation.Common
                 RotationDeg = candidate.Plot.RotationDeg.Value.Value,
                 Mirrored = candidate.Plot.Mirrored.Value.Value,
                 InstanceId = id,
+                LinkName = candidate.Plot.LinkName == null ? null : candidate.Plot.LinkName.Value,
                 Parameters = parameters,
             };
         }
@@ -444,9 +518,11 @@ namespace SiteAdaptation.Common
             report.Counts = new PlacerCounts
             {
                 PlotsInPlan = plan == null || plan.Plots == null ? 0 : plan.Plots.Count,
+                FilteredOut = report.FilteredOut,
                 Placed = report.Placed.Count,
                 Skipped = report.Skipped.Count,
                 ParametersWritten = report.ParametersWritten,
+                NamesWritten = report.NamesWritten,
                 Issues = report.Issues.Count,
             };
             return report;

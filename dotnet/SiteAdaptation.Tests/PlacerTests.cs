@@ -124,6 +124,19 @@ namespace SiteAdaptation.Tests
                 return ParameterWrite.Written;
             }
 
+            public bool NameReadOnly;
+            public Dictionary<long, string> Names = new Dictionary<long, string>();
+
+            public ParameterWrite WriteLinkName(long instanceId, string value)
+            {
+                if (NameReadOnly)
+                {
+                    return ParameterWrite.ReadOnly;
+                }
+                Names[instanceId] = value;
+                return ParameterWrite.Written;
+            }
+
             public CommitResult Commit()
             {
                 Commits++;
@@ -208,6 +221,7 @@ namespace SiteAdaptation.Tests
                 Unit = S("VD2"),
                 PrototypeFile = S(file),
                 Case = S("A"),
+                LinkName = S(plot + " | VD2 | 1 | XX | XX"),
                 Insert = S(new[] { e, n, ffl }),
                 RotationDeg = S<double?>(rotation),
                 Mirrored = S<bool?>(mirrored),
@@ -715,6 +729,7 @@ namespace SiteAdaptation.Tests
             public long Place(string linkTypeKey, PlacementSteps steps) { throw new InvalidOperationException("never reached"); }
             public PlacedTransform ReadBack(long instanceId) { return null; }
             public ParameterWrite Write(long instanceId, string name, string value) { return ParameterWrite.Missing; }
+            public ParameterWrite WriteLinkName(long instanceId, string value) { return ParameterWrite.Missing; }
             public CommitResult Commit() { return new CommitResult { Committed = true }; }
             public void RollBack() { RollBacks++; }
         }
@@ -810,16 +825,22 @@ namespace SiteAdaptation.Tests
         public void R87_the_command_writes_the_report_after_every_run_a_stop_included()
         {
             string text = File.ReadAllText(RepoFile("dotnet", "SiteAdaptation.Placer", "PlaceFromPlanCommand.cs"));
-            int run = text.IndexOf("Common.Placer.Run(", StringComparison.Ordinal);
+            string entry = File.ReadAllText(RepoFile("dotnet", "SiteAdaptation.Placer", "PlaceFromPlan.cs"));
+            int run = text.IndexOf("PlaceFromPlan.Run(", StringComparison.Ordinal);
             int write = text.IndexOf("JsonOut.Write(reportPath, report)", StringComparison.Ordinal);
 
             Assert.True(run > 0 && write > run);
             Assert.DoesNotContain("return", text.Substring(run, write - run));
-            Assert.Contains("\"placer_report.json\"", text);
+            Assert.Contains("string reportPath = PlaceFromPlan.ReportPath", text);
+            Assert.Contains("\"placer_report.json\"", entry);
             int read = text.IndexOf("PlanFile.Read(planPath)", StringComparison.Ordinal);
             string unread = text.Substring(read, text.IndexOf("return Result.Failed", read, StringComparison.Ordinal) - read);
             Assert.Contains("JsonOut.Write(reportPath, unread)", unread);
-            Assert.Contains("Common.Placer.StoppedReport(", text.Substring(run, write - run));
+            // A failure outside the transaction still gives a report, from the shared entry the button calls
+            int inner = entry.IndexOf("Common.Placer.Run(", StringComparison.Ordinal);
+            int caught = entry.IndexOf("catch (Exception failure)", inner, StringComparison.Ordinal);
+            Assert.True(inner > 0 && caught > inner);
+            Assert.Contains("Common.Placer.StoppedReport(", entry.Substring(caught));
         }
 
         [Fact]

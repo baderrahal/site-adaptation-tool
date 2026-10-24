@@ -100,6 +100,8 @@ namespace SiteAdaptation.Placer
             transaction = new Transaction(document, "Place from plan");
             FailureHandlingOptions options = transaction.GetFailureHandlingOptions();
             options.SetFailuresPreprocessor(collector);
+            // A roll back then shows no error box, which would stop the test host of R103 until someone clicks
+            options.SetClearAfterRollback(true);
             transaction.SetFailureHandlingOptions(options);
             transaction.Start();
         }
@@ -177,6 +179,21 @@ namespace SiteAdaptation.Placer
             return parameter.Set(value) ? ParameterWrite.Written : ParameterWrite.Refused;
         }
 
+        public ParameterWrite WriteLinkName(long instanceId, string value)
+        {
+            Element element = document.GetElement(new ElementId(instanceId));
+            Parameter parameter = element == null ? null : element.get_Parameter(BuiltInParameter.RVT_LINK_INSTANCE_NAME);
+            if (parameter == null)
+            {
+                return ParameterWrite.Missing;
+            }
+            if (parameter.IsReadOnly)
+            {
+                return ParameterWrite.ReadOnly;
+            }
+            return parameter.Set(value) ? ParameterWrite.Written : ParameterWrite.Refused;
+        }
+
         public CommitResult Commit()
         {
             TransactionStatus status = transaction.Commit();
@@ -186,7 +203,7 @@ namespace SiteAdaptation.Placer
 
         public void RollBack()
         {
-            if (transaction != null && transaction.GetStatus() == TransactionStatus.Started)
+            if (transaction != null && transaction.IsValidObject && transaction.GetStatus() == TransactionStatus.Started)
             {
                 transaction.RollBack();
             }

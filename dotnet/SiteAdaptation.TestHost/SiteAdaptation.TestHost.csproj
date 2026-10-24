@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>SiteAdaptation.TestHost</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="2024.3.60" ExcludeAssets="runtime" />
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="2024.3.60" ExcludeAssets="runtime" />
+    <!-- Private false: at run time these load from the installed placer and reader folders, so the test host runs the button code (R103) -->
+    <ProjectReference Include="..\SiteAdaptation.Common\SiteAdaptation.Common.csproj" Private="false" />
+    <ProjectReference Include="..\SiteAdaptation.Placer\SiteAdaptation.Placer.csproj" Private="false" />
+    <ProjectReference Include="..\RevitPrototypeReader\RevitPrototypeReader.csproj" Private="false" />
+    <None Include="SiteAdaptationTestHost_Revit2024.addin" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

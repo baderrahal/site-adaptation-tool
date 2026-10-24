@@ -9,7 +9,7 @@ import os
 import re
 import sys
 from collections import Counter
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import common
 import excel_reader
@@ -29,6 +29,8 @@ UNIT_PARAMETER = "RRE_ZZ_SP_Prototype"
 STEPS_PARAMETER = "RRE_ZZ_SP_Number-of-Steps"
 FFL_PARAMETER = "RRE_ZZ_SP_Prototype-FFL"
 CASE_PARAMETER = "CASE"
+NAME_PARAMETER = "Name"
+RVT_NAME_PARAMETER = "RRE_ZZ_SP_RVT-Name"
 JOB_KEYS = ("neighbourhood", "schedule", "sheet", "prototypes", "prototypeFolder", "output", "parameters")
 # The yard floor sits this far below the FFL, in metres (Bader, 24 Oct)
 YARD_BELOW_FFL = 0.100
@@ -202,6 +204,15 @@ def link_values(builder, link, offset, job, folder_files):
             builder.entry[key] = sourced(value.strip())
         else:
             builder.lack(key, "the link has no " + name)
+    # The instance Name, kept as the link holds it. RRE_ZZ_SP_RVT-Name is built from the same values, a difference is a conflict
+    link_name = parameters.get(NAME_PARAMETER)
+    if isinstance(link_name, str) and link_name.strip():
+        builder.entry["linkName"] = sourced(link_name)
+        rvt_name = parameters.get(RVT_NAME_PARAMETER)
+        if isinstance(rvt_name, str) and rvt_name.strip() and rvt_name != link_name:
+            builder.clash("linkName", link_name, rvt_name, RVT_NAME_PARAMETER)
+    else:
+        builder.lack("linkName", "the link has no instance Name")
     file_name = link.get("file")
     if not file_name:
         builder.lack("prototypeFile", "the link has no file name")
@@ -416,7 +427,7 @@ def build_plan(data, rows, job, folder_files, prototype_folder):
         "coordinateSystem": {"name": "shared", "lengthUnit": "m", "angleUnit": "deg"},
         "surveyPoint": {"position": point(survey["position"]), "sharedPosition": point(survey["sharedPosition"])},
         "prototypeFolder": str(prototype_folder),
-        "sources": {"prototypes": Path(job["prototypes"]).name, "schedule": job["schedule"], "sheet": job["sheet"]},
+        "sources": {"prototypes": PureWindowsPath(job["prototypes"]).name, "schedule": job["schedule"], "sheet": job["sheet"]},
         "summary": {
             "plots": len(set(by_plot) | set(schedule)),
             "written": len(plots),
@@ -453,6 +464,13 @@ def write_plan(path, plan):
     return common.write_json(path, plan, frozenset(WIDE_LEVELS))
 
 
+def prototype_folders(root, job):
+    """R109. The folder the placer loads from and the past folder it came from. The upgraded Revit 2024 copies win when the config names them."""
+    source = root / job["prototypeFolder"]
+    upgraded = job.get("upgradedPrototypeFolder")
+    return (root / upgraded if upgraded else source), source
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Build plan.json from a past job, prototypes.json of the past model and its schedule.")
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH), help="project settings, default config/project.json")
@@ -466,7 +484,7 @@ def main(argv=None):
     plot_relations.refuse_inside_repo(out.resolve().parent)
     root = input_root(settings)
     schedule = root / full_run.XLSX_FOLDER / job["schedule"]
-    folder = root / job["prototypeFolder"]
+    folder, source_folder = prototype_folders(root, job)
     for path in (prototypes, schedule):
         if not path.is_file():
             print("not found: " + str(path), file=sys.stderr)
@@ -475,6 +493,7 @@ def main(argv=None):
     rows = excel_reader.read_sheet(schedule, job["sheet"])[3]
     plan = build_plan(data, rows, job, folder_listing(folder), folder)
     plan["sources"]["prototypes"] = prototypes.name
+    plan["sources"]["prototypeSourceFolder"] = str(source_folder)
     write_plan(out, plan)
     summary = plan["summary"]
     print("plots written %d of %d, missing a value %d" % (summary["written"], summary["plots"], len(plan["missing"])))

@@ -16,7 +16,7 @@ import ramp_levels
 POSITION_TOLERANCE = 0.001
 ANGLE_TOLERANCE = 0.01
 REPORT_NAME = "plan_compare.json"
-FIELDS = ("link", "file", "position", "rotation", "mirrored", "parameters")
+FIELDS = ("link", "file", "position", "rotation", "mirrored", "linkName", "parameters")
 
 
 def angle_gap(a, b):
@@ -45,6 +45,8 @@ def compare_plot(entry, links, offset):
     if transform.get("mirrored") != entry["mirrored"]["value"]:
         found["mirrored"] = "mirror flag differs"
     parameters = link.get("parameters") or {}
+    if "linkName" in entry and parameters.get(plan_from_past.NAME_PARAMETER) != entry["linkName"]["value"]:
+        found["linkName"] = "link name differs"
     wrong = sorted(name for name, value in (entry.get("parameters") or {}).items() if parameters.get(name) != value["value"])
     if wrong:
         found["parameters"] = "differ: " + ", ".join(wrong)

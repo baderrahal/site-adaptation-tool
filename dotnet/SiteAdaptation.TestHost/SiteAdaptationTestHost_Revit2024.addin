@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>Site Adaptation test host</Name>
+    <Assembly>C:\Users\bader\AppData\Roaming\Autodesk\Revit\Addins\2024\SiteAdaptationTestHost\SiteAdaptation.TestHost.dll</Assembly>
+    <FullClassName>SiteAdaptation.TestHost.TestHostApp</FullClassName>
+    <AddInId>0edeabc3-f57d-4177-8427-b90d0dbf73d0</AddInId>
+    <VendorId>SITEADAPT</VendorId>
+    <VendorDescription>Site Adaptation Tool</VendorDescription>
+  </AddIn>
+</RevitAddIns>
