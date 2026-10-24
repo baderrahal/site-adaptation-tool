@@ -78,6 +78,9 @@ namespace SiteAdaptation.Common
         public string Status { get; set; }
         public bool? Loaded { get; set; }
         public List<double[]> BoundingBoxCorners { get; set; }
+
+        // api when the corners come from the box of the link instance, linkExtents when they come from the link document (R54)
+        public string BoxSource { get; set; }
         public LinkTransform TransformShared { get; set; }
         public List<ParameterDetail> ParameterDetails { get; set; }
     }
@@ -231,6 +234,9 @@ namespace SiteAdaptation.Common
 
         // The element the first reference points to, when the API gives it
         public SpotHost Host { get; set; }
+
+        // references when the host comes from the references of the spot, dependents when an element holds the spot as a dependent (R55)
+        public string HostSource { get; set; }
 
         // Why the host could not be read. Not written, the reader turns it into one error line per reason
         [JsonIgnore]

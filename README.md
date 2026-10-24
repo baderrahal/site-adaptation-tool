@@ -1,7 +1,6 @@
 # Site Adaptation Tool
 
-Read-only data readers for the Site Adaptation Automation Tool, ROSHN Makkah.
-Phase 1 to 3. There is no placement logic yet.
+Data readers for the Site Adaptation Automation Tool, ROSHN Makkah, and the placer, which places the villa links from plan.json.
 
 | Reader | Language | Writes |
 |---|---|---|
@@ -11,10 +10,20 @@ Phase 1 to 3. There is no placement logic yet.
 | Excel reader | Python, openpyxl (MIT) | coords.json, coords_headers.json, coords_extra.json |
 | Link table | Python | links.json, conflicts.json, extents.json |
 | Full run | Python | one folder per file, full_run_summary.json |
+| Plan from past job | Python | plan.json outside the repo |
+| Placer | C#, Revit 2024 add-in, .NET Framework 4.8 | villa links in the open model, placer_report.json |
 
 For a project file the Revit reader also writes the Revit links with their names and parameters, the walls, the floors with their corner levels, the ramps and the spot elevations (rules R16, R17 and R34 to R38). The contents of the linked files are off by default (rule R39).
 
-Every reader only reads. None of them changes a model, a drawing, a PDF or a workbook.
+Every reader only reads. None of them changes a model, a drawing, a PDF or a workbook. The placer is the one part that changes a model, only the open document and only in its real run (R83 to R88). Its default is a dry run.
+
+## Build the plan from the past job
+
+```
+.venv\Scripts\python python\plan_from_past.py
+```
+
+The names come from pastJob in config/project.json (R81). The plan is written to pastJob.output, outside the repo.
 The rules are in [docs/rules.md](docs/rules.md). The working agreement is in [CLAUDE.md](CLAUDE.md).
 The latest round is the top entry of [steps/log.md](steps/log.md) and the live state is [steps/PROGRESS.md](steps/PROGRESS.md).
 

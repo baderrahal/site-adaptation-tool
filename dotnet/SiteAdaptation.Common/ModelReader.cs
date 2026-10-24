@@ -187,6 +187,7 @@ namespace SiteAdaptation.Common
                     entry.Status = link.Status;
                     entry.Loaded = link.Loaded;
                     entry.BoundingBoxCorners = link.BoxCorners;
+                    entry.BoxSource = link.BoxSource;
                     entry.TransformShared = link.TransformShared;
                     entry.ParameterDetails = link.ParameterDetails;
                     try
