@@ -28,7 +28,7 @@ This round reads the unit blocks from Makkah Building Footprint.dwg, gives every
 
 8. In the terminal run all Python tests:
    `.venv\Scripts\python -m pytest python`
-   Look for: 415 passed and no failed, and a line that starts with R67 proof: in the middle of the dots, FFL matches 633 of 747, steps matches 745 of 747. A machine without the schedules shows one skipped, and without Git Bash a few more, which is fine.
+   Look for: 425 passed and no failed, and a line that starts with R67 proof: in the middle of the dots, FFL matches 633 of 747, steps matches 745 of 747. A machine without the schedules shows one skipped, and without Git Bash a few more, which is fine.
 
 9. In the terminal run the .NET build:
    `dotnet build dotnet\SiteAdaptation.sln -c Release`

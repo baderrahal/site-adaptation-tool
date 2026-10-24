@@ -16,6 +16,10 @@ ENTRY_DECIMALS = 4
 HEIGHT_DECIMALS = 4
 # The FFL is taken to the millimetre before the height, as the sheets write it, so a height is never worked out from a hidden fourth decimal
 FFL_DECIMALS = 3
+# A height is compared with the span to the millimetre, half a millimetre rounds up. The slack is explicit because round() on a height such as
+# 0.0995 would let binary float noise decide, and the epsilon keeps a height that is exactly on the half millimetre inside the span
+HALF_MM = 0.0005
+EPSILON = 1e-9
 # A height is rounded to a micrometre before its band is taken, so binary float noise (150.38 minus 150.0 is 0.37999999999999545)
 # cannot move a height off a limit. The closest real height is 27 micrometres from a limit
 BAND_DECIMALS = 6
@@ -125,10 +129,9 @@ def compute(profile, clusters, entries):
                 row.update({"entry": common.r3(entries[plot]["entry"], ENTRY_DECIMALS), "baseHeight": common.r3(base), "ffl": common.r3(ffl),
                             "ssl": common.r3(ffl + ground), "height": common.r3(height, HEIGHT_DECIMALS), "steps": steps_for(height, rule)})
                 # Compared to the millimetre like the FFL. The top plot of a cluster has the base height less the rounding of the FFL, 0.0996 for 0.1, and that is not under the span
-                shown = round(height, FFL_DECIMALS)
-                if shown < span[0]:
+                if height < span[0] - HALF_MM - EPSILON:
                     row["flags"].append("height under " + str(span[0]) + " m")
-                if shown > span[1]:
+                if height > span[1] + HALF_MM + EPSILON:
                     row["flags"].append("height over " + str(span[1]) + " m")
                 if row["steps"] < least:
                     row["flags"].append("steps under " + str(least))

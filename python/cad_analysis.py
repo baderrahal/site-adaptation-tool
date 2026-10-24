@@ -52,13 +52,19 @@ def whole_number(value):
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
-        return value
+        return value if value >= 0 else None
     if isinstance(value, float):
-        return int(value) if value.is_integer() else None
+        return int(value) if value.is_integer() and value >= 0 else None
     text = str(value).strip() if value is not None else ""
     if text.endswith(".0"):
         text = text[:-2]
-    return int(text) if text.isascii() and text.isdecimal() else None
+    if not (text.isascii() and text.isdecimal()):
+        return None
+    try:
+        return int(text)
+    except ValueError:
+        # Python refuses a text of thousands of digits, and that is not a plot number either
+        return None
 
 
 def has_unit_type(label_type, unit_types):
@@ -575,6 +581,9 @@ def unit_summary(records, profile, read, dropped):
 
 def check_settings(profile, analysis):
     """The two lists in the analysis settings must agree with the profile, so a typo is an error and not a silent miss."""
+    biggest = profile.get("cluster_block_max")
+    if isinstance(biggest, bool) or not isinstance(biggest, int) or biggest < 1:
+        raise project_profile.ProfileError("cluster_block_max must be a whole number of plots, 1 or more")
     for name in ("unitPlotTypes", "noRev6Match"):
         values = analysis.get(name, [])
         if not isinstance(values, list) or any(not isinstance(value, str) for value in values):
@@ -611,8 +620,8 @@ def analyse(entries, profile, analysis, blocks=None, roads=None, blocks_source=N
         else:
             text = "The block drawing holds no unit block, none of its " + str(len(blocks)) + " inserts is named after a typology of the profile"
         issues_units.append(rules_checks.issue("R69", [], text))
-    if excel is not None and not excel["units"]:
-        issues_units.append(rules_checks.issue("R69", [], "The schedule workbooks gave no unit, so they give no plot a unit code"))
+    if excel is not None and not units:
+        issues_units.append(rules_checks.issue("R69", [], "The schedule workbooks gave no unit code of the profile, so they give no plot a unit code"))
     if excel:
         issues_units += excel["issues"]
     issues_units += [rules_checks.issue("R69", [label], "Plot " + label + " has the Excel unit " + repr(unit) + ", which is not a unit code of the profile, so it gives no unit code") for label, unit in dropped]

@@ -772,13 +772,16 @@ def test_r69_a_share_a_tie_width_under_the_cover_share_still_covers_and_one_two_
     assert not cad_analysis.holds_cover(0.2 - 2e-6) and not cad_analysis.holds_cover(0.0)
 
 
-def test_r69_a_fifth_of_a_block_at_site_coordinates_covers_in_both_methods(tmp_path):
-    profile = profile_in(tmp_path)
-    x, y = 569433.0, 2362915.0
-    faces = [face("1", "VL3", x, y, width=2, depth=10), face("2", "VL3", x + 2, y, width=8, depth=10)]
-    villas = [{**villa("Villa_VL3", box(x, y, x + 10, y + 10)), "code": "VL3"}]
-    assert cad_analysis.claim_blocks(cad_analysis.plot_faces(faces), villas)[2] == [[0, 1]]
-    assert block_proof.compare(cad_analysis.plot_faces(faces), villas)["blocksAgree"] == 1
+def test_r69_a_fifth_of_a_block_that_floats_a_hair_under_a_fifth_at_site_coordinates_still_covers_in_both_methods(tmp_path):
+    x, y = 570571.083, 2362999.179
+    faces = cad_analysis.plot_faces([face("1", "VL3", x, y, width=1.6, depth=10), face("2", "VL3", x + 1.6, y, width=6.4, depth=10)])
+    villas = [{**villa("Villa_VL3", box(x, y, x + 8, y + 10)), "code": "VL3"}]
+    polygons = cad_analysis.face_polygons(faces)
+    share = cad_analysis.shares_of(cad_analysis.outline_of(villas[0]), polygons, STRtree(polygons))
+    # The share of plot 1 is a fifth, and the clipping gives it as 0.19999999999709, which is under COVER_SHARE
+    assert max(found for found, index in share if index == 0) < cad_analysis.COVER_SHARE
+    assert cad_analysis.claim_blocks(faces, villas)[2] == [[0, 1]]
+    assert block_proof.compare(faces, villas)["blocksAgree"] == 1
 
 
 def test_r69_an_excel_unit_that_is_not_a_unit_code_of_the_profile_gives_no_unit_code_and_one_issue_and_is_never_normalised(tmp_path):
@@ -795,7 +798,7 @@ def test_r69_a_schedule_with_no_unit_says_so_and_a_unit_block_with_no_outline_is
     profile = profile_in(tmp_path)
     faces = [face("1", "VL3", 0, 0)]
     empty = cad_analysis.analyse(faces, profile, ANALYSIS, excel={"units": {}, "stats": {"rows": 0, "used": 0, "ambiguous": 0}, "issues": []})
-    assert [i["text"] for i in empty["issues"]] == ["The schedule workbooks gave no unit, so they give no plot a unit code"]
+    assert [i["text"] for i in empty["issues"]] == ["The schedule workbooks gave no unit code of the profile, so they give no plot a unit code"]
     two_points = {"name": "X$0$Villa_VL3", "outline": [[0, 0], [5, 5]]}
     only = cad_analysis.analyse(faces, profile, ANALYSIS, [two_points])
     assert [i["text"] for i in only["issues"]] == ["The block drawing holds no unit block with an outline, 1 of its 1 inserts are named after a typology of the profile but have no outline of three points"]
@@ -825,3 +828,25 @@ def test_r69_a_block_that_stands_for_more_plots_than_the_biggest_cluster_is_an_i
     result = cad_analysis.analyse(faces, profile, ANALYSIS, [villa("Duplex_DP2", box(0, 5, 50, 20))])
     assert [(i["rule"], i["plots"], i["text"]) for i in result["issues"] if i["rule"] == "R69"] == [("R69", ["1", "2", "3", "4", "5"], "Block X$0$Duplex_DP2 stands for 5 plots, more than the 4 of the biggest cluster")]
     assert [p["unit"] for p in result["plots"]] == ["DP2"] * 5
+
+
+def test_r69_a_schedule_whose_units_are_all_dropped_as_not_profile_codes_says_so_once_and_leaves_no_plot_unissued(tmp_path):
+    profile = profile_in(tmp_path)
+    faces = [face("1", "DP2", 0, 0), face("5", "DP2", 10, 0), face("7", "OS", 20, 0)]
+    result = cad_analysis.analyse(faces, profile, ANALYSIS, excel=given({"1": "XX9", "5": "XX9"}))
+    texts = [i["text"] for i in result["issues"] if i["rule"] == "R69"]
+    assert "The schedule workbooks gave no unit code of the profile, so they give no plot a unit code" in texts
+    assert sum(1 for text in texts if "is not a unit code of the profile" in text) == 2
+    assert result["summary"]["units"]["bySource"] == {"block": 0, "excel": 0, "none": 2}
+
+
+@pytest.mark.parametrize("value", [None, "4", 4.0, True, 0, -1, 2.5])
+def test_r69_a_profile_cluster_block_max_that_is_not_a_whole_number_of_plots_is_refused_in_one_error(tmp_path, value):
+    path = tmp_path / "profile.json"
+    path.write_text(json.dumps({**PROFILE_VALUES, "cluster_block_max": value}), encoding="utf-8")
+    with pytest.raises(project_profile.ProfileError, match="cluster_block_max must be a whole number of plots"):
+        cad_analysis.analyse(row(["DP2", "DP2"], ["1", "2"]), project_profile.load_profile(path), ANALYSIS)
+
+
+def test_r74_a_negative_number_a_huge_text_and_a_float_with_a_fraction_are_not_plot_numbers():
+    assert [cad_analysis.whole_number(value) for value in (-5, -3.0, "-5", float("nan"), float("inf"), "9" * 5000, 0, "0.0")] == [None, None, None, None, None, None, 0, 0]

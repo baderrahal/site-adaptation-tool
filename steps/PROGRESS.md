@@ -11,12 +11,12 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md an
 - Round 12 (blocks, row split, road fronts, levels, V9) is merged as PR 14. Round 11 is PR 13, round 10 is PR 12. Round 9 (floor, ramp and link relations) is PR 11 and its Revit code has NOT run in Revit yet.
 - Top Surface-02 is the finished road for the ramps (Bader decided). The other five design surfaces are not confirmed.
 - Readers: CAD (C#, ACadSharp), PDF (pdfplumber), Excel (openpyxl), link table, second source check, face reasons, LandXML reader, surface lookup, ramp levels, surface roles, road check, cluster analysis, block scan, levels and the proofs (Python, shapely, numpy).
-- Gate: Python 415 passed, .NET 155 passed.
+- Gate: Python 425 passed, .NET 155 passed.
 - Real files stay in C:\02-Site Adaptation and C:\Users\bader\Documents\SiteAdaptation and are read in place. Nothing real is in git.
 
 ## Done
 
-- Round 12b: R73 block scan, R74 Excel unit by baseplan label, R75 clusters with no Rev 6 match, R76 second block match, R77 block against link, R62 R64 R67 R69 updated. Python went from 323 to 415 passed, .NET stayed at 155.
+- Round 12b: R73 block scan, R74 Excel unit by baseplan label, R75 clusters with no Rev 6 match, R76 second block match, R77 block against link, R62 R64 R67 R69 updated. Python went from 323 to 425 passed, .NET stayed at 155.
 - Round 12: R67 to R72, the corrected Rev 6 profile, drawing roles in config/project.json.
 - Round 11: R63 project settings, R64 cluster derivation, R65 and R66 for checks 1 and 2.
 - Round 10: rules/roshn-makkah.json, the loader (R62), rules/README.md.

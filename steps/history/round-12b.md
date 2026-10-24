@@ -64,7 +64,7 @@ Clusters (R64, R70), plots numbered by baseplan label:
 - Link rotations: 30.1 104, 120.1 69, 210.1 102, 300.1 62, 0.0 1. Block rotations: 30.1, 120.1, 210.1 and 300.1 on all but 8 plots (300.0 4, 210.2 2, 211.1 2).
 - Turn of the link from the block, 303 links: 0 degrees 134, 180 degrees 134, 90 degrees 15, 270 degrees 19, 329.9 degrees 1. The 90 and 270 are all C10. The sets of rotations are equal, the flags are not, so the mirror flag of a block is not the mirrored flag of its link by plain comparison.
 
-Gate: Python 323 to 415 passed (new tests for R73 to R77, the R69 rewrite and the level changes), .NET 155 passed and unchanged. Real file counts above are from runs on the real files, in sample_output/round12b, which git ignores.
+Gate: Python 323 to 425 passed (new tests for R73 to R77, the R69 rewrite and the level changes), .NET 155 passed and unchanged. Real file counts above are from runs on the real files, in sample_output/round12b, which git ignores.
 
 Review of the first version (a fresh reviewer in its own worktree, head 6e46893, suite 404 passed, no repo file written):
 - 1 Block first drops the finer Excel unit. All 260 plots under 2 plot blocks disagree with Excel and 73 end units of 4 plot blocks get TH where Excel says DP. No 4 unit cluster can form and M01, M03 and M05 to M11 never appear. unitsWithMirrorFlag is 0 because every clustered plot sits under a block for several plots. This is the order you chose in decision 4, so I did not change it. I added conflicts to analysis.json, one entry for each plot where the block and the schedule differ (536), so it is not silent. Question 1 in the log
@@ -77,4 +77,14 @@ Review of the first version (a fresh reviewer in its own worktree, head 6e46893,
 - Docs: R67 said the closest past height is 27 micrometres from a band limit, it is 82 with the rounded FFL. Fixed. R69 now says what a block that touches no plot is
 - Suspected and left: noRev6Match accepts M10 because the profile does not mark which codes are old, a block over 4 plots now gets an R69 issue (cluster_block_max), and ownership of a pair block is decided by millimetre noise on 36 ties, which changes nothing today
 - Held: the label type never picked a unit or a cluster (every type set to None, shuffled and to lists gave the same units), the unit source field is true on all records, the summary counts add up, the clipping matches shapely on 20,000 random cases, and the band edges behave
-Second review of the fixes: see the top entry of steps/log.md.
+Second review (a fresh reviewer, own worktree, changes 6e46893 to e91e5d8, suite 415 passed, nothing blocking):
+- 1 The height flag rounded the height to the mm, so a height of exactly 0.0995 was decided by float noise (481 of 10,275 such top plots flagged under). It now compares with a half millimetre of explicit slack that rounds up. On the 747 past plots nothing changes: 4 flags, all over 0.54 m (plots 2464, 2471, 2475, 2483)
+- 2 The test for the cover tolerance passed without the tolerance. It now uses a real case, a block 8 by 10 whose fifth of 1.6 floats to 0.19999999999709 at site coordinates, and fails if the tolerance is removed
+- 3 A schedule whose units were all dropped as not profile codes gave no global issue when no block drawing was given. It now says so
+- 4 A block spread over six plots at a sixth each belongs to no plot, and the plots under it get the no unit code issue, not an issue that names the block. Documented in R69 and left, since 0 real blocks do this
+- 5 cluster_block_max of "4" or null raised a TypeError. It is now one ProfileError, also when no block drawing is given
+- 6 whole_number took -5 and -3.0 and failed on a text of 5000 digits. Both are now not a plot number
+- 7 Docs: R74 said a text of ASCII digits and the code also takes .0 at the end, R69 said the single global issue was for no source at all while two of its messages also fire when the other source gave units. Both reworded
+- Held: a plot that owns one block and sits under a thin second block takes the owned one with no two blocks issue, shares of 0.2 and 0.2 less 1e-6 cover in both methods and 0.2 less 1.5e-6 does not in both, a conflict is listed when the block has mirrored null, the 82 micrometres of R67 is right
+- Revert check: for each fix the reviewer reverted it and ran its test. Every one failed except the cover tolerance (item 2, now fixed) and unit_blocks_without_outline, which it did not try
+- The fixes of items 1 to 6 were checked by reverting the two the reviewer questioned and seeing their tests fail. They did not get a third review
