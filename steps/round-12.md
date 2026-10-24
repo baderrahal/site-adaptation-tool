@@ -28,7 +28,7 @@ This round adds the block file of the CAD reader, the block to plot match, the r
 
 8. In the terminal run all Python tests:
    `.venv\Scripts\python -m pytest python`
-   Look for: 322 passed and no failed, and a line that starts with R67 proof: in the middle of the dots. A machine without the schedules shows 321 passed and 1 skipped, and without Git Bash a few more skipped, which is fine.
+   Look for: 323 passed and no failed, and a line that starts with R67 proof: in the middle of the dots. A machine without the schedules shows 322 passed and 1 skipped, and without Git Bash a few more skipped, which is fine.
 
 9. In the terminal run the .NET build:
    `dotnet build dotnet\SiteAdaptation.sln -c Release`
@@ -40,7 +40,7 @@ This round adds the block file of the CAD reader, the block to plot match, the r
 
 11. In the terminal run the proof test on the two past schedules. They are only read:
     `.venv\Scripts\python -m pytest python\tests\test_levels_proof.py`
-    Look for: 19 passed and the line R67 proof: FFL matches 633 of 747, steps matches 744 of 747, both 632, SSL 633, count rule alone 747. The first number is how many plots the level rule reproduces.
+    Look for: 20 passed and the line R67 proof: FFL matches 633 of 747, steps matches 744 of 747, both 632, SSL 633, count rule alone 747. The first number is how many plots the level rule reproduces.
 
 12. In the terminal run the proof as a script, to get the list of every mismatch:
     `.venv\Scripts\python python\levels_proof.py sample_output\round12\proof`

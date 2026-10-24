@@ -169,7 +169,7 @@ def test_r67_the_proof_command_adds_the_run_on_the_cad_clusters_when_it_gets_ana
     assert report["summary"]["cadClusters"]["fflMatches"] == 4
 
 
-@pytest.mark.parametrize("what", ["no schedule", "no sheet", "no column", "no number", "no analysis", "bad analysis", "no clusters"])
+@pytest.mark.parametrize("what", ["no schedule", "no sheet", "no column", "no number", "no analysis", "bad analysis", "no clusters", "no shifts"])
 def test_r67_the_proof_command_says_what_is_wrong_in_one_line(tmp_path, capsys, what):
     folder = tmp_path / "input" / full_run.XLSX_FOLDER
     folder.mkdir(parents=True)
@@ -200,6 +200,8 @@ def test_r67_the_proof_command_says_what_is_wrong_in_one_line(tmp_path, capsys, 
         extra = ["--analysis", str(tmp_path / "bad.json")]
     elif what == "no clusters":
         extra = ["--analysis", str(write_analysis(tmp_path / "empty.json", None))]
+    elif what == "no shifts":
+        extra = ["--analysis", str(write_analysis(tmp_path / "analysis.json", [])), "--shifts", str(tmp_path / "missing-shifts.json")]
     assert levels_proof.main([str(tmp_path / "out"), "--root", str(tmp_path / "input")] + extra) == 2
     error = capsys.readouterr().err
     assert error.startswith("levels_proof: ") and "Traceback" not in error and error.count("\n") == 1

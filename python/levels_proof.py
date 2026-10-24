@@ -224,7 +224,7 @@ def main(argv=None):
         clusters = read_clusters(args.analysis) if args.analysis else None
         shifts = link_table.load_shifts(args.shifts) if args.analysis else None
         report = build_report(profile, paths, clusters, shifts)
-    except (project_profile.ProfileError, ValueError, KeyError) as error:
+    except (project_profile.ProfileError, ValueError, KeyError, OSError) as error:
         print("levels_proof: " + str(error), file=sys.stderr)
         return 2
     common.write_json(Path(args.out_dir) / "levels_proof.json", report, wide_keys=frozenset({"sheetFfl", "computedFfl"}))
