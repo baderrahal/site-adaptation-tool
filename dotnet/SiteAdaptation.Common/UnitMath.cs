@@ -26,6 +26,16 @@ namespace SiteAdaptation.Common
             return radians * 180.0 / Math.PI;
         }
 
+        public static double MetresToFeet(double metres)
+        {
+            return metres * FeetPerMetre;
+        }
+
+        public static double DegreesToRadians(double degrees)
+        {
+            return degrees * Math.PI / 180.0;
+        }
+
         // Metres, square metres, cubic metres or degrees. A number with no unit stays as Revit holds it
         public static double FromInternal(double value, ValueUnit unit)
         {

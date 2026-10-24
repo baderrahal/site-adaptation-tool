@@ -486,7 +486,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R54_the_link_state_code_never_opens_the_linked_document()
+        public void R54_the_link_state_code_never_opens_a_file_and_asks_the_link_document_only_for_boxes()
         {
             string text = File.ReadAllText(RepoFile("dotnet", "RevitPrototypeReader", "RevitModelSource.cs"));
             int start = text.IndexOf("private void ReadLinkState", StringComparison.Ordinal);
@@ -494,9 +494,59 @@ namespace SiteAdaptation.Tests
             int end = text.IndexOf("        public IEnumerable<PrototypeRow> Instances", start, StringComparison.Ordinal);
             string body = text.Substring(start, end - start);
 
-            Assert.DoesNotContain("GetLinkDocument", body);
+            Assert.DoesNotContain("OpenDocumentFile", body);
             Assert.DoesNotContain("Open(", body);
-            Assert.DoesNotContain("FilteredElementCollector", body);
+            Assert.DoesNotContain("Parameter", body.Substring(body.IndexOf("private static double[][] ModelExtents", StringComparison.Ordinal)));
+            Assert.DoesNotContain("get_Geometry", body);
+            Assert.Contains("linkExtents.TryGetValue", body);
+        }
+
+        [Fact]
+        public void R54_the_box_falls_back_to_the_link_extents_only_when_the_api_gives_none()
+        {
+            string text = File.ReadAllText(RepoFile("dotnet", "RevitPrototypeReader", "RevitModelSource.cs"));
+            int start = text.IndexOf("instance.get_BoundingBox(null)", StringComparison.Ordinal);
+            string block = text.Substring(start, text.IndexOf("catch", start, StringComparison.Ordinal) - start);
+
+            Assert.Contains("link.BoxSource = \"api\"", block);
+            Assert.Contains("BoxFromLinkExtents(instance, link, problems)", block);
+            Assert.DoesNotContain("the API gives none\");", text);
+        }
+
+        [Fact]
+        public void R54_the_union_of_boxes_holds_every_box()
+        {
+            double[][] union = BoxMath.Union(new[] { new[] { P(0, 0, 0), P(1, 2, 3) }, new[] { P(-1, 1, 2), P(0.5, 5, 2.5) } });
+
+            Assert.Equal(P(-1, 0, 0), union[0]);
+            Assert.Equal(P(1, 5, 3), union[1]);
+            Assert.Null(BoxMath.Union(new double[0][][]));
+        }
+
+        [Fact]
+        public void R54_link_extents_go_through_the_link_transform_and_a_turned_box_grows_to_hold_its_corners()
+        {
+            double[][] moved = BoxMath.Through(P(0, 0, 0), P(10, 4, 3), P(100, 200, 50), P(0, 1, 0), P(-1, 0, 0), P(0, 0, 1));
+            Assert.Equal(new[] { 96.0, 200, 50 }, moved[0]);
+            Assert.Equal(new[] { 100.0, 210, 53 }, moved[1]);
+
+            double half = Math.Sqrt(0.5);
+            double[][] turned = BoxMath.Through(P(0, 0, 0), P(2, 2, 1), P(0, 0, 0), P(half, half, 0), P(-half, half, 0), P(0, 0, 1));
+            Assert.Equal(-Math.Sqrt(2), turned[0][0], 9);
+            Assert.Equal(Math.Sqrt(2), turned[1][0], 9);
+            Assert.Equal(2 * Math.Sqrt(2), turned[1][1], 9);
+        }
+
+        [Fact]
+        public void R54_box_source_is_written_with_the_corners()
+        {
+            var host = new LinkWallRampTests.FakeSource();
+            SourceLink link = StateLink(true, new LinkWallRampTests.FakeSource());
+            link.BoxSource = "linkExtents";
+            host.LinkList.Add(link);
+            JObject document = LinkWallRampTests.Run(host, new ReaderOptions());
+
+            Assert.Equal("linkExtents", (string)document["links"].Single()["boxSource"]);
         }
 
         private static string RepoFile(params string[] parts)
@@ -531,6 +581,41 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Generic 150mm", (string)spot["host"]["typeName"]);
             Assert.Null(spot["hostFailure"]);
             Assert.Empty(Errors(document));
+        }
+
+        [Fact]
+        public void R55_a_host_found_by_dependents_says_so_in_host_source()
+        {
+            var host = new LinkWallRampTests.FakeSource();
+            host.SpotList.Add(new SpotRow
+            {
+                ElementId = 5,
+                Origin = P(10, 20, 83),
+                Host = new SpotHost { ElementId = 321, Category = "Floors", TypeName = "Generic 150mm" },
+                HostSource = "dependents",
+            });
+            JObject document = LinkWallRampTests.Run(host);
+
+            Assert.Equal("dependents", (string)document["spotElevations"].Single()["hostSource"]);
+            Assert.Empty(Errors(document));
+        }
+
+        [Fact]
+        public void R55_when_the_references_are_not_available_the_reader_asks_the_holders_for_their_dependents()
+        {
+            string text = File.ReadAllText(RepoFile("dotnet", "RevitPrototypeReader", "RevitModelSource.cs"));
+            int start = text.IndexOf("private SpotHost HostOf", StringComparison.Ordinal);
+            string body = text.Substring(start, text.IndexOf("private static long? TargetOf", start, StringComparison.Ordinal) - start);
+
+            Assert.Contains("GetDependentElements(spots)", body);
+            Assert.Contains("new ElementClassFilter(typeof(SpotDimension))", body);
+            Assert.Contains("row.HostSource = \"dependents\"", body);
+            Assert.Contains("row.HostSource = \"references\"", body);
+            Assert.Contains("several elements hold it as a dependent", body);
+            foreach (string holder in new[] { "typeof(Floor)", "OST_Ramps", "OST_Topography", "typeof(Toposolid)", "typeof(RevitLinkInstance)" })
+            {
+                Assert.Contains(holder, body);
+            }
         }
 
         [Fact]

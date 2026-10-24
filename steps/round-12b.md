@@ -28,7 +28,7 @@ This round reads the unit blocks from Makkah Building Footprint.dwg, gives every
 
 8. In the terminal run all Python tests:
    `.venv\Scripts\python -m pytest python`
-   Look for: 425 passed and no failed, and a line that starts with R67 proof: in the middle of the dots, FFL matches 633 of 747, steps matches 745 of 747. A machine without the schedules shows one skipped, and without Git Bash a few more, which is fine.
+   Look for: 468 passed and no failed, and a line that starts with R67 proof: in the middle of the dots, FFL matches 633 of 747, steps matches 745 of 747. A machine without the schedules shows one skipped, and without Git Bash a few more, which is fine.
 
 9. In the terminal run the .NET build:
    `dotnet build dotnet\SiteAdaptation.sln -c Release`
@@ -36,7 +36,7 @@ This round reads the unit blocks from Makkah Building Footprint.dwg, gives every
 
 10. In the terminal run the .NET tests:
     `dotnet test dotnet\SiteAdaptation.sln -c Release --no-build`
-    Look for: a line that starts with Passed! and has 0 after Failed: and 155 after Passed:. Nothing in .NET changed in this round.
+    Look for: a line that starts with Passed! and has 0 after Failed: and 205 after Passed:. Nothing in .NET changed in this round, the 205 includes round 15a.
 
 11. In the terminal read the baseplan with the CAD reader. The drawing is only read:
     `dotnet\CadReader\bin\Release\net48\CadReader.exe "C:\02-Site Adaptation\Base Plans\ROSHN Makkah Baseplan.dwg" sample_output\round12b\baseplan --layers config\cad_layers.json`

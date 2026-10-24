@@ -6,7 +6,7 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 
 Done:
 - Branch round/footprint-unit-codes from main at 5874ae5, pull request 16. The session started inside the repo, so the main guard hook was live and I never committed to main. The branch held unfinished edits of an earlier pass with one failing test. I checked them against your ten decisions and fixed them. The plan was written before the first edit. Full record and every count: steps/history/round-12b.md
-- Gate: Python 323 to 425 passed, .NET 155 passed and unchanged
+- Gate: Python 323 to 425 passed on the branch, .NET 155 unchanged. Main moved during the round (round 15a, pull request 15). I merged main into the branch and kept both rounds in CLAUDE.md, config/project.json (the note and pastJob), docs/rules.md (R80 to R89 next to R73 to R77), PROGRESS.md and this log. One line in the 15a questions that pointed at the Round 12 questions now points here. After the merge: Python 468 passed, .NET 205 passed
 - 1 Drawing: Makkah Building Footprint.dwg (Base Plans, 3780 inserts, 19 names) is in the site space, 3696 of 3780 inserts hold at least 0.2 of their outline inside a baseplan plot. CEC Building Footprint has 29 inserts and one outline. drawings.villaBlocks is the footprint file and no .py holds a file name
 - 2 Scan (R73): 7 names hold a unit code of the profile (1617 inserts), Villa_VL2 an old client code (248), 11 names none (1915, of which 1806 parking). Inserts by plots that hold 0.2 of the outline: 0 84, 1 3148, 2 425, 3 0, 4 123, more 0. Insert point in the best plot 3115, in another plot 413, in no plot 168, no plot holds a fifth of the outline 84. Mirrored 2081, not mirrored 1699
 - 3 All 8 names with a code end in an underscore and the code, so there is no config/block_codes.json. Unmapped: the 11 names (1915 inserts) and Villa_VL2 (248)
@@ -39,6 +39,42 @@ Your turn:
 5. The 1 to 5 mm FFL misses. Recommended: ask the architect how the sheet FFL is rounded, it is neither the cm step nor the 5 mm step
 6. The list analysis.unitPlotTypes in config/project.json (C10, DP2, DP4, TH1, TH3, VL2, VL3, VL4) is my choice and only says which plots get an issue when no unit code is found. Recommended: keep
 7. Run steps/round-12b.md and tell me if a Look for line did not match
+
+## Round 15a, 2026-10-24, plan.json from the past IMC job and the placer step 1
+
+Done:
+- pwd /c/Users/bader/Documents/GitHub/site-adaptation-tool-15a, a git worktree, branch round/addin-15a from main at 5874ae5, pull request 15. The session started in the worktree, so the main guard hook was live. Round 12b ran at the same time in the main folder, which I did not touch, and none of its five files changed. The Round 12 entry below is kept in full for it. Before the merge main was still at 5874ae5, 12b had not merged, so there was no rebase. The plan was written before the first edit. Full record: steps/history/round-15a.md
+- Gate: Python 323 to 366 passed, .NET 155 to 205 passed
+- Rules: R80 plan.json, R81 python/plan_from_past.py with names from pastJob in config/project.json, R82 position proof, R83 to R88 the placer dotnet/SiteAdaptation.Placer (Place from plan, logic in Common behind IPlacerTarget), R89 python/plan_compare.py. R1, R54 and R55 amended
+- plan_imc_past.json: plots written 337 of 337. Missing: floors.yard 337, floors.generic 1 (plot 2441). Floors found: Generic 336, yard 0, ramp 337
+- Position math against transformShared: 94 links, largest difference 0 mm. The reader used the same offset, so this proves the builder and not Revit. FFL against the past link origin Z: 337 of 337 within 1.5 mm, largest 0.0 mm
+- Second method, seed 15, 10 random plots, PowerShell on the raw prototypes.json and zipfile on the raw sheet XML: 150 of 150 checks match
+- Placer on fakes: position, rotation, mirror, Z, parameters, skip, rollback, coordinates stop. Three planted bugs were each caught. Mirror call: ElementTransformUtils.MirrorElements(document, ids, plane, false), which mirrors in place with no copy. MirrorElement is not used, it always makes a copy
+- Reader fixes: the link box comes from the link document extents when get_BoundingBox gives none. The spot host comes from GetDependentElements when AreReferencesAvailable is false, which the API says happens while the view of a spot is closed. Both are unproven until you run Revit
+- plan_compare.py on the round 9 file against its own plan gives 337 of 337 full match, the baseline for step 21
+- I copied prototypes.json to prototypes_imc_past.json in Documents\SiteAdaptation, byte for byte, and pastJob reads the copy, because step 20 writes prototypes.json again
+- Review: a fresh reviewer in its own worktree found 15 points and I fixed 13. The yard and the mm rounding chain are under Known bugs. A second short review of the fixes found 4 more, all fixed with tests and checked by the gate and the real run, not by a third review. The harness put that worktree inside the 12b folder under .claude\worktrees, I removed it with git worktree remove
+
+Remains:
+- The Revit run of steps/round-15a.md. Floors are in plan.json but nothing places them yet. A plan from CAD and LandXML comes in later rounds
+
+Known bugs:
+- R58 gives an ambiguous yard on all 337 plots, 2 to 6 candidates each, so floors.yard is missing on every plot. The largest shared edge would decide 239 and give 28 yards to two plots, so it is no fix
+- RRE_ZZ_SP_Prototype-FFL differs from the schedule FFL beyond 1.5 mm on 258 plots, up to 32 mm. Plots 2301 and 2302 have link unit VD4, schedule and file DP4. 10 VD1 plots use the DP1 file
+- The reader rounds the link origin and the survey points to 1 mm, so an insert can sit up to about 1.5 mm from the true past position. Not seen, the largest is 0 mm
+- Revit loads one SiteAdaptation.Common.dll for both add-ins, so both must come from one build. Step 8 checks it
+- An angle to true north other than 0 stops the placer, the rotation is not coded
+
+Next:
+- Fix what your Revit run shows. Then place the floors from plan.json, once the yard rule is decided
+
+Your turn:
+1. Run steps/round-15a.md on the copy only, step 26 says what to send. Recommended: yes, as written
+2. Yard rule. Recommended: a yard floor belongs to the plot whose CAD plot face holds most of its area, through the official plot numbers. Until then yards stay missing. The touch rule of R58 cannot decide
+3. RRE_ZZ_SP_Prototype-FFL. Recommended: keep the schedule FFL as you chose and never write the parameter. Tell me if the 258 plots that differ mean the parameter is stale
+4. Plots 2301 and 2302. Recommended: DP4, as the schedule and the file say. The plan keeps the link value VD4 until you say
+5. Angle to true north. Recommended: keep the stop until a project has an angle
+6. The questions of Round 12 are answered in Round 12b above. Still open from them: check 3 and the pair rule on blocks
 
 ## Round 12, 2026-10-24, villa blocks, row split, road fronts, levels, master plan V9
 
