@@ -29,4 +29,4 @@ The counts are in the data book folders rev9, cross_sections, entry_terms, stray
 
 ## 3. Answer the questions
 
-The questions of this round are carried, with their current numbers, in Bader's turn of steps/PROGRESS.md. Round DATA-4 answered the dialog rule and the VL6 hand, so the Revit look by hand is no longer needed.
+The questions of this round are carried by fixed ID in Bader's turn of steps/PROGRESS.md, and steps/questions-closed.md maps the DATA-3 numbers to the IDs. Round DATA-4 answered the dialog rule and the VL6 hand, so the Revit look by hand is no longer needed.

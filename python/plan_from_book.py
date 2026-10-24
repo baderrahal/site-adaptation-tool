@@ -38,6 +38,7 @@ import levels
 import link_summary
 import plan_from_cad
 import plan_from_past
+import plan_rules
 import plot_relations
 import project_profile
 import prototype_offsets
@@ -139,11 +140,12 @@ def generic_floor(builder, face, inputs, z):
             "heightOffset": sourced(common.r3(z - elevation), ESTIMATE)}
 
 
-def ramp_floor(builder, frame, corners, front, entry, slope, inputs):
-    """R210. The ramp of the Rev 6 outline, the front corners at the road, the back pair parallel with its mean at El @ Entry."""
+def ramp_floor(builder, frame, corners, front, entry, slope, inputs, kind=None):
+    """R210. The ramp of the Rev 6 outline, the front corners at the road, the back pair parallel with its mean at El @ Entry.
+    R278: the ramp type the level profile names, else the type of its slope band."""
     middle = (front[0] + front[1]) / 2.0
     heights = list(front) + [entry + front[1] - middle, entry + front[0] - middle]
-    kind = floor_fit.type_of(slope, inputs["bands"])
+    kind = kind or floor_fit.type_of(slope, inputs["bands"])
     level = inputs["floors"]["levels"]["ramp"]
     elevation = inputs["levels"].get(level)
     if kind is None or elevation is None:
@@ -196,8 +198,9 @@ def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=
     return found
 
 
-def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales=None, numbered=False):
-    """R208. The plan of R80 for the plots numbers, every value from CAD, the data book and the new site file."""
+def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales=None, numbered=False, rules=None):
+    """R208. The plan of R80 for the plots numbers, every value from CAD, the data book and the new site file. R278 to R280: with
+    rules the level profile, the hand rules and the overrides of the majority rule give the levels, the ramp type and the hand."""
     block = settings.get("siteBuild")
     floors_config = plan_from_past.load_floors(settings)
     steep = set(block["steepUnits"])
@@ -208,13 +211,31 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     front = fronts(members, rows, faces, roads, limits, surfaces, snap, profile, block.get("corner") if sales is not None else None, sales)
     frames = {number: item["frame"] for number, item in front.items()}
     roles = cad_links.cluster_roles(mine, 0, {number: item["face"] for number, item in front.items() if item["face"] is not None}, frames)
-    entries, slopes = {}, {}
+    entries, slopes, applied = {}, {}, Counter()
     for number, item in front.items():
         if item["front"] is not None:
-            value, slope = entry_estimate(item["front"], item["unit"], profile, steep, item["depth"])
+            if rules is None:
+                value, slope = entry_estimate(item["front"], item["unit"], profile, steep, item["depth"])
+            else:
+                value, slope = plan_rules.entry_of(item["front"], item["unit"], rules["levelProfile"], item["depth"])
+                gap = plan_rules.gap_of(rules["overrides"].get(number, {}).get("entryM"))
+                if gap is not None:
+                    value += gap
+                    applied["entryM"] += 1
             entries[number] = {"unit": item["unit"], "entry": value}
             slopes[number] = slope
-    level_rows = plan_from_cad.plot_levels(profile, mine, entries)
+    if rules is None:
+        level_rows = plan_from_cad.plot_levels(profile, mine, entries)
+    else:
+        level_rows = plan_rules.heights(entries, mine, rules["levelProfile"], profile)
+        for number, row in level_rows.items():
+            gap = plan_rules.gap_of(rules["overrides"].get(number, {}).get("heightM"))
+            if gap is not None:
+                row["ffl"] = round(row["ffl"] + gap, 3)
+                row["ssl"] = round(row["ssl"] + gap, 3)
+                row["height"] = round(row["height"] + gap, 4)
+                row["steps"] = plan_rules.steps_of(row["height"], rules["levelProfile"])
+                applied["heightM"] += 1
     inputs = {"outlines": outlines, "step": floor_fit.width_step(settings), "levels": site["levels"], "floors": floors_config, "bands": outlines["rampTypes"]["bands"]}
     plots, missing, lacking, surface_count, no_level, book_check = [], [], Counter(), Counter(), [], Counter()
     for number in numbers:
@@ -228,7 +249,21 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             lacking.update(entry["key"] for entry in builder.missing)
             continue
         builder.entry["unit"] = sourced(unit, LOCATION)
-        plan_from_cad.link_values(builder, unit, item["face"], item["frame"], roles.get(number), frame_section, files)
+        hand, fit_unit = None, None
+        if rules is not None:
+            keo = ((profile.get("typologies") or {}).get(unit) or {}).get("keo_file")
+            fit_unit = unit if unit in frame_section["units"] else keo
+            sides = {code: {"drawnSide": value.get("drawnSide")} for code, value in frame_section["units"].items()}
+            kind = ((profile.get("typologies") or {}).get(unit) or {}).get("kind")
+            block_mirror = {"yes": "yes", "no": "no"}.get(rows.get(number, {}).get("footprintMirrored"))
+            hand, rule = plan_rules.hand_of(unit, kind, roles.get(number), block_mirror, rules["openEnds"].get(number), rules["hands"],
+                                            cad_links.mirror_of(fit_unit or unit, roles.get(number), sides), keo)
+            override = rules["overrides"].get(number, {}).get("mirrored")
+            if isinstance(override, bool):
+                hand, rule = override, "override"
+                applied["mirrored"] += 1
+            applied["hand " + str(rule)] += 1
+        plan_from_cad.link_values(builder, unit, item["face"], item["frame"], roles.get(number), frame_section, files, hand, fit_unit)
         level_values(builder, level_rows.get(number))
         steps = builder.entry["levels"].get("steps", {}).get("value")
         builder.entry["parameters"] = {plan_from_past.PLOT_PARAMETER: sourced(number, LOCATION), plan_from_past.UNIT_PARAMETER: sourced(unit, LOCATION)}
@@ -248,11 +283,22 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             made = generic_floor(builder, item["face"], inputs, ffl)
             if made:
                 floors["generic"] = made
-            made = plan_from_cad.flat_floor(builder, "yard", unit, item["frame"], inputs, ffl - floors_config["yardBelowFflM"])
+            below = floors_config["yardBelowFflM"] if rules is None else rules["levelProfile"].get("yardBelowFflM")
+            made = None if below is None else plan_from_cad.flat_floor(builder, "yard", unit, item["frame"], inputs, ffl - below)
             if made:
                 made["z"]["source"] = made["heightOffset"]["source"] = ESTIMATE
                 floors["yard"] = made
-            made = ramp_floor(builder, item["frame"], item["corners"], item["front"], builder.entry["levels"]["entry"]["value"], slopes[number], inputs)
+            ramp_front, kind = item["front"], None
+            if rules is not None:
+                gap = plan_rules.gap_of(rules["overrides"].get(number, {}).get("rampFrontM"))
+                if gap is not None:
+                    ramp_front = [z + gap for z in item["front"]]
+                    applied["rampFrontM"] += 1
+                named = rules["overrides"].get(number, {}).get("rampType")
+                if named is not None:
+                    applied["rampType"] += 1
+                kind = rules["levelProfile"]["rampTypes"].get(named or plan_rules.slope_class(slopes[number]))
+            made = ramp_floor(builder, item["frame"], item["corners"], ramp_front, builder.entry["levels"]["entry"]["value"], slopes[number], inputs, kind)
             if made:
                 floors["ramp"] = made
         builder.entry["floors"] = floors
@@ -281,6 +327,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             "frontLevelAgainstPlotsCsv": dict(book_check),
             "floorsFound": {kind: sum(1 for entry in plots if kind in entry["floors"]) for kind in plan_from_past.FLOOR_KINDS},
             "floorTypes": dict(sorted(Counter(kind + ": " + floor["type"]["value"] for entry in plots for kind, floor in entry["floors"].items()).items())),
+            "rules": None if rules is None else {"levelProfile": rules["name"], "overrideSource": rules["sources"], "applied": dict(sorted(applied.items()))},
         },
         "plots": plots,
         "missing": missing,
@@ -308,6 +355,27 @@ def folder_files(folder, profile):
     return plan_from_cad.prototype_files(names, profile)[0]
 
 
+def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales):
+    """R278 to R280. The level profile, the hand rules, the open end of every plot and the overrides of the source models."""
+    import majority
+    lp = plan_rules.level_profile(profile, args.level_profile)
+    block = settings.get("majority")
+    corner = settings.get("siteBuild")["corner"]
+    front = fronts(numbers, rows, faces, roads, cad_links.front_limits(profile, settings.get("analysis")), [], 0.0, profile, corner, sales)
+    frames = {number: item["frame"] for number, item in front.items()}
+    units = [number for number, row in rows.items() if row.get("typologyRev9") and number in faces]
+    neighbours = majority.side_neighbours(units, faces, frames, block["sideShare"], profile.get("plot.long_side") / 1000.0)
+    open_ends = {}
+    for number in numbers:
+        sides = neighbours.get(number)
+        if sides is not None and frames.get(number) is not None:
+            open_ends[number] = "both" if not sides["left"] and not sides["right"] else "left" if not sides["left"] else "right" if not sides["right"] else "none"
+    fields = tuple(args.override_fields) if args.override_fields else plan_rules.FIELDS
+    overrides = plan_rules.load_overrides(args.overrides, set(args.override_source), fields) if args.overrides else {}
+    return {"name": args.level_profile, "levelProfile": lp, "hands": profile.get("hands") or {}, "openEnds": open_ends, "overrides": overrides,
+            "sources": list(args.override_source)}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="plan.json from CAD and the data book only (R208 to R210).")
     parser.add_argument("cover", help="cover.json of key_cover.py, its neighbourhood and plots are built, or nbh=<NBH> with --labels")
@@ -324,6 +392,10 @@ def main(argv=None):
     parser.add_argument("--offsets", default=str(prototype_offsets.DEFAULT_PATH))
     parser.add_argument("--floors", default=str(floor_fit.DEFAULT_PATH))
     parser.add_argument("--scratch", required=True, help="a folder outside the repo for the LandXML reader")
+    parser.add_argument("--level-profile", help="R278. a level profile of the rules profile, there is no default")
+    parser.add_argument("--overrides", help="R280. the override list in config/overrides")
+    parser.add_argument("--override-source", nargs="*", default=[], help="R280. the past model files whose overrides apply")
+    parser.add_argument("--override-fields", nargs="*", choices=plan_rules.FIELDS, help="R280. only these fields of the overrides, all when left out")
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
     try:
@@ -357,10 +429,16 @@ def main(argv=None):
             raise project_profile.ProfileError("give --analysis or --footprint-blocks for the clusters")
         job = plan_from_past.load_job(settings)
         folder, _ = plan_from_past.prototype_folders(plan_from_past.input_root(settings), job)
-        surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in block["roadSurfaces"]], args.scratch)
+        rules = None
+        names = block["roadSurfaces"]
+        if args.level_profile or args.overrides:
+            rules = rule_inputs(args, settings, profile, cover["plots"], rows, faces, roads, sales)
+            road = rules["levelProfile"]["frontRoad"]["surface"]
+            names = names if road == "roadLevel" else [road]
+        surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in names], args.scratch)
         plan = build(cover["plots"], rows, number_of, faces, roads, clusters, profile, settings,
                      prototype_offsets.plot_frame(prototype_offsets.load(args.offsets)), folder_files(folder, profile), folder,
-                     site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, bool(args.footprint_blocks))
+                     site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, bool(args.footprint_blocks), rules)
         plan_from_past.write_plan(out, plan)
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
         print("plan_from_book: " + str(error), file=sys.stderr)

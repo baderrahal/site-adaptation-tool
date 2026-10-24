@@ -5,7 +5,7 @@ The rules live in docs/rules.md and nowhere else. This file points to them and a
 
 ## Roles
 
-- Bader decides. Every open question goes to Bader as a numbered list with the recommended answer first.
+- Bader decides. Every open question goes to Bader by its fixed ID with the recommended answer first.
 - Chat drafts the prompts and reads what Code did.
 - Code does the work and checks it. Code never marks a thing done without a second check by a different method.
 
@@ -42,6 +42,7 @@ The rules live in docs/rules.md and nowhere else. This file points to them and a
 - Round DATA-3 (R185 to R198, R195 unused): python/rev9_workbooks.py inventories and diffs the two Rev 9 workbooks and joins the DLUS setbacks and the sales widths by plot (R185 to R187), typology_codes in rules/roshn-makkah.json holds the old to new code table (R188), python/rev9_drawing.py reads the Rev 9 DWG and its PDF plot against the baseplan (R189 to R191), python/cross_sections.py measures the curbs and sidewalks of the cross sections (R192), python/entry_terms.py tests El @ Entry by its terms (R193), python/stray_units.py places the unit blocks on no plot (R194), python/location_dwg.py compares the location plan DWG with the PDF (R196), python/c3d_window.py runs Civil 3D under the R200 lock with the own-only watcher (R197) and python/data3_check.py checks them a second way (R198). CadReader writes the DWG class list and the header dates.
 - Round Z4 (R200 to R218): python/window_lock.py runs every window under the shared lock (R200), python/round_files.py checks the snapshot and the originals and cleans the work folder (R201, R202, R218), python/rvt_info.py reads BasicFileInfo and the links of a .rvt from its bytes (R203). The test host has siteUpgrade, read, newSite and image jobs (R204, R205, R212 to R214) run by Run-TestHost.ps1 -RoundSpec, with SiteSpec and SiteCoordinates in Common (R211). python/key_cover.py finds what a past model holds and picks the NBH and prototype (R206, R207), python/site_spec.py writes the site file (R211, R212), python/plan_from_book.py builds the plan from the data book only (R208 to R210), python/z4_compare.py compares in bands (R215, R216) and python/z4_check.py checks it a second way (R217). siteBuild in config/project.json holds the round settings.
 - Round 16 (R220 to R236): PlacementRotation in Common holds the rotation choice of the reader (R220). python/level_cross.py compares the levels of two past jobs and fits ramp fronts to the surfaces (R221 to R223). python/corner_front.py tests the ramp front rules of corner plots, orientation of the sales sheet is kept and plan_from_book.py uses it (R224 to R226). python/footprint_check.py checks placed links against the footprint blocks (R227 to R229). plan_from_book.py builds a whole NBH with clusters from the footprint blocks (R230, R236), python/place_codes.py places one prototype code per run (R231), the image job may load the links (R234), python/z16_check.py checks the round a second way (R235).
+- Round 17 (R261 to R282, R260 is DATA-5's): placer_check.py --split checks plan position and level apart, the footprint as an edge only third check, and reads a key of the Native dialect (R261 to R263). plan_from_past.py --names maps a link whose Name is no plot by the house frame of its file (R264). rvt_info.py reads a shortened TransmissionData and the storage times (R265, R266). python/past_all.py writes the coverage, the model inventory and past_all.csv, one row per plot per past key (R267 to R269). python/entry_gaps.py checks the join of large El @ Entry gaps between keys (R270). python/majority.py runs the majority rule per decision and writes config/overrides/roshn-makkah.json (R271 to R276). levelProfiles and hands in rules/roshn-makkah.json hold the coded rules, no level profile is the default (R277). python/plan_rules.py and plan_from_book.py --level-profile --overrides apply them (R278 to R280). python/r17_check.py checks the round a second way (R281), python/hand_compare.py compares hands with a Native key by hands.oldFiles (R282). Questions have fixed IDs, steps/questions-closed.md holds the closed ones.
 - config/road_surfaces.json gives each LandXML surface its role, ground, road or design, and names the ramp types and the input files.
 - config/cad_layers.json is the keep and drop list of CAD layers. Bader edits it.
 - docs/rules.md holds the rules with ids R1 and up.
@@ -80,6 +81,7 @@ The full text is docs/rules.md. Ids are the contract, a test names the id it pro
 - R185 to R198 cover the Rev 9 workbook diff, the DLUS setbacks, the land widths, the code table, the Rev 9 drawing read, its PDF labels and wiring, its faces against the baseplan, the cross sections in full, El @ Entry by its terms, the unit blocks on no plot, the location plan DWG, Civil 3D under the shared lock and their second method.
 - R200 to R218 cover the window lock, the snapshot, the originals, file info from bytes, the site upgrade, the read, the answer key and its cover, the prototype choice, the plan from the data book with estimated levels and ramps, the site coordinates, the new site file and its name, the plan view image, the compare in bands before and after Revit, its second method and the clean up.
 - R220 to R236 cover the reader rotation, the levels of two past jobs, the road of the ramp fronts, the gap per unit, the corner road edges, the corner front rules and their use in the plan, the house outline, the footprint test and its key band, the plan of a whole neighbourhood, one run per prototype code, the links of an image, the second method and the clusters from the footprint blocks.
+- R261 to R282 cover the split placer check with the footprint and the Native dialect, the names that are no plot, the shortened TransmissionData and the storage times, the coverage, the model inventory and past_all.csv, the El @ Entry gaps between keys, the majority rule with its context, decisions and override list, the level profiles, the rules and overrides in a plan from CAD, the second method and the hands against a Native key.
 
 ## Real files
 
@@ -133,8 +135,25 @@ The top entry of steps/log.md fits on one page and has these headings in this or
 4. Next
 5. Your turn
 
-Your turn is one numbered list of every open question for Bader, recommended answer first.
+Your turn is one list of every open question for Bader by fixed ID, recommended answer first.
 steps/PROGRESS.md is 60 lines at most and holds state, done, open bugs, Bader's turn and the next three steps.
+
+## Questions
+
+- Every question for Bader has a fixed ID, Q001 upward. Never renumber an ID and never reuse one. A new question takes the next free ID.
+- Bader's turn in steps/PROGRESS.md and in the top entry of steps/log.md list the open questions by ID with the same text in both.
+- A closed question moves to steps/questions-closed.md with its answer and the date, and keeps its ID. That file also maps old round numbers to IDs.
+- Steps files and reports name a question by its ID, never by a list position.
+
+## Majority rule
+
+Bader's standing rule since Round 17, for every round.
+
+- For every decision (ramp type, flat ramp, hand, front edge, levels, steps, yard, parameters) find the logic most plots of the past models follow and code it.
+- Do not stop on odd plots. Each plot the coded rule does not reproduce goes into config/overrides/roshn-makkah.json with the plot, the field, the value the past job used, the source model and the reason if known.
+- The tool applies the rule, then the override list. Bader edits the override list by hand.
+- A rule is strong when it holds on at least the share set in config (majority.strongShare in config/project.json, 0.90 to start). If no logic reaches it, code the best one, mark it weak in Bader's turn and keep going.
+- No project value in code. Rules and thresholds go in config and the rules profile.
 
 ## Checking work
 

@@ -10,18 +10,20 @@ CUTOFF = 4096
 FREE, END, FAT_SECTOR = 0xFFFFFFFF, 0xFFFFFFFE, 0xFFFFFFFD
 
 
-def entry(name, kind, start, size, child=0xFFFFFFFF, right=0xFFFFFFFF):
+def entry(name, kind, start, size, child=0xFFFFFFFF, right=0xFFFFFFFF, times=(0, 0)):
     raw = name.encode("utf-16-le") + b"\x00\x00"
     head = raw.ljust(64, b"\x00") + struct.pack("<HBB", len(raw), kind, 1) + struct.pack("<III", 0xFFFFFFFF, right, child)
-    return head + b"\x00" * 16 + b"\x00" * 4 + b"\x00" * 16 + struct.pack("<IQ", start, size)
+    return head + b"\x00" * 16 + b"\x00" * 4 + struct.pack("<QQ", *times) + struct.pack("<IQ", start, size)
 
 
 def sectors_of(data, size):
     return [data[at: at + size].ljust(size, b"\x00") for at in range(0, len(data), size)] or []
 
 
-def build(streams):
-    """Bytes of a compound file holding streams, a list of (name, bytes), all under the root."""
+def build(streams, times=None):
+    """Bytes of a compound file holding streams, a list of (name, bytes), all under the root. times gives an entry name its
+    created and modified FILETIME, the root entry included."""
+    times = times or {}
     small = [(name, data) for name, data in streams if len(data) < CUTOFF]
     large = [(name, data) for name, data in streams if len(data) >= CUTOFF]
     mini_fat, mini_data, mini_start = [], b"", {}
@@ -59,10 +61,10 @@ def build(streams):
     assert len(fat) <= SECTOR // 4, "the fixture holds one FAT sector only"
     fat += [FREE] * (SECTOR // 4 - len(fat))
     names = [name for name, _ in streams]
-    directory = entry("Root Entry", 5, root_start, len(mini_data), child=1 if streams else 0xFFFFFFFF)
+    directory = entry("Root Entry", 5, root_start, len(mini_data), child=1 if streams else 0xFFFFFFFF, times=times.get("Root Entry", (0, 0)))
     for k, (name, data) in enumerate(streams):
         start = mini_start[name] if len(data) < CUTOFF else large_start[name]
-        directory += entry(name, 2, start, len(data), right=k + 2 if k + 1 < len(names) else 0xFFFFFFFF)
+        directory += entry(name, 2, start, len(data), right=k + 2 if k + 1 < len(names) else 0xFFFFFFFF, times=times.get(name, (0, 0)))
     directory = directory.ljust(dir_sectors * SECTOR, b"\x00")
     header = bytes.fromhex("D0CF11E0A1B11AE1") + b"\x00" * 16 + struct.pack("<HHHHH", 0x3E, 3, 0xFFFE, 9, 6) + b"\x00" * 6
     header += struct.pack("<IIIIIIIII", 0, 1, dir_start, 0, CUTOFF, mini_fat_start, len(mini_fat_sectors), END, 0)

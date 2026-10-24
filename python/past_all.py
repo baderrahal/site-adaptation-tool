@@ -1,0 +1,267 @@
+"""R267 to R269. Every past site model in one place: what each holds, when it was made, and one table of every plot.
+
+inventory (R268): per model of the rvt_info.py output, its format, worksharing, the times its storages were written and the
+prototype files it links, each with the folder and the date the folder name carries, such as 20221206 - Links.
+coverage (R267): the plots of each answer key plan by neighbourhood and zone of the location plan, with the key units and the
+Typology_Rev9 codes, the plots two keys share, and per neighbourhood the unit plots of the location plan no key holds.
+table (R269): past_all.csv, one row per plot per key. Levels are taken off the datum of the key, its survey elevation for a
+Native key, as in R215. A key of the Native dialect is first mapped to official numbers by R206 and R264, so its floor
+parameters can be read per plot. The parameters written are those pastAll in config/project.json names.
+Nothing is written inside the repo.
+"""
+import argparse
+import copy
+import csv
+import json
+import re
+import sys
+from collections import Counter, defaultdict
+from pathlib import Path
+
+from shapely import wkt
+from shapely.geometry import Point
+
+import common
+import key_cover
+import link_summary
+import placer_check
+import plan_from_past
+import plot_relations
+import project_profile
+import ramp_levels
+import yard_rule
+
+DATE_IN_PATH = re.compile(r"(?<!\d)(20\d{2})(\d{2})(\d{2})(?!\d)")
+COLUMNS = ["key", "plot", "nbh", "zone", "typologyRev9", "planCode", "keyUnit", "linkFile", "x", "y", "rotationDeg", "mirrored", "case",
+           "footprintResidualM", "genericType", "genericAreaM2", "genericTop", "yardType", "yardAreaM2", "yardTop", "rampType", "rampAreaM2", "rampCorners", "rampSlopePercent",
+           "rampCrossPercent", "rampFront", "rampBack", "rampFrontFall", "ffl", "entry", "entrySource", "height", "steps", "datumM", "linkName", "genericOutline", "rampOutline",
+           "parameters"]
+
+
+def path_date(path):
+    """The first date of eight digits in a folder name of the path, as yyyy-mm-dd, or None."""
+    for part in re.split(r"[\\/]", str(path))[:-1]:
+        match = DATE_IN_PATH.search(part)
+        if match:
+            return "%s-%s-%s" % match.groups()
+    return None
+
+
+def inventory(rows):
+    """R268. Per model: format, worksharing, storage times and the linked prototype files with folder and folder date."""
+    found = []
+    for row in rows:
+        info = row.get("info") or {}
+        links = []
+        for link in row.get("revitLinks") or []:
+            path = link.get("absolutePath") or link.get("path") or ""
+            links.append({"file": link.get("file"), "folder": str(path).replace("/", "\\").rpartition("\\")[0].rpartition("\\")[2], "folderDate": path_date(path)})
+        found.append({"file": row["file"], "format": info.get("formatYear"), "workshared": info.get("workshared"), "storageTimes": row.get("storageTimes"),
+                      "links": links, "linkFolderDates": dict(Counter(link["folderDate"] or "none" for link in links))})
+    return found
+
+
+def coverage(plans, labels):
+    """R267. Per key its plots by neighbourhood, per neighbourhood the union of the keys against the location plan unit plots,
+    and the plots each pair of keys shares."""
+    by_key, held = {}, defaultdict(set)
+    for name, plan in plans.items():
+        by_key[name] = key_cover.cover(plan, labels)
+        for entry in plan["plots"]:
+            held[entry["plot"]].add(name)
+    units = defaultdict(set)
+    for number, label in labels.items():
+        if label.get("nbh") and label.get("kind") == "clientCode":
+            units[label["nbh"]].add(number)
+    union = {}
+    for nbh, numbers in sorted(units.items()):
+        inside = {number for number in numbers if number in held}
+        union[nbh] = {"zone": next((labels[n].get("zone") for n in numbers), None), "unitPlots": len(numbers), "heldByAKey": len(inside),
+                      "heldByNoKey": len(numbers) - len(inside), "byKey": dict(Counter(key for n in inside for key in held[n])),
+                      "noKeyCodes": dict(Counter(labels[n].get("rev9") or "none" for n in numbers - inside).most_common())}
+    pairs = Counter("+".join(sorted(keys)) for keys in held.values() if len(keys) > 1)
+    outside = Counter(key for number, keys in held.items() for key in keys if not (labels.get(number) or {}).get("nbh"))
+    total = sum(len(numbers) for numbers in units.values())
+    return {"byKey": by_key, "byNeighbourhood": union, "sharedByKeys": dict(pairs), "keyPlotsWithNoNeighbourhood": dict(outside),
+            "phase": {"unitPlots": total, "heldByAKey": sum(row["heldByAKey"] for row in union.values()),
+                      "neighbourhoodsWithNoKeyPlot": [nbh for nbh, row in union.items() if not row["heldByAKey"]]}}
+
+
+def floor_parameters(data, dialect, floors, faces, numbers, names):
+    """The parameters of pastAll.floorParameters on the Generic floor of each plot, by official number, and the datum of the key."""
+    data = copy.deepcopy(data)
+    key_floors = placer_check.dialect_floors(floors, dialect)
+    if dialect["plot"] == "name":
+        data, _, _ = plan_from_past.names_dialect(data, key_floors, faces, numbers)
+    document = plan_from_past.host_of(data)
+    datum = ramp_levels.offset_of(document)[2] if dialect["datum"] == "surveyElevation" else 0.0
+    found = {}
+    for floor in document.get("floors") or []:
+        plot = plan_from_past.plot_number(link_summary.floor_plot(floor))
+        if plot is not None and plan_from_past.kind_of(floor, key_floors) == "generic":
+            found[plot] = {name: value for name, value in (floor.get("parameters") or {}).items() if name in names and value not in (None, "")}
+    return found, datum
+
+
+def number(value):
+    return float(value) if plan_from_past.is_number(value) else None
+
+
+def ramp_ends(corners, face):
+    """The mean level of the front pair of corners, at the road, and of the back pair, at the entrance, and the fall along the
+    front. The front is the long edge whose middle lies nearer the boundary of the plot face, so a ramp that falls toward the
+    house still has its front at the road. None when the ramp has no four corners or there is no face."""
+    geometry = plot_relations.ramp_geometry(corners) if len(corners) == 4 else None
+    if geometry is None or face is None:
+        return None
+    edges = [geometry["edges"][0], geometry["edges"][2]]
+    near = [face.boundary.distance(Point((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)) for a, b in edges]
+    front, back = (edges[0], edges[1]) if near[0] <= near[1] else (edges[1], edges[0])
+    return (front[0][2] + front[1][2]) / 2, (back[0][2] + back[1][2]) / 2, abs(front[0][2] - front[1][2])
+
+
+def floor_cells(floor, datum, face=None):
+    if not floor:
+        return {}
+    shape = plot_relations.even_odd([plan_from_past.loop_points(loop) for loop in floor["outline"]["value"]["loops"]])
+    cells = {"type": floor["type"]["value"], "area": None if shape is None else round(shape.area, 3), "outline": None if shape is None else shape.wkt}
+    if "z" in floor:
+        cells["top"] = common.r3(floor["z"]["value"] - datum)
+    corners = (floor.get("corners") or {}).get("value")
+    if corners:
+        lowered = [[c[0], c[1], round(c[2] - datum, 4)] for c in corners]
+        cells["corners"] = json.dumps(lowered)
+        geometry = plot_relations.ramp_geometry(lowered) if len(lowered) == 4 else None
+        # The short edges run from the road to the house, so their slope is the ramp slope and the long edges give the cross fall
+        cells["slope"] = None if geometry is None or geometry["slope_short"] is None else round(geometry["slope_short"], 3)
+        cells["cross"] = None if geometry is None else round(geometry["slope"], 3)
+        ends = ramp_ends(lowered, face)
+        if ends is not None:
+            cells["front"], cells["back"], cells["frontFall"] = round(ends[0], 4), round(ends[1], 4), round(ends[2], 4)
+    return cells
+
+
+def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settings_block, footprint=None):
+    """R269. One row per plot of the key."""
+    params, datum = floor_parameters(data, dialect, floors, faces, numbers, settings_block["floorParameters"])
+    entry_parameter = settings_block["entryParameter"]
+    rows = []
+    for entry in sorted(plan["plots"], key=lambda item: link_summary.sort_key(item["plot"])):
+        plot = entry["plot"]
+        label = labels.get(plot) or {}
+        value = lambda key: (entry.get(key) or {}).get("value")
+        levels = entry.get("levels") or {}
+        ffl = (levels.get("ffl") or {}).get("value")
+        generic = floor_cells((entry.get("floors") or {}).get("generic"), datum)
+        face = wkt.loads(generic["outline"]) if generic.get("outline") else None
+        ramp = floor_cells((entry.get("floors") or {}).get("ramp"), datum, face)
+        yard = floor_cells((entry.get("floors") or {}).get("yard"), datum)
+        floor_params = params.get(plot, {})
+        # The schedule gives El @ Entry, else the FFL floor of a Native key, else the top of its ramp at the entrance
+        entry_level, source = (levels.get("entry") or {}).get("value"), "schedule"
+        if entry_level is None and number(floor_params.get(entry_parameter)) is not None:
+            entry_level, source = number(floor_params[entry_parameter]), "floorParameter"
+        elif entry_level is None and ramp.get("back") is not None:
+            entry_level, source = ramp["back"], "rampBack"
+        elif entry_level is None:
+            source = None
+        ffl_design = None if ffl is None else ffl - datum
+        insert = value("insert") or [None, None]
+        link_parameters = {key: item["value"] for key, item in (entry.get("parameters") or {}).items() if key in settings_block["linkParameters"]}
+        link_parameters.update({"floor " + key: item for key, item in floor_params.items()})
+        rows.append({
+            "key": name, "plot": plot, "nbh": label.get("nbh"), "zone": label.get("zone"), "typologyRev9": label.get("rev9"), "planCode": label.get("code"),
+            "keyUnit": value("unit"), "linkFile": value("prototypeFile"), "x": insert[0], "y": insert[1], "rotationDeg": value("rotationDeg"),
+            "mirrored": value("mirrored"), "case": value("case"), "footprintResidualM": (footprint or {}).get(plot),
+            "genericType": generic.get("type"), "genericAreaM2": generic.get("area"), "genericTop": generic.get("top"),
+            "yardType": yard.get("type"), "yardAreaM2": yard.get("area"), "yardTop": yard.get("top"), "rampType": ramp.get("type"), "rampAreaM2": ramp.get("area"), "rampCorners": ramp.get("corners"), "rampSlopePercent": ramp.get("slope"),
+            "rampCrossPercent": ramp.get("cross"), "rampFront": ramp.get("front"), "rampBack": ramp.get("back"), "rampFrontFall": ramp.get("frontFall"), "ffl": None if ffl_design is None else common.r3(ffl_design),
+            "entry": None if entry_level is None else round(entry_level, 4), "entrySource": source,
+            "height": None if entry_level is None or ffl_design is None else round(ffl_design - entry_level, 4),
+            "steps": (levels.get("steps") or {}).get("value"), "datumM": common.r3(datum), "linkName": value("linkName"),
+            "genericOutline": generic.get("outline"), "rampOutline": ramp.get("outline"), "parameters": json.dumps(link_parameters, ensure_ascii=False, sort_keys=True),
+        })
+    return rows
+
+
+def write_csv(path, rows):
+    path = Path(path)
+    plot_relations.refuse_inside_repo(path.resolve().parent)
+    with open(path, "w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=COLUMNS)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def read_table(path):
+    """past_all.csv as rows with the numbers back as floats, None for an empty cell."""
+    found = []
+    with open(path, encoding="utf-8") as handle:
+        for row in csv.DictReader(handle):
+            for key in ("x", "y", "rotationDeg", "genericAreaM2", "genericTop", "yardAreaM2", "yardTop", "rampAreaM2", "rampSlopePercent", "rampCrossPercent", "rampFront", "rampBack", "rampFrontFall", "ffl", "entry", "height", "footprintResidualM", "datumM"):
+                row[key] = float(row[key]) if row.get(key) not in (None, "") else None
+            row["mirrored"] = {"True": True, "False": False}.get(row.get("mirrored"))
+            found.append(row)
+    return found
+
+
+def load_block(settings):
+    block = settings.get("pastAll")
+    if not isinstance(block, dict) or not all(isinstance(block.get(key), list) for key in ("linkParameters", "floorParameters")) or not block.get("entryParameter"):
+        raise project_profile.ProfileError(settings.path.name + " pastAll must name linkParameters, floorParameters and entryParameter")
+    return block
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Inventory, coverage and one table of every past plot (R267 to R269).")
+    parser.add_argument("what", choices=("inventory", "coverage", "table"))
+    parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH))
+    parser.add_argument("--rvt-info", help="inventory: the rvt_info.py output")
+    parser.add_argument("--key", nargs=4, action="append", metavar=("NAME", "DIALECT", "PLAN", "PROTOTYPES"), default=[],
+                        help="coverage and table: one answer key, its placerCheck dialect, its plan and its reader output")
+    parser.add_argument("--labels", help="location_plan/labels.csv of the snapshot")
+    parser.add_argument("--baseplan", help="plots.json of the baseplan, for a key of plot by name")
+    parser.add_argument("--footprint", nargs=2, action="append", metavar=("NAME", "FOOTPRINT_JSON"), default=[],
+                        help="table: footprint_check.py output whose test set is that key, for its residual per plot")
+    parser.add_argument("--out", required=True)
+    args = parser.parse_args(argv)
+    settings = project_profile.load_settings(args.settings)
+    out = Path(args.out)
+    plot_relations.refuse_inside_repo(out.resolve().parent)
+    if args.what == "inventory":
+        found = inventory(link_summary.load(args.rvt_info)["files"])
+        common.write_json(out, {"models": found})
+        for row in found:
+            print("%s format %s, written %s, last saved %s, link folder dates %s" % (row["file"], row["format"], (row["storageTimes"] or {}).get("firstWritten"),
+                                                                                 (row["storageTimes"] or {}).get("lastSaved"), row["linkFolderDates"]))
+        return 0
+    labels = key_cover.labels_by_number(args.labels)
+    if args.what == "coverage":
+        result = coverage({name: link_summary.load(plan) for name, _, plan, _ in args.key}, labels)
+        common.write_json(out, result)
+        for nbh, row in result["byNeighbourhood"].items():
+            print("NBH %s zone %s: unit plots %d, held by a key %d, by none %d, by key %s" % (nbh, row["zone"], row["unitPlots"], row["heldByAKey"], row["heldByNoKey"], row["byKey"]))
+        print("shared by keys %s" % result["sharedByKeys"])
+        print("phase %s" % result["phase"])
+        return 0
+    block = load_block(settings)
+    split = placer_check.load_split(settings)
+    floors = plan_from_past.load_floors(settings)
+    numbers, _ = plan_from_past.location_numbers(args.labels)
+    faces, _ = yard_rule.face_shapes(link_summary.load(args.baseplan)["plots"], 0)
+    footprints = {}
+    for name, path in args.footprint:
+        judged = link_summary.load(path)["testJudged"]
+        footprints[name] = {row["plot"]: row["residualM"] for row in judged["rows"]}
+    rows = []
+    for name, dialect, plan, prototypes in args.key:
+        rows += table_rows(name, link_summary.load(plan), link_summary.load(prototypes), split["dialects"][dialect], floors, faces, numbers, labels, block, footprints.get(name))
+    write_csv(out, rows)
+    print("rows %d, by key %s" % (len(rows), dict(Counter(row["key"] for row in rows))))
+    print("El @ Entry source %s" % dict(Counter((row["key"], row["entrySource"]) for row in rows)))
+    print(out)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

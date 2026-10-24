@@ -678,12 +678,14 @@ def location_numbers(labels_path):
     return {face: items[0]["number"] for face, items in found.items() if len(items) == 1}, {face: len(items) for face, items in found.items() if len(items) > 1}
 
 
-def names_dialect(data, floors_config, faces, numbers):
+def names_dialect(data, floors_config, faces, numbers, frames=None):
     """R206. A past model that keeps no plot parameter on its links and has no schedule here: each link instance Name and each floor
     Plot value is <unit>-<number> in the model's own numbering. The official number of a plot is the location plan number of the
     baseplan face its generic floor stands on, so the number is taken by position and never by a shift. The links and floors get that
     official number, and one row per plot with the unit and the generic floor top as FFL stands in for the schedule the past job lacks.
-    faces are the baseplan faces by label with shift 0, numbers the face to location plan number of location_numbers."""
+    faces are the baseplan faces by label with shift 0, numbers the face to location plan number of location_numbers.
+    R264. frames gives the house centre per link file learned on other models of the same job, used for a file this model
+    maps no link of by its Name."""
     from shapely.geometry import Point
     from shapely.strtree import STRtree
 
@@ -692,7 +694,7 @@ def names_dialect(data, floors_config, faces, numbers):
     labels = sorted(faces, key=link_summary.sort_key)
     tree = STRtree([faces[label] for label in labels])
     parameter = floors_config["plotParameter"]
-    official, report, rows = {}, Counter(), {}
+    official, report, rows, shapes = {}, Counter(), {}, {}
     for floor in document.get("floors") or []:
         if kind_of(floor, floors_config) != "generic":
             continue
@@ -713,17 +715,25 @@ def names_dialect(data, floors_config, faces, numbers):
             continue
         low, high, _ = plot_relations.top_range(floor, offset)
         official[value] = number
+        shapes[value] = shape
         rows[number] = {"Plot No.": int(number), "Unit": value.rpartition("-")[0], "FFL": high if low is not None and abs(high - low) <= EPS else None,
                         "modelPlot": value.rpartition("-")[2], "sheetRow": None}
-    for link in document.get("links") or []:
+    links = document.get("links") or []
+    learned = dict(frames or {}, **house_offsets(links, official, shapes, offset))
+    values = {id(link): name_fallback(link, official, shapes, learned, offset) for link in links}
+    claimed = Counter(value for value, _ in values.values() if value is not None)
+    for link in links:
         parameters = link.setdefault("parameters", {})
-        number = official.get(str(parameters.get(NAME_PARAMETER) or ""))
-        if number is None:
+        value, method = values[id(link)]
+        if value is None:
             report["link with no mapped name"] += 1
             continue
-        parameters[PLOT_PARAMETER] = number
-        parameters[UNIT_PARAMETER] = parameters[NAME_PARAMETER].rpartition("-")[0]
-        report["link mapped"] += 1
+        if claimed[value] > 1:
+            report["link refused, its plot claimed by two links"] += 1
+            continue
+        parameters[PLOT_PARAMETER] = official[value]
+        parameters[UNIT_PARAMETER] = value.rpartition("-")[0]
+        report["link mapped" if method == "name" else "link mapped by " + method] += 1
     for floor in document.get("floors") or []:
         value = str((floor.get("parameters") or {}).get(parameter) or "")
         if value in official:
@@ -733,6 +743,57 @@ def names_dialect(data, floors_config, faces, numbers):
             report["floor mapped"] += 1
     report["plots"] = len(rows)
     return data, [rows[number] for number in sorted(rows, key=link_summary.sort_key)], dict(sorted(report.items()))
+
+
+def in_link_axes(link, point, offset):
+    """A plan point in the axes of a link, from its origin along its X and Y axes, so a mirrored link is read mirrored."""
+    transform = link["transform"]
+    origin, x, y = transform["origin"], transform["axisX"], transform["axisY"]
+    dx, dy = point[0] - origin[0] - offset[0], point[1] - origin[1] - offset[1]
+    return dx * x[0] + dy * x[1], dx * y[0] + dy * y[1]
+
+
+def house_offsets(links, official, shapes, offset):
+    """R264. Per link file, the median place of the plot face centre in the link axes, from the links whose Name is a floor Plot value."""
+    import statistics
+    found = {}
+    for link in links:
+        value = str((link.get("parameters") or {}).get(NAME_PARAMETER) or "")
+        if value in official and link.get("transform") and link.get("file"):
+            centre = shapes[value].centroid
+            found.setdefault(link["file"], []).append(in_link_axes(link, (centre.x, centre.y), offset))
+    return {name: (statistics.median(a for a, _ in items), statistics.median(b for _, b in items)) for name, items in found.items()}
+
+
+def model_frames(data, floors_config):
+    """R264. The house centre per link file of one model by its own Plot values, for another model of the same job."""
+    document = host_of(data)
+    offset = ramp_levels.offset_of(document)
+    shapes = {}
+    for floor in document.get("floors") or []:
+        value = str((floor.get("parameters") or {}).get(floors_config["plotParameter"]) or "")
+        shape = plot_relations.floor_shape(floor, offset)[0] if kind_of(floor, floors_config) == "generic" else None
+        if "-" in value and shape is not None:
+            shapes[value] = shape
+    return house_offsets(document.get("links") or [], shapes, shapes, offset)
+
+
+def name_fallback(link, official, shapes, learned, offset):
+    """R264. The plot value a link stands on, and how it was found: its Name when that is a floor Plot value, else the face that
+    holds the house centre of its file in its axes. A past model may write a level such as EL@-Entry +164.98 or a wrong
+    plot into the instance Name of a link, so the digits of a Name that is not a Plot value are never trusted."""
+    value = str((link.get("parameters") or {}).get(NAME_PARAMETER) or "")
+    if value in official:
+        return value, "name"
+    learned = learned.get(link.get("file"))
+    if learned is None or not link.get("transform"):
+        return None, None
+    from shapely.geometry import Point
+    transform = link["transform"]
+    origin, x, y = transform["origin"], transform["axisX"], transform["axisY"]
+    centre = Point(origin[0] + offset[0] + learned[0] * x[0] + learned[1] * y[0], origin[1] + offset[1] + learned[0] * x[1] + learned[1] * y[1])
+    hits = [other for other, shape in shapes.items() if shape.contains(centre)]
+    return (hits[0], "frame") if len(hits) == 1 else (None, None)
 
 
 def answer_key_listing(listing, data):
@@ -791,6 +852,8 @@ def main(argv=None):
     parser.add_argument("--names", metavar="LABELS_CSV",
                         help="R206. The past model keeps <unit>-<number> in link names and floor Plot values and has no schedule here. "
                              "The official number comes from the location plan labels.csv of the data book by the face of the generic floor")
+    parser.add_argument("--frames-from", nargs="*", metavar="PROTOTYPES_JSON",
+                        help="R264. Reader outputs of other models of the same job, for the house centre of a link file this model names no link of")
     args = parser.parse_args(argv)
     if args.names and not args.answer_key:
         parser.error("--names goes with --answer-key, such a plan is never placed")
@@ -813,7 +876,11 @@ def main(argv=None):
     if args.names:
         numbers, many = location_numbers(args.names)
         by_label, bad_labels = yard_rule.face_shapes(link_summary.load(baseplan)["plots"], 0)
-        data, rows, dialect = names_dialect(data, floors, by_label, numbers)
+        frames = {}
+        for other in args.frames_from or []:
+            for name, centre in model_frames(link_summary.load(other), floors).items():
+                frames.setdefault(name, centre)
+        data, rows, dialect = names_dialect(data, floors, by_label, numbers, frames)
         faces = {numbers[label]: shape for label, shape in by_label.items() if label in numbers}
     else:
         faces, bad_labels = baseplan_faces(baseplan, args.shifts, job["neighbourhood"])
