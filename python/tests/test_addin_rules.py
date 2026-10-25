@@ -390,8 +390,9 @@ def wall(element, plots, base, height, line=0, start=(0.0, 0.0), end=(0.0, 25.0)
 
 
 def plan_of(walls):
-    return {"plots": [{"plot": "1", "unit": {"value": "DP2"}, "levels": {"ffl": {"value": 10.0}}}, {"plot": "2", "unit": {"value": "DP2"}, "levels": {"ffl": {"value": 10.3}}}],
-            "walls": walls}
+    generic = {"generic": {"level": {"value": "Level 1"}, "levelElevation": {"value": 0.0}}}
+    return {"plots": [{"plot": "1", "unit": {"value": "DP2"}, "levels": {"ffl": {"value": 10.0}}, "floors": generic},
+                      {"plot": "2", "unit": {"value": "DP2"}, "levels": {"ffl": {"value": 10.3}}}], "walls": walls}
 
 
 def test_r335_each_boundary_wall_of_a_key_plan_is_an_item_with_the_ffl_of_its_plots_and_a_garden_wall_is_counted_apart():
@@ -405,7 +406,7 @@ def test_r335_each_boundary_wall_of_a_key_plan_is_an_item_with_the_ffl_of_its_pl
 
 def test_r335_the_wall_base_sits_at_the_yard_level_of_the_lower_plot_and_the_top_at_ffl_plus_the_rev6_height():
     profile = project_profile.ProjectProfile("p.json", {"units_mm": True, "rev6": {"boundary_wall_top_above_ffl": 1700}})
-    item = {"ffls": [10.0, 10.3], "wall": wall(1, ["1", "2"], 9.9, 2.1)}
+    item = {"ffls": [10.0, 10.3], "wall": wall(1, ["1", "2"], 9.9, 2.1), "baseLevel": 0.0}
     base = key_rules.wall_base_candidates(0.1)
     assert base["yardLevelOfTheLowerPlot"](item) == pytest.approx(9.9) and base["yardLevelOfTheHigherPlot"](item) == pytest.approx(10.2)
     top = key_rules.wall_top_candidates(profile)
@@ -431,7 +432,7 @@ def test_r335_the_front_cover_is_the_share_of_the_front_edge_a_boundary_wall_run
 
 def test_r335_the_parameters_of_a_read_are_found_by_the_plot_number_parameter_and_the_name_is_made_of_its_parts():
     read = {"links": [{"parameters": {"RRE_ZZ_SP_Plot-Number": "12", "RRE_ZZ_SP_Prototype-FFL": "175.400"}}, {"parameters": {"RRE_ZZ_SP_Plot-Number": ""}}]}
-    assert key_rules.read_parameters({"imc": read}) == {("imc", "12"): {"RRE_ZZ_SP_Plot-Number": "12", "RRE_ZZ_SP_Prototype-FFL": "175.400"}}
+    assert key_rules.read_parameters({"imc": read}, "RRE_ZZ_SP_Plot-Number") == {("imc", "12"): {"RRE_ZZ_SP_Plot-Number": "12", "RRE_ZZ_SP_Prototype-FFL": "175.400"}}
     item = {"plot": "12", "rev9": "DP2", "factors": {"steps": "2"}, "row": {"parameters": json.dumps({"RRE_ZZ_SP_Façade-Color": "XX", "RRE_ZZ_SP_Façade-Design-Option": "YY"})}}
     formulas = key_rules.parameter_formulas(["RRE_ZZ_SP_Façade-Color", "RRE_ZZ_SP_Façade-Design-Option"])
     assert formulas["plot"](item) == "12" and formulas["rev9Code"](item) == "DP2" and formulas["plotAndCode"](item) == "12 | DP2"

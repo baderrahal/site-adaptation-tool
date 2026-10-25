@@ -131,3 +131,78 @@ def test_r330_a_run_merges_with_the_earlier_list_by_the_config_keep_and_drops_wh
                                           joined={("u12", "1"), ("imc", "2300")})
     assert listing == [earlier[0], run[0]]
     assert merged["droppedNoJoin"] == {"parsons": 1} and merged["kept"] == {"native": 1}
+
+
+# R272 the coverage of every decision and the keys of answerKeys a run must have
+FRAME = {"n": (0.0, 1.0), "r": (1.0, 0.0), "left": (0.0, 0.0), "right": (16.0, 0.0), "length": 16.0}
+
+
+def link_items(keys=("imc",)):
+    items = []
+    for number, key in enumerate(keys * 5):
+        item = {"plot": str(number + 1), "key": key, "group": "parsons", "code": "C10", "factors": {"all": "all", "typology": "C10", "steps": None}, "frame": FRAME,
+                "curbFrame": FRAME, "frontRule": "nearestCurb", "kind": "villa", "inCluster": False, "role": None, "neighbours": {"left": [], "right": []},
+                "modelKind": "TU", "rev9": "C10", "file": "a.rvt",
+                "row": {"x": 6.0, "y": 1.59, "rotationDeg": 0.0, "mirrored": False, "rampType": None, "rampSlopePercent": None, "entry": None, "entrySource": None,
+                        "rampBack": None, "rampFront": None, "rampFrontFall": None, "ffl": None, "height": None, "yardTop": None, "genericTop": None,
+                        "parameters": "{}", "steps": None}}
+        items.append(item)
+    return items
+
+
+def test_r272_every_decision_reports_its_coverage_by_key_and_a_decision_with_no_plot_is_listed_with_none():
+    settings = project_profile.load_settings()
+    profile = project_profile.load_profile(project_profile.profile_path(settings))
+    block = majority.load_block(settings)
+    _, _, _, extras = majority.run(link_items(("imc", "imd")), {}, profile, block, [majority.ROAD], [], {"C10": {"anchor": "start", "offset": [6.0, 1.59]}})
+    coverage = extras["coverage"]
+    assert coverage["parsons linkOrigin"]["plots"] == 10 and coverage["parsons linkOrigin"]["byKey"] == {"imc": 5, "imd": 5}
+    assert "imc" not in coverage["parsons linkOrigin"]["keysWithNoPlot"] and "ima" in coverage["parsons linkOrigin"]["keysWithNoPlot"]
+    # No item has a ramp, so the ramp outline covers no plot and says so, never dropped in silence
+    assert coverage["parsons rampOutline"] == {"plots": 0, "byKey": {}, "keysWithNoPlot": sorted(block["groups"]["parsons"])}
+
+
+def test_r272_a_key_of_answer_keys_missing_from_the_rows_the_reads_or_the_plans_is_refused_unless_a_flag_names_it():
+    answer = ["ima", "imc"]
+    groups = {"parsons": ["imc", "ima"], "native": ["u14"]}
+    references = {"parsons": "imc", "native": "u14"}
+    majority.check_keys(answer, {"ima", "imc", "u14"}, {"ima", "imc", "u14"}, {"ima", "imc"}, groups, references, [])
+    for rows, reads, plans in (({"imc", "u14"}, {"ima", "imc"}, {"ima", "imc"}), ({"ima", "imc"}, {"imc"}, {"ima", "imc"}), ({"ima", "imc"}, {"ima", "imc"}, {"imc"})):
+        with pytest.raises(project_profile.ProfileError) as error:
+            majority.check_keys(answer, rows, reads, plans, groups, references, [])
+        assert "ima" in str(error.value) and "--allow-missing-key" in str(error.value)
+        majority.check_keys(answer, rows, reads, plans, groups, references, ["ima"])
+    # A group read without its reference key is refused as well
+    with pytest.raises(project_profile.ProfileError):
+        majority.check_keys(answer, {"ima", "imc"}, {"ima", "imc", "u12"}, {"ima", "imc"}, groups | {"native": ["u12", "u14"]}, references, [])
+
+
+def test_r331_a_group_whose_reference_read_is_missing_is_listed_never_left_out_in_silence():
+    import key_rules
+    doc = {"surveyPoint": {"position": [0, 0, 0], "sharedPosition": [0, 0, 0]}, "angleToTrueNorthDeg": 0.0}
+    found = key_rules.group_site_facts({"imd": doc}, {"parsons": ["imc", "imd"]}, {"parsons": "imc"})
+    assert found["parsons"] == {"reference": "imc", "missingReference": True, "keys": ["imd"]}
+
+
+# R335 a wall whose base level no floor names, the plan of a key that is missing
+def test_r335_a_wall_whose_base_level_no_floor_of_its_plan_names_has_no_base_and_is_listed():
+    import key_rules
+    plan = {"plots": [{"plot": "1", "unit": {"value": "DP2"}, "levels": {"ffl": {"value": 10.0}},
+                       "floors": {"generic": {"level": {"value": "Level 1"}, "levelElevation": {"value": 0.0}}}}],
+            "walls": [{"elementId": 1, "type": "BW", "plots": ["1"], "baseConstraint": "Level 1", "baseOffset": 9.9, "heightM": 1.8, "locationLine": 0},
+                      {"elementId": 2, "type": "BW", "plots": ["1"], "baseConstraint": "Level 9", "baseOffset": 9.9, "heightM": 1.8, "locationLine": 0}]}
+    items, counts = key_rules.wall_items({"imc": plan}, ["imc", "imd"], "parsons", {"boundary": "^BW$"})
+    by_id = {item["wall"]["elementId"]: item for item in items}
+    assert key_rules.wall_base(by_id[1]) == pytest.approx(9.9) and by_id[2]["baseLevel"] is None
+    assert key_rules.wall_base(by_id[2]) is None and key_rules.wall_top(by_id[2]) is None
+    assert key_rules.no_base_level(items) == [{"key": "imc", "elementId": 2, "baseConstraint": "Level 9"}]
+    # The key with no plan is counted as none, never as a key with no wall
+    assert counts["imd"] is None
+
+
+def test_r335_the_link_plot_parameter_and_the_kinds_with_no_front_wall_come_from_config():
+    import key_rules
+    block = majority.load_block(project_profile.load_settings())
+    assert block["linkPlotParameter"] == "RRE_ZZ_SP_Plot-Number" and "frontOpen" in block["kindLeaveOut"]["SE"]
+    read = {"links": [{"parameters": {"PLOT": "12", "X": "1"}}, {"parameters": {"RRE_ZZ_SP_Plot-Number": "13"}}]}
+    assert key_rules.read_parameters({"imc": read}, "PLOT") == {("imc", "12"): {"PLOT": "12", "X": "1"}}

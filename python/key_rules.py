@@ -107,7 +107,10 @@ def group_site_facts(documents, groups, references):
         mine = {key: document for key, document in documents.items() if key in groups.get(group, ())}
         if reference in mine:
             found[group] = site_facts(mine, reference)
-    leads = {references[group]: documents[references[group]] for group in found}
+        elif mine:
+            # R331. The keys of a group read without its reference are listed, never left out in silence
+            found[group] = {"reference": reference, "missingReference": True, "keys": sorted(mine)}
+    leads = {references[group]: documents[references[group]] for group in found if not found[group].get("missingReference")}
     if len(leads) > 1:
         found["acrossGroups"] = site_facts(leads, next(iter(leads)))
     return found
@@ -325,6 +328,8 @@ def wall_items(plans, keys, group, types):
     for key in keys:
         plan = plans.get(key)
         if plan is None:
+            # R335. A key with no plan holds no counted wall, None and never an empty count
+            counts[key] = None
             continue
         plots = {entry["plot"]: entry for entry in plan["plots"]}
         levels = plan_levels(plan)
@@ -339,18 +344,25 @@ def wall_items(plans, keys, group, types):
             first = mine[0]
             items.append({"plot": first["plot"], "key": key, "group": group, "code": first["unit"]["value"], "modelKind": None, "row": {},
                           "factors": {"all": "all", "locationLine": str(wall.get("locationLine")), "plots": str(count)},
-                          "wall": wall, "ffls": [entry["levels"]["ffl"]["value"] for entry in mine], "baseLevel": levels.get(wall.get("baseConstraint"), 0.0)})
+                          "wall": wall, "ffls": [entry["levels"]["ffl"]["value"] for entry in mine], "baseLevel": levels.get(wall.get("baseConstraint"))})
         counts[key] = dict(tally)
     return items, counts
 
 
+def no_base_level(items):
+    """R335. The walls whose base constraint no floor of their plan names, so their base level is unknown and never 0."""
+    return [{"key": item["key"], "elementId": item["wall"].get("elementId"), "baseConstraint": item["wall"].get("baseConstraint")}
+            for item in items if item.get("baseLevel") is None]
+
+
 def wall_base(item):
-    """R335. The level of the base of a wall, its base offset over its base level."""
-    return item["wall"]["baseOffset"] + item.get("baseLevel", 0.0)
+    """R335. The level of the base of a wall, its base offset over its base level, None when no floor names that level."""
+    return None if item.get("baseLevel") is None else item["wall"]["baseOffset"] + item["baseLevel"]
 
 
 def wall_top(item):
-    return wall_base(item) + item["wall"]["heightM"]
+    base = wall_base(item)
+    return None if base is None else base + item["wall"]["heightM"]
 
 
 def wall_base_candidates(yard_depth):
@@ -428,13 +440,14 @@ def front_cover(frame, walls, near):
     return covered / length
 
 
-def read_parameters(reads):
-    """R335. The link parameters of each key read by key and plot, the plot of RRE_ZZ_SP_Plot-Number, a plot two links name left out."""
+def read_parameters(reads, plot_parameter):
+    """R335. The link parameters of each key read by key and plot, the plot of plot_parameter, majority.linkPlotParameter, a plot two
+    links name left out."""
     found, twice = {}, set()
     for key, document in reads.items():
         for link in document.get("links") or []:
             parameters = link.get("parameters") or {}
-            plot = str(parameters.get("RRE_ZZ_SP_Plot-Number") or "").strip()
+            plot = str(parameters.get(plot_parameter) or "").strip()
             if not plot:
                 continue
             if (key, plot) in found:

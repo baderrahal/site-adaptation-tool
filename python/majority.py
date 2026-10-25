@@ -350,13 +350,19 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
     by_file = lambda item: (item["group"], item["file"])
     level_hold = lambda guess, aim: abs(guess - aim) <= hold_m + 1e-9
     riser = profile.get("steps.riser_added") / 1000.0
-    results, misses, datums, extras = [], [], {}, {"linkFits": {}, "flatRamps": {}, "yardOutlineGroups": {}, "walls": {}, "wallMisses": {}, "frontCover": {}, "frontWalled": {}}
+    results, misses, datums, extras = [], [], {}, {"linkFits": {}, "flatRamps": {}, "yardOutlineGroups": {}, "walls": {}, "wallMisses": {}, "frontCover": {}, "frontWalled": {},
+                                                    "wallsNoBaseLevel": {}, "coverage": {}}
 
     def record(name, pool, target, candidates, scope, field, hold=None, checks=(), gap=None, extra_by=None):
         pool = kept_for(name.split(" ")[1], pool, block, name.split(" ", 1)[1])
+        # R272. Every decision says which keys and how many plots it holds, a decision with no plot is listed with none, never dropped
+        by_key = Counter(item["key"] for item in pool if target(item) is not None)
+        extras["coverage"][name] = {"plots": sum(by_key.values()), "byKey": dict(sorted(by_key.items())),
+                                    "keysWithNoPlot": sorted(set(block["groups"].get(name.split(" ")[0], ())) - set(by_key))}
         if not pool:
             return
         result, missed = decide(name, pool, target, candidates, scope, strong, hold, checks, extra_by)
+        result["field"] = field
         result["byKind"] = dict(sorted(Counter(item.get("modelKind") or "none" for item in pool).items()))
         results.append(result)
         for miss in missed:
@@ -502,6 +508,8 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
             # R335. The boundary walls of the key plans of the group: base, top and line, their misses listed in the report only
             walls, counts = key_rules.wall_items(key_plans, block["groups"][group], group, block["wallTypes"])
             extras["walls"][group] = {"byKey": counts, "items": len(walls)}
+            # R335. A wall whose base level no floor of its plan names has no base, it is listed and held by no level decision
+            extras["wallsNoBaseLevel"][group] = key_rules.no_base_level(walls)
             record(group + " wallBase", walls, key_rules.wall_base, key_rules.wall_base_candidates(depth), by_group, "wallBase", key_rules.level_hold(hold_m),
                    gap=key_rules.level_gap, extra_by={"plots": lambda item: item["factors"]["plots"]})
             record(group + " wallTop", walls, key_rules.wall_top, key_rules.wall_top_candidates(profile), by_group, "wallTop", key_rules.level_hold(hold_m),
@@ -514,8 +522,10 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
                 for plot in item["wall"].get("plots") or []:
                     by_plot[(item["key"], plot)].append(item["wall"])
             covers = []
+            # R335. A kind of majority.kindLeaveOut that holds no front wall, the SE keys, is left out of the open front
+            fronted = {id(item) for item in kept("frontOpen")}
             for item in pool:
-                if item["key"] in key_plans and item.get("modelKind") != "SE":
+                if item["key"] in key_plans and id(item) in fronted:
                     cover = key_rules.front_cover(item.get("frame"), by_plot.get((item["key"], item["plot"]), []), wall_edge)
                     item["factors"]["frontOpen"] = None if cover is None else "open" if cover <= block["frontOpenShare"] + 1e-9 else "walled"
                     if cover is not None:
@@ -541,6 +551,22 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
             record(group + " linkOrigin", origins, key_rules.origin_target, key_rules.origin_candidates(frame_units, extras["linkFits"][group], profile.get("typologies")),
                    by_group, "insert", key_rules.point_hold(block["linkHoldMm"] / 1000.0), gap=key_rules.insert_gap, extra_by=by_rule)
     return results, misses, datums, extras
+
+
+def check_keys(answer, rows, reads, plans, groups, references, allowed):
+    """R272, R331, R335. Every answer key of answerKeys must have rows in past_all.csv, a key read and a key plan, and every group
+    read with --key-read its reference key of majority.siteReference, else a key or a decision would be left out in silence. A key
+    --allow-missing-key names may be missing, and the coverage of every decision says what it holds."""
+    missing = []
+    for label, found in (("rows in past_all.csv", rows), ("--key-read", reads), ("--key-plan", plans)):
+        gone = sorted(key for key in answer if key not in found and key not in allowed)
+        if gone:
+            missing.append(label + " of " + ", ".join(gone))
+    for group, reference in sorted(references.items()):
+        if any(key in reads for key in groups.get(group, ())) and reference not in reads and reference not in allowed:
+            missing.append("--key-read of " + reference + ", the reference key of " + group)
+    if missing:
+        raise project_profile.ProfileError("answer keys missing: " + " | ".join(missing) + ". Give them or name each with --allow-missing-key KEY (R272)")
 
 
 def overrides(misses, block, models):
@@ -602,7 +628,7 @@ def load_block(settings):
     needed = ("strongShare", "levelHoldMm", "entryRampM", "groups", "codeFrom", "kindByPrefix", "slopeBands", "rampTypeClass", "groupSlopes", "depthBands",
               "heightBands", "sideShare", "parameterTests", "overrideDecisions", "wholeFaceShare", "overrideNote", "measuredSlopeGroups", "datumSurfaces", "kindLeaveOut",
               "rotationHoldDeg", "linkHoldMm", "cornerFrontRule", "siteReference", "check", "outlineHoldMm", "pairKinds", "flatRampType", "wallTypes", "wallCentreCodes",
-              "frontOpenShare", "linkNameFacade", "parameterLevels", "overrideKeep")
+              "frontOpenShare", "linkNameFacade", "parameterLevels", "overrideKeep", "linkPlotParameter")
     if not isinstance(block, dict) or any(key not in block for key in needed):
         raise project_profile.ProfileError(settings.path.name + " majority must name " + ", ".join(needed))
     leave = block["kindLeaveOut"]
@@ -644,6 +670,7 @@ def main(argv=None):
     parser.add_argument("--key-plan", nargs=2, action="append", metavar=("KEY", "FILE"), default=[], help="R334. the plan of a key of R325, its yard outlines")
     parser.add_argument("--floors", default=str(floor_fit.DEFAULT_PATH), help="R334. floor_outlines.json with the yard outlines of R135")
     parser.add_argument("--keep-from", help="R330. the earlier override list --keep reads, --overrides when left out")
+    parser.add_argument("--allow-missing-key", action="append", default=[], metavar="KEY", help="R272. an answer key the run may lack rows, a read or a plan of")
     args = parser.parse_args(argv)
     try:
         return run_args(args)
@@ -705,11 +732,14 @@ def run_args(args):
     for item in items:
         found = front.get(item["plot"]) or {}
         item["frame"], item["frontRule"], item["curbFrame"] = found.get("frame"), found.get("frontRule"), curbs.get(item["plot"])
+    # R272. A key of answerKeys with no rows, read or plan, or a group read without its reference, is refused unless named
+    check_keys(sorted(key["code"].lower() for key in settings.get("answerKeys")["keys"]), {row["key"] for row in rows}, {key for key, _ in args.key_read},
+               {key for key, _ in args.key_plan}, block["groups"], block["siteReference"], args.allow_missing_key)
     plans = {key: json.loads(Path(path).read_text(encoding="utf-8")) for key, path in args.key_plan}
     # R335. The level parameters of majority.parameterLevels from each key read, which past_all.csv does not list. Only those, since a
     # read is found by its plot number parameter, so its plot number would hold by construction
     reads = {key: ramp_levels.host_document(link_summary.load(path)) for key, path in args.key_read}
-    read_found = key_rules.read_parameters(reads)
+    read_found = key_rules.read_parameters(reads, block["linkPlotParameter"])
     for item in items:
         found = read_found.get((item["key"], item["plot"])) or {}
         item["readParameters"] = {name: found[name] for name in block["parameterLevels"] if name in found}
@@ -734,6 +764,9 @@ def run_args(args):
     write_overrides(args.overrides, block["overrideNote"], listing)
     for result in results:
         print("%s: coded %s, share %s, %s, misses %d of %d" % (result["decision"], result["coded"], result["share"], "strong" if result["strong"] else "WEAK", result["misses"], result["plots"]))
+    for name, found in extras["coverage"].items():
+        if not found["plots"]:
+            print("%s: no plot, keys with none %s" % (name, found["keysWithNoPlot"]))
     print("overrides %d %s" % (len(listing), report["overrideCount"]))
     return 0
 
