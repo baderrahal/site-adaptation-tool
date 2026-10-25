@@ -455,7 +455,18 @@ def load_block(settings):
     leave = block["kindLeaveOut"]
     if not isinstance(leave, dict) or not all(isinstance(words, list) and all(word in DECISIONS for word in words) for words in leave.values()):
         raise project_profile.ProfileError(settings.path.name + " majority.kindLeaveOut must map a model kind to decisions of " + ", ".join(DECISIONS))
+    # R326. A kind spelled otherwise than answerKeys.kinds would match no row and leave nothing out
+    rule = past_all.kind_rule(settings)
+    wrong = [kind for kind in leave if past_all.canonical_kind(kind, rule) != kind]
+    if wrong:
+        raise project_profile.ProfileError(settings.path.name + " majority.kindLeaveOut names " + ", ".join(wrong) + ", which is no kind of answerKeys.kinds "
+                                           + ", ".join(rule["kinds"]))
     return block
+
+
+def read_rows(path, settings, block):
+    """R326. The rows of past_all.csv, each kind held against answerKeys.kinds and every row of a group of majority.kindGroups with a kind."""
+    return past_all.check_kinds(past_all.read_table(path), past_all.kind_rule(settings), block["groups"])
 
 
 def main(argv=None):
@@ -476,7 +487,7 @@ def main(argv=None):
     profile = project_profile.load_profile(project_profile.profile_path(settings))
     block = load_block(settings)
     plot_relations.refuse_inside_repo(Path(args.out).resolve().parent)
-    rows = past_all.read_table(args.table)
+    rows = read_rows(args.table, settings, block)
     book, number_of = plan_from_book.book_rows(args.plots_csv)
     by_label, _ = yard_rule.face_shapes(link_summary.load(args.baseplan)["plots"], 0)
     faces = {number_of[label]: shape for label, shape in by_label.items() if label in number_of}

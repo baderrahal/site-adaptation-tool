@@ -272,6 +272,69 @@ def test_r326_each_answer_key_takes_its_kind_from_answer_keys_and_a_key_of_no_co
     assert "kind" in past_all.COLUMNS and "heightSource" in past_all.COLUMNS
 
 
+KIND_RULE = {"kinds": ["TU", "SE"], "fold": False, "groups": ["parsons"]}
+
+
+def test_r326_a_row_of_a_kind_group_with_no_kind_or_a_kind_answer_keys_do_not_name_is_refused_and_case_folds_only_where_the_config_says():
+    groups = {"native": ["u11"], "parsons": ["imx", "imy"]}
+    good = [{"key": "u11", "kind": ""}, {"key": "imx", "kind": "TU"}, {"key": "imy", "kind": "SE"}]
+    assert past_all.check_kinds(good, KIND_RULE, groups) == good
+    # A parsons key given with no --key-code, or a row kept from a table of before the kind column, has no kind
+    with pytest.raises(project_profile.ProfileError, match="imx"):
+        past_all.check_kinds([{"key": "imx", "kind": ""}], KIND_RULE, groups)
+    with pytest.raises(project_profile.ProfileError, match="imy"):
+        past_all.check_kinds([{"key": "imy"}], KIND_RULE, groups)
+    # se is no kind of answerKeys, it would pass every kindLeaveOut list
+    with pytest.raises(project_profile.ProfileError, match="se"):
+        past_all.check_kinds([{"key": "imy", "kind": "se"}], KIND_RULE, groups)
+    with pytest.raises(project_profile.ProfileError, match="XX"):
+        past_all.check_kinds([{"key": "u11", "kind": "XX"}], KIND_RULE, groups)
+    assert past_all.check_kinds([{"key": "imy", "kind": "se"}], dict(KIND_RULE, fold=True), groups) == [{"key": "imy", "kind": "SE"}]
+
+
+def test_r326_the_kind_of_an_answer_key_must_be_one_of_answer_keys_kinds(tmp_path):
+    values = json.loads(project_profile.SETTINGS_PATH.read_text(encoding="utf-8"))
+    values["answerKeys"]["keys"][0]["kind"] = values["answerKeys"]["keys"][0]["kind"].lower()
+    path = tmp_path / "project.json"
+    path.write_text(json.dumps(values), encoding="utf-8")
+    code = values["answerKeys"]["keys"][0]["code"]
+    with pytest.raises(project_profile.ProfileError, match=code):
+        past_all.key_kind(project_profile.load_settings(path), code)
+    rule = past_all.kind_rule(project_profile.load_settings())
+    assert rule["kinds"] == ["TU", "SE"] and rule["fold"] is False and rule["groups"] == ["parsons"]
+
+
+def test_r326_the_table_refuses_kept_parsons_rows_of_a_table_written_before_the_kind_column(tmp_path):
+    old = old_table(tmp_path)
+    labels = tmp_path / "labels.csv"
+    labels.write_text("number,face,nbh,zone,kind,rev9,code\n", encoding="utf-8")
+    baseplan = tmp_path / "plots.json"
+    baseplan.write_text(json.dumps({"plots": []}), encoding="utf-8")
+    out = tmp_path / "out" / "past_all.csv"
+    out.parent.mkdir()
+    with pytest.raises(project_profile.ProfileError, match="imc"):
+        past_all.main(["table", "--keep-from", str(old), "parsons", "--labels", str(labels), "--baseplan", str(baseplan), "--out", str(out)])
+    assert not out.exists()
+
+
+def test_r326_majority_refuses_a_kind_answer_keys_do_not_name_in_its_table_and_in_kind_leave_out(tmp_path):
+    path = tmp_path / "past_all.csv"
+    row = dict({column: "" for column in past_all.COLUMNS}, key="ima", source="parsons", kind="se", plot="601", parameters="{}")
+    with open(path, "w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=past_all.COLUMNS)
+        writer.writeheader()
+        writer.writerow(row)
+    settings = project_profile.load_settings()
+    with pytest.raises(project_profile.ProfileError, match="se"):
+        majority.read_rows(path, settings, majority.load_block(settings))
+    values = json.loads(project_profile.SETTINGS_PATH.read_text(encoding="utf-8"))
+    values["majority"]["kindLeaveOut"] = {"se": values["majority"]["kindLeaveOut"]["SE"]}
+    changed = tmp_path / "project.json"
+    changed.write_text(json.dumps(values), encoding="utf-8")
+    with pytest.raises(project_profile.ProfileError, match="kindLeaveOut"):
+        majority.load_block(project_profile.load_settings(changed))
+
+
 def table_row(key, kind, plot, entry=6.8):
     row = {column: None for column in past_all.COLUMNS}
     row.update(key=key, kind=kind, plot=plot, typologyRev9="DP4", keyUnit="DP4", linkFile="a.rvt", mirrored=True, entry=entry, entrySource="floorParameter",

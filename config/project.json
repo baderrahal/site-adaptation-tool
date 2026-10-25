@@ -175,6 +175,8 @@
     "entryGaps": {"entryGapM": 0.5, "entryRampM": 0.3, "sameFaceShare": 0.9},
     "groups": {"native": ["u11", "u12", "u13", "u14"], "parsons": ["imc", "ima", "imb", "imd", "ime", "imf", "img"]},
     "kindLeaveOut": {"SE": ["rampSlope", "entry", "rampFront", "rampFrontFall", "height", "steps", "yard"]},
+    "kindGroups": ["parsons"],
+    "kindFoldCase": false,
     "codeFrom": {"native": "keyUnit", "parsons": "rev9"},
     "kindByPrefix": {"VL": "villa", "DP": "duplex", "TH": "townhouse"},
     "slopeBands": [[0.25, "flat"], [1.0, "0.5"], [99.0, "2"]],

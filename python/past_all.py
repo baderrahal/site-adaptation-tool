@@ -243,14 +243,61 @@ def source_of(key, groups):
     return found[0]
 
 
+def kind_rule(settings):
+    """R326. What a kind of past_all.csv is held against: answerKeys.kinds, majority.kindFoldCase, true only where case may be folded, and
+    majority.kindGroups, the groups of majority.groups whose rows must each carry a kind."""
+    kinds = settings.get("answerKeys.kinds")
+    fold = settings.get("majority.kindFoldCase")
+    groups = settings.get("majority.kindGroups")
+    if not isinstance(kinds, list) or not kinds or not all(isinstance(kind, str) and kind for kind in kinds):
+        raise project_profile.ProfileError(settings.path.name + " answerKeys.kinds must list the kinds of the answer keys")
+    if not isinstance(fold, bool):
+        raise project_profile.ProfileError(settings.path.name + " majority.kindFoldCase must be true or false")
+    if not isinstance(groups, list) or not all(group in (settings.get("majority.groups") or {}) for group in groups):
+        raise project_profile.ProfileError(settings.path.name + " majority.kindGroups must list groups of majority.groups")
+    return {"kinds": kinds, "fold": fold, "groups": groups}
+
+
+def canonical_kind(kind, rule):
+    """R326. The kind as answerKeys.kinds writes it, or None when it is none of them. Case is folded only when majority.kindFoldCase says so."""
+    if not isinstance(kind, str) or not kind:
+        return None
+    if kind in rule["kinds"]:
+        return kind
+    found = [name for name in rule["kinds"] if rule["fold"] and name.casefold() == kind.casefold()]
+    return found[0] if len(found) == 1 else None
+
+
+def check_kinds(rows, rule, groups):
+    """R326. Every row of a group of majority.kindGroups carries a kind of answerKeys.kinds and no row carries another kind, so a row of no
+    kind or of a kind spelled otherwise never slips past majority.kindLeaveOut. A folded kind is written as answerKeys.kinds writes it.
+    Refused with the keys and kinds at fault."""
+    faults, found = Counter(), []
+    for row in rows:
+        group = next((name for name, keys in groups.items() if row["key"] in keys), None)
+        kind = row.get("kind") or ""
+        named = canonical_kind(kind, rule)
+        if kind and named is None:
+            faults[(row["key"], "the kind " + kind + " is none of " + ", ".join(rule["kinds"]))] += 1
+        elif not kind and group in rule["groups"]:
+            faults[(row["key"], "no kind in the group " + group)] += 1
+        found.append(dict(row, kind=named) if named not in (None, kind) else row)
+    if faults:
+        raise project_profile.ProfileError("past_all rows of a wrong kind, by key: " + ", ".join("%s %s (%d rows)" % (key, why, count) for (key, why), count in sorted(faults.items())))
+    return found
+
+
 def key_kind(settings, code):
-    """R326. The kind of an answer key, TU or SE of answerKeys, and none for a key of no code."""
+    """R326. The kind of an answer key, TU or SE of answerKeys, and none for a key of no code. A kind answerKeys.kinds does not hold is refused."""
     if not code:
         return ""
     kinds = [key.get("kind") for key in settings.get("answerKeys.keys") if key.get("code") == code]
     if len(kinds) != 1 or not kinds[0]:
         raise project_profile.ProfileError("answerKeys has no one key " + str(code) + " with a kind")
-    return kinds[0]
+    named = canonical_kind(kinds[0], kind_rule(settings))
+    if named is None:
+        raise project_profile.ProfileError("the kind " + str(kinds[0]) + " of the answer key " + str(code) + " is none of answerKeys.kinds")
+    return named
 
 
 def kept_rows(path, group, groups):
@@ -382,6 +429,7 @@ def main(argv=None):
         rows += [dict(row, source=source, kind=kind) for row in table_rows(name, link_summary.load(plan), data, split["dialects"][dialect], key_floors, faces, numbers,
                                                                           labels, block, footprints.get(name), schedule, codes.get(name), share_min,
                                                                           conflicts, band)]
+    rows = check_kinds(rows, kind_rule(settings), groups)
     write_csv(out, rows)
     if schedule is not None:
         listed = write_conflicts(out, conflicts)
