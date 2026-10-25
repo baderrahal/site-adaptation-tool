@@ -9,7 +9,9 @@ Written 2026-10-25 before the first edit. The round prompt, word for word, is ro
 ### Preflight, done before this plan
 
 - Repo root C:\Users\bader\Documents\GitHub\site-adaptation-tool, branch main, main equal to origin/main at ff212e5 after git fetch (RAN).
-- Hooks live: guard-main.sh refused a dry run commit on main and guard-registry.sh refused a harmless echo with the word reg (RAN, 2 of 2 refused).
+- Hooks live: guard-main.sh refused a dry run commit on main and guard-registry.sh refused a harmless echo with the word reg (RAN by the main session, 2 of 2 refused). Their output, word for word:
+  - guard-main.sh, on git commit --dry-run --allow-empty -m hooktest on main: "Blocked by .claude/hooks/guard-main.sh: git commit on main in C:\Users\bader\Documents\GitHub\site-adaptation-tool. Work on a branch and merge by pull request."
+  - guard-registry.sh, on echo hook test reg probe: "Blocked by .claude/hooks/guard-registry.sh: reg.exe. Nothing in the registry is changed by this tool, Bader answers it by hand."
 - Worktree site-adaptation-tool-17: not on disk, git worktree list shows main only (RAN). Nothing to remove.
 - Files named by the prompt: all present (READ by listing) but one. 01101-PSN-IMC-ZZZ-PIM-TU-000001_TEST-MASTER.rvt is no longer in 00_Revit Models\Zone 02\ARC, where testhost_MST_log.json puts it (READ). BasicFileInfo of Revit All Zones\01101-PSN-IMC-ZZZ-PIM-TU-000001-zone2.rvt gives lastSavePath ...\Zone 02\ARC\01101-PSN-IMC-ZZZ-PIM-TU-000001_TEST-MASTER.rvt, not workshared, 48,742,400 bytes (RAN rvt_info.py on it). So the master was moved into Revit All Zones and renamed. It is not a missing input, it is the answer to Phase 1 step 2: the IMC key is the original in Zone 02\ARC (hash fef2bfee... in round_17\logs\originals_after.txt, READ) and a new question records it. No hash of the master was ever written, so the hash compare of step 2 is replaced by this BasicFileInfo proof and a link and floor count in Phase 1.
 - AI MAX version 3, 19 Oct 2026, is installed at C:\Users\bader\.claude\skills\synced\6ef2e1cc-...\ai-max (READ). Its assets hold breaker, claim-checker, log-reader, prober, researcher and reviewer. developer and runner have no file there, rounds.md line 186 describes both, so Phase 0 writes those two from that text.
@@ -41,7 +43,8 @@ PR 0b fix/addin-open-fixes
 4. Q045: no villa block read from R06_0000, with a test. Q044: config/area_codes.json by job (parsons empty until Phase 2, native from Round 17), guessed rows gone, readers and tests updated. Q049: no attribute values in the Civil 3D read. Q061: image step 30 minutes in config, then the NBH 03 image.
 5. Outside the repo: delete the IFC copy (Q047) and the two Cutsheet lock files (Q048). Move the kept files of round_z4\work, round_16\work and round_17\work (2024 key copies U11, U12, U13, K24 and the files TEST-NEW of Z4, IMC 16, IMC R17B, IMB R17) into Documents\SiteAdaptation\kept, then delete the three work folders (Q035, Q060). Each file listed with its size. The NBH 03 image is made before its file moves.
 6. Delete the remote branch feat/revit-links-walls-ramps after git shows every commit of it in main.
-7. Close Q035, Q044 (structure), Q045, Q046, Q047, Q048, Q049, Q050, Q060, Q061 in steps/questions-closed.md with answers.
+7. Close Q035, Q044 (structure), Q045, Q047, Q048, Q049, Q060, Q061 in steps/questions-closed.md with answers. Q028, Q046 and Q050 were closed by 0a.
+8. R277: parsons2024Rev6 as the default level profile of a new build in the rule text and the code, with a test (Q050).
 
 #### Phase 1, the 7 Parsons models (1 or 2 PRs)
 
@@ -56,7 +59,7 @@ PR 0b fix/addin-open-fixes
 #### Phase 2, read the 7 keys (2 PRs)
 
 - Reader extended only where it lacks a field: walls with base, top and location, spots with hosts, survey and project points, levels, the 9 RRE parameters and CASE. Read each 2024 copy.
-- plan_<code>_past.json per model, plan_imc_past.json never overwritten, compared.
+- `plan_<code>_past.json` per model, plan_imc_past.json never overwritten, compared.
 - Join to plots.csv by location, then official number, Zone and NBH, Parsons rows in past_all.csv with a source column, the plots on no face or two listed.
 - Parsons table of config/area_codes.json with counts. Q011 closed if IME names its NBH.
 - Spot elevations at the plot entrance against El @ Entry (Q001).

@@ -2,7 +2,7 @@
 
 Every question for Bader has a fixed ID, Q001 upward. An ID is never reused or renumbered. Open questions are listed by ID in Bader's turn of steps/PROGRESS.md and in the top entry of steps/log.md, with the same text in both. A closed question moves here with its answer and the date, and keeps its ID.
 
-Round 17 gave the IDs. Each open question of the DATA-4 list kept its number as its ID, so Q001 is the old 1 and Q043 the old 43. The DATA-4 list had no 14 and no 34, those two were closed in DATA-4 and are below. Round DATA-5 ran beside Round 17, closed 43 and added 44 to 49, which keep those numbers as Q044 to Q049. Round 17 added Q050 to Q060.
+Round 17 gave the IDs. Each open question of the DATA-4 list kept its number as its ID, so Q001 is the old 1 and Q043 the old 43. The DATA-4 list had no 14 and no 34, those two were closed in DATA-4 and are below. Round DATA-5 ran beside Round 17, closed 43 and added 44 to 49, which keep those numbers as Q044 to Q049. Round 17 added Q050 to Q061.
 
 ## Closed
 
@@ -49,7 +49,7 @@ The steps files of three rounds named questions by the number they had in that r
 | The 13 plots the PDF check refuses | 26 | 26 | 25 | Q025 |
 | The two curbs | 27 | 27 | 26 | Q026 |
 | Two DP4 labels in one face | 28 | 28 | 27 | Q027 |
-| Zone 4 IMG past job | 29 and 33 | 29 and 33 | 28 | Q028 |
+| Zone 4 IMG past job | 29 and 33 | 29 and 33 | 28 | Q028, closed |
 | Official numbers | 30 | 30 | 29 | Q029 |
 | Plan plots with no sales row | 31 | 31 | 30 | Q030 |
 | Location plan versions | 32 | - | - | closed before IDs, DATA-3 found the Rev.09 PDF the latest (R196) |

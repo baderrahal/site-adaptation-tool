@@ -27,7 +27,9 @@ Part 1 is the add-in. Part 2, the output sheets, waits for Bader's check of Part
 
 How the round runs:
 
+- Do not come back to Bader until Part 1 is built.
 - The main session plans, orchestrates and merges. One developer helper per PR.
+- No approval stop: a PR is merged when gh pr checks passes and the checkers found nothing open.
 - The breaker and the claim-checker read each PR before it merges. Each finding is fixed with a test.
 - Never two PRs open. At most four changes per PR.
 - A fix on its third attempt stops, goes back to measuring and becomes a question.
@@ -139,11 +141,13 @@ These apply to every file, commit message, pull request text and report.
 
 The top entry of steps/log.md fits on one page and has these headings in this order.
 
-1. Done
-2. Remains
-3. Known bugs
-4. Next
-5. Your turn
+1. Goal
+2. Done
+3. Checked
+4. Remains
+5. Known bugs
+6. Next
+7. Your turn
 
 Your turn is one list of every open question for Bader by fixed ID, recommended answer first.
 steps/PROGRESS.md is 60 lines at most and holds state, done, open bugs, Bader's turn and the next three steps.

@@ -1,4 +1,4 @@
-STATE 2026-10-25, Round ADDIN Part 1 started, Phase 0: PR 0a on chore/addin-harness holds the skill, the agents, the records, CLAUDE.md and the approved mock. Round 17 done and merged (PR 39, 40)
+STATE 2026-10-25, Round ADDIN Part 1 started, Phase 0: PR 0a (PR 41, chore/addin-harness) holds the skill, the agents, the records, CLAUDE.md and the approved mock. Round 17 done and merged (PR 39, 40)
 
 # Progress
 
@@ -16,12 +16,12 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 
 ## Done
 
-- ADDIN 0a: the AI MAX skill version 3 in .claude/skills/ai-max, seven agents in .claude/agents, six old entries of steps/log.md moved to steps/history/ (100,466 to 67,551 bytes), CLAUDE.md, docs/addin-mock.md, Q028, Q046 and Q050 closed
+- ADDIN 0a, PR 41: the AI MAX skill version 3 in .claude/skills/ai-max, seven agents in .claude/agents, six old entries of steps/log.md moved to steps/history/ (100,466 to 67,551 bytes, 74,249 with the Round ADDIN entry), CLAUDE.md, docs/addin-mock.md, Q028, Q046 and Q050 closed
 - 17: R261 to R282, PR 39. DATA-5: R251 to R260, PR 38. DATA-4: PR 36. 16: PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c: PR 24, 25. C3D: PR 22, 23. 14: PR 20, 21. 1 to 15b: PRs 1 to 19
 
 ## Open bugs
 
-- Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT. CadReader reads model space only. Not read: 154 alignments of Road Surface and some parcels, the add-in does not need them (Q046)
+- Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT. CadReader reads model space only. Not read: 154 alignments of Road Surface and some parcels. The add-in does not need the 154 alignments (Q046)
 - No El @ Entry rule beyond 0.285 of the IMC key, the rest are overrides. CASE follows no tested logic. The footprint test cannot see a wrong hand
 - The image job of the 404 links of NBH 03 ran over the 10 minute image step three times, the file opens in 78 s with its links loaded, no image of it was made
 - R277 in docs/rules.md still says no level profile is the default, Q050 makes parsons2024Rev6 the profile of every new build. The rule text changes with the code in a later ADDIN PR

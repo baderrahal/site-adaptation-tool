@@ -1,5 +1,8 @@
 # Approved mock
 
+Copied word for word from the round prompt of Round ADDIN. The fence keeps it as written.
+
+```text
 The approved mock (Bader, 25 Oct). Labels are exact. [n] means the real value
 1. Ribbon tab "Site Adaptation" with three ribbon panels in this order: Setup (1 Set up site, 2 Read data, 3 Check), Build (4 Place villas, 5 Floors and ramps, 6 Levels, 7 Walls), Output (8 Report). Large buttons, one icon each.
 2. Dockable pane "Site Adaptation" on the right, project name at the top right, four sections in this order:
@@ -11,3 +14,4 @@ The approved mock (Bader, 25 Oct). Labels are exact. [n] means the real value
 4. Check table. Title "3 Check, NBH [code], [n] plots", a line with the level profile and the override file. Buttons Zoom to plot, Export to Excel, Save overrides. Filter chips: All, then one per check type (Plot cut, Floor, Hand, Unit code, Position, Level, and any other type found), each with its count, and "[n] plots follow every rule" on the right. Columns: Plot, NBH, Unit, Check, Tool value (rule), Past job, Rule, Use. Use is a dropdown Rule, Past, Skip. Past writes the past value to the override list with source parsons. Skip leaves the plot out and lists it in the report. Selecting a row zooms the Revit view to that plot.
 5. Level Excel, file <NBH>_Levels_<profile>.xlsx. A top line with NBH, Zone, road surface and the formulas used. Columns in this order: Plot No, Unit, Cluster, Road at front, El @ Entry, FFL, SSL, Height, Steps, Source (Rule, or Override with the reason). Sheets: Levels, Clusters, Overrides used, Settings.
 6. Report Excel, file <NBH>_Report.xlsx. A top line with file name, NBH, plot count, profile, run time. Summary table with columns Step, Done, Skipped, Override, Issues, one row per button 1 to 7. A box "Counts agree across outputs" with columns Item, Revit, Excel for Links, Floors, Levels. A box "Rules applied". Sheets: Summary, Placed, Skipped, Overrides, Issues, Rules.
+```

@@ -75,13 +75,13 @@ def test_r26_progress_file_is_at_most_60_lines_with_the_five_parts():
         assert heading in text
 
 
-def test_r26_top_log_entry_fits_one_page_and_has_the_five_headings_in_order():
+def test_r26_top_log_entry_fits_one_page_and_has_the_seven_headings_in_order():
     text = (ROOT / "steps" / "log.md").read_text(encoding="utf-8")
     top = re.split(r"^## ", text, flags=re.MULTILINE)[1]
     assert len(top.splitlines()) <= 70
     # One page is also a number of characters, the older entries are a few hundred and a stub, the detail goes to steps/history
     assert len(top) <= 9000
-    positions = [top.find(heading + ":") for heading in ("Done", "Remains", "Known bugs", "Next", "Your turn")]
+    positions = [top.find(heading + ":") for heading in ("Goal", "Done", "Checked", "Remains", "Known bugs", "Next", "Your turn")]
     assert all(position >= 0 for position in positions)
     assert positions == sorted(positions)
 
