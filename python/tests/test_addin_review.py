@@ -55,11 +55,12 @@ def test_r330_a_kept_entry_on_a_plot_the_join_gives_no_row_of_its_key_is_dropped
 
 
 # R330 the fields left to a later phase and the sources kept come from config, so the plain command gives the committed list
-def test_r330_the_config_keeps_every_native_entry_and_the_level_fields_left_to_3c_so_a_plain_run_keeps_them():
+def test_r330_the_config_keeps_every_native_entry_and_since_3c_no_level_field_so_a_plain_run_writes_the_levels():
     keep = override_source.keep_of(keep_block(), [], [], [])
     assert keep == {"native": None, "parsons": {"entryM", "heightM"}}
+    # Round ADDIN 3c measured the levels (R339), so the config leaves no field to a later phase
     real = override_source.keep_of(majority.load_block(project_profile.load_settings()), [], [], [])
-    assert real == {"native": None, "parsons": {"entryM", "heightM", "steps", "parameter RRE_ZZ_SP_Prototype-FFL"}}
+    assert real == {"native": None}
     earlier = [entry("1", "entryM", {"gapToRuleM": 0.5}, "native", "U12.rvt", "u12"), entry("2", "heightM", {"gapToRuleM": 0.03}, "parsons", "IMC.rvt", "imc"),
                entry("2", "mirrored", True, "parsons", "IMC.rvt", "imc")]
     run = [entry("1", "entryM", {"gapToRuleM": 0.9}, "native", "U12.rvt", "u12"), entry("2", "heightM", {"gapToRuleM": 0.9}, "parsons", "IMC.rvt", "imc"),
@@ -243,6 +244,8 @@ def test_r281_a_decision_with_misses_and_no_entry_in_the_override_list_is_not_a_
 # R337 a build by the rules of the keys
 DP2 = "RRE-WP-NSP-KEO-ARC-DP2-ZZ-MOD-2200.rvt"
 VD2 = "RRE-WP-NSP-KEO-ARC-VD2-ZZ-MOD-2200.rvt"
+# The levels left to Phase 3c in the config of Round ADDIN 3a, a made up config since 3c measured them (R339)
+LATER_3A = {"parsons": ["entryM", "heightM", "steps", "parameter RRE_ZZ_SP_Prototype-FFL"]}
 
 
 def made_key_rules():
@@ -271,13 +274,18 @@ def made_key_rules():
     }
 
 
-def key_build(tmp_path, monkeypatch, zones=("Zone 2", "Zone 2", "Zone 2", "Zone 4"), overrides=None, road=None):
-    """plan_from_book.rule_inputs and build on a row of four 12 m plots with one road in front, the road level stubbed, by road when given."""
+def key_build(tmp_path, monkeypatch, zones=("Zone 2", "Zone 2", "Zone 2", "Zone 4"), overrides=None, road=None, later=None):
+    """plan_from_book.rule_inputs and build on a row of four 12 m plots with one road in front, the road level stubbed, by road when given,
+    with later as the fields majority.overrideKeep leaves to a later phase when given."""
     import argparse
     from shapely.geometry import LineString, box
     import plan_from_book
     import plan_from_past
     settings = project_profile.load_settings()
+    if later is not None:
+        values = json.loads(json.dumps(settings.values))
+        values["majority"]["overrideKeep"]["laterFields"] = later
+        settings = project_profile.ProjectProfile(settings.path, values)
     real = project_profile.load_profile(project_profile.profile_path(settings))
     values = json.loads(json.dumps(real.values))
     values["levelProfiles"]["parsons2024Rev6"]["keyRules"] = made_key_rules()
@@ -310,7 +318,7 @@ def by_plot(plan):
 
 def test_r337_a_build_of_a_profile_with_key_rules_takes_the_hands_origin_ramp_yard_and_parameters_from_them(tmp_path, monkeypatch):
     import cad_links
-    plan, rules, profile = key_build(tmp_path, monkeypatch)
+    plan, rules, profile = key_build(tmp_path, monkeypatch, later=LATER_3A)
     found = by_plot(plan)
     # The villa by the block mirror flag and its side road, the three DP2 units in no cluster by the pairs of their row from its right end
     assert {plot: found[plot]["mirrored"]["value"] for plot in found} == {"1": True, "2": True, "3": False, "4": True}

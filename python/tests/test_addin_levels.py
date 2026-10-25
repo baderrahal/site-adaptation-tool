@@ -383,3 +383,29 @@ def test_r341_the_steps_of_the_own_route_count_half_a_riser_as_no_step_and_its_o
     assert key_rules_check.own_steps("stepBands", 0.2404, 0.2, 0.17, [[0.205, 1], [0.38, 2], [99.0, 3]]) == 2
     assert key_rules_check.own_ffl([(10.0274, 0.1), (10.0273, 0.1), (None, 0.2)]) == 10.127 and key_rules_check.own_ffl([(None, 0.1)]) is None
     assert key_rules_check.own_down_to_the_cm(173.329) == 173.32
+
+
+# R339, R340 the committed rules profile and override list
+def test_r339_r340_the_rules_profile_holds_the_level_rules_of_the_keys_and_a_build_takes_them():
+    rules = plan_rules.key_rules_of(plan_rules.level_profile(PROFILE, "parsons2024Rev6"))
+    assert plan_rules.key_levels_of(rules)
+    assert rules["entry"]["rule"] == "roadLevel" and rules["ffl"]["rule"] == "oneFflPerPieceAtTheHighestEntry" and rules["steps"]["rule"] == "stepsFromHeight"
+    assert rules["parameter RRE_ZZ_SP_Prototype-FFL"]["rule"] == "fflDownToTheCm" and rules["levelSplit"]["table"]["DP3 TH3 TH3 DP3"] == "none"
+    for word in ("entry", "rampFront", "ffl", "baseHeight", "parameter RRE_ZZ_SP_Prototype-FFL"):
+        assert rules[word]["passMm"] == 0.5 and set(rules[word]["bands"]) == {"1mm", "5mm"}
+    assert rules["ssl"]["rule"] == "fflPlusGroundSsl" and "no key holds SSL" in rules["ssl"]["notMeasured"]
+
+
+def test_r339_the_override_list_holds_the_level_misses_of_the_keys_as_gaps_and_never_a_level():
+    from collections import Counter
+    import override_source
+    data = json.loads(override_source.list_path(SETTINGS).read_text(encoding="utf-8"))
+    parsons = [item for item in data["overrides"] if item["source"] == "parsons"]
+    fields = Counter(item["field"] for item in parsons)
+    assert all(fields[field] > 0 for field in ("entryM", "heightM", "steps", "parameter RRE_ZZ_SP_Prototype-FFL", "rampFrontM"))
+    for item in parsons:
+        if item["field"] in ("entryM", "heightM", "rampFrontM", "parameter RRE_ZZ_SP_Prototype-FFL") and item["value"] is not None:
+            # A gap to the rule in metres, a site level lies over 100 m
+            assert set(item["value"]) == {"gapToRuleM"} and abs(item["value"]["gapToRuleM"]) < 50.0
+        if item["field"] == "steps":
+            assert item["value"] in ("1", "2", "3")

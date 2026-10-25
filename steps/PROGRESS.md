@@ -1,4 +1,4 @@
-STATE 2026-10-25, Round ADDIN Part 1, Phase 3 part 1 in review (rules/addin-parsons-rules, PR 47): the source of every override (R330), the rules of Round 17 measured again on the 7 Parsons keys (R331 to R335), their second method (R336), since the review a parsons2024Rev6 build by keyRules (R337), since the last pass its proof by the build itself and the keyRules writer (R338). Phases 0a to 2b merged (PR 41 to 46). Round 17 done and merged (PR 39, 40)
+STATE 2026-10-25, Round ADDIN Part 1, Phase 3 part 3 in review (rules/addin-parsons-levels): the levels of the Parsons keys to the mm, measured as a build gives them (R339), a build and its proof by them (R340), their second method (R341). Phases 0a to 3a merged (PR 41 to 47). Round 17 done and merged (PR 39, 40)
 
 # Progress
 
@@ -7,18 +7,19 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 ## State
 
 - ADDIN Part 1 (R300 to R399): the whole add-in inside Revit 2024 in C#, .NET Framework 4.8 (option B), parsons2024Rev6 for every new build (Q050), the 7 Rev 6 Parsons site models as answer keys, the approved mock in docs/addin-mock.md. Plan: steps/investigations/round-addin.md. Part 2, the sheets, waits for Bader's check of Part 1
-- ADDIN 3a (R330 to R338): every entry of config/overrides names the job of its key and its model, a run keeps majority.overrideKeep, a build applies parsons only unless it names native (python/override_source.py). python/key_rules.py holds the measures majority.py runs on the site as a build sees it, python/key_rules_check.py checks them a second way with its own fits. keyRules of levelProfiles.parsons2024Rev6 holds the coded rules, written by python/key_rules_block.py (R338), a parsons build takes them (R337) and python/build_proof.py proves a build by the build itself, the levels wait for 3c
+- ADDIN 3c (R339 to R341): python/key_levels.py measures El @ Entry and the ramp front on the road a build gives (majority.py --landxml), the split by units, the base, one FFL per piece to the mm, the steps of the base and risers and the Prototype-FFL parameter at the pass limit majority.levelPassMm 0.5 mm with the shares at 1 and 5 mm, keyRules holds them, a build by them and build_proof.py hold every level, key_rules_check.py --landxml checks them by its own LandXML route
+- ADDIN 3a (R330 to R338): every override names the job of its key and its model, a build applies parsons only unless it names native (python/override_source.py), keyRules of parsons2024Rev6 holds the coded rules, written by python/key_rules_block.py, a parsons build takes them (R337), python/build_proof.py proves a build by the build itself
 - ADDIN 2b (R325 to R328): the plans of the 7 keys, the join by area share, past_all.csv by source and kind, the entrance spots, second method. NBH 021, 022, 012, 013, 02, 03 and 01A, no entrance spot gives El @ Entry on the 5 TU keys
 - ADDIN 2a (R320 to R323): the spot value, FFL as the Generic floor of IME and IMF, the counts of each key read and their second method. IMA and IMB share 733 Generic floors
 - ADDIN 1 and 1b (R310 to R313, R203, R204, R301): window samples, site facts, key copies by manifest, the 13 STR prototypes in Revit 2024. IMA and IMB are SE models with STR links and no level, ramp or yard floor (Q066), the zone2 IMC is the floor scenario master (Q065)
 - ADDIN 0b (R300 to R304): parsons2024Rev6 default with overrides of its own job, villa blocks only from the Building Footprint, area codes by job, the image step from testHost, R303 withdrawn (Q064)
 - 17 (R261 to R282): Native 1.1 to 1.4 hold 2,386 of 2,591 Phase 1 unit plots, the majority rule and the IMC rebuild. DATA-5 and earlier: steps/investigations/ and steps/history/
-- Gate of 3a: in the PR body with its head. Real files are read from copies, nothing real is in git
+- Gate of 3c: in the PR body with its head. Real files are read from copies, nothing real is in git
 
 ## Done
 
-- ADDIN 3a in review: R330 to R338, four changes in 2d56f89 to bf9941d, the review in 251c74d to 2d27705, the last pass in 4c724e2 to 06e41bd. Override list 5,709 to 9,342 (parsons 487 to 4,120, native 5,222 kept cell for cell). Strong on the Parsons keys: rotation 0.991, corner front 0.978, origin 0.971, hands 0.960, 0.981, 1.0, ramp type 0.988, ramp outline 0.969, generic floor 0.991, yard 1.0 per zone, yard outline 0.963, wall base 0.983, wall line 0.921, open front 0.988, the plot, code, steps, façade, HVAC and Name parameters. Weak: ramp front 0.808 and fall 0.764, wall top 0.346, foundation type 0.620, CASE 0.275, Prototype-FFL 0.602 for 3c. Second method: 0 mismatches at seeds 14 and 7, 2 over every plot, the villas of Q072. The build route by the build itself: 0 unexplained on every key, 8 differences on 6 SE plots before the 6 hand overrides. Q040 closed
-- ADDIN 2b, PR 46: R325 to R328, 7 plans, past_all.csv 4,896 rows, the join 2,501 of 2,591 link plots, Q011 closed. ADDIN 2a, PR 45: R320 to R323, 7 reads under the lock
+- ADDIN 3c in review: R339 to R341, four changes in ec208f1 to the record commit. On the 5 TU keys at 0.5 mm, 1 mm and 5 mm: El @ Entry 0.088, 0.146, 0.442 weak, ramp front 0.692 weak, split by units 0.702 of 84 clusters weak, base 0.844 weak, one FFL per piece 0.749, 0.781, 0.826 weak, steps of the base and risers 0.988 strong, Prototype-FFL down to the cm 0.994 strong, SSL in no key. Build proof, unexplained levels at 0.5, 1 and 5 mm: before imc 604, 528, 325, imd 1,389, ime 1,071, imf 1,686, img 813 at 0.5 mm, after 0 on every key and band. Second method: 0 mismatches at seeds 14 and 7, every plot 2, the villas of Q072, no level. Override list 9,342 to 11,528 (parsons 4,120 to 6,306, native 5,222 cell for cell)
+- ADDIN 3a, PR 47: R330 to R338, override list 5,709 to 9,342, the rules of Round 17 on the 7 keys, Q040 closed. ADDIN 2b, PR 46: R325 to R328, past_all.csv 4,896 rows, Q011 closed. ADDIN 2a, PR 45: R320 to R323
 - ADDIN 1b, PR 44: R312, R313 and the R301 manifest, the 13 STR upgrades. ADDIN 1, PR 43: R310, R311, R203, R204, R301, 17 windows and KG3
 - ADDIN 0b, PR 42 and 0a, PR 41: the harness and the open fixes, Q028, Q035, Q044 to Q050, Q060, Q061 closed. 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c to 1: PRs 1 to 25
 
@@ -31,30 +32,29 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 
 ## Bader's turn
 
-Q001. El @ Entry: ask the client for the Infrastructure IFC and the architect for the ramp slope, no entrance spot gives it on the 5 TU keys (2b), 230 IMC overrides until then
+Q001. El @ Entry: ask the client for the Infrastructure IFC and the architect for the ramp slope, no entrance spot gives it (2b) and the road a build gives holds it on 0.088 of 1,785 TU plots at 0.5 mm, 0.442 at 5 mm (3c), 1,628 overrides until then
 Q002. Ramp type: by Rev 9 code (0.988 on 5 keys), the 21 Flat Ramps are the plots with a placeholder ELl@Entry, overrides: accept. Q003. Villa mirror: block mirror flag with the side road (0.960), one plot ahead of the open end: accept
 Q004. Setback: DLUS front. Q005. Front level: road snapped. Q006. Back corners parallel. Q007. Generic floor: whole face (0.991 on 7 keys)
 Q008. Units: ask for a baseplan with 01b. Q009. Typology_Rev9 for codes with no schedule. Q010. Sales Land Width
-Q012. FFL split: ask why. Q013. CASE second letter as built (0.275, 1,814 overrides). Q015. Yard 0.100 under the floor top, none in Zone 4, Zone 1 taken from Zone 2 and 3 until Q066: accept. Q016. Plots 2311, 2312 by baseplan. Q017. IMC 2301, 2302 and IMG 544: VD4 by Rev 9, the keys link DP4 on these 3 of 2,501 plots, a build links VD4 with no override, the VD4 hand of 2302 differs from its key: accept.
-Q018. 58 past ramps listed. Q019. Schedule FFL. Q020. Keep the north stop
-Q021. Parallel windows over 8 GB free. Q022. TEST copies in Zone 02\ARC: delete when done. Q023. Delete the empty 15a folder. Q024. Curb and ROW from the R94 edge. Q025. 13 PDF refusals listed
+Q012. FFL split: M07 and M08 at the middle wall, M11 never, by their units (59 of 84 clusters, IMC, IMD and IME 44 of 48): accept, ask why IMF and IMG split at an end or not (15 of 36). Q013. CASE second letter as built (0.275, 1,814 overrides). Q015. Yard 0.100 under the floor top, none in Zone 4, Zone 1 taken from Zone 2 and 3 until Q066: accept. Q016. Plots 2311, 2312 by baseplan. Q017. IMC 2301, 2302 and IMG 544: VD4 by Rev 9, the keys link DP4 on these 3 of 2,501 plots, a build links VD4 with no override, the VD4 hand of 2302 differs from its key: accept.
+Q018. 58 past ramps listed. Q019. Schedule FFL. Q020. Keep the north stop. Q021. Parallel windows over 8 GB free. Q022. TEST copies in Zone 02\ARC: delete when done. Q023. Delete the empty 15a folder. Q024. Curb and ROW from the R94 edge. Q025. 13 PDF refusals listed
 Q026. Two curbs of one drawing: keep the Roads curb, ask which is current. Q027. Two DP4 labels: ask for a split. Q029. Location plan number per face. Q030. Ask for the 01b sales rows
 Q031. Rev 9 faces, 97 differ: keep the baseplan, ask which is current. Q032. 1.4 FFL parameter as the design level. Q033. Lone DT3 on a VL3 face: hand rule of Q042. Q036. TBD for DLUS, accommodation for sales
 Q037. Corner fronts by the Orientation side (0.978 on 7 keys): confirm. Q038. Native ramp fronts 0.698 to 0.700 m over the subgrade: confirm, the IMC schedule stays the level key. Q039. Footprint test: done as the edge only third check
 Q041. Rows 2290 to 2299, the 4 middle DT1 as overrides: accept. Q042. Lone duplex hand: row pairs from the right end (382 of 382): accept
 Q051. Rev 01 values: send the Rev 01 sections on steps, base heights and ramps. Q052. Weak rules with their overrides: accept until Q001 and Q051
-Q053. 9,342 overrides, native 5,222 kept unless a run names --replace native, a build applies parsons only unless it names native (R330), mark a hand edit "byHand": true: keep. Q054. R260 of DATA-5 and R261 to R282: keep both. Q055. 1.4 ELl@Entry typed off its ramp on 5 plots: read El @ Entry off the ramp
+Q053. 11,528 overrides, native 5,222 kept unless a run names --replace native, a build applies parsons only unless it names native (R330), mark a hand edit "byHand": true: keep. Q054. R260 of DATA-5 and R261 to R282: keep both. Q055. 1.4 ELl@Entry typed off its ramp on 5 plots: read El @ Entry off the ramp
 Q056. Native models: hands, fronts and ramps only, never unit codes. Q057. Ramp front fall with no direction (0.764), not applied: accept. Q058. Old 20221206 prototypes: send the folder to check their hands
 Q059. NBH 03 build on native2022 with only the 1.2 entry and front overrides: accept. Q062. Rev 9 attribute values of the probe: keep them
 Q063. Whole NBH 03 image past 30 minutes: accept the quarter images and make large images in quarters, the cause stays a known bug. Q064. Watcher through the job, withdrawn: keep it stopping at the first log step
 Q065. zone2 IMC file, the floor scenario master: replace it by a copy of the Zone 02\ARC original. Q066. No Parsons TU model of Zone 1: send the IMA and IMB TU models, else accept the Native stand-in. Until then the Zone 1 yard is the Zone 2 and 3 value, and by the ARC files a build links 6 SE hands differ, overrides since the last pass
 Q068. Project position of button 1: set the Parsons position from config, not R211. Q069. A remade key copy: file it by the hashes the test host logs, by hand until then
-Q070. El @ Entry with no schedule: take the ELl@Entry parameter of the key, it is off the IMC schedule by over 30 mm on 100 of 314 plots and 0 on 10 more, off the IMD schedule by over 30 mm on 115 of 398, and ask Parsons for the IME to IMG schedules
+Q070. El @ Entry with no schedule: take the ELl@Entry parameter of the key, it is off the IMC schedule by over 30 mm on 100 of 314 plots, off the IMD schedule on 115 of 398, and IME to IMG set 113 FFLs whole cm off it (3c, heightM overrides), ask Parsons for the IME to IMG schedules
 Q071. Walls: accept the base at the yard level, the centre on the edge and the open front, ask the architect for the wall top rule (0.346), wall overrides once button 7 places walls
-Q072. Side road of a villa with three road edges (IMC 2301, IME 2710, IMG 441): the side edge, not the back: accept
+Q072. Side road of a villa with three road edges (IMC 2301, IME 2710, IMG 441): the side edge, not the back: accept. Q073. 33 plots with a front corner on no road surface have no El @ Entry and are not written (IMA 1, IMB 2, IMD 3, IME 3, IMF 14, IMG 10): take the road of the covered corner for both, else send the surface. Q074. Steps of the base and risers, half a riser no step (0.988 on 5 keys), against the count rule the IMC and IMD schedules follow (0.934 on 5): accept, 16 overrides
 
 ## Next three steps
 
-1. ADDIN Phase 3c: the levels to the mm under parsons2024Rev6, El @ Entry, base height, FFL per cluster, the M07 and M08 split, steps, SSL and Prototype-FFL, the share at 1 mm and 5 mm
-2. ADDIN Phase 3b: docs/addin-design.md before any add-in code, keyRules of 3a and 3c as its rule source
-3. ADDIN Phase 4: the logic in C# with a parity test per step
+1. ADDIN Phase 3b: docs/addin-design.md before any add-in code, keyRules of 3a and 3c as its rule source
+2. ADDIN Phase 4: the logic in C# with a parity test per step
+3. ADDIN Phase 5: the Revit add-in, the ribbon, the pane and the 8 buttons
