@@ -305,3 +305,81 @@ def test_r340_an_override_the_build_could_not_place_explains_a_level_and_a_plot_
     rows = [proof_row("2", 10.0, 10.1, 1), proof_row("3", 10.0, 10.1, 1), proof_row("4", 10.0, 10.1, 1)]
     found = {(item["plot"], item["field"]): item["state"] for item in build_proof.compare("imx", plan, rows, {"plots": []}, level_context(overrides), {})}
     assert found[("2", "ffl")] == "override" and found[("3", "written")] == "input" and found[("4", "written")] == "input"
+
+
+# R341 the second method of the levels
+LANDXML = """<?xml version="1.0"?>
+<LandXML xmlns="http://www.landxml.org/schema/LandXML-1.2" version="1.2"><Surfaces><Surface name="Made Up"><Definition surfType="TIN"><Pnts>
+<P id="1">0.0 0.0 0.0</P>
+<P id="2">0.0 10.0 10.0</P>
+<P id="3">10.0 10.0 10.0</P>
+<P id="4">10.0 0.0 0.0</P>
+<P id="5">0.0 20.0 20.0</P>
+<P id="6">10.0 20.0 20.0</P>
+</Pnts><Faces>
+<F>1 2 3</F>
+<F>1 3 4</F>
+<F i="1">2 5 6</F>
+</Faces></Definition></Surface></Surfaces></LandXML>
+"""
+
+
+def test_r341_the_own_tin_reads_the_landxml_by_its_text_gives_the_level_inside_and_on_the_edge_within_the_snap_and_skips_a_hidden_face(tmp_path):
+    import key_rules_check
+    path = tmp_path / "made_up.xml"
+    path.write_text(LANDXML, encoding="utf-8")
+    tin = key_rules_check.OwnTin(path)
+    # The text holds northing then easting, the level rises 1 m per m to the east
+    assert tin.level(2.0, 3.0, 0.005) == pytest.approx(2.0) and tin.level(10.003, 5.0, 0.005) == pytest.approx(10.0)
+    assert tin.level(10.01, 5.0, 0.005) is None and tin.level(15.0, 5.0, 0.005) is None and len(tin.triangles) == 2
+    # A box leaves out the triangles it does not meet
+    assert len(key_rules_check.OwnTin(path, (100.0, 100.0, 200.0, 200.0)).triangles) == 0
+    assert key_rules_check.own_road([("a", key_rules_check.OwnTin(path, (100.0, 100.0, 200.0, 200.0))), ("b", tin)], (4.0, 1.0), 0.005) == pytest.approx(4.0)
+
+
+def own_rows():
+    """The made up plots of level_run as past_all.csv rows, typed as the csv gives them."""
+    found = []
+    for item in level_run_items():
+        row = item["row"]
+        found.append({"key": "imc", "plot": item["plot"], "source": "parsons", "kind": "TU", "typologyRev9": item["code"], "entry": str(row["entry"]), "entrySource": "schedule",
+                      "rampBack": "", "ffl": str(row["ffl"]), "steps": row["steps"], "rampFront": "", "parameters": "{}"})
+    return found
+
+
+def level_run_items():
+    roles = {plot: {"plots": ROW} for plot in ROW}
+    return [level_item("1", 10.0274, 10.127, "1", roles["1"], "10.120"), level_item("2", 10.0273, 10.127, "1", roles["2"], "10.120"),
+            level_item("3", 10.1300, 10.230, "1", roles["3"], "10.230"), level_item("4", 9.9000, 10.230, "2", roles["4"], "10.230"),
+            level_item("5", 10.1104, 10.210, "1", None, "10.210"), level_item("6", 10.0276, 10.228, "1", None, "10.220"),
+            level_item("7", 9.9876, 10.228, "1", None, "10.220")]
+
+
+def test_r341_the_own_levels_hold_el_at_entry_the_split_the_ffl_the_steps_and_the_prototype_ffl_on_what_a_build_holds_as_the_first_method():
+    import key_rules_check
+    results, misses, _, extras = level_run()
+    report = {"decisions": results, "levelMisses": extras["levelMisses"]}
+    fronts = {"1": 10.0, "2": 10.0, "3": 10.1, "4": 9.8724, "5": 10.0, "6": 10.0, "7": 9.96}
+    road = {plot: {"entry": round(level + (2.0 if UNITS[plot] == "VL4" else 0.5) / 100.0 * 5.52, 4), "front": level} for plot, level in fronts.items()}
+    shapes = {"order": {plot: ROW for plot in ROW}, "partners": {"6": "7", "7": "6"}}
+    reads = {("imc", item["plot"]): item["readParameters"] for item in level_run_items()}
+    found = key_rules_check.level_verdicts(own_rows(), road, shapes, UNITS, report, PROFILE.values, LP, block_of(), reads)
+    # The own verdicts are those of the first method: El @ Entry of 3 misses, the FFL of 1 and 2 as a build holds them, the rest holds
+    first = {(miss["plot"], miss["decision"].split(" ", 1)[1]) for miss in misses}
+    for (key, plot), verdicts in found.items():
+        for decision, holds in verdicts.items():
+            assert holds == ((plot, decision) not in first), (plot, decision)
+    assert found[("imc", "3")]["entry"] is False and found[("imc", "1")]["ffl"] is False and found[("imc", "4")]["ffl"] is True
+    assert found[("imc", "1")]["levelSplit"] is True and "levelSplit" not in found[("imc", "2")]
+    assert found[("imc", "7")]["steps"] is True and found[("imc", "6")]["parameter RRE_ZZ_SP_Prototype-FFL"] is True
+    # A plot with no road level has no El @ Entry, the miss the first method lists as a cannot
+    road["5"] = {"entry": None, "front": None}
+    assert key_rules_check.level_verdicts(own_rows(), road, shapes, UNITS, report, PROFILE.values, LP, block_of(), reads)[("imc", "5")]["entry"] is False
+
+
+def test_r341_the_steps_of_the_own_route_count_half_a_riser_as_no_step_and_its_own_ffl_rounds_to_the_mm_first():
+    import key_rules_check
+    assert key_rules_check.own_steps("stepsFromHeight", 0.185, 0.1, 0.17, []) == 1 and key_rules_check.own_steps("stepsFromHeight", 0.1851, 0.1, 0.17, []) == 2
+    assert key_rules_check.own_steps("stepBands", 0.2404, 0.2, 0.17, [[0.205, 1], [0.38, 2], [99.0, 3]]) == 2
+    assert key_rules_check.own_ffl([(10.0274, 0.1), (10.0273, 0.1), (None, 0.2)]) == 10.127 and key_rules_check.own_ffl([(None, 0.1)]) is None
+    assert key_rules_check.own_down_to_the_cm(173.329) == 173.32
