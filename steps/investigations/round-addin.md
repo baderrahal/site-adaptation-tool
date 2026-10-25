@@ -794,7 +794,7 @@ A third breaker pass read the PR at ebd69d2 and found 8 items. Each is fixed in 
 
 ## Phase 3 part 1, PR 3a rules/addin-parsons-rules
 
-Branch rules/addin-parsons-rules from main at 4894b4a, equal to origin/main after git fetch (RAN). Rules R330 to R336 are new, R271, R272 and R280 changed. Four changes: R330 (2d56f89), R331 and R332 (6df83e0), R333 and R334 (a7b8172), R335 (1649624), with R336, the second method, grown in each. The phase ran in a helper agent started by the main session, which runs the checkers and merges. No Revit or Civil 3D window was opened, the reads, plans, join and past_all.csv of Phase 2 are the input, so the lock was not taken and the registry was not read or written. Values of coordinates and levels stay in Documents\SiteAdaptation\round_addin\rules3a, this file holds counts, shares, gaps and plot numbers only.
+Branch rules/addin-parsons-rules from main at 4894b4a, equal to origin/main after git fetch (RAN). Rules R330 to R336 are new, R271, R272 and R280 changed. Four changes: R330 (2d56f89), R331 and R332 (6df83e0), R333 and R334 (a7b8172), R335 (1649624 and bf9941d, which takes only the level parameters from the key reads, since a read found by its plot number holds it by construction), with R336, the second method, grown in each. The phase ran in a helper agent started by the main session, which runs the checkers and merges. No Revit or Civil 3D window was opened, the reads, plans, join and past_all.csv of Phase 2 are the input, so the lock was not taken and the registry was not read or written. Values of coordinates and levels stay in Documents\SiteAdaptation\round_addin\rules3a, this file holds counts, shares, gaps and plot numbers only.
 
 ### Originals and inputs (R201, R202)
 
