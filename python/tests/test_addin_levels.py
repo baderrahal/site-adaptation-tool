@@ -91,13 +91,14 @@ def test_r339_the_split_is_learned_per_cluster_by_its_units_and_the_ffl_is_judge
     split = names["parsons levelSplit"]
     assert split["coded"] == "units" and split["plots"] == 1 and split["tests"]["units"]["rule"] == {"parsons | DP1 TH1 TH1 DP1": "middle"}
     ffl = names["parsons ffl"]
-    # On the El @ Entry of the key every plot holds, the build holds plots 1 and 2 at the road it gives, 0.2 and 0.3 mm off the key, and
-    # its FFL rounds to the next mm, so those two are its misses and their gaps move the FFL of the build onto the key
+    # On the El @ Entry of the key every plot holds. A build takes the FFL on the El @ Entry of the rule, 0.2 and 0.3 mm off the key on
+    # plots 1 and 2, whose FFL rounds to the next mm, and 2.4 mm under the key on plot 3, which sets the FFL of 3 and 4, so those four
+    # are its misses and the gap of each moves its own FFL onto the key (Round ADDIN 3c review)
     assert ffl["coded"] == "oneFflPerPieceAtTheHighestEntry" and ffl["share"] == 1.0
     assert ffl["tests"]["oneFflPerClusterAtTheHighestEntry"]["holds"] == 4
-    assert ffl["byBuild"] == {"holds": 5, "breaks": 2, "cannot": 0, "share": round(5 / 7, 4)}
+    assert ffl["byBuild"] == {"holds": 3, "breaks": 4, "cannot": 0, "share": round(3 / 7, 4)}
     found = sorted((miss["plot"], miss["value"], miss["rule"]) for miss in misses if miss["field"] == "heightM")
-    assert found == [("1", 10.127, 10.128), ("2", 10.127, 10.128)]
+    assert found == [("1", 10.127, 10.128), ("2", 10.127, 10.128), ("3", 10.23, 10.228), ("4", 10.23, 10.228)]
     assert majority.overrides([miss for miss in misses if miss["field"] == "heightM"], block_of(), {"imc": "IMC.rvt"})[0]["value"] == {"gapToRuleM": -0.001}
     assert extras["levelMisses"]["parsons levelSplit"] == []
 
@@ -227,9 +228,11 @@ def test_r340_the_level_overrides_move_el_at_entry_and_the_ffl_onto_the_key_and_
     overrides = [entry("4", "entryM", {"gapToRuleM": 0.0013}, "parsons", "IMC.rvt", "imc"), entry("3", "heightM", {"gapToRuleM": -0.001}, "parsons", "IMC.rvt", "imc"),
                  entry("2", "steps", "2", "parsons", "IMC.rvt", "imc"), entry("2", "parameter RRE_ZZ_SP_Prototype-FFL", {"gapToRuleM": 0.01}, "parsons", "IMC.rvt", "imc")]
     found, plan = level_build(tmp_path, monkeypatch, overrides=overrides)
-    # El @ Entry moved by its gap at 4 decimals, the FFL of the pair follows it and the FFL of 3 is moved onto its key on top
-    assert level_of(found["4"], "entry") == 10.0639 and level_of(found["4"], "ffl") == 10.264 and level_of(found["3"], "ffl") == 10.263
-    assert level_of(found["3"], "height") == pytest.approx(10.263 - 10.0526) and level_of(found["3"], "ssl") == pytest.approx(10.188)
+    # El @ Entry moved by its gap at 4 decimals, the FFL of the pair stays on the El @ Entry of the rule and the FFL of 3 alone is moved
+    # by its own gap, an override moves the levels of its own plot only (Round ADDIN 3c review)
+    assert level_of(found["4"], "entry") == 10.0639 and level_of(found["4"], "ffl") == 10.263 and level_of(found["3"], "ffl") == 10.262
+    assert level_of(found["4"], "height") == pytest.approx(10.263 - 10.0639)
+    assert level_of(found["3"], "height") == pytest.approx(10.262 - 10.0526) and level_of(found["3"], "ssl") == pytest.approx(10.187)
     assert level_of(found["2"], "steps") == 2 and found["2"]["parameters"]["RRE_ZZ_SP_Number-of-Steps"]["value"] == "2"
     assert found["2"]["parameters"]["RRE_ZZ_SP_Prototype-FFL"]["value"] == "10.250" and found["2"]["parameters"]["RRE_ZZ_SP_Prototype-FFL"]["source"] == "override"
     assert plan["summary"]["rules"]["applied"] == {"entryM": 1, "heightM": 1, "parameter RRE_ZZ_SP_Prototype-FFL": 1, "steps": 1}
@@ -364,12 +367,13 @@ def test_r341_the_own_levels_hold_el_at_entry_the_split_the_ffl_the_steps_and_th
     shapes = {"order": {plot: ROW for plot in ROW}, "partners": {"6": "7", "7": "6"}}
     reads = {("imc", item["plot"]): item["readParameters"] for item in level_run_items()}
     found = key_rules_check.level_verdicts(own_rows(), road, shapes, UNITS, report, PROFILE.values, LP, block_of(), reads)
-    # The own verdicts are those of the first method: El @ Entry of 3 misses, the FFL of 1 and 2 as a build holds them, the rest holds
+    # The own verdicts are those of the first method: El @ Entry of 3 misses, the FFL of 1 to 4 on the El @ Entry of the rule, the rest holds
     first = {(miss["plot"], miss["decision"].split(" ", 1)[1]) for miss in misses}
     for (key, plot), verdicts in found.items():
         for decision, holds in verdicts.items():
             assert holds == ((plot, decision) not in first), (plot, decision)
-    assert found[("imc", "3")]["entry"] is False and found[("imc", "1")]["ffl"] is False and found[("imc", "4")]["ffl"] is True
+    assert found[("imc", "3")]["entry"] is False and found[("imc", "1")]["ffl"] is False and found[("imc", "4")]["ffl"] is False
+    assert found[("imc", "6")]["ffl"] is True
     assert found[("imc", "1")]["levelSplit"] is True and "levelSplit" not in found[("imc", "2")]
     assert found[("imc", "7")]["steps"] is True and found[("imc", "6")]["parameter RRE_ZZ_SP_Prototype-FFL"] is True
     # A plot with no road level has no El @ Entry, the miss the first method lists as a cannot

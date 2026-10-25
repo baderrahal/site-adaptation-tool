@@ -1195,8 +1195,12 @@ def level_verdicts(rows, road, shapes, units, report, profile, lp, block, reads)
         other = partners.get(plot)
         return sorted([plot, other], key=lambda number: (len(number), number)) if other and partners.get(other) == plot else [plot]
 
+    def rule_ffl(plot):
+        """The FFL of the piece on the El @ Entry of the rule of each plot, which an entryM override never moves."""
+        return own_ffl([((road.get(other) or {}).get("entry"), base(units.get(other))) for other in piece(plot, ffl_rule)])
+
     def built_ffl(key, plot, row):
-        guess = own_ffl([(built_entry(key, other), base(units.get(other))) for other in piece(plot, ffl_rule)])
+        guess = rule_ffl(plot)
         aim = number(row.get("ffl"))
         return None if guess is None else guess if aim is None or within(guess, aim) else aim
     found = defaultdict(dict)
@@ -1208,8 +1212,7 @@ def level_verdicts(rows, road, shapes, units, report, profile, lp, block, reads)
             verdict["rampFront"] = within((road.get(plot) or {}).get("front"), number(row["rampFront"]))
         aim = number(row.get("ffl"))
         if "ffl" in decisions and aim is not None and not out(row, "ffl"):
-            guess = own_ffl([(built_entry(key, other), base(units.get(other))) for other in piece(plot, ffl_rule)])
-            verdict["ffl"] = within(guess, aim)
+            verdict["ffl"] = within(rule_ffl(plot), aim)
         level, entry = built_ffl(key, plot, row), built_entry(key, plot)
         if "steps" in decisions and row.get("steps") not in (None, "") and not out(row, "steps"):
             coded = decisions["steps"]["coded"]

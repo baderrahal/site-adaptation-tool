@@ -256,7 +256,8 @@ def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers
     level_rows = plan_rules.key_level_rows(entries, plan_rules.key_pieces(key, list(entries), roles, partners, units), profile, lp, key)
     ground = profile.metres("levels.ground_ssl")
     for number, row in level_rows.items():
-        mine = overrides.get(number, {})
+        # R340. An override moves the levels of its own plot only, so those of a plot outside the build move nothing written
+        mine = overrides.get(number, {}) if number in set(numbers) else {}
         gap = plan_rules.gap_of(mine.get("heightM"))
         if gap is not None:
             row["ffl"] = round(row["ffl"] + gap, plan_rules.FFL_DECIMALS)
@@ -354,22 +355,25 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     entries, slopes = {}, {}
     overrides = {} if rules is None else rules["overrides"]
     outcomes = Outcomes(overrides, numbers, [] if rules is None else rules.get("laterFields") or [], "the estimate of R209" if rules is None else rules["name"])
+    in_build = set(numbers)
     for number, item in front.items():
         if item["front"] is not None:
+            rule = None
             if rules is None:
                 value, slope = entry_estimate(item["front"], item["unit"], profile, steep, item["depth"])
             else:
                 value, slope = plan_rules.entry_of(item["front"], item["unit"], rules["levelProfile"], item["depth"])
                 if by_levels:
                     # R340. At the 4 decimals of R2, as R339 measured it, so a gap moves it onto the key exactly
-                    value = round(value, plan_rules.ENTRY_DECIMALS)
+                    value = rule = round(value, plan_rules.ENTRY_DECIMALS)
                 gap = plan_rules.gap_of(overrides.get(number, {}).get("entryM"))
-                if gap is not None:
+                # R340. With the level rules a gap moves the El @ Entry of its own plot only, so one of a plot outside the build moves nothing
+                if gap is not None and not (by_levels and number not in in_build):
                     value = round(value + gap, plan_rules.ENTRY_DECIMALS) if by_levels else value + gap
                     outcomes.applied(number, "entryM")
-                elif "entryM" in overrides.get(number, {}):
+                elif gap is None and "entryM" in overrides.get(number, {}):
                     outcomes.left(number, "entryM", NO_GAP)
-            entries[number] = {"unit": item["unit"], "entry": value}
+            entries[number] = {"unit": item["unit"], "entry": value, **({"rule": rule} if by_levels else {})}
             slopes[number] = slope
         elif "entryM" in overrides.get(number, {}):
             outcomes.left(number, "entryM", "no road level at a front corner, so no El @ Entry to move")

@@ -9,9 +9,9 @@ What follows is chained on the levels a build holds: a plot whose El @ Entry hol
 value of the key its gap gives, a plot with no road level has none. The split of a cluster of three or more units is learned per
 cluster by its units in row order (Q012), the base of the unit that sets the FFL of its piece per typology or by steps.base_height,
 and the FFL of each piece, its highest El @ Entry plus the base of that unit to the mm (R67), is chosen on the El @ Entry of the key
-and judged on the El @ Entry a build holds (byBuild), so its misses, the overrides, are the plots a build does not reproduce. The
-steps and the Prototype-FFL parameter are chosen on the levels of the key and judged on the FFL and the height a build holds. SSL is
-in no key, majority.levelNotMeasured says so.
+and judged on the El @ Entry of the rule (byBuild), which a build takes for the FFL whatever entryM a plot holds, so its misses, the
+overrides, are the plots a build does not reproduce, each with a gap of its own. The steps and the Prototype-FFL parameter are chosen
+on the levels of the key and judged on the FFL and the height a build holds. SSL is in no key, majority.levelNotMeasured says so.
 """
 import statistics
 from collections import defaultdict
@@ -160,12 +160,13 @@ def measure(record, group, pool, kept, lv, profile, block, book, surfaces, extra
     base_rule = {"rule": "typology", "table": table_of(base, "typology")} if base is not None and base["coded"] == "typology" else None
     extras["levelMisses"][group + " baseHeight"] = missed(misses, group + " baseHeight")
 
-    # The FFL of each piece, chosen on the El @ Entry of the key and judged on the El @ Entry a build holds
+    # The FFL of each piece, chosen on the El @ Entry of the key and judged on the El @ Entry of the rule, which a build takes for the FFL
+    # of every plot of the piece whatever entryM it holds, so a plot whose FFL another plot's El @ Entry sets gets its own heightM (R340)
     def ffl_by(piece_map, entry_of):
         return lambda item: plan_rules.piece_ffl([(entry_of(item["key"], other), units.get(other)) for other in piece_map.get(item["plot"], [item["plot"]])], profile, base_rule)
     shapes = {"oneFflPerClusterAtTheHighestEntry": whole, "oneFflPerPieceAtTheHighestEntry": pieces, "ownEntryPlusBase": {}}
     ffls = [item for item in kept("ffl") if item["row"]["ffl"] is not None]
-    built_view = {name: ffl_by(shape, built_entry) for name, shape in shapes.items()}
+    built_view = {name: ffl_by(shape, lambda key, plot: rule_entry.get(plot)) for name, shape in shapes.items()}
     ffl = record(group + " ffl", ffls, lambda item: item["row"]["ffl"], {name: ffl_by(shape, key_view) for name, shape in shapes.items()}, by_group, "heightM", hold,
                  bands=bands, build_view=built_view)
     coded = built_view[ffl["coded"]] if ffl is not None else (lambda item: None)

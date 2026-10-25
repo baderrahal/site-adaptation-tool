@@ -478,15 +478,22 @@ def prototype_ffl(rule, ffl):
     raise project_profile.ProfileError("keyRules parameter RRE_ZZ_SP_Prototype-FFL codes %s, a build gives fflDownToTheCm or ffl (R339)" % rule)
 
 
+def rule_entry(item):
+    """R340. El @ Entry the rule gives a plot, before the entryM gap of its own override, the entry itself for a plot with none."""
+    return None if item is None else item.get("rule", item.get("entry"))
+
+
 def key_level_rows(entries, pieces, profile, lp, key):
     """R339, R340. FFL, SSL, height and steps per plot by keyRules: one FFL per piece at its highest El @ Entry plus the base of that unit
-    to the mm, the height that FFL less El @ Entry, SSL the FFL plus levels.ground_ssl and the steps of keyRules.steps."""
+    to the mm, the height that FFL less El @ Entry, SSL the FFL plus levels.ground_ssl and the steps of keyRules.steps. The FFL is taken
+    on the El @ Entry the rule gives each plot of the piece (rule_entry), never moved by an entryM override, so an override moves the
+    levels of its own plot only and deleting one line of the list leaves every other plot as it was (Round ADDIN 3c review)."""
     ground = profile.metres("levels.ground_ssl")
     base_rule = key.get("baseHeight")
     rows = {}
     for plot, item in entries.items():
         piece = pieces.get(plot) or [plot]
-        ffl = piece_ffl([((entries.get(other) or {}).get("entry"), (entries.get(other) or {}).get("unit")) for other in piece], profile, base_rule)
+        ffl = piece_ffl([(rule_entry(entries.get(other)), (entries.get(other) or {}).get("unit")) for other in piece], profile, base_rule)
         if ffl is None:
             continue
         height = round(ffl - item["entry"], ENTRY_DECIMALS)
