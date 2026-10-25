@@ -531,10 +531,20 @@ else {
     'The watcher wrote no report.'
 }
 
-$peaks = Get-WindowPeaks -Samples $samples -FloorGB ([double]$config.siteBuild.minFreeGB)
+# R310. The peaks Windows kept to the exit of Revit, which the samples miss after their last look
+$exitPeaks = $null
+if ($process -and $process.HasExited) {
+    try {
+        $exitPeaks = Get-ExitPeaks -Process $process
+    }
+    catch {
+        $sampleFailures.Add((Get-Date).ToUniversalTime().ToString('o') + ' exit peaks: ' + $_.Exception.Message)
+    }
+}
+$peaks = Get-WindowPeaks -Samples $samples -FloorGB ([double]$config.siteBuild.minFreeGB) -Exit $exitPeaks
 $peaks.sampleFailures = @($sampleFailures)
 "Run time {0:0.0} minutes, exit code {1}, Revit process {2}" -f ($end - $start).TotalMinutes, $(if ($exited) { $process.ExitCode } else { 'stopped' }), $process.Id
-"Memory of {0} samples every {1} s: peak private {2} MB and peak working set {3} MB with the peaks Windows keeps, sampled {4} and {5} MB, least free {6} GB, under the floor of {7} GB in {8}, not responding in {9}, samples failed {10}" -f $peaks.samples, $sampleSeconds, $peaks.peakPrivateMb, $peaks.peakWorkingSetMb, $peaks.sampledPrivateMb, $peaks.sampledWorkingSetMb, $peaks.minFreeGb, $peaks.floorGb, $peaks.samplesUnderFloor, $peaks.notResponding, $sampleFailures.Count
+"Memory of {0} samples every {1} s: peak private {2} MB and peak working set {3} MB with the peaks Windows keeps{4}, sampled {5} and {6} MB, least free {7} GB, under the floor of {8} GB in {9}, not responding in {10}, samples failed {11}" -f $peaks.samples, $sampleSeconds, $peaks.peakPrivateMb, $peaks.peakWorkingSetMb, $(if ($peaks.throughExit) { ' to the exit' } else { ' to the last sample' }), $peaks.sampledPrivateMb, $peaks.sampledWorkingSetMb, $peaks.minFreeGb, $peaks.floorGb, $peaks.samplesUnderFloor, $peaks.notResponding, $sampleFailures.Count
 # R110. One line per job for the parallel report
 $logResult = if (Test-Path $logPath) { (Get-Content -Raw $logPath | ConvertFrom-Json).result } else { $null }
 [ordered]@{

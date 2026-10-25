@@ -69,6 +69,42 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R310_the_peaks_windows_kept_to_the_exit_count_when_they_pass_every_sample()
+        {
+            string json = Pwsh(
+                "$samples = @([ordered]@{ privateBytes = [long]800MB; peakPrivateBytes = [long]850MB; workingSetBytes = [long]900MB; peakWorkingSetBytes = [long]950MB; responding = $true; freeBytes = [long]5GB })\n"
+                + "$exit = [ordered]@{ peakPrivateBytes = [long]3000MB; peakWorkingSetBytes = [long]2900MB }\n"
+                + "Get-WindowPeaks -Samples $samples -FloorGB 2 -Exit $exit | ConvertTo-Json -Compress");
+            JObject peaks = JObject.Parse(json);
+
+            Assert.Equal(3000, (long)peaks["peakPrivateMb"]);
+            Assert.Equal(2900, (long)peaks["peakWorkingSetMb"]);
+            Assert.Equal(800, (long)peaks["sampledPrivateMb"]);
+            Assert.True((bool)peaks["throughExit"]);
+            Assert.Equal(1, (int)peaks["samples"]);
+
+            JObject without = JObject.Parse(Pwsh(
+                "Get-WindowPeaks -Samples @([ordered]@{ privateBytes = [long]800MB; peakPrivateBytes = [long]850MB; workingSetBytes = [long]900MB; peakWorkingSetBytes = [long]950MB; responding = $true; freeBytes = [long]5GB }) -FloorGB 2 | ConvertTo-Json -Compress"));
+            Assert.False((bool)without["throughExit"]);
+            Assert.Equal(850, (long)without["peakPrivateMb"]);
+        }
+
+        [Fact]
+        public void R310_the_exit_peaks_of_a_real_process_are_read_after_it_ended_and_hold_what_it_took()
+        {
+            JObject exit = JObject.Parse(Pwsh(
+                "$info = [Diagnostics.ProcessStartInfo]::new((Get-Process -Id $PID).Path, @('-NoProfile', '-Command', '$b = [byte[]]::new(300MB); [Array]::Fill($b, [byte]1)'))\n"
+                + "$info.UseShellExecute = $false\n"
+                + "$child = [Diagnostics.Process]::Start($info)\n"
+                + "$child.WaitForExit()\n"
+                + "[ordered]@{ exited = $child.HasExited; peaks = (Get-ExitPeaks -Process $child) } | ConvertTo-Json -Compress"));
+
+            Assert.True((bool)exit["exited"]);
+            Assert.True((long)exit["peaks"]["peakPrivateBytes"] >= 300L * 1024 * 1024);
+            Assert.True((long)exit["peaks"]["peakWorkingSetBytes"] >= 300L * 1024 * 1024);
+        }
+
+        [Fact]
         public void R310_no_sample_gives_no_peak_and_a_sample_of_a_real_process_holds_every_field()
         {
             foreach (string samples in new[] { "@()", "$null", "@($null)" })
@@ -104,6 +140,8 @@ namespace SiteAdaptation.Tests
             Assert.Contains("$peaks = Get-WindowPeaks -Samples $samples -FloorGB ([double]$config.siteBuild.minFreeGB)", script);
             Assert.Contains("$sampleFailures.Add(", script);
             Assert.Contains("$peaks.sampleFailures = @($sampleFailures)", script);
+            Assert.Contains("$exitPeaks = Get-ExitPeaks -Process $process", script);
+            Assert.Contains("-Exit $exitPeaks", script);
             Assert.Contains("peakMb     = $peaks.peakWorkingSetMb", script);
             Assert.Contains("memory     = $peaks", script);
             // The old peak froze under 2 GiB: Max(Int32, Int32) threw past it and an empty catch hid the throw

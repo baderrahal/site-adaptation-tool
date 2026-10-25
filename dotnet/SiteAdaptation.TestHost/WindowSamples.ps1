@@ -21,11 +21,50 @@ function Get-WindowSample {
     }
 }
 
-# The peaks of one window in MB: the true peak of private memory and of working set, the larger of the samples and the peak Windows
-# keeps between them, and the largest sampled values apart. Then the least free memory in GB, how many samples had less free memory
-# than the floor of R200 and how many found Revit not responding. With no sample every peak is null
+# The peaks Windows keeps for a process over its whole life, read through its handle with K32GetProcessMemoryInfo, which still
+# answers after the process has ended while the handle is open. The samples miss what comes after the last look, such as the
+# close of Revit. Throws when Windows gives no counters
+function Get-ExitPeaks {
+    param([Parameter(Mandatory)][Diagnostics.Process]$Process)
+    if (-not ('SiteAdaptation.WindowMemory' -as [type])) {
+        Add-Type -Namespace SiteAdaptation -Name WindowMemory -MemberDefinition @'
+[StructLayout(LayoutKind.Sequential)]
+public struct Counters
+{
+    public uint cb;
+    public uint PageFaultCount;
+    public UIntPtr PeakWorkingSetSize;
+    public UIntPtr WorkingSetSize;
+    public UIntPtr QuotaPeakPagedPoolUsage;
+    public UIntPtr QuotaPagedPoolUsage;
+    public UIntPtr QuotaPeakNonPagedPoolUsage;
+    public UIntPtr QuotaNonPagedPoolUsage;
+    public UIntPtr PagefileUsage;
+    public UIntPtr PeakPagefileUsage;
+}
+
+[DllImport("kernel32.dll", SetLastError = true)]
+public static extern bool K32GetProcessMemoryInfo(IntPtr process, out Counters counters, uint size);
+'@
+    }
+    $counters = New-Object SiteAdaptation.WindowMemory+Counters
+    $size = [Runtime.InteropServices.Marshal]::SizeOf($counters)
+    if (-not [SiteAdaptation.WindowMemory]::K32GetProcessMemoryInfo($Process.Handle, [ref]$counters, $size)) {
+        throw "K32GetProcessMemoryInfo gave no counters, Win32 error $([Runtime.InteropServices.Marshal]::GetLastWin32Error())"
+    }
+    [ordered]@{
+        utc                 = (Get-Date).ToUniversalTime().ToString('o')
+        peakPrivateBytes    = [long]$counters.PeakPagefileUsage.ToUInt64()
+        peakWorkingSetBytes = [long]$counters.PeakWorkingSetSize.ToUInt64()
+    }
+}
+
+# The peaks of one window in MB: the true peak of private memory and of working set, the largest of the samples, the peaks Windows
+# keeps between them and, when Exit is given, the peaks to the exit of the process, with the largest sampled values apart. Then the
+# least free memory in GB, how many samples had less free memory than the floor of R200 and how many found Revit not responding.
+# With no sample every peak is null
 function Get-WindowPeaks {
-    param([object[]]$Samples, [double]$FloorGB)
+    param([object[]]$Samples, [double]$FloorGB, [object]$Exit)
     [long]$private = -1
     [long]$working = -1
     [long]$truePrivate = -1
@@ -48,6 +87,10 @@ function Get-WindowPeaks {
         if ([long]$sample.freeBytes -lt $FloorGB * 1GB) { $under++ }
         if (-not $sample.responding) { $hung++ }
     }
+    if ($count -and $null -ne $Exit) {
+        if ([long]$Exit.peakPrivateBytes -gt $truePrivate) { $truePrivate = [long]$Exit.peakPrivateBytes }
+        if ([long]$Exit.peakWorkingSetBytes -gt $trueWorking) { $trueWorking = [long]$Exit.peakWorkingSetBytes }
+    }
     [ordered]@{
         samples             = $count
         peakPrivateMb       = $(if ($count) { [long][Math]::Round($truePrivate / 1MB) } else { $null })
@@ -58,5 +101,6 @@ function Get-WindowPeaks {
         floorGb             = $FloorGB
         samplesUnderFloor   = $under
         notResponding       = $hung
+        throughExit         = [bool]($count -and $null -ne $Exit)
     }
 }
