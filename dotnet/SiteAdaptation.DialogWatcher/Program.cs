@@ -10,9 +10,10 @@ using SiteAdaptation.Common;
 
 namespace SiteAdaptation.DialogWatcher
 {
-    // R108. Watches the windows of one Revit process while it starts, from outside Revit. It clicks Do Not Load on the
+    // R108. Watches the windows of one Revit process from outside Revit. While Revit starts it clicks Do Not Load on the
     // security dialog of every add-in that is not one of this tool, Load Once on the box of one of the three installed DLLs
-    // of this tool, and stops Revit on any dialog it cannot answer that way. It never clicks anything else
+    // of this tool, and stops Revit on any dialog it cannot answer that way. R303: with --watch-job it then logs every window
+    // of that Revit to its end and stops nothing. It never clicks anything else
     public static class Program
     {
         private const int Answered = 0;
@@ -47,99 +48,144 @@ namespace SiteAdaptation.DialogWatcher
             }
             var report = new WatchReport { Pid = options.Pid, StartedUtc = DateTime.UtcNow };
             int code = Watch(options, report);
-            report.FinishedUtc = DateTime.UtcNow;
-            JsonOut.Write(options.Out, report);
+            Record(report, options.Out, value => value.FinishedUtc = DateTime.UtcNow);
             return code;
         }
 
         private const int KeepWatching = -1;
 
+        // The report is changed by the main loop and by the start phase worker, so each change and its write hold this lock.
+        // No UI Automation call is ever made while it is held
+        private static void Record(WatchReport report, string path, Action<WatchReport> change)
+        {
+            lock (report)
+            {
+                change(report);
+                JsonOut.Write(path, report);
+            }
+        }
+
+        // R108, R303. The main loop never makes a UI Automation call itself, since such a call on a busy Revit waits until Revit
+        // answers. Every 0.5 s it looks at the log, the time and the process. The start phase reads the windows by UI Automation
+        // on one worker task, a new one only once the last has ended. The job phase lists the windows by Win32 on this thread
         private static int Watch(Options options, WatchReport report)
         {
             DateTime deadline = DateTime.UtcNow.AddMinutes(options.Minutes);
-            var handled = new HashSet<string>(StringComparer.Ordinal);
-            var seenOnce = new Dictionary<string, string>(StringComparer.Ordinal);
-            var windows = new HashSet<string>();
-            bool jobPhase = false;
+            var phase = new JobPhase();
+            var startSeen = new StartSeen();
+            var jobWindows = new HashSet<string>();
+            var jobHandled = new HashSet<string>(StringComparer.Ordinal);
+            var jobSeenOnce = new Dictionary<string, string>(StringComparer.Ordinal);
+            System.Threading.Tasks.Task<int> uia = null;
             while (true)
             {
-                Process revit = Alive(options.Pid);
-                bool firstStep = jobPhase || TestHostStarted(options.StopLog, report.StartedUtc);
-                string why = SecurityDialogs.StopReason(revit != null, firstStep, !options.WatchJob, DateTime.UtcNow, deadline, options.Minutes);
-                if (why != null)
+                if (uia != null && uia.IsCompleted)
                 {
-                    report.Result = why;
-                    return Answered;
-                }
-                if (firstStep && !jobPhase)
-                {
-                    jobPhase = true;
-                    report.Notes.Add(DateTime.UtcNow.ToString("o") + " the test host wrote its first log step, from now on every window is listed by Win32 and only rule 3 answers are clicked");
-                    JsonOut.Write(options.Out, report);
-                }
-                if (jobPhase)
-                {
-                    WatchJob(options, report, revit, windows, handled, seenOnce);
-                    Thread.Sleep(500);
-                    continue;
-                }
-                AutomationElementCollection tops;
-                try
-                {
-                    tops = AutomationElement.RootElement.FindAll(TreeScope.Children, new PropertyCondition(AutomationElement.ProcessIdProperty, options.Pid));
-                }
-                catch (Exception failure)
-                {
-                    report.Notes.Add("windows not read: " + failure.Message);
-                    Thread.Sleep(500);
-                    continue;
-                }
-                // Revit shows the security box as a child window of its main window, so the windows one level down are looked at too
-                foreach (AutomationElement window in Candidates(tops))
-                {
-                    string key;
-                    string title;
-                    string windowClass;
-                    try
-                    {
-                        key = Key(window);
-                        title = window.Current.Name;
-                        windowClass = window.Current.ClassName;
-                        if (handled.Contains(key))
-                        {
-                            continue;
-                        }
-                        if (!SecurityDialogs.IsDialog(windowClass, title))
-                        {
-                            // Every other window of this Revit once per window and title, with its buttons and first texts.
-                            // The main frame is logged by class and title only, its parts are the whole Revit user interface
-                            if (windows.Add(key + " | " + title))
-                            {
-                                List<string> shownTexts = new List<string>();
-                                List<string> shownButtons = new List<string>();
-                                if (!IsMainFrame(window, revit, title))
-                                {
-                                    ReadParts(window, out shownTexts, out shownButtons);
-                                }
-                                report.Windows.Add(new WindowSeen { Utc = DateTime.UtcNow, WindowClass = windowClass, Title = title, Buttons = shownButtons, Texts = shownTexts.Take(MaxTexts).ToList() });
-                                JsonOut.Write(options.Out, report);
-                            }
-                            continue;
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // The window closed while it was read
-                        continue;
-                    }
-                    int code = Judge(window, key, title, windowClass, options, report, revit, handled, seenOnce, false);
+                    int code = uia.IsFaulted ? KeepWatching : uia.Result;
+                    uia = null;
                     if (code != KeepWatching)
                     {
                         return code;
                     }
                 }
+                Process revit = Alive(options.Pid);
+                bool firstStep = phase.On || TestHostStarted(options.StopLog, report.StartedUtc);
+                string why = SecurityDialogs.StopReason(revit != null, firstStep, !options.WatchJob, DateTime.UtcNow, deadline, options.Minutes);
+                if (why != null)
+                {
+                    Record(report, options.Out, value => value.Result = why);
+                    return Answered;
+                }
+                if (firstStep && !phase.On)
+                {
+                    phase.On = true;
+                    Record(report, options.Out, value => value.Notes.Add(DateTime.UtcNow.ToString("o") + " the test host wrote its first log step, from now on every window is listed by Win32 and only rule 3 answers are clicked"));
+                }
+                if (phase.On)
+                {
+                    WatchJob(options, report, revit, jobWindows, jobHandled, jobSeenOnce);
+                }
+                else if (uia == null)
+                {
+                    Process started = revit;
+                    uia = System.Threading.Tasks.Task.Run(() => StartPhase(options, report, started, startSeen, phase));
+                }
                 Thread.Sleep(500);
             }
+        }
+
+        // The phase the start phase worker reads before it judges a dialog, so a dialog it finds after the first step stops nothing
+        private sealed class JobPhase
+        {
+            public volatile bool On;
+        }
+
+        // What the start phase worker has seen, its own sets, never touched by the main loop
+        private sealed class StartSeen
+        {
+            public readonly HashSet<string> Windows = new HashSet<string>();
+            public readonly HashSet<string> Handled = new HashSet<string>(StringComparer.Ordinal);
+            public readonly Dictionary<string, string> SeenOnce = new Dictionary<string, string>(StringComparer.Ordinal);
+        }
+
+        // R108. One look at the windows of Revit by UI Automation, as the watcher always looked while Revit starts
+        private static int StartPhase(Options options, WatchReport report, Process revit, StartSeen seen, JobPhase phase)
+        {
+            AutomationElementCollection tops;
+            try
+            {
+                tops = AutomationElement.RootElement.FindAll(TreeScope.Children, new PropertyCondition(AutomationElement.ProcessIdProperty, options.Pid));
+            }
+            catch (Exception failure)
+            {
+                Record(report, options.Out, value => value.Notes.Add("windows not read: " + failure.Message));
+                return KeepWatching;
+            }
+            // Revit shows the security box as a child window of its main window, so the windows one level down are looked at too
+            foreach (AutomationElement window in Candidates(tops))
+            {
+                string key;
+                string title;
+                string windowClass;
+                try
+                {
+                    key = Key(window);
+                    title = window.Current.Name;
+                    windowClass = window.Current.ClassName;
+                    if (seen.Handled.Contains(key))
+                    {
+                        continue;
+                    }
+                    if (!SecurityDialogs.IsDialog(windowClass, title))
+                    {
+                        // Every other window of this Revit once per window and title, with its buttons and first texts.
+                        // The main frame is logged by class and title only, its parts are the whole Revit user interface
+                        if (seen.Windows.Add(key + " | " + title))
+                        {
+                            List<string> shownTexts = new List<string>();
+                            List<string> shownButtons = new List<string>();
+                            if (!IsMainFrame(window, revit, title))
+                            {
+                                ReadParts(window, out shownTexts, out shownButtons);
+                            }
+                            var shown = new WindowSeen { Utc = DateTime.UtcNow, WindowClass = windowClass, Title = title, Buttons = shownButtons, Texts = shownTexts.Take(MaxTexts).ToList() };
+                            Record(report, options.Out, value => value.Windows.Add(shown));
+                        }
+                        continue;
+                    }
+                }
+                catch (Exception)
+                {
+                    // The window closed while it was read
+                    continue;
+                }
+                int code = Judge(window, key, title, windowClass, options, report, revit, seen.Handled, seen.SeenOnce, phase.On);
+                if (code != KeepWatching)
+                {
+                    return code;
+                }
+            }
+            return KeepWatching;
         }
 
         // R303. The job phase. Every visible top window of this Revit is listed by Win32 calls that never wait on a busy window and
@@ -151,8 +197,8 @@ namespace SiteAdaptation.DialogWatcher
             {
                 if (windows.Add(top.Handle + " | " + top.Title))
                 {
-                    report.Windows.Add(new WindowSeen { Utc = DateTime.UtcNow, WindowClass = top.Class, Title = top.Title, Buttons = top.Buttons, Texts = top.Texts, Hung = top.Hung });
-                    JsonOut.Write(options.Out, report);
+                    var shown = new WindowSeen { Utc = DateTime.UtcNow, WindowClass = top.Class, Title = top.Title, Buttons = top.Buttons, Texts = top.Texts, Hung = top.Hung };
+                    Record(report, options.Out, value => value.Windows.Add(shown));
                 }
                 string key = "win32 " + top.Handle;
                 if (handled.Contains(key) || !SecurityDialogs.ReadByAutomation(true, top.Class, top.Title, top.Hung))
@@ -206,20 +252,21 @@ namespace SiteAdaptation.DialogWatcher
             if (label != null && Click(window, entry, label))
             {
                 entry.Text = null;
-                report.Dialogs.Add(entry);
-                JsonOut.Write(options.Out, report);
+                Record(report, options.Out, value => value.Dialogs.Add(entry));
                 return KeepWatching;
             }
             if (!SecurityDialogs.StopsRevit(action, jobPhase))
             {
                 // R303. After the first step a dialog rule 3 has no answer for is logged in full and left alone
                 entry.Action = "Logged, " + entry.Action;
-                report.Dialogs.Add(entry);
-                JsonOut.Write(options.Out, report);
+                Record(report, options.Out, value => value.Dialogs.Add(entry));
                 return KeepWatching;
             }
-            report.Dialogs.Add(entry);
-            report.Result = "stopped Revit: " + entry.Action + " on " + title;
+            Record(report, options.Out, value =>
+            {
+                value.Dialogs.Add(entry);
+                value.Result = "stopped Revit: " + entry.Action + " on " + title;
+            });
             Stop(revit, report);
             return StoppedRevit;
         }
@@ -432,7 +479,10 @@ namespace SiteAdaptation.DialogWatcher
             }
             catch (Exception failure)
             {
-                report.Notes.Add("Revit could not be stopped: " + failure.Message);
+                lock (report)
+                {
+                    report.Notes.Add("Revit could not be stopped: " + failure.Message);
+                }
             }
         }
 

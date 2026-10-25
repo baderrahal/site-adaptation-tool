@@ -174,6 +174,10 @@ namespace SiteAdaptation.Tests
             Assert.Contains("Buttons = shownButtons", watcher);
             Assert.Contains("EnumWindows(", watcher);
             Assert.Contains("SecurityDialogs.ReadByAutomation(true, top.Class, top.Title, top.Hung)", watcher);
+            // The main loop makes no UI Automation call, the start phase runs on one worker task at a time
+            Assert.Contains("uia = System.Threading.Tasks.Task.Run(() => StartPhase(options, report, started, startSeen, phase))", watcher);
+            Assert.Contains("else if (uia == null)", watcher);
+            Assert.Contains("seen.Handled, seen.SeenOnce, phase.On)", watcher);
             Assert.DoesNotContain("report.Result = \"the test host wrote its first log step\"", watcher);
         }
 
