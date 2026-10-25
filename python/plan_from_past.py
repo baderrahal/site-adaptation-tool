@@ -818,7 +818,7 @@ def share_rows(shares, numbers):
     return [{"face": label, "number": numbers.get(label), "share": round(share, 3)} for label, share in shares]
 
 
-def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parameter=None, share_min=None, entry_heights=None, flat_top=None):
+def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parameter=None, share_min=None, entry_heights=None, flat_top=None, many=None):
     """R206. A past model that keeps no plot parameter on its links and has no schedule here: each link instance Name and each floor
     Plot value is <unit>-<number> in the model's own numbering. The official number of a plot is the location plan number of the
     baseplan face its generic floor stands on, so the number is taken by position and never by a shift. The links and floors get that
@@ -833,7 +833,9 @@ def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parame
     With share_min a generic floor joins the one face that holds at least that share of its area (R120), never the face a point inside it
     falls on, and a floor no face holds so is listed in cutPlots with its shares and names no plot. With entry_heights, a min and max in
     metres, an El @ Entry that puts the floor top outside that band over it is refused with why and never used. flat_top is keyPlans.flatTopM,
-    how far apart the ends of the top may lie for the floor to be flat and give an FFL, without it the top must be exactly flat."""
+    how far apart the ends of the top may lie for the floor to be flat and give an FFL, without it the top must be exactly flat.
+    R120, R325. With share_min a floor whose face of that share has no plan label, noNumber, or two or more, manyNumbers by many, the label
+    count of each such face of location_numbers, goes to cutPlots with that why and its face, so no floor leaves the plan unlisted."""
     from shapely.geometry import Point
     from shapely.strtree import STRtree
 
@@ -862,6 +864,8 @@ def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parame
                 cut.append({"modelPlot": value, "why": why, "shares": share_rows(shares, numbers)})
                 continue
             number = numbers.get(face)
+            if number is None:
+                cut.append({"modelPlot": value, "why": "manyNumbers" if face in (many or {}) else "noNumber", "face": face, "shares": share_rows(shares, numbers)})
         if number is None:
             report["generic floor on no face with one plan label"] += 1
             continue
@@ -1201,7 +1205,7 @@ def main(argv=None):
             for name, centre in model_frames(link_summary.load(other), floors).items():
                 frames.setdefault(name, centre)
         data, rows, dialect = names_dialect(data, floors, by_label, numbers, frames, key_plans and key_plans["entryParameter"],
-                                            key_plans and key_plans["cutShareMin"], key_plans and key_plans["entryHeightM"], key_plans and key_plans["flatTopM"])
+                                            key_plans and key_plans["cutShareMin"], key_plans and key_plans["entryHeightM"], key_plans and key_plans["flatTopM"], many)
         faces = {numbers[label]: shape for label, shape in by_label.items() if label in numbers}
     else:
         faces, bad_labels = baseplan_faces(baseplan, args.shifts, job["neighbourhood"])

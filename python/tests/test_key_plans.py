@@ -363,3 +363,24 @@ def test_r325_the_flat_top_tolerance_must_be_metres_from_0_to_under_0_01(tmp_pat
                                 "cadLinks": {"cutShareMin": 0.9}}), encoding="utf-8")
     with pytest.raises(project_profile.ProfileError, match="flatTopM"):
         pf.load_key_plans(project_profile.load_settings(path))
+
+
+def test_r325_a_generic_floor_whose_face_has_no_plan_label_or_two_is_in_the_cut_list_of_r120_with_its_reason(tmp_path, monkeypatch):
+    # Face 11 carries one plan label, 12 two and 13 none, each floor stands whole on its face
+    links = [key_link("501", 0), key_link("502", 10), key_link("503", 20)]
+    floors = lambda: [generic("DP4-501", 0), generic("DP4-502", 10), generic("DP4-503", 20)]
+    _, rows, report = pf.names_dialect(model(links, floors()), FLOORS, FACES, {"11": "501"}, entry_parameter=ENTRY, share_min=0.9)
+    assert [row["Plot No."] for row in rows] == [501]
+    assert [(item["modelPlot"], item["why"]) for item in report["cutPlots"]] == [("DP4-502", "noNumber"), ("DP4-503", "noNumber")]
+    _, _, report = pf.names_dialect(model(links, floors()), FLOORS, FACES, {"11": "501"}, entry_parameter=ENTRY, share_min=0.9, many={"12": 2})
+    assert report["cutPlots"] == [{"modelPlot": "DP4-502", "why": "manyNumbers", "face": "12", "shares": [{"face": "12", "number": None, "share": 1.0}]},
+                                  {"modelPlot": "DP4-503", "why": "noNumber", "face": "13", "shares": [{"face": "13", "number": None, "share": 1.0}]}]
+    assert report["generic floor on no face with one plan label"] == 2
+    # main reads the faces of two labels from labels.csv
+    monkeypatch.delenv(pf.ROOT_VARIABLE, raising=False)
+    args, out, _ = key_run(tmp_path)
+    (tmp_path / "labels.csv").write_text("number,face\n501,11\n502,12\n602,12\n", encoding="utf-8")
+    assert pf.main(args) == 0
+    plan = json.loads(out.read_text(encoding="utf-8"))
+    assert [entry["plot"] for entry in plan["plots"]] == ["501"]
+    assert [(item["modelPlot"], item["why"]) for item in plan["summary"]["namesDialect"]["cutPlots"]] == [("DP4-502", "manyNumbers")]
