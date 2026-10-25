@@ -156,6 +156,15 @@ def test_r280_overrides_with_no_override_source_are_refused_through_main_and_nev
     assert "--override-source" in err and "R280" in err
 
 
+@pytest.mark.parametrize("extra", [["--override-source", "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt"], ["--overrides", ""], ["--overrides", "  "],
+                                   ["--overrides", "", "--override-source", "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt"]])
+def test_r280_an_override_source_with_no_override_list_or_an_empty_list_name_is_refused_through_main(tmp_path, monkeypatch, capsys, extra):
+    code, seen = run_book(tmp_path, monkeypatch, ["--level-profile", "native2022"] + extra)
+    err = capsys.readouterr().err
+    assert code == 2 and "rules" not in seen
+    assert "--overrides" in err and "R280" in err
+
+
 def test_r280_the_job_of_a_source_comes_from_the_keys_of_its_overrides_and_majority_groups():
     groups = project_profile.load_settings().get("majority.groups")
     rows = [{"source": "a.rvt", "key": "u12"}, {"source": "b.rvt", "key": "imc"}, {"source": "c.rvt", "key": "u11"}, {"source": "c.rvt", "key": "imc"},
@@ -396,10 +405,18 @@ def test_r301_a_verdict_carries_the_keyed_and_unkeyed_plot_counts_and_a_mostly_u
     sources = [{"name": "a", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 2 012": 2, "noKey": 3}},
                {"name": "b", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 4 012": 1, "noKey": 5}},
                {"name": "c", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 2 012": 2, "noKey": 2}},
-               {"name": "d", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 2 012": 7}}]
+               {"name": "d", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 2 012": 7}},
+               {"name": "e", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 2 012": 1, "Zone 4 012": 1, "noKey": 9}}]
     found = im_codes.table_against_sources(table, sources)
-    assert [r["verdict"] for r in found] == ["mostlyUnkeyed", "mostlyUnkeyed", "agrees", "agrees"]
-    assert [(r["keyedPlots"], r["unkeyedPlots"]) for r in found] == [(2, 3), (1, 5), (2, 2), (7, 0)]
+    assert [r["verdict"] for r in found] == ["mostlyUnkeyed", "differs", "agrees", "agrees", "differs"]
+    assert [(r["keyedPlots"], r["unkeyedPlots"]) for r in found] == [(2, 3), (1, 5), (2, 2), (7, 0), (2, 9)]
+
+
+def test_r301_a_keyed_pair_the_row_does_not_hold_differs_whatever_the_unkeyed_count():
+    table = {"parsons": [{"code": "IMC", "areas": [area("012", "Zone 2", 9)]}], "native": []}
+    for unkeyed in (0, 1, 50):
+        source = {"name": "a", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 2 013": 1, "noKey": unkeyed}}
+        assert im_codes.table_against_sources(table, [source])[0]["verdict"] == "differs"
 
 
 @pytest.mark.parametrize("change", [
@@ -419,6 +436,45 @@ def test_r301_an_area_carries_its_measured_fields_and_nothing_else(tmp_path, cha
     with pytest.raises(ValueError):
         im_codes.load_table(path)
     assert '"status"' not in (ROOT / "python" / "im_codes.py").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("change", [
+    lambda t: t["jobs"]["native"][0]["areas"][0].update(nbh=" 02"),
+    lambda t: t["jobs"]["native"][0]["areas"][0].update(nbh="2"),
+    lambda t: t["jobs"]["native"][0]["areas"][0].update(nbh="0212"),
+    lambda t: t["jobs"]["native"][0]["areas"][0].update(nbh="01AB"),
+    lambda t: t["jobs"]["native"][0]["areas"][0].update(nbh="02 Zone 3"),
+    lambda t: t["jobs"]["native"][0]["areas"][0].update(zone="Zone 3 "),
+    lambda t: t["jobs"]["native"][0]["areas"][0].update(zone="zone 3"),
+    lambda t: t["jobs"]["native"][0]["areas"][0].update(zone="Zone3"),
+    lambda t: t["jobs"]["native"][0]["areas"][0].update(zone="3"),
+    lambda t: t["jobs"]["native"][0]["areas"][0].update(plots=309.0),
+    lambda t: t["jobs"]["native"][0].update(subPhase=1.1),
+    lambda t: t["jobs"]["native"][0].update(subPhase=" 1.1"),
+    lambda t: t["jobs"]["native"][0].update(subPhase="one"),
+    lambda t: t["jobs"]["native"][0].update(subPhase=["1.1"]),
+    lambda t: t["jobs"]["native"][0].update(code=["IMA"]),
+    lambda t: t["jobs"]["native"][0].update(code={"IMA": 1}),
+    lambda t: t["jobs"]["native"][0].update(code=" IMA"),
+])
+def test_r301_names_counts_and_sub_phases_have_their_type_and_form_and_a_bad_code_is_a_value_error(tmp_path, change):
+    table = {"note": "n", "jobs": {"parsons": [{"code": "IMC", "areas": [area("012", "Zone 2", 337)]}],
+                                   "native": [{"code": "IMA", "subPhase": "1.1", "areas": [area("02", "Zone 3", 309), area("01A", "Zone 4", 84)]}]}}
+    path = tmp_path / "t.json"
+    path.write_text(json.dumps(table), encoding="utf-8")
+    assert set(im_codes.load_table(path)) == {"parsons", "native"}
+    change(table)
+    path.write_text(json.dumps(table), encoding="utf-8")
+    with pytest.raises(ValueError):
+        im_codes.load_table(path)
+
+
+def test_r301_every_neighbourhood_id_of_the_real_table_has_the_dlus_form_and_a_job_with_no_sub_phase_needs_none():
+    table = im_codes.load_table(ROOT / "config" / "area_codes.json")
+    assert all(im_codes.NBH_FORM.fullmatch(a["nbh"]) and im_codes.ZONE_FORM.fullmatch(a["zone"]) for rows in table.values() for row in rows for a in row["areas"])
+    assert all("subPhase" not in row for row in table["parsons"]) and all(im_codes.SUB_PHASE_FORM.fullmatch(row["subPhase"]) for row in table["native"])
+    for value in ("02", "03", "010", "011", "012", "013", "021", "022", "01A"):
+        assert im_codes.NBH_FORM.fullmatch(value), value
 
 
 def test_r301_the_job_names_come_from_majority_groups_of_the_project_settings(tmp_path):
