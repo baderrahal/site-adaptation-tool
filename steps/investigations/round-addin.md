@@ -478,3 +478,83 @@ The breaker and the claim-checker read PR 44. Each code fix came with a test tha
 - Q067 closed: the 13 STR prototypes are upgraded into Prototypes_2024\STR (Bader's instruction).
 - Q069 new: record of a remade key copy, withdrawn after two attempts. Recommended: when a key source changes, the test host writes the SHA-256 of the work copy at the job start and of the made copy at its end into the run log, and record files a copy only when the work copy hash equals the source hash of the manifest request and the made copy hash on disk equals the logged one. Until Q069 is answered a remade copy is filed by editing its manifest entry by hand, since import refuses once a manifest exists.
 - Known bug, recorded only: the GetFullPathNameW mirror of key_copies.py keeps a last part NUL, nul. or "NUL. " as a name where Windows opens the NUL device, reachable only by answerKeys.folder of the config, and PrototypeSets.ps1 throws on it.
+
+## Phase 2 part 1, PR data/addin-key-reads
+
+Branch data/addin-key-reads from main at eedf3c5, equal to origin/main after git fetch (RAN). Rules R320 to R323 are new, R36 and R112 changed, R324 is not used. The phase ran in a helper agent started by the main session, which runs the checkers and merges. Values of coordinates and levels stay in Documents\SiteAdaptation\round_addin\reads, this file holds counts, distances and differences only.
+
+### Originals (R201, R202)
+
+- The 60 files of Phase 1b (the 40 originals, the 7 key copies, the 13 Revit 2021 STR files) hashed with sha256sum before the first edit: 60 of 60 equal originals_p1b_after.txt (RAN, round_addin\logs\originals_p2a_before.txt). After the last window: 60 of 60 equal by sha256sum and by Get-FileHash of PowerShell, differ 0 (RAN, originals_p2a_after.txt, originals_p2a_after_filehash.txt).
+- key_copies.py check gave reuse 7 of 7 and exit 0 before the first read and after the last (RAN, p2a_key_copies_check_before.txt, p2a_key_copies_check_after.txt).
+
+### What the reader wrote before this PR, field by field
+
+Read in the 7 Phase 1 reads testhost_K*_prototypes.json and in RevitModelSource.cs (READ):
+- Links: file, transform (origin, rotation, mirror and the three axes), rawName, nameParts, every instance parameter with the 9 RRE parameters and CASE among them, and the named plotNumber, prototype, ffl, steps and case. Present, unchanged. transformShared is written for a loaded link only (R54) and no link loads in a read, so the plan builders add the survey offset to the transform origin (R81).
+- Floors: type, sketch, corners with their levels (R34), outline in shared coordinates (R52), level and top. Present, unchanged.
+- Walls: type, location line ends, length, height (Unconnected Height, on 926 of 926 IMC walls, those up to Level 2 included), and in parameters Base Constraint, Base Offset, Top Constraint, Top Offset and Location Line as the integer 0 to 5 Revit holds. Present, unchanged. The location line stays a code and the wall width, a type parameter, is not read, since step 1 does not ask for it (CHOSEN, Phase 3 adds it if the wall rule needs the faces).
+- Spot elevations: elementId, origin, view and the host with category and type (R55). Present. value was null on every spot of the 7 Phase 1 reads, no spot holds the key (READ). The reader asked SPOT_ELEV_TOP_VALUE and SPOT_ELEV_BOT_VALUE, Top Coordinate and Bottom Coordinate in RevitAPI.xml of Revit 2024, parameters of a spot coordinate, while a spot elevation shows Single/Upper Value (READ). The spot type and its elevation base were not read. Fixed by R320.
+- Survey point, project base point and angle (R4), and the site facts of R311 with the project position, levels, units and categories. Present, unchanged.
+- The Generic floors of IME and IMF are of type FFL, outside floors.types (known bug of Phase 1). Fixed by R321.
+
+### R320, the spot value
+
+- Tests first (RAN, round_addin\logs\p2a_r320_first_build.txt): the 4 R320 tests did not build, 20 errors CS0103 and CS0246 for SpotValues and RawSpotValue and CS1061 for the new SpotRow fields. Then the 4 and the R36, R55 and R56 tests passed, 15 (RAN).
+- On IMC first (RC): value on 987 of 987 spots, type Target (Project), elevation base Survey Point and Display Elevations Actual (Selected) Elevation on 987, no Lower Value on any (RAN). value against the origin z plus the survey offset of R51: 0 mm on 987 of 987 (RAN). So the first attempt held and no second was needed.
+- The TU keys IMD to IMG: value on every spot (RAN). The SE keys IMA and IMB: value on 0 of 822 and 0 of 587. Their spots are of type Target (Survey), show Bottom Elevation, sit in Structural Foundation Plan views and are hosted by STR link instances, which no read loads, and Single/Upper Value holds no value there (RAN). Whether they read with the STR links loaded is UNKNOWN. They mark footings, not plot entrances, so 2b does not need them (CHOSEN).
+- The largest read is IMF at 15.16 MB against 14.57 MB in Phase 1, under the 20 MB of R56 (RAN).
+
+### R321, the floor types of each key
+
+- floors.keyTypes of config/project.json: IME and IMF read their Generic floors by FFL and the yard and ramp kinds by floors.types, the types their reads hold (CHOSEN per model, the brief allowed per job or per model, READ in the reads). plan_from_past.py --key passes the code and the plan keeps those types in floorSettings, since the placer and the check know a floor kind by floorSettings (CHOSEN).
+- Tests first (RAN, round_addin\logs\p2a_r321_first_tests.txt): 12 failed, TypeError since load_floors took no key, DID NOT RAISE on 8 refused shapes and SystemExit 2 on --key. Then 12 passed (RAN).
+- On the reads: Generic floors 324 of IME and 490 of IMF, 0 of each by floors.types alone (RAN, key_reads.json).
+
+### The 7 reads (R322)
+
+- Install-TestHost.ps1 -NoBuild -SkipSigningReport under PowerShell 7.6.7 installed the build of 7b82696: one SHA-256 for the Common DLL of the reader, the placer, the watcher and the two builds, 5 of 5, and the reader DLL equal to its build (RAN, round_addin\logs\install_p2a.txt).
+- Each read: p2a_read_key.ps1 in round_addin\logs hashed the key copy against the manifest, copied it into round_addin\work as <copy>_TEST-R<letter>.rvt, ran the read job of the test host under the lock of R200 with round ADDIN-2a, moved the outputs into round_addin\reads\R<letter>, hashed the work copy again and deleted it. IMC first, then the other 6 by p2a_read_loop.ps1, which stops at the first read not ok (RAN, p2a_read_loop.txt). Each work copy equalled the key copy before and after its window, 7 of 7, and each was deleted (RAN, copy_R*.json).
+- 7 windows, one at a time, 0 waits, 2.10 to 2.94 GiB free at the lock, exit code 0, log result ok, 0 dialogs in Revit and 0 failure lines in each (RAN, windows.jsonl, run_R*_read.txt). The watcher answered 5 security dialogs in each in our own Revit only, Do Not Load for RCRC Green and RCRC Green Audit, Load Once for our three (RAN). The registry was not read or written.
+
+| Key | Job | Links, with a plot | Floors generic, yard, ramp, of no kind | Walls | Spots, with a value | Levels | Window min | Open s, read s | Peak private MiB, working set MiB | Least free GiB, samples under 2 GiB |
+|---|---|---|---|---|---|---|---|---|---|---|
+| IMC | RC | 338, 337 | 336, 337, 337, 0 | 926 | 987, 987 | 2 | 1.22 | 3.3, 10.3 | 1,200, 1,355 | 0.53, 9 |
+| IMD | RD | 411, 410 | 410, 410, 410, 0 | 1,138 | 1,256, 1,256 | 2 | 0.72 | 2.8, 11.8 | 1,282, 1,470 | 0.72, 8 |
+| IME | RE | 325, 324 | 324, 324, 324, 0 | 894 | 938, 938 | 2 | 0.59 | 2.1, 7.1 | 1,192, 1,377 | 0.72, 7 |
+| IMF | RF | 491, 490 | 490, 490, 490, 0 | 1,317 | 1,415, 1,415 | 2 | 0.74 | 4.4, 12.8 | 1,584, 1,777 | 0.65, 7 |
+| IMG | RG | 298, 297 | 297, 0, 297, 0 | 859 | 866, 866 | 2 | 0.54 | 2.0, 4.5 | 1,086, 1,268 | 1.42, 6 |
+| IMA | RA | 433, 432 | 733, 0, 0, 28 | 2,323 | 822, 0 | 2 | 0.59 | 2.6, 6.3 | 1,215, 1,388 | 0.99, 6 |
+| IMB | RB | 302, 301 | 733, 0, 0, 40 | 1,515 | 587, 0 | 2 | 0.55 | 2.4, 5.0 | 1,130, 1,299 | 1.16, 5 |
+
+(RAN, round_addin\reads\key_reads.json, logs\p2a_key_reads.txt.) Every count equals the Phase 1 table above for the same model. The window minutes are those of run.json, the lock gives 0.57 to 1.26 for the same windows (RAN, windows.jsonl). Peaks are to the exit of Revit, throughExit on 7 of 7. Every link file count is 14. The levels are Level 1 and Level 2 in all 7.
+
+- Floors by type: IMC Generic 150mm 336, yard 337, Ramps 0.5% 280, Ramps 2% 47, Flat Ramps 10. IMD 410, 410, 350, 55, 5. IME FFL 324, yard 324, Ramps 0.5% 248, Ramps 2% 76. IMF FFL 490, yard 490, 409, 75, 6. IMG Generic 150mm 297, Ramps 0.5% 229, Ramps 2% 68, no yard. IMA and IMB Generic 150mm 733 each, and 28 and 40 structural floors of three KEO_ST types (RAN).
+- Walls by type: the TU keys hold BW (898, 1,108, 882, 1,304, 849) and Generic Wall-150mm_ Garden walls in 1 to 5 type names (28, 30, 12, 13, 10). The SE keys hold SBW and SBW 2 (2,275 and 1,451) and 48 and 64 KEO_ST walls (RAN).
+- Spots by host: on the TU keys the ramps hold most. IMC Ramps 0.5% 827, Ramps 2% 129, Flat Ramps 28, Generic 2, no host 1. IMD 1,032, 171, 15, Generic 34, yard 2, no host 2. IME 726, 208, no host 4. IMF 1,175, 220, Flat 18, FFL 2. IMG 666, 200. On IMA and IMB every spot is on an STR link instance, 13 files each (RAN).
+- What the SE keys lack, per field (RAN): the links carry 5 of the 10 parameters, Number-of-Steps, Façade-Color, Façade-Design-Option, Prototype-HVAC-Schedule-Type and Prototype-FFL are on none of the 432 and 301 plot links. Floors: no yard and no ramp, the 733 Generic floors and the structural floors only. Walls: SBW types, no BW. Spots: no value, footings only. Levels: Level 1 and Level 2 like the TU keys. They hold link position, hand, plot number, prototype and CASE. Q066 stays open.
+- Memory: free memory at the lock was 2.10 to 2.94 GiB, lower than the 6.26 to 7.34 GiB of Phase 1, since other programs held more memory at the time (READ, Get-Process at 13:10 local, two firefox processes with 1,733 and 824 MiB private among them). It fell to 0.53 to 1.42 GiB during each window, under the 2 GiB floor in 5 to 9 samples of each. R310 logs the floor in every sample and stops nothing on it (READ, R310), and every window ended ok. Revit did not respond on 6, 3 and 3 samples of RC, RD and RF, all ended ok as in Phase 1 (RAN). The LocalDB sqlservr of the first window was a helper of the 6 after it, 492 to 555 MiB private at their starts (RAN).
+
+### Second method (R323)
+
+key_reads_check.py, json and math only, against routes other than the reader sections (RAN, round_addin\reads\key_reads_check.json, logs\p2a_key_reads_check.txt):
+- Categories of R311 in the same read: links against RVT Links, walls against Walls, spots against Spot Elevations and the floors whose Category parameter is Floors against Floors, 28 of 28 equal over the 7 keys. The 28 and 40 structural floors of IMA and IMB are under Structural Foundations, beside its 1,199 and 877 elements.
+- The bytes of each key copy by rvt_info.py: the TU keys name the same 14 link files as the read, 14 of 14 on 5 of 5. The SE keys name 1 in their bytes, the 13 STR cloud links are only in the read, the known bug of R203.
+- A second read by element id, the Phase 1 read of the same key copy in another window by the reader before R320 (KC, KD, KE, KF2, KG3, KA, KB): the same link ids in both on 7 of 7, and 20 links at seed 14 and 20 at seed 7 with file, plot number, prototype, CASE, mirror, rotation and origin within 0.5 mm, 280 of 280 equal, 0 mismatch. Per floor type and wall type the same element ids, 30 of 30 floor types and 28 of 28 wall types.
+- The spot value against the origin z plus the survey offset: 5,462 of 5,462 TU spots within 1 mm, worst 0 mm, 20 of 20 at each seed on each TU key. The SE spots have no value and were not compared.
+
+### Gate
+
+- At 3dcacaa: Python 1223 passed and 1 skipped, .NET build 0 errors and the 1 old warning (xUnit2013), .NET 520 passed (RAN, round_addin\logs\p2a_gate_python.txt, p2a_gate_build.txt, p2a_gate_test.txt, each with the head it ran on). Main before this PR: 1201 and 1 skipped, 516. In this PR: 22 Python tests of R321 to R323 and 4 .NET tests of R320.
+
+### Not done in this PR
+
+- R324 is not used, the PR holds four changes.
+- The wall location line stays Revit's code and the wall width is not read (see above).
+- The SE spot values, which need the STR links loaded.
+- CLAUDE.md is not changed by a helper, so its repo map does not name python/key_reads.py, python/key_reads_check.py or floors.keyTypes yet.
+- The plans, the join, the area codes and the spots at the plot entrance are PR 2b.
+
+### Questions
+
+- None new and none closed. The older open questions are shortened to one line each in steps/PROGRESS.md and the top entry of steps/log.md, with their full text kept under Open questions, full text in steps/questions-closed.md.
