@@ -971,9 +971,58 @@ Item 17, what each of the 6 hands of the first push is (RAN, p3a_fix_six_hands.p
 
 Item 18: the foundation probe and the C10 counts are saved now (R335 and R332 above). Item 20: the hashes after the last run of this pass are in the Gate of the PR body.
 
+### Last pass on PR 47
+
+The proof that a build reproduces the keys had two tries in the review, both by the probe route: majority.py run with its run step stubbed and each decision of a build made again on its context, the hand looked up in the table of the file the key links. The breaker ran the build's own lookups (hunt2 build_factors.py) and found 6 SE hands that route never saw. This pass does not patch the probe: python/build_proof.py gives plan_from_book.py the plots of each key and holds what the build writes. Every commit is new, no amend, each code fix with its test run first and seen failing for the right reason, the output with the head in round_addin\logs. No Revit or Civil 3D window, the lock not taken, the registry not read or written. CLAUDE.md was not changed, it names neither python/build_proof.py, python/key_rules_block.py nor R338 yet.
+
+| Item | Commit | Rules | Change | Test, first run |
+|---|---|---|---|---|
+| B | 4c724e2 | R337 | Number-of-Steps and the steps of RVT-Name come from the stepBands of the level profile, labelled levelProfileStepBands, not keyRules, steps of the summary and the print name them | test_r337_the_steps_parameters_are_labelled_..., p3a_last_b_first.txt, 1 failed |
+| C | a495202 | R337, R280 | Each plot holds overrides.applied or overrides.notApplied with why, in the missing entry for a plot not written, applied counts only written plots, appliedOutsideBuild and overridesNotAppliedWhy, the print names entryM and heightM applied apart from the fields kept for 3c | test_r337_a_build_says_plot_by_plot_..., p3a_last_c_first.txt, KeyError overrides |
+| E | a60f068 | R337 | keyRules.linkRotation nearestCurb refused, El @ Entry slope and ramp class compared per code of keyRules.rampSlope and refused when they differ | test_r337_a_link_rotation_by_the_edge_nearest_a_curb_..., test_r337_the_slope_of_el_at_entry_..., p3a_last_e_first.txt, 2 failed |
+| F | 1303592 | R330, R336 | majority.py --keep-from reads the byHand entries of the list it writes over, a conflict refused, override_source.by_hand refuses any other value or spelling, key_rules_check.py --merged needs --earlier and holds every kept and byHand entry, a failed check ends the run with 1 | test_r330_a_by_hand_entry_of_the_list_..., test_r330_a_by_hand_mark_of_another_spelling_..., test_r336_the_merged_list_is_held_against_the_earlier_list_..., the main test of test_key_rules_check.py, p3a_last_f_first.txt, 4 failed |
+| D | 517beec | R338 new | python/key_rules_block.py writes keyRules, the note, the zone prefix, the zone taken from others and the Round 17 shares from majority.keyRulesBlock, a zone taken from zones that give two values refused | test_r338_the_key_rules_block_takes_..., test_r338_a_zone_taken_from_zones_that_differ_..., p3a_last_d_first.txt, ModuleNotFoundError |
+| A | 44923c8 | R337 | python/build_proof.py covers and compare, majority.kindDiscipline (SE links STR) and majority.decidedByQuestion (Q017) in config | python/tests/test_build_proof.py, 8 tests, p3a_last_r337_proof_first.txt, 7 failed on 0589a6e, p3a_last_r337_follow_first.txt, 1 failed |
+| A | 8e3cf0d | R333, R337, R272, R336 | The coded hand, learned per file the key links, judged by the table of the file a build links (byBuild), a plot and field an open question decides listed apart, the second method holds hands by the file a build links found by its own route, keyRules writes byBuild | test_r337_a_hand_is_coded_by_the_tables_..., test_r272_a_miss_of_a_plot_and_field_an_open_question_decides_..., test_r336_the_own_route_finds_the_file_..., p3a_last_a2_first.txt, 3 failed, then 1 for byBuild |
+| | 06e41bd | | The override list and keyRules of the rerun | |
+
+D, the writer: the script of the review, round_addin\logs\p3a_fix_key_rules_block.py, run with --all on a copy of the profile and the review's majority.json (rules3a\fix_write) gave the committed profile byte for byte, and so did python/key_rules_block.py on the repo profile (RAN, p3a_last_d_rerun.txt, sha256 235dc5fd... before and after). On the majority.json of this pass the writer changed 3 lines, the three hand decisions, and a rerun gave the same bytes (RAN, p3a_last_key_rules_write.txt, sha256 e2b08e05...).
+
+A, how a build was proved. The review's probe route held every plot by the link file of its key, so an SE plot was looked up in the table of the STR file its key links, while a build links the ARC file of the code (READ, plan_from_book.folder_files of Prototypes_2024). The new route: build_proof.py covers writes one cover per key from past_all.csv, plan_from_book.py builds each key with --overrides, --sales, --footprint-blocks and --analysis of the snapshot, the LandXML surfaces of the snapshot and the site report testhost_I17_site.json, and build_proof.py compare holds the plan field by field against past_all.csv and the key plan (R337), logs p3a_last_build_route.sh. Before is plan_from_book.py at 0589a6e with the list of 0589a6e (rules3a\last\before, p3a_last_proof_before.txt, p3a_last_proof_before_note.txt), after is 8e3cf0d with the rerun list (rules3a\last\after, p3a_last_proof_after.txt). Summary: p3a_last_proof_summary.txt.
+
+| Unexplained differences | ima | imb | imc | imd | ime | imf | img |
+|---|---|---|---|---|---|---|---|
+| Before, fields | 5 | 3 | 0 | 0 | 0 | 0 | 0 |
+| Before, plots | 3 | 3 | 0 | 0 | 0 | 0 | 0 |
+| After | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+Before: IMA 1590 (DT1) and 1763 (DT3) and IMB 2008 (DP3), 2198 (VD1) and 2271 (DT3) not written, the table of the ARC file holds no value of their factor, and IMA 1809 (VL4) built True against False, its rotation and insert with it. The breaker's IMC 2302 and the three VD4 plots are Q017 below. After, per field over the 7 keys (RAN): prototype file 1,756 equal, 707 the STR file of the code on the SE keys (majority.kindDiscipline), 3 Q017, hand, rotation, insert and CASE 2,465 hold and 1 Q017 (IMC 2302), yard outline 1,445, 56 overrides the build can not place, 1 Q017, ramp class 1,759 and yard 1,759 hold, ramp outline 1,714 and 45 overrides, generic floor 2,446 and 20 overrides, the other parameters hold, Number-of-Steps 1,595 and RVT-Name 1,599 hold with the steps the build computes, 164 and 160 differ by those steps alone, left to 3c (B). The earlier proof held them with the key's own steps. 35 plots are not written: 33 with no road level at a front corner, so no FFL (3c), IMA 1553, IMB 2241, 2272, IMD 1172, 1491, 1492, IME 2626, 2665, 2699, IMF 14 and IMG 10, and IME 2690 and IMG 622, C10 faces with no front frame whose insert and rotation overrides hold no gap. The build route does not hold the link fields of these 35.
+
+Second way for the route (RAN, p3a_last_proof_second.py and .txt, json, csv and math only): every written plot against past_all.csv by file name and code, mirror flag, rotation within 0.1 degree and insert within 10 mm. All agree but IMC 2301, 2302 and IMG 544 by file (VD4 against DP4) and IMC 2302 by hand, rotation and insert, the Q017 plots. 61 of the 63 parsons hand overrides are applied, IME 2690 and IMG 622 are not written.
+
+The majority rule on what the route shows: majority.py codes each hand as before, learned per file the key links, and judges the coded hand again by the table of the file a build links (R333, byBuild): hand villa 0.960 measured, 0.956 by the build, 34 misses, cluster 0.981 both, alone 1.0 measured, 0.990 by the build, 4 misses. Judging by the file a build links in the choice of the candidate as well was tried first (p3a_last_hand_scope_probe.py and .txt): it coded blockMirror for the villas instead of blockMirrorRoadSide and moved other plots, so the choice stays on the measure. Its misses are the plots a build does not reproduce, each an override from the key: IMA 1590, 1763, 1809, IMB 2008, 2198, 2271. The 11 SE hand overrides of the review stay with the file a build links in their reason. The prototype file is a decision of the route tally only, majority.py codes none (CHOSEN): the file of the Rev 9 code on 1,756 of 1,759 written TU plots.
+
+Q017: IMC 2301, 2302 and IMG 544 are VD4 by Rev 9, their keys link the DP4 file, and their RRE_ZZ_SP_Prototype parameter says VD4 (READ, the override list). A build links VD4, the open question decides it, so majority.decidedByQuestion lists the three for the file and the hand and no override is written: IMC 2302, whose hand by the VD4 table differs from its key, is in decidedByQuestion of the report, IMC 2301 and IMG 544 hold their hands. The route counts their file, and on IMC 2302 the hand, rotation, insert, yard outline and CASE that follow from it, as question.
+
+Override list (RAN, p3a_last_write.txt, p3a_last_list_compare.txt): the write command of the review at 8e3cf0d, 9,336 to 9,342, parsons 4,114 to 4,120 (mirrored 57 to 63), native 5,222 cell for cell, 0 byHand. The dry run at the same head equals the write run on every decision (p3a_last_dry2.txt, p3a_last_dry_write_compare.txt).
+
+| List | Total | Native | Parsons |
+|---|---|---|---|
+| 0589a6e | 9,336 | 5,222 | 4,114 |
+| 06e41bd | 9,342 | 5,222 | 4,120 |
+
+Second method (RAN, p3a_last_check.txt, rules3a\last\write\key_rules_check.json, --merged config/overrides and --earlier the list before the run): seed 14 389 items and seed 7 303, 0 mismatches each, every plot 43,957 items, 2 mismatches, IME 2710 and IMG 441, the villas of Q072, walls 60, 60 and 14,703 items, 0. IMC 2301 now agrees: by the VD4 table both side roads give its key hand. The merged list: 9,342 entries, 0 off the join, run entries equal the dry list, 5,482 kept entries of the earlier list cell for cell, 0 byHand lost, ok.
+
+C, on the IMC build (RAN, p3a_last_proof_after.txt): applied on written plots entryM 230, heightM 30, insert 4, mirrored 11, CASE 206, foundation type 150, RVT-Name 5, rampFrontM 80, rampType 10, left with why rampFrontFallM 90 (Q057), yard outline 14, generic floor and ramp outline 4 each. The print says entryM and heightM, kept in the list for 3c, are applied, the Round 17 gaps of R280.
+
+Hashes (RAN, p3a_last_hash.sh): 60 of 60 originals and 99 of 99 inputs equal before the first edit and after the last run, the 80 of the review and the 18 LandXML surfaces of the snapshot and the site report a build reads.
+
+Not done: the link fields of the 35 plots a build does not write are not held by the route. majority.py has no prototype file decision. The levels stay 3c.
+
 ### Questions
 
 - Q040 closed: keep the footprint clusters for the cluster side, 1,297 of 1,322 on the 7 keys against 1,173 with the analysis clusters alone.
 - Q071 new: walls, see Bader's turn.
 - Q002, Q003, Q015, Q037, Q042 and Q057 take the counts of the 7 keys, Q003 and Q042 a changed rule.
 - Review: Q015, Q042, Q053 and Q066 take the counts of the rerun, Q072 is new (the side road of a villa with three road edges).
+- Last pass: Q017 takes IMG 544 and the counts of the route, Q053 the 9,342 entries, Q066 the 6 SE hands as overrides.
