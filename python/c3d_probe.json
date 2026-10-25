@@ -604,7 +604,7 @@
         "contextsKept": 60,
         "table": "config/area_codes.json",
         "copyFolders": [
-          {"folder": "Revit All Zones/2024", "manifest": "sources.txt", "reason": "Round ADDIN Phase 1 saved the Revit 2024 copies of the 7 Parsons models here on 2026-10-25, after DATA-5. Their names repeat the 7 models of Revit All Zones, so a file sources.txt names as a copy with its source is counted apart and the names of the source files keep their count, any other file here stays a source and is flagged (R301)"}
+          {"folder": "Revit All Zones/2024", "manifest": "key_copies.json", "reason": "Round ADDIN Phase 1 saved the Revit 2024 copies of the 7 Parsons models here on 2026-10-25, after DATA-5. Their names repeat the 7 models of Revit All Zones, so a file the manifest key_copies.json of R312 names as a copy with its source is counted apart and the names of the source files keep their count, any other file here stays a source and is flagged (R301). The folder and the manifest are those of answerKeys in config/project.json"}
         ]
       },
       "ifc": {

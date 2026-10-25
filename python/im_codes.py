@@ -21,6 +21,7 @@ from pathlib import Path
 
 import c3d_run
 import data_book_analysis
+import key_copies
 import project_profile
 
 REPO = Path(__file__).resolve().parent.parent
@@ -33,9 +34,6 @@ def codes_in(text):
 
 COPY_FIELDS = ("folder", "manifest", "reason")
 CopyFolder = namedtuple("CopyFolder", "folder key manifest")
-# One line of the manifest of a copy folder, as Round ADDIN Phase 1 wrote sources.txt: the copy, right in the folder, its SHA-256,
-# the source relative to the source root and its SHA-256, then any text
-MANIFEST_LINE = re.compile(r"(?P<copy>[^\\/]+?) sha256 [0-9a-f]{64} from (?P<source>.+?) sha256 [0-9a-f]{64}(?: |$)")
 
 
 def path_parts(text, what):
@@ -75,23 +73,19 @@ def copy_folders(entries):
 
 
 def read_manifest(path, copy):
-    """R301. The copies the manifest of a copy folder on disk names, by file name folded, each with its source. The manifest is found
-    in any case and must be there, a line that names no copy right in the folder with its source under the root is refused, and a
-    copy folder that holds a source its manifest names is listed too high, since a source has no copy entry, and is refused."""
+    """R301. The copies the manifest of a copy folder on disk names, by file name folded, each with its source. The manifest is the
+    JSON of R312, read by key_copies.read_manifest, found in any case, and must be there. An entry that names no copy right in the
+    folder with its source under the root is refused, and a copy folder that holds a source its manifest names is listed too high,
+    since a source has no copy entry, and is refused."""
     names = [name for name in os.listdir(path) if name.casefold() == copy.manifest.casefold() and os.path.isfile(os.path.join(path, name))]
     if len(names) != 1:
         raise ValueError("the copy folder %s holds no manifest %s, so it may be listed too high and no file in it counts as a copy" % (copy.folder, copy.manifest))
     copies = {}
-    for number, line in enumerate(Path(path, names[0]).read_text(encoding="utf-8-sig").splitlines(), start=1):
-        if not line.strip():
-            continue
-        match = MANIFEST_LINE.match(line)
-        if not match:
-            raise ValueError("line %d of the manifest of %s names no copy with its source" % (number, copy.folder))
-        source = path_parts(match.group("source"), "the source of a copy")
+    for name, entry in key_copies.read_manifest(Path(path, names[0])).items():
+        source = path_parts(entry["source"], "the source of a copy")
         if name_key(source)[:len(copy.key)] == copy.key:
             raise ValueError("the copy folder %s is listed too high: it holds %s, a source its manifest names" % (copy.folder, "/".join(source)))
-        copies[match.group("copy").casefold()] = "/".join(source)
+        copies[name] = "/".join(source)
     return copies
 
 
