@@ -510,7 +510,7 @@ def test_r323_the_spot_value_is_held_against_the_top_of_its_floor_by_the_outline
 
     assert result["compared"] == 6
     assert result["byRoute"] == {"edge": 3, "plane": 3}
-    assert result["skipped"] == {"base Project Base Point": 1, "noValue": 1, "notOnAFloorOfTheRead": 2, "warped": 1}
+    assert result["skipped"] == {"base Project Base Point": 1, "noValue": 1, "noHost": 1, "notOnAFloorOfTheRead": 1, "warped": 1}
     assert result["byHost"]["Floors: Slab G"] == {"count": 3, "within1Mm": 1, "within5Mm": 2, "share1Mm": 0.3333, "share5Mm": 0.6667, "worstMm": 150.0}
     assert result["byHost"]["Floors: Ramp A"] == {"count": 3, "within1Mm": 3, "within5Mm": 3, "share1Mm": 1.0, "share5Mm": 1.0, "worstMm": 0.0}
     assert result["all"]["count"] == 6 and result["all"]["within1Mm"] == 4 and result["all"]["within5Mm"] == 5
@@ -529,6 +529,17 @@ def test_r323_a_plane_needs_three_corners_that_span_it_and_a_point_off_the_outli
     assert check.top_at(floor, 110.004, 205.0, OFFSET) == (15.0, "edge")
     assert check.top_at(floor, 105.0, 205.0, OFFSET)[1] == "plane"
     assert check.top_at({"elementId": 2}, 105.0, 205.0, OFFSET) == (None, "noGeometry")
+
+
+def test_r323_a_spot_with_no_host_is_no_host_and_apart_from_a_host_that_is_no_floor_of_the_read():
+    import key_reads_check as check
+    flat = floor_of(1, "Slab G", [[0.0, 0.0, 5.0], [10.0, 0.0, 5.0], [10.0, 10.0, 5.0], [0.0, 10.0, 5.0]])
+    spots = [spot_on(21, None, [2.0, 3.0, 5.0], 15.0), dict(spot_on(22, None, [2.0, 3.0, 5.0], 15.0), host={}),
+             spot_on(23, (9, "RVT Links", "B.rvt"), [2.0, 3.0, 5.0], 15.0), spot_on(24, (40, "Walls", "Wall 1"), [2.0, 3.0, 5.0], 15.0)]
+    document = {"surveyPoint": {"position": [0.0, 0.0, 0.0], "sharedPosition": OFFSET}, "floors": [flat], "links": [{"elementId": 9, "file": "B.rvt"}],
+                "spotElevations": spots}
+
+    assert check.spot_tops(document)["skipped"] == {"noHost": 2, "notOnAFloorOfTheRead": 2}
 
 
 def test_r323_a_spot_outside_the_outline_of_its_floor_is_counted_apart_and_never_held_against_the_plane():

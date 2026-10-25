@@ -49,6 +49,7 @@ EDGE_IN_PLAN = 0.005
 # Corners within this of their plane make a plane top, in metres. R2 rounds each corner to the mm
 PLANE_FIT = 0.001
 OUTSIDE = "outsideItsFloor"
+NO_HOST = "noHost"
 WORST = 20
 REPEAT_NOTE = ("A repeat read: the Phase 1 read of the same key copy, an older reader in another window, held by element id. "
                "It shows the reader gives the same on the same bytes, it is no second method.")
@@ -171,8 +172,9 @@ def spot_tops(document):
     """R323, R320. The value of each spot whose elevation base is the survey point and whose host is a floor of the read against the
     top of that floor at the spot. The origin of a spot is internal, so the survey offset of R51 puts it in shared plan coordinates,
     and the value of a survey point base is a shared elevation. The shares within 1 mm and 5 mm per host kind and in all, the spots
-    whose gap is minus the thickness of their floor, which show its bottom, and the worst gaps. A spot of another base, with no value,
-    on no floor of the read or where the floor gives no top is counted by its reason. A read with no survey point is not read."""
+    whose gap is minus the thickness of their floor, which show its bottom, and the worst gaps. A spot with no value, of another base,
+    with no host, on a host that is no floor of the read, outside its floor or where the floor gives no top is counted by its reason.
+    A read with no survey point is not read."""
     offset = survey_offset(document)
     if offset is None:
         return {"notRead": "the read holds no survey point, so no spot is put in shared coordinates"}
@@ -187,6 +189,8 @@ def spot_tops(document):
             skipped["noValue"] += 1
         elif spot.get("elevationBase") != SURVEY_BASE:
             skipped["base " + str(spot.get("elevationBase"))] += 1
+        elif not spot.get("host"):
+            skipped[NO_HOST] += 1
         elif floor is None:
             skipped["notOnAFloorOfTheRead"] += 1
         elif not isinstance(origin, list) or len(origin) != 3:
