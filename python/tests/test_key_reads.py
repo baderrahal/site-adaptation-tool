@@ -196,6 +196,44 @@ def test_r322_a_read_is_counted_only_under_the_key_its_model_file_names_by_code_
     assert key_reads.main(base + key_args("IMX=QX", "IMY=QY")) == 0
 
 
+def test_r322_a_run_merges_its_keys_into_the_file_and_keeps_the_keys_of_earlier_runs(tmp_path):
+    import key_reads
+    settings = key_settings(tmp_path)
+    reads = tmp_path / "reads"
+    write_read(reads, "QX", made_up_read())
+    write_read(reads, "QY", dict(made_up_read(), file="X-IMY-model_TEST-QY"))
+    base = ["--settings", str(settings.path), "--reads", str(reads)]
+
+    assert key_reads.main(base + key_args("IMX=QX")) == 0
+    assert key_reads.main(base + key_args("IMY=QY")) == 0
+    written = json.loads((reads / "key_reads.json").read_text(encoding="utf-8"))
+    assert list(written["keys"]) == ["IMX", "IMY"]
+    assert written["keys"]["IMX"]["counts"]["links"]["instances"] == 3
+    # A rerun of one key replaces its entry in its place and leaves the other
+    fewer = made_up_read()
+    fewer["links"] = fewer["links"][:1]
+    write_read(reads, "QX", fewer)
+    assert key_reads.main(base + key_args("IMX=QX")) == 0
+    written = json.loads((reads / "key_reads.json").read_text(encoding="utf-8"))
+    assert list(written["keys"]) == ["IMX", "IMY"]
+    assert written["keys"]["IMX"]["counts"]["links"]["instances"] == 1
+    assert written["keys"]["IMY"]["counts"]["links"]["instances"] == 3
+    # The size of the reader output is in MiB and its field says so
+    assert "fileMib" in written["keys"]["IMX"] and "fileMb" not in written["keys"]["IMX"]
+    # A file that is no report of R322 is never written over
+    (reads / "key_reads.json").write_text("[1, 2]", encoding="utf-8")
+    with pytest.raises(ValueError, match="key_reads.json"):
+        key_reads.main(base + key_args("IMX=QX"))
+    assert (reads / "key_reads.json").read_text(encoding="utf-8") == "[1, 2]"
+
+
+def test_r322_a_link_with_no_file_is_no_file_and_two_names_in_another_case_are_one_file():
+    import key_reads
+    links = [{"file": "A.rvt", "plotNumber": "1"}, {"file": "a.RVT", "plotNumber": "2"}, {"file": None, "plotNumber": "3"}, {"plotNumber": None}]
+    assert key_reads.link_counts(links)["files"] == 1
+    assert key_reads.link_counts(links)["instances"] == 4
+
+
 @pytest.mark.parametrize("pairs", [("IMX=QX", "IMX=QX"), ("IMX=QX", "IMX=QY"), ("IMX=QX", "IMY=QX")])
 def test_r322_a_key_or_a_job_given_twice_is_refused(tmp_path, pairs):
     import key_reads
@@ -364,3 +402,21 @@ def test_r323_a_read_is_checked_only_under_the_key_its_model_file_names_and_a_ke
             check.main(base + key_args(*pairs))
     assert not (reads / "key_reads_check.json").exists()
     assert check.main(base + key_args("IMX=QX=none", "IMY=QY=" + str(old))) == 0
+
+
+def test_r323_a_run_merges_its_keys_into_the_file_and_keeps_the_keys_of_earlier_runs(tmp_path):
+    import key_reads_check as check
+    path = check_settings(tmp_path)
+    reads = tmp_path / "reads"
+    write_read(reads, "QX", made_up_read())
+    write_read(reads, "QY", dict(made_up_read(), file="X-IMY-model_TEST-QY"))
+    base = ["--settings", str(path), "--reads", str(reads)]
+
+    assert check.main(base + key_args("IMY=QY=none")) == 0
+    assert check.main(base + key_args("IMX=QX=none")) == 0
+    written = json.loads((reads / "key_reads_check.json").read_text(encoding="utf-8"))
+    assert list(written["keys"]) == ["IMY", "IMX"]
+    assert written["keys"]["IMY"]["job"] == "QY" and written["keys"]["IMX"]["job"] == "QX"
+    (reads / "key_reads_check.json").write_text("{\"keys\": 3}", encoding="utf-8")
+    with pytest.raises(ValueError, match="key_reads_check.json"):
+        check.main(base + key_args("IMX=QX=none"))

@@ -164,7 +164,10 @@ def main(argv=None):
     block = settings.values["answerKeys"]
     folder = Path(settings.values["inputRoot"]) / block["folder"]
     copies = {key["code"]: key["copy"] for key in block["keys"]}
-    report = {"note": "R323. The key reads held against the categories of R311, the bytes of each key copy and a second read by id, seeds " + ", ".join(str(seed) for seed in SEEDS), "keys": {}}
+    path = Path(args.reads) / OUTPUT
+    key_reads.earlier_keys(path)
+    report = {"note": "R323. The key reads held against the categories of R311, the bytes of each key copy and a second read by id, seeds " + ", ".join(str(seed) for seed in SEEDS)
+                      + ". A run writes the keys it is given and keeps the other keys of the file.", "keys": {}}
     for code, job, old in args.key:
         if code not in copies:
             raise project_profile.ProfileError("answerKeys has no key " + code)
@@ -175,8 +178,10 @@ def main(argv=None):
             plan_from_past.check_key_file(settings, code, old_document.get("file"))
         references = rvt_info.read(folder / copies[code])["revitLinks"]
         report["keys"][code] = dict(check_key(document, old_document, references), job=job, secondRead=Path(old).name)
-    write_json(Path(args.reads) / OUTPUT, report)
-    for code, entry in report["keys"].items():
+    printed = report["keys"]
+    report["keys"] = key_reads.merged(path, printed)
+    write_json(path, report)
+    for code, entry in printed.items():
         categories = entry["categories"]
         links = entry["links"]
         print("%s: categories equal %s, bytes both %d of read %d and bytes %d, links by id %s, spot values within 1 mm %d of %d" % (

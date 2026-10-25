@@ -30,10 +30,12 @@ def by_name(values):
 
 
 def link_counts(links):
+    """R322. A link with no file names no file, and two names that differ only in case are one file, as Windows opens them."""
     if links is None:
         return None
+    files = {str(link["file"]).lower() for link in links if link.get("file") is not None}
     return {"instances": len(links), "withPlotNumber": sum(1 for link in links if link.get("plotNumber") is not None),
-            "files": len({link.get("file") for link in links}), "loaded": sum(1 for link in links if link.get("loaded") is True)}
+            "files": len(files), "loaded": sum(1 for link in links if link.get("loaded") is True)}
 
 
 def floor_counts(floors, settings_floors):
@@ -120,9 +122,31 @@ def key_entry(settings, reads, code, job):
     floors = plan_from_past.load_floors(settings, code)
     document = project_document(load(folder / (prefix + "prototypes.json")))
     plan_from_past.check_key_file(settings, code, document.get("file"))
-    return {"job": job, "file": (folder / (prefix + "prototypes.json")).name, "fileMb": round((folder / (prefix + "prototypes.json")).stat().st_size / 1048576.0, 2),
+    return {"job": job, "file": (folder / (prefix + "prototypes.json")).name, "fileMib": round((folder / (prefix + "prototypes.json")).stat().st_size / 1048576.0, 2),
             "errors": len(document.get("errors") or []), "counts": counts(document, floors),
             "window": window_facts(load(folder / (prefix + "run.json")), load(folder / (prefix + "log.json")))}
+
+
+def earlier_keys(path):
+    """R322, R323. The entries of the report a run before wrote, by key, so a run of one key leaves the others in the file. A file
+    that is no such report is refused and never written over."""
+    path = Path(path)
+    if not path.exists():
+        return {}
+    try:
+        data = load(path)
+    except ValueError as error:
+        raise ValueError(path.name + " is no JSON, it is left as it is: " + str(error))
+    if not isinstance(data, dict) or not isinstance(data.get("keys"), dict):
+        raise ValueError(path.name + " holds no keys of a report, it is left as it is")
+    return data["keys"]
+
+
+def merged(path, entries):
+    """The keys of the earlier report in their order with the entries of this run in place of their own, new keys at the end."""
+    keys = dict(earlier_keys(path))
+    keys.update(entries)
+    return keys
 
 
 def parse_pair(text):
@@ -152,9 +176,13 @@ def main(argv=None):
     refuse_repeats(parser, args.key)
     plot_relations.refuse_inside_repo(Path(args.reads))
     settings = project_profile.load_settings(args.settings)
-    report = {"note": "R322. Counts per answer key read, no coordinate or level. Floors by kind follow floors.types and floors.keyTypes (R321).",
-              "keys": {code: key_entry(settings, args.reads, code, job) for code, job in args.key}}
-    write_json(Path(args.reads) / OUTPUT, report)
+    path = Path(args.reads) / OUTPUT
+    earlier_keys(path)
+    entries = {code: key_entry(settings, args.reads, code, job) for code, job in args.key}
+    report = {"note": "R322. Counts per answer key read, no coordinate or level. Floors by kind follow floors.types and floors.keyTypes (R321). "
+                      "A run writes the keys it is given and keeps the other keys of the file.",
+              "keys": merged(path, entries)}
+    write_json(path, report)
     print(render(report))
     return 0
 
