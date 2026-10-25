@@ -163,3 +163,145 @@ def test_r339_the_key_rules_block_holds_each_level_rule_with_its_pass_limit_its_
     assert found["steps"]["rule"] == "stepsFromHeight"
     # SSL is in no key, a build gives the FFL plus levels.ground_ssl and says why
     assert found["ssl"]["rule"] == "fflPlusGroundSsl" and "no key holds SSL" in found["ssl"]["notMeasured"]
+
+
+# R340 a build by the level rules of keyRules
+LEVEL_RULES = {"entry": {"rule": "roadLevel"}, "rampFront": {"rule": "roadLevel"}, "levelSplit": {"rule": "units", "table": {"DP1 TH1 TH1 DP1": "middle"}},
+               "baseHeight": {"rule": "profile"}, "ffl": {"rule": "oneFflPerPieceAtTheHighestEntry"}, "steps": {"rule": "stepsFromHeight"},
+               "parameter RRE_ZZ_SP_Prototype-FFL": {"rule": "fflDownToTheCm"}}
+
+
+def level_build(tmp_path, monkeypatch, overrides=None, later=None, rules=None):
+    """A build by keyRules with the level rules on the made up row of test_addin_review, a villa and three DP2 units in no cluster, the
+    road rising 0.01 m every 12 m along the row, with the fields majority.overrideKeep leaves to a later phase as later."""
+    import argparse
+    from shapely.geometry import LineString, box
+    import plan_from_book
+    import plan_from_past
+    from test_addin_review import ROOT, made_key_rules, DP2, VD2
+    values = json.loads(json.dumps(SETTINGS.values))
+    values["majority"]["overrideKeep"]["laterFields"] = later if later is not None else {}
+    settings = project_profile.ProjectProfile(SETTINGS.path, values)
+    profile_values = json.loads(json.dumps(PROFILE.values))
+    profile_values["levelProfiles"]["parsons2024Rev6"]["keyRules"] = dict(made_key_rules(), **(LEVEL_RULES if rules is None else rules))
+    profile = project_profile.ProjectProfile(PROFILE.path, profile_values)
+    numbers = ["1", "2", "3", "4"]
+    units = {"1": "VD2", "2": "DP2", "3": "DP2", "4": "DP2"}
+    rows = {number: {"locationPlanNumber": number, "typologyRev9": units[number], "footprintMirrored": "no", "zone": "Zone 2", "roadLevelLeft": "", "roadLevelRight": ""}
+            for number in numbers}
+    faces = {number: box(index * 12.0, 0.0, index * 12.0 + 12.0, 25.0) for index, number in enumerate(numbers)}
+    roads = [LineString([(-50.0, -3.0), (100.0, -3.0)])]
+    monkeypatch.setattr(plan_from_book, "road_level", lambda surfaces, point, snap: (10.0 + 0.01 * point[0] / 12.0, "road"))
+    path = None
+    if overrides is not None:
+        path = tmp_path / "overrides.json"
+        path.write_text(json.dumps({"note": "n", "overrides": overrides}), encoding="utf-8")
+    args = argparse.Namespace(level_profile=None, overrides=None if path is None else str(path), override_source=None, override_model=[], override_fields=None)
+    found = plan_from_book.rule_inputs(args, settings, profile, numbers, rows, faces, roads, {}, [])
+    floors = plan_from_past.load_floors(settings)
+    site = {"levels": {floors["levels"][kind]: 0.0 for kind in ("generic", "yard", "ramp")}, "surveyPoint": {"position": [0, 0, 0], "sharedPosition": [0, 0, 0]},
+            "angleToTrueNorthDeg": 0.0}
+    outlines = json.loads((ROOT / "config" / "floor_outlines.json").read_text(encoding="utf-8"))
+    plan = plan_from_book.build(numbers, rows, {}, faces, roads, [], profile, settings, {"units": {}}, {"DP2": DP2, "VD2": VD2}, "folder", site, [("road", None)],
+                                outlines, "N1", {}, True, found)
+    return {item["plot"]: item for item in plan["plots"]}, plan
+
+
+def level_of(entry, name):
+    return entry["levels"][name]["value"]
+
+
+def test_r340_a_build_by_the_level_rules_gives_one_ffl_per_piece_to_the_mm_the_steps_of_the_base_and_risers_and_the_prototype_ffl(tmp_path, monkeypatch):
+    found, plan = level_build(tmp_path, monkeypatch)
+    # The row pairs from the right end: 3 and 4 share one FFL, 2 has no pair, the villa 1 stands alone
+    assert level_of(found["3"], "entry") == 10.0526 and level_of(found["4"], "entry") == 10.0626
+    assert level_of(found["3"], "ffl") == level_of(found["4"], "ffl") == 10.263 and level_of(found["2"], "ffl") == round(10.0426 + 0.2, 3)
+    assert level_of(found["3"], "height") == pytest.approx(0.2104) and level_of(found["3"], "steps") == 1 and level_of(found["3"], "ssl") == pytest.approx(10.188)
+    parameters = found["3"]["parameters"]
+    assert parameters["RRE_ZZ_SP_Prototype-FFL"]["value"] == "10.260" and parameters["RRE_ZZ_SP_Number-of-Steps"]["source"] == "keyRules"
+    assert plan["summary"]["rules"]["steps"]["from"] == "keyRules.steps stepsFromHeight of parsons2024Rev6"
+
+
+def test_r340_the_level_overrides_move_el_at_entry_and_the_ffl_onto_the_key_and_set_the_steps_and_the_prototype_ffl(tmp_path, monkeypatch):
+    from test_addin_review import entry
+    overrides = [entry("4", "entryM", {"gapToRuleM": 0.0013}, "parsons", "IMC.rvt", "imc"), entry("3", "heightM", {"gapToRuleM": -0.001}, "parsons", "IMC.rvt", "imc"),
+                 entry("2", "steps", "2", "parsons", "IMC.rvt", "imc"), entry("2", "parameter RRE_ZZ_SP_Prototype-FFL", {"gapToRuleM": 0.01}, "parsons", "IMC.rvt", "imc")]
+    found, plan = level_build(tmp_path, monkeypatch, overrides=overrides)
+    # El @ Entry moved by its gap at 4 decimals, the FFL of the pair follows it and the FFL of 3 is moved onto its key on top
+    assert level_of(found["4"], "entry") == 10.0639 and level_of(found["4"], "ffl") == 10.264 and level_of(found["3"], "ffl") == 10.263
+    assert level_of(found["3"], "height") == pytest.approx(10.263 - 10.0526) and level_of(found["3"], "ssl") == pytest.approx(10.188)
+    assert level_of(found["2"], "steps") == 2 and found["2"]["parameters"]["RRE_ZZ_SP_Number-of-Steps"]["value"] == "2"
+    assert found["2"]["parameters"]["RRE_ZZ_SP_Prototype-FFL"]["value"] == "10.250" and found["2"]["parameters"]["RRE_ZZ_SP_Prototype-FFL"]["source"] == "override"
+    assert plan["summary"]["rules"]["applied"] == {"entryM": 1, "heightM": 1, "parameter RRE_ZZ_SP_Prototype-FFL": 1, "steps": 1}
+
+
+def test_r340_a_level_rule_a_build_can_not_give_is_refused_and_a_profile_with_no_level_rules_builds_by_r278(tmp_path, monkeypatch):
+    from test_addin_review import made_key_rules
+    for word, bad in (("ffl", {"rule": "medianPerUnit"}), ("steps", {"rule": "typology", "table": {}}), ("entry", {"rule": "Top Surface-02"}),
+                      ("levelSplit", {"rule": "units"}), ("parameter RRE_ZZ_SP_Prototype-FFL", {"rule": "genericTop"})):
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_rules.check_key_rules(dict(made_key_rules(), **dict(LEVEL_RULES, **{word: bad})))
+        assert word in str(error.value)
+    found, plan = level_build(tmp_path, monkeypatch, rules={}, later={"parsons": ["entryM", "heightM", "steps", "parameter RRE_ZZ_SP_Prototype-FFL"]})
+    # No level rule in keyRules: the levels of R278, the steps of the step bands and no Prototype-FFL parameter
+    assert level_of(found["3"], "ffl") == round(10.0526 + 0.2, 3) and "RRE_ZZ_SP_Prototype-FFL" not in found["3"]["parameters"]
+    assert found["3"]["parameters"]["RRE_ZZ_SP_Number-of-Steps"]["source"] == "levelProfileStepBands"
+
+
+# R340 the proof holds the levels
+def proof_row(plot, entry_value, ffl, steps, front=None):
+    from test_build_proof import key_row
+    row = key_row(plot)
+    row.update(entry=entry_value, entrySource="schedule", ffl=ffl, height=round(ffl - entry_value, 4), steps=str(steps), rampFront=front, rampBack=None,
+               genericTop=ffl, yardTop=round(ffl - 0.1, 3))
+    return row
+
+
+def proof_plot(plot, entry_value, ffl, steps, prototype=None, front=(9.9, 9.9)):
+    from test_build_proof import built
+    found = built(plot, steps=steps)
+    found["levels"] = {"entry": {"value": entry_value}, "ffl": {"value": ffl}, "height": {"value": round(ffl - entry_value, 4)}, "steps": {"value": steps},
+                       "ssl": {"value": round(ffl - 0.075, 3)}}
+    shift = 12.0 * (int(plot) - 1)
+    found["floors"]["ramp"]["corners"]["value"] = [[1.0 + shift, 0.0, front[0]], [5.0 + shift, 0.0, front[1]], [5.0 + shift, 3.0, entry_value],
+                                                [1.0 + shift, 3.0, entry_value]]
+    found["floors"]["yard"]["z"]["value"] = round(ffl - 0.1, 3)
+    if prototype is not None:
+        found["parameters"]["RRE_ZZ_SP_Prototype-FFL"] = {"value": prototype}
+    return found
+
+
+def level_context(overrides=None):
+    import build_proof
+    block = dict(majority.load_block(SETTINGS), levelPassMm=0.5, levelBandsMm=[1, 5])
+    rules = dict(LEVEL_RULES, **{"parameter RRE_ZZ_SP_Number-of-Steps": {"rule": "steps", "table": {"1": "1", "2": "2"}}})
+    return build_proof.proof_context(block, {"prefix": "RRE-WP-NSP-KEO-", "discipline": "ARC"}, rules, overrides or {}, [])
+
+
+def test_r340_the_proof_holds_every_level_at_the_pass_limit_and_counts_what_is_unexplained_at_1_and_5_mm():
+    import build_proof
+    plan = {"plots": [proof_plot("1", 10.0, 10.1, 1, "10.100"), proof_plot("2", 10.0003, 10.101, 1, "10.100"), proof_plot("3", 10.0, 10.103, 1, "10.110")], "missing": []}
+    rows = [proof_row("1", 10.0, 10.1, 1, 9.9), proof_row("2", 10.0, 10.1, 1, 9.9), proof_row("3", 10.0, 10.1, 2, 9.9)]
+    reads = {("imx", "1"): {"RRE_ZZ_SP_Prototype-FFL": "10.100"}, ("imx", "2"): {"RRE_ZZ_SP_Prototype-FFL": "10.100"}, ("imx", "3"): {"RRE_ZZ_SP_Prototype-FFL": "10.100"}}
+    verdicts = build_proof.compare("imx", plan, rows, {"plots": []}, level_context(), reads)
+    found = {(item["plot"], item["field"]): item for item in verdicts}
+    assert {field for plot, field in found if plot == "1"} >= {"entry", "ffl", "height", "steps", "rampFront", "parameter RRE_ZZ_SP_Prototype-FFL"}
+    assert all(item["state"] == "holds" for (plot, _), item in found.items() if plot == "1")
+    # El @ Entry 0.3 mm off holds, the FFL 1 mm off does not, nor its height 0.7 mm off, the FFL 3 mm off holds at 5 mm only
+    assert found[("2", "entry")]["state"] == "holds" and found[("2", "ffl")]["state"] == "unexplained" and found[("2", "ffl")]["gapMm"] == pytest.approx(1.0)
+    assert found[("3", "steps")]["state"] == "unexplained" and found[("3", "parameter RRE_ZZ_SP_Prototype-FFL")]["state"] == "unexplained"
+    counted = build_proof.tally(verdicts)
+    assert counted["unexplainedLevelsByKey"] == {"imx": {"pass": 6, "1mm": 4, "5mm": 2}}
+
+
+def test_r340_an_override_the_build_could_not_place_explains_a_level_and_a_plot_with_no_road_level_is_explained_by_its_input():
+    import build_proof
+    overrides = {("imx", "2", "heightM"): {"value": {"gapToRuleM": -0.001}}, ("imx", "3", "entryM"): {"value": None}}
+    two = proof_plot("2", 10.0, 10.101, 1)
+    two["overrides"] = {"applied": [], "notApplied": {"heightM": "made up"}}
+    plan = {"plots": [two], "missing": [{"plot": "3", "written": False, "missing": [{"key": "levels.ffl", "why": "levels.py gives no FFL"}]},
+                                        {"plot": "4", "written": False, "missing": [{"key": "levels.ffl", "why": "levels.py gives no FFL"}]}],
+            "summary": {"plotsWithNoRoadLevel": ["3", "4"]}}
+    rows = [proof_row("2", 10.0, 10.1, 1), proof_row("3", 10.0, 10.1, 1), proof_row("4", 10.0, 10.1, 1)]
+    found = {(item["plot"], item["field"]): item["state"] for item in build_proof.compare("imx", plan, rows, {"plots": []}, level_context(overrides), {})}
+    assert found[("2", "ffl")] == "override" and found[("3", "written")] == "input" and found[("4", "written")] == "input"

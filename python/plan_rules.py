@@ -23,14 +23,19 @@ import project_profile
 
 FIELDS = ("mirrored", "rampType", "entryM", "heightM", "rampFrontM")
 # R337. The override fields a build by keyRules applies besides FIELDS, the link parameters by their field "parameter <name>"
-KEY_FIELDS = ("insert", "rotationDeg")
+KEY_FIELDS = ("insert", "rotationDeg", "steps")
 PARAMETER = "parameter "
 # R337. The candidates of majority.py a build can give: the hand factors, the factors of a parameter table, its formulas and levels
 HAND_FACTORS = ("all", "blockMirror", "clusterSide", "openEnd", "roadSide", "blockMirrorOpenEnd", "blockMirrorRoadSide", "rowPairSide",
                 "rowPairSideOrBlockMirrorOpenEnd")
 TABLE_FACTORS = ("all", "typology", "mirroredFactor", "typologyMirrored", "steps", "typologySteps")
 FORMULAS = ("plot", "rev9Code", "plotAndCode", "plotCodeStepsAndFacade")
-LEVEL_RULES = ("ffl",)
+LEVEL_RULES = ("ffl", "fflDownToTheCm")
+# R340. The level rules of keyRules a build carries out, optional, a profile with none builds the levels of R278
+LEVEL_WORDS = {"entry": ("roadLevel",), "rampFront": ("roadLevel",), "levelSplit": ("none", "units"), "baseHeight": ("profile", "typology"),
+               "ffl": ("oneFflPerPieceAtTheHighestEntry", "oneFflPerClusterAtTheHighestEntry", "ownEntryPlusBase"), "steps": ("stepsFromHeight", "stepBands")}
+# R340. The level rules a build needs once keyRules holds the FFL
+LEVEL_NEEDED = ("entry", "steps")
 # R337. The parameter rules that read the steps, which the stepBands of the level profile give until 3c codes the steps
 STEP_RULES = ("steps", "typologySteps", "plotCodeStepsAndFacade")
 NO_YARD = "noYard"
@@ -186,6 +191,32 @@ def check_key_rules(rules):
     for word, entry in rules.items():
         if word.startswith(PARAMETER):
             need(word, FORMULAS + LEVEL_RULES + TABLE_FACTORS, *(("table",) if (entry or {}).get("rule") in TABLE_FACTORS else ()))
+    # R340. The level rules are optional, a rule a build does not carry out refused, and the FFL needs El @ Entry and the steps
+    for word, allowed in LEVEL_WORDS.items():
+        if word in rules:
+            need(word, allowed, *(("table",) if (rules[word] or {}).get("rule") in ("units", "typology") else ()))
+    if "ffl" in rules:
+        for word in LEVEL_NEEDED:
+            if word not in rules:
+                raise project_profile.ProfileError("keyRules codes ffl and no %s, a build of the levels by keyRules needs both (R340)" % word)
+
+
+def key_levels_of(rules):
+    """R340. True when keyRules holds the level rules a build carries out, the FFL among them, else the levels are those of R278."""
+    return rules is not None and "ffl" in rules
+
+
+def key_pieces(rules, plots, roles, partners, units):
+    """R340. The plots that share one FFL by keyRules.ffl: the pieces of the coded split and the row pairs, the clusters whole, or
+    each plot alone."""
+    rule = rules["ffl"]["rule"]
+    if rule == "ownEntryPlusBase":
+        return {plot: [plot] for plot in plots}
+    split = rules.get("levelSplit") or {}
+    table = (split.get("table") or {}) if split.get("rule") == "units" else {}
+    if rule == "oneFflPerClusterAtTheHighestEntry":
+        return level_pieces(plots, roles, {}, units, {})
+    return level_pieces(plots, roles, partners, units, table)
 
 
 def unit_class(kind, role):
@@ -256,7 +287,7 @@ def key_parameters(rules, plot, code, mirrored, steps, ffl, facade, later):
                 values[word[len(PARAMETER):]] = str(found)
     formulas = {"plot": lambda: plot, "rev9Code": lambda: code, "plotAndCode": lambda: plot + " | " + code,
                 "plotCodeStepsAndFacade": lambda: " | ".join([plot, code, str(step)] + [values.get(name) or "" for name in facade]),
-                "ffl": lambda: None if ffl is None else "%.3f" % ffl}
+                "ffl": lambda: None if ffl is None else "%.3f" % ffl, "fflDownToTheCm": lambda: prototype_ffl("fflDownToTheCm", ffl)}
     for word in words:
         entry = rules[word]
         if entry["rule"] in formulas:
