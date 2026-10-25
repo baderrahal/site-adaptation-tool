@@ -32,6 +32,8 @@ import yard_rule
 from common import write_json
 
 OUTPUT = "key_join.json"
+# R325. keyPlans.minShare is under a thousandth, so it is written to 4 decimals (R2)
+WIDE_SETTINGS = frozenset({"minShare"})
 JOINED = "joined"
 KINDS = ("link", "generic", "ramp")
 
@@ -259,6 +261,7 @@ def main(argv=None):
     where = places(faces, numbers, many, area, key_cover.labels_by_number(args.labels), share_min, min_share)
     path = out / OUTPUT
     key_reads.earlier_keys(path)
+    settings_run = {"cutShareMin": share_min, "minShare": min_share}
     entries = {}
     for code, job in args.key:
         floors = plan_from_past.load_floors(settings, code)
@@ -267,13 +270,18 @@ def main(argv=None):
         joined = join_plots(document, floors, where)
         entries[code] = {"job": job, "join": joined, "place": place_check(document, floors, where), "areaRow": area_row(code, key_source(settings, code), joined),
                          "inputs": {"baseplan": Path(args.baseplan).name, "labels": Path(args.labels).name, "plots": Path(args.plots).name},
-                         "settings": {"cutShareMin": share_min, "minShare": min_share}}
+                         "settings": dict(settings_run)}
+    try:
+        keys = key_reads.merged_settings(path, entries, settings_run, WIDE_SETTINGS)
+    except ValueError as error:
+        parser.error(str(error))
     report = {"note": "R326. Each plot the links of a key name joined by the share of its generic floor on a baseplan face to the location plan "
                       "number, zone and NBH and the area key of plots.csv, and each link, generic floor and ramp held against the face it stands on. "
-                      "A run writes the keys it is given with the inputs and the share it ran with and keeps the other keys of the file.",
-              "keys": key_reads.merged(path, entries)}
+                      "A run writes the keys it is given with the inputs and the shares it ran with and keeps the other keys of the file, only when "
+                      "they hold the same shares.",
+              "keys": keys}
     out.mkdir(parents=True, exist_ok=True)
-    write_json(path, report)
+    write_json(path, report, WIDE_SETTINGS)
     for code, entry in entries.items():
         print(render(code, entry))
     return 0

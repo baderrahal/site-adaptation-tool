@@ -27,6 +27,8 @@ import ramp_levels
 from common import write_json
 
 OUTPUT = "entry_spots.json"
+# R327. keyPlans.flatTopM is under a thousandth, so it is written to 4 decimals (R2)
+WIDE_SETTINGS = frozenset({"flatTopM"})
 SURVEY_BASE = "Survey Point"
 SLACK = 1e-7
 SOURCES = ("key", "schedule")
@@ -223,6 +225,7 @@ def main(argv=None):
     joined = key_reads.load(args.join)["keys"] if args.join else {}
     path = out / OUTPUT
     key_reads.earlier_keys(path)
+    settings_run = {key: block[key] for key in ("radiiM", "cornerM", "bandsM", "entryParameter", "entryHeightM", "flatTopM")}
     entries = {}
     for code, job in args.key:
         floors = plan_from_past.load_floors(settings, code)
@@ -233,15 +236,19 @@ def main(argv=None):
         if schedule and code not in joined:
             parser.error("the join " + str(args.join) + " holds no key " + code)
         entries[code] = dict(key_entry(document, floors, block, own, numbers), job=job,
-                             settings={key: block[key] for key in ("radiiM", "cornerM", "bandsM", "entryParameter", "entryHeightM", "flatTopM")},
+                             settings=dict(settings_run),
                              inputs={"plots": Path(args.plots).name if args.plots else None, "join": Path(args.join).name if args.join else None})
+    try:
+        keys = key_reads.merged_settings(path, entries, settings_run, WIDE_SETTINGS)
+    except ValueError as error:
+        parser.error(str(error))
     report = {"note": "R327. Per answer key the spots of its own floors within each radius of the entrance point of each plot, the middle of the "
                       "higher long edge of its ramp (R94), and the spots at the two corners of that edge, against El @ Entry of the key and of the "
                       "schedule of its job by official number. A run writes the keys it is given with the settings it ran with and keeps the other "
-                      "keys of the file.",
-              "keys": key_reads.merged(path, entries)}
+                      "keys of the file, only when they hold the same settings.",
+              "keys": keys}
     out.mkdir(parents=True, exist_ok=True)
-    write_json(path, report)
+    write_json(path, report, WIDE_SETTINGS)
     for code, entry in entries.items():
         print(render(code, entry))
     return 0

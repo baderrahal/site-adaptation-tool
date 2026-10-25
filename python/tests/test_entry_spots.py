@@ -155,19 +155,29 @@ def spot_settings(tmp_path, name, radii):
     return path
 
 
-def test_r327_each_key_keeps_the_settings_it_was_run_with_so_a_later_run_with_others_leaves_it_as_it_was(tmp_path):
+def test_r327_each_key_keeps_the_settings_it_was_run_with_and_a_run_at_other_settings_must_rerun_every_key_of_the_file(tmp_path):
     reads = tmp_path / "reads"
     for code, job in (("IMX", "KX"), ("IMY", "KY")):
         (reads / job).mkdir(parents=True)
         doc = dict(document([ramp("501", 0, 1), generic("501", 0, 6.1)], [spot(11, 0, 5, 6.1, host=1)]), file="X-" + code + "_TEST-" + job)
         (reads / job / ("testhost_" + job + "_prototypes.json")).write_text(json.dumps({"documents": [doc]}), encoding="utf-8")
     out = tmp_path / "spots"
-    assert entry_spots.main(["--settings", str(spot_settings(tmp_path, "a.json", [0.5, 6.0])), "--reads", str(reads), "--key", "IMX=KX", "--out", str(out)]) == 0
-    assert entry_spots.main(["--settings", str(spot_settings(tmp_path, "b.json", [0.5, 4.0])), "--reads", str(reads), "--key", "IMY=KY", "--out", str(out)]) == 0
+    run = lambda name, radii, *keys: entry_spots.main(["--settings", str(spot_settings(tmp_path, name, radii)), "--reads", str(reads)]
+                                                       + [part for key in keys for part in ("--key", key)] + ["--out", str(out)])
+    assert run("a.json", [0.5, 6.0], "IMX=KX") == 0
+    assert run("a.json", [0.5, 6.0], "IMY=KY") == 0
     report = json.loads((out / entry_spots.OUTPUT).read_text(encoding="utf-8"))
     assert "settings" not in report
-    assert report["keys"]["IMX"]["settings"]["radiiM"] == [0.5, 6.0] and report["keys"]["IMY"]["settings"]["radiiM"] == [0.5, 4.0]
+    assert report["keys"]["IMX"]["settings"]["radiiM"] == [0.5, 6.0] and report["keys"]["IMY"]["settings"]["radiiM"] == [0.5, 6.0]
     assert set(report["keys"]["IMX"]["plots"]["501"]["near"]) == {"0.5", "6.0"}
+    # IMY alone at other radii would leave the file with keys of two settings, it is refused and the file stays as it was
+    before = (out / entry_spots.OUTPUT).read_bytes()
+    with pytest.raises(SystemExit):
+        run("b.json", [0.5, 4.0], "IMY=KY")
+    assert (out / entry_spots.OUTPUT).read_bytes() == before
+    assert run("b.json", [0.5, 4.0], "IMX=KX", "IMY=KY") == 0
+    report = json.loads((out / entry_spots.OUTPUT).read_text(encoding="utf-8"))
+    assert {code: entry["settings"]["radiiM"] for code, entry in report["keys"].items()} == {"IMX": [0.5, 4.0], "IMY": [0.5, 4.0]}
 
 
 def test_r327_a_run_with_the_schedule_needs_the_join_to_find_the_official_number(tmp_path):

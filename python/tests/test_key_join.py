@@ -401,15 +401,24 @@ def join_inputs(tmp_path, name, share):
     return ["--settings", str(settings), "--reads", str(reads), "--baseplan", str(baseplan), "--labels", str(labels), "--plots", str(plots)]
 
 
-def test_r326_each_key_of_the_join_keeps_the_inputs_and_the_share_it_was_run_with(tmp_path):
+def test_r326_each_key_of_the_join_keeps_the_inputs_and_the_share_it_was_run_with_and_a_run_at_other_settings_must_rerun_every_key(tmp_path):
     out = tmp_path / "join"
     assert key_join.main(join_inputs(tmp_path, "a", 0.9) + ["--key", "IMX=KX", "--out", str(out)]) == 0
-    assert key_join.main(join_inputs(tmp_path, "b", 0.8) + ["--key", "IMY=KY", "--out", str(out)]) == 0
+    assert key_join.main(join_inputs(tmp_path, "b", 0.9) + ["--key", "IMY=KY", "--out", str(out)]) == 0
     report = json.loads((out / key_join.OUTPUT).read_text(encoding="utf-8"))
     assert "inputs" not in report
     assert report["keys"]["IMX"]["inputs"]["plots"] == "a_plots.csv" and report["keys"]["IMX"]["settings"] == {"cutShareMin": 0.9, "minShare": 0.001}
-    assert report["keys"]["IMY"]["inputs"]["plots"] == "b_plots.csv" and report["keys"]["IMY"]["settings"] == {"cutShareMin": 0.8, "minShare": 0.001}
+    assert report["keys"]["IMY"]["inputs"]["plots"] == "b_plots.csv" and report["keys"]["IMY"]["settings"] == {"cutShareMin": 0.9, "minShare": 0.001}
     assert report["keys"]["IMX"]["join"]["counts"]["joined"] == 2
+    # A run of one key at another share would leave IMX at 0.9 beside IMY at 0.8 in one file, so it is refused and the file stays as it was
+    before = (out / key_join.OUTPUT).read_bytes()
+    with pytest.raises(SystemExit):
+        key_join.main(join_inputs(tmp_path, "c", 0.8) + ["--key", "IMY=KY", "--out", str(out)])
+    assert (out / key_join.OUTPUT).read_bytes() == before
+    # A run of every key of the file at the new share is written
+    assert key_join.main(join_inputs(tmp_path, "c", 0.8) + ["--key", "IMX=KX", "--key", "IMY=KY", "--out", str(out)]) == 0
+    report = json.loads((out / key_join.OUTPUT).read_text(encoding="utf-8"))
+    assert {code: entry["settings"]["cutShareMin"] for code, entry in report["keys"].items()} == {"IMX": 0.8, "IMY": 0.8}
 
 
 def test_r326_the_real_settings_put_the_seven_answer_keys_in_the_parsons_job_with_a_parsons_dialect():

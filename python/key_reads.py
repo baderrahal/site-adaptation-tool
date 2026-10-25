@@ -14,7 +14,7 @@ from pathlib import Path
 import plan_from_past
 import plot_relations
 import project_profile
-from common import write_json
+from common import round_tree, write_json
 
 OUTPUT = "key_reads.json"
 NO_KIND = "none"
@@ -198,6 +198,18 @@ def merged(path, entries):
     keys = dict(earlier_keys(path))
     keys.update(entries)
     return keys
+
+
+def merged_settings(path, entries, settings, wide_keys=frozenset()):
+    """R326, R327. merged, when every key of the earlier report this run leaves as it is holds the settings of this run, as the report writes
+    them with wide_keys at 4 decimals (R2). Else it is refused with the keys that differ, so one file never holds keys measured at two
+    settings: rerun every key or write to another folder."""
+    written = round_tree(settings, wide_keys)
+    differ = sorted(code for code, entry in earlier_keys(path).items() if code not in entries and entry.get("settings") != written)
+    if differ:
+        raise ValueError(Path(path).name + " holds " + ", ".join(differ) + " run with other settings than " + str(settings)
+                         + ", give every key of the file to run them again or write to another folder")
+    return merged(path, entries)
 
 
 def parse_pair(text):
