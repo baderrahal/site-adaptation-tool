@@ -117,8 +117,9 @@ def test_r312_a_copy_whose_source_is_not_the_one_of_the_config_is_refused(tmp_pa
     assert found["IMC"]["verdict"] == "remake" and found["IMC"]["reasons"] == ["otherSource"]
     assert found["IMC"]["request"]["copyFrom"] == str(root / "00_Revit Models" / "Zone 02" / "ARC" / ORIGINAL_C)
     assert found["IMC"]["request"]["spec"]["source"] == str(tmp_path / "work" / ORIGINAL_C)
-    # The same source written in another case or with / is the same file on Windows
-    entries[1] = entry(root, "IMC", MODEL_C, "00_REVIT MODELS/zone 02/arc/" + ORIGINAL_C)
+    # The same source written in another case or with / is the same file on Windows. Its hash is read from the path as it is on
+    # disk, since the runner of the gate matches names in their case
+    entries[1] = entry(root, "IMC", MODEL_C, "00_REVIT MODELS/zone 02/arc/" + ORIGINAL_C, source_hash=digest(root / "00_Revit Models" / "Zone 02" / "ARC" / ORIGINAL_C))
     write_manifest(root, entries)
     assert verdicts(root, tmp_path)["IMC"]["verdict"] == "reuse"
 
