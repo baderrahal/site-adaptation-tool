@@ -82,7 +82,13 @@ def test_r62_the_rev_6_block_holds_the_new_values_and_no_code_reads_it_yet():
     assert profile.metres("ramp.front_setback.default") == 5.52 and profile.metres("ramp.front_setback.C10") == 5.5
     assert profile.get("steps.one_step_only") == ["C10", "VL4", "VL6"]
     python_files = [path for path in (ROOT / "python").glob("*.py")]
-    assert [path.name for path in python_files if "rev6" in path.read_text(encoding="utf-8")] == []
+    # Since Round ADDIN 3a the wall top rule of R335 and its second method read rev6.boundary_wall_top_above_ffl, nothing else reads the block
+    readers = [path.name for path in python_files if "rev6" in path.read_text(encoding="utf-8")]
+    assert readers == ["key_rules.py", "key_rules_check.py"]
+    for name in readers:
+        text = (ROOT / "python" / name).read_text(encoding="utf-8")
+        assert all(text[at:].startswith("rev6.boundary_wall_top_above_ffl") or text[at:].startswith('rev6"]["boundary_wall_top_above_ffl')
+                   for at in [index for index in range(len(text)) if text.startswith("rev6", index)])
 
 
 def test_r62_the_profile_steps_keep_riser_height_null_and_hold_the_legend_the_count_rule_and_the_base_heights():

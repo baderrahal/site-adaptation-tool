@@ -215,8 +215,8 @@ def test_r272_a_formula_is_judged_within_the_level_hold_and_a_level_miss_goes_to
     result, _ = majority.decide("parsons entry", items, lambda it: it["value"], {"road": lambda it: 10.0}, lambda it: it["group"], 0.9, hold)
     assert result["tests"]["road"]["holds"] == 1
     listed = majority.overrides([{"decision": "parsons entry", "field": "entryM", "plot": "2", "key": "imc", "code": "VD2", "value": 10.02, "rule": 10.0,
-                                  "state": "breaks", "reason": "breaks road"}], {"overrideDecisions": ["entry"]}, {"imc": "IMC.rvt"})
-    assert listed[0]["value"] == {"gapToRuleM": 0.02} and listed[0]["source"] == "IMC.rvt" and listed[0]["rule"] is None
+                                  "state": "breaks", "reason": "breaks road"}], {"overrideDecisions": ["entry"], "groups": {"parsons": ["imc"]}}, {"imc": "IMC.rvt"})
+    assert listed[0]["value"] == {"gapToRuleM": 0.02} and listed[0]["source"] == "parsons" and listed[0]["model"] == "IMC.rvt" and listed[0]["rule"] is None
 
 
 def test_r272_the_override_list_is_written_one_override_per_line(tmp_path):
@@ -231,7 +231,7 @@ def test_r271_side_neighbours_lie_left_or_right_seen_from_the_road_and_the_row_p
     faces = {str(n): box(n * 10, 0, n * 10 + 10, 25) for n in range(3)}
     frames = {plot: {"r": (1.0, 0.0), "n": (0.0, 1.0)} for plot in faces}
     found = majority.side_neighbours(list(faces), faces, frames, 0.5, 25.0)
-    assert found["1"] == {"left": ["0"], "right": ["2"]}
+    assert {side: found["1"][side] for side in ("left", "right")} == {"left": ["0"], "right": ["2"]} and found["1"]["framed"] is True
     assert majority.row_place("2", found) == (2, 3)
     assert majority.band(0.3, [[0.205, "1"], [0.38, "2"], [99.0, "3"]]) == "2"
 
@@ -297,11 +297,11 @@ def test_r279_a_villa_takes_its_hand_from_the_block_mirror_and_open_end_then_the
 def test_r280_only_the_overrides_of_the_source_model_apply_and_a_level_override_is_its_gap(tmp_path):
     path = tmp_path / "overrides.json"
     path.write_text(_json.dumps({"note": "n", "overrides": [
-        {"plot": "1", "field": "entryM", "value": {"gapToRuleM": 0.02}, "source": "IMC.rvt"},
-        {"plot": "1", "field": "mirrored", "value": True, "source": "NATIVE.rvt"},
-        {"plot": "2", "field": "rampType", "value": "flat", "source": "IMC.rvt"},
-        {"plot": "2", "field": "parameter CASE", "value": "F", "source": "IMC.rvt"}]}), encoding="utf-8")
-    found = plan_rules.load_overrides(path, {"IMC.rvt"})
+        {"plot": "1", "field": "entryM", "value": {"gapToRuleM": 0.02}, "source": "parsons", "model": "IMC.rvt", "key": "imc"},
+        {"plot": "1", "field": "mirrored", "value": True, "source": "native", "model": "NATIVE.rvt", "key": "u12"},
+        {"plot": "2", "field": "rampType", "value": "flat", "source": "parsons", "model": "IMC.rvt", "key": "imc"},
+        {"plot": "2", "field": "parameter CASE", "value": "F", "source": "parsons", "model": "IMC.rvt", "key": "imc"}]}), encoding="utf-8")
+    found = plan_rules.load_overrides(path, {"parsons"}, models={"IMC.rvt"})
     assert found == {"1": {"entryM": {"gapToRuleM": 0.02}}, "2": {"rampType": "flat"}}
     assert plan_rules.gap_of(found["1"]["entryM"]) == 0.02 and plan_rules.gap_of(None) is None
     assert plan_rules.slope_class(0.5) == "0.5" and plan_rules.slope_class(0) == "flat"
@@ -327,9 +327,10 @@ def test_r281_the_second_method_has_its_own_ray_cast_shoelace_outline_text_and_b
 
 def test_r280_a_build_may_take_only_some_fields_of_the_overrides(tmp_path):
     path = tmp_path / "overrides.json"
-    path.write_text(_json.dumps({"note": "n", "overrides": [{"plot": "1", "field": "entryM", "value": {"gapToRuleM": 0.02}, "source": "NATIVE.rvt"},
-                                                             {"plot": "1", "field": "mirrored", "value": True, "source": "NATIVE.rvt"}]}), encoding="utf-8")
-    assert plan_rules.load_overrides(path, {"NATIVE.rvt"}, ("entryM", "heightM")) == {"1": {"entryM": {"gapToRuleM": 0.02}}}
+    path.write_text(_json.dumps({"note": "n", "overrides": [
+        {"plot": "1", "field": "entryM", "value": {"gapToRuleM": 0.02}, "source": "native", "model": "NATIVE.rvt", "key": "u12"},
+        {"plot": "1", "field": "mirrored", "value": True, "source": "native", "model": "NATIVE.rvt", "key": "u12"}]}), encoding="utf-8")
+    assert plan_rules.load_overrides(path, {"native"}, ("entryM", "heightM")) == {"1": {"entryM": {"gapToRuleM": 0.02}}}
 
 
 def test_r282_a_key_hand_is_turned_where_its_old_file_is_drawn_the_other_hand_and_another_unit_is_counted_apart():

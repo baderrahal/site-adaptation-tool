@@ -65,7 +65,7 @@ def test_r277_the_default_key_is_never_taken_as_a_profile_name():
 
 def test_r277_plan_from_book_takes_the_default_profile_when_no_level_profile_is_given():
     args = argparse.Namespace(level_profile=None, overrides=None, override_source=[], override_fields=None)
-    rules = plan_from_book.rule_inputs(args, project_profile.load_settings(), real_profile(), [], {}, {}, [], None)
+    rules = plan_from_book.rule_inputs(args, project_profile.load_settings(), real_profile(), [], {}, {}, [], {})
     assert rules["name"] == "parsons2024Rev6"
     assert rules["levelProfile"]["height"] == "oneFflPerClusterAtTheHighestEntry"
     named = plan_from_book.rule_inputs(argparse.Namespace(level_profile="native2022", overrides=None, override_source=[], override_fields=None),
@@ -74,7 +74,8 @@ def test_r277_plan_from_book_takes_the_default_profile_when_no_level_profile_is_
 
 
 SUMMARY = {"written": 0, "plots": 0, "missingByKey": {}, "inACluster": 0, "clusters": 0, "clusterPlots": 0, "roadSurfacesOfFrontCorners": {},
-           "plotsWithNoRoadLevel": [], "frontLevelAgainstPlotsCsv": {}, "frontRule": {}, "floorsFound": {}, "floorTypes": {}}
+           "plotsWithNoRoadLevel": [], "frontLevelAgainstPlotsCsv": {}, "frontRule": {}, "floorsFound": {}, "floorTypes": {},
+           "rules": {"keyRules": False, "laterFields": [], "overridesNotApplied": {}, "yardNotMeasured": {}}}
 
 
 def run_book(tmp_path, monkeypatch, extra):
@@ -92,6 +93,7 @@ def run_book(tmp_path, monkeypatch, extra):
     monkeypatch.setattr(plan_from_book.floor_fit, "load", lambda path: {})
     monkeypatch.setattr(plan_from_book.prototype_offsets, "load", lambda path: {})
     monkeypatch.setattr(plan_from_book.prototype_offsets, "plot_frame", lambda offsets: {})
+    monkeypatch.setattr(plan_from_book.corner_front, "sales_rows", lambda path, sheet, column: {})
 
     def build(*args):
         seen["rules"] = args[-1]
@@ -103,16 +105,16 @@ def run_book(tmp_path, monkeypatch, extra):
     analysis = tmp_path / "analysis.json"
     analysis.write_text(json.dumps({"clusters": []}), encoding="utf-8")
     argv = [str(cover), "--plots-csv", "p.csv", "--landxml", "x", "--site", "s.json", "--baseplan", "b.json", "--roads", "r", "--analysis", str(analysis),
-            "--scratch", str(tmp_path), "--out", str(tmp_path / "plan.json")] + extra
+            "--scratch", str(tmp_path), "--sales", "s.xlsx", "--out", str(tmp_path / "plan.json")] + extra
     return plan_from_book.main(argv), seen
 
 
 def overrides_file(tmp_path):
-    """Two overrides of each job, with the source models and keys the real override list uses."""
+    """One override of each job, with the jobs, source models and keys the real override list uses (R330)."""
     path = tmp_path / "overrides.json"
     path.write_text(json.dumps({"note": "n", "overrides": [
-        {"plot": "1", "field": "entryM", "value": {"gapToRuleM": 0.02}, "source": "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt", "key": "u12"},
-        {"plot": "2", "field": "rampType", "value": "flat", "source": "01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt", "key": "imc"}]}), encoding="utf-8")
+        {"plot": "1", "field": "entryM", "value": {"gapToRuleM": 0.02}, "source": "native", "model": "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt", "key": "u12"},
+        {"plot": "2", "field": "rampType", "value": "flat", "source": "parsons", "model": "01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt", "key": "imc"}]}), encoding="utf-8")
     return path
 
 
@@ -128,36 +130,35 @@ def test_r277_r279_a_build_that_names_no_profile_gets_the_default_profile_and_th
 
 def test_r280_overrides_of_a_native_model_are_refused_on_the_default_parsons_build_through_main(tmp_path, monkeypatch, capsys):
     path = overrides_file(tmp_path)
-    code, seen = run_book(tmp_path, monkeypatch, ["--overrides", str(path), "--override-source", "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt"])
+    code, seen = run_book(tmp_path, monkeypatch, ["--overrides", str(path), "--override-source", "native", "--override-model", "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt"])
     err = capsys.readouterr().err
     assert code == 2 and "rules" not in seen
-    assert "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt" in err and "native" in err and "parsons2024Rev6" in err and "parsons" in err
+    assert "native" in err and "parsons2024Rev6" in err and "parsons" in err
 
 
 def test_r280_overrides_apply_when_the_source_has_the_job_of_the_level_profile_through_main(tmp_path, monkeypatch, capsys):
     path = overrides_file(tmp_path)
-    code, seen = run_book(tmp_path, monkeypatch, ["--level-profile", "native2022", "--overrides", str(path),
-                                                  "--override-source", "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt"])
+    code, seen = run_book(tmp_path, monkeypatch, ["--level-profile", "native2022", "--overrides", str(path), "--override-source", "native",
+                                                  "--override-model", "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt"])
     assert code == 0, capsys.readouterr().err
     assert seen["rules"]["overrides"] == {"1": {"entryM": {"gapToRuleM": 0.02}}}
-    code, seen = run_book(tmp_path, monkeypatch, ["--overrides", str(path), "--override-source", "01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt"])
+    code, seen = run_book(tmp_path, monkeypatch, ["--overrides", str(path), "--override-model", "01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt"])
     assert code == 0 and seen["rules"]["overrides"] == {"2": {"rampType": "flat"}}
-    code, seen = run_book(tmp_path, monkeypatch, ["--level-profile", "native2022", "--overrides", str(path),
-                                                  "--override-source", "01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt"])
+    code, seen = run_book(tmp_path, monkeypatch, ["--level-profile", "native2022", "--overrides", str(path), "--override-source", "native",
+                                                  "--override-model", "01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt"])
     assert code == 2 and "rules" not in seen
 
 
-@pytest.mark.parametrize("extra", [[], ["--override-source"]])
-def test_r280_overrides_with_no_override_source_are_refused_through_main_and_never_applied_as_none(tmp_path, monkeypatch, capsys, extra):
+def test_r280_an_override_source_named_with_no_source_is_refused_through_main_and_never_applied_as_none(tmp_path, monkeypatch, capsys):
     path = overrides_file(tmp_path)
-    code, seen = run_book(tmp_path, monkeypatch, ["--overrides", str(path)] + extra)
+    code, seen = run_book(tmp_path, monkeypatch, ["--overrides", str(path), "--override-source"])
     err = capsys.readouterr().err
     assert code == 2 and "rules" not in seen
-    assert "--override-source" in err and "R280" in err
+    assert "--override-source" in err and "R330" in err
 
 
-@pytest.mark.parametrize("extra", [["--override-source", "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt"], ["--overrides", ""], ["--overrides", "  "],
-                                   ["--overrides", "", "--override-source", "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt"]])
+@pytest.mark.parametrize("extra", [["--override-source", "native"], ["--override-model", "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt"], ["--overrides", ""],
+                                   ["--overrides", "  "], ["--overrides", "", "--override-source", "native"]])
 def test_r280_an_override_source_with_no_override_list_or_an_empty_list_name_is_refused_through_main(tmp_path, monkeypatch, capsys, extra):
     code, seen = run_book(tmp_path, monkeypatch, ["--level-profile", "native2022"] + extra)
     err = capsys.readouterr().err
@@ -165,16 +166,11 @@ def test_r280_an_override_source_with_no_override_list_or_an_empty_list_name_is_
     assert "--overrides" in err and "R280" in err
 
 
-def test_r280_the_job_of_a_source_comes_from_the_keys_of_its_overrides_and_majority_groups():
-    groups = project_profile.load_settings().get("majority.groups")
-    rows = [{"source": "a.rvt", "key": "u12"}, {"source": "b.rvt", "key": "imc"}, {"source": "c.rvt", "key": "u11"}, {"source": "c.rvt", "key": "imc"},
-            {"source": "d.rvt", "key": "zz"}]
-    assert plan_rules.source_jobs(rows, {"a.rvt", "b.rvt"}, groups) == {"a.rvt": "native", "b.rvt": "parsons"}
-    for source in ("c.rvt", "d.rvt", "e.rvt"):
-        with pytest.raises(project_profile.ProfileError):
-            plan_rules.source_jobs(rows, {source}, groups)
+def test_r280_each_level_profile_names_the_job_whose_overrides_it_applies():
     real = real_profile()
     assert {name: plan_rules.level_profile(real, name)["job"] for name in ("parsons2024Rev6", "native2022")} == {"parsons2024Rev6": "parsons", "native2022": "native"}
+    with pytest.raises(project_profile.ProfileError):
+        plan_rules.check_override_jobs("parsons2024Rev6", plan_rules.level_profile(real, "parsons2024Rev6"), {"native"})
 
 
 # R300 the villa blocks come from the Building Footprint, R06_0000 and R06_0001 are reference only

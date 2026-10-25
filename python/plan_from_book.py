@@ -16,12 +16,14 @@ With the Rev 9 sales sheet the front of a plot with two or more road edges is th
 such a plot with no Orientation gets no front. The plots are those of cover.json, or every unit plot of a neighbourhood.
 With the footprint blocks the clusters are the plots that share one Building Footprint block, a duplex pair or a townhouse
 row, and a plot no such block joins to another keeps its cluster of the CAD analysis, less the plots a block took (R236).
+R337: a level profile with keyRules, parsons2024Rev6, builds the hands, link origin, ramp class, yard per zone, yard outline and
+link parameters by the rules measured on its answer keys and places their overrides, the Round 17 tables only for native2022.
 """
 import argparse
 import csv
 import json
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from shapely.strtree import STRtree
@@ -34,6 +36,7 @@ import common
 import data_book_retest
 import floor_fit
 import footprint_check
+import key_rules
 import landxml_reader
 import levels
 import link_summary
@@ -43,12 +46,17 @@ import plan_rules
 import plot_relations
 import project_profile
 import prototype_offsets
+import override_source
 import ramp_outline
 import surface_lookup
 import yard_rule
 
 ESTIMATE = "estimate"
 LOCATION = "locationPlan"
+OVERRIDE = "override"
+KEY_RULES = "keyRules"
+# R337. The source of a parameter that reads the steps, the stepBands of the level profile until 3c codes the steps
+STEP_BANDS = "levelProfileStepBands"
 sourced = plan_from_cad.sourced
 
 
@@ -159,6 +167,87 @@ def ramp_floor(builder, frame, corners, front, entry, slope, inputs, kind=None):
             "heightOffset": sourced(common.r3(min(heights) - elevation), ESTIMATE), "slopePercent": sourced(common.r3(slope), ESTIMATE)}
 
 
+def moved_link(builder, frame, overrides, number, outcomes):
+    """R337. An insert override moves the link origin by its gap to the rule in the link axes, X along the front and Y into the plot,
+    a rotation override turns the link by its gap in degrees. An override with no gap, or a plot with no link, is left with why."""
+    for field, word in (("insert", "gapToRuleM"), ("rotationDeg", "gapToRuleDeg")):
+        if field not in overrides:
+            continue
+        gap = overrides[field].get(word) if isinstance(overrides[field], dict) else None
+        if gap is None or frame is None or not builder.has(field) or not builder.has("mirrored"):
+            outcomes.left(number, field, NO_GAP if gap is None else "the face has no front frame" if frame is None else "the plot has no link")
+            continue
+        if field == "insert":
+            axis_x, axis_y = cad_links.link_axes(frame, builder.entry["mirrored"]["value"])
+            point = builder.entry["insert"]["value"]
+            moved = [common.r3(point[0] + gap[0] * axis_x[0] + gap[1] * axis_y[0]), common.r3(point[1] + gap[0] * axis_x[1] + gap[1] * axis_y[1])]
+            builder.entry["insert"] = sourced(moved + list(point[2:]), OVERRIDE)
+        else:
+            builder.entry["rotationDeg"] = sourced(plan_from_past.plan_rotation(builder.entry["rotationDeg"]["value"] + gap), OVERRIDE)
+        outcomes.applied(number, field)
+
+
+# R337. Why a build leaves an override of a field it never places
+NO_GAP = "the override holds no gap to the rule"
+LEFT = {"rampOutline": "an outline gap, a build places the ramp outline of R127", "yardOutline": "an outline gap, a build places the fitted yard outline",
+        "genericFloor": "an outline gap, a build places the whole face", "rampFrontFallM": "a ramp front fall is not applied (Q057)"}
+
+
+class Outcomes:
+    """R337, R280. What a build did with each override of each plot of the build: applied, or left with why, so the plan says it plot
+    by plot and the summary counts as applied only what a written plot took. An override of a plot of a cluster outside the build
+    that moved the El @ Entry or the FFL of its cluster is counted apart."""
+
+    def __init__(self, overrides, numbers, later, name):
+        self.overrides, self.numbers, self.later, self.name = overrides, set(numbers), set(later), name
+        self.done, self.why, self.outside = defaultdict(set), defaultdict(dict), Counter()
+
+    def applied(self, number, field):
+        if number in self.numbers:
+            self.done[number].add(field)
+        else:
+            self.outside[field] += 1
+
+    def left(self, number, field, why):
+        if number in self.numbers:
+            self.why[number].setdefault(field, why)
+
+    def plot(self, number, written, lacks):
+        """The applied and the left overrides of a plot, None for a plot with none."""
+        fields = self.overrides.get(number) or {}
+        if not fields:
+            return None
+        applied, left = [], {}
+        unwritten = "the plot is not written, it lacks " + ", ".join(lacks)
+        for field in sorted(fields):
+            if field in self.why[number]:
+                left[field] = self.why[number][field]
+            elif field in self.done[number]:
+                if written:
+                    applied.append(field)
+                else:
+                    left[field] = unwritten
+            elif field in LEFT:
+                left[field] = LEFT[field]
+            elif field in self.later:
+                left[field] = "left to 3c, majority.overrideKeep.laterFields"
+            elif not written:
+                left[field] = unwritten
+            else:
+                left[field] = "a build of %s does not apply the field" % self.name
+        return {"applied": applied, "notApplied": left}
+
+
+def not_applied_why(records):
+    """R337. The overrides a build left, by field and why, with the plots of each, so the summary says why as the plan says it."""
+    found = defaultdict(lambda: defaultdict(list))
+    for number, record in records.items():
+        for field, why in (record or {}).get("notApplied", {}).items():
+            found[field][why].append(number)
+    return {field: {why: {"plots": len(plots), "first": sorted(plots, key=link_summary.sort_key)[:10]} for why, plots in sorted(whys.items())}
+            for field, whys in sorted(found.items())}
+
+
 def level_values(builder, row):
     """R209. The levels of levels.py from the estimated El @ Entry, every one marked estimate. The link Z is the FFL."""
     if row is None or row["ffl"] is None:
@@ -208,38 +297,63 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     steep = set(block["steepUnits"])
     snap = block["snapM"]
     limits = cad_links.front_limits(profile, settings.get("analysis"))
+    # R337. A profile with keyRules builds the link origin by the fits per code measured on its keys, never the IMC fit of config
+    key = None if rules is None else rules.get("keyRules")
+    stepped = set() if key is None else plan_rules.step_parameters(key, rules["laterParameters"])
+    if key is not None:
+        frame_section = plan_rules.key_frame_section(key)
+        missing_zones = defaultdict(list)
+        for number in numbers:
+            row = rows.get(number) or {}
+            if row.get("typologyRev9") and (row.get("zone") or "") not in key["yard"]["table"]:
+                missing_zones[row.get("zone") or "no zone"].append(number)
+        if missing_zones:
+            raise project_profile.ProfileError("keyRules.yard holds no yard for %s, an area missing from the table is refused and never given another value (R337)"
+                                               % ", ".join("%s (%d plots, %s)" % (zone, len(plots), " ".join(plots[:5])) for zone, plots in sorted(missing_zones.items())))
     mine = [cluster for cluster in (clusters if numbered else numbered_clusters(clusters, number_of)) if set(cluster["plots"]) & set(numbers)]
     members = sorted({plot for cluster in mine for plot in cluster["plots"]} | set(numbers), key=link_summary.sort_key)
     front = fronts(members, rows, faces, roads, limits, surfaces, snap, profile, block.get("corner") if sales is not None else None, sales)
     frames = {number: item["frame"] for number, item in front.items()}
     roles = cad_links.cluster_roles(mine, 0, {number: item["face"] for number, item in front.items() if item["face"] is not None}, frames)
-    entries, slopes, applied = {}, {}, Counter()
+    entries, slopes = {}, {}
+    overrides = {} if rules is None else rules["overrides"]
+    outcomes = Outcomes(overrides, numbers, [] if rules is None else rules.get("laterFields") or [], "the estimate of R209" if rules is None else rules["name"])
     for number, item in front.items():
         if item["front"] is not None:
             if rules is None:
                 value, slope = entry_estimate(item["front"], item["unit"], profile, steep, item["depth"])
             else:
                 value, slope = plan_rules.entry_of(item["front"], item["unit"], rules["levelProfile"], item["depth"])
-                gap = plan_rules.gap_of(rules["overrides"].get(number, {}).get("entryM"))
+                gap = plan_rules.gap_of(overrides.get(number, {}).get("entryM"))
                 if gap is not None:
                     value += gap
-                    applied["entryM"] += 1
+                    outcomes.applied(number, "entryM")
+                elif "entryM" in overrides.get(number, {}):
+                    outcomes.left(number, "entryM", NO_GAP)
             entries[number] = {"unit": item["unit"], "entry": value}
             slopes[number] = slope
+        elif "entryM" in overrides.get(number, {}):
+            outcomes.left(number, "entryM", "no road level at a front corner, so no El @ Entry to move")
     if rules is None:
         level_rows = plan_from_cad.plot_levels(profile, mine, entries)
     else:
         level_rows = plan_rules.heights(entries, mine, rules["levelProfile"], profile)
         for number, row in level_rows.items():
-            gap = plan_rules.gap_of(rules["overrides"].get(number, {}).get("heightM"))
+            gap = plan_rules.gap_of(overrides.get(number, {}).get("heightM"))
             if gap is not None:
                 row["ffl"] = round(row["ffl"] + gap, 3)
                 row["ssl"] = round(row["ssl"] + gap, 3)
                 row["height"] = round(row["height"] + gap, 4)
                 row["steps"] = plan_rules.steps_of(row["height"], rules["levelProfile"])
-                applied["heightM"] += 1
+                outcomes.applied(number, "heightM")
+            elif "heightM" in overrides.get(number, {}):
+                outcomes.left(number, "heightM", NO_GAP)
+        for number in numbers:
+            if "heightM" in overrides.get(number, {}) and number not in level_rows:
+                outcomes.left(number, "heightM", "no FFL to move, " + ("no road level at a front corner" if front[number]["front"] is None else "the height rule gives none"))
     inputs = {"outlines": outlines, "step": floor_fit.width_step(settings), "levels": site["levels"], "floors": floors_config, "bands": outlines["rampTypes"]["bands"]}
     plots, missing, lacking, surface_count, no_level, book_check = [], [], Counter(), Counter(), [], Counter()
+    not_measured, not_measured_plots, records, hand_rules = {}, Counter(), {}, Counter()
     for number in numbers:
         item = front[number]
         builder = plan_from_past.PlotBuilder(number)
@@ -247,30 +361,59 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         if unit is None:
             # R230. A location plan number with no plots.csv row or no Typology_Rev9, such as a label sharing its face, is listed
             builder.lack("unit", "plots.csv holds no row or no Typology_Rev9 for the plot")
-            missing.append({"plot": number, "written": False, "missing": builder.missing})
+            records[number] = outcomes.plot(number, False, ["unit"])
+            missing.append({"plot": number, "written": False, "missing": builder.missing, **({"overrides": records[number]} if records[number] else {})})
             lacking.update(entry["key"] for entry in builder.missing)
             continue
         builder.entry["unit"] = sourced(unit, LOCATION)
-        hand, fit_unit = None, None
+        hand, fit_unit, override = None, None, None
+        mine_overrides = {} if rules is None else rules["overrides"].get(number, {})
         if rules is not None:
             keo = ((profile.get("typologies") or {}).get(unit) or {}).get("keo_file")
             fit_unit = unit if unit in frame_section["units"] else keo
-            sides = {code: {"drawnSide": value.get("drawnSide")} for code, value in frame_section["units"].items()}
-            kind = ((profile.get("typologies") or {}).get(unit) or {}).get("kind")
             block_mirror = {"yes": "yes", "no": "no"}.get(rows.get(number, {}).get("footprintMirrored"))
-            hand, rule = plan_rules.hand_of(unit, kind, roles.get(number), block_mirror, rules["openEnds"].get(number), rules["hands"],
-                                            cad_links.mirror_of(fit_unit or unit, roles.get(number), sides), keo)
-            override = rules["overrides"].get(number, {}).get("mirrored")
+            if key is not None:
+                # R337. The factor the coded hand rule of the keys names, looked up in the table of the file the plot links
+                factors = plan_rules.joined_factors({"all": "all", "blockMirror": block_mirror, "clusterSide": roles[number]["side"] if number in roles else "alone",
+                                                     "openEnd": rules["openEnds"].get(number), "roadSide": rules["roadSides"].get(number),
+                                                     "rowPairSide": rules["pairs"].get(number)})
+                hand, rule = plan_rules.key_hand(key, plan_rules.unit_class(rules["kinds"].get(number), roles.get(number)), files.get(unit), factors)
+            else:
+                sides = {code: {"drawnSide": value.get("drawnSide")} for code, value in frame_section["units"].items()}
+                kind = ((profile.get("typologies") or {}).get(unit) or {}).get("kind")
+                hand, rule = plan_rules.hand_of(unit, kind, roles.get(number), block_mirror, rules["openEnds"].get(number), rules["hands"],
+                                                cad_links.mirror_of(fit_unit or unit, roles.get(number), sides), keo)
+            override = mine_overrides.get("mirrored")
             if isinstance(override, bool):
                 hand, rule = override, "override"
-                applied["mirrored"] += 1
-            applied["hand " + str(rule)] += 1
+                outcomes.applied(number, "mirrored")
+            elif "mirrored" in mine_overrides:
+                outcomes.left(number, "mirrored", "the override holds no mirror flag")
         plan_from_cad.link_values(builder, unit, item["face"], item["frame"], roles.get(number), frame_section, files, hand, fit_unit)
+        if key is not None:
+            if isinstance(override, bool) and builder.has("mirrored"):
+                builder.entry["mirrored"]["source"] = OVERRIDE
+            moved_link(builder, item["frame"], mine_overrides, number, outcomes)
         level_values(builder, level_rows.get(number))
         steps = builder.entry["levels"].get("steps", {}).get("value")
-        builder.entry["parameters"] = {plan_from_past.PLOT_PARAMETER: sourced(number, LOCATION), plan_from_past.UNIT_PARAMETER: sourced(unit, LOCATION)}
-        if steps is not None:
-            builder.entry["parameters"][plan_from_past.STEPS_PARAMETER] = sourced(str(steps), ESTIMATE)
+        if key is not None:
+            # R337. The link parameters by the parameter rules of the keys, those left to a later phase not written, then their overrides
+            mirrored = builder.entry["mirrored"]["value"] if builder.has("mirrored") else None
+            values, lacking_parameters = plan_rules.key_parameters(key, number, unit, mirrored, steps, builder.entry["levels"].get("ffl", {}).get("value"),
+                                                                   rules["facade"], rules["laterParameters"])
+            builder.entry["parameters"] = {name: sourced(value, STEP_BANDS if name in stepped else KEY_RULES) for name, value in values.items()}
+            for name in lacking_parameters:
+                builder.lack("parameters." + name, "the rule of keyRules gives no value for " + unit + (" mirrored" if mirrored else ""))
+            for field, value in mine_overrides.items():
+                if field.startswith(plan_rules.PARAMETER) and field not in rules["laterParameters"]:
+                    builder.entry["parameters"][field[len(plan_rules.PARAMETER):]] = sourced(str(value), OVERRIDE)
+                    outcomes.applied(number, field)
+                elif field.startswith(plan_rules.PARAMETER):
+                    outcomes.left(number, field, "left to 3c, majority.overrideKeep.laterFields, the build writes no such parameter")
+        else:
+            builder.entry["parameters"] = {plan_from_past.PLOT_PARAMETER: sourced(number, LOCATION), plan_from_past.UNIT_PARAMETER: sourced(unit, LOCATION)}
+            if steps is not None:
+                builder.entry["parameters"][plan_from_past.STEPS_PARAMETER] = sourced(str(steps), ESTIMATE)
         surface_count.update(name or "none" for name in item["surfaces"])
         if item["front"] is None:
             no_level.append(number)
@@ -285,30 +428,60 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             made = generic_floor(builder, item["face"], inputs, ffl)
             if made:
                 floors["generic"] = made
-            below = floors_config["yardBelowFflM"] if rules is None else rules["levelProfile"].get("yardBelowFflM")
-            made = None if below is None else plan_from_cad.flat_floor(builder, "yard", unit, item["frame"], inputs, ffl - below)
+            yard_unit, yard_inputs = unit, inputs
+            if key is not None:
+                # R337. The yard per zone of the keys and the outline fitted on them, the outline of the unit the link holds, TH1-IM the TH1 one
+                below, why = plan_rules.key_yard(key, rows[number]["zone"])
+                if why:
+                    not_measured[rows[number]["zone"]] = why
+                    not_measured_plots[rows[number]["zone"]] += 1
+                yard_inputs = dict(inputs, outlines=plan_rules.key_outlines(key, outlines))
+                if not any(group["unit"] == unit for group in yard_inputs["outlines"]["outlines"].get("yard") or []):
+                    yard_unit = ((profile.get("typologies") or {}).get(unit) or {}).get("keo_file") or unit
+            else:
+                below = floors_config["yardBelowFflM"] if rules is None else rules["levelProfile"].get("yardBelowFflM")
+            made = None if below is None else plan_from_cad.flat_floor(builder, "yard", yard_unit, item["frame"], yard_inputs, ffl - below)
             if made:
                 made["z"]["source"] = made["heightOffset"]["source"] = ESTIMATE
                 floors["yard"] = made
-            ramp_front, kind = item["front"], None
+            ramp_front, kind, ramp_class, moved, named = item["front"], None, "rule", [], None
             if rules is not None:
-                gap = plan_rules.gap_of(rules["overrides"].get(number, {}).get("rampFrontM"))
+                gap = plan_rules.gap_of(mine_overrides.get("rampFrontM"))
                 if gap is not None:
                     ramp_front = [z + gap for z in item["front"]]
-                    applied["rampFrontM"] += 1
-                named = rules["overrides"].get(number, {}).get("rampType")
+                    moved.append("rampFrontM")
+                elif "rampFrontM" in mine_overrides:
+                    outcomes.left(number, "rampFrontM", NO_GAP)
+                named = mine_overrides.get("rampType")
                 if named is not None:
-                    applied["rampType"] += 1
-                kind = rules["levelProfile"]["rampTypes"].get(named or plan_rules.slope_class(slopes[number]))
-            made = ramp_floor(builder, item["frame"], item["corners"], ramp_front, builder.entry["levels"]["entry"]["value"], slopes[number], inputs, kind)
+                    moved.append("rampType")
+                # R337. The ramp class the keys give the Rev 9 code, the slope of the level profile only for the Round 17 build
+                ramp_class = named or (plan_rules.key_ramp_class(key, unit) if key is not None else plan_rules.slope_class(slopes[number]))
+                kind = rules["levelProfile"]["rampTypes"].get(ramp_class) if ramp_class is not None else None
+            if key is not None and kind is None:
+                builder.lack("floors.ramp", "keyRules.rampSlope and rampTypes give no ramp type for " + unit)
+                made = None
+            else:
+                made = ramp_floor(builder, item["frame"], item["corners"], ramp_front, builder.entry["levels"]["entry"]["value"], slopes[number], inputs, kind)
+            for field in moved:
+                if made:
+                    outcomes.applied(number, field)
+                else:
+                    outcomes.left(number, field, "no ramp floor, " + next((found["why"] for found in builder.missing if found["key"] == "floors.ramp"), "none made"))
             if made:
                 floors["ramp"] = made
         builder.entry["floors"] = floors
         builder.entry["roadSurfaces"] = item["surfaces"]
+        # R337. What the build did with each override of the plot, in the plan entry or the missing entry of a plot not written
+        records[number] = outcomes.plot(number, complete, [found["key"] for found in builder.missing])
         if complete:
+            if records[number]:
+                builder.entry["overrides"] = records[number]
+            if rules is not None:
+                hand_rules[str(rule)] += 1
             plots.append(builder.entry)
         if builder.missing:
-            missing.append({"plot": number, "written": complete, "missing": builder.missing})
+            missing.append({"plot": number, "written": complete, "missing": builder.missing, **({"overrides": records[number]} if records[number] and not complete else {})})
             lacking.update(entry["key"] for entry in builder.missing)
     survey = site["surveyPoint"]
     return {
@@ -329,7 +502,14 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             "frontLevelAgainstPlotsCsv": dict(book_check),
             "floorsFound": {kind: sum(1 for entry in plots if kind in entry["floors"]) for kind in plan_from_past.FLOOR_KINDS},
             "floorTypes": dict(sorted(Counter(kind + ": " + floor["type"]["value"] for entry in plots for kind, floor in entry["floors"].items()).items())),
-            "rules": None if rules is None else {"levelProfile": rules["name"], "overrideSource": rules["sources"], "applied": dict(sorted(applied.items()))},
+            "rules": None if rules is None else {"levelProfile": rules["name"], "overrideSource": rules["sources"], "overrideModel": rules.get("models", []),
+                                                "applied": dict(sorted(Counter(field for found in records.values() if found for field in found["applied"]).items())),
+                                                "appliedOutsideBuild": dict(sorted(outcomes.outside.items())), "handRules": dict(sorted(hand_rules.items())),
+                                                "keyRules": key is not None, "laterFields": rules.get("laterFields") or [],
+                                                "overridesNotApplied": dict(sorted(Counter(field for found in records.values() if found for field in found["notApplied"]).items())),
+                                                "overridesNotAppliedWhy": not_applied_why(records),
+                                                "yardNotMeasured": {zone: {"plots": not_measured_plots[zone], "why": why} for zone, why in sorted(not_measured.items())},
+                                                "steps": None if key is None else {"from": "stepBands of the level profile " + rules["name"], "parameters": sorted(stepped)}},
         },
         "plots": plots,
         "missing": missing,
@@ -357,33 +537,64 @@ def folder_files(folder, profile):
     return plan_from_cad.prototype_files(names, profile)[0]
 
 
-def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales):
+def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters=()):
     """R277 to R280. The level profile, named or the default of R277, the hand rules, the open end of every plot and the overrides
-    of the source models."""
+    of the source models. R337: for a profile with keyRules also the side road, the pair of its row of units in no cluster (the
+    clusters given, over every unit plot) and the kind of every plot, as majority.py gives them on the keys, the fronts of every
+    unit plot of plots.csv found so a row is walked past the plots of the build."""
     import majority
     name = plan_rules.profile_name(profile, args.level_profile)
     lp = plan_rules.level_profile(profile, name)
+    key = plan_rules.key_rules_of(lp)
     block = settings.get("majority")
     corner = settings.get("siteBuild")["corner"]
-    front = fronts(numbers, rows, faces, roads, cad_links.front_limits(profile, settings.get("analysis")), [], 0.0, profile, corner, sales)
-    frames = {number: item["frame"] for number, item in front.items()}
+    if key is not None and key["linkRotation"]["rule"] == "frontRule" and sales is None:
+        raise project_profile.ProfileError("keyRules.linkRotation of %s takes the front of R226, give --sales for the Orientation of a corner plot (R337)" % name)
     units = [number for number, row in rows.items() if row.get("typologyRev9") and number in faces]
+    limits = cad_links.front_limits(profile, settings.get("analysis"))
+    front = fronts(sorted(set(numbers) | set(units)) if key is not None else numbers, rows, faces, roads, limits, [], 0.0, profile, corner, sales)
+    frames = {number: item["frame"] for number, item in front.items()}
     neighbours = majority.side_neighbours(units, faces, frames, block["sideShare"], profile.get("plot.long_side") / 1000.0)
     open_ends = {}
     for number in numbers:
         sides = neighbours.get(number)
         if sides is not None and frames.get(number) is not None:
             open_ends[number] = "both" if not sides["left"] and not sides["right"] else "left" if not sides["left"] else "right" if not sides["right"] else "none"
-    fields = tuple(args.override_fields) if args.override_fields else plan_rules.FIELDS
+    road_sides, pairs, kinds = {}, {}, {}
+    if key is not None:
+        tree = STRtree(roads) if len(roads) else None
+        road_sides = {number: majority.road_side(faces.get(number), frames.get(number), tree, roads, corner["roadEdgeM"]) for number in numbers} if tree is not None else {}
+        roles = cad_links.cluster_roles([cluster for cluster in clusters if len(cluster["plots"]) > 1], 0, {number: faces[number] for number in units}, frames)
+        found = key_rules.row_pairs(units, neighbours, lambda plot: majority.pair_kind(plot, rows, profile, block), lambda plot: plot in roles, block["pairKinds"])
+        pairs = {number: (found.get(number) or {}).get("side") for number in numbers}
+        kinds = {number: majority.kind_of((rows.get(number) or {}).get("typologyRev9"), profile, block) for number in numbers}
+    if args.override_fields:
+        known = plan_rules.FIELDS + (plan_rules.KEY_FIELDS if key is not None else ())
+        wrong = [field for field in args.override_fields if field not in known and not (key is not None and field.startswith(plan_rules.PARAMETER))]
+        if wrong:
+            raise project_profile.ProfileError("--override-fields %s: a build of %s applies only %s%s (R280, R337)" % (
+                ", ".join(wrong), name, ", ".join(known), " and parameter <name>" if key is not None else ""))
+    # R337. A build by keyRules loads every field and counts the ones it can not place, the Round 17 build its five fields
+    fields = tuple(args.override_fields) if args.override_fields else plan_rules.FIELDS if key is None else None
     # R280. An empty list name or a source with no list would build with no override as if none was asked for
     if args.overrides is not None and not args.overrides.strip():
         raise project_profile.ProfileError("--overrides names no file, give the override list in config/overrides (R280)")
-    if args.override_source and args.overrides is None:
-        raise project_profile.ProfileError("--override-source needs --overrides, the override list its overrides come from (R280)")
-    # R280. Only the overrides of a source of the job of the level profile, the job of a source from majority.groups
-    overrides = plan_rules.load_overrides(args.overrides, set(args.override_source), fields, block["groups"], name, lp) if args.overrides else {}
+    named_sources, models = getattr(args, "override_source", None), getattr(args, "override_model", None) or []
+    if (named_sources or models) and args.overrides is None:
+        raise project_profile.ProfileError("--override-source and --override-model need --overrides, the override list their overrides come from (R280)")
+    overrides, sources = {}, []
+    if args.overrides:
+        if named_sources is not None and not named_sources:
+            raise project_profile.ProfileError("--override-source names no source, name parsons or native or leave it out for the default of R330")
+        # R330. With no source named a build applies majority.overrideDefaultSources, parsons, so native overrides never apply by default
+        sources = list(named_sources) if named_sources else override_source.default_sources(settings)
+        # R280. Only the overrides of a source of the job of the level profile
+        overrides = plan_rules.load_overrides(args.overrides, set(sources), fields, block["groups"], name, lp, set(models) or None)
+    later = set((block.get("overrideKeep") or {}).get("laterFields", {}).get(lp.get("job")) or ())
     return {"name": name, "levelProfile": lp, "hands": profile.get("hands") or {}, "openEnds": open_ends, "overrides": overrides,
-            "sources": list(args.override_source)}
+            "sources": sources, "models": list(models), "keyRules": key, "roadSides": road_sides, "pairs": pairs, "kinds": kinds,
+            "laterFields": [field for field in ((block.get("overrideKeep") or {}).get("laterFields", {}).get(lp.get("job")) or [])] if key is not None else [],
+            "laterParameters": {field for field in later if field.startswith(plan_rules.PARAMETER)}, "facade": list(block.get("linkNameFacade") or [])}
 
 
 def main(argv=None):
@@ -404,7 +615,8 @@ def main(argv=None):
     parser.add_argument("--scratch", required=True, help="a folder outside the repo for the LandXML reader")
     parser.add_argument("--level-profile", help="R277, R278. a level profile of the rules profile, levelProfiles.default when left out")
     parser.add_argument("--overrides", help="R280. the override list in config/overrides")
-    parser.add_argument("--override-source", nargs="*", default=[], help="R280. the past model files whose overrides apply")
+    parser.add_argument("--override-source", nargs="*", help="R330. the jobs whose overrides apply, majority.overrideDefaultSources (parsons) when left out")
+    parser.add_argument("--override-model", nargs="*", default=[], help="R280, R330. only the overrides of these past model files")
     parser.add_argument("--override-fields", nargs="*", choices=plan_rules.FIELDS, help="R280. only these fields of the overrides, all when left out")
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
@@ -429,37 +641,74 @@ def main(argv=None):
         by_label, _ = yard_rule.face_shapes(link_summary.load(args.baseplan)["plots"], 0)
         faces = {number_of[label]: shape for label, shape in by_label.items() if label in number_of}
         roads = cad_analysis.read_road_edges(args.roads, settings.get("analysis")["roadEdgeLayers"])
-        if args.footprint_blocks:
-            clusters = footprint_clusters(cover["plots"], rows, faces, footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings)))
-            if args.analysis:
-                clusters = joined_clusters(clusters, numbered_clusters(json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"], number_of))
-        elif args.analysis:
-            clusters = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"]
+        shapes = footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings)) if args.footprint_blocks else None
+        analysis = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"] if args.analysis else None
+        if shapes is not None:
+            clusters = footprint_clusters(cover["plots"], rows, faces, shapes)
+            if analysis is not None:
+                clusters = joined_clusters(clusters, numbered_clusters(analysis, number_of))
+        elif analysis is not None:
+            clusters = analysis
         else:
             raise project_profile.ProfileError("give --analysis or --footprint-blocks for the clusters")
         job = plan_from_past.load_job(settings)
         folder, _ = plan_from_past.prototype_folders(plan_from_past.input_root(settings), job)
+        # R337. A build by keyRules walks the rows of units past its own plots, so the clusters of every unit plot tell which units pair
+        everything, by_keys = [], plan_rules.key_rules_of(plan_rules.level_profile(profile, plan_rules.profile_name(profile, args.level_profile))) is not None
+        if by_keys:
+            units = [number for number, row in rows.items() if row.get("typologyRev9") and number in faces]
+            everything = footprint_clusters(units, rows, faces, shapes) if shapes is not None else []
+            if analysis is not None:
+                everything = joined_clusters(everything, numbered_clusters(analysis, number_of))
+            # A face with two plan numbers, such as 476|477, is no plot of its own and leaves its cluster, as majority.py takes them
+            everything = [found for found in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]} for cluster in everything) if len(found["plots"]) > 1]
         # R277. Every build follows a level profile, the named one or levelProfiles.default
-        rules = rule_inputs(args, settings, profile, cover["plots"], rows, faces, roads, sales)
+        rules = rule_inputs(args, settings, profile, cover["plots"], rows, faces, roads, sales, everything)
         road = rules["levelProfile"]["frontRoad"]["surface"]
         names = block["roadSurfaces"] if road == "roadLevel" else [road]
         surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in names], args.scratch)
-        plan = build(cover["plots"], rows, number_of, faces, roads, clusters, profile, settings,
+        # R337. A build by keyRules takes the clusters of every unit plot, the site as the keys were measured on (R271)
+        plan = build(cover["plots"], rows, number_of, faces, roads, everything if by_keys else clusters, profile, settings,
                      prototype_offsets.plot_frame(prototype_offsets.load(args.offsets)), folder_files(folder, profile), folder,
-                     site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, bool(args.footprint_blocks), rules)
+                     site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, by_keys or bool(args.footprint_blocks), rules)
         plan_from_past.write_plan(out, plan)
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
         print("plan_from_book: " + str(error), file=sys.stderr)
         return 2
-    summary = plan["summary"]
-    print("level profile %s (R277), %s" % (rules["name"], "named" if args.level_profile else "the default of the rules profile"))
-    print("plots written %d of %d, missing %s" % (summary["written"], summary["plots"], summary["missingByKey"]))
-    print("in a cluster %d, clusters %d with %d plots" % (summary["inACluster"], summary["clusters"], summary["clusterPlots"]))
-    print("road surfaces of the front corners %s, plots with no road level %s" % (summary["roadSurfacesOfFrontCorners"], summary["plotsWithNoRoadLevel"]))
-    print("front level against plots.csv %s, front rule %s" % (summary["frontLevelAgainstPlotsCsv"], summary["frontRule"]))
-    print("floors %s, types %s" % (summary["floorsFound"], summary["floorTypes"]))
+    for line in summary_lines(plan["summary"], rules["name"], bool(args.level_profile)):
+        print(line)
     print(out)
     return 0
+
+
+def summary_lines(summary, name, named):
+    """R337. The lines main prints: the profile, what the build applied of the overrides and what it left with why, the fields the
+    override list leaves to 3c apart from what the build applied of them, the steps, the yard and the plots."""
+    rules = summary.get("rules") or {}
+    applied, left = rules.get("applied") or {}, rules.get("overridesNotApplied") or {}
+    lines = ["level profile %s (R277), %s" % (name, "named" if named else "the default of the rules profile")]
+    if rules.get("keyRules"):
+        lines.append("built by keyRules of %s (R337)" % name)
+    lines.append("overrides applied on written plots %s, of plots outside the build that moved their cluster %s (R280, R337)"
+                 % (applied or "none", rules.get("appliedOutsideBuild") or "none"))
+    for field, whys in (rules.get("overridesNotAppliedWhy") or {}).items():
+        for why, found in whys.items():
+            lines.append("override %s left on %d plots, %s, such as %s" % (field, found["plots"], why, " ".join(found["first"][:5])))
+    later = rules.get("laterFields") or []
+    if later:
+        lines.append("fields the override list keeps for 3c (majority.overrideKeep.laterFields): %s, of them applied %s, left %s" % (
+            ", ".join(later), ", ".join("%s %d" % (field, applied[field]) for field in later if applied.get(field)) or "none",
+            ", ".join("%s %d" % (field, left[field]) for field in later if left.get(field)) or "none"))
+    if rules.get("steps"):
+        lines.append("steps and %s by the %s until 3c codes the steps (R337)" % (", ".join(rules["steps"]["parameters"]), rules["steps"]["from"]))
+    for zone, found in (rules.get("yardNotMeasured") or {}).items():
+        lines.append("yard of %s on %d plots not measured on a key: %s (R337)" % (zone, found["plots"], found["why"]))
+    lines.append("plots written %d of %d, missing %s" % (summary["written"], summary["plots"], summary["missingByKey"]))
+    lines.append("in a cluster %d, clusters %d with %d plots" % (summary["inACluster"], summary["clusters"], summary["clusterPlots"]))
+    lines.append("road surfaces of the front corners %s, plots with no road level %s" % (summary["roadSurfacesOfFrontCorners"], summary["plotsWithNoRoadLevel"]))
+    lines.append("front level against plots.csv %s, front rule %s" % (summary["frontLevelAgainstPlotsCsv"], summary["frontRule"]))
+    lines.append("floors %s, types %s" % (summary["floorsFound"], summary["floorTypes"]))
+    return lines
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ Seeds 14 and 7, 20 plots each:
 2 the join of R270: each plot of entry_gaps.json and 20 plots both keys hold, the face that holds the centre of each key's
   Generic outline by a ray cast on the raw baseplan vertices, its location plan number, and whether the gap is over the limit.
 3 each coded rule against its counts: the holds of the coded candidate equal its plots less its misses, and the misses of a
-  decision named in the override list are the overrides of that decision. For 20 plots the Parsons ramp class of the coded
+  decision of majority.overrideDecisions are the overrides of that decision, so one with misses and no entry is no match. For 20 plots the Parsons ramp class of the coded
   typology rule and the step count of the height bands are worked out again.
 4 the split check of the round 16 file against the counts of round 16.
 5 the rebuilt file against the key: the link origin gap, the mirror and the link Z against the key FFL, worked out from the
@@ -133,16 +133,26 @@ def check_join(gaps, rows, faces, numbers, limit, seed):
     return results
 
 
-def check_rules(report, overrides, rows, profile_bands, classes, seed):
-    """Part 3."""
+def decision_counts(report, overrides, override_decisions):
+    """Part 3, the counts. The holds of the coded candidate are its plots less its misses, a decision whose misses go to the list
+    (majority.overrideDecisions) has as many entries as misses, none when it has none, so a decision with misses and no entry is no
+    match, and a decision that writes no override has no entry."""
     results = []
     counted = Counter(item["decision"] for item in overrides["overrides"])
     for decision in report["decisions"]:
         test = decision["tests"][decision["coded"]]
         holds_ok = test["holds"] == decision["plots"] - decision["misses"]
-        listed = counted.get(decision["decision"])
-        results.append({"decision": decision["decision"], "holds": holds_ok, "overrides": listed is None or listed == decision["misses"],
-                        "match": holds_ok and (listed is None or listed == decision["misses"])})
+        name = decision["decision"].split(" ", 1)[1]
+        writes = any(name.startswith(word) for word in override_decisions)
+        listed_ok = counted.get(decision["decision"], 0) == (decision["misses"] if writes else 0)
+        results.append({"decision": decision["decision"], "holds": holds_ok, "overrides": listed_ok, "listed": counted.get(decision["decision"], 0),
+                        "match": holds_ok and listed_ok})
+    return results
+
+
+def check_rules(report, overrides, rows, profile_bands, classes, seed, override_decisions):
+    """Part 3."""
+    results = decision_counts(report, overrides, override_decisions)
     rule = next(decision for decision in report["decisions"] if decision["decision"] == "parsons rampSlope")["tests"]["typology"]["rule"]
     imc = [row for row in rows if row["key"] == "imc"]
     picked = random.Random(seed).sample(imc, COUNT)
@@ -231,7 +241,7 @@ def main(argv=None):
         part = {
             "table": check_table(rows, keys, seed),
             "join": check_join(gaps, rows, faces, numbers, settings["majority"]["entryGaps"]["entryGapM"], seed),
-            "rules": check_rules(report, overrides, rows, step_bands, settings["majority"]["rampTypeClass"], seed),
+            "rules": check_rules(report, overrides, rows, step_bands, settings["majority"]["rampTypeClass"], seed, settings["majority"]["overrideDecisions"]),
             "split": check_split(load(args.split_i16), load(args.compare_i16)),
             "rebuilt": check_rebuilt(load(args.new), load(key_imc), load(args.key_plan), bands, load(args.split_new), seed),
         }

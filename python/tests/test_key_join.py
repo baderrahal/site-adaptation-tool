@@ -351,14 +351,14 @@ def kinds_taken(rows):
     profile = project_profile.load_profile(project_profile.profile_path(settings))
     block = majority.load_block(settings)
     items = majority.contexts(rows, {}, {}, {}, {}, {}, {}, profile, block)
-    results, _, _ = majority.run(items, {}, profile, block, [majority.ROAD], [])
+    results, _, _, _ = majority.run(items, {}, profile, block, [majority.ROAD], [])
     return {result["decision"]: result["byKind"] for result in results}, block
 
 
 def test_r326_the_majority_rule_leaves_the_rows_of_a_kind_out_of_every_decision_majority_kind_leave_out_names():
     rows = [table_row("imc", "TU", str(plot)) for plot in range(501, 506)] + [table_row("ima", "SE", str(plot), 9.9) for plot in range(601, 606)]
     taken, block = kinds_taken(rows)
-    assert set(block["kindLeaveOut"]["SE"]) == set(LEFT_OUT)
+    assert set(block["kindLeaveOut"]["SE"]) == set(LEFT_OUT) | {"frontOpen", "parameter RRE_ZZ_SP_RVT-Name"}
     for decision, kinds in taken.items():
         word = decision.split(" ")[1]
         assert ("SE" in kinds) == (word not in LEFT_OUT), decision
