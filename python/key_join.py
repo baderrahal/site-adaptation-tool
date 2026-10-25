@@ -195,22 +195,30 @@ def area_row(code, file, joined):
 
 
 def read_plots_csv(path):
-    """R326. The area key of plots.csv by baseplan label (R256), and El @ Entry of the schedule by official number with the pastSource that
-    names its schedule where the row holds a schedule level, the IMC and IMD schedules of the data book."""
+    """R326. The area key of plots.csv by baseplan label (R256), and El @ Entry and the FFL of the schedule by official number with the
+    pastSource that names its schedule where the row holds a schedule level, the IMC and IMD schedules of the data book. A row with no FFL
+    has ffl None."""
     area, schedule = {}, {}
     with open(path, encoding="utf-8") as handle:
         for row in csv.DictReader(handle):
             if row.get("baseplanLabel") and row.get("nbhId"):
                 area[row["baseplanLabel"]] = {"nbhId": row["nbhId"], "zone": row.get("zone")}
             if row.get("officialNumber") and row.get("pastEntry") and row.get("pastSource"):
-                schedule[row["officialNumber"]] = {"entry": float(row["pastEntry"]), "source": row["pastSource"]}
+                schedule[row["officialNumber"]] = {"entry": float(row["pastEntry"]), "ffl": float(row["pastFfl"]) if row.get("pastFfl") else None,
+                                                   "source": row["pastSource"]}
     return area, schedule
 
 
 def schedule_of(schedule, code, keys):
     """R326. El @ Entry by official number of the schedule of the job of the answer key code: the rows whose pastSource keys, which is
     pastAll.scheduleKeys, gives that code. A key of another job or of no code gets none."""
-    return {number: row["entry"] for number, row in (schedule or {}).items() if code and keys.get(row["source"]) == code}
+    return {number: row["entry"] for number, row in schedule_pairs(schedule, code, keys).items()}
+
+
+def schedule_pairs(schedule, code, keys):
+    """R326. The FFL and El @ Entry of each row of the schedule of the job of the answer key code by official number, as schedule_of takes
+    the rows, so the two levels of a plot stay one pair."""
+    return {number: {"ffl": row.get("ffl"), "entry": row["entry"]} for number, row in (schedule or {}).items() if code and keys.get(row["source"]) == code}
 
 
 def key_source(settings, code):

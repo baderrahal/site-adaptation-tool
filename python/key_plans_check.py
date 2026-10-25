@@ -422,10 +422,15 @@ def check_plan(plan, document, floors_config, key, second, links_at, plots):
     return result(len(plots), wrong)
 
 
+def cell(row, column):
+    return float(row[column]) if row.get(column) not in (None, "") else None
+
+
 def check_sources(rows, code, plan, by_number, config, numbers):
     """R328. The row of past_all.csv of each sampled plan plot by its official number: source, the group of majority.groups, kind, the kind
     of answerKeys, entrySource and El @ Entry, the schedule of the job of the key by plots.csv and pastAll.scheduleKeys first, else the El @
-    Entry of the plan, else refused when the plan refused it, and heightSource, the floor top less that source."""
+    Entry of the plan, else refused when the plan refused it, FFL and the height, the pair of that schedule or the floor top of the plan less
+    El @ Entry, and heightSource, schedule less schedule for a pair, else the floor top less the source of El @ Entry."""
     key = code.lower()
     own = {row["plot"]: row for row in rows if row["key"] == key}
     entries = {entry["plot"]: entry for entry in plan["plots"]}
@@ -440,17 +445,24 @@ def check_sources(rows, code, plan, by_number, config, numbers):
         mismatch(wrong, number, "kind", row.get("kind"), config["kinds"].get(code))
         schedule = by_number.get(number) or {}
         held = (entry["levels"].get("entry") or {}).get("value")
+        ffl, top = (entry["levels"].get("ffl") or {}).get("value"), "floorTop"
         if schedule.get("pastEntry") and config["scheduleKeys"].get(schedule.get("pastSource")) == code:
             source, value = "schedule", float(schedule["pastEntry"])
+            ffl, top = (float(schedule["pastFfl"]) if schedule.get("pastFfl") else None), "schedule"
         elif held is not None:
             source, value = "floorParameter", held
         else:
             source, value = ("refused" if refused(plan, number) else ""), None
         mismatch(wrong, number, "entrySource", row.get("entrySource") or "", source)
-        written = float(row["entry"]) if row.get("entry") not in (None, "") else None
+        written = cell(row, "entry")
         if (written is None) != (value is None) or (value is not None and abs(written - value) > ENTRY):
             mismatch(wrong, number, "entry", written, value)
-        expected = "floorTop less " + source if value is not None and (entry["levels"].get("ffl") or {}).get("value") is not None else ""
+        if ffl is None or cell(row, "ffl") is None or abs(cell(row, "ffl") - ffl) > METRES:
+            mismatch(wrong, number, "ffl", cell(row, "ffl"), ffl)
+        height = None if value is None or ffl is None else ffl - value
+        if (cell(row, "height") is None) != (height is None) or (height is not None and abs(cell(row, "height") - height) > METRES + ENTRY):
+            mismatch(wrong, number, "height", cell(row, "height"), None if height is None else round(height, 4))
+        expected = top + " less " + source if value is not None and ffl is not None else ""
         mismatch(wrong, number, "heightSource", row.get("heightSource") or "", expected)
     return result(len(numbers), wrong)
 

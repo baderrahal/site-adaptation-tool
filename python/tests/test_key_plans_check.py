@@ -180,15 +180,22 @@ def test_r328_source_kind_el_at_entry_and_its_source_and_the_height_source_of_pa
     plan = {"plots": [{"plot": "501", "levels": {"ffl": {"value": 7.0}, "entry": {"value": 6.8, "source": pf.KEY_PARAMETER}}},
                       {"plot": "502", "levels": {"ffl": {"value": 7.0}}}, {"plot": "503", "levels": {"ffl": {"value": 7.0}}}],
             "missing": [{"plot": "502", "written": True, "missing": [{"key": "levels.entry", "why": pf.REFUSED + "off the band"}]}]}
-    by_number = {"503": {"pastEntry": "6.9", "pastSource": "schedule IMX"}, "501": {"pastEntry": "6.7", "pastSource": "schedule IMY"}}
+    # The schedule of 503 is a pair, its FFL 6.95 stands under the floor top 7.0, so FFL, El @ Entry and the height all come from the schedule
+    by_number = {"503": {"pastFfl": "6.95", "pastEntry": "6.9", "pastSource": "schedule IMX"}, "501": {"pastFfl": "7.0", "pastEntry": "6.7", "pastSource": "schedule IMY"}}
     config = {"groups": {"parsons": ["imx"]}, "kinds": {"IMX": "TU"}, "scheduleKeys": {"schedule IMX": "IMX", "schedule IMY": "IMY"}}
-    rows = [{"key": "imx", "plot": "501", "source": "parsons", "kind": "TU", "entry": "6.8", "entrySource": "floorParameter", "heightSource": "floorTop less floorParameter"},
-            {"key": "imx", "plot": "502", "source": "parsons", "kind": "TU", "entry": "", "entrySource": "refused", "heightSource": ""},
-            {"key": "imx", "plot": "503", "source": "parsons", "kind": "TU", "entry": "6.9", "entrySource": "schedule", "heightSource": "floorTop less schedule"}]
+    rows = [{"key": "imx", "plot": "501", "source": "parsons", "kind": "TU", "ffl": "7.0", "entry": "6.8", "height": "0.2", "entrySource": "floorParameter",
+             "heightSource": "floorTop less floorParameter"},
+            {"key": "imx", "plot": "502", "source": "parsons", "kind": "TU", "ffl": "7.0", "entry": "", "height": "", "entrySource": "refused", "heightSource": ""},
+            {"key": "imx", "plot": "503", "source": "parsons", "kind": "TU", "ffl": "6.95", "entry": "6.9", "height": "0.05", "entrySource": "schedule",
+             "heightSource": "schedule less schedule"}]
     assert kc.check_sources(rows, "IMX", plan, by_number, config, ["501", "502", "503"]) == {"compared": 3, "match": 3, "mismatch": []}
     rows[0] = dict(rows[0], source="native", entrySource="schedule")
     found = kc.check_sources(rows, "IMX", plan, by_number, config, ["501"])["mismatch"]
     assert {item["field"] for item in found} == {"source", "entrySource"}
+    # The key floor top with the schedule El @ Entry, the mix the pair rule forbids, is a mismatch of the FFL, the height and its source
+    rows[2] = dict(rows[2], ffl="7.0", height="0.1", heightSource="floorTop less schedule")
+    found = kc.check_sources(rows, "IMX", plan, by_number, config, ["503"])["mismatch"]
+    assert {item["field"] for item in found} == {"ffl", "height", "heightSource"}
 
 
 def test_r328_the_counts_of_the_join_the_area_rows_the_plan_and_past_all_must_agree():

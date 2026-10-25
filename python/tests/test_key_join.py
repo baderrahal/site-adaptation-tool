@@ -136,17 +136,17 @@ def test_r326_the_area_rows_count_the_joined_plots_of_each_area_key_with_the_fil
 def plots_csv(tmp_path):
     path = tmp_path / "plots.csv"
     with open(path, "w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=["baseplanLabel", "nbhId", "zone", "officialNumber", "pastEntry", "pastSource"])
+        writer = csv.DictWriter(handle, fieldnames=["baseplanLabel", "nbhId", "zone", "officialNumber", "pastFfl", "pastEntry", "pastSource"])
         writer.writeheader()
-        writer.writerow({"baseplanLabel": "11", "nbhId": "01A", "zone": "Zone 4", "officialNumber": "501", "pastEntry": "6.9", "pastSource": "schedule IMX"})
-        writer.writerow({"baseplanLabel": "12", "nbhId": "01A", "zone": "Zone 4", "officialNumber": "", "pastEntry": "", "pastSource": ""})
+        writer.writerow({"baseplanLabel": "11", "nbhId": "01A", "zone": "Zone 4", "officialNumber": "501", "pastFfl": "7.0", "pastEntry": "6.9", "pastSource": "schedule IMX"})
+        writer.writerow({"baseplanLabel": "12", "nbhId": "01A", "zone": "Zone 4", "officialNumber": "", "pastFfl": "", "pastEntry": "", "pastSource": ""})
     return path
 
 
 def test_r326_the_area_key_and_the_schedule_entry_are_read_from_plots_csv_by_baseplan_label_and_official_number(tmp_path):
     area, schedule = key_join.read_plots_csv(plots_csv(tmp_path))
     assert area == {"11": {"nbhId": "01A", "zone": "Zone 4"}, "12": {"nbhId": "01A", "zone": "Zone 4"}}
-    assert schedule == {"501": {"entry": 6.9, "source": "schedule IMX"}}
+    assert schedule == {"501": {"entry": 6.9, "ffl": 7.0, "source": "schedule IMX"}}
 
 
 ROW = {column: "" for column in past_all.COLUMNS if column != "source"}
@@ -184,7 +184,8 @@ def test_r326_the_table_is_never_written_over_the_table_it_keeps_rows_of(tmp_pat
 
 
 SCHEDULE_KEYS = {"schedule IMX": "IMX", "schedule IMY": "IMY"}
-SCHEDULE = {"501": {"entry": 6.9, "source": "schedule IMX"}, "502": {"entry": 6.95, "source": "schedule IMY"}}
+SCHEDULE = {"501": {"entry": 6.9, "ffl": 7.0, "source": "schedule IMX"}, "502": {"entry": 6.95, "ffl": 7.0, "source": "schedule IMY"}}
+BAND = 0.005
 
 
 def key_plan(answer="IMX", entries=(6.8, 6.85)):
@@ -200,7 +201,8 @@ def key_plan(answer="IMX", entries=(6.8, 6.85)):
 def test_r326_an_answer_key_plan_takes_el_at_entry_from_the_schedule_when_plots_csv_has_one_else_from_its_floor_parameter():
     data = {"documents": [document([], [])]}
     block = {"floorParameters": [], "entryParameter": "x", "linkParameters": [], "scheduleKeys": SCHEDULE_KEYS}
-    rows = past_all.table_rows("imx", key_plan(), data, {"plot": "parameter", "datum": "none"}, FLOORS, {}, {}, {}, block, schedule=SCHEDULE, code="IMX")
+    rows = past_all.table_rows("imx", key_plan(), data, {"plot": "parameter", "datum": "none"}, FLOORS, {}, {}, {}, block, schedule=SCHEDULE, code="IMX",
+                               conflicts=[], level_band=BAND)
     assert [(row["entry"], row["entrySource"], row["height"]) for row in rows] == [(6.9, "schedule", 0.1), (6.85, "floorParameter", 0.15)]
 
 
@@ -212,9 +214,41 @@ def test_r326_the_schedule_gives_el_at_entry_only_to_the_key_of_its_own_job_on_i
     native = past_all.table_rows("u11", key_plan(answer=None, entries=(None, None)), data, {"plot": "parameter", "datum": "none"}, FLOORS, {}, {}, {}, block,
                                  schedule=SCHEDULE)
     assert [(row["entry"], row["entrySource"], row["heightSource"]) for row in native] == [(None, None, None), (None, None, None)]
-    imy = past_all.table_rows("imy", key_plan(answer="IMY"), data, {"plot": "parameter", "datum": "none"}, FLOORS, {}, {}, {}, block, schedule=SCHEDULE, code="IMY")
+    imy = past_all.table_rows("imy", key_plan(answer="IMY"), data, {"plot": "parameter", "datum": "none"}, FLOORS, {}, {}, {}, block, schedule=SCHEDULE, code="IMY",
+                              conflicts=[], level_band=BAND)
     assert [(row["entry"], row["entrySource"], row["heightSource"]) for row in imy] == [(6.8, "floorParameter", "floorTop less floorParameter"),
-                                                                                      (6.95, "schedule", "floorTop less schedule")]
+                                                                                      (6.95, "schedule", "schedule less schedule")]
+
+
+def test_r326_a_key_with_a_schedule_takes_ffl_el_at_entry_and_the_height_as_one_pair_of_the_schedule_and_lists_every_key_value_off_it():
+    # The floor top of 501 stands 0.050 m over its schedule FFL, as on IMD 1436, so the key FFL less the schedule El @ Entry would match
+    # neither source. The key El @ Entry of 502 is 0.050 m over the schedule. Both are listed and the schedule pair is kept
+    schedule = {"501": {"entry": 6.9, "ffl": 6.95, "source": "schedule IMX"}, "502": {"entry": 6.8, "ffl": 7.002, "source": "schedule IMX"}}
+    data = {"documents": [document([], [])]}
+    block = {"floorParameters": [], "entryParameter": "x", "linkParameters": [], "scheduleKeys": SCHEDULE_KEYS}
+    conflicts = []
+    rows = past_all.table_rows("imx", key_plan(entries=(6.9, 6.85)), data, {"plot": "parameter", "datum": "none"}, FLOORS, {}, {}, {}, block, schedule=schedule,
+                               code="IMX", conflicts=conflicts, level_band=BAND)
+    assert [(row["ffl"], row["entry"], row["height"], row["entrySource"], row["heightSource"]) for row in rows] == [
+        (6.95, 6.9, 0.05, "schedule", "schedule less schedule"), (7.002, 6.8, 0.202, "schedule", "schedule less schedule")]
+    assert conflicts == [{"key": "imx", "plot": "501", "field": "ffl", "keyValue": 7.0, "scheduleValue": 6.95, "gapM": -0.05, "kept": "schedule"},
+                         {"key": "imx", "plot": "502", "field": "entry", "keyValue": 6.85, "scheduleValue": 6.8, "gapM": -0.05, "kept": "schedule"}]
+    # A schedule row of the key with El @ Entry and no FFL is no pair, it is refused and never mixed with the key floor top
+    with pytest.raises(project_profile.ProfileError, match="501"):
+        past_all.table_rows("imx", key_plan(), data, {"plot": "parameter", "datum": "none"}, FLOORS, {}, {}, {}, block,
+                            schedule={"501": {"entry": 6.9, "ffl": None, "source": "schedule IMX"}}, code="IMX", conflicts=[], level_band=BAND)
+    # A pair is never used where the list of conflicts or the band is not given, so a key value off it can not go unlisted
+    with pytest.raises(ValueError, match="conflicts"):
+        past_all.table_rows("imx", key_plan(), data, {"plot": "parameter", "datum": "none"}, FLOORS, {}, {}, {}, block, schedule=schedule, code="IMX")
+
+
+def test_r326_the_conflicts_list_is_written_beside_the_table_with_both_values(tmp_path):
+    path = past_all.write_conflicts(tmp_path / "past_all.csv", [{"key": "imx", "plot": "501", "field": "ffl", "keyValue": 7.0, "scheduleValue": 6.95,
+                                                                 "gapM": -0.05, "kept": "schedule"}])
+    assert path.name == "past_all_conflicts.csv"
+    with open(path, encoding="utf-8") as handle:
+        assert list(csv.DictReader(handle)) == [{"key": "imx", "plot": "501", "field": "ffl", "keyValue": "7.0", "scheduleValue": "6.95", "gapM": "-0.05",
+                                                 "kept": "schedule"}]
 
 
 def test_r326_an_answer_key_row_whose_el_at_entry_the_plan_refused_takes_no_other_value_and_says_refused():
