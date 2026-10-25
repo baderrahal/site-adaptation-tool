@@ -623,8 +623,8 @@ namespace RevitPrototypeReader
             return false;
         }
 
-        // Spot dimensions of the style spot elevation. Value and ValueString of the API are empty for spots,
-        // so the shown value is read from the top or bottom value parameter of the annotation
+        // Spot dimensions of the style spot elevation. Value and ValueString of the API are empty for spots, so the shown value
+        // is the Single/Upper Value parameter of the annotation (R320). Top and Bottom Coordinate belong to a spot coordinate
         public IEnumerable<SpotRow> SpotElevations()
         {
             var rows = new List<SpotRow>();
@@ -640,10 +640,26 @@ namespace RevitPrototypeReader
                     {
                         ElementId = spot.Id.Value,
                         Origin = RevitExtractor.Metres(spot.Origin),
-                        Value = MetresOf(spot, BuiltInParameter.SPOT_ELEV_TOP_VALUE) ?? MetresOf(spot, BuiltInParameter.SPOT_ELEV_BOT_VALUE),
                         View = spot.View == null ? null : spot.View.Name,
                         Target = TargetOf(spot),
                     };
+                    // R320. A parameter that cannot be read is kept by reason like the floor measurements, so a thousand spots give one line
+                    var problems = new List<string>();
+                    row.Parameters = AllParameters(spot, problems);
+                    foreach (string problem in problems)
+                    {
+                        Fail("spot parameters", spot.Id.Value, problem);
+                    }
+                    var raw = new RawSpotValue
+                    {
+                        UpperFeet = Guarded("spot value", spot, () => FeetOf(spot, BuiltInParameter.SPOT_ELEV_SINGLE_OR_UPPER_VALUE)),
+                        LowerFeet = Guarded("spot value", spot, () => FeetOf(spot, BuiltInParameter.SPOT_ELEV_LOWER_VALUE)),
+                        TypeName = spot.DimensionType.Name,
+                        ElevationBase = Guarded("spot elevation base", spot, () => spot.DimensionType.get_Parameter(BuiltInParameter.SPOT_ELEV_BASE)?.AsValueString()),
+                        RelativeBase = Guarded("spot relative base", spot, () => spot.get_Parameter(BuiltInParameter.SPOT_ELEV_RELATIVE_BASE)?.AsValueString()),
+                        DisplayElevations = Guarded("spot display elevations", spot, () => spot.get_Parameter(BuiltInParameter.SPOT_ELEV_DISPLAY_ELEVATIONS)?.AsValueString()),
+                    };
+                    SpotValues.Apply(row, raw);
                     row.Host = HostOf(spot, row);
                     rows.Add(row);
                 }
@@ -652,7 +668,19 @@ namespace RevitPrototypeReader
                     Errors.Add("spot elevation " + spot.Id.Value + ": " + ModelReader.Describe(failure));
                 }
             }
+            FlushFailures();
             return rows.OrderBy(row => row.ElementId).ToList();
+        }
+
+        // The number of a length parameter in feet as Revit holds it, null when the element has none or it holds no number
+        private static double? FeetOf(Element element, BuiltInParameter id)
+        {
+            Parameter parameter = element.get_Parameter(id);
+            if (parameter == null || !parameter.HasValue || parameter.StorageType != StorageType.Double)
+            {
+                return null;
+            }
+            return parameter.AsDouble();
         }
 
         // The element the spot points to, with its category and type. A reference into a link gives the ids only,
