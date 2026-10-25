@@ -398,3 +398,70 @@ Branch data/addin-parsons-models from main at cd26ab3, equal to origin/main afte
 - Q066: the Rev 6 Parsons TU models of Zone 1 (recommended), or the levels, ramps and yards of Zone 1 from the Native 1.1 and 1.2 reads, the stand-in the lead chose.
 - Q067: the STR prototypes of the SE models.
 - Q068: the project position button 1 sets.
+
+## Phase 1 part 2, PR data/addin-key-copies
+
+Branch data/addin-key-copies from main at d3b3ed9 after PR 43, equal to origin/main after git fetch (RAN). Rules R312 and R313 are new, R301 and R109 changed. The phase ran in a helper agent started by the main session, which runs the checkers and merges. The hooks were live: guard-registry.sh refused a harmless echo with its trigger word (RAN, 1 refusal). Q067 closes by Bader's instruction, relayed in the brief of this PR.
+
+### Originals (R201, R202)
+
+- 60 files hashed with sha256sum before the first edit: the 40 originals of Phase 0b, the 7 copies of Revit All Zones\2024 and the 13 Revit 2021 files of Zone 02\STR\Prototypes (RAN, round_addin\logs\originals_p1b_list.txt and originals_p1b_before.txt). The first 47 equal originals_p1r_after.txt of Phase 1, 47 of 47 (RAN).
+- After the last window: 60 of 60 equal by sha256sum, and by Get-FileHash of PowerShell against the list before, same 60, differ 0 (RAN, originals_p1b_after.txt and originals_p1b_after_filehash_summary.txt). So no window and no step wrote to a 2021 STR file, an original or a 2024 key copy.
+
+### R312, the key copies by code
+
+- answerKeys of config/project.json lists the 7 keys: code, zone, kind TU or SE, the source under inputRoot and the copy name, the name of each model in Revit All Zones. IMC is made from 00_Revit Models\Zone 02\ARC\01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt and keeps the zone2 name, the other 6 from their model in Revit All Zones (CHOSEN, the brief and Q065). The block also names the copy folder, the manifest key_copies.json, the format 2024 and the job prefix K.
+- python/key_copies.py check reuses a copy only when the manifest names it with the code and the source of the config, the SHA-256 of that source today, the SHA-256 of the copy today and the format 2024 in the entry and in the bytes (R203). Else make, noSource or remake with its reasons, each with the request for a siteUpgrade job: the source to copy into the work folder, the spec with the job code (KA to KG) and the name of the copy it makes. A manifest entry no key names is listed as noKey. check writes nothing. record moves a copy a siteUpgrade job made into the copy folder under its copy name only when no file of that name is there, after the work copy of the source equals the source by hash, and writes its entry. import writes the manifest once from sources.txt of Phase 1. A source that can not be written passes every step.
+- Tests first (RAN): the new test file stopped at collection with ModuleNotFoundError for key_copies, then 32 passed and the 2 tests of the real config failed with KeyError answerKeys until the config held it, and the copy folder test until python/c3d_probe.json named key_copies.json. Two later fixes, each with its test seen failing first: a copy that is no compound file raised CfbError and stopped the check, now it has no format and is remade, and an entry of another code was reused, now it is otherCode. 36 R312 tests at the end, on dummy compound files built in code (RAN).
+- On the 7 real copies, read only but the manifest (RAN, round_addin\logs\key_copies_check_before_import.txt, key_copies_import.txt, key_copies_check.txt): before the import 0 of 7 reuse, 7 remake notInManifest, since no manifest was there. import wrote key_copies.json from the 7 lines of sources.txt with the hashes of today. Then check: reuse 7 of 7, exit 0, and again 7 of 7 after the two fixes.
+- How each is known, per copy: the source path of the manifest equals the source of the config (READ, both files), the SHA-256 of the source today equals the manifest and the SHA-256 of the copy today equals the manifest (RAN, key_copies.py by hashlib), the format 2024 from the bytes (RAN, rvt_info.py). Second method (RAN, round_addin\logs\key_copies_second.ps1 and key_copies_second.txt): Get-FileHash of PowerShell on the 7 copies and the 7 sources against the manifest read by ConvertFrom-Json, and the format and size of each copy from the targetInfo step Revit logged when it made it (testhost_K*_upgrade_log.json of Phase 1): 42 of 42 checks match, 0 mismatch.
+- sources.txt (2,197 bytes) moved out of the copy folder to round_addin\logs\sources_p1.txt, equal by sha256sum before and after the move (RAN). No reader reads it now: im_codes.py and data5_check.py read key_copies.json, and only key_copies.py import reads a sources.txt, once, when no manifest is there.
+
+### R301, the copy folder reads the JSON manifest
+
+- dataBook.data5.imCodes.copyFolders names key_copies.json. im_codes.py reads it with key_copies.read_manifest, data5_check.py with json.loads and its own checks of each entry. A manifest that is no JSON list of copies, or an entry with no copy, source and hashes or with a source under no plain path, is refused in both.
+- Tests first (RAN): with the tests switched to the JSON manifest and the readers not yet, 8 of 73 R301 tests of test_round_addin.py failed, at the old line parse and the old manifest name. Then all passed.
+- On the real source root, read only (RAN, round_addin\logs\p1b_r301_real.py and p1b_r301_real.txt): sources IMA 5, IMB 5, IMC 221, IMD 199, IME 1, IMF 1, IMG 1, copies 1 each, 0 flagged, the second method equal on 7 of 7 sources and 7 of 7 copies. The same counts as review pass 2 of Phase 1 with sources.txt.
+
+### R313, the STR prototypes (Q067)
+
+- prototypeSets.STR of config/project.json: source 00_Revit Models\Zone 02\STR\Prototypes, target 00_Revit Models\Zone 02\ARC\Prototypes_2024\STR, discipline STR, codePrefix S (CHOSEN, the brief: a folder of its own so the ARC prototypes the placer picks by code stay alone). Run-TestHost.ps1 -Upgrade -PrototypeSet STR -Code <code> takes the one file of that code from the set folder with no plan, runs the job as S and the code and writes discipline and codePrefix into it. The steps of the upgrade job (R109) did not change. The 13 2021 files are workshared, Format 2021, each with 1 Revit link, unloaded (RAN, rvt_info.py, round_addin\logs\rvt_info_str_2021.json).
+- First window, STH1 (RAN, round_addin\logs\run_STH1_upgrade.txt): the test host refused the job, since the guard of R103 knew only RRE-WP-NSP-KEO-ARC-<code>-ZZ-MOD-<n>.rvt and took STH1 as the code. The run script stopped Revit after 0.7 min, the source unchanged, nothing written but the empty folder Prototypes_2024\STR that -NewUpgradeFolder made. The claimed job file testhost_job_STH1_upgrade.claimed-24524-639285105181452908.json stays in Documents\SiteAdaptation, as a refused job stays by R110.
+- The fix, the second attempt: TestHostJob carries discipline and codePrefix, the guard takes them on an upgrade job only, both or none, the discipline three capitals other than ARC, the job code the prefix and a prototype code, and the file RRE-WP-NSP-KEO-<discipline>-<that code>-ZZ-MOD-<n>.rvt. A job with neither keeps the ARC check. Tests first (RAN): the 13 set tests failed at first, at the missing PrototypeSets.ps1, the missing line of the run script and the missing config, and later the guard tests did not build with no Discipline (CS1061). 18 R313 test cases at the end (RAN).
+- Install-TestHost.ps1 -NoBuild -SkipSigningReport under PowerShell 7 installed the build of the guard, one Common DLL in the reader, the placer and the watcher (RAN, round_addin\logs\install_p1b_guard.txt).
+- Proof on one prototype first, STH1 again (RAN, run_STH1_upgrade_2.txt): open 184.3 s detached with worksets kept, save 6.4 s as a new central, close 0.4 s, targetInfo format 2024 workshared, 33,140,736 bytes, window 3.65 min, source unchanged by hash, size and time. Format 2024 by the bytes too (RAN, rvt_info_STH1.json). Then the other 12, one window at a time, by a loop that stops at the first window not ok (RAN, str_loop.txt, run_S<code>_upgrade.txt).
+- 14 windows under the lock with round ADDIN-1b, the refused one included, 0 waits, 4.39 to 6.65 GiB free at the lock, the run script ended with exit code 0 and no Revit was left after each, 52.0 min in all (RAN, windows.jsonl). Revit exited with exit code 0 in the 13 upgrades, the run script stopped it in the refused one (RAN, testhost_S<code>_upgrade_run.json). The watcher answered 5 security dialogs in each, in our own Revit only, Do Not Load for RCRC Green and RCRC Green Audit, Load Once for our three (RAN, testhost_S<code>_upgrade_watcher.json). The registry was not read or written. In Revit each upgrade showed one task dialog, TaskDialog_Views_Related_To_Analytical_Changed, closed by the test host as for the SE models in Phase 1, and logged 2 to 18 warning lines, 106 in all: 53 openings that partly cut their host, 30 analytical elements invalid after the upgrade, 21 elements joined that do not intersect and 2 family errors (RAN, testhost_S<code>_upgrade_log.json).
+
+| Code | Open s | Save s | Window min | Peak private MiB | Peak working set MiB | Least free GiB | Not responding samples | Warning lines | Bytes |
+|---|---|---|---|---|---|---|---|---|---|
+| C10 | 110.2 | 11.7 | 2.49 | 2,020 | 2,136 | 2.46 | 3 | 4 | 56,188,928 |
+| TH1 | 184.3 | 6.4 | 3.65 | 1,389 | 1,649 | 2.37 | 0 | 6 | 33,140,736 |
+| VD2 | 260.2 | 13.5 | 5.05 | 2,052 | 2,360 | 2.70 | 2 | 4 | 71,909,376 |
+| DP1 | 196.6 | 11.7 | 4.29 | 2,046 | 2,334 | 2.85 | 3 | 10 | 61,091,840 |
+| DP2 | 233.8 | 10.7 | 4.55 | 2,047 | 2,350 | 3.65 | 2 | 6 | 69,459,968 |
+| DP3 | 208.9 | 11.0 | 4.15 | 1,999 | 2,294 | 4.06 | 2 | 3 | 62,906,368 |
+| DP4 | 223.6 | 11.1 | 4.38 | 2,048 | 2,358 | 3.79 | 2 | 15 | 68,169,728 |
+| DT1 | 165.1 | 5.4 | 3.32 | 1,387 | 1,643 | 4.39 | 0 | 4 | 34,672,640 |
+| DT3 | 195.0 | 6.4 | 3.83 | 1,435 | 1,700 | 4.35 | 0 | 17 | 38,879,232 |
+| TH3 | 196.9 | 5.6 | 3.84 | 1,416 | 1,686 | 4.53 | 0 | 18 | 35,938,304 |
+| VD4 | 248.0 | 11.0 | 4.81 | 2,053 | 2,348 | 3.61 | 2 | 15 | 68,648,960 |
+| VL4 | 147.6 | 9.7 | 3.09 | 1,821 | 2,092 | 3.72 | 2 | 2 | 46,997,504 |
+| VL6 | 178.1 | 9.9 | 3.62 | 1,941 | 2,210 | 3.63 | 2 | 2 | 52,465,664 |
+
+- (RAN, round_addin\logs\str_check.py and str_check.txt, the memory block of each testhost_S<code>_upgrade_run.json.) Peaks are to the exit of Revit, throughExit true on 13 of 13, 29 to 60 samples a window, 0 samples under the 2 GiB floor and 0 failed. Revit and the processes it started held up to 2,021 to 2,704 MiB private together in one sample. Not responding came in 9 of 13 windows on 2 or 3 samples each, in 8 during the open step and in DP1 while Revit started, before the job, and each window ended ok, as in Phase 1 (RAN, the samples against the steps of each log).
+- Second method (RAN, str_check.txt): the format of each new file from its bytes by rvt_info.py against the targetInfo step Revit logged, its size against the file, the log result ok and exit code 0, 65 of 65 checks match, 0 mismatch. The 13 new file names equal the 13 STR link files the SE models of IMA and IMB opened in Phase 1 (READ, the linkOpenings of testhost_KA_upgrade_log.json and testhost_KB_upgrade_log.json, 13 of 13). Prototypes_2024\STR holds the 13 files and the 13 _backup folders Revit writes beside a new central (RAN). Their SHA-256 are in round_addin\logs\sha256_str_2024.txt for a later round.
+- A LocalDB of Steel Connections (sqlservr 21440) started in the refused first window and ran on as a helper of the later windows, 570 MiB private at the start of the second STH1 (RAN, run_STH1_upgrade_2.txt). It was still running after the last window (RAN, tasklist).
+
+### Not done in this PR
+
+- No copy was made again: all 7 key copies reuse, so record was proved by tests only.
+- The 13 STR files were not read with the reader, since the add-in places the ARC prototypes (Q067 asked to upgrade them only).
+- The claimed job file of the refused STH1 window stays in Documents\SiteAdaptation.
+
+### Gate
+
+- Python 1163 passed and 1 skipped, .NET build 0 errors, .NET 497 passed, run twice, before and after the records (RAN, round_addin\logs\p1b_gate_python.txt, p1b_gate_build.txt, p1b_gate_test.txt). The build that compiled the tests gave the 1 old warning (xUnit2013), the build after the records had nothing to compile and gave 0. Main before this PR: 1122 and 1 skipped, 479. New: 36 R312 tests, 5 R301 test cases, 18 R313 test cases.
+
+### Questions
+
+- Q067 closed: the 13 STR prototypes are upgraded into Prototypes_2024\STR (Bader's instruction). No new question.
