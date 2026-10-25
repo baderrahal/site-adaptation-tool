@@ -4,26 +4,23 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 
 ## Round ADDIN Part 1, 2026-10-25, the Revit 2024 add-in from the Parsons site models
 
-In progress. 0a to 3a merged (PR 41 to 47), 3c in review with the fixes of its review (rules/addin-parsons-levels). Plan: steps/investigations/round-addin.md.
+In progress. 0a to 3c merged (PR 41 to 48), 3b in review (docs/addin-design). Plan: steps/investigations/round-addin.md.
 
 Goal:
 - The add-in in Revit 2024, C#, .NET 4.8, from the 7 Rev 6 Parsons site models, parsons2024Rev6 for every build (Q050), docs/addin-mock.md, Part 2 after Bader's check of Part 1
 
 Done:
-- 0a to 3a (PR 41 to 47): harness, samples, site facts, key copies, STR prototypes, reads, key plans, past_all.csv, overrides by source and model, the Round 17 rules on the keys, a build by keyRules and its proof
-- 3c R339 to R341: the levels as a build gives them on the road it asks, to the mm at a 0.5 mm pass limit with shares at 1 and 5 mm, a build and its proof by them, the second method by an own LandXML route
-- Review of PR 48: each level moved by the own override of its plot only, the FFL judged on the El @ Entry of the rule, misses with no value in cannot and refused by a build, the proof needs every input and splits the holds by rule and by override, front corners apart (Q057), a one-sided item a mismatch, the split per sequence, one road setting, whole steps
-- Round 17 IMC levels over 0.5 and up to 5 mm, 103 plots, 61 over 1 mm: 61 by the 5 mm hold and 26 by the road snap fixed, 10, 3 and 1 listed, 2 fixed by the rounding order
+- 0a to 3c (PR 41 to 48): harness, key copies, reads, key plans, past_all.csv, overrides by source and model, the rules and the levels of the keys in keyRules, a build and its proof by them
+- 3b R342, R343: docs/addin-design.md, the design before any add-in code (folders, 8 buttons, data path, 14 parity steps, settings, the mock item by item filled with NBH 012, install, risks, R345 to R384 planned, 9 conflicts) and docs/licences.md. The filled mock with real values in round_addin\design\mock_filled.md
 
 Checked:
-- 60 of 60 originals and 99 of 99 inputs equal by hash, in 3c and its review. No Revit window
-- 5 TU keys at 0.5 mm: El @ Entry 0.088, FFL per piece 0.749, ramp front 0.692, split 0.702, base 0.844, all weak, steps 0.988 and Prototype-FFL 0.994 strong, at 5 mm El @ Entry 0.442, FFL 0.826. On IMC alone split 0.9375 and base 0.9167 strong
-- Proof, unexplained levels at 0.5 mm before: imc 604, imd 1,389, ime 1,071, imf 1,686, img 813. After the review 0 unexplained and 0 not checked on every key and band, 10,542 levels hold on 1,759 TU plots, by the rule alone El @ Entry 157, FFL 217, ramp front 1,283, steps 1,690, the rest by an override. Ramp front 579 at the limit itself, the claim covers the mean front, a front corner over 5 mm off on 257 (Q057)
-- Second method: seeds 14 and 7, 450 and 343 items, 0 mismatches, every plot 50,530, 3: the villas of Q072 and the base of IMF 1118 one method holds, the IMF 1119 and 1100 edge 12.599 or 12.499 m against 12.5 m, listed
-- Overrides 9,342 to 12,424 and 154 in cannot, parsons 4,120 to 7,202, heightM 524 to 1,547, native 5,222 cell for cell, 0 byHand lost on a list with none. 174 of the 230 Round 17 entryM keep their value. Dry run equals write run
+- 3b, in a net48 host that holds what Revit 2024 holds: ACadSharp, OpenXml 3.5.1 and Newtonsoft ok, PdfPig failed on System.Memory 4.0.2.0 with no resolver, ran with one and as an exe with its own redirects (RAN). Revit 2024 ships Newtonsoft 13.0.1 with a redirect, System.Memory 4.0.1.1, Dynamo OpenXml 2.12.3 (READ)
+- 3b: CadReader peak private memory on copies, Road Layout 2,576 MiB in 20.2 s, baseplan 99, footprint 80 (RAN). A copy of Common builds for netstandard2.0 with 0 errors (RAN)
+- 3b: the parsons build of NBH 012, 336 of 337 plots in 12 s, 28 inputs equal by hash, 1,247 check rows, 2 plots follow every rule, a second count by PowerShell 13 of 13 equal (RAN)
+- 3c: 5 TU keys at 0.5 mm El @ Entry 0.088 and FFL per piece 0.749 weak, steps 0.988 and Prototype-FFL 0.994 strong, 0 unexplained levels, second method 0 mismatches at seeds 14 and 7. Overrides 12,424, 154 in cannot, native 5,222 cell for cell
 
 Remains:
-- 3b docs/addin-design.md. The wall faces and width are not read, no wall top rule
+- Phase 4 the logic in C# with a parity test per step, Phase 5 the add-in, Phase 6 all zones. Wall width, floor type thickness and the shared parameter GUIDs of the keys are not read yet (4b)
 - The 33 plots with no road level at a front corner are not written (Q073)
 
 Known bugs:
@@ -34,7 +31,7 @@ Known bugs:
 - angleToTrueNorthDeg of the reader has 3 decimals, not brought into 0 to 360, the placer takes 0 only. 1 old .NET warning, xUnit2013. key_copies.py keeps a last part NUL as a name
 
 Next:
-- Phase 3b: docs/addin-design.md, keyRules of 3a and 3c as its rule source
+- Phase 4a: Common on netstandard2.0, the worker, the parity harness (R345 to R347), then 4b to 4f
 
 Your turn:
 Q001. El @ Entry: ask the client for the Infrastructure IFC and the architect for the ramp slope, no entrance spot gives it (2b) and the road a build gives holds it on 0.088 of 1,785 TU plots at 0.5 mm, 0.442 at 5 mm (3c), 1,596 overrides until then, 32 with no value listed in cannot
@@ -57,6 +54,8 @@ Q068. Project position of button 1: set the Parsons position from config, not R2
 Q070. El @ Entry with no schedule: take the ELl@Entry parameter of the key, it is off the IMC schedule by over 30 mm on 100 of 314 plots, off the IMD schedule on 115 of 398, and IME to IMG set 113 FFL groups over 5 mm off it, 107 by whole cm (IME 28, IMF 67, IMG 12, heightM overrides), ask Parsons for the IME to IMG schedules
 Q071. Walls: accept the base at the yard level, the centre on the edge and the open front, ask the architect for the wall top rule (0.346), wall overrides once button 7 places walls
 Q072. Side road of a villa with three road edges (IMC 2301, IME 2710, IMG 441): the side edge, not the back: accept. Q073. 33 plots with a front corner on no road surface have no El @ Entry and are not written (IMA 1, IMB 2, IMD 3, IME 3, IMF 14, IMG 10): take the road of the covered corner for both, else send the surface. Q074. Steps of the base and risers, half a riser no step (0.988 on 5 keys), against the count rule the IMC and IMD schedules follow (0.934 on 5): accept, 48 overrides, 16 that break it, 32 with no value of it (no road level or no front frame). Q075. 1,346 native entries with no value kept from Round 17, a native2022 build loading them is refused: move them to cannot by a run with --replace native
+Q076. Python checker licences: shapely is BSD-3-Clause and its wheels bundle GEOS under LGPLv2.1, nothing of Python ships: keep it for the checker
+Q077. The worker: buttons 2 and 3 read and build in CadReader.exe beside Revit, the Road Layout read alone took 2,576 MiB and PdfPig needs a System.Memory Revit 2024 lacks: accept
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 

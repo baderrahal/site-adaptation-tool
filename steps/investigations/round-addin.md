@@ -1179,3 +1179,54 @@ Not done: the full text of Q072 is not in steps/questions-closed.md, as before t
 ### Questions
 
 - Q001, Q012, Q052, Q053, Q057, Q070 and Q074 take the counts of 3c and its review, the same text in steps/PROGRESS.md and the top entry of steps/log.md. Q073 (the plots with no road level) and Q074 (the steps of the base and risers against the count rule of the schedules) are new, Q075 (the native entries with no value) is new in the review.
+
+## Phase 3 part 2, PR 3b docs/addin-design
+
+Branch docs/addin-design from main at a201c19, equal to origin/main after git fetch (RAN). Rules R342 and R343 are new, R344 is not used. The phase ran in a helper agent started by the main session, which runs the checkers and merges. No Revit or Civil 3D window was opened, the lock was not taken, the registry was not read or written. This PR writes the design and the licences, no add-in code. Values of coordinates and levels stay in Documents\SiteAdaptation\round_addin\design, this file holds counts, sizes, versions and plot numbers only.
+
+### What the PR holds
+
+| Change | Files | Rule, test |
+|---|---|---|
+| 1 | docs/licences.md, every .NET package of the 9 projects, the 4 planned ones and every Python package, with the licence, where it ships and how it was checked, the load check, what Revit 2024 ships, the libraries not chosen, the conflicts | R342, python/tests/test_licences.py, 6 tests |
+| 2 | docs/addin-design.md, the design of Part 1 in 10 sections, before any add-in code | R343, python/tests/test_addin_design.py, 6 tests |
+| 3 | The records: this section, the top entry of steps/log.md, steps/PROGRESS.md, Q072, Q076 and Q077 in steps/questions-closed.md | |
+
+Outside the repo: round_addin\design\mock_filled.md (section 7 with the real coordinates and levels), round_addin\design\work (plan_012.json, mock_values.py and .json, mock_filled.py, inputs_hashes.txt), round_addin\logs\p3b_*.txt.
+
+### The libraries (R342)
+
+- Licences READ from the .nuspec of the 24 packages of the obj/project.assets.json of the 9 projects in the local NuGet cache, and from the licence file inside the package where the nuspec gives a file or a URL (Nice3point, System.Collections.Immutable, System.Reflection.Metadata), SEARCHED on nuget.org for PdfPig 0.1.16, DocumentFormat.OpenXml 3.5.1 and its Framework 3.5.1 and for the URLs of Microsoft.NETFramework.ReferenceAssemblies and xunit.abstractions. All 28 .NET packages are MIT or Apache-2.0 (READ).
+- Load check (RAN, a scratchpad project outside the repo): a net48 host holding System.Memory 4.0.1.1, System.Buffers 4.0.3.0, System.Numerics.Vectors 4.1.4.0, System.Runtime.CompilerServices.Unsafe 4.0.4.1, Newtonsoft.Json 13.0.1 and DocumentFormat.OpenXml 2.16.0 with no redirect, then an add-in loaded by LoadFrom. With no resolver ACadSharp 3.8.0, DocumentFormat.OpenXml 3.5.1 and Newtonsoft.Json ran (the host copy, file 13.0.1.25517, served), PdfPig 0.1.16 failed with FileNotFoundException for System.Memory 4.0.2.0. The first resolver, which served only a request whose requesting assembly lies in the add-in folder, did not help: the request came with no requesting assembly. The second, which also serves a request with no requester when the file of the add-in folder has the same or a higher version, let all four run. The same code as a net48 exe got a generated config redirecting System.Memory and System.Buffers to 4.0.5.0 and ran with no resolver.
+- Revit 2024 (READ, C:\Program Files\Autodesk\Revit 2024, assembly versions by GetAssemblyName): NewtonSoft.Json.dll 13.0.0.0 (file 13.0.1.25517) with the redirect 0.0.0.0-13.0.0.0 in Revit.exe.config, System.Memory 4.0.1.1, System.Buffers 4.0.3.0, System.Numerics.Vectors 4.1.4.0, System.Runtime.CompilerServices.Unsafe 4.0.4.1 with no redirect, AddIns\DynamoForRevit\DocumentFormat.OpenXml.dll 2.12.3.0, itextsharp 4.1.6.0. No ACadSharp, PdfPig or other OpenXml under Revit 2024 or the two add-in folders.
+- Python (READ, METADATA of the 19 packages installed in .venv): every requirement and the 13 packages they pull in, 18 rows, pip left out as the installer. shapely 2.2.0 bundles GEOS under LGPLv2.1 (Q076).
+
+### The design (R343)
+
+- Memory of the readers (RAN, CadReader.exe of the build at a201c19 on copies in the scratchpad, each source equal by Get-FileHash before and after, each copy equal to its source, the copies deleted after): Makkah Phase 1_Road Layout.dwg, 82,061,457 bytes, 20.2 s, peak private 2,576 MiB, 216,017 pieces, 6,157 blocks. ROSHN Makkah Baseplan.dwg, 1.3 s, 99 MiB, 2,962 plots. Makkah Building Footprint.dwg, 1.0 s, 80 MiB, 3,780 blocks. 6 GiB free of 15.78 at the start. This and the PdfPig failure make the worker of the design, Q077 asks Bader.
+- Common for netstandard2.0 (RAN): the 31 source files of dotnet/SiteAdaptation.Common copied to the scratchpad with a csproj for netstandard2.0 and Newtonsoft.Json 13.0.1 built with 0 errors and 0 warnings.
+- The build of NBH 012 by the parsons rules (RAN, plan_from_book.py nbh=012 with the inputs of the build route of 3c and the committed override list, into round_addin\design\work\plan_012.json): 12 s, 337 plots, 336 written, 2312 not written (no unit, it shares the face of 2311, Q016), 5 written with no yard (no fitted outline for VD4, VD2 and VL6 on plots 10.0 to 13.0 m wide: 2378, 2387, 2441, 2544, 2545), 91 clusters with 337 plots, 214 in a cluster, front rule nearestCurb 227 and orientation 110, Top Surface-02 on 672 of 672 front corners, floors generic 336, yard 331, ramp 336, the overrides applied and left as in the build of the key cover of 3c. The 28 inputs it read equal by sha256sum before and after (round_addin\design\work\inputs_hashes.txt).
+- The filled mock (RAN, mock_values.py on the plan, the override list, majority.json and key_join.json of 3c): 1,247 check rows, Plot cut 12, Floor 38, Hand 12, Unit code 3, Position 4, Level 817, Parameter 361, 2 plots follow every rule (2616, 2624), level rows 336, 24 of them Source Rule. Second count by PowerShell ConvertFrom-Json, another tool on the same files: 13 of 13 values equal, 0 differ (round_addin\logs\p3b_mock_second.txt).
+- Data book of NBH 012 (RAN, the snapshot plots.csv and labels.csv): 380 faces, 337 unit plots, 348 with a footprint block, 345 with a road level, 337 client code labels, Zone 2. The Phase 1 location plan: 2,704 client code labels, 2,591 in the 7 NBH, 113 with no sales row.
+- The mock values of section 7 come from: the plan of NBH 012, the override list, majority.json and key_join.json of the 3c review, site_report_i18.json and site_imc_b.json of the Round 17 IMC new site file (the check points, 5 of 5 at 0.0 mm), the RC and RD reads of 2a (units, levels, types, the 10 link parameters), key_reads.json (wall types), prototypes_imc_r17b.json against plan_imc_r17b.json (Counts agree: links 336 and 336, floors 999 and 999, link Z at the FFL within 1 mm 336 of 336), place_codes_b.txt (13 runs, 7.96 min) and keyRules of the rules profile (Rules applied).
+
+### Tests first
+
+- R342 (RAN, round_addin\logs\p3b_r342_first.txt): with docs/licences.md moved aside 5 of 6 tests failed on FileNotFoundError, the sixth tests the readers on made up files. With a row set to Newtonsoft.Json 13.0.1, PdfPig set to LGPL-2.1 and shapely set to MIT, 4 failed for those rows. Then 6 passed.
+- R343 (RAN, p3b_r343_first.txt): with docs/addin-design.md moved aside 4 of 6 failed on FileNotFoundError. A made up easting in place of one [coordinate] failed the coordinate test, and every "Counts agree across outputs" renamed failed the label test. Export to Excel taken out of its first line did not fail it, since the label is found again further on in 7.4, so the order test holds each label once in section 7 and a label written twice can hide one place. Then 6 passed.
+
+### Not done in this PR
+
+- No add-in code, no Revit window, nothing placed. The counts of buttons 4 to 6 in 7.6 are those of the plan a real run would place, the Counts agree box is of the Round 17 build, Phase 6 places the parsons build.
+- R344 is not used. CLAUDE.md is not changed, the lines it should gain are in the report of the PR.
+- Wall width, floor type thickness and the shared parameter GUIDs of the keys are not read (4b). Whether Revit 2024 moves the survey point and the base point as the keys hold them, a project from no template, the WPF pane and the screenshots are UNKNOWN until Phase 5.
+
+### Questions
+
+- Q076 new: the Python checker packages, shapely bundles GEOS under LGPLv2.1.
+- Q077 new: the worker process beside Revit for the reads and the build.
+- Q072 has its full text in steps/questions-closed.md now.
+
+### Gate
+
+- On the working tree of this PR at a201c19, every file of the three commits in place: Python 1544 passed and 1 skipped, .NET build 0 errors and the 1 old warning (xUnit2013), .NET 522 passed (RAN, round_addin\logs\p3b_gate_python.txt, p3b_gate_build.txt, p3b_gate_test.txt). Main before this PR at the gate of PR 48. In this PR 12 Python tests, 6 of R342 and 6 of R343, and no .NET test.
