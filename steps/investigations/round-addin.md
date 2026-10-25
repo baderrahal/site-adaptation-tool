@@ -579,6 +579,8 @@ Records (items 11 to 20): walls 859 to 2,323, MiB for the read sizes, the build 
 ### Gate
 
 - At 3dcacaa: Python 1223 passed and 1 skipped, .NET build 0 errors and the 1 old warning (xUnit2013), .NET 520 passed (RAN, round_addin\logs\p2a_gate_python.txt, p2a_gate_build.txt, p2a_gate_test.txt, each with the head it ran on). Main before this PR: 1201 and 1 skipped, 516. In this PR: 22 Python tests of R321 to R323 and 4 .NET tests of R320.
+- At b17fcd6, after the review fixes and their first records: Python 1238 passed and 1 skipped, .NET build 0 errors and the 1 old warning (xUnit2013), .NET 522 passed (RAN, round_addin\logs\p2a_review_gate_python_b17fcd6.txt, p2a_review_gate_build_b17fcd6.txt, p2a_review_gate_test_b17fcd6.txt, each with its head). The review added 15 Python tests and 2 .NET tests and replaced one. The gate at the final head, after this line, is in the PR body with its head.
+- The top log entry is 52 lines and 7,328 characters by the method of test_r26 (at most 70 lines and 9,000 characters), counted on the log of the final commit of the review, which this line does not change (RAN).
 
 ### Not done in this PR
 

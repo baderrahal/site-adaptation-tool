@@ -12,7 +12,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 - ADDIN 1 (R310, R311, R203, R204, R301): window samples with the true peaks, site facts of the reader. All 7 Parsons models share one survey point, base point, project position, angle 0, site Internal, Level 1 and Level 2, metric units. IMA and IMB are SE models with STR links and no levels (Q066), the zone2 IMC is the master of the floor scenarios (Q065)
 - ADDIN 0b (R300 to R304): parsons2024Rev6 default with overrides of its own job, villa blocks only from the Building Footprint, area codes by job, the image step from testHost, R303 withdrawn (Q064), a clean clone in a deep folder builds
 - 17 (R261 to R282): Native 1.1 to 1.4 hold 2,386 of 2,591 Phase 1 unit plots, the majority rule and the IMC rebuild, 336 of 337 plots, Z within 10 mm on 336. DATA-5 and earlier: steps/investigations/ and steps/history/
-- Gate at the head of PR 2a: Python 1223 passed and 1 skipped, .NET 520 passed. Real files are read from copies, nothing real is in git
+- Gate at b17fcd6, PR 45 after the review: Python 1238 passed and 1 skipped, .NET build 0 errors, .NET 522 passed. Real files are read from copies, nothing real is in git
 
 ## Done
 
