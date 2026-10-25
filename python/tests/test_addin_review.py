@@ -1,0 +1,133 @@
+"""Round ADDIN PR 3a, review of PR 47: the override list a run writes (R330), the build by the rules of the keys (R337), the
+duplicates of a build (R280), the coverage of every decision (R272), the walls with no base level (R335) and the Round 17 check
+(R281). Every name and number here is made up (R10)."""
+import json
+from pathlib import Path
+
+import pytest
+
+import majority
+import override_source
+import plan_rules
+import project_profile
+
+ROOT = Path(__file__).resolve().parents[2]
+GROUPS = {"native": ["u11", "u12"], "parsons": ["imc", "imd"]}
+
+
+def entry(plot, field, value, source, model, key, **extra):
+    return {"plot": plot, "field": field, "value": value, "rule": None, "source": source, "model": model, "key": key, "decision": "d", "reason": "r", **extra}
+
+
+def keep_block(sources=("native",), later=None):
+    return {"groups": GROUPS, "overrideKeep": {"note": "n", "sources": list(sources), "laterPhase": "3c",
+                                               "laterFields": later if later is not None else {"parsons": ["entryM", "heightM"]}}}
+
+
+# R330 a key with no model file
+def test_r330_a_key_with_no_model_file_is_refused_never_written_with_its_key_name_as_model():
+    misses = [{"decision": "parsons hand villa", "field": "mirrored", "plot": "2", "key": "imc", "code": "VD2", "value": True, "rule": False,
+               "state": "breaks", "reason": "breaks blockMirror"}]
+    with pytest.raises(project_profile.ProfileError) as error:
+        majority.overrides(misses, {"overrideDecisions": ["hand"], "groups": GROUPS}, {})
+    assert "imc" in str(error.value) and "--model" in str(error.value)
+    listed = majority.overrides(misses, {"overrideDecisions": ["hand"], "groups": GROUPS}, {"imc": "IMC.rvt"})
+    assert listed[0]["model"] == "IMC.rvt"
+
+
+# R330 --keep names only what the earlier list holds
+def test_r330_keep_with_a_field_or_a_source_no_entry_of_the_earlier_list_has_is_refused():
+    earlier = [entry("2", "entryM", {"gapToRuleM": 0.02}, "parsons", "IMC.rvt", "imc")]
+    assert override_source.parse_keep(["parsons:entryM"], GROUPS, earlier) == {"parsons": {"entryM"}}
+    for wrong in (["parsons:steps"], ["parsons:entryM,steps"], ["native"]):
+        with pytest.raises(project_profile.ProfileError) as error:
+            override_source.parse_keep(wrong, GROUPS, earlier)
+        assert "no entry" in str(error.value)
+
+
+# R330 the plot of a kept entry must be one the join gives its key
+def test_r330_a_kept_entry_on_a_plot_the_join_gives_no_row_of_its_key_is_dropped_and_counted():
+    earlier = [entry("2312", "entryM", {"gapToRuleM": 0.02}, "parsons", "IMC.rvt", "imc"), entry("2300", "entryM", {"gapToRuleM": 0.01}, "parsons", "IMC.rvt", "imc")]
+    keep = {"parsons": {"entryM"}}
+    merged, counts = override_source.merge(earlier, [], keep, joined={("imc", "2300")})
+    assert merged == [earlier[1]]
+    assert counts["droppedNoJoin"] == {"parsons": 1} and counts["kept"] == {"parsons": 1}
+
+
+# R330 the fields left to a later phase and the sources kept come from config, so the plain command gives the committed list
+def test_r330_the_config_keeps_every_native_entry_and_the_level_fields_left_to_3c_so_a_plain_run_keeps_them():
+    keep = override_source.keep_of(keep_block(), [], [], [])
+    assert keep == {"native": None, "parsons": {"entryM", "heightM"}}
+    real = override_source.keep_of(majority.load_block(project_profile.load_settings()), [], [], [])
+    assert real == {"native": None, "parsons": {"entryM", "heightM", "steps", "parameter RRE_ZZ_SP_Prototype-FFL"}}
+    earlier = [entry("1", "entryM", {"gapToRuleM": 0.5}, "native", "U12.rvt", "u12"), entry("2", "heightM", {"gapToRuleM": 0.03}, "parsons", "IMC.rvt", "imc"),
+               entry("2", "mirrored", True, "parsons", "IMC.rvt", "imc")]
+    run = [entry("1", "entryM", {"gapToRuleM": 0.9}, "native", "U12.rvt", "u12"), entry("2", "heightM", {"gapToRuleM": 0.9}, "parsons", "IMC.rvt", "imc"),
+           entry("3", "mirrored", False, "parsons", "IMD.rvt", "imd")]
+    merged, _ = override_source.merge(earlier, run, keep)
+    assert merged == [earlier[0], earlier[1], run[2]]
+
+
+@pytest.mark.parametrize("bad", [{"sources": ["other"]}, {"laterFields": {"other": ["entryM"]}}, {"laterFields": {"parsons": []}}, {"laterFields": {"parsons": [""]}},
+                                 {"laterPhase": ""}, {"sources": "native"}])
+def test_r330_an_override_keep_block_that_names_no_job_or_an_empty_field_is_refused(bad):
+    block = keep_block()
+    block["overrideKeep"] = dict(block["overrideKeep"], **bad)
+    with pytest.raises(project_profile.ProfileError):
+        override_source.keep_of(block, [], [], [])
+
+
+# R330 native entries stay unless a run names them, an entry Bader edited by hand is never dropped
+def test_r330_native_entries_stay_unless_replace_names_them_and_replace_of_what_is_not_kept_is_refused():
+    earlier = [entry("1", "entryM", {"gapToRuleM": 0.5}, "native", "U12.rvt", "u12")]
+    run = [entry("1", "entryM", {"gapToRuleM": 0.9}, "native", "U12.rvt", "u12")]
+    keep = override_source.keep_of(keep_block(), [], ["native"], earlier)
+    assert "native" not in keep
+    merged, counts = override_source.merge(earlier, run, keep)
+    assert merged == run and counts["new"] == {"native": 1}
+    assert override_source.keep_of(keep_block(), [], ["parsons:entryM"], earlier) == {"native": None, "parsons": {"heightM"}}
+    for wrong in (["parsons:mirrored"], ["native:entryM"], ["other"]):
+        with pytest.raises(project_profile.ProfileError):
+            override_source.keep_of(keep_block(), [], wrong, earlier)
+
+
+def test_r330_an_entry_marked_by_hand_is_never_dropped_and_a_run_that_would_drop_one_refuses():
+    hand = entry("2", "mirrored", True, "parsons", "IMC.rvt", "imc", byHand=True)
+    run = [entry("2", "mirrored", False, "parsons", "IMC.rvt", "imc")]
+    with pytest.raises(project_profile.ProfileError) as error:
+        override_source.merge([hand], run, {"native": None})
+    assert "byHand" in str(error.value) and "2" in str(error.value)
+    # Kept by its field it stays, cell for cell
+    merged, _ = override_source.merge([hand], run, {"parsons": {"mirrored"}})
+    assert merged == [hand]
+    # Off the join it would be dropped, so the run refuses
+    with pytest.raises(project_profile.ProfileError):
+        override_source.merge([hand], [], {"parsons": {"mirrored"}}, joined={("imc", "3")})
+
+
+@pytest.mark.parametrize("mark", [False, "yes", 1, None])
+def test_r330_by_hand_is_true_or_left_out(mark):
+    with pytest.raises(project_profile.ProfileError):
+        override_source.check_entries([entry("2", "mirrored", True, "parsons", "IMC.rvt", "imc", byHand=mark)], GROUPS)
+    assert override_source.check_entries([entry("2", "mirrored", True, "parsons", "IMC.rvt", "imc", byHand=True)], GROUPS)
+
+
+def test_r330_a_dry_run_writes_the_list_of_the_run_alone_and_never_into_the_repo(tmp_path):
+    run = [entry("1", "entryM", {"gapToRuleM": 0.9}, "native", "U12.rvt", "u12")]
+    block = keep_block()
+    listing, merged = majority.final_list(run, block, dry=True, path=tmp_path / "dry.json", keep=[], replace=[], keep_from=None, joined=None)
+    assert listing == run and merged is None
+    with pytest.raises(project_profile.ProfileError):
+        majority.final_list(run, block, dry=True, path=ROOT / "config" / "overrides" / "dry.json", keep=[], replace=[], keep_from=None, joined=None)
+
+
+def test_r330_a_run_merges_with_the_earlier_list_by_the_config_keep_and_drops_what_the_join_does_not_give(tmp_path):
+    path = tmp_path / "list.json"
+    earlier = [entry("1", "entryM", {"gapToRuleM": 0.5}, "native", "U12.rvt", "u12"), entry("2312", "entryM", {"gapToRuleM": 0.02}, "parsons", "IMC.rvt", "imc"),
+               entry("2300", "mirrored", True, "parsons", "IMC.rvt", "imc")]
+    path.write_text(json.dumps({"note": "n", "overrides": earlier}), encoding="utf-8")
+    run = [entry("2300", "mirrored", False, "parsons", "IMC.rvt", "imc")]
+    listing, merged = majority.final_list(run, keep_block(), dry=False, path=path, keep=[], replace=[], keep_from=None,
+                                          joined={("u12", "1"), ("imc", "2300")})
+    assert listing == [earlier[0], run[0]]
+    assert merged["droppedNoJoin"] == {"parsons": 1} and merged["kept"] == {"native": 1}

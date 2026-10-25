@@ -552,6 +552,9 @@ def overrides(misses, block, models):
         decision = miss["decision"].split(" ", 1)[1]
         if not any(decision.startswith(name) for name in block["overrideDecisions"]):
             continue
+        if miss["key"] not in models:
+            # R330. model names the past model file, a key name in its place would pass as a file
+            raise project_profile.ProfileError("key %s has misses for the override list and no past model file, give --model %s FILE (R330)" % (miss["key"], miss["key"]))
         value, rule = miss["value"], miss["rule"]
         if miss["field"] in ("heightM", "entryM", "rampFrontM", "rampFrontFallM"):
             value, rule = (None if rule is None else {"gapToRuleM": round(value - rule, 4)}), None
@@ -559,8 +562,30 @@ def overrides(misses, block, models):
             # R332. A gap the decision gives in its own terms, the link axes or degrees, never a coordinate
             value, rule = miss["overrideValue"], None
         kept.append({"plot": miss["plot"], "field": miss["field"], "value": value, "rule": rule, "source": jobs.get(miss["key"]),
-                     "model": models.get(miss["key"], miss["key"]), "key": miss["key"], "decision": miss["decision"], "reason": miss["reason"]})
+                     "model": models[miss["key"]], "key": miss["key"], "decision": miss["decision"], "reason": miss["reason"]})
     return sorted(kept, key=lambda item: (link_summary.sort_key(item["plot"]), item["key"], item["field"]))
+
+
+def final_list(listing, block, dry, path, keep, replace, keep_from, joined):
+    """R330. The override list a run writes. A dry run writes the list of the run alone and never into the repo, where the project
+    list would lose every entry the run does not measure. Else the run merges with the earlier list, keep_from or the list at path:
+    it keeps the sources and the laterFields of majority.overrideKeep, with --keep added and --replace taken out, and drops a kept
+    entry of a plot the join gives no row of its key (joined, the key and plot pairs of past_all.csv)."""
+    if dry:
+        try:
+            plot_relations.refuse_inside_repo(Path(path).resolve().parent)
+        except ValueError as error:
+            raise project_profile.ProfileError("--dry writes the list of the run alone, " + str(error) + " (R330)") from error
+        return listing, None
+    source = Path(keep_from or path)
+    earlier = [override_source.migrate_entry(item, block["groups"]) for item in override_source.read_list(source)["overrides"]] if source.exists() else []
+    if keep_from and not source.exists():
+        raise project_profile.ProfileError("--keep-from " + str(source) + " is no file (R330)")
+    chosen = override_source.keep_of(block, keep, replace, earlier)
+    merged, counts = override_source.merge(earlier, listing, chosen, joined)
+    counts["keep"] = override_source.describe(chosen)
+    counts["earlier"] = str(source) if source.exists() else None
+    return merged, counts
 
 
 def write_overrides(path, note, listing):
@@ -577,7 +602,7 @@ def load_block(settings):
     needed = ("strongShare", "levelHoldMm", "entryRampM", "groups", "codeFrom", "kindByPrefix", "slopeBands", "rampTypeClass", "groupSlopes", "depthBands",
               "heightBands", "sideShare", "parameterTests", "overrideDecisions", "wholeFaceShare", "overrideNote", "measuredSlopeGroups", "datumSurfaces", "kindLeaveOut",
               "rotationHoldDeg", "linkHoldMm", "cornerFrontRule", "siteReference", "check", "outlineHoldMm", "pairKinds", "flatRampType", "wallTypes", "wallCentreCodes",
-              "frontOpenShare", "linkNameFacade", "parameterLevels")
+              "frontOpenShare", "linkNameFacade", "parameterLevels", "overrideKeep")
     if not isinstance(block, dict) or any(key not in block for key in needed):
         raise project_profile.ProfileError(settings.path.name + " majority must name " + ", ".join(needed))
     leave = block["kindLeaveOut"]
@@ -611,13 +636,24 @@ def main(argv=None):
     parser.add_argument("--model", nargs=2, action="append", metavar=("KEY", "FILE"), default=[], help="the past model file of a key, the override source")
     parser.add_argument("--out", required=True, help="the report, outside the repo")
     parser.add_argument("--overrides", required=True, help="the override list to write")
-    parser.add_argument("--keep", nargs="*", default=[], help="R330. SOURCE or SOURCE:FIELD,FIELD of the earlier list to keep as it is")
+    parser.add_argument("--keep", nargs="*", default=[], help="R330. SOURCE or SOURCE:FIELD,FIELD of the earlier list to keep as it is, besides majority.overrideKeep")
+    parser.add_argument("--replace", nargs="*", default=[], help="R330. SOURCE or SOURCE:FIELD,FIELD of majority.overrideKeep the run writes again")
+    parser.add_argument("--dry", action="store_true", help="R330. write the list of the run alone, outside the repo only")
     parser.add_argument("--offsets", default=str(prototype_offsets.DEFAULT_PATH), help="R332. prototype_offsets.json with the plotFrame fit")
     parser.add_argument("--key-read", nargs=2, action="append", metavar=("KEY", "FILE"), default=[], help="R331. the reader output of a key, its site facts")
     parser.add_argument("--key-plan", nargs=2, action="append", metavar=("KEY", "FILE"), default=[], help="R334. the plan of a key of R325, its yard outlines")
     parser.add_argument("--floors", default=str(floor_fit.DEFAULT_PATH), help="R334. floor_outlines.json with the yard outlines of R135")
     parser.add_argument("--keep-from", help="R330. the earlier override list --keep reads, --overrides when left out")
     args = parser.parse_args(argv)
+    try:
+        return run_args(args)
+    except project_profile.ProfileError as error:
+        print("majority: " + str(error), file=sys.stderr)
+        return 2
+
+
+def run_args(args):
+    """R271 to R276, R330 to R335. The run of main once its arguments are read, a refusal raised as ProfileError."""
     settings = project_profile.load_settings(args.settings)
     profile = project_profile.load_profile(project_profile.profile_path(settings))
     block = load_block(settings)
@@ -686,12 +722,8 @@ def main(argv=None):
     results, misses, datums, extras = run(items, book, profile, block, surfaces, clusters, prototype_offsets.plot_frame(prototype_offsets.load(args.offsets))["units"],
                                           plans, floor_fit.load(args.floors), floor_fit.width_step(settings), faces, settings.get("keyPlans.wallEdgeM"))
     listing = overrides(misses, block, dict(args.model))
-    merged = None
-    if args.keep:
-        # R330. The entries of the earlier list this run does not measure stay cell for cell, an entry of before the source field takes the job of its key
-        keep = override_source.parse_keep(args.keep, block["groups"])
-        earlier = override_source.read_list(args.keep_from or args.overrides)["overrides"]
-        listing, merged = override_source.merge([override_source.migrate_entry(item, block["groups"]) for item in earlier], listing, keep)
+    # R330. The entries of the earlier list this run does not measure stay cell for cell, on plots the join gives their key
+    listing, merged = final_list(listing, block, args.dry, args.overrides, args.keep, args.replace, args.keep_from, {(row["key"], row["plot"]) for row in rows})
     override_source.check_entries(listing, block["groups"])
     # R331. The coordinates of each key read against the reference key, gaps and names only
     site = key_rules.group_site_facts(reads, block["groups"], block["siteReference"]) if reads else None

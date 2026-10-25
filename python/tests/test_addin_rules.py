@@ -34,11 +34,10 @@ def test_r330_every_override_majority_writes_has_the_job_of_its_key_as_source_an
                "state": "breaks", "reason": "breaks blockMirror"},
               {"decision": "native rampSlope", "field": "rampType", "plot": "1", "key": "u12", "code": "DP2", "value": "flat", "rule": "2",
                "state": "breaks", "reason": "breaks all"}]
-    listed = majority.overrides(misses, {"overrideDecisions": ["hand", "rampSlope"], "groups": GROUPS}, {"imc": "IMC.rvt"})
+    listed = majority.overrides(misses, {"overrideDecisions": ["hand", "rampSlope"], "groups": GROUPS}, {"imc": "IMC.rvt", "u12": "U12.rvt"})
     by_plot = {item["plot"]: item for item in listed}
     assert by_plot["2"]["source"] == "parsons" and by_plot["2"]["model"] == "IMC.rvt"
-    # A key with no model given keeps its key as the model, as R272 did
-    assert by_plot["1"]["source"] == "native" and by_plot["1"]["model"] == "u12"
+    assert by_plot["1"]["source"] == "native" and by_plot["1"]["model"] == "U12.rvt"
     assert list(by_plot["2"]) == ["plot", "field", "value", "rule", "source", "model", "key", "decision", "reason"]
 
 
@@ -143,7 +142,8 @@ def test_r330_majority_keeps_the_entries_of_a_kept_source_or_field_cell_for_cell
     merged, counts = override_source.merge(earlier, run, keep)
     assert merged[0] == earlier[0] and earlier[1] in merged and earlier[2] not in merged
     assert run[2] in merged and run[0] not in merged and run[1] not in merged
-    assert counts == {"kept": {"native": 1, "parsons": 1}, "new": {"parsons": 1}, "droppedFromRun": {"native": 1, "parsons": 1}}
+    assert {name: counts[name] for name in ("kept", "new", "droppedFromRun", "droppedNoJoin")} == {"kept": {"native": 1, "parsons": 1}, "new": {"parsons": 1},
+                                                                                       "droppedFromRun": {"native": 1, "parsons": 1}, "droppedNoJoin": {}}
     for wrong in (["other"], ["parsons:"], ["parsons:entryM,"], ["native", "native"]):
         with pytest.raises(project_profile.ProfileError):
             override_source.parse_keep(wrong, GROUPS)
@@ -242,7 +242,7 @@ def test_r332_an_origin_miss_goes_to_the_overrides_as_its_gap_in_the_link_axes_a
     assert key_rules.insert_gap(item, (8.0, 1.6), None) is None
     listed = majority.overrides([{"decision": "parsons linkOrigin", "field": "insert", "plot": "1", "key": "imc", "code": "C10", "value": (8.0, 1.6),
                                   "rule": (6.0, 1.59), "state": "breaks", "reason": "breaks plotFrameRefit", "overrideValue": gap}],
-                                {"overrideDecisions": ["linkOrigin"], "groups": GROUPS}, {})
+                                {"overrideDecisions": ["linkOrigin"], "groups": GROUPS}, {"imc": "IMC.rvt"})
     assert listed[0]["value"] == {"gapToRuleM": [-2.0, 0.01]} and listed[0]["rule"] is None
 
 

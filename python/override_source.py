@@ -49,13 +49,17 @@ def migrate_entry(item, groups):
 
 
 def check_entries(entries, groups):
-    """R330. Every entry must name the job of its key as source and its past model in model. One error lists every fault."""
+    """R330. Every entry must name the job of its key as source and its past model in model, and byHand, the mark of an entry
+    Bader edited by hand, is true or left out. One error lists every fault."""
     faults = []
     for item in entries:
         try:
             if migrate_entry(item, groups) != item or "model" not in item:
                 raise project_profile.ProfileError("override of plot %s field %s is not in the form of R330, run override_source.py migrate"
                                                    % (item.get("plot"), item.get("field")))
+            if "byHand" in item and item["byHand"] is not True:
+                raise project_profile.ProfileError("override of plot %s field %s has byHand %s, mark an entry edited by hand with \"byHand\": true or leave it out (R330)"
+                                                   % (item.get("plot"), item.get("field"), json.dumps(item["byHand"])))
         except project_profile.ProfileError as error:
             faults.append(str(error))
     if faults:
@@ -72,16 +76,66 @@ def default_sources(settings):
     return list(found)
 
 
-def parse_keep(values, groups):
-    """R330. What a run keeps of the earlier list: SOURCE keeps every entry of that job, SOURCE:FIELD,FIELD only those fields."""
+def parse_keep(values, groups, earlier=None, flag="--keep"):
+    """R330. What a run keeps of the earlier list: SOURCE keeps every entry of that job, SOURCE:FIELD,FIELD only those fields.
+    With earlier, a source or a field no entry of that source in it has is refused, so a misspelt field never keeps nothing."""
     keep = {}
     for value in values:
         source, colon, fields = value.partition(":")
         names = fields.split(",") if colon else None
         if source not in groups or source in keep or (names is not None and (not names or any(not name.strip() for name in names))):
-            raise project_profile.ProfileError("--keep " + value + " must be a job of majority.groups once, with :field,field or none (R330)")
+            raise project_profile.ProfileError(flag + " " + value + " must be a job of majority.groups once, with :field,field or none (R330)")
+        if earlier is not None:
+            held = {item.get("field") for item in earlier if item.get("source") == source}
+            missing = sorted(set(names or ()) - held) if held else [source]
+            if missing:
+                raise project_profile.ProfileError("%s %s: the earlier list has no entry of %s %s, nothing to keep (R330)" % (flag, value, source, ", ".join(missing)))
         keep[source] = None if names is None else set(names)
     return keep
+
+
+def keep_block(block):
+    """R330. majority.overrideKeep of the config: sources, the jobs whose every entry a run keeps (native, measured in Round 17),
+    and laterFields, per job the fields a later phase (laterPhase) measures, whose entries a run keeps and never writes."""
+    found = block.get("overrideKeep")
+    groups = block["groups"]
+    if (not isinstance(found, dict) or not isinstance(found.get("sources"), list) or any(source not in groups for source in found["sources"])
+            or not isinstance(found.get("laterFields"), dict) or not isinstance(found.get("laterPhase"), str) or not found["laterPhase"].strip()
+            or any(source not in groups or not isinstance(fields, list) or not fields or any(not isinstance(name, str) or not name.strip() for name in fields)
+                   for source, fields in found["laterFields"].items())):
+        raise project_profile.ProfileError("majority.overrideKeep must hold sources, jobs of majority.groups, laterFields, per job a list of fields, "
+                                           "and laterPhase, the phase that measures them (R330)")
+    return found
+
+
+def keep_of(block, extra, replace, earlier):
+    """R330. What a run keeps of the earlier list: every entry of the sources of majority.overrideKeep and the laterFields of
+    each job, then the --keep values added and the --replace values taken out. --replace may name only what is kept, a whole
+    source or fields of a job kept by field."""
+    found = keep_block(block)
+    keep = {source: None for source in found["sources"]}
+    for source, fields in found["laterFields"].items():
+        if source not in keep:
+            keep[source] = set(fields)
+        elif keep[source] is not None:
+            keep[source] |= set(fields)
+    for source, fields in parse_keep(extra, block["groups"], earlier).items():
+        keep[source] = None if fields is None or keep.get(source, set()) is None else set(keep.get(source) or ()) | fields
+    for source, fields in parse_keep(replace, block["groups"], flag="--replace").items():
+        if source not in keep or (fields is not None and (keep[source] is None or not fields <= keep[source])):
+            raise project_profile.ProfileError("--replace %s%s names what the run does not keep, it keeps %s (R330)"
+                                               % (source, "" if fields is None else ":" + ",".join(sorted(fields)), describe(keep)))
+        if fields is None:
+            del keep[source]
+        else:
+            keep[source] -= fields
+            if not keep[source]:
+                del keep[source]
+    return keep
+
+
+def describe(keep):
+    return ", ".join(source if fields is None else source + ":" + ",".join(sorted(fields)) for source, fields in sorted(keep.items())) or "nothing"
 
 
 def kept_by(item, keep):
@@ -89,15 +143,30 @@ def kept_by(item, keep):
     return fields is None or (fields is not False and item["field"] in fields)
 
 
-def merge(earlier, run, keep):
+def merge(earlier, run, keep, joined=None):
     """R330. The entries of earlier that keep names, cell for cell, and every entry of the run that keep does not name, sorted
-    by plot, key and field as R272 sorts the list, so Bader finds a plot in one place."""
-    kept = [item for item in earlier if kept_by(item, keep)]
+    by plot, key and field as R272 sorts the list, so Bader finds a plot in one place. With joined, the key and plot pairs of
+    past_all.csv, a kept entry of a plot the join gives no row of its key is dropped, no key overrides a plot it does not hold.
+    An entry marked byHand is never dropped: a run that would drop one, as replaced or off the join, is refused."""
+    kept, off_join, lost = [], [], []
+    for item in earlier:
+        if not kept_by(item, keep):
+            if item.get("byHand") is True:
+                lost.append(item)
+            continue
+        if joined is not None and (item.get("key"), str(item["plot"])) not in joined:
+            (lost if item.get("byHand") is True else off_join).append(item)
+            continue
+        kept.append(item)
+    if lost:
+        raise project_profile.ProfileError("the run would drop %d entries marked byHand: %s. Keep their field with --keep or take the byHand mark off by hand (R330)"
+                                           % (len(lost), " | ".join("plot %s field %s key %s" % (item["plot"], item["field"], item.get("key")) for item in lost[:10])))
     new = [item for item in run if not kept_by(item, keep)]
     dropped = [item for item in run if kept_by(item, keep)]
     tally = lambda items: dict(sorted(Counter(item["source"] for item in items).items()))
     merged = sorted(kept + new, key=lambda item: (link_summary.sort_key(str(item["plot"])), str(item.get("key")), str(item.get("field"))))
-    return merged, {"kept": tally(kept), "new": tally(new), "droppedFromRun": tally(dropped)}
+    return merged, {"kept": tally(kept), "new": tally(new), "droppedFromRun": tally(dropped), "droppedNoJoin": tally(off_join),
+                    "droppedNoJoinEntries": [{name: item.get(name) for name in ("plot", "field", "key", "source")} for item in off_join]}
 
 
 def counts(entries):
