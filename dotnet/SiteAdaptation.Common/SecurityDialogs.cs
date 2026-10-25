@@ -151,5 +151,13 @@ namespace SiteAdaptation.Common
         {
             return ButtonFor(action) == null && !jobPhase;
         }
+
+        // R303. Whether the watcher reads a window by UI Automation. While Revit starts it reads every window as R108 says. In the
+        // job phase only a dialog whose window is not hung, since a UI Automation call on a busy Revit waits until Revit answers,
+        // which held the watcher for the whole image step of I25. The other windows are listed by Win32 calls that do not wait
+        public static bool ReadByAutomation(bool jobPhase, string windowClass, string title, bool hung)
+        {
+            return !jobPhase || (IsDialog(windowClass, title) && !hung);
+        }
     }
 }

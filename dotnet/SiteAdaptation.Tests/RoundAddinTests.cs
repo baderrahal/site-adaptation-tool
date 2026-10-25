@@ -153,6 +153,15 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R303_in_the_job_phase_ui_automation_reads_only_a_dialog_that_is_not_hung()
+        {
+            Assert.True(SecurityDialogs.ReadByAutomation(false, "HwndWrapper", "Autodesk Revit 2024.3", true));
+            Assert.True(SecurityDialogs.ReadByAutomation(true, "#32770", "Revit", false));
+            Assert.False(SecurityDialogs.ReadByAutomation(true, "#32770", "Revit", true));
+            Assert.False(SecurityDialogs.ReadByAutomation(true, "HwndWrapper", "Autodesk Revit 2024.3", false));
+        }
+
+        [Fact]
         public void R303_the_run_script_watches_the_whole_job_and_the_watcher_logs_the_buttons_of_every_window()
         {
             string script = RepoText("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
@@ -163,6 +172,8 @@ namespace SiteAdaptation.Tests
             Assert.Contains("SecurityDialogs.StopReason(", watcher);
             Assert.Contains("SecurityDialogs.StopsRevit(action, jobPhase)", watcher);
             Assert.Contains("Buttons = shownButtons", watcher);
+            Assert.Contains("EnumWindows(", watcher);
+            Assert.Contains("SecurityDialogs.ReadByAutomation(true, top.Class, top.Title, top.Hung)", watcher);
             Assert.DoesNotContain("report.Result = \"the test host wrote its first log step\"", watcher);
         }
 
