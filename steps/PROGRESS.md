@@ -7,7 +7,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 ## State
 
 - ADDIN Part 1 (R300 to R399): the whole add-in inside Revit 2024 in C#, .NET Framework 4.8 (option B), parsons2024Rev6 for every new build (Q050), the 7 Rev 6 Parsons site models as answer keys, the approved mock in docs/addin-mock.md. Plan: steps/investigations/round-addin.md. Part 2, the sheets, waits for Bader's check of Part 1
-- ADDIN 2a (R320 to R323): the reader writes the Single/Upper Value of a spot, its type and elevation base (R320), floors.keyTypes reads FFL as the Generic floor of IME and IMF (R321), python/key_reads.py counts each key read (R322) and python/key_reads_check.py checks it by the categories of R311, the bytes of the copy and the Phase 1 read by id (R323). The 7 reads are in round_addin\reads, every count equal to Phase 1
+- ADDIN 2a (R320 to R323): the reader writes the Single/Upper Value of a spot, its type and elevation base (R320), floors.keyTypes reads FFL as the Generic floor of IME and IMF (R321), python/key_reads.py counts each key read (R322) and python/key_reads_check.py checks it by the categories of R311, the bytes of the copy, the floor top under each spot and the per plot rule, the Phase 1 read by id is a repeat read (R323). The 7 reads are in round_addin\reads, every count equal to Phase 1. IMA and IMB share 733 Generic floors
 - ADDIN 1b (R312, R313, R301): python/key_copies.py reuses a key copy only while the manifest key_copies.json holds its code, source, hashes and format of today, record withdrawn (Q069). The 13 STR prototypes are Revit 2024 files in Prototypes_2024\STR (R313)
 - ADDIN 1 (R310, R311, R203, R204, R301): window samples with the true peaks, site facts of the reader. All 7 Parsons models share one survey point, base point, project position, angle 0, site Internal, Level 1 and Level 2, metric units. IMA and IMB are SE models with STR links and no levels (Q066), the zone2 IMC is the master of the floor scenarios (Q065)
 - ADDIN 0b (R300 to R304): parsons2024Rev6 default with overrides of its own job, villa blocks only from the Building Footprint, area codes by job, the image step from testHost, R303 withdrawn (Q064), a clean clone in a deep folder builds
@@ -16,13 +16,13 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 
 ## Done
 
-- ADDIN 2a, PR 45 in review: R320 to R323 with their tests, the test host installed from 7b82696, 7 reads one window at a time under the lock, IMC first, 60 of 60 files equal before and after, second method 28 of 28 category counts, 280 of 280 links by id, 5,462 of 5,462 TU spot values within 1 mm
+- ADDIN 2a, PR 45 in review: R320 to R323 with their tests, the test host installed from 7b82696, 7 reads one window at a time under the lock, IMC first, 60 of 60 files equal before and after, second method 28 of 28 category counts, the spot value against its floor top 5,445 of 5,455 TU spots within 1 mm, the per plot rule on 1,560 of 1,561 IMC to IMF plots, the review fixes 2d415ec to 83b3713
 - ADDIN 1b, PR 44: R312, R313 and the R301 manifest, the 13 STR upgrades. ADDIN 1, PR 43: R310, R311, R203, R204, R301, 17 windows and KG3
 - ADDIN 0b, PR 42 and 0a, PR 41: the harness and the open fixes, Q028, Q035, Q044 to Q050, Q060, Q061 closed. 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c to 1: PRs 1 to 25
 
 ## Open bugs
 
-- The whole NBH 03 area runs past the 30 minute image step, I25 did not respond at 10,732 MiB (10.48 GiB) private memory (Q063). R310 logs free memory in every window, no stop at the floor. In 2a free memory fell to 0.53 to 1.42 GiB in each read window from 2.10 to 2.94 GiB at the lock, other programs held more memory than in Phase 1
+- The whole NBH 03 area runs past the 30 minute image step, I25 did not respond at 10,732 MiB (10.48 GiB) private memory (Q063). R310 logs free memory in every window, no stop at the floor. In 2a free memory fell to 0.53 to 1.42 GiB in each read window from 2.10 to 2.94 GiB at the lock, the cause is UNKNOWN. Revit starts 9 to 11 child processes in a read (RC 11)
 - rvt_info.py (R203) does not see cloud links, the SE models list 1 of their 14 Revit links. The 1,409 spots of the SE models give no value, their STR links are not loaded in a read. key_copies.py keeps a last part NUL, nul. or "NUL. " as a name where Windows opens the NUL device, reachable only by answerKeys.folder, and PrototypeSets.ps1 throws on it
 - No El @ Entry rule beyond 0.285 of the IMC key, the rest are overrides. CASE follows no tested logic. The footprint test cannot see a wrong hand. Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT. The top level angleToTrueNorthDeg of the reader has 3 decimals and is not brought into 0 to 360, the placer takes 0 only and the 7 models are at 0, Phase 4 moves it to C#
 
@@ -31,18 +31,19 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 Q001. El @ Entry: ask the client for the Infrastructure IFC and the architect for the ramp slope, 241 IMC overrides until then
 Q002. Ramp type: by Rev 9 code, 2% for C10, VL4, VL6, else 0.5%, the 10 Flat Ramps as overrides. Q003. Villa mirror: block mirror flag with the open end, accept
 Q004. Setback: DLUS front. Q005. Front level: road snapped. Q006. Back corners parallel. Q007. Generic floor: whole face
-Q008. Units: ask for a baseplan with 01b. Q009. Typology_Rev9 for codes with no schedule. Q010. Sales Land Width. Q011. IME neighbourhood: from the IME model in Phase 2, else ask
-Q012. FFL split: ask why. Q013. CASE second letter as built. Q015. Yard FFL minus 0.100. Q016. Plots 2311, 2312 by baseplan. Q017. Plots 2301, 2302 VD4. Q018. 58 past ramps listed. Q019. Schedule FFL. Q020. Keep the north stop
+Q008. Units: ask for a baseplan with 01b. Q009. Typology_Rev9 for codes with no schedule. Q010. Sales Land Width. Q011. IME neighbourhood: from the IME model in Phase 2, else ask which neighbourhood each IM letter is
+Q012. FFL split: ask why. Q013. CASE second letter as built. Q015. Yard FFL minus 0.100. Q016. Plots 2311, 2312 by baseplan. Q017. Plots 2301, 2302 VD4.
+Q018. 58 past ramps listed. Q019. Schedule FFL. Q020. Keep the north stop
 Q021. Parallel windows over 8 GB free. Q022. TEST copies in Zone 02\ARC: delete when done. Q023. Delete the empty 15a folder. Q024. Curb and ROW from the R94 edge. Q025. 13 PDF refusals listed
 Q026. Two curbs of one drawing: keep the Roads curb, ask which is current. Q027. Two DP4 labels: ask for a split. Q029. Location plan number per face. Q030. Ask for the 01b sales rows
 Q031. Rev 9 faces, 97 differ: keep the baseplan, ask which is current. Q032. 1.4 FFL parameter as the design level. Q033. Lone DT3 on a VL3 face: hand rule of Q042. Q036. TBD for DLUS, accommodation for sales
-Q037. Corner fronts by the Orientation side: confirm. Q038. Native ramp fronts 0.70 m over the subgrade: confirm, the IMC schedule stays the level key. Q039. Footprint test: done as the edge only third check. Q040. Footprint clusters
+Q037. Corner fronts by the Orientation side: confirm. Q038. Native ramp fronts 0.698 to 0.700 m over the subgrade: confirm, the IMC schedule stays the level key. Q039. Footprint test: done as the edge only third check. Q040. Footprint clusters
 Q041. Rows 2290 to 2299, the 4 middle DT1 as overrides: accept. Q042. Lone duplex hand by block mirror and open end: accept
 Q051. Rev 01 values: send the Rev 01 sections on steps, base heights and ramps. Q052. Weak rules with their overrides: accept until Q001 and Q051
 Q053. 5,709 overrides, a build applies only its own source: keep. Q054. R260 of DATA-5 and R261 to R282: keep both. Q055. 1.4 ELl@Entry typed off its ramp on 5 plots: read El @ Entry off the ramp
 Q056. Native models: hands, fronts and ramps only, never unit codes. Q057. Ramp front fall with no direction, not applied: accept. Q058. Old 20221206 prototypes: send the folder to check their hands
 Q059. NBH 03 build on native2022 with only the 1.2 entry and front overrides: accept. Q062. Rev 9 attribute values of the probe: keep them
-Q063. Whole NBH 03 image past 30 minutes: accept the quarter images, the cause stays a known bug. Q064. Watcher through the job, withdrawn: keep it stopping at the first log step
+Q063. Whole NBH 03 image past 30 minutes: accept the quarter images and make large images in quarters, the cause stays a known bug. Q064. Watcher through the job, withdrawn: keep it stopping at the first log step
 Q065. zone2 IMC file, the floor scenario master: replace it by a copy of the Zone 02\ARC original. Q066. No Parsons TU model of Zone 1: send the IMA and IMB TU models, else accept the Native stand-in
 Q068. Project position of button 1: set the Parsons position from config, not R211. Q069. A remade key copy: file it by the hashes the test host logs, by hand until then
 

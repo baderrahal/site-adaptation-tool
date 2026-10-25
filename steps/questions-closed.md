@@ -26,7 +26,7 @@ Round 17 gave the IDs. Each open question of the DATA-4 list kept its number as 
 
 ## Open questions, full text
 
-The full text of every question open on 2026-10-25 when Round ADDIN Phase 2 part 1 shortened Bader's turn of steps/PROGRESS.md and the top entry of steps/log.md to one short line each. Each keeps its ID and its meaning. A question closed later moves to Closed above with its answer.
+The full text of every question open on 2026-10-25 when Round ADDIN Phase 2 part 1 shortened Bader's turn of steps/PROGRESS.md and the top entry of steps/log.md to one short sentence each, up to 7 to a line. Each keeps its ID and its meaning. A question closed later moves to Closed above with its answer.
 
 Q001. El @ Entry rule: the IFC in Downloads is another project, ask the client for the Infrastructure IFC package and the architect for the ramp slope. The road plus the ramp slope holds 0.285 of the IMC key within 5 mm, the 241 others are overrides until then
 Q002. Ramp type: coded by Rev 9 code (0.970), 2% for C10, VL4, VL6, 0.5% for the rest. The 10 Flat Ramps of the IMC key slope like the others, keep them as overrides. Q003. Villa mirror: coded, the block mirror flag with the open end (0.913 IMC, 0.945 Native): accept
