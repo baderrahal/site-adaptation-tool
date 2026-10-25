@@ -9,7 +9,8 @@ plots take for each value of the factor. A formula gives the value with nothing 
 reaches majority.strongShare. Its breaks and cannots go to the override list. A level holds within majority.levelHoldMm.
 R273 ramp type and slope, R274 hand, R275 levels (El @ Entry against every road surface, FFL less El @ Entry, steps), R276
 Generic floor, yard, CASE and the other link parameters. Each is tested on every group of majority.groups apart, so a rule of
-one generation is not forced on the other.
+one generation is not forced on the other. R326. A row of a key whose kind majority.kindLeaveOut names, SE, is left out of every
+decision it lists, the fields an SE model does not hold, so the SE Generic levels of IMA and IMB never count for a level rule.
 Overrides hold no real level or coordinate: a level as its gap to the rule in metres.
 """
 import argparse
@@ -39,6 +40,8 @@ import yard_rule
 
 CANNOT = "cannot"
 ROAD = "roadLevel"
+# The first word of each decision run makes, which majority.kindLeaveOut names
+DECISIONS = ("rampSlope", "hand", "entry", "rampFront", "rampFrontFall", "height", "steps", "generic", "yard", "parameter")
 
 
 def group_of(key, block):
@@ -158,6 +161,7 @@ def contexts(rows, book, sales, faces, roles, neighbours, side_roads, profile, b
         steps = None if row["steps"] in (None, "") else str(row["steps"])
         found.append({
             "row": row, "plot": plot, "key": row["key"], "group": group, "code": code, "rev9": row["typologyRev9"], "kind": kind_of(code, profile, block),
+            "modelKind": row.get("kind") or None,
             "file": row["linkFile"], "inCluster": role is not None, "role": role, "neighbours": sides or {"left": [], "right": []},
             "factors": {
                 "all": "all", "typology": code, "key": row["key"],
@@ -232,6 +236,12 @@ def decide(name, items, target, candidates, scope, strong, hold=None, checks=())
     return result, misses
 
 
+def kept_for(word, pool, block):
+    """R326. The items a decision is measured on: a row whose model kind majority.kindLeaveOut leaves out of that decision is not."""
+    leave = block.get("kindLeaveOut") or {}
+    return [item for item in pool if word not in leave.get(item.get("modelKind") or "", ())]
+
+
 def slope_class(item, block):
     """R273. The ramp slope class of a plot: from the type name where the type says it, else from the measured slope."""
     named = block["rampTypeClass"].get(item["row"]["rampType"] or "")
@@ -303,9 +313,11 @@ def run(items, book, profile, block, surfaces, clusters):
     results, misses, datums = [], [], {}
 
     def record(name, pool, target, candidates, scope, field, hold=None, checks=()):
+        pool = kept_for(name.split(" ")[1], pool, block)
         if not pool:
             return
         result, missed = decide(name, pool, target, candidates, scope, strong, hold, checks)
+        result["byKind"] = dict(sorted(Counter(item.get("modelKind") or "none" for item in pool).items()))
         results.append(result)
         for miss in missed:
             item = miss["item"]
@@ -314,6 +326,7 @@ def run(items, book, profile, block, surfaces, clusters):
 
     for group in sorted({item["group"] for item in items if item["group"]}):
         pool = [item for item in items if item["group"] == group]
+        kept = lambda word, pool=pool: kept_for(word, pool, block)
         slopes = block["groupSlopes"][group]
         for item in pool:
             entry = clean_entry(item["row"], block["entryRampM"])
@@ -323,20 +336,20 @@ def run(items, book, profile, block, surfaces, clusters):
             item["factors"]["heightOverRoad"] = None if entry is None or road is None else band((entry - road) / depth * 100.0, block["slopeBands"])
             item["factors"]["heightBand"] = band(item["row"]["height"], block["heightBands"])
             item["depth"] = depth
-        neighbour_votes(pool, lambda item: slope_class(item, block))
+        neighbour_votes(kept("rampSlope"), lambda item: slope_class(item, block))
         # R273. Ramp type and slope, flat ramps included
         # A group whose ramp types name no slope is measured, so the measured band would only repeat its target
         factors = [name for name in ("all", "typology", "measuredBand", "steps", "heightOverRoad", "corner", "depthBand", "neighbour", "key")
                    if not (name == "measuredBand" and group in block["measuredSlopeGroups"])]
-        record(group + " rampSlope", pool, lambda item: slope_class(item, block), {name: name for name in factors}, by_group, "rampType")
+        record(group + " rampSlope", kept("rampSlope"), lambda item: slope_class(item, block), {name: name for name in factors}, by_group, "rampType")
         # R274. Hand, per link file, apart for villas, units in a cluster and units alone
         for unit_class in ("villa", "cluster", "alone"):
-            chosen = [item for item in pool if item["row"]["mirrored"] is not None and hand_class(item) == unit_class]
+            chosen = [item for item in kept("hand") if item["row"]["mirrored"] is not None and hand_class(item) == unit_class]
             record(group + " hand " + unit_class, chosen, lambda item: item["row"]["mirrored"],
                    {name: name for name in ("all", "blockMirror", "clusterSide", "clusterIndexParity", "openEnd", "rowParity", "orientation", "roadSide",
                                             "blockMirrorRoadSide", "blockMirrorOpenEnd")}, by_file, "mirrored")
         # R275. El @ Entry: the road level at the front corners of a surface plus the slope of the unit times the ramp depth, as is and less a datum
-        entries = [item for item in pool if clean_entry(item["row"], block["entryRampM"]) is not None]
+        entries = [item for item in kept("entry") if clean_entry(item["row"], block["entryRampM"]) is not None]
         target = lambda item: clean_entry(item["row"], block["entryRampM"])
         formulas = {}
         for surface in surfaces:
@@ -357,7 +370,7 @@ def run(items, book, profile, block, surfaces, clusters):
                 datums.setdefault(group + " entry", {})[surface] = {key: round(value, 4) for key, value in sorted(key_datum.items())}
         record(group + " entry", entries, target, formulas, by_group, "entryM", level_hold)
         # R275. The ramp front, the mean of its two low corners, against every road surface as it is and less the datum of each key
-        fronts = [item for item in pool if item["row"]["rampFront"] is not None]
+        fronts = [item for item in kept("rampFront") if item["row"]["rampFront"] is not None]
         front_target = lambda item: item["row"]["rampFront"]
         front_formulas = {}
         for surface in surfaces:
@@ -374,12 +387,12 @@ def run(items, book, profile, block, surfaces, clusters):
             front_formulas[surface + " less the datum of each key"] = lambda item, road=road, key_datum=key_datum: None if road(item) is None else road(item) + key_datum[item["key"]]
         record(group + " rampFront", fronts, front_target, front_formulas, by_group, "rampFrontM", level_hold)
         # R275. The fall along the front: both front corners level, or each on the road at its corner
-        falls = [item for item in pool if item["row"]["rampFrontFall"] is not None]
+        falls = [item for item in kept("rampFrontFall") if item["row"]["rampFrontFall"] is not None]
         road_fall = lambda item: (None if road_corners(book.get(item["plot"], {})) is None else abs(road_corners(book.get(item["plot"], {}))[0] - road_corners(book.get(item["plot"], {}))[1]))
         record(group + " rampFrontFall", falls, lambda item: item["row"]["rampFrontFall"], {"levelFront": lambda item: 0.0, "roadAtEachCorner": road_fall},
                by_group, "rampFrontFallM", level_hold)
         # R275. FFL less El @ Entry and the steps
-        heights = [item for item in entries if item["row"]["ffl"] is not None]
+        heights = [item for item in kept("height") if clean_entry(item["row"], block["entryRampM"]) is not None and item["row"]["ffl"] is not None]
         height = lambda item: round(item["row"]["ffl"] - clean_entry(item["row"], block["entryRampM"]), 4)
         tops = cluster_top(heights, profile, block)
         from_levels = levels_rule(heights, clusters, profile, block)
@@ -390,19 +403,19 @@ def run(items, book, profile, block, surfaces, clusters):
             "oneFflPerClusterAtTheHighestEntry": lambda item: tops.get(id(item), base_height(profile, item["code"]) if not item["role"] else None),
             "levelsPyFromEntry": lambda item: from_levels.get(id(item)),
         }, by_group, "heightM", lambda guess, aim: abs(guess - aim) <= hold_m + 1e-9, checks=("typologySteps", "baseAndRisers"))
-        with_steps = [item for item in pool if item["factors"]["steps"] is not None]
+        with_steps = [item for item in kept("steps") if item["factors"]["steps"] is not None]
         record(group + " steps", with_steps, lambda item: item["factors"]["steps"], {
             "typology": "typology", "heightBand": "heightBand",
             "stepsFromHeight": lambda item: None if item["row"]["height"] is None else str(1 + max(0, round((item["row"]["height"] - base_height(profile, item["code"])) / riser))),
         }, by_group, "steps")
         # R276. Generic floor on the whole face, yard, CASE and the other link parameters
-        record(group + " generic", pool, lambda item: item["factors"].get("wholeFace"), {name: name for name in ("all", "typology", "key")}, by_group, "genericFloor")
+        record(group + " generic", kept("generic"), lambda item: item["factors"].get("wholeFace"), {name: name for name in ("all", "typology", "key")}, by_group, "genericFloor")
         for item in pool:
             top, ffl = item["row"]["yardTop"], item["row"]["ffl"]
             item["factors"]["yardDepth"] = "noYard" if top is None else None if ffl is None else "%.3f" % (ffl - top)
-        record(group + " yard", pool, lambda item: item["factors"]["yardDepth"], {name: name for name in ("all", "typology", "key")}, by_group, "yard")
+        record(group + " yard", kept("yard"), lambda item: item["factors"]["yardDepth"], {name: name for name in ("all", "typology", "key")}, by_group, "yard")
         for name in block["parameterTests"]:
-            chosen = [item for item in pool if parameter(item, name) is not None]
+            chosen = [item for item in kept("parameter") if parameter(item, name) is not None]
             record(group + " parameter " + name, chosen, lambda item, name=name: parameter(item, name),
                    {label: label for label in ("all", "typology", "mirroredFactor", "typologyMirrored", "steps", "typologySteps", "clusterSide", "corner")}, by_group, "parameter " + name)
     return results, misses, datums
@@ -436,10 +449,24 @@ def write_overrides(path, note, listing):
 def load_block(settings):
     block = settings.get("majority")
     needed = ("strongShare", "levelHoldMm", "entryRampM", "groups", "codeFrom", "kindByPrefix", "slopeBands", "rampTypeClass", "groupSlopes", "depthBands",
-              "heightBands", "sideShare", "parameterTests", "overrideDecisions", "wholeFaceShare", "overrideNote", "measuredSlopeGroups", "datumSurfaces")
+              "heightBands", "sideShare", "parameterTests", "overrideDecisions", "wholeFaceShare", "overrideNote", "measuredSlopeGroups", "datumSurfaces", "kindLeaveOut")
     if not isinstance(block, dict) or any(key not in block for key in needed):
         raise project_profile.ProfileError(settings.path.name + " majority must name " + ", ".join(needed))
+    leave = block["kindLeaveOut"]
+    if not isinstance(leave, dict) or not all(isinstance(words, list) and all(word in DECISIONS for word in words) for words in leave.values()):
+        raise project_profile.ProfileError(settings.path.name + " majority.kindLeaveOut must map a model kind to decisions of " + ", ".join(DECISIONS))
+    # R326. A kind spelled otherwise than answerKeys.kinds would match no row and leave nothing out
+    rule = past_all.kind_rule(settings)
+    wrong = [kind for kind in leave if past_all.canonical_kind(kind, rule) != kind]
+    if wrong:
+        raise project_profile.ProfileError(settings.path.name + " majority.kindLeaveOut names " + ", ".join(wrong) + ", which is no kind of answerKeys.kinds "
+                                           + ", ".join(rule["kinds"]))
     return block
+
+
+def read_rows(path, settings, block):
+    """R326. The rows of past_all.csv, each kind held against answerKeys.kinds and every row of a group of majority.kindGroups with a kind."""
+    return past_all.check_kinds(past_all.read_table(path), past_all.kind_rule(settings), block["groups"])
 
 
 def main(argv=None):
@@ -460,7 +487,7 @@ def main(argv=None):
     profile = project_profile.load_profile(project_profile.profile_path(settings))
     block = load_block(settings)
     plot_relations.refuse_inside_repo(Path(args.out).resolve().parent)
-    rows = past_all.read_table(args.table)
+    rows = read_rows(args.table, settings, block)
     book, number_of = plan_from_book.book_rows(args.plots_csv)
     by_label, _ = yard_rule.face_shapes(link_summary.load(args.baseplan)["plots"], 0)
     faces = {number_of[label]: shape for label, shape in by_label.items() if label in number_of}

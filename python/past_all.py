@@ -7,6 +7,10 @@ Typology_Rev9 codes, the plots two keys share, and per neighbourhood the unit pl
 table (R269): past_all.csv, one row per plot per key. Levels are taken off the datum of the key, its survey elevation for a
 Native key, as in R215. A key of the Native dialect is first mapped to official numbers by R206 and R264, so its floor
 parameters can be read per plot. The parameters written are those pastAll in config/project.json names.
+R326. Each row names the job of its key, the group of majority.groups that holds it, in the column source, and the kind of an answer
+key, TU or SE of answerKeys, in the column kind. The rows of one job of an older table can be kept cell for cell, an answer key of Round
+ADDIN is read by the floor types of its code (R321) and joins its plots by area share (R325), El @ Entry of a schedule goes only to the
+key of its own job, and heightSource says what the height was worked out from.
 Nothing is written inside the repo.
 """
 import argparse
@@ -32,10 +36,15 @@ import ramp_levels
 import yard_rule
 
 DATE_IN_PATH = re.compile(r"(?<!\d)(20\d{2})(\d{2})(\d{2})(?!\d)")
-COLUMNS = ["key", "plot", "nbh", "zone", "typologyRev9", "planCode", "keyUnit", "linkFile", "x", "y", "rotationDeg", "mirrored", "case",
+COLUMNS = ["key", "source", "kind", "plot", "nbh", "zone", "typologyRev9", "planCode", "keyUnit", "linkFile", "x", "y", "rotationDeg", "mirrored", "case",
            "footprintResidualM", "genericType", "genericAreaM2", "genericTop", "yardType", "yardAreaM2", "yardTop", "rampType", "rampAreaM2", "rampCorners", "rampSlopePercent",
-           "rampCrossPercent", "rampFront", "rampBack", "rampFrontFall", "ffl", "entry", "entrySource", "height", "steps", "datumM", "linkName", "genericOutline", "rampOutline",
-           "parameters"]
+           "rampCrossPercent", "rampFront", "rampBack", "rampFrontFall", "ffl", "entry", "entrySource", "height", "heightSource", "steps", "datumM", "linkName",
+           "genericOutline", "rampOutline", "parameters"]
+# R326. The FFL of a plan of the names dialect is the top of the generic floor of the key, else it is the schedule of the past job
+FFL_FROM_FLOOR = "floorTop"
+FFL_FROM_SCHEDULE = "schedule"
+# R326. Where a key has a schedule row, its FFL, El @ Entry and height are that pair, and each key value off it by more than the band is listed
+CONFLICT_COLUMNS = ["key", "plot", "field", "keyValue", "scheduleValue", "gapM", "kept"]
 
 
 def path_date(path):
@@ -87,12 +96,13 @@ def coverage(plans, labels):
                       "neighbourhoodsWithNoKeyPlot": [nbh for nbh, row in union.items() if not row["heldByAKey"]]}}
 
 
-def floor_parameters(data, dialect, floors, faces, numbers, names):
-    """The parameters of pastAll.floorParameters on the Generic floor of each plot, by official number, and the datum of the key."""
+def floor_parameters(data, dialect, floors, faces, numbers, names, share_min=None, min_share=None):
+    """The parameters of pastAll.floorParameters on the Generic floor of each plot, by official number, and the datum of the key. With
+    share_min the generic floors join their faces by area share as the plan of an answer key does (R325), a share under min_share left out."""
     data = copy.deepcopy(data)
     key_floors = placer_check.dialect_floors(floors, dialect)
     if dialect["plot"] == "name":
-        data, _, _ = plan_from_past.names_dialect(data, key_floors, faces, numbers)
+        data, _, _ = plan_from_past.names_dialect(data, key_floors, faces, numbers, share_min=share_min, min_share=min_share)
     document = plan_from_past.host_of(data)
     datum = ramp_levels.offset_of(document)[2] if dialect["datum"] == "surveyElevation" else 0.0
     found = {}
@@ -141,10 +151,39 @@ def floor_cells(floor, datum, face=None):
     return cells
 
 
-def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settings_block, footprint=None):
-    """R269. One row per plot of the key."""
-    params, datum = floor_parameters(data, dialect, floors, faces, numbers, settings_block["floorParameters"])
+def refused_entry(plan, plot):
+    """R325. True when the plan lists El @ Entry of the plot as refused, a key value off keyPlans.entryHeightM."""
+    return any(item["key"] == "levels.entry" and str(item.get("why", "")).startswith(plan_from_past.REFUSED)
+               for row in plan.get("missing") or [] if row.get("plot") == plot for item in row.get("missing") or [])
+
+
+def conflict(name, plot, field, key_value, schedule_value, band):
+    """R326. The row of the conflicts list when a key value is off the schedule value by more than band, else None. The schedule is kept."""
+    if key_value is None or abs(schedule_value - key_value) <= band + 1e-9:
+        return None
+    return {"key": name, "plot": plot, "field": field, "keyValue": key_value, "scheduleValue": schedule_value, "gapM": round(schedule_value - key_value, 4),
+            "kept": FFL_FROM_SCHEDULE}
+
+
+def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settings_block, footprint=None, schedule=None, code=None, share_min=None,
+               conflicts=None, level_band=None, min_share=None):
+    """R269. One row per plot of the key. R326. schedule is the FFL and El @ Entry of the schedules of plots.csv by official number, each with
+    its source, and a row takes them first only when pastAll.scheduleKeys gives that source the code of this key, so a Native key or another
+    key on the same plots never does. Such a row takes FFL, El @ Entry and the height as one pair of the schedule, never the key floor top
+    with the schedule El @ Entry, and each key value, the floor top or the El @ Entry of the plan, that is off the schedule by more than
+    level_band goes to conflicts with both values. A schedule row with El @ Entry and no FFL is refused. The El @ Entry a plan of an answer key
+    holds (R325) is the parameter of its generic floor, so its source is floorParameter, and a value that plan refused is never taken again
+    from the floor or the ramp, its source is refused. heightSource is where the FFL came from less the source of El @ Entry."""
+    params, datum = floor_parameters(data, dialect, floors, faces, numbers, settings_block["floorParameters"], share_min, min_share)
     entry_parameter = settings_block["entryParameter"]
+    own = {}
+    if code and schedule:
+        import key_join
+        own = key_join.schedule_pairs(schedule, code, settings_block.get("scheduleKeys") or {})
+    if own and (conflicts is None or level_band is None):
+        raise ValueError("a schedule pair needs the conflicts list and the level band, so a key value off it is never left unlisted")
+    answer = (plan.get("sources") or {}).get("answerKey")
+    ffl_source = FFL_FROM_FLOOR if "namesDialect" in (plan.get("summary") or {}) else FFL_FROM_SCHEDULE
     rows = []
     for entry in sorted(plan["plots"], key=lambda item: link_summary.sort_key(item["plot"])):
         plot = entry["plot"]
@@ -157,14 +196,25 @@ def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settin
         ramp = floor_cells((entry.get("floors") or {}).get("ramp"), datum, face)
         yard = floor_cells((entry.get("floors") or {}).get("yard"), datum)
         floor_params = params.get(plot, {})
-        # The schedule gives El @ Entry, else the FFL floor of a Native key, else the top of its ramp at the entrance
-        entry_level, source = (levels.get("entry") or {}).get("value"), "schedule"
-        if entry_level is None and number(floor_params.get(entry_parameter)) is not None:
+        # The schedule of the job of the key gives El @ Entry, else the plan, else the FFL floor of a Native key, else the top of its ramp
+        entry_level = (levels.get("entry") or {}).get("value")
+        source = None if entry_level is None else "floorParameter" if answer else "schedule"
+        height_from = ffl_source
+        if plot in own:
+            pair = own[plot]
+            if pair["ffl"] is None:
+                raise project_profile.ProfileError("the schedule row of plot " + plot + " of the key " + name + " has El @ Entry and no FFL, a pair is taken whole")
+            for field, key_value, schedule_value in (("ffl", ffl, pair["ffl"]), ("entry", entry_level, pair["entry"])):
+                found = conflict(name, plot, field, key_value, schedule_value, level_band)
+                if found:
+                    conflicts.append(found)
+            ffl, entry_level, source, height_from = pair["ffl"], pair["entry"], "schedule", FFL_FROM_SCHEDULE
+        elif entry_level is None and answer:
+            source = "refused" if refused_entry(plan, plot) else None
+        elif entry_level is None and number(floor_params.get(entry_parameter)) is not None:
             entry_level, source = number(floor_params[entry_parameter]), "floorParameter"
         elif entry_level is None and ramp.get("back") is not None:
             entry_level, source = ramp["back"], "rampBack"
-        elif entry_level is None:
-            source = None
         ffl_design = None if ffl is None else ffl - datum
         insert = value("insert") or [None, None]
         link_parameters = {key: item["value"] for key, item in (entry.get("parameters") or {}).items() if key in settings_block["linkParameters"]}
@@ -178,10 +228,85 @@ def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settin
             "rampCrossPercent": ramp.get("cross"), "rampFront": ramp.get("front"), "rampBack": ramp.get("back"), "rampFrontFall": ramp.get("frontFall"), "ffl": None if ffl_design is None else common.r3(ffl_design),
             "entry": None if entry_level is None else round(entry_level, 4), "entrySource": source,
             "height": None if entry_level is None or ffl_design is None else round(ffl_design - entry_level, 4),
+            "heightSource": None if entry_level is None or ffl_design is None else height_from + " less " + source,
             "steps": (levels.get("steps") or {}).get("value"), "datumM": common.r3(datum), "linkName": value("linkName"),
             "genericOutline": generic.get("outline"), "rampOutline": ramp.get("outline"), "parameters": json.dumps(link_parameters, ensure_ascii=False, sort_keys=True),
         })
     return rows
+
+
+def source_of(key, groups):
+    """R326. The job of a key, the group of majority.groups that holds it. A key of no group or of two is refused."""
+    found = [group for group, keys in groups.items() if key in keys]
+    if len(found) != 1:
+        raise project_profile.ProfileError("majority.groups must hold the key " + str(key) + " in one group, it is in " + str(len(found)))
+    return found[0]
+
+
+def kind_rule(settings):
+    """R326. What a kind of past_all.csv is held against: answerKeys.kinds, majority.kindFoldCase, true only where case may be folded, and
+    majority.kindGroups, the groups of majority.groups whose rows must each carry a kind."""
+    kinds = settings.get("answerKeys.kinds")
+    fold = settings.get("majority.kindFoldCase")
+    groups = settings.get("majority.kindGroups")
+    if not isinstance(kinds, list) or not kinds or not all(isinstance(kind, str) and kind for kind in kinds):
+        raise project_profile.ProfileError(settings.path.name + " answerKeys.kinds must list the kinds of the answer keys")
+    if not isinstance(fold, bool):
+        raise project_profile.ProfileError(settings.path.name + " majority.kindFoldCase must be true or false")
+    if not isinstance(groups, list) or not all(group in (settings.get("majority.groups") or {}) for group in groups):
+        raise project_profile.ProfileError(settings.path.name + " majority.kindGroups must list groups of majority.groups")
+    return {"kinds": kinds, "fold": fold, "groups": groups}
+
+
+def canonical_kind(kind, rule):
+    """R326. The kind as answerKeys.kinds writes it, or None when it is none of them. Case is folded only when majority.kindFoldCase says so."""
+    if not isinstance(kind, str) or not kind:
+        return None
+    if kind in rule["kinds"]:
+        return kind
+    found = [name for name in rule["kinds"] if rule["fold"] and name.casefold() == kind.casefold()]
+    return found[0] if len(found) == 1 else None
+
+
+def check_kinds(rows, rule, groups):
+    """R326. Every row of a group of majority.kindGroups carries a kind of answerKeys.kinds and no row carries another kind, so a row of no
+    kind or of a kind spelled otherwise never slips past majority.kindLeaveOut. A folded kind is written as answerKeys.kinds writes it.
+    Refused with the keys and kinds at fault."""
+    faults, found = Counter(), []
+    for row in rows:
+        group = next((name for name, keys in groups.items() if row["key"] in keys), None)
+        kind = row.get("kind") or ""
+        named = canonical_kind(kind, rule)
+        if kind and named is None:
+            faults[(row["key"], "the kind " + kind + " is none of " + ", ".join(rule["kinds"]))] += 1
+        elif not kind and group in rule["groups"]:
+            faults[(row["key"], "no kind in the group " + group)] += 1
+        found.append(dict(row, kind=named) if named not in (None, kind) else row)
+    if faults:
+        raise project_profile.ProfileError("past_all rows of a wrong kind, by key: " + ", ".join("%s %s (%d rows)" % (key, why, count) for (key, why), count in sorted(faults.items())))
+    return found
+
+
+def key_kind(settings, code):
+    """R326. The kind of an answer key, TU or SE of answerKeys, and none for a key of no code. A kind answerKeys.kinds does not hold is refused."""
+    if not code:
+        return ""
+    kinds = [key.get("kind") for key in settings.get("answerKeys.keys") if key.get("code") == code]
+    if len(kinds) != 1 or not kinds[0]:
+        raise project_profile.ProfileError("answerKeys has no one key " + str(code) + " with a kind")
+    named = canonical_kind(kinds[0], kind_rule(settings))
+    if named is None:
+        raise project_profile.ProfileError("the kind " + str(kinds[0]) + " of the answer key " + str(code) + " is none of answerKeys.kinds")
+    return named
+
+
+def kept_rows(path, group, groups):
+    """R326. The rows of an older past_all.csv whose key is in that group of majority.groups, every cell as the file holds it, with the
+    group as their source."""
+    if group not in groups:
+        raise project_profile.ProfileError("majority.groups has no group " + str(group) + " to keep the rows of")
+    with open(path, encoding="utf-8") as handle:
+        return [dict(row, source=group) for row in csv.DictReader(handle) if row["key"] in groups[group]]
 
 
 def write_csv(path, rows):
@@ -191,6 +316,25 @@ def write_csv(path, rows):
         writer = csv.DictWriter(handle, fieldnames=COLUMNS)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def write_conflicts(table, conflicts):
+    """R326. The conflicts list beside the table, <table>_conflicts.csv, one row per key value off its schedule with both values."""
+    path = Path(table).with_name(Path(table).stem + "_conflicts.csv")
+    plot_relations.refuse_inside_repo(path.resolve().parent)
+    with open(path, "w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=CONFLICT_COLUMNS)
+        writer.writeheader()
+        writer.writerows(conflicts)
+    return path
+
+
+def level_band(settings):
+    """R326. majority.levelHoldMm of the project settings in metres, the band a key value may stand off its schedule before it is listed."""
+    hold = settings.get("majority.levelHoldMm")
+    if not plan_from_past.is_number(hold) or hold <= 0:
+        raise project_profile.ProfileError(settings.path.name + " majority.levelHoldMm must be millimetres above 0")
+    return hold / 1000.0
 
 
 def read_table(path):
@@ -209,6 +353,10 @@ def load_block(settings):
     block = settings.get("pastAll")
     if not isinstance(block, dict) or not all(isinstance(block.get(key), list) for key in ("linkParameters", "floorParameters")) or not block.get("entryParameter"):
         raise project_profile.ProfileError(settings.path.name + " pastAll must name linkParameters, floorParameters and entryParameter")
+    keys = block.get("scheduleKeys", {})
+    codes = [key.get("code") for key in (settings.values.get("answerKeys") or {}).get("keys") or []]
+    if not isinstance(keys, dict) or not all(isinstance(text, str) and code in codes for text, code in keys.items()):
+        raise project_profile.ProfileError(settings.path.name + " pastAll.scheduleKeys must map a pastSource of plots.csv to an answer key code")
     return block
 
 
@@ -223,10 +371,16 @@ def main(argv=None):
     parser.add_argument("--baseplan", help="plots.json of the baseplan, for a key of plot by name")
     parser.add_argument("--footprint", nargs=2, action="append", metavar=("NAME", "FOOTPRINT_JSON"), default=[],
                         help="table: footprint_check.py output whose test set is that key, for its residual per plot")
+    parser.add_argument("--key-code", nargs=2, action="append", metavar=("NAME", "CODE"), default=[],
+                        help="table: the key NAME is the answer key CODE, read by its floor types (R321) and only from its work copy (R322)")
+    parser.add_argument("--keep-from", nargs=2, metavar=("PAST_ALL_CSV", "GROUP"), help="table: keep the rows of that job of an older table cell for cell (R326)")
+    parser.add_argument("--schedule-entry", metavar="PLOTS_CSV", help="table: plots.csv of the data book, El @ Entry of the schedule by official number (R326)")
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
-    settings = project_profile.load_settings(args.settings)
     out = Path(args.out)
+    if args.keep_from and out.resolve() == Path(args.keep_from[0]).resolve():
+        parser.error("--out is the table --keep-from keeps rows of, it is never written over")
+    settings = project_profile.load_settings(args.settings)
     plot_relations.refuse_inside_repo(out.resolve().parent)
     if args.what == "inventory":
         found = inventory(link_summary.load(args.rvt_info)["files"])
@@ -253,12 +407,39 @@ def main(argv=None):
     for name, path in args.footprint:
         judged = link_summary.load(path)["testJudged"]
         footprints[name] = {row["plot"]: row["residualM"] for row in judged["rows"]}
-    rows = []
+    groups = settings.get("majority.groups")
+    codes = dict(args.key_code)
+    rows = kept_rows(args.keep_from[0], args.keep_from[1], groups) if args.keep_from else []
+    kept = {row["key"] for row in rows}
+    schedule, conflicts = None, []
+    band = level_band(settings)
+    if args.schedule_entry:
+        import key_join
+        schedule = key_join.read_plots_csv(args.schedule_entry)[1]
     for name, dialect, plan, prototypes in args.key:
-        rows += table_rows(name, link_summary.load(plan), link_summary.load(prototypes), split["dialects"][dialect], floors, faces, numbers, labels, block, footprints.get(name))
+        if name in kept:
+            raise project_profile.ProfileError("the key " + name + " is both kept from " + args.keep_from[0] + " and given, give it once")
+        data = link_summary.load(prototypes)
+        key_floors, share_min, min_share = floors, None, None
+        if name in codes:
+            key_floors = plan_from_past.load_floors(settings, codes[name])
+            plan_from_past.check_key_file(settings, codes[name], plan_from_past.host_of(data).get("file"), plan_from_past.read_job(prototypes))
+            key_plans = plan_from_past.load_key_plans(settings)
+            share_min, min_share = key_plans["cutShareMin"], key_plans["minShare"]
+        source, kind = source_of(name, groups), key_kind(settings, codes.get(name))
+        rows += [dict(row, source=source, kind=kind) for row in table_rows(name, link_summary.load(plan), data, split["dialects"][dialect], key_floors, faces, numbers,
+                                                                          labels, block, footprints.get(name), schedule, codes.get(name), share_min,
+                                                                          conflicts, band, min_share)]
+    rows = check_kinds(rows, kind_rule(settings), groups)
     write_csv(out, rows)
+    if schedule is not None:
+        listed = write_conflicts(out, conflicts)
+        print("conflicts with the schedule over %g m %d, by key and field %s, %s" % (band, len(conflicts), dict(Counter((item["key"], item["field"]) for item in conflicts)), listed))
     print("rows %d, by key %s" % (len(rows), dict(Counter(row["key"] for row in rows))))
+    print("by source %s" % dict(Counter(row["source"] for row in rows)))
+    print("by source and kind %s" % dict(Counter((row["source"], row.get("kind") or "none") for row in rows)))
     print("El @ Entry source %s" % dict(Counter((row["key"], row["entrySource"]) for row in rows)))
+    print("height source %s" % dict(Counter((row["key"], row.get("heightSource")) for row in rows)))
     print(out)
     return 0
 

@@ -25,6 +25,8 @@ import project_profile
 import yard_rule
 
 NEIGHBOURS = 4
+# The decision of majority.kindLeaveOut that names El @ Entry
+ENTRY_DECISION = "entry"
 
 
 def face_number(shape, tree, labels, numbers):
@@ -108,6 +110,12 @@ def load_block(settings):
     return block
 
 
+def entry_rows(rows, leave_out):
+    """R270, R326. The rows whose El @ Entry may be held against another key: a row of a kind whose list in majority.kindLeaveOut names entry
+    is left out, as the majority rule leaves it out, since an SE model holds no El @ Entry of its own."""
+    return [row for row in rows if ENTRY_DECISION not in leave_out.get(row.get("kind") or "", ())]
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="El @ Entry gaps between two past keys, with their join checked (R270).")
     parser.add_argument("table", help="past_all.csv")
@@ -121,7 +129,10 @@ def main(argv=None):
     block = load_block(settings)
     sheet = plan_from_past.load_job(settings)["sheet"]
     plot_relations.refuse_inside_repo(__import__("pathlib").Path(args.out).resolve().parent)
-    rows = past_all.read_table(args.table)
+    every = past_all.check_kinds(past_all.read_table(args.table), past_all.kind_rule(settings), settings.get("majority.groups"))
+    rows = entry_rows(every, settings.get("majority.kindLeaveOut") or {})
+    kept = {id(row) for row in rows}
+    left_out = dict(Counter(row.get("kind") for row in every if id(row) not in kept))
     numbers, _ = plan_from_past.location_numbers(args.labels)
     faces, _ = yard_rule.face_shapes(link_summary.load(args.baseplan)["plots"], 0)
     schedules = {name: schedule_entries(path, sheet) for name, path in args.schedule}
@@ -131,8 +142,9 @@ def main(argv=None):
             held[row["plot"]].add(row["key"])
     keys = sorted({row["key"] for row in rows})
     pairs = [(a, b) for index, a in enumerate(keys) for b in keys[index + 1:] if any(a in found and b in found for found in held.values())]
-    result = {"limitM": block["entryGapM"], "pairs": [check_pair(rows, a, b, faces, numbers, schedules, block) for a, b in pairs]}
+    result = {"limitM": block["entryGapM"], "leftOut": left_out, "pairs": [check_pair(rows, a, b, faces, numbers, schedules, block) for a, b in pairs]}
     common.write_json(args.out, result)
+    print("rows left out by majority.kindLeaveOut %s" % left_out)
     for pair in result["pairs"]:
         print("%s: shared %d, over %.2f m %d, %s" % (pair["pair"], pair["shared"], block["entryGapM"], pair["overLimit"], pair["verdicts"]))
         for item in pair["plots"]:

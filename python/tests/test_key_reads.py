@@ -99,14 +99,15 @@ def test_r321_plan_from_past_refuses_a_key_whose_model_file_holds_no_code_of_it_
     settings.write_text(json.dumps({"schedules": ["book.xlsx"], "inputRoot": str(root), "pastJob": tp.JOB, "floors": tp.FLOORS, "answerKeys": KEYS}), encoding="utf-8")
     monkeypatch.delenv(pf.ROOT_VARIABLE, raising=False)
     prototypes = tmp_path / "testhost_KX_prototypes.json"
-    args = ["--settings", str(settings), "--prototypes", str(prototypes), "--baseplan", str(baseplan), "--out", str(tmp_path / "plan.json"), "--key", "IMX"]
+    # R325. The plan of a key is named by its code, so the run reaches the tie of the read to the key
+    args = ["--settings", str(settings), "--prototypes", str(prototypes), "--baseplan", str(baseplan), "--out", str(tmp_path / "plan_imx.json"), "--key", "IMX"]
     for name, match in (("X-IMY-model_TEST-KX", "IMX"), ("model of no key", "IMX"), (None, "no model file")) + tuple((name, "work copy") for name in NOT_THE_WORK_COPY):
         data = tp.document([tp.link("101")], tp.plot_floors("101", 0, 10))
         data["documents"][0]["file"] = name
         prototypes.write_text(json.dumps(data), encoding="utf-8")
         with pytest.raises(project_profile.ProfileError, match=match):
             pf.main(args)
-    assert not (tmp_path / "plan.json").exists()
+    assert not (tmp_path / "plan_imx.json").exists()
 
 
 # R321. Names that start like the work copy X-IMX-model_TEST-KX of the key IMX under the job KX and are not it: a floor scenario
