@@ -13,7 +13,8 @@ import project_profile
 FLOORS = {"types": {"generic": ["Slab G"], "yard": ["Yard Y"], "ramp": ["Ramp A", "Ramp B"]},
           "levels": {"generic": "L1", "yard": "L2", "ramp": "L1"},
           "plotParameter": "Plot", "yardBelowFflM": 0.1, "yardShareTie": 0.01, "yardMinShare": 0.5}
-KEYS = {"keys": [{"code": "IMX"}, {"code": "IMY"}]}
+# A made up codeInName, the real pattern lives in config/project.json only
+KEYS = {"codeInName": "^X-{code}-", "keys": [{"code": "IMX"}, {"code": "IMY"}]}
 JOB = {"neighbourhood": "AAA", "schedule": "book.xlsx", "sheet": "Sheet1", "prototypes": "C:\\x\\prototypes.json",
        "prototypeFolder": "Prototypes", "output": "C:\\x\\plan.json", "parameters": ["RRE_ZZ_SP_Plot-Number"]}
 
@@ -100,7 +101,17 @@ def made_up_read():
              {"elementId": 32, "host": {"elementId": 3, "linkedElementId": 99}},
              {"elementId": 33}]
     levels = [{"name": "L1"}, {"name": "L2"}]
-    return {"kind": "project", "links": links, "floors": floors, "walls": walls, "spotElevations": spots, "site": {"levels": levels}}
+    return {"kind": "project", "file": "X-IMX-model_TEST-QX", "surveyPoint": {"position": [0.0, 0.0, 0.0], "sharedPosition": [0.0, 0.0, 0.0]}, "links": links, "floors": floors, "walls": walls, "spotElevations": spots, "site": {"levels": levels}}
+
+
+def write_read(reads, job, document):
+    """The three files a read job of the test host leaves, made up, in the folder of the job."""
+    folder = reads / job
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / ("testhost_" + job + "_prototypes.json")).write_text(json.dumps({"documents": [document]}), encoding="utf-8")
+    (folder / ("testhost_" + job + "_run.json")).write_text(json.dumps({"minutes": 1.0, "exitCode": 0, "memory": {"peakPrivateMib": 900}}), encoding="utf-8")
+    (folder / ("testhost_" + job + "_log.json")).write_text(json.dumps({"result": "ok", "steps": []}), encoding="utf-8")
+    return folder
 
 
 def test_r322_the_counts_of_a_read_hold_links_floors_by_type_and_kind_walls_by_type_spots_by_host_and_levels(tmp_path):
@@ -161,6 +172,40 @@ def test_r322_main_writes_the_counts_of_each_key_into_the_reads_folder_and_never
         key_reads.main(["--settings", str(settings.path), "--reads", str(project_profile.ROOT / "python"), "--key", "IMX=QX"])
     with pytest.raises(project_profile.ProfileError):
         key_reads.main(["--settings", str(settings.path), "--reads", str(reads), "--key", "IMZ=QX"])
+
+
+def key_args(*pairs):
+    return [part for pair in pairs for part in ("--key", pair)]
+
+
+def test_r322_a_read_is_counted_only_under_the_key_its_model_file_names_by_code_in_name(tmp_path):
+    import key_reads
+    settings = key_settings(tmp_path)
+    reads = tmp_path / "reads"
+    write_read(reads, "QX", dict(made_up_read(), file="X-IMX-model_TEST-QX"))
+    write_read(reads, "QY", dict(made_up_read(), file="X-IMY-model_TEST-QY"))
+    write_read(reads, "QN", dict(made_up_read(), file=None))
+    base = ["--settings", str(settings.path), "--reads", str(reads)]
+
+    # Two jobs swapped between their keys would file the counts of one model under the other
+    with pytest.raises(project_profile.ProfileError, match="IMX"):
+        key_reads.main(base + key_args("IMX=QY", "IMY=QX"))
+    with pytest.raises(project_profile.ProfileError, match="no model file"):
+        key_reads.main(base + key_args("IMX=QN"))
+    assert not (reads / "key_reads.json").exists()
+    assert key_reads.main(base + key_args("IMX=QX", "IMY=QY")) == 0
+
+
+@pytest.mark.parametrize("pairs", [("IMX=QX", "IMX=QX"), ("IMX=QX", "IMX=QY"), ("IMX=QX", "IMY=QX")])
+def test_r322_a_key_or_a_job_given_twice_is_refused(tmp_path, pairs):
+    import key_reads
+    settings = key_settings(tmp_path)
+    reads = tmp_path / "reads"
+    write_read(reads, "QX", made_up_read())
+    write_read(reads, "QY", dict(made_up_read(), file="X-IMY-model_TEST-QY"))
+    with pytest.raises(SystemExit):
+        key_reads.main(["--settings", str(settings.path), "--reads", str(reads)] + key_args(*pairs))
+    assert not (reads / "key_reads.json").exists()
 
 
 # R323. The second method of the key reads
@@ -260,7 +305,8 @@ def test_r323_main_holds_a_read_against_the_bytes_of_its_key_copy_and_its_second
     (root / "copies").mkdir(parents=True)
     (root / "copies" / "x-IMX.rvt").write_bytes(build([("BasicFileInfo", utf16(INFO)), ("TransmissionData", utf16(XML, b"\x84-\x00\x00"))]))
     path = tmp_path / "project.json"
-    path.write_text(json.dumps({"inputRoot": str(root), "answerKeys": {"folder": "copies", "keys": [{"code": "IMX", "copy": "x-IMX.rvt"}]}}), encoding="utf-8")
+    path.write_text(json.dumps({"inputRoot": str(root), "answerKeys": {"folder": "copies", "codeInName": KEYS["codeInName"], "keys": [{"code": "IMX", "copy": "x-IMX.rvt"}]},
+                                "floors": FLOORS}), encoding="utf-8")
     document = with_categories(made_up_read(), links=3, walls=3, floors=4, spots=4, footings=7)
     for link in document["links"][:2]:
         link["file"] = "RRE-WP-NSP-KEO-ARC-D4-ZZ-MOD-2400.rvt"
@@ -282,3 +328,39 @@ def test_r323_main_holds_a_read_against_the_bytes_of_its_key_copy_and_its_second
         check.main(["--settings", str(path), "--reads", str(project_profile.ROOT / "python"), "--key", "IMX=QX=none"])
     with pytest.raises(project_profile.ProfileError):
         check.main(["--settings", str(path), "--reads", str(reads), "--key", "IMZ=QX=none"])
+
+
+def check_settings(tmp_path):
+    """Made up settings of the check: two keys with their copies, codeInName and the floors block."""
+    from cfb_fixture import build
+    from test_rvt_info import INFO, XML, utf16
+    root = tmp_path / "root"
+    (root / "copies").mkdir(parents=True)
+    for code in ("IMX", "IMY"):
+        (root / "copies" / ("x-" + code + ".rvt")).write_bytes(build([("BasicFileInfo", utf16(INFO)), ("TransmissionData", utf16(XML, b"\x84-\x00\x00"))]))
+    path = tmp_path / "project.json"
+    keys = {"folder": "copies", "codeInName": KEYS["codeInName"], "keys": [{"code": code, "copy": "x-" + code + ".rvt"} for code in ("IMX", "IMY")]}
+    path.write_text(json.dumps({"inputRoot": str(root), "answerKeys": keys, "floors": dict(FLOORS, keyTypes={"IMX": {"generic": ["Slab F"]}})}), encoding="utf-8")
+    return path
+
+
+def test_r323_a_read_is_checked_only_under_the_key_its_model_file_names_and_a_key_given_twice_is_refused(tmp_path):
+    import key_reads_check as check
+    path = check_settings(tmp_path)
+    reads = tmp_path / "reads"
+    write_read(reads, "QX", dict(made_up_read(), file="X-IMX-model_TEST-QX"))
+    write_read(reads, "QY", dict(made_up_read(), file="X-IMY-model_TEST-QY"))
+    old = tmp_path / "old.json"
+    old.write_text(json.dumps({"documents": [dict(made_up_read(), file="X-IMY-model_TEST-KY")]}), encoding="utf-8")
+    base = ["--settings", str(path), "--reads", str(reads)]
+
+    with pytest.raises(project_profile.ProfileError, match="IMX"):
+        check.main(base + key_args("IMX=QY=none", "IMY=QX=none"))
+    # The repeat read of another key is refused too
+    with pytest.raises(project_profile.ProfileError, match="IMX"):
+        check.main(base + key_args("IMX=QX=" + str(old)))
+    for pairs in (("IMX=QX=none", "IMX=QX=none"), ("IMX=QX=none", "IMY=QX=none")):
+        with pytest.raises(SystemExit):
+            check.main(base + key_args(*pairs))
+    assert not (reads / "key_reads_check.json").exists()
+    assert check.main(base + key_args("IMX=QX=none", "IMY=QY=" + str(old))) == 0

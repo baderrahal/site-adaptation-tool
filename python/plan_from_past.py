@@ -16,6 +16,7 @@ from shapely.geometry import Polygon
 import common
 import excel_reader
 import full_run
+import key_copies
 import link_summary
 import plot_relations
 import link_table
@@ -100,6 +101,21 @@ def key_codes(settings):
     """R321. The codes of the answer keys of answerKeys.keys in the project settings."""
     keys = (settings.values.get("answerKeys") or {}).get("keys") or []
     return [key.get("code") for key in keys if isinstance(key, dict)]
+
+
+def check_key_file(settings, code, name):
+    """R321. A read is of the answer key code only when the name of its model file holds that code where answerKeys.codeInName
+    says and the code of no other key, in any case, so a job given under the wrong key is refused and never read by its types."""
+    block = settings.values.get("answerKeys") or {}
+    if not isinstance(block.get("codeInName"), str):
+        raise project_profile.ProfileError(settings.path.name + " answerKeys has no codeInName to tie a read to its key " + str(code))
+    if not isinstance(name, str) or not name.strip():
+        raise project_profile.ProfileError("the read names no model file, so it can not be tied to the key " + str(code))
+    if not key_copies.name_pattern(block, code).search(name):
+        raise project_profile.ProfileError("the model file " + name + " does not hold the code " + str(code) + " where answerKeys.codeInName says")
+    others = [other for other in key_codes(settings) if other != code and key_copies.name_pattern(block, other).search(name)]
+    if others:
+        raise project_profile.ProfileError("the model file " + name + " given for the key " + str(code) + " holds the code " + ", ".join(others) + " of another key")
 
 
 def key_types(settings, floors):

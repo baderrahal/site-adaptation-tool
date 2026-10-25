@@ -105,11 +105,21 @@ def project_document(data):
     return documents[0]
 
 
+def refuse_repeats(parser, pairs):
+    """R322, R323. A key or a job given twice is refused, so one read is never filed under two keys or two reads under one."""
+    for place, what in ((0, "key"), (1, "job")):
+        seen = Counter(pair[place] for pair in pairs)
+        twice = sorted(name for name, count in seen.items() if count > 1)
+        if twice:
+            parser.error("the " + what + " " + ", ".join(twice) + " is given twice, give each once")
+
+
 def key_entry(settings, reads, code, job):
     folder = Path(reads) / job
     prefix = "testhost_" + job + "_"
     floors = plan_from_past.load_floors(settings, code)
     document = project_document(load(folder / (prefix + "prototypes.json")))
+    plan_from_past.check_key_file(settings, code, document.get("file"))
     return {"job": job, "file": (folder / (prefix + "prototypes.json")).name, "fileMb": round((folder / (prefix + "prototypes.json")).stat().st_size / 1048576.0, 2),
             "errors": len(document.get("errors") or []), "counts": counts(document, floors),
             "window": window_facts(load(folder / (prefix + "run.json")), load(folder / (prefix + "log.json")))}
@@ -139,6 +149,7 @@ def main(argv=None):
     parser.add_argument("--reads", required=True, help="the reads folder, one folder per read job with its testhost files")
     parser.add_argument("--key", action="append", type=parse_pair, required=True, metavar="CODE=JOB")
     args = parser.parse_args(argv)
+    refuse_repeats(parser, args.key)
     plot_relations.refuse_inside_repo(Path(args.reads))
     settings = project_profile.load_settings(args.settings)
     report = {"note": "R322. Counts per answer key read, no coordinate or level. Floors by kind follow floors.types and floors.keyTypes (R321).",

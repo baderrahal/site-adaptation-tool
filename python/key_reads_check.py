@@ -17,6 +17,7 @@ from collections import Counter
 from pathlib import Path
 
 import key_reads
+import plan_from_past
 import plot_relations
 import project_profile
 import rvt_info
@@ -157,6 +158,7 @@ def main(argv=None):
     parser.add_argument("--reads", required=True, help="the reads folder of R322")
     parser.add_argument("--key", action="append", type=parse_triple, required=True, metavar="CODE=JOB=PHASE1_READ")
     args = parser.parse_args(argv)
+    key_reads.refuse_repeats(parser, args.key)
     plot_relations.refuse_inside_repo(Path(args.reads))
     settings = project_profile.load_settings(args.settings)
     block = settings.values["answerKeys"]
@@ -167,7 +169,10 @@ def main(argv=None):
         if code not in copies:
             raise project_profile.ProfileError("answerKeys has no key " + code)
         document = key_reads.project_document(key_reads.load(Path(args.reads) / job / ("testhost_" + job + "_prototypes.json")))
+        plan_from_past.check_key_file(settings, code, document.get("file"))
         old_document = key_reads.project_document(key_reads.load(old)) if old != "none" else None
+        if old_document is not None:
+            plan_from_past.check_key_file(settings, code, old_document.get("file"))
         references = rvt_info.read(folder / copies[code])["revitLinks"]
         report["keys"][code] = dict(check_key(document, old_document, references), job=job, secondRead=Path(old).name)
     write_json(Path(args.reads) / OUTPUT, report)
