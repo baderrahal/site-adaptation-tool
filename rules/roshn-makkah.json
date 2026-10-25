@@ -175,7 +175,14 @@
       "height": "oneFflPerClusterAtTheHighestEntry",
       "steps": "countRule",
       "stepBands": [[0.205, 1], [0.38, 2], [99.0, 3]],
-      "yardBelowFflM": 0.1
+      "yardBelowFflM": 0.1,
+      "keyRules": {
+        "note": "Round ADDIN 3a (R331 to R335). The rules the 7 Parsons answer keys follow, measured by python/majority.py on round_addin past_all.csv: the candidate coded, its share over the Parsons plots it covers and per key, strong at majority.strongShare, the share of the Native keys beside it (native, this run, nativeRound17, the table of Round 17 where it had one) and the plots it misses, each an override of source parsons in config/overrides. The values are lengths, angles and names, never a coordinate or a level.",
+        "site": {"rule": "oneSet", "keys": 7, "oneSet": true, "equal": "survey point and project base point in internal and shared coordinates, project position, angle to true north, shared site, place, level elevations and units", "angleToTrueNorthDeg": 0, "activeSite": "Internal", "sites": ["Internal"], "levels": ["Level 1", "Level 2"], "levelStepsM": {"Level 2": 4.0}, "units": {"system": "METRIC", "length": "meters", "lengthSystem": "METRIC"}, "lengthAccuracy": {"ima": 0.001, "imb": 0.001, "imc": 0.01, "imd": 0.01, "ime": 0.01, "imf": 0.01, "img": 0.01}, "position": "the project position, survey point and base point of the reference key read, outside git, Q068", "native": "the 4 Native keys hold one set of their own, its survey point 2432 km from the Parsons one in shared coordinates"},
+        "linkRotation": {"rule": "frontRule", "share": 0.991, "strong": true, "plots": 2501, "misses": 23, "byKey": {"ima": 1.0, "imb": 1.0, "imc": 1.0, "imd": 1.0, "ime": 0.9781, "imf": 1.0, "img": 0.9403}, "native": 0.983, "holdDeg": 0.1},
+        "frontCorner": {"rule": "frontRule", "share": 0.978, "strong": true, "plots": 937, "misses": 21, "byKey": {"ima": 1.0, "imb": 1.0, "imc": 1.0, "imd": 1.0, "ime": 0.9496, "imf": 1.0, "img": 0.8529}, "native": 0.972, "nativeRound17": 0.967, "holdDeg": 0.1},
+        "linkOrigin": {"rule": "plotFrameRefit", "share": 0.971, "strong": true, "plots": 2501, "misses": 72, "byKey": {"ima": 0.981, "imb": 0.9931, "imc": 0.9877, "imd": 0.995, "ime": 0.9719, "imf": 0.9538, "img": 0.9067}, "native": 0.912, "holdMm": 10, "byCode": {"C10": {"anchor": "end", "offset": [-10.0, 1.593]}, "DP1": {"anchor": "end", "offset": [-10.0, 0.15]}, "DP2": {"anchor": "end", "offset": [-9.995, 0.155]}, "DP3": {"anchor": "end", "offset": [-9.99, 0.15]}, "DP4": {"anchor": "end", "offset": [-9.99, 0.15]}, "DT1": {"anchor": "end", "offset": [-20.0, 0]}, "DT3": {"anchor": "end", "offset": [-20.0, 0]}, "TH1": {"anchor": "end", "offset": [-18.0, 0]}, "TH1-IM": {"anchor": "start", "offset": [-10.0, 0]}, "TH3": {"anchor": "start", "offset": [-10.0, 0]}, "VD1": {"anchor": "start", "offset": [0, 0.15]}, "VD2": {"anchor": "end", "offset": [-10.0, 0.155]}, "VD4": {"anchor": "end", "offset": [-9.995, 0.15]}, "VL4": {"anchor": "end", "offset": [-10.0, 0.15]}, "VL6": {"anchor": "start", "offset": [0, 0.15]}}}
+      }
     },
     "native2022": {
       "job": "native",

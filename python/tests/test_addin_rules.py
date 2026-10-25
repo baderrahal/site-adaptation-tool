@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+import key_rules
 import majority
 import override_source
 import plan_rules
@@ -155,3 +156,119 @@ def test_r330_the_real_override_list_has_the_job_of_its_key_as_source_on_every_e
     counts = override_source.counts(entries)
     assert set(counts["bySource"]) == {"parsons", "native"}
     assert sum(counts["bySource"].values()) == len(entries)
+
+
+# R331 the coordinates of the keys, one set for button 1
+def read_doc(dx=0.0, angle=0.0, level2=4.0, with_site=True):
+    doc = {"file": "X", "surveyPoint": {"position": [1.0 + dx, 2.0, 3.0], "sharedPosition": [100.0 + dx, 200.0, 3.0]},
+           "basePoint": {"position": [5.0, 6.0, 7.0], "sharedPosition": [500.0, 600.0, 7.0]}, "angleToTrueNorthDeg": angle}
+    if with_site:
+        doc["site"] = {"activeSite": "Internal", "sites": ["Internal"], "placeName": "P", "projectPosition": {"eastWest": 10.0 + dx, "northSouth": 20.0, "elevation": 0.0, "angleDeg": angle},
+                       "levels": [{"name": "Level 1", "elementId": 1, "elevation": 0.0, "projectElevation": 0.0, "elevationBase": "Survey Point"},
+                                  {"name": "Level 2", "elementId": 2, "elevation": level2, "projectElevation": level2, "elevationBase": "Survey Point"}],
+                       "units": {"system": "METRIC", "length": "meters", "lengthSystem": "METRIC", "lengthAccuracy": 0.01}}
+    return doc
+
+
+def test_r331_keys_that_hold_one_survey_point_base_point_position_angle_and_levels_are_one_set():
+    facts = key_rules.site_facts({"imc": read_doc(), "imd": read_doc()}, "imc")
+    assert facts["oneSet"] is True and facts["keys"]["imd"]["differ"] == {}
+    assert facts["shared"] == {"angleToTrueNorthDeg": 0.0, "activeSite": "Internal", "sites": ["Internal"], "levels": ["Level 1", "Level 2"],
+                               "levelStepsM": {"Level 2": 4.0}, "units": {"system": "METRIC", "length": "meters", "lengthSystem": "METRIC"}}
+
+
+def test_r331_a_key_off_by_two_mm_or_another_level_is_named_with_its_gap_and_the_set_is_not_one():
+    facts = key_rules.site_facts({"imc": read_doc(), "imd": read_doc(dx=0.002), "ime": read_doc(level2=4.5)}, "imc")
+    assert facts["oneSet"] is False
+    assert facts["keys"]["imd"]["differ"]["surveyPoint.sharedPosition"] == pytest.approx(2.0)
+    assert facts["keys"]["imd"]["differ"]["projectPosition"] == pytest.approx(2.0)
+    assert facts["keys"]["ime"]["differ"]["levels.Level 2"] == pytest.approx(500.0)
+
+
+def test_r331_each_group_is_held_against_its_own_reference_and_the_references_against_each_other():
+    found = key_rules.group_site_facts({"imc": read_doc(), "imd": read_doc(), "u12": read_doc(dx=5.0, with_site=False), "u14": read_doc(dx=5.0, with_site=False)},
+                                       GROUPS | {"native": ["u12", "u14"]}, {"parsons": "imc", "native": "u14"})
+    assert found["parsons"]["oneSet"] is True and found["native"]["oneSet"] is True
+    assert found["acrossGroups"]["oneSet"] is False and found["acrossGroups"]["keys"]["u14"]["differ"]["surveyPoint.position"] == pytest.approx(5000.0)
+
+
+def test_r331_a_read_of_before_the_site_facts_is_held_on_its_points_and_angle_only_and_no_coordinate_is_written():
+    facts = key_rules.site_facts({"imc": read_doc(), "u12": read_doc(with_site=False)}, "imc")
+    assert facts["keys"]["u12"]["compared"] == ["surveyPoint.position", "surveyPoint.sharedPosition", "basePoint.position", "basePoint.sharedPosition", "angleToTrueNorthDeg"]
+    assert facts["keys"]["u12"]["differ"] == {}
+    text = json.dumps(facts)
+    for value in ("100.0", "200.0", "500.0", "600.0"):
+        assert value not in text
+
+
+# R332 the link origin and rotation by the front frame
+FRAME = {"n": (0.0, 1.0), "r": (1.0, 0.0), "left": (0.0, 0.0), "right": (16.0, 0.0), "length": 16.0}
+
+
+def link_item(plot, x, y, rotation, mirrored, code="C10", frame=FRAME, curb=FRAME, rule="nearestCurb", group="parsons", key="imc"):
+    return {"plot": plot, "key": key, "group": group, "code": code, "factors": {"all": "all"}, "frame": frame, "curbFrame": curb, "frontRule": rule,
+            "row": {"x": x, "y": y, "rotationDeg": rotation, "mirrored": mirrored}}
+
+
+def test_r332_the_link_rotation_is_held_against_the_front_frame_and_a_corner_plot_against_its_orientation_frame():
+    side = {"n": (1.0, 0.0), "r": (0.0, -1.0), "left": (0.0, 25.0), "right": (0.0, 0.0), "length": 25.0}
+    items = [link_item("1", 0, 0, 0.0, False), link_item("2", 0, 0, 0.05, False), link_item("3", 0, 0, 270.0, False, frame=side, rule="orientation"),
+             link_item("4", 0, 0, 0.0, False, frame=side, rule="orientation")]
+    hold = key_rules.angle_hold(0.1)
+    result, misses = majority.decide("parsons linkRotation", items, lambda it: it["row"]["rotationDeg"], key_rules.rotation_candidates(), lambda it: it["group"], 0.9, hold)
+    assert result["coded"] == "frontRule" and result["tests"]["frontRule"]["holds"] == 3 and result["tests"]["nearestCurb"]["holds"] == 3
+    assert [miss["item"]["plot"] for miss in misses] == ["4"]
+    assert key_rules.rotation_gap(misses[0]["item"], misses[0]["value"], misses[0]["rule"]) == {"gapToRuleDeg": 90.0}
+
+
+def test_r332_the_origin_refit_takes_per_code_the_anchor_most_plots_of_the_group_hold_and_its_median_offset():
+    wide = dict(FRAME, right=(18.0, 0.0), length=18.0)
+    # The house of the code sits 10 m before the end corner, so a fit from the start corner holds on the 16 m plots only
+    items = [link_item("1", 6.0, 1.59, 0.0, False), link_item("2", 6.0, 1.59, 0.0, False), link_item("3", 8.0, 1.59, 0.0, False, frame=wide)]
+    fits = key_rules.refit(items)
+    assert fits["C10"] == {"anchor": "end", "offset": [-10.0, 1.59], "plots": 3}
+    as_fitted = {"C10": {"anchor": "start", "offset": [6.0, 1.59]}}
+    result, misses = majority.decide("parsons linkOrigin", items, key_rules.origin_target, key_rules.origin_candidates(as_fitted, fits, {}),
+                                     lambda it: it["group"], 0.9, key_rules.point_hold(0.010))
+    assert result["coded"] == "plotFrameRefit" and result["tests"]["plotFrame"]["holds"] == 2 and result["tests"]["plotFrameRefit"]["holds"] == 3
+    assert misses == []
+
+
+def test_r332_an_origin_miss_goes_to_the_overrides_as_its_gap_in_the_link_axes_and_never_a_coordinate():
+    item = link_item("1", 8.0, 1.6, 0.0, True)
+    gap = key_rules.insert_gap(item, (8.0, 1.6), (6.0, 1.59))
+    # Mirrored, the link X axis runs against r, so 2 m along r is -2 m along X
+    assert gap == {"gapToRuleM": [-2.0, 0.01]}
+    assert key_rules.insert_gap(item, (8.0, 1.6), None) is None
+    listed = majority.overrides([{"decision": "parsons linkOrigin", "field": "insert", "plot": "1", "key": "imc", "code": "C10", "value": (8.0, 1.6),
+                                  "rule": (6.0, 1.59), "state": "breaks", "reason": "breaks plotFrameRefit", "overrideValue": gap}],
+                                {"overrideDecisions": ["linkOrigin"], "groups": GROUPS}, {})
+    assert listed[0]["value"] == {"gapToRuleM": [-2.0, 0.01]} and listed[0]["rule"] is None
+
+
+def test_r332_a_majority_run_holds_the_link_decisions_of_a_group_and_lists_each_miss_with_its_gap():
+    settings = project_profile.load_settings()
+    profile = project_profile.load_profile(project_profile.profile_path(settings))
+    block = majority.load_block(settings)
+    items = [link_item(str(plot), 6.0, 1.59, 0.0, False) for plot in range(1, 10)] + [link_item("10", 7.0, 1.59, 0.0, False), link_item("11", 6.0, 1.59, 90.0, False)]
+    for item in items:
+        item.update(kind="villa", inCluster=False, role=None, neighbours={"left": [], "right": []}, modelKind="TU", rev9="C10", file="a.rvt")
+        item["factors"].update(typology="C10", steps=None)
+        item["row"].update(rampType=None, rampSlopePercent=None, entry=None, entrySource=None, rampBack=None, rampFront=None, rampFrontFall=None, ffl=None,
+                           height=None, yardTop=None, genericTop=None, parameters="{}", steps=None)
+    results, misses, _, fits = majority.run(items, {}, profile, block, [majority.ROAD], [], {"C10": {"anchor": "start", "offset": [6.0, 1.59]}})
+    names = {result["decision"]: result for result in results}
+    assert names["parsons linkRotation"]["misses"] == 1 and names["parsons linkOrigin"]["misses"] == 1
+    assert fits["parsons"]["C10"]["plots"] == 11
+    by_field = {miss["field"]: miss for miss in misses}
+    assert by_field["rotationDeg"]["overrideValue"] == {"gapToRuleDeg": 90.0} and by_field["insert"]["overrideValue"] == {"gapToRuleM": [1.0, 0.0]}
+
+
+def test_r331_r332_the_rules_profile_holds_the_site_and_link_rules_of_the_keys_with_no_coordinate():
+    real = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    rules = real.get("levelProfiles.parsons2024Rev6.keyRules")
+    assert rules["site"]["oneSet"] is True and rules["site"]["angleToTrueNorthDeg"] == 0 and rules["site"]["levels"] == ["Level 1", "Level 2"]
+    for word in ("linkRotation", "frontCorner", "linkOrigin"):
+        assert 0 < rules[word]["share"] <= 1 and set(rules[word]["byKey"]) == {"ima", "imb", "imc", "imd", "ime", "imf", "img"}
+    for code, fit in rules["linkOrigin"]["byCode"].items():
+        assert fit["anchor"] in ("start", "end") and len(fit["offset"]) == 2 and all(abs(value) < 30 for value in fit["offset"]), code

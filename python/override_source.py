@@ -15,6 +15,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+import link_summary
 import project_profile
 
 ORDER = ("plot", "field", "value", "rule", "source", "model", "key", "decision", "reason")
@@ -89,12 +90,14 @@ def kept_by(item, keep):
 
 
 def merge(earlier, run, keep):
-    """R330. The entries of earlier that keep names, cell for cell, then every entry of the run that keep does not name."""
+    """R330. The entries of earlier that keep names, cell for cell, and every entry of the run that keep does not name, sorted
+    by plot, key and field as R272 sorts the list, so Bader finds a plot in one place."""
     kept = [item for item in earlier if kept_by(item, keep)]
     new = [item for item in run if not kept_by(item, keep)]
     dropped = [item for item in run if kept_by(item, keep)]
     tally = lambda items: dict(sorted(Counter(item["source"] for item in items).items()))
-    return kept + new, {"kept": tally(kept), "new": tally(new), "droppedFromRun": tally(dropped)}
+    merged = sorted(kept + new, key=lambda item: (link_summary.sort_key(str(item["plot"])), str(item.get("key")), str(item.get("field"))))
+    return merged, {"kept": tally(kept), "new": tally(new), "droppedFromRun": tally(dropped)}
 
 
 def counts(entries):

@@ -351,7 +351,7 @@ def kinds_taken(rows):
     profile = project_profile.load_profile(project_profile.profile_path(settings))
     block = majority.load_block(settings)
     items = majority.contexts(rows, {}, {}, {}, {}, {}, {}, profile, block)
-    results, _, _ = majority.run(items, {}, profile, block, [majority.ROAD], [])
+    results, _, _, _ = majority.run(items, {}, profile, block, [majority.ROAD], [])
     return {result["decision"]: result["byKind"] for result in results}, block
 
 
