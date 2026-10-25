@@ -84,9 +84,50 @@ def load_job(settings):
     return job
 
 
-def load_floors(settings):
+def check_types(name, label, types):
+    """R112, R321. Each kind names a list of type names, none blank or padded, and no name sits under two kinds."""
+    seen = set()
+    for kind in FLOOR_KINDS:
+        names = types[kind]
+        if not isinstance(names, list) or not names or not all(isinstance(item, str) and item.strip() == item and item for item in names):
+            raise project_profile.ProfileError(name + " " + label + "." + kind + " must be a list of type names")
+        if seen & set(names):
+            raise project_profile.ProfileError(name + " " + label + " names " + ", ".join(sorted(seen & set(names))) + " under two kinds")
+        seen |= set(names)
+
+
+def key_codes(settings):
+    """R321. The codes of the answer keys of answerKeys.keys in the project settings."""
+    keys = (settings.values.get("answerKeys") or {}).get("keys") or []
+    return [key.get("code") for key in keys if isinstance(key, dict)]
+
+
+def key_types(settings, floors):
+    """R321. floors.keyTypes gives an answer key the type names of a kind its model names other than floors.types, as FFL for the
+    Generic floors of IME and IMF. Each key must be an answer key, each kind one of the floor kinds, and the types of each key
+    with floors.types for the kinds it leaves out must pass the checks of R112. Returns the types of every key so named."""
+    name = settings.path.name
+    given = floors.get("keyTypes", {})
+    if not isinstance(given, dict):
+        raise project_profile.ProfileError(name + " floors.keyTypes must map an answer key code to its floor types")
+    codes = key_codes(settings)
+    merged = {}
+    for code, own in given.items():
+        if code not in codes:
+            raise project_profile.ProfileError(name + " floors.keyTypes names " + str(code) + ", which is no code of answerKeys.keys")
+        if not isinstance(own, dict) or not own or not set(own) <= set(FLOOR_KINDS):
+            raise project_profile.ProfileError(name + " floors.keyTypes." + code + " must name some of " + ", ".join(FLOOR_KINDS))
+        types = {kind: own.get(kind, floors["types"][kind]) for kind in FLOOR_KINDS}
+        check_types(name, "floors.keyTypes." + code, types)
+        merged[code] = types
+    return merged
+
+
+def load_floors(settings, key=None):
     """R112. The floors block of the project settings: the type names and the level of each floor kind, the Plot parameter,
-    the yard depth below the FFL and the tie limit of R111. Anything missing or of the wrong kind is refused, no name is guessed."""
+    the yard depth below the FFL and the tie limit of R111. Anything missing or of the wrong kind is refused, no name is guessed.
+    R321. With the code of an answer key the block holds the types that key reads its floors by, floors.keyTypes of that key for the
+    kinds it names and floors.types for the rest. The block of the settings is never changed."""
     floors = settings.values.get("floors")
     name = settings.path.name
     if not isinstance(floors, dict):
@@ -97,14 +138,8 @@ def load_floors(settings):
     types, levels = floors["types"], floors["levels"]
     if not isinstance(types, dict) or not isinstance(levels, dict) or set(types) != set(FLOOR_KINDS) or set(levels) != set(FLOOR_KINDS):
         raise project_profile.ProfileError(name + " floors.types and floors.levels must each name " + ", ".join(FLOOR_KINDS))
-    seen = set()
+    check_types(name, "floors.types", types)
     for kind in FLOOR_KINDS:
-        names = types[kind]
-        if not isinstance(names, list) or not names or not all(isinstance(item, str) and item.strip() == item and item for item in names):
-            raise project_profile.ProfileError(name + " floors.types." + kind + " must be a list of type names")
-        if seen & set(names):
-            raise project_profile.ProfileError(name + " floors.types names " + ", ".join(sorted(seen & set(names))) + " under two kinds")
-        seen |= set(names)
         if not isinstance(levels[kind], str) or not levels[kind].strip():
             raise project_profile.ProfileError(name + " floors.levels." + kind + " must be a level name")
     if not isinstance(floors["plotParameter"], str) or not floors["plotParameter"].strip():
@@ -116,7 +151,12 @@ def load_floors(settings):
         raise project_profile.ProfileError(name + " floors.yardShareTie must be a share from 0 to below 1")
     if not is_number(floors["yardMinShare"]) or not 0 <= floors["yardMinShare"] < 1:
         raise project_profile.ProfileError(name + " floors.yardMinShare must be a share from 0 to below 1")
-    return floors
+    by_key = key_types(settings, floors)
+    if key is None:
+        return floors
+    if key not in key_codes(settings):
+        raise project_profile.ProfileError(name + " answerKeys.keys has no key " + str(key) + ", its floors are not read by floors.types")
+    return dict(floors, types=by_key.get(key, types))
 
 
 def kind_of(floor, floors):
@@ -854,12 +894,14 @@ def main(argv=None):
                              "The official number comes from the location plan labels.csv of the data book by the face of the generic floor")
     parser.add_argument("--frames-from", nargs="*", metavar="PROTOTYPES_JSON",
                         help="R264. Reader outputs of other models of the same job, for the house centre of a link file this model names no link of")
+    parser.add_argument("--key", metavar="CODE",
+                        help="R321. The answer key the past model is, its floors are read by floors.keyTypes of that key and floors.types")
     args = parser.parse_args(argv)
     if args.names and not args.answer_key:
         parser.error("--names goes with --answer-key, such a plan is never placed")
     settings = project_profile.load_settings(args.settings)
     job = load_job(settings)
-    floors = load_floors(settings)
+    floors = load_floors(settings, args.key)
     prototypes = Path(args.prototypes or job["prototypes"])
     baseplan = Path(args.baseplan or (project_profile.ROOT / job["baseplanPlots"] if job.get("baseplanPlots") else ""))
     out = Path(args.out or job["output"])
