@@ -16,7 +16,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 
 ## Done
 
-- ADDIN 2a, PR 45 in review: R320 to R323 with their tests, the test host installed from 7b82696, 7 reads one window at a time under the lock, IMC first, 60 of 60 files equal before and after, second method 28 of 28 category counts, the spot value against its floor top 5,445 of 5,455 TU spots within 1 mm, the per plot rule on 1,560 of 1,561 IMC to IMF plots, the review fixes 2d415ec to 83b3713
+- ADDIN 2a, PR 45 in review: R320 to R323 with their tests, the test host installed from 7b82696, 7 reads one window at a time under the lock, IMC first, 60 of 60 files equal before and after, second method 28 of 28 category counts, the spot value against its floor top 5,445 of 5,455 TU spots within 1 mm, the per plot rule on 1,560 of 1,561 IMC to IMF plots, IMG 0 of 297 for no yard, IMA and IMB 0 of 733 for no yard and no ramp, the review fixes 2d415ec to 83b3713, the second breaker pass f8e54df to 5e090e1: a read is of a key only as <copy name>_TEST-<job>, a spot outside its floor apart, noHost, a null worst gap, no repeat of itself
 - ADDIN 1b, PR 44: R312, R313 and the R301 manifest, the 13 STR upgrades. ADDIN 1, PR 43: R310, R311, R203, R204, R301, 17 windows and KG3
 - ADDIN 0b, PR 42 and 0a, PR 41: the harness and the open fixes, Q028, Q035, Q044 to Q050, Q060, Q061 closed. 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c to 1: PRs 1 to 25
 
