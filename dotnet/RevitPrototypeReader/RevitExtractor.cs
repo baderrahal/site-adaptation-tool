@@ -26,6 +26,12 @@ namespace RevitPrototypeReader
                 ReadProjectPoints(doc, entry);
                 ReadProject(doc, keyNames, entry);
                 ModelReader.ReadSections(new RevitModelSource(doc), entry, options);
+                var errors = new List<string>();
+                entry.Site = SiteFacts.Build(RevitSite.Read(doc, errors));
+                if (errors.Count > 0)
+                {
+                    entry.Errors = (entry.Errors ?? new List<string>()).Concat(errors).ToList();
+                }
             }
             return entry;
         }

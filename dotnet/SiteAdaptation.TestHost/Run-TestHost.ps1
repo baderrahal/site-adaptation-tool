@@ -21,6 +21,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# R310. The memory samples of the window
+. (Join-Path $PSScriptRoot 'WindowSamples.ps1')
 $spec = $null
 if ($FloorSpec) {
     if ($Code -or $DryStart -or $Upgrade) {
@@ -73,6 +75,11 @@ $refused = if ($jobPath) { [IO.Path]::ChangeExtension($jobPath, '.refused.json')
 $logPath = Join-Path $docs ('testhost_' + $name + '_log.json')
 $watchPath = Join-Path $docs ('testhost_' + $name + '_watcher.json')
 $runPath = Join-Path $docs ('testhost_' + $name + '_run.json')
+$samplesPath = Join-Path $docs ('testhost_' + $name + '_samples.jsonl')
+$sampleSeconds = [int]$config.testHost.sampleSeconds
+if ($sampleSeconds -lt 1) {
+    throw 'config/project.json has no testHost.sampleSeconds of 1 or more'
+}
 
 if ($jobPath -and (Test-Path $jobPath)) {
     throw "A job file is already waiting at $jobPath. Look at it before you run again."
@@ -133,8 +140,13 @@ if ($round) {
     $keyStem = [IO.Path]::GetFileNameWithoutExtension($build.answerKey.model)
     switch ($round.kind) {
         'siteUpgrade' {
-            $original = Join-Path $work $build.answerKey.model
-            $target = Join-Path $work ($keyStem + '_TEST-' + $Code + '.rvt')
+            # R204. The source is the copy of the answer key in the work folder, or another copy there that the spec names, such
+            # as one of the 7 Parsons site models of Round ADDIN. The target takes the name of the source
+            $original = if ($round.source) { [string]$round.source } else { Join-Path $work $build.answerKey.model }
+            if ((Split-Path $original) -ne $work) {
+                throw "The site upgrade source is not in the work folder $work`: $original"
+            }
+            $target = Join-Path $work ([IO.Path]::GetFileNameWithoutExtension($original) + '_TEST-' + $Code + '.rvt')
             if (Test-Path $target) {
                 throw "The upgraded copy is already there, it is never overwritten: $target"
             }
@@ -298,7 +310,7 @@ if (-not $DryStart -and -not $round) {
 
 # Outputs of an earlier run of this name are moved aside, so a run that writes nothing cannot pass on old files
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$old = @(Get-ChildItem $docs -Filter ('testhost_' + $name + '_*.json') | Where-Object { $Upgrade -or $_.Name -notlike ('testhost_' + $Code + '_upgrade_*') })
+$old = @(Get-ChildItem $docs -Filter ('testhost_' + $name + '_*.json*') | Where-Object { $Upgrade -or $_.Name -notlike ('testhost_' + $Code + '_upgrade_*') })
 if ($old.Count -gt 0) {
     $aside = Join-Path $docs ('testhost_old\' + $name + '_' + $stamp)
     New-Item -ItemType Directory -Force $aside | Out-Null
@@ -311,6 +323,8 @@ $exited = $false
 $stopReason = $null
 $process = $null
 $watcher = $null
+$samples = [Collections.Generic.List[object]]::new()
+$sampleFailures = [Collections.Generic.List[string]]::new()
 try {
     $info = [Diagnostics.ProcessStartInfo]::new($revit)
     $info.UseShellExecute = $false
@@ -382,7 +396,6 @@ try {
         $info.Environment['SITEADAPT_JOB'] = $jobPath
     }
     $process = [Diagnostics.Process]::Start($info)
-    $peak = 0
     $watchArgs = @('--pid', $process.Id, '--out', $watchPath, '--stop-log', $logPath, '--minutes', '10', '--ours', ($ourIds -join ','), '--marks', ($ourMarks -join '|'), '--our-paths', ($ourPaths -join '|'))
     $watcher = Start-Process -FilePath $watcherExe -ArgumentList ($watchArgs | ForEach-Object { '"' + $_ + '"' }) -PassThru -WindowStyle Hidden
     if ($DryStart) {
@@ -398,7 +411,7 @@ try {
     $deadline = $start.AddMinutes($TimeoutMinutes)
     $quietSince = $null
     while ($true) {
-        if ($process.WaitForExit(5000)) {
+        if ($process.WaitForExit($sampleSeconds * 1000)) {
             $exited = $true
             break
         }
@@ -411,12 +424,15 @@ try {
             $stopReason = 'the watcher stopped Revit on a dialog it may not answer'
             break
         }
+        # R310. One sample per look, written at once so a window that is stopped keeps its samples
         try {
-            $process.Refresh()
-            $peak = [Math]::Max($peak, $process.PeakWorkingSet64)
+            $sample = Get-WindowSample -Process $process
+            $samples.Add($sample)
+            $sample | ConvertTo-Json -Compress | Add-Content -Path $samplesPath -Encoding utf8
         }
         catch {
-            # The process ended between two looks, the next WaitForExit sees it
+            # Revit ended between two looks, which the next WaitForExit sees, or a sample failed. Each is kept with its reason
+            $sampleFailures.Add((Get-Date).ToUniversalTime().ToString('o') + ' ' + $_.Exception.Message)
         }
         if ($refused -and (Test-Path $refused) -and (Get-Item $refused).LastWriteTime -gt $start) {
             $stopReason = 'the test host refused the job: ' + (Get-Content -Raw $refused | ConvertFrom-Json).reason
@@ -515,7 +531,10 @@ else {
     'The watcher wrote no report.'
 }
 
-"Run time {0:0.0} minutes, exit code {1}, Revit process {2}, peak memory {3:0} MB" -f ($end - $start).TotalMinutes, $(if ($exited) { $process.ExitCode } else { 'stopped' }), $process.Id, ($peak / 1MB)
+$peaks = Get-WindowPeaks -Samples $samples -FloorGB ([double]$config.siteBuild.minFreeGB)
+$peaks.sampleFailures = @($sampleFailures)
+"Run time {0:0.0} minutes, exit code {1}, Revit process {2}" -f ($end - $start).TotalMinutes, $(if ($exited) { $process.ExitCode } else { 'stopped' }), $process.Id
+"Memory of {0} samples every {1} s: peak private {2} MB and peak working set {3} MB with the peaks Windows keeps, sampled {4} and {5} MB, least free {6} GB, under the floor of {7} GB in {8}, not responding in {9}, samples failed {10}" -f $peaks.samples, $sampleSeconds, $peaks.peakPrivateMb, $peaks.peakWorkingSetMb, $peaks.sampledPrivateMb, $peaks.sampledWorkingSetMb, $peaks.minFreeGb, $peaks.floorGb, $peaks.samplesUnderFloor, $peaks.notResponding, $sampleFailures.Count
 # R110. One line per job for the parallel report
 $logResult = if (Test-Path $logPath) { (Get-Content -Raw $logPath | ConvertFrom-Json).result } else { $null }
 [ordered]@{
@@ -524,7 +543,8 @@ $logResult = if (Test-Path $logPath) { (Get-Content -Raw $logPath | ConvertFrom-
     startUtc   = $start.ToUniversalTime().ToString('o')
     endUtc     = $end.ToUniversalTime().ToString('o')
     minutes    = [Math]::Round(($end - $start).TotalMinutes, 2)
-    peakMb     = [Math]::Round($peak / 1MB)
+    peakMb     = $peaks.peakWorkingSetMb
+    memory     = $peaks
     exitCode   = $(if ($exited) { $process.ExitCode } else { $null })
     stopReason = $stopReason
     logResult  = $logResult
