@@ -91,6 +91,58 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R320_a_spot_with_no_value_or_no_elevation_base_is_one_error_line_per_reason_with_the_count_and_the_first_ids()
+        {
+            var host = new LinkWallRampTests.FakeSource();
+            // Seven spots of an STR link, as the SE keys hold them: the parameter is there and holds no value
+            for (long id = 40; id < 47; id++)
+            {
+                var spot = new SpotRow { ElementId = id, Origin = new[] { 1.0, 2.0, 3.0 } };
+                SpotValues.Apply(spot, new RawSpotValue { UpperMissing = SpotValues.NoValue, TypeName = "Target (Survey)", ElevationBase = "Survey Point" });
+                host.SpotList.Add(spot);
+            }
+            var noBase = new SpotRow { ElementId = 50 };
+            SpotValues.Apply(noBase, new RawSpotValue { UpperFeet = Feet(80.0), BaseMissing = SpotValues.NoParameter });
+            host.SpotList.Add(noBase);
+            var neither = new SpotRow { ElementId = 51 };
+            SpotValues.Apply(neither, new RawSpotValue { UpperMissing = SpotValues.NoParameter, ElevationBase = " " });
+            host.SpotList.Add(neither);
+            var whole = new SpotRow { ElementId = 52 };
+            SpotValues.Apply(whole, new RawSpotValue { UpperFeet = Feet(80.0), ElevationBase = "Survey Point" });
+            host.SpotList.Add(whole);
+            JObject document = LinkWallRampTests.Run(host);
+            List<string> errors = document["errors"].Select(line => (string)line).ToList();
+
+            Assert.Contains("spotElevations value: no Single/Upper Value, the parameter holds no value on 7 elements, first 5 element ids 40, 41, 42, 43, 44", errors);
+            Assert.Contains("spotElevations value: no Single/Upper Value, the element has no such parameter on 1 element, element ids 51", errors);
+            Assert.Contains("spotElevations elevation base: no Elevation Base, the element has no such parameter on 1 element, element ids 50", errors);
+            Assert.Contains("spotElevations elevation base: no Elevation Base, the parameter holds no value on 1 element, element ids 51", errors);
+            Assert.Equal(4, errors.Count(line => line.StartsWith("spotElevations ", StringComparison.Ordinal)));
+            // Every spot stays in the list, and a Lower Value that does not read gives no line, a spot of one value has none
+            Assert.Equal(10, document["spotElevations"].Count());
+            Assert.DoesNotContain(errors, line => line.Contains("Lower"));
+            Assert.Null(document["spotElevations"][0]["value"]);
+        }
+
+        [Fact]
+        public void R320_the_reader_gives_the_reason_a_value_or_base_does_not_read_and_reads_the_base_off_the_spot_type()
+        {
+            string text = RepoText("dotnet", "RevitPrototypeReader", "RevitModelSource.cs");
+            int start = text.IndexOf("public IEnumerable<SpotRow> SpotElevations()", StringComparison.Ordinal);
+            int end = text.IndexOf("private SpotHost HostOf", start, StringComparison.Ordinal);
+            string body = text.Substring(start, end - start);
+
+            Assert.Contains("UpperMissing = ", body);
+            Assert.Contains("BaseMissing = ", body);
+            // The Elevation Base is a parameter of the spot type, labelled so in Revit 2024, never one of the instance
+            Assert.Contains("spot.DimensionType.get_Parameter(BuiltInParameter.SPOT_ELEV_BASE)", body);
+            foreach (string reason in new[] { "SpotValues.NoParameter", "SpotValues.NoValue", "SpotValues.NotANumber" })
+            {
+                Assert.Contains(reason, body);
+            }
+        }
+
+        [Fact]
         public void R320_the_reader_asks_the_spot_elevation_values_and_no_longer_the_spot_coordinate_ones()
         {
             string text = RepoText("dotnet", "RevitPrototypeReader", "RevitModelSource.cs");

@@ -29,6 +29,7 @@ namespace SiteAdaptation.Common
             entry.SpotElevations = Guard("spotElevations", errors, () => host.SpotElevations().ToList());
             entry.FloorTypes = Guard("floorTypes", errors, () => host.FloorTypes().ToList());
             ReadSpotHostFailures(entry.SpotElevations, errors);
+            ReadSpotValueFailures(entry.SpotElevations, errors);
             foreach (WallRow wall in entry.Walls)
             {
                 ReadWallPlot(wall, errors);
@@ -56,6 +57,23 @@ namespace SiteAdaptation.Common
             foreach (IGrouping<string, SpotRow> group in spots.Where(spot => spot.HostFailure != null).GroupBy(spot => spot.HostFailure, StringComparer.Ordinal).OrderBy(item => item.Key, StringComparer.Ordinal))
             {
                 errors.Add(ErrorLines.Grouped("spotElevations host", group.Key, group.Select(spot => spot.ElementId).ToList()));
+            }
+        }
+
+        // R320. Spots whose value or Elevation Base did not read are one line per reason, the spots themselves stay in the list
+        private static void ReadSpotValueFailures(IEnumerable<SpotRow> spots, IList<string> errors)
+        {
+            var parts = new[]
+            {
+                new KeyValuePair<string, Func<SpotRow, string>>("spotElevations value", spot => spot.ValueFailure),
+                new KeyValuePair<string, Func<SpotRow, string>>("spotElevations elevation base", spot => spot.BaseFailure),
+            };
+            foreach (KeyValuePair<string, Func<SpotRow, string>> part in parts)
+            {
+                foreach (IGrouping<string, SpotRow> group in spots.Where(spot => part.Value(spot) != null).GroupBy(part.Value, StringComparer.Ordinal).OrderBy(item => item.Key, StringComparer.Ordinal))
+                {
+                    errors.Add(ErrorLines.Grouped(part.Key, group.Key, group.Select(spot => spot.ElementId).ToList()));
+                }
             }
         }
 

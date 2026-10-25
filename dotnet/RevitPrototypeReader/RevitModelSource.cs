@@ -650,12 +650,20 @@ namespace RevitPrototypeReader
                     {
                         Fail("spot parameters", spot.Id.Value, problem);
                     }
+                    // R320. A value or base that does not read keeps its reason, ModelReader writes one line per reason
+                    string upperMissing;
+                    string baseMissing;
+                    double? upper = FeetOf(spot, BuiltInParameter.SPOT_ELEV_SINGLE_OR_UPPER_VALUE, out upperMissing);
+                    double? lower = FeetOf(spot, BuiltInParameter.SPOT_ELEV_LOWER_VALUE, out _);
+                    string elevationBase = TextOf(spot.DimensionType, () => spot.DimensionType.get_Parameter(BuiltInParameter.SPOT_ELEV_BASE), out baseMissing);
                     var raw = new RawSpotValue
                     {
-                        UpperFeet = Guarded("spot value", spot, () => FeetOf(spot, BuiltInParameter.SPOT_ELEV_SINGLE_OR_UPPER_VALUE)),
-                        LowerFeet = Guarded("spot value", spot, () => FeetOf(spot, BuiltInParameter.SPOT_ELEV_LOWER_VALUE)),
+                        UpperFeet = upper,
+                        UpperMissing = upperMissing,
+                        LowerFeet = lower,
                         TypeName = spot.DimensionType.Name,
-                        ElevationBase = Guarded("spot elevation base", spot, () => spot.DimensionType.get_Parameter(BuiltInParameter.SPOT_ELEV_BASE)?.AsValueString()),
+                        ElevationBase = elevationBase,
+                        BaseMissing = baseMissing,
                         RelativeBase = Guarded("spot relative base", spot, () => spot.get_Parameter(BuiltInParameter.SPOT_ELEV_RELATIVE_BASE)?.AsValueString()),
                         DisplayElevations = Guarded("spot display elevations", spot, () => spot.get_Parameter(BuiltInParameter.SPOT_ELEV_DISPLAY_ELEVATIONS)?.AsValueString()),
                     };
@@ -672,15 +680,63 @@ namespace RevitPrototypeReader
             return rows.OrderBy(row => row.ElementId).ToList();
         }
 
-        // The number of a length parameter in feet as Revit holds it, null when the element has none or it holds no number
-        private static double? FeetOf(Element element, BuiltInParameter id)
+        // The number of a length parameter in feet as Revit holds it, null with the reason when the element has none, it holds no
+        // value or no number, or Revit fails on it
+        private static double? FeetOf(Element element, BuiltInParameter id, out string missing)
         {
-            Parameter parameter = element.get_Parameter(id);
-            if (parameter == null || !parameter.HasValue || parameter.StorageType != StorageType.Double)
+            missing = null;
+            try
             {
+                Parameter parameter = element.get_Parameter(id);
+                if (parameter == null)
+                {
+                    missing = SpotValues.NoParameter;
+                    return null;
+                }
+                if (!parameter.HasValue)
+                {
+                    missing = SpotValues.NoValue;
+                    return null;
+                }
+                if (parameter.StorageType != StorageType.Double)
+                {
+                    missing = SpotValues.NotANumber;
+                    return null;
+                }
+                return parameter.AsDouble();
+            }
+            catch (Exception failure)
+            {
+                missing = ModelReader.Describe(failure);
                 return null;
             }
-            return parameter.AsDouble();
+        }
+
+        // The value of a parameter as Revit shows it, null with the reason when the element has none, it shows nothing or Revit fails on it
+        private static string TextOf(Element element, Func<Parameter> find, out string missing)
+        {
+            missing = null;
+            try
+            {
+                Parameter parameter = element == null ? null : find();
+                if (parameter == null)
+                {
+                    missing = SpotValues.NoParameter;
+                    return null;
+                }
+                string text = parameter.AsValueString();
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    missing = SpotValues.NoValue;
+                    return null;
+                }
+                return text;
+            }
+            catch (Exception failure)
+            {
+                missing = ModelReader.Describe(failure);
+                return null;
+            }
         }
 
         // The element the spot points to, with its category and type. A reference into a link gives the ids only,

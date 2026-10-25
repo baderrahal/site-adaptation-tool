@@ -253,6 +253,13 @@ namespace SiteAdaptation.Common
         // Why the host could not be read. Not written, the reader turns it into one error line per reason
         [JsonIgnore]
         public string HostFailure { get; set; }
+
+        // R320. Why the value or the Elevation Base did not read. Not written, the reader turns each into one error line per reason
+        [JsonIgnore]
+        public string ValueFailure { get; set; }
+
+        [JsonIgnore]
+        public string BaseFailure { get; set; }
     }
 
     // LinkedElementId is set when the reference points into a Revit link. Nothing inside the link is read
