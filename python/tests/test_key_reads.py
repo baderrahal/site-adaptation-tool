@@ -717,6 +717,24 @@ def test_r323_a_read_and_its_repeat_read_are_each_the_work_copy_of_the_key_copy_
     assert not (reads / "key_reads_check.json").exists()
 
 
+def test_r323_a_repeat_read_that_is_the_new_read_itself_or_a_copy_of_it_is_refused(tmp_path):
+    import key_reads_check as check
+    path = check_settings(tmp_path)
+    reads = tmp_path / "reads"
+    new = write_read(reads, "QX", dict(made_up_read(), file="X-IMX-model_TEST-QX")) / "testhost_QX_prototypes.json"
+    # The same file by another path, and a copy of it elsewhere, which is a read of the same job
+    other_path = reads / "QX" / ".." / "QX" / "testhost_QX_prototypes.json"
+    (tmp_path / "copy").mkdir()
+    copy = tmp_path / "copy" / "testhost_QX_prototypes.json"
+    copy.write_bytes(new.read_bytes())
+    base = ["--settings", str(path), "--reads", str(reads)]
+
+    for old in (new, other_path, copy):
+        with pytest.raises(SystemExit):
+            check.main(base + key_args("IMX=QX=" + str(old)))
+    assert not (reads / "key_reads_check.json").exists()
+
+
 def test_r323_a_run_merges_its_keys_into_the_file_and_keeps_the_keys_of_earlier_runs(tmp_path):
     import key_reads_check as check
     path = check_settings(tmp_path)

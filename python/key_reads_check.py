@@ -14,6 +14,7 @@ and gaps only.
 """
 import argparse
 import math
+import os
 import random
 import sys
 from collections import Counter, defaultdict
@@ -374,6 +375,16 @@ def check_key(document, old_document, references, floors, plain=None, old_name=N
     return result
 
 
+def self_repeat(new, old, job):
+    """R323. Why a repeat read is the new read itself, None when it is not: the same file by any path, or a read of the same job,
+    so a copy of the new read elsewhere, since one job is one window."""
+    if Path(old).exists() and Path(new).exists() and os.path.samefile(new, old):
+        return "the same file as the new read"
+    if plan_from_past.read_job(old) == job:
+        return "a read of the job " + job + " of the new read"
+    return None
+
+
 def parse_triple(text):
     parts = text.split("=")
     if len(parts) != 3 or not all(parts):
@@ -413,7 +424,11 @@ def main(argv=None):
         if code not in copies:
             raise project_profile.ProfileError("answerKeys has no key " + code)
         floors = plan_from_past.load_floors(settings, code)
-        document = key_reads.project_document(key_reads.load(Path(args.reads) / job / ("testhost_" + job + "_prototypes.json")))
+        new = Path(args.reads) / job / ("testhost_" + job + "_prototypes.json")
+        same = self_repeat(new, old, job) if old != "none" else None
+        if same:
+            parser.error("the repeat read " + old + " of " + code + " is " + same + ", a read is no repeat of itself")
+        document = key_reads.project_document(key_reads.load(new))
         plan_from_past.check_key_file(settings, code, document.get("file"), job)
         old_document = key_reads.project_document(key_reads.load(old)) if old != "none" else None
         if old_document is not None:
