@@ -67,6 +67,14 @@ WIDE_LEVELS = ("entry", "height")
 # R325. A row of an answer key marks that its height is worked out from its FFL and El @ Entry, a schedule row never holds it
 HEIGHT_FROM_LEVELS = "heightFromLevels"
 MODEL_PLOT = "modelPlot"
+# R325. El @ Entry of a key plan comes from the parameter of its generic floor, a plan of the past job keeps pastJob for its schedule
+KEY_PARAMETER = "keyParameter"
+ENTRY_SOURCE = "entrySource"
+# R325. A row whose El @ Entry was refused keeps why, and the plan lists it under levels.entry with this start
+ENTRY_REFUSED = "entryRefused"
+REFUSED = "refused, "
+# R120. A share of a floor on a face under this is a sliver and is left out
+SLIVER_SHARE = 0.0001
 
 
 def sourced(value, source=PAST):
@@ -388,13 +396,18 @@ def schedule_values(builder, row):
     levels = {}
     for key, label in LEVEL_COLUMNS:
         value = plot_relations.excel_cell(row, label)
-        if key == "height" and row.get(HEIGHT_FROM_LEVELS) and "ffl" in levels and "entry" in levels:
+        if key == "height" and row.get(HEIGHT_FROM_LEVELS):
             # R325. A key gives FFL and El @ Entry and no height, so the height is worked out from them
-            levels[key] = sourced(common.r3(levels["ffl"]["value"] - levels["entry"]["value"], 4), COMPUTED)
+            if "ffl" in levels and "entry" in levels:
+                levels[key] = sourced(common.r3(levels["ffl"]["value"] - levels["entry"]["value"], 4), COMPUTED)
+            else:
+                builder.lack("levels.height", "no El @ Entry to work the height out from")
+        elif key == "entry" and row.get(ENTRY_REFUSED):
+            builder.lack("levels.entry", REFUSED + row[ENTRY_REFUSED])
         elif not is_number(value):
             builder.lack("levels." + key, "the schedule cell " + label + " holds no number")
         else:
-            levels[key] = sourced(common.r3(float(value), 4 if key in WIDE_LEVELS else 3))
+            levels[key] = sourced(common.r3(float(value), 4 if key in WIDE_LEVELS else 3), row.get(ENTRY_SOURCE, PAST) if key == "entry" else PAST)
     steps = STEPS_TEXT.match(str(plot_relations.excel_cell(row, "Steps Needed") or ""))
     if steps is None:
         builder.lack("levels.steps", "the schedule cell Steps Needed holds no whole step count")
@@ -777,7 +790,35 @@ def location_numbers(labels_path):
     return {face: items[0]["number"] for face, items in found.items() if len(items) == 1}, {face: len(items) for face, items in found.items() if len(items) > 1}
 
 
-def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parameter=None):
+def face_shares(shape, labels, tree, faces):
+    """R120, R325. The share of the area of a floor on each baseplan face it overlaps, the face area under the floor over the floor area,
+    as (label, share) with the largest first. A share under SLIVER_SHARE is a sliver and is left out."""
+    if shape is None or shape.area <= 0:
+        return []
+    found = []
+    for index in tree.query(shape, predicate="intersects"):
+        label = labels[int(index)]
+        share = faces[label].intersection(shape).area / shape.area
+        if share >= SLIVER_SHARE:
+            found.append((label, share))
+    return sorted(found, key=lambda item: (-item[1], link_summary.sort_key(item[0])))
+
+
+def share_face(shares, share_min):
+    """R325. The one face that holds at least share_min of a floor, else None and why: noFace with no share, twoFaces when two faces
+    hold it (faces that overlap), cut when no face holds share_min, as R120 lists a plot that does not follow the baseplan cut."""
+    held = [label for label, share in shares if share >= share_min - EPS]
+    if len(held) == 1:
+        return held[0], None
+    return None, "twoFaces" if held else "cut" if shares else "noFace"
+
+
+def share_rows(shares, numbers):
+    """R325. The shares of a floor as the cut list writes them, each face with its location plan number."""
+    return [{"face": label, "number": numbers.get(label), "share": round(share, 3)} for label, share in shares]
+
+
+def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parameter=None, share_min=None, entry_heights=None):
     """R206. A past model that keeps no plot parameter on its links and has no schedule here: each link instance Name and each floor
     Plot value is <unit>-<number> in the model's own numbering. The official number of a plot is the location plan number of the
     baseplan face its generic floor stands on, so the number is taken by position and never by a shift. The links and floors get that
@@ -788,7 +829,10 @@ def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parame
     R325. A link of a Parsons key holds its plot number in RRE_ZZ_SP_Plot-Number and a Name with bars, so it maps first by the one
     floor Plot value whose number after the last dash is that plot number, then by its Name, then by its frame. It keeps its own unit,
     and a link no route maps or that is refused loses its plot number, so it never joins a plot by a number nothing placed. With
-    entry_parameter the row of a plot also holds El @ Entry from that parameter of its generic floor and the steps of its link."""
+    entry_parameter the row of a plot also holds El @ Entry from that parameter of its generic floor and the steps of its link.
+    With share_min a generic floor joins the one face that holds at least that share of its area (R120), never the face a point inside it
+    falls on, and a floor no face holds so is listed in cutPlots with its shares and names no plot. With entry_heights, a min and max in
+    metres, an El @ Entry that puts the floor top outside that band over it is refused with why and never used."""
     from shapely.geometry import Point
     from shapely.strtree import STRtree
 
@@ -797,7 +841,7 @@ def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parame
     labels = sorted(faces, key=link_summary.sort_key)
     tree = STRtree([faces[label] for label in labels])
     parameter = floors_config["plotParameter"]
-    official, report, rows, shapes, refused = {}, Counter(), {}, {}, set()
+    official, report, rows, shapes, refused, cut = {}, Counter(), {}, {}, set(), []
     for floor in document.get("floors") or []:
         if kind_of(floor, floors_config) != "generic":
             continue
@@ -806,8 +850,17 @@ def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parame
         if "-" not in value or shape is None:
             report["generic floor with no plot value"] += 1
             continue
-        hits = [labels[index] for index in tree.query(Point(shape.representative_point()), predicate="within")]
-        number = numbers.get(hits[0]) if len(hits) == 1 else None
+        if share_min is None:
+            hits = [labels[index] for index in tree.query(Point(shape.representative_point()), predicate="within")]
+            number = numbers.get(hits[0]) if len(hits) == 1 else None
+        else:
+            shares = face_shares(shape, labels, tree, faces)
+            face, why = share_face(shares, share_min)
+            if face is None:
+                report["generic floor cut by the baseplan" if why == "cut" else "generic floor on " + why] += 1
+                cut.append({"modelPlot": value, "why": why, "shares": share_rows(shares, numbers)})
+                continue
+            number = numbers.get(face)
         if number is None:
             report["generic floor on no face with one plan label"] += 1
             continue
@@ -825,10 +878,18 @@ def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parame
         low, high, _ = plot_relations.top_range(floor, offset)
         official[value] = number
         shapes[value] = shape
-        rows[number] = {"Plot No.": int(number), "Unit": value.rpartition("-")[0], "FFL": high if low is not None and abs(high - low) <= EPS else None,
-                        "modelPlot": value.rpartition("-")[2], "sheetRow": None}
+        ffl = high if low is not None and abs(high - low) <= EPS else None
+        rows[number] = {"Plot No.": int(number), "Unit": value.rpartition("-")[0], "FFL": ffl, "modelPlot": value.rpartition("-")[2], "sheetRow": None}
         entry = (floor.get("parameters") or {}).get(entry_parameter) if entry_parameter else None
-        if is_number(entry):
+        if entry_parameter:
+            rows[number][ENTRY_SOURCE] = KEY_PARAMETER
+        if is_number(entry) and entry_heights is not None and (ffl is None or not entry_heights["min"] - EPS <= ffl - entry <= entry_heights["max"] + EPS):
+            # R325. A placeholder such as 150.0 puts El @ Entry metres off the floor top, so it is listed and never used
+            rows[number][ENTRY_REFUSED] = ("the " + entry_parameter + " value has no flat floor top to give a height" if ffl is None else
+                                           "the " + entry_parameter + " value puts the floor top %.3f m over it, outside keyPlans.entryHeightM %g to %g m"
+                                           % (ffl - entry, entry_heights["min"], entry_heights["max"]))
+            report["El @ Entry refused, its height is outside keyPlans.entryHeightM"] += 1
+        elif is_number(entry):
             rows[number]["El @ Entry"] = entry
     links = document.get("links") or []
     by_number = number_routes(official)
@@ -865,7 +926,10 @@ def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parame
             floor["parameters"][parameter] = None
             report["floor with no official number"] += 1
     report["plots"] = len(rows)
-    return data, [rows[number] for number in sorted(rows, key=link_summary.sort_key)], dict(sorted(report.items()))
+    found = dict(sorted(report.items()))
+    if share_min is not None:
+        found["cutPlots"] = cut
+    return data, [rows[number] for number in sorted(rows, key=link_summary.sort_key)], found
 
 
 def in_link_axes(link, point, offset):
@@ -877,10 +941,13 @@ def in_link_axes(link, point, offset):
 
 
 def number_routes(official):
-    """R325. The floor Plot value of each plot number, the part after the last dash, where exactly one value of the model ends in it."""
+    """R325. The floor Plot value of each plot number, the part after the last dash as a whole number as direct_value takes a link plot
+    number, so VD2-0481 ends in 481, where exactly one value of the model ends in it."""
     values = {}
     for value in official:
-        values.setdefault(value.rpartition("-")[2], []).append(value)
+        number = plot_number(value.rpartition("-")[2])
+        if number is not None:
+            values.setdefault(number, []).append(value)
     return {number: found[0] for number, found in values.items() if len(found) == 1}
 
 
@@ -952,7 +1019,10 @@ WALL_FIELDS = (("baseConstraint", "Base Constraint"), ("baseOffset", "Base Offse
 
 def load_key_plans(settings):
     """R325. keyPlans.wallEdgeM of the project settings, how near a wall middle must lie to the edge of a generic floor to go to its plot,
-    in metres above 0 and under 1, and pastAll.entryParameter, the generic floor parameter that holds El @ Entry in a key."""
+    in metres above 0 and under 1, pastAll.entryParameter, the generic floor parameter that holds El @ Entry in a key, keyPlans.entryHeightM,
+    the min and max in metres of the floor top over El @ Entry a key value must give to be used, and cadLinks.cutShareMin (R120), the share of
+    its area a generic floor must hold on one face to join it."""
+    import cad_links
     name = settings.path.name
     block = settings.values.get("keyPlans")
     edge = block.get("wallEdgeM") if isinstance(block, dict) else None
@@ -961,7 +1031,10 @@ def load_key_plans(settings):
     entry = (settings.values.get("pastAll") or {}).get("entryParameter")
     if not isinstance(entry, str) or not entry.strip():
         raise project_profile.ProfileError(name + " pastAll.entryParameter must name the El @ Entry parameter of a generic floor")
-    return {"wallEdgeM": edge, "entryParameter": entry}
+    band = block.get("entryHeightM")
+    if not isinstance(band, dict) or set(band) != {"min", "max"} or not all(is_number(band[key]) for key in band) or not band["min"] < band["max"]:
+        raise project_profile.ProfileError(name + " keyPlans.entryHeightM must hold a min under a max in metres")
+    return {"wallEdgeM": edge, "entryParameter": entry, "entryHeightM": dict(band), "cutShareMin": cad_links.cad_links_settings(settings)["cutShareMin"]}
 
 
 def key_walls(data, floors_config, edge_m):
@@ -1042,6 +1115,26 @@ def baseplan_faces(path, shifts_path, neighbourhood):
     return faces, bad
 
 
+def key_plan_refusal(settings, out, job, key, answer_key):
+    """R325. Why a plan may not be written to out, or None. A plan of an answer key, with --answer-key or --key, never goes over
+    pastJob.output, the plan of the past job it is compared with. With --key the file name holds the code of that key and of no other
+    key, so plan_imc_key_past.json is never the plan of IMD. A file that holds the plan of a key is only written again by a run of that key."""
+    if (answer_key or key) and out.resolve() == Path(job["output"]).resolve():
+        return "the plan of an answer key is written under its own name, never over pastJob.output " + str(job["output"])
+    codes = [code for code in key_codes(settings) if isinstance(code, str)]
+    words = set(re.split(r"[^0-9a-z]+", out.stem.lower()))
+    if key and (key.lower() not in words or [code for code in codes if code != key and code.lower() in words]):
+        return "the file name " + out.name + " must name the key " + key + " and no other answer key"
+    if out.is_file():
+        try:
+            held = (link_summary.load(out).get("sources") or {}).get("answerKey")
+        except (ValueError, AttributeError):
+            held = None
+        if held and held != key:
+            return out.name + " holds the plan of the key " + str(held) + ", only a run with --key " + str(held) + " writes it again"
+    return None
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Build plan.json from a past job, prototypes.json of the past model and its schedule.")
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH), help="project settings, default config/project.json")
@@ -1068,9 +1161,9 @@ def main(argv=None):
     baseplan = Path(args.baseplan or (project_profile.ROOT / job["baseplanPlots"] if job.get("baseplanPlots") else ""))
     out = Path(args.out or job["output"])
     plot_relations.refuse_inside_repo(out.resolve().parent)
-    if args.key and out.resolve() == Path(job["output"]).resolve():
-        # R325. The plan of a key is written under its own name, the plan of the past job stays as it is to be compared with
-        parser.error("--key writes the plan of the key under its own name, never over pastJob.output " + str(job["output"]))
+    why = key_plan_refusal(settings, out, job, args.key, args.answer_key)
+    if why:
+        parser.error(why)
     root = input_root(settings)
     schedule = root / full_run.XLSX_FOLDER / job["schedule"]
     folder, source_folder = prototype_folders(root, job)
@@ -1091,7 +1184,8 @@ def main(argv=None):
         for other in args.frames_from or []:
             for name, centre in model_frames(link_summary.load(other), floors).items():
                 frames.setdefault(name, centre)
-        data, rows, dialect = names_dialect(data, floors, by_label, numbers, frames, key_plans and key_plans["entryParameter"])
+        data, rows, dialect = names_dialect(data, floors, by_label, numbers, frames, key_plans and key_plans["entryParameter"],
+                                            key_plans and key_plans["cutShareMin"], key_plans and key_plans["entryHeightM"])
         faces = {numbers[label]: shape for label, shape in by_label.items() if label in numbers}
     else:
         faces, bad_labels = baseplan_faces(baseplan, args.shifts, job["neighbourhood"])
@@ -1116,7 +1210,9 @@ def main(argv=None):
         plan["sources"]["schedule"] = "none, the generic floor tops of the model stand in for FFL"
         plan["sources"]["locationLabels"] = Path(args.names).name
         plan["summary"]["namesDialect"] = dialect
-        print("names dialect %s" % dialect)
+        print("names dialect %s" % {key: value for key, value in dialect.items() if key != "cutPlots"})
+        if "cutPlots" in dialect:
+            print("cut plots %d %s" % (len(dialect["cutPlots"]), dict(Counter(item["why"] for item in dialect["cutPlots"]))))
     write_plan(out, plan)
     summary = plan["summary"]
     print("plots written %d of %d, missing a value %d" % (summary["written"], summary["plots"], len(plan["missing"])))

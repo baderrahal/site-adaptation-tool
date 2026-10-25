@@ -109,7 +109,7 @@ def test_r325_a_plan_of_a_key_holds_the_key_levels_its_height_computed_and_the_p
     plan = pf.build_plan(data, rows, dict(JOB), {FILE.lower()}, "C:\\Prototypes", FLOORS, faces)
     entry = plan["plots"][0]
     assert entry["levels"]["ffl"] == {"value": 7.0, "source": "pastJob"}
-    assert entry["levels"]["entry"] == {"value": 6.8123, "source": "pastJob"}
+    assert entry["levels"]["entry"] == {"value": 6.8123, "source": pf.KEY_PARAMETER}
     assert entry["levels"]["steps"] == {"value": 2, "source": "pastJob"}
     assert entry["levels"]["height"] == {"value": 0.1877, "source": "computed"}
     assert entry["modelPlot"] == {"value": "501", "source": "pastJob"}
@@ -169,8 +169,10 @@ def key_run(tmp_path, out_name="plan_imx_past.json"):
     labels.write_text("number,face\n" + "".join(number + "," + label + "\n" for label, number in NUMBERS.items()), encoding="utf-8")
     job = dict(JOB, output=str(tmp_path / "plan_past.json"), prototypeFolder="Prototypes")
     settings = tmp_path / "project.json"
-    settings.write_text(json.dumps({"schedules": ["book.xlsx"], "inputRoot": str(root), "pastJob": job, "floors": FLOORS, "keyPlans": {"wallEdgeM": 0.3},
-                                    "pastAll": {"entryParameter": ENTRY}, "answerKeys": {"codeInName": "^X-{code}-", "keys": [{"code": "IMX", "copy": "X-IMX-model.rvt"}]}}),
+    settings.write_text(json.dumps({"schedules": ["book.xlsx"], "inputRoot": str(root), "pastJob": job, "floors": FLOORS,
+                                    "keyPlans": {"wallEdgeM": 0.3, "entryHeightM": {"min": 0.0, "max": 1.5}}, "cadLinks": {"cutShareMin": 0.9},
+                                    "pastAll": {"entryParameter": ENTRY},
+                                    "answerKeys": {"codeInName": "^X-{code}-", "keys": [{"code": "IMX", "copy": "X-IMX-model.rvt"}, {"code": "IMY", "copy": "X-IMY-model.rvt"}]}}),
                         encoding="utf-8")
     prototypes = tmp_path / "testhost_KX_prototypes.json"
     walls = [wall(1, (10.1, 2), (10.1, 20))]
@@ -187,7 +189,7 @@ def test_r325_main_names_the_plan_by_its_key_and_keeps_the_key_levels_and_the_wa
     plan = json.loads(out.read_text(encoding="utf-8"))
     assert plan["neighbourhood"] == "IMX" and plan["sources"]["answerKey"] == "IMX" and plan["answerKeyOnly"] is True
     assert [entry["plot"] for entry in plan["plots"]] == ["501", "502"]
-    assert plan["plots"][0]["levels"]["entry"] == {"value": 6.8123, "source": "pastJob"}
+    assert plan["plots"][0]["levels"]["entry"] == {"value": 6.8123, "source": pf.KEY_PARAMETER}
     assert plan["walls"][0]["plots"] == ["501", "502"] and plan["summary"]["walls"]["walls"] == 1
     assert plan["summary"]["namesDialect"]["link mapped by parameter"] == 2
 
@@ -222,3 +224,122 @@ def test_r325_a_floor_whose_plot_value_has_no_official_number_names_no_plot_by_i
     floors = pf.host_of(data)["floors"]
     assert [link_summary.floor_plot(floor) for floor in floors] == [None, None, "502"]
     assert floors[1]["modelPlot"] == "DP4-501" and report["floor with no official number"] == 2
+
+
+def test_r325_the_number_route_takes_the_whole_number_of_a_floor_value_so_vd2_0481_and_th1_481_both_end_in_481():
+    # Two floor values end in plot 481 once the leading zero is gone, so the parameter 481 picks neither
+    both = {"VD2-0481": "1481", "TH1-481": "1482"}
+    assert pf.number_routes(both) == {}
+    link = {"parameters": {pf.PLOT_PARAMETER: "481"}}
+    assert pf.direct_value(link, both, pf.number_routes(both)) == (None, None)
+    # One value that ends in 0481 is found by the link plot number 481, as direct_value cleans it
+    one = {"VD2-0481": "1481"}
+    assert pf.number_routes(one) == {"481": "VD2-0481"}
+    assert pf.direct_value(link, one, pf.number_routes(one)) == ("VD2-0481", "parameter")
+
+
+def test_r325_an_answer_key_plan_with_no_out_is_never_written_over_the_plan_of_the_past_job(tmp_path, monkeypatch):
+    monkeypatch.delenv(pf.ROOT_VARIABLE, raising=False)
+    args, _, _ = key_run(tmp_path)
+    for flag in ("--key", "--out"):
+        at = args.index(flag)
+        del args[at:at + 2]
+    with pytest.raises(SystemExit):
+        pf.main(args)
+    assert not (tmp_path / "plan_past.json").exists()
+
+
+def test_r325_a_key_plan_is_never_written_under_the_name_of_another_key_or_over_the_plan_of_another_key(tmp_path, monkeypatch):
+    monkeypatch.delenv(pf.ROOT_VARIABLE, raising=False)
+    args, _, _ = key_run(tmp_path / "first", out_name="plan_imy_key_past.json")
+    with pytest.raises(SystemExit):
+        pf.main(args)
+    assert not (tmp_path / "first" / "plan_imy_key_past.json").exists()
+    # A file of the right name that holds the plan of another key stays as it is
+    args, out, _ = key_run(tmp_path / "second", out_name="plan_imx_key_past.json")
+    out.write_text(json.dumps({"sources": {"answerKey": "IMY"}, "plots": []}), encoding="utf-8")
+    before = out.read_bytes()
+    with pytest.raises(SystemExit):
+        pf.main(args)
+    assert out.read_bytes() == before
+    # The plan of the same key is written again
+    out.write_text(json.dumps({"sources": {"answerKey": "IMX"}, "plots": []}), encoding="utf-8")
+    assert pf.main(args) == 0 and json.loads(out.read_text(encoding="utf-8"))["plots"]
+
+
+def test_r325_a_key_plan_labels_el_at_entry_by_the_key_parameter_and_a_plan_of_the_past_job_keeps_pastjob_for_its_schedule():
+    links = [key_link("501", 0)]
+    data, rows, _ = pf.names_dialect(model(links, [generic("DP4-501", 0, top=7.0, entry=6.8123)]), FLOORS, FACES, NUMBERS, entry_parameter=ENTRY)
+    faces = {NUMBERS[label]: shape for label, shape in FACES.items()}
+    plan = pf.build_plan(data, rows, dict(JOB), {FILE.lower()}, "C:\\Prototypes", FLOORS, faces)
+    assert plan["plots"][0]["levels"]["entry"] == {"value": 6.8123, "source": pf.KEY_PARAMETER}
+    schedule = [{"Plot No.": 501, "Unit": "DP4", "FFL": 7.0, "SSL": 6.95, "El @ Entry": 6.8123, "Height": 0.1877, "Steps Needed": "2", "sheetRow": 5}]
+    data, _, _ = pf.names_dialect(model(links, [generic("DP4-501", 0)]), FLOORS, FACES, NUMBERS)
+    plan = pf.build_plan(data, schedule, dict(JOB), {FILE.lower()}, "C:\\Prototypes", FLOORS, faces)
+    assert plan["plots"][0]["levels"]["entry"] == {"value": 6.8123, "source": "pastJob"}
+
+
+def test_r325_an_el_at_entry_parameter_whose_height_is_outside_the_band_is_listed_with_its_reason_and_not_used():
+    # 150.0 is a placeholder, it puts El @ Entry 143 m over the floor top, so it is refused
+    links = [key_link("501", 0), key_link("502", 10)]
+    floors = [generic("DP4-501", 0, top=7.0, entry=6.8123), generic("DP4-502", 10, top=7.0, entry=150.0)]
+    data, rows, report = pf.names_dialect(model(links, floors), FLOORS, FACES, NUMBERS, entry_parameter=ENTRY, entry_heights={"min": 0.0, "max": 1.5})
+    assert rows[0]["El @ Entry"] == 6.8123 and "El @ Entry" not in rows[1]
+    assert report["El @ Entry refused, its height is outside keyPlans.entryHeightM"] == 1
+    faces = {NUMBERS[label]: shape for label, shape in FACES.items()}
+    plan = pf.build_plan(data, rows, dict(JOB), {FILE.lower()}, "C:\\Prototypes", FLOORS, faces)
+    second = plan["plots"][1]["levels"]
+    assert "entry" not in second and "height" not in second and second["ffl"]["value"] == 7.0
+    why = {item["key"]: item["why"] for row in plan["missing"] if row["plot"] == "502" for item in row["missing"]}
+    assert why["levels.entry"].startswith(pf.REFUSED) and "outside keyPlans.entryHeightM" in why["levels.entry"]
+    assert why["levels.height"] == "no El @ Entry to work the height out from"
+
+
+@pytest.mark.parametrize("value", [None, {"min": 0.0}, {"min": 1.5, "max": 0.0}, {"min": "0", "max": 1.5}, [0.0, 1.5]])
+def test_r325_the_entry_height_band_must_be_a_min_under_a_max_in_metres(tmp_path, value):
+    path = tmp_path / "project.json"
+    path.write_text(json.dumps({"keyPlans": {"wallEdgeM": 0.3, "entryHeightM": value}, "pastAll": {"entryParameter": ENTRY},
+                                "cadLinks": {"cutShareMin": 0.9}}), encoding="utf-8")
+    with pytest.raises(project_profile.ProfileError, match="entryHeightM"):
+        pf.load_key_plans(project_profile.load_settings(path))
+
+
+def shifted(floor, x0):
+    """The floor moved to start at x0, outline and sketch alike."""
+    floor["outline"] = [[[x0, 0, 7.0], [x0 + 10, 0, 7.0], [x0 + 10, 25, 7.0], [x0, 25, 7.0]]]
+    floor["sketchBoundary"] = [[x0, 0, 0], [x0 + 10, 0, 0], [x0 + 10, 25, 0], [x0, 25, 0]]
+    return floor
+
+
+def test_r325_a_generic_floor_joins_a_face_only_by_an_area_share_of_cut_share_min_and_a_50_50_floor_is_listed_as_cut():
+    # The floor of 503 lies half on face 12 and half on face 13, the floor of 502 holds 0.95 of its area on face 12
+    links = [key_link("501", 0), key_link("503", 15), key_link("502", 10.5)]
+    floors = [generic("DP4-501", 0), generic("DP4-503", 15), shifted(generic("DP4-502", 30), 10.5)]
+    data, rows, report = pf.names_dialect(model(links, floors), FLOORS, FACES, NUMBERS, entry_parameter=ENTRY, share_min=0.9)
+    assert [row["Plot No."] for row in rows] == [501, 502]
+    assert report["cutPlots"] == [{"modelPlot": "DP4-503", "why": "cut", "shares": [{"face": "12", "number": "502", "share": 0.5},
+                                                                                     {"face": "13", "number": "503", "share": 0.5}]}]
+    assert report["generic floor cut by the baseplan"] == 1
+    assert mapped(data)[1] is None
+    # A floor 0.6 on face 12 and 0.4 on face 13 is cut too. Without the share a point inside it joins face 12 by chance, as R206 does
+    # for the Native keys
+    leaning = [generic("DP4-501", 0), shifted(generic("DP4-503", 99), 14)]
+    _, rows, report = pf.names_dialect(model(links, leaning), FLOORS, FACES, NUMBERS, share_min=0.9)
+    assert [row["Plot No."] for row in rows] == [501] and report["cutPlots"][0]["shares"][0]["share"] == 0.6
+    # names_dialect writes the official number into the floors it is given, so the second run takes fresh ones
+    _, plain, _ = pf.names_dialect(model(links, [generic("DP4-501", 0), shifted(generic("DP4-503", 99), 14)]), FLOORS, FACES, NUMBERS)
+    assert [row["Plot No."] for row in plain] == [501, 502]
+
+
+def test_r325_main_joins_by_the_cut_share_of_the_settings_and_lists_the_cut_plots(tmp_path, monkeypatch):
+    monkeypatch.delenv(pf.ROOT_VARIABLE, raising=False)
+    args, out, _ = key_run(tmp_path)
+    prototypes = tmp_path / "testhost_KX_prototypes.json"
+    data = json.loads(prototypes.read_text(encoding="utf-8"))
+    data["documents"][0]["links"].append(key_link("503", 25))
+    data["documents"][0]["floors"].append(generic("DP4-503", 25))
+    prototypes.write_text(json.dumps(data), encoding="utf-8")
+    assert pf.main(args) == 0
+    plan = json.loads(out.read_text(encoding="utf-8"))
+    assert [entry["plot"] for entry in plan["plots"]] == ["501", "502"]
+    assert [item["modelPlot"] for item in plan["summary"]["namesDialect"]["cutPlots"]] == ["DP4-503"]
