@@ -37,7 +37,7 @@ namespace SiteAdaptation.Tests
             {
                 change(job);
             }
-            return job;
+            return JobNames.AddTo(job);
         }
 
         private static GuardResult Check(JObject job)

@@ -220,7 +220,7 @@ namespace SiteAdaptation.Tests
                 ["createdUtc"] = Now.AddMinutes(-2).ToString("o"),
             };
             change?.Invoke(job);
-            return job.ToString();
+            return JobNames.AddTo(job).ToString();
         }
 
         private static GuardResult Check(string text, string token = Token, Func<string, bool> exists = null)
@@ -246,7 +246,7 @@ namespace SiteAdaptation.Tests
                 ["createdUtc"] = Now.AddMinutes(-2).ToString("o"),
             };
             change?.Invoke(job);
-            return job.ToString();
+            return JobNames.AddTo(job).ToString();
         }
 
         private static GuardResult CheckUpgrade(string text, Func<string, bool> exists = null, Func<string, bool> folder = null)

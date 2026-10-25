@@ -3,6 +3,34 @@
 # discipline its file names hold and the letter its job codes start with. The steps of the upgrade job of R109 do not change.
 
 $SetFields = @('source', 'target', 'discipline', 'codePrefix')
+$NameFields = @('prefix', 'discipline', 'suffix')
+
+# prototypeNames of config/project.json, every field there and nothing else: the parts every prototype file name is made of,
+# <prefix><discipline>-<code><suffix><n>.rvt, with the discipline of the prototypes of the plan. No part of a name sits in the code
+function Get-PrototypeNames($Config) {
+    $names = $Config.prototypeNames
+    if (-not $names) {
+        throw 'config/project.json has no prototypeNames'
+    }
+    $fields = @($names.PSObject.Properties.Name)
+    if ($fields.Count -ne $NameFields.Count -or @($NameFields | Where-Object { $fields -cnotcontains $_ }).Count -gt 0) {
+        throw "prototypeNames holds exactly $($NameFields -join ', ')"
+    }
+    if ([string]$names.prefix -cnotmatch '^[A-Z0-9]+(-[A-Z0-9]+)*-$') {
+        throw "The prefix of prototypeNames is capitals and digits in parts that each end with -: $($names.prefix)"
+    }
+    if ([string]$names.discipline -cnotmatch '^[A-Z]{3}$') {
+        throw "The discipline of prototypeNames is three capitals: $($names.discipline)"
+    }
+    if ([string]$names.suffix -cnotmatch '^-[A-Z0-9]+(-[A-Z0-9]+)*-$') {
+        throw "The suffix of prototypeNames starts and ends with - with capitals and digits between: $($names.suffix)"
+    }
+    return [pscustomobject][ordered]@{
+        prefix     = [string]$names.prefix
+        discipline = [string]$names.discipline
+        suffix     = [string]$names.suffix
+    }
+}
 
 # The parts of a path under inputRoot, refused with a drive, a parent step, an empty part or a blank around a part
 function Get-PlainParts([string]$Text, [string]$What) {
@@ -59,8 +87,9 @@ function Get-PrototypeSet($Config, [string]$Name) {
     }
     $source = Get-PlaceKey $set.source "The source of the prototype set $Name"
     $target = Get-PlaceKey $set.target "The target of the prototype set $Name"
-    if ([string]$set.discipline -cnotmatch '^[A-Z]{3}$' -or [string]$set.discipline -ceq 'ARC') {
-        throw "The discipline of the prototype set $Name is three capitals other than ARC: $($set.discipline)"
+    $names = Get-PrototypeNames -Config $Config
+    if ([string]$set.discipline -cnotmatch '^[A-Z]{3}$' -or [string]$set.discipline -ceq $names.discipline) {
+        throw "The discipline of the prototype set $Name is three capitals other than $($names.discipline): $($set.discipline)"
     }
     if ([string]$set.codePrefix -cnotmatch '^[A-Z]$') {
         throw "The code prefix of the prototype set $Name is one capital letter: $($set.codePrefix)"
@@ -90,10 +119,10 @@ function Get-SetJobCode($Set, [string]$Code) {
     return $job
 }
 
-# The one .rvt file right in the source folder named RRE-WP-NSP-KEO-<discipline>-<code>-ZZ-MOD-<n>.rvt, the name the guard of the
-# test host checks. None or two are refused, nothing is guessed
-function Get-SetPrototype([string]$Folder, [string]$Discipline, [string]$Code) {
-    $pattern = '^RRE-WP-NSP-KEO-' + [regex]::Escape($Discipline) + '-' + [regex]::Escape($Code) + '-ZZ-MOD-\d+\.rvt$'
+# The one .rvt file right in the source folder named <prefix><discipline>-<code><suffix><n>.rvt by the parts of Get-PrototypeNames,
+# the name the guard of the test host checks. None or two are refused, nothing is guessed
+function Get-SetPrototype([string]$Folder, $Names, [string]$Discipline, [string]$Code) {
+    $pattern = '^' + [regex]::Escape($Names.prefix) + [regex]::Escape($Discipline) + '-' + [regex]::Escape($Code) + [regex]::Escape($Names.suffix) + '\d+\.rvt$'
     $files = @(Get-ChildItem -LiteralPath $Folder -File | Where-Object { $_.Name -match $pattern })
     if ($files.Count -ne 1) {
         throw "The prototype folder $Folder holds $($files.Count) files for $Code, one is needed: $(($files | ForEach-Object Name) -join ', ')"

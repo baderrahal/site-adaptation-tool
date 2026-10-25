@@ -25,7 +25,7 @@ namespace SiteAdaptation.Tests
         {
             var job = new JObject { ["kind"] = kind, ["token"] = Token, ["code"] = code, ["createdUtc"] = Now.AddMinutes(-2).ToString("o") };
             change?.Invoke(job);
-            return job.ToString();
+            return JobNames.AddTo(job).ToString();
         }
 
         private static GuardResult Check(string text, Func<string, bool> exists, Func<string, bool> folder = null)

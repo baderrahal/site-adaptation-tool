@@ -73,6 +73,8 @@ if ($PrototypeSet -and -not $Upgrade) {
 }
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $config = Get-Content -Raw (Join-Path $repo 'config\project.json') | ConvertFrom-Json
+# R313. The parts of a prototype file name, written into every job that names a prototype file for the guard of the test host
+$names = Get-PrototypeNames -Config $config
 # R313. The code names the prototype, the job code of a set is its prefix and the code, so the outputs of a set have names of their own
 $set = $null
 $prototypeCode = $Code
@@ -238,13 +240,14 @@ if ($round) {
             $copy = Join-Path $work (Get-SiteNewFile $build)
             $planPath = [string]$round.plan
             $plan = Get-Content -Raw $planPath | ConvertFrom-Json
-            $files = @($plan.plots | ForEach-Object { $_.prototypeFile.value } | Where-Object { $_ -match ('-' + $round.prototypeCode + '-ZZ-MOD-') } | Sort-Object -Unique)
+            $files = @($plan.plots | ForEach-Object { $_.prototypeFile.value } | Where-Object { $_ -match ('-' + $round.prototypeCode + [regex]::Escape($names.suffix)) } | Sort-Object -Unique)
             if ($files.Count -ne 1) {
                 throw "The plan names $($files.Count) prototype files for $($round.prototypeCode), one is needed: $($files -join ', ')"
             }
             $original = $planPath
             $roundJob.model = $copy
             $roundJob.prototypeFile = $files[0]
+            $roundJob.prototypeNames = $names
             $roundJob.plan = $planPath
             # R231. One run per prototype code places the links and the floors of the plots of that code only
             $roundJob.plots = [string[]]@($plan.plots | Where-Object { $_.prototypeFile.value -eq $files[0] } | ForEach-Object { [string]$_.plot })
@@ -261,7 +264,7 @@ if (-not $DryStart -and -not $round) {
 
     if ($set) {
         # R313. A set takes the one file of the code from its own source folder, the plan names the ARC prototypes only
-        $prototype = Get-SetPrototype -Folder $sourceFolder -Discipline $set.discipline -Code $prototypeCode
+        $prototype = Get-SetPrototype -Folder $sourceFolder -Names $names -Discipline $set.discipline -Code $prototypeCode
         $plots = 0
     }
     else {
@@ -271,7 +274,7 @@ if (-not $DryStart -and -not $round) {
         $prototype = $null
         $plots = @($plan.plots).Count
         if ($prototypeCode) {
-            $files = @($plan.plots | ForEach-Object { $_.prototypeFile.value } | Where-Object { $_ -match ('-' + $prototypeCode + '-ZZ-MOD-') } | Sort-Object -Unique)
+            $files = @($plan.plots | ForEach-Object { $_.prototypeFile.value } | Where-Object { $_ -match ('-' + $prototypeCode + [regex]::Escape($names.suffix)) } | Sort-Object -Unique)
             if ($files.Count -ne 1) {
                 throw "The plan names $($files.Count) prototype files for $prototypeCode, one is needed: $($files -join ', ')"
             }
@@ -400,6 +403,9 @@ try {
                 createdUtc    = (Get-Date).ToUniversalTime().ToString('o')
                 totalMinutes  = [Math]::Min(29, $TimeoutMinutes - 1)
             }
+            if ($prototype) {
+                $job.prototypeNames = $names
+            }
         }
         elseif ($Upgrade) {
             $job = [ordered]@{
@@ -412,6 +418,7 @@ try {
                 createdUtc    = (Get-Date).ToUniversalTime().ToString('o')
                 totalMinutes  = [Math]::Min(27, $TimeoutMinutes - 2)
             }
+            $job.prototypeNames = $names
             if ($set) {
                 # R313. The guard of the test host checks the file name by the discipline and the job code by the prefix of the set
                 $job.discipline = [string]$set.discipline
@@ -428,6 +435,7 @@ try {
                 createdUtc    = (Get-Date).ToUniversalTime().ToString('o')
                 totalMinutes  = [Math]::Min(27, $TimeoutMinutes - 2)
             }
+            $job.prototypeNames = $names
         }
         $job | ConvertTo-Json -Depth 5 | Set-Content -Path $jobPath -Encoding utf8
         # The token goes to the Revit process alone, this console never holds it

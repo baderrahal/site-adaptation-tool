@@ -53,6 +53,17 @@ namespace SiteAdaptation.Common
         // code starts with, so its job code is that letter and the code in the file name
         public string Discipline { get; set; }
         public string CodePrefix { get; set; }
+        // R313. The parts every prototype file name is made of, prototypeNames of config/project.json as the run script writes it
+        // into a job that names a prototype file, so the guard holds no project value
+        public PrototypeNames PrototypeNames { get; set; }
+    }
+
+    // R313. <prefix><discipline>-<code><suffix><n>.rvt, the discipline being that of the prototypes of the plan
+    public sealed class PrototypeNames
+    {
+        public string Prefix { get; set; }
+        public string Discipline { get; set; }
+        public string Suffix { get; set; }
     }
 
     public sealed class GuardResult
@@ -101,8 +112,10 @@ namespace SiteAdaptation.Common
         private static readonly Regex PlotText = new Regex(@"\A[0-9]{1,6}\z", RegexOptions.CultureInvariant);
 
         private static readonly Regex CodeText = new Regex(@"\A[A-Z][A-Z0-9]{1,3}\z", RegexOptions.CultureInvariant);
-        // R313. The ARC prototypes of the plan, and the discipline, prefix and code of a prototype set
-        private const string ArcDiscipline = "ARC";
+        // R313. The shapes of the name parts of a prototype file the job carries from the config, and the discipline, prefix and code
+        // of a prototype set. No part of a name sits here
+        private static readonly Regex NamePrefix = new Regex(@"\A[A-Z0-9]+(-[A-Z0-9]+)*-\z", RegexOptions.CultureInvariant);
+        private static readonly Regex NameSuffix = new Regex(@"\A-[A-Z0-9]+(-[A-Z0-9]+)*-\z", RegexOptions.CultureInvariant);
         private static readonly Regex SetDiscipline = new Regex(@"\A[A-Z]{3}\z", RegexOptions.CultureInvariant);
         private static readonly Regex SetPrefix = new Regex(@"\A[A-Z]\z", RegexOptions.CultureInvariant);
         private static readonly Regex SetFileCode = new Regex(@"\A[A-Z][A-Z0-9]{1,2}\z", RegexOptions.CultureInvariant);
@@ -539,14 +552,30 @@ namespace SiteAdaptation.Common
             return IsPlainFullPath(model) && IsNewSiteName(Path.GetFileName(model));
         }
 
-        // The links steps need the prototype file of the code, the master and floors jobs name none, nor do the jobs of R204 to R214
+        // The links steps need the prototype file of the code, the master and floors jobs name none, nor do the jobs of R204 to R214.
+        // R313. The file name is made of the parts of prototypeNames the job carries, which go with a prototype file only
         private static string CheckPrototype(TestHostJob job)
         {
             if (job.Kind == MasterKind || job.Kind == FloorsKind || job.Kind == SiteUpgradeKind || job.Kind == ReadKind || job.Kind == NewSiteKind || job.Kind == ImageKind)
             {
-                return job.PrototypeFile == null ? null : "a " + job.Kind + " job names no prototype file";
+                if (job.PrototypeFile != null)
+                {
+                    return "a " + job.Kind + " job names no prototype file";
+                }
+                return job.PrototypeNames == null ? null : "a " + job.Kind + " job names no prototypeNames";
             }
-            string discipline = ArcDiscipline;
+            if (string.IsNullOrEmpty(job.PrototypeFile))
+            {
+                return "the prototype file is not named, a " + (job.Kind ?? PlaceKind) + " job names one";
+            }
+            string names = CheckNames(job.PrototypeNames);
+            if (names != null)
+            {
+                return names;
+            }
+            string prefix = job.PrototypeNames.Prefix;
+            string suffix = job.PrototypeNames.Suffix;
+            string discipline = job.PrototypeNames.Discipline;
             string fileCode = job.Code;
             if (job.Discipline != null || job.CodePrefix != null)
             {
@@ -559,12 +588,37 @@ namespace SiteAdaptation.Common
                 fileCode = job.Code.Substring(job.CodePrefix.Length);
             }
             string code = job.Kind == LinksAndFloorsKind ? @"[A-Z][A-Z0-9]{1,3}" : Regex.Escape(fileCode);
-            bool fits = new Regex(@"\ARRE-WP-NSP-KEO-" + discipline + "-" + code + @"-ZZ-MOD-\d+\.rvt\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant).IsMatch(job.PrototypeFile ?? "");
-            return fits ? null : "the prototype file is not RRE-WP-NSP-KEO-" + discipline + "-" + (job.Kind == LinksAndFloorsKind ? "<code>" : fileCode) + "-ZZ-MOD-<n>.rvt";
+            bool fits = new Regex(@"\A" + Regex.Escape(prefix) + Regex.Escape(discipline) + "-" + code + Regex.Escape(suffix) + @"\d+\.rvt\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)
+                .IsMatch(job.PrototypeFile ?? "");
+            return fits ? null : "the prototype file is not " + prefix + discipline + "-" + (job.Kind == LinksAndFloorsKind ? "<code>" : fileCode) + suffix + "<n>.rvt";
+        }
+
+        // R313. prototypeNames whole: a prefix and a suffix of capitals and digits in parts joined by -, the prefix ending with - and
+        // the suffix starting and ending with it, and the discipline of the plan prototypes, three capitals
+        private static string CheckNames(PrototypeNames names)
+        {
+            if (names == null)
+            {
+                return "a job that names a prototype file names prototypeNames, the prefix, discipline and suffix of config/project.json";
+            }
+            if (names.Prefix == null || !NamePrefix.IsMatch(names.Prefix))
+            {
+                return "the prefix of prototypeNames is capitals and digits in parts that each end with -";
+            }
+            if (names.Discipline == null || !SetDiscipline.IsMatch(names.Discipline))
+            {
+                return "the discipline of prototypeNames is three capitals";
+            }
+            if (names.Suffix == null || !NameSuffix.IsMatch(names.Suffix))
+            {
+                return "the suffix of prototypeNames starts and ends with - with capitals and digits between";
+            }
+            return null;
         }
 
         // R313. The discipline and the prefix of a prototype set go with an upgrade job only, both or none. The discipline is three
-        // capitals other than ARC, the prefix one capital, and the job code is the prefix and a prototype code
+        // capitals other than the discipline of the plan prototypes in prototypeNames, the prefix one capital, and the job code is the
+        // prefix and a prototype code
         private static string CheckSet(TestHostJob job)
         {
             if (job.Kind != UpgradeKind)
@@ -575,9 +629,9 @@ namespace SiteAdaptation.Common
             {
                 return "an upgrade of a prototype set names its discipline and its codePrefix";
             }
-            if (!SetDiscipline.IsMatch(job.Discipline) || job.Discipline == ArcDiscipline)
+            if (!SetDiscipline.IsMatch(job.Discipline) || job.Discipline == job.PrototypeNames.Discipline)
             {
-                return "the discipline of a prototype set is three capitals other than " + ArcDiscipline;
+                return "the discipline of a prototype set is three capitals other than " + job.PrototypeNames.Discipline;
             }
             if (!SetPrefix.IsMatch(job.CodePrefix))
             {

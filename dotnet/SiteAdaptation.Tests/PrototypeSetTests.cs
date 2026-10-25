@@ -8,6 +8,25 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
+    // R313. prototypeNames of config/project.json as the run script writes it into every job that names a prototype file
+    internal static class JobNames
+    {
+        public static JObject Arc()
+        {
+            return new JObject { ["prefix"] = "RRE-WP-NSP-KEO-", ["discipline"] = "ARC", ["suffix"] = "-ZZ-MOD-" };
+        }
+
+        // A job of a test that names a prototype file and says nothing of prototypeNames gets them, as the run script writes them
+        public static JObject AddTo(JObject job)
+        {
+            if (job["prototypeFile"] != null && job["prototypeFile"].Type != JTokenType.Null && !job.ContainsKey("prototypeNames"))
+            {
+                job["prototypeNames"] = Arc();
+            }
+            return job;
+        }
+    }
+
     // Round ADDIN Phase 1 part 2: the upgrade job of R109 on a prototype set of config/project.json, the 13 STR prototypes (R313)
     public class PrototypeSetTests
     {
@@ -55,11 +74,13 @@ namespace SiteAdaptation.Tests
             return "'" + text.Replace("'", "''") + "'";
         }
 
-        // A config as ConvertFrom-Json gives it, with the set changed by the test
-        private static string Config(string set)
+        private const string ArcNames = "{\"prefix\": \"RRE-WP-NSP-KEO-\", \"discipline\": \"ARC\", \"suffix\": \"-ZZ-MOD-\"}";
+
+        // A config as ConvertFrom-Json gives it, with the set and the name parts changed by the test
+        private static string Config(string set, string names = ArcNames)
         {
             string json = "{\"pastJob\": {\"prototypeFolder\": \"Zone 02\\\\ARC\\\\Prototypes\", \"upgradedPrototypeFolder\": \"Zone 02\\\\ARC\\\\Prototypes_2024\"},"
-                + " \"prototypeSets\": {\"STR\": " + set + "}}";
+                + (names == null ? "" : " \"prototypeNames\": " + names + ",") + " \"prototypeSets\": {\"STR\": " + set + "}}";
             return "$config = " + Quoted(json) + " | ConvertFrom-Json\n";
         }
 
@@ -100,7 +121,7 @@ namespace SiteAdaptation.Tests
                 {
                     File.WriteAllText(Path.Combine(folder, name), "dummy");
                 }
-                string pick = "Get-SetPrototype -Folder " + Quoted(folder) + " -Discipline STR -Code ";
+                string pick = Config(StrSet) + "Get-SetPrototype -Folder " + Quoted(folder) + " -Names (Get-PrototypeNames -Config $config) -Discipline STR -Code ";
 
                 Assert.Equal("RRE-WP-NSP-KEO-STR-C10-ZZ-MOD-1500.rvt", Pwsh(pick + "C10"));
                 Assert.Equal("RRE-WP-NSP-KEO-STR-DP1-ZZ-MOD-2100.rvt", Pwsh(pick + "DP1"));
@@ -110,6 +131,10 @@ namespace SiteAdaptation.Tests
                 Assert.Contains("holds 0 files", Pwsh(Refusal(pick + "VL4")));
                 Assert.Contains("holds 0 files", Pwsh(Refusal(pick + "DP")));
                 Assert.Contains("holds 0 files", Pwsh(Refusal(pick + "DP2")));
+                // The name parts come from the config, never from the code: other parts pick another file
+                File.WriteAllText(Path.Combine(folder, "ABC-STR-C10-Q-1.rvt"), "dummy");
+                string other = Config(StrSet, "{\"prefix\": \"ABC-\", \"discipline\": \"ARC\", \"suffix\": \"-Q-\"}");
+                Assert.Equal("ABC-STR-C10-Q-1.rvt", Pwsh(other + "Get-SetPrototype -Folder " + Quoted(folder) + " -Names (Get-PrototypeNames -Config $config) -Discipline STR -Code C10"));
             }
             finally
             {
@@ -161,6 +186,22 @@ namespace SiteAdaptation.Tests
             Assert.Equal(@"Zone 02\STR\Prototypes|Zone 02\ARC\Prototypes_2024\STR", output);
         }
 
+        [Theory]
+        [InlineData(null, "no prototypeNames")]
+        [InlineData("{\"prefix\": \"RRE-WP-NSP-KEO-\", \"discipline\": \"ARC\"}", "exactly")]
+        [InlineData("{\"prefix\": \"RRE-WP-NSP-KEO-\", \"discipline\": \"ARC\", \"suffix\": \"-ZZ-MOD-\", \"extra\": 1}", "exactly")]
+        [InlineData("{\"prefix\": \"rre-\", \"discipline\": \"ARC\", \"suffix\": \"-ZZ-MOD-\"}", "prefix")]
+        [InlineData("{\"prefix\": \"RRE-WP-NSP-KEO\", \"discipline\": \"ARC\", \"suffix\": \"-ZZ-MOD-\"}", "prefix")]
+        [InlineData("{\"prefix\": \"RRE-WP-NSP-KEO-\", \"discipline\": \"AR\", \"suffix\": \"-ZZ-MOD-\"}", "discipline")]
+        [InlineData("{\"prefix\": \"RRE-WP-NSP-KEO-\", \"discipline\": \"ARC\", \"suffix\": \"ZZ-MOD\"}", "suffix")]
+        [InlineData("{\"prefix\": \"RRE-WP-NSP-KEO-\", \"discipline\": \"STR\", \"suffix\": \"-ZZ-MOD-\"}", "other than STR")]
+        public void R313_the_name_parts_of_the_prototype_files_come_from_the_config_whole_or_the_set_is_refused(string names, string reason)
+        {
+            string output = Pwsh(Config(StrSet, names) + Refusal("Get-PrototypeSet -Config $config -Name STR"));
+            Assert.StartsWith("refused: ", output);
+            Assert.Contains(reason, output);
+        }
+
         [Fact]
         public void R313_a_set_the_config_does_not_name_is_refused_in_any_case_of_its_name()
         {
@@ -180,6 +221,11 @@ namespace SiteAdaptation.Tests
             Assert.Equal("S", (string)set["codePrefix"]);
             string real = "$config = Get-Content -Raw " + Quoted(RepoPath("config", "project.json")) + " | ConvertFrom-Json\n";
             Assert.Equal("accepted", Pwsh(real + Refusal("Get-PrototypeSet -Config $config -Name STR")));
+            // The name parts moved from the code into the config give the same names and the same set as before
+            Assert.True(JToken.DeepEquals(JobNames.Arc(), config["prototypeNames"]));
+            Assert.Equal(@"RRE-WP-NSP-KEO-|ARC|-ZZ-MOD-|00_Revit Models\Zone 02\STR\Prototypes|00_Revit Models\Zone 02\ARC\Prototypes_2024\STR|STR|S",
+                Pwsh(real + "$names = Get-PrototypeNames -Config $config\n$set = Get-PrototypeSet -Config $config -Name STR\n"
+                    + "@($names.prefix, $names.discipline, $names.suffix, $set.source, $set.target, $set.discipline, $set.codePrefix) -join '|'"));
             // Every code of the test host order gives a job code the job file names of R110 take
             foreach (string code in config["testHost"]["order"].Select(token => (string)token))
             {
@@ -202,7 +248,7 @@ namespace SiteAdaptation.Tests
             Assert.True(jobCode > 0 && name > jobCode);
             // A set takes its file from its source folder and never reads the plan, the ARC upgrade still takes the plan in the else branch
             int branch = script.IndexOf("    if ($set) {\n        # R313. A set takes", StringComparison.Ordinal);
-            int setFile = script.IndexOf("$prototype = Get-SetPrototype -Folder $sourceFolder -Discipline $set.discipline -Code $prototypeCode", StringComparison.Ordinal);
+            int setFile = script.IndexOf("$prototype = Get-SetPrototype -Folder $sourceFolder -Names $names -Discipline $set.discipline -Code $prototypeCode", StringComparison.Ordinal);
             int other = script.IndexOf("    else {", setFile, StringComparison.Ordinal);
             int plan = script.IndexOf("$plan = Get-Content -Raw $planPath | ConvertFrom-Json", setFile, StringComparison.Ordinal);
             Assert.True(branch > 0 && setFile > branch && other > setFile && plan > other);
@@ -213,6 +259,72 @@ namespace SiteAdaptation.Tests
             // The guard of the test host sees the discipline and the prefix of the set in the job
             Assert.Contains("$job.discipline = [string]$set.discipline", script);
             Assert.Contains("$job.codePrefix = [string]$set.codePrefix", script);
+        }
+
+        [Fact]
+        public void R313_the_run_script_reads_the_name_parts_from_the_config_and_writes_them_into_every_job_with_a_prototype_file()
+        {
+            string script = File.ReadAllText(RepoPath("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1")).Replace("\r\n", "\n");
+            string sets = File.ReadAllText(RepoPath("dotnet", "SiteAdaptation.TestHost", "PrototypeSets.ps1"));
+
+            Assert.Contains("$names = Get-PrototypeNames -Config $config", script);
+            // The place, the upgrade and the floor spec jobs and the round linksAndFloors job, the four that name a prototype file
+            Assert.Equal(3, script.Split(new[] { "$job.prototypeNames = $names" }, StringSplitOptions.None).Length - 1);
+            Assert.Contains("$roundJob.prototypeNames = $names", script);
+            Assert.Contains("if ($prototype) {\n                $job.prototypeNames = $names", script);
+            Assert.Equal(2, script.Split(new[] { "[regex]::Escape($names.suffix)" }, StringSplitOptions.None).Length - 1);
+            // No part of a prototype file name is left in the code
+            foreach (string text in new[] { script, sets })
+            {
+                Assert.DoesNotContain("KEO", text);
+                Assert.DoesNotContain("ZZ-MOD", text);
+                Assert.DoesNotContain("'ARC'", text);
+            }
+        }
+
+        [Fact]
+        public void R313_the_guard_takes_the_name_parts_of_a_prototype_file_from_the_job_and_refuses_a_job_without_them()
+        {
+            const string other = "ABC-XYZ-TH1-Q-3100.rvt";
+            JObject names = new JObject { ["prefix"] = "ABC-", ["discipline"] = "XYZ", ["suffix"] = "-Q-" };
+            GuardResult result = Check(Upgrade(job =>
+            {
+                job.Remove("discipline");
+                job.Remove("codePrefix");
+                job["code"] = "TH1";
+                job["prototypeFile"] = other;
+                job["source"] = @"C:\Models\STR\Prototypes\" + other;
+                job["target"] = @"C:\Models\ARC\Prototypes_2024\STR\" + other;
+                job["prototypeNames"] = names;
+            }), @"C:\Models\STR\Prototypes\" + other);
+            Assert.True(result.Act, result.Reason);
+            Assert.Equal("XYZ", result.Job.PrototypeNames.Discipline);
+            // The ARC file of the code is not a file of those parts
+            Assert.Contains("ABC-XYZ-TH1-Q-<n>.rvt", Check(Upgrade(job =>
+            {
+                job.Remove("discipline");
+                job.Remove("codePrefix");
+                job["code"] = "TH1";
+                job["prototypeNames"] = names;
+            })).Reason);
+            Assert.Contains("prototypeNames", Check(Upgrade(job => job["prototypeNames"] = null)).Reason);
+            Assert.Contains("prefix", Check(Upgrade(job => job["prototypeNames"]["prefix"] = "abc-")).Reason);
+            Assert.Contains("discipline", Check(Upgrade(job => job["prototypeNames"]["discipline"] = "AR")).Reason);
+            Assert.Contains("suffix", Check(Upgrade(job => job["prototypeNames"]["suffix"] = "Q")).Reason);
+            // A set of the discipline of the plan files is refused by the discipline of the job, ARC by the real config
+            Assert.Contains("other than XYZ", Check(Upgrade(job =>
+            {
+                job["prototypeNames"] = names;
+                job["discipline"] = "XYZ";
+            })).Reason);
+            // A job of a kind with no prototype file names no name parts either
+            Assert.Contains("no prototypeNames", Check(Upgrade(job =>
+            {
+                job["kind"] = "siteUpgrade";
+                job.Remove("prototypeFile");
+                job.Remove("discipline");
+                job.Remove("codePrefix");
+            })).Reason);
         }
 
         private static string Upgrade(Action<JObject> change = null)
@@ -227,15 +339,16 @@ namespace SiteAdaptation.Tests
                 ["target"] = Target,
                 ["discipline"] = "STR",
                 ["codePrefix"] = "S",
+                ["prototypeNames"] = JobNames.Arc(),
                 ["createdUtc"] = Now.AddMinutes(-2).ToString("o"),
             };
             change?.Invoke(job);
             return job.ToString();
         }
 
-        private static GuardResult Check(string text)
+        private static GuardResult Check(string text, string source = Source)
         {
-            return TestHostGuard.Check(text, Token, Now, path => path == Source, path => true);
+            return TestHostGuard.Check(text, Token, Now, path => path == source, path => true);
         }
 
         [Fact]
