@@ -11,16 +11,16 @@ Goal:
 
 Done:
 - 0a to 3c (PR 41 to 48): harness, key copies, reads, key plans, past_all.csv, overrides by source and model, the rules and the levels of the keys in keyRules, a build and its proof by them
-- 3b R342, R343: docs/addin-design.md, the design before any add-in code (folders, 8 buttons, data path, 14 parity steps, settings, the mock item by item filled with NBH 012, install, risks, R345 to R384 planned, 9 conflicts) and docs/licences.md. The filled mock with real values in round_addin\design\mock_filled.md
+- 3b R342, R343: docs/addin-design.md before any add-in code (folders, worker, 8 buttons, data path, 15 parity steps, settings, the mock filled with NBH 012, install, risks, R345 to R388, 13 conflicts), docs/licences.md. Revised after the breaker and the claim-checker (PR 49): R385 rounding (Q078), R386 Use and Skip, R387 control point fit, R388 input units. Real values in round_addin\design
 
 Checked:
-- 3b, in a net48 host that holds what Revit 2024 holds: ACadSharp, OpenXml 3.5.1 and Newtonsoft ok, PdfPig failed on System.Memory 4.0.2.0 with no resolver, ran with one and as an exe with its own redirects (RAN). Revit 2024 ships Newtonsoft 13.0.1 with a redirect, System.Memory 4.0.1.1, Dynamo OpenXml 2.12.3 (READ)
-- 3b: CadReader peak private memory on copies, Road Layout 2,576 MiB in 20.2 s, baseplan 99, footprint 80 (RAN). A copy of Common builds for netstandard2.0 with 0 errors (RAN)
-- 3b: the parsons build of NBH 012, 336 of 337 plots in 12 s, 28 inputs equal by hash, 1,247 check rows, 2 plots follow every rule, a second count by PowerShell 13 of 13 equal (RAN)
+- 3b, in a net48 host holding what Revit 2024 holds: ACadSharp, OpenXml 3.5.1 and Newtonsoft ok, PdfPig failed on System.Memory 4.0.2.0 with no resolver and ran with one or as an exe (RAN). Revit 2024 ships Newtonsoft 13.0.1, System.Memory 4.0.1.1 (READ)
+- 3b: CadReader peak on copies, Road Layout 2,571 MiB in 21.2 s, baseplan 100, footprint 77, all Meters (RAN, saved), 2,612 in the claim-checker's rerun. Common builds for netstandard2.0, 0 errors (RAN)
+- 3b: the parsons build of NBH 012, 336 of 337 plots, inputs equal by hash, 1,247 check rows, 2 plots follow every rule, PowerShell recount 13 of 13 equal (RAN). Python round() and C# differ on 5 of 5 ties, R385 agrees (RAN)
 - 3c: 5 TU keys at 0.5 mm El @ Entry 0.088 and FFL per piece 0.749 weak, steps 0.988 and Prototype-FFL 0.994 strong, 0 unexplained levels, second method 0 mismatches at seeds 14 and 7. Overrides 12,424, 154 in cannot, native 5,222 cell for cell
 
 Remains:
-- Phase 4 the logic in C# with a parity test per step, Phase 5 the add-in, Phase 6 all zones. Wall width, floor type thickness and the shared parameter GUIDs of the keys are not read yet (4b)
+- Phase 4 the logic in C# with a parity test per step, Phase 5 the add-in, Phase 6 all zones. Wall width and the shared parameter GUIDs of the keys are not read yet (4b), floor type thickness is read
 - The 33 plots with no road level at a front corner are not written (Q073)
 
 Known bugs:
@@ -31,7 +31,7 @@ Known bugs:
 - angleToTrueNorthDeg of the reader has 3 decimals, not brought into 0 to 360, the placer takes 0 only. 1 old .NET warning, xUnit2013. key_copies.py keeps a last part NUL as a name
 
 Next:
-- Phase 4a: Common on netstandard2.0, the worker, the parity harness (R345 to R347), then 4b to 4f
+- Phase 4a: Common on netstandard2.0, the worker, the parity harness, the rounding (R345 to R347, R385), then 4b to 4h
 
 Your turn:
 Q001. El @ Entry: ask the client for the Infrastructure IFC and the architect for the ramp slope, no entrance spot gives it (2b) and the road a build gives holds it on 0.088 of 1,785 TU plots at 0.5 mm, 0.442 at 5 mm (3c), 1,596 overrides until then, 32 with no value listed in cannot
@@ -55,7 +55,7 @@ Q070. El @ Entry with no schedule: take the ELl@Entry parameter of the key, it i
 Q071. Walls: accept the base at the yard level, the centre on the edge and the open front, ask the architect for the wall top rule (0.346), wall overrides once button 7 places walls
 Q072. Side road of a villa with three road edges (IMC 2301, IME 2710, IMG 441): the side edge, not the back: accept. Q073. 33 plots with a front corner on no road surface have no El @ Entry and are not written (IMA 1, IMB 2, IMD 3, IME 3, IMF 14, IMG 10): take the road of the covered corner for both, else send the surface. Q074. Steps of the base and risers, half a riser no step (0.988 on 5 keys), against the count rule the IMC and IMD schedules follow (0.934 on 5): accept, 48 overrides, 16 that break it, 32 with no value of it (no road level or no front frame). Q075. 1,346 native entries with no value kept from Round 17, a native2022 build loading them is refused: move them to cannot by a run with --replace native
 Q076. Python checker licences: shapely is BSD-3-Clause and its wheels bundle GEOS under LGPLv2.1, nothing of Python ships: keep it for the checker
-Q077. The worker: buttons 2 and 3 read and build in CadReader.exe beside Revit, the Road Layout read alone took 2,576 MiB and PdfPig needs a System.Memory Revit 2024 lacks: accept
+Q077. The worker: buttons 2 and 3 read and build in CadReader.exe beside Revit, the Road Layout read alone took 2,571 to 2,612 MiB and PdfPig needs a System.Memory Revit 2024 lacks: accept. Q078. Rounding: Python and C# round the 15 digit decimal half away from zero (R385), 12.3455 gives 12.346 in both, a Python value moves one unit on a tie: accept
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 
