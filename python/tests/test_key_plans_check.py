@@ -246,6 +246,17 @@ def test_r328_the_counts_of_the_entrance_spots_are_counted_again_on_every_plot_w
     assert kc.recount_spots(doc, te.FLOORS, first, te.BLOCK, {"1502": 6.1}, second)["match"] is False
 
 
+def test_r328_a_key_value_off_the_height_band_is_left_out_of_the_recount_as_the_first_method_leaves_it_out():
+    floors = [te.ramp("501", 0, 1), dict(te.generic("501", 0, 6.1), topElevationRange={"min": 6.25, "max": 6.25}), te.ramp("502", 20, 2),
+              dict(te.generic("502", 20, 150.0), topElevationRange={"min": 6.25, "max": 6.25})]
+    spots = [te.spot(11, 0, 5, 6.1, host=1), te.spot(21, 20, 5, 150.0, host=2)]
+    doc = te.document(floors, spots)
+    first = entry_spots.key_entry(doc, te.FLOORS, te.BLOCK)
+    found = kc.recount_spots(doc, te.FLOORS, first, te.BLOCK, {}, {})
+    assert found["match"] is True and found["counts"]["key"]["radius 6.0"] == {"within1mm": 1, "within5mm": 1}
+    assert kc.band_value(floors[3], te.BLOCK) is None and kc.band_value(floors[1], te.BLOCK) == 6.1
+
+
 def test_r328_the_area_rows_are_counted_again_by_the_official_number_of_each_joined_plot_in_plots_csv():
     join = {"plots": {"501": {"status": "joined", "number": "501"}, "502": {"status": "joined", "number": "502"}, "503": {"status": "joined", "number": "502"},
                       "504": {"status": "noFace", "number": None}}}

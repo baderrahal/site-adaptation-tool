@@ -537,6 +537,18 @@ def check_spots(document, floors_config, first, settings, plots):
     return result(len(plots), wrong)
 
 
+def band_value(floor, settings):
+    """R328. The El @ Entry parameter of a generic floor, None when it is no number or when the flat floor top stands outside the band of
+    the settings over it."""
+    value = (floor.get("parameters") or {}).get(settings["entryParameter"])
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return None
+    top, band = floor.get("topElevationRange") or {}, settings.get("entryHeightM")
+    if band and top.get("min") is not None and abs(top["max"] - top["min"]) <= 1e-9 and not band["min"] - SLACK <= top["max"] - value <= band["max"] + SLACK:
+        return None
+    return value
+
+
 def recount_spots(document, floors_config, first, settings, schedule, second):
     """R328. On every plot R327 compared, the plots with a spot of their own floors within each radius of the entrance and with both corner
     spots whose value or mean is within each band of El @ Entry of the key and of the schedule, the schedule by the official number of the
@@ -551,7 +563,7 @@ def recount_spots(document, floors_config, first, settings, schedule, second):
         mx, my = (edge[0][0] + edge[1][0]) / 2, (edge[0][1] + edge[1][1]) / 2
         pair = corner_spots(edge, spots.get(plot, []), ramp, settings["cornerM"])
         own = generics.get(plot, [])
-        key_value = (own[0].get("parameters") or {}).get(settings["entryParameter"]) if len(own) == 1 else None
+        key_value = band_value(own[0], settings) if len(own) == 1 else None
         joined = second.get(plot) or {}
         official = joined.get("number") if joined.get("status") == "joined" else None
         for source, level in (("key", key_value), ("schedule", (schedule or {}).get(official) if official else None)):

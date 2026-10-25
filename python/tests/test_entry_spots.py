@@ -10,7 +10,7 @@ import entry_spots
 import project_profile
 
 FLOORS = {"types": {"generic": ["Slab G"], "yard": ["Yard Y"], "ramp": ["Ramp A"]}, "plotParameter": "Plot"}
-BLOCK = {"radiiM": [0.5, 6.0], "cornerM": 0.05, "bandsM": [0.001, 0.005], "entryParameter": "El at entry"}
+BLOCK = {"radiiM": [0.5, 6.0], "cornerM": 0.05, "bandsM": [0.001, 0.005], "entryParameter": "El at entry", "entryHeightM": {"min": 0.0, "max": 1.5}}
 # The survey point is 1000 m east of the internal origin, so a spot is moved by it as a floor outline is not
 OFFSET = [1000.0, 0.0, 0.0]
 
@@ -76,6 +76,15 @@ def test_r327_a_spot_on_a_floor_of_another_plot_never_counts_for_this_plot_and_o
     assert found["counts"]["key"]["radius 6.0"]["spots"] == 3
 
 
+def test_r327_a_key_value_whose_floor_top_is_outside_the_height_band_is_no_el_at_entry_and_is_listed():
+    # 150.0 is the placeholder of R325, the flat floor top at 7.0 stands 143 m under it
+    floors = [ramp("501", 0, 1), dict(generic("501", 0, 150.0), topElevationRange={"min": 7.0, "max": 7.0}), ramp("502", 20, 2),
+              dict(generic("502", 20, 6.1), topElevationRange={"min": 6.25, "max": 6.25})]
+    spots = [spot(11, 0, 5, 6.1, host=1), spot(21, 20, 5, 6.1, host=2)]
+    found = entry_spots.key_entry(document(floors, spots), FLOORS, BLOCK)
+    assert found["counts"]["key"]["plots"] == 1 and found["refusedEntry"] == ["501"] and found["noEntry"]["key"] == ["501"]
+
+
 def test_r327_el_at_entry_of_the_schedule_is_found_by_the_official_number_the_join_gives_the_plot():
     floors = [ramp("501", 0, 1), generic("501", 0, 6.1)]
     spots = [spot(11, 0, 5, 6.1, host=1), spot(12, 10, 5, 6.1, host=1)]
@@ -105,7 +114,7 @@ def test_r327_a_plot_with_no_ramp_two_ramps_or_a_ramp_of_no_four_corners_or_no_e
 ])
 def test_r327_the_radii_must_rise_above_0_and_the_corner_distance_be_above_0(tmp_path, block):
     path = tmp_path / "project.json"
-    path.write_text(json.dumps({"entrySpots": block, "pastAll": {"entryParameter": "x"}}), encoding="utf-8")
+    path.write_text(json.dumps({"entrySpots": block, "pastAll": {"entryParameter": "x"}, "keyPlans": {"entryHeightM": {"min": 0.0, "max": 1.5}}}), encoding="utf-8")
     with pytest.raises(project_profile.ProfileError, match="entrySpots"):
         entry_spots.load_block(project_profile.load_settings(path))
 
@@ -114,6 +123,7 @@ def test_r327_the_real_settings_name_the_radii_the_corner_distance_and_the_entry
     settings = project_profile.load_settings()
     block = entry_spots.load_block(settings)
     assert block["radiiM"] == sorted(block["radiiM"]) and block["cornerM"] > 0 and block["bandsM"] == [0.001, 0.005]
+    assert block["entryHeightM"] == settings.get("keyPlans.entryHeightM")
     assert block["entryParameter"] == settings.get("pastAll.entryParameter")
     assert entry_spots.band_names(block["bandsM"]) == ["1mm", "5mm"]
 
@@ -124,6 +134,7 @@ FULL_FLOORS = dict(FLOORS, levels={"generic": "L1", "yard": "L2", "ramp": "L1"},
 def spot_settings(tmp_path, name, radii):
     path = tmp_path / name
     path.write_text(json.dumps({"entrySpots": {"radiiM": radii, "cornerM": 0.05, "bandsM": [0.001, 0.005]}, "pastAll": {"entryParameter": "El at entry"},
+                                "keyPlans": {"entryHeightM": {"min": 0.0, "max": 1.5}},
                                 "floors": FULL_FLOORS, "answerKeys": {"keys": [{"code": "IMX", "copy": "X-IMX.rvt"}, {"code": "IMY", "copy": "X-IMY.rvt"}]}}),
                     encoding="utf-8")
     return path

@@ -50,7 +50,7 @@ def load_block(settings):
     entry = (settings.values.get("pastAll") or {}).get("entryParameter")
     if not isinstance(entry, str) or not entry.strip():
         raise project_profile.ProfileError(name + " pastAll.entryParameter must name the El @ Entry parameter of a generic floor")
-    return {"radiiM": radii, "cornerM": corner, "bandsM": bands, "entryParameter": entry}
+    return {"radiiM": radii, "cornerM": corner, "bandsM": bands, "entryParameter": entry, "entryHeightM": plan_from_past.entry_height_band(settings)}
 
 
 def rising(values):
@@ -76,6 +76,19 @@ def usable_spots(document, offset):
         else:
             found.append((spot.get("elementId"), (origin[0] + offset[0], origin[1] + offset[1]), spot["value"], (spot.get("host") or {}).get("elementId")))
     return found, dict(sorted(left.items()))
+
+
+def key_level(floor, block, offset):
+    """R327. El @ Entry of the key on a generic floor, its parameter when that is a number, and whether it was refused: a value whose flat
+    floor top stands outside keyPlans.entryHeightM over it is no El @ Entry, as R325 refuses it."""
+    value = (floor.get("parameters") or {}).get(block["entryParameter"])
+    if not plan_from_past.is_number(value):
+        return None, False
+    low, high, _ = plot_relations.top_range(floor, offset)
+    band = block.get("entryHeightM")
+    if band is not None and low is not None and abs(high - low) <= SLACK and not band["min"] - SLACK <= high - value <= band["max"] + SLACK:
+        return None, True
+    return value, False
 
 
 def floors_by_plot(document, floors_config, kind):
@@ -118,7 +131,7 @@ def key_entry(document, floors_config, block, schedule=None, numbers=None):
     ramps = floors_by_plot(document, floors_config, "ramp")
     generics = floors_by_plot(document, floors_config, "generic")
     radii = [str(radius) for radius in block["radiiM"]]
-    not_compared, plots, levels = defaultdict(list), {}, {}
+    not_compared, plots, levels, refused = defaultdict(list), {}, {}, []
     for plot in sorted(set(ramps) | set(generics), key=link_summary.sort_key):
         own = ramps.get(plot, [])
         if len(own) != 1:
@@ -139,9 +152,11 @@ def key_entry(document, floors_config, block, schedule=None, numbers=None):
                            if str(host) == str(own[0].get("elementId")) and math.dist(point, corner[:2]) <= block["cornerM"] + SLACK)
             pair.append(close[0][1] if close else None)
         generic = generics.get(plot, [])
-        key_value = (generic[0].get("parameters") or {}).get(block["entryParameter"]) if len(generic) == 1 else None
+        key_value, off_band = key_level(generic[0], block, offset) if len(generic) == 1 else (None, False)
+        if off_band:
+            refused.append(plot)
         official = (numbers or {}).get(plot)
-        levels[plot] = {"key": key_value if plan_from_past.is_number(key_value) else None, "schedule": (schedule or {}).get(official) if official else None}
+        levels[plot] = {"key": key_value, "schedule": (schedule or {}).get(official) if official else None}
         plots[plot] = {"ramp": own[0].get("elementId"), "near": near, "corners": pair}
     values = {spot_id: value for spot_id, _, value, _ in spots}
     bands = list(zip(band_names(block["bandsM"]), block["bandsM"]))
@@ -171,7 +186,7 @@ def key_entry(document, floors_config, block, schedule=None, numbers=None):
         counts[source] = entry
     order = ("noRamp", "twoRamps", "noEntrance")
     return {"counts": counts, "notCompared": {why: not_compared[why] for why in order if not_compared[why]}, "noEntry": no_entry,
-            "spotsLeftOut": left, "spotsUsed": len(spots), "spotsOnNoPlotFloor": alone, "plots": plots}
+            "refusedEntry": refused, "spotsLeftOut": left, "spotsUsed": len(spots), "spotsOnNoPlotFloor": alone, "plots": plots}
 
 
 def render(code, entry):
@@ -214,7 +229,7 @@ def main(argv=None):
         if schedule and code not in joined:
             parser.error("the join " + str(args.join) + " holds no key " + code)
         entries[code] = dict(key_entry(document, floors, block, own, numbers), job=job,
-                             settings={"radiiM": block["radiiM"], "cornerM": block["cornerM"], "bandsM": block["bandsM"], "entryParameter": block["entryParameter"]},
+                             settings={key: block[key] for key in ("radiiM", "cornerM", "bandsM", "entryParameter", "entryHeightM")},
                              inputs={"plots": Path(args.plots).name if args.plots else None, "join": Path(args.join).name if args.join else None})
     report = {"note": "R327. Per answer key the spots of its own floors within each radius of the entrance point of each plot, the middle of the "
                       "higher long edge of its ramp (R94), and the spots at the two corners of that edge, against El @ Entry of the key and of the "

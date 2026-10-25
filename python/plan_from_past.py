@@ -1031,10 +1031,15 @@ def load_key_plans(settings):
     entry = (settings.values.get("pastAll") or {}).get("entryParameter")
     if not isinstance(entry, str) or not entry.strip():
         raise project_profile.ProfileError(name + " pastAll.entryParameter must name the El @ Entry parameter of a generic floor")
-    band = block.get("entryHeightM")
+    return {"wallEdgeM": edge, "entryParameter": entry, "entryHeightM": entry_height_band(settings), "cutShareMin": cad_links.cad_links_settings(settings)["cutShareMin"]}
+
+
+def entry_height_band(settings):
+    """R325, R327. keyPlans.entryHeightM, the min and the max in metres the flat floor top must stand over a key El @ Entry value for it to be used."""
+    band = (settings.values.get("keyPlans") or {}).get("entryHeightM")
     if not isinstance(band, dict) or set(band) != {"min", "max"} or not all(is_number(band[key]) for key in band) or not band["min"] < band["max"]:
-        raise project_profile.ProfileError(name + " keyPlans.entryHeightM must hold a min under a max in metres")
-    return {"wallEdgeM": edge, "entryParameter": entry, "entryHeightM": dict(band), "cutShareMin": cad_links.cad_links_settings(settings)["cutShareMin"]}
+        raise project_profile.ProfileError(settings.path.name + " keyPlans.entryHeightM must hold a min under a max in metres")
+    return dict(band)
 
 
 def key_walls(data, floors_config, edge_m):
