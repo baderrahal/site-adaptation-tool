@@ -146,7 +146,19 @@ def key_rules_of(lp):
     if found is None:
         return None
     check_key_rules(found)
+    check_ramp_slopes(found, lp)
     return found
+
+
+def check_ramp_slopes(rules, lp):
+    """R337. El @ Entry takes the slope of a code from rampSlopePercent of the level profile and the ramp from the class of
+    keyRules.rampSlope, so for every code the class holds the two must name one slope class, else the build is refused with the codes
+    named, never built on two slopes."""
+    wrong = sorted("%s (rampSlopePercent %s, keyRules.rampSlope %s)" % (code, slope_of(code, lp), found) for code, found in rules["rampSlope"]["table"].items()
+                   if slope_class(slope_of(code, lp)) != found)
+    if wrong:
+        raise project_profile.ProfileError("the slope of El @ Entry and the ramp class of keyRules differ for " + ", ".join(wrong)
+                                           + ", give both one slope (R337)")
 
 
 def check_key_rules(rules):
@@ -158,7 +170,8 @@ def check_key_rules(rules):
             raise project_profile.ProfileError("keyRules %s codes %s, a build gives only %s%s (R337)" % (
                 word, (entry or {}).get("rule") if isinstance(entry, dict) else None, ", ".join(allowed), "" if not fields else " with " + " and ".join(fields)))
         return entry
-    need("linkRotation", ("frontRule", "nearestCurb"))
+    # A build takes the front of R226 with --sales and no other, so the edge nearest a curb is a candidate it does not carry out
+    need("linkRotation", ("frontRule",))
     need("linkOrigin", ("plotFrameRefit",), "byCode")
     for unit_class in ("villa", "cluster", "alone"):
         need("hand " + unit_class, HAND_FACTORS, "byFile")

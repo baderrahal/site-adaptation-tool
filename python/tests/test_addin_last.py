@@ -50,3 +50,28 @@ def test_r337_a_build_says_plot_by_plot_which_overrides_it_applied_and_which_it_
     lines = "\n".join(plan_from_book.summary_lines(plan["summary"], rules["name"], False))
     assert "applied entryM 1, heightM 1" in lines and "left to phase" not in lines
     assert "parameter RRE_ZZ_SP_Prototype-FFL 1" in lines
+
+
+# R337 a coded rule the build does not carry out is refused, and El @ Entry and the ramp class take one slope
+def test_r337_a_link_rotation_by_the_edge_nearest_a_curb_is_refused_since_a_build_takes_the_corner_front_of_r226():
+    import pytest
+    import project_profile
+    rules = made_key_rules()
+    plan_rules.check_key_rules(rules)
+    with pytest.raises(project_profile.ProfileError) as error:
+        plan_rules.check_key_rules(dict(rules, linkRotation={"rule": "nearestCurb"}))
+    assert "linkRotation" in str(error.value) and "frontRule" in str(error.value)
+
+
+def test_r337_the_slope_of_el_at_entry_and_the_ramp_class_of_key_rules_must_agree_for_every_code_else_the_build_is_refused():
+    import pytest
+    import project_profile
+    lp = {"rampSlopePercent": {"default": 0.5, "VD2": 2.0}, "keyRules": made_key_rules()}
+    with pytest.raises(project_profile.ProfileError) as error:
+        plan_rules.key_rules_of(lp)
+    assert "VD2" in str(error.value) and "rampSlopePercent" in str(error.value)
+    lp["rampSlopePercent"] = {"default": 0.5}
+    assert plan_rules.key_rules_of(lp) is lp["keyRules"]
+    # The committed profile agrees
+    real = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    assert plan_rules.key_rules_of(plan_rules.level_profile(real, "parsons2024Rev6")) is not None
