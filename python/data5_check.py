@@ -18,6 +18,7 @@ import re
 import sys
 from collections import Counter
 from pathlib import Path
+from string import hexdigits
 
 import numpy as np
 
@@ -30,6 +31,9 @@ import data_book_analysis
 import data_book_check
 import dxf_count
 import link_summary
+
+# The small hex digits of a SHA-256 as the manifest of a copy folder writes it (R301)
+HEX = set(hexdigits.lower())
 
 
 def zone_of(value):
@@ -105,22 +109,77 @@ def check_ifc(path, report):
             "differ": {k: [found[k], report["types"].get(k, 0)] for k in kinds if found[k] != report["types"].get(k, 0)}}
 
 
+def lower_parts(text, what):
+    """R301. A path of the config or of a manifest split at / and \\ and lowered. Refused with a drive, an empty part, a step or a blank
+    around a part."""
+    pieces = re.split(r"[\\/]", text) if isinstance(text, str) and text else []
+    if not pieces or ":" in text or any(piece in ("", ".", "..") or piece.strip() != piece for piece in pieces):
+        raise ValueError("%s is no plain path under the source root: %r" % (what, text))
+    return tuple(piece.lower() for piece in pieces)
+
+
+def manifest_names(folder, manifest, key):
+    """R301. The copy names a manifest lists, lowered, read by cutting each line at its words sha256 and from with str.partition and not
+    by the pattern of im_codes.py.
+    No manifest, a line with no copy and source, or a source inside the copy folder is refused, the last as listed too high."""
+    found = [path for path in folder.iterdir() if path.is_file() and path.name.lower() == manifest]
+    if len(found) != 1:
+        raise ValueError("the copy folder %s has no manifest %s" % (folder, manifest))
+    names = set()
+    for line in found[0].read_text(encoding="utf-8-sig").splitlines():
+        if not line.strip():
+            continue
+        copy, first, rest = line.partition(" sha256 ")
+        digest, second, rest = rest.partition(" from ")
+        source, third, rest = rest.partition(" sha256 ")
+        hexes = (digest, rest[:64])
+        if not (first and second and third) or any(len(h) != 64 or set(h) - HEX for h in hexes) or "/" in copy or "\\" in copy:
+            raise ValueError("a manifest line names no copy with its source: %r" % line)
+        if lower_parts(source, "the source of a copy")[:len(key)] == key:
+            raise ValueError("the copy folder %s is listed too high: it holds the source %s" % (folder, source))
+        names.add(copy.lower())
+    return names
+
+
 def check_names(root, report, copies=()):
     """R260, R301. The file names under root counted again by a plain substring per IM letter, the files inside a copy folder of
-    the config apart by the parts of their path, each against im_codes.json: sources against fileNames, copies against
-    copyFileNames, 0 when the report is older than the copy folders."""
-    copy_parts = [tuple(entry["folder"].replace("\\", "/").split("/")) for entry in copies or []]
-    found = {"sources": Counter(), "copies": Counter()}
-    for path in Path(root).rglob("*"):
-        if path.is_file():
-            parts = path.relative_to(root).parts[:-1]
-            side = "copies" if any(parts[:len(folder)] == folder for folder in copy_parts) else "sources"
-            for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
-                code = "IM" + letter
-                if "-" + code + "-" in path.name or "_" + code + "_" in path.name or " " + code + " " in path.name:
-                    found[side][code] += 1
+    the config by the lowered parts of their path, a copy when the manifest of that folder lists it, else a source flagged as not
+    in the manifest, each against im_codes.json: sources against fileNames, copies against copyFileNames and the flagged against
+    notInManifest, 0 when the report is older than the copy folders."""
+    wanted = []
+    for entry in copies or []:
+        manifest = entry.get("manifest")
+        if len(lower_parts(manifest, "a manifest")) != 1:
+            raise ValueError("a manifest is a file right in its copy folder: %r" % manifest)
+        key = lower_parts(entry.get("folder"), "a copy folder")
+        if any(key[:len(other)] == other or other[:len(key)] == key for other, _ in wanted):
+            raise ValueError("a copy folder sits inside another: %r" % entry.get("folder"))
+        wanted.append((key, manifest.lower()))
+    paths = [(path, tuple(part.lower() for part in path.relative_to(root).parts)) for path in Path(root).rglob("*")]
+    listed = {}
+    for path, lowered in paths:
+        for key, manifest in wanted:
+            if lowered == key and path.is_dir():
+                listed.setdefault(key, set()).update(manifest_names(path, manifest, key))
+    missing = [key for key, _ in wanted if key not in listed]
+    if missing:
+        raise ValueError("copy folders not under the source root: %s" % ["/".join(key) for key in missing])
+    found = {"sources": Counter(), "copies": Counter(), "notInManifest": Counter()}
+    for path, lowered in paths:
+        if not path.is_file():
+            continue
+        home = next((key for key, _ in wanted if lowered[:len(key)] == key and len(lowered) > len(key)), None)
+        for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+            code = "IM" + letter
+            if "-" + code + "-" in path.name or "_" + code + "_" in path.name or " " + code + " " in path.name:
+                if home and len(lowered) == len(home) + 1 and path.name.lower() in listed[home]:
+                    found["copies"][code] += 1
+                else:
+                    found["sources"][code] += 1
+                    if home:
+                        found["notInManifest"][code] += 1
     result = {}
-    for side, field in (("sources", "fileNames"), ("copies", "copyFileNames")):
+    for side, field in (("sources", "fileNames"), ("copies", "copyFileNames"), ("notInManifest", "notInManifest")):
         codes = set(found[side]) | {c for c, v in report["codes"].items() if v.get(field)}
         result[side] = {code: [found[side][code], report["codes"].get(code, {}).get(field, 0)] for code in sorted(codes)}
     return result
