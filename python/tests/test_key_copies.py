@@ -6,6 +6,7 @@ on the real copies.
 import hashlib
 import json
 import os
+import re
 import stat
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,7 +38,8 @@ def block(**change):
     """An answerKeys block of two keys: IMA made from its model in the folder above the copies, IMC from an original elsewhere."""
     keys = [{"code": "IMA", "zone": "Zone 1", "kind": "SE", "source": "Revit All Zones\\" + MODEL_A, "copy": MODEL_A},
             {"code": "IMC", "zone": "Zone 2", "kind": "TU", "source": "00_Revit Models\\Zone 02\\ARC\\" + ORIGINAL_C, "copy": MODEL_C}]
-    values = {"folder": "Revit All Zones\\2024", "manifest": "key_copies.json", "format": 2024, "jobPrefix": "K", "keys": keys}
+    values = {"folder": "Revit All Zones\\2024", "manifest": "key_copies.json", "format": 2024, "jobPrefix": "K", "codePrefix": "IM",
+              "zonePattern": "Zone [1-9][0-9]*", "kinds": ["TU", "SE"], "codeInName": "^[0-9]{5}-PSN-{code}-", "keys": keys}
     values.update(change)
     return values
 
@@ -292,6 +294,52 @@ def test_r312_import_refuses_a_copy_changed_since_sources_txt_and_a_line_of_no_k
     assert not (root / "Revit All Zones" / "2024" / "key_copies.json").exists()
 
 
+def test_r312_import_checks_every_entry_as_the_manifest_reader_does_and_refuses_the_whole_import_with_every_reason(tmp_path):
+    root = tree(tmp_path)
+    values = key_copies.load_keys(block())
+    copy_a, copy_c = root / "Revit All Zones" / "2024" / MODEL_A, root / "Revit All Zones" / "2024" / MODEL_C
+    # The IMA copy is no compound file, so it has no format, the IMC line writes its source with a drive, and IMC is listed twice
+    copy_a.write_bytes(b"not a compound file")
+    lines = ["%s sha256 %s from Revit All Zones\\%s sha256 %s by run KA" % (MODEL_A, digest(copy_a), MODEL_A, "b" * 64),
+             "%s sha256 %s from C:\\02-Site Adaptation\\00_Revit Models\\%s sha256 %s by run KC" % (MODEL_C, digest(copy_c), ORIGINAL_C, "b" * 64),
+             "%s sha256 %s from 00_Revit Models\\Zone 02\\ARC\\%s sha256 %s by run KC" % (MODEL_C.lower(), digest(copy_c), ORIGINAL_C, "b" * 64)]
+    old = tmp_path / "sources.txt"
+    old.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    before = state(root)
+
+    with pytest.raises(key_copies.KeyCopyError) as refused:
+        key_copies.import_sources(root, values, old)
+
+    reasons = str(refused.value)
+    assert "nothing is written" in reasons and "no format" in reasons and "no plain path" in reasons and "twice" in reasons
+    assert state(root) == before
+
+
+def test_r312_check_lists_every_revit_file_in_the_copy_folder_no_key_and_no_entry_names_and_ends_not_0(tmp_path, capsys):
+    root = tree(tmp_path)
+    write_manifest(root, both_entries(root))
+    rvt(root / "Revit All Zones" / "2024" / "a copy left by hand.rvt", 2024, "stray")
+    rvt(root / "Revit All Zones" / "2024" / "old" / "01101-PSN-IMA-ZZZ-PIM-SE-000000-zone1.RVT", 2024, "older copy")
+    (root / "Revit All Zones" / "2024" / "notes.txt").write_text("not a model", encoding="utf-8")
+
+    rows = key_copies.check(root, key_copies.load_keys(block()), tmp_path / "work")
+
+    unlisted = sorted(row["copy"] for row in rows if row["verdict"] == "notListed")
+    assert unlisted == ["a copy left by hand.rvt", "old/01101-PSN-IMA-ZZZ-PIM-SE-000000-zone1.RVT"]
+    assert {row["code"]: row["verdict"] for row in rows if row["code"]} == {"IMA": "reuse", "IMC": "reuse"}
+    assert key_copies.main(["--settings", str(settings_file(tmp_path, root)), "check"]) == 1
+    assert "notListed" in capsys.readouterr().out
+
+
+def test_r312_every_function_of_key_copies_names_its_rule_in_the_first_line_of_its_docstring():
+    import inspect
+    functions = [function for name, function in inspect.getmembers(key_copies, inspect.isfunction) if function.__module__ == "key_copies"]
+    assert len(functions) > 15
+    for function in functions:
+        first = (function.__doc__ or "").strip().splitlines()[:1]
+        assert first and re.match(r"R[0-9]+\. ", first[0]), function.__name__
+
+
 def test_r312_record_moves_a_made_copy_into_the_copy_folder_never_over_a_file_and_writes_its_entry(tmp_path):
     root = tree(tmp_path)
     values = key_copies.load_keys(block())
@@ -487,10 +535,47 @@ def bad_key(field, value):
     bad_key("copy", "01101-PSN-IMA.txt"), bad_key("source", "C:\\Revit All Zones\\" + MODEL_A), bad_key("source", "..\\" + MODEL_A),
     bad_key("source", "Revit All Zones\\2024\\" + MODEL_A), bad_key("extra", 1), bad_key("copy", MODEL_C.upper()),
     bad_key("code", "IMC"), bad_key("source", "00_Revit Models\\zone 02\\arc\\" + ORIGINAL_C),
-    block(format="2024"), block(jobPrefix="k"), block(keys=[]), block(manifest="2024\\key_copies.json"), block(folder="..\\2024")])
+    block(format="2024"), block(jobPrefix="k"), block(keys=[]), block(manifest="2024\\key_copies.json"), block(folder="..\\2024"),
+    block(codePrefix="im"), block(codePrefix=""), block(zonePattern="Zone ("), block(zonePattern=3), block(kinds=[]), block(kinds=["TU", "TU"]),
+    block(kinds="TU"), block(codeInName="^[0-9]{5}-PSN-"), block(codeInName="{code}-{code}"), block(codeInName="({code}")])
 def test_r312_a_key_list_with_a_missing_or_extra_field_a_bad_kind_a_code_copy_or_source_twice_or_a_source_among_the_copies_is_refused(values):
     with pytest.raises(key_copies.KeyCopyError):
         key_copies.load_keys(values)
+
+
+def test_r312_a_copy_name_or_a_source_name_that_does_not_hold_the_code_of_its_own_key_is_refused():
+    keys = block()["keys"]
+    # Two copy names swapped between their keys
+    keys[0]["copy"], keys[1]["copy"] = keys[1]["copy"], keys[0]["copy"]
+    with pytest.raises(key_copies.KeyCopyError, match="does not hold the code IMA"):
+        key_copies.load_keys(block(keys=keys))
+    keys = block()["keys"]
+    keys[1]["source"] = "00_Revit Models\\Zone 02\\ARC\\01101-PSN-IMA-ZZZ-PIM-TU-000001.rvt"
+    with pytest.raises(key_copies.KeyCopyError, match="does not hold the code IMC"):
+        key_copies.load_keys(block(keys=keys))
+    # A pattern that is not anchored would take a name that holds two codes, so a name that holds the code of another key is refused too
+    keys = block()["keys"]
+    keys[0]["copy"] = "01101-PSN-IMA-IMC-PIM-SE-000000-zone1.rvt"
+    with pytest.raises(key_copies.KeyCopyError, match="holds the code IMC of another key"):
+        key_copies.load_keys(block(keys=keys, codeInName="-{code}-"))
+    # The code is found in any case, as Windows matches names
+    keys = block()["keys"]
+    keys[0]["copy"] = MODEL_A.lower()
+    assert key_copies.load_keys(block(keys=keys))["keys"][0]["copy"] == MODEL_A.lower()
+
+
+def test_r312_the_job_code_and_the_code_come_from_the_prefixes_of_the_config():
+    values = key_copies.load_keys(block())
+    assert [key_copies.job_code(values, key) for key in values["keys"]] == ["KA", "KC"]
+    keys = block()["keys"]
+    for key, code in zip(keys, ("XYA", "XYC")):
+        key["code"] = code
+        key["copy"] = key["copy"].replace("-IM", "-XY")
+        key["source"] = key["source"].replace("-IM", "-XY")
+    values = key_copies.load_keys(block(keys=keys, codePrefix="XY", jobPrefix="Q", kinds=["SE", "TU"], zonePattern="Zone [0-9]"))
+    assert [key_copies.job_code(values, key) for key in values["keys"]] == ["QA", "QC"]
+    with pytest.raises(key_copies.KeyCopyError, match="code"):
+        key_copies.load_keys(block(keys=keys))
 
 
 @pytest.mark.parametrize("change", [{"copySha256": "A" * 64}, {"format": "2024"}, {"madeBy": ""}, {"copy": "2024/" + MODEL_A}, {"extra": 1}])
@@ -516,6 +601,9 @@ def test_r312_the_real_config_lists_the_7_keys_with_imc_from_the_zone_02_arc_ori
             assert key["source"] == "Revit All Zones\\" + key["copy"]
     assert [keys[code]["zone"] for code in sorted(keys)] == ["Zone 1", "Zone 1", "Zone 2", "Zone 2", "Zone 3", "Zone 3", "Zone 4"]
     assert [keys[code]["kind"] for code in sorted(keys)] == ["SE", "SE", "TU", "TU", "TU", "TU", "TU"]
+    # The prefixes, the kinds and the zone shape moved from the code into the config give the same keys and job codes as before
+    assert (values["codePrefix"], values["jobPrefix"], values["kinds"]) == ("IM", "K", ["TU", "SE"])
+    assert [key_copies.job_code(values, keys[code]) for code in sorted(keys)] == ["KA", "KB", "KC", "KD", "KE", "KF", "KG"]
 
 
 def test_r312_the_copy_folder_of_r301_is_the_folder_of_the_answer_keys_with_the_same_manifest():
