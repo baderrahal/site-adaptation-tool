@@ -7,16 +7,16 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 In progress. Phases 0a and 0b merged (PR 41, 42), Phase 1 in review on PR 43, its part 2 next, then the plan in steps/investigations/round-addin.md.
 
 Goal:
-- The whole Site Adaptation add-in inside Revit 2024 in C#, .NET Framework 4.8 (option B), built from the 7 Rev 6 Parsons site models, parsons2024Rev6 for every new build (Q050), the screens and files of the approved mock in docs/addin-mock.md. Part 2, the sheets, waits for Bader's check of Part 1
+- The whole Site Adaptation add-in inside Revit 2024 in C#, .NET Framework 4.8, from the 7 Rev 6 Parsons site models, parsons2024Rev6 for every new build (Q050), the screens of docs/addin-mock.md. Part 2, the sheets, waits for Bader's check of Part 1
 
 Done:
 - 0a (PR 41) and 0b (PR 42): the harness, the open fixes R277, R280, R300 to R302, R304, R303 withdrawn (Q064). Detail in round-addin.md
-- 1 (PR 43, in review): R310 samples each test host window every 5 s in MiB and GiB with the peaks to the exit and the processes Revit starts, the checks keep their own 5 s. R311 the site, project position, levels, units now and categories, a part not read is null with its error. R203 BasicFileInfo of a BIM 360 model. R204 the source right in the work folder. R301 the 2024 copies counted apart
+- 1 (PR 43, in review): R310 samples each window every 5 s in MiB and GiB, the peaks to the exit, the processes Revit starts, each CIM call with a 2 s limit, the deadline first, the helpers already running. R311 the site facts, a part not read is null under its field name. R203 BIM 360 BasicFileInfo. R204 the source in the work folder. R301 the 2024 copies apart by their manifest
 - 1 outside the repo: the 7 Revit 2024 copies in Revit All Zones\2024 with sources.txt, all on one survey point, base point and project position, angle 0, metric. IMA and IMB are SE models (Q066, Q067), the zone2 IMC is the floor master (Q065)
-- Gate: Python 1107 passed and 1 skipped, .NET build 0 errors, .NET 475 passed
+- Gate: Python 1122 passed and 1 skipped, .NET build 0 errors, .NET 479 passed
 
 Checked:
-- 1: originals 40 of 40 equal around the 17 windows and 47 of 47 with the 2024 copies around KG3. BasicFileInfo bytes against Revit 7 of 7, Format 2024 7 of 7, reader against category counts 32 of 32, 20 random IMC links at seeds 14 and 7 20 of 20. KG3: child processes 10 and 10 by the script and an outside sampler, site facts equal to KG2 but the new lengthSystem. This Your turn equals Bader's turn of steps/PROGRESS.md
+- 1: originals 40 of 40 around the 17 windows, 47 of 47 around KG3. BasicFileInfo against Revit 7 of 7, reader against category counts 32 of 32, 20 random IMC links at two seeds 20 of 20, KG3 children 10 and 10 by two samplers, the R301 names by two methods 7 of 7. This Your turn equals Bader's turn of steps/PROGRESS.md
 
 Remains:
 - Part 2 of Phase 1, next PR: key copies made by code, the IMC copy name, the STR upgrade (Q067), CLAUDE.md. Phases 2 to 6
@@ -25,6 +25,7 @@ Known bugs:
 - The whole NBH 03 area runs past the 30 minute image step, I25 did not respond at 10,732 MiB (10.48 GiB) private (Q063). Revit starts up to 10 processes of about 1.2 GiB private
 - rvt_info.py (R203) does not see cloud links: the TransmissionData of the SE models lists 1 of their 14 Revit links
 - The Generic floors of IME and IMF are of type FFL, not Generic 150mm, so floors.types does not find them
+- The top level angleToTrueNorthDeg of the reader has 3 decimals and is not brought into 0 to 360, the plan builders copy it. The placer takes 0 only and the 7 models are at 0. Phase 4 moves it to C#
 - The .NET build gives 1 warning older than this round, xUnit2013 at dotnet/SiteAdaptation.Tests/CadExplodeTests.cs line 206
 
 Next:
@@ -53,7 +54,7 @@ Q062. The probe keeps the visible attribute values of the Rev 9 drawing, 2,139 A
 Q063. The whole NBH 03 image ran past the 30 minute image step in I20 and I25. In I25 Revit did not respond on 39 of 39 samples at 10,732 MiB (10.48 GiB) private memory and one Win32 list showed no dialog, while a quarter image step takes 52 to 58 s and a quarter rises to 6,377 MiB (6.23 GiB) private memory by the same measure (I28): accept the four quarter images in round_17\images and make large images in quarters, the cause stays a known bug
 Q064. The dialog watcher through the job (R303) is withdrawn after two attempts: keep the watcher stopping at the first log step. In I25 the Win32 list found no dialog and Revit was not responding at 10,732 MiB (10.48 GiB) private memory, so the hang points at memory. 5 windows of Phase 1 that ended ok did not respond at times. Q063 keeps its measurements
 Q065. The zone2 IMC file of Revit All Zones is the master of the floor scenarios: last saved as _TEST-MASTER, not workshared, links unloaded, 0 floors against 1,010. Its 2024 copy is made from the Zone 02\ARC original, the IMC key: replace the zone2 file by a copy of that original (recommended), or keep it
-Q066. No Rev 6 Parsons TU model of Zone 1 is here: IMA and IMB are Engicon SE models with STR prototype links, 432 and 301 plots, no level, ramp or yard floor, and the Native 1.1 and 1.2 TU models are the second reference by your answer key rule: send the Parsons TU models of IMA and IMB (recommended), until then Zone 1 takes its links from the SE models and its levels from the Native 1.1 and 1.2 reads
+Q066. No Rev 6 Parsons TU model of Zone 1 is here: IMA and IMB are Engicon SE models with STR prototype links, 432 and 301 plots, no level, ramp or yard floor. Your rule takes a Native model only for plots none of the 7 Parsons models hold, and these plots are in IMA and IMB, so taking their levels, ramps and yards from the Native 1.1 and 1.2 reads is the lead's choice, not your rule: send the Parsons TU models of IMA and IMB (recommended), or accept that Native stand-in until then
 Q067. The 13 STR prototypes the SE models link are not upgraded, their 2021 files are in Zone 02\STR\Prototypes: leave them (recommended), the add-in places the ARC prototypes, or upgrade them, which needs a change of the upgrade job
 Q068. The 7 Parsons models share one project position, survey point, base point, angle 0, Level 1 and Level 2. R211 puts the internal origin at the plot centre of the NBH, 547.5 m away for NBH 012: let button 1 set the Parsons position from config (recommended), or keep R211
 
