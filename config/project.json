@@ -203,7 +203,7 @@
     "linkHoldMm": 10,
     "cornerFrontRule": "orientation",
     "siteReference": {"parsons": "imc", "native": "u14"},
-    "check": {"seeds": [14, 7], "sample": 20},
+    "check": {"seeds": [14, 7], "sample": 20, "group": "parsons"},
     "overrideDefaultSources": ["parsons"],
     "linkPlotParameter": "RRE_ZZ_SP_Plot-Number",
     "overrideKeep": {"note": "R330. What every run of python/majority.py keeps of the earlier override list cell for cell, so the plain command gives the committed list. sources: every entry of these jobs, native measured in Round 17, a run writes them again only when --replace native names them. laterFields: per job the fields a later phase measures, laterPhase, a run writes none of them and keeps the earlier ones, here the levels Phase 3c measures under parsons2024Rev6: El @ Entry, the height, the steps and the Prototype-FFL parameter. --keep adds to it, --replace takes out of it. An entry Bader marks \"byHand\": true is never dropped, a run that would drop one is refused.",

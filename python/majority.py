@@ -36,6 +36,7 @@ import past_all
 import plan_from_book
 import plan_from_cad
 import plan_from_past
+import plan_rules
 import plot_relations
 import project_profile
 import prototype_offsets
@@ -183,10 +184,7 @@ def contexts(rows, book, sales, faces, roles, neighbours, side_roads, profile, b
             },
         })
     for item in found:
-        factors = item["factors"]
-        block_mirror = factors["blockMirror"]
-        factors["blockMirrorRoadSide"] = None if block_mirror is None or factors["roadSide"] is None else block_mirror + " " + factors["roadSide"]
-        factors["blockMirrorOpenEnd"] = None if block_mirror is None or factors["openEnd"] is None else block_mirror + " " + factors["openEnd"]
+        plan_rules.joined_factors(item["factors"])
     return found
 
 
@@ -569,6 +567,40 @@ def check_keys(answer, rows, reads, plans, groups, references, allowed):
         raise project_profile.ProfileError("answer keys missing: " + " | ".join(missing) + ". Give them or name each with --allow-missing-key KEY (R272)")
 
 
+def site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block):
+    """R271. The context of every row of past_all.csv from the site as a build sees it: the front of every unit plot of plots.csv
+    with a face, the clusters of the footprint blocks over every unit plot joined with those of the CAD analysis, their sides by the
+    faces of every plot, the side neighbours, the side road, the row pairs and the villas between cluster units. A plot no key holds,
+    such as a cut face, keeps its front, so a row of units is walked through it as a build walks it (Round ADDIN 3a review).
+    Returns the items, the clusters, the fronts, the plots of the table and the tree of the road edges."""
+    numbers = sorted({row["plot"] for row in rows}, key=link_summary.sort_key)
+    units = [number for number, data in book.items() if data.get("typologyRev9") and number in faces]
+    site = sorted(set(numbers) | set(units), key=link_summary.sort_key)
+    clusters = plan_from_book.joined_clusters(plan_from_book.footprint_clusters(site, book, faces, shapes), plan_from_book.numbered_clusters(analysis, number_of))
+    # A face with two plan numbers, such as 476|477, is no plot of its own and leaves its cluster
+    clusters = [cluster for cluster in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]} for cluster in clusters) if len(cluster["plots"]) > 1]
+    corner = settings.get("siteBuild")["corner"]
+    front = plan_from_book.fronts(site, book, faces, roads, cad_links.front_limits(profile, settings.get("analysis")), [], 0.0, profile, corner, sales)
+    frames = {number: item["frame"] for number, item in front.items()}
+    roles = cad_links.cluster_roles(clusters, 0, faces, frames)
+    neighbours = side_neighbours(units, faces, frames, block["sideShare"], profile.get("plot.long_side") / 1000.0)
+    tree = STRtree(roads)
+    side_roads = {number: road_side(faces.get(number), frames.get(number), tree, roads, corner["roadEdgeM"]) for number in numbers}
+    items = contexts(rows, book, sales, faces, roles, neighbours, side_roads, profile, block)
+    # R333. The sides of the clusters of the CAD analysis alone (Q040), the pairs of the rows of units in no cluster and the villas between cluster units
+    analysis_only = [cluster for cluster in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]} for cluster in plan_from_book.numbered_clusters(analysis, number_of))
+                     if len(cluster["plots"]) > 1]
+    analysis_roles = cad_links.cluster_roles(analysis_only, 0, faces, frames)
+    pairs = key_rules.row_pairs(units, neighbours, lambda plot: pair_kind(plot, book, profile, block), lambda plot: plot in roles, block["pairKinds"])
+    for item in items:
+        factors = item["factors"]
+        factors["clusterSideAnalysisOnly"] = analysis_roles[item["plot"]]["side"] if item["plot"] in analysis_roles else "alone"
+        factors["rowPairSide"] = (pairs.get(item["plot"]) or {}).get("side")
+        plan_rules.joined_factors(factors)
+        item["betweenClusters"] = key_rules.between_clusters(item["neighbours"], lambda plot: plot in roles)
+    return items, clusters, front, numbers, tree
+
+
 def overrides(misses, block, models):
     """R272. The override list: every miss of the decisions block.overrideDecisions names, with no real level or coordinate,
     sorted by plot. R330: source is the job of the key, its group of majority.groups, and model the past model file of the key."""
@@ -692,33 +724,9 @@ def run_args(args):
     sheet = json.loads((project_profile.ROOT / "python" / "c3d_probe.json").read_text(encoding="utf-8"))["dataBook"]["locationPlan"]["sales"]
     sales = corner_front.sales_rows(args.sales, sheet["sheet"], sheet["columns"]["plot"])
     roads = cad_analysis.read_road_edges(args.roads, settings.get("analysis")["roadEdgeLayers"])
-    numbers = sorted({row["plot"] for row in rows}, key=link_summary.sort_key)
-    clusters = plan_from_book.footprint_clusters(numbers, book, faces, footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings)))
-    clusters = plan_from_book.joined_clusters(clusters, plan_from_book.numbered_clusters(json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"], number_of))
-    # A face with two plan numbers, such as 476|477, is no plot of its own and leaves its cluster
-    clusters = [cluster for cluster in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]} for cluster in clusters) if len(cluster["plots"]) > 1]
-    corner = settings.get("siteBuild")["corner"]
-    front = plan_from_book.fronts(numbers, book, faces, roads, cad_links.front_limits(profile, settings.get("analysis")), [], 0.0, profile, corner, sales)
-    frames = {number: item["frame"] for number, item in front.items()}
-    roles = cad_links.cluster_roles(clusters, 0, {number: faces[number] for number in numbers if number in faces}, frames)
-    units = [number for number, data in book.items() if data.get("typologyRev9") and number in faces]
-    neighbours = side_neighbours(units, faces, frames, block["sideShare"], profile.get("plot.long_side") / 1000.0)
-    tree = STRtree(roads)
-    side_roads = {number: road_side(faces.get(number), frames.get(number), tree, roads, corner["roadEdgeM"]) for number in numbers}
-    items = contexts(rows, book, sales, faces, roles, neighbours, side_roads, profile, block)
-    # R333. The sides of the clusters of the CAD analysis alone (Q040), the pairs of the rows of units in no cluster and the villas between cluster units
-    analysis_only = [cluster for cluster in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]}
-                                             for cluster in plan_from_book.numbered_clusters(json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"], number_of))
-                     if len(cluster["plots"]) > 1]
-    analysis_roles = cad_links.cluster_roles(analysis_only, 0, {number: faces[number] for number in numbers if number in faces}, frames)
-    pairs = key_rules.row_pairs(units, neighbours, lambda plot: pair_kind(plot, book, profile, block), lambda plot: plot in roles, block["pairKinds"])
-    for item in items:
-        factors = item["factors"]
-        factors["clusterSideAnalysisOnly"] = analysis_roles[item["plot"]]["side"] if item["plot"] in analysis_roles else "alone"
-        side = (pairs.get(item["plot"]) or {}).get("side")
-        factors["rowPairSide"] = side
-        factors["rowPairSideOrBlockMirrorOpenEnd"] = "pair " + side if side else None if factors["blockMirrorOpenEnd"] is None else "alone " + factors["blockMirrorOpenEnd"]
-        item["betweenClusters"] = key_rules.between_clusters(item["neighbours"], lambda plot: plot in roles)
+    analysis = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"]
+    shapes = footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings))
+    items, clusters, front, numbers, tree = site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block)
     for item in items:
         outline, face = item["row"]["genericOutline"], faces.get(item["plot"])
         if outline and face is not None:
@@ -758,7 +766,7 @@ def run_args(args):
     # R331. The coordinates of each key read against the reference key, gaps and names only
     site = key_rules.group_site_facts(reads, block["groups"], block["siteReference"]) if reads else None
     report = {"plots": len(items), "byGroup": dict(Counter(item["group"] for item in items)), "clusters": len(clusters), "clusterPlots": [cluster["plots"] for cluster in clusters],
-              "frontRules": dict(Counter(item["frontRule"] for item in front.values())), "keyDatumsM": datums, "siteFacts": site, **extras, "decisions": results,
+              "frontRules": dict(Counter(front[number]["frontRule"] for number in numbers if number in front)), "keyDatumsM": datums, "siteFacts": site, **extras, "decisions": results,
               "overrideCount": dict(Counter(item["decision"] for item in listing)), "overrideMerge": merged, "overrideCounts": override_source.counts(listing)}
     common.write_json(args.out, report)
     write_overrides(args.overrides, block["overrideNote"], listing)

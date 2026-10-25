@@ -1,31 +1,29 @@
-"""R336. Second method of Round ADDIN 3a: the rules measured on the Parsons keys read again by another route.
+"""R336. Second method of Round ADDIN 3a: the rules measured on the answer keys of majority.check.group read again by another route.
 
 json, csv, openpyxl for the sales sheet and plain math only, no shapely and none of the functions that made the rules. For each
-seed of check.seeds, check.sample plots are drawn in plot order from every Parsons plot of past_all.csv with a link, never from
-the misses of the first method, and every such plot is held as well. Each plot is held again and its verdict, holds or misses, compared with the verdict of the
-first method, which is a miss when the override list of the run names the plot under that decision, else holds.
+seed of check.seeds, check.sample plots are drawn in plot order from every plot of the group in past_all.csv with a link, never
+from the misses of the first method, and every such plot is held as well. Each plot is held again and its verdict, holds or
+misses, compared with the verdict of the first method, which is a miss when the override list of the run names the key and plot
+under that decision, else holds.
 
-- coordinates (R331): each key read by json, its points, angle, project position and levels held against the reference key of
-  its group with its own sums, and the keys that differ compared with siteFacts of majority.json
-- link rotation (R332): the front edge of the baseplan face by its own walk of the edges, a corner plot by the Orientation of
-  the sales sheet read here, the rotation the edge gives with the mirror flag of the key, held within rotationHoldDeg
-- link origin (R332): the origin the refit of linkFits in majority.json gives on that edge, held within linkHoldMm
-- ramp type (R334): the class of the ramp type of the key, else the band of its slope, against the class the coded table of
-  majority.json gives its code
-- ramp outline (R334): the outline of R127 on the own front edge with the setback of the profile, each corner against its own
-  nearest corner of the key ramp within outlineHoldMm
-- yard (R334): the generic floor top less the yard top of past_all.csv against the coded table of majority.json by zone, and
-  the yard outline of the key plan in link axes by its own sums against the refit outline of its unit, mirror and width,
-  the largest distance of a vertex of either to an edge of the other within outlineHoldMm
-- hands (R333): side neighbours by the length of the edges two faces of plots.json share within 5 cm, left or right along the
-  own front, the open end, the side of a second road edge, the cluster side in the clusters majority.json lists and the pair of
-  the row of units in no cluster counted from its right end, each looked up in the table the first method learned for the file
-  of the link
-- parameters (R335): the value of each shared parameter, from past_all.csv or the key read by json, against the factor table
-  or the formula the first method coded, a level parameter against the level of the plot within levelHoldMm
-- walls (R335): each boundary wall of the TU key plans, its base and top against the FFL of its plots and its line by the own
-  distance of its middle to the face edges, check.sample walls at each seed and every wall, against wallMisses of the report,
-  and the front each plot leaves open by its own walk of the walls along the own front, against frontWalled
+Every decision of the group in majority.json is held by the candidate the first method coded, whichever it is: a factor by its
+own value of that factor looked up in the table the first method learned, a formula by its own sums. The fits are made again
+here, never taken from majority.json: the link origin per code (R121), the yard outlines per unit, mirror flag and width (R135)
+and the clusters from the footprint blocks and the CAD analysis (R236). A decision whose coded candidate has no own route, or a
+decision with no route at all, is a failure, listed in cannotCheck and the run ends with 1, unless its field is one of
+majority.overrideKeep.laterFields, left to a later phase, listed in leftForLater.
+
+- coordinates (R331): each key read by json, its points, angle, project position and levels held against the reference key
+- link rotation and the corner front (R332): the front edge of the face by its own walk, frontRule by the Orientation of a corner
+  plot read here, nearestCurb the edge nearest a curb, the rotation with the mirror flag of the key within rotationHoldDeg
+- link origin (R332): the origin the own fit per code, or the plotFrame of config/prototype_offsets.json, gives on that edge
+- ramp type, outline, front and fall (R273, R275, R334), generic floor on the whole face by the exact area the two outlines share,
+  yard depth and outline (R334) against the own refit or config/floor_outlines.json
+- hands (R333): side neighbours by the edges two faces share, the open end, the row, the road side, the clusters made here and
+  the row pairs, looked up in the table the first method learned for the file of the link
+- parameters (R335) by their formula or table, a level parameter within levelHoldMm, the walls (R335) and the open front
+- the merged override list (R330), every entry on a plot past_all.csv gives its key, and the run entries of the fields it does not
+  keep equal to the dry list
 """
 import argparse
 import csv
@@ -33,8 +31,9 @@ import json
 import math
 import random
 import re
+import statistics
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import openpyxl
@@ -43,22 +42,38 @@ ROOT = Path(__file__).resolve().parent.parent
 POINT_FIELDS = (("surveyPoint", "position"), ("surveyPoint", "sharedPosition"), ("basePoint", "position"), ("basePoint", "sharedPosition"))
 OWN_FIELDS = {name + "." + field for name, field in POINT_FIELDS} | {"angleToTrueNorthDeg", "projectPosition"}
 QUADRANTS = {"EN": (0.0, 90.0), "SE": (90.0, 180.0), "WS": (180.0, 270.0), "NW": (270.0, 360.0)}
+# R121: the anchors a link origin is fitted from, a tie going to the first, and the bands the fit counts
+ANCHORS = ("start", "end")
+FIT_BANDS = (0.001, 0.010)
+# R135: a group of fewer plots is fitted on all of them and not split
+MIN_PLOTS = 4
+ROAD = "roadLevel"
 
 
 def read_json(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def ring_area(ring):
+    """The signed area, the sums taken from the first vertex, since products of world coordinates lose the decimals."""
+    x0, y0 = ring[0][0], ring[0][1]
+    local = [(point[0] - x0, point[1] - y0) for point in ring]
+    return sum(local[index][0] * local[(index + 1) % len(local)][1] - local[(index + 1) % len(local)][0] * local[index][1] for index in range(len(local))) / 2.0
+
+
 def shoelace_centre(ring):
+    """The centre of area, the sums taken from the first vertex as ring_area takes them."""
+    x0, y0 = ring[0][0], ring[0][1]
     area, cx, cy = 0.0, 0.0, 0.0
-    for index, (x1, y1) in enumerate(ring):
-        x2, y2 = ring[(index + 1) % len(ring)]
+    for index in range(len(ring)):
+        x1, y1 = ring[index][0] - x0, ring[index][1] - y0
+        x2, y2 = ring[(index + 1) % len(ring)][0] - x0, ring[(index + 1) % len(ring)][1] - y0
         cross = x1 * y2 - x2 * y1
         area += cross
         cx += (x1 + x2) * cross
         cy += (y1 + y2) * cross
     area /= 2.0
-    return (cx / (6.0 * area), cy / (6.0 * area)) if area else (sum(x for x, _ in ring) / len(ring), sum(y for _, y in ring) / len(ring))
+    return (x0 + cx / (6.0 * area), y0 + cy / (6.0 * area)) if area else (sum(x for x, _ in ring) / len(ring), sum(y for _, y in ring) / len(ring))
 
 
 def inside(point, ring):
@@ -70,6 +85,103 @@ def inside(point, ring):
         if (y1 > y) != (y2 > y) and x < x1 + (y - y1) * (x2 - x1) / (y2 - y1):
             hit = not hit
     return hit
+
+
+def counter_clockwise(ring):
+    points = [(point[0], point[1]) for point in ring]
+    if len(points) > 1 and points[0] == points[-1]:
+        points = points[:-1]
+    return points if ring_area(points) >= 0 else points[::-1]
+
+
+def triangles(ring):
+    """The ring cut into triangles by its ears, counter clockwise, for the exact overlap of R336."""
+    points = counter_clockwise(ring)
+    found = []
+    while len(points) > 3:
+        cut = None
+        for index in range(len(points)):
+            a, b, c = points[index - 1], points[index], points[(index + 1) % len(points)]
+            cross = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+            if cross <= 1e-12:
+                continue
+            if any(point_in_triangle(other, a, b, c) for other in points if other not in (a, b, c)):
+                continue
+            cut = index
+            found.append((a, b, c))
+            break
+        if cut is None:
+            # Left with collinear points only, which hold no area
+            return found
+        del points[cut]
+    if len(points) == 3 and ring_area(points) > 0:
+        found.append(tuple(points))
+    return found
+
+
+def point_in_triangle(point, a, b, c):
+    def side(p, q, r):
+        return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+    return side(a, b, point) >= 0 and side(b, c, point) >= 0 and side(c, a, point) >= 0
+
+
+def clip(subject, triangle):
+    """The subject ring clipped by one counter clockwise triangle, edge by edge (Sutherland and Hodgman)."""
+    output = list(subject)
+    for index in range(3):
+        a, b = triangle[index], triangle[(index + 1) % 3]
+        source, output = output, []
+        if not source:
+            break
+        for position, current in enumerate(source):
+            before = source[position - 1]
+            inside_now = (b[0] - a[0]) * (current[1] - a[1]) - (b[1] - a[1]) * (current[0] - a[0]) >= 0
+            inside_before = (b[0] - a[0]) * (before[1] - a[1]) - (b[1] - a[1]) * (before[0] - a[0]) >= 0
+            if inside_now != inside_before:
+                dx, dy = current[0] - before[0], current[1] - before[1]
+                denominator = (b[0] - a[0]) * dy - (b[1] - a[1]) * dx
+                t = ((b[0] - a[0]) * (a[1] - before[1]) - (b[1] - a[1]) * (a[0] - before[0])) / denominator if denominator else 0.0
+                output.append((before[0] + t * dx, before[1] + t * dy))
+            if inside_now:
+                output.append(current)
+    return output
+
+
+def overlap_area(subject, ring):
+    """The area two simple rings share, exact: the subject clipped by each triangle of the other."""
+    shape = counter_clockwise(subject)
+    return sum(ring_area(found) for found in (clip(shape, triangle) for triangle in triangles(ring)) if len(found) >= 3)
+
+
+def wkt_rings(text):
+    """The rings of a POLYGON or MULTIPOLYGON well known text, each part as its outer ring and its holes."""
+    parts, depth, current, ring = [], 0, [], []
+    for token in re.findall(r"\(|\)|[^(),]+|,", text[text.index("("):]):
+        if token == "(":
+            depth += 1
+            ring = []
+        elif token == ")":
+            if ring:
+                current.append(ring)
+                ring = []
+            depth -= 1
+            if depth == (0 if text.lstrip().upper().startswith("POLYGON") else 1) and current:
+                parts.append(current)
+                current = []
+        elif token != ",":
+            values = token.split()
+            if len(values) >= 2:
+                ring.append((float(values[0]), float(values[1])))
+    return parts
+
+
+def whole_face_share(outline, face):
+    """The area a generic outline and its face share over the area of their union, exact by clipping."""
+    parts = wkt_rings(outline)
+    area = sum(abs(ring_area(part[0])) - sum(abs(ring_area(hole)) for hole in part[1:]) for part in parts)
+    shared = sum(overlap_area(part[0], face) - sum(overlap_area(hole, face) for hole in part[1:]) for part in parts)
+    union = area + abs(ring_area(face)) - shared
+    return shared / union if union else None
 
 
 def segment_distance(point, first, second):
@@ -96,6 +208,16 @@ def turn_gap(first, second):
     return min(gap, 360.0 - gap)
 
 
+def band(value, edges):
+    """The label of the first band whose upper edge the value is under, the last label above them all."""
+    if value is None:
+        return None
+    for limit, label in edges:
+        if value < limit:
+            return label
+    return edges[-1][1]
+
+
 def edge_frame(ring, first, second, centre):
     """The frame on an edge: n the unit normal into the plot, r the right hand seen from the road, the ends left and right."""
     length = math.dist(first, second)
@@ -108,26 +230,27 @@ def edge_frame(ring, first, second, centre):
     return {"n": normal, "r": right, "left": left_end, "right": right_end}
 
 
+def curb_frame(ring, curbs, limits):
+    """The front of a face by the edge within limits whose middle is nearest a curb, None with none."""
+    centre = shoelace_centre(ring)
+    candidates = sorted(((curb_distance(((first[0] + second[0]) / 2.0, (first[1] + second[1]) / 2.0), curbs), first, second) for first, second in edges_of(ring)
+                         if limits[0] <= math.dist(first, second) < limits[1]), key=lambda item: item[0])
+    return None if not candidates else edge_frame(ring, candidates[0][1], candidates[0][2], centre)
+
+
 def own_frame(ring, curbs, limits, corner_m, orientation):
     """The front of a face: the edge within limits whose middle is nearest a curb, and on a face with two or more edges whose
     middle lies within corner_m of a curb the one whose outward normal bears into the quadrant of its Orientation, nearest the
     middle of it. None when such a corner face has no Orientation. Returns the frame and the rule."""
     centre = shoelace_centre(ring)
-    edges = [(ring[index], ring[(index + 1) % len(ring)]) for index in range(len(ring))]
-    near = []
-    for first, second in edges:
-        middle = ((first[0] + second[0]) / 2.0, (first[1] + second[1]) / 2.0)
-        near.append((curb_distance(middle, curbs), first, second))
-    candidates = sorted((item for item in near if limits[0] <= math.dist(item[1], item[2]) < limits[1]), key=lambda item: item[0])
-    curb_edge = candidates[0] if candidates else None
-    roads = [item for item in near if item[0] <= corner_m]
+    roads = [(first, second) for first, second in edges_of(ring) if curb_distance(((first[0] + second[0]) / 2.0, (first[1] + second[1]) / 2.0), curbs) <= corner_m]
     if len(roads) < 2:
-        return (None if curb_edge is None else edge_frame(ring, curb_edge[1], curb_edge[2], centre)), "nearestCurb"
+        return curb_frame(ring, curbs, limits), "nearestCurb"
     quadrant = QUADRANTS.get(orientation or "")
     if quadrant is None:
         return None, "noOrientation"
     scored = []
-    for _, first, second in roads:
+    for first, second in roads:
         length = math.dist(first, second)
         normal = (-(second[1] - first[1]) / length, (second[0] - first[0]) / length)
         middle = ((first[0] + second[0]) / 2.0, (first[1] + second[1]) / 2.0)
@@ -162,11 +285,39 @@ def link_axes(frame, mirrored):
     return axis_x, frame["n"]
 
 
+def anchor_point(frame, mirrored, anchor):
+    start, end = (frame["right"], frame["left"]) if mirrored else (frame["left"], frame["right"])
+    return start if anchor == "start" else end
+
+
 def own_origin(frame, mirrored, fit):
     axis_x, axis_y = link_axes(frame, mirrored)
-    start, end = (frame["right"], frame["left"]) if mirrored else (frame["left"], frame["right"])
-    corner = start if fit["anchor"] == "start" else end
+    corner = anchor_point(frame, mirrored, fit["anchor"])
     return (corner[0] + fit["offset"][0] * axis_x[0] + fit["offset"][1] * axis_y[0], corner[1] + fit["offset"][0] * axis_x[1] + fit["offset"][1] * axis_y[1])
+
+
+def own_fits(links):
+    """R121 by its own sums: per code the anchor corner whose offsets in link axes lie nearer their median, the most within 10 mm
+    and then within 1 mm, a tie to start, and the median offset to the mm. links are (code, frame, mirrored, origin)."""
+    rows = defaultdict(lambda: {anchor: [] for anchor in ANCHORS})
+    for code, frame, mirrored, origin in links:
+        axis_x, axis_y = link_axes(frame, mirrored)
+        for anchor in ANCHORS:
+            corner = anchor_point(frame, mirrored, anchor)
+            dx, dy = origin[0] - corner[0], origin[1] - corner[1]
+            rows[code][anchor].append((dx * axis_x[0] + dy * axis_x[1], dx * axis_y[0] + dy * axis_y[1]))
+    fits = {}
+    for code, by_anchor in rows.items():
+        best = None
+        for anchor in ANCHORS:
+            offsets = by_anchor[anchor]
+            middle = (statistics.median(item[0] for item in offsets), statistics.median(item[1] for item in offsets))
+            gaps = [math.dist(item, middle) for item in offsets]
+            score = (sum(1 for gap in gaps if gap <= FIT_BANDS[1] + 1e-9), sum(1 for gap in gaps if gap <= FIT_BANDS[0] + 1e-9))
+            if best is None or score > best[0]:
+                best = (score, anchor, middle)
+        fits[code] = {"anchor": best[1], "offset": [round(best[2][0], 3), round(best[2][1], 3)]}
+    return fits
 
 
 def curb_segments(pieces, layers):
@@ -184,7 +335,7 @@ def curb_segments(pieces, layers):
 
 
 def sales_orientation(path, sheet, plot_column):
-    """The Orientation of each plot of the sales sheet, the header the first row that names the plot column."""
+    """The Orientation and the No. of streets of each plot of the sales sheet, the header the first row that names the plot column."""
     book = openpyxl.load_workbook(path, read_only=True, data_only=True)
     found, header = {}, None
     for row in book[sheet].iter_rows(values_only=True):
@@ -196,7 +347,7 @@ def sales_orientation(path, sheet, plot_column):
         item = dict(zip(header, cells))
         number = item.get(plot_column)
         if number and number.replace(".0", "").isdigit():
-            found[number.replace(".0", "")] = item.get("Orientation")
+            found[number.replace(".0", "")] = {"Orientation": item.get("Orientation"), "No. of streets": item.get("No. of streets")}
     return found
 
 
@@ -206,6 +357,8 @@ def site_check(reads, groups, references, first):
     for group, reference in references.items():
         mine = {key: read_json(path) for key, path in reads.items() if key in groups.get(group, ())}
         if reference not in mine:
+            if mine:
+                found.setdefault(group, {})["missingReference"] = {"differ": [], "match": bool((first.get(group) or {}).get("missingReference"))}
             continue
         base = mine[reference]["documents"][0]
         for key, data in mine.items():
@@ -244,7 +397,9 @@ def straight(ring, tolerance=0.001):
         for index in range(len(points)):
             before, here, after = points[index - 1], points[index], points[(index + 1) % len(points)]
             length = math.dist(before, after)
-            if length and abs((after[0] - before[0]) * (here[1] - before[1]) - (after[1] - before[1]) * (here[0] - before[0])) / length <= tolerance                     and min(before[0], after[0]) - tolerance <= here[0] <= max(before[0], after[0]) + tolerance                     and min(before[1], after[1]) - tolerance <= here[1] <= max(before[1], after[1]) + tolerance:
+            if length and abs((after[0] - before[0]) * (here[1] - before[1]) - (after[1] - before[1]) * (here[0] - before[0])) / length <= tolerance \
+                    and min(before[0], after[0]) - tolerance <= here[0] <= max(before[0], after[0]) + tolerance \
+                    and min(before[1], after[1]) - tolerance <= here[1] <= max(before[1], after[1]) + tolerance:
                 del points[index]
                 changed = True
                 break
@@ -323,55 +478,157 @@ def to_link(points, origin, rotation, mirrored):
     return [((x - origin[0]) * axis_x[0] + (y - origin[1]) * axis_x[1], (x - origin[0]) * axis_y[0] + (y - origin[1]) * axis_y[1]) for x, y in points]
 
 
-def first_misses(overrides, decision):
-    return {item["plot"] for item in overrides if item.get("decision") == decision}
+def own_refit(rows, seed):
+    """R135 by its own sums: per unit, mirror flag and plot width the yard outline of the plot of the fit half whose largest gap to
+    the others of that half is least, a tie to the lower plot, the half split by the seed, a group under MIN_PLOTS fitted on all.
+    rows are dicts with plot, unit, mirrored, width and loops in link axes."""
+    groups = defaultdict(list)
+    for row in rows:
+        groups[(row["unit"], row["mirrored"], row["width"])].append(row)
+    fits = {}
+    for key, members in groups.items():
+        pool = members
+        if len(members) >= MIN_PLOTS:
+            ordered = sorted(members, key=lambda row: int(row["plot"]))
+            random.Random(seed).shuffle(ordered)
+            pool = ordered[:(len(ordered) + 1) // 2]
+        best = min(pool, key=lambda row: (max(own_boundary_gap(row["loops"], other["loops"]) for other in pool), int(row["plot"])))
+        fits[key] = [[(round(x, 3), round(y, 3)) for x, y in loop] for loop in best["loops"]]
+    return fits
 
 
-def parameter_verdicts(row, ctx, settings, report):
-    """R336. Each parameter decision of 3a held again on the row: the value the plot holds, from the parameters of past_all.csv or
-    the key read, against the factor table or the formula the first method coded."""
+def own_clusters(numbers, book, faces, blocks, analysis):
+    """R236 by its own route: per plot the insert of its footprintBlock name whose outline shares the most area with its face,
+    exact by clipping, the plots that share one insert a cluster of two or more in plot order, then each cluster of the CAD
+    analysis by the location plan numbers of its labels less the plots those took, and a face with two plan numbers left out."""
+    by_name = defaultdict(list)
+    for block in blocks:
+        outline = block.get("outline")
+        if outline and len(outline) >= 3:
+            by_name[block.get("name")].append([(point[0], point[1]) for point in outline])
+    groups = defaultdict(list)
+    for number in numbers:
+        row, face = book.get(number), faces.get(number)
+        if row is None or face is None or not row.get("footprintBlock"):
+            continue
+        best, held = None, 0.0
+        for index, outline in enumerate(by_name.get(row["footprintBlock"], [])):
+            share = overlap_area(outline, face)
+            if share > held + 1e-9:
+                best, held = index, share
+        if best is not None:
+            groups[(row["footprintBlock"], best)].append(number)
+    order = lambda plot: (0, int(plot)) if plot.isdigit() else (1, plot)
+    footprint = [sorted(plots, key=order) for _, plots in sorted(groups.items()) if len(plots) > 1]
+    number_of = {row["baseplanLabel"]: number for number, row in book.items() if row.get("baseplanLabel")}
+    taken = {plot for cluster in footprint for plot in cluster}
+    rest = []
+    for cluster in analysis:
+        plots = [number_of[label] for label in cluster["plots"] if label in number_of and number_of[label] not in taken]
+        if len(plots) > 1:
+            rest.append(plots)
+    return [plots for plots in ([plot for plot in cluster if plot.isdigit()] for cluster in footprint + rest) if len(plots) > 1]
+
+
+def analysis_only(book, analysis):
+    """The clusters of the CAD analysis alone by location plan number, for clusterSideAnalysisOnly (Q040)."""
+    number_of = {row["baseplanLabel"]: number for number, row in book.items() if row.get("baseplanLabel")}
+    found = []
+    for cluster in analysis:
+        plots = [number_of[label] for label in cluster["plots"] if label in number_of]
+        plots = [plot for plot in plots if plot.isdigit()]
+        if len(plots) > 1:
+            found.append(plots)
+    return found
+
+
+def parameter_verdicts(row, ctx, settings, report, factors=None):
+    """R336. Each parameter decision of the group held again on the row: the value the plot holds, from the parameters of
+    past_all.csv or the key read, against the factor table or the formula the first method coded, with factors the own values
+    of the factors, else those the row gives itself."""
     block = settings["majority"]
+    group = block["check"]["group"]
     decisions = {item["decision"]: item for item in report["decisions"]}
     values = json.loads(row.get("parameters") or "{}")
     read = ctx["readParameters"].get((row["key"], row["plot"])) or {}
     leave = set(block["kindLeaveOut"].get(row.get("kind") or "", []))
+    factors = dict(factors) if factors is not None else row_factors(row, block)
     facade = [str(values.get(name) or "") for name in block["linkNameFacade"]]
-    own = {"all": "all", "typology": row["typologyRev9"], "typologyMirrored": row["typologyRev9"] + " " + row["mirrored"], "steps": row.get("steps") or None,
-           "typologySteps": None if not row.get("steps") else row["typologyRev9"] + " " + row["steps"], "mirroredFactor": row["mirrored"]}
-    formulas = {"plot": row["plot"], "rev9Code": row["typologyRev9"], "plotAndCode": row["plot"] + " | " + row["typologyRev9"],
-                "plotCodeStepsAndFacade": " | ".join([row["plot"], row["typologyRev9"], row.get("steps") or "None"] + facade)}
-    found = {}
+    formulas = {"plot": lambda: row["plot"], "rev9Code": lambda: row["typologyRev9"], "plotAndCode": lambda: row["plot"] + " | " + row["typologyRev9"],
+                "plotCodeStepsAndFacade": lambda: " | ".join([row["plot"], row["typologyRev9"], row.get("steps") or "None"] + facade)}
+    found, unknown = {}, []
     for name in block["parameterTests"]:
         decision = "parameter " + name
-        coded = decisions.get("parsons " + decision)
+        coded = decisions.get(group + " " + decision)
         value = values.get(name)
         if coded is None or value in (None, "") or "parameter" in leave or decision in leave:
             continue
-        if coded["coded"] in formulas:
-            found[decision] = formulas[coded["coded"]] == str(value)
-        elif coded["coded"] in own:
-            found[decision] = learned(coded["tests"][coded["coded"]]["rule"], "parsons", own[coded["coded"]]) == str(value)
+        verdict = evaluate(coded, factors, formulas, str(value), group, lambda guess, aim: str(guess) == aim)
+        if verdict is None:
+            unknown.append(decision)
+        else:
+            found[decision] = verdict
     for name in block["parameterLevels"]:
         decision = "parameter " + name
-        coded = decisions.get("parsons " + decision)
+        coded = decisions.get(group + " " + decision)
         try:
             value = float(values.get(name) or read.get(name))
         except (TypeError, ValueError):
             continue
         if coded is None or "parameter" in leave or decision in leave:
             continue
-        level = row.get(coded["coded"])
-        found[decision] = bool(level) and abs(value - float(level)) * 1000.0 <= block["levelHoldMm"] + 1e-6
+        levels = {"ffl": lambda: number(row.get("ffl")), "genericTop": lambda: number(row.get("genericTop"))}
+        verdict = evaluate(coded, {}, levels, value, group, lambda guess, aim: abs(guess - aim) * 1000.0 <= block["levelHoldMm"] + 1e-6)
+        if verdict is None:
+            unknown.append(decision)
+        else:
+            found[decision] = verdict
+    if unknown:
+        found["cannotCheck"] = unknown
     return found
 
 
+def number(text):
+    try:
+        return float(text)
+    except (TypeError, ValueError):
+        return None
+
+
+def evaluate(decision, factors, formulas, target, scope, hold):
+    """R336. The own verdict of one plot under the candidate the first method coded, True for holds: a formula by its own sums, a
+    factor by its own value in the table the first method learned, a value neither gives being a miss, as the first method lists a
+    cannot. None when the coded candidate is one this route can not give, a failure of the check."""
+    coded = decision["coded"]
+    if coded in formulas:
+        guess = formulas[coded]()
+    elif coded in factors and "rule" in decision["tests"].get(coded, {}):
+        value = factors[coded]
+        guess = None if value is None else learned(decision["tests"][coded]["rule"], scope, value)
+    else:
+        return None
+    return guess is not None and target is not None and bool(hold(guess, target))
+
+
+def row_factors(row, block):
+    """The factors a row of past_all.csv gives itself, with no geometry: the code, the steps and the mirror flag."""
+    code = row["typologyRev9"] if block["codeFrom"].get(row.get("source") or block["check"]["group"]) == "rev9" else (row.get("keyUnit") or row["typologyRev9"])
+    steps = row.get("steps") or None
+    return {"all": "all", "typology": code, "key": row["key"], "zone": row.get("zone") or None, "nbh": row.get("nbh") or None, "steps": steps,
+            "typologySteps": None if steps is None else code + " " + steps, "mirroredFactor": row["mirrored"], "typologyMirrored": code + " " + row["mirrored"]}
+
+
 def wall_verdicts(ctx, settings, profile, report):
-    """R336. Each boundary wall of the TU key plans held again: its base, top and line, by its own sums, keyed by key and wall id."""
+    """R336. Each boundary wall of the key plans of the group held again: its base, top and line by its own sums under the
+    candidate the first method coded, keyed by key and wall id. A wall whose base constraint no floor of its plan names has no
+    base and no top, and is listed in ctx noBaseLevel when given."""
     block = settings["majority"]
-    coded = {item["decision"].split(" ", 1)[1]: item["coded"] for item in report["decisions"] if item["decision"].startswith("parsons wall")}
-    depth = next((found.get("yardBelowFflM") for found in profile["levelProfiles"].values() if isinstance(found, dict) and found.get("job") == "parsons"), None)
+    group = block["check"]["group"]
+    coded = {item["decision"].split(" ", 1)[1]: item for item in report["decisions"] if item["decision"].startswith(group + " wall")}
+    depth = next((found.get("yardBelowFflM") for found in profile["levelProfiles"].values() if isinstance(found, dict) and found.get("job") == group), None)
     rise = profile["rev6"]["boundary_wall_top_above_ffl"] / 1000.0
     half = profile["plot"]["boundary_wall_thickness"] / 2000.0
+    level_hold = lambda guess, aim: abs(guess - aim) * 1000.0 <= block["levelHoldMm"] + 1e-6
     found = {}
     for key, plan in ctx["fullPlans"].items():
         plots = {entry["plot"]: entry for entry in plan["plots"]}
@@ -383,18 +640,24 @@ def wall_verdicts(ctx, settings, profile, report):
             ffls = [plots[plot]["levels"]["ffl"]["value"] for plot in wall.get("plots") or [] if plot in plots and (plots[plot].get("levels") or {}).get("ffl")]
             if not ffls:
                 continue
-            base = wall["baseOffset"] + levels.get(wall["baseConstraint"], 0.0)
             verdict = {}
-            if coded.get("wallBase") == "yardLevelOfTheHigherPlot" and depth is not None:
-                verdict["wallBase"] = abs(base - (max(ffls) - depth)) * 1000.0 <= block["levelHoldMm"] + 1e-6
-            if coded.get("wallTop") == "higherFflPlusRev6":
-                verdict["wallTop"] = abs(base + wall["heightM"] - (max(ffls) + rise)) * 1000.0 <= block["levelHoldMm"] + 1e-6
+            level = levels.get(wall["baseConstraint"])
+            if level is None:
+                ctx.setdefault("noBaseLevel", []).append({"key": key, "elementId": wall["elementId"], "baseConstraint": wall["baseConstraint"]})
+            else:
+                base = wall["baseOffset"] + level
+                bases = {"yardLevelOfTheLowerPlot": lambda: None if depth is None else min(ffls) - depth,
+                         "yardLevelOfTheHigherPlot": lambda: None if depth is None else max(ffls) - depth}
+                tops = {"higherFflPlusRev6": lambda: max(ffls) + rise, "lowerFflPlusRev6": lambda: min(ffls) + rise}
+                for word, formulas, target in (("wallBase", bases, base), ("wallTop", tops, base + wall["heightM"])):
+                    if word in coded:
+                        verdict[word] = evaluate(coded[word], {}, formulas, target, group, level_hold)
             rings = [ctx["faces"][plot] for plot in wall.get("plots") or [] if plot in ctx["faces"]]
-            if coded.get("wallLine") == "centreOnTheEdge" and rings:
+            if "wallLine" in coded and rings:
                 middle = ((wall["start"][0] + wall["end"][0]) / 2.0, (wall["start"][1] + wall["end"][1]) / 2.0)
                 distance = min(segment_distance(middle, a, b) for ring in rings for a, b in edges_of(ring))
-                want = 0.0 if wall.get("locationLine") in block["wallCentreCodes"] else half
-                verdict["wallLine"] = abs(distance - want) <= block["outlineHoldMm"] / 1000.0 + 1e-9
+                lines = {"centreOnTheEdge": lambda: 0.0 if wall.get("locationLine") in block["wallCentreCodes"] else half}
+                verdict["wallLine"] = evaluate(coded["wallLine"], {}, lines, distance, group, lambda guess, aim: abs(guess - aim) <= block["outlineHoldMm"] / 1000.0 + 1e-9)
             found[(key, wall["elementId"])] = verdict
     return found
 
@@ -421,9 +684,11 @@ def own_front_cover(frame, walls, near):
     return covered / length
 
 
-def plot_context(args, settings, profile, report):
-    """Everything the own routes read, once: faces, curbs, Orientation, unit plots, side neighbours, clusters and key plans."""
+def plot_context(args, settings, profile, report, table):
+    """Everything the own routes read, once: faces, curbs, Orientation, unit plots, side neighbours, the clusters made here, the
+    fits made here and the key plans."""
     block = settings["majority"]
+    group = block["check"]["group"]
     with open(args.plots_csv, encoding="utf-8") as handle:
         book = {row["locationPlanNumber"]: row for row in csv.DictReader(handle) if row.get("locationPlanNumber")}
     rings = {}
@@ -433,16 +698,21 @@ def plot_context(args, settings, profile, report):
     faces = {number: straight(rings[row["baseplanLabel"]][0]) for number, row in book.items() if len(rings.get(row.get("baseplanLabel") or "", [])) == 1}
     curbs = curb_segments(read_json(Path(args.roads) / "pieces.json")["pieces"], settings["analysis"]["roadEdgeLayers"])
     sheet = read_json(ROOT / "python" / "c3d_probe.json")["dataBook"]["locationPlan"]["sales"]
-    orientation = sales_orientation(args.sales, sheet["sheet"], sheet["columns"]["plot"])
+    sales = sales_orientation(args.sales, sheet["sheet"], sheet["columns"]["plot"])
     widths = [entry["plot_width_m"] for entry in profile["typologies"].values() if isinstance(entry.get("plot_width_m"), (int, float))]
     limits = (min(widths) - settings["analysis"]["toleranceM"], settings["analysis"]["partyWallShare"] * profile["plot"]["long_side"] / 1000.0)
     corner_m = settings["siteBuild"]["corner"]["roadEdgeM"]
-    frames = {}
+    frames, curb_frames = {}, {}
 
     def frame_of(plot):
         if plot not in frames:
-            frames[plot] = (None, "noFace") if plot not in faces else own_frame(faces[plot], curbs, limits, corner_m, orientation.get(plot))
+            frames[plot] = (None, "noFace") if plot not in faces else own_frame(faces[plot], curbs, limits, corner_m, (sales.get(plot) or {}).get("Orientation"))
         return frames[plot]
+
+    def curb_frame_of(plot):
+        if plot not in curb_frames:
+            curb_frames[plot] = None if plot not in faces else curb_frame(faces[plot], curbs, limits)
+        return curb_frames[plot]
     units = [number for number, row in book.items() if row.get("typologyRev9") and number in faces]
     boxes = {number: (min(x for x, _ in faces[number]), min(y for _, y in faces[number]), max(x for x, _ in faces[number]), max(y for _, y in faces[number]))
              for number in units}
@@ -468,34 +738,76 @@ def plot_context(args, settings, profile, report):
                     found["left" if along < 0 else "right"].append(other)
             sides[plot] = found
         return sides[plot]
-    # A cluster gives its plots a side only when every plot is a plot of past_all.csv with a face and one has a front, as R271 gives them (R123)
-    member = {plot: cluster for cluster in report.get("clusterPlots") or []
-              if all(other in faces and other in args.table_plots for other in cluster) and any(frame_of(other)[0] is not None for other in cluster) for plot in cluster}
-    kind = lambda plot: (profile["typologies"].get((book.get(plot) or {}).get("typologyRev9") or "") or {}).get("kind")
+    # R236. The clusters made again from the footprint blocks and the analysis, never taken from majority.json
+    analysis = read_json(args.analysis)["clusters"]
+    site = sorted({row["plot"] for row in table} | set(units))
+    # R300. The villa blocks pass the guard of the reference only drawings, an input check and no function that made the rules
+    import project_profile
+    blocks = project_profile.read_villa_blocks(args.footprint_blocks, project_profile.load_settings(args.settings))["blocks"]
+    clusters = own_clusters(site, book, faces, blocks, analysis)
+    # A cluster gives its plots a side when every plot has a face and one has a front, the site as a build sees it (R123, R271)
+    member = {plot: cluster for cluster in clusters if all(other in faces for other in cluster) and any(frame_of(other)[0] is not None for other in cluster) for plot in cluster}
+    analysis_member = {plot: cluster for cluster in analysis_only(book, analysis)
+                       if all(other in faces for other in cluster) and any(frame_of(other)[0] is not None for other in cluster) for plot in cluster}
+
+    def kind(plot):
+        code = (book.get(plot) or {}).get("typologyRev9") or ""
+        found = (profile["typologies"].get(code) or {}).get("kind")
+        return found or next((value for prefix, value in block["kindByPrefix"].items() if code.startswith(prefix)), None)
     full = {key: read_json(path) for key, path in args.key_plan}
     plans = {key: {entry["plot"]: entry for entry in plan["plots"]} for key, plan in full.items()}
     read_parameters = {}
     for key, path in args.key_read:
         for link in read_json(path)["documents"][0].get("links") or []:
-            number = str((link.get("parameters") or {}).get("RRE_ZZ_SP_Plot-Number") or "").strip()
-            if number:
-                read_parameters[(key, number)] = None if (key, number) in read_parameters else link["parameters"]
-    groups = ((report.get("yardOutlineGroups") or {}).get("parsons") or {}).get("refitLoops") or []
-    refit = {(group["unit"], group["mirrored"], group["width"]): group["loops"] for group in groups}
-    return {"book": book, "faces": faces, "frame": frame_of, "sides": sides_of, "member": member, "kind": kind, "plans": plans, "refit": refit,
-            "step": settings["cadLinks"]["floorWidthStepM"], "curbs": curbs, "cornerM": corner_m, "fullPlans": full,
-            "readParameters": {pair: found for pair, found in read_parameters.items() if found is not None}}
+            plot = str((link.get("parameters") or {}).get(block["linkPlotParameter"]) or "").strip()
+            if plot:
+                read_parameters[(key, plot)] = None if (key, plot) in read_parameters else link["parameters"]
+    step = settings["cadLinks"]["floorWidthStepM"]
+    ctx = {"book": book, "faces": faces, "frame": frame_of, "curbFrame": curb_frame_of, "sides": sides_of, "member": member, "analysisMember": analysis_member,
+           "clusters": clusters, "kind": kind, "plans": plans, "step": step, "curbs": curbs, "cornerM": corner_m, "fullPlans": full, "sales": sales,
+           "readParameters": {pair: found for pair, found in read_parameters.items() if found is not None}}
+    # R121, R332. The link origin fitted again per code on every link of the group with a front, by the own frames
+    links = [(own_code(row, block), frame_of(row["plot"])[0], row["mirrored"] == "True", (float(row["x"]), float(row["y"]))) for row in table
+             if row["source"] == group and row["x"] and row["mirrored"] in ("True", "False") and row["rotationDeg"] and frame_of(row["plot"])[0] is not None]
+    ctx["fits"] = own_fits(links)
+    ctx["plotFrame"] = read_json(ROOT / "config" / "prototype_offsets.json")["plotFrame"]["units"]
+    # R135, R334. The yard outlines fitted again per unit, mirror flag and width on the key plans of the group, in link axes
+    rows = []
+    for key, plan in full.items():
+        if key not in block["groups"][group]:
+            continue
+        for entry in plan["plots"]:
+            floor, frame = (entry.get("floors") or {}).get("yard"), frame_of(entry["plot"])[0]
+            if floor is None or frame is None:
+                continue
+            loops = [to_link(loop["points"], entry["insert"]["value"], entry["rotationDeg"]["value"], entry["mirrored"]["value"]) for loop in floor["outline"]["value"]["loops"]]
+            rows.append({"plot": entry["plot"], "key": key, "unit": entry["unit"]["value"], "mirrored": entry["mirrored"]["value"], "loops": loops,
+                         "width": round(round(math.dist(frame["left"], frame["right"]) / step) * step, 3)})
+    ctx["yardRows"] = {(row["key"], row["plot"]): row for row in rows}
+    ctx["refit"] = own_refit(rows, block["check"]["seeds"][0])
+    ctx["fitted"] = {(item["unit"], item["mirrored"], item["width"]): item["loops"] for item in read_json(ROOT / "config" / "floor_outlines.json")["outlines"]["yard"]}
+    ctx["rows"] = {(row["key"], row["plot"]): row for row in table}
+    return ctx
 
 
-def cluster_side(plot, cluster, ctx):
-    """The side of a plot in its cluster, the plots put left to right along the own front of the first plot of the cluster with one."""
+def own_code(row, block):
+    return row["typologyRev9"] if block["codeFrom"].get(row["source"]) == "rev9" else (row.get("keyUnit") or row["typologyRev9"])
+
+
+def cluster_role(plot, cluster, ctx):
+    """The side and index of a plot in its cluster, the plots put left to right along the own front of the first plot with one."""
     frame = next((ctx["frame"](other)[0] for other in cluster if ctx["frame"](other)[0] is not None), None)
     if frame is None or any(other not in ctx["faces"] for other in cluster):
         return None
     along = {other: shoelace_centre(ctx["faces"][other])[0] * frame["r"][0] + shoelace_centre(ctx["faces"][other])[1] * frame["r"][1] for other in cluster}
     ordered = sorted(cluster, key=lambda other: along[other])
     index, count = ordered.index(plot), len(ordered)
-    return "left" if index < (count - 1) / 2 else "right" if index > (count - 1) / 2 else "middle"
+    return {"side": "left" if index < (count - 1) / 2 else "right" if index > (count - 1) / 2 else "middle", "index": index + 1}
+
+
+def cluster_side(plot, cluster, ctx):
+    role = cluster_role(plot, cluster, ctx)
+    return None if role is None else role["side"]
 
 
 def row_sides(plot, ctx, counted):
@@ -510,72 +822,189 @@ def row_sides(plot, ctx, counted):
     return found
 
 
-def held(row, ctx, settings, profile, report):
-    """R336. The own verdict, True for holds, of every decision of 3a that holds this plot, and the rule of its front."""
+def entry_of(row, block):
+    """El @ Entry of a row, None where a key parameter is off its own ramp back by more than entryRampM (R270)."""
+    entry, back = number(row.get("entry")), number(row.get("rampBack"))
+    if entry is None:
+        return None
+    if row.get("entrySource") == "floorParameter" and back is not None and abs(entry - back) > block["entryRampM"]:
+        return None
+    return entry
+
+
+def road_of(data, surface):
+    left, right = (data.get("roadLevelLeft"), data.get("roadLevelRight")) if surface == ROAD else (data.get("level_" + surface + "_left"), data.get("level_" + surface + "_right"))
+    if left in (None, "") or right in (None, ""):
+        return None
+    return (float(left) + float(right)) / 2.0
+
+
+def own_class(row, block):
+    """R273. The ramp slope class of the key ramp: from its type name, else the band of its slope."""
+    named = block["rampTypeClass"].get(row.get("rampType") or "")
+    return named if named is not None else band(number(row.get("rampSlopePercent")), block["slopeBands"])
+
+
+def own_factors(row, ctx, block, profile):
+    """Every factor of R271 this route gives a plot again by its own sums."""
+    factors = row_factors(row, block)
+    plot, data = row["plot"], ctx["book"].get(row["plot"]) or {}
+    frame = ctx["frame"](plot)[0]
+    here = ctx["sides"](plot)
+    mirror_block = {"yes": "yes", "no": "no"}.get(data.get("footprintMirrored"))
+    open_end = None if frame is None else "both" if not here["left"] and not here["right"] else "left" if not here["left"] else "right" if not here["right"] else "none"
+    road = own_road_side(ctx["faces"][plot], ctx["curbs"], frame, ctx["cornerM"]) if plot in ctx["faces"] else None
+    unit = plot in ctx["faces"] and bool(data.get("typologyRev9"))
+    left, at, seen = 0, plot, {plot}
+    while unit:
+        beside = [other for other in ctx["sides"](at)["left"] if other not in seen]
+        if len(beside) != 1:
+            break
+        at = beside[0]
+        seen.add(at)
+        left += 1
+    role = cluster_role(plot, ctx["member"][plot], ctx) if plot in ctx["member"] else None
+    analysis_role = cluster_role(plot, ctx["analysisMember"][plot], ctx) if plot in ctx["analysisMember"] else None
+    counted = lambda other: ctx["kind"](other) in block["pairKinds"] and other not in ctx["member"] and other.isdigit()
+    pair = own_pair_side(plot, row_sides(plot, ctx, counted), counted) if counted(plot) else None
+    sale = ctx["sales"].get(plot) or {}
+    streets = sale.get("No. of streets")
+    depth = number(data.get("depthM"))
+    entry, road_mean = entry_of(row, block), road_of(data, ROAD)
+    setbacks = profile["ramp"]["front_setback"]
+    ramp_depth = setbacks.get(row["typologyRev9"], setbacks["default"]) / 1000.0
+    factors.update({
+        "blockMirror": mirror_block, "openEnd": open_end, "roadSide": road, "rowParity": None if not unit else ("odd" if left % 2 == 0 else "even"),
+        "clusterSide": "alone" if plot not in ctx["member"] else (role or {}).get("side"),
+        "clusterSideAnalysisOnly": "alone" if plot not in ctx["analysisMember"] else (analysis_role or {}).get("side"),
+        "clusterIndexParity": "alone" if plot not in ctx["member"] else None if role is None else ("odd" if role["index"] % 2 else "even"),
+        "orientation": sale.get("Orientation") or None, "corner": None if streets is None else ("yes" if (number(streets) or 0) >= 2 else "no"),
+        "rowPairSide": pair, "depthBand": band(depth, block["depthBands"]), "measuredBand": band(number(row.get("rampSlopePercent")), block["slopeBands"]),
+        "heightOverRoad": None if entry is None or road_mean is None else band((entry - road_mean) / ramp_depth * 100.0, block["slopeBands"]),
+        "heightBand": band(number(row.get("height")), block["heightBands"]),
+    })
+    factors["blockMirrorOpenEnd"] = None if mirror_block is None or open_end is None else mirror_block + " " + open_end
+    factors["blockMirrorRoadSide"] = None if mirror_block is None or road is None else mirror_block + " " + road
+    factors["rowPairSideOrBlockMirrorOpenEnd"] = "pair " + pair if pair else None if factors["blockMirrorOpenEnd"] is None else "alone " + factors["blockMirrorOpenEnd"]
+    # R273. The class most side neighbours of the same key take, of the rows the ramp decision holds
+    votes = Counter()
+    for other in here["left"] + here["right"]:
+        neighbour = ctx["rows"].get((row["key"], other))
+        if neighbour is not None and "rampSlope" not in block["kindLeaveOut"].get(neighbour.get("kind") or "", ()):
+            found = own_class(neighbour, block)
+            if found is not None:
+                votes[found] += 1
+    factors["neighbour"] = votes.most_common(1)[0][0] if votes else None
+    return factors
+
+
+def key_datum(rows, ctx, surface, target):
+    """R275. The median gap of the key value over the road of a surface, per key, over the rows that hold both."""
+    gaps = defaultdict(list)
+    for row in rows:
+        road, value = road_of(ctx["book"].get(row["plot"]) or {}, surface), target(row)
+        if road is not None and value is not None:
+            gaps[row["key"]].append(value - road)
+    return {key: statistics.median(values) for key, values in gaps.items()}
+
+
+def held(row, ctx, settings, profile, report, datums):
+    """R336. The own verdict, True for holds, of every decision of 3a that holds this plot, the decisions whose coded candidate
+    this route can not give, and the rule of its front."""
     block = settings["majority"]
+    group = block["check"]["group"]
     decisions = {item["decision"]: item for item in report["decisions"]}
+    leave = set(block["kindLeaveOut"].get(row.get("kind") or "", []))
     plot, mirrored = row["plot"], row["mirrored"] == "True"
     frame, rule = ctx["frame"](plot)
-    found = {}
-    found["linkRotation"] = frame is not None and turn_gap(angle_of(link_axes(frame, mirrored)[0]), float(row["rotationDeg"])) <= block["rotationHoldDeg"] + 1e-9
-    fits = report["linkFits"]["parsons"]
-    fit = fits.get(row["typologyRev9"]) or fits.get((profile["typologies"].get(row["typologyRev9"]) or {}).get("keo_file"))
-    found["linkOrigin"] = (frame is not None and fit is not None
-                           and math.dist(own_origin(frame, mirrored, fit), (float(row["x"]), float(row["y"]))) * 1000.0 <= block["linkHoldMm"] + 1e-6)
-    tu = row.get("kind") != "SE"
-    coded = decisions.get("parsons rampSlope")
-    if tu and coded is not None and coded["coded"] == "typology":
-        own_class = block["rampTypeClass"].get(row.get("rampType") or "")
-        if own_class is None and row.get("rampSlopePercent"):
-            slope = float(row["rampSlopePercent"])
-            own_class = next((label for limit, label in block["slopeBands"] if slope < limit), block["slopeBands"][-1][1])
-        if own_class is not None:
-            found["rampSlope"] = learned(coded["tests"]["typology"]["rule"], "parsons", row["typologyRev9"]) == own_class
-    if tu and row.get("rampCorners"):
+    factors = own_factors(row, ctx, block, profile)
+    data = ctx["book"].get(plot) or {}
+    code = own_code(row, block)
+    typologies = profile["typologies"]
+    found, unknown = {}, []
+
+    def judge(word, formulas, target, hold, scope=group, plain=None):
+        decision = decisions.get(group + " " + word)
+        if decision is None or word.split(" ")[0] in leave or word in leave or target is None:
+            return
+        verdict = evaluate(decision, plain if plain is not None else factors, formulas, target, scope, hold)
+        if verdict is None:
+            unknown.append(word)
+        else:
+            found[word] = verdict
+
+    rotation_hold = lambda guess, aim: turn_gap(angle_of(guess), aim) <= block["rotationHoldDeg"] + 1e-9
+    axes = lambda chosen: None if chosen is None else link_axes(chosen, mirrored)[0]
+    rotations = {"frontRule": lambda: axes(frame), "nearestCurb": lambda: axes(ctx["curbFrame"](plot))}
+    judge("linkRotation", rotations, float(row["rotationDeg"]), rotation_hold, plain={})
+    if rule == block["cornerFrontRule"]:
+        judge("frontCorner", rotations, float(row["rotationDeg"]), rotation_hold, plain={})
+
+    def origin_by(fits):
+        fit = fits.get(code) or fits.get((typologies.get(code) or {}).get("keo_file"))
+        return None if fit is None or frame is None else own_origin(frame, mirrored, fit)
+    judge("linkOrigin", {"plotFrameRefit": lambda: origin_by(ctx["fits"]), "plotFrame": lambda: origin_by(ctx["plotFrame"])}, (float(row["x"]), float(row["y"])),
+          lambda guess, aim: math.dist(guess, aim) * 1000.0 <= block["linkHoldMm"] + 1e-6, plain={})
+    if row.get("rampType") or row.get("rampSlopePercent"):
+        judge("rampSlope", {}, own_class(row, block), lambda guess, aim: guess == aim)
+    if row.get("rampCorners"):
         corners = [(corner[0], corner[1]) for corner in json.loads(row["rampCorners"])]
         if len(corners) == 4:
             setbacks = profile["ramp"]["front_setback"]
             depth = setbacks.get(row["typologyRev9"], setbacks["default"]) / 1000.0
-            found["rampOutline"] = frame is not None and own_corner_gap(own_ramp(frame, depth), corners) <= block["outlineHoldMm"] / 1000.0 + 1e-9
-    coded = decisions.get("parsons yard")
-    if tu and coded is not None and coded["coded"] == "zone":
-        top = row.get("genericTop") or row.get("ffl")
-        depth = "noYard" if not row.get("yardTop") else None if not top else "%.3f" % (float(top) - float(row["yardTop"]))
-        if depth is not None:
-            found["yard"] = learned(coded["tests"]["zone"]["rule"], "parsons", row.get("zone")) == depth
-    entry = (ctx["plans"].get(row["key"]) or {}).get(plot)
-    yard = ((entry or {}).get("floors") or {}).get("yard")
-    if tu and yard and frame is not None and ctx["refit"]:
-        width = round(round(math.dist(frame["left"], frame["right"]) / ctx["step"]) * ctx["step"], 3)
-        loops = [to_link(loop["points"], entry["insert"]["value"], entry["rotationDeg"]["value"], entry["mirrored"]["value"]) for loop in yard["outline"]["value"]["loops"]]
-        group = ctx["refit"].get((entry["unit"]["value"], entry["mirrored"]["value"], width))
-        found["yardOutline"] = group is not None and own_boundary_gap(group, loops) <= block["outlineHoldMm"] / 1000.0 + 1e-9
-    kind = (profile["typologies"].get(row["typologyRev9"]) or {}).get("kind")
+            judge("rampOutline", {"outlineR127": lambda: None if frame is None else own_ramp(frame, depth)}, corners,
+                  lambda guess, aim: own_corner_gap(guess, aim) <= block["outlineHoldMm"] / 1000.0 + 1e-9, plain={})
+    level_hold = lambda guess, aim: abs(guess - aim) * 1000.0 <= block["levelHoldMm"] + 1e-6
+    front = number(row.get("rampFront"))
+    if front is not None:
+        surfaces = [ROAD] + sorted({column[len("level_"):-len("_left")] for column in data if column.startswith("level_") and column.endswith("_left")})
+        formulas = {}
+        for surface in surfaces:
+            formulas[surface] = lambda surface=surface: road_of(data, surface)
+            formulas[surface + " less the datum of each key"] = (lambda surface=surface: None if road_of(data, surface) is None or row["key"] not in datums.get(surface, {})
+                                                                 else road_of(data, surface) + datums[surface][row["key"]])
+        judge("rampFront", formulas, front, level_hold, plain={})
+    fall = number(row.get("rampFrontFall"))
+    if fall is not None:
+        left, right = number(data.get("roadLevelLeft")), number(data.get("roadLevelRight"))
+        judge("rampFrontFall", {"levelFront": lambda: 0.0, "roadAtEachCorner": lambda: None if left is None or right is None else abs(left - right)}, fall, level_hold, plain={})
+    if row.get("genericOutline") and plot in ctx["faces"]:
+        share = whole_face_share(row["genericOutline"], ctx["faces"][plot])
+        if share is not None:
+            judge("generic", {}, "wholeFace" if share >= block["wholeFaceShare"] else "partOfFace", lambda guess, aim: guess == aim)
+    top = number(row.get("genericTop")) if row.get("genericTop") else number(row.get("ffl"))
+    yard_depth = "noYard" if not row.get("yardTop") else None if top is None else "%.3f" % (top - float(row["yardTop"]))
+    judge("yard", {}, yard_depth, lambda guess, aim: guess == aim)
+    yard_row = ctx["yardRows"].get((row["key"], plot))
+    if yard_row is not None:
+        outlines = {"fittedOutlineRefit": lambda: ctx["refit"].get((yard_row["unit"], yard_row["mirrored"], yard_row["width"])),
+                    "fittedOutline": lambda: ctx["fitted"].get((yard_row["unit"], yard_row["mirrored"], yard_row["width"]))}
+        judge("yardOutline", outlines, yard_row["loops"], lambda guess, aim: own_boundary_gap(guess, aim) <= block["outlineHoldMm"] / 1000.0 + 1e-9, plain={})
+    kind = ctx["kind"](plot)
     unit_class = "villa" if kind == "villa" else "cluster" if plot in ctx["member"] else "alone"
-    coded = decisions.get("parsons hand " + unit_class)
-    if coded is not None:
-        here = ctx["sides"](plot)
-        mirror_block = {"yes": "yes", "no": "no"}.get((ctx["book"].get(plot) or {}).get("footprintMirrored"))
-        open_end = None if frame is None else "both" if not here["left"] and not here["right"] else "left" if not here["left"] else "right" if not here["right"] else "none"
-        value = None
-        if coded["coded"] == "blockMirrorOpenEnd":
-            value = None if mirror_block is None or open_end is None else mirror_block + " " + open_end
-        elif coded["coded"] == "blockMirrorRoadSide":
-            road = own_road_side(ctx["faces"][plot], ctx["curbs"], frame, ctx["cornerM"]) if plot in ctx["faces"] else None
-            value = None if mirror_block is None or road is None else mirror_block + " " + road
-        elif coded["coded"] == "clusterSide":
-            value = cluster_side(plot, ctx["member"][plot], ctx)
-        elif coded["coded"] == "rowPairSideOrBlockMirrorOpenEnd":
-            counted = lambda other: ctx["kind"](other) in block["pairKinds"] and other not in ctx["member"]
-            side = own_pair_side(plot, row_sides(plot, ctx, counted), counted)
-            value = "pair " + side if side else None if mirror_block is None or open_end is None else "alone " + mirror_block + " " + open_end
-        found["hand " + unit_class] = value is not None and learned(coded["tests"][coded["coded"]]["rule"], ("parsons", row["linkFile"]), value) == mirrored
-    found.update(parameter_verdicts(row, ctx, settings, report))
+    judge("hand " + unit_class, {}, mirrored, lambda guess, aim: guess == aim, scope=(group, row["linkFile"]))
+    verdicts = parameter_verdicts(row, ctx, settings, report, factors)
+    unknown.extend(verdicts.pop("cannotCheck", []))
+    found.update(verdicts)
     walls = [wall for wall in (ctx["fullPlans"].get(row["key"]) or {}).get("walls") or []
              if plot in (wall.get("plots") or []) and re.search(block["wallTypes"]["boundary"], wall.get("type") or "")]
-    if tu and frame is not None and row["key"] in ctx["fullPlans"] and "parsons frontOpen" in decisions:
-        found["frontOpen"] = own_front_cover(frame, walls, settings["keyPlans"]["wallEdgeM"]) <= block["frontOpenShare"] + 1e-9
-    return found, rule
+    if frame is not None and row["key"] in ctx["fullPlans"]:
+        cover = own_front_cover(frame, walls, settings["keyPlans"]["wallEdgeM"])
+        judge("frontOpen", {}, "open" if cover <= block["frontOpenShare"] + 1e-9 else "walled", lambda guess, aim: guess == aim)
+    return found, unknown, rule
+
+
+def merged_check(merged, dry, table, keep, later):
+    """R330. The list a run merged: every entry on a plot past_all.csv gives its key, and per job the entries of the fields it does
+    not keep equal to the entries of the dry list of that run, as JSON text, so a kept entry of a cut plot is found."""
+    joined = {(row["key"], row["plot"]) for row in table}
+    off = [{name: item.get(name) for name in ("key", "plot", "field", "source")} for item in merged if (item.get("key"), str(item["plot"])) not in joined]
+    kept = lambda item: item["source"] in keep and (keep[item["source"]] is None or item["field"] in keep[item["source"]])
+    text = lambda items: Counter(json.dumps(item, sort_keys=True, ensure_ascii=False) for item in items)
+    mine, theirs = text(item for item in merged if not kept(item)), text(item for item in dry if not kept(item))
+    return {"entries": len(merged), "offJoin": off, "runEntriesEqualDry": mine == theirs, "onlyMerged": sum((mine - theirs).values()), "onlyDry": sum((theirs - mine).values()),
+            "bySource": dict(sorted(Counter(item["source"] for item in merged).items())), "byHand": sum(1 for item in merged if item.get("byHand") is True),
+            "laterFieldsInRun": sorted({item["field"] for item in dry if item["field"] in later})}
 
 
 def main(argv=None):
@@ -583,11 +1012,14 @@ def main(argv=None):
     parser.add_argument("--settings", default=str(ROOT / "config" / "project.json"))
     parser.add_argument("--past-all", required=True)
     parser.add_argument("--majority", required=True, help="majority.json of the run")
-    parser.add_argument("--overrides", required=True, help="the override list the run wrote")
+    parser.add_argument("--overrides", required=True, help="the override list the dry run wrote, every miss of the run")
+    parser.add_argument("--merged", help="the override list the write run merged, config/overrides, held against the dry one and the join")
     parser.add_argument("--plots-csv", required=True)
     parser.add_argument("--baseplan", required=True)
     parser.add_argument("--roads", required=True, help="folder with pieces.json")
     parser.add_argument("--sales", required=True)
+    parser.add_argument("--analysis", required=True, help="analysis.json of the CAD analysis, its clusters")
+    parser.add_argument("--footprint-blocks", required=True, help="blocks.json of the Building Footprint drawing")
     parser.add_argument("--key-read", nargs=2, action="append", metavar=("KEY", "FILE"), default=[])
     parser.add_argument("--key-plan", nargs=2, action="append", metavar=("KEY", "FILE"), default=[])
     parser.add_argument("--out", required=True)
@@ -597,34 +1029,45 @@ def main(argv=None):
         return 2
     settings = read_json(args.settings)
     block = settings["majority"]
+    group = block["check"]["group"]
     profile = read_json(ROOT / settings["profile"])
     check = block["check"]
     report = read_json(args.majority)
-    misses = {}
-    for item in read_json(args.overrides)["overrides"]:
-        misses.setdefault(item.get("decision"), set()).add(item["plot"])
+    dry = read_json(args.overrides)["overrides"]
+    misses = defaultdict(set)
+    for item in dry:
+        misses[item.get("decision")].add((item.get("key"), str(item["plot"])))
     with open(args.past_all, encoding="utf-8") as handle:
         table = list(csv.DictReader(handle))
-    rows = [row for row in table if row["source"] == "parsons" and row["x"] and row["rotationDeg"] and row["mirrored"] in ("True", "False")]
-    args.table_plots = {row["plot"] for row in table}
-    ctx = plot_context(args, settings, profile, report)
+    rows = [row for row in table if row["source"] == group and row["x"] and row["rotationDeg"] and row["mirrored"] in ("True", "False")]
+    ctx = plot_context(args, settings, profile, report, table)
+    # R275. The datum of each key per surface, over the rows the ramp front decision holds
+    fronts = [row for row in table if row["source"] == group and number(row.get("rampFront")) is not None and "rampFront" not in block["kindLeaveOut"].get(row.get("kind") or "", ())]
+    surfaces = {ROAD} | {column[len("level_"):-len("_left")] for column in next(iter(ctx["book"].values())) if column.startswith("level_") and column.endswith("_left")}
+    datums = {surface: key_datum(fronts, ctx, surface, lambda row: number(row.get("rampFront"))) for surface in surfaces}
     plots = sorted(rows, key=lambda row: (row["key"], int(row["plot"])))
     samples = {str(seed): sorted(random.Random(seed).sample(plots, check["sample"]), key=lambda row: (row["key"], int(row["plot"]))) for seed in check["seeds"]}
     # Every plot as well as the samples, so a rare miss no sample draws is still held
     samples["every"] = plots
-    walled = {tuple(item.split(" ")) for item in (report.get("frontWalled") or {}).get("parsons") or []}
-    for key, plot in walled:
-        misses.setdefault("parsons frontOpen", set()).add(plot)
-    verdicts, seeds = {}, {}
+    # frontCorner writes no override, its plots are held against the entries of the link rotation, the same rule on the corner plots
+    coded = {item["decision"]: item["coded"] for item in report["decisions"]}
+    if coded.get(group + " frontCorner") == coded.get(group + " linkRotation"):
+        misses[group + " frontCorner"] = misses[group + " linkRotation"]
+    for item in (report.get("frontWalled") or {}).get(group) or []:
+        key, plot = item.split(" ")
+        misses[group + " frontOpen"].add((key, plot))
+    verdicts, seeds, cannot = {}, {}, Counter()
     for seed, sample in samples.items():
         tally, mismatches = Counter(), []
         for row in sample:
             if (row["key"], row["plot"]) not in verdicts:
-                verdicts[(row["key"], row["plot"])] = held(row, ctx, settings, profile, report)
-            found, rule = verdicts[(row["key"], row["plot"])]
+                verdicts[(row["key"], row["plot"])] = held(row, ctx, settings, profile, report, datums)
+            found, unknown, rule = verdicts[(row["key"], row["plot"])]
+            if seed == "every":
+                cannot.update(unknown)
             for decision, holds in sorted(found.items()):
                 own = "holds" if holds else "misses"
-                theirs = "misses" if row["plot"] in misses.get("parsons " + decision, set()) else "holds"
+                theirs = "misses" if (row["key"], row["plot"]) in misses.get(group + " " + decision, set()) else "holds"
                 tally[decision + (" match" if own == theirs else " mismatch")] += 1
                 if own != theirs:
                     mismatches.append({"key": row["key"], "plot": row["plot"], "decision": decision, "own": own, "first": theirs, "rule": rule})
@@ -632,7 +1075,7 @@ def main(argv=None):
                        "mismatches": mismatches}
     # R335. The walls are drawn and held apart from the plots, a wall has an id and no plot of its own
     walls = wall_verdicts(ctx, settings, profile, report)
-    wall_misses = {(item["key"], item["elementId"], item["decision"].split(" ", 1)[1]) for item in (report.get("wallMisses") or {}).get("parsons") or []}
+    wall_misses = {(item["key"], item["elementId"], item["decision"].split(" ", 1)[1]) for item in (report.get("wallMisses") or {}).get(group) or []}
     ordered = sorted(walls, key=lambda pair: (pair[0], pair[1]))
     wall_samples = {str(seed): sorted(random.Random(seed).sample(ordered, min(check["sample"], len(ordered)))) for seed in check["seeds"]}
     wall_samples["every"] = ordered
@@ -640,28 +1083,60 @@ def main(argv=None):
         tally, mismatches = Counter(), []
         for pair in sample:
             for decision, holds in sorted(walls[pair].items()):
+                if holds is None:
+                    if seed == "every":
+                        cannot[decision] += 1
+                    continue
                 own = "holds" if holds else "misses"
                 theirs = "misses" if (pair[0], pair[1], decision) in wall_misses else "holds"
                 tally[decision + (" match" if own == theirs else " mismatch")] += 1
                 if own != theirs:
                     mismatches.append({"key": pair[0], "wall": pair[1], "decision": decision, "own": own, "first": theirs})
         seeds["walls " + seed] = {"walls": len(sample), "counts": dict(sorted(tally.items())), "mismatches": mismatches}
+    no_base = {(item["key"], item["elementId"]) for item in ctx.get("noBaseLevel") or []}
+    first_no_base = {(item["key"], item["elementId"]) for item in (report.get("wallsNoBaseLevel") or {}).get(group) or []}
     site = site_check(dict(args.key_read), block["groups"], block["siteReference"], report.get("siteFacts") or {})
     totals = {}
     for decision in report["decisions"]:
-        if decision["decision"].startswith("parsons "):
-            coded = decision["tests"][decision["coded"]]
-            by_key = sum(sum(counts.values()) for counts in coded["byKey"].values())
+        if decision["decision"].startswith(group + " "):
+            found = decision["tests"][decision["coded"]]
+            by_key = sum(sum(counts.values()) for counts in found["byKey"].values())
             totals[decision["decision"]] = {"plots": decision["plots"], "byKeySum": by_key,
-                                            "match": by_key == decision["plots"] == coded["holds"] + coded["breaks"] + coded["cannot"]}
-    out = {"seeds": seeds, "site": site, "totals": totals}
+                                            "match": by_key == decision["plots"] == found["holds"] + found["breaks"] + found["cannot"]}
+    # A decision of the group no route held is a failure, unless its field is left to a later phase
+    later = set((block.get("overrideKeep") or {}).get("laterFields", {}).get(group) or ())
+    routed = {decision for seed in seeds.values() for name in seed["counts"] for decision in [name.rsplit(" ", 1)[0]]}
+    left_for_later, unchecked = [], []
+    for decision in report["decisions"]:
+        name = decision["decision"]
+        if not name.startswith(group + " ") or name.split(" ", 1)[1] in routed or name.split(" ", 1)[1] in cannot:
+            continue
+        (left_for_later if decision.get("field") in later else unchecked).append(name.split(" ", 1)[1])
+    failures = sorted(set(cannot) | set(unchecked))
+    out = {"group": group, "seeds": seeds, "site": site, "totals": totals, "cannotCheck": {name: cannot.get(name, 0) for name in failures},
+           "leftForLater": sorted(left_for_later), "wallsNoBaseLevel": {"own": len(no_base), "first": len(first_no_base), "match": no_base == first_no_base},
+           "fits": {"linkOrigin": len(ctx["fits"]), "yardOutline": len(ctx["refit"]), "clusters": len(ctx["clusters"])}}
+    if args.merged:
+        keep = {source: None for source in block["overrideKeep"]["sources"]}
+        for source, fields in block["overrideKeep"]["laterFields"].items():
+            if keep.get(source, set()) is not None:
+                keep[source] = set(keep.get(source) or ()) | set(fields)
+        out["merged"] = merged_check(read_json(args.merged)["overrides"], dry, table, keep, later)
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.out).write_text(json.dumps(out, indent=1), encoding="utf-8")
+    Path(args.out).write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
     for seed, found in seeds.items():
         print("seed %s: %s, mismatches %d" % (seed, found["counts"], len(found["mismatches"])))
-    print("site: " + json.dumps({group: {key: entry["match"] for key, entry in keys.items()} for group, keys in site.items()}))
+    print("site: " + json.dumps({name: {key: entry["match"] for key, entry in keys.items()} for name, keys in site.items()}))
     print("totals: %d of %d decisions count every plot once" % (sum(1 for value in totals.values() if value["match"]), len(totals)))
+    print("fitted here: %s, walls with no base level %s" % (out["fits"], out["wallsNoBaseLevel"]))
+    print("left for a later phase: %s" % out["leftForLater"])
+    if "merged" in out:
+        print("merged list: %s" % {name: value for name, value in out["merged"].items() if name != "offJoin"} | {"offJoin": len(out["merged"]["offJoin"])})
+    if failures:
+        print("cannot check, a failure: %s" % out["cannotCheck"], file=sys.stderr)
+        return 1
     return 0
+
 
 
 if __name__ == "__main__":

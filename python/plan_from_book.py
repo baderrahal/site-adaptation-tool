@@ -571,8 +571,8 @@ def main(argv=None):
         job = plan_from_past.load_job(settings)
         folder, _ = plan_from_past.prototype_folders(plan_from_past.input_root(settings), job)
         # R337. A build by keyRules walks the rows of units past its own plots, so the clusters of every unit plot tell which units pair
-        everything = []
-        if plan_rules.key_rules_of(plan_rules.level_profile(profile, plan_rules.profile_name(profile, args.level_profile))) is not None:
+        everything, by_keys = [], plan_rules.key_rules_of(plan_rules.level_profile(profile, plan_rules.profile_name(profile, args.level_profile))) is not None
+        if by_keys:
             units = [number for number, row in rows.items() if row.get("typologyRev9") and number in faces]
             everything = footprint_clusters(units, rows, faces, shapes) if shapes is not None else []
             if analysis is not None:
@@ -584,9 +584,10 @@ def main(argv=None):
         road = rules["levelProfile"]["frontRoad"]["surface"]
         names = block["roadSurfaces"] if road == "roadLevel" else [road]
         surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in names], args.scratch)
-        plan = build(cover["plots"], rows, number_of, faces, roads, clusters, profile, settings,
+        # R337. A build by keyRules takes the clusters of every unit plot, the site as the keys were measured on (R271)
+        plan = build(cover["plots"], rows, number_of, faces, roads, everything if by_keys else clusters, profile, settings,
                      prototype_offsets.plot_frame(prototype_offsets.load(args.offsets)), folder_files(folder, profile), folder,
-                     site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, bool(args.footprint_blocks), rules)
+                     site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, by_keys or bool(args.footprint_blocks), rules)
         plan_from_past.write_plan(out, plan)
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
         print("plan_from_book: " + str(error), file=sys.stderr)

@@ -366,3 +366,20 @@ def test_r337_a_profile_with_no_key_rules_builds_by_the_round_17_tables_and_a_ke
                       ("linkOrigin", {"rule": "plotFrame"}), ("parameter CASE", {"rule": "corner", "table": {}})):
         with pytest.raises(project_profile.ProfileError):
             plan_rules.check_key_rules(dict(rules, **{word: bad}))
+
+
+# R271 the context of the site as a build sees it
+def test_r271_a_plot_no_key_holds_keeps_its_front_so_the_row_of_units_is_walked_through_it_as_a_build_walks_it():
+    from shapely.geometry import LineString, box
+    settings = project_profile.load_settings()
+    profile = project_profile.load_profile(project_profile.profile_path(settings))
+    block = majority.load_block(settings)
+    numbers = ["1", "2", "3", "4"]
+    book = {number: {"locationPlanNumber": number, "typologyRev9": "DP2", "footprintMirrored": "no", "baseplanLabel": "L" + number} for number in numbers}
+    faces = {number: box(index * 12.0, 0.0, index * 12.0 + 12.0, 25.0) for index, number in enumerate(numbers)}
+    roads = [LineString([(-50.0, -3.0), (100.0, -3.0)])]
+    # Plot 3, a cut face, is no row of past_all.csv
+    rows = [{"plot": plot, "key": "imc", "typologyRev9": "DP2", "keyUnit": "DP2", "linkFile": "a.rvt", "steps": "1", "mirrored": True} for plot in ("1", "2", "4")]
+    items, clusters, front, table, _ = majority.site_context(rows, book, {"L" + number: number for number in numbers}, faces, roads, {}, [], {}, profile, settings, block)
+    assert table == ["1", "2", "4"] and front["3"]["frame"] is not None and clusters == []
+    assert {item["plot"]: item["factors"]["rowPairSide"] for item in items} == {"1": "left", "2": "right", "4": "right"}
