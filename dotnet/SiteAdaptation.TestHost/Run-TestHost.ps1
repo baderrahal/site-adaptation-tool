@@ -383,9 +383,11 @@ try {
     }
     $process = [Diagnostics.Process]::Start($info)
     $peak = 0
-    # R303. The watcher answers the start dialogs by rule 3 and then logs every window of this Revit until it exits or the window limit ends
+    # R303. The watcher answers the start dialogs by rule 3 and then lists every window of this Revit until it exits or the window limit ends
     $watchArgs = @('--pid', $process.Id, '--out', $watchPath, '--stop-log', $logPath, '--minutes', [string]$TimeoutMinutes, '--watch-job', 'true', '--ours', ($ourIds -join ','), '--marks', ($ourMarks -join '|'), '--our-paths', ($ourPaths -join '|'))
     $watcher = Start-Process -FilePath $watcherExe -ArgumentList ($watchArgs | ForEach-Object { '"' + $_ + '"' }) -PassThru -WindowStyle Hidden
+    # A process of Start-Process keeps its exit code only when its handle was read while it ran
+    $null = $watcher.Handle
     if ($DryStart) {
         "Revit $($process.Id) started at $($start.ToString('HH:mm:ss')) with no job, the watcher answers the security dialogs"
     }
@@ -482,8 +484,11 @@ finally {
         }
     }
 }
+# R303. 0 when the watcher ended with Revit, 3 only when it stopped Revit on a dialog, 4 when its start phase worker failed
+$watcherCode = if ($watcher -and $watcher.HasExited) { $watcher.ExitCode } else { $null }
 
-# The dialogs the watcher answered go into the log of the run, with time, add-in name, vendor, GUID and button
+# The security dialogs of the start phase go into the log of the run with time, add-in name, vendor, GUID and button, and the
+# windows the watcher listed through the job under watcher.jobWindows (R303)
 if (Test-Path $watchPath) {
     $watch = Get-Content -Raw $watchPath | ConvertFrom-Json
     $log = if (Test-Path $logPath) {
@@ -497,19 +502,21 @@ if (Test-Path $watchPath) {
     }
     $log | Add-Member -Force -NotePropertyName securityDialogs -NotePropertyValue @($watch.dialogs)
     $summary = [pscustomobject]@{
-        result  = $watch.result
-        windows = @($watch.windows)
-        notes   = @($watch.notes)
+        result     = $watch.result
+        exitCode   = $watcherCode
+        windows    = @($watch.windows)
+        jobWindows = @($watch.jobWindows)
+        notes      = @($watch.notes)
     }
     $log | Add-Member -Force -NotePropertyName watcher -NotePropertyValue $summary
     $log | ConvertTo-Json -Depth 20 | Set-Content -Path $logPath -Encoding utf8
-    "Security dialogs: $(@($watch.dialogs).Count), watcher: $($watch.result)"
+    "Security dialogs: $(@($watch.dialogs).Count), job windows: $(@($watch.jobWindows).Count), watcher: $($watch.result), watcher exit code $watcherCode"
     @($watch.dialogs) | Select-Object utc, addInName, vendor, addInId, button, action | Format-Table -AutoSize | Out-String -Width 250
-    foreach ($stopped in @($watch.dialogs | Where-Object { $_.action -ne 'DoNotLoad' -and $_.action -ne 'LoadOnceOurs' })) {
+    if ($watcherCode -eq 3 -and $watch.stoppedOn) {
         "Dialog the watcher stopped on, full text:"
-        $stopped.title
-        $stopped.text
-        'Buttons: ' + ($stopped.buttons -join ' | ')
+        $watch.stoppedOn.title
+        $watch.stoppedOn.text
+        'Buttons: ' + ($watch.stoppedOn.buttons -join ' | ')
     }
 }
 else {
@@ -529,6 +536,7 @@ $logResult = if (Test-Path $logPath) { (Get-Content -Raw $logPath | ConvertFrom-
     exitCode   = $(if ($exited) { $process.ExitCode } else { $null })
     stopReason = $stopReason
     logResult  = $logResult
+    watcherExitCode = $watcherCode
 } | ConvertTo-Json | Set-Content -Path $runPath -Encoding utf8
 if (-not $DryStart) {
     $after = Get-Item $original

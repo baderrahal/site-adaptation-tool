@@ -146,18 +146,17 @@ namespace SiteAdaptation.Common
         }
 
         // R303. Whether a dialog the watcher read stops Revit. While Revit starts, a dialog it cannot answer by rule 3 does (R108).
-        // After the first step of the test host it is logged only, the test host and its limits own the job
+        // After the first step of the test host nothing does, the test host and its limits own the job
         public static bool StopsRevit(WatchAction action, bool jobPhase)
         {
             return ButtonFor(action) == null && !jobPhase;
         }
 
-        // R303. Whether the watcher reads a window by UI Automation. While Revit starts it reads every window as R108 says. In the
-        // job phase only a dialog whose window is not hung, since a UI Automation call on a busy Revit waits until Revit answers,
-        // which held the watcher for the whole image step of I25. The other windows are listed by Win32 calls that do not wait
-        public static bool ReadByAutomation(bool jobPhase, string windowClass, string title, bool hung)
+        // R303. The button the watcher clicks. While Revit starts the button of rule 3 (R108). After the first step none, the job
+        // phase only lists windows
+        public static string ClickFor(WatchAction action, bool jobPhase)
         {
-            return !jobPhase || (IsDialog(windowClass, title) && !hung);
+            return jobPhase ? null : ButtonFor(action);
         }
     }
 }

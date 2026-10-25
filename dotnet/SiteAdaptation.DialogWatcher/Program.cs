@@ -12,13 +12,20 @@ namespace SiteAdaptation.DialogWatcher
 {
     // R108. Watches the windows of one Revit process from outside Revit. While Revit starts it clicks Do Not Load on the
     // security dialog of every add-in that is not one of this tool, Load Once on the box of one of the three installed DLLs
-    // of this tool, and stops Revit on any dialog it cannot answer that way. R303: with --watch-job it then logs every window
-    // of that Revit to its end and stops nothing. It never clicks anything else
+    // of this tool, and stops Revit on any dialog it cannot answer that way. R303: with --watch-job it then only lists the
+    // windows of that Revit by Win32 to its end, with no UI Automation call, and clicks and stops nothing
     public static class Program
     {
-        private const int Answered = 0;
-        private const int StoppedRevit = 3;
-        private const int BadArguments = 2;
+        private const int Answered = WatcherRules.Answered;
+        private const int StoppedRevit = WatcherRules.StoppedRevit;
+        private const int BadArguments = WatcherRules.BadArguments;
+        private const int KeepWatching = WatcherRules.KeepWatching;
+
+        // How long the main loop waits for the start phase worker once the watch ends. Stop waits up to 60 s for Revit to exit
+        private static readonly TimeSpan WorkerWait = TimeSpan.FromSeconds(90);
+        private static readonly TimeSpan WriteRetry = TimeSpan.FromMilliseconds(250);
+        // R3. The job phase lists at most this many windows, a note says when it stops
+        private const int MaxJobWindows = 500;
 
         private sealed class Options
         {
@@ -26,7 +33,7 @@ namespace SiteAdaptation.DialogWatcher
             public string Out;
             public string StopLog;
             public double Minutes = 10;
-            // R303. Watch on through the job after the first log step of the test host, logging, until Revit exits or Minutes end
+            // R303. Watch on through the job after the first log step of the test host, listing windows, until Revit exits or Minutes end
             public bool WatchJob;
             public List<string> OurIds = new List<string>();
             public List<string> OurMarks = new List<string>();
@@ -52,36 +59,38 @@ namespace SiteAdaptation.DialogWatcher
             return code;
         }
 
-        private const int KeepWatching = -1;
-
         // The report is changed by the main loop and by the start phase worker, so each change and its write hold this lock.
-        // No UI Automation call is ever made while it is held
+        // No UI Automation call is ever made while it is held. A write that fails twice is told on stderr and the watch goes on
         private static void Record(WatchReport report, string path, Action<WatchReport> change)
         {
             lock (report)
             {
                 change(report);
-                JsonOut.Write(path, report);
+                WatcherRules.WriteWithRetry(() => JsonOut.Write(path, report), WriteRetry, Console.Error.WriteLine);
             }
         }
 
         // R108, R303. The main loop never makes a UI Automation call itself, since such a call on a busy Revit waits until Revit
-        // answers. Every 0.5 s it looks at the log, the time and the process. The start phase reads the windows by UI Automation
-        // on one worker task, a new one only once the last has ended. The job phase lists the windows by Win32 on this thread
+        // answers. Every 0.5 s it looks at the log, the time and the process. Until the first log step the start phase reads the
+        // windows by UI Automation on one worker task, a new one only once the last has ended. After it the loop lists the windows
+        // by Win32 on this thread. When the watch ends the worker ends first and its result wins
         private static int Watch(Options options, WatchReport report)
         {
             DateTime deadline = DateTime.UtcNow.AddMinutes(options.Minutes);
             var phase = new JobPhase();
             var startSeen = new StartSeen();
-            var jobWindows = new HashSet<string>();
-            var jobHandled = new HashSet<string>(StringComparer.Ordinal);
-            var jobSeenOnce = new Dictionary<string, string>(StringComparer.Ordinal);
+            var jobSeen = new HashSet<string>(StringComparer.Ordinal);
+            Action<string> failed = text => Record(report, options.Out, value =>
+            {
+                value.Notes.Add(DateTime.UtcNow.ToString("o") + " " + text);
+                value.Result = "the start phase worker failed, see the notes";
+            });
             System.Threading.Tasks.Task<int> uia = null;
             while (true)
             {
                 if (uia != null && uia.IsCompleted)
                 {
-                    int code = uia.IsFaulted ? KeepWatching : uia.Result;
+                    int code = WatcherRules.AfterWorker(uia, TimeSpan.Zero, failed);
                     uia = null;
                     if (code != KeepWatching)
                     {
@@ -93,17 +102,16 @@ namespace SiteAdaptation.DialogWatcher
                 string why = SecurityDialogs.StopReason(revit != null, firstStep, !options.WatchJob, DateTime.UtcNow, deadline, options.Minutes);
                 if (why != null)
                 {
-                    Record(report, options.Out, value => value.Result = why);
-                    return Answered;
+                    return WatcherRules.End(uia, WorkerWait, why, failed, reason => Record(report, options.Out, value => value.Result = reason));
                 }
                 if (firstStep && !phase.On)
                 {
                     phase.On = true;
-                    Record(report, options.Out, value => value.Notes.Add(DateTime.UtcNow.ToString("o") + " the test host wrote its first log step, from now on every window is listed by Win32 and only rule 3 answers are clicked"));
+                    Record(report, options.Out, value => value.Notes.Add(DateTime.UtcNow.ToString("o") + " the test host wrote its first log step, from now on the windows are only listed by Win32"));
                 }
                 if (phase.On)
                 {
-                    WatchJob(options, report, revit, jobWindows, jobHandled, jobSeenOnce);
+                    ListJobWindows(options, report, jobSeen);
                 }
                 else if (uia == null)
                 {
@@ -114,7 +122,7 @@ namespace SiteAdaptation.DialogWatcher
             }
         }
 
-        // The phase the start phase worker reads before it judges a dialog, so a dialog it finds after the first step stops nothing
+        // The phase the start phase worker reads before each window and each judgement
         private sealed class JobPhase
         {
             public volatile bool On;
@@ -128,7 +136,8 @@ namespace SiteAdaptation.DialogWatcher
             public readonly Dictionary<string, string> SeenOnce = new Dictionary<string, string>(StringComparer.Ordinal);
         }
 
-        // R108. One look at the windows of Revit by UI Automation, as the watcher always looked while Revit starts
+        // R108. One look at the windows of Revit by UI Automation, as the watcher always looked while Revit starts. Once the job
+        // phase is on it looks at no further window
         private static int StartPhase(Options options, WatchReport report, Process revit, StartSeen seen, JobPhase phase)
         {
             AutomationElementCollection tops;
@@ -144,6 +153,10 @@ namespace SiteAdaptation.DialogWatcher
             // Revit shows the security box as a child window of its main window, so the windows one level down are looked at too
             foreach (AutomationElement window in Candidates(tops))
             {
+                if (phase.On)
+                {
+                    return KeepWatching;
+                }
                 string key;
                 string title;
                 string windowClass;
@@ -179,7 +192,16 @@ namespace SiteAdaptation.DialogWatcher
                     // The window closed while it was read
                     continue;
                 }
-                int code = Judge(window, key, title, windowClass, options, report, revit, seen.Handled, seen.SeenOnce, phase.On);
+                int code;
+                try
+                {
+                    code = Judge(window, key, title, windowClass, options, report, revit, seen.Handled, seen.SeenOnce, phase);
+                }
+                catch (ElementNotAvailableException failure)
+                {
+                    Record(report, options.Out, value => value.Notes.Add(DateTime.UtcNow.ToString("o") + " the dialog " + title + " closed while it was judged: " + failure.Message));
+                    continue;
+                }
                 if (code != KeepWatching)
                 {
                     return code;
@@ -188,41 +210,32 @@ namespace SiteAdaptation.DialogWatcher
             return KeepWatching;
         }
 
-        // R303. The job phase. Every visible top window of this Revit is listed by Win32 calls that never wait on a busy window and
-        // logged once per handle and title with its class, its button and text children and whether Windows calls it hung. Only a
-        // dialog whose window is not hung is read by UI Automation and judged as R108 judges it, and nothing stops Revit here
-        private static void WatchJob(Options options, WatchReport report, Process revit, HashSet<string> windows, HashSet<string> handled, Dictionary<string, string> seenOnce)
+        // R303. The job phase. Every top window of this Revit is listed by Win32 calls that send it no message, and logged with its
+        // class, title, visible state and time once per window and state, in jobWindows of the report
+        private static void ListJobWindows(Options options, WatchReport report, HashSet<string> seen)
         {
             foreach (TopWindow top in TopWindows(options.Pid))
             {
-                if (windows.Add(top.Handle + " | " + top.Title))
+                if (seen.Count >= MaxJobWindows)
                 {
-                    var shown = new WindowSeen { Utc = DateTime.UtcNow, WindowClass = top.Class, Title = top.Title, Buttons = top.Buttons, Texts = top.Texts, Hung = top.Hung };
-                    Record(report, options.Out, value => value.Windows.Add(shown));
+                    if (seen.Add("full"))
+                    {
+                        Record(report, options.Out, value => value.Notes.Add(DateTime.UtcNow.ToString("o") + " the job phase listed " + MaxJobWindows + " windows, no more are listed"));
+                    }
+                    return;
                 }
-                string key = "win32 " + top.Handle;
-                if (handled.Contains(key) || !SecurityDialogs.ReadByAutomation(true, top.Class, top.Title, top.Hung))
+                if (seen.Add(WatcherRules.JobWindowKey(top.Handle.ToInt64(), top.Class, top.Title, top.Visible)))
                 {
-                    continue;
+                    var shown = new JobWindow { Utc = DateTime.UtcNow, WindowClass = top.Class, Title = top.Title, Visible = top.Visible };
+                    Record(report, options.Out, value => value.JobWindows.Add(shown));
                 }
-                AutomationElement window;
-                try
-                {
-                    window = AutomationElement.FromHandle(top.Handle);
-                }
-                catch (Exception)
-                {
-                    // The window closed while it was read
-                    continue;
-                }
-                Judge(window, key, top.Title, top.Class, options, report, revit, handled, seenOnce, true);
             }
         }
 
-        // R108 and R303. A dialog read twice the same is judged: the rule 3 button is clicked, else in the start phase Revit is
-        // stopped and in the job phase the dialog is logged in full and left alone. KeepWatching, or the exit code of a stop
+        // R108. A dialog read twice the same is judged: the rule 3 button is clicked, else Revit is stopped. A dialog judged once
+        // the job phase is on (R303) is logged with the action Logged and left alone. KeepWatching, or the exit code of a stop
         private static int Judge(AutomationElement window, string key, string title, string windowClass, Options options, WatchReport report, Process revit,
-            HashSet<string> handled, Dictionary<string, string> seenOnce, bool jobPhase)
+            HashSet<string> handled, Dictionary<string, string> seenOnce, JobPhase phase)
         {
             List<string> texts;
             List<string> buttons;
@@ -248,7 +261,8 @@ namespace SiteAdaptation.DialogWatcher
             WatchAction action = SecurityDialogs.Decide(entry, options.OurIds, options.OurMarks, options.OurPaths);
             entry.Action = action.ToString();
             handled.Add(key);
-            string label = SecurityDialogs.ButtonFor(action);
+            bool jobPhase = phase.On;
+            string label = SecurityDialogs.ClickFor(action, jobPhase);
             if (label != null && Click(window, entry, label))
             {
                 entry.Text = null;
@@ -257,7 +271,6 @@ namespace SiteAdaptation.DialogWatcher
             }
             if (!SecurityDialogs.StopsRevit(action, jobPhase))
             {
-                // R303. After the first step a dialog rule 3 has no answer for is logged in full and left alone
                 entry.Action = "Logged, " + entry.Action;
                 Record(report, options.Out, value => value.Dialogs.Add(entry));
                 return KeepWatching;
@@ -265,9 +278,10 @@ namespace SiteAdaptation.DialogWatcher
             Record(report, options.Out, value =>
             {
                 value.Dialogs.Add(entry);
+                value.StoppedOn = entry;
                 value.Result = "stopped Revit: " + entry.Action + " on " + title;
             });
-            Stop(revit, report);
+            Stop(revit, report, options.Out);
             return StoppedRevit;
         }
 
@@ -276,18 +290,13 @@ namespace SiteAdaptation.DialogWatcher
             public IntPtr Handle;
             public string Class;
             public string Title;
-            public bool Hung;
-            public List<string> Buttons = new List<string>();
-            public List<string> Texts = new List<string>();
+            public bool Visible;
         }
 
         private delegate bool EnumProc(IntPtr window, IntPtr data);
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool EnumWindows(EnumProc callback, IntPtr data);
-
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern bool EnumChildWindows(IntPtr parent, EnumProc callback, IntPtr data);
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr window, out uint pid);
@@ -300,9 +309,6 @@ namespace SiteAdaptation.DialogWatcher
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool IsWindowVisible(IntPtr window);
-
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern bool IsHungAppWindow(IntPtr window);
 
         // InternalGetWindowText and GetClassName read what Windows holds and send no message, so a busy Revit never holds them
         private static string TextOf(IntPtr window)
@@ -319,7 +325,7 @@ namespace SiteAdaptation.DialogWatcher
             return text.ToString();
         }
 
-        // The visible top windows of one process, each with the texts of its Button and Static children
+        // R303. The top windows of one process, visible or not, by EnumWindows and the process of each window's thread
         private static List<TopWindow> TopWindows(int pid)
         {
             var found = new List<TopWindow>();
@@ -327,26 +333,10 @@ namespace SiteAdaptation.DialogWatcher
             {
                 uint owner;
                 GetWindowThreadProcessId(window, out owner);
-                if (owner != (uint)pid || !IsWindowVisible(window))
+                if (owner == (uint)pid)
                 {
-                    return true;
+                    found.Add(new TopWindow { Handle = window, Class = ClassOf(window), Title = TextOf(window), Visible = IsWindowVisible(window) });
                 }
-                var top = new TopWindow { Handle = window, Class = ClassOf(window), Title = TextOf(window), Hung = IsHungAppWindow(window) };
-                EnumChildWindows(window, (child, more) =>
-                {
-                    string kind = ClassOf(child);
-                    string text = TextOf(child).Trim();
-                    if (text.Length > 0 && (kind == "Button" || kind == "CCPushButton") && top.Buttons.Count < MaxTexts)
-                    {
-                        top.Buttons.Add(text);
-                    }
-                    else if (text.Length > 0 && kind == "Static" && top.Texts.Count < MaxTexts)
-                    {
-                        top.Texts.Add(text);
-                    }
-                    return true;
-                }, IntPtr.Zero);
-                found.Add(top);
                 return true;
             }, IntPtr.Zero);
             return found;
@@ -430,6 +420,8 @@ namespace SiteAdaptation.DialogWatcher
         // False when the button is not there, takes no click or the dialog is still open 5 seconds later
         private static bool Click(AutomationElement window, SecurityDialogEntry entry, string label)
         {
+            // Read before the click, a closed dialog has no handle to read
+            int dialogHandle = window.Current.NativeWindowHandle;
             foreach (AutomationElement part in window.FindAll(TreeScope.Descendants, Condition.TrueCondition))
             {
                 bool wanted = label == SecurityDialogs.DoNotLoad ? SecurityDialogs.IsDoNotLoad(part.Current.Name) : SecurityDialogs.IsLoadOnce(part.Current.Name);
@@ -454,7 +446,6 @@ namespace SiteAdaptation.DialogWatcher
                     entry.Action = "StopNoButton, " + label + " takes no click";
                     return false;
                 }
-                int dialogHandle = window.Current.NativeWindowHandle;
                 for (int wait = 0; wait < 50 && dialogHandle != 0 && IsWindow(new IntPtr(dialogHandle)); wait++)
                 {
                     Thread.Sleep(100);
@@ -470,7 +461,7 @@ namespace SiteAdaptation.DialogWatcher
             return false;
         }
 
-        private static void Stop(Process revit, WatchReport report)
+        private static void Stop(Process revit, WatchReport report, string path)
         {
             try
             {
@@ -479,10 +470,7 @@ namespace SiteAdaptation.DialogWatcher
             }
             catch (Exception failure)
             {
-                lock (report)
-                {
-                    report.Notes.Add("Revit could not be stopped: " + failure.Message);
-                }
+                Record(report, path, value => value.Notes.Add("Revit could not be stopped: " + failure.Message));
             }
         }
 
@@ -567,8 +555,14 @@ namespace SiteAdaptation.DialogWatcher
         public DateTime StartedUtc { get; set; }
         public DateTime? FinishedUtc { get; set; }
         public string Result { get; set; }
+        // R108. The security dialogs of the start phase, what Run-TestHost.ps1 writes under securityDialogs
         public List<SecurityDialogEntry> Dialogs { get; set; } = new List<SecurityDialogEntry>();
+        // R108. The dialog the watcher stopped Revit on, null when it stopped nothing
+        public SecurityDialogEntry StoppedOn { get; set; }
+        // The other windows of the start phase, read by UI Automation
         public List<WindowSeen> Windows { get; set; } = new List<WindowSeen>();
+        // R303. The windows of the job phase, listed by Win32
+        public List<JobWindow> JobWindows { get; set; } = new List<JobWindow>();
         public List<string> Notes { get; set; } = new List<string>();
     }
 
@@ -579,7 +573,14 @@ namespace SiteAdaptation.DialogWatcher
         public string Title { get; set; }
         public List<string> Buttons { get; set; } = new List<string>();
         public List<string> Texts { get; set; } = new List<string>();
-        // R303. Whether Windows called the window hung when the job phase listed it, null in the start phase
-        public bool? Hung { get; set; }
+    }
+
+    // R303. One window of the job phase as Win32 lists it, with no button or text read
+    public class JobWindow
+    {
+        public DateTime Utc { get; set; }
+        public string WindowClass { get; set; }
+        public string Title { get; set; }
+        public bool Visible { get; set; }
     }
 }
