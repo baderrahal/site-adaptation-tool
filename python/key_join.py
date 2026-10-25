@@ -256,11 +256,12 @@ def main(argv=None):
         document = key_reads.project_document(key_reads.load(Path(args.reads) / job / ("testhost_" + job + "_prototypes.json")))
         plan_from_past.check_key_file(settings, code, document.get("file"), job)
         joined = join_plots(document, floors, where)
-        entries[code] = {"job": job, "join": joined, "place": place_check(document, floors, where), "areaRow": area_row(code, key_source(settings, code), joined)}
-    report = {"note": "R326. Each plot the links of a key name joined by its generic floor to a baseplan face, the location plan number, zone and "
-                      "NBH and the area key of plots.csv, and each link, generic floor and ramp held against the face it stands on. "
-                      "A run writes the keys it is given and keeps the other keys of the file.",
-              "inputs": {"baseplan": Path(args.baseplan).name, "labels": Path(args.labels).name, "plots": Path(args.plots).name},
+        entries[code] = {"job": job, "join": joined, "place": place_check(document, floors, where), "areaRow": area_row(code, key_source(settings, code), joined),
+                         "inputs": {"baseplan": Path(args.baseplan).name, "labels": Path(args.labels).name, "plots": Path(args.plots).name},
+                         "settings": {"cutShareMin": share_min}}
+    report = {"note": "R326. Each plot the links of a key name joined by the share of its generic floor on a baseplan face to the location plan "
+                      "number, zone and NBH and the area key of plots.csv, and each link, generic floor and ramp held against the face it stands on. "
+                      "A run writes the keys it is given with the inputs and the share it ran with and keeps the other keys of the file.",
               "keys": key_reads.merged(path, entries)}
     out.mkdir(parents=True, exist_ok=True)
     write_json(path, report)

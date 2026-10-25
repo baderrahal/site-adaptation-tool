@@ -130,7 +130,7 @@ def test_r328_the_counts_of_the_entrance_spots_against_el_at_entry_are_counted_a
     floors = [te.ramp("501", 0, 1), te.generic("501", 0, 6.1), te.ramp("502", 20, 2), te.generic("502", 20, 6.2)]
     spots = [te.spot(11, 0, 5, 6.1, host=1), te.spot(12, 10, 5, 6.1004, host=1), te.spot(21, 20, 5, 6.1, host=2), te.spot(22, 30, 5, 6.1, host=2)]
     doc = te.document(floors, spots)
-    first = entry_spots.key_entry(doc, te.FLOORS, te.BLOCK, schedule={"502": 6.1})
+    first = entry_spots.key_entry(doc, te.FLOORS, te.BLOCK, schedule={"502": 6.1}, numbers={"501": "501", "502": "502"})
     found = kc.recount_spots(doc, te.FLOORS, first, te.BLOCK, {"502": 6.1})
     assert found["match"] is True and found["counts"]["key"]["radius 6.0"] == {"within1mm": 1, "within5mm": 1}
     assert found["counts"]["schedule"]["cornerPair"] == {"within1mm": 1, "within5mm": 1}

@@ -280,6 +280,40 @@ def test_r326_a_majority_run_over_the_real_past_all_takes_no_se_row_into_the_fie
             assert "SE" not in kinds, decision
 
 
+def join_inputs(tmp_path, name, share):
+    """A made up project of the faces above for key_join.main, keys IMX and IMY read by the jobs KX and KY."""
+    floors = dict(FLOORS, levels={"generic": "L1", "yard": "L2", "ramp": "L1"}, yardBelowFflM=0.1, yardShareTie=0.01, yardMinShare=0.5)
+    settings = tmp_path / (name + ".json")
+    settings.write_text(json.dumps({"floors": floors, "keyPlans": {"wallEdgeM": 0.3, "entryHeightM": {"min": 0.0, "max": 1.5}}, "cadLinks": {"cutShareMin": share},
+                                    "pastAll": {"entryParameter": "x"}, "answerKeys": {"keys": [{"code": "IMX", "copy": "X-IMX.rvt", "source": "a/X-IMX.rvt"},
+                                                                                                {"code": "IMY", "copy": "X-IMY.rvt", "source": "a/X-IMY.rvt"}]}}),
+                        encoding="utf-8")
+    baseplan = tmp_path / "plots.json"
+    baseplan.write_text(json.dumps({"plots": [{"kind": "plot_shape", "plot": label, "vertices": [list(xy) for xy in list(shape.exterior.coords)[:-1]]}
+                                              for label, shape in FACES.items()]}), encoding="utf-8")
+    labels = tmp_path / "labels.csv"
+    labels.write_text("number,face,nbh,zone\n" + "".join(number + "," + label + ",01A,4\n" for label, number in NUMBERS.items()), encoding="utf-8")
+    plots = tmp_path / (name + "_plots.csv")
+    plots.write_text("baseplanLabel,nbhId,zone\n11,01A,Zone 4\n12,01A,Zone 4\n", encoding="utf-8")
+    reads = tmp_path / "reads"
+    for code, job in (("IMX", "KX"), ("IMY", "KY")):
+        (reads / job).mkdir(parents=True, exist_ok=True)
+        doc = dict(document([key_link("501", 0), key_link("502", 10)], [floor("DP4-501", 0), floor("DP4-502", 10)]), file="X-" + code + "_TEST-" + job)
+        (reads / job / ("testhost_" + job + "_prototypes.json")).write_text(json.dumps({"documents": [doc]}), encoding="utf-8")
+    return ["--settings", str(settings), "--reads", str(reads), "--baseplan", str(baseplan), "--labels", str(labels), "--plots", str(plots)]
+
+
+def test_r326_each_key_of_the_join_keeps_the_inputs_and_the_share_it_was_run_with(tmp_path):
+    out = tmp_path / "join"
+    assert key_join.main(join_inputs(tmp_path, "a", 0.9) + ["--key", "IMX=KX", "--out", str(out)]) == 0
+    assert key_join.main(join_inputs(tmp_path, "b", 0.8) + ["--key", "IMY=KY", "--out", str(out)]) == 0
+    report = json.loads((out / key_join.OUTPUT).read_text(encoding="utf-8"))
+    assert "inputs" not in report
+    assert report["keys"]["IMX"]["inputs"]["plots"] == "a_plots.csv" and report["keys"]["IMX"]["settings"] == {"cutShareMin": 0.9}
+    assert report["keys"]["IMY"]["inputs"]["plots"] == "b_plots.csv" and report["keys"]["IMY"]["settings"] == {"cutShareMin": 0.8}
+    assert report["keys"]["IMX"]["join"]["counts"]["joined"] == 2
+
+
 def test_r326_the_real_settings_put_the_seven_answer_keys_in_the_parsons_job_with_a_parsons_dialect():
     settings = project_profile.load_settings()
     codes = [key["code"].lower() for key in settings.get("answerKeys.keys")]

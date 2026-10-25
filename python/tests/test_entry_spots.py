@@ -10,7 +10,7 @@ import entry_spots
 import project_profile
 
 FLOORS = {"types": {"generic": ["Slab G"], "yard": ["Yard Y"], "ramp": ["Ramp A"]}, "plotParameter": "Plot"}
-BLOCK = {"radiiM": [0.5, 6.0], "cornerM": 0.05, "entryParameter": "El at entry"}
+BLOCK = {"radiiM": [0.5, 6.0], "cornerM": 0.05, "bandsM": [0.001, 0.005], "entryParameter": "El at entry"}
 # The survey point is 1000 m east of the internal origin, so a spot is moved by it as a floor outline is not
 OFFSET = [1000.0, 0.0, 0.0]
 
@@ -51,7 +51,7 @@ def test_r327_the_spots_at_the_entrance_corners_equal_el_at_entry_and_one_at_the
 def test_r327_el_at_entry_of_the_schedule_is_compared_apart_by_plot_number():
     floors = [ramp("501", 0, 1), generic("501", 0, 6.1), ramp("502", 20, 2), generic("502", 20, 6.1)]
     spots = [spot(11, 0, 5, 6.1, host=1), spot(12, 10, 5, 6.1, host=1)]
-    found = entry_spots.key_entry(document(floors, spots), FLOORS, BLOCK, schedule={"501": 6.104, "777": 1.0})
+    found = entry_spots.key_entry(document(floors, spots), FLOORS, BLOCK, schedule={"501": 6.104, "777": 1.0}, numbers={"501": "501", "502": "502"})
     schedule = found["counts"]["schedule"]
     assert schedule["plots"] == 1 and schedule["radius 6.0"]["within1mm"] == 0 and schedule["radius 6.0"]["within5mm"] == 1
     assert found["counts"]["key"]["plots"] == 2 and found["counts"]["key"]["radius 6.0"]["withSpot"] == 1
@@ -61,10 +61,30 @@ def test_r327_a_spot_with_no_value_of_another_base_or_on_another_host_is_left_ou
     floors = [ramp("501", 0, 1), generic("501", 0, 6.1)]
     spots = [spot(11, 0, 5, None, host=1), spot(12, 10, 5, 6.1, host=1, base="Relative"), spot(13, 10, 5, 6.1, host=2)]
     found = entry_spots.key_entry(document(floors, spots), FLOORS, BLOCK)
-    # The spot on another host counts by its place within a radius, never as a corner spot of this ramp
-    assert found["plots"]["501"]["near"]["6.0"] == [13] and found["plots"]["501"]["corners"] == [None, None]
-    assert found["spotsLeftOut"] == {"noValue": 1, "otherBase": 1}
+    # A spot on a host that is no floor of a plot counts for no plot, neither within a radius nor as a corner spot
+    assert found["plots"]["501"]["near"]["6.0"] == [] and found["plots"]["501"]["corners"] == [None, None]
+    assert found["spotsLeftOut"] == {"noValue": 1, "otherBase": 1} and found["spotsOnNoPlotFloor"] == 1
     assert found["counts"]["key"]["cornerPair"]["plots"] == 0
+
+
+def test_r327_a_spot_on_a_floor_of_another_plot_never_counts_for_this_plot_and_one_on_its_generic_floor_does():
+    # The ramp of 502 lies next to the ramp of 501, its spots sit within 6 m of the entrance of 501
+    floors = [ramp("501", 0, 1), generic("501", 0, 6.1), ramp("502", 10, 2), generic("502", 10, 6.1)]
+    spots = [spot(11, 0, 5, 6.1, host=1), spot(21, 10.2, 5, 6.1, host=2), spot(22, 12, 7, 6.1, host=910)]
+    found = entry_spots.key_entry(document(floors, spots), FLOORS, BLOCK)
+    assert found["plots"]["501"]["near"]["6.0"] == [11] and found["plots"]["502"]["near"]["6.0"] == [21, 22]
+    assert found["counts"]["key"]["radius 6.0"]["spots"] == 3
+
+
+def test_r327_el_at_entry_of_the_schedule_is_found_by_the_official_number_the_join_gives_the_plot():
+    floors = [ramp("501", 0, 1), generic("501", 0, 6.1)]
+    spots = [spot(11, 0, 5, 6.1, host=1), spot(12, 10, 5, 6.1, host=1)]
+    # The model plot 501 is the official plot 1501, the schedule holds 1501 and another 501 of no matter
+    found = entry_spots.key_entry(document(floors, spots), FLOORS, BLOCK, schedule={"1501": 6.1, "501": 1.0}, numbers={"501": "1501"})
+    assert found["counts"]["schedule"]["plots"] == 1 and found["counts"]["schedule"]["radius 6.0"]["within1mm"] == 1
+    # A plot the join gives no number has no schedule value
+    found = entry_spots.key_entry(document(floors, spots), FLOORS, BLOCK, schedule={"501": 6.1}, numbers={})
+    assert found["counts"]["schedule"]["plots"] == 0 and found["noEntry"]["schedule"] == ["501"]
 
 
 def test_r327_a_plot_with_no_ramp_two_ramps_or_a_ramp_of_no_four_corners_or_no_el_at_entry_is_listed_by_why():
@@ -78,8 +98,10 @@ def test_r327_a_plot_with_no_ramp_two_ramps_or_a_ramp_of_no_four_corners_or_no_e
 
 
 @pytest.mark.parametrize("block", [
-    {"radiiM": [], "cornerM": 0.05}, {"radiiM": [6.0, 0.5], "cornerM": 0.05}, {"radiiM": [0, 6.0], "cornerM": 0.05},
-    {"radiiM": ["6"], "cornerM": 0.05}, {"radiiM": [6.0], "cornerM": 0}, {"radiiM": [6.0]},
+    {"radiiM": [], "cornerM": 0.05, "bandsM": [0.001]}, {"radiiM": [6.0, 0.5], "cornerM": 0.05, "bandsM": [0.001]},
+    {"radiiM": [0, 6.0], "cornerM": 0.05, "bandsM": [0.001]}, {"radiiM": ["6"], "cornerM": 0.05, "bandsM": [0.001]},
+    {"radiiM": [6.0], "cornerM": 0, "bandsM": [0.001]}, {"radiiM": [6.0], "bandsM": [0.001]}, {"radiiM": [6.0], "cornerM": 0.05},
+    {"radiiM": [6.0], "cornerM": 0.05, "bandsM": [0.005, 0.001]}, {"radiiM": [6.0], "cornerM": 0.05, "bandsM": [0]},
 ])
 def test_r327_the_radii_must_rise_above_0_and_the_corner_distance_be_above_0(tmp_path, block):
     path = tmp_path / "project.json"
@@ -91,5 +113,38 @@ def test_r327_the_radii_must_rise_above_0_and_the_corner_distance_be_above_0(tmp
 def test_r327_the_real_settings_name_the_radii_the_corner_distance_and_the_entry_parameter():
     settings = project_profile.load_settings()
     block = entry_spots.load_block(settings)
-    assert block["radiiM"] == sorted(block["radiiM"]) and block["cornerM"] > 0
+    assert block["radiiM"] == sorted(block["radiiM"]) and block["cornerM"] > 0 and block["bandsM"] == [0.001, 0.005]
     assert block["entryParameter"] == settings.get("pastAll.entryParameter")
+    assert entry_spots.band_names(block["bandsM"]) == ["1mm", "5mm"]
+
+
+FULL_FLOORS = dict(FLOORS, levels={"generic": "L1", "yard": "L2", "ramp": "L1"}, yardBelowFflM=0.1, yardShareTie=0.01, yardMinShare=0.5)
+
+
+def spot_settings(tmp_path, name, radii):
+    path = tmp_path / name
+    path.write_text(json.dumps({"entrySpots": {"radiiM": radii, "cornerM": 0.05, "bandsM": [0.001, 0.005]}, "pastAll": {"entryParameter": "El at entry"},
+                                "floors": FULL_FLOORS, "answerKeys": {"keys": [{"code": "IMX", "copy": "X-IMX.rvt"}, {"code": "IMY", "copy": "X-IMY.rvt"}]}}),
+                    encoding="utf-8")
+    return path
+
+
+def test_r327_each_key_keeps_the_settings_it_was_run_with_so_a_later_run_with_others_leaves_it_as_it_was(tmp_path):
+    reads = tmp_path / "reads"
+    for code, job in (("IMX", "KX"), ("IMY", "KY")):
+        (reads / job).mkdir(parents=True)
+        doc = dict(document([ramp("501", 0, 1), generic("501", 0, 6.1)], [spot(11, 0, 5, 6.1, host=1)]), file="X-" + code + "_TEST-" + job)
+        (reads / job / ("testhost_" + job + "_prototypes.json")).write_text(json.dumps({"documents": [doc]}), encoding="utf-8")
+    out = tmp_path / "spots"
+    assert entry_spots.main(["--settings", str(spot_settings(tmp_path, "a.json", [0.5, 6.0])), "--reads", str(reads), "--key", "IMX=KX", "--out", str(out)]) == 0
+    assert entry_spots.main(["--settings", str(spot_settings(tmp_path, "b.json", [0.5, 4.0])), "--reads", str(reads), "--key", "IMY=KY", "--out", str(out)]) == 0
+    report = json.loads((out / entry_spots.OUTPUT).read_text(encoding="utf-8"))
+    assert "settings" not in report
+    assert report["keys"]["IMX"]["settings"]["radiiM"] == [0.5, 6.0] and report["keys"]["IMY"]["settings"]["radiiM"] == [0.5, 4.0]
+    assert set(report["keys"]["IMX"]["plots"]["501"]["near"]) == {"0.5", "6.0"}
+
+
+def test_r327_a_run_with_the_schedule_needs_the_join_to_find_the_official_number(tmp_path):
+    with pytest.raises(SystemExit):
+        entry_spots.main(["--settings", str(spot_settings(tmp_path, "a.json", [6.0])), "--reads", str(tmp_path), "--key", "IMX=KX",
+                          "--plots", str(tmp_path / "plots.csv"), "--out", str(tmp_path / "spots")])
