@@ -284,3 +284,26 @@ def test_r340_a_ramp_front_the_rule_alone_gives_holds_by_the_rule_at_the_pass_li
                                    {("imx", "1"): {"RRE_ZZ_SP_Prototype-FFL": "10.100"}})
     front = build_proof.tally(verdicts)["levelHolds"]["imx"]["rampFront"]
     assert (front["byRule"], front["byNeither"], front["atTheLimit"]) == (1, 0, 1)
+
+
+# R272, R338 the committed override list and keyRules of the rerun
+def test_r272_the_committed_list_holds_no_parsons_override_with_no_value_and_a_parsons_build_loads_it():
+    import json
+    import override_source
+    import plan_rules
+    from test_addin_levels import LP, SETTINGS
+    path = override_source.list_path(SETTINGS)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert not [item for item in data["overrides"] if item["source"] == "parsons" and item["value"] is None]
+    assert data["cannot"] and all("value" not in item and item["source"] == "parsons" for item in data["cannot"])
+    assert plan_rules.load_overrides(path, {"parsons"}, None, SETTINGS.get("majority.groups"), "parsons2024Rev6", LP)
+
+
+def test_r338_the_committed_split_holds_each_unit_sequence_with_its_clusters_strong_or_weak():
+    import plan_rules
+    from test_addin_levels import LP
+    found = plan_rules.key_rules_of(LP)["levelSplit"]["bySequence"]
+    # The plurality is coded for every sequence, strong or not
+    assert all(item["holds"] == max(item["patterns"].values()) for item in found.values())
+    assert found["DP3 TH3 TH3 DP3"]["strong"] is True and found["DP1 TH1 TH1 DP1"]["strong"] is False
+    assert sum(item["clusters"] for item in found.values()) == plan_rules.key_rules_of(LP)["levelSplit"]["plots"]
