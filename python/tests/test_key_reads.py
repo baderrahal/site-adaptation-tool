@@ -531,6 +531,19 @@ def test_r323_a_plane_needs_three_corners_that_span_it_and_a_point_off_the_outli
     assert check.top_at({"elementId": 2}, 105.0, 205.0, OFFSET) == (None, "noGeometry")
 
 
+def test_r323_the_worst_gap_is_null_when_no_spot_is_compared_and_zero_only_when_a_gap_is_zero():
+    import key_reads_check as check
+    flat = floor_of(1, "Slab G", [[0.0, 0.0, 5.0], [10.0, 0.0, 5.0], [10.0, 10.0, 5.0], [0.0, 10.0, 5.0]])
+    # As the SE keys, every spot has no value, so nothing is compared
+    document = {"surveyPoint": {"position": [0.0, 0.0, 0.0], "sharedPosition": OFFSET}, "floors": [flat], "links": [],
+                "spotElevations": [spot_on(11, (1, "Floors", "Slab G"), [2.0, 3.0, 5.0], None)]}
+    result = check.spot_tops(document)
+
+    assert result["compared"] == 0 and result["all"]["worstMm"] is None
+    assert check.bands([])["worstMm"] is None
+    assert check.bands([0.0])["worstMm"] == 0.0
+
+
 def test_r323_a_spot_with_no_host_is_no_host_and_apart_from_a_host_that_is_no_floor_of_the_read():
     import key_reads_check as check
     flat = floor_of(1, "Slab G", [[0.0, 0.0, 5.0], [10.0, 0.0, 5.0], [10.0, 10.0, 5.0], [0.0, 10.0, 5.0]])

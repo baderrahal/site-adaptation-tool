@@ -158,13 +158,14 @@ def top_at(floor, x, y, offset):
 
 
 def bands(gaps):
-    """The count, the gaps within each band of BANDS_MM, their shares and the worst gap in mm."""
+    """The count, the gaps within each band of BANDS_MM, their shares and the worst gap in mm. With no gap the shares and the worst
+    gap are null, so a key where nothing is compared never shows a worst gap of 0."""
     result = {"count": len(gaps)}
     for band in BANDS_MM:
         result["within%dMm" % band] = sum(1 for gap in gaps if abs(gap) <= band / 1000.0 + BAND_SLACK)
     for band in BANDS_MM:
         result["share%dMm" % band] = round(result["within%dMm" % band] / float(len(gaps)), 4) if gaps else None
-    result["worstMm"] = round(max((abs(gap) for gap in gaps), default=0.0) * 1000, 1)
+    result["worstMm"] = round(max(abs(gap) for gap in gaps) * 1000, 1) if gaps else None
     return result
 
 
