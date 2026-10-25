@@ -45,33 +45,64 @@ def document(links, floors):
     return {"kind": "project", "surveyPoint": {"position": [0, 0, 0], "sharedPosition": [0, 0, 0]}, "links": links, "floors": floors}
 
 
+SHARE = 0.9
+
+
 def places():
-    return key_join.places(FACES, NUMBERS, MANY, AREA, PLAN)
+    return key_join.places(FACES, NUMBERS, MANY, AREA, PLAN, SHARE)
 
 
 def test_r326_a_plot_joins_the_face_its_generic_floor_stands_on_with_the_number_zone_and_nbh_of_both_sources():
     doc = document([key_link("501", 0), key_link("502", 10)], [floor("DP4-501", 0), floor("DP4-502", 10)])
     found = key_join.join_plots(doc, FLOORS, places())
     row = found["plots"]["501"]
-    assert row == {"status": "joined", "face": "11", "number": "501", "sameNumber": True, "nbh": "01A", "zone": "4", "areaNbh": "01A", "areaZone": "Zone 4"}
+    assert row == {"status": "joined", "face": "11", "number": "501", "share": 1.0, "sameNumber": True, "nbh": "01A", "zone": "4", "areaNbh": "01A",
+                   "areaZone": "Zone 4"}
     assert found["counts"] == {"keyPlots": 2, "joined": 2, "sameNumber": 2, "otherNumber": 0, "areaAgrees": 2}
 
 
 def test_r326_a_plot_whose_location_plan_area_is_not_its_area_key_is_listed():
     plan = dict(PLAN, **{"501": {"nbh": "022", "zone": "1"}})
-    where = key_join.places(FACES, NUMBERS, MANY, AREA, plan)
+    where = key_join.places(FACES, NUMBERS, MANY, AREA, plan, SHARE)
     found = key_join.join_plots(document([key_link("501", 0), key_link("502", 10)], [floor("DP4-501", 0), floor("DP4-502", 10)]), FLOORS, where)
     assert found["counts"]["areaAgrees"] == 1 and found["areaDiffers"] == [{"plot": "501", "nbh": "022", "zone": "1", "areaNbh": "01A", "areaZone": "Zone 4"}]
 
 
 def test_r326_a_plot_on_no_face_on_two_faces_on_a_face_of_no_or_two_labels_or_with_no_or_two_generic_floors_is_listed_by_why():
     links = [key_link(str(plot), 0, element_id=plot) for plot in (601, 602, 603, 604, 605, 606)]
-    floors = [floor("DP4-601", 60), floor("DP4-602", 26, width=6, y0=11, y1=14),  # 602 lies where faces 13 and 16 meet
+    floors = [floor("DP4-601", 60), floor("DP4-602", 26, width=3, y0=11, y1=14),  # 602 lies where faces 13 and 16 overlap, whole on both
               floor("DP4-603", 40), floor("DP4-604", 30), floor("DP4-606", 0), floor("TH3-606", 10)]
     found = key_join.join_plots(document(links, floors), FLOORS, places())
     why = {plot: row["status"] for plot, row in found["plots"].items()}
     assert why == {"601": "noFace", "602": "twoFaces", "603": "noNumber", "604": "manyNumbers", "605": "noGenericFloor", "606": "twoGenericFloors"}
     assert found["counts"]["joined"] == 0 and found["byStatus"]["twoFaces"] == ["602"]
+
+
+def test_r326_a_generic_floor_joins_the_face_that_holds_cut_share_min_of_it_and_a_50_50_floor_is_listed_as_cut_with_its_shares():
+    # 701 lies half on face 11 and half on face 12, 502 holds 0.95 of its area on face 12 and 0.05 on face 13
+    links = [key_link("701", 0, element_id=701), key_link("502", 10)]
+    floors = [floor("DP4-701", 5), floor("DP4-502", 10.5)]
+    found = key_join.join_plots(document(links, floors), FLOORS, places())
+    assert found["plots"]["701"] == {"status": "cut", "face": None, "number": None,
+                                     "shares": [{"face": "11", "number": "501", "share": 0.5}, {"face": "12", "number": "502", "share": 0.5}]}
+    assert found["plots"]["502"]["status"] == "joined" and found["plots"]["502"]["number"] == "502" and found["plots"]["502"]["share"] == 0.95
+    assert found["counts"]["joined"] == 1 and found["byStatus"]["cut"] == ["701"]
+    # The place check holds the generic floor and a ramp across a face edge to the same share
+    across = floor("DP4-502", 18, "Ramp A", width=4, y0=0, y1=5)
+    place = key_join.place_check(document(links, floors + [across]), FLOORS, places())
+    assert place["byKind"]["generic"] == {"cut": 1, "match": 1} and place["byKind"]["ramp"] == {"cut": 1}
+
+
+def test_r326_two_key_plots_on_one_official_number_are_listed_as_two_plots_and_neither_counts_as_joined():
+    # The floors of 701 and 702 both stand whole on face 11, so both name number 501
+    links = [key_link("701", 0, element_id=701), key_link("702", 0, element_id=702), key_link("502", 10)]
+    floors = [floor("DP4-701", 0, y0=0, y1=12), floor("DP4-702", 0, y0=13, y1=25), floor("DP4-502", 10)]
+    found = key_join.join_plots(document(links, floors), FLOORS, places())
+    assert {plot: row["status"] for plot, row in found["plots"].items()} == {"502": "joined", "701": "twoPlots", "702": "twoPlots"}
+    assert found["counts"]["joined"] == 1 and found["byStatus"]["twoPlots"] == ["701", "702"]
+    assert found["twoPlots"] == [{"number": "501", "plots": ["701", "702"]}]
+    row = key_join.area_row("IMX", "x.rvt", found)
+    assert [(area["nbh"], area["plots"]) for area in row["areas"]] == [("01A", 1)]
 
 
 def test_r326_a_number_the_face_gives_other_than_the_key_plot_is_joined_and_counted_as_another_number():
