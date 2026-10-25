@@ -93,6 +93,7 @@ def made_up_read():
              {"file": "B.rvt", "elementId": 3, "plotNumber": None, "loaded": True}]
     for index, link in enumerate(links):
         link["transform"] = {"origin": [10.0 * index, 0.0, 0.0], "rotationDeg": 90.0, "mirrored": False}
+        link["parameters"] = {} if link["plotNumber"] is None else {"RRE_ZZ_SP_Plot-Number": link["plotNumber"]}
     floors = [{"typeName": "Slab F", "elementId": 10}, {"typeName": "Slab F", "elementId": 11}, {"typeName": "Yard Y", "elementId": 12},
               {"typeName": "Ramp B", "elementId": 13}, {"typeName": "Footing Z", "elementId": 14}]
     walls = [{"typeName": "Wall 1", "elementId": 20}, {"typeName": "Wall 1", "elementId": 21}, {"typeName": "Wall 2", "elementId": 22}]
@@ -364,20 +365,113 @@ def test_r323_floors_and_walls_are_held_against_a_second_read_by_their_ids_per_t
     assert result["walls"] == {"types": 3, "equal": 1, "differ": ["Wall 2", "Wall 3"]}
 
 
-def test_r323_the_spot_value_is_held_against_its_origin_and_the_survey_offset():
-    import key_reads_check as check
-    document = {"surveyPoint": {"position": [0.0, 0.0, 10.0], "sharedPosition": [500.0, 600.0, 12.5]},
-                "spotElevations": [{"elementId": index, "origin": [0.0, 0.0, 80.0 + index], "value": 82.5 + index, "elevationBase": "Survey Point"} for index in range(26)]}
-    document["spotElevations"][3]["value"] = 85.502
-    document["spotElevations"][4].pop("value")
-    document["spotElevations"][25]["elevationBase"] = "Project Base Point"
-    result = check.spot_values(document, 14, 20)
+OFFSET = [100.0, 200.0, 10.0]
 
-    assert result["withValue"] == 25 and result["otherBase"] == {"Project Base Point": 1}
-    assert result["compared"] == 24 and result["withinMm"] == 23
-    assert result["worstMm"] == 2.0
-    assert len(result["sample"]["ids"]) == 20
-    assert result["sample"]["match"] + result["sample"]["mismatch"] == 20
+
+def floor_of(element, type_name, corners, plot=None, thickness=0.15):
+    """A made up floor: its corners in internal coordinates (R34) and its outline the same loop in shared ones (R52)."""
+    outline = [[[x + OFFSET[0], y + OFFSET[1], z + OFFSET[2]] for x, y, z in corners]]
+    return {"elementId": element, "typeName": type_name, "corners": corners, "outline": outline, "thickness": thickness, "plotNumber": plot}
+
+
+def spot_on(element, host, origin, value, base="Survey Point"):
+    return {"elementId": element, "origin": origin, "value": value, "elevationBase": base,
+            "host": None if host is None else {"elementId": host[0], "category": host[1], "typeName": host[2]}}
+
+
+def test_r323_the_spot_value_is_held_against_the_top_of_its_floor_by_the_outline_edge_or_the_corner_plane():
+    import key_reads_check as check
+    flat = floor_of(1, "Slab G", [[0.0, 0.0, 5.0], [10.0, 0.0, 5.0], [10.0, 10.0, 5.0], [0.0, 10.0, 5.0]])
+    sloped = floor_of(2, "Ramp A", [[20.0, 0.0, 5.0], [30.0, 0.0, 5.0], [30.0, 4.0, 5.2], [20.0, 4.0, 5.2]], thickness=0.1)
+    # The corners of a warped floor lie on no plane, Revit splits its top on a diagonal the read does not give
+    warped = floor_of(3, "Ramp A", [[40.0, 0.0, 5.0], [50.0, 0.0, 5.0], [50.0, 4.0, 5.3], [40.0, 4.0, 5.0]], thickness=0.1)
+    on_flat, on_ramp = (1, "Floors", "Slab G"), (2, "Floors", "Ramp A")
+    spots = [spot_on(11, on_flat, [5.0, 5.0, 5.0], 15.0),
+             spot_on(12, on_ramp, [25.0, 2.0, 5.1], 15.1),
+             spot_on(13, on_ramp, [30.0, 4.0, 5.2], 15.2),
+             # On the edge of the flat floor, the value of its bottom, a gap of minus its thickness
+             spot_on(14, on_flat, [10.0, 5.0, 5.0], 14.85),
+             spot_on(15, (3, "Floors", "Ramp A"), [50.0, 4.0, 5.3], 15.3),
+             spot_on(16, (3, "Floors", "Ramp A"), [45.0, 2.0, 5.1], 15.1),
+             spot_on(17, on_flat, [2.0, 3.0, 5.0], 15.003),
+             spot_on(18, on_flat, [2.0, 3.0, 5.0], None),
+             spot_on(19, on_flat, [2.0, 3.0, 5.0], 15.0, base="Project Base Point"),
+             spot_on(20, (9, "RVT Links", "B.rvt"), [2.0, 3.0, 5.0], 15.0),
+             spot_on(21, None, [2.0, 3.0, 5.0], 15.0)]
+    document = {"surveyPoint": {"position": [0.0, 0.0, 0.0], "sharedPosition": OFFSET}, "floors": [flat, sloped, warped],
+                "links": [{"elementId": 9, "file": "B.rvt"}], "spotElevations": spots}
+    result = check.spot_tops(document)
+
+    assert result["compared"] == 6
+    assert result["byRoute"] == {"edge": 3, "plane": 3}
+    assert result["skipped"] == {"base Project Base Point": 1, "noValue": 1, "notOnAFloorOfTheRead": 2, "warped": 1}
+    assert result["byHost"]["Floors: Slab G"] == {"count": 3, "within1Mm": 1, "within5Mm": 2, "share1Mm": 0.3333, "share5Mm": 0.6667, "worstMm": 150.0}
+    assert result["byHost"]["Floors: Ramp A"] == {"count": 3, "within1Mm": 3, "within5Mm": 3, "share1Mm": 1.0, "share5Mm": 1.0, "worstMm": 0.0}
+    assert result["all"]["count"] == 6 and result["all"]["within1Mm"] == 4 and result["all"]["within5Mm"] == 5
+    assert result["atFloorBottom"] == 1
+    assert result["worst"][0] == {"elementId": 14, "host": "Floors: Slab G", "floorId": 1, "gapMm": -150.0, "route": "edge", "thicknessMm": 150.0}
+    assert result["worst"][1]["elementId"] == 17 and result["worst"][1]["gapMm"] == 3.0
+
+
+def test_r323_a_plane_needs_three_corners_that_span_it_and_a_point_off_the_outline_is_not_on_its_edge():
+    import key_reads_check as check
+    assert check.plane_through([[0.0, 0.0, 1.0], [1.0, 1.0, 2.0]]) is None
+    assert check.plane_through([[0.0, 0.0, 1.0], [1.0, 1.0, 2.0], [2.0, 2.0, 3.0]]) is None
+    level, worst = check.plane_through([[0.0, 0.0, 1.0], [2.0, 0.0, 1.0], [0.0, 2.0, 3.0]])
+    assert abs(level(1.0, 1.0) - 2.0) < 1e-9 and worst < 1e-9
+    floor = floor_of(1, "Slab G", [[0.0, 0.0, 5.0], [10.0, 0.0, 5.0], [10.0, 10.0, 5.0], [0.0, 10.0, 5.0]])
+    assert check.top_at(floor, 110.004, 205.0, OFFSET) == (15.0, "edge")
+    assert check.top_at(floor, 105.0, 205.0, OFFSET)[1] == "plane"
+    assert check.top_at({"elementId": 2}, 105.0, 205.0, OFFSET) == (None, "noGeometry")
+
+
+def test_r323_a_read_with_no_survey_point_gives_its_spot_check_as_not_read_and_the_other_routes_run(tmp_path):
+    import key_reads_check as check
+    document = with_categories(made_up_read(), links=3, walls=3, floors=4, spots=4, footings=7)
+    document["surveyPoint"] = None
+    result = check.check_key(document, None, [], pf.load_floors(key_settings(tmp_path)))
+
+    assert result["spotTops"] == {"notRead": "the read holds no survey point, so no spot is put in shared coordinates"}
+    assert result["categories"]["links"]["equal"] is True
+    del document["surveyPoint"]
+    assert check.spot_tops(document)["notRead"].startswith("the read holds no survey point")
+
+
+def square(x, y, size=10.0, z=5.0):
+    return [[x, y, z], [x + size, y, z], [x + size, y + size, z], [x, y + size, z]]
+
+
+def plot_link(element, plot):
+    return {"elementId": element, "file": "A.rvt", "parameters": {"RRE_ZZ_SP_Plot-Number": plot}}
+
+
+def test_r323_each_unit_plot_holds_one_link_generic_floor_yard_and_ramp_counted_by_the_plot_of_each_element(tmp_path):
+    import key_reads_check as check
+    settings = key_settings(tmp_path)
+    links = [plot_link(1, "101"), plot_link(2, "102"), plot_link(3, "103"), plot_link(4, "103"), {"elementId": 5, "file": "L.rvt", "parameters": {}}]
+    floors = [floor_of(10, "Slab F", square(0.0, 0.0), "101"), floor_of(11, "Slab F", square(20.0, 0.0), "102"), floor_of(12, "Slab F", square(40.0, 0.0), "103"),
+              floor_of(13, "Ramp A", square(0.0, -5.0, 4.0), "101"), floor_of(14, "Ramp B", square(40.0, -5.0, 4.0), "103"),
+              # Two yards with no Plot parameter, in the generic floors of 101 and 103, one in none, and one that names 102
+              floor_of(20, "Yard Y", square(1.0, 1.0, 3.0)), floor_of(21, "Yard Y", square(41.0, 1.0, 3.0)), floor_of(22, "Yard Y", square(70.0, 0.0, 3.0)),
+              floor_of(23, "Yard Y", square(21.0, 1.0, 3.0), "102"),
+              # A floor of the generic type of floors.types, of no kind for IMX
+              floor_of(30, "Slab G", square(60.0, 0.0), "104")]
+    document = {"surveyPoint": {"position": [0.0, 0.0, 0.0], "sharedPosition": OFFSET}, "links": links, "floors": floors}
+    rule = check.plot_rule(document, pf.load_floors(settings, "IMX"))
+
+    assert rule["plots"] == 3 and rule["hold"] == 1 and rule["break"] == 2
+    assert rule["breaks"] == [{"plot": "102", "counts": {"link": 1, "generic": 1, "yard": 1, "ramp": 0}, "why": ["no ramp"]},
+                              {"plot": "103", "counts": {"link": 2, "generic": 1, "yard": 1, "ramp": 1}, "why": ["2 links"]}]
+    assert rule["byReason"] == {"2 links": 1, "no ramp": 1}
+    assert rule["yards"] == {"byPlotParameter": 1, "byGenericShape": 2, "noPlot": {"in no generic floor": 1}}
+    assert rule["notNamed"] == {"link": 1, "generic": 0, "ramp": 0}
+    assert rule["floorsOfNoKind"] == {"Slab G": 1}
+
+    # R321. Read by floors.types alone the Slab F floors are of no kind and no plot holds a generic floor
+    alone = check.plot_rule(document, pf.load_floors(settings, "IMY"))
+    assert alone["hold"] == 0
+    assert alone["byReason"]["no generic floor"] == 3
+    assert alone["floorsOfNoKind"] == {"Slab F": 3}
 
 
 def test_r323_main_holds_a_read_against_the_bytes_of_its_key_copy_and_its_second_read_and_writes_outside_the_repo(tmp_path):
@@ -404,9 +498,14 @@ def test_r323_main_holds_a_read_against_the_bytes_of_its_key_copy_and_its_second
     written = json.loads((reads / "key_reads_check.json").read_text(encoding="utf-8"))["keys"]["IMX"]
     assert written["bytes"] == {"read": 2, "bytes": 1, "both": 1, "onlyRead": ["B.rvt"], "onlyBytes": []}
     assert written["categories"]["walls"]["equal"] is True
-    assert written["links"]["14"]["idsEqual"] is True and written["links"]["14"]["match"] == 1
-    assert written["links"]["14"]["mismatches"] == [{"elementId": 1, "fields": ["file"]}, {"elementId": 2, "fields": ["file"]}]
-    assert written["idsPerType"]["walls"]["differ"] == []
+    # The Phase 1 read of the same copy repeats the read, it is named so and is no second method
+    repeat = written["repeatRead"]
+    assert repeat["file"] == "old.json" and "no second method" in repeat["note"]
+    assert repeat["links"]["14"]["idsEqual"] is True and repeat["links"]["14"]["match"] == 1
+    assert repeat["links"]["14"]["mismatches"] == [{"elementId": 1, "fields": ["file"]}, {"elementId": 2, "fields": ["file"]}]
+    assert repeat["idsPerType"]["walls"]["differ"] == []
+    assert "links" not in written and "idsPerType" not in written and "secondRead" not in written
+    assert written["plotRule"]["plots"] == 2 and written["spotTops"]["compared"] == 0
     with pytest.raises(ValueError):
         check.main(["--settings", str(path), "--reads", str(project_profile.ROOT / "python"), "--key", "IMX=QX=none"])
     with pytest.raises(project_profile.ProfileError):
