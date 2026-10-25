@@ -545,14 +545,14 @@ namespace SiteAdaptation.Tests
             raw.UnitTypeIds = null;
             raw.LengthAccuracy = null;
             raw.Categories = null;
-            raw.NotRead = new Dictionary<string, string> { ["units"] = "u failed", ["levels"] = "l failed", ["sites"] = "s failed", ["project position"] = "p failed", ["categories"] = "c failed" };
+            raw.NotRead = new Dictionary<string, string> { ["units"] = "u failed", ["levels"] = "l failed", ["sites"] = "s failed", [SitePart.ProjectPosition] = "p failed", ["categories"] = "c failed" };
             SiteFacts facts = SiteFacts.Build(raw);
             Assert.Null(facts.Sites);
             Assert.Null(facts.ProjectPosition);
             Assert.Null(facts.Levels);
             Assert.Null(facts.Units);
             Assert.Null(facts.Categories);
-            Assert.Equal(new[] { "categories", "levels", "project position", "sites", "units" }, facts.NotRead.Keys);
+            Assert.Equal(new[] { "categories", "levels", "projectPosition", "sites", "units" }, facts.NotRead.Keys);
             string json = JsonOut.ToJson(facts);
             foreach (string part in new[] { "sites", "projectPosition", "levels", "units", "categories" })
             {
@@ -579,6 +579,41 @@ namespace SiteAdaptation.Tests
             Assert.True(entryJson.IndexOf("\"prototypes\"", StringComparison.Ordinal) < entryJson.IndexOf("\"site\"", StringComparison.Ordinal));
             Assert.Contains("\"activeSite\": \"Internal\"", entryJson);
             Assert.Contains("\"eastWest\": 1000.0", entryJson);
+        }
+
+        [Fact]
+        public void R311_the_not_read_key_of_each_part_is_its_field_name_and_a_sites_part_not_read_writes_every_field_as_null()
+        {
+            // Every key a part takes in notRead is a field of the site JSON, so projectPosition and never "project position"
+            JObject full = JObject.Parse(JsonOut.ToJson(SiteFacts.Build(Site())));
+            Assert.Equal(new[] { "sites", "projectPosition", "levels", "units", "categories" }, SitePart.All);
+            foreach (string part in SitePart.All)
+            {
+                Assert.True(full.Property(part) != null, part);
+            }
+
+            // The sites part stands for activeSite, sites and placeName, so all three are written as null when it did not read
+            RawSite raw = Site();
+            raw.ActiveSite = null;
+            raw.Sites = null;
+            raw.PlaceName = null;
+            raw.NotRead = new Dictionary<string, string> { [SitePart.Sites] = "s failed" };
+            JObject json = JObject.Parse(JsonOut.ToJson(SiteFacts.Build(raw)));
+            foreach (string field in new[] { "activeSite", "sites", "placeName" })
+            {
+                Assert.True(json.Property(field) != null, field);
+                Assert.Equal(JTokenType.Null, json[field].Type);
+            }
+            Assert.Equal("s failed", (string)json["notRead"]["sites"]);
+            Assert.Equal(JTokenType.Object, json["projectPosition"].Type);
+
+            // The reader names each part by these keys, never by a text of its own
+            string revit = File.ReadAllText(RepoPath("dotnet", "RevitPrototypeReader", "RevitSite.cs"));
+            foreach (string name in new[] { "Sites", "ProjectPosition", "Levels", "Units", "Categories" })
+            {
+                Assert.Contains("Guard(SitePart." + name + ", raw, errors, () =>", revit);
+            }
+            Assert.DoesNotContain("Guard(\"", revit);
         }
 
         [Fact]

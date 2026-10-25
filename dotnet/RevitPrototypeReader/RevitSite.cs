@@ -7,14 +7,15 @@ using SiteAdaptation.Common;
 namespace RevitPrototypeReader
 {
     // R311. The place of a project as the Revit API gives it, in feet and radians. It only reads, SiteFacts.Build in Common
-    // converts and sorts. A part that does not read is one line in errors and in NotRead, its values stay null and the rest still
-    // reads. Each part sets its values only once all of them read, so a part is never half filled
+    // converts and sorts. A part that does not read is one line in errors and in NotRead under the name of its site field in
+    // SitePart, its values stay null and the rest still reads. Each part sets its values only once all of them read, so a part is
+    // never half filled
     internal static class RevitSite
     {
         public static RawSite Read(Document doc, IList<string> errors)
         {
             var raw = new RawSite();
-            Guard("sites", raw, errors, () =>
+            Guard(SitePart.Sites, raw, errors, () =>
             {
                 string active = doc.ActiveProjectLocation.Name;
                 List<string> sites = doc.ProjectLocations.Cast<ProjectLocation>().Select(location => location.Name).ToList();
@@ -23,13 +24,13 @@ namespace RevitPrototypeReader
                 raw.Sites = sites;
                 raw.PlaceName = place;
             });
-            Guard("project position", raw, errors, () =>
+            Guard(SitePart.ProjectPosition, raw, errors, () =>
             {
                 ProjectPosition position = doc.ActiveProjectLocation.GetProjectPosition(XYZ.Zero);
                 raw.ProjectPositionFeet = new[] { position.EastWest, position.NorthSouth, position.Elevation };
                 raw.AngleRadians = position.Angle;
             });
-            Guard("levels", raw, errors, () =>
+            Guard(SitePart.Levels, raw, errors, () =>
             {
                 raw.Levels = new FilteredElementCollector(doc).OfClass(typeof(Level)).Cast<Level>().Select(level => new RawLevel
                 {
@@ -40,7 +41,7 @@ namespace RevitPrototypeReader
                     ElevationBase = doc.GetElement(level.GetTypeId())?.get_Parameter(BuiltInParameter.LEVEL_RELATIVE_BASE_TYPE)?.AsValueString(),
                 }).ToList();
             });
-            Guard("units", raw, errors, () =>
+            Guard(SitePart.Units, raw, errors, () =>
             {
                 // DisplayUnitSystem is the system the project was made in. The format options of the project units are what it has now
                 Units units = doc.GetUnits();
@@ -57,7 +58,7 @@ namespace RevitPrototypeReader
                 raw.UnitTypeIds = ids;
                 raw.LengthAccuracy = accuracy;
             });
-            Guard("categories", raw, errors, () =>
+            Guard(SitePart.Categories, raw, errors, () =>
             {
                 raw.Categories = new FilteredElementCollector(doc).WhereElementIsNotElementType().ToElements()
                     .Select(element => element.Category)

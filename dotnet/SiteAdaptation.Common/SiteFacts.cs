@@ -31,6 +31,19 @@ namespace SiteAdaptation.Common
         public IDictionary<string, string> NotRead { get; set; }
     }
 
+    // R311. The parts of the site read, each by the name of the site field it stands for, which is its key in notRead. Sites stands
+    // for activeSite and placeName too
+    public static class SitePart
+    {
+        public const string Sites = "sites";
+        public const string ProjectPosition = "projectPosition";
+        public const string Levels = "levels";
+        public const string Units = "units";
+        public const string Categories = "categories";
+
+        public static readonly string[] All = { Sites, ProjectPosition, Levels, Units, Categories };
+    }
+
     public class RawLevel
     {
         public string Name { get; set; }
@@ -72,11 +85,14 @@ namespace SiteAdaptation.Common
             ["usSurveyFeet"] = Imperial,
         };
 
+        // The sites part stands for activeSite, sites and placeName, so each is written as null when it did not read
+        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
         public string ActiveSite { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Include)]
         public List<string> Sites { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
         public string PlaceName { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Include)]
@@ -91,7 +107,7 @@ namespace SiteAdaptation.Common
         [JsonProperty(NullValueHandling = NullValueHandling.Include)]
         public List<CategoryCount> Categories { get; set; }
 
-        // Each part that did not read and its error, by part name. Absent when every part read
+        // Each part that did not read and its error, by the name of its site field in SitePart. Absent when every part read
         public SortedDictionary<string, string> NotRead { get; set; }
 
         public static SiteFacts Build(RawSite raw)
