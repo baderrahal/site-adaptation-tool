@@ -1,5 +1,6 @@
 """R342. docs/licences.md lists every package of the solution and of requirements.txt with its version and licence."""
 import importlib.metadata
+import json
 import re
 import xml.etree.ElementTree as ElementTree
 from pathlib import Path
@@ -110,3 +111,33 @@ def test_r342_the_table_reader_and_the_package_scan_see_a_made_up_project(tmp_pa
     assert package_references(tmp_path) == [("Lib.One", "1.2.3", "a.csproj")]
     text = "## .NET packages\n\n| Package | Version | Licence |\n|---|---|---|\n| Lib.One | 1.2.3 | MIT |\n\n## Next\n"
     assert table(text, ".NET packages") == [{"Package": "Lib.One", "Version": "1.2.3", "Licence": "MIT"}]
+
+
+def assets_packages(root):
+    """Every package of the obj/project.assets.json files under root, the ones a restore pulled in too, as {name: (version, project folder)}."""
+    found = {}
+    for path in sorted(root.rglob("project.assets.json")):
+        if path.parent.name != "obj":
+            continue
+        libraries = json.loads(path.read_text(encoding="utf-8")).get("libraries") or {}
+        for key, item in libraries.items():
+            if item.get("type") == "package":
+                name, version = key.split("/", 1)
+                found.setdefault(name.lower(), (version, path.parent.parent.relative_to(root).as_posix()))
+    return found
+
+
+def test_r342_every_package_a_restore_pulled_in_has_a_row_with_its_version():
+    found = assets_packages(ROOT / "dotnet")
+    if not found:
+        pytest.skip("no project.assets.json under dotnet, run dotnet restore first")
+    rows = {row["Package"].lower(): row for row in table(LICENCES.read_text(encoding="utf-8"), ".NET packages")}
+    assert sorted((name, version, project) for name, (version, project) in found.items() if name not in rows) == []
+    assert sorted((name, version, rows[name]["Version"]) for name, (version, project) in found.items() if name in rows and rows[name]["Version"] != version) == []
+
+
+def test_r342_the_assets_scan_sees_a_made_up_restore(tmp_path):
+    (tmp_path / "a" / "obj").mkdir(parents=True)
+    libraries = {"Lib.One/1.2.3": {"type": "package"}, "a/1.0.0": {"type": "project"}}
+    (tmp_path / "a" / "obj" / "project.assets.json").write_text(json.dumps({"libraries": libraries}), encoding="utf-8")
+    assert assets_packages(tmp_path) == {"lib.one": ("1.2.3", "a")}

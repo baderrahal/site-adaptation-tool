@@ -16,7 +16,7 @@ Ships with says where the DLL goes: add-in (loaded inside Revit), worker (CadRea
 | Package | Version | Licence | Ships with | Asset a net48 project takes | Checked |
 |---|---|---|---|---|---|
 | ACadSharp | 3.8.0 | MIT | worker, tools | lib/net48, needs System.Memory 4.6.3 | READ acadsharp.nuspec, RAN |
-| Newtonsoft.Json | 13.0.3 | MIT | add-in, worker, tools | lib/net45 | READ newtonsoft.json.nuspec, RAN, inside Revit the copy of Revit serves (below) |
+| Newtonsoft.Json | 13.0.3 | MIT | worker, tools. The add-in ships no copy: Phase 4a pins 13.0.1 in Common and the add-in, Common builds against 13.0.1, and inside Revit the copy of Revit, 13.0.1, serves both (below) | lib/net45 | READ newtonsoft.json.nuspec, RAN |
 | PdfPig | 0.1.16 | Apache-2.0 | worker, planned for Phase 4a | lib/net471, needs Microsoft.Bcl.HashCode 6.0.0 and System.Memory 4.6.0 | SEARCHED https://api.nuget.org/v3-flatcontainer/pdfpig/0.1.16/pdfpig.nuspec, RAN |
 | DocumentFormat.OpenXml | 3.5.1 | MIT | worker, planned for Phase 4a | lib/net46, needs DocumentFormat.OpenXml.Framework 3.5.1 | SEARCHED https://api.nuget.org/v3-flatcontainer/documentformat.openxml/3.5.1/documentformat.openxml.nuspec, RAN |
 | DocumentFormat.OpenXml.Framework | 3.5.1 | MIT | worker, planned for Phase 4a | lib/net46, needs only System, System.Xml and WindowsBase of the framework | SEARCHED https://api.nuget.org/v3-flatcontainer/documentformat.openxml.framework/3.5.1/documentformat.openxml.framework.nuspec, RAN |
@@ -29,13 +29,14 @@ Ships with says where the DLL goes: add-in (loaded inside Revit), worker (CadRea
 | Nice3point.Revit.Api.RevitAPIUI | 2024.3.60 | MIT | build only, ExcludeAssets runtime | ref | READ LICENSE.md in the package, the MIT text |
 | Microsoft.NETFramework.ReferenceAssemblies | 1.0.3 | MIT | build only | build | READ the nuspec licenseUrl, SEARCHED https://raw.githubusercontent.com/Microsoft/dotnet/master/LICENSE, The MIT License |
 | Microsoft.NETFramework.ReferenceAssemblies.net48 | 1.0.3 | MIT | build only, by the package above | build | READ the nuspec licenseUrl, the same MIT file |
+| Microsoft.NETFramework.ReferenceAssemblies.net461 | 1.0.3 | MIT | build only, pulled in by the restore of SiteAdaptation.C3DProbe.Civil, a project under dotnet outside the sln | build | READ the nuspec licenseUrl, the same MIT file, and obj\project.assets.json of that project |
 | Microsoft.NET.Test.Sdk | 17.11.1 | MIT | tests only | lib/net462 | READ microsoft.net.test.sdk.nuspec |
 | Microsoft.CodeCoverage | 17.11.1 | MIT | tests only, by Microsoft.NET.Test.Sdk | lib/net462 | READ microsoft.codecoverage.nuspec |
 | Microsoft.TestPlatform.ObjectModel | 17.13.0 | MIT | tests only | lib/net462 | READ microsoft.testplatform.objectmodel.nuspec |
 | System.Collections.Immutable | 1.5.0 | MIT | tests only | lib/netstandard2.0 | READ LICENSE.TXT in the package, The MIT License |
 | System.Reflection.Metadata | 1.6.0 | MIT | tests only | lib/netstandard2.0 | READ LICENSE.TXT in the package, The MIT License |
 | xunit | 2.9.3 | Apache-2.0 | tests only | none, a meta package | READ xunit.nuspec |
-| xunit.abstractions | 2.0.3 | Apache-2.0 | tests only | lib/netstandard2.0 | READ the nuspec licenseUrl, SEARCHED https://raw.githubusercontent.com/xunit/xunit/master/license.txt, Apache License 2.0 |
+| xunit.abstractions | 2.0.3 | Apache-2.0 | tests only | lib/net35 | READ the nuspec licenseUrl, SEARCHED https://raw.githubusercontent.com/xunit/xunit/master/license.txt, Apache License 2.0, the asset by obj\project.assets.json of SiteAdaptation.Tests |
 | xunit.analyzers | 1.18.0 | Apache-2.0 | tests only, an analyzer | none | READ xunit.analyzers.nuspec |
 | xunit.assert | 2.9.3 | Apache-2.0 | tests only | lib/netstandard1.1 | READ xunit.assert.nuspec |
 | xunit.core | 2.9.3 | Apache-2.0 | tests only | none, a meta package | READ xunit.core.nuspec |
@@ -43,7 +44,7 @@ Ships with says where the DLL goes: add-in (loaded inside Revit), worker (CadRea
 | xunit.extensibility.execution | 2.9.3 | Apache-2.0 | tests only | lib/net452 | READ xunit.extensibility.execution.nuspec |
 | xunit.runner.visualstudio | 3.1.5 | Apache-2.0 | tests only | lib/net472 | READ xunit.runner.visualstudio.nuspec |
 
-The package list comes from the obj/project.assets.json of the nine projects of dotnet/SiteAdaptation.sln, 24 packages (RAN), and the restore of the load check for the four planned ones. PdfPig asks for System.Memory 4.6.0 and ACadSharp for 4.6.3, NuGet takes 4.6.3 for the worker, so one System.Memory ships (RAN, the assets file of the load check).
+The package list comes from the obj/project.assets.json of the projects under dotnet (RAN): the nine projects of dotnet/SiteAdaptation.sln hold 23 packages, and SiteAdaptation.C3DProbe.Civil, outside the sln, adds Microsoft.NETFramework.ReferenceAssemblies.net461, 24 in all, then the restore of the load check gives the four planned ones, 28 rows. python/tests/test_licences.py holds every package of every assets file under dotnet against its row and its version, so a package a restore pulls in is never left out. PdfPig asks for System.Memory 4.6.0 and ACadSharp for 4.6.3, NuGet takes 4.6.3 for the worker, so one System.Memory ships (RAN, the assets file of the load check).
 
 Not chosen, with the reason:
 - ClosedXML 0.105.1, MIT, but it pulls ClosedXML.Parser, ExcelNumberFormat, RBush.Signed, SixLabors.Fonts (1.0.0 Apache-2.0, 2.x a licence file) and System.Memory 4.5.5 into the worker, for two files that need no font measure (READ the cached closedxml.nuspec and sixlabors.fonts 1.0.0 nuspec).
