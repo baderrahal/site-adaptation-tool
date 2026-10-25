@@ -639,6 +639,10 @@ def final_list(listing, block, dry, path, keep, replace, keep_from, joined):
     earlier = [override_source.migrate_entry(item, block["groups"]) for item in override_source.read_list(source)["overrides"]] if source.exists() else []
     if keep_from and not source.exists():
         raise project_profile.ProfileError("--keep-from " + str(source) + " is no file (R330)")
+    if keep_from and Path(path).exists() and Path(path).resolve() != source.resolve():
+        # R330. The run writes over the list at path, so the hand edits of that list are read too, never lost with it
+        replaced = [override_source.migrate_entry(item, block["groups"]) for item in override_source.read_list(path)["overrides"]]
+        earlier = override_source.with_hand_edits(earlier, replaced)
     chosen = override_source.keep_of(block, keep, replace, earlier)
     merged, counts = override_source.merge(earlier, listing, chosen, joined)
     counts["keep"] = override_source.describe(chosen)

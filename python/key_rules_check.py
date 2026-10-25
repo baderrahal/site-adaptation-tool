@@ -994,17 +994,34 @@ def held(row, ctx, settings, profile, report, datums):
     return found, unknown, rule
 
 
-def merged_check(merged, dry, table, keep, later):
+def merged_check(merged, dry, table, keep, later, earlier=None):
     """R330. The list a run merged: every entry on a plot past_all.csv gives its key, and per job the entries of the fields it does
-    not keep equal to the entries of the dry list of that run, as JSON text, so a kept entry of a cut plot is found."""
+    not keep equal to the entries of the dry list of that run, as JSON text, so a kept entry of a cut plot is found. With earlier,
+    the list before the run, every entry it keeps on the join, native whole, is in the merged list cell for cell, and every entry
+    marked "byHand": true is. ok when all hold, else the run fails."""
     joined = {(row["key"], row["plot"]) for row in table}
-    off = [{name: item.get(name) for name in ("key", "plot", "field", "source")} for item in merged if (item.get("key"), str(item["plot"])) not in joined]
+    on_join = lambda item: (item.get("key"), str(item["plot"])) in joined
+    off = [{name: item.get(name) for name in ("key", "plot", "field", "source")} for item in merged if not on_join(item)]
     kept = lambda item: item["source"] in keep and (keep[item["source"]] is None or item["field"] in keep[item["source"]])
     text = lambda items: Counter(json.dumps(item, sort_keys=True, ensure_ascii=False) for item in items)
     mine, theirs = text(item for item in merged if not kept(item)), text(item for item in dry if not kept(item))
-    return {"entries": len(merged), "offJoin": off, "runEntriesEqualDry": mine == theirs, "onlyMerged": sum((mine - theirs).values()), "onlyDry": sum((theirs - mine).values()),
-            "bySource": dict(sorted(Counter(item["source"] for item in merged).items())), "byHand": sum(1 for item in merged if item.get("byHand") is True),
-            "laterFieldsInRun": sorted({item["field"] for item in dry if item["field"] in later})}
+    found = {"entries": len(merged), "offJoin": off, "runEntriesEqualDry": mine == theirs, "onlyMerged": sum((mine - theirs).values()), "onlyDry": sum((theirs - mine).values()),
+             "bySource": dict(sorted(Counter(item["source"] for item in merged).items())), "byHand": sum(1 for item in merged if item.get("byHand") is True),
+             "laterFieldsInRun": sorted({item["field"] for item in dry if item["field"] in later})}
+    ok = not off and found["runEntriesEqualDry"]
+    if earlier is not None:
+        held = text(merged)
+        wanted = [item for item in earlier if kept(item) and on_join(item)]
+        missing = text(wanted) - held
+        hands = text(item for item in earlier if item.get("byHand") is True) - held
+        by_text = {json.dumps(item, sort_keys=True, ensure_ascii=False): item for item in earlier}
+        found.update({"earlierKept": len(wanted), "keptMissing": sum(missing.values()),
+                      "keptMissingBySource": dict(sorted(Counter(by_text[entry]["source"] for entry in missing.elements()).items())),
+                      "keptMissingFirst": [{name: by_text[entry].get(name) for name in ("key", "plot", "field", "source")} for entry in list(missing)[:10]],
+                      "byHandLost": sum(hands.values())})
+        ok = ok and not missing and not hands
+    found["ok"] = ok
+    return found
 
 
 def main(argv=None):
@@ -1014,6 +1031,7 @@ def main(argv=None):
     parser.add_argument("--majority", required=True, help="majority.json of the run")
     parser.add_argument("--overrides", required=True, help="the override list the dry run wrote, every miss of the run")
     parser.add_argument("--merged", help="the override list the write run merged, config/overrides, held against the dry one and the join")
+    parser.add_argument("--earlier", help="R330. the override list before the write run, its kept and byHand entries held in --merged cell for cell")
     parser.add_argument("--plots-csv", required=True)
     parser.add_argument("--baseplan", required=True)
     parser.add_argument("--roads", required=True, help="folder with pieces.json")
@@ -1026,6 +1044,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if Path(args.out).resolve().is_relative_to(ROOT):
         print("key_rules_check: write outside the repo", file=sys.stderr)
+        return 2
+    if args.merged and not args.earlier:
+        print("key_rules_check: --merged is held against the list before the run, give --earlier", file=sys.stderr)
         return 2
     settings = read_json(args.settings)
     block = settings["majority"]
@@ -1121,7 +1142,7 @@ def main(argv=None):
         for source, fields in block["overrideKeep"]["laterFields"].items():
             if keep.get(source, set()) is not None:
                 keep[source] = set(keep.get(source) or ()) | set(fields)
-        out["merged"] = merged_check(read_json(args.merged)["overrides"], dry, table, keep, later)
+        out["merged"] = merged_check(read_json(args.merged)["overrides"], dry, table, keep, later, read_json(args.earlier)["overrides"])
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
     for seed, found in seeds.items():
@@ -1134,6 +1155,10 @@ def main(argv=None):
         print("merged list: %s" % ({name: value for name, value in out["merged"].items() if name != "offJoin"} | {"offJoin": len(out["merged"]["offJoin"])}))
     if failures:
         print("cannot check, a failure: %s" % out["cannotCheck"], file=sys.stderr)
+        return 1
+    if "merged" in out and not out["merged"]["ok"]:
+        print("the merged list fails its check, a failure: off the join %d, run entries equal the dry list %s, kept entries missing %s, byHand entries lost %s"
+              % (len(out["merged"]["offJoin"]), out["merged"]["runEntriesEqualDry"], out["merged"].get("keptMissing"), out["merged"].get("byHandLost")), file=sys.stderr)
         return 1
     return 0
 

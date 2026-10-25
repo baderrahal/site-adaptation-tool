@@ -75,3 +75,65 @@ def test_r337_the_slope_of_el_at_entry_and_the_ramp_class_of_key_rules_must_agre
     # The committed profile agrees
     real = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
     assert plan_rules.key_rules_of(plan_rules.level_profile(real, "parsons2024Rev6")) is not None
+
+
+# R330 the hand edits of Bader, read from the list a run writes over and refused in any other spelling
+def test_r330_a_by_hand_entry_of_the_list_a_keep_from_run_writes_over_is_kept_or_the_run_refused(tmp_path):
+    import json
+    import pytest
+    import majority
+    import project_profile
+    from test_addin_review import entry, keep_block
+    committed, older = tmp_path / "committed.json", tmp_path / "older.json"
+    hand = entry("10", "mirrored", True, "parsons", "IMC.rvt", "imc", byHand=True)
+    committed.write_text(json.dumps({"note": "n", "overrides": [hand]}), encoding="utf-8")
+    older.write_text(json.dumps({"note": "n", "overrides": []}), encoding="utf-8")
+    run = [entry("10", "mirrored", False, "parsons", "IMC.rvt", "imc")]
+    # mirrored is not kept, so a run that would write over the hand edit of the committed list is refused
+    with pytest.raises(project_profile.ProfileError) as error:
+        majority.final_list(run, keep_block(), dry=False, path=committed, keep=[], replace=[], keep_from=older, joined=None)
+    assert "byHand" in str(error.value) and "10" in str(error.value)
+    # Kept by its field it stays cell for cell, though the --keep-from list never held it
+    listing, _ = majority.final_list(run, keep_block(), dry=False, path=committed, keep=["parsons:mirrored"], replace=[], keep_from=older, joined=None)
+    assert listing == [hand]
+    # The --keep-from list holding the same plot and field otherwise is a conflict, never resolved in silence
+    older.write_text(json.dumps({"note": "n", "overrides": [entry("10", "mirrored", False, "parsons", "IMC.rvt", "imc")]}), encoding="utf-8")
+    with pytest.raises(project_profile.ProfileError) as error:
+        majority.final_list(run, keep_block(), dry=False, path=committed, keep=["parsons:mirrored"], replace=[], keep_from=older, joined=None)
+    assert "hand edit" in str(error.value)
+
+
+def test_r330_a_by_hand_mark_of_another_spelling_or_value_is_refused_loudly_and_never_dropped():
+    import pytest
+    import override_source
+    import project_profile
+    from test_addin_review import GROUPS, entry
+    for extra in ({"byHand": "true"}, {"byHand": 1}, {"byHand": "byhand"}, {"byhand": True}, {"ByHand": True}, {"by_hand": True}, {"BYHAND": "yes"}):
+        item = entry("2", "mirrored", True, "parsons", "IMC.rvt", "imc", **extra)
+        # Not kept by the run, a mark read as none would drop it in silence
+        with pytest.raises(project_profile.ProfileError) as error:
+            override_source.merge([item], [], {"native": None})
+        assert "byHand" in str(error.value)
+        with pytest.raises(project_profile.ProfileError):
+            override_source.check_entries([item], GROUPS)
+    assert override_source.by_hand(entry("2", "mirrored", True, "parsons", "IMC.rvt", "imc", byHand=True)) is True
+    assert override_source.by_hand(entry("2", "mirrored", True, "parsons", "IMC.rvt", "imc")) is False
+
+
+# R336 the merged list keeps every kept entry of the earlier list cell for cell, and a failed check fails the run
+def test_r336_the_merged_list_is_held_against_the_earlier_list_and_a_list_that_lost_every_native_entry_fails():
+    import key_rules_check
+    table = [{"key": "u12", "plot": "1"}, {"key": "u12", "plot": "2"}, {"key": "imc", "plot": "2300"}]
+    native = [{"plot": plot, "field": "entryM", "value": {"gapToRuleM": 0.2}, "source": "native", "key": "u12"} for plot in ("1", "2")]
+    hand = {"plot": "2300", "field": "mirrored", "value": True, "source": "parsons", "key": "imc", "byHand": True}
+    keep = {"native": None, "parsons": {"mirrored"}}
+    found = key_rules_check.merged_check(native + [hand], [], table, keep, set(), earlier=native + [hand])
+    assert found["ok"] is True and found["keptMissing"] == 0 and found["byHandLost"] == 0
+    found = key_rules_check.merged_check([hand], [], table, keep, set(), earlier=native + [hand])
+    assert found["ok"] is False and found["keptMissing"] == 2 and found["keptMissingBySource"] == {"native": 2}
+    # A kept entry changed in one cell is no kept entry
+    changed = [dict(native[0], value={"gapToRuleM": 0.3}), native[1]]
+    found = key_rules_check.merged_check(changed, [], table, {"native": None}, set(), earlier=native)
+    assert found["ok"] is False and found["keptMissing"] == 1
+    found = key_rules_check.merged_check(native, [], table, keep, set(), earlier=native + [hand])
+    assert found["ok"] is False and found["byHandLost"] == 1

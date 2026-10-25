@@ -11,6 +11,7 @@ is not whole, python python/override_source.py count <list> prints the counts by
 """
 import argparse
 import json
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -19,6 +20,7 @@ import link_summary
 import project_profile
 
 ORDER = ("plot", "field", "value", "rule", "source", "model", "key", "decision", "reason")
+BY_HAND = "byHand"
 
 
 def job_of_key(groups):
@@ -57,14 +59,48 @@ def check_entries(entries, groups):
             if migrate_entry(item, groups) != item or "model" not in item:
                 raise project_profile.ProfileError("override of plot %s field %s is not in the form of R330, run override_source.py migrate"
                                                    % (item.get("plot"), item.get("field")))
-            if "byHand" in item and item["byHand"] is not True:
-                raise project_profile.ProfileError("override of plot %s field %s has byHand %s, mark an entry edited by hand with \"byHand\": true or leave it out (R330)"
-                                                   % (item.get("plot"), item.get("field"), json.dumps(item["byHand"])))
+            by_hand(item)
         except project_profile.ProfileError as error:
             faults.append(str(error))
     if faults:
         raise project_profile.ProfileError("%d overrides refused: %s" % (len(faults), " | ".join(faults[:5])) + (" and more" if len(faults) > 5 else ""))
     return entries
+
+
+def by_hand(item):
+    """R330. True for an entry Bader marked as edited by hand, "byHand": true at the end of its line, False for one with no mark. A
+    byHand of any other value, such as "true" or 1, and the mark spelled otherwise, such as byhand or by_hand, are refused loudly,
+    never read as no mark, so a run never drops a hand edit in silence."""
+    for name in item:
+        if name != BY_HAND and re.sub("[^a-z]", "", str(name).lower()) == BY_HAND.lower():
+            raise project_profile.ProfileError("override of plot %s field %s marks a hand edit as %s, spell it \"byHand\": true (R330)"
+                                               % (item.get("plot"), item.get("field"), json.dumps(name)))
+    if BY_HAND not in item:
+        return False
+    if item[BY_HAND] is not True:
+        raise project_profile.ProfileError("override of plot %s field %s has byHand %s, mark an entry edited by hand with \"byHand\": true or leave it out (R330)"
+                                           % (item.get("plot"), item.get("field"), json.dumps(item[BY_HAND])))
+    return True
+
+
+def with_hand_edits(earlier, replaced):
+    """R330. The earlier list a run keeps from, --keep-from, with every entry marked byHand of the list the run writes over that
+    it lacks, so a hand edit of the committed list is kept or the run refused, never lost. The same plot, key and field held
+    otherwise by the two lists is a conflict, refused with both named."""
+    index = {(str(item["plot"]), item.get("key"), item.get("field")): item for item in earlier}
+    added, clash = [], []
+    for item in replaced:
+        if not by_hand(item):
+            continue
+        found = index.get((str(item["plot"]), item.get("key"), item.get("field")))
+        if found is None:
+            added.append(item)
+        elif found != item:
+            clash.append("plot %s field %s key %s" % (item["plot"], item.get("field"), item.get("key")))
+    if clash:
+        raise project_profile.ProfileError("the list the run writes over holds %d hand edits that the --keep-from list holds otherwise: %s. Edit one of the two by hand (R330)"
+                                           % (len(clash), " | ".join(clash[:10])))
+    return earlier + added
 
 
 def default_sources(settings):
@@ -151,11 +187,11 @@ def merge(earlier, run, keep, joined=None):
     kept, off_join, lost = [], [], []
     for item in earlier:
         if not kept_by(item, keep):
-            if item.get("byHand") is True:
+            if by_hand(item):
                 lost.append(item)
             continue
         if joined is not None and (item.get("key"), str(item["plot"])) not in joined:
-            (lost if item.get("byHand") is True else off_join).append(item)
+            (lost if by_hand(item) else off_join).append(item)
             continue
         kept.append(item)
     if lost:

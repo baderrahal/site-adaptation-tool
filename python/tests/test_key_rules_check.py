@@ -281,6 +281,12 @@ def test_r336_main_holds_the_merged_list_on_the_join_and_names_an_entry_off_it(t
                                                 {"plot": "9", "key": "imx", "field": "entryM", "value": None, "source": "parsons", "decision": "parsons entry"}]}), encoding="utf-8")
     (tmp_path / "overrides.json").write_text(json.dumps({"overrides": [{"plot": "4", "key": "imx", "field": "insert", "value": None, "source": "parsons",
                                                                          "decision": "parsons linkOrigin"}]}), encoding="utf-8")
-    assert key_rules_check.main(argv + ["--merged", str(merged)]) == 0
+    earlier = tmp_path / "earlier.json"
+    earlier.write_text(json.dumps({"overrides": []}), encoding="utf-8")
+    # The merged list is held against the list before the run, a merged check with no earlier list is refused
+    assert key_rules_check.main(argv + ["--merged", str(merged)]) == 2
+    # An entry off the join fails the check and the run (Round ADDIN 3a, last pass)
+    assert key_rules_check.main(argv + ["--merged", str(merged), "--earlier", str(earlier)]) == 1
     found = json.loads(out.read_text(encoding="utf-8"))["merged"]
     assert found["offJoin"] == [{"key": "imx", "plot": "9", "field": "entryM", "source": "parsons"}] and found["runEntriesEqualDry"] is True
+    assert found["ok"] is False
