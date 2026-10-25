@@ -143,7 +143,7 @@ def render(code, entry):
     for source, counts in entry["counts"].items():
         bands = {name: (row.get("withSpot", row.get("plots")), row["within1mm"], row["within5mm"]) for name, row in counts.items() if name != "plots"}
         parts.append("%s %d plots %s" % (source, counts["plots"], bands))
-    return "%s (%s): spots used %d, %s, not compared %s" % (code, entry["job"], entry["spotsUsed"], "; ".join(parts),
+    return "%s (%s): spots used %d, %s, not compared %s" % (code, entry["job"], entry["spotsUsed"], " and ".join(parts),
                                                            {why: len(items) for why, items in entry["notCompared"].items()})
 
 
