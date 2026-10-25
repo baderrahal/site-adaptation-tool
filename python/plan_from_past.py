@@ -254,17 +254,23 @@ def host_of(data):
     raise ValueError("no project document in the file")
 
 
-def floor_index(document, offset, floors_config, faces):
-    """The Generic and ramp floors by plot number and the yards by the plot of R111. faces are the baseplan plot faces by official number."""
+def floor_index(document, offset, floors_config, faces, key=None):
+    """The Generic and ramp floors by plot number and the yards by the plot of R111. faces are the baseplan plot faces by official number.
+    R321. A floor of no kind that names a plot is kept by plot, so a plot it stands on says its type is not one the model is read by."""
     floors = document.get("floors") or []
-    by_plot, bad, yards = {}, [], []
+    by_plot, bad, yards, no_kind = {}, [], [], {}
     for floor in floors:
         kind = kind_of(floor, floors_config)
         if kind == "yard":
             yards.append((floor["elementId"], plot_relations.floor_shape(floor, offset)[0]))
             continue
         named = link_summary.floor_plot(floor)
-        if kind is None or named is None:
+        if kind is None:
+            plot = None if named is None else plot_number(named)
+            if plot is not None:
+                no_kind.setdefault(plot, []).append(floor)
+            continue
+        if named is None:
             continue
         plot = plot_number(named)
         if plot is None:
@@ -276,7 +282,18 @@ def floor_index(document, offset, floors_config, faces):
     by_id = {floor["elementId"]: floor for floor in floors}
     for plot, ids in owned.items():
         by_plot.setdefault(plot, {})["yard"] = [by_id[element_id] for element_id in ids]
-    return {"byPlot": by_plot, "badFloors": bad, "yards": results, "config": floors_config, "faces": set(faces)}
+    types_of = "floors.types" if key is None else "floors.keyTypes of " + key + " or floors.types"
+    return {"byPlot": by_plot, "badFloors": bad, "yards": results, "config": floors_config, "faces": set(faces), "noKind": no_kind, "typesOf": types_of}
+
+
+def no_kind_why(index, plot):
+    """R321. Why no floor of a kind names a plot that floors of no kind name: their type is not in the types the model is read by."""
+    floors = index["noKind"].get(plot)
+    if not floors:
+        return None
+    types = sorted({str(floor.get("typeName")) for floor in floors})
+    ids = " ".join(str(floor.get("elementId")) for floor in plot_relations.first_by_id(floors))
+    return "no floor of this kind names the plot, floors " + ids + " of type " + ", ".join(types) + " do and their type is not in " + index["typesOf"]
 
 
 class PlotBuilder:
@@ -387,9 +404,9 @@ def compare_link_and_schedule(builder, link, row, origin):
         builder.clash("levels.ffl", ffl, common.r3(link_ffl), FFL_PARAMETER)
 
 
-def only_one(builder, key, found):
+def only_one(builder, key, found, otherwise=None):
     if not found:
-        builder.lack(key, "no floor names the plot")
+        builder.lack(key, otherwise or "no floor names the plot")
         return None
     if len(found) > 1:
         builder.lack(key, str(len(found)) + " floors name the plot: " + " ".join(str(floor["elementId"]) for floor in plot_relations.first_by_id(found)))
@@ -562,7 +579,7 @@ def floor_values(builder, index, offset):
     config = index["config"]
     below = config["yardBelowFflM"]
     floors = {}
-    generic = only_one(builder, "floors.generic", kinds.get("generic", []))
+    generic = only_one(builder, "floors.generic", kinds.get("generic", []), no_kind_why(index, builder.plot))
     if generic is not None:
         made = floor_entry(builder, "generic", generic, offset, config, unit)
         if made is not None and flat_top(builder, "generic", made, generic, ffl, offset) is not None:
@@ -579,7 +596,7 @@ def floor_values(builder, index, offset):
         made = floor_entry(builder, "yard", yards[0], offset, config, unit)
         if made is not None and flat_top(builder, "yard", made, yards[0], None if ffl is None else ffl - below, offset) is not None:
             floors["yard"] = made
-    ramp = only_one(builder, "floors.ramp", kinds.get("ramp", []))
+    ramp = only_one(builder, "floors.ramp", kinds.get("ramp", []), no_kind_why(index, builder.plot))
     if ramp is not None:
         made = floor_entry(builder, "ramp", ramp, offset, config, unit)
         if made is not None:
@@ -644,10 +661,11 @@ def yard_summary(results, plots):
     return {"yards": len(results), "byStatus": dict(sorted(status.items())), "withNoPlanPlot": len(left), "left": left}
 
 
-def build_plan(data, rows, job, folder_files, prototype_folder, floors_config, faces):
+def build_plan(data, rows, job, folder_files, prototype_folder, floors_config, faces, key=None):
     """The plan of R80 from the host document of prototypes.json and the schedule rows.
 
     floors_config is the floors block of the settings (R112) and faces the baseplan plot faces by official plot number (R111).
+    key is the answer key the model is read as (R321), None when it is read by floors.types.
     """
     document = host_of(data)
     offset = ramp_levels.offset_of(document)
@@ -664,7 +682,7 @@ def build_plan(data, rows, job, folder_files, prototype_folder, floors_config, f
             continue
         by_plot.setdefault(plot, []).append(link)
     schedule, bad_rows = schedule_by_plot(rows)
-    index = floor_index(document, offset, floors_config, faces)
+    index = floor_index(document, offset, floors_config, faces, key)
     plots, missing, conflicts = [], [], []
     missing_keys, floors_found, yard_status, floor_types = Counter(), Counter(), Counter(), Counter()
     for plot in sorted(set(by_plot) | set(schedule), key=link_summary.sort_key):
@@ -930,6 +948,8 @@ def main(argv=None):
             print("not found: " + str(path), file=sys.stderr)
             return 2
     data = link_summary.load(prototypes)
+    if args.key:
+        check_key_file(settings, args.key, host_of(data).get("file"))
     dialect = None
     if args.names:
         numbers, many = location_numbers(args.names)
@@ -946,7 +966,7 @@ def main(argv=None):
     listing = folder_listing(folder)
     if args.answer_key:
         listing, not_in_folder = answer_key_listing(listing, data)
-    plan = build_plan(data, rows, job, listing, folder, floors, faces)
+    plan = build_plan(data, rows, job, listing, folder, floors, faces, args.key)
     if args.answer_key:
         mark_answer_key(plan, not_in_folder)
     plan["sources"]["prototypes"] = prototypes.name

@@ -69,6 +69,45 @@ def test_r321_plan_from_past_reads_the_past_model_by_the_types_of_the_key_it_nam
         pf.main(["--settings", str(settings.path), "--key", "IMZ"])
 
 
+def test_r321_a_floor_of_no_kind_on_a_plot_is_named_by_its_type_and_the_types_it_is_not_in():
+    import test_plan_from_past as tp
+    floors = tp.plot_floors("101", 0, 10)
+    # The generic floor of the plot is of a type no kind names, as FFL of IME read by floors.types alone
+    floors[0]["typeName"] = "FFL"
+    data = tp.document([tp.link("101")], floors)
+    plain = pf.build_plan(data, [tp.row("101")], tp.JOB, tp.FILES, "C:\\Prototypes", tp.FLOORS, tp.FACES)
+    keyed = pf.build_plan(data, [tp.row("101")], tp.JOB, tp.FILES, "C:\\Prototypes", tp.FLOORS, tp.FACES, key="IMX")
+
+    why = tp.missing_of(plain, "101")["floors.generic"]
+    assert "no floor names the plot" not in why
+    assert "of type FFL" in why and "not in floors.types" in why and str(floors[0]["elementId"]) in why
+    assert "not in floors.keyTypes of IMX or floors.types" in tp.missing_of(keyed, "101")["floors.generic"]
+    # A plot no floor names at all keeps the old reason
+    bare = pf.build_plan(tp.document([tp.link("101")], []), [tp.row("101")], tp.JOB, tp.FILES, "C:\\Prototypes", tp.FLOORS, tp.FACES)
+    assert tp.missing_of(bare, "101")["floors.generic"] == "no floor names the plot"
+
+
+def test_r321_plan_from_past_refuses_a_key_whose_model_file_holds_no_code_of_it_or_the_code_of_another(tmp_path, monkeypatch):
+    import test_plan_from_past as tp
+    root = tmp_path / "input"
+    (root / "01_Output" / "1.11 References").mkdir(parents=True)
+    (root / "01_Output" / "1.11 References" / "book.xlsx").write_bytes(b"x")
+    baseplan = tmp_path / "plots.json"
+    baseplan.write_text(json.dumps({"plots": []}), encoding="utf-8")
+    settings = tmp_path / "project.json"
+    settings.write_text(json.dumps({"schedules": ["book.xlsx"], "inputRoot": str(root), "pastJob": tp.JOB, "floors": tp.FLOORS, "answerKeys": KEYS}), encoding="utf-8")
+    monkeypatch.delenv(pf.ROOT_VARIABLE, raising=False)
+    prototypes = tmp_path / "prototypes.json"
+    args = ["--settings", str(settings), "--prototypes", str(prototypes), "--baseplan", str(baseplan), "--out", str(tmp_path / "plan.json"), "--key", "IMX"]
+    for name, match in (("X-IMY-model_TEST-KY", "IMX"), ("model of no key", "IMX"), (None, "no model file")):
+        data = tp.document([tp.link("101")], tp.plot_floors("101", 0, 10))
+        data["documents"][0]["file"] = name
+        prototypes.write_text(json.dumps(data), encoding="utf-8")
+        with pytest.raises(project_profile.ProfileError, match=match):
+            pf.main(args)
+    assert not (tmp_path / "plan.json").exists()
+
+
 def test_r321_the_real_config_reads_ffl_as_the_generic_floor_of_ime_and_imf_only():
     settings = project_profile.load_settings()
     plain = pf.load_floors(settings)["types"]
