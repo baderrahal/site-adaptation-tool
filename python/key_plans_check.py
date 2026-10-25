@@ -668,6 +668,8 @@ def main(argv=None):
         entry = {"job": job, "areas": check_areas(joined[code]["join"], joined[code]["areaRow"], by_number), "pastAll": check_rows(past, code.lower(), plan),
                  "counts": check_counts(joined[code], plan, past, code.lower()),
                  "secondJoin": dict(Counter(row["status"] for row in second.values())),
+                 # The second join runs on every plot a link names, so the join is held on all of them beside the samples
+                 "joinAll": check_join(joined[code]["join"], second, sorted(second, key=order), by_label),
                  "spotCounts": recount_spots(document, floors, spots, spots["settings"], schedule, second)}
         everything = population(document, floors)
         for seed in SEEDS:
@@ -681,8 +683,9 @@ def main(argv=None):
                 "spots": check_spots(document, floors, spots, spots["settings"], plots),
                 "pastAllRows": check_sources(past, code, plan, by_official, config, numbers)}
         report["keys"][code] = entry
-        print("%s: counts %s, second join %s, areas %s, past_all %s, spot counts equal %s, %s" % (
-            code, {name: value for name, value in entry["counts"].items() if not isinstance(value, list)}, entry["secondJoin"], entry["areas"]["match"],
+        print("%s: counts %s, second join %s, join of every plot %s, areas %s, past_all %s, spot counts equal %s, %s" % (
+            code, {name: value for name, value in entry["counts"].items() if not isinstance(value, list)}, entry["secondJoin"],
+            (entry["joinAll"]["match"], entry["joinAll"]["compared"], entry["joinAll"]["mismatch"]), entry["areas"]["match"],
             entry["pastAll"]["match"], entry["spotCounts"]["match"],
             ", ".join("seed %d %s" % (seed, {part: (found["match"], found["compared"]) for part, found in entry[str(seed)].items()}) for seed in SEEDS)))
     out.mkdir(parents=True, exist_ok=True)
