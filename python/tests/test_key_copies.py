@@ -141,6 +141,18 @@ def test_r312_a_changed_copy_a_copy_the_manifest_does_not_name_a_copy_gone_and_a
     assert found["IMA"]["verdict"] == "remake" and found["IMA"]["reasons"] == ["copyGone"]
 
 
+def test_r312_a_copy_that_is_no_revit_file_is_refused_as_another_format_and_the_check_goes_on(tmp_path):
+    root = tree(tmp_path)
+    (root / "Revit All Zones" / "2024" / MODEL_A).write_bytes(b"not a compound file")
+    # The manifest names the copy as it is now, so only its format is wrong
+    write_manifest(root, both_entries(root))
+
+    found = verdicts(root, tmp_path)
+
+    assert found["IMA"]["verdict"] == "remake" and found["IMA"]["reasons"] == ["notFormat"] and found["IMA"]["format"] is None
+    assert found["IMC"]["verdict"] == "reuse"
+
+
 def test_r312_no_copy_and_no_entry_asks_for_a_site_upgrade_job_and_a_missing_source_for_nothing(tmp_path):
     root = tree(tmp_path)
     (root / "Revit All Zones" / "2024" / MODEL_A).unlink()

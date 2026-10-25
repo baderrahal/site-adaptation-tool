@@ -13,6 +13,7 @@ import json
 import os
 import re
 import shutil
+import struct
 import sys
 from pathlib import Path
 
@@ -133,8 +134,12 @@ def write_manifest(path, entries):
 
 
 def format_of(path):
-    """R203. The format year of a model from its bytes."""
-    return rvt_info.read(path)["info"].get("formatYear")
+    """R203. The format year of a model from its bytes, None when the file is no compound file with a BasicFileInfo, so such a copy
+    is never reused and the check goes on with the other keys."""
+    try:
+        return rvt_info.read(path)["info"].get("formatYear")
+    except (rvt_info.CfbError, struct.error):
+        return None
 
 
 def copy_folder(root, values):
