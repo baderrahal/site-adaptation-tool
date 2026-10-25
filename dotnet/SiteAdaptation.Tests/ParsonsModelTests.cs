@@ -154,6 +154,10 @@ namespace SiteAdaptation.Tests
             Assert.Contains("-Exit $exitPeaks", script);
             Assert.Contains("peakMb     = $peaks.peakWorkingSetMb", script);
             Assert.Contains("memory     = $peaks", script);
+            // The samples are appended, so the file of an earlier run of the name moves aside first, also for a site upgrade whose
+            // name is <code>_upgrade like an upgrade but whose switch -Upgrade is not given
+            Assert.Contains("$old = @(Get-ChildItem $docs -Filter ('testhost_' + $name + '_*.json*') | Where-Object { $name -ne $Code -or $_.Name -notlike ('testhost_' + $Code + '_upgrade_*') })", script);
+            Assert.True(script.IndexOf("$old | Move-Item -Destination $aside", StringComparison.Ordinal) < script.IndexOf("Add-Content -Path $samplesPath", StringComparison.Ordinal));
             // The old peak froze under 2 GiB: Max(Int32, Int32) threw past it and an empty catch hid the throw
             Assert.DoesNotContain("[Math]::Max($peak", script);
             Assert.DoesNotContain("$peak = 0", script);

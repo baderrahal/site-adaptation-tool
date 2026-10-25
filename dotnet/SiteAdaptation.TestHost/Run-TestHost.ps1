@@ -310,7 +310,8 @@ if (-not $DryStart -and -not $round) {
 
 # Outputs of an earlier run of this name are moved aside, so a run that writes nothing cannot pass on old files
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$old = @(Get-ChildItem $docs -Filter ('testhost_' + $name + '_*.json*') | Where-Object { $Upgrade -or $_.Name -notlike ('testhost_' + $Code + '_upgrade_*') })
+# A place run leaves the upgrade outputs of its code alone. A run named <code>_upgrade, an upgrade or a site upgrade, moves its own
+$old = @(Get-ChildItem $docs -Filter ('testhost_' + $name + '_*.json*') | Where-Object { $name -ne $Code -or $_.Name -notlike ('testhost_' + $Code + '_upgrade_*') })
 if ($old.Count -gt 0) {
     $aside = Join-Path $docs ('testhost_old\' + $name + '_' + $stamp)
     New-Item -ItemType Directory -Force $aside | Out-Null
