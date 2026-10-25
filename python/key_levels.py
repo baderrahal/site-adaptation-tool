@@ -137,6 +137,11 @@ def measure(record, group, pool, kept, lv, profile, block, book, surfaces, extra
     split = record(group + " levelSplit", split_items, lambda item: item["pattern"], {"none": lambda item: plan_rules.NO_SPLIT, "units": "units"}, by_group, "levelSplit",
                    listed=True)
     table = table_of(split, "units") if split is not None and split["coded"] == "units" else {}
+    # R338. The clusters of each split per unit sequence, so keyRules says how many clusters hold the coded split of each sequence
+    patterns = defaultdict(lambda: defaultdict(int))
+    for item in split_items:
+        patterns[item["code"]][item["pattern"]] += 1
+    extras["levelSplitPatterns"][group] = {name: dict(sorted(found.items())) for name, found in sorted(patterns.items())}
     extras["levelMisses"][group + " levelSplit"] = missed(misses, group + " levelSplit")
     plots = sorted(set(site) | set(lv["roles"]) | set(lv["partners"]))
     pieces = plan_rules.level_pieces(plots, lv["roles"], lv["partners"], units, table)

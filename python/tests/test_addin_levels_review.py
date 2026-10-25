@@ -193,3 +193,18 @@ def test_r341_a_level_item_only_one_method_holds_is_a_mismatch_never_left_out():
     found = key_rules_check.one_sided(own, first, "parsons")
     assert found == [{"key": "imc", "plot": "3", "decision": "baseHeight", "own": "holds", "first": "no item"},
                      {"key": "imc", "plot": "4", "decision": "baseHeight", "own": "no item", "first": "an item"}]
+
+
+# R338, R339 the split per unit sequence with its count, strong or weak by majority.strongShare
+def test_r338_key_rules_holds_per_unit_sequence_the_clusters_of_each_split_and_whether_the_coded_split_is_strong():
+    import key_rules_block
+    import majority
+    from test_addin_levels import SETTINGS, level_report
+    _, _, _, extras = level_run()
+    assert extras["levelSplitPatterns"]["parsons"] == {"DP1 TH1 TH1 DP1": {"middle": 1}}
+    report = level_report()
+    report["levelSplitPatterns"] = {"parsons": {"DP1 TH1 TH1 DP1": {"middle": 17, "none": 7, "walls 1": 6, "walls 3": 7}, "DP3 TH3 TH3 DP3": {"none": 19, "middle": 1}}}
+    found = key_rules_block.block_of(report, ["levelSplit"], {}, majority.load_block(SETTINGS))["levelSplit"]
+    assert found["bySequence"]["DP1 TH1 TH1 DP1"] == {"coded": "middle", "clusters": 37, "holds": 17, "share": 0.4595, "strong": False, "tie": False,
+                                                      "patterns": {"middle": 17, "none": 7, "walls 1": 6, "walls 3": 7}}
+    assert found["bySequence"]["DP3 TH3 TH3 DP3"]["strong"] is True and found["bySequence"]["DP3 TH3 TH3 DP3"]["share"] == 0.95

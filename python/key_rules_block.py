@@ -70,6 +70,20 @@ def site_block(report, block):
             "native": config["siteNative"] % gap}
 
 
+def split_sequences(table, patterns, strong):
+    """R338, R339. Per unit sequence of keyRules.levelSplit the split coded, the clusters of the keys, how many hold it, its share and
+    whether it is strong by majority.strongShare, the plurality coded where none is strong, as the majority rule says, a tie said."""
+    found = {}
+    for name, coded in sorted(table.items()):
+        counts = patterns.get(name) or {}
+        clusters = sum(counts.values())
+        holds = counts.get(coded, 0)
+        share = round(holds / clusters, 4) if clusters else None
+        found[name] = {"coded": coded, "clusters": clusters, "holds": holds, "share": share, "strong": share is not None and share >= strong,
+                       "tie": any(count == holds for other, count in counts.items() if other != coded), "patterns": dict(sorted(counts.items()))}
+    return found
+
+
 def zone_table(table, config):
     """R338. The yard table keyed by the zone as plots.csv names it, and the zones taken from others with why. A zone taken from
     zones that are missing or give two values is refused, never given one of them."""
@@ -162,6 +176,8 @@ def block_of(report, words, existing, block):
             made["candidates"] = {name: test["share"] for name, test in sorted(decision["tests"].items(), key=lambda pair: -(pair[1]["share"] or 0))[:4]}
             if word in ("levelSplit", "baseHeight") and "rule" in coded:
                 made["table"] = {key.split(" | ", 1)[1]: value for key, value in coded["rule"].items()}
+            if word == "levelSplit" and "table" in made:
+                made["bySequence"] = split_sequences(made["table"], (report.get("levelSplitPatterns") or {}).get(group) or {}, block["strongShare"])
         if word.startswith("parameter "):
             if "rule" in coded:
                 made["table"] = {key.split(" | ", 1)[1]: value for key, value in coded["rule"].items()}

@@ -401,7 +401,7 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
     level_hold = lambda guess, aim: abs(guess - aim) <= hold_m + 1e-9
     riser = profile.get("steps.riser_added") / 1000.0
     results, misses, datums, extras = [], [], {}, {"linkFits": {}, "flatRamps": {}, "yardOutlineGroups": {}, "walls": {}, "wallMisses": {}, "frontCover": {}, "frontWalled": {},
-                                                    "wallsNoBaseLevel": {}, "coverage": {}, "decidedByQuestion": [], "levelMisses": {}, "levelNotMeasured": {}, "levelItems": {}}
+                                                    "wallsNoBaseLevel": {}, "coverage": {}, "decidedByQuestion": [], "levelMisses": {}, "levelNotMeasured": {}, "levelItems": {}, "levelSplitPatterns": {}}
 
     def record(name, pool, target, candidates, scope, field, hold=None, checks=(), gap=None, extra_by=None, judge_scope=None, bands=None, build_view=None,
                listed=False):
