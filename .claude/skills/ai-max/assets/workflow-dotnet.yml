@@ -1,0 +1,83 @@
+# The test gate for a .NET tool. From ai-max.
+# Copy to .github/workflows/tests.yml, set BUILD and TESTS, and pick the runner.
+#
+# It checks the hooks first, then builds, then runs the tests, then reads the count out of the
+# result file and fails when it is zero or the file never appeared. A gate that runs zero tests
+# reports green forever.
+#
+# The runner. ubuntu-latest runs tests that target netstandard or a current .NET. Tests that
+# target net48 need windows-latest, where the reference assemblies come from the
+# Microsoft.NETFramework.ReferenceAssemblies package and no Visual Studio is needed.
+#
+# What builds here. The add-in project builds on a runner only where a package supplies the
+# host's reference assemblies, such as the Nice3point packages for Revit. Where none exists,
+# point BUILD at the Core project alone, and add a step per text check for the compile faults
+# that have bitten, each followed by a step proving the check refuses a folder broken on purpose.
+
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  BUILD: Tool.sln
+  TESTS: tests/Tool.Core.Tests/Tool.Core.Tests.csproj
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The walls are the only thing between a session and the mistakes they stop, and a wall
+      # nobody tests fails open in silence. They take a second, so they run first.
+      - name: Check the hooks
+        shell: bash
+        run: |
+          sh .claude/hooks/hook-tests.sh | tee hook-results.txt
+          status=${PIPESTATUS[0]}
+          ran=$(grep -oE '^[0-9]+ passed' hook-results.txt | grep -oE '[0-9]+' || true)
+          if [ "$status" -ne 0 ]; then
+            echo "The hook checks failed."
+            exit 1
+          fi
+          if [ -z "$ran" ] || [ "$ran" -eq 0 ]; then
+            echo "Zero hook cases ran. This step is not protecting anything."
+            exit 1
+          fi
+          echo "$ran hook cases ran."
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore "${{ env.BUILD }}"
+
+      - name: Build
+        run: dotnet build "${{ env.BUILD }}" --no-restore -c Release
+
+      - name: Run the tests
+        run: >
+          dotnet test "${{ env.TESTS }}" --no-build -c Release
+          --logger "trx;LogFileName=results.trx"
+          --results-directory TestResults
+
+      - name: Fail if no tests ran
+        if: always()
+        shell: bash
+        run: |
+          results=$(find TestResults -name '*.trx' 2>/dev/null | head -1)
+          if [ -z "$results" ]; then
+            echo "No test result file was written. This gate is not protecting anything."
+            exit 1
+          fi
+          total=$(grep -o '<Counters[^>]*>' "$results" | head -1 | grep -o 'total="[0-9]*"' | grep -o '[0-9][0-9]*')
+          if [ -z "$total" ] || [ "$total" -eq 0 ]; then
+            echo "Zero tests ran. This gate is not protecting anything."
+            exit 1
+          fi
+          echo "$total tests ran."

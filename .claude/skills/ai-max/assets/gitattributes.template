@@ -1,0 +1,24 @@
+# Line endings.
+#
+# sh reads every hook here. It treats a carriage return as part of a word, so a hook checked
+# out with CRLF dies on its first case line. sh exits 2 on that syntax error, and 2 is the code
+# that refuses, so the walls jam shut and refuse every call. A git pre-commit with CRLF does the
+# opposite: it stumbles past and exits 0, letting every commit through with no tests run.
+#
+# Git for Windows converts LF to CRLF on checkout unless told otherwise, because its installer
+# sets core.autocrlf to true. These lines tell it otherwise, on every machine.
+
+* text=auto
+
+# Read by sh. LF in the working tree everywhere.
+*.sh text eol=lf
+.githooks/* text eol=lf
+
+# Read by cmd.exe, which misreads a batch file with LF alone.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Evidence. Kept byte for byte as it came off the machine, never normalised.
+steps/logs/** -text
+steps/runs/** -text
+samples/** -text

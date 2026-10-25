@@ -88,3 +88,43 @@ Second review (a fresh reviewer, own worktree, changes 6e46893 to e91e5d8, suite
 - Held: a plot that owns one block and sits under a thin second block takes the owned one with no two blocks issue, shares of 0.2 and 0.2 less 1e-6 cover in both methods and 0.2 less 1.5e-6 does not in both, a conflict is listed when the block has mirrored null, the 82 micrometres of R67 is right
 - Revert check: for each fix the reviewer reverted it and ran its test. Every one failed except the cover tolerance (item 2, now fixed) and unit_blocks_without_outline, which it did not try
 - The fixes of items 1 to 6 were checked by reverting the two the reviewer questioned and seeing their tests fail. They did not get a third review
+
+The log entry below was moved here from steps/log.md in Round ADDIN.
+
+## Round 12b, 2026-10-24, villa blocks from Makkah Building Footprint, unit codes into the clusters
+
+Done:
+- Branch round/footprint-unit-codes from main at 5874ae5, pull request 16. The session started inside the repo, so the main guard hook was live and I never committed to main. The branch held unfinished edits of an earlier pass with one failing test. I checked them against your ten decisions and fixed them. The plan was written before the first edit. Full record and every count: steps/history/round-12b.md
+- Gate: Python 323 to 425 passed on the branch, .NET 155 unchanged. Main moved during the round (round 15a, pull request 15). I merged main into the branch and kept both rounds in CLAUDE.md, config/project.json (the note and pastJob), docs/rules.md (R80 to R89 next to R73 to R77), PROGRESS.md and this log. One line in the 15a questions that pointed at the Round 12 questions now points here. After the merge: Python 468 passed, .NET 205 passed
+- 1 Drawing: Makkah Building Footprint.dwg (Base Plans, 3780 inserts, 19 names) is in the site space, 3696 of 3780 inserts hold at least 0.2 of their outline inside a baseplan plot. CEC Building Footprint has 29 inserts and one outline. drawings.villaBlocks is the footprint file and no .py holds a file name
+- 2 Scan (R73): 7 names hold a unit code of the profile (1617 inserts), Villa_VL2 an old client code (248), 11 names none (1915, of which 1806 parking). Inserts by plots that hold 0.2 of the outline: 0 84, 1 3148, 2 425, 3 0, 4 123, more 0. Insert point in the best plot 3115, in another plot 413, in no plot 168, no plot holds a fifth of the outline 84. Mirrored 2081, not mirrored 1699
+- 3 All 8 names with a code end in an underscore and the code, so there is no config/block_codes.json. Unmapped: the 11 names (1915 inserts) and Villa_VL2 (248)
+- 4 and 5 Unit code per plot (R69, R74): block 2346, excel 73, none 159. Plots per code from blocks, Rev 6 in brackets: C10 260 (204), VL3 267 (8), VL4 477 (201), DP2 286 (24), DP4 564 (18), TH1 244 (114), TH3 248 (132), the other 9 codes 0. Block unit against Excel unit: 674 plots have both, 138 agree, 536 differ. The block unit equals the baseplan label type on 2100 of 2346
+- 6 Q02 is out of cluster_aliases and each Q02 cluster is one issue (R75). The real run writes 0 Q02 clusters
+- 7 Levels (R67): FFL to the mm, steps 745 of 747 (was 744). The height flag gives 0 under 0.10 and 4 over 0.54 (plots 2464, 2471, 2475, 2483). The sheet FFL is not the computed FFL rounded down: to the cm 90 of 747 (fixes 10, breaks 553), to 5 mm 168 (fixes 24, breaks 489). The 110 rounding misses are all 1 to 5 mm with the computed FFL above the sheet
+- 8 Level proof, sheet FFL grouping: FFL 633, steps 745, misses base height 4 and rounding 110. With the CAD clusters: FFL 548, steps 649 (round 12 gave 561 and 663), misses wrong cluster 145 and rounding 54, no unit code 0
+- Clusters, before to after: 548 (M02 143, M04 282, M09 61, Q02 62) to 535 (M02 153, M04 293, unknown 89, Q02 0)
+- Mirror flag against the 338 links, 114 with a flag on both sides: same 28, opposite 86. Link turned from the block: 0 degrees 134, 180 degrees 134, 90 degrees 15, 270 degrees 19, other 1. The rotation sets are equal (30.1, 120.1, 210.1, 300.1)
+- Second block match (R76, no shapely): 1617 blocks, 1595 agree, 22 owner flips on a near tie, 0 differ. 2962 of 2962 plots agree
+- Review: a fresh reviewer ran the suite and tried to break the unit code source and the block match. 7 defects, all closed but the first, which is your decision. Block over Excel now lists every conflict in analysis.json (536), a block with its largest share under 0.2 belongs to no plot, an Excel unit that is not a profile code is an issue, a schedule with no unit and a unit block with no outline are said, a superscript plot number no longer crashes, the cover share has a tolerance. Detail in steps/history/round-12b.md. A second reviewer read the fixes: 7 findings, none blocking. Fixed: a half millimetre tie in the height flag that float noise decided, a cover test that did not prove the slack, a schedule whose units are all dropped, a bad cluster_block_max, negative plot numbers, two doc wordings. Those last fixes were checked by reverting each one and seeing its test fail, not by a third review
+
+Remains:
+- Check 3, checks 4 and 6 to 10, the pair rule on blocks, the Revit run of round 9, levels.py wired to analysis.json
+
+Known bugs:
+- The block names are client plot types and a block names a whole cluster. As decision 4 reads, a townhouse block gives TH1 or TH3 to its two end duplex plots, so 123 old M09 and Q02 clusters read as four equal units and 89 unknown clusters appear. The 62 Townhouse_TH3 and 61 Townhouse_TH1 blocks match the 62 Q02 and 61 M09 clusters of the baseline one to one
+- 159 VL2 plots have no unit code. 73 other VL2 plots take the Excel unit and it is DP4 22, DP2 20, VD4 11, VD2 10, VL4 8, VL6 2, so VL2 is not one unit
+- The Excel unit uses the config shift only, so an edge plot that sits one label off (R28) takes another plot's unit
+- 1342 plots sit under a block for several plots and have mirrored null, so the mirror flags of the R70 pair rule never fire on this data
+
+Next:
+- Settle question 1, then code check 3 (one FFL per cluster), then wire levels.py to analysis.json
+
+Your turn:
+1. Unit code source. The blocks name the client plot type and a whole cluster, not a unit. Recommended: keep the Excel unit as the unit code for the 747 schedule plots, which gives 225 real Rev 6 clusters and no unknown, and read a block that covers 2 or 4 plots as a cluster hint (Duplex_DP2 is D02, Duplex_DP4 is D04, Townhouse_TH1 is Q01, Townhouse_TH3 is Q02) and not as a unit code for each plot. Tell me the Rev 6 unit codes of the other plots, or how a client code maps to them
+2. Pair rule on blocks. Blocks with one plot are 503 mirrored and 503 not, and the two plots of a duplex block share one block. Recommended: do not code it until the original and mirror convention is known from the master plan
+3. Mirror and rotation of the Revit link against the block. Recommended: take the link as the truth for the placed unit and tell me if the block flag is still needed
+4. VL2 plots (232). Recommended: send the Rev 6 unit of the 159 that have none
+5. The 1 to 5 mm FFL misses. Recommended: ask the architect how the sheet FFL is rounded, it is neither the cm step nor the 5 mm step
+6. The list analysis.unitPlotTypes in config/project.json (C10, DP2, DP4, TH1, TH3, VL2, VL3, VL4) is my choice and only says which plots get an issue when no unit code is found. Recommended: keep
+7. Run steps/round-12b.md and tell me if a Look for line did not match

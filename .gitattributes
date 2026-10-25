@@ -7,3 +7,5 @@
 *.yml text eol=lf
 *.json text eol=lf
 *.sh text eol=lf
+# The AI MAX skill copy stays byte for byte with its source, two of its .cmd files hold CRLF
+.claude/skills/ai-max/** -text

@@ -29,13 +29,32 @@ def test_r14_no_em_dash_and_no_emoji_in_any_file():
     assert offenders == []
 
 
+SKILL_COPY = ROOT / ".claude" / "skills" / "ai-max"
+
+
+def in_skill_copy(path):
+    return SKILL_COPY in path.parents
+
+
 def test_r15_no_semicolons_outside_csharp_source():
     offenders = []
     for path in repo_text_files():
+        # The skill copy stays byte for byte with its source and its workflow templates hold shell semicolons
+        if in_skill_copy(path):
+            continue
         if path.suffix in NO_SEMICOLON_SUFFIXES or path.name in {".gitignore", ".gitattributes"}:
             if SEMICOLON in path.read_text(encoding="utf-8"):
                 offenders.append(str(path.relative_to(ROOT)))
     assert offenders == []
+
+
+def test_r15_only_the_skill_copy_is_left_out_of_the_semicolon_scan():
+    assert in_skill_copy(ROOT / ".claude" / "skills" / "ai-max" / "assets" / "workflow-python.yml")
+    assert in_skill_copy(ROOT / ".claude" / "skills" / "ai-max" / "SKILL.md")
+    assert not in_skill_copy(ROOT / ".claude" / "agents" / "developer.md")
+    assert not in_skill_copy(ROOT / ".claude" / "skills" / "other" / "SKILL.md")
+    assert not in_skill_copy(ROOT / ".claude" / "skills" / "ai-max-old" / "SKILL.md")
+    assert not in_skill_copy(ROOT / "CLAUDE.md")
 
 
 def test_r15_csharp_comments_and_strings_have_no_semicolon_in_prose():
