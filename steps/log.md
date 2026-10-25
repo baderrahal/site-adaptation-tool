@@ -12,29 +12,31 @@ Goal:
 Done:
 - 0a, 0b (PR 41, 42): the harness and the open fixes, R277, R280, R300 to R304, R303 withdrawn (Q064)
 - 1, 1b (PR 43, 44): R310 window samples, R311 site facts, R203, R204, R301, R312 key copies by code with record withdrawn (Q069), R313 the 13 STR prototypes in Prototypes_2024\STR
-- 2a (PR 45): R320 the spot value, R321 floors.keyTypes reads FFL as the Generic floor of IME and IMF, R322 key_reads.py counts each key read, R323 key_reads_check.py checks it a second way. 7 reads in round_addin\reads, links 338, 411, 325, 491, 298, 433, 302 for IMC, IMD, IME, IMF, IMG, IMA, IMB, IMA and IMB share 733 Generic floors
-- 2b R325: plan_from_past.py --answer-key --names --key maps a Parsons link by its plot number, joins a generic floor to the face that holds 0.9 of it (R120), keeps El @ Entry of the ELl@Entry parameter within keyPlans.entryHeightM as keyParameter, the steps, the height computed, modelPlot and the walls with their plots for Part 2, never over pastJob.output or the plan of another key. Plans of 324, 403, 320, 476, 268, 420, 290 plots, plan_imc_key_past.json for IMC
-- 2b R326: key_join.py joins each key plot by area share to its face, number, zone and NBH, 2,501 of 2,591 link plots, two plots on one number apart, and checks where each link, generic floor and ramp stands. past_all.py writes source, kind and heightSource and gives a schedule to its own key only: round_addin\past_all.csv, 4,896 rows, native 2,395, parsons 2,501 (TU 1,791, SE 710). majority.py leaves the SE rows out of the level, ramp, steps and yard decisions. config/area_codes.json parsons: IMA 021, IMB 022, IMC 012, IMD 013, IME 02, IMF 03, IMG 01A
+- 2a (PR 45): R320 the spot value, R321 FFL as the Generic floor of IME and IMF, R322 key_reads.py counts each read, R323 checks it a second way. 7 reads in round_addin\reads, links 338, 411, 325, 491, 298, 433, 302 for IMC to IMG, IMA, IMB, which share 733 Generic floors
+- 2b R325: plan_from_past.py --key maps a Parsons link by its plot number, joins a generic floor to the face that holds 0.9 of it (R120), keeps El @ Entry of ELl@Entry within keyPlans.entryHeightM, the steps, the height, modelPlot and the walls with their plots, never over pastJob.output or another key's plan. Plans of 324, 403, 320, 476, 268, 420, 290 plots, plan_imc_key_past.json for IMC
+- 2b R326: key_join.py joins each key plot by area share to its face, number, zone and NBH, 2,501 of 2,591 link plots, and checks where each link, generic floor and ramp stands. past_all.py writes source, kind and heightSource, a schedule to its own key only: round_addin\past_all.csv, 4,896 rows, native 2,395, parsons 2,501 (TU 1,791, SE 710). majority.py leaves SE rows out of the level, ramp, steps and yard decisions. Parsons area codes: IMA 021, IMB 022, IMC 012, IMD 013, IME 02, IMF 03, IMG 01A
 - 2b R327: entry_spots.py holds the spots of the plot's own floors near its entrance against El @ Entry. R328: key_plans_check.py checks 2b a second way from every plot of the read
 - 2b review: the 19 items of the breaker and the claim checker fixed in new commits, every output of 2b made again
+- 2b breaker 3: 8 items fixed in 8b7c004 to a47cdba: FFL, El @ Entry and height as one schedule pair, each key value off it in past_all_conflicts.csv, kinds held against answerKeys, SE rows out of the El @ Entry gaps, keyPlans.flatTopM and minShare, cut plots by reason, a fine grid near cutShareMin, no merge of keys run at other settings
 
 Checked:
-- 2b: 60 of 60 originals and 61 of 61 inputs (the 51 files of the reads, round_17\past_all.csv, plan_imc_past.json and the snapshot files) equal by hash before and after the review run. No Revit window
-- The new IMC plan against plan_imc_past.json leaf by leaf: 324 plots in both, equal on every field but El @ Entry and the height, SSL only in the old, modelPlot only in the new. 10 key values of 0 refused. Of the 314 others 201 within 1 mm, 13 over 1 mm up to 30 mm (2623 exactly 30 mm), 100 over 30 mm, 0.030 to 0.113 m under the schedule, median 0.070. R129 on 320 plots, 2374, 2391, 2543, 2546 left out: El @ Entry equal 25, within 1 mm 172, worse than 10 mm 113, missing 10
-- Not joined: IMC 13 (the 12 cut plots of R120 and 2441 with no generic floor), IMD 7, IME 4, IMF 14, IMG 29 (10 on no face), IMA 12, IMB 11, the others all cut. No plot of another number, no two plots on one number, no two plots swap places
+- 2b: 60 of 60 originals and 61 of 61 inputs (the 51 files of the reads, round_17\past_all.csv, plan_imc_past.json and the snapshot files) equal by hash before and after the review and the breaker 3 runs. No Revit window
+- The new IMC plan against plan_imc_past.json leaf by leaf: 324 plots in both, equal on every field but El @ Entry and the height, SSL only in the old, modelPlot only in the new. 10 key values of 0 refused. Of the 314 others 201 within 1 mm, 13 over 1 mm up to 30 mm, 100 over 30 mm, 0.030 to 0.113 m under the schedule. R129 on 320 plots, 2374, 2391, 2543, 2546 left out: El @ Entry equal 25, within 1 mm 172, worse than 10 mm 113, missing 10
+- Not joined: IMC 13 (the 12 cut plots of R120 and 2441 with no generic floor), IMD 7, IME 4, IMF 14, IMG 29 (11 on no face), IMA 12, IMB 11, the others all cut. No plot of another number, no two plots on one number, no two plots swap places
 - The new imc rows equal the Round 17 imc rows on every column, 324 of 324, the native rows cell for cell 2,395 of 2,395. Majority on the new table: no SE row in the ramp, level, steps or yard decisions
+- Breaker 3 rerun: conflicts 260, imc entry 113, imd ffl 2 (1382, 1436, the floor top 0.153 and 0.050 m over the schedule FFL), imd entry 145, the same plots again by json and csv. imd 1382 and 1436 heights 0.0997 and 0.0999 of the schedule. Majority: parsons yard 2 misses (1382, 1436), overrides 7,595
 - Spots, 5 TU keys compared, IMA and IMB have no ramp: no spot within 0.5 m of any entrance, within 6 m a spot of the plot's floors within 5 mm of El @ Entry on 0.015 to 0.054 of the plots, the mean of the two entrance corner spots within 5 mm on 0.33 to 0.67. Q001 does not close
-- Second method (R328), seeds 14 and 7, samples from every plot of the read: join, area row, plan and past_all counts agree on every key, every sampled item equal, the join on every plot equal but IMG 440 (a sliver, cut against noFace). This Your turn equals Bader's turn of steps/PROGRESS.md
+- Second method (R328), seeds 14 and 7, samples from every plot of the read: join, area row, plan and past_all counts agree on every key, every sampled item equal, the join on every plot equal, 2,591 of 2,591. This Your turn equals Bader's turn of steps/PROGRESS.md
 
 Remains:
-- Phases 3 to 6. CLAUDE.md does not name R325 to R328 yet, the main session adds them
+- Phases 3 to 6. The yard decision takes FFL less the yard top, the schedule FFL on imd 1382 and 1436
 - The wall faces and width are not read, a wall goes to its plots by the middle of its location line
 
 Known bugs:
 - The whole NBH 03 area runs past the 30 minute image step (Q063). Revit starts 9 to 11 child processes in a read (RC 11)
 - rvt_info.py (R203) misses cloud links, 1 of 14 in the SE models. The 1,409 SE spots give no value, their STR links are not loaded in a read
 - A read is tied to its key by the name <copy stem>_TEST-<job>, the zone2 master and the IMC 2024 copy share one stem, so a read of a work copy of the master passes as IMC, only a hash tie parts them (Q065 removes the cause)
-- The ELl@Entry parameter of IMC is off its schedule by over 30 mm on 100 plots, 0.030 to 0.113 m under it, and 0 on 10, why is UNKNOWN (Q070)
+- The ELl@Entry parameter is off its schedule by over 30 mm on 100 IMC and 115 IMD plots, all under it, and 0 on 10 IMC plots, why is UNKNOWN (Q070)
 - angleToTrueNorthDeg of the reader has 3 decimals, not brought into 0 to 360, the placer takes 0 only. 1 old .NET warning, xUnit2013
 - key_copies.py keeps a last part NUL, nul. or "NUL. " as a name, only answerKeys.folder reaches it
 
@@ -60,7 +62,7 @@ Q059. NBH 03 build on native2022 with only the 1.2 entry and front overrides: ac
 Q063. Whole NBH 03 image past 30 minutes: accept the quarter images and make large images in quarters, the cause stays a known bug. Q064. Watcher through the job, withdrawn: keep it stopping at the first log step
 Q065. zone2 IMC file, the floor scenario master: replace it by a copy of the Zone 02\ARC original. Q066. No Parsons TU model of Zone 1: send the IMA and IMB TU models, else accept the Native stand-in
 Q068. Project position of button 1: set the Parsons position from config, not R211. Q069. A remade key copy: file it by the hashes the test host logs, by hand until then
-Q070. El @ Entry with no schedule: take the ELl@Entry parameter of the key, it is off the IMC schedule by over 30 mm on 100 of 314 plots and 0 on 10 more, and ask Parsons for the IME to IMG schedules
+Q070. El @ Entry with no schedule: take the ELl@Entry parameter of the key, it is off the IMC schedule by over 30 mm on 100 of 314 plots and 0 on 10 more, off the IMD schedule by over 30 mm on 115 of 398, and ask Parsons for the IME to IMG schedules
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 
