@@ -1,38 +1,38 @@
 {
-  "note": "Round ADDIN (R301, Q044). The IM code each neighbourhood is known by in the file names of each job, one table per job, since the letters name other areas in the two jobs: the Native IMA holds 02 and 01A, the Parsons site models of Revit All Zones name IMA and IMB Zone 1. The area of a plot is always its Neighbourhood_ID and Construction_Zone of the Rev 9 DLUS (R256), never an IM letter, so this file only names files. Every row is measured: the plots a file of that job holds, keyed by the area key, with the file, its kind (model or schedule), the count and where the count was measured. No row is guessed. native comes from the Round 17 coverage (R267): key plots of the location plan unit plots of each neighbourhood. parsons holds the 7 Parsons site models of Round ADDIN, each counted on its Revit 2024 key copy in Phase 2b by key_join.py (R326): the plots its links name whose generic floor stands on a baseplan face, by the area key of that face, beside the IMC and IMD schedules of DATA-5. Round 17 counted the IMC key 337 of 337 by plot number, the join by location counts 335, since plot 2312 stands on a face of two plan labels and 2441 has no generic floor. The four rows DATA-5 guessed by the letter order and removed in Phase 0b, IMA 021, IMB 022, IME 02 and IMF 03, are what the keys hold by measurement.",
+  "note": "Round ADDIN (R301, Q044). The IM code each neighbourhood is known by in the file names of each job, one table per job, since the letters name other areas in the two jobs: the Native IMA holds 02 and 01A, the Parsons site models of Revit All Zones name IMA and IMB Zone 1. The area of a plot is always its Neighbourhood_ID and Construction_Zone of the Rev 9 DLUS (R256), never an IM letter, so this file only names files. Every row is measured: the plots a file of that job holds, keyed by the area key, with the file, its kind (model or schedule), the count and where the count was measured. No row is guessed. native comes from the Round 17 coverage (R267): key plots of the location plan unit plots of each neighbourhood. parsons holds the 7 Parsons site models of Round ADDIN, each counted on its Revit 2024 key copy in Phase 2b by key_join.py (R326): the plots its links name whose generic floor has at least cadLinks.cutShareMin (0.9, R120) of its area on one baseplan face, by the area key of that face, beside the IMC and IMD schedules of DATA-5. Round 17 counted the IMC key 337 of 337 by plot number, the join by area share counts 324, since 12 plots have no face that holds 0.9 of their generic floor (cut, the plots of R120 among them) and 2441 has no generic floor. The four rows DATA-5 guessed by the letter order and removed in Phase 0b, IMA 021, IMB 022, IME 02 and IMF 03, are what the keys hold by measurement.",
   "jobs": {
     "parsons": [
       {"code": "IMA", "areas": [
-        {"nbh": "021", "zone": "Zone 1", "plots": 431, "kind": "model", "file": "Revit All Zones/01101-PSN-IMA-ZZZ-PIM-SE-000000-zone1.rvt",
-         "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: 431 of the 432 plots the links of the key copy name join a baseplan face of this neighbourhood by the area key (R256)"}
+        {"nbh": "021", "zone": "Zone 1", "plots": 420, "kind": "model", "file": "Revit All Zones/01101-PSN-IMA-ZZZ-PIM-SE-000000-zone1.rvt",
+         "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: 420 of the 432 plots the links of the key copy name join a baseplan face of this neighbourhood by the area key (R256)"}
       ]},
       {"code": "IMB", "areas": [
-        {"nbh": "022", "zone": "Zone 1", "plots": 295, "kind": "model", "file": "Revit All Zones/01101-PSN-IMB-ZZZ-PIM-SE-000000-zone1.rvt",
-         "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: 295 of the 301 plots the links of the key copy name join a baseplan face of this neighbourhood by the area key (R256)"}
+        {"nbh": "022", "zone": "Zone 1", "plots": 290, "kind": "model", "file": "Revit All Zones/01101-PSN-IMB-ZZZ-PIM-SE-000000-zone1.rvt",
+         "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: 290 of the 301 plots the links of the key copy name join a baseplan face of this neighbourhood by the area key (R256)"}
       ]},
       {"code": "IMC", "areas": [
-        {"nbh": "012", "zone": "Zone 2", "plots": 335, "kind": "model", "file": "00_Revit Models/Zone 02/ARC/01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt",
-         "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: 335 of the 337 plots the links of the key copy name join a baseplan face of this neighbourhood by the area key (R256)"},
+        {"nbh": "012", "zone": "Zone 2", "plots": 324, "kind": "model", "file": "00_Revit Models/Zone 02/ARC/01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt",
+         "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: 324 of the 337 plots the links of the key copy name join a baseplan face of this neighbourhood by the area key (R256)"},
         {"nbh": "012", "zone": "Zone 2", "plots": 337, "kind": "schedule", "file": "01_Output/1.11 References/00101-PSN-IMC-XXX-SCH-TU-090000.xlsx",
          "measured": "Round DATA-5 R257, steps/investigations/data-book.md: the IMC schedule holds 337 plots, all in 012"}
       ]},
       {"code": "IMD", "areas": [
-        {"nbh": "013", "zone": "Zone 2", "plots": 410, "kind": "model", "file": "Revit All Zones/01101-PSN-IMD-ZZZ-PIM-TU-000001-zone2.rvt",
-         "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: 410 of the 410 plots the links of the key copy name join a baseplan face of this neighbourhood by the area key (R256)"},
+        {"nbh": "013", "zone": "Zone 2", "plots": 403, "kind": "model", "file": "Revit All Zones/01101-PSN-IMD-ZZZ-PIM-TU-000001-zone2.rvt",
+         "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: 403 of the 410 plots the links of the key copy name join a baseplan face of this neighbourhood by the area key (R256)"},
         {"nbh": "013", "zone": "Zone 2", "plots": 410, "kind": "schedule", "file": "01_Output/1.11 References/00101-PSN-IMD-XXX-SCH-TU-090000.xlsx",
          "measured": "Round DATA-5 R257, steps/investigations/data-book.md: the IMD schedule holds 410 plots, all in 013"}
       ]},
       {"code": "IME", "areas": [
-        {"nbh": "02", "zone": "Zone 3", "plots": 321, "kind": "model", "file": "Revit All Zones/01101-PSN-IME-ZZZ-PIM-TU-000001-zone3.rvt",
-         "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: 321 of the 324 plots the links of the key copy name join a baseplan face of this neighbourhood by the area key (R256)"}
+        {"nbh": "02", "zone": "Zone 3", "plots": 320, "kind": "model", "file": "Revit All Zones/01101-PSN-IME-ZZZ-PIM-TU-000001-zone3.rvt",
+         "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: 320 of the 324 plots the links of the key copy name join a baseplan face of this neighbourhood by the area key (R256)"}
       ]},
       {"code": "IMF", "areas": [
-        {"nbh": "03", "zone": "Zone 3", "plots": 481, "kind": "model", "file": "Revit All Zones/01101-PSN-IMF-ZZZ-PIM-TU-000001-zone3.rvt",
-         "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: 481 of the 490 plots the links of the key copy name join a baseplan face of this neighbourhood by the area key (R256)"}
+        {"nbh": "03", "zone": "Zone 3", "plots": 476, "kind": "model", "file": "Revit All Zones/01101-PSN-IMF-ZZZ-PIM-TU-000001-zone3.rvt",
+         "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: 476 of the 490 plots the links of the key copy name join a baseplan face of this neighbourhood by the area key (R256)"}
       ]},
       {"code": "IMG", "areas": [
-        {"nbh": "01A", "zone": "Zone 4", "plots": 283, "kind": "model", "file": "Revit All Zones/01101-PSN-IMG-ZZZ-PIM-TU-000001-zone4.rvt",
-         "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: 283 of the 297 plots the links of the key copy name join a baseplan face of this neighbourhood by the area key (R256)"}
+        {"nbh": "01A", "zone": "Zone 4", "plots": 268, "kind": "model", "file": "Revit All Zones/01101-PSN-IMG-ZZZ-PIM-TU-000001-zone4.rvt",
+         "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: 268 of the 297 plots the links of the key copy name join a baseplan face of this neighbourhood by the area key (R256)"}
       ]}
     ],
     "native": [

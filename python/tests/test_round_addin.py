@@ -337,9 +337,9 @@ def test_r301_the_real_table_holds_one_table_per_job_and_every_row_is_measured_w
     parsons = {row["code"]: row for row in table["parsons"]}
     # The 7 answer keys as the join of R326 counted them on their 2024 copies (Round ADDIN 2b), beside the IMC and IMD schedules
     assert {code: {(a["nbh"], a["zone"], a["plots"], a["kind"]) for a in row["areas"]} for code, row in parsons.items()} == {
-        "IMA": {("021", "Zone 1", 431, "model")}, "IMB": {("022", "Zone 1", 295, "model")},
-        "IMC": {("012", "Zone 2", 335, "model"), ("012", "Zone 2", 337, "schedule")}, "IMD": {("013", "Zone 2", 410, "model"), ("013", "Zone 2", 410, "schedule")},
-        "IME": {("02", "Zone 3", 321, "model")}, "IMF": {("03", "Zone 3", 481, "model")}, "IMG": {("01A", "Zone 4", 283, "model")}}
+        "IMA": {("021", "Zone 1", 420, "model")}, "IMB": {("022", "Zone 1", 290, "model")},
+        "IMC": {("012", "Zone 2", 324, "model"), ("012", "Zone 2", 337, "schedule")}, "IMD": {("013", "Zone 2", 403, "model"), ("013", "Zone 2", 410, "schedule")},
+        "IME": {("02", "Zone 3", 320, "model")}, "IMF": {("03", "Zone 3", 476, "model")}, "IMG": {("01A", "Zone 4", 268, "model")}}
     assert all("key_join.py R326" in a["measured"] for row in parsons.values() for a in row["areas"] if a["kind"] == "model")
     text = (ROOT / "config" / "area_codes.json").read_text(encoding="utf-8")
     assert '"guessed"' not in text and '"status"' not in text
