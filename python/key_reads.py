@@ -171,7 +171,7 @@ def key_entry(settings, reads, code, job):
     prefix = "testhost_" + job + "_"
     floors = plan_from_past.load_floors(settings, code)
     document = project_document(load(folder / (prefix + "prototypes.json")))
-    plan_from_past.check_key_file(settings, code, document.get("file"))
+    plan_from_past.check_key_file(settings, code, document.get("file"), job)
     entry = {"job": job, "file": (folder / (prefix + "prototypes.json")).name, "fileMib": round((folder / (prefix + "prototypes.json")).stat().st_size / 1048576.0, 2),
              "errors": len(document.get("errors") or []), "counts": counts(document, floors),
              "window": window_facts(load(folder / (prefix + "run.json")), load(folder / (prefix + "log.json")))}

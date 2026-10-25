@@ -3,6 +3,7 @@
 Every model here is made up in code (R10). The real config is read only where a test says so.
 """
 import json
+from pathlib import PureWindowsPath
 
 import pytest
 
@@ -13,8 +14,8 @@ import project_profile
 FLOORS = {"types": {"generic": ["Slab G"], "yard": ["Yard Y"], "ramp": ["Ramp A", "Ramp B"]},
           "levels": {"generic": "L1", "yard": "L2", "ramp": "L1"},
           "plotParameter": "Plot", "yardBelowFflM": 0.1, "yardShareTie": 0.01, "yardMinShare": 0.5}
-# A made up codeInName, the real pattern lives in config/project.json only
-KEYS = {"codeInName": "^X-{code}-", "keys": [{"code": "IMX"}, {"code": "IMY"}]}
+# A made up codeInName and made up copy names, the real ones live in config/project.json only
+KEYS = {"codeInName": "^X-{code}-", "keys": [{"code": "IMX", "copy": "X-IMX-model.rvt"}, {"code": "IMY", "copy": "X-IMY-model.rvt"}]}
 JOB = {"neighbourhood": "AAA", "schedule": "book.xlsx", "sheet": "Sheet1", "prototypes": "C:\\x\\prototypes.json",
        "prototypeFolder": "Prototypes", "output": "C:\\x\\plan.json", "parameters": ["RRE_ZZ_SP_Plot-Number"]}
 
@@ -97,15 +98,81 @@ def test_r321_plan_from_past_refuses_a_key_whose_model_file_holds_no_code_of_it_
     settings = tmp_path / "project.json"
     settings.write_text(json.dumps({"schedules": ["book.xlsx"], "inputRoot": str(root), "pastJob": tp.JOB, "floors": tp.FLOORS, "answerKeys": KEYS}), encoding="utf-8")
     monkeypatch.delenv(pf.ROOT_VARIABLE, raising=False)
-    prototypes = tmp_path / "prototypes.json"
+    prototypes = tmp_path / "testhost_KX_prototypes.json"
     args = ["--settings", str(settings), "--prototypes", str(prototypes), "--baseplan", str(baseplan), "--out", str(tmp_path / "plan.json"), "--key", "IMX"]
-    for name, match in (("X-IMY-model_TEST-KY", "IMX"), ("model of no key", "IMX"), (None, "no model file")):
+    for name, match in (("X-IMY-model_TEST-KX", "IMX"), ("model of no key", "IMX"), (None, "no model file")) + tuple((name, "work copy") for name in NOT_THE_WORK_COPY):
         data = tp.document([tp.link("101")], tp.plot_floors("101", 0, 10))
         data["documents"][0]["file"] = name
         prototypes.write_text(json.dumps(data), encoding="utf-8")
         with pytest.raises(project_profile.ProfileError, match=match):
             pf.main(args)
     assert not (tmp_path / "plan.json").exists()
+
+
+# R321. Names that start like the work copy X-IMX-model_TEST-KX of the key IMX under the job KX and are not it: a floor scenario
+# file the placer changed and the master of the scenarios (R118), the source the copy was made from, the copy itself, a work copy
+# of another job and of another file of the key
+NOT_THE_WORK_COPY = ("X-IMX-model_TEST-WORK-S1", "X-IMX-model_TEST-MASTER", "X-IMX-source", "X-IMX-model", "X-IMX-model_TEST-KY",
+                     "X-IMX-model_TEST-KX_run1", "X-IMX-model-old_TEST-KX")
+
+
+@pytest.mark.parametrize("name", [name.replace("KX", "QX").replace("KY", "QY") for name in NOT_THE_WORK_COPY])
+def test_r322_a_read_is_counted_only_when_its_model_is_the_work_copy_of_the_key_copy_under_its_job(tmp_path, name):
+    import key_reads
+    settings = key_settings(tmp_path)
+    reads = tmp_path / "reads"
+    write_read(reads, "QX", dict(made_up_read(), file=name))
+
+    with pytest.raises(project_profile.ProfileError, match="IMX"):
+        key_reads.main(["--settings", str(settings.path), "--reads", str(reads)] + key_args("IMX=QX"))
+    assert not (reads / "key_reads.json").exists()
+
+
+def test_r322_a_job_is_a_job_code_of_the_test_host_so_a_scenario_name_is_never_a_job(tmp_path):
+    import key_reads
+    settings = key_settings(tmp_path)
+    reads = tmp_path / "reads"
+    write_read(reads, "MASTER", dict(made_up_read(), file="X-IMX-model_TEST-MASTER"))
+    write_read(reads, "WORK-S1", dict(made_up_read(), file="X-IMX-model_TEST-WORK-S1"))
+    base = ["--settings", str(settings.path), "--reads", str(reads)]
+
+    for job in ("MASTER", "WORK-S1"):
+        with pytest.raises(project_profile.ProfileError, match="job"):
+            key_reads.main(base + key_args("IMX=" + job))
+    assert not (reads / "key_reads.json").exists()
+
+
+def test_r321_the_work_copy_of_the_key_copy_under_its_job_is_taken_in_any_case_with_or_without_rvt(tmp_path):
+    settings = key_settings(tmp_path)
+    for name in ("X-IMX-model_TEST-KX", "x-imx-MODEL_test-kx", "X-IMX-model_TEST-KX.rvt"):
+        pf.check_key_file(settings, "IMX", name, "KX")
+    for name in NOT_THE_WORK_COPY:
+        with pytest.raises(project_profile.ProfileError, match="IMX"):
+            pf.check_key_file(settings, "IMX", name, "KX")
+    with pytest.raises(project_profile.ProfileError, match="no job"):
+        pf.check_key_file(settings, "IMX", "X-IMX-model_TEST-KX", None)
+    with pytest.raises(project_profile.ProfileError, match="IMZ"):
+        pf.check_key_file(settings, "IMZ", "X-IMZ-model_TEST-KX", "KX")
+    assert pf.read_job("C:\\reads\\RC\\testhost_RC_prototypes.json") == "RC"
+    assert pf.read_job("C:\\reads\\prototypes.json") is None and pf.read_job("testhost_rc_prototypes.json") is None
+
+
+def test_r321_the_real_keys_take_the_work_copy_of_their_copy_and_refuse_the_scenario_files_the_source_and_another_job():
+    settings = project_profile.load_settings()
+    keys = settings.values["answerKeys"]["keys"]
+    assert len(keys) == 7
+    for key in keys:
+        stem = PureWindowsPath(key["copy"]).stem
+        source = PureWindowsPath(key["source"]).stem
+        job, other = "R" + key["code"][-1], "R" + ("A" if key["code"][-1] != "A" else "B")
+        pf.check_key_file(settings, key["code"], stem + "_TEST-" + job, job)
+        # The floor scenario files the placer changes and their master are made from the source, R118, and from the copy name too
+        for name in (source, source + "_TEST-WORK-S1", source + "_TEST-MASTER", source + "_TEST-" + job, stem, stem + "_TEST-WORK-S1",
+                     stem + "_TEST-MASTER", stem + "_TEST-" + other):
+            if name == stem + "_TEST-" + job:
+                continue
+            with pytest.raises(project_profile.ProfileError, match=key["code"]):
+                pf.check_key_file(settings, key["code"], name, job)
 
 
 def test_r321_the_real_config_reads_ffl_as_the_generic_floor_of_ime_and_imf_only():
@@ -519,9 +586,9 @@ def test_r323_main_holds_a_read_against_the_bytes_of_its_key_copy_and_its_second
     from test_rvt_info import INFO, XML, utf16
     root = tmp_path / "root"
     (root / "copies").mkdir(parents=True)
-    (root / "copies" / "x-IMX.rvt").write_bytes(build([("BasicFileInfo", utf16(INFO)), ("TransmissionData", utf16(XML, b"\x84-\x00\x00"))]))
+    (root / "copies" / "X-IMX-model.rvt").write_bytes(build([("BasicFileInfo", utf16(INFO)), ("TransmissionData", utf16(XML, b"\x84-\x00\x00"))]))
     path = tmp_path / "project.json"
-    path.write_text(json.dumps({"inputRoot": str(root), "answerKeys": {"folder": "copies", "codeInName": KEYS["codeInName"], "keys": [{"code": "IMX", "copy": "x-IMX.rvt"}]},
+    path.write_text(json.dumps({"inputRoot": str(root), "answerKeys": {"folder": "copies", "codeInName": KEYS["codeInName"], "keys": [{"code": "IMX", "copy": "X-IMX-model.rvt"}]},
                                 "floors": FLOORS}), encoding="utf-8")
     document = with_categories(made_up_read(), links=3, walls=3, floors=4, spots=4, footings=7)
     for link in document["links"][:2]:
@@ -530,8 +597,8 @@ def test_r323_main_holds_a_read_against_the_bytes_of_its_key_copy_and_its_second
     reads = tmp_path / "reads"
     (reads / "QX").mkdir(parents=True)
     (reads / "QX" / "testhost_QX_prototypes.json").write_text(json.dumps({"documents": [document]}), encoding="utf-8")
-    old = tmp_path / "old.json"
-    old.write_text(json.dumps({"documents": [made_up_read()]}), encoding="utf-8")
+    old = tmp_path / "testhost_KX_prototypes.json"
+    old.write_text(json.dumps({"documents": [dict(made_up_read(), file="X-IMX-model_TEST-KX")]}), encoding="utf-8")
 
     assert check.main(["--settings", str(path), "--reads", str(reads), "--key", "IMX=QX=" + str(old)]) == 0
     written = json.loads((reads / "key_reads_check.json").read_text(encoding="utf-8"))["keys"]["IMX"]
@@ -539,7 +606,7 @@ def test_r323_main_holds_a_read_against_the_bytes_of_its_key_copy_and_its_second
     assert written["categories"]["walls"]["equal"] is True
     # The Phase 1 read of the same copy repeats the read, it is named so and is no second method
     repeat = written["repeatRead"]
-    assert repeat["file"] == "old.json" and "no second method" in repeat["note"]
+    assert repeat["file"] == "testhost_KX_prototypes.json" and "no second method" in repeat["note"]
     assert repeat["links"]["14"]["idsEqual"] is True and repeat["links"]["14"]["match"] == 1
     assert repeat["links"]["14"]["mismatches"] == [{"elementId": 1, "fields": ["file"]}, {"elementId": 2, "fields": ["file"]}]
     assert repeat["idsPerType"]["walls"]["differ"] == []
@@ -558,9 +625,9 @@ def check_settings(tmp_path):
     root = tmp_path / "root"
     (root / "copies").mkdir(parents=True)
     for code in ("IMX", "IMY"):
-        (root / "copies" / ("x-" + code + ".rvt")).write_bytes(build([("BasicFileInfo", utf16(INFO)), ("TransmissionData", utf16(XML, b"\x84-\x00\x00"))]))
+        (root / "copies" / ("X-" + code + "-model.rvt")).write_bytes(build([("BasicFileInfo", utf16(INFO)), ("TransmissionData", utf16(XML, b"\x84-\x00\x00"))]))
     path = tmp_path / "project.json"
-    keys = {"folder": "copies", "codeInName": KEYS["codeInName"], "keys": [{"code": code, "copy": "x-" + code + ".rvt"} for code in ("IMX", "IMY")]}
+    keys = {"folder": "copies", "codeInName": KEYS["codeInName"], "keys": [{"code": code, "copy": "X-" + code + "-model.rvt"} for code in ("IMX", "IMY")]}
     path.write_text(json.dumps({"inputRoot": str(root), "answerKeys": keys, "floors": dict(FLOORS, keyTypes={"IMX": {"generic": ["Slab F"]}})}), encoding="utf-8")
     return path
 
@@ -571,7 +638,7 @@ def test_r323_a_read_is_checked_only_under_the_key_its_model_file_names_and_a_ke
     reads = tmp_path / "reads"
     write_read(reads, "QX", dict(made_up_read(), file="X-IMX-model_TEST-QX"))
     write_read(reads, "QY", dict(made_up_read(), file="X-IMY-model_TEST-QY"))
-    old = tmp_path / "old.json"
+    old = tmp_path / "testhost_KY_prototypes.json"
     old.write_text(json.dumps({"documents": [dict(made_up_read(), file="X-IMY-model_TEST-KY")]}), encoding="utf-8")
     base = ["--settings", str(path), "--reads", str(reads)]
 
@@ -585,6 +652,27 @@ def test_r323_a_read_is_checked_only_under_the_key_its_model_file_names_and_a_ke
             check.main(base + key_args(*pairs))
     assert not (reads / "key_reads_check.json").exists()
     assert check.main(base + key_args("IMX=QX=none", "IMY=QY=" + str(old))) == 0
+
+
+def test_r323_a_read_and_its_repeat_read_are_each_the_work_copy_of_the_key_copy_under_their_own_job(tmp_path):
+    import key_reads_check as check
+    path = check_settings(tmp_path)
+    reads = tmp_path / "reads"
+    write_read(reads, "QX", dict(made_up_read(), file="X-IMX-model_TEST-QX"))
+    write_read(reads, "QS", dict(made_up_read(), file="X-IMX-model_TEST-WORK-S1"))
+    base = ["--settings", str(path), "--reads", str(reads)]
+    # The job of a repeat read is the one the test host names its output by, testhost_<job>_prototypes.json
+    scenario = tmp_path / "testhost_KX_prototypes.json"
+    scenario.write_text(json.dumps({"documents": [dict(made_up_read(), file="X-IMX-model_TEST-WORK-S1")]}), encoding="utf-8")
+    renamed = tmp_path / "phase1.json"
+    renamed.write_text(json.dumps({"documents": [dict(made_up_read(), file="X-IMX-model_TEST-KX")]}), encoding="utf-8")
+
+    for old, match in ((scenario, "work copy"), (renamed, "no job")):
+        with pytest.raises(project_profile.ProfileError, match=match):
+            check.main(base + key_args("IMX=QX=" + str(old)))
+    with pytest.raises(project_profile.ProfileError, match="work copy"):
+        check.main(base + key_args("IMX=QS=none"))
+    assert not (reads / "key_reads_check.json").exists()
 
 
 def test_r323_a_run_merges_its_keys_into_the_file_and_keeps_the_keys_of_earlier_runs(tmp_path):

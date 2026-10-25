@@ -400,10 +400,10 @@ def main(argv=None):
             raise project_profile.ProfileError("answerKeys has no key " + code)
         floors = plan_from_past.load_floors(settings, code)
         document = key_reads.project_document(key_reads.load(Path(args.reads) / job / ("testhost_" + job + "_prototypes.json")))
-        plan_from_past.check_key_file(settings, code, document.get("file"))
+        plan_from_past.check_key_file(settings, code, document.get("file"), job)
         old_document = key_reads.project_document(key_reads.load(old)) if old != "none" else None
         if old_document is not None:
-            plan_from_past.check_key_file(settings, code, old_document.get("file"))
+            plan_from_past.check_key_file(settings, code, old_document.get("file"), plan_from_past.read_job(old))
         references = rvt_info.read(folder / copies[code])["revitLinks"]
         report["keys"][code] = dict(check_key(document, old_document, references, floors, plain, Path(old).name if old_document is not None else None), job=job)
     printed = report["keys"]

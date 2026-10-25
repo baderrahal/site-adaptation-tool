@@ -16,7 +16,6 @@ from shapely.geometry import Polygon
 import common
 import excel_reader
 import full_run
-import key_copies
 import link_summary
 import plot_relations
 import link_table
@@ -58,6 +57,11 @@ EPS = 1e-9
 LINK_KEYS = ("prototypeFile", "insert", "rotationDeg", "mirrored", "levels.ffl")
 # A step count is a whole number, alone or before the word step or steps, so 2.5 is not read as 2
 STEPS_TEXT = re.compile(r"^\s*(\d+)\s*(steps?)?\s*$", re.IGNORECASE)
+# R110, R204. The job code of a test host window, the name it gives its read output and the mark before the job in a work copy
+JOB_CODE = re.compile(r"[A-Z][A-Z0-9]{1,3}")
+READ_FILE = re.compile(r"testhost_(?P<job>[A-Z][A-Z0-9]{1,3})_prototypes\.json")
+WORK_MARK = "_TEST-"
+RVT = ".rvt"
 LEVEL_COLUMNS = (("ffl", "FFL"), ("ssl", "SSL"), ("entry", "El @ Entry"), ("height", "Height"))
 WIDE_LEVELS = ("entry", "height")
 
@@ -103,19 +107,31 @@ def key_codes(settings):
     return [key.get("code") for key in keys if isinstance(key, dict)]
 
 
-def check_key_file(settings, code, name):
-    """R321. A read is of the answer key code only when the name of its model file holds that code where answerKeys.codeInName
-    says and the code of no other key, in any case, so a job given under the wrong key is refused and never read by its types."""
-    block = settings.values.get("answerKeys") or {}
-    if not isinstance(block.get("codeInName"), str):
-        raise project_profile.ProfileError(settings.path.name + " answerKeys has no codeInName to tie a read to its key " + str(code))
+def read_job(path):
+    """R321. The job of a key read by the name the test host gives its output, testhost_<job>_prototypes.json, None for another name."""
+    match = READ_FILE.fullmatch(PureWindowsPath(str(path)).name)
+    return match.group("job") if match else None
+
+
+def check_key_file(settings, code, name, job):
+    """R321. A read is of the answer key code only when its model is the work copy of the Revit 2024 copy of that key the job of the
+    read opened: the name the read gives, with or without .rvt, is the copy name of the key in answerKeys without .rvt, then _TEST-
+    and the job, in any case as Windows matches names (R204). The job is a job code of the test host (R110). So a floor scenario file
+    the placer changed and its master (R118), the source the copy was made from, the copy itself, a work copy of another job or of
+    another key are refused and never read by the types of the key."""
+    keys = [key for key in (settings.values.get("answerKeys") or {}).get("keys") or [] if isinstance(key, dict) and key.get("code") == code]
+    if len(keys) != 1 or not isinstance(keys[0].get("copy"), str):
+        raise project_profile.ProfileError(settings.path.name + " answerKeys has no one key " + str(code) + " with a copy name to tie a read to")
     if not isinstance(name, str) or not name.strip():
         raise project_profile.ProfileError("the read names no model file, so it can not be tied to the key " + str(code))
-    if not key_copies.name_pattern(block, code).search(name):
-        raise project_profile.ProfileError("the model file " + name + " does not hold the code " + str(code) + " where answerKeys.codeInName says")
-    others = [other for other in key_codes(settings) if other != code and key_copies.name_pattern(block, other).search(name)]
-    if others:
-        raise project_profile.ProfileError("the model file " + name + " given for the key " + str(code) + " holds the code " + ", ".join(others) + " of another key")
+    if not isinstance(job, str) or not JOB_CODE.fullmatch(job):
+        raise project_profile.ProfileError("the read of the key " + str(code) + " has no job code of the test host, a job is a capital and 1 to 3 "
+                                           "capitals or digits, given: " + str(job))
+    stem = PureWindowsPath(keys[0]["copy"]).stem
+    given = name[:-len(RVT)] if name.lower().endswith(RVT) else name
+    if given.casefold() != (stem + WORK_MARK + job).casefold():
+        raise project_profile.ProfileError("the model file " + name + " is not the work copy " + stem + WORK_MARK + job + " of the copy " + keys[0]["copy"]
+                                           + " of the key " + str(code) + " under the job " + job)
 
 
 def key_types(settings, floors):
@@ -949,7 +965,7 @@ def main(argv=None):
             return 2
     data = link_summary.load(prototypes)
     if args.key:
-        check_key_file(settings, args.key, host_of(data).get("file"))
+        check_key_file(settings, args.key, host_of(data).get("file"), read_job(prototypes))
     dialect = None
     if args.names:
         numbers, many = location_numbers(args.names)
