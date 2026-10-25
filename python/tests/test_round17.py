@@ -160,6 +160,26 @@ def test_r270_a_key_parameter_off_its_own_ramp_is_a_parameter_fault_and_a_floor_
     assert verdicts == {"501": "keyParameterFault", "502": "wrongJoin"}
 
 
+def test_r270_a_row_of_a_kind_majority_kind_leave_out_keeps_out_of_el_at_entry_shares_no_el_at_entry_with_another_key(tmp_path):
+    # ima is an SE key, its El @ Entry is no level of the model, so it must not be held against u13 on plot 501, while imc, a TU key, is on 502
+    outline = {"501": box(0, 0, 10, 25).wkt, "502": box(10, 0, 20, 25).wkt}
+    rows = [("ima", "parsons", "SE", "501", 9.0), ("u13", "native", "", "501", 10.0), ("imc", "parsons", "TU", "502", 9.0), ("u13", "native", "", "502", 10.0)]
+    table = tmp_path / "past_all.csv"
+    past_all.write_csv(table, [dict({column: None for column in past_all.COLUMNS}, key=key, source=source, kind=kind, plot=plot, entry=entry, rampBack=entry,
+                                    genericOutline=outline[plot], typologyRev9="TH3", parameters="{}") for key, source, kind, plot, entry in rows])
+    labels = tmp_path / "labels.csv"
+    labels.write_text("number,face\n501,11\n502,12\n", encoding="utf-8")
+    baseplan = tmp_path / "plots.json"
+    baseplan.write_text(_json.dumps({"plots": [{"kind": "plot_shape", "plot": label, "vertices": [list(xy) for xy in list(FACES[label].exterior.coords)[:-1]]}
+                                               for label in ("11", "12")]}), encoding="utf-8")
+    out = tmp_path / "entry_gaps.json"
+    assert entry_gaps.main([str(table), "--labels", str(labels), "--baseplan", str(baseplan), "--out", str(out)]) == 0
+    found = _json.loads(out.read_text(encoding="utf-8"))
+    assert [pair["pair"] for pair in found["pairs"]] == ["imc+u13"] and found["leftOut"] == {"SE": 1}
+    kept = entry_gaps.entry_rows(past_all.read_table(table), {"SE": ["entry"]})
+    assert [(row["key"], row["plot"]) for row in kept] == [("u13", "501"), ("imc", "502"), ("u13", "502")]
+
+
 def test_r270_two_keys_on_the_same_face_with_their_ramps_apart_differ_for_real():
     faces, numbers = {"11": box(0, 0, 10, 25)}, {"11": "501"}
     rows = [gap_row("imc", "501", 10.0, 10.0, box(0, 0, 10, 25).wkt), gap_row("u14", "501", 9.3, 9.3, box(0, 0, 10, 25).wkt)]
