@@ -258,6 +258,8 @@ def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers
     for number, row in level_rows.items():
         # R340. An override moves the levels of its own plot only, so those of a plot outside the build move nothing written
         mine = overrides.get(number, {}) if number in set(numbers) else {}
+        # R340. The FFL the rule alone gives, before the heightM gap, which the plan writes in levelRule beside the levels
+        row["fflRule"] = row["ffl"]
         gap = plan_rules.gap_of(mine.get("heightM"))
         if gap is not None:
             row["ffl"] = round(row["ffl"] + gap, plan_rules.FFL_DECIMALS)
@@ -278,6 +280,23 @@ def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers
             if field in overrides.get(number, {}) and number not in level_rows:
                 outcomes.left(number, field, "no FFL, " + ("no road level at a front corner" if front[number]["front"] is None else "the rule gives none"))
     return level_rows
+
+
+def rule_levels(row, entry, item, key, unit, profile, rules):
+    """R340. The levels the rule alone gives a plot, before any override of the list moves them: El @ Entry, the FFL, the height, the
+    steps, the level parameters of keyRules and the two front corners of the ramp at the 3 decimals the plan writes them with their
+    mean, so the proof tells a level that holds by the rule from one an override puts on the key."""
+    height = round(row["fflRule"] - entry["rule"], plan_rules.ENTRY_DECIMALS)
+    found = {"entry": entry["rule"], "ffl": row["fflRule"], "height": height,
+             "steps": plan_rules.steps_by_rule(key["steps"]["rule"], height, unit, profile, rules["levelProfile"], key.get("baseHeight"))}
+    for word, rule in key.items():
+        if word.startswith(plan_rules.PARAMETER) and word not in rules["laterParameters"] and isinstance(rule, dict) and rule.get("rule") in plan_rules.LEVEL_RULES:
+            found[word] = plan_rules.prototype_ffl(rule["rule"], row["fflRule"])
+    if item["front"] is not None:
+        corners = [common.r3(z) for z in item["front"]]
+        found["rampFrontCorners"] = corners
+        found["rampFront"] = round(sum(corners) / 2.0, plan_rules.ENTRY_DECIMALS)
+    return found
 
 
 def level_values(builder, row):
@@ -449,6 +468,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             builder.entry["parameters"] = {name: sourced(value, STEP_BANDS if name in stepped else KEY_RULES) for name, value in values.items()}
             for name in lacking_parameters:
                 builder.lack("parameters." + name, "the rule of keyRules gives no value for " + unit + (" mirrored" if mirrored else ""))
+            if by_levels and level_rows.get(number) is not None:
+                builder.entry["levelRule"] = rule_levels(level_rows[number], entries[number], item, key, unit, profile, rules)
             for field, value in mine_overrides.items():
                 if field.startswith(plan_rules.PARAMETER) and field not in rules["laterParameters"]:
                     name = field[len(plan_rules.PARAMETER):]

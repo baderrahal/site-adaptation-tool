@@ -787,7 +787,7 @@ def load_block(settings):
     needed = ("strongShare", "levelHoldMm", "entryRampM", "groups", "codeFrom", "kindByPrefix", "slopeBands", "rampTypeClass", "groupSlopes", "depthBands",
               "heightBands", "sideShare", "parameterTests", "overrideDecisions", "wholeFaceShare", "overrideNote", "measuredSlopeGroups", "datumSurfaces", "kindLeaveOut",
               "rotationHoldDeg", "linkHoldMm", "cornerFrontRule", "siteReference", "check", "outlineHoldMm", "pairKinds", "flatRampType", "wallTypes", "wallCentreCodes",
-              "frontOpenShare", "linkNameFacade", "parameterLevels", "overrideKeep", "linkPlotParameter", "levelPassMm", "levelBandsMm")
+              "frontOpenShare", "linkNameFacade", "parameterLevels", "overrideKeep", "linkPlotParameter", "levelPassMm", "levelBandsMm", "rampFrontCorners")
     if not isinstance(block, dict) or any(key not in block for key in needed):
         raise project_profile.ProfileError(settings.path.name + " majority must name " + ", ".join(needed))
     leave = block["kindLeaveOut"]

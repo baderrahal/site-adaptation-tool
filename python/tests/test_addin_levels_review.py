@@ -96,3 +96,87 @@ def test_r341_the_first_misses_hold_the_cannot_list_of_the_dry_run():
     import key_rules_check
     dry = {"overrides": [{"decision": "parsons entry", "key": "imx", "plot": "1"}], "cannot": [{"decision": "parsons entry", "key": "imx", "plot": "5"}]}
     assert key_rules_check.first_misses(key_rules_check.dry_entries(dry), {}) == {"parsons entry": {("imx", "1"), ("imx", "5")}}
+
+
+# R340 the proof needs every input of every key it covers and counts a level it could not hold
+def test_r340_the_proof_refuses_a_key_it_covers_with_no_plan_key_plan_or_key_read():
+    import pytest
+    import build_proof
+    import project_profile
+    for plans, key_plans, reads, flag in (({"imx": 1}, {"imx": 1, "imy": 1}, {"imx": 1, "imy": 1}, "--plan of imy"),
+                                          ({"imx": 1, "imy": 1}, {"imx": 1}, {"imx": 1, "imy": 1}, "--key-plan of imy"),
+                                          ({"imx": 1, "imy": 1}, {"imx": 1, "imy": 1}, {"imx": 1}, "--key-read of imy")):
+        with pytest.raises(project_profile.ProfileError) as error:
+            build_proof.check_inputs(["imx", "imy"], plans, key_plans, reads)
+        assert flag in str(error.value) and "R340" in str(error.value)
+    build_proof.check_inputs(["imx", "imy"], {"imx": 1, "imy": 1}, {"imx": 1, "imy": 1}, {"imx": 1, "imy": 1})
+
+
+def test_r340_a_level_the_proof_can_not_read_is_not_checked_and_fails_the_proof_one_the_key_holds_none_of_is_counted_apart():
+    import build_proof
+    from test_addin_levels import level_context, proof_plot, proof_row
+    plan = {"plots": [proof_plot("1", 10.0, 10.1, 1, "10.100"), proof_plot("2", 10.0, 10.1, 1, "10.100"), proof_plot("3", 10.0, 10.1, 1, "10.100")], "missing": []}
+    rows = [proof_row("1", 10.0, 10.1, 1, 9.9), proof_row("2", 10.0, 10.1, 1, 9.9), proof_row("3", 10.0, 10.1, 1, 9.9)]
+    rows[2]["entry"] = None
+    # The read of the key holds no link of plot 2, the key holds no El @ Entry of plot 3
+    reads = {("imx", "1"): {"RRE_ZZ_SP_Prototype-FFL": "10.100"}, ("imx", "3"): {"RRE_ZZ_SP_Prototype-FFL": "10.100"}}
+    verdicts = build_proof.compare("imx", plan, rows, {"plots": []}, level_context(), reads)
+    found = {(item["plot"], item["field"]): item for item in verdicts}
+    assert found[("2", "parameter RRE_ZZ_SP_Prototype-FFL")]["state"] == "notChecked"
+    assert found[("3", "entry")]["state"] == "keyHoldsNone" and found[("3", "height")]["state"] == "keyHoldsNone"
+    counted = build_proof.tally(verdicts)
+    assert counted["notCheckedByKey"] == {"imx": 1} and counted["levelHolds"]["imx"]["entry"]["keyHoldsNone"] == 1
+    assert build_proof.exit_code(counted) == 1
+    assert build_proof.exit_code(build_proof.tally([item for item in verdicts if item["state"] != "notChecked"])) == 0
+
+
+# R340 the holds by the rule alone, by an override, and the misses, per key and level
+def test_r340_the_proof_counts_per_key_and_level_the_holds_by_the_rule_alone_by_an_override_and_the_misses():
+    import build_proof
+    from test_addin_levels import level_context, proof_plot, proof_row
+    plots = [proof_plot("1", 10.0, 10.1, 1, "10.100"), proof_plot("2", 10.0, 10.1, 1, "10.100"), proof_plot("3", 10.002, 10.1, 1, "10.100")]
+    for found, rule in zip(plots, (10.0, 9.998, 10.002)):
+        found["levelRule"] = {"entry": rule, "ffl": 10.1, "height": round(10.1 - rule, 4), "steps": 1, "rampFront": 9.9, "rampFrontCorners": [9.9, 9.9],
+                              "parameter RRE_ZZ_SP_Prototype-FFL": "10.100"}
+    plots[1]["overrides"] = {"applied": ["entryM"], "notApplied": {}}
+    rows = [proof_row(plot, 10.0, 10.1, 1, 9.9) for plot in ("1", "2", "3")]
+    reads = {("imx", plot): {"RRE_ZZ_SP_Prototype-FFL": "10.100"} for plot in ("1", "2", "3")}
+    counted = build_proof.tally(build_proof.compare("imx", {"plots": plots, "missing": []}, rows, {"plots": []}, level_context(), reads))
+    entry = counted["levelHolds"]["imx"]["entry"]
+    assert (entry["byRule"], entry["byOverride"], entry["misses"]) == (1, 1, 1)
+    assert counted["levelHolds"]["imx"]["ffl"]["byRule"] == 3
+
+
+# R340 the ramp front per corner as well as its mean, a corner off by the fall of Q057 never unexplained
+def test_r340_the_ramp_front_is_held_per_corner_as_well_as_by_its_mean_and_a_corner_off_by_the_fall_is_left_to_its_question():
+    import json
+    import build_proof
+    from test_addin_levels import level_context, proof_plot, proof_row
+    plots = [proof_plot("1", 10.0, 10.1, 1, "10.100", front=(9.9, 9.9)), proof_plot("2", 10.0, 10.1, 1, "10.100", front=(9.9, 9.9)),
+             proof_plot("3", 10.0, 10.1, 1, "10.100", front=(9.9, 9.901))]
+    rows = [proof_row(plot, 10.0, 10.1, 1, 9.9) for plot in ("1", "2", "3")]
+    # The key of plot 2 falls 10 mm along its front, its mean on the road the build gives, plot 3 lies half a mm off at the mean
+    rows[1]["rampCorners"] = json.dumps([[13.0, 0.0, 9.895], [17.0, 0.0, 9.905], [17.0, 3.0, 10.0], [13.0, 3.0, 10.0]])
+    reads = {("imx", plot): {"RRE_ZZ_SP_Prototype-FFL": "10.100"} for plot in ("1", "2", "3")}
+    verdicts = build_proof.compare("imx", {"plots": plots, "missing": []}, rows, {"plots": []}, level_context(), reads)
+    found = {(item["plot"], item["field"]): item for item in verdicts}
+    assert found[("1", "rampFrontCorner")]["state"] == "holds" and found[("2", "rampFront")]["state"] == "holds"
+    assert found[("2", "rampFrontCorner")]["state"] == "question" and "Q057" in found[("2", "rampFrontCorner")]["why"]
+    assert found[("2", "rampFrontCorner")]["gapMm"] == 5.0
+    counted = build_proof.tally(verdicts)
+    assert counted["unexplainedLevelsByKey"]["imx"]["pass"] == 0
+    # A level that holds at the pass limit itself is counted apart, plot 3 half a mm off at its mean and 1 mm at a corner
+    assert counted["levelHolds"]["imx"]["rampFront"]["atTheLimit"] == 1 and counted["levelHolds"]["imx"]["rampFrontCorner"]["misses"] == 2
+
+
+def test_r340_a_build_writes_the_levels_the_rule_alone_gives_beside_the_levels_its_overrides_moved(tmp_path, monkeypatch):
+    from test_addin_review import entry
+    full = [entry("4", "entryM", {"gapToRuleM": 0.0013}, "parsons", "IMC.rvt", "imc"), entry("4", "heightM", {"gapToRuleM": 0.001}, "parsons", "IMC.rvt", "imc"),
+            entry("4", "rampFrontM", {"gapToRuleM": 0.002}, "parsons", "IMC.rvt", "imc")]
+    found, _ = level_build(tmp_path, monkeypatch, overrides=full)
+    rule = found["4"]["levelRule"]
+    assert rule["entry"] == 10.0626 and rule["ffl"] == 10.263 and rule["height"] == 0.2004 and rule["steps"] == 1
+    assert rule["parameter RRE_ZZ_SP_Prototype-FFL"] == "10.260" and level_of(found["4"], "ffl") == 10.264
+    corners = found["4"]["floors"]["ramp"]["corners"]["value"]
+    assert [round(z + 0.002, 3) for z in rule["rampFrontCorners"]] == [corners[0][2], corners[1][2]]
+    assert rule["rampFront"] == round(sum(rule["rampFrontCorners"]) / 2.0, 4)

@@ -173,6 +173,7 @@
     "levelHoldMm": 5,
     "levelPassMm": 0.5,
     "levelBandsMm": [1, 5],
+    "rampFrontCorners": {"question": "Q057", "why": "the keys let the front of a ramp fall either way, a build sets each front corner on the road it gives and applies no fall, so the claim of the levels covers the mean of the front and a front corner is reported apart (R340)"},
     "levelNotMeasured": {"ssl": "no key holds SSL, the Generic floor top is the FFL and no SSL floor or parameter is read, the IMC and IMD schedules give SSL by the formula FFL less 0.075 on 747 of 747 rows (data book), so a build gives the FFL plus levels.ground_ssl (R67, R278)"},
     "entryRampM": 0.3,
     "entryGaps": {"entryGapM": 0.5, "entryRampM": 0.3, "sameFaceShare": 0.9},

@@ -83,7 +83,9 @@ def test_r337_the_proof_holds_every_field_of_a_built_plot_against_the_key_and_co
     found = states(build_proof.compare("imx", plan, rows, {"plots": [key_entry("1"), key_entry("2")]}, context()))
     assert {field for plot, field in found if plot == "1"} >= {"prototypeFile", "mirrored", "rotationDeg", "insert", "rampType", "rampOutline", "genericFloor", "yard",
                                                               "yardOutline", "parameter RRE_ZZ_SP_Plot-Number", "parameter RRE_ZZ_SP_RVT-Name"}
-    assert all(state == "holds" for (plot, _), state in found.items() if plot == "1")
+    # The made up key holds no level and the proof was given no key read, so its levels are counted as such, never as holding (R340)
+    assert all(state == "holds" for (plot, _), state in found.items() if plot == "1" and state not in ("keyHoldsNone", "notChecked"))
+    assert found[("1", "ffl")] == "keyHoldsNone" and found[("1", "parameter RRE_ZZ_SP_Prototype-FFL")] == "notChecked"
     # Plot 2 is built the other hand with no override, so its hand is unexplained, its other fields held apart
     assert found[("2", "mirrored")] == "unexplained" and found[("2", "insert")] == "holds"
 
