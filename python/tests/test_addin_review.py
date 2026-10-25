@@ -206,3 +206,35 @@ def test_r335_the_link_plot_parameter_and_the_kinds_with_no_front_wall_come_from
     assert block["linkPlotParameter"] == "RRE_ZZ_SP_Plot-Number" and "frontOpen" in block["kindLeaveOut"]["SE"]
     read = {"links": [{"parameters": {"PLOT": "12", "X": "1"}}, {"parameters": {"RRE_ZZ_SP_Plot-Number": "13"}}]}
     assert key_rules.read_parameters({"imc": read}, "PLOT") == {("imc", "12"): {"PLOT": "12", "X": "1"}}
+
+
+# R280 two overrides of one plot and field are refused, never the last one taken
+def test_r280_two_overrides_of_one_plot_and_field_from_two_keys_or_one_are_refused_and_a_model_named_narrows_them(tmp_path):
+    path = tmp_path / "o.json"
+    entries = [entry("5", "mirrored", True, "parsons", "IMC.rvt", "imc"), entry("5", "mirrored", False, "parsons", "IMD.rvt", "imd"),
+               entry("6", "mirrored", True, "parsons", "IMD.rvt", "imd")]
+    path.write_text(json.dumps({"note": "n", "overrides": entries}), encoding="utf-8")
+    with pytest.raises(project_profile.ProfileError) as error:
+        plan_rules.load_overrides(path, {"parsons"}, groups=GROUPS)
+    text = str(error.value)
+    assert "5" in text and "imc" in text and "imd" in text and "--override-model" in text
+    assert plan_rules.load_overrides(path, {"parsons"}, groups=GROUPS, models={"IMD.rvt"}) == {"5": {"mirrored": False}, "6": {"mirrored": True}}
+    path.write_text(json.dumps({"note": "n", "overrides": [entries[0], dict(entries[0], value=False)]}), encoding="utf-8")
+    with pytest.raises(project_profile.ProfileError):
+        plan_rules.load_overrides(path, {"parsons"}, groups=GROUPS)
+
+
+# R281 a decision with misses and no entry in the list is no match
+def test_r281_a_decision_with_misses_and_no_entry_in_the_override_list_is_not_a_match():
+    import r17_check
+    report = {"decisions": [{"decision": "parsons hand villa", "plots": 10, "misses": 3, "coded": "c", "tests": {"c": {"holds": 7}}},
+                            {"decision": "parsons rampSlope", "plots": 10, "misses": 0, "coded": "c", "tests": {"c": {"holds": 10}}},
+                            {"decision": "parsons frontCorner", "plots": 10, "misses": 2, "coded": "c", "tests": {"c": {"holds": 8}}}]}
+    found = {row["decision"]: row for row in r17_check.decision_counts(report, {"overrides": []}, ["hand", "rampSlope"])}
+    assert found["parsons hand villa"]["match"] is False and found["parsons hand villa"]["overrides"] is False
+    assert found["parsons rampSlope"]["match"] is True
+    # A decision that writes no override holds when the list has none of it
+    assert found["parsons frontCorner"]["match"] is True
+    listed = {"overrides": [{"decision": "parsons hand villa"}] * 3 + [{"decision": "parsons frontCorner"}]}
+    found = {row["decision"]: row for row in r17_check.decision_counts(report, listed, ["hand", "rampSlope"])}
+    assert found["parsons hand villa"]["match"] is True and found["parsons frontCorner"]["match"] is False

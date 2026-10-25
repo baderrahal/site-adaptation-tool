@@ -159,10 +159,19 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
     missing = sorted(set(sources) - {item["source"] for item in chosen}) + sorted(set(models or ()) - {item["model"] for item in chosen})
     if missing:
         raise project_profile.ProfileError("the override list holds no override of %s among the sources %s (R280, R330)" % (", ".join(missing), ", ".join(sorted(sources))))
-    found = defaultdict(dict)
+    found, origin, twice = defaultdict(dict), {}, []
     for item in chosen:
         if item.get("field") in fields:
-            found[str(item["plot"])][item["field"]] = item["value"]
+            pair = (str(item["plot"]), item["field"])
+            # R280. Two entries of one plot and field, of two keys or one, are refused, the last one is never taken in silence
+            if pair in origin:
+                twice.append("plot %s field %s of %s and %s" % (pair[0], pair[1], origin[pair], item.get("key") + " " + item.get("model")))
+                continue
+            origin[pair] = item.get("key") + " " + item.get("model")
+            found[pair[0]][pair[1]] = item["value"]
+    if twice:
+        raise project_profile.ProfileError("%d plots hold two overrides of one field: %s. Narrow the list with --override-model or edit it by hand (R280)"
+                                           % (len(twice), " | ".join(twice[:10])))
     return dict(found)
 
 
