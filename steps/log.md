@@ -4,7 +4,7 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 
 ## Round ADDIN Part 1, 2026-10-25, the Revit 2024 add-in from the Parsons site models
 
-In progress. Phases 0a to 1b merged (PR 41 to 44), 2a in review (data/addin-key-reads). Plan: steps/investigations/round-addin.md.
+In progress. Phases 0a to 1b merged (PR 41 to 44), 2a in review on PR 45 (data/addin-key-reads). Plan: steps/investigations/round-addin.md.
 
 Goal:
 - The add-in inside Revit 2024 in C#, .NET 4.8, from the 7 Rev 6 Parsons site models, parsons2024Rev6 for every build (Q050), docs/addin-mock.md. Part 2 waits for Bader's check of Part 1

@@ -479,7 +479,7 @@ The breaker and the claim-checker read PR 44. Each code fix came with a test tha
 - Q069 new: record of a remade key copy, withdrawn after two attempts. Recommended: when a key source changes, the test host writes the SHA-256 of the work copy at the job start and of the made copy at its end into the run log, and record files a copy only when the work copy hash equals the source hash of the manifest request and the made copy hash on disk equals the logged one. Until Q069 is answered a remade copy is filed by editing its manifest entry by hand, since import refuses once a manifest exists.
 - Known bug, recorded only: the GetFullPathNameW mirror of key_copies.py keeps a last part NUL, nul. or "NUL. " as a name where Windows opens the NUL device, reachable only by answerKeys.folder of the config, and PrototypeSets.ps1 throws on it.
 
-## Phase 2 part 1, PR data/addin-key-reads
+## Phase 2 part 1, PR 45 data/addin-key-reads
 
 Branch data/addin-key-reads from main at eedf3c5, equal to origin/main after git fetch (RAN). Rules R320 to R323 are new, R36 and R112 changed, R324 is not used. The phase ran in a helper agent started by the main session, which runs the checkers and merges. Values of coordinates and levels stay in Documents\SiteAdaptation\round_addin\reads, this file holds counts, distances and differences only.
 

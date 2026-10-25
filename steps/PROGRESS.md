@@ -1,4 +1,4 @@
-STATE 2026-10-25, Round ADDIN Part 1, Phase 2 part 1 in review (data/addin-key-reads): the 7 keys read with the spot value (R320), FFL as the Generic floor of IME and IMF (R321), the counts per key (R322) and their second method (R323). Phases 0a to 1b merged (PR 41 to 44). Round 17 done and merged (PR 39, 40)
+STATE 2026-10-25, Round ADDIN Part 1, Phase 2 part 1 in review on PR 45 (data/addin-key-reads): the 7 keys read with the spot value (R320), FFL as the Generic floor of IME and IMF (R321), the counts per key (R322) and their second method (R323). Phases 0a to 1b merged (PR 41 to 44). Round 17 done and merged (PR 39, 40)
 
 # Progress
 
@@ -16,7 +16,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 
 ## Done
 
-- ADDIN 2a, in review: R320 to R323 with their tests, the test host installed from 7b82696, 7 reads one window at a time under the lock, IMC first, 60 of 60 files equal before and after, second method 28 of 28 category counts, 280 of 280 links by id, 5,462 of 5,462 TU spot values within 1 mm
+- ADDIN 2a, PR 45 in review: R320 to R323 with their tests, the test host installed from 7b82696, 7 reads one window at a time under the lock, IMC first, 60 of 60 files equal before and after, second method 28 of 28 category counts, 280 of 280 links by id, 5,462 of 5,462 TU spot values within 1 mm
 - ADDIN 1b, PR 44: R312, R313 and the R301 manifest, the 13 STR upgrades. ADDIN 1, PR 43: R310, R311, R203, R204, R301, 17 windows and KG3
 - ADDIN 0b, PR 42 and 0a, PR 41: the harness and the open fixes, Q028, Q035, Q044 to Q050, Q060, Q061 closed. 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c to 1: PRs 1 to 25
 
