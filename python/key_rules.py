@@ -5,11 +5,17 @@ levels and units, held against one reference key, so button 1 knows whether one 
 leave this module, never a coordinate or a level.
 R332: the link rotation against the front frame of the plot (R122, the corner rule of R226) and the link origin against the
 plotFrame fit of R121, as fitted on the IMC key and fitted again per code on every plot of a group.
+R333: the hand of the units in no cluster by the pair of their row, the villas between cluster units apart.
+R334: the ramp outline of R127 against the corners of the key ramp, the yard outline of R135 against the key yard, and what the
+flat ramps share.
 """
+import json
 import math
-import statistics
+from collections import Counter
 
 import cad_links
+import floor_fit
+import ramp_outline
 
 POINTS = ("surveyPoint.position", "surveyPoint.sharedPosition", "basePoint.position", "basePoint.sharedPosition")
 # A point or a level is the same within half a mm, what the rounding of R2 to 3 decimals allows, an angle within a millionth of a degree (R311)
@@ -179,3 +185,118 @@ def insert_gap(item, value, rule):
     return {"gapToRuleM": [round(along, 3), round(inward, 3)]}
 
 
+
+
+def row_pairs(units, neighbours, kind_of, in_cluster, kinds):
+    """R333. The pairs of the rows of duplex and townhouse units in no cluster: per such unit the units of those kinds in no cluster
+    beside it, walked left and right seen from the road while each step has one, and the side it takes in its pair, the rows
+    paired from their right end, so the left unit of an odd row is the one alone. A unit with no such neighbour has no side."""
+    def counted(plot):
+        return kind_of(plot) in kinds and not in_cluster(plot)
+
+    def walk(plot, side):
+        seen, at, steps = {plot}, plot, 0
+        while True:
+            beside = [other for other in neighbours.get(at, {}).get(side, []) if other not in seen and counted(other)]
+            if len(beside) != 1:
+                return steps
+            at = beside[0]
+            seen.add(at)
+            steps += 1
+    found = {}
+    for plot in units:
+        if not counted(plot) or plot not in neighbours:
+            continue
+        left, right = walk(plot, "left"), walk(plot, "right")
+        length = left + right + 1
+        found[plot] = {"left": left, "right": right, "length": length, "side": None if length < 2 else ("right" if right % 2 == 0 else "left")}
+    return found
+
+
+def between_clusters(sides, in_cluster):
+    """R333. How many sides of a plot hold a unit of a cluster: both, one or none, for the villas between cluster units."""
+    held = sum(1 for side in ("left", "right") if any(in_cluster(other) for other in sides.get(side, [])))
+    return "both" if held == 2 else "one" if held == 1 else "none"
+
+
+def ramp_target(item):
+    """R334. The four corners of the ramp of the key in plan, or None."""
+    corners = item["row"].get("rampCorners")
+    if isinstance(corners, str):
+        corners = json.loads(corners) if corners else None
+    return None if not corners or len(corners) != 4 else [(corner[0], corner[1]) for corner in corners]
+
+
+def ramp_rule(profile):
+    """R334. The ramp outline of R127 on the front frame of the plot with the front setback of its code."""
+    def guess(item):
+        if item.get("frame") is None:
+            return None
+        return ramp_outline.outline(item["frame"], ramp_outline.setback(profile, item.get("rev9") or item["code"]))
+    return guess
+
+
+def corner_hold(limit):
+    """R334. An outline holds when each of its corners lies within limit metres of its own corner of the key, each used once."""
+    return lambda guess, aim: ramp_outline.compare_outline(guess, aim)["corner"] <= limit + EPSILON
+
+
+def corner_gap(item, value, rule):
+    """R334. A ramp outline override is its largest corner gap to the rule in metres, never a corner."""
+    return None if rule is None or value is None else {"gapToRuleM": round(ramp_outline.compare_outline(rule, value)["corner"], 3)}
+
+
+def outline_rows(plans, frames, step):
+    """R334. The yard outlines of the key plans in link axes by plot, with unit, mirror flag and plot width, as R135 reads them."""
+    rows = {}
+    for key, plan in plans.items():
+        for row in floor_fit.outline_rows(plan, "yard", {}, {plot: frames.get(plot) for plot in (entry["plot"] for entry in plan["plots"])}, set(), step):
+            rows[(key, row["plot"])] = row
+    return rows
+
+
+def outline_groups(groups):
+    return {(group["unit"], group["mirrored"], group["width"]): floor_fit.shape_of(group["loops"]) for group in groups}
+
+
+def outline_rule(groups, rows):
+    """R334. The fitted outline of the unit, mirror flag and plot width of the plot of the key, in link axes, or None."""
+    def guess(item):
+        row = rows.get((item["key"], item["plot"]))
+        return None if row is None else groups.get((row["unit"], row["mirrored"], row["width"]))
+    return guess
+
+
+def outline_target(rows):
+    def target(item):
+        row = rows.get((item["key"], item["plot"]))
+        return None if row is None else row["shape"]
+    return target
+
+
+def shape_hold(limit):
+    """R334. A floor outline holds when the boundaries of the two shapes lie within limit metres of each other (Hausdorff)."""
+    return lambda guess, aim: floor_fit.outline_gap(guess, aim) <= limit + EPSILON
+
+
+def shape_gap(item, value, rule):
+    return None if rule is None or value is None else {"gapToRuleM": round(floor_fit.outline_gap(rule, value), 3)}
+
+
+def entry_refused(plans):
+    """R334. The plots of each key plan whose El @ Entry parameter R325 refused, a placeholder such as 0 or 150.0, by key and plot."""
+    return {(key, entry["plot"]) for key, plan in plans.items() for entry in plan.get("missing") or []
+            if any(item.get("key") == "levels.entry" and str(item.get("why", "")).startswith("refused") for item in entry.get("missing") or [])}
+
+
+def flat_ramps(items, flat_class, class_of):
+    """R334. What the ramps of the flat class share: their counts by code, key, measured slope band, steps, corner and whether the
+    key refused their El @ Entry parameter, and the plots of the class against the plots refused."""
+    flat = [item for item in items if class_of(item) == flat_class]
+    by = lambda name: dict(sorted(Counter(str(name(item)) for item in flat).items()))
+    refused = sum(1 for item in items if item["factors"].get("entryRefused") == "yes")
+    return {"plots": len(flat), "refusedPlots": refused, "byEntryRefused": by(lambda item: item["factors"].get("entryRefused")),
+            "byCode": by(lambda item: item["code"]), "byKey": by(lambda item: item["key"]),
+            "byMeasuredBand": by(lambda item: item["factors"].get("measuredBand")), "bySteps": by(lambda item: item["factors"].get("steps")),
+            "byCorner": by(lambda item: item["factors"].get("corner")), "plotsByKey": {key: sorted((item["plot"] for item in flat if item["key"] == key), key=int)
+                                                                                     for key in sorted({item["key"] for item in flat})}}

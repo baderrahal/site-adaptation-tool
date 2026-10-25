@@ -27,6 +27,7 @@ import cad_analysis
 import cad_links
 import common
 import corner_front
+import floor_fit
 import footprint_check
 import key_rules
 import link_summary
@@ -46,7 +47,7 @@ CANNOT = "cannot"
 ROAD = "roadLevel"
 # The first word of each decision run makes, which majority.kindLeaveOut names
 DECISIONS = ("rampSlope", "hand", "entry", "rampFront", "rampFrontFall", "height", "steps", "generic", "yard", "parameter", "linkRotation", "frontCorner",
-             "linkOrigin")
+             "linkOrigin", "rampOutline", "yardOutline")
 
 
 def group_of(key, block):
@@ -68,7 +69,7 @@ def side_neighbours(numbers, faces, frames, share, depth):
     found = {}
     for number in labels:
         face, frame = faces[number], frames.get(number)
-        sides = {"left": [], "right": []}
+        sides = {"left": [], "right": [], "framed": frame is not None}
         for index in tree.query(face.buffer(0.05)):
             other = labels[index]
             if other == number or frame is None:
@@ -160,7 +161,8 @@ def contexts(rows, book, sales, faces, roles, neighbours, side_roads, profile, b
         role = roles.get(plot)
         sides = neighbours.get(plot)
         left, length = row_place(plot, neighbours) if sides is not None else (None, None)
-        open_end = None if sides is None else "both" if not sides["left"] and not sides["right"] else "left" if not sides["left"] else "right" if not sides["right"] else "none"
+        # R333. With no front frame no neighbour can be put left or right, so the open end is unknown, never both
+        open_end = None if sides is None or not sides.get("framed", True) else "both" if not sides["left"] and not sides["right"] else "left" if not sides["left"] else "right" if not sides["right"] else "none"
         streets = (sales.get(plot) or {}).get("No. of streets")
         depth = float(data["depthM"]) if data.get("depthM") not in (None, "") else None
         steps = None if row["steps"] in (None, "") else str(row["steps"])
@@ -177,6 +179,7 @@ def contexts(rows, book, sales, faces, roles, neighbours, side_roads, profile, b
                 "corner": None if streets is None else ("yes" if plan_from_past.is_number(streets) and float(streets) >= 2 else "no"),
                 "depthBand": band(depth, block["depthBands"]), "steps": steps, "typologySteps": None if steps is None else code + " " + steps,
                 "mirroredFactor": str(row["mirrored"]), "typologyMirrored": str(code) + " " + str(row["mirrored"]),
+                "zone": row.get("zone") or None, "nbh": row.get("nbh") or None,
             },
         })
     for item in found:
@@ -242,6 +245,22 @@ def decide(name, items, target, candidates, scope, strong, hold=None, checks=(),
     for extra, by in (extra_by or {}).items():
         result["by" + extra[0].upper() + extra[1:]] = tally(items, outcome, by)
     return result, misses
+
+
+def pair_kind(plot, book, profile, block):
+    """R333. The kind of the unit of a plot for the row pairs. A face with two plan numbers, such as 2007|2006 with the code
+    TH3|TH3, is no plot of its own, so it pairs with no unit as it joins no cluster, and has no kind."""
+    return kind_of((book.get(plot) or {}).get("typologyRev9"), profile, block) if plot.isdigit() else None
+
+
+def yard_depth(row):
+    """R334. How far the yard lies under the top of the generic floor of the key itself, at 3 decimals, noYard with no yard. A key
+    with a schedule takes its FFL from the schedule (R326), so the floor top of the key is held here, and the FFL only where the
+    row has no floor top."""
+    top = row.get("genericTop") if row.get("genericTop") is not None else row.get("ffl")
+    if row.get("yardTop") is None:
+        return "noYard"
+    return None if top is None else "%.3f" % (top - row["yardTop"])
 
 
 def kept_for(word, pool, block):
@@ -311,16 +330,17 @@ def levels_rule(pool, clusters, profile, block):
     return found
 
 
-def run(items, book, profile, block, surfaces, clusters, frame_units=None):
+def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_plans=None, outlines=None, step=None):
     """R273 to R276. Every decision on every group, with its misses. R332: with frame_units, the plotFrame units of
     config/prototype_offsets.json, the link rotation, the front of the corner plots and the link origin, with the refit per code
-    of each group in fits."""
+    of each group in linkFits of extras. R334: the ramp outline of R127, and with key_plans, outlines (config/floor_outlines.json)
+    and the width step the yard outline of R135, with the flat ramps of each group in flatRamps of extras."""
     strong, hold_m = block["strongShare"], block["levelHoldMm"] / 1000.0
     by_group = lambda item: item["group"]
     by_file = lambda item: (item["group"], item["file"])
     level_hold = lambda guess, aim: abs(guess - aim) <= hold_m + 1e-9
     riser = profile.get("steps.riser_added") / 1000.0
-    results, misses, datums, fits = [], [], {}, {}
+    results, misses, datums, extras = [], [], {}, {"linkFits": {}, "flatRamps": {}, "yardOutlineGroups": {}}
 
     def record(name, pool, target, candidates, scope, field, hold=None, checks=(), gap=None, extra_by=None):
         pool = kept_for(name.split(" ")[1], pool, block)
@@ -352,15 +372,25 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None):
         neighbour_votes(kept("rampSlope"), lambda item: slope_class(item, block))
         # R273. Ramp type and slope, flat ramps included
         # A group whose ramp types name no slope is measured, so the measured band would only repeat its target
-        factors = [name for name in ("all", "typology", "measuredBand", "steps", "heightOverRoad", "corner", "depthBand", "neighbour", "key")
+        factors = [name for name in ("all", "typology", "measuredBand", "steps", "heightOverRoad", "corner", "depthBand", "neighbour", "key", "typologyOrEntryRefused")
                    if not (name == "measuredBand" and group in block["measuredSlopeGroups"])]
-        record(group + " rampSlope", kept("rampSlope"), lambda item: slope_class(item, block), {name: name for name in factors}, by_group, "rampType")
+        # R334. The key, and whether the key left El @ Entry unset, are values of the key itself, so they are checks a new build cannot code
+        record(group + " rampSlope", kept("rampSlope"), lambda item: slope_class(item, block), {name: name for name in factors}, by_group, "rampType",
+               checks=("key", "typologyOrEntryRefused"))
+        # R334. What the flat ramps share, and the ramp outline of R127 against the corners of the key ramp
+        extras["flatRamps"][group] = key_rules.flat_ramps(kept("rampSlope"), block["rampTypeClass"][block["flatRampType"]], lambda item: slope_class(item, block))
+        ramps = [item for item in kept("rampOutline") if key_rules.ramp_target(item) is not None]
+        record(group + " rampOutline", ramps, key_rules.ramp_target, {"outlineR127": key_rules.ramp_rule(profile)}, by_group, "rampOutline",
+               key_rules.corner_hold(block["outlineHoldMm"] / 1000.0), gap=key_rules.corner_gap)
         # R274. Hand, per link file, apart for villas, units in a cluster and units alone
+        # R333. The clusters of the CAD analysis alone beside the footprint clusters (Q040), the pairs of the rows of units in no cluster, the villas between cluster units.
+        # A tie goes to the candidate listed first, so blockMirrorOpenEnd, the rule Round 17 coded, stays ahead of blockMirrorRoadSide
         for unit_class in ("villa", "cluster", "alone"):
             chosen = [item for item in kept("hand") if item["row"]["mirrored"] is not None and hand_class(item) == unit_class]
             record(group + " hand " + unit_class, chosen, lambda item: item["row"]["mirrored"],
-                   {name: name for name in ("all", "blockMirror", "clusterSide", "clusterIndexParity", "openEnd", "rowParity", "orientation", "roadSide",
-                                            "blockMirrorRoadSide", "blockMirrorOpenEnd")}, by_file, "mirrored")
+                   {name: name for name in ("all", "blockMirror", "clusterSide", "clusterSideAnalysisOnly", "clusterIndexParity", "openEnd", "rowParity", "orientation",
+                                            "roadSide", "blockMirrorOpenEnd", "blockMirrorRoadSide", "rowPairSide", "rowPairSideOrBlockMirrorOpenEnd")}, by_file, "mirrored",
+                   extra_by={"betweenClusters": lambda item: item.get("betweenClusters")})
         # R275. El @ Entry: the road level at the front corners of a surface plus the slope of the unit times the ramp depth, as is and less a datum
         entries = [item for item in kept("entry") if clean_entry(item["row"], block["entryRampM"]) is not None]
         target = lambda item: clean_entry(item["row"], block["entryRampM"])
@@ -422,11 +452,26 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None):
             "stepsFromHeight": lambda item: None if item["row"]["height"] is None else str(1 + max(0, round((item["row"]["height"] - base_height(profile, item["code"])) / riser))),
         }, by_group, "steps")
         # R276. Generic floor on the whole face, yard, CASE and the other link parameters
-        record(group + " generic", kept("generic"), lambda item: item["factors"].get("wholeFace"), {name: name for name in ("all", "typology", "key")}, by_group, "genericFloor")
+        record(group + " generic", kept("generic"), lambda item: item["factors"].get("wholeFace"), {name: name for name in ("all", "typology", "key")}, by_group, "genericFloor",
+               checks=("key",))
         for item in pool:
-            top, ffl = item["row"]["yardTop"], item["row"]["ffl"]
-            item["factors"]["yardDepth"] = "noYard" if top is None else None if ffl is None else "%.3f" % (ffl - top)
-        record(group + " yard", kept("yard"), lambda item: item["factors"]["yardDepth"], {name: name for name in ("all", "typology", "key")}, by_group, "yard")
+            item["factors"]["yardDepth"] = yard_depth(item["row"])
+        # R334. A new build has a zone and a neighbourhood but no key, so a split by area is coded as a setting per area
+        record(group + " yard", kept("yard"), lambda item: item["factors"]["yardDepth"], {name: name for name in ("all", "typology", "key", "zone", "nbh")}, by_group, "yard",
+               checks=("key",))
+        if key_plans and outlines is not None:
+            # R334. The yard outline of R135, as fitted on the IMC key and fitted again on every key of the group
+            frames = {item["plot"]: item.get("frame") for item in pool}
+            rows = key_rules.outline_rows({key: plan for key, plan in key_plans.items() if key in block["groups"][group]}, frames, step)
+            if rows:
+                refit = floor_fit.fit_groups(list(rows.values()), ("unit", "mirrored", "width"), block["check"]["seeds"][0])
+                extras["yardOutlineGroups"][group] = {"fitted": len(outlines["outlines"]["yard"]), "refit": len(refit),
+                                                       "refitLoops": [{name: fitted[name] for name in ("unit", "mirrored", "width", "plots", "fromPlot", "loops")} for fitted in refit]}
+                candidates = {"fittedOutline": key_rules.outline_rule(key_rules.outline_groups(outlines["outlines"]["yard"]), rows),
+                              "fittedOutlineRefit": key_rules.outline_rule(key_rules.outline_groups(refit), rows)}
+                yards = [item for item in kept("yardOutline") if (item["key"], item["plot"]) in rows]
+                record(group + " yardOutline", yards, key_rules.outline_target(rows), candidates, by_group, "yardOutline",
+                       key_rules.shape_hold(block["outlineHoldMm"] / 1000.0), gap=key_rules.shape_gap)
         for name in block["parameterTests"]:
             chosen = [item for item in kept("parameter") if parameter(item, name) is not None]
             record(group + " parameter " + name, chosen, lambda item, name=name: parameter(item, name),
@@ -442,10 +487,10 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None):
             record(group + " frontCorner", [item for item in kept("frontCorner") if id(item) in held and item.get("frontRule") == block["cornerFrontRule"]],
                    lambda item: item["row"]["rotationDeg"], key_rules.rotation_candidates(), by_group, "rotationDeg", rotation_hold)
             origins = [item for item in kept("linkOrigin") if id(item) in held and key_rules.origin_target(item) is not None]
-            fits[group] = key_rules.refit(origins)
-            record(group + " linkOrigin", origins, key_rules.origin_target, key_rules.origin_candidates(frame_units, fits[group], profile.get("typologies")), by_group,
-                   "insert", key_rules.point_hold(block["linkHoldMm"] / 1000.0), gap=key_rules.insert_gap, extra_by=by_rule)
-    return results, misses, datums, fits
+            extras["linkFits"][group] = key_rules.refit(origins)
+            record(group + " linkOrigin", origins, key_rules.origin_target, key_rules.origin_candidates(frame_units, extras["linkFits"][group], profile.get("typologies")),
+                   by_group, "insert", key_rules.point_hold(block["linkHoldMm"] / 1000.0), gap=key_rules.insert_gap, extra_by=by_rule)
+    return results, misses, datums, extras
 
 
 def overrides(misses, block, models):
@@ -481,7 +526,7 @@ def load_block(settings):
     block = settings.get("majority")
     needed = ("strongShare", "levelHoldMm", "entryRampM", "groups", "codeFrom", "kindByPrefix", "slopeBands", "rampTypeClass", "groupSlopes", "depthBands",
               "heightBands", "sideShare", "parameterTests", "overrideDecisions", "wholeFaceShare", "overrideNote", "measuredSlopeGroups", "datumSurfaces", "kindLeaveOut",
-              "rotationHoldDeg", "linkHoldMm", "cornerFrontRule", "siteReference")
+              "rotationHoldDeg", "linkHoldMm", "cornerFrontRule", "siteReference", "check", "outlineHoldMm", "pairKinds", "flatRampType")
     if not isinstance(block, dict) or any(key not in block for key in needed):
         raise project_profile.ProfileError(settings.path.name + " majority must name " + ", ".join(needed))
     leave = block["kindLeaveOut"]
@@ -517,6 +562,8 @@ def main(argv=None):
     parser.add_argument("--keep", nargs="*", default=[], help="R330. SOURCE or SOURCE:FIELD,FIELD of the earlier list to keep as it is")
     parser.add_argument("--offsets", default=str(prototype_offsets.DEFAULT_PATH), help="R332. prototype_offsets.json with the plotFrame fit")
     parser.add_argument("--key-read", nargs=2, action="append", metavar=("KEY", "FILE"), default=[], help="R331. the reader output of a key, its site facts")
+    parser.add_argument("--key-plan", nargs=2, action="append", metavar=("KEY", "FILE"), default=[], help="R334. the plan of a key of R325, its yard outlines")
+    parser.add_argument("--floors", default=str(floor_fit.DEFAULT_PATH), help="R334. floor_outlines.json with the yard outlines of R135")
     parser.add_argument("--keep-from", help="R330. the earlier override list --keep reads, --overrides when left out")
     args = parser.parse_args(argv)
     settings = project_profile.load_settings(args.settings)
@@ -544,6 +591,19 @@ def main(argv=None):
     tree = STRtree(roads)
     side_roads = {number: road_side(faces.get(number), frames.get(number), tree, roads, corner["roadEdgeM"]) for number in numbers}
     items = contexts(rows, book, sales, faces, roles, neighbours, side_roads, profile, block)
+    # R333. The sides of the clusters of the CAD analysis alone (Q040), the pairs of the rows of units in no cluster and the villas between cluster units
+    analysis_only = [cluster for cluster in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]}
+                                             for cluster in plan_from_book.numbered_clusters(json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"], number_of))
+                     if len(cluster["plots"]) > 1]
+    analysis_roles = cad_links.cluster_roles(analysis_only, 0, {number: faces[number] for number in numbers if number in faces}, frames)
+    pairs = key_rules.row_pairs(units, neighbours, lambda plot: pair_kind(plot, book, profile, block), lambda plot: plot in roles, block["pairKinds"])
+    for item in items:
+        factors = item["factors"]
+        factors["clusterSideAnalysisOnly"] = analysis_roles[item["plot"]]["side"] if item["plot"] in analysis_roles else "alone"
+        side = (pairs.get(item["plot"]) or {}).get("side")
+        factors["rowPairSide"] = side
+        factors["rowPairSideOrBlockMirrorOpenEnd"] = "pair " + side if side else None if factors["blockMirrorOpenEnd"] is None else "alone " + factors["blockMirrorOpenEnd"]
+        item["betweenClusters"] = key_rules.between_clusters(item["neighbours"], lambda plot: plot in roles)
     for item in items:
         outline, face = item["row"]["genericOutline"], faces.get(item["plot"])
         if outline and face is not None:
@@ -557,7 +617,15 @@ def main(argv=None):
     for item in items:
         found = front.get(item["plot"]) or {}
         item["frame"], item["frontRule"], item["curbFrame"] = found.get("frame"), found.get("frontRule"), curbs.get(item["plot"])
-    results, misses, datums, fits = run(items, book, profile, block, surfaces, clusters, prototype_offsets.plot_frame(prototype_offsets.load(args.offsets))["units"])
+    plans = {key: json.loads(Path(path).read_text(encoding="utf-8")) for key, path in args.key_plan}
+    # R334. The plots whose El @ Entry parameter the plan of the key refused as a placeholder (R325)
+    refused = key_rules.entry_refused(plans)
+    for item in items:
+        if item["key"] in plans:
+            item["factors"]["entryRefused"] = "yes" if (item["key"], item["plot"]) in refused else "no"
+            item["factors"]["typologyOrEntryRefused"] = "entryRefused" if (item["key"], item["plot"]) in refused else item["factors"]["typology"]
+    results, misses, datums, extras = run(items, book, profile, block, surfaces, clusters, prototype_offsets.plot_frame(prototype_offsets.load(args.offsets))["units"],
+                                          plans, floor_fit.load(args.floors), floor_fit.width_step(settings))
     listing = overrides(misses, block, dict(args.model))
     merged = None
     if args.keep:
@@ -569,8 +637,8 @@ def main(argv=None):
     # R331. The coordinates of each key read against the reference key, gaps and names only
     reads = {key: ramp_levels.host_document(link_summary.load(path)) for key, path in args.key_read}
     site = key_rules.group_site_facts(reads, block["groups"], block["siteReference"]) if reads else None
-    report = {"plots": len(items), "byGroup": dict(Counter(item["group"] for item in items)), "clusters": len(clusters),
-              "frontRules": dict(Counter(item["frontRule"] for item in front.values())), "keyDatumsM": datums, "siteFacts": site, "linkFits": fits, "decisions": results,
+    report = {"plots": len(items), "byGroup": dict(Counter(item["group"] for item in items)), "clusters": len(clusters), "clusterPlots": [cluster["plots"] for cluster in clusters],
+              "frontRules": dict(Counter(item["frontRule"] for item in front.values())), "keyDatumsM": datums, "siteFacts": site, **extras, "decisions": results,
               "overrideCount": dict(Counter(item["decision"] for item in listing)), "overrideMerge": merged, "overrideCounts": override_source.counts(listing)}
     common.write_json(args.out, report)
     write_overrides(args.overrides, block["overrideNote"], listing)

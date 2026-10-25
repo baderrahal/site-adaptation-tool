@@ -256,7 +256,8 @@ def test_r332_a_majority_run_holds_the_link_decisions_of_a_group_and_lists_each_
         item["factors"].update(typology="C10", steps=None)
         item["row"].update(rampType=None, rampSlopePercent=None, entry=None, entrySource=None, rampBack=None, rampFront=None, rampFrontFall=None, ffl=None,
                            height=None, yardTop=None, genericTop=None, parameters="{}", steps=None)
-    results, misses, _, fits = majority.run(items, {}, profile, block, [majority.ROAD], [], {"C10": {"anchor": "start", "offset": [6.0, 1.59]}})
+    results, misses, _, extras = majority.run(items, {}, profile, block, [majority.ROAD], [], {"C10": {"anchor": "start", "offset": [6.0, 1.59]}})
+    fits = extras["linkFits"]
     names = {result["decision"]: result for result in results}
     assert names["parsons linkRotation"]["misses"] == 1 and names["parsons linkOrigin"]["misses"] == 1
     assert fits["parsons"]["C10"]["plots"] == 11
@@ -272,3 +273,108 @@ def test_r331_r332_the_rules_profile_holds_the_site_and_link_rules_of_the_keys_w
         assert 0 < rules[word]["share"] <= 1 and set(rules[word]["byKey"]) == {"ima", "imb", "imc", "imd", "ime", "imf", "img"}
     for code, fit in rules["linkOrigin"]["byCode"].items():
         assert fit["anchor"] in ("start", "end") and len(fit["offset"]) == 2 and all(abs(value) < 30 for value in fit["offset"]), code
+
+
+# R333 the hands of the keys
+ROW = {"a": {"left": [], "right": ["b"]}, "b": {"left": ["a"], "right": ["c"]}, "c": {"left": ["b"], "right": []},
+       "d": {"left": [], "right": ["e"]}, "e": {"left": ["d"], "right": ["v"]}, "v": {"left": ["e"], "right": ["k"]}, "k": {"left": ["v"], "right": []},
+       "f": {"left": [], "right": []}}
+KINDS = {"a": "duplex", "b": "duplex", "c": "townhouse", "d": "duplex", "e": "duplex", "v": "villa", "k": "duplex", "f": "duplex"}
+
+
+def test_r333_a_row_of_duplex_units_in_no_cluster_pairs_from_its_right_end_and_a_unit_alone_in_its_row_has_no_side():
+    found = key_rules.row_pairs(list(ROW), ROW, KINDS.get, lambda plot: plot == "k", ("duplex", "townhouse"))
+    assert {plot: found[plot]["side"] for plot in ("a", "b", "c", "d", "e", "f")} == {"a": "right", "b": "left", "c": "right", "d": "left", "e": "right", "f": None}
+    # The odd row a b c pairs b with c from its right end, so a is the right unit of a pair it does not have, and length tells it
+    assert found["a"]["length"] == 3 and found["a"]["right"] == 2
+    assert "v" not in found and "k" not in found
+
+
+def test_r333_a_villa_between_cluster_units_counts_the_sides_that_hold_one():
+    in_cluster = lambda plot: plot in ("e", "k")
+    assert key_rules.between_clusters(ROW["v"], in_cluster) == "both"
+    assert key_rules.between_clusters(ROW["d"], in_cluster) == "one"
+    assert key_rules.between_clusters(ROW["f"], in_cluster) == "none"
+
+
+def test_r333_the_hand_of_a_unit_alone_is_learned_per_file_by_the_side_of_its_row_pair():
+    items = [{"plot": str(n), "key": "imx", "group": "parsons", "code": "DP2", "file": "DP2.rvt", "row": {"mirrored": n % 2 == 1},
+              "factors": {"all": "all", "rowPairSide": "left" if n % 2 == 0 else "right"}} for n in range(8)]
+    result, misses = majority.decide("parsons hand alone", items, lambda it: it["row"]["mirrored"], {"all": "all", "rowPairSide": "rowPairSide"},
+                                     lambda it: (it["group"], it["file"]), 0.9)
+    assert result["coded"] == "rowPairSide" and result["share"] == 1.0 and misses == []
+
+
+# R334 the ramps and floors of the keys
+def test_r334_the_ramp_outline_of_r127_holds_when_each_corner_lies_within_the_hold_and_a_miss_is_its_largest_corner_gap():
+    profile = project_profile.ProjectProfile("p.json", {"units_mm": True, "ramp": {"front_setback": {"default": 5520}}})
+    item = {"code": "DP2", "rev9": "DP2", "frame": FRAME, "row": {"rampCorners": json.dumps([[0, 0, 1], [16, 0, 1], [16, 5.52, 1.1], [0, 5.52, 1.1]])}}
+    rule = key_rules.ramp_rule(profile)(item)
+    target = key_rules.ramp_target(item)
+    assert key_rules.corner_hold(0.010)(rule, target)
+    moved = [(x, y + 0.02 if y else y) for x, y in target]
+    assert not key_rules.corner_hold(0.010)(rule, moved)
+    assert key_rules.corner_gap(item, moved, rule) == {"gapToRuleM": 0.02}
+    assert key_rules.ramp_target({"row": {"rampCorners": ""}}) is None
+
+
+def test_r334_a_yard_outline_holds_by_the_distance_of_its_boundary_to_the_fitted_shape():
+    from shapely.geometry import box
+    hold = key_rules.shape_hold(0.010)
+    assert hold(box(0, 0, 10, 5), box(0, 0, 10, 5.005))
+    assert not hold(box(0, 0, 10, 5), box(0, 0, 10, 5.05))
+    assert key_rules.shape_gap({}, box(0, 0, 10, 5.05), box(0, 0, 10, 5)) == {"gapToRuleM": 0.05}
+
+
+def test_r334_the_yard_depth_is_the_key_generic_top_less_the_yard_top_and_a_zone_with_no_yard_is_learned_by_zone():
+    rows = [{"genericTop": 10.0, "ffl": 10.0, "yardTop": 9.9}, {"genericTop": 10.153, "ffl": 10.0, "yardTop": 10.053}, {"genericTop": 10.0, "ffl": 10.0, "yardTop": None}]
+    assert [majority.yard_depth(row) for row in rows] == ["0.100", "0.100", "noYard"]
+    assert majority.yard_depth({"genericTop": None, "ffl": 10.0, "yardTop": 9.9}) == "0.100"
+    assert majority.yard_depth({"genericTop": None, "ffl": None, "yardTop": 9.9}) is None
+
+
+def test_r334_the_flat_ramps_are_counted_by_what_they_might_share():
+    items = [{"plot": str(n), "key": "imx", "code": "DP2" if n else "VL4", "row": {"rampType": "Flat Ramps" if n < 2 else "Ramps 0.5%"},
+              "factors": {"measuredBand": "0.5", "steps": "1", "corner": "no"}} for n in range(4)]
+    found = key_rules.flat_ramps(items, "flat", lambda item: {"Flat Ramps": "flat"}.get(item["row"]["rampType"], "0.5"))
+    assert found["plots"] == 2 and found["byCode"] == {"DP2": 1, "VL4": 1} and found["byMeasuredBand"] == {"0.5": 2} and found["plotsByKey"] == {"imx": ["0", "1"]}
+
+
+def test_r334_the_plots_whose_el_at_entry_parameter_the_key_plan_refused_are_found_by_key_and_plot():
+    plans = {"imx": {"missing": [{"plot": "1", "missing": [{"key": "levels.entry", "why": "refused, the ELl@Entry value puts the floor top 9 m over it"}]},
+                                 {"plot": "2", "missing": [{"key": "levels.ssl", "why": "no SSL"}]}]}, "imy": {"missing": []}}
+    assert key_rules.entry_refused(plans) == {("imx", "1")}
+
+
+def test_r333_a_plot_with_no_front_frame_has_no_open_end_since_no_neighbour_can_be_put_left_or_right():
+    from shapely.geometry import box
+    faces = {str(n): box(n * 10, 0, n * 10 + 10, 25) for n in range(3)}
+    frames = {"0": {"r": (1.0, 0.0), "n": (0.0, 1.0)}, "2": {"r": (1.0, 0.0), "n": (0.0, 1.0)}}
+    found = majority.side_neighbours(list(faces), faces, frames, 0.5, 25.0)
+    assert found["1"] == {"left": [], "right": [], "framed": False}
+    block = majority.load_block(project_profile.load_settings())
+    profile = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    rows = [{"plot": plot, "key": "imc", "typologyRev9": "C10", "keyUnit": "C10", "linkFile": "a.rvt", "steps": "1", "mirrored": True} for plot in ("0", "1")]
+    items = majority.contexts(rows, {}, {}, faces, {}, found, {}, profile, block)
+    assert [item["factors"]["openEnd"] for item in items] == ["left", None]
+
+
+def test_r333_a_face_of_two_plan_numbers_has_no_kind_so_it_pairs_with_no_unit():
+    settings = project_profile.load_settings()
+    profile = project_profile.load_profile(project_profile.profile_path(settings))
+    block = majority.load_block(settings)
+    book = {"2005": {"typologyRev9": "DP2"}, "2007|2006": {"typologyRev9": "TH3|TH3"}}
+    assert majority.pair_kind("2005", book, profile, block) == "duplex"
+    assert majority.pair_kind("2007|2006", book, profile, block) is None
+
+
+def test_r333_r334_the_rules_profile_holds_the_hand_ramp_and_floor_rules_of_the_keys_with_the_yard_per_zone():
+    real = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    rules = real.get("levelProfiles.parsons2024Rev6.keyRules")
+    for word in ("hand villa", "hand cluster", "hand alone"):
+        assert rules[word]["strong"] is True and all(isinstance(value, bool) for table in rules[word]["byFile"].values() for value in table.values())
+    assert rules["hand alone"]["rule"] == "rowPairSideOrBlockMirrorOpenEnd"
+    assert rules["yard"]["rule"] == "zone" and rules["yard"]["default"] == "0.100" and "noYard" in rules["yard"]["table"].values()
+    assert rules["rampSlope"]["flatRamps"]["plots"] == rules["rampSlope"]["flatRamps"]["withElAtEntryRefused"]
+    for word in ("rampOutline", "yardOutline", "rampFront", "rampFrontFall", "generic"):
+        assert 0 < rules[word]["share"] <= 1

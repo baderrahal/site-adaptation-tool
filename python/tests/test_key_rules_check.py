@@ -76,7 +76,7 @@ def test_r336_the_check_holds_each_sampled_plot_again_and_counts_its_verdict_aga
     assert key_rules_check.main(argv) == 0
     found = json.loads(out.read_text(encoding="utf-8"))
     for seed in ("14", "7", "every"):
-        assert found["seeds"][seed]["counts"] == {"origin match": 2, "rotation match": 2}
+        assert found["seeds"][seed]["counts"] == {"linkOrigin match": 2, "linkRotation match": 2}
         assert found["seeds"][seed]["mismatches"] == []
     assert found["totals"]["parsons linkOrigin"]["match"] is True
 
@@ -87,8 +87,8 @@ def test_r336_a_first_method_that_missed_no_plot_where_the_route_finds_a_miss_is
     (tmp_path / "overrides.json").write_text(json.dumps({"overrides": []}), encoding="utf-8")
     assert key_rules_check.main(argv) == 0
     found = json.loads(out.read_text(encoding="utf-8"))
-    assert found["seeds"]["14"]["counts"]["origin mismatch"] == 1
-    assert found["seeds"]["14"]["mismatches"][0]["plot"] == "2" and found["seeds"]["14"]["mismatches"][0]["gapMm"] == pytest.approx(2000.0)
+    assert found["seeds"]["14"]["counts"]["linkOrigin mismatch"] == 1
+    assert found["seeds"]["14"]["mismatches"][0]["plot"] == "2" and found["seeds"]["14"]["mismatches"][0]["own"] == "misses"
 
 
 def test_r336_the_check_writes_nothing_inside_the_repo(tmp_path):
@@ -96,3 +96,53 @@ def test_r336_the_check_writes_nothing_inside_the_repo(tmp_path):
     argv[-1] = str(key_rules_check.ROOT / "check.json")
     assert key_rules_check.main(argv) == 2
     assert not (key_rules_check.ROOT / "check.json").exists()
+
+
+# R336 the second method of the hands, ramps and yards (R333, R334)
+def test_r336_two_faces_are_side_neighbours_by_the_length_of_the_edges_they_share_within_5_cm():
+    left = [(0.0, 0.0), (10.0, 0.0), (10.0, 25.0), (0.0, 25.0)]
+    right = [(10.02, 0.0), (20.0, 0.0), (20.0, 25.0), (10.02, 25.0)]
+    far = [(10.2, 0.0), (20.0, 0.0), (20.0, 25.0), (10.2, 25.0)]
+    assert key_rules_check.shared_length(left, right, 0.05) == pytest.approx(25.0)
+    assert key_rules_check.shared_length(left, far, 0.05) == 0.0
+
+
+def test_r336_the_own_row_pairs_count_from_the_right_end_and_skip_units_of_a_cluster():
+    sides = {"a": {"left": [], "right": ["b"]}, "b": {"left": ["a"], "right": ["c"]}, "c": {"left": ["b"], "right": []}}
+    assert key_rules_check.own_pair_side("a", sides, lambda plot: True) == "right"
+    assert key_rules_check.own_pair_side("b", sides, lambda plot: True) == "left"
+    assert key_rules_check.own_pair_side("b", sides, lambda plot: plot != "c") == "right"
+    assert key_rules_check.own_pair_side("a", {"a": {"left": [], "right": []}}, lambda plot: True) is None
+
+
+def test_r336_a_learned_rule_is_read_by_the_scope_and_the_factor_value_the_first_method_writes():
+    rule = {"('parsons', 'A.rvt') | yes none": True}
+    assert key_rules_check.learned(rule, ("parsons", "A.rvt"), "yes none") is True
+    assert key_rules_check.learned(rule, ("parsons", "B.rvt"), "yes none") is None
+
+
+def test_r336_the_own_ramp_outline_and_its_largest_corner_gap():
+    frame = {"n": (0.0, 1.0), "r": (1.0, 0.0), "left": (0.0, 0.0), "right": (16.0, 0.0)}
+    corners = [(0.0, 0.0), (16.0, 0.0), (16.0, 5.52), (0.0, 5.53)]
+    assert key_rules_check.own_corner_gap(key_rules_check.own_ramp(frame, 5.52), corners) == pytest.approx(0.01)
+
+
+def test_r336_the_own_boundary_gap_of_two_outlines_takes_the_vertices_of_each_against_the_edges_of_the_other():
+    first = [(0.0, 0.0), (10.0, 0.0), (10.0, 5.0), (0.0, 5.0)]
+    second = [(0.0, 0.0), (10.0, 0.0), (10.0, 5.02), (0.0, 5.02)]
+    assert key_rules_check.own_boundary_gap([first], [second]) == pytest.approx(0.02)
+
+
+def test_r336_a_vertex_on_the_line_of_its_neighbours_is_no_corner_so_an_edge_drawn_in_two_pieces_is_one_edge():
+    ring = [(0.0, 0.0), (8.0, 0.0005), (16.0, 0.0), (16.0, 25.0), (0.0, 25.0)]
+    assert key_rules_check.straight(ring) == [(0.0, 0.0), (16.0, 0.0), (16.0, 25.0), (0.0, 25.0)]
+    assert key_rules_check.straight(SQUARE) == SQUARE
+
+
+def test_r336_the_own_road_side_is_where_the_second_road_edge_lies_seen_from_the_front():
+    curbs = FRONT_CURB + [((19.0, -50.0), (19.0, 50.0))]
+    frame, _ = key_rules_check.own_frame(SQUARE, FRONT_CURB, (7.99, 18.75), 8.0, None)
+    assert key_rules_check.own_road_side(SQUARE, curbs, frame, 8.0) == "right"
+    assert key_rules_check.own_road_side(SQUARE, FRONT_CURB, frame, 8.0) == "none"
+    assert key_rules_check.own_road_side(SQUARE, FRONT_CURB + [((-50.0, 28.0), (50.0, 28.0))], frame, 8.0) == "back"
+    assert key_rules_check.own_road_side(SQUARE, curbs, None, 8.0) is None

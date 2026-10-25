@@ -231,7 +231,7 @@ def test_r271_side_neighbours_lie_left_or_right_seen_from_the_road_and_the_row_p
     faces = {str(n): box(n * 10, 0, n * 10 + 10, 25) for n in range(3)}
     frames = {plot: {"r": (1.0, 0.0), "n": (0.0, 1.0)} for plot in faces}
     found = majority.side_neighbours(list(faces), faces, frames, 0.5, 25.0)
-    assert found["1"] == {"left": ["0"], "right": ["2"]}
+    assert {side: found["1"][side] for side in ("left", "right")} == {"left": ["0"], "right": ["2"]} and found["1"]["framed"] is True
     assert majority.row_place("2", found) == (2, 3)
     assert majority.band(0.3, [[0.205, "1"], [0.38, "2"], [99.0, "3"]]) == "2"
 
