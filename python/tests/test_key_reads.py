@@ -77,3 +77,88 @@ def test_r321_the_real_config_reads_ffl_as_the_generic_floor_of_ime_and_imf_only
         types = pf.load_floors(settings, code)["types"]
         assert types["yard"] == plain["yard"] and types["ramp"] == plain["ramp"], code
         assert types["generic"] == (["FFL"] if code in ("IME", "IMF") else plain["generic"]), code
+
+
+# R322. The counts of each key read
+
+def key_settings(tmp_path):
+    return settings_with(tmp_path, dict(FLOORS, keyTypes={"IMX": {"generic": ["Slab F"]}}))
+
+
+def made_up_read():
+    """One project document of the reader, made up: 3 links, 5 floors, 3 walls, 4 spots and 2 levels."""
+    links = [{"file": "A.rvt", "elementId": 1, "plotNumber": "101", "loaded": False},
+             {"file": "A.rvt", "elementId": 2, "plotNumber": "102", "loaded": False},
+             {"file": "B.rvt", "elementId": 3, "plotNumber": None, "loaded": True}]
+    for index, link in enumerate(links):
+        link["transform"] = {"origin": [10.0 * index, 0.0, 0.0], "rotationDeg": 90.0, "mirrored": False}
+    floors = [{"typeName": "Slab F", "elementId": 10}, {"typeName": "Slab F", "elementId": 11}, {"typeName": "Yard Y", "elementId": 12},
+              {"typeName": "Ramp B", "elementId": 13}, {"typeName": "Footing Z", "elementId": 14}]
+    walls = [{"typeName": "Wall 1", "elementId": 20}, {"typeName": "Wall 1", "elementId": 21}, {"typeName": "Wall 2", "elementId": 22}]
+    spots = [{"elementId": 30, "value": 1.0, "host": {"elementId": 10, "category": "Floors", "typeName": "Slab F"}},
+             {"elementId": 31, "value": 1.5, "host": {"elementId": 13, "category": "Floors", "typeName": "Ramp B"}},
+             {"elementId": 32, "host": {"elementId": 3, "linkedElementId": 99}},
+             {"elementId": 33}]
+    levels = [{"name": "L1"}, {"name": "L2"}]
+    return {"kind": "project", "links": links, "floors": floors, "walls": walls, "spotElevations": spots, "site": {"levels": levels}}
+
+
+def test_r322_the_counts_of_a_read_hold_links_floors_by_type_and_kind_walls_by_type_spots_by_host_and_levels(tmp_path):
+    import key_reads
+    settings = key_settings(tmp_path)
+    own = key_reads.counts(made_up_read(), pf.load_floors(settings, "IMX"))
+    other = key_reads.counts(made_up_read(), pf.load_floors(settings, "IMY"))
+
+    assert own["links"] == {"instances": 3, "withPlotNumber": 2, "files": 2, "loaded": 1}
+    assert own["floors"]["byType"] == {"Footing Z": 1, "Ramp B": 1, "Slab F": 2, "Yard Y": 1}
+    assert own["floors"]["byKind"] == {"generic": 2, "yard": 1, "ramp": 1, "none": 1}
+    assert other["floors"]["byKind"] == {"generic": 0, "yard": 1, "ramp": 1, "none": 3}
+    assert own["walls"] == {"count": 3, "byType": {"Wall 1": 2, "Wall 2": 1}}
+    assert own["spots"]["count"] == 4 and own["spots"]["withValue"] == 2
+    assert own["spots"]["byHost"] == {"Floors: Ramp B": 1, "Floors: Slab F": 1, "in a link": 1, "no host": 1}
+    assert own["levels"] == {"count": 2, "names": ["L1", "L2"]}
+
+
+def test_r322_a_section_the_read_lacks_is_null_and_never_counted_as_none(tmp_path):
+    import key_reads
+    document = made_up_read()
+    del document["walls"]
+    document["site"] = {"levels": None, "notRead": {"levels": "boom"}}
+    result = key_reads.counts(document, pf.load_floors(key_settings(tmp_path)))
+
+    assert result["walls"] is None
+    assert result["levels"] is None
+    assert result["links"]["instances"] == 3
+
+
+def test_r322_the_window_facts_come_from_the_run_and_the_log_of_the_job():
+    import key_reads
+    run = {"minutes": 1.22, "exitCode": 0, "logResult": "ok",
+           "memory": {"peakPrivateMib": 1200, "peakWorkingSetMib": 1355, "minFreeGib": 0.53, "samplesUnderFloor": 9, "notResponding": 6, "throughExit": True}}
+    log = {"result": "ok", "steps": [{"name": "openModel", "seconds": 3.3}, {"name": "read", "seconds": 10.3}, {"name": "close", "seconds": 0.5}]}
+    facts = key_reads.window_facts(run, log)
+
+    assert facts == {"minutes": 1.22, "openSeconds": 3.3, "readSeconds": 10.3, "peakPrivateMib": 1200, "peakWorkingSetMib": 1355, "throughExit": True,
+                     "minFreeGib": 0.53, "samplesUnderFloor": 9, "notResponding": 6, "exitCode": 0, "logResult": "ok"}
+
+
+def test_r322_main_writes_the_counts_of_each_key_into_the_reads_folder_and_never_into_the_repo(tmp_path):
+    import key_reads
+    settings = key_settings(tmp_path)
+    reads = tmp_path / "reads"
+    folder = reads / "QX"
+    folder.mkdir(parents=True)
+    (folder / "testhost_QX_prototypes.json").write_text(json.dumps({"documents": [made_up_read()]}), encoding="utf-8")
+    (folder / "testhost_QX_run.json").write_text(json.dumps({"minutes": 1.0, "exitCode": 0, "logResult": "ok", "memory": {"peakPrivateMib": 900}}), encoding="utf-8")
+    (folder / "testhost_QX_log.json").write_text(json.dumps({"result": "ok", "steps": []}), encoding="utf-8")
+
+    assert key_reads.main(["--settings", str(settings.path), "--reads", str(reads), "--key", "IMX=QX"]) == 0
+    written = json.loads((reads / "key_reads.json").read_text(encoding="utf-8"))
+    assert written["keys"]["IMX"]["job"] == "QX"
+    assert written["keys"]["IMX"]["counts"]["floors"]["byKind"]["generic"] == 2
+    assert written["keys"]["IMX"]["window"]["peakPrivateMib"] == 900
+    with pytest.raises(ValueError):
+        key_reads.main(["--settings", str(settings.path), "--reads", str(project_profile.ROOT / "python"), "--key", "IMX=QX"])
+    with pytest.raises(project_profile.ProfileError):
+        key_reads.main(["--settings", str(settings.path), "--reads", str(reads), "--key", "IMZ=QX"])
+
