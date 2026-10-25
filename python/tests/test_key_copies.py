@@ -153,6 +153,23 @@ def test_r312_a_copy_that_is_no_revit_file_is_refused_as_another_format_and_the_
     assert found["IMC"]["verdict"] == "reuse"
 
 
+def test_r312_an_entry_of_another_code_is_refused_and_an_entry_of_no_key_is_listed_never_dropped(tmp_path):
+    root = tree(tmp_path)
+    entries = both_entries(root)
+    entries[0]["code"] = "IMB"
+    stray = entry(root, "IMZ", MODEL_C, "Revit All Zones\\" + MODEL_C)
+    stray["copy"] = "01101-PSN-IMZ-ZZZ-PIM-TU-000001-zone9.rvt"
+    write_manifest(root, entries + [stray])
+
+    rows = key_copies.check(root, key_copies.load_keys(block()), tmp_path / "work")
+
+    found = {row["copy"]: row for row in rows}
+    assert found[MODEL_A]["verdict"] == "remake" and found[MODEL_A]["reasons"] == ["otherCode"]
+    assert found[MODEL_C]["verdict"] == "reuse"
+    assert found[stray["copy"]]["verdict"] == "noKey" and found[stray["copy"]]["code"] == "IMZ" and found[stray["copy"]]["request"] is None
+    assert len(rows) == 3
+
+
 def test_r312_no_copy_and_no_entry_asks_for_a_site_upgrade_job_and_a_missing_source_for_nothing(tmp_path):
     root = tree(tmp_path)
     (root / "Revit All Zones" / "2024" / MODEL_A).unlink()

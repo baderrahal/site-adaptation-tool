@@ -171,9 +171,10 @@ def request(root, values, key, work):
 
 
 def check(root, values, work, hasher=round_files.sha256, info=format_of):
-    """R312. One row per key: reuse when the manifest names the copy with the source of the config, the hash of that source today,
-    the hash of the copy today and the format, all read again now. make when there is neither a copy nor an entry, noSource when
-    the source is not there, else remake with its reasons. Nothing is written."""
+    """R312. One row per key: reuse when the manifest names the copy with the code and the source of the config, the hash of that
+    source today, the hash of the copy today and the format, all read again now. make when there is neither a copy nor an entry,
+    noSource when the source is not there, else remake with its reasons. Then one row noKey per manifest entry of no key. Nothing
+    is written."""
     folder = copy_folder(root, values)
     manifest = read_manifest(folder / values["manifest"])
     rows = []
@@ -199,6 +200,8 @@ def check(root, values, work, hasher=round_files.sha256, info=format_of):
             if entry is None:
                 reasons.append("notInManifest")
             else:
+                if entry["code"] != key["code"]:
+                    reasons.append("otherCode")
                 if folded(plain_parts(entry["source"], "a source")) != folded(plain_parts(key["source"], "a source")):
                     reasons.append("otherSource")
                 elif entry["sourceSha256"] != row["sourceSha256"]:
@@ -214,6 +217,12 @@ def check(root, values, work, hasher=round_files.sha256, info=format_of):
         if row["verdict"] != "reuse":
             row["request"] = request(root, values, key, work)
         rows.append(row)
+    # An entry no key names is listed, never dropped in silence, and asks for nothing
+    named = {key["copy"].casefold() for key in values["keys"]}
+    for name, entry in manifest.items():
+        if name not in named:
+            rows.append({"code": entry["code"], "copy": entry["copy"], "source": entry["source"], "verdict": "noKey", "reasons": [], "format": None,
+                         "sourceSha256": None, "copySha256": None, "request": None})
     return rows
 
 
