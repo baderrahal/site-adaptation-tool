@@ -3,6 +3,8 @@
 # token of this run on Revit alone, runs the dialog watcher of R108 beside it and waits for Revit to exit.
 # The original model is never opened. Nothing in the registry is read or written.
 # With -Upgrade it saves one prototype as a Revit 2024 file in the upgraded prototype folder of config/project.json (R109).
+# With -PrototypeSet it takes the source and target folders of that set of prototypeSets instead and the job code is the
+# prefix of the set and -Code, as STH1 for the STR prototype of TH1 (R313).
 # -NewUpgradeFolder makes that folder and stops when it is there already, so it goes on the first upgrade only.
 # With -FloorSpec it runs a master, floors or linksAndFloors job of R117 on a copy python/scenario_files.py made beforehand.
 # The spec names kind, code, model and the options, and this script never copies, moves or deletes a model.
@@ -14,6 +16,7 @@ param(
     [switch]$DryStart,
     [switch]$Upgrade,
     [switch]$NewUpgradeFolder,
+    [string]$PrototypeSet,
     [string]$FloorSpec,
     [string]$RoundSpec,
     [int]$TimeoutMinutes = 30,
@@ -23,6 +26,8 @@ param(
 $ErrorActionPreference = 'Stop'
 # R310. The memory samples of the window
 . (Join-Path $PSScriptRoot 'WindowSamples.ps1')
+# R313. The prototype sets an upgrade may take
+. (Join-Path $PSScriptRoot 'PrototypeSets.ps1')
 $spec = $null
 if ($FloorSpec) {
     if ($Code -or $DryStart -or $Upgrade) {
@@ -63,8 +68,20 @@ if (-not $DryStart -and -not $Code) {
 if ($NewUpgradeFolder -and -not $Upgrade) {
     throw '-NewUpgradeFolder goes with -Upgrade only.'
 }
+if ($PrototypeSet -and -not $Upgrade) {
+    throw '-PrototypeSet goes with -Upgrade only.'
+}
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $config = Get-Content -Raw (Join-Path $repo 'config\project.json') | ConvertFrom-Json
+# R313. The parts of a prototype file name, written into every job that names a prototype file for the guard of the test host
+$names = Get-PrototypeNames -Config $config
+# R313. The code names the prototype, the job code of a set is its prefix and the code, so the outputs of a set have names of their own
+$set = $null
+$prototypeCode = $Code
+if ($PrototypeSet) {
+    $set = Get-PrototypeSet -Config $config -Name $PrototypeSet
+    $Code = Get-SetJobCode -Set $set -Code $prototypeCode
+}
 $docs = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'SiteAdaptation'
 $addins = Join-Path $env:APPDATA 'Autodesk\Revit\Addins\2024'
 $watcherExe = Join-Path $addins 'SiteAdaptationTestHost\Watcher\SiteAdaptation.DialogWatcher.exe'
@@ -223,13 +240,14 @@ if ($round) {
             $copy = Join-Path $work (Get-SiteNewFile $build)
             $planPath = [string]$round.plan
             $plan = Get-Content -Raw $planPath | ConvertFrom-Json
-            $files = @($plan.plots | ForEach-Object { $_.prototypeFile.value } | Where-Object { $_ -match ('-' + $round.prototypeCode + '-ZZ-MOD-') } | Sort-Object -Unique)
+            $files = @($plan.plots | ForEach-Object { $_.prototypeFile.value } | Where-Object { $_ -match ('-' + $round.prototypeCode + [regex]::Escape($names.suffix)) } | Sort-Object -Unique)
             if ($files.Count -ne 1) {
                 throw "The plan names $($files.Count) prototype files for $($round.prototypeCode), one is needed: $($files -join ', ')"
             }
             $original = $planPath
             $roundJob.model = $copy
             $roundJob.prototypeFile = $files[0]
+            $roundJob.prototypeNames = $names
             $roundJob.plan = $planPath
             # R231. One run per prototype code places the links and the floors of the plots of that code only
             $roundJob.plots = [string[]]@($plan.plots | Where-Object { $_.prototypeFile.value -eq $files[0] } | ForEach-Object { [string]$_.plot })
@@ -242,19 +260,27 @@ if (-not $DryStart -and -not $round) {
     $root = if ($env:SITE_ADAPTATION_INPUT) { $env:SITE_ADAPTATION_INPUT } else { $config.inputRoot }
     $original = Join-Path $root $config.testHost.model
     $planPath = if ($spec -and $spec.plan) { $spec.plan } else { $config.pastJob.output }
+    $sourceFolder = if ($set) { Join-Path $root $set.source } else { Join-Path $root $config.pastJob.prototypeFolder }
 
-    # The prototype file of the code comes from the plan, never from the code alone. A floor spec names its prototype code, if any
-    $plan = Get-Content -Raw $planPath | ConvertFrom-Json
-    $prototypeCode = if ($spec) { $spec.prototypeCode } else { $Code }
-    $prototype = $null
-    $plots = @($plan.plots).Count
-    if ($prototypeCode) {
-        $files = @($plan.plots | ForEach-Object { $_.prototypeFile.value } | Where-Object { $_ -match ('-' + $prototypeCode + '-ZZ-MOD-') } | Sort-Object -Unique)
-        if ($files.Count -ne 1) {
-            throw "The plan names $($files.Count) prototype files for $prototypeCode, one is needed: $($files -join ', ')"
+    if ($set) {
+        # R313. A set takes the one file of the code from its own source folder, the plan names the ARC prototypes only
+        $prototype = Get-SetPrototype -Folder $sourceFolder -Names $names -Discipline $set.discipline -Code $prototypeCode
+        $plots = 0
+    }
+    else {
+        # The prototype file of the code comes from the plan, never from the code alone. A floor spec names its prototype code, if any
+        $plan = Get-Content -Raw $planPath | ConvertFrom-Json
+        $prototypeCode = if ($spec) { $spec.prototypeCode } else { $Code }
+        $prototype = $null
+        $plots = @($plan.plots).Count
+        if ($prototypeCode) {
+            $files = @($plan.plots | ForEach-Object { $_.prototypeFile.value } | Where-Object { $_ -match ('-' + $prototypeCode + [regex]::Escape($names.suffix)) } | Sort-Object -Unique)
+            if ($files.Count -ne 1) {
+                throw "The plan names $($files.Count) prototype files for $prototypeCode, one is needed: $($files -join ', ')"
+            }
+            $prototype = $files[0]
+            $plots = @($plan.plots | Where-Object { $_.prototypeFile.value -eq $prototype }).Count
         }
-        $prototype = $files[0]
-        $plots = @($plan.plots | Where-Object { $_.prototypeFile.value -eq $prototype }).Count
     }
 
     $master = $null
@@ -273,9 +299,10 @@ if (-not $DryStart -and -not $round) {
         $copy = $wanted
     }
     elseif ($Upgrade) {
-        # The source is the past prototype folder, kept in the config. It is only read, the run checks it is unchanged
-        $source = Join-Path (Join-Path $root $config.pastJob.prototypeFolder) $prototype
-        $targetFolder = Join-Path $root $config.pastJob.upgradedPrototypeFolder
+        # The source is the past prototype folder, kept in the config, or the source folder of a set (R313). It is only read, the
+        # run checks it is unchanged
+        $source = Join-Path $sourceFolder $prototype
+        $targetFolder = if ($set) { Join-Path $root $set.target } else { Join-Path $root $config.pastJob.upgradedPrototypeFolder }
         $target = Join-Path $targetFolder $prototype
         if ($NewUpgradeFolder) {
             if (Test-Path $targetFolder) {
@@ -376,6 +403,9 @@ try {
                 createdUtc    = (Get-Date).ToUniversalTime().ToString('o')
                 totalMinutes  = [Math]::Min(29, $TimeoutMinutes - 1)
             }
+            if ($prototype) {
+                $job.prototypeNames = $names
+            }
         }
         elseif ($Upgrade) {
             $job = [ordered]@{
@@ -388,6 +418,12 @@ try {
                 createdUtc    = (Get-Date).ToUniversalTime().ToString('o')
                 totalMinutes  = [Math]::Min(27, $TimeoutMinutes - 2)
             }
+            $job.prototypeNames = $names
+            if ($set) {
+                # R313. The guard of the test host checks the file name by the discipline and the job code by the prefix of the set
+                $job.discipline = [string]$set.discipline
+                $job.codePrefix = [string]$set.codePrefix
+            }
         }
         else {
             $job = [ordered]@{
@@ -399,6 +435,7 @@ try {
                 createdUtc    = (Get-Date).ToUniversalTime().ToString('o')
                 totalMinutes  = [Math]::Min(27, $TimeoutMinutes - 2)
             }
+            $job.prototypeNames = $names
         }
         $job | ConvertTo-Json -Depth 5 | Set-Content -Path $jobPath -Encoding utf8
         # The token goes to the Revit process alone, this console never holds it

@@ -1,4 +1,4 @@
-STATE 2026-10-25, Round ADDIN Part 1, Phase 1 in review on PR 43 (data/addin-parsons-models), its part 2 in the next PR: the 7 Parsons models hashed and read, their Revit 2024 copies in Revit All Zones\2024, the memory of every window sampled. Phases 0a and 0b merged (PR 41, 42). Round 17 done and merged (PR 39, 40)
+STATE 2026-10-25, Round ADDIN Part 1, Phase 1 part 2 in review on PR 44 (data/addin-key-copies): the 7 key copies checked by code from config (R312), the 13 STR prototypes upgraded into Prototypes_2024\STR (R313). Phases 0a, 0b and 1 merged (PR 41 to 43). Round 17 done and merged (PR 39, 40)
 
 # Progress
 
@@ -7,21 +7,21 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 ## State
 
 - ADDIN Part 1 (R300 to R399): the whole add-in inside Revit 2024 in C#, .NET Framework 4.8 (option B), parsons2024Rev6 for every new build (Q050), the 7 Rev 6 Parsons site models as answer keys, the approved mock in docs/addin-mock.md. Plan: steps/investigations/round-addin.md. Part 2, the sheets, waits for Bader's check of Part 1
-- ADDIN 1 (R310, R311, R203, R204, R301): R310 samples every test host window every 5 s in MiB and GiB with the true peaks to the exit and the processes Revit starts, R311 the site facts of the reader with the units of the project now, R203 BasicFileInfo of a BIM 360 model, R204 the source of a site upgrade right in the work folder. The 7 copies in Revit All Zones\2024 with sources.txt, counted apart by R301 when sources.txt names them. Review pass 2: CIM calls with a 2 s limit, the deadline first, the helpers already running in run.json, notRead by field name. All 7 share one survey point, base point, project position, angle 0, site Internal, Level 1 and Level 2, metric units. IMA and IMB are SE models with STR links and no levels (Q066), the zone2 IMC is the master of the floor scenarios (Q065)
+- ADDIN 1b (R312, R313, R301): answerKeys in config/project.json lists the 7 keys, IMC from the Zone 02\ARC original, and python/key_copies.py reuses a copy only while the manifest key_copies.json beside the copies holds its code, source, source hash, copy hash and format of today, else it asks for a siteUpgrade job and never overwrites. record is withdrawn after two attempts, no step files a made copy (Q069). Paths compare as Windows opens them, the key shapes and the prototype name parts (prototypeNames) sit in config. R301 reads that manifest, sources.txt is out of the copy folder. The 13 STR prototypes are Revit 2024 files in Prototypes_2024\STR by the upgrade job on prototype sets (R313). The installed test host predates prototypeNames, reinstall before the next window
+- ADDIN 1 (R310, R311, R203, R204, R301): R310 samples every test host window every 5 s in MiB and GiB with the true peaks to the exit and the processes Revit starts, R311 the site facts of the reader with the units of the project now, R203 BasicFileInfo of a BIM 360 model, R204 the source of a site upgrade right in the work folder. All 7 Parsons models share one survey point, base point, project position, angle 0, site Internal, Level 1 and Level 2, metric units. IMA and IMB are SE models with STR links and no levels (Q066), the zone2 IMC is the master of the floor scenarios (Q065)
 - ADDIN 0b (R300 to R304): parsons2024Rev6 default with overrides of its own job, villa blocks only from the Building Footprint, area codes by job, the image step from testHost, R303 withdrawn (Q064), a clean clone in a deep folder builds
 - 17 (R261 to R282): Native 1.1 to 1.4 hold 2,386 of 2,591 Phase 1 unit plots, the majority rule and the IMC rebuild, 336 of 337 plots, Z within 10 mm on 336. DATA-5 and earlier: steps/investigations/ and steps/history/
-- Gate: Python 1122 passed and 1 skipped, .NET 479 passed. Real files are read from copies, nothing real is in git
+- Gate at the final head of PR 44: Python 1201 passed and 1 skipped, .NET 516 passed. Real files are read from copies, nothing real is in git
 
 ## Done
 
-- ADDIN 1, PR 43 in review: R310, R311, R203, R204 and R301 with their tests, 17 windows and the review read KG3 under the lock, 40 of 40 originals equal before and after the 17, 47 of 47 with the 2024 copies before and after KG3
-- ADDIN 0b, PR 42 and 0a, PR 41: the harness and the open fixes, Q028, Q035, Q044 to Q050, Q060, Q061 closed
-- 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c to 1: PRs 1 to 25
+- ADDIN 1b, PR 44 in review: R312, R313 and the R301 manifest with their tests and the review fixes, the 7 copies reuse 7 of 7 at the final head, the 13 STR upgrades in 14 windows under the lock, the first refused by the guard and fixed, 65 of 65 checks (13 files times 5), 60 of 60 files equal before and after. ADDIN 1, PR 43: R310, R311, R203, R204, R301, 17 windows and KG3
+- ADDIN 0b, PR 42 and 0a, PR 41: the harness and the open fixes, Q028, Q035, Q044 to Q050, Q060, Q061 closed. 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c to 1: PRs 1 to 25
 
 ## Open bugs
 
 - The whole NBH 03 area runs past the 30 minute image step, I25 did not respond at 10,732 MiB (10.48 GiB) private memory (Q063). R310 logs free memory in every window, no stop at the floor. Revit starts up to 10 processes of about 1.2 GiB private beside it, and the LocalDB of Steel Connections stays about 5 minutes after a window (4 min 57 s after KG3)
-- rvt_info.py (R203) does not see cloud links, the SE models list 1 of their 14 Revit links. The Generic floors of IME and IMF are of type FFL, not in floors.types
+- rvt_info.py (R203) does not see cloud links, the SE models list 1 of their 14 Revit links. The Generic floors of IME and IMF are of type FFL, not in floors.types. key_copies.py keeps a last part NUL, nul. or "NUL. " as a name where Windows opens the NUL device, reachable only by answerKeys.folder of the config, and PrototypeSets.ps1 throws on it
 - No El @ Entry rule beyond 0.285 of the IMC key, the rest are overrides. CASE follows no tested logic. The footprint test cannot see a wrong hand. Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT. The top level angleToTrueNorthDeg of the reader has 3 decimals and is not brought into 0 to 360, the plan builders copy it, the placer takes 0 only and the 7 models are at 0, Phase 4 moves it to C#
 
 ## Bader's turn
@@ -49,8 +49,8 @@ Q063. The whole NBH 03 image ran past the 30 minute image step in I20 and I25. I
 Q064. The dialog watcher through the job (R303) is withdrawn after two attempts: keep the watcher stopping at the first log step. In I25 the Win32 list found no dialog and Revit was not responding at 10,732 MiB (10.48 GiB) private memory, so the hang points at memory. 5 windows of Phase 1 that ended ok did not respond at times. Q063 keeps its measurements
 Q065. The zone2 IMC file of Revit All Zones is the master of the floor scenarios: last saved as _TEST-MASTER, not workshared, links unloaded, 0 floors against 1,010. Its 2024 copy is made from the Zone 02\ARC original, the IMC key: replace the zone2 file by a copy of that original (recommended), or keep it
 Q066. No Rev 6 Parsons TU model of Zone 1 is here: IMA and IMB are Engicon SE models with STR prototype links, 432 and 301 plots, no level, ramp or yard floor. Your rule takes a Native model only for plots none of the 7 Parsons models hold, and these plots are in IMA and IMB, so taking their levels, ramps and yards from the Native 1.1 and 1.2 reads is the lead's choice, not your rule: send the Parsons TU models of IMA and IMB (recommended), or accept that Native stand-in until then
-Q067. The 13 STR prototypes the SE models link are not upgraded, their 2021 files are in Zone 02\STR\Prototypes: leave them (recommended), the add-in places the ARC prototypes, or upgrade them, which needs a change of the upgrade job
 Q068. The 7 Parsons models share one project position, survey point, base point, angle 0, Level 1 and Level 2. R211 puts the internal origin at the plot centre of the NBH, 547.5 m away for NBH 012: let button 1 set the Parsons position from config (recommended), or keep R211
+Q069. Record of a remade key copy, withdrawn after two attempts since its run proof could be fooled: when a key source changes, let the test host write the SHA-256 of the work copy at the job start and of the made copy at its end into the run log, and let record file a copy only when the work copy hash equals the source hash of the manifest request and the made copy hash on disk equals the logged one (recommended). Until Q069 is answered a remade copy is filed by editing its manifest entry by hand, since import refuses once a manifest exists
 
 ## Next three steps
 

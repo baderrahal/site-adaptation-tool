@@ -119,22 +119,23 @@ def lower_parts(text, what):
 
 
 def manifest_names(folder, manifest, key):
-    """R301. The copy names a manifest lists, lowered, read by cutting each line at its words sha256 and from with str.partition and not
-    by the pattern of im_codes.py.
-    No manifest, a line with no copy and source, or a source inside the copy folder is refused, the last as listed too high."""
+    """R301. The copy names the JSON manifest of R312 lists, lowered, read here with json.loads and plain checks of each entry and not
+    by key_copies.read_manifest, which im_codes.py uses.
+    No manifest, no list of copies, an entry with no copy, source and hashes, or a source inside the copy folder is refused, the last
+    as listed too high."""
     found = [path for path in folder.iterdir() if path.is_file() and path.name.lower() == manifest]
     if len(found) != 1:
         raise ValueError("the copy folder %s has no manifest %s" % (folder, manifest))
+    data = json.loads(found[0].read_text(encoding="utf-8-sig"))
+    if not isinstance(data, dict) or not isinstance(data.get("copies"), list):
+        raise ValueError("the manifest of %s holds no list of copies" % folder)
     names = set()
-    for line in found[0].read_text(encoding="utf-8-sig").splitlines():
-        if not line.strip():
-            continue
-        copy, first, rest = line.partition(" sha256 ")
-        digest, second, rest = rest.partition(" from ")
-        source, third, rest = rest.partition(" sha256 ")
-        hexes = (digest, rest[:64])
-        if not (first and second and third) or any(len(h) != 64 or set(h) - HEX for h in hexes) or "/" in copy or "\\" in copy:
-            raise ValueError("a manifest line names no copy with its source: %r" % line)
+    for item in data["copies"]:
+        copy = item.get("copy") if isinstance(item, dict) else None
+        source = item.get("source") if isinstance(item, dict) else None
+        hexes = [item.get(field) for field in ("copySha256", "sourceSha256")] if isinstance(item, dict) else []
+        if not isinstance(copy, str) or not copy or "/" in copy or "\\" in copy or not hexes or any(not isinstance(h, str) or len(h) != 64 or set(h) - HEX for h in hexes):
+            raise ValueError("a manifest entry names no copy with its source: %r" % (item,))
         if lower_parts(source, "the source of a copy")[:len(key)] == key:
             raise ValueError("the copy folder %s is listed too high: it holds the source %s" % (folder, source))
         names.add(copy.lower())

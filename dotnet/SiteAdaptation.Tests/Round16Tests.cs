@@ -89,11 +89,11 @@ namespace SiteAdaptation.Tests
         public void R231_one_run_per_code_places_the_plots_of_that_prototype_file_only_and_a_floors_job_takes_a_plot_list()
         {
             string script = RepoText("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
-            string job = new JObject
+            string job = JobNames.AddTo(new JObject
             {
                 ["kind"] = "linksAndFloors", ["token"] = Token, ["code"] = "S161", ["model"] = NewFile, ["plan"] = @"C:\Docs\plan_imc_new.json",
                 ["prototypeFile"] = "RRE-WP-NSP-KEO-ARC-DT3-ZZ-MOD-3300.rvt", ["plots"] = new JArray("2289", "2290"), ["createdUtc"] = Now.AddMinutes(-2).ToString("o"),
-            }.ToString();
+            }).ToString();
 
             Assert.Contains("$roundJob.plots = [string[]]@($plan.plots | Where-Object { $_.prototypeFile.value -eq $files[0] }", script);
             Assert.True(Check(job).Act);

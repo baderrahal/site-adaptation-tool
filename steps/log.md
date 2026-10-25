@@ -4,32 +4,32 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 
 ## Round ADDIN Part 1, 2026-10-25, the Revit 2024 add-in from the Parsons site models
 
-In progress. Phases 0a and 0b merged (PR 41, 42), Phase 1 in review on PR 43, its part 2 next, then the plan in steps/investigations/round-addin.md.
+In progress. Phases 0a, 0b and 1 merged (PR 41 to 43), 1b in review on PR 44. Plan: steps/investigations/round-addin.md.
 
 Goal:
-- The whole Site Adaptation add-in inside Revit 2024 in C#, .NET Framework 4.8, from the 7 Rev 6 Parsons site models, parsons2024Rev6 for every new build (Q050), the screens of docs/addin-mock.md. Part 2, the sheets, waits for Bader's check of Part 1
+- The add-in inside Revit 2024 in C#, .NET 4.8, from the 7 Rev 6 Parsons site models, parsons2024Rev6 for every build (Q050), docs/addin-mock.md. Part 2 waits for Bader's check of Part 1
 
 Done:
-- 0a (PR 41) and 0b (PR 42): the harness, the open fixes R277, R280, R300 to R302, R304, R303 withdrawn (Q064). Detail in round-addin.md
-- 1 (PR 43, in review): R310 samples each window every 5 s in MiB and GiB, the peaks to the exit, the processes Revit starts, each CIM call with a 2 s limit, the deadline first, the helpers already running. R311 the site facts, a part not read is null under its field name. R203 BIM 360 BasicFileInfo. R204 the source in the work folder. R301 the 2024 copies apart by their manifest
-- 1 outside the repo: the 7 Revit 2024 copies in Revit All Zones\2024 with sources.txt, all on one survey point, base point and project position, angle 0, metric. IMA and IMB are SE models (Q066, Q067), the zone2 IMC is the floor master (Q065)
-- Gate: Python 1122 passed and 1 skipped, .NET build 0 errors, .NET 479 passed
+- 0a, 0b (PR 41, 42): the harness and the open fixes, R277, R280, R300 to R304, R303 withdrawn (Q064)
+- 1 (PR 43): R310 window samples, R311 site facts, R203 BIM 360, R204 the source in the work folder, R301 copies counted apart
+- 1b (PR 44): R312 key_copies.py reuses a copy only on its code, source, hashes and format of today, never overwrites, key_copies.json replaces sources.txt (R301). R313 the 13 STR prototypes in Prototypes_2024\STR (Q067)
+- 1b review: names hold their own code, paths compare as Windows opens them, import and check list every fault, key shapes and name parts in config. record withdrawn after two attempts, no step files a made copy (Q069)
+- Gate at the final head: Python 1201 passed and 1 skipped, .NET build 0 errors, .NET 516 passed (round_addin\logs\p1b_final_gate_*.txt)
 
 Checked:
-- 1: originals 40 of 40 around the 17 windows, 47 of 47 around KG3. BasicFileInfo against Revit 7 of 7, reader against category counts 32 of 32, 20 random IMC links at two seeds 20 of 20, KG3 children 10 and 10 by two samplers, the R301 names by two methods 7 of 7. This Your turn equals Bader's turn of steps/PROGRESS.md
+- 1b: the 7 copies reuse 7 of 7 at the final head, Get-FileHash and targetInfo 42 of 42. The 13 STR files 65 of 65 checks, 13 files times 5. The sources.txt lines equal the manifest and the hash list 35 of 35, its hash before the move UNKNOWN. 60 of 60 files equal before and after by two hash tools. The R301 names 7 of 7 by two methods. This Your turn equals Bader's turn of steps/PROGRESS.md
 
 Remains:
-- Part 2 of Phase 1, next PR: key copies made by code, the IMC copy name, the STR upgrade (Q067), CLAUDE.md. Phases 2 to 6
+- Phases 2 to 6. Reinstall the test host before the next window (prototypeNames)
 
 Known bugs:
-- The whole NBH 03 area runs past the 30 minute image step, I25 did not respond at 10,732 MiB (10.48 GiB) private (Q063). Revit starts up to 10 processes of about 1.2 GiB private
-- rvt_info.py (R203) does not see cloud links: the TransmissionData of the SE models lists 1 of their 14 Revit links
-- The Generic floors of IME and IMF are of type FFL, not Generic 150mm, so floors.types does not find them
-- The top level angleToTrueNorthDeg of the reader has 3 decimals and is not brought into 0 to 360, the plan builders copy it. The placer takes 0 only and the 7 models are at 0. Phase 4 moves it to C#
-- The .NET build gives 1 warning older than this round, xUnit2013 at dotnet/SiteAdaptation.Tests/CadExplodeTests.cs line 206
+- The whole NBH 03 area runs past the 30 minute image step (Q063), Revit starts up to 10 helper processes
+- rvt_info.py (R203) misses cloud links, 1 of 14 in the SE models. The Generic floors of IME and IMF are of type FFL, not in floors.types
+- angleToTrueNorthDeg of the reader has 3 decimals, not brought into 0 to 360, the placer takes 0 only. 1 old .NET warning, xUnit2013
+- key_copies.py keeps a last part NUL, nul. or "NUL. " as a name, Windows opens the NUL device, only answerKeys.folder reaches it, PrototypeSets.ps1 throws on it
 
 Next:
-- Phase 2: the 7 keys read from the 2024 copies into plan files and past_all.csv, the Parsons area codes, the FFL floor type
+- Phase 2: the 7 keys from the 2024 copies into plan files and past_all.csv, the Parsons area codes, the FFL floor type
 
 Your turn:
 Q001. El @ Entry rule: the IFC in Downloads is another project, ask the client for the Infrastructure IFC package and the architect for the ramp slope. The road plus the ramp slope holds 0.285 of the IMC key within 5 mm, the 241 others are overrides until then
@@ -55,8 +55,8 @@ Q063. The whole NBH 03 image ran past the 30 minute image step in I20 and I25. I
 Q064. The dialog watcher through the job (R303) is withdrawn after two attempts: keep the watcher stopping at the first log step. In I25 the Win32 list found no dialog and Revit was not responding at 10,732 MiB (10.48 GiB) private memory, so the hang points at memory. 5 windows of Phase 1 that ended ok did not respond at times. Q063 keeps its measurements
 Q065. The zone2 IMC file of Revit All Zones is the master of the floor scenarios: last saved as _TEST-MASTER, not workshared, links unloaded, 0 floors against 1,010. Its 2024 copy is made from the Zone 02\ARC original, the IMC key: replace the zone2 file by a copy of that original (recommended), or keep it
 Q066. No Rev 6 Parsons TU model of Zone 1 is here: IMA and IMB are Engicon SE models with STR prototype links, 432 and 301 plots, no level, ramp or yard floor. Your rule takes a Native model only for plots none of the 7 Parsons models hold, and these plots are in IMA and IMB, so taking their levels, ramps and yards from the Native 1.1 and 1.2 reads is the lead's choice, not your rule: send the Parsons TU models of IMA and IMB (recommended), or accept that Native stand-in until then
-Q067. The 13 STR prototypes the SE models link are not upgraded, their 2021 files are in Zone 02\STR\Prototypes: leave them (recommended), the add-in places the ARC prototypes, or upgrade them, which needs a change of the upgrade job
 Q068. The 7 Parsons models share one project position, survey point, base point, angle 0, Level 1 and Level 2. R211 puts the internal origin at the plot centre of the NBH, 547.5 m away for NBH 012: let button 1 set the Parsons position from config (recommended), or keep R211
+Q069. Record of a remade key copy, withdrawn after two attempts since its run proof could be fooled: when a key source changes, let the test host write the SHA-256 of the work copy at the job start and of the made copy at its end into the run log, and let record file a copy only when the work copy hash equals the source hash of the manifest request and the made copy hash on disk equals the logged one (recommended). Until Q069 is answered a remade copy is filed by editing its manifest entry by hand, since import refuses once a manifest exists
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 

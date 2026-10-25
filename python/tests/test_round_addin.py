@@ -503,18 +503,23 @@ def test_r301_every_source_of_the_im_code_check_names_a_job_of_the_table():
 MODEL_A = "01101-PSN-IMA-ZZZ-PIM-SE-000000-zone1.rvt"
 
 
-def manifest_line(copy, source):
-    """One line of the manifest of a copy folder as Round ADDIN Phase 1 wrote sources.txt: the copy, its hash, its source and its hash."""
-    return "%s sha256 %s from %s sha256 %s by the siteUpgrade job KA of a dummy round\n" % (copy, "a" * 64, source, "b" * 64)
+def manifest_entry(copy, source):
+    """One entry of the manifest of a copy folder as key_copies.py writes it (R312): the copy, its hash, its source and its hash."""
+    return {"code": "IMA", "copy": copy, "copySha256": "a" * 64, "source": source, "sourceSha256": "b" * 64, "format": 2024,
+            "madeBy": "the siteUpgrade job KA of a dummy round"}
 
 
-def copy_tree(tmp_path, folder="Revit All Zones/2024", manifest="sources.txt"):
+def write_manifest(folder, *entries, name="key_copies.json"):
+    (folder / name).write_text(json.dumps({"note": "dummy", "copies": list(entries)}), encoding="utf-8")
+
+
+def copy_tree(tmp_path, folder="Revit All Zones/2024", manifest="key_copies.json"):
     """A source root with one model, its copy in a copy folder with a manifest that names it, and a file in a folder whose name only
     starts like the copy folder."""
     for where, name in (("Revit All Zones", MODEL_A), ("Revit All Zones/2024", MODEL_A), ("Revit All Zones/2024 old", "01101-PSN-IMB-ZZZ-PIM-SE-000000-zone1.rvt")):
         (tmp_path / where).mkdir(parents=True, exist_ok=True)
         (tmp_path / where / name).write_bytes(b"")
-    (tmp_path / "Revit All Zones" / "2024" / "sources.txt").write_text(manifest_line(MODEL_A, "Revit All Zones\\" + MODEL_A), encoding="utf-8")
+    write_manifest(tmp_path / "Revit All Zones" / "2024", manifest_entry(MODEL_A, "Revit All Zones\\" + MODEL_A))
     return [{"folder": folder, "manifest": manifest, "reason": "the Revit 2024 copies of a dummy round"}]
 
 
@@ -551,8 +556,8 @@ def test_r301_the_second_method_counts_the_names_of_a_copy_folder_apart_too(tmp_
 @pytest.mark.parametrize("folder", ["revit all zones/2024", "REVIT ALL ZONES\\2024", "Revit all Zones/2024"])
 def test_r301_a_copy_folder_and_its_manifest_match_in_any_case_in_the_check_and_its_second_method(tmp_path, folder):
     # Windows matches names in any case, so a folder, a manifest and a copy name written in another case are the same
-    copies = copy_tree(tmp_path, folder=folder, manifest="SOURCES.TXT")
-    (tmp_path / "Revit All Zones" / "2024" / "sources.txt").write_text(manifest_line(MODEL_A.upper(), "REVIT ALL ZONES\\" + MODEL_A), encoding="utf-8")
+    copies = copy_tree(tmp_path, folder=folder, manifest="KEY_COPIES.JSON")
+    write_manifest(tmp_path / "Revit All Zones" / "2024", manifest_entry(MODEL_A.upper(), "REVIT ALL ZONES\\" + MODEL_A))
     counts, check = both_counts(tmp_path, copies)
     assert counts["IMA"]["fileNames"] == 1 and counts["IMA"]["copyFileNames"] == 1
     assert check["sources"]["IMA"] == [1, 1] and check["copies"]["IMA"] == [1, 1]
@@ -591,19 +596,29 @@ def test_r301_a_copy_folder_listed_too_high_is_refused_in_the_check_and_its_seco
     with pytest.raises(ValueError, match="manifest"):
         data5_check.check_names(tmp_path, {"codes": {}}, copies)
     # With a manifest there, the sources it names sit inside the folder, which no copy folder may hold
-    (tmp_path / "Revit All Zones" / "sources.txt").write_text(manifest_line(MODEL_A, "Revit All Zones\\" + MODEL_A), encoding="utf-8")
+    write_manifest(tmp_path / "Revit All Zones", manifest_entry(MODEL_A, "Revit All Zones\\" + MODEL_A))
     with pytest.raises(ValueError, match="too high"):
         im_codes.file_names(tmp_path, im_codes.copy_folders(copies))
     with pytest.raises(ValueError, match="too high"):
         data5_check.check_names(tmp_path, {"codes": {}}, copies)
 
 
-@pytest.mark.parametrize("line", ["%s from x sha256 %s\n" % (MODEL_A, "b" * 64), "2024/%s sha256 %s from x sha256 %s\n" % (MODEL_A, "a" * 64, "b" * 64),
-                                  "%s sha256 %s from ..\\x.rvt sha256 %s\n" % (MODEL_A, "a" * 64, "b" * 64)])
-def test_r301_a_manifest_line_that_names_no_copy_with_its_source_under_the_root_is_refused_in_both_methods(tmp_path, line):
+@pytest.mark.parametrize("change", [{"copySha256": None}, {"copy": "2024/" + MODEL_A}, {"source": "..\\x.rvt"}, {"source": "C:\\x.rvt"}, {"copy": None}])
+def test_r301_a_manifest_entry_that_names_no_copy_with_its_source_under_the_root_is_refused_in_both_methods(tmp_path, change):
     import data5_check
     copies = copy_tree(tmp_path)
-    (tmp_path / "Revit All Zones" / "2024" / "sources.txt").write_text(line, encoding="utf-8")
+    write_manifest(tmp_path / "Revit All Zones" / "2024", {**manifest_entry(MODEL_A, "Revit All Zones\\" + MODEL_A), **change})
+    with pytest.raises(ValueError):
+        im_codes.file_names(tmp_path, im_codes.copy_folders(copies))
+    with pytest.raises(ValueError):
+        data5_check.check_names(tmp_path, {"codes": {}}, copies)
+
+
+@pytest.mark.parametrize("text", ["sources.txt line", "[]", "{\"copies\": {}}"])
+def test_r301_a_manifest_that_is_no_json_list_of_copies_is_refused_in_both_methods(tmp_path, text):
+    import data5_check
+    copies = copy_tree(tmp_path)
+    (tmp_path / "Revit All Zones" / "2024" / "key_copies.json").write_text(text, encoding="utf-8")
     with pytest.raises(ValueError):
         im_codes.file_names(tmp_path, im_codes.copy_folders(copies))
     with pytest.raises(ValueError):
@@ -613,15 +628,15 @@ def test_r301_a_manifest_line_that_names_no_copy_with_its_source_under_the_root_
 @pytest.mark.parametrize("folder", ["C:/02-Site Adaptation/Revit All Zones/2024", "../2024", "Revit All Zones/../2024", "Revit All Zones/./2024", "", None])
 def test_r301_a_copy_folder_is_a_folder_under_the_source_root_with_its_manifest_and_reason(folder):
     with pytest.raises(ValueError):
-        im_codes.copy_folders([{"folder": folder, "manifest": "sources.txt", "reason": "x"}])
+        im_codes.copy_folders([{"folder": folder, "manifest": "key_copies.json", "reason": "x"}])
     with pytest.raises(ValueError):
-        im_codes.copy_folders([{"folder": "Revit All Zones/2024", "manifest": "sources.txt", "reason": ""}])
+        im_codes.copy_folders([{"folder": "Revit All Zones/2024", "manifest": "key_copies.json", "reason": ""}])
     with pytest.raises(ValueError):
-        im_codes.copy_folders([{"folder": "Revit All Zones/2024", "manifest": "sources.txt", "reason": "x", "extra": 1}])
-    for manifest in ("", " sources.txt", "2024/sources.txt", None):
+        im_codes.copy_folders([{"folder": "Revit All Zones/2024", "manifest": "key_copies.json", "reason": "x", "extra": 1}])
+    for manifest in ("", " key_copies.json", "2024/key_copies.json", None):
         with pytest.raises(ValueError):
             im_codes.copy_folders([{"folder": "Revit All Zones/2024", "manifest": manifest, "reason": "x"}])
-    nested = [{"folder": "Revit All Zones/2024", "manifest": "sources.txt", "reason": "x"}, {"folder": "revit all zones/2024/STR", "manifest": "sources.txt", "reason": "x"}]
+    nested = [{"folder": "Revit All Zones/2024", "manifest": "key_copies.json", "reason": "x"}, {"folder": "revit all zones/2024/STR", "manifest": "key_copies.json", "reason": "x"}]
     with pytest.raises(ValueError):
         im_codes.copy_folders(nested)
     import data5_check
@@ -641,7 +656,7 @@ def test_r301_a_copy_folder_that_is_not_under_the_source_root_is_refused_in_both
 def test_r301_the_real_config_names_the_2024_copies_of_the_parsons_models_as_a_copy_folder_with_its_manifest_and_reason():
     settings = json.loads((ROOT / "python" / "c3d_probe.json").read_text(encoding="utf-8"))["dataBook"]["data5"]["imCodes"]
     folders = im_codes.copy_folders(settings["copyFolders"])
-    assert [(folder.folder, folder.manifest) for folder in folders] == [("Revit All Zones/2024", "sources.txt")]
+    assert [(folder.folder, folder.manifest) for folder in folders] == [("Revit All Zones/2024", "key_copies.json")]
     assert "Round ADDIN" in settings["copyFolders"][0]["reason"]
 
 
