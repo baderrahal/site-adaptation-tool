@@ -356,7 +356,7 @@ Part 1 of Round ADDIN uses R300 to R399, Phase 0 R300 to R309.
 ## Test rules
 
 - **R11 Zero tests is a failure.** The test gate fails when a job runs no tests.
-- **R12 Every rule has a test.** The test name carries the rule id.
+- **R12 Every rule has a test.** The test name carries the rule id. A rule marked Withdrawn keeps its id, is never reused and needs no test.
 
 ## Writing rules
 
