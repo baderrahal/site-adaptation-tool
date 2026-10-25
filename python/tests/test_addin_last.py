@@ -137,3 +137,61 @@ def test_r336_the_merged_list_is_held_against_the_earlier_list_and_a_list_that_l
     assert found["ok"] is False and found["keptMissing"] == 1
     found = key_rules_check.merged_check(native, [], table, keep, set(), earlier=native + [hand])
     assert found["ok"] is False and found["byHandLost"] == 1
+
+
+# R338 the keyRules block written from a majority report, the zone prefix and the zone taken from another from config
+PROFILE_TEXT = '{\n  "levelProfiles": {\n    "p1": {\n      "job": "parsons",\n      "yardBelowFflM": 0.1\n    },\n    "p2": {\n      "job": "native"\n    }\n  }\n}\n'
+
+
+def made_report():
+    def decision(group, word, coded, rule, byKey):
+        return {"decision": group + " " + word, "coded": coded, "share": 1.0, "strong": True, "plots": 4, "misses": 0,
+                "tests": {coded: {"holds": 4, "breaks": 0, "cannot": 0, "share": 1.0, "byKey": byKey, "byCode": {"DP2": {"holds": 4}}, "rule": rule},
+                          "key": {"holds": 4, "share": 1.0, "checkOnly": True, "byKey": byKey}}}
+    yard = decision("parsons", "yard", "zone", {"parsons | 2": "0.100", "parsons | 3": "0.100", "parsons | 4": "noYard"}, {"imx": {"holds": 4}})
+    native = decision("native", "yard", "all", {"native | all": "0.100"}, {"u1": {"holds": 2, "breaks": 2}})
+    native["share"] = 0.5
+    hand = decision("parsons", "hand villa", "blockMirrorRoadSide", {"('parsons', 'a.rvt') | no none": True, "('parsons', 'a.rvt') | yes none": False}, {"imx": {"holds": 4}})
+    return {"decisions": [yard, native, hand]}
+
+
+def block_config(**change):
+    import majority
+    import project_profile
+    block = dict(majority.load_block(project_profile.load_settings()))
+    made = {"levelProfile": "p1", "keyRulesNote": "made up", "nativeRound17": {"yard": 1.0}, "zoneFrom": {"Zone 1": {"from": ["Zone 2", "Zone 3"], "why": "made up why"}}}
+    block["keyRulesBlock"] = dict(block["keyRulesBlock"], **dict(made, **change))
+    return block
+
+
+def test_r338_the_key_rules_block_takes_the_zone_prefix_and_the_zone_taken_from_another_from_config_and_a_rerun_gives_it_byte_for_byte(tmp_path):
+    import json
+    import key_rules_block
+    path = tmp_path / "profile.json"
+    path.write_bytes(PROFILE_TEXT.encode("utf-8"))
+    key_rules_block.write(path, made_report(), block_config(), ["yard", "hand villa"])
+    first = path.read_bytes()
+    data = json.loads(first)
+    found = data["levelProfiles"]["p1"]["keyRules"]
+    assert list(found) == ["note", "yard", "hand villa"] and found["note"] == "made up"
+    assert found["yard"]["table"] == {"Zone 1": "0.100", "Zone 2": "0.100", "Zone 3": "0.100", "Zone 4": "noYard"}
+    assert found["yard"]["notMeasured"] == {"Zone 1": "made up why"} and found["yard"]["native"] == 0.5 and found["yard"]["nativeRound17"] == 1.0
+    assert found["hand villa"]["byFile"] == {"a.rvt": {"no none": True, "yes none": False}}
+    # The rest of the profile keeps its bytes, p2 holds no keyRules
+    assert data["levelProfiles"]["p2"] == {"job": "native"} and first.decode("utf-8").startswith('{\n  "levelProfiles": {\n    "p1": {\n      "job": "parsons",\n      "yardBelowFflM": 0.1,\n')
+    # A rerun of every decision the block holds gives it byte for byte
+    key_rules_block.write(path, made_report(), block_config(), None)
+    assert path.read_bytes() == first
+
+
+def test_r338_a_zone_taken_from_zones_that_differ_or_are_missing_is_refused_never_written():
+    import pytest
+    import key_rules_block
+    import project_profile
+    report = made_report()
+    report["decisions"][0]["tests"]["zone"]["rule"] = {"parsons | 2": "0.100", "parsons | 3": "0.200", "parsons | 4": "noYard"}
+    with pytest.raises(project_profile.ProfileError) as error:
+        key_rules_block.block_of(report, ["yard"], {}, block_config())
+    assert "Zone 1" in str(error.value) and "Zone 3" in str(error.value)
+    with pytest.raises(project_profile.ProfileError):
+        key_rules_block.block_of(made_report(), ["yard"], {}, block_config(zoneFrom={"Zone 1": {"from": ["Zone 9"], "why": "w"}}))
