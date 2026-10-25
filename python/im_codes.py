@@ -114,24 +114,41 @@ def measured_count(value):
     return isinstance(value, int) and not isinstance(value, bool) and value > 0
 
 
+# R301. The fields of a row and of an area. A row holds its code and areas and may name its sub-phase, an area holds exactly
+# these, so a field that is no measurement, such as a guess, has no place to go
+ROW_FIELDS = ("code", "areas")
+ROW_OPTIONAL = ("subPhase",)
+AREA_FIELDS = ("nbh", "zone", "plots", "kind", "file", "measured")
+
+
+def text_value(value):
+    return isinstance(value, str) and bool(value.strip())
+
+
+def measured_area(area):
+    """R301. An area is measured when it holds exactly AREA_FIELDS: a neighbourhood, a zone, a plot count, the kind of file it
+    was counted from, the file and where the count was measured. Anything else is no measured area."""
+    return (isinstance(area, dict) and set(area) == set(AREA_FIELDS) and text_value(area["nbh"]) and text_value(area["zone"])
+            and measured_count(area["plots"]) and area["kind"] in FILE_KINDS and text_value(area["file"]) and text_value(area["measured"]))
+
+
 def check_job(job, rows):
-    """R301. The rows of one job, refused when a row has no IM code, a status, no areas, an IM code twice, or an area with no
-    neighbourhood, zone, positive plot count, file kind, file or the place it was measured. A neighbourhood two files hold is
-    allowed, 01A is in two Native models."""
+    """R301. The rows of one job. A row holds an IM code, its measured areas (measured_area) and at most its sub-phase, and an
+    IM code is in one row only. Anything else is refused. A neighbourhood two files hold is allowed, 01A is in two Native models."""
     if not isinstance(rows, list):
         raise ValueError("area codes of %s are not a list of rows" % job)
     seen = Counter(row.get("code") for row in rows if isinstance(row, dict))
     for row in rows:
-        if not isinstance(row, dict) or not CODE.fullmatch(row.get("code") or "") or "status" in row:
+        if (not isinstance(row, dict) or not set(ROW_FIELDS) <= set(row) <= set(ROW_FIELDS + ROW_OPTIONAL)
+                or not CODE.fullmatch(row["code"] if isinstance(row["code"], str) else "")):
             raise ValueError("area code row of %s is not an IM code with measured areas: %s" % (job, row))
         if seen[row["code"]] > 1:
             raise ValueError("area code %s is twice in the table of %s" % (row["code"], job))
-        areas = row.get("areas")
+        areas = row["areas"]
         if not isinstance(areas, list) or not areas:
             raise ValueError("area code %s of %s holds no area" % (row["code"], job))
         for area in areas:
-            if not (isinstance(area, dict) and "status" not in area and area.get("nbh") and area.get("zone") and measured_count(area.get("plots"))
-                    and area.get("kind") in FILE_KINDS and area.get("file") and area.get("measured")):
+            if not measured_area(area):
                 raise ValueError("area of %s in %s is not measured with its count and source: %s" % (row["code"], job, area))
     return rows
 
@@ -155,25 +172,32 @@ def zone_and_nbh(key):
 
 def table_against_sources(table, sources):
     """R301. Each source against the row of its code in the table of its own job: agrees when every keyed plot is in a zone and
-    neighbourhood pair of the row, differs otherwise, noKeyedPlot when the area key keyed none of its plots, noRow when the job has
-    no row of the code, noJob when the table has no such job."""
+    neighbourhood pair of the row, differs otherwise, noKeyedPlot when the area key keyed none of its plots, mostlyUnkeyed when
+    its unkeyed plots outnumber its keyed plots, so a few keyed plots never speak for the source, noRow when the job has no row of
+    the code, noJob when the table has no such job. Each verdict carries the keyed and unkeyed plot counts."""
     found = []
     for source in sources:
         rows = {row["code"]: row for row in table.get(source.get("job")) or []}
+        counts = source["byZoneAndNbh"]
+        keyed = sum(count for key, count in counts.items() if key != "noKey")
+        unkeyed = counts.get("noKey", 0)
         for code in source["codes"]:
             row = rows.get(code)
-            pairs = {zone_and_nbh(key) for key in source["byZoneAndNbh"] if key != "noKey"}
+            pairs = {zone_and_nbh(key) for key in counts if key != "noKey"}
             if source.get("job") not in table:
                 verdict = "noJob"
             elif row is None:
                 verdict = "noRow"
             elif not pairs:
                 verdict = "noKeyedPlot"
+            elif unkeyed > keyed:
+                verdict = "mostlyUnkeyed"
             elif pairs <= {(area["zone"], area["nbh"]) for area in row["areas"]}:
                 verdict = "agrees"
             else:
                 verdict = "differs"
-            found.append({"source": source["name"], "job": source.get("job"), "code": code, "nbh": sorted(nbh for _, nbh in pairs), "verdict": verdict})
+            found.append({"source": source["name"], "job": source.get("job"), "code": code, "nbh": sorted(nbh for _, nbh in pairs),
+                          "keyedPlots": keyed, "unkeyedPlots": unkeyed, "verdict": verdict})
     return found
 
 

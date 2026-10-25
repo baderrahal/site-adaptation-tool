@@ -147,6 +147,15 @@ def test_r280_overrides_apply_when_the_source_has_the_job_of_the_level_profile_t
     assert code == 2 and "rules" not in seen
 
 
+@pytest.mark.parametrize("extra", [[], ["--override-source"]])
+def test_r280_overrides_with_no_override_source_are_refused_through_main_and_never_applied_as_none(tmp_path, monkeypatch, capsys, extra):
+    path = overrides_file(tmp_path)
+    code, seen = run_book(tmp_path, monkeypatch, ["--overrides", str(path)] + extra)
+    err = capsys.readouterr().err
+    assert code == 2 and "rules" not in seen
+    assert "--override-source" in err and "R280" in err
+
+
 def test_r280_the_job_of_a_source_comes_from_the_keys_of_its_overrides_and_majority_groups():
     groups = project_profile.load_settings().get("majority.groups")
     rows = [{"source": "a.rvt", "key": "u12"}, {"source": "b.rvt", "key": "imc"}, {"source": "c.rvt", "key": "u11"}, {"source": "c.rvt", "key": "imc"},
@@ -216,6 +225,24 @@ def test_r300_a_reference_drawing_is_matched_by_its_stem_whatever_the_case_exten
     assert project_profile.is_reference_only(name, settings)
     with pytest.raises(project_profile.ProfileError):
         project_profile.refuse_reference_only(name, settings)
+
+
+@pytest.mark.parametrize("name", ["Copy (2) of 221229_MP-SK-01-03-001_R06_0000.dwg", "Copy of Copy of 221229_MP-SK-01-03-001_R06_0001.dwg",
+                                  "221229_MP-SK-01-03-001_R06_0000 - Copy.dwg", "221229_MP-SK-01-03-001_R06_0001 - Copy.dxf",
+                                  "copy (3) of 221229_mp-sk-01-03-001_r06_0000 - copy (2).DXF", "C:\\x\\Copy of 221229_MP-SK-01-03-001_R06_0000.dwg",
+                                  "old_221229_MP-SK-01-03-001_R06_0001.dwg"])
+def test_r300_a_reference_drawing_is_matched_by_its_full_stem_as_a_whole_token_whatever_comes_before_or_after(name):
+    settings = project_profile.load_settings()
+    assert project_profile.is_reference_only(name, settings)
+    with pytest.raises(project_profile.ProfileError):
+        project_profile.refuse_reference_only(name, settings)
+
+
+@pytest.mark.parametrize("name", ["221229_MP-SK-01-03-001_R06_00001.dwg", "Copy of 221229_MP-SK-01-03-001_R06_00001.dwg", "221229_MP-SK-01-03-001_R06_00000 - Copy.dwg",
+                                  "1221229_MP-SK-01-03-001_R06_0000.dwg", "x221229_MP-SK-01-03-001_R06_0001.dxf", "221229_MP-SK-01-03-001_R06_0000a.dwg",
+                                  "C:\\221229_MP-SK-01-03-001_R06_0000\\other.dwg"])
+def test_r300_a_different_stem_that_holds_the_reference_stem_is_not_matched(name):
+    assert not project_profile.is_reference_only(name, project_profile.load_settings())
 
 
 @pytest.mark.parametrize("name", ["221229_MP-SK-01-03-001_R06.dwg", "221229_MP-SK-01-03-001_R06_00001.dwg", "Site Building Footprint.dwg", "", None])
@@ -362,6 +389,36 @@ def test_r301_a_source_with_no_keyed_plot_gets_its_own_verdict_and_the_zone_coun
                {"name": "c", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 4 012": 3}},
                {"name": "d", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 2 012": 3, "noKey": 1}}]
     assert [r["verdict"] for r in im_codes.table_against_sources(table, sources)] == ["noKeyedPlot", "noKeyedPlot", "differs", "agrees"]
+
+
+def test_r301_a_verdict_carries_the_keyed_and_unkeyed_plot_counts_and_a_mostly_unkeyed_source_never_agrees():
+    table = {"parsons": [{"code": "IMC", "areas": [area("012", "Zone 2", 9)]}], "native": []}
+    sources = [{"name": "a", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 2 012": 2, "noKey": 3}},
+               {"name": "b", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 4 012": 1, "noKey": 5}},
+               {"name": "c", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 2 012": 2, "noKey": 2}},
+               {"name": "d", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 2 012": 7}}]
+    found = im_codes.table_against_sources(table, sources)
+    assert [r["verdict"] for r in found] == ["mostlyUnkeyed", "mostlyUnkeyed", "agrees", "agrees"]
+    assert [(r["keyedPlots"], r["unkeyedPlots"]) for r in found] == [(2, 3), (1, 5), (2, 2), (7, 0)]
+
+
+@pytest.mark.parametrize("change", [
+    lambda t: t["jobs"]["native"][0]["areas"][0].update(guess="by letter order"),
+    lambda t: t["jobs"]["native"][0]["areas"][0].update(note="any other field"),
+    lambda t: t["jobs"]["native"][0].update(guessed=True),
+    lambda t: t["jobs"]["native"][0]["areas"][0].update(nbh=12),
+    lambda t: t["jobs"]["native"][0]["areas"][0].update(measured=["a list"]),
+])
+def test_r301_an_area_carries_its_measured_fields_and_nothing_else(tmp_path, change):
+    table = {"note": "n", "jobs": {"parsons": [], "native": [{"code": "IMA", "subPhase": "1.1", "areas": [area("02", "Zone 3", 309)]}]}}
+    path = tmp_path / "t.json"
+    path.write_text(json.dumps(table), encoding="utf-8")
+    assert set(im_codes.load_table(path)) == {"parsons", "native"}
+    change(table)
+    path.write_text(json.dumps(table), encoding="utf-8")
+    with pytest.raises(ValueError):
+        im_codes.load_table(path)
+    assert '"status"' not in (ROOT / "python" / "im_codes.py").read_text(encoding="utf-8")
 
 
 def test_r301_the_job_names_come_from_majority_groups_of_the_project_settings(tmp_path):

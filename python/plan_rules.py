@@ -126,7 +126,10 @@ def hand_of(code, kind, role, block_mirror, open_end, hands, drawn, file_code=No
 
 def source_jobs(overrides, sources, groups):
     """R280. The job of each source model, the group of majority.groups in config/project.json that holds the keys its overrides
-    name. A source with no override, or with keys of no group or of two groups, is refused, so no override applies by a guess."""
+    name. A source with no override, or with keys of no group or of two groups, is refused, so no override applies by a guess.
+    No source at all is refused too, an override list given with no --override-source would apply as none."""
+    if not sources:
+        raise project_profile.ProfileError("--overrides names no source model, give the past model files whose overrides apply with --override-source (R280)")
     job_of_key = {key: job for job, keys in groups.items() for key in keys}
     found = defaultdict(set)
     for item in overrides:

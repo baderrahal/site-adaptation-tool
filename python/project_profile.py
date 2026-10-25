@@ -78,11 +78,15 @@ def load_settings(path=SETTINGS_PATH):
 CAD_EXTENSIONS = (".dwg", ".dxf", ".dwl", ".dwl2", ".bak", ".dwt", ".dws", ".sv$")
 
 
+def file_name(name):
+    """The file name of a path, lower case, with no folder."""
+    return PureWindowsPath(str(name or "").replace("/", "\\")).name.strip().lower()
+
+
 def drawing_stem(name):
-    """R300. The stem of a drawing name, lower case, with no folder, no CAD extension and no leading Copy of, so R06_0000.dwg,
-    r06_0000.DXF and Copy of R06_0000.dwg have one stem. A dot that starts no CAD extension stays, as in 25.06.2025 Phase 1."""
-    stem = PureWindowsPath(str(name or "").replace("/", "\\")).name.strip().lower()
-    stem = stem[len("copy of "):] if stem.startswith("copy of ") else stem
+    """R300. The stem of a drawing name, lower case, with no folder and no CAD extension, so R06_0000.dwg and r06_0000.DXF
+    have one stem. A dot that starts no CAD extension stays, as in 25.06.2025 Phase 1."""
+    stem = file_name(name)
     while stem.endswith(CAD_EXTENSIONS):
         stem = stem[:stem.rindex(".")].strip()
     return stem
@@ -96,13 +100,23 @@ def reference_only(settings):
     return {drawing_stem(name) for name in names or [] if drawing_stem(name)}
 
 
+def holds_token(text, token):
+    """True when token is in text with no letter or digit right before or after it."""
+    start = text.find(token)
+    while start >= 0:
+        end = start + len(token)
+        if (start == 0 or not text[start - 1].isalnum()) and (end == len(text) or not text[end].isalnum()):
+            return True
+        start = text.find(token, start + 1)
+    return False
+
+
 def is_reference_only(source, settings):
-    """R300. True when the stem of source is the stem of a reference only drawing, or that stem with a copy suffix after a
-    character that is no letter or digit, such as R06_0000 - Copy, R06_0000 (2) or R06_0000_copy."""
-    stem = drawing_stem(source)
-    if not stem:
-        return False
-    return any(stem == ref or (stem.startswith(ref) and not stem[len(ref)].isalnum()) for ref in reference_only(settings))
+    """R300. True when the file name of source holds the full stem of a reference only drawing as a whole token, whatever comes
+    before or after it, so Copy (2) of R06_0000.dwg, R06_0000 - Copy.dxf and Copy of Copy of R06_0001.dwg match and R06_00001
+    does not."""
+    name = file_name(source)
+    return bool(name) and any(holds_token(name, ref) for ref in reference_only(settings))
 
 
 def refuse_reference_only(source, settings=None):
