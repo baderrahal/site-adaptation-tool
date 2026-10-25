@@ -7,7 +7,7 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 In progress. Phases 0a, 0b and 1 merged (PR 41 to 43), 1b in review on PR 44. Plan: steps/investigations/round-addin.md.
 
 Goal:
-- The add-in inside Revit 2024 in C#, .NET 4.8, from the 7 Rev 6 Parsons site models, parsons2024Rev6 for every build (Q050), the mock of docs/addin-mock.md. Part 2 waits for Bader's check of Part 1
+- The add-in inside Revit 2024 in C#, .NET 4.8, from the 7 Rev 6 Parsons site models, parsons2024Rev6 for every build (Q050), docs/addin-mock.md. Part 2 waits for Bader's check of Part 1
 
 Done:
 - 0a, 0b (PR 41, 42): the harness and the open fixes, R277, R280, R300 to R304, R303 withdrawn (Q064)
@@ -20,13 +20,13 @@ Checked:
 - 1b: the 7 copies reuse 7 of 7 at the final head, Get-FileHash and targetInfo 42 of 42. The 13 STR files 65 of 65 checks, 13 files times 5. The sources.txt lines equal the manifest and the hash list 35 of 35, its hash before the move UNKNOWN. 60 of 60 files equal before and after by two hash tools. The R301 names 7 of 7 by two methods. This Your turn equals Bader's turn of steps/PROGRESS.md
 
 Remains:
-- Phases 2 to 6. Reinstall the test host before the next window, its guard takes prototypeNames
+- Phases 2 to 6. Reinstall the test host before the next window (prototypeNames)
 
 Known bugs:
 - The whole NBH 03 area runs past the 30 minute image step (Q063), Revit starts up to 10 helper processes
 - rvt_info.py (R203) misses cloud links, 1 of 14 in the SE models. The Generic floors of IME and IMF are of type FFL, not in floors.types
-- angleToTrueNorthDeg of the reader has 3 decimals and is not brought into 0 to 360, the placer takes 0 only. 1 old .NET warning, xUnit2013
-- key_copies.py keeps a last part NUL, nul. or "NUL. " as a name where Windows opens the NUL device, reachable only by answerKeys.folder, and PrototypeSets.ps1 throws on it
+- angleToTrueNorthDeg of the reader has 3 decimals, not brought into 0 to 360, the placer takes 0 only. 1 old .NET warning, xUnit2013
+- key_copies.py keeps a last part NUL, nul. or "NUL. " as a name, Windows opens the NUL device, only answerKeys.folder reaches it, PrototypeSets.ps1 throws on it
 
 Next:
 - Phase 2: the 7 keys from the 2024 copies into plan files and past_all.csv, the Parsons area codes, the FFL floor type
@@ -56,7 +56,7 @@ Q064. The dialog watcher through the job (R303) is withdrawn after two attempts:
 Q065. The zone2 IMC file of Revit All Zones is the master of the floor scenarios: last saved as _TEST-MASTER, not workshared, links unloaded, 0 floors against 1,010. Its 2024 copy is made from the Zone 02\ARC original, the IMC key: replace the zone2 file by a copy of that original (recommended), or keep it
 Q066. No Rev 6 Parsons TU model of Zone 1 is here: IMA and IMB are Engicon SE models with STR prototype links, 432 and 301 plots, no level, ramp or yard floor. Your rule takes a Native model only for plots none of the 7 Parsons models hold, and these plots are in IMA and IMB, so taking their levels, ramps and yards from the Native 1.1 and 1.2 reads is the lead's choice, not your rule: send the Parsons TU models of IMA and IMB (recommended), or accept that Native stand-in until then
 Q068. The 7 Parsons models share one project position, survey point, base point, angle 0, Level 1 and Level 2. R211 puts the internal origin at the plot centre of the NBH, 547.5 m away for NBH 012: let button 1 set the Parsons position from config (recommended), or keep R211
-Q069. Record of a remade key copy, withdrawn after two attempts since its run proof could be fooled: when a key source changes, let the test host write the SHA-256 of the work copy at the job start and of the made copy at its end into the run log, and let record file a copy only when the work copy hash equals the source hash of the manifest request and the made copy hash on disk equals the logged one (recommended). Until then a remake is done by hand and imported
+Q069. Record of a remade key copy, withdrawn after two attempts since its run proof could be fooled: when a key source changes, let the test host write the SHA-256 of the work copy at the job start and of the made copy at its end into the run log, and let record file a copy only when the work copy hash equals the source hash of the manifest request and the made copy hash on disk equals the logged one (recommended). Until Q069 is answered a remade copy is filed by editing its manifest entry by hand, since import refuses once a manifest exists
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 
