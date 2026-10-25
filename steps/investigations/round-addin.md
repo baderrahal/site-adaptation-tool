@@ -609,7 +609,7 @@ A second breaker pass read PR 45. Each code fix has a test that names its rule, 
 
 - None new and none closed. The older open questions are shortened to one short sentence each, up to 7 to a line, in steps/PROGRESS.md and the top entry of steps/log.md, with their full text kept under Open questions, full text in steps/questions-closed.md.
 
-## Phase 2 part 2, data/addin-key-plans
+## Phase 2 part 2, PR 46 data/addin-key-plans
 
 Branch data/addin-key-plans from main at 104c1f3, equal to origin/main after git fetch (RAN). Rules R325 to R328 are new, R329 is not used, the PR holds four changes. R325 changes how R206 and R264 map a link, R326 adds the source column to R269 and fills the parsons table of R301. The phase ran in a helper agent started by the main session, which runs the checkers and merges. No Revit or Civil 3D window was opened, the reads of 2a are the input, so the lock was not taken and the registry was not read or written. Values of coordinates and levels stay in Documents\SiteAdaptation, this file holds counts, plot numbers, ids and differences only.
 
@@ -641,7 +641,7 @@ Branch data/addin-key-plans from main at 104c1f3, equal to origin/main after git
 
 ### R326, the join, the place check, the area codes and past_all.csv
 
-- Tests first (RAN, p2b_r326_first.txt): the test file stopped at collection with ModuleNotFoundError for key_join, then the real settings test failed with the parsons group holding imc only until the config named the 7 keys, and the area agreement test failed on the missing areaAgrees count. Then 12 passed.
+- Tests first (RAN, p2b_r326_first.txt): the test file stopped at collection with ModuleNotFoundError for key_join, then the real settings test failed with the parsons group holding imc only until the config named the 7 keys, and the area agreement test failed on the missing areaAgrees count. Then 11 passed.
 - Join by location (RAN, round_addin\join\key_join.json, logs\p2b_key_join.txt), IMC first:
 
 | Key | Link plots | Joined | Its own number | Another number | Not joined, by why | NBH, zone |

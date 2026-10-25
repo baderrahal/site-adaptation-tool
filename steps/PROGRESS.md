@@ -1,4 +1,4 @@
-STATE 2026-10-25, Round ADDIN Part 1, Phase 2 part 2 in review (data/addin-key-plans): the plans of the 7 keys (R325), the join, the place check, the area codes and past_all.csv by source (R326), the spots at the plot entrance (R327) and their second method (R328). Phases 0a to 2a merged (PR 41 to 45). Round 17 done and merged (PR 39, 40)
+STATE 2026-10-25, Round ADDIN Part 1, Phase 2 part 2 in review on PR 46 (data/addin-key-plans): the plans of the 7 keys (R325), the join, the place check, the area codes and past_all.csv by source (R326), the spots at the plot entrance (R327) and their second method (R328). Phases 0a to 2a merged (PR 41 to 45). Round 17 done and merged (PR 39, 40)
 
 # Progress
 
@@ -17,7 +17,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 
 ## Done
 
-- ADDIN 2b: R325 to R328 with their tests, 7 plans in Documents\SiteAdaptation (plan_imc_key_past.json, plan_imc_past.json kept), the new IMC plan equal to plan_imc_past.json on 335 of 335 plots but El @ Entry and SSL, past_all.csv 4,949 rows (native 2,395 cell for cell, parsons 2,554), the join 2,556 of 2,591 link plots, area codes of the 7 keys, Q011 closed, second method all equal but 2 IMG ramps on a face edge
+- ADDIN 2b, PR 46 in review: R325 to R328 with their tests, 7 plans in Documents\SiteAdaptation (plan_imc_key_past.json, plan_imc_past.json kept), the new IMC plan equal to plan_imc_past.json on 335 of 335 plots but El @ Entry and SSL, past_all.csv 4,949 rows (native 2,395 cell for cell, parsons 2,554), the join 2,556 of 2,591 link plots, area codes of the 7 keys, Q011 closed, second method all equal but 2 IMG ramps on a face edge
 - ADDIN 2a, PR 45: R320 to R323 with their tests, the test host installed from 7b82696, 7 reads one window at a time under the lock, IMC first, 60 of 60 files equal before and after, second method 28 of 28 category counts, the spot value against its floor top 5,445 of 5,455 TU spots within 1 mm, the per plot rule on 1,560 of 1,561 IMC to IMF plots, IMG 0 of 297 for no yard, IMA and IMB 0 of 733 for no yard and no ramp, the review fixes 2d415ec to 83b3713, the second breaker pass f8e54df to 5e090e1: a read is of a key only as <copy name>_TEST-<job>, a spot outside its floor apart, noHost, a null worst gap, no repeat of itself
 - ADDIN 1b, PR 44: R312, R313 and the R301 manifest, the 13 STR upgrades. ADDIN 1, PR 43: R310, R311, R203, R204, R301, 17 windows and KG3
 - ADDIN 0b, PR 42 and 0a, PR 41: the harness and the open fixes, Q028, Q035, Q044 to Q050, Q060, Q061 closed. 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c to 1: PRs 1 to 25
