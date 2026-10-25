@@ -175,8 +175,7 @@ namespace SiteAdaptation.Tests
             int invoke = program.IndexOf(".Invoke()", StringComparison.Ordinal);
             int message = program.IndexOf("PostMessage(new IntPtr(buttonHandle), ButtonClick", StringComparison.Ordinal);
             Assert.True(check > 0 && check < invoke && invoke < message);
-            // ClickFor gives ButtonFor while Revit starts and nothing in the job phase (R303)
-            Assert.Contains("string label = SecurityDialogs.ClickFor(action, jobPhase);", program);
+            Assert.Contains("string label = SecurityDialogs.ButtonFor(action);", program);
             Assert.Contains("if (label != null && Click(window, entry, label))", program);
             Assert.Contains("the dialog stayed open after \" + label", program);
         }

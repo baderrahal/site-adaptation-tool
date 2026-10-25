@@ -125,38 +125,5 @@ namespace SiteAdaptation.Common
                     return null;
             }
         }
-
-        // R303. Why the watcher stops, or null while it goes on: Revit gone, or its minutes over. Only the start watch of R108,
-        // stopAtFirstStep, also stops once the test host has written its first log step
-        public static string StopReason(bool revitAlive, bool firstStepWritten, bool stopAtFirstStep, DateTime nowUtc, DateTime deadlineUtc, double minutes)
-        {
-            if (!revitAlive)
-            {
-                return "Revit exited";
-            }
-            if (stopAtFirstStep && firstStepWritten)
-            {
-                return "the test host wrote its first log step";
-            }
-            if (nowUtc > deadlineUtc)
-            {
-                return "watched " + minutes + " minutes";
-            }
-            return null;
-        }
-
-        // R303. Whether a dialog the watcher read stops Revit. While Revit starts, a dialog it cannot answer by rule 3 does (R108).
-        // After the first step of the test host nothing does, the test host and its limits own the job
-        public static bool StopsRevit(WatchAction action, bool jobPhase)
-        {
-            return ButtonFor(action) == null && !jobPhase;
-        }
-
-        // R303. The button the watcher clicks. While Revit starts the button of rule 3 (R108). After the first step none, the job
-        // phase only lists windows
-        public static string ClickFor(WatchAction action, bool jobPhase)
-        {
-            return jobPhase ? null : ButtonFor(action);
-        }
     }
 }
