@@ -7,8 +7,10 @@ Typology_Rev9 codes, the plots two keys share, and per neighbourhood the unit pl
 table (R269): past_all.csv, one row per plot per key. Levels are taken off the datum of the key, its survey elevation for a
 Native key, as in R215. A key of the Native dialect is first mapped to official numbers by R206 and R264, so its floor
 parameters can be read per plot. The parameters written are those pastAll in config/project.json names.
-R326. Each row names the job of its key, the group of majority.groups that holds it, in the column source, the rows of one job of an
-older table can be kept cell for cell, and an answer key of Round ADDIN is read by the floor types of its code (R321).
+R326. Each row names the job of its key, the group of majority.groups that holds it, in the column source, and the kind of an answer
+key, TU or SE of answerKeys, in the column kind. The rows of one job of an older table can be kept cell for cell, an answer key of Round
+ADDIN is read by the floor types of its code (R321) and joins its plots by area share (R325), El @ Entry of a schedule goes only to the
+key of its own job, and heightSource says what the height was worked out from.
 Nothing is written inside the repo.
 """
 import argparse
@@ -34,10 +36,13 @@ import ramp_levels
 import yard_rule
 
 DATE_IN_PATH = re.compile(r"(?<!\d)(20\d{2})(\d{2})(\d{2})(?!\d)")
-COLUMNS = ["key", "source", "plot", "nbh", "zone", "typologyRev9", "planCode", "keyUnit", "linkFile", "x", "y", "rotationDeg", "mirrored", "case",
+COLUMNS = ["key", "source", "kind", "plot", "nbh", "zone", "typologyRev9", "planCode", "keyUnit", "linkFile", "x", "y", "rotationDeg", "mirrored", "case",
            "footprintResidualM", "genericType", "genericAreaM2", "genericTop", "yardType", "yardAreaM2", "yardTop", "rampType", "rampAreaM2", "rampCorners", "rampSlopePercent",
-           "rampCrossPercent", "rampFront", "rampBack", "rampFrontFall", "ffl", "entry", "entrySource", "height", "steps", "datumM", "linkName", "genericOutline", "rampOutline",
-           "parameters"]
+           "rampCrossPercent", "rampFront", "rampBack", "rampFrontFall", "ffl", "entry", "entrySource", "height", "heightSource", "steps", "datumM", "linkName",
+           "genericOutline", "rampOutline", "parameters"]
+# R326. The FFL of a plan of the names dialect is the top of the generic floor of the key, else it is the schedule of the past job
+FFL_FROM_FLOOR = "floorTop"
+FFL_FROM_SCHEDULE = "schedule"
 
 
 def path_date(path):
@@ -89,12 +94,13 @@ def coverage(plans, labels):
                       "neighbourhoodsWithNoKeyPlot": [nbh for nbh, row in union.items() if not row["heldByAKey"]]}}
 
 
-def floor_parameters(data, dialect, floors, faces, numbers, names):
-    """The parameters of pastAll.floorParameters on the Generic floor of each plot, by official number, and the datum of the key."""
+def floor_parameters(data, dialect, floors, faces, numbers, names, share_min=None):
+    """The parameters of pastAll.floorParameters on the Generic floor of each plot, by official number, and the datum of the key. With
+    share_min the generic floors join their faces by area share as the plan of an answer key does (R325)."""
     data = copy.deepcopy(data)
     key_floors = placer_check.dialect_floors(floors, dialect)
     if dialect["plot"] == "name":
-        data, _, _ = plan_from_past.names_dialect(data, key_floors, faces, numbers)
+        data, _, _ = plan_from_past.names_dialect(data, key_floors, faces, numbers, share_min=share_min)
     document = plan_from_past.host_of(data)
     datum = ramp_levels.offset_of(document)[2] if dialect["datum"] == "surveyElevation" else 0.0
     found = {}
@@ -143,11 +149,26 @@ def floor_cells(floor, datum, face=None):
     return cells
 
 
-def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settings_block, footprint=None, schedule=None):
-    """R269. One row per plot of the key. R326. schedule gives El @ Entry of the schedule by official number, which comes first, and the
-    El @ Entry a plan of an answer key holds (R325) is the parameter of its generic floor, so its source is floorParameter."""
-    params, datum = floor_parameters(data, dialect, floors, faces, numbers, settings_block["floorParameters"])
+def refused_entry(plan, plot):
+    """R325. True when the plan lists El @ Entry of the plot as refused, a key value off keyPlans.entryHeightM."""
+    return any(item["key"] == "levels.entry" and str(item.get("why", "")).startswith(plan_from_past.REFUSED)
+               for row in plan.get("missing") or [] if row.get("plot") == plot for item in row.get("missing") or [])
+
+
+def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settings_block, footprint=None, schedule=None, code=None, share_min=None):
+    """R269. One row per plot of the key. R326. schedule is El @ Entry of the schedules of plots.csv by official number, each with its source,
+    and a row takes it first only when pastAll.scheduleKeys gives that source the code of this key, so a Native key or another key on the same
+    plots never does. The El @ Entry a plan of an answer key holds (R325) is the parameter of its generic floor, so its source is
+    floorParameter, and a value that plan refused is never taken again from the floor or the ramp, its source is refused. heightSource is
+    where the FFL came from less the source of El @ Entry."""
+    params, datum = floor_parameters(data, dialect, floors, faces, numbers, settings_block["floorParameters"], share_min)
     entry_parameter = settings_block["entryParameter"]
+    own = {}
+    if code and schedule:
+        import key_join
+        own = key_join.schedule_of(schedule, code, settings_block.get("scheduleKeys") or {})
+    answer = (plan.get("sources") or {}).get("answerKey")
+    ffl_source = FFL_FROM_FLOOR if "namesDialect" in (plan.get("summary") or {}) else FFL_FROM_SCHEDULE
     rows = []
     for entry in sorted(plan["plots"], key=lambda item: link_summary.sort_key(item["plot"])):
         plot = entry["plot"]
@@ -160,16 +181,17 @@ def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settin
         ramp = floor_cells((entry.get("floors") or {}).get("ramp"), datum, face)
         yard = floor_cells((entry.get("floors") or {}).get("yard"), datum)
         floor_params = params.get(plot, {})
-        # The schedule gives El @ Entry, else the FFL floor of a Native key, else the top of its ramp at the entrance
-        entry_level, source = (levels.get("entry") or {}).get("value"), "floorParameter" if (plan.get("sources") or {}).get("answerKey") else "schedule"
-        if plot in (schedule or {}):
-            entry_level, source = schedule[plot], "schedule"
-        if entry_level is None and number(floor_params.get(entry_parameter)) is not None:
+        # The schedule of the job of the key gives El @ Entry, else the plan, else the FFL floor of a Native key, else the top of its ramp
+        entry_level = (levels.get("entry") or {}).get("value")
+        source = None if entry_level is None else "floorParameter" if answer else "schedule"
+        if plot in own:
+            entry_level, source = own[plot], "schedule"
+        elif entry_level is None and answer:
+            source = "refused" if refused_entry(plan, plot) else None
+        elif entry_level is None and number(floor_params.get(entry_parameter)) is not None:
             entry_level, source = number(floor_params[entry_parameter]), "floorParameter"
         elif entry_level is None and ramp.get("back") is not None:
             entry_level, source = ramp["back"], "rampBack"
-        elif entry_level is None:
-            source = None
         ffl_design = None if ffl is None else ffl - datum
         insert = value("insert") or [None, None]
         link_parameters = {key: item["value"] for key, item in (entry.get("parameters") or {}).items() if key in settings_block["linkParameters"]}
@@ -183,6 +205,7 @@ def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settin
             "rampCrossPercent": ramp.get("cross"), "rampFront": ramp.get("front"), "rampBack": ramp.get("back"), "rampFrontFall": ramp.get("frontFall"), "ffl": None if ffl_design is None else common.r3(ffl_design),
             "entry": None if entry_level is None else round(entry_level, 4), "entrySource": source,
             "height": None if entry_level is None or ffl_design is None else round(ffl_design - entry_level, 4),
+            "heightSource": None if entry_level is None or ffl_design is None else ffl_source + " less " + source,
             "steps": (levels.get("steps") or {}).get("value"), "datumM": common.r3(datum), "linkName": value("linkName"),
             "genericOutline": generic.get("outline"), "rampOutline": ramp.get("outline"), "parameters": json.dumps(link_parameters, ensure_ascii=False, sort_keys=True),
         })
@@ -195,6 +218,16 @@ def source_of(key, groups):
     if len(found) != 1:
         raise project_profile.ProfileError("majority.groups must hold the key " + str(key) + " in one group, it is in " + str(len(found)))
     return found[0]
+
+
+def key_kind(settings, code):
+    """R326. The kind of an answer key, TU or SE of answerKeys, and none for a key of no code."""
+    if not code:
+        return ""
+    kinds = [key.get("kind") for key in settings.get("answerKeys.keys") if key.get("code") == code]
+    if len(kinds) != 1 or not kinds[0]:
+        raise project_profile.ProfileError("answerKeys has no one key " + str(code) + " with a kind")
+    return kinds[0]
 
 
 def kept_rows(path, group, groups):
@@ -231,6 +264,10 @@ def load_block(settings):
     block = settings.get("pastAll")
     if not isinstance(block, dict) or not all(isinstance(block.get(key), list) for key in ("linkParameters", "floorParameters")) or not block.get("entryParameter"):
         raise project_profile.ProfileError(settings.path.name + " pastAll must name linkParameters, floorParameters and entryParameter")
+    keys = block.get("scheduleKeys", {})
+    codes = [key.get("code") for key in (settings.values.get("answerKeys") or {}).get("keys") or []]
+    if not isinstance(keys, dict) or not all(isinstance(text, str) and code in codes for text, code in keys.items()):
+        raise project_profile.ProfileError(settings.path.name + " pastAll.scheduleKeys must map a pastSource of plots.csv to an answer key code")
     return block
 
 
@@ -293,17 +330,20 @@ def main(argv=None):
         if name in kept:
             raise project_profile.ProfileError("the key " + name + " is both kept from " + args.keep_from[0] + " and given, give it once")
         data = link_summary.load(prototypes)
-        key_floors = floors
+        key_floors, share_min = floors, None
         if name in codes:
             key_floors = plan_from_past.load_floors(settings, codes[name])
             plan_from_past.check_key_file(settings, codes[name], plan_from_past.host_of(data).get("file"), plan_from_past.read_job(prototypes))
-        source = source_of(name, groups)
-        rows += [dict(row, source=source) for row in table_rows(name, link_summary.load(plan), data, split["dialects"][dialect], key_floors, faces, numbers, labels, block,
-                                                               footprints.get(name), schedule)]
+            share_min = plan_from_past.load_key_plans(settings)["cutShareMin"]
+        source, kind = source_of(name, groups), key_kind(settings, codes.get(name))
+        rows += [dict(row, source=source, kind=kind) for row in table_rows(name, link_summary.load(plan), data, split["dialects"][dialect], key_floors, faces, numbers,
+                                                                          labels, block, footprints.get(name), schedule, codes.get(name), share_min)]
     write_csv(out, rows)
     print("rows %d, by key %s" % (len(rows), dict(Counter(row["key"] for row in rows))))
     print("by source %s" % dict(Counter(row["source"] for row in rows)))
+    print("by source and kind %s" % dict(Counter((row["source"], row.get("kind") or "none") for row in rows)))
     print("El @ Entry source %s" % dict(Counter((row["key"], row["entrySource"]) for row in rows)))
+    print("height source %s" % dict(Counter((row["key"], row.get("heightSource")) for row in rows)))
     print(out)
     return 0
 

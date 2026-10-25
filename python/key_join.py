@@ -195,16 +195,22 @@ def area_row(code, file, joined):
 
 
 def read_plots_csv(path):
-    """R326. The area key of plots.csv by baseplan label (R256), and El @ Entry of the schedule by official number where the row holds a
-    schedule level, the IMC and IMD schedules of the data book."""
+    """R326. The area key of plots.csv by baseplan label (R256), and El @ Entry of the schedule by official number with the pastSource that
+    names its schedule where the row holds a schedule level, the IMC and IMD schedules of the data book."""
     area, schedule = {}, {}
     with open(path, encoding="utf-8") as handle:
         for row in csv.DictReader(handle):
             if row.get("baseplanLabel") and row.get("nbhId"):
                 area[row["baseplanLabel"]] = {"nbhId": row["nbhId"], "zone": row.get("zone")}
             if row.get("officialNumber") and row.get("pastEntry") and row.get("pastSource"):
-                schedule[row["officialNumber"]] = float(row["pastEntry"])
+                schedule[row["officialNumber"]] = {"entry": float(row["pastEntry"]), "source": row["pastSource"]}
     return area, schedule
+
+
+def schedule_of(schedule, code, keys):
+    """R326. El @ Entry by official number of the schedule of the job of the answer key code: the rows whose pastSource keys, which is
+    pastAll.scheduleKeys, gives that code. A key of another job or of no code gets none."""
+    return {number: row["entry"] for number, row in (schedule or {}).items() if code and keys.get(row["source"]) == code}
 
 
 def key_source(settings, code):

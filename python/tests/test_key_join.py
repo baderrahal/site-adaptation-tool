@@ -11,6 +11,7 @@ from shapely.geometry import box
 
 import im_codes
 import key_join
+import majority
 import past_all
 import plan_from_past as pf
 import project_profile
@@ -145,7 +146,7 @@ def plots_csv(tmp_path):
 def test_r326_the_area_key_and_the_schedule_entry_are_read_from_plots_csv_by_baseplan_label_and_official_number(tmp_path):
     area, schedule = key_join.read_plots_csv(plots_csv(tmp_path))
     assert area == {"11": {"nbhId": "01A", "zone": "Zone 4"}, "12": {"nbhId": "01A", "zone": "Zone 4"}}
-    assert schedule == {"501": 6.9}
+    assert schedule == {"501": {"entry": 6.9, "source": "schedule IMX"}}
 
 
 ROW = {column: "" for column in past_all.COLUMNS if column != "source"}
@@ -182,14 +183,101 @@ def test_r326_the_table_is_never_written_over_the_table_it_keeps_rows_of(tmp_pat
     assert old.read_bytes() == before
 
 
+SCHEDULE_KEYS = {"schedule IMX": "IMX", "schedule IMY": "IMY"}
+SCHEDULE = {"501": {"entry": 6.9, "source": "schedule IMX"}, "502": {"entry": 6.95, "source": "schedule IMY"}}
+
+
+def key_plan(answer="IMX", entries=(6.8, 6.85)):
+    plan = {"sources": {"answerKey": answer} if answer else {}, "summary": {"namesDialect": {}}, "plots": [], "missing": []}
+    for plot, entry in zip(("501", "502"), entries):
+        levels = {"ffl": {"value": 7.0, "source": "pastJob"}}
+        if entry is not None:
+            levels["entry"] = {"value": entry, "source": pf.KEY_PARAMETER}
+        plan["plots"].append({"plot": plot, "levels": levels})
+    return plan
+
+
 def test_r326_an_answer_key_plan_takes_el_at_entry_from_the_schedule_when_plots_csv_has_one_else_from_its_floor_parameter():
-    plan = {"sources": {"answerKey": "IMX"}, "plots": [
-        {"plot": "501", "levels": {"ffl": {"value": 7.0, "source": "pastJob"}, "entry": {"value": 6.8, "source": "pastJob"}}},
-        {"plot": "502", "levels": {"ffl": {"value": 7.0, "source": "pastJob"}, "entry": {"value": 6.85, "source": "pastJob"}}}]}
     data = {"documents": [document([], [])]}
-    block = {"floorParameters": [], "entryParameter": "x", "linkParameters": []}
-    rows = past_all.table_rows("imx", plan, data, {"plot": "parameter", "datum": "none"}, FLOORS, {}, {}, {}, block, schedule={"501": 6.9})
+    block = {"floorParameters": [], "entryParameter": "x", "linkParameters": [], "scheduleKeys": SCHEDULE_KEYS}
+    rows = past_all.table_rows("imx", key_plan(), data, {"plot": "parameter", "datum": "none"}, FLOORS, {}, {}, {}, block, schedule=SCHEDULE, code="IMX")
     assert [(row["entry"], row["entrySource"], row["height"]) for row in rows] == [(6.9, "schedule", 0.1), (6.85, "floorParameter", 0.15)]
+
+
+def test_r326_the_schedule_gives_el_at_entry_only_to_the_key_of_its_own_job_on_its_own_plots_and_the_height_says_where_it_came_from():
+    assert key_join.schedule_of(SCHEDULE, "IMX", SCHEDULE_KEYS) == {"501": 6.9}
+    data = {"documents": [document([], [])]}
+    block = {"floorParameters": ["x"], "entryParameter": "x", "linkParameters": [], "scheduleKeys": SCHEDULE_KEYS}
+    # A Native key on the same plots takes nothing of the schedules, it has no El @ Entry of its own here
+    native = past_all.table_rows("u11", key_plan(answer=None, entries=(None, None)), data, {"plot": "parameter", "datum": "none"}, FLOORS, {}, {}, {}, block,
+                                 schedule=SCHEDULE)
+    assert [(row["entry"], row["entrySource"], row["heightSource"]) for row in native] == [(None, None, None), (None, None, None)]
+    imy = past_all.table_rows("imy", key_plan(answer="IMY"), data, {"plot": "parameter", "datum": "none"}, FLOORS, {}, {}, {}, block, schedule=SCHEDULE, code="IMY")
+    assert [(row["entry"], row["entrySource"], row["heightSource"]) for row in imy] == [(6.8, "floorParameter", "floorTop less floorParameter"),
+                                                                                      (6.95, "schedule", "floorTop less schedule")]
+
+
+def test_r326_an_answer_key_row_whose_el_at_entry_the_plan_refused_takes_no_other_value_and_says_refused():
+    plan = key_plan(entries=(6.8, None))
+    plan["missing"] = [{"plot": "502", "written": True, "missing": [{"key": "levels.entry", "why": pf.REFUSED + "the value puts the floor top 143 m over it"}]}]
+    # The floor parameter still holds the placeholder, it is never taken again
+    data = {"documents": [document([], [dict(floor("DP4-502", 10), parameters={"Plot": "DP4-502", "x": 150.0})])]}
+    block = {"floorParameters": ["x"], "entryParameter": "x", "linkParameters": [], "scheduleKeys": SCHEDULE_KEYS}
+    rows = past_all.table_rows("imx", plan, data, {"plot": "name", "datum": "none"}, FLOORS, tj_faces(), NUMBERS, {}, block, code="IMX", share_min=SHARE)
+    assert [(row["entry"], row["entrySource"], row["height"], row["heightSource"]) for row in rows] == [(6.8, "floorParameter", 0.2, "floorTop less floorParameter"),
+                                                                                                       (None, "refused", None, None)]
+
+
+def tj_faces():
+    return {label: FACES[label] for label in ("11", "12", "13")}
+
+
+def test_r326_each_answer_key_takes_its_kind_from_answer_keys_and_a_key_of_no_code_has_none():
+    settings = project_profile.load_settings()
+    assert past_all.key_kind(settings, "IMA") == "SE" and past_all.key_kind(settings, "IMC") == "TU" and past_all.key_kind(settings, None) == ""
+    assert "kind" in past_all.COLUMNS and "heightSource" in past_all.COLUMNS
+
+
+def table_row(key, kind, plot, entry=6.8):
+    row = {column: None for column in past_all.COLUMNS}
+    row.update(key=key, kind=kind, plot=plot, typologyRev9="DP4", keyUnit="DP4", linkFile="a.rvt", mirrored=True, entry=entry, entrySource="floorParameter",
+               ffl=7.0, height=round(7.0 - entry, 4), steps="2", rampType="Ramps 0.5%", rampSlopePercent=0.5, rampFront=6.7, rampBack=entry, rampFrontFall=0.0,
+               yardTop=6.9, parameters="{}")
+    return row
+
+
+LEFT_OUT = ("rampSlope", "entry", "rampFront", "rampFrontFall", "height", "steps", "yard")
+
+
+def kinds_taken(rows):
+    settings = project_profile.load_settings()
+    profile = project_profile.load_profile(project_profile.profile_path(settings))
+    block = majority.load_block(settings)
+    items = majority.contexts(rows, {}, {}, {}, {}, {}, {}, profile, block)
+    results, _, _ = majority.run(items, {}, profile, block, [majority.ROAD], [])
+    return {result["decision"]: result["byKind"] for result in results}, block
+
+
+def test_r326_the_majority_rule_leaves_the_rows_of_a_kind_out_of_every_decision_majority_kind_leave_out_names():
+    rows = [table_row("imc", "TU", str(plot)) for plot in range(501, 506)] + [table_row("ima", "SE", str(plot), 9.9) for plot in range(601, 606)]
+    taken, block = kinds_taken(rows)
+    assert set(block["kindLeaveOut"]["SE"]) == set(LEFT_OUT)
+    for decision, kinds in taken.items():
+        word = decision.split(" ")[1]
+        assert ("SE" in kinds) == (word not in LEFT_OUT), decision
+    assert taken["parsons entry"] == {"TU": 5} and taken["parsons hand alone"] == {"TU": 5, "SE": 5}
+
+
+def test_r326_a_majority_run_over_the_real_past_all_takes_no_se_row_into_the_fields_the_se_keys_do_not_hold():
+    path = project_profile.Path(project_profile.load_settings().get("siteBuild.folder")) / "past_all.csv"
+    if not path.is_file():
+        pytest.skip("no past_all.csv of Round ADDIN on this machine")
+    rows = past_all.read_table(path)
+    assert sum(1 for row in rows if row.get("kind") == "SE") > 0
+    taken, _ = kinds_taken(rows)
+    for decision, kinds in taken.items():
+        if decision.split(" ")[1] in LEFT_OUT:
+            assert "SE" not in kinds, decision
 
 
 def test_r326_the_real_settings_put_the_seven_answer_keys_in_the_parsons_job_with_a_parsons_dialect():
