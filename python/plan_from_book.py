@@ -375,7 +375,8 @@ def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales):
         if sides is not None and frames.get(number) is not None:
             open_ends[number] = "both" if not sides["left"] and not sides["right"] else "left" if not sides["left"] else "right" if not sides["right"] else "none"
     fields = tuple(args.override_fields) if args.override_fields else plan_rules.FIELDS
-    overrides = plan_rules.load_overrides(args.overrides, set(args.override_source), fields) if args.overrides else {}
+    # R280. Only the overrides of a source of the job of the level profile, the job of a source from majority.groups
+    overrides = plan_rules.load_overrides(args.overrides, set(args.override_source), fields, block["groups"], name, lp) if args.overrides else {}
     return {"name": name, "levelProfile": lp, "hands": profile.get("hands") or {}, "openEnds": open_ends, "overrides": overrides,
             "sources": list(args.override_source)}
 

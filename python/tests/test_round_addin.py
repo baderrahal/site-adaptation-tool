@@ -73,16 +73,102 @@ def test_r277_plan_from_book_takes_the_default_profile_when_no_level_profile_is_
     assert named["name"] == "native2022"
 
 
+SUMMARY = {"written": 0, "plots": 0, "missingByKey": {}, "inACluster": 0, "clusters": 0, "clusterPlots": 0, "roadSurfacesOfFrontCorners": {},
+           "plotsWithNoRoadLevel": [], "frontLevelAgainstPlotsCsv": {}, "frontRule": {}, "floorsFound": {}, "floorTypes": {}}
+
+
+def run_book(tmp_path, monkeypatch, extra):
+    """plan_from_book.main on the real config and rules profile with the readers of the drawings, the LandXML and the site
+    stubbed, so the rules a build gets and its refusals are seen through main itself."""
+    seen = {}
+    monkeypatch.setattr(plan_from_book, "book_rows", lambda path: ({}, {}))
+    monkeypatch.setattr(plan_from_book.link_summary, "load", lambda path: {"plots": []})
+    monkeypatch.setattr(plan_from_book.cad_analysis, "read_road_edges", lambda folder, layers: [])
+    monkeypatch.setattr(plan_from_book.plan_from_past, "prototype_folders", lambda root, job: ("folder", "upgraded"))
+    monkeypatch.setattr(plan_from_book.plan_from_past, "write_plan", lambda out, plan: None)
+    monkeypatch.setattr(plan_from_book, "load_roads", lambda paths, scratch: {})
+    monkeypatch.setattr(plan_from_book, "folder_files", lambda folder, profile: {})
+    monkeypatch.setattr(plan_from_book, "site_report", lambda path: {})
+    monkeypatch.setattr(plan_from_book.floor_fit, "load", lambda path: {})
+    monkeypatch.setattr(plan_from_book.prototype_offsets, "load", lambda path: {})
+    monkeypatch.setattr(plan_from_book.prototype_offsets, "plot_frame", lambda offsets: {})
+
+    def build(*args):
+        seen["rules"] = args[-1]
+        return {"summary": SUMMARY}
+
+    monkeypatch.setattr(plan_from_book, "build", build)
+    cover = tmp_path / "cover.json"
+    cover.write_text(json.dumps({"neighbourhood": "N1", "plots": []}), encoding="utf-8")
+    analysis = tmp_path / "analysis.json"
+    analysis.write_text(json.dumps({"clusters": []}), encoding="utf-8")
+    argv = [str(cover), "--plots-csv", "p.csv", "--landxml", "x", "--site", "s.json", "--baseplan", "b.json", "--roads", "r", "--analysis", str(analysis),
+            "--scratch", str(tmp_path), "--out", str(tmp_path / "plan.json")] + extra
+    return plan_from_book.main(argv), seen
+
+
+def overrides_file(tmp_path):
+    """Two overrides of each job, with the source models and keys the real override list uses."""
+    path = tmp_path / "overrides.json"
+    path.write_text(json.dumps({"note": "n", "overrides": [
+        {"plot": "1", "field": "entryM", "value": {"gapToRuleM": 0.02}, "source": "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt", "key": "u12"},
+        {"plot": "2", "field": "rampType", "value": "flat", "source": "01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt", "key": "imc"}]}), encoding="utf-8")
+    return path
+
+
+def test_r277_r279_a_build_that_names_no_profile_gets_the_default_profile_and_the_hand_tables_through_main(tmp_path, monkeypatch, capsys):
+    code, seen = run_book(tmp_path, monkeypatch, [])
+    assert code == 0, capsys.readouterr().err
+    rules = seen["rules"]
+    assert rules is not None and rules["name"] == "parsons2024Rev6"
+    assert rules["hands"] == real_profile().get("hands") and rules["hands"]
+    assert rules["overrides"] == {}
+    assert "level profile parsons2024Rev6 (R277), the default of the rules profile" in capsys.readouterr().out
+
+
+def test_r280_overrides_of_a_native_model_are_refused_on_the_default_parsons_build_through_main(tmp_path, monkeypatch, capsys):
+    path = overrides_file(tmp_path)
+    code, seen = run_book(tmp_path, monkeypatch, ["--overrides", str(path), "--override-source", "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt"])
+    err = capsys.readouterr().err
+    assert code == 2 and "rules" not in seen
+    assert "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt" in err and "native" in err and "parsons2024Rev6" in err and "parsons" in err
+
+
+def test_r280_overrides_apply_when_the_source_has_the_job_of_the_level_profile_through_main(tmp_path, monkeypatch, capsys):
+    path = overrides_file(tmp_path)
+    code, seen = run_book(tmp_path, monkeypatch, ["--level-profile", "native2022", "--overrides", str(path),
+                                                  "--override-source", "01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt"])
+    assert code == 0, capsys.readouterr().err
+    assert seen["rules"]["overrides"] == {"1": {"entryM": {"gapToRuleM": 0.02}}}
+    code, seen = run_book(tmp_path, monkeypatch, ["--overrides", str(path), "--override-source", "01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt"])
+    assert code == 0 and seen["rules"]["overrides"] == {"2": {"rampType": "flat"}}
+    code, seen = run_book(tmp_path, monkeypatch, ["--level-profile", "native2022", "--overrides", str(path),
+                                                  "--override-source", "01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt"])
+    assert code == 2 and "rules" not in seen
+
+
+def test_r280_the_job_of_a_source_comes_from_the_keys_of_its_overrides_and_majority_groups():
+    groups = project_profile.load_settings().get("majority.groups")
+    rows = [{"source": "a.rvt", "key": "u12"}, {"source": "b.rvt", "key": "imc"}, {"source": "c.rvt", "key": "u11"}, {"source": "c.rvt", "key": "imc"},
+            {"source": "d.rvt", "key": "zz"}]
+    assert plan_rules.source_jobs(rows, {"a.rvt", "b.rvt"}, groups) == {"a.rvt": "native", "b.rvt": "parsons"}
+    for source in ("c.rvt", "d.rvt", "e.rvt"):
+        with pytest.raises(project_profile.ProfileError):
+            plan_rules.source_jobs(rows, {source}, groups)
+    real = real_profile()
+    assert {name: plan_rules.level_profile(real, name)["job"] for name in ("parsons2024Rev6", "native2022")} == {"parsons2024Rev6": "parsons", "native2022": "native"}
+
+
 # R300 the villa blocks come from the Building Footprint, R06_0000 and R06_0001 are reference only
 def test_r300_the_villa_block_drawings_of_the_real_config_are_the_building_footprint_and_never_r06():
     settings = project_profile.load_settings()
     reference = project_profile.reference_only(settings)
-    assert {R06_0000.lower(), R06_0001.lower()} <= reference
+    assert {project_profile.drawing_stem(R06_0000), project_profile.drawing_stem(R06_0001)} <= reference
     villa = settings.get("drawings.villaBlocks")
-    assert "Building Footprint" in villa and villa.lower() not in reference
+    assert "Building Footprint" in villa and not project_profile.is_reference_only(villa, settings)
     book = json.loads((ROOT / "python" / "c3d_probe.json").read_text(encoding="utf-8"))["dataBook"]
     role = book["join"]["footprint"]["drawing"]
-    assert "Building Footprint" in book["drawings"][role] and Path(book["drawings"][role]).name.lower() not in reference
+    assert "Building Footprint" in book["drawings"][role] and not project_profile.is_reference_only(book["drawings"][role], settings)
     assert data_book.footprint_drawing(book, settings) == book["drawings"][role]
     # R06_0000 stays a reference column of the data book and a drawing to drawing compare of R176, never the footprint role
     assert role not in book["join"]["masterBlocks"]
@@ -120,6 +206,84 @@ def test_r300_the_full_run_and_the_data_book_refuse_r06_0000_as_the_villa_block_
     drawings["villaBlocks"] = "villas.dwg"
     path.write_text(json.dumps({"profile": "rules/other.json", "drawings": drawings}), encoding="utf-8")
     assert full_run.stage_commands(tmp_path / "out", ["base.dwg"], "second.dwg", "shifts.json", project_profile.load_settings(path))
+
+
+@pytest.mark.parametrize("name", [R06_0000, "221229_MP-SK-01-03-001_R06_0000.dxf", "221229_MP-SK-01-03-001_R06_0000 - Copy.dwg",
+                                  "221229_mp-sk-01-03-001_r06_0001 (2).DWG", "C:\\x\\221229_MP-SK-01-03-001_R06_0000_copy.dwg",
+                                  "Copy of 221229_MP-SK-01-03-001_R06_0001.dwg", "221229_MP-SK-01-03-001_R06_0000.dwg.bak", "work/221229_MP-SK-01-03-001_R06_0000.dwg"])
+def test_r300_a_reference_drawing_is_matched_by_its_stem_whatever_the_case_extension_or_copy_suffix(name):
+    settings = project_profile.load_settings()
+    assert project_profile.is_reference_only(name, settings)
+    with pytest.raises(project_profile.ProfileError):
+        project_profile.refuse_reference_only(name, settings)
+
+
+@pytest.mark.parametrize("name", ["221229_MP-SK-01-03-001_R06.dwg", "221229_MP-SK-01-03-001_R06_00001.dwg", "Site Building Footprint.dwg", "", None])
+def test_r300_other_drawings_are_not_reference_only(name):
+    settings = project_profile.load_settings()
+    assert not project_profile.is_reference_only(name, settings)
+    assert project_profile.refuse_reference_only(name, settings) == name
+
+
+def other_settings(tmp_path):
+    """A project settings file whose reference only drawing is old_villas.dwg, which the repo config does not name."""
+    path = tmp_path / "project.json"
+    path.write_text(json.dumps({"profile": "rules/other.json", "drawings": {"villaBlocks": "villas.dwg", "referenceOnly": ["old_villas.dwg"]}}), encoding="utf-8")
+    return path
+
+
+def test_r300_the_villa_block_readers_use_the_settings_their_caller_loaded(tmp_path):
+    path = other_settings(tmp_path)
+    folder = tmp_path / "blocks"
+    folder.mkdir()
+    (folder / "blocks.json").write_text(json.dumps({"source": "old_villas.dwg", "blocks": []}), encoding="utf-8")
+    assert cad_analysis.read_blocks(folder)["blocks"] == []
+    with pytest.raises(project_profile.ProfileError):
+        cad_analysis.read_blocks(folder, project_profile.load_settings(path))
+    with pytest.raises(project_profile.ProfileError):
+        footprint_check.footprint_blocks(folder / "blocks.json", project_profile.load_settings(path))
+    cad = tmp_path / "cad"
+    cad.mkdir()
+    (cad / "plots.json").write_text(json.dumps({"source": "base.dwg", "plots": []}), encoding="utf-8")
+    assert cad_analysis.main([str(tmp_path / "out"), "--cad", str(cad), "--blocks", str(folder), "--project", str(path),
+                              "--profile", str(project_profile.profile_path(project_profile.load_settings()))]) == 2
+    with pytest.raises(project_profile.ProfileError):
+        footprint_check.load_and_run(project_profile.load_settings(path), [], "k", "kp", "t", "tp", "p.csv", str(folder / "blocks.json"), "b.json", "l.csv")
+
+
+def test_r300_a_blocks_json_in_a_folder_named_after_a_reference_drawing_is_refused(tmp_path):
+    folder = tmp_path / "221229_MP-SK-01-03-001_R06_0000.dwg"
+    folder.mkdir()
+    (folder / "blocks.json").write_text(json.dumps({"blocks": []}), encoding="utf-8")
+    with pytest.raises(project_profile.ProfileError):
+        project_profile.read_villa_blocks(folder / "blocks.json")
+    with pytest.raises(project_profile.ProfileError):
+        cad_analysis.read_blocks(folder)
+
+
+# Python files that read a blocks.json or blocks.csv and are no villa block reader, with the reason
+NOT_VILLA_READERS = {
+    "data_book_cad.py": "writes the stand-in tables of every drawing, R06_0000 among them, as a reference table",
+    "data_book_check.py": "counts the texts and blocks of a fresh CadReader run of each drawing against the stand-in tables",
+    "xref_search.py": "reads the xref inserts of every drawing to find the xref files",
+    "dxf_count.py": "counts the BLOCK records of a DXF",
+    "road_layouts.py": "reads the paper space blocks of a road layout DXF",
+    "data_book_readme.py": "describes the columns of blocks.csv",
+    "data5_check.py": "counts the BLOCK records of a DXF a second way",
+    "c3d_drawings.py": "surveys the block names of every drawing of the Roads and Base Plans folders (R154)",
+}
+
+
+def test_r300_every_python_reader_of_unit_blocks_goes_through_the_guard():
+    guards = ("read_villa_blocks(", "refuse_reference_only(", "footprint_blocks(", "read_blocks(", "footprint_drawing(")
+    unguarded = []
+    for path in sorted((ROOT / "python").glob("*.py")):
+        text = path.read_text(encoding="utf-8")
+        if ("blocks.json" in text or "blocks.csv" in text) and path.name not in NOT_VILLA_READERS and not any(guard in text for guard in guards):
+            unguarded.append(path.name)
+    assert unguarded == []
+    for name in ("data_book_retest.py", "stray_units.py", "c3d_connect.py", "wiring_check.py", "z16_check.py"):
+        assert "read_villa_blocks(" in (ROOT / "python" / name).read_text(encoding="utf-8"), name
 
 
 # R301 the area codes by job

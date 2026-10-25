@@ -23,6 +23,8 @@ from pathlib import Path
 
 import openpyxl
 
+import project_profile
+
 CHECKS = {"gridM": 0.2, "shareSlack": 0.01, "offsetSlackM": 0.05, "levelSlackMm": 1.0}
 QUADRANTS = {"EN": (0.0, 90.0), "SE": (90.0, 180.0), "WS": (180.0, 270.0), "NW": (270.0, 360.0)}
 
@@ -225,6 +227,7 @@ def links_by_plot(data):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="The second method of round 16 (R235).")
     parser.add_argument("--snapshot", required=True)
+    parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH))
     parser.add_argument("--reads", required=True, help="the folder of the prototype reads")
     parser.add_argument("--footprint", required=True, help="footprint_z4.json")
     parser.add_argument("--z4-new", required=True, help="the reader output of the Z4 new file")
@@ -247,7 +250,8 @@ def main(argv=None):
     faces = {str(plot["plot"]): [(p[0], p[1]) for p in plot["vertices"]] for plot in load(snapshot / "cad" / "baseplan" / "plots.json")["plots"] if plot.get("kind") == "plot_shape" and plot.get("vertices")}
     faces_by_number = {number: faces[row["baseplanLabel"]] for number, row in rows.items() if row.get("baseplanLabel") in faces}
     blocks = {}
-    for block in load(snapshot / "cad" / "footprint" / "blocks.json")["blocks"]:
+    # R300. The footprint blocks of the snapshot, never those of a drawing kept for reference only
+    for block in project_profile.read_villa_blocks(snapshot / "cad" / "footprint" / "blocks.json", project_profile.load_settings(args.settings))["blocks"]:
         if block.get("outline"):
             blocks.setdefault(block["name"], []).append([(p[0], p[1]) for p in block["outline"]])
     reads = {}

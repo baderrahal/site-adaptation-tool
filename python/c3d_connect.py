@@ -409,7 +409,8 @@ def main(argv=None):
     groups["otherUnitPlots"] = (0, others)
     faces_by_shift = {shift: yard_rule.face_shapes(plots, shift)[0] for shift, _ in groups.values()}
     cover = coverage(groups, faces_by_shift, curbs, sources, limits)
-    blocks = json.loads((cad_root / Path(config["drawings"][connect["cutDrawing"]]).name / "blocks.json").read_text(encoding="utf-8"))["blocks"]
+    # R300. The cut is checked against the footprint blocks, never those of a drawing kept for reference only
+    blocks = project_profile.read_villa_blocks(cad_root / Path(config["drawings"][connect["cutDrawing"]]).name / "blocks.json", settings)["blocks"]
     cut = cut_check(plots, connect["cutLabels"], blocks)
     cut["pastPlan"] = {row["plot"]: row["unit"] for row in plan_rows if row["plot"] in connect["cutPlots"]}
     report = {

@@ -74,22 +74,57 @@ def load_settings(path=SETTINGS_PATH):
     return load_profile(path)
 
 
+# The extensions a drawing, its backup or its lock file can carry, taken off in any order so R06_0000.dwg.bak has the stem of R06_0000
+CAD_EXTENSIONS = (".dwg", ".dxf", ".dwl", ".dwl2", ".bak", ".dwt", ".dws", ".sv$")
+
+
+def drawing_stem(name):
+    """R300. The stem of a drawing name, lower case, with no folder, no CAD extension and no leading Copy of, so R06_0000.dwg,
+    r06_0000.DXF and Copy of R06_0000.dwg have one stem. A dot that starts no CAD extension stays, as in 25.06.2025 Phase 1."""
+    stem = PureWindowsPath(str(name or "").replace("/", "\\")).name.strip().lower()
+    stem = stem[len("copy of "):] if stem.startswith("copy of ") else stem
+    while stem.endswith(CAD_EXTENSIONS):
+        stem = stem[:stem.rindex(".")].strip()
+    return stem
+
+
 def reference_only(settings):
-    """R300. The file names, lower case, of the drawings drawings.referenceOnly keeps for reference only. A settings file
-    with no such list keeps none."""
+    """R300. The stems of the drawings drawings.referenceOnly keeps for reference only. A settings file with no such list
+    keeps none."""
     drawings = settings.values.get("drawings")
     names = drawings.get("referenceOnly") if isinstance(drawings, dict) else None
-    return {PureWindowsPath(str(name)).name.lower() for name in names or []}
+    return {drawing_stem(name) for name in names or [] if drawing_stem(name)}
+
+
+def is_reference_only(source, settings):
+    """R300. True when the stem of source is the stem of a reference only drawing, or that stem with a copy suffix after a
+    character that is no letter or digit, such as R06_0000 - Copy, R06_0000 (2) or R06_0000_copy."""
+    stem = drawing_stem(source)
+    if not stem:
+        return False
+    return any(stem == ref or (stem.startswith(ref) and not stem[len(ref)].isalnum()) for ref in reference_only(settings))
 
 
 def refuse_reference_only(source, settings=None):
     """R300. Villa blocks come from drawings.villaBlocks, the Building Footprint (Bader, Q045). A drawing or a blocks.json
     whose source is a drawing of drawings.referenceOnly, such as R06_0000 and R06_0001, is refused as a villa block source."""
     settings = settings if settings is not None else load_settings()
-    name = PureWindowsPath(str(source or "")).name
-    if name and name.lower() in reference_only(settings):
-        raise ProfileError(name + " is kept for reference only (drawings.referenceOnly), villa blocks come from drawings.villaBlocks (R300)")
+    if is_reference_only(source, settings):
+        raise ProfileError(PureWindowsPath(str(source)).name + " is kept for reference only (drawings.referenceOnly), villa blocks come from drawings.villaBlocks (R300)")
     return source
+
+
+def read_villa_blocks(path, settings=None):
+    """R300. A blocks.json of the CAD reader read for its unit blocks, refused when its source or the folder it sits in names a
+    drawing kept for reference only. settings are those the caller loaded, the repo config when None."""
+    settings = settings if settings is not None else load_settings()
+    path = Path(path)
+    refuse_reference_only(path.parent.name, settings)
+    data = read_object(path)
+    if not isinstance(data.get("blocks"), list):
+        raise ProfileError(str(path) + " has no blocks list")
+    refuse_reference_only(data.get("source"), settings)
+    return data
 
 
 def profile_path(settings):

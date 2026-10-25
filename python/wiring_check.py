@@ -20,6 +20,7 @@ import data_book
 import data_book_analysis
 import data_book_check
 import link_summary
+import project_profile
 
 EDGE_SLACK = 1e-9
 
@@ -84,9 +85,12 @@ def front_middle(ring, curbs, min_edge):
     return best
 
 
-def outlines_of(path):
+def outlines_of(path, project=None):
+    """The block outlines of a blocks.json. With project, the settings the caller loaded, it is read as unit blocks and refused
+    when it is of a drawing kept for reference only (R300). The R06 outlines are a reference compare and are read plain."""
+    blocks = project_profile.read_villa_blocks(path, project)["blocks"] if project is not None else json.loads(Path(path).read_text(encoding="utf-8"))["blocks"]
     found = []
-    for block in json.loads(Path(path).read_text(encoding="utf-8"))["blocks"]:
+    for block in blocks:
         ring = [tuple(p[:2]) for p in block.get("outline") or []]
         if len(ring) >= 3:
             found.append((block["name"].split("$")[-1], ring, box(ring)))
@@ -158,7 +162,7 @@ def main(argv=None):
     cut_texts = json.loads((cut_folder / "texts.json").read_text(encoding="utf-8"))["texts"]
     v9_data, v9_earlier = data_book.folder_of(book, join["v9"]["drawing"], roots)
     data = {
-        "footprint": outlines_of(data_book.folder_of(book, join["footprint"]["drawing"], roots)[1] / "blocks.json"),
+        "footprint": outlines_of(data_book.folder_of(book, join["footprint"]["drawing"], roots)[1] / "blocks.json", project_profile.load_settings()),
         "r06": outlines_of(Path(settings["r06Outlines"]) / "blocks.json"),
         "setbacks": setback_rings(pieces(join["footprint"]["drawing"]), join["footprint"]["setbackLayer"]),
         "curbs": c3d_check.segments_of(pieces(join["curb"]["drawing"]), join["curb"]["layers"]),

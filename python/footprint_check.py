@@ -122,10 +122,9 @@ def footprints(plots_csv, faces):
 
 
 def footprint_blocks(path, settings=None):
-    """R300. The blocks of the blocks.json of the footprint drawing, refused when its source is a drawing kept for reference only."""
-    data = link_summary.load(path)
-    project_profile.refuse_reference_only(data.get("source"), settings)
-    return data["blocks"]
+    """R300. The blocks of the blocks.json of the footprint drawing, refused when its source or its folder names a drawing kept
+    for reference only, by the settings the caller loaded."""
+    return project_profile.read_villa_blocks(path, settings)["blocks"]
 
 
 def block_shapes(blocks):
@@ -263,7 +262,9 @@ def run(outlines, sets, rows, index, faces, block):
 
 
 def load_and_run(settings, reads, key, key_plan, test, test_plan, plots_csv, blocks, baseplan, labels):
-    """R228, R229 from the file paths, also for the third check of placer_check.py (R262)."""
+    """R228, R229 from the file paths, also for the third check of placer_check.py (R262). R300: the blocks first, by the
+    settings given, so a reference only drawing is refused before any other file is read."""
+    footprint = footprint_blocks(blocks, settings)
     block = settings.get("siteBuild")["footprint"]
     outlines = {}
     for path in reads:
@@ -274,7 +275,7 @@ def load_and_run(settings, reads, key, key_plan, test, test_plan, plots_csv, blo
     faces = {numbers[label]: shape for label, shape in by_label.items() if label in numbers}
     sets = {"key": (plan_from_past.host_of(link_summary.load(key)), link_summary.load(key_plan)),
             "test": (plan_from_past.host_of(link_summary.load(test)), link_summary.load(test_plan))}
-    report = run(outlines, sets, footprints(plots_csv, faces), block_shapes(footprint_blocks(blocks)), faces, block)
+    report = run(outlines, sets, footprints(plots_csv, faces), block_shapes(footprint), faces, block)
     report["prototypeOutlinesM2"] = {name: round(shape.area, 2) if shape is not None else None for name, shape in outlines.items()}
     return report
 

@@ -784,12 +784,15 @@ def read_plots(folder):
     return data
 
 
-def read_blocks(folder):
-    """The unit blocks of a CadReader output folder. R300: never those of a drawing kept for reference only."""
+def read_blocks(folder, settings=None):
+    """The unit blocks of a CadReader output folder. R300: never those of a drawing kept for reference only, by the folder name
+    and the source of blocks.json, with the settings the caller loaded (the repo config when None)."""
+    settings = settings if settings is not None else project_profile.load_settings()
+    project_profile.refuse_reference_only(Path(folder).name, settings)
     data = read_json_file(folder, "blocks.json")
     if not isinstance(data, dict) or not isinstance(data.get("blocks"), list):
         raise project_profile.ProfileError("blocks.json has no blocks list")
-    project_profile.refuse_reference_only(data.get("source"))
+    project_profile.refuse_reference_only(data.get("source"), settings)
     return data
 
 
@@ -852,7 +855,7 @@ def main(argv=None):
         profile = project_profile.load_profile(args.profile or project_profile.profile_path(settings))
         analysis = {key: settings.get("analysis." + key) for key in SETTINGS}
         data = read_plots(args.cad)
-        blocks = read_blocks(args.blocks) if args.blocks else None
+        blocks = read_blocks(args.blocks, settings) if args.blocks else None
         roads = read_road_edges(args.roads, settings.get("analysis.roadEdgeLayers")) if args.roads else None
         excel = read_excel_units(read_coords(args.coords), read_shifts(args.shifts)) if args.coords else None
         result = analyse(data["plots"], profile, analysis, None if blocks is None else blocks["blocks"], roads, None if blocks is None else blocks.get("source"), excel)

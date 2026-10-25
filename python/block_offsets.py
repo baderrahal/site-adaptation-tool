@@ -343,7 +343,7 @@ def main(argv=None):
         data = json.loads(Path(job["prototypes"]).read_text(encoding="utf-8"))
         document = ramp_levels.host_document(data)
         faces = cad_analysis.plot_faces(cad_analysis.read_plots(args.cad)["plots"])
-        villas = cad_analysis.villa_blocks(cad_analysis.read_blocks(args.blocks)["blocks"], profile)
+        villas = cad_analysis.villa_blocks(cad_analysis.read_blocks(args.blocks, settings)["blocks"], profile)
         shifts = link_table.load_shifts(args.shifts)["shifts"][job["neighbourhood"]]
         links = read_links(document, ramp_levels.offset_of(document))
         ramps, _ = ramp_levels.ramp_rows(document, set(config["rampTypes"]))
