@@ -15,6 +15,7 @@ import re
 import shutil
 import struct
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import project_profile
@@ -29,6 +30,7 @@ CODE = re.compile(r"IM[A-Z]")
 ZONE = re.compile(r"Zone [1-9][0-9]*")
 PREFIX = re.compile(r"[A-Z]")
 HASH = re.compile(r"[0-9a-f]{64}")
+EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 # One line of the sources.txt Round ADDIN Phase 1 wrote: the copy, its SHA-256, its source under the root, its SHA-256, the run
 OLD_LINE = re.compile(r"(?P<copy>[^\\/]+?) sha256 (?P<copyHash>[0-9a-f]{64}) from (?P<source>.+?) sha256 (?P<sourceHash>[0-9a-f]{64})(?: by (?P<by>.+))?")
 MANIFEST_NOTE = ("R312. One entry per Revit 2024 copy of an answer key in this folder: the IM code, the copy, its SHA-256, the source "
@@ -104,12 +106,15 @@ def entry_ok(entry):
 
 
 def read_manifest(path):
-    """R312. The entries of a manifest by copy name folded, {} when there is none. An entry that is not whole, a copy that is no
-    plain file name, a source that is no plain path under the root or a copy twice is refused."""
+    """R312. The entries of a manifest by copy name folded, {} when there is none. A manifest that is no JSON, an entry that is not
+    whole, a copy that is no plain file name, a source that is no plain path under the root or a copy twice is refused."""
     path = Path(path)
     if not path.is_file():
         return {}
-    data = json.loads(path.read_text(encoding="utf-8-sig"))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+    except ValueError as error:
+        raise KeyCopyError("the manifest %s is no JSON: %s" % (path, error))
     copies = data.get("copies") if isinstance(data, dict) else None
     if not isinstance(copies, list):
         raise KeyCopyError("the manifest %s holds no list of copies" % path)
@@ -126,11 +131,16 @@ def read_manifest(path):
 
 
 def write_manifest(path, entries):
-    """The manifest as JSON, written next to it first and then put in place, so a run that stops never leaves half a file."""
+    """R312. The manifest as JSON, written next to it first and then put in place by a rename, so a run that stops never leaves half
+    a file. A write or a rename that fails takes the temporary file away again and leaves the manifest as it was."""
     path = Path(path)
     temporary = path.with_name(path.name + ".writing")
-    temporary.write_text(json.dumps({"note": MANIFEST_NOTE, "copies": entries}, indent=1), encoding="utf-8")
-    os.replace(temporary, path)
+    try:
+        temporary.write_text(json.dumps({"note": MANIFEST_NOTE, "copies": entries}, indent=1), encoding="utf-8")
+        os.replace(temporary, path)
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
 
 
 def format_of(path):
@@ -256,46 +266,133 @@ def import_sources(root, values, sources_txt, hasher=round_files.sha256, info=fo
     return entries
 
 
-def record(root, values, work, code, made, made_by, hasher=round_files.sha256, info=format_of):
+def utc_time(text, what):
+    """R312. A UTC time of run.json as Run-TestHost.ps1 writes it, round trip with Z, as nanoseconds since 1970."""
+    try:
+        moment = datetime.fromisoformat(text)
+    except (TypeError, ValueError):
+        raise KeyCopyError("%s is no time: %r" % (what, text))
+    if moment.utcoffset() is None:
+        raise KeyCopyError("%s has no UTC offset: %r" % (what, text))
+    return (moment - EPOCH) // timedelta(microseconds=1) * 1000
+
+
+def written_ns(path):
+    """R312. The latest of the times a file was made and last written, in nanoseconds. A file copy on Windows keeps the last write
+    time of its source and gets a new creation time, so the creation time counts too."""
+    found = os.stat(path)
+    made = getattr(found, "st_birthtime_ns", None)
+    return max(found.st_mtime_ns, found.st_ctime_ns if made is None else made)
+
+
+def same_place(one, two):
+    """R312. Two full paths of one file, in the case and the form Windows opens them."""
+    return os.path.normcase(os.path.abspath(one)) == os.path.normcase(os.path.abspath(two))
+
+
+def read_json(path, what):
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError) as error:
+        raise KeyCopyError("%s can not be read: %s" % (what, error))
+
+
+def run_proof(run, code, work_copy, made):
+    """R312. That the siteUpgrade job of that code made this copy from this work copy in this run, from what the run left by R110:
+    run.json, testhost_<code>_upgrade_run.json, ended with exit code 0, no stop and the log ok, and the log beside it of the same name
+    is the siteUpgrade log of that code, ended ok, with that work copy as source and that copy as target. run.json holds no source or
+    target, the log does. The run started after the work copy was last made or written and the made copy was last written inside
+    the run, so a copy an earlier job left in the work folder is never taken for a copy of a work copy put there later."""
+    run = Path(run)
+    name = code + "_upgrade"
+    if run.name.casefold() != ("testhost_%s_run.json" % name).casefold():
+        raise KeyCopyError("%s is not the run of the siteUpgrade job %s, testhost_%s_run.json" % (run, code, name))
+    facts = read_json(run, "the run %s" % run)
+    log_path = run.with_name("testhost_%s_log.json" % name)
+    log = read_json(log_path, "the log %s" % log_path)
+    if not isinstance(facts, dict) or not isinstance(log, dict):
+        raise KeyCopyError("the run %s or its log is no JSON object" % run)
+    if facts.get("name") != name:
+        raise KeyCopyError("%s is not the run of the siteUpgrade job %s: %r" % (run, code, facts.get("name")))
+    if facts.get("exitCode") != 0 or facts.get("stopReason") is not None or facts.get("logResult") != "ok" or log.get("result") != "ok":
+        raise KeyCopyError("the run %s did not end ok: exit code %r, stop %r, log %r and %r" % (run, facts.get("exitCode"), facts.get("stopReason"),
+                                                                                       facts.get("logResult"), log.get("result")))
+    if log.get("kind") != "siteUpgrade" or log.get("code") != code:
+        raise KeyCopyError("%s is not the log of the siteUpgrade job %s: %r %r" % (log_path, code, log.get("kind"), log.get("code")))
+    for field, path in (("source", work_copy), ("target", made)):
+        if not isinstance(log.get(field), str) or not same_place(log[field], path):
+            raise KeyCopyError("the log %s names another %s than %s: %r" % (log_path, field, path, log.get(field)))
+    start, end = utc_time(facts.get("startUtc"), "the start of the run"), utc_time(facts.get("endUtc"), "the end of the run")
+    if written_ns(work_copy) >= start:
+        raise KeyCopyError("the run %s started before the work copy %s was last made or written, so it did not make the copy from it" % (run, work_copy))
+    if not start <= os.stat(made).st_mtime_ns <= end:
+        raise KeyCopyError("the made copy %s was not written in that run, %s to %s" % (made, facts.get("startUtc"), facts.get("endUtc")))
+
+
+def record(root, values, work, code, made, made_by, run, hasher=round_files.sha256, info=format_of):
     """R312. Moves the copy a siteUpgrade job made of the source of a key into the copy folder under the copy name and writes its entry.
-    The copy must sit right in the work folder with the name of R204, the work copy of the source beside it must equal the source by
-    hash, the copy must have the format, and no file of the copy name may be in the copy folder, so nothing is ever overwritten."""
+    The copy must sit right in the work folder with the name of R204, its run must prove by run_proof that it made the copy from the
+    work copy of the source beside it, that work copy must still equal the source by hash, the copy must have the format, the manifest
+    must read whole and no file of the copy name may be in the copy folder, so nothing is ever overwritten. All of it is checked
+    before the move. The manifest is written by a temporary file and a rename, and when that fails the copy goes back to the work
+    folder, so a failure leaves both folders as they were."""
     key = next((key for key in values["keys"] if key["code"] == code), None)
     if key is None:
         raise KeyCopyError("no answer key %s" % code)
+    if not isinstance(made_by, str) or not made_by.strip():
+        raise KeyCopyError("record names the run that made the copy")
     made, work = Path(made), Path(work)
     if made.parent.resolve() != work.resolve() or not made.is_file():
         raise KeyCopyError("the made copy is not a file right in the work folder %s: %s" % (work, made))
     source = source_path(root, key)
-    if made.name != made_name(source, job_code(values, key)):
-        raise KeyCopyError("the made copy is not named %s: %s" % (made_name(source, job_code(values, key)), made.name))
+    job = job_code(values, key)
+    if made.name != made_name(source, job):
+        raise KeyCopyError("the made copy is not named %s: %s" % (made_name(source, job), made.name))
+    work_copy = work / source.name
+    if not work_copy.is_file():
+        raise KeyCopyError("the work copy %s is not there" % work_copy)
+    run_proof(run, job, work_copy, made)
     source_hash = hasher(source)
-    if not (work / source.name).is_file() or hasher(work / source.name) != source_hash:
-        raise KeyCopyError("the work copy %s is not the source %s by hash" % (work / source.name, source))
+    if hasher(work_copy) != source_hash:
+        raise KeyCopyError("the work copy %s is not the source %s by hash" % (work_copy, source))
     if info(made) != values["format"]:
         raise KeyCopyError("the made copy is not of the format %d: %s" % (values["format"], made))
     folder = copy_folder(root, values)
+    manifest_path = folder / values["manifest"]
+    manifest = read_manifest(manifest_path)
     if any(path.name.casefold() == key["copy"].casefold() for path in folder.iterdir()):
         raise KeyCopyError("the copy %s is in %s, it is never overwritten, move it aside by hand first" % (key["copy"], folder))
+    entry = {"code": key["code"], "copy": key["copy"], "copySha256": hasher(made), "source": key["source"], "sourceSha256": source_hash,
+             "format": values["format"], "madeBy": made_by}
+    manifest[key["copy"].casefold()] = entry
     target = folder / key["copy"]
     shutil.move(str(made), str(target))
-    entry = {"code": key["code"], "copy": key["copy"], "copySha256": hasher(target), "source": key["source"], "sourceSha256": source_hash,
-             "format": info(target), "madeBy": made_by}
-    manifest = read_manifest(folder / values["manifest"])
-    manifest[key["copy"].casefold()] = entry
-    write_manifest(folder / values["manifest"], list(manifest.values()))
+    try:
+        if hasher(target) != entry["copySha256"]:
+            raise KeyCopyError("the copy %s changed in the move" % target)
+        write_manifest(manifest_path, list(manifest.values()))
+    except BaseException:
+        shutil.move(str(target), str(made))
+        raise
     return entry
 
 
 def main(argv=None):
+    """R312. check, import or record on the answer keys of the project settings. Each step names what it needs as required
+    arguments, so a step with one missing ends at the command line before anything is read or changed. check ends 0 only when
+    every row is reuse."""
     parser = argparse.ArgumentParser(description="The Revit 2024 copies of the answer keys, checked or made by code (R312).")
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH))
-    parser.add_argument("what", choices=("check", "import", "record"))
-    parser.add_argument("--sources", help="import: the sources.txt of Round ADDIN Phase 1")
-    parser.add_argument("--code", help="record: the IM code of the key")
-    parser.add_argument("--made", help="record: the copy the siteUpgrade job made in the work folder")
-    parser.add_argument("--by", help="record: the run that made it")
-    parser.add_argument("--out", help="check: a JSON file of the rows, outside the repo")
+    steps = parser.add_subparsers(dest="what", required=True)
+    check_step = steps.add_parser("check", help="hold every key against the manifest and the files of today, write nothing")
+    check_step.add_argument("--out", help="a JSON file of the rows, outside the repo")
+    import_step = steps.add_parser("import", help="write the manifest once from the sources.txt of Round ADDIN Phase 1")
+    import_step.add_argument("--sources", required=True, help="the sources.txt of Round ADDIN Phase 1")
+    record_step = steps.add_parser("record", help="move a copy a siteUpgrade job made into the copy folder and write its entry")
+    record_step.add_argument("--code", required=True, help="the code of the key")
+    record_step.add_argument("--made", required=True, help="the copy the siteUpgrade job made in the work folder")
+    record_step.add_argument("--run", required=True, help="testhost_<job code>_upgrade_run.json of that job, its log beside it")
+    record_step.add_argument("--by", required=True, help="the run that made it, written into the manifest")
     args = parser.parse_args(argv)
     settings = project_profile.load_settings(args.settings)
     root = Path(settings.get("inputRoot"))
@@ -306,7 +403,7 @@ def main(argv=None):
             print("%s %s written from %s" % (entry["code"], entry["copy"], entry["source"]))
         return 0
     if args.what == "record":
-        entry = record(root, values, work, args.code, args.made, args.by)
+        entry = record(root, values, work, args.code, args.made, args.by, args.run)
         print("%s %s recorded, format %d, from %s" % (entry["code"], entry["copy"], entry["format"], entry["source"]))
         return 0
     rows = check(root, values, work)
