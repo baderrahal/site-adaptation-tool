@@ -136,7 +136,7 @@ def test_r340_the_proof_counts_per_key_and_level_the_holds_by_the_rule_alone_by_
     from test_addin_levels import level_context, proof_plot, proof_row
     plots = [proof_plot("1", 10.0, 10.1, 1, "10.100"), proof_plot("2", 10.0, 10.1, 1, "10.100"), proof_plot("3", 10.002, 10.1, 1, "10.100")]
     for found, rule in zip(plots, (10.0, 9.998, 10.002)):
-        found["levelRule"] = {"entry": rule, "ffl": 10.1, "height": round(10.1 - rule, 4), "steps": 1, "rampFront": 9.9, "rampFrontCorners": [9.9, 9.9],
+        found["levelRule"] = {"entry": rule, "ffl": 10.1, "height": round(10.1 - rule, 4), "steps": 1, "rampFrontCorners": [9.9, 9.9],
                               "parameter RRE_ZZ_SP_Prototype-FFL": "10.100"}
     plots[1]["overrides"] = {"applied": ["entryM"], "notApplied": {}}
     rows = [proof_row(plot, 10.0, 10.1, 1, 9.9) for plot in ("1", "2", "3")]
@@ -178,8 +178,7 @@ def test_r340_a_build_writes_the_levels_the_rule_alone_gives_beside_the_levels_i
     assert rule["entry"] == 10.0626 and rule["ffl"] == 10.263 and rule["height"] == 0.2004 and rule["steps"] == 1
     assert rule["parameter RRE_ZZ_SP_Prototype-FFL"] == "10.260" and level_of(found["4"], "ffl") == 10.264
     corners = found["4"]["floors"]["ramp"]["corners"]["value"]
-    assert [round(z + 0.002, 3) for z in rule["rampFrontCorners"]] == [corners[0][2], corners[1][2]]
-    assert rule["rampFront"] == round(sum(rule["rampFrontCorners"]) / 2.0, 4)
+    assert [round(z + 0.002, 3) for z in rule["rampFrontCorners"]] == [corners[0][2], corners[1][2]] and "rampFront" not in rule
 
 
 # R341 a level item one side holds and the other does not is a mismatch
@@ -272,3 +271,16 @@ def test_r340_a_build_by_the_level_rules_prints_the_steps_of_key_rules_and_no_la
     found, plan = level_build(tmp_path, monkeypatch)
     lines = "\n".join(plan_from_book.summary_lines(plan["summary"], "parsons2024Rev6", False))
     assert "by keyRules.steps stepsFromHeight of parsons2024Rev6" in lines and "until 3c" not in lines
+
+
+def test_r340_a_ramp_front_the_rule_alone_gives_holds_by_the_rule_at_the_pass_limit_too():
+    import build_proof
+    from test_addin_levels import level_context, proof_plot, proof_row
+    # The mean of two corners written to the mm lies on a half mm, which a plan written to 3 decimals would round away, so the plan holds
+    # the rule corners and the proof takes the rule front from them the same way as the built one
+    plot = proof_plot("1", 10.0, 10.1, 1, "10.100", front=(9.9, 9.901))
+    plot["levelRule"] = {"entry": 10.0, "ffl": 10.1, "height": 0.1, "steps": 1, "rampFrontCorners": [9.9, 9.901], "parameter RRE_ZZ_SP_Prototype-FFL": "10.100"}
+    verdicts = build_proof.compare("imx", {"plots": [plot], "missing": []}, [proof_row("1", 10.0, 10.1, 1, 9.9)], {"plots": []}, level_context(),
+                                   {("imx", "1"): {"RRE_ZZ_SP_Prototype-FFL": "10.100"}})
+    front = build_proof.tally(verdicts)["levelHolds"]["imx"]["rampFront"]
+    assert (front["byRule"], front["byNeither"], front["atTheLimit"]) == (1, 0, 1)

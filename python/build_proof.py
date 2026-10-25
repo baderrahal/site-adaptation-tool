@@ -216,6 +216,8 @@ def held_levels(entry, row, read, block):
     front = None if not ramp or len(ramp) < 2 else (ramp[0][2] + ramp[1][2]) / 2.0
     key_corners = json.loads(row["rampCorners"]) if isinstance(row.get("rampCorners"), str) and row["rampCorners"] else row.get("rampCorners")
     rule_corners = None if rule is None or not ramp or rule.get("rampFrontCorners") is None else [list(point[:2]) + [z] for point, z in zip(ramp, rule["rampFrontCorners"])]
+    # The rule front is the mean of the rule corners, taken the same way as the built front from the corners of the plan
+    rule = None if rule is None else dict(rule, rampFront=None if rule_corners is None else (rule_corners[0][2] + rule_corners[1][2]) / 2.0)
     height_aim = None if key_entry is None or row.get("ffl") is None else round(row["ffl"] - key_entry, plan_rules.ENTRY_DECIMALS)
     pairs = {"entry": (value(levels, "entry"), key_entry, no_entry), "ffl": (value(levels, "ffl"), row.get("ffl"), "the key holds no FFL"),
              "height": (value(levels, "height"), height_aim, no_entry if key_entry is None else "the key holds no FFL"),

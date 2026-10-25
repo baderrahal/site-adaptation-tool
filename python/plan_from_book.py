@@ -284,8 +284,9 @@ def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers
 
 def rule_levels(row, entry, item, key, unit, profile, rules):
     """R340. The levels the rule alone gives a plot, before any override of the list moves them: El @ Entry, the FFL, the height, the
-    steps, the level parameters of keyRules and the two front corners of the ramp at the 3 decimals the plan writes them with their
-    mean, so the proof tells a level that holds by the rule from one an override puts on the key."""
+    steps, the level parameters of keyRules and the two front corners of the ramp at the 3 decimals the plan writes them, their mean
+    left to the proof, which a plan written to 3 decimals would round off its half mm, so the proof tells a level that holds by the rule
+    from one an override puts on the key."""
     height = round(row["fflRule"] - entry["rule"], plan_rules.ENTRY_DECIMALS)
     found = {"entry": entry["rule"], "ffl": row["fflRule"], "height": height,
              "steps": plan_rules.steps_by_rule(key["steps"]["rule"], height, unit, profile, rules["levelProfile"], key.get("baseHeight"))}
@@ -293,9 +294,7 @@ def rule_levels(row, entry, item, key, unit, profile, rules):
         if word.startswith(plan_rules.PARAMETER) and word not in rules["laterParameters"] and isinstance(rule, dict) and rule.get("rule") in plan_rules.LEVEL_RULES:
             found[word] = plan_rules.prototype_ffl(rule["rule"], row["fflRule"])
     if item["front"] is not None:
-        corners = [common.r3(z) for z in item["front"]]
-        found["rampFrontCorners"] = corners
-        found["rampFront"] = round(sum(corners) / 2.0, plan_rules.ENTRY_DECIMALS)
+        found["rampFrontCorners"] = [common.r3(z) for z in item["front"]]
     return found
 
 
