@@ -4,32 +4,31 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 
 ## Round ADDIN Part 1, 2026-10-25, the Revit 2024 add-in from the Parsons site models
 
-In progress. Phases 0a and 0b are done, the phases after them follow the plan in steps/investigations/round-addin.md.
+In progress. Phases 0a, 0b and 1 are done, the rest follow the plan in steps/investigations/round-addin.md.
 
 Goal:
 - The whole Site Adaptation add-in inside Revit 2024 in C#, .NET Framework 4.8 (option B), built from the 7 Rev 6 Parsons site models, parsons2024Rev6 for every new build (Q050), the screens and files of the approved mock in docs/addin-mock.md. Part 2, the sheets, waits for Bader's check of Part 1
 
 Done:
-- 0a (PR 41): the AI MAX skill version 3, seven agents, six old log entries moved to steps/history/, CLAUDE.md with the Round ADDIN section, docs/addin-mock.md. Q028, Q046 and Q050 closed
-- 0b (PR 42, fix/addin-open-fixes): R277 levelProfiles.default parsons2024Rev6, and R280 applies an override only on a build whose profile has the job of its source (Q050). R300 villa blocks only from drawings.villaBlocks, R06_0000 and R06_0001 refused as reference only (Q045). R301 config/area_codes.json by job, zone and neighbourhood checked together, the guessed rows gone (Q044). R302 the image step 30 minutes and a margin of 10 from testHost (Q061). R303, the watcher through the job, withdrawn after two attempts, the watcher of main stops at the first log step (Q064). R304 a clean clone in a deep folder builds, main failed there too. Reviews 2 and 3 tightened R280, R300 and R301, R12 needs no test for a withdrawn rule. Q049 needed no code
-- 0b outside the repo: the NBH 03 image in four quarters, the whole area timed out in I20 and in the one retry I25. The IFC copy (10,497,165 bytes) and the two Cutsheet lock files (61 and 211) deleted. 21 kept files, 285,195,525 bytes, in Documents\SiteAdaptation\kept, the three work folders deleted. The IFC input retired by Q047, the two road layout reads made again, data5_check.py runs to its end. feat/revit-links-walls-ramps deleted on origin and here. Q035, Q044, Q045, Q047, Q048, Q049, Q060, Q061 closed
-- Gate: Python 1097 passed and 1 skipped, .NET 433 passed, the build of a clean clone in the scratchpad 0 errors
+- 0a (PR 41) and 0b (PR 42): the harness, the open fixes R277, R280, R300 to R302, R304, R303 withdrawn (Q064). Detail in round-addin.md
+- 1 (PR data/addin-parsons-models): R310 samples every test host window every 5 s and prints the true peaks, the old peak froze under 2 GiB by an Int32 [Math]::Max in an empty catch. R311 the reader writes the shared site, the project position, the levels, the units and the elements per category. R203 reads BasicFileInfo of a BIM 360 model. R204 a site upgrade takes the source the round spec names in work. siteBuild names round_addin and the IMC key
+- 1 outside the repo: the 7 Revit 2024 copies in Revit All Zones\2024 with sources.txt, IMC from the Zone 02\ARC original. All 7 share one survey point, base point, project position, angle 0, Level 1 and Level 2, metric units. The TU models link the 13 ARC prototypes of Prototypes_2024 and a landscape model not here. IMA and IMB are SE models (Q066, Q067), the zone2 IMC is the master of the floor scenarios (Q065)
+- Gate: Python 1099 passed and 1 skipped, .NET build 0 errors and 1 old warning, .NET 445 passed
 
 Checked:
-- 0a: the skill copy 39 of 39 files equal by SHA-256, the 6 moved entries word for word, the mock equal to the round prompt byte for byte
-- 0b: 40 of 40 originals equal by hash before, after the first windows and after the review windows. 21 of 21 kept copies equal by round_files.sha256 and by Get-FileHash. 8 of 8 native area rows equal the coverage text of round-17.md. data5_check.py at seeds 14 and 7: area 20 and 19 of 20 plus 1 noDlusRow, parcels 20 of 20, curb 20 of 20, IFC skipped by Q047. The old branch: the tree of 0a0d4c3 in main. 8 Revit windows one at a time under the lock, 5.46 to 8.92 GB free at each lock, every model copy unchanged by hash. Pass 3: I29, a quarter under the lock, the watcher of main answered 5 security dialogs and stopped at the first log step, result ok, 40 of 40 originals equal before and after. Clean worktrees of main and of 83583e3 failed with MSB3030 at a 271 character path, with R304 a clean clone of the tip built. data5_check.py exit 0 in 4.4 s, the counts of pass 1. This Your turn equals Bader's turn of steps/PROGRESS.md
+- 1: 40 of 40 originals equal before and after by sha256sum and Get-FileHash. BasicFileInfo bytes against Revit 7 of 7, Format 2024 of the copies by bytes and by Revit 7 of 7, sources.txt against sha256sum 7 of 7, link files bytes against the read 6 of 6 TU, reader counts against category counts 32 of 32, project position against survey and base point 8 of 8 within 0.0 mm, 20 random IMC links at seeds 14 and 7 against the Round 15a read 20 of 20. 17 windows under the lock, 6.26 to 7.34 GB free. This Your turn equals Bader's turn of steps/PROGRESS.md
 
 Remains:
-- Phases 1 to 6 of the plan. siteBuild still names round_17, Phase 1 sets it again
+- Phases 2 to 6 of the plan. CLAUDE.md does not name R310 and R311 yet
 
 Known bugs:
-- The whole NBH 03 area runs past the 30 minute image step: in I25 Revit did not respond with 10.7 GB private memory, 2.16 to 2.77 GB free, and showed no dialog in one Win32 list, a quarter rises to 6.4 GB private memory by the same measure (I28) (Q063). I28 took free memory to 1.10 GB and I29 to 0.55 GB, the 2 GB floor of R200 is checked at the lock only
-- Run-TestHost.ps1 prints a peak under 2 GB while Get-Process saw 4.9 GB (I25) and 5.7 GB (I28), why is UNKNOWN
-- CLAUDE.md still names R303 in two lines, not edited in this PR
+- The whole NBH 03 area runs past the 30 minute image step: in I25 Revit did not respond with 10.7 GB private memory and 2.16 to 2.77 GB free (Q063). R310 logs free memory in every window, with no stop at the floor
+- rvt_info.py (R203) does not see cloud links: the TransmissionData of the SE models lists 1 of their 14 Revit links
+- The Generic floors of IME and IMF are of type FFL, not Generic 150mm, so floors.types does not find them
 - The .NET build gives 1 warning older than this round, xUnit2013 at dotnet/SiteAdaptation.Tests/CadExplodeTests.cs line 206
 
 Next:
-- Phase 1: the 7 Parsons models hashed, BasicFileInfo, Revit 2024 copies, their links and coordinates, the limits measured
+- Phase 2: the 7 keys read from the 2024 copies into plan files and past_all.csv, the Parsons area codes, the FFL floor type
 
 Your turn:
 Q001. El @ Entry rule: the IFC in Downloads is another project, ask the client for the Infrastructure IFC package and the architect for the ramp slope. The road plus the ramp slope holds 0.285 of the IMC key within 5 mm, the 241 others are overrides until then
@@ -53,6 +52,10 @@ Q059. NBH 03 build: native2022 levels, the 1.2 El @ Entry and front overrides, n
 Q062. The probe keeps the visible attribute values of the Rev 9 drawing, 2,139 ATTRIB rows and 16 attr_ columns of room names, finish numbers and levels, and the text survey of R189 reads them. Q049 left out the 879 tags of Road Layout, which the probe never wrote: keep the Rev 9 values, take them out only if you meant every attribute value
 Q063. The whole NBH 03 image ran past the 30 minute image step in I20 and I25. In I25 Revit did not respond on 39 of 39 samples with 10.7 GB private memory and one Win32 list showed no dialog, while a quarter image step takes 52 to 58 s and a quarter rises to 6.4 GB private memory by the same measure (I28): accept the four quarter images in round_17\images and make large images in quarters, the cause stays a known bug
 Q064. The dialog watcher through the job (R303) is withdrawn after two attempts: keep the watcher stopping at the first log step. In I25 the Win32 list found no dialog and Revit was not responding at 10.7 GB private memory, so the hang points at memory, which Phase 1 measures. Q063 keeps its measurements
+Q065. The zone2 IMC file of Revit All Zones is the master of the floor scenarios: last saved as _TEST-MASTER, not workshared, links unloaded, 0 floors against 1,010. Its 2024 copy is made from the Zone 02\ARC original, the IMC key: replace the zone2 file by a copy of that original (recommended), or keep it
+Q066. Zone 1 has no TU model here: IMA and IMB are Engicon SE models with STR prototype links, 432 and 301 plots, no level, ramp or yard floor: send the Zone 1 TU models of IMA and IMB (recommended), until then Zone 1 takes its links from the SE models and its levels from the Native reads
+Q067. The 13 STR prototypes the SE models link are not upgraded, their 2021 files are in Zone 02\STR\Prototypes: leave them (recommended), the add-in places the ARC prototypes, or upgrade them, which needs a change of the upgrade job
+Q068. The 7 Parsons models share one project position, survey point, base point, angle 0, Level 1 and Level 2. R211 puts the internal origin at the plot centre of the NBH, 547.5 m away for NBH 012: let button 1 set the Parsons position from config (recommended), or keep R211
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 

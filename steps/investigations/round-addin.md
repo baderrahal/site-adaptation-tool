@@ -231,3 +231,130 @@ Branch fix/addin-open-fixes from main at 865a80e, equal to origin/main after git
 - Q062: the Rev 9 attribute values of the probe.
 - Q063: the whole NBH 03 image runs past 30 minutes while the image step of each quarter takes under a minute (corrected in review pass 2).
 - Q064: the watcher through the job, R303, withdrawn after two attempts (review pass 3).
+
+## Phase 1, PR data/addin-parsons-models
+
+Branch data/addin-parsons-models from main at cd26ab3, equal to origin/main after git fetch (RAN). Rules R310 and R311 are new, R203, R204 and R110 changed. The phase ran in a helper agent started by the main session, which runs the checkers and merges. Values of coordinates and levels stay in Documents\SiteAdaptation\round_addin\logs and in the testhost_K*_prototypes.json reads, this file holds counts, distances and differences only.
+
+### Originals (R201, R202)
+
+- The 40 files of Phase 0b hashed with sha256sum before the first window: 40 of 40 equal to originals_0b_pass3_after.txt (RAN, round_addin\logs\originals_p1_before.txt). After the last window 40 of 40 equal to the list before, and Get-FileHash gives the same 40 of 40 (RAN, originals_p1_after.txt).
+- The IMD file of Revit All Zones and 00_Revit Models\Zone 02\ARC\01101-PSN-IMD-ZZZ-PIM-TU-000001.rvt are one file: the same SHA-256 (93607568...) by sha256sum and by Get-FileHash, the same size 60,846,080 (RAN).
+- No window opened an original. Each source was copied into round_addin\work by a file copy, equal by Get-FileHash to its source before the window (RAN), and only the copy was opened. The link openings the test host logged point into the work folder, so the 2021 prototypes of Zone 02\ARC\Prototypes were not opened either (READ, testhost_KC_upgrade_log.json).
+
+### BasicFileInfo from the bytes (R203)
+
+- The SE models gave format 2021Build: 20200715_1022(x64)Last Save Path: ... as one value and no build and no last save path. Revit writes Username, Build and Last Save Path of a BIM 360 cloud model right after the value before them on one line (READ, the BasicFileInfo text of the IMA model). R203 now ends a value at the next key on its line. On the 96 .rvt files under C:\02-Site Adaptation the old and the new parse give the same keys for 90 and differ for 6, the 6 BIM 360 models (the two SE models of Revit All Zones and the PP and SE models of IMC and IMD in Zone 02), each now with its format, build, last save path and Worksharing Central (RAN). 2 tests.
+- Second method: the sourceInfo step of each site upgrade reads BasicFileInfo in Revit. Format and workshared equal the bytes on 7 of 7 (RAN).
+
+| Model | Bytes | Format | Build | Workshared | Central model |
+|---|---|---|---|---|---|
+| IMA SE zone1 | 58,335,232 | 2021 | 20200715_1022 | yes | BIM 360://ROSHN MAKKAH VO#2 |
+| IMB SE zone1 | 52,125,696 | 2021 | 20200715_1022 | yes | BIM 360://ROSHN MAKKAH VO#2 |
+| IMC TU zone2 of Revit All Zones | 48,742,400 | 2024 | 20250918_1515 | no | none, last save ...\Zone 02\ARC\..._TEST-MASTER.rvt |
+| IMC TU of Zone 02\ARC, the key | 52,494,336 | 2024 | 20250918_1515 | yes | C:\02-Site Adaptation\00_Revit Models\Zone 02\ARC |
+| IMD TU zone2, equal to Zone 02\ARC | 60,846,080 | 2021 | 20230907_1515 | yes | \\mainsrv\...\REV 8.2\WORKSPACE\6. Zone 2 |
+| IME TU zone3 | 54,366,208 | 2021 | 20230907_1515 | yes | \\mainsrv\...\WORKSPACE\7. Zone 3 |
+| IMF TU zone3 | 73,572,352 | 2021 | 20230907_1515 | yes | \\mainsrv\...\WORKSPACE\7. Zone 3 |
+| IMG TU zone4 | 44,122,112 | 2021 | 20230907_1515 | yes | \\mainsrv\...\WORKSPACE\8. Zone 4 |
+
+(RAN, round_addin\logs\rvt_info_p1_fixed.json.) The storage times give the last save of the SE and TU models on 2024-03-26, of the Zone 02\ARC IMC on 2026-10-22 and of the zone2 IMC on 2026-10-24 (RAN, R266).
+
+### IMC: the zone2 file is the master of the floor scenarios
+
+- BasicFileInfo of the zone2 file names ...\Zone 02\ARC\01101-PSN-IMC-ZZZ-PIM-TU-000001_TEST-MASTER.rvt as its last save path, not workshared (RAN). No hash of the master was ever written (READ, the preflight), so it is compared with the original by a read of each, KM of a test copy of the zone2 file and KC of the 2024 copy of the original (RAN):
+
+| | zone2 file (KM) | Zone 02\ARC original (KC) |
+|---|---|---|
+| Link types, link instances | 14, 338 | 14, 338 |
+| Links in the TransmissionData | 14 Unloaded | 4 Loaded, 1 Not Found, 9 Unloaded |
+| Floors | 0 | 1,010 |
+| Walls, placed family instances | 926, 2,311 | 926, 2,311 |
+| Spot elevations | 1 | 987 |
+
+- testhost_MST_log.json of the master job lists 14 links set to unloaded, 1,010 floors deleted (Flat Ramps 10, Generic 150mm 336, Ramps 0.5% 280, Ramps 2% 47, yard 337) and its model ...\_TEST-MASTER.rvt (READ). So the zone2 file is that master moved and renamed, and the IMC key is the original of Zone 02\ARC. Q065 asks Bader. The zone2 file stays as it is (CHOSEN, the brief).
+
+### The Revit 2024 copies (R204)
+
+- Revit All Zones\2024 did not exist, so no copy could be reused (READ). Each copy was made by the siteUpgrade job: a file copy of the source into round_addin\work, opened detached with its worksets discarded, saved as <name>_TEST-<code>.rvt next to it, read, then moved to Revit All Zones\2024 under the name of its model in Revit All Zones, never over a file (RAN, by a script in the scratchpad of the session, not kept). The IMC copy is of the Zone 02\ARC original, already Format 2024, so its window only opened it detached and saved it (RAN, open 9.5 s), and it takes the zone2 name, so the folder holds one file per name of Revit All Zones (CHOSEN). R204 now lets the round spec name the source in the work folder, so the 7 sources needed no change of siteBuild.answerKey per window. 1 test.
+- Revit All Zones\2024\sources.txt holds per copy its SHA-256, the source path and the source SHA-256, so a later round reuses a copy whose source hash still matches (RAN). sha256sum of the 7 copies equals sources.txt on 7 of 7 (RAN).
+- Format 2024 by the bytes 7 of 7 and by the targetInfo step in Revit 7 of 7, none workshared (RAN, rvt_info_p1_2024.json). Sizes: IMA 53,272,576, IMB 47,509,504, IMC 52,387,840, IMD 55,836,672, IME 51,302,400, IMF 71,122,944, IMG 40,722,432 bytes (RAN).
+- The SE upgrades showed one task dialog each, TaskDialog_Views_Related_To_Analytical_Changed, closed by the test host, and logged 1,171 (IMA) and 837 (IMB) warnings that analytical elements became invalid in the upgrade, deleted as warnings by R104 (RAN, testhost_KA_upgrade_log.json, testhost_KB_upgrade_log.json). The TU upgrades had no dialog and no failure line (RAN).
+
+### Links and prototypes
+
+- TU models (IMC, IMD, IME, IMF, IMG and the zone2 file): 14 Revit links each in the TransmissionData bytes and in the read, the file names equal on 6 of 6 (RAN). 13 are the KEO ARC prototypes, all 13 in 00_Revit Models\Zone 02\ARC\Prototypes_2024 (RAN). The 14th is the landscape model 01101-PSN-ZZZ-XXX-LAN-ZZ-001000.rvt, not on this machine (SEARCHED C:\02-Site Adaptation, Documents and Downloads by name). It is no prototype and the add-in does not need it (CHOSEN). The TU link paths are P:\22-05 ROSHN Makkah\REV 8.2\WORKSPACE\4. Villa Prototypes\20240209\ for IMD to IMG and relative Prototypes\ for the IMC original (READ). No link loaded in any window (RAN, loaded 0 in every read).
+- SE models: the bytes list 1 Revit link, the TU model of the zone (01101-PSN-IMA-ZZZ-PIM-TU-000001.rvt, 01101-PSN-IMB-ZZZ-PIM-TU-000001.rvt from a user's Downloads), while Revit reads 14 link types, that TU model and 13 KEO STR prototypes RRE-WP-NSP-KEO-STR-<code>-ZZ-MOD-<n>.rvt linked from Autodesk Docs://ENGICON/ROSHN MAKKAH VO#2/Project Files/WIP/Prototypes/STRUC (RAN, the link openings and the read). The cloud links are not in the TransmissionData XML, so R203 does not see them (known bug). The two Zone 1 TU models are not on this machine (SEARCHED by name). The Native 1.1 file of the IMA name is another model: central path \\MAINSRV\...\Site Adaptation\Phase 1\..., last saved 2022-12-11 (RAN, rvt_info_p1_protos.json).
+- The 13 STR prototypes are not in Prototypes_2024, which holds the 13 ARC files. Their 2021 files are on this machine in 00_Revit Models\Zone 02\STR\Prototypes, 13 of 13 (SEARCHED). Not upgraded: the add-in places the ARC prototypes, a link is read with no loaded file, and the upgrade job takes its source only from pastJob.prototypeFolder, the ARC folder, so it would be a code change (CHOSEN). Q067 asks Bader.
+
+### What the SE models of IMA and IMB hold against the TU models
+
+| | IMA SE | IMB SE | IMC | IMD | IME | IMF | IMG |
+|---|---|---|---|---|---|---|---|
+| Link instances | 433 | 302 | 338 | 411 | 325 | 491 | 298 |
+| Links with a plot number | 432 | 301 | 337 | 410 | 324 | 490 | 297 |
+| RRE and CASE parameters on them | 5 | 5 | 10 | 10 | 10 | 10 | 10 |
+| Link Names with bars | 0 | 0 | 337 | 410 | 324 | 490 | 297 |
+| Generic floors (type) | 733 (Generic 150mm) | 733 (Generic 150mm) | 336 (Generic 150mm) | 410 (Generic 150mm) | 324 (FFL) | 490 (FFL) | 297 (Generic 150mm) |
+| Yard floors | 0 | 0 | 337 | 410 | 324 | 490 | 0 |
+| Ramp floors 0.5%, 2%, flat | 0 | 0 | 280, 47, 10 | 350, 55, 5 | 248, 76, 0 | 409, 75, 6 | 229, 68, 0 |
+| Structural slab and footing floors | 28 | 40 | 0 | 0 | 0 | 0 | 0 |
+| Structural Foundations | 1,199 | 877 | 0 | 0 | 0 | 0 | 0 |
+| Walls | 2,323 | 1,515 | 926 | 1,138 | 894 | 1,317 | 859 |
+| Spot elevations | 822 | 587 | 987 | 1,256 | 938 | 1,415 | 866 |
+
+(RAN, testhost_K*_prototypes.json.) The 5 parameters of the SE links are RRE_ZZ_SP_Plot-Number, RRE_ZZ_SP_Prototype, RRE_ZZ_SP_Prototype-Foundation-Type, RRE_ZZ_SP_RVT-Name and CASE, so no FFL, steps, facade or HVAC (RAN). Structural Foundations is the one model category the SE models hold and the TU models do not, and the TU models hold none the SE models lack, imported drawings left out (RAN). The two SE models hold the same 733 Generic floors, corners equal to the cm on 733 of 733, each with a plot number, 432 of them the link plots of IMA and 301 of IMB, no plot shared (RAN). So a Zone 1 SE model gives link position, hand, plot number, prototype and CASE but no level, ramp or yard. Q066 asks for the Zone 1 TU models.
+- Second method: each count of the reader against the category count of R311 in the same read, links against RVT Links, walls against Walls, floors against Floors with the 28 and 40 structural slab floors, which Revit files under Structural Foundations, matched by type name, spots against Spot Elevations: 32 of 32 equal over the 8 reads (RAN).
+- Second source: 20 random plot links of the IMC 2024 copy at seed 14 and 20 at seed 7 against prototypes_original_imc.json, the read of the same original in Round 15a: file, shared origin within 1 mm, rotation, mirror and Name equal on 20 of 20 at both seeds, worst origin gap 0 mm, the same 337 plots on both sides (RAN).
+
+### Coordinates of each model (R311)
+
+- R311 adds to the reader the active shared site and every site, the place name, the project position of the internal origin, the levels with both API elevations and their base, the units and the elements per category. The Revit side only reads, SiteFacts.Build in Common converts and sorts. 6 tests. Proved first on the IMG copy, then on all 8 reads (RAN).
+- All 7 models and the zone2 file hold the same survey point and project base point, in shared and in internal coordinates, the same project position, angle to true north 0, one shared site named Internal, place Boston, MA (the Revit default), the levels Level 1 and Level 2 with Elevation Base Survey Point, Level 2 4.0 m over Level 1, each level equal to the mm across the 8, units metric in meters, accuracy 0.01 on the TU models and 0.001 on the SE models (RAN, round_addin\logs\p1_compare.json, every gap 0.0 mm against the IMC key). So all zones share one survey point and one angle.
+- Second method: the project position read by GetProjectPosition, put through the angle, gives the shared point of the survey point and of the base point from their internal points within 0.0 mm on 8 of 8 reads (RAN). The survey point of the IMC 2024 copy equals the one of plan_imc_past.json and of prototypes_original_imc.json, 0.0 mm in shared and in internal coordinates (RAN).
+- Against config and the data book: the shared coordinates of the Parsons models are those of CAD, the frame of the data book, since the Round 17 placement from CAD put 285 of 336 IMC links within 1 mm of the key and every Z within 5 mm (READ, round-17.md). The new site files of R211 use angle 0 and the same elevation of the internal origin, but put the internal origin at the plot centre of their NBH rounded to 100 m: 547.5 m from the Parsons origin for the four site specs of Rounds 16 and 17 and 173.1 m for the Z4 spec (RAN, the site specs of kept\round_16, kept\round_17 and kept\round_z4). Button 1 must reproduce one project position, one survey point and base point, angle 0, the site Internal, Level 1 and Level 2 and metric units in meters for every zone. Q068 asks whether button 1 sets the Parsons project position in place of R211.
+
+### Memory and time (R310)
+
+- The cause of the peak under 2 GB of Phase 0b: PowerShell 7.6.7 binds [Math]::Max to Max(Int32, Int32) when its first argument is an Int32, and Run-TestHost.ps1 started with $peak = 0. Past 2 GiB the call threw, the empty catch around it hid the throw, and the peak froze at the last value under 2 GiB (RAN, a child process of 2.6 GB working set: Get-Process gave 2,654 MB, the script variable stayed an Int32 and every call threw). That is why every printed peak of the earlier rounds was 1,493 to 1,995 MB.
+- R310: Run-TestHost.ps1 samples its Revit every testHost.sampleSeconds, 5, private memory, working set, the peaks Windows keeps, responding and free memory, writes each sample at once to testhost_<name>_samples.jsonl, keeps a failed sample with its reason, and prints and writes the peaks into run.json. A first run showed that the samples miss the close of Revit (on three reads the outside sampler saw 35 to 65 MB more private memory than the peak of the script to its last sample), so the peaks Windows kept to the exit are read after it through the process handle with K32GetProcessMemoryInfo. Proved on a read of IMF (KF2) and of IMG (KG2): peak private to the exit 1,606 and 1,095 MB against 1,571 and 895 MB sampled and 1,302 and 892 MB by the outside sampler (RAN). 5 tests.
+- Second method: the sampler of I28 (round_17\logs\sampler_I28.ps1, Get-Process by name every 5 s) ran beside every window. Its largest private memory is at most the peak of the script in 14 of 17 windows, the 3 others are reads of the first runs, before the exit peaks, where the outside sampler caught the close (RAN).
+- 17 windows, one at a time under the lock with round ADDIN-1, 0 waits, 6.26 to 7.34 GB free at the lock, exit code 0 and no Revit left after each, 0.48 to 1.45 min each, 12.87 min in all (RAN, round_addin\logs\windows.jsonl). The watcher answered 5 security dialogs in each, in our own Revit only: Do Not Load for RCRC Green and RCRC Green Audit, Load Once for our three, 85 in all (RAN). The registry was not read or written. Install-TestHost.ps1 -SkipSigningReport under PowerShell 7.6.7 installed the build of 36b5125 with one Common DLL in the reader, the placer and the watcher (RAN, round_addin\logs\install_p1.txt). The later commits changed only the run script and the tests, nothing installed.
+
+| Model | Open s (upgrade) | Save s | Peak private MB of the upgrade window, script and outside | Read: open s, read s | Peak private MB of the read, script and outside | Least free GB |
+|---|---|---|---|---|---|---|
+| IMA SE | 26.4 | 6.1 | 1,681 and 1,628 | 2.3, 5.2 | 883 and 948 | 4.55 |
+| IMB SE | 24.1 | 5.3 | 1,569 and 1,497 | 2.1, 4.2 | 872 and 907 | 4.69 |
+| IMC | 9.5 | 3.9 | 1,370 and 1,072 | 1.7, 5.8 | 1,194 and 882 | 4.77 |
+| IMD | 37.7 | 6.2 | 1,798 and 1,681 | 2.2, 8.6 | 1,309 and 1,078 | 4.01 |
+| IME | 34.1 | 6.7 | 1,679 and 1,556 | 1.9, 5.4 | 896 and 944 | 4.11 |
+| IMF | 52.9 | 9.3 | 2,275 and 2,177 | 4.2, 9.6 | 1,592 and 1,591 | 3.82 |
+| IMG | 30.0 | 4.5 | 1,461 and 1,404 | 1.9, 4.0 | 871 and 869 | 4.57 |
+| zone2 IMC | none | none | none | 1.6, 3.0 | 1,086 and 869 | 5.34 |
+
+- The open of an upgrade includes the upgrade from 2021, the IMC original is already 2024 and opened in 9.5 s (RAN). The peak working set of the largest window, the IMF upgrade, was 2,470 MB (RAN). For scale, an image of a quarter of NBH 03 took 6.4 GB private and the whole area 10.7 GB in Phase 0b (READ, this file).
+
+### Limits, each with its reason
+
+- The free memory floor at the lock stays siteBuild.minFreeGB 2.0 (CHOSEN, the round sets it). The largest window of this phase took 2.28 GB private and free memory fell from 6.26 GB at its lock to 3.82 GB, so every window here started with room for itself (RAN).
+- The floor is watched during the job, not only at the lock, by R310: every sample counts free memory against the floor and the run prints the samples under it. It does not stop Revit (CHOSEN): the only windows that went under the floor, I28 at 1.10 GB and I29 at 0.55 GB, ended ok, the one hang, I25, stayed at 2.16 to 2.77 GB free so a stop at the floor would not have caught it, its image step limit did, and the lock keeps a second window from starting meanwhile (READ, Phase 0b above). No window of this phase went under the floor, 0 of 121 samples (RAN). So no stop rule and no further change.
+- The step limits of the test host stay as they are: open 25 min (siteUpgrade) and 20 min (read), save 10 min, read 15 min, job 27 min, window 30 min (CHOSEN). The largest measures are 52.9 s, 9.3 s, 4.2 s, 9.6 s and 1.45 min, so each limit is over 15 times its measure, and a limit nearer the measure would stop a slower machine and gain nothing (RAN).
+- The sample interval 5 s (CHOSEN, as the I28 sampler): a read window of 30 s gets 4 to 6 samples, the exit peaks cover the rest.
+
+### Not done in this PR
+
+- The 13 STR prototypes are not upgraded (Q067).
+- The cloud links of the SE models are not read from the bytes (known bug of R203).
+- The Zone 1 TU models are not on this machine (Q066).
+- CLAUDE.md does not name R310 and R311 yet, the main session edits it.
+
+### Gate
+
+- Python 1099 passed and 1 skipped, .NET build 0 errors and the 1 old warning (xUnit2013), .NET 445 passed (RAN).
+
+### New questions
+
+- Q065: the IMC key is the Zone 02\ARC original, the zone2 file is the master of the floor scenarios.
+- Q066: the Zone 1 TU models.
+- Q067: the STR prototypes of the SE models.
+- Q068: the project position button 1 sets.
