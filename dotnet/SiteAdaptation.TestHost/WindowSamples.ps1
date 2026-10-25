@@ -27,35 +27,19 @@ function Get-WindowSample {
 function Get-ExitPeaks {
     param([Parameter(Mandatory)][Diagnostics.Process]$Process)
     if (-not ('SiteAdaptation.WindowMemory' -as [type])) {
-        Add-Type -Namespace SiteAdaptation -Name WindowMemory -MemberDefinition @'
-[StructLayout(LayoutKind.Sequential)]
-public struct Counters
-{
-    public uint cb;
-    public uint PageFaultCount;
-    public UIntPtr PeakWorkingSetSize;
-    public UIntPtr WorkingSetSize;
-    public UIntPtr QuotaPeakPagedPoolUsage;
-    public UIntPtr QuotaPagedPoolUsage;
-    public UIntPtr QuotaPeakNonPagedPoolUsage;
-    public UIntPtr QuotaNonPagedPoolUsage;
-    public UIntPtr PagefileUsage;
-    public UIntPtr PeakPagefileUsage;
-}
-
-[DllImport("kernel32.dll", SetLastError = true)]
-public static extern bool K32GetProcessMemoryInfo(IntPtr process, out Counters counters, uint size);
-'@
+        # PROCESS_MEMORY_COUNTERS of 64 bit Windows as 9 words: cb and PageFaultCount, then PeakWorkingSetSize at 1 and
+        # PeakPagefileUsage, the peak private memory, at 8. The C# statement ends in character 59, kept out of this file by R15
+        $signature = '[DllImport("kernel32.dll", SetLastError = true)] public static extern bool K32GetProcessMemoryInfo(IntPtr process, [Out] ulong[] counters, uint size)' + [char]59
+        Add-Type -Namespace SiteAdaptation -Name WindowMemory -MemberDefinition $signature
     }
-    $counters = New-Object SiteAdaptation.WindowMemory+Counters
-    $size = [Runtime.InteropServices.Marshal]::SizeOf($counters)
-    if (-not [SiteAdaptation.WindowMemory]::K32GetProcessMemoryInfo($Process.Handle, [ref]$counters, $size)) {
+    $counters = [ulong[]]::new(9)
+    if (-not [SiteAdaptation.WindowMemory]::K32GetProcessMemoryInfo($Process.Handle, $counters, 72)) {
         throw "K32GetProcessMemoryInfo gave no counters, Win32 error $([Runtime.InteropServices.Marshal]::GetLastWin32Error())"
     }
     [ordered]@{
         utc                 = (Get-Date).ToUniversalTime().ToString('o')
-        peakPrivateBytes    = [long]$counters.PeakPagefileUsage.ToUInt64()
-        peakWorkingSetBytes = [long]$counters.PeakWorkingSetSize.ToUInt64()
+        peakPrivateBytes    = [long]$counters[8]
+        peakWorkingSetBytes = [long]$counters[1]
     }
 }
 

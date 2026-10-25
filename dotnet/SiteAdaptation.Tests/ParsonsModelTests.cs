@@ -102,6 +102,16 @@ namespace SiteAdaptation.Tests
             Assert.True((bool)exit["exited"]);
             Assert.True((long)exit["peaks"]["peakPrivateBytes"] >= 300L * 1024 * 1024);
             Assert.True((long)exit["peaks"]["peakWorkingSetBytes"] >= 300L * 1024 * 1024);
+
+            // The words of the counters against the peaks .NET gives for a live process, so the index of each peak is right
+            JObject live = JObject.Parse(Pwsh(
+                "$self = Get-Process -Id $PID\n"
+                + "$peaks = Get-ExitPeaks -Process $self\n"
+                + "$self.Refresh()\n"
+                + "[ordered]@{ peaks = $peaks; private = $self.PeakPagedMemorySize64; working = $self.PeakWorkingSet64 } | ConvertTo-Json -Compress"));
+            const long slack = 32L * 1024 * 1024;
+            Assert.InRange((long)live["peaks"]["peakPrivateBytes"], (long)live["private"] - slack, (long)live["private"]);
+            Assert.InRange((long)live["peaks"]["peakWorkingSetBytes"], (long)live["working"] - slack, (long)live["working"]);
         }
 
         [Fact]
