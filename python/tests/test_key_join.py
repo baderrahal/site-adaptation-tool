@@ -19,7 +19,7 @@ FLOORS = {"types": {"generic": ["Slab G"], "yard": ["Yard Y"], "ramp": ["Ramp A"
 FILE = "KEO-ARC-DP4-ZZ.rvt"
 # Faces 11 to 13 carry one plan label each, 14 two labels, 15 none. 16 lies over 13, so a point there is on two faces
 FACES = {"11": box(0, 0, 10, 25), "12": box(10, 0, 20, 25), "13": box(20, 0, 30, 25), "14": box(30, 0, 40, 25), "15": box(40, 0, 50, 25),
-         "16": box(25, 10, 34, 15)}
+         "16": box(25.5, 10, 34, 15)}
 NUMBERS = {"11": "501", "12": "502", "13": "503", "16": "509"}
 MANY = {"14": 2}
 # The area key of plots.csv by baseplan label and the location plan labels by number, both made up
