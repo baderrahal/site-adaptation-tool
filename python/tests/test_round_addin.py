@@ -65,7 +65,7 @@ def test_r277_the_default_key_is_never_taken_as_a_profile_name():
 
 def test_r277_plan_from_book_takes_the_default_profile_when_no_level_profile_is_given():
     args = argparse.Namespace(level_profile=None, overrides=None, override_source=[], override_fields=None)
-    rules = plan_from_book.rule_inputs(args, project_profile.load_settings(), real_profile(), [], {}, {}, [], None)
+    rules = plan_from_book.rule_inputs(args, project_profile.load_settings(), real_profile(), [], {}, {}, [], {})
     assert rules["name"] == "parsons2024Rev6"
     assert rules["levelProfile"]["height"] == "oneFflPerClusterAtTheHighestEntry"
     named = plan_from_book.rule_inputs(argparse.Namespace(level_profile="native2022", overrides=None, override_source=[], override_fields=None),
@@ -74,7 +74,8 @@ def test_r277_plan_from_book_takes_the_default_profile_when_no_level_profile_is_
 
 
 SUMMARY = {"written": 0, "plots": 0, "missingByKey": {}, "inACluster": 0, "clusters": 0, "clusterPlots": 0, "roadSurfacesOfFrontCorners": {},
-           "plotsWithNoRoadLevel": [], "frontLevelAgainstPlotsCsv": {}, "frontRule": {}, "floorsFound": {}, "floorTypes": {}}
+           "plotsWithNoRoadLevel": [], "frontLevelAgainstPlotsCsv": {}, "frontRule": {}, "floorsFound": {}, "floorTypes": {},
+           "rules": {"keyRules": False, "laterFields": [], "overridesNotApplied": {}, "yardNotMeasured": {}}}
 
 
 def run_book(tmp_path, monkeypatch, extra):
@@ -92,6 +93,7 @@ def run_book(tmp_path, monkeypatch, extra):
     monkeypatch.setattr(plan_from_book.floor_fit, "load", lambda path: {})
     monkeypatch.setattr(plan_from_book.prototype_offsets, "load", lambda path: {})
     monkeypatch.setattr(plan_from_book.prototype_offsets, "plot_frame", lambda offsets: {})
+    monkeypatch.setattr(plan_from_book.corner_front, "sales_rows", lambda path, sheet, column: {})
 
     def build(*args):
         seen["rules"] = args[-1]
@@ -103,7 +105,7 @@ def run_book(tmp_path, monkeypatch, extra):
     analysis = tmp_path / "analysis.json"
     analysis.write_text(json.dumps({"clusters": []}), encoding="utf-8")
     argv = [str(cover), "--plots-csv", "p.csv", "--landxml", "x", "--site", "s.json", "--baseplan", "b.json", "--roads", "r", "--analysis", str(analysis),
-            "--scratch", str(tmp_path), "--out", str(tmp_path / "plan.json")] + extra
+            "--scratch", str(tmp_path), "--sales", "s.xlsx", "--out", str(tmp_path / "plan.json")] + extra
     return plan_from_book.main(argv), seen
 
 

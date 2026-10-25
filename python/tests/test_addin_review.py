@@ -238,3 +238,131 @@ def test_r281_a_decision_with_misses_and_no_entry_in_the_override_list_is_not_a_
     listed = {"overrides": [{"decision": "parsons hand villa"}] * 3 + [{"decision": "parsons frontCorner"}]}
     found = {row["decision"]: row for row in r17_check.decision_counts(report, listed, ["hand", "rampSlope"])}
     assert found["parsons hand villa"]["match"] is True and found["parsons frontCorner"]["match"] is False
+
+
+# R337 a build by the rules of the keys
+DP2 = "RRE-WP-NSP-KEO-ARC-DP2-ZZ-MOD-2200.rvt"
+VD2 = "RRE-WP-NSP-KEO-ARC-VD2-ZZ-MOD-2200.rvt"
+
+
+def made_key_rules():
+    """keyRules as Round ADDIN 3a writes them, made up, for a row of a VD2 villa and three DP2 units in no cluster."""
+    yard = [[[1.0, 6.0], [9.0, 6.0], [9.0, 9.0], [1.0, 9.0]]]
+    return {
+        "linkRotation": {"rule": "frontRule"}, "frontCorner": {"rule": "frontRule"},
+        "linkOrigin": {"rule": "plotFrameRefit", "byCode": {"DP2": {"anchor": "end", "offset": [-9.5, 0.2]}, "VD2": {"anchor": "end", "offset": [-10.0, 0.2]}}},
+        "hand villa": {"rule": "blockMirrorRoadSide", "byFile": {VD2: {"no none": True, "yes none": False}}},
+        "hand cluster": {"rule": "clusterSide", "byFile": {DP2: {"left": False, "right": True}}},
+        "hand alone": {"rule": "rowPairSideOrBlockMirrorOpenEnd", "byFile": {DP2: {"pair left": False, "pair right": True}}},
+        "rampSlope": {"rule": "typology", "table": {"DP2": "0.5", "VD2": "0.5"}},
+        "rampOutline": {"rule": "outlineR127"}, "generic": {"rule": "all", "table": {"all": "wholeFace"}},
+        "yard": {"rule": "zone", "table": {"Zone 1": "0.100", "Zone 2": "0.100", "Zone 4": "noYard"},
+                 "notMeasured": {"Zone 1": "taken from the Zone 2 and 3 value pending Q066"}},
+        "yardOutline": {"rule": "fittedOutlineRefit", "groups": [{"unit": unit, "mirrored": mirrored, "width": 12.0, "type": "yard", "loops": yard}
+                                                                  for unit in ("DP2", "VD2") for mirrored in (True, False)]},
+        "parameter RRE_ZZ_SP_Plot-Number": {"rule": "plot"},
+        "parameter RRE_ZZ_SP_Prototype": {"rule": "typology", "table": {"DP2": "DP2", "VD2": "VD2"}},
+        "parameter RRE_ZZ_SP_Number-of-Steps": {"rule": "steps", "table": {"1": "1", "2": "2", "3": "3"}},
+        "parameter RRE_ZZ_SP_Façade-Color": {"rule": "all", "table": {"all": "XX"}},
+        "parameter RRE_ZZ_SP_Façade-Design-Option": {"rule": "all", "table": {"all": "XX"}},
+        "parameter CASE": {"rule": "typologyMirrored", "table": {"DP2 False": "F", "DP2 True": "E", "VD2 False": "F", "VD2 True": "E"}},
+        "parameter RRE_ZZ_SP_RVT-Name": {"rule": "plotCodeStepsAndFacade"},
+        "parameter RRE_ZZ_SP_Prototype-FFL": {"rule": "ffl"},
+    }
+
+
+def key_build(tmp_path, monkeypatch, zones=("Zone 2", "Zone 2", "Zone 2", "Zone 4"), overrides=None):
+    """plan_from_book.rule_inputs and build on a row of four 12 m plots with one road in front, the road level stubbed."""
+    import argparse
+    from shapely.geometry import LineString, box
+    import plan_from_book
+    import plan_from_past
+    settings = project_profile.load_settings()
+    real = project_profile.load_profile(project_profile.profile_path(settings))
+    values = json.loads(json.dumps(real.values))
+    values["levelProfiles"]["parsons2024Rev6"]["keyRules"] = made_key_rules()
+    profile = project_profile.ProjectProfile(real.path, values)
+    numbers = ["1", "2", "3", "4"]
+    units = {"1": "VD2", "2": "DP2", "3": "DP2", "4": "DP2"}
+    rows = {number: {"locationPlanNumber": number, "typologyRev9": units[number], "footprintMirrored": "no", "zone": zone, "roadLevelLeft": "", "roadLevelRight": ""}
+            for number, zone in zip(numbers, zones)}
+    faces = {number: box(index * 12.0, 0.0, index * 12.0 + 12.0, 25.0) for index, number in enumerate(numbers)}
+    roads = [LineString([(-50.0, -3.0), (100.0, -3.0)])]
+    monkeypatch.setattr(plan_from_book, "road_level", lambda surfaces, point, snap: (10.0, "road"))
+    path = None
+    if overrides is not None:
+        path = tmp_path / "overrides.json"
+        path.write_text(json.dumps({"note": "n", "overrides": overrides}), encoding="utf-8")
+    args = argparse.Namespace(level_profile=None, overrides=None if path is None else str(path), override_source=None, override_model=[], override_fields=None)
+    rules = plan_from_book.rule_inputs(args, settings, profile, numbers, rows, faces, roads, {}, [])
+    floors = plan_from_past.load_floors(settings)
+    site = {"levels": {floors["levels"][kind]: 0.0 for kind in ("generic", "yard", "ramp")}, "surveyPoint": {"position": [0, 0, 0], "sharedPosition": [0, 0, 0]},
+            "angleToTrueNorthDeg": 0.0}
+    outlines = json.loads((ROOT / "config" / "floor_outlines.json").read_text(encoding="utf-8"))
+    plan = plan_from_book.build(numbers, rows, {}, faces, roads, [], profile, settings, {"units": {}}, {"DP2": DP2, "VD2": VD2}, "folder", site, [("road", None)],
+                                outlines, "N1", {}, True, rules)
+    return plan, rules, profile
+
+
+def by_plot(plan):
+    return {item["plot"]: item for item in plan["plots"]}
+
+
+def test_r337_a_build_of_a_profile_with_key_rules_takes_the_hands_origin_ramp_yard_and_parameters_from_them(tmp_path, monkeypatch):
+    import cad_links
+    plan, rules, profile = key_build(tmp_path, monkeypatch)
+    found = by_plot(plan)
+    # The villa by the block mirror flag and its side road, the three DP2 units in no cluster by the pairs of their row from its right end
+    assert {plot: found[plot]["mirrored"]["value"] for plot in found} == {"1": True, "2": True, "3": False, "4": True}
+    frame = {"n": (0.0, 1.0), "r": (1.0, 0.0), "left": (24.0, 0.0), "right": (36.0, 0.0)}
+    expected = cad_links.predicted_origin(frame, False, {"anchor": "end", "offset": [-9.5, 0.2]})
+    assert found["3"]["insert"]["value"][:2] == pytest.approx(list(expected), abs=0.001)
+    assert found["2"]["floors"]["ramp"]["type"]["value"] == "Ramps 0.5%"
+    # The yard per zone: none in Zone 4
+    assert "yard" in found["3"]["floors"] and "yard" not in found["4"]["floors"]
+    assert found["3"]["floors"]["yard"]["z"]["value"] == pytest.approx(found["3"]["levels"]["ffl"]["value"] - 0.1, abs=0.0005)
+    parameters = {name: value["value"] for name, value in found["1"]["parameters"].items()}
+    steps = str(found["1"]["levels"]["steps"]["value"])
+    assert parameters == {"RRE_ZZ_SP_Plot-Number": "1", "RRE_ZZ_SP_Prototype": "VD2", "RRE_ZZ_SP_Number-of-Steps": steps, "RRE_ZZ_SP_Façade-Color": "XX",
+                          "RRE_ZZ_SP_Façade-Design-Option": "XX", "CASE": "E", "RRE_ZZ_SP_RVT-Name": "1 | VD2 | " + steps + " | XX | XX"}
+    summary = plan["summary"]["rules"]
+    assert summary["keyRules"] is True and summary["laterFields"] == ["entryM", "heightM", "steps", "parameter RRE_ZZ_SP_Prototype-FFL"]
+
+
+def test_r337_the_overrides_of_a_key_rules_build_set_the_hand_and_parameters_and_move_the_origin_and_rotation_by_their_gaps(tmp_path, monkeypatch):
+    import cad_links
+    overrides = [entry("3", "mirrored", True, "parsons", "IMC.rvt", "imc"), entry("4", "insert", {"gapToRuleM": [0.5, -0.2]}, "parsons", "IMC.rvt", "imc"),
+                 entry("2", "rotationDeg", {"gapToRuleDeg": 90.0}, "parsons", "IMC.rvt", "imc"), entry("2", "parameter CASE", "Z", "parsons", "IMC.rvt", "imc"),
+                 entry("1", "yardOutline", {"gapToRuleM": 0.3}, "parsons", "IMC.rvt", "imc")]
+    plain, _, _ = key_build(tmp_path, monkeypatch)
+    plan, _, _ = key_build(tmp_path, monkeypatch, overrides=overrides)
+    before, found = by_plot(plain), by_plot(plan)
+    assert found["3"]["mirrored"]["value"] is True and found["3"]["mirrored"]["source"] == "override"
+    assert found["2"]["parameters"]["CASE"]["value"] == "Z"
+    assert found["2"]["rotationDeg"]["value"] == pytest.approx((before["2"]["rotationDeg"]["value"] + 90.0) % 360.0, abs=0.001)
+    frame = {"n": (0.0, 1.0), "r": (1.0, 0.0), "left": (36.0, 0.0), "right": (48.0, 0.0)}
+    axis_x, axis_y = cad_links.link_axes(frame, True)
+    moved = [before["4"]["insert"]["value"][index] + 0.5 * axis_x[index] - 0.2 * axis_y[index] for index in (0, 1)]
+    assert found["4"]["insert"]["value"][:2] == pytest.approx(moved, abs=0.0011)
+    # An outline gap can not be placed, it is counted, never applied in silence
+    assert plan["summary"]["rules"]["overridesNotApplied"] == {"yardOutline": 1}
+
+
+def test_r337_a_zone_the_yard_table_does_not_hold_is_refused_and_a_zone_taken_from_another_is_said_on_every_build(tmp_path, monkeypatch):
+    with pytest.raises(project_profile.ProfileError) as error:
+        key_build(tmp_path, monkeypatch, zones=("Zone 2", "Zone 3", "Zone 2", ""))
+    assert "Zone 3" in str(error.value) and "yard" in str(error.value)
+    plan, _, _ = key_build(tmp_path, monkeypatch, zones=("Zone 1", "Zone 1", "Zone 2", "Zone 2"))
+    assert plan["summary"]["rules"]["yardNotMeasured"] == {"Zone 1": {"plots": 2, "why": "taken from the Zone 2 and 3 value pending Q066"}}
+
+
+def test_r337_a_profile_with_no_key_rules_builds_by_the_round_17_tables_and_a_key_rule_a_build_cannot_give_is_refused():
+    real = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    assert plan_rules.key_rules_of(plan_rules.level_profile(real, "native2022")) is None
+    rules = made_key_rules()
+    assert plan_rules.key_hand(rules, "alone", DP2, {"rowPairSideOrBlockMirrorOpenEnd": "pair right"}) == (True, "rowPairSideOrBlockMirrorOpenEnd")
+    assert plan_rules.key_hand(rules, "alone", "other.rvt", {"rowPairSideOrBlockMirrorOpenEnd": "pair right"}) == (None, "rowPairSideOrBlockMirrorOpenEnd")
+    for word, bad in (("hand villa", {"rule": "clusterIndexParity", "byFile": {}}), ("rampOutline", {"rule": "other"}), ("yard", {"rule": "typology", "table": {}}),
+                      ("linkOrigin", {"rule": "plotFrame"}), ("parameter CASE", {"rule": "corner", "table": {}})):
+        with pytest.raises(project_profile.ProfileError):
+            plan_rules.check_key_rules(dict(rules, **{word: bad}))

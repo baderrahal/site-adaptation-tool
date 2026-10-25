@@ -11,6 +11,8 @@ Building Footprint block with its open end, else the block mirror flag alone. A 
 R280: the override list of config/overrides is applied after the rules, only the overrides whose source is the job of the
 level profile, parsons by default (R330), narrowed to the past models named. A level override moves the value by its gap to
 the rule, a mirror or ramp class replaces it.
+R337: a level profile with keyRules, the rules Round ADDIN 3a measured on its answer keys, builds the hands, the link origin, the
+ramp class, the yard per zone, the yard outline and the link parameters by them, the tables of R279 only a profile with none.
 """
 import json
 from collections import defaultdict
@@ -19,6 +21,16 @@ from pathlib import Path
 import project_profile
 
 FIELDS = ("mirrored", "rampType", "entryM", "heightM", "rampFrontM")
+# R337. The override fields a build by keyRules applies besides FIELDS, the link parameters by their field "parameter <name>"
+KEY_FIELDS = ("insert", "rotationDeg")
+PARAMETER = "parameter "
+# R337. The candidates of majority.py a build can give: the hand factors, the factors of a parameter table, its formulas and levels
+HAND_FACTORS = ("all", "blockMirror", "clusterSide", "openEnd", "roadSide", "blockMirrorOpenEnd", "blockMirrorRoadSide", "rowPairSide",
+                "rowPairSideOrBlockMirrorOpenEnd")
+TABLE_FACTORS = ("all", "typology", "mirroredFactor", "typologyMirrored", "steps", "typologySteps")
+FORMULAS = ("plot", "rev9Code", "plotAndCode", "plotCodeStepsAndFacade")
+LEVEL_RULES = ("ffl",)
+NO_YARD = "noYard"
 # Keys of levelProfiles that hold no profile
 NOT_PROFILES = ("note", "default")
 
@@ -125,6 +137,119 @@ def hand_of(code, kind, role, block_mirror, open_end, hands, drawn, file_code=No
     return (value, "blockMirror") if value is not None else (None, None)
 
 
+def key_rules_of(lp):
+    """R337. keyRules of a level profile, the rules measured on its answer keys, each held to what a build can give, or None for a
+    profile with none, native2022, which builds by the Round 17 tables of R279."""
+    found = lp.get("keyRules")
+    if found is None:
+        return None
+    check_key_rules(found)
+    return found
+
+
+def check_key_rules(rules):
+    """R337. Every rule of keyRules a build takes must be a candidate it can give, with the table it reads, else the build is refused
+    with the rule named, never built by another rule in silence."""
+    def need(word, allowed, *fields):
+        entry = rules.get(word)
+        if not isinstance(entry, dict) or entry.get("rule") not in allowed or any(not isinstance(entry.get(field), (dict, list)) for field in fields):
+            raise project_profile.ProfileError("keyRules %s codes %s, a build gives only %s%s (R337)" % (
+                word, (entry or {}).get("rule") if isinstance(entry, dict) else None, ", ".join(allowed), "" if not fields else " with " + " and ".join(fields)))
+        return entry
+    need("linkRotation", ("frontRule", "nearestCurb"))
+    need("linkOrigin", ("plotFrameRefit",), "byCode")
+    for unit_class in ("villa", "cluster", "alone"):
+        need("hand " + unit_class, HAND_FACTORS, "byFile")
+    need("rampSlope", ("typology",), "table")
+    need("rampOutline", ("outlineR127",))
+    if need("generic", ("all",), "table")["table"] != {"all": "wholeFace"}:
+        raise project_profile.ProfileError("keyRules generic gives no whole face, a build gives only the whole face (R337)")
+    need("yard", ("zone",), "table")
+    if need("yardOutline", ("fittedOutlineRefit", "fittedOutline"))["rule"] == "fittedOutlineRefit":
+        need("yardOutline", ("fittedOutlineRefit",), "groups")
+    for word, entry in rules.items():
+        if word.startswith(PARAMETER):
+            need(word, FORMULAS + LEVEL_RULES + TABLE_FACTORS, *(("table",) if (entry or {}).get("rule") in TABLE_FACTORS else ()))
+
+
+def unit_class(kind, role):
+    """R274. villa for a detached unit, cluster for a duplex or townhouse unit in a cluster, alone for one in none."""
+    return "villa" if kind == "villa" else "cluster" if role is not None else "alone"
+
+
+def joined_factors(factors):
+    """R271, R333. The factors made of two others, blockMirrorRoadSide, blockMirrorOpenEnd and rowPairSideOrBlockMirrorOpenEnd, the one
+    place majority.py and a build make them."""
+    block_mirror = factors.get("blockMirror")
+    factors["blockMirrorRoadSide"] = None if block_mirror is None or factors.get("roadSide") is None else block_mirror + " " + factors["roadSide"]
+    factors["blockMirrorOpenEnd"] = None if block_mirror is None or factors.get("openEnd") is None else block_mirror + " " + factors["openEnd"]
+    side = factors.get("rowPairSide")
+    factors["rowPairSideOrBlockMirrorOpenEnd"] = "pair " + side if side else None if factors["blockMirrorOpenEnd"] is None else "alone " + factors["blockMirrorOpenEnd"]
+    return factors
+
+
+def key_hand(rules, unit_class_name, link_file, factors):
+    """R337. The mirror flag of keyRules for a plot: the factor its coded hand rule names, looked up in the table learned for the file
+    the plot links (R333), and the rule, or None when the factor or the table gives none."""
+    entry = rules["hand " + unit_class_name]
+    value = factors.get(entry["rule"])
+    if value is None:
+        return None, entry["rule"]
+    return (entry["byFile"].get(link_file) or {}).get(value), entry["rule"]
+
+
+def key_frame_section(rules):
+    """R337. The plotFrame fits per code of keyRules.linkOrigin, fitted again on the keys, in the form of the plotFrame section."""
+    return {"units": {code: {"anchor": fit["anchor"], "offset": list(fit["offset"])} for code, fit in rules["linkOrigin"]["byCode"].items()}}
+
+
+def key_ramp_class(rules, code):
+    """R337. The ramp slope class keyRules.rampSlope gives a Rev 9 code, None for a code its table does not hold."""
+    return rules["rampSlope"]["table"].get(code)
+
+
+def key_yard(rules, zone):
+    """R337. The depth of the yard under the FFL keyRules.yard gives a zone, None for no yard, and why the zone was not measured.
+    A zone the table does not hold raises KeyError, the build refuses it and never gives it another value."""
+    value = rules["yard"]["table"][zone]
+    return (None if value == NO_YARD else float(value)), (rules["yard"].get("notMeasured") or {}).get(zone)
+
+
+def key_outlines(rules, outlines):
+    """R337. The yard outlines a build places by keyRules.yardOutline: the groups fitted again on the keys, or those of
+    config/floor_outlines.json fitted on IMC for the rule fittedOutline, with the generic outlines of that file."""
+    if rules["yardOutline"]["rule"] == "fittedOutline":
+        return outlines
+    return dict(outlines, outlines=dict(outlines.get("outlines") or {}, yard=rules["yardOutline"]["groups"]))
+
+
+def key_parameters(rules, plot, code, mirrored, steps, ffl, facade, later):
+    """R337. The link parameters of a plot by the parameter rules of keyRules, a parameter whose decision is in later, left to a
+    later phase, not written. The tables first, so the link Name takes the facade parameters they give. A rule that gives no value
+    leaves its parameter out and names it in the second list."""
+    step = None if steps is None else str(steps)
+    factor = {"all": "all", "typology": code, "mirroredFactor": str(mirrored), "typologyMirrored": code + " " + str(mirrored), "steps": step,
+              "typologySteps": None if step is None else code + " " + step}
+    words = [word for word in rules if word.startswith(PARAMETER) and word not in later]
+    values = {}
+    for word in words:
+        entry = rules[word]
+        if entry["rule"] in TABLE_FACTORS and factor[entry["rule"]] is not None:
+            found = entry["table"].get(factor[entry["rule"]])
+            if found is not None:
+                values[word[len(PARAMETER):]] = str(found)
+    formulas = {"plot": lambda: plot, "rev9Code": lambda: code, "plotAndCode": lambda: plot + " | " + code,
+                "plotCodeStepsAndFacade": lambda: " | ".join([plot, code, str(step)] + [values.get(name) or "" for name in facade]),
+                "ffl": lambda: None if ffl is None else "%.3f" % ffl}
+    for word in words:
+        entry = rules[word]
+        if entry["rule"] in formulas:
+            found = formulas[entry["rule"]]()
+            if found is not None:
+                values[word[len(PARAMETER):]] = found
+    return values, sorted(word[len(PARAMETER):] for word in words if word[len(PARAMETER):] not in values)
+
+
 def check_override_jobs(name, lp, sources):
     """R280, R330. The overrides of a source are gaps to the rule of that job, so they apply only to a build whose level profile
     names that job. A source of another job is refused with both named and the source the build may name."""
@@ -161,7 +286,7 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
         raise project_profile.ProfileError("the override list holds no override of %s among the sources %s (R280, R330)" % (", ".join(missing), ", ".join(sorted(sources))))
     found, origin, twice = defaultdict(dict), {}, []
     for item in chosen:
-        if item.get("field") in fields:
+        if fields is None or item.get("field") in fields:
             pair = (str(item["plot"]), item["field"])
             # R280. Two entries of one plot and field, of two keys or one, are refused, the last one is never taken in silence
             if pair in origin:

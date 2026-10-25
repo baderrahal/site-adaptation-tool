@@ -485,7 +485,7 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
             if rows:
                 refit = floor_fit.fit_groups(list(rows.values()), ("unit", "mirrored", "width"), block["check"]["seeds"][0])
                 extras["yardOutlineGroups"][group] = {"fitted": len(outlines["outlines"]["yard"]), "refit": len(refit),
-                                                       "refitLoops": [{name: fitted[name] for name in ("unit", "mirrored", "width", "plots", "fromPlot", "loops")} for fitted in refit]}
+                                                       "refitLoops": [{name: fitted[name] for name in ("unit", "mirrored", "width", "type", "plots", "fromPlot", "loops")} for fitted in refit]}
                 candidates = {"fittedOutline": key_rules.outline_rule(key_rules.outline_groups(outlines["outlines"]["yard"]), rows),
                               "fittedOutlineRefit": key_rules.outline_rule(key_rules.outline_groups(refit), rows)}
                 yards = [item for item in kept("yardOutline") if (item["key"], item["plot"]) in rows]

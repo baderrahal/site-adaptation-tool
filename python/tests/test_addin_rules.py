@@ -374,7 +374,10 @@ def test_r333_r334_the_rules_profile_holds_the_hand_ramp_and_floor_rules_of_the_
     for word in ("hand villa", "hand cluster", "hand alone"):
         assert rules[word]["strong"] is True and all(isinstance(value, bool) for table in rules[word]["byFile"].values() for value in table.values())
     assert rules["hand alone"]["rule"] == "rowPairSideOrBlockMirrorOpenEnd"
-    assert rules["yard"]["rule"] == "zone" and rules["yard"]["default"] == "0.100" and "noYard" in rules["yard"]["table"].values()
+    assert rules["yard"]["rule"] == "zone" and rules["yard"]["table"]["Zone 4"] == "noYard" and rules["yard"]["table"]["Zone 2"] == "0.100"
+    # R337. Zone 1, which no Parsons TU key holds, takes the Zone 2 and 3 value and says so
+    assert rules["yard"]["table"]["Zone 1"] == rules["yard"]["table"]["Zone 3"] and "Q066" in rules["yard"]["notMeasured"]["Zone 1"]
+    assert len(rules["yardOutline"]["groups"]) == 102 and all(group["loops"] for group in rules["yardOutline"]["groups"])
     assert rules["rampSlope"]["flatRamps"]["plots"] == rules["rampSlope"]["flatRamps"]["withElAtEntryRefused"]
     for word in ("rampOutline", "yardOutline", "rampFront", "rampFrontFall", "generic"):
         assert 0 < rules[word]["share"] <= 1
