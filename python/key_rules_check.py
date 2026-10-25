@@ -344,7 +344,7 @@ def parameter_verdicts(row, ctx, settings, report):
     for name in block["parameterTests"]:
         decision = "parameter " + name
         coded = decisions.get("parsons " + decision)
-        value = values.get(name) if values.get(name) not in (None, "") else read.get(name)
+        value = values.get(name)
         if coded is None or value in (None, "") or "parameter" in leave or decision in leave:
             continue
         if coded["coded"] in formulas:

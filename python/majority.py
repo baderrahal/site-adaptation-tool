@@ -284,7 +284,7 @@ def hand_class(item):
 
 
 def parameter(item, name):
-    """R276, R335. A link parameter of the row, else of the key read, which holds the parameters past_all.csv does not list."""
+    """R276, R335. A link parameter of the row, else of the key read, which gives only the level parameters past_all.csv does not list."""
     value = json.loads(item["row"].get("parameters") or "{}").get(name)
     if value in (None, ""):
         value = (item.get("readParameters") or {}).get(name)
@@ -670,11 +670,13 @@ def main(argv=None):
         found = front.get(item["plot"]) or {}
         item["frame"], item["frontRule"], item["curbFrame"] = found.get("frame"), found.get("frontRule"), curbs.get(item["plot"])
     plans = {key: json.loads(Path(path).read_text(encoding="utf-8")) for key, path in args.key_plan}
-    # R335. The link parameters of each key read, for the parameters past_all.csv does not list
+    # R335. The level parameters of majority.parameterLevels from each key read, which past_all.csv does not list. Only those, since a
+    # read is found by its plot number parameter, so its plot number would hold by construction
     reads = {key: ramp_levels.host_document(link_summary.load(path)) for key, path in args.key_read}
     read_found = key_rules.read_parameters(reads)
     for item in items:
-        item["readParameters"] = read_found.get((item["key"], item["plot"]))
+        found = read_found.get((item["key"], item["plot"])) or {}
+        item["readParameters"] = {name: found[name] for name in block["parameterLevels"] if name in found}
     # R334. The plots whose El @ Entry parameter the plan of the key refused as a placeholder (R325)
     refused = key_rules.entry_refused(plans)
     for item in items:
