@@ -55,6 +55,8 @@ ESTIMATE = "estimate"
 LOCATION = "locationPlan"
 OVERRIDE = "override"
 KEY_RULES = "keyRules"
+# R337. The source of a parameter that reads the steps, the stepBands of the level profile until 3c codes the steps
+STEP_BANDS = "levelProfileStepBands"
 sourced = plan_from_cad.sourced
 
 
@@ -249,6 +251,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     limits = cad_links.front_limits(profile, settings.get("analysis"))
     # R337. A profile with keyRules builds the link origin by the fits per code measured on its keys, never the IMC fit of config
     key = None if rules is None else rules.get("keyRules")
+    stepped = set() if key is None else plan_rules.step_parameters(key, rules["laterParameters"])
     if key is not None:
         frame_section = plan_rules.key_frame_section(key)
         missing_zones = defaultdict(list)
@@ -337,7 +340,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             mirrored = builder.entry["mirrored"]["value"] if builder.has("mirrored") else None
             values, lacking_parameters = plan_rules.key_parameters(key, number, unit, mirrored, steps, builder.entry["levels"].get("ffl", {}).get("value"),
                                                                    rules["facade"], rules["laterParameters"])
-            builder.entry["parameters"] = {name: sourced(value, KEY_RULES) for name, value in values.items()}
+            builder.entry["parameters"] = {name: sourced(value, STEP_BANDS if name in stepped else KEY_RULES) for name, value in values.items()}
             for name in lacking_parameters:
                 builder.lack("parameters." + name, "the rule of keyRules gives no value for " + unit + (" mirrored" if mirrored else ""))
             for field, value in mine_overrides.items():
@@ -426,7 +429,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             "rules": None if rules is None else {"levelProfile": rules["name"], "overrideSource": rules["sources"], "overrideModel": rules.get("models", []),
                                                 "applied": dict(sorted(applied.items())), "keyRules": key is not None, "laterFields": rules.get("laterFields") or [],
                                                 "overridesNotApplied": not_applied(numbers, rules, key, skipped),
-                                                "yardNotMeasured": {zone: {"plots": not_measured_plots[zone], "why": why} for zone, why in sorted(not_measured.items())}},
+                                                "yardNotMeasured": {zone: {"plots": not_measured_plots[zone], "why": why} for zone, why in sorted(not_measured.items())},
+                                                "steps": None if key is None else {"from": "stepBands of the level profile " + rules["name"], "parameters": sorted(stepped)}},
         },
         "plots": plots,
         "missing": missing,
@@ -597,6 +601,8 @@ def main(argv=None):
     if summary["rules"]["keyRules"]:
         print("built by keyRules of %s (R337), left to phase %s: %s, overrides not placed %s" % (rules["name"], "later", ", ".join(summary["rules"]["laterFields"]),
                                                                                                  summary["rules"]["overridesNotApplied"]))
+    if summary["rules"].get("steps"):
+        print("steps and %s by the %s until 3c codes the steps (R337)" % (", ".join(summary["rules"]["steps"]["parameters"]), summary["rules"]["steps"]["from"]))
     for zone, found in summary["rules"]["yardNotMeasured"].items():
         print("yard of %s on %d plots not measured on a key: %s (R337)" % (zone, found["plots"], found["why"]))
     print("plots written %d of %d, missing %s" % (summary["written"], summary["plots"], summary["missingByKey"]))

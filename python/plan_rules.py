@@ -30,6 +30,8 @@ HAND_FACTORS = ("all", "blockMirror", "clusterSide", "openEnd", "roadSide", "blo
 TABLE_FACTORS = ("all", "typology", "mirroredFactor", "typologyMirrored", "steps", "typologySteps")
 FORMULAS = ("plot", "rev9Code", "plotAndCode", "plotCodeStepsAndFacade")
 LEVEL_RULES = ("ffl",)
+# R337. The parameter rules that read the steps, which the stepBands of the level profile give until 3c codes the steps
+STEP_RULES = ("steps", "typologySteps", "plotCodeStepsAndFacade")
 NO_YARD = "noYard"
 # Keys of levelProfiles that hold no profile
 NOT_PROFILES = ("note", "default")
@@ -248,6 +250,13 @@ def key_parameters(rules, plot, code, mirrored, steps, ffl, facade, later):
             if found is not None:
                 values[word[len(PARAMETER):]] = found
     return values, sorted(word[len(PARAMETER):] for word in words if word[len(PARAMETER):] not in values)
+
+
+def step_parameters(rules, later):
+    """R337. The link parameters whose rule of keyRules reads the steps, those of later left out. The steps are a level, the
+    stepBands of the level profile of Round 17 give them until 3c codes them, so a build labels these parameters by that source."""
+    return {word[len(PARAMETER):] for word, entry in rules.items()
+            if word.startswith(PARAMETER) and word not in later and isinstance(entry, dict) and entry.get("rule") in STEP_RULES}
 
 
 def check_override_jobs(name, lp, sources):
