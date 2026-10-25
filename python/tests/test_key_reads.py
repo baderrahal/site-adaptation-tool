@@ -162,3 +162,123 @@ def test_r322_main_writes_the_counts_of_each_key_into_the_reads_folder_and_never
     with pytest.raises(project_profile.ProfileError):
         key_reads.main(["--settings", str(settings.path), "--reads", str(reads), "--key", "IMZ=QX"])
 
+
+# R323. The second method of the key reads
+
+def categories(**counts):
+    names = {"links": "RVT Links", "walls": "Walls", "floors": "Floors", "spots": "Spot Elevations", "footings": "Structural Foundations"}
+    return [{"type": "Model", "name": names[key], "count": value} for key, value in counts.items()]
+
+
+def with_categories(document, **counts):
+    document["site"]["categories"] = categories(**counts)
+    for floor in document["floors"]:
+        floor["parameters"] = {"Category": "Structural Foundations" if floor["typeName"] == "Footing Z" else "Floors"}
+    return document
+
+
+def test_r323_the_counts_match_the_categories_of_r311_and_a_floor_of_another_category_is_counted_apart():
+    import key_reads_check as check
+    document = with_categories(made_up_read(), links=3, walls=3, floors=4, spots=4, footings=7)
+    result = check.by_categories(document)
+
+    assert result["links"] == {"read": 3, "category": 3, "equal": True}
+    assert result["walls"] == {"read": 3, "category": 3, "equal": True}
+    assert result["spots"] == {"read": 4, "category": 4, "equal": True}
+    assert result["floors"] == {"read": 4, "category": 4, "equal": True}
+    assert result["floorsInOtherCategories"] == {"Structural Foundations": {"read": 1, "category": 7}}
+    short = check.by_categories(with_categories(made_up_read(), links=4, walls=3, floors=5, spots=4, footings=7))
+    assert short["links"]["equal"] is False and short["floors"]["equal"] is False
+
+
+def test_r323_the_link_files_of_the_read_are_held_against_the_link_files_of_the_bytes():
+    import key_reads_check as check
+    same = check.by_bytes(made_up_read(), [{"file": "A.rvt"}, {"file": "b.RVT"}])
+    short = check.by_bytes(made_up_read(), [{"file": "A.rvt"}, {"file": "C.rvt"}])
+
+    assert same == {"read": 2, "bytes": 2, "both": 2, "onlyRead": [], "onlyBytes": []}
+    assert short == {"read": 2, "bytes": 2, "both": 1, "onlyRead": ["B.rvt"], "onlyBytes": ["C.rvt"]}
+
+
+def link_of(element, plot, origin, rotation=30.0, mirrored=False, file="A.rvt"):
+    return {"elementId": element, "file": file, "plotNumber": plot, "prototype": "VD2", "case": "A",
+            "transform": {"origin": origin, "rotationDeg": rotation, "mirrored": mirrored}}
+
+
+def test_r323_links_are_held_against_a_second_read_by_id_at_a_seed_and_a_changed_field_is_named():
+    import key_reads_check as check
+    new = {"links": [link_of(index, str(100 + index), [index, 2.0, 3.0]) for index in range(30)]}
+    old = {"links": [link_of(index, str(100 + index), [index, 2.0, 3.0]) for index in range(30)]}
+    old["links"][4]["transform"]["origin"] = [4.0, 2.002, 3.0]
+    old["links"][5]["transform"]["mirrored"] = True
+    seeds = {seed: check.links_by_id(new, old, seed, 20) for seed in (14, 7)}
+
+    for seed, result in seeds.items():
+        picked = set(result["ids"])
+        assert len(picked) == 20 and result["idsEqual"] is True
+        wrong = {4, 5} & picked
+        assert result["match"] == 20 - len(wrong) and result["mismatch"] == len(wrong)
+        assert sorted(item["elementId"] for item in result["mismatches"]) == sorted(wrong)
+    assert seeds[14]["ids"] != seeds[7]["ids"]
+    assert check.links_by_id(new, old, 14, 20)["ids"] == seeds[14]["ids"]
+    fewer = check.links_by_id({"links": new["links"][:3]}, {"links": new["links"][:2]}, 7, 20)
+    assert fewer["idsEqual"] is False and fewer["onlyNew"] == [2] and len(fewer["ids"]) == 2
+
+
+def test_r323_floors_and_walls_are_held_against_a_second_read_by_their_ids_per_type():
+    import key_reads_check as check
+    new = made_up_read()
+    old = made_up_read()
+    old["walls"][2]["typeName"] = "Wall 3"
+    result = check.ids_per_type(new, old)
+
+    assert result["floors"] == {"types": 4, "equal": 4, "differ": []}
+    assert result["walls"] == {"types": 3, "equal": 1, "differ": ["Wall 2", "Wall 3"]}
+
+
+def test_r323_the_spot_value_is_held_against_its_origin_and_the_survey_offset():
+    import key_reads_check as check
+    document = {"surveyPoint": {"position": [0.0, 0.0, 10.0], "sharedPosition": [500.0, 600.0, 12.5]},
+                "spotElevations": [{"elementId": index, "origin": [0.0, 0.0, 80.0 + index], "value": 82.5 + index, "elevationBase": "Survey Point"} for index in range(26)]}
+    document["spotElevations"][3]["value"] = 85.502
+    document["spotElevations"][4].pop("value")
+    document["spotElevations"][25]["elevationBase"] = "Project Base Point"
+    result = check.spot_values(document, 14, 20)
+
+    assert result["withValue"] == 25 and result["otherBase"] == {"Project Base Point": 1}
+    assert result["compared"] == 24 and result["withinMm"] == 23
+    assert result["worstMm"] == 2.0
+    assert len(result["sample"]["ids"]) == 20
+    assert result["sample"]["match"] + result["sample"]["mismatch"] == 20
+
+
+def test_r323_main_holds_a_read_against_the_bytes_of_its_key_copy_and_its_second_read_and_writes_outside_the_repo(tmp_path):
+    import key_reads_check as check
+    from cfb_fixture import build
+    from test_rvt_info import INFO, XML, utf16
+    root = tmp_path / "root"
+    (root / "copies").mkdir(parents=True)
+    (root / "copies" / "x-IMX.rvt").write_bytes(build([("BasicFileInfo", utf16(INFO)), ("TransmissionData", utf16(XML, b"\x84-\x00\x00"))]))
+    path = tmp_path / "project.json"
+    path.write_text(json.dumps({"inputRoot": str(root), "answerKeys": {"folder": "copies", "keys": [{"code": "IMX", "copy": "x-IMX.rvt"}]}}), encoding="utf-8")
+    document = with_categories(made_up_read(), links=3, walls=3, floors=4, spots=4, footings=7)
+    for link in document["links"][:2]:
+        link["file"] = "RRE-WP-NSP-KEO-ARC-D4-ZZ-MOD-2400.rvt"
+    document["surveyPoint"] = {"position": [0.0, 0.0, 0.0], "sharedPosition": [0.0, 0.0, 0.0]}
+    reads = tmp_path / "reads"
+    (reads / "QX").mkdir(parents=True)
+    (reads / "QX" / "testhost_QX_prototypes.json").write_text(json.dumps({"documents": [document]}), encoding="utf-8")
+    old = tmp_path / "old.json"
+    old.write_text(json.dumps({"documents": [made_up_read()]}), encoding="utf-8")
+
+    assert check.main(["--settings", str(path), "--reads", str(reads), "--key", "IMX=QX=" + str(old)]) == 0
+    written = json.loads((reads / "key_reads_check.json").read_text(encoding="utf-8"))["keys"]["IMX"]
+    assert written["bytes"] == {"read": 2, "bytes": 1, "both": 1, "onlyRead": ["B.rvt"], "onlyBytes": []}
+    assert written["categories"]["walls"]["equal"] is True
+    assert written["links"]["14"]["idsEqual"] is True and written["links"]["14"]["match"] == 1
+    assert written["links"]["14"]["mismatches"] == [{"elementId": 1, "fields": ["file"]}, {"elementId": 2, "fields": ["file"]}]
+    assert written["idsPerType"]["walls"]["differ"] == []
+    with pytest.raises(ValueError):
+        check.main(["--settings", str(path), "--reads", str(project_profile.ROOT / "python"), "--key", "IMX=QX=none"])
+    with pytest.raises(project_profile.ProfileError):
+        check.main(["--settings", str(path), "--reads", str(reads), "--key", "IMZ=QX=none"])
