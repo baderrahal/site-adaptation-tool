@@ -115,8 +115,8 @@ namespace SiteAdaptation.Tests
             foreach (string failing in new[] { "Win32_OperatingSystem", "Win32_Process" })
             {
                 JObject sample = JObject.Parse(Pwsh(
-                    "function Get-CimInstance { [CmdletBinding()] param([string]$ClassName, [string]$Filter, [string[]]$Property) if ($ClassName -eq '" + failing + "') { throw 'no CIM' } CimCmdlets\\Get-CimInstance @PSBoundParameters }\n"
-                    + "Get-WindowSample -Process (Get-Process -Id $PID) | ConvertTo-Json -Compress"));
+                    "function Get-CimInstance { [CmdletBinding()] param([string]$ClassName, [string]$Filter, [string[]]$Property, [int]$OperationTimeoutSec) if ($ClassName -eq '" + failing + "') { throw 'no CIM' } CimCmdlets\\Get-CimInstance @PSBoundParameters }\n"
+                    + "Get-WindowSample -Process (Get-Process -Id $PID) -TimeoutSeconds 2 | ConvertTo-Json -Compress"));
 
                 Assert.True((long)sample["privateBytes"] > 0, failing);
                 Assert.True((long)sample["peakPrivateBytes"] > 0, failing);
@@ -140,6 +140,102 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R310_each_cim_call_takes_the_limit_it_is_given_and_a_timed_out_call_is_written_as_not_read_without_blocking()
+        {
+            // A CIM call that runs to its limit and then times out, as Get-CimInstance does with -OperationTimeoutSec, and one with no
+            // limit that would never return. The sample asks with the limit, is written with both calls not read and ends near twice it
+            JObject result = JObject.Parse(Pwsh(
+                "$global:limits = @()\n"
+                + "function Get-CimInstance { [CmdletBinding()] param([string]$ClassName, [string[]]$Property, [int]$OperationTimeoutSec)\n"
+                + "  $global:limits += $OperationTimeoutSec\n"
+                + "  if ($OperationTimeoutSec -lt 1) { Start-Sleep 20 }\n"
+                + "  Start-Sleep -Seconds $OperationTimeoutSec\n"
+                + "  throw 'Timed out' }\n"
+                + "$clock = [Diagnostics.Stopwatch]::StartNew()\n"
+                + "$sample = Get-WindowSample -Process (Get-Process -Id $PID) -TimeoutSeconds 1\n"
+                + "[ordered]@{ sample = $sample; seconds = $clock.Elapsed.TotalSeconds; limits = $global:limits } | ConvertTo-Json -Compress -Depth 5"));
+
+            Assert.Equal(new[] { 1, 1 }, result["limits"].Select(limit => (int)limit));
+            Assert.InRange((double)result["seconds"], 1.9, 10);
+            JToken sample = result["sample"];
+            Assert.True((long)sample["privateBytes"] > 0);
+            Assert.Equal(JTokenType.Null, sample["freeBytes"].Type);
+            Assert.Equal(JTokenType.Null, sample["childProcesses"].Type);
+            Assert.Equal(JTokenType.Null, sample["childPrivateBytes"].Type);
+            Assert.Contains("Timed out", (string)sample["freeError"]);
+            Assert.Contains("Timed out", (string)sample["childError"]);
+
+            // With no limit there is no sample, so a call can never run on unbounded
+            string script = File.ReadAllText(RepoPath("dotnet", "SiteAdaptation.TestHost", "WindowSamples.ps1"));
+            Assert.Equal(2, script.Split(new[] { "Get-CimInstance " }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(2, script.Split(new[] { "-OperationTimeoutSec $TimeoutSeconds" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
+        public void R310_helpers_running_before_the_window_are_listed_by_name_and_private_memory_and_never_counted_as_its_children()
+        {
+            // A helper with 100 MiB of its own runs before the window starts, as the LocalDB of Steel Connections did from the first
+            // window of Phase 1 on. The window starts nothing of that name, so its child figures leave the helper out
+            JObject result = JObject.Parse(Pwsh(
+                "$path = (Get-Process -Id $PID).Path\n"
+                + "$info = [Diagnostics.ProcessStartInfo]::new($path, @('-NoProfile', '-Command', '$b = [byte[]]::new(100MB)\n[Array]::Fill($b, [byte]1)\nStart-Sleep 30'))\n"
+                + "$info.UseShellExecute = $false\n"
+                + "$info.CreateNoWindow = $true\n"
+                + "$helper = [Diagnostics.Process]::Start($info)\n"
+                + "for ($i = 0; $i -lt 60 -and (Get-Process -Id $helper.Id).PrivateMemorySize64 -lt 100MB; $i++) { Start-Sleep -Milliseconds 500 }\n"
+                + "$helpers = @(Get-RunningHelpers -Names @('pwsh', 'no-such-helper'))\n"
+                + "$windowInfo = [Diagnostics.ProcessStartInfo]::new($path, @('-NoProfile', '-Command', 'Start-Sleep 30'))\n"
+                + "$windowInfo.UseShellExecute = $false\n"
+                + "$windowInfo.CreateNoWindow = $true\n"
+                + "$window = [Diagnostics.Process]::Start($windowInfo)\n"
+                + "Start-Sleep 2\n"
+                + "$sample = Get-WindowSample -Process $window -TimeoutSeconds 2\n"
+                + "$helper.Kill()\n"
+                + "$window.Kill()\n"
+                + "[ordered]@{ helperId = $helper.Id; helpers = $helpers; sample = $sample; none = @(Get-RunningHelpers -Names @()).Count } | ConvertTo-Json -Compress -Depth 5"));
+
+            JToken helper = result["helpers"].Single(item => (int)item["id"] == (int)result["helperId"]);
+            Assert.Equal("pwsh", (string)helper["name"]);
+            Assert.True((long)helper["privateMib"] >= 100);
+            Assert.True(DateTime.Parse((string)helper["startUtc"]).Year >= 2026);
+            Assert.DoesNotContain(result["helpers"], item => (string)item["name"] == "no-such-helper");
+            Assert.Equal(0, (int)result["none"]);
+            Assert.DoesNotContain("pwsh", (string)result["sample"]["childNames"] ?? string.Empty);
+            Assert.True((long)result["sample"]["childPrivateBytes"] < 100L * 1024 * 1024);
+        }
+
+        [Fact]
+        public void R310_the_run_checks_the_deadline_first_in_every_pass_and_writes_the_helpers_at_the_window_start()
+        {
+            string script = File.ReadAllText(RepoPath("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1"));
+            JObject config = JObject.Parse(File.ReadAllText(RepoPath("config", "project.json")));
+
+            // The limit of a CIM call comes from the config, and two calls at their limit fit in the 5 s of the checks
+            int limit = (int)config["testHost"]["cimTimeoutSeconds"];
+            Assert.Equal(2, limit);
+            Assert.True(2 * limit < 5);
+            Assert.Contains("$cimSeconds = [int]$config.testHost.cimTimeoutSeconds", script);
+            Assert.Contains("$sample = Get-WindowSample -Process $process -TimeoutSeconds $cimSeconds", script);
+
+            // In every pass the deadline is looked at right after the wait, before the clocks and before a sample
+            int wait = script.IndexOf("$process.WaitForExit((Get-LookWait -Clock $clock -Now (Get-Date)))", StringComparison.Ordinal);
+            int deadline = script.IndexOf("if ($now -gt $deadline)", StringComparison.Ordinal);
+            int due = script.IndexOf("$due = Get-DueLooks -Clock $clock -Now $now", StringComparison.Ordinal);
+            int sample = script.IndexOf("if ($due.sample) {", StringComparison.Ordinal);
+            Assert.True(wait > 0 && deadline > wait && due > deadline && sample > due);
+            Assert.Equal(1, script.Split(new[] { "if ($now -gt $deadline)" }, StringSplitOptions.None).Length - 1);
+
+            // The helpers already running are listed before Revit starts and go into the memory block of run.json in full
+            Assert.NotNull(config["testHost"]["helperProcesses"]);
+            Assert.Contains("RevitWorker", config["testHost"]["helperProcesses"].Select(name => (string)name));
+            Assert.Contains("sqlservr", config["testHost"]["helperProcesses"].Select(name => (string)name));
+            int helpers = script.IndexOf("$helpersAtStart = @(Get-RunningHelpers -Names @($config.testHost.helperProcesses))", StringComparison.Ordinal);
+            Assert.True(helpers > 0 && helpers < script.IndexOf("$process = [Diagnostics.Process]::Start($info)", StringComparison.Ordinal));
+            Assert.Contains("$peaks.helpersAtStart = @($helpersAtStart)", script);
+            Assert.Contains("} | ConvertTo-Json -Depth 5 | Set-Content -Path $runPath -Encoding utf8", script);
+        }
+
+        [Fact]
         public void R310_a_sample_counts_the_processes_the_window_started_and_their_memory()
         {
             JObject sample = JObject.Parse(Pwsh(
@@ -147,7 +243,7 @@ namespace SiteAdaptation.Tests
                 + "$info.UseShellExecute = $false\n"
                 + "$child = [Diagnostics.Process]::Start($info)\n"
                 + "for ($i = 0; $i -lt 60 -and (Get-Process -Id $child.Id).PrivateMemorySize64 -lt 200MB; $i++) { Start-Sleep -Milliseconds 500 }\n"
-                + "$sample = Get-WindowSample -Process (Get-Process -Id $PID)\n"
+                + "$sample = Get-WindowSample -Process (Get-Process -Id $PID) -TimeoutSeconds 2\n"
                 + "$child.Kill()\n"
                 + "$sample | ConvertTo-Json -Compress"));
 
@@ -227,7 +323,7 @@ namespace SiteAdaptation.Tests
                 Assert.Equal(0, (int)none["notResponding"]);
             }
 
-            JObject sample = JObject.Parse(Pwsh("Get-WindowSample -Process (Get-Process -Id $PID) | ConvertTo-Json -Compress"));
+            JObject sample = JObject.Parse(Pwsh("Get-WindowSample -Process (Get-Process -Id $PID) -TimeoutSeconds 2 | ConvertTo-Json -Compress"));
             foreach (string field in new[] { "privateBytes", "peakPrivateBytes", "workingSetBytes", "peakWorkingSetBytes", "freeBytes" })
             {
                 Assert.True((long)sample[field] > 0, field);
@@ -245,7 +341,8 @@ namespace SiteAdaptation.Tests
             Assert.Equal(5, (int)config["testHost"]["sampleSeconds"]);
             Assert.Contains(". (Join-Path $PSScriptRoot 'WindowSamples.ps1')", script);
             Assert.Contains("$sampleSeconds = [int]$config.testHost.sampleSeconds", script);
-            // The deadline, refusal, log and start screen checks keep the 5 s they had before R310, the samples follow the config
+            // The watcher, refusal, log and start screen checks keep the 5 s they had before R310, the samples follow the config and the
+            // deadline is looked at in every pass
             Assert.Contains("$checkSeconds = 5", script);
             Assert.Contains("$clock = New-LookClock -Start $start -CheckSeconds $checkSeconds -SampleSeconds $sampleSeconds", script);
             Assert.Contains("$process.WaitForExit((Get-LookWait -Clock $clock -Now (Get-Date)))", script);
@@ -253,7 +350,7 @@ namespace SiteAdaptation.Tests
             int loop = script.IndexOf("$due = Get-DueLooks -Clock $clock -Now $now", StringComparison.Ordinal);
             int skip = script.IndexOf("if (-not $due.check) {", StringComparison.Ordinal);
             Assert.True(loop > 0 && skip > loop);
-            foreach (string check in new[] { "if ($now -gt $deadline)", "if ($refused -and (Test-Path $refused)", "$stopReason = \"the test host wrote no log in $NoLogMinutes minutes\"", "$quietSince.AddSeconds(60)" })
+            foreach (string check in new[] { "if ($watcher.HasExited -and $watcher.ExitCode -eq 3)", "if ($refused -and (Test-Path $refused)", "$stopReason = \"the test host wrote no log in $NoLogMinutes minutes\"", "$quietSince.AddSeconds(60)" })
             {
                 Assert.True(script.IndexOf(check, StringComparison.Ordinal) > skip, check);
             }
