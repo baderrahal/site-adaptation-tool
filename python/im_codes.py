@@ -8,7 +8,7 @@ record of R203). Then the plots of each file of dataBook.data5.imCodes.sources a
 number, a schedule by the plots.csv rows it wired, a past plan by the official number of each plot, so each code gets the
 neighbourhoods of the plots its files hold, with counts. The IM letter is only the name of the evidence, the area of a plot
 is never read from it. Counts go to im_codes.json in the area_key folder of data5. Since Round ADDIN config/area_codes.json
-holds one table per job (R301) and each source names its job, parsons or native.
+holds one table per job of majority.groups (R301) and each source names its job.
 """
 import argparse
 import csv
@@ -21,6 +21,7 @@ from pathlib import Path
 
 import c3d_run
 import data_book_analysis
+import project_profile
 
 REPO = Path(__file__).resolve().parent.parent
 CODE =re.compile(r"(?<![A-Za-z])(IM[A-Z])(?![A-Za-z])")
@@ -97,11 +98,19 @@ def nbh_counts(keys, key_of):
     return dict(found.most_common())
 
 
-JOBS = ("parsons", "native")
 FILE_KINDS = ("model", "schedule")
 
 
+def job_names(settings):
+    """R301. The jobs of the area code table, the groups of majority.groups in the project settings, so no job name sits in code."""
+    groups = settings.get("majority.groups")
+    if not isinstance(groups, dict) or not groups:
+        raise ValueError("majority.groups of the project settings names no job")
+    return tuple(groups)
+
+
 def measured_count(value):
+    """R301. A plot count of an area is a whole number above 0, never a flag, a text or a share."""
     return isinstance(value, int) and not isinstance(value, bool) and value > 0
 
 
@@ -121,39 +130,50 @@ def check_job(job, rows):
         if not isinstance(areas, list) or not areas:
             raise ValueError("area code %s of %s holds no area" % (row["code"], job))
         for area in areas:
-            if not (isinstance(area, dict) and area.get("nbh") and area.get("zone") and measured_count(area.get("plots"))
+            if not (isinstance(area, dict) and "status" not in area and area.get("nbh") and area.get("zone") and measured_count(area.get("plots"))
                     and area.get("kind") in FILE_KINDS and area.get("file") and area.get("measured")):
                 raise ValueError("area of %s in %s is not measured with its count and source: %s" % (row["code"], job, area))
     return rows
 
 
-def load_table(path):
-    """R301. config/area_codes.json as {job: rows}, one table per job of JOBS, every row measured (check_job)."""
+def load_table(path, settings=None):
+    """R301. config/area_codes.json as {job: rows}, one table per job of the project settings (job_names), every row measured
+    (check_job). settings are those the caller loaded, the repo config when None."""
+    names = job_names(settings if settings is not None else project_profile.load_settings())
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     jobs = data.get("jobs") if isinstance(data, dict) else None
-    if not isinstance(jobs, dict) or set(jobs) != set(JOBS):
-        raise ValueError("area codes hold one table per job, %s" % ", ".join(JOBS))
-    return {job: check_job(job, jobs[job]) for job in JOBS}
+    if not isinstance(jobs, dict) or set(jobs) != set(names):
+        raise ValueError("area codes hold one table per job, %s" % ", ".join(names))
+    return {job: check_job(job, jobs[job]) for job in names}
+
+
+def zone_and_nbh(key):
+    """The zone and the neighbourhood of a key of nbh_counts, Zone 2 012 as (Zone 2, 012)."""
+    zone, _, nbh = key.rpartition(" ")
+    return zone, nbh
 
 
 def table_against_sources(table, sources):
-    """R301. Each source against the row of its code in the table of its own job: agrees when every keyed plot is in a
-    neighbourhood of the row, differs otherwise, noRow when the job has no row of the code, noJob when the table has no such job."""
+    """R301. Each source against the row of its code in the table of its own job: agrees when every keyed plot is in a zone and
+    neighbourhood pair of the row, differs otherwise, noKeyedPlot when the area key keyed none of its plots, noRow when the job has
+    no row of the code, noJob when the table has no such job."""
     found = []
     for source in sources:
         rows = {row["code"]: row for row in table.get(source.get("job")) or []}
         for code in source["codes"]:
             row = rows.get(code)
-            nbhs = {key.split(" ")[-1] for key in source["byZoneAndNbh"] if key != "noKey"}
+            pairs = {zone_and_nbh(key) for key in source["byZoneAndNbh"] if key != "noKey"}
             if source.get("job") not in table:
                 verdict = "noJob"
             elif row is None:
                 verdict = "noRow"
-            elif nbhs <= {area["nbh"] for area in row["areas"]}:
+            elif not pairs:
+                verdict = "noKeyedPlot"
+            elif pairs <= {(area["zone"], area["nbh"]) for area in row["areas"]}:
                 verdict = "agrees"
             else:
                 verdict = "differs"
-            found.append({"source": source["name"], "job": source.get("job"), "code": code, "nbh": sorted(nbhs), "verdict": verdict})
+            found.append({"source": source["name"], "job": source.get("job"), "code": code, "nbh": sorted(nbh for _, nbh in pairs), "verdict": verdict})
     return found
 
 

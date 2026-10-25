@@ -347,6 +347,40 @@ def test_r301_a_source_is_held_against_the_row_of_its_code_in_its_own_job_only()
     assert [r["verdict"] for r in im_codes.table_against_sources(table, sources)] == ["agrees", "differs", "noRow", "noJob"]
 
 
+def test_r301_a_guessed_status_on_an_area_is_refused(tmp_path):
+    table = {"note": "n", "jobs": {"parsons": [{"code": "IMC", "areas": [dict(area("012", "Zone 2", 337), status="guessed")]}], "native": []}}
+    path = tmp_path / "t.json"
+    path.write_text(json.dumps(table), encoding="utf-8")
+    with pytest.raises(ValueError):
+        im_codes.load_table(path)
+
+
+def test_r301_a_source_with_no_keyed_plot_gets_its_own_verdict_and_the_zone_counts_with_the_neighbourhood():
+    table = {"parsons": [{"code": "IMC", "areas": [area("012", "Zone 2", 9)]}], "native": []}
+    sources = [{"name": "a", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"noKey": 4}},
+               {"name": "b", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {}},
+               {"name": "c", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 4 012": 3}},
+               {"name": "d", "file": "x-IMC-1.rvt", "job": "parsons", "codes": ["IMC"], "byZoneAndNbh": {"Zone 2 012": 3, "noKey": 1}}]
+    assert [r["verdict"] for r in im_codes.table_against_sources(table, sources)] == ["noKeyedPlot", "noKeyedPlot", "differs", "agrees"]
+
+
+def test_r301_the_job_names_come_from_majority_groups_of_the_project_settings(tmp_path):
+    assert set(im_codes.job_names(project_profile.load_settings())) == set(project_profile.load_settings().get("majority.groups"))
+    settings = tmp_path / "project.json"
+    settings.write_text(json.dumps({"majority": {"groups": {"jobA": ["k1"], "jobB": ["k2"]}}}), encoding="utf-8")
+    table = tmp_path / "t.json"
+    table.write_text(json.dumps({"note": "n", "jobs": {"jobA": [{"code": "IMC", "areas": [area("012", "Zone 2", 1)]}], "jobB": []}}), encoding="utf-8")
+    assert set(im_codes.load_table(table, project_profile.load_settings(settings))) == {"jobA", "jobB"}
+    with pytest.raises(ValueError):
+        im_codes.load_table(table)
+    assert "parsons" not in (ROOT / "python" / "im_codes.py").read_text(encoding="utf-8")
+
+
+def test_r301_a_count_is_a_positive_whole_number_and_never_a_flag():
+    assert im_codes.measured_count(1) and im_codes.measured_count(337)
+    assert not any(im_codes.measured_count(value) for value in (0, -3, True, 1.5, "337", None))
+
+
 def test_r301_every_source_of_the_im_code_check_names_a_job_of_the_table():
     sources = json.loads((ROOT / "python" / "c3d_probe.json").read_text(encoding="utf-8"))["dataBook"]["data5"]["imCodes"]["sources"]
     table = im_codes.load_table(ROOT / "config" / "area_codes.json")

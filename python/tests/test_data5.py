@@ -15,6 +15,7 @@ import data5_check
 import dxf_count
 import ifc_header
 import im_codes
+import project_profile
 import rev9_parcels
 import road_layouts
 import xref_search
@@ -250,7 +251,7 @@ def test_r257_an_im_code_stands_alone_and_the_area_table_is_checked():
     assert im_codes.codes_in("01101-PSN-IMG-ZZZ-PIM-TU-000001 and IMC") == ["IMG", "IMC"]
     assert im_codes.codes_in("TRIMGAP SIMD IMGX") == []
     table = im_codes.load_table(ROOT / "config" / "area_codes.json")
-    assert set(table) == set(im_codes.JOBS)
+    assert set(table) == set(im_codes.job_names(project_profile.load_settings()))
     assert all(area["plots"] > 0 for rows in table.values() for row in rows for area in row["areas"])
 
 
