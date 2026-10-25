@@ -237,7 +237,7 @@ namespace SiteAdaptation.TestHost
                 }
                 else
                 {
-                    yield return new JobStep { Name = "image", LimitMinutes = 10, Action = () => site.Image(document) };
+                    yield return new JobStep { Name = "image", LimitMinutes = TestHostGuard.ImageStepMinutes(job), Action = () => site.Image(document) };
                 }
             }
             yield return new JobStep { Name = "close", LimitMinutes = 5, Always = true, Action = () => steps.Close(document) };

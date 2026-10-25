@@ -28,6 +28,7 @@ namespace SiteAdaptation.Tests
                 ["imageFolder"] = @"C:\Docs\round\images",
                 ["imageLevel"] = "Level 1",
                 ["area"] = new JArray(1000.0, 2000.0, 1300.0, 2250.0),
+                ["imageMinutes"] = 30,
                 ["createdUtc"] = Now.AddMinutes(-2).ToString("o"),
             };
             change?.Invoke(job);

@@ -121,6 +121,13 @@ def footprints(plots_csv, faces):
     return found
 
 
+def footprint_blocks(path, settings=None):
+    """R300. The blocks of the blocks.json of the footprint drawing, refused when its source is a drawing kept for reference only."""
+    data = link_summary.load(path)
+    project_profile.refuse_reference_only(data.get("source"), settings)
+    return data["blocks"]
+
+
 def block_shapes(blocks):
     """The outline of each block by block name."""
     index = defaultdict(list)
@@ -267,7 +274,7 @@ def load_and_run(settings, reads, key, key_plan, test, test_plan, plots_csv, blo
     faces = {numbers[label]: shape for label, shape in by_label.items() if label in numbers}
     sets = {"key": (plan_from_past.host_of(link_summary.load(key)), link_summary.load(key_plan)),
             "test": (plan_from_past.host_of(link_summary.load(test)), link_summary.load(test_plan))}
-    report = run(outlines, sets, footprints(plots_csv, faces), block_shapes(link_summary.load(blocks)["blocks"]), faces, block)
+    report = run(outlines, sets, footprints(plots_csv, faces), block_shapes(footprint_blocks(blocks)), faces, block)
     report["prototypeOutlinesM2"] = {name: round(shape.area, 2) if shape is not None else None for name, shape in outlines.items()}
     return report
 

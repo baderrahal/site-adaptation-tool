@@ -60,6 +60,12 @@ def border_polygon(path):
     return Polygon(points)
 
 
+def footprint_drawing(book, settings):
+    """R300. The drawing the footprint blocks of every plot are wired from, join.footprint.drawing of the data book, refused when
+    it is a drawing kept for reference only such as R06_0000, which stays a reference column of its own."""
+    return project_profile.refuse_reference_only(book["drawings"][book["join"]["footprint"]["drawing"]], settings)
+
+
 def folder_of(book, role, fallback_roots):
     """The data book table folder of a drawing when the full read wrote it, and the first earlier CadReader output folder."""
     name = Path(book["drawings"][role]).name
@@ -181,6 +187,7 @@ def build(config, settings, scratch):
     _, road_folder = folder_of(book, join["curb"]["drawing"], roots)
     curbs = c3d_connect.LineSet(lines_of(road_folder, join["curb"]["layers"]))
     rows_of_way = c3d_connect.LineSet(lines_of(road_folder, join["row"]["layers"]))
+    footprint_drawing(book, settings)
     _, foot_folder = folder_of(book, join["footprint"]["drawing"], roots)
     setbacks = lines_of(foot_folder, [join["footprint"]["setbackLayer"]])
     setback_tree = STRtree(setbacks) if setbacks else None

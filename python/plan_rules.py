@@ -1,6 +1,7 @@
 """R278 to R280. The coded rules of the majority rule and the override list, as a plan from CAD applies them.
 
-R278: a level profile of levelProfiles in the rules profile is named, never taken by default. El @ Entry is the road level of
+R277: a build that names no level profile takes levelProfiles.default of the rules profile, parsons2024Rev6 (Bader, Q050).
+R278: El @ Entry is the road level of
 its frontRoad surface at the two front corners plus offsetM, plus the ramp slope of the unit times the ramp depth. The height
 rule oneFflPerClusterAtTheHighestEntry gives a cluster one FFL, the highest El @ Entry of its plots plus the base of that unit,
 and a plot alone its El @ Entry plus its base, medianPerUnit gives the median height of the unit. Steps follow stepBands on
@@ -17,14 +18,28 @@ from pathlib import Path
 import project_profile
 
 FIELDS = ("mirrored", "rampType", "entryM", "heightM", "rampFrontM")
+# Keys of levelProfiles that hold no profile
+NOT_PROFILES = ("note", "default")
 
 
-def level_profile(profile, name):
-    """R278. The named level profile. There is no default, a missing or unknown name is refused."""
+def profile_name(profile, name):
+    """R277. The level profile a build follows: the one named, else levelProfiles.default. A default that is missing or names
+    no profile is refused, so no build runs on a profile nobody chose."""
     profiles = profile.get("levelProfiles") or {}
-    if not name:
-        raise project_profile.ProfileError("name a level profile, one of " + ", ".join(sorted(key for key in profiles if key != "note")))
-    if name not in profiles or name == "note":
+    names = sorted(key for key in profiles if key not in NOT_PROFILES)
+    if name:
+        return name
+    chosen = profiles.get("default")
+    if not chosen or chosen in NOT_PROFILES or not isinstance(profiles.get(chosen), dict):
+        raise project_profile.ProfileError("levelProfiles.default of the rules profile names no level profile, name one of " + ", ".join(names))
+    return chosen
+
+
+def level_profile(profile, name=None):
+    """R277, R278. The named level profile, or the default of R277 when none is named. An unknown name is refused."""
+    profiles = profile.get("levelProfiles") or {}
+    name = profile_name(profile, name)
+    if name not in profiles or name in NOT_PROFILES:
         raise project_profile.ProfileError("the rules profile has no level profile " + name)
     found = profiles[name]
     for key in ("frontRoad", "rampSlopePercent", "rampTypes", "height"):

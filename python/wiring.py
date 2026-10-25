@@ -453,7 +453,8 @@ def evaluate(config, settings):
     else:
         report["sources"]["locationPlan"] = {"missing": "run python/location_plan.py first"}
 
-    # Unit blocks of three drawings
+    # Unit blocks of three drawings. R300: the footprint source is never a drawing kept for reference only, R06_0000 is compared only
+    data_book.footprint_drawing(book, settings)
     kinds = set(wiring["unitBlockKinds"])
     block_sources = {}
     for source, (role, override) in {"footprintBlocks": (join["footprint"]["drawing"], None), "r06Blocks": ("masterR06", wiring.get("r06Outlines")),

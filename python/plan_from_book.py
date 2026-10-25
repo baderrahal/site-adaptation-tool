@@ -5,8 +5,9 @@ No value comes from a past model. Per plot:
 - prototypeFile: the file of the unit in the upgraded prototype folder
 - insert, rotationDeg, mirrored: the front frame of its baseplan face (R122), the mirror by the drawn side of the unit in its
   cluster (R123) and the fitted origin offset of plotFrame (R121). A unit with no drawn side, such as a villa, gets none and is listed
-- levels: El @ Entry is an estimate (R209), the snapped road level at the two front corners plus the slope of the unit times the
-  ramp depth (R170 by typology), and FFL, SSL and steps come from levels.py on it. Every level is marked source estimate
+- levels: by the level profile of R277 and R278, the one named with --level-profile or else levelProfiles.default of the rules
+  profile, parsons2024Rev6. Round Z4 built with the estimate of R209 instead, the snapped road level at the two front corners
+  plus the slope of the unit times the ramp depth (R170 by typology), FFL, SSL and steps from levels.py on it, marked estimate
 - floors: the Generic floor is the whole baseplan face at the FFL, the yard the fitted outline of R135 at the FFL less
   floors.yardBelowFflM, the ramp the Rev 6 outline of R127 with its front corners on the snapped road and its back corners
   parallel to them with their mean at El @ Entry, of the ramp type of its slope band (R210)
@@ -200,7 +201,8 @@ def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=
 
 def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales=None, numbered=False, rules=None):
     """R208. The plan of R80 for the plots numbers, every value from CAD, the data book and the new site file. R278 to R280: with
-    rules the level profile, the hand rules and the overrides of the majority rule give the levels, the ramp type and the hand."""
+    rules the level profile, the hand rules and the overrides of the majority rule give the levels, the ramp type and the hand.
+    main always gives rules (R277), rules None is the estimate of R209 that round Z4 built with."""
     block = settings.get("siteBuild")
     floors_config = plan_from_past.load_floors(settings)
     steep = set(block["steepUnits"])
@@ -356,9 +358,11 @@ def folder_files(folder, profile):
 
 
 def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales):
-    """R278 to R280. The level profile, the hand rules, the open end of every plot and the overrides of the source models."""
+    """R277 to R280. The level profile, named or the default of R277, the hand rules, the open end of every plot and the overrides
+    of the source models."""
     import majority
-    lp = plan_rules.level_profile(profile, args.level_profile)
+    name = plan_rules.profile_name(profile, args.level_profile)
+    lp = plan_rules.level_profile(profile, name)
     block = settings.get("majority")
     corner = settings.get("siteBuild")["corner"]
     front = fronts(numbers, rows, faces, roads, cad_links.front_limits(profile, settings.get("analysis")), [], 0.0, profile, corner, sales)
@@ -372,7 +376,7 @@ def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales):
             open_ends[number] = "both" if not sides["left"] and not sides["right"] else "left" if not sides["left"] else "right" if not sides["right"] else "none"
     fields = tuple(args.override_fields) if args.override_fields else plan_rules.FIELDS
     overrides = plan_rules.load_overrides(args.overrides, set(args.override_source), fields) if args.overrides else {}
-    return {"name": args.level_profile, "levelProfile": lp, "hands": profile.get("hands") or {}, "openEnds": open_ends, "overrides": overrides,
+    return {"name": name, "levelProfile": lp, "hands": profile.get("hands") or {}, "openEnds": open_ends, "overrides": overrides,
             "sources": list(args.override_source)}
 
 
@@ -392,7 +396,7 @@ def main(argv=None):
     parser.add_argument("--offsets", default=str(prototype_offsets.DEFAULT_PATH))
     parser.add_argument("--floors", default=str(floor_fit.DEFAULT_PATH))
     parser.add_argument("--scratch", required=True, help="a folder outside the repo for the LandXML reader")
-    parser.add_argument("--level-profile", help="R278. a level profile of the rules profile, there is no default")
+    parser.add_argument("--level-profile", help="R277, R278. a level profile of the rules profile, levelProfiles.default when left out")
     parser.add_argument("--overrides", help="R280. the override list in config/overrides")
     parser.add_argument("--override-source", nargs="*", default=[], help="R280. the past model files whose overrides apply")
     parser.add_argument("--override-fields", nargs="*", choices=plan_rules.FIELDS, help="R280. only these fields of the overrides, all when left out")
@@ -420,7 +424,7 @@ def main(argv=None):
         faces = {number_of[label]: shape for label, shape in by_label.items() if label in number_of}
         roads = cad_analysis.read_road_edges(args.roads, settings.get("analysis")["roadEdgeLayers"])
         if args.footprint_blocks:
-            clusters = footprint_clusters(cover["plots"], rows, faces, footprint_check.block_shapes(link_summary.load(args.footprint_blocks)["blocks"]))
+            clusters = footprint_clusters(cover["plots"], rows, faces, footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings)))
             if args.analysis:
                 clusters = joined_clusters(clusters, numbered_clusters(json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"], number_of))
         elif args.analysis:
@@ -429,12 +433,10 @@ def main(argv=None):
             raise project_profile.ProfileError("give --analysis or --footprint-blocks for the clusters")
         job = plan_from_past.load_job(settings)
         folder, _ = plan_from_past.prototype_folders(plan_from_past.input_root(settings), job)
-        rules = None
-        names = block["roadSurfaces"]
-        if args.level_profile or args.overrides:
-            rules = rule_inputs(args, settings, profile, cover["plots"], rows, faces, roads, sales)
-            road = rules["levelProfile"]["frontRoad"]["surface"]
-            names = names if road == "roadLevel" else [road]
+        # R277. Every build follows a level profile, the named one or levelProfiles.default
+        rules = rule_inputs(args, settings, profile, cover["plots"], rows, faces, roads, sales)
+        road = rules["levelProfile"]["frontRoad"]["surface"]
+        names = block["roadSurfaces"] if road == "roadLevel" else [road]
         surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in names], args.scratch)
         plan = build(cover["plots"], rows, number_of, faces, roads, clusters, profile, settings,
                      prototype_offsets.plot_frame(prototype_offsets.load(args.offsets)), folder_files(folder, profile), folder,
@@ -444,6 +446,7 @@ def main(argv=None):
         print("plan_from_book: " + str(error), file=sys.stderr)
         return 2
     summary = plan["summary"]
+    print("level profile %s (R277), %s" % (rules["name"], "named" if args.level_profile else "the default of the rules profile"))
     print("plots written %d of %d, missing %s" % (summary["written"], summary["plots"], summary["missingByKey"]))
     print("in a cluster %d, clusters %d with %d plots" % (summary["inACluster"], summary["clusters"], summary["clusterPlots"]))
     print("road surfaces of the front corners %s, plots with no road level %s" % (summary["roadSurfacesOfFrontCorners"], summary["plotsWithNoRoadLevel"]))

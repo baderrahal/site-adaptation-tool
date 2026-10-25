@@ -156,6 +156,15 @@ if ($round) {
             $roundJob.imageFolder = Join-Path $build.folder 'images'
             $roundJob.imageLevel = [string]$round.imageLevel
             $roundJob.area = [double[]]@($round.area)
+            # R302. The image step runs at most testHost.imageStepMinutes of config/project.json, on top of the usual 29 minutes of the job
+            $imageMinutes = [double]$config.testHost.imageStepMinutes
+            if (-not ($imageMinutes -gt 0)) {
+                throw 'config/project.json has no testHost.imageStepMinutes above 0'
+            }
+            if ($TimeoutMinutes -lt $imageMinutes + 30) {
+                throw "An image job of $imageMinutes minutes needs -TimeoutMinutes $($imageMinutes + 30) or more"
+            }
+            $roundJob.imageMinutes = $imageMinutes
             # R234. The links load for the image, from linkFolder by file name when their saved path is not there
             if ($round.loadLinks) {
                 $roundJob.loadLinks = $true
@@ -297,6 +306,9 @@ try {
             $job.token = $token
             $job.createdUtc = (Get-Date).ToUniversalTime().ToString('o')
             $job.totalMinutes = [Math]::Min(27, $TimeoutMinutes - 2)
+            if ($round.kind -eq 'image') {
+                $job.totalMinutes = [Math]::Min(27 + $job.imageMinutes, $TimeoutMinutes - 2)
+            }
         }
         elseif ($spec) {
             # Assigned outside $() so a list of one plot stays a list and is written as a JSON array

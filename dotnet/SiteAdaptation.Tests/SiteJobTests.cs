@@ -230,6 +230,7 @@ namespace SiteAdaptation.Tests
                 job["imageFolder"] = Images;
                 job["imageLevel"] = "Level 1";
                 job["area"] = new JArray(1000.0, 2000.0, 1300.0, 2250.0);
+                job["imageMinutes"] = 30;
                 change?.Invoke(job);
             });
         }

@@ -1,5 +1,5 @@
 import json
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 ROOT = Path(__file__).resolve().parent.parent
 SETTINGS_PATH = ROOT / "config" / "project.json"
@@ -72,6 +72,24 @@ def load_profile(path):
 # The project settings file reads with the same loader, so it gets the same errors
 def load_settings(path=SETTINGS_PATH):
     return load_profile(path)
+
+
+def reference_only(settings):
+    """R300. The file names, lower case, of the drawings drawings.referenceOnly keeps for reference only. A settings file
+    with no such list keeps none."""
+    drawings = settings.values.get("drawings")
+    names = drawings.get("referenceOnly") if isinstance(drawings, dict) else None
+    return {PureWindowsPath(str(name)).name.lower() for name in names or []}
+
+
+def refuse_reference_only(source, settings=None):
+    """R300. Villa blocks come from drawings.villaBlocks, the Building Footprint (Bader, Q045). A drawing or a blocks.json
+    whose source is a drawing of drawings.referenceOnly, such as R06_0000 and R06_0001, is refused as a villa block source."""
+    settings = settings if settings is not None else load_settings()
+    name = PureWindowsPath(str(source or "")).name
+    if name and name.lower() in reference_only(settings):
+        raise ProfileError(name + " is kept for reference only (drawings.referenceOnly), villa blocks come from drawings.villaBlocks (R300)")
+    return source
 
 
 def profile_path(settings):

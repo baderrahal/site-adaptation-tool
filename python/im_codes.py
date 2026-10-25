@@ -7,7 +7,8 @@ the link names and paths of the past models earlier rounds already read (their p
 record of R203). Then the plots of each file of dataBook.data5.imCodes.sources are tied to the area key of R256 by plot
 number, a schedule by the plots.csv rows it wired, a past plan by the official number of each plot, so each code gets the
 neighbourhoods of the plots its files hold, with counts. The IM letter is only the name of the evidence, the area of a plot
-is never read from it. Counts go to im_codes.json in the area_key folder of data5.
+is never read from it. Counts go to im_codes.json in the area_key folder of data5. Since Round ADDIN config/area_codes.json
+holds one table per job (R301) and each source names its job, parsons or native.
 """
 import argparse
 import csv
@@ -96,40 +97,63 @@ def nbh_counts(keys, key_of):
     return dict(found.most_common())
 
 
-def load_table(path):
-    """config/area_codes.json, refused when a row has no IM code, no status of measured, text or guessed, no evidence, or when
-    two measured rows claim one neighbourhood."""
-    rows = json.loads(Path(path).read_text(encoding="utf-8"))["codes"]
-    claimed = Counter()
+JOBS = ("parsons", "native")
+FILE_KINDS = ("model", "schedule")
+
+
+def measured_count(value):
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def check_job(job, rows):
+    """R301. The rows of one job, refused when a row has no IM code, a status, no areas, an IM code twice, or an area with no
+    neighbourhood, zone, positive plot count, file kind, file or the place it was measured. A neighbourhood two files hold is
+    allowed, 01A is in two Native models."""
+    if not isinstance(rows, list):
+        raise ValueError("area codes of %s are not a list of rows" % job)
+    seen = Counter(row.get("code") for row in rows if isinstance(row, dict))
     for row in rows:
-        if not CODE.fullmatch(row.get("code") or "") or row.get("status") not in ("measured", "text", "guessed") or not row.get("evidence") or not row.get("nbh"):
-            raise ValueError("area code row is not complete: %s" % row.get("code"))
-        if row["status"] == "measured":
-            claimed.update(row["nbh"])
-    twice = sorted(n for n, k in claimed.items() if k > 1)
-    if twice:
-        raise ValueError("neighbourhoods measured for two codes: %s" % ", ".join(twice))
+        if not isinstance(row, dict) or not CODE.fullmatch(row.get("code") or "") or "status" in row:
+            raise ValueError("area code row of %s is not an IM code with measured areas: %s" % (job, row))
+        if seen[row["code"]] > 1:
+            raise ValueError("area code %s is twice in the table of %s" % (row["code"], job))
+        areas = row.get("areas")
+        if not isinstance(areas, list) or not areas:
+            raise ValueError("area code %s of %s holds no area" % (row["code"], job))
+        for area in areas:
+            if not (isinstance(area, dict) and area.get("nbh") and area.get("zone") and measured_count(area.get("plots"))
+                    and area.get("kind") in FILE_KINDS and area.get("file") and area.get("measured")):
+                raise ValueError("area of %s in %s is not measured with its count and source: %s" % (row["code"], job, area))
     return rows
 
 
+def load_table(path):
+    """R301. config/area_codes.json as {job: rows}, one table per job of JOBS, every row measured (check_job)."""
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    jobs = data.get("jobs") if isinstance(data, dict) else None
+    if not isinstance(jobs, dict) or set(jobs) != set(JOBS):
+        raise ValueError("area codes hold one table per job, %s" % ", ".join(JOBS))
+    return {job: check_job(job, jobs[job]) for job in JOBS}
+
+
 def table_against_sources(table, sources):
-    """Each source against the table row of its code: agrees when every keyed plot is in a neighbourhood of the row, listed
-    when the row names the file among its conflicts, differs otherwise."""
-    rows = {row["code"]: row for row in table}
+    """R301. Each source against the row of its code in the table of its own job: agrees when every keyed plot is in a
+    neighbourhood of the row, differs otherwise, noRow when the job has no row of the code, noJob when the table has no such job."""
     found = []
     for source in sources:
+        rows = {row["code"]: row for row in table.get(source.get("job")) or []}
         for code in source["codes"]:
             row = rows.get(code)
             nbhs = {key.split(" ")[-1] for key in source["byZoneAndNbh"] if key != "noKey"}
-            if row is None:
+            if source.get("job") not in table:
+                verdict = "noJob"
+            elif row is None:
                 verdict = "noRow"
-            elif nbhs <= set(row["nbh"]):
+            elif nbhs <= {area["nbh"] for area in row["areas"]}:
                 verdict = "agrees"
-            elif any(Path(source["file"]).stem in text for text in row.get("conflicts") or []):
-                verdict = "listed"
             else:
                 verdict = "differs"
-            found.append({"source": source["name"], "code": code, "nbh": sorted(nbhs), "verdict": verdict})
+            found.append({"source": source["name"], "job": source.get("job"), "code": code, "nbh": sorted(nbhs), "verdict": verdict})
     return found
 
 
@@ -157,7 +181,7 @@ def run(config):
     sources = []
     for source in settings["sources"]:
         kind, keys = plots_of(source, plots)
-        sources.append({"name": source["name"], "file": source["file"], "codes": sorted(set(codes_in(source["file"]))), "plots": len(keys),
+        sources.append({"name": source["name"], "file": source["file"], "job": source["job"], "codes": sorted(set(codes_in(source["file"]))), "plots": len(keys),
                         "byZoneAndNbh": nbh_counts(keys, key_of[kind])})
     by_code = defaultdict(lambda: {"fileNames": 0, "folders": Counter(), "texts": Counter(), "sources": []})
     for entry in names:

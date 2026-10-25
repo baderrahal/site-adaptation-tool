@@ -552,7 +552,7 @@
       "key": {
         "plan": "C:/Users/bader/Documents/SiteAdaptation/round_z4/plan_z4_past.json",
         "model": "C:/Users/bader/Documents/SiteAdaptation/round_z4/prototypes_z4_past.json",
-        "settings": "C:/Users/bader/Documents/SiteAdaptation/round_z4/work/project_z4_past.json",
+        "settings": "C:/Users/bader/Documents/SiteAdaptation/kept/round_z4/project_z4_past.json",
         "fflParameter": "FFL",
         "neighbourhood": "022"
       }
@@ -596,10 +596,10 @@
         "modelRecords": ["C:/Users/bader/Documents/SiteAdaptation/prototypes_imc_past.json", "C:/Users/bader/Documents/SiteAdaptation/round_z4/prototypes_z4_past.json",
                          "C:/Users/bader/Documents/SiteAdaptation/round_z4/logs/basic_file_info.json"],
         "sources": [
-          {"name": "IMC schedule", "kind": "schedule", "file": "00101-PSN-IMC-XXX-SCH-TU-090000.xlsx"},
-          {"name": "IMD schedule", "kind": "schedule", "file": "00101-PSN-IMD-XXX-SCH-TU-090000.xlsx"},
-          {"name": "IMC past model", "kind": "plan", "file": "01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt", "path": "C:/Users/bader/Documents/SiteAdaptation/plan_imc_past.json"},
-          {"name": "1.4 past model", "kind": "plan", "file": "01101-PSN-IMD-ZZZ-PIM-TU-000004.rvt", "path": "C:/Users/bader/Documents/SiteAdaptation/round_z4/plan_z4_past.json"}
+          {"name": "IMC schedule", "kind": "schedule", "job": "parsons", "file": "00101-PSN-IMC-XXX-SCH-TU-090000.xlsx"},
+          {"name": "IMD schedule", "kind": "schedule", "job": "parsons", "file": "00101-PSN-IMD-XXX-SCH-TU-090000.xlsx"},
+          {"name": "IMC past model", "kind": "plan", "job": "parsons", "file": "01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt", "path": "C:/Users/bader/Documents/SiteAdaptation/plan_imc_past.json"},
+          {"name": "1.4 past model", "kind": "plan", "job": "native", "file": "01101-PSN-IMD-ZZZ-PIM-TU-000004.rvt", "path": "C:/Users/bader/Documents/SiteAdaptation/round_z4/plan_z4_past.json"}
         ],
         "contextsKept": 60,
         "table": "config/area_codes.json"

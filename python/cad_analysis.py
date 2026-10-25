@@ -785,9 +785,11 @@ def read_plots(folder):
 
 
 def read_blocks(folder):
+    """The unit blocks of a CadReader output folder. R300: never those of a drawing kept for reference only."""
     data = read_json_file(folder, "blocks.json")
     if not isinstance(data, dict) or not isinstance(data.get("blocks"), list):
         raise project_profile.ProfileError("blocks.json has no blocks list")
+    project_profile.refuse_reference_only(data.get("source"))
     return data
 
 
