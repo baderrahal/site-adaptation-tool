@@ -49,6 +49,10 @@ namespace SiteAdaptation.Common
         public double? ImageMinutes { get; set; }
         // R302. What the job may run on top of the image step for the open and the close, testHost.imageMarginMinutes of the config
         public double? ImageMarginMinutes { get; set; }
+        // R313. An upgrade of a prototype set of config/project.json names the discipline of its files, STR, and the letter its job
+        // code starts with, so its job code is that letter and the code in the file name
+        public string Discipline { get; set; }
+        public string CodePrefix { get; set; }
     }
 
     public sealed class GuardResult
@@ -97,6 +101,11 @@ namespace SiteAdaptation.Common
         private static readonly Regex PlotText = new Regex(@"\A[0-9]{1,6}\z", RegexOptions.CultureInvariant);
 
         private static readonly Regex CodeText = new Regex(@"\A[A-Z][A-Z0-9]{1,3}\z", RegexOptions.CultureInvariant);
+        // R313. The ARC prototypes of the plan, and the discipline, prefix and code of a prototype set
+        private const string ArcDiscipline = "ARC";
+        private static readonly Regex SetDiscipline = new Regex(@"\A[A-Z]{3}\z", RegexOptions.CultureInvariant);
+        private static readonly Regex SetPrefix = new Regex(@"\A[A-Z]\z", RegexOptions.CultureInvariant);
+        private static readonly Regex SetFileCode = new Regex(@"\A[A-Z][A-Z0-9]{1,2}\z", RegexOptions.CultureInvariant);
         private static readonly Regex TokenText = new Regex(@"\A[A-Za-z0-9]+\z", RegexOptions.CultureInvariant);
 
         public static string SiteAdaptationFolder(string documents)
@@ -492,6 +501,10 @@ namespace SiteAdaptation.Common
             {
                 return "workFolder goes with a siteUpgrade job only";
             }
+            if (job.Kind != UpgradeKind && (job.Discipline != null || job.CodePrefix != null))
+            {
+                return "discipline and codePrefix go with an upgrade job only";
+            }
             if (job.Kind != ImageKind && (job.ImageFolder != null || job.ImageLevel != null || job.Area != null || job.LoadLinks.HasValue || job.LinkFolder != null
                 || job.ImageMinutes.HasValue || job.ImageMarginMinutes.HasValue))
             {
@@ -533,9 +546,48 @@ namespace SiteAdaptation.Common
             {
                 return job.PrototypeFile == null ? null : "a " + job.Kind + " job names no prototype file";
             }
-            string code = job.Kind == LinksAndFloorsKind ? @"[A-Z][A-Z0-9]{1,3}" : Regex.Escape(job.Code);
-            bool fits = new Regex(@"\ARRE-WP-NSP-KEO-ARC-" + code + @"-ZZ-MOD-\d+\.rvt\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant).IsMatch(job.PrototypeFile ?? "");
-            return fits ? null : "the prototype file is not RRE-WP-NSP-KEO-ARC-" + (job.Kind == LinksAndFloorsKind ? "<code>" : job.Code) + "-ZZ-MOD-<n>.rvt";
+            string discipline = ArcDiscipline;
+            string fileCode = job.Code;
+            if (job.Discipline != null || job.CodePrefix != null)
+            {
+                string set = CheckSet(job);
+                if (set != null)
+                {
+                    return set;
+                }
+                discipline = job.Discipline;
+                fileCode = job.Code.Substring(job.CodePrefix.Length);
+            }
+            string code = job.Kind == LinksAndFloorsKind ? @"[A-Z][A-Z0-9]{1,3}" : Regex.Escape(fileCode);
+            bool fits = new Regex(@"\ARRE-WP-NSP-KEO-" + discipline + "-" + code + @"-ZZ-MOD-\d+\.rvt\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant).IsMatch(job.PrototypeFile ?? "");
+            return fits ? null : "the prototype file is not RRE-WP-NSP-KEO-" + discipline + "-" + (job.Kind == LinksAndFloorsKind ? "<code>" : fileCode) + "-ZZ-MOD-<n>.rvt";
+        }
+
+        // R313. The discipline and the prefix of a prototype set go with an upgrade job only, both or none. The discipline is three
+        // capitals other than ARC, the prefix one capital, and the job code is the prefix and a prototype code
+        private static string CheckSet(TestHostJob job)
+        {
+            if (job.Kind != UpgradeKind)
+            {
+                return "discipline and codePrefix go with an upgrade job only";
+            }
+            if (job.Discipline == null || job.CodePrefix == null)
+            {
+                return "an upgrade of a prototype set names its discipline and its codePrefix";
+            }
+            if (!SetDiscipline.IsMatch(job.Discipline) || job.Discipline == ArcDiscipline)
+            {
+                return "the discipline of a prototype set is three capitals other than " + ArcDiscipline;
+            }
+            if (!SetPrefix.IsMatch(job.CodePrefix))
+            {
+                return "the codePrefix of a prototype set is one capital";
+            }
+            if (!job.Code.StartsWith(job.CodePrefix, StringComparison.Ordinal) || !SetFileCode.IsMatch(job.Code.Substring(job.CodePrefix.Length)))
+            {
+                return "the job code of a prototype set is its codePrefix and a prototype code such as TH1";
+            }
+            return null;
         }
 
         public static bool PlacesFloors(TestHostJob job)
