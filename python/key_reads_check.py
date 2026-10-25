@@ -19,6 +19,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from shapely.geometry import Point
 from shapely.strtree import STRtree
 
 import key_reads
@@ -47,6 +48,7 @@ BAND_SLACK = 1e-7
 EDGE_IN_PLAN = 0.005
 # Corners within this of their plane make a plane top, in metres. R2 rounds each corner to the mm
 PLANE_FIT = 0.001
+OUTSIDE = "outsideItsFloor"
 WORST = 20
 REPEAT_NOTE = ("A repeat read: the Phase 1 read of the same key copy, an older reader in another window, held by element id. "
                "It shows the reader gives the same on the same bytes, it is no second method.")
@@ -127,7 +129,9 @@ def plane_through(points):
 def top_at(floor, x, y, offset):
     """R323. The top of a floor at a point in shared plan coordinates and the route it came by. Within EDGE_IN_PLAN of an edge of the
     outline of R52, the level along the nearest edge, which is straight between its ends whatever diagonal a warped top splits on.
-    Elsewhere the plane through the corners of R34 when they lie on it within PLANE_FIT. A warped floor gives no top inside it."""
+    Elsewhere the point must lie in the floor, its outline loops by the even-odd rule so a hole is outside, else the sketch outline
+    of R34, and a point outside is no top of it. Inside, the plane through the corners of R34 when they lie on it within PLANE_FIT.
+    A warped floor gives no top inside it."""
     best = None
     for loop in floor.get("outline") or []:
         points = [point for point in loop if isinstance(point, list) and len(point) == 3]
@@ -137,6 +141,11 @@ def top_at(floor, x, y, offset):
                 best = (distance, level)
     if best is not None:
         return best[1], "edge"
+    shape = shape_of(floor, offset)
+    if shape is None:
+        return None, "noGeometry"
+    if not shape.covers(Point(x, y)):
+        return None, OUTSIDE
     corners = [[corner[axis] + offset[axis] for axis in range(3)] for corner in floor.get("corners") or [] if isinstance(corner, list) and len(corner) == 3]
     fit = plane_through(corners)
     if fit is None:

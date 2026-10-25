@@ -531,6 +531,24 @@ def test_r323_a_plane_needs_three_corners_that_span_it_and_a_point_off_the_outli
     assert check.top_at({"elementId": 2}, 105.0, 205.0, OFFSET) == (None, "noGeometry")
 
 
+def test_r323_a_spot_outside_the_outline_of_its_floor_is_counted_apart_and_never_held_against_the_plane():
+    import key_reads_check as check
+    flat = floor_of(1, "Slab G", [[0.0, 0.0, 5.0], [10.0, 0.0, 5.0], [10.0, 10.0, 5.0], [0.0, 10.0, 5.0]])
+    # A hole in the middle of the floor, from 4 to 6 m on both axes, a second loop of the outline of R52
+    flat["outline"].append([[x + OFFSET[0], y + OFFSET[1], 5.0 + OFFSET[2]] for x, y in ((4.0, 4.0), (6.0, 4.0), (6.0, 6.0), (4.0, 6.0))])
+    on_flat = (1, "Floors", "Slab G")
+    # Each value lies on the plane of the floor carried on, so only the outline tells the two outside spots from the inside one
+    spots = [spot_on(11, on_flat, [2.0, 2.0, 5.0], 15.0), spot_on(12, on_flat, [15.0, 5.0, 5.0], 15.0), spot_on(13, on_flat, [5.0, 5.0, 5.0], 15.0)]
+    document = {"surveyPoint": {"position": [0.0, 0.0, 0.0], "sharedPosition": OFFSET}, "floors": [flat], "links": [], "spotElevations": spots}
+    result = check.spot_tops(document)
+
+    assert result["compared"] == 1 and result["byRoute"] == {"plane": 1}
+    assert result["skipped"] == {"outsideItsFloor": 2}
+    assert check.top_at(flat, 115.0, 205.0, OFFSET) == (None, "outsideItsFloor")
+    assert check.top_at(flat, 105.0, 205.0, OFFSET) == (None, "outsideItsFloor")
+    assert check.top_at(flat, 102.0, 202.0, OFFSET) == (15.0, "plane")
+
+
 def test_r323_a_read_with_no_survey_point_gives_its_spot_check_as_not_read_and_the_other_routes_run(tmp_path):
     import key_reads_check as check
     document = with_categories(made_up_read(), links=3, walls=3, floors=4, spots=4, footings=7)
