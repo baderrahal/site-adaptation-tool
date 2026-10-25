@@ -80,8 +80,13 @@ $sampleSeconds = [int]$config.testHost.sampleSeconds
 if ($sampleSeconds -lt 1) {
     throw 'config/project.json has no testHost.sampleSeconds of 1 or more'
 }
-# R310. The deadline, watcher, refusal, log and start screen checks look every 5 s as before the samples, whatever sampleSeconds is
+# R310. The watcher, refusal, log and start screen checks look every 5 s as before the samples, whatever sampleSeconds is
 $checkSeconds = 5
+# R310. Each CIM call of a sample ends at testHost.cimTimeoutSeconds, and two calls at that limit fit in the 5 s of the checks
+$cimSeconds = [int]$config.testHost.cimTimeoutSeconds
+if ($cimSeconds -lt 1 -or 2 * $cimSeconds -ge $checkSeconds) {
+    throw "config/project.json has no testHost.cimTimeoutSeconds of 1 or more whose two calls fit in the $checkSeconds s of the checks"
+}
 
 if ($jobPath -and (Test-Path $jobPath)) {
     throw "A job file is already waiting at $jobPath. Look at it before you run again."
@@ -329,6 +334,7 @@ $process = $null
 $watcher = $null
 $samples = [Collections.Generic.List[object]]::new()
 $sampleFailures = [Collections.Generic.List[string]]::new()
+$helpersAtStart = @()
 try {
     $info = [Diagnostics.ProcessStartInfo]::new($revit)
     $info.UseShellExecute = $false
@@ -399,6 +405,13 @@ try {
         $info.Environment['SITEADAPTATION_TESTHOST_TOKEN'] = $token
         $info.Environment['SITEADAPT_JOB'] = $jobPath
     }
+    # R310. The helpers an earlier window left running, which the child figures of this window never count
+    try {
+        $helpersAtStart = @(Get-RunningHelpers -Names @($config.testHost.helperProcesses))
+    }
+    catch {
+        $sampleFailures.Add((Get-Date).ToUniversalTime().ToString('o') + ' helpers at the start: ' + $_.Exception.Message)
+    }
     $process = [Diagnostics.Process]::Start($info)
     $watchArgs = @('--pid', $process.Id, '--out', $watchPath, '--stop-log', $logPath, '--minutes', '10', '--ours', ($ourIds -join ','), '--marks', ($ourMarks -join '|'), '--our-paths', ($ourPaths -join '|'))
     $watcher = Start-Process -FilePath $watcherExe -ArgumentList ($watchArgs | ForEach-Object { '"' + $_ + '"' }) -PassThru -WindowStyle Hidden
@@ -421,11 +434,17 @@ try {
             break
         }
         $now = Get-Date
+        # R310. The deadline comes first in every pass, so a slow sample never holds back the stop of Revit
+        if ($now -gt $deadline) {
+            $stopReason = "Revit did not exit in $TimeoutMinutes minutes"
+            break
+        }
         $due = Get-DueLooks -Clock $clock -Now $now
         if ($due.sample) {
-            # R310. One sample per look, written at once so a window that is stopped keeps its samples
+            # R310. One sample per look, written at once so a window that is stopped keeps its samples. A CIM call that times out
+            # leaves its fields null with the reason and the sample is still written
             try {
-                $sample = Get-WindowSample -Process $process
+                $sample = Get-WindowSample -Process $process -TimeoutSeconds $cimSeconds
                 $samples.Add($sample)
                 $sample | ConvertTo-Json -Compress | Add-Content -Path $samplesPath -Encoding utf8
             }
@@ -436,10 +455,6 @@ try {
         }
         if (-not $due.check) {
             continue
-        }
-        if ($now -gt $deadline) {
-            $stopReason = "Revit did not exit in $TimeoutMinutes minutes"
-            break
         }
         if ($watcher.HasExited -and $watcher.ExitCode -eq 3) {
             $stopReason = 'the watcher stopped Revit on a dialog it may not answer'
@@ -554,9 +569,11 @@ if ($process -and $process.HasExited) {
 }
 $peaks = Get-WindowPeaks -Samples $samples -FloorGB ([double]$config.siteBuild.minFreeGB) -Exit $exitPeaks
 $peaks.sampleFailures = @($sampleFailures)
+$peaks.helpersAtStart = @($helpersAtStart)
 "Run time {0:0.0} minutes, exit code {1}, Revit process {2}" -f ($end - $start).TotalMinutes, $(if ($exited) { $process.ExitCode } else { 'stopped' }), $process.Id
 "Memory of {0} samples every {1} s: peak private {2} MiB and peak working set {3} MiB with the peaks Windows keeps{4}, sampled {5} and {6} MiB, least free {7} GiB, under the floor of {8} GiB in {9}, not responding in {10}, samples failed {11}" -f $peaks.samples, $sampleSeconds, $peaks.peakPrivateMib, $peaks.peakWorkingSetMib, $(if ($peaks.throughExit) { ' to the exit' } else { ' to the last sample' }), $peaks.sampledPrivateMib, $peaks.sampledWorkingSetMib, $peaks.minFreeGib, $peaks.floorGib, $peaks.samplesUnderFloor, $peaks.notResponding, $sampleFailures.Count
 "Processes Revit started: at most {0} in a sample ({1}), sampled private {2} MiB and working set {3} MiB, Revit and them together {4} MiB private, samples with no free memory {5} and no child list {6}" -f $peaks.childProcessesMax, (@($samples | ForEach-Object { $_.childNames } | Where-Object { $_ } | ForEach-Object { $_ -split ', ' } | Sort-Object -Unique) -join ', '), $peaks.sampledChildPrivateMib, $peaks.sampledChildWorkingSetMib, $peaks.sampledTotalPrivateMib, $peaks.freeMissing, $peaks.childMissing
+"Helpers running before Revit started, not counted in the figures of this window: {0}" -f $(if ($helpersAtStart.Count) { (@($helpersAtStart | ForEach-Object { '{0} {1} ({2} MiB private)' -f $_.name, $_.id, $_.privateMib }) -join ', ') } else { 'none' })
 # R110. One line per job for the parallel report
 $logResult = if (Test-Path $logPath) { (Get-Content -Raw $logPath | ConvertFrom-Json).result } else { $null }
 [ordered]@{
@@ -570,7 +587,7 @@ $logResult = if (Test-Path $logPath) { (Get-Content -Raw $logPath | ConvertFrom-
     exitCode   = $(if ($exited) { $process.ExitCode } else { $null })
     stopReason = $stopReason
     logResult  = $logResult
-} | ConvertTo-Json | Set-Content -Path $runPath -Encoding utf8
+} | ConvertTo-Json -Depth 5 | Set-Content -Path $runPath -Encoding utf8
 if (-not $DryStart) {
     $after = Get-Item $original
     $same = ((Get-FileHash $original).Hash -eq $hashBefore) -and ($after.LastWriteTimeUtc -eq $before.LastWriteTimeUtc) -and ($after.Length -eq $before.Length)

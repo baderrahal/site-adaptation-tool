@@ -4,10 +4,11 @@
 # 2 GiB before (Round ADDIN Phase 1). Byte counts are divided by 1MB and 1GB of PowerShell, which are MiB and GiB, and named so.
 
 # The processes a process started and the ones they started in turn, from one list of every process. A process counts only when it
-# started after its parent, since Windows reuses the id of a process that has ended
+# started after its parent, since Windows reuses the id of a process that has ended. A helper an earlier window started and this
+# one reuses is no descendant of it and is never counted. The call ends with a throw past TimeoutSeconds
 function Get-ChildProcesses {
-    param([Parameter(Mandatory)][Diagnostics.Process]$Process)
-    $all = @(Get-CimInstance -ClassName Win32_Process -Property ProcessId, ParentProcessId, Name, PrivatePageCount, WorkingSetSize, CreationDate -ErrorAction Stop)
+    param([Parameter(Mandatory)][Diagnostics.Process]$Process, [Parameter(Mandatory)][ValidateRange(1, 60)][int]$TimeoutSeconds)
+    $all = @(Get-CimInstance -ClassName Win32_Process -Property ProcessId, ParentProcessId, Name, PrivatePageCount, WorkingSetSize, CreationDate -OperationTimeoutSec $TimeoutSeconds -ErrorAction Stop)
     $started = @{}
     foreach ($item in $all) {
         $started[[int]$item.ProcessId] = $item.CreationDate
@@ -32,10 +33,11 @@ function Get-ChildProcesses {
 
 # One sample of a running process: private memory and working set now and the peak of each that Windows keeps (PeakPagefileUsage,
 # which .NET names PeakPagedMemorySize64, and PeakWorkingSetSize), whether it responds, the free physical memory of the machine, and
-# the count, names, private memory and working set of the processes it started. A failed CIM call leaves its own fields null with
-# its reason in freeError or childError and the memory of the process stays. Throws when the process has ended
+# the count, names, private memory and working set of the processes it started. Each CIM call has TimeoutSeconds, so a WMI that
+# hangs under memory pressure costs a sample at most twice that. A failed or timed out call leaves its own fields null, not read,
+# with its reason in freeError or childError and the memory of the process stays. Throws when the process has ended
 function Get-WindowSample {
-    param([Parameter(Mandatory)][Diagnostics.Process]$Process)
+    param([Parameter(Mandatory)][Diagnostics.Process]$Process, [Parameter(Mandatory)][ValidateRange(1, 60)][int]$TimeoutSeconds)
     $Process.Refresh()
     $sample = [ordered]@{
         utc                  = (Get-Date).ToUniversalTime().ToString('o')
@@ -51,14 +53,14 @@ function Get-WindowSample {
         childWorkingSetBytes = $null
     }
     try {
-        $os = Get-CimInstance -ClassName Win32_OperatingSystem -Property FreePhysicalMemory -ErrorAction Stop
+        $os = Get-CimInstance -ClassName Win32_OperatingSystem -Property FreePhysicalMemory -OperationTimeoutSec $TimeoutSeconds -ErrorAction Stop
         $sample.freeBytes = [long]$os.FreePhysicalMemory * 1024
     }
     catch {
         $sample.freeError = $_.Exception.Message
     }
     try {
-        $children = @(Get-ChildProcesses -Process $Process)
+        $children = @(Get-ChildProcesses -Process $Process -TimeoutSeconds $TimeoutSeconds)
         [long]$private = 0
         [long]$working = 0
         foreach ($child in $children) {
@@ -74,6 +76,32 @@ function Get-WindowSample {
         $sample.childError = $_.Exception.Message
     }
     $sample
+}
+
+# The helpers of testHost.helperProcesses already running, listed before a window starts its Revit: name, id, start time and
+# private memory in MiB. A helper an earlier window started and this one reuses, such as the LocalDB of Steel Connections, is no
+# child of this window, so the child figures leave it out and this list shows it. Get-Process asks no CIM, so it cannot hang on WMI
+function Get-RunningHelpers {
+    param([string[]]$Names)
+    $wanted = @($Names | Where-Object { $_ })
+    if (-not $wanted.Count) {
+        return
+    }
+    foreach ($item in @(Get-Process -Name $wanted -ErrorAction SilentlyContinue | Sort-Object Name, Id)) {
+        $started = $null
+        try {
+            $started = $item.StartTime.ToUniversalTime().ToString('o')
+        }
+        catch {
+            # A process of another user may hide its start time, its name and memory still count
+        }
+        [ordered]@{
+            name       = $item.Name
+            id         = $item.Id
+            startUtc   = $started
+            privateMib = [long][Math]::Round([long]$item.PrivateMemorySize64 / 1MB)
+        }
+    }
 }
 
 # The peaks Windows keeps for a process over its whole life, read through its handle with K32GetProcessMemoryInfo, which still
