@@ -32,6 +32,9 @@ namespace SiteAdaptation.Common
 
         // Every type of the floors above once, with all its parameters
         public List<FloorTypeRow> FloorTypes { get; set; }
+
+        // R311. The shared site, the position of the internal origin, the levels, the units and the elements per category
+        public SiteFacts Site { get; set; }
     }
 
     public class FloorTypeRow

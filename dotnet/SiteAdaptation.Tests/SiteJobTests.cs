@@ -39,8 +39,44 @@ namespace SiteAdaptation.Tests
             {
                 job["source"] = Source;
                 job["target"] = Upgraded;
+                job["workFolder"] = Work;
                 change?.Invoke(job);
             });
+        }
+
+        [Theory]
+        [InlineData(@"C:\Docs\round\site-000004.rvt")]
+        [InlineData(Work + @"\sub\site-000004.rvt")]
+        [InlineData(@"C:\Docs\other\work\site-000004.rvt")]
+        [InlineData(@"C:\02-Site Adaptation\Revit All Zones\site-000004.rvt")]
+        public void R204_a_site_upgrade_source_outside_the_work_folder_itself_is_refused(string source)
+        {
+            string target = Path.Combine(Path.GetDirectoryName(source), Path.GetFileNameWithoutExtension(source) + "_TEST-K24.rvt");
+            GuardResult result = Check(Upgrade(job => { job["source"] = source; job["target"] = target; }), path => path == source);
+
+            Assert.False(result.Act);
+            Assert.Contains("not in the work folder", result.Reason);
+        }
+
+        [Fact]
+        public void R204_a_site_upgrade_names_a_work_folder_named_work_and_no_other_job_names_one()
+        {
+            GuardResult none = Check(Upgrade(job => job.Remove("workFolder")), path => path == Source);
+            Assert.False(none.Act);
+            Assert.Contains("workFolder", none.Reason);
+
+            // The source folder named as the work folder is not enough, the run script makes it as siteBuild.folder\work
+            const string round = @"C:\Docs\round";
+            GuardResult other = Check(Upgrade(job => { job["workFolder"] = round; job["source"] = round + @"\site-000004.rvt"; job["target"] = round + @"\site-000004_TEST-K24.rvt"; }), path => path == round + @"\site-000004.rvt");
+            Assert.False(other.Act);
+            Assert.Contains("named work", other.Reason);
+
+            Assert.False(Check(Upgrade(job => job["workFolder"] = @"C:\Docs\round\x\..\work"), path => path == Source).Act);
+            Assert.False(Check(Upgrade(job => job["workFolder"] = Work + @"\"), path => path == Source).Act);
+            GuardResult read = Check(Job("read", "K24", job => { job["model"] = Upgraded; job["workFolder"] = Work; }), path => path == Upgraded);
+            Assert.False(read.Act);
+            Assert.Contains("workFolder goes with a siteUpgrade job only", read.Reason);
+            Assert.True(Check(Upgrade(job => job["workFolder"] = Work.ToUpperInvariant()), path => path == Source).Act);
         }
 
         [Fact]

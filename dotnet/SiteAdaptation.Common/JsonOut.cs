@@ -141,6 +141,69 @@ namespace SiteAdaptation.Common
             }
         }
 
+        // R2, R311. A number that needs another precision than the 3 decimals of R2, such as the angle to true north, names its
+        // decimals on its property. A converter on the property comes before the Round3Converter of the settings
+        public sealed class DecimalsConverter : JsonConverter
+        {
+            private readonly int decimals;
+
+            public DecimalsConverter(int decimals)
+            {
+                this.decimals = decimals;
+            }
+
+            public override bool CanRead { get { return false; } }
+
+            public override bool CanConvert(Type objectType)
+            {
+                return objectType == typeof(double) || objectType == typeof(double?);
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                double number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+                if (double.IsNaN(number) || double.IsInfinity(number))
+                {
+                    writer.WriteNull();
+                    return;
+                }
+                double rounded = Math.Round(number, decimals, MidpointRounding.AwayFromZero);
+                writer.WriteValue(rounded == 0 ? 0.0 : rounded);
+            }
+
+            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                throw new NotSupportedException();
+            }
+        }
+
+        // R2, R311. A number written as Revit gives it, such as the length accuracy of the project units
+        public sealed class UnroundedConverter : JsonConverter
+        {
+            public override bool CanRead { get { return false; } }
+
+            public override bool CanConvert(Type objectType)
+            {
+                return objectType == typeof(double) || objectType == typeof(double?);
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                double number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+                if (double.IsNaN(number) || double.IsInfinity(number))
+                {
+                    writer.WriteNull();
+                    return;
+                }
+                writer.WriteValue(number == 0 ? 0.0 : number);
+            }
+
+            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                throw new NotSupportedException();
+            }
+        }
+
         private sealed class Round3Converter : JsonConverter
         {
             public override bool CanRead { get { return false; } }

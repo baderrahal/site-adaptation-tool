@@ -46,6 +46,31 @@ def test_r203_not_enabled_worksharing_is_not_workshared(tmp_path):
     assert rvt_info.read(path)["info"]["workshared"] is False
 
 
+# The shape Revit writes for a BIM 360 cloud model: Username, Build and Last Save Path follow the value before them on one line
+CLOUD = ("\x00਍Worksharing: CentralUsername: \r\nCentral Model Path: BIM 360://Project/site.rvt\r\n"
+         "Format: 2021Build: 20200715_1022(x64)Last Save Path: BIM 360://Project/site.rvt\r\nOpen Workset Default: 3\r\n")
+
+
+def test_r203_keys_written_on_one_line_after_the_value_before_them_are_split(tmp_path):
+    path = model(tmp_path, [("BasicFileInfo", utf16(CLOUD))])
+
+    info = rvt_info.read(path)["info"]
+
+    assert info["format"] == "2021" and info["formatYear"] == 2021
+    assert info["build"] == "20200715_1022(x64)"
+    assert info["lastSavePath"] == "BIM 360://Project/site.rvt" and info["centralModelPath"] == "BIM 360://Project/site.rvt"
+    assert info["worksharing"] == "Central" and info["workshared"] is True and info["username"] == ""
+
+
+def test_r203_a_key_inside_a_word_or_after_a_space_is_no_key(tmp_path):
+    text = INFO.replace("Unique Document GUID: abc", "ReFormat: x and Central Model Path: y\r\nNote: Build: w") + "Last Save Path: z\r\n"
+
+    info = rvt_info.read(model(tmp_path, [("BasicFileInfo", utf16(text))]))["info"]
+
+    assert info["format"] == "2021" and info["centralModelPath"] == "\\\\srv\\Models\\site.rvt"
+    assert info["lastSavePath"] == "\\\\srv\\Models\\site.rvt" and info["build"] == "20200220_1100(x64)"
+
+
 def test_r203_transmission_data_lists_each_reference_with_type_paths_and_states(tmp_path):
     path = model(tmp_path, [("BasicFileInfo", utf16(INFO)), ("TransmissionData", utf16(XML, b"\x84-\x00\x00"))])
 

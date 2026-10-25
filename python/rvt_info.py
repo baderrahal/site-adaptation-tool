@@ -136,15 +136,29 @@ def utf16_text(raw):
     return best
 
 
+# A key starts a line, follows a stray character of the binary head, or follows the value of the key before it on the same line,
+# as Revit writes Username, Build and Last Save Path of a BIM 360 cloud model. A capital, an apostrophe or a space before it means
+# the words are part of a longer name, so Reformat or Central Model Path never give Format or Model Path
+KEYS = re.compile(r"(?<![A-Z' ])(" + "|".join(re.escape(key) for key in INFO_KEYS) + r")\s*:")
+
+
 def basic_info(raw):
-    """R203. The keys of INFO_KEYS from the BasicFileInfo stream. Lines are Key: value, the first one of each key counts."""
+    """R203. The keys of INFO_KEYS from the BasicFileInfo stream. Lines are Key: value, a value runs to the next key on its line,
+    and the first one of each key counts."""
     found = {}
-    # A key may follow a stray character of the binary head, so it is looked for at the end of what comes before the colon
-    keys = re.compile(r"(?:^|[^A-Za-z' ])(" + "|".join(re.escape(key) for key in INFO_KEYS) + r")\s*:(.*)$")
     for line in re.split(r"[\r\n\x00]+", utf16_text(raw)):
-        match = keys.search(line)
-        if match and INFO_KEYS[match.group(1)] not in found:
-            found[INFO_KEYS[match.group(1)]] = match.group(2).strip()
+        matches = list(KEYS.finditer(line))
+        if not matches:
+            continue
+        # The first key of a line starts the line or follows no ASCII letter, as before, so a stray character of the head may
+        # stand before it and ReFormat is no key
+        if matches[0].start() > 0 and "a" <= line[matches[0].start() - 1] <= "z":
+            continue
+        for at, match in enumerate(matches):
+            end = matches[at + 1].start() if at + 1 < len(matches) else len(line)
+            name = INFO_KEYS[match.group(1)]
+            if name not in found:
+                found[name] = line[match.end(): end].strip()
     if "format" in found:
         match = re.search(r"\d{4}", found["format"])
         found["formatYear"] = int(match.group(0)) if match else None
