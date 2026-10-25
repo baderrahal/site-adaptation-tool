@@ -24,6 +24,10 @@ majority.overrideKeep.laterFields, left to a later phase, listed in leftForLater
 - parameters (R335) by their formula or table, a level parameter within levelHoldMm, the walls (R335) and the open front
 - the merged override list (R330), every entry on a plot past_all.csv gives its key, and the run entries of the fields it does not
   keep equal to the dry list
+- R341, the levels of R339 with --landxml: the road surfaces read again from the LandXML text, the road level at the own front corners
+  by an own grid of the triangles and the edge within snapM, El @ Entry of the rule, the El @ Entry a build holds, the split of the own
+  clusters in own row order by the table the first method learned, the own row pairs, one FFL per piece to the mm, the base of the
+  plot that sets it, the steps and the Prototype-FFL parameter, each held within majority.levelPassMm
 """
 import argparse
 import csv
@@ -49,6 +53,14 @@ FIT_BANDS = (0.001, 0.010)
 # R135: a group of fewer plots is fitted on all of them and not split
 MIN_PLOTS = 4
 ROAD = "roadLevel"
+# R341. A LandXML surface read again by a plain text scan, another route than the expat reader of R40: the points, northing easting
+# elevation, the faces and the faces marked hidden, and the size of the cells of the own grid of the triangles
+POINT = re.compile(rb'<P\s+id="(\d+)"[^>]*>([^<]*)</P>')
+FACE = re.compile(rb'<F(\s[^>]*)?>([^<]*)</F>')
+HIDDEN = re.compile(rb'\bi="1"')
+CELL_M = 5.0
+# R341. The level decisions of R339 the own route holds
+LEVEL_WORDS = ("entry", "rampFront", "levelSplit", "baseHeight", "ffl", "steps")
 
 
 def read_json(path):
@@ -572,6 +584,9 @@ def parameter_verdicts(row, ctx, settings, report, factors=None):
     for name in block["parameterLevels"]:
         decision = "parameter " + name
         coded = decisions.get(group + " " + decision)
+        # R341. A level parameter of R339 is held by the own level route
+        if coded is not None and "passMm" in coded:
+            continue
         try:
             value = float(values.get(name) or read.get(name))
         except (TypeError, ValueError):
@@ -821,6 +836,19 @@ def own_build_files(names, prototype_names, typologies):
     return files
 
 
+def dry_entries(data):
+    """R341. Every entry of a dry list, its overrides and the misses with no value its cannot list holds (R272)."""
+    return list(data["overrides"]) + list(data.get("cannot") or [])
+
+
+def cannot_check(merged, dry, keep):
+    """R272, R330. The cannot list a run merged against the cannot list of its dry run, as JSON text, per job the entries of what it
+    does not keep equal."""
+    kept = lambda item: item["source"] in keep and (keep[item["source"]] is None or item["field"] in keep[item["source"]])
+    text = lambda items: Counter(json.dumps(item, sort_keys=True, ensure_ascii=False) for item in items if not kept(item))
+    return {"cannot": len(merged), "cannotEqualDry": text(merged) == text(dry), "cannotBySource": dict(sorted(Counter(item["source"] for item in merged).items()))}
+
+
 def first_misses(dry, report):
     """R336. The plots the first method misses per decision: every entry of the dry list, and every plot and field an open question
     decides (R272, R337), which majority.py lists apart and writes no override of."""
@@ -994,7 +1022,8 @@ def held(row, ctx, settings, profile, report, datums):
                   lambda guess, aim: own_corner_gap(guess, aim) <= block["outlineHoldMm"] / 1000.0 + 1e-9, plain={})
     level_hold = lambda guess, aim: abs(guess - aim) * 1000.0 <= block["levelHoldMm"] + 1e-6
     front = number(row.get("rampFront"))
-    if front is not None:
+    # R341. A ramp front of R339 is held by the own level route, against the road a build gives
+    if front is not None and "passMm" not in (decisions.get(group + " rampFront") or {}):
         surfaces = [ROAD] + sorted({column[len("level_"):-len("_left")] for column in data if column.startswith("level_") and column.endswith("_left")})
         formulas = {}
         for surface in surfaces:
@@ -1026,12 +1055,304 @@ def held(row, ctx, settings, profile, report, datums):
     verdicts = parameter_verdicts(row, ctx, settings, report, factors)
     unknown.extend(verdicts.pop("cannotCheck", []))
     found.update(verdicts)
+    # R341. The levels of R339 by the own level route, made once for every plot
+    found.update((ctx.get("levels") or {}).get((row["key"], plot), {}))
     walls = [wall for wall in (ctx["fullPlans"].get(row["key"]) or {}).get("walls") or []
              if plot in (wall.get("plots") or []) and re.search(block["wallTypes"]["boundary"], wall.get("type") or "")]
     if frame is not None and row["key"] in ctx["fullPlans"]:
         cover = own_front_cover(frame, walls, settings["keyPlans"]["wallEdgeM"])
         judge("frontOpen", {}, "open" if cover <= block["frontOpenShare"] + 1e-9 else "walled", lambda guess, aim: guess == aim)
     return found, unknown, rule
+
+
+class OwnTin:
+    """R341. The visible triangles of one LandXML surface, each as three (easting, northing, z), those whose box meets box when given,
+    in a grid of CELL_M cells, read by a plain text scan of the file."""
+
+    def __init__(self, path, box=None, margin=10.0):
+        text = Path(path).read_bytes()
+        points = {}
+        for found in POINT.finditer(text):
+            parts = found.group(2).split()
+            if len(parts) == 3:
+                points[int(found.group(1))] = (float(parts[1]), float(parts[0]), float(parts[2]))
+        self.triangles, self.cells = [], defaultdict(list)
+        for found in FACE.finditer(text):
+            if found.group(1) and HIDDEN.search(found.group(1)):
+                continue
+            ids = found.group(2).split()
+            if len(ids) != 3 or any(int(name) not in points for name in ids):
+                continue
+            corners = [points[int(name)] for name in ids]
+            low_x, high_x = min(corner[0] for corner in corners), max(corner[0] for corner in corners)
+            low_y, high_y = min(corner[1] for corner in corners), max(corner[1] for corner in corners)
+            if box is not None and (high_x < box[0] - margin or low_x > box[2] + margin or high_y < box[1] - margin or low_y > box[3] + margin):
+                continue
+            index = len(self.triangles)
+            self.triangles.append(corners)
+            for i in range(math.floor(low_x / CELL_M), math.floor(high_x / CELL_M) + 1):
+                for j in range(math.floor(low_y / CELL_M), math.floor(high_y / CELL_M) + 1):
+                    self.cells[(i, j)].append(index)
+
+    def inside(self, x, y):
+        """The level of the triangle that holds the point, a point on an edge or a corner inside, None when none holds it."""
+        for index in self.cells.get((math.floor(x / CELL_M), math.floor(y / CELL_M)), ()):
+            (x0, y0, z0), (x1, y1, z1), (x2, y2, z2) = self.triangles[index]
+            det = (y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2)
+            if det == 0:
+                continue
+            first = ((y1 - y2) * (x - x2) + (x2 - x1) * (y - y2)) / det
+            second = ((y2 - y0) * (x - x2) + (x0 - x2) * (y - y2)) / det
+            third = 1.0 - first - second
+            if first >= -1e-9 and second >= -1e-9 and third >= -1e-9:
+                return first * z0 + second * z1 + third * z2
+        return None
+
+    def level(self, x, y, snap):
+        """The level where the point is, else at the nearest point of a triangle side within snap, as R157 snaps to a surface edge."""
+        found = self.inside(x, y)
+        if found is not None:
+            return found
+        best = None
+        for i in range(math.floor((x - snap) / CELL_M), math.floor((x + snap) / CELL_M) + 1):
+            for j in range(math.floor((y - snap) / CELL_M), math.floor((y + snap) / CELL_M) + 1):
+                for index in self.cells.get((i, j), ()):
+                    corners = self.triangles[index]
+                    for a, b in ((0, 1), (1, 2), (2, 0)):
+                        (ax, ay, az), (bx, by, bz) = corners[a], corners[b]
+                        dx, dy = bx - ax, by - ay
+                        length = dx * dx + dy * dy
+                        part = 0.0 if length == 0 else min(1.0, max(0.0, ((x - ax) * dx + (y - ay) * dy) / length))
+                        distance = math.hypot(x - (ax + part * dx), y - (ay + part * dy))
+                        if best is None or distance < best[0]:
+                            best = (distance, az + part * (bz - az))
+        return best[1] if best is not None and best[0] <= snap else None
+
+
+def own_road(tins, point, snap):
+    """R341. The level of the first surface, in the order of siteBuild.roadSurfaces, that covers the point within snap."""
+    for _, tin in tins:
+        found = tin.level(point[0], point[1], snap)
+        if found is not None:
+            return found
+    return None
+
+
+def own_ffl(members):
+    """R341. One FFL of a piece: its highest El @ Entry plus the base of that unit, to the mm. members are (El @ Entry, base)."""
+    known = [entry + base for entry, base in members if entry is not None and base is not None]
+    return None if not known else round(max(known), 3)
+
+
+def own_steps(rule, height, base, riser, bands):
+    """R341. The steps of a height: the base and the risers, half a riser over the base no step, or the step bands of the profile."""
+    height = round(height, 6)
+    if rule == "stepsFromHeight":
+        return 1 + max(0, math.ceil(round((height - base) / riser, 6) - 0.5))
+    if rule == "stepBands":
+        return next((steps for limit, steps in bands if height < limit), None)
+    return None
+
+
+def own_down_to_the_cm(level):
+    """R341. The FFL down to the cm, the Prototype-FFL parameter."""
+    return (int(round(level * 1000)) // 10) / 100.0
+
+
+def own_walls(pattern, count):
+    """R341. The walls a split pattern names in a cluster of count units."""
+    if pattern in (None, "none"):
+        return []
+    if pattern == "middle":
+        return [count // 2] if count % 2 == 0 else []
+    return sorted({int(part) for part in str(pattern)[len("walls "):].split(",") if 0 < int(part) < count})
+
+
+def level_verdicts(rows, road, shapes, units, report, profile, lp, block, reads):
+    """R341. The own verdict, True for holds, of every level decision of R339 per key and plot, under the candidate the first method
+    coded, on the levels a build holds: road gives per plot the own El @ Entry of the rule and the own road of the front, shapes the
+    own row order of each cluster and the own row partners, units the code of each plot, reads the level parameters of the key reads."""
+    group = block["check"]["group"]
+    decisions = {item["decision"].split(" ", 1)[1]: item for item in report["decisions"] if item["decision"].startswith(group + " ")}
+    limit = block["levelPassMm"]
+    within = lambda guess, aim: guess is not None and aim is not None and abs(guess - aim) * 1000.0 <= limit + 1e-6
+    table_of = lambda word, label: {key.split(" | ", 1)[1]: value for key, value in ((decisions.get(word) or {}).get("tests", {}).get(label, {}).get("rule") or {}).items()}
+    profile_base = lambda code: None if code is None else profile["steps"]["base_height"].get(code, profile["steps"]["base_height"]["default"]) / 1000.0
+    learned_base = table_of("baseHeight", "typology") if (decisions.get("baseHeight") or {}).get("coded") == "typology" else {}
+    base = lambda code: float(learned_base[code]) if code in learned_base else profile_base(code)
+    split = table_of("levelSplit", "units") if (decisions.get("levelSplit") or {}).get("coded") == "units" else {}
+    ffl_rule = (decisions.get("ffl") or {}).get("coded")
+    riser = profile["steps"]["riser_added"] / 1000.0
+    mine = {(row["key"], row["plot"]): row for row in rows if row.get("source") == group}
+    out = lambda row, word: word in set(block["kindLeaveOut"].get(row.get("kind") or "", []))
+    key_entry = {pair: entry_of(row, block) for pair, row in mine.items() if not out(row, "entry")}
+    order, partners = shapes["order"], shapes["partners"]
+
+    def built_entry(key, plot):
+        rule = (road.get(plot) or {}).get("entry")
+        aim = key_entry.get((key, plot))
+        return None if rule is None else rule if aim is None or within(rule, aim) else aim
+
+    def piece(plot, rule):
+        ordered = order.get(plot)
+        if rule == "ownEntryPlusBase":
+            return [plot]
+        if ordered:
+            if rule == "oneFflPerClusterAtTheHighestEntry":
+                return list(ordered)
+            start = 0
+            for wall in own_walls(split.get(" ".join(str(units.get(other)) for other in ordered)), len(ordered)) + [len(ordered)]:
+                if plot in ordered[start:wall]:
+                    return list(ordered[start:wall])
+                start = wall
+        other = partners.get(plot)
+        return sorted([plot, other], key=lambda number: (len(number), number)) if other and partners.get(other) == plot else [plot]
+
+    def rule_ffl(plot):
+        """The FFL of the piece on the El @ Entry of the rule of each plot, which an entryM override never moves."""
+        return own_ffl([((road.get(other) or {}).get("entry"), base(units.get(other))) for other in piece(plot, ffl_rule)])
+
+    def built_ffl(key, plot, row):
+        guess = rule_ffl(plot)
+        aim = number(row.get("ffl"))
+        return None if guess is None else guess if aim is None or within(guess, aim) else aim
+    found = defaultdict(dict)
+    for (key, plot), row in mine.items():
+        verdict = found[(key, plot)]
+        if "entry" in decisions and key_entry.get((key, plot)) is not None:
+            verdict["entry"] = within((road.get(plot) or {}).get("entry"), key_entry[(key, plot)])
+        if "rampFront" in decisions and number(row.get("rampFront")) is not None and not out(row, "rampFront"):
+            verdict["rampFront"] = within((road.get(plot) or {}).get("front"), number(row["rampFront"]))
+        aim = number(row.get("ffl"))
+        if "ffl" in decisions and aim is not None and not out(row, "ffl"):
+            verdict["ffl"] = within(rule_ffl(plot), aim)
+        level, entry = built_ffl(key, plot, row), built_entry(key, plot)
+        if "steps" in decisions and row.get("steps") not in (None, "") and not out(row, "steps"):
+            coded = decisions["steps"]["coded"]
+            if coded == "typology":
+                guess = learned(decisions["steps"]["tests"]["typology"]["rule"], group, units.get(plot))
+            else:
+                guess = None if level is None or entry is None else own_steps(coded, round(level - entry, 4), base(units.get(plot)), riser, lp.get("stepBands") or [])
+            verdict["steps"] = guess is not None and str(guess) == str(int(float(row["steps"])))
+        for name in block["parameterLevels"]:
+            word, value = "parameter " + name, number((reads.get((key, plot)) or {}).get(name))
+            if word not in decisions or value is None or out(row, "parameter") or out(row, word):
+                continue
+            coded = decisions[word]["coded"]
+            guess = (own_down_to_the_cm(level) if coded == "fflDownToTheCm" and level is not None else level if coded == "ffl" else
+                     number(row.get("genericTop")) if coded == "genericTop" else None)
+            verdict[word] = within(guess, value)
+    # The split of each own cluster of three or more units the key holds at every FFL, held on its first plot in row order
+    if "levelSplit" in decisions:
+        for key in sorted({key for key, _ in mine}):
+            for ordered in sorted({tuple(found_order) for plot, found_order in order.items() if len(found_order) >= 3}):
+                rows_of = [mine.get((key, plot)) for plot in ordered]
+                if any(row is None or out(row, "levelSplit") or number(row.get("ffl")) is None for row in rows_of):
+                    continue
+                levels = [round(number(row["ffl"]), 3) for row in rows_of]
+                walls = [index + 1 for index in range(len(levels) - 1) if abs(levels[index] - levels[index + 1]) > 0.0005]
+                pattern = "none" if not walls else "middle" if len(levels) % 2 == 0 and walls == [len(levels) // 2] else "walls " + ",".join(str(wall) for wall in walls)
+                coded = decisions["levelSplit"]["coded"]
+                guess = "none" if coded == "none" else split.get(" ".join(str(units.get(plot)) for plot in ordered))
+                found[(key, ordered[0])]["levelSplit"] = guess == pattern
+    # The base of the plot that sets the FFL of each piece the key holds at one FFL, held on that plot
+    if "baseHeight" in decisions:
+        seen = set()
+        for (key, plot), row in mine.items():
+            members = piece(plot, "oneFflPerPieceAtTheHighestEntry")
+            if (key, tuple(members)) in seen or out(row, "baseHeight"):
+                continue
+            seen.add((key, tuple(members)))
+            rows_of = [mine.get((key, other)) for other in members]
+            if any(other is None or key_entry.get((key, other["plot"])) is None or number(other.get("ffl")) is None for other in rows_of):
+                continue
+            if len({round(number(other["ffl"]), 3) for other in rows_of}) != 1:
+                continue
+            top = max(rows_of, key=lambda other: key_entry[(key, other["plot"])] + profile_base(units.get(other["plot"])))
+            coded = decisions["baseHeight"]["coded"]
+            guess = profile_base(units.get(top["plot"])) if coded == "profile" else learned_base.get(units.get(top["plot"]))
+            found[(key, top["plot"])]["baseHeight"] = within(None if guess is None else float(guess), round(number(top["ffl"]) - key_entry[(key, top["plot"])], 4))
+    return {pair: verdict for pair, verdict in found.items() if verdict}
+
+
+def own_road_names(settings, lp):
+    """R341. The road surfaces of the levels by the own route: siteBuild.roadSurfaces for the road of frontRoad roadLevel, else the one
+    surface frontRoad names."""
+    surface = lp["frontRoad"]["surface"]
+    return list(settings["siteBuild"]["roadSurfaces"]) if surface == "roadLevel" else [surface]
+
+
+def one_sided(own, first, group):
+    """R341. The level items only one method holds, each a mismatch: an own verdict of an item the first method did not judge, own its
+    verdict and first no item, and an item the first method judged, levelItems of its report, that the own route gives no verdict of,
+    so a decision is never held on fewer items on one side in silence."""
+    order = lambda pair: (pair[0], len(pair[1]), pair[1])
+    decisions = sorted({name.split(" ", 1)[1] for name in first if name.startswith(group + " ")} | {decision for verdict in own.values() for decision in verdict})
+    found = []
+    for decision in decisions:
+        theirs = {tuple(item.split(" ", 1)) for item in first.get(group + " " + decision) or []}
+        mine = {pair: verdict[decision] for pair, verdict in own.items() if decision in verdict}
+        for pair in sorted(set(mine) - theirs, key=order):
+            found.append({"key": pair[0], "plot": pair[1], "decision": decision, "own": "holds" if mine[pair] else "misses", "first": "no item"})
+        for pair in sorted(theirs - set(mine), key=order):
+            found.append({"key": pair[0], "plot": pair[1], "decision": decision, "own": "no item", "first": "an item"})
+    return found
+
+
+def level_inputs(ctx, settings, profile, rows, folder):
+    """R341. What level_verdicts reads, by the own routes: the own road levels at the two own front corners of every plot the levels
+    need, on the surfaces of siteBuild.roadSurfaces read from folder in a box around them, El @ Entry of the rule of the level profile
+    of the group, the own row order of each own cluster and the own row partners of the units in no cluster."""
+    block = settings["majority"]
+    group = block["check"]["group"]
+    lp = next(found for found in profile["levelProfiles"].values() if isinstance(found, dict) and found.get("keyRules") and found.get("job") == group)
+    units = {plot: row.get("typologyRev9") or None for plot, row in ctx["book"].items()}
+    # The own row order of each own cluster, along the own front of its first plot with one
+    order = {}
+    for cluster in ctx["clusters"]:
+        if not all(plot in ctx["faces"] for plot in cluster):
+            continue
+        frame = next((ctx["frame"](plot)[0] for plot in cluster if ctx["frame"](plot)[0] is not None), None)
+        if frame is None:
+            continue
+        ordered = tuple(sorted(cluster, key=lambda plot: shoelace_centre(ctx["faces"][plot])[0] * frame["r"][0] + shoelace_centre(ctx["faces"][plot])[1] * frame["r"][1]))
+        for plot in cluster:
+            order[plot] = ordered
+    counted = lambda plot: ctx["kind"](plot) in block["pairKinds"] and plot not in ctx["member"] and plot.isdigit()
+    sides = {}
+    plots = sorted({row["plot"] for row in rows if row.get("source") == group})
+    for plot in [plot for plot in plots if counted(plot)] + [other for plot in plots if counted(plot) for side in ("left", "right") for other in ctx["sides"](plot)[side] if counted(other)]:
+        if plot not in sides:
+            sides[plot] = own_pair_side(plot, row_sides(plot, ctx, counted), counted)
+    partners = {}
+    for plot, side in sides.items():
+        if side in ("left", "right"):
+            other_side = "right" if side == "left" else "left"
+            beside = [other for other in ctx["sides"](plot)[other_side] if counted(other) and sides.get(other, own_pair_side(other, row_sides(other, ctx, counted), counted)) == other_side]
+            if len(beside) == 1:
+                partners[plot] = beside[0]
+    needed = set(plots) | {plot for ordered in order.values() for plot in ordered} | set(partners.values())
+    corners = {}
+    for plot in needed:
+        frame = ctx["frame"](plot)[0]
+        if frame is not None and units.get(plot):
+            corners[plot] = (frame["left"], frame["right"])
+    points = [point for pair in corners.values() for point in pair]
+    box = (min(x for x, _ in points), min(y for _, y in points), max(x for x, _ in points), max(y for _, y in points)) if points else None
+    tins = [(name, OwnTin(Path(folder) / (name + ".xml"), box)) for name in own_road_names(settings, lp)]
+    snap = settings["siteBuild"]["snapM"]
+    setbacks = profile["ramp"]["front_setback"]
+    road = {}
+    for plot, pair in corners.items():
+        levels = [own_road(tins, point, snap) for point in pair]
+        if any(level is None for level in levels):
+            road[plot] = {"entry": None, "front": None}
+            continue
+        code = units[plot]
+        front = (levels[0] + levels[1]) / 2.0
+        slope = lp["rampSlopePercent"].get(code, lp["rampSlopePercent"]["default"])
+        road[plot] = {"front": front, "entry": round(front + lp["frontRoad"]["offsetM"] + slope / 100.0 * setbacks.get(code, setbacks["default"]) / 1000.0, 4)}
+    return road, {"order": order, "partners": partners}, units, lp
 
 
 def merged_check(merged, dry, table, keep, later, earlier=None):
@@ -1081,6 +1402,7 @@ def main(argv=None):
     parser.add_argument("--key-read", nargs=2, action="append", metavar=("KEY", "FILE"), default=[])
     parser.add_argument("--key-plan", nargs=2, action="append", metavar=("KEY", "FILE"), default=[])
     parser.add_argument("--out", required=True)
+    parser.add_argument("--landxml", help="R341. the landxml folder of the snapshot, the road surfaces the levels of R339 are held on")
     args = parser.parse_args(argv)
     if Path(args.out).resolve().is_relative_to(ROOT):
         print("key_rules_check: write outside the repo", file=sys.stderr)
@@ -1094,12 +1416,22 @@ def main(argv=None):
     profile = read_json(ROOT / settings["profile"])
     check = block["check"]
     report = read_json(args.majority)
-    dry = read_json(args.overrides)["overrides"]
-    misses = defaultdict(set, first_misses(dry, report))
+    dry_list = read_json(args.overrides)
+    dry = dry_list["overrides"]
+    misses = defaultdict(set, first_misses(dry_entries(dry_list), report))
     with open(args.past_all, encoding="utf-8") as handle:
         table = list(csv.DictReader(handle))
     rows = [row for row in table if row["source"] == group and row["x"] and row["rotationDeg"] and row["mirrored"] in ("True", "False")]
     ctx = plot_context(args, settings, profile, report, table)
+    # R341. The levels of R339 are held on the road surfaces a build asks, read here again from the LandXML text
+    if any("passMm" in decision for decision in report["decisions"] if decision["decision"].startswith(group + " ")):
+        if not args.landxml:
+            print("key_rules_check: the report holds the levels of R339, give --landxml to hold them on the road a build asks (R341)", file=sys.stderr)
+            return 2
+        reads = ctx["readParameters"]
+        road, shapes, units, lp = level_inputs(ctx, settings, profile, table, args.landxml)
+        ctx["levels"] = level_verdicts(table, road, shapes, units, report, profile, lp, block, reads)
+        ctx["levelRoads"] = {"plots": len(road), "noRoad": sum(1 for value in road.values() if value["entry"] is None)}
     # R275. The datum of each key per surface, over the rows the ramp front decision holds
     fronts = [row for row in table if row["source"] == group and number(row.get("rampFront")) is not None and "rampFront" not in block["kindLeaveOut"].get(row.get("kind") or "", ())]
     surfaces = {ROAD} | {column[len("level_"):-len("_left")] for column in next(iter(ctx["book"].values())) if column.startswith("level_") and column.endswith("_left")}
@@ -1115,6 +1447,12 @@ def main(argv=None):
     for item in (report.get("frontWalled") or {}).get(group) or []:
         key, plot = item.split(" ")
         misses[group + " frontOpen"].add((key, plot))
+    # R341. The level decisions that write no override, the split and the base, list their misses in levelMisses
+    for decision, found in (report.get("levelMisses") or {}).items():
+        misses[decision] |= {tuple(item.split(" ")) for item in found}
+    # R341. The items each level decision of the first method judged, an item one side alone holds counted once by one_sided
+    first_level = {name.split(" ", 1)[1]: {tuple(item.split(" ", 1)) for item in found} for name, found in (report.get("levelItems") or {}).items()
+                   if name.startswith(group + " ")} if ctx.get("levels") is not None else {}
     verdicts, seeds, cannot = {}, {}, Counter()
     for seed, sample in samples.items():
         tally, mismatches = Counter(), []
@@ -1125,6 +1463,8 @@ def main(argv=None):
             if seed == "every":
                 cannot.update(unknown)
             for decision, holds in sorted(found.items()):
+                if decision in first_level and (row["key"], row["plot"]) not in first_level[decision]:
+                    continue
                 own = "holds" if holds else "misses"
                 theirs = "misses" if (row["key"], row["plot"]) in misses.get(group + " " + decision, set()) else "holds"
                 tally[decision + (" match" if own == theirs else " mismatch")] += 1
@@ -1132,6 +1472,15 @@ def main(argv=None):
                     mismatches.append({"key": row["key"], "plot": row["plot"], "decision": decision, "own": own, "first": theirs, "rule": rule})
         seeds[seed] = {"plots": len(sample) if seed == "every" else [row["key"] + " " + row["plot"] for row in sample], "counts": dict(sorted(tally.items())),
                        "mismatches": mismatches}
+    # R341. A level item one side holds and the other does not is a mismatch of every plot
+    level_items = None
+    if ctx.get("levels") is not None:
+        sided = one_sided(ctx["levels"], report.get("levelItems") or {}, group)
+        counts = Counter(seeds["every"]["counts"])
+        counts.update(item["decision"] + " mismatch" for item in sided)
+        seeds["every"]["counts"], seeds["every"]["mismatches"] = dict(sorted(counts.items())), seeds["every"]["mismatches"] + sided
+        level_items = {decision: {"first": len(pairs), "own": sum(1 for verdict in ctx["levels"].values() if decision in verdict),
+                                  "onlyOne": sum(1 for item in sided if item["decision"] == decision)} for decision, pairs in sorted(first_level.items())}
     # R335. The walls are drawn and held apart from the plots, a wall has an id and no plot of its own
     walls = wall_verdicts(ctx, settings, profile, report)
     wall_misses = {(item["key"], item["elementId"], item["decision"].split(" ", 1)[1]) for item in (report.get("wallMisses") or {}).get(group) or []}
@@ -1174,13 +1523,18 @@ def main(argv=None):
     failures = sorted(set(cannot) | set(unchecked))
     out = {"group": group, "seeds": seeds, "site": site, "totals": totals, "cannotCheck": {name: cannot.get(name, 0) for name in failures},
            "leftForLater": sorted(left_for_later), "wallsNoBaseLevel": {"own": len(no_base), "first": len(first_no_base), "match": no_base == first_no_base},
-           "fits": {"linkOrigin": len(ctx["fits"]), "yardOutline": len(ctx["refit"]), "clusters": len(ctx["clusters"])}}
+           "fits": {"linkOrigin": len(ctx["fits"]), "yardOutline": len(ctx["refit"]), "clusters": len(ctx["clusters"])}, "levelRoads": ctx.get("levelRoads"), "levelItems": level_items}
     if args.merged:
         keep = {source: None for source in block["overrideKeep"]["sources"]}
         for source, fields in block["overrideKeep"]["laterFields"].items():
             if keep.get(source, set()) is not None:
                 keep[source] = set(keep.get(source) or ()) | set(fields)
-        out["merged"] = merged_check(read_json(args.merged)["overrides"], dry, table, keep, later, read_json(args.earlier)["overrides"])
+        merged_list = read_json(args.merged)
+        out["merged"] = merged_check(merged_list["overrides"], dry, table, keep, later, read_json(args.earlier)["overrides"])
+        # R272. The misses with no value of the run are in the cannot list, those of the overrides with no value counted by source
+        out["merged"].update(cannot_check(merged_list.get("cannot") or [], dry_list.get("cannot") or [], keep))
+        out["merged"]["noValueBySource"] = dict(sorted(Counter(item["source"] for item in merged_list["overrides"] if item.get("value") is None).items()))
+        out["merged"]["ok"] = out["merged"]["ok"] and out["merged"]["cannotEqualDry"]
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
     for seed, found in seeds.items():
@@ -1189,14 +1543,17 @@ def main(argv=None):
     print("totals: %d of %d decisions count every plot once" % (sum(1 for value in totals.values() if value["match"]), len(totals)))
     print("fitted here: %s, walls with no base level %s" % (out["fits"], out["wallsNoBaseLevel"]))
     print("left for a later phase: %s" % out["leftForLater"])
+    if level_items is not None:
+        print("level items, first method, own route and on one side only: %s" % json.dumps(level_items))
     if "merged" in out:
         print("merged list: %s" % ({name: value for name, value in out["merged"].items() if name != "offJoin"} | {"offJoin": len(out["merged"]["offJoin"])}))
     if failures:
         print("cannot check, a failure: %s" % out["cannotCheck"], file=sys.stderr)
         return 1
     if "merged" in out and not out["merged"]["ok"]:
-        print("the merged list fails its check, a failure: off the join %d, run entries equal the dry list %s, kept entries missing %s, byHand entries lost %s"
-              % (len(out["merged"]["offJoin"]), out["merged"]["runEntriesEqualDry"], out["merged"].get("keptMissing"), out["merged"].get("byHandLost")), file=sys.stderr)
+        print("the merged list fails its check, a failure: off the join %d, run entries equal the dry list %s, kept entries missing %s, byHand entries lost %s, "
+              "cannot equal the dry list %s" % (len(out["merged"]["offJoin"]), out["merged"]["runEntriesEqualDry"], out["merged"].get("keptMissing"),
+                                                out["merged"].get("byHandLost"), out["merged"].get("cannotEqualDry")), file=sys.stderr)
         return 1
     return 0
 

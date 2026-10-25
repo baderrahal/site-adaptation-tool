@@ -32,7 +32,7 @@ def test_r336_the_own_origin_runs_from_the_anchor_corner_along_the_link_axes_and
     assert key_rules_check.own_origin(frame, True, {"anchor": "end", "offset": [-10.0, 1.5]}) == pytest.approx((10.0, 1.5))
 
 
-def made_up(tmp_path, decisions=None):
+def made_up(tmp_path, decisions=None, later=None):
     """Four parsons plots with a curb in front: three 16 m and 18 m faces whose link stands 10 m before the end corner, so the own
     fit takes the end anchor, and one 16 m face whose link stands 2 m off it, the one miss of the dry list."""
     past = tmp_path / "past_all.csv"
@@ -72,6 +72,8 @@ def made_up(tmp_path, decisions=None):
     settings = tmp_path / "project.json"
     real = json.loads((key_rules_check.ROOT / "config" / "project.json").read_text(encoding="utf-8"))
     real["majority"]["check"] = {"seeds": [14, 7], "sample": 2, "group": "parsons"}
+    if later is not None:
+        real["majority"]["overrideKeep"]["laterFields"] = later
     # The folder a build links its prototype files from, made up and empty here (R337)
     real["inputRoot"] = str(tmp_path / "input")
     (tmp_path / "input" / real["pastJob"]["upgradedPrototypeFolder"]).mkdir(parents=True)
@@ -128,7 +130,8 @@ def test_r336_a_decision_whose_coded_candidate_has_no_route_fails_the_run_and_a_
               "tests": {"magicFit": {"holds": 3, "breaks": 1, "cannot": 0, "byKey": {"imx": {"holds": 3, "breaks": 1}}}}}
     entry = {"decision": "parsons entry", "plots": 4, "coded": "roadLevel", "field": "entryM",
              "tests": {"roadLevel": {"holds": 4, "breaks": 0, "cannot": 0, "byKey": {"imx": {"holds": 4}}}}}
-    argv, out = made_up(tmp_path, [origin, entry])
+    # The levels left to Phase 3c in the config of Round ADDIN 3a, made up since 3c measured them (R339)
+    argv, out = made_up(tmp_path, [origin, entry], later={"parsons": ["entryM", "heightM", "steps", "parameter RRE_ZZ_SP_Prototype-FFL"]})
     assert key_rules_check.main(argv) == 1
     found = json.loads(out.read_text(encoding="utf-8"))
     assert found["cannotCheck"] == {"linkOrigin": 4} and found["leftForLater"] == ["entry"]
@@ -278,7 +281,7 @@ def test_r336_the_own_front_cover_counts_the_walls_along_the_front_once():
 
 def test_r336_main_holds_the_merged_list_on_the_join_and_names_an_entry_off_it(tmp_path, monkeypatch):
     monkeypatch.setattr(key_rules_check, "sales_orientation", lambda path, sheet, column: {})
-    argv, out = made_up(tmp_path)
+    argv, out = made_up(tmp_path, later={"parsons": ["entryM", "heightM", "steps", "parameter RRE_ZZ_SP_Prototype-FFL"]})
     merged = tmp_path / "merged.json"
     merged.write_text(json.dumps({"overrides": [{"plot": "4", "key": "imx", "field": "insert", "value": None, "source": "parsons", "decision": "parsons linkOrigin"},
                                                 {"plot": "9", "key": "imx", "field": "entryM", "value": None, "source": "parsons", "decision": "parsons entry"}]}), encoding="utf-8")

@@ -7,14 +7,19 @@ plan_from_book.py builds them by its own route, the lookups, the link file, the 
 its key plan (R325), per plot and field: the prototype file, the mirror flag, the rotation within majority.rotationHoldDeg, the
 insert within linkHoldMm, the ramp class by rampTypeClass, the ramp outline within outlineHoldMm, the generic floor on the
 whole face by wholeFaceShare, the yard depth, the yard outline in link axes within outlineHoldMm and every link parameter of
-parameterTests. The levels are 3c and not held, the steps the build gives are its own. A field majority.kindLeaveOut leaves out
-for the kind of the key is not held.
+parameterTests. R340: the levels as well, El @ Entry, the FFL, the height, the steps, the ramp front and the level parameters of
+majority.parameterLevels, each held within majority.levelPassMm and its gap kept, so the unexplained levels are counted at the pass
+limit and at each band of majority.levelBandsMm, SSL is in no key and not held. A field majority.kindLeaveOut leaves out for the kind
+of the key is not held. Since the review of PR 48 compare needs the plan, key plan and key read of every key, a level it could not read
+is notChecked and fails the run, one the key holds none of is keyHoldsNone, the front corners of the ramp are held apart from their
+mean, and levelHolds says per key and level what holds by the rule alone and what by an override.
 
 A difference is explained when majority.decidedByQuestion names the plot and field (question), the key links the file of the
 code in the discipline majority.kindDiscipline names for its kind (kind), the list holds an override of that key, plot and field
 the build did not place (override), or a parameter differs only by the steps the stepBands of the level profile give (laterPhase).
-A plot the build does not write is explained only when it lacks its levels (laterPhase) or a link whose insert and rotation
-overrides hold no gap (override). Every other difference is unexplained, counted per key and field and listed with its plot.
+A plot the build does not write is explained only when it lacks its levels for want of a road level at a front corner (input,
+R340), its levels of a later phase (laterPhase) or a link whose insert and rotation overrides hold no gap (override). Every other
+difference is unexplained, counted per key and field and listed with its plot.
 """
 import argparse
 import json
@@ -27,6 +32,7 @@ from shapely import wkt
 
 import cad_links
 import floor_fit
+import key_rules
 import link_summary
 import majority
 import override_source
@@ -34,12 +40,22 @@ import past_all
 import plan_rules
 import plot_relations
 import project_profile
+import ramp_levels
 import ramp_outline
 
 # The decision of majority.py that measures each field, so majority.kindLeaveOut leaves the same fields out
 DECISION_OF = {"prototypeFile": None, "mirrored": "hand", "rotationDeg": "linkRotation", "insert": "linkOrigin", "rampType": "rampSlope",
-               "rampOutline": "rampOutline", "genericFloor": "generic", "yard": "yard", "yardOutline": "yardOutline"}
-STATES = ("holds", "override", "kind", "question", "laterPhase", "unexplained")
+               "rampOutline": "rampOutline", "genericFloor": "generic", "yard": "yard", "yardOutline": "yardOutline",
+               "entry": "entry", "ffl": "ffl", "height": "ffl", "steps": "steps", "rampFront": "rampFront", "rampFrontCorner": "rampFront"}
+# R340. A level the proof could not read, notChecked, fails the proof, one the key holds no value of, keyHoldsNone, is counted apart
+NOT_CHECKED = "notChecked"
+KEY_NONE = "keyHoldsNone"
+STATES = ("holds", "override", "kind", "question", "laterPhase", "input", "unexplained", NOT_CHECKED, KEY_NONE)
+# R340. The level fields held, and the override fields that move each, so a level an override the build did not place moves is explained
+LEVEL_OVERRIDES = {"entry": ("entryM",), "ffl": ("heightM",), "height": ("heightM", "entryM"), "steps": ("steps",), "rampFront": ("rampFrontM",)}
+# R340. The override fields of its own plot a level follows in a build, so a level that holds and the rule alone does not is held by one
+LEVEL_MOVERS = {"entry": ("entryM",), "ffl": ("heightM",), "height": ("heightM", "entryM"), "steps": ("steps", "heightM", "entryM"), "rampFront": ("rampFrontM",),
+                "rampFrontCorner": ("rampFrontM",)}
 # The fields a build gives by the hand of the plot, besides the parameters whose rule reads the mirror flag
 FOLLOW_HAND = ("rotationDeg", "insert", "yardOutline")
 HAND_RULES = ("mirroredFactor", "typologyMirrored")
@@ -74,9 +90,11 @@ def proof_context(block, names, key_rules, overrides, later):
                 for field in rule["fields"]:
                     questions[(key, str(plot), field)] = question + ", " + rule["why"]
     later = set(later)
+    # R340. Once keyRules codes the levels the steps are a rule of its own, no difference is left to the steps of a later phase
+    stepped = set() if plan_rules.key_levels_of(key_rules) else plan_rules.step_parameters(key_rules or {}, later)
     return {"block": block, "names": names, "keyRules": key_rules or {}, "overrides": overrides, "later": later, "questions": questions,
-            "disciplines": block.get("kindDiscipline") or {}, "stepped": plan_rules.step_parameters(key_rules or {}, later),
-            "handed": hand_parameters(key_rules or {}, later)}
+            "disciplines": block.get("kindDiscipline") or {}, "stepped": stepped, "handed": hand_parameters(key_rules or {}, later),
+            "levelParameters": ["parameter " + name for name in block.get("parameterLevels") or []]}
 
 
 def hand_parameters(rules, later):
@@ -172,6 +190,65 @@ def held_fields(entry, row, keyed, lacks, block):
     return found
 
 
+def front_corner_gap(built, key_corners):
+    """R340. The largest gap in mm of the two front corners of a ramp to the nearest corner of the key ramp in plan, None with either
+    missing. built holds the two front corners as (x, y, z)."""
+    if not built or not key_corners or len(built) < 2:
+        return None
+    nearest = lambda point: min(key_corners, key=lambda corner: math.dist(point[:2], corner[:2]))
+    return max(abs(point[2] - nearest(point)[2]) * 1000.0 for point in built[:2])
+
+
+def held_levels(entry, row, read, block):
+    """R340. Per level of the plot a verdict: holds within majority.levelPassMm, what differs, the gap in mm or None for a count or a
+    level the build gives none of, and with levelRule of the plan whether the rule alone holds it. El @ Entry is the one R339 holds,
+    the height the key FFL less it, the ramp front the mean of the two front corners of the ramp and rampFrontCorner the larger gap of
+    the two corners to the nearest corner of the key ramp. A level with no aim is noAim: notChecked when the key read holds no link of
+    the plot, so the proof could not read it, keyHoldsNone when the key holds no value of it."""
+    found = {}
+    limit = block["levelPassMm"]
+    levels = entry.get("levels") or {}
+    rule = entry.get("levelRule")
+    raw_entry = row.get("entry")
+    key_entry = majority.clean_entry(row, block["entryRampM"]) if raw_entry is not None else None
+    no_entry = "the key holds no El @ Entry" if raw_entry is None else "the El @ Entry parameter of the key is off its own ramp (R270)"
+    ramp = value((entry.get("floors") or {}).get("ramp"), "corners")
+    front = None if not ramp or len(ramp) < 2 else (ramp[0][2] + ramp[1][2]) / 2.0
+    key_corners = json.loads(row["rampCorners"]) if isinstance(row.get("rampCorners"), str) and row["rampCorners"] else row.get("rampCorners")
+    rule_corners = None if rule is None or not ramp or rule.get("rampFrontCorners") is None else [list(point[:2]) + [z] for point, z in zip(ramp, rule["rampFrontCorners"])]
+    # The rule front is the mean of the rule corners, taken the same way as the built front from the corners of the plan
+    rule = None if rule is None else dict(rule, rampFront=None if rule_corners is None else (rule_corners[0][2] + rule_corners[1][2]) / 2.0)
+    height_aim = None if key_entry is None or row.get("ffl") is None else round(row["ffl"] - key_entry, plan_rules.ENTRY_DECIMALS)
+    pairs = {"entry": (value(levels, "entry"), key_entry, no_entry), "ffl": (value(levels, "ffl"), row.get("ffl"), "the key holds no FFL"),
+             "height": (value(levels, "height"), height_aim, no_entry if key_entry is None else "the key holds no FFL"),
+             "rampFront": (front, row.get("rampFront"), "the key holds no ramp front")}
+    for name in block.get("parameterLevels") or []:
+        pairs["parameter " + name] = (key_rules.number(value(entry.get("parameters"), name)), key_rules.number((read or {}).get(name)),
+                                      "the key read holds no link of the plot" if read is None else "the link of the key holds no " + name)
+    for field, (built, aim, why) in pairs.items():
+        if aim is None:
+            found[field] = {"noAim": NOT_CHECKED if field.startswith(plan_rules.PARAMETER) and read is None else KEY_NONE, "why": why}
+            continue
+        gap = None if built is None else abs(built - aim) * 1000.0
+        by_rule = None if rule is None or key_rules.number(rule.get(field)) is None else abs(key_rules.number(rule[field]) - aim) * 1000.0 <= limit + 1e-6
+        found[field] = {"holds": gap is not None and gap <= limit + 1e-6, "detail": "no value built" if gap is None else "gap %.2f mm" % gap, "gap": gap,
+                        "byRule": by_rule, "atTheLimit": gap is not None and limit - 1e-6 < gap <= limit + 1e-6}
+    if row.get("rampFront") is not None:
+        gap = front_corner_gap(ramp, key_corners)
+        rule_gap = front_corner_gap(rule_corners, key_corners)
+        found["rampFrontCorner"] = ({"noAim": KEY_NONE, "why": "the key ramp holds no four corners"} if not key_corners else
+                                    {"holds": gap is not None and gap <= limit + 1e-6, "detail": "no value built" if gap is None else "corner gap %.2f mm" % gap,
+                                     "gap": gap, "byRule": None if rule_gap is None else rule_gap <= limit + 1e-6,
+                                     "atTheLimit": gap is not None and limit - 1e-6 < gap <= limit + 1e-6})
+    if row.get("steps") not in (None, ""):
+        built, aim = value(levels, "steps"), int(float(row["steps"]))
+        found["steps"] = {"holds": built is not None and int(built) == aim, "detail": "built %s, key %s" % (built, aim), "gap": None,
+                          "byRule": None if rule is None or rule.get("steps") is None else int(rule["steps"]) == aim, "atTheLimit": False}
+    else:
+        found["steps"] = {"noAim": KEY_NONE, "why": "the key holds no steps"}
+    return found
+
+
 def left_out(field, row, block):
     """R326. A field majority.kindLeaveOut leaves out for the kind of the key, by the decision that measures it."""
     leave = (block.get("kindLeaveOut") or {}).get(row.get("kind") or "", ())
@@ -213,8 +290,13 @@ def explain(key, plot, field, entry, row, ctx, detail):
         if field in (record.get("applied") or []):
             return "unexplained", "the build placed the override and the value still differs, " + detail
         return "override", (record.get("notApplied") or {}).get(field) or "an override of the key, plot and field the build counts as not placed"
+    # R340. A level moved by an override the build did not place
+    record = entry.get("overrides") or {}
+    for moved in LEVEL_OVERRIDES.get(field, ()):
+        if (key, plot, moved) in ctx["overrides"] and moved not in (record.get("applied") or []):
+            return "override", (record.get("notApplied") or {}).get(moved) or "an override of the key, plot and field the build counts as not placed"
     if field.startswith(plan_rules.PARAMETER) and steps_only(entry, row, field, ctx):
-        return "laterPhase", "differs only by the steps the stepBands of the level profile give, 3c codes the steps"
+        return "laterPhase", "differs only by the steps the stepBands of the level profile give, keyRules codes no steps"
     return "unexplained", detail
 
 
@@ -226,19 +308,28 @@ def unwritten(key, plot, found, plan, ctx):
     lacks = {item["key"]: item.get("why") for item in found.get("missing") or []}
     levels = "levels.ffl" in lacks
     road = plot in ((plan.get("summary") or {}).get("plotsWithNoRoadLevel") or [])
-    state, reasons, open_ = "laterPhase", [], []
+    # R340. With the levels coded a plot with no FFL for want of a road level at a front corner is explained by that input
+    coded = plan_rules.key_levels_of(ctx["keyRules"])
+    state, reasons, open_ = ("input" if road else "unexplained") if coded and levels else "laterPhase", [], []
+    level_parameters = {name[len(plan_rules.PARAMETER):] for name in ctx.get("levelParameters") or []}
     linkless = "transform" in lacks or "mirrored" in lacks
     for name, why in lacks.items():
         if linkless and name.startswith("parameters.") and name[len("parameters."):] in ctx["handed"]:
             # A parameter of the hand follows the link, explained or not with it
             continue
         if name == "levels.ffl":
-            reasons.append("no FFL, " + ("no road level at a front corner" if road else str(why)) + ", the levels are 3c")
-        elif levels and name[len("parameters."):] in ctx["stepped"] and name.startswith("parameters."):
-            reasons.append(name + " with no steps")
+            if coded:
+                reasons.append("no FFL, " + ("no road surface covers a front corner, so no El @ Entry" if road else str(why)))
+                if not road:
+                    open_.append(name + ": " + str(why))
+            else:
+                reasons.append("no FFL, " + ("no road level at a front corner" if road else str(why)) + ", the levels are 3c")
+        elif levels and name.startswith("parameters.") and (name[len("parameters."):] in ctx["stepped"] or name[len("parameters."):] in level_parameters
+                                                            or name[len("parameters."):] in plan_rules.step_parameters(ctx["keyRules"], ctx["later"])):
+            reasons.append(name + " with no level")
         elif name == "transform" and all((key, plot, field) in ctx["overrides"] for field in ("insert", "rotationDeg")):
             reasons.append("no link, " + str(why) + ", its insert and rotation overrides hold no gap")
-            state = "override"
+            state = "override" if state != "unexplained" else state
         else:
             open_.append(name + ": " + str(why))
     if open_:
@@ -246,9 +337,10 @@ def unwritten(key, plot, found, plan, ctx):
     return state, "the plot is not written: " + ", ".join(reasons)
 
 
-def compare(key, plan, rows, key_plan, ctx):
+def compare(key, plan, rows, key_plan, ctx, reads=None):
     """R337. One verdict per field of every plot of the key: holds, or the state of its difference and why, a plot the build does
-    not write one verdict of the field written."""
+    not write one verdict of the field written. R340: the levels as well, each verdict of a level with its gap in mm, reads giving
+    the level parameters of the key read by key and plot."""
     block = ctx["block"]
     written = {entry["plot"]: entry for entry in plan.get("plots") or []}
     missing = {item["plot"]: item for item in plan.get("missing") or []}
@@ -270,6 +362,23 @@ def compare(key, plan, rows, key_plan, ctx):
                 continue
             state, why = ("holds", "") if holds else explain(key, plot, field, entry, row, ctx, detail)
             mine.append({"key": key, "plot": plot, "field": field, "state": state, "why": why})
+        for field, found in held_levels(entry, row, (reads or {}).get((key, plot)), block).items():
+            if left_out(field, row, block):
+                continue
+            if "noAim" in found:
+                mine.append({"key": key, "plot": plot, "field": field, "state": found["noAim"], "why": found["why"], "gapMm": None, "level": True})
+                continue
+            if found["holds"]:
+                state, why = "holds", ""
+            elif field == "rampFrontCorner":
+                # The claim of the levels covers the mean of the front, a corner off is the fall of the front a build does not apply
+                state, why = "question", ctx["block"]["rampFrontCorners"]["question"] + ", " + ctx["block"]["rampFrontCorners"]["why"] + ", " + found["detail"]
+            else:
+                state, why = explain(key, plot, field, entry, row, ctx, found["detail"])
+            movers = LEVEL_MOVERS.get(field, (field, "heightM") if field.startswith(plan_rules.PARAMETER) else ())
+            moved = any(name in ((entry.get("overrides") or {}).get("applied") or []) for name in movers)
+            mine.append({"key": key, "plot": plot, "field": field, "state": state, "why": why, "gapMm": None if found["gap"] is None else round(found["gap"], 3),
+                         "level": True, "byRule": found["byRule"], "moved": moved, "atTheLimit": found["atTheLimit"]})
         hand = next((item for item in mine if item["field"] == "mirrored"), None)
         if hand is not None and hand["state"] == "question":
             # A hand an open question decides gives the rotation, the origin, the yard outline and the parameters of the hand with it
@@ -281,21 +390,66 @@ def compare(key, plan, rows, key_plan, ctx):
     return verdicts
 
 
-def tally(verdicts):
+def tally(verdicts, bands=(1, 5)):
     """R337. The verdicts counted per key, field and state, the unexplained per key, every key with none at 0, and each unexplained
     difference listed."""
     by_key = defaultdict(lambda: defaultdict(Counter))
     for item in verdicts:
         by_key[item["key"]][item["field"]][item["state"]] += 1
+    # R340. The unexplained levels per key at the pass limit and at each band, a level whose gap lies within a band holding at it
+    levels = defaultdict(Counter)
+    for item in verdicts:
+        if item.get("level") and item["state"] == "unexplained":
+            levels[item["key"]]["pass"] += 1
+            for band in bands or ():
+                if item.get("gapMm") is None or item["gapMm"] > band + 1e-6:
+                    levels[item["key"]]["%gmm" % band] += 1
+    # R340. Per key and level the holds by the rule alone, by an override of its own plot, neither, the misses, the levels the proof could
+    # not read and those the key holds none of, and the holds at the pass limit itself
+    holds = defaultdict(lambda: defaultdict(Counter))
+    for item in verdicts:
+        if not item.get("level"):
+            continue
+        counts = holds[item["key"]][item["field"]]
+        if item["state"] == "holds":
+            counts["byRule" if item.get("byRule") else "byUnknown" if item.get("byRule") is None else "byOverride" if item.get("moved") else "byNeither"] += 1
+            counts["atTheLimit"] += 1 if item.get("atTheLimit") else 0
+        else:
+            counts[item["state"] if item["state"] in (NOT_CHECKED, KEY_NONE) else "misses"] += 1
+    names = ("byRule", "byOverride", "byNeither", "byUnknown", "misses", NOT_CHECKED, KEY_NONE, "atTheLimit")
     return {"byKey": {key: {field: dict(counts) for field, counts in sorted(fields.items())} for key, fields in sorted(by_key.items())},
+            "levelHolds": {key: {field: {name: counts.get(name, 0) for name in names} for field, counts in sorted(fields.items())} for key, fields in sorted(holds.items())},
+            "notCheckedByKey": {key: sum(counts.get(NOT_CHECKED, 0) for counts in fields.values()) for key, fields in sorted(by_key.items())},
             "unexplainedByKey": {key: sum(counts.get("unexplained", 0) for counts in fields.values()) for key, fields in sorted(by_key.items())},
+            "unexplainedLevelsByKey": {key: {name: levels[key].get(name, 0) for name in ["pass"] + ["%gmm" % band for band in bands or ()]} for key in sorted(by_key)},
             "byState": dict(Counter(item["state"] for item in verdicts)),
             "unexplained": [item for item in verdicts if item["state"] == "unexplained"]}
 
 
+def exit_code(found):
+    """R340. 1 when the proof could not hold a level of a written plot, notChecked, so a proof with a level unread never passes as 0."""
+    return 1 if any(found["notCheckedByKey"].values()) else 0
+
+
+def check_inputs(keys, plans, key_plans, reads):
+    """R340. The plan, the key plan and the key read of every key the proof covers, else it is refused with the flags and keys named,
+    never held with a level or a yard outline left out in silence."""
+    missing = []
+    for flag, found in (("--plan", plans), ("--key-plan", key_plans), ("--key-read", reads)):
+        gone = sorted(set(keys) - set(found))
+        if gone:
+            missing.append(flag + " of " + ", ".join(gone))
+    if missing:
+        raise project_profile.ProfileError("the proof covers the keys %s, give %s (R340)" % (", ".join(sorted(keys)), " | ".join(missing)))
+
+
 def overrides_of(path, sources):
-    """The entries of the override list a build applies, its sources, by key, plot and field."""
-    return {(item["key"], str(item["plot"]), item["field"]): item for item in override_source.read_list(path)["overrides"] if item["source"] in sources}
+    """The entries of the override list a build applies, its sources, by key, plot and field, with the misses its cannot list holds
+    with no value (R272), which a build can not place, so a field they name is explained as an override with no gap was."""
+    data = override_source.read_list(path)
+    found = {(item["key"], str(item["plot"]), item["field"]): dict(item, value=None) for item in data.get("cannot") or [] if item["source"] in sources}
+    found.update({(item["key"], str(item["plot"]), item["field"]): item for item in data["overrides"] if item["source"] in sources})
+    return found
 
 
 def main(argv=None):
@@ -308,6 +462,7 @@ def main(argv=None):
     parser.add_argument("--key-plan", nargs=2, action="append", metavar=("KEY", "FILE"), default=[], help="compare: the plan of the key of R325")
     parser.add_argument("--overrides", help="compare: the override list the build applied")
     parser.add_argument("--level-profile", help="compare: the level profile of the build, levelProfiles.default when left out")
+    parser.add_argument("--key-read", nargs=2, action="append", metavar=("KEY", "FILE"), default=[], help="R340. compare: the reader output of a key, its level parameters")
     args = parser.parse_args(argv)
     try:
         settings = project_profile.load_settings(args.settings)
@@ -330,25 +485,32 @@ def main(argv=None):
         ctx = proof_context(block, settings.get("prototypeNames"), plan_rules.key_rules_of(lp), overrides, later)
         plans = {key: json.loads(Path(path).read_text(encoding="utf-8")) for key, path in args.plan}
         key_plans = {key: json.loads(Path(path).read_text(encoding="utf-8")) for key, path in args.key_plan}
-        missing = sorted(set(covers(rows, group)) - set(plans))
-        if missing:
-            raise project_profile.ProfileError("no built plan of the keys %s, give --plan KEY FILE for every key of %s (R337)" % (", ".join(missing), group))
-        verdicts = [item for key in sorted(plans) for item in compare(key, plans[key], rows, key_plans.get(key), ctx)]
+        # R337, R340. The plan, the key plan and the key read of every key of the group
+        check_inputs(list(covers(rows, group)), plans, key_plans, dict(args.key_read))
+        # R340. The level parameters of each key read, found by the plot number parameter as majority.py finds them (R335)
+        found = key_rules.read_parameters({key: ramp_levels.host_document(link_summary.load(path)) for key, path in args.key_read}, block["linkPlotParameter"])
+        reads = {pair: {name: parameters[name] for name in block["parameterLevels"] if name in parameters} for pair, parameters in found.items()}
+        verdicts = [item for key in sorted(plans) for item in compare(key, plans[key], rows, key_plans.get(key), ctx, reads)]
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
         print("build_proof: " + str(error), file=sys.stderr)
         return 2
-    found = tally(verdicts)
+    found = tally(verdicts, block["levelBandsMm"])
     report = {"plans": {key: str(path) for key, path in args.plan}, "overrides": args.overrides, "levelProfile": args.level_profile or "default",
-              "notHeld": "the levels, El @ Entry, FFL, height, steps, SSL and the ramp front, are 3c", **found,
+              "levelPassMm": block["levelPassMm"], "levelBandsMm": block["levelBandsMm"], "notHeld": (block.get("levelNotMeasured") or {}), **found,
               "explained": [item for item in verdicts if item["state"] not in ("holds", "unexplained")]}
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=1, ensure_ascii=False), encoding="utf-8")
     for key, fields in found["byKey"].items():
         print("%s unexplained %d: %s" % (key, found["unexplainedByKey"][key], json.dumps({field: counts for field, counts in fields.items() if set(counts) != {"holds"}}, ensure_ascii=False)))
+        print("%s unexplained levels %s" % (key, json.dumps(found["unexplainedLevelsByKey"][key])))
+        for field, counts in (found["levelHolds"].get(key) or {}).items():
+            print("%s level %s: %s" % (key, field, ", ".join("%s %d" % (name, count) for name, count in counts.items() if count)))
     print("states %s" % found["byState"])
     for item in found["unexplained"][:60]:
         print("  unexplained %s %s %s: %s" % (item["key"], item["plot"], item["field"], item["why"]))
-    return 0
+    if exit_code(found):
+        print("levels not checked, a failure: %s" % found["notCheckedByKey"], file=sys.stderr)
+    return exit_code(found)
 
 
 if __name__ == "__main__":

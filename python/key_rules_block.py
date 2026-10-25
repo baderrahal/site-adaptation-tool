@@ -21,6 +21,11 @@ import project_profile
 
 INDENT = "        "
 CLOSE = "\n      }"
+# R339. The level decisions of keyRules, held at majority.levelPassMm with their shares at levelBandsMm
+LEVELS = ("entry", "rampFront", "levelSplit", "baseHeight", "ffl", "steps", "parameter RRE_ZZ_SP_Prototype-FFL")
+# R339. The decision of the other group a level decision is shown beside, the Native keys hold the FFL less El @ Entry of R275
+NATIVE_WORD = {"ffl": "height"}
+SSL = "ssl"
 
 
 def share(counts):
@@ -36,7 +41,7 @@ def entry(report, word, block):
     found = {}
     for decision in report["decisions"]:
         owner, _, name = decision["decision"].partition(" ")
-        if name != word:
+        if name != word and not (owner != group and name == NATIVE_WORD.get(word)):
             continue
         coded = decision["tests"][decision["coded"]]
         found[owner] = {"rule": decision["coded"], "share": decision["share"], "strong": decision["strong"], "plots": decision["plots"],
@@ -65,6 +70,20 @@ def site_block(report, block):
             "native": config["siteNative"] % gap}
 
 
+def split_sequences(table, patterns, strong):
+    """R338, R339. Per unit sequence of keyRules.levelSplit the split coded, the clusters of the keys, how many hold it, its share and
+    whether it is strong by majority.strongShare, the plurality coded where none is strong, as the majority rule says, a tie said."""
+    found = {}
+    for name, coded in sorted(table.items()):
+        counts = patterns.get(name) or {}
+        clusters = sum(counts.values())
+        holds = counts.get(coded, 0)
+        share = round(holds / clusters, 4) if clusters else None
+        found[name] = {"coded": coded, "clusters": clusters, "holds": holds, "share": share, "strong": share is not None and share >= strong,
+                       "tie": any(count == holds for other, count in counts.items() if other != coded), "patterns": dict(sorted(counts.items()))}
+    return found
+
+
 def zone_table(table, config):
     """R338. The yard table keyed by the zone as plots.csv names it, and the zones taken from others with why. A zone taken from
     zones that are missing or give two values is refused, never given one of them."""
@@ -91,6 +110,10 @@ def block_of(report, words, existing, block):
     for word in words:
         if word == "site":
             found["site"] = site_block(report, block)
+            continue
+        if word == SSL:
+            # R339. No key holds SSL, a build gives the FFL plus levels.ground_ssl, majority.levelNotMeasured says why
+            found[SSL] = {"rule": "fflPlusGroundSsl", "notMeasured": block["levelNotMeasured"][SSL]}
             continue
         made = entry(report, word, block)
         if made is None:
@@ -145,6 +168,16 @@ def block_of(report, words, existing, block):
                 made["walls"] = {key: counts for key, counts in report["walls"][group]["byKey"].items()}
             if word == "frontOpen":
                 made["walledFronts"] = len(report["frontWalled"][group])
+        if word in LEVELS:
+            # R339. The pass limit, the shares at 1 and 5 mm, the share a build reproduces and the candidates beside the coded one
+            for name in ("passMm", "bands", "byBuild"):
+                if name in decision:
+                    made[name] = decision[name]
+            made["candidates"] = {name: test["share"] for name, test in sorted(decision["tests"].items(), key=lambda pair: -(pair[1]["share"] or 0))[:4]}
+            if word in ("levelSplit", "baseHeight") and "rule" in coded:
+                made["table"] = {key.split(" | ", 1)[1]: value for key, value in coded["rule"].items()}
+            if word == "levelSplit" and "table" in made:
+                made["bySequence"] = split_sequences(made["table"], (report.get("levelSplitPatterns") or {}).get(group) or {}, block["strongShare"])
         if word.startswith("parameter "):
             if "rule" in coded:
                 made["table"] = {key.split(" | ", 1)[1]: value for key, value in coded["rule"].items()}

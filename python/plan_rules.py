@@ -15,6 +15,7 @@ R337: a level profile with keyRules, the rules Round ADDIN 3a measured on its an
 ramp class, the yard per zone, the yard outline and the link parameters by them, the tables of R279 only a profile with none.
 """
 import json
+import math
 from collections import defaultdict
 from pathlib import Path
 
@@ -22,14 +23,22 @@ import project_profile
 
 FIELDS = ("mirrored", "rampType", "entryM", "heightM", "rampFrontM")
 # R337. The override fields a build by keyRules applies besides FIELDS, the link parameters by their field "parameter <name>"
-KEY_FIELDS = ("insert", "rotationDeg")
+KEY_FIELDS = ("insert", "rotationDeg", "steps")
 PARAMETER = "parameter "
 # R337. The candidates of majority.py a build can give: the hand factors, the factors of a parameter table, its formulas and levels
 HAND_FACTORS = ("all", "blockMirror", "clusterSide", "openEnd", "roadSide", "blockMirrorOpenEnd", "blockMirrorRoadSide", "rowPairSide",
                 "rowPairSideOrBlockMirrorOpenEnd")
 TABLE_FACTORS = ("all", "typology", "mirroredFactor", "typologyMirrored", "steps", "typologySteps")
 FORMULAS = ("plot", "rev9Code", "plotAndCode", "plotCodeStepsAndFacade")
-LEVEL_RULES = ("ffl",)
+LEVEL_RULES = ("ffl", "fflDownToTheCm")
+# R340. The level rules of keyRules a build carries out, optional, a profile with none builds the levels of R278
+LEVEL_WORDS = {"entry": ("roadLevel",), "rampFront": ("roadLevel",), "levelSplit": ("none", "units"), "baseHeight": ("profile", "typology"),
+               "ffl": ("oneFflPerPieceAtTheHighestEntry", "oneFflPerClusterAtTheHighestEntry", "ownEntryPlusBase"), "steps": ("stepsFromHeight", "stepBands")}
+# R340. The level rules a build needs once keyRules holds the FFL, the base the keys were measured on among them, and one FFL per piece
+# its split, so a build never gives whole clusters or another base than the measure of the gaps
+LEVEL_NEEDED = ("entry", "steps", "baseHeight")
+PIECE_NEEDED = {"oneFflPerPieceAtTheHighestEntry": ("levelSplit",)}
+ROAD_LEVEL = "roadLevel"
 # R337. The parameter rules that read the steps, which the stepBands of the level profile give until 3c codes the steps
 STEP_RULES = ("steps", "typologySteps", "plotCodeStepsAndFacade")
 NO_YARD = "noYard"
@@ -185,6 +194,41 @@ def check_key_rules(rules):
     for word, entry in rules.items():
         if word.startswith(PARAMETER):
             need(word, FORMULAS + LEVEL_RULES + TABLE_FACTORS, *(("table",) if (entry or {}).get("rule") in TABLE_FACTORS else ()))
+    # R340. The level rules are optional, a rule a build does not carry out refused, and the FFL needs El @ Entry and the steps
+    for word, allowed in LEVEL_WORDS.items():
+        if word in rules:
+            need(word, allowed, *(("table",) if (rules[word] or {}).get("rule") in ("units", "typology") else ()))
+    if "ffl" in rules:
+        needed = LEVEL_NEEDED + PIECE_NEEDED.get(rules["ffl"]["rule"], ())
+        for word in needed:
+            if word not in rules:
+                raise project_profile.ProfileError("keyRules codes ffl %s and no %s, a build of the levels by keyRules needs %s (R340)"
+                                                   % (rules["ffl"]["rule"], word, ", ".join(needed)))
+
+
+def road_names(site_build, lp):
+    """R339, R340. The road surfaces a build asks for El @ Entry and the ramp front, the one setting plan_from_book.py and majority.py
+    take them from: siteBuild.roadSurfaces in their order for frontRoad roadLevel, else the one surface frontRoad names."""
+    surface = lp["frontRoad"]["surface"]
+    return list(site_build["roadSurfaces"]) if surface == ROAD_LEVEL else [surface]
+
+
+def key_levels_of(rules):
+    """R340. True when keyRules holds the level rules a build carries out, the FFL among them, else the levels are those of R278."""
+    return rules is not None and "ffl" in rules
+
+
+def key_pieces(rules, plots, roles, partners, units):
+    """R340. The plots that share one FFL by keyRules.ffl: the pieces of the coded split and the row pairs, the clusters whole, or
+    each plot alone."""
+    rule = rules["ffl"]["rule"]
+    if rule == "ownEntryPlusBase":
+        return {plot: [plot] for plot in plots}
+    split = rules.get("levelSplit") or {}
+    table = (split.get("table") or {}) if split.get("rule") == "units" else {}
+    if rule == "oneFflPerClusterAtTheHighestEntry":
+        return level_pieces(plots, roles, {}, units, {})
+    return level_pieces(plots, roles, partners, units, table)
 
 
 def unit_class(kind, role):
@@ -255,7 +299,7 @@ def key_parameters(rules, plot, code, mirrored, steps, ffl, facade, later):
                 values[word[len(PARAMETER):]] = str(found)
     formulas = {"plot": lambda: plot, "rev9Code": lambda: code, "plotAndCode": lambda: plot + " | " + code,
                 "plotCodeStepsAndFacade": lambda: " | ".join([plot, code, str(step)] + [values.get(name) or "" for name in facade]),
-                "ffl": lambda: None if ffl is None else "%.3f" % ffl}
+                "ffl": lambda: None if ffl is None else "%.3f" % ffl, "fflDownToTheCm": lambda: prototype_ffl("fflDownToTheCm", ffl)}
     for word in words:
         entry = rules[word]
         if entry["rule"] in formulas:
@@ -306,6 +350,18 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
     missing = sorted(set(sources) - {item["source"] for item in chosen}) + sorted(set(models or ()) - {item["model"] for item in chosen})
     if missing:
         raise project_profile.ProfileError("the override list holds no override of %s among the sources %s (R280, R330)" % (", ".join(missing), ", ".join(sorted(sources))))
+    # R280. An override with no value is no value to apply, a build refuses it, never writes it as the text None or counts it applied
+    loaded = [item for item in chosen if fields is None or item.get("field") in fields]
+    empty = ["plot %s field %s of %s" % (item["plot"], item.get("field"), item.get("model")) for item in loaded if item.get("value") is None]
+    if empty:
+        raise project_profile.ProfileError("%d overrides of the build hold no value: %s. A miss with no value belongs in the cannot list of R272, take it out "
+                                           "of overrides (R280)" % (len(empty), " | ".join(empty[:10])))
+    # R280, R340. A step count is a whole number, 2.6 is never cut to 2 in silence
+    broken = ["plot %s value %s of %s" % (item["plot"], json.dumps(item["value"]), item.get("model")) for item in loaded
+              if item.get("field") == "steps" and whole_number(item["value"]) is None]
+    if broken:
+        raise project_profile.ProfileError("%d steps overrides hold no whole number: %s. Give the step count as a whole number (R280, R340)"
+                                           % (len(broken), " | ".join(broken[:10])))
     found, origin, twice = defaultdict(dict), {}, []
     for item in chosen:
         if fields is None or item.get("field") in fields:
@@ -322,6 +378,158 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
     return dict(found)
 
 
+def whole_number(value):
+    """The whole number a step count holds, as a number or its text, None for any other value such as 2.6 or two."""
+    try:
+        found = float(value)
+    except (TypeError, ValueError):
+        return None
+    return int(found) if found.is_integer() else None
+
+
 def gap_of(value):
     """The gap of a level override in metres, None for an override the rule could not give a gap to."""
     return value.get("gapToRuleM") if isinstance(value, dict) else None
+
+
+# R339, R340. The levels as keyRules gives them, the one place majority.py measures them and a build carries them out
+ENTRY_DECIMALS = 4
+FFL_DECIMALS = 3
+# A height is rounded to a micrometre before its steps are taken, so float noise never moves it across a band (levels.BAND_DECIMALS)
+BAND_DECIMALS = 6
+NO_SPLIT = "none"
+MIDDLE = "middle"
+WALLS = "walls "
+
+
+def key_entry(front, code, lp, depth):
+    """R339. El @ Entry a build gives, the road of the two front corners plus the offset and the slope of the unit times the ramp
+    depth (R278), at the 4 decimals of R2, None with no road level at a front corner."""
+    if not front or depth is None or code is None or any(level is None for level in front):
+        return None
+    return round(entry_of(front, code, lp, depth)[0], ENTRY_DECIMALS)
+
+
+def split_walls(pattern, count):
+    """R339. The walls a split pattern of keyRules.levelSplit names in a cluster of count units, a wall n after unit n."""
+    if pattern in (None, NO_SPLIT):
+        return []
+    if pattern == MIDDLE:
+        return [count // 2] if count % 2 == 0 else []
+    if not str(pattern).startswith(WALLS):
+        raise project_profile.ProfileError("keyRules.levelSplit names the pattern %s, a build gives none, middle or walls n,m (R339)" % pattern)
+    return sorted({int(part) for part in str(pattern)[len(WALLS):].split(",") if 0 < int(part) < count})
+
+
+def split_pattern(levels):
+    """R339. The pattern of the FFLs of a cluster in row order: none, middle or the walls where the FFL changes."""
+    walls = [index + 1 for index in range(len(levels) - 1) if abs(levels[index] - levels[index + 1]) > 0.0005]
+    if not walls:
+        return NO_SPLIT
+    return MIDDLE if len(levels) % 2 == 0 and walls == [len(levels) // 2] else WALLS + ",".join(str(wall) for wall in walls)
+
+
+def row_partners(sides, neighbours):
+    """R339, R340. The other unit of the row pair of each unit in no cluster (R333): a right unit pairs with the one unit beside it
+    on the left that is a left unit, and the other way round, none when no such single neighbour stands there."""
+    found = {}
+    for plot, side in sides.items():
+        if side not in ("left", "right"):
+            continue
+        other_side = "right" if side == "left" else "left"
+        beside = [other for other in (neighbours.get(plot) or {}).get(other_side, []) if sides.get(other) == other_side]
+        if len(beside) == 1:
+            found[plot] = beside[0]
+    return found
+
+
+def level_pieces(plots, roles, partners, units, split):
+    """R339, R340. The plots that share the FFL of each plot: its cluster of R236, its plots in row order as R123 puts them, cut at
+    the walls split, the table of keyRules.levelSplit, names for the units of the cluster, a unit in no cluster with the unit of its
+    row pair (R333, partners), else the plot alone. A cluster whose units the table does not name stays whole, as R67 keeps it."""
+    found = {}
+    for plot in plots:
+        role = roles.get(plot)
+        if role is not None:
+            ordered = list(role["plots"])
+            walls = split_walls((split or {}).get(" ".join(str(units.get(other)) for other in ordered)), len(ordered))
+            start = 0
+            for wall in walls + [len(ordered)]:
+                if plot in ordered[start:wall]:
+                    found[plot] = ordered[start:wall]
+                    break
+                start = wall
+        elif partners.get(plot) and partners.get(partners[plot]) == plot:
+            found[plot] = sorted([plot, partners[plot]], key=lambda number: (len(number), number))
+        else:
+            found[plot] = [plot]
+    return found
+
+
+def base_by_rule(profile, code, rule=None):
+    """R339. The base height of a unit: the table keyRules.baseHeight learned per typology when it codes one, else steps.base_height."""
+    table = (rule or {}).get("table") if (rule or {}).get("rule") == "typology" else None
+    if table and code in table:
+        return float(table[code])
+    return base_of(profile, code)
+
+
+def piece_ffl(members, profile, base_rule=None):
+    """R339, R67. The FFL of a piece: its highest El @ Entry plus the base of that unit, rounded to the mm first. members is a list of
+    (El @ Entry, unit), None when no member has one."""
+    known = [entry + base_by_rule(profile, unit, base_rule) for entry, unit in members if entry is not None and unit is not None]
+    return None if not known else round(max(known), FFL_DECIMALS)
+
+
+def steps_from_height(height, base, riser):
+    """R339. The steps of the base and the risers: one step for the base, then one per riser over it, a part of a riser over half
+    counting as one and half a riser not, as the keys count it: the 9 key plots whose height lies half a riser over their base, such
+    as 0.185 m over 0.10 m, have 1 step (Round ADDIN 3c)."""
+    return 1 + max(0, int(math.ceil(round((round(height, BAND_DECIMALS) - base) / riser, BAND_DECIMALS) - 0.5)))
+
+
+def steps_by_rule(rule, height, code, profile, lp, base_rule=None):
+    """R339, R340. The steps keyRules.steps codes: stepsFromHeight on the base of the unit and the risers, stepBands of the level profile."""
+    if height is None:
+        return None
+    if rule == "stepsFromHeight":
+        return steps_from_height(height, base_by_rule(profile, code, base_rule), profile.get("steps.riser_added") / 1000.0)
+    if rule == "stepBands":
+        return steps_of(round(height, BAND_DECIMALS), lp)
+    raise project_profile.ProfileError("keyRules.steps codes %s, a build gives stepsFromHeight or stepBands (R339)" % rule)
+
+
+def prototype_ffl(rule, ffl):
+    """R339. The text of the RRE_ZZ_SP_Prototype-FFL parameter: the FFL down to the cm, or the FFL, written with 3 decimals."""
+    if ffl is None:
+        return None
+    millimetres = int(round(ffl * 1000))
+    if rule == "fflDownToTheCm":
+        return "%.3f" % ((millimetres // 10) / 100.0)
+    if rule == "ffl":
+        return "%.3f" % (millimetres / 1000.0)
+    raise project_profile.ProfileError("keyRules parameter RRE_ZZ_SP_Prototype-FFL codes %s, a build gives fflDownToTheCm or ffl (R339)" % rule)
+
+
+def rule_entry(item):
+    """R340. El @ Entry the rule gives a plot, before the entryM gap of its own override, the entry itself for a plot with none."""
+    return None if item is None else item.get("rule", item.get("entry"))
+
+
+def key_level_rows(entries, pieces, profile, lp, key):
+    """R339, R340. FFL, SSL, height and steps per plot by keyRules: one FFL per piece at its highest El @ Entry plus the base of that unit
+    to the mm, the height that FFL less El @ Entry, SSL the FFL plus levels.ground_ssl and the steps of keyRules.steps. The FFL is taken
+    on the El @ Entry the rule gives each plot of the piece (rule_entry), never moved by an entryM override, so an override moves the
+    levels of its own plot only and deleting one line of the list leaves every other plot as it was (Round ADDIN 3c review)."""
+    ground = profile.metres("levels.ground_ssl")
+    base_rule = key.get("baseHeight")
+    rows = {}
+    for plot, item in entries.items():
+        piece = pieces.get(plot) or [plot]
+        ffl = piece_ffl([(rule_entry(entries.get(other)), (entries.get(other) or {}).get("unit")) for other in piece], profile, base_rule)
+        if ffl is None:
+            continue
+        height = round(ffl - item["entry"], ENTRY_DECIMALS)
+        rows[plot] = {"plot": plot, "ffl": ffl, "ssl": round(ffl + ground, FFL_DECIMALS), "entry": item["entry"], "height": height,
+                      "steps": steps_by_rule(key["steps"]["rule"], height, item["unit"], profile, lp, base_rule), "flags": [], "piece": piece}
+    return rows
