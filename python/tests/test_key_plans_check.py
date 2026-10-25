@@ -3,6 +3,9 @@
 Every model here is made up in code (R10).
 """
 import copy
+import math
+
+import pytest
 
 import entry_spots
 import key_join
@@ -313,3 +316,30 @@ def test_r328_a_grid_share_under_the_minimum_share_is_left_out_so_a_touch_is_on_
     doc = tj.document([tj.key_link("801", 50, element_id=801)], [tj.floor("DP4-801", 49.75)])
     assert key_join.join_plots(doc, tj.FLOORS, where)["plots"]["801"]["status"] == "noFace"
     assert kc.second_join(doc, tj.FLOORS, index, rows, 0.9, 0.05)["801"]["status"] == "noFace"
+
+
+def turned(points, degrees):
+    turn = math.radians(degrees)
+    return [[x * math.cos(turn) - y * math.sin(turn), x * math.sin(turn) + y * math.cos(turn)] for x, y in points]
+
+
+@pytest.mark.parametrize("degrees", [0.0, 30.1])
+@pytest.mark.parametrize("share, status", [(0.89, "cut"), (0.894, "cut"), (0.906, "joined"), (0.91, "joined")])
+def test_r328_a_floor_whose_share_lies_near_cut_share_min_is_measured_again_on_a_grid_that_resolves_0_005(share, status, degrees):
+    # Faces 11 and 12 side by side, the floor holds share of its area on 11 and the rest on 12, all turned as the plots of a key are
+    index = kc.face_index({"11": [turned([[0, 0], [10, 0], [10, 25], [0, 25]], degrees)], "12": [turned([[10, 0], [20, 0], [20, 25], [10, 25]], degrees)]})
+    rows = {"11": {"locationPlanNumber": "501"}, "12": {"locationPlanNumber": "502"}}
+    x0 = 10 * (1 - share)
+    found = kc.floor_status(turned([[x0, 0], [x0 + 10, 0], [x0 + 10, 25], [x0, 25]], degrees), index, rows, 0.9)
+    assert found["status"] == status and found["grid"] == kc.FINE_GRID
+    top = found["share"] if "share" in found else found["shares"][0][1]
+    assert abs(top - share) <= kc.RESOLVE
+
+
+def test_r328_a_floor_far_from_cut_share_min_stays_on_the_coarse_grid_unless_the_first_method_puts_it_near():
+    index = kc.face_index({"11": [[[0, 0], [10, 0], [10, 25], [0, 25]]], "12": [[[10, 0], [20, 0], [20, 25], [10, 25]]]})
+    rows = {"11": {"locationPlanNumber": "501"}, "12": {"locationPlanNumber": "502"}}
+    whole = [[0, 0], [10, 0], [10, 25], [0, 25]]
+    assert kc.floor_status(whole, index, rows, 0.9)["grid"] == kc.GRID
+    assert kc.floor_status(whole, index, rows, 0.9, first_share=0.88)["grid"] == kc.FINE_GRID
+    assert kc.FINE_GRID * kc.RESOLVE >= 1

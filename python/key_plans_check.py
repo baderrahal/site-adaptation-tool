@@ -42,9 +42,13 @@ SURVEY_BASE = "Survey Point"
 NUMBERS_BAR = "|"
 LINK_PLOT = "RRE_ZZ_SP_Plot-Number"
 LINK_STEPS = "RRE_ZZ_SP_Number-of-Steps"
-# Points per side of the grid laid over a floor. A share is off by about one column of the grid, 0.02, where the measured shares are 1 or
-# at most 0.84 against the limit 0.9
+# Points per side of the grid laid over a floor in the axes of its longest edge. A share is off by up to one row of the grid, 0.02
 GRID = 50
+# A floor with a share this near cadLinks.cutShareMin by either method is measured again on a grid one row of which is RESOLVE of the floor,
+# so it tells 0.89 from 0.90. The band is more than the 0.02 the coarse grid may be off
+REFINE_BAND = 0.05
+RESOLVE = 0.005
+FINE_GRID = int(round(1 / RESOLVE))
 SHARE_SLACK = 0.03
 # Plan values are written to the mm and El @ Entry to a tenth of a mm by R2, so these are the rounding of two values
 METRES = 0.0005
@@ -186,14 +190,36 @@ def where(point, faces, rows):
     return {"status": "joined" if number else "noNumber", "face": hits[0], "number": number}
 
 
-def grid_shares(ring, faces, min_share=0.0):
-    """R328. The share of a floor ring on each face by a grid of GRID by GRID points over its box: the points inside the ring that each face
-    holds over all points inside the ring, the largest first. A share under min_share, keyPlans.minShare the join ran with, is left out as
-    the first method leaves it out."""
+def edge_axes(ring):
+    """R328. The unit axis along the longest edge of a ring and the one square to it, so a grid laid in them runs with the edges of a plot."""
+    first, second = max(((ring[index - 1], ring[index]) for index in range(len(ring))), key=lambda edge: math.dist(edge[0], edge[1]))
+    length = math.dist(first, second)
+    along = ((second[0] - first[0]) / length, (second[1] - first[1]) / length)
+    return along, (-along[1], along[0])
+
+
+def grid_points(ring, grid):
+    """R328. The points of a grid of grid by grid over the ring in the axes of its longest edge that lie inside it, so one row of a plot
+    shaped floor is 1 / grid of it."""
+    along, across = edge_axes(ring)
+    first = [point[0] * along[0] + point[1] * along[1] for point in ring]
+    second = [point[0] * across[0] + point[1] * across[1] for point in ring]
+    low, high, near, far = min(first), max(first), min(second), max(second)
+    points = []
+    for column in range(grid):
+        a = low + (column + 0.5) * (high - low) / grid
+        for row in range(grid):
+            b = near + (row + 0.5) * (far - near) / grid
+            points.append((a * along[0] + b * across[0], a * along[1] + b * across[1]))
+    return [point for point in points if inside(point, ring)]
+
+
+def grid_shares(ring, faces, min_share=0.0, grid=GRID):
+    """R328. The share of a floor ring on each face by a grid of grid by grid points over it in the axes of its longest edge: the points
+    inside the ring that each face holds over all points inside the ring, the largest first. A share under min_share, keyPlans.minShare the
+    join ran with, is left out as the first method leaves it out."""
     bounds = box([ring])
-    width, height = bounds[2] - bounds[0], bounds[3] - bounds[1]
-    points = [(bounds[0] + (column + 0.5) * width / GRID, bounds[1] + (row + 0.5) * height / GRID) for column in range(GRID) for row in range(GRID)]
-    points = [point for point in points if inside(point, ring)]
+    points = grid_points(ring, grid)
     if not points:
         return []
     found = []
@@ -206,16 +232,20 @@ def grid_shares(ring, faces, min_share=0.0):
     return sorted(found, key=lambda item: (-item[1], order(item[0])))
 
 
-def floor_status(ring, faces, rows, share_min, min_share=0.0):
+def floor_status(ring, faces, rows, share_min, min_share=0.0, first_share=None):
     """R328. The face that holds at least share_min of the floor by the grid, its number and share, or noFace, twoFaces or cut with the shares,
-    a share under min_share left out, and the grid it was measured on."""
-    shares = grid_shares(ring, faces, min_share)
+    a share under min_share left out, and the grid it was measured on. A floor with a share within REFINE_BAND of share_min on the coarse
+    grid, or by the first method in first_share, is measured on FINE_GRID, so a share is known to RESOLVE where it decides the join."""
+    shares, grid = grid_shares(ring, faces, min_share), GRID
+    near = [share for _, share in shares] + ([] if first_share is None else [first_share])
+    if any(abs(share - share_min) <= REFINE_BAND for share in near):
+        shares, grid = grid_shares(ring, faces, min_share, FINE_GRID), FINE_GRID
     held = [label for label, share in shares if share >= share_min]
     if len(held) == 1:
         number = number_of(held[0], rows)
-        return {"status": "joined" if number else "noNumber", "face": held[0], "number": number, "share": round(dict(shares)[held[0]], 3), "grid": GRID}
+        return {"status": "joined" if number else "noNumber", "face": held[0], "number": number, "share": round(dict(shares)[held[0]], 3), "grid": grid}
     return {"status": "twoFaces" if held else "cut" if shares else "noFace", "face": None, "number": None,
-            "shares": [(label, round(share, 3)) for label, share in shares], "grid": GRID}
+            "shares": [(label, round(share, 3)) for label, share in shares], "grid": grid}
 
 
 def status_class(status):
@@ -223,8 +253,9 @@ def status_class(status):
     return "noNumber" if status == "manyNumbers" else status
 
 
-def second_join(document, floors_config, faces, rows, share_min, min_share=0.0):
-    """R328. Each plot a link names joined again by the grid share of its one generic floor, and two plots on one number marked twoPlots."""
+def second_join(document, floors_config, faces, rows, share_min, min_share=0.0, first=None):
+    """R328. Each plot a link names joined again by the grid share of its one generic floor, and two plots on one number marked twoPlots.
+    first is the join of R326 by plot, whose top share near share_min sends a floor to the fine grid as well."""
     generics = of_kind(document, floors_config, "generic")
     found = {}
     for plot in sorted({plot for plot in (link_plot(link) for link in document.get("links") or []) if plot is not None}, key=order):
@@ -233,7 +264,8 @@ def second_join(document, floors_config, faces, rows, share_min, min_share=0.0):
         if len(own) != 1:
             found[plot] = {"status": "noGenericFloor" if not own else "twoGenericFloors", "face": None, "number": None}
         else:
-            found[plot] = floor_status(loop, faces, rows, share_min, min_share) if loop else {"status": "noShape", "face": None, "number": None}
+            found[plot] = (floor_status(loop, faces, rows, share_min, min_share, top_share((first or {}).get(plot) or {})) if loop
+                           else {"status": "noShape", "face": None, "number": None})
     numbers = Counter(row["number"] for row in found.values() if row["status"] == "joined")
     for row in found.values():
         if row["status"] == "joined" and numbers[row["number"]] > 1:
@@ -681,7 +713,7 @@ def main(argv=None):
         plan = json.loads(Path(plans[code]).read_text(encoding="utf-8"))
         spots = spots_file[code]
         share_min, min_share = joined[code]["settings"]["cutShareMin"], joined[code]["settings"]["minShare"]
-        second = second_join(document, floors, faces, by_label, share_min, min_share)
+        second = second_join(document, floors, faces, by_label, share_min, min_share, joined[code]["join"]["plots"])
         links_at = link_places(document, floors, faces, by_label)
         # El @ Entry of the schedule of the job of this key by official number, read here by csv on its own, not by the reader of R326
         schedule = {number: float(row["pastEntry"]) for number, row in by_official.items()
@@ -689,6 +721,7 @@ def main(argv=None):
         entry = {"job": job, "areas": check_areas(joined[code]["join"], joined[code]["areaRow"], by_number), "pastAll": check_rows(past, code.lower(), plan),
                  "counts": check_counts(joined[code], plan, past, code.lower()),
                  "secondJoin": dict(Counter(row["status"] for row in second.values())),
+                 "secondJoinGrids": dict(Counter(str(row.get("grid")) for row in second.values())),
                  # The second join runs on every plot a link names, so the join is held on all of them beside the samples
                  "joinAll": check_join(joined[code]["join"], second, sorted(second, key=order), by_label),
                  "spotCounts": recount_spots(document, floors, spots, spots["settings"], schedule, second)}
