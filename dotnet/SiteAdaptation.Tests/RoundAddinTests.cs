@@ -131,6 +131,23 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R304_the_startup_config_of_an_exe_has_a_short_name_in_obj_so_a_clone_in_a_deep_folder_builds()
+        {
+            string targets = RepoText("dotnet", "Directory.Build.targets");
+            const string shortName = "runtime.config";
+
+            Assert.Contains("BeforeTargets=\"_WriteAppConfigWithSupportedRuntime\"", targets);
+            Assert.Contains("<_GenerateSupportedRuntimeIntermediateAppConfig>$(IntermediateOutputPath)" + shortName + "</_GenerateSupportedRuntimeIntermediateAppConfig>", targets);
+            // The clone of the review whose path to the default name was 271 characters, MAX_PATH is 260
+            int defaultName = "SiteAdaptation.DialogWatcher.exe.withSupportedRuntime.config".Length;
+            Assert.True(271 - defaultName + shortName.Length < 260);
+            foreach (string project in new[] { "SiteAdaptation.DialogWatcher", "SiteAdaptation.C3DWatcher" })
+            {
+                Assert.Contains("<OutputType>Exe</OutputType>", RepoText("dotnet", project, project + ".csproj"));
+            }
+        }
+
+        [Fact]
         public void R302_the_image_step_limit_is_no_constant_and_the_run_script_reads_it_from_the_config()
         {
             string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
