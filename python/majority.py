@@ -29,6 +29,7 @@ import common
 import corner_front
 import floor_fit
 import footprint_check
+import key_levels
 import key_rules
 import link_summary
 import override_source
@@ -48,7 +49,7 @@ CANNOT = "cannot"
 ROAD = "roadLevel"
 # The first word of each decision run makes, which majority.kindLeaveOut names
 DECISIONS = ("rampSlope", "hand", "entry", "rampFront", "rampFrontFall", "height", "steps", "generic", "yard", "parameter", "linkRotation", "frontCorner",
-             "linkOrigin", "rampOutline", "yardOutline", "wallBase", "wallTop", "wallLine", "frontOpen")
+             "linkOrigin", "rampOutline", "yardOutline", "wallBase", "wallTop", "wallLine", "frontOpen", "levelSplit", "baseHeight", "ffl")
 
 
 def group_of(key, block):
@@ -218,17 +219,20 @@ def share(counts):
     return round(counts.get("holds", 0) / total, 4) if total else None
 
 
-def decide(name, items, target, candidates, scope, strong, hold=None, checks=(), extra_by=None, judge_scope=None):
+def decide(name, items, target, candidates, scope, strong, hold=None, checks=(), extra_by=None, judge_scope=None, bands=None, build_view=None):
     """R272. Every candidate on the items, the strongest by share, whether it is strong, and its misses. A check reads a value of the
     key itself, such as its step count, so it is reported and never coded, a new plan has no such value. extra_by names more
     tallies of the coded candidate, by name, such as the front rule of each plot (R332). R337: with judge_scope the coded candidate,
     learned and chosen within scope, is judged again by judge_scope, the scope of a build, its counts in byBuild and its misses the
-    plots a build does not reproduce."""
+    plots a build does not reproduce. R339: with build_view, per formula the value it gives on the levels a build holds, the coded
+    formula is judged again on them the same way, and bands, by name the holds of the levels at 1 and 5 mm, count the coded
+    candidate on the values of the key at each band beside its share, over all and per key."""
     hold = hold or (lambda a, b: a == b)
-    tests, best, rules = {}, None, {}
+    tests, best, rules, outcomes = {}, None, {}, {}
     for label, factor in candidates.items():
         rule, outcome = evaluate(items, target, factor, scope, hold)
         rules[label] = rule
+        outcomes[label] = outcome
         counts = Counter(state for state, _ in outcome.values())
         tests[label] = {"holds": counts.get("holds", 0), "breaks": counts.get("breaks", 0), "cannot": counts.get(CANNOT, 0), "share": share(counts),
                         "byCode": tally(items, outcome, lambda item: item["code"]), "byKey": tally(items, outcome, lambda item: item["key"])}
@@ -239,10 +243,16 @@ def decide(name, items, target, candidates, scope, strong, hold=None, checks=(),
         elif best is None or (tests[label]["share"] or 0) > (tests[best[0]]["share"] or 0):
             best = (label, outcome)
     label, outcome = best
+    keyed = outcome
     built = None
     if judge_scope is not None and rules[label] is not None:
         factor = candidates[label]
         outcome = {id(item): judge(rules[label].get((judge_scope(item), item["factors"].get(factor))), target(item), hold) for item in items if id(item) in outcome}
+        counts = Counter(state for state, _ in outcome.values())
+        built = {"holds": counts.get("holds", 0), "breaks": counts.get("breaks", 0), "cannot": counts.get(CANNOT, 0), "share": share(counts)}
+    elif build_view and label in build_view:
+        # R339. The coded formula on the levels a build holds, so its misses are the plots a build does not reproduce
+        outcome = {id(item): judge(build_view[label](item), target(item), hold) for item in items if id(item) in keyed}
         counts = Counter(state for state, _ in outcome.values())
         built = {"holds": counts.get("holds", 0), "breaks": counts.get("breaks", 0), "cannot": counts.get(CANNOT, 0), "share": share(counts)}
     misses = [{"item": item, "state": outcome[id(item)][0], "rule": outcome[id(item)][1], "value": target(item)}
@@ -253,6 +263,13 @@ def decide(name, items, target, candidates, scope, strong, hold=None, checks=(),
         result["byBuild"] = built
     for extra, by in (extra_by or {}).items():
         result["by" + extra[0].upper() + extra[1:]] = tally(items, outcome, by)
+    if bands:
+        result["bands"] = {}
+        for band_name, band_hold in bands.items():
+            states = {id(item): judge(keyed[id(item)][1], target(item), band_hold) for item in items if id(item) in keyed}
+            counts = Counter(state for state, _ in states.values())
+            result["bands"][band_name] = {"holds": counts.get("holds", 0), "share": share(counts),
+                                          "byKey": {key: share(found) for key, found in tally(items, states, lambda item: item["key"]).items()}}
     return result, misses
 
 
@@ -369,30 +386,35 @@ def levels_rule(pool, clusters, profile, block):
     return found
 
 
-def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_plans=None, outlines=None, step=None, faces=None, wall_edge=None):
+def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_plans=None, outlines=None, step=None, faces=None, wall_edge=None, levels=None):
     """R273 to R276. Every decision on every group, with its misses. R332: with frame_units, the plotFrame units of
     config/prototype_offsets.json, the link rotation, the front of the corner plots and the link origin, with the refit per code
     of each group in linkFits of extras. R334: the ramp outline of R127, and with key_plans, outlines (config/floor_outlines.json)
     and the width step the yard outline of R135, with the flat ramps of each group in flatRamps of extras. R335: with key_plans,
-    faces and wall_edge the boundary walls and the open front, their misses in wallMisses of extras and never in the override list."""
+    faces and wall_edge the boundary walls and the open front, their misses in wallMisses of extras and never in the override list.
+    R339: levels gives per group a build by keyRules builds the level profile, the road a build gives at the front corners of every
+    site plot, the roles of the clusters and the row partners, and the levels of that group are measured as the build gives them
+    (key_levels.measure), the other groups keep R275."""
     strong, hold_m = block["strongShare"], block["levelHoldMm"] / 1000.0
     by_group = lambda item: item["group"]
     by_file = lambda item: (item["group"], item["file"])
     level_hold = lambda guess, aim: abs(guess - aim) <= hold_m + 1e-9
     riser = profile.get("steps.riser_added") / 1000.0
     results, misses, datums, extras = [], [], {}, {"linkFits": {}, "flatRamps": {}, "yardOutlineGroups": {}, "walls": {}, "wallMisses": {}, "frontCover": {}, "frontWalled": {},
-                                                    "wallsNoBaseLevel": {}, "coverage": {}, "decidedByQuestion": []}
+                                                    "wallsNoBaseLevel": {}, "coverage": {}, "decidedByQuestion": [], "levelMisses": {}, "levelNotMeasured": {}}
 
-    def record(name, pool, target, candidates, scope, field, hold=None, checks=(), gap=None, extra_by=None, judge_scope=None):
+    def record(name, pool, target, candidates, scope, field, hold=None, checks=(), gap=None, extra_by=None, judge_scope=None, bands=None, build_view=None):
         pool = kept_for(name.split(" ")[1], pool, block, name.split(" ", 1)[1])
         # R272. Every decision says which keys and how many plots it holds, a decision with no plot is listed with none, never dropped
         by_key = Counter(item["key"] for item in pool if target(item) is not None)
         extras["coverage"][name] = {"plots": sum(by_key.values()), "byKey": dict(sorted(by_key.items())),
                                     "keysWithNoPlot": sorted(set(block["groups"].get(name.split(" ")[0], ())) - set(by_key))}
         if not pool:
-            return
-        result, missed = decide(name, pool, target, candidates, scope, strong, hold, checks, extra_by, judge_scope)
+            return None
+        result, missed = decide(name, pool, target, candidates, scope, strong, hold, checks, extra_by, judge_scope, bands, build_view)
         result["field"] = field
+        if bands is not None:
+            result["passMm"] = block["levelPassMm"]
         result["byKind"] = dict(sorted(Counter(item.get("modelKind") or "none" for item in pool).items()))
         results.append(result)
         found_misses = []
@@ -416,11 +438,14 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
             result["decidedByQuestion"] = len(decided)
             extras["decidedByQuestion"].extend(decided)
         misses.extend(kept_misses)
+        return result
 
     for group in sorted({item["group"] for item in items if item["group"]}):
         pool = [item for item in items if item["group"] == group]
         kept = lambda word, pool=pool: kept_for(word, pool, block)
         slopes = block["groupSlopes"][group]
+        # R339. A group a build by keyRules builds has its levels measured as the build gives them
+        lv = (levels or {}).get(group)
         for item in pool:
             entry = clean_entry(item["row"], block["entryRampM"])
             road = road_mean(book.get(item["plot"], {}), ROAD)
@@ -453,66 +478,72 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
                    {name: name for name in ("all", "blockMirror", "clusterSide", "clusterSideAnalysisOnly", "clusterIndexParity", "openEnd", "rowParity", "orientation",
                                             "roadSide", "blockMirrorOpenEnd", "blockMirrorRoadSide", "rowPairSide", "rowPairSideOrBlockMirrorOpenEnd")}, by_file, "mirrored",
                    extra_by={"betweenClusters": lambda item: item.get("betweenClusters")}, judge_scope=built_file)
-        # R275. El @ Entry: the road level at the front corners of a surface plus the slope of the unit times the ramp depth, as is and less a datum
-        entries = [item for item in kept("entry") if clean_entry(item["row"], block["entryRampM"]) is not None]
-        target = lambda item: clean_entry(item["row"], block["entryRampM"])
-        formulas = {}
-        for surface in surfaces:
-            def guess(item, surface=surface):
-                road = road_mean(book.get(item["plot"], {}), surface)
-                return None if road is None else road + slopes.get(item["code"], slopes["default"]) / 100.0 * item["depth"]
-            gaps = [target(item) - guess(item) for item in entries if guess(item) is not None]
-            datum = statistics.median(gaps) if gaps else 0.0
-            by_key = defaultdict(list)
-            for item in entries:
-                if guess(item) is not None:
-                    by_key[item["key"]].append(target(item) - guess(item))
-            key_datum = {key: statistics.median(values) for key, values in by_key.items()}
-            formulas[surface] = guess
-            formulas[surface + " less datum %+.3f" % datum] = lambda item, guess=guess, datum=datum: None if guess(item) is None else guess(item) + datum
-            formulas[surface + " less the datum of each key"] = lambda item, guess=guess, key_datum=key_datum: None if guess(item) is None else guess(item) + key_datum[item["key"]]
-            if surface in block["datumSurfaces"]:
-                datums.setdefault(group + " entry", {})[surface] = {key: round(value, 4) for key, value in sorted(key_datum.items())}
-        record(group + " entry", entries, target, formulas, by_group, "entryM", level_hold)
-        # R275. The ramp front, the mean of its two low corners, against every road surface as it is and less the datum of each key
-        fronts = [item for item in kept("rampFront") if item["row"]["rampFront"] is not None]
-        front_target = lambda item: item["row"]["rampFront"]
-        front_formulas = {}
-        for surface in surfaces:
-            def road(item, surface=surface):
-                return road_mean(book.get(item["plot"], {}), surface)
-            by_key = defaultdict(list)
-            for item in fronts:
-                if road(item) is not None:
-                    by_key[item["key"]].append(front_target(item) - road(item))
-            key_datum = {key: statistics.median(values) for key, values in by_key.items()}
-            if surface in block["datumSurfaces"]:
-                datums.setdefault(group + " rampFront", {})[surface] = {key: round(value, 4) for key, value in sorted(key_datum.items())}
-            front_formulas[surface] = road
-            front_formulas[surface + " less the datum of each key"] = lambda item, road=road, key_datum=key_datum: None if road(item) is None else road(item) + key_datum[item["key"]]
-        record(group + " rampFront", fronts, front_target, front_formulas, by_group, "rampFrontM", level_hold)
+        if lv is None:
+            # R275. El @ Entry: the road level at the front corners of a surface plus the slope of the unit times the ramp depth, as is and less a datum
+            entries = [item for item in kept("entry") if clean_entry(item["row"], block["entryRampM"]) is not None]
+            target = lambda item: clean_entry(item["row"], block["entryRampM"])
+            formulas = {}
+            for surface in surfaces:
+                def guess(item, surface=surface):
+                    road = road_mean(book.get(item["plot"], {}), surface)
+                    return None if road is None else road + slopes.get(item["code"], slopes["default"]) / 100.0 * item["depth"]
+                gaps = [target(item) - guess(item) for item in entries if guess(item) is not None]
+                datum = statistics.median(gaps) if gaps else 0.0
+                by_key = defaultdict(list)
+                for item in entries:
+                    if guess(item) is not None:
+                        by_key[item["key"]].append(target(item) - guess(item))
+                key_datum = {key: statistics.median(values) for key, values in by_key.items()}
+                formulas[surface] = guess
+                formulas[surface + " less datum %+.3f" % datum] = lambda item, guess=guess, datum=datum: None if guess(item) is None else guess(item) + datum
+                formulas[surface + " less the datum of each key"] = lambda item, guess=guess, key_datum=key_datum: None if guess(item) is None else guess(item) + key_datum[item["key"]]
+                if surface in block["datumSurfaces"]:
+                    datums.setdefault(group + " entry", {})[surface] = {key: round(value, 4) for key, value in sorted(key_datum.items())}
+            record(group + " entry", entries, target, formulas, by_group, "entryM", level_hold)
+            # R275. The ramp front, the mean of its two low corners, against every road surface as it is and less the datum of each key
+            fronts = [item for item in kept("rampFront") if item["row"]["rampFront"] is not None]
+            front_target = lambda item: item["row"]["rampFront"]
+            front_formulas = {}
+            for surface in surfaces:
+                def road(item, surface=surface):
+                    return road_mean(book.get(item["plot"], {}), surface)
+                by_key = defaultdict(list)
+                for item in fronts:
+                    if road(item) is not None:
+                        by_key[item["key"]].append(front_target(item) - road(item))
+                key_datum = {key: statistics.median(values) for key, values in by_key.items()}
+                if surface in block["datumSurfaces"]:
+                    datums.setdefault(group + " rampFront", {})[surface] = {key: round(value, 4) for key, value in sorted(key_datum.items())}
+                front_formulas[surface] = road
+                front_formulas[surface + " less the datum of each key"] = lambda item, road=road, key_datum=key_datum: None if road(item) is None else road(item) + key_datum[item["key"]]
+            record(group + " rampFront", fronts, front_target, front_formulas, by_group, "rampFrontM", level_hold)
+        else:
+            # R339. El @ Entry, the ramp front, the split, the base, the FFL of each piece, the steps and the Prototype-FFL parameter as a build gives them
+            key_levels.measure(record, group, pool, kept, lv, profile, block, book, surfaces, extras, lambda row: clean_entry(row, block["entryRampM"]), parameter,
+                               misses, slopes)
         # R275. The fall along the front: both front corners level, or each on the road at its corner
         falls = [item for item in kept("rampFrontFall") if item["row"]["rampFrontFall"] is not None]
         road_fall = lambda item: (None if road_corners(book.get(item["plot"], {})) is None else abs(road_corners(book.get(item["plot"], {}))[0] - road_corners(book.get(item["plot"], {}))[1]))
         record(group + " rampFrontFall", falls, lambda item: item["row"]["rampFrontFall"], {"levelFront": lambda item: 0.0, "roadAtEachCorner": road_fall},
                by_group, "rampFrontFallM", level_hold)
-        # R275. FFL less El @ Entry and the steps
-        heights = [item for item in kept("height") if clean_entry(item["row"], block["entryRampM"]) is not None and item["row"]["ffl"] is not None]
-        height = lambda item: round(item["row"]["ffl"] - clean_entry(item["row"], block["entryRampM"]), 4)
-        tops = cluster_top(heights, profile, block)
-        from_levels = levels_rule(heights, clusters, profile, block)
-        record(group + " height", heights, height, {
-            "typology": "typology", "typologySteps": "typologySteps", "key": "key",
-            "baseAndRisers": lambda item: None if item["factors"]["steps"] is None else round(base_height(profile, item["code"]) + riser * (int(item["factors"]["steps"]) - 1), 4),
-            "baseOnly": lambda item: base_height(profile, item["code"]),
-            "oneFflPerClusterAtTheHighestEntry": lambda item: tops.get(id(item), base_height(profile, item["code"]) if not item["role"] else None),
-            "levelsPyFromEntry": lambda item: from_levels.get(id(item)),
-        }, by_group, "heightM", lambda guess, aim: abs(guess - aim) <= hold_m + 1e-9, checks=("typologySteps", "baseAndRisers"))
-        with_steps = [item for item in kept("steps") if item["factors"]["steps"] is not None]
-        record(group + " steps", with_steps, lambda item: item["factors"]["steps"], {
-            "typology": "typology", "heightBand": "heightBand",
-            "stepsFromHeight": lambda item: None if item["row"]["height"] is None else str(1 + max(0, round((item["row"]["height"] - base_height(profile, item["code"])) / riser))),
-        }, by_group, "steps")
+        if lv is None:
+            # R275. FFL less El @ Entry and the steps
+            heights = [item for item in kept("height") if clean_entry(item["row"], block["entryRampM"]) is not None and item["row"]["ffl"] is not None]
+            height = lambda item: round(item["row"]["ffl"] - clean_entry(item["row"], block["entryRampM"]), 4)
+            tops = cluster_top(heights, profile, block)
+            from_levels = levels_rule(heights, clusters, profile, block)
+            record(group + " height", heights, height, {
+                "typology": "typology", "typologySteps": "typologySteps", "key": "key",
+                "baseAndRisers": lambda item: None if item["factors"]["steps"] is None else round(base_height(profile, item["code"]) + riser * (int(item["factors"]["steps"]) - 1), 4),
+                "baseOnly": lambda item: base_height(profile, item["code"]),
+                "oneFflPerClusterAtTheHighestEntry": lambda item: tops.get(id(item), base_height(profile, item["code"]) if not item["role"] else None),
+                "levelsPyFromEntry": lambda item: from_levels.get(id(item)),
+            }, by_group, "heightM", lambda guess, aim: abs(guess - aim) <= hold_m + 1e-9, checks=("typologySteps", "baseAndRisers"))
+            with_steps = [item for item in kept("steps") if item["factors"]["steps"] is not None]
+            record(group + " steps", with_steps, lambda item: item["factors"]["steps"], {
+                "typology": "typology", "heightBand": "heightBand",
+                "stepsFromHeight": lambda item: None if item["row"]["height"] is None else str(1 + max(0, round((item["row"]["height"] - base_height(profile, item["code"])) / riser))),
+            }, by_group, "steps")
         # R276. Generic floor on the whole face, yard, CASE and the other link parameters
         record(group + " generic", kept("generic"), lambda item: item["factors"].get("wholeFace"), {name: name for name in ("all", "typology", "key")}, by_group, "genericFloor",
                checks=("key",))
@@ -541,7 +572,7 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
             record(group + " parameter " + name, chosen, lambda item, name=name: parameter(item, name),
                    {**{label: label for label in ("all", "typology", "mirroredFactor", "typologyMirrored", "steps", "typologySteps", "clusterSide", "corner")}, **formulas},
                    by_group, "parameter " + name)
-        for name in block["parameterLevels"]:
+        for name in (block["parameterLevels"] if lv is None else []):
             chosen = [item for item in kept("parameter") if key_rules.number(parameter(item, name)) is not None]
             record(group + " parameter " + name, chosen, lambda item, name=name: float(parameter(item, name)),
                    {"genericTop": lambda item: item["row"].get("genericTop"), "ffl": lambda item: item["row"].get("ffl")}, by_group, "parameter " + name,
@@ -612,12 +643,31 @@ def check_keys(answer, rows, reads, plans, groups, references, allowed):
         raise project_profile.ProfileError("answer keys missing: " + " | ".join(missing) + ". Give them or name each with --allow-missing-key KEY (R272)")
 
 
-def site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block):
+def level_groups(profile, block):
+    """R339. The groups a build by keyRules builds, by the level profile whose job each is, so their levels are measured as that
+    build gives them."""
+    found = {}
+    for name, lp in (profile.get("levelProfiles") or {}).items():
+        if isinstance(lp, dict) and lp.get("keyRules") and lp.get("job") in block["groups"]:
+            found[lp["job"]] = name
+    return found
+
+
+def need_roads(groups, landxml, scratch):
+    """R339. The levels of a group a build by keyRules builds are held against the road the build gives at the front corners, so
+    the run needs the LandXML surfaces the build asks and a scratch folder for their reader, else it is refused."""
+    if groups and (not landxml or not scratch):
+        raise project_profile.ProfileError("the levels of %s are measured on the road a build gives, give --landxml and --scratch (R339)" % ", ".join(sorted(groups)))
+
+
+def site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block, surfaces=(), snap=0.0, extra=None):
     """R271. The context of every row of past_all.csv from the site as a build sees it: the front of every unit plot of plots.csv
     with a face, the clusters of the footprint blocks over every unit plot joined with those of the CAD analysis, their sides by the
     faces of every plot, the side neighbours, the side road, the row pairs and the villas between cluster units. A plot no key holds,
     such as a cut face, keeps its front, so a row of units is walked through it as a build walks it (Round ADDIN 3a review).
-    Returns the items, the clusters, the fronts, the plots of the table and the tree of the road edges."""
+    Returns the items, the clusters, the fronts, the plots of the table and the tree of the road edges. R339: with surfaces and snap
+    the fronts hold the road level a build gives at their two front corners, and extra, a dict, takes the roles of the clusters and
+    the row partner of every unit in no cluster."""
     numbers = sorted({row["plot"] for row in rows}, key=link_summary.sort_key)
     units = [number for number, data in book.items() if data.get("typologyRev9") and number in faces]
     site = sorted(set(numbers) | set(units), key=link_summary.sort_key)
@@ -625,7 +675,7 @@ def site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, p
     # A face with two plan numbers, such as 476|477, is no plot of its own and leaves its cluster
     clusters = [cluster for cluster in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]} for cluster in clusters) if len(cluster["plots"]) > 1]
     corner = settings.get("siteBuild")["corner"]
-    front = plan_from_book.fronts(site, book, faces, roads, cad_links.front_limits(profile, settings.get("analysis")), [], 0.0, profile, corner, sales)
+    front = plan_from_book.fronts(site, book, faces, roads, cad_links.front_limits(profile, settings.get("analysis")), list(surfaces), snap, profile, corner, sales)
     frames = {number: item["frame"] for number, item in front.items()}
     roles = cad_links.cluster_roles(clusters, 0, faces, frames)
     neighbours = side_neighbours(units, faces, frames, block["sideShare"], profile.get("plot.long_side") / 1000.0)
@@ -643,6 +693,8 @@ def site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, p
         factors["rowPairSide"] = (pairs.get(item["plot"]) or {}).get("side")
         plan_rules.joined_factors(factors)
         item["betweenClusters"] = key_rules.between_clusters(item["neighbours"], lambda plot: plot in roles)
+    if extra is not None:
+        extra.update({"roles": roles, "partners": plan_rules.row_partners({plot: found.get("side") for plot, found in pairs.items()}, neighbours)})
     return items, clusters, front, numbers, tree
 
 
@@ -709,7 +761,7 @@ def load_block(settings):
     needed = ("strongShare", "levelHoldMm", "entryRampM", "groups", "codeFrom", "kindByPrefix", "slopeBands", "rampTypeClass", "groupSlopes", "depthBands",
               "heightBands", "sideShare", "parameterTests", "overrideDecisions", "wholeFaceShare", "overrideNote", "measuredSlopeGroups", "datumSurfaces", "kindLeaveOut",
               "rotationHoldDeg", "linkHoldMm", "cornerFrontRule", "siteReference", "check", "outlineHoldMm", "pairKinds", "flatRampType", "wallTypes", "wallCentreCodes",
-              "frontOpenShare", "linkNameFacade", "parameterLevels", "overrideKeep", "linkPlotParameter")
+              "frontOpenShare", "linkNameFacade", "parameterLevels", "overrideKeep", "linkPlotParameter", "levelPassMm", "levelBandsMm")
     if not isinstance(block, dict) or any(key not in block for key in needed):
         raise project_profile.ProfileError(settings.path.name + " majority must name " + ", ".join(needed))
     leave = block["kindLeaveOut"]
@@ -752,6 +804,8 @@ def main(argv=None):
     parser.add_argument("--floors", default=str(floor_fit.DEFAULT_PATH), help="R334. floor_outlines.json with the yard outlines of R135")
     parser.add_argument("--keep-from", help="R330. the earlier override list --keep reads, --overrides when left out")
     parser.add_argument("--allow-missing-key", action="append", default=[], metavar="KEY", help="R272. an answer key the run may lack rows, a read or a plan of")
+    parser.add_argument("--landxml", help="R339. the landxml folder of the snapshot, the road surfaces a build asks for the levels of a group it builds by keyRules")
+    parser.add_argument("--scratch", help="R339. a folder outside the repo for the LandXML reader")
     args = parser.parse_args(argv)
     try:
         return run_args(args)
@@ -775,7 +829,19 @@ def run_args(args):
     roads = cad_analysis.read_road_edges(args.roads, settings.get("analysis")["roadEdgeLayers"])
     analysis = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"]
     shapes = footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings))
-    items, clusters, front, numbers, tree = site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block)
+    # R339. The groups a build by keyRules builds have their levels held against the road that build gives at the front corners
+    built_levels = level_groups(profile, block)
+    need_roads(built_levels, getattr(args, "landxml", None), getattr(args, "scratch", None))
+    road_surfaces, snap = [], 0.0
+    if built_levels:
+        plot_relations.refuse_inside_repo(Path(args.scratch).resolve())
+        road_surfaces = plan_from_book.load_roads([Path(args.landxml) / (name + ".xml") for name in settings.get("siteBuild")["roadSurfaces"]], args.scratch)
+        snap = settings.get("siteBuild")["snapM"]
+    site_extra = {}
+    items, clusters, front, numbers, tree = site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block, road_surfaces, snap, site_extra)
+    levels = {group: {"lp": plan_rules.level_profile(profile, name), "roles": site_extra["roles"], "partners": site_extra["partners"],
+                      "site": {plot: {"front": found["front"], "depth": found.get("depth"), "unit": found.get("unit")} for plot, found in front.items()}}
+              for group, name in built_levels.items()}
     # R337. The file a build links for the code of each plot of a group a level profile with keyRules builds, as plan_from_book.py finds it
     built_groups = {found.get("job") for found in (profile.get("levelProfiles") or {}).values() if isinstance(found, dict) and found.get("keyRules")}
     if built_groups & {item["group"] for item in items}:
@@ -815,7 +881,7 @@ def run_args(args):
             item["factors"]["entryRefused"] = "yes" if (item["key"], item["plot"]) in refused else "no"
             item["factors"]["typologyOrEntryRefused"] = "entryRefused" if (item["key"], item["plot"]) in refused else item["factors"]["typology"]
     results, misses, datums, extras = run(items, book, profile, block, surfaces, clusters, prototype_offsets.plot_frame(prototype_offsets.load(args.offsets))["units"],
-                                          plans, floor_fit.load(args.floors), floor_fit.width_step(settings), faces, settings.get("keyPlans.wallEdgeM"))
+                                          plans, floor_fit.load(args.floors), floor_fit.width_step(settings), faces, settings.get("keyPlans.wallEdgeM"), levels)
     listing = overrides(misses, block, dict(args.model))
     # R330. The entries of the earlier list this run does not measure stay cell for cell, on plots the join gives their key
     listing, merged = final_list(listing, block, args.dry, args.overrides, args.keep, args.replace, args.keep_from, {(row["key"], row["plot"]) for row in rows})
