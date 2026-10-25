@@ -1,4 +1,4 @@
-STATE 2026-10-25, Round ADDIN Part 1, Phase 0: PR 0a merged (PR 41), PR 0b (PR open, fix/addin-open-fixes) holds the open fixes of Q044, Q045, Q047 to Q050, Q060 and Q061. Round 17 done and merged (PR 39, 40)
+STATE 2026-10-25, Round ADDIN Part 1, Phase 0: PR 0a merged (PR 41), PR 0b (PR 42, fix/addin-open-fixes) holds the open fixes of Q044, Q045, Q047 to Q050, Q060 and Q061. Round 17 done and merged (PR 39, 40)
 
 # Progress
 
@@ -17,7 +17,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 
 ## Done
 
-- ADDIN 0b, PR open: R277 default and R300 to R302 with 29 Python and 8 .NET tests, the NBH 03 image in four quarters, the IFC copy and the two Cutsheet lock files deleted, 21 kept files moved to kept and the three work folders deleted, the old remote branch deleted, 40 of 40 originals equal. Q035, Q044, Q045, Q047, Q048, Q049, Q060, Q061 closed
+- ADDIN 0b, PR 42: R277 default and R300 to R302 with 29 Python and 8 .NET tests, the NBH 03 image in four quarters, the IFC copy and the two Cutsheet lock files deleted, 21 kept files moved to kept and the three work folders deleted, the old remote branch deleted, 40 of 40 originals equal. Q035, Q044, Q045, Q047, Q048, Q049, Q060, Q061 closed
 - ADDIN 0a, PR 41: the AI MAX skill version 3, seven agents, six old log entries moved to steps/history/, CLAUDE.md, docs/addin-mock.md, Q028, Q046 and Q050 closed
 - 17: R261 to R282, PR 39. DATA-5: R251 to R260, PR 38. DATA-4: PR 36. 16: PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c: PR 24, 25. C3D: PR 22, 23. 14: PR 20, 21. 1 to 15b: PRs 1 to 19
 
