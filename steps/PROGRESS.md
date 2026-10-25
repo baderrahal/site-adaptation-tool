@@ -1,4 +1,4 @@
-STATE 2026-10-25, Round ADDIN Part 1, Phase 1 part 2 in review (data/addin-key-copies): the 7 key copies checked by code from config (R312), the 13 STR prototypes upgraded into Prototypes_2024\STR (R313). Phases 0a, 0b and 1 merged (PR 41 to 43). Round 17 done and merged (PR 39, 40)
+STATE 2026-10-25, Round ADDIN Part 1, Phase 1 part 2 in review on PR 44 (data/addin-key-copies): the 7 key copies checked by code from config (R312), the 13 STR prototypes upgraded into Prototypes_2024\STR (R313). Phases 0a, 0b and 1 merged (PR 41 to 43). Round 17 done and merged (PR 39, 40)
 
 # Progress
 
@@ -15,7 +15,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 
 ## Done
 
-- ADDIN 1b, in review: R312, R313 and the R301 manifest with their tests, the 7 copies reuse 7 of 7, the 13 STR upgrades in 14 windows under the lock, the first refused by the guard and fixed, 60 of 60 files equal before and after. ADDIN 1, PR 43: R310, R311, R203, R204, R301, 17 windows and KG3
+- ADDIN 1b, PR 44 in review: R312, R313 and the R301 manifest with their tests, the 7 copies reuse 7 of 7, the 13 STR upgrades in 14 windows under the lock, the first refused by the guard and fixed, 60 of 60 files equal before and after. ADDIN 1, PR 43: R310, R311, R203, R204, R301, 17 windows and KG3
 - ADDIN 0b, PR 42 and 0a, PR 41: the harness and the open fixes, Q028, Q035, Q044 to Q050, Q060, Q061 closed
 - 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c to 1: PRs 1 to 25
 

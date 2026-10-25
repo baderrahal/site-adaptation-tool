@@ -399,7 +399,7 @@ Branch data/addin-parsons-models from main at cd26ab3, equal to origin/main afte
 - Q067: the STR prototypes of the SE models.
 - Q068: the project position button 1 sets.
 
-## Phase 1 part 2, PR data/addin-key-copies
+## Phase 1 part 2, PR 44 data/addin-key-copies
 
 Branch data/addin-key-copies from main at d3b3ed9 after PR 43, equal to origin/main after git fetch (RAN). Rules R312 and R313 are new, R301 and R109 changed. The phase ran in a helper agent started by the main session, which runs the checkers and merges. The hooks were live: guard-registry.sh refused a harmless echo with its trigger word (RAN, 1 refusal). Q067 closes by Bader's instruction, relayed in the brief of this PR.
 

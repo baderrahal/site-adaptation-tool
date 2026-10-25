@@ -4,7 +4,7 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 
 ## Round ADDIN Part 1, 2026-10-25, the Revit 2024 add-in from the Parsons site models
 
-In progress. Phases 0a, 0b and 1 merged (PR 41 to 43), Phase 1 part 2 in review, then the plan in steps/investigations/round-addin.md.
+In progress. Phases 0a, 0b and 1 merged (PR 41 to 43), Phase 1 part 2 in review on PR 44, then the plan in steps/investigations/round-addin.md.
 
 Goal:
 - The whole Site Adaptation add-in inside Revit 2024 in C#, .NET Framework 4.8, from the 7 Rev 6 Parsons site models, parsons2024Rev6 for every new build (Q050), the screens of docs/addin-mock.md. Part 2, the sheets, waits for Bader's check of Part 1
@@ -12,7 +12,7 @@ Goal:
 Done:
 - 0a, 0b (PR 41, 42): the harness and the open fixes, R277, R280, R300 to R304, R303 withdrawn (Q064)
 - 1 (PR 43): R310 window samples, R311 site facts, R203 BIM 360 BasicFileInfo, R204 the source in the work folder, R301 copies counted apart. The 7 Revit 2024 copies in Revit All Zones\2024 share one survey point, base point and position, angle 0, metric
-- 1b (this PR): R312 answerKeys in config/project.json and python/key_copies.py, which reuses a copy only on the code, source path, source hash, copy hash and format of today, else asks for a siteUpgrade job and never overwrites. key_copies.json beside the copies replaces sources.txt, R301 reads it. R313 the upgrade job on the prototype set STR: the 13 STR prototypes upgraded into Prototypes_2024\STR (Q067 closed). CLAUDE.md names R310 to R313
+- 1b (PR 44, in review): R312 answerKeys in config/project.json and python/key_copies.py, which reuses a copy only on the code, source path, source hash, copy hash and format of today, else asks for a siteUpgrade job and never overwrites. key_copies.json beside the copies replaces sources.txt, R301 reads it. R313 the upgrade job on the prototype set STR: the 13 STR prototypes upgraded into Prototypes_2024\STR (Q067 closed). CLAUDE.md names R310 to R313
 - Gate: Python 1163 passed and 1 skipped, .NET build 0 errors, .NET 497 passed
 
 Checked:
