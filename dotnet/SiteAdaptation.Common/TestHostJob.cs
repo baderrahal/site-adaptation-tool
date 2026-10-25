@@ -16,6 +16,8 @@ namespace SiteAdaptation.Common
         public string Kind { get; set; }
         public string Source { get; set; }
         public string Target { get; set; }
+        // R204. The work folder of siteBuild a site upgrade takes its source from, siteBuild.folder\work as the run script writes it
+        public string WorkFolder { get; set; }
         public string Token { get; set; }
         public string Code { get; set; }
         public string Model { get; set; }
@@ -85,6 +87,8 @@ namespace SiteAdaptation.Common
         public const string WorkTag = "_TEST-WORK-";
         // R213. The one name a new site file may have. Only the newSite job makes it, and only where nothing of that name is
         public const string NewSiteTag = "-TEST-NEW";
+        // R204. Run-TestHost.ps1 makes the work folder as siteBuild.folder\work
+        public const string WorkFolderName = "work";
         public const int MaxPlots = 1000;
         private static readonly string[] Kinds = { PlaceKind, UpgradeKind, MasterKind, FloorsKind, LinksAndFloorsKind, SiteUpgradeKind, ReadKind, NewSiteKind, ImageKind };
         private static readonly string[] Deletes = { "all", "plots" };
@@ -333,6 +337,15 @@ namespace SiteAdaptation.Common
             {
                 return Refuse("the source is not a plain full path to a .rvt file");
             }
+            // The source is a copy right in the work folder, never an original elsewhere nor a file in a folder inside work
+            if (!IsPlainFullPath(job.WorkFolder) || !string.Equals(Path.GetFileName(job.WorkFolder), WorkFolderName, StringComparison.OrdinalIgnoreCase))
+            {
+                return Refuse("a site upgrade names its workFolder, a plain full path to a folder named " + WorkFolderName);
+            }
+            if (!string.Equals(Path.GetDirectoryName(job.Source), job.WorkFolder, StringComparison.OrdinalIgnoreCase))
+            {
+                return Refuse("the source is not in the work folder " + job.WorkFolder + " itself: " + job.Source);
+            }
             string sourceName = Path.GetFileName(job.Source);
             if (sourceName.IndexOf(TestTag, StringComparison.OrdinalIgnoreCase) >= 0 || IsNewSiteName(sourceName))
             {
@@ -474,6 +487,10 @@ namespace SiteAdaptation.Common
             if (job.Kind != NewSiteKind && (job.Template != null || job.Site != null))
             {
                 return "template and site go with a newSite job only";
+            }
+            if (job.Kind != SiteUpgradeKind && job.WorkFolder != null)
+            {
+                return "workFolder goes with a siteUpgrade job only";
             }
             if (job.Kind != ImageKind && (job.ImageFolder != null || job.ImageLevel != null || job.Area != null || job.LoadLinks.HasValue || job.LinkFolder != null
                 || job.ImageMinutes.HasValue || job.ImageMarginMinutes.HasValue))

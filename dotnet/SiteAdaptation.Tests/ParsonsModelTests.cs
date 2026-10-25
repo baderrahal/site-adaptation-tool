@@ -28,7 +28,8 @@ namespace SiteAdaptation.Tests
         private static string Pwsh(string command)
         {
             string functions = RepoPath("dotnet", "SiteAdaptation.TestHost", "WindowSamples.ps1");
-            string text = ". '" + functions.Replace("'", "''") + "'\n" + command;
+            // An unknown command or a failed call stops the script, so a test never runs on past a missing function
+            string text = "$ErrorActionPreference = 'Stop'\n. '" + functions.Replace("'", "''") + "'\n" + command;
             var info = new ProcessStartInfo("pwsh", "-NoProfile -NonInteractive -EncodedCommand " + Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(text)))
             {
                 UseShellExecute = false,
@@ -59,11 +60,11 @@ namespace SiteAdaptation.Tests
 
             Assert.Equal(3, (int)peaks["samples"]);
             // The true peaks take the peaks Windows keeps between two samples, the sampled ones are kept apart
-            Assert.Equal(11000, (long)peaks["peakPrivateMb"]);
-            Assert.Equal(6000, (long)peaks["peakWorkingSetMb"]);
-            Assert.Equal(10900, (long)peaks["sampledPrivateMb"]);
-            Assert.Equal(5700, (long)peaks["sampledWorkingSetMb"]);
-            Assert.Equal(1.07, (double)peaks["minFreeGb"], 2);
+            Assert.Equal(11000, (long)peaks["peakPrivateMib"]);
+            Assert.Equal(6000, (long)peaks["peakWorkingSetMib"]);
+            Assert.Equal(10900, (long)peaks["sampledPrivateMib"]);
+            Assert.Equal(5700, (long)peaks["sampledWorkingSetMib"]);
+            Assert.Equal(1.07, (double)peaks["minFreeGib"], 2);
             Assert.Equal(1, (int)peaks["samplesUnderFloor"]);
             Assert.Equal(2, (int)peaks["notResponding"]);
         }
@@ -77,16 +78,115 @@ namespace SiteAdaptation.Tests
                 + "Get-WindowPeaks -Samples $samples -FloorGB 2 -Exit $exit | ConvertTo-Json -Compress");
             JObject peaks = JObject.Parse(json);
 
-            Assert.Equal(3000, (long)peaks["peakPrivateMb"]);
-            Assert.Equal(2900, (long)peaks["peakWorkingSetMb"]);
-            Assert.Equal(800, (long)peaks["sampledPrivateMb"]);
+            Assert.Equal(3000, (long)peaks["peakPrivateMib"]);
+            Assert.Equal(2900, (long)peaks["peakWorkingSetMib"]);
+            Assert.Equal(800, (long)peaks["sampledPrivateMib"]);
             Assert.True((bool)peaks["throughExit"]);
             Assert.Equal(1, (int)peaks["samples"]);
 
             JObject without = JObject.Parse(Pwsh(
                 "Get-WindowPeaks -Samples @([ordered]@{ privateBytes = [long]800MB; peakPrivateBytes = [long]850MB; workingSetBytes = [long]900MB; peakWorkingSetBytes = [long]950MB; responding = $true; freeBytes = [long]5GB }) -FloorGB 2 | ConvertTo-Json -Compress"));
             Assert.False((bool)without["throughExit"]);
-            Assert.Equal(850, (long)without["peakPrivateMb"]);
+            Assert.Equal(850, (long)without["peakPrivateMib"]);
+        }
+
+        [Fact]
+        public void R310_the_exit_peaks_give_the_peak_also_when_no_sample_was_taken()
+        {
+            foreach (string samples in new[] { "@()", "$null" })
+            {
+                JObject peaks = JObject.Parse(Pwsh(
+                    "$exit = [ordered]@{ peakPrivateBytes = [long]3000MB; peakWorkingSetBytes = [long]2900MB }\n"
+                    + "Get-WindowPeaks -Samples " + samples + " -FloorGB 2 -Exit $exit | ConvertTo-Json -Compress"));
+
+                Assert.Equal(0, (int)peaks["samples"]);
+                Assert.Equal(3000, (long)peaks["peakPrivateMib"]);
+                Assert.Equal(2900, (long)peaks["peakWorkingSetMib"]);
+                Assert.True((bool)peaks["throughExit"]);
+                Assert.Equal(JTokenType.Null, peaks["sampledPrivateMib"].Type);
+                Assert.Equal(JTokenType.Null, peaks["minFreeGib"].Type);
+            }
+        }
+
+        [Fact]
+        public void R310_a_sample_keeps_the_process_memory_when_a_cim_call_fails_and_the_peaks_count_its_free_memory_as_missing()
+        {
+            // A function of that name hides the cmdlet in the scope of the sample functions, so each CIM call fails in turn
+            foreach (string failing in new[] { "Win32_OperatingSystem", "Win32_Process" })
+            {
+                JObject sample = JObject.Parse(Pwsh(
+                    "function Get-CimInstance { [CmdletBinding()] param([string]$ClassName, [string]$Filter, [string[]]$Property) if ($ClassName -eq '" + failing + "') { throw 'no CIM' } CimCmdlets\\Get-CimInstance @PSBoundParameters }\n"
+                    + "Get-WindowSample -Process (Get-Process -Id $PID) | ConvertTo-Json -Compress"));
+
+                Assert.True((long)sample["privateBytes"] > 0, failing);
+                Assert.True((long)sample["peakPrivateBytes"] > 0, failing);
+                Assert.True((long)sample["workingSetBytes"] > 0, failing);
+                bool os = failing == "Win32_OperatingSystem";
+                Assert.Equal(os ? JTokenType.Null : JTokenType.Integer, sample["freeBytes"].Type);
+                Assert.Equal(os ? JTokenType.Integer : JTokenType.Null, sample["childPrivateBytes"].Type);
+                Assert.Contains("no CIM", (string)sample[os ? "freeError" : "childError"]);
+            }
+
+            JObject peaks = JObject.Parse(Pwsh(
+                "$samples = @(\n"
+                + "  [ordered]@{ privateBytes = [long]900MB; peakPrivateBytes = [long]900MB; workingSetBytes = [long]1000MB; peakWorkingSetBytes = [long]1000MB; responding = $true; freeBytes = $null; freeError = 'no CIM' },\n"
+                + "  [ordered]@{ privateBytes = [long]800MB; peakPrivateBytes = [long]950MB; workingSetBytes = [long]900MB; peakWorkingSetBytes = [long]950MB; responding = $true; freeBytes = [long]5GB })\n"
+                + "Get-WindowPeaks -Samples $samples -FloorGB 2 | ConvertTo-Json -Compress"));
+            Assert.Equal(2, (int)peaks["samples"]);
+            Assert.Equal(950, (long)peaks["peakPrivateMib"]);
+            Assert.Equal(5.0, (double)peaks["minFreeGib"], 2);
+            Assert.Equal(0, (int)peaks["samplesUnderFloor"]);
+            Assert.Equal(1, (int)peaks["freeMissing"]);
+        }
+
+        [Fact]
+        public void R310_a_sample_counts_the_processes_the_window_started_and_their_memory()
+        {
+            JObject sample = JObject.Parse(Pwsh(
+                "$info = [Diagnostics.ProcessStartInfo]::new((Get-Process -Id $PID).Path, @('-NoProfile', '-Command', '$b = [byte[]]::new(200MB); [Array]::Fill($b, [byte]1); Start-Sleep 30'))\n"
+                + "$info.UseShellExecute = $false\n"
+                + "$child = [Diagnostics.Process]::Start($info)\n"
+                + "for ($i = 0; $i -lt 60 -and (Get-Process -Id $child.Id).PrivateMemorySize64 -lt 200MB; $i++) { Start-Sleep -Milliseconds 500 }\n"
+                + "$sample = Get-WindowSample -Process (Get-Process -Id $PID)\n"
+                + "$child.Kill()\n"
+                + "$sample | ConvertTo-Json -Compress"));
+
+            Assert.True((int)sample["childProcesses"] >= 1);
+            Assert.True((long)sample["childPrivateBytes"] >= 200L * 1024 * 1024);
+            Assert.True((long)sample["childWorkingSetBytes"] >= 200L * 1024 * 1024);
+            Assert.Contains("pwsh", (string)sample["childNames"]);
+
+            JObject peaks = JObject.Parse(Pwsh(
+                "$samples = @(\n"
+                + "  [ordered]@{ privateBytes = [long]900MB; peakPrivateBytes = [long]900MB; workingSetBytes = [long]1000MB; peakWorkingSetBytes = [long]1000MB; responding = $true; freeBytes = [long]5GB; childProcesses = 3; childPrivateBytes = [long]300MB; childWorkingSetBytes = [long]350MB; childNames = 'CefSharp.BrowserSubprocess' },\n"
+                + "  [ordered]@{ privateBytes = [long]800MB; peakPrivateBytes = [long]950MB; workingSetBytes = [long]900MB; peakWorkingSetBytes = [long]950MB; responding = $true; freeBytes = [long]5GB; childProcesses = 1; childPrivateBytes = [long]100MB; childWorkingSetBytes = [long]120MB; childNames = 'x' },\n"
+                + "  [ordered]@{ privateBytes = [long]700MB; peakPrivateBytes = [long]950MB; workingSetBytes = [long]800MB; peakWorkingSetBytes = [long]950MB; responding = $true; freeBytes = [long]5GB; childPrivateBytes = $null; childError = 'no CIM' })\n"
+                + "Get-WindowPeaks -Samples $samples -FloorGB 2 | ConvertTo-Json -Compress"));
+            Assert.Equal(3, (int)peaks["childProcessesMax"]);
+            Assert.Equal(300, (long)peaks["sampledChildPrivateMib"]);
+            Assert.Equal(350, (long)peaks["sampledChildWorkingSetMib"]);
+            Assert.Equal(1200, (long)peaks["sampledTotalPrivateMib"]);
+            Assert.Equal(1, (int)peaks["childMissing"]);
+        }
+
+        [Fact]
+        public void R310_the_checks_of_the_run_keep_their_own_interval_and_the_samples_theirs()
+        {
+            // Two minutes of the wait loop on a clock that moves by the wait it is given: the checks every 5 s whatever the sample interval
+            foreach (int sampleSeconds in new[] { 60, 5, 1 })
+            {
+                JObject counts = JObject.Parse(Pwsh(
+                    "$now = [datetime]'2026-10-25T08:00:00'\n"
+                    + "$end = $now.AddSeconds(120)\n"
+                    + "$clock = New-LookClock -Start $now -CheckSeconds 5 -SampleSeconds " + sampleSeconds + "\n"
+                    + "$checks = 0; $taken = 0; $waits = @(); $turns = 0\n"
+                    + "while ($now -lt $end -and $turns++ -lt 1000) { $wait = Get-LookWait -Clock $clock -Now $now; $waits += $wait; $now = $now.AddMilliseconds($wait); $due = Get-DueLooks -Clock $clock -Now $now; if ($due.check) { $checks++ }; if ($due.sample) { $taken++ } }\n"
+                    + "[ordered]@{ checks = $checks; samples = $taken; longest = ($waits | Measure-Object -Maximum).Maximum } | ConvertTo-Json -Compress"));
+
+                Assert.Equal(24, (int)counts["checks"]);
+                Assert.Equal(120 / sampleSeconds, (int)counts["samples"]);
+                Assert.Equal(Math.Min(5, sampleSeconds) * 1000, (int)counts["longest"]);
+            }
         }
 
         [Fact]
@@ -121,8 +221,9 @@ namespace SiteAdaptation.Tests
             {
                 JObject none = JObject.Parse(Pwsh("Get-WindowPeaks -Samples " + samples + " -FloorGB 2 | ConvertTo-Json -Compress"));
                 Assert.Equal(0, (int)none["samples"]);
-                Assert.Equal(JTokenType.Null, none["peakPrivateMb"].Type);
-                Assert.Equal(JTokenType.Null, none["minFreeGb"].Type);
+                Assert.Equal(JTokenType.Null, none["peakPrivateMib"].Type);
+                Assert.Equal(JTokenType.Null, none["minFreeGib"].Type);
+                Assert.False((bool)none["throughExit"]);
                 Assert.Equal(0, (int)none["notResponding"]);
             }
 
@@ -144,7 +245,19 @@ namespace SiteAdaptation.Tests
             Assert.Equal(5, (int)config["testHost"]["sampleSeconds"]);
             Assert.Contains(". (Join-Path $PSScriptRoot 'WindowSamples.ps1')", script);
             Assert.Contains("$sampleSeconds = [int]$config.testHost.sampleSeconds", script);
-            Assert.Contains("$process.WaitForExit($sampleSeconds * 1000)", script);
+            // The deadline, refusal, log and start screen checks keep the 5 s they had before R310, the samples follow the config
+            Assert.Contains("$checkSeconds = 5", script);
+            Assert.Contains("$clock = New-LookClock -Start $start -CheckSeconds $checkSeconds -SampleSeconds $sampleSeconds", script);
+            Assert.Contains("$process.WaitForExit((Get-LookWait -Clock $clock -Now (Get-Date)))", script);
+            Assert.DoesNotContain("WaitForExit($sampleSeconds", script);
+            int loop = script.IndexOf("$due = Get-DueLooks -Clock $clock -Now $now", StringComparison.Ordinal);
+            int skip = script.IndexOf("if (-not $due.check) {", StringComparison.Ordinal);
+            Assert.True(loop > 0 && skip > loop);
+            foreach (string check in new[] { "if ($now -gt $deadline)", "if ($refused -and (Test-Path $refused)", "$stopReason = \"the test host wrote no log in $NoLogMinutes minutes\"", "$quietSince.AddSeconds(60)" })
+            {
+                Assert.True(script.IndexOf(check, StringComparison.Ordinal) > skip, check);
+            }
+            Assert.True(script.IndexOf("if ($due.sample) {", StringComparison.Ordinal) > loop);
             Assert.Contains("$sample = Get-WindowSample -Process $process", script);
             Assert.Contains("Add-Content -Path $samplesPath", script);
             Assert.Contains("$peaks = Get-WindowPeaks -Samples $samples -FloorGB ([double]$config.siteBuild.minFreeGB)", script);
@@ -152,8 +265,15 @@ namespace SiteAdaptation.Tests
             Assert.Contains("$peaks.sampleFailures = @($sampleFailures)", script);
             Assert.Contains("$exitPeaks = Get-ExitPeaks -Process $process", script);
             Assert.Contains("-Exit $exitPeaks", script);
-            Assert.Contains("peakMb     = $peaks.peakWorkingSetMb", script);
+            Assert.Contains("peakMb     = $peaks.peakWorkingSetMib", script);
             Assert.Contains("memory     = $peaks", script);
+            // One unit everywhere: the byte counts are divided by 1MB and 1GB of PowerShell, which are MiB and GiB, and named so
+            Assert.Contains("peak private {2} MiB and peak working set {3} MiB", script);
+            Assert.Contains("least free {7} GiB", script);
+            Assert.DoesNotContain(" MB ", script.Substring(script.IndexOf("\"Memory of {0}", StringComparison.Ordinal)));
+            string functions = File.ReadAllText(RepoPath("dotnet", "SiteAdaptation.TestHost", "WindowSamples.ps1"));
+            Assert.DoesNotContain("Mb ", functions);
+            Assert.DoesNotContain("Gb ", functions);
             // The samples are appended, so the file of an earlier run of the name moves aside first, also for a site upgrade whose
             // name is <code>_upgrade like an upgrade but whose switch -Upgrade is not given
             Assert.Contains("$old = @(Get-ChildItem $docs -Filter ('testhost_' + $name + '_*.json*') | Where-Object { $name -ne $Code -or $_.Name -notlike ('testhost_' + $Code + '_upgrade_*') })", script);
@@ -225,7 +345,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R311_units_keep_the_name_of_each_unit_type_id_and_the_system()
+        public void R311_units_keep_the_name_of_each_unit_type_id_and_the_system_the_project_was_made_in()
         {
             UnitFacts units = SiteFacts.Build(Site()).Units;
 
@@ -240,6 +360,71 @@ namespace SiteAdaptation.Tests
             Assert.Null(SiteFacts.UnitName(null));
         }
 
+        [Theory]
+        [InlineData("autodesk.unit.unit:meters-1.0.0", "METRIC")]
+        [InlineData("autodesk.unit.unit:millimeters-1.0.1", "METRIC")]
+        [InlineData("autodesk.unit.unit:centimeters-1.0.1", "METRIC")]
+        [InlineData("autodesk.unit.unit:decimeters-1.0.1", "METRIC")]
+        [InlineData("autodesk.unit.unit:metersCentimeters-1.0.0", "METRIC")]
+        [InlineData("autodesk.unit.unit:feet-1.0.1", "IMPERIAL")]
+        [InlineData("autodesk.unit.unit:inches-1.0.1", "IMPERIAL")]
+        [InlineData("autodesk.unit.unit:feetFractionalInches-1.0.0", "IMPERIAL")]
+        [InlineData("autodesk.unit.unit:fractionalInches-1.0.0", "IMPERIAL")]
+        [InlineData("autodesk.unit.unit:usSurveyFeet-1.0.0", "IMPERIAL")]
+        [InlineData("autodesk.unit.unit:stationingMeters-1.0.0", null)]
+        [InlineData(null, null)]
+        public void R311_the_length_unit_of_the_project_units_now_gives_its_system_beside_the_system_the_project_was_made_in(string lengthId, string system)
+        {
+            RawSite raw = Site();
+            // A project made metric and set to feet later keeps METRIC as DisplayUnitSystem, its length format says what it has now
+            raw.UnitSystem = "METRIC";
+            raw.UnitTypeIds["length"] = lengthId;
+            UnitFacts units = SiteFacts.Build(raw).Units;
+
+            Assert.Equal("METRIC", units.System);
+            Assert.Equal(system, units.LengthSystem);
+            Assert.Equal(SiteFacts.UnitName(lengthId), units.Length);
+        }
+
+        [Theory]
+        [InlineData(-1e-16, 0.0)]
+        [InlineData(1e-16, 0.0)]
+        [InlineData(2 * Math.PI - 1e-10, 0.0)]
+        [InlineData(-2 * Math.PI + 1e-10, 0.0)]
+        [InlineData(4 * Math.PI, 0.0)]
+        [InlineData(-Math.PI / 2, 270.0)]
+        [InlineData(Math.PI, 180.0)]
+        [InlineData(-1e-8, 359.999999)]
+        public void R311_the_angle_to_true_north_is_from_0_to_under_360_after_its_rounding(double radians, double degrees)
+        {
+            double angle = SiteFacts.AngleDegrees(radians);
+
+            Assert.Equal(degrees, angle, 9);
+            Assert.True(angle >= 0 && angle < 360);
+            // Negative zero would print as -0
+            Assert.NotEqual(BitConverter.DoubleToInt64Bits(-0.0), BitConverter.DoubleToInt64Bits(angle));
+        }
+
+        [Fact]
+        public void R311_the_angle_keeps_6_decimals_for_1_mm_at_5_km_and_the_length_accuracy_is_written_unrounded()
+        {
+            // 1 mm across 5 km is 0.0000115 degrees, 3 decimals of R2 would write 0
+            double mm = Math.Atan2(0.001, 5000);
+            RawSite raw = Site();
+            raw.AngleRadians = mm;
+            raw.LengthAccuracy = 0.0001;
+            SiteFacts facts = SiteFacts.Build(raw);
+            Assert.Equal(0.000011, facts.ProjectPosition.AngleDeg, 9);
+
+            string json = JsonOut.ToJson(facts);
+            Assert.Contains("\"angleDeg\": 1.1E-05", json);
+            Assert.Contains("\"lengthAccuracy\": 0.0001", json);
+            Assert.Contains("\"eastWest\": 1000.0", json);
+            raw.AngleRadians = UnitMath.DegreesToRadians(12.3456789);
+            Assert.Contains("\"angleDeg\": 12.345679", JsonOut.ToJson(SiteFacts.Build(raw)));
+            Assert.Equal(6, SiteFacts.AngleDecimals);
+        }
+
         [Fact]
         public void R311_elements_are_counted_by_category_type_and_name_and_those_with_no_category_apart()
         {
@@ -250,25 +435,53 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R311_a_part_that_did_not_read_is_left_out_and_the_document_writes_site_after_its_older_keys()
+        public void R311_a_part_that_did_not_read_is_null_with_its_error_beside_it_and_an_empty_part_stays_empty()
         {
             RawSite raw = Site();
+            raw.ActiveSite = null;
+            raw.Sites = null;
+            raw.PlaceName = null;
             raw.ProjectPositionFeet = null;
             raw.AngleRadians = null;
             raw.Levels = null;
+            raw.UnitSystem = null;
             raw.UnitTypeIds = null;
+            raw.LengthAccuracy = null;
             raw.Categories = null;
+            raw.NotRead = new Dictionary<string, string> { ["units"] = "u failed", ["levels"] = "l failed", ["sites"] = "s failed", ["project position"] = "p failed", ["categories"] = "c failed" };
             SiteFacts facts = SiteFacts.Build(raw);
+            Assert.Null(facts.Sites);
             Assert.Null(facts.ProjectPosition);
-            Assert.Empty(facts.Levels);
-            Assert.Null(facts.Units.Length);
-            Assert.Empty(facts.Categories);
+            Assert.Null(facts.Levels);
+            Assert.Null(facts.Units);
+            Assert.Null(facts.Categories);
+            Assert.Equal(new[] { "categories", "levels", "project position", "sites", "units" }, facts.NotRead.Keys);
+            string json = JsonOut.ToJson(facts);
+            foreach (string part in new[] { "sites", "projectPosition", "levels", "units", "categories" })
+            {
+                Assert.Contains("\"" + part + "\": null", json);
+            }
+            Assert.Contains("\"levels\": \"l failed\"", json);
+
+            // A project with no level and no element has empty lists and no notRead
+            RawSite empty = Site();
+            empty.Levels = new List<RawLevel>();
+            empty.Categories = new List<RawCategory>();
+            empty.Sites = new List<string>();
+            SiteFacts none = SiteFacts.Build(empty);
+            Assert.Empty(none.Levels);
+            Assert.Empty(none.Categories);
+            Assert.Empty(none.Sites);
+            Assert.Null(none.NotRead);
+            string emptyJson = JsonOut.ToJson(none);
+            Assert.Contains("\"levels\": []", emptyJson);
+            Assert.DoesNotContain("notRead", emptyJson);
 
             var entry = new DocumentEntry { File = "site.rvt", Kind = "project", AngleToTrueNorthDeg = 0, Prototypes = new List<PrototypeRow>(), Site = SiteFacts.Build(Site()) };
-            string json = JsonOut.ToJson(entry);
-            Assert.True(json.IndexOf("\"prototypes\"", StringComparison.Ordinal) < json.IndexOf("\"site\"", StringComparison.Ordinal));
-            Assert.Contains("\"activeSite\": \"Internal\"", json);
-            Assert.Contains("\"eastWest\": 1000.0", json);
+            string entryJson = JsonOut.ToJson(entry);
+            Assert.True(entryJson.IndexOf("\"prototypes\"", StringComparison.Ordinal) < entryJson.IndexOf("\"site\"", StringComparison.Ordinal));
+            Assert.Contains("\"activeSite\": \"Internal\"", entryJson);
+            Assert.Contains("\"eastWest\": 1000.0", entryJson);
         }
 
         [Fact]
@@ -281,6 +494,8 @@ namespace SiteAdaptation.Tests
             Assert.Contains("ActiveProjectLocation", revit);
             Assert.Contains("ProjectElevation", revit);
             Assert.Contains("SpecTypeId.Length", revit);
+            Assert.Contains("units.GetFormatOptions(SpecTypeId.Length).GetUnitTypeId().TypeId", revit);
+            Assert.Contains("raw.NotRead[part] = ", revit);
             Assert.DoesNotContain("FeetToMetres", revit);
             Assert.DoesNotContain("Transaction", revit);
         }

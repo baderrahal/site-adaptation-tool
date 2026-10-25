@@ -500,6 +500,55 @@ def test_r301_every_source_of_the_im_code_check_names_a_job_of_the_table():
     assert sources and all(source["job"] in table for source in sources)
 
 
+def copy_tree(tmp_path):
+    """A source root with one model, its copy in a copy folder and a file in a folder whose name only starts like it."""
+    for folder, name in (("Revit All Zones", "01101-PSN-IMA-ZZZ-PIM-SE-000000-zone1.rvt"), ("Revit All Zones/2024", "01101-PSN-IMA-ZZZ-PIM-SE-000000-zone1.rvt"),
+                         ("Revit All Zones/2024", "sources.txt"), ("Revit All Zones/2024 old", "01101-PSN-IMB-ZZZ-PIM-SE-000000-zone1.rvt")):
+        (tmp_path / folder).mkdir(parents=True, exist_ok=True)
+        (tmp_path / folder / name).write_bytes(b"")
+    return [{"folder": "Revit All Zones/2024", "reason": "the Revit 2024 copies of a dummy round"}]
+
+
+def test_r301_the_names_of_a_copy_folder_of_the_config_are_counted_apart_so_the_name_counts_of_the_sources_keep(tmp_path):
+    copies = copy_tree(tmp_path)
+    names = im_codes.file_names(tmp_path, im_codes.copy_folders(copies))
+    counts = im_codes.name_counts(names)
+    assert counts["IMA"]["fileNames"] == 1 and counts["IMA"]["copyFileNames"] == 1
+    assert counts["IMB"]["fileNames"] == 1 and counts["IMB"]["copyFileNames"] == 0
+    assert counts["IMA"]["copyFolders"] == {"Revit All Zones/2024": 1}
+    assert counts["IMA"]["folders"] == {"Revit All Zones": 1}
+    # With no copy folder the copy counts as a source file, as it did before
+    assert im_codes.name_counts(im_codes.file_names(tmp_path))["IMA"]["fileNames"] == 2
+    assert im_codes.file_names(tmp_path)[0].get("copyFolder") is None
+
+
+def test_r301_the_second_method_counts_the_names_of_a_copy_folder_apart_too(tmp_path):
+    import data5_check
+    copies = copy_tree(tmp_path)
+    report = {"codes": {"IMA": {"fileNames": 1, "copyFileNames": 1}, "IMB": {"fileNames": 1}}}
+    assert data5_check.check_names(tmp_path, report, copies) == {"sources": {"IMA": [1, 1], "IMB": [1, 1]}, "copies": {"IMA": [1, 1]}}
+    # An im_codes.json written before copy folders counted the copy with the sources, the check shows the copy against 0
+    older = {"codes": {"IMA": {"fileNames": 1}, "IMB": {"fileNames": 1}}}
+    assert data5_check.check_names(tmp_path, older, copies)["copies"] == {"IMA": [1, 0]}
+
+
+@pytest.mark.parametrize("folder", ["C:/02-Site Adaptation/Revit All Zones/2024", "../2024", "Revit All Zones/../2024", "", None])
+def test_r301_a_copy_folder_is_a_folder_under_the_source_root_with_its_reason(folder):
+    with pytest.raises(ValueError):
+        im_codes.copy_folders([{"folder": folder, "reason": "x"}])
+    with pytest.raises(ValueError):
+        im_codes.copy_folders([{"folder": "Revit All Zones/2024", "reason": ""}])
+    with pytest.raises(ValueError):
+        im_codes.copy_folders([{"folder": "Revit All Zones/2024", "reason": "x", "extra": 1}])
+
+
+def test_r301_the_real_config_names_the_2024_copies_of_the_parsons_models_as_a_copy_folder_with_its_reason():
+    settings = json.loads((ROOT / "python" / "c3d_probe.json").read_text(encoding="utf-8"))["dataBook"]["data5"]["imCodes"]
+    folders = im_codes.copy_folders(settings["copyFolders"])
+    assert folders == ("Revit All Zones/2024",)
+    assert "Round ADDIN" in settings["copyFolders"][0]["reason"]
+
+
 # Stale inputs after the clean up of Q047 and Q060
 def test_r258_r260_the_retired_ifc_input_is_skipped_with_its_reason_and_nothing_is_read(tmp_path):
     import data5_check

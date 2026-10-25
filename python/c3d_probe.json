@@ -602,7 +602,10 @@
           {"name": "1.4 past model", "kind": "plan", "job": "native", "file": "01101-PSN-IMD-ZZZ-PIM-TU-000004.rvt", "path": "C:/Users/bader/Documents/SiteAdaptation/round_z4/plan_z4_past.json"}
         ],
         "contextsKept": 60,
-        "table": "config/area_codes.json"
+        "table": "config/area_codes.json",
+        "copyFolders": [
+          {"folder": "Revit All Zones/2024", "reason": "Round ADDIN Phase 1 saved the Revit 2024 copies of the 7 Parsons models here on 2026-10-25, after DATA-5. Their names repeat the 7 models of Revit All Zones, so they are counted apart and the names of the source files keep their count (R301)"}
+        ]
       },
       "ifc": {
         "outFolder": "ifc",

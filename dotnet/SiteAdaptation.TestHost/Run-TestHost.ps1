@@ -80,6 +80,8 @@ $sampleSeconds = [int]$config.testHost.sampleSeconds
 if ($sampleSeconds -lt 1) {
     throw 'config/project.json has no testHost.sampleSeconds of 1 or more'
 }
+# R310. The deadline, watcher, refusal, log and start screen checks look every 5 s as before the samples, whatever sampleSeconds is
+$checkSeconds = 5
 
 if ($jobPath -and (Test-Path $jobPath)) {
     throw "A job file is already waiting at $jobPath. Look at it before you run again."
@@ -152,6 +154,7 @@ if ($round) {
             }
             $roundJob.source = $original
             $roundJob.target = $target
+            $roundJob.workFolder = $work
         }
         'read' {
             # R227. A read may name its own test copy in the work folder, such as a prototype, else it reads the key copy.
@@ -411,12 +414,29 @@ try {
 
     $deadline = $start.AddMinutes($TimeoutMinutes)
     $quietSince = $null
+    $clock = New-LookClock -Start $start -CheckSeconds $checkSeconds -SampleSeconds $sampleSeconds
     while ($true) {
-        if ($process.WaitForExit($sampleSeconds * 1000)) {
+        if ($process.WaitForExit((Get-LookWait -Clock $clock -Now (Get-Date)))) {
             $exited = $true
             break
         }
         $now = Get-Date
+        $due = Get-DueLooks -Clock $clock -Now $now
+        if ($due.sample) {
+            # R310. One sample per look, written at once so a window that is stopped keeps its samples
+            try {
+                $sample = Get-WindowSample -Process $process
+                $samples.Add($sample)
+                $sample | ConvertTo-Json -Compress | Add-Content -Path $samplesPath -Encoding utf8
+            }
+            catch {
+                # Revit ended between two looks, which the next WaitForExit sees, or a sample failed. Each is kept with its reason
+                $sampleFailures.Add((Get-Date).ToUniversalTime().ToString('o') + ' ' + $_.Exception.Message)
+            }
+        }
+        if (-not $due.check) {
+            continue
+        }
         if ($now -gt $deadline) {
             $stopReason = "Revit did not exit in $TimeoutMinutes minutes"
             break
@@ -424,16 +444,6 @@ try {
         if ($watcher.HasExited -and $watcher.ExitCode -eq 3) {
             $stopReason = 'the watcher stopped Revit on a dialog it may not answer'
             break
-        }
-        # R310. One sample per look, written at once so a window that is stopped keeps its samples
-        try {
-            $sample = Get-WindowSample -Process $process
-            $samples.Add($sample)
-            $sample | ConvertTo-Json -Compress | Add-Content -Path $samplesPath -Encoding utf8
-        }
-        catch {
-            # Revit ended between two looks, which the next WaitForExit sees, or a sample failed. Each is kept with its reason
-            $sampleFailures.Add((Get-Date).ToUniversalTime().ToString('o') + ' ' + $_.Exception.Message)
         }
         if ($refused -and (Test-Path $refused) -and (Get-Item $refused).LastWriteTime -gt $start) {
             $stopReason = 'the test host refused the job: ' + (Get-Content -Raw $refused | ConvertFrom-Json).reason
@@ -532,7 +542,7 @@ else {
     'The watcher wrote no report.'
 }
 
-# R310. The peaks Windows kept to the exit of Revit, which the samples miss after their last look
+# R310. The peaks Windows kept to the exit of Revit, which the samples miss after their last look. They count also with no sample
 $exitPeaks = $null
 if ($process -and $process.HasExited) {
     try {
@@ -545,7 +555,8 @@ if ($process -and $process.HasExited) {
 $peaks = Get-WindowPeaks -Samples $samples -FloorGB ([double]$config.siteBuild.minFreeGB) -Exit $exitPeaks
 $peaks.sampleFailures = @($sampleFailures)
 "Run time {0:0.0} minutes, exit code {1}, Revit process {2}" -f ($end - $start).TotalMinutes, $(if ($exited) { $process.ExitCode } else { 'stopped' }), $process.Id
-"Memory of {0} samples every {1} s: peak private {2} MB and peak working set {3} MB with the peaks Windows keeps{4}, sampled {5} and {6} MB, least free {7} GB, under the floor of {8} GB in {9}, not responding in {10}, samples failed {11}" -f $peaks.samples, $sampleSeconds, $peaks.peakPrivateMb, $peaks.peakWorkingSetMb, $(if ($peaks.throughExit) { ' to the exit' } else { ' to the last sample' }), $peaks.sampledPrivateMb, $peaks.sampledWorkingSetMb, $peaks.minFreeGb, $peaks.floorGb, $peaks.samplesUnderFloor, $peaks.notResponding, $sampleFailures.Count
+"Memory of {0} samples every {1} s: peak private {2} MiB and peak working set {3} MiB with the peaks Windows keeps{4}, sampled {5} and {6} MiB, least free {7} GiB, under the floor of {8} GiB in {9}, not responding in {10}, samples failed {11}" -f $peaks.samples, $sampleSeconds, $peaks.peakPrivateMib, $peaks.peakWorkingSetMib, $(if ($peaks.throughExit) { ' to the exit' } else { ' to the last sample' }), $peaks.sampledPrivateMib, $peaks.sampledWorkingSetMib, $peaks.minFreeGib, $peaks.floorGib, $peaks.samplesUnderFloor, $peaks.notResponding, $sampleFailures.Count
+"Processes Revit started: at most {0} in a sample ({1}), sampled private {2} MiB and working set {3} MiB, Revit and them together {4} MiB private, samples with no free memory {5} and no child list {6}" -f $peaks.childProcessesMax, (@($samples | ForEach-Object { $_.childNames } | Where-Object { $_ } | ForEach-Object { $_ -split ', ' } | Sort-Object -Unique) -join ', '), $peaks.sampledChildPrivateMib, $peaks.sampledChildWorkingSetMib, $peaks.sampledTotalPrivateMib, $peaks.freeMissing, $peaks.childMissing
 # R110. One line per job for the parallel report
 $logResult = if (Test-Path $logPath) { (Get-Content -Raw $logPath | ConvertFrom-Json).result } else { $null }
 [ordered]@{
@@ -554,7 +565,7 @@ $logResult = if (Test-Path $logPath) { (Get-Content -Raw $logPath | ConvertFrom-
     startUtc   = $start.ToUniversalTime().ToString('o')
     endUtc     = $end.ToUniversalTime().ToString('o')
     minutes    = [Math]::Round(($end - $start).TotalMinutes, 2)
-    peakMb     = $peaks.peakWorkingSetMb
+    peakMb     = $peaks.peakWorkingSetMib
     memory     = $peaks
     exitCode   = $(if ($exited) { $process.ExitCode } else { $null })
     stopReason = $stopReason

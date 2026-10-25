@@ -105,16 +105,25 @@ def check_ifc(path, report):
             "differ": {k: [found[k], report["types"].get(k, 0)] for k in kinds if found[k] != report["types"].get(k, 0)}}
 
 
-def check_names(root, report):
-    found = Counter()
+def check_names(root, report, copies=()):
+    """R260, R301. The file names under root counted again by a plain substring per IM letter, the files inside a copy folder of
+    the config apart by the parts of their path, each against im_codes.json: sources against fileNames, copies against
+    copyFileNames, 0 when the report is older than the copy folders."""
+    copy_parts = [tuple(entry["folder"].replace("\\", "/").split("/")) for entry in copies or []]
+    found = {"sources": Counter(), "copies": Counter()}
     for path in Path(root).rglob("*"):
         if path.is_file():
+            parts = path.relative_to(root).parts[:-1]
+            side = "copies" if any(parts[:len(folder)] == folder for folder in copy_parts) else "sources"
             for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
                 code = "IM" + letter
                 if "-" + code + "-" in path.name or "_" + code + "_" in path.name or " " + code + " " in path.name:
-                    found[code] += 1
-    codes = set(found) | {c for c, v in report["codes"].items() if v["fileNames"]}
-    return {code: [found[code], report["codes"].get(code, {}).get("fileNames", 0)] for code in sorted(codes)}
+                    found[side][code] += 1
+    result = {}
+    for side, field in (("sources", "fileNames"), ("copies", "copyFileNames")):
+        codes = set(found[side]) | {c for c, v in report["codes"].items() if v.get(field)}
+        result[side] = {code: [found[side][code], report["codes"].get(code, {}).get(field, 0)] for code in sorted(codes)}
+    return result
 
 
 def segment_distance(points, starts, ends):
@@ -184,7 +193,8 @@ def run(config):
         path = data5 / settings["counts"]["dxfFolder"] / (Path(book["drawings"][role]).stem + ".dxf")
         result["dxf"][role] = check_dxf(path) if path.is_file() else "no DXF"
     result["ifc"] = ifc_part(settings, root, data5)
-    result["names"] = check_names(config["sourceRoot"], json.loads((data5 / settings["areaKey"]["outFolder"] / "im_codes.json").read_text(encoding="utf-8")))
+    result["names"] = check_names(config["sourceRoot"], json.loads((data5 / settings["areaKey"]["outFolder"] / "im_codes.json").read_text(encoding="utf-8")),
+                                  settings["imCodes"].get("copyFolders"))
     (root / "logs" / "data5_check.json").write_text(json.dumps(result, indent=1), encoding="utf-8")
     return result
 

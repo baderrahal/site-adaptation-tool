@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace SiteAdaptation.Common
 {
@@ -17,13 +18,17 @@ namespace SiteAdaptation.Common
         public double? AngleRadians { get; set; }
         public IList<RawLevel> Levels { get; set; }
 
-        // DisplayUnitSystem, and the unit type id of the format options of each spec: length, area, angle and slope
+        // Document.DisplayUnitSystem is the system the project was made in and does not follow a later change of the units.
+        // The unit type id of the format options of the project units now, for each spec: length, area, angle and slope
         public string UnitSystem { get; set; }
         public IDictionary<string, string> UnitTypeIds { get; set; }
         public double? LengthAccuracy { get; set; }
 
         // One entry per element of the document that is no element type
         public IList<RawCategory> Categories { get; set; }
+
+        // The parts that did not read with their error. Their values stay null, so a part not read never looks empty
+        public IDictionary<string, string> NotRead { get; set; }
     }
 
     public class RawLevel
@@ -45,23 +50,59 @@ namespace SiteAdaptation.Common
     {
         public const string NoCategory = "(no category)";
         public const string NoType = "(none)";
+        public const string Metric = "METRIC";
+        public const string Imperial = "IMPERIAL";
+
+        // R311. 1 mm across 5 km is 0.0000115 degrees, so 6 decimals hold the angle to true north within 0.05 mm at 5 km.
+        // The 3 decimals of R2 are for lengths and levels
+        public const int AngleDecimals = 6;
+
+        // R311. The system of each unit Revit 2024 offers for the length spec, by the name UnitName gives
+        private static readonly Dictionary<string, string> LengthSystems = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["meters"] = Metric,
+            ["centimeters"] = Metric,
+            ["millimeters"] = Metric,
+            ["decimeters"] = Metric,
+            ["metersCentimeters"] = Metric,
+            ["feet"] = Imperial,
+            ["inches"] = Imperial,
+            ["feetFractionalInches"] = Imperial,
+            ["fractionalInches"] = Imperial,
+            ["usSurveyFeet"] = Imperial,
+        };
 
         public string ActiveSite { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
         public List<string> Sites { get; set; }
+
         public string PlaceName { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
         public ProjectPositionInfo ProjectPosition { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
         public List<LevelFact> Levels { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
         public UnitFacts Units { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
         public List<CategoryCount> Categories { get; set; }
+
+        // Each part that did not read and its error, by part name. Absent when every part read
+        public SortedDictionary<string, string> NotRead { get; set; }
 
         public static SiteFacts Build(RawSite raw)
         {
-            var facts = new SiteFacts
+            return new SiteFacts
             {
                 ActiveSite = raw.ActiveSite,
-                Sites = (raw.Sites ?? new List<string>()).OrderBy(name => name, StringComparer.Ordinal).ToList(),
+                Sites = raw.Sites?.OrderBy(name => name, StringComparer.Ordinal).ToList(),
                 PlaceName = raw.PlaceName,
-                Levels = (raw.Levels ?? new List<RawLevel>())
+                ProjectPosition = Position(raw),
+                Levels = raw.Levels?
                     .Select(level => new LevelFact
                     {
                         Name = level.Name,
@@ -71,33 +112,67 @@ namespace SiteAdaptation.Common
                         ElevationBase = level.ElevationBase,
                     })
                     .OrderBy(level => level.ProjectElevation).ThenBy(level => level.Name, StringComparer.Ordinal).ToList(),
-                Units = new UnitFacts
-                {
-                    System = raw.UnitSystem,
-                    Length = UnitName(Id(raw, "length")),
-                    LengthAccuracy = raw.LengthAccuracy,
-                    Area = UnitName(Id(raw, "area")),
-                    Angle = UnitName(Id(raw, "angle")),
-                    Slope = UnitName(Id(raw, "slope")),
-                },
-                Categories = (raw.Categories ?? new List<RawCategory>())
+                Units = UnitsOf(raw),
+                Categories = raw.Categories?
                     .GroupBy(item => (item.Type ?? NoType) + "\u0001" + (item.Name ?? NoCategory), StringComparer.Ordinal)
                     .Select(group => new CategoryCount { Type = group.First().Type ?? NoType, Name = group.First().Name ?? NoCategory, Count = group.Count() })
                     .OrderBy(item => item.Type == NoType ? 1 : 0).ThenBy(item => item.Type, StringComparer.Ordinal).ThenBy(item => item.Name, StringComparer.Ordinal)
                     .ToList(),
+                NotRead = raw.NotRead == null || raw.NotRead.Count == 0 ? null : new SortedDictionary<string, string>(raw.NotRead, StringComparer.Ordinal),
             };
-            if (raw.ProjectPositionFeet != null && raw.ProjectPositionFeet.Length == 3 && raw.AngleRadians.HasValue)
+        }
+
+        private static ProjectPositionInfo Position(RawSite raw)
+        {
+            if (raw.ProjectPositionFeet == null || raw.ProjectPositionFeet.Length != 3 || !raw.AngleRadians.HasValue)
             {
-                double degrees = UnitMath.RadiansToDegrees(raw.AngleRadians.Value) % 360.0;
-                facts.ProjectPosition = new ProjectPositionInfo
-                {
-                    EastWest = UnitMath.FeetToMetres(raw.ProjectPositionFeet[0]),
-                    NorthSouth = UnitMath.FeetToMetres(raw.ProjectPositionFeet[1]),
-                    Elevation = UnitMath.FeetToMetres(raw.ProjectPositionFeet[2]),
-                    AngleDeg = degrees < 0 ? degrees + 360.0 : degrees,
-                };
+                return null;
             }
-            return facts;
+            return new ProjectPositionInfo
+            {
+                EastWest = UnitMath.FeetToMetres(raw.ProjectPositionFeet[0]),
+                NorthSouth = UnitMath.FeetToMetres(raw.ProjectPositionFeet[1]),
+                Elevation = UnitMath.FeetToMetres(raw.ProjectPositionFeet[2]),
+                AngleDeg = AngleDegrees(raw.AngleRadians.Value),
+            };
+        }
+
+        // R311. Degrees at AngleDecimals from 0 to under 360. Rounded first, so a tiny negative angle or one within the rounding of a
+        // full turn gives 0 and not 360, and never negative zero
+        public static double AngleDegrees(double radians)
+        {
+            double degrees = Math.Round(UnitMath.RadiansToDegrees(radians), AngleDecimals, MidpointRounding.AwayFromZero) % 360.0;
+            if (degrees < 0)
+            {
+                degrees = Math.Round(degrees + 360.0, AngleDecimals, MidpointRounding.AwayFromZero);
+            }
+            return degrees >= 360.0 || degrees == 0 ? 0 : degrees;
+        }
+
+        private static UnitFacts UnitsOf(RawSite raw)
+        {
+            if (raw.UnitSystem == null && raw.UnitTypeIds == null && !raw.LengthAccuracy.HasValue)
+            {
+                return null;
+            }
+            string length = UnitName(Id(raw, "length"));
+            return new UnitFacts
+            {
+                System = raw.UnitSystem,
+                Length = length,
+                LengthSystem = LengthSystemOf(length),
+                LengthAccuracy = raw.LengthAccuracy,
+                Area = UnitName(Id(raw, "area")),
+                Angle = UnitName(Id(raw, "angle")),
+                Slope = UnitName(Id(raw, "slope")),
+            };
+        }
+
+        // METRIC or IMPERIAL for a length unit name, null for a name that is none of the length units of Revit 2024
+        public static string LengthSystemOf(string unitName)
+        {
+            string system;
+            return unitName != null && LengthSystems.TryGetValue(unitName, out system) ? system : null;
         }
 
         private static string Id(RawSite raw, string spec)
@@ -125,6 +200,9 @@ namespace SiteAdaptation.Common
         public double EastWest { get; set; }
         public double NorthSouth { get; set; }
         public double Elevation { get; set; }
+
+        // R311. Written at SiteFacts.AngleDecimals, not at the 3 decimals of R2
+        [JsonConverter(typeof(JsonOut.DecimalsConverter), SiteFacts.AngleDecimals)]
         public double AngleDeg { get; set; }
     }
 
@@ -141,9 +219,17 @@ namespace SiteAdaptation.Common
 
     public class UnitFacts
     {
+        // Document.DisplayUnitSystem, the system the project was made in
         public string System { get; set; }
+
+        // The length unit of the project units now and its system, which follow a change of the units
         public string Length { get; set; }
+        public string LengthSystem { get; set; }
+
+        // R311. As Revit gives it, so a step of 0.0001 m is not rounded to 0 by R2
+        [JsonConverter(typeof(JsonOut.UnroundedConverter))]
         public double? LengthAccuracy { get; set; }
+
         public string Area { get; set; }
         public string Angle { get; set; }
         public string Slope { get; set; }

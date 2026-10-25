@@ -7,25 +7,29 @@ using SiteAdaptation.Common;
 namespace RevitPrototypeReader
 {
     // R311. The place of a project as the Revit API gives it, in feet and radians. It only reads, SiteFacts.Build in Common
-    // converts and sorts. A part that does not read is one line in errors and the rest still reads
+    // converts and sorts. A part that does not read is one line in errors and in NotRead, its values stay null and the rest still
+    // reads. Each part sets its values only once all of them read, so a part is never half filled
     internal static class RevitSite
     {
         public static RawSite Read(Document doc, IList<string> errors)
         {
             var raw = new RawSite();
-            Guard("sites", errors, () =>
+            Guard("sites", raw, errors, () =>
             {
-                raw.ActiveSite = doc.ActiveProjectLocation.Name;
-                raw.Sites = doc.ProjectLocations.Cast<ProjectLocation>().Select(location => location.Name).ToList();
-                raw.PlaceName = doc.SiteLocation.PlaceName;
+                string active = doc.ActiveProjectLocation.Name;
+                List<string> sites = doc.ProjectLocations.Cast<ProjectLocation>().Select(location => location.Name).ToList();
+                string place = doc.SiteLocation.PlaceName;
+                raw.ActiveSite = active;
+                raw.Sites = sites;
+                raw.PlaceName = place;
             });
-            Guard("project position", errors, () =>
+            Guard("project position", raw, errors, () =>
             {
                 ProjectPosition position = doc.ActiveProjectLocation.GetProjectPosition(XYZ.Zero);
                 raw.ProjectPositionFeet = new[] { position.EastWest, position.NorthSouth, position.Elevation };
                 raw.AngleRadians = position.Angle;
             });
-            Guard("levels", errors, () =>
+            Guard("levels", raw, errors, () =>
             {
                 raw.Levels = new FilteredElementCollector(doc).OfClass(typeof(Level)).Cast<Level>().Select(level => new RawLevel
                 {
@@ -36,20 +40,24 @@ namespace RevitPrototypeReader
                     ElevationBase = doc.GetElement(level.GetTypeId())?.get_Parameter(BuiltInParameter.LEVEL_RELATIVE_BASE_TYPE)?.AsValueString(),
                 }).ToList();
             });
-            Guard("units", errors, () =>
+            Guard("units", raw, errors, () =>
             {
+                // DisplayUnitSystem is the system the project was made in. The format options of the project units are what it has now
                 Units units = doc.GetUnits();
-                raw.UnitSystem = doc.DisplayUnitSystem.ToString();
-                raw.UnitTypeIds = new Dictionary<string, string>
+                string system = doc.DisplayUnitSystem.ToString();
+                var ids = new Dictionary<string, string>
                 {
                     ["length"] = units.GetFormatOptions(SpecTypeId.Length).GetUnitTypeId().TypeId,
                     ["area"] = units.GetFormatOptions(SpecTypeId.Area).GetUnitTypeId().TypeId,
                     ["angle"] = units.GetFormatOptions(SpecTypeId.Angle).GetUnitTypeId().TypeId,
                     ["slope"] = units.GetFormatOptions(SpecTypeId.Slope).GetUnitTypeId().TypeId,
                 };
-                raw.LengthAccuracy = units.GetFormatOptions(SpecTypeId.Length).Accuracy;
+                double accuracy = units.GetFormatOptions(SpecTypeId.Length).Accuracy;
+                raw.UnitSystem = system;
+                raw.UnitTypeIds = ids;
+                raw.LengthAccuracy = accuracy;
             });
-            Guard("categories", errors, () =>
+            Guard("categories", raw, errors, () =>
             {
                 raw.Categories = new FilteredElementCollector(doc).WhereElementIsNotElementType().ToElements()
                     .Select(element => element.Category)
@@ -59,7 +67,7 @@ namespace RevitPrototypeReader
             return raw;
         }
 
-        private static void Guard(string part, IList<string> errors, Action read)
+        private static void Guard(string part, RawSite raw, IList<string> errors, Action read)
         {
             try
             {
@@ -67,7 +75,10 @@ namespace RevitPrototypeReader
             }
             catch (Exception failure)
             {
-                errors.Add("site " + part + ": " + ModelReader.Describe(failure));
+                string reason = ModelReader.Describe(failure);
+                errors.Add("site " + part + ": " + reason);
+                raw.NotRead = raw.NotRead ?? new Dictionary<string, string>();
+                raw.NotRead[part] = reason;
             }
         }
     }

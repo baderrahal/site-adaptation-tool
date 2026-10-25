@@ -31,14 +31,65 @@ def codes_in(text):
     return CODE.findall(text or "")
 
 
-def file_names(root):
-    """Every file under root whose name holds an IM code: code, folder relative to root and name."""
+COPY_FIELDS = ("folder", "reason")
+
+
+def copy_folders(entries):
+    """R301. The folders under the source root that hold copies this tool made, each named in the config with its reason, as
+    folders relative to the root with / between their parts. A folder outside the root, with a parent step, empty or with no
+    reason is refused, so a copy is never counted apart in silence."""
+    folders = []
+    for entry in entries or []:
+        if not isinstance(entry, dict) or set(entry) != set(COPY_FIELDS):
+            raise ValueError("a copy folder holds exactly %s: %r" % (", ".join(COPY_FIELDS), entry))
+        folder, reason = entry["folder"], entry["reason"]
+        if not isinstance(reason, str) or not reason.strip():
+            raise ValueError("a copy folder names its reason: %r" % entry)
+        parts = folder.replace("\\", "/").split("/") if isinstance(folder, str) else []
+        if not parts or any(part in ("", ".", "..") for part in parts) or ":" in folder:
+            raise ValueError("a copy folder is a folder under the source root with no parent step: %r" % folder)
+        folders.append("/".join(parts))
+    return tuple(folders)
+
+
+def copy_folder_of(relative, copies):
+    """The copy folder a folder relative to the root sits in, or None."""
+    relative = relative.replace(os.sep, "/")
+    for folder in copies:
+        if relative == folder or relative.startswith(folder + "/"):
+            return folder
+    return None
+
+
+def file_names(root, copies=()):
+    """Every file under root whose name holds an IM code: code, folder relative to root and name. A file inside a copy folder of
+    copy_folders carries that folder as copyFolder, so it is counted apart from the source files (R301)."""
     found = []
     for folder, _, names in os.walk(root):
+        relative = os.path.relpath(folder, root)
+        copy = copy_folder_of(relative, copies)
         for name in names:
             for code in set(codes_in(name)):
-                found.append({"code": code, "folder": os.path.relpath(folder, root), "file": name})
+                entry = {"code": code, "folder": relative, "file": name}
+                if copy:
+                    entry["copyFolder"] = copy
+                found.append(entry)
     return found
+
+
+def name_counts(names):
+    """R301. Per IM code the source files and their folders, and apart from them the copies and their copy folders."""
+    counts = defaultdict(lambda: {"fileNames": 0, "folders": Counter(), "copyFileNames": 0, "copyFolders": Counter()})
+    for entry in names:
+        row = counts[entry["code"]]
+        if entry.get("copyFolder"):
+            row["copyFileNames"] += 1
+            row["copyFolders"][entry["copyFolder"]] += 1
+        else:
+            row["fileNames"] += 1
+            row["folders"][entry["folder"]] += 1
+    return {code: {"fileNames": v["fileNames"], "folders": dict(v["folders"]), "copyFileNames": v["copyFileNames"], "copyFolders": dict(v["copyFolders"])}
+            for code, v in counts.items()}
 
 
 def in_texts(texts, where, context=50):
@@ -227,7 +278,7 @@ def run(config):
     root = Path(book["root"])
     out = root / book["data5"]["outFolder"] / book["data5"]["areaKey"]["outFolder"]
     out.mkdir(parents=True, exist_ok=True)
-    names = file_names(config["sourceRoot"])
+    names = file_names(config["sourceRoot"], copy_folders(settings.get("copyFolders")))
     texts = []
     for pdf in settings["pdfs"]:
         texts += in_texts(pdf_texts(root / "work" / pdf), pdf)
@@ -247,16 +298,16 @@ def run(config):
         kind, keys = plots_of(source, plots)
         sources.append({"name": source["name"], "file": source["file"], "job": source["job"], "codes": sorted(set(codes_in(source["file"]))), "plots": len(keys),
                         "byZoneAndNbh": nbh_counts(keys, key_of[kind])})
-    by_code = defaultdict(lambda: {"fileNames": 0, "folders": Counter(), "texts": Counter(), "sources": []})
-    for entry in names:
-        by_code[entry["code"]]["fileNames"] += 1
-        by_code[entry["code"]]["folders"][entry["folder"]] += 1
+    by_code = defaultdict(lambda: {"fileNames": 0, "folders": {}, "copyFileNames": 0, "copyFolders": {}, "texts": Counter(), "sources": []})
+    for code, counts in name_counts(names).items():
+        by_code[code].update(counts)
     for entry in texts:
         by_code[entry["code"]]["texts"][entry["where"]] += 1
     for source in sources:
         for code in source["codes"]:
             by_code[code]["sources"].append(source["name"])
-    report = {"codes": {code: {"fileNames": v["fileNames"], "folders": dict(v["folders"]), "texts": dict(v["texts"]), "sources": v["sources"]}
+    report = {"codes": {code: {"fileNames": v["fileNames"], "folders": v["folders"], "copyFileNames": v["copyFileNames"], "copyFolders": v["copyFolders"],
+                               "texts": dict(v["texts"]), "sources": v["sources"]}
                         for code, v in sorted(by_code.items())},
               "sources": sources, "tableAgainstSources": table_against_sources(load_table(REPO / settings["table"]), sources), "textContexts": sorted({(t["code"], t["where"], t["context"]) for t in texts})[: settings["contextsKept"]]}
     (out / "im_codes.json").write_text(json.dumps(report, indent=1), encoding="utf-8")

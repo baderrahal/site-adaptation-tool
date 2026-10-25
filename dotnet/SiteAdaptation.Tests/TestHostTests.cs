@@ -377,7 +377,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("[IO.Path]::ChangeExtension($jobPath, '.refused.json')", script);
             Assert.Contains("$runPath = Join-Path $docs ('testhost_' + $name + '_run.json')", script);
             // R310. The peak memory of run.json comes from the samples of the window
-            Assert.Contains("peakMb     = $peaks.peakWorkingSetMb", script);
+            Assert.Contains("peakMb     = $peaks.peakWorkingSetMib", script);
             Assert.Contains("$samplesPath = Join-Path $docs ('testhost_' + $name + '_samples.jsonl')", script);
             Assert.DoesNotContain("'testhost_job.json'", script);
             Assert.DoesNotContain("'testhost_refused.json'", script);
