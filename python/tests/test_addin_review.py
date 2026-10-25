@@ -271,8 +271,8 @@ def made_key_rules():
     }
 
 
-def key_build(tmp_path, monkeypatch, zones=("Zone 2", "Zone 2", "Zone 2", "Zone 4"), overrides=None):
-    """plan_from_book.rule_inputs and build on a row of four 12 m plots with one road in front, the road level stubbed."""
+def key_build(tmp_path, monkeypatch, zones=("Zone 2", "Zone 2", "Zone 2", "Zone 4"), overrides=None, road=None):
+    """plan_from_book.rule_inputs and build on a row of four 12 m plots with one road in front, the road level stubbed, by road when given."""
     import argparse
     from shapely.geometry import LineString, box
     import plan_from_book
@@ -288,7 +288,7 @@ def key_build(tmp_path, monkeypatch, zones=("Zone 2", "Zone 2", "Zone 2", "Zone 
             for number, zone in zip(numbers, zones)}
     faces = {number: box(index * 12.0, 0.0, index * 12.0 + 12.0, 25.0) for index, number in enumerate(numbers)}
     roads = [LineString([(-50.0, -3.0), (100.0, -3.0)])]
-    monkeypatch.setattr(plan_from_book, "road_level", lambda surfaces, point, snap: (10.0, "road"))
+    monkeypatch.setattr(plan_from_book, "road_level", road or (lambda surfaces, point, snap: (10.0, "road")))
     path = None
     if overrides is not None:
         path = tmp_path / "overrides.json"
