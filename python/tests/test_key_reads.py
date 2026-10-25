@@ -227,6 +227,51 @@ def test_r322_a_run_merges_its_keys_into_the_file_and_keeps_the_keys_of_earlier_
     assert (reads / "key_reads.json").read_text(encoding="utf-8") == "[1, 2]"
 
 
+def test_r322_spots_on_a_link_instance_are_one_host_kind_with_the_link_file_beside_it(tmp_path):
+    import key_reads
+    document = made_up_read()
+    # The SE spots come by the dependents route of R55, the link instance holds them and no linkedElementId is given
+    document["spotElevations"] += [{"elementId": 34, "host": {"elementId": 3, "category": "RVT Links", "typeName": "B.rvt : 1 : location"}, "hostSource": "dependents"},
+                                   {"elementId": 35, "host": {"elementId": 1, "category": "RVT Links", "typeName": "A.rvt"}, "hostSource": "dependents"}]
+    spots = key_reads.counts(document, pf.load_floors(key_settings(tmp_path)))["spots"]
+
+    assert spots["byHost"] == {"Floors: Ramp B": 1, "Floors: Slab F": 1, "in a link": 3, "no host": 1}
+    assert spots["inLinkByFile"] == {"A.rvt": 1, "B.rvt": 2}
+
+
+def test_r322_rows_two_keys_both_hold_are_named_shared_so_a_total_over_keys_counts_them_once(tmp_path):
+    import key_reads
+    settings = key_settings(tmp_path)
+    reads = tmp_path / "reads"
+    two = dict(made_up_read(), file="X-IMY-model_TEST-QY")
+    two["links"] = [dict(link, elementId=link["elementId"] + 100) for link in two["links"]]
+    # The same id with another row is no shared row, ids of two models meet by chance
+    two["walls"][0] = dict(two["walls"][0], typeName="Wall 9")
+    two["spotElevations"] = []
+    write_read(reads, "QX", made_up_read())
+    write_read(reads, "QY", two)
+    base = ["--settings", str(settings.path), "--reads", str(reads)]
+
+    assert key_reads.main(base + key_args("IMX=QX", "IMY=QY")) == 0
+    written = json.loads((reads / "key_reads.json").read_text(encoding="utf-8"))
+    assert written["keys"]["IMX"]["sharedWith"] == {"IMY": {"floors": 5, "walls": 2}}
+    assert written["keys"]["IMY"]["sharedWith"] == {"IMX": {"floors": 5, "walls": 2}}
+    assert "sharedWith" in written["note"]
+    # A later run of one key still names the rows it shares with a key the file keeps
+    assert key_reads.main(base + key_args("IMY=QY")) == 0
+    written = json.loads((reads / "key_reads.json").read_text(encoding="utf-8"))
+    assert written["keys"]["IMX"]["sharedWith"] == {"IMY": {"floors": 5, "walls": 2}}
+    assert written["keys"]["IMY"]["sharedWith"] == {"IMX": {"floors": 5, "walls": 2}}
+    assert written["sharedNotChecked"] == []
+    # A key whose read is gone keeps its counts, and the run says the shares with it were not checked
+    import shutil
+    shutil.rmtree(reads / "QX")
+    assert key_reads.main(base + key_args("IMY=QY")) == 0
+    written = json.loads((reads / "key_reads.json").read_text(encoding="utf-8"))
+    assert written["sharedNotChecked"] == ["IMX"]
+    assert written["keys"]["IMX"]["sharedWith"] is None and written["keys"]["IMY"]["sharedWith"] == {}
+
+
 def test_r322_a_link_with_no_file_is_no_file_and_two_names_in_another_case_are_one_file():
     import key_reads
     links = [{"file": "A.rvt", "plotNumber": "1"}, {"file": "a.RVT", "plotNumber": "2"}, {"file": None, "plotNumber": "3"}, {"plotNumber": None}]

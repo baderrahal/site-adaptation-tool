@@ -20,6 +20,8 @@ OUTPUT = "key_reads.json"
 NO_KIND = "none"
 IN_LINK = "in a link"
 NO_HOST = "no host"
+SECTIONS = ("links", "floors", "walls", "spotElevations")
+SECTION_NAMES = {"links": "links", "floors": "floors", "walls": "walls", "spotElevations": "spots"}
 WINDOW_STEPS = (("openSeconds", "openModel"), ("readSeconds", "read"))
 MEMORY_KEYS = ("peakPrivateMib", "peakWorkingSetMib", "throughExit", "minFreeGib", "samplesUnderFloor", "notResponding")
 
@@ -53,21 +55,32 @@ def wall_counts(walls):
     return {"count": len(walls), "byType": by_name(str(wall.get("typeName")) for wall in walls)}
 
 
-def host_kind(spot):
-    """The category and type of the host of a spot, in a link when its reference points into one, no host when none was found."""
+def link_files(links):
+    """The file of each link instance of the read by its element id."""
+    return {link.get("elementId"): link.get("file") for link in links or [] if link.get("elementId") is not None}
+
+
+def host_kind(spot, files=None):
+    """R322. The kind of the host of a spot and the link file when it is in a link: no host when none was found, in a link when
+    its reference points into a link or a link instance of the read holds it, as the SE spots of the dependents route of R55,
+    else the category and type of the host."""
     host = spot.get("host")
     if not host:
-        return NO_HOST
-    if host.get("linkedElementId") is not None:
-        return IN_LINK
-    return str(host.get("category")) + ": " + str(host.get("typeName"))
+        return NO_HOST, None
+    files = files or {}
+    if host.get("linkedElementId") is not None or host.get("elementId") in files:
+        return IN_LINK, files.get(host.get("elementId"))
+    return str(host.get("category")) + ": " + str(host.get("typeName")), None
 
 
-def spot_counts(spots):
+def spot_counts(spots, links=None):
     if spots is None:
         return None
+    files = link_files(links)
+    kinds = [host_kind(spot, files) for spot in spots]
     return {"count": len(spots), "withValue": sum(1 for spot in spots if spot.get("value") is not None),
-            "byHost": by_name(host_kind(spot) for spot in spots)}
+            "byHost": by_name(kind for kind, _ in kinds),
+            "inLinkByFile": by_name(str(file) for kind, file in kinds if kind == IN_LINK)}
 
 
 def level_counts(site):
@@ -80,8 +93,44 @@ def level_counts(site):
 def counts(document, settings_floors):
     """R322. The counts of one project document of the reader, read by the floors block of its key."""
     return {"links": link_counts(document.get("links")), "floors": floor_counts(document.get("floors"), settings_floors),
-            "walls": wall_counts(document.get("walls")), "spots": spot_counts(document.get("spotElevations")),
+            "walls": wall_counts(document.get("walls")), "spots": spot_counts(document.get("spotElevations"), document.get("links")),
             "levels": level_counts(document.get("site"))}
+
+
+def shared_rows(documents):
+    """R322. Per key and per other key the rows of each section both reads hold, the same element id with the same whole row, as
+    the 733 Generic floors of IMA and IMB. Element ids of two models meet by chance, so an id alone is no shared row."""
+    result = {code: {} for code in documents}
+    for code, document in documents.items():
+        for other, second in documents.items():
+            if other == code:
+                continue
+            for section in SECTIONS:
+                rows = {row.get("elementId"): row for row in second.get(section) or [] if row.get("elementId") is not None}
+                same = sum(1 for row in document.get(section) or [] if row.get("elementId") is not None and rows.get(row["elementId"]) == row)
+                if same:
+                    result[code].setdefault(other, {})[SECTION_NAMES[section]] = same
+    return result
+
+
+def read_of(reads, job):
+    """The project document of the read of a job in the reads folder, None when its file is gone."""
+    path = Path(reads) / job / ("testhost_" + job + "_prototypes.json")
+    return project_document(load(path)) if path.is_file() else None
+
+
+def with_shares(keys, documents, reads):
+    """R322. sharedWith for every key of the file, from the reads of this run and the reads of the keys an earlier run wrote. A key
+    whose read is gone keeps its counts with sharedWith null and is named in the list of keys whose shares were not checked."""
+    found = dict(documents)
+    for code, entry in keys.items():
+        if code not in found:
+            found[code] = read_of(reads, entry.get("job"))
+    missing = [code for code in keys if found[code] is None]
+    shares = shared_rows({code: document for code, document in found.items() if document is not None})
+    for code, entry in keys.items():
+        entry["sharedWith"] = None if code in missing else shares[code]
+    return missing
 
 
 def window_facts(run, log):
@@ -117,14 +166,16 @@ def refuse_repeats(parser, pairs):
 
 
 def key_entry(settings, reads, code, job):
+    """R322. The entry of one key and the project document of its read."""
     folder = Path(reads) / job
     prefix = "testhost_" + job + "_"
     floors = plan_from_past.load_floors(settings, code)
     document = project_document(load(folder / (prefix + "prototypes.json")))
     plan_from_past.check_key_file(settings, code, document.get("file"))
-    return {"job": job, "file": (folder / (prefix + "prototypes.json")).name, "fileMib": round((folder / (prefix + "prototypes.json")).stat().st_size / 1048576.0, 2),
-            "errors": len(document.get("errors") or []), "counts": counts(document, floors),
-            "window": window_facts(load(folder / (prefix + "run.json")), load(folder / (prefix + "log.json")))}
+    entry = {"job": job, "file": (folder / (prefix + "prototypes.json")).name, "fileMib": round((folder / (prefix + "prototypes.json")).stat().st_size / 1048576.0, 2),
+             "errors": len(document.get("errors") or []), "counts": counts(document, floors),
+             "window": window_facts(load(folder / (prefix + "run.json")), load(folder / (prefix + "log.json")))}
+    return entry, document
 
 
 def earlier_keys(path):
@@ -161,9 +212,9 @@ def render(report):
     for code, entry in report["keys"].items():
         found, window = entry["counts"], entry["window"]
         links, floors, walls, spots, levels = found["links"], found["floors"], found["walls"], found["spots"], found["levels"]
-        lines.append("%s (%s): links %s, floors %s, walls %s, spots %s, levels %s, window %s min, peak private %s MiB" % (
+        lines.append("%s (%s): links %s, floors %s, walls %s, spots %s, levels %s, window %s min, peak private %s MiB, shared with %s" % (
             code, entry["job"], links and links["instances"], floors and floors["byKind"], walls and walls["count"],
-            spots and spots["count"], levels and levels["count"], window["minutes"], window["peakPrivateMib"]))
+            spots and spots["count"], levels and levels["count"], window["minutes"], window["peakPrivateMib"], entry.get("sharedWith")))
     return "\n".join(lines)
 
 
@@ -178,10 +229,15 @@ def main(argv=None):
     settings = project_profile.load_settings(args.settings)
     path = Path(args.reads) / OUTPUT
     earlier_keys(path)
-    entries = {code: key_entry(settings, args.reads, code, job) for code, job in args.key}
+    entries, documents = {}, {}
+    for code, job in args.key:
+        entries[code], documents[code] = key_entry(settings, args.reads, code, job)
+    keys = merged(path, entries)
+    missing = with_shares(keys, documents, args.reads)
     report = {"note": "R322. Counts per answer key read, no coordinate or level. Floors by kind follow floors.types and floors.keyTypes (R321). "
-                      "A run writes the keys it is given and keeps the other keys of the file.",
-              "keys": merged(path, entries)}
+                      "A run writes the keys it is given and keeps the other keys of the file. sharedWith gives per other key the rows of each "
+                      "section both reads hold with the same element id and the same whole row, count them once in a total over keys.",
+              "sharedNotChecked": missing, "keys": keys}
     write_json(path, report)
     print(render(report))
     return 0
