@@ -611,111 +611,144 @@ A second breaker pass read PR 45. Each code fix has a test that names its rule, 
 
 ## Phase 2 part 2, PR 46 data/addin-key-plans
 
-Branch data/addin-key-plans from main at 104c1f3, equal to origin/main after git fetch (RAN). Rules R325 to R328 are new, R329 is not used, the PR holds four changes. R325 changes how R206 and R264 map a link, R326 adds the source column to R269 and fills the parsons table of R301. The phase ran in a helper agent started by the main session, which runs the checkers and merges. No Revit or Civil 3D window was opened, the reads of 2a are the input, so the lock was not taken and the registry was not read or written. Values of coordinates and levels stay in Documents\SiteAdaptation, this file holds counts, plot numbers, ids and differences only.
+Branch data/addin-key-plans from main at 104c1f3, equal to origin/main after git fetch (RAN). Rules R325 to R328 are new, R329 is not used, the PR holds four changes. R325 changes how R206 and R264 map a link, R326 adds the source and kind columns to R269 and fills the parsons table of R301. The phase ran in a helper agent started by the main session, which runs the checkers and merges. No Revit or Civil 3D window was opened, the reads of 2a are the input, so the lock was not taken and the registry was not read or written. Values of coordinates and levels stay in Documents\SiteAdaptation, this file holds counts, plot numbers, ids and differences only.
+
+The breaker and the claim checker read the first push (head 5ecd49b). Their 19 items were fixed in new commits bc5a743 to the record commit, each code fix with its test seen failing first, and every output of 2b was made again. The numbers below are those of the rerun, the first run is kept only where it says so.
 
 ### Originals and inputs (R201, R202)
 
-- The 60 files of 2a (the 40 originals, the 7 key copies, the 13 Revit 2021 STR files) hashed with sha256sum before the first edit, 60 of 60 equal to originals_p2a_after.txt, and after the last run 60 of 60 equal by sha256sum and by Get-FileHash (RAN, round_addin\logs\originals_p2b_before.txt, originals_p2b_after.txt, inputs_p2b_summary.txt).
-- 61 inputs hashed before and after: the 51 files of the 7 reads, round_17\past_all.csv, plots.csv, labels.csv and the baseplan plots.json of the round_17 snapshot, plan_imc_past.json, prototypes_imc_past.json, the three Native plans and footprint_imc.json, 61 of 61 equal by hash (RAN, inputs_p2b_before.txt, inputs_p2b_after.txt, the last line was hashed before by its full path). So no read of 2a, no key copy, round_17\past_all.csv and plan_imc_past.json were written.
+- First run: the 60 files of 2a (the 40 originals, the 7 key copies, the 13 Revit 2021 STR files) and 61 inputs (the 51 files of the 7 reads, round_17\past_all.csv, plots.csv, labels.csv and the baseplan plots.json of the round_17 snapshot, plan_imc_past.json, prototypes_imc_past.json, the three Native plans and footprint_imc.json) were equal by hash before and after (RAN, round_addin\logs\originals_p2b_before.txt, originals_p2b_after.txt, inputs_p2b_before.txt, inputs_p2b_after.txt).
+- Review run: the same 60 and 61 hashed before the first fix, equal to the after files of the first run, and again after the last run (RAN, originals_p2b_fix_before.txt and _after.txt, inputs_p2b_fix_before.txt and _after.txt, the counts are in the PR body). So no read of 2a, no key copy, round_17\past_all.csv and plan_imc_past.json were written. config/overrides/roshn-makkah.json was hashed before and after the majority run of the review, equal (RAN, p2b_fix_overrides_hash_before.txt).
+
+### What the review changed (R325 to R328)
+
+| Item | Change | Test, seen failing first in round_addin\logs |
+|---|---|---|
+| 1 | A generic floor of a key joins the one baseplan face that holds cadLinks.cutShareMin (0.9, R120) of its area, in the plan and in the join, never the face its representative point falls on. Below that the plot is cut and listed with every face, number and share. IMB 1995, IME 2634, IMF 702 and IMG 480 and 481 sat 0.50 on two faces and were filed by chance | test_r325_a_generic_floor_joins_a_face_only_by_an_area_share..., test_r325_main_joins_by_the_cut_share..., test_r326_a_generic_floor_joins_the_face_that_holds_cut_share_min..., p2b_fix_r325_first.txt, p2b_fix_r326_join_first.txt |
+| 2 | Two key plots on one official number are twoPlots, listed by number, and neither counts as joined or in the area row | test_r326_two_key_plots_on_one_official_number..., p2b_fix_r326_join_first.txt |
+| 3 | An ELl@Entry value that puts the flat floor top outside keyPlans.entryHeightM (0.0 to 1.5 m) over it is refused with the height it gives and never used, and the plan has no height for it. The spot counts leave it out too | test_r325_an_el_at_entry_parameter_whose_height_is_outside_the_band..., test_r327_a_key_value_whose_floor_top_is_outside..., p2b_fix_r325_first.txt, p2b_fix_r327_band_first.txt |
+| 4, 14 | A spot counts for a plot only when its host floor names that plot, and the spots are grouped by that plot first | test_r327_a_spot_on_a_floor_of_another_plot..., p2b_fix_r327_first.txt |
+| 5 | past_all.csv has a kind column from answerKeys (TU or SE), majority.kindLeaveOut keeps the SE rows out of the ramp slope, El @ Entry, ramp front and fall, height, steps and yard decisions | test_r326_the_majority_rule_leaves_the_rows_of_a_kind_out..., test_r326_a_majority_run_over_the_real_past_all..., p2b_fix_r326_past_all_first.txt |
+| 6 | El @ Entry of a key plan has the source keyParameter, the plan of the past job keeps pastJob for its schedule | test_r325_a_key_plan_labels_el_at_entry_by_the_key_parameter..., p2b_fix_r325_first.txt |
+| 7 | --schedule-entry gives El @ Entry of a schedule only to the key pastAll.scheduleKeys names for its pastSource, and heightSource says what the height was worked out from | test_r326_the_schedule_gives_el_at_entry_only_to_the_key_of_its_own_job..., p2b_fix_r326_past_all_first.txt |
+| 8 | entry_spots.py finds the schedule by the official number of the join (--join), the second method by the official number of its own join | test_r327_el_at_entry_of_the_schedule_is_found_by_the_official_number..., p2b_fix_r327_first.txt |
+| 9 | The second method draws its samples from every plot of the read, ties a link by the face its house centre stands on, and checks walls per plot, height, steps, modelPlot, source, kind, entrySource and heightSource, and the counts of join, area row, plan and past_all.csv | the R328 tests of test_key_plans_check.py, p2b_fix_r328_first.txt |
+| 10 | number_routes takes the whole number after the last dash, so VD2-0481 and TH1-481 both end in 481 | test_r325_the_number_route_takes_the_whole_number..., p2b_fix_r325_first.txt |
+| 11 | An answer key plan is never written over pastJob.output, with or without --key, and with --key never under the name or over the plan of another key | test_r325_an_answer_key_plan_with_no_out..., test_r325_a_key_plan_is_never_written_under_the_name_of_another_key..., p2b_fix_r325_first.txt |
+| 12 | key_join.json and entry_spots.json keep the inputs and settings of each key, the second method reads them per key | test_r326_each_key_of_the_join_keeps_the_inputs..., test_r327_each_key_keeps_the_settings..., p2b_fix_r327_first.txt |
+| 13 | The second method reads floors.plotParameter, the spot bands come from entrySpots.bandsM | test_r328_the_sample_is_drawn_from_every_plot..., the R327 settings tests |
+
+- keyPlans.entryHeightM 0.0 to 1.5 m (CHOSEN, measured): on the 7 reads every generic floor top stands 0.05 to 0.8 m over its ELl@Entry but 21, IMC 10 and IMD 4 whose value is 0, IMF 6 whose value is 150.0 and IMD 1217, which stand 14.8 m to 174 m off it (RAN, scratchpad heights_probe.py).
+- The R321 test of a key plan now names its plan plan_imx.json, as item 11 asks of a key plan. The R301 test pins the new parsons counts. The join on every plot of the second method was added after its tests and has no test of its own.
 
 ### R325, the plans of the answer keys
 
-- Before: plan_from_past.py --answer-key --names (R206) mapped a link by its Name when that is a floor Plot value, else by its frame (R264), learned on the links mapped by Name. The 1,858 plot links of the 5 TU keys have a Name with bars, the plot, the unit and three more parts, and no floor Plot value, so no TU link mapped and no frame was learned. The SE Names are floor Plot values (READ, the reads).
-- Now a link maps first by its RRE_ZZ_SP_Plot-Number, the one floor Plot value whose number after the last dash is it, then by its Name, then by its frame, keeps its own unit, and loses its plot number when nothing maps it. With --key the plan holds El @ Entry of the ELl@Entry parameter of the generic floor and the steps of the link, the height computed, modelPlot, the code of the key as neighbourhood and walls with their plots, and is never written over pastJob.output (CHOSEN, the brief). Two faults of R206 came up on the real keys and are fixed: a number two generic floors stand on left the first floor and its link mapped to a row that was gone (KeyError 480 on IMG, RAN), and a floor whose Plot value has no official number kept the plot number of the model and could join a plot by it (READ, found by reading floor_index).
-- Tests first (RAN, round_addin\logs\p2b_r325_first.txt): 13 of 14 failed at first, AttributeError for load_key_plans and key_walls, TypeError for entry_parameter, KeyError for link mapped by parameter, the link of 999 keeping 999 and a unit of None. The two main tests failed with AAA for IMX and DID NOT RAISE with the main part taken out, the given twice test with KeyError 501, the no official number test with 501, 501, 502. Then 18 passed.
-- The 7 plans, IMC first (RAN, round_addin\logs\p2b_plan_<code>.txt), in Documents\SiteAdaptation: plan_imc_key_past.json, since plan_imc_past.json is kept, and plan_imd_past.json to plan_img_past.json, plan_ima_past.json and plan_imb_past.json.
+- Before 2b: plan_from_past.py --answer-key --names (R206) mapped a link by its Name when that is a floor Plot value, else by its frame (R264). The 1,858 plot links of the 5 TU keys have a Name with bars and no floor Plot value, so no TU link mapped (READ, the reads).
+- Now a link maps first by its RRE_ZZ_SP_Plot-Number, then by its Name, then by its frame, keeps its own unit and loses its plot number when nothing maps it. With --key the plan holds El @ Entry of the ELl@Entry parameter within the band, the steps of the link, the height computed, modelPlot, the code of the key as neighbourhood and walls with their plots (CHOSEN, the brief).
+- The 7 plans of the rerun, IMC first (RAN, round_addin\logs\p2b_fix_plan_<code>.txt), in Documents\SiteAdaptation: plan_imc_key_past.json, since plan_imc_past.json is kept, and plan_imd_past.json to plan_img_past.json, plan_ima_past.json and plan_imb_past.json, each over the plan the first run of 2b wrote.
 
-| Key | Plots written | Links by parameter | Links not mapped | Floors with no official number | Walls | Walls on no plot |
-|---|---|---|---|---|---|---|
-| IMC | 335 of 337 link plots | 335 | 3, the landscape link, 2312, 2441 | 3 | 926 | 4 |
-| IMD | 410 | 410 | 1, the landscape link | 0 | 1,138 | 0 |
-| IME | 321 | 321 | 4 | 6 | 894 | 6 |
-| IMF | 481 | 481 | 10 | 18 | 1,317 | 20 |
-| IMG | 281 | 281 | 17 | 32 | 859 | 38 |
-| IMA | 431 of 726 rows | 431 | 2 | 7 | 2,323 | 2 |
-| IMB | 295 of 726 rows | 295 | 7 | 7 | 1,515 | 22 |
+| Key | Plots written | Links by parameter | Links not mapped | Generic floors cut | El @ Entry refused | Floors with no official number | Walls | Walls on no plot |
+|---|---|---|---|---|---|---|---|---|
+| IMC | 324 | 324 | 14 | 12 | 10 | 25 | 926 | 25 |
+| IMD | 403 | 403 | 8 | 7 | 5 | 14 | 1,138 | 10 |
+| IME | 320 | 320 | 5 | 4 | 0 | 8 | 894 | 10 |
+| IMF | 476 | 476 | 15 | 14 | 6 | 28 | 1,317 | 30 |
+| IMG | 268 | 268 | 30 | 19, and 10 on no face | 0 | 58 | 859 | 68 |
+| IMA | 420 of 710 rows | 420 | 13 | 23 | 0 | 23 | 2,323 | 49 |
+| IMB | 290 of 710 rows | 290 | 12 | 23 | 0 | 23 | 1,515 | 47 |
 
-(RAN.) The rows of IMA and IMB are the 726 of the 733 shared Generic floors on a face of one label, a plot with no link of that key is listed as missing its link. IMG has one official number two generic floors stand on (480 and 481 on face 488), so both leave the plan. No link was loaded in a read, so the position proof of R82 has 0 links. 1 to 3 walls run along three plots on IMC, IMD and IMG.
-- The new IMC plan against plan_imc_past.json, leaf by leaf (RAN, round_addin\logs\p2b_plan_fields.py, p2b_plan_fields_imc.txt and .json) and by plan_compare.py --against-plan of R129 on a copy in round_addin\plans_compare (RAN, p2b_plan_compare_r129.txt): 335 plots in both, 2312 and 2441 only in the old plan, 2312 on a face of two plan labels and 2441 with no generic floor. Equal on 335 of 335: case, insert in plan and its Z, rotation, mirror, unit, prototype file, link Name, the 9 parameters, steps, FFL, the generic and ramp floors whole (type, level, outline, plot value, z or corners), the yard on 334 of 334. El @ Entry differs, the new plan takes the ELl@Entry parameter of the generic floor and the old the schedule: equal 27, within 1 mm 182 (the parameter holds 3 decimals, the schedule 4), within 30 mm 12, worse 114, of those 10 hold 0 and 104 sit 0.040 to 0.080 m (10th to 90th percentile, median 0.070) under the schedule (RAN). Why is UNKNOWN. The height follows it. SSL is only in the old plan, the key holds none. modelPlot, walls and answerKeyOnly are only in the new. R129 gives the same on its 320 plots outside the plotFrame list.
-- What Part 2 needs for sheets, kept in each plan (step 5): the official number (plot) and the number of the model (modelPlot), the setting out points, the link origin in shared coordinates (insert), the generic and yard outlines with arcs and the four ramp corners with their levels, the levels FFL, El @ Entry, height and steps (no SSL, the keys hold none), the link file, rotation, mirror, unit, CASE and the 9 parameters, and walls: id, type, length, height, base and top constraint and offset, location line, the ends of its location line and its plots (CHOSEN). The plots of a wall go by the middle of its location line, the wall faces and width are not read (R17).
+(RAN.) The rows of IMA and IMB are the 710 of the 733 shared Generic floors one face holds 0.9 of, a plot with no link of that key is listed as missing its link. No link was loaded in a read, so the position proof of R82 has 0 links. A wall goes to the plots whose generic floor holds the middle of its location line or has an edge within 0.3 m of it, a wall of a cut plot goes to none.
+
+- The new IMC plan against plan_imc_past.json, leaf by leaf (RAN, round_addin\logs\p2b_plan_fields.py, p2b_fix_plan_fields_imc.txt and .json): 324 plots in both, 13 only in the old plan, the 12 cut plots 2311, 2312, 2375 to 2378, 2387 to 2390, 2544, 2545, which are the cut list of R120, and 2441 with no generic floor. Equal on 324 of 324: case, insert, rotation, mirror, unit, prototype file, link Name, the 9 parameters, steps, FFL and the generic, ramp and yard floors whole. Different: El @ Entry, the height that follows it, SSL only in the old plan (the key holds none) and modelPlot only in the new. The source of El @ Entry is keyParameter against pastJob and of the height computed against pastJob on 314 plots.
+- El @ Entry of the key against the schedule (RAN, p2b_fix_imc_entry_gaps.txt): 10 plots hold 0 and are refused (2583 to 2588, 2595 to 2598). Of the 314 others 26 are equal, 175 within 1 mm (the parameter holds 3 decimals, the schedule 4), 13 over 1 mm up to 30 mm, of them 2623 at exactly 30 mm and 2561 11 mm over the schedule, and 100 over 30 mm, 0.0301 to 0.113 m under the schedule, 10th percentile 0.040, median 0.070, 90th percentile 0.080. Why is UNKNOWN (Q070).
+- R129, plan_compare.py --against-plan on a copy in round_addin\plans_compare (RAN, p2b_fix_plan_compare_r129.txt): 324 plots, 320 compared, it leaves out 2374, 2391, 2543 and 2546, the plots of plotFrame.apart still in the plan. Its bands as they are: FFL, insert in plan and Z, mirror, prototype file, rotation, steps and unit equal on 320, the generic, ramp and yard outlines within 1 mm on 320 and their tops and corners within 5 mm, SSL missing on 320, El @ Entry equal 25, within 1 mm 172, worse than 10 mm 113, missing 10, the height equal 26, within 1 mm 171, worse 113, missing 10. In the first run R129 left out 15 plots of plotFrame.apart (2311, 2374 to 2378, 2387 to 2391, 2543 to 2546) and compared 320 of 335.
+- What Part 2 needs for sheets, kept in each plan: the official number and the number of the model (modelPlot), the link origin in shared coordinates, the generic and yard outlines with arcs and the four ramp corners with their levels, the levels FFL, El @ Entry, height and steps (no SSL, the keys hold none), the link file, rotation, mirror, unit, CASE and the 9 parameters, and walls: id, type, length, height, base and top constraint and offset, location line, the ends of its location line and its plots (CHOSEN). The wall faces and width are not read (R17).
 
 ### R326, the join, the place check, the area codes and past_all.csv
 
-- Tests first (RAN, p2b_r326_first.txt): the test file stopped at collection with ModuleNotFoundError for key_join, then the real settings test failed with the parsons group holding imc only until the config named the 7 keys, and the area agreement test failed on the missing areaAgrees count. Then 11 passed.
-- Join by location (RAN, round_addin\join\key_join.json, logs\p2b_key_join.txt), IMC first:
+- Join by area share (RAN, round_addin\join\key_join.json, logs\p2b_fix_key_join.txt, p2b_fix_join_lists.txt), IMC first:
 
-| Key | Link plots | Joined | Its own number | Another number | Not joined, by why | NBH, zone |
-|---|---|---|---|---|---|---|
-| IMC | 337 | 335 | 335 | 0 | manyNumbers 2312, noGenericFloor 2441 | 012, Zone 2 |
-| IMD | 410 | 410 | 410 | 0 | none | 013, Zone 2 |
-| IME | 324 | 321 | 320 | 1, 2634 on 2635 | manyNumbers 2657, noNumber 2635 2656 | 02, Zone 3 |
-| IMF | 490 | 481 | 480 | 1, 702 on 293 | manyNumbers 703 864 901 to 906, noNumber 863 | 03, Zone 3 |
-| IMG | 297 | 283 | 282 | 1, 481 on 480 | manyNumbers 476 477 482, noFace 431 to 440 474 | 01A, Zone 4 |
-| IMA | 432 | 431 | 431 | 0 | manyNumbers 1769 | 021, Zone 1 |
-| IMB | 301 | 295 | 294 | 1, 1995 on 1996 | manyNumbers 1997 2006 2007 2268, noNumber 1996 2267 | 022, Zone 1 |
+| Key | Link plots | Joined, all on their own number | Cut | Other, by why | NBH, zone |
+|---|---|---|---|---|---|
+| IMC | 337 | 324 | 12, the cut list of R120 | noGenericFloor 2441 | 012, Zone 2 |
+| IMD | 410 | 403 | 7 (1278, 1279, 1400 to 1402, 1486, 1487) | none | 013, Zone 2 |
+| IME | 324 | 320 | 4 (2634, 2635, 2656, 2657) | none | 02, Zone 3 |
+| IMF | 490 | 476 | 14 (702, 703, 859 to 864, 901 to 906) | none | 03, Zone 3 |
+| IMG | 297 | 268 | 19 (440, 476 to 484, 550, 551, 2954 to 2960) | noFace 431 to 439, 474 | 01A, Zone 4 |
+| IMA | 432 | 420 | 12 (1588, 1589, 1611, 1612, 1764 to 1771) | none | 021, Zone 1 |
+| IMB | 301 | 290 | 11 (1995 to 1997, 2006, 2007, 2265 to 2270) | none | 022, Zone 1 |
 
-- No plot of any key stands on two faces. The 11 of IMG on no face lie outside the faces of the baseplan. The zone and NBH of the location plan equal the area key of plots.csv on every joined plot but IMF 702, whose number 293 has no NBH on the location plan (RAN). 301 and 432 of the 733 shared Generic floors name plots the links of IMA and IMB do not.
-- Place check, each element against the face it stands on (RAN, same file):
+- 2,501 of the 2,591 link plots join, 55 fewer than the first run. Every plot the first run joined to another number (IME 2634, IMF 702, IMG 481, IMB 1995) and every plot it left on a face of no or two plan labels is cut now, and no joined plot has another number, no number holds two key plots (twoPlots 0) and no plot stands on two faces. IMG 440 holds a sliver under 0.0005 of its area on face 206, so it is cut and not noFace. The zone and NBH of the location plan equal the area key of plots.csv on every joined plot.
+- Place check (RAN, same file, p2b_fix_place_swaps.txt):
 
-| Key | Links match, other | Generic floors match, other | Ramps match, other |
+| Key | Links match, other | Generic floors match, cut | Ramps match, other |
 |---|---|---|---|
-| IMC | 335, 2 (2311 house on face 326 of no label, 2312 on 2311) | 335, 1 manyNumbers | 336, 1 manyNumbers |
-| IMD | 410, 0 | 410, 0 | 410, 0 |
-| IME | 322, 2 | 320, 4 (2634 on 2635) | 321, 3 (2634 on 2635) |
-| IMF | 480, 10 | 480, 10 (702 on 293) | 480, 10 |
-| IMG | 281, 16 (11 noFace, 481 on 480) | 282, 15 | 282, 15 |
-| IMA | 431, 1 (1769 on 1770) | 725 of the 733 shared, 8 (1995 on 1996) | none |
+| IMC | 335, 2 (2312 on 2311, one on a face of no label) | 324, 12 | 325, 12 cut |
+| IMD | 410, 0 | 403, 7 | 402, 8 cut |
+| IME | 322, 2 | 320, 4 | 320, 4 cut |
+| IMF | 480, 10 | 476, 14 | 476, 8 cut and 6 noNumber |
+| IMG | 281, 16 (11 noFace, 481 on 480) | 268, 19 and 10 noFace | 267, 20 cut and 10 noFace |
+| IMA | 431, 1 (1769 on 1770) | 710 of the 733 shared, 23 | none |
 | IMB | 296, 5 | the same 733 floors as IMA | none |
 
-- No two plots of any key swap places: no element stands on the face of a plot whose own element stands on its face (RAN, p2b_past_all_native_compare.txt). Every other number is a plot the baseplan cuts otherwise, beside or on a face of no or two labels, or two key plots on one face (IMG 480 and 481).
-- Area codes: the parsons table of config/area_codes.json holds each key with its joined plots by the area key, written by round_addin\logs\p2b_area_codes.py from key_join.json and checked by im_codes.load_table (RAN, p2b_area_codes.txt): IMA 021 Zone 1 431, IMB 022 Zone 1 295, IMC 012 Zone 2 335 beside its schedule 337, IMD 013 Zone 2 410 beside its schedule 410, IME 02 Zone 3 321, IMF 03 Zone 3 481, IMG 01A Zone 4 283. The IMC model area was 337 by plot number in Round 17, by location it is 335. The four rows DATA-5 guessed and Phase 0b removed, IMA 021, IMB 022, IME 02, IMF 03, are what the keys hold (RAN). Q011 closes: the IME key names its neighbourhood by its plots, 02 of Zone 3.
-- past_all.csv in round_addin (RAN, p2b_past_all.txt): 4,949 rows, native 2,395 (u11 394, u12 585, u13 783, u14 633), parsons 2,554 (imc 335, imd 410, ime 321, imf 481, img 281, ima 431, imb 295). The native rows equal round_17\past_all.csv cell for cell, 2,395 of 2,395 in order (RAN). The 337 imc rows of Round 17 are not kept, the new imc rows of the 2024 copy stand for them and equal them on every column on 335 of 335 (RAN, p2b_past_all_imc_compare.txt). El @ Entry comes from the schedule of plots.csv for imc 335 and imd 410 and from the floor parameter for the other 5 keys. majority.groups.parsons names the 7 keys, placerCheck.dialects.parsons reads them (CHOSEN). The levels of IMA and IMB are what their generic floors hold, Q066 still keeps them out of every rule.
+- No two plots of any key swap places (RAN). The 3 links of another number are all of cut plots.
+- Area codes: the parsons table of config/area_codes.json written again from key_join.json by round_addin\logs\p2b_area_codes.py and checked by im_codes.load_table (RAN, p2b_fix_area_codes.txt): IMA 021 Zone 1 420, IMB 022 Zone 1 290, IMC 012 Zone 2 324 beside its schedule 337, IMD 013 Zone 2 403 beside its schedule 410, IME 02 Zone 3 320, IMF 03 Zone 3 476, IMG 01A Zone 4 268. Q011 stays closed, IME is NBH 02 of Zone 3 by its plots.
+- past_all.csv in round_addin (RAN, p2b_fix_past_all.txt): 4,896 rows, native 2,395 (u11 394, u12 585, u13 783, u14 633), parsons 2,501 (imc 324, imd 403, ime 320, imf 476, img 268, ima 420, imb 290), by kind TU 1,791 and SE 710, the native rows of no kind. The native rows equal round_17\past_all.csv cell for cell on every column of that table, 2,395 of 2,395 in order, their kind and heightSource empty (RAN, p2b_fix_past_all_native_compare.txt). The 324 imc rows equal the Round 17 imc rows on every column of that table, the 13 others are the 12 cut plots and 2441 (RAN, p2b_fix_past_all_imc_compare.txt). El @ Entry comes from the schedule for imc 324 and imd 403, from the floor parameter for ime 320, imf 470, img 268, ima 420 and imb 290, and imf 6 are refused. heightSource is floorTop less schedule or floorTop less floorParameter on every parsons row with a height.
+- The counts agree: on each key the join, the area row, the plan and past_all.csv hold the same plots (RAN, the second method below). In the first run IMG read 283 in the join and the area codes and 281 in its plan and past_all.csv.
+- Majority run over the new past_all.csv (RAN, round_addin\majority\majority.json, logs\p2b_fix_majority.txt and p2b_fix_majority_kinds.txt, the override list to round_addin\majority, never config/overrides): the parsons decisions of ramp slope, El @ Entry, ramp front and fall, height, steps and yard take 1,785 to 1,791 TU rows and no SE row. Hand, generic floor and the foundation type and CASE tests keep the 710 SE rows, whose links hold those values. The rules themselves are for Phase 3a.
 
 ### R327, the spots at the plot entrance
 
-- Tests first (RAN, p2b_r327_first.txt): ModuleNotFoundError for entry_spots, then the real settings test failed until entrySpots was in the config. Then 11 passed. radiiM 0.5 m and 6.0 m and cornerM 0.05 m (CHOSEN, measured on IMC: the spots sit on the ramp corners and the corners of the entrance edge lie 5.0 m from its middle at the median, no spot lies at the middle).
-- The spots sit on the corners of the ramps: of the 987 IMC spots, 599 within 5 cm of a corner of the higher long edge of their ramp and 381 of a corner of the other long edge, of which 7 and 3 alone equal El @ Entry of the schedule within 1 mm (RAN, round_addin\logs\p2b_explore_spots_corners.py and .txt). The walls of IMC sit 0.099 m (median) to 0.100 m (90th percentile) off the edge of the nearest generic floor, 656 of the 898 BW along two floors, the 28 garden walls along none (RAN, p2b_explore_walls.py and .txt), which gave keyPlans.wallEdgeM 0.3 m. Per key (RAN, round_addin\spots\entry_spots.json, logs\p2b_entry_spots_IMC.txt and _others.txt):
+- radiiM 0.5 m and 6.0 m and cornerM 0.05 m (CHOSEN in the first run, measured on IMC: the spots sit on the ramp corners and the corners of the entrance edge lie 5.0 m from its middle at the median, no spot lies at the middle). bandsM 0.001 and 0.005 m (CHOSEN, the rounding of R2 and majority.levelHoldMm).
+- Per key (RAN, round_addin\spots\entry_spots.json, logs\p2b_fix_entry_spots.txt and p2b_fix_entry_spots_shares.txt), only the spots of the floors of the plot, the schedule by official number:
 
-| Key, El @ Entry of | Plots | A spot within 0.5 m | A spot within 6 m | Within 1 mm, share | Within 5 mm, share | Corner pair mean within 1 mm, 5 mm of plots with both |
+| Key, El @ Entry of | Plots | A spot within 0.5 m | A spot within 6 m | Within 1 mm, share | Within 5 mm, share | Corner pair: plots with both, mean within 1 mm, within 5 mm, share |
 |---|---|---|---|---|---|---|
-| IMC, key | 336 | 0 | 248 | 4, 0.012 | 20, 0.060 | 29, 86 of 268 |
-| IMC, schedule | 337 | 0 | 248 | 3, 0.009 | 11, 0.033 | 38, 157 of 268 |
-| IMD, key | 410 | 0 | 303 | 7, 0.017 | 23, 0.056 | 56, 119 of 329 |
-| IMD, schedule | 410 | 0 | 303 | 6, 0.015 | 19, 0.046 | 65, 219 of 329 |
-| IME, key | 324 | 0 | 217 | 7, 0.022 | 20, 0.062 | 51, 90 of 249 |
-| IMF, key | 490 | 0 | 358 | 2, 0.004 | 19, 0.039 | 37, 124 of 385 |
-| IMG, key | 296 | 0 | 218 | 10, 0.034 | 29, 0.098 | 60, 84 of 237 |
+| IMC, key | 326 | 0 | 237 | 2, 0.006 | 12, 0.037 | 261, 29, 86, 0.330 |
+| IMC, schedule | 324 | 0 | 236 | 2, 0.006 | 5, 0.015 | 260, 37, 153, 0.588 |
+| IMD, key | 405 | 0 | 296 | 5, 0.012 | 15, 0.037 | 325, 56, 119, 0.366 |
+| IMD, schedule | 403 | 0 | 292 | 2, 0.005 | 10, 0.025 | 323, 65, 216, 0.669 |
+| IME, key | 324 | 0 | 213 | 7, 0.022 | 17, 0.052 | 249, 51, 90, 0.361 |
+| IMF, key | 484 | 0 | 343 | 1, 0.002 | 9, 0.019 | 380, 37, 124, 0.326 |
+| IMG, key | 296 | 0 | 215 | 5, 0.017 | 16, 0.054 | 237, 60, 84, 0.354 |
 
-- IMA and IMB: no ramp and no spot value (822 and 587 spots on STR links), nothing to compare. IMG has one ramp of no four corners.
-- So on no key does a spot at the plot entrance give El @ Entry: at most 0.098 of the plots have a spot within 6 m and within 5 mm of it, and the mean of the two entrance corner spots holds within 5 mm on 0.32 to 0.67 of the plots with both. Q001 does not close, for no key.
+- Key values refused by the band: IMC 10, IMD 5, IMF 6. Spots on a host that is no floor of a plot: IMC 1, IMD 4, IME 4. IMG has one ramp of no entrance edge.
+- IMA and IMB: no ramp and no spot value (822 and 587 spots on STR links), nothing to compare. So 5 keys were compared, not 7, and on none of the 5 does a spot at the plot entrance give El @ Entry: at most 0.054 of the plots have a spot of their own floors within 6 m and within 5 mm of it, and the mean of the two entrance corner spots holds within 5 mm on 0.326 to 0.669 of the plots with both. Q001 does not close.
 
 ### R328, the second method
 
-- Tests first (RAN, p2b_r328_first.txt): ModuleNotFoundError for key_plans_check, then two faults of the tests themselves, the L shaped centroid is 3.875 and not 3.5, and a face is a list of rings, and the fixture face 16 sat on the centre line of plot 503, where the two routes split on a boundary, moved off it. Then four tests seen failing on what the real first runs showed: the two highest corners are no entrance edge where the road falls more along the front than the ramp across it, a rotation from axes of 3 decimals is off by up to 0.04 degrees, the spot counts and the area rows by the joined plots, and a number plots.csv joins with a bar. Then 12 passed.
-- The first run on IMC gave plans 0 of 20 and spots 3 and 5 of 20, the two faults of the second route above, fixed with their tests. Then on all 7 keys (RAN, round_addin\check\key_plans_check.json, logs\p2b_key_plans_check.txt):
+- The first run sampled from the lists of the first method and tied links by the plot parameter, the review replaced both (item 9). The first run of the new check found one plot where the two joins differ that no sample held, so the join is now held on every plot as well.
+- Rerun on all 7 keys (RAN, round_addin\check\key_plans_check.json, logs\p2b_fix_key_plans_check.txt), samples from every plot of the read:
 
-| Key | Plans, seeds 14 and 7 | Join | Place, ramps and links | Spots | Spot counts on every plot | Area row | past_all rows |
-|---|---|---|---|---|---|---|---|
-| IMC | 20, 20 of 20 | 20, 20 | 40, 40 of 40 | 20, 20 | equal | 335 equal | 335 equal |
-| IMD | 20, 20 | 20, 20 | 40, 40 | 20, 20 | equal | 410 equal | 410 equal |
-| IME | 20, 20 | 20, 20 | 40, 40 | 20, 20 | equal | 321 equal | 321 equal |
-| IMF | 20, 20 | 20, 20 | 40, 40 | 20, 20 | equal | 481 equal | 481 equal |
-| IMG | 20, 20 | 20, 20 | 39, 39 of 40 | 20, 20 | equal | 283 equal | 281 equal |
-| IMA | 20, 20 | 20, 20 | 20, 20 of 20 links | none | equal | 431 equal | 431 equal |
-| IMB | 20, 20 | 20, 20 | 20, 20 of 20 links | none | equal | 295 equal | 295 equal |
+Each cell gives the items compared at seed 14 and at seed 7, and every one of them matched.
 
-- The two IMG mismatches, one per seed, are ramps that lie across the edge of a face of two labels: ramp 452141 of 482, noNumber by the first route, its centroid on 483 by the second, and ramp 452125 of 476, noNumber by the first, its centroid on no face by the second. A point inside the ramp and its centroid fall on two sides of a face edge. Not changed (CHOSEN, both plots are not joined).
+| Key | Counts of join, area row, plan, past_all | Join on every plot, matched | Plans | Join | Place | Spots | past_all rows of the sampled plan plots | Spot counts on every plot |
+|---|---|---|---|---|---|---|---|---|
+| IMC | 324 each | 337 of 337 | 20, 20 | 20, 20 | 60, 60 | 20, 20 | 20, 20 | equal |
+| IMD | 403 each | 410 of 410 | 20, 20 | 20, 20 | 60, 60 | 20, 20 | 20, 19 | equal |
+| IME | 320 each | 324 of 324 | 20, 20 | 20, 20 | 60, 60 | 20, 20 | 20, 20 | equal |
+| IMF | 476 each | 490 of 490 | 20, 20 | 20, 20 | 60, 60 | 20, 20 | 20, 19 | equal |
+| IMG | 268 each | 296 of 297 | 20, 20 | 20, 20 | 60, 60 | 20, 20 | 19, 15 | equal |
+| IMA | 420 each | 432 of 432 | 20, 20 | 20, 20 | 32, 35 | 20, 20 | 12, 14 | equal |
+| IMB | 290 each | 301 of 301 | 20, 20 | 20, 20 | 28, 25 | 20, 20 | 8, 4 | equal |
 
-### Known limit, recorded only (step 7)
+- Every compared item matches but one: IMG 440, cut by the first method on its sliver of face 206 and noFace by the grid, which lays no point on it. Neither method joins it (CHOSEN, not changed). The past_all rows sampled are the sampled plots that are in the plan. The area row of each key equals the join counted by the area key of the official number.
+
+### Known limit, recorded only
 
 - Since PR 45 a read is tied to its key by the exact name <copy stem>_TEST-<job>, but the zone2 master of Revit All Zones and the IMC 2024 copy share one stem, so a read of a work copy made from the master passes as IMC by its name. Only a hash tie would part them. Q065, whose recommended answer replaces the zone2 file by a copy of the Zone 02\ARC original, removes the cause.
 
 ### Not done in this PR
 
-- R329 is not used, the PR holds four changes.
+- R329 is not used, the PR holds four changes and the review fixes stay inside them.
 - CLAUDE.md was not changed by the helper: R325 to R328 and python/key_join.py, python/entry_spots.py and python/key_plans_check.py are for the main session to name there.
 - The wall faces and width are not read, a wall goes to its plots by the middle of its location line. The footprint residual of R229 is in the imc rows only. SSL is in no key.
 - No Revit window was opened.
+
+### Tests first
+
+- First run: most tests were run first and seen failing for the right reason. The R326 and R327 files failed at collection only, ModuleNotFoundError for key_join and entry_spots, then their real settings tests failed until the config held the new blocks (RAN, p2b_r325_first.txt to p2b_r328_first.txt).
+- Review: each fix had its tests run first and seen failing, the outputs in p2b_fix_r325_first.txt, p2b_fix_r326_join_first.txt, p2b_fix_r326_past_all_first.txt, p2b_fix_r327_first.txt, p2b_fix_r327_band_first.txt and p2b_fix_r328_first.txt. The test of the real past_all.csv failed until the rerun wrote the kind column.
 
 ### Gate
 
@@ -723,7 +756,7 @@ Branch data/addin-key-plans from main at 104c1f3, equal to origin/main after git
 
 ### Questions
 
-- Q011 closed: the IME key holds NBH 02 of Zone 3 by its plots, 321 of 324 joined, the 3 others on faces of no or two plan labels.
-- Q001 stays open, its short text says no entrance spot gives El @ Entry on the 7 keys.
-- Q070 new: the El @ Entry of IME, IMF, IMG, IMA and IMB comes only from the ELl@Entry parameter of the generic floor, which is off the IMC schedule by over 30 mm on 114 of 335 plots.
+- Q011 stays closed, its answer now says 320 of the 324 IME plots join NBH 02 of Zone 3 by area share, the 4 others are cut.
+- Q001 stays open: no entrance spot gives El @ Entry on the 5 TU keys compared, IMA and IMB have no ramp and no spot value.
+- Q070 (new in 2b): the El @ Entry of IME, IMF, IMG, IMA and IMB comes only from the ELl@Entry parameter of the generic floor, which is off the IMC schedule by over 30 mm on 100 of the 314 IMC plots both hold, and 0 on 10 more, refused.
 - No older question was shortened in this PR, PR 45 shortened them.
