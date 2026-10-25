@@ -791,3 +791,125 @@ A third breaker pass read the PR at ebd69d2 and found 8 items. Each is fixed in 
 - Hashes (RAN): 60 of 60 originals and 61 of 61 inputs equal before and after by sha256sum (originals_p2b_b3_before.txt, _after.txt, inputs_p2b_b3_before.txt, _after.txt), 60 of 60 by Get-FileHash (originals_p2b_b3_gethash.txt), plan_imc_past.json, round_17\past_all.csv and config/overrides/roshn-makkah.json equal (p2b_b3_protected_before.txt, _after.txt).
 - The commands of the review were rebuilt and run at ebd69d2 first. Plans, join, spots, check and past_all.csv came out byte for byte equal to the review outputs (RAN, scratchpad), so the rerun runs what the review ran.
 - Not done: the yard decision keeps FFL less the yard top, it does not take the key floor top on a plot with a schedule pair. Q070 holds the IMD numbers now. No new question.
+
+## Phase 3 part 1, PR 3a rules/addin-parsons-rules
+
+Branch rules/addin-parsons-rules from main at 4894b4a, equal to origin/main after git fetch (RAN). Rules R330 to R336 are new, R271, R272 and R280 changed. Four changes: R330 (2d56f89), R331 and R332 (6df83e0), R333 and R334 (a7b8172), R335 (1649624), with R336, the second method, grown in each. The phase ran in a helper agent started by the main session, which runs the checkers and merges. No Revit or Civil 3D window was opened, the reads, plans, join and past_all.csv of Phase 2 are the input, so the lock was not taken and the registry was not read or written. Values of coordinates and levels stay in Documents\SiteAdaptation\round_addin\rules3a, this file holds counts, shares, gaps and plot numbers only.
+
+### Originals and inputs (R201, R202)
+
+- 60 originals and 80 inputs hashed with sha256sum before the first edit and after the last run, 60 of 60 and 80 of 80 equal (RAN, round_addin\logs\originals_p3a_before.txt, _after.txt, inputs_p3a_before.txt, _after.txt, p3a_hash.sh). The 80 are the 61 inputs of 2b, the 7 key plans, round_addin\past_all.csv and past_all_conflicts.csv, the join, the spots, the 2b check, the gaps, the 2b majority run, the sales workbook and the four CAD tables of the snapshot. The 61 equal inputs_p2b_b3_after.txt 61 of 61 and the 60 originals equal originals_p2b_b3_after.txt (RAN). So no original, key copy, 2a read, 2b output, plan_imc_past.json or round_17\past_all.csv was written. config/overrides/roshn-makkah.json and rules/roshn-makkah.json were hashed before (protected_p3a_before.txt) and are changed by this PR only.
+- Baseline: majority.py of 4894b4a run again on round_addin\past_all.csv gave majority.json and the override list of the 2b dry run equal as JSON (RAN, rules3a\baseline). Every later run is that command with the new options (p3a_run_majority.sh).
+
+### R330, the source of an override (change 1)
+
+- Before: every entry held the past model file in source, 5,709 entries, 5 files: IMC TU-000001 487 (key imc), IMA TU-000001 947 (u11), IMB TU-000002 1,321 (u12), IMC TU-000003 1,582 (u13), IMD TU-000004 1,372 (u14) (READ, the list). The field name source was taken, so the brief's source field (parsons or native) takes that name and the file moves to a new field model (CHOSEN, conflict 1 below). --override-source of plan_from_book.py names jobs since, --override-model narrows to model files.
+- override_source.py migrate rewrote the list in place: source parsons 487, native 5,222, the file in model (RAN, p3a_r330_migrate.txt). Second way, json only: the list of main against the new one entry by entry, same order and fields, model the old source, source the group of the key, 5,709 of 5,709 match (RAN, p3a_r330_second.py and .txt).
+- majority.overrideDefaultSources is parsons (CHOSEN, the brief): a build with --overrides and no source applies parsons only, a native2022 build must name --override-source native, else it is refused. majority.py --keep SOURCE or SOURCE:FIELD keeps the entries of the earlier list a run does not measure, cell for cell, and sorts the list by plot.
+- Tests first (RAN, p3a_r330_first.txt): the new file stopped at collection with ModuleNotFoundError for override_source, then on an empty module 15 failed, AttributeError and the old refusal text of R280. The R272 and R280 tests that held the old field were changed with it.
+
+### R331, coordinates (change 2)
+
+- The 7 Parsons reads against the IMC read, 14 fields each (both points in internal and shared coordinates, angle, project position, Level 1 and Level 2, active site, sites, place, units system, length and length system): 0 differ on 7 of 7, oneSet. Length accuracy 0.01 on the TU keys and 0.001 on the SE keys, listed apart (RAN, rules3a\c4\majority.json siteFacts). The 4 Native reads against u14 on their points and angle: 0 differ, one set of their own. Across the sets the survey point stands 2,432 km apart in shared coordinates and the base point 2,203 km (RAN). keyRules.site of the profile holds angle 0, site Internal, Level 1 and Level 2 with Level 2 4.0 m over Level 1, metric meters, and no coordinate, which stays in the reads (Q068 open).
+
+### R332, link origin, rotation and the corner front (change 2)
+
+- IMC first (RAN, p3a_c2_imc.txt): rotation 324 of 324, corner front 108 of 108, origin 321 of 324 within 10 mm.
+- All keys (RAN, p3a_c2_all.txt, later runs equal): rotation by the coded front 2,478 of 2,501, 0.991, the edge nearest a curb 0.987. The corner plots of R226 (Q037): 916 of 937, 0.978, IME 113 of 119 and IMG 87 of 102, every other key 1.0. Origin: plotFrame as fitted on IMC 2,374 (0.949), fitted again per code on the 7 keys 2,429 (0.971). The refit takes the end anchor for C10 at -10.0 m: on the 125 C10 plots 16 m wide both anchors hold, on the 49 wider ones only the end anchor does, by 0.5 to 3.2 m of extra width (RAN, p3a_probe_frame.py). The anchors of the refit are in keyRules.linkOrigin.byCode, prototype_offsets.json keeps the IMC fit (conflict 2).
+- 10 mm is the hold of the origin (CHOSEN, majority.linkHoldMm): the plan and the key write a point to the mm, two roundings put up to 1.4 mm between equal points, and R121 fits by 10 mm.
+
+### R333, hands (change 3)
+
+- Villa: block mirror flag with the side road 765 of 797 (0.960), with the open end 764, alone 763 (RAN). The measure codes the side road by one plot (Q003). VL6 74 of 76, VL4 181 of 192. Villas between cluster units: both sides 7 of 10, one side 408 of 418, none 350 of 369.
+- Cluster: the side in the footprint and analysis clusters (R236) 1,297 of 1,322 (0.981), the analysis clusters alone 1,173 (0.887), so the footprint clusters stay (Q040).
+- Units in no cluster: 382 on the 7 keys against 16 on IMC in Round 17. Their DP2 and DP4 plots carry villa blocks in the Building Footprint drawing, so no footprint cluster joins them (READ, plots.csv). Paired along their row of such units from its right end, then the side learned per file, else the block mirror flag with the open end: 380 of 382 (0.995), the row pairs alone 367, the Round 17 rule 283 (0.741) (RAN). Q042 takes the new rule.
+- Two fixes the second method found: R271 gave a plot with no front frame the open end both, it is unknown now (C10 2690 and 622, 19.25 and 19.0 m wide fronts over the R122 length limit), and a face of two plan numbers, such as 2007|2006 coded TH3|TH3, had the kind townhouse by its prefix and paired with a unit, it has no kind now (RAN, p3a_probe_hands.py, the tests test_r333_a_plot_with_no_front_frame... and test_r333_a_face_of_two_plan_numbers...).
+
+### R334, ramps and floors (change 3)
+
+- Ramp type by Rev 9 code 1,770 of 1,791 (0.988), 2% for C10, VL4, VL6. The 21 misses are the 21 flat ramps, IMC 10 (2583 to 2588, 2595 to 2598), IMD 5 (1217, 1375 to 1378), IMF 6 (888 to 893), and they are the 21 plots whose ELl@Entry parameter the plans of R325 refused as a placeholder, such as 0 or 150.0, 21 of 21 both ways (RAN). A new build has no such parameter, so no flat ramp is coded (Q002).
+- Ramp outline of R127, each corner within 10 mm, 1,735 of 1,791 (0.969), IMG 0.881. Ramp front on the snapped road 0.808 and its fall 0.764 on the 5 TU keys, weak, 343 and 423 overrides, the fall not applied (Q057).
+- Generic floor on the whole face 2,478 of 2,501 (0.991). Yard depth against the generic floor top of the key itself, not the schedule FFL: 1,791 of 1,791, IMD 1382 and 1436 no longer miss. Zone 2 and 3 0.100, Zone 4 (IMG) no yard, coded as a setting per zone, the key a check only, 0.100 for Zone 1, which no TU key holds (Q066). Yard outline of R135 fitted again on the 4 keys with yards, 102 groups against the 52 of IMC: 1,466 of 1,522 (0.963), as fitted on IMC 1,378 (0.905).
+
+### R335, walls and shared parameters (change 4)
+
+- Walls of the key plans (RAN, p3a_c4_all.txt): the TU keys hold BW boundary walls, 4,901 on at least one plot of their plan, and 93 garden walls, the SE keys SBW (3,630 on a plot) and KEO_ST walls, counted only. Base at the yard level (FFL less 0.100) of the higher plot of the wall 4,815 of 4,901 (0.983), of the lower plot 0.558. Top at the FFL of the higher plot plus the 1.7 m of Rev 6 1,698 (0.346), weak. Wall centre on the plot edge (0 for a location line at the wall or core centre, 0.1 m for a face) 4,513 (0.921), IMD 0.798 and IMC 0.891. Front edge open, at most 0.2 of it under a boundary wall, 1,768 of 1,789 (0.988), the front is the gate. The 21 walled fronts (IME 2626, 2665, 2892 to 2897, IMF 727, IMG 3005 to 3016) are plots whose coded front is not the key front. Wall misses, 86 base, 3,203 top and 388 line, are in wallMisses of the report, not in the override list (CHOSEN, a wall has no id in a new build and no step places walls, Q071).
+- Parameters: Plot-Number the plot 2,501 of 2,501, Prototype the Rev 9 code 2,501, Number-of-Steps the steps, both façade parameters XX and HVAC by code 1,791 of 1,791 each, RVT-Name the link Name plot | code | steps | colour | option 1,776 of 1,791 (0.992). The SE links hold RVT-Name as plot | code, so kindLeaveOut leaves the SE rows out of that one decision (CHOSEN, Zone 1 follows the TU rule). Foundation type by code and hand 1,550 of 2,501 (0.620), no height over any of the 18 road and ground surfaces separates T1 to T4 (RAN, a probe), CASE 687 of 2,501 (0.275), both weak with 951 and 1,814 overrides as built (Q013). Prototype-FFL, a level, is to the cm and within 5 mm of the FFL on 1,078 of 1,791 and within 50 mm on 1,788, weak, left to 3c with its overrides.
+
+### R336, the second method
+
+- key_rules_check.py, json, csv, openpyxl and plain math, seeds 14 and 7, 20 plots and 20 walls each, and every plot and wall as well. Final run (RAN, p3a_c4_check.txt): seeds 14 and 7, 0 mismatches. Every plot: rotation and origin 2,501 of 2,501, ramp type, ramp outline and yard 1,791 each, yard outline 1,522, front open 1,789, every parameter on its plots, walls 4,901 of 4,901 on base, top and line. Hands 2,495 of 2,501 agree, 6 do not: IMB 1993 and 1994, the first method gives cut plot 1995 no side neighbours and the own route does, IMD 1483, 1518 lies right of it in the first and left in the own route, and the villas IMC 2301, IME 2710 and IMG 441, corner plots where the side road differs, why UNKNOWN for both. The coordinates by json 7 of 7 and 4 of 4, the counts of 30 of 30 decisions sum per key.
+- The first run of the hand routes had 10 mismatches (RAN, p3a_c3_check_first.txt), which found the two fixes of R333 above, and the own route then took a cluster only when R271 gives its plots a side (every plot of past_all.csv with a face and one with a front).
+- Each merged override list against the one before by JSON text (RAN, p3a_c2_list_compare.txt to p3a_c4_list_compare.txt): every kept entry cell for cell, no new gap over 1,000, plots in order.
+
+### The override list (R330)
+
+| After | Total | Native | Parsons | Parsons by field |
+|---|---|---|---|---|
+| main, by key group | 5,709 | 5,222 | 487 | entryM 241, heightM 32, mirrored 15, rampFrontFallM 97, rampFrontM 92, rampType 10 |
+| change 1 | 5,709 | 5,222 | 487 | the same, with source and model |
+| change 2 | 5,804 | 5,222 | 582 | plus insert 72, rotationDeg 23 |
+| change 3 | 6,571 | 5,222 | 1,349 | entryM 241, heightM 32, insert 72, rotationDeg 23, mirrored 59, rampType 21, rampFrontM 343, rampFrontFallM 423, rampOutline 56, yardOutline 56, genericFloor 23 |
+| change 4 | 9,351 | 5,222 | 4,129 | plus parameter CASE 1,814, Foundation-Type 951, RVT-Name 15 |
+
+(RAN, p3a_c*_overrides_after.txt.) The native entries are those of Round 17, kept cell for cell. Parsons entryM 241 and heightM 32 are the IMC ones of Round 17, kept for 3c, which measures the levels. Change 3 left 30 IMC entries of Round 17 changed or gone, mirrored 11, rampFrontM 12, rampFrontFallM 7, the rules now measured on 7 keys.
+
+### Every decision of 3a
+
+Share over the Parsons plots the rule covers, per key, the Native share of this run and of Round 17, strong at 0.90, overrides written.
+
+| Decision | Coded rule | Parsons | Per key (a b c d e f g) | Native, Round 17 | | Overrides |
+|---|---|---|---|---|---|---|
+| Coordinates | one set | 7 of 7 keys | all equal | 4 of 4 own set | strong | none |
+| Link rotation | front frame, R226 on corners | 0.991 | 1.0 1.0 1.0 1.0 0.978 1.0 0.940 | 0.983 | strong | 23 |
+| Corner front | Orientation quadrant | 0.978 | 1.0 1.0 1.0 1.0 0.950 1.0 0.853 | 0.972, 0.967 | strong | in rotation |
+| Link origin | plotFrame refit per code | 0.971 | 0.981 0.993 0.988 0.995 0.972 0.954 0.907 | 0.912 | strong | 72 |
+| Hand villa | block mirror with side road | 0.960 | 0.977 0.981 0.935 0.991 0.938 0.986 0.896 | 0.944, 0.945 | strong | 32 |
+| Hand cluster | cluster side (footprint) | 0.981 | 0.981 0.986 0.980 0.996 0.986 1.0 0.911 | 0.984, 0.983 | strong | 25 |
+| Hand alone | row pair, else block mirror and open end | 0.995 | 1.0 0.949 1.0 1.0 1.0 1.0 1.0 | 0.833, 0.714 | strong | 2 |
+| Ramp type | by Rev 9 code | 0.988 | TU: 0.969 0.988 1.0 0.987 1.0 | 0.977, 0.977 | strong | 21 |
+| Ramp outline | R127 | 0.969 | TU: 0.988 0.985 0.969 0.992 0.881 | 0.832 | strong | 56 |
+| Ramp front | snapped road | 0.808 | TU: 0.753 0.725 0.881 0.838 0.862 | 0.634, 0.634 | weak | 343 |
+| Ramp front fall | road at each corner | 0.764 | TU: 0.722 0.752 0.828 0.710 0.851 | 0.623, 0.623 | weak | 423, not applied |
+| Generic floor | whole face | 0.991 | 0.993 0.990 0.988 0.985 1.0 0.998 0.978 | 0.899, 0.899 | strong | 23 |
+| Yard | 0.100, none in Zone 4, per zone | 1.0 | TU: 1.0 each | 1.0, 1.0 | strong | 0 |
+| Yard outline | R135 refit | 0.963 | c d e f: 0.957 0.945 0.956 0.987 | none | strong | 56 |
+| Wall base | yard level of the higher plot | 0.983 | TU: 0.985 0.983 0.978 0.989 0.973 | none | strong | report only |
+| Wall top | FFL of the higher plot + 1.7 | 0.346 | TU: 0.340 0.309 0.313 0.451 0.274 | none | weak | report only |
+| Wall line | centre on the edge | 0.921 | TU: 0.891 0.798 0.981 0.982 0.960 | none | strong | report only |
+| Front open | no wall along the front | 0.988 | TU: 1.0 1.0 0.975 0.998 0.955 | none | strong | none |
+| Plot-Number, Prototype | plot, Rev 9 code | 1.0 | 1.0 each | 1.0 | strong | 0 |
+| Steps, façade, HVAC | steps, XX, by code | 1.0 | TU: 1.0 each | none | strong | 0 |
+| RVT-Name | plot, code, steps, façade | 0.992 | TU: 0.985 0.990 0.994 0.996 0.993 | none | strong | 15 |
+| Foundation type | code and hand | 0.620 | 0.636 0.517 0.537 0.727 0.697 0.498 0.769 | none (Round 17 IMC 0.685) | weak | 951 |
+| CASE | code and hand | 0.275 | 0.181 0.134 0.364 0.266 0.366 0.305 0.317 | 0.314, 0.314 | weak | 1,814 |
+| Prototype-FFL | FFL within 5 mm | 0.602 | TU: 0.574 0.640 0.600 0.609 0.567 | none | weak | for 3c |
+
+(RAN, rules3a\c4\majority.json, the coded rules in keyRules of levelProfiles.parsons2024Rev6.) The keys a and b are IMA and IMB, the SE keys, which hold no ramp, yard, level or BW wall. A Zone 1 field they lack takes the TU rule with no override (the brief). The one per area setting is the yard per zone.
+
+### Conflicts list
+
+1. The override field source held the model file, the brief's source field holds the job now and the file is in model (R330).
+2. config/prototype_offsets.json plotFrame, fitted on IMC, against keyRules.linkOrigin.byCode, fitted on 7 keys: C10, DT1, DT3 and TH1 take the end anchor, VD1 an offset 1 mm deeper and TH1-IM a fit of its own, the other 9 codes are equal (RAN). plan_from_book.py builds by the first, Phase 4 takes the second. Neither file was changed silently.
+3. The villa hand: the hands table of Round 17 (R279) by block mirror and open end, the measure by block mirror and side road, one plot apart (Q003).
+4. The hand of the units in no cluster: hands.alone of Round 17 by block mirror and open end (0.741 on 7 keys) against the row pairs (0.995) (Q042).
+5. R271 gave a plot with no front frame the open end both, now none, one Native villa more is a miss (native hand villa 64 against 63).
+6. Q002 said the 10 IMC flat ramps slope like the others, the 21 flat ramps of 3 keys are the 21 plots whose El @ Entry parameter is a placeholder.
+7. RVT-Name holds plot | code on the SE links and the five part Name on the TU links, the SE rows leave that decision.
+
+### Tests first
+
+- Each change ran its new tests first and saw them fail for the right reason, the output saved with the head in round_addin\logs: p3a_r330_first.txt, p3a_r331_r332_first.txt, p3a_r333_r334_first.txt, p3a_r335_first.txt, p3a_r336_first.txt, p3a_r336_c3_first.txt, p3a_r336_c4_first.txt and p3a_r336_road_side_first.txt (RAN). The tests of a later change were run first on the code of the commit before it. Added with their code and not seen failing first: the group test of R331, the run and profile tests of R332 to R335, the R333 tests of the two fixes, the straight face test of R336 and the R335 test of the kind leave out of one decision.
+
+### Not done in this PR
+
+- The levels (El @ Entry, height, steps, SSL, Prototype-FFL) are 3c, their parsons overrides are those of Round 17 or none.
+- plan_from_book.py still builds by the Round 17 hands tables and the IMC plotFrame, keyRules is for Phase 4 (conflicts 2 to 4). The refit yard outlines are in the report, not in config/floor_outlines.json.
+- No wall override and no wall top rule (Q071). The wall faces and width are not read.
+- CLAUDE.md was not changed by the helper.
+
+### Questions
+
+- Q040 closed: keep the footprint clusters for the cluster side, 1,297 of 1,322 on the 7 keys against 1,173 with the analysis clusters alone.
+- Q071 new: walls, see Bader's turn.
+- Q002, Q003, Q015, Q037, Q042 and Q057 take the counts of the 7 keys, Q003 and Q042 a changed rule.
