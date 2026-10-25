@@ -155,6 +155,7 @@ def test_r325_the_real_settings_name_the_wall_edge_distance_and_the_entry_parame
     block = pf.load_key_plans(settings)
     assert 0 < block["wallEdgeM"] < 1
     assert block["entryParameter"] == settings.get("pastAll.entryParameter")
+    assert block["flatTopM"] == settings.get("keyPlans.flatTopM")
 
 
 def key_run(tmp_path, out_name="plan_imx_past.json"):
@@ -170,7 +171,7 @@ def key_run(tmp_path, out_name="plan_imx_past.json"):
     job = dict(JOB, output=str(tmp_path / "plan_past.json"), prototypeFolder="Prototypes")
     settings = tmp_path / "project.json"
     settings.write_text(json.dumps({"schedules": ["book.xlsx"], "inputRoot": str(root), "pastJob": job, "floors": FLOORS,
-                                    "keyPlans": {"wallEdgeM": 0.3, "entryHeightM": {"min": 0.0, "max": 1.5}}, "cadLinks": {"cutShareMin": 0.9},
+                                    "keyPlans": {"wallEdgeM": 0.3, "entryHeightM": {"min": 0.0, "max": 1.5}, "flatTopM": 0.0005}, "cadLinks": {"cutShareMin": 0.9},
                                     "pastAll": {"entryParameter": ENTRY},
                                     "answerKeys": {"codeInName": "^X-{code}-", "keys": [{"code": "IMX", "copy": "X-IMX-model.rvt"}, {"code": "IMY", "copy": "X-IMY-model.rvt"}]}}),
                         encoding="utf-8")
@@ -343,3 +344,22 @@ def test_r325_main_joins_by_the_cut_share_of_the_settings_and_lists_the_cut_plot
     plan = json.loads(out.read_text(encoding="utf-8"))
     assert [entry["plot"] for entry in plan["plots"]] == ["501", "502"]
     assert [item["modelPlot"] for item in plan["summary"]["namesDialect"]["cutPlots"]] == ["DP4-503"]
+
+
+def test_r325_the_flat_top_of_a_generic_floor_is_held_within_key_plans_flat_top_m_and_a_sloped_floor_gives_no_el_at_entry():
+    links = [key_link("501", 0), key_link("502", 10)]
+    nearly = dict(generic("DP4-501", 0, entry=6.8), topElevationRange={"min": 7.0, "max": 7.005})
+    sloped = dict(generic("DP4-502", 10, entry=6.8), topElevationRange={"min": 7.0, "max": 7.05})
+    _, rows, _ = pf.names_dialect(model(links, [nearly, sloped]), FLOORS, FACES, NUMBERS, entry_parameter=ENTRY, entry_heights={"min": 0.0, "max": 1.5},
+                                  flat_top=0.008)
+    assert rows[0]["FFL"] == 7.005 and rows[0]["El @ Entry"] == 6.8
+    assert rows[1]["FFL"] is None and "El @ Entry" not in rows[1] and "no flat floor top" in rows[1][pf.ENTRY_REFUSED]
+
+
+@pytest.mark.parametrize("value", [None, -0.001, 0.01, "0", True])
+def test_r325_the_flat_top_tolerance_must_be_metres_from_0_to_under_0_01(tmp_path, value):
+    path = tmp_path / "project.json"
+    path.write_text(json.dumps({"keyPlans": {"wallEdgeM": 0.3, "entryHeightM": {"min": 0.0, "max": 1.5}, "flatTopM": value}, "pastAll": {"entryParameter": ENTRY},
+                                "cadLinks": {"cutShareMin": 0.9}}), encoding="utf-8")
+    with pytest.raises(project_profile.ProfileError, match="flatTopM"):
+        pf.load_key_plans(project_profile.load_settings(path))

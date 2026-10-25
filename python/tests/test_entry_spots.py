@@ -10,7 +10,8 @@ import entry_spots
 import project_profile
 
 FLOORS = {"types": {"generic": ["Slab G"], "yard": ["Yard Y"], "ramp": ["Ramp A"]}, "plotParameter": "Plot"}
-BLOCK = {"radiiM": [0.5, 6.0], "cornerM": 0.05, "bandsM": [0.001, 0.005], "entryParameter": "El at entry", "entryHeightM": {"min": 0.0, "max": 1.5}}
+BLOCK = {"radiiM": [0.5, 6.0], "cornerM": 0.05, "bandsM": [0.001, 0.005], "entryParameter": "El at entry", "entryHeightM": {"min": 0.0, "max": 1.5},
+         "flatTopM": 0.0005}
 # The survey point is 1000 m east of the internal origin, so a spot is moved by it as a floor outline is not
 OFFSET = [1000.0, 0.0, 0.0]
 
@@ -22,7 +23,9 @@ def ramp(plot, x0, element_id, front=6.0, back=6.1):
 
 
 def generic(plot, x0, entry):
-    return {"typeName": "Slab G", "elementId": 900 + x0, "parameters": {"Plot": "DP4-" + plot, "El at entry": entry}}
+    """A generic floor with a flat top 0.15 m over its El @ Entry, as the keys hold them, or at 7.0 when the value is no number."""
+    top = entry + 0.15 if isinstance(entry, (int, float)) else 7.0
+    return {"typeName": "Slab G", "elementId": 900 + x0, "parameters": {"Plot": "DP4-" + plot, "El at entry": entry}, "topElevationRange": {"min": top, "max": top}}
 
 
 def spot(element_id, x, y, value, host=None, base="Survey Point"):
@@ -85,6 +88,18 @@ def test_r327_a_key_value_whose_floor_top_is_outside_the_height_band_is_no_el_at
     assert found["counts"]["key"]["plots"] == 1 and found["refusedEntry"] == ["501"] and found["noEntry"]["key"] == ["501"]
 
 
+def test_r327_one_flat_top_tolerance_of_key_plans_decides_and_a_sloped_generic_floor_gives_no_el_at_entry_as_the_plan_refuses_it():
+    block = dict(BLOCK, flatTopM=0.008)
+    nearly = dict(generic("501", 0, 6.8), topElevationRange={"min": 7.0, "max": 7.005})
+    sloped = dict(generic("502", 20, 6.8), topElevationRange={"min": 7.0, "max": 7.05})
+    # The top of 502 falls 50 mm, so it has no flat top to give a height, the plan of R325 refuses its value and so must the spots
+    assert entry_spots.key_level(sloped, block, OFFSET) == (None, True)
+    assert entry_spots.key_level(nearly, block, OFFSET) == (6.8, False)
+    # The top of 501 falls 5 mm, flat within keyPlans.flatTopM, so a value 2.0 m under it is off the height band
+    assert entry_spots.key_level(dict(nearly, parameters={"Plot": "DP4-501", "El at entry": 5.0}), block, OFFSET) == (None, True)
+    assert entry_spots.key_level(dict(nearly, parameters={"Plot": "DP4-501", "El at entry": 5.0}), dict(BLOCK, flatTopM=0.001), OFFSET) == (None, True)
+
+
 def test_r327_el_at_entry_of_the_schedule_is_found_by_the_official_number_the_join_gives_the_plot():
     floors = [ramp("501", 0, 1), generic("501", 0, 6.1)]
     spots = [spot(11, 0, 5, 6.1, host=1), spot(12, 10, 5, 6.1, host=1)]
@@ -123,7 +138,7 @@ def test_r327_the_real_settings_name_the_radii_the_corner_distance_and_the_entry
     settings = project_profile.load_settings()
     block = entry_spots.load_block(settings)
     assert block["radiiM"] == sorted(block["radiiM"]) and block["cornerM"] > 0 and block["bandsM"] == [0.001, 0.005]
-    assert block["entryHeightM"] == settings.get("keyPlans.entryHeightM")
+    assert block["entryHeightM"] == settings.get("keyPlans.entryHeightM") and block["flatTopM"] == settings.get("keyPlans.flatTopM")
     assert block["entryParameter"] == settings.get("pastAll.entryParameter")
     assert entry_spots.band_names(block["bandsM"]) == ["1mm", "5mm"]
 
@@ -134,7 +149,7 @@ FULL_FLOORS = dict(FLOORS, levels={"generic": "L1", "yard": "L2", "ramp": "L1"},
 def spot_settings(tmp_path, name, radii):
     path = tmp_path / name
     path.write_text(json.dumps({"entrySpots": {"radiiM": radii, "cornerM": 0.05, "bandsM": [0.001, 0.005]}, "pastAll": {"entryParameter": "El at entry"},
-                                "keyPlans": {"entryHeightM": {"min": 0.0, "max": 1.5}},
+                                "keyPlans": {"entryHeightM": {"min": 0.0, "max": 1.5}, "flatTopM": 0.0005},
                                 "floors": FULL_FLOORS, "answerKeys": {"keys": [{"code": "IMX", "copy": "X-IMX.rvt"}, {"code": "IMY", "copy": "X-IMY.rvt"}]}}),
                     encoding="utf-8")
     return path

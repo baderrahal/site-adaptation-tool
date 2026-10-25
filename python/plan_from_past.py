@@ -818,7 +818,7 @@ def share_rows(shares, numbers):
     return [{"face": label, "number": numbers.get(label), "share": round(share, 3)} for label, share in shares]
 
 
-def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parameter=None, share_min=None, entry_heights=None):
+def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parameter=None, share_min=None, entry_heights=None, flat_top=None):
     """R206. A past model that keeps no plot parameter on its links and has no schedule here: each link instance Name and each floor
     Plot value is <unit>-<number> in the model's own numbering. The official number of a plot is the location plan number of the
     baseplan face its generic floor stands on, so the number is taken by position and never by a shift. The links and floors get that
@@ -832,7 +832,8 @@ def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parame
     entry_parameter the row of a plot also holds El @ Entry from that parameter of its generic floor and the steps of its link.
     With share_min a generic floor joins the one face that holds at least that share of its area (R120), never the face a point inside it
     falls on, and a floor no face holds so is listed in cutPlots with its shares and names no plot. With entry_heights, a min and max in
-    metres, an El @ Entry that puts the floor top outside that band over it is refused with why and never used."""
+    metres, an El @ Entry that puts the floor top outside that band over it is refused with why and never used. flat_top is keyPlans.flatTopM,
+    how far apart the ends of the top may lie for the floor to be flat and give an FFL, without it the top must be exactly flat."""
     from shapely.geometry import Point
     from shapely.strtree import STRtree
 
@@ -878,7 +879,7 @@ def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parame
         low, high, _ = plot_relations.top_range(floor, offset)
         official[value] = number
         shapes[value] = shape
-        ffl = high if low is not None and abs(high - low) <= EPS else None
+        ffl = high if low is not None and abs(high - low) <= (flat_top or 0.0) + EPS else None
         rows[number] = {"Plot No.": int(number), "Unit": value.rpartition("-")[0], "FFL": ffl, "modelPlot": value.rpartition("-")[2], "sheetRow": None}
         entry = (floor.get("parameters") or {}).get(entry_parameter) if entry_parameter else None
         if entry_parameter:
@@ -1031,7 +1032,17 @@ def load_key_plans(settings):
     entry = (settings.values.get("pastAll") or {}).get("entryParameter")
     if not isinstance(entry, str) or not entry.strip():
         raise project_profile.ProfileError(name + " pastAll.entryParameter must name the El @ Entry parameter of a generic floor")
-    return {"wallEdgeM": edge, "entryParameter": entry, "entryHeightM": entry_height_band(settings), "cutShareMin": cad_links.cad_links_settings(settings)["cutShareMin"]}
+    return {"wallEdgeM": edge, "entryParameter": entry, "entryHeightM": entry_height_band(settings), "cutShareMin": cad_links.cad_links_settings(settings)["cutShareMin"],
+            "flatTopM": flat_top_tolerance(settings)}
+
+
+def flat_top_tolerance(settings):
+    """R325, R327. keyPlans.flatTopM, how far apart in metres the lowest and the highest point of the top of a generic floor may lie for it to
+    be flat and give an FFL, from 0 to under 0.01. The plan, the spots and their second method all take this one value."""
+    flat = (settings.values.get("keyPlans") or {}).get("flatTopM")
+    if not is_number(flat) or not 0 <= flat < 0.01:
+        raise project_profile.ProfileError(settings.path.name + " keyPlans.flatTopM must be metres from 0 to under 0.01")
+    return flat
 
 
 def entry_height_band(settings):
@@ -1190,7 +1201,7 @@ def main(argv=None):
             for name, centre in model_frames(link_summary.load(other), floors).items():
                 frames.setdefault(name, centre)
         data, rows, dialect = names_dialect(data, floors, by_label, numbers, frames, key_plans and key_plans["entryParameter"],
-                                            key_plans and key_plans["cutShareMin"], key_plans and key_plans["entryHeightM"])
+                                            key_plans and key_plans["cutShareMin"], key_plans and key_plans["entryHeightM"], key_plans and key_plans["flatTopM"])
         faces = {numbers[label]: shape for label, shape in by_label.items() if label in numbers}
     else:
         faces, bad_labels = baseplan_faces(baseplan, args.shifts, job["neighbourhood"])

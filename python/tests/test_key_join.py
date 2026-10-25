@@ -381,7 +381,8 @@ def join_inputs(tmp_path, name, share):
     """A made up project of the faces above for key_join.main, keys IMX and IMY read by the jobs KX and KY."""
     floors = dict(FLOORS, levels={"generic": "L1", "yard": "L2", "ramp": "L1"}, yardBelowFflM=0.1, yardShareTie=0.01, yardMinShare=0.5)
     settings = tmp_path / (name + ".json")
-    settings.write_text(json.dumps({"floors": floors, "keyPlans": {"wallEdgeM": 0.3, "entryHeightM": {"min": 0.0, "max": 1.5}}, "cadLinks": {"cutShareMin": share},
+    settings.write_text(json.dumps({"floors": floors, "keyPlans": {"wallEdgeM": 0.3, "entryHeightM": {"min": 0.0, "max": 1.5}, "flatTopM": 0.0005},
+                                    "cadLinks": {"cutShareMin": share},
                                     "pastAll": {"entryParameter": "x"}, "answerKeys": {"keys": [{"code": "IMX", "copy": "X-IMX.rvt", "source": "a/X-IMX.rvt"},
                                                                                                 {"code": "IMY", "copy": "X-IMY.rvt", "source": "a/X-IMY.rvt"}]}}),
                         encoding="utf-8")

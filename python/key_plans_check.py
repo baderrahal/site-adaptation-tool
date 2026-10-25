@@ -402,7 +402,7 @@ def check_plan(plan, document, floors_config, key, second, links_at, plots):
             steps = LEADING_DIGITS.match(str(parameters.get(LINK_STEPS) or ""))
             mismatch(wrong, plot, "steps", (entry["levels"].get("steps") or {}).get("value"), int(steps.group(1)) if steps else None)
         top = floor.get("topElevationRange") or {}
-        ffl = top.get("max") if top.get("min") is not None and abs(top["max"] - top["min"]) <= 1e-9 else None
+        ffl = flat_top(top, key["flatTopM"])
         levels = entry["levels"]
         if ffl is None or abs(levels["ffl"]["value"] - ffl) > METRES or abs(entry["insert"]["value"][2] - ffl) > METRES:
             mismatch(wrong, plot, "ffl", "plan", "read")
@@ -549,14 +549,21 @@ def check_spots(document, floors_config, first, settings, plots):
     return result(len(plots), wrong)
 
 
+def flat_top(top, tolerance):
+    """R328. The top of a floor when its two ends lie within keyPlans.flatTopM of each other, the one tolerance of R325 and R327, else None."""
+    if top.get("min") is None or top.get("max") is None or abs(top["max"] - top["min"]) > tolerance + 1e-9:
+        return None
+    return top["max"]
+
+
 def band_value(floor, settings):
-    """R328. The El @ Entry parameter of a generic floor, None when it is no number or when the flat floor top stands outside the band of
-    the settings over it."""
+    """R328. The El @ Entry parameter of a generic floor, None when it is no number, when the floor has no flat top within the flatTopM of the
+    settings or when that top stands outside the band of the settings over it."""
     value = (floor.get("parameters") or {}).get(settings["entryParameter"])
     if not isinstance(value, (int, float)) or isinstance(value, bool):
         return None
-    top, band = floor.get("topElevationRange") or {}, settings.get("entryHeightM")
-    if band and top.get("min") is not None and abs(top["max"] - top["min"]) <= 1e-9 and not band["min"] - SLACK <= top["max"] - value <= band["max"] + SLACK:
+    top, band = flat_top(floor.get("topElevationRange") or {}, settings["flatTopM"]), settings["entryHeightM"]
+    if top is None or not band["min"] - SLACK <= top - value <= band["max"] + SLACK:
         return None
     return value
 

@@ -50,7 +50,8 @@ def load_block(settings):
     entry = (settings.values.get("pastAll") or {}).get("entryParameter")
     if not isinstance(entry, str) or not entry.strip():
         raise project_profile.ProfileError(name + " pastAll.entryParameter must name the El @ Entry parameter of a generic floor")
-    return {"radiiM": radii, "cornerM": corner, "bandsM": bands, "entryParameter": entry, "entryHeightM": plan_from_past.entry_height_band(settings)}
+    return {"radiiM": radii, "cornerM": corner, "bandsM": bands, "entryParameter": entry, "entryHeightM": plan_from_past.entry_height_band(settings),
+            "flatTopM": plan_from_past.flat_top_tolerance(settings)}
 
 
 def rising(values):
@@ -79,14 +80,17 @@ def usable_spots(document, offset):
 
 
 def key_level(floor, block, offset):
-    """R327. El @ Entry of the key on a generic floor, its parameter when that is a number, and whether it was refused: a value whose flat
-    floor top stands outside keyPlans.entryHeightM over it is no El @ Entry, as R325 refuses it."""
+    """R327. El @ Entry of the key on a generic floor, its parameter when that is a number, and whether it was refused, as R325 refuses it: a
+    floor with no top or a top whose ends lie more than keyPlans.flatTopM apart has no flat top to give a height, and a value whose flat floor
+    top stands outside keyPlans.entryHeightM over it is no El @ Entry."""
     value = (floor.get("parameters") or {}).get(block["entryParameter"])
     if not plan_from_past.is_number(value):
         return None, False
     low, high, _ = plot_relations.top_range(floor, offset)
-    band = block.get("entryHeightM")
-    if band is not None and low is not None and abs(high - low) <= SLACK and not band["min"] - SLACK <= high - value <= band["max"] + SLACK:
+    if low is None or abs(high - low) > block["flatTopM"] + plan_from_past.EPS:
+        return None, True
+    band = block["entryHeightM"]
+    if not band["min"] - SLACK <= high - value <= band["max"] + SLACK:
         return None, True
     return value, False
 
@@ -229,7 +233,7 @@ def main(argv=None):
         if schedule and code not in joined:
             parser.error("the join " + str(args.join) + " holds no key " + code)
         entries[code] = dict(key_entry(document, floors, block, own, numbers), job=job,
-                             settings={key: block[key] for key in ("radiiM", "cornerM", "bandsM", "entryParameter", "entryHeightM")},
+                             settings={key: block[key] for key in ("radiiM", "cornerM", "bandsM", "entryParameter", "entryHeightM", "flatTopM")},
                              inputs={"plots": Path(args.plots).name if args.plots else None, "join": Path(args.join).name if args.join else None})
     report = {"note": "R327. Per answer key the spots of its own floors within each radius of the entrance point of each plot, the middle of the "
                       "higher long edge of its ramp (R94), and the spots at the two corners of that edge, against El @ Entry of the key and of the "

@@ -14,7 +14,7 @@ import test_key_plans as tp
 
 SQUARE = [[0, 0], [10, 0], [10, 10], [0, 10]]
 L_SHAPE = [[0, 0], [10, 0], [10, 4], [4, 4], [4, 10], [0, 10]]
-KEY = {"entryParameter": tp.ENTRY, "entryHeightM": {"min": 0.0, "max": 1.5}, "wallEdgeM": 0.3, "cutShareMin": 0.9}
+KEY = {"entryParameter": tp.ENTRY, "entryHeightM": {"min": 0.0, "max": 1.5}, "wallEdgeM": 0.3, "cutShareMin": 0.9, "flatTopM": 0.0005}
 
 
 def test_r328_ray_casting_and_the_shoelace_centroid_are_plain_math():
@@ -283,3 +283,20 @@ def test_r328_a_face_plots_csv_gives_two_numbers_joined_by_a_bar_has_no_one_numb
     index = kc.face_index({"14": [[[30, 0], [40, 0], [40, 25], [30, 25]]]})
     assert kc.where((35, 12), index, {"14": {"locationPlanNumber": "481|482"}}) == {"status": "noNumber", "face": "14", "number": None}
     assert kc.where((35, 12), index, {"14": {"locationPlanNumber": "481"}})["status"] == "joined"
+
+
+def test_r328_the_flat_top_is_held_within_the_flat_top_m_the_key_ran_with_and_a_sloped_floor_has_no_ffl_and_no_el_at_entry():
+    doc = key_model()
+    host = pf.host_of(doc)
+    host["floors"][0]["topElevationRange"] = {"min": 7.0, "max": 7.005}
+    key = dict(KEY, flatTopM=0.008)
+    data, rows, _ = pf.names_dialect(copy.deepcopy(doc), tp.FLOORS, tp.FACES, tp.NUMBERS, entry_parameter=tp.ENTRY, share_min=0.9,
+                                     entry_heights=key["entryHeightM"], flat_top=key["flatTopM"])
+    plan = pf.build_plan(data, rows, tp.JOB, {tp.FILE.lower()}, "C:\\Prototypes", tp.FLOORS, {tp.NUMBERS[label]: shape for label, shape in tp.FACES.items()})
+    plan["walls"], _ = pf.key_walls(data, tp.FLOORS, key["wallEdgeM"])
+    index, rows_csv = plan_faces()
+    second = kc.second_join(host, tp.FLOORS, index, rows_csv, key["cutShareMin"])
+    assert kc.check_plan(plan, host, tp.FLOORS, key, second, kc.link_places(host, tp.FLOORS, index, rows_csv), ["501"])["mismatch"] == []
+    sloped = dict(host["floors"][0], topElevationRange={"min": 7.0, "max": 7.05})
+    assert kc.band_value(sloped, dict(te.BLOCK, flatTopM=0.008)) is None
+    assert kc.band_value(host["floors"][0], dict(te.BLOCK, entryParameter=tp.ENTRY, flatTopM=0.008)) == 6.8123
