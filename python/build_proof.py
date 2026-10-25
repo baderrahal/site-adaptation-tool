@@ -359,8 +359,12 @@ def tally(verdicts, bands=(1, 5)):
 
 
 def overrides_of(path, sources):
-    """The entries of the override list a build applies, its sources, by key, plot and field."""
-    return {(item["key"], str(item["plot"]), item["field"]): item for item in override_source.read_list(path)["overrides"] if item["source"] in sources}
+    """The entries of the override list a build applies, its sources, by key, plot and field, with the misses its cannot list holds
+    with no value (R272), which a build can not place, so a field they name is explained as an override with no gap was."""
+    data = override_source.read_list(path)
+    found = {(item["key"], str(item["plot"]), item["field"]): dict(item, value=None) for item in data.get("cannot") or [] if item["source"] in sources}
+    found.update({(item["key"], str(item["plot"]), item["field"]): item for item in data["overrides"] if item["source"] in sources})
+    return found
 
 
 def main(argv=None):

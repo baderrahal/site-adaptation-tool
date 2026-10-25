@@ -721,6 +721,30 @@ def overrides(misses, block, models):
     return sorted(kept, key=lambda item: (link_summary.sort_key(item["plot"]), item["key"], item["field"]))
 
 
+def split_cannot(listing):
+    """R272, R330. The entries of a run with a value to write, and the misses with none, a cannot of a rule that gives no value to hold
+    a gap to, listed apart with no value and no rule and never written as an override, so no build reads a null as a value."""
+    written = [item for item in listing if item["value"] is not None]
+    cannot = [{name: value for name, value in item.items() if name not in ("value", "rule")} for item in listing if item["value"] is None]
+    return written, cannot
+
+
+def final_cannot(cannot, block, dry, path, keep, replace, keep_from, joined):
+    """R272, R330. The cannot list a run writes beside the override list: a dry run its own, else the cannot entries of the earlier
+    list the run keeps, by the same keep as its overrides, on plots the join gives their key, and every cannot of the run it does not
+    keep, sorted as the list."""
+    if dry:
+        return cannot
+    source = Path(keep_from or path)
+    data = override_source.read_list(source) if source.exists() else {"overrides": []}
+    earlier = [override_source.migrate_entry(item, block["groups"]) for item in data["overrides"]]
+    chosen = override_source.keep_of(block, keep, replace, earlier)
+    kept = [item for item in data.get("cannot") or [] if override_source.kept_by(item, chosen)
+            and (joined is None or (item.get("key"), str(item["plot"])) in joined)]
+    new = [item for item in cannot if not override_source.kept_by(item, chosen)]
+    return sorted(kept + new, key=lambda item: (link_summary.sort_key(str(item["plot"])), str(item.get("key")), str(item.get("field"))))
+
+
 def final_list(listing, block, dry, path, keep, replace, keep_from, joined):
     """R330. The override list a run writes. A dry run writes the list of the run alone and never into the repo, where the project
     list would lose every entry the run does not measure. Else the run merges with the earlier list, keep_from or the list at path:
@@ -747,10 +771,12 @@ def final_list(listing, block, dry, path, keep, replace, keep_from, joined):
     return merged, counts
 
 
-def write_overrides(path, note, listing):
-    """The override list with one override per line, so Bader can find and edit a plot by hand."""
-    lines = ",\n".join("    " + json.dumps(item, ensure_ascii=False) for item in listing)
-    text = "{\n  \"note\": " + json.dumps(note, ensure_ascii=False) + ",\n  \"overrides\": [\n" + lines + ("\n" if listing else "") + "  ]\n}\n"
+def write_overrides(path, note, listing, cannot=None):
+    """The override list with one override per line, so Bader can find and edit a plot by hand, and with cannot the misses with no
+    value after it, one per line, listed and never applied (R272)."""
+    block = lambda items: ",\n".join("    " + json.dumps(item, ensure_ascii=False) for item in items) + ("\n" if items else "")
+    text = "{\n  \"note\": " + json.dumps(note, ensure_ascii=False) + ",\n  \"overrides\": [\n" + block(listing) + "  ]"
+    text += ("" if cannot is None else ",\n  \"cannot\": [\n" + block(cannot) + "  ]") + "\n}\n"
     json.loads(text)
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_bytes(text.encode("utf-8"))
@@ -882,23 +908,28 @@ def run_args(args):
             item["factors"]["typologyOrEntryRefused"] = "entryRefused" if (item["key"], item["plot"]) in refused else item["factors"]["typology"]
     results, misses, datums, extras = run(items, book, profile, block, surfaces, clusters, prototype_offsets.plot_frame(prototype_offsets.load(args.offsets))["units"],
                                           plans, floor_fit.load(args.floors), floor_fit.width_step(settings), faces, settings.get("keyPlans.wallEdgeM"), levels)
-    listing = overrides(misses, block, dict(args.model))
+    # R272. A miss with no value is listed in cannot, never written as an override with a null value
+    listing, cannot = split_cannot(overrides(misses, block, dict(args.model)))
+    joined = {(row["key"], row["plot"]) for row in rows}
+    cannot = final_cannot(cannot, block, args.dry, args.overrides, args.keep, args.replace, args.keep_from, joined)
     # R330. The entries of the earlier list this run does not measure stay cell for cell, on plots the join gives their key
-    listing, merged = final_list(listing, block, args.dry, args.overrides, args.keep, args.replace, args.keep_from, {(row["key"], row["plot"]) for row in rows})
+    listing, merged = final_list(listing, block, args.dry, args.overrides, args.keep, args.replace, args.keep_from, joined)
     override_source.check_entries(listing, block["groups"])
     # R331. The coordinates of each key read against the reference key, gaps and names only
     site = key_rules.group_site_facts(reads, block["groups"], block["siteReference"]) if reads else None
     report = {"plots": len(items), "byGroup": dict(Counter(item["group"] for item in items)), "clusters": len(clusters), "clusterPlots": [cluster["plots"] for cluster in clusters],
               "frontRules": dict(Counter(front[number]["frontRule"] for number in numbers if number in front)), "keyDatumsM": datums, "siteFacts": site, **extras, "decisions": results,
-              "overrideCount": dict(Counter(item["decision"] for item in listing)), "overrideMerge": merged, "overrideCounts": override_source.counts(listing)}
+              "overrideCount": dict(Counter(item["decision"] for item in listing)), "overrideMerge": merged, "overrideCounts": override_source.counts(listing),
+              "cannotCount": dict(Counter(item["decision"] for item in cannot)), "cannotCounts": override_source.counts(cannot)}
     common.write_json(args.out, report)
-    write_overrides(args.overrides, block["overrideNote"], listing)
+    write_overrides(args.overrides, block["overrideNote"], listing, cannot)
     for result in results:
         print("%s: coded %s, share %s, %s, misses %d of %d" % (result["decision"], result["coded"], result["share"], "strong" if result["strong"] else "WEAK", result["misses"], result["plots"]))
     for name, found in extras["coverage"].items():
         if not found["plots"]:
             print("%s: no plot, keys with none %s" % (name, found["keysWithNoPlot"]))
     print("overrides %d %s" % (len(listing), report["overrideCount"]))
+    print("cannot, listed with no value %d %s" % (len(cannot), report["cannotCount"]))
     return 0
 
 

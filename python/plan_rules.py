@@ -338,6 +338,12 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
     missing = sorted(set(sources) - {item["source"] for item in chosen}) + sorted(set(models or ()) - {item["model"] for item in chosen})
     if missing:
         raise project_profile.ProfileError("the override list holds no override of %s among the sources %s (R280, R330)" % (", ".join(missing), ", ".join(sorted(sources))))
+    # R280. An override with no value is no value to apply, a build refuses it, never writes it as the text None or counts it applied
+    empty = ["plot %s field %s of %s" % (item["plot"], item.get("field"), item.get("model")) for item in chosen
+             if (fields is None or item.get("field") in fields) and item.get("value") is None]
+    if empty:
+        raise project_profile.ProfileError("%d overrides of the build hold no value: %s. A miss with no value belongs in the cannot list of R272, take it out "
+                                           "of overrides (R280)" % (len(empty), " | ".join(empty[:10])))
     found, origin, twice = defaultdict(dict), {}, []
     for item in chosen:
         if fields is None or item.get("field") in fields:

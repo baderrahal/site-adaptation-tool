@@ -836,6 +836,19 @@ def own_build_files(names, prototype_names, typologies):
     return files
 
 
+def dry_entries(data):
+    """R341. Every entry of a dry list, its overrides and the misses with no value its cannot list holds (R272)."""
+    return list(data["overrides"]) + list(data.get("cannot") or [])
+
+
+def cannot_check(merged, dry, keep):
+    """R272, R330. The cannot list a run merged against the cannot list of its dry run, as JSON text, per job the entries of what it
+    does not keep equal."""
+    kept = lambda item: item["source"] in keep and (keep[item["source"]] is None or item["field"] in keep[item["source"]])
+    text = lambda items: Counter(json.dumps(item, sort_keys=True, ensure_ascii=False) for item in items if not kept(item))
+    return {"cannot": len(merged), "cannotEqualDry": text(merged) == text(dry), "cannotBySource": dict(sorted(Counter(item["source"] for item in merged).items()))}
+
+
 def first_misses(dry, report):
     """R336. The plots the first method misses per decision: every entry of the dry list, and every plot and field an open question
     decides (R272, R337), which majority.py lists apart and writes no override of."""
@@ -1379,8 +1392,9 @@ def main(argv=None):
     profile = read_json(ROOT / settings["profile"])
     check = block["check"]
     report = read_json(args.majority)
-    dry = read_json(args.overrides)["overrides"]
-    misses = defaultdict(set, first_misses(dry, report))
+    dry_list = read_json(args.overrides)
+    dry = dry_list["overrides"]
+    misses = defaultdict(set, first_misses(dry_entries(dry_list), report))
     with open(args.past_all, encoding="utf-8") as handle:
         table = list(csv.DictReader(handle))
     rows = [row for row in table if row["source"] == group and row["x"] and row["rotationDeg"] and row["mirrored"] in ("True", "False")]
@@ -1477,7 +1491,12 @@ def main(argv=None):
         for source, fields in block["overrideKeep"]["laterFields"].items():
             if keep.get(source, set()) is not None:
                 keep[source] = set(keep.get(source) or ()) | set(fields)
-        out["merged"] = merged_check(read_json(args.merged)["overrides"], dry, table, keep, later, read_json(args.earlier)["overrides"])
+        merged_list = read_json(args.merged)
+        out["merged"] = merged_check(merged_list["overrides"], dry, table, keep, later, read_json(args.earlier)["overrides"])
+        # R272. The misses with no value of the run are in the cannot list, those of the overrides with no value counted by source
+        out["merged"].update(cannot_check(merged_list.get("cannot") or [], dry_list.get("cannot") or [], keep))
+        out["merged"]["noValueBySource"] = dict(sorted(Counter(item["source"] for item in merged_list["overrides"] if item.get("value") is None).items()))
+        out["merged"]["ok"] = out["merged"]["ok"] and out["merged"]["cannotEqualDry"]
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
     for seed, found in seeds.items():
@@ -1492,8 +1511,9 @@ def main(argv=None):
         print("cannot check, a failure: %s" % out["cannotCheck"], file=sys.stderr)
         return 1
     if "merged" in out and not out["merged"]["ok"]:
-        print("the merged list fails its check, a failure: off the join %d, run entries equal the dry list %s, kept entries missing %s, byHand entries lost %s"
-              % (len(out["merged"]["offJoin"]), out["merged"]["runEntriesEqualDry"], out["merged"].get("keptMissing"), out["merged"].get("byHandLost")), file=sys.stderr)
+        print("the merged list fails its check, a failure: off the join %d, run entries equal the dry list %s, kept entries missing %s, byHand entries lost %s, "
+              "cannot equal the dry list %s" % (len(out["merged"]["offJoin"]), out["merged"]["runEntriesEqualDry"], out["merged"].get("keptMissing"),
+                                                out["merged"].get("byHandLost"), out["merged"].get("cannotEqualDry")), file=sys.stderr)
         return 1
     return 0
 
