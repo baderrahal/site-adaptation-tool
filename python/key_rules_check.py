@@ -1131,7 +1131,7 @@ def main(argv=None):
     print("fitted here: %s, walls with no base level %s" % (out["fits"], out["wallsNoBaseLevel"]))
     print("left for a later phase: %s" % out["leftForLater"])
     if "merged" in out:
-        print("merged list: %s" % {name: value for name, value in out["merged"].items() if name != "offJoin"} | {"offJoin": len(out["merged"]["offJoin"])})
+        print("merged list: %s" % ({name: value for name, value in out["merged"].items() if name != "offJoin"} | {"offJoin": len(out["merged"]["offJoin"])}))
     if failures:
         print("cannot check, a failure: %s" % out["cannotCheck"], file=sys.stderr)
         return 1

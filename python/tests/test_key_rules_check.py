@@ -271,3 +271,16 @@ def test_r336_the_own_front_cover_counts_the_walls_along_the_front_once():
     frame = {"n": (0.0, 1.0), "r": (1.0, 0.0), "left": (0.0, 0.0), "right": (16.0, 0.0)}
     walls = [{"start": [0.0, 0.1, 0], "end": [2.0, 0.1, 0]}, {"start": [1.0, 0.0, 0], "end": [4.0, 0.0, 0]}, {"start": [0.0, 0.0, 0], "end": [0.0, 25.0, 0]}]
     assert key_rules_check.own_front_cover(frame, walls, 0.3) == pytest.approx(4.0 / 16.0)
+
+
+def test_r336_main_holds_the_merged_list_on_the_join_and_names_an_entry_off_it(tmp_path, monkeypatch):
+    monkeypatch.setattr(key_rules_check, "sales_orientation", lambda path, sheet, column: {})
+    argv, out = made_up(tmp_path)
+    merged = tmp_path / "merged.json"
+    merged.write_text(json.dumps({"overrides": [{"plot": "4", "key": "imx", "field": "insert", "value": None, "source": "parsons", "decision": "parsons linkOrigin"},
+                                                {"plot": "9", "key": "imx", "field": "entryM", "value": None, "source": "parsons", "decision": "parsons entry"}]}), encoding="utf-8")
+    (tmp_path / "overrides.json").write_text(json.dumps({"overrides": [{"plot": "4", "key": "imx", "field": "insert", "value": None, "source": "parsons",
+                                                                         "decision": "parsons linkOrigin"}]}), encoding="utf-8")
+    assert key_rules_check.main(argv + ["--merged", str(merged)]) == 0
+    found = json.loads(out.read_text(encoding="utf-8"))["merged"]
+    assert found["offJoin"] == [{"key": "imx", "plot": "9", "field": "entryM", "source": "parsons"}] and found["runEntriesEqualDry"] is True
