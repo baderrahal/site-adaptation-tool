@@ -112,6 +112,9 @@ def block_of(report, words, existing, block):
             made["candidates"] = {name: test["share"] for name, test in decision["tests"].items() if not test.get("checkOnly")}
             if "byBetweenClusters" in decision:
                 made["byBetweenClusters"] = decision["byBetweenClusters"]
+            if "byBuild" in decision:
+                # R337. The coded hand judged by the table of the file a build links, the share a build reproduces
+                made["byBuild"] = decision["byBuild"]
             made["byCode"] = {code: share(counts) for code, counts in coded["byCode"].items()}
         if word in ("rampSlope", "yard", "generic"):
             made["table"] = {key.split(" | ", 1)[1]: value for key, value in coded["rule"].items()}

@@ -152,6 +152,7 @@ def made_report():
     native = decision("native", "yard", "all", {"native | all": "0.100"}, {"u1": {"holds": 2, "breaks": 2}})
     native["share"] = 0.5
     hand = decision("parsons", "hand villa", "blockMirrorRoadSide", {"('parsons', 'a.rvt') | no none": True, "('parsons', 'a.rvt') | yes none": False}, {"imx": {"holds": 4}})
+    hand["byBuild"] = {"holds": 3, "breaks": 1, "cannot": 0, "share": 0.75}
     return {"decisions": [yard, native, hand]}
 
 
@@ -177,6 +178,8 @@ def test_r338_the_key_rules_block_takes_the_zone_prefix_and_the_zone_taken_from_
     assert found["yard"]["table"] == {"Zone 1": "0.100", "Zone 2": "0.100", "Zone 3": "0.100", "Zone 4": "noYard"}
     assert found["yard"]["notMeasured"] == {"Zone 1": "made up why"} and found["yard"]["native"] == 0.5 and found["yard"]["nativeRound17"] == 1.0
     assert found["hand villa"]["byFile"] == {"a.rvt": {"no none": True, "yes none": False}}
+    # The share a build reproduces, by the table of the file it links (R337)
+    assert found["hand villa"]["byBuild"] == {"holds": 3, "breaks": 1, "cannot": 0, "share": 0.75}
     # The rest of the profile keeps its bytes, p2 holds no keyRules
     assert data["levelProfiles"]["p2"] == {"job": "native"} and first.decode("utf-8").startswith('{\n  "levelProfiles": {\n    "p1": {\n      "job": "parsons",\n      "yardBelowFflM": 0.1,\n')
     # A rerun of every decision the block holds gives it byte for byte
@@ -195,3 +198,55 @@ def test_r338_a_zone_taken_from_zones_that_differ_or_are_missing_is_refused_neve
     assert "Zone 1" in str(error.value) and "Zone 3" in str(error.value)
     with pytest.raises(project_profile.ProfileError):
         key_rules_block.block_of(made_report(), ["yard"], {}, block_config(zoneFrom={"Zone 1": {"from": ["Zone 9"], "why": "w"}}))
+
+
+# R337, R272 a hand learned per file the key links is judged by the table of the file a build links
+def hand_items():
+    """Villas of a made up group: four link the ARC file a build links, three an STR file a build does not link, two of them the hand
+    the STR table learns and the ARC table does not, one a block mirror flag the ARC table never learned."""
+    found = []
+    for plot, (file, block, mirrored) in enumerate([("arc.rvt", "yes", True)] * 3 + [("arc.rvt", "no", False), ("str.rvt", "yes", False), ("str.rvt", "yes", False),
+                                                    ("str.rvt", "maybe", True)]):
+        found.append({"plot": str(plot + 1), "key": "imx", "group": "parsons", "code": "VD2", "file": file, "buildFile": "arc.rvt",
+                      "factors": {"blockMirror": block}, "row": {"mirrored": mirrored}})
+    return found
+
+
+def test_r337_a_hand_is_coded_by_the_tables_of_the_files_the_keys_link_and_its_misses_are_the_plots_a_build_does_not_reproduce():
+    import majority
+    by_file = lambda item: (item["group"], item["file"])
+    built = lambda item: (item["group"], item.get("buildFile") or item["file"])
+    result, misses = majority.decide("parsons hand villa", hand_items(), lambda item: item["row"]["mirrored"], {"all": "all", "blockMirror": "blockMirror"},
+                                     by_file, 0.9, judge_scope=built)
+    # The coded candidate and its share are measured on the file each key links, as before
+    assert result["coded"] == "blockMirror" and result["share"] == 1.0
+    # A build links the ARC file, so the two STR hands it gives otherwise and the one it gives none are its misses
+    assert result["byBuild"] == {"holds": 4, "breaks": 2, "cannot": 1, "share": round(4 / 7, 4)}
+    assert sorted(miss["item"]["plot"] for miss in misses) == ["5", "6", "7"] and result["misses"] == 3
+    # With no judge scope the measure is the one of the review
+    result, misses = majority.decide("parsons hand villa", hand_items(), lambda item: item["row"]["mirrored"], {"blockMirror": "blockMirror"}, by_file, 0.9)
+    assert misses == [] and "byBuild" not in result
+
+
+def test_r272_a_miss_of_a_plot_and_field_an_open_question_decides_is_listed_apart_and_never_written_as_an_override():
+    import majority
+    block = {"decidedByQuestion": {"note": "n", "Q017": {"fields": ["mirrored"], "plots": {"imx": ["2"]}, "why": "made up"}}}
+    misses = [{"decision": "parsons hand villa", "field": "mirrored", "plot": plot, "key": "imx", "value": True, "rule": False, "state": "breaks", "reason": "r"}
+              for plot in ("1", "2")] + [{"decision": "parsons linkOrigin", "field": "insert", "plot": "2", "key": "imx", "value": None, "rule": None,
+                                          "state": "cannot", "reason": "r"}]
+    kept, decided = majority.decided_by_question(misses, block)
+    assert [(miss["plot"], miss["field"]) for miss in kept] == [("1", "mirrored"), ("2", "insert")]
+    assert decided == [{"question": "Q017", "key": "imx", "plot": "2", "field": "mirrored", "decision": "parsons hand villa", "value": True, "rule": False}]
+
+
+# R336 the second method holds a hand by the table of the file a build links, found by its own route
+def test_r336_the_own_route_finds_the_file_a_build_links_and_counts_a_plot_a_question_decides_as_a_first_method_miss():
+    import key_rules_check
+    names = ["RRE-WP-NSP-KEO-ARC-DP1-ZZ-MOD-2100.rvt", "RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3100.rvt", "RRE-WP-NSP-KEO-ARC-VD4-ZZ-MOD-2400.rvt",
+             "RRE-WP-NSP-KEO-STR-DP2-ZZ-MOD-2200.rvt", "notes.txt"]
+    found = key_rules_check.own_build_files(names, {"prefix": "RRE-WP-NSP-KEO-", "discipline": "ARC", "suffix": "-ZZ-MOD-"},
+                                            {"VD1": {"keo_file": "DP1"}, "TH1-IM": {"keo_file": "TH1"}, "VD4": {"keo_file": "DP4"}, "DP2": {"keo_file": "DP2"}})
+    assert found == {"DP1": names[0], "TH1": names[1], "VD4": names[2], "VD1": names[0], "TH1-IM": names[1]}
+    dry = [{"decision": "parsons hand villa", "key": "imx", "plot": "1"}]
+    report = {"decidedByQuestion": [{"question": "Q017", "key": "imx", "plot": "2", "field": "mirrored", "decision": "parsons hand villa"}]}
+    assert key_rules_check.first_misses(dry, report) == {"parsons hand villa": {("imx", "1"), ("imx", "2")}}

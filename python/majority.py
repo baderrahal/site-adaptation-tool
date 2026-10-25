@@ -218,14 +218,17 @@ def share(counts):
     return round(counts.get("holds", 0) / total, 4) if total else None
 
 
-def decide(name, items, target, candidates, scope, strong, hold=None, checks=(), extra_by=None):
+def decide(name, items, target, candidates, scope, strong, hold=None, checks=(), extra_by=None, judge_scope=None):
     """R272. Every candidate on the items, the strongest by share, whether it is strong, and its misses. A check reads a value of the
     key itself, such as its step count, so it is reported and never coded, a new plan has no such value. extra_by names more
-    tallies of the coded candidate, by name, such as the front rule of each plot (R332)."""
+    tallies of the coded candidate, by name, such as the front rule of each plot (R332). R337: with judge_scope the coded candidate,
+    learned and chosen within scope, is judged again by judge_scope, the scope of a build, its counts in byBuild and its misses the
+    plots a build does not reproduce."""
     hold = hold or (lambda a, b: a == b)
-    tests, best = {}, None
+    tests, best, rules = {}, None, {}
     for label, factor in candidates.items():
         rule, outcome = evaluate(items, target, factor, scope, hold)
+        rules[label] = rule
         counts = Counter(state for state, _ in outcome.values())
         tests[label] = {"holds": counts.get("holds", 0), "breaks": counts.get("breaks", 0), "cannot": counts.get(CANNOT, 0), "share": share(counts),
                         "byCode": tally(items, outcome, lambda item: item["code"]), "byKey": tally(items, outcome, lambda item: item["key"])}
@@ -236,13 +239,42 @@ def decide(name, items, target, candidates, scope, strong, hold=None, checks=(),
         elif best is None or (tests[label]["share"] or 0) > (tests[best[0]]["share"] or 0):
             best = (label, outcome)
     label, outcome = best
+    built = None
+    if judge_scope is not None and rules[label] is not None:
+        factor = candidates[label]
+        outcome = {id(item): judge(rules[label].get((judge_scope(item), item["factors"].get(factor))), target(item), hold) for item in items if id(item) in outcome}
+        counts = Counter(state for state, _ in outcome.values())
+        built = {"holds": counts.get("holds", 0), "breaks": counts.get("breaks", 0), "cannot": counts.get(CANNOT, 0), "share": share(counts)}
     misses = [{"item": item, "state": outcome[id(item)][0], "rule": outcome[id(item)][1], "value": target(item)}
               for item in items if id(item) in outcome and outcome[id(item)][0] != "holds"]
     result = {"decision": name, "plots": len(outcome), "coded": label, "share": tests[label]["share"], "strong": (tests[label]["share"] or 0) >= strong,
               "misses": len(misses), "tests": tests}
+    if built is not None:
+        result["byBuild"] = built
     for extra, by in (extra_by or {}).items():
         result["by" + extra[0].upper() + extra[1:]] = tally(items, outcome, by)
     return result, misses
+
+
+def decided_by_question(misses, block):
+    """R272, R337. The misses of a plot and field an open question of majority.decidedByQuestion decides are no override: the question
+    gives their value, so they are listed apart with the question and kept out of the list."""
+    decided = {}
+    for question, rule in (block.get("decidedByQuestion") or {}).items():
+        if isinstance(rule, dict):
+            for key, plots in rule["plots"].items():
+                for plot in plots:
+                    for field in rule["fields"]:
+                        decided[(key, str(plot), field)] = question
+    kept, listed = [], []
+    for miss in misses:
+        question = decided.get((miss["key"], str(miss["plot"]), miss["field"]))
+        if question is None:
+            kept.append(miss)
+        else:
+            listed.append({"question": question, "key": miss["key"], "plot": miss["plot"], "field": miss["field"], "decision": miss["decision"],
+                           "value": miss["value"], "rule": miss["rule"]})
+    return kept, listed
 
 
 def pair_kind(plot, book, profile, block):
@@ -349,9 +381,9 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
     level_hold = lambda guess, aim: abs(guess - aim) <= hold_m + 1e-9
     riser = profile.get("steps.riser_added") / 1000.0
     results, misses, datums, extras = [], [], {}, {"linkFits": {}, "flatRamps": {}, "yardOutlineGroups": {}, "walls": {}, "wallMisses": {}, "frontCover": {}, "frontWalled": {},
-                                                    "wallsNoBaseLevel": {}, "coverage": {}}
+                                                    "wallsNoBaseLevel": {}, "coverage": {}, "decidedByQuestion": []}
 
-    def record(name, pool, target, candidates, scope, field, hold=None, checks=(), gap=None, extra_by=None):
+    def record(name, pool, target, candidates, scope, field, hold=None, checks=(), gap=None, extra_by=None, judge_scope=None):
         pool = kept_for(name.split(" ")[1], pool, block, name.split(" ", 1)[1])
         # R272. Every decision says which keys and how many plots it holds, a decision with no plot is listed with none, never dropped
         by_key = Counter(item["key"] for item in pool if target(item) is not None)
@@ -359,20 +391,31 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
                                     "keysWithNoPlot": sorted(set(block["groups"].get(name.split(" ")[0], ())) - set(by_key))}
         if not pool:
             return
-        result, missed = decide(name, pool, target, candidates, scope, strong, hold, checks, extra_by)
+        result, missed = decide(name, pool, target, candidates, scope, strong, hold, checks, extra_by, judge_scope)
         result["field"] = field
         result["byKind"] = dict(sorted(Counter(item.get("modelKind") or "none" for item in pool).items()))
         results.append(result)
+        found_misses = []
         for miss in missed:
             item = miss["item"]
             found = {"decision": name, "field": field, "plot": item["plot"], "key": item["key"], "code": item["code"], "value": miss["value"],
                      "rule": miss["rule"], "state": miss["state"], "reason": ("no value of " if miss["state"] == CANNOT else "breaks ") + result["coded"]}
+            if judge_scope is not None and item.get("buildFile") and item["buildFile"] != item.get("file"):
+                # R337. A build links another file than the key, so its hand is the one the table of that file gives
+                found["reason"] += " by the table of %s, the file a build links, the key links %s" % (item["buildFile"], item.get("file"))
             if gap is not None:
                 found["overrideValue"] = gap(item, miss["value"], miss["rule"])
             if "wall" in item:
                 found["elementId"] = item["wall"].get("elementId")
                 found["plots"] = item["wall"].get("plots")
-            misses.append(found)
+            found_misses.append(found)
+        # R272, R337. A plot and field an open question decides is listed apart, never an override
+        kept_misses, decided = decided_by_question(found_misses, block)
+        if decided:
+            result["misses"] -= len(decided)
+            result["decidedByQuestion"] = len(decided)
+            extras["decidedByQuestion"].extend(decided)
+        misses.extend(kept_misses)
 
     for group in sorted({item["group"] for item in items if item["group"]}):
         pool = [item for item in items if item["group"] == group]
@@ -402,12 +445,14 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
         # R274. Hand, per link file, apart for villas, units in a cluster and units alone
         # R333. The clusters of the CAD analysis alone beside the footprint clusters (Q040), the pairs of the rows of units in no cluster, the villas between cluster units.
         # A tie goes to the candidate listed first, so blockMirrorOpenEnd, the rule Round 17 coded, stays ahead of blockMirrorRoadSide
+        # R337. Learned and coded per file the key links, judged by the table of the file a build links, so a miss is a plot a build does not reproduce
+        built_file = lambda item: (item["group"], item.get("buildFile") or item["file"])
         for unit_class in ("villa", "cluster", "alone"):
             chosen = [item for item in kept("hand") if item["row"]["mirrored"] is not None and hand_class(item) == unit_class]
             record(group + " hand " + unit_class, chosen, lambda item: item["row"]["mirrored"],
                    {name: name for name in ("all", "blockMirror", "clusterSide", "clusterSideAnalysisOnly", "clusterIndexParity", "openEnd", "rowParity", "orientation",
                                             "roadSide", "blockMirrorOpenEnd", "blockMirrorRoadSide", "rowPairSide", "rowPairSideOrBlockMirrorOpenEnd")}, by_file, "mirrored",
-                   extra_by={"betweenClusters": lambda item: item.get("betweenClusters")})
+                   extra_by={"betweenClusters": lambda item: item.get("betweenClusters")}, judge_scope=built_file)
         # R275. El @ Entry: the road level at the front corners of a surface plus the slope of the unit times the ramp depth, as is and less a datum
         entries = [item for item in kept("entry") if clean_entry(item["row"], block["entryRampM"]) is not None]
         target = lambda item: clean_entry(item["row"], block["entryRampM"])
@@ -731,6 +776,14 @@ def run_args(args):
     analysis = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"]
     shapes = footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings))
     items, clusters, front, numbers, tree = site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block)
+    # R337. The file a build links for the code of each plot of a group a level profile with keyRules builds, as plan_from_book.py finds it
+    built_groups = {found.get("job") for found in (profile.get("levelProfiles") or {}).values() if isinstance(found, dict) and found.get("keyRules")}
+    if built_groups & {item["group"] for item in items}:
+        folder, _ = plan_from_past.prototype_folders(plan_from_past.input_root(settings), plan_from_past.load_job(settings))
+        files = plan_from_book.folder_files(folder, profile)
+        for item in items:
+            if item["group"] in built_groups:
+                item["buildFile"] = files.get(item["code"])
     for item in items:
         outline, face = item["row"]["genericOutline"], faces.get(item["plot"])
         if outline and face is not None:

@@ -29,6 +29,7 @@ import argparse
 import csv
 import json
 import math
+import os
 import random
 import re
 import statistics
@@ -787,11 +788,48 @@ def plot_context(args, settings, profile, report, table):
     ctx["refit"] = own_refit(rows, block["check"]["seeds"][0])
     ctx["fitted"] = {(item["unit"], item["mirrored"], item["width"]): item["loops"] for item in read_json(ROOT / "config" / "floor_outlines.json")["outlines"]["yard"]}
     ctx["rows"] = {(row["key"], row["plot"]): row for row in table}
+    # R337. A group a level profile with keyRules builds links the file of the code in the build folder, its hands are held by that table
+    built = any(isinstance(found, dict) and found.get("keyRules") and found.get("job") == group for found in (profile.get("levelProfiles") or {}).values())
+    ctx["buildFiles"] = None
+    if built:
+        folder = Path(os.environ.get("SITE_ADAPTATION_INPUT") or settings["inputRoot"]) / settings["pastJob"]["upgradedPrototypeFolder"]
+        ctx["buildFiles"] = own_build_files([path.name for path in folder.iterdir() if path.is_file()], settings["prototypeNames"], profile["typologies"])
     return ctx
 
 
 def own_code(row, block):
     return row["typologyRev9"] if block["codeFrom"].get(row["source"]) == "rev9" else (row.get("keyUnit") or row["typologyRev9"])
+
+
+def own_build_files(names, prototype_names, typologies):
+    """R336, R337. The file a build links per code, by its own route: a file name of the folder that starts with the prefix and the
+    discipline of prototypeNames gives the code up to the suffix, a code two names give has none, and a code with no file of its own
+    takes the file of its keo_file."""
+    head = prototype_names["prefix"] + prototype_names["discipline"] + "-"
+    found, twice = {}, set()
+    for name in sorted(names):
+        if not name.startswith(head) or prototype_names["suffix"] not in name[len(head):]:
+            continue
+        code = name[len(head):].split(prototype_names["suffix"])[0]
+        if code in found:
+            twice.add(code)
+        found[code] = name
+    files = {code: name for code, name in found.items() if code not in twice}
+    for code, typology in typologies.items():
+        if code not in files and code not in twice and (typology or {}).get("keo_file") in files:
+            files[code] = files[typology["keo_file"]]
+    return files
+
+
+def first_misses(dry, report):
+    """R336. The plots the first method misses per decision: every entry of the dry list, and every plot and field an open question
+    decides (R272, R337), which majority.py lists apart and writes no override of."""
+    misses = defaultdict(set)
+    for item in dry:
+        misses[item.get("decision")].add((item.get("key"), str(item["plot"])))
+    for item in report.get("decidedByQuestion") or []:
+        misses[item["decision"]].add((item["key"], str(item["plot"])))
+    return dict(misses)
 
 
 def cluster_role(plot, cluster, ctx):
@@ -982,7 +1020,9 @@ def held(row, ctx, settings, profile, report, datums):
         judge("yardOutline", outlines, yard_row["loops"], lambda guess, aim: own_boundary_gap(guess, aim) <= block["outlineHoldMm"] / 1000.0 + 1e-9, plain={})
     kind = ctx["kind"](plot)
     unit_class = "villa" if kind == "villa" else "cluster" if plot in ctx["member"] else "alone"
-    judge("hand " + unit_class, {}, mirrored, lambda guess, aim: guess == aim, scope=(group, row["linkFile"]))
+    # R337. The table of the file a build links, which the first method judges the coded hand by
+    link_file = row["linkFile"] if ctx.get("buildFiles") is None else (ctx["buildFiles"].get(own_code(row, block)) or row["linkFile"])
+    judge("hand " + unit_class, {}, mirrored, lambda guess, aim: guess == aim, scope=(group, link_file))
     verdicts = parameter_verdicts(row, ctx, settings, report, factors)
     unknown.extend(verdicts.pop("cannotCheck", []))
     found.update(verdicts)
@@ -1055,9 +1095,7 @@ def main(argv=None):
     check = block["check"]
     report = read_json(args.majority)
     dry = read_json(args.overrides)["overrides"]
-    misses = defaultdict(set)
-    for item in dry:
-        misses[item.get("decision")].add((item.get("key"), str(item["plot"])))
+    misses = defaultdict(set, first_misses(dry, report))
     with open(args.past_all, encoding="utf-8") as handle:
         table = list(csv.DictReader(handle))
     rows = [row for row in table if row["source"] == group and row["x"] and row["rotationDeg"] and row["mirrored"] in ("True", "False")]

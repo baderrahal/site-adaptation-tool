@@ -72,6 +72,9 @@ def made_up(tmp_path, decisions=None):
     settings = tmp_path / "project.json"
     real = json.loads((key_rules_check.ROOT / "config" / "project.json").read_text(encoding="utf-8"))
     real["majority"]["check"] = {"seeds": [14, 7], "sample": 2, "group": "parsons"}
+    # The folder a build links its prototype files from, made up and empty here (R337)
+    real["inputRoot"] = str(tmp_path / "input")
+    (tmp_path / "input" / real["pastJob"]["upgradedPrototypeFolder"]).mkdir(parents=True)
     settings.write_text(json.dumps(real), encoding="utf-8")
     return ["--settings", str(settings), "--past-all", str(past), "--majority", str(majority_json), "--overrides", str(overrides), "--plots-csv", str(plots),
             "--baseplan", str(baseplan), "--roads", str(roads), "--sales", str(sales), "--analysis", str(tmp_path / "analysis.json"),
