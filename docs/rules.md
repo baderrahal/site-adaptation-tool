@@ -352,7 +352,7 @@ R260 is held by round DATA-5, so this round starts at R261.
 
 - **R13 No attribution lines.** No generated-by footer and no co-authored-by line in any file, commit message or pull request text.
 - **R14 No emoji and no em dash** in any file, commit message or report.
-- **R15 No semicolons in prose, comments, documents, commit messages, or in Python, YAML, JSON and Markdown files.** C# statements end in a semicolon because the language requires it, so C# source is the one exception, and its comments and strings still follow the rule.
+- **R15 No semicolons in prose, comments, documents, commit messages, or in Python, YAML, JSON and Markdown files.** C# statements end in a semicolon because the language requires it, so C# source is the one exception, and its comments and strings still follow the rule. The copy of the AI MAX skill in .claude/skills/ai-max is the other exception: it is kept byte for byte with its installed source, and its workflow templates hold shell semicolons.
 
 ## Environment
 

@@ -1,0 +1,51 @@
+# Build output
+bin/
+obj/
+dist/
+build/out/
+artifacts/
+TestResults/
+*.dll
+*.pdb
+
+# .NET and Visual Studio
+.vs/
+*.user
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# Secrets. Never commit these.
+.env
+*.key
+appsettings.local.json
+
+# Personal Claude Code settings and the stop gate's notes
+.claude/settings.local.json
+.claude/hooks/.stop-gate-*
+
+# Models and drawings. Client files stay outside the repo, and a public repo makes that a hard line.
+# A small made up file a test needs goes under tests/fixtures and is added with git add -f.
+*.rvt
+*.rfa
+*.rte
+*.nwd
+*.nwf
+*.nwc
+*.dwg
+*.ifc
+*.3dm
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store

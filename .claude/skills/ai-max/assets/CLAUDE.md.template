@@ -1,0 +1,87 @@
+# [Tool name]
+
+[One sentence: what it does.]
+
+Done means:
+1. [the first observable check from phase 1]
+2. [the second]
+3. [the third]
+
+Every session reads this file, every file under .claude/rules and steps/PROGRESS.md, in that order,
+before anything else. It follows .claude/skills/ai-max/SKILL.md. It opens steps/history only for a
+line it needs.
+
+## Who does what
+
+[Name] decides. Claude in chat drafts the prompts and reads steps/PROGRESS.md and steps/log.md on main
+to see what was done. You do the work in this repo and check it. Do not ask [Name] to run anything you
+can run. Put a question in steps/02_questions.md and carry on.
+
+## Host and target
+
+- [host program and the versions the people who run it have]
+- [target framework and language version, read on (date) from (source)]
+- [reference package, or none, and so what builds away from the host]
+- Installs per user to [path]. No admin step, no compiler on their machines, no path from one machine
+- [how many people run it, and how often]
+
+## Where Code runs and where the tool runs
+
+- Code runs in [a cloud session / a local session on (machine)]. There it can [build, test, run]
+- The tool runs on [Windows machines with (host)]. Only a run there proves [what]
+- Machine facts: git through [GitHub Desktop / Visual Studio / the terminal]. Repo at [path].
+  Host versions installed: [list]
+
+## Where things are
+
+    src/[Name].Core        every rule a test can prove, no host type in it
+    src/[Name].[Host]      the window and every call into the host, nothing else
+    tests/[Name].Core.Tests
+    steps/                 PROGRESS.md read first, START.md, plan, questions, run sheet, log
+    steps/logs/            run logs [Name] sends back. Evidence, never edited
+    docs/history/          the measurements and the reasons behind each rule, with dates
+    .claude/rules/         rules for one folder each, under 200 lines each
+
+## How a round works
+
+1. Write the plan first, then work through it. No stop for approval
+2. Branch off main, one branch per round or per fix. Nothing is committed or pushed on main
+3. Run the full tests after the last edit. Keep the counts before and after
+4. breaker over the changed files, reviewer over the change, claim-checker over the log entry
+5. A new entry at the top of steps/log.md, and steps/PROGRESS.md rewritten, never appended
+6. One pull request. Merge it yourself once the gate is green, passing the squash title and message.
+   Never merge red, never leave one open, never open a second while one is open
+7. Where the host side changed, steps/03_your_steps.md is rewritten for the run on the machine
+
+## Rules for every file
+
+- Core holds no host type, and every rule in it has a test. A change to the host project is read twice
+  and proved by a run on the machine
+- Every number that shapes a run is a setting, never a constant
+- Nothing in the code names one project's file
+- The tool reports what it noticed and changes nothing until [Name] presses the button
+- One rule lives in one place. A copy of a rule in a second file is a bug
+- A file the tool did not write is never listed as written, and a size is logged only after it is read
+  back off the disk
+- [evidence folders] are never edited. A hook refuses it
+
+## Build and test
+
+    [the exact build command]
+    [the exact test command]
+
+## Things that have gone wrong before
+
+[One line each time something breaks, the newest first. The measurement behind it goes in docs/history.]
+
+## Writing
+
+No generated-by or co-authored-by line. No emoji. No em dash. No semicolon in prose. Comments say why,
+not what. Short titles and names. The full list is in .claude/skills/ai-max/references/writing-rules.md.
+
+## Working agreements
+
+Never report a test result that did not come from a run made after the last file was written.
+Say UNKNOWN rather than filling a gap.
+When the same finding survives three fix attempts, stop and write what was tried.
+Name anything recurring a session starts on its own, and remove it unless [Name] asked for it.

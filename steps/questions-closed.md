@@ -9,8 +9,11 @@ Round 17 gave the IDs. Each open question of the DATA-4 list kept its number as 
 | ID | Question | Answer | Closed |
 |---|---|---|---|
 | Q014 | VL6 hand: is VL6 drawn the other hand from VL4 | Yes. Round DATA-4 read both prototypes in Revit (R245, R246): the VL6 gate and driver's room sit on the right seen from the road, the VL4 gate on the left | 2026-10-25, DATA-4 |
+| Q028 | Zone 4: the 1.1 and 1.2 models hold 234 of the 297 plots of 01A, use them as its past key, still send the IMG job if it exists | Replaced by the answer keys (Bader): the IMG model is in C:\02-Site Adaptation\Revit All Zones, and the 7 Rev 6 Parsons site models there (IMA and IMB Zone 1, IMC and IMD Zone 2, IME and IMF Zone 3, IMG Zone 4) are the main reference for every rule. The Native 1.1 to 1.4 reads are a second reference only, for plots none of the 7 hold, and never for unit codes | 2026-10-25, ADDIN |
 | Q034 | Rule 3 of the dialog watcher: where may it click | Inside the Revit or Civil 3D process this session started only, matched by process id. Load Once for this tool's DLLs, Do Not Load for any other add-in, and for an information dialog the button that leaves the file as it is. Never a window of another process. Bader restated it for Round 17 | 2026-10-25, DATA-4 and Round 17 |
-| Q043 | The IFC in Downloads, 1TB02012-012D03-UNA-00-XX-MOD-UT-00010.ifc: is it the Infrastructure IFC package of the schedule notes | No. Round DATA-5 read its header from a copy (R258): it is another project, so it was not copied under C:-Site Adaptation | 2026-10-25, DATA-5 |
+| Q043 | The IFC in Downloads, 1TB02012-012D03-UNA-00-XX-MOD-UT-00010.ifc: is it the Infrastructure IFC package of the schedule notes | No. Round DATA-5 read its header from a copy (R258): it is another project, so it was not copied under C:\02-Site Adaptation | 2026-10-25, DATA-5 |
+| Q046 | A probe pass for the unread alignments and parcels | Dropped (Bader): the add-in does not need the 154 alignments | 2026-10-25, ADDIN |
+| Q050 | Level profile: no profile is the default, which one does every new build use | parsons2024Rev6 for every new build, Rev 6 prevails (Bader). native2022 stays in the repo for reference and is never the default | 2026-10-25, ADDIN |
 
 ## Old numbers to IDs
 

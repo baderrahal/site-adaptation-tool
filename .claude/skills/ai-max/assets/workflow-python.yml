@@ -1,0 +1,64 @@
+# The test gate for a Python tool. From ai-max.
+# Copy to .github/workflows/tests.yml and set the Python version the tool runs on.
+#
+# It checks the hooks first, then runs the tests, then reads the count out of the result file
+# and fails when it is zero or the file never appeared. A gate that runs zero tests reports
+# green forever, and a folder named tests is not a test.
+
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the hooks
+        shell: bash
+        run: |
+          sh .claude/hooks/hook-tests.sh | tee hook-results.txt
+          status=${PIPESTATUS[0]}
+          ran=$(grep -oE '^[0-9]+ passed' hook-results.txt | grep -oE '[0-9]+' || true)
+          if [ "$status" -ne 0 ]; then
+            echo "The hook checks failed."
+            exit 1
+          fi
+          if [ -z "$ran" ] || [ "$ran" -eq 0 ]; then
+            echo "Zero hook cases ran. This step is not protecting anything."
+            exit 1
+          fi
+          echo "$ran hook cases ran."
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+
+      - name: Run the tests
+        run: python -m pytest -v --junitxml=test-results.xml
+
+      - name: Fail if no tests ran
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -f test-results.xml ]; then
+            echo "No test result file was written. This gate is not protecting anything."
+            exit 1
+          fi
+          total=$(grep -o '<testsuite [^>]*>' test-results.xml | head -1 | grep -o ' tests="[0-9]*"' | grep -o '[0-9][0-9]*')
+          if [ -z "$total" ] || [ "$total" -eq 0 ]; then
+            echo "Zero tests ran. This gate is not protecting anything."
+            exit 1
+          fi
+          echo "$total tests ran."

@@ -1,0 +1,93 @@
+{
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "permissions": {
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(git -C * push --force*)",
+      "Bash(git -C * push * --force*)",
+      "Bash(git * --no-verify*)",
+      "Bash(git commit -n*)",
+      "Bash(git commit * -n*)",
+      "Bash(git config core.hooksPath*)",
+      "Bash(git config * core.hooksPath*)",
+      "Bash(git -c core.hooksPath*)",
+      "Bash(git reset --hard*)",
+      "Bash(git -C * reset --hard*)",
+      "Bash(git clean *)",
+      "Bash(git -C * clean *)",
+      "Bash(gh pr merge * --admin*)",
+      "Bash(gh pr merge --admin*)",
+      "PowerShell(git push --force*)",
+      "PowerShell(git push -f*)",
+      "PowerShell(git push * --force*)",
+      "PowerShell(git push * -f*)",
+      "PowerShell(git -C * push --force*)",
+      "PowerShell(git -C * push * --force*)",
+      "PowerShell(git * --no-verify*)",
+      "PowerShell(git commit -n*)",
+      "PowerShell(git commit * -n*)",
+      "PowerShell(git config core.hooksPath*)",
+      "PowerShell(git config * core.hooksPath*)",
+      "PowerShell(git -c core.hooksPath*)",
+      "PowerShell(git reset --hard*)",
+      "PowerShell(git -C * reset --hard*)",
+      "PowerShell(git clean *)",
+      "PowerShell(git -C * clean *)",
+      "PowerShell(gh pr merge * --admin*)",
+      "PowerShell(gh pr merge --admin*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Read CLAUDE.md, every file under .claude/rules, steps/PROGRESS.md and .claude/skills/ai-max/SKILL.md before any work.'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell|Monitor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/refuse-protected-paths.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell|Monitor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/refuse-git-on-main.sh\""
+          },
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/require-log.sh\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/stop-gate.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

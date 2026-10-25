@@ -1,0 +1,51 @@
+[Tool name], how to install it and run it
+
+This is an add-in for [host program and version]. It installs for you alone, in your own Windows
+profile, and needs no admin rights. VERSION.txt in this folder says which version this zip holds.
+
+
+To install
+
+1. Close [host program].
+2. Right click the zip and choose Extract All, then open the folder that makes. A file opened
+   inside the zip without extracting it does not work.
+3. Double click "Install [Tool name].cmd". A black window opens. If Windows asks whether to run
+   it, choose Run.
+4. Read the last line before "Press any key to continue". It starts with one of three words:
+     DONE:     It worked. The line says which version is installed and where the one you had
+               before is kept.
+     FAILED:   It stopped part way. The line says what is in each folder and what to do.
+     REFUSED:  Nothing was changed. The line says why and what to do.
+   Then press any key to close the window.
+5. Start [host program] and look on the [ribbon tab] tab for [Tool name].
+
+Installing a newer zip the same way replaces the add-in and keeps the version you had before.
+
+
+To run it
+
+1. [one action]
+2. [one action]
+3. Press Run. The window says what it is doing, and when it is done.
+
+
+Where it writes
+
+  [Outputs]         [the folder picked in the window]
+  The run's log     press Open log folder in the window. Each run writes one log file.
+
+
+If something goes wrong
+
+1. Press Open log folder and send [Name] the newest log file.
+2. Take a screenshot of the whole tool window and send it too.
+
+
+To go back to the version you had before
+
+1. Close [host program].
+2. Double click "Put back the previous version.cmd" in the folder of any extracted zip.
+3. Read the last line before "Press any key to continue". DONE: says which version is back.
+
+If any install window ends on FAILED, or on red text that starts with none of the three words,
+take a screenshot of the whole window and send it to [Name].
