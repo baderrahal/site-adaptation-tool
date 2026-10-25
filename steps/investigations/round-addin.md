@@ -461,6 +461,7 @@ Branch data/addin-key-copies from main at d3b3ed9 after PR 43, equal to origin/m
 ### Gate
 
 - Python 1163 passed and 1 skipped, .NET build 0 errors, .NET 497 passed, run twice, before and after the records (RAN, round_addin\logs\p1b_gate_python.txt, p1b_gate_build.txt, p1b_gate_test.txt). The build that compiled the tests gave the 1 old warning (xUnit2013), the build after the records had nothing to compile and gave 0. Main before this PR: 1122 and 1 skipped, 479. New: 36 R312 tests, 5 R301 test cases, 18 R313 test cases.
+- GitHub on the first push of PR 44: the python check failed on 1 test, test_r312_a_copy_whose_source_is_not_the_one_of_the_config_is_refused. Its helper hashed the source by the path written in another case, which the Linux runner does not find (FileNotFoundError), while key_copies.py hashes the source of the config. Fixed in the test, the next run passed python and dotnet (RAN, gh pr checks 44).
 
 ### Questions
 
