@@ -36,13 +36,13 @@ JOINED = "joined"
 KINDS = ("link", "generic", "ramp")
 
 
-def places(faces, numbers, many, area, plan, share_min):
+def places(faces, numbers, many, area, plan, share_min, min_share=plan_from_past.SLIVER_SHARE):
     """R326. What a point or a floor on the baseplan can be joined to: the faces by label with a tree, the location plan number of a face
-    with one label, the label count of a face with more, the area key of plots.csv by label, the location plan zone and NBH by number and
-    cadLinks.cutShareMin, the share of a floor one face must hold (R120)."""
+    with one label, the label count of a face with more, the area key of plots.csv by label, the location plan zone and NBH by number,
+    cadLinks.cutShareMin, the share of a floor one face must hold (R120), and keyPlans.minShare, a share under which is left out (R325)."""
     labels = sorted(faces, key=link_summary.sort_key)
     return {"labels": labels, "tree": STRtree([faces[label] for label in labels]), "faces": faces, "numbers": numbers, "many": many, "area": area,
-            "plan": plan, "shareMin": share_min}
+            "plan": plan, "shareMin": share_min, "minShare": min_share}
 
 
 def locate(point, where):
@@ -74,7 +74,7 @@ def locate_floor(floor, offset, where):
     shape, _ = plot_relations.floor_shape(floor, offset)
     if shape is None:
         return {"status": "noShape", "face": None, "number": None}
-    shares = plan_from_past.face_shares(shape, where["labels"], where["tree"], where["faces"])
+    shares = plan_from_past.face_shares(shape, where["labels"], where["tree"], where["faces"], where["minShare"])
     face, why = plan_from_past.share_face(shares, where["shareMin"])
     if face is None:
         found = {"status": why, "face": None, "number": None}
@@ -254,8 +254,9 @@ def main(argv=None):
     faces, _ = yard_rule.face_shapes(link_summary.load(args.baseplan)["plots"], 0)
     numbers, many = plan_from_past.location_numbers(args.labels)
     area, _ = read_plots_csv(args.plots)
-    share_min = plan_from_past.load_key_plans(settings)["cutShareMin"]
-    where = places(faces, numbers, many, area, key_cover.labels_by_number(args.labels), share_min)
+    key_plans = plan_from_past.load_key_plans(settings)
+    share_min, min_share = key_plans["cutShareMin"], key_plans["minShare"]
+    where = places(faces, numbers, many, area, key_cover.labels_by_number(args.labels), share_min, min_share)
     path = out / OUTPUT
     key_reads.earlier_keys(path)
     entries = {}
@@ -266,7 +267,7 @@ def main(argv=None):
         joined = join_plots(document, floors, where)
         entries[code] = {"job": job, "join": joined, "place": place_check(document, floors, where), "areaRow": area_row(code, key_source(settings, code), joined),
                          "inputs": {"baseplan": Path(args.baseplan).name, "labels": Path(args.labels).name, "plots": Path(args.plots).name},
-                         "settings": {"cutShareMin": share_min}}
+                         "settings": {"cutShareMin": share_min, "minShare": min_share}}
     report = {"note": "R326. Each plot the links of a key name joined by the share of its generic floor on a baseplan face to the location plan "
                       "number, zone and NBH and the area key of plots.csv, and each link, generic floor and ramp held against the face it stands on. "
                       "A run writes the keys it is given with the inputs and the share it ran with and keeps the other keys of the file.",

@@ -300,3 +300,16 @@ def test_r328_the_flat_top_is_held_within_the_flat_top_m_the_key_ran_with_and_a_
     sloped = dict(host["floors"][0], topElevationRange={"min": 7.0, "max": 7.05})
     assert kc.band_value(sloped, dict(te.BLOCK, flatTopM=0.008)) is None
     assert kc.band_value(host["floors"][0], dict(te.BLOCK, entryParameter=tp.ENTRY, flatTopM=0.008)) == 6.8123
+
+
+def test_r328_a_grid_share_under_the_minimum_share_is_left_out_so_a_touch_is_on_no_face_by_both_methods():
+    index, rows = faces()
+    # The floor lies 0.25 m of its 10 m width on face 15, a share of 0.025, the grid finds one column of 50 on it
+    ring = [[49.75, 0], [59.75, 0], [59.75, 25], [49.75, 25]]
+    assert kc.floor_status(ring, index, rows, 0.9, 0.05) == {"status": "noFace", "face": None, "number": None, "shares": [], "grid": kc.GRID}
+    assert kc.floor_status(ring, index, rows, 0.9, 0.001)["status"] == "cut"
+    where = tj.places()
+    where["minShare"] = 0.05
+    doc = tj.document([tj.key_link("801", 50, element_id=801)], [tj.floor("DP4-801", 49.75)])
+    assert key_join.join_plots(doc, tj.FLOORS, where)["plots"]["801"]["status"] == "noFace"
+    assert kc.second_join(doc, tj.FLOORS, index, rows, 0.9, 0.05)["801"]["status"] == "noFace"

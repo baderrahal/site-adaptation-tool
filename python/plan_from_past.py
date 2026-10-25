@@ -73,7 +73,7 @@ ENTRY_SOURCE = "entrySource"
 # R325. A row whose El @ Entry was refused keeps why, and the plan lists it under levels.entry with this start
 ENTRY_REFUSED = "entryRefused"
 REFUSED = "refused, "
-# R120. A share of a floor on a face under this is a sliver and is left out
+# R120. A share of a floor on a face under this is a sliver and is left out. A plan of an answer key takes keyPlans.minShare instead (R325)
 SLIVER_SHARE = 0.0001
 
 
@@ -790,16 +790,17 @@ def location_numbers(labels_path):
     return {face: items[0]["number"] for face, items in found.items() if len(items) == 1}, {face: len(items) for face, items in found.items() if len(items) > 1}
 
 
-def face_shares(shape, labels, tree, faces):
+def face_shares(shape, labels, tree, faces, min_share=SLIVER_SHARE):
     """R120, R325. The share of the area of a floor on each baseplan face it overlaps, the face area under the floor over the floor area,
-    as (label, share) with the largest first. A share under SLIVER_SHARE is a sliver and is left out."""
+    as (label, share) with the largest first. A share under min_share, SLIVER_SHARE or keyPlans.minShare for an answer key, is a sliver and
+    is left out, so a floor that only touches a face is on no face."""
     if shape is None or shape.area <= 0:
         return []
     found = []
     for index in tree.query(shape, predicate="intersects"):
         label = labels[int(index)]
         share = faces[label].intersection(shape).area / shape.area
-        if share >= SLIVER_SHARE:
+        if share >= min_share:
             found.append((label, share))
     return sorted(found, key=lambda item: (-item[1], link_summary.sort_key(item[0])))
 
@@ -818,7 +819,8 @@ def share_rows(shares, numbers):
     return [{"face": label, "number": numbers.get(label), "share": round(share, 3)} for label, share in shares]
 
 
-def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parameter=None, share_min=None, entry_heights=None, flat_top=None, many=None):
+def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parameter=None, share_min=None, entry_heights=None, flat_top=None, many=None,
+                  min_share=None):
     """R206. A past model that keeps no plot parameter on its links and has no schedule here: each link instance Name and each floor
     Plot value is <unit>-<number> in the model's own numbering. The official number of a plot is the location plan number of the
     baseplan face its generic floor stands on, so the number is taken by position and never by a shift. The links and floors get that
@@ -835,7 +837,8 @@ def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parame
     metres, an El @ Entry that puts the floor top outside that band over it is refused with why and never used. flat_top is keyPlans.flatTopM,
     how far apart the ends of the top may lie for the floor to be flat and give an FFL, without it the top must be exactly flat.
     R120, R325. With share_min a floor whose face of that share has no plan label, noNumber, or two or more, manyNumbers by many, the label
-    count of each such face of location_numbers, goes to cutPlots with that why and its face, so no floor leaves the plan unlisted."""
+    count of each such face of location_numbers, goes to cutPlots with that why and its face, so no floor leaves the plan unlisted. min_share
+    is keyPlans.minShare, a share under it is left out, so a floor that only touches a face is on no face, by default SLIVER_SHARE."""
     from shapely.geometry import Point
     from shapely.strtree import STRtree
 
@@ -857,7 +860,7 @@ def names_dialect(data, floors_config, faces, numbers, frames=None, entry_parame
             hits = [labels[index] for index in tree.query(Point(shape.representative_point()), predicate="within")]
             number = numbers.get(hits[0]) if len(hits) == 1 else None
         else:
-            shares = face_shares(shape, labels, tree, faces)
+            shares = face_shares(shape, labels, tree, faces, SLIVER_SHARE if min_share is None else min_share)
             face, why = share_face(shares, share_min)
             if face is None:
                 report["generic floor cut by the baseplan" if why == "cut" else "generic floor on " + why] += 1
@@ -1036,8 +1039,11 @@ def load_key_plans(settings):
     entry = (settings.values.get("pastAll") or {}).get("entryParameter")
     if not isinstance(entry, str) or not entry.strip():
         raise project_profile.ProfileError(name + " pastAll.entryParameter must name the El @ Entry parameter of a generic floor")
-    return {"wallEdgeM": edge, "entryParameter": entry, "entryHeightM": entry_height_band(settings), "cutShareMin": cad_links.cad_links_settings(settings)["cutShareMin"],
-            "flatTopM": flat_top_tolerance(settings)}
+    band, cut, flat = entry_height_band(settings), cad_links.cad_links_settings(settings)["cutShareMin"], flat_top_tolerance(settings)
+    least = block.get("minShare")
+    if not is_number(least) or not 0 < least < cut:
+        raise project_profile.ProfileError(name + " keyPlans.minShare must be a share above 0 and under cadLinks.cutShareMin")
+    return {"wallEdgeM": edge, "entryParameter": entry, "entryHeightM": band, "cutShareMin": cut, "flatTopM": flat, "minShare": least}
 
 
 def flat_top_tolerance(settings):
@@ -1205,7 +1211,8 @@ def main(argv=None):
             for name, centre in model_frames(link_summary.load(other), floors).items():
                 frames.setdefault(name, centre)
         data, rows, dialect = names_dialect(data, floors, by_label, numbers, frames, key_plans and key_plans["entryParameter"],
-                                            key_plans and key_plans["cutShareMin"], key_plans and key_plans["entryHeightM"], key_plans and key_plans["flatTopM"], many)
+                                            key_plans and key_plans["cutShareMin"], key_plans and key_plans["entryHeightM"], key_plans and key_plans["flatTopM"], many,
+                                            key_plans and key_plans["minShare"])
         faces = {numbers[label]: shape for label, shape in by_label.items() if label in numbers}
     else:
         faces, bad_labels = baseplan_faces(baseplan, args.shifts, job["neighbourhood"])

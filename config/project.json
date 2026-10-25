@@ -84,7 +84,7 @@
       {"code": "IMG", "zone": "Zone 4", "kind": "TU", "source": "Revit All Zones\\01101-PSN-IMG-ZZZ-PIM-TU-000001-zone4.rvt", "copy": "01101-PSN-IMG-ZZZ-PIM-TU-000001-zone4.rvt"}
     ]
   },
-  "keyPlans": {"wallEdgeM": 0.3, "entryHeightM": {"min": 0.0, "max": 1.5}, "flatTopM": 0.0005},
+  "keyPlans": {"wallEdgeM": 0.3, "entryHeightM": {"min": 0.0, "max": 1.5}, "flatTopM": 0.0005, "minShare": 0.001},
   "entrySpots": {"radiiM": [0.5, 6.0], "cornerM": 0.05, "bandsM": [0.001, 0.005]},
   "prototypeNames": {"prefix": "RRE-WP-NSP-KEO-", "discipline": "ARC", "suffix": "-ZZ-MOD-"},
   "prototypeSets": {

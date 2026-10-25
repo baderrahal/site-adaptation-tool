@@ -96,13 +96,13 @@ def coverage(plans, labels):
                       "neighbourhoodsWithNoKeyPlot": [nbh for nbh, row in union.items() if not row["heldByAKey"]]}}
 
 
-def floor_parameters(data, dialect, floors, faces, numbers, names, share_min=None):
+def floor_parameters(data, dialect, floors, faces, numbers, names, share_min=None, min_share=None):
     """The parameters of pastAll.floorParameters on the Generic floor of each plot, by official number, and the datum of the key. With
-    share_min the generic floors join their faces by area share as the plan of an answer key does (R325)."""
+    share_min the generic floors join their faces by area share as the plan of an answer key does (R325), a share under min_share left out."""
     data = copy.deepcopy(data)
     key_floors = placer_check.dialect_floors(floors, dialect)
     if dialect["plot"] == "name":
-        data, _, _ = plan_from_past.names_dialect(data, key_floors, faces, numbers, share_min=share_min)
+        data, _, _ = plan_from_past.names_dialect(data, key_floors, faces, numbers, share_min=share_min, min_share=min_share)
     document = plan_from_past.host_of(data)
     datum = ramp_levels.offset_of(document)[2] if dialect["datum"] == "surveyElevation" else 0.0
     found = {}
@@ -166,7 +166,7 @@ def conflict(name, plot, field, key_value, schedule_value, band):
 
 
 def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settings_block, footprint=None, schedule=None, code=None, share_min=None,
-               conflicts=None, level_band=None):
+               conflicts=None, level_band=None, min_share=None):
     """R269. One row per plot of the key. R326. schedule is the FFL and El @ Entry of the schedules of plots.csv by official number, each with
     its source, and a row takes them first only when pastAll.scheduleKeys gives that source the code of this key, so a Native key or another
     key on the same plots never does. Such a row takes FFL, El @ Entry and the height as one pair of the schedule, never the key floor top
@@ -174,7 +174,7 @@ def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settin
     level_band goes to conflicts with both values. A schedule row with El @ Entry and no FFL is refused. The El @ Entry a plan of an answer key
     holds (R325) is the parameter of its generic floor, so its source is floorParameter, and a value that plan refused is never taken again
     from the floor or the ramp, its source is refused. heightSource is where the FFL came from less the source of El @ Entry."""
-    params, datum = floor_parameters(data, dialect, floors, faces, numbers, settings_block["floorParameters"], share_min)
+    params, datum = floor_parameters(data, dialect, floors, faces, numbers, settings_block["floorParameters"], share_min, min_share)
     entry_parameter = settings_block["entryParameter"]
     own = {}
     if code and schedule:
@@ -420,15 +420,16 @@ def main(argv=None):
         if name in kept:
             raise project_profile.ProfileError("the key " + name + " is both kept from " + args.keep_from[0] + " and given, give it once")
         data = link_summary.load(prototypes)
-        key_floors, share_min = floors, None
+        key_floors, share_min, min_share = floors, None, None
         if name in codes:
             key_floors = plan_from_past.load_floors(settings, codes[name])
             plan_from_past.check_key_file(settings, codes[name], plan_from_past.host_of(data).get("file"), plan_from_past.read_job(prototypes))
-            share_min = plan_from_past.load_key_plans(settings)["cutShareMin"]
+            key_plans = plan_from_past.load_key_plans(settings)
+            share_min, min_share = key_plans["cutShareMin"], key_plans["minShare"]
         source, kind = source_of(name, groups), key_kind(settings, codes.get(name))
         rows += [dict(row, source=source, kind=kind) for row in table_rows(name, link_summary.load(plan), data, split["dialects"][dialect], key_floors, faces, numbers,
                                                                           labels, block, footprints.get(name), schedule, codes.get(name), share_min,
-                                                                          conflicts, band)]
+                                                                          conflicts, band, min_share)]
     rows = check_kinds(rows, kind_rule(settings), groups)
     write_csv(out, rows)
     if schedule is not None:

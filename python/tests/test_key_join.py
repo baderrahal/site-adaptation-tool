@@ -381,7 +381,7 @@ def join_inputs(tmp_path, name, share):
     """A made up project of the faces above for key_join.main, keys IMX and IMY read by the jobs KX and KY."""
     floors = dict(FLOORS, levels={"generic": "L1", "yard": "L2", "ramp": "L1"}, yardBelowFflM=0.1, yardShareTie=0.01, yardMinShare=0.5)
     settings = tmp_path / (name + ".json")
-    settings.write_text(json.dumps({"floors": floors, "keyPlans": {"wallEdgeM": 0.3, "entryHeightM": {"min": 0.0, "max": 1.5}, "flatTopM": 0.0005},
+    settings.write_text(json.dumps({"floors": floors, "keyPlans": {"wallEdgeM": 0.3, "entryHeightM": {"min": 0.0, "max": 1.5}, "flatTopM": 0.0005, "minShare": 0.001},
                                     "cadLinks": {"cutShareMin": share},
                                     "pastAll": {"entryParameter": "x"}, "answerKeys": {"keys": [{"code": "IMX", "copy": "X-IMX.rvt", "source": "a/X-IMX.rvt"},
                                                                                                 {"code": "IMY", "copy": "X-IMY.rvt", "source": "a/X-IMY.rvt"}]}}),
@@ -407,8 +407,8 @@ def test_r326_each_key_of_the_join_keeps_the_inputs_and_the_share_it_was_run_wit
     assert key_join.main(join_inputs(tmp_path, "b", 0.8) + ["--key", "IMY=KY", "--out", str(out)]) == 0
     report = json.loads((out / key_join.OUTPUT).read_text(encoding="utf-8"))
     assert "inputs" not in report
-    assert report["keys"]["IMX"]["inputs"]["plots"] == "a_plots.csv" and report["keys"]["IMX"]["settings"] == {"cutShareMin": 0.9}
-    assert report["keys"]["IMY"]["inputs"]["plots"] == "b_plots.csv" and report["keys"]["IMY"]["settings"] == {"cutShareMin": 0.8}
+    assert report["keys"]["IMX"]["inputs"]["plots"] == "a_plots.csv" and report["keys"]["IMX"]["settings"] == {"cutShareMin": 0.9, "minShare": 0.001}
+    assert report["keys"]["IMY"]["inputs"]["plots"] == "b_plots.csv" and report["keys"]["IMY"]["settings"] == {"cutShareMin": 0.8, "minShare": 0.001}
     assert report["keys"]["IMX"]["join"]["counts"]["joined"] == 2
 
 
@@ -418,3 +418,16 @@ def test_r326_the_real_settings_put_the_seven_answer_keys_in_the_parsons_job_wit
     assert set(codes) <= set(settings.get("majority.groups.parsons"))
     assert not set(codes) & set(settings.get("majority.groups.native"))
     assert settings.get("placerCheck.dialects.parsons") == {"plot": "name", "datum": "none"}
+
+
+def test_r326_a_generic_floor_that_only_touches_a_face_by_less_than_the_minimum_share_is_on_no_face_not_cut():
+    # The floor of 801 lies 0.003 m of its 10 m width on face 15, a share of 0.0003, as IMG 440 touches face 206, and on no other face
+    where = places()
+    where["minShare"] = 0.001
+    doc = document([key_link("801", 50, element_id=801)], [floor("DP4-801", 49.997)])
+    found = key_join.join_plots(doc, FLOORS, where)
+    assert found["plots"]["801"] == {"status": "noFace", "face": None, "number": None}
+    assert key_join.place_check(doc, FLOORS, where)["byKind"]["generic"] == {"noFace": 1}
+    # A share at the minimum or over it is kept, so the floor is cut with it
+    where["minShare"] = 0.0002
+    assert key_join.join_plots(doc, FLOORS, where)["plots"]["801"]["status"] == "cut"

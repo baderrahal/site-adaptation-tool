@@ -186,9 +186,10 @@ def where(point, faces, rows):
     return {"status": "joined" if number else "noNumber", "face": hits[0], "number": number}
 
 
-def grid_shares(ring, faces):
+def grid_shares(ring, faces, min_share=0.0):
     """R328. The share of a floor ring on each face by a grid of GRID by GRID points over its box: the points inside the ring that each face
-    holds over all points inside the ring, the largest first."""
+    holds over all points inside the ring, the largest first. A share under min_share, keyPlans.minShare the join ran with, is left out as
+    the first method leaves it out."""
     bounds = box([ring])
     width, height = bounds[2] - bounds[0], bounds[3] - bounds[1]
     points = [(bounds[0] + (column + 0.5) * width / GRID, bounds[1] + (row + 0.5) * height / GRID) for column in range(GRID) for row in range(GRID)]
@@ -200,20 +201,21 @@ def grid_shares(ring, faces):
         if not overlap(face_box, bounds):
             continue
         count = sum(1 for point in points if in_box(point, face_box) and any(inside(point, shape) for shape in faces["rings"][label]))
-        if count:
+        if count and count / len(points) >= min_share:
             found.append((label, count / len(points)))
     return sorted(found, key=lambda item: (-item[1], order(item[0])))
 
 
-def floor_status(ring, faces, rows, share_min):
-    """R328. The face that holds at least share_min of the floor by the grid, its number and share, or noFace, twoFaces or cut with the shares."""
-    shares = grid_shares(ring, faces)
+def floor_status(ring, faces, rows, share_min, min_share=0.0):
+    """R328. The face that holds at least share_min of the floor by the grid, its number and share, or noFace, twoFaces or cut with the shares,
+    a share under min_share left out, and the grid it was measured on."""
+    shares = grid_shares(ring, faces, min_share)
     held = [label for label, share in shares if share >= share_min]
     if len(held) == 1:
         number = number_of(held[0], rows)
-        return {"status": "joined" if number else "noNumber", "face": held[0], "number": number, "share": round(dict(shares)[held[0]], 3)}
+        return {"status": "joined" if number else "noNumber", "face": held[0], "number": number, "share": round(dict(shares)[held[0]], 3), "grid": GRID}
     return {"status": "twoFaces" if held else "cut" if shares else "noFace", "face": None, "number": None,
-            "shares": [(label, round(share, 3)) for label, share in shares]}
+            "shares": [(label, round(share, 3)) for label, share in shares], "grid": GRID}
 
 
 def status_class(status):
@@ -221,7 +223,7 @@ def status_class(status):
     return "noNumber" if status == "manyNumbers" else status
 
 
-def second_join(document, floors_config, faces, rows, share_min):
+def second_join(document, floors_config, faces, rows, share_min, min_share=0.0):
     """R328. Each plot a link names joined again by the grid share of its one generic floor, and two plots on one number marked twoPlots."""
     generics = of_kind(document, floors_config, "generic")
     found = {}
@@ -231,7 +233,7 @@ def second_join(document, floors_config, faces, rows, share_min):
         if len(own) != 1:
             found[plot] = {"status": "noGenericFloor" if not own else "twoGenericFloors", "face": None, "number": None}
         else:
-            found[plot] = floor_status(loop, faces, rows, share_min) if loop else {"status": "noShape", "face": None, "number": None}
+            found[plot] = floor_status(loop, faces, rows, share_min, min_share) if loop else {"status": "noShape", "face": None, "number": None}
     numbers = Counter(row["number"] for row in found.values() if row["status"] == "joined")
     for row in found.values():
         if row["status"] == "joined" and numbers[row["number"]] > 1:
@@ -305,7 +307,7 @@ def link_places(document, floors_config, faces, rows):
     return found
 
 
-def check_place(document, floors_config, place, faces, rows, links_at, share_min, plots):
+def check_place(document, floors_config, place, faces, rows, links_at, share_min, plots, min_share=0.0):
     """R328. The generic floors, ramps and links of each sampled plot of the place check of R326 found again, verdict and number found."""
     first_of = {(item["kind"], str(item["elementId"])): item for item in place["mismatches"]}
     elements = []
@@ -314,7 +316,7 @@ def check_place(document, floors_config, place, faces, rows, links_at, share_min
             if plot in plots:
                 for floor in floors:
                     loop = largest_loop(floor)
-                    elements.append((kind, floor, plot, floor_status(loop, faces, rows, share_min) if loop else where(None, faces, rows)))
+                    elements.append((kind, floor, plot, floor_status(loop, faces, rows, share_min, min_share) if loop else where(None, faces, rows)))
     for link, found in zip(document.get("links") or [], links_at):
         if link_plot(link) in plots:
             elements.append(("link", link, link_plot(link), found))
@@ -678,8 +680,8 @@ def main(argv=None):
         plan_from_past.check_key_file(settings, code, document.get("file"), job)
         plan = json.loads(Path(plans[code]).read_text(encoding="utf-8"))
         spots = spots_file[code]
-        share_min = joined[code]["settings"]["cutShareMin"]
-        second = second_join(document, floors, faces, by_label, share_min)
+        share_min, min_share = joined[code]["settings"]["cutShareMin"], joined[code]["settings"]["minShare"]
+        second = second_join(document, floors, faces, by_label, share_min, min_share)
         links_at = link_places(document, floors, faces, by_label)
         # El @ Entry of the schedule of the job of this key by official number, read here by csv on its own, not by the reader of R326
         schedule = {number: float(row["pastEntry"]) for number, row in by_official.items()
@@ -698,7 +700,7 @@ def main(argv=None):
             entry[str(seed)] = {
                 "plans": check_plan(plan, document, floors, key, second, links_at, plots),
                 "join": check_join(joined[code]["join"], second, plots, by_label),
-                "place": check_place(document, floors, joined[code]["place"], faces, by_label, links_at, share_min, plots),
+                "place": check_place(document, floors, joined[code]["place"], faces, by_label, links_at, share_min, plots, min_share),
                 "spots": check_spots(document, floors, spots, spots["settings"], plots),
                 "pastAllRows": check_sources(past, code, plan, by_official, config, numbers)}
         report["keys"][code] = entry

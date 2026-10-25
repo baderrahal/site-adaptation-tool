@@ -171,7 +171,8 @@ def key_run(tmp_path, out_name="plan_imx_past.json"):
     job = dict(JOB, output=str(tmp_path / "plan_past.json"), prototypeFolder="Prototypes")
     settings = tmp_path / "project.json"
     settings.write_text(json.dumps({"schedules": ["book.xlsx"], "inputRoot": str(root), "pastJob": job, "floors": FLOORS,
-                                    "keyPlans": {"wallEdgeM": 0.3, "entryHeightM": {"min": 0.0, "max": 1.5}, "flatTopM": 0.0005}, "cadLinks": {"cutShareMin": 0.9},
+                                    "keyPlans": {"wallEdgeM": 0.3, "entryHeightM": {"min": 0.0, "max": 1.5}, "flatTopM": 0.0005, "minShare": 0.001},
+                                    "cadLinks": {"cutShareMin": 0.9},
                                     "pastAll": {"entryParameter": ENTRY},
                                     "answerKeys": {"codeInName": "^X-{code}-", "keys": [{"code": "IMX", "copy": "X-IMX-model.rvt"}, {"code": "IMY", "copy": "X-IMY-model.rvt"}]}}),
                         encoding="utf-8")
@@ -384,3 +385,29 @@ def test_r325_a_generic_floor_whose_face_has_no_plan_label_or_two_is_in_the_cut_
     plan = json.loads(out.read_text(encoding="utf-8"))
     assert [entry["plot"] for entry in plan["plots"]] == ["501"]
     assert [(item["modelPlot"], item["why"]) for item in plan["summary"]["namesDialect"]["cutPlots"]] == [("DP4-502", "manyNumbers")]
+
+
+def test_r325_a_generic_floor_that_only_touches_a_face_by_less_than_key_plans_min_share_is_listed_on_no_face():
+    # The floor of 504 lies 0.003 m of its 10 m width on face 13, a share of 0.0003, and on no other face
+    links = [key_link("501", 0), key_link("504", 30)]
+    floors = [generic("DP4-501", 0), shifted(generic("DP4-504", 40), 29.997)]
+    _, rows, report = pf.names_dialect(model(links, floors), FLOORS, FACES, NUMBERS, entry_parameter=ENTRY, share_min=0.9, min_share=0.001)
+    assert [row["Plot No."] for row in rows] == [501]
+    assert report["cutPlots"] == [{"modelPlot": "DP4-504", "why": "noFace", "shares": []}]
+    _, _, report = pf.names_dialect(model(links, [generic("DP4-501", 0), shifted(generic("DP4-504", 40), 29.997)]), FLOORS, FACES, NUMBERS,
+                                    entry_parameter=ENTRY, share_min=0.9, min_share=0.0002)
+    assert report["cutPlots"][0]["why"] == "cut" and report["cutPlots"][0]["shares"] == [{"face": "13", "number": "503", "share": 0.0}]
+
+
+@pytest.mark.parametrize("value", [None, 0, -0.001, 0.9, "0.001", True])
+def test_r325_the_minimum_share_must_be_above_0_and_under_cut_share_min(tmp_path, value):
+    path = tmp_path / "project.json"
+    path.write_text(json.dumps({"keyPlans": {"wallEdgeM": 0.3, "entryHeightM": {"min": 0.0, "max": 1.5}, "flatTopM": 0.0005, "minShare": value},
+                                "pastAll": {"entryParameter": ENTRY}, "cadLinks": {"cutShareMin": 0.9}}), encoding="utf-8")
+    with pytest.raises(project_profile.ProfileError, match="minShare"):
+        pf.load_key_plans(project_profile.load_settings(path))
+
+
+def test_r325_the_real_settings_put_the_minimum_share_between_the_slivers_and_the_shares_of_the_keys():
+    block = pf.load_key_plans(project_profile.load_settings())
+    assert pf.SLIVER_SHARE < block["minShare"] < block["cutShareMin"]
