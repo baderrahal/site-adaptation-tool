@@ -1275,6 +1275,23 @@ def level_verdicts(rows, road, shapes, units, report, profile, lp, block, reads)
     return {pair: verdict for pair, verdict in found.items() if verdict}
 
 
+def one_sided(own, first, group):
+    """R341. The level items only one method holds, each a mismatch: an own verdict of an item the first method did not judge, own its
+    verdict and first no item, and an item the first method judged, levelItems of its report, that the own route gives no verdict of,
+    so a decision is never held on fewer items on one side in silence."""
+    order = lambda pair: (pair[0], len(pair[1]), pair[1])
+    decisions = sorted({name.split(" ", 1)[1] for name in first if name.startswith(group + " ")} | {decision for verdict in own.values() for decision in verdict})
+    found = []
+    for decision in decisions:
+        theirs = {tuple(item.split(" ", 1)) for item in first.get(group + " " + decision) or []}
+        mine = {pair: verdict[decision] for pair, verdict in own.items() if decision in verdict}
+        for pair in sorted(set(mine) - theirs, key=order):
+            found.append({"key": pair[0], "plot": pair[1], "decision": decision, "own": "holds" if mine[pair] else "misses", "first": "no item"})
+        for pair in sorted(theirs - set(mine), key=order):
+            found.append({"key": pair[0], "plot": pair[1], "decision": decision, "own": "no item", "first": "an item"})
+    return found
+
+
 def level_inputs(ctx, settings, profile, rows, folder):
     """R341. What level_verdicts reads, by the own routes: the own road levels at the two own front corners of every plot the levels
     need, on the surfaces of siteBuild.roadSurfaces read from folder in a box around them, El @ Entry of the rule of the level profile
@@ -1426,6 +1443,9 @@ def main(argv=None):
     # R341. The level decisions that write no override, the split and the base, list their misses in levelMisses
     for decision, found in (report.get("levelMisses") or {}).items():
         misses[decision] |= {tuple(item.split(" ")) for item in found}
+    # R341. The items each level decision of the first method judged, an item one side alone holds counted once by one_sided
+    first_level = {name.split(" ", 1)[1]: {tuple(item.split(" ", 1)) for item in found} for name, found in (report.get("levelItems") or {}).items()
+                   if name.startswith(group + " ")} if ctx.get("levels") is not None else {}
     verdicts, seeds, cannot = {}, {}, Counter()
     for seed, sample in samples.items():
         tally, mismatches = Counter(), []
@@ -1436,6 +1456,8 @@ def main(argv=None):
             if seed == "every":
                 cannot.update(unknown)
             for decision, holds in sorted(found.items()):
+                if decision in first_level and (row["key"], row["plot"]) not in first_level[decision]:
+                    continue
                 own = "holds" if holds else "misses"
                 theirs = "misses" if (row["key"], row["plot"]) in misses.get(group + " " + decision, set()) else "holds"
                 tally[decision + (" match" if own == theirs else " mismatch")] += 1
@@ -1443,6 +1465,15 @@ def main(argv=None):
                     mismatches.append({"key": row["key"], "plot": row["plot"], "decision": decision, "own": own, "first": theirs, "rule": rule})
         seeds[seed] = {"plots": len(sample) if seed == "every" else [row["key"] + " " + row["plot"] for row in sample], "counts": dict(sorted(tally.items())),
                        "mismatches": mismatches}
+    # R341. A level item one side holds and the other does not is a mismatch of every plot
+    level_items = None
+    if ctx.get("levels") is not None:
+        sided = one_sided(ctx["levels"], report.get("levelItems") or {}, group)
+        counts = Counter(seeds["every"]["counts"])
+        counts.update(item["decision"] + " mismatch" for item in sided)
+        seeds["every"]["counts"], seeds["every"]["mismatches"] = dict(sorted(counts.items())), seeds["every"]["mismatches"] + sided
+        level_items = {decision: {"first": len(pairs), "own": sum(1 for verdict in ctx["levels"].values() if decision in verdict),
+                                  "onlyOne": sum(1 for item in sided if item["decision"] == decision)} for decision, pairs in sorted(first_level.items())}
     # R335. The walls are drawn and held apart from the plots, a wall has an id and no plot of its own
     walls = wall_verdicts(ctx, settings, profile, report)
     wall_misses = {(item["key"], item["elementId"], item["decision"].split(" ", 1)[1]) for item in (report.get("wallMisses") or {}).get(group) or []}
@@ -1485,7 +1516,7 @@ def main(argv=None):
     failures = sorted(set(cannot) | set(unchecked))
     out = {"group": group, "seeds": seeds, "site": site, "totals": totals, "cannotCheck": {name: cannot.get(name, 0) for name in failures},
            "leftForLater": sorted(left_for_later), "wallsNoBaseLevel": {"own": len(no_base), "first": len(first_no_base), "match": no_base == first_no_base},
-           "fits": {"linkOrigin": len(ctx["fits"]), "yardOutline": len(ctx["refit"]), "clusters": len(ctx["clusters"])}, "levelRoads": ctx.get("levelRoads")}
+           "fits": {"linkOrigin": len(ctx["fits"]), "yardOutline": len(ctx["refit"]), "clusters": len(ctx["clusters"])}, "levelRoads": ctx.get("levelRoads"), "levelItems": level_items}
     if args.merged:
         keep = {source: None for source in block["overrideKeep"]["sources"]}
         for source, fields in block["overrideKeep"]["laterFields"].items():
@@ -1505,6 +1536,8 @@ def main(argv=None):
     print("totals: %d of %d decisions count every plot once" % (sum(1 for value in totals.values() if value["match"]), len(totals)))
     print("fitted here: %s, walls with no base level %s" % (out["fits"], out["wallsNoBaseLevel"]))
     print("left for a later phase: %s" % out["leftForLater"])
+    if level_items is not None:
+        print("level items, first method, own route and on one side only: %s" % json.dumps(level_items))
     if "merged" in out:
         print("merged list: %s" % ({name: value for name, value in out["merged"].items() if name != "offJoin"} | {"offJoin": len(out["merged"]["offJoin"])}))
     if failures:

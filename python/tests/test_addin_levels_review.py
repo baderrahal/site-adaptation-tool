@@ -180,3 +180,16 @@ def test_r340_a_build_writes_the_levels_the_rule_alone_gives_beside_the_levels_i
     corners = found["4"]["floors"]["ramp"]["corners"]["value"]
     assert [round(z + 0.002, 3) for z in rule["rampFrontCorners"]] == [corners[0][2], corners[1][2]]
     assert rule["rampFront"] == round(sum(rule["rampFrontCorners"]) / 2.0, 4)
+
+
+# R341 a level item one side holds and the other does not is a mismatch
+def test_r341_a_level_item_only_one_method_holds_is_a_mismatch_never_left_out():
+    import key_rules_check
+    _, _, _, extras = level_run()
+    # The first method lists every item each level decision judged
+    assert extras["levelItems"]["parsons levelSplit"] == ["imc 1"] and "imc 7" in extras["levelItems"]["parsons ffl"]
+    own = {("imc", "1"): {"baseHeight": True, "ffl": True}, ("imc", "2"): {"ffl": False}, ("imc", "3"): {"baseHeight": True}}
+    first = {"parsons baseHeight": ["imc 1", "imc 4"], "parsons ffl": ["imc 1", "imc 2"]}
+    found = key_rules_check.one_sided(own, first, "parsons")
+    assert found == [{"key": "imc", "plot": "3", "decision": "baseHeight", "own": "holds", "first": "no item"},
+                     {"key": "imc", "plot": "4", "decision": "baseHeight", "own": "no item", "first": "an item"}]

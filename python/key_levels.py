@@ -94,7 +94,7 @@ def measure(record, group, pool, kept, lv, profile, block, book, surfaces, extra
         label = surface + " less the datum of each key"
         formulas[label] = lambda item, guess=guess, key_datum=key_datum: None if guess(item) is None else guess(item) + key_datum[item["key"]]
         checks.append(label)
-    record(group + " entry", entries, target, formulas, by_group, "entryM", hold, checks=tuple(checks), bands=bands)
+    record(group + " entry", entries, target, formulas, by_group, "entryM", hold, checks=tuple(checks), bands=bands, listed=True)
     key_entry = {(item["key"], item["plot"]): clean(item["row"]) for item in entries}
 
     def built_entry(key, plot):
@@ -116,7 +116,8 @@ def measure(record, group, pool, kept, lv, profile, block, book, surfaces, extra
         if surface != ROAD:
             front_formulas[surface] = lambda item, surface=surface: road_mean(book.get(item["plot"], {}), surface)
             front_checks.append(surface)
-    record(group + " rampFront", fronts, lambda item: item["row"]["rampFront"], front_formulas, by_group, "rampFrontM", hold, checks=tuple(front_checks), bands=bands)
+    record(group + " rampFront", fronts, lambda item: item["row"]["rampFront"], front_formulas, by_group, "rampFrontM", hold, checks=tuple(front_checks), bands=bands,
+           listed=True)
 
     # The split of a cluster of three or more units, learned per cluster by its units in row order (Q012)
     key_ffl = {(item["key"], item["plot"]): item["row"]["ffl"] for item in kept("levelSplit") if item["row"]["ffl"] is not None}
@@ -133,7 +134,8 @@ def measure(record, group, pool, kept, lv, profile, block, book, surfaces, extra
         name = " ".join(str(units.get(plot)) for plot in plots)
         split_items.append({"plot": plots[0], "key": key, "group": group, "code": name, "modelKind": first.get("modelKind"), "file": first.get("file"),
                             "factors": {"all": "all", "units": name}, "pattern": plan_rules.split_pattern(levels), "plots": list(plots)})
-    split = record(group + " levelSplit", split_items, lambda item: item["pattern"], {"none": lambda item: plan_rules.NO_SPLIT, "units": "units"}, by_group, "levelSplit")
+    split = record(group + " levelSplit", split_items, lambda item: item["pattern"], {"none": lambda item: plan_rules.NO_SPLIT, "units": "units"}, by_group, "levelSplit",
+                   listed=True)
     table = table_of(split, "units") if split is not None and split["coded"] == "units" else {}
     extras["levelMisses"][group + " levelSplit"] = missed(misses, group + " levelSplit")
     plots = sorted(set(site) | set(lv["roles"]) | set(lv["partners"]))
@@ -156,7 +158,7 @@ def measure(record, group, pool, kept, lv, profile, block, book, surfaces, extra
         tops.append({"plot": top["plot"], "key": top["key"], "group": group, "code": top["code"], "modelKind": top.get("modelKind"), "file": top.get("file"),
                      "factors": {"all": "all", "typology": top["code"]}, "base": round(top["row"]["ffl"] - key_entry[(top["key"], top["plot"])], 4)})
     base = record(group + " baseHeight", tops, lambda item: item["base"], {"profile": lambda item: plan_rules.base_of(profile, item["code"]), "typology": "typology"},
-                  by_group, "baseHeight", hold, bands=bands)
+                  by_group, "baseHeight", hold, bands=bands, listed=True)
     base_rule = {"rule": "typology", "table": table_of(base, "typology")} if base is not None and base["coded"] == "typology" else None
     extras["levelMisses"][group + " baseHeight"] = missed(misses, group + " baseHeight")
 
@@ -168,7 +170,7 @@ def measure(record, group, pool, kept, lv, profile, block, book, surfaces, extra
     ffls = [item for item in kept("ffl") if item["row"]["ffl"] is not None]
     built_view = {name: ffl_by(shape, lambda key, plot: rule_entry.get(plot)) for name, shape in shapes.items()}
     ffl = record(group + " ffl", ffls, lambda item: item["row"]["ffl"], {name: ffl_by(shape, key_view) for name, shape in shapes.items()}, by_group, "heightM", hold,
-                 bands=bands, build_view=built_view)
+                 bands=bands, build_view=built_view, listed=True)
     coded = built_view[ffl["coded"]] if ffl is not None else (lambda item: None)
 
     def built_ffl(item):
@@ -193,7 +195,7 @@ def measure(record, group, pool, kept, lv, profile, block, book, surfaces, extra
     with_steps = [item for item in kept("steps") if item["factors"]["steps"] is not None]
     record(group + " steps", with_steps, lambda item: str(int(float(item["factors"]["steps"]))),
            {"stepsFromHeight": steps_by("stepsFromHeight", key_height), "stepBands": steps_by("stepBands", key_height), "typology": "typology"}, by_group, "steps",
-           build_view={"stepsFromHeight": steps_by("stepsFromHeight", built_height), "stepBands": steps_by("stepBands", built_height)})
+           build_view={"stepsFromHeight": steps_by("stepsFromHeight", built_height), "stepBands": steps_by("stepBands", built_height)}, listed=True)
 
     # The level parameters of majority.parameterLevels against the FFL of the key, judged on the FFL a build holds
     down = lambda level: None if level is None else float(plan_rules.prototype_ffl("fflDownToTheCm", level))
@@ -202,5 +204,5 @@ def measure(record, group, pool, kept, lv, profile, block, book, surfaces, extra
         record(group + " parameter " + name, chosen, lambda item, name=name: float(parameter(item, name)),
                {"ffl": lambda item: item["row"].get("ffl"), "genericTop": lambda item: item["row"].get("genericTop"), "fflDownToTheCm": lambda item: down(item["row"].get("ffl"))},
                by_group, "parameter " + name, hold, gap=lambda item, value, rule: None if rule is None or value is None else {"gapToRuleM": round(value - rule, 4)},
-               bands=bands, build_view={"ffl": built_ffl, "fflDownToTheCm": lambda item: down(built_ffl(item))})
+               bands=bands, build_view={"ffl": built_ffl, "fflDownToTheCm": lambda item: down(built_ffl(item))}, listed=True)
     extras["levelNotMeasured"].update(block.get("levelNotMeasured") or {})

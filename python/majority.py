@@ -401,10 +401,14 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
     level_hold = lambda guess, aim: abs(guess - aim) <= hold_m + 1e-9
     riser = profile.get("steps.riser_added") / 1000.0
     results, misses, datums, extras = [], [], {}, {"linkFits": {}, "flatRamps": {}, "yardOutlineGroups": {}, "walls": {}, "wallMisses": {}, "frontCover": {}, "frontWalled": {},
-                                                    "wallsNoBaseLevel": {}, "coverage": {}, "decidedByQuestion": [], "levelMisses": {}, "levelNotMeasured": {}}
+                                                    "wallsNoBaseLevel": {}, "coverage": {}, "decidedByQuestion": [], "levelMisses": {}, "levelNotMeasured": {}, "levelItems": {}}
 
-    def record(name, pool, target, candidates, scope, field, hold=None, checks=(), gap=None, extra_by=None, judge_scope=None, bands=None, build_view=None):
+    def record(name, pool, target, candidates, scope, field, hold=None, checks=(), gap=None, extra_by=None, judge_scope=None, bands=None, build_view=None,
+               listed=False):
         pool = kept_for(name.split(" ")[1], pool, block, name.split(" ", 1)[1])
+        if listed:
+            # R339, R341. Every item a level decision judges, so the second method counts an item only one side holds as a mismatch
+            extras["levelItems"][name] = sorted({item["key"] + " " + item["plot"] for item in pool if target(item) is not None})
         # R272. Every decision says which keys and how many plots it holds, a decision with no plot is listed with none, never dropped
         by_key = Counter(item["key"] for item in pool if target(item) is not None)
         extras["coverage"][name] = {"plots": sum(by_key.values()), "byKey": dict(sorted(by_key.items())),
