@@ -335,10 +335,12 @@ def test_r301_the_real_table_holds_one_table_per_job_and_every_row_is_measured_w
                       "IMC": {("021", "Zone 1", 399), ("013", "Zone 2", 382)}, "IMD": {("012", "Zone 2", 336), ("022", "Zone 1", 294)}}
     assert {row["code"]: row["subPhase"] for row in table["native"]} == {"IMA": "1.1", "IMB": "1.2", "IMC": "1.3", "IMD": "1.4"}
     parsons = {row["code"]: row for row in table["parsons"]}
-    # The rows guessed by the letter order in DATA-5 (IMA 021, IMB 022, IME 02, IMF 03) are gone
-    assert set(parsons) == {"IMC", "IMD"}
-    assert {(a["nbh"], a["plots"], a["kind"]) for a in parsons["IMC"]["areas"]} == {("012", 337, "model"), ("012", 337, "schedule")}
-    assert {(a["nbh"], a["plots"], a["kind"]) for a in parsons["IMD"]["areas"]} == {("013", 410, "schedule")}
+    # The 7 answer keys as the join of R326 counted them on their 2024 copies (Round ADDIN 2b), beside the IMC and IMD schedules
+    assert {code: {(a["nbh"], a["zone"], a["plots"], a["kind"]) for a in row["areas"]} for code, row in parsons.items()} == {
+        "IMA": {("021", "Zone 1", 431, "model")}, "IMB": {("022", "Zone 1", 295, "model")},
+        "IMC": {("012", "Zone 2", 335, "model"), ("012", "Zone 2", 337, "schedule")}, "IMD": {("013", "Zone 2", 410, "model"), ("013", "Zone 2", 410, "schedule")},
+        "IME": {("02", "Zone 3", 321, "model")}, "IMF": {("03", "Zone 3", 481, "model")}, "IMG": {("01A", "Zone 4", 283, "model")}}
+    assert all("key_join.py R326" in a["measured"] for row in parsons.values() for a in row["areas"] if a["kind"] == "model")
     text = (ROOT / "config" / "area_codes.json").read_text(encoding="utf-8")
     assert '"guessed"' not in text and '"status"' not in text
 

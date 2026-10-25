@@ -7,6 +7,8 @@ Typology_Rev9 codes, the plots two keys share, and per neighbourhood the unit pl
 table (R269): past_all.csv, one row per plot per key. Levels are taken off the datum of the key, its survey elevation for a
 Native key, as in R215. A key of the Native dialect is first mapped to official numbers by R206 and R264, so its floor
 parameters can be read per plot. The parameters written are those pastAll in config/project.json names.
+R326. Each row names the job of its key, the group of majority.groups that holds it, in the column source, the rows of one job of an
+older table can be kept cell for cell, and an answer key of Round ADDIN is read by the floor types of its code (R321).
 Nothing is written inside the repo.
 """
 import argparse
@@ -32,7 +34,7 @@ import ramp_levels
 import yard_rule
 
 DATE_IN_PATH = re.compile(r"(?<!\d)(20\d{2})(\d{2})(\d{2})(?!\d)")
-COLUMNS = ["key", "plot", "nbh", "zone", "typologyRev9", "planCode", "keyUnit", "linkFile", "x", "y", "rotationDeg", "mirrored", "case",
+COLUMNS = ["key", "source", "plot", "nbh", "zone", "typologyRev9", "planCode", "keyUnit", "linkFile", "x", "y", "rotationDeg", "mirrored", "case",
            "footprintResidualM", "genericType", "genericAreaM2", "genericTop", "yardType", "yardAreaM2", "yardTop", "rampType", "rampAreaM2", "rampCorners", "rampSlopePercent",
            "rampCrossPercent", "rampFront", "rampBack", "rampFrontFall", "ffl", "entry", "entrySource", "height", "steps", "datumM", "linkName", "genericOutline", "rampOutline",
            "parameters"]
@@ -141,8 +143,9 @@ def floor_cells(floor, datum, face=None):
     return cells
 
 
-def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settings_block, footprint=None):
-    """R269. One row per plot of the key."""
+def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settings_block, footprint=None, schedule=None):
+    """R269. One row per plot of the key. R326. schedule gives El @ Entry of the schedule by official number, which comes first, and the
+    El @ Entry a plan of an answer key holds (R325) is the parameter of its generic floor, so its source is floorParameter."""
     params, datum = floor_parameters(data, dialect, floors, faces, numbers, settings_block["floorParameters"])
     entry_parameter = settings_block["entryParameter"]
     rows = []
@@ -158,7 +161,9 @@ def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settin
         yard = floor_cells((entry.get("floors") or {}).get("yard"), datum)
         floor_params = params.get(plot, {})
         # The schedule gives El @ Entry, else the FFL floor of a Native key, else the top of its ramp at the entrance
-        entry_level, source = (levels.get("entry") or {}).get("value"), "schedule"
+        entry_level, source = (levels.get("entry") or {}).get("value"), "floorParameter" if (plan.get("sources") or {}).get("answerKey") else "schedule"
+        if plot in (schedule or {}):
+            entry_level, source = schedule[plot], "schedule"
         if entry_level is None and number(floor_params.get(entry_parameter)) is not None:
             entry_level, source = number(floor_params[entry_parameter]), "floorParameter"
         elif entry_level is None and ramp.get("back") is not None:
@@ -182,6 +187,23 @@ def table_rows(name, plan, data, dialect, floors, faces, numbers, labels, settin
             "genericOutline": generic.get("outline"), "rampOutline": ramp.get("outline"), "parameters": json.dumps(link_parameters, ensure_ascii=False, sort_keys=True),
         })
     return rows
+
+
+def source_of(key, groups):
+    """R326. The job of a key, the group of majority.groups that holds it. A key of no group or of two is refused."""
+    found = [group for group, keys in groups.items() if key in keys]
+    if len(found) != 1:
+        raise project_profile.ProfileError("majority.groups must hold the key " + str(key) + " in one group, it is in " + str(len(found)))
+    return found[0]
+
+
+def kept_rows(path, group, groups):
+    """R326. The rows of an older past_all.csv whose key is in that group of majority.groups, every cell as the file holds it, with the
+    group as their source."""
+    if group not in groups:
+        raise project_profile.ProfileError("majority.groups has no group " + str(group) + " to keep the rows of")
+    with open(path, encoding="utf-8") as handle:
+        return [dict(row, source=group) for row in csv.DictReader(handle) if row["key"] in groups[group]]
 
 
 def write_csv(path, rows):
@@ -223,10 +245,16 @@ def main(argv=None):
     parser.add_argument("--baseplan", help="plots.json of the baseplan, for a key of plot by name")
     parser.add_argument("--footprint", nargs=2, action="append", metavar=("NAME", "FOOTPRINT_JSON"), default=[],
                         help="table: footprint_check.py output whose test set is that key, for its residual per plot")
+    parser.add_argument("--key-code", nargs=2, action="append", metavar=("NAME", "CODE"), default=[],
+                        help="table: the key NAME is the answer key CODE, read by its floor types (R321) and only from its work copy (R322)")
+    parser.add_argument("--keep-from", nargs=2, metavar=("PAST_ALL_CSV", "GROUP"), help="table: keep the rows of that job of an older table cell for cell (R326)")
+    parser.add_argument("--schedule-entry", metavar="PLOTS_CSV", help="table: plots.csv of the data book, El @ Entry of the schedule by official number (R326)")
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
-    settings = project_profile.load_settings(args.settings)
     out = Path(args.out)
+    if args.keep_from and out.resolve() == Path(args.keep_from[0]).resolve():
+        parser.error("--out is the table --keep-from keeps rows of, it is never written over")
+    settings = project_profile.load_settings(args.settings)
     plot_relations.refuse_inside_repo(out.resolve().parent)
     if args.what == "inventory":
         found = inventory(link_summary.load(args.rvt_info)["files"])
@@ -253,11 +281,28 @@ def main(argv=None):
     for name, path in args.footprint:
         judged = link_summary.load(path)["testJudged"]
         footprints[name] = {row["plot"]: row["residualM"] for row in judged["rows"]}
-    rows = []
+    groups = settings.get("majority.groups")
+    codes = dict(args.key_code)
+    rows = kept_rows(args.keep_from[0], args.keep_from[1], groups) if args.keep_from else []
+    kept = {row["key"] for row in rows}
+    schedule = None
+    if args.schedule_entry:
+        import key_join
+        schedule = key_join.read_plots_csv(args.schedule_entry)[1]
     for name, dialect, plan, prototypes in args.key:
-        rows += table_rows(name, link_summary.load(plan), link_summary.load(prototypes), split["dialects"][dialect], floors, faces, numbers, labels, block, footprints.get(name))
+        if name in kept:
+            raise project_profile.ProfileError("the key " + name + " is both kept from " + args.keep_from[0] + " and given, give it once")
+        data = link_summary.load(prototypes)
+        key_floors = floors
+        if name in codes:
+            key_floors = plan_from_past.load_floors(settings, codes[name])
+            plan_from_past.check_key_file(settings, codes[name], plan_from_past.host_of(data).get("file"), plan_from_past.read_job(prototypes))
+        source = source_of(name, groups)
+        rows += [dict(row, source=source) for row in table_rows(name, link_summary.load(plan), data, split["dialects"][dialect], key_floors, faces, numbers, labels, block,
+                                                               footprints.get(name), schedule)]
     write_csv(out, rows)
     print("rows %d, by key %s" % (len(rows), dict(Counter(row["key"] for row in rows))))
+    print("by source %s" % dict(Counter(row["source"] for row in rows)))
     print("El @ Entry source %s" % dict(Counter((row["key"], row["entrySource"]) for row in rows)))
     print(out)
     return 0
