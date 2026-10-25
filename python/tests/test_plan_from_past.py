@@ -209,7 +209,8 @@ def test_r112_a_floor_type_the_config_does_not_name_is_no_floor_of_the_plan():
     floors[1]["typeName"] = "Ramp C"
     plan = build([link("101")], floors, [row("101")])
     assert "ramp" not in by_plot(plan)["101"]["floors"]
-    assert missing_of(plan, "101")["floors.ramp"] == "no floor names the plot"
+    # R321. The floor of no kind is named with its type, it is not a plot no floor names
+    assert missing_of(plan, "101")["floors.ramp"] == "no floor of this kind names the plot, floors 11 of type Ramp C do and their type is not in floors.types"
 
 
 def test_r112_ramp_corners_that_are_not_its_outline_vertices_keep_the_ramp_out():

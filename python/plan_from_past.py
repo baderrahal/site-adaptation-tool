@@ -57,6 +57,11 @@ EPS = 1e-9
 LINK_KEYS = ("prototypeFile", "insert", "rotationDeg", "mirrored", "levels.ffl")
 # A step count is a whole number, alone or before the word step or steps, so 2.5 is not read as 2
 STEPS_TEXT = re.compile(r"^\s*(\d+)\s*(steps?)?\s*$", re.IGNORECASE)
+# R110, R204. The job code of a test host window, the name it gives its read output and the mark before the job in a work copy
+JOB_CODE = re.compile(r"[A-Z][A-Z0-9]{1,3}")
+READ_FILE = re.compile(r"testhost_(?P<job>[A-Z][A-Z0-9]{1,3})_prototypes\.json")
+WORK_MARK = "_TEST-"
+RVT = ".rvt"
 LEVEL_COLUMNS = (("ffl", "FFL"), ("ssl", "SSL"), ("entry", "El @ Entry"), ("height", "Height"))
 WIDE_LEVELS = ("entry", "height")
 
@@ -84,9 +89,77 @@ def load_job(settings):
     return job
 
 
-def load_floors(settings):
+def check_types(name, label, types):
+    """R112, R321. Each kind names a list of type names, none blank or padded, and no name sits under two kinds."""
+    seen = set()
+    for kind in FLOOR_KINDS:
+        names = types[kind]
+        if not isinstance(names, list) or not names or not all(isinstance(item, str) and item.strip() == item and item for item in names):
+            raise project_profile.ProfileError(name + " " + label + "." + kind + " must be a list of type names")
+        if seen & set(names):
+            raise project_profile.ProfileError(name + " " + label + " names " + ", ".join(sorted(seen & set(names))) + " under two kinds")
+        seen |= set(names)
+
+
+def key_codes(settings):
+    """R321. The codes of the answer keys of answerKeys.keys in the project settings."""
+    keys = (settings.values.get("answerKeys") or {}).get("keys") or []
+    return [key.get("code") for key in keys if isinstance(key, dict)]
+
+
+def read_job(path):
+    """R321. The job of a key read by the name the test host gives its output, testhost_<job>_prototypes.json, None for another name."""
+    match = READ_FILE.fullmatch(PureWindowsPath(str(path)).name)
+    return match.group("job") if match else None
+
+
+def check_key_file(settings, code, name, job):
+    """R321. A read is of the answer key code only when its model is the work copy of the Revit 2024 copy of that key the job of the
+    read opened: the name the read gives, with or without .rvt, is the copy name of the key in answerKeys without .rvt, then _TEST-
+    and the job, in any case as Windows matches names (R204). The job is a job code of the test host (R110). So a floor scenario file
+    the placer changed and its master (R118), the source the copy was made from, the copy itself, a work copy of another job or of
+    another key are refused and never read by the types of the key."""
+    keys = [key for key in (settings.values.get("answerKeys") or {}).get("keys") or [] if isinstance(key, dict) and key.get("code") == code]
+    if len(keys) != 1 or not isinstance(keys[0].get("copy"), str):
+        raise project_profile.ProfileError(settings.path.name + " answerKeys has no one key " + str(code) + " with a copy name to tie a read to")
+    if not isinstance(name, str) or not name.strip():
+        raise project_profile.ProfileError("the read names no model file, so it can not be tied to the key " + str(code))
+    if not isinstance(job, str) or not JOB_CODE.fullmatch(job):
+        raise project_profile.ProfileError("the read of the key " + str(code) + " has no job code of the test host, a job is a capital and 1 to 3 "
+                                           "capitals or digits, given: " + str(job))
+    stem = PureWindowsPath(keys[0]["copy"]).stem
+    given = name[:-len(RVT)] if name.lower().endswith(RVT) else name
+    if given.casefold() != (stem + WORK_MARK + job).casefold():
+        raise project_profile.ProfileError("the model file " + name + " is not the work copy " + stem + WORK_MARK + job + " of the copy " + keys[0]["copy"]
+                                           + " of the key " + str(code) + " under the job " + job)
+
+
+def key_types(settings, floors):
+    """R321. floors.keyTypes gives an answer key the type names of a kind its model names other than floors.types, as FFL for the
+    Generic floors of IME and IMF. Each key must be an answer key, each kind one of the floor kinds, and the types of each key
+    with floors.types for the kinds it leaves out must pass the checks of R112. Returns the types of every key so named."""
+    name = settings.path.name
+    given = floors.get("keyTypes", {})
+    if not isinstance(given, dict):
+        raise project_profile.ProfileError(name + " floors.keyTypes must map an answer key code to its floor types")
+    codes = key_codes(settings)
+    merged = {}
+    for code, own in given.items():
+        if code not in codes:
+            raise project_profile.ProfileError(name + " floors.keyTypes names " + str(code) + ", which is no code of answerKeys.keys")
+        if not isinstance(own, dict) or not own or not set(own) <= set(FLOOR_KINDS):
+            raise project_profile.ProfileError(name + " floors.keyTypes." + code + " must name some of " + ", ".join(FLOOR_KINDS))
+        types = {kind: own.get(kind, floors["types"][kind]) for kind in FLOOR_KINDS}
+        check_types(name, "floors.keyTypes." + code, types)
+        merged[code] = types
+    return merged
+
+
+def load_floors(settings, key=None):
     """R112. The floors block of the project settings: the type names and the level of each floor kind, the Plot parameter,
-    the yard depth below the FFL and the tie limit of R111. Anything missing or of the wrong kind is refused, no name is guessed."""
+    the yard depth below the FFL and the tie limit of R111. Anything missing or of the wrong kind is refused, no name is guessed.
+    R321. With the code of an answer key the block holds the types that key reads its floors by, floors.keyTypes of that key for the
+    kinds it names and floors.types for the rest. The block of the settings is never changed."""
     floors = settings.values.get("floors")
     name = settings.path.name
     if not isinstance(floors, dict):
@@ -97,14 +170,8 @@ def load_floors(settings):
     types, levels = floors["types"], floors["levels"]
     if not isinstance(types, dict) or not isinstance(levels, dict) or set(types) != set(FLOOR_KINDS) or set(levels) != set(FLOOR_KINDS):
         raise project_profile.ProfileError(name + " floors.types and floors.levels must each name " + ", ".join(FLOOR_KINDS))
-    seen = set()
+    check_types(name, "floors.types", types)
     for kind in FLOOR_KINDS:
-        names = types[kind]
-        if not isinstance(names, list) or not names or not all(isinstance(item, str) and item.strip() == item and item for item in names):
-            raise project_profile.ProfileError(name + " floors.types." + kind + " must be a list of type names")
-        if seen & set(names):
-            raise project_profile.ProfileError(name + " floors.types names " + ", ".join(sorted(seen & set(names))) + " under two kinds")
-        seen |= set(names)
         if not isinstance(levels[kind], str) or not levels[kind].strip():
             raise project_profile.ProfileError(name + " floors.levels." + kind + " must be a level name")
     if not isinstance(floors["plotParameter"], str) or not floors["plotParameter"].strip():
@@ -116,7 +183,12 @@ def load_floors(settings):
         raise project_profile.ProfileError(name + " floors.yardShareTie must be a share from 0 to below 1")
     if not is_number(floors["yardMinShare"]) or not 0 <= floors["yardMinShare"] < 1:
         raise project_profile.ProfileError(name + " floors.yardMinShare must be a share from 0 to below 1")
-    return floors
+    by_key = key_types(settings, floors)
+    if key is None:
+        return floors
+    if key not in key_codes(settings):
+        raise project_profile.ProfileError(name + " answerKeys.keys has no key " + str(key) + ", its floors are not read by floors.types")
+    return dict(floors, types=by_key.get(key, types))
 
 
 def kind_of(floor, floors):
@@ -198,17 +270,23 @@ def host_of(data):
     raise ValueError("no project document in the file")
 
 
-def floor_index(document, offset, floors_config, faces):
-    """The Generic and ramp floors by plot number and the yards by the plot of R111. faces are the baseplan plot faces by official number."""
+def floor_index(document, offset, floors_config, faces, key=None):
+    """The Generic and ramp floors by plot number and the yards by the plot of R111. faces are the baseplan plot faces by official number.
+    R321. A floor of no kind that names a plot is kept by plot, so a plot it stands on says its type is not one the model is read by."""
     floors = document.get("floors") or []
-    by_plot, bad, yards = {}, [], []
+    by_plot, bad, yards, no_kind = {}, [], [], {}
     for floor in floors:
         kind = kind_of(floor, floors_config)
         if kind == "yard":
             yards.append((floor["elementId"], plot_relations.floor_shape(floor, offset)[0]))
             continue
         named = link_summary.floor_plot(floor)
-        if kind is None or named is None:
+        if kind is None:
+            plot = None if named is None else plot_number(named)
+            if plot is not None:
+                no_kind.setdefault(plot, []).append(floor)
+            continue
+        if named is None:
             continue
         plot = plot_number(named)
         if plot is None:
@@ -220,7 +298,18 @@ def floor_index(document, offset, floors_config, faces):
     by_id = {floor["elementId"]: floor for floor in floors}
     for plot, ids in owned.items():
         by_plot.setdefault(plot, {})["yard"] = [by_id[element_id] for element_id in ids]
-    return {"byPlot": by_plot, "badFloors": bad, "yards": results, "config": floors_config, "faces": set(faces)}
+    types_of = "floors.types" if key is None else "floors.keyTypes of " + key + " or floors.types"
+    return {"byPlot": by_plot, "badFloors": bad, "yards": results, "config": floors_config, "faces": set(faces), "noKind": no_kind, "typesOf": types_of}
+
+
+def no_kind_why(index, plot):
+    """R321. Why no floor of a kind names a plot that floors of no kind name: their type is not in the types the model is read by."""
+    floors = index["noKind"].get(plot)
+    if not floors:
+        return None
+    types = sorted({str(floor.get("typeName")) for floor in floors})
+    ids = " ".join(str(floor.get("elementId")) for floor in plot_relations.first_by_id(floors))
+    return "no floor of this kind names the plot, floors " + ids + " of type " + ", ".join(types) + " do and their type is not in " + index["typesOf"]
 
 
 class PlotBuilder:
@@ -331,9 +420,9 @@ def compare_link_and_schedule(builder, link, row, origin):
         builder.clash("levels.ffl", ffl, common.r3(link_ffl), FFL_PARAMETER)
 
 
-def only_one(builder, key, found):
+def only_one(builder, key, found, otherwise=None):
     if not found:
-        builder.lack(key, "no floor names the plot")
+        builder.lack(key, otherwise or "no floor names the plot")
         return None
     if len(found) > 1:
         builder.lack(key, str(len(found)) + " floors name the plot: " + " ".join(str(floor["elementId"]) for floor in plot_relations.first_by_id(found)))
@@ -506,7 +595,7 @@ def floor_values(builder, index, offset):
     config = index["config"]
     below = config["yardBelowFflM"]
     floors = {}
-    generic = only_one(builder, "floors.generic", kinds.get("generic", []))
+    generic = only_one(builder, "floors.generic", kinds.get("generic", []), no_kind_why(index, builder.plot))
     if generic is not None:
         made = floor_entry(builder, "generic", generic, offset, config, unit)
         if made is not None and flat_top(builder, "generic", made, generic, ffl, offset) is not None:
@@ -523,7 +612,7 @@ def floor_values(builder, index, offset):
         made = floor_entry(builder, "yard", yards[0], offset, config, unit)
         if made is not None and flat_top(builder, "yard", made, yards[0], None if ffl is None else ffl - below, offset) is not None:
             floors["yard"] = made
-    ramp = only_one(builder, "floors.ramp", kinds.get("ramp", []))
+    ramp = only_one(builder, "floors.ramp", kinds.get("ramp", []), no_kind_why(index, builder.plot))
     if ramp is not None:
         made = floor_entry(builder, "ramp", ramp, offset, config, unit)
         if made is not None:
@@ -588,10 +677,11 @@ def yard_summary(results, plots):
     return {"yards": len(results), "byStatus": dict(sorted(status.items())), "withNoPlanPlot": len(left), "left": left}
 
 
-def build_plan(data, rows, job, folder_files, prototype_folder, floors_config, faces):
+def build_plan(data, rows, job, folder_files, prototype_folder, floors_config, faces, key=None):
     """The plan of R80 from the host document of prototypes.json and the schedule rows.
 
     floors_config is the floors block of the settings (R112) and faces the baseplan plot faces by official plot number (R111).
+    key is the answer key the model is read as (R321), None when it is read by floors.types.
     """
     document = host_of(data)
     offset = ramp_levels.offset_of(document)
@@ -608,7 +698,7 @@ def build_plan(data, rows, job, folder_files, prototype_folder, floors_config, f
             continue
         by_plot.setdefault(plot, []).append(link)
     schedule, bad_rows = schedule_by_plot(rows)
-    index = floor_index(document, offset, floors_config, faces)
+    index = floor_index(document, offset, floors_config, faces, key)
     plots, missing, conflicts = [], [], []
     missing_keys, floors_found, yard_status, floor_types = Counter(), Counter(), Counter(), Counter()
     for plot in sorted(set(by_plot) | set(schedule), key=link_summary.sort_key):
@@ -854,12 +944,14 @@ def main(argv=None):
                              "The official number comes from the location plan labels.csv of the data book by the face of the generic floor")
     parser.add_argument("--frames-from", nargs="*", metavar="PROTOTYPES_JSON",
                         help="R264. Reader outputs of other models of the same job, for the house centre of a link file this model names no link of")
+    parser.add_argument("--key", metavar="CODE",
+                        help="R321. The answer key the past model is, its floors are read by floors.keyTypes of that key and floors.types")
     args = parser.parse_args(argv)
     if args.names and not args.answer_key:
         parser.error("--names goes with --answer-key, such a plan is never placed")
     settings = project_profile.load_settings(args.settings)
     job = load_job(settings)
-    floors = load_floors(settings)
+    floors = load_floors(settings, args.key)
     prototypes = Path(args.prototypes or job["prototypes"])
     baseplan = Path(args.baseplan or (project_profile.ROOT / job["baseplanPlots"] if job.get("baseplanPlots") else ""))
     out = Path(args.out or job["output"])
@@ -872,6 +964,8 @@ def main(argv=None):
             print("not found: " + str(path), file=sys.stderr)
             return 2
     data = link_summary.load(prototypes)
+    if args.key:
+        check_key_file(settings, args.key, host_of(data).get("file"), read_job(prototypes))
     dialect = None
     if args.names:
         numbers, many = location_numbers(args.names)
@@ -888,7 +982,7 @@ def main(argv=None):
     listing = folder_listing(folder)
     if args.answer_key:
         listing, not_in_folder = answer_key_listing(listing, data)
-    plan = build_plan(data, rows, job, listing, folder, floors, faces)
+    plan = build_plan(data, rows, job, listing, folder, floors, faces, args.key)
     if args.answer_key:
         mark_answer_key(plan, not_in_folder)
     plan["sources"]["prototypes"] = prototypes.name

@@ -226,14 +226,23 @@ namespace SiteAdaptation.Common
     }
 
     // One spot elevation annotation. Origin is the point it measures, in the same coordinates as every other point.
-    // Value is the elevation the annotation shows. ElementId is what it points to when the API gives one
+    // Value is the elevation the annotation shows, its Single/Upper Value, and LowerValue its Lower Value (R320).
+    // ElementId is what it points to when the API gives one
     public class SpotRow
     {
         public long? ElementId { get; set; }
         public double[] Origin { get; set; }
         public double? Value { get; set; }
+        public double? LowerValue { get; set; }
         public string View { get; set; }
         public long? Target { get; set; }
+
+        // R320. The spot type, the Elevation Base of that type, the Relative Base and Display Elevations of the instance as Revit shows them
+        public string TypeName { get; set; }
+        public string ElevationBase { get; set; }
+        public string RelativeBase { get; set; }
+        public string DisplayElevations { get; set; }
+        public Dictionary<string, object> Parameters { get; set; }
 
         // The element the first reference points to, when the API gives it
         public SpotHost Host { get; set; }
@@ -244,6 +253,13 @@ namespace SiteAdaptation.Common
         // Why the host could not be read. Not written, the reader turns it into one error line per reason
         [JsonIgnore]
         public string HostFailure { get; set; }
+
+        // R320. Why the value or the Elevation Base did not read. Not written, the reader turns each into one error line per reason
+        [JsonIgnore]
+        public string ValueFailure { get; set; }
+
+        [JsonIgnore]
+        public string BaseFailure { get; set; }
     }
 
     // LinkedElementId is set when the reference points into a Revit link. Nothing inside the link is read
