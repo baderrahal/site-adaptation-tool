@@ -116,7 +116,7 @@ Branch fix/addin-open-fixes from main at 865a80e, equal to origin/main after git
 
 ### R300, Q045: villa blocks from the Building Footprint
 
-- SEARCHED the repo (every .py, .json, .cs and .ps1) for R06_0000 and R06_0001: no reader takes them for villa blocks. drawings.villaBlocks is Makkah Building Footprint.dwg since round 12b, and the data book wires footprintBlock from the role buildingFootprint (READ, config/project.json, python/c3d_probe.json). R06_0000 is read as reference only: the r06_0000Block and r06_0000Number columns of the data book (dataBook.join.masterBlocks) and the R06 to R06_0000 compare of R176 in wiring.py. Those stay.
+- SEARCHED the repo (every .py, .json, .cs and .ps1) for R06_0000 and R06_0001: no reader takes them for villa blocks since Round 12b. Until Round 12b drawings.villaBlocks was R06_0000, whose 248 inserts are all Villa_VL2 (READ, git show 6e46893^:config/project.json, steps/history/round-12.md lines 9 and 52). Since 12b it is Makkah Building Footprint.dwg, and the data book wires footprintBlock from the role buildingFootprint (READ, config/project.json, python/c3d_probe.json). R06_0000 is read as reference only: the r06_0000Block and r06_0000Number columns of the data book (dataBook.join.masterBlocks) and the R06 to R06_0000 compare of R176 in wiring.py. Those stay.
 - One stale text: the skip reason of R06_0001 said R06_0000 is read for the villa blocks. Corrected.
 - New: drawings.referenceOnly lists both copies. project_profile.refuse_reference_only refuses a drawing or a blocks.json of that list in cad_analysis.read_blocks (so block_scan, block_offsets, block_proof, round13_check), footprint_check.footprint_blocks (footprint_check, plan_from_book and majority --footprint-blocks), the analysis stage of full_run and the footprint role of data_book and wiring. 3 tests (RAN, 3 passed). The dotnet code reads no R06 drawing (SEARCHED).
 
@@ -130,7 +130,7 @@ Branch fix/addin-open-fixes from main at 865a80e, equal to origin/main after git
 ### R302, Q061: the image step limit and the NBH 03 image
 
 - testHost.imageStepMinutes 30 in config/project.json. Run-TestHost.ps1 writes it into an image job as imageMinutes, gives the job a total of 27 minutes plus it and refuses -TimeoutMinutes under it plus 30. The guard refuses an image job with no imageMinutes or one outside 0 to MaxImageMinutes (120, a bound against a mistyped job), and imageMinutes on any other job, and lets an image job total run to 29 minutes plus its image minutes. The image step takes TestHostGuard.ImageStepMinutes(job), the constant 10 is gone. 8 .NET tests in RoundAddinTests.cs and 1 Python test (RAN).
-- Build and install: dotnet build 0 errors and 1 old warning, Install-TestHost.ps1 -NoBuild -SkipSigningReport under PowerShell 7.6.7, the three manifests kept, Common the same in the reader, the placer, the watcher and the build (RAN). The script skips the CodeSigning read with that switch (READ, Install-TestHost.ps1 lines 88 to 91).
+- Build and install: dotnet build 0 errors and 1 old warning, Install-TestHost.ps1 -NoBuild -SkipSigningReport under PowerShell 7.6.7, the three manifests kept, Common the same in the reader, the placer, the watcher and the build (RAN at the install of the 03:38 build, and again at the install of the 05:05 build of the review fixes). The script skips the CodeSigning read with that switch (READ, Install-TestHost.ps1 lines 88 to 91).
 - Windows, one at a time under the lock of R200 with round ADDIN-0b, Revit 2024.3. The watcher answered 5 boxes in each in our own Revit only, Do Not Load for RCRC Green and RCRC Green Audit, Load Once for our three (RAN, round_17\logs\windows.jsonl and run_I2x_image.txt):
 
 | Code | Area of NBH 03 | Free GB at the lock | Open s | Image s | Result | Peak MB |
@@ -142,13 +142,13 @@ Branch fix/addin-open-fixes from main at 865a80e, equal to origin/main after git
 | I24 | north east quarter | 8.80 | 77.3 | 51.9 | ok, 102 links, 182 floors | 1,816 |
 
 - A first I20 start stopped at reading its spec, a JSON escape fault in the spec file I wrote, before any Revit started (RAN, run_I20_image_specfault.txt). It is not counted as an image try.
-- The whole area failed once at 30 minutes, with no dialog in Revit and no other window seen by the watcher (READ, testhost_I20_watcher.json). Each quarter takes under a minute, all four under 4 minutes, so the whole area is not slow by its size, and why it hangs is UNKNOWN (Q063). The quarters were CHOSEN as the second try, since a repeat of a run that hit its limit tests nothing new. The quarter views count 479 links and 872 floors, over the 404 and 808 of the file, since plots on a quarter edge show twice (RAN). Opened I21 and I23: houses, floors and grid tags drawn, cut at the quarter edge. The export fits a wider extent than the crop (two symbols far to the right in I21), so in I21 the houses fill a third of the width (READ, the PNG files).
+- The whole area failed once at 30 minutes with no dialog in the test host log. The I20 watcher report runs from 00:40:42 until Revit exited at 01:12:55 UTC with only the three Revit frame windows and the five security boxes, while the I21 to I24 watchers ended at the first log step after about 20 s (RAN, testhost_I2x_watcher.json). The I20 report backs no statement about windows during the image step: on I25 the same watcher used no CPU for 60 s while Revit was busy, held in a UI Automation call, so its loop was most likely held the same way in I20 (UNKNOWN for I20). The image step of each quarter took 51.9 to 56.4 s and each quarter job 2.6 to 2.8 min with the open, so the whole area is not slow by its size, and why it hangs is UNKNOWN (Q063). The quarters were CHOSEN as the second try, since a repeat of a run that hit its limit tests nothing new. The quarter views count 479 links and 872 floors, over the 404 and 808 of the file, since plots on a quarter edge show twice (RAN). Opened I21 and I23: houses, floors and grid tags drawn, cut at the quarter edge. The export fits a wider extent than the crop (two symbols far to the right in I21), so in I21 the houses fill about a fifth of the width (READ, the PNG files).
 - The NBH 03 file was unchanged by hash after every run (RAN, Unchanged True in all 5 run logs).
 
 ### Q047, Q048: the IFC copy and the lock files
 
 - Deleted data_book\work\Downloads\1TB02012-012D03-UNA-00-XX-MOD-UT-00010.ifc, 10,497,165 bytes, equal by SHA-256 and size to Downloads\New folder\1TB02012-012D03-UNA-00-XX-MOD-UT-00010.ifc, which stays (RAN). The empty Downloads folder of data_book\work stays. dataBook.data5.ifc.copy still names the copy, so a run of ifc_header.py needs the copy made again.
-- Deleted Makkah Phase 1 Cutsheet - 500.dwl (61 bytes) and .dwl2 (211 bytes) beside the Cutsheet copy in data_book\work\Base Plans: AutoCAD lock records of user bader on this machine, 24 Oct 17:57, no AutoCAD process running (READ, RAN).
+- Deleted Makkah Phase 1 Cutsheet - 500.dwl (61 bytes) and .dwl2 (211 bytes) beside the Cutsheet copy in data_book\work\Base Plans: AutoCAD lock records of user bader on this machine, 24 Oct 17:57 (READ from the two files at 04:26 on 25 Oct, before the delete), no AutoCAD process running (RAN, the process list at the delete).
 
 ### Q035, Q060: the kept files and the three work folders
 
@@ -171,12 +171,12 @@ Branch fix/addin-open-fixes from main at 865a80e, equal to origin/main after git
 | 17 | site_parameters.txt, site_parameters_b.txt, site_parameters_c.txt | 2,114 each | deleted |
 
 - Totals: 27 files, 21 kept with 285,195,525 bytes, 6 deleted with 48,936 bytes. round_z4\work, round_16\work and round_17\work are gone (RAN). The images, logs and plans outside the work folders stay.
-- dataBook.surfaceEntry.key.settings of python/c3d_probe.json pointed at round_z4\work\project_z4_past.json, now at kept\round_z4, and the path resolves and loads (RAN). siteBuild of config/project.json still names round_17 and its newFile, which now sits in kept\round_17. Phase 1 sets siteBuild again.
+- dataBook.surfaceEntry.key.settings of python/c3d_probe.json pointed at round_z4\work\project_z4_past.json, now at kept\round_z4, and the path resolves and loads (RAN). siteBuild.newFile of config/project.json named the file now in kept\round_17. It is null since the review fixes, and a job that needs it refuses with the setting named. siteBuild.folder still names round_17, Phase 1 sets siteBuild again.
 
 ### Q049: attribute values of the probe
 
 - DataCommands.cs line 198 of the probe reads an attribute reference only when it is not Invisible, and only such an attribute reaches the attr_ columns of blocks.csv (lines 200, 201, 475 to 483) and an ATTRIB row of texts.csv (line 202) (READ). The line dates from 601129f, 24 Oct 18:02, and the Road Layout tables were written at 18:45 that day (READ, git blame and the file times).
-- The Road Layout tables of the probe hold 0 ATTRIB rows and 0 attr_ columns, while the probe met all 824 top and 5,045 nested inserts (RAN, and DATA-5). So the 879 vehicle tracking values are left out already, no code changed.
+- The Road Layout tables of the probe hold 0 ATTRIB rows and 0 attr_ columns, while the probe met all 824 top and 5,045 nested inserts (RAN, and DATA-5). So the probe writes none of the 879 values, no code changed. Why it writes none is UNKNOWN: line 198 is the only attribute filter of the probe, but that the 879 are invisible was not read from the drawing.
 - The DATA-5 line that the probe writes no attribute value holds for Road Layout only: the probe table of the Rev 9 drawing MP-SK-01-03-006_R9.0 holds 2,139 ATTRIB rows and 16 attr_ columns, room names, finish numbers and levels of the bound building footprint, and rev9_drawing.survey (R189) reads every text row (RAN, READ). The 11 CadReader tables of the data book hold none (RAN). Q062 asks whether those stay.
 
 ### The remote branch feat/revit-links-walls-ramps
@@ -184,9 +184,30 @@ Branch fix/addin-open-fixes from main at 865a80e, equal to origin/main after git
 - merge-base --is-ancestor of its tip 5fbf27a with origin/main: no, 1 commit not in main (RAN). It was squash merged as PR 4, 0a0d4c3, which is in main and holds the same tree as the tip, an empty diff (RAN). File by file: 12 files, 2 equal main, 10 changed later on main, 0 neither (RAN). Deleted with git push origin --delete, git branch -r shows origin/main only (RAN).
 - It was deleted before the image existed, where the prompt put it after. It touches nothing the image needs.
 
+### Fixes after the breaker and the claim-checker (new commits on PR 42)
+
+- R280 (item 1): an override applies only when the job of its source model is the job of the level profile. The job of a source is the group of majority.groups that holds the keys its overrides name, and each level profile names its job in rules/roshn-makkah.json. A mismatch is refused with both named. The 5 source models of the real override list map to one job each, 4 native and the IMC key parsons (RAN). 2 tests through plan_from_book.main and 1 on the mapping.
+- R277, R279 (item 2): the rule text says a build that names no profile applies the default profile, the hand tables, the TH1-IM fit and only the overrides of its job. A test through main sees the default name and the hand tables reach build.
+- R300 (items 3 to 5): a reference drawing matches by its stem whatever the case, CAD extension or copy suffix, every villa block reader takes the settings its caller loaded, and data_book_retest, stray_units, c3d_connect, wiring_check and z16_check read unit blocks through project_profile.read_villa_blocks. A test lists every Python file that reads a blocks.json or blocks.csv and is no villa block reader, 8 files with their reasons. 19 R300 tests.
+- R301 (items 6, 7): a guessed status on an area is refused, a source with no keyed plot gets noKeyedPlot, a source agrees only on zone and neighbourhood together, the job names come from majority.groups, measured_count names its rule.
+- Item 8: dataBook.data5.ifc.retired names Q047, ifc_header.py and data5_check.py skip the IFC with that reason. data5_check.py then stopped earlier, at the CadReader reads of the two road layouts the DATA-5 clean up deleted. Made again with xref_search.read_copy from the data book copies, which stayed unchanged by hash: Roads layout 27.2 s and 53,179,790 bytes, Base Plans layout 0.7 s and 1,779,522 bytes (RAN). data5_check.py then ran to its end, exit 0 (RAN): IFC skipped by Q047, area 20 of 20 and 19 plus 1 noDlusRow, parcels 20 of 20 at both seeds, curb 20 of 20 at both seeds, DXF no DXF for 3 roles (deleted by DATA-5), file names equal for IMC and one more for IMA, IMB, IMD, IME, IMF and IMG, the six Revit All Zones models saved at 00:53 on 25 Oct, after the DATA-5 count (READ, file times). siteBuild.newFile is null and newSite and linksAndFloors refuse with the setting named, round_files clean says so when work is gone.
+- R302 (item 9): testHost.imageMarginMinutes 10 (CHOSEN, the open took 74.5 to 84.3 s in 8 runs), a plain image run takes a window of 43 minutes and a job total of 40, the session deadline is TestHostGuard.TotalMinutesOf. I25 ran with no -TimeoutMinutes and was accepted (RAN).
+- R303 (item 10): Run-TestHost.ps1 runs the watcher with --watch-job for the window limit. Until the first log step it answers and stops as R108 says, after it it clicks only rule 3 answers and stops nothing. Two faults of the first version were found on real runs and fixed with tests: on I25 a UI Automation call on the busy Revit held the watcher through the whole image step (0 CPU over 60 s, RAN), so the job phase lists windows by Win32 calls that send no message. On I26 the start phase was held from the open to the end of the image step, so its UI Automation work now runs on one worker task and the main loop never waits on it. On I27 the watcher entered the job phase 1 s after the open started and watched until Revit exited, listing the frame and a WinForms window titled with a GUID and Monitor, both not hung then, and no other window (RAN).
+
+### The whole area retry, I25
+
+- One retry of the whole NBH 03 area on a work copy of kept\round_17\01101-PSN-IMB-R17-TEST-NEW.rvt in a round_17\work made for it, equal to the kept file by hash before and after, under the lock with 6.96 GB free (RAN). Open 82.1 s, image step timeout at 1,807.9 s, run 32.1 min, the copy unchanged (RAN).
+- Measured from outside while it ran (RAN, round_17\logs\revit_samples_I25.txt, 40 samples from 05:19:14 to 05:38:49): Revit not responding on every sample, private memory 10,732 MB and working set 4,909 to 4,913 MB, CPU from 667 to 1,439 s, about 0.7 of one core, free memory 2.16 to 2.75 GB. A quarter run peaked near 2 GB.
+- A Win32 list of every window of that Revit at 05:19:35, read only (RAN): two visible windows, the main frame and the GUID Monitor window, both hung, no dialog and no message box, 28 hidden windows.
+- So the whole area export is busy, not waiting on a dialog, and pages under memory pressure. Why it needs 10.7 GB where a quarter needs about 2 GB is UNKNOWN. Q063 stays open with this.
+- I26 and I27 were checks of the watcher on the south west quarter, not image tries, 2.8 and 2.6 min each, their images equal in size to I21. The work copy and round_17\work were deleted after I27 (RAN).
+- Run-TestHost.ps1 printed a peak memory of 1,884 MB for I25 while the samples show a 4.9 GB working set, why the script reads it lower is UNKNOWN.
+
 ### Gate
 
-- Python 1024 passed and 1 skipped, .NET build 0 errors and 1 warning (xUnit2013, older than this round), .NET 429 passed (RAN).
+- Before the review: Python 1024 passed and 1 skipped, .NET build 0 errors and 1 warning (xUnit2013, older than this round), .NET 429 passed (RAN).
+- After the review fixes: see the top entry of steps/log.md.
+- Originals after all windows of the review fixes: 40 of 40 equal to the hashes before the round (RAN, originals_0b_after_review.txt).
 
 ### New questions
 

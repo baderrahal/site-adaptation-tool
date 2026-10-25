@@ -10,21 +10,21 @@ Goal:
 - The whole Site Adaptation add-in inside Revit 2024 in C#, .NET Framework 4.8 (option B), built from the 7 Rev 6 Parsons site models, parsons2024Rev6 for every new build (Q050), the screens and files of the approved mock in docs/addin-mock.md. Part 2, the sheets, waits for Bader's check of Part 1
 
 Done:
-- Preflight by the main session: main equal to origin/main at ff212e5, both hooks refused their test command, their output is in steps/investigations/round-addin.md
-- 0a (PR 41, chore/addin-harness): the AI MAX skill version 3 in .claude/skills/ai-max, seven agents in .claude/agents, six old entries moved whole to steps/history/, CLAUDE.md with the Round ADDIN section, docs/addin-mock.md. Q028, Q046 and Q050 closed
-- 0b (PR 42, fix/addin-open-fixes): R277 levelProfiles.default is parsons2024Rev6, a build that names no profile follows it (Q050). R300 villa blocks only from drawings.villaBlocks, drawings.referenceOnly names R06_0000 and R06_0001 and every villa block reader refuses them, no reader took them before (Q045). R301 config/area_codes.json by job, native from the Round 17 coverage, parsons only from Parsons files, the 4 guessed rows and the IMG text row gone (Q044). R302 the image step limit from testHost.imageStepMinutes 30 (Q061). Q049 needed no code, the probe skips invisible attributes at DataCommands.cs line 198
-- 0b outside the repo: the whole NBH 03 image timed out once at 30 minutes, its four quarters took 52 to 56 s each, in round_17\images. Deleted the IFC copy (10,497,165 bytes) and the two Cutsheet lock files (61 and 211). 21 kept files, 285,195,525 bytes, in Documents\SiteAdaptation\kept, then round_z4\work, round_16\work and round_17\work deleted with 6 more files of 48,936 bytes. The remote branch feat/revit-links-walls-ramps deleted. Q035, Q044, Q045, Q047, Q048, Q049, Q060, Q061 closed
-- Gate: Python 1024 passed and 1 skipped, .NET 429 passed
+- 0a (PR 41): the AI MAX skill version 3, seven agents, six old log entries moved to steps/history/, CLAUDE.md with the Round ADDIN section, docs/addin-mock.md. Q028, Q046 and Q050 closed
+- 0b (PR 42, fix/addin-open-fixes): R277 levelProfiles.default parsons2024Rev6, and R280 applies an override only on a build whose profile has the job of its source (Q050). R300 villa blocks only from drawings.villaBlocks: no reader takes R06_0000 or R06_0001 since Round 12b, before it villaBlocks was R06_0000, and every villa block reader now refuses them by stem with its caller's settings (Q045). R301 config/area_codes.json by job, zone and neighbourhood checked together, the guessed rows gone (Q044). R302 the image step 30 minutes and a margin of 10 from testHost (Q061). R303 the dialog watcher logs every window of our Revit through the job by Win32. Q049 needed no code
+- 0b outside the repo: the NBH 03 image in four quarters, the whole area timed out in I20 and in the one retry I25. The IFC copy (10,497,165 bytes) and the two Cutsheet lock files (61 and 211) deleted. 21 kept files, 285,195,525 bytes, in Documents\SiteAdaptation\kept, the three work folders deleted. The IFC input retired by Q047, the two road layout reads made again, data5_check.py runs to its end. feat/revit-links-walls-ramps deleted. Q035, Q044, Q045, Q047, Q048, Q049, Q060, Q061 closed
+- Gate: Python 1052 passed and 1 skipped, .NET 436 passed
 
 Checked:
 - 0a: the skill copy 39 of 39 files equal by SHA-256, the 6 moved entries word for word, the mock equal to the round prompt byte for byte
-- 0b: 40 of 40 originals equal by hash before and after. 21 of 21 kept copies equal by round_files.sha256 and again by Get-FileHash. 8 of 8 native area rows equal the coverage text of round-17.md. The old branch: not an ancestor, squash merged as 0a0d4c3 with the same tree, 12 of 12 files equal main or changed later on main. 5 Revit windows one at a time under the lock, 5.46 to 8.92 GB free, the NBH 03 file unchanged by hash after each. This Your turn equals Bader's turn of steps/PROGRESS.md
+- 0b: 40 of 40 originals equal by hash before, after the first windows and after the review windows. 21 of 21 kept copies equal by round_files.sha256 and by Get-FileHash. 8 of 8 native area rows equal the coverage text of round-17.md. data5_check.py at seeds 14 and 7: area 20 and 19 of 20 plus 1 noDlusRow, parcels 20 of 20, curb 20 of 20, IFC skipped by Q047. The old branch: squash merged as 0a0d4c3 with the same tree, 12 of 12 files equal main or changed later on main. 8 Revit windows one at a time under the lock, 5.46 to 8.92 GB free at each lock, every model copy unchanged by hash. This Your turn equals Bader's turn of steps/PROGRESS.md
 
 Remains:
-- Phases 1 to 6 of the plan. siteBuild still names round_17, Phase 1 sets it again. The IFC header of R258 needs a new copy to run again
+- Phases 1 to 6 of the plan. siteBuild still names round_17, Phase 1 sets it again
 
 Known bugs:
-- The whole NBH 03 area runs past the 30 minute image step with no dialog in Revit, each quarter takes under a minute (Q063)
+- The whole NBH 03 area runs past the 30 minute image step: in I25 Revit was busy with 10.7 GB private memory, 2.2 to 2.8 GB free, and showed no dialog, a quarter needs about 2 GB (Q063)
+- Run-TestHost.ps1 read a 1,884 MB peak for I25 against a 4.9 GB working set sampled by Get-Process, why is UNKNOWN
 - The .NET build gives 1 warning older than this round, xUnit2013 at dotnet/SiteAdaptation.Tests/CadExplodeTests.cs line 206
 
 Next:
@@ -34,7 +34,7 @@ Your turn:
 Q001. El @ Entry rule: the IFC in Downloads is another project, ask the client for the Infrastructure IFC package and the architect for the ramp slope. The road plus the ramp slope holds 0.285 of the IMC key within 5 mm, the 241 others are overrides until then
 Q002. Ramp type: coded by Rev 9 code (0.970), 2% for C10, VL4, VL6, 0.5% for the rest. The 10 Flat Ramps of the IMC key slope like the others, keep them as overrides. Q003. Villa mirror: coded, the block mirror flag with the open end (0.913 IMC, 0.945 Native): accept
 Q004. Setback: DLUS front. Q005. Front level: road snapped. Q006. Back corners parallel. Q007. Generic floor: whole face (0.955 IMC)
-Q008. Units: ask for a baseplan with 01b. Q009. Typology_Rev9 for codes with no schedule. Q010. Sales Land Width. Q011. IME: nothing names it, ask which neighbourhood each IM letter is (see Q044)
+Q008. Units: ask for a baseplan with 01b. Q009. Typology_Rev9 for codes with no schedule. Q010. Sales Land Width. Q011. IME: nothing names it, Phase 2 answers it if the Parsons IME model names its neighbourhood, else ask which neighbourhood each IM letter is
 Q012. FFL split: ask why. Q013. CASE second letter as built (CASE follows no tested logic, 0.424). Q015. Yard FFL minus 0.100 (0.997). Q016. Plots 2311, 2312 by baseplan. Q017. Plots 2301, 2302 VD4. Q018. 58 past ramps listed. Q019. Schedule FFL. Q020. Keep the north stop
 Q021. Parallel windows over 8 GB free. Q022. TEST copies in Zone 02\ARC: delete when done. Q023. Delete the empty 15a folder. Q024. Curb and ROW from the R94 edge. Q025. 13 PDF refusals listed
 Q026. Two curbs from one 2021 drawing, they differ at junction corners and curb breaks: keep the Roads curb, ask which is current
@@ -49,8 +49,8 @@ Q054. R260 is used by DATA-5 outside its range, Round 17 used R261 to R282: keep
 Q056. The Native models use the 2022 layout with old client units, other than Rev 9 on most plots: use them for hands, fronts and ramps, never for unit codes. Q057. Ramp front fall: 97 IMC overrides list a fall with no direction, not applied: accept
 Q058. Old prototype files of 20221206 - Links are not here, their hand comes from the CAD reference (V3 and V2 opposite to VL6 and VD2, the others the same): send the folder to check it on the files
 Q059. NBH 03 build: native2022 levels, the 1.2 El @ Entry and front overrides, no mirror or height overrides (old files, other units): accept.
-Q062. The probe keeps the visible attribute values of the Rev 9 drawing, 2,139 ATTRIB rows and 16 attr_ columns of room names, finish numbers and levels, and the text survey of R189 reads them. Q049 left out the 879 invisible tags of Road Layout, which the probe never wrote: keep the Rev 9 values, take them out only if you meant every attribute value
-Q063. The whole NBH 03 image ran past the 30 minute image step once with no dialog in Revit, while each of its four quarters took 52 to 56 s: accept the four quarter images in round_17\images and make large images in quarters, the cause stays a known bug
+Q062. The probe keeps the visible attribute values of the Rev 9 drawing, 2,139 ATTRIB rows and 16 attr_ columns of room names, finish numbers and levels, and the text survey of R189 reads them. Q049 left out the 879 tags of Road Layout, which the probe never wrote: keep the Rev 9 values, take them out only if you meant every attribute value
+Q063. The whole NBH 03 image ran past the 30 minute image step in I20 and I25. In I25 Revit was busy with 10.7 GB private memory and no dialog, while each quarter image step took 52 to 56 s at about 2 GB: accept the four quarter images in round_17\images and make large images in quarters, the cause stays a known bug
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 
