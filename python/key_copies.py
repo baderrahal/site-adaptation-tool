@@ -59,6 +59,32 @@ def folded(parts):
     return tuple(part.casefold() for part in parts)
 
 
+def opened_parts(text, what):
+    """R312. The parts of a plain path under the input root as Windows opens them, as GetFullPathNameW gives them: a part before the
+    last that ends in one period loses it, and the last part loses every period and blank at its end. Either slash splits, and the
+    refusals of plain_parts come first, so no drive, parent step, . part or empty part is left to resolve. A last part that loses
+    everything names the folder above it and is refused."""
+    parts = list(plain_parts(text, what))
+    for index, part in enumerate(parts[:-1]):
+        if part.endswith(".") and not part.endswith(".."):
+            parts[index] = part[:-1]
+    parts[-1] = parts[-1].rstrip(". ")
+    if not parts[-1]:
+        raise KeyCopyError("%s names the folder above its last part, Windows takes that part away: %r" % (what, text))
+    return tuple(parts)
+
+
+def place(text, what):
+    """R312. The place a path under the input root opens, its opened parts folded, so two texts of one place compare equal."""
+    return folded(opened_parts(text, what))
+
+
+def name_key(text, what):
+    """R312. The place of a plain file name with no folder, the key of a copy in the manifest and in every compare."""
+    plain_name(text, what)
+    return place(text, what)[0]
+
+
 def plain_name(text, what):
     """R312. A file name with no folder, by the rules of plain_parts."""
     if len(plain_parts(text, what)) != 1:
@@ -85,11 +111,12 @@ def name_pattern(values, code):
 def load_keys(values):
     """R312. The answerKeys block of the project settings, every key whole: a code of codePrefix and one capital, a zone of
     zonePattern, a kind of kinds, a source under the input root outside the copy folder and a .rvt copy name, the copy name and the
-    source file name each holding the code of its own key where codeInName says and no code of another key. A code, a copy name or
-    a source twice, in any case, is refused."""
+    source file name each holding the code of its own key where codeInName says and no code of another key. Paths are compared by
+    the place Windows opens, so a code, a copy name or a source twice, or a source in the copy folder, is refused whatever its case,
+    slashes or trailing dots and blanks."""
     if not isinstance(values, dict) or set(values) != set(BLOCK_FIELDS):
         raise KeyCopyError("answerKeys holds exactly %s" % ", ".join(BLOCK_FIELDS))
-    folder = plain_parts(values["folder"], "the copy folder")
+    folder = place(values["folder"], "the copy folder")
     plain_name(values["manifest"], "the manifest")
     if not isinstance(values["format"], int) or isinstance(values["format"], bool):
         raise KeyCopyError("the format of the copies is a year: %r" % values["format"])
@@ -121,16 +148,16 @@ def load_keys(values):
             raise KeyCopyError("the kind of an answer key is %s: %r" % (" or ".join(kinds), key))
         if not plain_name(key["copy"], "a copy name").lower().endswith(".rvt"):
             raise KeyCopyError("a copy name is a .rvt file: %r" % key)
-        source = folded(plain_parts(key["source"], "a source"))
-        if source[:len(folder)] == folded(folder):
+        source = place(key["source"], "a source")
+        if source[:len(folder)] == folder:
             raise KeyCopyError("a source sits in the copy folder, among the copies: %r" % key)
-        for field, value in (("code", key["code"]), ("copy", key["copy"].casefold()), ("source", source)):
+        for field, value in (("code", key["code"]), ("copy", name_key(key["copy"], "a copy name")), ("source", source)):
             if value in seen[field]:
                 raise KeyCopyError("the %s of an answer key is twice in the list: %r" % (field, key))
             seen[field].add(value)
     # A swap of two names between their keys is refused, so a copy is never checked against the source of another key
     for key in keys:
-        for what, name in (("copy name", key["copy"]), ("source file name", plain_parts(key["source"], "a source")[-1])):
+        for what, name in (("copy name", key["copy"]), ("source file name", opened_parts(key["source"], "a source")[-1])):
             if not name_pattern(values, key["code"]).search(name):
                 raise KeyCopyError("the %s %s does not hold the code %s of its key where codeInName says: %s" % (what, name, key["code"], in_name))
             for other in keys:
@@ -155,7 +182,7 @@ def entry_faults(entry):
         faults.append("it has no format year, the copy may be no Revit file")
     if not isinstance(entry["madeBy"], str) or not entry["madeBy"].strip():
         faults.append("it names no run that made the copy")
-    for check_text, field in ((plain_name, "copy"), (plain_parts, "source")):
+    for check_text, field in ((name_key, "copy"), (place, "source")):
         try:
             check_text(entry[field], "its %s" % field)
         except KeyCopyError as error:
@@ -165,22 +192,26 @@ def entry_faults(entry):
 
 def manifest_faults(entries):
     """R312. Every reason a list of entries can not be a manifest, each with the copy it is about: the faults of each entry and a
-    copy listed twice in any case. Both read_manifest and import take these rules."""
+    copy listed twice by the place Windows opens. Both read_manifest and import take these rules."""
     faults = []
     seen = set()
     for number, entry in enumerate(entries, start=1):
         name = entry.get("copy") if isinstance(entry, dict) else None
         faults.extend("entry %d (%s): %s" % (number, name, fault) for fault in entry_faults(entry))
-        if isinstance(name, str):
-            if name.casefold() in seen:
-                faults.append("entry %d (%s): the copy is twice in the list" % (number, name))
-            seen.add(name.casefold())
+        try:
+            copy = name_key(name, "its copy")
+        except KeyCopyError:
+            continue
+        if copy in seen:
+            faults.append("entry %d (%s): the copy is twice in the list" % (number, name))
+        seen.add(copy)
     return faults
 
 
 def read_manifest(path):
-    """R312. The entries of a manifest by copy name folded, {} when there is none. A manifest that is no JSON or holds no list of
-    copies, or whose entries have a fault of manifest_faults, is refused with every fault."""
+    """R312. The entries of a manifest by the place of their copy name, its name folded as Windows opens it, {} when there is none. A
+    manifest that is no JSON or holds no list of copies, or whose entries have a fault of manifest_faults, is refused with every
+    fault."""
     path = Path(path)
     if not path.is_file():
         return {}
@@ -194,7 +225,7 @@ def read_manifest(path):
     faults = manifest_faults(copies)
     if faults:
         raise KeyCopyError("the manifest %s is refused:\n%s" % (path, "\n".join(faults)))
-    return {entry["copy"].casefold(): entry for entry in copies}
+    return {name_key(entry["copy"], "the copy of an entry"): entry for entry in copies}
 
 
 def write_manifest(path, entries):
@@ -220,13 +251,13 @@ def format_of(path):
 
 
 def copy_folder(root, values):
-    """R312. The copy folder of answerKeys under the input root."""
-    return Path(root).joinpath(*plain_parts(values["folder"], "the copy folder"))
+    """R312. The copy folder of answerKeys under the input root, as Windows opens it."""
+    return Path(root).joinpath(*opened_parts(values["folder"], "the copy folder"))
 
 
 def source_path(root, key):
-    """R312. The source of a key under the input root, the file its copy is made from."""
-    return Path(root).joinpath(*plain_parts(key["source"], "a source"))
+    """R312. The source of a key under the input root, the file its copy is made from, as Windows opens it."""
+    return Path(root).joinpath(*opened_parts(key["source"], "a source"))
 
 
 def job_code(values, key):
@@ -261,7 +292,7 @@ def check(root, values, work, hasher=round_files.sha256, info=format_of):
     for key in values["keys"]:
         source = source_path(root, key)
         copy = folder / key["copy"]
-        entry = manifest.get(key["copy"].casefold())
+        entry = manifest.get(name_key(key["copy"], "a copy name"))
         row = {"code": key["code"], "copy": key["copy"], "source": key["source"], "verdict": None, "reasons": [], "format": None,
                "sourceSha256": None, "copySha256": None, "request": None}
         if not source.is_file():
@@ -282,7 +313,7 @@ def check(root, values, work, hasher=round_files.sha256, info=format_of):
             else:
                 if entry["code"] != key["code"]:
                     reasons.append("otherCode")
-                if folded(plain_parts(entry["source"], "a source")) != folded(plain_parts(key["source"], "a source")):
+                if place(entry["source"], "a source") != place(key["source"], "a source"):
                     reasons.append("otherSource")
                 elif entry["sourceSha256"] != row["sourceSha256"]:
                     reasons.append("sourceChanged")
@@ -298,7 +329,7 @@ def check(root, values, work, hasher=round_files.sha256, info=format_of):
             row["request"] = request(root, values, key, work)
         rows.append(row)
     # An entry no key names is listed, never dropped in silence, and asks for nothing
-    named = {key["copy"].casefold() for key in values["keys"]}
+    named = {name_key(key["copy"], "a copy name") for key in values["keys"]}
     for name, entry in manifest.items():
         if name not in named:
             rows.append({"code": entry["code"], "copy": entry["copy"], "source": entry["source"], "verdict": "noKey", "reasons": [], "format": None,
@@ -332,7 +363,7 @@ def import_sources(root, values, sources_txt, hasher=round_files.sha256, info=fo
     path = folder / values["manifest"]
     if path.exists():
         raise KeyCopyError("the manifest %s is already there, an import never overwrites it" % path)
-    keys = {key["copy"].casefold(): key for key in values["keys"]}
+    keys = {name_key(key["copy"], "a copy name"): key for key in values["keys"]}
     entries = []
     faults = []
     for number, line in enumerate(Path(sources_txt).read_text(encoding="utf-8-sig").splitlines(), start=1):
@@ -342,7 +373,11 @@ def import_sources(root, values, sources_txt, hasher=round_files.sha256, info=fo
         if not match:
             faults.append("line %d names no copy with its source" % number)
             continue
-        key = keys.get(match.group("copy").casefold())
+        try:
+            key = keys.get(name_key(match.group("copy"), "the copy of line %d" % number))
+        except KeyCopyError as error:
+            faults.append(str(error))
+            continue
         if key is None:
             faults.append("line %d names a copy of no key: %s" % (number, match.group("copy")))
             continue
@@ -456,11 +491,11 @@ def record(root, values, work, code, made, made_by, run, hasher=round_files.sha2
     folder = copy_folder(root, values)
     manifest_path = folder / values["manifest"]
     manifest = read_manifest(manifest_path)
-    if any(path.name.casefold() == key["copy"].casefold() for path in folder.iterdir()):
+    if any(path.name.casefold() == name_key(key["copy"], "a copy name") for path in folder.iterdir()):
         raise KeyCopyError("the copy %s is in %s, it is never overwritten, move it aside by hand first" % (key["copy"], folder))
     entry = {"code": key["code"], "copy": key["copy"], "copySha256": hasher(made), "source": key["source"], "sourceSha256": source_hash,
              "format": values["format"], "madeBy": made_by}
-    manifest[key["copy"].casefold()] = entry
+    manifest[name_key(key["copy"], "a copy name")] = entry
     target = folder / key["copy"]
     shutil.move(str(made), str(target))
     try:

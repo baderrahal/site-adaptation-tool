@@ -543,6 +543,57 @@ def test_r312_a_key_list_with_a_missing_or_extra_field_a_bad_kind_a_code_copy_or
         key_copies.load_keys(values)
 
 
+@pytest.mark.parametrize("values", [
+    bad_key("source", "Revit All Zones\\2024.\\x.rvt"), bad_key("source", "Revit All Zones\\2024.\\" + MODEL_A),
+    bad_key("source", "revit all zones/2024./" + MODEL_A),
+    dict(bad_key("source", "Revit All Zones\\2024\\" + MODEL_A), folder="Revit All Zones\\2024 ."),
+    dict(bad_key("source", "Revit All Zones\\2024\\" + MODEL_A), folder="REVIT ALL ZONES/2024.")])
+def test_r312_a_source_in_the_copy_folder_is_refused_by_the_place_windows_opens_not_by_the_text(values):
+    with pytest.raises(key_copies.KeyCopyError, match="in the copy folder"):
+        key_copies.load_keys(values)
+
+
+def test_r312_a_path_is_opened_as_windows_opens_it_a_trailing_dot_or_blank_off_and_the_case_folded():
+    assert key_copies.opened_parts("Revit All Zones\\2024.\\x.rvt", "a source") == ("Revit All Zones", "2024", "x.rvt")
+    assert key_copies.opened_parts("Zone 02/ARC/Prototypes_2024.", "a folder") == ("Zone 02", "ARC", "Prototypes_2024")
+    assert key_copies.opened_parts("a. ./b. . .", "a path") == ("a. ", "b")
+    assert key_copies.opened_parts("a../b .", "a path") == ("a..", "b")
+    assert key_copies.place("REVIT All Zones/2024./X.rvt", "a source") == key_copies.place("revit all zones\\2024\\x.rvt", "a source")
+    assert key_copies.place("a ./b", "a path") != key_copies.place("a/b", "a path")
+    # A last part Windows takes away whole names the folder above it, which is refused, as a drive and a parent step still are
+    for text in ("a/...", "C:\\a", "a\\..\\b", "a\\.\\b", "a\\\\b", " a"):
+        with pytest.raises(key_copies.KeyCopyError):
+            key_copies.place(text, "a path")
+
+
+# Texts plain_parts takes, a blank around a part being refused before, each part before the last and the last
+WINDOWS_CASES = ["Revit All Zones/2024./x.rvt", "Prototypes_2024.", "a. ./b", "a ./b", "a../b", ".../b", "a/b. . .", "a/b .", "a/b./c",
+                 "a/....", "x.rvt.", "a.b./c.d.", "a/.../b", "a. . ./b"]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="GetFullPathNameW is a Windows call, the runner of the gate is Linux")
+@pytest.mark.parametrize("text", WINDOWS_CASES)
+def test_r312_the_opened_parts_equal_what_windows_get_full_path_name_gives(text):
+    from nt import _getfullpathname
+    root = "C:\\place-root\\"
+    try:
+        mine = "\\".join(key_copies.opened_parts(text, "a path"))
+    except key_copies.KeyCopyError:
+        mine = None
+    full = _getfullpathname(root + text.replace("/", "\\"))
+    windows = full[len(root):].rstrip("\\") if full.startswith(root) else None
+    # A path whose last part Windows takes away whole is refused by the code
+    assert mine == (windows if windows and windows.count("\\") == text.count("/") else None)
+
+
+def test_r312_an_entry_whose_source_opens_the_place_of_the_source_of_the_config_is_reused(tmp_path):
+    root = tree(tmp_path)
+    entries = both_entries(root)
+    entries[1]["source"] = "00_REVIT MODELS/zone 02./arc/" + ORIGINAL_C + "."
+    write_manifest(root, entries)
+    assert verdicts(root, tmp_path)["IMC"]["verdict"] == "reuse"
+
+
 def test_r312_a_copy_name_or_a_source_name_that_does_not_hold_the_code_of_its_own_key_is_refused():
     keys = block()["keys"]
     # Two copy names swapped between their keys

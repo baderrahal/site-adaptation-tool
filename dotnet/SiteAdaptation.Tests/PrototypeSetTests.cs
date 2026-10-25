@@ -133,6 +133,15 @@ namespace SiteAdaptation.Tests
         [InlineData("{\"target\": \"Zone 02\\\\STR\\\\Prototypes\"}", "source folder")]
         [InlineData("{\"target\": \"zone 02\\\\arc\\\\prototypes_2024\"}", "folder of its own")]
         [InlineData("{\"target\": \"Zone 02/ARC/Prototypes\"}", "folder of its own")]
+        // Places, not text: Windows opens Prototypes_2024. as Prototypes_2024, and a folder above or inside a folder holds its files
+        [InlineData("{\"target\": \"Zone 02\\\\ARC\\\\Prototypes_2024.\"}", "folder of its own")]
+        [InlineData("{\"target\": \"zone 02/arc/PROTOTYPES_2024 .\"}", "folder of its own")]
+        [InlineData("{\"target\": \"Zone 02\\\\ARC\"}", "folder of its own")]
+        [InlineData("{\"target\": \"Zone 02\\\\ARC.\\\\Prototypes\\\\STR\"}", "folder of its own")]
+        [InlineData("{\"target\": \"Zone 02\\\\STR\\\\Prototypes.\"}", "source folder")]
+        [InlineData("{\"target\": \"Zone 02\\\\STR\\\\Prototypes\\\\2024\"}", "source folder")]
+        [InlineData("{\"target\": \"Zone 02\\\\STR\"}", "source folder")]
+        [InlineData("{\"source\": \"Zone 02\\\\ARC\\\\Prototypes_2024\\\\STR\\\\2021\"}", "source folder")]
         [InlineData("{\"codePrefix\": \"s\"}", "capital")]
         [InlineData("{\"discipline\": \"ARC\"}", "other than ARC")]
         [InlineData("{\"discipline\": \"St\"}", "three capitals")]
@@ -142,6 +151,14 @@ namespace SiteAdaptation.Tests
             string output = Pwsh(Config(Set(change)) + Refusal("Get-PrototypeSet -Config $config -Name STR"));
             Assert.StartsWith("refused: ", output);
             Assert.Contains(reason, output);
+        }
+
+        [Fact]
+        public void R313_a_set_gives_its_folders_as_windows_opens_them_so_the_run_script_never_writes_a_trailing_dot_into_a_job()
+        {
+            string set = Set("{\"source\": \"Zone 02/STR/Prototypes.\", \"target\": \"Zone 02\\\\ARC\\\\Prototypes_2024\\\\STR. .\"}");
+            string output = Pwsh(Config(set) + "$set = Get-PrototypeSet -Config $config -Name STR\n$set.source + '|' + $set.target");
+            Assert.Equal(@"Zone 02\STR\Prototypes|Zone 02\ARC\Prototypes_2024\STR", output);
         }
 
         [Fact]

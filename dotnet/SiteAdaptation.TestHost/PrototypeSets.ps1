@@ -11,15 +11,37 @@ function Get-PlainParts([string]$Text, [string]$What) {
     if (-not $Text -or $Text.Contains(':') -or $bad.Count -gt 0) {
         throw "$What is no plain path under inputRoot: $Text"
     }
-    return , ($parts | ForEach-Object { $_.ToLowerInvariant() })
+    return , $parts
 }
 
-function Test-SamePath([string]$One, [string]$Two) {
-    return ((Get-PlainParts $One 'a folder') -join '\') -eq ((Get-PlainParts $Two 'a folder') -join '\')
+# A plain path under inputRoot as Windows opens it, resolved by Windows itself under a root that is never read, so a trailing dot
+# or blank or either slash never hides one place behind two texts. The case stays as written, a part Windows takes away whole is refused
+function Get-OpenedPath([string]$Text, [string]$What) {
+    $parts = Get-PlainParts $Text $What
+    $root = 'C:\opened-root\'
+    $full = [IO.Path]::GetFullPath($root + ($parts -join '\'))
+    $opened = if ($full.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { $full.Substring($root.Length).TrimEnd('\') } else { '' }
+    if (@($opened -split '\\').Count -ne $parts.Count -or @($opened -split '\\' | Where-Object { $_ -eq '' }).Count -gt 0) {
+        throw "$What names the folder above its last part, Windows takes that part away: $Text"
+    }
+    return $opened
 }
 
-# The set of that name, its name matched in its case, every field there and nothing else. Its target is a folder of its own, never
-# its source and never a prototype folder of the past job, so the ARC prototypes the placer takes by code stay alone
+# The place a path opens, in any case as Windows matches names
+function Get-PlaceKey([string]$Text, [string]$What) {
+    return (Get-OpenedPath $Text $What).ToUpperInvariant()
+}
+
+# True when the place Inner is the place Outer or a folder inside it
+function Test-Within([string]$Inner, [string]$Outer) {
+    return $Inner -eq $Outer -or $Inner.StartsWith($Outer + '\', [StringComparison]::Ordinal)
+}
+
+# The set of that name, its name matched in its case, every field there and nothing else. Its target is a folder of its own, compared
+# by the place Windows opens: never its source, a folder above it or inside it, never the ARC prototype folder of the past job, a folder
+# above it or inside it, and never the upgraded ARC prototype folder or a folder above it, so the ARC prototypes the placer takes by
+# code stay alone. A folder inside the upgraded one is a folder of its own, since nothing reads the folders inside it. The set comes
+# back with its folders as Windows opens them, so the run script writes no trailing dot into a job
 function Get-PrototypeSet($Config, [string]$Name) {
     $sets = $Config.prototypeSets
     if (-not $sets -or -not (@($sets.PSObject.Properties.Name) -ccontains $Name)) {
@@ -35,24 +57,28 @@ function Get-PrototypeSet($Config, [string]$Name) {
     if ($fields.Count -ne $SetFields.Count) {
         throw "The prototype set $Name holds exactly $($SetFields -join ', ')"
     }
-    foreach ($field in 'source', 'target') {
-        Get-PlainParts $set.$field "The $field of the prototype set $Name" | Out-Null
-    }
+    $source = Get-PlaceKey $set.source "The source of the prototype set $Name"
+    $target = Get-PlaceKey $set.target "The target of the prototype set $Name"
     if ([string]$set.discipline -cnotmatch '^[A-Z]{3}$' -or [string]$set.discipline -ceq 'ARC') {
         throw "The discipline of the prototype set $Name is three capitals other than ARC: $($set.discipline)"
     }
     if ([string]$set.codePrefix -cnotmatch '^[A-Z]$') {
         throw "The code prefix of the prototype set $Name is one capital letter: $($set.codePrefix)"
     }
-    if (Test-SamePath $set.target $set.source) {
-        throw "The target of the prototype set $Name is its source folder, the source is never overwritten"
+    if ((Test-Within $target $source) -or (Test-Within $source $target)) {
+        throw "The target of the prototype set $Name is its source folder, a folder above it or inside it, the source is never overwritten: $($set.target)"
     }
-    foreach ($past in @($Config.pastJob.prototypeFolder, $Config.pastJob.upgradedPrototypeFolder)) {
-        if (Test-SamePath $set.target $past) {
-            throw "The target of the prototype set $Name is a prototype folder of the past job, it needs a folder of its own: $($set.target)"
-        }
+    $past = Get-PlaceKey $Config.pastJob.prototypeFolder 'pastJob.prototypeFolder'
+    $upgraded = Get-PlaceKey $Config.pastJob.upgradedPrototypeFolder 'pastJob.upgradedPrototypeFolder'
+    if ((Test-Within $target $past) -or (Test-Within $past $target) -or (Test-Within $upgraded $target)) {
+        throw "The target of the prototype set $Name is a prototype folder of the past job or a folder above it, it needs a folder of its own: $($set.target)"
     }
-    return $set
+    return [pscustomobject]@{
+        source     = Get-OpenedPath $set.source "The source of the prototype set $Name"
+        target     = Get-OpenedPath $set.target "The target of the prototype set $Name"
+        discipline = [string]$set.discipline
+        codePrefix = [string]$set.codePrefix
+    }
 }
 
 # The job code of a set, its prefix and the prototype code, so the outputs of a set never move those of the ARC upgrade of that code
