@@ -378,3 +378,85 @@ def test_r333_r334_the_rules_profile_holds_the_hand_ramp_and_floor_rules_of_the_
     assert rules["rampSlope"]["flatRamps"]["plots"] == rules["rampSlope"]["flatRamps"]["withElAtEntryRefused"]
     for word in ("rampOutline", "yardOutline", "rampFront", "rampFrontFall", "generic"):
         assert 0 < rules[word]["share"] <= 1
+
+
+# R335 the walls and the shared parameters of the keys
+WALL_TYPES = {"boundary": "^BW$", "garden": "Garden"}
+
+
+def wall(element, plots, base, height, line=0, start=(0.0, 0.0), end=(0.0, 25.0), kind="BW"):
+    return {"elementId": element, "type": kind, "lengthM": 25.0, "heightM": height, "start": [start[0], start[1], 0], "end": [end[0], end[1], 0], "plots": plots,
+            "baseConstraint": "Level 1", "baseOffset": base, "topConstraint": "Unconnected", "topOffset": 0, "locationLine": line}
+
+
+def plan_of(walls):
+    return {"plots": [{"plot": "1", "unit": {"value": "DP2"}, "levels": {"ffl": {"value": 10.0}}}, {"plot": "2", "unit": {"value": "DP2"}, "levels": {"ffl": {"value": 10.3}}}],
+            "walls": walls}
+
+
+def test_r335_each_boundary_wall_of_a_key_plan_is_an_item_with_the_ffl_of_its_plots_and_a_garden_wall_is_counted_apart():
+    plans = {"imc": plan_of([wall(1, ["1", "2"], 9.9, 1.8), wall(2, ["1"], 9.9, 1.8, kind="Generic Wall-150mm_ Garden"), wall(3, [], 9.9, 1.8)])}
+    items, counts = key_rules.wall_items(plans, ["imc"], "parsons", WALL_TYPES)
+    assert [item["wall"]["elementId"] for item in items] == [1]
+    assert items[0]["ffls"] == [10.0, 10.3] and items[0]["plot"] == "1" and items[0]["code"] == "DP2"
+    assert counts == {"imc": {"boundary on 2 plots": 1, "garden on 1 plot": 1, "boundary on 0 plots": 1}}
+    assert key_rules.wall_base(items[0]) == pytest.approx(9.9) and key_rules.wall_top(items[0]) == pytest.approx(11.7)
+
+
+def test_r335_the_wall_base_sits_at_the_yard_level_of_the_lower_plot_and_the_top_at_ffl_plus_the_rev6_height():
+    profile = project_profile.ProjectProfile("p.json", {"units_mm": True, "rev6": {"boundary_wall_top_above_ffl": 1700}})
+    item = {"ffls": [10.0, 10.3], "wall": wall(1, ["1", "2"], 9.9, 2.1)}
+    base = key_rules.wall_base_candidates(0.1)
+    assert base["yardLevelOfTheLowerPlot"](item) == pytest.approx(9.9) and base["yardLevelOfTheHigherPlot"](item) == pytest.approx(10.2)
+    top = key_rules.wall_top_candidates(profile)
+    assert top["higherFflPlusRev6"](item) == pytest.approx(12.0) and top["lowerFflPlusRev6"](item) == pytest.approx(11.7)
+    assert key_rules.wall_top(item) == pytest.approx(12.0)
+
+
+def test_r335_the_wall_line_is_held_by_the_distance_of_its_middle_to_the_plot_edge_against_the_centre_on_the_edge():
+    from shapely.geometry import box
+    faces = {"1": box(0, 0, 10, 25)}
+    centre = {"wall": wall(1, ["1"], 9.9, 1.8, line=0, start=(0.0, 0.0), end=(0.0, 25.0))}
+    face = {"wall": wall(2, ["1"], 9.9, 1.8, line=5, start=(0.1, 0.0), end=(0.1, 25.0))}
+    assert key_rules.wall_line_target(faces)(centre) == pytest.approx(0.0) and key_rules.wall_line_target(faces)(face) == pytest.approx(0.1)
+    rule = key_rules.wall_line_rule([0, 1], 0.2)
+    assert rule(centre) == 0.0 and rule(face) == pytest.approx(0.1)
+
+
+def test_r335_the_front_cover_is_the_share_of_the_front_edge_a_boundary_wall_runs_along():
+    walls = [wall(1, ["1"], 9.9, 1.8, start=(0.0, 0.0), end=(1.0, 0.0)), wall(2, ["1"], 9.9, 1.8, start=(0.0, 0.0), end=(0.0, 25.0))]
+    assert key_rules.front_cover(FRAME, walls, 0.3) == pytest.approx(1.0 / 16.0)
+    assert key_rules.front_cover(None, walls, 0.3) is None
+
+
+def test_r335_the_parameters_of_a_read_are_found_by_the_plot_number_parameter_and_the_name_is_made_of_its_parts():
+    read = {"links": [{"parameters": {"RRE_ZZ_SP_Plot-Number": "12", "RRE_ZZ_SP_Prototype-FFL": "175.400"}}, {"parameters": {"RRE_ZZ_SP_Plot-Number": ""}}]}
+    assert key_rules.read_parameters({"imc": read}) == {("imc", "12"): {"RRE_ZZ_SP_Plot-Number": "12", "RRE_ZZ_SP_Prototype-FFL": "175.400"}}
+    item = {"plot": "12", "rev9": "DP2", "factors": {"steps": "2"}, "row": {"parameters": json.dumps({"RRE_ZZ_SP_Façade-Color": "XX", "RRE_ZZ_SP_Façade-Design-Option": "YY"})}}
+    formulas = key_rules.parameter_formulas(["RRE_ZZ_SP_Façade-Color", "RRE_ZZ_SP_Façade-Design-Option"])
+    assert formulas["plot"](item) == "12" and formulas["rev9Code"](item) == "DP2" and formulas["plotAndCode"](item) == "12 | DP2"
+    assert formulas["plotCodeStepsAndFacade"](item) == "12 | DP2 | 2 | XX | YY"
+
+
+def test_r335_a_level_parameter_that_a_link_holds_as_text_reads_as_a_number():
+    assert key_rules.number("175.400") == pytest.approx(175.4) and key_rules.number("XX") is None and key_rules.number(None) is None
+
+
+def test_r335_a_kind_may_leave_one_parameter_decision_by_its_whole_name_and_no_other():
+    block = {"kindLeaveOut": {"SE": ["entry", "parameter RRE_ZZ_SP_RVT-Name"]}}
+    pool = [{"modelKind": "SE"}, {"modelKind": "TU"}]
+    assert majority.kept_for("parameter", pool, block, "parameter RRE_ZZ_SP_RVT-Name") == [{"modelKind": "TU"}]
+    assert majority.kept_for("parameter", pool, block, "parameter CASE") == pool
+    assert majority.kept_for("entry", pool, block, "entry") == [{"modelKind": "TU"}]
+
+
+def test_r335_the_rules_profile_holds_the_wall_and_parameter_rules_of_the_keys():
+    real = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    rules = real.get("levelProfiles.parsons2024Rev6.keyRules")
+    assert rules["wallBase"]["rule"] == "yardLevelOfTheHigherPlot" and rules["wallLine"]["rule"] == "centreOnTheEdge" and rules["frontOpen"]["rule"] == "all"
+    assert rules["wallTop"]["strong"] is False
+    assert rules["parameter RRE_ZZ_SP_Plot-Number"]["rule"] == "plot" and rules["parameter RRE_ZZ_SP_RVT-Name"]["rule"] == "plotCodeStepsAndFacade"
+    assert rules["parameter RRE_ZZ_SP_RVT-Name"]["byKind"] == {"TU": 1791}
+    for word, found in rules.items():
+        if word.startswith("parameter "):
+            assert 0 <= found["share"] <= 1 and set(found["byKey"]) <= {"ima", "imb", "imc", "imd", "ime", "imf", "img"}

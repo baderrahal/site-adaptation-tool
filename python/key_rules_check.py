@@ -21,12 +21,18 @@ first method, which is a miss when the override list of the run names the plot u
   own front, the open end, the side of a second road edge, the cluster side in the clusters majority.json lists and the pair of
   the row of units in no cluster counted from its right end, each looked up in the table the first method learned for the file
   of the link
+- parameters (R335): the value of each shared parameter, from past_all.csv or the key read by json, against the factor table
+  or the formula the first method coded, a level parameter against the level of the plot within levelHoldMm
+- walls (R335): each boundary wall of the TU key plans, its base and top against the FFL of its plots and its line by the own
+  distance of its middle to the face edges, check.sample walls at each seed and every wall, against wallMisses of the report,
+  and the front each plot leaves open by its own walk of the walls along the own front, against frontWalled
 """
 import argparse
 import csv
 import json
 import math
 import random
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -321,6 +327,100 @@ def first_misses(overrides, decision):
     return {item["plot"] for item in overrides if item.get("decision") == decision}
 
 
+def parameter_verdicts(row, ctx, settings, report):
+    """R336. Each parameter decision of 3a held again on the row: the value the plot holds, from the parameters of past_all.csv or
+    the key read, against the factor table or the formula the first method coded."""
+    block = settings["majority"]
+    decisions = {item["decision"]: item for item in report["decisions"]}
+    values = json.loads(row.get("parameters") or "{}")
+    read = ctx["readParameters"].get((row["key"], row["plot"])) or {}
+    leave = set(block["kindLeaveOut"].get(row.get("kind") or "", []))
+    facade = [str(values.get(name) or "") for name in block["linkNameFacade"]]
+    own = {"all": "all", "typology": row["typologyRev9"], "typologyMirrored": row["typologyRev9"] + " " + row["mirrored"], "steps": row.get("steps") or None,
+           "typologySteps": None if not row.get("steps") else row["typologyRev9"] + " " + row["steps"], "mirroredFactor": row["mirrored"]}
+    formulas = {"plot": row["plot"], "rev9Code": row["typologyRev9"], "plotAndCode": row["plot"] + " | " + row["typologyRev9"],
+                "plotCodeStepsAndFacade": " | ".join([row["plot"], row["typologyRev9"], row.get("steps") or "None"] + facade)}
+    found = {}
+    for name in block["parameterTests"]:
+        decision = "parameter " + name
+        coded = decisions.get("parsons " + decision)
+        value = values.get(name) if values.get(name) not in (None, "") else read.get(name)
+        if coded is None or value in (None, "") or "parameter" in leave or decision in leave:
+            continue
+        if coded["coded"] in formulas:
+            found[decision] = formulas[coded["coded"]] == str(value)
+        elif coded["coded"] in own:
+            found[decision] = learned(coded["tests"][coded["coded"]]["rule"], "parsons", own[coded["coded"]]) == str(value)
+    for name in block["parameterLevels"]:
+        decision = "parameter " + name
+        coded = decisions.get("parsons " + decision)
+        try:
+            value = float(values.get(name) or read.get(name))
+        except (TypeError, ValueError):
+            continue
+        if coded is None or "parameter" in leave or decision in leave:
+            continue
+        level = row.get(coded["coded"])
+        found[decision] = bool(level) and abs(value - float(level)) * 1000.0 <= block["levelHoldMm"] + 1e-6
+    return found
+
+
+def wall_verdicts(ctx, settings, profile, report):
+    """R336. Each boundary wall of the TU key plans held again: its base, top and line, by its own sums, keyed by key and wall id."""
+    block = settings["majority"]
+    coded = {item["decision"].split(" ", 1)[1]: item["coded"] for item in report["decisions"] if item["decision"].startswith("parsons wall")}
+    depth = next((found.get("yardBelowFflM") for found in profile["levelProfiles"].values() if isinstance(found, dict) and found.get("job") == "parsons"), None)
+    rise = profile["rev6"]["boundary_wall_top_above_ffl"] / 1000.0
+    half = profile["plot"]["boundary_wall_thickness"] / 2000.0
+    found = {}
+    for key, plan in ctx["fullPlans"].items():
+        plots = {entry["plot"]: entry for entry in plan["plots"]}
+        levels = {floor["level"]["value"]: floor["levelElevation"]["value"] for entry in plan["plots"] for floor in (entry.get("floors") or {}).values()
+                  if "level" in floor and "levelElevation" in floor}
+        for wall in plan.get("walls") or []:
+            if not re.search(block["wallTypes"]["boundary"], wall.get("type") or ""):
+                continue
+            ffls = [plots[plot]["levels"]["ffl"]["value"] for plot in wall.get("plots") or [] if plot in plots and (plots[plot].get("levels") or {}).get("ffl")]
+            if not ffls:
+                continue
+            base = wall["baseOffset"] + levels.get(wall["baseConstraint"], 0.0)
+            verdict = {}
+            if coded.get("wallBase") == "yardLevelOfTheHigherPlot" and depth is not None:
+                verdict["wallBase"] = abs(base - (max(ffls) - depth)) * 1000.0 <= block["levelHoldMm"] + 1e-6
+            if coded.get("wallTop") == "higherFflPlusRev6":
+                verdict["wallTop"] = abs(base + wall["heightM"] - (max(ffls) + rise)) * 1000.0 <= block["levelHoldMm"] + 1e-6
+            rings = [ctx["faces"][plot] for plot in wall.get("plots") or [] if plot in ctx["faces"]]
+            if coded.get("wallLine") == "centreOnTheEdge" and rings:
+                middle = ((wall["start"][0] + wall["end"][0]) / 2.0, (wall["start"][1] + wall["end"][1]) / 2.0)
+                distance = min(segment_distance(middle, a, b) for ring in rings for a, b in edges_of(ring))
+                want = 0.0 if wall.get("locationLine") in block["wallCentreCodes"] else half
+                verdict["wallLine"] = abs(distance - want) <= block["outlineHoldMm"] / 1000.0 + 1e-9
+            found[(key, wall["elementId"])] = verdict
+    return found
+
+
+def own_front_cover(frame, walls, near):
+    """The share of the front a wall within 5 degrees of it and with both ends within near of its line runs along."""
+    left, right = frame["left"], frame["right"]
+    length = math.dist(left, right)
+    along = ((right[0] - left[0]) / length, (right[1] - left[1]) / length)
+    spans = []
+    for wall in walls:
+        first, second = wall["start"][:2], wall["end"][:2]
+        size = math.dist(first, second)
+        if size == 0 or abs((second[0] - first[0]) * along[1] - (second[1] - first[1]) * along[0]) / size > math.sin(math.radians(5)):
+            continue
+        if max(abs((point[0] - left[0]) * along[1] - (point[1] - left[1]) * along[0]) for point in (first, second)) > near:
+            continue
+        ends = sorted((point[0] - left[0]) * along[0] + (point[1] - left[1]) * along[1] for point in (first, second))
+        spans.append((max(0.0, ends[0]), min(length, ends[1])))
+    covered, reach = 0.0, 0.0
+    for low, high in sorted(span for span in spans if span[1] > span[0]):
+        covered += max(0.0, high - max(low, reach))
+        reach = max(reach, high)
+    return covered / length
+
+
 def plot_context(args, settings, profile, report):
     """Everything the own routes read, once: faces, curbs, Orientation, unit plots, side neighbours, clusters and key plans."""
     block = settings["majority"]
@@ -372,11 +472,19 @@ def plot_context(args, settings, profile, report):
     member = {plot: cluster for cluster in report.get("clusterPlots") or []
               if all(other in faces and other in args.table_plots for other in cluster) and any(frame_of(other)[0] is not None for other in cluster) for plot in cluster}
     kind = lambda plot: (profile["typologies"].get((book.get(plot) or {}).get("typologyRev9") or "") or {}).get("kind")
-    plans = {key: {entry["plot"]: entry for entry in read_json(path)["plots"]} for key, path in args.key_plan}
+    full = {key: read_json(path) for key, path in args.key_plan}
+    plans = {key: {entry["plot"]: entry for entry in plan["plots"]} for key, plan in full.items()}
+    read_parameters = {}
+    for key, path in args.key_read:
+        for link in read_json(path)["documents"][0].get("links") or []:
+            number = str((link.get("parameters") or {}).get("RRE_ZZ_SP_Plot-Number") or "").strip()
+            if number:
+                read_parameters[(key, number)] = None if (key, number) in read_parameters else link["parameters"]
     groups = ((report.get("yardOutlineGroups") or {}).get("parsons") or {}).get("refitLoops") or []
     refit = {(group["unit"], group["mirrored"], group["width"]): group["loops"] for group in groups}
     return {"book": book, "faces": faces, "frame": frame_of, "sides": sides_of, "member": member, "kind": kind, "plans": plans, "refit": refit,
-            "step": settings["cadLinks"]["floorWidthStepM"], "curbs": curbs, "cornerM": corner_m}
+            "step": settings["cadLinks"]["floorWidthStepM"], "curbs": curbs, "cornerM": corner_m, "fullPlans": full,
+            "readParameters": {pair: found for pair, found in read_parameters.items() if found is not None}}
 
 
 def cluster_side(plot, cluster, ctx):
@@ -462,6 +570,11 @@ def held(row, ctx, settings, profile, report):
             side = own_pair_side(plot, row_sides(plot, ctx, counted), counted)
             value = "pair " + side if side else None if mirror_block is None or open_end is None else "alone " + mirror_block + " " + open_end
         found["hand " + unit_class] = value is not None and learned(coded["tests"][coded["coded"]]["rule"], ("parsons", row["linkFile"]), value) == mirrored
+    found.update(parameter_verdicts(row, ctx, settings, report))
+    walls = [wall for wall in (ctx["fullPlans"].get(row["key"]) or {}).get("walls") or []
+             if plot in (wall.get("plots") or []) and re.search(block["wallTypes"]["boundary"], wall.get("type") or "")]
+    if tu and frame is not None and row["key"] in ctx["fullPlans"] and "parsons frontOpen" in decisions:
+        found["frontOpen"] = own_front_cover(frame, walls, settings["keyPlans"]["wallEdgeM"]) <= block["frontOpenShare"] + 1e-9
     return found, rule
 
 
@@ -499,6 +612,9 @@ def main(argv=None):
     samples = {str(seed): sorted(random.Random(seed).sample(plots, check["sample"]), key=lambda row: (row["key"], int(row["plot"]))) for seed in check["seeds"]}
     # Every plot as well as the samples, so a rare miss no sample draws is still held
     samples["every"] = plots
+    walled = {tuple(item.split(" ")) for item in (report.get("frontWalled") or {}).get("parsons") or []}
+    for key, plot in walled:
+        misses.setdefault("parsons frontOpen", set()).add(plot)
     verdicts, seeds = {}, {}
     for seed, sample in samples.items():
         tally, mismatches = Counter(), []
@@ -514,6 +630,22 @@ def main(argv=None):
                     mismatches.append({"key": row["key"], "plot": row["plot"], "decision": decision, "own": own, "first": theirs, "rule": rule})
         seeds[seed] = {"plots": len(sample) if seed == "every" else [row["key"] + " " + row["plot"] for row in sample], "counts": dict(sorted(tally.items())),
                        "mismatches": mismatches}
+    # R335. The walls are drawn and held apart from the plots, a wall has an id and no plot of its own
+    walls = wall_verdicts(ctx, settings, profile, report)
+    wall_misses = {(item["key"], item["elementId"], item["decision"].split(" ", 1)[1]) for item in (report.get("wallMisses") or {}).get("parsons") or []}
+    ordered = sorted(walls, key=lambda pair: (pair[0], pair[1]))
+    wall_samples = {str(seed): sorted(random.Random(seed).sample(ordered, min(check["sample"], len(ordered)))) for seed in check["seeds"]}
+    wall_samples["every"] = ordered
+    for seed, sample in wall_samples.items():
+        tally, mismatches = Counter(), []
+        for pair in sample:
+            for decision, holds in sorted(walls[pair].items()):
+                own = "holds" if holds else "misses"
+                theirs = "misses" if (pair[0], pair[1], decision) in wall_misses else "holds"
+                tally[decision + (" match" if own == theirs else " mismatch")] += 1
+                if own != theirs:
+                    mismatches.append({"key": pair[0], "wall": pair[1], "decision": decision, "own": own, "first": theirs})
+        seeds["walls " + seed] = {"walls": len(sample), "counts": dict(sorted(tally.items())), "mismatches": mismatches}
     site = site_check(dict(args.key_read), block["groups"], block["siteReference"], report.get("siteFacts") or {})
     totals = {}
     for decision in report["decisions"]:

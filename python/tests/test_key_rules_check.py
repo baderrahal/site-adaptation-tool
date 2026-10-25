@@ -146,3 +146,43 @@ def test_r336_the_own_road_side_is_where_the_second_road_edge_lies_seen_from_the
     assert key_rules_check.own_road_side(SQUARE, FRONT_CURB, frame, 8.0) == "none"
     assert key_rules_check.own_road_side(SQUARE, FRONT_CURB + [((-50.0, 28.0), (50.0, 28.0))], frame, 8.0) == "back"
     assert key_rules_check.own_road_side(SQUARE, curbs, None, 8.0) is None
+
+
+# R336 the second method of the walls and parameters (R335)
+def check_settings():
+    return json.loads((key_rules_check.ROOT / "config" / "project.json").read_text(encoding="utf-8"))
+
+
+def test_r336_a_parameter_is_held_against_the_formula_or_the_table_the_first_method_coded_and_a_level_within_the_hold():
+    settings = check_settings()
+    report = {"decisions": [{"decision": "parsons parameter RRE_ZZ_SP_Plot-Number", "coded": "plot", "tests": {"plot": {}}},
+                            {"decision": "parsons parameter RRE_ZZ_SP_Prototype", "coded": "typology", "tests": {"typology": {"rule": {"parsons | DP2": "DP2"}}}},
+                            {"decision": "parsons parameter RRE_ZZ_SP_RVT-Name", "coded": "plotCodeStepsAndFacade", "tests": {"plotCodeStepsAndFacade": {}}},
+                            {"decision": "parsons parameter RRE_ZZ_SP_Prototype-FFL", "coded": "ffl", "tests": {"ffl": {}}}]}
+    row = {"key": "imx", "plot": "12", "kind": "TU", "typologyRev9": "DP2", "mirrored": "True", "steps": "2", "ffl": "10.000",
+           "parameters": json.dumps({"RRE_ZZ_SP_Plot-Number": "12", "RRE_ZZ_SP_Prototype": "DP2", "RRE_ZZ_SP_RVT-Name": "12 | DP2 | 2 | XX | XX",
+                                     "RRE_ZZ_SP_Façade-Color": "XX", "RRE_ZZ_SP_Façade-Design-Option": "XX"})}
+    ctx = {"readParameters": {("imx", "12"): {"RRE_ZZ_SP_Prototype-FFL": "10.004"}}}
+    assert key_rules_check.parameter_verdicts(row, ctx, settings, report) == {"parameter RRE_ZZ_SP_Plot-Number": True, "parameter RRE_ZZ_SP_Prototype": True,
+                                                                               "parameter RRE_ZZ_SP_RVT-Name": True, "parameter RRE_ZZ_SP_Prototype-FFL": True}
+    # An SE row leaves the link Name out, which an STR link writes as plot | code
+    assert "parameter RRE_ZZ_SP_RVT-Name" not in key_rules_check.parameter_verdicts(dict(row, kind="SE"), ctx, settings, report)
+
+
+def test_r336_a_boundary_wall_is_held_again_on_its_base_top_and_line():
+    settings = check_settings()
+    profile = json.loads((key_rules_check.ROOT / settings["profile"]).read_text(encoding="utf-8"))
+    plan = {"plots": [{"plot": "1", "levels": {"ffl": {"value": 10.0}}, "floors": {"generic": {"level": {"value": "Level 1"}, "levelElevation": {"value": 0.0}}}},
+                      {"plot": "2", "levels": {"ffl": {"value": 10.3}}, "floors": {}}],
+            "walls": [{"elementId": 7, "type": "BW", "plots": ["1", "2"], "baseConstraint": "Level 1", "baseOffset": 10.2, "heightM": 1.8, "locationLine": 0,
+                       "start": [16.0, 0.0, 0], "end": [16.0, 25.0, 0]}]}
+    report = {"decisions": [{"decision": "parsons wallBase", "coded": "yardLevelOfTheHigherPlot"}, {"decision": "parsons wallTop", "coded": "higherFflPlusRev6"},
+                            {"decision": "parsons wallLine", "coded": "centreOnTheEdge"}]}
+    ctx = {"fullPlans": {"imx": plan}, "faces": {"1": SQUARE}}
+    assert key_rules_check.wall_verdicts(ctx, settings, profile, report) == {("imx", 7): {"wallBase": True, "wallTop": True, "wallLine": True}}
+
+
+def test_r336_the_own_front_cover_counts_the_walls_along_the_front_once():
+    frame = {"n": (0.0, 1.0), "r": (1.0, 0.0), "left": (0.0, 0.0), "right": (16.0, 0.0)}
+    walls = [{"start": [0.0, 0.1, 0], "end": [2.0, 0.1, 0]}, {"start": [1.0, 0.0, 0], "end": [4.0, 0.0, 0]}, {"start": [0.0, 0.0, 0], "end": [0.0, 25.0, 0]}]
+    assert key_rules_check.own_front_cover(frame, walls, 0.3) == pytest.approx(4.0 / 16.0)

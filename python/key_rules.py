@@ -8,10 +8,15 @@ plotFrame fit of R121, as fitted on the IMC key and fitted again per code on eve
 R333: the hand of the units in no cluster by the pair of their row, the villas between cluster units apart.
 R334: the ramp outline of R127 against the corners of the key ramp, the yard outline of R135 against the key yard, and what the
 flat ramps share.
+R335: the boundary walls of the key plans, their base, top and line against the plot, the front each plot leaves open, and the
+shared parameters of the links against formulas a new build can give them.
 """
 import json
 import math
+import re
 from collections import Counter
+
+from shapely.geometry import Point
 
 import cad_links
 import floor_fit
@@ -300,3 +305,149 @@ def flat_ramps(items, flat_class, class_of):
             "byMeasuredBand": by(lambda item: item["factors"].get("measuredBand")), "bySteps": by(lambda item: item["factors"].get("steps")),
             "byCorner": by(lambda item: item["factors"].get("corner")), "plotsByKey": {key: sorted((item["plot"] for item in flat if item["key"] == key), key=int)
                                                                                      for key in sorted({item["key"] for item in flat})}}
+
+
+def wall_kind(name, types):
+    """R335. The kind of a wall type by the patterns of majority.wallTypes, the first kind whose pattern the name holds, or None."""
+    return next((kind for kind, pattern in types.items() if re.search(pattern, name or "")), None)
+
+
+def plan_levels(plan):
+    """R335. The elevation of each level a floor of the plan names, so a wall base is its offset over its level."""
+    return {floor["level"]["value"]: floor["levelElevation"]["value"] for entry in plan["plots"] for floor in (entry.get("floors") or {}).values()
+            if "level" in floor and "levelElevation" in floor}
+
+
+def wall_items(plans, keys, group, types):
+    """R335. One item per boundary wall of the key plans of a group on at least one plot of its plan, with the FFL of those plots,
+    filed under its first plot, and the walls counted per key by kind and by the number of plots they stand on."""
+    items, counts = [], {}
+    for key in keys:
+        plan = plans.get(key)
+        if plan is None:
+            continue
+        plots = {entry["plot"]: entry for entry in plan["plots"]}
+        levels = plan_levels(plan)
+        tally = Counter()
+        for wall in plan.get("walls") or []:
+            kind = wall_kind(wall.get("type"), types)
+            count = len(wall.get("plots") or [])
+            tally["%s on %d plot%s" % (kind, count, "" if count == 1 else "s")] += 1
+            mine = [plots[plot] for plot in wall.get("plots") or [] if plot in plots and (plots[plot].get("levels") or {}).get("ffl")]
+            if kind != "boundary" or not mine:
+                continue
+            first = mine[0]
+            items.append({"plot": first["plot"], "key": key, "group": group, "code": first["unit"]["value"], "modelKind": None, "row": {},
+                          "factors": {"all": "all", "locationLine": str(wall.get("locationLine")), "plots": str(count)},
+                          "wall": wall, "ffls": [entry["levels"]["ffl"]["value"] for entry in mine], "baseLevel": levels.get(wall.get("baseConstraint"), 0.0)})
+        counts[key] = dict(tally)
+    return items, counts
+
+
+def wall_base(item):
+    """R335. The level of the base of a wall, its base offset over its base level."""
+    return item["wall"]["baseOffset"] + item.get("baseLevel", 0.0)
+
+
+def wall_top(item):
+    return wall_base(item) + item["wall"]["heightM"]
+
+
+def wall_base_candidates(yard_depth):
+    """R335. The base at the yard level, the FFL less the yard depth, of the lower or the higher plot of the wall."""
+    return {"yardLevelOfTheLowerPlot": lambda item: min(item["ffls"]) - yard_depth, "yardLevelOfTheHigherPlot": lambda item: max(item["ffls"]) - yard_depth}
+
+
+def wall_top_candidates(profile):
+    """R335. The top at the height Rev 6 gives over the FFL (rev6.boundary_wall_top_above_ffl) of the higher or the lower plot."""
+    rise = profile.metres("rev6.boundary_wall_top_above_ffl")
+    return {"higherFflPlusRev6": lambda item: max(item["ffls"]) + rise, "lowerFflPlusRev6": lambda item: min(item["ffls"]) + rise}
+
+
+def wall_line_target(faces):
+    """R335. The distance from the middle of the location line of a wall to the nearest edge of the faces of its plots, in metres."""
+    def target(item):
+        wall = item["wall"]
+        middle = Point((wall["start"][0] + wall["end"][0]) / 2.0, (wall["start"][1] + wall["end"][1]) / 2.0)
+        found = [faces[plot].exterior.distance(middle) for plot in wall.get("plots") or [] if plot in faces]
+        return min(found) if found else None
+    return target
+
+
+def wall_line_rule(centre_codes, thickness):
+    """R335. The wall centre on the plot edge: a location line at the wall or core centre lies on the edge, one at a face half the
+    boundary wall thickness of the profile off it."""
+    return lambda item: 0.0 if item["wall"].get("locationLine") in centre_codes else thickness / 2.0
+
+
+def number(text):
+    """R335. A parameter that reads as a number, such as the text 175.400 a link holds, else None."""
+    try:
+        return float(text)
+    except (TypeError, ValueError):
+        return None
+
+
+def level_hold(limit):
+    return lambda guess, aim: abs(guess - aim) <= limit + EPSILON
+
+
+def level_gap(item, value, rule):
+    return None if rule is None or value is None else {"gapToRuleM": round(value - rule, 4)}
+
+
+def front_cover(frame, walls, near):
+    """R335. The share of the front edge of a plot that its boundary walls run along: a wall within 5 degrees of the edge with both
+    ends within near of its line covers the part of the edge it spans, overlaps counted once. None with no front."""
+    if frame is None:
+        return None
+    left, right = frame["left"], frame["right"]
+    length = math.dist(left, right)
+    along = ((right[0] - left[0]) / length, (right[1] - left[1]) / length)
+    spans = []
+    for wall in walls:
+        first, second = wall["start"][:2], wall["end"][:2]
+        size = math.dist(first, second)
+        if size == 0 or abs((second[0] - first[0]) * along[1] - (second[1] - first[1]) * along[0]) / size > math.sin(math.radians(5)):
+            continue
+        offsets = [abs((point[0] - left[0]) * along[1] - (point[1] - left[1]) * along[0]) for point in (first, second)]
+        if max(offsets) > near:
+            continue
+        ends = sorted((point[0] - left[0]) * along[0] + (point[1] - left[1]) * along[1] for point in (first, second))
+        low, high = max(0.0, ends[0]), min(length, ends[1])
+        if high > low:
+            spans.append((low, high))
+    covered, reach = 0.0, None
+    for low, high in sorted(spans):
+        if reach is None or low > reach:
+            covered += high - low
+            reach = high
+        elif high > reach:
+            covered += high - reach
+            reach = high
+    return covered / length
+
+
+def read_parameters(reads):
+    """R335. The link parameters of each key read by key and plot, the plot of RRE_ZZ_SP_Plot-Number, a plot two links name left out."""
+    found, twice = {}, set()
+    for key, document in reads.items():
+        for link in document.get("links") or []:
+            parameters = link.get("parameters") or {}
+            plot = str(parameters.get("RRE_ZZ_SP_Plot-Number") or "").strip()
+            if not plot:
+                continue
+            if (key, plot) in found:
+                twice.add((key, plot))
+            found[(key, plot)] = parameters
+    return {pair: parameters for pair, parameters in found.items() if pair not in twice}
+
+
+def parameter_formulas(facade):
+    """R335. Formulas a parameter may follow: the plot number, the Rev 9 code, the two joined, and the link Name made of the plot,
+    the code, the steps and the facade parameters named, as plot | code | steps | colour | option."""
+    def facade_part(item, name):
+        return str(json.loads(item["row"].get("parameters") or "{}").get(name) or "")
+    return {"plot": lambda item: item["plot"], "rev9Code": lambda item: item.get("rev9"), "plotAndCode": lambda item: item["plot"] + " | " + str(item.get("rev9")),
+            "plotCodeStepsAndFacade": lambda item: " | ".join([item["plot"], str(item.get("rev9")), str(item["factors"].get("steps"))]
+                                                               + [facade_part(item, name) for name in facade])}
