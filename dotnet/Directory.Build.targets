@@ -1,0 +1,11 @@
+<Project>
+  <!-- R304. The SDK writes the startup config of a .NET Framework exe into obj as <exe name>.withSupportedRuntime.config and the
+       copy step of MSBuild checks that path with the 260 character limit of Windows. In a clone under a deep folder the two watcher
+       exes passed it and the build failed with MSB3030. A short intermediate name keeps the path under the limit, the config in
+       bin keeps its name and its text. -->
+  <Target Name="ShortSupportedRuntimeConfigName" BeforeTargets="_WriteAppConfigWithSupportedRuntime">
+    <PropertyGroup>
+      <_GenerateSupportedRuntimeIntermediateAppConfig>$(IntermediateOutputPath)runtime.config</_GenerateSupportedRuntimeIntermediateAppConfig>
+    </PropertyGroup>
+  </Target>
+</Project>

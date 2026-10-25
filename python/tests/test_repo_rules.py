@@ -78,14 +78,18 @@ def test_r13_no_attribution_lines_in_any_file():
 
 
 def test_r12_every_rule_in_the_rules_file_is_named_by_a_test():
-    rules = re.findall(r"\*\*(R\d+) ", (ROOT / "docs" / "rules.md").read_text(encoding="utf-8"))
+    text = (ROOT / "docs" / "rules.md").read_text(encoding="utf-8")
+    rules = re.findall(r"\*\*(R\d+) ", text)
     assert len(rules) >= 15
+    # A withdrawn rule keeps its id and proves nothing, so it needs no test
+    withdrawn = set(re.findall(r"\*\*(R\d+) Withdrawn\.\*\*", text))
+    assert withdrawn <= set(rules)
     test_text = ""
     for path in list((ROOT / "python" / "tests").glob("*.py")) + list((ROOT / "dotnet" / "SiteAdaptation.Tests").glob("*.cs")):
         test_text += path.read_text(encoding="utf-8")
     # R6 and R10 are process rules proved by the round log, R11 by the workflow
     process_rules = {"R6", "R10", "R11"}
-    missing = [rule for rule in rules if rule not in process_rules and not re.search(rule + r"(?!\d)", test_text, re.IGNORECASE)]
+    missing = [rule for rule in rules if rule not in process_rules | withdrawn and not re.search(rule + r"(?!\d)", test_text, re.IGNORECASE)]
     assert missing == []
 
 

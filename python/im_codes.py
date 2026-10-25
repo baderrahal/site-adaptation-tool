@@ -7,7 +7,8 @@ the link names and paths of the past models earlier rounds already read (their p
 record of R203). Then the plots of each file of dataBook.data5.imCodes.sources are tied to the area key of R256 by plot
 number, a schedule by the plots.csv rows it wired, a past plan by the official number of each plot, so each code gets the
 neighbourhoods of the plots its files hold, with counts. The IM letter is only the name of the evidence, the area of a plot
-is never read from it. Counts go to im_codes.json in the area_key folder of data5.
+is never read from it. Counts go to im_codes.json in the area_key folder of data5. Since Round ADDIN config/area_codes.json
+holds one table per job of majority.groups (R301) and each source names its job.
 """
 import argparse
 import csv
@@ -20,6 +21,7 @@ from pathlib import Path
 
 import c3d_run
 import data_book_analysis
+import project_profile
 
 REPO = Path(__file__).resolve().parent.parent
 CODE =re.compile(r"(?<![A-Za-z])(IM[A-Z])(?![A-Za-z])")
@@ -96,40 +98,126 @@ def nbh_counts(keys, key_of):
     return dict(found.most_common())
 
 
-def load_table(path):
-    """config/area_codes.json, refused when a row has no IM code, no status of measured, text or guessed, no evidence, or when
-    two measured rows claim one neighbourhood."""
-    rows = json.loads(Path(path).read_text(encoding="utf-8"))["codes"]
-    claimed = Counter()
+FILE_KINDS = ("model", "schedule")
+
+
+def job_names(settings):
+    """R301. The jobs of the area code table, the groups of majority.groups in the project settings, so no job name sits in code."""
+    groups = settings.get("majority.groups")
+    if not isinstance(groups, dict) or not groups:
+        raise ValueError("majority.groups of the project settings names no job")
+    return tuple(groups)
+
+
+def measured_count(value):
+    """R301. A plot count of an area is a whole number above 0, never a flag, a text or a share."""
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+# R301. The fields of a row and of an area. A row holds its code and areas and may name its sub-phase, an area holds exactly
+# these, so a field that is no measurement, such as a guess, has no place to go
+ROW_FIELDS = ("code", "areas")
+ROW_OPTIONAL = ("subPhase",)
+AREA_FIELDS = ("nbh", "zone", "plots", "kind", "file", "measured")
+
+
+# R301. The forms of the names. NBH_FORM is the Neighbourhood_ID of the Rev 9 DLUS, two or three digits and at most one capital
+# letter, as 02, 012 and 01A, ZONE_FORM the zone as area_key.zone_text writes it, SUB_PHASE_FORM a Native sub-phase as 1.1
+NBH_FORM = re.compile(r"[0-9]{2,3}[A-Z]?")
+ZONE_FORM = re.compile(r"Zone [1-9][0-9]*")
+SUB_PHASE_FORM = re.compile(r"[0-9]+\.[0-9]+")
+
+
+def text_value(value):
+    return isinstance(value, str) and bool(value.strip())
+
+
+def of_form(value, form):
+    """A string of that form with nothing around it, a blank or another type is not."""
+    return isinstance(value, str) and form.fullmatch(value) is not None
+
+
+def measured_area(area):
+    """R301. An area is measured when it holds exactly AREA_FIELDS: a neighbourhood of NBH_FORM, a zone of ZONE_FORM, a plot
+    count, the kind of file it was counted from, the file and where the count was measured. Anything else is no measured area."""
+    return (isinstance(area, dict) and set(area) == set(AREA_FIELDS) and of_form(area["nbh"], NBH_FORM) and of_form(area["zone"], ZONE_FORM)
+            and measured_count(area["plots"]) and area["kind"] in FILE_KINDS and text_value(area["file"]) and text_value(area["measured"]))
+
+
+def good_row(row):
+    """R301. A row holds an IM code, a list of areas and at most a sub-phase of SUB_PHASE_FORM, nothing else."""
+    return (isinstance(row, dict) and set(ROW_FIELDS) <= set(row) <= set(ROW_FIELDS + ROW_OPTIONAL) and of_form(row["code"], CODE)
+            and ("subPhase" not in row or of_form(row["subPhase"], SUB_PHASE_FORM)))
+
+
+def check_job(job, rows):
+    """R301. The rows of one job. Every row is checked whole first (good_row), so a code of another type is refused as a
+    ValueError, then an IM code is in one row only and every area is measured (measured_area). A neighbourhood two files hold
+    is allowed, 01A is in two Native models."""
+    if not isinstance(rows, list):
+        raise ValueError("area codes of %s are not a list of rows" % job)
     for row in rows:
-        if not CODE.fullmatch(row.get("code") or "") or row.get("status") not in ("measured", "text", "guessed") or not row.get("evidence") or not row.get("nbh"):
-            raise ValueError("area code row is not complete: %s" % row.get("code"))
-        if row["status"] == "measured":
-            claimed.update(row["nbh"])
-    twice = sorted(n for n, k in claimed.items() if k > 1)
-    if twice:
-        raise ValueError("neighbourhoods measured for two codes: %s" % ", ".join(twice))
+        if not good_row(row):
+            raise ValueError("area code row of %s is not an IM code with measured areas: %s" % (job, row))
+    seen = Counter(row["code"] for row in rows)
+    for row in rows:
+        if seen[row["code"]] > 1:
+            raise ValueError("area code %s is twice in the table of %s" % (row["code"], job))
+        areas = row["areas"]
+        if not isinstance(areas, list) or not areas:
+            raise ValueError("area code %s of %s holds no area" % (row["code"], job))
+        for area in areas:
+            if not measured_area(area):
+                raise ValueError("area of %s in %s is not measured with its count and source: %s" % (row["code"], job, area))
     return rows
 
 
+def load_table(path, settings=None):
+    """R301. config/area_codes.json as {job: rows}, one table per job of the project settings (job_names), every row measured
+    (check_job). settings are those the caller loaded, the repo config when None."""
+    names = job_names(settings if settings is not None else project_profile.load_settings())
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    jobs = data.get("jobs") if isinstance(data, dict) else None
+    if not isinstance(jobs, dict) or set(jobs) != set(names):
+        raise ValueError("area codes hold one table per job, %s" % ", ".join(names))
+    return {job: check_job(job, jobs[job]) for job in names}
+
+
+def zone_and_nbh(key):
+    """The zone and the neighbourhood of a key of nbh_counts, Zone 2 012 as (Zone 2, 012)."""
+    zone, _, nbh = key.rpartition(" ")
+    return zone, nbh
+
+
 def table_against_sources(table, sources):
-    """Each source against the table row of its code: agrees when every keyed plot is in a neighbourhood of the row, listed
-    when the row names the file among its conflicts, differs otherwise."""
-    rows = {row["code"]: row for row in table}
+    """R301. Each source against the row of its code in the table of its own job, by the zone and neighbourhood pairs first:
+    differs when a keyed plot is in a pair the row does not hold, whatever the unkeyed count, else mostlyUnkeyed when its unkeyed
+    plots outnumber its keyed plots, so a few keyed plots never speak for the source, else agrees. noKeyedPlot when the area key
+    keyed none of its plots, noRow when the job has no row of the code, noJob when the table has no such job. Each verdict
+    carries the keyed and unkeyed plot counts."""
     found = []
     for source in sources:
+        rows = {row["code"]: row for row in table.get(source.get("job")) or []}
+        counts = source["byZoneAndNbh"]
+        keyed = sum(count for key, count in counts.items() if key != "noKey")
+        unkeyed = counts.get("noKey", 0)
         for code in source["codes"]:
             row = rows.get(code)
-            nbhs = {key.split(" ")[-1] for key in source["byZoneAndNbh"] if key != "noKey"}
-            if row is None:
+            pairs = {zone_and_nbh(key) for key in counts if key != "noKey"}
+            if source.get("job") not in table:
+                verdict = "noJob"
+            elif row is None:
                 verdict = "noRow"
-            elif nbhs <= set(row["nbh"]):
-                verdict = "agrees"
-            elif any(Path(source["file"]).stem in text for text in row.get("conflicts") or []):
-                verdict = "listed"
-            else:
+            elif not pairs:
+                verdict = "noKeyedPlot"
+            elif not pairs <= {(area["zone"], area["nbh"]) for area in row["areas"]}:
                 verdict = "differs"
-            found.append({"source": source["name"], "code": code, "nbh": sorted(nbhs), "verdict": verdict})
+            elif unkeyed > keyed:
+                verdict = "mostlyUnkeyed"
+            else:
+                verdict = "agrees"
+            found.append({"source": source["name"], "job": source.get("job"), "code": code, "nbh": sorted(nbh for _, nbh in pairs),
+                          "keyedPlots": keyed, "unkeyedPlots": unkeyed, "verdict": verdict})
     return found
 
 
@@ -157,7 +245,7 @@ def run(config):
     sources = []
     for source in settings["sources"]:
         kind, keys = plots_of(source, plots)
-        sources.append({"name": source["name"], "file": source["file"], "codes": sorted(set(codes_in(source["file"]))), "plots": len(keys),
+        sources.append({"name": source["name"], "file": source["file"], "job": source["job"], "codes": sorted(set(codes_in(source["file"]))), "plots": len(keys),
                         "byZoneAndNbh": nbh_counts(keys, key_of[kind])})
     by_code = defaultdict(lambda: {"fileNames": 0, "folders": Counter(), "texts": Counter(), "sources": []})
     for entry in names:

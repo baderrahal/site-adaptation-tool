@@ -196,7 +196,7 @@ def main(argv=None):
         settings = project_profile.load_settings(args.project)
         profile = project_profile.load_profile(args.profile or project_profile.profile_path(settings))
         faces = cad_analysis.plot_faces(cad_analysis.read_plots(args.cad)["plots"])
-        villas = cad_analysis.villa_blocks(cad_analysis.read_blocks(args.blocks)["blocks"], profile)
+        villas = cad_analysis.villa_blocks(cad_analysis.read_blocks(args.blocks, settings)["blocks"], profile)
         result = compare(faces, villas)
     except project_profile.ProfileError as error:
         print("block_proof: " + str(error), file=sys.stderr)

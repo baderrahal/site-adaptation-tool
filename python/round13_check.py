@@ -148,7 +148,7 @@ def main(argv=None):
                 origin = (link.get("transform") or {}).get("origin")
                 if plot and origin:
                     raw[plot] = ([origin[axis] + shift[axis] for axis in range(3)], link["transform"])
-            villas = cad_analysis.villa_blocks(cad_analysis.read_blocks(args.blocks)["blocks"], profile)
+            villas = cad_analysis.villa_blocks(cad_analysis.read_blocks(args.blocks, settings)["blocks"], profile)
             rows = json.loads(Path(args.offsets_report).read_text(encoding="utf-8"))["rows"]
             result = check_offsets(rows, villas, raw, args.seed)
     except (project_profile.ProfileError, ValueError, KeyError, OSError) as error:

@@ -1,20 +1,43 @@
 {
-  "note": "Proposed table of round DATA-5 (R257), for Bader to confirm. It names the IM code each neighbourhood of Phase 1 is known by in the file names of the past jobs. The tool reads the area of a plot from its Neighbourhood_ID and Construction_Zone in the Rev 9 DLUS (R256), never from an IM letter, so this table only names files. status is measured when files of that code hold plots and the area key puts them in that neighbourhood, text when only a title or a path names the code, guessed when nothing on this machine names it and the row follows the letter order of the measured rows. conflicts lists the files of the code that hold other neighbourhoods.",
-  "codes": [
-    {"code": "IMA", "zone": "Zone 1", "nbh": ["021"], "status": "guessed",
-     "evidence": "Only file names: four models in Native Files 1.1, not opened. Guessed from the letter order, C and D are the two neighbourhoods of Zone 2, so A and B would be the two large ones of Zone 1."},
-    {"code": "IMB", "zone": "Zone 1", "nbh": ["022"], "status": "guessed",
-     "evidence": "Only file names: four models in Native Files 1.2, not opened. Guessed from the letter order as for IMA."},
-    {"code": "IMC", "zone": "Zone 2", "nbh": ["012"], "status": "measured",
-     "evidence": "The IMC schedule holds 337 plots, all in 012. The IMC past model 01101-PSN-IMC-ZZZ-PIM-TU-000001 holds 337 plots, all in 012."},
-    {"code": "IMD", "zone": "Zone 2", "nbh": ["013"], "status": "measured",
-     "evidence": "The IMD schedule holds 410 plots, all in 013.",
-     "conflicts": ["The 1.4 past model 01101-PSN-IMD-ZZZ-PIM-TU-000004 is named IMD and holds 336 plots of 012 and 296 of 022, 1 plot with no key. Its central path is Site Adaptation, Phase 4."]},
-    {"code": "IME", "zone": "Zone 3", "nbh": ["02"], "status": "guessed",
-     "evidence": "No file, text or path on this machine names IME. Guessed from the letter order: Zone 3 holds 02 and 03, the first letter of the pair taken for the lower number as C is 012 and D is 013."},
-    {"code": "IMF", "zone": "Zone 3", "nbh": ["03"], "status": "guessed",
-     "evidence": "No file, text or path names IMF. Guessed as the second letter of the Zone 3 pair."},
-    {"code": "IMG", "zone": "Zone 4", "nbh": ["01A", "01B"], "status": "text",
-     "evidence": "The title block of the Rev.09 location plan PHASE 1 - Zone 4 reads Plot Layout and CAD Ref 01101-PSN-IMG-ZZZ-PIM-TU-000001. No IMG file is on this machine, so no plot of it is counted."}
-  ]
+  "note": "Round ADDIN (R301, Q044). The IM code each neighbourhood is known by in the file names of each job, one table per job, since the letters name other areas in the two jobs: the Native IMA holds 02 and 01A, the Parsons site models of Revit All Zones name IMA and IMB Zone 1. The area of a plot is always its Neighbourhood_ID and Construction_Zone of the Rev 9 DLUS (R256), never an IM letter, so this file only names files. Every row is measured: the plots a file of that job holds, keyed by the area key, with the file, its kind (model or schedule), the count and where the count was measured. No row is guessed, the four rows DATA-5 guessed by the letter order (IMA 021, IMB 022, IME 02, IMF 03) are gone. native comes from the Round 17 coverage (R267): key plots of the location plan unit plots of each neighbourhood. parsons holds only what was measured on a Parsons file and is filled from the 7 Parsons site models in Phase 2 of Round ADDIN. The Rev.09 location plan title of Zone 4 names 01101-PSN-IMG-ZZZ-PIM-TU-000001 (DATA-5) but gives no count, so IMG has no row yet.",
+  "jobs": {
+    "parsons": [
+      {"code": "IMC", "areas": [
+        {"nbh": "012", "zone": "Zone 2", "plots": 337, "kind": "model", "file": "00_Revit Models/Zone 02/ARC/01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt",
+         "measured": "Round 17 coverage R267, steps/investigations/round-17.md: the Parsons IMC key holds 337 of the 337 unit plots of 012"},
+        {"nbh": "012", "zone": "Zone 2", "plots": 337, "kind": "schedule", "file": "01_Output/1.11 References/00101-PSN-IMC-XXX-SCH-TU-090000.xlsx",
+         "measured": "Round DATA-5 R257, steps/investigations/data-book.md: the IMC schedule holds 337 plots, all in 012"}
+      ]},
+      {"code": "IMD", "areas": [
+        {"nbh": "013", "zone": "Zone 2", "plots": 410, "kind": "schedule", "file": "01_Output/1.11 References/00101-PSN-IMD-XXX-SCH-TU-090000.xlsx",
+         "measured": "Round DATA-5 R257, steps/investigations/data-book.md: the IMD schedule holds 410 plots, all in 013. A schedule, no Parsons IMD model is read yet"}
+      ]}
+    ],
+    "native": [
+      {"code": "IMA", "subPhase": "1.1", "areas": [
+        {"nbh": "02", "zone": "Zone 3", "plots": 309, "kind": "model", "file": "Native Files/1.1/01101-PSN-IMA-ZZZ-PIM-TU-000001.rvt",
+         "measured": "Round 17 coverage R267, steps/investigations/round-17.md: 309 of the 324 unit plots of 02"},
+        {"nbh": "01A", "zone": "Zone 4", "plots": 84, "kind": "model", "file": "Native Files/1.1/01101-PSN-IMA-ZZZ-PIM-TU-000001.rvt",
+         "measured": "Round 17 coverage R267, steps/investigations/round-17.md: 84 of the 297 unit plots of 01A"}
+      ]},
+      {"code": "IMB", "subPhase": "1.2", "areas": [
+        {"nbh": "03", "zone": "Zone 3", "plots": 431, "kind": "model", "file": "Native Files/1.2/01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt",
+         "measured": "Round 17 coverage R267, steps/investigations/round-17.md: 431 of the 490 unit plots of 03"},
+        {"nbh": "01A", "zone": "Zone 4", "plots": 150, "kind": "model", "file": "Native Files/1.2/01101-PSN-IMB-ZZZ-PIM-TU-000002.rvt",
+         "measured": "Round 17 coverage R267, steps/investigations/round-17.md: 150 of the 297 unit plots of 01A"}
+      ]},
+      {"code": "IMC", "subPhase": "1.3", "areas": [
+        {"nbh": "021", "zone": "Zone 1", "plots": 399, "kind": "model", "file": "Native Files/1.3/01101-PSN-IMC-ZZZ-PIM-TU-000003.rvt",
+         "measured": "Round 17 coverage R267, steps/investigations/round-17.md: 399 of the 432 unit plots of 021"},
+        {"nbh": "013", "zone": "Zone 2", "plots": 382, "kind": "model", "file": "Native Files/1.3/01101-PSN-IMC-ZZZ-PIM-TU-000003.rvt",
+         "measured": "Round 17 coverage R267, steps/investigations/round-17.md: 382 of the 410 unit plots of 013"}
+      ]},
+      {"code": "IMD", "subPhase": "1.4", "areas": [
+        {"nbh": "012", "zone": "Zone 2", "plots": 336, "kind": "model", "file": "Native Files/1.4/01101-PSN-IMD-ZZZ-PIM-TU-000004.rvt",
+         "measured": "Round 17 coverage R267, steps/investigations/round-17.md: 336 of the 337 unit plots of 012"},
+        {"nbh": "022", "zone": "Zone 1", "plots": 294, "kind": "model", "file": "Native Files/1.4/01101-PSN-IMD-ZZZ-PIM-TU-000004.rvt",
+         "measured": "Round 17 coverage R267, steps/investigations/round-17.md: 294 of the 301 unit plots of 022"}
+      ]}
+    ]
+  }
 }

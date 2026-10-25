@@ -468,7 +468,7 @@ def main(argv=None):
     sales = corner_front.sales_rows(args.sales, sheet["sheet"], sheet["columns"]["plot"])
     roads = cad_analysis.read_road_edges(args.roads, settings.get("analysis")["roadEdgeLayers"])
     numbers = sorted({row["plot"] for row in rows}, key=link_summary.sort_key)
-    clusters = plan_from_book.footprint_clusters(numbers, book, faces, footprint_check.block_shapes(link_summary.load(args.footprint_blocks)["blocks"]))
+    clusters = plan_from_book.footprint_clusters(numbers, book, faces, footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings)))
     clusters = plan_from_book.joined_clusters(clusters, plan_from_book.numbered_clusters(json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"], number_of))
     # A face with two plan numbers, such as 476|477, is no plot of its own and leaves its cluster
     clusters = [cluster for cluster in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]} for cluster in clusters) if len(cluster["plots"]) > 1]

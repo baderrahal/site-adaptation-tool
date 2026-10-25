@@ -43,6 +43,10 @@ namespace SiteAdaptation.Common
         // R234. An image job may load every Revit link first, from LinkFolder by file name when its saved path is not there
         public bool? LoadLinks { get; set; }
         public string LinkFolder { get; set; }
+        // R302. The most the image step may run, testHost.imageStepMinutes of config/project.json as the run script writes it
+        public double? ImageMinutes { get; set; }
+        // R302. What the job may run on top of the image step for the open and the close, testHost.imageMarginMinutes of the config
+        public double? ImageMarginMinutes { get; set; }
     }
 
     public sealed class GuardResult
@@ -226,10 +230,11 @@ namespace SiteAdaptation.Common
             {
                 return Refuse(prototype);
             }
-            // Written so that NaN fails too
-            if (job.TotalMinutes.HasValue && !(job.TotalMinutes.Value > 0 && job.TotalMinutes.Value <= MaxTotalMinutes))
+            // Written so that NaN fails too. R302 an image job may add its image minutes to the cap
+            double totalCap = MaxTotalMinutes + (job.Kind == ImageKind && HasImageMinutes(job) ? job.ImageMinutes.Value : 0);
+            if (job.TotalMinutes.HasValue && !(job.TotalMinutes.Value > 0 && job.TotalMinutes.Value <= totalCap))
             {
-                return Refuse("totalMinutes must be above 0 and at most " + MaxTotalMinutes);
+                return Refuse("totalMinutes must be above 0 and at most " + totalCap);
             }
             string extras = CheckExtras(job);
             if (extras != null)
@@ -411,6 +416,15 @@ namespace SiteAdaptation.Common
                 {
                     return Refuse("the link folder is not a plain full path to a folder that exists");
                 }
+                if (!HasImageMinutes(job))
+                {
+                    return Refuse("an image job names imageMinutes above 0 and at most " + MaxImageMinutes + ", testHost.imageStepMinutes of config/project.json");
+                }
+                // Written so that NaN fails too
+                if (job.ImageMarginMinutes.HasValue && !(job.ImageMarginMinutes.Value > 0 && job.ImageMarginMinutes.Value <= MaxTotalMinutes))
+                {
+                    return Refuse("imageMarginMinutes must be above 0 and at most " + MaxTotalMinutes + ", testHost.imageMarginMinutes of config/project.json");
+                }
             }
             if (!fileExists(job.Model))
             {
@@ -420,6 +434,39 @@ namespace SiteAdaptation.Common
         }
 
         public const double MaxImageSpanM = 5000;
+        // R302. Only a bound of the guard against a mistyped job, the limit itself is testHost.imageStepMinutes of the config
+        public const double MaxImageMinutes = 120;
+
+        // Written so that NaN fails too
+        private static bool HasImageMinutes(TestHostJob job)
+        {
+            return job.ImageMinutes.HasValue && job.ImageMinutes.Value > 0 && job.ImageMinutes.Value <= MaxImageMinutes;
+        }
+
+        // R302. The limit of the image step, from the job and never a constant. The guard has refused an image job without it
+        public static double ImageStepMinutes(TestHostJob job)
+        {
+            if (job == null || job.Kind != ImageKind || !HasImageMinutes(job))
+            {
+                throw new InvalidOperationException("only an image job with imageMinutes has an image step");
+            }
+            return job.ImageMinutes.Value;
+        }
+
+        // R302. The minutes of the whole job: its totalMinutes, else for an image job the image step plus its margin (the usual
+        // job time when it names none), else DefaultTotalMinutes. So a job never ends before its image step can
+        public static double TotalMinutesOf(TestHostJob job)
+        {
+            if (job.TotalMinutes.HasValue)
+            {
+                return job.TotalMinutes.Value;
+            }
+            if (job.Kind == ImageKind && HasImageMinutes(job))
+            {
+                return job.ImageMinutes.Value + (job.ImageMarginMinutes ?? DefaultTotalMinutes);
+            }
+            return DefaultTotalMinutes;
+        }
 
         // The fields of the newSite and image jobs belong to those jobs alone
         private static string CheckExtras(TestHostJob job)
@@ -428,9 +475,10 @@ namespace SiteAdaptation.Common
             {
                 return "template and site go with a newSite job only";
             }
-            if (job.Kind != ImageKind && (job.ImageFolder != null || job.ImageLevel != null || job.Area != null || job.LoadLinks.HasValue || job.LinkFolder != null))
+            if (job.Kind != ImageKind && (job.ImageFolder != null || job.ImageLevel != null || job.Area != null || job.LoadLinks.HasValue || job.LinkFolder != null
+                || job.ImageMinutes.HasValue || job.ImageMarginMinutes.HasValue))
             {
-                return "imageFolder, imageLevel, area, loadLinks and linkFolder go with an image job only";
+                return "imageFolder, imageLevel, area, loadLinks, linkFolder, imageMinutes and imageMarginMinutes go with an image job only";
             }
             if (job.LinkFolder != null && job.LoadLinks != true)
             {

@@ -122,7 +122,8 @@ def test_r62_a_length_in_mm_reads_as_metres_and_a_profile_without_mm_is_refused(
 def test_r63_the_project_config_names_a_drawing_for_each_role_and_skips_only_the_identical_copy():
     settings = load_settings()
     drawings = settings.get("drawings")
-    assert set(drawings) == {"baseplan", "masterplan", "previousMasterplan", "villaBlocks", "roadLayout", "xrefRoles", "skip"}
+    # referenceOnly came with R300, the drawings no villa block reader may take
+    assert set(drawings) == {"baseplan", "masterplan", "previousMasterplan", "villaBlocks", "roadLayout", "xrefRoles", "skip", "referenceOnly"}
     assert drawings["masterplan"].lower().endswith(".dwg") and drawings["masterplan"] != drawings["previousMasterplan"]
     assert drawings["previousMasterplan"] == "221229_MP-SK-01-03-001_R06.dwg"
     # The unit blocks come from the building footprint drawing. Not the R06 copies, whose inserts are one client plot type only

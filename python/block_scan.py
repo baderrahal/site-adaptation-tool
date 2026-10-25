@@ -158,7 +158,7 @@ def main(argv=None):
         settings = project_profile.load_settings(args.project)
         profile = project_profile.load_profile(args.profile or project_profile.profile_path(settings))
         faces = cad_analysis.plot_faces(cad_analysis.read_plots(args.cad)["plots"])
-        data = cad_analysis.read_blocks(args.blocks)
+        data = cad_analysis.read_blocks(args.blocks, settings)
         result = scan(data["blocks"], faces, profile, old_codes_of(profile, settings))
     except project_profile.ProfileError as error:
         print("block_scan: " + str(error), file=sys.stderr)

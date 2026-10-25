@@ -242,7 +242,8 @@ def main(argv=None):
     faces = {label: face for label, face in yard_rule.face_shapes(plots, 0)[0].items() if label in phase1}
     types = {label: phase1[label]["clientType"] for label in faces}
     _, earlier = data_book.folder_of(book, book["join"]["footprint"]["drawing"], book["join"]["fallbackOutputs"])
-    blocks = unit_blocks(json.loads((earlier / "blocks.json").read_text(encoding="utf-8"))["blocks"], set(retest["unitBlockKinds"]), border.contains)
+    # R300. The footprint blocks, never those of a drawing kept for reference only
+    blocks = unit_blocks(project_profile.read_villa_blocks(earlier / "blocks.json", settings)["blocks"], set(retest["unitBlockKinds"]), border.contains)
     per_face, per_block = units_on_faces(faces, blocks, retest["unitShareMin"])
     units = unit_count(per_face, per_block, types, set(book["analysis"]["unitPlotTypes"]))
     write_rows(root / "units.csv", [{"baseplanLabel": label, "clientType": types[label], "units": len(per_face.get(label, [])), "blocks": "|".join(per_face.get(label, []))}

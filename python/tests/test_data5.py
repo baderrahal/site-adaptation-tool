@@ -15,6 +15,7 @@ import data5_check
 import dxf_count
 import ifc_header
 import im_codes
+import project_profile
 import rev9_parcels
 import road_layouts
 import xref_search
@@ -250,28 +251,17 @@ def test_r257_an_im_code_stands_alone_and_the_area_table_is_checked():
     assert im_codes.codes_in("01101-PSN-IMG-ZZZ-PIM-TU-000001 and IMC") == ["IMG", "IMC"]
     assert im_codes.codes_in("TRIMGAP SIMD IMGX") == []
     table = im_codes.load_table(ROOT / "config" / "area_codes.json")
-    assert {row["status"] for row in table} <= {"measured", "text", "guessed"}
-    assert all(row["nbh"] for row in table if row["status"] == "measured")
+    assert set(table) == set(im_codes.job_names(project_profile.load_settings()))
+    assert all(area["plots"] > 0 for rows in table.values() for row in rows for area in row["areas"])
 
 
-def test_r257_a_table_with_a_neighbourhood_measured_twice_or_no_evidence_is_refused(tmp_path):
-    path = tmp_path / "t.json"
-    path.write_text(json.dumps({"codes": [{"code": "IMX", "nbh": ["1"], "status": "measured", "evidence": "a"},
-                                          {"code": "IMY", "nbh": ["1"], "status": "measured", "evidence": "b"}]}), encoding="utf-8")
-    with pytest.raises(ValueError):
-        im_codes.load_table(path)
-    path.write_text(json.dumps({"codes": [{"code": "IMX", "nbh": ["1"], "status": "measured", "evidence": ""}]}), encoding="utf-8")
-    with pytest.raises(ValueError):
-        im_codes.load_table(path)
-
-
-def test_r257_sources_agree_with_their_row_or_are_listed_as_conflicts(tmp_path):
-    table = [{"code": "IMX", "nbh": ["012"], "conflicts": ["The old-IMX-file holds 022"]}]
-    sources = [{"name": "a", "file": "s-IMX-1.xlsx", "codes": ["IMX"], "byZoneAndNbh": {"Zone 2 012": 3, "noKey": 1}},
-               {"name": "b", "file": "old-IMX-file.rvt", "codes": ["IMX"], "byZoneAndNbh": {"Zone 1 022": 2}},
-               {"name": "c", "file": "c-IMX-2.rvt", "codes": ["IMX"], "byZoneAndNbh": {"Zone 1 021": 2}},
-               {"name": "d", "file": "d-IMQ-2.rvt", "codes": ["IMQ"], "byZoneAndNbh": {}}]
-    assert [r["verdict"] for r in im_codes.table_against_sources(table, sources)] == ["agrees", "listed", "differs", "noRow"]
+def test_r257_sources_are_held_against_the_row_of_their_code_in_their_job(tmp_path):
+    area = {"nbh": "012", "zone": "Zone 2", "plots": 3, "kind": "schedule", "file": "s-IMX-1.xlsx", "measured": "a count"}
+    table = {"parsons": [{"code": "IMX", "areas": [area]}], "native": []}
+    sources = [{"name": "a", "file": "s-IMX-1.xlsx", "job": "parsons", "codes": ["IMX"], "byZoneAndNbh": {"Zone 2 012": 3, "noKey": 1}},
+               {"name": "c", "file": "c-IMX-2.rvt", "job": "parsons", "codes": ["IMX"], "byZoneAndNbh": {"Zone 1 021": 2}},
+               {"name": "d", "file": "d-IMQ-2.rvt", "job": "parsons", "codes": ["IMQ"], "byZoneAndNbh": {}}]
+    assert [r["verdict"] for r in im_codes.table_against_sources(table, sources)] == ["agrees", "differs", "noRow"]
     (tmp_path / "x" / "y").mkdir(parents=True)
     (tmp_path / "x" / "y" / "01-PSN-IMA-ZZZ.rvt").write_bytes(b"")
     (tmp_path / "x" / "TRIMB.rvt").write_bytes(b"")

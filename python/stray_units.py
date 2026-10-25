@@ -23,6 +23,7 @@ import data_book_analysis
 import data_book_retest
 import link_summary
 import location_plan
+import project_profile
 import rev9_workbooks
 import yard_rule
 
@@ -113,7 +114,8 @@ def summary(rows):
             "rev9Codes": dict(Counter(c for r in rows for c in r["rev9Codes"].split("|") if c).most_common())}
 
 
-def run(config):
+def run(config, project=None):
+    """R194. project is the project settings the caller loaded, the repo config when None, for the guard of R300."""
     book = config["dataBook"]
     retest = book["retest"]
     settings = book["strayUnits"]
@@ -127,7 +129,8 @@ def run(config):
     unit_faces = {label: face for label, face in faces.items() if phase1[label]["clientType"] in unit_types}
     types = {label: phase1[label]["clientType"] for label in faces}
     _, earlier = data_book.folder_of(book, book["join"]["footprint"]["drawing"], book["join"]["fallbackOutputs"])
-    blocks = data_book_retest.unit_blocks(json.loads((earlier / "blocks.json").read_text(encoding="utf-8"))["blocks"], set(retest["unitBlockKinds"]), border.contains)
+    # R300. The footprint blocks, never those of a drawing kept for reference only
+    blocks = data_book_retest.unit_blocks(project_profile.read_villa_blocks(earlier / "blocks.json", project)["blocks"], set(retest["unitBlockKinds"]), border.contains)
     per_face, per_block = data_book_retest.units_on_faces(faces, blocks, retest["unitShareMin"])
     units = data_book_retest.unit_count(per_face, per_block, types, unit_types)
     usual = {name: sum(entry["usualCover"].get(t, 0) for t in unit_types) for name, entry in units["blocksByName"].items()}
@@ -151,8 +154,9 @@ def run(config):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="The footprint unit blocks on no baseplan plot and what the plans have there (R194)")
     parser.add_argument("--config", default=str(c3d_run.CONFIG))
+    parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH))
     args = parser.parse_args(argv)
-    report, _ = run(c3d_run.load_config(args.config))
+    report, _ = run(c3d_run.load_config(args.config), project_profile.load_settings(args.settings))
     print(json.dumps(report))
     return 0
 

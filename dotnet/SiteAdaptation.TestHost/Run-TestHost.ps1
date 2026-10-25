@@ -112,6 +112,15 @@ $original = $null
 $copy = $null
 $token = $null
 $roundJob = $null
+
+# R213. The new site file a newSite job makes and a linksAndFloors job places into. It is empty between rounds, never a kept file
+function Get-SiteNewFile($build) {
+    if (-not $build.newFile) {
+        throw 'siteBuild.newFile of config/project.json is empty, set it to the new site file <name>-TEST-NEW.rvt of the round first'
+    }
+    return [string]$build.newFile
+}
+
 if ($round) {
     # R204 to R214. Every file sits in the work folder of siteBuild, and the file named in $original must not change
     $build = $config.siteBuild
@@ -156,6 +165,22 @@ if ($round) {
             $roundJob.imageFolder = Join-Path $build.folder 'images'
             $roundJob.imageLevel = [string]$round.imageLevel
             $roundJob.area = [double[]]@($round.area)
+            # R302. The image step runs at most testHost.imageStepMinutes of config/project.json. The job may run that plus
+            # testHost.imageMarginMinutes for the open and the close, and the window 3 minutes more for Revit to exit
+            $imageMinutes = [double]$config.testHost.imageStepMinutes
+            $imageMargin = [double]$config.testHost.imageMarginMinutes
+            if (-not ($imageMinutes -gt 0) -or -not ($imageMargin -gt 0)) {
+                throw 'config/project.json has no testHost.imageStepMinutes and imageMarginMinutes above 0'
+            }
+            $imageTotal = $imageMinutes + $imageMargin
+            if (-not $PSBoundParameters.ContainsKey('TimeoutMinutes')) {
+                $TimeoutMinutes = [int][Math]::Ceiling($imageTotal + 3)
+            }
+            elseif ($TimeoutMinutes -lt $imageTotal + 3) {
+                throw "An image job of $imageMinutes minutes with a margin of $imageMargin needs -TimeoutMinutes $($imageTotal + 3) or more, or none"
+            }
+            $roundJob.imageMinutes = $imageMinutes
+            $roundJob.imageMarginMinutes = $imageMargin
             # R234. The links load for the image, from linkFolder by file name when their saved path is not there
             if ($round.loadLinks) {
                 $roundJob.loadLinks = $true
@@ -165,7 +190,7 @@ if ($round) {
             }
         }
         'newSite' {
-            $copy = Join-Path $work $build.newFile
+            $copy = Join-Path $work (Get-SiteNewFile $build)
             if (-not ([string]$round.site).StartsWith($build.folder + [IO.Path]::DirectorySeparatorChar)) {
                 throw "The site file is not in $($build.folder)"
             }
@@ -175,7 +200,7 @@ if ($round) {
             $roundJob.site = [string]$round.site
         }
         'linksAndFloors' {
-            $copy = Join-Path $work $build.newFile
+            $copy = Join-Path $work (Get-SiteNewFile $build)
             $planPath = [string]$round.plan
             $plan = Get-Content -Raw $planPath | ConvertFrom-Json
             $files = @($plan.plots | ForEach-Object { $_.prototypeFile.value } | Where-Object { $_ -match ('-' + $round.prototypeCode + '-ZZ-MOD-') } | Sort-Object -Unique)
@@ -297,6 +322,9 @@ try {
             $job.token = $token
             $job.createdUtc = (Get-Date).ToUniversalTime().ToString('o')
             $job.totalMinutes = [Math]::Min(27, $TimeoutMinutes - 2)
+            if ($round.kind -eq 'image') {
+                $job.totalMinutes = [Math]::Min($imageTotal, $TimeoutMinutes - 2)
+            }
         }
         elseif ($spec) {
             # Assigned outside $() so a list of one plot stays a list and is written as a JSON array

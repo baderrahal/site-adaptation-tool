@@ -236,7 +236,7 @@ def test_r275_one_ffl_per_cluster_sits_at_the_highest_el_at_entry_plus_the_base_
     assert sorted(tops.values()) == pytest.approx([0.1, 0.25])
 
 
-def test_r277_a_level_profile_is_named_or_refused_there_is_no_default():
+def test_r277_a_profile_with_no_default_refuses_a_build_that_names_none_and_an_unknown_name():
     with pytest.raises(project_profile.ProfileError):
         plan_rules.level_profile(PROFILE, None)
     with pytest.raises(project_profile.ProfileError):
@@ -246,7 +246,7 @@ def test_r277_a_level_profile_is_named_or_refused_there_is_no_default():
 
 def test_r277_the_real_rules_profile_holds_both_generations_and_each_is_complete():
     real = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
-    names = set(real.get("levelProfiles")) - {"note"}
+    names = set(real.get("levelProfiles")) - set(plan_rules.NOT_PROFILES)
     assert {"parsons2024Rev6", "native2022"} <= names
     for name in names:
         assert plan_rules.level_profile(real, name)["rampTypes"]

@@ -1,6 +1,7 @@
 """R278 to R280. The coded rules of the majority rule and the override list, as a plan from CAD applies them.
 
-R278: a level profile of levelProfiles in the rules profile is named, never taken by default. El @ Entry is the road level of
+R277: a build that names no level profile takes levelProfiles.default of the rules profile, parsons2024Rev6 (Bader, Q050).
+R278: El @ Entry is the road level of
 its frontRoad surface at the two front corners plus offsetM, plus the ramp slope of the unit times the ramp depth. The height
 rule oneFflPerClusterAtTheHighestEntry gives a cluster one FFL, the highest El @ Entry of its plots plus the base of that unit,
 and a plot alone its El @ Entry plus its base, medianPerUnit gives the median height of the unit. Steps follow stepBands on
@@ -17,14 +18,28 @@ from pathlib import Path
 import project_profile
 
 FIELDS = ("mirrored", "rampType", "entryM", "heightM", "rampFrontM")
+# Keys of levelProfiles that hold no profile
+NOT_PROFILES = ("note", "default")
 
 
-def level_profile(profile, name):
-    """R278. The named level profile. There is no default, a missing or unknown name is refused."""
+def profile_name(profile, name):
+    """R277. The level profile a build follows: the one named, else levelProfiles.default. A default that is missing or names
+    no profile is refused, so no build runs on a profile nobody chose."""
     profiles = profile.get("levelProfiles") or {}
-    if not name:
-        raise project_profile.ProfileError("name a level profile, one of " + ", ".join(sorted(key for key in profiles if key != "note")))
-    if name not in profiles or name == "note":
+    names = sorted(key for key in profiles if key not in NOT_PROFILES)
+    if name:
+        return name
+    chosen = profiles.get("default")
+    if not chosen or chosen in NOT_PROFILES or not isinstance(profiles.get(chosen), dict):
+        raise project_profile.ProfileError("levelProfiles.default of the rules profile names no level profile, name one of " + ", ".join(names))
+    return chosen
+
+
+def level_profile(profile, name=None):
+    """R277, R278. The named level profile, or the default of R277 when none is named. An unknown name is refused."""
+    profiles = profile.get("levelProfiles") or {}
+    name = profile_name(profile, name)
+    if name not in profiles or name in NOT_PROFILES:
         raise project_profile.ProfileError("the rules profile has no level profile " + name)
     found = profiles[name]
     for key in ("frontRoad", "rampSlopePercent", "rampTypes", "height"):
@@ -109,10 +124,45 @@ def hand_of(code, kind, role, block_mirror, open_end, hands, drawn, file_code=No
     return (value, "blockMirror") if value is not None else (None, None)
 
 
-def load_overrides(path, sources, fields=FIELDS):
+def source_jobs(overrides, sources, groups):
+    """R280. The job of each source model, the group of majority.groups in config/project.json that holds the keys its overrides
+    name. A source with no override, or with keys of no group or of two groups, is refused, so no override applies by a guess.
+    No source at all is refused too, an override list given with no --override-source would apply as none."""
+    if not sources:
+        raise project_profile.ProfileError("--overrides names no source model, give the past model files whose overrides apply with --override-source (R280)")
+    job_of_key = {key: job for job, keys in groups.items() for key in keys}
+    found = defaultdict(set)
+    for item in overrides:
+        if item.get("source") in sources:
+            found[item["source"]].add(job_of_key.get(item.get("key")))
+    jobs = {}
+    for source in sorted(sources):
+        named = found.get(source) or set()
+        if len(named) != 1 or None in named:
+            raise project_profile.ProfileError("the overrides of %s name no key of one job of majority.groups, found %s" % (source, sorted(map(str, named)) or "no override"))
+        jobs[source] = named.pop()
+    return jobs
+
+
+def check_override_jobs(name, lp, jobs):
+    """R280. The overrides of a source model are gaps to the rule of its own job, so they apply only to a build whose level
+    profile names that job. A source of another job is refused with both named."""
+    job = lp.get("job")
+    if not job:
+        raise project_profile.ProfileError("the level profile %s names no job, its overrides cannot be matched" % name)
+    wrong = sorted(source for source, found in jobs.items() if found != job)
+    if wrong:
+        raise project_profile.ProfileError("the overrides of %s are of the %s job, the level profile %s is of the %s job: name the level profile of that job or leave those overrides out"
+                                           % (", ".join(wrong), jobs[wrong[0]], name, job))
+
+
+def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None):
     """R280. The overrides of the list whose source is one of sources and whose field is one of fields, by plot and field. A
-    mirror of a past model that links other prototype files than the plan is no mirror of the plan, so a build may leave it out."""
+    mirror of a past model that links other prototype files than the plan is no mirror of the plan, so a build may leave it out.
+    With groups the job of each source must be the job of the level profile lp first (check_override_jobs)."""
     data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if groups is not None:
+        check_override_jobs(name, lp, source_jobs(data.get("overrides") or [], sources, groups))
     found = defaultdict(dict)
     for item in data.get("overrides") or []:
         if item.get("source") in sources and item.get("field") in fields:

@@ -158,6 +158,8 @@ def stage_commands(out_root, ran, second, shifts, settings=None):
     """The join and check steps that follow the readers, each with its inputs, or the reason it cannot run yet."""
     out_root = Path(out_root)
     settings = settings or project_profile.load_settings()
+    # R300. The analysis takes its villa blocks from drawings.villaBlocks, never from a drawing kept for reference only
+    project_profile.refuse_reference_only(settings.get("drawings.villaBlocks"), settings)
     baseplan = settings.get("drawings.baseplan")
     base = out_root / baseplan
     rows = sorted(str(out_root / name / "pdf_rows.json") for name in ran if (out_root / name / "pdf_rows.json").is_file())
