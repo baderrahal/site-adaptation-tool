@@ -29,6 +29,7 @@ import common
 import corner_front
 import footprint_check
 import link_summary
+import override_source
 import past_all
 import plan_from_book
 import plan_from_cad
@@ -423,7 +424,8 @@ def run(items, book, profile, block, surfaces, clusters):
 
 def overrides(misses, block, models):
     """R272. The override list: every miss of the decisions block.overrideDecisions names, with no real level or coordinate,
-    the source model of the key, sorted by plot."""
+    sorted by plot. R330: source is the job of the key, its group of majority.groups, and model the past model file of the key."""
+    jobs = override_source.job_of_key(block["groups"])
     kept = []
     for miss in misses:
         decision = miss["decision"].split(" ", 1)[1]
@@ -432,8 +434,8 @@ def overrides(misses, block, models):
         value, rule = miss["value"], miss["rule"]
         if miss["field"] in ("heightM", "entryM", "rampFrontM", "rampFrontFallM"):
             value, rule = (None if rule is None else {"gapToRuleM": round(value - rule, 4)}), None
-        kept.append({"plot": miss["plot"], "field": miss["field"], "value": value, "rule": rule, "source": models.get(miss["key"], miss["key"]),
-                     "key": miss["key"], "decision": miss["decision"], "reason": miss["reason"]})
+        kept.append({"plot": miss["plot"], "field": miss["field"], "value": value, "rule": rule, "source": jobs.get(miss["key"]),
+                     "model": models.get(miss["key"], miss["key"]), "key": miss["key"], "decision": miss["decision"], "reason": miss["reason"]})
     return sorted(kept, key=lambda item: (link_summary.sort_key(item["plot"]), item["key"], item["field"]))
 
 
@@ -482,6 +484,8 @@ def main(argv=None):
     parser.add_argument("--model", nargs=2, action="append", metavar=("KEY", "FILE"), default=[], help="the past model file of a key, the override source")
     parser.add_argument("--out", required=True, help="the report, outside the repo")
     parser.add_argument("--overrides", required=True, help="the override list to write")
+    parser.add_argument("--keep", nargs="*", default=[], help="R330. SOURCE or SOURCE:FIELD,FIELD of the earlier list to keep as it is")
+    parser.add_argument("--keep-from", help="R330. the earlier override list --keep reads, --overrides when left out")
     args = parser.parse_args(argv)
     settings = project_profile.load_settings(args.settings)
     profile = project_profile.load_profile(project_profile.profile_path(settings))
@@ -519,9 +523,16 @@ def main(argv=None):
     surfaces = [ROAD] + sorted({column[len("level_"):-len("_left")] for column in next(iter(book.values())) if column.startswith("level_") and column.endswith("_left")})
     results, misses, datums = run(items, book, profile, block, surfaces, clusters)
     listing = overrides(misses, block, dict(args.model))
+    merged = None
+    if args.keep:
+        # R330. The entries of the earlier list this run does not measure stay cell for cell, an entry of before the source field takes the job of its key
+        keep = override_source.parse_keep(args.keep, block["groups"])
+        earlier = override_source.read_list(args.keep_from or args.overrides)["overrides"]
+        listing, merged = override_source.merge([override_source.migrate_entry(item, block["groups"]) for item in earlier], listing, keep)
+    override_source.check_entries(listing, block["groups"])
     report = {"plots": len(items), "byGroup": dict(Counter(item["group"] for item in items)), "clusters": len(clusters),
               "frontRules": dict(Counter(item["frontRule"] for item in front.values())), "keyDatumsM": datums, "decisions": results,
-              "overrideCount": dict(Counter(item["decision"] for item in listing))}
+              "overrideCount": dict(Counter(item["decision"] for item in listing)), "overrideMerge": merged, "overrideCounts": override_source.counts(listing)}
     common.write_json(args.out, report)
     write_overrides(args.overrides, block["overrideNote"], listing)
     for result in results:

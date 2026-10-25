@@ -43,6 +43,7 @@ import plan_rules
 import plot_relations
 import project_profile
 import prototype_offsets
+import override_source
 import ramp_outline
 import surface_lookup
 import yard_rule
@@ -329,7 +330,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             "frontLevelAgainstPlotsCsv": dict(book_check),
             "floorsFound": {kind: sum(1 for entry in plots if kind in entry["floors"]) for kind in plan_from_past.FLOOR_KINDS},
             "floorTypes": dict(sorted(Counter(kind + ": " + floor["type"]["value"] for entry in plots for kind, floor in entry["floors"].items()).items())),
-            "rules": None if rules is None else {"levelProfile": rules["name"], "overrideSource": rules["sources"], "applied": dict(sorted(applied.items()))},
+            "rules": None if rules is None else {"levelProfile": rules["name"], "overrideSource": rules["sources"], "overrideModel": rules.get("models", []),
+                                                "applied": dict(sorted(applied.items()))},
         },
         "plots": plots,
         "missing": missing,
@@ -378,12 +380,19 @@ def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales):
     # R280. An empty list name or a source with no list would build with no override as if none was asked for
     if args.overrides is not None and not args.overrides.strip():
         raise project_profile.ProfileError("--overrides names no file, give the override list in config/overrides (R280)")
-    if args.override_source and args.overrides is None:
-        raise project_profile.ProfileError("--override-source needs --overrides, the override list its overrides come from (R280)")
-    # R280. Only the overrides of a source of the job of the level profile, the job of a source from majority.groups
-    overrides = plan_rules.load_overrides(args.overrides, set(args.override_source), fields, block["groups"], name, lp) if args.overrides else {}
+    named_sources, models = getattr(args, "override_source", None), getattr(args, "override_model", None) or []
+    if (named_sources or models) and args.overrides is None:
+        raise project_profile.ProfileError("--override-source and --override-model need --overrides, the override list their overrides come from (R280)")
+    overrides, sources = {}, []
+    if args.overrides:
+        if named_sources is not None and not named_sources:
+            raise project_profile.ProfileError("--override-source names no source, name parsons or native or leave it out for the default of R330")
+        # R330. With no source named a build applies majority.overrideDefaultSources, parsons, so native overrides never apply by default
+        sources = list(named_sources) if named_sources else override_source.default_sources(settings)
+        # R280. Only the overrides of a source of the job of the level profile
+        overrides = plan_rules.load_overrides(args.overrides, set(sources), fields, block["groups"], name, lp, set(models) or None)
     return {"name": name, "levelProfile": lp, "hands": profile.get("hands") or {}, "openEnds": open_ends, "overrides": overrides,
-            "sources": list(args.override_source)}
+            "sources": sources, "models": list(models)}
 
 
 def main(argv=None):
@@ -404,7 +413,8 @@ def main(argv=None):
     parser.add_argument("--scratch", required=True, help="a folder outside the repo for the LandXML reader")
     parser.add_argument("--level-profile", help="R277, R278. a level profile of the rules profile, levelProfiles.default when left out")
     parser.add_argument("--overrides", help="R280. the override list in config/overrides")
-    parser.add_argument("--override-source", nargs="*", default=[], help="R280. the past model files whose overrides apply")
+    parser.add_argument("--override-source", nargs="*", help="R330. the jobs whose overrides apply, majority.overrideDefaultSources (parsons) when left out")
+    parser.add_argument("--override-model", nargs="*", default=[], help="R280, R330. only the overrides of these past model files")
     parser.add_argument("--override-fields", nargs="*", choices=plan_rules.FIELDS, help="R280. only these fields of the overrides, all when left out")
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)

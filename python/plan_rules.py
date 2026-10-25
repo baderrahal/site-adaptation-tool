@@ -8,8 +8,9 @@ and a plot alone its El @ Entry plus its base, medianPerUnit gives the median he
 the height, SSL is the FFL plus levels.ground_ssl. The ramp type is the type rampTypes names for the slope class.
 R279: the hand of a villa and of a duplex unit in no cluster is the hands table of the profile: the mirror flag of the plot's
 Building Footprint block with its open end, else the block mirror flag alone. A unit of a cluster keeps R123.
-R280: the override list of config/overrides is applied after the rules, only the overrides whose source is
-the past model the plan follows. A level override moves the value by its gap to the rule, a mirror or ramp class replaces it.
+R280: the override list of config/overrides is applied after the rules, only the overrides whose source is the job of the
+level profile, parsons by default (R330), narrowed to the past models named. A level override moves the value by its gap to
+the rule, a mirror or ramp class replaces it.
 """
 import json
 from collections import defaultdict
@@ -124,48 +125,43 @@ def hand_of(code, kind, role, block_mirror, open_end, hands, drawn, file_code=No
     return (value, "blockMirror") if value is not None else (None, None)
 
 
-def source_jobs(overrides, sources, groups):
-    """R280. The job of each source model, the group of majority.groups in config/project.json that holds the keys its overrides
-    name. A source with no override, or with keys of no group or of two groups, is refused, so no override applies by a guess.
-    No source at all is refused too, an override list given with no --override-source would apply as none."""
-    if not sources:
-        raise project_profile.ProfileError("--overrides names no source model, give the past model files whose overrides apply with --override-source (R280)")
-    job_of_key = {key: job for job, keys in groups.items() for key in keys}
-    found = defaultdict(set)
-    for item in overrides:
-        if item.get("source") in sources:
-            found[item["source"]].add(job_of_key.get(item.get("key")))
-    jobs = {}
-    for source in sorted(sources):
-        named = found.get(source) or set()
-        if len(named) != 1 or None in named:
-            raise project_profile.ProfileError("the overrides of %s name no key of one job of majority.groups, found %s" % (source, sorted(map(str, named)) or "no override"))
-        jobs[source] = named.pop()
-    return jobs
-
-
-def check_override_jobs(name, lp, jobs):
-    """R280. The overrides of a source model are gaps to the rule of its own job, so they apply only to a build whose level
-    profile names that job. A source of another job is refused with both named."""
+def check_override_jobs(name, lp, sources):
+    """R280, R330. The overrides of a source are gaps to the rule of that job, so they apply only to a build whose level profile
+    names that job. A source of another job is refused with both named and the source the build may name."""
     job = lp.get("job")
     if not job:
         raise project_profile.ProfileError("the level profile %s names no job, its overrides cannot be matched" % name)
-    wrong = sorted(source for source, found in jobs.items() if found != job)
+    wrong = sorted(source for source in sources if source != job)
     if wrong:
-        raise project_profile.ProfileError("the overrides of %s are of the %s job, the level profile %s is of the %s job: name the level profile of that job or leave those overrides out"
-                                           % (", ".join(wrong), jobs[wrong[0]], name, job))
+        raise project_profile.ProfileError("the overrides of source %s are gaps to the rule of that job, the level profile %s is of the %s job: name --override-source %s "
+                                           "on a build of %s, native overrides are never applied by default (R280, R330)" % (", ".join(wrong), name, job, job, name))
 
 
-def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None):
-    """R280. The overrides of the list whose source is one of sources and whose field is one of fields, by plot and field. A
-    mirror of a past model that links other prototype files than the plan is no mirror of the plan, so a build may leave it out.
-    With groups the job of each source must be the job of the level profile lp first (check_override_jobs)."""
+def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None, models=None):
+    """R280, R330. The overrides of the list whose source, the job of their key, is one of sources and whose field is one of
+    fields, by plot and field, with models only those of the past model files named. Every entry must hold the job of its key as
+    source and its model apart (override_source.check_entries), groups from majority.groups of config/project.json when not
+    given. A source or a model named with no override in the list is refused, never applied as none. With lp the job of each
+    source must be the job of the level profile first (check_override_jobs). A mirror of a past model that links other
+    prototype files than the plan is no mirror of the plan, so a build may leave it out by fields."""
+    import override_source
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    if groups is not None:
-        check_override_jobs(name, lp, source_jobs(data.get("overrides") or [], sources, groups))
+    entries = data.get("overrides") or []
+    if groups is None:
+        groups = project_profile.load_settings().get("majority.groups")
+    try:
+        override_source.check_entries(entries, groups)
+    except project_profile.ProfileError as error:
+        raise project_profile.ProfileError(str(path) + ": " + str(error)) from error
+    if lp is not None:
+        check_override_jobs(name, lp, sources)
+    chosen = [item for item in entries if item["source"] in sources and (models is None or item["model"] in models)]
+    missing = sorted(set(sources) - {item["source"] for item in chosen}) + sorted(set(models or ()) - {item["model"] for item in chosen})
+    if missing:
+        raise project_profile.ProfileError("the override list holds no override of %s among the sources %s (R280, R330)" % (", ".join(missing), ", ".join(sorted(sources))))
     found = defaultdict(dict)
-    for item in data.get("overrides") or []:
-        if item.get("source") in sources and item.get("field") in fields:
+    for item in chosen:
+        if item.get("field") in fields:
             found[str(item["plot"])][item["field"]] = item["value"]
     return dict(found)
 
