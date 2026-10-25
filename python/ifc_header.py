@@ -118,8 +118,11 @@ def level_names(rows, words):
 
 
 def run(config):
+    """R258. The header of the IFC copy, or nothing when the input is retired with its reason (Round ADDIN, Q047)."""
     book = config["dataBook"]
     settings = book["data5"]["ifc"]
+    if settings.get("retired"):
+        return {"retired": settings["retired"]}
     root = Path(book["root"])
     copy = root / "work" / settings["copy"]
     text = copy.read_text(encoding="utf-8", errors="replace")

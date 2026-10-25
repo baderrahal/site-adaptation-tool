@@ -95,6 +95,42 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R302_a_job_with_no_total_runs_its_image_step_plus_the_margin_and_never_less_than_the_image_step()
+        {
+            Assert.Equal(40, TestHostGuard.TotalMinutesOf(Check(Image(job => job["imageMarginMinutes"] = 10)).Job));
+            Assert.Equal(30 + TestHostGuard.DefaultTotalMinutes, TestHostGuard.TotalMinutesOf(Check(Image()).Job));
+            Assert.Equal(35, TestHostGuard.TotalMinutesOf(Check(Image(job => { job["imageMarginMinutes"] = 10; job["totalMinutes"] = 35; })).Job));
+            Assert.Equal(TestHostGuard.DefaultTotalMinutes, TestHostGuard.TotalMinutesOf(new TestHostJob { Kind = "read" }));
+            Assert.True(TestHostGuard.TotalMinutesOf(Check(Image(job => job["imageMarginMinutes"] = 10)).Job) > TestHostGuard.ImageStepMinutes(Check(Image()).Job));
+        }
+
+        [Fact]
+        public void R302_an_image_margin_goes_with_an_image_job_only_and_must_be_above_0()
+        {
+            Assert.False(Check(Image(job => job["imageMarginMinutes"] = 0)).Act);
+            Assert.False(Check(Image(job => job["imageMarginMinutes"] = TestHostGuard.MaxTotalMinutes + 1)).Act);
+            string read = new JObject
+            {
+                ["kind"] = "read", ["token"] = Token, ["code"] = "IMK", ["model"] = KeyCopy, ["imageMarginMinutes"] = 10, ["createdUtc"] = Now.AddMinutes(-2).ToString("o"),
+            }.ToString();
+            Assert.Contains("image job only", Check(read).Reason);
+        }
+
+        [Fact]
+        public void R302_the_session_deadline_and_a_plain_image_run_take_their_limits_from_the_image_step_and_margin()
+        {
+            string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
+            string script = RepoText("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
+
+            Assert.Contains("deadlineUtc = log.StartedUtc.AddMinutes(TestHostGuard.TotalMinutesOf(job))", session);
+            Assert.DoesNotContain("job.TotalMinutes ?? TestHostGuard.DefaultTotalMinutes", session);
+            Assert.Contains("$imageMargin = [double]$config.testHost.imageMarginMinutes", script);
+            Assert.Contains("if (-not $PSBoundParameters.ContainsKey('TimeoutMinutes'))", script);
+            Assert.Contains("$roundJob.imageMarginMinutes = $imageMargin", script);
+            Assert.DoesNotContain("$imageMinutes + 30", script);
+        }
+
+        [Fact]
         public void R302_the_image_step_limit_is_no_constant_and_the_run_script_reads_it_from_the_config()
         {
             string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");

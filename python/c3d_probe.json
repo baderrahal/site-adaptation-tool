@@ -607,6 +607,7 @@
       "ifc": {
         "outFolder": "ifc",
         "copy": "Downloads/1TB02012-012D03-UNA-00-XX-MOD-UT-00010.ifc",
+        "retired": "Q047: the copy under data_book work was deleted on 2026-10-25, the IFC is another project (Q043). ifc_header.py and the IFC part of data5_check.py skip it, ifc.json of DATA-5 stays as the record",
         "levelWords": ["level", "elev", "spot", "entrance", "ffl", "plot", "invert", "cover", "grade"],
         "labelProperties": ["AMA_ProjectCode", "AMA_ProgramCode", "AMA_PhaseCode", "AMA_ContractCode", "AMA_OriginatorCode", "AMA_DisciplineCode", "AMA_Level",
                             "AMA_DataClassificationDescription"]

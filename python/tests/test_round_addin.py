@@ -387,9 +387,47 @@ def test_r301_every_source_of_the_im_code_check_names_a_job_of_the_table():
     assert sources and all(source["job"] in table for source in sources)
 
 
+# Stale inputs after the clean up of Q047 and Q060
+def test_r258_r260_the_retired_ifc_input_is_skipped_with_its_reason_and_nothing_is_read(tmp_path):
+    import data5_check
+    import ifc_header
+    book = json.loads((ROOT / "python" / "c3d_probe.json").read_text(encoding="utf-8"))["dataBook"]
+    assert "Q047" in book["data5"]["ifc"]["retired"]
+    config = {"dataBook": {"root": str(tmp_path), "data5": {"outFolder": "data5", "ifc": {"copy": "Downloads/none.ifc", "outFolder": "ifc", "retired": "Q047 deleted"}}}}
+    assert ifc_header.run(config) == {"retired": "Q047 deleted"}
+    assert not (tmp_path / "data5").exists()
+    assert data5_check.ifc_part(config["dataBook"]["data5"], tmp_path, tmp_path / "data5") == {"skipped": "Q047 deleted"}
+
+
+def test_r218_the_clean_up_lists_and_deletes_nothing_when_the_work_folder_is_gone(tmp_path, capsys):
+    import round_files
+    assert round_files.clean_list(tmp_path / "work", []) == []
+    settings = tmp_path / "project.json"
+    settings.write_text(json.dumps({"siteBuild": {"folder": str(tmp_path)}}), encoding="utf-8")
+    assert round_files.main(["--settings", str(settings), "clean", "--delete"]) == 0
+    assert "no work folder" in capsys.readouterr().out
+
+
+def test_r213_the_new_site_file_is_cleared_and_the_jobs_that_need_it_refuse_by_the_setting_name():
+    assert project_profile.load_settings().get("siteBuild.newFile") is None
+    script = (ROOT / "dotnet" / "SiteAdaptation.TestHost" / "Run-TestHost.ps1").read_text(encoding="utf-8")
+    assert "siteBuild.newFile of config/project.json is empty" in script
+    assert "Join-Path $work $build.newFile" not in script and script.count("Join-Path $work (Get-SiteNewFile $build)") == 2
+
+
 # R302 the image step limit of the test host
 def test_r302_the_image_step_limit_is_read_from_the_test_host_settings_and_is_30_minutes():
     settings = project_profile.load_settings()
     assert settings.get("testHost.imageStepMinutes") == 30
     script = (ROOT / "dotnet" / "SiteAdaptation.TestHost" / "Run-TestHost.ps1").read_text(encoding="utf-8")
     assert "$config.testHost.imageStepMinutes" in script and "$roundJob.imageMinutes" in script
+
+
+def test_r302_a_plain_image_run_takes_its_window_limit_from_the_image_step_and_the_margin():
+    settings = project_profile.load_settings()
+    step, margin = settings.get("testHost.imageStepMinutes"), settings.get("testHost.imageMarginMinutes")
+    assert margin > 0 and step + margin + 3 > 30
+    script = (ROOT / "dotnet" / "SiteAdaptation.TestHost" / "Run-TestHost.ps1").read_text(encoding="utf-8")
+    assert "$imageTotal = $imageMinutes + $imageMargin" in script
+    assert "$TimeoutMinutes = [int][Math]::Ceiling($imageTotal + 3)" in script
+    assert "$job.totalMinutes = [Math]::Min($imageTotal, $TimeoutMinutes - 2)" in script

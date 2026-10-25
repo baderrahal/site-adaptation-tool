@@ -45,6 +45,8 @@ namespace SiteAdaptation.Common
         public string LinkFolder { get; set; }
         // R302. The most the image step may run, testHost.imageStepMinutes of config/project.json as the run script writes it
         public double? ImageMinutes { get; set; }
+        // R302. What the job may run on top of the image step for the open and the close, testHost.imageMarginMinutes of the config
+        public double? ImageMarginMinutes { get; set; }
     }
 
     public sealed class GuardResult
@@ -418,6 +420,11 @@ namespace SiteAdaptation.Common
                 {
                     return Refuse("an image job names imageMinutes above 0 and at most " + MaxImageMinutes + ", testHost.imageStepMinutes of config/project.json");
                 }
+                // Written so that NaN fails too
+                if (job.ImageMarginMinutes.HasValue && !(job.ImageMarginMinutes.Value > 0 && job.ImageMarginMinutes.Value <= MaxTotalMinutes))
+                {
+                    return Refuse("imageMarginMinutes must be above 0 and at most " + MaxTotalMinutes + ", testHost.imageMarginMinutes of config/project.json");
+                }
             }
             if (!fileExists(job.Model))
             {
@@ -446,6 +453,21 @@ namespace SiteAdaptation.Common
             return job.ImageMinutes.Value;
         }
 
+        // R302. The minutes of the whole job: its totalMinutes, else for an image job the image step plus its margin (the usual
+        // job time when it names none), else DefaultTotalMinutes. So a job never ends before its image step can
+        public static double TotalMinutesOf(TestHostJob job)
+        {
+            if (job.TotalMinutes.HasValue)
+            {
+                return job.TotalMinutes.Value;
+            }
+            if (job.Kind == ImageKind && HasImageMinutes(job))
+            {
+                return job.ImageMinutes.Value + (job.ImageMarginMinutes ?? DefaultTotalMinutes);
+            }
+            return DefaultTotalMinutes;
+        }
+
         // The fields of the newSite and image jobs belong to those jobs alone
         private static string CheckExtras(TestHostJob job)
         {
@@ -453,9 +475,10 @@ namespace SiteAdaptation.Common
             {
                 return "template and site go with a newSite job only";
             }
-            if (job.Kind != ImageKind && (job.ImageFolder != null || job.ImageLevel != null || job.Area != null || job.LoadLinks.HasValue || job.LinkFolder != null || job.ImageMinutes.HasValue))
+            if (job.Kind != ImageKind && (job.ImageFolder != null || job.ImageLevel != null || job.Area != null || job.LoadLinks.HasValue || job.LinkFolder != null
+                || job.ImageMinutes.HasValue || job.ImageMarginMinutes.HasValue))
             {
-                return "imageFolder, imageLevel, area, loadLinks, linkFolder and imageMinutes go with an image job only";
+                return "imageFolder, imageLevel, area, loadLinks, linkFolder, imageMinutes and imageMarginMinutes go with an image job only";
             }
             if (job.LinkFolder != null && job.LoadLinks != true)
             {

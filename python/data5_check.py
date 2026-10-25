@@ -84,6 +84,14 @@ def check_dxf(path):
             "blockRecords": blocks, "blocksParsed": len(parsed["blocks"])}
 
 
+def ifc_part(settings, root, data5):
+    """R260. The IFC types counted again against ifc.json, or skipped with the reason when the IFC input is retired (Q047)."""
+    if settings["ifc"].get("retired"):
+        return {"skipped": settings["ifc"]["retired"]}
+    ifc = json.loads((data5 / settings["ifc"]["outFolder"] / "ifc.json").read_text(encoding="utf-8"))
+    return check_ifc(root / "work" / settings["ifc"]["copy"], ifc)
+
+
 def check_ifc(path, report):
     found = Counter()
     rule = re.compile(r"^#\d+\s*=\s*([A-Z0-9_]+)\(")
@@ -175,8 +183,7 @@ def run(config):
     for role in settings["counts"]["roles"]:
         path = data5 / settings["counts"]["dxfFolder"] / (Path(book["drawings"][role]).stem + ".dxf")
         result["dxf"][role] = check_dxf(path) if path.is_file() else "no DXF"
-    ifc = json.loads((data5 / settings["ifc"]["outFolder"] / "ifc.json").read_text(encoding="utf-8"))
-    result["ifc"] = check_ifc(root / "work" / settings["ifc"]["copy"], ifc)
+    result["ifc"] = ifc_part(settings, root, data5)
     result["names"] = check_names(config["sourceRoot"], json.loads((data5 / settings["areaKey"]["outFolder"] / "im_codes.json").read_text(encoding="utf-8")))
     (root / "logs" / "data5_check.json").write_text(json.dumps(result, indent=1), encoding="utf-8")
     return result

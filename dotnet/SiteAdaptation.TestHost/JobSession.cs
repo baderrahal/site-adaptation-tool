@@ -58,7 +58,7 @@ namespace SiteAdaptation.TestHost
             log.Assemblies["common"] = typeof(Common.Placer).Assembly.Location;
             log.Assemblies["addinsFolder"] = addinsFolder;
             runner = new TestHostRunner(log, value => JsonOut.Write(logPath, value), () => DateTime.UtcNow);
-            deadlineUtc = log.StartedUtc.AddMinutes(job.TotalMinutes ?? TestHostGuard.DefaultTotalMinutes);
+            deadlineUtc = log.StartedUtc.AddMinutes(TestHostGuard.TotalMinutesOf(job));
         }
 
         public static void Start(UIControlledApplication application, string token, string jobPath, string addinsFolder)

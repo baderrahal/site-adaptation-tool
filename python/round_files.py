@@ -69,6 +69,8 @@ def size_of(path):
 def clean_list(work, keep):
     """R218. The entries of the work folder not named in keep, with their size in bytes. Nothing outside work is listed."""
     work = Path(work)
+    if not work.is_dir():
+        return []
     kept = {name.lower() for name in keep}
     return [{"name": path.name, "bytes": size_of(path)} for path in sorted(work.iterdir()) if path.name.lower() not in kept]
 
@@ -107,6 +109,9 @@ def main(argv=None):
         for name, state in result.items():
             print("%s %s" % (name, state))
         return 0 if all(state == "same" for state in result.values()) else 1
+    if not (root / "work").is_dir():
+        print("no work folder in %s, nothing to clean" % root)
+        return 0
     rows = clean_list(root / "work", args.keep)
     for row in rows:
         print("%s %d bytes" % (row["name"], row["bytes"]))
