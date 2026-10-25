@@ -8,7 +8,6 @@ import json
 import os
 import re
 import stat
-from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -77,46 +76,6 @@ def verdicts(root, tmp_path, values=None):
 def state(root):
     """Bytes, size and time of every file under root, to see that nothing was written."""
     return {str(path.relative_to(root)): (digest(path), path.stat().st_size, path.stat().st_mtime_ns) for path in sorted(root.rglob("*")) if path.is_file()}
-
-
-MADE_A = "01101-PSN-IMA-ZZZ-PIM-SE-000000-zone1_TEST-KA.rvt"
-
-
-def utc(seconds):
-    """A time as Run-TestHost.ps1 writes it in run.json, round trip UTC with Z."""
-    return datetime.fromtimestamp(seconds, timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-
-
-def written(path):
-    """The latest of the times a file was made or written, as record reads it."""
-    found = path.stat()
-    return max(found.st_mtime, getattr(found, "st_birthtime", found.st_ctime))
-
-
-def upgrade_run(tmp_path, work_copy, made, code="KA", start=None, end=None, made_at=None, run_change=None, log_change=None):
-    """The run.json and the log of R110 a siteUpgrade job of R204 leaves, testhost_<code>_upgrade_run.json and _log.json. By default
-    the run starts after the work copy was written and the made copy is written inside the run."""
-    docs = tmp_path / "docs"
-    docs.mkdir(exist_ok=True)
-    start = written(work_copy) + 2 if start is None else start
-    end = start + 120 if end is None else end
-    made_at = start + 60 if made_at is None else made_at
-    os.utime(made, (made_at, made_at))
-    run = {"name": code + "_upgrade", "pid": 1, "startUtc": utc(start), "endUtc": utc(end), "minutes": round((end - start) / 60, 2),
-           "exitCode": 0, "stopReason": None, "logResult": "ok"}
-    log = {"tool": "SiteAdaptation.TestHost", "code": code, "kind": "siteUpgrade", "source": str(work_copy), "target": str(made), "result": "ok"}
-    run.update(run_change or {})
-    log.update(log_change or {})
-    path = docs / ("testhost_%s_upgrade_run.json" % code)
-    path.write_text(json.dumps(run), encoding="utf-8")
-    (docs / ("testhost_%s_upgrade_log.json" % code)).write_text(json.dumps(log), encoding="utf-8")
-    return path
-
-
-def made_in_work(tmp_path, source_mark="source A", made_mark="copy A made again"):
-    """The work copy of the source of IMA and the copy a siteUpgrade job made of it, both right in the work folder."""
-    work = tmp_path / "work"
-    return work, rvt(work / MODEL_A, 2021, source_mark), rvt(work / MADE_A, 2024, made_mark)
 
 
 def test_r312_a_copy_whose_manifest_names_the_source_of_the_config_with_its_hash_of_today_is_reused(tmp_path):
@@ -233,15 +192,14 @@ def make_writable(root):
             os.chmod(path, stat.S_IREAD | stat.S_IWRITE)
 
 
-def test_r312_check_import_and_record_write_nothing_to_a_source(tmp_path):
+def test_r312_check_and_import_write_nothing_to_a_source(tmp_path):
     root = tree(tmp_path)
     sources = [root / "Revit All Zones" / MODEL_A, root / "Revit All Zones" / MODEL_C, root / "00_Revit Models" / "Zone 02" / "ARC" / ORIGINAL_C]
     (root / "Revit All Zones" / "2024" / MODEL_A).unlink()
     old = tmp_path / "sources.txt"
     old.write_text("%s sha256 %s from 00_Revit Models\\Zone 02\\ARC\\%s sha256 %s by the siteUpgrade job KC of a dummy round\n"
                    % (MODEL_C, digest(root / "Revit All Zones" / "2024" / MODEL_C), ORIGINAL_C, digest(sources[2])), encoding="utf-8")
-    work, work_copy, made = made_in_work(tmp_path)
-    run = upgrade_run(tmp_path, work_copy, made)
+    work = tmp_path / "work"
     before = {path: (digest(path), path.stat().st_size, path.stat().st_mtime_ns) for path in sources}
     # A source that can not be written can still be read by every step, so no step tries to write it
     for path in sources:
@@ -249,9 +207,7 @@ def test_r312_check_import_and_record_write_nothing_to_a_source(tmp_path):
     try:
         values = key_copies.load_keys(block())
         key_copies.import_sources(root, values, old)
-        key_copies.check(root, values, work)
-        key_copies.record(root, values, work, "IMA", made, "the siteUpgrade job KA of a dummy round", run)
-        assert key_copies.check(root, values, work)[0]["verdict"] == "reuse"
+        assert [row["verdict"] for row in key_copies.check(root, values, work)] == ["make", "reuse"]
     finally:
         make_writable(root)
     assert {path: (digest(path), path.stat().st_size, path.stat().st_mtime_ns) for path in sources} == before
@@ -340,130 +296,6 @@ def test_r312_every_function_of_key_copies_names_its_rule_in_the_first_line_of_i
         assert first and re.match(r"R[0-9]+\. ", first[0]), function.__name__
 
 
-def test_r312_record_moves_a_made_copy_into_the_copy_folder_never_over_a_file_and_writes_its_entry(tmp_path):
-    root = tree(tmp_path)
-    values = key_copies.load_keys(block())
-    work, work_copy, made = made_in_work(tmp_path)
-    run = upgrade_run(tmp_path, work_copy, made)
-    made_hash = digest(made)
-    # The old copy is still there, so nothing moves
-    with pytest.raises(key_copies.KeyCopyError, match="never overwritten"):
-        key_copies.record(root, values, work, "IMA", made, "run KA", run)
-    assert made.exists() and digest(root / "Revit All Zones" / "2024" / MODEL_A) != made_hash
-
-    (root / "Revit All Zones" / "2024" / MODEL_A).rename(tmp_path / "moved aside by hand.rvt")
-    written = key_copies.record(root, values, work, "IMA", made, "run KA", run)
-
-    assert not made.exists() and digest(root / "Revit All Zones" / "2024" / MODEL_A) == made_hash
-    assert written == {"code": "IMA", "copy": MODEL_A, "copySha256": made_hash, "source": "Revit All Zones\\" + MODEL_A,
-                       "sourceSha256": digest(root / "Revit All Zones" / MODEL_A), "format": 2024, "madeBy": "run KA"}
-    assert key_copies.read_manifest(root / "Revit All Zones" / "2024" / "key_copies.json")[MODEL_A.casefold()] == written
-    assert sorted(path.name for path in (root / "Revit All Zones" / "2024").iterdir()) == sorted([MODEL_A, MODEL_C, "key_copies.json"])
-
-
-def test_r312_record_refuses_a_made_copy_of_another_source_name_folder_or_format(tmp_path):
-    root = tree(tmp_path)
-    values = key_copies.load_keys(block())
-    (root / "Revit All Zones" / "2024" / MODEL_A).unlink()
-    work, work_copy, made = made_in_work(tmp_path, source_mark="another file of that name", made_mark="copy A")
-    run = upgrade_run(tmp_path, work_copy, made)
-    with pytest.raises(key_copies.KeyCopyError, match="not the source"):
-        key_copies.record(root, values, work, "IMA", made, "run KA", run)
-    with pytest.raises(key_copies.KeyCopyError, match="named"):
-        key_copies.record(root, values, work, "IMA", rvt(work / "other_TEST-KA.rvt", 2024, "x"), "run KA", run)
-    with pytest.raises(key_copies.KeyCopyError, match="work folder"):
-        key_copies.record(root, values, work, "IMA", rvt(tmp_path / MADE_A, 2024, "x"), "run KA", run)
-    work_copy = rvt(work / MODEL_A, 2021, "source A")
-    rvt(made, 2021, "copy A left in 2021")
-    run = upgrade_run(tmp_path, work_copy, made)
-    with pytest.raises(key_copies.KeyCopyError, match="format"):
-        key_copies.record(root, values, work, "IMA", made, "run KA", run)
-    assert not (root / "Revit All Zones" / "2024" / MODEL_A).exists()
-
-
-def test_r312_record_refuses_a_stale_made_copy_of_an_earlier_job_on_an_old_source_before_any_move_or_write(tmp_path):
-    root = tree(tmp_path)
-    values = key_copies.load_keys(block())
-    write_manifest(root, both_entries(root)[1:])
-    (root / "Revit All Zones" / "2024" / MODEL_A).unlink()
-    work = tmp_path / "work"
-    # An earlier job made _TEST-KA.rvt from the old source and left it with its run.json and log, both ok, an hour ago
-    old_copy = rvt(work / MODEL_A, 2021, "the old source A")
-    made = rvt(work / MADE_A, 2024, "copy A of the old source")
-    hour_ago = written(old_copy) - 3600
-    run = upgrade_run(tmp_path, old_copy, made, start=hour_ago, end=hour_ago + 120, made_at=hour_ago + 60)
-    # The source changed, its new work copy went in, and the next siteUpgrade was refused since _TEST-KA.rvt is there, so it wrote
-    # no run.json. The work copy hashes like the source of today, the copy is the old one
-    rvt(root / "Revit All Zones" / MODEL_A, 2021, "source A saved again")
-    rvt(work / MODEL_A, 2021, "source A saved again")
-    before = state(tmp_path)
-
-    with pytest.raises(key_copies.KeyCopyError, match="started before the work copy"):
-        key_copies.record(root, values, work, "IMA", made, "run KA", run)
-
-    assert state(tmp_path) == before
-
-
-@pytest.mark.parametrize("run_change, log_change, made_late, reason", [
-    ({"logResult": "failed"}, {}, False, "did not end ok"),
-    ({"exitCode": 1}, {}, False, "did not end ok"),
-    ({"stopReason": "the test host refused the job"}, {}, False, "did not end ok"),
-    ({"name": "KB_upgrade"}, {}, False, "not the run of"),
-    ({}, {"result": "failed"}, False, "did not end ok"),
-    ({}, {"kind": "upgrade"}, False, "not the log of"),
-    ({}, {"code": "KB"}, False, "not the log of"),
-    ({}, {"target": "another_TEST-KA.rvt"}, False, "names another"),
-    ({}, {"source": "another.rvt"}, False, "names another"),
-    ({}, {}, True, "not written in that run")])
-def test_r312_record_refuses_a_made_copy_its_run_does_not_prove(tmp_path, run_change, log_change, made_late, reason):
-    root = tree(tmp_path)
-    values = key_copies.load_keys(block())
-    (root / "Revit All Zones" / "2024" / MODEL_A).unlink()
-    work, work_copy, made = made_in_work(tmp_path)
-    start = written(work_copy) + 2
-    run = upgrade_run(tmp_path, work_copy, made, start=start, made_at=start + 500 if made_late else None, run_change=run_change, log_change=log_change)
-    before = state(tmp_path)
-
-    with pytest.raises(key_copies.KeyCopyError, match=reason):
-        key_copies.record(root, values, work, "IMA", made, "run KA", run)
-
-    assert state(tmp_path) == before
-
-
-def test_r312_record_reads_the_manifest_before_it_moves_so_an_unparsable_manifest_leaves_the_folder_as_it_was(tmp_path):
-    root = tree(tmp_path)
-    values = key_copies.load_keys(block())
-    (root / "Revit All Zones" / "2024" / MODEL_A).unlink()
-    (root / "Revit All Zones" / "2024" / "key_copies.json").write_text("{\"copies\": [", encoding="utf-8")
-    work, work_copy, made = made_in_work(tmp_path)
-    run = upgrade_run(tmp_path, work_copy, made)
-    before = state(tmp_path)
-
-    with pytest.raises(key_copies.KeyCopyError, match="no JSON"):
-        key_copies.record(root, values, work, "IMA", made, "run KA", run)
-
-    assert state(tmp_path) == before
-
-
-def test_r312_record_puts_the_copy_back_when_the_manifest_can_not_be_written(tmp_path, monkeypatch):
-    root = tree(tmp_path)
-    values = key_copies.load_keys(block())
-    write_manifest(root, both_entries(root)[1:])
-    (root / "Revit All Zones" / "2024" / MODEL_A).unlink()
-    work, work_copy, made = made_in_work(tmp_path)
-    run = upgrade_run(tmp_path, work_copy, made)
-    before = state(tmp_path)
-
-    def no_rename(*args):
-        raise OSError("the rename failed")
-    monkeypatch.setattr(key_copies.os, "replace", no_rename)
-    with pytest.raises(OSError, match="the rename failed"):
-        key_copies.record(root, values, work, "IMA", made, "run KA", run)
-
-    # The temporary manifest is gone too, so the folder holds what it held
-    assert state(tmp_path) == before
-
-
 def settings_file(tmp_path, root, values=None):
     """A project settings file with the input root, the answer keys and the round folder, whose work folder is tmp_path/work."""
     path = tmp_path / "project.json"
@@ -471,25 +303,39 @@ def settings_file(tmp_path, root, values=None):
     return path
 
 
-def test_r312_main_record_with_no_by_or_no_run_is_refused_before_anything_changes(tmp_path, capsys):
+def test_r312_import_writes_the_manifest_by_a_temporary_file_and_a_rename_so_a_failed_rename_leaves_no_file(tmp_path, monkeypatch):
     root = tree(tmp_path)
-    (root / "Revit All Zones" / "2024" / MODEL_A).unlink()
-    work, work_copy, made = made_in_work(tmp_path)
-    run = upgrade_run(tmp_path, work_copy, made)
+    old = tmp_path / "sources.txt"
+    old.write_text("%s sha256 %s from 00_Revit Models\\Zone 02\\ARC\\%s sha256 %s by the job KC\n"
+                   % (MODEL_C, digest(root / "Revit All Zones" / "2024" / MODEL_C), ORIGINAL_C, digest(root / "00_Revit Models" / "Zone 02" / "ARC" / ORIGINAL_C)), encoding="utf-8")
+    before = state(root)
+
+    def no_rename(*args):
+        raise OSError("the rename failed")
+    monkeypatch.setattr(key_copies.os, "replace", no_rename)
+    with pytest.raises(OSError, match="the rename failed"):
+        key_copies.import_sources(root, key_copies.load_keys(block()), old)
+
+    assert state(root) == before
+
+
+def test_r312_record_is_withdrawn_so_check_asks_for_a_remake_by_hand_and_no_step_files_a_made_copy(tmp_path, capsys):
+    root = tree(tmp_path)
+    write_manifest(root, both_entries(root))
+    rvt(root / "Revit All Zones" / MODEL_A, 2021, "source A saved again")
     settings = settings_file(tmp_path, root)
     before = state(tmp_path)
-    whole = ["--settings", str(settings), "record", "--code", "IMA", "--made", str(made), "--run", str(run), "--by", "run KA"]
 
-    for leave_out in ("--by", "--run", "--made", "--code"):
-        at = whole.index(leave_out)
-        with pytest.raises(SystemExit) as stop:
-            key_copies.main(whole[:at] + whole[at + 2:])
-        assert stop.value.code == 2 and leave_out in capsys.readouterr().err
-        assert state(tmp_path) == before
-
-    assert key_copies.main(whole) == 0
-    assert "IMA %s recorded, format 2024" % MODEL_A in capsys.readouterr().out
-    assert not made.exists() and (root / "Revit All Zones" / "2024" / MODEL_A).is_file()
+    found = verdicts(root, tmp_path)
+    assert found["IMA"]["verdict"] == "remake" and "Q069" in found["IMA"]["request"]["note"] and "withdrawn" in found["IMA"]["request"]["note"]
+    assert key_copies.main(["--settings", str(settings), "check"]) == 1
+    assert "no step of key_copies.py files a made copy, record is withdrawn (Q069)" in capsys.readouterr().out
+    # The command is gone, so nothing can file a copy a siteUpgrade job made
+    assert not hasattr(key_copies, "record")
+    with pytest.raises(SystemExit) as stop:
+        key_copies.main(["--settings", str(settings), "record", "--code", "IMA"])
+    assert stop.value.code == 2 and "invalid choice" in capsys.readouterr().err
+    assert state(tmp_path) == before
 
 
 def test_r312_main_check_prints_one_line_per_row_and_ends_0_only_when_every_copy_is_reused(tmp_path, capsys):
