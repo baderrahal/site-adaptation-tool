@@ -131,6 +131,42 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R303_the_watcher_goes_on_after_the_first_step_until_revit_exits_or_its_time_ends()
+        {
+            DateTime end = Now.AddMinutes(43);
+
+            Assert.Null(SecurityDialogs.StopReason(true, true, false, Now, end, 43));
+            Assert.Null(SecurityDialogs.StopReason(true, false, true, Now, end, 43));
+            Assert.Equal("the test host wrote its first log step", SecurityDialogs.StopReason(true, true, true, Now, end, 43));
+            Assert.Equal("Revit exited", SecurityDialogs.StopReason(false, true, false, Now, end, 43));
+            Assert.Equal("watched 43 minutes", SecurityDialogs.StopReason(true, true, false, end.AddSeconds(1), end, 43));
+        }
+
+        [Fact]
+        public void R303_after_the_first_step_the_watcher_answers_by_rule_3_only_and_stops_revit_on_nothing()
+        {
+            foreach (WatchAction action in Enum.GetValues(typeof(WatchAction)))
+            {
+                Assert.Equal(SecurityDialogs.ButtonFor(action) == null, SecurityDialogs.StopsRevit(action, false));
+                Assert.False(SecurityDialogs.StopsRevit(action, true));
+            }
+        }
+
+        [Fact]
+        public void R303_the_run_script_watches_the_whole_job_and_the_watcher_logs_the_buttons_of_every_window()
+        {
+            string script = RepoText("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
+            string watcher = RepoText("dotnet", "SiteAdaptation.DialogWatcher", "Program.cs");
+
+            Assert.Contains("'--minutes', [string]$TimeoutMinutes, '--watch-job', 'true'", script);
+            Assert.DoesNotContain("'--minutes', '10'", script);
+            Assert.Contains("SecurityDialogs.StopReason(", watcher);
+            Assert.Contains("SecurityDialogs.StopsRevit(action, jobPhase)", watcher);
+            Assert.Contains("Buttons = shownButtons", watcher);
+            Assert.DoesNotContain("report.Result = \"the test host wrote its first log step\"", watcher);
+        }
+
+        [Fact]
         public void R302_the_image_step_limit_is_no_constant_and_the_run_script_reads_it_from_the_config()
         {
             string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");

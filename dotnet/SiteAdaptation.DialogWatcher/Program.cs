@@ -25,6 +25,8 @@ namespace SiteAdaptation.DialogWatcher
             public string Out;
             public string StopLog;
             public double Minutes = 10;
+            // R303. Watch on through the job after the first log step of the test host, logging, until Revit exits or Minutes end
+            public bool WatchJob;
             public List<string> OurIds = new List<string>();
             public List<string> OurMarks = new List<string>();
             public List<string> OurPaths = new List<string>();
@@ -56,23 +58,22 @@ namespace SiteAdaptation.DialogWatcher
             var handled = new HashSet<string>(StringComparer.Ordinal);
             var seenOnce = new Dictionary<string, string>(StringComparer.Ordinal);
             var windows = new HashSet<string>();
+            bool jobPhase = false;
             while (true)
             {
                 Process revit = Alive(options.Pid);
-                if (revit == null)
+                bool firstStep = jobPhase || TestHostStarted(options.StopLog, report.StartedUtc);
+                string why = SecurityDialogs.StopReason(revit != null, firstStep, !options.WatchJob, DateTime.UtcNow, deadline, options.Minutes);
+                if (why != null)
                 {
-                    report.Result = "Revit exited";
+                    report.Result = why;
                     return Answered;
                 }
-                if (TestHostStarted(options.StopLog, report.StartedUtc))
+                if (firstStep && !jobPhase)
                 {
-                    report.Result = "the test host wrote its first log step";
-                    return Answered;
-                }
-                if (DateTime.UtcNow > deadline)
-                {
-                    report.Result = "watched " + options.Minutes + " minutes";
-                    return Answered;
+                    jobPhase = true;
+                    report.Notes.Add(DateTime.UtcNow.ToString("o") + " the test host wrote its first log step, from now on every window is logged and only rule 3 answers are clicked");
+                    JsonOut.Write(options.Out, report);
                 }
                 AutomationElementCollection tops;
                 try
@@ -104,9 +105,18 @@ namespace SiteAdaptation.DialogWatcher
                         }
                         if (!SecurityDialogs.IsDialog(windowClass, title))
                         {
-                            if (windows.Add(windowClass + " | " + title))
+                            // R303. Every other window of this Revit once per window and title, with its buttons and first texts.
+                            // The main frame is logged by class and title only, its parts are the whole Revit user interface
+                            if (windows.Add(key + " | " + title))
                             {
-                                report.Windows.Add(new WindowSeen { Utc = DateTime.UtcNow, WindowClass = windowClass, Title = title });
+                                List<string> shownTexts = new List<string>();
+                                List<string> shownButtons = new List<string>();
+                                if (!IsMainFrame(window, revit, title))
+                                {
+                                    ReadParts(window, out shownTexts, out shownButtons);
+                                }
+                                report.Windows.Add(new WindowSeen { Utc = DateTime.UtcNow, WindowClass = windowClass, Title = title, Buttons = shownButtons, Texts = shownTexts.Take(MaxTexts).ToList() });
+                                JsonOut.Write(options.Out, report);
                             }
                             continue;
                         }
@@ -139,6 +149,14 @@ namespace SiteAdaptation.DialogWatcher
                         JsonOut.Write(options.Out, report);
                         continue;
                     }
+                    if (!SecurityDialogs.StopsRevit(action, jobPhase))
+                    {
+                        // R303. After the first step a dialog rule 3 has no answer for is logged in full and left alone
+                        entry.Action = "Logged, " + entry.Action;
+                        report.Dialogs.Add(entry);
+                        JsonOut.Write(options.Out, report);
+                        continue;
+                    }
                     report.Dialogs.Add(entry);
                     report.Result = "stopped Revit: " + entry.Action + " on " + title;
                     Stop(revit, report);
@@ -146,6 +164,15 @@ namespace SiteAdaptation.DialogWatcher
                 }
                 Thread.Sleep(500);
             }
+        }
+
+        private const int MaxTexts = 10;
+
+        // The main frame of Revit, by its native handle or its title, whose parts are the whole user interface
+        private static bool IsMainFrame(AutomationElement window, Process revit, string title)
+        {
+            int handle = window.Current.NativeWindowHandle;
+            return (title ?? "").StartsWith("Autodesk Revit", StringComparison.Ordinal) || (revit != null && handle != 0 && new IntPtr(handle) == revit.MainWindowHandle);
         }
 
         // The top windows of Revit and the windows directly inside them
@@ -321,6 +348,9 @@ namespace SiteAdaptation.DialogWatcher
                     case "--minutes":
                         options.Minutes = double.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
                         break;
+                    case "--watch-job":
+                        options.WatchJob = bool.Parse(value);
+                        break;
                     case "--ours":
                         options.OurIds.AddRange(value.Split(',').Select(id => id.Trim().ToLowerInvariant()).Where(id => id.Length > 0));
                         break;
@@ -358,5 +388,7 @@ namespace SiteAdaptation.DialogWatcher
         public DateTime Utc { get; set; }
         public string WindowClass { get; set; }
         public string Title { get; set; }
+        public List<string> Buttons { get; set; } = new List<string>();
+        public List<string> Texts { get; set; } = new List<string>();
     }
 }

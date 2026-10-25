@@ -383,7 +383,8 @@ try {
     }
     $process = [Diagnostics.Process]::Start($info)
     $peak = 0
-    $watchArgs = @('--pid', $process.Id, '--out', $watchPath, '--stop-log', $logPath, '--minutes', '10', '--ours', ($ourIds -join ','), '--marks', ($ourMarks -join '|'), '--our-paths', ($ourPaths -join '|'))
+    # R303. The watcher answers the start dialogs by rule 3 and then logs every window of this Revit until it exits or the window limit ends
+    $watchArgs = @('--pid', $process.Id, '--out', $watchPath, '--stop-log', $logPath, '--minutes', [string]$TimeoutMinutes, '--watch-job', 'true', '--ours', ($ourIds -join ','), '--marks', ($ourMarks -join '|'), '--our-paths', ($ourPaths -join '|'))
     $watcher = Start-Process -FilePath $watcherExe -ArgumentList ($watchArgs | ForEach-Object { '"' + $_ + '"' }) -PassThru -WindowStyle Hidden
     if ($DryStart) {
         "Revit $($process.Id) started at $($start.ToString('HH:mm:ss')) with no job, the watcher answers the security dialogs"
