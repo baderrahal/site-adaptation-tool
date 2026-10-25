@@ -11,22 +11,23 @@ Goal:
 
 Done:
 - 0a, 0b (PR 41, 42): the harness and the open fixes, R277, R280, R300 to R304, R303 withdrawn (Q064)
-- 1 (PR 43): R310 window samples, R311 site facts, R203 BIM 360 BasicFileInfo, R204 the source in the work folder, R301 copies counted apart. The 7 Revit 2024 copies in Revit All Zones\2024 share one survey point, base point and position, angle 0, metric
-- 1b (PR 44, in review): R312 answerKeys in config/project.json and python/key_copies.py, which reuses a copy only on the code, source path, source hash, copy hash and format of today, else asks for a siteUpgrade job and never overwrites. key_copies.json beside the copies replaces sources.txt, R301 reads it. R313 the upgrade job on the prototype set STR: the 13 STR prototypes upgraded into Prototypes_2024\STR (Q067 closed). CLAUDE.md names R310 to R313
-- Gate: Python 1163 passed and 1 skipped, .NET build 0 errors, .NET 497 passed
+- 1 (PR 43): R310 window samples, R311 site facts, R203 BIM 360 BasicFileInfo, R204 the source in the work folder, R301 copies counted apart
+- 1b (PR 44, in review): R312 answerKeys and python/key_copies.py reuse a copy only on the code, source path, source hash, copy hash and format of today, else ask for a siteUpgrade job and never overwrite. key_copies.json replaces sources.txt, R301 reads it. R313 the 13 STR prototypes upgraded into Prototypes_2024\STR (Q067 closed)
+- 1b review: record files a copy only when its run.json and log prove it came from this work copy in this run, names hold their own code, paths compare as Windows opens them, import and check list every fault, the key shapes and the prototype name parts sit in config
+- Gate at the final head: Python 1215 passed and 1 skipped, .NET build 0 errors, .NET 516 passed (round_addin\logs\p1b_final_gate_*.txt)
 
 Checked:
-- 1b: the 7 copies reuse 7 of 7 from the manifest, Get-FileHash and the Revit targetInfo 42 of 42. The 13 STR files Format 2024 by bytes and by Revit, 65 of 65 checks, their names the 13 STR links of the SE models. 60 of 60 files equal before and after by two hash tools: 40 originals, 7 copies, 13 STR 2021 files. The R301 names by two methods 7 of 7. This Your turn equals Bader's turn of steps/PROGRESS.md
+- 1b: the 7 copies reuse 7 of 7 at the final head (p1b_final_key_copies_check.txt), Get-FileHash and the Revit targetInfo 42 of 42. The 13 STR files 65 of 65 checks, 13 files times 5 (format by bytes, by Revit, size, log ok, exit 0), their names the 13 STR links of the SE models. The run proof parts 35 of 35 on the Phase 1 runs. The 7 sources.txt lines equal the manifest and the hash list 35 of 35, its hash before the move UNKNOWN. 60 of 60 files equal before and after by two hash tools: 40 originals, 7 copies, 13 STR 2021 files. The R301 names by two methods 7 of 7. This Your turn equals Bader's turn of steps/PROGRESS.md
 
 Remains:
-- Phases 2 to 6
+- Phases 2 to 6. Reinstall the test host before the next window, its guard now takes prototypeNames from the job
 
 Known bugs:
-- The whole NBH 03 area runs past the 30 minute image step, I25 did not respond at 10,732 MiB (10.48 GiB) private (Q063). Revit starts up to 10 processes of about 1.2 GiB private
-- rvt_info.py (R203) does not see cloud links: the TransmissionData of the SE models lists 1 of their 14 Revit links
+- The whole NBH 03 area runs past the 30 minute image step (Q063). Revit starts up to 10 processes of about 1.2 GiB private
+- rvt_info.py (R203) does not see cloud links, the SE models list 1 of their 14 Revit links
 - The Generic floors of IME and IMF are of type FFL, not Generic 150mm, so floors.types does not find them
-- The top level angleToTrueNorthDeg of the reader has 3 decimals and is not brought into 0 to 360. The placer takes 0 only and the 7 models are at 0. Phase 4 moves it to C#
-- The .NET build gives 1 warning older than this round, xUnit2013 at dotnet/SiteAdaptation.Tests/CadExplodeTests.cs line 206
+- angleToTrueNorthDeg of the reader has 3 decimals and is not brought into 0 to 360, the placer takes 0 only, the 7 models are at 0
+- The .NET build gives 1 old warning, xUnit2013 in CadExplodeTests.cs line 206
 
 Next:
 - Phase 2: the 7 keys read from the 2024 copies into plan files and past_all.csv, the Parsons area codes, the FFL floor type
