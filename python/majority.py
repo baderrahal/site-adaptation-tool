@@ -657,6 +657,16 @@ def level_groups(profile, block):
     return found
 
 
+def level_road_names(groups, profile, settings):
+    """R339. The road surfaces the levels of the groups a build by keyRules builds are measured on, those plan_rules.road_names gives the
+    level profile of each, the setting a build asks. Groups that ask other surfaces are refused, one run measures on one road."""
+    found = {tuple(plan_rules.road_names(settings.get("siteBuild"), plan_rules.level_profile(profile, name))) for name in groups.values()}
+    if len(found) > 1:
+        raise project_profile.ProfileError("the level profiles of %s ask other road surfaces, %s, a run measures the levels on one road (R339)"
+                                           % (", ".join(sorted(groups)), " and ".join(", ".join(names) for names in sorted(found))))
+    return list(next(iter(found))) if found else []
+
+
 def need_roads(groups, landxml, scratch):
     """R339. The levels of a group a build by keyRules builds are held against the road the build gives at the front corners, so
     the run needs the LandXML surfaces the build asks and a scratch folder for their reader, else it is refused."""
@@ -865,7 +875,7 @@ def run_args(args):
     road_surfaces, snap = [], 0.0
     if built_levels:
         plot_relations.refuse_inside_repo(Path(args.scratch).resolve())
-        road_surfaces = plan_from_book.load_roads([Path(args.landxml) / (name + ".xml") for name in settings.get("siteBuild")["roadSurfaces"]], args.scratch)
+        road_surfaces = plan_from_book.load_roads([Path(args.landxml) / (name + ".xml") for name in level_road_names(built_levels, profile, settings)], args.scratch)
         snap = settings.get("siteBuild")["snapM"]
     site_extra = {}
     items, clusters, front, numbers, tree = site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block, road_surfaces, snap, site_extra)

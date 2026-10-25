@@ -1275,6 +1275,13 @@ def level_verdicts(rows, road, shapes, units, report, profile, lp, block, reads)
     return {pair: verdict for pair, verdict in found.items() if verdict}
 
 
+def own_road_names(settings, lp):
+    """R341. The road surfaces of the levels by the own route: siteBuild.roadSurfaces for the road of frontRoad roadLevel, else the one
+    surface frontRoad names."""
+    surface = lp["frontRoad"]["surface"]
+    return list(settings["siteBuild"]["roadSurfaces"]) if surface == "roadLevel" else [surface]
+
+
 def one_sided(own, first, group):
     """R341. The level items only one method holds, each a mismatch: an own verdict of an item the first method did not judge, own its
     verdict and first no item, and an item the first method judged, levelItems of its report, that the own route gives no verdict of,
@@ -1332,7 +1339,7 @@ def level_inputs(ctx, settings, profile, rows, folder):
             corners[plot] = (frame["left"], frame["right"])
     points = [point for pair in corners.values() for point in pair]
     box = (min(x for x, _ in points), min(y for _, y in points), max(x for x, _ in points), max(y for _, y in points)) if points else None
-    tins = [(name, OwnTin(Path(folder) / (name + ".xml"), box)) for name in settings["siteBuild"]["roadSurfaces"]]
+    tins = [(name, OwnTin(Path(folder) / (name + ".xml"), box)) for name in own_road_names(settings, lp)]
     snap = settings["siteBuild"]["snapM"]
     setbacks = profile["ramp"]["front_setback"]
     road = {}

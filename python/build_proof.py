@@ -294,7 +294,7 @@ def explain(key, plot, field, entry, row, ctx, detail):
         if (key, plot, moved) in ctx["overrides"] and moved not in (record.get("applied") or []):
             return "override", (record.get("notApplied") or {}).get(moved) or "an override of the key, plot and field the build counts as not placed"
     if field.startswith(plan_rules.PARAMETER) and steps_only(entry, row, field, ctx):
-        return "laterPhase", "differs only by the steps the stepBands of the level profile give, 3c codes the steps"
+        return "laterPhase", "differs only by the steps the stepBands of the level profile give, keyRules codes no steps"
     return "unexplained", detail
 
 

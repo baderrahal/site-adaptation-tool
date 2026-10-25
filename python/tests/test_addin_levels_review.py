@@ -208,3 +208,67 @@ def test_r338_key_rules_holds_per_unit_sequence_the_clusters_of_each_split_and_w
     assert found["bySequence"]["DP1 TH1 TH1 DP1"] == {"coded": "middle", "clusters": 37, "holds": 17, "share": 0.4595, "strong": False, "tie": False,
                                                       "patterns": {"middle": 17, "none": 7, "walls 1": 6, "walls 3": 7}}
     assert found["bySequence"]["DP3 TH3 TH3 DP3"]["strong"] is True and found["bySequence"]["DP3 TH3 TH3 DP3"]["share"] == 0.95
+
+
+# R339, R340 a build and the measure of its levels ask the road surfaces of one setting
+def test_r339_the_measure_and_a_build_take_the_road_surfaces_from_one_setting():
+    import json
+    import key_rules_check
+    import majority
+    import plan_rules
+    import project_profile
+    from test_addin_levels import LP, PROFILE, SETTINGS
+    block = SETTINGS.get("siteBuild")
+    assert plan_rules.road_names(block, LP) == list(block["roadSurfaces"])
+    named = dict(LP, frontRoad=dict(LP["frontRoad"], surface="Made Up Surface"))
+    assert plan_rules.road_names(block, named) == ["Made Up Surface"]
+    values = json.loads(json.dumps(PROFILE.values))
+    values["levelProfiles"]["parsons2024Rev6"]["frontRoad"]["surface"] = "Made Up Surface"
+    profile = project_profile.ProjectProfile(PROFILE.path, values)
+    assert majority.level_road_names({"parsons": "parsons2024Rev6"}, profile, SETTINGS) == ["Made Up Surface"]
+    assert majority.level_road_names({"parsons": "parsons2024Rev6"}, PROFILE, SETTINGS) == list(block["roadSurfaces"])
+    # The second method by its own route
+    assert key_rules_check.own_road_names(SETTINGS.values, named) == ["Made Up Surface"]
+    assert key_rules_check.own_road_names(SETTINGS.values, LP) == list(block["roadSurfaces"])
+
+
+# R340 one FFL per piece needs the split and the base the keys were measured on
+def test_r340_one_ffl_per_piece_with_no_split_or_no_base_height_in_key_rules_is_refused():
+    import pytest
+    import plan_rules
+    import project_profile
+    from test_addin_review import made_key_rules
+    for word in ("levelSplit", "baseHeight"):
+        rules = dict(made_key_rules(), **{name: value for name, value in LEVEL_RULES.items() if name != word})
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_rules.check_key_rules(rules)
+        assert word in str(error.value) and "R340" in str(error.value)
+    whole = dict(made_key_rules(), **{name: value for name, value in LEVEL_RULES.items() if name != "levelSplit"})
+    whole["ffl"] = {"rule": "oneFflPerClusterAtTheHighestEntry"}
+    plan_rules.check_key_rules(whole)
+
+
+# R280, R340 a steps override is a whole number
+def test_r280_a_steps_override_that_is_no_whole_number_is_refused(tmp_path):
+    import json
+    import pytest
+    import plan_rules
+    import project_profile
+    from test_addin_review import entry
+    groups = {"native": ["u11"], "parsons": ["imc"]}
+    path = tmp_path / "list.json"
+    for bad in ("2.6", 2.6, "two"):
+        path.write_text(json.dumps({"note": "n", "overrides": [entry("2", "steps", bad, "parsons", "IMC.rvt", "imc")]}), encoding="utf-8")
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_rules.load_overrides(path, {"parsons"}, None, groups)
+        assert "whole number" in str(error.value) and "plot 2" in str(error.value)
+    path.write_text(json.dumps({"note": "n", "overrides": [entry("2", "steps", "2", "parsons", "IMC.rvt", "imc")]}), encoding="utf-8")
+    assert plan_rules.load_overrides(path, {"parsons"}, None, groups) == {"2": {"steps": "2"}}
+
+
+# R340 the print names the steps rule of keyRules
+def test_r340_a_build_by_the_level_rules_prints_the_steps_of_key_rules_and_no_later_phase(tmp_path, monkeypatch):
+    import plan_from_book
+    found, plan = level_build(tmp_path, monkeypatch)
+    lines = "\n".join(plan_from_book.summary_lines(plan["summary"], "parsons2024Rev6", False))
+    assert "by keyRules.steps stepsFromHeight of parsons2024Rev6" in lines and "until 3c" not in lines

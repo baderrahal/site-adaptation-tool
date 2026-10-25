@@ -55,7 +55,7 @@ ESTIMATE = "estimate"
 LOCATION = "locationPlan"
 OVERRIDE = "override"
 KEY_RULES = "keyRules"
-# R337. The source of a parameter that reads the steps, the stepBands of the level profile until 3c codes the steps
+# R337. The source of a parameter that reads the steps, the stepBands of the level profile when keyRules codes no steps
 STEP_BANDS = "levelProfileStepBands"
 sourced = plan_from_cad.sourced
 
@@ -269,9 +269,9 @@ def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers
             outcomes.applied(number, "heightM")
         elif "heightM" in mine:
             outcomes.left(number, "heightM", NO_GAP)
-        count = key_rules.number(mine.get("steps"))
+        count = plan_rules.whole_number(mine.get("steps"))
         if count is not None:
-            row["steps"] = int(count)
+            row["steps"] = count
             outcomes.applied(number, "steps")
         elif "steps" in mine:
             outcomes.left(number, "steps", "the override holds no step count")
@@ -744,9 +744,8 @@ def main(argv=None):
             everything = [found for found in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]} for cluster in everything) if len(found["plots"]) > 1]
         # R277. Every build follows a level profile, the named one or levelProfiles.default
         rules = rule_inputs(args, settings, profile, cover["plots"], rows, faces, roads, sales, everything)
-        road = rules["levelProfile"]["frontRoad"]["surface"]
-        names = block["roadSurfaces"] if road == "roadLevel" else [road]
-        surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in names], args.scratch)
+        # R339, R340. The road surfaces of the one setting majority.py measures the levels on
+        surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in plan_rules.road_names(block, rules["levelProfile"])], args.scratch)
         # R337. A build by keyRules takes the clusters of every unit plot, the site as the keys were measured on (R271)
         plan = build(cover["plots"], rows, number_of, faces, roads, everything if by_keys else clusters, profile, settings,
                      prototype_offsets.plot_frame(prototype_offsets.load(args.offsets)), folder_files(folder, profile), folder,
@@ -780,7 +779,8 @@ def summary_lines(summary, name, named):
             ", ".join(later), ", ".join("%s %d" % (field, applied[field]) for field in later if applied.get(field)) or "none",
             ", ".join("%s %d" % (field, left[field]) for field in later if left.get(field)) or "none"))
     if rules.get("steps"):
-        lines.append("steps and %s by the %s until 3c codes the steps (R337)" % (", ".join(rules["steps"]["parameters"]), rules["steps"]["from"]))
+        lines.append("steps and %s by %s%s" % (", ".join(rules["steps"]["parameters"]), rules["steps"]["from"],
+                                                " (R340)" if rules["steps"]["from"].startswith("keyRules") else ", keyRules codes no steps (R337)"))
     for zone, found in (rules.get("yardNotMeasured") or {}).items():
         lines.append("yard of %s on %d plots not measured on a key: %s (R337)" % (zone, found["plots"], found["why"]))
     lines.append("plots written %d of %d, missing %s" % (summary["written"], summary["plots"], summary["missingByKey"]))

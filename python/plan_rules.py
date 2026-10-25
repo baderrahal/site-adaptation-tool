@@ -34,8 +34,11 @@ LEVEL_RULES = ("ffl", "fflDownToTheCm")
 # R340. The level rules of keyRules a build carries out, optional, a profile with none builds the levels of R278
 LEVEL_WORDS = {"entry": ("roadLevel",), "rampFront": ("roadLevel",), "levelSplit": ("none", "units"), "baseHeight": ("profile", "typology"),
                "ffl": ("oneFflPerPieceAtTheHighestEntry", "oneFflPerClusterAtTheHighestEntry", "ownEntryPlusBase"), "steps": ("stepsFromHeight", "stepBands")}
-# R340. The level rules a build needs once keyRules holds the FFL
-LEVEL_NEEDED = ("entry", "steps")
+# R340. The level rules a build needs once keyRules holds the FFL, the base the keys were measured on among them, and one FFL per piece
+# its split, so a build never gives whole clusters or another base than the measure of the gaps
+LEVEL_NEEDED = ("entry", "steps", "baseHeight")
+PIECE_NEEDED = {"oneFflPerPieceAtTheHighestEntry": ("levelSplit",)}
+ROAD_LEVEL = "roadLevel"
 # R337. The parameter rules that read the steps, which the stepBands of the level profile give until 3c codes the steps
 STEP_RULES = ("steps", "typologySteps", "plotCodeStepsAndFacade")
 NO_YARD = "noYard"
@@ -196,9 +199,18 @@ def check_key_rules(rules):
         if word in rules:
             need(word, allowed, *(("table",) if (rules[word] or {}).get("rule") in ("units", "typology") else ()))
     if "ffl" in rules:
-        for word in LEVEL_NEEDED:
+        needed = LEVEL_NEEDED + PIECE_NEEDED.get(rules["ffl"]["rule"], ())
+        for word in needed:
             if word not in rules:
-                raise project_profile.ProfileError("keyRules codes ffl and no %s, a build of the levels by keyRules needs both (R340)" % word)
+                raise project_profile.ProfileError("keyRules codes ffl %s and no %s, a build of the levels by keyRules needs %s (R340)"
+                                                   % (rules["ffl"]["rule"], word, ", ".join(needed)))
+
+
+def road_names(site_build, lp):
+    """R339, R340. The road surfaces a build asks for El @ Entry and the ramp front, the one setting plan_from_book.py and majority.py
+    take them from: siteBuild.roadSurfaces in their order for frontRoad roadLevel, else the one surface frontRoad names."""
+    surface = lp["frontRoad"]["surface"]
+    return list(site_build["roadSurfaces"]) if surface == ROAD_LEVEL else [surface]
 
 
 def key_levels_of(rules):
@@ -339,11 +351,17 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
     if missing:
         raise project_profile.ProfileError("the override list holds no override of %s among the sources %s (R280, R330)" % (", ".join(missing), ", ".join(sorted(sources))))
     # R280. An override with no value is no value to apply, a build refuses it, never writes it as the text None or counts it applied
-    empty = ["plot %s field %s of %s" % (item["plot"], item.get("field"), item.get("model")) for item in chosen
-             if (fields is None or item.get("field") in fields) and item.get("value") is None]
+    loaded = [item for item in chosen if fields is None or item.get("field") in fields]
+    empty = ["plot %s field %s of %s" % (item["plot"], item.get("field"), item.get("model")) for item in loaded if item.get("value") is None]
     if empty:
         raise project_profile.ProfileError("%d overrides of the build hold no value: %s. A miss with no value belongs in the cannot list of R272, take it out "
                                            "of overrides (R280)" % (len(empty), " | ".join(empty[:10])))
+    # R280, R340. A step count is a whole number, 2.6 is never cut to 2 in silence
+    broken = ["plot %s value %s of %s" % (item["plot"], json.dumps(item["value"]), item.get("model")) for item in loaded
+              if item.get("field") == "steps" and whole_number(item["value"]) is None]
+    if broken:
+        raise project_profile.ProfileError("%d steps overrides hold no whole number: %s. Give the step count as a whole number (R280, R340)"
+                                           % (len(broken), " | ".join(broken[:10])))
     found, origin, twice = defaultdict(dict), {}, []
     for item in chosen:
         if fields is None or item.get("field") in fields:
@@ -358,6 +376,15 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
         raise project_profile.ProfileError("%d plots hold two overrides of one field: %s. Narrow the list with --override-model or edit it by hand (R280)"
                                            % (len(twice), " | ".join(twice[:10])))
     return dict(found)
+
+
+def whole_number(value):
+    """The whole number a step count holds, as a number or its text, None for any other value such as 2.6 or two."""
+    try:
+        found = float(value)
+    except (TypeError, ValueError):
+        return None
+    return int(found) if found.is_integer() else None
 
 
 def gap_of(value):
