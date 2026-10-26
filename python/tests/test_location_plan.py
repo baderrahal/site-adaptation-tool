@@ -115,3 +115,10 @@ def test_r184_spelled_reads_the_code_over_the_number():
     raw = chars("DP4 (SA)", 10, 5) + chars("2172", 11, 6.56) + chars("2173", 30, 6.56)
     assert location_plan_check.spelled(raw, 12, 5.8, "DP4 (SA)", "2172", 4)
     assert not location_plan_check.spelled(raw, 12, 5.8, "DP4 (SA)", "2173", 4)
+
+
+def test_r385_labels_csv_writes_the_page_and_site_points_of_a_label_by_the_rule():
+    # data_book.py wires the labels to the faces by these site points, the page points are compared by the parity of step 3 (R351)
+    assert location_plan.page_cells({"x": 2.0465, "y": 0.5005}) == {"pageX": 2.047, "pageY": 0.501}
+    assert location_plan.site_cells("512345.6785", 2361234.1235) == {"east": 512345.679, "north": 2361234.124}
+    assert round(512345.6785, 3) == 512345.678 and round(2.0465, 3) == 2.046

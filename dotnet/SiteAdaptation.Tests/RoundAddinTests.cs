@@ -48,7 +48,7 @@ namespace SiteAdaptation.Tests
             return File.ReadAllText(Path.Combine(new[] { folder }.Concat(parts).ToArray()));
         }
 
-        [Fact]
+        [WindowsFact]
         public void R302_the_image_step_takes_the_limit_the_job_names()
         {
             GuardResult result = Check(Image());
@@ -58,7 +58,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(45, TestHostGuard.ImageStepMinutes(Check(Image(job => job["imageMinutes"] = 45)).Job));
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData(0.0)]
         [InlineData(-1.0)]
         [InlineData(double.NaN)]
@@ -82,7 +82,7 @@ namespace SiteAdaptation.Tests
             Assert.Throws<InvalidOperationException>(() => TestHostGuard.ImageStepMinutes(new TestHostJob { Kind = "image" }));
         }
 
-        [Fact]
+        [WindowsFact]
         public void R302_the_total_of_an_image_job_may_run_to_the_usual_cap_plus_its_image_minutes_and_no_further()
         {
             Assert.True(Check(Image(job => job["totalMinutes"] = TestHostGuard.MaxTotalMinutes + 30)).Act);
@@ -94,7 +94,7 @@ namespace SiteAdaptation.Tests
             Assert.False(Check(read).Act);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R302_a_job_with_no_total_runs_its_image_step_plus_the_margin_and_never_less_than_the_image_step()
         {
             Assert.Equal(40, TestHostGuard.TotalMinutesOf(Check(Image(job => job["imageMarginMinutes"] = 10)).Job));

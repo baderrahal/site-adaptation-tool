@@ -216,5 +216,62 @@
     "kindDiscipline": {"note": "R337. The discipline of the prototype files a key of that kind links where it is not the one a build links, prototypeNames.discipline: an SE model links the STR file of the code.", "SE": "STR"},
     "decidedByQuestion": {"note": "R337, R272. Plots and fields an open question decides, by its ID: the coded rule gives them, majority.py writes no override of them and lists them, the proof of a build counts them apart.", "Q017": {"fields": ["prototypeFile", "mirrored"], "plots": {"imc": ["2301", "2302"], "img": ["544"]}, "why": "the build links the VD4 file of the Rev 9 code, the key the DP4 file, the hand of a VD4 file is not the hand of a DP4 file"}},
     "keyRulesBlock": {"note": "R338. What python/key_rules_block.py takes besides majority.json to write keyRules of levelProfile in the rules profile: keyRulesNote, the note of the block, zonePrefix, which plots.csv puts before a zone past_all.csv spells as a number, zoneFrom, a zone no key of the group holds taken from zones that give one value, else refused, with why, nativeRound17, the Native share of Round 17 beside a decision, and the texts of the site facts, the flat ramps and the walls. The group is majority.check.group, the native share that of the other group of majority.groups, the holds those of majority.", "levelProfile": "parsons2024Rev6", "keyRulesNote": "Round ADDIN 3a (R331 to R335). The rules the 7 Parsons answer keys follow, measured by python/majority.py on round_addin past_all.csv: the candidate coded, its share over the Parsons plots it covers and per key, strong at majority.strongShare, the share of the Native keys beside it (native, this run, nativeRound17, the table of Round 17 where it had one) and the plots it misses, each an override of source parsons in config/overrides. The values are lengths, angles and names, never a coordinate or a level.", "zonePrefix": "Zone ", "zoneFrom": {"Zone 1": {"from": ["Zone 2", "Zone 3"], "why": "taken from the Zone 2 and 3 value pending Q066, no Parsons TU key holds Zone 1 and the SE rows of IMA and IMB are left out of the yard"}}, "nativeRound17": {"rampSlope": 0.977, "hand villa": 0.945, "hand cluster": 0.983, "hand alone": 0.714, "frontCorner": 0.967, "rampFront": 0.634, "rampFrontFall": 0.623, "generic": 0.899, "yard": 1.0, "parameter CASE": 0.314}, "siteEqual": "survey point and project base point in internal and shared coordinates, project position, angle to true north, shared site, place, level elevations and units", "sitePosition": "the project position, survey point and base point of the reference key read, outside git, Q068", "siteNative": "the 4 Native keys hold one set of their own, its survey point %.0f km from the Parsons one in shared coordinates", "flatRampRule": "no flat ramp is coded, a key ramp of the flat type is an override", "wallListedIn": "wallMisses of the report, outside git, no override (R335)"}
+  },
+  "addin": {
+    "note": "Round ADDIN 4a, docs/addin-design.md sections 2, 5 and 6. The worker run of R347 reads workerPeakMiB and workerTimeLimitS, the floor of free memory stays siteBuild.minFreeGB (R200). The rest of the block of section 6, overrideFile, workFolder, the position file, the names of the config files beside this one, the wall types, the shared parameters with their GUIDs, the floor type thicknesses and the check point pass limit, comes with the PR that reads it",
+    "workerPeakMiB": {
+      "roles": ["curbs", "baseplan", "villaBlocks"],
+      "files": [
+        {"name": "Makkah Phase 1_Road Layout.dwg", "bytes": 82061457, "peakMiB": 2612},
+        {"name": "ROSHN Makkah Baseplan.dwg", "bytes": 1279917, "peakMiB": 100},
+        {"name": "Makkah Building Footprint.dwg", "bytes": 1198438, "peakMiB": 80}
+      ]
+    },
+    "workerPeakNote": "R347. The roles whose read is a large read and the peak private memory in MiB the CadReader read of each drawing took, keyed by its file name and size in bytes, so a file of those roles with no measured peak, another drawing or another size, takes the largest one. The sizes and the private peaks 2,571, 100 and 77 MiB are those of round_addin logs cadreader_peaks_pr49.txt on copies at 67c1fa0, whose peak paged by the OS was 2,571, 101 and 80. The values here are the highest seen: 2,612 MiB of the Road Layout is the claim-checker rerun of PR 49 and 80 MiB of the footprint the first run of 3b, neither output saved, 100 MiB of the baseplan the saved log",
+    "workerTimeLimitS": {
+      "read": 600,
+      "build": 600,
+      "levelExcel": 60,
+      "reportExcel": 600,
+      "exportChecks": 600,
+      "position": 600
+    },
+    "workerTimeLimitNote": "CHOSEN in docs/addin-design.md: 600 s for a read, 28 times the 21.2 s of the Road Layout read, and 60 s for the level Excel, the other commands 600 s until the PR that builds each measures it",
+    "workerTimeLimitMinS": 10,
+    "workerTimeLimitMinNote": "R347. The shortest time limit a launch takes, a request under it is refused before the start, so a limit typed too short never kills a sound run. CHOSEN in the second review of PR 50: 10 s, ten times the 1.0 s the worker build of the step faces took on the 2,704 unit plots of the snapshot, its start included",
+    "parity": {
+      "note": "R345. The tolerance of each kind of field before R385 rounds it, in metres, square metres or degrees, null for a kind compared exactly. After rounding the two sides are equal, or one unit of the last place apart only where the two unrounded values lie within the tolerance and straddle a rounding boundary of R385, each such case listed by step, plot, field and both unrounded values. docs/addin-design.md section 5",
+      "kinds": {
+        "points": 1e-06,
+        "levels": 1e-06,
+        "areas": 1e-06,
+        "angles": 1e-06,
+        "noGeometry": null
+      },
+      "pagePointsPt": 0.01,
+      "steps": {
+        "faces": {
+          "face": {
+            "kind": "noGeometry"
+          },
+          "area": {
+            "kind": "areas",
+            "decimals": 3
+          },
+          "centroid": {
+            "kind": "points",
+            "decimals": 3
+          },
+          "boundsMin": {
+            "kind": "points",
+            "decimals": 3
+          },
+          "boundsMax": {
+            "kind": "points",
+            "decimals": 3
+          }
+        }
+      }
+    }
   }
 }

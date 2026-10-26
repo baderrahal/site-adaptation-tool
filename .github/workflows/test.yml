@@ -25,13 +25,39 @@ jobs:
           dotnet-version: "8.0.x"
       - name: Build
         run: dotnet build dotnet/SiteAdaptation.sln -c Release
+      # R11, R346. The test project runs on net48 and net8.0, one trx file per target, each must have run tests
       - name: Run .NET tests
         shell: pwsh
         run: |
           dotnet test dotnet/SiteAdaptation.sln -c Release --no-build --logger trx --results-directory TestResults
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $trx = Get-ChildItem -Recurse -Path TestResults -Filter *.trx | Select-Object -First 1
-          [xml]$xml = Get-Content $trx.FullName
-          $total = [int]$xml.TestRun.ResultSummary.Counters.executed
-          Write-Host "tests ran $total"
-          if ($total -le 0) { throw "No .NET tests ran" }
+          $files = @(Get-ChildItem -Recurse -Path TestResults -Filter *.trx)
+          if ($files.Count -lt 2) { throw "No .NET tests ran on one of the two targets, trx files: $($files.Count)" }
+          foreach ($trx in $files) {
+            [xml]$xml = Get-Content $trx.FullName
+            $total = [int]$xml.TestRun.ResultSummary.Counters.executed
+            Write-Host "$($trx.Name) tests ran $total"
+            if ($total -le 0) { throw "No .NET tests ran in $($trx.Name)" }
+          }
+
+  # R346. The net8.0 leg of the tests of Common and the worker on Linux
+  dotnet-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Run .NET tests on net8.0
+        shell: pwsh
+        run: |
+          dotnet test dotnet/SiteAdaptation.Tests/SiteAdaptation.Tests.csproj -c Release -f net8.0 --logger trx --results-directory TestResults
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $files = @(Get-ChildItem -Recurse -Path TestResults -Filter *.trx)
+          if ($files.Count -lt 1) { throw "No .NET tests ran, no trx file" }
+          foreach ($trx in $files) {
+            [xml]$xml = Get-Content $trx.FullName
+            $total = [int]$xml.TestRun.ResultSummary.Counters.executed
+            Write-Host "$($trx.Name) tests ran $total"
+            if ($total -le 0) { throw "No .NET tests ran in $($trx.Name)" }
+          }

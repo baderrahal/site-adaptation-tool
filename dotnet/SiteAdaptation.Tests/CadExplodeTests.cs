@@ -318,7 +318,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(7, fromLeader.X, 6);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R21_xref_is_recorded_with_name_path_and_found_and_the_run_carries_on()
         {
             var document = new CadDocument();

@@ -45,14 +45,14 @@ namespace SiteAdaptation.Tests
             return TestHostGuard.Check(job.ToString(), Token, Now, path => path == PlanPath || path == Master || path == Work || path == @"C:\Models\site_TEST-WORK-S8.rvt");
         }
 
-        [Fact]
+        [WindowsFact]
         public void R117_a_master_job_with_code_MST_on_the_master_file_that_deletes_all_floors_is_run()
         {
             GuardResult result = Check(Job("master", "MST", Master));
             Assert.True(result.Act, result.Reason);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R117_a_master_job_on_another_name_with_another_code_or_without_deleting_all_is_refused()
         {
             Assert.Contains("_TEST-MASTER.rvt", Check(Job("master", "MST", Work)).Reason);
@@ -63,7 +63,7 @@ namespace SiteAdaptation.Tests
             Assert.False(Check(Job("master", "MST", @"C:\Models\site.rvt")).Act);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R117_a_floors_job_runs_only_on_the_work_file_of_its_scenario_code()
         {
             Assert.True(Check(Job("floors", "S1", Work)).Act);
@@ -73,7 +73,7 @@ namespace SiteAdaptation.Tests
             Assert.False(Check(Job("floors", "S1", @"C:\Models\site_TEST-WORK-S1_TEST-WORK-S1.rvt")).Act);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R117_the_floor_options_are_checked_and_each_goes_only_where_it_means_something()
         {
             Assert.True(Check(Job("floors", "S1", Work, job =>
@@ -99,7 +99,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("go with a floors", TestHostGuard.Check(place.ToString(), Token, Now, path => true).Reason);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R117_links_and_floors_names_a_prototype_file_and_floors_alone_names_none()
         {
             Assert.True(Check(Job("linksAndFloors", "S8", @"C:\Models\site_TEST-WORK-S8.rvt", job => job["prototypeFile"] = "RRE-WP-NSP-KEO-ARC-C10-ZZ-MOD-1500.rvt")).Act);
@@ -121,7 +121,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(@"C:\Models\site.rvt", TestHostGuard.OriginalOf(Master));
         }
 
-        [Fact]
+        [WindowsFact]
         public void R117_backups_are_the_four_digit_files_and_the_backup_folder_of_the_copy_and_nothing_else()
         {
             string[] names =
@@ -137,7 +137,7 @@ namespace SiteAdaptation.Tests
             Assert.Throws<InvalidOperationException>(() => TestHostFiles.DeleteBackups(@"C:\Models\site.rvt"));
         }
 
-        [Fact]
+        [WindowsFact]
         public void R117_deleting_the_backups_of_a_copy_leaves_the_copy_the_master_and_the_site_model()
         {
             string folder = Path.Combine(Path.GetTempPath(), "sa_r117_" + Guid.NewGuid().ToString("N"));

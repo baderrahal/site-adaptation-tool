@@ -142,7 +142,7 @@ namespace SiteAdaptation.Tests
             }
         }
 
-        [Fact]
+        [WindowsFact]
         public void R313_the_job_code_of_a_set_is_its_prefix_and_the_code_and_fits_the_job_file_names()
         {
             Assert.Equal("STH1", Pwsh(Config(StrSet) + "Get-SetJobCode -Set (Get-PrototypeSet -Config $config -Name STR) -Code TH1"));
@@ -150,7 +150,7 @@ namespace SiteAdaptation.Tests
             Assert.StartsWith("refused: ", Pwsh(Config(StrSet) + Refusal("Get-SetJobCode -Set (Get-PrototypeSet -Config $config -Name STR) -Code VL46")));
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData("{\"target\": null}", "names no target")]
         [InlineData("{\"discipline\": null}", "names no discipline")]
         [InlineData("{\"source\": \"C:\\\\STR\"}", "plain path")]
@@ -178,7 +178,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains(reason, output);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R313_a_set_gives_its_folders_as_windows_opens_them_so_the_run_script_never_writes_a_trailing_dot_into_a_job()
         {
             string set = Set("{\"source\": \"Zone 02/STR/Prototypes.\", \"target\": \"Zone 02\\\\ARC\\\\Prototypes_2024\\\\STR. .\"}");
@@ -186,7 +186,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(@"Zone 02\STR\Prototypes|Zone 02\ARC\Prototypes_2024\STR", output);
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData(null, "no prototypeNames")]
         [InlineData("{\"prefix\": \"RRE-WP-NSP-KEO-\", \"discipline\": \"ARC\"}", "exactly")]
         [InlineData("{\"prefix\": \"RRE-WP-NSP-KEO-\", \"discipline\": \"ARC\", \"suffix\": \"-ZZ-MOD-\", \"extra\": 1}", "exactly")]
@@ -202,7 +202,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains(reason, output);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R313_a_set_the_config_does_not_name_is_refused_in_any_case_of_its_name()
         {
             Assert.Equal("accepted", Pwsh(Config(StrSet) + Refusal("Get-PrototypeSet -Config $config -Name STR")));
@@ -210,7 +210,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("no prototype set", Pwsh(Config(StrSet) + Refusal("Get-PrototypeSet -Config $config -Name MEP")));
         }
 
-        [Fact]
+        [WindowsFact]
         public void R313_the_real_config_upgrades_the_str_prototypes_into_a_folder_of_their_own_in_the_upgraded_prototype_folder()
         {
             JObject config = JObject.Parse(File.ReadAllText(RepoPath("config", "project.json")));
@@ -282,7 +282,7 @@ namespace SiteAdaptation.Tests
             }
         }
 
-        [Fact]
+        [WindowsFact]
         public void R313_the_guard_takes_the_name_parts_of_a_prototype_file_from_the_job_and_refuses_a_job_without_them()
         {
             const string other = "ABC-XYZ-TH1-Q-3100.rvt";
@@ -351,7 +351,7 @@ namespace SiteAdaptation.Tests
             return TestHostGuard.Check(text, Token, Now, path => path == source, path => true);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R313_the_guard_takes_an_upgrade_of_a_set_whose_file_holds_its_discipline_and_the_code_after_its_prefix()
         {
             GuardResult result = Check(Upgrade());

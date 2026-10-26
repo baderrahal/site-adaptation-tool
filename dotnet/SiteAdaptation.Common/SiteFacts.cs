@@ -157,10 +157,10 @@ namespace SiteAdaptation.Common
         // full turn gives 0 and not 360, and never negative zero
         public static double AngleDegrees(double radians)
         {
-            double degrees = Math.Round(UnitMath.RadiansToDegrees(radians), AngleDecimals, MidpointRounding.AwayFromZero) % 360.0;
+            double degrees = Rounding.Fixed(UnitMath.RadiansToDegrees(radians), AngleDecimals) % 360.0;
             if (degrees < 0)
             {
-                degrees = Math.Round(degrees + 360.0, AngleDecimals, MidpointRounding.AwayFromZero);
+                degrees = Rounding.Fixed(degrees + 360.0, AngleDecimals);
             }
             return degrees >= 360.0 || degrees == 0 ? 0 : degrees;
         }

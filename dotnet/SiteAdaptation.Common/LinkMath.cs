@@ -29,7 +29,7 @@ namespace SiteAdaptation.Common
         // Counter clockwise angle of the X axis in plan, from 0 up to but not including 360
         public static double PlanAngleDeg(double[] axisX)
         {
-            double degrees = Math.Round(UnitMath.RadiansToDegrees(Math.Atan2(axisX[1], axisX[0])), 6);
+            double degrees = Rounding.Fixed(UnitMath.RadiansToDegrees(Math.Atan2(axisX[1], axisX[0])), 6);
             if (degrees < 0)
             {
                 degrees += 360;

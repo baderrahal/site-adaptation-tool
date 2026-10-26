@@ -44,7 +44,7 @@ namespace SiteAdaptation.Tests
             });
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData(@"C:\Docs\round\site-000004.rvt")]
         [InlineData(Work + @"\sub\site-000004.rvt")]
         [InlineData(@"C:\Docs\other\work\site-000004.rvt")]
@@ -58,7 +58,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("not in the work folder", result.Reason);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R204_a_site_upgrade_names_a_work_folder_named_work_and_no_other_job_names_one()
         {
             GuardResult none = Check(Upgrade(job => job.Remove("workFolder")), path => path == Source);
@@ -79,7 +79,7 @@ namespace SiteAdaptation.Tests
             Assert.True(Check(Upgrade(job => job["workFolder"] = Work.ToUpperInvariant()), path => path == Source).Act);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R204_a_site_upgrade_saves_the_copy_as_its_own_test_copy_next_to_it_and_is_accepted()
         {
             GuardResult result = Check(Upgrade(), path => path == Source);
@@ -98,7 +98,7 @@ namespace SiteAdaptation.Tests
             Assert.False(Check(Upgrade(job => job["target"] = target), path => path == Source).Act);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R204_a_target_that_exists_a_missing_source_or_a_test_copy_as_source_is_refused()
         {
             Assert.Contains("never overwritten", Check(Upgrade(), path => true).Reason);
@@ -109,7 +109,7 @@ namespace SiteAdaptation.Tests
             Assert.False(Check(Upgrade(job => job["prototypeFile"] = "RRE-WP-NSP-KEO-ARC-C10-ZZ-MOD-1500.rvt"), path => path == Source).Act);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R204_the_site_upgrade_job_file_is_an_upgrade_file()
         {
             GuardResult result = Check(Upgrade(), path => path == Source);
@@ -128,7 +128,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("job.Kind == TestHostGuard.UpgradeKind && Path.GetFileName(job.Target) != Path.GetFileName(job.Source)", steps);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R205_a_read_opens_a_test_copy_that_exists_and_names_no_plan_or_prototype()
         {
             Assert.True(Check(Job("read", "K24", job => job["model"] = Upgraded), path => path == Upgraded).Act);
@@ -140,7 +140,7 @@ namespace SiteAdaptation.Tests
             Assert.False(Check(Job("read", "K24", job => job["model"] = Upgraded), path => false).Act);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R245_a_read_of_a_prototype_test_copy_passes_the_guard_and_the_script_keeps_it_to_the_hand_check_folders()
         {
             const string copy = @"C:\Docs\book\work\Prototypes_2024\RRE-WP-NSP-KEO-ARC-VL6-ZZ-MOD-1300_TEST-V6H.rvt";
@@ -199,7 +199,7 @@ namespace SiteAdaptation.Tests
             });
         }
 
-        [Fact]
+        [WindowsFact]
         public void R212_a_new_site_job_with_a_template_a_site_file_and_no_file_of_its_name_is_accepted()
         {
             GuardResult result = Check(NewSite(), path => path == Template || path == SiteFile);
@@ -207,7 +207,7 @@ namespace SiteAdaptation.Tests
             Assert.True(result.Act, result.Reason);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R212_a_new_site_job_never_overwrites_and_needs_its_template_and_site_file()
         {
             Assert.Contains("never overwritten", Check(NewSite(), path => true).Reason);
@@ -231,7 +231,7 @@ namespace SiteAdaptation.Tests
             Assert.False(TestHostGuard.IsNewSite(model));
         }
 
-        [Fact]
+        [WindowsFact]
         public void R213_the_floor_steps_and_the_image_may_open_the_new_site_file_and_no_other_job_may()
         {
             Func<string, bool> all = path => true;
@@ -249,7 +249,7 @@ namespace SiteAdaptation.Tests
             Assert.Null(TestHostGuard.OriginalOf(NewFile));
         }
 
-        [Fact]
+        [WindowsFact]
         public void R213_backups_of_the_new_site_file_are_found_by_its_own_name_only()
         {
             List<string> found = TestHostFiles.BackupFiles(NewFile, new[] { "site-Z4-TEST-NEW.0001.rvt", "site-Z4-TEST-NEW.rvt", "site-000004.0001.rvt", "site-Z4-TEST-NEW.01.rvt" });
@@ -271,7 +271,7 @@ namespace SiteAdaptation.Tests
             });
         }
 
-        [Fact]
+        [WindowsFact]
         public void R214_an_image_job_of_a_test_copy_or_the_new_site_file_with_an_area_is_accepted()
         {
             Assert.True(Check(Image(), path => true).Act);
@@ -319,7 +319,7 @@ namespace SiteAdaptation.Tests
             return SiteSpec.Parse(spec.ToString());
         }
 
-        [Fact]
+        [WindowsFact]
         public void R212_a_full_spec_passes_and_each_missing_or_doubled_part_is_refused()
         {
             Assert.Null(SiteCoordinates.Check(Spec()));

@@ -144,7 +144,7 @@ namespace SiteAdaptation.Common
                 {
                     current = null;
                     entry.EndedUtc = clock();
-                    entry.Seconds = Math.Round((entry.EndedUtc.Value - entry.StartedUtc).TotalSeconds, 1);
+                    entry.Seconds = Rounding.Fixed((entry.EndedUtc.Value - entry.StartedUtc).TotalSeconds, 1);
                     entry.Detail = detail;
                     if (error != null)
                     {
@@ -197,7 +197,7 @@ namespace SiteAdaptation.Common
                 {
                     current.Result = "timeout";
                     current.EndedUtc = nowUtc;
-                    current.Seconds = Math.Round((nowUtc - current.StartedUtc).TotalSeconds, 1);
+                    current.Seconds = Rounding.Fixed((nowUtc - current.StartedUtc).TotalSeconds, 1);
                     current.Detail = why;
                 }
                 log.Result = "timeout";

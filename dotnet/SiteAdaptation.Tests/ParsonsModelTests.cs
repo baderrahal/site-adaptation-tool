@@ -108,7 +108,7 @@ namespace SiteAdaptation.Tests
             }
         }
 
-        [Fact]
+        [WindowsFact]
         public void R310_a_sample_keeps_the_process_memory_when_a_cim_call_fails_and_the_peaks_count_its_free_memory_as_missing()
         {
             // A function of that name hides the cmdlet in the scope of the sample functions, so each CIM call fails in turn
@@ -171,7 +171,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(2, script.Split(new[] { "-OperationTimeoutSec $TimeoutSeconds" }, StringSplitOptions.None).Length - 1);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R310_helpers_running_before_the_window_are_listed_by_name_and_private_memory_and_never_counted_as_its_children()
         {
             // A helper with 100 MiB of its own runs before the window starts, as the LocalDB of Steel Connections did from the first
@@ -235,7 +235,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("} | ConvertTo-Json -Depth 5 | Set-Content -Path $runPath -Encoding utf8", script);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R310_a_sample_counts_the_processes_the_window_started_and_their_memory()
         {
             JObject sample = JObject.Parse(Pwsh(
@@ -285,7 +285,7 @@ namespace SiteAdaptation.Tests
             }
         }
 
-        [Fact]
+        [WindowsFact]
         public void R310_the_exit_peaks_of_a_real_process_are_read_after_it_ended_and_hold_what_it_took()
         {
             JObject exit = JObject.Parse(Pwsh(
@@ -310,7 +310,7 @@ namespace SiteAdaptation.Tests
             Assert.InRange((long)live["peaks"]["peakWorkingSetBytes"], (long)live["working"] - slack, (long)live["working"]);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R310_no_sample_gives_no_peak_and_a_sample_of_a_real_process_holds_every_field()
         {
             foreach (string samples in new[] { "@()", "$null", "@($null)" })

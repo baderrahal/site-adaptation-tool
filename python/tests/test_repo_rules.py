@@ -36,6 +36,16 @@ def in_skill_copy(path):
     return SKILL_COPY in path.parents
 
 
+# R15, R346. MSBuild parts the targets of a project file by a semicolon, as C# ends a statement with one, so the TargetFrameworks list
+# of a csproj is left out of the scan and nothing else of the file
+TARGET_LIST = re.compile(r"<TargetFrameworks>[\w.]+(?:" + SEMICOLON + r"[\w.]+)+</TargetFrameworks>")
+
+
+def scanned_text(path):
+    text = path.read_text(encoding="utf-8")
+    return TARGET_LIST.sub("", text) if path.suffix == ".csproj" else text
+
+
 def test_r15_no_semicolons_outside_csharp_source():
     offenders = []
     for path in repo_text_files():
@@ -43,9 +53,19 @@ def test_r15_no_semicolons_outside_csharp_source():
         if in_skill_copy(path):
             continue
         if path.suffix in NO_SEMICOLON_SUFFIXES or path.name in {".gitignore", ".gitattributes"}:
-            if SEMICOLON in path.read_text(encoding="utf-8"):
+            if SEMICOLON in scanned_text(path):
                 offenders.append(str(path.relative_to(ROOT)))
     assert offenders == []
+
+
+def test_r15_only_the_target_list_of_a_project_file_may_hold_a_semicolon(tmp_path):
+    two = "<TargetFrameworks>net48" + SEMICOLON + "net8.0</TargetFrameworks>"
+    (tmp_path / "a.csproj").write_text("<Project>" + two + "</Project>", encoding="utf-8")
+    (tmp_path / "b.csproj").write_text("<Project><!-- one" + SEMICOLON + " two -->" + two + "</Project>", encoding="utf-8")
+    (tmp_path / "c.md").write_text(two, encoding="utf-8")
+    assert SEMICOLON not in scanned_text(tmp_path / "a.csproj")
+    assert SEMICOLON in scanned_text(tmp_path / "b.csproj")
+    assert SEMICOLON in scanned_text(tmp_path / "c.md")
 
 
 def test_r15_only_the_skill_copy_is_left_out_of_the_semicolon_scan():

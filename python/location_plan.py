@@ -24,6 +24,7 @@ from shapely.ops import polygonize, unary_union
 from shapely.strtree import STRtree
 
 import c3d_run
+import common
 import data_book
 import data_book_analysis
 import link_summary
@@ -179,6 +180,17 @@ def zone_outlines(lines, colour, width):
     return [p for p in polygonize(unary_union(segments)) if p.area > 0]
 
 
+def page_cells(label):
+    """R180, R385. The page point of a label as labels.csv writes it, in points to 3 decimals."""
+    return {"pageX": common.fixed(label["x"], 3), "pageY": common.fixed(label["y"], 3)}
+
+
+def site_cells(east, north):
+    """R181, R385. The site point of a label as labels.csv writes it, in metres to 3 decimals, read by data_book.py to wire the labels
+    to the faces."""
+    return {"east": common.fixed(float(east), 3), "north": common.fixed(float(north), 3)}
+
+
 def run(config, settings):
     book = config["dataBook"]
     plan = book["locationPlan"]
@@ -272,8 +284,8 @@ def run(config, settings):
         group = home.get(label["number"], "rest")
         offset = int(label["number"]) - int(face) if face is not None else None
         shift_by[group]["noFace" if face is None else offset] += 1
-        rows.append({"number": label["number"], "code": label["code"], "kind": label["kind"], "face": face, "offset": offset, "group": group,
-                     "pageX": round(label["x"], 3), "pageY": round(label["y"], 3)})
+        rows.append(dict({"number": label["number"], "code": label["code"], "kind": label["kind"], "face": face, "offset": offset, "group": group},
+                         **page_cells(label)))
     report["numberToFace"] = {g: dict(c.most_common(12)) for g, c in sorted(shift_by.items())}
     for name, shift in shifts.items():
         found = shift_by.get(name, Counter())
@@ -370,7 +382,7 @@ def run(config, settings):
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]) + ["east", "north"] if rows else ["number"], lineterminator="\n")
         writer.writeheader()
         for row, (east, north) in zip(rows, labels_site):
-            writer.writerow(dict(row, east=round(float(east), 3), north=round(float(north), 3)))
+            writer.writerow(dict(row, **site_cells(east, north)))
     with open(out / "lines.csv", "w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=["text", "kind", "x", "y", "size"], lineterminator="\n", extrasaction="ignore")
         writer.writeheader()
