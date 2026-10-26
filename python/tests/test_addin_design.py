@@ -256,6 +256,90 @@ def test_r343_the_report_summary_of_the_design_has_the_five_columns_of_the_mock(
     assert "the five columns of the mock" in report and "six columns" not in report
 
 
+def mock_sentences():
+    """Every sentence of items 1 to 6 of the mock with its own punctuation, the bullets of item 2 apart, in the order of the mock."""
+    body = MOCK.read_text(encoding="utf-8").split("```text", 1)[1].split("```", 1)[0]
+    items = re.findall(r"^\s*\d\. (.*?)(?=^\s*\d\. |\Z)", body, flags=re.S | re.M)
+    return [piece for item in items for piece in re.split(r"(?<=\.)\s+|\s+- ", " ".join(item.split())) if piece]
+
+
+def review_numbers(text, marker):
+    """The item numbers of the first column of the table after marker, in the order written."""
+    return [int(re.match(r"\d+", row["Item"]).group(0)) for row in table_after(text, marker)]
+
+
+def test_r343_every_sentence_of_the_mock_stands_in_section_7_word_for_word_with_its_punctuation_in_order():
+    sentences = mock_sentences()
+    assert len(sentences) == 35
+    assert "Level Excel, file <NBH>_Levels_<profile>.xlsx." in sentences
+    assert labels_in_order(section(DESIGN.read_text(encoding="utf-8"), 7), sentences) == []
+
+
+def test_r343_the_sentence_check_finds_a_colon_made_a_period():
+    assert labels_in_order("four sections in this order.", ["four sections in this order:"]) == ["four sections in this order:"]
+
+
+def test_r343_the_rounding_rule_reads_the_15_digit_text_with_its_exponent_and_4a_tests_float_noise_in_csharp():
+    text = section(DESIGN.read_text(encoding="utf-8"), 5)
+    assert "NumberStyles.Float" in text
+    assert [format(value, ".15g") for value in (0.1 + 0.2 - 0.3, 0.000004)] == ["5.55111512312578e-17", "4e-06"]
+    assert fixed(0.1 + 0.2 - 0.3, 3) == 0 and fixed(0.000004, 4) == 0
+    row = [row for row in table_after(text, "### The Python changes for parity") if row["Id"] == "R385"][0]
+    assert "R385_float_noise_does_not_move_a_value" in row["Tests named"]
+    assert "the order of a sum cannot move a value" not in text
+
+
+def test_r343_the_parity_tolerances_are_named_per_field_and_small_against_the_pass_limit():
+    rows = table_after(section(DESIGN.read_text(encoding="utf-8"), 5), "### Parity tolerances")
+    by_kind = {row["Kind"]: row for row in rows}
+    assert {"Points and lengths", "Levels", "Areas", "Angles", "No geometry"} <= set(by_kind)
+    for kind, unit in (("Points and lengths", "m"), ("Levels", "m"), ("Areas", "m2"), ("Angles", "degree")):
+        tolerance = re.fullmatch(r"(\d+\.\d+) (m|m2|degree)", by_kind[kind]["Before rounding"])
+        assert tolerance and tolerance.group(2) == unit, kind
+        assert Decimal(tolerance.group(1)) <= Decimal("0.000001"), kind
+        assert "one unit" in by_kind[kind]["After rounding"] and "listed" in by_kind[kind]["After rounding"], kind
+    assert by_kind["No geometry"]["Before rounding"] == "none" and by_kind["No geometry"]["After rounding"] == "exact"
+
+
+def test_r343_every_build_is_numbered_by_the_schedule_fit_and_the_control_point_fit_is_a_check():
+    text = DESIGN.read_text(encoding="utf-8")
+    planned = {row["Id"]: row["Rule"] for row in table_after(section(text, 10), "Planned rules, taken from")}
+    assert "schedule fit" in planned["R351"] and "schedule fit" in planned["R352"]
+    assert "check" in planned["R387"] and "otherwise" in planned["R387"]
+    assert "gives location_plan.py the fit of R351" not in text
+
+
+def test_r343_the_steps_files_hold_no_control_byte_but_tab_and_line_feed():
+    found = {}
+    for path in sorted((ROOT / "steps").rglob("*.md")):
+        data = path.read_bytes()
+        bad = [at for at, byte in enumerate(data) if (byte < 32 and byte not in (9, 10)) or byte == 127]
+        if bad:
+            found[str(path.relative_to(ROOT))] = bad[:5]
+    assert found == {}
+
+
+def test_r343_the_review_tables_of_pr_49_number_every_item_once():
+    text = (ROOT / "steps" / "investigations" / "round-addin.md").read_text(encoding="utf-8")
+    first = review_numbers(text, "### Review of PR 49, the breaker and the claim-checker")
+    assert first == list(range(1, 28))
+    last = review_numbers(text, "### Last pass on PR 49")
+    assert last == list(range(1, 20))
+
+
+def test_r343_the_round_plan_gives_phase_6_the_ids_after_the_python_changes():
+    plan = (ROOT / "steps" / "investigations" / "round-addin.md").read_text(encoding="utf-8").split("### Order of work", 1)[0]
+    assert "Phase 6 R389 to R399" in plan and "Phase 6 R385 to R399" not in plan
+
+
+def test_r343_every_point_only_a_revit_run_settles_is_on_the_open_list_with_the_phase_that_measures_it():
+    text = DESIGN.read_text(encoding="utf-8")
+    part = text[text.index("### Open until a Revit run"):]
+    items = re.findall(r"^\d+\. (.*)$", part.split("\n## ", 1)[0], flags=re.MULTILINE)
+    assert len(items) >= 8
+    assert [item for item in items if not re.match(r"Phase 5[a-e]", item)] == []
+
+
 def test_r343_every_rule_the_design_names_below_the_planned_range_is_in_the_rules_file_and_the_planned_ones_lie_in_phases_4_and_5():
     text = DESIGN.read_text(encoding="utf-8")
     rules = set(re.findall(r"\*\*(R\d+) ", RULES.read_text(encoding="utf-8")))
