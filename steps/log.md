@@ -12,13 +12,13 @@ Goal:
 Done:
 - 0a to 3c (PR 41 to 49): harness, key copies, reads, key plans, past_all.csv, overrides, keyRules with the levels, a build and its proof, the design (R342, R343)
 - 4a R346: Common on netstandard2.0, the worker and the tests on net48 and net8.0, a Linux leg skipping 52 tests of Windows tools, a build only pin (Q079)
-- 4a R347: the worker run, exit codes 0 to 4, free memory per file before each read, the kill at the time limit, outputs moved on only after every check with their input hashes, the answer to its document. R385: one rule in common.py and C#, past 15 digits refused, level builders after Q080. R345: the parity harness, step files by side, every field compared, bad rings refused
-- 4a review of PR 50: the breaker's 14 items, each test first (round-addin.md)
+- 4a R347: the worker run, exit codes 0 to 4, free memory per file before each read, the kill at the time limit, outputs moved on all or none after every check with their input hashes, the answer to its document. R385: one rule in common.py and C#, past 15 digits refused, level builders after Q080. R345: the parity harness, step files by side, every field compared, bad rings refused
+- 4a review of PR 50: the breaker's 14 items and 8 of a second pass, each test first (round-addin.md)
 
 Checked:
-- 4a faces parity at cfae745: 13,520 field values equal on net48 and net8.0, 0 one unit cases, 0 failures, PowerShell second method 2,557 faces and 40 of 40 areas (RAN)
-- 4a R385: Python, C# on both runtimes and integer arithmetic equal on 200,012 and on the breaker's 354,048 values. Build proof at cfae745: 0 unexplained on 7 keys, the plans equal those of 8b084c0 (RAN)
-- 4a worker exe at cfae745: exits 0 to 4 as asked on both runtimes, an earlier output kept on each run that did not pass, no temporary file left (RAN)
+- 4a faces parity at 65514bd: 13,520 field values equal on net48 and net8.0, 0 one unit cases, 0 failures, a failed run leaves no step file, PowerShell second method 2,557 faces, 40 of 40 areas (RAN)
+- 4a R385: Python, C# on both runtimes and integer arithmetic equal on 200,012 and on the breaker's 354,048 values. Build proof at 65514bd: 0 unexplained on 7 keys, the plans equal those of cfae745 (RAN)
+- 4a worker exe at 65514bd: exits 0 to 4 as asked on both runtimes, the step file gone after a failed run, no temporary file left (RAN)
 
 Remains:
 - R385 in the level builders and the roundings of the review table (Q080, 4b, 5a). The rest of the addin block and the fit schedule in config, button 2 timed, PdfPig and OpenXml (4c, 4d). 4b to 4h, Phases 5 and 6
