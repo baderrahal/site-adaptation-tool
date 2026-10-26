@@ -234,6 +234,7 @@ namespace SiteAdaptation.TestHost
                 {
                     yield return new JobStep { Name = "read", LimitMinutes = 15, Action = () => steps.Read(document) };
                     yield return new JobStep { Name = "rooms", LimitMinutes = 5, Action = () => new HandSteps(job, documents).Rooms(document) };
+                    yield return new JobStep { Name = "sharedParameters", LimitMinutes = 5, Action = () => new ParameterSteps(job, documents).SharedParameters(document) };
                 }
                 else
                 {

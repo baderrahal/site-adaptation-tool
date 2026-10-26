@@ -350,6 +350,12 @@
     "workbookRolesNote": "R350. The input of the pane, its role in the request of the worker, that holds each workbook of dataBook.rev9.workbooks: the Rev 9 DLUS workbook is dlus and the accommodation workbook, which holds the sales sheet and the DLUS setback sheet, is sales (docs/addin-design.md section 4)",
     "workerTimeLimitMinS": 10,
     "workerTimeLimitMinNote": "R347. The shortest time limit a launch takes, a request under it is refused before the start, so a limit typed too short never kills a sound run. CHOSEN in the second review of PR 50: 10 s, ten times the 1.0 s the worker build of the step faces took on the 2,704 unit plots of the snapshot, its start included",
+    "position": {
+      "note": "R353, Q068. The project position file of button 1, written by the command position of the worker (python/position_file.py the Python side) from the read of the reference key of majority.siteReference, outside git since it holds coordinates and levels: the project position of the internal origin in shared coordinates and its angle, the survey point and the project base point in internal and shared coordinates, the levels and the one Elevation Base they stand on and the units, refused when it differs from keyRules.site of the level profile. file is where button 1 reads it, the worker writes it under that file name into the output folder of its request. checkPointLimitMm is the pass limit of the check points of button 1, the 1 mm of R211, gapDecimals the decimals the Diff is shown and judged at by R385 (docs/addin-design.md 3.1 and 7.3, CHOSEN by the design).",
+      "file": "C:/Users/bader/Documents/SiteAdaptation/round_addin/position/position_parsons.json",
+      "checkPointLimitMm": 1.0,
+      "gapDecimals": 2
+    },
     "parity": {
       "note": "R345. The tolerance of each kind of field before R385 rounds it, in metres, square metres or degrees, null for a kind compared exactly. After rounding the two sides are equal, or one unit of the last place apart only where the two unrounded values lie within the tolerance and straddle a rounding boundary of R385, each such case listed by step, plot, field and both unrounded values. docs/addin-design.md section 5",
       "kinds": {
@@ -528,6 +534,26 @@
             "nbhId": {"kind": "noGeometry"},
             "areaKeyMethod": {"kind": "noGeometry"},
             "areaKeyCheck": {"kind": "noGeometry"}
+        },
+        "position": {
+            "key": {"kind": "noGeometry"},
+            "projectPositionM": {"kind": "points", "decimals": 3},
+            "angleDeg": {"kind": "angles", "decimals": 6},
+            "surveyInternalM": {"kind": "points", "decimals": 3},
+            "surveySharedM": {"kind": "points", "decimals": 3},
+            "baseInternalM": {"kind": "points", "decimals": 3},
+            "baseSharedM": {"kind": "points", "decimals": 3},
+            "levelNames": {"kind": "noGeometry"},
+            "levelElevationsM": {"kind": "levels", "decimals": 3},
+            "levelProjectElevationsM": {"kind": "levels", "decimals": 3},
+            "levelBase": {"kind": "noGeometry"}
+        },
+        "checkPoints": {
+            "sharedM": {"kind": "points", "decimals": 3},
+            "internalM": {"kind": "points", "decimals": 3},
+            "keyInternalM": {"kind": "points", "decimals": 3},
+            "gapMm": {"kind": "points", "decimals": 2},
+            "pass": {"kind": "noGeometry"}
         }
       }
     }

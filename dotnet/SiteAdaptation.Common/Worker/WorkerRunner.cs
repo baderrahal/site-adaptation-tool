@@ -36,9 +36,13 @@ namespace SiteAdaptation.Common
             [LocationPlan.FacesStepName] = LocationPlan.Roles,
             // R352. The plot table, on the location plan, the faces, the footprint blocks and the area key of the read
             [PlotTable.StepName] = PlotTable.Roles,
+            // R353. The project position file of a key read and the check points of button 1, steps of the command position
+            [ProjectPositionFile.PositionStep] = ProjectPositionFile.PositionRoles,
+            [ProjectPositionFile.CheckPointsStep] = ProjectPositionFile.CheckPointRoles,
         };
 
-        public static readonly Dictionary<string, string> StepCommand = Steps.Keys.ToDictionary(step => step, step => step == FaceStep.Name ? "build" : "read");
+        public static readonly Dictionary<string, string> StepCommand = Steps.Keys.ToDictionary(step => step,
+            step => step == FaceStep.Name ? "build" : step == ProjectPositionFile.PositionStep || step == ProjectPositionFile.CheckPointsStep ? "position" : "read");
 
         // R349. The role of a road surface file in a request, roadSurface:<file name with no extension>, one per LandXML file
         public const string RoadSurfaceRole = "roadSurface:";
