@@ -104,3 +104,53 @@ def test_r386_a_skip_plot_is_not_written(tmp_path, monkeypatch):
     assert plan["summary"]["skipped"] == ["2"] and plan["summary"]["missingByKey"]["skip"] == 1 and plan["summary"]["notWritten"] == 1
     # The other plots build as before, plot 3 takes its own override
     assert level_of(found["3"], "ffl") == 10.262
+
+
+# R386 a use of another spelling or value, or a use with no byHand mark, is refused by a majority run as by a build, never dropped
+@pytest.mark.parametrize("extra, why", [
+    ({"use": "Rule", "byHand": True}, "rule or past"),
+    ({"use": "skip", "byHand": True}, "rule or past"),
+    ({"Use": "rule", "byHand": True}, "spell it"),
+    ({"USE": "past", "byHand": True}, "spell it"),
+    ({"use ": "rule", "byHand": True}, "spell it"),
+    ({"use": "rule"}, "byHand"),
+    ({"use": "Rule"}, "rule or past"),
+    ({"Use": "rule"}, "spell it"),
+])
+def test_r386_a_use_of_another_spelling_or_with_no_by_hand_is_refused_by_a_majority_run_and_never_dropped(tmp_path, extra, why):
+    earlier = [entry("1", "heightM", {"gapToRuleM": 0.002}, "parsons", "IMC.rvt", "imc", **extra)]
+    path = write_list(tmp_path / "list.json", earlier)
+    run = [entry("1", "heightM", {"gapToRuleM": 0.001}, "parsons", "IMC.rvt", "imc")]
+    with pytest.raises(project_profile.ProfileError, match=why):
+        override_source.merge(earlier, run, {"native": None})
+    with pytest.raises(project_profile.ProfileError, match=why):
+        majority.final_list(run, keep_block(later={}), False, path, [], [], None, None)
+    # The field kept by --keep is no way round it either
+    with pytest.raises(project_profile.ProfileError, match=why):
+        majority.final_list(run, keep_block(later={}), False, path, ["parsons:heightM"], [], None, None)
+
+
+# R330, R386 a hand edit is kept one by one, every other entry of its field takes the value the run measures
+def test_r330_a_hand_edit_is_kept_one_by_one_and_every_other_entry_of_its_field_takes_the_new_value_of_the_run(tmp_path):
+    hand = entry("1", "heightM", {"gapToRuleM": 0.002}, "parsons", "IMC.rvt", "imc", use="rule", byHand=True)
+    edited = entry("4", "mirrored", True, "parsons", "IMC.rvt", "imc", byHand=True)
+    earlier = [hand, entry("2", "heightM", {"gapToRuleM": 0.003}, "parsons", "IMC.rvt", "imc"),
+               entry("3", "heightM", {"gapToRuleM": 0.004}, "parsons", "IMC.rvt", "imc"), edited]
+    path = write_list(tmp_path / "list.json", earlier, cannot=[])
+    # The rule changed, the run measures plots 1 to 3 again with new gaps, 4 by its rule and 5 is new
+    run = [entry("1", "heightM", {"gapToRuleM": 0.001}, "parsons", "IMC.rvt", "imc"), entry("2", "heightM", {"gapToRuleM": 0.002}, "parsons", "IMC.rvt", "imc"),
+           entry("3", "heightM", {"gapToRuleM": 0.003}, "parsons", "IMC.rvt", "imc"), entry("4", "mirrored", False, "parsons", "IMC.rvt", "imc"),
+           entry("5", "heightM", {"gapToRuleM": 0.005}, "parsons", "IMC.rvt", "imc")]
+    merged, counts = majority.final_list(run, keep_block(later={}), False, path, [], [], None, None)
+    assert merged == [hand, run[1], run[2], edited, run[4]]
+    assert counts["byHand"] == {"parsons": 2} and counts["droppedForHandEdits"] == {"parsons": 2} and counts["new"] == {"parsons": 3}
+    # A cannot entry of the run on the plot and field of a hand edit is left out as well, the hand edit holds them
+    cannot = [{"plot": "1", "field": "heightM", "source": "parsons", "model": "IMC.rvt", "key": "imc", "decision": "d", "reason": "no value"},
+              {"plot": "6", "field": "heightM", "source": "parsons", "model": "IMC.rvt", "key": "imc", "decision": "d", "reason": "no value"}]
+    assert majority.final_cannot(cannot, keep_block(later={}), False, path, [], [], None, None) == [cannot[1]]
+    # --keep of the field keeps every earlier entry of it as before, the run's new values left out
+    kept, _ = majority.final_list(run, keep_block(later={}), False, path, ["parsons:heightM"], [], None, None)
+    assert kept == [hand, earlier[1], earlier[2], edited]
+    # A hand edit of a plot the join gives its key no row is never dropped in silence, the run is refused
+    with pytest.raises(project_profile.ProfileError, match="plot 4"):
+        majority.final_list(run, keep_block(later={}), False, path, [], [], None, {("imc", "1"), ("imc", "2"), ("imc", "3"), ("imc", "5")})

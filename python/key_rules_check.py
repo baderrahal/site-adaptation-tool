@@ -1373,29 +1373,33 @@ def level_inputs(ctx, settings, profile, rows, folder):
 def merged_check(merged, dry, table, keep, later, earlier=None):
     """R330. The list a run merged: every entry on a plot past_all.csv gives its key, and per job the entries of the fields it does
     not keep equal to the entries of the dry list of that run, as JSON text, so a kept entry of a cut plot is found. With earlier,
-    the list before the run, every entry it keeps on the join, native whole, is in the merged list cell for cell, and every entry
-    marked "byHand": true is. ok when all hold, else the run fails."""
+    the list before the run, every entry it keeps on the join, native whole, is in the merged list cell for cell, and so is every
+    hand edit, an entry marked "byHand": true or holding a use (R386), kept one by one in place of the entry of the run on its plot,
+    key and field, which is left out of both sides. ok when all hold, else the run fails."""
     joined = {(row["key"], row["plot"]) for row in table}
     on_join = lambda item: (item.get("key"), str(item["plot"])) in joined
     off = [{name: item.get(name) for name in ("key", "plot", "field", "source")} for item in merged if not on_join(item)]
     kept = lambda item: item["source"] in keep and (keep[item["source"]] is None or item["field"] in keep[item["source"]])
     text = lambda items: Counter(json.dumps(item, sort_keys=True, ensure_ascii=False) for item in items)
-    mine, theirs = text(item for item in merged if not kept(item)), text(item for item in dry if not kept(item))
+    hands = [item for item in earlier or [] if item.get("byHand") is True or "use" in item]
+    held_by_hand = {(str(item["plot"]), item.get("key"), item.get("field")) for item in hands}
+    by_hand = lambda item: (str(item["plot"]), item.get("key"), item.get("field")) in held_by_hand
+    mine, theirs = text(item for item in merged if not kept(item) and not by_hand(item)), text(item for item in dry if not kept(item) and not by_hand(item))
     found = {"entries": len(merged), "offJoin": off, "runEntriesEqualDry": mine == theirs, "onlyMerged": sum((mine - theirs).values()), "onlyDry": sum((theirs - mine).values()),
              "bySource": dict(sorted(Counter(item["source"] for item in merged).items())), "byHand": sum(1 for item in merged if item.get("byHand") is True),
-             "laterFieldsInRun": sorted({item["field"] for item in dry if item["field"] in later})}
+             "handEdits": len(hands), "laterFieldsInRun": sorted({item["field"] for item in dry if item["field"] in later})}
     ok = not off and found["runEntriesEqualDry"]
     if earlier is not None:
         held = text(merged)
         wanted = [item for item in earlier if kept(item) and on_join(item)]
         missing = text(wanted) - held
-        hands = text(item for item in earlier if item.get("byHand") is True) - held
+        lost = text(hands) - held
         by_text = {json.dumps(item, sort_keys=True, ensure_ascii=False): item for item in earlier}
         found.update({"earlierKept": len(wanted), "keptMissing": sum(missing.values()),
                       "keptMissingBySource": dict(sorted(Counter(by_text[entry]["source"] for entry in missing.elements()).items())),
                       "keptMissingFirst": [{name: by_text[entry].get(name) for name in ("key", "plot", "field", "source")} for entry in list(missing)[:10]],
-                      "byHandLost": sum(hands.values())})
-        ok = ok and not missing and not hands
+                      "byHandLost": sum(lost.values())})
+        ok = ok and not missing and not lost
     found["ok"] = ok
     return found
 

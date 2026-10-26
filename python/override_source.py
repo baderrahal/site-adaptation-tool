@@ -92,7 +92,7 @@ def use_of(item):
     """R386. The Use the check table set on an entry, rule or past, None for an entry with none. A use is a hand edit, so it needs
     "byHand": true, which a majority run never drops, and any other value or the field spelled otherwise, such as Use, is refused."""
     for name in item:
-        if name != USE and str(name).lower() == USE:
+        if name != USE and re.sub("[^a-z]", "", str(name).lower()) == USE:
             raise project_profile.ProfileError("override of plot %s field %s names its Use as %s, spell it \"use\" (R386)" % (item.get("plot"), item.get("field"), json.dumps(name)))
     if USE not in item:
         return None
@@ -102,6 +102,19 @@ def use_of(item):
         raise project_profile.ProfileError("override of plot %s field %s has use %s with no \"byHand\": true, a use is a hand edit a majority run must keep (R386)"
                                            % (item.get("plot"), item.get("field"), item[USE]))
     return item[USE]
+
+
+def hand_edit(item):
+    """R330, R386. True for an entry Bader edited by hand, marked "byHand": true or holding a use, the Use of its check table row,
+    which is his choice as well. The mark and the use are read first, so one of another spelling or value, or a use with no byHand,
+    is refused loudly as a build refuses it, never read as no edit."""
+    marked = by_hand(item)
+    return use_of(item) is not None or marked
+
+
+def edit_key(item):
+    """R330. The plot, key and field of an entry, the one place a hand edit holds."""
+    return (str(item["plot"]), item.get("key"), item.get("field"))
 
 
 def check_skip(skip, path=None):
@@ -130,12 +143,12 @@ def with_hand_edits(earlier, replaced):
     """R330. The earlier list a run keeps from, --keep-from, with every entry marked byHand of the list the run writes over that
     it lacks, so a hand edit of the committed list is kept or the run refused, never lost. The same plot, key and field held
     otherwise by the two lists is a conflict, refused with both named."""
-    index = {(str(item["plot"]), item.get("key"), item.get("field")): item for item in earlier}
+    index = {edit_key(item): item for item in earlier}
     added, clash = [], []
     for item in replaced:
-        if not by_hand(item):
+        if not hand_edit(item):
             continue
-        found = index.get((str(item["plot"]), item.get("key"), item.get("field")))
+        found = index.get(edit_key(item))
         if found is None:
             added.append(item)
         elif found != item:
@@ -223,28 +236,34 @@ def kept_by(item, keep):
 
 
 def merge(earlier, run, keep, joined=None):
-    """R330. The entries of earlier that keep names, cell for cell, and every entry of the run that keep does not name, sorted
-    by plot, key and field as R272 sorts the list, so Bader finds a plot in one place. With joined, the key and plot pairs of
-    past_all.csv, a kept entry of a plot the join gives no row of its key is dropped, no key overrides a plot it does not hold.
-    An entry marked byHand is never dropped: a run that would drop one, as replaced or off the join, is refused."""
-    kept, off_join, lost = [], [], []
+    """R330. The entries of earlier that keep names, cell for cell, every entry of earlier Bader edited by hand (hand_edit), one by one
+    whatever keep names, and every entry of the run that keep does not name and no hand edit holds the plot, key and field of, sorted
+    by plot, key and field as R272 sorts the list, so Bader finds a plot in one place. So a hand edit keeps its own plot and field
+    only and every other entry of its field takes the value the run measures. With joined, the key and plot pairs of past_all.csv,
+    a kept entry of a plot the join gives no row of its key is dropped, no key overrides a plot it does not hold, and a hand edit
+    there is never dropped: the run is refused. A byHand mark or a use of another spelling or value is refused (R386)."""
+    kept, off_join, lost, hands = [], [], [], {}
     for item in earlier:
-        if not kept_by(item, keep):
-            if by_hand(item):
-                lost.append(item)
+        hand = hand_edit(item)
+        if not hand and not kept_by(item, keep):
             continue
         if joined is not None and (item.get("key"), str(item["plot"])) not in joined:
-            (lost if by_hand(item) else off_join).append(item)
+            (lost if hand else off_join).append(item)
             continue
+        if hand:
+            hands[edit_key(item)] = item
         kept.append(item)
     if lost:
-        raise project_profile.ProfileError("the run would drop %d entries marked byHand: %s. Keep their field with --keep or take the byHand mark off by hand (R330)"
-                                           % (len(lost), " | ".join("plot %s field %s key %s" % (item["plot"], item["field"], item.get("key")) for item in lost[:10])))
-    new = [item for item in run if not kept_by(item, keep)]
+        raise project_profile.ProfileError("the run would drop %d entries Bader edited by hand, on plots the join gives their key no row: %s. Take the byHand mark "
+                                           "and the use off by hand (R330)" % (len(lost), " | ".join("plot %s field %s key %s" % (item["plot"], item["field"], item.get("key"))
+                                                                                                    for item in lost[:10])))
+    new = [item for item in run if not kept_by(item, keep) and edit_key(item) not in hands]
     dropped = [item for item in run if kept_by(item, keep)]
+    for_hands = [item for item in run if not kept_by(item, keep) and edit_key(item) in hands]
     tally = lambda items: dict(sorted(Counter(item["source"] for item in items).items()))
     merged = sorted(kept + new, key=lambda item: (link_summary.sort_key(str(item["plot"])), str(item.get("key")), str(item.get("field"))))
-    return merged, {"kept": tally(kept), "new": tally(new), "droppedFromRun": tally(dropped), "droppedNoJoin": tally(off_join),
+    return merged, {"kept": tally(kept), "byHand": tally(hands.values()), "new": tally(new), "droppedFromRun": tally(dropped),
+                    "droppedForHandEdits": tally(for_hands), "droppedNoJoin": tally(off_join),
                     "droppedNoJoinEntries": [{name: item.get(name) for name in ("plot", "field", "key", "source")} for item in off_join]}
 
 

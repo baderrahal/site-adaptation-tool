@@ -746,7 +746,7 @@ def split_cannot(listing):
 def final_cannot(cannot, block, dry, path, keep, replace, keep_from, joined):
     """R272, R330. The cannot list a run writes beside the override list: a dry run its own, else the cannot entries of the earlier
     list the run keeps, by the same keep as its overrides, on plots the join gives their key, and every cannot of the run it does not
-    keep, sorted as the list."""
+    keep and no hand edit of the earlier lists holds the plot, key and field of, sorted as the list."""
     if dry:
         return cannot
     source = Path(keep_from or path)
@@ -755,7 +755,9 @@ def final_cannot(cannot, block, dry, path, keep, replace, keep_from, joined):
     chosen = override_source.keep_of(block, keep, replace, earlier)
     kept = [item for item in data.get("cannot") or [] if override_source.kept_by(item, chosen)
             and (joined is None or (item.get("key"), str(item["plot"])) in joined)]
-    new = [item for item in cannot if not override_source.kept_by(item, chosen)]
+    replaced = override_source.read_list(path)["overrides"] if keep_from and Path(path).exists() else []
+    hands = {override_source.edit_key(item) for item in earlier + replaced if override_source.hand_edit(item)}
+    new = [item for item in cannot if not override_source.kept_by(item, chosen) and override_source.edit_key(item) not in hands]
     return sorted(kept + new, key=lambda item: (link_summary.sort_key(str(item["plot"])), str(item.get("key")), str(item.get("field"))))
 
 

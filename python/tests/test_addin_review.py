@@ -95,9 +95,9 @@ def test_r330_native_entries_stay_unless_replace_names_them_and_replace_of_what_
 def test_r330_an_entry_marked_by_hand_is_never_dropped_and_a_run_that_would_drop_one_refuses():
     hand = entry("2", "mirrored", True, "parsons", "IMC.rvt", "imc", byHand=True)
     run = [entry("2", "mirrored", False, "parsons", "IMC.rvt", "imc")]
-    with pytest.raises(project_profile.ProfileError) as error:
-        override_source.merge([hand], run, {"native": None})
-    assert "byHand" in str(error.value) and "2" in str(error.value)
+    # Not kept by its field it stays all the same, cell for cell, the entry of the run on its plot left out (Round ADDIN 4b review)
+    merged, counts = override_source.merge([hand], run, {"native": None})
+    assert merged == [hand] and counts["droppedForHandEdits"] == {"parsons": 1}
     # Kept by its field it stays, cell for cell
     merged, _ = override_source.merge([hand], run, {"parsons": {"mirrored"}})
     assert merged == [hand]
