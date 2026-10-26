@@ -69,14 +69,12 @@ def footprint_drawing(book, settings):
 
 
 def folder_of(book, role, fallback_roots):
-    """The data book table folder of a drawing when the full read wrote it, and the first earlier CadReader output folder."""
+    """The data book table folder of a drawing when the full read wrote it, and the first earlier CadReader output folder. R388: the
+    units of a folder are held by the reader that reads it, so a folder that is not read is never refused."""
     name = Path(book["drawings"][role]).name
     data = Path(book["root"]) / Path(name).stem
     data = data if (data / "data.json").is_file() else None
     earlier = next((Path(root) / name for root in fallback_roots if (Path(root) / name / "pieces.json").is_file()), None)
-    if earlier is not None:
-        # R388. An earlier CadReader output is read only of a drawing in Meters
-        cad_units.check(earlier)
     return data, earlier
 
 
@@ -91,13 +89,15 @@ def read_csv(path):
 
 
 def blocks_of(data, earlier):
-    """Blocks with name, x, y, rotation and mirror, and where they came from."""
+    """Blocks with name, x, y, rotation and mirror, and where they came from, each folder read only of a drawing in Meters (R388)."""
     if data is not None and (data / "blocks.csv").is_file():
+        cad_units.check_table(data)
         rows = read_csv(data / "blocks.csv")
         # The outline centre places a unit block on its plot, the insert point of a unit block sits on a corner
         return [{"name": r["name"], "x": float(r.get("cx") or r["x"]), "y": float(r.get("cy") or r["y"]), "rotation": float(r["rotationDeg"]) if r["rotationDeg"] else None,
                  "mirrored": r["mirrored"] == "yes"} for r in rows], reader_of(data)
     if earlier is not None and (earlier / "blocks.json").is_file():
+        cad_units.check(earlier)
         rows = json.loads((earlier / "blocks.json").read_text(encoding="utf-8"))["blocks"]
         found = []
         for r in rows:
@@ -110,9 +110,12 @@ def blocks_of(data, earlier):
 
 
 def texts_of(data, earlier):
+    """Texts with text, x, y and layer, and where they came from, each folder read only of a drawing in Meters (R388)."""
     if data is not None and (data / "texts.csv").is_file():
+        cad_units.check_table(data)
         return [{"text": r["text"], "x": float(r["x"]), "y": float(r["y"]), "layer": r["layer"]} for r in read_csv(data / "texts.csv")], reader_of(data)
     if earlier is not None and (earlier / "texts.json").is_file():
+        cad_units.check(earlier)
         return json.loads((earlier / "texts.json").read_text(encoding="utf-8"))["texts"], "earlier CadReader"
     return [], None
 
@@ -120,6 +123,8 @@ def texts_of(data, earlier):
 def lines_of(earlier, layers):
     if earlier is None:
         return []
+    # R388. An earlier CadReader output is read only of a drawing in Meters
+    cad_units.check(earlier)
     return cad_analysis.read_road_edges(earlier, layers)
 
 
@@ -127,6 +132,7 @@ def lines_matching(earlier, pattern):
     """Lines on the layers that match a pattern, closed polylines closed."""
     if earlier is None:
         return []
+    cad_units.check(earlier)
     found = []
     for piece in json.loads((earlier / "pieces.json").read_text(encoding="utf-8"))["pieces"]:
         if piece.get("kind") not in ("polyline", "line") or not fnmatch.fnmatchcase((piece.get("layer") or "").upper(), pattern.upper()):
@@ -158,7 +164,9 @@ def depth_of(face, frame):
 
 
 def load_surfaces(connect, book, scratch):
-    """The LandXML surfaces of the earlier rounds and every surface the data book exported, by a column name."""
+    """The LandXML surfaces of the earlier rounds and every surface the data book exported, by a column name. R388: the surfaces of an
+    earlier read only of a file in meter, by the landxml_summary.json of that read, the files of the data book through the reader."""
+    landxml_reader.check_cached(connect["landxmlDir"], connect["surfaces"])
     surfaces = {name: surface_lookup.load_surface(connect["landxmlDir"], name) for name in connect["surfaces"]}
     folder = Path(book["root"]) / "landxml"
     for path in sorted(folder.glob("*.xml")) if folder.is_dir() else []:

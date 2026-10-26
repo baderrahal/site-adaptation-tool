@@ -14,6 +14,8 @@ from common import write_json
 CHUNK = 1 << 20
 # R388. The one linear unit a LandXML is read in, never converted
 METRE = "meter"
+# R388. The file an earlier read writes for the LandXML, with its linearUnit and every surface it wrote
+SUMMARY = "landxml_summary.json"
 INVISIBLE = "1"
 BAD_NAME = re.compile(r'[<>:"/\\|?*]')
 
@@ -162,6 +164,22 @@ def summary_of(raw, xyz, faces, lost):
     return entry
 
 
+def check_cached(out_dir, names):
+    """R388. The surfaces names of an earlier read in out_dir are read only of a LandXML in meter: the landxml_summary.json that read
+    wrote holds linearUnit meter and lists each name, else UnitError with the folder and the unit, since a surface folder carries none."""
+    path = Path(out_dir) / SUMMARY
+    if not path.is_file():
+        raise UnitError("%s holds no %s, so the unit of its surfaces is not known, a LandXML is read only in %s (R388)" % (out_dir, SUMMARY, METRE))
+    summary = json.loads(path.read_text(encoding="utf-8"))
+    if summary.get("linearUnit") != METRE:
+        raise UnitError("%s is the read of a LandXML in %s, a LandXML is read only in %s and never converted (R388)" % (out_dir, summary.get("linearUnit"), METRE))
+    listed = {item.get("name") for item in summary.get("surfaces") or []}
+    missing = [name for name in names if name not in listed]
+    if missing:
+        raise UnitError("%s lists no surface %s in its %s, so their unit is not known (R388)" % (out_dir, ", ".join(missing), SUMMARY))
+    return summary["linearUnit"]
+
+
 def read_landxml(path, out_dir, listed=None):
     """Writes one folder per surface with points.npy, faces.npy and summary.json, and landxml_summary.json for the file.
 
@@ -194,7 +212,7 @@ def read_landxml(path, out_dir, listed=None):
     if listed is not None:
         report["notInConfig"] = [name for name in names if name not in listed]
         report["missingFromFile"] = sorted(name for name in listed if name not in names)
-    write_json(out_dir / "landxml_summary.json", report)
+    write_json(out_dir / SUMMARY, report)
     return report
 
 

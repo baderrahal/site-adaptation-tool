@@ -38,6 +38,25 @@ def check(path):
     return units
 
 
+def check_table(folder, settings=None):
+    """R388. The units of a table folder of the data book, the data.json its reader wrote beside its csv tables: the units it records,
+    as the CadReader stand-in records the header of its drawing, else the unit tableUnits of config names for its reader, C3DProbe
+    when it names none, whose tables carry no units. Meters, else UnitError with the folder, the reader and the unit."""
+    folder = Path(folder)
+    data = json.loads((folder / "data.json").read_text(encoding="utf-8"))
+    units = data.get("units")
+    if units is None:
+        reader = data.get("reader") or "C3DProbe"
+        settings = settings if settings is not None else project_profile.load_settings()
+        units = (settings.values.get("tableUnits") or {}).get(reader)
+        if units is None:
+            raise UnitError("%s is a table of %s, which records no units, and tableUnits of config names none for it, a drawing is read only in %s (R388)"
+                            % (folder, reader, METRES))
+    if units != METRES:
+        raise UnitError("%s is a table of a drawing in %s, a drawing is read only in %s and never converted (R388)" % (folder, units, METRES))
+    return units
+
+
 def named_input(settings, role):
     """R388. The CadReader output of role config names: the read folder of its drawing of drawings under cadReads.root, relative to the
     repo when not absolute, and in it the file of the role, the folder itself for the road layout."""
