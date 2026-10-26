@@ -108,6 +108,19 @@ def clear_step(folder, step, side):
     return path
 
 
+def fields_entry(raw, fields):
+    """R345, R354. A plot of a step file of the build steps: the raw values as plain JSON, a field of no geometry written as it is and a
+    field of geometry by R385 at the decimals its field names in addin.parity, a list item by item, as the C# writes it (StepFile)."""
+    raw = json.loads(json.dumps(raw))
+
+    def written(value, decimals):
+        if isinstance(value, list):
+            return [written(item, decimals) for item in value]
+        return common.r3(value, decimals)
+    return {"raw": raw, "written": {name: value if (fields.get(name) or {}).get("kind") == "noGeometry" else written(value, (fields.get(name) or {}).get("decimals", common.DECIMALS))
+                                    for name, value in raw.items()}}
+
+
 def write_step(folder, step, side, scope, plots, settings, inputs):
     """step_<step>_<side>.json in folder, the raw numbers as Python writes a float, so no digit is lost (never through common.write_json)."""
     folder = Path(folder)

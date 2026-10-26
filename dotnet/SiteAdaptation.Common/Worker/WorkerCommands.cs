@@ -5,7 +5,8 @@ using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common
 {
-    // R347. The commands the worker runs so far: build, which writes the step files of R345 for the steps the C# gives. The
+    // R347. The commands the worker runs so far: build, which writes the step files of R345 for the steps the C# gives, the faces and the
+    // build steps of R354 to R357. The
     // other commands of the design come with the phase that builds them, and until then a request of one is refused
     public static class WorkerCommands
     {
@@ -29,6 +30,12 @@ namespace SiteAdaptation.Common
                 {
                     Faces(run, config);
                 }
+            }
+            // R354 to R357. The build steps on the inputs read once, after the faces
+            List<string> built = request.Steps.Where(BuildSteps.Names.Contains).ToList();
+            if (built.Count > 0)
+            {
+                BuildSteps.Run(run, config, built);
             }
         }
 

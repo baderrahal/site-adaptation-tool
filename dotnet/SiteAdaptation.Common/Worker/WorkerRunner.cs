@@ -19,6 +19,8 @@ namespace SiteAdaptation.Common
         public static readonly Dictionary<string, string[]> Steps = new Dictionary<string, string[]>
         {
             [FaceStep.Name] = new[] { FaceStep.BaseplanRoles, "plotsCsv", "labels" },
+            // R354. The clusters of a build by keyRules, on the reads of the worker, plots.csv, labels.csv, the rules file and the analysis
+            [SiteClusters.StepName] = BuildSteps.ClusterRoles,
             [ReadSteps.Labels] = new[] { "baseplan" },
             [ReadSteps.Blocks] = new[] { "villaBlocks" },
             [ReadSteps.Setbacks] = new[] { "villaBlocks" },
@@ -42,7 +44,7 @@ namespace SiteAdaptation.Common
         };
 
         public static readonly Dictionary<string, string> StepCommand = Steps.Keys.ToDictionary(step => step,
-            step => step == FaceStep.Name ? "build" : step == ProjectPositionFile.PositionStep || step == ProjectPositionFile.CheckPointsStep ? "position" : "read");
+            step => step == FaceStep.Name || BuildSteps.Names.Contains(step) ? "build" : step == ProjectPositionFile.PositionStep || step == ProjectPositionFile.CheckPointsStep ? "position" : "read");
 
         // R349. The role of a road surface file in a request, roadSurface:<file name with no extension>, one per LandXML file
         public const string RoadSurfaceRole = "roadSurface:";

@@ -26,6 +26,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from shapely.geometry import Polygon
 from shapely.strtree import STRtree
 
 import c3d_connect
@@ -58,8 +59,10 @@ ESTIMATE = "estimate"
 LOCATION = "locationPlan"
 OVERRIDE = "override"
 KEY_RULES = "keyRules"
-# R345. The steps of the parity harness this builder writes with --steps
-PARITY_STEPS = ("faces",)
+# R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R357 after the faces
+PARITY_STEPS = ("faces", "clusters")
+BUILD_STEPS = ("clusters",)
+FOOTPRINT, ANALYSIS = "footprint", "analysis"
 # R337. The source of a parameter that reads the steps, the stepBands of the level profile when keyRules codes no steps
 STEP_BANDS = "levelProfileStepBands"
 sourced = plan_from_cad.sourced
@@ -107,6 +110,88 @@ def numbered_clusters(clusters, number_of):
         if plots:
             found.append({**cluster, "plots": plots})
     return found
+
+
+def site_clusters(units, rows, faces, shapes, analysis, number_of):
+    """R236, R354. The clusters a build by keyRules takes, the site as the keys were measured on (R271): the footprint clusters over every
+    unit plot, then each cluster of the analysis less the plots a footprint cluster holds, a face of two plan numbers such as 476|477 left
+    out of its cluster as majority.py leaves it, each of two plots or more with its source, footprint or analysis."""
+    footprint = footprint_clusters(units, rows, faces, shapes) if shapes is not None else []
+    joined = joined_clusters(footprint, numbered_clusters(analysis, number_of)) if analysis is not None else footprint
+    found = []
+    for index, cluster in enumerate(joined):
+        plots = [plot for plot in cluster["plots"] if plot.isdigit()]
+        if len(plots) > 1:
+            found.append({**cluster, "plots": plots, "source": FOOTPRINT if index < len(footprint) else ANALYSIS})
+    return found
+
+
+def cluster_step(numbers, clusters):
+    """R354. The step clusters of the parity harness: every cluster of the build that holds a plot of the scope, whole, by its plots in
+    the order of their numbers joined by a bar, with its plots as the build takes them, its code and its source."""
+    wanted, found = set(numbers), {}
+    for cluster in clusters:
+        if wanted & set(cluster["plots"]):
+            key = "|".join(sorted(cluster["plots"], key=link_summary.sort_key))
+            found[key if key not in found else key + "#" + str(sum(1 for name in found if name.split("#")[0] == key) + 1)] = {
+                "plots": list(cluster["plots"]), "code": cluster.get("code"), "source": cluster["source"]}
+    return found
+
+
+def build_step_rules(profile, name):
+    """R354. keyRules of the level profile of the build steps, held by plan_rules.key_rules_of, and refused when the profile holds none:
+    the C# builds by keyRules alone, so the build steps of the parity harness are those of a build by keyRules (BuildRules.KeyRules)."""
+    key = plan_rules.key_rules_of(plan_rules.level_profile(profile, name))
+    if key is None:
+        raise project_profile.ProfileError("the build steps %s of the parity harness are those of a build by keyRules, the level profile %s holds none, "
+                                           "the C# builds by keyRules alone (R354)" % (", ".join(BUILD_STEPS), plan_rules.profile_name(profile, name)))
+    return key
+
+
+def one_ring_faces(plots):
+    """R354. A build takes the face of a label as one ring, whose edges it walks in the order shapely gives them (face_ring), so a label of
+    two rings or more, which face_shapes joins by a union whose ring order only shapely knows, is refused here and in the C# alike. A ring
+    is one the build takes: a whole label, three vertices or more and an area."""
+    count = Counter()
+    for entry in plots or []:
+        label = yard_rule.whole_label(entry.get("plot")) if entry.get("kind") == "plot_shape" else None
+        vertices = entry.get("vertices") or []
+        if label is not None and len(vertices) >= 3 and not Polygon([(vertex[0], vertex[1]) for vertex in vertices]).buffer(0).is_empty:
+            count[str(label)] += 1
+    many = sorted((label for label, held in count.items() if held > 1), key=link_summary.sort_key)
+    if many:
+        raise project_profile.ProfileError("%d baseplan labels hold two rings or more: %s, a build takes a face of one ring, whose edges it walks in the order shapely "
+                                           "gives them, so plan_from_book.py and the C# refuse such a label (R354)" % (len(many), ", ".join(many)))
+
+
+def face_ring(shape):
+    """R354. The outer ring of a face as the build walks it, the vertices shapely gives with the closing one left out: for a face of
+    Polygon(vertices).buffer(0) the first vertex and then the others in reverse when the ring was drawn anticlockwise (BuildFace.Of)."""
+    return [(point[0], point[1]) for point in list(shape.exterior.coords)[:-1]]
+
+
+def simple_blocks(blocks):
+    """R354. The footprint blocks of a build, a block whose outline of three points or more is not a simple ring refused with its name,
+    as plot_table.simple_blocks refuses it for the plot table (R352): block_shapes mends it by buffer(0) and the C# would not."""
+    for block in blocks:
+        points = face_rings.clean([point[:2] for point in block.get("outline") or []])
+        if len(points) >= 3 and not face_rings.simple(points):
+            raise ValueError("the footprint block %s at %s is not a simple ring, two of its edges meet, shapely would mend it by buffer(0) and the C# would not, "
+                             "so the build refuses it (R354)" % (block.get("name"), block.get("insertPoint")))
+    return blocks
+
+
+def analysis_clusters(path, settings):
+    """R354. The clusters of the analysis.json a build joins (R236), held to what it claims to be: the analysis of the baseplan drawing
+    drawings.baseplan names, by the name in its source, and a clusters list."""
+    path = Path(path)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    baseplan = settings.get("drawings")["baseplan"]
+    if data.get("source") != baseplan:
+        raise project_profile.ProfileError("%s is of %s, the analysis a build joins is of the baseplan drawings.baseplan names, %s (R354)" % (path.name, data.get("source"), baseplan))
+    if not isinstance(data.get("clusters"), list):
+        raise project_profile.ProfileError("%s holds no clusters list, the clusters of the analysis a build joins (R354)" % path.name)
+    return data["clusters"]
 
 
 def load_roads(files, scratch):
@@ -676,6 +761,20 @@ def step_inputs(args):
     return [parity.input_entry(role, path) for role, path in roles if path]
 
 
+def build_inputs(args, settings):
+    """R345, R354 to R357. The inputs the build steps were made from, those of the faces and every other file the steps read, by role."""
+    roles = [("rules", project_profile.profile_path(settings)), ("footprintBlocks", args.footprint_blocks), ("analysis", args.analysis)]
+    return step_inputs(args) + [parity.input_entry(role, path) for role, path in roles if path]
+
+
+def write_build_step(args, settings, step, made):
+    """R345, R354 to R357. step_<step>_python.json of a build step, each item by the fields of the step in addin.parity."""
+    fields = ((settings.get("addin") or {}).get("parity") or {}).get("steps", {}).get(step) or {}
+    plots = {key: parity.fields_entry(raw, fields) for key, raw in made.items()}
+    parity.write_step(args.steps, step, "python", step_scope(args.cover), plots, settings.values, build_inputs(args, settings))
+    print("step %s: %d items (R345)" % (step, len(plots)))
+
+
 def site_report(path):
     """The survey point, angle and level elevations the newSite job read back from the new file."""
     report = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -814,12 +913,14 @@ def main(argv=None):
         if args.steps_only:
             print("steps faces of %d plots written to %s, no plan built (R345)" % (len(cover["plots"]), args.steps))
             return 0
+        # R354. A build walks the ring of a face in the order shapely gives it, which the C# gives only for a face of one ring
+        one_ring_faces(baseplan)
         args.roads = str(cad_units.read_input(settings, "roads", args.roads))
         roads = cad_analysis.read_road_edges(args.roads, settings.get("analysis")["roadEdgeLayers"])
         if args.footprint_blocks:
             args.footprint_blocks = str(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks))
-        shapes = footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings)) if args.footprint_blocks else None
-        analysis = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"] if args.analysis else None
+        shapes = footprint_check.block_shapes(simple_blocks(footprint_check.footprint_blocks(args.footprint_blocks, settings))) if args.footprint_blocks else None
+        analysis = analysis_clusters(args.analysis, settings) if args.analysis else None
         if shapes is not None:
             clusters = footprint_clusters(cover["plots"], rows, faces, shapes)
             if analysis is not None:
@@ -831,14 +932,15 @@ def main(argv=None):
         job = plan_from_past.load_job(settings)
         folder, _ = plan_from_past.prototype_folders(plan_from_past.input_root(settings), job)
         # R337. A build by keyRules walks the rows of units past its own plots, so the clusters of every unit plot tell which units pair
+        if args.steps:
+            build_step_rules(profile, args.level_profile)
         everything, by_keys = [], plan_rules.key_rules_of(plan_rules.level_profile(profile, plan_rules.profile_name(profile, args.level_profile))) is not None
         if by_keys:
             units = [number for number, row in rows.items() if row.get("typologyRev9") and number in faces]
-            everything = footprint_clusters(units, rows, faces, shapes) if shapes is not None else []
-            if analysis is not None:
-                everything = joined_clusters(everything, numbered_clusters(analysis, number_of))
             # A face with two plan numbers, such as 476|477, is no plot of its own and leaves its cluster, as majority.py takes them
-            everything = [found for found in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]} for cluster in everything) if len(found["plots"]) > 1]
+            everything = site_clusters(units, rows, faces, shapes, analysis, number_of)
+        if args.steps:
+            write_build_step(args, settings, "clusters", cluster_step(cover["plots"], everything))
         # R277. Every build follows a level profile, the named one or levelProfiles.default
         rules = rule_inputs(args, settings, profile, cover["plots"], rows, faces, roads, sales, everything)
         # R339, R340. The road surfaces of the one setting majority.py measures the levels on
