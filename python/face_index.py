@@ -8,8 +8,10 @@ Both languages take the same steps on plain doubles, so they give the same face,
 the rings one by one, and a label on the edge two rings of its face share went on that face in Python and on none in C#.
 
 The grid: the faces by the cells of their bounding boxes, the cell the median of the larger side of the boxes and at least MIN_CELL_M,
-so a point is held against the faces whose box holds it, never against every face. The grid only leaves out faces whose box does not
-hold the point, so it gives what a scan of every face gives.
+so a point is held against the faces whose box holds it, never against every face. A face whose box covers more than
+MAX_CELLS_PER_FACE cells, such as a ring with a far vertex, is kept apart in wide and held against every point, so the grid holds at
+most MAX_CELLS_PER_FACE cells per face whatever the faces are. The grid only leaves out faces whose box does not hold the point, so it
+gives what a scan of every face gives.
 """
 import math
 
@@ -17,6 +19,9 @@ import yard_rule
 
 # The least side of a cell, so faces of no extent never give a cell of none. The cell only sets how many faces a point is held against
 MIN_CELL_M = 1.0
+# The most cells the box of a face is put in, a face over it scanned for every point instead. It bounds the memory of the grid and never
+# its result
+MAX_CELLS_PER_FACE = 256
 
 
 def on_segment(ax, ay, bx, by, x, y):
@@ -88,7 +93,10 @@ class FaceIndex:
         self.boxes = [(min(p[0] for r in found for p in r), min(p[1] for r in found for p in r), max(p[0] for r in found for p in r),
                        max(p[1] for r in found for p in r)) for found in self.rings]
         self.cells = {}
+        self.wide = []
+        self.wide_items = []
         if not self.boxes:
+            self.cell_count = 0
             return
         self.origin = (min(box[0] for box in self.boxes), min(box[1] for box in self.boxes))
         sides = sorted(max(box[2] - box[0], box[3] - box[1]) for box in self.boxes)
@@ -96,9 +104,15 @@ class FaceIndex:
         median = sides[middle] if len(sides) % 2 else (sides[middle - 1] + sides[middle]) / 2
         self.cell = max(median, MIN_CELL_M)
         for item, box in enumerate(self.boxes):
+            columns, rows = self.column(box[2]) - self.column(box[0]) + 1, self.row(box[3]) - self.row(box[1]) + 1
+            if float(columns) * float(rows) > MAX_CELLS_PER_FACE:
+                self.wide_items.append(item)
+                self.wide.append(self.labels[item])
+                continue
             for column in range(self.column(box[0]), self.column(box[2]) + 1):
                 for row in range(self.row(box[1]), self.row(box[3]) + 1):
                     self.cells.setdefault((column, row), []).append(item)
+        self.cell_count = len(self.cells)
 
     def column(self, x):
         return math.floor((x - self.origin[0]) / self.cell)
@@ -108,11 +122,11 @@ class FaceIndex:
 
     def holding(self, x, y):
         """The labels of every face that holds the point, in the order of their numbers."""
-        if not self.cells:
+        if not self.boxes:
             return []
         x, y = float(x), float(y)
         found = []
-        for item in self.cells.get((self.column(x), self.row(y)), []):
+        for item in sorted(self.cells.get((self.column(x), self.row(y)), []) + self.wide_items):
             box = self.boxes[item]
             if box[0] <= x <= box[2] and box[1] <= y <= box[3] and holds(self.rings[item], x, y):
                 found.append(self.labels[item])

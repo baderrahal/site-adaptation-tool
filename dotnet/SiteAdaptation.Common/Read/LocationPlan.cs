@@ -102,11 +102,23 @@ namespace SiteAdaptation.Common
     // R351. The settings of the location plan, dataBook.locationPlan and connect of config/project.json
     // R351, R352. face_index.FaceIndex: the faces of a point by LocationPlan.Holds, found by a grid of the cells of their bounding boxes,
     // the cell the median of the larger side of the boxes and at least MinCellM, so a point is held against the faces whose box holds it
-    // and never against every face, and the result is the one a scan of every face gives
+    // and never against every face, and the result is the one a scan of every face gives. A face whose box covers more than
+    // MaxCellsPerFace cells, such as a ring with a far vertex, is kept apart and held against every point, so the grid holds at most
+    // MaxCellsPerFace cells per face whatever the faces are
     public sealed class FaceIndex
     {
         // The least side of a cell, so faces of no extent never give a cell of none. The cell only sets how many faces a point is held against
         public const double MinCellM = 1.0;
+
+        // The most cells the box of a face is put in, a face over it scanned for every point instead. It bounds the memory of the grid
+        // and never its result
+        public const int MaxCellsPerFace = 256;
+
+        private readonly List<int> wide = new List<int>();
+
+        public int CellCount => cells.Count;
+
+        public List<string> Wide => wide.Select(item => faces[item].Label).ToList();
 
         private readonly List<PlanFace> faces;
         private readonly List<double[]> boxes;
@@ -136,6 +148,11 @@ namespace SiteAdaptation.Common
             for (int item = 0; item < boxes.Count; item++)
             {
                 double[] box = boxes[item];
+                if ((double)(Column(box[2]) - Column(box[0]) + 1) * (Row(box[3]) - Row(box[1]) + 1) > MaxCellsPerFace)
+                {
+                    wide.Add(item);
+                    continue;
+                }
                 for (long column = Column(box[0]); column <= Column(box[2]); column++)
                 {
                     for (long row = Row(box[1]); row <= Row(box[3]); row++)
@@ -171,11 +188,12 @@ namespace SiteAdaptation.Common
         public List<string> Holding(double x, double y)
         {
             var found = new List<string>();
-            if (cells.Count == 0 || !cells.TryGetValue(Key(Column(x), Row(y)), out List<int> held))
+            if (boxes.Count == 0)
             {
                 return found;
             }
-            foreach (int item in held)
+            List<int> held = cells.TryGetValue(Key(Column(x), Row(y)), out List<int> inCell) ? inCell : new List<int>();
+            foreach (int item in held.Concat(wide).OrderBy(item => item))
             {
                 double[] box = boxes[item];
                 if (box[0] <= x && x <= box[2] && box[1] <= y && y <= box[3] && LocationPlan.Holds(faces[item], x, y))

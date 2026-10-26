@@ -464,6 +464,35 @@ namespace SiteAdaptation.Tests
             public const int One = 2715;
         }
 
+        // test_face_index.SPIKE_CELLS and SPIKE_ONE
+        private static class SpikeCounts
+        {
+            public const int Cells = 130;
+            public const int One = 2730;
+        }
+
+        [Fact]
+        public void R351_a_face_with_a_far_vertex_is_scanned_apart_and_the_grid_stays_bounded()
+        {
+            // test_face_index: the made up faces and face 999, a simple ring with a spike 5 km west and south of them, whose box would cover
+            // about 250,000 cells of 10 m
+            List<PlanFace> faces = MadeRings();
+            var spike = new PlanFace { Label = "999" };
+            spike.Rings.Add(new[] { new[] { 571120.0, 2364000.0 }, new[] { 571130.0, 2364000.0 }, new[] { 571130.0, 2364010.0 }, new[] { 566000.0, 2359000.0 } });
+            faces.Add(spike);
+            var index = new FaceIndex(faces);
+            Assert.Equal(new[] { "999" }, index.Wide);
+            Assert.True(index.CellCount <= FaceIndex.MaxCellsPerFace * faces.Count, "cells " + index.CellCount);
+            int one = 0;
+            foreach (double[] point in MadePoints().Concat(new[] { new[] { 571125.0, 2364004.0 }, new[] { 568500.0, 2361500.5 }, new[] { 566000.0, 2359000.0 } }))
+            {
+                List<string> scan = faces.Where(face => LocationPlan.Holds(face, point[0], point[1])).Select(face => face.Label).OrderBy(label => long.Parse(label, CultureInfo.InvariantCulture)).ToList();
+                Assert.Equal(scan, index.Holding(point[0], point[1]));
+                one += scan.Count == 1 ? 1 : 0;
+            }
+            Assert.Equal(new[] { SpikeCounts.Cells, SpikeCounts.One }, new[] { index.CellCount, one });
+        }
+
         [Fact]
         public void R351_new_codes_come_by_the_exact_row_by_the_form_and_by_the_base_as_location_plan_new_code()
         {

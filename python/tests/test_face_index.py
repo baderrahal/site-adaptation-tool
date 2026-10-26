@@ -38,6 +38,8 @@ def test_r351_a_label_on_the_edge_two_rings_of_one_label_share_is_on_that_face_a
 
 # The faces, points and points one face holds on the rings and points below, the same counts as LocationPlanTests.FaceIndexCounts
 FACES, POINTS, ONE = 78, 5130, 2715
+# The cells of the grid and the points one face holds with the face of a spike, the same as LocationPlanTests.SpikeCounts
+SPIKE_CELLS, SPIKE_ONE = 130, 2730
 
 
 def made_rings():
@@ -77,3 +79,20 @@ def test_r351_the_grid_gives_every_point_the_faces_a_scan_of_every_face_gives():
     # The C# test counts the same on the same rings and points
     assert (len(rings), len(made_points()), one) == (FACES, POINTS, ONE)
     assert face_index.FaceIndex({}).holding(0.0, 0.0) == []
+
+
+def test_r351_a_face_with_a_far_vertex_is_scanned_apart_and_the_grid_stays_bounded():
+    # Input: the made up grid of 78 faces and one face more, label 999, a simple ring with a spike 5 km west and south of the grid, whose
+    # box would cover about 250,000 cells of 10 m. The probe of the breaker of PR 54 sent such a spike to the origin, 1.77 billion cells
+    rings = made_rings()
+    rings["999"] = [[(571120.0, 2364000.0), (571130.0, 2364000.0), (571130.0, 2364010.0), (566000.0, 2359000.0)]]
+    index = face_index.FaceIndex(rings)
+    assert index.wide == ["999"]
+    assert index.cell_count <= face_index.MAX_CELLS_PER_FACE * len(rings)
+    one = 0
+    for x, y in made_points() + [(571125.0, 2364004.0), (568500.0, 2361500.5), (566000.0, 2359000.0)]:
+        scan = sorted((label for label, found in rings.items() if face_index.holds(found, x, y)), key=int)
+        assert index.holding(x, y) == scan
+        one += len(scan) == 1
+    # The C# test counts the same on the same rings and points
+    assert (index.cell_count, one) == (SPIKE_CELLS, SPIKE_ONE)
