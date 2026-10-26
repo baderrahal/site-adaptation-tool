@@ -384,8 +384,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     overrides = {} if rules is None else rules["overrides"]
     outcomes = Outcomes(overrides, numbers, [] if rules is None else rules.get("laterFields") or [], "the estimate of R209" if rules is None else rules["name"])
     in_build = set(numbers)
-    # R386. The plots of the skip list of the override list are left out and listed in missing as skip
+    # R386. The plots of the skip list of the override list are left out and listed in missing as skip, each a plot of plots.csv
     skip = getattr(overrides, "skip", {})
+    override_source.skip_plots_known(skip, rows, "the skip list of the override list: ")
     for number, item in front.items():
         if item["front"] is not None:
             rule = None

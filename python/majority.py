@@ -787,9 +787,10 @@ def final_list(listing, block, dry, path, keep, replace, keep_from, joined):
     return merged, counts
 
 
-def final_skip(path, keep_from):
+def final_skip(path, keep_from, plots=None):
     """R386. The skip list a run writes: the skip of the list at path it writes over and of --keep-from, kept whole and never measured,
-    sorted by plot, a plot the two lists skip otherwise refused with both named. None when neither list holds a skip."""
+    sorted by plot, a plot the two lists skip otherwise refused with both named, and with plots, the plot numbers of plots.csv, a plot
+    that is none of them refused with its name. None when neither list holds a skip."""
     found, lists = {}, []
     for source in [Path(path)] + ([Path(keep_from)] if keep_from else []):
         if not source.exists():
@@ -797,7 +798,7 @@ def final_skip(path, keep_from):
         data = override_source.read_list(source)
         if data.get("skip") is None:
             continue
-        override_source.check_skip(data["skip"], source)
+        override_source.check_skip(data["skip"], source, plots)
         lists.append(source)
         for item in data["skip"]:
             other = found.get(item["plot"])
@@ -961,7 +962,7 @@ def run_args(args):
               "cannotCount": dict(Counter(item["decision"] for item in cannot)), "cannotCounts": override_source.counts(cannot)}
     common.write_json(args.out, report)
     # R386. The skip list of the check table is kept whole, a run never measures it
-    skip = final_skip(args.overrides, args.keep_from)
+    skip = final_skip(args.overrides, args.keep_from, set(book))
     write_overrides(args.overrides, block["overrideNote"], listing, cannot, skip)
     for result in results:
         print("%s: coded %s, share %s, %s, misses %d of %d" % (result["decision"], result["coded"], result["share"], "strong" if result["strong"] else "WEAK", result["misses"], result["plots"]))

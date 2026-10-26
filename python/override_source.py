@@ -117,9 +117,10 @@ def edit_key(item):
     return (str(item["plot"]), item.get("key"), item.get("field"))
 
 
-def check_skip(skip, path=None):
+def check_skip(skip, path=None, plots=None):
     """R386. The skip list of an override list by plot: each entry is {"plot", "reason", "byHand": true}, the plot a text and the reason
-    not empty, one entry per plot. None for a list with no skip. One error names every fault."""
+    not empty, one entry per plot, and with plots, the plot numbers of plots.csv, a plot of it exactly (skip_plots_known). None for a
+    list with no skip. One error names every fault."""
     if skip is None:
         return None
     where = "" if path is None else str(path) + ": "
@@ -136,7 +137,18 @@ def check_skip(skip, path=None):
             found[item["plot"]] = item["reason"]
     if faults:
         raise project_profile.ProfileError(where + "%d skip entries refused: %s (R386)" % (len(faults), " | ".join(faults[:5])))
+    if plots is not None:
+        skip_plots_known(found, plots, where)
     return found
+
+
+def skip_plots_known(skipped, plots, where=""):
+    """R386. Every plot a skip names is a plot of plots.csv as plots.csv spells it, so "2 ", "02" or "IMC-2" is refused with its name
+    and never leaves a plot built as if no skip was asked for."""
+    unknown = sorted(plot for plot in skipped if plot not in plots)
+    if unknown:
+        raise project_profile.ProfileError(where + "%d skip plots are no plot of plots.csv, a skip names the plot as plots.csv spells it: %s (R386)"
+                                           % (len(unknown), ", ".join(json.dumps(plot) for plot in unknown[:10])))
 
 
 def with_hand_edits(earlier, replaced):

@@ -154,3 +154,22 @@ def test_r330_a_hand_edit_is_kept_one_by_one_and_every_other_entry_of_its_field_
     # A hand edit of a plot the join gives its key no row is never dropped in silence, the run is refused
     with pytest.raises(project_profile.ProfileError, match="plot 4"):
         majority.final_list(run, keep_block(later={}), False, path, [], [], None, {("imc", "1"), ("imc", "2"), ("imc", "3"), ("imc", "5")})
+
+
+# R386 a skip names a plot of plots.csv exactly, else it is refused with the name, never built as if no skip was asked for
+@pytest.mark.parametrize("plot", ["2 ", " 2", "02", "IMC-2", "9"])
+def test_r386_a_skip_plot_that_is_no_plot_of_plots_csv_is_refused_with_its_name(tmp_path, monkeypatch, plot):
+    from test_addin_levels import level_build
+    overrides = [entry("3", "heightM", {"gapToRuleM": -0.001}, "parsons", "IMC.rvt", "imc")]
+    skip = [{"plot": plot, "reason": "client builds later", "byHand": True}]
+    with pytest.raises(project_profile.ProfileError, match="plots.csv") as error:
+        level_build(tmp_path, monkeypatch, overrides=overrides, skip=skip)
+    assert json.dumps(plot) in str(error.value) and "R386" in str(error.value)
+    # A majority run reads the skip of the list against plots.csv the same way, before it writes anything
+    path = write_list(tmp_path / "list.json", overrides, skip=skip)
+    with pytest.raises(project_profile.ProfileError, match="plots.csv") as error:
+        majority.final_skip(path, None, {"1", "2", "3", "4"})
+    assert json.dumps(plot) in str(error.value)
+    # The plot as plots.csv spells it is skipped
+    found, plan = level_build(tmp_path, monkeypatch, overrides=overrides, skip=[{"plot": "2", "reason": "client builds later", "byHand": True}])
+    assert "2" not in found and plan["summary"]["skipped"] == ["2"]
