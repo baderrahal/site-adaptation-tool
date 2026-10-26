@@ -1566,3 +1566,69 @@ Records corrected from the logs: the R387 text and Q081 above, 5 drawings and no
 Not done: past_all.py keeps round() on the key side of past_all.csv until a rebuild of it in 4f (R359), the width key until 4f (R358), named in R385 and pinned by its test. CLAUDE.md is not changed, the lines it should gain are in the report of the review.
 
 Gate of the review: at the head of the PR, in the PR body and round_addin\logs\p4bfix_gate_*.txt.
+
+## Bader's answers Q081 and Q073, PR 52 fix/addin-q081-q073
+
+Branch fix/addin-q081-q073 from main at 9c25ec8, equal to origin/main after git fetch (RAN). R344 and R387 are new, R181 and R339 to R341 keep their text and take R344 through the road they ask. Four changes: the records of Q081, Q073 and Q001, R387 (f114c2c), R344 (89b4999 the code, f23187a the majority write, keyRules, the rule text and step 9 of the design) and these records. The work ran in a helper agent started by the main session, which runs the breaker and the claim-checker and merges. The branch logic/addin-4c was not touched. No Revit or Civil 3D window was opened: round_addin\logs\windows.jsonl was last written on 2026-10-25 13:15, no window.lock is on disk and no acad, accoreconsole or Revit process ran at the end (READ). The registry was not read or written. Real values stay in Documents\SiteAdaptation\round_addin\q073 and q081, this section holds counts, distances, gaps and plot and face numbers only.
+
+Bader's answers, 2026-10-26, word for word in steps/questions-closed.md: Q081 accept the recommended option, Q073 read the road folder and give the corners a road level, list a plot still with none and its reason, never a guessed value, Q001 still open.
+
+### Originals and inputs (R201, R202)
+
+- 60 originals, the 4 drawings of C:\02-Site Adaptation\Roads, the 99 inputs of 3c and 4a and 43 extras, the 20 of 4b with the data book copies of the 4 Roads drawings, cross_sections.json of R192 and the 18 LandXML files of the data book, hashed by sha256sum before the first edit and after the last run: 60 of 60, 4 of 4, 99 of 99 and 43 of 43 equal (RAN, round_addin\logs\q073_hash.sh, originals_q073_before.txt and _after.txt, roads_, inputs_, extras_). The 60 and the 99 before equal the after lists of the review of PR 51. config/overrides/roshn-makkah.json and rules/roshn-makkah.json changed by the write run only (protected_q073_before.txt, _after.txt).
+
+### R387, the control point fit as a check (Q081)
+
+- Tests first (RAN, q081_r387_first.txt): 3 of 3 failed on the missing control_texts, control_refine and face_of_points. Then they passed: the marks are the curves of the mark shape and a text with none or two is refused, the similarity of three marks almost on one line holds a far point within 0.05 m where their exact affine lies over 1 m off, the refine takes only the faces with one label, and a face numbered otherwise is listed apart with why while no row moves.
+- controlMark of dataBook.locationPlan in python/c3d_probe.json: 3.96 by 3.96 pt within 0.01 pt with 6 points (CHOSEN, measured in 4b: the only three such curves of the page, one in the search of each E = text, p4b_r387_probe.txt). The fit starts from the similarity of the three marks and is refined by the fit of R181 on the faces with one label each (Bader). The design that was refused is out of section 5 of the design, it never was in the code or in docs/rules.md, its patch stays outside the repo.
+- On the location plan of the data book at f114c2c (RAN, q081_run.txt, its labels.csv written outside the data book through a junction to the work folder): 3 control texts and 3 marks, the marks 0.03, 0.041 and 0.01 m off their stated points under the similarity, the refine on 2,911 faces with one label keeps 2,702, the two fits within 0.129 m of each other at all 3,181 labels, 0.039 m at the median, labels on a face 2,970 by each fit. 4 faces listed apart, each with a client code label: 372 (schedule 2656, control none) and 2646 (schedule none, control 2656), label 2656 0.005 m from the edge of face 372 with the fits 0.029 m apart at it, 1759 (schedule 1770, control none) and 1760 (schedule 1771, control 1770 and 1771), label 1770 0.028 m from the edge of face 1759 with the fits 0.05 m apart. labels.csv equals the snapshot and the data book by SHA-256, so the check numbered nothing, and the 6 inputs are equal by SHA-256 before and after.
+- Second method by another route (RAN, q081_second.txt): the PDF read by pypdfium2, the marks as the 3 path objects of 4.44 by 4.44 pt bounds, the stroke held, with 13 segments, turned as the page shows them (Rotate 90), the stated points by a pattern over the text, the similarity in closed form by complex numbers, the refine by the normal equations of R184 with an own drop loop and every label on a face by an own ray cast on the labels.csv page points. It refines on 2,911 faces and keeps 2,703, puts 2,970 labels on a face and lists the same 4 faces with the same numbers, 4 of 4, none on one side only. Its first run took the marks unturned and refined on 183 faces, the page turn was found and taken before the counts above.
+
+### R344, the road at a front corner off the road surfaces (Q073)
+
+- The plots (RAN, q073_probe1.txt, the inputs of p4b_build_route.sh): 33 plots, IMA 1553, IMB 2241, 2272, IMD 1172, 1491, 1492, IME 2626, 2665, 2699, IMF 653, 693, 727, 769, 770, 792, 805, 813, 827, 828, 857, 1092, 1093, 1129, IMG 428, 429, 430, 468, 469, 475, 511, 584, 626, 639, with 35 front corners no surface of siteBuild.roadSurfaces covers, both corners of IMG 429 and 430. IME 2690 and IMG 622 have no front frame, so no corners.
+- What the exported files give at those corners: no road surface of the 18 LandXML files of the data book covers any. The three ground and three grading surfaces cover all 35, from 2.42 m under to 7.13 m over the road of the covered corner of the same plot, 1.12 m under at the median of 186 levels on the 31 corners whose plot has one, and the roads subgrade covers 12. On the 4,504 covered front corners of the 2,558 unit plots with a front the subgrade plus 0.70 m holds the road within 5 mm on 37 (0.008), median 0.129 m over it (q073_probe2.txt), so no surface of the files is a road level there.
+- The road of the build at the front (RAN, q073_probe2b.txt, 5,081 corners): it rises 2.00 percent toward the plot over the last 1, 2 and 3 m at the median, within 0.5 of 2.0 on 0.930, 0.929 and 0.910. The road d m toward the road plus 2 percent of d holds the road at the corner within 5 mm at d 1, 2, 3 and 4 m on 0.930, 0.917, 0.885 and 0.873 and at 5 and 6 m on 0.010, past the sidewalk. 2.0 is the sidewalk cross fall written over 11 of the 14 local road curbs of the Typical Cross Sections drawing (READ, data book cross_sections.json of R192).
+- The rule (CHOSEN): a corner no road surface covers within snapM takes the road at the nearest point of those surfaces within siteBuild.roadReach.reachM, 6.05 m, the widest sidewalk of a local road the cross sections give, plus crossFallPercent 2.0 of the distance, after the surfaces in their order. The 35 corners lie 0.01 to 5.00 m from the road surfaces, 2 over 4 m, IMF 653 at 4.21 m and IMB 2272 at 5.00 m. So all 33 plots have a road level at both front corners and 0 are left with none.
+- Against the answer keys (RAN, q073_probe3.txt): at the 27 reached corners of a TU key with a key ramp front corner within 0.5 m in plan, the rule holds that corner within 5 mm on 9, 20 mm on 18, 50 mm on 24, the key corner 1.8 mm under the rule at the median, where the road at the 3,490 covered corners with one holds it within 5 mm on 3,022 (0.866) and 20 mm on 3,190. IMA and IMB are SE keys with no ramp.
+- Not taken (CHOSEN): the surfaces not exported and the alignments. The C3DProbe of the data book read 7 surfaces of Road Surface C3D by GetSurfaceIds against the 11 instances of the surface class R242 counts, and reached none of its 154 alignments (READ, steps/investigations/data-book.md Part T), what the 4 other instances are is UNKNOWN. The exported road surfaces with the cross fall reach every corner within 5.00 m, nearer than any alignment, the road centre, so no Civil 3D window was opened and the third source of the brief was not needed.
+- Tests first (RAN, q073_r344_first.txt): 5 of 5 failed, road_level with no reach argument, no roadReach in config, fronts with no reach and OwnTin with no nearest_side. Then they passed, and the road_level stubs of three earlier test files took the reach argument.
+- Second method (RAN, q073_second.txt): the road at the 35 corners by the build, the numpy reader of R40 and R42, and by the own text route of key_rules_check.py with the reach of its own reading of config: both give a level at 35 of 35, equal within 0.000001 m on 35, the largest gap 3.9E-12 m, and on 100 covered corners each at seeds 14 and 7 equal on 100 of 100. By surface the reach took Compiled West_MM 25, Top Surface-01 4, Part 4 Top Surfaces 3, Top Surface-02 2, Missed from Paste 1.
+
+### The majority write and keyRules on R344
+
+- The dry run and the write run at 89b4999 (RAN, q073_dry.txt, q073_write.txt, q073_run_majority.sh, the flags of 3c and 4b with an own scratch): the merged list held against the dry one by the second method, entries and cannot equal, ok. keyRules by key_rules_block.py through p3c_key_rules_write.py (q073_key_rules_write.txt).
+
+| List | Total | Native | Parsons | Cannot |
+|---|---|---|---|---|
+| main, ef01ada2 | 12,421 | 5,222 | 7,199 | 154 |
+| PR 52, 7d5c3ce1 | 12,477 | 5,222 | 7,255 | 44 |
+
+(RAN, q073_list_compare.txt.) Native cell for cell. 85 new entries, entryM 30, heightM 25, rampFrontM 30, all on the 33 plots, 29 steps entries of them gone, 9 changed, heightM 8 and steps 1, 4 of them on the 33 plots and the heightM of IMF 1094, 1095, 1096 and IMG 467, 470, whose piece now holds the El @ Entry of a new plot. Cannot lost 110 entries of the 33 plots, entryM 30, heightM 25, Prototype-FFL 25, rampFrontM 30, the 44 left are those of IME 2690 and IMG 622 and the 30 rampFrontFall of Q057. keyRules: no rule and no share at the pass moved, steps misses 48 to 19 and byBuild holds 1,743 to 1,772, ffl byBuild breaks 1,544 to 1,569 and cannot 27 to 2, Prototype-FFL misses 38 to 13, entry holds at 1 mm 260 to 261 and at 5 mm 788 to 793, rampFront at 1 mm 1,317 to 1,320 and at 5 mm 1,434 to 1,442 (git diff).
+
+### The build proof on the 7 keys
+
+At 89b4999 with the written list and at f114c2c, the 7 plans equal by SHA-256 (RAN, q073_proof.txt, q073_proof_head.txt, q073_proof_head_equal.txt, p4b_build_route.sh): 0 unexplained on every key, unexplained levels 0 at the pass, 1 mm and 5 mm, skipped 0, states holds 47,569 to 48,292, input 33 to 0, all 33 plots written, not written only IME 2690 and IMG 622 with no front edge. Every other plot of the plans as before but IMF 1094 to 1096 and IMG 467 and 470, moved in levelRule only (q073_proof_compare.txt). The new plots, holds by the rule alone and by an override of their own:
+
+| Level | imd 3 | ime 3 | imf 14 | img 10 | All 30 TU |
+|---|---|---|---|---|---|
+| El @ Entry | 0, 3 | 0, 3 | 0, 14 | 0, 10 | 0, 30 |
+| FFL | 0, 3 | 0, 3 | 0, 14 | 0, 10 | 0, 30 |
+| Height | 2, 1 | 2, 1 | 11, 3 | 7, 3 | 22, 8 |
+| Steps | 3, 0 | 3, 0 | 14, 0 | 9, 1 | 29, 1 |
+| Ramp front, the mean | 1, 2 | 0, 3 | 0, 14 | 1, 9 | 2, 28 |
+| Prototype-FFL | 0, 3 | 0, 3 | 1, 13 | 2, 8 | 3, 27 |
+
+The ramp front corners of the 30 go to Q057, 29 off and 1 held by its override. IMA 1553 and IMB 2241 and 2272 hold no level, the SE keys, and their Prototype-FFL is keyHoldsNone.
+
+- Second method at f114c2c (RAN, q073_check_head.txt, p3c_run_check.sh with --merged and --earlier): seed 14 and seed 7 0 mismatches, every plot 3, the base of IMF 1118 and the villa hands of IME 2710 and IMG 441 (Q072), as in 3c and 4b, walls 0, the own road on 2,543 plots with 0 with no road, 33 before, level items equal on both sides, the merged list ok, 12,477 entries, 5,222 native kept, 44 cannot equal the dry list.
+
+### Questions
+
+- Q073 and Q081 closed with Bader's answers word for word and what this PR did. Q001 stays open with its new text. Q052, Q053, Q057 and Q074 take the counts of R344, the same text in steps/PROGRESS.md and the top entry of steps/log.md. No new question.
+
+### Not done in this PR
+
+- The alignments, the 4 surfaces no probe reaches and the Civil 3D window, as above. The C# of R344 and R387, 4c step 9 and 4d R351. CLAUDE.md is not changed, the lines it should gain are in the report of the PR.
+
+Gate: at the head of the PR, in the PR body and round_addin\logs\q073_gate_*.txt.
