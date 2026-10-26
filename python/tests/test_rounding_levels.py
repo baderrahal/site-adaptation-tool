@@ -2,6 +2,7 @@
 overrides of a build and the gaps majority.py and key_rules.py write round a tie half away from zero on the 15 digit decimal, as
 common.fixed does. Every number here is made up (R10)."""
 import io
+import json
 import tokenize
 from pathlib import Path
 
@@ -29,10 +30,12 @@ def test_r385_the_ffl_of_a_piece_rounds_a_tie_half_away_from_zero_and_its_height
     rows = plan_rules.key_level_rows(entries, {"1": ["1", "2"], "2": ["1", "2"]}, PROFILE, LP, {"steps": {"rule": "stepsFromHeight"}})
     assert rows["1"]["ffl"] == rows["2"]["ffl"] == 119.408 and rows["1"]["height"] == 0.1005 and rows["2"]["height"] == 0.208
     assert rows["1"]["ssl"] == common.fixed(119.408 + GROUND, 3)
-    # R278, a level profile with no level rules: the FFL by the same rule, the height there from the level before it is rounded
+    # R278, a level profile with no level rules: the FFL by the same rule, the height from the FFL and El @ Entry as written, so the
+    # three agree to the 0.1 mm, where the height of the level before it was rounded gave 0.1 beside 119.408 and 119.3075 (4b review)
     lp = dict(LP, height="oneFflPerClusterAtTheHighestEntry")
     found = plan_rules.heights({"1": {"unit": "DP1", "entry": 119.3075}}, [], lp, PROFILE)["1"]
-    assert (found["ffl"], found["height"], found["entry"]) == (119.408, 0.1, 119.3075) and found["ssl"] == common.fixed(119.4075 + GROUND, 3)
+    assert (found["ffl"], found["height"], found["entry"]) == (119.408, 0.1005, 119.3075) and found["ssl"] == common.fixed(119.4075 + GROUND, 3)
+    assert found["height"] == common.fixed(found["ffl"] - found["entry"], 4) == rows["1"]["height"]
 
 
 def test_r385_the_el_at_entry_a_build_gives_rounds_a_tie_on_its_decimal_value():
@@ -97,8 +100,16 @@ def round_calls(path):
 
 
 # R385. The round() calls left in the build and the rule paths: a share of counts and a count of the native measure of R275, no level,
-# length, angle or gap. The C# never computes them, majority.py and key_rules_block.py are the measure and stay in Python
-LEFT = {"majority.py": ("round(counts.get(\"holds\", 0) / total, 4)", "covers.append(round(cover, 2))",
+# length, angle or gap. The C# never computes them, majority.py and key_rules_block.py are the measure and stay in Python. And the round()
+# of Round 17 that a build of native2022 keeps by majority.overrideRounding, its native overrides measured on it (Q050)
+LEFT = {"plan_rules.py": ("lambda value, decimals: round(value, decimals)",),
+        # The key side of past_all.csv of 2b, its levels, gaps, areas and slopes, moved with a rebuild of past_all.csv in 4f (R359)
+        "past_all.py": ("round(shape.area, 3)", "round(c[2] - datum, 4)", "round(geometry[\"slope_short\"], 3)", "round(geometry[\"slope\"], 3)",
+                        "round(ends[0], 4), round(ends[1], 4), round(ends[2], 4)", "\"gapM\": round(schedule_value - key_value, 4)", "round(entry_level, 4)",
+                        "round(ffl_design - entry_level, 4)"),
+        # The width key of the yard outline lookup, the width in steps, a lookup and no level, moved with step 8 in 4f (R358)
+        "floor_fit.py": ("round(round(width / step) * step, 3)",),
+        "majority.py": ("round(counts.get(\"holds\", 0) / total, 4)", "covers.append(round(cover, 2))",
                         "str(1 + max(0, round((item[\"row\"][\"height\"] - base_height(profile, item[\"code\"])) / riser)))"),
         "key_rules_block.py": ("round(counts.get(\"holds\", 0) / total, 4)", "round(holds / clusters, 4)"),
         # The yard outline width key of floor_fit.width_key, a lookup the first method keeps with round() until step 8 of 4f (R358)
@@ -106,7 +117,62 @@ LEFT = {"majority.py": ("round(counts.get(\"holds\", 0) / total, 4)", "covers.ap
 
 
 @pytest.mark.parametrize("name", ["plan_rules.py", "plan_from_book.py", "levels.py", "key_levels.py", "key_rules.py", "majority.py", "key_rules_block.py",
-                                  "key_rules_check.py"])
+                                  "key_rules_check.py", "build_proof.py", "past_all.py", "floor_fit.py"])
 def test_r385_no_round_of_python_is_left_on_a_level_a_length_an_angle_or_a_gap_of_the_build_and_the_rules(name):
     left = [line for line in round_calls(ROOT / "python" / name) if not any(allowed in line for allowed in LEFT.get(name, ()))]
     assert left == []
+
+
+# R385 the rounding each level profile's overrides were measured on, named in config
+def test_r385_config_names_the_rounding_of_each_level_profile_native2022_that_of_round_17_and_parsons2024rev6_r385():
+    block = SETTINGS.get("majority")["overrideRounding"]["levelProfiles"]
+    assert block == {"native2022": "pythonRound", "parsons2024Rev6": "R385"}
+    assert plan_rules.rounding_of(SETTINGS, "parsons2024Rev6") is common.fixed
+    native = plan_rules.rounding_of(SETTINGS, "native2022")
+    # Round 17 rounded the binary value, 10.263 plus a gap of 0.0015 went down, R385 takes it up
+    assert native(10.263 + 0.0015, 3) == 10.264 and common.fixed(10.263 + 0.0015, 3) == 10.265
+    values = json.loads(json.dumps(SETTINGS.values))
+    for name, value, why in (("native2022", None, "names no rounding"), ("native2022", "halfEven", "names no rounding"), ("parsons2024Rev6", "pythonRound", "R385")):
+        found = dict(values["majority"]["overrideRounding"]["levelProfiles"])
+        if value is None:
+            del found[name]
+        else:
+            found[name] = value
+        values["majority"]["overrideRounding"]["levelProfiles"] = found
+        settings = project_profile.ProjectProfile(SETTINGS.path, values)
+        with pytest.raises(project_profile.ProfileError, match=why):
+            plan_rules.rounding_of(settings, name, plan_rules.key_rules_of(plan_rules.level_profile(PROFILE, name)))
+
+
+def test_r385_a_build_rounds_its_r278_levels_and_applies_a_level_override_by_the_rounding_of_its_level_profile(tmp_path, monkeypatch):
+    from test_addin_levels import level_build, level_of
+    from test_addin_review import entry
+    # Plot 3 has the FFL 10.253 of R278 on its own El @ Entry 10.0526 plus 0.2, the gap -0.0075 makes the tie 10.2455, which round() takes
+    # down by its binary value. The height and SSL follow the FFL as written, as after a gap of R340
+    overrides = [entry("3", "heightM", {"gapToRuleM": -0.0075}, "parsons", "IMC.rvt", "imc")]
+    later = {"parsons": ["entryM", "steps", "parameter RRE_ZZ_SP_Prototype-FFL"]}
+    found, _ = level_build(tmp_path, monkeypatch, overrides=overrides, rules={}, later=later)
+    assert level_of(found["3"], "ffl") == 10.246 and level_of(found["3"], "height") == 0.1934 and level_of(found["3"], "ssl") == common.fixed(10.246 + GROUND, 3)
+    found, _ = level_build(tmp_path, monkeypatch, overrides=overrides, rules={}, later=later, rounding="pythonRound")
+    assert round(10.253 - 0.0075, 3) == 10.245 and level_of(found["3"], "ffl") == 10.245 and level_of(found["3"], "height") == 0.1924
+    assert level_of(found["3"], "ssl") == round(10.245 + GROUND, 3)
+    # A profile whose keyRules hold level rules was measured on R385 and builds on nothing else
+    with pytest.raises(project_profile.ProfileError, match="R385"):
+        level_build(tmp_path, monkeypatch, overrides=overrides, rounding="pythonRound")
+
+
+def test_r385_a_majority_run_never_writes_the_overrides_of_a_job_whose_level_profile_was_measured_on_another_rounding():
+    block = SETTINGS.get("majority")
+    majority.check_measured_rounding({"new": {"parsons": 3}}, block, PROFILE)
+    majority.check_measured_rounding(None, block, PROFILE)
+    with pytest.raises(project_profile.ProfileError, match="native2022"):
+        majority.check_measured_rounding({"new": {"native": 1, "parsons": 3}}, block, PROFILE)
+
+
+def test_r385_the_height_is_the_ffl_less_el_at_entry_as_written_and_ssl_the_ffl_as_written_plus_the_ground_on_every_rounding():
+    lp = dict(LP, height="oneFflPerClusterAtTheHighestEntry")
+    entries = {"1": {"unit": "DP1", "entry": 119.3075}}
+    for fix, ffl, height in ((common.fixed, 119.408, 0.1005), (plan_rules.rounding_of(SETTINGS, "native2022"), 119.407, 0.0995)):
+        found = plan_rules.heights(entries, [], lp, PROFILE, fix)["1"]
+        assert (found["ffl"], found["height"], found["entry"]) == (ffl, height, 119.3075)
+        assert found["height"] == fix(found["ffl"] - found["entry"], 4) and found["ssl"] == fix(found["ffl"] + GROUND, 3)

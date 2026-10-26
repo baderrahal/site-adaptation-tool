@@ -172,10 +172,10 @@ LEVEL_RULES = {"entry": {"rule": "roadLevel"}, "rampFront": {"rule": "roadLevel"
                "parameter RRE_ZZ_SP_Prototype-FFL": {"rule": "fflDownToTheCm"}}
 
 
-def level_build(tmp_path, monkeypatch, overrides=None, later=None, rules=None, skip=None):
+def level_build(tmp_path, monkeypatch, overrides=None, later=None, rules=None, skip=None, rounding=None):
     """A build by keyRules with the level rules on the made up row of test_addin_review, a villa and three DP2 units in no cluster, the
-    road rising 0.01 m every 12 m along the row, with the fields majority.overrideKeep leaves to a later phase as later and with skip
-    the skip list of the override list (R386)."""
+    road rising 0.01 m every 12 m along the row, with the fields majority.overrideKeep leaves to a later phase as later, with skip
+    the skip list of the override list (R386) and with rounding the one config names for parsons2024Rev6 (R385)."""
     import argparse
     from shapely.geometry import LineString, box
     import plan_from_book
@@ -183,6 +183,8 @@ def level_build(tmp_path, monkeypatch, overrides=None, later=None, rules=None, s
     from test_addin_review import ROOT, made_key_rules, DP2, VD2
     values = json.loads(json.dumps(SETTINGS.values))
     values["majority"]["overrideKeep"]["laterFields"] = later if later is not None else {}
+    if rounding is not None:
+        values["majority"]["overrideRounding"]["levelProfiles"]["parsons2024Rev6"] = rounding
     settings = project_profile.ProjectProfile(SETTINGS.path, values)
     profile_values = json.loads(json.dumps(PROFILE.values))
     profile_values["levelProfiles"]["parsons2024Rev6"]["keyRules"] = dict(made_key_rules(), **(LEVEL_RULES if rules is None else rules))

@@ -413,13 +413,16 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     elif by_levels:
         level_rows = key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, rules["levelProfile"])
     else:
-        level_rows = plan_rules.heights(entries, mine, rules["levelProfile"], profile)
+        # R385. The levels of R278 and their overrides by the rounding the overrides of the profile were measured on, Round 17 for native2022
+        fix = rules["rounding"]
+        level_rows = plan_rules.heights(entries, mine, rules["levelProfile"], profile, fix)
+        ground = profile.metres("levels.ground_ssl")
         for number, row in level_rows.items():
             gap = plan_rules.gap_of(overrides.get(number, {}).get("heightM"))
             if gap is not None:
-                row["ffl"] = common.fixed(row["ffl"] + gap, plan_rules.FFL_DECIMALS)
-                row["ssl"] = common.fixed(row["ssl"] + gap, plan_rules.FFL_DECIMALS)
-                row["height"] = common.fixed(row["height"] + gap, plan_rules.ENTRY_DECIMALS)
+                row["ffl"] = fix(row["ffl"] + gap, plan_rules.FFL_DECIMALS)
+                row["ssl"] = fix(row["ffl"] + ground, plan_rules.FFL_DECIMALS)
+                row["height"] = fix(row["ffl"] - row["entry"], plan_rules.ENTRY_DECIMALS)
                 row["steps"] = plan_rules.steps_of(row["height"], rules["levelProfile"])
                 outcomes.applied(number, "heightM")
             elif "heightM" in overrides.get(number, {}):
@@ -733,7 +736,7 @@ def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clu
         # R280. Only the overrides of a source of the job of the level profile
         overrides = plan_rules.load_overrides(args.overrides, set(sources), fields, block["groups"], name, lp, set(models) or None)
     later = set((block.get("overrideKeep") or {}).get("laterFields", {}).get(lp.get("job")) or ())
-    return {"name": name, "levelProfile": lp, "hands": profile.get("hands") or {}, "openEnds": open_ends, "overrides": overrides,
+    return {"name": name, "levelProfile": lp, "rounding": plan_rules.rounding_of(settings, name, key), "hands": profile.get("hands") or {}, "openEnds": open_ends, "overrides": overrides,
             "sources": sources, "models": list(models), "keyRules": key, "roadSides": road_sides, "pairs": pairs, "kinds": kinds, "partners": partners,
             "laterFields": [field for field in ((block.get("overrideKeep") or {}).get("laterFields", {}).get(lp.get("job")) or [])] if key is not None else [],
             "laterParameters": {field for field in later if field.startswith(plan_rules.PARAMETER)}, "facade": list(block.get("linkNameFacade") or [])}

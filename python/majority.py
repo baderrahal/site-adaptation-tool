@@ -787,6 +787,19 @@ def final_list(listing, block, dry, path, keep, replace, keep_from, joined):
     return merged, counts
 
 
+def check_measured_rounding(counts, block, profile):
+    """R385. A run measures the level overrides on R385 only, so it never writes the overrides of a job whose level profile
+    majority.overrideRounding names another rounding, native2022 measured in Round 17 on round(): counts, the merge counts of the run,
+    None for a dry run, which writes outside the repo."""
+    named = (block.get("overrideRounding") or {}).get("levelProfiles") or {}
+    written = set(((counts or {}).get("new") or {}))
+    wrong = sorted("%s of %s on %s" % (lp.get("job"), name, named.get(name)) for name, lp in (profile.get("levelProfiles") or {}).items()
+                   if isinstance(lp, dict) and lp.get("job") in written and named.get(name) != "R385")
+    if wrong:
+        raise project_profile.ProfileError("the run writes overrides of %s, measured on R385, where majority.overrideRounding names another rounding: keep them, "
+                                           "or name R385 for the profile with --replace (R385)" % ", ".join(wrong))
+
+
 def final_skip(path, keep_from, plots=None):
     """R386. The skip list a run writes: the skip of the list at path it writes over and of --keep-from, kept whole and never measured,
     sorted by plot, a plot the two lists skip otherwise refused with both named, and with plots, the plot numbers of plots.csv, a plot
@@ -974,6 +987,7 @@ def run_args(args):
     # R330. The entries of the earlier list this run does not measure stay cell for cell, on plots the join gives their key
     listing, merged = final_list(listing, block, args.dry, args.overrides, args.keep, args.replace, args.keep_from, joined)
     override_source.check_entries(listing, block["groups"])
+    check_measured_rounding(merged, block, profile)
     # R331. The coordinates of each key read against the reference key, gaps and names only
     site = key_rules.group_site_facts(reads, block["groups"], block["siteReference"]) if reads else None
     report = {"plots": len(items), "byGroup": dict(Counter(item["group"] for item in items)), "clusters": len(clusters), "clusterPlots": [cluster["plots"] for cluster in clusters],

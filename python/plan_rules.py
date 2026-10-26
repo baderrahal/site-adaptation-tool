@@ -101,8 +101,29 @@ def steps_of(height, lp):
     return None
 
 
-def heights(entries, clusters, lp, profile):
-    """R278. FFL, SSL, height and steps per plot from the El @ Entry of each plot and the clusters, by the height rule of the profile."""
+# R385. The roundings a level profile may name in majority.overrideRounding of config: the one rule of Python and C#, and the round() of
+# Python on the binary value that Round 17 measured the native overrides on, kept for a build of their profile
+ROUNDINGS = {"R385": common.fixed, "pythonRound": lambda value, decimals: round(value, decimals)}
+
+
+def rounding_of(settings, name, key=None):
+    """R385. The rounding of the levels of R278 and of the level overrides of a build of the level profile name, the one its overrides
+    were measured on, by majority.overrideRounding.levelProfiles of config. A profile named by no rounding of ROUNDINGS is refused, and
+    so is a profile whose keyRules hold level rules on any rounding but R385, which key_levels.py measured them on."""
+    named = ((settings.get("majority") or {}).get("overrideRounding") or {}).get("levelProfiles") or {}
+    found = named.get(name)
+    if found not in ROUNDINGS:
+        raise project_profile.ProfileError("majority.overrideRounding.levelProfiles of config names no rounding of %s for the level profile %s, %s, give the one its "
+                                           "overrides were measured on (R385)" % (", ".join(ROUNDINGS), name, json.dumps(found)))
+    if key_levels_of(key) and found != "R385":
+        raise project_profile.ProfileError("the level profile %s builds its levels by keyRules, measured on R385, and config names %s for it (R385)" % (name, found))
+    return ROUNDINGS[found]
+
+
+def heights(entries, clusters, lp, profile, fix=common.fixed):
+    """R278. FFL, SSL, height and steps per plot from the El @ Entry of each plot and the clusters, by the height rule of the profile, each
+    rounded by fix, the rounding of the profile (rounding_of). The height is the FFL less El @ Entry as written and SSL the FFL as written
+    plus the ground, as R340 gives them, so the three agree (R385)."""
     ground = profile.metres("levels.ground_ssl")
     ffl = {}
     if lp["height"] == "oneFflPerClusterAtTheHighestEntry":
@@ -127,10 +148,9 @@ def heights(entries, clusters, lp, profile):
         raise project_profile.ProfileError("no height rule " + str(lp["height"]))
     rows = {}
     for plot, level in ffl.items():
-        entry = entries[plot]["entry"]
-        height = common.fixed(level - entry, ENTRY_DECIMALS)
-        rows[plot] = {"plot": plot, "ffl": common.fixed(level, FFL_DECIMALS), "ssl": common.fixed(level + ground, FFL_DECIMALS), "entry": common.fixed(entry, ENTRY_DECIMALS),
-                      "height": height, "steps": steps_of(height, lp), "flags": []}
+        written, entry = fix(level, FFL_DECIMALS), fix(entries[plot]["entry"], ENTRY_DECIMALS)
+        height = fix(written - entry, ENTRY_DECIMALS)
+        rows[plot] = {"plot": plot, "ffl": written, "ssl": fix(written + ground, FFL_DECIMALS), "entry": entry, "height": height, "steps": steps_of(height, lp), "flags": []}
     return rows
 
 

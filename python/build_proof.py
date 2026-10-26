@@ -31,6 +31,7 @@ from pathlib import Path
 from shapely import wkt
 
 import cad_links
+import common
 import floor_fit
 import key_rules
 import link_summary
@@ -221,7 +222,7 @@ def held_levels(entry, row, read, block):
     rule_corners = None if rule is None or not ramp or rule.get("rampFrontCorners") is None else [list(point[:2]) + [z] for point, z in zip(ramp, rule["rampFrontCorners"])]
     # The rule front is the mean of the rule corners, taken the same way as the built front from the corners of the plan
     rule = None if rule is None else dict(rule, rampFront=None if rule_corners is None else (rule_corners[0][2] + rule_corners[1][2]) / 2.0)
-    height_aim = None if key_entry is None or row.get("ffl") is None else round(row["ffl"] - key_entry, plan_rules.ENTRY_DECIMALS)
+    height_aim = None if key_entry is None or row.get("ffl") is None else common.fixed(row["ffl"] - key_entry, plan_rules.ENTRY_DECIMALS)
     pairs = {"entry": (value(levels, "entry"), key_entry, no_entry), "ffl": (value(levels, "ffl"), row.get("ffl"), "the key holds no FFL"),
              "height": (value(levels, "height"), height_aim, no_entry if key_entry is None else "the key holds no FFL"),
              "rampFront": (front, row.get("rampFront"), "the key holds no ramp front")}
@@ -383,7 +384,7 @@ def compare(key, plan, rows, key_plan, ctx, reads=None):
                 state, why = explain(key, plot, field, entry, row, ctx, found["detail"])
             movers = LEVEL_MOVERS.get(field, (field, "heightM") if field.startswith(plan_rules.PARAMETER) else ())
             moved = any(name in ((entry.get("overrides") or {}).get("applied") or []) for name in movers)
-            mine.append({"key": key, "plot": plot, "field": field, "state": state, "why": why, "gapMm": None if found["gap"] is None else round(found["gap"], 3),
+            mine.append({"key": key, "plot": plot, "field": field, "state": state, "why": why, "gapMm": None if found["gap"] is None else common.fixed(found["gap"], 3),
                          "level": True, "byRule": found["byRule"], "moved": moved, "atTheLimit": found["atTheLimit"]})
         hand = next((item for item in mine if item["field"] == "mirrored"), None)
         if hand is not None and hand["state"] == "question":
