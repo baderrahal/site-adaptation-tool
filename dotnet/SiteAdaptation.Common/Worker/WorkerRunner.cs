@@ -12,8 +12,11 @@ namespace SiteAdaptation.Common
     // last act, every file by a temporary name and a rename. CadReader.exe --request <file> runs it, the tests run it in process
     public static class WorkerRunner
     {
-        // R345. The steps of the plan builder the C# gives so far, the build refuses a step it does not have
-        public static readonly HashSet<string> Steps = new HashSet<string>();
+        // R345. The steps of the plan builder the C# gives so far with the input roles each reads, the build refuses another step
+        public static readonly Dictionary<string, string[]> Steps = new Dictionary<string, string[]>
+        {
+            [FaceStep.Name] = new[] { "baseplanPlots", "plotsCsv", "labels" },
+        };
 
         private sealed class Stop : Exception
         {
@@ -91,14 +94,22 @@ namespace SiteAdaptation.Common
             {
                 throw new Stop(WorkerExit.Refused, "the command " + request.Command + " is not built yet, the worker runs " + string.Join(", ", commands.Keys));
             }
+            List<WorkerFile> inputs = request.Inputs ?? new List<WorkerFile>();
             foreach (string step in request.Steps ?? new List<string>())
             {
-                if (!Steps.Contains(step))
+                if (!Steps.ContainsKey(step))
                 {
-                    throw new Stop(WorkerExit.Refused, "the step " + step + " is not one the C# build gives, it gives " + (Steps.Count == 0 ? "none yet" : string.Join(", ", Steps.OrderBy(name => name))));
+                    throw new Stop(WorkerExit.Refused, "the step " + step + " is not one the C# build gives, it gives " + string.Join(", ", Steps.Keys.OrderBy(name => name)));
+                }
+                foreach (string role in Steps[step].Where(role => inputs.All(input => input.Role != role)))
+                {
+                    throw new Stop(WorkerExit.Refused, "the step " + step + " needs the input " + role + ", the request names none");
+                }
+                if (string.IsNullOrEmpty(request.StepsFolder))
+                {
+                    throw new Stop(WorkerExit.Refused, "the request names steps and no stepsFolder for their files");
                 }
             }
-            List<WorkerFile> inputs = request.Inputs ?? new List<WorkerFile>();
             WorkerFile configInput = inputs.FirstOrDefault(input => input.Role == "config");
             if (configInput == null)
             {

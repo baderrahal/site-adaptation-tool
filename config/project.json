@@ -233,6 +233,40 @@
       "exportChecks": 600,
       "position": 600
     },
-    "workerTimeLimitNote": "CHOSEN in docs/addin-design.md: 600 s for a read, 28 times the 21.2 s of the Road Layout read, and 60 s for the level Excel, the other commands 600 s until the PR that builds each measures it"
+    "workerTimeLimitNote": "CHOSEN in docs/addin-design.md: 600 s for a read, 28 times the 21.2 s of the Road Layout read, and 60 s for the level Excel, the other commands 600 s until the PR that builds each measures it",
+    "parity": {
+      "note": "R345. The tolerance of each kind of field before R385 rounds it, in metres, square metres or degrees, null for a kind compared exactly. After rounding the two sides are equal, or one unit of the last place apart only where the two unrounded values lie within the tolerance and straddle a rounding boundary of R385, each such case listed by step, plot, field and both unrounded values. docs/addin-design.md section 5",
+      "kinds": {
+        "points": 1e-06,
+        "levels": 1e-06,
+        "areas": 1e-06,
+        "angles": 1e-06,
+        "noGeometry": null
+      },
+      "pagePointsPt": 0.01,
+      "steps": {
+        "faces": {
+          "face": {
+            "kind": "noGeometry"
+          },
+          "area": {
+            "kind": "areas",
+            "decimals": 3
+          },
+          "centroid": {
+            "kind": "points",
+            "decimals": 3
+          },
+          "boundsMin": {
+            "kind": "points",
+            "decimals": 3
+          },
+          "boundsMax": {
+            "kind": "points",
+            "decimals": 3
+          }
+        }
+      }
+    }
   }
 }

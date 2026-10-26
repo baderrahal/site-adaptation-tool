@@ -47,6 +47,7 @@ import plot_relations
 import project_profile
 import prototype_offsets
 import override_source
+import parity
 import ramp_outline
 import surface_lookup
 import yard_rule
@@ -595,10 +596,26 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
 
 
 def nbh_plots(labels_path, nbh):
-    """Every unit plot of a neighbourhood on the location plan, by its number, in order."""
+    """Every unit plot of a neighbourhood on the location plan, by its number, in order. R345: nbh None gives every unit plot of the
+    location plan, the whole project of the scope of the add-in (docs/addin-design.md section 3)."""
     with open(labels_path, encoding="utf-8") as handle:
-        rows = [row for row in csv.DictReader(handle) if row.get("nbh") == nbh and row.get("kind") == "clientCode"]
+        rows = [row for row in csv.DictReader(handle) if (nbh is None or row.get("nbh") == nbh) and row.get("kind") == "clientCode"]
     return sorted({row["number"] for row in rows}, key=link_summary.sort_key)
+
+
+def face_step(numbers, faces):
+    """R345. The step faces of the parity harness: per plot of the build its baseplan face as the build takes it, by
+    yard_rule.face_shapes and the number plots.csv gives its label, with its area, centroid and bounds unrounded, or no face."""
+    found = {}
+    for number in numbers:
+        shape = faces.get(number)
+        if shape is None:
+            found[number] = {"face": False}
+            continue
+        low_x, low_y, high_x, high_y = shape.bounds
+        found[number] = {"face": True, "area": shape.area, "centroid": [shape.centroid.x, shape.centroid.y], "boundsMin": [low_x, low_y],
+                         "boundsMax": [high_x, high_y]}
+    return found
 
 
 def site_report(path):
@@ -678,7 +695,7 @@ def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clu
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="plan.json from CAD and the data book only (R208 to R210).")
-    parser.add_argument("cover", help="cover.json of key_cover.py, its neighbourhood and plots are built, or nbh=<NBH> with --labels")
+    parser.add_argument("cover", help="cover.json of key_cover.py, its neighbourhood and plots are built, or nbh=<NBH> or all with --labels")
     parser.add_argument("--labels", help="location_plan/labels.csv of the snapshot, for nbh=<NBH>")
     parser.add_argument("--sales", help="the Rev 9 workbook of the snapshot, with it the corner rule of R226 sets the front")
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH))
@@ -698,16 +715,18 @@ def main(argv=None):
     parser.add_argument("--override-model", nargs="*", default=[], help="R280, R330. only the overrides of these past model files")
     parser.add_argument("--override-fields", nargs="*", choices=plan_rules.FIELDS, help="R280. only these fields of the overrides, all when left out")
     parser.add_argument("--out", required=True)
+    parser.add_argument("--steps", help="R345. a folder outside the repo for the output of each step per plot, step_<step>.json")
+    parser.add_argument("--steps-only", action="store_true", help="R345. write the steps that need no build and stop before it")
     args = parser.parse_args(argv)
     try:
         settings = project_profile.load_settings(args.settings)
         profile = project_profile.load_profile(project_profile.profile_path(settings))
         block = settings.get("siteBuild")
-        if args.cover.startswith("nbh="):
+        if args.cover.startswith("nbh=") or args.cover == "all":
             if not args.labels:
-                raise project_profile.ProfileError("nbh=<NBH> needs --labels")
-            nbh = args.cover.partition("=")[2]
-            cover = {"neighbourhood": nbh, "plots": nbh_plots(args.labels, nbh)}
+                raise project_profile.ProfileError("nbh=<NBH> and all need --labels")
+            nbh = None if args.cover == "all" else args.cover.partition("=")[2]
+            cover = {"neighbourhood": nbh or "all", "plots": nbh_plots(args.labels, nbh)}
         else:
             cover = json.loads(Path(args.cover).read_text(encoding="utf-8"))
         sales = None
@@ -719,6 +738,13 @@ def main(argv=None):
         rows, number_of = book_rows(args.plots_csv)
         by_label, _ = yard_rule.face_shapes(link_summary.load(args.baseplan)["plots"], 0)
         faces = {number_of[label]: shape for label, shape in by_label.items() if label in number_of}
+        if args.steps_only and not args.steps:
+            raise project_profile.ProfileError("--steps-only needs --steps, the folder of the step files (R345)")
+        if args.steps:
+            parity.write_step(args.steps, "faces", "python", face_step(cover["plots"], faces), settings.values)
+        if args.steps_only:
+            print("steps faces of %d plots written to %s, no plan built (R345)" % (len(cover["plots"]), args.steps))
+            return 0
         roads = cad_analysis.read_road_edges(args.roads, settings.get("analysis")["roadEdgeLayers"])
         shapes = footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings)) if args.footprint_blocks else None
         analysis = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"] if args.analysis else None

@@ -1,10 +1,12 @@
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common
 {
-    // R347. The addin block of config/project.json (docs/addin-design.md section 6) that the worker and the tests read: the
-    // measured peak of each large input and the time limit of each command, and the floor siteBuild.minFreeGB
+    // R345, R347. The addin block of config/project.json (docs/addin-design.md section 6) that the worker and the tests read: the
+    // measured peak of each large input, the time limit of each command and the parity tolerances, and the floor siteBuild.minFreeGB
     public sealed class AddinConfig
     {
         private readonly JObject root;
@@ -55,5 +57,50 @@ namespace SiteAdaptation.Common
             }
             return value.Value<double>();
         }
+
+        // R345. The tolerance before rounding of a kind of field, null for a kind compared exactly
+        public double? ParityTolerance(string kind)
+        {
+            JObject kinds = Parity()["kinds"] as JObject;
+            if (kinds == null || !kinds.ContainsKey(kind))
+            {
+                throw new InvalidDataException("addin.parity.kinds names no kind " + kind + " (R345)");
+            }
+            JToken value = kinds[kind];
+            return value.Type == JTokenType.Null ? (double?)null : value.Value<double>();
+        }
+
+        // R345. The fields of a step with the kind and the decimals of each, as python/parity.py reads them
+        public IReadOnlyList<ParityField> StepFields(string step)
+        {
+            JObject fields = (Parity()["steps"] as JObject)?[step] as JObject;
+            if (fields == null)
+            {
+                throw new InvalidDataException("addin.parity.steps names no step " + step + " (R345)");
+            }
+            return fields.Properties().Select(field => new ParityField
+            {
+                Name = field.Name,
+                Kind = (string)field.Value["kind"],
+                Decimals = field.Value["decimals"] == null ? (int?)null : field.Value["decimals"].Value<int>(),
+            }).ToList();
+        }
+
+        private JObject Parity()
+        {
+            JObject parity = addin["parity"] as JObject;
+            if (parity == null)
+            {
+                throw new InvalidDataException("the config holds no addin.parity block (R345)");
+            }
+            return parity;
+        }
+    }
+
+    public sealed class ParityField
+    {
+        public string Name { get; set; }
+        public string Kind { get; set; }
+        public int? Decimals { get; set; }
     }
 }

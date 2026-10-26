@@ -1,0 +1,218 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common;
+using Xunit;
+
+namespace SiteAdaptation.Tests
+{
+    // R345. The C# side of the parity harness on made up files: the step faces, the step file with its raw and written values and
+    // the worker build that writes it, the tolerances read from config/project.json, on net48 and net8.0
+    public sealed class ParityStepTests : IDisposable
+    {
+        private readonly string folder = Path.Combine(Path.GetTempPath(), "sa_r345_" + Guid.NewGuid().ToString("N"));
+
+        public ParityStepTests()
+        {
+            Directory.CreateDirectory(folder);
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                Directory.Delete(folder, true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+
+        private static JObject Shape(string kind, string label, params double[] xy)
+        {
+            var vertices = new JArray();
+            for (int index = 0; index < xy.Length; index += 2)
+            {
+                vertices.Add(new JArray(xy[index], xy[index + 1]));
+            }
+            return new JObject { ["kind"] = kind, ["plot"] = label, ["vertices"] = vertices };
+        }
+
+        // The made up baseplan of python/tests/test_parity.py: label 2 drawn twice, 02 and 2, a label that is no whole number,
+        // a face of two vertices and a polyline
+        private static JArray Plots()
+        {
+            return new JArray
+            {
+                Shape("plot_shape", "1", 0, 0, 10, 0, 10, 20, 0, 20),
+                Shape("plot_shape", "02", 20, 0, 30, 0, 30, 10, 20, 10),
+                Shape("plot_shape", "2", 40, 0, 50, 0, 50, 10, 40, 10),
+                Shape("plot_shape", "3a", 0, 30, 10, 30, 10, 40),
+                Shape("plot_shape", "4", 0, 50, 10, 50),
+                Shape("polyline", "5", 0, 60, 10, 60, 10, 70),
+            };
+        }
+
+        private const string PlotsCsv = "baseplanLabel,locationPlanNumber,typologyRev9\n1,101,DP1\n2,102,DP1\n,103,TH1\n";
+        private const string LabelsCsv = "number,code,kind,nbh\n101,DP1,clientCode,012\n102,DP1,clientCode,012\n103,TH1,clientCode,\n104,x,number,012\n";
+
+        [Fact]
+        public void R345_the_config_names_the_tolerances_of_the_design_by_kind_of_field()
+        {
+            AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
+            foreach (string kind in new[] { "points", "levels", "areas", "angles" })
+            {
+                Assert.Equal(0.000001, config.ParityTolerance(kind));
+            }
+            Assert.Null(config.ParityTolerance("noGeometry"));
+            Assert.Throws<InvalidDataException>(() => config.ParityTolerance("volumes"));
+            var fields = config.StepFields(FaceStep.Name).ToDictionary(field => field.Name);
+            Assert.Equal(new[] { "face", "area", "centroid", "boundsMin", "boundsMax" }, fields.Keys.ToArray());
+            Assert.Equal("noGeometry", fields["face"].Kind);
+            Assert.Null(fields["face"].Decimals);
+            Assert.Equal("areas", fields["area"].Kind);
+            Assert.Equal(3, fields["area"].Decimals);
+            Assert.Equal("points", fields["centroid"].Kind);
+            Assert.Throws<InvalidDataException>(() => config.StepFields("walls"));
+        }
+
+        [Fact]
+        public void R345_the_face_of_a_plot_is_its_area_centroid_and_bounds_as_the_build_takes_the_face()
+        {
+            var faces = FaceStep.Build(new[] { "101", "102", "103" }, Plots(), CsvRows.Parse(PlotsCsv));
+            Assert.Equal(new[] { "101", "102", "103" }, faces.Keys.ToArray());
+            Assert.Equal(true, faces["101"]["face"]);
+            Assert.Equal(200.0, (double)faces["101"]["area"]);
+            Assert.Equal(new[] { 5.0, 10.0 }, (double[])faces["101"]["centroid"]);
+            Assert.Equal(new[] { 0.0, 0.0 }, (double[])faces["101"]["boundsMin"]);
+            Assert.Equal(new[] { 10.0, 20.0 }, (double[])faces["101"]["boundsMax"]);
+            // Labels 02 and 2 are one plot, two squares joined as the build joins them
+            Assert.Equal(200.0, (double)faces["102"]["area"]);
+            Assert.Equal(new[] { 35.0, 5.0 }, (double[])faces["102"]["centroid"]);
+            Assert.Equal(new[] { 20.0, 0.0 }, (double[])faces["102"]["boundsMin"]);
+            Assert.Equal(new Dictionary<string, object> { ["face"] = false }, faces["103"]);
+        }
+
+        [Fact]
+        public void R345_the_area_and_centroid_are_taken_about_the_first_vertex_so_site_coordinates_keep_their_digits()
+        {
+            // A made up square of 10 m far from the origin, turned by 30 degrees, whose area a plain shoelace loses in the last digits
+            double angle = Math.PI / 6, east = 512345.678, north = 2400123.456;
+            var xy = new List<double>();
+            foreach (var (u, v) in new[] { (0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0) })
+            {
+                xy.Add(east + u * Math.Cos(angle) - v * Math.Sin(angle));
+                xy.Add(north + u * Math.Sin(angle) + v * Math.Cos(angle));
+            }
+            var plots = new JArray { Shape("plot_shape", "7", xy.ToArray()) };
+            var face = FaceStep.Build(new[] { "107" }, plots, CsvRows.Parse("baseplanLabel,locationPlanNumber\n7,107\n"))["107"];
+            Assert.InRange(Math.Abs((double)face["area"] - 100.0), 0, 1e-8);
+            double[] centroid = (double[])face["centroid"];
+            Assert.InRange(Math.Abs(centroid[0] - (east + 5 * Math.Cos(angle) - 5 * Math.Sin(angle))), 0, 1e-8);
+            Assert.InRange(Math.Abs(centroid[1] - (north + 5 * Math.Sin(angle) + 5 * Math.Cos(angle))), 0, 1e-8);
+        }
+
+        [Fact]
+        public void R345_a_label_is_a_whole_number_of_ascii_digits_as_yard_rule_reads_it()
+        {
+            Assert.Equal("12", FaceStep.WholeLabel(" 0012 "));
+            Assert.Equal("0", FaceStep.WholeLabel("000"));
+            Assert.Null(FaceStep.WholeLabel("12a"));
+            Assert.Null(FaceStep.WholeLabel("-3"));
+            Assert.Null(FaceStep.WholeLabel("1.5"));
+            Assert.Null(FaceStep.WholeLabel(""));
+            Assert.Null(FaceStep.WholeLabel(null));
+            Assert.Null(FaceStep.WholeLabel("\u0663"));
+        }
+
+        [Fact]
+        public void R345_csv_rows_read_quotes_commas_and_line_breaks_as_python_csv_does()
+        {
+            var rows = CsvRows.Parse("a,b,c\r\n1,\"two, three\",\"say \"\"hi\"\"\"\n4,\"line\nbreak\",\n7,8\n");
+            Assert.Equal(3, rows.Count);
+            Assert.Equal("two, three", rows[0]["b"]);
+            Assert.Equal("say \"hi\"", rows[0]["c"]);
+            Assert.Equal("line\nbreak", rows[1]["b"]);
+            Assert.Equal("", rows[1]["c"]);
+            Assert.Equal("8", rows[2]["b"]);
+            Assert.False(rows[2].ContainsKey("c"));
+        }
+
+        [Fact]
+        public void R345_the_plots_of_a_scope_come_from_the_client_code_labels_of_the_location_plan()
+        {
+            var labels = CsvRows.Parse(LabelsCsv);
+            Assert.Equal(new[] { "101", "102", "103" }, PlotScope.Numbers(new WorkerScope { Kind = "project" }, labels));
+            Assert.Equal(new[] { "101", "102" }, PlotScope.Numbers(new WorkerScope { Kind = "nbh", Nbh = "012" }, labels));
+            Assert.Equal(new[] { "9", "102", "2290" }, PlotScope.Numbers(new WorkerScope { Kind = "plots", Plots = new List<string> { "2290", "9", "102", "9" } }, labels));
+            Assert.Throws<InvalidDataException>(() => PlotScope.Numbers(new WorkerScope { Kind = "zone" }, labels));
+        }
+
+        [Fact]
+        public void R345_the_step_file_holds_every_digit_of_the_raw_values_and_the_values_written_by_r385()
+        {
+            var fields = AddinConfig.Load(WorkerRunTests.RepoConfig()).StepFields(FaceStep.Name);
+            var plots = new Dictionary<string, Dictionary<string, object>>
+            {
+                ["101"] = new Dictionary<string, object> { ["face"] = true, ["area"] = 0.1 + 0.2, ["centroid"] = new[] { 2.0465, 0.7 + 0.0005 }, ["boundsMin"] = new[] { -0.0004, 1.0 }, ["boundsMax"] = new[] { 3.0, 4.0 } },
+                ["103"] = new Dictionary<string, object> { ["face"] = false },
+            };
+            string text = StepFile.Text(FaceStep.Name, "csharp", plots, fields);
+            Assert.Contains("\"area\": 0.30000000000000004", text);
+            JObject file = JObject.Parse(text);
+            Assert.Equal("siteAdaptationStep", (string)file["format"]);
+            Assert.Equal(1, (int)file["formatVersion"]);
+            Assert.Equal("faces", (string)file["step"]);
+            Assert.Equal("csharp", (string)file["side"]);
+            JToken first = file["plots"]["101"];
+            Assert.Equal(0.1 + 0.2, (double)first["raw"]["area"]);
+            Assert.Equal(0.3, (double)first["written"]["area"]);
+            Assert.Equal(new[] { 2.047, 0.701 }, first["written"]["centroid"].Select(item => (double)item).ToArray());
+            Assert.Equal(0.0, (double)first["written"]["boundsMin"][0]);
+            Assert.True((bool)first["raw"]["face"] && (bool)first["written"]["face"]);
+            Assert.Equal(new JObject { ["face"] = false }.ToString(), file["plots"]["103"]["raw"].ToString());
+            Assert.Equal("areas", (string)file["fields"]["area"]["kind"]);
+        }
+
+        [Fact]
+        public void R345_the_worker_build_writes_the_step_file_of_the_faces_of_its_scope_and_names_it_in_the_answer()
+        {
+            string plots = Path.Combine(folder, "plots.json");
+            File.WriteAllText(plots, new JObject { ["plots"] = Plots() }.ToString());
+            string data = Path.Combine(folder, "plots.csv");
+            File.WriteAllText(data, PlotsCsv);
+            string labels = Path.Combine(folder, "labels.csv");
+            File.WriteAllText(labels, LabelsCsv);
+            string config = WorkerRunTests.RepoConfig();
+            var request = new WorkerRequest
+            {
+                FormatVersion = 1, RunId = "p1", Command = "build", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" },
+                Inputs = new List<WorkerFile>
+                {
+                    new WorkerFile { Role = "config", Path = config, Sha256 = FileHash.Sha256(config) },
+                    new WorkerFile { Role = "baseplanPlots", Path = plots, Sha256 = FileHash.Sha256(plots) },
+                    new WorkerFile { Role = "plotsCsv", Path = data, Sha256 = FileHash.Sha256(data) },
+                    new WorkerFile { Role = "labels", Path = labels, Sha256 = FileHash.Sha256(labels) },
+                },
+                Scope = new WorkerScope { Kind = "nbh", Nbh = "012" }, OutputFolder = folder, Steps = new List<string> { "faces" },
+                StepsFolder = Path.Combine(folder, "steps"), TimeLimitS = 600,
+            };
+            Assert.Equal(0, WorkerRunner.Run(request.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "p1"));
+            string step = Path.Combine(folder, "steps", "step_faces.json");
+            Assert.Equal(step, answer.Outputs.Single().Path);
+            Assert.Equal(FileHash.Sha256(step), answer.Outputs.Single().Sha256);
+            Assert.Equal(2, answer.Counts["faces plots"]);
+            Assert.Equal(2, answer.Counts["faces with a face"]);
+            JObject file = JObject.Parse(File.ReadAllText(step));
+            Assert.Equal(new[] { "101", "102" }, ((JObject)file["plots"]).Properties().Select(item => item.Name).ToArray());
+
+            request.RunId = "p2";
+            request.Inputs.RemoveAt(3);
+            Assert.Equal(2, WorkerRunner.Run(request.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("the step faces needs the input labels", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "p2")).Message);
+        }
+    }
+}
