@@ -26,7 +26,7 @@ Written 2026-10-25 before the first edit. The round prompt, word for word, is ro
 - Then gh pr checks --watch, merge, delete the remote branch, pull main. Never two PRs open.
 - If the agent files of .claude/agents are not picked up by this session after Phase 0, each helper runs as general-purpose on the same model with the instruction to read and follow its agent file first. The log says so.
 - Records per PR: steps/investigations/round-addin.md (counts, how each is known), the top entry of steps/log.md rewritten for the round (one page), steps/PROGRESS.md (60 lines at most). Commits and PRs carry no attribution line (R13).
-- Rule numbers by phase, so no two PRs take the same id: Phase 0 R300 to R309, Phase 1 R310 to R319, Phase 2 R320 to R329, Phase 3 R330 to R344, Phase 4 R345 to R369, Phase 5 R370 to R384, Phase 6 R385 to R399. New questions take the next free ID from Q062.
+- Rule numbers by phase, so no two PRs take the same id: Phase 0 R300 to R309, Phase 1 R310 to R319, Phase 2 R320 to R329, Phase 3 R330 to R344, Phase 4 R345 to R369, Phase 5 R370 to R384, Phase 6 R389 to R399, since PR 49 gave R385 to R388 to the Python changes of Phase 4. New questions take the next free ID from Q062.
 - Every phase hashes the sources it reads before and after (the 7 Parsons models, the Zone 02\ARC originals, Prototypes_2024, the data book snapshot it uses) with round_files.py.
 - Revit and Civil 3D windows: one at a time under the shared lock of R200, 2 GB floor, watcher by rule 3 in our own process only, no registry.
 
@@ -1255,6 +1255,7 @@ The breaker and the claim-checker read the design and the records. Every item is
 | 16 Transform direction | 3.1 Checks |
 | 17 Survey point, order, level datum | 3.1 order steps 2 and 3, the measures of Phase 5b |
 | 18 Shared parameter file | 3.1 Shared parameters |
+| 19 Work folder name | section 6 Work folder, settled in the last pass below as its item 19 |
 | 20 Worker memory | section 2, The worker run, R347 |
 | 21 Dry run of 3 | section 3, Nothing changes until the user confirms, 3.3 Dry run, 3.4 Inputs |
 | 22 Settings and work folder | section 6 When and Work folder, 3.1 Dry run |
@@ -1282,3 +1283,41 @@ Python changes planned, each before the C# step compared with it: R385 rounding 
 Questions: Q078 new, rounding, recommended accept. Q077 holds the three runs of the Road Layout read.
 
 Gate: at the head of the PR, in the PR body and round_addin\logs\pr49_gate_*.txt.
+
+### Last pass on PR 49
+
+The lead read the revised design and named 19 more items, 15 silent in the design, 3 in the records and 1 on the work folder. Each is settled in docs/addin-design.md in new commits on docs/addin-design, no amend, no add-in code, no Revit or Civil 3D window, CLAUDE.md unchanged.
+
+| Item | Where the design settles it |
+|---|---|
+| 1 Counts agree, Levels | 3.6 Outputs and Checks, 3.8 Checks: Revit counts the plots the last run of 6 that committed set and read back, by the UniqueIds of its run log, Excel the Levels rows of the Excel whose Settings sheet carries that run id, another run id an issue |
+| 2 Files after the commit | section 3 One transaction per button, Steps and Work files, 3.1 order step 6, 3.6, 3.8: written to the temporary name inside the transaction, a failure rolls back, moved after the commit, a failed move leaves the step not Done with the open file named |
+| 3 Parameter of one name | 3.1 Shared parameters, one per name: a name of config with another GUID stops button 1 with the list, every read and write by Element.get_Parameter(Guid), conflict 14 |
+| 4 Save overrides | 3.3 Use and 7.4: only the rows changed in the session, byHand on those alone, the 112 left rows of NBH 012 untouched |
+| 5 Worker and document | section 2 Request, Answer and Revit does not wait, 7.2 How: the path and session id of the document in the request and the answer, the result to that document, dropped with an issue once it closed |
+| 6 Numbering | section 5 The location plan fit, R351, R352, R387, conflict 3: the schedule fit of R181 numbers every build, the control point fit a check listing the faces it numbers otherwise |
+| 7 Road at front | 7.5 and step 10: the road at front and El @ Entry from one unrounded mean, each rounded once by R385 |
+| 8 Changed prototype file | 3.4 Link types to load and Second run, 7.7 item 2: a loaded type whose file hash changed is reloaded after a confirm, before the transaction |
+| 9 Check point Revit column | 3.1 Checks, 7.3 How: in a dry run the value Apply would give from the position it would set, after Apply the value Revit reports, never Revit against itself |
+| 10 Exponent text | section 5 rule step 2: NumberStyles.Float, the C# float noise test in the plan of 4a |
+| 11 Tolerances | section 5 Parity tolerances: 0.000001 m, m2 and degree before rounding, one unit apart only on a straddle within it and listed, no geometry exact |
+| 12 Level and clip | 3.1 order steps 2 and 3: Level.Elevation on the stated base, ProjectElevation read only, BasePoint.Clipped set, the open point dropped |
+| 13 Badge on the IMD copy | 3.1 the badge: the signs that copy holds, the Settings entity on the 5b project after a run, the R17B copy for the GUIDs |
+| 14 LandXML unit | 3.2 Checks, R349, R388, conflict 15: no unit or not meter refused |
+| 15 Past grey | 3.3 and 7.7 item 4: every row of a site file that is no answer key, every row of a plot no key holds |
+| 16 Phase 6 ids | the plan of this file: Phase 6 R389 to R399 |
+| 17 Control byte | steps/questions-closed.md Q078: the carriage return made a backslash r again, no other control byte in the steps files, row 19 of the review table above |
+| 18 Mock sentences | 7.2, 7.3, 7.4, 7.5, 7.6: every sentence of the mock word for word with its punctuation, the two file sentences in a text fence |
+| 19 Work folder | section 6 Work folder: the file name and the first 8 hex digits of the SHA-256 of the full path, a document with no path asks for a save first, 7.2 the name "not saved" |
+
+Facts of the last pass:
+
+- Tolerances (RAN, round_addin\logs\pr49_last_tolerances.txt, the probes in pr49_last_probes, made up coordinates only): on 20,000 four sided faces the shoelace area in reversed order differed from shapely by up to 3.8E-04 m2 and 1,483 areas differed after R385 at 3 decimals, a plain centroid loop on raw coordinates by up to 1.56 m, 19,956 differing. About the first vertex the area held within 9.1E-13 m2 and the centroid within 1.4E-09 m, 0 differing. Two orders of a point sum 5.8E-11 m, two level formulas in a triangle 3.0E-12 m, the affine fit about the means against numpy lstsq 4.4E-07 m over 200 fits.
+- Exponent text (RAN, pr49_last_float_parse.txt): decimal.Parse with InvariantCulture threw FormatException on 5 of 5 G15 texts with an exponent on net48 and net8.0, NumberStyles.Float read all 5, 1E+300 threw OverflowException.
+- Badge signs of the 7 key reads (RAN, booleans only, no value): each read holds a project position other than zero and a survey point and a project base point off the internal origin, the RD read holds the parameters of config on its links by name.
+- Code (READ): RevitPlacerTarget.cs l.50 and l.166 and RevitFloorTarget.cs l.66 and l.199 find parameters by LookupParameter, landxml_reader.py l.34 to 46 keeps linearUnit None when the Units element is missing, plan_from_book.rule_levels writes rampFrontCorners by common.r3 per corner while plan_rules.entry_of takes the unrounded mean, override_source.merge refuses a run that drops a byHand entry, keyRules.site names no level base.
+- Control bytes (RAN, a scan of every tracked file under steps): 1 byte, the carriage return at byte 22,780 of steps/questions-closed.md, in the path of the rounding probe of Q078.
+
+Tests first (RAN, round_addin\logs\pr49_last_tests_first.txt): 9 new tests of R343 in test_addin_design.py, 8 failed on the design and records of f634985: the mock sentences (6 not word for word), the exponent text, the tolerances, the numbering of R351, the control byte, the review numbers (19 missing), the Phase 6 ids and the open list. The ninth, the sentence check finding a colon made a period, passed as a check of the helper. Then all passed.
+
+No new question. Gate: at the head of the PR, in the PR body and round_addin\logs\pr49_last_gate_*.txt.

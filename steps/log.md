@@ -10,17 +10,18 @@ Goal:
 - The add-in in Revit 2024, C#, .NET 4.8, from the 7 Rev 6 Parsons site models, parsons2024Rev6 for every build (Q050), docs/addin-mock.md, Part 2 after Bader's check of Part 1
 
 Done:
-- 0a to 3c (PR 41 to 48): harness, key copies, reads, key plans, past_all.csv, overrides by source and model, the rules and the levels of the keys in keyRules, a build and its proof by them
-- 3b R342, R343: docs/addin-design.md before any add-in code (folders, worker, 8 buttons, data path, 15 parity steps, settings, the mock filled with NBH 012, install, risks, R345 to R388, 13 conflicts), docs/licences.md. Revised after the breaker and the claim-checker (PR 49): R385 rounding (Q078), R386 Use and Skip, R387 control point fit, R388 input units. Real values in round_addin\design
+- 0a to 3c (PR 41 to 48): harness, key copies, reads, key plans, past_all.csv, overrides by source and model, the rules and levels of the keys in keyRules, a build and its proof
+- 3b R342, R343: docs/addin-design.md before any add-in code (folders, worker, 8 buttons, data path, 15 parity steps, settings, the mock filled with NBH 012, install, risks, R345 to R388, 15 conflicts), docs/licences.md. Revised after the breaker and the claim-checker (PR 49): R385 rounding (Q078), R386 Use and Skip, R387 control point check, R388 input units. Last pass, 19 items: the schedule fit numbers every build, tolerances 0.000001 m, parameters by GUID. Real values in round_addin
 
 Checked:
-- 3b, in a net48 host holding what Revit 2024 holds: ACadSharp, OpenXml 3.5.1 and Newtonsoft ok, PdfPig failed on System.Memory 4.0.2.0 with no resolver and ran with one or as an exe (RAN). Revit 2024 ships Newtonsoft 13.0.1, System.Memory 4.0.1.1 (READ)
-- 3b: CadReader peak on copies, Road Layout 2,571 MiB in 21.2 s, baseplan 100, footprint 77, all Meters (RAN, saved), 2,612 in the claim-checker's rerun. Common builds for netstandard2.0, 0 errors (RAN)
-- 3b: the parsons build of NBH 012, 336 of 337 plots, inputs equal by hash, 1,247 check rows, 2 plots follow every rule, PowerShell recount 13 of 13 equal (RAN). Python round() and C# differ on 5 of 5 ties, R385 agrees (RAN)
-- 3c: 5 TU keys at 0.5 mm El @ Entry 0.088 and FFL per piece 0.749 weak, steps 0.988 and Prototype-FFL 0.994 strong, 0 unexplained levels, second method 0 mismatches at seeds 14 and 7. Overrides 12,424, 154 in cannot, native 5,222 cell for cell
+- 3b, in a net48 host as Revit 2024: ACadSharp, OpenXml 3.5.1, Newtonsoft ok, PdfPig failed on System.Memory 4.0.2.0 with no resolver, ran with one (RAN)
+- 3b last pass: made up areas 3.8E-04 m2 apart raw, 9.1E-13 m2 about the first vertex, decimal.Parse needs NumberStyles.Float (RAN)
+- 3b: CadReader peak on copies, Road Layout 2,571 to 2,612 MiB, baseplan 100, footprint 77, all Meters, Common builds for netstandard2.0 (RAN)
+- 3b: the parsons build of NBH 012, 336 of 337 plots, 1,247 check rows, 2 plots follow every rule, PowerShell recount 13 of 13 equal (RAN). Python round() and C# differ on 5 of 5 ties, R385 agrees (RAN)
+- 3c: 5 TU keys at 0.5 mm El @ Entry 0.088 and FFL per piece 0.749 weak, steps 0.988 and Prototype-FFL 0.994 strong, 0 unexplained levels, second method 0 mismatches at seeds 14 and 7. Overrides 12,424, 154 in cannot
 
 Remains:
-- Phase 4 the logic in C# with a parity test per step, Phase 5 the add-in, Phase 6 all zones. Wall width and the shared parameter GUIDs of the keys are not read yet (4b), floor type thickness is read
+- Phase 4 the logic in C# with a parity test per step, Phase 5 the add-in and its open list (design section 9), Phase 6 all zones. Wall width and the parameter GUIDs of the keys are not read yet (4b)
 - The 33 plots with no road level at a front corner are not written (Q073)
 
 Known bugs:
