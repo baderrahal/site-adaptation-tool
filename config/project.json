@@ -101,8 +101,36 @@
         "sheet": "JN Sales Data_Base_Rev09",
         "headerRow": 1,
         "columns": {"plot": "Plot No", "typology": "Typology_Rev9", "nbh": "NBH", "zone": "Zone"}
-      }
+      },
+      "pdf": "Master Plan Rev.09/01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf",
+      "outFolder": "location_plan",
+      "labelSize": [1.4, 1.6],
+      "joinGapPt": 0.3,
+      "lineTolerancePt": 0.05,
+      "patterns": {"number": "\\d{1,4}", "clientCode": "(?P<base>[A-Z]{1,3}\\d{1,2}(?:-0|-IM)?)(?:\\s?\\(|-)?(?P<suffix>BB|SA|QP)?\\)?", "openSpace": "OS", "substation": "SS", "landUse": "[A-Z][A-Za-z0-9 .&/()-]*"},
+      "codeKinds": ["clientCode", "openSpace", "substation", "landUse"],
+      "pairDyPt": [1.3, 1.8],
+      "pairDxPt": 1.5,
+      "fitNeighbourhood": "IMC",
+      "fitDropFactor": 3,
+      "fitRounds": 3,
+      "fitFloorM": 0.001,
+      "formOfSuffix": {"BB": "Duplex", "SA": "Villa", "QP": "Duplex"},
+      "codeTable": {"sheet": "2024-01-30_New Typo Names", "headerRow": 2, "columns": {"form": "Typology Form", "old": "Old Typologies Code", "new": "New Typologies Code_Roshn"}},
+      "dlus": {"workbook": "accommodation", "sheet": "PH_1-SDF", "headerRow": 1, "columns": {"plot": "Plot_No", "level4": "Landuse_Level_4", "nbh": "Neighbourhood_ID"}},
+      "zoneStyles": {"magenta": {"colour": "(1.0, 0.0, 1.0)", "width": 4.0}, "red": {"colour": "(1.0, 0.0, 0.0)", "width": 11.0}},
+      "zoneHatch": {"colour": "(1.0, 0.0, 0.0)", "width": 2.0, "bufferPt": 1.5},
+      "check": {"fitNeighbourhood": "IMD", "seeds": [14, 7], "size": 20, "windowPt": 4},
+      "controlSearchPt": 120,
+      "controlShapeMaxPt": 12,
+      "controlMark": {"note": "R387, Q081. The mark of a control point the sheet prints is a curve of this shape, width and height in pt within tolerancePt and its point count, the only three such curves of the page, one within controlSearchPt of each E = text. The control point fit starts from the similarity of the three marks.", "widthPt": 3.96, "heightPt": 3.96, "tolerancePt": 0.01, "points": 6},
+      "searchWords": ["PIM", "IME", "IMC", "IMD", "IMG", "ZONE", "NBH"]
     }
+  },
+  "connect": {
+    "note": "R351, Round ADDIN 4d. The neighbourhood schedules of the location plan fit, moved here from connect of python/c3d_probe.json so the worker and the Python readers take one copy: the schedule workbook of each neighbourhood in the References folder of inputRoot and the shift from its baseplan label to its official number (R28), and scheduleSheet, the sheet of the plot table in each. dataBook.locationPlan.fitNeighbourhood names the schedule the page is fitted on (R181), which numbers every build. python/c3d_run.load_config lays this block over connect of the probe settings and refuses a key both files hold.",
+    "neighbourhoods": {"IMC": {"schedule": "00101-PSN-IMC-XXX-SCH-TU-090000.xlsx", "shift": 10}, "IMD": {"schedule": "00101-PSN-IMD-XXX-SCH-TU-090000.xlsx", "shift": 11}, "IME": null},
+    "scheduleSheet": "MP_Phase 1_Zone21"
   },
   "testHost": {
     "model":"00_Revit Models\\Zone 02\\ARC\\01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt",
@@ -302,9 +330,10 @@
         "levels": 1e-06,
         "areas": 1e-06,
         "angles": 1e-06,
-        "noGeometry": null
+        "noGeometry": null,
+        "pagePoints": 0.01
       },
-      "pagePointsPt": 0.01,
+      "kindsNote": "R345, R351. pagePoints is the tolerance of a point of the page of the location plan in pt, before Round ADDIN 4d pagePointsPt of this block",
       "steps": {
         "faces": {
           "face": {
@@ -406,6 +435,48 @@
         "sales": {
             "row": {"kind": "noGeometry"},
             "plain": {"kind": "noGeometry"}
+        },
+        "locationLabels": {
+            "number": {"kind": "noGeometry"},
+            "code": {"kind": "noGeometry"},
+            "kind": {"kind": "noGeometry"},
+            "face": {"kind": "noGeometry"},
+            "offset": {"kind": "noGeometry"},
+            "group": {"kind": "noGeometry"},
+            "page": {"kind": "pagePoints", "decimals": 3},
+            "site": {"kind": "points", "decimals": 3},
+            "newCode": {"kind": "noGeometry"},
+            "rev9": {"kind": "noGeometry"},
+            "nbh": {"kind": "noGeometry"},
+            "zone": {"kind": "noGeometry"}
+        },
+        "locationFit": {
+            "role": {"kind": "noGeometry"},
+            "points": {"kind": "noGeometry"},
+            "used": {"kind": "noGeometry"},
+            "kept": {"kind": "noGeometry"},
+            "residualKeptM": {"kind": "points", "decimals": 3},
+            "residualAllM": {"kind": "points", "decimals": 3},
+            "metresPerPoint": {"kind": "points", "decimals": 4}
+        },
+        "controlCheck": {
+            "controlTexts": {"kind": "noGeometry"},
+            "marks": {"kind": "noGeometry"},
+            "markGapStartM": {"kind": "points", "decimals": 3},
+            "markGapRefinedM": {"kind": "points", "decimals": 3},
+            "refineFaces": {"kind": "noGeometry"},
+            "refineKept": {"kind": "noGeometry"},
+            "refineResidualKeptM": {"kind": "points", "decimals": 3},
+            "againstScheduleM": {"kind": "points", "decimals": 3},
+            "labelsOnAFaceSchedule": {"kind": "noGeometry"},
+            "labelsOnAFaceControl": {"kind": "noGeometry"},
+            "facesNumberedOtherwise": {"kind": "noGeometry"},
+            "unitFacesNumberedOtherwise": {"kind": "noGeometry"}
+        },
+        "controlFaces": {
+            "schedule": {"kind": "noGeometry"},
+            "control": {"kind": "noGeometry"},
+            "why": {"kind": "noGeometry"}
         }
       }
     }

@@ -51,7 +51,8 @@ def test_r350_load_config_lays_the_moved_settings_over_the_probe_settings_and_ke
     assert merged["join"]["cutsheet"] == old["join"]["cutsheet"]
     assert merged["rev9"]["drawing"] == old["rev9"]["drawing"]
     assert merged["data5"]["areaKey"]["outFolder"] == old["data5"]["areaKey"]["outFolder"]
-    assert merged["locationPlan"]["pdf"] == old["locationPlan"]["pdf"]
+    # R351. The rest of the location plan settings moved with Round ADDIN 4d
+    assert merged["locationPlan"]["pdf"] == book["locationPlan"]["pdf"] and "locationPlan" not in old
     assert "note" not in merged
 
 

@@ -68,7 +68,9 @@ namespace CadReader
                 run.WriteJson(request.OutputFolder, "read_" + role + ".json", reads[role]);
             }
             List<TinSurface> surfaces = Surfaces(run, settings, steps, made);
-            Workbooks(run, settings, steps, made);
+            var sheets = new Dictionary<string, XlsxSheet.Sheet>();
+            Workbooks(run, settings, steps, made, sheets);
+            Location(run, settings, reads.TryGetValue("baseplan", out JObject baseplan) ? baseplan : null, steps, made, sheets);
             if (steps.Contains(ReadSteps.Labels))
             {
                 made[ReadSteps.Labels] = ReadSteps.LabelStep((JArray)reads["baseplan"]["plots"]);
@@ -214,7 +216,32 @@ namespace CadReader
 
         // R350. The sheets of dataBook of config in the DLUS and sales workbooks, each read once, the area key, the DLUS setbacks and the
         // sales rows as the Python readers give them, written to read_workbooks.json
-        private static void Workbooks(WorkerContext run, ReadSettings settings, HashSet<string> steps, Dictionary<string, Dictionary<string, Dictionary<string, object>>> made)
+        // A sheet of a workbook input read once per run, by its role and sheet, its rows and its date and duration cells counted. A sheet
+        // missing, a date cell of no date or a value past the stated dimension is refused before anything of it is used
+        private static List<object[]> SheetOf(WorkerContext run, Dictionary<string, XlsxSheet.Sheet> sheets, string role, string name)
+        {
+            string key = role + "\n" + name;
+            XlsxSheet.Sheet sheet;
+            if (!sheets.TryGetValue(key, out sheet))
+            {
+                string path = run.Input(role);
+                try
+                {
+                    sheet = XlsxSheet.Read(path, name);
+                }
+                catch (InvalidDataException refused)
+                {
+                    throw run.Refusal(Path.GetFileName(path) + ": " + refused.Message);
+                }
+                sheets[key] = sheet;
+                run.Counts["sheet " + name + " rows"] = sheet.Rows.Count;
+                run.Counts["sheet " + name + " date cells"] = sheet.DateCells;
+                run.Counts["sheet " + name + " duration cells"] = sheet.DurationCells;
+            }
+            return sheet.Rows;
+        }
+
+        private static void Workbooks(WorkerContext run, ReadSettings settings, HashSet<string> steps, Dictionary<string, Dictionary<string, Dictionary<string, object>>> made, Dictionary<string, XlsxSheet.Sheet> sheets)
         {
             WorkerRequest request = run.Request;
             bool dlus = request.Inputs.Any(input => input.Role == "dlus"), sales = request.Inputs.Any(input => input.Role == "sales");
@@ -222,30 +249,7 @@ namespace CadReader
             {
                 return;
             }
-            var sheets = new Dictionary<string, XlsxSheet.Sheet>();
-            Func<ReadSettings.SheetSetting, List<object[]>> rowsOf = setting =>
-            {
-                string key = setting.Role + "\n" + setting.Sheet;
-                XlsxSheet.Sheet sheet;
-                if (!sheets.TryGetValue(key, out sheet))
-                {
-                    string path = run.Input(setting.Role);
-                    try
-                    {
-                        sheet = XlsxSheet.Read(path, setting.Sheet);
-                    }
-                    catch (InvalidDataException refused)
-                    {
-                        // A sheet missing, a date cell of no date or a value past the stated dimension, before anything of it is used
-                        throw run.Refusal(Path.GetFileName(path) + ": " + refused.Message);
-                    }
-                    sheets[key] = sheet;
-                    run.Counts["sheet " + setting.Sheet + " rows"] = sheet.Rows.Count;
-                    run.Counts["sheet " + setting.Sheet + " date cells"] = sheet.DateCells;
-                    run.Counts["sheet " + setting.Sheet + " duration cells"] = sheet.DurationCells;
-                }
-                return sheet.Rows;
-            };
+            Func<ReadSettings.SheetSetting, List<object[]>> rowsOf = setting => SheetOf(run, sheets, setting.Role, setting.Sheet);
             // R350. A table of no row is refused, so a step is never written empty: a sheet whose rows went missing, such as one read
             // only to a stated dimension out of date, gave 0 items on both sides and the parity held (the review of PR 53)
             Action<int, ReadSettings.SheetSetting, string> held = (count, setting, what) =>
@@ -293,6 +297,124 @@ namespace CadReader
                 }
             }
             run.WriteJson(request.OutputFolder, "read_workbooks.json", output);
+        }
+
+        // R351. The location plan of the request, the input plotNumbers, read by PdfPig and numbered by the schedule fit of R181 on the
+        // faces of the baseplan read of the same request, the schedule of each neighbourhood of connect.neighbourhoods the input
+        // schedule:<NBH>, the sales rows and the code table from the workbook of their setting, then checked by the control point fit of
+        // R387, which numbers nothing. Written to read_locationPlan.json and to the steps of the location plan the request names
+        private static void Location(WorkerContext run, ReadSettings settings, JObject baseplan, HashSet<string> steps, Dictionary<string, Dictionary<string, Dictionary<string, object>>> made,
+            Dictionary<string, XlsxSheet.Sheet> sheets)
+        {
+            WorkerRequest request = run.Request;
+            if (request.Inputs.All(input => input.Role != LocationPlan.PlotNumbersRole))
+            {
+                return;
+            }
+            if (baseplan == null)
+            {
+                throw run.Refusal("the location plan is numbered on the faces of the baseplan, a read of plotNumbers needs the input baseplan in the same request (R351)");
+            }
+            LocationPlanSettings plan;
+            try
+            {
+                plan = LocationPlanSettings.From(JObject.Parse(WorkFiles.ReadText(run.Input("config"))));
+            }
+            catch (Exception refused) when (refused is InvalidDataException || refused is InvalidCastException || refused is NullReferenceException || refused is ArgumentException)
+            {
+                throw run.Refusal("the location plan settings of config: " + refused.Message);
+            }
+            List<string> extra = request.Inputs.Select(input => input.Role).Where(role => role != null && role.StartsWith(LocationPlan.ScheduleRole, StringComparison.Ordinal)
+                && plan.Neighbourhoods.All(hood => LocationPlan.ScheduleRole + hood.Key != role)).ToList();
+            if (extra.Count > 0)
+            {
+                throw run.Refusal("the schedules " + string.Join(", ", extra) + " are of no neighbourhood of connect.neighbourhoods (R351)");
+            }
+            var officials = new Dictionary<string, HashSet<string>>();
+            foreach (KeyValuePair<string, LocationPlanSettings.ScheduleEntry> hood in plan.Neighbourhoods)
+            {
+                string role = LocationPlan.ScheduleRole + hood.Key;
+                if (request.Inputs.All(input => input.Role != role))
+                {
+                    throw run.Refusal("the location plan fit needs the schedule of " + hood.Key + ", " + hood.Value.Schedule + ", the input " + role + " (R351)");
+                }
+                string path = run.Input(role);
+                try
+                {
+                    officials[hood.Key] = ScheduleRows.Officials(SheetOf(run, sheets, role, XlsxSheet.SheetName(path, plan.ScheduleSheet)), Path.GetFileName(path));
+                }
+                catch (InvalidDataException refused)
+                {
+                    throw run.Refusal(Path.GetFileName(path) + ": " + refused.Message);
+                }
+                run.Counts["schedule " + hood.Key + " plots"] = officials[hood.Key].Count;
+            }
+            string salesRole = settings.WorkbookRole(plan.Sales.Workbook);
+            List<Dictionary<string, string>> sales, table;
+            try
+            {
+                sales = LocationPlan.Table(SheetOf(run, sheets, salesRole, plan.Sales.Sheet), plan.Sales.HeaderRow, plan.Sales.Columns, "the sheet " + plan.Sales.Sheet);
+                table = LocationPlan.Table(SheetOf(run, sheets, salesRole, plan.CodeTable.Sheet), plan.CodeTable.HeaderRow, plan.CodeTable.Columns, "the sheet " + plan.CodeTable.Sheet);
+            }
+            catch (InvalidDataException refused)
+            {
+                throw run.Refusal(refused.Message);
+            }
+            AddinConfig config = AddinConfig.Load(run.Input("config"));
+            Dictionary<string, PlanFace> faces;
+            try
+            {
+                faces = LocationPlan.Faces((JArray)baseplan["plots"], config.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)"));
+            }
+            catch (InvalidDataException refused)
+            {
+                throw run.Refusal(refused.Message);
+            }
+            string pdf = run.Input(LocationPlan.PlotNumbersRole);
+            PdfPage.Content page;
+            LocationPlan.Result result;
+            try
+            {
+                page = PdfPage.Read(pdf);
+                result = LocationPlan.Number(page.Chars, page.Curves, faces, officials, sales, table, plan);
+            }
+            catch (InvalidDataException refused)
+            {
+                throw run.Refusal(Path.GetFileName(pdf) + ": " + refused.Message);
+            }
+            run.Counts["location plan characters"] = page.Chars.Count;
+            run.Counts["location plan curves"] = page.Curves.Count;
+            run.Counts["location plan lines"] = result.Lines;
+            run.Counts["location plan labels"] = result.Labels.Count;
+            run.Counts["location plan labels on a face"] = result.Rows.Count(row => row.Face != null);
+            run.Counts["location plan faces numbered otherwise"] = result.Control.Listed.Count;
+            var output = new JObject
+            {
+                ["source"] = Path.GetFileName(pdf),
+                ["rotation"] = page.Rotation,
+                ["fitNeighbourhood"] = plan.FitNeighbourhood,
+                ["labels"] = new JArray(result.Rows.Select(row => new JObject
+                {
+                    ["number"] = row.Number, ["code"] = row.Code, ["kind"] = row.Kind, ["face"] = row.Face, ["offset"] = row.Offset, ["group"] = row.Group,
+                    ["pageX"] = Rounding.Fixed(row.PageX, 3), ["pageY"] = Rounding.Fixed(row.PageY, 3), ["newCode"] = row.NewCode, ["rev9"] = row.Rev9,
+                    ["nbh"] = row.Nbh, ["zone"] = row.Zone, ["east"] = Rounding.Fixed(row.East, 3), ["north"] = Rounding.Fixed(row.North, 3),
+                })),
+                ["fits"] = JObject.FromObject(LocationPlan.FitStep(result)),
+                ["controlCheck"] = JObject.FromObject(LocationPlan.CheckStep(result)["control"]),
+                ["facesNumberedOtherwise"] = JObject.FromObject(LocationPlan.FacesStep(result)),
+            };
+            run.WriteJson(request.OutputFolder, "read_locationPlan.json", output);
+            var named = new Dictionary<string, Func<LocationPlan.Result, Dictionary<string, Dictionary<string, object>>>>
+            {
+                [LocationPlan.LabelStepName] = LocationPlan.LabelStep,
+                [LocationPlan.FitStepName] = LocationPlan.FitStep,
+                [LocationPlan.CheckStepName] = LocationPlan.CheckStep,
+                [LocationPlan.FacesStepName] = LocationPlan.FacesStep,
+            };
+            foreach (KeyValuePair<string, Func<LocationPlan.Result, Dictionary<string, Dictionary<string, object>>>> step in named.Where(item => steps.Contains(item.Key)))
+            {
+                made[step.Key] = step.Value(result);
+            }
         }
     }
 }

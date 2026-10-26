@@ -63,6 +63,24 @@ namespace CadReader
             }
         }
 
+        // R351, R9. The name of the sheet excel_reader.find_sheet takes: the first whose name stripped of blanks equals the one wanted
+        // without case, refused with the sheets the workbook holds when none does
+        public static string SheetName(string path, string wanted)
+        {
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (SpreadsheetDocument book = SpreadsheetDocument.Open(stream, false))
+            {
+                List<string> names = book.WorkbookPart?.Workbook.Sheets?.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().Select(item => item.Name?.Value ?? "").ToList() ?? new List<string>();
+                string key = SheetRows.PyStrip(wanted ?? "").ToLowerInvariant();
+                string found = names.FirstOrDefault(name => SheetRows.PyStrip(name).ToLowerInvariant() == key);
+                if (found == null)
+                {
+                    throw new InvalidDataException("Sheet '" + wanted + "' not found. Sheets present: " + string.Join(", ", names));
+                }
+                return found;
+            }
+        }
+
         // The shared strings, each the text of its t and of the t of each run, x005F_ dropped as openpyxl drops it
         private static List<string> SharedStrings(WorkbookPart part)
         {

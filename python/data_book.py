@@ -178,13 +178,16 @@ def load_surfaces(connect, book, scratch):
     return surfaces
 
 
-def schedule_rows(settings, connect):
+def schedule_rows(settings, connect, paths=None):
+    """The plot rows of the schedule of each neighbourhood of connect, by neighbourhood and official number. R351: the sheet is
+    connect.scheduleSheet of config/project.json, and paths may name the file of a neighbourhood, else it is the file of its entry in the
+    References folder of inputRoot."""
     root = Path(levels_proof.input_root(settings)) / full_run.XLSX_FOLDER
     found = {}
     for name, entry in connect["neighbourhoods"].items():
         if not entry:
             continue
-        for row in levels_proof.read_schedule(root / entry["schedule"]):
+        for row in levels_proof.read_schedule((paths or {}).get(name) or root / entry["schedule"], connect["scheduleSheet"]):
             number = levels_proof.number_of(row["plot"])
             if number is not None:
                 found[(name, str(number))] = dict(row, file=entry["schedule"], shift=entry["shift"])

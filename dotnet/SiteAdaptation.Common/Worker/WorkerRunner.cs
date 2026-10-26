@@ -29,6 +29,11 @@ namespace SiteAdaptation.Common
             [ReadSteps.AreaKey] = new[] { "dlus", "sales" },
             [ReadSteps.DlusSetbacks] = new[] { "sales" },
             [ReadSteps.Sales] = new[] { "sales" },
+            // R351. The location plan, numbered by the schedule fit on the faces of the baseplan read, with its codes from the sales workbook
+            [LocationPlan.LabelStepName] = LocationPlan.Roles,
+            [LocationPlan.FitStepName] = LocationPlan.Roles,
+            [LocationPlan.CheckStepName] = LocationPlan.Roles,
+            [LocationPlan.FacesStepName] = LocationPlan.Roles,
         };
 
         public static readonly Dictionary<string, string> StepCommand = Steps.Keys.ToDictionary(step => step, step => step == FaceStep.Name ? "build" : "read");

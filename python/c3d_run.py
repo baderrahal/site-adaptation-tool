@@ -24,11 +24,14 @@ WRITING = ("SAVE", "QSAVE", "SAVEAS", "WBLOCK", "EXPORT", "ETRANSMIT", "PURGE", 
 
 def load_config(path=CONFIG):
     """The probe settings. R348, R350: for the probe settings of the repo, dataBook of config/project.json is laid over their dataBook,
-    the settings of the reads of button 2 that Round ADDIN 4c moved there, so every reader keeps its key path and one copy is read."""
+    the settings of the reads of button 2 that Round ADDIN 4c moved there, so every reader keeps its key path and one copy is read.
+    R351: connect of config/project.json, the neighbourhood schedules of the location plan fit Round ADDIN 4d moved there, is laid over
+    their connect the same way."""
     config = json.loads(Path(path).read_text(encoding="utf-8"))
     if Path(path).resolve() == CONFIG.resolve():
-        moved = json.loads(SETTINGS.read_text(encoding="utf-8")).get("dataBook") or {}
-        lay_over(config.setdefault("dataBook", {}), moved, "dataBook")
+        settings = json.loads(SETTINGS.read_text(encoding="utf-8"))
+        for block in ("dataBook", "connect"):
+            lay_over(config.setdefault(block, {}), settings.get(block) or {}, block)
         cad_reads(config)
     return config
 
