@@ -300,16 +300,24 @@ namespace SiteAdaptation.Tests
             Assert.Equal("dlus", new ReadSettings(config).SalesRows().Role);
         }
 
-        // R347, Q083. A whole read of button 2 peaked at 3,891 MiB, over the 2,612 MiB of the Road Layout alone the check held per input.
+        // R347, Q083. A whole read of button 2 peaked at up to 4,008 MiB, over the 2,612 MiB of the Road Layout alone the check held per input.
         // Before the first read the free memory is held against the whole read plus the floor, before each later read against the rest
         // of it, the whole less what the worker holds, plus the floor
         [Fact]
         public void R347_q083_free_memory_is_held_against_the_whole_read_before_the_first_read_and_against_its_rest_before_each_read()
         {
             AddinConfig repo = AddinConfig.Load(WorkerRunTests.RepoConfig());
-            Assert.Equal(3900, repo.WorkerCommandPeakMiB("read"));
+            Assert.Equal(4100, repo.WorkerCommandPeakMiB("read"));
             Assert.Null(repo.WorkerCommandPeakMiB("build"));
+            // A made up config of the repo config with a whole read of 3,900 MiB and the floor of 2.0 GiB
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            config["addin"]["workerPeakMiB"]["commands"]["read"] = 3900;
+            config["siteBuild"]["minFreeGB"] = 2.0;
+            JObject bad = (JObject)config.DeepClone();
+            bad["addin"]["workerPeakMiB"]["commands"]["build"] = "a lot";
+            string badPath = Path.Combine(folder, "bad.json");
+            File.WriteAllText(badPath, bad.ToString());
+            Assert.Throws<InvalidDataException>(() => AddinConfig.Load(badPath).WorkerCommandPeakMiB("build"));
             string configPath = Path.Combine(folder, "project.json");
             File.WriteAllText(configPath, config.ToString());
             string sheet = Path.Combine(folder, "dlus.xlsx");
