@@ -158,6 +158,134 @@ def control_check(matrix, word, small, stated, search):
     return round(best, 3) if best is not None else None
 
 
+def control_texts(words):
+    """R181, R387. Each control point text the sheet prints, E = <east> N = <north>: its E word and the stated site point."""
+    flat = [w["text"] for w in words]
+    found = []
+    for k, word in enumerate(words):
+        if word["text"] == "E" and k + 5 < len(words) and flat[k + 1] == "=" and flat[k + 3] == "N" and flat[k + 4] == "=":
+            try:
+                east, north = float(flat[k + 2]), float(flat[k + 5])
+            except ValueError:
+                continue
+            found.append((word, (east, north)))
+    return found
+
+
+def is_mark(shape, mark):
+    """R387. A curve of the mark shape of controlMark: its width and height within tolerancePt of widthPt and heightPt and its points."""
+    return (abs(shape["x1"] - shape["x0"] - mark["widthPt"]) <= mark["tolerancePt"] and abs(shape["bottom"] - shape["top"] - mark["heightPt"]) <= mark["tolerancePt"]
+            and len(shape.get("pts") or []) == mark["points"])
+
+
+def control_marks(curves, texts, mark, search):
+    """R387. The mark of each control point text: the one curve of the mark shape within search points of the start of its E = text,
+    with the stated point. A text with no such curve or two is refused, a mark is never taken by its nearness to the text."""
+    found = []
+    for word, stated in texts:
+        near = [((shape["x0"] + shape["x1"]) / 2, (shape["top"] + shape["bottom"]) / 2) for shape in curves if is_mark(shape, mark)]
+        near = [point for point in near if abs(point[0] - word["x0"]) <= search and abs(point[1] - word["top"]) <= search]
+        if len(near) != 1:
+            raise ValueError("the control point text E = %s N = %s has %d curves of the mark shape within %s pt, one is needed (R387)" % (stated[0], stated[1], len(near), search))
+        found.append((near[0], stated))
+    return found
+
+
+def similarity_fit(page, site):
+    """R387. The similarity from page points to site metres by least squares, a scale, a turn, a mirror or none and a shift, no shear, as
+    a 3 by 2 matrix like fit_affine. Of the two, mirrored and not, the one whose largest residual is smaller. It needs two points, and
+    three marks almost on one line give it where they give no affine map."""
+    if len(page) < 2:
+        raise ValueError("the similarity of the control marks needs two marks, it has %d (R387)" % len(page))
+    fits = []
+    for mirrored in (True, False):
+        rows, rhs = [], []
+        for (x, y), (east, north) in zip(page, site):
+            rows += [[x, y, 1.0, 0.0], [-y, x, 0.0, 1.0]] if mirrored else [[x, -y, 1.0, 0.0], [y, x, 0.0, 1.0]]
+            rhs += [east, north]
+        (a, b, e, f), *_ = np.linalg.lstsq(np.asarray(rows, dtype=float), np.asarray(rhs, dtype=float), rcond=None)
+        matrix = np.array([[a, b], [b, -a], [e, f]]) if mirrored else np.array([[a, b], [-b, a], [e, f]])
+        fits.append((float(np.hypot(*(apply(matrix, page) - np.asarray(site, dtype=float)).T).max()), mirrored, matrix))
+    return min(fits, key=lambda item: (item[0], not item[1]))[2]
+
+
+def face_of_points(points, faces):
+    """R182, R387. The baseplan face that holds each site point, None where no face or more than one holds it."""
+    names = sorted(faces, key=int)
+    tree = STRtree([faces[name] for name in names])
+    found = []
+    for east, north in points:
+        hits = [names[int(k)] for k in tree.query(Point(east, north), predicate="within")]
+        found.append(hits[0] if len(hits) == 1 else None)
+    return found
+
+
+def control_refine(matrix, labels, faces, drop_factor, rounds, floor):
+    """R387. The start refined by the fit of R181 on the faces that hold one label each under it: each such label to the centroid of
+    its face, the points over drop_factor times the median residual dropped. Gives the refined matrix and the faces taken."""
+    points = [(label["x"], label["y"]) for label in labels]
+    homes = face_of_points(apply(matrix, points), faces) if points else []
+    held = Counter(home for home in homes if home is not None)
+    taken = sorted(((home, index) for index, home in enumerate(homes) if home is not None and held[home] == 1), key=lambda pair: int(pair[0]))
+    if len(taken) < 3:
+        raise ValueError("the control point fit puts a single label on %d faces, the refine needs three (R387)" % len(taken))
+    page = [points[index] for _, index in taken]
+    site = [(faces[home].centroid.x, faces[home].centroid.y) for home, _ in taken]
+    refined, residual, keep = robust_fit(page, site, drop_factor, rounds, floor)
+    return refined, {"faces": [home for home, _ in taken], "kept": len(keep), "residualKeptM": stats(residual[keep]), "residualAllM": stats(residual)}
+
+
+def numbered_otherwise(rows, control_faces, schedule_site, control_site, faces):
+    """R387. Every face the control point fit numbers otherwise than the schedule fit, listed apart: rows are the labels as the schedule
+    fit numbered them, number and face, control_faces the face of each label by the control fit, both site points in the same order.
+    Each listed face says why: every label of it the two fits put apart, its face by each, how far its point lies from the edge of the
+    face it is in and how far apart the two fits put it. It numbers nothing."""
+    by_schedule, by_control, moved = defaultdict(list), defaultdict(list), defaultdict(list)
+    for row, face, at_schedule, at_control in zip(rows, control_faces, schedule_site, control_site):
+        if row["face"] is not None:
+            by_schedule[row["face"]].append(row["number"])
+        if face is not None:
+            by_control[face].append(row["number"])
+        if row["face"] != face:
+            edge_face, point = (row["face"], at_schedule) if row["face"] is not None else (face, at_control)
+            edge = common.fixed(float(faces[edge_face].exterior.distance(Point(*point))), 3) if edge_face is not None else None
+            gap = common.fixed(float(np.hypot(at_schedule[0] - at_control[0], at_schedule[1] - at_control[1])), 3)
+            why = {"number": row["number"], "scheduleFace": row["face"], "controlFace": face, "edgeM": edge, "gapM": gap}
+            why["text"] = "label %s on face %s by the schedule fit and on face %s by the control fit, %s m from the edge of face %s, the fits %s m apart at it" % (
+                row["number"], row["face"] or "none", face or "none", edge, edge_face or "none", gap)
+            for home in {row["face"], face} - {None}:
+                moved[home].append(why)
+    found = []
+    for face in sorted(set(by_schedule) | set(by_control), key=int):
+        mine, theirs = sorted(by_schedule.get(face, []), key=int), sorted(by_control.get(face, []), key=int)
+        if mine != theirs:
+            found.append({"face": face, "schedule": mine, "control": theirs, "why": sorted(moved[face], key=lambda item: int(item["number"]))})
+    return found
+
+
+def control_fit_check(labels, rows, words, curves, faces, plan, schedule_site):
+    """R387. The control point fit as a check of the schedule fit of R181, which stays the numbering: the marks are the curves of the
+    mark shape of controlMark, the fit starts from their similarity and is refined on the faces that hold one label each, then every
+    face it numbers otherwise than the schedule fit is listed apart with why. It writes no number into labels.csv or any row."""
+    texts = control_texts(words)
+    marks = control_marks(curves, texts, plan["controlMark"], plan["controlSearchPt"])
+    start = similarity_fit([mark for mark, _ in marks], [stated for _, stated in marks])
+    refined, refine = control_refine(start, labels, faces, plan["fitDropFactor"], plan["fitRounds"], plan["fitFloorM"])
+    points = [(label["x"], label["y"]) for label in labels]
+    control_site = apply(refined, points) if points else []
+    control_faces = face_of_points(control_site, faces)
+    listed = numbered_otherwise(rows, control_faces, schedule_site, control_site, faces)
+    unit_numbers = {row["number"] for row in rows if row["kind"] == "clientCode"}
+    at = lambda matrix: [common.fixed(float(np.hypot(*(apply(matrix, [mark])[0] - np.asarray(stated)))), 3) for mark, stated in marks]
+    apart = np.hypot(*(np.asarray(control_site) - np.asarray(schedule_site)).T) if points else []
+    return {"controlTexts": len(texts), "marks": len(marks), "markGapStartM": at(start), "markGapRefinedM": at(refined),
+            "refineFaces": len(refine["faces"]), "refineKept": refine["kept"], "refineResidualKeptM": refine["residualKeptM"],
+            "againstScheduleM": stats(apart), "labelsOnAFace": {"schedule": sum(1 for row in rows if row["face"] is not None),
+                                                                 "control": sum(1 for face in control_faces if face is not None)},
+            "facesNumberedOtherwise": len(listed), "unitFacesNumberedOtherwise": sum(1 for item in listed if set(item["schedule"] + item["control"]) & unit_numbers),
+            "list": listed}
+
+
 def read_table(path, sheet, header_row, columns):
     workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
     rows = list(workbook[sheet].iter_rows(values_only=True))
@@ -191,7 +319,7 @@ def site_cells(east, north):
     return {"east": common.fixed(float(east), 3), "north": common.fixed(float(north), 3)}
 
 
-def run(config, settings):
+def run(config, settings, check=None):
     book = config["dataBook"]
     plan = book["locationPlan"]
     root = Path(book["root"])
@@ -203,6 +331,7 @@ def run(config, settings):
         words = page.extract_words(extra_attrs=["size"])
         small = [((s["x0"] + s["x1"]) / 2, (s["top"] + s["bottom"]) / 2) for s in page.curves + page.rects + page.lines
                  if s["x1"] - s["x0"] <= plan["controlShapeMaxPt"] and s["bottom"] - s["top"] <= plan["controlShapeMaxPt"]]
+        curves = [{key: s[key] for key in ("x0", "x1", "top", "bottom", "pts")} for s in page.curves] if check == "control" else []
         meta = {"pages": len(pdf.pages), "width": float(page.width), "height": float(page.height), "rotate": page.page_obj.attrs.get("Rotate"),
                 "words": len(words), "chars": len(chars), "images": len(page.images)}
     lines = text_lines(chars, plan["labelSize"], plan["joinGapPt"], plan["lineTolerancePt"])
@@ -256,16 +385,8 @@ def run(config, settings):
         if p:
             checks[name] = stats(np.hypot(*(apply(matrix, p) - np.asarray(s)).T))
     fit["checkOn"] = checks
-    control = []
     flat = [w["text"] for w in words]
-    for k, word in enumerate(words):
-        if word["text"] == "E" and k + 5 < len(words) and flat[k + 1] == "=" and flat[k + 3] == "N" and flat[k + 4] == "=":
-            try:
-                east, north = float(flat[k + 2]), float(flat[k + 5])
-            except ValueError:
-                continue
-            control.append(control_check(matrix, word, small, (east, north), plan["controlSearchPt"]))
-    fit["controlPoints"] = control
+    fit["controlPoints"] = [control_check(matrix, word, small, stated, plan["controlSearchPt"]) for word, stated in control_texts(words)]
     report["fit"] = fit
 
     # Every number on its baseplan face
@@ -287,6 +408,9 @@ def run(config, settings):
         rows.append(dict({"number": label["number"], "code": label["code"], "kind": label["kind"], "face": face, "offset": offset, "group": group},
                          **page_cells(label)))
     report["numberToFace"] = {g: dict(c.most_common(12)) for g, c in sorted(shift_by.items())}
+    if check == "control":
+        # R387. A check of the numbering above, never a numbering of its own
+        report["controlCheck"] = control_fit_check(labels, rows, words, curves, faces, plan, labels_site)
     for name, shift in shifts.items():
         found = shift_by.get(name, Counter())
         report["numberToFace"][name + "Check"] = {"shift": shift, "match": found.get(shift, 0), "other": sum(n for k, n in found.items() if k != shift)}
@@ -401,10 +525,11 @@ def markdown(report):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Read the Zone 4 location plan and tie it to the plots (R179 to R183)")
     parser.add_argument("--config", default=str(c3d_run.CONFIG))
+    parser.add_argument("--check", choices=("control",), help="R387. control: the control point fit as a check of the schedule fit, it numbers nothing")
     args = parser.parse_args(argv)
     config = c3d_run.load_config(args.config)
     import project_profile
-    report = run(config, project_profile.load_settings(project_profile.SETTINGS_PATH))
+    report = run(config, project_profile.load_settings(project_profile.SETTINGS_PATH), args.check)
     root = Path(config["dataBook"]["root"])
     (root / "locationPlan.json").write_text(json.dumps(report, indent=1, ensure_ascii=False), encoding="utf-8")
     (root / "locationPlan.md").write_text(markdown(report), encoding="utf-8")

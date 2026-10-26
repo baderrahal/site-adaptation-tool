@@ -141,6 +141,17 @@ def snap_z(surface, x, y, tolerance):
     return best[1] if best[0] <= tolerance else None
 
 
+def road_level(surfaces, point, snap):
+    """R209, R344. The level of the first of the named surfaces, in their order, that covers the point within snap (R157), and its
+    name, else (None, None). The one rule of the road at a front corner for the build and the data book: a corner no road surface
+    covers gets no level, the Roads folder holds no other road level there (R344)."""
+    for name, surface in surfaces:
+        z = snap_z(surface, point[0], point[1], snap)
+        if z is not None:
+            return z, name
+    return None, None
+
+
 def text_value(text, survey):
     """The first number of a level text that falls inside levelRange with levelDecimals, or None."""
     low, high = survey["levelRange"]

@@ -334,13 +334,13 @@ def test_r341_the_own_tin_reads_the_landxml_by_its_text_gives_the_level_inside_a
     import key_rules_check
     path = tmp_path / "made_up.xml"
     path.write_text(LANDXML, encoding="utf-8")
-    tin = key_rules_check.OwnTin(path)
+    tin = key_rules_check.OwnTin(path, None, 0.005)
     # The text holds northing then easting, the level rises 1 m per m to the east
     assert tin.level(2.0, 3.0, 0.005) == pytest.approx(2.0) and tin.level(10.003, 5.0, 0.005) == pytest.approx(10.0)
     assert tin.level(10.01, 5.0, 0.005) is None and tin.level(15.0, 5.0, 0.005) is None and len(tin.triangles) == 2
     # A box leaves out the triangles it does not meet
-    assert len(key_rules_check.OwnTin(path, (100.0, 100.0, 200.0, 200.0)).triangles) == 0
-    assert key_rules_check.own_road([("a", key_rules_check.OwnTin(path, (100.0, 100.0, 200.0, 200.0))), ("b", tin)], (4.0, 1.0), 0.005) == pytest.approx(4.0)
+    assert len(key_rules_check.OwnTin(path, (100.0, 100.0, 200.0, 200.0), 0.005).triangles) == 0
+    assert key_rules_check.own_road([("a", key_rules_check.OwnTin(path, (100.0, 100.0, 200.0, 200.0), 0.005)), ("b", tin)], (4.0, 1.0), 0.005) == pytest.approx(4.0)
 
 
 def own_rows():

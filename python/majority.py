@@ -943,7 +943,7 @@ def run_args(args):
     if built_levels:
         plot_relations.refuse_inside_repo(Path(args.scratch).resolve())
         road_surfaces = plan_from_book.load_roads([Path(args.landxml) / (name + ".xml") for name in level_road_names(built_levels, profile, settings)], args.scratch)
-        snap = settings.get("siteBuild")["snapM"]
+        snap = plan_rules.road_snap(settings.get("siteBuild"))
     site_extra = {}
     items, clusters, front, numbers, tree = site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block, road_surfaces, snap, site_extra)
     levels = {group: {"lp": plan_rules.level_profile(profile, name), "roles": site_extra["roles"], "partners": site_extra["partners"],

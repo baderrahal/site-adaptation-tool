@@ -1067,10 +1067,11 @@ def held(row, ctx, settings, profile, report, datums):
 
 
 class OwnTin:
-    """R341. The visible triangles of one LandXML surface, each as three (easting, northing, z), those whose box meets box when given,
-    in a grid of CELL_M cells, read by a plain text scan of the file."""
+    """R341. The visible triangles of one LandXML surface, each as three (easting, northing, z), those whose box meets box grown by
+    margin when a box is given, in a grid of CELL_M cells, read by a plain text scan of the file. The caller gives the margin, the snap
+    of config the corners are read with (R344), so no triangle a corner may snap to is left out and no fixed distance stands in."""
 
-    def __init__(self, path, box=None, margin=10.0):
+    def __init__(self, path, box, margin):
         text = Path(path).read_bytes()
         points = {}
         for found in POINT.finditer(text):
@@ -1128,6 +1129,19 @@ class OwnTin:
                         if best is None or distance < best[0]:
                             best = (distance, az + part * (bz - az))
         return best[1] if best is not None and best[0] <= snap else None
+
+
+def own_snap(settings):
+    """R344 by an own route: siteBuild.snapM of the config read as plain JSON, refused unless a finite number of 0 or more and at most
+    siteBuild.snapMaxM, a bool or a text as well. The limit itself is taken."""
+    block = settings["siteBuild"]
+    limit, snap = block.get("snapMaxM"), block.get("snapM")
+    for name, value in (("snapMaxM", limit), ("snapM", snap)):
+        if type(value) not in (int, float) or value != value or value in (float("inf"), float("-inf")) or value < 0:
+            raise ValueError("siteBuild.%s is %r, not a finite distance of 0 m or more (R344)" % (name, value))
+    if snap > limit:
+        raise ValueError("siteBuild.snapM %r is over snapMaxM %r (R344)" % (snap, limit))
+    return float(snap)
 
 
 def own_road(tins, point, snap):
@@ -1354,8 +1368,8 @@ def level_inputs(ctx, settings, profile, rows, folder):
             corners[plot] = (frame["left"], frame["right"])
     points = [point for pair in corners.values() for point in pair]
     box = (min(x for x, _ in points), min(y for _, y in points), max(x for x, _ in points), max(y for _, y in points)) if points else None
-    tins = [(name, OwnTin(Path(folder) / (name + ".xml"), box)) for name in own_road_names(settings, lp)]
-    snap = settings["siteBuild"]["snapM"]
+    snap = own_snap(settings)
+    tins = [(name, OwnTin(Path(folder) / (name + ".xml"), box, snap)) for name in own_road_names(settings, lp)]
     setbacks = profile["ramp"]["front_setback"]
     road = {}
     for plot, pair in corners.items():

@@ -389,6 +389,7 @@
       },
       "controlSearchPt": 120,
       "controlShapeMaxPt": 12,
+      "controlMark": {"note": "R387, Q081. The mark of a control point the sheet prints is a curve of this shape, width and height in pt within tolerancePt and its point count, the only three such curves of the page, one within controlSearchPt of each E = text. The control point fit starts from the similarity of the three marks.", "widthPt": 3.96, "heightPt": 3.96, "tolerancePt": 0.01, "points": 6},
       "searchWords": [
         "PIM",
         "IME",
