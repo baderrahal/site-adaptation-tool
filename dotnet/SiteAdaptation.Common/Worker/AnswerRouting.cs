@@ -26,7 +26,7 @@ namespace SiteAdaptation.Common
         }
 
         // Windows paths ignore case, a path is compared in full
-        private static bool SamePath(string one, string other)
+        internal static bool SamePath(string one, string other)
         {
             if (one == null || other == null)
             {

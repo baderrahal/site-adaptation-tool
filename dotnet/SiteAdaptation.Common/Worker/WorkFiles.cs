@@ -56,29 +56,37 @@ namespace SiteAdaptation.Common
             return File.ReadAllText(path);
         }
 
-        // The temporary files of other run ids in the folder and below, deleted at the start of a run
-        public static List<string> DeleteEarlier(string folder, string runId)
-        {
-            return Delete(folder, path => !Path.GetFileName(path).EndsWith(Marker + runId, StringComparison.Ordinal));
-        }
-
-        // The temporary files of one run id, deleted when the add-in ends that run at its time limit
+        // The temporary files of one run id in the folder itself, deleted by a run at its start and by the add-in when it ends the
+        // run at its time limit. A run never deletes those of another run id, which may be a run going on beside it, and never walks
+        // down the folder, since a folder such as Documents holds junctions such as My Music that deny the walk. A file that cannot be
+        // deleted is named in the IOException thrown once every other file was tried
         public static List<string> DeleteRun(string folder, string runId)
-        {
-            return Delete(folder, path => Path.GetFileName(path).EndsWith(Marker + runId, StringComparison.Ordinal));
-        }
-
-        private static List<string> Delete(string folder, Func<string, bool> which)
         {
             var deleted = new List<string>();
             if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
             {
                 return deleted;
             }
-            foreach (string path in Directory.GetFiles(folder, "*" + Marker + "*", SearchOption.AllDirectories).Where(IsTemporary).Where(which))
+            var failed = new List<string>();
+            foreach (string path in Directory.GetFiles(folder, "*" + Marker + runId, SearchOption.TopDirectoryOnly))
             {
-                File.Delete(path);
-                deleted.Add(path);
+                if (!Path.GetFileName(path).EndsWith(Marker + runId, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                try
+                {
+                    File.Delete(path);
+                    deleted.Add(path);
+                }
+                catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException)
+                {
+                    failed.Add(path + " (" + failure.GetType().Name + ": " + failure.Message + ")");
+                }
+            }
+            if (failed.Count > 0)
+            {
+                throw new IOException("the temporary files of run " + runId + " could not be deleted: " + string.Join(", ", failed));
             }
             return deleted;
         }

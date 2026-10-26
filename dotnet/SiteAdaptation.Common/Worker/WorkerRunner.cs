@@ -55,7 +55,7 @@ namespace SiteAdaptation.Common
             int code;
             try
             {
-                WorkFiles.DeleteEarlier(folder, request.RunId);
+                Clear(folder, request, answer);
                 code = Execute(request, commands, freeMiB, answer);
                 answer.Message = WorkerExit.Meaning(code);
             }
@@ -77,6 +77,29 @@ namespace SiteAdaptation.Common
             answer.Library = Library();
             WorkFiles.WriteText(WorkerFiles.AnswerPath(folder, request.RunId), request.RunId, answer.ToJson());
             return code;
+        }
+
+        // An answer of the run id left by an earlier attempt goes first, so no answer but this run's is ever read under its name, then
+        // the temporary files of this run id in the work, output and steps folders. Those of other run ids stay, another run may be
+        // writing them now
+        private static void Clear(string folder, WorkerRequest request, WorkerAnswer answer)
+        {
+            string earlier = WorkerFiles.AnswerPath(folder, request.RunId);
+            if (File.Exists(earlier))
+            {
+                File.Delete(earlier);
+            }
+            foreach (string place in new[] { folder, request.OutputFolder, request.StepsFolder })
+            {
+                try
+                {
+                    WorkFiles.DeleteRun(place, request.RunId);
+                }
+                catch (IOException failure)
+                {
+                    answer.Issues.Add(failure.Message);
+                }
+            }
         }
 
         private static int Execute(WorkerRequest request, IDictionary<string, WorkerCommand> commands, Func<double?> freeMiB, WorkerAnswer answer)

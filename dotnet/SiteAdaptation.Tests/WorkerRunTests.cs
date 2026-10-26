@@ -156,9 +156,11 @@ namespace SiteAdaptation.Tests
         public void R347_a_run_reads_its_inputs_writes_its_outputs_and_then_its_answer_by_temporary_names()
         {
             WorkerRequest request = Request();
-            string old = Write("plan_old.json.tmp-r0", "partial");
-            string mine = Write("other.json.tmp-r1", "kept, a file of this run");
-            int code = WorkerRunner.Run(Save(request), Writing(), () => 9000.0);
+            // A temporary file of another run id may belong to a run going on beside this one, so a run deletes only its own
+            string other = Write("plan_old.json.tmp-r0", "partial of another run");
+            string mine = Write("other.json.tmp-r1", "left by an earlier attempt of this run id");
+            string stale = Write("answer_r1.json", "{\"runId\": \"r1\", \"status\": \"done\"}");
+            int code = WorkerRunner.Run(Save(request), Writing(_ => Assert.False(File.Exists(stale), "the answer of an earlier attempt is deleted first")), () => 9000.0);
             WorkerAnswer answer = Answer(WorkerFiles.AnswerPath(folder, "r1"));
 
             Assert.Equal(0, code);
@@ -174,10 +176,10 @@ namespace SiteAdaptation.Tests
             Assert.Equal(9000.0, answer.FreeMiBBefore);
             Assert.Contains("SiteAdaptation.Common", answer.Library);
             Assert.Contains("Newtonsoft.Json 13.0.1", answer.Library);
-            // A run deletes the temporary files of earlier runs, and nothing of its own is left under a temporary name
-            Assert.False(File.Exists(old));
-            Assert.True(File.Exists(mine));
-            Assert.DoesNotContain(Directory.GetFiles(folder), path => WorkFiles.IsTemporary(path) && path != mine);
+            // A run deletes its own temporary files and leaves those of other run ids, nothing of its own is left under a temporary name
+            Assert.True(File.Exists(other));
+            Assert.False(File.Exists(mine));
+            Assert.DoesNotContain(Directory.GetFiles(folder), path => WorkFiles.IsTemporary(path) && path != other);
         }
 
         [Fact]
@@ -265,10 +267,14 @@ namespace SiteAdaptation.Tests
             Write("a.json.tmp-r1", "x");
             Write("b.json.tmp-r2", "x");
             Directory.CreateDirectory(Path.Combine(folder, "dry"));
-            File.WriteAllText(Path.Combine(folder, "dry", "c.json.tmp-r1"), "x");
-            Assert.Equal(new[] { "b.json.tmp-r2" }, WorkFiles.DeleteEarlier(folder, "r1").Select(Path.GetFileName).ToArray());
-            Assert.Equal(new[] { "a.json.tmp-r1", "c.json.tmp-r1" }, WorkFiles.DeleteRun(folder, "r1").Select(Path.GetFileName).OrderBy(name => name).ToArray());
-            Assert.DoesNotContain(Directory.GetFiles(folder, "*", SearchOption.AllDirectories), path => WorkFiles.IsTemporary(path));
+            string below = Path.Combine(folder, "dry", "c.json.tmp-r1");
+            File.WriteAllText(below, "x");
+            // Only the files of the one run id in the folder itself: a folder such as Documents is never walked down, its
+            // junctions such as My Music deny the walk
+            Assert.Equal(new[] { "a.json.tmp-r1" }, WorkFiles.DeleteRun(folder, "r1").Select(Path.GetFileName).ToArray());
+            Assert.True(File.Exists(Path.Combine(folder, "b.json.tmp-r2")));
+            Assert.True(File.Exists(below));
+            Assert.Empty(WorkFiles.DeleteRun(Path.Combine(folder, "no such folder"), "r1"));
         }
 
         private static ProcessStartInfo Sleeping(int seconds)
@@ -285,7 +291,27 @@ namespace SiteAdaptation.Tests
                 : new ProcessStartInfo("sh", "-c \"exit " + code + "\"");
         }
 
-        private WorkerAnswer Launch(ProcessStartInfo start, WorkerRequest request, out TimeSpan returned)
+        // A made up worker that writes the answer file it is given as its answer and exits 0, as the worker writes its answer last
+        private static ProcessStartInfo Answering(string prepared, string answerPath)
+        {
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? new ProcessStartInfo("cmd.exe", "/c copy /y \"" + prepared + "\" \"" + answerPath + "\" >nul")
+                : new ProcessStartInfo("sh", "-c \"cp '" + prepared + "' '" + answerPath + "'\"");
+        }
+
+        // An exe that is not on disk: a launch that refuses before Process.Start never reaches it
+        private ProcessStartInfo Nowhere()
+        {
+            return new ProcessStartInfo(Path.Combine(folder, "no such worker.exe"));
+        }
+
+        private WorkerAnswer Launch(ProcessStartInfo start, WorkerRequest request, out TimeSpan returned, Action<WorkerAnswer> also = null)
+        {
+            WorkerLaunch ignored;
+            return Launch(start, request, out returned, out ignored, also);
+        }
+
+        private WorkerAnswer Launch(ProcessStartInfo start, WorkerRequest request, out TimeSpan returned, out WorkerLaunch ran, Action<WorkerAnswer> also = null)
         {
             WorkerAnswer ended = null;
             using (var done = new ManualResetEventSlim(false))
@@ -295,11 +321,13 @@ namespace SiteAdaptation.Tests
                 {
                     ended = answer;
                     done.Set();
+                    also?.Invoke(answer);
                 }))
                 {
                     returned = watch.Elapsed;
                     Assert.True(done.Wait(TimeSpan.FromSeconds(60)), "the worker never ended");
                     Assert.True(launch.Ended);
+                    ran = launch;
                 }
             }
             return ended;
@@ -310,7 +338,12 @@ namespace SiteAdaptation.Tests
         {
             WorkerRequest request = Request("r7");
             request.TimeLimitS = 1;
+            request.StepsFolder = Path.Combine(folder, "steps");
+            Directory.CreateDirectory(request.StepsFolder);
+            string good = Write("plan_012.json", "a good output of an earlier run");
             string own = Write("plan_012.json.tmp-r7", "partial");
+            string step = Path.Combine(request.StepsFolder, "step_faces_csharp.json.tmp-r7");
+            File.WriteAllText(step, "partial");
             string other = Write("plan_013.json.tmp-r6", "partial of another run");
             TimeSpan returned;
             WorkerAnswer answer = Launch(Sleeping(30), request, out returned);
@@ -320,7 +353,9 @@ namespace SiteAdaptation.Tests
             Assert.Null(answer.ExitCode);
             Assert.Contains("time limit of 1 s", answer.Message);
             Assert.False(File.Exists(own));
+            Assert.False(File.Exists(step));
             Assert.True(File.Exists(other));
+            Assert.Equal("a good output of an earlier run", File.ReadAllText(good));
             Assert.Equal("timedOut", Answer(WorkerFiles.AnswerPath(folder, "r7")).Status);
             Assert.True(File.Exists(WorkerFiles.LogPath(folder, "r7")));
         }
@@ -338,14 +373,110 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R347_the_answer_a_worker_wrote_is_the_one_the_launch_hands_on()
+        public void R347_an_answer_left_on_disk_under_the_run_id_is_deleted_before_the_start_and_never_handed_on()
         {
             WorkerRequest request = Request("r9");
-            var written = new WorkerAnswer { RunId = "r9", Document = request.Document, Status = "done", ExitCode = 0, Message = "done" };
-            WorkFiles.WriteText(WorkerFiles.AnswerPath(folder, "r9"), "r9", written.ToJson());
+            var stale = new WorkerAnswer { RunId = "r9", Document = request.Document, Status = "done", ExitCode = 0, Message = "done" };
+            string path = WorkFiles.WriteText(WorkerFiles.AnswerPath(folder, "r9"), "r9", stale.ToJson());
+            bool seen = true;
             TimeSpan returned;
-            WorkerAnswer answer = Launch(Exiting(0), request, out returned);
+            WorkerAnswer answer = Launch(Exiting(2), request, out returned);
+            seen = File.Exists(path);
+            Assert.Equal("failed", answer.Status);
+            Assert.Equal(2, answer.ExitCode);
+            Assert.Equal(WorkerExit.NoAnswer(2), answer.Message);
+            Assert.False(seen, "the old answer is deleted before the start");
+        }
+
+        [Fact]
+        public void R347_the_answer_a_worker_wrote_is_the_one_the_launch_hands_on()
+        {
+            WorkerRequest request = Request("r10");
+            var written = new WorkerAnswer { RunId = "r10", Document = request.Document, Status = "done", ExitCode = 0, Message = "done" };
+            string prepared = Write("prepared_r10.txt", written.ToJson());
+            TimeSpan returned;
+            WorkerAnswer answer = Launch(Answering(prepared, WorkerFiles.AnswerPath(folder, "r10")), request, out returned);
             Assert.Equal(written.ToJson(), answer.ToJson());
+        }
+
+        [Fact]
+        public void R347_an_answer_of_another_run_id_document_or_exit_code_is_not_used()
+        {
+            WorkerRequest request = Request("r11");
+            var cases = new List<(WorkerAnswer answer, string why)>
+            {
+                (new WorkerAnswer { RunId = "r12", Document = request.Document, Status = "done", ExitCode = 0 }, "names run r12"),
+                (new WorkerAnswer { RunId = "r11", Document = new WorkerDocument { Path = request.Document.Path, SessionId = "s2" }, Status = "done", ExitCode = 0 }, "session s2"),
+                (new WorkerAnswer { RunId = "r11", Document = new WorkerDocument { Path = @"C:\Projects\site\IMD site.rvt", SessionId = "s1" }, Status = "done", ExitCode = 0 }, "IMD site.rvt"),
+                (new WorkerAnswer { RunId = "r11", Document = request.Document, Status = "done", ExitCode = 3 }, "exit code 3"),
+            };
+            int index = 0;
+            foreach (var (written, why) in cases)
+            {
+                request.RunId = "r11x" + (++index);
+                written.RunId = written.RunId == "r11" ? request.RunId : written.RunId;
+                string prepared = Write("prepared_" + request.RunId + ".txt", written.ToJson());
+                TimeSpan returned;
+                WorkerAnswer answer = Launch(Answering(prepared, WorkerFiles.AnswerPath(folder, request.RunId)), request, out returned);
+                Assert.Equal("failed", answer.Status);
+                Assert.Equal(request.RunId, answer.RunId);
+                Assert.Equal("s1", answer.Document.SessionId);
+                Assert.Contains("is not used", answer.Message);
+                Assert.Contains(why, answer.Message);
+            }
+        }
+
+        [Fact]
+        public void R347_an_answer_that_does_not_read_or_a_hand_off_that_throws_never_ends_the_host()
+        {
+            WorkerRequest request = Request("r13");
+            string prepared = Write("prepared_r13.txt", "{ this is not json");
+            TimeSpan returned;
+            WorkerAnswer answer = Launch(Answering(prepared, WorkerFiles.AnswerPath(folder, "r13")), request, out returned);
+            Assert.Equal("failed", answer.Status);
+            Assert.Contains("could not be read", answer.Message);
+
+            // The hand off is the add-in's, an exception of it is kept on the launch and goes no further
+            WorkerLaunch launch;
+            answer = Launch(Exiting(0), Request("r14"), out returned, out launch, _ => throw new InvalidOperationException("the external event is gone"));
+            Assert.Equal("failed", answer.Status);
+            Assert.True(SpinWait.SpinUntil(() => launch.HandOffFailure != null, TimeSpan.FromSeconds(10)));
+            Assert.Equal("the external event is gone", launch.HandOffFailure.Message);
+        }
+
+        [WindowsFact]
+        public void R347_a_temporary_file_the_kill_cannot_delete_turns_the_answer_failed_with_the_reason()
+        {
+            WorkerRequest request = Request("r15");
+            request.TimeLimitS = 1;
+            string own = Write("plan_012.json.tmp-r15", "partial");
+            WorkerAnswer answer;
+            using (new FileStream(own, FileMode.Open, FileAccess.Read, FileShare.None))
+            {
+                TimeSpan returned;
+                answer = Launch(Sleeping(30), request, out returned);
+            }
+            Assert.Equal("failed", answer.Status);
+            Assert.Contains("time limit of 1 s", answer.Message);
+            Assert.Contains("could not be deleted", answer.Message);
+            Assert.Contains("plan_012.json.tmp-r15", answer.Message);
+        }
+
+        [Fact]
+        public void R347_a_run_id_already_used_or_a_time_limit_that_is_no_number_of_seconds_is_refused_before_the_start()
+        {
+            WorkerRequest used = Request("r16");
+            Write("worker_r16.log", "the log of an earlier launch of r16");
+            Assert.Contains("r16 was used", Assert.Throws<InvalidOperationException>(() => WorkerLaunch.Start(Nowhere(), folder, used, _ => { })).Message);
+            foreach (double limit in new[] { 0, -1, double.NaN, double.PositiveInfinity, 5E+06 })
+            {
+                WorkerRequest request = Request("r17");
+                request.TimeLimitS = limit;
+                Assert.Throws<ArgumentOutOfRangeException>(() => WorkerLaunch.Start(Nowhere(), folder, request, _ => { }));
+                Assert.False(File.Exists(WorkerFiles.LogPath(folder, "r17")), "refused before the log and the start, limit " + limit);
+            }
+            // Missing in the request JSON reads as 0
+            Assert.Equal(0.0, Newtonsoft.Json.JsonConvert.DeserializeObject<WorkerRequest>("{\"runId\": \"r18\"}").TimeLimitS);
         }
 
         [Fact]
