@@ -274,53 +274,57 @@ namespace SiteAdaptation.Common
             return found;
         }
 
-        // The plot of a DLUS row as rev9_workbooks.setbacks joins it: a number by Python int, every other value as its text
-        public static string SetbackKey(JToken plot)
+        // The plot of a DLUS row as rev9_workbooks.setbacks joins it: a number by Python int, every other value as its text, a date as
+        // Python str() gives it
+        public static string SetbackKey(object plot)
         {
-            object value = SheetRows.Cell(plot);
-            switch (value)
+            switch (plot)
             {
                 case double number:
                     return SheetRows.PlotText(Math.Truncate(number));
                 case bool flag:
                     return flag ? "1" : "0";
                 default:
-                    return SheetRows.PyText(value);
+                    return SheetRows.PyText(plot);
             }
         }
 
         // R350. Per row of the DLUS setback sheet, by its plot, its plot cell and every other column of the config (sheet_rows)
-        public static Dictionary<string, Dictionary<string, object>> DlusSetbackStep(IEnumerable<JObject> rows)
+        public static Dictionary<string, Dictionary<string, object>> DlusSetbackStep(IEnumerable<Dictionary<string, object>> rows)
         {
             return ByHandle(rows.Select(item =>
             {
-                var fields = new Dictionary<string, object> { ["plotCell"] = Kept(item["plot"]) };
-                foreach (JProperty column in item.Properties().Where(column => column.Name != "plot"))
+                object plot;
+                item.TryGetValue("plot", out plot);
+                var fields = new Dictionary<string, object> { ["plotCell"] = SheetRows.Token(plot) };
+                foreach (KeyValuePair<string, object> column in item.Where(column => column.Key != "plot"))
                 {
-                    fields[column.Name] = Kept(column.Value);
+                    fields[column.Key] = SheetRows.Token(column.Value);
                 }
-                return new KeyValuePair<string, Dictionary<string, object>>(SetbackKey(item["plot"]), fields);
+                return new KeyValuePair<string, Dictionary<string, object>>(SetbackKey(plot), fields);
             }));
         }
 
         // R350. Per plot of the sales sheet its row as corner_front.sales_rows gives it and the plain values of the columns of
         // dataBook.rev9.sales as sheet_rows gives them, the last row of the plot (read_steps.sales_step)
-        public static Dictionary<string, Dictionary<string, object>> SalesStep(JObject rows, IEnumerable<JObject> plainRows)
+        public static Dictionary<string, Dictionary<string, object>> SalesStep(JObject rows, IEnumerable<Dictionary<string, object>> plainRows)
         {
             var plain = new Dictionary<string, JObject>();
-            foreach (JObject item in plainRows)
+            foreach (Dictionary<string, object> item in plainRows)
             {
-                string number = SheetRows.PlotNumber(SheetRows.Cell(item["plot"]));
+                object plot;
+                item.TryGetValue("plot", out plot);
+                string number = SheetRows.PlotNumber(plot);
                 if (number != null)
                 {
-                    plain[number] = item;
+                    plain[number] = SheetRows.ToJson(item);
                 }
             }
             var found = new Dictionary<string, Dictionary<string, object>>();
             foreach (JProperty row in rows.Properties())
             {
                 JObject held;
-                found[row.Name] = new Dictionary<string, object> { ["row"] = row.Value.DeepClone(), ["plain"] = plain.TryGetValue(row.Name, out held) ? held.DeepClone() : JValue.CreateNull() };
+                found[row.Name] = new Dictionary<string, object> { ["row"] = row.Value.DeepClone(), ["plain"] = plain.TryGetValue(row.Name, out held) ? held : JValue.CreateNull() };
             }
             return found;
         }

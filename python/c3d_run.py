@@ -29,7 +29,24 @@ def load_config(path=CONFIG):
     if Path(path).resolve() == CONFIG.resolve():
         moved = json.loads(SETTINGS.read_text(encoding="utf-8")).get("dataBook") or {}
         lay_over(config.setdefault("dataBook", {}), moved, "dataBook")
+        cad_reads(config)
     return config
+
+
+def cad_reads(config):
+    """R388. The CadReader reads of the probe settings through cadReads of config/project.json, the reads the measure and the build take:
+    connect.baseplanPlots is the baseplan read cadReads names, and the cadReads folder goes first in dataBook.join.fallbackOutputs, so
+    the three drawings it holds come from there and the other drawings from the earlier folders after it. The probe settings hold no
+    baseplanPlots, a probe file that holds one is refused, so the reads of Round 12 are never taken silently (the review of PR 53)."""
+    import cad_units
+    import project_profile
+    settings = project_profile.load_settings(SETTINGS)
+    connect = config.setdefault("connect", {})
+    if "baseplanPlots" in connect:
+        raise ValueError("connect.baseplanPlots is held in python/c3d_probe.json, it comes from cadReads of config/project.json (R388)")
+    connect["baseplanPlots"] = str(cad_units.named_input(settings, "baseplan"))
+    join = config.setdefault("dataBook", {}).setdefault("join", {})
+    join["fallbackOutputs"] = [str(cad_units.named_input(settings, "roads").parent)] + list(join.get("fallbackOutputs") or [])
 
 
 def lay_over(book, moved, where):

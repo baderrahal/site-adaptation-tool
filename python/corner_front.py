@@ -34,6 +34,7 @@ import plan_from_past
 import plot_relations
 import project_profile
 import prototype_offsets
+import rev9_workbooks
 import yard_rule
 
 QUADRANTS = {"EN": (0.0, 90.0), "SE": (90.0, 180.0), "WS": (180.0, 270.0), "NW": (270.0, 360.0)}
@@ -137,8 +138,9 @@ def pick(rule, edges, frame, sales, neighbour):
 
 
 def sales_rows(path, sheet, plot_column):
-    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
-    rows = list(workbook[sheet].iter_rows(values_only=True))
+    """The sales rows by plot number, the first row the header. R350: through rev9_workbooks.sheet_values, so a value past the stated
+    dimension of the sheet is refused."""
+    rows = rev9_workbooks.sheet_values(path, sheet)
     header = [str(cell).strip() if cell is not None else None for cell in rows[0]]
     found = {}
     for row in rows[1:]:

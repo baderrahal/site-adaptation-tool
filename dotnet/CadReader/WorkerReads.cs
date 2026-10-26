@@ -229,7 +229,16 @@ namespace CadReader
                 XlsxSheet.Sheet sheet;
                 if (!sheets.TryGetValue(key, out sheet))
                 {
-                    sheet = XlsxSheet.Read(run.Input(setting.Role), setting.Sheet);
+                    string path = run.Input(setting.Role);
+                    try
+                    {
+                        sheet = XlsxSheet.Read(path, setting.Sheet);
+                    }
+                    catch (InvalidDataException refused)
+                    {
+                        // A sheet missing, a date cell of no date or a value past the stated dimension, before anything of it is used
+                        throw run.Refusal(Path.GetFileName(path) + ": " + refused.Message);
+                    }
                     sheets[key] = sheet;
                     run.Counts["sheet " + setting.Sheet + " rows"] = sheet.Rows.Count;
                     run.Counts["sheet " + setting.Sheet + " date cells"] = sheet.DateCells;
@@ -237,12 +246,24 @@ namespace CadReader
                 }
                 return sheet.Rows;
             };
+            // R350. A table of no row is refused, so a step is never written empty: a sheet whose rows went missing, such as one read
+            // only to a stated dimension out of date, gave 0 items on both sides and the parity held (the review of PR 53)
+            Action<int, ReadSettings.SheetSetting, string> held = (count, setting, what) =>
+            {
+                if (count == 0)
+                {
+                    throw run.Refusal("the sheet " + setting.Sheet + " of the workbook " + setting.Role + " holds no row under its header for " + what + ", a table of no row is refused (R350)");
+                }
+            };
             var output = new JObject();
             if (dlus && sales)
             {
                 ReadSettings.SheetSetting areaDlus = settings.Sheet("dataBook.data5.areaKey.dlus"), areaSales = settings.Sheet("dataBook.data5.areaKey.sales");
-                Dictionary<string, Dictionary<string, object>> area = ReadSteps.AreaKeyStep(SheetRows.ByPlot(SheetRows.Rows(areaDlus.Sheet, rowsOf(areaDlus), areaDlus.HeaderRow, areaDlus.Columns)),
-                    SheetRows.ByPlot(SheetRows.Rows(areaSales.Sheet, rowsOf(areaSales), areaSales.HeaderRow, areaSales.Columns)));
+                SheetRows.AreaKey dlusKey = SheetRows.ByPlot(SheetRows.Rows(areaDlus.Sheet, rowsOf(areaDlus), areaDlus.HeaderRow, areaDlus.Columns));
+                held(dlusKey.Order.Count, areaDlus, "the area key");
+                SheetRows.AreaKey salesKey = SheetRows.ByPlot(SheetRows.Rows(areaSales.Sheet, rowsOf(areaSales), areaSales.HeaderRow, areaSales.Columns));
+                held(salesKey.Order.Count, areaSales, "the area key");
+                Dictionary<string, Dictionary<string, object>> area = ReadSteps.AreaKeyStep(dlusKey, salesKey);
                 output["areaKey"] = JObject.FromObject(area);
                 if (steps.Contains(ReadSteps.AreaKey))
                 {
@@ -252,13 +273,16 @@ namespace CadReader
             if (sales)
             {
                 ReadSettings.SheetSetting setbacks = settings.Sheet("dataBook.rev9.dlus");
-                List<JObject> setbackRows = SheetRows.Rows(setbacks.Sheet, rowsOf(setbacks), setbacks.HeaderRow, setbacks.Columns);
-                output["dlusSetbacks"] = new JArray(setbackRows);
+                List<Dictionary<string, object>> setbackRows = SheetRows.Rows(setbacks.Sheet, rowsOf(setbacks), setbacks.HeaderRow, setbacks.Columns);
+                held(setbackRows.Count, setbacks, "the DLUS setbacks");
+                output["dlusSetbacks"] = new JArray(setbackRows.Select(SheetRows.ToJson));
                 ReadSettings.SheetSetting plain = settings.Sheet("dataBook.rev9.sales"), rows = settings.SalesRows();
-                List<JObject> plainRows = SheetRows.Rows(plain.Sheet, rowsOf(plain), plain.HeaderRow, plain.Columns);
+                List<Dictionary<string, object>> plainRows = SheetRows.Rows(plain.Sheet, rowsOf(plain), plain.HeaderRow, plain.Columns);
+                held(plainRows.Count, plain, "the sales values");
                 JObject salesRows = SheetRows.SalesRows(rowsOf(rows), rows.Columns[0].Value);
+                held(salesRows.Count, rows, "the sales rows");
                 output["sales"] = salesRows;
-                output["salesPlain"] = new JArray(plainRows);
+                output["salesPlain"] = new JArray(plainRows.Select(SheetRows.ToJson));
                 if (steps.Contains(ReadSteps.DlusSetbacks))
                 {
                     made[ReadSteps.DlusSetbacks] = ReadSteps.DlusSetbackStep(setbackRows);

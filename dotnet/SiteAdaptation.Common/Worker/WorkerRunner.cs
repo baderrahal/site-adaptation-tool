@@ -48,6 +48,12 @@ namespace SiteAdaptation.Common
 
         public static int Run(string requestPath, IDictionary<string, WorkerCommand> commands, Func<double?> freeMiB)
         {
+            return Run(requestPath, commands, freeMiB, WorkerMemory.PrivateMiB);
+        }
+
+        // privateMiB gives the private memory the worker holds now, which the rest of a whole peak is held against (Q083)
+        public static int Run(string requestPath, IDictionary<string, WorkerCommand> commands, Func<double?> freeMiB, Func<double?> privateMiB)
+        {
             var watch = Stopwatch.StartNew();
             string folder = Path.GetDirectoryName(Path.GetFullPath(requestPath));
             var answer = new WorkerAnswer { Issues = new List<string>(), Counts = new Dictionary<string, int>(), Outputs = new List<WorkerFile>(), Opened = new List<WorkerOpened>() };
@@ -75,7 +81,7 @@ namespace SiteAdaptation.Common
             try
             {
                 Clear(folder, request, answer);
-                code = Execute(request, commands, freeMiB, answer, made);
+                code = Execute(request, commands, freeMiB, privateMiB, answer, made);
                 answer.Message = WorkerExit.Meaning(code);
             }
             catch (WorkerStop stop)
@@ -155,7 +161,7 @@ namespace SiteAdaptation.Common
             return peak.HasValue ? WorkerMemory.Refusal(file.Name, freeMiB(), peak.Value, config.MinFreeGiB) : null;
         }
 
-        private static int Execute(WorkerRequest request, IDictionary<string, WorkerCommand> commands, Func<double?> freeMiB, WorkerAnswer answer, List<WorkerContext> made)
+        private static int Execute(WorkerRequest request, IDictionary<string, WorkerCommand> commands, Func<double?> freeMiB, Func<double?> privateMiB, WorkerAnswer answer, List<WorkerContext> made)
         {
             if (request.FormatVersion > WorkerRequest.CurrentFormatVersion || request.FormatVersion < 1)
             {
@@ -230,6 +236,17 @@ namespace SiteAdaptation.Common
                     throw new WorkerStop(WorkerExit.Memory, refusal);
                 }
             }
+            // Q083. A whole read of button 2 peaked at 3,891 MiB where the Road Layout alone took 2,612, so a command whose whole peak
+            // config names is held against all of it and the floor before its first read
+            double? whole = config.WorkerCommandPeakMiB(request.Command);
+            if (whole.HasValue)
+            {
+                string refusal = WorkerMemory.CommandRefusal(request.Command, freeMiB(), whole.Value, null, config.MinFreeGiB);
+                if (refusal != null)
+                {
+                    throw new WorkerStop(WorkerExit.Memory, refusal);
+                }
+            }
             foreach (WorkerFile input in inputs)
             {
                 var opened = new WorkerOpened { Role = input.Role, Path = input.Path, Sha256Before = FileHash.Sha256(input.Path) };
@@ -239,7 +256,7 @@ namespace SiteAdaptation.Common
                     throw new WorkerStop(WorkerExit.InputChanged, "the input " + input.Role + " changed since the request, its SHA-256 is not the one the request gives: " + input.Path);
                 }
             }
-            var context = new WorkerContext(request, answer, config, freeMiB);
+            var context = new WorkerContext(request, answer, config, freeMiB, privateMiB);
             made.Add(context);
             command(context);
             foreach (WorkerOpened opened in answer.Opened)

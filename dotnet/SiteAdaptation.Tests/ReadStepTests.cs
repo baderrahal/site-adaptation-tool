@@ -198,12 +198,12 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Ground", found["101/4"]["surface"]);
         }
 
-        private static JObject Row(params object[] pairs)
+        private static Dictionary<string, object> Row(params object[] pairs)
         {
-            var row = new JObject();
+            var row = new Dictionary<string, object>();
             for (int index = 0; index < pairs.Length; index += 2)
             {
-                row[(string)pairs[index]] = SheetRows.Token(pairs[index + 1]);
+                row[(string)pairs[index]] = pairs[index + 1];
             }
             return row;
         }
@@ -326,8 +326,8 @@ namespace SiteAdaptation.Tests
                 new object[] { "  ", 3L, "013" },
             };
             var columns = new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>("plot", "Plot No"), new KeyValuePair<string, string>("zone", "Zone"), new KeyValuePair<string, string>("nbh", "NBH") };
-            List<JObject> found = SheetRows.Rows("Sales", rows, 2, columns);
-            Assert.Equal("{\"plot\":101,\"zone\":2.123457,\"nbh\":\"012\"}", found.Single().ToString(Newtonsoft.Json.Formatting.None));
+            List<Dictionary<string, object>> found = SheetRows.Rows("Sales", rows, 2, columns);
+            Assert.Equal("{\"plot\":101,\"zone\":2.123457,\"nbh\":\"012\"}", SheetRows.ToJson(found.Single()).ToString(Newtonsoft.Json.Formatting.None));
             columns.Add(new KeyValuePair<string, string>("width", "Land Width (m)"));
             Assert.Contains("Sales has no column Land Width (m)", Assert.Throws<InvalidDataException>(() => SheetRows.Rows("Sales", rows, 2, columns)).Message);
             // The sales rows by plot, the header of the first row, a later row of one plot over an earlier one
@@ -383,7 +383,7 @@ namespace SiteAdaptation.Tests
             var inline = new Cell { CellReference = "C2", DataType = CellValues.InlineString, InlineString = new InlineString(new Text("in"), new Run(new Text("line"))) };
             var formula = new Cell { CellReference = "D2", CellFormula = new CellFormula("A2*2"), CellValue = new CellValue("202") };
             return new SheetData(
-                new Row(Cell("A1", "0", CellValues.SharedString), Cell("B1", "1", CellValues.SharedString), Cell("C1", "2", CellValues.SharedString), Cell("E1", "9")) { RowIndex = 1 },
+                new Row(Cell("A1", "0", CellValues.SharedString), Cell("B1", "1", CellValues.SharedString), Cell("C1", "2", CellValues.SharedString), new Cell { CellReference = "E1", StyleIndex = 1 }) { RowIndex = 1 },
                 new Row(Cell("A2", "101"), Cell("B2", "5.5"), inline, formula) { RowIndex = 2 },
                 new Row(Cell("A4", "1E3"), Cell("B4", "1", CellValues.Boolean), Cell("C4", "45000", null, 1), Cell("D4", "#N/A", CellValues.Error)) { RowIndex = 4 });
         }

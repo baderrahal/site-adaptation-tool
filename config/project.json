@@ -97,7 +97,7 @@
     },
     "locationPlan": {
       "sales": {
-        "workbook": "Master Plan Rev.09/PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx",
+        "workbook": "accommodation",
         "sheet": "JN Sales Data_Base_Rev09",
         "headerRow": 1,
         "columns": {"plot": "Plot No", "typology": "Typology_Rev9", "nbh": "NBH", "zone": "Zone"}
@@ -277,7 +277,9 @@
         {"name": "Makkah Phase 1_Road Layout.dwg", "bytes": 82061457, "peakMiB": 2612},
         {"name": "ROSHN Makkah Baseplan.dwg", "bytes": 1279917, "peakMiB": 100},
         {"name": "Makkah Building Footprint.dwg", "bytes": 1198438, "peakMiB": 80}
-      ]
+      ],
+      "commands": {"read": 3900},
+      "commandsNote": "R347, Q083. The peak private memory in MiB of a whole command, held before its first read with the floor siteBuild.minFreeGB and before each later read as the rest of it, the peak less what the worker holds, with the floor. read 3,900 MiB, CHOSEN: the highest of the six whole reads of button 2 in Round ADDIN 4c, the three drawings, the six road surfaces and the two Rev 9 workbooks, 3,891 MiB on net8.0 (net48 3,069 to 3,595, net8.0 3,578 to 3,891, round_addin logs p4c_button2_time.txt), rounded up to the next 100 MiB. A command named here takes no file peak in place of it, the peak of each large drawing above is still held before its read. The build and the other commands have none until a PR measures them"
     },
     "workerPeakNote": "R347. The roles whose read is a large read and the peak private memory in MiB the CadReader read of each drawing took, keyed by its file name and size in bytes, so a file of those roles with no measured peak, another drawing or another size, takes the largest one. The sizes and the private peaks 2,571, 100 and 77 MiB are those of round_addin logs cadreader_peaks_pr49.txt on copies at 67c1fa0, whose peak paged by the OS was 2,571, 101 and 80. The values here are the highest seen: 2,612 MiB of the Road Layout is the claim-checker rerun of PR 49 and 80 MiB of the footprint the first run of 3b, neither output saved, 100 MiB of the baseplan the saved log",
     "workerTimeLimitS": {

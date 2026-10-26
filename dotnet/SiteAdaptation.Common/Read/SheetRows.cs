@@ -8,19 +8,33 @@ using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common
 {
-    // R350. A date or time cell as openpyxl gives it from a number of a date style: a datetime, or a time alone for a day fraction
+    // R350. What a date or time cell is in Python: a datetime, a date alone or a time alone
+    public enum CellTimeKind
+    {
+        DateTime,
+        Date,
+        Time,
+    }
+
+    // R350. A date or time cell as openpyxl gives it: from a number of a date style a datetime, or a time alone for a day fraction,
+    // and from a cell of type d a date, a time or a datetime by what its ISO 8601 text holds
     public sealed class CellTime
     {
         public DateTime Value { get; set; }
-        public bool TimeOnly { get; set; }
+
+        public CellTimeKind Kind { get; set; }
 
         private string Fraction => Value.Ticks % TimeSpan.TicksPerSecond == 0 ? "" : "." + (Value.Ticks % TimeSpan.TicksPerSecond / 10).ToString("000000", CultureInfo.InvariantCulture);
 
-        // Python str() of a datetime or time
-        public string PyText => TimeOnly ? Value.ToString("HH:mm:ss", CultureInfo.InvariantCulture) + Fraction : Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) + Fraction;
+        private string Day => Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        private string Clock => Value.ToString("HH:mm:ss", CultureInfo.InvariantCulture) + Fraction;
+
+        // Python str() of a datetime, date or time
+        public string PyText => Kind == CellTimeKind.Date ? Day : Kind == CellTimeKind.Time ? Clock : Day + " " + Clock;
 
         // Python isoformat(), as a step file holds a date
-        public string Iso => TimeOnly ? PyText : Value.ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture) + Fraction;
+        public string Iso => Kind == CellTimeKind.Date ? Day : Kind == CellTimeKind.Time ? Clock : Day + "T" + Clock;
     }
 
     // R350. The rows of a sheet as the Python readers of the DLUS and sales workbooks give them, on the cells of the xlsx reader of the
@@ -72,7 +86,8 @@ namespace SiteAdaptation.Common
             }
         }
 
-        // Python repr() of a float: the shortest digits that read back as the same double, in fixed notation from 1e-4 up to under 1e16
+        // Python repr() of a float: the shortest digits that read back as the same double (ExactDouble.Shortest), in fixed notation from
+        // 1e-4 up to under 1e16
         public static string PyRepr(double value)
         {
             if (double.IsNaN(value))
@@ -88,23 +103,9 @@ namespace SiteAdaptation.Common
                 return 1 / value < 0 ? "-0.0" : "0.0";
             }
             string sign = value < 0 ? "-" : "";
-            double size = Math.Abs(value);
-            string digits = null;
-            int point = 0;
-            for (int precision = 1; precision <= 17 && digits == null; precision++)
-            {
-                string text = size.ToString("E" + (precision - 1), CultureInfo.InvariantCulture);
-                if (ExactDouble.Parse(text) == size)
-                {
-                    int mark = text.IndexOf('E');
-                    digits = text.Substring(0, mark).Replace(".", "").TrimEnd('0');
-                    point = int.Parse(text.Substring(mark + 1), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture) + 1;
-                }
-            }
-            if (string.IsNullOrEmpty(digits))
-            {
-                digits = "0";
-            }
+            string digits;
+            int point;
+            ExactDouble.Shortest(Math.Abs(value), out digits, out point);
             if (point <= -4 || point > 16)
             {
                 string mantissa = digits.Length == 1 ? digits : digits.Substring(0, 1) + "." + digits.Substring(1);
@@ -151,7 +152,7 @@ namespace SiteAdaptation.Common
             }
             double result = quotient < (BigInteger.One << 53)
                 ? (double)quotient / Math.Pow(10, decimals)
-                : double.Parse(quotient.ToString(CultureInfo.InvariantCulture) + "E-" + decimals.ToString(CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture);
+                : ExactDouble.Parse(quotient.ToString(CultureInfo.InvariantCulture) + "E-" + decimals.ToString(CultureInfo.InvariantCulture));
             return negative ? -result : result;
         }
 
@@ -237,15 +238,16 @@ namespace SiteAdaptation.Common
         }
 
         // area_key.by_plot: plot number to zone and neighbourhood in the order first met, a row with neither left out, a row whose plot is
-        // no number of digits left out, and the numbers with two rows that differ
-        public static AreaKey ByPlot(IEnumerable<JObject> rows)
+        // no number of ASCII digits left out, and the numbers with two rows that differ. The cells are those of the sheet, so a date takes
+        // the text Python str() gives it
+        public static AreaKey ByPlot(IEnumerable<Dictionary<string, object>> rows)
         {
             var found = new AreaKey();
-            foreach (JObject row in rows)
+            foreach (Dictionary<string, object> row in rows)
             {
-                string plot = PlotText(Cell(row["plot"]));
-                var value = new KeyValuePair<string, string>(ZoneText(Cell(row["zone"])), NbhText(Cell(row["nbh"])));
-                if (plot.Length == 0 || !plot.All(char.IsDigit) || (value.Key == null && value.Value == null))
+                string plot = PlotText(Of(row, "plot"));
+                var value = new KeyValuePair<string, string>(ZoneText(Of(row, "zone")), NbhText(Of(row, "nbh")));
+                if (!IsAsciiDigits(plot) || (value.Key == null && value.Value == null))
                 {
                     continue;
                 }
@@ -266,11 +268,24 @@ namespace SiteAdaptation.Common
             return found;
         }
 
-        // rev9_workbooks.sheet_rows: from the row under headerRow, each row as the config names of its columns with plain values, a row
-        // with no plot value left out. A column the header does not hold is refused with every one named
-        public static List<JObject> Rows(string sheet, IEnumerable<object[]> rows, int headerRow, IReadOnlyList<KeyValuePair<string, string>> columns)
+        // R350. A text of one ASCII digit or more. Python \d and isdigit hold every decimal digit of Unicode and net48 knows fewer of them
+        // than Python 3.12, so both sides take the ten ASCII digits alone
+        public static bool IsAsciiDigits(string text)
         {
-            var found = new List<JObject>();
+            return !string.IsNullOrEmpty(text) && text.All(letter => letter >= '0' && letter <= '9');
+        }
+
+        private static object Of(Dictionary<string, object> row, string key)
+        {
+            object value;
+            return row.TryGetValue(key, out value) ? value : null;
+        }
+
+        // rev9_workbooks.sheet_rows: from the row under headerRow, each row as the config names of its columns with plain values in the
+        // order of the columns, a row with no plot value left out. A column the header does not hold is refused with every one named
+        public static List<Dictionary<string, object>> Rows(string sheet, IEnumerable<object[]> rows, int headerRow, IReadOnlyList<KeyValuePair<string, string>> columns)
+        {
+            var found = new List<Dictionary<string, object>>();
             Dictionary<string, int> at = null;
             int index = 0;
             foreach (object[] row in rows)
@@ -291,17 +306,28 @@ namespace SiteAdaptation.Common
                     at = columns.ToDictionary(column => column.Key, column => header.IndexOf(column.Value));
                     continue;
                 }
-                var values = new JObject();
+                var values = new Dictionary<string, object>();
                 foreach (KeyValuePair<string, string> column in columns)
                 {
                     int place = at[column.Key];
-                    values[column.Key] = Token(place < row.Length ? Plain(row[place]) : null);
+                    values[column.Key] = place < row.Length ? Plain(row[place]) : null;
                 }
-                if (values["plot"] == null || values["plot"].Type == JTokenType.Null)
+                if (Of(values, "plot") == null)
                 {
                     continue;
                 }
                 found.Add(values);
+            }
+            return found;
+        }
+
+        // A row of the sheet as JSON in the order of its columns, a date as its ISO text
+        public static JObject ToJson(Dictionary<string, object> row)
+        {
+            var found = new JObject();
+            foreach (KeyValuePair<string, object> cell in row)
+            {
+                found[cell.Key] = Token(cell.Value);
             }
             return found;
         }
@@ -339,26 +365,6 @@ namespace SiteAdaptation.Common
                 }
             }
             return found;
-        }
-
-        // A cell of a row read back from its token
-        public static object Cell(JToken token)
-        {
-            if (token == null || token.Type == JTokenType.Null)
-            {
-                return null;
-            }
-            switch (token.Type)
-            {
-                case JTokenType.Integer:
-                    return token.Value<long>();
-                case JTokenType.Float:
-                    return token.Value<double>();
-                case JTokenType.Boolean:
-                    return token.Value<bool>();
-                default:
-                    return token.ToString();
-            }
         }
 
         // A cell as a JSON value: a date as its ISO text, as python/read_steps.py writes it

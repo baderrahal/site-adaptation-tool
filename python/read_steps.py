@@ -13,7 +13,8 @@ replaces give, per item of the data book, written to step_<step>_python.json for
   (R344), the snap held against siteBuild.snapMaxM by plan_rules.road_snap
 - areaKey, dlusSetbacks and sales (R350): per plot the zone and neighbourhood of the DLUS and sales sheets of dataBook.data5.areaKey
   (area_key.by_plot), the setback sheet of dataBook.rev9.dlus as rev9_workbooks.sheet_rows gives it, and the sales row of
-  dataBook.locationPlan.sales as corner_front.sales_rows gives it with the plain values of dataBook.rev9.sales
+  dataBook.locationPlan.sales as corner_front.sales_rows gives it with the plain values of dataBook.rev9.sales, each workbook by its
+  key of dataBook.rev9.workbooks, a table of no row and a value past the stated dimension of a sheet refused
 
 Every CadReader output is read through the units check of R388, a LandXML in meter only. A value of no geometry is written as read, a
 value of geometry as common.round_tree writes it. Step files go outside any git work tree, real values stay out of git.
@@ -49,7 +50,10 @@ NO_GEOMETRY = "noGeometry"
 
 
 def jsonable(value):
-    """A cell as a step file holds it: a date or time as its ISO text, as the C# reader writes it, every other value as read."""
+    """A cell as a step file holds it: a date or time as its ISO text, as the C# reader writes it, every other value as read. R350: a
+    duration, which openpyxl gives as a timedelta, is refused as the C# refuses it."""
+    if isinstance(value, datetime.timedelta):
+        raise ValueError("a cell holds a duration, %s, which openpyxl gives as a timedelta, a duration is not read (R350)" % value)
     if isinstance(value, (datetime.datetime, datetime.date, datetime.time)):
         return value.isoformat()
     if isinstance(value, dict):
@@ -149,10 +153,20 @@ def road_level_step(numbers, faces, surfaces, snap):
     return found
 
 
+def held(count, entry_value, what):
+    """R350. A table of no row is refused, so a step is never written empty: a sheet whose rows went missing gave 0 items on both sides
+    and the parity held (the review of PR 53)."""
+    if not count:
+        raise ValueError("the sheet %s of the workbook %s holds no row under its header for %s, a table of no row is refused (R350)" % (
+            entry_value["sheet"], entry_value["workbook"], what))
+
+
 def area_key_step(dlus_rows, sales_rows):
     """R350. Per plot of the DLUS or the sales sheet, the zone and the neighbourhood of each by area_key.by_plot and two rows that differ."""
     dlus, dlus_two = area_key.by_plot(dlus_rows)
     sales, sales_two = area_key.by_plot(sales_rows)
+    if not dlus or not sales:
+        raise ValueError("the %s sheet of the area key holds no row under its header, a table of no row is refused (R350)" % ("DLUS" if not dlus else "sales"))
     found = {}
     for plot in list(dlus) + [plot for plot in sales if plot not in dlus]:
         own, other = dlus.get(plot), sales.get(plot)
@@ -184,7 +198,9 @@ def sales_step(rows, plain_rows):
 
 
 def workbook(args, settings, entry_name):
-    """The workbook of a sheet setting, the file of the role addin.workbookRoles gives its workbook name."""
+    """The workbook of a sheet setting, the file of the role addin.workbookRoles gives its workbook name, a key of dataBook.rev9.workbooks."""
+    if entry_name not in ((settings.get("dataBook") or {}).get("rev9") or {}).get("workbooks", {}):
+        raise project_profile.ProfileError("the workbook %s of a sheet setting is no key of dataBook.rev9.workbooks, every workbook setting names one (R350)" % entry_name)
     roles = (settings.get("addin") or {}).get("workbookRoles") or {}
     role = roles.get(entry_name)
     if role not in ("dlus", "sales"):
@@ -273,11 +289,18 @@ def main(argv=None):
             if "areaKey" in steps:
                 made["areaKey"] = area_key_step(sheet(args, settings, book["data5"]["areaKey"]["dlus"]), sheet(args, settings, book["data5"]["areaKey"]["sales"]))
             if "dlusSetbacks" in steps:
-                made["dlusSetbacks"] = dlus_setback_step(sheet(args, settings, book["rev9"]["dlus"]))
+                rows = sheet(args, settings, book["rev9"]["dlus"])
+                held(len(rows), book["rev9"]["dlus"], "the DLUS setbacks")
+                made["dlusSetbacks"] = dlus_setback_step(rows)
             if "sales" in steps:
+                # R350. The sales rows come from the workbook their own setting names, a key of dataBook.rev9.workbooks as every workbook
+                # setting, where they took the workbook of rev9.sales before (the review of PR 53)
                 found = book["locationPlan"]["sales"]
-                rows = corner_front.sales_rows(workbook(args, values, book["rev9"]["sales"]["workbook"]), found["sheet"], found["columns"]["plot"])
-                made["sales"] = sales_step(rows, sheet(args, settings, book["rev9"]["sales"]))
+                rows = corner_front.sales_rows(workbook(args, values, found["workbook"]), found["sheet"], found["columns"]["plot"])
+                held(len(rows), found, "the sales rows")
+                plain_rows = sheet(args, settings, book["rev9"]["sales"])
+                held(len(plain_rows), book["rev9"]["sales"], "the sales values")
+                made["sales"] = sales_step(rows, plain_rows)
         for step in steps:
             fields = (values["addin"]["parity"]["steps"]).get(step) or {}
             if step not in rules:

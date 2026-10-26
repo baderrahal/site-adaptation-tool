@@ -118,6 +118,10 @@ namespace SiteAdaptation.Common
         // R350. The input role of a workbook name of dataBook.rev9.workbooks, dlus or sales, by addin.workbookRoles
         public string WorkbookRole(string workbook)
         {
+            if (!(Get("dataBook.rev9.workbooks") is JObject keys) || !keys.ContainsKey(workbook ?? ""))
+            {
+                throw new InvalidDataException("the workbook " + workbook + " of a sheet setting is no key of dataBook.rev9.workbooks, every workbook setting names one (R350)");
+            }
             string role = (string)((Get("addin.workbookRoles") as JObject)?[workbook ?? ""]);
             if (role != "dlus" && role != "sales")
             {
@@ -126,13 +130,15 @@ namespace SiteAdaptation.Common
             return role;
         }
 
-        // The sheet and the plot column of the sales rows the build reads, dataBook.locationPlan.sales, in the workbook of dataBook.rev9.sales
+        // The sheet and the plot column of the sales rows the build reads, dataBook.locationPlan.sales, in the workbook its own workbook
+        // key names, a key of dataBook.rev9.workbooks as every workbook setting, where it took the workbook of dataBook.rev9.sales before
+        // (the review of PR 53)
         public SheetSetting SalesRows()
         {
             JObject entry = (JObject)Get("dataBook.locationPlan.sales");
             return new SheetSetting
             {
-                Role = WorkbookRole((string)Get("dataBook.rev9.sales.workbook")),
+                Role = WorkbookRole((string)entry["workbook"]),
                 Sheet = (string)entry["sheet"],
                 HeaderRow = 1,
                 Columns = new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>("plot", (string)entry["columns"]["plot"]) },

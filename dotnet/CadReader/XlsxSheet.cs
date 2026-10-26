@@ -16,8 +16,9 @@ namespace CadReader
     // data_only and gives it by iter_rows(values_only=True), so the C# rows equal the rows the Python readers take: from row 1, every
     // row up to the last one read numbered by its r, a row the file leaves out as a row of no values, each row as wide as the dimension
     // of the sheet names, the cached value of a formula, a number with a point or an exponent as a double and else a whole number, a
-    // shared or inline string with the text of its runs, a number of a date style as a date by the 1900 or 1904 epoch of the workbook.
-    // The file is opened read only and shared, never written (R1)
+    // shared or inline string with the text of its runs, a number of a date style as a date by the 1900 or 1904 epoch of the workbook,
+    // a cell of type d by its ISO 8601 text. A value past the stated dimension is refused, where openpyxl leaves it out. The file is
+    // opened read only and shared, never written (R1)
     public static class XlsxSheet
     {
         private static readonly Dictionary<int, string> Builtin = new Dictionary<int, string>
@@ -32,6 +33,10 @@ namespace CadReader
         private static readonly Regex DateLetter = new Regex("(?<![_\\\\])[dmhysDMHYS]");
         private static readonly Regex Duration = new Regex(@"\[hh?\](:mm(:ss(\.0*)?)?)?|\[mm?\](:ss(\.0*)?)?|\[ss?\](\.0*)?", RegexOptions.IgnoreCase);
         private static readonly Regex Range = new Regex(@"^\$?([A-Za-z]{1,3})?\$?(\d+)?(:\$?([A-Za-z]{1,3})?\$?(\d+)?)?$");
+
+        // openpyxl ISO_REGEX and ISO_DURATION, matched from the start of the text as re.match does, \d every decimal digit as in Python
+        private static readonly Regex Iso = new Regex(@"^(?<date>(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2}))?T?(?<time>(?<hour>\d{2}):(?<minute>\d{2})(:(?<second>\d{2})(?<microsecond>\.\d{1,3})?)?)?Z?");
+        private static readonly Regex IsoDuration = new Regex(@"^PT((?<hours>\d+)H)?((?<minutes>\d+)M)?((?<seconds>\d+(\.\d{1,3})?)S)?");
 
         public sealed class Sheet
         {
@@ -54,7 +59,7 @@ namespace CadReader
                 HashSet<int> dates, durations;
                 DateStyles(part, out dates, out durations);
                 bool date1904 = part.Workbook.WorkbookProperties?.Date1904?.Value ?? false;
-                return Rows(worksheet, strings, dates, durations, date1904);
+                return Rows(sheetName, worksheet, strings, dates, durations, date1904);
             }
         }
 
@@ -153,14 +158,18 @@ namespace CadReader
             return new[] { minColumn, minRow, maxColumn, maxRow };
         }
 
-        private static Sheet Rows(WorksheetPart worksheet, List<string> strings, HashSet<int> dates, HashSet<int> durations, bool date1904)
+        // R350. Every row up to the stated dimension as openpyxl gives it, and the rows past it read on: a cell with a value there, below
+        // the last row or right of the last column the dimension states, is refused with its reference, since openpyxl leaves it out with
+        // no word and a dimension out of date gave 0 rows on both sides (the review of PR 53). A row of no value past it is no refusal
+        private static Sheet Rows(string name, WorksheetPart worksheet, List<string> strings, HashSet<int> dates, HashSet<int> durations, bool date1904)
         {
             var sheet = new Sheet { Rows = new List<object[]>() };
             int? maxColumn = null, maxRow = null;
+            string dimension = null;
             bool dataSeen = false, dimensionRead = false;
             int counter = 1, index = 1, rowCounter = 0;
             object[] empty = new object[0];
-            bool broke = false;
+            bool past = false;
             using (OpenXmlReader reader = OpenXmlReader.Create(worksheet))
             {
                 while (reader.Read())
@@ -172,7 +181,8 @@ namespace CadReader
                     if (reader.ElementType == typeof(SheetDimension) && !dataSeen && !dimensionRead)
                     {
                         // openpyxl reads the dimension only before the sheet data
-                        int?[] bounds = Boundaries(((SheetDimension)reader.LoadCurrentElement()).Reference?.Value);
+                        dimension = ((SheetDimension)reader.LoadCurrentElement()).Reference?.Value;
+                        int?[] bounds = Boundaries(dimension);
                         maxColumn = bounds[2];
                         maxRow = bounds[3];
                         dimensionRead = true;
@@ -193,8 +203,9 @@ namespace CadReader
                     index = rowCounter;
                     if (maxRow.HasValue && index > maxRow.Value)
                     {
-                        broke = true;
-                        break;
+                        past = true;
+                        Past(name, dimension, row, index, null, strings, dates, durations, date1904);
+                        continue;
                     }
                     for (; counter < index; counter++)
                     {
@@ -202,12 +213,12 @@ namespace CadReader
                     }
                     if (counter <= index)
                     {
-                        sheet.Rows.Add(Cells(row, strings, dates, durations, date1904, maxColumn, sheet));
+                        sheet.Rows.Add(Cells(name, dimension, row, index, strings, dates, durations, date1904, maxColumn, sheet));
                         counter++;
                     }
                 }
             }
-            if (broke && maxRow.HasValue && maxRow.Value < index)
+            if (past && maxRow.HasValue && maxRow.Value < index)
             {
                 for (; counter <= maxRow.Value; counter++)
                 {
@@ -217,14 +228,50 @@ namespace CadReader
             return sheet;
         }
 
-        private static object[] Cells(Row row, List<string> strings, HashSet<int> dates, HashSet<int> durations, bool date1904, int? maxColumn, Sheet sheet)
+        // A cell with a value past the stated dimension, right of the column given or anywhere in a row below it when none, refused with
+        // its reference and the dimension
+        private static void Past(string name, string dimension, Row row, int index, int? maxColumn, List<string> strings, HashSet<int> dates, HashSet<int> durations, bool date1904)
         {
+            var counts = new Sheet();
+            int columnCounter = 0;
+            foreach (Cell cell in row.Elements<Cell>())
+            {
+                string reference = cell.CellReference?.Value;
+                columnCounter = reference != null ? Column(new string(reference.TakeWhile(char.IsLetter).ToArray())) : columnCounter + 1;
+                if ((!maxColumn.HasValue || columnCounter > maxColumn.Value) && Value(cell, strings, dates, durations, date1904, counts) != null)
+                {
+                    throw new InvalidDataException("the sheet " + name + " holds a value in " + (reference ?? ColumnLetters(columnCounter) + index.ToString(CultureInfo.InvariantCulture))
+                        + " past its stated dimension " + dimension + ", which openpyxl and this reader leave out, so the dimension is out of date: save the workbook again in Excel (R350)");
+                }
+            }
+        }
+
+        private static string ColumnLetters(int column)
+        {
+            string letters = "";
+            for (; column > 0; column = (column - 1) / 26)
+            {
+                letters = (char)('A' + (column - 1) % 26) + letters;
+            }
+            return letters;
+        }
+
+        private static object[] Cells(string name, string dimension, Row row, int index, List<string> strings, HashSet<int> dates, HashSet<int> durations, bool date1904, int? maxColumn, Sheet sheet)
+        {
+            if (maxColumn.HasValue)
+            {
+                Past(name, dimension, row, index, maxColumn, strings, dates, durations, date1904);
+            }
             var cells = new List<KeyValuePair<int, object>>();
             int columnCounter = 0;
             foreach (Cell cell in row.Elements<Cell>())
             {
                 string reference = cell.CellReference?.Value;
                 columnCounter = reference != null ? Column(new string(reference.TakeWhile(char.IsLetter).ToArray())) : columnCounter + 1;
+                if (maxColumn.HasValue && columnCounter > maxColumn.Value)
+                {
+                    continue;
+                }
                 cells.Add(new KeyValuePair<int, object>(columnCounter, Value(cell, strings, dates, durations, date1904, sheet)));
             }
             if (cells.Count == 0 && !maxColumn.HasValue)
@@ -275,7 +322,7 @@ namespace CadReader
                     return int.Parse(text, CultureInfo.InvariantCulture) != 0;
                 case "d":
                     sheet.DateCells++;
-                    return new CellTime { Value = DateTime.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind) };
+                    return FromIso8601(text);
                 default:
                     return text;
             }
@@ -302,14 +349,57 @@ namespace CadReader
             TimeSpan diff = TimeSpan.FromTicks(milliseconds * TimeSpan.TicksPerMillisecond);
             if (value >= 0 && value < 1 && diff.Days == 0)
             {
-                return new CellTime { Value = new DateTime(1, 1, 1).Add(diff), TimeOnly = true };
+                return new CellTime { Value = new DateTime(1, 1, 1).Add(diff), Kind = CellTimeKind.Time };
             }
             if (value > 0 && value < 60 && !date1904)
             {
                 day += 1;
             }
             DateTime epoch = date1904 ? new DateTime(1904, 1, 1) : new DateTime(1899, 12, 30);
-            return new CellTime { Value = epoch.AddDays(day).Add(diff) };
+            return new CellTime { Value = epoch.AddDays(day).Add(diff), Kind = CellTimeKind.DateTime };
+        }
+
+        // R350. openpyxl from_ISO8601, the value of a cell of type d: a date alone, a time alone or a datetime by what the text holds,
+        // the microseconds int(float(".f") * 1e6), what follows the time, a Z or an offset, read past. DateTime.Parse gave a time alone
+        // the date of the day it ran and a date alone a time of 00:00:00 (the review of PR 53). A duration, which openpyxl gives as a
+        // timedelta, and a text of no date or time are refused
+        public static CellTime FromIso8601(string text)
+        {
+            Match match = Iso.Match(text ?? "");
+            bool date = match.Groups["date"].Success, time = match.Groups["time"].Success;
+            if (date || time)
+            {
+                Func<string, int> part = key => match.Groups[key].Success ? int.Parse(Ascii(match.Groups[key].Value), CultureInfo.InvariantCulture) : 0;
+                long microsecond = match.Groups["microsecond"].Success ? (long)(ExactDouble.Parse(Ascii(match.Groups["microsecond"].Value)) * 1000000) : 0;
+                try
+                {
+                    if (!date)
+                    {
+                        return new CellTime { Value = new DateTime(1, 1, 1, part("hour"), part("minute"), part("second")).AddTicks(microsecond * 10), Kind = CellTimeKind.Time };
+                    }
+                    if (!time)
+                    {
+                        return new CellTime { Value = new DateTime(part("year"), part("month"), part("day")), Kind = CellTimeKind.Date };
+                    }
+                    return new CellTime { Value = new DateTime(part("year"), part("month"), part("day"), part("hour"), part("minute"), part("second")).AddTicks(microsecond * 10), Kind = CellTimeKind.DateTime };
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    throw new InvalidDataException("the date cell holds " + text + ", which is no date or time (R350)");
+                }
+            }
+            Match duration = IsoDuration.Match(text ?? "");
+            if (duration.Groups["hours"].Success || duration.Groups["minutes"].Success || duration.Groups["seconds"].Success)
+            {
+                throw new InvalidDataException("the date cell holds a duration, " + text + ", which openpyxl gives as a timedelta, a duration is not read (R350)");
+            }
+            throw new InvalidDataException("the date cell holds " + text + ", no ISO 8601 date or time openpyxl reads (R350)");
+        }
+
+        // The digits of a text as ASCII digits, each decimal digit of Unicode by its value as Python int() takes it
+        private static string Ascii(string digits)
+        {
+            return new string(digits.Select(letter => char.IsDigit(letter) ? (char)('0' + (int)char.GetNumericValue(letter)) : letter).ToArray());
         }
     }
 }
