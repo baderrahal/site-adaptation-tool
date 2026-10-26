@@ -281,14 +281,14 @@
     },
     "workerPeakNote": "R347. The roles whose read is a large read and the peak private memory in MiB the CadReader read of each drawing took, keyed by its file name and size in bytes, so a file of those roles with no measured peak, another drawing or another size, takes the largest one. The sizes and the private peaks 2,571, 100 and 77 MiB are those of round_addin logs cadreader_peaks_pr49.txt on copies at 67c1fa0, whose peak paged by the OS was 2,571, 101 and 80. The values here are the highest seen: 2,612 MiB of the Road Layout is the claim-checker rerun of PR 49 and 80 MiB of the footprint the first run of 3b, neither output saved, 100 MiB of the baseplan the saved log",
     "workerTimeLimitS": {
-      "read": 600,
+      "read": 300,
       "build": 600,
       "levelExcel": 60,
       "reportExcel": 600,
       "exportChecks": 600,
       "position": 600
     },
-    "workerTimeLimitNote": "CHOSEN in docs/addin-design.md: 600 s for a read, 28 times the 21.2 s of the Road Layout read, and 60 s for the level Excel, the other commands 600 s until the PR that builds each measures it",
+    "workerTimeLimitNote": "R347, R348. read 300 s, measured in Round ADDIN 4c: a whole read of button 2 in the worker, the three drawings, the six road surfaces and the two Rev 9 workbooks, took 20.2 to 21.2 s on net48 and 16.8 to 17.0 s on net8.0 over three runs each (round_addin logs p4c_button2_time.txt), so 300 s is about 14 times the longest, room for a slower PC and the location plan read 4d adds, which measures it again. 600 s for the read until 4c, 28 times the 21.2 s of the Road Layout read alone. 60 s for the level Excel, the other commands 600 s until the PR that builds each measures it (CHOSEN in docs/addin-design.md)",
     "workbookRoles": {"tbd": "dlus", "accommodation": "sales"},
     "workbookRolesNote": "R350. The input of the pane, its role in the request of the worker, that holds each workbook of dataBook.rev9.workbooks: the Rev 9 DLUS workbook is dlus and the accommodation workbook, which holds the sales sheet and the DLUS setback sheet, is sales (docs/addin-design.md section 4)",
     "workerTimeLimitMinS": 10,
