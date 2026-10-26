@@ -15,13 +15,36 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 CONFIG = Path(__file__).resolve().parent / "c3d_probe.json"
+# R350. The project settings whose dataBook block load_config lays over the probe settings
+SETTINGS = REPO / "config" / "project.json"
 COMMANDS = ("C3DDUMP", "C3DLEVELS", "C3DBORDER", "C3DLINES")
 # A script line that could write a drawing. The probe never needs one, so a script holding one is refused
 WRITING = ("SAVE", "QSAVE", "SAVEAS", "WBLOCK", "EXPORT", "ETRANSMIT", "PURGE", "AUDIT", "RECOVER")
 
 
 def load_config(path=CONFIG):
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    """The probe settings. R348, R350: for the probe settings of the repo, dataBook of config/project.json is laid over their dataBook,
+    the settings of the reads of button 2 that Round ADDIN 4c moved there, so every reader keeps its key path and one copy is read."""
+    config = json.loads(Path(path).read_text(encoding="utf-8"))
+    if Path(path).resolve() == CONFIG.resolve():
+        moved = json.loads(SETTINGS.read_text(encoding="utf-8")).get("dataBook") or {}
+        lay_over(config.setdefault("dataBook", {}), moved, "dataBook")
+    return config
+
+
+def lay_over(book, moved, where):
+    """R350. The keys of moved laid into book, a block into a block of the same name, and a key both hold refused with its path, so a
+    setting never sits in two files. The note of moved says why the block is there and is no setting."""
+    for key, value in moved.items():
+        if key == "note":
+            continue
+        path = where + "." + key
+        if isinstance(value, dict) and isinstance(book.get(key), dict):
+            lay_over(book[key], value, path)
+        elif key in book:
+            raise ValueError("%s is held in both python/c3d_probe.json and config/project.json, a setting lives in one place (R350)" % path)
+        else:
+            book[key] = value
 
 
 def work_root(config):

@@ -237,7 +237,7 @@ def main(argv=None):
         settings = project_profile.load_settings(args.settings)
         profile = project_profile.load_profile(project_profile.profile_path(settings))
         block = settings.get("siteBuild")["corner"]
-        sales_settings = json.loads((project_profile.ROOT / "python" / "c3d_probe.json").read_text(encoding="utf-8"))["dataBook"]["locationPlan"]["sales"]
+        sales_settings = settings.get("dataBook.locationPlan.sales")
         out = Path(args.out)
         plot_relations.refuse_inside_repo(out.resolve().parent)
         numbers, _ = plan_from_past.location_numbers(args.labels)

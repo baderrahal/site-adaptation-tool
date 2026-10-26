@@ -183,7 +183,9 @@ def test_r300_the_villa_block_drawings_of_the_real_config_are_the_building_footp
     assert {project_profile.drawing_stem(R06_0000), project_profile.drawing_stem(R06_0001)} <= reference
     villa = settings.get("drawings.villaBlocks")
     assert "Building Footprint" in villa and not project_profile.is_reference_only(villa, settings)
-    book = json.loads((ROOT / "python" / "c3d_probe.json").read_text(encoding="utf-8"))["dataBook"]
+    # R350. The join settings live in config/project.json since 4c, load_config lays them over the probe settings
+    import c3d_run
+    book = c3d_run.load_config()["dataBook"]
     role = book["join"]["footprint"]["drawing"]
     assert "Building Footprint" in book["drawings"][role] and not project_profile.is_reference_only(book["drawings"][role], settings)
     assert data_book.footprint_drawing(book, settings) == book["drawings"][role]
