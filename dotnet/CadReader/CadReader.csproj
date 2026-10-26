@@ -1,7 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- R346. The worker of the add-in, net48 for the user and net8.0 for the tests of the Linux runner. The props of the folder name
+       net48 for every project, a project of two targets clears it so both are built -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>CadReader</AssemblyName>
+    <TargetFramework></TargetFramework>
+    <TargetFrameworks>net48;net8.0</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="ACadSharp" Version="3.8.0" />

@@ -58,7 +58,7 @@ def test_r342_every_package_reference_of_the_solution_is_listed_with_its_version
     assert references, "no PackageReference found under dotnet"
     missing = [(name, version, where) for name, version, where in references if name.lower() not in rows]
     other = [(name, version, rows[name.lower()]["Version"], where) for name, version, where in references
-             if name.lower() in rows and rows[name.lower()]["Version"] != version]
+             if name.lower() in rows and version not in versions(rows[name.lower()])]
     assert missing == []
     assert other == []
 
@@ -113,8 +113,14 @@ def test_r342_the_table_reader_and_the_package_scan_see_a_made_up_project(tmp_pa
     assert table(text, ".NET packages") == [{"Package": "Lib.One", "Version": "1.2.3", "Licence": "MIT"}]
 
 
+def versions(row):
+    """R346. The versions of a row: a package two targets restore at two versions lists both, parted by a comma."""
+    return [version.strip() for version in row["Version"].split(",")]
+
+
 def assets_packages(root):
-    """Every package of the obj/project.assets.json files under root, the ones a restore pulled in too, as {name: (version, project folder)}."""
+    """Every package of the obj/project.assets.json files under root, the ones a restore pulled in too, as {name: {version: project
+    folder}}, every version of a package, since the two targets of a project may restore two."""
     found = {}
     for path in sorted(root.rglob("project.assets.json")):
         if path.parent.name != "obj":
@@ -123,7 +129,7 @@ def assets_packages(root):
         for key, item in libraries.items():
             if item.get("type") == "package":
                 name, version = key.split("/", 1)
-                found.setdefault(name.lower(), (version, path.parent.parent.relative_to(root).as_posix()))
+                found.setdefault(name.lower(), {}).setdefault(version, path.parent.parent.relative_to(root).as_posix())
     return found
 
 
@@ -132,12 +138,17 @@ def test_r342_every_package_a_restore_pulled_in_has_a_row_with_its_version():
     if not found:
         pytest.skip("no project.assets.json under dotnet, run dotnet restore first")
     rows = {row["Package"].lower(): row for row in table(LICENCES.read_text(encoding="utf-8"), ".NET packages")}
-    assert sorted((name, version, project) for name, (version, project) in found.items() if name not in rows) == []
-    assert sorted((name, version, rows[name]["Version"]) for name, (version, project) in found.items() if name in rows and rows[name]["Version"] != version) == []
+    assert sorted((name, version, project) for name, found_versions in found.items() for version, project in found_versions.items() if name not in rows) == []
+    assert sorted((name, version, rows[name]["Version"]) for name, found_versions in found.items() for version in found_versions
+                  if name in rows and version not in versions(rows[name])) == []
 
 
 def test_r342_the_assets_scan_sees_a_made_up_restore(tmp_path):
     (tmp_path / "a" / "obj").mkdir(parents=True)
     libraries = {"Lib.One/1.2.3": {"type": "package"}, "a/1.0.0": {"type": "project"}}
     (tmp_path / "a" / "obj" / "project.assets.json").write_text(json.dumps({"libraries": libraries}), encoding="utf-8")
-    assert assets_packages(tmp_path) == {"lib.one": ("1.2.3", "a")}
+    assert assets_packages(tmp_path) == {"lib.one": {"1.2.3": "a"}}
+    (tmp_path / "b" / "obj").mkdir(parents=True)
+    (tmp_path / "b" / "obj" / "project.assets.json").write_text(json.dumps({"libraries": {"Lib.One/1.3.0": {"type": "package"}}}), encoding="utf-8")
+    assert assets_packages(tmp_path) == {"lib.one": {"1.2.3": "a", "1.3.0": "b"}}
+    assert versions({"Version": "1.2.3, 1.3.0"}) == ["1.2.3", "1.3.0"]

@@ -1,6 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- R346. Every test runs on net48, the tests of Common and CadReader also on net8.0, the leg of the Linux runner -->
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+    <TargetFramework></TargetFramework>
+    <TargetFrameworks>net48;net8.0</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
@@ -9,7 +12,12 @@
     <ProjectReference Include="..\SiteAdaptation.Common\SiteAdaptation.Common.csproj" />
     <ProjectReference Include="..\CadReader\CadReader.csproj" />
   </ItemGroup>
-  <ItemGroup>
+  <!-- The probe is a net48 library of Civil 3D, its tests run on net48 only -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <ProjectReference Include="..\SiteAdaptation.C3DProbe\SiteAdaptation.C3DProbe.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'net48'">
+    <Compile Remove="C3DProbeTests.cs" />
+    <Compile Remove="DataBookTests.cs" />
   </ItemGroup>
 </Project>

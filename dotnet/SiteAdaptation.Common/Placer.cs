@@ -17,6 +17,18 @@ namespace SiteAdaptation.Common
         public const string FflParameter = "RRE_ZZ_SP_Prototype-FFL";
         public const string PlotParameter = LinkFields.PlotNumber;
 
+        // R84, R346. .NET Framework 4.8 refuses these characters in a path and .NET 8 takes them, so the check is made here and a
+        // file name such as a|b.rvt is skipped the same way in Revit and in the net8.0 tests
+        private static readonly char[] IllegalPathCharacters = "\"<>|".ToCharArray().Concat(Enumerable.Range(0, 32).Select(code => (char)code)).ToArray();
+
+        private static void RefuseIllegalPathCharacters(string path)
+        {
+            if (path != null && path.IndexOfAny(IllegalPathCharacters) >= 0)
+            {
+                throw new ArgumentException("Illegal characters in path.");
+            }
+        }
+
         // A failure that rolls the whole real run back
         public sealed class PlacerFailure : Exception
         {
@@ -284,6 +296,7 @@ namespace SiteAdaptation.Common
                 return "already placed, a link instance of the document has this plot number";
             }
             string name = plot.PrototypeFile.Value;
+            RefuseIllegalPathCharacters(name);
             if (Path.GetFileName(name) != name)
             {
                 return "prototypeFile must be a file name in the prototype folder, not a path";
