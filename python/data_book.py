@@ -194,6 +194,17 @@ def schedule_rows(settings, connect, paths=None):
     return found
 
 
+def analysis_file(join):
+    """R166. The analysis.json of the full run whose clusters each row names, the file dataBook.join.analysis names. Never a place in
+    fallbackOutputs: since the review of PR 53 the cadReads folder goes first there, and the second root held no analysis."""
+    if not join.get("analysis"):
+        raise ValueError("dataBook.join.analysis names no analysis.json of the full run, the clusters of plots.csv (R166)")
+    path = Path(join["analysis"])
+    if not path.is_file():
+        raise ValueError("dataBook.join.analysis %s is not on disk (R166)" % path)
+    return path
+
+
 def build(config, settings, scratch):
     book, connect, join = config["dataBook"], config["connect"], config["dataBook"]["join"]
     roots = join["fallbackOutputs"]
@@ -237,7 +248,7 @@ def build(config, settings, scratch):
     plan = json.loads(Path(connect["plan"]).read_text(encoding="utf-8"))
     past = {p["plot"]: p.get("levels") or {} for p in plan["plots"]}
     apart = set(prototype_offsets.plot_frame(prototype_offsets.load()).get("apart") or [])
-    analysis = json.loads((Path(roots[1]) / "analysis" / "analysis.json").read_text(encoding="utf-8"))
+    analysis = json.loads(analysis_file(join).read_text(encoding="utf-8"))
     cluster_of = {}
     for index, cluster in enumerate(analysis["clusters"]):
         for plot in cluster["plots"]:
