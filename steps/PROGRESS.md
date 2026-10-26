@@ -1,4 +1,4 @@
-STATE 2026-10-26, Round ADDIN Part 1, Phase 4a in review (logic/addin-4a): R345 the parity harness, R346 the projects, R347 the worker run, R385 the rounding in common.py and C#. Phases 0a to 3c merged (PR 41 to 49). Round 17 done and merged (PR 39, 40)
+STATE 2026-10-26, Round ADDIN Part 1, Phase 4a in review (logic/addin-4a), the 14 items of its breaker fixed: R345 the parity harness, R346 the projects, R347 the worker run, R385 the rounding in common.py and C#. Phases 0a to 3c merged (PR 41 to 49). Round 17 done and merged (PR 39, 40)
 
 # Progress
 
@@ -16,7 +16,7 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 
 ## Done
 
-- ADDIN 4a in review: parity of the step faces on the 2,704 unit plots, 12,932 field values equal on net48 and net8.0, 0 one unit cases, 0 failures. R385 equal in Python, C# on both runtimes and integer arithmetic on 200,012 made up values, the build proof 0 unexplained on 7 keys with it in common.py, 350 level items lost with it in the level builders (Q080). The worker exe answered exit 0, 2, 3 and 4 as asked. CI green on Windows and Linux (RAN)
+- ADDIN 4a in review, the breaker's 14 items fixed: parity of the step faces on the 2,704 unit plots, 13,520 field values equal on net48 and net8.0, 0 one unit cases, 0 failures. R385 equal in Python, C# on both runtimes and integer arithmetic on 200,012 and 354,048 made up values, past 15 digits refused, the build proof 0 unexplained on 7 keys, 350 level items lost with it in the level builders (Q080). The worker exe answered exit 0 to 4 as asked and kept an earlier output on a run that did not pass. CI green on Windows and Linux (RAN)
 - ADDIN 3b, PR 49: R342, R343, the design and the licences. ADDIN 3c, PR 48: R339 to R341, at 0.5 mm El @ Entry 0.088 and FFL per piece 0.749 weak, steps 0.988 and Prototype-FFL 0.994 strong, 0 unexplained levels on every key, overrides 12,424 and 154 in cannot. 3a, PR 47: R330 to R338. 2b, PR 46. 2a, PR 45
 - ADDIN 1b, PR 44, 1, PR 43, 0b, PR 42 and 0a, PR 41: the harness, key copies, STR upgrades, Q011, Q028, Q035, Q040, Q044 to Q050, Q060, Q061, Q067 closed. 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. DATA-3: PR 32. Z4: PR 30. DATA-2: PR 28. DATA: PR 26. 14c to 1: PRs 1 to 25
 
@@ -50,7 +50,7 @@ Q070. El @ Entry with no schedule: take the ELl@Entry parameter of the key, it i
 Q071. Walls: accept the base at the yard level, the centre on the edge and the open front, ask the architect for the wall top rule (0.346), wall overrides once button 7 places walls
 Q072. Side road of a villa with three road edges (IMC 2301, IME 2710, IMG 441): the side edge, not the back: accept. Q073. 33 plots with a front corner on no road surface have no El @ Entry and are not written (IMA 1, IMB 2, IMD 3, IME 3, IMF 14, IMG 10): take the road of the covered corner for both, else send the surface. Q074. Steps of the base and risers, half a riser no step (0.988 on 5 keys), against the count rule the IMC and IMD schedules follow (0.934 on 5): accept, 48 overrides, 16 that break it, 32 with no value of it (no road level or no front frame). Q075. 1,346 native entries with no value kept from Round 17, a native2022 build loading them is refused: move them to cannot by a run with --replace native
 Q076. Python checker licences: shapely is BSD-3-Clause and its wheels bundle GEOS under LGPLv2.1, nothing of Python ships: keep it for the checker
-Q077. The worker: buttons 2 and 3 read and build in CadReader.exe beside Revit, the Road Layout read alone took 2,571 to 2,612 MiB and PdfPig needs a System.Memory Revit 2024 lacks: accept. Q078. Rounding: Python and C# round the 15 digit decimal half away from zero (R385), 12.3455 gives 12.346 in both, a Python value moves one unit on a tie: accept
+Q077. The worker: buttons 2 and 3 read and build in CadReader.exe beside Revit, the Road Layout read alone took 2,571 to 2,612 MiB and PdfPig needs a System.Memory Revit 2024 lacks: accept. Q078. Rounding: Python and C# round the 15 digit decimal half away from zero (R385), 12.3455 gives 12.346 in both, and values of both move one unit on a tie, Python round() took 12.3455 down, C# Math.Round took 0.5005 to 0.5 (4 of 10 C# tests failed first): accept
 Q079. netstandard2.0 asks for Microsoft.NETCore.Platforms 1.1.0, Microsoft .NET Library licence, no file copied: pinned to 3.1.0, MIT, build only: accept. Q080. R385 in the level builders moves the FFL of a piece 1 mm up on a tie, 350 level items of the keys off: apply it in 4b with the level overrides measured again: accept
 
 ## Next three steps
