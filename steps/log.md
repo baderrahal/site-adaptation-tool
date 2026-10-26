@@ -8,23 +8,22 @@ In progress. 0a to 4c and PR 52 merged (PR 41 to 53), 4d in review (logic/addin-
 
 Goal:
 - The add-in in Revit 2024, C#, .NET 4.8, from the 7 Parsons keys, parsons2024Rev6 (Q050), docs/addin-mock.md
-- 4d: R351 the location plan, R352 the plot table, R353 the position file, check points and GUIDs of the keys, Q084 the read peak
+- 4d: R351 to R353 and Q084, five changes, one over the cap of four
 
 Done:
-- 0a to 4c, PR 52: reads, plans, overrides, keyRules, a build and its proof, the design, the worker, R344, R385 to R388, the reads of button 2
-- 4d: location plan by PdfPig, plot table with block groups, command position, levelBase, sharedParameters by a read step, read order and release, data_book analysis
+- 0a to 4c, PR 52: reads, plans, overrides, keyRules, build and proof, design, worker, R344, R385 to R388, reads of button 2
+- 4d review: check points CAD against the keys at full precision, the set of keys, GUID conflicts, block order at 4 decimals, one face rule with a grid, CropBox refused, failed control check an issue, read peak 3,900 MiB
 
 Checked:
-- Parity at dfffd0c, net48 and net8.0, 0 one unit, 0 failures: labels 3,181, plot table 2,956, position and 7 check points within 1 mm, 11 read steps of 4c (RAN)
-- plots.csv 61,906 of 62,076 cells, 170 explained, the file on 7 of 7 reads by R331, 7 Revit windows ok, copies unchanged, hashes equal (RAN)
-- Read peak 2,550 to 2,702 MiB from 3,695 to 4,005, outputs equal. Tests first: 3 Python, 3 C# for R352, Q084 by its stubs (RAN)
+- Parity net48 and net8.0, 0 one unit, 0 failures: labels 3,181, plot table 2,956, position 14 fields, check points 141 (RAN)
+- 7 key reads, copies unchanged, hashes equal, check points 119 of 141 within 1 mm, second route 141 of 141 (RAN)
 
 Remains:
-- 4e to 4h, Phases 5, 6. The categories of the project parameter CASE of the keys
+- 4e to 4h, Phases 5, 6. The categories of the project parameter CASE
 
 Known bugs:
-- NBH 03 image past 30 min (Q063). Revit starts 9 to 11 child processes in a read. rvt_info.py misses cloud links, SE spots give no value. A read is tied to its key by its copy name (Q065)
-- ELl@Entry off its schedule by over 30 mm on 100 IMC and 115 IMD plots (Q070). angleToTrueNorthDeg of the reader at 3 decimals, placer takes 0 only. xUnit2013. key_copies.py keeps a last part NUL. Button 2 needs 4,848 MiB free
+- NBH 03 image past 30 min (Q063). 9 to 11 child processes in a read. rvt_info.py misses cloud links. Read tied to its key by name (Q065)
+- ELl@Entry off its schedule over 30 mm on 215 plots (Q070). Reader angle at 3 decimals. xUnit2013. key_copies.py keeps NUL. Button 2 needs 5,948 MiB free
 
 Next:
 - Phase 4e: R354 to R357, then 4f to 4h
@@ -53,7 +52,7 @@ Q072. Side road of a villa with three road edges (IMC 2301, IME 2710, IMG 441): 
 Q076. Python checker licences: shapely is BSD-3-Clause and its wheels bundle GEOS under LGPLv2.1, nothing of Python ships: keep it for the checker
 Q077. The worker: buttons 2 and 3 read and build in CadReader.exe beside Revit, the Road Layout read alone took 2,571 to 2,612 MiB and PdfPig needs a System.Memory Revit 2024 lacks: accept. Q078. Rounding: Python and C# round the 15 digit decimal half away from zero (R385), 12.3455 gives 12.346 in both, and values of both move one unit on a tie, Python round() took 12.3455 down, C# Math.Round took 0.5005 to 0.5 (4 of 10 C# tests failed first): accept
 Q079. netstandard2.0 asks for Microsoft.NETCore.Platforms 1.1.0, Microsoft .NET Library licence, no file copied: pinned to 3.1.0, MIT, build only: accept. Q082. Road level of 33 plots of the keys (IMA 1, IMB 2, IMD 3, IME 3, IMF 14, IMG 10, listed in noRoadLevel of each plan): no road surface covers a front corner and the Roads folder holds no other road level there, no alignment in Road Surface C3D, the one of Road Layout 141.5 m or more off: ask the road designer for the road surface or road model of these fronts, else accept them listed and not written
-Q085. Plot, the floor parameter, is a project parameter in all 7 keys and holds no GUID, the other 10 names of config hold one GUID each over the keys and their elements (R353): bind Plot as a new shared parameter with a GUID fixed once in config, so every button reads it by GUID (recommended), or bind it as the keys do, a project parameter read by name. Every key also holds a project parameter named CASE beside the shared CASE, its categories not read
+Q085. Plot, the floor parameter, is a project parameter in all 7 keys and holds no GUID, the other 10 names of config hold one GUID each over the keys and their elements (R353): bind Plot as a new shared parameter with a GUID fixed once in config, so every button reads it by GUID (recommended), or bind it as the keys do, a project parameter read by name. Every key also holds a project parameter named CASE beside the shared CASE, its categories not read Q086. Check points against the keys (R353): the floor corners of the extreme plots of the 7 keys lie a median 0.73 mm, at most 1.18 mm, off the baseplan through the one position, 119 of 141 within 1 mm, 5 on floors that are not their face, 5 with no face: hold the keys at 2 mm and button 1 against Revit at 1 mm (recommended), or 1 mm for both
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 
