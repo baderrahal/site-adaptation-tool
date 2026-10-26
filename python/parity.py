@@ -8,13 +8,18 @@ section 5). Every field of either side is compared: a field no step of addin.par
 field missing on a side fails, a field of no geometry is equal by value and type or fails, and a field of geometry holds when its
 raw values lie within the tolerance number by number, of the same shape on both sides, and its written values are equal, or one
 unit of the last place apart, decided on the decimals of the written texts, only where the raw values lie within the tolerance and
-straddle a rounding boundary of R385, each such case listed by step, plot, field and index. Any other difference fails the step,
-and so do no plot on either side. The report goes outside the repo, real values stay out of git.
+straddle a rounding boundary of R385 and each written value is the R385 rounding of its own raw value, each such case listed by
+step, plot, field and index. Any other difference fails the step, and so do no plot on either side, a value that is not finite and a
+key of a plot that is not compared. A run deletes its own step file before it builds the step, so a run that failed leaves none and
+the parity finds it missing. The report goes outside any git work tree, real values stay out of git.
 """
 import argparse
 import hashlib
 import json
+import math
+import subprocess
 import sys
+import uuid
 from decimal import Decimal
 from pathlib import Path
 
@@ -41,6 +46,9 @@ def tolerances(settings):
             if kind not in block["kinds"]:
                 raise project_profile.ProfileError("addin.parity.steps.%s.%s names the kind %s, which addin.parity.kinds does not hold (R345)" % (step, name, kind))
             tolerance = block["kinds"][kind]
+            # True is 1 and NaN passes every comparison, so a tolerance is a finite number of zero or more, or null for an exact kind
+            if tolerance is not None and (isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)) or not math.isfinite(tolerance) or tolerance < 0):
+                raise project_profile.ProfileError("addin.parity.kinds.%s is %r, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)" % (kind, tolerance))
             if (tolerance is None) != ("decimals" not in field):
                 raise project_profile.ProfileError("addin.parity.steps.%s.%s: a kind with a tolerance has decimals and a kind compared exactly has none (R345)" % (step, name))
             found[step][name] = (kind, tolerance, field.get("decimals"))
@@ -60,15 +68,44 @@ def step_name(step, side):
     return "step_%s_%s.json" % (step, side)
 
 
+def code():
+    """The code of the Python side: python and the commit of the work tree it runs from, with changes when a tracked file of python/
+    differs from it, or commit unknown with no git. The C# side names SiteAdaptation.Common with its informational version, which
+    holds the commit it was built from."""
+    folder = Path(__file__).resolve().parent
+    try:
+        commit = subprocess.run(["git", "-C", str(folder), "rev-parse", "HEAD"], capture_output=True, text=True, timeout=30)
+        changed = subprocess.run(["git", "-C", str(folder), "status", "--porcelain", "--untracked-files=no", "--", "."], capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return "python commit unknown"
+    if commit.returncode != 0 or not commit.stdout.strip():
+        return "python commit unknown"
+    return "python " + commit.stdout.strip() + (" with changes" if changed.stdout.strip() else "")
+
+
 def step_file(step, side, scope, plots, settings, inputs, run_id=None):
-    """The step file of one side. plots holds per plot raw and written as the side writes them, they are kept as given."""
+    """The step file of one side. plots holds per plot raw and written as the side writes them, they are kept as given. The run
+    stamp names the run id, the code that wrote the file and the SHA-256 of the config it read, beside every input (R345, R347)."""
     fields = ((settings.get("addin") or {}).get("parity") or {}).get("steps", {}).get(step)
     if fields is None:
         raise project_profile.ProfileError("addin.parity.steps names no step %s (R345)" % step)
     if side not in SIDES:
         raise ValueError("a step file is of the side python or csharp, not %s" % side)
+    config = next((item.get("sha256") for item in inputs if item.get("role") == "config"), None)
     return {"format": FORMAT, "formatVersion": FORMAT_VERSION, "step": step, "side": side, "scope": scope,
-            "run": {"runId": run_id, "inputs": inputs}, "fields": fields, "plots": plots}
+            "run": {"runId": run_id or "python_" + uuid.uuid4().hex[:12], "code": code(), "configSha256": config, "inputs": inputs},
+            "fields": fields, "plots": plots}
+
+
+def clear_step(folder, step, side):
+    """R345. A run deletes its own step file of a step before it builds the step, so a run that fails leaves no file of an earlier
+    run, whose inputs may hash the same, and the parity finds it missing. A folder inside a git work tree is refused first."""
+    folder = Path(folder)
+    plot_relations.refuse_inside_repo(folder)
+    path = folder / step_name(step, side)
+    if path.is_file():
+        path.unlink()
+    return path
 
 
 def write_step(folder, step, side, scope, plots, settings, inputs):
@@ -82,10 +119,13 @@ def write_step(folder, step, side, scope, plots, settings, inputs):
 
 
 def stamp_refusal(payload, side):
-    """None when every input of the run stamp is on disk with its SHA-256, else why not (R347)."""
+    """None when every input of the run stamp is on disk with its SHA-256, else why not (R347). A stamp of no input could never be
+    stale, so it is refused."""
     inputs = (payload.get("run") or {}).get("inputs")
     if not isinstance(inputs, list):
         return "the %s step file holds no run stamp with the inputs it was made from (R347)" % side
+    if not inputs:
+        return "the run stamp of the %s step file names no input, so a change of its inputs could not be seen (R347)" % side
     for item in inputs:
         path = Path(item.get("path") or "")
         if not item.get("path") or not path.is_file():
@@ -96,7 +136,9 @@ def stamp_refusal(payload, side):
 
 
 def load_step(path, side):
-    """A step file read back, refused when it is of another format or side, or an input it was made from changed or is gone."""
+    """A step file read back, refused when it is missing, of another format or side, or an input it was made from changed or is gone."""
+    if not Path(path).is_file():
+        raise ValueError("the %s step file %s is not on disk, the run that writes it failed or did not run (R345)" % (side, Path(path).resolve()))
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     check_header(payload, side)
     refusal = stamp_refusal(payload, side)
@@ -172,6 +214,15 @@ def at_decimals(number, decimals):
     return value == value.quantize(Decimal(1).scaleb(-decimals)) if value.is_finite() else False
 
 
+def rounding(raw, decimals):
+    """The R385 rounding of a raw value at the decimals of its field as a decimal, None where R385 gives none or refuses it."""
+    try:
+        rounded = common.fixed(raw, decimals)
+    except OverflowError:
+        return None
+    return None if rounded is None else decimal_of(rounded)
+
+
 def compare_field(plot, name, rule, mine, theirs, step, report):
     """One field of one plot: equal, a one unit case or a failure, counted in report."""
     counts = report["fields"].setdefault(name, {"compared": 0, "equal": 0, "oneUnit": 0, "failed": 0})
@@ -212,13 +263,21 @@ def compare_field(plot, name, rule, mine, theirs, step, report):
         return fail("written values not of the shape of the raw values", None, written_a, written_b)
     cases = []
     for (index, a), (_, b), (_, wa), (_, wb) in zip(numbers(raw_a), numbers(raw_b), numbers(written_a), numbers(written_b)):
+        # A NaN passes every comparison and inf less inf is NaN, so a value that is not finite is never within a tolerance
+        if not all(math.isfinite(value) for value in (a, b, wa, wb)):
+            return fail("not a finite number", index, a, b)
         if abs(a - b) > tolerance:
             return fail("before rounding", index, a, b)
         if not at_decimals(wa, decimals) or not at_decimals(wb, decimals):
             return fail("written value not at %d decimals" % decimals, index, wa, wb)
         if decimal_of(wa) == decimal_of(wb):
             continue
-        if one_unit(wa, wb, decimals) and common.fixed(a, decimals) != common.fixed(b, decimals):
+        own = (rounding(a, decimals), rounding(b, decimals))
+        if one_unit(wa, wb, decimals) and None not in own and own[0] != own[1]:
+            # A straddle is listed only when each side wrote the R385 rounding of its own raw value
+            wrong = [side for side, mine, written in (("python", own[0], wa), ("csharp", own[1], wb)) if decimal_of(written) != mine]
+            if wrong:
+                return fail("one unit apart and not the R385 rounding of its raw on " + " and ".join(wrong), index, wa, wb)
             cases.append({"step": step, "plot": plot, "field": name, "index": index, "python": a, "csharp": b, "writtenPython": wa, "writtenCsharp": wb})
             continue
         return fail("after rounding", index, wa, wb)
@@ -252,8 +311,13 @@ def compare(python, csharp, rules):
             report["failures"].append({"step": step, "plot": plot, "field": None, "index": None, "why": "only in " + ("csharp" if mine is None else "python"),
                                        "python": None, "csharp": None})
             continue
-        others = sorted((set(mine["raw"]) | set(theirs["raw"])) - set(configured))
-        for name in configured + others:
+        # A key of a plot beside raw and written is never compared, so it fails
+        for key in sorted((set(mine) | set(theirs)) - {"raw", "written"}):
+            report["failures"].append({"step": step, "plot": plot, "field": key, "index": None, "why": "a key of the plot beside raw and written",
+                                       "python": mine.get(key), "csharp": theirs.get(key)})
+        # Every field either side holds, under raw or under written only
+        held = set(mine["raw"]) | set(theirs["raw"]) | set(mine["written"]) | set(theirs["written"])
+        for name in configured + sorted(held - set(configured)):
             compare_field(plot, name, rules[step].get(name), mine, theirs, step, report)
     report["equal"] = sum(counts["equal"] for counts in report["fields"].values())
     return report
@@ -274,6 +338,9 @@ def main(argv=None):
     python = load_step(args.python, "python")
     csharp = load_step(args.csharp, "csharp")
     same_inputs(python, csharp)
+    for side, payload in (("python", python), ("csharp", csharp)):
+        run = payload.get("run") or {}
+        print("%s run %s, code %s, config %s" % (side, run.get("runId"), run.get("code"), run.get("configSha256")))
     report = compare(python, csharp, rules)
     report["sources"] = {"python": str(Path(args.python).resolve()), "csharp": str(Path(args.csharp).resolve())}
     out.mkdir(parents=True, exist_ok=True)

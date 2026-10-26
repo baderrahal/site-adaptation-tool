@@ -57,6 +57,8 @@ ESTIMATE = "estimate"
 LOCATION = "locationPlan"
 OVERRIDE = "override"
 KEY_RULES = "keyRules"
+# R345. The steps of the parity harness this builder writes with --steps
+PARITY_STEPS = ("faces",)
 # R337. The source of a parameter that reads the steps, the stepBands of the level profile when keyRules codes no steps
 STEP_BANDS = "levelProfileStepBands"
 sourced = plan_from_cad.sourced
@@ -748,6 +750,10 @@ def main(argv=None):
     parser.add_argument("--steps-only", action="store_true", help="R345. write the steps that need no build and stop before it")
     args = parser.parse_args(argv)
     try:
+        # R345. The step files of this run go first, so a run that fails leaves none and the parity finds them missing
+        if args.steps:
+            for name in PARITY_STEPS:
+                parity.clear_step(args.steps, name, "python")
         settings = project_profile.load_settings(args.settings)
         profile = project_profile.load_profile(project_profile.profile_path(settings))
         block = settings.get("siteBuild")

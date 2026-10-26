@@ -1,8 +1,11 @@
 """R345. The parity harness: the step files of plan_from_book.py --steps and of the worker, compared by python/parity.py field by
 field with the tolerance of the kind of each field, addin.parity of config/project.json, the one unit cases listed."""
+import copy
 import csv
 import hashlib
 import json
+import os
+import re
 from pathlib import Path
 
 import pytest
@@ -10,6 +13,7 @@ import pytest
 import common
 import parity
 import plan_from_book
+import plot_relations
 import project_profile
 
 FIELDS = {"face": {"kind": "noGeometry"}, "area": {"kind": "areas", "decimals": 3}, "centroid": {"kind": "points", "decimals": 3},
@@ -318,3 +322,129 @@ def test_r345_parity_refuses_an_output_folder_inside_the_repo(tmp_path):
     payload = write(tmp_path / "a.json", step("python", {}))
     with pytest.raises(ValueError, match="inside the repo"):
         parity.main(["--python", str(payload), "--csharp", str(payload), "--out", str(Path(parity.__file__).resolve().parent / "parity_out")])
+
+
+def test_r345_a_one_unit_case_is_listed_only_when_each_written_value_is_the_r385_rounding_of_its_own_raw():
+    # Raws 1E-09 apart across the tie 1.0005, which R385 rounds to 1.0 and 1.001
+    a, b = 1.0004999995, 1.0005000005
+    assert (common.fixed(a, 3), common.fixed(b, 3)) == (1.0, 1.001)
+    rules = parity.tolerances(SETTINGS)
+
+    def pair(written_a, written_b):
+        return parity.compare(step("python", {"1": entry(face(area=a), dict(common.round_tree(face(area=a)), area=written_a))}),
+                              step("csharp", {"1": entry(face(area=b), dict(common.round_tree(face(area=b)), area=written_b))}), rules)
+
+    report = pair(1.0, 1.001)
+    assert report["failures"] == [] and [(item["writtenPython"], item["writtenCsharp"]) for item in report["oneUnit"]] == [(1.0, 1.001)]
+    # The C# rounded the wrong way at the boundary, 0.999 for 1.0005000005, or both sides wrote the rounding of the other side
+    for written_a, written_b, side in ((1.0, 0.999, "csharp"), (1.001, 1.0, "python and csharp")):
+        report = pair(written_a, written_b)
+        assert report["oneUnit"] == [], (written_a, written_b)
+        assert [(item["field"], item["why"]) for item in report["failures"]] == [("area", "one unit apart and not the R385 rounding of its raw on " + side)]
+
+
+def test_r345_a_raw_or_written_value_that_is_not_finite_fails():
+    rules = parity.tolerances(SETTINGS)
+    nan, inf = float("nan"), float("inf")
+    written = common.round_tree(face())
+    cases = [(face(area=nan), face(), "area", None), (face(area=inf), face(area=inf), "area", None), (face(x=nan), face(), "centroid", [0])]
+    for mine, theirs, field, index in cases:
+        report = parity.compare(step("python", {"1": entry(mine, written)}), step("csharp", {"1": entry(theirs, written)}), rules)
+        assert [(item["field"], item["index"], item["why"]) for item in report["failures"]][:1] == [(field, index, "not a finite number")], (mine, theirs)
+        assert report["oneUnit"] == []
+    report = parity.compare(step("python", {"1": entry(face(), dict(written, area=nan))}), step("csharp", {"1": entry(face(), dict(written, area=nan))}), rules)
+    assert [(item["field"], item["why"]) for item in report["failures"]] == [("area", "not a finite number")]
+
+
+def test_r345_a_key_held_only_under_written_or_beside_raw_and_written_is_compared_and_fails():
+    rules = parity.tolerances(SETTINGS)
+    csharp = entry(face())
+    csharp["written"]["extra"] = 123.456
+    report = parity.compare(step("python", {"1": entry(face())}), step("csharp", {"1": csharp}), rules)
+    assert why(report) == [("1", "extra", "no tolerance in addin.parity")]
+    csharp = entry(face())
+    del csharp["raw"]["area"]
+    report = parity.compare(step("python", {"1": entry(face())}), step("csharp", {"1": csharp}), rules)
+    assert why(report) == [("1", "area", "missing on csharp")]
+    csharp = dict(entry(face()), other={"x": 1})
+    report = parity.compare(step("python", {"1": entry(face())}), step("csharp", {"1": csharp}), rules)
+    assert why(report) == [("1", "other", "a key of the plot beside raw and written")]
+
+
+def test_r345_a_run_stamp_that_names_no_input_is_refused():
+    payload = dict(step("python", {}), run={"runId": "r1", "inputs": []})
+    assert "names no input" in parity.stamp_refusal(payload, "python")
+
+
+def test_r345_a_tolerance_is_a_finite_number_of_zero_or_more_or_null_for_an_exact_kind():
+    for bad in (True, False, float("nan"), float("inf"), -0.000001, "0.000001", [0.1]):
+        settings = copy.deepcopy(SETTINGS)
+        settings["addin"]["parity"]["kinds"]["areas"] = bad
+        with pytest.raises(project_profile.ProfileError, match="finite number of zero or more"):
+            parity.tolerances(settings)
+    settings = copy.deepcopy(SETTINGS)
+    settings["addin"]["parity"]["kinds"]["areas"] = 0
+    assert parity.tolerances(settings)["faces"]["area"] == ("areas", 0, 3)
+
+
+def test_r345_a_python_run_that_fails_leaves_no_step_file_and_parity_fails_as_missing(tmp_path, monkeypatch):
+    assert run_steps(tmp_path, "all") == 0
+    path = tmp_path / "steps" / "step_faces_python.json"
+    csharp = write(tmp_path / "step_faces_csharp.json", dict(python_step(tmp_path), side="csharp"))
+    out = str(tmp_path / "parity")
+    assert parity.main(["--python", str(path), "--csharp", str(csharp), "--out", out]) == 0
+
+    # The same inputs, so the earlier step file would still hash the same, and a run that fails before it writes the step
+    def broken(baseplan, buffer):
+        raise ValueError("a made up failure of the build")
+
+    monkeypatch.setattr(plan_from_book.yard_rule, "face_shapes", broken)
+    assert run_steps(tmp_path, "all") == 2
+    assert not path.exists()
+    with pytest.raises(ValueError, match="python step file .* is not on disk"):
+        parity.main(["--python", str(path), "--csharp", str(csharp), "--out", out])
+
+
+def test_r345_the_run_stamp_names_its_run_id_the_code_that_wrote_it_and_its_config_and_parity_prints_both(tmp_path, capsys):
+    assert run_steps(tmp_path, "all") == 0
+    run = python_step(tmp_path)["run"]
+    assert re.fullmatch(r"python_[0-9a-f]{12}", run["runId"])
+    assert re.fullmatch(r"python ([0-9a-f]{40}( with changes)?|commit unknown)", run["code"])
+    assert run["configSha256"] == hashlib.sha256(project_profile.SETTINGS_PATH.read_bytes()).hexdigest()
+    first = run["runId"]
+    assert run_steps(tmp_path, "all") == 0
+    run = python_step(tmp_path)["run"]
+    assert run["runId"] != first
+    csharp = dict(python_step(tmp_path), side="csharp", run=dict(run, runId="r9", code="SiteAdaptation.Common 1.0.0+abc"))
+    capsys.readouterr()
+    assert parity.main(["--python", str(tmp_path / "steps" / "step_faces_python.json"), "--csharp", str(write(tmp_path / "c.json", csharp)),
+                        "--out", str(tmp_path / "parity")]) == 0
+    printed = capsys.readouterr().out
+    assert "python run %s, code %s, config %s" % (run["runId"], run["code"], run["configSha256"]) in printed
+    assert "csharp run r9, code SiteAdaptation.Common 1.0.0+abc, config %s" % run["configSha256"] in printed
+
+
+def make_link(link, target):
+    """A junction on Windows, which needs no right to make, and a symbolic link elsewhere."""
+    if os.name == "nt":
+        import _winapi
+        _winapi.CreateJunction(str(target), str(link))
+    else:
+        os.symlink(target, link, target_is_directory=True)
+
+
+def test_r345_a_folder_inside_any_git_tree_a_worktree_or_reached_through_a_junction_into_one_is_refused(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / ".git").mkdir(parents=True)
+    (repo / "sub").mkdir()
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    (worktree / ".git").write_text("gitdir: C:/elsewhere/.git/worktrees/wt\n", encoding="utf-8")
+    make_link(tmp_path / "link", repo / "sub")
+    for folder in (repo / "sub" / "out", worktree / "out", tmp_path / "link" / "out", tmp_path / "link"):
+        with pytest.raises(ValueError, match="inside the repo or a git work tree"):
+            plot_relations.refuse_inside_repo(folder)
+    plot_relations.refuse_inside_repo(tmp_path / "plain" / "out")
+    with pytest.raises(ValueError, match="inside the repo or a git work tree"):
+        parity.write_step(tmp_path / "link" / "steps", "faces", "python", "project", {}, SETTINGS, [])
+    assert not (repo / "sub" / "steps").exists()

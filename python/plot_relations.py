@@ -6,6 +6,7 @@ import argparse
 import csv
 import json
 import math
+import os
 import re
 import sys
 from collections import Counter
@@ -651,10 +652,23 @@ def write_outputs(rows, summary, prototypes_path, excel_path):
     return out_dir / CSV_NAME, out_dir / SUMMARY_NAME
 
 
+def git_tree_above(folder):
+    """R345, R347. The first folder at or above folder with a .git entry, the folder of a clone or the file of a worktree, else None.
+    The folder is walked as given and again as resolved through every link and junction, as WorkFiles.RepoAbove of Common does."""
+    given = Path(os.path.abspath(folder))
+    for start in (given, Path(folder).resolve()):
+        for step in (start, *start.parents):
+            if os.path.lexists(step / ".git"):
+                return step
+    return None
+
+
 def refuse_inside_repo(folder):
-    folder = Path(folder).resolve()
-    if folder == ROOT or ROOT in folder.parents:
-        raise ValueError("the report is written next to the input file and never inside the repo, but " + str(folder) + " is inside it")
+    """Real coordinates and levels never go into git (CLAUDE.md), so no output folder lies in this repo or in any git work tree."""
+    tree = git_tree_above(folder)
+    if tree is not None:
+        raise ValueError("the report is written next to the input file and never inside the repo or a git work tree, but %s lies inside the git work tree %s" % (
+            Path(folder).resolve(), tree))
 
 
 def main(argv=None):
