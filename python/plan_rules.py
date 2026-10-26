@@ -329,13 +329,27 @@ def check_override_jobs(name, lp, sources):
                                            "on a build of %s, native overrides are never applied by default (R280, R330)" % (", ".join(wrong), name, job, job, name))
 
 
+# R386. Why a build leaves an entry the check table marked "use": "rule"
+USE_RULE = "use rule, the override list marks the entry to follow the rule (R386)"
+
+
+class Overrides(dict):
+    """R280, R386. The overrides a build applies by plot and field, with skip, the plots of the skip list by plot with their reason, and
+    ruled, the entries marked use rule by plot and field with why, which a build leaves."""
+
+    def __init__(self, found, skip=None, ruled=None):
+        super().__init__(found)
+        self.skip, self.ruled = dict(skip or {}), {plot: dict(fields) for plot, fields in (ruled or {}).items()}
+
+
 def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None, models=None):
     """R280, R330. The overrides of the list whose source, the job of their key, is one of sources and whose field is one of
     fields, by plot and field, with models only those of the past model files named. Every entry must hold the job of its key as
     source and its model apart (override_source.check_entries), groups from majority.groups of config/project.json when not
     given. A source or a model named with no override in the list is refused, never applied as none. With lp the job of each
     source must be the job of the level profile first (check_override_jobs). A mirror of a past model that links other
-    prototype files than the plan is no mirror of the plan, so a build may leave it out by fields."""
+    prototype files than the plan is no mirror of the plan, so a build may leave it out by fields. R386: an entry marked "use": "rule"
+    is left with why in ruled and the plots of the skip list come back in skip, so the build leaves them out and lists them."""
     import override_source
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     entries = data.get("overrides") or []
@@ -345,6 +359,7 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
         override_source.check_entries(entries, groups)
     except project_profile.ProfileError as error:
         raise project_profile.ProfileError(str(path) + ": " + str(error)) from error
+    skip = override_source.check_skip(data.get("skip"), path) or {}
     if lp is not None:
         check_override_jobs(name, lp, sources)
     chosen = [item for item in entries if item["source"] in sources and (models is None or item["model"] in models)]
@@ -363,7 +378,7 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
     if broken:
         raise project_profile.ProfileError("%d steps overrides hold no whole number: %s. Give the step count as a whole number (R280, R340)"
                                            % (len(broken), " | ".join(broken[:10])))
-    found, origin, twice = defaultdict(dict), {}, []
+    found, origin, twice, ruled = defaultdict(dict), {}, [], defaultdict(dict)
     for item in chosen:
         if fields is None or item.get("field") in fields:
             pair = (str(item["plot"]), item["field"])
@@ -372,11 +387,14 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
                 twice.append("plot %s field %s of %s and %s" % (pair[0], pair[1], origin[pair], item.get("key") + " " + item.get("model")))
                 continue
             origin[pair] = item.get("key") + " " + item.get("model")
-            found[pair[0]][pair[1]] = item["value"]
+            if override_source.use_of(item) == "rule":
+                ruled[pair[0]][pair[1]] = USE_RULE
+            else:
+                found[pair[0]][pair[1]] = item["value"]
     if twice:
         raise project_profile.ProfileError("%d plots hold two overrides of one field: %s. Narrow the list with --override-model or edit it by hand (R280)"
                                            % (len(twice), " | ".join(twice[:10])))
-    return dict(found)
+    return Overrides(found, skip, ruled)
 
 
 def whole_number(value):

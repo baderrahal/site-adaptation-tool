@@ -201,10 +201,11 @@ LEFT = {"rampOutline": "an outline gap, a build places the ramp outline of R127"
 class Outcomes:
     """R337, R280. What a build did with each override of each plot of the build: applied, or left with why, so the plan says it plot
     by plot and the summary counts as applied only what a written plot took. An override of a plot of a cluster outside the build
-    that moved the El @ Entry or the FFL of its cluster is counted apart."""
+    that moved the El @ Entry or the FFL of its cluster is counted apart. An entry the override list marks use rule is left with why (R386)."""
 
     def __init__(self, overrides, numbers, later, name):
         self.overrides, self.numbers, self.later, self.name = overrides, set(numbers), set(later), name
+        self.ruled = getattr(overrides, "ruled", {})
         self.done, self.why, self.outside = defaultdict(set), defaultdict(dict), Counter()
 
     def applied(self, number, field):
@@ -219,13 +220,16 @@ class Outcomes:
 
     def plot(self, number, written, lacks):
         """The applied and the left overrides of a plot, None for a plot with none."""
-        fields = self.overrides.get(number) or {}
+        ruled = self.ruled.get(number) or {}
+        fields = set(self.overrides.get(number) or {}) | set(ruled)
         if not fields:
             return None
         applied, left = [], {}
         unwritten = "the plot is not written, it lacks " + ", ".join(lacks)
         for field in sorted(fields):
-            if field in self.why[number]:
+            if field in ruled:
+                left[field] = ruled[field]
+            elif field in self.why[number]:
                 left[field] = self.why[number][field]
             elif field in self.done[number]:
                 if written:
@@ -379,6 +383,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     overrides = {} if rules is None else rules["overrides"]
     outcomes = Outcomes(overrides, numbers, [] if rules is None else rules.get("laterFields") or [], "the estimate of R209" if rules is None else rules["name"])
     in_build = set(numbers)
+    # R386. The plots of the skip list of the override list are left out and listed in missing as skip
+    skip = getattr(overrides, "skip", {})
     for number, item in front.items():
         if item["front"] is not None:
             rule = None
@@ -426,6 +432,12 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         item = front[number]
         builder = plan_from_past.PlotBuilder(number)
         unit = item["unit"]
+        if number in skip:
+            builder.lack("skip", "the skip list of the override list: %s (R386)" % skip[number])
+            records[number] = outcomes.plot(number, False, ["skip"])
+            missing.append({"plot": number, "written": False, "missing": builder.missing, **({"overrides": records[number]} if records[number] else {})})
+            lacking.update(entry["key"] for entry in builder.missing)
+            continue
         if unit is None:
             # R230. A location plan number with no plots.csv row or no Typology_Rev9, such as a label sharing its face, is listed
             builder.lack("unit", "plots.csv holds no row or no Typology_Rev9 for the plot")
@@ -575,6 +587,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         "sources": {"plots": "plots.csv of the data book snapshot", "survey": "the new site file", "pastModel": "none"},
         "summary": {
             "plots": len(numbers), "written": len(plots), "notWritten": len(numbers) - len(plots), "missingByKey": dict(sorted(lacking.items())),
+            "skipped": sorted((number for number in numbers if number in skip), key=link_summary.sort_key),
             "clusters": len(mine), "clusterPlots": len(members), "inACluster": sum(1 for number in numbers if number in roles),
             "roadSurfacesOfFrontCorners": dict(surface_count.most_common()), "plotsWithNoRoadLevel": no_level,
             "frontRule": dict(Counter(front[number]["frontRule"] for number in numbers).most_common()),
@@ -849,6 +862,8 @@ def summary_lines(summary, name, named):
     for zone, found in (rules.get("yardNotMeasured") or {}).items():
         lines.append("yard of %s on %d plots not measured on a key: %s (R337)" % (zone, found["plots"], found["why"]))
     lines.append("plots written %d of %d, missing %s" % (summary["written"], summary["plots"], summary["missingByKey"]))
+    if summary.get("skipped"):
+        lines.append("plots the skip list of the override list leaves out %d: %s (R386)" % (len(summary["skipped"]), " ".join(summary["skipped"][:10])))
     lines.append("in a cluster %d, clusters %d with %d plots" % (summary["inACluster"], summary["clusters"], summary["clusterPlots"]))
     lines.append("road surfaces of the front corners %s, plots with no road level %s" % (summary["roadSurfacesOfFrontCorners"], summary["plotsWithNoRoadLevel"]))
     lines.append("front level against plots.csv %s, front rule %s" % (summary["frontLevelAgainstPlotsCsv"], summary["frontRule"]))

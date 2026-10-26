@@ -172,9 +172,10 @@ LEVEL_RULES = {"entry": {"rule": "roadLevel"}, "rampFront": {"rule": "roadLevel"
                "parameter RRE_ZZ_SP_Prototype-FFL": {"rule": "fflDownToTheCm"}}
 
 
-def level_build(tmp_path, monkeypatch, overrides=None, later=None, rules=None):
+def level_build(tmp_path, monkeypatch, overrides=None, later=None, rules=None, skip=None):
     """A build by keyRules with the level rules on the made up row of test_addin_review, a villa and three DP2 units in no cluster, the
-    road rising 0.01 m every 12 m along the row, with the fields majority.overrideKeep leaves to a later phase as later."""
+    road rising 0.01 m every 12 m along the row, with the fields majority.overrideKeep leaves to a later phase as later and with skip
+    the skip list of the override list (R386)."""
     import argparse
     from shapely.geometry import LineString, box
     import plan_from_book
@@ -196,7 +197,7 @@ def level_build(tmp_path, monkeypatch, overrides=None, later=None, rules=None):
     path = None
     if overrides is not None:
         path = tmp_path / "overrides.json"
-        path.write_text(json.dumps({"note": "n", "overrides": overrides}), encoding="utf-8")
+        path.write_text(json.dumps({"note": "n", "overrides": overrides, **({} if skip is None else {"skip": skip})}), encoding="utf-8")
     args = argparse.Namespace(level_profile=None, overrides=None if path is None else str(path), override_source=None, override_model=[], override_fields=None)
     found = plan_from_book.rule_inputs(args, settings, profile, numbers, rows, faces, roads, {}, [])
     floors = plan_from_past.load_floors(settings)
