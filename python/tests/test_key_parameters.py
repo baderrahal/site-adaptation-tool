@@ -157,7 +157,86 @@ def test_r353_a_write_keeps_an_entry_bader_marks_by_hand_and_refuses_a_run_of_fe
     with pytest.raises(ValueError, match="imd"):
         key_parameters.write_block(path, key_parameters.block(key_parameters.collect({"imc": made_file()}, NAMES), NAMES, ["imc"]))
     assert path.read_text(encoding="utf-8") == before
-    # A hand GUID the keys give otherwise is refused with both named, never resolved in silence
+    # A hand GUID the keys give otherwise stays Bader's and the disagreement is listed in conflicts with both GUIDs, never in silence
     edit_by_hand(path, lambda block: next(item for item in block["parameters"] if item["name"] == "CASE").update(guid=OTHER, byHand=True))
-    with pytest.raises(ValueError, match="CASE.*%s.*%s" % (OTHER, CASE)):
-        key_parameters.write_block(path, key_parameters.block(found, NAMES, ["imc", "imd"]))
+    key_parameters.write_block(path, key_parameters.block(found, NAMES, ["imc", "imd"]))
+    block = json.loads(path.read_text(encoding="utf-8"))["addin"]["sharedParameters"]
+    assert next(item for item in block["parameters"] if item["name"] == "CASE")["guid"] == OTHER
+    assert [(item["name"], item["byHand"]) for item in block["conflicts"]] == [("CASE", OTHER)] and CASE in block["conflicts"][0]["why"]
+
+
+def two_keys(plot_imc, plot_imd):
+    """The parameter files of two made up keys whose bound shared parameter Plot has the GUIDs given, None for a project parameter."""
+    found = {}
+    for key, guid in (("imc", plot_imc), ("imd", plot_imd)):
+        payload = made_file(plot_project=guid is None)
+        if guid is not None:
+            payload["parameters"].append({"name": "Plot", "guid": guid, "elementId": 30, "bound": True, "binding": "instance", "categories": ["Floors"]})
+        found[key] = payload
+    return found
+
+
+def run_main(path, files, tmp_path, capsys, write=True):
+    """key_parameters.py on made up parameter files with the config at path, its totals as printed."""
+    args = ["--settings", str(path)]
+    for key, payload in files.items():
+        name = tmp_path / ("parameters_%s.json" % key)
+        name.write_text(json.dumps(payload), encoding="utf-8")
+        args += ["--parameters", "%s=%s" % (key, name)]
+    code = key_parameters.main(args + (["--write"] if write else []))
+    out = capsys.readouterr()
+    assert code == 0, out.err
+    totals = next(line for line in out.out.splitlines() if line.startswith("the block written") or line.startswith("the block a write gives"))
+    return out.out, dict(part.rsplit(" ", 1) for part in totals.split(": ", 1)[1].split(", "))
+
+
+def counts(path):
+    block = json.loads(path.read_text(encoding="utf-8"))["addin"]["sharedParameters"]
+    return {"parameters": str(len(block["parameters"])), "noGuid": str(len(block["noGuid"])), "conflicts": str(len(block["conflicts"])),
+            "byHand": str(sum(1 for part in ("parameters", "noGuid") for item in block[part] if item.get("byHand") is True))}
+
+
+def test_r353_a_hand_guid_over_a_conflict_of_the_keys_stays_and_the_conflict_is_written_and_printed_with_the_counts_of_the_block_written(tmp_path, capsys):
+    # Input: two keys give Plot two GUIDs, a conflict of the keys, and Bader holds Plot by hand with one of them, the probe of the breaker
+    path = tmp_path / "project.json"
+    path.write_text(config_without_block(), encoding="utf-8")
+    files = two_keys(CASE, OTHER)
+    run_main(path, files, tmp_path, capsys)
+    first = json.loads(path.read_text(encoding="utf-8"))["addin"]["sharedParameters"]
+    assert [item["name"] for item in first["conflicts"]] == ["Plot"] and "two GUIDs" in first["conflicts"][0]["why"]
+    def give_plot(block):
+        block["parameters"].append({"name": "Plot", "guid": CASE, "on": ["Floors"], "keys": 2, "byHand": True})
+        block["noGuid"] = [item for item in block["noGuid"] if item["name"] != "Plot"]
+    edit_by_hand(path, give_plot)
+    printed, totals = run_main(path, files, tmp_path, capsys)
+    block = json.loads(path.read_text(encoding="utf-8"))["addin"]["sharedParameters"]
+    assert {"name": "Plot", "guid": CASE, "on": ["Floors"], "keys": 2, "byHand": True} in block["parameters"]
+    assert "Plot" not in [item["name"] for item in block["noGuid"]]
+    assert [(item["name"], item["byHand"]) for item in block["conflicts"]] == [("Plot", CASE)] and "two GUIDs" in block["conflicts"][0]["why"]
+    assert "Plot: a conflict of the keys" in printed
+    # The totals printed are those of the block written, in a dry run those a write would give
+    assert totals == counts(path) and (totals["parameters"], totals["conflicts"], totals["byHand"]) == ("3", "1", "1")
+    _, dry = run_main(path, files, tmp_path, capsys, write=False)
+    assert dry == totals
+
+
+def test_r353_a_no_guid_entry_bader_marks_by_hand_survives_every_run(tmp_path, capsys):
+    # Input: Bader marks the noGuid entry of Plot by hand, then a run where the keys bind Plot as a project parameter and a run where the
+    # keys give Plot one GUID: his entry stays as he wrote it in both, and the second run lists the GUID of the keys in conflicts
+    path = tmp_path / "project.json"
+    path.write_text(config_without_block(), encoding="utf-8")
+    run_main(path, two_keys(None, None), tmp_path, capsys)
+    hand = {"name": "Plot", "why": "Bader: no GUID until Q085", "byHand": True}
+    edit_by_hand(path, lambda block: block.update(noGuid=[hand if item["name"] == "Plot" else item for item in block["noGuid"]]))
+    for files in (two_keys(None, None), two_keys(OTHER, OTHER)):
+        _, totals = run_main(path, files, tmp_path, capsys)
+        block = json.loads(path.read_text(encoding="utf-8"))["addin"]["sharedParameters"]
+        assert hand in block["noGuid"] and "Plot" not in [item["name"] for item in block["parameters"]]
+        assert totals == counts(path)
+    assert [(item["name"], item["byHand"]) for item in block["conflicts"]] == [("Plot", None)] and OTHER in block["conflicts"][0]["why"]
+    # Two hand entries of one name, one with a GUID and one with none, are refused, the file as it was
+    edit_by_hand(path, lambda block: block["parameters"].append({"name": "Plot", "guid": OTHER, "byHand": True}))
+    before = path.read_text(encoding="utf-8")
+    with pytest.raises(ValueError, match="Plot.*two hand entries"):
+        key_parameters.write_block(path, key_parameters.block(key_parameters.collect(two_keys(None, None), NAMES), NAMES, ["imc", "imd"]))
+    assert path.read_text(encoding="utf-8") == before

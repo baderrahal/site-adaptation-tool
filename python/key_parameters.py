@@ -8,8 +8,11 @@ the same window. routes says which routes held it, parameterElement alone when n
 GUIDs or whose elements give another, a name some keys hold only as a project parameter or as an unbound shared element while others
 bind it shared, a conflict, and a name no key binds as a shared parameter get no GUID and are listed in noGuid with why, never resolved
 silently, so button 1 stops naming them (docs/addin-design.md 3.1, Shared parameters). projectParameterIn lists the keys that bind a
-project parameter of the name, beside its shared one or in its place. A write keeps every entry Bader marks "byHand": true as he wrote it,
-refuses one whose GUID the keys give otherwise and refuses a run of fewer keys than the block it writes over, which would shrink it (Q085).
+project parameter of the name, beside its shared one or in its place. conflicts lists every name the keys disagree on, two GUIDs, elements
+of another GUID or project and shared keys, and every hand entry the keys give otherwise. A write keeps every entry Bader marks "byHand":
+true as he wrote it, a GUID in parameters or none in noGuid, whatever the keys give, its disagreement with the keys in conflicts, and refuses
+two hand entries of one name and a run of fewer keys than the block it writes over, which would shrink it (Q085). The totals printed are
+those of the block written, or of the block a write would give.
 """
 import argparse
 import json
@@ -23,9 +26,10 @@ NOTE = ("R353. The shared parameters button 1 binds and every button reads and w
         "answer keys by the read job of the test host (testhost_<code>_parameters.json) and written by python/key_parameters.py: per name its "
         "GUID, the categories the keys bind it to, how many keys hold it and routes, the routes of the read that held the GUID, the "
         "SharedParameterElement and the parameters of the elements. projectParameterIn names the keys that bind a project parameter of the name. "
-        "noGuid lists each name with no GUID and why, a project parameter holds none and a name some keys bind shared and others only as a "
-        "project parameter is a conflict, and button 1 stops on a name of config with no GUID. An entry marked \"byHand\": true is kept by every "
-        "run as written, a run whose keys give it another GUID or that reads fewer keys than this block is refused (Q085).")
+        "noGuid lists each name with no GUID and why, a project parameter holds none, and button 1 stops on a name of config with no GUID. "
+        "conflicts lists each name the keys disagree on, two GUIDs, elements of another GUID, or keys that bind it shared and keys that hold it only as "
+        "a project parameter, and each hand entry the keys give otherwise. An entry marked \"byHand\": true is kept by every run as written, in "
+        "parameters or in noGuid, two hand entries of one name or a run that reads fewer keys than this block is refused (Q085).")
 
 
 def names_of(settings):
@@ -61,6 +65,7 @@ def collect(files, names):
         if project:
             entry["projectParameterIn"] = project
         apart = [key for key in held if key not in keys]
+        entry["conflict"] = bool(keys) and (bool(apart) or len(guids) > 1 or bool(seen - guids))
         if not keys:
             entry["why"] = "no key binds a shared parameter of this name" + (", it is a project parameter in %s, which holds no GUID" % ", ".join(project) if project else "")
         elif apart:
@@ -86,7 +91,8 @@ def block(found, names, keys):
     return {"note": NOTE, "keys": list(keys),
             "parameters": [with_project({"name": name, "guid": found[name]["guid"], "on": found[name]["on"], "keys": len(found[name]["keys"]),
                                          "routes": found[name]["routes"]}, name) for name in names if found[name]["guid"]],
-            "noGuid": [with_project({"name": name, "why": found[name]["why"]}, name) for name in names if not found[name]["guid"]]}
+            "noGuid": [with_project({"name": name, "why": found[name]["why"]}, name) for name in names if not found[name]["guid"]],
+            "conflicts": [{"name": name, "why": found[name]["why"]} for name in names if found[name].get("conflict")]}
 
 
 def earlier_block(text):
@@ -95,24 +101,49 @@ def earlier_block(text):
 
 
 def merged(payload, earlier):
-    """Q085. The block of a run laid over the block it writes over: every entry Bader marks "byHand": true kept as he wrote it, its name
-    out of noGuid, a hand GUID the run gives otherwise refused with both named, and a run of fewer keys than the earlier block refused, so
-    a rerun never shrinks the block or undoes a hand edit."""
+    """Q085. The block of a run laid over the block it writes over: every entry Bader marks "byHand": true kept as he wrote it, a GUID in
+    parameters or none in noGuid, its name out of the other list, and every disagreement of the keys with it or among themselves in
+    conflicts, so a hand entry never hides what the keys give. Two hand entries of one name and a run of fewer keys than the earlier block
+    are refused, so a rerun never shrinks the block or undoes a hand edit."""
+    payload = dict(payload, conflicts=list(payload.get("conflicts") or []))
     if not earlier:
         return payload
     missing = [key for key in earlier.get("keys") or [] if key not in payload["keys"]]
     if missing:
         raise ValueError("the run reads the keys %s and the block it would write over holds %s too, a run of fewer keys would shrink it, refused (R353)" % (
             ", ".join(payload["keys"]), ", ".join(missing)))
-    hand = [item for item in earlier.get("parameters") or [] if item.get("byHand") is True]
-    run = {item["name"]: item for item in payload["parameters"]}
-    for item in hand:
-        given = run.get(item["name"])
+    hand_guids = [item for item in earlier.get("parameters") or [] if item.get("byHand") is True]
+    hand_none = [item for item in earlier.get("noGuid") or [] if item.get("byHand") is True]
+    names = [item["name"] for item in hand_guids + hand_none]
+    twice = sorted({name for name in names if names.count(name) > 1})
+    if twice:
+        raise ValueError("%s has two hand entries, one name holds one GUID or none, refused (R353, Q085)" % ", ".join(twice))
+    run_guids = {item["name"]: item for item in payload["parameters"]}
+    run_none = {item["name"]: item for item in payload["noGuid"]}
+    conflicts = {item["name"]: dict(item) for item in payload["conflicts"]}
+    for item in hand_guids:
+        given = run_guids.get(item["name"])
         if given is not None and given["guid"] != item["guid"]:
-            raise ValueError("%s holds the GUID %s by hand and the keys give %s, never resolved in silence, refused (R353, Q085)" % (item["name"], item["guid"], given["guid"]))
-    names = {item["name"] for item in hand}
-    return dict(payload, parameters=[item for item in payload["parameters"] if item["name"] not in names] + hand,
-                noGuid=[item for item in payload["noGuid"] if item["name"] not in names])
+            conflicts[item["name"]] = {"name": item["name"], "why": "the keys give %s" % given["guid"]}
+        if item["name"] in conflicts:
+            conflicts[item["name"]]["byHand"] = item["guid"]
+    for item in hand_none:
+        given = run_guids.get(item["name"])
+        if given is not None:
+            conflicts[item["name"]] = {"name": item["name"], "why": "the keys give %s" % given["guid"]}
+        if item["name"] in conflicts:
+            conflicts[item["name"]]["byHand"] = None
+    held = set(names)
+    order = [item["name"] for item in payload["parameters"] + payload["noGuid"]]
+    return dict(payload, parameters=[item for item in payload["parameters"] if item["name"] not in held] + hand_guids,
+                noGuid=[item for item in payload["noGuid"] if item["name"] not in held] + hand_none,
+                conflicts=sorted(conflicts.values(), key=lambda item: order.index(item["name"]) if item["name"] in order else len(order)))
+
+
+def totals(payload):
+    """The counts of a block as it is written: names with a GUID, with none, conflicts and hand entries."""
+    return "parameters %d, noGuid %d, conflicts %d, byHand %d" % (len(payload["parameters"]), len(payload["noGuid"]), len(payload["conflicts"]),
+                                                                 sum(1 for part in ("parameters", "noGuid") for item in payload[part] if item.get("byHand") is True))
 
 
 def block_text(payload):
@@ -122,6 +153,8 @@ def block_text(payload):
     lines += ["        %s%s" % (json.dumps(item, ensure_ascii=False), "," if k + 1 < len(payload["parameters"]) else "") for k, item in enumerate(payload["parameters"])]
     lines += ["      ],", "      \"noGuid\": ["]
     lines += ["        %s%s" % (json.dumps(item, ensure_ascii=False), "," if k + 1 < len(payload["noGuid"]) else "") for k, item in enumerate(payload["noGuid"])]
+    lines += ["      ],", "      \"conflicts\": ["]
+    lines += ["        %s%s" % (json.dumps(item, ensure_ascii=False), "," if k + 1 < len(payload["conflicts"]) else "") for k, item in enumerate(payload["conflicts"])]
     lines += ["      ]", "    },"]
     return "\n".join(lines) + "\n"
 
@@ -169,11 +202,18 @@ def main(argv=None):
             print("%s: %s, keys %d, on %s, routes %s, a project parameter in %s%s" % (
                 name, "GUID" if entry["guid"] else "no GUID", len(entry["keys"]), ", ".join(entry["on"]) or "none", ", ".join(entry.get("routes") or []) or "none",
                 ", ".join(entry.get("projectParameterIn") or []) or "none", "" if entry["guid"] else ", " + entry["why"]))
-        print("names %d, with a GUID %d, no GUID %d, a conflict %d, held on one route only %d" % (
-            len(names), len(payload["parameters"]), len(payload["noGuid"]), sum(1 for name in names if "conflict" in (found[name].get("why") or "")),
+        print("the keys: names %d, with a GUID %d, no GUID %d, a conflict %d, held on one route only %d" % (
+            len(names), len(payload["parameters"]), len(payload["noGuid"]), len(payload["conflicts"]),
             sum(1 for name in names if found[name].get("routes") == ["parameterElement"])))
+        # Q085. The block as it is written, the hand entries of the config kept over the keys, every conflict printed
+        written = merged(payload, earlier_block(Path(args.settings).read_text(encoding="utf-8")))
+        for item in written["conflicts"]:
+            print("%s: a conflict of the keys, %s%s" % (item["name"], item["why"], "" if "byHand" not in item else ", held by hand with %s" % (item["byHand"] or "no GUID")))
         if args.write:
             print(write_block(args.settings, payload))
+            print("the block written: " + totals(written))
+        else:
+            print("the block a write gives: " + totals(written))
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
         print("key_parameters: " + str(error), file=sys.stderr)
         return 2

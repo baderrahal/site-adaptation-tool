@@ -361,7 +361,7 @@
       "overlapDecimals": 4
     },
     "sharedParameters": {
-      "note": "R353. The shared parameters button 1 binds and every button reads and writes by GUID (docs/addin-design.md 3.1), read from the answer keys by the read job of the test host (testhost_<code>_parameters.json) and written by python/key_parameters.py: per name its GUID, the categories the keys bind it to, how many keys hold it and routes, the routes of the read that held the GUID, the SharedParameterElement and the parameters of the elements. projectParameterIn names the keys that bind a project parameter of the name. noGuid lists each name with no GUID and why, a project parameter holds none and a name some keys bind shared and others only as a project parameter is a conflict, and button 1 stops on a name of config with no GUID. An entry marked \"byHand\": true is kept by every run as written, a run whose keys give it another GUID or that reads fewer keys than this block is refused (Q085).",
+      "note": "R353. The shared parameters button 1 binds and every button reads and writes by GUID (docs/addin-design.md 3.1), read from the answer keys by the read job of the test host (testhost_<code>_parameters.json) and written by python/key_parameters.py: per name its GUID, the categories the keys bind it to, how many keys hold it and routes, the routes of the read that held the GUID, the SharedParameterElement and the parameters of the elements. projectParameterIn names the keys that bind a project parameter of the name. noGuid lists each name with no GUID and why, a project parameter holds none, and button 1 stops on a name of config with no GUID. conflicts lists each name the keys disagree on, two GUIDs, elements of another GUID, or keys that bind it shared and keys that hold it only as a project parameter, and each hand entry the keys give otherwise. An entry marked \"byHand\": true is kept by every run as written, in parameters or in noGuid, two hand entries of one name or a run that reads fewer keys than this block is refused (Q085).",
       "keys": ["ima", "imb", "imc", "imd", "ime", "imf", "img"],
       "parameters": [
         {"name": "RRE_ZZ_SP_Plot-Number", "guid": "7a7813d7-ad61-4bf2-a75f-6234c92957bb", "on": ["Floors", "RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
@@ -377,6 +377,8 @@
       ],
       "noGuid": [
         {"name": "Plot", "why": "no key binds a shared parameter of this name, it is a project parameter in ima, imb, imc, imd, ime, imf, img, which holds no GUID", "projectParameterIn": ["ima", "imb", "imc", "imd", "ime", "imf", "img"]}
+      ],
+      "conflicts": [
       ]
     },
     "parity": {
