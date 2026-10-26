@@ -65,6 +65,13 @@ namespace SiteAdaptation.Common
             return input.Path;
         }
 
+        // R347, R348. A refusal of the request found by a command before it used anything of an input, such as a drawing whose units
+        // are not Meters: the run ends with exit 2 and the message, the command throws what this gives
+        public Exception Refusal(string message)
+        {
+            return new WorkerStop(WorkerExit.Refused, message);
+        }
+
         // An output of the run, in the output or the steps folder of the request only, where the kill finds its temporary name, with
         // the run stamp of RunStamp, written by its temporary name. Its name is given back, the file is there once the run is done
         public string WriteJson(string folder, string name, JObject content)

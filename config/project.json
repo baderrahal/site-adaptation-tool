@@ -289,6 +289,8 @@
       "position": 600
     },
     "workerTimeLimitNote": "CHOSEN in docs/addin-design.md: 600 s for a read, 28 times the 21.2 s of the Road Layout read, and 60 s for the level Excel, the other commands 600 s until the PR that builds each measures it",
+    "workbookRoles": {"tbd": "dlus", "accommodation": "sales"},
+    "workbookRolesNote": "R350. The input of the pane, its role in the request of the worker, that holds each workbook of dataBook.rev9.workbooks: the Rev 9 DLUS workbook is dlus and the accommodation workbook, which holds the sales sheet and the DLUS setback sheet, is sales (docs/addin-design.md section 4)",
     "workerTimeLimitMinS": 10,
     "workerTimeLimitMinNote": "R347. The shortest time limit a launch takes, a request under it is refused before the start, so a limit typed too short never kills a sound run. CHOSEN in the second review of PR 50: 10 s, ten times the 1.0 s the worker build of the step faces took on the 2,704 unit plots of the snapshot, its start included",
     "parity": {
@@ -322,6 +324,86 @@
             "kind": "points",
             "decimals": 3
           }
+        },
+        "labels": {
+            "rings": {"kind": "points", "decimals": 3},
+            "types": {"kind": "noGeometry"},
+            "areas": {"kind": "areas", "decimals": 3},
+            "whole": {"kind": "noGeometry"}
+        },
+        "blocks": {
+            "name": {"kind": "noGeometry"},
+            "layer": {"kind": "noGeometry"},
+            "mirrored": {"kind": "noGeometry"},
+            "scale": {"kind": "noGeometry"},
+            "insertPoint": {"kind": "points", "decimals": 3},
+            "rotationDeg": {"kind": "angles", "decimals": 3},
+            "outline": {"kind": "points", "decimals": 3}
+        },
+        "curbs": {
+            "handle": {"kind": "noGeometry"},
+            "layer": {"kind": "noGeometry"},
+            "kind": {"kind": "noGeometry"},
+            "closed": {"kind": "noGeometry"},
+            "points": {"kind": "points", "decimals": 3}
+        },
+        "rows": {
+            "handle": {"kind": "noGeometry"},
+            "layer": {"kind": "noGeometry"},
+            "kind": {"kind": "noGeometry"},
+            "closed": {"kind": "noGeometry"},
+            "points": {"kind": "points", "decimals": 3}
+        },
+        "setbacks": {
+            "handle": {"kind": "noGeometry"},
+            "layer": {"kind": "noGeometry"},
+            "kind": {"kind": "noGeometry"},
+            "closed": {"kind": "noGeometry"},
+            "points": {"kind": "points", "decimals": 3}
+        },
+        "surfaces": {
+            "file": {"kind": "noGeometry"},
+            "linearUnit": {"kind": "noGeometry"},
+            "epsgCode": {"kind": "noGeometry"},
+            "pointCount": {"kind": "noGeometry"},
+            "faceCount": {"kind": "noGeometry"},
+            "visibleFaceCount": {"kind": "noGeometry"},
+            "invisibleFaceCount": {"kind": "noGeometry"},
+            "badFaceCount": {"kind": "noGeometry"},
+            "badPointCount": {"kind": "noGeometry"},
+            "declaredZRange": {"kind": "noGeometry"},
+            "bboxMin": {"kind": "points", "decimals": 3},
+            "bboxMax": {"kind": "points", "decimals": 3},
+            "zMin": {"kind": "levels", "decimals": 3},
+            "zMax": {"kind": "levels", "decimals": 3}
+        },
+        "roadLevels": {
+            "point": {"kind": "points", "decimals": 3},
+            "level": {"kind": "levels", "decimals": 3},
+            "surface": {"kind": "noGeometry"}
+        },
+        "areaKey": {
+            "inDlus": {"kind": "noGeometry"},
+            "zone": {"kind": "noGeometry"},
+            "nbhId": {"kind": "noGeometry"},
+            "twoRows": {"kind": "noGeometry"},
+            "inSales": {"kind": "noGeometry"},
+            "salesZone": {"kind": "noGeometry"},
+            "salesNbhId": {"kind": "noGeometry"},
+            "salesTwoRows": {"kind": "noGeometry"}
+        },
+        "dlusSetbacks": {
+            "plotCell": {"kind": "noGeometry"},
+            "typology": {"kind": "noGeometry"},
+            "nbh": {"kind": "noGeometry"},
+            "front": {"kind": "noGeometry"},
+            "right": {"kind": "noGeometry"},
+            "left": {"kind": "noGeometry"},
+            "rear": {"kind": "noGeometry"}
+        },
+        "sales": {
+            "row": {"kind": "noGeometry"},
+            "plain": {"kind": "noGeometry"}
         }
       }
     }

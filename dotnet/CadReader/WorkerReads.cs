@@ -1,0 +1,265 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using ACadSharp;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common;
+
+namespace CadReader
+{
+    // R348 to R350. The command read of the worker, the reads of button 2 (docs/addin-design.md 3.2): each drawing of the request read
+    // with ACadSharp by the CadExtractor of CadReader, refused when it is a drawing of drawings.referenceOnly (R300) or its header InsUnits
+    // is not Meters, each road surface LandXML read in the order of siteBuild.roadSurfaces and refused when it is not in meter, and the
+    // DLUS and sales workbooks read by their sheets in config. Each read is written to the output folder of the request at the
+    // decimals of R2, read_<role>.json, and the read steps of the request are written from those outputs, so a step takes the numbers a
+    // later build reads. Every input is read through WorkerContext.Input, the free memory checked right before it (R347)
+    public static class WorkerReads
+    {
+        public static Dictionary<string, WorkerCommand> Commands()
+        {
+            Dictionary<string, WorkerCommand> commands = WorkerCommands.Default();
+            commands["read"] = Read;
+            return commands;
+        }
+
+        private static readonly string[] Drawings = { "baseplan", "villaBlocks", "curbs" };
+
+        // A JSON text read with its texts kept as texts, never taken for dates
+        private static JToken Parse(string text)
+        {
+            using (var reader = new JsonTextReader(new StringReader(text)) { DateParseHandling = DateParseHandling.None })
+            {
+                return JToken.Load(reader);
+            }
+        }
+
+        // An object written as the CadReader outputs are written, at the decimals of R2 (JsonOut), then read back as JSON
+        private static JToken AsWritten(object value)
+        {
+            return Parse(JsonOut.ToJson(value));
+        }
+
+        private static void Read(WorkerContext run)
+        {
+            WorkerRequest request = run.Request;
+            if (string.IsNullOrEmpty(request.OutputFolder))
+            {
+                throw run.Refusal("a read names no output folder for its outputs");
+            }
+            ReadSettings settings = ReadSettings.Load(run.Input("config"));
+            var steps = new HashSet<string>(request.Steps ?? new List<string>());
+            var made = new Dictionary<string, Dictionary<string, Dictionary<string, object>>>();
+            var reads = new Dictionary<string, JObject>();
+            bool anyDrawing = Drawings.Any(role => request.Inputs.Any(input => input.Role == role));
+            LayerConfig layers = null;
+            if (anyDrawing)
+            {
+                if (request.Inputs.All(input => input.Role != "cadLayers"))
+                {
+                    throw run.Refusal("a read of a drawing needs the input cadLayers, the keep and drop list of the layers (config/cad_layers.json)");
+                }
+                layers = LayerConfig.Load(run.Input("cadLayers"));
+            }
+            foreach (string role in Drawings.Where(role => request.Inputs.Any(input => input.Role == role)))
+            {
+                reads[role] = Drawing(run, role, layers, settings);
+                run.WriteJson(request.OutputFolder, "read_" + role + ".json", reads[role]);
+            }
+            List<TinSurface> surfaces = Surfaces(run, settings, steps, made);
+            Workbooks(run, settings, steps, made);
+            if (steps.Contains(ReadSteps.Labels))
+            {
+                made[ReadSteps.Labels] = ReadSteps.LabelStep((JArray)reads["baseplan"]["plots"]);
+            }
+            if (steps.Contains(ReadSteps.Blocks))
+            {
+                made[ReadSteps.Blocks] = ReadSteps.BlockStep((JArray)reads["villaBlocks"]["blocks"]);
+            }
+            if (steps.Contains(ReadSteps.Setbacks))
+            {
+                made[ReadSteps.Setbacks] = ReadSteps.EdgeStep((JArray)reads["villaBlocks"]["pieces"], settings.SetbackLayers);
+            }
+            if (steps.Contains(ReadSteps.Curbs))
+            {
+                made[ReadSteps.Curbs] = ReadSteps.EdgeStep((JArray)reads["curbs"]["pieces"], settings.CurbLayers);
+            }
+            if (steps.Contains(ReadSteps.Rows))
+            {
+                made[ReadSteps.Rows] = ReadSteps.EdgeStep((JArray)reads["curbs"]["pieces"], settings.RowLayers);
+            }
+            if (steps.Contains(ReadSteps.RoadLevels))
+            {
+                List<Dictionary<string, string>> labels = CsvRows.Read(run.Input("labels"));
+                List<Dictionary<string, string>> plotsCsv = CsvRows.Read(run.Input("plotsCsv"));
+                Dictionary<string, List<double[][]>> faces = ReadSteps.FaceRings((JArray)reads["baseplan"]["plots"], plotsCsv);
+                made[ReadSteps.RoadLevels] = ReadSteps.RoadLevelStep(PlotScope.Numbers(request.Scope, labels), faces, surfaces, settings.SnapM);
+            }
+            AddinConfig config = AddinConfig.Load(run.Input("config"));
+            foreach (string step in request.Steps ?? new List<string>())
+            {
+                run.Counts[step + " items"] = made[step].Count;
+                run.WriteJson(request.StepsFolder, StepFile.FileName(step, "csharp"), StepFile.Build(step, "csharp", StepFile.ScopeText(request.Scope), made[step], config.StepFields(step)));
+            }
+        }
+
+        // R348. One drawing read: refused for reference only (R300) or when its header InsUnits is not Meters, then extracted with the
+        // layer list, the plots of the baseplan, the blocks and the setback pieces of the footprint, the curb and ROW pieces of the road
+        // layout, as CadReader writes them in plots.json, blocks.json and pieces.json
+        private static JObject Drawing(WorkerContext run, string role, LayerConfig layers, ReadSettings settings)
+        {
+            string path = run.Input(role);
+            string name = Path.GetFileName(path);
+            if (settings.IsReferenceOnly(name))
+            {
+                throw run.Refusal(name + " is kept for reference only (drawings.referenceOnly) and is never read for " + role + " (R300)");
+            }
+            var problems = new List<string>();
+            CadDocument document = CadExtractor.Open(path, problems);
+            string units = document.Header.InsUnits.ToString();
+            string refusal = CadUnits.HeaderRefusal(name, units);
+            if (refusal != null)
+            {
+                throw run.Refusal(refusal);
+            }
+            List<string> wanted = role == "curbs" ? settings.CurbLayers.Concat(settings.RowLayers).ToList() : role == "villaBlocks" ? settings.SetbackLayers : new List<string>();
+            var kept = new List<Piece>();
+            CadExtract extract = CadExtractor.Extract(document, name, layers, piece =>
+            {
+                if (wanted.Count > 0 && ReadSteps.IsEdge(piece.Kind, piece.Layer, wanted))
+                {
+                    kept.Add(piece);
+                }
+            }, path, problems);
+            var output = new JObject { ["source"] = name, ["role"] = role, ["units"] = units, ["notes"] = problems.Count };
+            if (role == "baseplan")
+            {
+                output["summary"] = AsWritten(extract.Plots.Summary);
+                output["plots"] = AsWritten(extract.Plots.Plots);
+            }
+            if (role == "villaBlocks")
+            {
+                output["blocks"] = AsWritten(extract.Blocks.Blocks);
+            }
+            if (wanted.Count > 0)
+            {
+                output["pieces"] = AsWritten(kept);
+            }
+            run.Counts[role + " pieces kept"] = kept.Count;
+            return output;
+        }
+
+        // R349. The road surfaces of siteBuild.roadSurfaces in their order, each the input roadSurface:<name>, every one of the order and no
+        // other, the first surface of each file, named as a build names it. A LandXML not in meter is refused, never converted
+        private static List<TinSurface> Surfaces(WorkerContext run, ReadSettings settings, HashSet<string> steps, Dictionary<string, Dictionary<string, Dictionary<string, object>>> made)
+        {
+            WorkerRequest request = run.Request;
+            List<string> roles = request.Inputs.Select(input => input.Role).Where(role => role != null && role.StartsWith(WorkerRunner.RoadSurfaceRole, StringComparison.Ordinal)).ToList();
+            var surfaces = new List<TinSurface>();
+            if (roles.Count == 0)
+            {
+                return surfaces;
+            }
+            List<string> order = settings.RoadSurfaces;
+            List<string> extra = roles.Where(role => !order.Contains(role.Substring(WorkerRunner.RoadSurfaceRole.Length))).ToList();
+            List<string> missing = order.Where(name => !roles.Contains(WorkerRunner.RoadSurfaceRole + name)).ToList();
+            if (extra.Count > 0 || missing.Count > 0)
+            {
+                throw run.Refusal("the road surfaces of the request are not those of siteBuild.roadSurfaces: not in config " + string.Join(", ", extra) + ", not in the request " + string.Join(", ", missing));
+            }
+            var files = new List<LandXmlFile>();
+            var summary = new JObject();
+            foreach (string name in order)
+            {
+                LandXmlFile file;
+                try
+                {
+                    file = LandXmlReader.Read(run.Input(WorkerRunner.RoadSurfaceRole + name));
+                }
+                catch (LandXmlUnitException refused)
+                {
+                    throw run.Refusal(refused.Message);
+                }
+                if (file.Surfaces.Count == 0)
+                {
+                    throw new InvalidDataException(file.File + " holds no surface");
+                }
+                files.Add(file);
+                LandXmlSurface first = file.Surfaces[0];
+                surfaces.Add(new TinSurface(ReadSettings.RoadName(name), first.Points, first.Faces));
+            }
+            Dictionary<string, Dictionary<string, object>> step = ReadSteps.SurfaceStep(files);
+            foreach (KeyValuePair<string, Dictionary<string, object>> item in step)
+            {
+                summary[item.Key] = AsWritten(item.Value);
+            }
+            run.WriteJson(request.OutputFolder, "read_roadSurfaces.json", new JObject { ["order"] = new JArray(order), ["surfaces"] = summary });
+            run.Counts["road surfaces"] = surfaces.Count;
+            if (steps.Contains(ReadSteps.Surfaces))
+            {
+                made[ReadSteps.Surfaces] = step;
+            }
+            return surfaces;
+        }
+
+        // R350. The sheets of dataBook of config in the DLUS and sales workbooks, each read once, the area key, the DLUS setbacks and the
+        // sales rows as the Python readers give them, written to read_workbooks.json
+        private static void Workbooks(WorkerContext run, ReadSettings settings, HashSet<string> steps, Dictionary<string, Dictionary<string, Dictionary<string, object>>> made)
+        {
+            WorkerRequest request = run.Request;
+            bool dlus = request.Inputs.Any(input => input.Role == "dlus"), sales = request.Inputs.Any(input => input.Role == "sales");
+            if (!dlus && !sales)
+            {
+                return;
+            }
+            var sheets = new Dictionary<string, XlsxSheet.Sheet>();
+            Func<ReadSettings.SheetSetting, List<object[]>> rowsOf = setting =>
+            {
+                string key = setting.Role + "\n" + setting.Sheet;
+                XlsxSheet.Sheet sheet;
+                if (!sheets.TryGetValue(key, out sheet))
+                {
+                    sheet = XlsxSheet.Read(run.Input(setting.Role), setting.Sheet);
+                    sheets[key] = sheet;
+                    run.Counts["sheet " + setting.Sheet + " rows"] = sheet.Rows.Count;
+                    run.Counts["sheet " + setting.Sheet + " date cells"] = sheet.DateCells;
+                    run.Counts["sheet " + setting.Sheet + " duration cells"] = sheet.DurationCells;
+                }
+                return sheet.Rows;
+            };
+            var output = new JObject();
+            if (dlus && sales)
+            {
+                ReadSettings.SheetSetting areaDlus = settings.Sheet("dataBook.data5.areaKey.dlus"), areaSales = settings.Sheet("dataBook.data5.areaKey.sales");
+                Dictionary<string, Dictionary<string, object>> area = ReadSteps.AreaKeyStep(SheetRows.ByPlot(SheetRows.Rows(areaDlus.Sheet, rowsOf(areaDlus), areaDlus.HeaderRow, areaDlus.Columns)),
+                    SheetRows.ByPlot(SheetRows.Rows(areaSales.Sheet, rowsOf(areaSales), areaSales.HeaderRow, areaSales.Columns)));
+                output["areaKey"] = JObject.FromObject(area);
+                if (steps.Contains(ReadSteps.AreaKey))
+                {
+                    made[ReadSteps.AreaKey] = area;
+                }
+            }
+            if (sales)
+            {
+                ReadSettings.SheetSetting setbacks = settings.Sheet("dataBook.rev9.dlus");
+                List<JObject> setbackRows = SheetRows.Rows(setbacks.Sheet, rowsOf(setbacks), setbacks.HeaderRow, setbacks.Columns);
+                output["dlusSetbacks"] = new JArray(setbackRows);
+                ReadSettings.SheetSetting plain = settings.Sheet("dataBook.rev9.sales"), rows = settings.SalesRows();
+                List<JObject> plainRows = SheetRows.Rows(plain.Sheet, rowsOf(plain), plain.HeaderRow, plain.Columns);
+                JObject salesRows = SheetRows.SalesRows(rowsOf(rows), rows.Columns[0].Value);
+                output["sales"] = salesRows;
+                output["salesPlain"] = new JArray(plainRows);
+                if (steps.Contains(ReadSteps.DlusSetbacks))
+                {
+                    made[ReadSteps.DlusSetbacks] = ReadSteps.DlusSetbackStep(setbackRows);
+                }
+                if (steps.Contains(ReadSteps.Sales))
+                {
+                    made[ReadSteps.Sales] = ReadSteps.SalesStep(salesRows, plainRows);
+                }
+            }
+            run.WriteJson(request.OutputFolder, "read_workbooks.json", output);
+        }
+    }
+}

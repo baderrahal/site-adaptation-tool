@@ -13,11 +13,34 @@ namespace SiteAdaptation.Common
     // file by a temporary name and a rename. CadReader.exe --request <file> runs it, the tests run it in process
     public static class WorkerRunner
     {
-        // R345. The steps of the plan builder the C# gives so far with the input roles each reads, the build refuses another step
+        // R345. The steps the C# gives so far with the input roles each reads, a role ending in a colon and a star any role of that
+        // name and a colon, at least one, and the command that writes each: the plan builder steps of build and the read steps of read
+        // (R348 to R350). A request of another step, or of a step of another command, is refused
         public static readonly Dictionary<string, string[]> Steps = new Dictionary<string, string[]>
         {
             [FaceStep.Name] = new[] { "baseplanPlots", "plotsCsv", "labels" },
+            [ReadSteps.Labels] = new[] { "baseplan" },
+            [ReadSteps.Blocks] = new[] { "villaBlocks" },
+            [ReadSteps.Setbacks] = new[] { "villaBlocks" },
+            [ReadSteps.Curbs] = new[] { "curbs" },
+            [ReadSteps.Rows] = new[] { "curbs" },
+            [ReadSteps.Surfaces] = new[] { RoadSurfaceRole + "*" },
+            [ReadSteps.RoadLevels] = new[] { "baseplan", "plotsCsv", "labels", RoadSurfaceRole + "*" },
+            [ReadSteps.AreaKey] = new[] { "dlus", "sales" },
+            [ReadSteps.DlusSetbacks] = new[] { "sales" },
+            [ReadSteps.Sales] = new[] { "sales" },
         };
+
+        public static readonly Dictionary<string, string> StepCommand = Steps.Keys.ToDictionary(step => step, step => step == FaceStep.Name ? "build" : "read");
+
+        // R349. The role of a road surface file in a request, roadSurface:<file name with no extension>, one per LandXML file
+        public const string RoadSurfaceRole = "roadSurface:";
+
+        private static bool Holds(IEnumerable<WorkerFile> inputs, string role)
+        {
+            return role.EndsWith(":*", StringComparison.Ordinal) ? inputs.Any(input => input.Role != null && input.Role.StartsWith(role.Substring(0, role.Length - 1), StringComparison.Ordinal))
+                : inputs.Any(input => input.Role == role);
+        }
 
         public static int Run(string requestPath, IDictionary<string, WorkerCommand> commands, Func<double?> freeMiB)
         {
@@ -150,7 +173,11 @@ namespace SiteAdaptation.Common
                 {
                     throw new WorkerStop(WorkerExit.Refused, "the step " + step + " is not one the C# build gives, it gives " + string.Join(", ", Steps.Keys.OrderBy(name => name)));
                 }
-                foreach (string role in Steps[step].Where(role => inputs.All(input => input.Role != role)))
+                if (StepCommand[step] != request.Command)
+                {
+                    throw new WorkerStop(WorkerExit.Refused, "the step " + step + " is a step of the command " + StepCommand[step] + ", the request is " + request.Command);
+                }
+                foreach (string role in Steps[step].Where(role => !Holds(inputs, role)))
                 {
                     throw new WorkerStop(WorkerExit.Refused, "the step " + step + " needs the input " + role + ", the request names none");
                 }

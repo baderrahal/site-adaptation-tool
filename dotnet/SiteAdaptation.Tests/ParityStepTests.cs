@@ -271,7 +271,7 @@ namespace SiteAdaptation.Tests
         public void R345_the_worker_build_writes_the_step_file_of_the_faces_of_its_scope_and_names_it_in_the_answer()
         {
             string plots = Path.Combine(folder, "plots.json");
-            File.WriteAllText(plots, new JObject { ["plots"] = Plots() }.ToString());
+            File.WriteAllText(plots, new JObject { ["units"] = "Meters", ["plots"] = Plots() }.ToString());
             string data = Path.Combine(folder, "plots.csv");
             File.WriteAllText(data, PlotsCsv);
             string labels = Path.Combine(folder, "labels.csv");
@@ -313,7 +313,7 @@ namespace SiteAdaptation.Tests
         private WorkerRequest FaceRequest(string runId)
         {
             string plots = Path.Combine(folder, "plots.json");
-            File.WriteAllText(plots, new JObject { ["plots"] = Plots() }.ToString());
+            File.WriteAllText(plots, new JObject { ["units"] = "Meters", ["plots"] = Plots() }.ToString());
             string data = Path.Combine(folder, "plots.csv");
             File.WriteAllText(data, PlotsCsv);
             string labels = Path.Combine(folder, "labels.csv");
