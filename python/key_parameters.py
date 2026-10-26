@@ -2,10 +2,14 @@
 read job of the test host writes, testhost_<code>_parameters.json (ParameterSteps and SharedParameterFile of Common).
 
 The names are the floor parameter of floors.plotParameter, the link parameters of pastJob.parameters and the level parameters of
-majority.parameterLevels, the 11 of docs/addin-design.md 3.1. A name takes the GUID of its SharedParameterElement when every key that
-holds it gives one GUID and the parameters of its elements give that GUID too, the second route of the same window. A name with two
-GUIDs, or whose elements give another, and a name no key holds as a shared parameter, a project parameter among them, get no GUID and are
-listed in noGuid with why, never resolved silently, so button 1 stops naming them (docs/addin-design.md 3.1, Shared parameters).
+majority.parameterLevels, the 11 of docs/addin-design.md 3.1. A name takes the GUID of its bound SharedParameterElement when every key
+that holds the name binds it as a shared parameter of one GUID and the parameters of its elements give that GUID too, the second route of
+the same window. routes says which routes held it, parameterElement alone when no element of a key carries the name. A name with two
+GUIDs or whose elements give another, a name some keys hold only as a project parameter or as an unbound shared element while others
+bind it shared, a conflict, and a name no key binds as a shared parameter get no GUID and are listed in noGuid with why, never resolved
+silently, so button 1 stops naming them (docs/addin-design.md 3.1, Shared parameters). projectParameterIn lists the keys that bind a
+project parameter of the name, beside its shared one or in its place. A write keeps every entry Bader marks "byHand": true as he wrote it,
+refuses one whose GUID the keys give otherwise and refuses a run of fewer keys than the block it writes over, which would shrink it (Q085).
 """
 import argparse
 import json
@@ -17,8 +21,11 @@ import project_profile
 
 NOTE = ("R353. The shared parameters button 1 binds and every button reads and writes by GUID (docs/addin-design.md 3.1), read from the "
         "answer keys by the read job of the test host (testhost_<code>_parameters.json) and written by python/key_parameters.py: per name its "
-        "GUID, the categories the keys bind it to and how many keys hold it. noGuid lists each name with no GUID and why, a project parameter "
-        "holds none, and button 1 stops on a name of config with no GUID.")
+        "GUID, the categories the keys bind it to, how many keys hold it and routes, the routes of the read that held the GUID, the "
+        "SharedParameterElement and the parameters of the elements. projectParameterIn names the keys that bind a project parameter of the name. "
+        "noGuid lists each name with no GUID and why, a project parameter holds none and a name some keys bind shared and others only as a "
+        "project parameter is a conflict, and button 1 stops on a name of config with no GUID. An entry marked \"byHand\": true is kept by every "
+        "run as written, a run whose keys give it another GUID or that reads fewer keys than this block is refused (Q085).")
 
 
 def names_of(settings):
@@ -31,55 +38,100 @@ def collect(files, names):
     """Per name its GUID or why none, from the parameter files of the keys by key."""
     found = {}
     for name in names:
-        guids, keys, on, seen, project = set(), [], set(), set(), []
+        guids, keys, on, seen, project, held, elements = set(), [], set(), set(), [], [], []
         for key, payload in sorted(files.items()):
             rows = [row for row in payload.get("parameters") or [] if row.get("name") == name]
-            if rows:
+            bound = [row for row in rows if row.get("bound")]
+            own = [item for item in payload.get("onElements") or [] if item.get("name") == name]
+            is_project = name in (payload.get("otherBindings") or [])
+            if rows or is_project:
+                held.append(key)
+            if bound:
                 keys.append(key)
-                guids.update(row["guid"] for row in rows)
-                for row in rows:
+                guids.update(row["guid"] for row in bound)
+                for row in bound:
                     on.update(row.get("categories") or [])
-            for item in payload.get("onElements") or []:
-                if item.get("name") == name:
-                    seen.update(item.get("guids") or [])
-            if name in (payload.get("otherBindings") or []):
+            for item in own:
+                seen.update(item.get("guids") or [])
+            if own:
+                elements.append(key)
+            if is_project:
                 project.append(key)
         entry = {"guid": None, "keys": keys, "on": sorted(on), "guids": sorted(guids), "onElements": sorted(seen)}
         if project:
             entry["projectParameterIn"] = project
+        apart = [key for key in held if key not in keys]
         if not keys:
-            entry["why"] = "no key holds a shared parameter of this name" + (", it is a project parameter in %s, which holds no GUID" % ", ".join(project) if project else "")
+            entry["why"] = "no key binds a shared parameter of this name" + (", it is a project parameter in %s, which holds no GUID" % ", ".join(project) if project else "")
+        elif apart:
+            entry["why"] = "a conflict: %s bind it as a shared parameter, %s hold it only as a project parameter or an unbound shared element, so a read by GUID misses it there" % (
+                ", ".join(keys), ", ".join(apart))
         elif len(guids) > 1:
             entry["why"] = "the keys give two GUIDs or more: %s" % ", ".join(sorted(guids))
         elif seen - guids:
             entry["why"] = "the parameters of the elements give another GUID: %s" % ", ".join(sorted(seen - guids))
         else:
             entry["guid"] = next(iter(guids))
+            entry["routes"] = ["parameterElement", "elements"] if seen else ["parameterElement"]
         found[name] = entry
     return found
 
 
 def block(found, names, keys):
-    """The block addin.sharedParameters: the names with a GUID in the order of names, and noGuid with why."""
+    """The block addin.sharedParameters: the names with a GUID in the order of names, with the routes that held it, and noGuid with why,
+    each with the keys that bind a project parameter of its name."""
     if not keys:
         raise ValueError("no key parameter file was read, the GUIDs come from the answer keys (R353)")
+    with_project = lambda item, name: dict(item, projectParameterIn=found[name]["projectParameterIn"]) if found[name].get("projectParameterIn") else item
     return {"note": NOTE, "keys": list(keys),
-            "parameters": [{"name": name, "guid": found[name]["guid"], "on": found[name]["on"], "keys": len(found[name]["keys"])} for name in names if found[name]["guid"]],
-            "noGuid": [{"name": name, "why": found[name]["why"]} for name in names if not found[name]["guid"]]}
+            "parameters": [with_project({"name": name, "guid": found[name]["guid"], "on": found[name]["on"], "keys": len(found[name]["keys"]),
+                                         "routes": found[name]["routes"]}, name) for name in names if found[name]["guid"]],
+            "noGuid": [with_project({"name": name, "why": found[name]["why"]}, name) for name in names if not found[name]["guid"]]}
 
 
-def write_block(path, payload):
-    """addin.sharedParameters written into the config file at path as its text, after addin.position, the block of an earlier run replaced,
-    every other line kept as it is."""
-    path = Path(path)
-    text = path.read_text(encoding="utf-8")
+def earlier_block(text):
+    """addin.sharedParameters of the config text, None when it holds none."""
+    return ((json.loads(text).get("addin") or {}).get("sharedParameters")) or None
+
+
+def merged(payload, earlier):
+    """Q085. The block of a run laid over the block it writes over: every entry Bader marks "byHand": true kept as he wrote it, its name
+    out of noGuid, a hand GUID the run gives otherwise refused with both named, and a run of fewer keys than the earlier block refused, so
+    a rerun never shrinks the block or undoes a hand edit."""
+    if not earlier:
+        return payload
+    missing = [key for key in earlier.get("keys") or [] if key not in payload["keys"]]
+    if missing:
+        raise ValueError("the run reads the keys %s and the block it would write over holds %s too, a run of fewer keys would shrink it, refused (R353)" % (
+            ", ".join(payload["keys"]), ", ".join(missing)))
+    hand = [item for item in earlier.get("parameters") or [] if item.get("byHand") is True]
+    run = {item["name"]: item for item in payload["parameters"]}
+    for item in hand:
+        given = run.get(item["name"])
+        if given is not None and given["guid"] != item["guid"]:
+            raise ValueError("%s holds the GUID %s by hand and the keys give %s, never resolved in silence, refused (R353, Q085)" % (item["name"], item["guid"], given["guid"]))
+    names = {item["name"] for item in hand}
+    return dict(payload, parameters=[item for item in payload["parameters"] if item["name"] not in names] + hand,
+                noGuid=[item for item in payload["noGuid"] if item["name"] not in names])
+
+
+def block_text(payload):
+    """The lines of the block addin.sharedParameters as the config file holds them, an entry per line."""
     lines = ["    \"sharedParameters\": {", "      \"note\": %s," % json.dumps(payload["note"], ensure_ascii=False), "      \"keys\": %s," % json.dumps(payload["keys"], ensure_ascii=False),
              "      \"parameters\": ["]
     lines += ["        %s%s" % (json.dumps(item, ensure_ascii=False), "," if k + 1 < len(payload["parameters"]) else "") for k, item in enumerate(payload["parameters"])]
     lines += ["      ],", "      \"noGuid\": ["]
     lines += ["        %s%s" % (json.dumps(item, ensure_ascii=False), "," if k + 1 < len(payload["noGuid"]) else "") for k, item in enumerate(payload["noGuid"])]
     lines += ["      ]", "    },"]
-    new = "\n".join(lines) + "\n"
+    return "\n".join(lines) + "\n"
+
+
+def write_block(path, payload):
+    """addin.sharedParameters written into the config file at path as its text, after addin.position, the block of an earlier run replaced
+    with its hand entries kept (merged), every other line kept as it is."""
+    path = Path(path)
+    text = path.read_text(encoding="utf-8")
+    new = block_text(merged(payload, earlier_block(text)))
     earlier = re.compile(r"    \"sharedParameters\": \{\n.*?\n    \},\n", re.S)
     if earlier.search(text):
         text = earlier.sub(lambda match: new, text, count=1)
@@ -114,9 +166,12 @@ def main(argv=None):
         payload = block(found, names, sorted(files))
         for name in names:
             entry = found[name]
-            print("%s: %s, keys %d, on %s%s" % (name, "GUID" if entry["guid"] else "no GUID", len(entry["keys"]), ", ".join(entry["on"]) or "none",
-                                                "" if entry["guid"] else ", " + entry["why"]))
-        print("names %d, with a GUID %d, no GUID %d" % (len(names), len(payload["parameters"]), len(payload["noGuid"])))
+            print("%s: %s, keys %d, on %s, routes %s, a project parameter in %s%s" % (
+                name, "GUID" if entry["guid"] else "no GUID", len(entry["keys"]), ", ".join(entry["on"]) or "none", ", ".join(entry.get("routes") or []) or "none",
+                ", ".join(entry.get("projectParameterIn") or []) or "none", "" if entry["guid"] else ", " + entry["why"]))
+        print("names %d, with a GUID %d, no GUID %d, a conflict %d, held on one route only %d" % (
+            len(names), len(payload["parameters"]), len(payload["noGuid"]), sum(1 for name in names if "conflict" in (found[name].get("why") or "")),
+            sum(1 for name in names if found[name].get("routes") == ["parameterElement"])))
         if args.write:
             print(write_block(args.settings, payload))
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:

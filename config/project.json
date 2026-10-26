@@ -361,22 +361,22 @@
       "overlapDecimals": 4
     },
     "sharedParameters": {
-      "note": "R353. The shared parameters button 1 binds and every button reads and writes by GUID (docs/addin-design.md 3.1), read from the answer keys by the read job of the test host (testhost_<code>_parameters.json) and written by python/key_parameters.py: per name its GUID, the categories the keys bind it to and how many keys hold it. noGuid lists each name with no GUID and why, a project parameter holds none, and button 1 stops on a name of config with no GUID.",
+      "note": "R353. The shared parameters button 1 binds and every button reads and writes by GUID (docs/addin-design.md 3.1), read from the answer keys by the read job of the test host (testhost_<code>_parameters.json) and written by python/key_parameters.py: per name its GUID, the categories the keys bind it to, how many keys hold it and routes, the routes of the read that held the GUID, the SharedParameterElement and the parameters of the elements. projectParameterIn names the keys that bind a project parameter of the name. noGuid lists each name with no GUID and why, a project parameter holds none and a name some keys bind shared and others only as a project parameter is a conflict, and button 1 stops on a name of config with no GUID. An entry marked \"byHand\": true is kept by every run as written, a run whose keys give it another GUID or that reads fewer keys than this block is refused (Q085).",
       "keys": ["ima", "imb", "imc", "imd", "ime", "imf", "img"],
       "parameters": [
-        {"name": "RRE_ZZ_SP_Plot-Number", "guid": "7a7813d7-ad61-4bf2-a75f-6234c92957bb", "on": ["Floors", "RVT Links"], "keys": 7},
-        {"name": "RRE_ZZ_SP_Prototype", "guid": "1229c7c3-996a-4f9e-9060-323c69928777", "on": ["Floors", "RVT Links"], "keys": 7},
-        {"name": "RRE_ZZ_SP_Number-of-Steps", "guid": "c5de81fc-772e-4734-8978-a2e5ebc26572", "on": ["RVT Links"], "keys": 7},
-        {"name": "RRE_ZZ_SP_Façade-Color", "guid": "69ba957d-52c3-4b31-aeaf-f96a4a10a645", "on": ["Floors", "RVT Links"], "keys": 7},
-        {"name": "RRE_ZZ_SP_Façade-Design-Option", "guid": "cb59ad62-e934-4418-bdbe-be61f30e78a4", "on": ["Floors", "RVT Links"], "keys": 7},
-        {"name": "RRE_ZZ_SP_Prototype-Foundation-Type", "guid": "0c697f19-c36d-47bd-b652-4d0b0af45ea0", "on": ["RVT Links"], "keys": 7},
-        {"name": "RRE_ZZ_SP_Prototype-HVAC-Schedule-Type", "guid": "01030dab-cfb1-41f4-b470-f1e3dd03c304", "on": ["RVT Links"], "keys": 7},
-        {"name": "RRE_ZZ_SP_RVT-Name", "guid": "6e8e827b-cc9a-4da2-9ddb-c8e3f09ffa36", "on": ["RVT Links"], "keys": 7},
-        {"name": "CASE", "guid": "c0b2c4ee-e129-4a42-bcb6-225759b874eb", "on": ["Detail Items", "RVT Links"], "keys": 7},
-        {"name": "RRE_ZZ_SP_Prototype-FFL", "guid": "cd63d489-5fa8-46a8-a6bc-38ff3aae66bf", "on": ["RVT Links"], "keys": 7}
+        {"name": "RRE_ZZ_SP_Plot-Number", "guid": "7a7813d7-ad61-4bf2-a75f-6234c92957bb", "on": ["Floors", "RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
+        {"name": "RRE_ZZ_SP_Prototype", "guid": "1229c7c3-996a-4f9e-9060-323c69928777", "on": ["Floors", "RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
+        {"name": "RRE_ZZ_SP_Number-of-Steps", "guid": "c5de81fc-772e-4734-8978-a2e5ebc26572", "on": ["RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
+        {"name": "RRE_ZZ_SP_Façade-Color", "guid": "69ba957d-52c3-4b31-aeaf-f96a4a10a645", "on": ["Floors", "RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
+        {"name": "RRE_ZZ_SP_Façade-Design-Option", "guid": "cb59ad62-e934-4418-bdbe-be61f30e78a4", "on": ["Floors", "RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
+        {"name": "RRE_ZZ_SP_Prototype-Foundation-Type", "guid": "0c697f19-c36d-47bd-b652-4d0b0af45ea0", "on": ["RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
+        {"name": "RRE_ZZ_SP_Prototype-HVAC-Schedule-Type", "guid": "01030dab-cfb1-41f4-b470-f1e3dd03c304", "on": ["RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
+        {"name": "RRE_ZZ_SP_RVT-Name", "guid": "6e8e827b-cc9a-4da2-9ddb-c8e3f09ffa36", "on": ["RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]},
+        {"name": "CASE", "guid": "c0b2c4ee-e129-4a42-bcb6-225759b874eb", "on": ["Detail Items", "RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"], "projectParameterIn": ["ima", "imb", "imc", "imd", "ime", "imf", "img"]},
+        {"name": "RRE_ZZ_SP_Prototype-FFL", "guid": "cd63d489-5fa8-46a8-a6bc-38ff3aae66bf", "on": ["RVT Links"], "keys": 7, "routes": ["parameterElement", "elements"]}
       ],
       "noGuid": [
-        {"name": "Plot", "why": "no key holds a shared parameter of this name, it is a project parameter in ima, imb, imc, imd, ime, imf, img, which holds no GUID"}
+        {"name": "Plot", "why": "no key binds a shared parameter of this name, it is a project parameter in ima, imb, imc, imd, ime, imf, img, which holds no GUID", "projectParameterIn": ["ima", "imb", "imc", "imd", "ime", "imf", "img"]}
       ]
     },
     "parity": {
