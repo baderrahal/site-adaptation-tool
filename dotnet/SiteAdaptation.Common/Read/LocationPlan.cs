@@ -114,6 +114,11 @@ namespace SiteAdaptation.Common
         // and never its result
         public const int MaxCellsPerFace = 256;
 
+        // The largest column or row of a cell, the 32 bits each holds in the key of a cell. A face whose box gives one past it, such as a ring
+        // with a vertex 1e17 m off the others, is kept in wide as a face of too many cells, where a long cast past the range lost it (the
+        // third review of PR 54), face_index.MAX_INDEX the same
+        public const double MaxIndex = 2147483647.0;
+
         private readonly List<int> wide = new List<int>();
 
         public int CellCount => cells.Count;
@@ -148,14 +153,15 @@ namespace SiteAdaptation.Common
             for (int item = 0; item < boxes.Count; item++)
             {
                 double[] box = boxes[item];
-                if ((double)(Column(box[2]) - Column(box[0]) + 1) * (Row(box[3]) - Row(box[1]) + 1) > MaxCellsPerFace)
+                double first = Column(box[0]), last = Column(box[2]), bottom = Row(box[1]), top = Row(box[3]);
+                if (!InRange(first) || !InRange(last) || !InRange(bottom) || !InRange(top) || (last - first + 1) * (top - bottom + 1) > MaxCellsPerFace)
                 {
                     wide.Add(item);
                     continue;
                 }
-                for (long column = Column(box[0]); column <= Column(box[2]); column++)
+                for (long column = (long)first; column <= (long)last; column++)
                 {
-                    for (long row = Row(box[1]); row <= Row(box[3]); row++)
+                    for (long row = (long)bottom; row <= (long)top; row++)
                     {
                         long key = Key(column, row);
                         if (!cells.TryGetValue(key, out List<int> held))
@@ -169,14 +175,21 @@ namespace SiteAdaptation.Common
             }
         }
 
-        private long Column(double x)
+        // The cell of a coordinate as a whole double, held against MaxIndex before any cast
+        private double Column(double x)
         {
-            return (long)Math.Floor((x - originX) / cell);
+            return Math.Floor((x - originX) / cell);
         }
 
-        private long Row(double y)
+        private double Row(double y)
         {
-            return (long)Math.Floor((y - originY) / cell);
+            return Math.Floor((y - originY) / cell);
+        }
+
+        // NaN and the infinities are past the range too
+        private static bool InRange(double index)
+        {
+            return index >= -MaxIndex - 1 && index <= MaxIndex;
         }
 
         private static long Key(long column, long row)
@@ -192,7 +205,8 @@ namespace SiteAdaptation.Common
             {
                 return found;
             }
-            List<int> held = cells.TryGetValue(Key(Column(x), Row(y)), out List<int> inCell) ? inCell : new List<int>();
+            double column = Column(x), row = Row(y);
+            List<int> held = InRange(column) && InRange(row) && cells.TryGetValue(Key((long)column, (long)row), out List<int> inCell) ? inCell : new List<int>();
             foreach (int item in held.Concat(wide).OrderBy(item => item))
             {
                 double[] box = boxes[item];

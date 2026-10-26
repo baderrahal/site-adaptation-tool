@@ -494,6 +494,36 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R351_a_face_whose_cells_cannot_be_counted_in_range_goes_to_the_wide_list_and_is_never_lost()
+        {
+            // test_face_index: 5 faces of 10 m in a row and face 999 with a vertex 1e9, 1e17 and 1e20 m west, the probe of the third review,
+            // where a column past the range of a long cast lost the face
+            string[] all = { "101", "102", "103", "104", "105", "999" };
+            foreach (System.Tuple<double, string[]> far in new[] { System.Tuple.Create(1e9, new[] { "999" }), System.Tuple.Create(1e17, all), System.Tuple.Create(1e20, all) })
+            {
+                var faces = new List<PlanFace>();
+                for (int k = 0; k < 5; k++)
+                {
+                    var face = new PlanFace { Label = (101 + k).ToString(CultureInfo.InvariantCulture) };
+                    face.Rings.Add(new[] { new[] { 1000.0 + 10 * k, 2000.0 }, new[] { 1010.0 + 10 * k, 2000.0 }, new[] { 1010.0 + 10 * k, 2010.0 }, new[] { 1000.0 + 10 * k, 2010.0 } });
+                    faces.Add(face);
+                }
+                var spike = new PlanFace { Label = "999" };
+                spike.Rings.Add(new[] { new[] { 1000.0, 2020.0 }, new[] { 1010.0, 2020.0 }, new[] { 1010.0, 2030.0 }, new[] { -far.Item1, 2025.0 } });
+                faces.Add(spike);
+                var index = new FaceIndex(faces);
+                Assert.Equal(far.Item2, index.Wide);
+                foreach (double[] point in new[] { new[] { 1005.0, 2024.0 }, new[] { 1025.0, 2005.0 }, new[] { 1045.0, 2009.0 }, new[] { -far.Item1 / 2, 2025.0 }, new[] { 1e30, 2000.0 }, new[] { -1e30, 2025.0 } })
+                {
+                    List<string> scan = faces.Where(face => LocationPlan.Holds(face, point[0], point[1])).Select(face => face.Label).OrderBy(label => long.Parse(label, CultureInfo.InvariantCulture)).ToList();
+                    Assert.Equal(scan, index.Holding(point[0], point[1]));
+                }
+                Assert.Equal(new[] { "999" }, index.Holding(1005.0, 2024.0));
+                Assert.Equal(new[] { "103" }, index.Holding(1025.0, 2005.0));
+            }
+        }
+
+        [Fact]
         public void R351_new_codes_come_by_the_exact_row_by_the_form_and_by_the_base_as_location_plan_new_code()
         {
             var table = new List<Dictionary<string, string>>

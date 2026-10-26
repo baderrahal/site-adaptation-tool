@@ -96,3 +96,17 @@ def test_r351_a_face_with_a_far_vertex_is_scanned_apart_and_the_grid_stays_bound
         one += len(scan) == 1
     # The C# test counts the same on the same rings and points
     assert (index.cell_count, one) == (SPIKE_CELLS, SPIKE_ONE)
+
+
+def test_r351_a_face_whose_cells_cannot_be_counted_in_range_goes_to_the_wide_list_and_is_never_lost():
+    # Input: the probe of the breaker of the third review, 5 faces of 10 m in a row and face 999 with a vertex 1e9, 1e17 and 1e20 m west,
+    # where a grid index of C# past a 32 bit range lost the face. Every face whose box gives a column or a row past the range of
+    # face_index.MAX_INDEX goes to the wide list, so the grid of the C# keys holds it never, and the faces of each point are those of a scan
+    for far, wide in ((1e9, ["999"]), (1e17, ["101", "102", "103", "104", "105", "999"]), (1e20, ["101", "102", "103", "104", "105", "999"])):
+        rings = {str(101 + k): [[(1000.0 + 10 * k, 2000.0), (1010.0 + 10 * k, 2000.0), (1010.0 + 10 * k, 2010.0), (1000.0 + 10 * k, 2010.0)]] for k in range(5)}
+        rings["999"] = [[(1000.0, 2020.0), (1010.0, 2020.0), (1010.0, 2030.0), (-far, 2025.0)]]
+        index = face_index.FaceIndex(rings)
+        assert index.wide == wide, far
+        for x, y in ((1005.0, 2024.0), (1025.0, 2005.0), (1045.0, 2009.0), (-far / 2, 2025.0), (1e30, 2000.0), (-1e30, 2025.0)):
+            assert index.holding(x, y) == sorted((label for label, found in rings.items() if face_index.holds(found, x, y)), key=int), (far, x, y)
+        assert index.holding(1005.0, 2024.0) == ["999"] and index.holding(1025.0, 2005.0) == ["103"]
