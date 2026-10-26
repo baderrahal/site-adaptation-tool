@@ -489,6 +489,30 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R347_q084_the_drawings_are_read_largest_measured_peak_first_and_each_released_before_the_next_read()
+        {
+            string basePath = Drawing("Base.dwg", UnitsType.Meters), roadPath = Drawing("Road.dwg", UnitsType.Meters);
+            // The made up road drawing measured at 3,000 MiB and the baseplan at 100, so the road goes first though the baseplan comes first in the request
+            string config = Config(item =>
+            {
+                var files = (JArray)item["addin"]["workerPeakMiB"]["files"];
+                files.Add(new JObject { ["name"] = "Road.dwg", ["bytes"] = new FileInfo(roadPath).Length, ["peakMiB"] = 3000 });
+                files.Add(new JObject { ["name"] = "Base.dwg", ["bytes"] = new FileInfo(basePath).Length, ["peakMiB"] = 100 });
+            });
+            AddinConfig addin = AddinConfig.Load(config);
+            var inputs = new List<WorkerFile> { Input("config", config), Input("cadLayers", LayersFile()), Input("baseplan", basePath), Input("curbs", roadPath) };
+            Assert.Equal(new[] { "curbs", "baseplan" }, WorkerMemory.ReadOrder(inputs, new[] { "baseplan", "villaBlocks", "curbs" }, addin));
+            // A drawing with no measured peak takes the largest known, and drawings of one peak keep the order of the roles
+            var unmeasured = new List<WorkerFile> { new WorkerFile { Role = "villaBlocks", Path = basePath }, new WorkerFile { Role = "baseplan", Path = roadPath } };
+            Assert.Equal(new[] { "baseplan", "villaBlocks" }, WorkerMemory.ReadOrder(unmeasured, new[] { "baseplan", "villaBlocks", "curbs" }, AddinConfig.Load(WorkerRunTests.RepoConfig())));
+            WorkerAnswer answer = Run(Request("q84", inputs), 0);
+            Assert.Equal(1, answer.Counts["drawing curbs read as"]);
+            Assert.Equal(2, answer.Counts["drawing baseplan read as"]);
+            Assert.Equal(2, answer.Counts["memory released after a drawing"]);
+            Assert.True(WorkerMemory.Release() > 0);
+        }
+
+        [Fact]
         public void R348_the_worker_read_writes_the_read_of_a_drawing_in_meters_at_the_decimals_of_r2_and_its_steps()
         {
             string config = Config();

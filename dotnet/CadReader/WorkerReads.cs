@@ -63,16 +63,26 @@ namespace CadReader
                 }
                 layers = LayerConfig.Load(run.Input("cadLayers"));
             }
-            foreach (string role in Drawings.Where(role => request.Inputs.Any(input => input.Role == role)))
+            // Q084. The drawings one at a time, the largest measured peak first, each let go with its document before the next read
+            List<string> order = WorkerMemory.ReadOrder(request.Inputs, Drawings, AddinConfig.Load(run.Input("config")));
+            foreach (string role in order)
             {
                 reads[role] = Drawing(run, role, layers, settings);
                 run.WriteJson(request.OutputFolder, "read_" + role + ".json", reads[role]);
+                run.Counts["drawing " + role + " read as"] = order.IndexOf(role) + 1;
+                WorkerMemory.Release();
+                run.Counts["memory released after a drawing"] = order.IndexOf(role) + 1;
             }
             List<TinSurface> surfaces = Surfaces(run, settings, steps, made);
+            WorkerMemory.Release();
             var sheets = new Dictionary<string, XlsxSheet.Sheet>();
             SheetRows.AreaKey[] areaKeys = Workbooks(run, settings, steps, made, sheets);
             JObject baseplan = reads.TryGetValue("baseplan", out JObject read) ? read : null;
             Located located = Location(run, settings, baseplan, steps, made, sheets);
+            if (located != null)
+            {
+                WorkerMemory.Release();
+            }
             Table(run, located, baseplan, reads.TryGetValue("villaBlocks", out JObject footprint) ? footprint : null, areaKeys, steps, made);
             if (steps.Contains(ReadSteps.Labels))
             {

@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace SiteAdaptation.Common
@@ -107,6 +109,33 @@ namespace SiteAdaptation.Common
             {
                 return null;
             }
+        }
+
+        // Q084. The drawings of a read in the order they are read: the one of the largest measured peak of addin.workerPeakMiB first, a
+        // drawing not measured taking the largest known, so the largest read meets the least memory held, drawings of one peak in the order
+        // of roles. Only the roles given, each once
+        public static List<string> ReadOrder(IEnumerable<WorkerFile> inputs, IReadOnlyList<string> roles, AddinConfig config)
+        {
+            List<WorkerFile> drawings = inputs.Where(input => roles.Contains(input.Role)).GroupBy(input => input.Role).Select(group => group.First()).ToList();
+            return drawings.Select(input => new
+            {
+                input.Role,
+                Peak = config.WorkerPeakMiB(input.Role, Path.GetFileName(input.Path), File.Exists(input.Path) ? new FileInfo(input.Path).Length : -1) ?? 0,
+                Place = Enumerable.Range(0, roles.Count).First(index => roles[index] == input.Role),
+            }).OrderByDescending(item => item.Peak).ThenBy(item => item.Place).Select(item => item.Role).ToList();
+        }
+
+        // Q084. The memory of a read let go before the next: a full blocking collection that compacts the large object heap too, run
+        // twice around the finalizers, so the document of a drawing read before is not held when the next read starts. The private
+        // memory after it in MiB
+        public static double Release()
+        {
+            System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
+            GC.WaitForPendingFinalizers();
+            System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
+            return PrivateMiB() ?? 0;
         }
 
         // The peak private memory of this process as Windows keeps it (PeakPagefileUsage), as R310 samples Revit

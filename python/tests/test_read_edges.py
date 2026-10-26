@@ -118,8 +118,16 @@ def test_r350_read_steps_refuses_a_table_of_no_row(tmp_path, capsys):
 
 def test_r347_q083_the_config_names_the_peak_of_a_whole_read_with_its_reason():
     peaks = project_profile.load_settings().get("addin.workerPeakMiB")
-    assert peaks["commands"] == {"read": 4100}
+    assert peaks["commands"] == {"read": 2800}
     assert "4,008" in peaks["commandsNote"] and "CHOSEN" in peaks["commandsNote"]
+
+
+def test_r347_q084_the_lowered_peak_of_a_whole_read_is_the_highest_measured_rounded_up_to_the_next_100_mib():
+    peaks = project_profile.load_settings().get("addin.workerPeakMiB")
+    note = peaks["commandsNote"]
+    measured = [2692, 2702, 2550, 2554]
+    assert peaks["commands"]["read"] == -(-max(measured) // 100) * 100 == 2800
+    assert "Q084" in note and "2,702" in note and "ReadOrder" in note and "4,848" in note
 
 
 def test_r350_every_workbook_setting_names_a_key_of_the_rev9_workbooks():
