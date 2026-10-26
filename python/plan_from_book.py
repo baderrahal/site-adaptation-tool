@@ -30,6 +30,7 @@ from shapely.strtree import STRtree
 
 import c3d_connect
 import cad_analysis
+import cad_units
 import cad_links
 import corner_front
 import common
@@ -784,6 +785,8 @@ def main(argv=None):
         out = Path(args.out)
         plot_relations.refuse_inside_repo(out.resolve().parent)
         rows, number_of = book_rows(args.plots_csv)
+        # R388. Each CadReader output the build reads is of a drawing in Meters, held right before it is read
+        cad_units.check(args.baseplan)
         baseplan = link_summary.load(args.baseplan)["plots"]
         # R345. A ring shapely would mend and the C# would not is refused, so the build and its C# take the same faces
         refused = face_rings.refusals(baseplan, area_tolerance(settings))
@@ -798,7 +801,10 @@ def main(argv=None):
         if args.steps_only:
             print("steps faces of %d plots written to %s, no plan built (R345)" % (len(cover["plots"]), args.steps))
             return 0
+        cad_units.check(args.roads)
         roads = cad_analysis.read_road_edges(args.roads, settings.get("analysis")["roadEdgeLayers"])
+        if args.footprint_blocks:
+            cad_units.check(args.footprint_blocks)
         shapes = footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings)) if args.footprint_blocks else None
         analysis = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"] if args.analysis else None
         if shapes is not None:

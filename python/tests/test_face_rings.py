@@ -52,6 +52,7 @@ def test_r345_the_refusals_name_each_label_and_why():
 
 def run(tmp_path, plots):
     (tmp_path / "plots.json").write_text(json.dumps({"plots": plots}), encoding="utf-8")
+    (tmp_path / "layers.json").write_text(json.dumps({"units": "Meters"}), encoding="utf-8")
     (tmp_path / "plots.csv").write_text("baseplanLabel,locationPlanNumber\n1,101\n2,102\n", encoding="utf-8")
     (tmp_path / "labels.csv").write_text("number,code,kind,nbh\n101,DP1,clientCode,012\n102,DP1,clientCode,012\n", encoding="utf-8")
     return plan_from_book.main(["all", "--labels", str(tmp_path / "labels.csv"), "--plots-csv", str(tmp_path / "plots.csv"), "--baseplan", str(tmp_path / "plots.json"),

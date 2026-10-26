@@ -84,6 +84,7 @@ def run_book(tmp_path, monkeypatch, extra):
     seen = {}
     monkeypatch.setattr(plan_from_book, "book_rows", lambda path: ({}, {}))
     monkeypatch.setattr(plan_from_book.link_summary, "load", lambda path: {"plots": []})
+    monkeypatch.setattr(plan_from_book.cad_units, "check", lambda path: "Meters")
     monkeypatch.setattr(plan_from_book.cad_analysis, "read_road_edges", lambda folder, layers: [])
     monkeypatch.setattr(plan_from_book.plan_from_past, "prototype_folders", lambda root, job: ("folder", "upgraded"))
     monkeypatch.setattr(plan_from_book.plan_from_past, "write_plan", lambda out, plan: None)

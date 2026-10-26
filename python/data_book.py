@@ -25,6 +25,7 @@ import c3d_connect
 import c3d_run
 import cad_analysis
 import cad_links
+import cad_units
 import common
 import entry_levels
 import full_run
@@ -73,6 +74,9 @@ def folder_of(book, role, fallback_roots):
     data = Path(book["root"]) / Path(name).stem
     data = data if (data / "data.json").is_file() else None
     earlier = next((Path(root) / name for root in fallback_roots if (Path(root) / name / "pieces.json").is_file()), None)
+    if earlier is not None:
+        # R388. An earlier CadReader output is read only of a drawing in Meters
+        cad_units.check(earlier)
     return data, earlier
 
 
@@ -182,6 +186,8 @@ def build(config, settings, scratch):
     book, connect, join = config["dataBook"], config["connect"], config["dataBook"]["join"]
     roots = join["fallbackOutputs"]
     border = border_polygon(Path(book["root"]) / "phase1_border.csv")
+    # R388. The baseplan output is read only of a drawing in Meters
+    cad_units.check(connect["baseplanPlots"])
     plots = link_summary.load(connect["baseplanPlots"])["plots"]
     profile = project_profile.load_profile(project_profile.profile_path(settings))
     limits = cad_links.front_limits(profile, settings.get("analysis"))
@@ -243,6 +249,7 @@ def build(config, settings, scratch):
 
     def share_wired(source, folder):
         """The blocks of every face over minShare, largest share first, and the faces of each block (R177)."""
+        cad_units.check(folder)
         shapes = wiring.unit_shapes(json.loads((Path(folder) / "blocks.json").read_text(encoding="utf-8"))["blocks"], None)
         per_block = wiring.every_share(all_faces, [b["shape"] for b in shapes], book["wiring"]["minShare"])
         found = defaultdict(list)

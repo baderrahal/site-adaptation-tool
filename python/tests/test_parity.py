@@ -196,6 +196,8 @@ def book(tmp_path, bom=False, plots=None):
         {"kind": "plot_shape", "plot": "4", "vertices": [[0, 50], [10, 50]]},
         {"kind": "polyline", "plot": "5", "vertices": [[0, 60], [10, 60], [10, 70]]}]}
     (tmp_path / "plots.json").write_text(json.dumps(plots), encoding="utf-8")
+    # R388. The layers.json of the read beside it gives the units of the drawing
+    (tmp_path / "layers.json").write_text(json.dumps({"units": "Meters"}), encoding="utf-8")
     write_csv(tmp_path / "plots.csv", ["baseplanLabel", "locationPlanNumber", "typologyRev9"], [["1", "101", "DP1"], ["2", "102", "DP1"], ["", "103", "TH1"]], bom)
     write_csv(tmp_path / "labels.csv", ["number", "code", "kind", "nbh"], [["101", "DP1", "clientCode", "012"], ["102", "DP1", "clientCode", "012"],
                                                                            ["103", "TH1", "clientCode", ""], ["104", "x", "number", "012"]], bom)

@@ -12,6 +12,8 @@ import numpy as np
 from common import write_json
 
 CHUNK = 1 << 20
+# R388. The one linear unit a LandXML is read in, never converted
+METRE = "meter"
 INVISIBLE = "1"
 BAD_NAME = re.compile(r'[<>:"/\\|?*]')
 
@@ -21,11 +23,16 @@ def folder_name(name):
     return BAD_NAME.sub("_", name).strip().rstrip(".") or "surface"
 
 
+class UnitError(ValueError):
+    """R388. A LandXML with no Units element, no linearUnit or a linearUnit other than meter."""
+
+
 class Collector:
     """Receives the parser events and keeps points and faces in compact arrays, never in lists of strings."""
 
-    def __init__(self, on_surface):
-        self.on_surface = on_surface
+    def __init__(self, on_surface, name=None):
+        self.on_surface, self.name = on_surface, name
+        self.units = False
         self.surface = None
         self.mode = None
         self.attrs = None
@@ -42,8 +49,19 @@ class Collector:
             self.surface["declared"] = {"zMin": attrs.get("elevMin"), "zMax": attrs.get("elevMax")}
         elif tag == "CoordinateSystem":
             self.crs = attrs.get("epsgCode")
-        elif tag == "Metric":
+        elif tag == "Units":
+            self.units = True
+        elif tag in ("Metric", "Imperial") and self.units:
             self.unit = attrs.get("linearUnit")
+
+    def check_unit(self):
+        """R388. The file is read in meter only: no Units element, no linearUnit and any other unit are refused with the file named."""
+        if not self.units:
+            raise UnitError("%s holds no Units element, a LandXML is read only in %s (R388)" % (self.name, METRE))
+        if self.unit is None:
+            raise UnitError("%s holds Units with no linearUnit, a LandXML is read only in %s (R388)" % (self.name, METRE))
+        if self.unit != METRE:
+            raise UnitError("%s is in %s, a LandXML is read only in %s and never converted (R388)" % (self.name, self.unit, METRE))
 
     def chars(self, data):
         if self.mode:
@@ -55,6 +73,8 @@ class Collector:
         elif tag == "F" and self.surface is not None:
             self.face()
         elif tag == "Surface" and self.surface is not None:
+            # R388. Refused before the first surface is written, so no reader takes a surface of another unit
+            self.check_unit()
             self.on_surface(self.surface)
             self.surface = None
         if tag == "P" or tag == "F":
@@ -92,7 +112,7 @@ class Collector:
 
 def stream(path, on_surface):
     """Feeds the file to the parser one megabyte at a time, so memory holds one surface and not the file."""
-    collector = Collector(on_surface)
+    collector = Collector(on_surface, Path(path).name)
     parser = expat.ParserCreate()
     parser.buffer_text = True
     parser.StartElementHandler = collector.start
@@ -168,6 +188,7 @@ def read_landxml(path, out_dir, listed=None):
         surfaces.append(entry)
 
     collector = stream(path, finish)
+    collector.check_unit()
     names = [entry["name"] for entry in surfaces]
     report = {"file": Path(path).name, "epsgCode": collector.crs, "linearUnit": collector.unit, "surfaceCount": len(surfaces), "surfaces": surfaces, "seconds": round(time.monotonic() - started, 1)}
     if listed is not None:
@@ -186,7 +207,11 @@ def main(argv=None):
     listed = None
     if args.config:
         listed = set(json.loads(Path(args.config).read_text(encoding="utf-8"))["surfaces"])
-    report = read_landxml(args.xml, args.out_dir, listed)
+    try:
+        report = read_landxml(args.xml, args.out_dir, listed)
+    except UnitError as error:
+        print("landxml_reader: " + str(error), file=sys.stderr)
+        return 2
     for entry in report["surfaces"]:
         print(entry["name"] + ": " + str(entry["pointCount"]) + " points, " + str(entry["faceCount"]) + " faces, " + str(entry["invisibleFaceCount"]) + " invisible")
     if report.get("notInConfig"):
