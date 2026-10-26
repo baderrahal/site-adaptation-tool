@@ -246,7 +246,8 @@ namespace CadReader
                 try
                 {
                     Dictionary<string, PlanFace> faces = LocationPlan.Faces((JArray)baseplan["plots"], addin.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)"));
-                    rows = ProjectPositionFile.CheckPoints(file, points, settings.Group, faces, types, ProjectPositionFile.Numbering(labels, shifts), settings.CheckPointLimitMm, settings.GapDecimals);
+                    rows = ProjectPositionFile.CheckPoints(file, points, settings.Group, faces, types, ProjectPositionFile.Numbering(labels, shifts), settings.CheckPointLimitMm, settings.GapDecimals,
+                        ProjectPositionFile.MergesOf((JArray)baseplan["plots"]));
                 }
                 catch (InvalidDataException refused)
                 {
@@ -260,6 +261,8 @@ namespace CadReader
                 run.Counts["check points on the face of another plot"] = (int)summary["otherFace"];
                 run.Counts["check points over the limit"] = (int)summary["overLimit"];
                 run.Counts["keys with no key points"] = (int)summary["noPoints"];
+                run.Counts["check points of a number on two faces"] = (int)summary["twoFaces"];
+                run.Counts["check points on a vertex merged over the limit"] = (int)summary["merged"];
                 if ((bool)summary["failed"])
                 {
                     run.Issues.Add(ProjectPositionFile.SummaryLine(summary));
@@ -273,11 +276,17 @@ namespace CadReader
                     ["points"] = new JArray(rows.Select(row => new JObject
                     {
                         ["name"] = row.Key, ["key"] = (string)row.Value["key"], ["plot"] = (string)row.Value["plot"], ["face"] = (string)row.Value["face"], ["expectedFace"] = (string)row.Value["expectedFace"],
+                        ["numberFaces"] = row.Value["numberFaces"] == null ? JValue.CreateNull() : new JArray((string[])row.Value["numberFaces"]), ["mergeMm"] = gap(row.Value["mergeMm"]),
                         ["sharedM"] = pair(row.Value["sharedM"], 3), ["internalM"] = pair(row.Value["internalM"], 3), ["keyInternalM"] = pair(row.Value["keyInternalM"], 3),
                         ["keySharedM"] = pair(row.Value["keySharedM"], 3), ["gapMm"] = gap(row.Value["gapMm"]), ["revitGapMm"] = gap(row.Value["revitGapMm"]), ["pass"] = (bool)row.Value["pass"],
                         ["why"] = (string)row.Value["why"],
                     })),
                 });
+            }
+            if (!withBaseplan)
+            {
+                // R353, as R387 lists a check that cannot be made: the file is written and the answer says the check points were not made
+                run.Issues.Add(ProjectPositionFile.NotMade);
             }
             run.WriteJson(request.OutputFolder, Path.GetFileName(settings.File), file.Written(summary));
             run.Counts["levels"] = file.Levels.Count;

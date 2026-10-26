@@ -14,12 +14,14 @@ The check points of button 1 hold the CAD against the keys: per answer key the c
 plots of one Generic floor whose corners have the least and the greatest mean east and north), read at full precision by the step
 keyPoints of the read job of the test host, where the reader writes 3 decimals, against the baseplan at full precision, plots_exact.json of
 CadReader --exact, where plots.json holds 3 decimals. Each corner is taken to shared coordinates by the position file, the baseplan face that
-holds the middle of its floor so taken is the face of the plot and must be the face the numbering of the build gives the plot (labels.csv of
-the schedule fit of R351, else the shift of config/plot_numbers.json), and the vertex of that face nearest the corner is its CAD point, in
-site metres. The CAD point is taken to its internal point by SiteCoordinates of R211 from the file and the gap to the corner in plan is the
+holds the middle of its floor so taken is the face of the plot and must be the face the numbering of the build gives the plot (the client
+code rows of labels.csv of the schedule fit of R351, a number on two faces a conflict, else the shift of config/plot_numbers.json), and the
+vertex of that face nearest the corner is its CAD point, in site metres, with the merge CadReader made of it, a line end within its
+tolerance taken as the vertex. The CAD point is taken to its internal point by SiteCoordinates of R211 from the file and the gap to the corner in plan is the
 check, in mm by R385 at addin.position.gapDecimals and passing at addin.position.checkPointLimitMm. revitGapMm is the gap of the CAD point to
-the shared corner Revit gives, apart from the file. A point fails with why: no face, the face of another plot, no face numbered or the gap
-over the limit, and a key of the group with no key points is listed as missing. The key points are held to their key and to the position
+the shared corner Revit gives, apart from the file. A point fails with why: no face, no face numbered, a number on two faces, the face of
+another plot, a vertex merged by more than the limit or the gap over the limit, and a key of the group with no key points is listed as
+missing. A run that names no key points and no baseplan writes the file with an issue that the check points were not made. The key points are held to their key and to the position
 file, and every key read to its key by the model it names (answerKeys and key_copies.json). A check that fails is an issue of the run and
 the position file records its summary. Values are written by R385 at 3 decimals, the angle at 6, as R311 gives them. The C# of the worker
 gives the same (ProjectPositionFile of Common).
@@ -42,6 +44,7 @@ import link_summary
 import parity
 import plot_relations
 import project_profile
+import yard_rule
 
 FORMAT = "site-adaptation-position"
 FORMAT_VERSION = 1
@@ -79,12 +82,20 @@ def document_of(read):
     return documents[0]
 
 
+def json_kind(value):
+    """The JSON type of a value, as ProjectPositionFile names the type of a token."""
+    return ("boolean" if isinstance(value, bool) else "number" if isinstance(value, (int, float)) else "string" if isinstance(value, str)
+            else "array" if isinstance(value, list) else "object" if isinstance(value, dict) else "null")
+
+
 def position_of(document, key):
     """R353. The position file of the site facts of one key read (R311): refused when the read holds no site, a part of it was not read,
     a point or a level is no finite number, or its levels stand on more than one Elevation Base."""
     site = document.get("site")
     if not isinstance(site, dict):
         raise PositionError("the key read holds no site facts, a read of R311 is needed (R353)")
+    if site.get("notRead") is not None and not isinstance(site.get("notRead"), dict):
+        raise PositionError("the site facts of the key read hold notRead as a JSON %s, an object of the parts not read is needed (R353)" % json_kind(site.get("notRead")))
     missing = [name for name in ("projectPosition", "levels", "units") if name in (site.get("notRead") or {}) or site.get(name) is None]
     if missing:
         raise PositionError("the site facts of the key read hold no %s (R353)" % ", ".join(missing))
@@ -184,6 +195,8 @@ def read_faults(document, key):
     if not isinstance(site, dict):
         return found + ["%s site missing" % key]
     unread = site.get("notRead") if isinstance(site.get("notRead"), dict) else {}
+    if site.get("notRead") is not None and not isinstance(site.get("notRead"), dict):
+        found.append("%s site.notRead is no object" % key)
     found += ["%s site.%s not read" % (key, name) for name in sorted(unread)]
     at = site.get("projectPosition")
     if "projectPosition" not in unread:
@@ -301,22 +314,28 @@ def shifts_of(payload):
     return found
 
 
+# The kind location_plan.py writes for the client code labels of the unit plots, the rows plan_from_book.py and the faces step number by
+PLOT_KIND = "clientCode"
+
+
 def numbering(labels, shifts):
-    """R353, R351. The face of a plot by the numbering the build uses: the one face labels.csv of the schedule fit of R351 gives its number,
-    as plots.csv and plan_from_book.py take it, else for a key whose code config/plot_numbers.json names, the number less its shift, else
-    None. Gives a function of the key and the plot."""
+    """R353, R351. The faces of a plot by the numbering the build uses: the faces the client code rows of labels.csv of the schedule fit of
+    R351 give its number, as plots.csv and plan_from_book.py take them, one face, or two and more for a number on two faces, a conflict
+    never resolved by the shift. A number no client code row gives a face takes, for a key whose code config/plot_numbers.json names, the
+    number less its shift, else none. Rows of open space, land use and substation number no face. Gives a function of the key and the plot
+    that gives the list of faces, in the order of their numbers."""
     faces = {}
     for row in labels:
         number, face = str(row.get("number") or "").strip(), str(row.get("face") or "").strip()
-        if number and face:
+        if number and face and row.get("kind") == PLOT_KIND:
             faces.setdefault(number, set()).add(face)
 
     def face_of(key, plot):
-        held = faces.get(plot) or set()
-        if len(held) == 1:
-            return next(iter(held))
+        held = faces.get(plot)
+        if held:
+            return sorted(held, key=plot_order)
         shift = shifts.get(key.upper())
-        return str(int(plot) - shift) if shift is not None and plot.isascii() and plot.isdigit() else None
+        return [str(int(plot) - shift)] if shift is not None and plot.isascii() and plot.isdigit() else []
     return face_of
 
 
@@ -374,43 +393,67 @@ def chosen_floors(points, types):
 NO_POINTS = "no key points"
 
 
-def check_points(position, points_by_key, group, rings, types_by_key, face_numbered, limit_mm, decimals):
+def merges_of(plots):
+    """R353. The merge of each vertex of the faces of plots_exact.json by label and ring, as rings_of takes the rings: what CadReader merged
+    into the vertex, in m."""
+    found = {}
+    for entry in plots or []:
+        if entry.get("kind") != "plot_shape":
+            continue
+        label = yard_rule.whole_label(entry.get("plot"))
+        ring = [(float(vertex[0]), float(vertex[1])) for vertex in entry.get("vertices") or []]
+        if label is None or len(ring) < 3 or face_index.ring_area(ring) == 0:
+            continue
+        found.setdefault(str(label), []).append([float(value) for value in entry.get("vertexMergeM") or [0.0] * len(ring)])
+    return found
+
+
+def check_points(position, points_by_key, group, rings, types_by_key, face_numbered, limit_mm, decimals, merges=None):
     """R353. The check points of button 1 by <key>/<plot>/<corner>: per key of the group the corners of the Generic floors of its extreme
     plots, each with its CAD point, the nearest vertex of the baseplan face that holds the middle of its floor taken to shared coordinates
-    by the file, the face the numbering gives its plot (face_numbered), the gap through the file in mm and whether it passes, and why not:
-    no face, the face of another plot, no face numbered or the gap over the limit. A key of the group with no key points is one row of its
-    own, why no key points."""
+    by the file, with the merge CadReader made of it (merges_of, none when merges is None), the faces the numbering gives its plot
+    (face_numbered), the gap through the file in mm and whether it passes, and why not: no face, no face numbered, a number on two faces,
+    the face of another plot, the vertex merged by more than the limit or the gap over the limit. A key of the group with no key points is
+    one row of its own, why no key points."""
     index = face_index.FaceIndex(rings)
     rows = {}
     for key in group:
         if key not in points_by_key:
-            rows[key] = {"key": key, "plot": None, "face": None, "expectedFace": None, "sharedM": None, "internalM": None, "keyInternalM": None, "keySharedM": None,
-                         "gapMm": None, "revitGapMm": None, "pass": False, "why": NO_POINTS}
+            rows[key] = {"key": key, "plot": None, "face": None, "expectedFace": None, "numberFaces": None, "sharedM": None, "internalM": None, "keyInternalM": None,
+                         "keySharedM": None, "gapMm": None, "revitGapMm": None, "mergeMm": None, "pass": False, "why": NO_POINTS}
             continue
         for plot, floor in chosen_floors(points_by_key[key], types_by_key[key]):
             corners = floor["corners"]
             middle = to_shared(position, list(mean_of(corners)) + [0.0])
             face = index.face_of(middle[0], middle[1])
-            expected = face_numbered(key, plot)
+            numbered = list(face_numbered(key, plot))
+            expected = numbered[0] if len(numbered) == 1 else None
             vertices = [vertex for ring in rings[face] for vertex in ring] if face is not None else []
+            moved = [value for ring in (merges or {}).get(face) or [] for value in ring] if face is not None else []
             for k, corner in enumerate(corners):
                 shared_corner = floor["sharedCorners"][k]
-                cad, internal, gap, revit = None, None, None, None
+                cad, internal, gap, revit, merge = None, None, None, None, None
                 if vertices:
                     at = to_shared(position, corner)
-                    cad = list(min(vertices, key=lambda vertex: math.hypot(vertex[0] - at[0], vertex[1] - at[1])))
+                    nearest = min(range(len(vertices)), key=lambda item: math.hypot(vertices[item][0] - at[0], vertices[item][1] - at[1]))
+                    cad = list(vertices[nearest])
+                    merge = moved[nearest] * 1000.0 if moved else 0.0
                     internal = to_internal(position, [cad[0], cad[1], 0.0])[:2]
                     gap = math.hypot(internal[0] - corner[0], internal[1] - corner[1]) * 1000.0
                     revit = math.hypot(cad[0] - shared_corner[0], cad[1] - shared_corner[1]) * 1000.0
-                why = ("no face" if face is None else "no face numbered" if expected is None else "face of another plot" if face != expected
+                why = ("no face" if face is None else "no face numbered" if not numbered else "number on two faces" if len(numbered) > 1
+                       else "face of another plot" if face != expected else "vertex merged over the limit" if common.fixed(merge, decimals) > limit_mm
                        else "gap over the limit" if common.fixed(gap, decimals) > limit_mm else None)
-                rows["%s/%s/%d" % (key, plot, k)] = {"key": key, "plot": plot, "face": face, "expectedFace": expected, "sharedM": cad, "internalM": internal,
-                                                     "keyInternalM": [corner[0], corner[1]], "keySharedM": [shared_corner[0], shared_corner[1]], "gapMm": gap,
-                                                     "revitGapMm": revit, "pass": why is None, "why": why}
+                rows["%s/%s/%d" % (key, plot, k)] = {"key": key, "plot": plot, "face": face, "expectedFace": expected, "numberFaces": numbered if len(numbered) > 1 else None,
+                                                     "sharedM": cad, "internalM": internal, "keyInternalM": [corner[0], corner[1]],
+                                                     "keySharedM": [shared_corner[0], shared_corner[1]], "gapMm": gap, "revitGapMm": revit, "mergeMm": merge,
+                                                     "pass": why is None, "why": why}
     return rows
 
 
-WHY_COUNTS = (("overLimit", "gap over the limit"), ("noFace", "no face"), ("otherFace", "face of another plot"), ("noNumber", "no face numbered"), ("noPoints", NO_POINTS))
+WHY_COUNTS = (("overLimit", "gap over the limit"), ("noFace", "no face"), ("otherFace", "face of another plot"), ("noNumber", "no face numbered"),
+              ("twoFaces", "number on two faces"), ("merged", "vertex merged over the limit"), ("noPoints", NO_POINTS))
+NOT_MADE = "the check points were not made, the request names no baseplan and no key points (R353)"
 
 
 def summary_of(rows, limit_mm):
@@ -425,14 +468,18 @@ def summary_of(rows, limit_mm):
 
 def summary_line(summary):
     """The line of a check, the same in the answer of the worker."""
-    return "the check points %s: %d of %d pass at %s mm, gap over the limit %d, no face %d, face of another plot %d, no face numbered %d, no key points %d" % (
+    return ("the check points %s: %d of %d pass at %s mm, gap over the limit %d, no face %d, face of another plot %d, no face numbered %d, number on two faces %d, "
+            "vertex merged over the limit %d, no key points %d") % (
         "failed" if summary["failed"] else "passed", summary["pass"], summary["points"], summary["limitMm"], summary["overLimit"], summary["noFace"],
-        summary["otherFace"], summary["noNumber"], summary["noPoints"])
+        summary["otherFace"], summary["noNumber"], summary["twoFaces"], summary["merged"], summary["noPoints"])
 
 
 def issues_of(rows, decimals):
-    """One line per check point that fails, its name and why, with its gap when it has one."""
-    return ["%s %s%s" % (name, row["why"], "" if row["gapMm"] is None else ", gap %s mm" % common.fixed(row["gapMm"], decimals)) for name, row in rows.items() if not row["pass"]]
+    """One line per check point that fails, its name and why, the faces of a number on two faces, its merge when it was merged over the
+    limit and its gap when it has one, each a float as C# writes it, 0.0 and never 0."""
+    return ["%s %s%s%s%s" % (name, row["why"], "" if not row.get("numberFaces") else " " + ", ".join(row["numberFaces"]),
+                             "" if row["why"] != "vertex merged over the limit" else ", merged %s mm" % float(common.fixed(row["mergeMm"], decimals)),
+                             "" if row["gapMm"] is None else ", gap %s mm" % float(common.fixed(row["gapMm"], decimals))) for name, row in rows.items() if not row["pass"]]
 
 
 def points_of(path):
@@ -443,13 +490,24 @@ def points_of(path):
     return payload
 
 
-def exact_plots(path):
-    """R353. plots_exact.json of CadReader --exact, the plot shapes of the baseplan at full precision, its units Meters by the layers.json
-    of its read (R388)."""
+def exact_plots(path, settings):
+    """R353. plots_exact.json of CadReader --exact, the plot shapes of the baseplan at full precision with the merge of each vertex, its units
+    Meters by the layers.json of its read (R388), its drawing the one drawings.baseplan names and never one of drawings.referenceOnly (R300),
+    as the worker reads the baseplan, and every face with the merge of each of its vertices, so a file of before the merges is refused."""
     cad_units.check(path)
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     if payload.get("units") != cad_units.METRES:
         raise PositionError("%s holds the plots of a drawing in %s, a drawing is read only in %s (R388)" % (path, payload.get("units"), cad_units.METRES))
+    source = str(payload.get("source") or "")
+    if project_profile.is_reference_only(source, settings):
+        raise project_profile.ProfileError("%s is kept for reference only (drawings.referenceOnly) and is never read for the baseplan of the check points (R300, R353)" % source)
+    baseplan = project_profile.file_name(settings.get("drawings")["baseplan"])
+    if source.casefold() != baseplan.casefold():
+        raise PositionError("%s is a read of %s, the check points take the baseplan drawings.baseplan names, %s (R353)" % (path, source or "no drawing", baseplan))
+    for entry in payload["plots"]:
+        if entry.get("kind") == "plot_shape" and len(entry.get("vertexMergeM") or []) != len(entry.get("vertices") or []):
+            raise PositionError("%s holds the face of label %s with no vertexMergeM of each vertex, a read of CadReader --exact of before the merges, read the baseplan again (R353)"
+                                % (path, entry.get("plot")))
     return payload["plots"]
 
 
@@ -572,6 +630,8 @@ def main(argv=None):
         inputs += [parity.input_entry("keyRead:" + key, path) for key, path in sorted(others.items())]
         made = {"position": position_step(position, held)}
         rows = summary = None
+        if not args.key_points and (args.baseplan_exact or args.labels):
+            raise PositionError("the check points hold the baseplan against the key points of the keys, the inputs baseplan and keyPoints:<key>, the request names one of them (R353)")
         if args.key_points:
             given = dict(item.split("=", 1) for item in args.key_points)
             stray = sorted(key for key in given if key not in group)
@@ -583,7 +643,7 @@ def main(argv=None):
             faults = [line for key, payload in points.items() for line in points_faults(payload, key, copies, position)]
             if faults:
                 raise PositionError("the key points are not those of their keys and of the position file: %s (R353)" % ", and ".join(faults))
-            plots = exact_plots(args.baseplan_exact)
+            plots = exact_plots(args.baseplan_exact, settings)
             # R345. The faces of the baseplan are refused as the build and the C# refuse them
             refused = face_rings.refusals(plots, settings.get("addin")["parity"]["kinds"]["areas"])
             if refused:
@@ -592,7 +652,7 @@ def main(argv=None):
                 labels = list(csv.DictReader(handle))
             shifts = shifts_of(json.loads(Path(args.plot_shifts).read_text(encoding="utf-8")))
             rows = check_points(position, points, group, face_index.rings_of(plots), {key: generic_types(settings, key) for key in points}, numbering(labels, shifts),
-                                block["checkPointLimitMm"], block["gapDecimals"])
+                                block["checkPointLimitMm"], block["gapDecimals"], merges_of(plots))
             summary = summary_of(rows, block["checkPointLimitMm"])
             made["checkPoints"] = rows
             inputs += [parity.input_entry("keyPoints:" + key, path) for key, path in sorted(given.items())]
@@ -615,6 +675,8 @@ def main(argv=None):
             print(summary_line(summary))
             for line in issues_of(rows, block["gapDecimals"]):
                 print("issue " + line)
+        else:
+            print("issue " + NOT_MADE)
     except (project_profile.ProfileError, cad_units.UnitError, PositionError, KeyError, OSError, ValueError) as error:
         print("position_file: " + str(error), file=sys.stderr)
         return 2

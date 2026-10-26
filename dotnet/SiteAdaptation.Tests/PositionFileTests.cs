@@ -139,8 +139,9 @@ namespace SiteAdaptation.Tests
             };
         }
 
-        // test_position_file.made_plots: the baseplan faces of the made up floors in site metres, labels 101 to 103, scaled and moved east
-        private static JArray MadePlots(double scale = 1.0, double east = 0.0, double angle = 0.0)
+        // test_position_file.made_plots: the baseplan faces of the made up floors in site metres, labels 101 to 103, scaled and moved east,
+        // with the merge of each vertex of CadReader --exact, 0 unless merges names those of a label
+        private static JArray MadePlots(double scale = 1.0, double east = 0.0, double angle = 0.0, Dictionary<string, double[]> merges = null)
         {
             double turn = angle * Math.PI / 180.0;
             var plots = new JArray();
@@ -153,16 +154,29 @@ namespace SiteAdaptation.Tests
                     ["kind"] = "plot_shape", ["plot"] = (101 + index).ToString(CultureInfo.InvariantCulture), ["type"] = "DP1",
                     ["vertices"] = new JArray(ring.Select(point => new JArray((Math.Cos(turn) * point[0] - Math.Sin(turn) * point[1] + 1000.0) * scale + east,
                         (Math.Sin(turn) * point[0] + Math.Cos(turn) * point[1] + 2000.0) * scale))),
+                    ["vertexMergeM"] = new JArray((merges != null && merges.TryGetValue((101 + index).ToString(CultureInfo.InvariantCulture), out double[] own) ? own : new double[ring.Length]).Select(value => (object)value).ToArray()),
                 });
             }
             return plots;
         }
 
-        private static Dictionary<string, Dictionary<string, object>> MadeCheck(ProjectPositionFile position, JArray plots, JObject points = null, Func<string, string, string> numbering = null, IEnumerable<string> keys = null)
+        // test_position_file.numbered: a numbering of the build by a table of the faces of each number
+        private static Func<string, string, IReadOnlyList<string>> Numbered(IDictionary<string, string[]> numbers)
+        {
+            return (key, plot) => numbers.TryGetValue(plot, out string[] faces) ? faces : new string[0];
+        }
+
+        private static Dictionary<string, string[]> Single(IDictionary<string, string> numbers)
+        {
+            return numbers.ToDictionary(item => item.Key, item => new[] { item.Value });
+        }
+
+        private static Dictionary<string, Dictionary<string, object>> MadeCheck(ProjectPositionFile position, JArray plots, JObject points = null, Func<string, string, IReadOnlyList<string>> numbering = null,
+            IEnumerable<string> keys = null)
         {
             Dictionary<string, JObject> byKey = (keys ?? new[] { "imc" }).ToDictionary(key => key, key => points ?? MadePoints(key: key));
             return ProjectPositionFile.CheckPoints(position, byKey, Group, LocationPlan.Faces(plots, 0.000001), Group.ToDictionary(key => key, key => new List<string> { "Generic 150mm" }),
-                numbering ?? ((key, plot) => Numbers.TryGetValue(plot, out string face) ? face : null), 1.0, 2);
+                numbering ?? Numbered(Single(Numbers)), 1.0, 2, ProjectPositionFile.MergesOf(plots));
         }
 
         [Fact]
@@ -367,27 +381,83 @@ namespace SiteAdaptation.Tests
                 });
             }
             var numbers = new Dictionary<string, string> { ["2001"] = "101", ["2002"] = "102", ["2003"] = "103", ["2004"] = "104" };
-            Dictionary<string, Dictionary<string, object>> rows = MadeCheck(position, plots, MadePoints(floors: floors), (key, plot) => numbers.TryGetValue(plot, out string face) ? face : null);
+            Dictionary<string, Dictionary<string, object>> rows = MadeCheck(position, plots, MadePoints(floors: floors), Numbered(Single(numbers)));
             List<Dictionary<string, object>> taken = rows.Values.Where(row => row["plot"] != null).ToList();
             Assert.Equal(8, taken.Count);
             Assert.All(taken, row => Assert.True((double)row["gapMm"] < 1e-6 && (string)row["why"] == "face of another plot" && false.Equals(row["pass"])));
             Assert.Equal(new[] { "2001 100 101", "2004 103 104" }, taken.Select(row => row["plot"] + " " + row["face"] + " " + row["expectedFace"]).Distinct().OrderBy(text => text));
             Dictionary<string, object> summary = ProjectPositionFile.Summary(rows, 1.0);
             Assert.Equal("14 0 8 6 True", string.Join(" ", summary["points"], summary["pass"], summary["otherFace"], summary["noPoints"], summary["failed"]));
-            Assert.Equal(new[] { "no face numbered" }, MadeCheck(position, MadePlots(), numbering: (key, plot) => null).Values.Where(row => row["plot"] != null).Select(row => (string)row["why"]).Distinct());
-            Func<string, string, string> shifts = ProjectPositionFile.Numbering(new List<Dictionary<string, string>>(), new Dictionary<string, int> { ["IMC"] = 10 });
-            Assert.Equal("101", shifts("imc", "111"));
-            Assert.Null(shifts("ima", "111"));
-            var labels = new List<Dictionary<string, string>>
-            {
-                new Dictionary<string, string> { ["number"] = "2001", ["face"] = "101" }, new Dictionary<string, string> { ["number"] = "2001", ["face"] = "101" },
-                new Dictionary<string, string> { ["number"] = "2002", ["face"] = "" }, new Dictionary<string, string> { ["number"] = "2003", ["face"] = "7" },
-                new Dictionary<string, string> { ["number"] = "2003", ["face"] = "8" },
-            };
-            Func<string, string, string> numbered = ProjectPositionFile.Numbering(labels, new Dictionary<string, int> { ["IMC"] = 10 });
-            Assert.Equal(new[] { "101", null, null, "1993" }, new[] { numbered("ima", "2001"), numbered("ima", "2002"), numbered("ima", "2003"), numbered("imc", "2003") });
+            Assert.Equal(new[] { "no face numbered" }, MadeCheck(position, MadePlots(), numbering: (key, plot) => new string[0]).Values.Where(row => row["plot"] != null).Select(row => (string)row["why"]).Distinct());
+            Func<string, string, IReadOnlyList<string>> shifts = ProjectPositionFile.Numbering(new List<Dictionary<string, string>>(), new Dictionary<string, int> { ["IMC"] = 10 });
+            Assert.Equal(new[] { "101" }, shifts("imc", "111"));
+            Assert.Empty(shifts("ima", "111"));
             Assert.Equal(10, ProjectPositionFile.Shifts(JObject.Parse("{\"neighbourhoods\": {\"IMC\": {\"shift\": 10}}}"))["IMC"]);
             Assert.Contains("IMC a shift that is no whole number", Assert.Throws<InvalidDataException>(() => ProjectPositionFile.Shifts(JObject.Parse("{\"neighbourhoods\": {\"IMC\": {\"shift\": 10.0}}}"))).Message);
+        }
+
+        private static Dictionary<string, string> Label(string number, string kind, string face)
+        {
+            return new Dictionary<string, string> { ["number"] = number, ["kind"] = kind, ["face"] = face };
+        }
+
+        [Fact]
+        public void R353_only_a_plot_label_numbers_a_face_and_a_number_on_two_faces_fails_its_point_never_the_shift()
+        {
+            // test_position_file: rows of the client code kind and of the other kinds, a number on two faces, an empty face and the shift of IMC
+            var labels = new List<Dictionary<string, string>>
+            {
+                Label("2001", "clientCode", "101"), Label("2001", "clientCode", "101"), Label("2002", "openSpace", "102"), Label("2004", "landUse", "104"),
+                Label("2005", "substation", "105"), Label("2006", "clientCode", ""), Label("2003", "clientCode", "7"), Label("2003", "clientCode", "8"),
+            };
+            Func<string, string, IReadOnlyList<string>> faceOf = ProjectPositionFile.Numbering(labels, new Dictionary<string, int> { ["IMC"] = 10 });
+            Assert.Equal(new[] { "101", "", "", "", "", "7|8" }, new[] { "2001", "2002", "2004", "2005", "2006", "2003" }.Select(number => string.Join("|", faceOf("ima", number))));
+            Assert.Equal(new[] { "1992", "1996", "7|8" }, new[] { "2002", "2006", "2003" }.Select(number => string.Join("|", faceOf("imc", number))));
+            ProjectPositionFile position = ProjectPositionFile.From(ProjectPositionFile.DocumentOf(MadeRead()), "imc");
+            var numbers = new Dictionary<string, string[]> { ["2001"] = new[] { "101", "102" }, ["2002"] = new[] { "102" }, ["2003"] = new[] { "103" } };
+            Dictionary<string, Dictionary<string, object>> rows = MadeCheck(position, MadePlots(), numbering: Numbered(numbers));
+            List<Dictionary<string, object>> two = rows.Values.Where(row => (string)row["plot"] == "2001").ToList();
+            Assert.Equal(4, two.Count);
+            Assert.All(two, row => Assert.True((string)row["why"] == "number on two faces" && string.Join("|", (string[])row["numberFaces"]) == "101|102" && row["expectedFace"] == null && false.Equals(row["pass"])));
+            Assert.All(rows.Values.Where(row => (string)row["plot"] != "2001"), row => Assert.Null(row["numberFaces"]));
+            Dictionary<string, object> summary = ProjectPositionFile.Summary(rows, 1.0);
+            Assert.Equal("4 8 True", string.Join(" ", summary["twoFaces"], summary["pass"], summary["failed"]));
+            Assert.Contains("imc/2001/0 number on two faces 101, 102, gap 0.0 mm", ProjectPositionFile.Issues(rows, 2));
+        }
+
+        [Fact]
+        public void R353_a_check_point_on_a_vertex_merged_more_than_the_limit_fails_with_its_merge()
+        {
+            ProjectPositionFile position = ProjectPositionFile.From(ProjectPositionFile.DocumentOf(MadeRead()), "imc");
+            var merges = new Dictionary<string, double[]> { ["101"] = new[] { 0.0, 0.0012, 0.0004, 0.0 } };
+            Dictionary<string, Dictionary<string, object>> rows = MadeCheck(position, MadePlots(merges: merges));
+            Assert.Equal(new[] { 0.0, 1.2, 0.4, 0.0 }, Enumerable.Range(0, 4).Select(k => Math.Round((double)rows["imc/2001/" + k]["mergeMm"], 9)));
+            Assert.Equal(new[] { null, "vertex merged over the limit", null, null }, Enumerable.Range(0, 4).Select(k => (string)rows["imc/2001/" + k]["why"]));
+            Assert.True((double)rows["imc/2001/1"]["gapMm"] < 1e-6);
+            Assert.Equal(1, ProjectPositionFile.Summary(rows, 1.0)["merged"]);
+            Assert.All(rows.Values.Where(row => row["plot"] == null), row => Assert.Null(row["mergeMm"]));
+            Assert.Equal(new[] { 0.0, 0.0012, 0.0004, 0.0 }, ProjectPositionFile.MergesOf(MadePlots(merges: merges))["101"][0]);
+        }
+
+        [Fact]
+        public void R353_a_not_read_that_is_no_object_is_refused()
+        {
+            foreach (Tuple<JToken, string> value in new[] { Tuple.Create((JToken)new JArray("projectPosition"), "array"), Tuple.Create((JToken)"levels could not be read", "string"), Tuple.Create((JToken)3, "number") })
+            {
+                JObject read = MadeRead();
+                read["documents"][0]["site"]["notRead"] = value.Item1;
+                Assert.Contains("notRead as a JSON " + value.Item2, Assert.Throws<InvalidDataException>(() => ProjectPositionFile.From(ProjectPositionFile.DocumentOf(read), "imc")).Message);
+            }
+            Assert.Equal(new[] { "ima site.notRead is no object" }, ProjectPositionFile.SetDiffers(Documents((key, document) =>
+            {
+                if (key == "ima")
+                {
+                    document["site"]["notRead"] = new JArray("levels");
+                }
+            }), "imc", Group, Copies));
+            JObject none = MadeRead();
+            none["documents"][0]["site"]["notRead"] = JValue.CreateNull();
+            Assert.Equal("imc", ProjectPositionFile.From(ProjectPositionFile.DocumentOf(none), "imc").Key);
         }
 
         [Fact]
@@ -440,6 +510,31 @@ namespace SiteAdaptation.Tests
             string text = CadExtractor.ExactText(exact);
             Assert.Contains("1000.0004", text);
             Assert.Equal("Meters", (string)JObject.Parse(text)["units"]);
+            // Each vertex with the merge PlotShapes made of it, 0 where the line ends meet exactly
+            Assert.Equal(face["vertices"].Count(), face["vertexMergeM"].Count());
+            Assert.All(face["vertexMergeM"], merge => Assert.Equal(0.0, (double)merge));
+            // A line end 3 mm east and 4 mm north of the next line's start is one node of the face, the vertex 5 mm from the end merged into it
+            path = Baseplan(0.0, 0.003, 0.004);
+            extract = CadExtractor.Extract(CadExtractor.Open(path, problems), "baseplan.dwg", LayerConfig.Load(Path.Combine(Path.GetDirectoryName(WorkerRunTests.RepoConfig()), "cad_layers.json")), null, path, problems);
+            face = CadExtractor.ExactPlots(extract, "Meters")["plots"].First(item => (string)item["kind"] == "plot_shape" && (string)item["plot"] == "101");
+            Assert.Equal(new[] { 0.0, 0.0, 0.0, 0.005 }, face["vertexMergeM"].Select(merge => Math.Round((double)merge, 9)).OrderBy(merge => merge));
+        }
+
+        // R353. A read into a folder without --exact removes a plots_exact.json an earlier read left there, so it never stands beside a newer
+        // plots.json, and a read with --exact writes it
+        [Fact]
+        public void R353_a_read_without_exact_removes_the_plots_exact_of_an_earlier_read()
+        {
+            string path = Baseplan(0.0004);
+            var problems = new List<string>();
+            CadExtract extract = CadExtractor.Extract(CadExtractor.Open(path, problems), "baseplan.dwg", LayerConfig.Load(Path.Combine(Path.GetDirectoryName(WorkerRunTests.RepoConfig()), "cad_layers.json")), null, path, problems);
+            string outDir = Path.Combine(folder, "read");
+            Directory.CreateDirectory(outDir);
+            string exact = Path.Combine(outDir, "plots_exact.json");
+            Assert.True(CadExtractor.WriteExact(extract, outDir, true));
+            Assert.True(File.Exists(exact));
+            Assert.False(CadExtractor.WriteExact(extract, outDir, false));
+            Assert.False(File.Exists(exact));
         }
 
         private static WorkerFile Input(string role, string path)
@@ -456,7 +551,7 @@ namespace SiteAdaptation.Tests
 
         // test_position_file.made_plots as a baseplan drawing in meters, its faces moved east by east: the three faces on the plot line layer,
         // each with its label inside
-        private string Baseplan(double east = 0.0)
+        private string Baseplan(double east = 0.0, double gapEast = 0.0, double gapNorth = 0.0)
         {
             var document = new CadDocument();
             document.Header.InsUnits = UnitsType.Meters;
@@ -470,11 +565,13 @@ namespace SiteAdaptation.Tests
                 for (int corner = 0; corner < ring.Count; corner++)
                 {
                     double[] from = ring[corner], to = ring[(corner + 1) % ring.Count];
-                    document.Entities.Add(new Line { StartPoint = new XYZ(from[0], from[1], 0), EndPoint = new XYZ(to[0], to[1], 0), Layer = line });
+                    // The first line of face 101 drawn with its end off the next line's start, as a drawing whose lines do not quite meet
+                    double offEast = (string)plot["plot"] == "101" && corner == 0 ? gapEast : 0.0, offNorth = (string)plot["plot"] == "101" && corner == 0 ? gapNorth : 0.0;
+                    document.Entities.Add(new Line { StartPoint = new XYZ(from[0], from[1], 0), EndPoint = new XYZ(to[0] + offEast, to[1] + offNorth, 0), Layer = line });
                 }
                 document.Entities.Add(new MText { Value = "DP1\\P" + (string)plot["plot"], InsertPoint = new XYZ(ring[0][0] + 5, ring[0][1] + 5, 0), Layer = text });
             }
-            string path = Path.Combine(folder, "baseplan_" + east.ToString("R", CultureInfo.InvariantCulture) + ".dwg");
+            string path = Path.Combine(folder, "baseplan_" + east.ToString("R", CultureInfo.InvariantCulture) + "_" + gapEast.ToString("R", CultureInfo.InvariantCulture) + ".dwg");
             using (var writer = new DwgWriter(path, document))
             {
                 writer.Write();
@@ -528,7 +625,7 @@ namespace SiteAdaptation.Tests
             JObject points = MadePoints();
             points["model"] = copies["imc"] + "_TEST-KC.rvt";
             string labels = Path.Combine(folder, "labels.csv");
-            File.WriteAllText(labels, "number,face\n2001,101\n2002,102\n2003,103\n");
+            File.WriteAllText(labels, "number,kind,face\n2001,clientCode,101\n2002,clientCode,102\n2003,clientCode,103\n");
             string shifts = Write("plot_numbers.json", JObject.Parse("{\"neighbourhoods\": {\"IMC\": {\"shift\": 10}}}"));
             // The baseplan 0.0004 m east of the keys at full precision: every corner 0.4 mm off, where the 3 decimals of plots.json gave 0
             WorkerFile[] check =
@@ -544,7 +641,8 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Survey Point", (string)written["levelBase"]);
             Assert.Equal("Internal", (string)written["activeSite"]);
             // The check of the 6 keys with no points failed: the file records it, every failed point is an issue, the run ends 0 and done
-            Assert.Equal("{\"limitMm\":1.0,\"points\":18,\"pass\":12,\"overLimit\":0,\"noFace\":0,\"otherFace\":0,\"noNumber\":0,\"noPoints\":6,\"failed\":true}", written["checkPoints"].ToString(Newtonsoft.Json.Formatting.None));
+            Assert.Equal("{\"limitMm\":1.0,\"points\":18,\"pass\":12,\"overLimit\":0,\"noFace\":0,\"otherFace\":0,\"noNumber\":0,\"twoFaces\":0,\"merged\":0,\"noPoints\":6,\"failed\":true}",
+                written["checkPoints"].ToString(Newtonsoft.Json.Formatting.None));
             Assert.StartsWith("the check points failed: 12 of 18 pass at 1.0 mm", answer.Issues[0]);
             Assert.Contains("ima no key points", answer.Issues);
             JObject step = JObject.Parse(File.ReadAllText(Path.Combine(folder, "steps", StepFile.FileName(ProjectPositionFile.CheckPointsStep, "csharp"))));
@@ -572,6 +670,14 @@ namespace SiteAdaptation.Tests
             answer = RunPosition("p5", MadeRead(), new List<string>(), out code, Group.Skip(1), copies, manifest, check);
             Assert.True(code == 2, "exit " + code + ": " + answer.Message);
             Assert.Contains("imc keyPoints projectPosition 5000000.0 mm off the position file", answer.Message);
+            // A request that names neither the baseplan nor key points writes the file with an issue that the check points were not made,
+            // as R387 lists a check that cannot be made, and one that names the baseplan with no key points is refused
+            answer = RunPosition("p6", MadeRead(), new List<string>(), out code, Group.Skip(1), copies, manifest);
+            Assert.True(code == 0, "exit " + code + ": " + answer.Message);
+            Assert.Equal(new[] { ProjectPositionFile.NotMade }, answer.Issues);
+            answer = RunPosition("p7", MadeRead(), new List<string>(), out code, Group.Skip(1), copies, manifest, check[0], check[1], check[3], check[4]);
+            Assert.True(code == 2, "exit " + code + ": " + answer.Message);
+            Assert.Contains("the request names one of them", answer.Message);
         }
     }
 }

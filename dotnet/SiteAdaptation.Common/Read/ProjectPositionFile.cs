@@ -78,6 +78,9 @@ namespace SiteAdaptation.Common
         public const string LabelsRole = "labels";
         public const string PlotShiftsRole = "plotShifts";
         public const string NoPoints = "no key points";
+        public const string NotMade = "the check points were not made, the request names no baseplan and no key points (R353)";
+        // The kind location_plan writes for the client code labels of the unit plots, the rows the build and the faces step number by
+        public const string PlotKind = "clientCode";
         public static readonly string[] PositionRoles = { KeyReadRole, RulesRole, KeyCopiesRole, KeyReadRole + ":*" };
         public static readonly string[] CheckPointRoles = { KeyReadRole, RulesRole, KeyCopiesRole, "baseplan", LabelsRole, PlotShiftsRole, KeyPointsRole + ":*" };
         // A level step of the file is the one of the rules within half a mm, the angle within a millionth of a degree, as R331 holds a read
@@ -90,7 +93,8 @@ namespace SiteAdaptation.Common
         private static readonly System.Text.RegularExpressions.Regex WorkJob = new System.Text.RegularExpressions.Regex(@"\A[A-Z][A-Z0-9]{1,3}\z", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
         private static readonly string[][] WhyCounts =
         {
-            new[] { "overLimit", "gap over the limit" }, new[] { "noFace", "no face" }, new[] { "otherFace", "face of another plot" }, new[] { "noNumber", "no face numbered" }, new[] { "noPoints", NoPoints },
+            new[] { "overLimit", "gap over the limit" }, new[] { "noFace", "no face" }, new[] { "otherFace", "face of another plot" }, new[] { "noNumber", "no face numbered" },
+            new[] { "twoFaces", "number on two faces" }, new[] { "merged", "vertex merged over the limit" }, new[] { "noPoints", NoPoints },
         };
 
         public string Key { get; private set; }
@@ -176,6 +180,27 @@ namespace SiteAdaptation.Common
             }
         }
 
+        // python/position_file.json_kind: the JSON type of a token
+        private static string JsonKind(JToken value)
+        {
+            switch (value.Type)
+            {
+                case JTokenType.Boolean:
+                    return "boolean";
+                case JTokenType.Integer:
+                case JTokenType.Float:
+                    return "number";
+                case JTokenType.String:
+                    return "string";
+                case JTokenType.Array:
+                    return "array";
+                case JTokenType.Object:
+                    return "object";
+                default:
+                    return "null";
+            }
+        }
+
         private static bool IsFinite(JToken value)
         {
             return value != null && (value.Type == JTokenType.Float || value.Type == JTokenType.Integer) && !double.IsNaN(value.Value<double>()) && !double.IsInfinity(value.Value<double>());
@@ -215,6 +240,10 @@ namespace SiteAdaptation.Common
                 return found;
             }
             var unread = new HashSet<string>((site["notRead"] as JObject)?.Properties().Select(item => item.Name) ?? Enumerable.Empty<string>());
+            if (site["notRead"] != null && site["notRead"].Type != JTokenType.Null && site["notRead"].Type != JTokenType.Object)
+            {
+                found.Add(key + " site.notRead is no object");
+            }
             found.AddRange(unread.OrderBy(name => name, StringComparer.Ordinal).Select(name => key + " site." + name + " not read"));
             if (!unread.Contains("projectPosition"))
             {
@@ -344,6 +373,10 @@ namespace SiteAdaptation.Common
         public static ProjectPositionFile From(JObject document, string key)
         {
             JObject site = document["site"] as JObject ?? throw new InvalidDataException("the key read holds no site facts, a read of R311 is needed (R353)");
+            if (site["notRead"] != null && site["notRead"].Type != JTokenType.Null && site["notRead"].Type != JTokenType.Object)
+            {
+                throw new InvalidDataException("the site facts of the key read hold notRead as a JSON " + JsonKind(site["notRead"]) + ", an object of the parts not read is needed (R353)");
+            }
             JObject notRead = site["notRead"] as JObject;
             List<string> missing = new[] { "projectPosition", "levels", "units" }.Where(name => (notRead != null && notRead[name] != null) || site[name] == null || site[name].Type == JTokenType.Null).ToList();
             if (missing.Count > 0)
@@ -622,15 +655,17 @@ namespace SiteAdaptation.Common
             return found;
         }
 
-        // python/position_file.numbering: the face of a plot by the numbering the build uses, the one face labels.csv of the schedule fit
-        // of R351 gives its number, else for a key whose code config/plot_numbers.json names, the number less its shift, else null
-        public static Func<string, string, string> Numbering(IReadOnlyList<Dictionary<string, string>> labels, IReadOnlyDictionary<string, int> shifts)
+        // python/position_file.numbering: the faces of a plot by the numbering the build uses, the faces the client code rows of labels.csv of
+        // the schedule fit of R351 give its number, one face, or two and more for a number on two faces, a conflict never resolved by the
+        // shift, else for a key whose code config/plot_numbers.json names, the number less its shift, else none. Rows of open space, land use
+        // and substation number no face. The faces in the order of their numbers
+        public static Func<string, string, IReadOnlyList<string>> Numbering(IReadOnlyList<Dictionary<string, string>> labels, IReadOnlyDictionary<string, int> shifts)
         {
             var faces = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
             foreach (Dictionary<string, string> row in labels)
             {
                 string number = (row.TryGetValue("number", out string a) ? a ?? "" : "").Trim(), face = (row.TryGetValue("face", out string b) ? b ?? "" : "").Trim();
-                if (number.Length > 0 && face.Length > 0)
+                if (number.Length > 0 && face.Length > 0 && row.TryGetValue("kind", out string kind) && kind == PlotKind)
                 {
                     if (!faces.ContainsKey(number))
                     {
@@ -641,14 +676,45 @@ namespace SiteAdaptation.Common
             }
             return (key, plot) =>
             {
-                if (faces.TryGetValue(plot, out HashSet<string> held) && held.Count == 1)
+                if (faces.TryGetValue(plot, out HashSet<string> held) && held.Count > 0)
                 {
-                    return held.First();
+                    List<string> ordered = held.ToList();
+                    ordered.Sort(ComparePlots);
+                    return ordered;
                 }
                 bool digits = plot.Length > 0 && plot.All(letter => letter >= '0' && letter <= '9');
                 return digits && shifts.TryGetValue(key.ToUpperInvariant(), out int shift)
-                    ? (System.Numerics.BigInteger.Parse(plot, CultureInfo.InvariantCulture) - shift).ToString(CultureInfo.InvariantCulture) : null;
+                    ? new[] { (System.Numerics.BigInteger.Parse(plot, CultureInfo.InvariantCulture) - shift).ToString(CultureInfo.InvariantCulture) } : new string[0];
             };
+        }
+
+        // python/position_file.merges_of: the merge of each vertex of the faces of a baseplan read exact by label and ring, as LocationPlan.Faces
+        // takes the rings, what CadReader merged into the vertex in m
+        public static Dictionary<string, List<double[]>> MergesOf(JArray plots)
+        {
+            var found = new Dictionary<string, List<double[]>>(StringComparer.Ordinal);
+            foreach (JToken entry in plots)
+            {
+                if ((string)entry["kind"] != "plot_shape")
+                {
+                    continue;
+                }
+                JToken plot = entry["plot"];
+                string label = FaceStep.WholeLabel(plot == null || plot.Type == JTokenType.Null ? null : plot.ToString());
+                double[][] ring = (entry["vertices"] as JArray ?? new JArray()).Select(vertex => new[] { (double)vertex[0], (double)vertex[1] }).ToArray();
+                if (label == null || ring.Length < 3 || FaceStep.Ring(ring).Area == 0)
+                {
+                    continue;
+                }
+                if (!found.TryGetValue(label, out List<double[]> rings))
+                {
+                    rings = new List<double[]>();
+                    found[label] = rings;
+                }
+                JArray merges = entry["vertexMergeM"] as JArray;
+                rings.Add(merges == null ? new double[ring.Length] : merges.Select(value => (double)value).ToArray());
+            }
+            return found;
         }
 
         // python/position_file.generic_types: the type names of the Generic floors of a key, floors.keyTypes of its code, else floors.types
@@ -747,7 +813,8 @@ namespace SiteAdaptation.Common
         // no face, no face numbered, the face of another plot or the gap over the limit. A key of the group with no key points is one row
         // of its own, why no key points
         public static Dictionary<string, Dictionary<string, object>> CheckPoints(ProjectPositionFile file, IReadOnlyDictionary<string, JObject> pointsByKey, IReadOnlyList<string> group,
-            IReadOnlyDictionary<string, PlanFace> faces, IReadOnlyDictionary<string, List<string>> typesByKey, Func<string, string, string> faceNumbered, double limitMm, int decimals)
+            IReadOnlyDictionary<string, PlanFace> faces, IReadOnlyDictionary<string, List<string>> typesByKey, Func<string, string, IReadOnlyList<string>> faceNumbered, double limitMm, int decimals,
+            IReadOnlyDictionary<string, List<double[]>> merges = null)
         {
             var index = new FaceIndex(faces.Values);
             var rows = new Dictionary<string, Dictionary<string, object>>();
@@ -757,8 +824,8 @@ namespace SiteAdaptation.Common
                 {
                     rows[key] = new Dictionary<string, object>
                     {
-                        ["key"] = key, ["plot"] = null, ["face"] = null, ["expectedFace"] = null, ["sharedM"] = null, ["internalM"] = null, ["keyInternalM"] = null, ["keySharedM"] = null,
-                        ["gapMm"] = null, ["revitGapMm"] = null, ["pass"] = false, ["why"] = NoPoints,
+                        ["key"] = key, ["plot"] = null, ["face"] = null, ["expectedFace"] = null, ["numberFaces"] = null, ["sharedM"] = null, ["internalM"] = null, ["keyInternalM"] = null,
+                        ["keySharedM"] = null, ["gapMm"] = null, ["revitGapMm"] = null, ["mergeMm"] = null, ["pass"] = false, ["why"] = NoPoints,
                     };
                     continue;
                 }
@@ -769,38 +836,43 @@ namespace SiteAdaptation.Common
                     double[] centre = Mean(corners);
                     double[] middle = SiteCoordinates.ToShared(file.Position, new[] { centre[0], centre[1], 0.0 });
                     string face = index.FaceOf(middle[0], middle[1]);
-                    string expected = faceNumbered(key, chosen.Key);
+                    List<string> numbered = faceNumbered(key, chosen.Key).ToList();
+                    string expected = numbered.Count == 1 ? numbered[0] : null;
                     List<double[]> vertices = face == null ? new List<double[]>() : faces[face].Rings.SelectMany(ring => ring).ToList();
+                    List<double> moved = face != null && merges != null && merges.TryGetValue(face, out List<double[]> own) ? own.SelectMany(ring => ring).ToList() : new List<double>();
                     for (int k = 0; k < corners.Count; k++)
                     {
                         double[] corner = Corner(corners[k]), sharedCorner = Corner(sharedCorners[k]);
                         double[] cad = null, internalPoint = null;
-                        double? gap = null, revit = null;
+                        double? gap = null, revit = null, merge = null;
                         if (vertices.Count > 0)
                         {
                             double[] at = SiteCoordinates.ToShared(file.Position, corner);
                             double best = double.PositiveInfinity;
-                            foreach (double[] vertex in vertices)
+                            int nearest = 0;
+                            for (int item = 0; item < vertices.Count; item++)
                             {
-                                double distance = LocationPlan.Hypot(vertex[0] - at[0], vertex[1] - at[1]);
+                                double distance = LocationPlan.Hypot(vertices[item][0] - at[0], vertices[item][1] - at[1]);
                                 if (distance < best)
                                 {
                                     best = distance;
-                                    cad = new[] { vertex[0], vertex[1] };
+                                    nearest = item;
                                 }
                             }
+                            cad = new[] { vertices[nearest][0], vertices[nearest][1] };
+                            merge = moved.Count > 0 ? moved[nearest] * 1000.0 : 0.0;
                             double[] taken = SiteCoordinates.ToInternal(file.Position, new[] { cad[0], cad[1], 0.0 });
                             internalPoint = new[] { taken[0], taken[1] };
                             gap = LocationPlan.Hypot(internalPoint[0] - corner[0], internalPoint[1] - corner[1]) * 1000.0;
                             revit = LocationPlan.Hypot(cad[0] - sharedCorner[0], cad[1] - sharedCorner[1]) * 1000.0;
                         }
-                        string why = face == null ? "no face" : expected == null ? "no face numbered" : face != expected ? "face of another plot"
-                            : Rounding.Fixed(gap.Value, decimals) > limitMm ? "gap over the limit" : null;
+                        string why = face == null ? "no face" : numbered.Count == 0 ? "no face numbered" : numbered.Count > 1 ? "number on two faces" : face != expected ? "face of another plot"
+                            : Rounding.Fixed(merge.Value, decimals) > limitMm ? "vertex merged over the limit" : Rounding.Fixed(gap.Value, decimals) > limitMm ? "gap over the limit" : null;
                         rows[key + "/" + chosen.Key + "/" + k.ToString(CultureInfo.InvariantCulture)] = new Dictionary<string, object>
                         {
-                            ["key"] = key, ["plot"] = chosen.Key, ["face"] = face, ["expectedFace"] = expected, ["sharedM"] = cad, ["internalM"] = internalPoint,
-                            ["keyInternalM"] = new[] { corner[0], corner[1] }, ["keySharedM"] = new[] { sharedCorner[0], sharedCorner[1] }, ["gapMm"] = gap, ["revitGapMm"] = revit,
-                            ["pass"] = why == null, ["why"] = why,
+                            ["key"] = key, ["plot"] = chosen.Key, ["face"] = face, ["expectedFace"] = expected, ["numberFaces"] = numbered.Count > 1 ? numbered.ToArray() : null,
+                            ["sharedM"] = cad, ["internalM"] = internalPoint, ["keyInternalM"] = new[] { corner[0], corner[1] }, ["keySharedM"] = new[] { sharedCorner[0], sharedCorner[1] },
+                            ["gapMm"] = gap, ["revitGapMm"] = revit, ["mergeMm"] = merge, ["pass"] = why == null, ["why"] = why,
                         };
                     }
                 }
@@ -839,13 +911,16 @@ namespace SiteAdaptation.Common
         {
             return "the check points " + ((bool)summary["failed"] ? "failed" : "passed") + ": " + summary["pass"] + " of " + summary["points"] + " pass at " + SheetRows.PyRepr((double)summary["limitMm"])
                 + " mm, gap over the limit " + summary["overLimit"] + ", no face " + summary["noFace"] + ", face of another plot " + summary["otherFace"] + ", no face numbered " + summary["noNumber"]
-                + ", no key points " + summary["noPoints"];
+                + ", number on two faces " + summary["twoFaces"] + ", vertex merged over the limit " + summary["merged"] + ", no key points " + summary["noPoints"];
         }
 
-        // python/position_file.issues_of: one line per check point that fails, its name and why, with its gap when it has one
+        // python/position_file.issues_of: one line per check point that fails, its name and why, the faces of a number on two faces, its
+        // merge when it was merged over the limit and its gap when it has one
         public static List<string> Issues(IReadOnlyDictionary<string, Dictionary<string, object>> rows, int decimals)
         {
             return rows.Where(row => !true.Equals(row.Value["pass"])).Select(row => row.Key + " " + (string)row.Value["why"]
+                + (row.Value["numberFaces"] == null ? "" : " " + string.Join(", ", (string[])row.Value["numberFaces"]))
+                + ((string)row.Value["why"] != "vertex merged over the limit" ? "" : ", merged " + SheetRows.PyRepr(Rounding.Fixed((double)row.Value["mergeMm"], decimals)) + " mm")
                 + (row.Value["gapMm"] == null ? "" : ", gap " + SheetRows.PyRepr(Rounding.Fixed((double)row.Value["gapMm"], decimals)) + " mm")).ToList();
         }
 

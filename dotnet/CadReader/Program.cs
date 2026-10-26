@@ -99,10 +99,9 @@ namespace CadReader
             }
 
             CadExtractor.WriteFiles(extract, outDir);
-            if (exact)
+            // R353. Beside layers.json, which gives its units to cad_units.check of Python, and removed by a read without --exact
+            if (CadExtractor.WriteExact(extract, outDir, exact))
             {
-                // R353. Beside layers.json, which gives its units to cad_units.check of Python
-                File.WriteAllText(Path.Combine(outDir, "plots_exact.json"), CadExtractor.ExactText(CadExtractor.ExactPlots(extract, extract.Layers.Units)), new System.Text.UTF8Encoding(false));
                 Console.WriteLine("plots_exact.json, plot entries " + extract.Plots.Plots.Count);
             }
             Console.WriteLine("layers " + extract.Layers.Layers.Count + ", pieces " + pieces + ", plots " + extract.Plots.Summary.Plots + ", other faces " + extract.OtherFaces.Faces.Count + ", texts " + extract.Texts.Texts.Count);

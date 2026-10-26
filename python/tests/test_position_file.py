@@ -74,24 +74,31 @@ def made_points(angle=0.0, key="imc"):
             "floors": floors}
 
 
-def made_plots(scale=1.0, east=0.0, angle=0.0, labels=("101", "102", "103")):
+def made_plots(scale=1.0, east=0.0, angle=0.0, labels=("101", "102", "103"), merges=None):
     """The baseplan faces of the made up floors in site metres, labels 101 to 103, each vertex scaled by scale about the origin and moved
-    east, as a baseplan drawn in feet or offset would give them."""
+    east, as a baseplan drawn in feet or offset would give them, with the merge of each vertex of CadReader --exact, 0 unless merges names
+    the merges of a label."""
     turn = math.radians(angle)
     found = []
     for label, (_, _, x0, y0) in zip(labels, FLOORS[:3]):
         ring = [[x0, y0], [x0 + 10.0, y0], [x0 + 10.0, y0 + 10.0], [x0, y0 + 10.0]]
         site = [[(math.cos(turn) * x - math.sin(turn) * y + 1000.0) * scale + east, (math.sin(turn) * x + math.cos(turn) * y + 2000.0) * scale] for x, y in ring]
-        found.append({"kind": "plot_shape", "plot": label, "vertices": site, "type": "DP1"})
+        found.append({"kind": "plot_shape", "plot": label, "vertices": site, "type": "DP1", "vertexMergeM": list((merges or {}).get(label) or [0.0] * len(site))})
     return found
 
 
 TYPES = {key: ["Generic 150mm"] for key in GROUP}
 
 
+def numbered(numbers):
+    """A numbering of the build by a table of the faces of each number, as position_file.numbering gives it: the faces of the number."""
+    return lambda key, plot: [numbers[plot]] if isinstance(numbers.get(plot), str) else list(numbers.get(plot) or [])
+
+
 def made_check(position, plots, points=None, numbering=None, keys=("imc",)):
     by_key = {key: (points or made_points(key=key)) for key in keys}
-    return position_file.check_points(position, by_key, GROUP, face_index.rings_of(plots), TYPES, numbering if numbering is not None else (lambda key, plot: NUMBERS.get(plot)), 1.0, 2)
+    return position_file.check_points(position, by_key, GROUP, face_index.rings_of(plots), TYPES, numbering if numbering is not None else numbered(NUMBERS), 1.0, 2,
+                                      position_file.merges_of(plots))
 
 
 def test_r353_the_position_file_is_the_site_of_a_key_read_and_holds_every_field_of_key_rules_site():
@@ -226,23 +233,94 @@ def test_r353_a_point_on_the_face_of_another_plot_fails_whatever_its_gap():
     plots = [{"kind": "plot_shape", "plot": str(100 + index), "vertices": [[x + 1010.0, y + 2000.0] for x, y in ((x0, 0.0), (x0 + 10.0, 0.0), (x0 + 10.0, 10.0), (x0, 10.0))]}
              for index, x0 in enumerate([-10.0, 0.0, 10.0, 20.0, 30.0, 40.0])]
     numbers = {"2001": "101", "2002": "102", "2003": "103", "2004": "104"}
-    rows = made_check(position, plots, dict(made_points(), floors=floors), lambda key, plot: numbers.get(plot))
+    rows = made_check(position, plots, dict(made_points(), floors=floors), numbered(numbers))
     taken = [row for row in rows.values() if row["plot"] is not None]
     assert len(taken) == 8 and all(row["gapMm"] < 1e-6 and row["why"] == "face of another plot" and row["pass"] is False for row in taken)
     assert {(row["plot"], row["face"], row["expectedFace"]) for row in taken} == {("2001", "100", "101"), ("2004", "103", "104")}
     summary = position_file.summary_of(rows, 1.0)
     assert (summary["points"], summary["pass"], summary["otherFace"], summary["noPoints"], summary["failed"]) == (14, 0, 8, 6, True)
     # A plot the location plan numbers no face of is listed apart, the shift of config/plot_numbers.json numbers a key it names
-    rows = made_check(position, made_plots(), numbering=lambda key, plot: None)
+    rows = made_check(position, made_plots(), numbering=lambda key, plot: [])
     assert {row["why"] for row in rows.values() if row["plot"] is not None} == {"no face numbered"}
     shifts = position_file.numbering([], {"IMC": 10})
-    assert shifts("imc", "111") == "101" and shifts("ima", "111") is None
-    labels = [{"number": "2001", "face": "101"}, {"number": "2001", "face": "101"}, {"number": "2002", "face": ""}, {"number": "2003", "face": "7"}, {"number": "2003", "face": "8"}]
-    numbered = position_file.numbering(labels, {"IMC": 10})
-    assert (numbered("ima", "2001"), numbered("ima", "2002"), numbered("ima", "2003"), numbered("imc", "2003")) == ("101", None, None, "1993")
+    assert shifts("imc", "111") == ["101"] and shifts("ima", "111") == []
     assert position_file.shifts_of({"neighbourhoods": {"IMC": {"shift": 10}}}) == {"IMC": 10}
     with pytest.raises(position_file.PositionError, match="IMC a shift that is no whole number"):
         position_file.shifts_of({"neighbourhoods": {"IMC": {"shift": 10.0}}})
+
+
+def test_r353_only_a_plot_label_numbers_a_face_and_a_number_on_two_faces_fails_its_point_never_the_shift():
+    # Inputs: labels.csv rows of the client code kind and of the other kinds, open space, land use and substation, a number on two faces of
+    # client codes, a number with an empty face, and the shift of IMC
+    labels = [{"number": "2001", "kind": "clientCode", "face": "101"}, {"number": "2001", "kind": "clientCode", "face": "101"},
+              {"number": "2002", "kind": "openSpace", "face": "102"}, {"number": "2004", "kind": "landUse", "face": "104"}, {"number": "2005", "kind": "substation", "face": "105"},
+              {"number": "2006", "kind": "clientCode", "face": ""}, {"number": "2003", "kind": "clientCode", "face": "7"}, {"number": "2003", "kind": "clientCode", "face": "8"}]
+    face_of = position_file.numbering(labels, {"IMC": 10})
+    assert [face_of("ima", number) for number in ("2001", "2002", "2004", "2005", "2006", "2003")] == [["101"], [], [], [], [], ["7", "8"]]
+    assert [face_of("imc", number) for number in ("2002", "2006", "2003")] == [["1992"], ["1996"], ["7", "8"]]
+    position = position_file.position_of(position_file.document_of(made_read()), "imc")
+    rows = made_check(position, made_plots(), numbering=numbered({"2001": ["101", "102"], "2002": "102", "2003": "103"}))
+    two = {name: row for name, row in rows.items() if row["plot"] == "2001"}
+    assert len(two) == 4 and all(row["why"] == "number on two faces" and row["numberFaces"] == ["101", "102"] and row["expectedFace"] is None and row["pass"] is False
+                                 for row in two.values())
+    assert all(row["numberFaces"] is None for row in rows.values() if row["plot"] != "2001")
+    summary = position_file.summary_of(rows, 1.0)
+    assert (summary["twoFaces"], summary["pass"], summary["failed"]) == (4, 8, True)
+    assert "imc/2001/0 number on two faces 101, 102, gap 0.0 mm" in position_file.issues_of(rows, 2)
+
+
+def test_r353_a_check_point_on_a_vertex_merged_more_than_the_limit_fails_with_its_merge():
+    # Input: the faces of the made up baseplan with the vertices of face 101 merged by CadReader 0, 1.2 mm, 0.4 mm and 0: the corner on the
+    # vertex moved 1.2 mm fails whatever its gap, the one moved 0.4 mm passes with its merge written
+    position = position_file.position_of(position_file.document_of(made_read()), "imc")
+    rows = made_check(position, made_plots(merges={"101": [0.0, 0.0012, 0.0004, 0.0]}))
+    assert [(rows["imc/2001/%d" % k]["mergeMm"], rows["imc/2001/%d" % k]["why"]) for k in range(4)] == [
+        (0.0, None), (pytest.approx(1.2), "vertex merged over the limit"), (pytest.approx(0.4), None), (0.0, None)]
+    assert rows["imc/2001/1"]["gapMm"] < 1e-6 and position_file.summary_of(rows, 1.0)["merged"] == 1
+    assert all(row["mergeMm"] is None for row in rows.values() if row["plot"] is None)
+    assert position_file.merges_of(made_plots(merges={"101": [0.0, 0.0012, 0.0004, 0.0]}))["101"] == [[0.0, 0.0012, 0.0004, 0.0]]
+
+
+def test_r353_the_exact_plots_are_of_the_baseplan_config_names_and_hold_the_merge_of_each_vertex(tmp_path):
+    # Inputs: plots_exact.json of the baseplan of drawings.baseplan, of a reference only drawing, of another drawing, with no merges, and in feet
+    settings = project_profile.load_settings()
+    baseplan = settings.get("drawings")["baseplan"].replace("\\", "/").split("/")[-1]
+    reference = settings.get("drawings")["referenceOnly"][0]
+    folder = tmp_path / "exact"
+    folder.mkdir()
+    layers = folder / "layers.json"
+    path = folder / "plots_exact.json"
+    def write(source, plots, units="Meters"):
+        layers.write_text(json.dumps({"units": units, "layers": []}), encoding="utf-8")
+        path.write_text(json.dumps({"source": source, "units": units, "plots": plots}), encoding="utf-8")
+        return path
+    assert len(position_file.exact_plots(write(baseplan, made_plots()), settings)) == 3
+    with pytest.raises(project_profile.ProfileError, match="reference only"):
+        position_file.exact_plots(write("Copy of " + reference, made_plots()), settings)
+    with pytest.raises(position_file.PositionError, match="drawings.baseplan"):
+        position_file.exact_plots(write("other.dwg", made_plots()), settings)
+    stale = made_plots()
+    del stale[1]["vertexMergeM"]
+    with pytest.raises(position_file.PositionError, match="vertexMergeM"):
+        position_file.exact_plots(write(baseplan, stale), settings)
+    with pytest.raises(Exception, match="Feet"):
+        position_file.exact_plots(write(baseplan, made_plots(), units="Feet"), settings)
+
+
+def test_r353_a_not_read_that_is_no_object_is_refused():
+    # Inputs: the reference read with notRead written as a list naming a part and as a text, and another key read with notRead as a list
+    for value, kind in ((["projectPosition"], "array"), ("levels could not be read", "string"), (3, "number")):
+        read = made_read()
+        read["documents"][0]["site"]["notRead"] = value
+        with pytest.raises(position_file.PositionError, match="notRead as a JSON %s" % kind):
+            position_file.position_of(position_file.document_of(read), "imc")
+    def listed(key, document):
+        if key == "ima":
+            document["site"]["notRead"] = ["levels"]
+    assert position_file.set_differs(documents(listed), "imc", GROUP, COPIES) == ["ima site.notRead is no object"]
+    read = made_read()
+    read["documents"][0]["site"]["notRead"] = None
+    assert position_file.position_of(position_file.document_of(read), "imc")["key"] == "imc"
 
 
 def test_r353_the_key_points_are_held_to_their_key_and_to_the_position_file():
@@ -282,7 +360,8 @@ def test_r353_config_names_the_position_file_its_limit_and_the_steps_of_its_pari
     steps = settings.get("addin")["parity"]["steps"]
     assert set(steps["position"]) == {"key", "projectPositionM", "angleDeg", "surveyInternalM", "surveySharedM", "baseInternalM", "baseSharedM", "levelNames",
                                       "levelElevationsM", "levelProjectElevationsM", "levelBase", "activeSite", "sites", "heldAgainst"}
-    assert set(steps["checkPoints"]) == {"key", "plot", "face", "expectedFace", "sharedM", "internalM", "keyInternalM", "keySharedM", "gapMm", "revitGapMm", "pass", "why"}
+    assert set(steps["checkPoints"]) == {"key", "plot", "face", "expectedFace", "numberFaces", "sharedM", "internalM", "keyInternalM", "keySharedM", "gapMm", "revitGapMm",
+                                         "mergeMm", "pass", "why"}
     assert position_file.level_profile_site(settings)["levelBase"] == "Survey Point" and position_file.key_of(settings) == "imc"
     assert position_file.group_of(settings) == GROUP
 
@@ -305,11 +384,12 @@ def made_cli(tmp_path, values):
     exact = tmp_path / "exact"
     exact.mkdir()
     (exact / "layers.json").write_text(json.dumps({"units": "Meters", "layers": []}), encoding="utf-8")
-    (exact / "plots_exact.json").write_text(json.dumps({"source": "b.dwg", "units": "Meters", "plots": made_plots()}), encoding="utf-8")
+    source = values["drawings"]["baseplan"].replace("\\", "/").split("/")[-1]
+    (exact / "plots_exact.json").write_text(json.dumps({"source": source, "units": "Meters", "plots": made_plots()}), encoding="utf-8")
     with open(tmp_path / "labels.csv", "w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["number", "face"])
-        writer.writerows(sorted(NUMBERS.items()))
+        writer.writerow(["number", "kind", "face"])
+        writer.writerows((number, "clientCode", face) for number, face in sorted(NUMBERS.items()))
     (tmp_path / "plot_numbers.json").write_text(json.dumps({"neighbourhoods": {"IMC": {"shift": 10}}}), encoding="utf-8")
     base = ["--key-read", str(reads["imc"]), "--key-copies", str(manifest)]
     for key in GROUP[1:]:
@@ -328,7 +408,8 @@ def test_r353_the_cli_writes_the_file_outside_git_the_position_step_and_the_chec
     written = json.loads((tmp_path / "out" / values["addin"]["position"]["file"].replace("\\", "/").split("/")[-1]).read_text(encoding="utf-8"))
     assert written["levelBase"] == "Survey Point" and written["projectPosition"]["northM"] == 2000.0 and written["key"] == "imc" and written["activeSite"] == "Internal"
     # The check of the 6 keys with no points failed: the file records it, every failed point is an issue line, the run ends 0 as R347 has it
-    assert written["checkPoints"] == {"limitMm": 1.0, "points": 18, "pass": 12, "overLimit": 0, "noFace": 0, "otherFace": 0, "noNumber": 0, "noPoints": 6, "failed": True}
+    assert written["checkPoints"] == {"limitMm": 1.0, "points": 18, "pass": 12, "overLimit": 0, "noFace": 0, "otherFace": 0, "noNumber": 0, "twoFaces": 0, "merged": 0,
+                                      "noPoints": 6, "failed": True}
     assert "the check points failed: 12 of 18 pass at 1.0 mm" in out.out and "issue ima no key points" in out.out
     step = parity.load_step(tmp_path / "steps" / parity.step_name("position", "python"), "python")
     assert step["plots"]["position"]["raw"]["levelNames"] == ["Level 1", "Level 2"] and step["plots"]["position"]["raw"]["heldAgainst"] == GROUP[1:]
@@ -349,3 +430,15 @@ def test_r353_the_cli_writes_the_file_outside_git_the_position_step_and_the_chec
     reads["imc"].write_text(json.dumps(other), encoding="utf-8")
     assert position_file.main(["--settings", str(path)] + base + ["--steps", str(tmp_path / "steps")]) == 2
     assert "levelStepsM" in capsys.readouterr().err
+
+
+def test_r353_the_cli_refuses_a_baseplan_with_no_key_points_and_says_when_the_check_points_were_not_made(tmp_path, capsys):
+    # Inputs: the baseplan and labels with no key points, as the worker refuses them, and a run that names neither, whose file is written
+    # with an issue that the check points were not made, as R387 lists a check that cannot be made
+    path, values = made_settings(tmp_path)
+    reads, base, check = made_cli(tmp_path, values)
+    assert position_file.main(["--settings", str(path)] + base + check[2:] + ["--out", str(tmp_path / "out")]) == 2
+    assert "the request names one of them" in capsys.readouterr().err and not (tmp_path / "out").exists()
+    assert position_file.main(["--settings", str(path)] + base + ["--out", str(tmp_path / "out")]) == 0
+    out = capsys.readouterr().out
+    assert "issue " + position_file.NOT_MADE in out and "checkPoints" not in json.loads(next((tmp_path / "out").iterdir()).read_text(encoding="utf-8"))

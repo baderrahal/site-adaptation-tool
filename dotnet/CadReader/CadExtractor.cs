@@ -87,9 +87,27 @@ namespace CadReader
                     ["kind"] = entry.Kind, ["layer"] = entry.Layer, ["plot"] = entry.Plot, ["type"] = entry.Type, ["reason"] = entry.Reason,
                     ["labels"] = entry.Labels == null ? null : new Newtonsoft.Json.Linq.JArray(entry.Labels),
                     ["vertices"] = new Newtonsoft.Json.Linq.JArray((entry.Vertices ?? new List<double[]>()).Select(vertex => new Newtonsoft.Json.Linq.JArray(vertex.Select(value => (object)value).ToArray()))),
+                    ["vertexMergeM"] = entry.VertexMergeM == null ? null : new Newtonsoft.Json.Linq.JArray(entry.VertexMergeM.Select(value => (object)value).ToArray()),
                 });
             }
             return new Newtonsoft.Json.Linq.JObject { ["source"] = extract.Plots.Source, ["units"] = units, ["plots"] = plots };
+        }
+
+        // R353. plots_exact.json of a read into outDir: written with exact, else an earlier one there removed, so it never stands beside a
+        // plots.json of another read. True when it was written
+        public static bool WriteExact(CadExtract extract, string outDir, bool exact)
+        {
+            string path = Path.Combine(outDir, "plots_exact.json");
+            if (!exact)
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+                return false;
+            }
+            File.WriteAllText(path, ExactText(ExactPlots(extract, extract.Layers.Units)), new System.Text.UTF8Encoding(false));
+            return true;
         }
 
         // The text of plots_exact.json, every double by ExactDouble.Text so it reads back as the same double in C# and Python
