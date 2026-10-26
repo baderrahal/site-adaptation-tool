@@ -607,7 +607,7 @@ namespace SiteAdaptation.Common
                 Kind = candidate.Kind,
                 Type = candidate.Type.Name,
                 Level = candidate.Level.Name,
-                HeightOffset = Math.Round(candidate.HeightOffset, 4),
+                HeightOffset = Rounding.Fixed(candidate.HeightOffset, 4),
                 Loops = candidate.Loops.Count,
                 Arcs = candidate.Arcs,
                 InstanceId = id,

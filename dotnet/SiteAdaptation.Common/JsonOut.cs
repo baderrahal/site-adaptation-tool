@@ -12,11 +12,10 @@ namespace SiteAdaptation.Common
     {
         public const int Decimals = 3;
 
-        // Negative zero would print as -0 and look like a real offset
+        // Negative zero would print as -0 and look like a real offset. R385: the decimal of the 15 digit text, half away from zero
         public static double Round3(double value)
         {
-            double rounded = Math.Round(value, Decimals, MidpointRounding.AwayFromZero);
-            return rounded == 0 ? 0 : rounded;
+            return Rounding.Fixed(value, Decimals);
         }
 
         public static string ToJson(object payload)
@@ -167,8 +166,7 @@ namespace SiteAdaptation.Common
                     writer.WriteNull();
                     return;
                 }
-                double rounded = Math.Round(number, decimals, MidpointRounding.AwayFromZero);
-                writer.WriteValue(rounded == 0 ? 0.0 : rounded);
+                writer.WriteValue(Rounding.Fixed(number, decimals));
             }
 
             public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
