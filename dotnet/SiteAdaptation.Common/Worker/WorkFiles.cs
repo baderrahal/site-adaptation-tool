@@ -46,6 +46,26 @@ namespace SiteAdaptation.Common
             return path;
         }
 
+        // R347. The folder of the git work tree that holds a folder, the first one at or above it with a .git entry, a folder or the
+        // file of a worktree, else null. Real coordinates and levels never go into git, so the worker refuses an output or steps
+        // folder there, as python/parity.py and the Python steps refuse one inside the repo
+        public static string RepoAbove(string folder)
+        {
+            if (string.IsNullOrEmpty(folder))
+            {
+                return null;
+            }
+            for (var step = new DirectoryInfo(Path.GetFullPath(folder)); step != null; step = step.Parent)
+            {
+                string git = Path.Combine(step.FullName, ".git");
+                if (Directory.Exists(git) || File.Exists(git))
+                {
+                    return step.FullName;
+                }
+            }
+            return null;
+        }
+
         // A name holding .tmp- is never read
         public static string ReadText(string path)
         {

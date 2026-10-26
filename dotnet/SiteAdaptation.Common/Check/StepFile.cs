@@ -17,6 +17,11 @@ namespace SiteAdaptation.Common
 
         public static string Text(string step, string side, IDictionary<string, Dictionary<string, object>> plots, IReadOnlyList<ParityField> fields)
         {
+            return Build(step, side, plots, fields).ToString(Formatting.Indented);
+        }
+
+        public static JObject Build(string step, string side, IDictionary<string, Dictionary<string, object>> plots, IReadOnlyList<ParityField> fields)
+        {
             var byName = fields.ToDictionary(field => field.Name);
             var fieldBlock = new JObject();
             foreach (ParityField field in fields)
@@ -42,13 +47,7 @@ namespace SiteAdaptation.Common
                 }
                 plotBlock[plot.Key] = new JObject { ["raw"] = raw, ["written"] = written };
             }
-            var file = new JObject { ["format"] = Format, ["formatVersion"] = FormatVersion, ["step"] = step, ["side"] = side, ["fields"] = fieldBlock, ["plots"] = plotBlock };
-            return file.ToString(Formatting.Indented);
-        }
-
-        public static string Write(string folder, string step, string runId, string text)
-        {
-            return WorkFiles.WriteText(Path.Combine(folder, "step_" + step + ".json"), runId, text);
+            return new JObject { ["format"] = Format, ["formatVersion"] = FormatVersion, ["step"] = step, ["side"] = side, ["fields"] = fieldBlock, ["plots"] = plotBlock };
         }
 
         // A double as its 17 digit text, which reads back as the same double on net48 and net8.0, rounded first when decimals are named

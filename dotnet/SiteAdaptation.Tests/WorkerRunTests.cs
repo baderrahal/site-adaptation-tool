@@ -40,14 +40,23 @@ namespace SiteAdaptation.Tests
             return path;
         }
 
-        private string Config(double peakMiB = 100, double floorGiB = 2.0)
+        private const string PlotsText = "locationPlanNumber\n101\n";
+
+        // The measured peak of plots.csv by its name and size, the roles of a large read plotsCsv and curbs, and a curbs drawing
+        // measured at another size than the one of a run, so the curbs file of a run takes the largest known peak
+        private string Config(double peakMiB = 100, double floorGiB = 2.0, double largestMiB = 0)
         {
+            var files = new JArray { new JObject { ["name"] = "plots.csv", ["bytes"] = PlotsText.Length, ["peakMiB"] = peakMiB } };
+            if (largestMiB > 0)
+            {
+                files.Add(new JObject { ["name"] = "Road.dwg", ["bytes"] = 1, ["peakMiB"] = largestMiB });
+            }
             var config = new JObject
             {
                 ["siteBuild"] = new JObject { ["minFreeGB"] = floorGiB },
                 ["addin"] = new JObject
                 {
-                    ["workerPeakMiB"] = new JObject { ["plotsCsv"] = peakMiB },
+                    ["workerPeakMiB"] = new JObject { ["roles"] = new JArray("plotsCsv", "curbs"), ["files"] = files },
                     ["workerTimeLimitS"] = new JObject { ["build"] = 600 },
                 },
             };
@@ -56,7 +65,7 @@ namespace SiteAdaptation.Tests
 
         private WorkerRequest Request(string runId = "r1", string config = null)
         {
-            string data = Write("plots.csv", "locationPlanNumber\n101\n");
+            string data = Write("plots.csv", PlotsText);
             config = config ?? Config();
             return new WorkerRequest
             {
@@ -81,18 +90,19 @@ namespace SiteAdaptation.Tests
             return request.Write(folder);
         }
 
-        // A command that writes one output by its temporary name and checks that no answer is on disk while it runs
+        // A command that reads plots.csv and writes one output, and checks that no answer is on disk while it runs
         private static Dictionary<string, WorkerCommand> Writing(Action<WorkerRequest> during = null)
         {
             return new Dictionary<string, WorkerCommand>
             {
-                ["build"] = (request, issues, counts) =>
+                ["build"] = run =>
                 {
-                    Assert.False(File.Exists(WorkerFiles.AnswerPath(request.OutputFolder, request.RunId)));
-                    during?.Invoke(request);
-                    counts["plots"] = 1;
-                    issues.Add("a made up issue");
-                    return new List<string> { WorkFiles.WriteText(Path.Combine(request.OutputFolder, "plan_012.json"), request.RunId, "{}") };
+                    Assert.False(File.Exists(WorkerFiles.AnswerPath(run.Request.OutputFolder, run.Request.RunId)));
+                    File.ReadAllText(run.Input("plotsCsv"));
+                    during?.Invoke(run.Request);
+                    run.Counts["plots"] = 1;
+                    run.Issues.Add("a made up issue");
+                    run.WriteJson(run.Request.OutputFolder, "plan_012.json", new JObject { ["plots"] = 1 });
                 },
             };
         }
@@ -246,7 +256,7 @@ namespace SiteAdaptation.Tests
         public void R347_an_exception_of_the_command_ends_with_1_and_its_text()
         {
             WorkerRequest request = Request();
-            var failing = new Dictionary<string, WorkerCommand> { ["build"] = (r, issues, counts) => throw new InvalidDataException("the plot table holds no row") };
+            var failing = new Dictionary<string, WorkerCommand> { ["build"] = run => throw new InvalidDataException("the plot table holds no row") };
             Assert.Equal(1, WorkerRunner.Run(Save(request), failing, () => 9000.0));
             WorkerAnswer answer = Answer(WorkerFiles.AnswerPath(folder, "r1"));
             Assert.Equal("failed", answer.Status);
@@ -497,13 +507,135 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R347_an_output_moves_onto_its_name_only_after_every_check_and_a_good_earlier_output_stays()
+        {
+            string good = Write("plan_012.json", "a good output of an earlier run");
+            var throwing = new Dictionary<string, WorkerCommand>
+            {
+                ["build"] = run =>
+                {
+                    run.WriteJson(run.Request.OutputFolder, "plan_012.json", new JObject { ["plots"] = 1 });
+                    throw new InvalidDataException("the second output failed");
+                },
+            };
+            Assert.Equal(1, WorkerRunner.Run(Save(Request("r1")), throwing, () => 9000.0));
+            Assert.Equal("a good output of an earlier run", File.ReadAllText(good));
+            Assert.Empty(Answer(WorkerFiles.AnswerPath(folder, "r1")).Outputs);
+
+            Assert.Equal(4, WorkerRunner.Run(Save(Request("r2")), Writing(request => File.AppendAllText(request.Inputs[1].Path, "102\n")), () => 9000.0));
+            Assert.Equal("a good output of an earlier run", File.ReadAllText(good));
+            Assert.Empty(Answer(WorkerFiles.AnswerPath(folder, "r2")).Outputs);
+            Assert.DoesNotContain(Directory.GetFiles(folder), path => WorkFiles.IsTemporary(path));
+
+            // An output goes only into the output or the steps folder of the request, where the kill finds its temporary name
+            var astray = new Dictionary<string, WorkerCommand> { ["build"] = run => run.WriteJson(Path.Combine(folder, "elsewhere"), "plan.json", new JObject()) };
+            Assert.Equal(1, WorkerRunner.Run(Save(Request("r3")), astray, () => 9000.0));
+            Assert.Contains("only into the output or the steps folder", Answer(WorkerFiles.AnswerPath(folder, "r3")).Message);
+
+            Assert.Equal(0, WorkerRunner.Run(Save(Request("r4")), Writing(), () => 9000.0));
+            Assert.Equal(1, (int)JObject.Parse(File.ReadAllText(good))["plots"]);
+        }
+
+        [Fact]
+        public void R347_every_output_holds_its_run_id_and_the_hashes_of_its_inputs_and_is_refused_once_an_input_changed()
+        {
+            WorkerRequest request = Request("r5");
+            Assert.Equal(0, WorkerRunner.Run(Save(request), Writing(), () => 9000.0));
+            string plan = Path.Combine(folder, "plan_012.json");
+            JObject output = RunStamp.Read(plan);
+            Assert.Equal("r5", (string)output["run"]["runId"]);
+            Assert.Equal(new[] { "config", "plotsCsv" }, output["run"]["inputs"].Select(item => (string)item["role"]).ToArray());
+            Assert.Equal(request.Inputs[1].Sha256, (string)output["run"]["inputs"][1]["sha256"]);
+            Assert.Null(RunStamp.Refusal(output));
+
+            File.AppendAllText(request.Inputs[1].Path, "102\n");
+            Assert.Contains("plotsCsv", RunStamp.Refusal(output));
+            Assert.Contains("changed since", Assert.Throws<InvalidDataException>(() => RunStamp.Read(plan)).Message);
+            File.Delete(request.Inputs[1].Path);
+            Assert.Contains("not on disk", RunStamp.Refusal(output));
+            Assert.Contains("no run stamp", RunStamp.Refusal(new JObject()));
+        }
+
+        [Fact]
+        public void R347_free_memory_is_checked_again_before_each_read_against_the_peak_of_that_file()
+        {
+            // The curbs drawing of this run is not the one measured, so it takes the largest known peak, 2,612 MiB
+            string road = Write("Road.dwg", "a made up drawing");
+            WorkerRequest request = Request("r6", Config(peakMiB: 100, largestMiB: 2612));
+            request.Inputs.Add(new WorkerFile { Role = "curbs", Path = road, Sha256 = FileHash.Sha256(road) });
+            double free = 9000;
+            var reading = new Dictionary<string, WorkerCommand>
+            {
+                ["build"] = run =>
+                {
+                    File.ReadAllText(run.Input("plotsCsv"));
+                    // Revit took memory while the worker ran, the next read is checked against what is free now
+                    free = 4000;
+                    File.ReadAllText(run.Input("curbs"));
+                    run.WriteJson(run.Request.OutputFolder, "plan_r6.json", new JObject());
+                },
+            };
+            Assert.Equal(3, WorkerRunner.Run(Save(request), reading, () => free));
+            WorkerAnswer answer = Answer(WorkerFiles.AnswerPath(folder, "r6"));
+            Assert.Equal("refused", answer.Status);
+            Assert.Equal("free memory 3.91 GiB, the Road.dwg read needs 2.55 GiB and the floor 2.00 GiB", answer.Message);
+            Assert.False(File.Exists(Path.Combine(folder, "plan_r6.json")));
+
+            // Before any read each large input is checked as well, so a run short of memory for one of them reads nothing
+            free = 4000;
+            bool ran = false;
+            Assert.Equal(0, WorkerRunner.Run(Save(Request("r7", Config(peakMiB: 100, largestMiB: 2612))), Writing(_ => ran = true), () => free));
+            Assert.True(ran, "plots.csv needs 0.10 GiB and the floor, 4,000 MiB is enough");
+            WorkerRequest both = Request("r8", Config(peakMiB: 100, largestMiB: 2612));
+            both.Inputs.Add(new WorkerFile { Role = "curbs", Path = road, Sha256 = FileHash.Sha256(road) });
+            ran = false;
+            Assert.Equal(3, WorkerRunner.Run(Save(both), Writing(_ => ran = true), () => free));
+            Assert.False(ran);
+        }
+
+        [Fact]
+        public void R347_an_output_or_steps_folder_inside_a_git_work_tree_is_refused_with_2_before_any_read()
+        {
+            string tree = Path.Combine(folder, "repo");
+            Directory.CreateDirectory(Path.Combine(tree, ".git"));
+            Directory.CreateDirectory(Path.Combine(tree, "python", "out"));
+            Assert.Equal(tree, WorkFiles.RepoAbove(Path.Combine(tree, "python", "out")));
+            Assert.Null(WorkFiles.RepoAbove(folder));
+            foreach (bool steps in new[] { true, false })
+            {
+                WorkerRequest request = Request(steps ? "r9" : "r10");
+                if (steps)
+                {
+                    request.Steps = new List<string> { "faces" };
+                    request.Inputs.Add(new WorkerFile { Role = "baseplanPlots", Path = request.Inputs[1].Path, Sha256 = request.Inputs[1].Sha256 });
+                    request.Inputs.Add(new WorkerFile { Role = "labels", Path = request.Inputs[1].Path, Sha256 = request.Inputs[1].Sha256 });
+                    request.StepsFolder = Path.Combine(tree, "python", "out");
+                }
+                else
+                {
+                    request.OutputFolder = Path.Combine(tree, "python", "out");
+                }
+                bool ran = false;
+                Assert.Equal(2, WorkerRunner.Run(Save(request), Writing(_ => ran = true), () => 9000.0));
+                Assert.False(ran);
+                Assert.Contains("inside the git work tree " + tree, Answer(WorkerFiles.AnswerPath(folder, request.RunId)).Message);
+            }
+        }
+
+        [Fact]
         public void R347_the_config_names_the_measured_peak_of_each_large_input_and_the_time_limit_of_each_command()
         {
             AddinConfig config = AddinConfig.Load(RepoConfig());
-            Assert.Equal(2612, config.WorkerPeakMiB("curbs"));
-            Assert.Equal(100, config.WorkerPeakMiB("baseplan"));
-            Assert.Equal(80, config.WorkerPeakMiB("villaBlocks"));
-            Assert.Null(config.WorkerPeakMiB("plotsCsv"));
+            // By the name and the size of the file, the sizes of cadreader_peaks_pr49.txt
+            Assert.Equal(2612, config.WorkerPeakMiB("curbs", "Makkah Phase 1_Road Layout.dwg", 82061457));
+            Assert.Equal(100, config.WorkerPeakMiB("baseplan", "ROSHN Makkah Baseplan.dwg", 1279917));
+            Assert.Equal(80, config.WorkerPeakMiB("villaBlocks", "makkah building footprint.DWG", 1198438));
+            // A drawing of a large read with no measured peak, another file or the same name at another size, takes the largest known
+            Assert.Equal(2612, config.WorkerPeakMiB("baseplan", "ROSHN Makkah Baseplan.dwg", 1279918));
+            Assert.Equal(2612, config.WorkerPeakMiB("villaBlocks", "Footprint Rev 2.dwg", 1198438));
+            // An input of no large read is not checked
+            Assert.Null(config.WorkerPeakMiB("plotsCsv", "plots.csv", 100));
+            Assert.Null(config.WorkerPeakMiB("config", "project.json", 100));
             Assert.Equal(2.0, config.MinFreeGiB);
             foreach (string command in WorkerRequest.Commands)
             {

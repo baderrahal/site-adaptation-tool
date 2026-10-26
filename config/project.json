@@ -220,11 +220,14 @@
   "addin": {
     "note": "Round ADDIN 4a, docs/addin-design.md sections 2, 5 and 6. The worker run of R347 reads workerPeakMiB and workerTimeLimitS, the floor of free memory stays siteBuild.minFreeGB (R200). The rest of the block of section 6, overrideFile, workFolder, the position file, the names of the config files beside this one, the wall types, the shared parameters with their GUIDs, the floor type thicknesses and the check point pass limit, comes with the PR that reads it",
     "workerPeakMiB": {
-      "curbs": 2612,
-      "baseplan": 100,
-      "villaBlocks": 80
+      "roles": ["curbs", "baseplan", "villaBlocks"],
+      "files": [
+        {"name": "Makkah Phase 1_Road Layout.dwg", "bytes": 82061457, "peakMiB": 2612},
+        {"name": "ROSHN Makkah Baseplan.dwg", "bytes": 1279917, "peakMiB": 100},
+        {"name": "Makkah Building Footprint.dwg", "bytes": 1198438, "peakMiB": 80}
+      ]
     },
-    "workerPeakNote": "the peak private memory of the CadReader read of each drawing in MiB, the highest of three runs on copies: the Road Layout drawing of the curbs input 2,576, 2,612 and 2,571, the baseplan 99, 99 and 100, the footprint drawing of the villa blocks 80, 77 and 77 (round_addin logs cadreader_peaks_pr49.txt and the runs of 3b), an input with no peak here is not checked",
+    "workerPeakNote": "R347. The roles whose read is a large read and the peak private memory in MiB the CadReader read of each drawing took, keyed by its file name and size in bytes, so a file of those roles with no measured peak, another drawing or another size, takes the largest one. The sizes and the private peaks 2,571, 100 and 77 MiB are those of round_addin logs cadreader_peaks_pr49.txt on copies at 67c1fa0, whose peak paged by the OS was 2,571, 101 and 80. The values here are the highest seen: 2,612 MiB of the Road Layout is the claim-checker rerun of PR 49 and 80 MiB of the footprint the first run of 3b, neither output saved, 100 MiB of the baseplan the saved log",
     "workerTimeLimitS": {
       "read": 600,
       "build": 600,

@@ -8,8 +8,9 @@ using System.Reflection;
 namespace SiteAdaptation.Common
 {
     // R347. One run of the worker on one request: the checks that refuse a request before any read, the free memory against the
-    // measured peak of each input plus the floor, the hash of every input before and after, the command, then the answer as its
-    // last act, every file by a temporary name and a rename. CadReader.exe --request <file> runs it, the tests run it in process
+    // measured peak of each large input plus the floor before any read and again before each read, the hash of every input before
+    // and after, the command, the outputs moved onto their names once every check passed, then the answer as its last act, every
+    // file by a temporary name and a rename. CadReader.exe --request <file> runs it, the tests run it in process
     public static class WorkerRunner
     {
         // R345. The steps of the plan builder the C# gives so far with the input roles each reads, the build refuses another step
@@ -17,16 +18,6 @@ namespace SiteAdaptation.Common
         {
             [FaceStep.Name] = new[] { "baseplanPlots", "plotsCsv", "labels" },
         };
-
-        private sealed class Stop : Exception
-        {
-            public readonly int Code;
-
-            public Stop(int code, string message) : base(message)
-            {
-                Code = code;
-            }
-        }
 
         public static int Run(string requestPath, IDictionary<string, WorkerCommand> commands, Func<double?> freeMiB)
         {
@@ -52,14 +43,15 @@ namespace SiteAdaptation.Common
             }
             answer.RunId = request.RunId;
             answer.Document = request.Document;
+            var made = new List<WorkerContext>();
             int code;
             try
             {
                 Clear(folder, request, answer);
-                code = Execute(request, commands, freeMiB, answer);
+                code = Execute(request, commands, freeMiB, answer, made);
                 answer.Message = WorkerExit.Meaning(code);
             }
-            catch (Stop stop)
+            catch (WorkerStop stop)
             {
                 code = stop.Code;
                 answer.Message = stop.Message;
@@ -68,6 +60,22 @@ namespace SiteAdaptation.Common
             {
                 code = WorkerExit.Failed;
                 answer.Message = failure.GetType().Name + ": " + failure.Message;
+            }
+            if (code != WorkerExit.Done)
+            {
+                // Nothing of a run that did not pass is used, an earlier output under the name stays as it was
+                answer.Outputs.Clear();
+                foreach (KeyValuePair<string, string> output in made.SelectMany(context => context.Written))
+                {
+                    try
+                    {
+                        File.Delete(output.Key);
+                    }
+                    catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException)
+                    {
+                        answer.Issues.Add("the temporary file " + output.Key + " could not be deleted, " + failure.Message);
+                    }
+                }
             }
             answer.ExitCode = code;
             answer.Status = WorkerExit.Status(code);
@@ -102,69 +110,84 @@ namespace SiteAdaptation.Common
             }
         }
 
-        private static int Execute(WorkerRequest request, IDictionary<string, WorkerCommand> commands, Func<double?> freeMiB, WorkerAnswer answer)
+        // R347. Null when the read of an input may go on, else the refusal with both numbers named: for an input of a large read the
+        // free memory now against the measured peak of its file, or the largest known, plus the floor of siteBuild.minFreeGB
+        internal static string MemoryRefusal(WorkerFile input, AddinConfig config, Func<double?> freeMiB)
+        {
+            var file = new FileInfo(input.Path);
+            double? peak = config.WorkerPeakMiB(input.Role, file.Name, file.Exists ? file.Length : -1);
+            return peak.HasValue ? WorkerMemory.Refusal(file.Name, freeMiB(), peak.Value, config.MinFreeGiB) : null;
+        }
+
+        private static int Execute(WorkerRequest request, IDictionary<string, WorkerCommand> commands, Func<double?> freeMiB, WorkerAnswer answer, List<WorkerContext> made)
         {
             if (request.FormatVersion > WorkerRequest.CurrentFormatVersion || request.FormatVersion < 1)
             {
-                throw new Stop(WorkerExit.Refused, "the request has formatVersion " + request.FormatVersion + ", this worker reads 1 to " + WorkerRequest.CurrentFormatVersion);
+                throw new WorkerStop(WorkerExit.Refused, "the request has formatVersion " + request.FormatVersion + ", this worker reads 1 to " + WorkerRequest.CurrentFormatVersion);
             }
             if (!WorkerRequest.Commands.Contains(request.Command))
             {
-                throw new Stop(WorkerExit.Refused, "the command " + request.Command + " is not one of " + string.Join(", ", WorkerRequest.Commands));
+                throw new WorkerStop(WorkerExit.Refused, "the command " + request.Command + " is not one of " + string.Join(", ", WorkerRequest.Commands));
             }
             WorkerCommand command;
             if (!commands.TryGetValue(request.Command, out command))
             {
-                throw new Stop(WorkerExit.Refused, "the command " + request.Command + " is not built yet, the worker runs " + string.Join(", ", commands.Keys));
+                throw new WorkerStop(WorkerExit.Refused, "the command " + request.Command + " is not built yet, the worker runs " + string.Join(", ", commands.Keys));
             }
             List<WorkerFile> inputs = request.Inputs ?? new List<WorkerFile>();
             foreach (string step in request.Steps ?? new List<string>())
             {
                 if (!Steps.ContainsKey(step))
                 {
-                    throw new Stop(WorkerExit.Refused, "the step " + step + " is not one the C# build gives, it gives " + string.Join(", ", Steps.Keys.OrderBy(name => name)));
+                    throw new WorkerStop(WorkerExit.Refused, "the step " + step + " is not one the C# build gives, it gives " + string.Join(", ", Steps.Keys.OrderBy(name => name)));
                 }
                 foreach (string role in Steps[step].Where(role => inputs.All(input => input.Role != role)))
                 {
-                    throw new Stop(WorkerExit.Refused, "the step " + step + " needs the input " + role + ", the request names none");
+                    throw new WorkerStop(WorkerExit.Refused, "the step " + step + " needs the input " + role + ", the request names none");
                 }
                 if (string.IsNullOrEmpty(request.StepsFolder))
                 {
-                    throw new Stop(WorkerExit.Refused, "the request names steps and no stepsFolder for their files");
+                    throw new WorkerStop(WorkerExit.Refused, "the request names steps and no stepsFolder for their files");
+                }
+            }
+            // Real coordinates and levels never go into git (CLAUDE.md), as python/parity.py and the Python steps refuse the repo
+            foreach (string place in new[] { request.OutputFolder, request.StepsFolder })
+            {
+                string tree = WorkFiles.RepoAbove(place);
+                if (tree != null)
+                {
+                    throw new WorkerStop(WorkerExit.Refused, "the folder " + place + " lies inside the git work tree " + tree + ", the outputs of a run hold real coordinates and never go into git");
                 }
             }
             WorkerFile configInput = inputs.FirstOrDefault(input => input.Role == "config");
             if (configInput == null)
             {
-                throw new Stop(WorkerExit.Refused, "the request names no config, the settings file of the pane");
+                throw new WorkerStop(WorkerExit.Refused, "the request names no config, the settings file of the pane");
             }
             foreach (WorkerFile input in inputs)
             {
                 if (string.IsNullOrEmpty(input.Path))
                 {
-                    throw new Stop(WorkerExit.Refused, "the input " + input.Role + " is not chosen");
+                    throw new WorkerStop(WorkerExit.Refused, "the input " + input.Role + " is not chosen");
                 }
                 if (WorkFiles.IsTemporary(input.Path))
                 {
-                    throw new Stop(WorkerExit.Refused, "the input " + input.Role + " has a temporary name and is never read: " + input.Path);
+                    throw new WorkerStop(WorkerExit.Refused, "the input " + input.Role + " has a temporary name and is never read: " + input.Path);
                 }
                 if (!File.Exists(input.Path))
                 {
-                    throw new Stop(WorkerExit.Refused, "the input " + input.Role + " is not on disk: " + input.Path);
+                    throw new WorkerStop(WorkerExit.Refused, "the input " + input.Role + " is not on disk: " + input.Path);
                 }
             }
-            // The config is small and read first, it names the measured peak of each large input and the floor
+            // The config is small and read first, it names the measured peak of each large input and the floor. Before any read each
+            // large input is checked against the free memory now, so a run that cannot read all of them reads none
             AddinConfig config = AddinConfig.Load(configInput.Path);
             foreach (WorkerFile input in inputs)
             {
-                double? peak = config.WorkerPeakMiB(input.Role);
-                if (peak.HasValue)
+                string refusal = MemoryRefusal(input, config, freeMiB);
+                if (refusal != null)
                 {
-                    string refusal = WorkerMemory.Refusal(Path.GetFileName(input.Path), freeMiB(), peak.Value, config.MinFreeGiB);
-                    if (refusal != null)
-                    {
-                        throw new Stop(WorkerExit.Memory, refusal);
-                    }
+                    throw new WorkerStop(WorkerExit.Memory, refusal);
                 }
             }
             foreach (WorkerFile input in inputs)
@@ -173,22 +196,26 @@ namespace SiteAdaptation.Common
                 answer.Opened.Add(opened);
                 if (!string.Equals(opened.Sha256Before, input.Sha256, StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new Stop(WorkerExit.InputChanged, "the input " + input.Role + " changed since the request, its SHA-256 is not the one the request gives: " + input.Path);
+                    throw new WorkerStop(WorkerExit.InputChanged, "the input " + input.Role + " changed since the request, its SHA-256 is not the one the request gives: " + input.Path);
                 }
             }
-            List<string> written = command(request, answer.Issues, answer.Counts) ?? new List<string>();
+            var context = new WorkerContext(request, answer, config, freeMiB);
+            made.Add(context);
+            command(context);
             foreach (WorkerOpened opened in answer.Opened)
             {
                 opened.Sha256After = FileHash.Sha256(opened.Path);
             }
             WorkerOpened changed = answer.Opened.FirstOrDefault(opened => opened.Sha256After != opened.Sha256Before);
-            foreach (string path in written)
-            {
-                answer.Outputs.Add(new WorkerFile { Role = "output", Path = path, Sha256 = FileHash.Sha256(path) });
-            }
             if (changed != null)
             {
-                throw new Stop(WorkerExit.InputChanged, "the input " + changed.Role + " changed while it was read, nothing of the run is used (R1): " + changed.Path);
+                throw new WorkerStop(WorkerExit.InputChanged, "the input " + changed.Role + " changed while it was read, nothing of the run is used (R1): " + changed.Path);
+            }
+            // Every check passed, so the outputs move onto their names, each replacing the one of an earlier run only now
+            foreach (KeyValuePair<string, string> output in context.Written)
+            {
+                WorkFiles.Commit(output.Key, output.Value);
+                answer.Outputs.Add(new WorkerFile { Role = "output", Path = output.Value, Sha256 = FileHash.Sha256(output.Value) });
             }
             return WorkerExit.Done;
         }

@@ -27,11 +27,24 @@ namespace SiteAdaptation.Common
             return new AddinConfig(JObject.Parse(WorkFiles.ReadText(path)), path);
         }
 
-        // The measured peak private memory of the read of an input role in MiB, null for an input with none measured
-        public double? WorkerPeakMiB(string role)
+        // The peak private memory in MiB the read of an input file needs, null for an input of no large read. A file of a role that
+        // addin.workerPeakMiB.roles names takes the peak measured on the file of its name, without case, and its size in bytes, and a
+        // file with no measured peak, another drawing or the same name at another size, the largest peak measured on any
+        public double? WorkerPeakMiB(string role, string fileName, long bytes)
         {
-            JToken value = (addin["workerPeakMiB"] as JObject)?[role];
-            return value == null || value.Type == JTokenType.Null ? (double?)null : value.Value<double>();
+            JObject block = addin["workerPeakMiB"] as JObject;
+            JArray roles = block?["roles"] as JArray;
+            JArray files = block?["files"] as JArray;
+            if (roles == null || files == null || files.Count == 0)
+            {
+                throw new InvalidDataException("the config holds no addin.workerPeakMiB with the roles of a large read and the files measured (R347)");
+            }
+            if (!roles.Any(item => (string)item == role))
+            {
+                return null;
+            }
+            JToken measured = files.FirstOrDefault(file => string.Equals((string)file["name"], fileName, System.StringComparison.OrdinalIgnoreCase) && (long)file["bytes"] == bytes);
+            return measured != null ? (double)measured["peakMiB"] : files.Max(file => (double)file["peakMiB"]);
         }
 
         // R200. The floor of free memory in GiB, siteBuild.minFreeGB

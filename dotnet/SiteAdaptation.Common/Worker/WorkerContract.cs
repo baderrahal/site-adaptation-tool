@@ -5,9 +5,10 @@ using Newtonsoft.Json;
 
 namespace SiteAdaptation.Common
 {
-    // R347. What a command of the worker does: it reads the inputs of the request, adds its issues and counts and gives back the
-    // outputs it wrote, each by a temporary name and a rename (WorkFiles)
-    public delegate List<string> WorkerCommand(WorkerRequest request, List<string> issues, Dictionary<string, int> counts);
+    // R347. What a command of the worker does: it reads each input of the request through WorkerContext.Input, adds its issues and
+    // counts and writes each output through WorkerContext.WriteJson, by a temporary name the runner moves onto its name only once
+    // every check of the run passed
+    public delegate void WorkerCommand(WorkerContext run);
 
     // R347. The request the add-in writes into the work folder for the worker, read back by the worker
     public sealed class WorkerRequest
