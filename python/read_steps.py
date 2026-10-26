@@ -43,6 +43,7 @@ import cad_units
 import common
 import corner_front
 import data_book
+import face_index
 import face_rings as ring_rules
 import footprint_check
 import full_run
@@ -246,7 +247,7 @@ def location_steps(settings, pdf, plots, schedule_paths, sales):
     official_of = defaultdict(set)
     for name, official in data_book.schedule_rows(settings, connect, schedule_paths):
         official_of[name].add(official)
-    faces = yard_rule.face_shapes(plots, 0)[0]
+    faces = face_index.plan_faces(plots)
     matrix, _, fit = location_plan.schedule_fit(plan, labels, faces, official_of, shifts)
     rows, site, _ = location_plan.number_rows(labels, matrix, faces, official_of, shifts)
     location_plan.join_codes(rows, location_plan.read_table(sales, plan["sales"]["sheet"], plan["sales"]["headerRow"], plan["sales"]["columns"]),

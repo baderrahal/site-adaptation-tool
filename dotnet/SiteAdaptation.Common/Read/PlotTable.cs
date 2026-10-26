@@ -283,18 +283,20 @@ namespace SiteAdaptation.Common
             }
             List<PlanFace> faceList = faces.Values.OrderBy(face => long.Parse(face.Label, CultureInfo.InvariantCulture)).ToList();
             var bounds = faceList.ToDictionary(face => face.Label, face => new[] { Low(face.Rings.SelectMany(ring => ring)), High(face.Rings.SelectMany(ring => ring)) });
-            // The location plan labels by the faces that hold their site point as labels.csv writes it, at 3 decimals
+            // The location plan labels by the faces that hold their site point as labels.csv writes it, at 3 decimals, by the one rule of
+            // LocationPlan.Holds and its grid (R351)
+            var index = new FaceIndex(faceList);
             var onPlan = new Dictionary<string, List<LocationPlan.Row>>();
             foreach (LocationPlan.Row row in labels)
             {
                 double east = Rounding.Fixed(row.East, 3), north = Rounding.Fixed(row.North, 3);
-                foreach (PlanFace face in faceList.Where(face => face.Rings.Any(ring => LocationPlan.Inside(ring, east, north))))
+                foreach (string held in index.Holding(east, north))
                 {
-                    if (!onPlan.ContainsKey(face.Label))
+                    if (!onPlan.ContainsKey(held))
                     {
-                        onPlan[face.Label] = new List<LocationPlan.Row>();
+                        onPlan[held] = new List<LocationPlan.Row>();
                     }
-                    onPlan[face.Label].Add(row);
+                    onPlan[held].Add(row);
                 }
             }
             // The footprint blocks with an outline of three points or more, every face that holds minShare of one or more

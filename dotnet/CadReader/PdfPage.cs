@@ -39,6 +39,15 @@ namespace CadReader
                 {
                     throw new InvalidDataException(Path.GetFileName(path) + ": the media box of the page does not start at 0 0, a page read is refused (R351)");
                 }
+                // pdfplumber gives the points of the media box whatever the CropBox, PdfPig shifts them by the crop origin, so a page whose
+                // CropBox is not its MediaBox is refused here and in location_plan.read_page, never read two ways
+                PdfRectangle media = page.MediaBox.Bounds, crop = page.CropBox.Bounds;
+                if (crop.Left != media.Left || crop.Bottom != media.Bottom || crop.Right != media.Right || crop.Top != media.Top)
+                {
+                    throw new InvalidDataException(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "{0}: the CropBox of the page [{1} {2} {3} {4}] is not its MediaBox [{5} {6} {7} {8}], pdfplumber gives the points of the media box and PdfPig those of the crop box, a page read is refused (R351)",
+                        Path.GetFileName(path), crop.Left, crop.Bottom, crop.Right, crop.Top, media.Left, media.Bottom, media.Right, media.Top));
+                }
                 Dictionary<string, double> descents = Descents(document);
                 double height = page.Height;
                 var chars = new List<PageChar>();

@@ -27,6 +27,7 @@ import c3d_run
 import common
 import data_book
 import data_book_analysis
+import face_index
 import link_summary
 import yard_rule
 
@@ -210,14 +211,10 @@ def similarity_fit(page, site):
 
 
 def face_of_points(points, faces):
-    """R182, R387. The baseplan face that holds each site point, None where no face or more than one holds it."""
-    names = sorted(faces, key=int)
-    tree = STRtree([faces[name] for name in names])
-    found = []
-    for east, north in points:
-        hits = [names[int(k)] for k in tree.query(Point(east, north), predicate="within")]
-        found.append(hits[0] if len(hits) == 1 else None)
-    return found
+    """R182, R387, R351. The baseplan face that holds each site point, None where no face or more than one holds it, by the one rule of
+    face_index.holds and its grid: inside one ring of the face, or on the outline of two of its rings, as the C# takes it."""
+    index = face_index.index_of(faces)
+    return [index.face_of(east, north) for east, north in points]
 
 
 def control_refine(matrix, labels, faces, drop_factor, rounds, floor):
@@ -339,6 +336,12 @@ def read_page(path, plan, check=None):
     of the sheet."""
     with pdfplumber.open(path) as pdf:
         page = pdf.pages[0]
+        # R351. pdfplumber gives the points of the media box whatever the CropBox, PdfPig of the worker shifts them by the crop origin, so
+        # a page whose CropBox is not its MediaBox is refused on both sides and never read two ways
+        media, crop = [float(value) for value in page.page_obj.mediabox], [float(value) for value in page.page_obj.cropbox]
+        if crop != media:
+            raise ValueError("%s: the CropBox of the page %s is not its MediaBox %s, pdfplumber gives the points of the media box and PdfPig those of "
+                             "the crop box, a page read is refused (R351)" % (Path(path).name, crop, media))
         chars = page.chars
         words = page.extract_words(extra_attrs=["size"])
         found = {"chars": chars, "words": words,
@@ -458,7 +461,7 @@ def run(config, settings, check=None):
     for name, official in schedules:
         official_of[name].add(official)
     plots = link_summary.load(connect["baseplanPlots"])["plots"]
-    faces = yard_rule.face_shapes(plots, 0)[0]
+    faces = face_index.plan_faces(plots)
     matrix, fit, _ = schedule_fit(plan, labels, faces, official_of, shifts)
     flat = [w["text"] for w in words]
     fit["controlPoints"] = [control_check(matrix, word, page["small"], stated, plan["controlSearchPt"]) for word, stated in control_texts(words)]

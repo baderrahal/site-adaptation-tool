@@ -100,6 +100,100 @@ namespace SiteAdaptation.Common
     }
 
     // R351. The settings of the location plan, dataBook.locationPlan and connect of config/project.json
+    // R351, R352. face_index.FaceIndex: the faces of a point by LocationPlan.Holds, found by a grid of the cells of their bounding boxes,
+    // the cell the median of the larger side of the boxes and at least MinCellM, so a point is held against the faces whose box holds it
+    // and never against every face, and the result is the one a scan of every face gives
+    public sealed class FaceIndex
+    {
+        // The least side of a cell, so faces of no extent never give a cell of none. The cell only sets how many faces a point is held against
+        public const double MinCellM = 1.0;
+
+        private readonly List<PlanFace> faces;
+        private readonly List<double[]> boxes;
+        private readonly Dictionary<long, List<int>> cells = new Dictionary<long, List<int>>();
+        private readonly double originX;
+        private readonly double originY;
+        private readonly double cell;
+
+        public FaceIndex(IEnumerable<PlanFace> faces)
+        {
+            this.faces = faces.OrderBy(face => long.Parse(face.Label, CultureInfo.InvariantCulture)).ToList();
+            boxes = this.faces.Select(face =>
+            {
+                List<double[]> points = face.Rings.SelectMany(ring => ring).ToList();
+                return new[] { points.Min(point => point[0]), points.Min(point => point[1]), points.Max(point => point[0]), points.Max(point => point[1]) };
+            }).ToList();
+            if (boxes.Count == 0)
+            {
+                return;
+            }
+            originX = boxes.Min(box => box[0]);
+            originY = boxes.Min(box => box[1]);
+            List<double> sides = boxes.Select(box => Math.Max(box[2] - box[0], box[3] - box[1])).OrderBy(side => side).ToList();
+            int middle = sides.Count / 2;
+            double median = sides.Count % 2 == 1 ? sides[middle] : (sides[middle - 1] + sides[middle]) / 2;
+            cell = Math.Max(median, MinCellM);
+            for (int item = 0; item < boxes.Count; item++)
+            {
+                double[] box = boxes[item];
+                for (long column = Column(box[0]); column <= Column(box[2]); column++)
+                {
+                    for (long row = Row(box[1]); row <= Row(box[3]); row++)
+                    {
+                        long key = Key(column, row);
+                        if (!cells.TryGetValue(key, out List<int> held))
+                        {
+                            held = new List<int>();
+                            cells[key] = held;
+                        }
+                        held.Add(item);
+                    }
+                }
+            }
+        }
+
+        private long Column(double x)
+        {
+            return (long)Math.Floor((x - originX) / cell);
+        }
+
+        private long Row(double y)
+        {
+            return (long)Math.Floor((y - originY) / cell);
+        }
+
+        private static long Key(long column, long row)
+        {
+            return (column << 32) ^ (row & 0xFFFFFFFFL);
+        }
+
+        // The labels of every face that holds the point, in the order of their numbers
+        public List<string> Holding(double x, double y)
+        {
+            var found = new List<string>();
+            if (cells.Count == 0 || !cells.TryGetValue(Key(Column(x), Row(y)), out List<int> held))
+            {
+                return found;
+            }
+            foreach (int item in held)
+            {
+                double[] box = boxes[item];
+                if (box[0] <= x && x <= box[2] && box[1] <= y && y <= box[3] && LocationPlan.Holds(faces[item], x, y))
+                {
+                    found.Add(faces[item].Label);
+                }
+            }
+            return found;
+        }
+
+        // The one face that holds the point, null when no face or two hold it
+        public string FaceOf(double x, double y)
+        {
+            List<string> found = Holding(x, y);
+            return found.Count == 1 ? found[0] : null;
+        }
+    }
+
     public sealed class LocationPlanSettings
     {
         public double SizeLow { get; set; }
@@ -735,13 +829,34 @@ namespace SiteAdaptation.Common
             return cross == 0 && Math.Min(ax, bx) <= x && x <= Math.Max(ax, bx) && Math.Min(ay, by) <= y && y <= Math.Max(ay, by);
         }
 
-        // R182, R387. location_plan.face_of_points: the label of the face that holds each point, null where no face or more than one holds it
+        // The point lies on an edge of the ring, each edge taken from a vertex to the one before it as Inside takes it
+        public static bool OnOutline(double[][] ring, double x, double y)
+        {
+            for (int index = 0, before = ring.Length - 1; index < ring.Length; before = index++)
+            {
+                if (OnSegment(ring[index][0], ring[index][1], ring[before][0], ring[before][1], x, y))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // R351. face_index.holds: a face holds a point inside one of its rings by the crossings of a ray to the east, or on the outline of
+        // two of its rings or more, such as the edge two rings of one label share, which the union of the rings holds within it
+        public static bool Holds(PlanFace face, double x, double y)
+        {
+            return face.Rings.Any(ring => Inside(ring, x, y)) || face.Rings.Count(ring => OnOutline(ring, x, y)) >= 2;
+        }
+
+        // R182, R387, R351. location_plan.face_of_points by a scan of every face: the label of the one face that holds the point by Holds,
+        // null where no face or more than one holds it. FaceIndex gives the same by its grid
         public static string FaceOf(IEnumerable<PlanFace> faces, double x, double y)
         {
             string found = null;
             foreach (PlanFace face in faces)
             {
-                if (face.Rings.Any(ring => Inside(ring, x, y)))
+                if (Holds(face, x, y))
                 {
                     if (found != null)
                     {
@@ -932,12 +1047,12 @@ namespace SiteAdaptation.Common
                     home[official] = hood.Key;
                 }
             }
-            List<PlanFace> faceList = faces.Values.OrderBy(face => PyInt(face.Label)).ToList();
+            var index = new FaceIndex(faces.Values);
             var rows = new List<Row>();
             foreach (PlanLabel label in labels)
             {
                 double[] at = robust.Fit.Apply(label.X, label.Y);
-                string face = FaceOf(faceList, at[0], at[1]);
+                string face = index.FaceOf(at[0], at[1]);
                 string group;
                 rows.Add(new Row
                 {
@@ -953,7 +1068,7 @@ namespace SiteAdaptation.Common
                 Rows = rows,
                 Fit = robust.Fit,
                 Fits = fits,
-                Control = Check(labels, rows, Words(chars), curves, faces, faceList, settings),
+                Control = Check(labels, rows, Words(chars), curves, faces, index, settings),
             };
         }
 
@@ -1071,12 +1186,12 @@ namespace SiteAdaptation.Common
         // R387. location_plan.control_fit_parts and numbered_otherwise: the marks by their shape, the similarity start, the refine of R181 on
         // the faces with one label each, every label by the control fit and the faces it numbers otherwise than the schedule fit, with why
         private static ControlCheck Check(IReadOnlyList<PlanLabel> labels, IReadOnlyList<Row> rows, IReadOnlyList<PageWord> words, IEnumerable<PageCurve> curves,
-            IReadOnlyDictionary<string, PlanFace> faces, IReadOnlyList<PlanFace> faceList, LocationPlanSettings settings)
+            IReadOnlyDictionary<string, PlanFace> faces, FaceIndex index, LocationPlanSettings settings)
         {
             List<ControlText> texts = ControlTexts(words);
             List<ControlMark> marks = ControlMarks(curves, texts, settings);
             PageFit start = SimilarityFit(marks.Select(mark => new[] { mark.X, mark.Y }).ToList(), marks.Select(mark => new[] { mark.East, mark.North }).ToList());
-            List<string> homes = labels.Select(label => { double[] at = start.Apply(label.X, label.Y); return FaceOf(faceList, at[0], at[1]); }).ToList();
+            List<string> homes = labels.Select(label => { double[] at = start.Apply(label.X, label.Y); return index.FaceOf(at[0], at[1]); }).ToList();
             var held = homes.Where(item => item != null).GroupBy(item => item).ToDictionary(group => group.Key, group => group.Count());
             var taken = homes.Select((face, index) => new { face, index }).Where(item => item.face != null && held[item.face] == 1).OrderBy(item => PyInt(item.face)).ToList();
             if (taken.Count < 3)
@@ -1086,7 +1201,7 @@ namespace SiteAdaptation.Common
             RobustResult refine = RobustFit(taken.Select(item => new[] { labels[item.index].X, labels[item.index].Y }).ToList(),
                 taken.Select(item => new[] { faces[item.face].CentroidX, faces[item.face].CentroidY }).ToList(), settings.FitDropFactor, settings.FitRounds, settings.FitFloorM);
             var controlSite = labels.Select(label => refine.Fit.Apply(label.X, label.Y)).ToList();
-            List<string> controlFaces = controlSite.Select(at => FaceOf(faceList, at[0], at[1])).ToList();
+            List<string> controlFaces = controlSite.Select(at => index.FaceOf(at[0], at[1])).ToList();
             List<ListedFace> listed = NumberedOtherwise(rows, controlFaces, controlSite, faces);
             var unitNumbers = new HashSet<string>(rows.Where(row => row.Kind == "clientCode").Select(row => row.Number));
             Func<PageFit, double[]> gaps = fit => marks.Select(mark => { double[] at = fit.Apply(mark.X, mark.Y); return Hypot(at[0] - mark.East, at[1] - mark.North); }).ToArray();

@@ -18,6 +18,7 @@ from shapely.geometry import Polygon
 
 import area_key
 import common
+import face_index
 import face_rings
 import wiring
 import yard_rule
@@ -81,11 +82,13 @@ def table(plots, border, schedules, shifts, labels, blocks, min_share, dlus, sal
         if entry.get("kind") == "plot_shape" and yard_rule.whole_label(entry.get("plot")) is not None:
             types[str(yard_rule.whole_label(entry.get("plot")))] = entry.get("type")
     all_faces = wiring.Faces(faces)
+    # R351. The labels on a face by the one rule of a point on a face of face_index, the C# rule, and its grid
+    index = face_index.FaceIndex(face_index.rings_of(plots))
     plan_by_face = defaultdict(list)
-    items = [label for label in labels if label["east"] is not None and label["north"] is not None]
-    for item, hits in zip(items, wiring.point_inside(all_faces, [(item["east"], item["north"]) for item in items])):
-        for hit in hits:
-            plan_by_face[hit].append(item)
+    for item in labels:
+        if item["east"] is not None and item["north"] is not None:
+            for hit in index.holding(item["east"], item["north"]):
+                plan_by_face[hit].append(item)
     shapes = wiring.unit_shapes(simple_blocks(blocks), None)
     per_block = wiring.every_share(all_faces, [shape["shape"] for shape in shapes], min_share)
     found = defaultdict(list)

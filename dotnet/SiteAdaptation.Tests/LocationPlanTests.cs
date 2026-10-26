@@ -247,6 +247,152 @@ namespace SiteAdaptation.Tests
             Assert.Equal(1.0, LocationPlan.EdgeDistance(faces["7"], 15, 9), 9);
         }
 
+        // test_location_plan.made_pdf: a PDF of one page of 600 by 400 pt with a text and a stroked path, extra added to its page dictionary
+        private static string MadePdf(string path, string extra)
+        {
+            string content = "BT /F1 10 Tf 100 300 Td (AB12) Tj ET 200 200 m 210 205 l 220 200 l S";
+            string[] objects =
+            {
+                "<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 400]" + extra + " /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+                "<< /Length " + content.Length + " >>\nstream\n" + content + "\nendstream", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            };
+            var text = new System.Text.StringBuilder("%PDF-1.4\n");
+            var offsets = new List<int>();
+            for (int number = 1; number <= objects.Length; number++)
+            {
+                offsets.Add(text.Length);
+                text.Append(number + " 0 obj\n" + objects[number - 1] + "\nendobj\n");
+            }
+            int start = text.Length;
+            text.Append("xref\n0 " + (objects.Length + 1) + "\n0000000000 65535 f \n");
+            foreach (int offset in offsets)
+            {
+                text.Append(offset.ToString("D10", CultureInfo.InvariantCulture) + " 00000 n \n");
+            }
+            text.Append("trailer\n<< /Size " + (objects.Length + 1) + " /Root 1 0 R >>\nstartxref\n" + start + "\n%%EOF\n");
+            File.WriteAllBytes(path, System.Text.Encoding.ASCII.GetBytes(text.ToString()));
+            return path;
+        }
+
+        [Fact]
+        public void R351_a_page_whose_crop_box_is_not_its_media_box_is_refused_as_python_refuses_it()
+        {
+            // pdfplumber gives the points of the media box whatever the CropBox, PdfPig shifts them by the crop origin, so neither reads it
+            foreach (string extra in new[] { " /CropBox [50 50 550 350]", " /CropBox [50 50 550 350] /Rotate 90" })
+            {
+                InvalidDataException refused = Assert.Throws<InvalidDataException>(() => PdfPage.Read(MadePdf(Path.Combine(folder, "crop.pdf"), extra)));
+                Assert.Contains("CropBox", refused.Message);
+                Assert.Contains("MediaBox", refused.Message);
+            }
+            foreach (string extra in new[] { "", " /CropBox [0 0 600 400]" })
+            {
+                PdfPage.Content page = PdfPage.Read(MadePdf(Path.Combine(folder, "plain.pdf"), extra));
+                Assert.Equal("AB12", string.Concat(page.Chars.Select(item => item.Text)));
+                Assert.Equal(100.0, page.Chars[0].X0, 6);
+            }
+        }
+
+        // test_face_index.RINGS: face 5 drawn as two rings that share the edge x = 10, face 6 one ring that shares the edge x = 20 with the
+        // second ring of 5
+        private static List<PlanFace> EdgeFaces()
+        {
+            var plots = new JArray { Face("5", 0, 0, 10, 10), Face("5", 10, 0, 20, 10), Face("6", 20, 0, 30, 10) };
+            return LocationPlan.Faces(plots, 0.000001).Values.ToList();
+        }
+
+        [Fact]
+        public void R351_a_label_on_the_edge_two_rings_of_one_label_share_is_on_that_face_as_the_union_of_its_rings_holds_it()
+        {
+            List<PlanFace> faces = EdgeFaces();
+            var index = new FaceIndex(faces);
+            foreach (Func<double, double, string> faceOf in new Func<double, double, string>[] { (x, y) => LocationPlan.FaceOf(faces, x, y), index.FaceOf })
+            {
+                Assert.Equal("5", faceOf(10.0, 5.0));
+                Assert.Equal("5", faceOf(10.0, 0.0));
+                Assert.Equal("5", faceOf(5.0, 5.0));
+                Assert.Equal("5", faceOf(15.0, 5.0));
+                Assert.Equal("6", faceOf(25.0, 5.0));
+                // On the edge of two faces, or on the outline of one ring alone, no face holds the point
+                Assert.Null(faceOf(20.0, 5.0));
+                Assert.Null(faceOf(0.0, 5.0));
+                Assert.Null(faceOf(35.0, 5.0));
+            }
+            Assert.Empty(index.Holding(20.0, 5.0));
+        }
+
+        // test_face_index.made_rings: a grid of 12 by 9 squares of 10 m at site coordinates, a face of two squares that share an edge where
+        // (7 row + 3 column) mod 10 is under 3, labels by row and column
+        private static List<PlanFace> MadeRings()
+        {
+            var plots = new JArray();
+            double x0 = 571000.0, y0 = 2364000.0;
+            for (int row = 0; row < 9; row++)
+            {
+                int column = 0;
+                while (column < 12)
+                {
+                    string label = (100 + row * 12 + column).ToString(CultureInfo.InvariantCulture);
+                    int width = column < 11 && (7 * row + 3 * column) % 10 < 3 ? 2 : 1;
+                    for (int k = 0; k < width; k++)
+                    {
+                        plots.Add(Face(label, x0 + 10 * (column + k), y0 + 10 * row, x0 + 10 * (column + k + 1), y0 + 10 * (row + 1)));
+                    }
+                    column += width;
+                }
+            }
+            return LocationPlan.Faces(plots, 0.000001).Values.ToList();
+        }
+
+        private static int PyMod(int value, int modulus)
+        {
+            return ((value % modulus) + modulus) % modulus;
+        }
+
+        // test_face_index.made_points: a lattice of 2.5 m over the grid and around it, on its edges and vertices too, and a point at 3
+        // decimals near each, the remainder of Python, never negative
+        private static List<double[]> MadePoints()
+        {
+            var points = new List<double[]>();
+            for (int i = -4; i < 53; i++)
+            {
+                for (int k = -4; k < 41; k++)
+                {
+                    points.Add(new[] { 571000.0 + 2.5 * i, 2364000.0 + 2.5 * k });
+                    points.Add(new[] { 571000.0 + 2.5 * i + 0.001 * (PyMod(i * 7 + k * 3, 5) - 2), 2364000.0 + 2.5 * k + 0.001 * (PyMod(i * 3 + k * 5, 5) - 2) });
+                }
+            }
+            return points;
+        }
+
+        [Fact]
+        public void R351_the_grid_gives_every_point_the_faces_a_scan_of_every_face_gives()
+        {
+            List<PlanFace> faces = MadeRings();
+            var index = new FaceIndex(faces);
+            int one = 0;
+            List<double[]> points = MadePoints();
+            foreach (double[] point in points)
+            {
+                List<string> scan = faces.Where(face => LocationPlan.Holds(face, point[0], point[1])).Select(face => face.Label).OrderBy(label => long.Parse(label, CultureInfo.InvariantCulture)).ToList();
+                Assert.Equal(scan, index.Holding(point[0], point[1]));
+                Assert.Equal(scan.Count == 1 ? scan[0] : null, index.FaceOf(point[0], point[1]));
+                Assert.Equal(scan.Count == 1 ? scan[0] : null, LocationPlan.FaceOf(faces, point[0], point[1]));
+                one += scan.Count == 1 ? 1 : 0;
+            }
+            // test_face_index counts the same on the same rings and points
+            Assert.Equal(new[] { FaceIndexCounts.Faces, FaceIndexCounts.Points, FaceIndexCounts.One }, new[] { faces.Count, points.Count, one });
+            Assert.Empty(new FaceIndex(new List<PlanFace>()).Holding(0.0, 0.0));
+        }
+
+        // test_face_index.FACES, POINTS and ONE
+        private static class FaceIndexCounts
+        {
+            public const int Faces = 78;
+            public const int Points = 5130;
+            public const int One = 2715;
+        }
+
         [Fact]
         public void R351_new_codes_come_by_the_exact_row_by_the_form_and_by_the_base_as_location_plan_new_code()
         {

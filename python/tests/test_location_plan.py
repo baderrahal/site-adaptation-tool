@@ -124,6 +124,36 @@ def test_r385_labels_csv_writes_the_page_and_site_points_of_a_label_by_the_rule(
     assert round(512345.6785, 3) == 512345.678 and round(2.0465, 3) == 2.046
 
 
+def made_pdf(path, page_extra):
+    """A PDF of one page of 600 by 400 pt with a text and a stroked path, page_extra added to its page dictionary, the bytes built in code
+    as LocationPlanTests.MadePdf builds them."""
+    content = b"BT /F1 10 Tf 100 300 Td (AB12) Tj ET 200 200 m 210 205 l 220 200 l S"
+    objects = [b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+               b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 400]" + page_extra + b" /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+               b"<< /Length %d >>\nstream\n" % len(content) + content + b"\nendstream", b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"]
+    out, offsets = bytearray(b"%PDF-1.4\n"), []
+    for number, body in enumerate(objects, 1):
+        offsets.append(len(out))
+        out += b"%d 0 obj\n" % number + body + b"\nendobj\n"
+    start = len(out)
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objects) + 1) + b"".join(b"%010d 00000 n \n" % offset for offset in offsets)
+    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(objects) + 1, start)
+    path.write_bytes(bytes(out))
+    return path
+
+
+def test_r351_a_page_whose_crop_box_is_not_its_media_box_is_refused_as_the_c_sharp_refuses_it(tmp_path):
+    # pdfplumber gives the points of the media box whatever the CropBox, PdfPig shifts them by the crop origin, so neither reads it
+    plan = {"controlShapeMaxPt": 10}
+    with pytest.raises(ValueError, match="CropBox.*MediaBox.*R351"):
+        location_plan.read_page(made_pdf(tmp_path / "crop.pdf", b" /CropBox [50 50 550 350]"), plan)
+    with pytest.raises(ValueError, match="CropBox"):
+        location_plan.read_page(made_pdf(tmp_path / "turned.pdf", b" /CropBox [50 50 550 350] /Rotate 90"), plan)
+    for name, extra in (("plain.pdf", b""), ("same.pdf", b" /CropBox [0 0 600 400]")):
+        page = location_plan.read_page(made_pdf(tmp_path / name, extra), plan)
+        assert "".join(char["text"] for char in page["chars"]) == "AB12" and page["chars"][0]["x0"] == pytest.approx(100.0)
+
+
 # R387 the control point fit as a check of the schedule fit (Q081): the marks by their shape, the similarity start, the refine
 
 TRUTH = np.array([[1.7, 0.3], [0.3, -1.7], [1000.0, 2000.0]])
