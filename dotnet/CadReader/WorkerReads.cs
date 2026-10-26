@@ -50,6 +50,20 @@ namespace CadReader
                 throw run.Refusal("a read names no output folder for its outputs");
             }
             ReadSettings settings = ReadSettings.Load(run.Input("config"));
+            // R352. The decimals of the block order of the plot table, addin.plotTable, its own setting and never a tolerance of the parity,
+            // held before any read
+            int overlapDecimals = 0;
+            if (request.Inputs.Any(input => input.Role == PlotTable.BorderRole))
+            {
+                try
+                {
+                    overlapDecimals = PlotTableSettings.From(JObject.Parse(WorkFiles.ReadText(run.Input("config")))).OverlapDecimals;
+                }
+                catch (InvalidDataException refused)
+                {
+                    throw run.Refusal(refused.Message);
+                }
+            }
             var steps = new HashSet<string>(request.Steps ?? new List<string>());
             var made = new Dictionary<string, Dictionary<string, Dictionary<string, object>>>();
             var reads = new Dictionary<string, JObject>();
@@ -83,7 +97,7 @@ namespace CadReader
             {
                 WorkerMemory.Release();
             }
-            Table(run, located, baseplan, reads.TryGetValue("villaBlocks", out JObject footprint) ? footprint : null, areaKeys, steps, made);
+            Table(run, located, baseplan, reads.TryGetValue("villaBlocks", out JObject footprint) ? footprint : null, areaKeys, overlapDecimals, steps, made);
             if (steps.Contains(ReadSteps.Labels))
             {
                 made[ReadSteps.Labels] = ReadSteps.LabelStep((JArray)reads["baseplan"]["plots"]);
@@ -411,7 +425,6 @@ namespace CadReader
             public Dictionary<string, HashSet<string>> Officials;
             public List<KeyValuePair<string, int>> Shifts;
             public double MinShare;
-            public double AreaTolerance;
         }
 
         // R351. The location plan of the request, the input plotNumbers, read by PdfPig and numbered by the schedule fit of R181 on the
@@ -543,13 +556,12 @@ namespace CadReader
             {
                 Result = result, Faces = faces, Officials = officials, Shifts = plan.Neighbourhoods.Select(hood => new KeyValuePair<string, int>(hood.Key, hood.Value.Shift)).ToList(),
                 MinShare = share == null || (share.Type != JTokenType.Float && share.Type != JTokenType.Integer) ? double.NaN : share.Value<double>(),
-                AreaTolerance = config.ParityTolerance("areas") ?? double.NaN,
             };
         }
 
         // R352. The plot table of the request, the input border, per baseplan face inside the Phase 1 border, from the location plan, the
         // footprint blocks and the area key of the same request, written to read_plotTable.json and to the step plotTable
-        private static void Table(WorkerContext run, Located located, JObject baseplan, JObject footprint, SheetRows.AreaKey[] areaKeys, HashSet<string> steps,
+        private static void Table(WorkerContext run, Located located, JObject baseplan, JObject footprint, SheetRows.AreaKey[] areaKeys, int overlapDecimals, HashSet<string> steps,
             Dictionary<string, Dictionary<string, Dictionary<string, object>>> made)
         {
             WorkerRequest request = run.Request;
@@ -578,7 +590,7 @@ namespace CadReader
             try
             {
                 table = PlotTable.Build((JArray)baseplan["plots"], located.Faces, border, located.Officials, located.Shifts,
-                    located.Result.Rows, (JArray)footprint["blocks"], located.MinShare, areaKeys[0], areaKeys[1], located.AreaTolerance);
+                    located.Result.Rows, (JArray)footprint["blocks"], located.MinShare, areaKeys[0], areaKeys[1], overlapDecimals);
             }
             catch (InvalidDataException refused)
             {

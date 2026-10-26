@@ -324,6 +324,8 @@ def main(argv=None):
             raise project_profile.ProfileError("the step plotTable needs --border and --dlus (R352)")
         settings = project_profile.load_settings(args.settings)
         values = settings.values
+        if "plotTable" in steps:
+            plot_table.overlap_decimals(values)
         rules = parity.tolerances(values)
         inputs = [parity.input_entry("config", args.settings)]
         made = {}
@@ -415,7 +417,7 @@ def main(argv=None):
                 sales_key, _ = area_key.by_plot(sheet(args, settings, book["data5"]["areaKey"]["sales"]))
                 table = plot_table.table(plots, plot_table.border_points(args.border), data_book.schedule_rows(settings, settings.get("connect"), paths),
                                          numbering["shifts"], numbering["labels"], link_summary.load(args.footprint_blocks)["blocks"],
-                                         settings.get("dataBook.wiring.minShare"), dlus, sales_key, plan_from_book.area_tolerance(values))
+                                         settings.get("dataBook.wiring.minShare"), dlus, sales_key, plot_table.overlap_decimals(values))
                 made["plotTable"] = {row["baseplanLabel"]: row for row in table}
         for step in steps:
             fields = (values["addin"]["parity"]["steps"]).get(step) or {}

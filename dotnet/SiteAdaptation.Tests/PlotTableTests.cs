@@ -54,8 +54,8 @@ namespace SiteAdaptation.Tests
         private const double Bay = 14.9994505;
 
         // The faces of test_plot_table.PLOTS: 102 drawn as two rings of one label, 103 crossing the border and holding a label of a face with
-        // many labels, 104 outside it, 105 a parking face whose first two bays lie 2E-11 m2 apart about a bucket edge of 1E-6 m2, 107 touching
-        // the border from inside
+        // many labels, 104 outside it, 105 a parking face whose first two bays lie 2E-11 m2 apart and are one overlap at 4 decimals, 107
+        // touching the border from inside
         private static JArray Plots()
         {
             return new JArray
@@ -106,7 +106,7 @@ namespace SiteAdaptation.Tests
             };
             SheetRows.AreaKey dlus = Key("2001", "Zone 2", "012", "2002", "Zone 2", "012", "2003", "Zone 2", "012", "2006", "Zone 2", "012", "2007", "Zone 3", "014", "2008", "Zone 2", "012");
             SheetRows.AreaKey sales = Key("2001", "Zone 2", "012", "2002", "Zone 2", "013");
-            return PlotTable.Build(plots, LocationPlan.Faces(plots, 0.000001), border, officials, shifts, labels, blocks ?? Blocks(), 0.1, dlus, sales, 0.000001);
+            return PlotTable.Build(plots, LocationPlan.Faces(plots, 0.000001), border, officials, shifts, labels, blocks ?? Blocks(), 0.1, dlus, sales, 4);
         }
 
         private static string Of(Dictionary<string, object> row, string column)
@@ -153,18 +153,118 @@ namespace SiteAdaptation.Tests
             Assert.Equal("false noSalesRow SMALL null null", Cells(rows["107"], "crossesBorder", "areaKeyCheck", "footprintBlock", "footprintRotationDeg", "footprintMirrored"));
         }
 
-        [Fact]
-        public void R352_blocks_whose_overlaps_lie_within_the_areas_tolerance_of_the_largest_keep_the_read_order()
+        private static List<double[]> Ring(params double[] values)
         {
-            // PARKB lies 2E-11 m2 over PARKA, both about the middle of a step of 1E-6 m2, so a rounding of the overlap in steps of the
-            // tolerance would put PARKB first by binary noise. Within the tolerance of the largest they are one group in the order of the read
+            var found = new List<double[]>();
+            for (int index = 0; index < values.Length; index += 2)
+            {
+                found.Add(new[] { values[index], values[index + 1] });
+            }
+            return found;
+        }
+
+        // test_plot_table.probe_bays: the bays of the breaker's probe of PR 54 on a mm grid at site coordinates, made from whole mm so both
+        // languages hold the same doubles, A 1.001 by 0.999 m and B 1.000 by 1.000 m, 1E-6 m2 apart, on a face of 15 m
+        private static IEnumerable<List<double[]>[]> ProbeBays()
+        {
+            for (long k = 0; k < 200; k++)
+            {
+                double x0 = (500000000 + (k * 7919003) % 3000000) / 1000.0, y0 = (2400000000 + (k * 6271009) % 3000000) / 1000.0;
+                yield return new[]
+                {
+                    Ring(x0 - 5, y0 - 5, x0 + 10, y0 - 5, x0 + 10, y0 + 10, x0 - 5, y0 + 10), Ring(x0, y0, x0 + 1.001, y0, x0 + 1.001, y0 + 0.999, x0, y0 + 0.999),
+                    Ring(x0 + 3, y0, x0 + 4.0, y0, x0 + 4.0, y0 + 1.0, x0 + 3, y0 + 1.0),
+                };
+            }
+        }
+
+        // test_plot_table.TURNED: four turned bays of the probe whose overlaps lie 1E-6 m2 apart within 2E-9
+        private static IEnumerable<List<double[]>[]> Turned()
+        {
+            yield return new[]
+            {
+                Ring(500106.568, 2400080.837, 500124.46, 2400089.775, 500115.522, 2400107.667, 500097.63, 2400098.729),
+                Ring(500111.568, 2400085.837, 500113.804, 2400086.954, 500111.57, 2400091.427, 500109.333, 2400090.31),
+                Ring(500115.146, 2400087.625, 500117.383, 2400088.742, 500115.148, 2400093.215, 500112.912, 2400092.097),
+            };
+            yield return new[]
+            {
+                Ring(501628.12, 2400954.942, 501648.12, 2400954.945, 501648.117, 2400974.945, 501628.117, 2400974.942),
+                Ring(501633.12, 2400959.942, 501635.62, 2400959.942, 501635.619, 2400964.942, 501633.119, 2400964.942),
+                Ring(501637.12, 2400959.942, 501639.62, 2400959.943, 501639.619, 2400964.943, 501637.119, 2400964.942),
+            };
+            yield return new[]
+            {
+                Ring(502350.972, 2402695.553, 502370.972, 2402695.557, 502370.968, 2402715.557, 502350.968, 2402715.553),
+                Ring(502355.972, 2402700.553, 502358.472, 2402700.553, 502358.471, 2402705.553, 502355.971, 2402705.553),
+                Ring(502359.972, 2402700.553, 502362.472, 2402700.554, 502362.471, 2402705.554, 502359.971, 2402705.553),
+            };
+            yield return new[]
+            {
+                Ring(500507.875, 2401453.471, 500525.766, 2401462.41, 500516.828, 2401480.301, 500498.936, 2401471.363),
+                Ring(500512.875, 2401458.471, 500515.111, 2401459.589, 500512.877, 2401464.061, 500510.64, 2401462.944),
+                Ring(500516.453, 2401460.259, 500518.69, 2401461.376, 500516.455, 2401465.849, 500514.219, 2401464.732),
+            };
+        }
+
+        [Fact]
+        public void R352_blocks_of_one_overlap_as_r385_writes_it_keep_the_read_order_and_binary_noise_never_parts_them()
+        {
+            // PARKB lies 2E-11 m2 over PARKA, one overlap at 4 decimals, so they keep the order of the read, then PARKC 5E-5 m2 smaller
             Assert.Equal("PARKA|PARKB|PARKC 90 false", Cells(MadeTable()["105"], "footprintBlock", "footprintRotationDeg", "footprintMirrored"));
-            Assert.Equal(new[] { 9, 3, 7, 4 }, PlotTable.BlockOrder(new Dictionary<int, double> { [7] = 5.0, [3] = 5.0 + 9e-7, [4] = 5.0 - 9e-7, [9] = 7.0 }, 1e-6));
-            // A group is taken from the largest left, so a chain of small steps does not run on into one group
-            Assert.Equal(new[] { 0, 1, 2, 3 }, PlotTable.BlockOrder(new Dictionary<int, double> { [0] = 1.0, [1] = 1.0 - 6e-7, [2] = 1.0 - 1.2e-6, [3] = 1.0 - 1.8e-6 }, 1e-6));
-            Assert.Equal(new[] { 0, 1, 2, 3 }, PlotTable.BlockOrder(new Dictionary<int, double> { [2] = 1.0 - 1.2e-6, [0] = 1.0, [3] = 1.0 - 1.8e-6, [1] = 1.0 - 6e-7 }, 1e-6));
-            Assert.Equal(new[] { 1, 5 }, PlotTable.BlockOrder(new Dictionary<int, double> { [5] = 2.0, [1] = 2.0 + 2e-6 }, 1e-6));
-            Assert.Empty(PlotTable.BlockOrder(new Dictionary<int, double>(), 1e-6));
+            Assert.Equal(new[] { 9, 3, 4, 7 }, PlotTable.BlockOrder(new Dictionary<int, double> { [7] = 5.0, [3] = 5.0 + 9e-7, [4] = 5.0 - 9e-7, [9] = 7.0 }, 4));
+            Assert.Equal(new[] { 1, 5 }, PlotTable.BlockOrder(new Dictionary<int, double> { [1] = 2.0, [5] = 2.0 + 2e-6 }, 4));
+            Assert.Equal(new[] { 5, 1 }, PlotTable.BlockOrder(new Dictionary<int, double> { [1] = 2.0, [5] = 2.0 + 2e-4 }, 4));
+            Assert.Equal(new[] { 0, 1, 2, 3 }, PlotTable.BlockOrder(new Dictionary<int, double> { [0] = 1.0, [1] = 1.0 - 6e-7, [2] = 1.0 - 1.2e-6, [3] = 1.0 - 1.8e-6 }, 4));
+            Assert.Empty(PlotTable.BlockOrder(new Dictionary<int, double>(), 4));
+            // The bays of the probe went by size or by read order on the binary noise, the C# 2 of 8 turned bays otherwise than shapely. At
+            // 4 decimals each pair is one overlap and keeps the read order, as test_plot_table holds it on shapely
+            foreach (List<double[]>[] item in ProbeBays().Concat(Turned()))
+            {
+                var overlaps = new Dictionary<int, double> { [0] = PolygonOverlap.Area(item[0], item[1]), [1] = PolygonOverlap.Area(item[0], item[2]) };
+                double gap = Math.Abs(overlaps[1] - overlaps[0]);
+                Assert.True(gap > 0 && gap < 1.01e-6, "gap " + gap.ToString("R", CultureInfo.InvariantCulture));
+                Assert.Equal(new[] { 0, 1 }, PlotTable.BlockOrder(overlaps, 4));
+            }
+        }
+
+        [Fact]
+        public void R352_the_decimals_of_the_block_order_are_addin_plot_table_and_never_a_parity_setting()
+        {
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            Assert.Equal(4, PlotTableSettings.From(config).OverlapDecimals);
+            Assert.DoesNotContain("overlapDecimals", config["addin"]["parity"].ToString());
+            foreach (JToken bad in new JToken[] { null, "4", 4.0, true, -1, 11 })
+            {
+                var changed = (JObject)config.DeepClone();
+                if (bad == null)
+                {
+                    ((JObject)changed["addin"]).Remove("plotTable");
+                }
+                else
+                {
+                    changed["addin"]["plotTable"]["overlapDecimals"] = bad;
+                }
+                InvalidDataException refused = Assert.Throws<InvalidDataException>(() => PlotTableSettings.From(changed));
+                Assert.Contains("addin.plotTable.overlapDecimals", refused.Message);
+            }
+            // A read of the plot table with no addin.plotTable is refused before any read, the areas tolerance of the parity never taken
+            var without = (JObject)config.DeepClone();
+            ((JObject)without["addin"]).Remove("plotTable");
+            string path = Path.Combine(folder, "project_no_table.json");
+            File.WriteAllText(path, without.ToString());
+            string border = Path.Combine(folder, "phase1_border.csv");
+            File.WriteAllText(border, "x,y\n0,0\n10,0\n10,10\n");
+            var request = new WorkerRequest
+            {
+                FormatVersion = 1, RunId = "t2", Command = "read", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" },
+                Inputs = new List<WorkerFile> { Input("config", path), Input(PlotTable.BorderRole, border) }, Scope = new WorkerScope { Kind = "project" },
+                OutputFolder = Path.Combine(folder, "out"), Steps = new List<string>(), StepsFolder = Path.Combine(folder, "steps"), TimeLimitS = 600,
+            };
+            int code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);
+            WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "t2"));
+            Assert.True(code == 2, "exit " + code + ": " + answer.Message);
+            Assert.Contains("addin.plotTable.overlapDecimals", answer.Message);
         }
 
         [Fact]

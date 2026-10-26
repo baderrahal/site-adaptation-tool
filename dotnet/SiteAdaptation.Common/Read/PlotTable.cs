@@ -150,6 +150,27 @@ namespace SiteAdaptation.Common
         }
     }
 
+    // R352. addin.plotTable of config/project.json: overlapDecimals, the decimals R385 writes the overlap of a block with its face at before the
+    // blocks of a face are ordered, a whole number from 0 to MaxOverlapDecimals, as python/plot_table.overlap_decimals reads it. Its own
+    // setting, never a tolerance of addin.parity, which tells only how far the two sides of the parity may lie apart
+    public sealed class PlotTableSettings
+    {
+        public const int MaxOverlapDecimals = 10;
+
+        public int OverlapDecimals { get; private set; }
+
+        public static PlotTableSettings From(JObject config)
+        {
+            JToken decimals = ((config?["addin"] as JObject)?["plotTable"] as JObject)?["overlapDecimals"];
+            if (decimals == null || decimals.Type != JTokenType.Integer || decimals.Value<long>() < 0 || decimals.Value<long>() > MaxOverlapDecimals)
+            {
+                throw new InvalidDataException("addin.plotTable.overlapDecimals is " + (decimals == null ? "None" : decimals.ToString(Newtonsoft.Json.Formatting.None))
+                    + ", the decimals of the overlap of a block in its face are a whole number from 0 to " + MaxOverlapDecimals + " (R352)");
+            }
+            return new PlotTableSettings { OverlapDecimals = (int)decimals.Value<long>() };
+        }
+    }
+
     // R352. The plot table of button 2, python/plot_table.py step for step: per baseplan face inside the Phase 1 border its label, type and
     // flags, the official number of the neighbourhood schedule that holds its label plus the shift (R28), the location plan labels whose
     // site point as written it holds, joined in the order of their numbers, the footprint blocks that hold at least minShare of their
@@ -215,24 +236,13 @@ namespace SiteAdaptation.Common
             return new[] { points.Max(point => point[0]), points.Max(point => point[1]) };
         }
 
-        // python/plot_table.block_order: the block of the largest overlap left with every block whose overlap lies within tolerance of it,
-        // that group in the order of the read, then the next group. Taken from the largest left, so a chain of small steps never runs on
-        // into one group, and with no rounding to steps, so two overlaps of one group never part at the edge of a step by binary noise
-        public static List<int> BlockOrder(IReadOnlyDictionary<int, double> overlaps, double tolerance)
+        // python/plot_table.block_order: the blocks by their overlap with the face as R385 writes it at decimals, the largest first, the
+        // blocks of one written overlap in the order of the read. Two sides whose overlaps differ by binary noise write the same decimal,
+        // so the noise decides only for an overlap that lies within it of a rounding boundary, never by a tolerance two overlaps may sit on
+        public static List<int> BlockOrder(IReadOnlyDictionary<int, double> overlaps, int decimals)
         {
-            var left = overlaps.ToDictionary(item => item.Key, item => item.Value);
-            var order = new List<int>();
-            while (left.Count > 0)
-            {
-                double top = left.Values.Max();
-                List<int> group = left.Where(item => item.Value >= top - tolerance).Select(item => item.Key).OrderBy(item => item).ToList();
-                order.AddRange(group);
-                foreach (int item in group)
-                {
-                    left.Remove(item);
-                }
-            }
-            return order;
+            return overlaps.Select(item => new { item.Key, Written = Rounding.Fixed(item.Value, decimals) }).OrderByDescending(item => item.Written).ThenBy(item => item.Key)
+                .Select(item => item.Key).ToList();
         }
 
         // A footprint block whose outline of three points or more is not a simple ring is refused with its name, as FaceRings refuses a
@@ -249,7 +259,7 @@ namespace SiteAdaptation.Common
 
         public static Dictionary<string, Dictionary<string, object>> Build(JArray plots, IReadOnlyDictionary<string, PlanFace> faces, List<double[]> border,
             IReadOnlyDictionary<string, HashSet<string>> officials, IReadOnlyList<KeyValuePair<string, int>> shifts, IReadOnlyList<LocationPlan.Row> labels,
-            JArray blocks, double minShare, SheetRows.AreaKey dlus, SheetRows.AreaKey sales, double areaTolerance)
+            JArray blocks, double minShare, SheetRows.AreaKey dlus, SheetRows.AreaKey sales, int overlapDecimals)
         {
             var count = new Dictionary<string, int>();
             var types = new Dictionary<string, JToken>();
@@ -356,7 +366,7 @@ namespace SiteAdaptation.Common
                 List<LocationPlan.Row> plan = (onPlan.TryGetValue(face.Label, out List<LocationPlan.Row> held2) ? held2 : new List<LocationPlan.Row>())
                     .OrderBy(row => long.Parse(row.Number, CultureInfo.InvariantCulture)).ToList();
                 List<int> on = found.TryGetValue(face.Label, out List<int> blocksOn)
-                    ? BlockOrder(blocksOn.ToDictionary(item => item, item => overlaps[face.Label][item]), areaTolerance) : new List<int>();
+                    ? BlockOrder(blocksOn.ToDictionary(item => item, item => overlaps[face.Label][item]), overlapDecimals) : new List<int>();
                 List<string> numbers = plan.Select(row => row.Number).ToList();
                 var values = new HashSet<Tuple<string, string>>(numbers.Where(dlus.Values.ContainsKey).Select(number => Tuple.Create(dlus.Values[number].Key, dlus.Values[number].Value)));
                 Tuple<string, string> key = values.Count == 1 ? values.First() : null;
