@@ -24,6 +24,8 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+import numpy
+
 import area_key
 import cad_analysis
 import cad_units
@@ -101,20 +103,23 @@ def edge_step(pieces, layers):
             for index, (piece, points) in enumerate(cad_analysis.road_edge_pieces(pieces, layers))}
 
 
-def surface_step(reports):
-    """R349. Per surface of the LandXML reads in the order of the files, its file, unit and counts, bounds and level range."""
+def surface_step(reports, folders):
+    """R349. Per surface of the LandXML reads in the order of the files, its file, unit and counts from the landxml_summary.json of each
+    read, and its bounds and level range from the points.npy of the read as summary_of takes them, unrounded, since write_json writes the
+    summary at the decimals of R2."""
     found = {}
-    for report in reports:
+    for report, folder in zip(reports, folders):
         for item in report["surfaces"]:
             if item["name"] in found:
                 raise ValueError("two road surfaces are named %s, a surface is known by its name" % item["name"])
-            box, levels = item.get("bbox"), item.get("zRange")
+            xyz = numpy.load(Path(folder) / item["folder"] / "points.npy")
+            held = len(xyz) > 0
             found[item["name"]] = {"file": report["file"], "linearUnit": report["linearUnit"], "epsgCode": report["epsgCode"], "pointCount": item["pointCount"],
                                    "faceCount": item["faceCount"], "visibleFaceCount": item["visibleFaceCount"], "invisibleFaceCount": item["invisibleFaceCount"],
                                    "badFaceCount": item["badFaceCount"], "badPointCount": item["badPointCount"], "declaredZRange": item["declaredZRange"],
-                                   "bboxMin": [box["minEasting"], box["minNorthing"]] if box else None,
-                                   "bboxMax": [box["maxEasting"], box["maxNorthing"]] if box else None,
-                                   "zMin": levels["min"] if levels else None, "zMax": levels["max"] if levels else None}
+                                   "bboxMin": [float(xyz[:, 0].min()), float(xyz[:, 1].min())] if held else None,
+                                   "bboxMax": [float(xyz[:, 0].max()), float(xyz[:, 1].max())] if held else None,
+                                   "zMin": float(xyz[:, 2].min()) if held else None, "zMax": float(xyz[:, 2].max()) if held else None}
     return found
 
 
@@ -252,7 +257,7 @@ def main(argv=None):
             surfaces = plan_from_book.load_roads(files, args.scratch)
             reports = [json.loads((Path(args.scratch) / path.stem / landxml_reader.SUMMARY).read_text(encoding="utf-8")) for path in files]
             if "surfaces" in steps:
-                made["surfaces"] = surface_step(reports)
+                made["surfaces"] = surface_step(reports, [Path(args.scratch) / path.stem for path in files])
             if "roadLevels" in steps:
                 if not args.plots_csv or not args.labels:
                     raise project_profile.ProfileError("the step roadLevels needs --plots-csv and --labels")

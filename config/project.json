@@ -57,8 +57,8 @@
     "baseplanPlots": "sample_output\\round12\\full\\ROSHN Makkah Baseplan.dwg\\plots.json"
   },
   "cadReads": {
-    "note": "R388. The folder of the CadReader reads the measure (python/majority.py) and the build (python/plan_from_book.py) read, relative to the repo: the read folder of each drawing of drawings, baseplan, roadLayout and villaBlocks, with its layers.json, so both read one set through the units check. A file a run names that is not the one named here is taken only as a copy of its bytes by SHA-256, such as the outputs the Round 17 snapshot copied alone.",
-    "root": "sample_output/round12/full"
+    "note": "R388. The folder of the CadReader reads the measure (python/majority.py) and the build (python/plan_from_book.py) read, relative to the repo: the read folder of each drawing of drawings, baseplan, roadLayout and villaBlocks, with its layers.json, so both read one set through the units check. A file a run names that is not the one named here is taken only as a copy of its bytes by SHA-256, such as the outputs the Round 17 snapshot copied alone. R348, Round ADDIN 4c: the reads of the CadReader of 4c, round4c, in place of those of Round 12, written at 03:04 on 2026-10-24 before 4ac1428 turned the outline of a flipped insert back to counter clockwise (R68): the footprint blocks.json held 2,081 mirrored outlines the other way round, every other file the build and the measure read equal by SHA-256.",
+    "root": "sample_output/round4c/full"
   },
   "tableUnits": {
     "note": "R388. The units of the tables of a data book reader that records none in the data.json of its table folder, by reader. The C3DProbe tables of the full Civil 3D read, of Makkah Phase 1_Road Layout, Road Surface C3D, Rough Grading and MP-SK-01-03-006_R9.0, carry none, and the CadReader reads of the same four drawings give Meters in their layers.json. The CadReader stand-in records the units of its drawing itself. A table of a reader named here by no unit is refused.",

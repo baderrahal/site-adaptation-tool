@@ -257,6 +257,36 @@ namespace SiteAdaptation.Tests
             Assert.Equal(text, SheetRows.PyRepr(value));
         }
 
+        // The bits Python float() gives for each text: net48 double.Parse read 2264.253152 as the next double up, and its format R wrote
+        // the double of 2264.2531520000002 as 2264.253152, 6 cells of the sales sheet on net48 in the first parity run of 4c
+        [Theory]
+        [InlineData("2264.253152", 4657197560411427285L)]
+        [InlineData("2264.2531520000002", 4657197560411427286L)]
+        [InlineData("83.950882000000007", 4635607935075817146L)]
+        [InlineData("244.62051400000001", 4642810835749377722L)]
+        [InlineData("1E3", 4652007308841189376L)]
+        [InlineData("-0.5", -4620693217682128896L)]
+        [InlineData("123456789012345678901234567890", 5042042089369253694L)]
+        [InlineData("4.9406564584124654E-324", 1L)]
+        [InlineData("0", 0L)]
+        public void R350_a_number_text_reads_as_the_double_python_float_gives(string text, long bits)
+        {
+            Assert.Equal(bits, BitConverter.DoubleToInt64Bits(ExactDouble.Parse(text)));
+            double value = BitConverter.Int64BitsToDouble(bits);
+            Assert.Equal(bits, BitConverter.DoubleToInt64Bits(ExactDouble.Parse(ExactDouble.Text(value))));
+        }
+
+        [Fact]
+        public void R350_an_output_of_the_worker_writes_every_double_so_it_reads_back_the_same_on_every_runtime()
+        {
+            double value = BitConverter.Int64BitsToDouble(4657197560411427286L);
+            Assert.Equal("2264.2531520000002", ExactDouble.Text(value));
+            Assert.Equal("25.0", ExactDouble.Text(25.0));
+            string text = new JObject { ["x"] = value, ["y"] = 25.0, ["z"] = double.NaN }.ToString(Newtonsoft.Json.Formatting.None, new ExactDouble.Converter());
+            Assert.Equal("{\"x\":2264.2531520000002,\"y\":25.0,\"z\":null}", text);
+            Assert.Throws<FormatException>(() => ExactDouble.Parse("12a"));
+        }
+
         [Fact]
         public void R350_plain_values_plot_numbers_zones_and_neighbourhoods_are_those_of_the_python_readers()
         {
@@ -478,6 +508,23 @@ namespace SiteAdaptation.Tests
             Assert.Equal("[[1000,4990],[1010,4990]]", curbs["plots"]["0"]["raw"]["points"].ToString(Newtonsoft.Json.Formatting.None));
             Assert.Empty(((JObject)RunStamp.Read(Path.Combine(folder, "steps", "step_rows_csharp.json"))["plots"]).Properties());
             Assert.Equal(1, answer.Counts["labels items"]);
+            // A build takes the read of the worker as its baseplan, baseplanRead, the face of plot 12 numbered 101 by plots.csv
+            string data = Path.Combine(folder, "plots.csv"), labelsCsv = Path.Combine(folder, "labels.csv");
+            File.WriteAllText(data, "baseplanLabel,locationPlanNumber\n12,101\n");
+            File.WriteAllText(labelsCsv, "number,code,kind,nbh\n101,DP1,clientCode,012\n");
+            var build = new WorkerRequest
+            {
+                FormatVersion = 1, RunId = "r1b", Command = "build", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" },
+                Inputs = new List<WorkerFile> { Input("config", config), Input("baseplanRead", Path.Combine(folder, "out", "read_baseplan.json")), Input("plotsCsv", data), Input("labels", labelsCsv) },
+                Scope = new WorkerScope { Kind = "project" }, OutputFolder = Path.Combine(folder, "out"), Steps = new List<string> { FaceStep.Name }, StepsFolder = Path.Combine(folder, "steps"), TimeLimitS = 600,
+            };
+            Run(build, 0);
+            JObject faces = RunStamp.Read(Path.Combine(folder, "steps", "step_faces_csharp.json"));
+            Assert.True((bool)faces["plots"]["101"]["raw"]["face"]);
+            Assert.Equal(200.0, (double)faces["plots"]["101"]["raw"]["area"], 9);
+            build.RunId = "r1c";
+            build.Inputs.Add(Input("baseplanPlots", Path.Combine(folder, "out", "read_baseplan.json")));
+            Assert.Contains("names two baseplans", Run(build, 2).Message);
         }
 
         [Fact]

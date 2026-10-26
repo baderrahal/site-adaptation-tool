@@ -87,7 +87,8 @@ namespace SiteAdaptation.Common
             string path = Path.Combine(full, name);
             Directory.CreateDirectory(full);
             string temporary = WorkFiles.TemporaryName(path, Request.RunId);
-            File.WriteAllText(temporary, stamped.ToString(Formatting.Indented), new System.Text.UTF8Encoding(false));
+            // R350. Every double written so it reads back as the same double, which the format R of net48 does not give
+            File.WriteAllText(temporary, stamped.ToString(Formatting.Indented, new ExactDouble.Converter()), new System.Text.UTF8Encoding(false));
             written.Add(new KeyValuePair<string, string>(temporary, path));
             return path;
         }

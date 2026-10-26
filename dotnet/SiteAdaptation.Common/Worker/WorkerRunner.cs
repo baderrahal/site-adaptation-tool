@@ -14,11 +14,11 @@ namespace SiteAdaptation.Common
     public static class WorkerRunner
     {
         // R345. The steps the C# gives so far with the input roles each reads, a role ending in a colon and a star any role of that
-        // name and a colon, at least one, and the command that writes each: the plan builder steps of build and the read steps of read
+        // name and a colon, at least one, roles parted by a bar any one of them, and the command that writes each: the plan builder steps of build and the read steps of read
         // (R348 to R350). A request of another step, or of a step of another command, is refused
         public static readonly Dictionary<string, string[]> Steps = new Dictionary<string, string[]>
         {
-            [FaceStep.Name] = new[] { "baseplanPlots", "plotsCsv", "labels" },
+            [FaceStep.Name] = new[] { FaceStep.BaseplanRoles, "plotsCsv", "labels" },
             [ReadSteps.Labels] = new[] { "baseplan" },
             [ReadSteps.Blocks] = new[] { "villaBlocks" },
             [ReadSteps.Setbacks] = new[] { "villaBlocks" },
@@ -38,6 +38,10 @@ namespace SiteAdaptation.Common
 
         private static bool Holds(IEnumerable<WorkerFile> inputs, string role)
         {
+            if (role.Contains("|"))
+            {
+                return role.Split('|').Any(one => Holds(inputs, one));
+            }
             return role.EndsWith(":*", StringComparison.Ordinal) ? inputs.Any(input => input.Role != null && input.Role.StartsWith(role.Substring(0, role.Length - 1), StringComparison.Ordinal))
                 : inputs.Any(input => input.Role == role);
         }

@@ -81,7 +81,7 @@ def test_r349_the_surfaces_step_holds_the_unit_counts_bounds_and_levels_of_each_
     files = write_roads(tmp_path / "landxml")
     plan_from_book.load_roads(files, tmp_path / "scratch")
     reports = [json.loads((tmp_path / "scratch" / path.stem / "landxml_summary.json").read_text(encoding="utf-8")) for path in files]
-    found = read_steps.surface_step(reports)
+    found = read_steps.surface_step(reports, [tmp_path / "scratch" / path.stem for path in files])
     assert list(found) == ["Road", "Ground"]
     assert found["Road"] == {"file": "A__Road.xml", "linearUnit": "meter", "epsgCode": "32637", "pointCount": 6, "faceCount": 5, "visibleFaceCount": 3,
                              "invisibleFaceCount": 1, "badFaceCount": 1, "badPointCount": 0, "declaredZRange": {"zMin": "1", "zMax": "40"},

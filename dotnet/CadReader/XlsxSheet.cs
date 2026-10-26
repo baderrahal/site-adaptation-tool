@@ -286,7 +286,7 @@ namespace CadReader
         {
             if (text.Contains(".") || text.Contains("E") || text.Contains("e"))
             {
-                return double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
+                return ExactDouble.Parse(text);
             }
             long whole;
             return long.TryParse(text.Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out whole) ? whole : (object)BigInteger.Parse(text.Trim(), CultureInfo.InvariantCulture);

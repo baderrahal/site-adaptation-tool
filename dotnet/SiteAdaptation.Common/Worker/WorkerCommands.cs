@@ -37,7 +37,12 @@ namespace SiteAdaptation.Common
         {
             WorkerRequest request = run.Request;
             List<string> numbers = PlotScope.Numbers(request.Scope, CsvRows.Read(run.Input("labels")));
-            string path = run.Input("baseplanPlots");
+            string role = request.Inputs.Any(input => input.Role == "baseplanRead") ? "baseplanRead" : "baseplanPlots";
+            if (request.Inputs.Count(input => input.Role == "baseplanRead" || input.Role == "baseplanPlots") > 1)
+            {
+                throw new WorkerStop(WorkerExit.Refused, "the request names two baseplans, baseplanPlots and baseplanRead, a build reads one");
+            }
+            string path = run.Input(role);
             JObject baseplan = JObject.Parse(WorkFiles.ReadText(path));
             // R348. A drawing output is read only of a drawing in Meters, by its own units or the layers.json of its read
             string refusal = CadUnits.Refusal(path, baseplan);

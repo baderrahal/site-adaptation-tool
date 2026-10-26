@@ -94,7 +94,7 @@ namespace SiteAdaptation.Common
             for (int precision = 1; precision <= 17 && digits == null; precision++)
             {
                 string text = size.ToString("E" + (precision - 1), CultureInfo.InvariantCulture);
-                if (double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture) == size)
+                if (ExactDouble.Parse(text) == size)
                 {
                     int mark = text.IndexOf('E');
                     digits = text.Substring(0, mark).Replace(".", "").TrimEnd('0');

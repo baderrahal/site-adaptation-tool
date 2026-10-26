@@ -173,7 +173,17 @@ namespace SiteAdaptation.Common
 
         private static bool Number(string text, out double value)
         {
-            return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value);
+            // R350. The nearest double as Python float() gives it, which double.Parse of .NET Framework 4.8 misses on some texts
+            try
+            {
+                value = ExactDouble.Parse(text);
+            }
+            catch (FormatException)
+            {
+                value = 0;
+                return false;
+            }
+            return !double.IsInfinity(value);
         }
 
         private static bool Whole(string text, out long value)
