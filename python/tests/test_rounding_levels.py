@@ -208,3 +208,21 @@ def test_r385_no_value_is_rounded_twice_on_the_way_from_majority_json_to_key_rul
     majority.finish(args, {"overrideNote": "n"}, {}, {"decisions": [result]}, [], [])
     written = json.loads((tmp_path / "run" / "majority.json").read_text(encoding="utf-8"))
     assert key_rules_block.block_of(written, ["baseHeight"], {}, block)["baseHeight"]["table"] == {"DP1": 0.1005}
+
+
+# R210, R340 the Z of the ramp corners by the chain of docs/addin-design.md section 5, Step 8, which the C# copies
+def test_r340_the_back_corners_of_the_ramp_take_el_at_entry_as_written_at_4_decimals_then_3_when_written():
+    import plan_from_book
+    import plan_from_past
+    builder = plan_from_past.PlotBuilder("1")
+    builder.entry["unit"] = {"value": "DP1"}
+    inputs = {"floors": {"levels": {"ramp": "L0"}, "types": {}}, "levels": {"L0": 0.0}, "bands": []}
+    corners = [(0.0, 0.0), (4.0, 0.0), (4.0, 5.0), (0.0, 5.0)]
+    # A raw El @ Entry of 10.02745 is 10.0275 as the plan writes it at 4, so the back corners are 10.028, one rounding of it gives 10.027
+    entry = common.fixed(10.02745, 4)
+    made = plan_from_book.ramp_floor(builder, None, corners, [10.0, 10.0], entry, 0.5, inputs, "Ramps 0.5%")
+    assert entry == 10.0275 and [point[2] for point in made["corners"]["value"]] == [10.0, 10.0, 10.028, 10.028] and common.fixed(10.02745, 3) == 10.027
+    # The back pair runs parallel to the front, each its front corner less the mean of the two plus El @ Entry, then 3 decimals
+    made = plan_from_book.ramp_floor(builder, None, corners, [10.0004, 9.9996], entry, 0.5, inputs, "Ramps 0.5%")
+    assert [point[2] for point in made["corners"]["value"]] == [10.0, 10.0, common.fixed(10.0275 - 0.0004, 3), common.fixed(10.0275 + 0.0004, 3)]
+    assert made["heightOffset"]["value"] == common.fixed(9.9996, 3)

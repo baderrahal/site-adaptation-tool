@@ -305,7 +305,7 @@ Each tolerance in metres is 1/500 of the 0.5 mm pass limit of R331 and over twic
 | 5 | Front edge and corner front | cad_links.front_frame, corner_front.corner_frame, plan_from_book.fronts | R122, R225, R226, R332, R355 | test_r355_parity_fronts | the same edge, corners by the points tolerance, frontRule exact |
 | 6 | Link frame | plan_from_cad.link_values, plan_rules.key_frame_section, plan_from_book.moved_link | R121, R332, R337, R356 | test_r356_parity_link_frame | insert by the points tolerance and rotation by the angles tolerance |
 | 7 | Hand rules | majority.side_neighbours, road_side, kind_of and pair_kind, key_rules.row_pairs, cad_links.cluster_roles, plan_rules.unit_class, joined_factors and key_hand | R271, R333, R337, R357 | test_r357_parity_hands | the kind, the pair kind, the unit class, the mirror flag and the hand rule exact |
-| 8 | Ramp and floor outlines | ramp_outline.setback and outline, plan_from_book.generic_floor and ramp_floor, plan_from_cad.flat_floor, plan_rules.key_outlines, key_yard and key_ramp_class | R127, R135, R208, R210, R334, R337, R358 | test_r358_parity_floors | every vertex by the points tolerance, ramp type exact |
+| 8 | Ramp and floor outlines | ramp_outline.setback and outline, plan_from_book.generic_floor and ramp_floor, plan_from_cad.flat_floor, plan_rules.key_outlines, key_yard and key_ramp_class | R127, R135, R208, R210, R334, R337, R358 | test_r358_parity_floors | every vertex by the points tolerance, ramp type exact, the Z of the ramp corners by the levels tolerance on the chain of Step 8 below, the back corners from El @ Entry as written at 4 decimals and never from its raw value |
 | 9 | Road level snap from LandXML | plan_from_book.load_roads and road_level, c3d_connect.snap_z | R40, R42, R157, R339, R349 | test_r349_parity_road_levels | by the levels tolerance, surface exact |
 | 10 | Levels | plan_rules.entry_of, which also gives the road at front from the same unrounded mean (7.5), row_partners, key_pieces, level_pieces, key_level_rows, steps_by_rule, prototype_ffl, plan_from_book.key_levels and rule_levels | R67, R278, R339, R340, R359 | test_r359_parity_levels | El @ Entry, height, the road at front, FFL, SSL and Prototype-FFL by the levels tolerance, the row partners, the pieces and the steps exact |
 | 11 | Walls | none yet, python/plan_walls.py is written first from the rules R335 measured | R335, R362 | test_r362_parity_walls | ends by the points tolerance, base and top by the levels tolerance |
@@ -313,6 +313,17 @@ Each tolerance in metres is 1/500 of the 0.5 mm pass limit of R331 and over twic
 | 13 | Parameters | plan_rules.key_parameters, the link name of R107 | R85, R107, R337, R361 | test_r361_parity_parameters | text exact |
 | 14 | Issues | the missing list of plan_from_book.py, the cannot list, decidedByQuestion, the join statuses, python/check_rows.py written first as the reference of the check table | R272, R326, R363 | test_r363_parity_check_rows | every row, its type and its Use exact |
 | 15 | Plan summary | the summary of plan_from_book.py: frontRule, roadSurfacesOfFrontCorners, floorsFound, floorTypes, and under rules applied, handRules, overridesNotApplied and steps, which fill the top line of the level Excel and the box Rules applied of the report | R364, R365 | test_r365_parity_summary | every count and every name exact |
+
+### Step 8, the Z of the ramp corners
+
+The ramp corners carry a level each, and the build takes them in this chain, which the C# copies step for step, since the ramp corners of the keys were measured on it (R339, R340) and a shorter chain moves a corner by 1 mm on a tie (READ, plan_from_book.ramp_floor and build, Round ADDIN 4b review):
+
+1. The two front corners are the road levels of step 9 at the front corners, raw, each plus the rampFrontM gap of the plot when the override list holds one, raw.
+2. El @ Entry is the one of step 10 as the plan writes it: the rule rounded to 4 decimals by R385, then the entryM gap added and rounded to 4 again (R340).
+3. Each back corner is that El @ Entry plus its front corner less the mean of the two front corners, so the back pair runs parallel to the front with its mean at El @ Entry (R210), raw.
+4. All four are written at 3 decimals by R385 (plan_from_past.point), and heightOffset is the lowest of the four raw values less the elevation of the ramp level, at 3.
+
+So the back corners are rounded twice, once to 4 at El @ Entry and once to 3 when written: a road at 10.0 with a raw El @ Entry of 10.02745 gives El @ Entry 10.0275 and back corners of 10.028, where one rounding of the raw value gives 10.027. The parity of step 8 compares the corners each side writes, and its one unit cases are judged on the values of step 3 above, not on the raw El @ Entry.
 
 ### The location plan fit (R181, R387 planned)
 
