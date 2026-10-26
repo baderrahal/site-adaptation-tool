@@ -32,6 +32,7 @@ import full_run
 import landxml_reader
 import levels_proof
 import link_summary
+import plan_rules
 import project_profile
 import prototype_offsets
 import surface_lookup
@@ -227,7 +228,7 @@ def build(config, settings, scratch):
         return trees[key]
 
     surfaces = load_surfaces(connect, book, scratch)
-    road_order = [name for name in book["roadSurfaceOrder"] if name in surfaces]
+    road_order, road_snap = road_rule(settings, surfaces)
     schedules = schedule_rows(settings, connect)
     shifts = {name: entry["shift"] for name, entry in connect["neighbourhoods"].items() if entry}
     plan = json.loads(Path(connect["plan"]).read_text(encoding="utf-8"))
@@ -397,20 +398,31 @@ def build(config, settings, scratch):
             if near:
                 row["setbackFromFrontM"] = min(line.distance(Point(middle)) for line in near)
                 row["setbackFromFrontMMethod"] = "intersects"
-        for side, corner in (("Left", frame["left"]), ("Right", frame["right"])):
-            for name in road_order:
-                level = c3d_connect.snap_z(surfaces[name], corner[0], corner[1], connect["snapM"])
-                if level is not None:
-                    row["roadLevel" + side] = level
-                    row["roadLevelSurface"] = name
-                    row["roadLevelMethod"] = chosen["roadSurfaces"]
-                    break
+        for side, (level, name) in front_road_levels(surfaces, road_order, frame, road_snap).items():
+            if level is not None:
+                row["roadLevel" + side] = level
+                row["roadLevelSurface"] = name
+                row["roadLevelMethod"] = chosen["roadSurfaces"]
         sidewalk(row)
         for name, surface in surfaces.items():
             row["level_" + name + "_left"] = surface.z_at(*frame["left"])
             row["level_" + name + "_right"] = surface.z_at(*frame["right"])
         rows.append(row)
     return rows, dropped, BASE_COLUMNS + surface_columns
+
+
+def road_rule(settings, surfaces):
+    """R344. The road surfaces in the order and the snap of the build, siteBuild.roadSurfaces by the name after the drawing and
+    plan_rules.road_snap, those the data book loaded, so plots.csv and a plan give a front corner the same road level by one rule."""
+    block = settings.get("siteBuild")
+    order = [name.split("__", 1)[1] if "__" in name else name for name in block["roadSurfaces"]]
+    return [name for name in order if name in surfaces], plan_rules.road_snap(block)
+
+
+def front_road_levels(surfaces, order, frame, snap):
+    """R344. The road level and its surface at the left and the right front corner by c3d_connect.road_level, the rule of the build,
+    (None, None) at a corner no road surface covers."""
+    return {side: c3d_connect.road_level([(name, surfaces[name]) for name in order], frame[side.lower()], snap) for side in ("Left", "Right")}
 
 
 def cell(value):

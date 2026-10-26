@@ -62,8 +62,6 @@ KEY_RULES = "keyRules"
 PARITY_STEPS = ("faces",)
 # R337. The source of a parameter that reads the steps, the stepBands of the level profile when keyRules codes no steps
 STEP_BANDS = "levelProfileStepBands"
-# R344. Beside the name of the surface whose nearest point gave a front corner its road by the reach
-REACH_MARK = " (R344)"
 sourced = plan_from_cad.sourced
 
 
@@ -123,23 +121,20 @@ def load_roads(files, scratch):
     return surfaces
 
 
-def road_level(surfaces, point, snap, reach=None):
-    """R209. The level of the first surface that covers the point, snapped to its edge within snap (R157), and its name. R344: when
-    none does, with reach, the level at the nearest point of the surfaces within reach["reachM"], the first in order on a tie, plus the
-    sidewalk cross fall times the distance, rising toward the plot, its name marked with REACH_MARK."""
-    for name, surface in surfaces:
-        z = c3d_connect.snap_z(surface, point[0], point[1], snap)
-        if z is not None:
-            return z, name
-    if reach:
-        best = None
-        for name, surface in surfaces:
-            found = c3d_connect.edge_nearest(surface, point[0], point[1], reach["reachM"])
-            if found is not None and (best is None or found[0] < best[0]):
-                best = (found[0], found[1], name)
-        if best is not None:
-            return best[1] + reach["crossFallPercent"] / 100.0 * best[0], best[2] + REACH_MARK
-    return None, None
+def road_level(surfaces, point, snap):
+    """R209, R344. The level of the first surface that covers the point, snapped to its edge within snap (R157), and its name, by the
+    one rule of c3d_connect.road_level the data book takes as well. A corner none covers gets (None, None), never a road sideways."""
+    return c3d_connect.road_level(surfaces, point, snap)
+
+
+def no_road_level(number, item, surfaces, snap):
+    """R344. Why a plot has no road level at a front corner, for the list of the summary: the corners with none, the road surfaces
+    tried in their order and the reason, the other sources of the Roads folder given once in roadFolderNotTaken of the summary."""
+    if item["corners"] is None:
+        return {"plot": number, "corners": [], "tried": [], "reason": "no front frame, so no front corners to take a road level at"}
+    missing = [side for side, name in zip(("left", "right"), item["surfaces"]) if name is None]
+    return {"plot": number, "corners": missing, "tried": [name for name, _ in surfaces],
+            "reason": "no road surface covers the corner within snapM %s m, so no road level is given (R344)" % snap}
 
 
 def entry_estimate(front, unit, profile, steep, depth):
@@ -333,10 +328,9 @@ def level_values(builder, row):
         builder.entry["insert"]["value"][2] = row["ffl"]
 
 
-def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=None, sales=None, reach=None):
+def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=None, sales=None):
     """R209, R226. The frame, ramp outline and road level of each plot's front corners, with the surface that gave each level.
-    With corner settings and sales rows the frame comes from the corner rule, else from the R122 front. R344: reach, of
-    plan_rules.road_reach, gives a corner no surface covers the road of the nearest surface point."""
+    With corner settings and sales rows the frame comes from the corner rule, else from the R122 front."""
     tree = STRtree(roads)
     found = {}
     for number in numbers:
@@ -353,7 +347,7 @@ def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=
             depth = ramp_outline.setback(profile, item["unit"])
             item["depth"] = depth
             item["corners"] = ramp_outline.outline(frame, depth)
-            levels_found = [road_level(surfaces, corner, snap, reach) for corner in item["corners"][:2]]
+            levels_found = [road_level(surfaces, corner, snap) for corner in item["corners"][:2]]
             item["surfaces"] = [name for _, name in levels_found]
             if all(z is not None for z, _ in levels_found):
                 item["front"] = [z for z, _ in levels_found]
@@ -368,7 +362,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     block = settings.get("siteBuild")
     floors_config = plan_from_past.load_floors(settings)
     steep = set(block["steepUnits"])
-    snap = block["snapM"]
+    snap = plan_rules.road_snap(block)
     limits = cad_links.front_limits(profile, settings.get("analysis"))
     # R337. A profile with keyRules builds the link origin by the fits per code measured on its keys, never the IMC fit of config
     key = None if rules is None else rules.get("keyRules")
@@ -390,9 +384,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     # R340. The other unit of a row pair shares the FFL, so its El @ Entry is worked out as well
     members = sorted({plot for cluster in mine for plot in cluster["plots"]} | set(numbers) | {partners[number] for number in numbers if number in partners},
                      key=link_summary.sort_key)
-    # R344. A build on the road surfaces gives a corner none of them covers the road of the nearest one by siteBuild.roadReach
-    reach = None if rules is None else plan_rules.road_reach(block, rules["levelProfile"])
-    front = fronts(members, rows, faces, roads, limits, surfaces, snap, profile, block.get("corner") if sales is not None else None, sales, reach)
+    front = fronts(members, rows, faces, roads, limits, surfaces, snap, profile, block.get("corner") if sales is not None else None, sales)
     frames = {number: item["frame"] for number, item in front.items()}
     roles = cad_links.cluster_roles(mine, 0, {number: item["face"] for number, item in front.items() if item["face"] is not None}, frames)
     entries, slopes = {}, {}
@@ -446,7 +438,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             if "heightM" in overrides.get(number, {}) and number not in level_rows and not by_levels:
                 outcomes.left(number, "heightM", "no FFL to move, " + ("no road level at a front corner" if front[number]["front"] is None else "the height rule gives none"))
     inputs = {"outlines": outlines, "step": floor_fit.width_step(settings), "levels": site["levels"], "floors": floors_config, "bands": outlines["rampTypes"]["bands"]}
-    plots, missing, lacking, surface_count, no_level, book_check = [], [], Counter(), Counter(), [], Counter()
+    plots, missing, lacking, surface_count, no_level, book_check, no_road = [], [], Counter(), Counter(), [], Counter(), []
     not_measured, not_measured_plots, records, hand_rules = {}, Counter(), {}, Counter()
     for number in numbers:
         item = front[number]
@@ -528,6 +520,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         surface_count.update(name or "none" for name in item["surfaces"])
         if item["front"] is None:
             no_level.append(number)
+            no_road.append(no_road_level(number, item, surfaces, snap))
         else:
             for z, column in zip(item["front"], ("roadLevelLeft", "roadLevelRight")):
                 other = rows.get(number, {}).get(column)
@@ -610,6 +603,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             "skipped": sorted((number for number in numbers if number in skip), key=link_summary.sort_key),
             "clusters": len(mine), "clusterPlots": len(members), "inACluster": sum(1 for number in numbers if number in roles),
             "roadSurfacesOfFrontCorners": dict(surface_count.most_common()), "plotsWithNoRoadLevel": no_level,
+            "noRoadLevel": no_road, "roadFolderNotTaken": (block.get("roadFolder") or {}).get("notTaken") or {},
             "frontRule": dict(Counter(front[number]["frontRule"] for number in numbers).most_common()),
             "frontLevelAgainstPlotsCsv": dict(book_check),
             "floorsFound": {kind: sum(1 for entry in plots if kind in entry["floors"]) for kind in plan_from_past.FLOOR_KINDS},
@@ -891,6 +885,12 @@ def summary_lines(summary, name, named):
         lines.append("plots the skip list of the override list leaves out %d: %s (R386)" % (len(summary["skipped"]), " ".join(summary["skipped"][:10])))
     lines.append("in a cluster %d, clusters %d with %d plots" % (summary["inACluster"], summary["clusters"], summary["clusterPlots"]))
     lines.append("road surfaces of the front corners %s, plots with no road level %s" % (summary["roadSurfacesOfFrontCorners"], summary["plotsWithNoRoadLevel"]))
+    for item in summary.get("noRoadLevel") or []:
+        lines.append("plot %s: no road level at the front corners %s, tried %s, %s" % (item["plot"], ", ".join(item["corners"]) or "none",
+                                                                                     ", ".join(item["tried"]) or "nothing", item["reason"]))
+    if summary.get("noRoadLevel"):
+        lines.append("the other sources of the Roads folder give no road level there (siteBuild.roadFolder, R344): %s"
+                     % " | ".join("%s: %s" % (name, why) for name, why in (summary.get("roadFolderNotTaken") or {}).items()))
     lines.append("front level against plots.csv %s, front rule %s" % (summary["frontLevelAgainstPlotsCsv"], summary["frontRule"]))
     lines.append("floors %s, types %s" % (summary["floorsFound"], summary["floorTypes"]))
     return lines

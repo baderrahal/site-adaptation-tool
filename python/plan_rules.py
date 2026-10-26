@@ -234,17 +234,18 @@ def road_names(site_build, lp):
     return list(site_build["roadSurfaces"]) if surface == ROAD_LEVEL else [surface]
 
 
-def road_reach(site_build, lp):
-    """R344. The reach and the sidewalk cross fall a front corner no surface of road_names covers takes the road by, after those
-    surfaces: siteBuild.roadReach for frontRoad roadLevel, None for a build on one named surface or a config with no roadReach."""
-    found = site_build.get("roadReach")
-    if lp["frontRoad"]["surface"] != ROAD_LEVEL or found is None:
-        return None
-    number = lambda value: isinstance(value, (int, float)) and not isinstance(value, bool)
-    if not number(found.get("reachM")) or found["reachM"] <= 0 or not number(found.get("crossFallPercent")):
-        raise project_profile.ProfileError("siteBuild.roadReach needs reachM, a distance over 0 m, and crossFallPercent, a number, it holds %s (R344)"
-                                           % {key: found.get(key) for key in ("reachM", "crossFallPercent")})
-    return {"reachM": float(found["reachM"]), "crossFallPercent": float(found["crossFallPercent"])}
+def road_snap(site_build):
+    """R157, R344. siteBuild.snapM, the one distance a front corner may lie off a road surface and still take its level, checked against
+    siteBuild.snapMaxM: a number that is no bool, finite, 0 or more and at most snapMaxM, else refused, so a NaN, a negative or a wide
+    snap that would take a road sideways never reaches the build, the measure or the data book. A corner exactly at snapM is covered."""
+    def number(value):
+        return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value >= 0
+    limit, snap = site_build.get("snapMaxM"), site_build.get("snapM")
+    if not number(limit):
+        raise project_profile.ProfileError("siteBuild.snapMaxM must be a finite number of 0 m or more, it holds %r (R344)" % (limit,))
+    if not number(snap) or snap > limit:
+        raise project_profile.ProfileError("siteBuild.snapM must be a finite number from 0 m to snapMaxM %r m, it holds %r (R344)" % (limit, snap))
+    return float(snap)
 
 
 def key_levels_of(rules):
