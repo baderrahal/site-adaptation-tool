@@ -1811,6 +1811,7 @@ Branch logic/addin-4d from main at b8458cd, equal to origin/main after git fetch
 
 - data_book.build read analysis.json from the second root of fallbackOutputs, and since the review of PR 53 put the cadReads folder first there that root is the probe output folder with no analysis, so the build failed (RAN, p4d_regen_before.txt at cffeb66, FileNotFoundError). dataBook.join.analysis of the probe settings names the file the second root held before, data_book.analysis_file refuses a missing setting or file. Test first (RAN, p4d_databook_first.txt, failed on the missing analysis_file), test_r166_the_analysis_of_the_clusters_is_the_file_data_book_join_analysis_names_never_a_place_in_fallback_outputs.
 - The rows made again in memory (RAN, p4d_databook_regen.py and .txt): 2,956 rows, 6 dropped outside the border, 115 columns in 28 s, every cell of the 115 equal to the snapshot plots.csv, 339,940 cells, 0 differ, the snapshot holding the 4 columns area_key.py adds, the snapshot and the plots.csv of the data book equal by SHA-256 before and after. The build took the footprint blocks of the reads of 4c, cadReads first, and gave the same rows.
+- CI run 40375966542 of PR 54 failed that test on the python runner, which holds no data book: its last line read the analysis file of the real setting. It holds the setting only now, the file is checked by the made up paths of the test and by the run above (RAN, gh run view, 1 failed of the python job, dotnet and dotnet-linux passed).
 
 ### Not done in this PR
 
