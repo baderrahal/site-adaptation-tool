@@ -1652,3 +1652,65 @@ The breaker found that the first R344 did not meet Bader's answer to Q073: it to
 - Not done: the C# of R344 and R387 (4c step 9, 4d R351). CLAUDE.md is not changed, the lines it should gain are in the report.
 
 Gate after the review: at the head of the PR, in the PR body and round_addin\logs\q073b_gate_*.txt.
+
+## Phase 4 part c, PR 4c logic/addin-4c
+
+Branch logic/addin-4c from main at 9c25ec8, equal to origin/main after git fetch, and rebased on b35d26e after PR 52 merged, with no conflict (RAN). R348, R349 and R350 are new, R347 and R388 changed, R349 follows R344 of PR 52. Four changes: the read settings moved into config/project.json (c33f39e), R349 the LandXML read and the road level snap in Common (4005006, adf77a6), R348 to R350 the read command of the worker and the read steps of the parity (adcbdfe, 68ab560), and the time limit of a read from the measured button 2 (fcf5f0e), then the rules (bd5e2ed) and the records. The phase ran in a helper agent started by the main session, which paused it for PR 52 at 70bc691 and resumed it. No Revit or Civil 3D window was opened and the registry was not read or written. Real values stay in Documents\SiteAdaptation\round_addin\parity, this file holds counts, sizes and plot numbers only.
+
+### Originals and inputs (R201, R202)
+
+- 60 originals, the 99 inputs, the 20 extras of 4b and 14 reads of 4c, the three drawings in C:\02-Site Adaptation, the two Rev 9 workbooks, the 7 Road Surface C3D LandXML files of the snapshot, plots.csv and labels.csv, hashed before the first edit and after the last run, 60, 99, 20 and 14 equal (RAN, round_addin\logs\p4c_hash.sh, originals_p4c_before.txt and _after.txt and the others). The worker read copies of the three drawings in round_addin\parity\read4c\inputs, equal to their sources by SHA-256. The override list and the rules profile not changed by 4c (protected_p4c_after.txt, equal to those of PR 52).
+
+### The read settings in config/project.json (change 4 of the brief)
+
+- dataBook.join curb, row and footprint, rev9 workbooks, dlus and sales, data5.areaKey dlus and sales and locationPlan.sales moved from python/c3d_probe.json into dataBook of config/project.json. c3d_run.load_config lays them over the probe settings and refuses a key both hold, plan_from_book.py, majority.py, corner_front.py and key_rules_check.py read the sales sheet from config. The merged probe settings equal those of main on 487 of 487 values (RAN, p4c_settings_move.txt). addin.workbookRoles names the input of each workbook, tbd dlus and accommodation sales. The rest of locationPlan moves with R351 in 4d.
+- Tests first (RAN, p4c_settings_first.txt): 4 of 5 failed, the keys still in the probe, no lay_over, the direct reads of c3d_probe.json.
+
+### R349, the LandXML read and the road level snap
+
+- LandXmlReader and TinSurface of Common, landxml_reader.read_landxml, surface_lookup.Surface and c3d_connect.snap_z and road_level step for step, the unit refused as R388 holds it (READ, the code). After the rebase the read holds the snap against siteBuild.snapMaxM as plan_rules.road_snap of R344 does, before any surface is read, and python/read_steps.py takes the snap through road_snap.
+- Tests first (RAN, p4c_r349_first_csharp.txt, compile errors on both targets on the missing types, p4c_r344_snap_first.txt and p4c_r344_snap_first_csharp.txt, 1 Python and 6 C# tests failed on the snap check missing).
+
+### R348 to R350, the read command and the read steps
+
+- WorkerReads of CadReader, the command read: the drawings by the CadExtractor, refused for reference only or a header InsUnits not Meters, read_<role>.json at R2, the road surfaces of siteBuild.roadSurfaces in their order, the workbooks by DocumentFormat.OpenXml 3.5.1 (XlsxSheet) as openpyxl reads them, SheetRows and ReadSteps of Common, python/read_steps.py the Python side. A build of the step faces takes the worker read as baseplanRead and refuses a baseplan output not in Meters (READ, the code).
+- Tests first (RAN, p4c_read_steps_first.txt, the Python tests stopped at collection on the missing module, p4c_read_steps_first_csharp.txt, 324 compile errors on the missing types). Then the Python and C# tests of 4c passed on net48 and net8.0.
+- Found by the first parity run (RAN, p4c_parity_read.txt at fb6f8c3): blocks failed on 2,081 outlines, every one a mirrored block, each the reverse of the other side. The reads of Round 12 were written at 03:04 on 2026-10-24, before 4ac1428 turned the outline of a flipped insert back to counter clockwise at 04:16 (R68). A fresh CadReader read of the three drawings equals the Round 12 reads by SHA-256 but for the layers.json headers, the footprint blocks.json (2,081 outlines reversed, all else equal), the road blocks.json (2,441 reversed and 3 others) and 8 road pieces on layers no build reads one unit of the third decimal apart (RAN, p4c_cadreads.txt). So cadReads.root names sample_output/round4c/full since 4c. The measure on both reads gave majority.json and the override list equal by SHA-256 (RAN, p4c_dry12.txt and p4c_dry4c.txt at fb6f8c3), the build proof at fcf5f0e on the reads of 4c 0 unexplained on the 7 keys, holds 47,569, and the 7 plans equal those of the proof of PR 52 by SHA-256 (RAN, p4c_proof2.txt, p4c_proof2_plans_equal.txt).
+- Also found: sales failed 6 cells on net48 alone. double.Parse of net48 read 2264.253152 one unit of the last bit off the nearest double and its format R wrote the double of 2264.2531520000002 as 2264.253152 (RAN, a probe in the scratchpad, parse48). ExactDouble of Common reads the nearest double and writes every double of an output so it reads back the same. surfaces failed on the bounds, which landxml_summary.json holds at 3 decimals, read_steps takes them from the points of the read now. faces from the worker read was refused by parity.py since one role named two files, the worker read is baseplanRead now.
+
+### The parity of the reads (RAN, p4c_parity_read2.py and .txt at adf77a6, round_addin\parity\read4c2)
+
+| Step | Items | Fields equal on each runtime | One unit, failures |
+|---|---|---|---|
+| labels | 2,962 labels | 11,848 | 0, 0 |
+| blocks | 3,780 blocks | 26,460 | 0, 0 |
+| curbs | 2,533 pieces | 12,665 | 0, 0 |
+| rows | 917 pieces | 4,585 | 0, 0 |
+| setbacks | 2,699 pieces | 13,495 | 0, 0 |
+| faces from the worker read | 2,704 unit plots | 13,520 | 0, 0 |
+| surfaces | 6 surfaces | 84 | 0, 0 |
+| roadLevels | 10,307 vertices of 2,557 plots, 6,509 on a road surface, 3,798 on none | 30,921 | 0, 0 |
+| areaKey | 3,161 plots | 25,288 | 0, 0 |
+| dlusSetbacks | 3,182 rows | 22,274 | 0, 0 |
+| sales | 2,591 plots | 5,182 | 0, 0 |
+
+The 30 inputs of the run equal by SHA-256 before and after, the worker answer listing each file equal before and after, 0 date and 0 duration cells in the three sheets read.
+
+- Second method (RAN, p4c_parity_second.ps1 and .txt), PowerShell 7 alone, never parity.py: per step one key set on the three files, and every written field of 20 keys at seed 14 and 20 at seed 7 equal on Python, net48 and net8.0, 0 differ on every step.
+- Load check (RAN, p4c_load_check.txt): a net48 host holding the System.Memory and the other assemblies of Revit 2024 and the DocumentFormat.OpenXml 2.12.3 of Dynamo, no redirect, loaded a library of DocumentFormat.OpenXml 3.5.1 by LoadFrom and wrote and read an xlsx, 3.5.1.0 beside 2.12.3.0. docs/licences.md holds DocumentFormat.OpenXml 3.5.1, its Framework 3.5.1 and System.IO.Packaging 8.0.1 of the net8.0 leg, MIT by the nuspec of each in the cache (READ).
+
+### The read of button 2, its time and its memory (R347)
+
+- A whole read in the worker, the three drawings, the six road surfaces and the two workbooks, no step, three runs per runtime (RAN, p4c_button2_time.txt at adf77a6): net48 20.2, 21.2 and 21.0 s, peak private 3,069, 3,595 and 3,575 MiB, net8.0 16.9, 16.8 and 17.0 s, peak 3,891, 3,843 and 3,578 MiB. addin.workerTimeLimitS.read is 300 s, about 14 times the longest, 600 s before (CHOSEN).
+- The peak said plainly: R347 holds the free memory against the peak of each large input alone, the Road Layout 2,612 MiB plus the floor of 2.0 GiB, 4,660 MiB, while a whole read peaks 457 to 983 MiB higher on net48 and 966 to 1,279 MiB on net8.0, so a read started with 4,660 MiB free could end near 1 GiB under the floor. Each run here started with 5,442 to 5,571 MiB free and none went under 1,964 MiB free after. A first try of the parity at 3.29 GiB free would have been refused with exit 3, the build servers of the session were stopped first. Q083 asks.
+
+### Not done in this PR
+
+- The location plan, the plot table and the rest of locationPlan (4d). The read writes no triangles of the road surfaces, a build of 4f reads them again or 4d writes them with the plot table. The read of a road surface takes the first surface of each file, as plan_from_book.load_roads does. CLAUDE.md is not changed, the lines it should gain are in the report of the PR.
+- Kept as known limits, CHOSEN: a P or F of NaN or infinity is a bad point in C# where Python float() keeps it, a duration cell keeps its number in C# where openpyxl gives a timedelta, a Unicode digit of a plot text is a digit by char.IsDigit, none of them in the files read (counts above).
+
+### Questions
+
+- Q083 new: the memory of a whole read of button 2. The same text in steps/PROGRESS.md and the top entry of steps/log.md, the full text in steps/questions-closed.md.
+
+Gate: at the head of the PR, in the PR body and round_addin\logs\p4c_gate_*.txt.
