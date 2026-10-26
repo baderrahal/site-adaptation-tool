@@ -51,7 +51,7 @@ namespace SiteAdaptation.Tests
             return File.ReadAllText(Path.Combine(new[] { folder }.Concat(parts).ToArray()));
         }
 
-        [Fact]
+        [WindowsFact]
         public void R234_an_image_job_may_load_its_links_from_a_link_folder_that_exists()
         {
             GuardResult result = Check(Image(job => { job["loadLinks"] = true; job["linkFolder"] = Links; }));
@@ -85,7 +85,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("TransmissionData.WriteTransmissionData(path, data)", site);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R231_one_run_per_code_places_the_plots_of_that_prototype_file_only_and_a_floors_job_takes_a_plot_list()
         {
             string script = RepoText("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");

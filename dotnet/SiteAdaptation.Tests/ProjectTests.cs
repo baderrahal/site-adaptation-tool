@@ -32,6 +32,16 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R346_a_windows_only_test_runs_on_windows_and_is_skipped_elsewhere_with_its_reason()
+        {
+            bool windows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+            Assert.Equal(windows ? null : WindowsOnly.Reason, WindowsOnly.SkipOffWindows());
+            Assert.Equal(windows ? null : WindowsOnly.Reason, new WindowsFactAttribute().Skip);
+            Assert.Equal(windows ? null : WindowsOnly.Reason, new WindowsTheoryAttribute().Skip);
+            Assert.Contains("R346", WindowsOnly.Reason);
+        }
+
+        [Fact]
         public void R346_each_target_of_the_test_project_runs_on_its_own_runtime()
         {
             string runtime = RuntimeInformation.FrameworkDescription;

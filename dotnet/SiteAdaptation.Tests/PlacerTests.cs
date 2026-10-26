@@ -438,7 +438,7 @@ namespace SiteAdaptation.Tests
             Assert.Single(report.Placed.Select(placed => target.TypeOf[placed.InstanceId.Value]).Where(key => key != "existing").Distinct());
         }
 
-        [Fact]
+        [WindowsFact]
         public void R84_plots_that_lack_a_link_value_or_whose_insert_z_is_not_the_ffl_or_whose_file_is_missing_are_skipped()
         {
             PlanPlot noRotation = Plot("101", 1003, 2004, 10);

@@ -254,7 +254,7 @@ namespace SiteAdaptation.Tests
             return TestHostGuard.Check(text, Token, Now, exists ?? (path => path == Source), folder ?? (path => true));
         }
 
-        [Fact]
+        [WindowsFact]
         public void R109_an_upgrade_job_with_a_source_and_a_new_target_of_the_same_name_is_accepted()
         {
             GuardResult result = CheckUpgrade(UpgradeJob());
@@ -264,7 +264,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(Target, result.Job.Target);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R109_a_target_that_exists_is_in_the_source_folder_or_has_another_name_is_refused()
         {
             Assert.Contains("never overwritten", CheckUpgrade(UpgradeJob(), exists: path => true).Reason);
@@ -274,7 +274,7 @@ namespace SiteAdaptation.Tests
             Assert.False(CheckUpgrade(UpgradeJob(job => job["target"] = @"C:\Models\Prototypes_2024\..\Prototypes\RRE-WP-NSP-KEO-ARC-C10-ZZ-MOD-1500.rvt")).Act);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R109_a_missing_source_or_target_folder_and_a_source_of_another_file_are_refused()
         {
             Assert.False(CheckUpgrade(UpgradeJob(), exists: path => false).Act);
@@ -282,7 +282,7 @@ namespace SiteAdaptation.Tests
             Assert.False(CheckUpgrade(UpgradeJob(job => job["source"] = @"C:\Models\Prototypes\RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3100.rvt")).Act);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R109_an_upgrade_job_names_no_model_or_plan_and_a_place_job_no_source_or_target()
         {
             Assert.False(CheckUpgrade(UpgradeJob(job => job["model"] = Model)).Act);
@@ -313,7 +313,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("FileIdentity.CheckTargetFolder(Path.GetDirectoryName(guard.Job.Target))", session);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R109_a_target_folder_under_a_junction_is_refused_and_a_plain_one_passes()
         {
             string folder = Path.Combine(Path.GetTempPath(), "testhost-" + Guid.NewGuid().ToString("N"));
@@ -352,7 +352,7 @@ namespace SiteAdaptation.Tests
             Assert.True(TestHostGuard.ShouldWake(Token, job, true));
         }
 
-        [Fact]
+        [WindowsFact]
         public void R110_each_window_has_its_own_job_file_by_code_and_kind_in_the_site_adaptation_folder()
         {
             Assert.Equal(@"C:\Docs\SiteAdaptation\testhost_job_C10.json", TestHostGuard.JobPath(@"C:\Docs", "C10", false));
@@ -411,7 +411,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("new PropertyCondition(AutomationElement.ProcessIdProperty, options.Pid)", program);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R110_a_job_must_sit_in_the_file_of_its_own_code_and_kind()
         {
             var place = new TestHostJob { Code = "C10" };
@@ -436,7 +436,7 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain("testhost_job.json", session);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R103_a_good_job_is_accepted_with_its_values()
         {
             GuardResult result = Check(Job());
@@ -644,7 +644,7 @@ namespace SiteAdaptation.Tests
             Assert.False(Check(Job(job => job["plan"] = model.Replace(".rvt", ".json"))).Act);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R103_a_job_of_the_wrong_types_is_refused_and_the_check_never_throws()
         {
             Assert.False(Check(Job(job => job["code"] = 5)).Act);
@@ -658,7 +658,7 @@ namespace SiteAdaptation.Tests
         [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
         private static extern bool CreateHardLink(string link, string existing, IntPtr security);
 
-        [Fact]
+        [WindowsFact]
         public void R103_a_copy_must_be_a_file_of_its_own_and_not_a_hard_link_or_the_original()
         {
             string folder = Path.Combine(Path.GetTempPath(), "testhost-" + Guid.NewGuid().ToString("N"));
@@ -864,7 +864,7 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain("Unload(null)", steps);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R104_the_outputs_are_testhost_files_and_never_prototypes_json()
         {
             string path = TestHostGuard.OutputPath(@"C:\Docs", "C10", "prototypes");
