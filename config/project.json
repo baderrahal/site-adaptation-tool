@@ -570,13 +570,21 @@
             "levelNames": {"kind": "noGeometry"},
             "levelElevationsM": {"kind": "levels", "decimals": 3},
             "levelProjectElevationsM": {"kind": "levels", "decimals": 3},
-            "levelBase": {"kind": "noGeometry"}
+            "levelBase": {"kind": "noGeometry"},
+            "activeSite": {"kind": "noGeometry"},
+            "sites": {"kind": "noGeometry"},
+            "heldAgainst": {"kind": "noGeometry"}
         },
         "checkPoints": {
+            "key": {"kind": "noGeometry"},
+            "plot": {"kind": "noGeometry"},
+            "face": {"kind": "noGeometry"},
             "sharedM": {"kind": "points", "decimals": 3},
             "internalM": {"kind": "points", "decimals": 3},
             "keyInternalM": {"kind": "points", "decimals": 3},
+            "keySharedM": {"kind": "points", "decimals": 3},
             "gapMm": {"kind": "points", "decimals": 2},
+            "revitGapMm": {"kind": "points", "decimals": 2},
             "pass": {"kind": "noGeometry"}
         }
       }

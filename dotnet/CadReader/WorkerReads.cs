@@ -134,9 +134,10 @@ namespace CadReader
         }
 
         // R353. The command position of button 1: the project position file from the read of the reference key, refused when it differs
-        // from keyRules.site of the level profile, written to the output folder under the file name of addin.position.file, and when the
-        // request names the baseplan and the location plan the check points of button 1, the control points of the sheet, plots min and
-        // plots max of the face centroids, the survey point and the project base point, each by the file and by the survey pair of the read
+        // from keyRules.site of the level profile or when the reference key differs from another key of its group, keyRead:<key> each, as
+        // R331 holds a read, written to the output folder under the file name of addin.position.file, and when the request names the
+        // baseplan the check points of button 1, the corners of the Generic floors of the extreme plots of each key of keyPoints:<key> at
+        // full precision held against the vertices of the baseplan face of the plot through the position
         private static void Position(WorkerContext run)
         {
             WorkerRequest request = run.Request;
@@ -148,22 +149,45 @@ namespace CadReader
             {
                 throw run.Refusal("the position file is written from the read of a key and held against keyRules.site, the request needs the inputs keyRead and rules (R353)");
             }
-            bool withBaseplan = request.Inputs.Any(input => input.Role == "baseplan"), withPlan = request.Inputs.Any(input => input.Role == LocationPlan.PlotNumbersRole);
-            if (withBaseplan != withPlan)
+            string readPrefix = ProjectPositionFile.KeyReadRole + ":", pointsPrefix = ProjectPositionFile.KeyPointsRole + ":";
+            List<string> pointKeys = request.Inputs.Where(input => input.Role != null && input.Role.StartsWith(pointsPrefix, StringComparison.Ordinal)).Select(input => input.Role.Substring(pointsPrefix.Length)).ToList();
+            bool withBaseplan = request.Inputs.Any(input => input.Role == "baseplan");
+            if (withBaseplan != (pointKeys.Count > 0))
             {
-                throw run.Refusal("the check points need the baseplan and the location plan, the inputs baseplan and plotNumbers, the request names one of them (R353)");
+                throw run.Refusal("the check points hold the baseplan against the key points of the keys, the inputs baseplan and keyPoints:<key>, the request names one of them (R353)");
             }
             PositionSettings settings;
-            JObject document;
             ProjectPositionFile file;
-            List<string> differ;
+            List<string> differ, set;
+            JObject config;
             try
             {
-                settings = PositionSettings.From((JObject)Parse(WorkFiles.ReadText(run.Input("config"))));
+                config = (JObject)Parse(WorkFiles.ReadText(run.Input("config")));
+                settings = PositionSettings.From(config);
                 JObject siteRules = ProjectPositionFile.SiteRules((JObject)Parse(WorkFiles.ReadText(run.Input(ProjectPositionFile.RulesRole))), request.LevelProfile);
-                document = ProjectPositionFile.DocumentOf((JObject)Parse(WorkFiles.ReadText(run.Input(ProjectPositionFile.KeyReadRole))));
+                JObject document = ProjectPositionFile.DocumentOf((JObject)Parse(WorkFiles.ReadText(run.Input(ProjectPositionFile.KeyReadRole))));
                 file = ProjectPositionFile.From(document, settings.Key);
                 differ = ProjectPositionFile.AgainstRules(file, siteRules);
+                List<string> stray = request.Inputs.Select(input => input.Role).Where(role => role != null && role.StartsWith(readPrefix, StringComparison.Ordinal))
+                    .Select(role => role.Substring(readPrefix.Length)).Where(key => !settings.Group.Contains(key) || key == settings.Key).ToList();
+                stray.AddRange(pointKeys.Where(key => !settings.Group.Contains(key)));
+                if (stray.Count > 0)
+                {
+                    throw new InvalidDataException("the key reads or key points " + string.Join(", ", stray) + " are of no key of the group " + string.Join(", ", settings.Group) + " (R353)");
+                }
+                if (differ.Count == 0)
+                {
+                    var others = new Dictionary<string, JObject>();
+                    foreach (string key in settings.Group.Where(key => key != settings.Key && request.Inputs.Any(input => input.Role == readPrefix + key)))
+                    {
+                        others[key] = ProjectPositionFile.DocumentOf((JObject)Parse(WorkFiles.ReadText(run.Input(readPrefix + key))));
+                    }
+                    set = ProjectPositionFile.SetDiffers(document, others, settings.Key, settings.Group);
+                }
+                else
+                {
+                    set = new List<string>();
+                }
             }
             catch (InvalidDataException refused)
             {
@@ -173,7 +197,13 @@ namespace CadReader
             {
                 throw run.Refusal("the key read differs from keyRules.site of the level profile: " + string.Join(", and ", differ) + " (R353)");
             }
-            var made = new Dictionary<string, Dictionary<string, Dictionary<string, object>>> { [ProjectPositionFile.PositionStep] = file.PositionStepItems() };
+            if (set.Count > 0)
+            {
+                throw run.Refusal("the reference key " + settings.Key + " differs from the keys of its group: " + string.Join(", and ", set) + " (R353)");
+            }
+            List<string> held = settings.Group.Where(key => key != settings.Key).ToList();
+            run.Counts["keys held against the reference"] = held.Count;
+            var made = new Dictionary<string, Dictionary<string, Dictionary<string, object>>> { [ProjectPositionFile.PositionStep] = file.PositionStepItems(held) };
             if (withBaseplan)
             {
                 if (request.Inputs.All(input => input.Role != "cadLayers"))
@@ -181,14 +211,18 @@ namespace CadReader
                     throw run.Refusal("a read of a drawing needs the input cadLayers, the keep and drop list of the layers (config/cad_layers.json)");
                 }
                 JObject baseplan = Drawing(run, "baseplan", LayerConfig.Load(run.Input("cadLayers")), ReadSettings.Load(run.Input("config")));
-                AddinConfig config = AddinConfig.Load(run.Input("config"));
+                AddinConfig addin = AddinConfig.Load(run.Input("config"));
                 try
                 {
-                    Dictionary<string, PlanFace> faces = LocationPlan.Faces((JArray)baseplan["plots"], config.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)"));
-                    List<double[]> centroids = faces.Values.OrderBy(face => long.Parse(face.Label, System.Globalization.CultureInfo.InvariantCulture)).Select(face => new[] { face.CentroidX, face.CentroidY }).ToList();
-                    PdfPage.Content page = PdfPage.Read(run.Input(LocationPlan.PlotNumbersRole));
-                    List<double[]> controls = LocationPlan.ControlTexts(LocationPlan.Words(page.Chars)).Select(text => new[] { text.East, text.North }).ToList();
-                    made[ProjectPositionFile.CheckPointsStep] = ProjectPositionFile.CheckPoints(file, controls, centroids, document, settings.CheckPointLimitMm, settings.GapDecimals);
+                    Dictionary<string, PlanFace> faces = LocationPlan.Faces((JArray)baseplan["plots"], addin.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)"));
+                    var points = new List<KeyValuePair<string, JObject>>();
+                    var types = new Dictionary<string, List<string>>();
+                    foreach (string key in settings.Group.Where(pointKeys.Contains))
+                    {
+                        points.Add(new KeyValuePair<string, JObject>(key, KeyPointsFile.PointsOf(WorkFiles.ReadText(run.Input(pointsPrefix + key)))));
+                        types[key] = ProjectPositionFile.GenericTypes(config, key);
+                    }
+                    made[ProjectPositionFile.CheckPointsStep] = ProjectPositionFile.CheckPoints(file, points, faces, types, settings.CheckPointLimitMm, settings.GapDecimals);
                 }
                 catch (InvalidDataException refused)
                 {
@@ -197,15 +231,17 @@ namespace CadReader
                 Dictionary<string, Dictionary<string, object>> rows = made[ProjectPositionFile.CheckPointsStep];
                 run.Counts["check points"] = rows.Count;
                 run.Counts["check points that pass"] = rows.Values.Count(row => true.Equals(row["pass"]));
+                run.Counts["check points of no face"] = rows.Values.Count(row => row["face"] == null);
+                Func<object, int, JToken> pair = (value, decimals) => value == null ? JValue.CreateNull() : new JArray(((double[])value).Select(item => Rounding.Fixed(item, decimals)));
+                Func<object, JToken> gap = value => value == null ? JValue.CreateNull() : new JValue(Rounding.Fixed((double)value, settings.GapDecimals));
                 run.WriteJson(request.OutputFolder, "checkPoints.json", new JObject
                 {
                     ["limitMm"] = settings.CheckPointLimitMm,
                     ["points"] = new JArray(rows.Select(row => new JObject
                     {
-                        ["name"] = row.Key, ["sharedM"] = new JArray(((double[])row.Value["sharedM"]).Select(value => Rounding.Fixed(value, 3))),
-                        ["internalM"] = new JArray(((double[])row.Value["internalM"]).Select(value => Rounding.Fixed(value, 3))),
-                        ["keyInternalM"] = new JArray(((double[])row.Value["keyInternalM"]).Select(value => Rounding.Fixed(value, 3))),
-                        ["gapMm"] = Rounding.Fixed((double)row.Value["gapMm"], settings.GapDecimals), ["pass"] = (bool)row.Value["pass"],
+                        ["name"] = row.Key, ["key"] = (string)row.Value["key"], ["plot"] = (string)row.Value["plot"], ["face"] = (string)row.Value["face"],
+                        ["sharedM"] = pair(row.Value["sharedM"], 3), ["internalM"] = pair(row.Value["internalM"], 3), ["keyInternalM"] = pair(row.Value["keyInternalM"], 3),
+                        ["keySharedM"] = pair(row.Value["keySharedM"], 3), ["gapMm"] = gap(row.Value["gapMm"]), ["revitGapMm"] = gap(row.Value["revitGapMm"]), ["pass"] = (bool)row.Value["pass"],
                     })),
                 });
             }

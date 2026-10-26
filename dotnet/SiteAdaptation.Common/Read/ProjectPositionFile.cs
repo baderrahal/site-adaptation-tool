@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
@@ -7,14 +8,15 @@ using Newtonsoft.Json.Linq;
 namespace SiteAdaptation.Common
 {
     // R353. addin.position of config/project.json: the position file button 1 reads, the pass limit of its check points in mm, the
-    // decimals their gap is shown and judged at, and the key whose read the file is written from, majority.siteReference of the group
-    // of majority.check.group, as python/position_file.settings_of and key_of take them
+    // decimals their gap is shown and judged at, the key whose read the file is written from, majority.siteReference of the group of
+    // majority.check.group, and the keys of that group in majority.groups, as python/position_file.settings_of, key_of and group_of take them
     public sealed class PositionSettings
     {
         public string File { get; private set; }
         public double CheckPointLimitMm { get; private set; }
         public int GapDecimals { get; private set; }
         public string Key { get; private set; }
+        public List<string> Group { get; private set; }
 
         public static PositionSettings From(JObject config)
         {
@@ -41,7 +43,12 @@ namespace SiteAdaptation.Common
             {
                 throw new InvalidDataException("majority.siteReference names no reference key for the group " + (group ?? "null") + " of majority.check.group (R353)");
             }
-            return new PositionSettings { File = file, CheckPointLimitMm = limitMm, GapDecimals = (int)decimals.Value<long>(), Key = (string)key };
+            JArray keys = (majority["groups"] as JObject)?[group] as JArray;
+            if (keys == null || keys.Count == 0 || keys.All(item => (string)item != (string)key))
+            {
+                throw new InvalidDataException("majority.groups names no keys of the group " + group + " with its reference key (R353)");
+            }
+            return new PositionSettings { File = file, CheckPointLimitMm = limitMm, GapDecimals = (int)decimals.Value<long>(), Key = (string)key, Group = keys.Select(item => (string)item).ToList() };
         }
     }
 
@@ -54,8 +61,10 @@ namespace SiteAdaptation.Common
 
     // R353. The project position file of button 1 from the read of an answer key (R311, R331), python/position_file.py step for step:
     // the project position of the internal origin in shared coordinates with its angle, the survey point and the project base point in
-    // internal and shared coordinates, the levels on their one Elevation Base and the units, held against keyRules.site, and the check
-    // points of button 1, each shared point taken to its internal point by SiteCoordinates of R211 and by the survey point pair of the key read
+    // internal and shared coordinates, the levels on their one Elevation Base, the units, the length accuracy and the active site with the
+    // sites, held against every value keyRules.site gives, the reference key held against every other key of its group as R331 holds a
+    // read, and the check points of button 1, the corners of the Generic floors of the extreme plots of each key read at full precision
+    // held against the vertices of the baseplan face of the plot through the position
     public sealed class ProjectPositionFile
     {
         public const string Format = "site-adaptation-position";
@@ -63,12 +72,15 @@ namespace SiteAdaptation.Common
         public const string PositionStep = "position";
         public const string CheckPointsStep = "checkPoints";
         public const string KeyReadRole = "keyRead";
+        public const string KeyPointsRole = "keyPoints";
         public const string RulesRole = "rules";
-        public static readonly string[] PositionRoles = { KeyReadRole, RulesRole };
-        public static readonly string[] CheckPointRoles = { KeyReadRole, RulesRole, "baseplan", LocationPlan.PlotNumbersRole };
+        public static readonly string[] PositionRoles = { KeyReadRole, RulesRole, KeyReadRole + ":*" };
+        public static readonly string[] CheckPointRoles = { KeyReadRole, RulesRole, "baseplan", KeyPointsRole + ":*" };
         // A level step of the file is the one of the rules within half a mm, the angle within a millionth of a degree, as R331 holds a read
         private const double SameMm = 0.5;
         private const double SameDeg = 1e-6;
+        private static readonly string[] UnitFields = { "system", "length", "lengthSystem" };
+        private static readonly string[] Points = { "surveyPoint.position", "surveyPoint.sharedPosition", "basePoint.position", "basePoint.sharedPosition" };
 
         public string Key { get; private set; }
         public string Model { get; private set; }
@@ -81,6 +93,10 @@ namespace SiteAdaptation.Common
         public List<PositionLevel> Levels { get; private set; }
         public string LevelBase { get; private set; }
         public Dictionary<string, string> Units { get; private set; }
+        public double? LengthAccuracy { get; private set; }
+        public string ActiveSite { get; private set; }
+        public JToken Sites { get; private set; }
+        public string PlaceName { get; private set; }
 
         private static double Finite(JToken value, string what)
         {
@@ -121,6 +137,11 @@ namespace SiteAdaptation.Common
             return documents[0];
         }
 
+        private static string Text(JToken value)
+        {
+            return value == null ? "None" : value.Type == JTokenType.String ? (string)value : value.ToString(Newtonsoft.Json.Formatting.None);
+        }
+
         public static ProjectPositionFile From(JObject document, string key)
         {
             JObject site = document["site"] as JObject ?? throw new InvalidDataException("the key read holds no site facts, a read of R311 is needed (R353)");
@@ -145,6 +166,7 @@ namespace SiteAdaptation.Common
             JObject survey = document["surveyPoint"] as JObject ?? throw new InvalidDataException("the key read holds no surveyPoint (R353)");
             JObject basePoint = document["basePoint"] as JObject ?? throw new InvalidDataException("the key read holds no basePoint (R353)");
             JObject units = site["units"] as JObject;
+            JToken accuracy = units?["lengthAccuracy"];
             return new ProjectPositionFile
             {
                 Key = key,
@@ -160,25 +182,45 @@ namespace SiteAdaptation.Common
                 BaseShared = FinitePoint(basePoint["sharedPosition"], "basePoint.sharedPosition"),
                 Levels = levels.Select(level => new PositionLevel { Name = (string)level["name"], ElevationM = Finite(level["elevation"], "elevation of " + (string)level["name"]), ProjectElevationM = level["projectElevation"].Value<double>() }).ToList(),
                 LevelBase = (string)bases[0],
-                Units = new[] { "system", "length", "lengthSystem" }.ToDictionary(name => name, name => units?[name]?.Type == JTokenType.String ? (string)units[name] : null),
+                Units = UnitFields.ToDictionary(name => name, name => units?[name]?.Type == JTokenType.String ? (string)units[name] : null),
+                LengthAccuracy = accuracy != null && (accuracy.Type == JTokenType.Float || accuracy.Type == JTokenType.Integer) ? accuracy.Value<double>() : (double?)null,
+                ActiveSite = site["activeSite"]?.Type == JTokenType.String ? (string)site["activeSite"] : null,
+                Sites = site["sites"]?.DeepClone() ?? JValue.CreateNull(),
+                PlaceName = site["placeName"]?.Type == JTokenType.String ? (string)site["placeName"] : null,
             };
         }
 
-        // What of the file differs from keyRules.site: the angle, the level names in order, the step of each level over the lowest
-        // within half a mm and the level base, empty when none does
+        // What of the file differs from keyRules.site, every value it gives: oneSet, the angle, the active site, the sites, the level names
+        // in order, the step of each level over the lowest within half a mm, the units, the level base and the length accuracy of the key of
+        // the file, empty when none does
         public static List<string> AgainstRules(ProjectPositionFile file, JObject siteRules)
         {
             var found = new List<string>();
+            JToken oneSet = siteRules?["oneSet"];
+            if (oneSet == null || oneSet.Type != JTokenType.Boolean || !(bool)oneSet)
+            {
+                found.Add("keyRules.site.oneSet " + Text(oneSet) + ", the keys hold no one set");
+            }
             JToken angle = siteRules?["angleToTrueNorthDeg"];
             if (angle == null || angle.Type == JTokenType.Null || Math.Abs(file.Position.AngleDeg.Value - angle.Value<double>()) > SameDeg)
             {
-                found.Add("angle " + ExactDouble.Text(file.Position.AngleDeg.Value) + ", keyRules.site.angleToTrueNorthDeg " + (angle == null ? "None" : angle.ToString(Newtonsoft.Json.Formatting.None)));
+                found.Add("angle " + ExactDouble.Text(file.Position.AngleDeg.Value) + ", keyRules.site.angleToTrueNorthDeg " + Text(angle));
+            }
+            JToken activeSite = siteRules?["activeSite"];
+            if (activeSite == null || activeSite.Type != JTokenType.String || (string)activeSite != file.ActiveSite)
+            {
+                found.Add("activeSite " + (file.ActiveSite ?? "None") + ", keyRules.site.activeSite " + Text(activeSite));
+            }
+            JToken sites = siteRules?["sites"];
+            if (sites == null || !JToken.DeepEquals(sites, file.Sites))
+            {
+                found.Add("sites " + Text(file.Sites) + ", keyRules.site.sites " + Text(sites));
             }
             List<string> names = file.Levels.Select(level => level.Name).ToList();
             JArray ruleNames = siteRules?["levels"] as JArray;
             if (ruleNames == null || !ruleNames.Select(item => (string)item).SequenceEqual(names))
             {
-                found.Add("levels " + string.Join(", ", names) + ", keyRules.site.levels " + (ruleNames == null ? "None" : ruleNames.ToString(Newtonsoft.Json.Formatting.None)));
+                found.Add("levels " + string.Join(", ", names) + ", keyRules.site.levels " + Text(ruleNames));
             }
             double lowest = file.Levels[0].ElevationM;
             foreach (PositionLevel level in file.Levels.Skip(1))
@@ -186,71 +228,289 @@ namespace SiteAdaptation.Common
                 JToken rule = (siteRules?["levelStepsM"] as JObject)?[level.Name];
                 if (rule == null || rule.Type == JTokenType.Null || Math.Abs(level.ElevationM - lowest - rule.Value<double>()) * 1000.0 > SameMm)
                 {
-                    found.Add("the step of " + level.Name + ", keyRules.site.levelStepsM " + (rule == null ? "None" : rule.ToString(Newtonsoft.Json.Formatting.None)));
+                    found.Add("the step of " + level.Name + ", keyRules.site.levelStepsM " + Text(rule));
                 }
+            }
+            JObject ruleUnits = siteRules?["units"] as JObject;
+            if (ruleUnits == null || UnitFields.Any(name => (ruleUnits[name]?.Type == JTokenType.String ? (string)ruleUnits[name] : null) != file.Units[name]))
+            {
+                found.Add("units " + string.Join(", ", UnitFields.Select(name => name + " " + (file.Units[name] ?? "None"))) + ", keyRules.site.units " + Text(ruleUnits));
             }
             JToken levelBase = siteRules?["levelBase"];
             if (levelBase == null || levelBase.Type != JTokenType.String || (string)levelBase != file.LevelBase)
             {
-                found.Add("level base " + file.LevelBase + ", keyRules.site.levelBase " + (levelBase == null ? "None" : levelBase.ToString(Newtonsoft.Json.Formatting.None)));
+                found.Add("level base " + file.LevelBase + ", keyRules.site.levelBase " + Text(levelBase));
+            }
+            JToken accuracy = (siteRules?["lengthAccuracy"] as JObject)?[file.Key];
+            if (accuracy == null || (accuracy.Type != JTokenType.Float && accuracy.Type != JTokenType.Integer) || !file.LengthAccuracy.HasValue || accuracy.Value<double>() != file.LengthAccuracy.Value)
+            {
+                found.Add("lengthAccuracy " + (file.LengthAccuracy.HasValue ? ExactDouble.Text(file.LengthAccuracy.Value) : "None") + " of " + file.Key + ", keyRules.site.lengthAccuracy " + Text(accuracy));
             }
             return found;
         }
 
-        // The second route: the internal point of a shared point by the survey point pair of the key read and its angle to true north,
-        // never by its project position
-        public static double[] BySurveyPair(JObject document, double[] shared)
+        private static double[] PartPoint(JObject document, string path)
         {
-            double[] surveyInternal = FinitePoint(document["surveyPoint"]?["position"], "surveyPoint.position");
-            double[] surveyShared = FinitePoint(document["surveyPoint"]?["sharedPosition"], "surveyPoint.sharedPosition");
-            double angle = Finite(document["angleToTrueNorthDeg"], "angleToTrueNorthDeg") * Math.PI / 180.0;
-            double east = shared[0] - surveyShared[0], north = shared[1] - surveyShared[1];
-            return new[]
-            {
-                Math.Cos(angle) * east + Math.Sin(angle) * north + surveyInternal[0],
-                -Math.Sin(angle) * east + Math.Cos(angle) * north + surveyInternal[1],
-                shared[2] - surveyShared[2] + surveyInternal[2],
-            };
+            string[] parts = path.Split('.');
+            JArray items = (document[parts[0]] as JObject)?[parts[1]] as JArray;
+            return items == null ? null : items.Select(item => item.Value<double>()).ToArray();
         }
 
-        // The shared points of the check points in their order: control 1 to 3 at elevation 0, plots min and plots max of the face
-        // centroids at elevation 0, the survey point and the project base point of the file
-        public static List<KeyValuePair<string, double[]>> CadPoints(IReadOnlyList<double[]> controls, IReadOnlyList<double[]> centroids, ProjectPositionFile file)
+        // cad_links.angle_gap: the gap of two angles in degrees, the turn closed
+        private static double AngleGap(double first, double second)
         {
-            if (centroids.Count == 0)
-            {
-                throw new InvalidDataException("the baseplan holds no face, the check points take plots min and plots max from its faces (R353)");
-            }
-            var points = controls.Select((point, k) => new KeyValuePair<string, double[]>("control " + (k + 1), new[] { point[0], point[1], 0.0 })).ToList();
-            points.Add(new KeyValuePair<string, double[]>("plots min", new[] { centroids.Min(point => point[0]), centroids.Min(point => point[1]), 0.0 }));
-            points.Add(new KeyValuePair<string, double[]>("plots max", new[] { centroids.Max(point => point[0]), centroids.Max(point => point[1]), 0.0 }));
-            points.Add(new KeyValuePair<string, double[]>("survey point", (double[])file.SurveyShared.Clone()));
-            points.Add(new KeyValuePair<string, double[]>("project base point", (double[])file.BaseShared.Clone()));
-            return points;
+            double gap = PyMod(Math.Abs(first - second), 360.0);
+            return Math.Min(gap, 360.0 - gap);
         }
 
-        // Each check point by name: its shared point, its internal point by the file, by the survey pair of the key read when a read is
-        // given, the gap of the two in mm and whether its gap at decimals by R385 is at most limitMm
-        public static Dictionary<string, Dictionary<string, object>> CheckPoints(ProjectPositionFile file, IReadOnlyList<double[]> controls, IReadOnlyList<double[]> centroids, JObject document,
-            double limitMm, int decimals)
+        private static double PyMod(double value, double modulus)
         {
-            var rows = new Dictionary<string, Dictionary<string, object>>();
-            foreach (KeyValuePair<string, double[]> point in CadPoints(controls, centroids, file))
+            double rest = value % modulus;
+            return rest < 0 ? rest + modulus : rest;
+        }
+
+        private static double Distance(double[] a, double[] b)
+        {
+            return Math.Sqrt(Enumerable.Range(0, Math.Min(a.Length, b.Length)).Sum(index => (a[index] - b[index]) * (a[index] - b[index])));
+        }
+
+        // What of one key read differs from the read of the reference key, as key_rules.site_facts holds it (R331), by field: the gap in mm of
+        // a point, the position or a level, of the angle in degrees, or the value of a name, a unit or the level base
+        private static SortedDictionary<string, string> Differ(JObject document, JObject reference)
+        {
+            var differ = new SortedDictionary<string, string>(StringComparer.Ordinal);
+            foreach (string path in Points)
             {
-                double[] internalPoint = SiteCoordinates.ToInternal(file.Position, point.Value);
-                double[] key = document == null ? null : BySurveyPair(document, point.Value);
-                double? gap = key == null ? (double?)null : SiteCoordinates.Gap(internalPoint, key) * 1000.0;
-                rows[point.Key] = new Dictionary<string, object>
+                double[] mine = PartPoint(document, path), theirs = PartPoint(reference, path);
+                if (mine == null || theirs == null)
                 {
-                    ["sharedM"] = point.Value, ["internalM"] = internalPoint, ["keyInternalM"] = key, ["gapMm"] = gap,
-                    ["pass"] = gap == null ? (object)null : Rounding.Fixed(gap.Value, decimals) <= limitMm,
-                };
+                    continue;
+                }
+                double gap = Distance(mine, theirs) * 1000.0;
+                if (gap > SameMm)
+                {
+                    differ[path] = SheetRows.PyRepr(Rounding.Fixed(gap, 1)) + " mm";
+                }
+            }
+            JToken angle = document["angleToTrueNorthDeg"], baseAngle = reference["angleToTrueNorthDeg"];
+            if (angle != null && angle.Type != JTokenType.Null && baseAngle != null && baseAngle.Type != JTokenType.Null)
+            {
+                double gap = AngleGap(angle.Value<double>(), baseAngle.Value<double>());
+                if (gap > SameDeg)
+                {
+                    differ["angleToTrueNorthDeg"] = SheetRows.PyRepr(Rounding.Fixed(gap, 6)) + " deg";
+                }
+            }
+            JObject site = document["site"] as JObject, baseSite = reference["site"] as JObject;
+            if (site == null || baseSite == null)
+            {
+                return differ;
+            }
+            Func<JObject, double[]> position = item => new[] { "eastWest", "northSouth", "elevation" }.Select(name => (item["projectPosition"] as JObject)?[name]?.Value<double>() ?? double.NaN).ToArray();
+            Func<JObject, double> turn = item => (item["projectPosition"] as JObject)?["angleDeg"]?.Value<double>() ?? double.NaN;
+            double positionGap = Distance(position(site), position(baseSite)) * 1000.0;
+            if (positionGap > SameMm || AngleGap(turn(site), turn(baseSite)) > SameDeg)
+            {
+                differ["projectPosition"] = SheetRows.PyRepr(Rounding.Fixed(positionGap, 1)) + " mm";
+            }
+            Func<JObject, Dictionary<string, double?>> levels = item => (item["levels"] as JArray ?? new JArray()).OfType<JObject>()
+                .GroupBy(level => (string)level["name"]).ToDictionary(group => group.Key, group => group.Last()["elevation"]?.Type == JTokenType.Float || group.Last()["elevation"]?.Type == JTokenType.Integer ? group.Last()["elevation"].Value<double>() : (double?)null);
+            Dictionary<string, double?> mineLevels = levels(site), theirLevels = levels(baseSite);
+            foreach (string name in mineLevels.Keys.Union(theirLevels.Keys).OrderBy(name => name, StringComparer.Ordinal))
+            {
+                double? mine = mineLevels.TryGetValue(name, out double? a) ? a : null, theirs = theirLevels.TryGetValue(name, out double? b) ? b : null;
+                if (mine == null || theirs == null)
+                {
+                    differ["levels." + name] = "None";
+                }
+                else if (Math.Abs(mine.Value - theirs.Value) * 1000.0 > SameMm)
+                {
+                    differ["levels." + name] = SheetRows.PyRepr(Rounding.Fixed(Math.Abs(mine.Value - theirs.Value) * 1000.0, 1)) + " mm";
+                }
+            }
+            foreach (string name in new[] { "activeSite", "sites", "placeName" })
+            {
+                if (!JToken.DeepEquals(site[name] ?? JValue.CreateNull(), baseSite[name] ?? JValue.CreateNull()))
+                {
+                    differ[name] = Text(site[name]);
+                }
+            }
+            foreach (string name in UnitFields)
+            {
+                if (!JToken.DeepEquals((site["units"] as JObject)?[name] ?? JValue.CreateNull(), (baseSite["units"] as JObject)?[name] ?? JValue.CreateNull()))
+                {
+                    differ[name] = Text((site["units"] as JObject)?[name]);
+                }
+            }
+            Func<JObject, string> levelBase = item => string.Join("|", (item["levels"] as JArray ?? new JArray()).OfType<JObject>().Where(level => level["elevationBase"] != null && level["elevationBase"].Type != JTokenType.Null)
+                .Select(level => level["elevationBase"].ToString()).Distinct().OrderBy(text => text, StringComparer.Ordinal));
+            if (levelBase(site) != levelBase(baseSite))
+            {
+                differ["levelBase"] = levelBase(site);
+            }
+            return differ;
+        }
+
+        // python/position_file.set_differs: the reference key read held against the read of every other key of its group as R331 holds a
+        // read, one line per key and field that differs, and a key of the group with no read, empty when the set is one
+        public static List<string> SetDiffers(JObject reference, IReadOnlyDictionary<string, JObject> others, string referenceKey, IReadOnlyList<string> group)
+        {
+            List<string> found = group.Where(key => key != referenceKey && !others.ContainsKey(key)).Select(key => key + " no read, every key of the group is held against the reference").ToList();
+            foreach (KeyValuePair<string, JObject> other in others.Where(item => item.Key != referenceKey).OrderBy(item => item.Key, StringComparer.Ordinal))
+            {
+                foreach (KeyValuePair<string, string> field in Differ(other.Value, reference))
+                {
+                    found.Add(other.Key + " " + field.Key + " " + field.Value);
+                }
+            }
+            return found;
+        }
+
+        // python/position_file.generic_types: the type names of the Generic floors of a key, floors.keyTypes of its code, else floors.types
+        public static List<string> GenericTypes(JObject config, string key)
+        {
+            JObject floors = config["floors"] as JObject ?? throw new InvalidDataException("config holds no floors (R112)");
+            JArray own = ((floors["keyTypes"] as JObject)?[key.ToUpperInvariant()] as JObject)?["generic"] as JArray;
+            JArray types = own ?? (floors["types"] as JObject)?["generic"] as JArray ?? throw new InvalidDataException("config holds no floors.types.generic (R112)");
+            return types.Select(item => (string)item).ToList();
+        }
+
+        // python/position_file.plot_order: a plot by its number, a plot of digits as the number it writes, every other after them as its text
+        private static IComparable[] PlotOrder(string plot)
+        {
+            bool digits = plot.Length > 0 && plot.All(letter => letter >= '0' && letter <= '9');
+            return digits ? new IComparable[] { 0, System.Numerics.BigInteger.Parse(plot, CultureInfo.InvariantCulture), "" } : new IComparable[] { 1, System.Numerics.BigInteger.Zero, plot };
+        }
+
+        private static int ComparePlots(string a, string b)
+        {
+            IComparable[] first = PlotOrder(a), second = PlotOrder(b);
+            for (int index = 0; index < first.Length; index++)
+            {
+                int order = index == 2 ? string.CompareOrdinal((string)first[index], (string)second[index]) : first[index].CompareTo(second[index]);
+                if (order != 0)
+                {
+                    return order;
+                }
+            }
+            return 0;
+        }
+
+        private static double[] Mean(JArray corners)
+        {
+            double x = 0, y = 0;
+            foreach (JToken corner in corners)
+            {
+                x += corner[0].Value<double>();
+            }
+            foreach (JToken corner in corners)
+            {
+                y += corner[1].Value<double>();
+            }
+            return new[] { x / corners.Count, y / corners.Count };
+        }
+
+        // python/position_file.chosen_floors: the Generic floors of the extreme plots of a key, the plots with one floor of the types whose
+        // corners have the least mean east, the greatest mean east, the least mean north and the greatest mean north, a tie to the lower
+        // plot, each plot once in that order
+        public static List<KeyValuePair<string, JObject>> ChosenFloors(JObject points, IReadOnlyList<string> types)
+        {
+            var byPlot = new Dictionary<string, List<JObject>>();
+            foreach (JObject floor in (points["floors"] as JArray ?? new JArray()).OfType<JObject>())
+            {
+                string plot = floor["plot"]?.Type == JTokenType.String ? (string)floor["plot"] : null;
+                if (types.Contains((string)floor["typeName"]) && !string.IsNullOrEmpty(plot) && (floor["corners"] as JArray)?.Count >= 3)
+                {
+                    if (!byPlot.ContainsKey(plot))
+                    {
+                        byPlot[plot] = new List<JObject>();
+                    }
+                    byPlot[plot].Add(floor);
+                }
+            }
+            Dictionary<string, JObject> single = byPlot.Where(item => item.Value.Count == 1).ToDictionary(item => item.Key, item => item.Value[0]);
+            if (single.Count == 0)
+            {
+                throw new InvalidDataException("the key points of " + (string)points["model"] + " hold no Generic floor of " + string.Join(", ", types) + " on a plot of one such floor, the check points need one (R353)");
+            }
+            Dictionary<string, double[]> mean = single.ToDictionary(item => item.Key, item => Mean((JArray)item.Value["corners"]));
+            var picked = new List<string>();
+            foreach (int[] pick in new[] { new[] { 0, 1 }, new[] { 0, -1 }, new[] { 1, 1 }, new[] { 1, -1 } })
+            {
+                List<string> plots = single.Keys.ToList();
+                plots.Sort((a, b) =>
+                {
+                    int order = (pick[1] * mean[a][pick[0]]).CompareTo(pick[1] * mean[b][pick[0]]);
+                    return order != 0 ? order : ComparePlots(a, b);
+                });
+                if (!picked.Contains(plots[0]))
+                {
+                    picked.Add(plots[0]);
+                }
+            }
+            return picked.Select(plot => new KeyValuePair<string, JObject>(plot, single[plot])).ToList();
+        }
+
+        private static double[] Corner(JToken value)
+        {
+            return value.Select(item => item.Value<double>()).ToArray();
+        }
+
+        // python/position_file.check_points: per key the corners of the Generic floors of its extreme plots, each with its CAD point, the
+        // nearest vertex of the baseplan face that holds the middle of its floor taken to shared coordinates by the file, the gap of that
+        // point taken to internal by the file to the corner in plan in mm, the gap to the shared corner Revit gives, and whether it passes
+        public static Dictionary<string, Dictionary<string, object>> CheckPoints(ProjectPositionFile file, IReadOnlyList<KeyValuePair<string, JObject>> pointsByKey,
+            IReadOnlyDictionary<string, PlanFace> faces, IReadOnlyDictionary<string, List<string>> typesByKey, double limitMm, int decimals)
+        {
+            var index = new FaceIndex(faces.Values);
+            var rows = new Dictionary<string, Dictionary<string, object>>();
+            foreach (KeyValuePair<string, JObject> key in pointsByKey)
+            {
+                foreach (KeyValuePair<string, JObject> chosen in ChosenFloors(key.Value, typesByKey[key.Key]))
+                {
+                    var corners = (JArray)chosen.Value["corners"];
+                    var sharedCorners = (JArray)chosen.Value["sharedCorners"];
+                    double[] centre = Mean(corners);
+                    double[] middle = SiteCoordinates.ToShared(file.Position, new[] { centre[0], centre[1], 0.0 });
+                    string face = index.FaceOf(middle[0], middle[1]);
+                    List<double[]> vertices = face == null ? new List<double[]>() : faces[face].Rings.SelectMany(ring => ring).ToList();
+                    for (int k = 0; k < corners.Count; k++)
+                    {
+                        double[] corner = Corner(corners[k]), sharedCorner = Corner(sharedCorners[k]);
+                        double[] cad = null, internalPoint = null;
+                        double? gap = null, revit = null;
+                        if (vertices.Count > 0)
+                        {
+                            double[] at = SiteCoordinates.ToShared(file.Position, corner);
+                            double best = double.PositiveInfinity;
+                            foreach (double[] vertex in vertices)
+                            {
+                                double distance = LocationPlan.Hypot(vertex[0] - at[0], vertex[1] - at[1]);
+                                if (distance < best)
+                                {
+                                    best = distance;
+                                    cad = new[] { vertex[0], vertex[1] };
+                                }
+                            }
+                            double[] taken = SiteCoordinates.ToInternal(file.Position, new[] { cad[0], cad[1], 0.0 });
+                            internalPoint = new[] { taken[0], taken[1] };
+                            gap = LocationPlan.Hypot(internalPoint[0] - corner[0], internalPoint[1] - corner[1]) * 1000.0;
+                            revit = LocationPlan.Hypot(cad[0] - sharedCorner[0], cad[1] - sharedCorner[1]) * 1000.0;
+                        }
+                        rows[key.Key + "/" + chosen.Key + "/" + k.ToString(CultureInfo.InvariantCulture)] = new Dictionary<string, object>
+                        {
+                            ["key"] = key.Key, ["plot"] = chosen.Key, ["face"] = face, ["sharedM"] = cad, ["internalM"] = internalPoint, ["keyInternalM"] = new[] { corner[0], corner[1] },
+                            ["keySharedM"] = new[] { sharedCorner[0], sharedCorner[1] }, ["gapMm"] = gap, ["revitGapMm"] = revit,
+                            ["pass"] = gap.HasValue && Rounding.Fixed(gap.Value, decimals) <= limitMm,
+                        };
+                    }
+                }
             }
             return rows;
         }
 
-        // The step position of the parity, one item
-        public Dictionary<string, Dictionary<string, object>> PositionStepItems()
+        // The step position of the parity, one item, with the keys the reference key was held against
+        public Dictionary<string, Dictionary<string, object>> PositionStepItems(IReadOnlyList<string> held)
         {
             return new Dictionary<string, Dictionary<string, object>>
             {
@@ -260,6 +520,7 @@ namespace SiteAdaptation.Common
                     ["surveyInternalM"] = SurveyInternal, ["surveySharedM"] = SurveyShared, ["baseInternalM"] = BaseInternal, ["baseSharedM"] = BaseShared,
                     ["levelNames"] = Levels.Select(level => level.Name).ToList(), ["levelElevationsM"] = Levels.Select(level => level.ElevationM).ToArray(),
                     ["levelProjectElevationsM"] = Levels.Select(level => level.ProjectElevationM).ToArray(), ["levelBase"] = LevelBase,
+                    ["activeSite"] = ActiveSite, ["sites"] = Sites.DeepClone(), ["heldAgainst"] = new JArray(held),
                 },
             };
         }
@@ -286,6 +547,8 @@ namespace SiteAdaptation.Common
                 ["levels"] = new JArray(Levels.Select(level => new JObject { ["name"] = level.Name, ["elevationM"] = Rounding.Fixed(level.ElevationM, 3), ["projectElevationM"] = Rounding.Fixed(level.ProjectElevationM, 3) })),
                 ["levelBase"] = LevelBase,
                 ["units"] = JObject.FromObject(Units),
+                ["lengthAccuracy"] = LengthAccuracy.HasValue ? new JValue(LengthAccuracy.Value) : JValue.CreateNull(),
+                ["activeSite"] = ActiveSite, ["sites"] = Sites.DeepClone(), ["placeName"] = PlaceName,
             };
         }
 

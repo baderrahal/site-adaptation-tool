@@ -52,5 +52,39 @@ namespace SiteAdaptation.Tests
             Assert.Equal("key_TEST-GC.rvt", (string)written["model"]);
             Assert.Equal(new[] { "Plot" }, written["otherBindings"].Select(item => (string)item));
         }
+
+        // R353. The key points of the step keyPoints keep every double so it reads back as the same double, where the reader writes 3
+        // decimals: the project position, the survey point, the project base point and the corners of each floor in internal and shared
+        // coordinates, the floors by element id, the plot by the number of its Plot parameter
+        [Fact]
+        public void R353_the_key_points_of_a_read_keep_every_double_as_it_reads_back_and_the_plot_of_each_floor()
+        {
+            double east = 571418.99150000005, north = 2364074.2405000001, half = 0.15000000000000002;
+            var floors = new List<KeyPointFloor>
+            {
+                new KeyPointFloor { ElementId = 9, TypeName = "yard", PlotText = "TH1-2586", Corners = new List<double[]> { new[] { -1.0, 2.0, half } }, SharedCorners = new List<double[]> { new[] { east - 1.0, north + 2.0, half } } },
+                new KeyPointFloor { ElementId = 4, TypeName = "Generic 150mm", PlotText = "DT1 - 2585", Corners = new List<double[]> { new[] { -519.87450000000001, -309.52249999999998, 0.0 } },
+                    SharedCorners = new List<double[]> { new[] { east - 519.87450000000001, north - 309.52249999999998, 0.0 } } },
+                new KeyPointFloor { ElementId = 7, TypeName = "Generic 150mm", PlotText = null, Corners = new List<double[]>(), SharedCorners = new List<double[]>() },
+            };
+            string text = KeyPointsFile.Text(KeyPointsFile.Build("key_TEST-KC.rvt", new[] { east, north, 0.0 }, 0.0, new[] { 0.0, 0.0, 179.51 }, new[] { east, north, 179.51 },
+                new[] { 0.0, 0.0, 179.51 }, new[] { east, north, 179.51 }, floors));
+            JObject read = KeyPointsFile.PointsOf(text);
+            Assert.Equal(KeyPointsFile.FormatText, (string)read["format"]);
+            Assert.Equal("m", (string)read["lengthUnit"]);
+            Assert.Equal(east, ExactDouble.Parse(ValueText(text, "eastWest")));
+            Assert.Equal(new long[] { 4, 7, 9 }, read["floors"].Select(item => (long)item["elementId"]));
+            Assert.Equal(new[] { "2585", null, "2586" }, read["floors"].Select(item => (string)item["plot"]));
+            Assert.Equal(-519.87450000000001, (double)read["floors"][0]["corners"][0][0]);
+            Assert.Contains("2364074.2405000003", text);
+            Assert.Throws<System.IO.InvalidDataException>(() => KeyPointsFile.PointsOf("{\"format\": \"another\"}"));
+        }
+
+        private static string ValueText(string text, string name)
+        {
+            int at = text.IndexOf("\"" + name + "\": ", StringComparison.Ordinal) + name.Length + 4;
+            int end = text.IndexOfAny(new[] { ',', '\r', '\n', '}' }, at);
+            return text.Substring(at, end - at);
+        }
     }
 }
