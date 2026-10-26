@@ -34,6 +34,8 @@ namespace SiteAdaptation.Common
             [LocationPlan.FitStepName] = LocationPlan.Roles,
             [LocationPlan.CheckStepName] = LocationPlan.Roles,
             [LocationPlan.FacesStepName] = LocationPlan.Roles,
+            // R352. The plot table, on the location plan, the faces, the footprint blocks and the area key of the read
+            [PlotTable.StepName] = PlotTable.Roles,
         };
 
         public static readonly Dictionary<string, string> StepCommand = Steps.Keys.ToDictionary(step => step, step => step == FaceStep.Name ? "build" : "read");

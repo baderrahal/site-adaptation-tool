@@ -69,8 +69,10 @@ namespace CadReader
             }
             List<TinSurface> surfaces = Surfaces(run, settings, steps, made);
             var sheets = new Dictionary<string, XlsxSheet.Sheet>();
-            Workbooks(run, settings, steps, made, sheets);
-            Location(run, settings, reads.TryGetValue("baseplan", out JObject baseplan) ? baseplan : null, steps, made, sheets);
+            SheetRows.AreaKey[] areaKeys = Workbooks(run, settings, steps, made, sheets);
+            JObject baseplan = reads.TryGetValue("baseplan", out JObject read) ? read : null;
+            Located located = Location(run, settings, baseplan, steps, made, sheets);
+            Table(run, located, baseplan, reads.TryGetValue("villaBlocks", out JObject footprint) ? footprint : null, areaKeys, steps, made);
             if (steps.Contains(ReadSteps.Labels))
             {
                 made[ReadSteps.Labels] = ReadSteps.LabelStep((JArray)reads["baseplan"]["plots"]);
@@ -241,13 +243,15 @@ namespace CadReader
             return sheet.Rows;
         }
 
-        private static void Workbooks(WorkerContext run, ReadSettings settings, HashSet<string> steps, Dictionary<string, Dictionary<string, Dictionary<string, object>>> made, Dictionary<string, XlsxSheet.Sheet> sheets)
+        // The area key of the DLUS and of the sales sheet when the request names both workbooks, else null
+        private static SheetRows.AreaKey[] Workbooks(WorkerContext run, ReadSettings settings, HashSet<string> steps, Dictionary<string, Dictionary<string, Dictionary<string, object>>> made, Dictionary<string, XlsxSheet.Sheet> sheets)
         {
             WorkerRequest request = run.Request;
             bool dlus = request.Inputs.Any(input => input.Role == "dlus"), sales = request.Inputs.Any(input => input.Role == "sales");
+            SheetRows.AreaKey[] areaKeys = null;
             if (!dlus && !sales)
             {
-                return;
+                return null;
             }
             Func<ReadSettings.SheetSetting, List<object[]>> rowsOf = setting => SheetOf(run, sheets, setting.Role, setting.Sheet);
             // R350. A table of no row is refused, so a step is never written empty: a sheet whose rows went missing, such as one read
@@ -267,6 +271,7 @@ namespace CadReader
                 held(dlusKey.Order.Count, areaDlus, "the area key");
                 SheetRows.AreaKey salesKey = SheetRows.ByPlot(SheetRows.Rows(areaSales.Sheet, rowsOf(areaSales), areaSales.HeaderRow, areaSales.Columns));
                 held(salesKey.Order.Count, areaSales, "the area key");
+                areaKeys = new[] { dlusKey, salesKey };
                 Dictionary<string, Dictionary<string, object>> area = ReadSteps.AreaKeyStep(dlusKey, salesKey);
                 output["areaKey"] = JObject.FromObject(area);
                 if (steps.Contains(ReadSteps.AreaKey))
@@ -297,19 +302,32 @@ namespace CadReader
                 }
             }
             run.WriteJson(request.OutputFolder, "read_workbooks.json", output);
+            return areaKeys;
+        }
+
+        // R351, R352. What the plot table takes from the location plan read: its rows, the faces of the baseplan, the official numbers of
+        // each schedule and the shifts
+        private sealed class Located
+        {
+            public LocationPlan.Result Result;
+            public Dictionary<string, PlanFace> Faces;
+            public Dictionary<string, HashSet<string>> Officials;
+            public List<KeyValuePair<string, int>> Shifts;
+            public double MinShare;
+            public double AreaTolerance;
         }
 
         // R351. The location plan of the request, the input plotNumbers, read by PdfPig and numbered by the schedule fit of R181 on the
         // faces of the baseplan read of the same request, the schedule of each neighbourhood of connect.neighbourhoods the input
         // schedule:<NBH>, the sales rows and the code table from the workbook of their setting, then checked by the control point fit of
         // R387, which numbers nothing. Written to read_locationPlan.json and to the steps of the location plan the request names
-        private static void Location(WorkerContext run, ReadSettings settings, JObject baseplan, HashSet<string> steps, Dictionary<string, Dictionary<string, Dictionary<string, object>>> made,
+        private static Located Location(WorkerContext run, ReadSettings settings, JObject baseplan, HashSet<string> steps, Dictionary<string, Dictionary<string, Dictionary<string, object>>> made,
             Dictionary<string, XlsxSheet.Sheet> sheets)
         {
             WorkerRequest request = run.Request;
             if (request.Inputs.All(input => input.Role != LocationPlan.PlotNumbersRole))
             {
-                return;
+                return null;
             }
             if (baseplan == null)
             {
@@ -414,6 +432,69 @@ namespace CadReader
             foreach (KeyValuePair<string, Func<LocationPlan.Result, Dictionary<string, Dictionary<string, object>>>> step in named.Where(item => steps.Contains(item.Key)))
             {
                 made[step.Key] = step.Value(result);
+            }
+            JToken share;
+            try
+            {
+                share = settings.Get("dataBook.wiring.minShare");
+            }
+            catch (InvalidDataException)
+            {
+                share = null;
+            }
+            return new Located
+            {
+                Result = result, Faces = faces, Officials = officials, Shifts = plan.Neighbourhoods.Select(hood => new KeyValuePair<string, int>(hood.Key, hood.Value.Shift)).ToList(),
+                MinShare = share == null || (share.Type != JTokenType.Float && share.Type != JTokenType.Integer) ? double.NaN : share.Value<double>(),
+                AreaTolerance = config.ParityTolerance("areas") ?? double.NaN,
+            };
+        }
+
+        // R352. The plot table of the request, the input border, per baseplan face inside the Phase 1 border, from the location plan, the
+        // footprint blocks and the area key of the same request, written to read_plotTable.json and to the step plotTable
+        private static void Table(WorkerContext run, Located located, JObject baseplan, JObject footprint, SheetRows.AreaKey[] areaKeys, HashSet<string> steps,
+            Dictionary<string, Dictionary<string, Dictionary<string, object>>> made)
+        {
+            WorkerRequest request = run.Request;
+            if (request.Inputs.All(input => input.Role != PlotTable.BorderRole))
+            {
+                return;
+            }
+            if (located == null || footprint == null || areaKeys == null)
+            {
+                throw run.Refusal("the plot table needs the location plan, the footprint blocks and the area key of the same request, the inputs plotNumbers, villaBlocks, dlus and sales (R352)");
+            }
+            if (double.IsNaN(located.MinShare) || double.IsInfinity(located.MinShare) || located.MinShare <= 0 || located.MinShare > 1)
+            {
+                throw run.Refusal("dataBook.wiring.minShare of config is no share above 0 and at most 1, the least share of a footprint block in a face (R352)");
+            }
+            List<double[]> border;
+            try
+            {
+                border = PlotTable.Border(CsvRows.Read(run.Input(PlotTable.BorderRole)));
+            }
+            catch (Exception refused) when (refused is InvalidDataException || refused is FormatException)
+            {
+                throw run.Refusal("the border: " + refused.Message);
+            }
+            Dictionary<string, Dictionary<string, object>> table = PlotTable.Build((JArray)baseplan["plots"], located.Faces, border, located.Officials, located.Shifts,
+                located.Result.Rows, (JArray)footprint["blocks"], located.MinShare, areaKeys[0], areaKeys[1], located.AreaTolerance);
+            run.Counts["plot table faces"] = table.Count;
+            var rows = new JArray();
+            foreach (Dictionary<string, object> row in table.Values)
+            {
+                var item = new JObject();
+                foreach (KeyValuePair<string, object> cell in row)
+                {
+                    item[cell.Key] = cell.Value is double number ? new JValue(Rounding.Fixed(number, 4)) : cell.Value is double[] pair ? new JArray(pair.Select(value => Rounding.Fixed(value, 4)))
+                        : cell.Value is JToken token ? token.DeepClone() : cell.Value == null ? JValue.CreateNull() : JToken.FromObject(cell.Value);
+                }
+                rows.Add(item);
+            }
+            run.WriteJson(request.OutputFolder, "read_plotTable.json", new JObject { ["border"] = border.Count, ["minShare"] = located.MinShare, ["plots"] = rows });
+            if (steps.Contains(PlotTable.StepName))
+            {
+                made[PlotTable.StepName] = table;
             }
         }
     }
