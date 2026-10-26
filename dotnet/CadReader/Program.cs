@@ -12,6 +12,11 @@ namespace CadReader
 
         private static int Main(string[] args)
         {
+            // R347. The worker of the add-in: CadReader.exe --request <file> runs one request and writes its answer
+            if (args.Length == 2 && args[0] == "--request")
+            {
+                return WorkerRunner.Run(args[1], WorkerCommands.Default(), WorkerMemory.FreeMiB);
+            }
             string layersPath = null;
             bool headerOnly = false;
             var positional = new List<string>();
