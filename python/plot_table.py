@@ -4,10 +4,11 @@ of the neighbourhood schedule that holds its label plus the shift (R28), the loc
 the footprint blocks that hold at least dataBook.wiring.minShare of their outline in it (everyShare), largest overlap first, and the area
 key of R256 by the location plan numbers of the face. The labels of a face are joined in the order of their numbers, so the table does not hang on the order
 the location plan lists them in. The Rev 9 parcel numbers of R244, a Civil 3D read of the data book and no input of the add-in, are not
-taken: a face with no location plan number has no area key here. Two blocks whose overlaps with a face lie within the areas tolerance of
-addin.parity, such as the parking bays of a commercial face, keep the order of the read, where data_book.build takes the order of the
-binary noise of shapely, which no other reader can give. The front frame and the road level at the front corners come with the
-front edge of R355. The C# of the worker gives the same table (PlotTable of Common).
+taken: a face with no location plan number has no area key here. The blocks of a face go largest overlap first by block_order, the blocks
+within the areas tolerance of addin.parity of the largest left one group in the order of the read, such as the parking bays of a
+commercial face, where data_book.build takes the order of the binary noise of shapely, which no other reader can give. A block outline
+that is not a simple ring is refused, as face_rings refuses a face (R345), since buffer(0) mends it and the C# would not. The front frame
+and the road level at the front corners come with the front edge of R355. The C# of the worker gives the same table (PlotTable of Common).
 """
 import csv
 from collections import Counter, defaultdict
@@ -15,6 +16,7 @@ from collections import Counter, defaultdict
 from shapely.geometry import Polygon
 
 import area_key
+import face_rings
 import wiring
 import yard_rule
 
@@ -27,6 +29,31 @@ def joined(values):
     """The values of the labels of a face joined by a bar, an empty value kept between two others and dropped at an end, None for none,
     as data_book.build joins the new codes and Typology_Rev9."""
     return "|".join(value or "" for value in values).strip("|") or None
+
+
+def block_order(overlaps, tolerance):
+    """R352. The blocks of a face in the order of the table: the block of the largest overlap left with every block whose overlap lies
+    within tolerance of it, that group in the order of the read, then the next group. overlaps maps the place of each block in the read to
+    its overlap with the face in m2. Taken from the largest left, so a chain of small steps never runs on into one group, and with no
+    rounding to steps, so two overlaps of one group never part at the edge of a step by binary noise."""
+    left, order = dict(overlaps), []
+    while left:
+        top = max(left.values())
+        group = sorted(item for item, overlap in left.items() if overlap >= top - tolerance)
+        order += group
+        for item in group:
+            del left[item]
+    return order
+
+
+def simple_blocks(blocks):
+    """R352. The blocks of the footprint read, a block whose outline of three points or more is not a simple ring refused with its name."""
+    for block in blocks:
+        ring = face_rings.clean([point[:2] for point in block.get("outline") or []])
+        if len(ring) >= 3 and not face_rings.simple(ring):
+            raise ValueError("the footprint block %s at %s is not a simple ring, two of its edges meet, shapely would mend it by buffer(0) and the C# "
+                             "would not, so the plot table refuses it (R352)" % (block.get("name"), block.get("insertPoint")))
+    return blocks
 
 
 def table(plots, border, schedules, shifts, labels, blocks, min_share, dlus, sales, area_tolerance):
@@ -48,14 +75,14 @@ def table(plots, border, schedules, shifts, labels, blocks, min_share, dlus, sal
     for item, hits in zip(items, wiring.point_inside(all_faces, [(item["east"], item["north"]) for item in items])):
         for hit in hits:
             plan_by_face[hit].append(item)
-    shapes = wiring.unit_shapes(blocks, None)
+    shapes = wiring.unit_shapes(simple_blocks(blocks), None)
     per_block = wiring.every_share(all_faces, [shape["shape"] for shape in shapes], min_share)
     found = defaultdict(list)
     for item, hits in enumerate(per_block):
         for hit in hits:
             found[hit].append(item)
     for hit, held in found.items():
-        held.sort(key=lambda item: (-round(faces[hit].intersection(shapes[item]["shape"]).area / area_tolerance), item))
+        found[hit] = block_order({item: faces[hit].intersection(shapes[item]["shape"]).area for item in held}, area_tolerance)
     rows = []
     for label, face in sorted(faces.items(), key=lambda item: int(item[0])):
         centre = face.centroid

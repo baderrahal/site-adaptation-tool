@@ -477,8 +477,16 @@ namespace CadReader
             {
                 throw run.Refusal("the border: " + refused.Message);
             }
-            Dictionary<string, Dictionary<string, object>> table = PlotTable.Build((JArray)baseplan["plots"], located.Faces, border, located.Officials, located.Shifts,
-                located.Result.Rows, (JArray)footprint["blocks"], located.MinShare, areaKeys[0], areaKeys[1], located.AreaTolerance);
+            Dictionary<string, Dictionary<string, object>> table;
+            try
+            {
+                table = PlotTable.Build((JArray)baseplan["plots"], located.Faces, border, located.Officials, located.Shifts,
+                    located.Result.Rows, (JArray)footprint["blocks"], located.MinShare, areaKeys[0], areaKeys[1], located.AreaTolerance);
+            }
+            catch (InvalidDataException refused)
+            {
+                throw run.Refusal(refused.Message);
+            }
             run.Counts["plot table faces"] = table.Count;
             var rows = new JArray();
             foreach (Dictionary<string, object> row in table.Values)

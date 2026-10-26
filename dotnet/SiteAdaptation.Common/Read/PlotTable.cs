@@ -153,8 +153,8 @@ namespace SiteAdaptation.Common
     // R352. The plot table of button 2, python/plot_table.py step for step: per baseplan face inside the Phase 1 border its label, type and
     // flags, the official number of the neighbourhood schedule that holds its label plus the shift (R28), the location plan labels whose
     // site point as written it holds, joined in the order of their numbers, the footprint blocks that hold at least minShare of their
-    // outline in it, largest overlap first, overlaps within the areas tolerance in the order of the read (everyShare), and the area key of
-    // R256 by the location plan numbers of the face
+    // outline in it (everyShare) in the order of BlockOrder, a block outline that is not a simple ring refused, and the area key of R256 by
+    // the location plan numbers of the face
     public static class PlotTable
     {
         public const string StepName = "plotTable";
@@ -215,6 +215,38 @@ namespace SiteAdaptation.Common
             return new[] { points.Max(point => point[0]), points.Max(point => point[1]) };
         }
 
+        // python/plot_table.block_order: the block of the largest overlap left with every block whose overlap lies within tolerance of it,
+        // that group in the order of the read, then the next group. Taken from the largest left, so a chain of small steps never runs on
+        // into one group, and with no rounding to steps, so two overlaps of one group never part at the edge of a step by binary noise
+        public static List<int> BlockOrder(IReadOnlyDictionary<int, double> overlaps, double tolerance)
+        {
+            var left = overlaps.ToDictionary(item => item.Key, item => item.Value);
+            var order = new List<int>();
+            while (left.Count > 0)
+            {
+                double top = left.Values.Max();
+                List<int> group = left.Where(item => item.Value >= top - tolerance).Select(item => item.Key).OrderBy(item => item).ToList();
+                order.AddRange(group);
+                foreach (int item in group)
+                {
+                    left.Remove(item);
+                }
+            }
+            return order;
+        }
+
+        // A footprint block whose outline of three points or more is not a simple ring is refused with its name, as FaceRings refuses a
+        // face (R345), since shapely mends it by buffer(0) and the overlap by slabs would not
+        private static void SimpleBlock(JToken block, double[][] outline)
+        {
+            List<double[]> ring = FaceRings.Clean(outline);
+            if (ring.Count >= 3 && !FaceRings.IsSimple(ring))
+            {
+                throw new InvalidDataException("the footprint block " + (string)block["name"] + " at " + (block["insertPoint"] ?? JValue.CreateNull()).ToString(Newtonsoft.Json.Formatting.None)
+                    + " is not a simple ring, two of its edges meet, shapely would mend it by buffer(0) and the C# would not, so the plot table refuses it (R352)");
+            }
+        }
+
         public static Dictionary<string, Dictionary<string, object>> Build(JArray plots, IReadOnlyDictionary<string, PlanFace> faces, List<double[]> border,
             IReadOnlyDictionary<string, HashSet<string>> officials, IReadOnlyList<KeyValuePair<string, int>> shifts, IReadOnlyList<LocationPlan.Row> labels,
             JArray blocks, double minShare, SheetRows.AreaKey dlus, SheetRows.AreaKey sales, double areaTolerance)
@@ -264,6 +296,7 @@ namespace SiteAdaptation.Common
                 {
                     continue;
                 }
+                SimpleBlock(block, outline);
                 string name = ((string)block["name"] ?? "").Split('$').Last();
                 units.Add(new Unit { Name = name, Outline = outline, Area = FaceStep.Ring(outline).Area, Low = Low(outline), High = High(outline), Rotation = block["rotationDeg"], Mirrored = block["mirrored"] });
             }
@@ -322,9 +355,8 @@ namespace SiteAdaptation.Common
                 string home = homes.Count == 1 ? homes[0] : null;
                 List<LocationPlan.Row> plan = (onPlan.TryGetValue(face.Label, out List<LocationPlan.Row> held2) ? held2 : new List<LocationPlan.Row>())
                     .OrderBy(row => long.Parse(row.Number, CultureInfo.InvariantCulture)).ToList();
-                // Overlaps within the areas tolerance keep the order of the read, so the parking bays of a face are not ordered by binary noise
                 List<int> on = found.TryGetValue(face.Label, out List<int> blocksOn)
-                    ? blocksOn.OrderBy(item => -Math.Round(overlaps[face.Label][item] / areaTolerance)).ThenBy(item => item).ToList() : new List<int>();
+                    ? BlockOrder(blocksOn.ToDictionary(item => item, item => overlaps[face.Label][item]), areaTolerance) : new List<int>();
                 List<string> numbers = plan.Select(row => row.Number).ToList();
                 var values = new HashSet<Tuple<string, string>>(numbers.Where(dlus.Values.ContainsKey).Select(number => Tuple.Create(dlus.Values[number].Key, dlus.Values[number].Value)));
                 Tuple<string, string> key = values.Count == 1 ? values.First() : null;

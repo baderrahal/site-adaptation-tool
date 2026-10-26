@@ -319,6 +319,9 @@ def main(argv=None):
     try:
         for step in steps:
             parity.clear_step(args.steps, step, "python")
+        # R352. A plot table with no border or no DLUS workbook is refused before any read, never after the location plan is read
+        if "plotTable" in steps and (not args.border or not args.dlus):
+            raise project_profile.ProfileError("the step plotTable needs --border and --dlus (R352)")
         settings = project_profile.load_settings(args.settings)
         values = settings.values
         rules = parity.tolerances(values)
@@ -401,8 +404,6 @@ def main(argv=None):
             found, numbering = location_steps(settings, args.plot_numbers, plots, paths, workbook(args, values, settings.get("dataBook.locationPlan.sales.workbook")))
             made.update(found)
             if "plotTable" in steps:
-                if not args.border or not args.dlus:
-                    raise project_profile.ProfileError("the step plotTable needs --border and --dlus (R352)")
                 inputs.append(parity.input_entry("border", args.border))
                 if not any(item["role"] == "dlus" for item in inputs):
                     inputs.append(parity.input_entry("dlus", args.dlus))
