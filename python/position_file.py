@@ -238,7 +238,8 @@ def read_faults(document, key):
 
 def answer_copies(answer_keys, manifest):
     """R353, R312. The stem of the copy of each answer key by its key in lower case, from answerKeys of config held against key_copies.json
-    beside the copies: a code the manifest lists with another copy, or does not list, is refused."""
+    beside the copies: a code the manifest lists with another copy, or does not list, is refused, and so are two codes that name one copy,
+    in any case of its name, which would let the read or parameter file of one key pass as the other."""
     listed = {item["code"]: item.get("copy") for item in (manifest or {}).get("copies") or [] if isinstance(item, dict) and isinstance(item.get("code"), str)}
     found = {}
     for entry in (answer_keys or {}).get("keys") or []:
@@ -247,7 +248,11 @@ def answer_copies(answer_keys, manifest):
             raise PositionError("answerKeys names a key of no code or no copy, a key read is held to its key by its copy (R353, R312)")
         if listed.get(code) != copy:
             raise PositionError("answerKeys names for %s the copy %s and key_copies.json %s, a key read is held to its key by one copy (R353, R312)" % (code, copy, text_of(listed.get(code))))
-        found[str(code).lower()] = copy[:-4] if copy.lower().endswith(".rvt") else copy
+        stem = copy[:-4] if copy.lower().endswith(".rvt") else copy
+        twin = next((other for other, held in found.items() if held.lower() == stem.lower()), None)
+        if twin is not None:
+            raise PositionError("answerKeys names for %s and %s one copy %s, a key read is held to its key by its own copy (R353, R312)" % (twin.upper(), code, copy))
+        found[str(code).lower()] = stem
     return found
 
 

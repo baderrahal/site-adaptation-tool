@@ -322,7 +322,8 @@ namespace SiteAdaptation.Common
         }
 
         // python/position_file.answer_copies: the stem of the copy of each answer key by its key in lower case, from answerKeys of config
-        // held against key_copies.json beside the copies (R312), a code the manifest lists with another copy or does not list refused
+        // held against key_copies.json beside the copies (R312), a code the manifest lists with another copy or does not list refused, and
+        // two codes of one copy in any case of its name
         public static Dictionary<string, string> AnswerCopies(JObject answerKeys, JObject manifest)
         {
             var listed = new Dictionary<string, JToken>(StringComparer.Ordinal);
@@ -347,7 +348,14 @@ namespace SiteAdaptation.Common
                     throw new InvalidDataException("answerKeys names for " + (string)code + " the copy " + (string)copy + " and key_copies.json " + PyText(other) + ", a key read is held to its key by one copy (R353, R312)");
                 }
                 string stem = (string)copy;
-                found[((string)code).ToLowerInvariant()] = stem.EndsWith(".rvt", StringComparison.OrdinalIgnoreCase) ? stem.Substring(0, stem.Length - 4) : stem;
+                stem = stem.EndsWith(".rvt", StringComparison.OrdinalIgnoreCase) ? stem.Substring(0, stem.Length - 4) : stem;
+                // Two codes of one copy would let the read or parameter file of one key pass as the other
+                string twin = found.Where(item => item.Value.ToLowerInvariant() == stem.ToLowerInvariant()).Select(item => item.Key).FirstOrDefault();
+                if (twin != null)
+                {
+                    throw new InvalidDataException("answerKeys names for " + twin.ToUpperInvariant() + " and " + (string)code + " one copy " + (string)copy + ", a key read is held to its key by its own copy (R353, R312)");
+                }
+                found[((string)code).ToLowerInvariant()] = stem;
             }
             return found;
         }

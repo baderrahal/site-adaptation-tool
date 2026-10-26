@@ -478,6 +478,14 @@ namespace SiteAdaptation.Tests
             InvalidDataException refused = Assert.Throws<InvalidDataException>(() => ProjectPositionFile.AnswerCopies(JObject.Parse("{\"keys\": [{\"code\": \"IMC\", \"copy\": \"a.rvt\"}]}"), JObject.Parse("{\"copies\": [{\"code\": \"IMC\", \"copy\": \"b.rvt\"}]}")));
             Assert.Contains("answerKeys names for IMC the copy a.rvt and key_copies.json b.rvt", refused.Message);
             Assert.Contains("no code or no copy", Assert.Throws<InvalidDataException>(() => ProjectPositionFile.AnswerCopies(JObject.Parse("{\"keys\": [{\"code\": \"IMC\"}]}"), JObject.Parse("{\"copies\": [{\"code\": \"IMC\"}]}"))).Message);
+            // test_position_file: two codes that name one copy, in either case of its name
+            foreach (string second in new[] { "x.rvt", "X.RVT" })
+            {
+                JObject both = JObject.Parse("{\"keys\": [{\"code\": \"IMA\", \"copy\": \"x.rvt\"}, {\"code\": \"IMB\", \"copy\": \"" + second + "\"}]}");
+                Assert.Matches("IMA and IMB.*one copy", Assert.Throws<InvalidDataException>(() => ProjectPositionFile.AnswerCopies(both, new JObject { ["copies"] = both["keys"].DeepClone() })).Message);
+            }
+            JObject real = (JObject)JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()))["answerKeys"];
+            Assert.Equal(7, ProjectPositionFile.AnswerCopies(real, new JObject { ["copies"] = real["keys"].DeepClone() }).Count);
         }
 
         [Fact]

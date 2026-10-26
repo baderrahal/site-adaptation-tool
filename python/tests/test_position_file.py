@@ -340,6 +340,14 @@ def test_r353_the_key_points_are_held_to_their_key_and_to_the_position_file():
         position_file.answer_copies({"keys": [{"code": "IMC", "copy": "a.rvt"}]}, {"copies": [{"code": "IMC", "copy": "b.rvt"}]})
     with pytest.raises(position_file.PositionError, match="no code or no copy"):
         position_file.answer_copies({"keys": [{"code": "IMC"}]}, {"copies": [{"code": "IMC"}]})
+    # Two codes that name one copy, in either case of its name, would let the read or parameter file of IMA pass as IMB, the breaker's
+    # case 7 of the third review
+    for second in ("x.rvt", "X.RVT"):
+        both = {"keys": [{"code": "IMA", "copy": "x.rvt"}, {"code": "IMB", "copy": second}]}
+        with pytest.raises(position_file.PositionError, match="IMA and IMB.*one copy"):
+            position_file.answer_copies(both, {"copies": both["keys"]})
+    real = project_profile.load_settings().get("answerKeys")
+    assert len(position_file.answer_copies(real, {"copies": real["keys"]})) == 7
 
 
 def test_r353_key_rules_site_names_the_one_level_base_of_the_keys():
