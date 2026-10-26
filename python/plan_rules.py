@@ -19,6 +19,7 @@ import math
 from collections import defaultdict
 from pathlib import Path
 
+import common
 import project_profile
 
 FIELDS = ("mirrored", "rampType", "entryM", "heightM", "rampFrontM")
@@ -100,8 +101,29 @@ def steps_of(height, lp):
     return None
 
 
-def heights(entries, clusters, lp, profile):
-    """R278. FFL, SSL, height and steps per plot from the El @ Entry of each plot and the clusters, by the height rule of the profile."""
+# R385. The roundings a level profile may name in majority.overrideRounding of config: the one rule of Python and C#, and the round() of
+# Python on the binary value that Round 17 measured the native overrides on, kept for a build of their profile
+ROUNDINGS = {"R385": common.fixed, "pythonRound": lambda value, decimals: round(value, decimals)}
+
+
+def rounding_of(settings, name, key=None):
+    """R385. The rounding of the levels of R278 and of the level overrides of a build of the level profile name, the one its overrides
+    were measured on, by majority.overrideRounding.levelProfiles of config. A profile named by no rounding of ROUNDINGS is refused, and
+    so is a profile whose keyRules hold level rules on any rounding but R385, which key_levels.py measured them on."""
+    named = ((settings.get("majority") or {}).get("overrideRounding") or {}).get("levelProfiles") or {}
+    found = named.get(name)
+    if found not in ROUNDINGS:
+        raise project_profile.ProfileError("majority.overrideRounding.levelProfiles of config names no rounding of %s for the level profile %s, %s, give the one its "
+                                           "overrides were measured on (R385)" % (", ".join(ROUNDINGS), name, json.dumps(found)))
+    if key_levels_of(key) and found != "R385":
+        raise project_profile.ProfileError("the level profile %s builds its levels by keyRules, measured on R385, and config names %s for it (R385)" % (name, found))
+    return ROUNDINGS[found]
+
+
+def heights(entries, clusters, lp, profile, fix=common.fixed):
+    """R278. FFL, SSL, height and steps per plot from the El @ Entry of each plot and the clusters, by the height rule of the profile, each
+    rounded by fix, the rounding of the profile (rounding_of). The height is the FFL less El @ Entry as written and SSL the FFL as written
+    plus the ground, as R340 gives them, so the three agree (R385)."""
     ground = profile.metres("levels.ground_ssl")
     ffl = {}
     if lp["height"] == "oneFflPerClusterAtTheHighestEntry":
@@ -126,10 +148,9 @@ def heights(entries, clusters, lp, profile):
         raise project_profile.ProfileError("no height rule " + str(lp["height"]))
     rows = {}
     for plot, level in ffl.items():
-        entry = entries[plot]["entry"]
-        height = round(level - entry, 4)
-        rows[plot] = {"plot": plot, "ffl": round(level, 3), "ssl": round(level + ground, 3), "entry": round(entry, 4), "height": height,
-                      "steps": steps_of(height, lp), "flags": []}
+        written, entry = fix(level, FFL_DECIMALS), fix(entries[plot]["entry"], ENTRY_DECIMALS)
+        height = fix(written - entry, ENTRY_DECIMALS)
+        rows[plot] = {"plot": plot, "ffl": written, "ssl": fix(written + ground, FFL_DECIMALS), "entry": entry, "height": height, "steps": steps_of(height, lp), "flags": []}
     return rows
 
 
@@ -328,13 +349,27 @@ def check_override_jobs(name, lp, sources):
                                            "on a build of %s, native overrides are never applied by default (R280, R330)" % (", ".join(wrong), name, job, job, name))
 
 
+# R386. Why a build leaves an entry the check table marked "use": "rule"
+USE_RULE = "use rule, the override list marks the entry to follow the rule (R386)"
+
+
+class Overrides(dict):
+    """R280, R386. The overrides a build applies by plot and field, with skip, the plots of the skip list by plot with their reason, and
+    ruled, the entries marked use rule by plot and field with why, which a build leaves."""
+
+    def __init__(self, found, skip=None, ruled=None):
+        super().__init__(found)
+        self.skip, self.ruled = dict(skip or {}), {plot: dict(fields) for plot, fields in (ruled or {}).items()}
+
+
 def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None, models=None):
     """R280, R330. The overrides of the list whose source, the job of their key, is one of sources and whose field is one of
     fields, by plot and field, with models only those of the past model files named. Every entry must hold the job of its key as
     source and its model apart (override_source.check_entries), groups from majority.groups of config/project.json when not
     given. A source or a model named with no override in the list is refused, never applied as none. With lp the job of each
     source must be the job of the level profile first (check_override_jobs). A mirror of a past model that links other
-    prototype files than the plan is no mirror of the plan, so a build may leave it out by fields."""
+    prototype files than the plan is no mirror of the plan, so a build may leave it out by fields. R386: an entry marked "use": "rule"
+    is left with why in ruled and the plots of the skip list come back in skip, so the build leaves them out and lists them."""
     import override_source
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     entries = data.get("overrides") or []
@@ -344,6 +379,7 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
         override_source.check_entries(entries, groups)
     except project_profile.ProfileError as error:
         raise project_profile.ProfileError(str(path) + ": " + str(error)) from error
+    skip = override_source.check_skip(data.get("skip"), path) or {}
     if lp is not None:
         check_override_jobs(name, lp, sources)
     chosen = [item for item in entries if item["source"] in sources and (models is None or item["model"] in models)]
@@ -362,7 +398,7 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
     if broken:
         raise project_profile.ProfileError("%d steps overrides hold no whole number: %s. Give the step count as a whole number (R280, R340)"
                                            % (len(broken), " | ".join(broken[:10])))
-    found, origin, twice = defaultdict(dict), {}, []
+    found, origin, twice, ruled = defaultdict(dict), {}, [], defaultdict(dict)
     for item in chosen:
         if fields is None or item.get("field") in fields:
             pair = (str(item["plot"]), item["field"])
@@ -371,11 +407,14 @@ def load_overrides(path, sources, fields=FIELDS, groups=None, name=None, lp=None
                 twice.append("plot %s field %s of %s and %s" % (pair[0], pair[1], origin[pair], item.get("key") + " " + item.get("model")))
                 continue
             origin[pair] = item.get("key") + " " + item.get("model")
-            found[pair[0]][pair[1]] = item["value"]
+            if override_source.use_of(item) == "rule":
+                ruled[pair[0]][pair[1]] = USE_RULE
+            else:
+                found[pair[0]][pair[1]] = item["value"]
     if twice:
         raise project_profile.ProfileError("%d plots hold two overrides of one field: %s. Narrow the list with --override-model or edit it by hand (R280)"
                                            % (len(twice), " | ".join(twice[:10])))
-    return dict(found)
+    return Overrides(found, skip, ruled)
 
 
 def whole_number(value):
@@ -407,7 +446,7 @@ def key_entry(front, code, lp, depth):
     depth (R278), at the 4 decimals of R2, None with no road level at a front corner."""
     if not front or depth is None or code is None or any(level is None for level in front):
         return None
-    return round(entry_of(front, code, lp, depth)[0], ENTRY_DECIMALS)
+    return common.fixed(entry_of(front, code, lp, depth)[0], ENTRY_DECIMALS)
 
 
 def split_walls(pattern, count):
@@ -478,14 +517,14 @@ def piece_ffl(members, profile, base_rule=None):
     """R339, R67. The FFL of a piece: its highest El @ Entry plus the base of that unit, rounded to the mm first. members is a list of
     (El @ Entry, unit), None when no member has one."""
     known = [entry + base_by_rule(profile, unit, base_rule) for entry, unit in members if entry is not None and unit is not None]
-    return None if not known else round(max(known), FFL_DECIMALS)
+    return None if not known else common.fixed(max(known), FFL_DECIMALS)
 
 
 def steps_from_height(height, base, riser):
     """R339. The steps of the base and the risers: one step for the base, then one per riser over it, a part of a riser over half
     counting as one and half a riser not, as the keys count it: the 9 key plots whose height lies half a riser over their base, such
     as 0.185 m over 0.10 m, have 1 step (Round ADDIN 3c)."""
-    return 1 + max(0, int(math.ceil(round((round(height, BAND_DECIMALS) - base) / riser, BAND_DECIMALS) - 0.5)))
+    return 1 + max(0, int(math.ceil(common.fixed((common.fixed(height, BAND_DECIMALS) - base) / riser, BAND_DECIMALS) - 0.5)))
 
 
 def steps_by_rule(rule, height, code, profile, lp, base_rule=None):
@@ -495,7 +534,7 @@ def steps_by_rule(rule, height, code, profile, lp, base_rule=None):
     if rule == "stepsFromHeight":
         return steps_from_height(height, base_by_rule(profile, code, base_rule), profile.get("steps.riser_added") / 1000.0)
     if rule == "stepBands":
-        return steps_of(round(height, BAND_DECIMALS), lp)
+        return steps_of(common.fixed(height, BAND_DECIMALS), lp)
     raise project_profile.ProfileError("keyRules.steps codes %s, a build gives stepsFromHeight or stepBands (R339)" % rule)
 
 
@@ -503,7 +542,7 @@ def prototype_ffl(rule, ffl):
     """R339. The text of the RRE_ZZ_SP_Prototype-FFL parameter: the FFL down to the cm, or the FFL, written with 3 decimals."""
     if ffl is None:
         return None
-    millimetres = int(round(ffl * 1000))
+    millimetres = int(common.fixed(ffl * 1000, 0))
     if rule == "fflDownToTheCm":
         return "%.3f" % ((millimetres // 10) / 100.0)
     if rule == "ffl":
@@ -529,7 +568,7 @@ def key_level_rows(entries, pieces, profile, lp, key):
         ffl = piece_ffl([(rule_entry(entries.get(other)), (entries.get(other) or {}).get("unit")) for other in piece], profile, base_rule)
         if ffl is None:
             continue
-        height = round(ffl - item["entry"], ENTRY_DECIMALS)
-        rows[plot] = {"plot": plot, "ffl": ffl, "ssl": round(ffl + ground, FFL_DECIMALS), "entry": item["entry"], "height": height,
+        height = common.fixed(ffl - item["entry"], ENTRY_DECIMALS)
+        rows[plot] = {"plot": plot, "ffl": ffl, "ssl": common.fixed(ffl + ground, FFL_DECIMALS), "entry": item["entry"], "height": height,
                       "steps": steps_by_rule(key["steps"]["rule"], height, item["unit"], profile, lp, base_rule), "flags": [], "piece": piece}
     return rows

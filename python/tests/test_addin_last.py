@@ -90,10 +90,9 @@ def test_r330_a_by_hand_entry_of_the_list_a_keep_from_run_writes_over_is_kept_or
     committed.write_text(json.dumps({"note": "n", "overrides": [hand]}), encoding="utf-8")
     older.write_text(json.dumps({"note": "n", "overrides": []}), encoding="utf-8")
     run = [entry("10", "mirrored", False, "parsons", "IMC.rvt", "imc")]
-    # mirrored is not kept, so a run that would write over the hand edit of the committed list is refused
-    with pytest.raises(project_profile.ProfileError) as error:
-        majority.final_list(run, keep_block(), dry=False, path=committed, keep=[], replace=[], keep_from=older, joined=None)
-    assert "byHand" in str(error.value) and "10" in str(error.value)
+    # mirrored is not kept, the hand edit of the committed list stays all the same, one by one (Round ADDIN 4b review)
+    listing, _ = majority.final_list(run, keep_block(), dry=False, path=committed, keep=[], replace=[], keep_from=older, joined=None)
+    assert listing == [hand]
     # Kept by its field it stays cell for cell, though the --keep-from list never held it
     listing, _ = majority.final_list(run, keep_block(), dry=False, path=committed, keep=["parsons:mirrored"], replace=[], keep_from=older, joined=None)
     assert listing == [hand]
@@ -251,3 +250,20 @@ def test_r336_the_own_route_finds_the_file_a_build_links_and_counts_a_plot_a_que
     dry = [{"decision": "parsons hand villa", "key": "imx", "plot": "1"}]
     report = {"decidedByQuestion": [{"question": "Q017", "key": "imx", "plot": "2", "field": "mirrored", "decision": "parsons hand villa"}]}
     assert key_rules_check.first_misses(dry, report) == {"parsons hand villa": {("imx", "1"), ("imx", "2")}}
+
+
+# R336 the second method holds a hand edit kept one by one, with no entry of the run on its plot and field (Round ADDIN 4b review)
+def test_r336_the_merged_list_holds_a_hand_edit_one_by_one_in_place_of_the_entry_of_the_run():
+    import key_rules_check
+    table = [{"key": "imc", "plot": "2300"}, {"key": "imc", "plot": "2301"}]
+    hand = {"plot": "2300", "field": "heightM", "value": {"gapToRuleM": 0.002}, "source": "parsons", "key": "imc", "use": "rule", "byHand": True}
+    other = {"plot": "2301", "field": "heightM", "value": {"gapToRuleM": 0.004}, "source": "parsons", "key": "imc"}
+    dry = [{"plot": "2300", "field": "heightM", "value": {"gapToRuleM": 0.001}, "source": "parsons", "key": "imc"},
+           {"plot": "2301", "field": "heightM", "value": {"gapToRuleM": 0.003}, "source": "parsons", "key": "imc"}]
+    found = key_rules_check.merged_check([hand, dry[1]], dry, table, {"native": None}, set(), earlier=[hand, other])
+    assert found["ok"] is True and found["runEntriesEqualDry"] is True and found["handEdits"] == 1 and found["byHandLost"] == 0
+    # The entry of the run written over the hand edit fails, and so does the earlier entry kept where the run measured it again
+    found = key_rules_check.merged_check(dry, dry, table, {"native": None}, set(), earlier=[hand, other])
+    assert found["ok"] is False and found["byHandLost"] == 1
+    found = key_rules_check.merged_check([hand, other], dry, table, {"native": None}, set(), earlier=[hand, other])
+    assert found["ok"] is False and found["runEntriesEqualDry"] is False

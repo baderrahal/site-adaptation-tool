@@ -31,6 +31,7 @@ from pathlib import Path
 from shapely import wkt
 
 import cad_links
+import common
 import floor_fit
 import key_rules
 import link_summary
@@ -50,7 +51,10 @@ DECISION_OF = {"prototypeFile": None, "mirrored": "hand", "rotationDeg": "linkRo
 # R340. A level the proof could not read, notChecked, fails the proof, one the key holds no value of, keyHoldsNone, is counted apart
 NOT_CHECKED = "notChecked"
 KEY_NONE = "keyHoldsNone"
-STATES = ("holds", "override", "kind", "question", "laterPhase", "input", "unexplained", NOT_CHECKED, KEY_NONE)
+# R386. A plot the skip list of the override list leaves out, by the key of plan_from_book.py, counted apart and never unexplained
+SKIP = "skip"
+SKIPPED = "skipped"
+STATES = ("holds", "override", "kind", "question", "laterPhase", "input", "unexplained", NOT_CHECKED, KEY_NONE, SKIPPED)
 # R340. The level fields held, and the override fields that move each, so a level an override the build did not place moves is explained
 LEVEL_OVERRIDES = {"entry": ("entryM",), "ffl": ("heightM",), "height": ("heightM", "entryM"), "steps": ("steps",), "rampFront": ("rampFrontM",)}
 # R340. The override fields of its own plot a level follows in a build, so a level that holds and the rule alone does not is held by one
@@ -218,7 +222,7 @@ def held_levels(entry, row, read, block):
     rule_corners = None if rule is None or not ramp or rule.get("rampFrontCorners") is None else [list(point[:2]) + [z] for point, z in zip(ramp, rule["rampFrontCorners"])]
     # The rule front is the mean of the rule corners, taken the same way as the built front from the corners of the plan
     rule = None if rule is None else dict(rule, rampFront=None if rule_corners is None else (rule_corners[0][2] + rule_corners[1][2]) / 2.0)
-    height_aim = None if key_entry is None or row.get("ffl") is None else round(row["ffl"] - key_entry, plan_rules.ENTRY_DECIMALS)
+    height_aim = None if key_entry is None or row.get("ffl") is None else common.fixed(row["ffl"] - key_entry, plan_rules.ENTRY_DECIMALS)
     pairs = {"entry": (value(levels, "entry"), key_entry, no_entry), "ffl": (value(levels, "ffl"), row.get("ffl"), "the key holds no FFL"),
              "height": (value(levels, "height"), height_aim, no_entry if key_entry is None else "the key holds no FFL"),
              "rampFront": (front, row.get("rampFront"), "the key holds no ramp front")}
@@ -302,10 +306,13 @@ def explain(key, plot, field, entry, row, ctx, detail):
 
 def unwritten(key, plot, found, plan, ctx):
     """R337. The state of a key plot the build does not write: laterPhase when it lacks only its levels, override when it lacks a
-    link whose insert and rotation overrides hold no gap, else unexplained with what it lacks."""
+    link whose insert and rotation overrides hold no gap, skipped when the skip list of the override list alone leaves it out (R386),
+    else unexplained with what it lacks."""
     if found is None:
         return "unexplained", "the build neither writes the plot nor lists it as missing"
     lacks = {item["key"]: item.get("why") for item in found.get("missing") or []}
+    if set(lacks) == {SKIP}:
+        return SKIPPED, "the plot is not written, " + str(lacks[SKIP])
     levels = "levels.ffl" in lacks
     road = plot in ((plan.get("summary") or {}).get("plotsWithNoRoadLevel") or [])
     # R340. With the levels coded a plot with no FFL for want of a road level at a front corner is explained by that input
@@ -377,7 +384,7 @@ def compare(key, plan, rows, key_plan, ctx, reads=None):
                 state, why = explain(key, plot, field, entry, row, ctx, found["detail"])
             movers = LEVEL_MOVERS.get(field, (field, "heightM") if field.startswith(plan_rules.PARAMETER) else ())
             moved = any(name in ((entry.get("overrides") or {}).get("applied") or []) for name in movers)
-            mine.append({"key": key, "plot": plot, "field": field, "state": state, "why": why, "gapMm": None if found["gap"] is None else round(found["gap"], 3),
+            mine.append({"key": key, "plot": plot, "field": field, "state": state, "why": why, "gapMm": None if found["gap"] is None else common.fixed(found["gap"], 3),
                          "level": True, "byRule": found["byRule"], "moved": moved, "atTheLimit": found["atTheLimit"]})
         hand = next((item for item in mine if item["field"] == "mirrored"), None)
         if hand is not None and hand["state"] == "question":
@@ -420,6 +427,7 @@ def tally(verdicts, bands=(1, 5)):
     return {"byKey": {key: {field: dict(counts) for field, counts in sorted(fields.items())} for key, fields in sorted(by_key.items())},
             "levelHolds": {key: {field: {name: counts.get(name, 0) for name in names} for field, counts in sorted(fields.items())} for key, fields in sorted(holds.items())},
             "notCheckedByKey": {key: sum(counts.get(NOT_CHECKED, 0) for counts in fields.values()) for key, fields in sorted(by_key.items())},
+            "skippedByKey": {key: sum(counts.get(SKIPPED, 0) for counts in fields.values()) for key, fields in sorted(by_key.items())},
             "unexplainedByKey": {key: sum(counts.get("unexplained", 0) for counts in fields.values()) for key, fields in sorted(by_key.items())},
             "unexplainedLevelsByKey": {key: {name: levels[key].get(name, 0) for name in ["pass"] + ["%gmm" % band for band in bands or ()]} for key in sorted(by_key)},
             "byState": dict(Counter(item["state"] for item in verdicts)),
@@ -502,7 +510,7 @@ def main(argv=None):
     out.write_text(json.dumps(report, indent=1, ensure_ascii=False), encoding="utf-8")
     for key, fields in found["byKey"].items():
         print("%s unexplained %d: %s" % (key, found["unexplainedByKey"][key], json.dumps({field: counts for field, counts in fields.items() if set(counts) != {"holds"}}, ensure_ascii=False)))
-        print("%s unexplained levels %s" % (key, json.dumps(found["unexplainedLevelsByKey"][key])))
+        print("%s unexplained levels %s, skipped %d (R386)" % (key, json.dumps(found["unexplainedLevelsByKey"][key]), found["skippedByKey"][key]))
         for field, counts in (found["levelHolds"].get(key) or {}).items():
             print("%s level %s: %s" % (key, field, ", ".join("%s %d" % (name, count) for name, count in counts.items() if count)))
     print("states %s" % found["byState"])

@@ -25,6 +25,7 @@ from shapely.strtree import STRtree
 
 import cad_analysis
 import cad_links
+import cad_units
 import common
 import corner_front
 import floor_fit
@@ -215,8 +216,15 @@ def tally(items, outcome, by):
 
 
 def share(counts):
+    """R272. The share of the holds at 4 decimals, rounded once (R385), so majority.json and keyRules hold it at 4."""
     total = sum(counts.values())
-    return round(counts.get("holds", 0) / total, 4) if total else None
+    return common.Fixed(round(counts.get("holds", 0) / total, 4)) if total else None
+
+
+def key_datums(key_datum):
+    """R275, R339. The datum of each key, the median of its road less its own level, at the 4 decimals of a level gap, by key, rounded once
+    (R385), so majority.json holds it at 4."""
+    return {key: common.fixed_once(value, 4) for key, value in sorted(key_datum.items())}
 
 
 def decide(name, items, target, candidates, scope, strong, hold=None, checks=(), extra_by=None, judge_scope=None, bands=None, build_view=None):
@@ -369,7 +377,7 @@ def cluster_top(pool, profile, block):
     for members in by_cluster.values():
         top = max(value for value, _ in members)
         for _, item in members:
-            found[id(item)] = round(top - clean_entry(item["row"], block["entryRampM"]), 4)
+            found[id(item)] = common.fixed_once(top - clean_entry(item["row"], block["entryRampM"]), 4)
     return found
 
 
@@ -382,7 +390,7 @@ def levels_rule(pool, clusters, profile, block):
         held = [cluster for cluster in clusters if set(cluster["plots"]) <= set(mine)]
         for plot, row in plan_from_cad.plot_levels(profile, held, entries).items():
             if row.get("ffl") is not None and plot in mine:
-                found[id(mine[plot])] = round(row["ffl"] - entries[plot]["entry"], 4)
+                found[id(mine[plot])] = common.fixed_once(row["ffl"] - entries[plot]["entry"], 4)
     return found
 
 
@@ -502,7 +510,7 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
                 formulas[surface + " less datum %+.3f" % datum] = lambda item, guess=guess, datum=datum: None if guess(item) is None else guess(item) + datum
                 formulas[surface + " less the datum of each key"] = lambda item, guess=guess, key_datum=key_datum: None if guess(item) is None else guess(item) + key_datum[item["key"]]
                 if surface in block["datumSurfaces"]:
-                    datums.setdefault(group + " entry", {})[surface] = {key: round(value, 4) for key, value in sorted(key_datum.items())}
+                    datums.setdefault(group + " entry", {})[surface] = key_datums(key_datum)
             record(group + " entry", entries, target, formulas, by_group, "entryM", level_hold)
             # R275. The ramp front, the mean of its two low corners, against every road surface as it is and less the datum of each key
             fronts = [item for item in kept("rampFront") if item["row"]["rampFront"] is not None]
@@ -517,7 +525,7 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
                         by_key[item["key"]].append(front_target(item) - road(item))
                 key_datum = {key: statistics.median(values) for key, values in by_key.items()}
                 if surface in block["datumSurfaces"]:
-                    datums.setdefault(group + " rampFront", {})[surface] = {key: round(value, 4) for key, value in sorted(key_datum.items())}
+                    datums.setdefault(group + " rampFront", {})[surface] = key_datums(key_datum)
                 front_formulas[surface] = road
                 front_formulas[surface + " less the datum of each key"] = lambda item, road=road, key_datum=key_datum: None if road(item) is None else road(item) + key_datum[item["key"]]
             record(group + " rampFront", fronts, front_target, front_formulas, by_group, "rampFrontM", level_hold)
@@ -533,12 +541,12 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
         if lv is None:
             # R275. FFL less El @ Entry and the steps
             heights = [item for item in kept("height") if clean_entry(item["row"], block["entryRampM"]) is not None and item["row"]["ffl"] is not None]
-            height = lambda item: round(item["row"]["ffl"] - clean_entry(item["row"], block["entryRampM"]), 4)
+            height = lambda item: common.fixed_once(item["row"]["ffl"] - clean_entry(item["row"], block["entryRampM"]), 4)
             tops = cluster_top(heights, profile, block)
             from_levels = levels_rule(heights, clusters, profile, block)
             record(group + " height", heights, height, {
                 "typology": "typology", "typologySteps": "typologySteps", "key": "key",
-                "baseAndRisers": lambda item: None if item["factors"]["steps"] is None else round(base_height(profile, item["code"]) + riser * (int(item["factors"]["steps"]) - 1), 4),
+                "baseAndRisers": lambda item: None if item["factors"]["steps"] is None else common.fixed_once(base_height(profile, item["code"]) + riser * (int(item["factors"]["steps"]) - 1), 4),
                 "baseOnly": lambda item: base_height(profile, item["code"]),
                 "oneFflPerClusterAtTheHighestEntry": lambda item: tops.get(id(item), base_height(profile, item["code"]) if not item["role"] else None),
                 "levelsPyFromEntry": lambda item: from_levels.get(id(item)),
@@ -726,7 +734,7 @@ def overrides(misses, block, models):
             raise project_profile.ProfileError("key %s has misses for the override list and no past model file, give --model %s FILE (R330)" % (miss["key"], miss["key"]))
         value, rule = miss["value"], miss["rule"]
         if miss["field"] in ("heightM", "entryM", "rampFrontM", "rampFrontFallM"):
-            value, rule = (None if rule is None else {"gapToRuleM": round(value - rule, 4)}), None
+            value, rule = (None if rule is None else {"gapToRuleM": common.fixed(value - rule, 4)}), None
         if "overrideValue" in miss:
             # R332. A gap the decision gives in its own terms, the link axes or degrees, never a coordinate
             value, rule = miss["overrideValue"], None
@@ -746,7 +754,7 @@ def split_cannot(listing):
 def final_cannot(cannot, block, dry, path, keep, replace, keep_from, joined):
     """R272, R330. The cannot list a run writes beside the override list: a dry run its own, else the cannot entries of the earlier
     list the run keeps, by the same keep as its overrides, on plots the join gives their key, and every cannot of the run it does not
-    keep, sorted as the list."""
+    keep and no hand edit of the earlier lists holds the plot, key and field of, sorted as the list."""
     if dry:
         return cannot
     source = Path(keep_from or path)
@@ -755,7 +763,9 @@ def final_cannot(cannot, block, dry, path, keep, replace, keep_from, joined):
     chosen = override_source.keep_of(block, keep, replace, earlier)
     kept = [item for item in data.get("cannot") or [] if override_source.kept_by(item, chosen)
             and (joined is None or (item.get("key"), str(item["plot"])) in joined)]
-    new = [item for item in cannot if not override_source.kept_by(item, chosen)]
+    replaced = override_source.read_list(path)["overrides"] if keep_from and Path(path).exists() else []
+    hands = {override_source.edit_key(item) for item in earlier + replaced if override_source.hand_edit(item)}
+    new = [item for item in cannot if not override_source.kept_by(item, chosen) and override_source.edit_key(item) not in hands]
     return sorted(kept + new, key=lambda item: (link_summary.sort_key(str(item["plot"])), str(item.get("key")), str(item.get("field"))))
 
 
@@ -785,15 +795,71 @@ def final_list(listing, block, dry, path, keep, replace, keep_from, joined):
     return merged, counts
 
 
-def write_overrides(path, note, listing, cannot=None):
-    """The override list with one override per line, so Bader can find and edit a plot by hand, and with cannot the misses with no
-    value after it, one per line, listed and never applied (R272)."""
+def check_measured_rounding(counts, block, profile):
+    """R385. A run measures the level overrides on R385 only, so it never writes the overrides of a job whose level profile
+    majority.overrideRounding names another rounding, native2022 measured in Round 17 on round(): counts, the merge counts of the run,
+    None for a dry run, which writes outside the repo."""
+    named = (block.get("overrideRounding") or {}).get("levelProfiles") or {}
+    written = set(((counts or {}).get("new") or {}))
+    wrong = sorted("%s of %s on %s" % (lp.get("job"), name, named.get(name)) for name, lp in (profile.get("levelProfiles") or {}).items()
+                   if isinstance(lp, dict) and lp.get("job") in written and named.get(name) != "R385")
+    if wrong:
+        raise project_profile.ProfileError("the run writes overrides of %s, measured on R385, where majority.overrideRounding names another rounding: keep them, "
+                                           "or name R385 for the profile with --replace (R385)" % ", ".join(wrong))
+
+
+def final_skip(path, keep_from, plots=None):
+    """R386. The skip list a run writes: the skip of the list at path it writes over and of --keep-from, kept whole and never measured,
+    sorted by plot, a plot the two lists skip otherwise refused with both named, and with plots, the plot numbers of plots.csv, a plot
+    that is none of them refused with its name. None when neither list holds a skip."""
+    found, lists = {}, []
+    for source in [Path(path)] + ([Path(keep_from)] if keep_from else []):
+        if not source.exists():
+            continue
+        data = override_source.read_list(source)
+        if data.get("skip") is None:
+            continue
+        override_source.check_skip(data["skip"], source, plots)
+        lists.append(source)
+        for item in data["skip"]:
+            other = found.get(item["plot"])
+            if other is not None and other != item:
+                raise project_profile.ProfileError("plot %s is skipped otherwise in %s: %s against %s. Edit one of the two by hand (R386)"
+                                                   % (item["plot"], " and ".join(str(name) for name in lists), json.dumps(other), json.dumps(item)))
+            found[item["plot"]] = item
+    return None if not lists else [found[plot] for plot in sorted(found, key=link_summary.sort_key)]
+
+
+def overrides_text(note, listing, cannot=None, skip=None):
+    """The text of the override list with one override per line, so Bader can find and edit a plot by hand, with cannot the misses
+    with no value after it, one per line, listed and never applied (R272), and with skip the plots the check table skips after that
+    (R386), read back as JSON before anything is written."""
     block = lambda items: ",\n".join("    " + json.dumps(item, ensure_ascii=False) for item in items) + ("\n" if items else "")
     text = "{\n  \"note\": " + json.dumps(note, ensure_ascii=False) + ",\n  \"overrides\": [\n" + block(listing) + "  ]"
-    text += ("" if cannot is None else ",\n  \"cannot\": [\n" + block(cannot) + "  ]") + "\n}\n"
+    text += "" if cannot is None else ",\n  \"cannot\": [\n" + block(cannot) + "  ]"
+    text += ("" if skip is None else ",\n  \"skip\": [\n" + block(skip) + "  ]") + "\n}\n"
     json.loads(text)
+    return text
+
+
+def write_overrides(path, note, listing, cannot=None, skip=None):
+    """The override list of overrides_text written to path."""
+    text = overrides_text(note, listing, cannot, skip)
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_bytes(text.encode("utf-8"))
+
+
+def finish(args, block, book, report, listing, cannot):
+    """R272, R386. The end of a run: every check first, the skip list of the earlier lists against the plots of plots.csv, the text of
+    the list and the text of the report, which R385 refuses for a value it can not round, and only then majority.json and the list, so
+    a refused run leaves both as they were."""
+    skip = final_skip(args.overrides, args.keep_from, set(book))
+    listed = overrides_text(block["overrideNote"], listing, cannot, skip)
+    written = json.dumps(common.round_tree(report), indent=1, ensure_ascii=False)
+    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.out).write_text(written, encoding="utf-8")
+    Path(args.overrides).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.overrides).write_bytes(listed.encode("utf-8"))
 
 
 def load_block(settings):
@@ -827,10 +893,10 @@ def main(argv=None):
     parser.add_argument("table", help="past_all.csv")
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH))
     parser.add_argument("--plots-csv", required=True)
-    parser.add_argument("--baseplan", required=True)
-    parser.add_argument("--roads", required=True)
+    parser.add_argument("--baseplan", help="R388. plots.json of the baseplan, the one cadReads of config names when left out, else a copy of its bytes")
+    parser.add_argument("--roads", help="R388. the folder of the road layout read, the one cadReads names when left out, else a copy of its pieces.json")
     parser.add_argument("--analysis", required=True)
-    parser.add_argument("--footprint-blocks", required=True)
+    parser.add_argument("--footprint-blocks", help="R388. blocks.json of the footprint drawing, the one cadReads names when left out, else a copy of its bytes")
     parser.add_argument("--sales", required=True)
     parser.add_argument("--model", nargs=2, action="append", metavar=("KEY", "FILE"), default=[], help="the past model file of a key, the override source")
     parser.add_argument("--out", required=True, help="the report, outside the repo")
@@ -849,7 +915,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         return run_args(args)
-    except project_profile.ProfileError as error:
+    except (project_profile.ProfileError, cad_units.UnitError) as error:
         print("majority: " + str(error), file=sys.stderr)
         return 2
 
@@ -862,13 +928,14 @@ def run_args(args):
     plot_relations.refuse_inside_repo(Path(args.out).resolve().parent)
     rows = read_rows(args.table, settings, block)
     book, number_of = plan_from_book.book_rows(args.plots_csv)
-    by_label, _ = yard_rule.face_shapes(link_summary.load(args.baseplan)["plots"], 0)
+    # R388. The CadReader outputs the build reads, the ones config names, each of a drawing in Meters
+    by_label, _ = yard_rule.face_shapes(link_summary.load(cad_units.read_input(settings, "baseplan", args.baseplan))["plots"], 0)
     faces = {number_of[label]: shape for label, shape in by_label.items() if label in number_of}
     sheet = json.loads((project_profile.ROOT / "python" / "c3d_probe.json").read_text(encoding="utf-8"))["dataBook"]["locationPlan"]["sales"]
     sales = corner_front.sales_rows(args.sales, sheet["sheet"], sheet["columns"]["plot"])
-    roads = cad_analysis.read_road_edges(args.roads, settings.get("analysis")["roadEdgeLayers"])
+    roads = cad_analysis.read_road_edges(cad_units.read_input(settings, "roads", args.roads), settings.get("analysis")["roadEdgeLayers"])
     analysis = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"]
-    shapes = footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings))
+    shapes = footprint_check.block_shapes(footprint_check.footprint_blocks(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks), settings))
     # R339. The groups a build by keyRules builds have their levels held against the road that build gives at the front corners
     built_levels = level_groups(profile, block)
     need_roads(built_levels, getattr(args, "landxml", None), getattr(args, "scratch", None))
@@ -929,14 +996,15 @@ def run_args(args):
     # R330. The entries of the earlier list this run does not measure stay cell for cell, on plots the join gives their key
     listing, merged = final_list(listing, block, args.dry, args.overrides, args.keep, args.replace, args.keep_from, joined)
     override_source.check_entries(listing, block["groups"])
+    check_measured_rounding(merged, block, profile)
     # R331. The coordinates of each key read against the reference key, gaps and names only
     site = key_rules.group_site_facts(reads, block["groups"], block["siteReference"]) if reads else None
     report = {"plots": len(items), "byGroup": dict(Counter(item["group"] for item in items)), "clusters": len(clusters), "clusterPlots": [cluster["plots"] for cluster in clusters],
               "frontRules": dict(Counter(front[number]["frontRule"] for number in numbers if number in front)), "keyDatumsM": datums, "siteFacts": site, **extras, "decisions": results,
               "overrideCount": dict(Counter(item["decision"] for item in listing)), "overrideMerge": merged, "overrideCounts": override_source.counts(listing),
               "cannotCount": dict(Counter(item["decision"] for item in cannot)), "cannotCounts": override_source.counts(cannot)}
-    common.write_json(args.out, report)
-    write_overrides(args.overrides, block["overrideNote"], listing, cannot)
+    # R386. The skip list of the check table is kept whole, a run never measures it, and every check is made before anything is written
+    finish(args, block, book, report, listing, cannot)
     for result in results:
         print("%s: coded %s, share %s, %s, misses %d of %d" % (result["decision"], result["coded"], result["share"], "strong" if result["strong"] else "WEAK", result["misses"], result["plots"]))
     for name, found in extras["coverage"].items():

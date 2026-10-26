@@ -4,31 +4,31 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 
 ## Round ADDIN Part 1, 2026-10-25, the Revit 2024 add-in from the Parsons site models
 
-In progress. 0a to 3c merged (PR 41 to 49), 4a in review (logic/addin-4a). Plan: steps/investigations/round-addin.md.
+In progress. 0a to 4a merged (PR 41 to 50), 4b and its review fixes in PR 51 (logic/addin-4b). Plan: steps/investigations/round-addin.md.
 
 Goal:
 - The add-in in Revit 2024, C#, .NET 4.8, from the 7 Rev 6 Parsons site models, parsons2024Rev6 for every build (Q050), docs/addin-mock.md, Part 2 after Bader's check of Part 1
 
 Done:
-- 0a to 3c (PR 41 to 49): harness, key copies, reads, key plans, past_all.csv, overrides, keyRules with the levels, a build and its proof, the design (R342, R343)
-- 4a R346: Common on netstandard2.0, the worker and the tests on net48 and net8.0, a Linux leg skipping 52 tests of Windows tools, a build only pin (Q079)
-- 4a R347: the worker run, exit codes 0 to 4, free memory per file before each read, the kill at the time limit, outputs moved on all or none after every check with their input hashes, the answer to its document. R385: one rule in common.py and C#, past 15 digits refused, level builders after Q080. R345: the parity harness, step files by side, every field compared, bad rings refused
-- 4a review of PR 50: the breaker's 14 items and 8 of a second pass, each test first (round-addin.md)
+- 0a to 4a (PR 41 to 50): key copies, reads, plans, overrides, keyRules, a build and its proof, the design, the worker, R385, the parity harness
+- 4b: R385 in the level builders, level overrides measured again (Q080), R386 use and skip, R388 input units, R387 not built (Q081)
+- 4b review, 11 items: hand edits kept one by one, use read by a majority run, skips of plots.csv plots only, counted apart, checks before writes, rounding per level profile, height from written values, majority.json at own decimals, one set of CadReader outputs, units, the ramp corner chain
 
 Checked:
-- 4a faces parity at 65514bd: 13,520 field values equal on net48 and net8.0, 0 one unit cases, 0 failures, a failed run leaves no step file, PowerShell second method 2,557 faces, 40 of 40 areas (RAN)
-- 4a R385: Python, C# on both runtimes and integer arithmetic equal on 200,012 and on the breaker's 354,048 values. Build proof at 65514bd: 0 unexplained on 7 keys, the plans equal those of cfae745 (RAN)
-- 4a worker exe at 65514bd: exits 0 to 4 as asked on both runtimes, the step file gone after a failed run, no temporary file left (RAN)
+- Proof at 6d11acb: 0 unexplained, 0 skipped on 7 keys, holds 47,569, plans as at 9e0f94f. A copy skipping IMC 2291: skipped 1, 02291 refused (RAN)
+- Write at 2df22ea: list moved by its note only, 164 keyRules shares at 4 decimals, no rule moved. Second method at 6d11acb: seeds 0, every plot 3 as in 3c (RAN)
+- native2022 on u11: round() moves 93 FFL against R385, height off FFL less El @ Entry on 316 of 322 plots before, 0 now (RAN)
+- R387 as designed refused, a label on 0 faces, 2,524 faces is with marks patched by shape (RAN)
 
 Remains:
-- R385 in the level builders and the roundings of the review table (Q080, 4b, 5a). The rest of the addin block and the fit schedule in config, button 2 timed, PdfPig and OpenXml (4c, 4d). 4b to 4h, Phases 5 and 6
+- R387 after Q081 (4d). past_all.py round() and the width key (4f), C# probe and test host roundings (5a). The addin block, button 2 timed, the fit schedule, PdfPig, OpenXml (4c, 4d). 4c to 4h, Phases 5, 6
 - The 33 plots with no road level at a front corner are not written (Q073)
 
 Known bugs:
-- NBH 03 image past 30 minutes (Q063). Revit starts 9 to 11 child processes in a read. rvt_info.py misses cloud links, the SE spots give no value. A read is tied to its key by the copy name (Q065)
-- ELl@Entry off its schedule by over 30 mm on 100 IMC and 115 IMD plots (Q070). angleToTrueNorthDeg of the reader at 3 decimals, the placer takes 0 only. xUnit2013. key_copies.py keeps a last part NUL
+- NBH 03 image past 30 min (Q063). Revit starts 9 to 11 child processes in a read. rvt_info.py misses cloud links, SE spots give no value. A read is tied to its key by its copy name (Q065)
+- ELl@Entry off its schedule by over 30 mm on 100 IMC and 115 IMD plots (Q070). angleToTrueNorthDeg of the reader at 3 decimals, placer takes 0 only. xUnit2013. key_copies.py keeps a last part NUL
 Next:
-- Phase 4b: R386 to R388 and R385 in the level builders with the overrides measured again (Q080), then 4c to 4h
+- Phase 4c: R348 to R350, the DWG, LandXML, DLUS and sales reads in the worker, then 4d to 4h
 
 Your turn:
 Q001. El @ Entry: ask the client for the Infrastructure IFC and the architect for the ramp slope, no entrance spot gives it (2b) and the road a build gives holds it on 0.088 of 1,785 TU plots at 0.5 mm, 0.442 at 5 mm (3c), 1,596 overrides until then, 32 with no value listed in cannot
@@ -41,19 +41,19 @@ Q026. Two curbs of one drawing: keep the Roads curb, ask which is current. Q027.
 Q031. Rev 9 faces, 97 differ: keep the baseplan, ask which is current. Q032. 1.4 FFL parameter as the design level. Q033. Lone DT3 on a VL3 face: hand rule of Q042. Q036. TBD for DLUS, accommodation for sales
 Q037. Corner fronts by the Orientation side (0.978 on 7 keys): confirm. Q038. Native ramp fronts 0.698 to 0.700 m over the subgrade: confirm, the IMC schedule stays the level key. Q039. Footprint test: done as the edge only third check
 Q041. Rows 2290 to 2299, the 4 middle DT1 as overrides: accept. Q042. Lone duplex hand: row pairs from the right end (382 of 382): accept
-Q051. Rev 01 values: send the Rev 01 sections on steps, base heights and ramps. Q052. Weak rules hold on the keys through their overrides, as the majority rule says, by the rule alone El @ Entry 157 of 1,753, FFL 217 of 1,759, ramp front 1,283 of 1,759 (3c): accept until Q001 and Q051
-Q053. 12,424 overrides and 154 misses with no value in cannot, native 5,222 kept unless a run names --replace native, a build applies parsons only unless it names native (R330), mark a hand edit "byHand": true: keep. Q054. R260 of DATA-5 and R261 to R282: keep both. Q055. 1.4 ELl@Entry typed off its ramp on 5 plots: read El @ Entry off the ramp
+Q051. Rev 01 values: send the Rev 01 sections on steps, base heights and ramps. Q052. Weak rules hold on the keys through their overrides, as the majority rule says, by the rule alone El @ Entry 157 of 1,753, FFL 220 of 1,759 (217 in 3c), ramp front 1,283 of 1,759 (4b): accept until Q001 and Q051
+Q053. 12,421 overrides and 154 misses with no value in cannot, native 5,222 kept unless a run names --replace native, a build applies parsons only unless it names native (R330), mark a hand edit "byHand": true: keep. Q054. R260 of DATA-5 and R261 to R282: keep both. Q055. 1.4 ELl@Entry typed off its ramp on 5 plots: read El @ Entry off the ramp
 Q056. Native models: hands, fronts and ramps only, never unit codes. Q057. Ramp front fall with no direction (0.764), not applied, a front corner off over 0.5 mm on 1,665 of 1,759 plots, over 5 mm on 257: accept. Q058. Old 20221206 prototypes: send the folder to check their hands
 Q059. NBH 03 build on native2022 with only the 1.2 entry and front overrides: accept. Q062. Rev 9 attribute values of the probe: keep them
 Q063. Whole NBH 03 image past 30 minutes: accept the quarter images and make large images in quarters, the cause stays a known bug. Q064. Watcher through the job, withdrawn: keep it stopping at the first log step
 Q065. zone2 IMC file, the floor scenario master: replace it by a copy of the Zone 02\ARC original. Q066. No Parsons TU model of Zone 1: send the IMA and IMB TU models, else accept the Native stand-in. Until then the Zone 1 yard is the Zone 2 and 3 value, and by the ARC files a build links 6 SE hands differ, overrides since the last pass
 Q068. Project position of button 1: set the Parsons position from config, not R211. Q069. A remade key copy: file it by the hashes the test host logs, by hand until then
-Q070. El @ Entry with no schedule: take the ELl@Entry parameter of the key, it is off the IMC schedule by over 30 mm on 100 of 314 plots, off the IMD schedule on 115 of 398, and IME to IMG set 113 FFL groups over 5 mm off it, 107 by whole cm (IME 28, IMF 67, IMG 12, heightM overrides), ask Parsons for the IME to IMG schedules
+Q070. El @ Entry with no schedule: take the ELl@Entry parameter of the key, it is off the IMC schedule by over 30 mm on 100 of 314 plots, off the IMD schedule on 115 of 398, and IME to IMG set 113 FFL groups over 5 mm off it (3c), 107 by whole cm (IME 28, IMF 67, IMG 12, heightM overrides), ask Parsons for the IME to IMG schedules
 Q071. Walls: accept the base at the yard level, the centre on the edge and the open front, ask the architect for the wall top rule (0.346), wall overrides once button 7 places walls
 Q072. Side road of a villa with three road edges (IMC 2301, IME 2710, IMG 441): the side edge, not the back: accept. Q073. 33 plots with a front corner on no road surface have no El @ Entry and are not written (IMA 1, IMB 2, IMD 3, IME 3, IMF 14, IMG 10): take the road of the covered corner for both, else send the surface. Q074. Steps of the base and risers, half a riser no step (0.988 on 5 keys), against the count rule the IMC and IMD schedules follow (0.934 on 5): accept, 48 overrides, 16 that break it, 32 with no value of it (no road level or no front frame). Q075. 1,346 native entries with no value kept from Round 17, a native2022 build loading them is refused: move them to cannot by a run with --replace native
 Q076. Python checker licences: shapely is BSD-3-Clause and its wheels bundle GEOS under LGPLv2.1, nothing of Python ships: keep it for the checker
 Q077. The worker: buttons 2 and 3 read and build in CadReader.exe beside Revit, the Road Layout read alone took 2,571 to 2,612 MiB and PdfPig needs a System.Memory Revit 2024 lacks: accept. Q078. Rounding: Python and C# round the 15 digit decimal half away from zero (R385), 12.3455 gives 12.346 in both, and values of both move one unit on a tie, Python round() took 12.3455 down, C# Math.Round took 0.5005 to 0.5 (4 of 10 C# tests failed first): accept
-Q079. netstandard2.0 asks for Microsoft.NETCore.Platforms 1.1.0, Microsoft .NET Library licence, no file copied: pinned to 3.1.0, MIT, build only: accept. Q080. R385 in the level builders moves the FFL of a piece 1 mm up on a tie, 350 level items of the keys off: apply it in 4b with the level overrides measured again: accept
+Q079. netstandard2.0 asks for Microsoft.NETCore.Platforms 1.1.0, Microsoft .NET Library licence, no file copied: pinned to 3.1.0, MIT, build only: accept. Q081. R387 as designed cannot hold: with the shape nearest each E = text as its mark it was refused, a single label on 0 faces, and with the marks patched by shape, the 3.96 pt curves, they lie 0.97 m off one line and their exact affine 31.7 m off the schedule fit, 2,524 faces otherwise: take the curves by shape, start from their similarity, then the refine, 4 faces numbered otherwise: accept, or keep the R181 distances only
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 

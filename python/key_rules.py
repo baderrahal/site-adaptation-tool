@@ -19,6 +19,7 @@ from collections import Counter
 from shapely.geometry import Point
 
 import cad_links
+import common
 import floor_fit
 import ramp_outline
 
@@ -64,25 +65,25 @@ def site_facts(documents, reference):
             compared.append(path)
             gap = math.dist(mine, theirs) * 1000.0
             if gap > SAME_MM:
-                differ[path] = round(gap, 1)
+                differ[path] = common.fixed(gap, 1)
         if document.get("angleToTrueNorthDeg") is not None and base.get("angleToTrueNorthDeg") is not None:
             compared.append("angleToTrueNorthDeg")
             gap = cad_links.angle_gap(document["angleToTrueNorthDeg"], base["angleToTrueNorthDeg"])
             if gap > SAME_DEG:
-                differ["angleToTrueNorthDeg"] = round(gap, 6)
+                differ["angleToTrueNorthDeg"] = common.fixed_once(gap, 6)
         site = site_parts(document)
         if site is not None and base_site is not None:
             compared.append("projectPosition")
             gap = math.dist(site["position"], base_site["position"]) * 1000.0
             if gap > SAME_MM or cad_links.angle_gap(site["angle"], base_site["angle"]) > SAME_DEG:
-                differ["projectPosition"] = round(gap, 1)
+                differ["projectPosition"] = common.fixed(gap, 1)
             for name in sorted(set(site["levels"]) | set(base_site["levels"])):
                 compared.append("levels." + name)
                 mine, theirs = site["levels"].get(name), base_site["levels"].get(name)
                 if mine is None or theirs is None:
                     differ["levels." + name] = None
                 elif abs(mine - theirs) * 1000.0 > SAME_MM:
-                    differ["levels." + name] = round(abs(mine - theirs) * 1000.0, 1)
+                    differ["levels." + name] = common.fixed(abs(mine - theirs) * 1000.0, 1)
             for name in ("names", "units"):
                 for field, value in site[name].items():
                     compared.append(field)
@@ -94,7 +95,7 @@ def site_facts(documents, reference):
         ordered = sorted(base_site["levels"].items(), key=lambda pair: (pair[1], pair[0]))
         lowest = ordered[0][1] if ordered else None
         shared = {"angleToTrueNorthDeg": base.get("angleToTrueNorthDeg"), "activeSite": base_site["names"]["activeSite"], "sites": base_site["names"]["sites"],
-                  "levels": [name for name, _ in ordered], "levelStepsM": {name: round(value - lowest, 3) for name, value in ordered[1:]},
+                  "levels": [name for name, _ in ordered], "levelStepsM": {name: common.fixed(value - lowest, 3) for name, value in ordered[1:]},
                   "units": dict(base_site["units"])}
     return {"reference": reference, "oneSet": all(not entry["differ"] for entry in keys.values()), "keys": keys, "shared": shared}
 
@@ -141,7 +142,7 @@ def rotation_gap(item, value, rule):
     """R332. A rotation override is its gap to the rule in degrees, from minus 180 up to 180, never the rotation itself."""
     if rule is None:
         return None
-    return {"gapToRuleDeg": round((value - rule + 180.0) % 360.0 - 180.0, 3)}
+    return {"gapToRuleDeg": common.fixed((value - rule + 180.0) % 360.0 - 180.0, 3)}
 
 
 def fit_unit(code, fits, typologies):
@@ -160,7 +161,7 @@ def refit(items):
     counts = {}
     for link in links.values():
         counts[link["unit"]] = counts.get(link["unit"], 0) + 1
-    return {unit: {"anchor": fit["anchor"], "offset": [round(fit["offset"][0], 3), round(fit["offset"][1], 3)], "plots": counts[unit]} for unit, fit in fits.items()}
+    return {unit: {"anchor": fit["anchor"], "offset": [common.fixed(fit["offset"][0], 3), common.fixed(fit["offset"][1], 3)], "plots": counts[unit]} for unit, fit in fits.items()}
 
 
 def origin_target(item):
@@ -190,7 +191,7 @@ def insert_gap(item, value, rule):
         return None
     axis_x, axis_y = cad_links.link_axes(item["frame"], item["row"]["mirrored"])
     along, inward = cad_links.in_axes(value, rule, axis_x, axis_y)
-    return {"gapToRuleM": [round(along, 3), round(inward, 3)]}
+    return {"gapToRuleM": [common.fixed(along, 3), common.fixed(inward, 3)]}
 
 
 
@@ -251,7 +252,7 @@ def corner_hold(limit):
 
 def corner_gap(item, value, rule):
     """R334. A ramp outline override is its largest corner gap to the rule in metres, never a corner."""
-    return None if rule is None or value is None else {"gapToRuleM": round(ramp_outline.compare_outline(rule, value)["corner"], 3)}
+    return None if rule is None or value is None else {"gapToRuleM": common.fixed(ramp_outline.compare_outline(rule, value)["corner"], 3)}
 
 
 def outline_rows(plans, frames, step):
@@ -288,7 +289,7 @@ def shape_hold(limit):
 
 
 def shape_gap(item, value, rule):
-    return None if rule is None or value is None else {"gapToRuleM": round(floor_fit.outline_gap(rule, value), 3)}
+    return None if rule is None or value is None else {"gapToRuleM": common.fixed(floor_fit.outline_gap(rule, value), 3)}
 
 
 def entry_refused(plans):
@@ -405,7 +406,7 @@ def level_hold(limit):
 
 
 def level_gap(item, value, rule):
-    return None if rule is None or value is None else {"gapToRuleM": round(value - rule, 4)}
+    return None if rule is None or value is None else {"gapToRuleM": common.fixed(value - rule, 4)}
 
 
 def front_cover(frame, walls, near):

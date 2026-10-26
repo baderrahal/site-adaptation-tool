@@ -16,6 +16,7 @@ on the levels of the key and judged on the FFL and the height a build holds. SSL
 import statistics
 from collections import defaultdict
 
+import common
 import plan_rules
 
 EPSILON = 1e-9
@@ -56,6 +57,12 @@ def table_of(result, label):
     """The table a factor learned, by its value, the scope of the group left out."""
     rule = ((result or {}).get("tests") or {}).get(label, {}).get("rule") or {}
     return {key.split(" | ", 1)[1]: value for key, value in rule.items()}
+
+
+def piece_base(ffl, entry):
+    """R339. The base of the unit that sets the FFL of its piece, the FFL of the key less its El @ Entry, at the 4 decimals of a height,
+    rounded once (R385), so majority.json and keyRules.baseHeight.table hold it at 4."""
+    return common.fixed_once(ffl - entry, plan_rules.ENTRY_DECIMALS)
 
 
 def missed(misses, name):
@@ -157,11 +164,11 @@ def measure(record, group, pool, kept, lv, profile, block, book, surfaces, extra
         held = [by_pair.get((item["key"], plot)) for plot in piece]
         if any(other is None or key_entry.get((item["key"], other["plot"])) is None or other["row"]["ffl"] is None for other in held):
             continue
-        if len({round(other["row"]["ffl"], 3) for other in held}) != 1:
+        if len({common.fixed(other["row"]["ffl"], plan_rules.FFL_DECIMALS) for other in held}) != 1:
             continue
         top = max(held, key=lambda other: key_entry[(item["key"], other["plot"])] + plan_rules.base_of(profile, other["code"]))
         tops.append({"plot": top["plot"], "key": top["key"], "group": group, "code": top["code"], "modelKind": top.get("modelKind"), "file": top.get("file"),
-                     "factors": {"all": "all", "typology": top["code"]}, "base": round(top["row"]["ffl"] - key_entry[(top["key"], top["plot"])], 4)})
+                     "factors": {"all": "all", "typology": top["code"]}, "base": piece_base(top["row"]["ffl"], key_entry[(top["key"], top["plot"])])})
     base = record(group + " baseHeight", tops, lambda item: item["base"], {"profile": lambda item: plan_rules.base_of(profile, item["code"]), "typology": "typology"},
                   by_group, "baseHeight", hold, bands=bands, listed=True)
     base_rule = {"rule": "typology", "table": table_of(base, "typology")} if base is not None and base["coded"] == "typology" else None
@@ -186,11 +193,11 @@ def measure(record, group, pool, kept, lv, profile, block, book, surfaces, extra
 
     def key_height(item):
         entry = clean(item["row"])
-        return None if entry is None or item["row"]["ffl"] is None else round(item["row"]["ffl"] - entry, plan_rules.ENTRY_DECIMALS)
+        return None if entry is None or item["row"]["ffl"] is None else common.fixed(item["row"]["ffl"] - entry, plan_rules.ENTRY_DECIMALS)
 
     def built_height(item):
         level, entry = built_ffl(item), built_entry(item["key"], item["plot"])
-        return None if level is None or entry is None else round(level - entry, plan_rules.ENTRY_DECIMALS)
+        return None if level is None or entry is None else common.fixed(level - entry, plan_rules.ENTRY_DECIMALS)
 
     def steps_by(rule, height_of):
         def steps(item):
@@ -208,6 +215,6 @@ def measure(record, group, pool, kept, lv, profile, block, book, surfaces, extra
         chosen = [item for item in kept("parameter") if number(parameter(item, name)) is not None]
         record(group + " parameter " + name, chosen, lambda item, name=name: float(parameter(item, name)),
                {"ffl": lambda item: item["row"].get("ffl"), "genericTop": lambda item: item["row"].get("genericTop"), "fflDownToTheCm": lambda item: down(item["row"].get("ffl"))},
-               by_group, "parameter " + name, hold, gap=lambda item, value, rule: None if rule is None or value is None else {"gapToRuleM": round(value - rule, 4)},
+               by_group, "parameter " + name, hold, gap=lambda item, value, rule: None if rule is None or value is None else {"gapToRuleM": common.fixed(value - rule, plan_rules.ENTRY_DECIMALS)},
                bands=bands, build_view={"ffl": built_ffl, "fflDownToTheCm": lambda item: down(built_ffl(item))}, listed=True)
     extras["levelNotMeasured"].update(block.get("levelNotMeasured") or {})

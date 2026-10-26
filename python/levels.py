@@ -16,7 +16,7 @@ ENTRY_DECIMALS = 4
 HEIGHT_DECIMALS = 4
 # The FFL is taken to the millimetre before the height, as the sheets write it, so a height is never worked out from a hidden fourth decimal
 FFL_DECIMALS = 3
-# A height is compared with the span to the millimetre, half a millimetre rounds up. The slack is explicit because round() on a height such as
+# A height is compared with the span to the millimetre, half a millimetre rounds up. The slack is explicit because a rounding of a height such as
 # 0.0995 would let binary float noise decide, and the epsilon keeps a height that is exactly on the half millimetre inside the span
 HALF_MM = 0.0005
 EPSILON = 1e-9
@@ -60,7 +60,7 @@ def height_span(profile):
 def steps_for(height, rule):
     """The step count for a height in metres. A height equal to a limit counts with the band that starts there."""
     limits, top = rule
-    height = round(height, BAND_DECIMALS)
+    height = common.fixed(height, BAND_DECIMALS)
     for limit, steps in limits:
         if height < limit:
             return steps
@@ -115,7 +115,7 @@ def compute(profile, clusters, entries):
         bases = [base_height(profile, unit) for unit in ends]
         base = max(bases) if bases else None
         top = max(entries[plot]["entry"] for plot in known) if known else None
-        ffl = None if top is None else round(top + base, FFL_DECIMALS)
+        ffl = None if top is None else common.fixed(top + base, FFL_DECIMALS)
         end_missing = plots[0] not in entries or plots[-1] not in entries
         for plot in plots:
             row = {"plot": plot, "unit": entries[plot]["unit"] if plot in entries else None, "cluster": code, "size": len(plots),
