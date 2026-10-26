@@ -751,10 +751,10 @@ def main(argv=None):
     parser.add_argument("--plots-csv", required=True, help="plots.csv of the snapshot")
     parser.add_argument("--landxml", required=True, help="the landxml folder of the snapshot")
     parser.add_argument("--site", required=True, help="testhost_<code>_site.json of the newSite job")
-    parser.add_argument("--baseplan", required=True, help="plots.json of the baseplan reader")
-    parser.add_argument("--roads", required=True, help="folder with pieces.json of the road layout reader")
+    parser.add_argument("--baseplan", help="R388. plots.json of the baseplan reader, the one cadReads of config names when left out, else a copy of its bytes")
+    parser.add_argument("--roads", help="R388. folder with pieces.json of the road layout reader, the one cadReads names when left out, else a copy of its pieces.json")
     parser.add_argument("--analysis", help="analysis.json of cad_analysis.py, its clusters are used when no footprint blocks are given")
-    parser.add_argument("--footprint-blocks", help="R236. blocks.json of the footprint drawing, the plots that share a block are the clusters")
+    parser.add_argument("--footprint-blocks", help="R236. blocks.json of the footprint drawing, the plots that share a block are the clusters, R388 the one cadReads names or a copy of its bytes")
     parser.add_argument("--offsets", default=str(prototype_offsets.DEFAULT_PATH))
     parser.add_argument("--floors", default=str(floor_fit.DEFAULT_PATH))
     parser.add_argument("--scratch", required=True, help="a folder outside the repo for the LandXML reader")
@@ -789,8 +789,8 @@ def main(argv=None):
         out = Path(args.out)
         plot_relations.refuse_inside_repo(out.resolve().parent)
         rows, number_of = book_rows(args.plots_csv)
-        # R388. Each CadReader output the build reads is of a drawing in Meters, held right before it is read
-        cad_units.check(args.baseplan)
+        # R388. Each CadReader output the build reads is the one config names, of a drawing in Meters, held right before it is read
+        args.baseplan = str(cad_units.read_input(settings, "baseplan", args.baseplan))
         baseplan = link_summary.load(args.baseplan)["plots"]
         # R345. A ring shapely would mend and the C# would not is refused, so the build and its C# take the same faces
         refused = face_rings.refusals(baseplan, area_tolerance(settings))
@@ -805,10 +805,10 @@ def main(argv=None):
         if args.steps_only:
             print("steps faces of %d plots written to %s, no plan built (R345)" % (len(cover["plots"]), args.steps))
             return 0
-        cad_units.check(args.roads)
+        args.roads = str(cad_units.read_input(settings, "roads", args.roads))
         roads = cad_analysis.read_road_edges(args.roads, settings.get("analysis")["roadEdgeLayers"])
         if args.footprint_blocks:
-            cad_units.check(args.footprint_blocks)
+            args.footprint_blocks = str(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks))
         shapes = footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings)) if args.footprint_blocks else None
         analysis = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"] if args.analysis else None
         if shapes is not None:

@@ -56,6 +56,10 @@
     ],
     "baseplanPlots": "sample_output\\round12\\full\\ROSHN Makkah Baseplan.dwg\\plots.json"
   },
+  "cadReads": {
+    "note": "R388. The folder of the CadReader reads the measure (python/majority.py) and the build (python/plan_from_book.py) read, relative to the repo: the read folder of each drawing of drawings, baseplan, roadLayout and villaBlocks, with its layers.json, so both read one set through the units check. A file a run names that is not the one named here is taken only as a copy of its bytes by SHA-256, such as the outputs the Round 17 snapshot copied alone.",
+    "root": "sample_output/round12/full"
+  },
   "testHost": {
     "model": "00_Revit Models\\Zone 02\\ARC\\01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt",
     "order": ["C10", "TH1", "VD2", "DP1", "DP2", "DP3", "DP4", "DT1", "DT3", "TH3", "VD4", "VL4", "VL6"],

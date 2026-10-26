@@ -65,13 +65,13 @@ def test_r388_a_drawing_in_millimetres_is_refused(tmp_path, capsys):
     # A folder of pieces.json is held by its own layers.json
     with pytest.raises(cad_units.UnitError, match="Unitless"):
         cad_units.check((cad_output(tmp_path / "roads", "Unitless", "pieces.json", {"source": "r.dwg", "pieces": []})).parent)
-    # plan_from_book.py refuses the build before it reads the drawing, with exit 2 and the reason
+    # plan_from_book.py refuses the build before it reads the drawing, with exit 2 and the reason, the baseplan of the reads config names
     cover = tmp_path / "cover.json"
     cover.write_text(json.dumps({"neighbourhood": "N1", "plots": ["1"]}), encoding="utf-8")
-    baseplan = cad_output(tmp_path / "mm", "Millimeters")
-    roads = cad_output(tmp_path / "metres_roads", "Meters", "pieces.json", {"source": "r.dwg", "pieces": []}).parent
-    args = [str(cover), "--plots-csv", str(tmp_path / "plots.csv"), "--landxml", str(tmp_path), "--site", str(tmp_path / "site.json"), "--baseplan", str(baseplan),
-            "--roads", str(roads), "--scratch", str(tmp_path / "scratch"), "--out", str(tmp_path / "plan.json")]
+    settings = tmp_path / "project.json"
+    settings.write_text(json.dumps(read_set(tmp_path / "set", "Millimeters").values), encoding="utf-8")
+    args = [str(cover), "--plots-csv", str(tmp_path / "plots.csv"), "--landxml", str(tmp_path), "--site", str(tmp_path / "site.json"),
+            "--scratch", str(tmp_path / "scratch"), "--out", str(tmp_path / "plan.json"), "--settings", str(settings)]
     (tmp_path / "plots.csv").write_text("baseplanLabel,locationPlanNumber\n1,1\n", encoding="utf-8")
     assert plan_from_book.main(args) == 2 and not (tmp_path / "plan.json").exists()
     err = capsys.readouterr().err
@@ -83,3 +83,76 @@ def test_r388_a_drawing_in_millimetres_is_refused(tmp_path, capsys):
         data_book.folder_of(book, "roads", [str(tmp_path / "earlier")])
     cad_output(tmp_path / "good" / "r.dwg", "Meters", "pieces.json", {"source": "r.dwg", "pieces": []})
     assert data_book.folder_of(book, "roads", [str(tmp_path / "good")])[1] == tmp_path / "good" / "r.dwg"
+
+
+def baseplan_settings(folder):
+    """A made up config file whose cadReads names folder as the read of the baseplan, so a build reads the plots.json made up in it (R388)."""
+    import project_profile
+    values = json.loads(json.dumps(project_profile.load_settings().values))
+    values["cadReads"] = dict(values["cadReads"], root=str(folder.parent))
+    values["drawings"] = dict(values["drawings"], baseplan=folder.name)
+    path = folder.parent / (folder.name + "_project.json")
+    path.write_text(json.dumps(values), encoding="utf-8")
+    return path
+
+
+def read_set(tmp_path, units="Meters"):
+    """A made up config whose cadReads root holds the CadReader reads of the three drawings config names, each with its layers.json."""
+    import project_profile
+    values = json.loads(json.dumps(project_profile.load_settings().values))
+    values["cadReads"] = dict(values["cadReads"], root=str(tmp_path / "reads"))
+    drawings = values["drawings"]
+    cad_output(tmp_path / "reads" / drawings["baseplan"], units, "plots.json", {"source": "b.dwg", "plots": [{"label": "1"}]})
+    cad_output(tmp_path / "reads" / drawings["roadLayout"], units, "pieces.json", {"source": "r.dwg", "pieces": []})
+    cad_output(tmp_path / "reads" / drawings["villaBlocks"], units, "blocks.json", {"source": "f.dwg", "blocks": []})
+    return project_profile.ProjectProfile(project_profile.SETTINGS_PATH, values)
+
+
+# R388 the measure and the build read the CadReader outputs config names, one set, through the units check
+def test_r388_the_measure_and_the_build_read_the_one_set_of_cad_outputs_config_names(tmp_path):
+    settings = read_set(tmp_path)
+    drawings = settings.get("drawings")
+    named = {role: cad_units.read_input(settings, role, None) for role in cad_units.ROLES}
+    assert named == {"baseplan": tmp_path / "reads" / drawings["baseplan"] / "plots.json", "roads": tmp_path / "reads" / drawings["roadLayout"],
+                     "footprintBlocks": tmp_path / "reads" / drawings["villaBlocks"] / "blocks.json"}
+    # A copy of the same bytes, as the Round 17 snapshot copied the outputs alone, is one set with them, the file config names is read
+    copy = tmp_path / "snapshot" / "plots.json"
+    copy.parent.mkdir()
+    copy.write_bytes(named["baseplan"].read_bytes())
+    assert cad_units.read_input(settings, "baseplan", copy) == named["baseplan"]
+    roads = tmp_path / "snapshot" / "roads"
+    roads.mkdir()
+    (roads / "pieces.json").write_bytes((named["roads"] / "pieces.json").read_bytes())
+    assert cad_units.read_input(settings, "roads", roads) == named["roads"]
+    # A file of other bytes is another set, refused with both named
+    copy.write_text(json.dumps({"source": "b.dwg", "plots": [{"label": "2"}]}), encoding="utf-8")
+    with pytest.raises(cad_units.UnitError, match="SHA-256") as error:
+        cad_units.read_input(settings, "baseplan", copy)
+    assert str(copy) in str(error.value) and drawings["baseplan"] in str(error.value)
+    # The file config names goes through the units check of its read
+    with pytest.raises(cad_units.UnitError, match="Feet"):
+        cad_units.read_input(read_set(tmp_path / "feet", "Feet"), "footprintBlocks", None)
+
+
+def test_r388_majority_and_plan_from_book_take_their_cad_outputs_from_the_one_place(tmp_path, monkeypatch):
+    import majority
+    import project_profile
+    seen = []
+
+    def read_input(settings, role, given):
+        seen.append((role, given))
+        raise cad_units.UnitError("stop at " + role)
+
+    settings = read_set(tmp_path)
+    monkeypatch.setattr(cad_units, "read_input", read_input)
+    monkeypatch.setattr(majority.plan_from_book, "book_rows", lambda path: ({}, {}))
+    monkeypatch.setattr(majority, "read_rows", lambda path, settings, block: [])
+    monkeypatch.setattr(project_profile, "load_settings", lambda path=None: settings)
+    assert majority.main(["t.csv", "--plots-csv", "p.csv", "--analysis", "a.json", "--sales", "s.xlsx", "--out", str(tmp_path / "m.json"),
+                          "--overrides", str(tmp_path / "o.json")]) == 2
+    assert seen == [("baseplan", None)]
+    seen.clear()
+    from test_round_addin import run_book
+    monkeypatch.undo()
+    code, _ = run_book(tmp_path, monkeypatch, [], read_input)
+    assert code == 2 and seen == [("baseplan", "b.json")]

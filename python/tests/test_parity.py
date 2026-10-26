@@ -205,10 +205,12 @@ def book(tmp_path, bom=False, plots=None):
 
 
 def run_steps(tmp_path, cover, extra=(), bom=False, plots=None):
+    from test_input_units import baseplan_settings
     folder = book(tmp_path, bom, plots)
+    # R388. The build reads the baseplan config names, so the made up config names the made up read
     argv = [cover, "--labels", str(folder / "labels.csv"), "--plots-csv", str(folder / "plots.csv"), "--baseplan", str(folder / "plots.json"),
             "--landxml", "x", "--site", "s.json", "--roads", "r", "--scratch", str(tmp_path), "--out", str(tmp_path / "plan.json"),
-            "--steps", str(tmp_path / "steps"), "--steps-only"] + list(extra)
+            "--steps", str(tmp_path / "steps"), "--steps-only", "--settings", str(baseplan_settings(folder))] + list(extra)
     return plan_from_book.main(argv)
 
 
@@ -412,7 +414,8 @@ def test_r345_the_run_stamp_names_its_run_id_the_code_that_wrote_it_and_its_conf
     run = python_step(tmp_path)["run"]
     assert re.fullmatch(r"python_[0-9a-f]{12}", run["runId"])
     assert re.fullmatch(r"python ([0-9a-f]{40}( with changes)?|commit unknown)", run["code"])
-    assert run["configSha256"] == hashlib.sha256(project_profile.SETTINGS_PATH.read_bytes()).hexdigest()
+    # The config the run named, made up so its baseplan is the made up read (R388)
+    assert run["configSha256"] == hashlib.sha256((tmp_path.parent / (tmp_path.name + "_project.json")).read_bytes()).hexdigest()
     first = run["runId"]
     assert run_steps(tmp_path, "all") == 0
     run = python_step(tmp_path)["run"]

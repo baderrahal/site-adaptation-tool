@@ -78,13 +78,15 @@ SUMMARY = {"written": 0, "plots": 0, "missingByKey": {}, "inACluster": 0, "clust
            "rules": {"keyRules": False, "laterFields": [], "overridesNotApplied": {}, "yardNotMeasured": {}}}
 
 
-def run_book(tmp_path, monkeypatch, extra):
+def run_book(tmp_path, monkeypatch, extra, read_input=None):
     """plan_from_book.main on the real config and rules profile with the readers of the drawings, the LandXML and the site
-    stubbed, so the rules a build gets and its refusals are seen through main itself."""
+    stubbed, so the rules a build gets and its refusals are seen through main itself. read_input stands for the R388 read of the
+    CadReader outputs, the file given when left out."""
     seen = {}
     monkeypatch.setattr(plan_from_book, "book_rows", lambda path: ({}, {}))
     monkeypatch.setattr(plan_from_book.link_summary, "load", lambda path: {"plots": []})
     monkeypatch.setattr(plan_from_book.cad_units, "check", lambda path: "Meters")
+    monkeypatch.setattr(plan_from_book.cad_units, "read_input", read_input or (lambda settings, role, given: given))
     monkeypatch.setattr(plan_from_book.cad_analysis, "read_road_edges", lambda folder, layers: [])
     monkeypatch.setattr(plan_from_book.plan_from_past, "prototype_folders", lambda root, job: ("folder", "upgraded"))
     monkeypatch.setattr(plan_from_book.plan_from_past, "write_plan", lambda out, plan: None)
@@ -302,6 +304,7 @@ NOT_VILLA_READERS = {
     "dxf_count.py": "counts the BLOCK records of a DXF",
     "road_layouts.py": "reads the paper space blocks of a road layout DXF",
     "data_book_readme.py": "describes the columns of blocks.csv",
+    "cad_units.py": "names the blocks.json of the footprint read config names and hashes its bytes, majority.py and plan_from_book.py read it through the guard (R388)",
     "data5_check.py": "counts the BLOCK records of a DXF a second way",
     "c3d_drawings.py": "surveys the block names of every drawing of the Roads and Base Plans folders (R154)",
 }

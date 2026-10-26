@@ -55,9 +55,11 @@ def run(tmp_path, plots):
     (tmp_path / "layers.json").write_text(json.dumps({"units": "Meters"}), encoding="utf-8")
     (tmp_path / "plots.csv").write_text("baseplanLabel,locationPlanNumber\n1,101\n2,102\n", encoding="utf-8")
     (tmp_path / "labels.csv").write_text("number,code,kind,nbh\n101,DP1,clientCode,012\n102,DP1,clientCode,012\n", encoding="utf-8")
+    from test_input_units import baseplan_settings
+    # R388. The build reads the baseplan config names, so the made up config names the made up read
     return plan_from_book.main(["all", "--labels", str(tmp_path / "labels.csv"), "--plots-csv", str(tmp_path / "plots.csv"), "--baseplan", str(tmp_path / "plots.json"),
                                 "--landxml", "x", "--site", "s.json", "--roads", "r", "--scratch", str(tmp_path), "--out", str(tmp_path / "plan.json"),
-                                "--steps", str(tmp_path / "steps"), "--steps-only"])
+                                "--steps", str(tmp_path / "steps"), "--steps-only", "--settings", str(baseplan_settings(tmp_path))])
 
 
 def test_r345_the_build_refuses_a_bow_tie_and_an_outline_drawn_twice(tmp_path, capsys):

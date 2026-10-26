@@ -4,12 +4,22 @@ A CadReader read writes layers.json beside its outputs with the InsUnits of the 
 carry none of their own, so their units are those of the layers.json of their folder. The reference reads a drawing only
 in Meters and never converts one: an output of another unit, or one with no layers.json beside it, such as a copy of plots.json alone,
 is refused with the file and the unit named.
+
+The measure (python/majority.py) and the build (python/plan_from_book.py) read one set of CadReader outputs, the read folders
+cadReads.root of config/project.json names by the drawings of drawings, each through this check (read_input).
 """
+import hashlib
 import json
 from pathlib import Path
 
+import project_profile
+
 METRES = "Meters"
 LAYERS = "layers.json"
+# R388. The CadReader outputs the measure and the build read, by role: the drawing of drawings in config and the file of its read, the
+# folder for the road layout, whose pieces.json tells one set from another
+ROLES = {"baseplan": ("baseplan", "plots.json"), "roads": ("roadLayout", None), "footprintBlocks": ("villaBlocks", "blocks.json")}
+FOLDER_FILE = "pieces.json"
 
 
 class UnitError(ValueError):
@@ -26,3 +36,36 @@ def check(path):
     if units != METRES:
         raise UnitError("%s is of a drawing in %s, a drawing is read only in %s and never converted (R388)" % (path, units, METRES))
     return units
+
+
+def named_input(settings, role):
+    """R388. The CadReader output of role config names: the read folder of its drawing of drawings under cadReads.root, relative to the
+    repo when not absolute, and in it the file of the role, the folder itself for the road layout."""
+    reads = settings.get("cadReads")
+    if not isinstance(reads, dict) or not isinstance(reads.get("root"), str) or not reads["root"].strip():
+        raise UnitError("config holds no cadReads.root, the folder of the CadReader reads the measure and the build read (R388)")
+    root = Path(reads["root"])
+    key, name = ROLES[role]
+    folder = (root if root.is_absolute() else project_profile.ROOT / root) / settings.get("drawings")[key]
+    return folder if name is None else folder / name
+
+
+def digest(path, role):
+    """The SHA-256 of a CadReader output of role, of its pieces.json for a folder."""
+    return hashlib.sha256((Path(path) / FOLDER_FILE if ROLES[role][1] is None else Path(path)).read_bytes()).hexdigest()
+
+
+def read_input(settings, role, given=None):
+    """R388. The CadReader output of role the measure and the build read: the one config names (named_input), through check. A given
+    file that is not it is taken only as a copy of its bytes by SHA-256, such as the copies of the Round 17 snapshot, and the file
+    config names is read, else it is refused with both named, so the two read one set."""
+    found = named_input(settings, role)
+    if given is not None and Path(given).resolve() != found.resolve():
+        try:
+            same = digest(given, role) == digest(found, role)
+        except OSError as error:
+            raise UnitError("%s can not be held against the %s config names, %s, by SHA-256: %s (R388)" % (given, role, found, error)) from error
+        if not same:
+            raise UnitError("%s is another file than the %s config names, %s, by SHA-256, the measure and the build read one set (R388)" % (given, role, found))
+    check(found)
+    return found

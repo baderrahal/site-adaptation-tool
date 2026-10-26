@@ -25,6 +25,7 @@ from shapely.strtree import STRtree
 
 import cad_analysis
 import cad_links
+import cad_units
 import common
 import corner_front
 import floor_fit
@@ -892,10 +893,10 @@ def main(argv=None):
     parser.add_argument("table", help="past_all.csv")
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH))
     parser.add_argument("--plots-csv", required=True)
-    parser.add_argument("--baseplan", required=True)
-    parser.add_argument("--roads", required=True)
+    parser.add_argument("--baseplan", help="R388. plots.json of the baseplan, the one cadReads of config names when left out, else a copy of its bytes")
+    parser.add_argument("--roads", help="R388. the folder of the road layout read, the one cadReads names when left out, else a copy of its pieces.json")
     parser.add_argument("--analysis", required=True)
-    parser.add_argument("--footprint-blocks", required=True)
+    parser.add_argument("--footprint-blocks", help="R388. blocks.json of the footprint drawing, the one cadReads names when left out, else a copy of its bytes")
     parser.add_argument("--sales", required=True)
     parser.add_argument("--model", nargs=2, action="append", metavar=("KEY", "FILE"), default=[], help="the past model file of a key, the override source")
     parser.add_argument("--out", required=True, help="the report, outside the repo")
@@ -914,7 +915,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         return run_args(args)
-    except project_profile.ProfileError as error:
+    except (project_profile.ProfileError, cad_units.UnitError) as error:
         print("majority: " + str(error), file=sys.stderr)
         return 2
 
@@ -927,13 +928,14 @@ def run_args(args):
     plot_relations.refuse_inside_repo(Path(args.out).resolve().parent)
     rows = read_rows(args.table, settings, block)
     book, number_of = plan_from_book.book_rows(args.plots_csv)
-    by_label, _ = yard_rule.face_shapes(link_summary.load(args.baseplan)["plots"], 0)
+    # R388. The CadReader outputs the build reads, the ones config names, each of a drawing in Meters
+    by_label, _ = yard_rule.face_shapes(link_summary.load(cad_units.read_input(settings, "baseplan", args.baseplan))["plots"], 0)
     faces = {number_of[label]: shape for label, shape in by_label.items() if label in number_of}
     sheet = json.loads((project_profile.ROOT / "python" / "c3d_probe.json").read_text(encoding="utf-8"))["dataBook"]["locationPlan"]["sales"]
     sales = corner_front.sales_rows(args.sales, sheet["sheet"], sheet["columns"]["plot"])
-    roads = cad_analysis.read_road_edges(args.roads, settings.get("analysis")["roadEdgeLayers"])
+    roads = cad_analysis.read_road_edges(cad_units.read_input(settings, "roads", args.roads), settings.get("analysis")["roadEdgeLayers"])
     analysis = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"]
-    shapes = footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings))
+    shapes = footprint_check.block_shapes(footprint_check.footprint_blocks(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks), settings))
     # R339. The groups a build by keyRules builds have their levels held against the road that build gives at the front corners
     built_levels = level_groups(profile, block)
     need_roads(built_levels, getattr(args, "landxml", None), getattr(args, "scratch", None))
