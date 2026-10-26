@@ -298,3 +298,10 @@ def test_r385_a_float_cell_of_plots_csv_is_written_by_the_rule_at_4_decimals():
     assert data_book.cell(12.34565) == "12.3457" and data_book.cell(7.00625) == "7.0063" and data_book.cell(0.50005) == "0.5001"
     assert repr(round(12.34565, 4)) == "12.3456"
     assert data_book.cell(-0.00004) == "0.0" and data_book.cell(3) == "3" and data_book.cell(1.234567) == "1.2346"
+
+
+def test_r385_a_float_cell_that_is_not_finite_is_written_as_before_the_rule():
+    # R385 gives no value for NaN and infinity, so the cell keeps the text round() gave before it, which reads back as the same float
+    nan, inf = float("nan"), float("inf")
+    assert [repr(round(value, 4)) for value in (nan, inf, -inf)] == ["nan", "inf", "-inf"]
+    assert [data_book.cell(value) for value in (nan, inf, -inf)] == ["nan", "inf", "-inf"]

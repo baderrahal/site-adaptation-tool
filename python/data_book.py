@@ -404,6 +404,9 @@ def cell(value):
     if isinstance(value, bool):
         return "yes" if value else "no"
     if isinstance(value, float):
+        # R385 gives no value for NaN or infinity, so such a cell keeps the text round() wrote before the rule: nan, inf or -inf
+        if not math.isfinite(value):
+            return repr(value)
         # R385, plots.csv is read by the build and by the face step of the parity
         return repr(float(common.fixed(value, 4)))
     return str(value)
