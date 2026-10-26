@@ -195,3 +195,21 @@ def test_r386_a_refused_skip_writes_neither_majority_json_nor_the_override_list(
     majority.finish(args, {"overrideNote": "n"}, {"1": {}, "2": {}}, {"plots": 1, "share": 0.5}, listed, [])
     assert json.loads((tmp_path / "run" / "majority.json").read_text(encoding="utf-8")) == {"plots": 1, "share": 0.5}
     assert json.loads(path.read_text(encoding="utf-8"))["skip"] == [{"plot": "2", "reason": "r", "byHand": True}]
+
+
+# R340, R386 a plot the skip list leaves out is counted apart as skipped by the build proof, never unexplained
+def test_r340_a_skip_plot_is_counted_apart_as_skipped_by_the_build_proof_and_never_unexplained(tmp_path, monkeypatch):
+    import build_proof
+    from test_addin_levels import level_build, level_context, proof_row
+    overrides = [entry("3", "heightM", {"gapToRuleM": -0.001}, "parsons", "IMC.rvt", "imc")]
+    _, plan = level_build(tmp_path, monkeypatch, overrides=overrides, skip=SKIP)
+    plan = {"plots": [], "missing": plan["missing"], "summary": plan["summary"]}
+    verdicts = build_proof.compare("imc", plan, [dict(proof_row("2", 10.0, 10.1, 1), key="imc")], {"plots": []}, level_context(), {})
+    assert [(item["plot"], item["field"], item["state"]) for item in verdicts] == [("2", "written", "skipped")]
+    assert "the client builds this plot later" in verdicts[0]["why"]
+    counted = build_proof.tally(verdicts)
+    assert counted["unexplainedByKey"] == {"imc": 0} and counted["skippedByKey"] == {"imc": 1} and counted["byState"] == {"skipped": 1}
+    # A plot the build leaves out for a skip and lacks something else as well is no skip alone, it stays unexplained
+    other = {"plots": [], "missing": [{"plot": "2", "written": False, "missing": [{"key": "skip", "why": "r"}, {"key": "unit", "why": "no row"}]}], "summary": {}}
+    verdicts = build_proof.compare("imc", other, [dict(proof_row("2", 10.0, 10.1, 1), key="imc")], {"plots": []}, level_context(), {})
+    assert verdicts[0]["state"] == "unexplained"
