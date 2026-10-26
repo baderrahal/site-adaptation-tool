@@ -114,9 +114,18 @@ def snap_z(surface, x, y, tolerance):
     z = surface.z_at(x, y)
     if z is not None or surface.count == 0:
         return z
+    found = edge_nearest(surface, x, y, tolerance)
+    return None if found is None else found[1]
+
+
+def edge_nearest(surface, x, y, reach):
+    """R157, R344. The nearest point of a triangle side of the surface within reach of the point: its distance and its level, else
+    None. A point inside a triangle lies on no side, so the caller asks z_at first."""
+    if surface.count == 0:
+        return None
     px, py = x - surface.origin[0], y - surface.origin[1]
-    i0, i1 = int(np.floor((px - tolerance) / surface.cell)), int(np.floor((px + tolerance) / surface.cell))
-    j0, j1 = max(int(np.floor((py - tolerance) / surface.cell)), 0), min(int(np.floor((py + tolerance) / surface.cell)), surface.ny - 1)
+    i0, i1 = int(np.floor((px - reach) / surface.cell)), int(np.floor((px + reach) / surface.cell))
+    j0, j1 = max(int(np.floor((py - reach) / surface.cell)), 0), min(int(np.floor((py + reach) / surface.cell)), surface.ny - 1)
     parts = []
     for i in range(max(i0, 0), min(i1, surface.nx - 1) + 1):
         lo = np.searchsorted(surface.keys, i * surface.ny + j0, "left")
@@ -138,7 +147,7 @@ def snap_z(surface, x, y, tolerance):
         k = int(distance.argmin())
         if best is None or distance[k] < best[0]:
             best = (float(distance[k]), float(az[k] + t[k] * (bz[k] - az[k])))
-    return best[1] if best[0] <= tolerance else None
+    return best if best[0] <= reach else None
 
 
 def text_value(text, survey):

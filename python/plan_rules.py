@@ -234,6 +234,19 @@ def road_names(site_build, lp):
     return list(site_build["roadSurfaces"]) if surface == ROAD_LEVEL else [surface]
 
 
+def road_reach(site_build, lp):
+    """R344. The reach and the sidewalk cross fall a front corner no surface of road_names covers takes the road by, after those
+    surfaces: siteBuild.roadReach for frontRoad roadLevel, None for a build on one named surface or a config with no roadReach."""
+    found = site_build.get("roadReach")
+    if lp["frontRoad"]["surface"] != ROAD_LEVEL or found is None:
+        return None
+    number = lambda value: isinstance(value, (int, float)) and not isinstance(value, bool)
+    if not number(found.get("reachM")) or found["reachM"] <= 0 or not number(found.get("crossFallPercent")):
+        raise project_profile.ProfileError("siteBuild.roadReach needs reachM, a distance over 0 m, and crossFallPercent, a number, it holds %s (R344)"
+                                           % {key: found.get(key) for key in ("reachM", "crossFallPercent")})
+    return {"reachM": float(found["reachM"]), "crossFallPercent": float(found["crossFallPercent"])}
+
+
 def key_levels_of(rules):
     """R340. True when keyRules holds the level rules a build carries out, the FFL among them, else the levels are those of R278."""
     return rules is not None and "ffl" in rules

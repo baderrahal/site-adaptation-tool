@@ -675,6 +675,16 @@ def level_road_names(groups, profile, settings):
     return list(next(iter(found))) if found else []
 
 
+def level_road_reach(groups, profile, settings):
+    """R344. The reach of plan_rules.road_reach the levels of those groups are measured with, the one a build of their level profile
+    takes, so a front corner no road surface covers holds the same road on both sides. Profiles that differ are refused."""
+    found = {json.dumps(plan_rules.road_reach(settings.get("siteBuild"), plan_rules.level_profile(profile, name)), sort_keys=True) for name in groups.values()}
+    if len(found) > 1:
+        raise project_profile.ProfileError("the level profiles of %s take other reaches of the road, %s, a run measures the levels on one road (R344)"
+                                           % (", ".join(sorted(groups)), " and ".join(sorted(found))))
+    return json.loads(next(iter(found))) if found else None
+
+
 def need_roads(groups, landxml, scratch):
     """R339. The levels of a group a build by keyRules builds are held against the road the build gives at the front corners, so
     the run needs the LandXML surfaces the build asks and a scratch folder for their reader, else it is refused."""
@@ -682,14 +692,14 @@ def need_roads(groups, landxml, scratch):
         raise project_profile.ProfileError("the levels of %s are measured on the road a build gives, give --landxml and --scratch (R339)" % ", ".join(sorted(groups)))
 
 
-def site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block, surfaces=(), snap=0.0, extra=None):
+def site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block, surfaces=(), snap=0.0, extra=None, reach=None):
     """R271. The context of every row of past_all.csv from the site as a build sees it: the front of every unit plot of plots.csv
     with a face, the clusters of the footprint blocks over every unit plot joined with those of the CAD analysis, their sides by the
     faces of every plot, the side neighbours, the side road, the row pairs and the villas between cluster units. A plot no key holds,
     such as a cut face, keeps its front, so a row of units is walked through it as a build walks it (Round ADDIN 3a review).
     Returns the items, the clusters, the fronts, the plots of the table and the tree of the road edges. R339: with surfaces and snap
     the fronts hold the road level a build gives at their two front corners, and extra, a dict, takes the roles of the clusters and
-    the row partner of every unit in no cluster."""
+    the row partner of every unit in no cluster. R344: reach gives a front corner no surface covers the road of the nearest one."""
     numbers = sorted({row["plot"] for row in rows}, key=link_summary.sort_key)
     units = [number for number, data in book.items() if data.get("typologyRev9") and number in faces]
     site = sorted(set(numbers) | set(units), key=link_summary.sort_key)
@@ -697,7 +707,7 @@ def site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, p
     # A face with two plan numbers, such as 476|477, is no plot of its own and leaves its cluster
     clusters = [cluster for cluster in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]} for cluster in clusters) if len(cluster["plots"]) > 1]
     corner = settings.get("siteBuild")["corner"]
-    front = plan_from_book.fronts(site, book, faces, roads, cad_links.front_limits(profile, settings.get("analysis")), list(surfaces), snap, profile, corner, sales)
+    front = plan_from_book.fronts(site, book, faces, roads, cad_links.front_limits(profile, settings.get("analysis")), list(surfaces), snap, profile, corner, sales, reach)
     frames = {number: item["frame"] for number, item in front.items()}
     roles = cad_links.cluster_roles(clusters, 0, faces, frames)
     neighbours = side_neighbours(units, faces, frames, block["sideShare"], profile.get("plot.long_side") / 1000.0)
@@ -939,13 +949,15 @@ def run_args(args):
     # R339. The groups a build by keyRules builds have their levels held against the road that build gives at the front corners
     built_levels = level_groups(profile, block)
     need_roads(built_levels, getattr(args, "landxml", None), getattr(args, "scratch", None))
-    road_surfaces, snap = [], 0.0
+    road_surfaces, snap, reach = [], 0.0, None
     if built_levels:
         plot_relations.refuse_inside_repo(Path(args.scratch).resolve())
         road_surfaces = plan_from_book.load_roads([Path(args.landxml) / (name + ".xml") for name in level_road_names(built_levels, profile, settings)], args.scratch)
         snap = settings.get("siteBuild")["snapM"]
+        reach = level_road_reach(built_levels, profile, settings)
     site_extra = {}
-    items, clusters, front, numbers, tree = site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block, road_surfaces, snap, site_extra)
+    items, clusters, front, numbers, tree = site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block, road_surfaces, snap, site_extra,
+                                                         reach)
     levels = {group: {"lp": plan_rules.level_profile(profile, name), "roles": site_extra["roles"], "partners": site_extra["partners"],
                       "site": {plot: {"front": found["front"], "depth": found.get("depth"), "unit": found.get("unit")} for plot, found in front.items()}}
               for group, name in built_levels.items()}

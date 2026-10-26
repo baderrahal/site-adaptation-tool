@@ -62,6 +62,8 @@ KEY_RULES = "keyRules"
 PARITY_STEPS = ("faces",)
 # R337. The source of a parameter that reads the steps, the stepBands of the level profile when keyRules codes no steps
 STEP_BANDS = "levelProfileStepBands"
+# R344. Beside the name of the surface whose nearest point gave a front corner its road by the reach
+REACH_MARK = " (R344)"
 sourced = plan_from_cad.sourced
 
 
@@ -121,12 +123,22 @@ def load_roads(files, scratch):
     return surfaces
 
 
-def road_level(surfaces, point, snap):
-    """R209. The level of the first surface that covers the point, snapped to its edge within snap (R157), and its name."""
+def road_level(surfaces, point, snap, reach=None):
+    """R209. The level of the first surface that covers the point, snapped to its edge within snap (R157), and its name. R344: when
+    none does, with reach, the level at the nearest point of the surfaces within reach["reachM"], the first in order on a tie, plus the
+    sidewalk cross fall times the distance, rising toward the plot, its name marked with REACH_MARK."""
     for name, surface in surfaces:
         z = c3d_connect.snap_z(surface, point[0], point[1], snap)
         if z is not None:
             return z, name
+    if reach:
+        best = None
+        for name, surface in surfaces:
+            found = c3d_connect.edge_nearest(surface, point[0], point[1], reach["reachM"])
+            if found is not None and (best is None or found[0] < best[0]):
+                best = (found[0], found[1], name)
+        if best is not None:
+            return best[1] + reach["crossFallPercent"] / 100.0 * best[0], best[2] + REACH_MARK
     return None, None
 
 
@@ -321,9 +333,10 @@ def level_values(builder, row):
         builder.entry["insert"]["value"][2] = row["ffl"]
 
 
-def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=None, sales=None):
+def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=None, sales=None, reach=None):
     """R209, R226. The frame, ramp outline and road level of each plot's front corners, with the surface that gave each level.
-    With corner settings and sales rows the frame comes from the corner rule, else from the R122 front."""
+    With corner settings and sales rows the frame comes from the corner rule, else from the R122 front. R344: reach, of
+    plan_rules.road_reach, gives a corner no surface covers the road of the nearest surface point."""
     tree = STRtree(roads)
     found = {}
     for number in numbers:
@@ -340,7 +353,7 @@ def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=
             depth = ramp_outline.setback(profile, item["unit"])
             item["depth"] = depth
             item["corners"] = ramp_outline.outline(frame, depth)
-            levels_found = [road_level(surfaces, corner, snap) for corner in item["corners"][:2]]
+            levels_found = [road_level(surfaces, corner, snap, reach) for corner in item["corners"][:2]]
             item["surfaces"] = [name for _, name in levels_found]
             if all(z is not None for z, _ in levels_found):
                 item["front"] = [z for z, _ in levels_found]
@@ -377,7 +390,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     # R340. The other unit of a row pair shares the FFL, so its El @ Entry is worked out as well
     members = sorted({plot for cluster in mine for plot in cluster["plots"]} | set(numbers) | {partners[number] for number in numbers if number in partners},
                      key=link_summary.sort_key)
-    front = fronts(members, rows, faces, roads, limits, surfaces, snap, profile, block.get("corner") if sales is not None else None, sales)
+    # R344. A build on the road surfaces gives a corner none of them covers the road of the nearest one by siteBuild.roadReach
+    reach = None if rules is None else plan_rules.road_reach(block, rules["levelProfile"])
+    front = fronts(members, rows, faces, roads, limits, surfaces, snap, profile, block.get("corner") if sales is not None else None, sales, reach)
     frames = {number: item["frame"] for number, item in front.items()}
     roles = cad_links.cluster_roles(mine, 0, {number: item["face"] for number, item in front.items() if item["face"] is not None}, frames)
     entries, slopes = {}, {}

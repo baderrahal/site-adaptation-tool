@@ -296,7 +296,7 @@ def key_build(tmp_path, monkeypatch, zones=("Zone 2", "Zone 2", "Zone 2", "Zone 
             for number, zone in zip(numbers, zones)}
     faces = {number: box(index * 12.0, 0.0, index * 12.0 + 12.0, 25.0) for index, number in enumerate(numbers)}
     roads = [LineString([(-50.0, -3.0), (100.0, -3.0)])]
-    monkeypatch.setattr(plan_from_book, "road_level", road or (lambda surfaces, point, snap: (10.0, "road")))
+    monkeypatch.setattr(plan_from_book, "road_level", road or (lambda surfaces, point, snap, reach=None: (10.0, "road")))
     path = None
     if overrides is not None:
         path = tmp_path / "overrides.json"

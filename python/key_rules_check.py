@@ -1114,9 +1114,14 @@ class OwnTin:
         found = self.inside(x, y)
         if found is not None:
             return found
+        best = self.nearest_side(x, y, snap)
+        return None if best is None else best[1]
+
+    def nearest_side(self, x, y, reach):
+        """R157, R344. The nearest point of a triangle side within reach: its distance and its level, else None."""
         best = None
-        for i in range(math.floor((x - snap) / CELL_M), math.floor((x + snap) / CELL_M) + 1):
-            for j in range(math.floor((y - snap) / CELL_M), math.floor((y + snap) / CELL_M) + 1):
+        for i in range(math.floor((x - reach) / CELL_M), math.floor((x + reach) / CELL_M) + 1):
+            for j in range(math.floor((y - reach) / CELL_M), math.floor((y + reach) / CELL_M) + 1):
                 for index in self.cells.get((i, j), ()):
                     corners = self.triangles[index]
                     for a, b in ((0, 1), (1, 2), (2, 0)):
@@ -1127,16 +1132,31 @@ class OwnTin:
                         distance = math.hypot(x - (ax + part * dx), y - (ay + part * dy))
                         if best is None or distance < best[0]:
                             best = (distance, az + part * (bz - az))
-        return best[1] if best is not None and best[0] <= snap else None
+        return best if best is not None and best[0] <= reach else None
 
 
-def own_road(tins, point, snap):
-    """R341. The level of the first surface, in the order of siteBuild.roadSurfaces, that covers the point within snap."""
+def own_road(tins, point, snap, reach=None):
+    """R341. The level of the first surface, in the order of siteBuild.roadSurfaces, that covers the point within snap. R344: when
+    none does, with reach, the nearest side of any of them within reachM, the first on a tie, plus crossFallPercent of its distance."""
     for _, tin in tins:
         found = tin.level(point[0], point[1], snap)
         if found is not None:
             return found
+    if reach:
+        sides = [tin.nearest_side(point[0], point[1], reach["reachM"]) for _, tin in tins]
+        sides = [side for side in sides if side is not None]
+        if sides:
+            distance, level = min(sides, key=lambda side: side[0])
+            return level + reach["crossFallPercent"] * distance / 100.0
     return None
+
+
+def own_reach(settings, lp):
+    """R344 by an own route: siteBuild.roadReach of the settings for a level profile whose frontRoad is the road level, else None."""
+    if lp["frontRoad"]["surface"] != "roadLevel" or "roadReach" not in settings["siteBuild"]:
+        return None
+    found = settings["siteBuild"]["roadReach"]
+    return {"reachM": float(found["reachM"]), "crossFallPercent": float(found["crossFallPercent"])}
 
 
 def own_fixed(value, decimals):
@@ -1356,10 +1376,11 @@ def level_inputs(ctx, settings, profile, rows, folder):
     box = (min(x for x, _ in points), min(y for _, y in points), max(x for x, _ in points), max(y for _, y in points)) if points else None
     tins = [(name, OwnTin(Path(folder) / (name + ".xml"), box)) for name in own_road_names(settings, lp)]
     snap = settings["siteBuild"]["snapM"]
+    reach = own_reach(settings, lp)
     setbacks = profile["ramp"]["front_setback"]
     road = {}
     for plot, pair in corners.items():
-        levels = [own_road(tins, point, snap) for point in pair]
+        levels = [own_road(tins, point, snap, reach) for point in pair]
         if any(level is None for level in levels):
             road[plot] = {"entry": None, "front": None}
             continue

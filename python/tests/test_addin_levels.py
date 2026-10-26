@@ -195,7 +195,7 @@ def level_build(tmp_path, monkeypatch, overrides=None, later=None, rules=None, s
             for number in numbers}
     faces = {number: box(index * 12.0, 0.0, index * 12.0 + 12.0, 25.0) for index, number in enumerate(numbers)}
     roads = [LineString([(-50.0, -3.0), (100.0, -3.0)])]
-    monkeypatch.setattr(plan_from_book, "road_level", lambda surfaces, point, snap: (10.0 + 0.01 * point[0] / 12.0, "road"))
+    monkeypatch.setattr(plan_from_book, "road_level", lambda surfaces, point, snap, reach=None: (10.0 + 0.01 * point[0] / 12.0, "road"))
     path = None
     if overrides is not None:
         path = tmp_path / "overrides.json"

@@ -152,6 +152,7 @@
     "zoneNbh": "01A",
     "roadSurfaces": ["Makkah Phase 1_Road Surface C3D__Top Surface-02", "Makkah Phase 1_Road Surface C3D__Top Surface-01", "Makkah Phase 1_Road Surface C3D__Part 4 Top Surfaces", "Makkah Phase 1_Road Surface C3D__Compiled West_MM", "Makkah Phase 1_Road Surface C3D__Top Surface Part 2 East Of East", "Makkah Phase 1_Road Surface C3D__Missed from Paste"],
     "snapM": 0.005,
+    "roadReach": {"note": "R344, Q073. A front corner no surface of roadSurfaces covers within snapM takes the road at the nearest point of those surfaces within reachM, plus crossFallPercent of its distance, the sidewalk rising toward the plot. reachM is the widest sidewalk of a local road in the Typical Cross Sections drawing (R192), crossFallPercent the sidewalk cross fall written on 11 of its 14 local road curbs, the fall the road of the keys holds over the last metre before the front.", "reachM": 6.05, "crossFallPercent": 2.0},
     "coordinateStepM": 100,
     "parameterGroup": "SiteAdaptation",
     "steepUnits": ["C10", "VL4", "VL6"],

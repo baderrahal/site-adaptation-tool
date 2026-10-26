@@ -29,7 +29,7 @@ def test_r337_a_build_says_plot_by_plot_which_overrides_it_applied_and_which_it_
     overrides += [entry("4", field, value, "parsons", "IMC.rvt", "imc") for field, value in (
         ("entryM", gap(0.05)), ("heightM", gap(0.03)), ("mirrored", False), ("rampFrontM", gap(0.01)), ("rampType", "2"))]
     # Plot 4, from 36 m on, has no road level, so no El @ Entry, no FFL and it is not written
-    road = lambda surfaces, point, snap: (None, None) if point[0] > 36.0 - 1e-6 else (10.0, "road")
+    road = lambda surfaces, point, snap, reach=None: (None, None) if point[0] > 36.0 - 1e-6 else (10.0, "road")
     from test_addin_review import LATER_3A
     plan, rules, _ = key_build(tmp_path, monkeypatch, overrides=overrides, road=road, later=LATER_3A)
     written = by_plot(plan)
