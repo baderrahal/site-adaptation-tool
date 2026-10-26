@@ -15,6 +15,10 @@ namespace SiteAdaptation.Common
     {
         public const string Name = "faces";
 
+        // R348. The baseplan a build reads: plots.json of a CadReader read, baseplanPlots, or the read of the baseplan of the worker,
+        // baseplanRead, read_baseplan.json of the command read, one of the two
+        public const string BaseplanRoles = "baseplanPlots|baseplanRead";
+
         // A label is a whole number of ASCII digits after the blanks around it, written with no leading zero, as
         // yard_rule.whole_label reads it, else null
         public static string WholeLabel(string text)

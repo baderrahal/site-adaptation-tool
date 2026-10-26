@@ -105,6 +105,11 @@ namespace SiteAdaptation.Common
             {
                 return Number(number, decimals);
             }
+            // R348 to R350. A value of no geometry as the read holds it, its type kept
+            if (value is JToken token)
+            {
+                return token.DeepClone();
+            }
             if (value is IEnumerable items && !(value is string))
             {
                 var list = new JArray();

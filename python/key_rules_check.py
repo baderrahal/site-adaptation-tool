@@ -714,7 +714,7 @@ def plot_context(args, settings, profile, report, table):
             rings.setdefault(str(entry["plot"]), []).append([(vertex[0], vertex[1]) for vertex in entry["vertices"]])
     faces = {number: straight(rings[row["baseplanLabel"]][0]) for number, row in book.items() if len(rings.get(row.get("baseplanLabel") or "", [])) == 1}
     curbs = curb_segments(read_json(Path(args.roads) / "pieces.json")["pieces"], settings["analysis"]["roadEdgeLayers"])
-    sheet = read_json(ROOT / "python" / "c3d_probe.json")["dataBook"]["locationPlan"]["sales"]
+    sheet = settings["dataBook"]["locationPlan"]["sales"]
     sales = sales_orientation(args.sales, sheet["sheet"], sheet["columns"]["plot"])
     widths = [entry["plot_width_m"] for entry in profile["typologies"].values() if isinstance(entry.get("plot_width_m"), (int, float))]
     limits = (min(widths) - settings["analysis"]["toleranceM"], settings["analysis"]["partyWallShare"] * profile["plot"]["long_side"] / 1000.0)

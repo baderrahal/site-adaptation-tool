@@ -32,11 +32,12 @@ def plot_text(value):
 
 
 def zone_text(value):
-    """Zone 4, 4 and 4.0 are all Zone 4."""
+    """Zone 4, 4 and 4.0 are all Zone 4. R350: the digits are the ten ASCII digits alone, as the C# of the worker takes them, where \\d
+    of Python holds every decimal digit of Unicode and net48 knows fewer of them."""
     text = plot_text(value)
     if text.upper() in NO_VALUE:
         return None
-    digits = re.findall(r"\d+", text)
+    digits = re.findall(r"[0-9]+", text)
     return "Zone %d" % int(digits[0]) if digits else text
 
 
@@ -51,7 +52,7 @@ def by_plot(rows):
     for row in rows:
         plot = plot_text(row.get("plot"))
         value = (zone_text(row.get("zone")), nbh_text(row.get("nbh")))
-        if not plot.isdigit() or value == (None, None):
+        if not (plot.isascii() and plot.isdigit()) or value == (None, None):
             continue
         if plot in found and found[plot] != value:
             clash.add(plot)

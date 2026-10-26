@@ -89,7 +89,7 @@
     }
   },
   "connect": {
-    "baseplanPlots": "C:/Users/bader/Documents/GitHub/site-adaptation-tool/sample_output/round12/full/ROSHN Makkah Baseplan.dwg/plots.json",
+    "cadReadsNote": "R388, the review of PR 53. baseplanPlots is not held here, c3d_run.load_config takes it from cadReads of config/project.json, the baseplan read the measure and the build take, and puts the cadReads folder first in dataBook.join.fallbackOutputs. Two paths still name the reads of Round 12, each for a reason: landxmlDir is the cache of landxml_reader.py of the Road Surface C3D LandXML files, no CadReader read of a drawing, which R68 did not touch and data_book.py holds against the files by check_cached, and the last entry of fallbackOutputs gives the earlier CadReader reads of the drawings cadReads does not hold, such as the cutsheet and the Road Surface C3D drawing.",
     "landxmlDir": "C:/Users/bader/Documents/GitHub/site-adaptation-tool/sample_output/round12/full/landxml",
     "plan": "C:/Users/bader/Documents/SiteAdaptation/plan_imc_past.json",
     "prototypes": "C:/Users/bader/Documents/SiteAdaptation/prototypes_imc_past.json",
@@ -269,22 +269,6 @@
         "frameLayer": "G-CUTSHT",
         "numberLayer": "G-SHTNO"
       },
-      "footprint": {
-        "drawing": "buildingFootprint",
-        "setbackLayer": "MP_Setback Line"
-      },
-      "curb": {
-        "drawing": "roadLayout",
-        "layers": [
-          "RD-CURB-LINE"
-        ]
-      },
-      "row": {
-        "drawing": "roadLayout",
-        "layers": [
-          "ROW"
-        ]
-      },
       "v9": {
         "drawing": "masterV9",
         "plotNumberLayer": "Plots No.*"
@@ -333,17 +317,6 @@
         "SA": "Villa",
         "QP": "Duplex"
       },
-      "sales": {
-        "workbook": "Master Plan Rev.09/PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx",
-        "sheet": "JN Sales Data_Base_Rev09",
-        "headerRow": 1,
-        "columns": {
-          "plot": "Plot No",
-          "typology": "Typology_Rev9",
-          "nbh": "NBH",
-          "zone": "Zone"
-        }
-      },
       "codeTable": {
         "sheet": "2024-01-30_New Typo Names",
         "headerRow": 2,
@@ -354,7 +327,7 @@
         }
       },
       "dlus": {
-        "workbook": "Master Plan Rev.09/PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx",
+        "workbook": "accommodation",
         "sheet": "PH_1-SDF",
         "headerRow": 1,
         "columns": {
@@ -588,9 +561,7 @@
         "geometryTypes": ["LINE", "ARC", "CIRCLE", "HATCH", "POLYLINE", "SPLINE", "ELLIPSE"]
       },
       "areaKey": {
-        "outFolder": "area_key",
-        "dlus": {"workbook": "tbd", "sheet": "PH_1-DLUS", "headerRow": 1, "columns": {"plot": "PLOT_NO", "nbh": "Neighbourhood_ID", "zone": "Construction_Zone"}},
-        "sales": {"workbook": "accommodation", "sheet": "JN Sales Data_Base_Rev09", "headerRow": 1, "columns": {"plot": "Plot No", "nbh": "NBH", "zone": "Zone"}}
+        "outFolder": "area_key"
       },
       "imCodes": {
         "pdfs": ["Master Plan Rev.09/01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf", "01_Output/1.0 General/PDF/01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf", "Master Plan Rev.09/MP-SK-01-03-006_R9.pdf"],
@@ -709,41 +680,9 @@
     },
     "rev9": {
       "outFolder": "rev9",
-      "workbooks": {
-        "accommodation": "Master Plan Rev.09/PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx",
-        "tbd": "Master Plan Rev.09/TBD-PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_Rev9.0.xlsx"
-      },
       "diffOrder": ["accommodation", "tbd"],
       "keyNames": ["PLOT_NO", "Plot_No", "Plot No", "Plot Number", "Number", "AMANA Plot No / Land Number"],
       "keySearchRows": 5,
-      "dlus": {
-        "workbook": "accommodation",
-        "sheet": "PH_1-DLUS-(Without Formulas)",
-        "headerRow": 3,
-        "columns": {
-          "plot": "Plot Number",
-          "typology": "Typology",
-          "nbh": "Neighbourhood ID",
-          "front": "Front",
-          "right": "Side (right)",
-          "left": "Side (left)",
-          "rear": "Rear"
-        }
-      },
-      "sales": {
-        "workbook": "accommodation",
-        "sheet": "JN Sales Data_Base_Rev09",
-        "headerRow": 1,
-        "columns": {
-          "plot": "Plot No",
-          "typology": "Typology_Rev9",
-          "typologyOld": "Typology_Rev8.1",
-          "nbh": "NBH",
-          "zone": "Zone",
-          "landWidth": "Land Width (m)",
-          "landLength": "Land Length (m)"
-        }
-      },
       "codeTable": {
         "workbook": "accommodation",
         "sheet": "2024-01-30_New Typo Names",

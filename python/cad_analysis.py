@@ -802,11 +802,18 @@ def read_road_edges(folder, layers):
     data = read_json_file(folder, "pieces.json")
     if not isinstance(data, dict) or not isinstance(data.get("pieces"), list):
         raise project_profile.ProfileError("pieces.json has no pieces list")
+    return [LineString(points) for _, points in road_edge_pieces(data["pieces"], layers)]
+
+
+def road_edge_pieces(pieces, layers):
+    """R348. The pieces of the edge layers with the points of their line, in the order of the read: a polyline or line of a layer named,
+    or of that layer inside a bound xref, closed when the polyline is closed, kept with two points or more. read_road_edges makes the
+    lines of the build and the data book from them, the read steps of the parity name each piece by its handle and layer."""
     if not isinstance(layers, list) or not layers:
         raise project_profile.ProfileError("analysis.roadEdgeLayers names no layer")
     wanted = [str(name).lower() for name in layers]
-    lines = []
-    for piece in data["pieces"]:
+    found = []
+    for piece in pieces:
         layer = str(piece.get("layer") or "").lower()
         if piece.get("kind") not in ("polyline", "line") or not any(layer == name or layer.endswith("$" + name) for name in wanted):
             continue
@@ -814,8 +821,8 @@ def read_road_edges(folder, layers):
         if piece.get("closed") and len(points) >= 3:
             points.append(points[0])
         if len(points) >= 2:
-            lines.append(LineString(points))
-    return lines
+            found.append((piece, points))
+    return found
 
 
 def read_coords(paths):

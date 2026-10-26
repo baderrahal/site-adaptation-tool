@@ -20,22 +20,25 @@ namespace SiteAdaptation.Common
     }
 
     // R347. What a command of the worker gets: the request, its issues and counts, each input by its role with the free memory
-    // checked against the measured peak of that file plus the floor right before the read, and each output written by its
+    // checked against the measured peak of that file plus the floor right before the read, and against the rest of the whole peak of
+    // the command when config names one (Q083), and each output written by its
     // temporary name with the run stamp. The runner moves the outputs onto their names only once every check of the run passed,
     // and deletes them under their temporary names when it did not
     public sealed class WorkerContext
     {
         private readonly AddinConfig config;
         private readonly Func<double?> freeMiB;
+        private readonly Func<double?> privateMiB;
         private readonly List<KeyValuePair<string, string>> written = new List<KeyValuePair<string, string>>();
 
-        internal WorkerContext(WorkerRequest request, WorkerAnswer answer, AddinConfig config, Func<double?> freeMiB)
+        internal WorkerContext(WorkerRequest request, WorkerAnswer answer, AddinConfig config, Func<double?> freeMiB, Func<double?> privateMiB)
         {
             Request = request;
             Issues = answer.Issues;
             Counts = answer.Counts;
             this.config = config;
             this.freeMiB = freeMiB;
+            this.privateMiB = privateMiB;
         }
 
         public WorkerRequest Request { get; }
@@ -48,8 +51,8 @@ namespace SiteAdaptation.Common
         internal IReadOnlyList<KeyValuePair<string, string>> Written => written;
 
         // The path of the input of a role, which the command reads next. For a large read the free memory is read now and the read
-        // refused with exit 3 when it is under the measured peak of that file plus the floor, so memory Revit took since the start
-        // of the run counts
+        // refused with exit 3 when it is under the measured peak of that file plus the floor, and for a command with a whole peak when
+        // it is under the rest of that peak plus the floor, so memory Revit took since the start of the run counts
         public string Input(string role)
         {
             WorkerFile input = Request.Inputs.FirstOrDefault(item => item.Role == role);
@@ -62,7 +65,25 @@ namespace SiteAdaptation.Common
             {
                 throw new WorkerStop(WorkerExit.Memory, refusal);
             }
+            // Q083. Every input of a command whose whole peak config names, the road surfaces and the workbooks with the drawings, is
+            // held against the rest of that peak
+            double? whole = config.WorkerCommandPeakMiB(Request.Command);
+            if (whole.HasValue)
+            {
+                refusal = WorkerMemory.CommandRefusal(Request.Command, freeMiB(), whole.Value, privateMiB(), config.MinFreeGiB);
+                if (refusal != null)
+                {
+                    throw new WorkerStop(WorkerExit.Memory, refusal);
+                }
+            }
             return input.Path;
+        }
+
+        // R347, R348. A refusal of the request found by a command before it used anything of an input, such as a drawing whose units
+        // are not Meters: the run ends with exit 2 and the message, the command throws what this gives
+        public Exception Refusal(string message)
+        {
+            return new WorkerStop(WorkerExit.Refused, message);
         }
 
         // An output of the run, in the output or the steps folder of the request only, where the kill finds its temporary name, with
@@ -80,7 +101,8 @@ namespace SiteAdaptation.Common
             string path = Path.Combine(full, name);
             Directory.CreateDirectory(full);
             string temporary = WorkFiles.TemporaryName(path, Request.RunId);
-            File.WriteAllText(temporary, stamped.ToString(Formatting.Indented), new System.Text.UTF8Encoding(false));
+            // R350. Every double written so it reads back as the same double, which the format R of net48 does not give
+            File.WriteAllText(temporary, stamped.ToString(Formatting.Indented, new ExactDouble.Converter()), new System.Text.UTF8Encoding(false));
             written.Add(new KeyValuePair<string, string>(temporary, path));
             return path;
         }

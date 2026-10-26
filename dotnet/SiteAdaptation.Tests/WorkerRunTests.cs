@@ -643,7 +643,8 @@ namespace SiteAdaptation.Tests
             {
                 Assert.True(config.WorkerTimeLimitS(command) > 0, command);
             }
-            Assert.Equal(600, config.WorkerTimeLimitS("read"));
+            // R347, R348. The read of button 2 measured in 4c, 21.2 s at most on net48 over three runs (p4c_button2_time.txt), about 14 times it
+            Assert.Equal(300, config.WorkerTimeLimitS("read"));
             Assert.Equal(60, config.WorkerTimeLimitS("levelExcel"));
             Assert.Throws<InvalidDataException>(() => AddinConfig.Load(Write("empty.json", "{}")));
         }

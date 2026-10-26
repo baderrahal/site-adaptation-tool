@@ -57,15 +57,55 @@
     "baseplanPlots": "sample_output\\round12\\full\\ROSHN Makkah Baseplan.dwg\\plots.json"
   },
   "cadReads": {
-    "note": "R388. The folder of the CadReader reads the measure (python/majority.py) and the build (python/plan_from_book.py) read, relative to the repo: the read folder of each drawing of drawings, baseplan, roadLayout and villaBlocks, with its layers.json, so both read one set through the units check. A file a run names that is not the one named here is taken only as a copy of its bytes by SHA-256, such as the outputs the Round 17 snapshot copied alone.",
-    "root": "sample_output/round12/full"
+    "note": "R388. The folder of the CadReader reads the measure (python/majority.py) and the build (python/plan_from_book.py) read, relative to the repo: the read folder of each drawing of drawings, baseplan, roadLayout and villaBlocks, with its layers.json, so both read one set through the units check. A file a run names that is not the one named here is taken only as a copy of its bytes by SHA-256, such as the outputs the Round 17 snapshot copied alone. R348, Round ADDIN 4c: the reads of the CadReader of 4c, round4c, in place of those of Round 12, written at 03:04 on 2026-10-24 before 4ac1428 turned the outline of a flipped insert back to counter clockwise (R68): the footprint blocks.json held 2,081 mirrored outlines the other way round, every other file the build and the measure read equal by SHA-256.",
+    "root": "sample_output/round4c/full"
   },
   "tableUnits": {
     "note": "R388. The units of the tables of a data book reader that records none in the data.json of its table folder, by reader. The C3DProbe tables of the full Civil 3D read, of Makkah Phase 1_Road Layout, Road Surface C3D, Rough Grading and MP-SK-01-03-006_R9.0, carry none, and the CadReader reads of the same four drawings give Meters in their layers.json. The CadReader stand-in records the units of its drawing itself. A table of a reader named here by no unit is refused.",
     "C3DProbe": "Meters"
   },
+  "dataBook": {
+    "note": "R348, R350. The settings of the reads of button 2 (docs/addin-design.md 3.2), moved here from python/c3d_probe.json in Round ADDIN 4c so the worker and the Python readers take one copy: the curb, ROW and setback layers of join, the two Rev 9 workbooks with the DLUS setback and sales sheets of rev9, the area key sheets of data5.areaKey and the sales sheet of locationPlan, the one the build, the measure and the corner rule read. python/c3d_run.load_config lays this block over dataBook of the probe settings and refuses a key both files hold. The workbook paths are relative to the work folder of the data book, the worker takes the files of the pane by their role, addin.workbookRoles. The location plan settings move with R351 in Phase 4d.",
+    "join": {
+      "footprint": {"drawing": "buildingFootprint", "setbackLayer": "MP_Setback Line"},
+      "curb": {"drawing": "roadLayout", "layers": ["RD-CURB-LINE"]},
+      "row": {"drawing": "roadLayout", "layers": ["ROW"]}
+    },
+    "rev9": {
+      "workbooks": {
+        "accommodation": "Master Plan Rev.09/PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx",
+        "tbd": "Master Plan Rev.09/TBD-PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_Rev9.0.xlsx"
+      },
+      "dlus": {
+        "workbook": "accommodation",
+        "sheet": "PH_1-DLUS-(Without Formulas)",
+        "headerRow": 3,
+        "columns": {"plot": "Plot Number", "typology": "Typology", "nbh": "Neighbourhood ID", "front": "Front", "right": "Side (right)", "left": "Side (left)", "rear": "Rear"}
+      },
+      "sales": {
+        "workbook": "accommodation",
+        "sheet": "JN Sales Data_Base_Rev09",
+        "headerRow": 1,
+        "columns": {"plot": "Plot No", "typology": "Typology_Rev9", "typologyOld": "Typology_Rev8.1", "nbh": "NBH", "zone": "Zone", "landWidth": "Land Width (m)", "landLength": "Land Length (m)"}
+      }
+    },
+    "data5": {
+      "areaKey": {
+        "dlus": {"workbook": "tbd", "sheet": "PH_1-DLUS", "headerRow": 1, "columns": {"plot": "PLOT_NO", "nbh": "Neighbourhood_ID", "zone": "Construction_Zone"}},
+        "sales": {"workbook": "accommodation", "sheet": "JN Sales Data_Base_Rev09", "headerRow": 1, "columns": {"plot": "Plot No", "nbh": "NBH", "zone": "Zone"}}
+      }
+    },
+    "locationPlan": {
+      "sales": {
+        "workbook": "accommodation",
+        "sheet": "JN Sales Data_Base_Rev09",
+        "headerRow": 1,
+        "columns": {"plot": "Plot No", "typology": "Typology_Rev9", "nbh": "NBH", "zone": "Zone"}
+      }
+    }
+  },
   "testHost": {
-    "model": "00_Revit Models\\Zone 02\\ARC\\01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt",
+    "model":"00_Revit Models\\Zone 02\\ARC\\01101-PSN-IMC-ZZZ-PIM-TU-000001.rvt",
     "order": ["C10", "TH1", "VD2", "DP1", "DP2", "DP3", "DP4", "DT1", "DT3", "TH3", "VD4", "VL4", "VL6"],
     "imageStepMinutes": 30,
     "imageMarginMinutes": 10,
@@ -237,18 +277,22 @@
         {"name": "Makkah Phase 1_Road Layout.dwg", "bytes": 82061457, "peakMiB": 2612},
         {"name": "ROSHN Makkah Baseplan.dwg", "bytes": 1279917, "peakMiB": 100},
         {"name": "Makkah Building Footprint.dwg", "bytes": 1198438, "peakMiB": 80}
-      ]
+      ],
+      "commands": {"read": 4100},
+      "commandsNote": "R347, Q083. The peak private memory in MiB of a whole command, held before its first read with the floor siteBuild.minFreeGB and before each later read as the rest of it, the peak less what the worker holds, with the floor. read 4,100 MiB, CHOSEN: the highest whole read of button 2 measured, the three drawings, the six road surfaces and the two Rev 9 workbooks, 4,008 MiB on net48 after the review of PR 53 (net48 3,931 to 4,008 and net8.0 3,576 to 3,584 over three runs each, round_addin logs p4cfix_button2_time.txt, and 3,971 on net8.0 in the read parity, p4cfix_parity_read.txt), rounded up to the next 100 MiB. The runs of Round ADDIN 4c peaked at 3,069 to 3,595 on net48 and 3,578 to 3,891 on net8.0 (p4c_button2_time.txt), and the build before the review peaked at 3,899 on net48 in the same state of the PC (p4cfix_time_compare_floor2.txt), so the peak moves with the state of the PC and not with the fixes. A command named here takes no file peak in place of it, the peak of each large drawing above is still held before its read. The build and the other commands have none until a PR measures them"
     },
     "workerPeakNote": "R347. The roles whose read is a large read and the peak private memory in MiB the CadReader read of each drawing took, keyed by its file name and size in bytes, so a file of those roles with no measured peak, another drawing or another size, takes the largest one. The sizes and the private peaks 2,571, 100 and 77 MiB are those of round_addin logs cadreader_peaks_pr49.txt on copies at 67c1fa0, whose peak paged by the OS was 2,571, 101 and 80. The values here are the highest seen: 2,612 MiB of the Road Layout is the claim-checker rerun of PR 49 and 80 MiB of the footprint the first run of 3b, neither output saved, 100 MiB of the baseplan the saved log",
     "workerTimeLimitS": {
-      "read": 600,
+      "read": 300,
       "build": 600,
       "levelExcel": 60,
       "reportExcel": 600,
       "exportChecks": 600,
       "position": 600
     },
-    "workerTimeLimitNote": "CHOSEN in docs/addin-design.md: 600 s for a read, 28 times the 21.2 s of the Road Layout read, and 60 s for the level Excel, the other commands 600 s until the PR that builds each measures it",
+    "workerTimeLimitNote": "R347, R348. read 300 s, measured in Round ADDIN 4c: a whole read of button 2 in the worker, the three drawings, the six road surfaces and the two Rev 9 workbooks, took 20.2 to 21.2 s on net48 and 16.8 to 17.0 s on net8.0 over three runs each (round_addin logs p4c_button2_time.txt), so 300 s is about 14 times the longest, room for a slower PC and the location plan read 4d adds, which measures it again. After the review of PR 53 the same read took 20.9 to 47.0 s on net48 and 21.5 to 32.6 s on net8.0 as the free memory of the PC went from 4.4 to 6.6 GiB, the build before the review as long as the head in the same state (p4cfix_button2_time.txt, p4cfix_time_compare_floor1.txt and _floor2.txt), so 300 s is over 6 times the longest. 600 s for the read until 4c, 28 times the 21.2 s of the Road Layout read alone. 60 s for the level Excel, the other commands 600 s until the PR that builds each measures it (CHOSEN in docs/addin-design.md)",
+    "workbookRoles": {"tbd": "dlus", "accommodation": "sales"},
+    "workbookRolesNote": "R350. The input of the pane, its role in the request of the worker, that holds each workbook of dataBook.rev9.workbooks: the Rev 9 DLUS workbook is dlus and the accommodation workbook, which holds the sales sheet and the DLUS setback sheet, is sales (docs/addin-design.md section 4)",
     "workerTimeLimitMinS": 10,
     "workerTimeLimitMinNote": "R347. The shortest time limit a launch takes, a request under it is refused before the start, so a limit typed too short never kills a sound run. CHOSEN in the second review of PR 50: 10 s, ten times the 1.0 s the worker build of the step faces took on the 2,704 unit plots of the snapshot, its start included",
     "parity": {
@@ -282,6 +326,86 @@
             "kind": "points",
             "decimals": 3
           }
+        },
+        "labels": {
+            "rings": {"kind": "points", "decimals": 3},
+            "types": {"kind": "noGeometry"},
+            "areas": {"kind": "areas", "decimals": 3},
+            "whole": {"kind": "noGeometry"}
+        },
+        "blocks": {
+            "name": {"kind": "noGeometry"},
+            "layer": {"kind": "noGeometry"},
+            "mirrored": {"kind": "noGeometry"},
+            "scale": {"kind": "noGeometry"},
+            "insertPoint": {"kind": "points", "decimals": 3},
+            "rotationDeg": {"kind": "angles", "decimals": 3},
+            "outline": {"kind": "points", "decimals": 3}
+        },
+        "curbs": {
+            "handle": {"kind": "noGeometry"},
+            "layer": {"kind": "noGeometry"},
+            "kind": {"kind": "noGeometry"},
+            "closed": {"kind": "noGeometry"},
+            "points": {"kind": "points", "decimals": 3}
+        },
+        "rows": {
+            "handle": {"kind": "noGeometry"},
+            "layer": {"kind": "noGeometry"},
+            "kind": {"kind": "noGeometry"},
+            "closed": {"kind": "noGeometry"},
+            "points": {"kind": "points", "decimals": 3}
+        },
+        "setbacks": {
+            "handle": {"kind": "noGeometry"},
+            "layer": {"kind": "noGeometry"},
+            "kind": {"kind": "noGeometry"},
+            "closed": {"kind": "noGeometry"},
+            "points": {"kind": "points", "decimals": 3}
+        },
+        "surfaces": {
+            "file": {"kind": "noGeometry"},
+            "linearUnit": {"kind": "noGeometry"},
+            "epsgCode": {"kind": "noGeometry"},
+            "pointCount": {"kind": "noGeometry"},
+            "faceCount": {"kind": "noGeometry"},
+            "visibleFaceCount": {"kind": "noGeometry"},
+            "invisibleFaceCount": {"kind": "noGeometry"},
+            "badFaceCount": {"kind": "noGeometry"},
+            "badPointCount": {"kind": "noGeometry"},
+            "declaredZRange": {"kind": "noGeometry"},
+            "bboxMin": {"kind": "points", "decimals": 3},
+            "bboxMax": {"kind": "points", "decimals": 3},
+            "zMin": {"kind": "levels", "decimals": 3},
+            "zMax": {"kind": "levels", "decimals": 3}
+        },
+        "roadLevels": {
+            "point": {"kind": "points", "decimals": 3},
+            "level": {"kind": "levels", "decimals": 3},
+            "surface": {"kind": "noGeometry"}
+        },
+        "areaKey": {
+            "inDlus": {"kind": "noGeometry"},
+            "zone": {"kind": "noGeometry"},
+            "nbhId": {"kind": "noGeometry"},
+            "twoRows": {"kind": "noGeometry"},
+            "inSales": {"kind": "noGeometry"},
+            "salesZone": {"kind": "noGeometry"},
+            "salesNbhId": {"kind": "noGeometry"},
+            "salesTwoRows": {"kind": "noGeometry"}
+        },
+        "dlusSetbacks": {
+            "plotCell": {"kind": "noGeometry"},
+            "typology": {"kind": "noGeometry"},
+            "nbh": {"kind": "noGeometry"},
+            "front": {"kind": "noGeometry"},
+            "right": {"kind": "noGeometry"},
+            "left": {"kind": "noGeometry"},
+            "rear": {"kind": "noGeometry"}
+        },
+        "sales": {
+            "row": {"kind": "noGeometry"},
+            "plain": {"kind": "noGeometry"}
         }
       }
     }

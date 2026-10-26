@@ -47,6 +47,23 @@ namespace SiteAdaptation.Common
             return measured != null ? (double)measured["peakMiB"] : files.Max(file => (double)file["peakMiB"]);
         }
 
+        // R347, Q083. The peak private memory in MiB of a whole command, addin.workerPeakMiB.commands, null for a command it names none.
+        // A value that is no finite number above 0 is refused
+        public double? WorkerCommandPeakMiB(string command)
+        {
+            JToken value = ((addin["workerPeakMiB"] as JObject)?["commands"] as JObject)?[command ?? ""];
+            if (value == null)
+            {
+                return null;
+            }
+            double peak = value.Type == JTokenType.Integer || value.Type == JTokenType.Float ? value.Value<double>() : double.NaN;
+            if (double.IsNaN(peak) || double.IsInfinity(peak) || peak <= 0)
+            {
+                throw new InvalidDataException("addin.workerPeakMiB.commands." + command + " is " + value.ToString(Newtonsoft.Json.Formatting.None) + ", a peak is a number of MiB above 0 (R347)");
+            }
+            return peak;
+        }
+
         // R200. The floor of free memory in GiB, siteBuild.minFreeGB
         public double MinFreeGiB
         {

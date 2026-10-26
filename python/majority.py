@@ -931,7 +931,7 @@ def run_args(args):
     # R388. The CadReader outputs the build reads, the ones config names, each of a drawing in Meters
     by_label, _ = yard_rule.face_shapes(link_summary.load(cad_units.read_input(settings, "baseplan", args.baseplan))["plots"], 0)
     faces = {number_of[label]: shape for label, shape in by_label.items() if label in number_of}
-    sheet = json.loads((project_profile.ROOT / "python" / "c3d_probe.json").read_text(encoding="utf-8"))["dataBook"]["locationPlan"]["sales"]
+    sheet = settings.get("dataBook.locationPlan.sales")
     sales = corner_front.sales_rows(args.sales, sheet["sheet"], sheet["columns"]["plot"])
     roads = cad_analysis.read_road_edges(cad_units.read_input(settings, "roads", args.roads), settings.get("analysis")["roadEdgeLayers"])
     analysis = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"]

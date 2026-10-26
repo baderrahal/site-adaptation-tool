@@ -793,7 +793,7 @@ def main(argv=None):
             cover = json.loads(Path(args.cover).read_text(encoding="utf-8"))
         sales = None
         if args.sales:
-            sheet = json.loads((project_profile.ROOT / "python" / "c3d_probe.json").read_text(encoding="utf-8"))["dataBook"]["locationPlan"]["sales"]
+            sheet = settings.get("dataBook.locationPlan.sales")
             sales = corner_front.sales_rows(args.sales, sheet["sheet"], sheet["columns"]["plot"])
         out = Path(args.out)
         plot_relations.refuse_inside_repo(out.resolve().parent)

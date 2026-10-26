@@ -15,13 +15,53 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 CONFIG = Path(__file__).resolve().parent / "c3d_probe.json"
+# R350. The project settings whose dataBook block load_config lays over the probe settings
+SETTINGS = REPO / "config" / "project.json"
 COMMANDS = ("C3DDUMP", "C3DLEVELS", "C3DBORDER", "C3DLINES")
 # A script line that could write a drawing. The probe never needs one, so a script holding one is refused
 WRITING = ("SAVE", "QSAVE", "SAVEAS", "WBLOCK", "EXPORT", "ETRANSMIT", "PURGE", "AUDIT", "RECOVER")
 
 
 def load_config(path=CONFIG):
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    """The probe settings. R348, R350: for the probe settings of the repo, dataBook of config/project.json is laid over their dataBook,
+    the settings of the reads of button 2 that Round ADDIN 4c moved there, so every reader keeps its key path and one copy is read."""
+    config = json.loads(Path(path).read_text(encoding="utf-8"))
+    if Path(path).resolve() == CONFIG.resolve():
+        moved = json.loads(SETTINGS.read_text(encoding="utf-8")).get("dataBook") or {}
+        lay_over(config.setdefault("dataBook", {}), moved, "dataBook")
+        cad_reads(config)
+    return config
+
+
+def cad_reads(config):
+    """R388. The CadReader reads of the probe settings through cadReads of config/project.json, the reads the measure and the build take:
+    connect.baseplanPlots is the baseplan read cadReads names, and the cadReads folder goes first in dataBook.join.fallbackOutputs, so
+    the three drawings it holds come from there and the other drawings from the earlier folders after it. The probe settings hold no
+    baseplanPlots, a probe file that holds one is refused, so the reads of Round 12 are never taken silently (the review of PR 53)."""
+    import cad_units
+    import project_profile
+    settings = project_profile.load_settings(SETTINGS)
+    connect = config.setdefault("connect", {})
+    if "baseplanPlots" in connect:
+        raise ValueError("connect.baseplanPlots is held in python/c3d_probe.json, it comes from cadReads of config/project.json (R388)")
+    connect["baseplanPlots"] = str(cad_units.named_input(settings, "baseplan"))
+    join = config.setdefault("dataBook", {}).setdefault("join", {})
+    join["fallbackOutputs"] = [str(cad_units.named_input(settings, "roads").parent)] + list(join.get("fallbackOutputs") or [])
+
+
+def lay_over(book, moved, where):
+    """R350. The keys of moved laid into book, a block into a block of the same name, and a key both hold refused with its path, so a
+    setting never sits in two files. The note of moved says why the block is there and is no setting."""
+    for key, value in moved.items():
+        if key == "note":
+            continue
+        path = where + "." + key
+        if isinstance(value, dict) and isinstance(book.get(key), dict):
+            lay_over(book[key], value, path)
+        elif key in book:
+            raise ValueError("%s is held in both python/c3d_probe.json and config/project.json, a setting lives in one place (R350)" % path)
+        else:
+            book[key] = value
 
 
 def work_root(config):

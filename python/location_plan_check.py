@@ -93,7 +93,7 @@ def main(argv=None):
     transform = fit(page, site)
     with pdfplumber.open(root / "work" / plan["pdf"]) as pdf:
         chars = [c for c in pdf.pages[0].chars if plan["labelSize"][0] <= c["size"] <= plan["labelSize"][1]]
-    workbook = openpyxl.load_workbook(root / "work" / plan["sales"]["workbook"], read_only=True, data_only=True)
+    workbook = openpyxl.load_workbook(root / "work" / book["rev9"]["workbooks"][plan["sales"]["workbook"]], read_only=True, data_only=True)
     sheet = list(workbook[plan["sales"]["sheet"]].iter_rows(values_only=True))
     header = [str(c).strip() if c else "" for c in sheet[0]]
     plot_col, type_col = header.index(plan["sales"]["columns"]["plot"]), header.index(plan["sales"]["columns"]["typology"])

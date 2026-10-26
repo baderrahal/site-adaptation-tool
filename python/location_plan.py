@@ -416,8 +416,10 @@ def run(config, settings, check=None):
         report["numberToFace"][name + "Check"] = {"shift": shift, "match": found.get(shift, 0), "other": sum(n for k, n in found.items() if k != shift)}
 
     # Codes against the Rev 9 sales sheet through the old to new table
-    sales = read_table(work / plan["sales"]["workbook"], plan["sales"]["sheet"], plan["sales"]["headerRow"], plan["sales"]["columns"])
-    table = read_table(work / plan["sales"]["workbook"], plan["codeTable"]["sheet"], plan["codeTable"]["headerRow"], plan["codeTable"]["columns"])
+    # R350. Every workbook setting names a key of dataBook.rev9.workbooks
+    sales_book = work / book["rev9"]["workbooks"][plan["sales"]["workbook"]]
+    sales = read_table(sales_book, plan["sales"]["sheet"], plan["sales"]["headerRow"], plan["sales"]["columns"])
+    table = read_table(sales_book, plan["codeTable"]["sheet"], plan["codeTable"]["headerRow"], plan["codeTable"]["columns"])
     sale_of = {}
     for row in sales:
         if row["plot"]:
@@ -439,7 +441,7 @@ def run(config, settings, check=None):
         else:
             compare["differs"] += 1
             pairs_seen["%s>%s against %s" % (row["code"], new, sale["typology"])] += 1
-    dlus = read_table(work / plan["dlus"]["workbook"], plan["dlus"]["sheet"], plan["dlus"]["headerRow"], plan["dlus"]["columns"])
+    dlus = read_table(work / book["rev9"]["workbooks"][plan["dlus"]["workbook"]], plan["dlus"]["sheet"], plan["dlus"]["headerRow"], plan["dlus"]["columns"])
     level4 = Counter(row["level4"] for row in dlus if row["level4"])
     plan_new = Counter(row["newCode"] or "no new code" for row in rows if row["kind"] == "clientCode")
     numbers_paired = [int(row["number"]) for row in rows if row["kind"] == "clientCode"]

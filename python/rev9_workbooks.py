@@ -35,6 +35,28 @@ def open_book(path):
         return openpyxl.load_workbook(path, read_only=True, data_only=True)
 
 
+def sheet_values(path, sheet):
+    """R350. The rows of a sheet as openpyxl gives them read only with values only, refused when a cell with a value lies past the
+    stated dimension of the sheet, below its last row or right of its last column, which openpyxl leaves out with no word, so a sheet
+    whose dimension is out of date gave no row (the review of PR 53). A row of no value past it is no refusal."""
+    book = open_book(path)
+    try:
+        worksheet = book[sheet]
+        rows = list(worksheet.iter_rows(values_only=True))
+        last_row, last_column = worksheet.max_row, worksheet.max_column
+        if last_row is not None or last_column is not None:
+            stated = worksheet.calculate_dimension() if last_row is not None and last_column is not None else "of no size"
+            worksheet.reset_dimensions()
+            for index, row in enumerate(worksheet.iter_rows(values_only=True), 1):
+                for column, value in enumerate(row, 1):
+                    if value is not None and ((last_row is not None and index > last_row) or (last_column is not None and column > last_column)):
+                        raise ValueError("the sheet %s holds a value in %s%d past its stated dimension %s, which openpyxl and the worker leave out, so the "
+                                         "dimension is out of date: save the workbook again in Excel (R350)" % (sheet, openpyxl.utils.get_column_letter(column), index, stated))
+    finally:
+        book.close()
+    return rows
+
+
 def plain(value):
     """A cell as it is compared: text stripped, a number rounded to 6 decimals, an empty text as no value."""
     if isinstance(value, str):
@@ -132,17 +154,15 @@ def diff_books(path_a, path_b, names, search_rows):
 
 def sheet_rows(path, sheet, header_row, columns):
     """Rows of one sheet as dicts of the config column names, from the row under header_row, stopping at no plot value."""
-    book = open_book(path)
     found = []
     header = None
-    for index, row in enumerate(book[sheet].iter_rows(values_only=True), 1):
+    for index, row in enumerate(sheet_values(path, sheet), 1):
         if index < header_row:
             continue
         if index == header_row:
             header = [str(v).strip() if v is not None else "" for v in row]
             missing = [c for c in columns.values() if c not in header]
             if missing:
-                book.close()
                 raise ValueError("%s has no column %s" % (sheet, ", ".join(missing)))
             at = {name: header.index(column) for name, column in columns.items()}
             continue
@@ -150,7 +170,6 @@ def sheet_rows(path, sheet, header_row, columns):
         if values.get("plot") is None:
             continue
         found.append(values)
-    book.close()
     return found
 
 

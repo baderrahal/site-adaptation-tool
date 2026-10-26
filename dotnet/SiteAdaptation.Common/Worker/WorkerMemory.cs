@@ -27,6 +27,27 @@ namespace SiteAdaptation.Common
             return string.Format(CultureInfo.InvariantCulture, "free memory {0:0.00} GiB, ", freeMiB.Value / MiBPerGiB) + need;
         }
 
+        // R347, Q083. Null when a command whose whole peak config names may read on, else the refusal with the numbers named. Before the
+        // first read the free memory is held against the whole peak plus the floor, before each later read against the rest of it, the
+        // peak less the private memory the worker holds now, plus the floor, since what the worker holds is no longer free
+        public static string CommandRefusal(string command, double? freeMiB, double peakMiB, double? heldMiB, double floorGiB)
+        {
+            double rest = heldMiB.HasValue ? Math.Max(0, peakMiB - heldMiB.Value) : peakMiB;
+            string need = heldMiB.HasValue
+                ? string.Format(CultureInfo.InvariantCulture, "the rest of the whole {0} needs {1:0.00} GiB, its peak {2:0.00} GiB less the {3:0.00} GiB the worker holds, and the floor {4:0.00} GiB (Q083)",
+                    command, rest / MiBPerGiB, peakMiB / MiBPerGiB, heldMiB.Value / MiBPerGiB, floorGiB)
+                : string.Format(CultureInfo.InvariantCulture, "the whole {0} needs {1:0.00} GiB and the floor {2:0.00} GiB (Q083)", command, peakMiB / MiBPerGiB, floorGiB);
+            if (!freeMiB.HasValue)
+            {
+                return "free memory could not be read, " + need;
+            }
+            if (freeMiB.Value >= rest + floorGiB * MiBPerGiB)
+            {
+                return null;
+            }
+            return string.Format(CultureInfo.InvariantCulture, "free memory {0:0.00} GiB, ", freeMiB.Value / MiBPerGiB) + need;
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         private sealed class MemoryStatus
         {
@@ -64,6 +85,23 @@ namespace SiteAdaptation.Common
                     }
                 }
                 return null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        // The private memory this process holds now, PagefileUsage on Windows and the private bytes of /proc on Linux, null when it is not
+        // given
+        public static double? PrivateMiB()
+        {
+            try
+            {
+                using (Process self = Process.GetCurrentProcess())
+                {
+                    return self.PrivateMemorySize64 / (1024.0 * 1024.0);
+                }
             }
             catch (Exception)
             {

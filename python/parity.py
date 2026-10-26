@@ -163,6 +163,23 @@ def same_inputs(python, csharp):
             raise ValueError("the two step files were written from other %s files, SHA-256 %s and %s" % (role, mine[role], item.get("sha256")))
 
 
+def workbook_inputs(payload, side, values):
+    """R350. Each workbook input of a step file is the file config names for it: the role of addin.workbookRoles of a workbook key is the
+    file of dataBook.rev9.workbooks of that key, by its name without case. Both sides find the workbooks through the same config, so a
+    wrong role made both read the same wrong file and same_inputs passed it (the review of PR 53)."""
+    roles = (values.get("addin") or {}).get("workbookRoles") or {}
+    names = ((values.get("dataBook") or {}).get("rev9") or {}).get("workbooks") or {}
+    expected = {}
+    for key, role in roles.items():
+        if key in names:
+            expected.setdefault(role, set()).add(Path(names[key]).name.lower())
+    for item in (payload.get("run") or {}).get("inputs") or []:
+        role = item.get("role")
+        if role in expected and Path(str(item.get("path"))).name.lower() not in expected[role]:
+            raise ValueError("the input %s of the %s step file is %s, config names %s for it (R350)" % (
+                role, side, Path(str(item.get("path"))).name, " or ".join(sorted(expected[role]))))
+
+
 def is_number(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
@@ -334,10 +351,13 @@ def main(argv=None):
     plot_relations.refuse_inside_repo(out)
     if Path(args.python).resolve() == Path(args.csharp).resolve():
         raise ValueError("--python and --csharp name one file, a parity compares the step files of the two sides: %s" % Path(args.python).resolve())
-    rules = tolerances(project_profile.load_settings(args.settings).values)
+    values = project_profile.load_settings(args.settings).values
+    rules = tolerances(values)
     python = load_step(args.python, "python")
     csharp = load_step(args.csharp, "csharp")
     same_inputs(python, csharp)
+    workbook_inputs(python, "python", values)
+    workbook_inputs(csharp, "csharp", values)
     for side, payload in (("python", python), ("csharp", csharp)):
         run = payload.get("run") or {}
         print("%s run %s, code %s, config %s" % (side, run.get("runId"), run.get("code"), run.get("configSha256")))

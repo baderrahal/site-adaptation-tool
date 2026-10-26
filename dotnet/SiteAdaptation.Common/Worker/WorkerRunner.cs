@@ -13,13 +13,46 @@ namespace SiteAdaptation.Common
     // file by a temporary name and a rename. CadReader.exe --request <file> runs it, the tests run it in process
     public static class WorkerRunner
     {
-        // R345. The steps of the plan builder the C# gives so far with the input roles each reads, the build refuses another step
+        // R345. The steps the C# gives so far with the input roles each reads, a role ending in a colon and a star any role of that
+        // name and a colon, at least one, roles parted by a bar any one of them, and the command that writes each: the plan builder steps of build and the read steps of read
+        // (R348 to R350). A request of another step, or of a step of another command, is refused
         public static readonly Dictionary<string, string[]> Steps = new Dictionary<string, string[]>
         {
-            [FaceStep.Name] = new[] { "baseplanPlots", "plotsCsv", "labels" },
+            [FaceStep.Name] = new[] { FaceStep.BaseplanRoles, "plotsCsv", "labels" },
+            [ReadSteps.Labels] = new[] { "baseplan" },
+            [ReadSteps.Blocks] = new[] { "villaBlocks" },
+            [ReadSteps.Setbacks] = new[] { "villaBlocks" },
+            [ReadSteps.Curbs] = new[] { "curbs" },
+            [ReadSteps.Rows] = new[] { "curbs" },
+            [ReadSteps.Surfaces] = new[] { RoadSurfaceRole + "*" },
+            [ReadSteps.RoadLevels] = new[] { "baseplan", "plotsCsv", "labels", RoadSurfaceRole + "*" },
+            [ReadSteps.AreaKey] = new[] { "dlus", "sales" },
+            [ReadSteps.DlusSetbacks] = new[] { "sales" },
+            [ReadSteps.Sales] = new[] { "sales" },
         };
 
+        public static readonly Dictionary<string, string> StepCommand = Steps.Keys.ToDictionary(step => step, step => step == FaceStep.Name ? "build" : "read");
+
+        // R349. The role of a road surface file in a request, roadSurface:<file name with no extension>, one per LandXML file
+        public const string RoadSurfaceRole = "roadSurface:";
+
+        private static bool Holds(IEnumerable<WorkerFile> inputs, string role)
+        {
+            if (role.Contains("|"))
+            {
+                return role.Split('|').Any(one => Holds(inputs, one));
+            }
+            return role.EndsWith(":*", StringComparison.Ordinal) ? inputs.Any(input => input.Role != null && input.Role.StartsWith(role.Substring(0, role.Length - 1), StringComparison.Ordinal))
+                : inputs.Any(input => input.Role == role);
+        }
+
         public static int Run(string requestPath, IDictionary<string, WorkerCommand> commands, Func<double?> freeMiB)
+        {
+            return Run(requestPath, commands, freeMiB, WorkerMemory.PrivateMiB);
+        }
+
+        // privateMiB gives the private memory the worker holds now, which the rest of a whole peak is held against (Q083)
+        public static int Run(string requestPath, IDictionary<string, WorkerCommand> commands, Func<double?> freeMiB, Func<double?> privateMiB)
         {
             var watch = Stopwatch.StartNew();
             string folder = Path.GetDirectoryName(Path.GetFullPath(requestPath));
@@ -48,7 +81,7 @@ namespace SiteAdaptation.Common
             try
             {
                 Clear(folder, request, answer);
-                code = Execute(request, commands, freeMiB, answer, made);
+                code = Execute(request, commands, freeMiB, privateMiB, answer, made);
                 answer.Message = WorkerExit.Meaning(code);
             }
             catch (WorkerStop stop)
@@ -128,7 +161,7 @@ namespace SiteAdaptation.Common
             return peak.HasValue ? WorkerMemory.Refusal(file.Name, freeMiB(), peak.Value, config.MinFreeGiB) : null;
         }
 
-        private static int Execute(WorkerRequest request, IDictionary<string, WorkerCommand> commands, Func<double?> freeMiB, WorkerAnswer answer, List<WorkerContext> made)
+        private static int Execute(WorkerRequest request, IDictionary<string, WorkerCommand> commands, Func<double?> freeMiB, Func<double?> privateMiB, WorkerAnswer answer, List<WorkerContext> made)
         {
             if (request.FormatVersion > WorkerRequest.CurrentFormatVersion || request.FormatVersion < 1)
             {
@@ -150,7 +183,11 @@ namespace SiteAdaptation.Common
                 {
                     throw new WorkerStop(WorkerExit.Refused, "the step " + step + " is not one the C# build gives, it gives " + string.Join(", ", Steps.Keys.OrderBy(name => name)));
                 }
-                foreach (string role in Steps[step].Where(role => inputs.All(input => input.Role != role)))
+                if (StepCommand[step] != request.Command)
+                {
+                    throw new WorkerStop(WorkerExit.Refused, "the step " + step + " is a step of the command " + StepCommand[step] + ", the request is " + request.Command);
+                }
+                foreach (string role in Steps[step].Where(role => !Holds(inputs, role)))
                 {
                     throw new WorkerStop(WorkerExit.Refused, "the step " + step + " needs the input " + role + ", the request names none");
                 }
@@ -199,6 +236,17 @@ namespace SiteAdaptation.Common
                     throw new WorkerStop(WorkerExit.Memory, refusal);
                 }
             }
+            // Q083. A whole read of button 2 peaked at 3,891 MiB where the Road Layout alone took 2,612, so a command whose whole peak
+            // config names is held against all of it and the floor before its first read
+            double? whole = config.WorkerCommandPeakMiB(request.Command);
+            if (whole.HasValue)
+            {
+                string refusal = WorkerMemory.CommandRefusal(request.Command, freeMiB(), whole.Value, null, config.MinFreeGiB);
+                if (refusal != null)
+                {
+                    throw new WorkerStop(WorkerExit.Memory, refusal);
+                }
+            }
             foreach (WorkerFile input in inputs)
             {
                 var opened = new WorkerOpened { Role = input.Role, Path = input.Path, Sha256Before = FileHash.Sha256(input.Path) };
@@ -208,7 +256,7 @@ namespace SiteAdaptation.Common
                     throw new WorkerStop(WorkerExit.InputChanged, "the input " + input.Role + " changed since the request, its SHA-256 is not the one the request gives: " + input.Path);
                 }
             }
-            var context = new WorkerContext(request, answer, config, freeMiB);
+            var context = new WorkerContext(request, answer, config, freeMiB, privateMiB);
             made.Add(context);
             command(context);
             foreach (WorkerOpened opened in answer.Opened)
