@@ -4,7 +4,7 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 
 ## Round ADDIN Part 1, 2026-10-25, the Revit 2024 add-in from the Parsons site models
 
-In progress. 0a to 4b and PR 52 merged (PR 41 to 52), 4c in review (logic/addin-4c). Plan: steps/investigations/round-addin.md.
+In progress. 0a to 4b and PR 52 merged (PR 41 to 52), 4c in review (logic/addin-4c, PR 53). Plan: steps/investigations/round-addin.md.
 
 Goal:
 - The add-in in Revit 2024, C#, .NET 4.8, from the 7 Parsons keys, parsons2024Rev6 (Q050), docs/addin-mock.md
@@ -12,19 +12,20 @@ Goal:
 
 Done:
 - 0a to 4b, PR 52: reads, plans, overrides, keyRules, a build and its proof, the design, the worker, R344, R385 to R388
-- 4c: the read settings in dataBook of config/project.json, the command read, XlsxSheet, LandXmlReader, TinSurface, ExactDouble, python/read_steps.py, cadReads on the reads of 4c, the read limit 300 s
+- 4c: read settings in config, the command read, XlsxSheet, LandXmlReader, TinSurface, ExactDouble, read_steps.py, cadReads of 4c, read limit 300 s
+- 4c review: d cells, key dates by str(), ASCII digits, exact repr, exponents bounded, stale dimensions and empty tables refused, the whole read at 4,100 MiB (Q083 closed), workbook keys, the probe by cadReads
 
 Checked:
-- Parity on 11 read steps, net48 and net8.0: labels, blocks, curbs, rows, setbacks, faces from the worker read, surfaces, roadLevels 10,307, areaKey, dlusSetbacks, sales, 0 one unit, 0 failures, PowerShell second method 0 differ (RAN)
-- The first run failed blocks on 2,081 mirrored outlines of the Round 12 reads, older than R68, and 6 sales cells on net48 alone, its parse and format R. The measure equal on both reads, the proof 0 unexplained and the 7 plans of main by SHA-256 (RAN)
-- Button 2 in 20.2 to 21.2 s on net48, 16.8 to 17.0 on net8.0, peak to 3,595 and 3,891 MiB, over the 2,612 MiB the check holds (Q083). Hashes equal (RAN)
+- Parity on 11 read steps at 429831e, net48 and net8.0, the counts of 4c, 0 one unit, 0 failures, second method 0 differ, the floor 0.5 GiB in a config copy (RAN)
+- The measure at 429831e equal on the reads of Round 12 and 4c, 742a3ea4 and d971b39f. Tests first: 9 Python, 27 C# failed (RAN)
+- Button 2 peaked at 4,008 MiB, 0a58496 as high and as long in one PC state, 20.9 to 47.0 s. Hashes equal (RAN)
 
 Remains:
 - 4d: R351 to R353, the location plan with R387 as built, PdfPig and its load check. past_all.py round() and the width key (4f), C# probe and test host roundings (5a). 4e to 4h, Phases 5, 6
 
 Known bugs:
 - NBH 03 image past 30 min (Q063). Revit starts 9 to 11 child processes in a read. rvt_info.py misses cloud links, SE spots give no value. A read is tied to its key by its copy name (Q065)
-- ELl@Entry off its schedule by over 30 mm on 100 IMC and 115 IMD plots (Q070). angleToTrueNorthDeg of the reader at 3 decimals, placer takes 0 only. xUnit2013. key_copies.py keeps a last part NUL
+- ELl@Entry off its schedule by over 30 mm on 100 IMC and 115 IMD plots (Q070). angleToTrueNorthDeg of the reader at 3 decimals, placer takes 0 only. xUnit2013. key_copies.py keeps a last part NUL. Button 2 needs 6,148 MiB free (Q084)
 
 Next:
 - Phase 4d: R351 to R353, then 4e to 4h
@@ -53,7 +54,7 @@ Q072. Side road of a villa with three road edges (IMC 2301, IME 2710, IMG 441): 
 Q076. Python checker licences: shapely is BSD-3-Clause and its wheels bundle GEOS under LGPLv2.1, nothing of Python ships: keep it for the checker
 Q077. The worker: buttons 2 and 3 read and build in CadReader.exe beside Revit, the Road Layout read alone took 2,571 to 2,612 MiB and PdfPig needs a System.Memory Revit 2024 lacks: accept. Q078. Rounding: Python and C# round the 15 digit decimal half away from zero (R385), 12.3455 gives 12.346 in both, and values of both move one unit on a tie, Python round() took 12.3455 down, C# Math.Round took 0.5005 to 0.5 (4 of 10 C# tests failed first): accept
 Q079. netstandard2.0 asks for Microsoft.NETCore.Platforms 1.1.0, Microsoft .NET Library licence, no file copied: pinned to 3.1.0, MIT, build only: accept. Q082. Road level of 33 plots of the keys (IMA 1, IMB 2, IMD 3, IME 3, IMF 14, IMG 10, listed in noRoadLevel of each plan): no road surface covers a front corner and the Roads folder holds no other road level there, no alignment in Road Surface C3D, the one of Road Layout 141.5 m or more off: ask the road designer for the road surface or road model of these fronts, else accept them listed and not written
-Q083. Memory of a whole read of button 2: the worker holds each input against its own peak, the Road Layout 2,612 MiB plus the 2 GB floor, while a whole read peaked at 3,595 MiB on net48 (3,891 on net8.0): add a peak of the read as a whole, 3,600 MiB, checked before the first read, in 4d: accept, or keep the check per input
+Q084. Free memory of button 2: the whole read needs 4,100 MiB and the 2 GB floor, 6,148 MiB free, this PC had 4.4 to 6.6 GiB free and 6 of 8 runs of the head in a compare were refused: lower the peak in 4d, each drawing let go before the next read, and measure it again, the floor kept: accept, or give the worker a floor of its own
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 
