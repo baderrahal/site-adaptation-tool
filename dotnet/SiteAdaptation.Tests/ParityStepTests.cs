@@ -55,6 +55,21 @@ namespace SiteAdaptation.Tests
             };
         }
 
+        // The areas tolerance of addin.parity, the most the union of the rings of a label may fall short of their sum
+        private const double Overlap = 0.000001;
+
+        private static List<double[]> Ring(params double[] xy)
+        {
+            var ring = new List<double[]>();
+            for (int index = 0; index < xy.Length; index += 2)
+            {
+                ring.Add(new[] { xy[index], xy[index + 1] });
+            }
+            return FaceRings.Clean(ring);
+        }
+
+        private static readonly double[] Square = { 0, 0, 10, 0, 10, 10, 0, 10 };
+
         private const string PlotsCsv = "baseplanLabel,locationPlanNumber,typologyRev9\n1,101,DP1\n2,102,DP1\n,103,TH1\n";
         private const string LabelsCsv = "number,code,kind,nbh\n101,DP1,clientCode,012\n102,DP1,clientCode,012\n103,TH1,clientCode,\n104,x,number,012\n";
 
@@ -81,7 +96,7 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R345_the_face_of_a_plot_is_its_area_centroid_and_bounds_as_the_build_takes_the_face()
         {
-            var faces = FaceStep.Build(new[] { "101", "102", "103" }, Plots(), CsvRows.Parse(PlotsCsv));
+            var faces = FaceStep.Build(new[] { "101", "102", "103" }, Plots(), CsvRows.Parse(PlotsCsv), Overlap);
             Assert.Equal(new[] { "101", "102", "103" }, faces.Keys.ToArray());
             Assert.Equal(true, faces["101"]["face"]);
             Assert.Equal(200.0, (double)faces["101"]["area"]);
@@ -108,11 +123,58 @@ namespace SiteAdaptation.Tests
                 xy.Add(north + u * Math.Sin(angle) + v * Math.Cos(angle));
             }
             var plots = new JArray { Shape("plot_shape", "7", xy.ToArray()) };
-            var face = FaceStep.Build(new[] { "107" }, plots, CsvRows.Parse("baseplanLabel,locationPlanNumber\n7,107\n"))["107"];
+            var face = FaceStep.Build(new[] { "107" }, plots, CsvRows.Parse("baseplanLabel,locationPlanNumber\n7,107\n"), Overlap)["107"];
             Assert.InRange(Math.Abs((double)face["area"] - 100.0), 0, 1e-8);
             double[] centroid = (double[])face["centroid"];
             Assert.InRange(Math.Abs(centroid[0] - (east + 5 * Math.Cos(angle) - 5 * Math.Sin(angle))), 0, 1e-8);
             Assert.InRange(Math.Abs(centroid[1] - (north + 5 * Math.Sin(angle) + 5 * Math.Cos(angle))), 0, 1e-8);
+        }
+
+        [Fact]
+        public void R345_a_simple_ring_holds_and_a_bow_tie_a_fold_or_a_touch_is_not_simple()
+        {
+            Assert.True(FaceRings.IsSimple(Ring(Square)));
+            double east = 512345.678, north = 2400123.456;
+            Assert.True(FaceRings.IsSimple(Ring(east, north, east + 10, north, east + 10, north + 10, east, north + 10, east, north)));
+            Assert.Equal(3, Ring(0, 0, 0, 0, 1, 0, 1, 1, 0, 0).Count);
+            Assert.False(FaceRings.IsSimple(Ring(0, 0, 10, 10, 10, 0, 0, 10)));
+            Assert.False(FaceRings.IsSimple(Ring(0, 0, 10, 0, 10, 10, 10, 5, 0, 10)));
+            Assert.False(FaceRings.IsSimple(Ring(0, 0, 10, 0, 5, 5, 10, 10, 0, 10, 5, 5)));
+        }
+
+        [Fact]
+        public void R345_the_union_of_rings_by_slabs_is_their_sum_when_they_lie_apart_or_share_an_edge()
+        {
+            Assert.InRange(FaceRings.UnionArea(new[] { Ring(Square), Ring(20, 0, 30, 0, 30, 10, 20, 10) }), 200 - 1e-9, 200 + 1e-9);
+            Assert.InRange(FaceRings.UnionArea(new[] { Ring(Square), Ring(10, 0, 20, 0, 20, 10, 10, 10) }), 200 - 1e-9, 200 + 1e-9);
+            Assert.InRange(FaceRings.UnionArea(new[] { Ring(Square), Ring(Square) }), 100 - 1e-9, 100 + 1e-9);
+            double half = 7.0710678118654755, octagon = 8 * 25 * (Math.Sqrt(2) - 1);
+            double turned = FaceRings.UnionArea(new[] { Ring(-5, -5, 5, -5, 5, 5, -5, 5), Ring(0, -half, half, 0, 0, half, -half, 0) });
+            Assert.InRange(turned, 200 - octagon - 1e-9, 200 - octagon + 1e-9);
+        }
+
+        [Fact]
+        public void R345_the_face_step_refuses_a_bow_tie_and_an_outline_drawn_twice_as_the_python_build_does()
+        {
+            var csv = CsvRows.Parse("baseplanLabel,locationPlanNumber\n1,101\n2,102\n");
+            var bowTie = new JArray { Shape("plot_shape", "1", Square), Shape("plot_shape", "2", 20, 0, 30, 10, 30, 0, 20, 10) };
+            Assert.Contains("label 2 is not a simple ring", Assert.Throws<InvalidDataException>(() => FaceStep.Build(new[] { "101" }, bowTie, csv, Overlap)).Message);
+            var twice = new JArray { Shape("plot_shape", "1", Square), Shape("plot_shape", "1", Square) };
+            Assert.Contains("label 1 overlap by 100.000 m2", Assert.Throws<InvalidDataException>(() => FaceStep.Build(new[] { "101" }, twice, csv, Overlap)).Message);
+            var shared = new JArray { Shape("plot_shape", "1", Square), Shape("plot_shape", "1", 10, 0, 20, 0, 20, 10, 10, 10) };
+            Assert.Equal(200.0, (double)FaceStep.Build(new[] { "101" }, shared, csv, Overlap)["101"]["area"], 9);
+            // The same lines as python/face_rings.py, in the same order: the rings that are not simple, then the labels that overlap
+            var plots = new JArray
+            {
+                Shape("plot_shape", "1", Square), Shape("plot_shape", "2", 0, 0, 10, 10, 10, 0, 0, 10), Shape("plot_shape", "3", Square), Shape("plot_shape", "03", Square),
+                Shape("plot_shape", "4", Square), Shape("plot_shape", "4", 10, 0, 20, 0, 20, 10, 10, 10), Shape("plot_shape", "5a", 0, 0, 10, 10, 10, 0, 0, 10),
+                Shape("plot_shape", "6", 0, 0, 1, 0), Shape("polyline", "7", 0, 0, 10, 10, 10, 0, 0, 10),
+            };
+            Assert.Equal(new[]
+            {
+                "the baseplan face of label 2 is not a simple ring, two of its edges meet, shapely would mend it by buffer(0) and the C# would not, so the build refuses it (R345)",
+                "the baseplan faces of label 3 overlap by 100.000 m2, shapely joins them by a union and the C# would sum them, so the build refuses them (R345)",
+            }, FaceRings.Refusals(plots, Overlap));
         }
 
         [Fact]

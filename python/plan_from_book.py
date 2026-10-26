@@ -34,6 +34,7 @@ import cad_links
 import corner_front
 import common
 import data_book_retest
+import face_rings
 import floor_fit
 import footprint_check
 import key_rules
@@ -626,6 +627,14 @@ def step_entry(raw):
     return {"raw": raw, "written": json.loads(json.dumps(common.round_tree(raw)))}
 
 
+def area_tolerance(settings):
+    """R345. The areas tolerance of addin.parity, the most the union of the rings of a label may fall short of their sum."""
+    kinds = ((settings.get("addin") or {}).get("parity") or {}).get("kinds") or {}
+    if not isinstance(kinds.get("areas"), (int, float)):
+        raise project_profile.ProfileError("config holds no addin.parity.kinds.areas, the tolerance of the baseplan faces (R345)")
+    return kinds["areas"]
+
+
 def step_scope(cover):
     """R345. The scope of a step file as the worker names it: project for all, nbh=<NBH>, or cover=<file> for a cover file."""
     return "project" if cover == "all" else cover if cover.startswith("nbh=") else "cover=" + Path(cover).name
@@ -756,7 +765,12 @@ def main(argv=None):
         out = Path(args.out)
         plot_relations.refuse_inside_repo(out.resolve().parent)
         rows, number_of = book_rows(args.plots_csv)
-        by_label, _ = yard_rule.face_shapes(link_summary.load(args.baseplan)["plots"], 0)
+        baseplan = link_summary.load(args.baseplan)["plots"]
+        # R345. A ring shapely would mend and the C# would not is refused, so the build and its C# take the same faces
+        refused = face_rings.refusals(baseplan, area_tolerance(settings))
+        if refused:
+            raise project_profile.ProfileError("%d baseplan faces refused: %s" % (len(refused), ", ".join(refused)))
+        by_label, _ = yard_rule.face_shapes(baseplan, 0)
         faces = {number_of[label]: shape for label, shape in by_label.items() if label in number_of}
         if args.steps_only and not args.steps:
             raise project_profile.ProfileError("--steps-only needs --steps, the folder of the step files (R345)")

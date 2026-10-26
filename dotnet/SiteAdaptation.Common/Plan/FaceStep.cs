@@ -45,8 +45,14 @@ namespace SiteAdaptation.Common
 
         // Per plot of numbers: face false with the other fields null, or face true with the area, the centroid and the bounds of every
         // ring of its label
-        public static Dictionary<string, Dictionary<string, object>> Build(IEnumerable<string> numbers, JArray plots, IEnumerable<Dictionary<string, string>> plotsCsv)
+        // A ring that is not simple or a label whose rings overlap is refused first, as plan_from_book.py refuses it (FaceRings)
+        public static Dictionary<string, Dictionary<string, object>> Build(IEnumerable<string> numbers, JArray plots, IEnumerable<Dictionary<string, string>> plotsCsv, double overlapM2)
         {
+            List<string> refused = FaceRings.Refusals(plots, overlapM2);
+            if (refused.Count > 0)
+            {
+                throw new InvalidDataException(refused.Count + " baseplan faces refused: " + string.Join(", ", refused));
+            }
             var order = new List<string>();
             var rings = new Dictionary<string, List<double[][]>>();
             foreach (JToken entry in plots)

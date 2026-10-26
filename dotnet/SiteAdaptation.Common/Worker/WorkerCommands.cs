@@ -38,7 +38,7 @@ namespace SiteAdaptation.Common
             WorkerRequest request = run.Request;
             List<string> numbers = PlotScope.Numbers(request.Scope, CsvRows.Read(run.Input("labels")));
             JArray plots = JObject.Parse(WorkFiles.ReadText(run.Input("baseplanPlots")))["plots"] as JArray ?? throw new InvalidDataException("the baseplan plots.json holds no plots list");
-            var faces = FaceStep.Build(numbers, plots, CsvRows.Read(run.Input("plotsCsv")));
+            var faces = FaceStep.Build(numbers, plots, CsvRows.Read(run.Input("plotsCsv")), config.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)"));
             run.Counts[FaceStep.Name + " plots"] = faces.Count;
             run.Counts[FaceStep.Name + " with a face"] = faces.Values.Count(face => true.Equals(face["face"]));
             run.WriteJson(request.StepsFolder, StepFile.FileName(FaceStep.Name, "csharp"), StepFile.Build(FaceStep.Name, "csharp", StepFile.ScopeText(request.Scope), faces, config.StepFields(FaceStep.Name)));
