@@ -47,7 +47,9 @@ def made_page():
     found = []
     for k, code in enumerate(CODES):
         found += label_chars(code, str(111 + k), (1005.0 + 10 * (k % 3), 1905.0 + 10 * (k // 3)))
-    marks = [page_of(site) for site in ((500.0, 1880.0), (1030.0, 1880.5), (1560.0, 1881.0))]
+    # The middle mark lies 2 m off the line through the other two, so the similarity takes its mirror by the residuals and never by binary
+    # noise, as LocationPlanTests.MadeNumbering
+    marks = [page_of(site) for site in ((500.0, 1880.0), (1030.0, 1882.5), (1560.0, 1881.0))]
     words, curves = [], []
     for mark in marks:
         east, north = TRUTH[2] + np.asarray(mark) @ TRUTH[:2]
@@ -154,6 +156,44 @@ def test_r351_read_steps_numbers_a_made_up_page_by_the_schedule_fit_and_checks_i
     check = parity.load_step(steps / parity.step_name("controlCheck", "python"), "python")["plots"]["control"]["raw"]
     assert check["marks"] == 3 and check["refineFaces"] == 6 and check["facesNumberedOtherwise"] == 0 and check["labelsOnAFaceSchedule"] == 6
     assert parity.load_step(steps / parity.step_name("controlFaces", "python"), "python")["plots"] == {}
+
+
+def run_made(tmp_path, monkeypatch, page):
+    """read_steps.py on the made up baseplan, schedules and sales workbook of the test above, the page read as page gives it."""
+    path, values = made_settings(tmp_path)
+    folder = tmp_path / "reads" / values["drawings"]["baseplan"]
+    (folder / "plots.json").write_text(json.dumps({"source": "b.dwg", "plots": PLOTS}), encoding="utf-8")
+    values["connect"]["neighbourhoods"] = {"IMC": {"schedule": "imc.xlsx", "shift": 10}, "IMD": {"schedule": "imd.xlsx", "shift": 11}}
+    path.write_text(json.dumps(values), encoding="utf-8")
+    sheet = values["connect"]["scheduleSheet"]
+    imc = schedule(tmp_path / "imc.xlsx", sheet, [111, 112, 113, 114, 115, 116])
+    imd = schedule(tmp_path / "imd.xlsx", sheet, [900])
+    sales = sales_book(tmp_path / "sales.xlsx", values)
+    pdf = tmp_path / "plan.pdf"
+    pdf.write_bytes(b"made up, read_page is replaced")
+    monkeypatch.setattr(location_plan, "read_page", lambda found, plan, check=None: page)
+    steps = tmp_path / "steps"
+    code = read_steps.main(["--settings", str(path), "--steps", str(steps), "--only", *STEPS, "--plot-numbers", str(pdf), "--sales", str(sales),
+                            "--schedule", "IMC=%s" % imc, "--schedule", "IMD=%s" % imd])
+    return code, steps
+
+
+def test_r387_a_control_check_that_fails_is_an_issue_and_the_numbering_goes_on(tmp_path, monkeypatch, capsys):
+    whole = made_page()
+    code, steps = run_made(tmp_path / "whole", monkeypatch, whole)
+    assert code == 0, capsys.readouterr().err
+    numbered = parity.load_step(steps / parity.step_name("locationLabels", "python"), "python")["plots"]
+    assert parity.load_step(steps / parity.step_name("controlCheck", "python"), "python")["plots"]["control"]["raw"]["failed"] is None
+    # No mark under the control texts, or two: the check fails with why, every label is numbered as before and no face is listed apart
+    for name, curves, why in (("none", [], "has 0 curves of the mark shape"), ("twice", whole["curves"] + [dict(curve, x0=curve["x0"] + 5.0, x1=curve["x1"] + 5.0) for curve in whole["curves"]],
+                                                                          "has 2 curves of the mark shape")):
+        code, steps = run_made(tmp_path / name, monkeypatch, dict(whole, curves=curves))
+        assert code == 0, capsys.readouterr().err
+        labels = parity.load_step(steps / parity.step_name("locationLabels", "python"), "python")["plots"]
+        assert {number: item["raw"]["face"] for number, item in labels.items()} == {number: item["raw"]["face"] for number, item in numbered.items()}
+        check = parity.load_step(steps / parity.step_name("controlCheck", "python"), "python")["plots"]["control"]["raw"]
+        assert why in check["failed"] and "R387" in check["failed"] and check["marks"] is None and check["facesNumberedOtherwise"] is None
+        assert parity.load_step(steps / parity.step_name("controlFaces", "python"), "python")["plots"] == {}
 
 
 def test_r351_the_location_plan_steps_need_the_plan_and_the_sales_workbook(tmp_path, capsys):

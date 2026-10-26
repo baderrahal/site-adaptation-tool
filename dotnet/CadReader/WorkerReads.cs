@@ -516,6 +516,11 @@ namespace CadReader
             run.Counts["location plan labels"] = result.Labels.Count;
             run.Counts["location plan labels on a face"] = result.Rows.Count(row => row.Face != null);
             run.Counts["location plan faces numbered otherwise"] = result.Control.Listed.Count;
+            if (result.Control.Failed != null)
+            {
+                // R387. The check numbers nothing, so a check that cannot be made is an issue and the numbering goes on
+                run.Issues.Add("the control point check of the location plan could not be made, the numbering of the schedule fit goes on: " + result.Control.Failed);
+            }
             var output = new JObject
             {
                 ["source"] = Path.GetFileName(pdf),

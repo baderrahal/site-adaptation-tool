@@ -516,6 +516,7 @@
             "metresPerPoint": {"kind": "points", "decimals": 4}
         },
         "controlCheck": {
+            "failed": {"kind": "noGeometry"},
             "controlTexts": {"kind": "noGeometry"},
             "marks": {"kind": "noGeometry"},
             "markGapStartM": {"kind": "points", "decimals": 3},

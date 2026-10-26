@@ -61,6 +61,9 @@ import rev9_workbooks
 import yard_rule
 
 LOCATION_STEPS = ("locationLabels", "locationFit", "controlCheck", "controlFaces")
+# R387. The fields of the step controlCheck but failed, each null when the check failed
+CHECK_FIELDS = ("controlTexts", "marks", "markGapStartM", "markGapRefinedM", "refineFaces", "refineKept", "refineResidualKeptM", "againstScheduleM",
+                "labelsOnAFaceSchedule", "labelsOnAFaceControl", "facesNumberedOtherwise", "unitFacesNumberedOtherwise")
 TABLE_STEPS = ("plotTable",)
 STEPS = ("labels", "blocks", "curbs", "rows", "setbacks", "surfaces", "roadLevels", "areaKey", "dlusSetbacks", "sales")
 SCOPE = "project"
@@ -264,9 +267,15 @@ def location_steps(settings, pdf, plots, schedule_paths, sales):
     for name, (numbers, residual) in fit["others"].items():
         made["locationFit"][name] = {"role": "check", "points": len(numbers), "used": numbers, "kept": None, "residualKeptM": None,
                                      "residualAllM": stat_values(residual), "metresPerPoint": None}
+    if parts["failed"]:
+        # R387. A check that cannot be made is an issue of the read with why, every other field null, and the numbering goes on
+        made["controlCheck"] = {"control": dict(dict.fromkeys(CHECK_FIELDS), failed=parts["failed"])}
+        made["controlFaces"] = {}
+        labels_written = [dict(row, east=common.fixed(float(point[0]), 3), north=common.fixed(float(point[1]), 3)) for row, point in zip(rows, site)]
+        return made, {"labels": labels_written, "shifts": shifts}
     refine = parts["refine"]
     made["controlCheck"] = {"control": {
-        "controlTexts": len(parts["texts"]), "marks": len(parts["marks"]), "markGapStartM": location_plan.mark_gaps(parts["start"], parts["marks"]),
+        "failed": None, "controlTexts": len(parts["texts"]), "marks": len(parts["marks"]), "markGapStartM": location_plan.mark_gaps(parts["start"], parts["marks"]),
         "markGapRefinedM": location_plan.mark_gaps(parts["refined"], parts["marks"]), "refineFaces": len(refine["faces"]), "refineKept": refine["kept"],
         "refineResidualKeptM": stat_values(refine["residual"][refine["keep"]]), "againstScheduleM": stat_values(parts["apart"]),
         "labelsOnAFaceSchedule": sum(1 for row in rows if row["face"] is not None),

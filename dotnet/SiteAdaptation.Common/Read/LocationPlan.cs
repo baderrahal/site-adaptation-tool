@@ -951,6 +951,9 @@ namespace SiteAdaptation.Common
 
         public sealed class ControlCheck
         {
+            // R387. Why the check could not be made, a control text with no mark or two, marks that give no similarity or a refine of
+            // under three faces, null when it was made. A failed check is an issue of the read and numbers nothing, as every check
+            public string Failed { get; set; }
             public int ControlTexts { get; set; }
             public int Marks { get; set; }
             public double[] MarkGapStartM { get; set; }
@@ -1188,18 +1191,32 @@ namespace SiteAdaptation.Common
         private static ControlCheck Check(IReadOnlyList<PlanLabel> labels, IReadOnlyList<Row> rows, IReadOnlyList<PageWord> words, IEnumerable<PageCurve> curves,
             IReadOnlyDictionary<string, PlanFace> faces, FaceIndex index, LocationPlanSettings settings)
         {
-            List<ControlText> texts = ControlTexts(words);
-            List<ControlMark> marks = ControlMarks(curves, texts, settings);
-            PageFit start = SimilarityFit(marks.Select(mark => new[] { mark.X, mark.Y }).ToList(), marks.Select(mark => new[] { mark.East, mark.North }).ToList());
-            List<string> homes = labels.Select(label => { double[] at = start.Apply(label.X, label.Y); return index.FaceOf(at[0], at[1]); }).ToList();
-            var held = homes.Where(item => item != null).GroupBy(item => item).ToDictionary(group => group.Key, group => group.Count());
-            var taken = homes.Select((face, index) => new { face, index }).Where(item => item.face != null && held[item.face] == 1).OrderBy(item => PyInt(item.face)).ToList();
-            if (taken.Count < 3)
+            List<ControlText> texts;
+            List<ControlMark> marks;
+            RobustResult refine;
+            PageFit start;
+            int refineFaces;
+            try
             {
-                throw new InvalidDataException("the control point fit puts a single label on " + taken.Count + " faces, the refine needs three (R387)");
+                texts = ControlTexts(words);
+                marks = ControlMarks(curves, texts, settings);
+                start = SimilarityFit(marks.Select(mark => new[] { mark.X, mark.Y }).ToList(), marks.Select(mark => new[] { mark.East, mark.North }).ToList());
+                List<string> homes = labels.Select(label => { double[] at = start.Apply(label.X, label.Y); return index.FaceOf(at[0], at[1]); }).ToList();
+                var held = homes.Where(item => item != null).GroupBy(item => item).ToDictionary(group => group.Key, group => group.Count());
+                var taken = homes.Select((face, place) => new { face, place }).Where(item => item.face != null && held[item.face] == 1).OrderBy(item => PyInt(item.face)).ToList();
+                if (taken.Count < 3)
+                {
+                    throw new InvalidDataException("the control point fit puts a single label on " + taken.Count + " faces, the refine needs three (R387)");
+                }
+                refineFaces = taken.Count;
+                refine = RobustFit(taken.Select(item => new[] { labels[item.place].X, labels[item.place].Y }).ToList(),
+                    taken.Select(item => new[] { faces[item.face].CentroidX, faces[item.face].CentroidY }).ToList(), settings.FitDropFactor, settings.FitRounds, settings.FitFloorM);
             }
-            RobustResult refine = RobustFit(taken.Select(item => new[] { labels[item.index].X, labels[item.index].Y }).ToList(),
-                taken.Select(item => new[] { faces[item.face].CentroidX, faces[item.face].CentroidY }).ToList(), settings.FitDropFactor, settings.FitRounds, settings.FitFloorM);
+            catch (InvalidDataException failure)
+            {
+                // R387. A check that cannot be made is an issue with why, the numbering of the schedule fit goes on as it is
+                return new ControlCheck { Failed = failure.Message, Listed = new List<ListedFace>() };
+            }
             var controlSite = labels.Select(label => refine.Fit.Apply(label.X, label.Y)).ToList();
             List<string> controlFaces = controlSite.Select(at => index.FaceOf(at[0], at[1])).ToList();
             List<ListedFace> listed = NumberedOtherwise(rows, controlFaces, controlSite, faces);
@@ -1211,7 +1228,7 @@ namespace SiteAdaptation.Common
                 Marks = marks.Count,
                 MarkGapStartM = gaps(start),
                 MarkGapRefinedM = gaps(refine.Fit),
-                RefineFaces = taken.Count,
+                RefineFaces = refineFaces,
                 RefineKept = refine.Keep.Count,
                 RefineResidualKeptM = Stats(refine.Keep.Select(i => refine.Residual[i])),
                 AgainstScheduleM = Stats(rows.Select((row, index) => Hypot(controlSite[index][0] - row.East, controlSite[index][1] - row.North))),
@@ -1334,14 +1351,17 @@ namespace SiteAdaptation.Common
         public static Dictionary<string, Dictionary<string, object>> CheckStep(Result result)
         {
             ControlCheck check = result.Control;
+            bool made = check.Failed == null;
             return new Dictionary<string, Dictionary<string, object>>
             {
                 ["control"] = new Dictionary<string, object>
                 {
-                    ["controlTexts"] = check.ControlTexts, ["marks"] = check.Marks, ["markGapStartM"] = check.MarkGapStartM, ["markGapRefinedM"] = check.MarkGapRefinedM,
-                    ["refineFaces"] = check.RefineFaces, ["refineKept"] = check.RefineKept, ["refineResidualKeptM"] = check.RefineResidualKeptM,
-                    ["againstScheduleM"] = check.AgainstScheduleM, ["labelsOnAFaceSchedule"] = check.LabelsOnAFaceSchedule, ["labelsOnAFaceControl"] = check.LabelsOnAFaceControl,
-                    ["facesNumberedOtherwise"] = check.Listed.Count, ["unitFacesNumberedOtherwise"] = check.UnitFacesNumberedOtherwise,
+                    ["failed"] = check.Failed,
+                    ["controlTexts"] = made ? (object)check.ControlTexts : null, ["marks"] = made ? (object)check.Marks : null, ["markGapStartM"] = check.MarkGapStartM,
+                    ["markGapRefinedM"] = check.MarkGapRefinedM, ["refineFaces"] = made ? (object)check.RefineFaces : null, ["refineKept"] = made ? (object)check.RefineKept : null,
+                    ["refineResidualKeptM"] = check.RefineResidualKeptM, ["againstScheduleM"] = check.AgainstScheduleM,
+                    ["labelsOnAFaceSchedule"] = made ? (object)check.LabelsOnAFaceSchedule : null, ["labelsOnAFaceControl"] = made ? (object)check.LabelsOnAFaceControl : null,
+                    ["facesNumberedOtherwise"] = made ? (object)check.Listed.Count : null, ["unitFacesNumberedOtherwise"] = made ? (object)check.UnitFacesNumberedOtherwise : null,
                 },
             };
         }

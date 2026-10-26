@@ -247,6 +247,77 @@ namespace SiteAdaptation.Tests
             Assert.Equal(1.0, LocationPlan.EdgeDistance(faces["7"], 15, 9), 9);
         }
 
+        // test_location_steps.made_page: six faces of 10 m in two rows of three labelled 101 to 106, a label of code and number at the
+        // centre of each, numbered 111 to 116 by the IMC schedule of shift 10, and three control texts E = N = with the mark of each when
+        // marks is true
+        private static LocationPlan.Result MadeNumbering(bool marks, bool twice = false)
+        {
+            var plots = new JArray();
+            for (int k = 0; k < 6; k++)
+            {
+                plots.Add(Face((101 + k).ToString(CultureInfo.InvariantCulture), 1000.0 + 10 * (k % 3), 1900.0 + 10 * (k / 3), 1010.0 + 10 * (k % 3), 1910.0 + 10 * (k / 3)));
+            }
+            Dictionary<string, PlanFace> faces = LocationPlan.Faces(plots, 0.000001);
+            string[] codes = { "DP1 (QP)", "DP1-SA", "TH3-0 (BB)", "VL3-0", "DP1", "XX9" };
+            var chars = new List<PageChar>();
+            for (int k = 0; k < 6; k++)
+            {
+                double[] at = PageOf(1005.0 + 10 * (k % 3), 1905.0 + 10 * (k / 3));
+                string number = (111 + k).ToString(CultureInfo.InvariantCulture);
+                chars.AddRange(Chars(codes[k], at[0] - ((codes[k].Length - 1) * 0.7 + 0.65) / 2, at[1] - 1.28));
+                chars.AddRange(Chars(number, at[0] - ((number.Length - 1) * 0.7 + 0.65) / 2, at[1] + 0.28));
+            }
+            var curves = new List<PageCurve>();
+            // The middle mark lies 2 m off the line through the other two, so the similarity of the marks takes its mirror by their residuals and
+            // never by the binary noise of three marks on one line
+            foreach (double[] site in new[] { new[] { 500.0, 1880.0 }, new[] { 1030.0, 1882.5 }, new[] { 1560.0, 1881.0 } })
+            {
+                double[] mark = PageOf(site[0], site[1]);
+                double x = mark[0] + 20.0;
+                foreach (string word in new[] { "E", "=", site[0].ToString("0.000", CultureInfo.InvariantCulture), "N", "=", site[1].ToString("0.000", CultureInfo.InvariantCulture) })
+                {
+                    chars.AddRange(Chars(word, x, mark[1] - 8.0, 2.0));
+                    x += word.Length * 0.7 + 6.0;
+                }
+                if (marks)
+                {
+                    curves.AddRange(Curve(mark[0], mark[1], 3.96, 6));
+                }
+                if (twice)
+                {
+                    curves.AddRange(Curve(mark[0] + 5.0, mark[1] - 5.0, 3.96, 6));
+                }
+            }
+            var officials = new Dictionary<string, HashSet<string>> { ["IMC"] = new HashSet<string> { "111", "112", "113", "114", "115", "116" } };
+            var sales = Enumerable.Range(111, 5).Select(plot => new Dictionary<string, string> { ["plot"] = plot.ToString(CultureInfo.InvariantCulture), ["typology"] = "DP1", ["nbh"] = "012", ["zone"] = "Zone 2" }).ToList();
+            var table = new List<Dictionary<string, string>> { Row("Duplex", "DP1", "DP1"), Row("Villa", "DP1", "VD1") };
+            return LocationPlan.Number(chars, curves, faces, officials, sales, table, Settings());
+        }
+
+        [Fact]
+        public void R387_a_control_check_that_fails_is_an_issue_and_the_numbering_goes_on()
+        {
+            LocationPlan.Result checkedResult = MadeNumbering(true);
+            Assert.Null(checkedResult.Control.Failed);
+            Assert.Equal(3, checkedResult.Control.Marks);
+            Assert.Equal(6, checkedResult.Control.RefineFaces);
+            // No mark under the control texts: the check fails with why, every label is numbered as before and no face is listed apart
+            LocationPlan.Result failed = MadeNumbering(false);
+            Assert.Contains("curves of the mark shape", failed.Control.Failed);
+            Assert.Contains("R387", failed.Control.Failed);
+            Assert.Equal(checkedResult.Rows.Select(row => row.Number + "|" + row.Face), failed.Rows.Select(row => row.Number + "|" + row.Face));
+            Assert.Empty(failed.Control.Listed);
+            Dictionary<string, object> step = LocationPlan.CheckStep(failed)["control"];
+            Assert.Equal(failed.Control.Failed, step["failed"]);
+            Assert.Null(step["marks"]);
+            Assert.Empty(LocationPlan.FacesStep(failed));
+            Assert.Null(LocationPlan.CheckStep(checkedResult)["control"]["failed"]);
+            // Two marks under each control text: the check fails, the labels keep their faces
+            LocationPlan.Result twice = MadeNumbering(true, true);
+            Assert.Contains("has 2 curves of the mark shape", twice.Control.Failed);
+            Assert.Equal(checkedResult.Rows.Select(row => row.Number + "|" + row.Face), twice.Rows.Select(row => row.Number + "|" + row.Face));
+        }
+
         // test_location_plan.made_pdf: a PDF of one page of 600 by 400 pt with a text and a stroked path, extra added to its page dictionary
         private static string MadePdf(string path, string extra)
         {

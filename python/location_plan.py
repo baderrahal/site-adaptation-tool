@@ -269,11 +269,16 @@ def mark_gaps(matrix, marks):
 def control_fit_parts(labels, rows, words, curves, faces, plan, schedule_site):
     """R387, R351. The parts of the control point fit as a check of the schedule fit, unrounded: the texts and marks, the start and the
     refined fit with the refine, the site point and face of every label by the control fit and the faces it numbers otherwise. It
-    writes no number into labels.csv or any row."""
-    texts = control_texts(words)
-    marks = control_marks(curves, texts, plan["controlMark"], plan["controlSearchPt"])
-    start = similarity_fit([mark for mark, _ in marks], [stated for _, stated in marks])
-    refined, refine = control_refine(start, labels, faces, plan["fitDropFactor"], plan["fitRounds"], plan["fitFloorM"])
+    writes no number into labels.csv or any row. A check that cannot be made, a control text with no mark or two, marks that give no
+    similarity or a refine of under three faces, gives failed with why and nothing else, an issue of the read, and the numbering of the
+    schedule fit goes on as it is."""
+    try:
+        texts = control_texts(words)
+        marks = control_marks(curves, texts, plan["controlMark"], plan["controlSearchPt"])
+        start = similarity_fit([mark for mark, _ in marks], [stated for _, stated in marks])
+        refined, refine = control_refine(start, labels, faces, plan["fitDropFactor"], plan["fitRounds"], plan["fitFloorM"])
+    except ValueError as failure:
+        return {"failed": str(failure)}
     points = [(label["x"], label["y"]) for label in labels]
     control_site = apply(refined, points) if points else []
     control_faces = face_of_points(control_site, faces)
@@ -281,7 +286,7 @@ def control_fit_parts(labels, rows, words, curves, faces, plan, schedule_site):
     unit_numbers = {row["number"] for row in rows if row["kind"] == "clientCode"}
     apart = np.hypot(*(np.asarray(control_site) - np.asarray(schedule_site)).T) if points else []
     return {"texts": texts, "marks": marks, "start": start, "refined": refined, "refine": refine, "controlSite": control_site, "controlFaces": control_faces,
-            "listed": listed, "apart": apart, "unitFaces": sum(1 for item in listed if set(item["schedule"] + item["control"]) & unit_numbers)}
+            "listed": listed, "apart": apart, "unitFaces": sum(1 for item in listed if set(item["schedule"] + item["control"]) & unit_numbers), "failed": None}
 
 
 def control_fit_check(labels, rows, words, curves, faces, plan, schedule_site):
@@ -289,8 +294,10 @@ def control_fit_check(labels, rows, words, curves, faces, plan, schedule_site):
     mark shape of controlMark, the fit starts from their similarity and is refined on the faces that hold one label each, then every
     face it numbers otherwise than the schedule fit is listed apart with why. It writes no number into labels.csv or any row."""
     parts = control_fit_parts(labels, rows, words, curves, faces, plan, schedule_site)
+    if parts["failed"]:
+        return {"failed": parts["failed"], "list": []}
     at = lambda matrix: [common.fixed(gap, 3) for gap in mark_gaps(matrix, parts["marks"])]
-    return {"controlTexts": len(parts["texts"]), "marks": len(parts["marks"]), "markGapStartM": at(parts["start"]), "markGapRefinedM": at(parts["refined"]),
+    return {"failed": None, "controlTexts": len(parts["texts"]), "marks": len(parts["marks"]), "markGapStartM": at(parts["start"]), "markGapRefinedM": at(parts["refined"]),
             "refineFaces": len(parts["refine"]["faces"]), "refineKept": parts["refine"]["kept"], "refineResidualKeptM": parts["refine"]["residualKeptM"],
             "againstScheduleM": stats(parts["apart"]), "labelsOnAFace": {"schedule": sum(1 for row in rows if row["face"] is not None),
                                                                           "control": sum(1 for face in parts["controlFaces"] if face is not None)},
