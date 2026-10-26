@@ -47,11 +47,24 @@ namespace SiteAdaptation.Common
                     return new JObject
                     {
                         ["elementId"] = floor.ElementId, ["typeName"] = floor.TypeName, ["plotText"] = floor.PlotText,
-                        ["plot"] = PlotParts.TryParse(floor.PlotText, out unit, out number) ? number : null,
+                        // A null string set as a value is a JValue of type String and was counted as a plot, so a floor of no plot is the JSON null
+                        ["plot"] = PlotParts.TryParse(floor.PlotText, out unit, out number) ? new JValue(number) : JValue.CreateNull(),
                         ["corners"] = new JArray(floor.Corners.Select(Point)), ["sharedCorners"] = new JArray(floor.SharedCorners.Select(Point)),
                     };
                 })),
             };
+        }
+
+        // The floors of a key points file whose plot is a number, built in memory or read back
+        public static int WithPlot(JObject file)
+        {
+            return (file["floors"] as JArray ?? new JArray()).Count(item => item["plot"] != null && item["plot"].Type == JTokenType.String && ((string)item["plot"]).Length > 0);
+        }
+
+        // The line of the step keyPoints: the floors and those with a plot
+        public static string Summary(JObject file)
+        {
+            return "floors " + (file["floors"] as JArray ?? new JArray()).Count + ", with a plot " + WithPlot(file);
         }
 
         // The file text, every double by ExactDouble.Text

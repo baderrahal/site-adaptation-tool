@@ -80,6 +80,26 @@ namespace SiteAdaptation.Tests
             Assert.Throws<System.IO.InvalidDataException>(() => KeyPointsFile.PointsOf("{\"format\": \"another\"}"));
         }
 
+        // R353. A floor of no plot holds a JSON null both in the file built in memory and in the file read back, so the count of the floors
+        // with a plot the step gives is the same on both: here 2 of 4, the floor with no Plot parameter and the one whose text is no plot
+        // left out, where a null text taken as a value counted all 4
+        [Fact]
+        public void R353_a_floor_of_no_plot_is_a_null_and_is_never_counted_as_a_floor_with_a_plot()
+        {
+            var floors = new List<KeyPointFloor>
+            {
+                new KeyPointFloor { ElementId = 1, TypeName = "Generic 150mm", PlotText = "DT1 - 2585", Corners = new List<double[]>(), SharedCorners = new List<double[]>() },
+                new KeyPointFloor { ElementId = 2, TypeName = "Generic 150mm", PlotText = null, Corners = new List<double[]>(), SharedCorners = new List<double[]>() },
+                new KeyPointFloor { ElementId = 3, TypeName = "Generic 150mm", PlotText = "road", Corners = new List<double[]>(), SharedCorners = new List<double[]>() },
+                new KeyPointFloor { ElementId = 4, TypeName = "yard", PlotText = "TH1-2586", Corners = new List<double[]>(), SharedCorners = new List<double[]>() },
+            };
+            JObject built = KeyPointsFile.Build("key_TEST-KC.rvt", new[] { 1.0, 2.0, 0.0 }, 0.0, new[] { 0.0, 0.0, 0.0 }, new[] { 1.0, 2.0, 0.0 }, new[] { 0.0, 0.0, 0.0 }, new[] { 1.0, 2.0, 0.0 }, floors);
+            Assert.Equal(new[] { JTokenType.String, JTokenType.Null, JTokenType.Null, JTokenType.String }, built["floors"].Select(item => item["plot"].Type));
+            Assert.Equal(2, KeyPointsFile.WithPlot(built));
+            Assert.Equal(2, KeyPointsFile.WithPlot(KeyPointsFile.PointsOf(KeyPointsFile.Text(built))));
+            Assert.Equal("floors 4, with a plot 2", KeyPointsFile.Summary(built));
+        }
+
         private static string ValueText(string text, string name)
         {
             int at = text.IndexOf("\"" + name + "\": ", StringComparison.Ordinal) + name.Length + 4;

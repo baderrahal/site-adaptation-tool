@@ -91,8 +91,7 @@ namespace SiteAdaptation.TestHost
                 new[] { UnitMath.FeetToMetres(at.EastWest), UnitMath.FeetToMetres(at.NorthSouth), UnitMath.FeetToMetres(at.Elevation) }, at.Angle * 180.0 / System.Math.PI,
                 Metres(survey.Position), Metres(survey.SharedPosition), Metres(projectBase.Position), Metres(projectBase.SharedPosition), floors);
             File.WriteAllText(TestHostGuard.OutputPath(documents, job.Code, "points"), KeyPointsFile.Text(file), new UTF8Encoding(false));
-            return "floors " + floors.Count + ", with a plot " + file["floors"].Count(item => item["plot"].Type != Newtonsoft.Json.Linq.JTokenType.Null)
-                + ", corners " + floors.Sum(floor => floor.Corners.Count) + ", no outer loop " + noLoop;
+            return KeyPointsFile.Summary(file) + ", corners " + floors.Sum(floor => floor.Corners.Count) + ", no outer loop " + noLoop;
         }
     }
 }
