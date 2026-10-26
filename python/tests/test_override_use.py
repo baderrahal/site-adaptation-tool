@@ -173,3 +173,25 @@ def test_r386_a_skip_plot_that_is_no_plot_of_plots_csv_is_refused_with_its_name(
     # The plot as plots.csv spells it is skipped
     found, plan = level_build(tmp_path, monkeypatch, overrides=overrides, skip=[{"plot": "2", "reason": "client builds later", "byHand": True}])
     assert "2" not in found and plan["summary"]["skipped"] == ["2"]
+
+
+# R386 a majority run makes every check before it writes anything, so a refused skip leaves majority.json and the list as they were
+def test_r386_a_refused_skip_writes_neither_majority_json_nor_the_override_list(tmp_path):
+    import argparse
+    listed = [entry("1", "mirrored", True, "parsons", "IMC.rvt", "imc")]
+    path = write_list(tmp_path / "list.json", listed, cannot=[], skip=[{"plot": "02", "reason": "r", "byHand": True}])
+    before = path.read_bytes()
+    args = argparse.Namespace(out=str(tmp_path / "run" / "majority.json"), overrides=str(path), keep_from=None)
+    with pytest.raises(project_profile.ProfileError, match="02"):
+        majority.finish(args, {"overrideNote": "n"}, {"1": {}, "2": {}}, {"plots": 1, "share": 0.5}, listed, [])
+    assert not (tmp_path / "run").exists() and path.read_bytes() == before
+    # A report value R385 refuses to round is found before the list is written as well
+    write_list(path, listed, cannot=[], skip=[{"plot": "2", "reason": "r", "byHand": True}])
+    before = path.read_bytes()
+    with pytest.raises(OverflowError):
+        majority.finish(args, {"overrideNote": "n"}, {"1": {}, "2": {}}, {"plots": 1, "far": 1.5e14}, listed, [])
+    assert not (tmp_path / "run").exists() and path.read_bytes() == before
+    # With every check passed both are written, the skip kept after cannot
+    majority.finish(args, {"overrideNote": "n"}, {"1": {}, "2": {}}, {"plots": 1, "share": 0.5}, listed, [])
+    assert json.loads((tmp_path / "run" / "majority.json").read_text(encoding="utf-8")) == {"plots": 1, "share": 0.5}
+    assert json.loads(path.read_text(encoding="utf-8"))["skip"] == [{"plot": "2", "reason": "r", "byHand": True}]

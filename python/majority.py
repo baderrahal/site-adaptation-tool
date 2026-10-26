@@ -809,16 +809,36 @@ def final_skip(path, keep_from, plots=None):
     return None if not lists else [found[plot] for plot in sorted(found, key=link_summary.sort_key)]
 
 
-def write_overrides(path, note, listing, cannot=None, skip=None):
-    """The override list with one override per line, so Bader can find and edit a plot by hand, with cannot the misses with no
-    value after it, one per line, listed and never applied (R272), and with skip the plots the check table skips after that (R386)."""
+def overrides_text(note, listing, cannot=None, skip=None):
+    """The text of the override list with one override per line, so Bader can find and edit a plot by hand, with cannot the misses
+    with no value after it, one per line, listed and never applied (R272), and with skip the plots the check table skips after that
+    (R386), read back as JSON before anything is written."""
     block = lambda items: ",\n".join("    " + json.dumps(item, ensure_ascii=False) for item in items) + ("\n" if items else "")
     text = "{\n  \"note\": " + json.dumps(note, ensure_ascii=False) + ",\n  \"overrides\": [\n" + block(listing) + "  ]"
     text += "" if cannot is None else ",\n  \"cannot\": [\n" + block(cannot) + "  ]"
     text += ("" if skip is None else ",\n  \"skip\": [\n" + block(skip) + "  ]") + "\n}\n"
     json.loads(text)
+    return text
+
+
+def write_overrides(path, note, listing, cannot=None, skip=None):
+    """The override list of overrides_text written to path."""
+    text = overrides_text(note, listing, cannot, skip)
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_bytes(text.encode("utf-8"))
+
+
+def finish(args, block, book, report, listing, cannot):
+    """R272, R386. The end of a run: every check first, the skip list of the earlier lists against the plots of plots.csv, the text of
+    the list and the text of the report, which R385 refuses for a value it can not round, and only then majority.json and the list, so
+    a refused run leaves both as they were."""
+    skip = final_skip(args.overrides, args.keep_from, set(book))
+    listed = overrides_text(block["overrideNote"], listing, cannot, skip)
+    written = json.dumps(common.round_tree(report), indent=1, ensure_ascii=False)
+    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.out).write_text(written, encoding="utf-8")
+    Path(args.overrides).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.overrides).write_bytes(listed.encode("utf-8"))
 
 
 def load_block(settings):
@@ -960,10 +980,8 @@ def run_args(args):
               "frontRules": dict(Counter(front[number]["frontRule"] for number in numbers if number in front)), "keyDatumsM": datums, "siteFacts": site, **extras, "decisions": results,
               "overrideCount": dict(Counter(item["decision"] for item in listing)), "overrideMerge": merged, "overrideCounts": override_source.counts(listing),
               "cannotCount": dict(Counter(item["decision"] for item in cannot)), "cannotCounts": override_source.counts(cannot)}
-    common.write_json(args.out, report)
-    # R386. The skip list of the check table is kept whole, a run never measures it
-    skip = final_skip(args.overrides, args.keep_from, set(book))
-    write_overrides(args.overrides, block["overrideNote"], listing, cannot, skip)
+    # R386. The skip list of the check table is kept whole, a run never measures it, and every check is made before anything is written
+    finish(args, block, book, report, listing, cannot)
     for result in results:
         print("%s: coded %s, share %s, %s, misses %d of %d" % (result["decision"], result["coded"], result["share"], "strong" if result["strong"] else "WEAK", result["misses"], result["plots"]))
     for name, found in extras["coverage"].items():
