@@ -118,16 +118,21 @@ def test_r350_read_steps_refuses_a_table_of_no_row(tmp_path, capsys):
 
 def test_r347_q083_the_config_names_the_peak_of_a_whole_read_with_its_reason():
     peaks = project_profile.load_settings().get("addin.workerPeakMiB")
-    assert peaks["commands"] == {"read": 2800}
+    assert peaks["commands"] == {"read": 3900}
     assert "4,008" in peaks["commandsNote"] and "CHOSEN" in peaks["commandsNote"]
 
 
-def test_r347_q084_the_lowered_peak_of_a_whole_read_is_the_highest_measured_rounded_up_to_the_next_100_mib():
+def test_r347_the_peak_of_a_whole_read_is_the_highest_measured_with_the_read_order_plus_the_largest_swing_measured_rounded_up():
+    # The whole reads with the read order of Q084: 2,692 to 2,702 MiB on net48 and 2,550 to 2,554 on net8.0 in 4d, 2,464 to 2,493 and
+    # 2,550 to 2,559 at the head of the review of PR 54. The largest swing of one build on one runtime over its done whole reads, 2,752 to
+    # 3,899 MiB of 0a58496 on net48, where 2,800 left 98 MiB over the highest
     peaks = project_profile.load_settings().get("addin.workerPeakMiB")
     note = peaks["commandsNote"]
-    measured = [2692, 2702, 2550, 2554]
-    assert peaks["commands"]["read"] == -(-max(measured) // 100) * 100 == 2800
-    assert "Q084" in note and "2,702" in note and "ReadOrder" in note and "4,848" in note
+    measured = [2692, 2702, 2550, 2554, 2464, 2480, 2493, 2559]
+    swing = 3899 - 2752
+    assert peaks["commands"]["read"] == -(-(max(measured) + swing) // 100) * 100 == 3900
+    assert "Q084" in note and "2,702" in note and "1,147" in note and "ReadOrder" in note and "5,948" in note
+    assert "scaled by its file size" in project_profile.load_settings().get("addin.workerPeakNote")
 
 
 def test_r350_every_workbook_setting_names_a_key_of_the_rev9_workbooks():

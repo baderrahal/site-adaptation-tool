@@ -502,7 +502,8 @@ namespace SiteAdaptation.Tests
             AddinConfig addin = AddinConfig.Load(config);
             var inputs = new List<WorkerFile> { Input("config", config), Input("cadLayers", LayersFile()), Input("baseplan", basePath), Input("curbs", roadPath) };
             Assert.Equal(new[] { "curbs", "baseplan" }, WorkerMemory.ReadOrder(inputs, new[] { "baseplan", "villaBlocks", "curbs" }, addin));
-            // A drawing with no measured peak takes the largest known, and drawings of one peak keep the order of the roles
+            // Drawings with no measured peak take a peak scaled by their size, two made up files under the smallest measured size the
+            // smallest peak, and drawings of one peak keep the order of the roles
             var unmeasured = new List<WorkerFile> { new WorkerFile { Role = "villaBlocks", Path = basePath }, new WorkerFile { Role = "baseplan", Path = roadPath } };
             Assert.Equal(new[] { "baseplan", "villaBlocks" }, WorkerMemory.ReadOrder(unmeasured, new[] { "baseplan", "villaBlocks", "curbs" }, AddinConfig.Load(WorkerRunTests.RepoConfig())));
             WorkerAnswer answer = Run(Request("q84", inputs), 0);

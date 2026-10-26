@@ -112,8 +112,8 @@ namespace SiteAdaptation.Common
         }
 
         // Q084. The drawings of a read in the order they are read: the one of the largest measured peak of addin.workerPeakMiB first, a
-        // drawing not measured taking the largest known, so the largest read meets the least memory held, drawings of one peak in the order
-        // of roles. Only the roles given, each once
+        // drawing not measured taking a peak scaled by its size from the measured ones (AddinConfig.WorkerPeakMiB), so the largest read
+        // meets the least memory held, drawings of one peak in the order of roles. Only the roles given, each once
         public static List<string> ReadOrder(IEnumerable<WorkerFile> inputs, IReadOnlyList<string> roles, AddinConfig config)
         {
             List<WorkerFile> drawings = inputs.Where(input => roles.Contains(input.Role)).GroupBy(input => input.Role).Select(group => group.First()).ToList();

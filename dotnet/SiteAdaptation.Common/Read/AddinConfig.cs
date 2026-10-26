@@ -44,7 +44,35 @@ namespace SiteAdaptation.Common
                 return null;
             }
             JToken measured = files.FirstOrDefault(file => string.Equals((string)file["name"], fileName, System.StringComparison.OrdinalIgnoreCase) && (long)file["bytes"] == bytes);
-            return measured != null ? (double)measured["peakMiB"] : files.Max(file => (double)file["peakMiB"]);
+            return measured != null ? (double)measured["peakMiB"] : ScaledPeakMiB(files, bytes);
+        }
+
+        // R347, the review of PR 54. The peak of a drawing with no measured peak scaled by its size from the measured ones, never the
+        // largest known: the measured peaks by size made to rise with it, each at least the peak of a smaller file, then the smallest
+        // peak under the smallest size, the line between the two sizes around it, and the largest peak per byte over the largest size
+        private static double ScaledPeakMiB(JArray files, long bytes)
+        {
+            var points = files.Select(file => new[] { (double)(long)file["bytes"], (double)file["peakMiB"] }).OrderBy(point => point[0]).ThenBy(point => point[1]).ToList();
+            double rising = 0;
+            foreach (double[] point in points)
+            {
+                rising = System.Math.Max(rising, point[1]);
+                point[1] = rising;
+            }
+            if (bytes <= points[0][0])
+            {
+                return points[0][1];
+            }
+            for (int index = 1; index < points.Count; index++)
+            {
+                double[] low = points[index - 1], high = points[index];
+                if (bytes <= high[0])
+                {
+                    return high[0] == low[0] ? high[1] : low[1] + (bytes - low[0]) * (high[1] - low[1]) / (high[0] - low[0]);
+                }
+            }
+            double[] largest = points[points.Count - 1];
+            return largest[1] * bytes / largest[0];
         }
 
         // R347, Q083. The peak private memory in MiB of a whole command, addin.workerPeakMiB.commands, null for a command it names none.

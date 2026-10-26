@@ -625,6 +625,28 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R347_a_drawing_with_no_measured_peak_takes_a_peak_scaled_by_its_size_from_the_measured_ones()
+        {
+            // Two made up drawings measured at 10,000,000 bytes and 500 MiB and at 100,000,000 bytes and 2,000 MiB, and a third of the size of
+            // the first at a lower peak, which the rising line by size never takes under the peak of a smaller file
+            var files = new JArray
+            {
+                new JObject { ["name"] = "a.dwg", ["bytes"] = 10000000, ["peakMiB"] = 500 }, new JObject { ["name"] = "b.dwg", ["bytes"] = 100000000, ["peakMiB"] = 2000 },
+                new JObject { ["name"] = "c.dwg", ["bytes"] = 20000000, ["peakMiB"] = 400 },
+            };
+            var config = new JObject { ["siteBuild"] = new JObject { ["minFreeGB"] = 2.0 }, ["addin"] = new JObject { ["workerPeakMiB"] = new JObject { ["roles"] = new JArray("curbs"), ["files"] = files } } };
+            AddinConfig addin = AddinConfig.Load(Write("scaled.json", config.ToString()));
+            Assert.Equal(500.0, addin.WorkerPeakMiB("curbs", "a.dwg", 10000000).Value);
+            Assert.Equal(400.0, addin.WorkerPeakMiB("curbs", "c.dwg", 20000000).Value);
+            // Under the smallest size the smallest peak, between two sizes the line of the rising peaks, over the largest its peak per byte
+            Assert.Equal(500.0, addin.WorkerPeakMiB("curbs", "small.dwg", 5000000).Value, 9);
+            Assert.Equal(500.0, addin.WorkerPeakMiB("curbs", "c rev 2.dwg", 20000000).Value, 9);
+            Assert.Equal(1250.0, addin.WorkerPeakMiB("curbs", "middle.dwg", 60000000).Value, 9);
+            Assert.Equal(4000.0, addin.WorkerPeakMiB("curbs", "large.dwg", 200000000).Value, 9);
+            Assert.Equal(500.0, addin.WorkerPeakMiB("curbs", "a.dwg", 10000001).Value, 3);
+        }
+
+        [Fact]
         public void R347_the_config_names_the_measured_peak_of_each_large_input_and_the_time_limit_of_each_command()
         {
             AddinConfig config = AddinConfig.Load(RepoConfig());
@@ -632,9 +654,12 @@ namespace SiteAdaptation.Tests
             Assert.Equal(2612, config.WorkerPeakMiB("curbs", "Makkah Phase 1_Road Layout.dwg", 82061457));
             Assert.Equal(100, config.WorkerPeakMiB("baseplan", "ROSHN Makkah Baseplan.dwg", 1279917));
             Assert.Equal(80, config.WorkerPeakMiB("villaBlocks", "makkah building footprint.DWG", 1198438));
-            // A drawing of a large read with no measured peak, another file or the same name at another size, takes the largest known
-            Assert.Equal(2612, config.WorkerPeakMiB("baseplan", "ROSHN Makkah Baseplan.dwg", 1279918));
-            Assert.Equal(2612, config.WorkerPeakMiB("villaBlocks", "Footprint Rev 2.dwg", 1198438));
+            // A drawing of a large read with no measured peak, another file or the same name at another size, takes a peak scaled by its
+            // size from the measured ones, never the largest known: one byte over the baseplan about its 100 MiB, the size of the footprint
+            // its 80 MiB, twice the Road Layout twice its peak
+            Assert.Equal(100.0, config.WorkerPeakMiB("baseplan", "ROSHN Makkah Baseplan.dwg", 1279918).Value, 3);
+            Assert.Equal(80.0, config.WorkerPeakMiB("villaBlocks", "Footprint Rev 2.dwg", 1198438).Value, 9);
+            Assert.Equal(5224.0, config.WorkerPeakMiB("curbs", "Road Layout Rev 2.dwg", 2 * 82061457L).Value, 6);
             // An input of no large read is not checked
             Assert.Null(config.WorkerPeakMiB("plotsCsv", "plots.csv", 100));
             Assert.Null(config.WorkerPeakMiB("config", "project.json", 100));
