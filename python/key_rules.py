@@ -70,7 +70,7 @@ def site_facts(documents, reference):
             compared.append("angleToTrueNorthDeg")
             gap = cad_links.angle_gap(document["angleToTrueNorthDeg"], base["angleToTrueNorthDeg"])
             if gap > SAME_DEG:
-                differ["angleToTrueNorthDeg"] = common.fixed(gap, 6)
+                differ["angleToTrueNorthDeg"] = common.fixed_once(gap, 6)
         site = site_parts(document)
         if site is not None and base_site is not None:
             compared.append("projectPosition")

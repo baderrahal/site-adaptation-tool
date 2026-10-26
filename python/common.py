@@ -30,10 +30,24 @@ def fixed(value, decimals=DECIMALS):
     return 0 if rounded == 0 else rounded
 
 
+class Fixed(float):
+    """R385. A value rounded once at its own decimals, a share or a height at 4, which r3 and round_tree write as it is, never rounded
+    again at fewer decimals, so 0.3465 is never written as 0.347."""
+    __slots__ = ()
+
+
+def fixed_once(value, decimals=DECIMALS):
+    """R385. fixed, the value marked as rounded once (Fixed), so a writer keeps its decimals."""
+    found = fixed(value, decimals)
+    return Fixed(found) if isinstance(found, float) else found
+
+
 def r3(value, decimals=DECIMALS):
     # -0 in a coordinate file reads as a real offset, so it is written as 0
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return value
+    if isinstance(value, Fixed):
+        return float(value)
     return fixed(value, decimals)
 
 

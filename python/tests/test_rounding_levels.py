@@ -176,3 +176,35 @@ def test_r385_the_height_is_the_ffl_less_el_at_entry_as_written_and_ssl_the_ffl_
         found = plan_rules.heights(entries, [], lp, PROFILE, fix)["1"]
         assert (found["ffl"], found["height"], found["entry"]) == (ffl, height, 119.3075)
         assert found["height"] == fix(found["ffl"] - found["entry"], 4) and found["ssl"] == fix(found["ffl"] + GROUND, 3)
+
+
+# R385 each value of majority.json is written at its own decimals once, so keyRules never holds a value rounded twice
+def test_r385_no_value_is_rounded_twice_on_the_way_from_majority_json_to_key_rules(tmp_path):
+    import argparse
+    import key_levels
+    import key_rules_block
+    block = SETTINGS.get("majority")
+    # 1,698 of 4,901 is 0.34646, a share of 0.3465 at its 4 decimals, which majority.json wrote at 3 as 0.347 where one rounding gives 0.346.
+    # A base of 0.10049 is 0.1005 at the 4 decimals of a height, which it wrote as 0.101 where one rounding gives 0.100
+    base = key_levels.piece_base(10.1, 9.99951)
+    items = [{"key": "imc", "plot": str(index), "code": "DP1", "factors": {"all": "all", "typology": "DP1"},
+              "base": base if index < 1698 else 0.2 + index / 10000.0} for index in range(4901)]
+    candidates = {"profile": lambda item: base, "typology": "typology"}
+    result, _ = majority.decide("parsons baseHeight", items, lambda item: item["base"], candidates, lambda item: "parsons", 0.9, bands={"1mm": lambda a, b: a == b})
+    result["field"] = "baseHeight"
+    report = {"decisions": [result], "keyDatumsM": {"parsons entry": {"Made Up": majority.key_datums({"imc": 0.10049, "imd": -0.00005})}}}
+    args = argparse.Namespace(out=str(tmp_path / "run" / "majority.json"), overrides=str(tmp_path / "list.json"), keep_from=None)
+    majority.finish(args, {"overrideNote": "n"}, {}, report, [], [])
+    written = json.loads((tmp_path / "run" / "majority.json").read_text(encoding="utf-8"))
+    decision = written["decisions"][0]
+    assert decision["share"] == 0.3465 and decision["tests"]["typology"]["share"] == 0.3465 and decision["bands"]["1mm"]["share"] == 0.3465
+    assert decision["tests"]["typology"]["rule"] == {"parsons | DP1": 0.1005} and decision["tests"]["profile"]["share"] == 0.3465
+    assert written["keyDatumsM"]["parsons entry"]["Made Up"] == {"imc": 0.1005, "imd": -0.0001}
+    # keyRules takes them as majority.json holds them, the table of the base at the 4 decimals it was measured at
+    found = key_rules_block.block_of(written, ["baseHeight"], {}, block)["baseHeight"]
+    assert found["share"] == 0.3465 and found["candidates"] == {"profile": 0.3465, "typology": 0.3465} and found["bands"]["1mm"]["share"] == 0.3465
+    assert found["rule"] == "profile" and "table" not in found
+    result["coded"] = "typology"
+    majority.finish(args, {"overrideNote": "n"}, {}, {"decisions": [result]}, [], [])
+    written = json.loads((tmp_path / "run" / "majority.json").read_text(encoding="utf-8"))
+    assert key_rules_block.block_of(written, ["baseHeight"], {}, block)["baseHeight"]["table"] == {"DP1": 0.1005}

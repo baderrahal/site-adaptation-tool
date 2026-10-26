@@ -59,6 +59,12 @@ def table_of(result, label):
     return {key.split(" | ", 1)[1]: value for key, value in rule.items()}
 
 
+def piece_base(ffl, entry):
+    """R339. The base of the unit that sets the FFL of its piece, the FFL of the key less its El @ Entry, at the 4 decimals of a height,
+    rounded once (R385), so majority.json and keyRules.baseHeight.table hold it at 4."""
+    return common.fixed_once(ffl - entry, plan_rules.ENTRY_DECIMALS)
+
+
 def missed(misses, name):
     """The key and plot of every miss of a decision, for a decision that writes no override (levelSplit, baseHeight)."""
     return sorted(miss["key"] + " " + miss["plot"] for miss in misses if miss["decision"] == name)
@@ -162,7 +168,7 @@ def measure(record, group, pool, kept, lv, profile, block, book, surfaces, extra
             continue
         top = max(held, key=lambda other: key_entry[(item["key"], other["plot"])] + plan_rules.base_of(profile, other["code"]))
         tops.append({"plot": top["plot"], "key": top["key"], "group": group, "code": top["code"], "modelKind": top.get("modelKind"), "file": top.get("file"),
-                     "factors": {"all": "all", "typology": top["code"]}, "base": common.fixed(top["row"]["ffl"] - key_entry[(top["key"], top["plot"])], plan_rules.ENTRY_DECIMALS)})
+                     "factors": {"all": "all", "typology": top["code"]}, "base": piece_base(top["row"]["ffl"], key_entry[(top["key"], top["plot"])])})
     base = record(group + " baseHeight", tops, lambda item: item["base"], {"profile": lambda item: plan_rules.base_of(profile, item["code"]), "typology": "typology"},
                   by_group, "baseHeight", hold, bands=bands, listed=True)
     base_rule = {"rule": "typology", "table": table_of(base, "typology")} if base is not None and base["coded"] == "typology" else None
