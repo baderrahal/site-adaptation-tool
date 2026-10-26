@@ -4,35 +4,31 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 
 ## Round ADDIN Part 1, 2026-10-25, the Revit 2024 add-in from the Parsons site models
 
-In progress. 0a to 3c merged (PR 41 to 48), 3b in review (docs/addin-design). Plan: steps/investigations/round-addin.md.
+In progress. 0a to 3c merged (PR 41 to 49), 4a in review (logic/addin-4a). Plan: steps/investigations/round-addin.md.
 
 Goal:
 - The add-in in Revit 2024, C#, .NET 4.8, from the 7 Rev 6 Parsons site models, parsons2024Rev6 for every build (Q050), docs/addin-mock.md, Part 2 after Bader's check of Part 1
 
 Done:
-- 0a to 3c (PR 41 to 48): harness, key copies, reads, key plans, past_all.csv, overrides by source and model, the rules and levels of the keys in keyRules, a build and its proof
-- 3b R342, R343: docs/addin-design.md before any add-in code (folders, worker, 8 buttons, data path, 15 parity steps, settings, the mock filled with NBH 012, install, risks, R345 to R388, 15 conflicts), docs/licences.md. Revised after the breaker and the claim-checker (PR 49): R385 rounding (Q078), R386 Use and Skip, R387 control point check, R388 input units. Last pass, 19 items: the schedule fit numbers every build, tolerances 0.000001 m, parameters by GUID. Real values in round_addin
+- 0a to 3c (PR 41 to 49): harness, key copies, reads, key plans, past_all.csv, overrides by source and model, keyRules with the levels, a build and its proof, docs/addin-design.md and docs/licences.md (R342, R343)
+- 4a R346: Common on netstandard2.0 with Newtonsoft.Json 13.0.1, the worker and the tests on net48 and net8.0, a Linux leg that skips 52 tests of Windows tools, Microsoft.NETCore.Platforms 3.1.0 build only (Q079)
+- 4a R347: the worker run, request and answer, exit codes 0 to 4, the memory check, the kill at the time limit, work files by a temporary name, the answer to its document. config addin: workerPeakMiB, workerTimeLimitS, parity
+- 4a R385: one rounding rule in python/common.py and C#, the level builders wait for Q080. R345: plan_from_book.py --steps, python/parity.py and the worker build, proven on the step faces
 
 Checked:
-- 3b, in a net48 host as Revit 2024: ACadSharp, OpenXml 3.5.1, Newtonsoft ok, PdfPig failed on System.Memory 4.0.2.0 with no resolver, ran with one (RAN)
-- 3b last pass: made up areas 3.8E-04 m2 apart raw, 9.1E-13 m2 about the first vertex, decimal.Parse needs NumberStyles.Float (RAN)
-- 3b: CadReader peak on copies, Road Layout 2,571 to 2,612 MiB, baseplan 100, footprint 77, all Meters, Common builds for netstandard2.0 (RAN)
-- 3b: the parsons build of NBH 012, 336 of 337 plots, 1,247 check rows, 2 plots follow every rule, PowerShell recount 13 of 13 equal (RAN). Python round() and C# differ on 5 of 5 ties, R385 agrees (RAN)
-- 3c: 5 TU keys at 0.5 mm El @ Entry 0.088 and FFL per piece 0.749 weak, steps 0.988 and Prototype-FFL 0.994 strong, 0 unexplained levels, second method 0 mismatches at seeds 14 and 7. Overrides 12,424, 154 in cannot
+- 4a parity of the step faces on the 2,704 unit plots of the snapshot: 12,932 field values equal on net48 and net8.0, 0 one unit cases, 0 failures, largest gap 1.1E-13 m2 and 1.4E-09 m. PowerShell second method: 2,557 faces, 40 of 40 areas (RAN)
+- 4a R385: Python, C# on net48 and net8.0 and integer arithmetic equal on 200,012 made up values. Build proof on 7 keys: with common.py 0 unexplained, 6 numbers one unit, with the level builders 350 level items lost (RAN)
+- 4a worker exe: exits 0, 2, 3, 4 and 2 as asked on both runtimes, no temporary file left. Common ran in a net48 host with the Newtonsoft of Revit 2024 (RAN)
 
 Remains:
-- Phase 4 the logic in C# with a parity test per step, Phase 5 the add-in and its open list (design section 9), Phase 6 all zones. Wall width and the parameter GUIDs of the keys are not read yet (4b)
+- R385 in the level builders (Q080, 4b). The rest of the addin block, the fit schedule and the c3d_probe.json settings in config, button 2 timed, PdfPig and OpenXml (4c, 4d). 4b to 4h, Phases 5 and 6
 - The 33 plots with no road level at a front corner are not written (Q073)
 
 Known bugs:
-- The whole NBH 03 area runs past the 30 minute image step (Q063). Revit starts 9 to 11 child processes in a read (RC 11)
-- rvt_info.py (R203) misses cloud links, 1 of 14 in the SE models, the 1,409 SE spots give no value with their STR links unloaded
-- A read is tied to its key by the copy name, the zone2 master and the IMC 2024 copy share one stem (Q065)
-- The ELl@Entry parameter is off its schedule by over 30 mm on 100 IMC and 115 IMD plots, why is UNKNOWN (Q070)
-- angleToTrueNorthDeg of the reader has 3 decimals, not brought into 0 to 360, the placer takes 0 only. 1 old .NET warning, xUnit2013. key_copies.py keeps a last part NUL as a name
-
+- NBH 03 image past 30 minutes (Q063). Revit starts 9 to 11 child processes in a read. rvt_info.py misses cloud links, the SE spots give no value. A read is tied to its key by the copy name (Q065)
+- ELl@Entry off its schedule by over 30 mm on 100 IMC and 115 IMD plots (Q070). angleToTrueNorthDeg of the reader at 3 decimals, the placer takes 0 only. xUnit2013. key_copies.py keeps a last part NUL
 Next:
-- Phase 4a: Common on netstandard2.0, the worker, the parity harness, the rounding (R345 to R347, R385), then 4b to 4h
+- Phase 4b: R386 to R388 and R385 in the level builders with the overrides measured again (Q080), then 4c to 4h
 
 Your turn:
 Q001. El @ Entry: ask the client for the Infrastructure IFC and the architect for the ramp slope, no entrance spot gives it (2b) and the road a build gives holds it on 0.088 of 1,785 TU plots at 0.5 mm, 0.442 at 5 mm (3c), 1,596 overrides until then, 32 with no value listed in cannot
@@ -57,6 +53,7 @@ Q071. Walls: accept the base at the yard level, the centre on the edge and the o
 Q072. Side road of a villa with three road edges (IMC 2301, IME 2710, IMG 441): the side edge, not the back: accept. Q073. 33 plots with a front corner on no road surface have no El @ Entry and are not written (IMA 1, IMB 2, IMD 3, IME 3, IMF 14, IMG 10): take the road of the covered corner for both, else send the surface. Q074. Steps of the base and risers, half a riser no step (0.988 on 5 keys), against the count rule the IMC and IMD schedules follow (0.934 on 5): accept, 48 overrides, 16 that break it, 32 with no value of it (no road level or no front frame). Q075. 1,346 native entries with no value kept from Round 17, a native2022 build loading them is refused: move them to cannot by a run with --replace native
 Q076. Python checker licences: shapely is BSD-3-Clause and its wheels bundle GEOS under LGPLv2.1, nothing of Python ships: keep it for the checker
 Q077. The worker: buttons 2 and 3 read and build in CadReader.exe beside Revit, the Road Layout read alone took 2,571 to 2,612 MiB and PdfPig needs a System.Memory Revit 2024 lacks: accept. Q078. Rounding: Python and C# round the 15 digit decimal half away from zero (R385), 12.3455 gives 12.346 in both, a Python value moves one unit on a tie: accept
+Q079. netstandard2.0 asks for Microsoft.NETCore.Platforms 1.1.0, Microsoft .NET Library licence, no file copied: pinned to 3.1.0, MIT, build only: accept. Q080. R385 in the level builders moves the FFL of a piece 1 mm up on a tie, 350 level items of the keys off: apply it in 4b with the level overrides measured again: accept
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 
