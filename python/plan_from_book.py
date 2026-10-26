@@ -62,8 +62,9 @@ sourced = plan_from_cad.sourced
 
 
 def book_rows(plots_csv):
-    """The rows of plots.csv by location plan number, and the number of each baseplan label."""
-    with open(plots_csv, encoding="utf-8") as handle:
+    """The rows of plots.csv by location plan number, and the number of each baseplan label. utf-8-sig drops the byte order mark a
+    file saved by Excel starts with, as the C# reader does (R345)."""
+    with open(plots_csv, encoding="utf-8-sig") as handle:
         rows = [row for row in csv.DictReader(handle) if row.get("locationPlanNumber")]
     return {row["locationPlanNumber"]: row for row in rows}, {row["baseplanLabel"]: row["locationPlanNumber"] for row in rows if row.get("baseplanLabel")}
 
@@ -598,24 +599,43 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
 def nbh_plots(labels_path, nbh):
     """Every unit plot of a neighbourhood on the location plan, by its number, in order. R345: nbh None gives every unit plot of the
     location plan, the whole project of the scope of the add-in (docs/addin-design.md section 3)."""
-    with open(labels_path, encoding="utf-8") as handle:
+    with open(labels_path, encoding="utf-8-sig") as handle:
         rows = [row for row in csv.DictReader(handle) if (nbh is None or row.get("nbh") == nbh) and row.get("kind") == "clientCode"]
     return sorted({row["number"] for row in rows}, key=link_summary.sort_key)
 
 
 def face_step(numbers, faces):
     """R345. The step faces of the parity harness: per plot of the build its baseplan face as the build takes it, by
-    yard_rule.face_shapes and the number plots.csv gives its label, with its area, centroid and bounds unrounded, or no face."""
+    yard_rule.face_shapes and the number plots.csv gives its label, with its area, centroid and bounds unrounded, or no face with
+    every other field null, and the values as the plan writes them (step_entry)."""
     found = {}
     for number in numbers:
         shape = faces.get(number)
         if shape is None:
-            found[number] = {"face": False}
+            found[number] = step_entry({"face": False, "area": None, "centroid": None, "boundsMin": None, "boundsMax": None})
             continue
         low_x, low_y, high_x, high_y = shape.bounds
-        found[number] = {"face": True, "area": shape.area, "centroid": [shape.centroid.x, shape.centroid.y], "boundsMin": [low_x, low_y],
-                         "boundsMax": [high_x, high_y]}
+        found[number] = step_entry({"face": True, "area": shape.area, "centroid": [shape.centroid.x, shape.centroid.y], "boundsMin": [low_x, low_y],
+                                    "boundsMax": [high_x, high_y]})
     return found
+
+
+def step_entry(raw):
+    """R345. A plot of a step file: its raw values and the values as the plan writes them, through common.round_tree as
+    common.write_json writes plan.json, so the parity compares what Python writes and not a value recomputed from raw."""
+    return {"raw": raw, "written": json.loads(json.dumps(common.round_tree(raw)))}
+
+
+def step_scope(cover):
+    """R345. The scope of a step file as the worker names it: project for all, nbh=<NBH>, or cover=<file> for a cover file."""
+    return "project" if cover == "all" else cover if cover.startswith("nbh=") else "cover=" + Path(cover).name
+
+
+def step_inputs(args):
+    """R345, R347. The inputs a step of this run was made from, by the roles of the worker, each with its SHA-256."""
+    roles = [("config", args.settings), ("baseplanPlots", args.baseplan), ("plotsCsv", args.plots_csv), ("labels", args.labels),
+             ("cover", None if args.cover == "all" or args.cover.startswith("nbh=") else args.cover)]
+    return [parity.input_entry(role, path) for role, path in roles if path]
 
 
 def site_report(path):
@@ -741,7 +761,7 @@ def main(argv=None):
         if args.steps_only and not args.steps:
             raise project_profile.ProfileError("--steps-only needs --steps, the folder of the step files (R345)")
         if args.steps:
-            parity.write_step(args.steps, "faces", "python", face_step(cover["plots"], faces), settings.values)
+            parity.write_step(args.steps, "faces", "python", step_scope(args.cover), face_step(cover["plots"], faces), settings.values, step_inputs(args))
         if args.steps_only:
             print("steps faces of %d plots written to %s, no plan built (R345)" % (len(cover["plots"]), args.steps))
             return 0

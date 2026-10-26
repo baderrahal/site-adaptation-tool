@@ -92,7 +92,8 @@ namespace SiteAdaptation.Tests
             Assert.Equal(200.0, (double)faces["102"]["area"]);
             Assert.Equal(new[] { 35.0, 5.0 }, (double[])faces["102"]["centroid"]);
             Assert.Equal(new[] { 20.0, 0.0 }, (double[])faces["102"]["boundsMin"]);
-            Assert.Equal(new Dictionary<string, object> { ["face"] = false }, faces["103"]);
+            // A plot with no face holds every field of the step, null, as the Python step does, so a field missing is a failure
+            Assert.Equal(new Dictionary<string, object> { ["face"] = false, ["area"] = null, ["centroid"] = null, ["boundsMin"] = null, ["boundsMax"] = null }, faces["103"]);
         }
 
         [Fact]
@@ -157,13 +158,14 @@ namespace SiteAdaptation.Tests
             var plots = new Dictionary<string, Dictionary<string, object>>
             {
                 ["101"] = new Dictionary<string, object> { ["face"] = true, ["area"] = 0.1 + 0.2, ["centroid"] = new[] { 2.0465, 0.7 + 0.0005 }, ["boundsMin"] = new[] { -0.0004, 1.0 }, ["boundsMax"] = new[] { 3.0, 4.0 } },
-                ["103"] = new Dictionary<string, object> { ["face"] = false },
+                ["103"] = new Dictionary<string, object> { ["face"] = false, ["area"] = null, ["centroid"] = null, ["boundsMin"] = null, ["boundsMax"] = null },
             };
-            string text = StepFile.Text(FaceStep.Name, "csharp", plots, fields);
+            string text = StepFile.Text(FaceStep.Name, "csharp", "nbh=012", plots, fields);
             Assert.Contains("\"area\": 0.30000000000000004", text);
             JObject file = JObject.Parse(text);
             Assert.Equal("siteAdaptationStep", (string)file["format"]);
-            Assert.Equal(1, (int)file["formatVersion"]);
+            Assert.Equal(2, (int)file["formatVersion"]);
+            Assert.Equal("nbh=012", (string)file["scope"]);
             Assert.Equal("faces", (string)file["step"]);
             Assert.Equal("csharp", (string)file["side"]);
             JToken first = file["plots"]["101"];
@@ -172,8 +174,35 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { 2.047, 0.701 }, first["written"]["centroid"].Select(item => (double)item).ToArray());
             Assert.Equal(0.0, (double)first["written"]["boundsMin"][0]);
             Assert.True((bool)first["raw"]["face"] && (bool)first["written"]["face"]);
-            Assert.Equal(new JObject { ["face"] = false }.ToString(), file["plots"]["103"]["raw"].ToString());
+            Assert.Equal(JTokenType.Null, file["plots"]["103"]["raw"]["area"].Type);
+            Assert.Equal(JTokenType.Null, file["plots"]["103"]["written"]["centroid"].Type);
             Assert.Equal("areas", (string)file["fields"]["area"]["kind"]);
+        }
+
+        [Fact]
+        public void R345_a_list_of_points_is_written_point_by_point_raw_and_by_r385()
+        {
+            var fields = new List<ParityField> { new ParityField { Name = "outline", Kind = "points", Decimals = 3 } };
+            var plots = new Dictionary<string, Dictionary<string, object>>
+            {
+                ["101"] = new Dictionary<string, object> { ["outline"] = new[] { new[] { 2361234.1235, 0.7 + 0.0005 }, new[] { 2.0465, -0.0004 } } },
+            };
+            JObject file = StepFile.Build("outlines", "csharp", "project", plots, fields);
+            JToken raw = file["plots"]["101"]["raw"]["outline"];
+            JToken written = file["plots"]["101"]["written"]["outline"];
+            Assert.Equal(0.7 + 0.0005, (double)raw[0][1]);
+            Assert.Equal(new[] { 2361234.124, 0.701 }, written[0].Select(item => (double)item).ToArray());
+            Assert.Equal(new[] { 2.047, 0.0 }, written[1].Select(item => (double)item).ToArray());
+        }
+
+        [Theory]
+        [InlineData("project", null, "project")]
+        [InlineData("nbh", "012", "nbh=012")]
+        public void R345_the_scope_of_a_step_file_is_named_as_the_python_step_names_it(string kind, string nbh, string named)
+        {
+            Assert.Equal(named, StepFile.ScopeText(new WorkerScope { Kind = kind, Nbh = nbh }));
+            Assert.Equal("plots=9,102", StepFile.ScopeText(new WorkerScope { Kind = "plots", Plots = new List<string> { "9", "102" } }));
+            Assert.Equal("step_faces_csharp.json", StepFile.FileName("faces", "csharp"));
         }
 
         [Fact]
@@ -201,13 +230,16 @@ namespace SiteAdaptation.Tests
             };
             Assert.Equal(0, WorkerRunner.Run(request.Write(folder), WorkerCommands.Default(), () => 9000.0));
             WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "p1"));
-            string step = Path.Combine(folder, "steps", "step_faces.json");
+            // The file is named by its side, so the two sides never share one name in one folder
+            string step = Path.Combine(folder, "steps", "step_faces_csharp.json");
             Assert.Equal(step, answer.Outputs.Single().Path);
             Assert.Equal(FileHash.Sha256(step), answer.Outputs.Single().Sha256);
             Assert.Equal(2, answer.Counts["faces plots"]);
             Assert.Equal(2, answer.Counts["faces with a face"]);
-            JObject file = JObject.Parse(File.ReadAllText(step));
+            JObject file = RunStamp.Read(step);
             Assert.Equal(new[] { "101", "102" }, ((JObject)file["plots"]).Properties().Select(item => item.Name).ToArray());
+            Assert.Equal("nbh=012", (string)file["scope"]);
+            Assert.Equal("p1", (string)file["run"]["runId"]);
 
             request.RunId = "p2";
             request.Inputs.RemoveAt(3);

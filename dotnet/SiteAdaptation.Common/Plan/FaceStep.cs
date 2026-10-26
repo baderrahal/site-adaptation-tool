@@ -43,7 +43,8 @@ namespace SiteAdaptation.Common
             return found;
         }
 
-        // Per plot of numbers: face false, or face true with the area, the centroid and the bounds of every ring of its label
+        // Per plot of numbers: face false with the other fields null, or face true with the area, the centroid and the bounds of every
+        // ring of its label
         public static Dictionary<string, Dictionary<string, object>> Build(IEnumerable<string> numbers, JArray plots, IEnumerable<Dictionary<string, string>> plotsCsv)
         {
             var order = new List<string>();
@@ -83,9 +84,15 @@ namespace SiteAdaptation.Common
             foreach (string number in numbers)
             {
                 string label;
-                found[number] = labelOfNumber.TryGetValue(number, out label) ? Face(rings[label]) : new Dictionary<string, object> { ["face"] = false };
+                found[number] = labelOfNumber.TryGetValue(number, out label) ? Face(rings[label]) : NoFace();
             }
             return found;
+        }
+
+        // A plot with no face holds every field of the step with no value, so a field missing on a side is a failure of the parity
+        private static Dictionary<string, object> NoFace()
+        {
+            return new Dictionary<string, object> { ["face"] = false, ["area"] = null, ["centroid"] = null, ["boundsMin"] = null, ["boundsMax"] = null };
         }
 
         private static Dictionary<string, object> Face(List<double[][]> rings)

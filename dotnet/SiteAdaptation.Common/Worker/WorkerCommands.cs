@@ -32,7 +32,7 @@ namespace SiteAdaptation.Common
             }
         }
 
-        // R345. The step faces of the plots of the scope, step_faces.json in the steps folder of the request
+        // R345. The step faces of the plots of the scope, step_faces_csharp.json in the steps folder of the request
         private static void Faces(WorkerContext run, AddinConfig config)
         {
             WorkerRequest request = run.Request;
@@ -41,7 +41,7 @@ namespace SiteAdaptation.Common
             var faces = FaceStep.Build(numbers, plots, CsvRows.Read(run.Input("plotsCsv")));
             run.Counts[FaceStep.Name + " plots"] = faces.Count;
             run.Counts[FaceStep.Name + " with a face"] = faces.Values.Count(face => true.Equals(face["face"]));
-            run.WriteJson(request.StepsFolder, "step_" + FaceStep.Name + ".json", StepFile.Build(FaceStep.Name, "csharp", faces, config.StepFields(FaceStep.Name)));
+            run.WriteJson(request.StepsFolder, StepFile.FileName(FaceStep.Name, "csharp"), StepFile.Build(FaceStep.Name, "csharp", StepFile.ScopeText(request.Scope), faces, config.StepFields(FaceStep.Name)));
         }
     }
 }
