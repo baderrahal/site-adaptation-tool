@@ -25,6 +25,7 @@ import c3d_connect
 import c3d_run
 import cad_analysis
 import cad_links
+import common
 import entry_levels
 import full_run
 import landxml_reader
@@ -403,7 +404,8 @@ def cell(value):
     if isinstance(value, bool):
         return "yes" if value else "no"
     if isinstance(value, float):
-        return repr(round(value, 4))
+        # R385, plots.csv is read by the build and by the face step of the parity
+        return repr(float(common.fixed(value, 4)))
     return str(value)
 
 

@@ -291,3 +291,10 @@ def test_r168_plot_rows_worked_out_again(tmp_path):
     v9 = [("77", 2, 2), ("78", 50, 50)]
     result = data_book_check.check_plots(rows, faces, [(-1, -1), (20, -1), (20, 20), (-1, 20)], {"IMC": (10, {"11"})}, blocks, v9, 14, 5)
     assert result == {"insideMatch": 1, "areaMatch": 1, "neighbourhoodMatch": 1, "blockMatch": 1, "v9Match": 1}
+
+
+def test_r385_a_float_cell_of_plots_csv_is_written_by_the_rule_at_4_decimals():
+    # plots.csv is read by the build and by the face step of the parity
+    assert data_book.cell(12.34565) == "12.3457" and data_book.cell(7.00625) == "7.0063" and data_book.cell(0.50005) == "0.5001"
+    assert repr(round(12.34565, 4)) == "12.3456"
+    assert data_book.cell(-0.00004) == "0.0" and data_book.cell(3) == "3" and data_book.cell(1.234567) == "1.2346"
