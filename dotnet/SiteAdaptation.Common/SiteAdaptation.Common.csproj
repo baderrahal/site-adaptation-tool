@@ -11,4 +11,8 @@
          first MIT version replaces it here, build only, so no package of another licence is restored -->
     <PackageReference Include="Microsoft.NETCore.Platforms" Version="3.1.0" PrivateAssets="all" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- R347. The tests reach the hook of WorkerLaunch that handles the end of a worker late, so the time limit can fire after it exited -->
+    <InternalsVisibleTo Include="SiteAdaptation.Tests" />
+  </ItemGroup>
 </Project>

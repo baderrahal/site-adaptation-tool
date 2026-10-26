@@ -308,5 +308,64 @@ namespace SiteAdaptation.Tests
             Assert.Equal(2, WorkerRunner.Run(request.Write(folder), WorkerCommands.Default(), () => 9000.0));
             Assert.Contains("the step faces needs the input labels", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "p2")).Message);
         }
+
+        // The request of a worker build of the step faces on the made up baseplan, plots.csv and labels.csv
+        private WorkerRequest FaceRequest(string runId)
+        {
+            string plots = Path.Combine(folder, "plots.json");
+            File.WriteAllText(plots, new JObject { ["plots"] = Plots() }.ToString());
+            string data = Path.Combine(folder, "plots.csv");
+            File.WriteAllText(data, PlotsCsv);
+            string labels = Path.Combine(folder, "labels.csv");
+            File.WriteAllText(labels, LabelsCsv);
+            string config = WorkerRunTests.RepoConfig();
+            return new WorkerRequest
+            {
+                FormatVersion = 1, RunId = runId, Command = "build", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" },
+                Inputs = new List<WorkerFile>
+                {
+                    new WorkerFile { Role = "config", Path = config, Sha256 = FileHash.Sha256(config) },
+                    new WorkerFile { Role = "baseplanPlots", Path = plots, Sha256 = FileHash.Sha256(plots) },
+                    new WorkerFile { Role = "plotsCsv", Path = data, Sha256 = FileHash.Sha256(data) },
+                    new WorkerFile { Role = "labels", Path = labels, Sha256 = FileHash.Sha256(labels) },
+                },
+                Scope = new WorkerScope { Kind = "project" }, OutputFolder = folder, Steps = new List<string> { "faces" },
+                StepsFolder = Path.Combine(folder, "steps"), TimeLimitS = 600,
+            };
+        }
+
+        [Fact]
+        public void R345_a_worker_run_that_fails_leaves_no_step_file_of_its_steps()
+        {
+            string step = Path.Combine(folder, "steps", "step_faces_csharp.json");
+            Assert.Equal(0, WorkerRunner.Run(FaceRequest("f1").Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.True(File.Exists(step));
+            // The same inputs, so the step file of f1 would still hash the same, and a build that throws before it writes the step
+            var throwing = new Dictionary<string, WorkerCommand> { ["build"] = run => throw new InvalidDataException("a made up failure of the build") };
+            Assert.Equal(1, WorkerRunner.Run(FaceRequest("f2").Write(folder), throwing, () => 9000.0));
+            Assert.False(File.Exists(step), "a run that failed leaves no step file, so the parity finds it missing");
+
+            Assert.Equal(0, WorkerRunner.Run(FaceRequest("f3").Write(folder), WorkerCommands.Default(), () => 9000.0));
+            WorkerRequest refused = FaceRequest("f4");
+            refused.Inputs[2].Sha256 = new string('0', 64);
+            Assert.Equal(4, WorkerRunner.Run(refused.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.False(File.Exists(step));
+        }
+
+        [Fact]
+        public void R345_a_tolerance_is_a_finite_number_of_zero_or_more_or_null_for_an_exact_kind()
+        {
+            string path = Path.Combine(folder, "config.json");
+            foreach (string bad in new[] { "true", "false", "NaN", "Infinity", "-0.000001", "\"0.000001\"", "[0.1]" })
+            {
+                File.WriteAllText(path, "{\"addin\": {\"parity\": {\"kinds\": {\"areas\": " + bad + ", \"noGeometry\": null}, \"steps\": {}}}}");
+                Exception refused = Record.Exception(() => AddinConfig.Load(path).ParityTolerance("areas"));
+                Assert.True(refused is InvalidDataException, bad + " gave " + (refused == null ? "no refusal" : refused.GetType().Name));
+                Assert.Contains("finite number of zero or more", refused.Message);
+            }
+            File.WriteAllText(path, "{\"addin\": {\"parity\": {\"kinds\": {\"areas\": 0, \"noGeometry\": null}, \"steps\": {}}}}");
+            Assert.Equal(0.0, AddinConfig.Load(path).ParityTolerance("areas"));
+            Assert.Null(AddinConfig.Load(path).ParityTolerance("noGeometry"));
+        }
     }
 }

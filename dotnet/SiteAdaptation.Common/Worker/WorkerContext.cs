@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -85,11 +86,23 @@ namespace SiteAdaptation.Common
         }
     }
 
-    // R347. Every output of the worker holds the run id and the input files with their SHA-256 it was made from, so a reader refuses
-    // an output whose inputs changed since it was written
+    // R347. Every output of the worker holds the run id, the code that wrote it, the SHA-256 of the config it read and the input
+    // files with their SHA-256 it was made from, so a reader refuses an output whose inputs changed since it was written and the
+    // parity of R345 names which run and which build wrote each step file
     public static class RunStamp
     {
         public const string Key = "run";
+
+        // SiteAdaptation.Common and its informational version, which the SDK writes with the commit the build was made from
+        public static string Code
+        {
+            get
+            {
+                Assembly common = typeof(RunStamp).Assembly;
+                string version = common.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? common.GetName().Version.ToString();
+                return "SiteAdaptation.Common " + version;
+            }
+        }
 
         public static JObject Of(WorkerRequest request)
         {
@@ -98,16 +111,21 @@ namespace SiteAdaptation.Common
             {
                 inputs.Add(new JObject { ["role"] = input.Role, ["path"] = input.Path, ["sha256"] = input.Sha256 });
             }
-            return new JObject { ["runId"] = request.RunId, ["inputs"] = inputs };
+            string config = (request.Inputs ?? new List<WorkerFile>()).FirstOrDefault(input => input.Role == "config")?.Sha256;
+            return new JObject { ["runId"] = request.RunId, ["code"] = Code, ["configSha256"] = config, ["inputs"] = inputs };
         }
 
-        // Null when every input the stamp names is on disk with its SHA-256, else why not
+        // Null when every input the stamp names is on disk with its SHA-256, else why not. A stamp of no input could never be stale
         public static string Refusal(JObject output)
         {
             JArray inputs = (output?[Key] as JObject)?["inputs"] as JArray;
             if (inputs == null)
             {
                 return "the output holds no run stamp with its inputs (R347)";
+            }
+            if (inputs.Count == 0)
+            {
+                return "the run stamp of the output names no input, so a change of its inputs could not be seen (R347)";
             }
             foreach (JToken input in inputs)
             {

@@ -24,6 +24,28 @@ namespace SiteAdaptation.Common
             return "step_" + step + "_" + side + ".json";
         }
 
+        // R345. The step files of the C# side of the steps a request names, deleted by the worker before it builds them and by the
+        // launch when a run did not pass, so a run that failed leaves none and the parity finds it missing. A step file of an earlier
+        // run may hold inputs that still hash the same. Never inside a git work tree, which the worker refuses before any write
+        public static List<string> DeleteSteps(WorkerRequest request)
+        {
+            var deleted = new List<string>();
+            if (request?.Steps == null || string.IsNullOrEmpty(request.StepsFolder) || WorkFiles.RepoAbove(request.StepsFolder) != null)
+            {
+                return deleted;
+            }
+            foreach (string step in request.Steps.Where(WorkerFiles.IsRunId))
+            {
+                string path = Path.Combine(request.StepsFolder, FileName(step, "csharp"));
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                    deleted.Add(path);
+                }
+            }
+            return deleted;
+        }
+
         // The scope as plan_from_book.py names it: project, nbh=<NBH> or plots=<numbers>
         public static string ScopeText(WorkerScope scope)
         {

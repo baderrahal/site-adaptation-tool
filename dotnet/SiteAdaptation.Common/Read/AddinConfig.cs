@@ -71,7 +71,23 @@ namespace SiteAdaptation.Common
             return value.Value<double>();
         }
 
-        // R345. The tolerance before rounding of a kind of field, null for a kind compared exactly
+        // R347. The shortest time limit a launch takes, addin.workerTimeLimitMinS, so a limit typed too short never kills a sound run
+        public double WorkerTimeLimitMinS
+        {
+            get
+            {
+                JToken value = addin["workerTimeLimitMinS"];
+                double seconds = value != null && (value.Type == JTokenType.Integer || value.Type == JTokenType.Float) ? value.Value<double>() : double.NaN;
+                if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds <= 0)
+                {
+                    throw new InvalidDataException("the config holds no addin.workerTimeLimitMinS of a number of seconds above 0, the shortest time limit of a run (R347)");
+                }
+                return seconds;
+            }
+        }
+
+        // R345. The tolerance before rounding of a kind of field, null for a kind compared exactly. True would read as 1 and NaN
+        // passes every comparison, so a tolerance is a finite number of zero or more, as python/parity.py takes it
         public double? ParityTolerance(string kind)
         {
             JObject kinds = Parity()["kinds"] as JObject;
@@ -80,7 +96,17 @@ namespace SiteAdaptation.Common
                 throw new InvalidDataException("addin.parity.kinds names no kind " + kind + " (R345)");
             }
             JToken value = kinds[kind];
-            return value.Type == JTokenType.Null ? (double?)null : value.Value<double>();
+            if (value.Type == JTokenType.Null)
+            {
+                return null;
+            }
+            double tolerance = value.Type == JTokenType.Integer || value.Type == JTokenType.Float ? value.Value<double>() : double.NaN;
+            if (double.IsNaN(tolerance) || double.IsInfinity(tolerance) || tolerance < 0)
+            {
+                throw new InvalidDataException("addin.parity.kinds." + kind + " is " + value.ToString(Newtonsoft.Json.Formatting.None)
+                    + ", a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)");
+            }
+            return tolerance;
         }
 
         // R345. The fields of a step with the kind and the decimals of each, as python/parity.py reads them

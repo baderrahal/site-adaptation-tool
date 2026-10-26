@@ -84,12 +84,20 @@ namespace SiteAdaptation.Common
             answer.Seconds = watch.Elapsed.TotalSeconds;
             answer.Library = Library();
             WorkFiles.WriteText(WorkerFiles.AnswerPath(folder, request.RunId), request.RunId, answer.ToJson());
+            if (code == WorkerExit.Done)
+            {
+                // The marks of the commit stay until the answer is written, so a kill before it finds the commit point
+                foreach (string left in WorkFiles.EndCommit(made.SelectMany(context => context.Written).ToList()))
+                {
+                    Console.Error.WriteLine("a mark of the commit could not be deleted: " + left);
+                }
+            }
             return code;
         }
 
         // An answer of the run id left by an earlier attempt goes first, so no answer but this run's is ever read under its name, then
         // the temporary files of this run id in the work, output and steps folders. Those of other run ids stay, another run may be
-        // writing them now
+        // writing them now. The step files of the steps of the request go too (R345), so a run that fails leaves none
         private static void Clear(string folder, WorkerRequest request, WorkerAnswer answer)
         {
             string earlier = WorkerFiles.AnswerPath(folder, request.RunId);
@@ -108,6 +116,7 @@ namespace SiteAdaptation.Common
                     answer.Issues.Add(failure.Message);
                 }
             }
+            StepFile.DeleteSteps(request);
         }
 
         // R347. Null when the read of an input may go on, else the refusal with both numbers named: for an input of a large read the
@@ -211,12 +220,11 @@ namespace SiteAdaptation.Common
             {
                 throw new WorkerStop(WorkerExit.InputChanged, "the input " + changed.Role + " changed while it was read, nothing of the run is used (R1): " + changed.Path);
             }
-            // Every check passed, so the outputs move onto their names, each replacing the one of an earlier run only now
-            foreach (KeyValuePair<string, string> output in context.Written)
-            {
-                WorkFiles.Commit(output.Key, output.Value);
-                answer.Outputs.Add(new WorkerFile { Role = "output", Path = output.Value, Sha256 = FileHash.Sha256(output.Value) });
-            }
+            // Every check passed, so the outputs move onto their names, all of them or none, each replacing the one of an earlier run
+            // only now. Their hashes are taken first, so nothing that can fail comes after the commit
+            var outputs = context.Written.Select(output => new WorkerFile { Role = "output", Path = output.Value, Sha256 = FileHash.Sha256(output.Key) }).ToList();
+            WorkFiles.CommitAll(context.Written, request.RunId);
+            answer.Outputs.AddRange(outputs);
             return WorkerExit.Done;
         }
 

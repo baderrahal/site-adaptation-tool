@@ -44,7 +44,8 @@ namespace SiteAdaptation.Tests
 
         // The measured peak of plots.csv by its name and size, the roles of a large read plotsCsv and curbs, and a curbs drawing
         // measured at another size than the one of a run, so the curbs file of a run takes the largest known peak
-        private string Config(double peakMiB = 100, double floorGiB = 2.0, double largestMiB = 0)
+        // The shortest time limit of the made up config is under the 1 s the kill tests run to
+        private string Config(double peakMiB = 100, double floorGiB = 2.0, double largestMiB = 0, double minimumS = 0.5)
         {
             var files = new JArray { new JObject { ["name"] = "plots.csv", ["bytes"] = PlotsText.Length, ["peakMiB"] = peakMiB } };
             if (largestMiB > 0)
@@ -58,6 +59,7 @@ namespace SiteAdaptation.Tests
                 {
                     ["workerPeakMiB"] = new JObject { ["roles"] = new JArray("plotsCsv", "curbs"), ["files"] = files },
                     ["workerTimeLimitS"] = new JObject { ["build"] = 600 },
+                    ["workerTimeLimitMinS"] = minimumS,
                 },
             };
             return Write("project.json", config.ToString());
@@ -644,6 +646,226 @@ namespace SiteAdaptation.Tests
             Assert.Equal(600, config.WorkerTimeLimitS("read"));
             Assert.Equal(60, config.WorkerTimeLimitS("levelExcel"));
             Assert.Throws<InvalidDataException>(() => AddinConfig.Load(Write("empty.json", "{}")));
+        }
+
+        [Fact]
+        public void R345_the_launch_deletes_the_step_files_of_a_run_that_did_not_pass_and_keeps_those_of_a_run_done()
+        {
+            WorkerRequest request = Request("r20");
+            request.Steps = new List<string> { "faces" };
+            request.StepsFolder = Path.Combine(folder, "steps");
+            Directory.CreateDirectory(request.StepsFolder);
+            string step = Path.Combine(request.StepsFolder, "step_faces_csharp.json");
+            File.WriteAllText(step, "a step file of an earlier run, its inputs still hash the same");
+            TimeSpan returned;
+            WorkerAnswer answer = Launch(Exiting(3), request, out returned);
+            Assert.Equal("failed", answer.Status);
+            Assert.False(File.Exists(step), "a run that did not pass leaves no step file, so the parity finds it missing");
+
+            File.WriteAllText(step, "the step file of this run");
+            request.RunId = "r21";
+            var written = new WorkerAnswer { RunId = "r21", Document = request.Document, Status = "done", ExitCode = 0, Message = "done" };
+            string prepared = Write("prepared_r21.txt", written.ToJson());
+            answer = Launch(Answering(prepared, WorkerFiles.AnswerPath(folder, "r21")), request, out returned);
+            Assert.Equal("done", answer.Status);
+            Assert.Equal("the step file of this run", File.ReadAllText(step));
+        }
+
+        [Fact]
+        public void R345_the_run_stamp_names_the_run_id_the_code_that_wrote_it_and_the_hash_of_its_config()
+        {
+            WorkerRequest request = Request("r22");
+            Assert.Equal(0, WorkerRunner.Run(Save(request), Writing(), () => 9000.0));
+            var stamp = (JObject)RunStamp.Read(Path.Combine(folder, "plan_012.json"))["run"];
+            Assert.Equal("r22", (string)stamp["runId"]);
+            string version = typeof(WorkerRunner).Assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+                .Cast<System.Reflection.AssemblyInformationalVersionAttribute>().Single().InformationalVersion;
+            Assert.Equal("SiteAdaptation.Common " + version, (string)stamp["code"]);
+            Assert.Equal(FileHash.Sha256(request.Inputs[0].Path), (string)stamp["configSha256"]);
+        }
+
+        [Fact]
+        public void R347_a_run_stamp_that_names_no_input_is_refused()
+        {
+            Assert.Contains("names no input", RunStamp.Refusal(new JObject { ["run"] = new JObject { ["runId"] = "r1", ["inputs"] = new JArray() } }) ?? "accepted");
+        }
+
+        // A junction on Windows, which needs no right to make, a symbolic link elsewhere
+        private static void Link(string link, string target)
+        {
+            ProcessStartInfo start = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? new ProcessStartInfo("cmd.exe", "/c mklink /J \"" + link + "\" \"" + target + "\"")
+                : new ProcessStartInfo("ln", "-s \"" + target + "\" \"" + link + "\"");
+            start.UseShellExecute = false;
+            start.CreateNoWindow = true;
+            start.RedirectStandardOutput = true;
+            using (Process process = Process.Start(start))
+            {
+                process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+                Assert.Equal(0, process.ExitCode);
+            }
+        }
+
+        [Fact]
+        public void R347_a_folder_reached_through_a_junction_into_a_git_work_tree_is_refused()
+        {
+            string tree = Path.Combine(folder, "repo");
+            Directory.CreateDirectory(Path.Combine(tree, ".git"));
+            Directory.CreateDirectory(Path.Combine(tree, "python"));
+            string link = Path.Combine(folder, "link");
+            Link(link, Path.Combine(tree, "python"));
+            try
+            {
+                Assert.True(Directory.Exists(link));
+                string found = WorkFiles.RepoAbove(Path.Combine(link, "out"));
+                Assert.NotNull(found);
+                Assert.Equal("repo", Path.GetFileName(found));
+                Assert.True(Directory.Exists(Path.Combine(found, ".git")));
+                WorkerRequest request = Request("r23");
+                request.OutputFolder = Path.Combine(link, "out");
+                bool ran = false;
+                Assert.Equal(2, WorkerRunner.Run(Save(request), Writing(_ => ran = true), () => 9000.0));
+                Assert.False(ran);
+                Assert.Contains("inside the git work tree", Answer(WorkerFiles.AnswerPath(folder, "r23")).Message);
+            }
+            finally
+            {
+                // The link itself goes, never what it points to
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    Directory.Delete(link);
+                }
+                else
+                {
+                    File.Delete(link);
+                }
+            }
+        }
+
+        // A command that writes two outputs, a.json and then b.json
+        private static Dictionary<string, WorkerCommand> TwoOutputs()
+        {
+            return new Dictionary<string, WorkerCommand>
+            {
+                ["build"] = run =>
+                {
+                    run.WriteJson(run.Request.OutputFolder, "a.json", new JObject { ["plots"] = 1 });
+                    run.WriteJson(run.Request.OutputFolder, "b.json", new JObject { ["plots"] = 2 });
+                },
+            };
+        }
+
+        [WindowsFact]
+        public void R347_the_outputs_of_a_run_move_onto_their_names_all_or_none_and_a_name_held_open_puts_back_the_first()
+        {
+            string a = Write("a.json", "a of an earlier run");
+            string b = Write("b.json", "b of an earlier run");
+            int code;
+            using (new FileStream(b, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                code = WorkerRunner.Run(Save(Request("r24")), TwoOutputs(), () => 9000.0);
+            }
+            WorkerAnswer answer = Answer(WorkerFiles.AnswerPath(folder, "r24"));
+            Assert.Equal(1, code);
+            Assert.Equal("a of an earlier run", File.ReadAllText(a));
+            Assert.Equal("b of an earlier run", File.ReadAllText(b));
+            Assert.Contains("could not all move onto their names", answer.Message);
+            Assert.Empty(answer.Outputs);
+            Assert.DoesNotContain(Directory.GetFiles(folder), path => WorkFiles.IsTemporary(path));
+        }
+
+        [Fact]
+        public void R347_the_outputs_of_a_run_move_onto_their_names_all_or_none_and_a_folder_in_the_way_puts_back_the_first()
+        {
+            string a = Write("a.json", "a of an earlier run");
+            Directory.CreateDirectory(Path.Combine(folder, "b.json"));
+            Assert.Equal(1, WorkerRunner.Run(Save(Request("r25")), TwoOutputs(), () => 9000.0));
+            Assert.Equal("a of an earlier run", File.ReadAllText(a));
+            Assert.True(Directory.Exists(Path.Combine(folder, "b.json")));
+            // With no earlier a the a this run moved onto its name goes again
+            File.Delete(a);
+            Assert.Equal(1, WorkerRunner.Run(Save(Request("r26")), TwoOutputs(), () => 9000.0));
+            Assert.False(File.Exists(a));
+            Assert.Contains("could not all move onto their names", Answer(WorkerFiles.AnswerPath(folder, "r26")).Message);
+            Assert.DoesNotContain(Directory.GetFiles(folder), path => WorkFiles.IsTemporary(path));
+        }
+
+        [Fact]
+        public void R347_a_kill_in_the_middle_of_the_commit_puts_back_every_earlier_output_and_past_the_commit_point_keeps_the_new_ones()
+        {
+            foreach (bool committed in new[] { false, true })
+            {
+                string runId = committed ? "r28" : "r27";
+                WorkerRequest request = Request(runId);
+                request.TimeLimitS = 1;
+                // As a worker killed between two renames leaves them: a of this run on its name with the earlier a as its backup, b new
+                string a = Write("a.json", "a of this run");
+                Write("a.json.tmp-" + runId + ".backup", "a of an earlier run");
+                string b = Write("b.json", "b of this run");
+                Write("b.json.tmp-" + runId + ".added", "");
+                if (committed)
+                {
+                    Write("a.json.tmp-" + runId + ".committed", "");
+                }
+                TimeSpan returned;
+                WorkerAnswer answer = Launch(Sleeping(30), request, out returned);
+                Assert.Equal("timedOut", answer.Status);
+                Assert.Equal(committed ? "a of this run" : "a of an earlier run", File.ReadAllText(a));
+                Assert.Equal(committed, File.Exists(b));
+                Assert.DoesNotContain(Directory.GetFiles(folder), path => path.Contains(".tmp-" + runId));
+                File.Delete(a);
+                if (File.Exists(b))
+                {
+                    File.Delete(b);
+                }
+            }
+        }
+
+        [Fact]
+        public void R347_a_time_limit_under_the_minimum_of_config_is_refused_before_the_start()
+        {
+            WorkerRequest request = Request("r29", Config(minimumS: 10));
+            request.TimeLimitS = 5;
+            Exception refused = Record.Exception(() => WorkerLaunch.Start(Nowhere(), folder, request, _ => { }));
+            Assert.IsType<ArgumentOutOfRangeException>(refused);
+            Assert.Contains("under the minimum of 10 s", refused.Message);
+            Assert.False(File.Exists(WorkerFiles.LogPath(folder, "r29")), "refused before the log and the start");
+            // The config of the repo holds the minimum and every time limit of a command at or above it
+            JObject addin = (JObject)JObject.Parse(File.ReadAllText(RepoConfig()))["addin"];
+            double minimum = (double)(addin["workerTimeLimitMinS"] ?? throw new InvalidDataException("no addin.workerTimeLimitMinS"));
+            Assert.Equal(10, minimum);
+            AddinConfig config = AddinConfig.Load(RepoConfig());
+            foreach (string command in WorkerRequest.Commands)
+            {
+                Assert.True(config.WorkerTimeLimitS(command) >= minimum, command);
+            }
+        }
+
+        [Fact]
+        public void R347_a_time_limit_that_fires_after_the_worker_answered_and_exited_hands_on_its_answer_and_leaves_it()
+        {
+            WorkerRequest request = Request("r30");
+            request.TimeLimitS = 1;
+            var written = new WorkerAnswer { RunId = "r30", Document = request.Document, Status = "done", ExitCode = 0, Message = "done" };
+            string prepared = Write("prepared_r30.txt", written.ToJson());
+            string output = Write("plan_012.json", "the output of this run");
+            WorkerAnswer ended = null;
+            using (var done = new ManualResetEventSlim(false))
+            {
+                // The end of the process is handled 3 s late, so the time limit of 1 s fires after the worker answered and exited
+                using (WorkerLaunch.Start(Answering(prepared, WorkerFiles.AnswerPath(folder, "r30")), folder, request, answer =>
+                {
+                    ended = answer;
+                    done.Set();
+                }, () => Thread.Sleep(3000)))
+                {
+                    Assert.True(done.Wait(TimeSpan.FromSeconds(60)), "the worker never ended");
+                }
+            }
+            Assert.Equal(written.ToJson(), ended.ToJson());
+            Assert.Equal("done", Answer(WorkerFiles.AnswerPath(folder, "r30")).Status);
+            Assert.Equal("the output of this run", File.ReadAllText(output));
         }
 
         // The config file of the repo, found from the test folder up, as the C# tests read the settings of R345 and R347
