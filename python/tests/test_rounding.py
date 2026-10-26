@@ -40,15 +40,20 @@ def test_r385_minus_zero_is_written_as_0_and_a_value_that_is_not_finite_stays_no
     assert common.fixed(3, 3) == 3 and isinstance(common.fixed(171.5, 3), float)
 
 
-def test_r385_a_value_the_decimal_of_csharp_cannot_hold_is_refused_never_written():
-    for value in (1e300, -1e300, 7.93e28):
-        with pytest.raises(OverflowError):
-            common.fixed(value, 3)
-    assert common.fixed(7.9e27, 3) == 7.9e27
-    # 2 to the 96 as a double has the 15 digit text 7.92281625142643e+28, under the largest decimal, so both sides write it
-    assert common.fixed(float(2 ** 96), 3) == 7.92281625142643e28
+def test_r385_a_value_whose_tie_digit_lies_past_15_significant_digits_is_refused_never_written():
+    # 1234567890123.125 is a tie of 16 digits: format .15g breaks it half to even, G15 of net48 half up, so the two languages
+    # would write 1234567890123.12 and 1234567890123.13. The digit after the asked decimals decides a tie and must be held
+    for value, decimals in ((1234567890123.125, 3), (-1234567890123.125, 3), (1e11, 3), (123456789012.0625, 3), (1e10, 4), (1e8, 6),
+                            (1.0000000000000002, 15), (0.1, 28), (1e300, 3), (-1e300, 3), (7.93e28, 3), (float(2 ** 96), 3)):
+        with pytest.raises(OverflowError, match="significant digits"):
+            common.fixed(value, decimals)
     with pytest.raises(OverflowError):
         common.r3(1e300)
+    # Under the limit the rule holds, site coordinates and angles among them
+    assert common.fixed(99999999999.9995, 3) == 100000000000.0 and common.fixed(12345678901.03125, 3) == 12345678901.031
+    assert common.fixed(2361234.1235, 3) == 2361234.124 and common.fixed(359.9999995, 6) == 360.0 and common.fixed(9999999999.99995, 4) == 10000000000.0
+    # A whole number of Python is exact and stays whole, a tiny value rounds to 0
+    assert common.fixed(10 ** 20, 3) == 10 ** 20 and common.fixed(5e-324, 3) == 0
 
 
 def test_r385_r3_round_tree_and_write_json_go_through_the_rule(tmp_path):

@@ -72,16 +72,38 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain("-0", json);
         }
 
-        [Fact]
-        public void R385_a_value_the_decimal_cannot_hold_throws_and_is_never_written()
+        // 1234567890123.125 is a tie of 16 digits: G15 of net48 breaks it half up, Python and net8.0 half to even, so the two would
+        // write 1234567890123.13 and 1234567890123.12. The digit after the asked decimals decides a tie and must be held
+        [Theory]
+        [InlineData(1234567890123.125, 3)]
+        [InlineData(-1234567890123.125, 3)]
+        [InlineData(1E+11, 3)]
+        [InlineData(123456789012.0625, 3)]
+        [InlineData(1E+10, 4)]
+        [InlineData(1E+08, 6)]
+        [InlineData(1.0000000000000002, 15)]
+        [InlineData(0.1, 28)]
+        [InlineData(1E+300, 3)]
+        [InlineData(-1E+300, 3)]
+        [InlineData(7.93E+28, 3)]
+        [InlineData(79228162514264337593543950336.0, 3)]
+        public void R385_a_value_whose_tie_digit_lies_past_15_significant_digits_is_refused_never_written(double value, int decimals)
         {
-            Assert.Throws<OverflowException>(() => Rounding.Fixed(1E+300, 3));
-            Assert.Throws<OverflowException>(() => Rounding.Fixed(-1E+300, 3));
-            Assert.Throws<OverflowException>(() => Rounding.Fixed(7.93E+28, 3));
-            Assert.Equal(7.9E+27, Rounding.Fixed(7.9E+27, 3));
-            // 2 to the 96 as a double has the 15 digit text 7.92281625142643E+28, under the largest decimal, as in Python
-            Assert.Equal(7.92281625142643E+28, Rounding.Fixed(Math.Pow(2, 96), 3));
+            Assert.Throws<OverflowException>(() => Rounding.Fixed(value, decimals));
+        }
+
+        [Fact]
+        public void R385_under_15_significant_digits_the_rule_holds_and_json_refuses_past_them()
+        {
+            Assert.Contains("significant digits", Assert.Throws<OverflowException>(() => Rounding.Fixed(1234567890123.125, 3)).Message);
+            Assert.Equal(100000000000.0, Rounding.Fixed(99999999999.9995, 3));
+            Assert.Equal(12345678901.031, Rounding.Fixed(12345678901.03125, 3));
+            Assert.Equal(2361234.124, Rounding.Fixed(2361234.1235, 3));
+            Assert.Equal(360.0, Rounding.Fixed(359.9999995, 6));
+            Assert.Equal(10000000000.0, Rounding.Fixed(9999999999.99995, 4));
+            Assert.Equal(0.0, Rounding.Fixed(double.Epsilon, 3));
             Assert.Throws<OverflowException>(() => JsonOut.ToJson(new Sample { Value = 1E+300 }));
+            Assert.Throws<OverflowException>(() => JsonOut.ToJson(new Sample { Value = 1234567890123.125 }));
         }
 
         [Fact]

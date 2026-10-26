@@ -5,22 +5,25 @@ from pathlib import Path
 
 DECIMALS = 3
 WIDE_DECIMALS = 4
-# R385. The largest value the decimal type of C# holds, 2^96 - 1. A value past it is refused on both sides, never written
-DECIMAL_MAX = Decimal(2 ** 96 - 1)
+# R385. The significant digits of the text a value is rounded from
+SIGNIFICANT = 15
 
 
 def fixed(value, decimals=DECIMALS):
     """R385. The one rounding rule of Python and C#: the value written as its text of 15 significant digits, read as a decimal,
     rounded half away from zero to decimals and turned back into a float. The 15 digits drop the noise of the last bits of a
-    double, so 0.7 + 0.0005, 0.7004999999999999 as a double, rounds as the decimal 0.7005 does. Minus zero is written as 0 and a value that is not finite is None."""
+    double, so 0.7 + 0.0005, 0.7004999999999999 as a double, rounds as the decimal 0.7005 does. Minus zero is written as 0 and a value that is not finite is None.
+    A value whose digit after the asked decimals, the one that decides a tie, lies past the 15 digits of its text is refused: the
+    text itself would round there, and Python and net8.0 break an exact tie of 16 digits half to even where G15 of net48 goes half up."""
     if isinstance(value, int) and not isinstance(value, bool):
         return value
     if not math.isfinite(value):
         return None
     text = Decimal(format(value, ".15g"))
-    if abs(text) > DECIMAL_MAX:
-        raise OverflowError("%s is past the decimal of C# and is not written (R385)" % format(value, ".15g"))
-    # Enough digits that a value up to DECIMAL_MAX keeps its decimals, as the 96 bits of the C# decimal do
+    if text and text.adjusted() + decimals + 2 > SIGNIFICANT:
+        raise OverflowError("%s needs %d significant digits to round at %d decimals, more than the %d of its text (R385)" % (
+            format(value, ".15g"), text.adjusted() + decimals + 2, decimals, SIGNIFICANT))
+    # Enough digits for every value under the limit above
     with localcontext() as context:
         context.prec = 60
         rounded = float(text.quantize(Decimal(1).scaleb(-decimals), rounding=ROUND_HALF_UP))
