@@ -4,39 +4,36 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 
 ## Round ADDIN Part 1, 2026-10-25, the Revit 2024 add-in from the Parsons site models
 
-In progress. 0a to 4c and PR 52 merged (PR 41 to 53), 4d in review, PR 54. Plan: steps/investigations/round-addin.md.
+In progress, 4d in review, PR 54. Detail: steps/investigations/round-addin.md.
 
 Goal:
-- The add-in in Revit 2024, C#, .NET 4.8, from the 7 Parsons keys, parsons2024Rev6 (Q050), docs/addin-mock.md
-- 4d: R351 to R353 and Q084, five changes, one over the cap of four
+- Revit 2024 add-in, C#, .NET 4.8, from the 7 Parsons keys (Q050), docs/addin-mock.md
+- 4d: R351 to R353, Q084, five changes, one over the cap (READ, round-addin.md 4d)
 
 Done:
-- 0a to 4c, PR 52: reads, plans, overrides, keyRules, build, proof, design, worker, R344, R385 to R388, button 2 reads
-- 4d reviews: check points CAD against the keys at full precision, faces by client code numbering, merged vertices checked, key reads and parameter files held to their key, failed points issues, GUID conflicts listed, hand entries refused (Q087), block order at 4 decimals (CHOSEN), a face grid in range, CropBox refused, read peak 3,900 MiB (CHOSEN, 2,736 plus 1,147 rounded up)
+- 0a to 4c (PR 41 to 53), 4d and its four reviews: round-addin.md
 
 Checked:
-- Parity at 1b701cd, both runtimes, 0 one unit, 0 failures: labels 3,181, plot table 2,956 (RAN, p4dfix3_parity_table.txt), check points 141 (RAN, p4dfix3_parity_position.txt)
-- 127 of 141 pass, median 0.54 mm (RAN, p4dfix3_gaps.txt), second route 141 of 141 (RAN, p4dfix3_r353_second.txt), 7 key reads, copies unchanged (RAN, p4dfix_read_loop.txt)
+- Parity, gate and CI green on both runtimes (RAN, p4dfix4_gate_*.txt)
 
 Remains:
 - 4e to 4h, Phases 5, 6. The categories of the project parameter CASE
 
 Known bugs:
-- NBH 03 image past 30 min (Q063), 9 to 11 child processes in a read, rvt_info.py misses cloud links, a read tied to its key by name (Q065), READ PROGRESS.md
-- ELl@Entry off its schedule over 30 mm on 215 plots (Q070), reader angle at 3 decimals, key_copies.py keeps NUL, READ PROGRESS.md. xUnit2013 (RAN, p4dfix3_gate_build.txt). Button 2 needs 5,948 MiB free (CHOSEN, R347)
+- NBH 03 image past 30 min (Q063), 9 to 11 child processes a read, reads tied to keys by name (Q065), ELl@Entry off on 215 plots (Q070), more in steps/PROGRESS.md (READ). xUnit2013 (RAN, p4dfix4_gate_build.txt)
+- Check points, Q088: split bends at mergeMm 0, baseplan by name, labels alone, no clientCode row, MergesOf, lengthAccuracy 1e30 (RAN, p4dfix4_q088_measure.txt, brk4)
 
 Next:
 - Phase 4e: R354 to R357, then 4f to 4h
 
 Your turn:
-Q001. El @ Entry: still open (Bader, 2026-10-26), the team is asking for the Infrastructure IFC package and the ramp slope, the current overrides stay until then. No entrance spot gives it (2b), the road a build gives holds it on 0.088 of 1,785 TU plots at 0.5 mm, 0.442 at 5 mm, 1,596 overrides, 32 with no value in cannot, 30 of them Q082 (every TU plot with a key value, the proof of Q052 counts the written ones)
+Q001. El @ Entry: still open (Bader, 2026-10-26), the team is asking for the Infrastructure IFC package and the ramp slope, the current overrides stay until then
 Q002. Ramp type: by Rev 9 code (0.988 on 5 keys), the 21 Flat Ramps are the plots with a placeholder ELl@Entry, overrides: accept. Q003. Villa mirror: block mirror flag with the side road (0.960), one plot ahead of the open end: accept
 Q004. Setback: DLUS front. Q005. Front level: road snapped. Q006. Back corners parallel. Q007. Generic floor: whole face (0.991 on 7 keys). Q008. Units: ask for a baseplan with 01b. Q009. Typology_Rev9 for codes with no schedule. Q010. Sales Land Width
 Q012. FFL split by units, the plurality per sequence: DP1 TH1 TH1 DP1 (M07) middle 17 of 37 and DP1 TH1-IM TH1-IM DP1 3 of 6 weak, DP1 TH3 TH3 DP1 middle 6 of 6 and DP3 TH3 TH3 DP3 none 33 of 35 strong: accept, ask why IMF and IMG split at an end or not (15 of 36). Q013. CASE second letter as built (0.275, 1,814 overrides). Q015. Yard 0.100 under the floor top, none in Zone 4, Zone 1 taken from Zone 2 and 3 until Q066: accept. Q016. Plots 2311, 2312 by baseplan. Q017. IMC 2301, 2302 and IMG 544: VD4 by Rev 9, the keys link DP4 on these 3 of 2,501 plots, a build links VD4 with no override, the VD4 hand of 2302 differs from its key: accept.
 Q018. 58 past ramps listed. Q019. Schedule FFL. Q020. Keep the north stop. Q021. Parallel windows over 8 GB free. Q022. TEST copies in Zone 02\ARC: delete when done. Q023. Delete the empty 15a folder. Q024. Curb and ROW from the R94 edge. Q025. 13 PDF refusals listed. Q026. Two curbs of one drawing: keep the Roads curb, ask which is current. Q027. Two DP4 labels: ask for a split. Q029. Location plan number per face. Q030. Ask for the 01b sales rows
 Q031. Rev 9 faces, 97 differ: keep the baseplan, ask which is current. Q032. 1.4 FFL parameter as the design level. Q033. Lone DT3 on a VL3 face: hand rule of Q042. Q036. TBD for DLUS, accommodation for sales
-Q037. Corner fronts by the Orientation side (0.978 on 7 keys): confirm. Q038. Native ramp fronts 0.698 to 0.700 m over the subgrade: confirm, the IMC schedule stays the level key. Q039. Footprint test: done as the edge only third check
-Q041. Rows 2290 to 2299, the 4 middle DT1 as overrides: accept. Q042. Lone duplex hand: row pairs from the right end (382 of 382): accept
+Q037. Corner fronts by the Orientation side (0.978 on 7 keys): confirm. Q038. Native ramp fronts 0.698 to 0.700 m over the subgrade: confirm, the IMC schedule stays the level key. Q039. Footprint test: done as the edge only third check. Q041. Rows 2290 to 2299, the 4 middle DT1 as overrides: accept. Q042. Lone duplex hand: row pairs from the right end (382 of 382): accept
 Q051. Rev 01 values: send the Rev 01 sections on steps, base heights and ramps. Q052. Weak rules hold on the keys through their overrides, as the majority rule says, by the rule alone El @ Entry 157 of 1,753, FFL 220 of 1,759, ramp front 1,283 of 1,759, written plots only (PR 52): accept until Q001 and Q051
 Q053. 12,421 overrides and 154 misses with no value in cannot, native 5,222 kept unless a run names --replace native, a build applies parsons only unless it names native (R330), mark a hand edit "byHand": true: keep. Q054. R260 of DATA-5 and R261 to R282: keep both. Q055. 1.4 ELl@Entry typed off its ramp on 5 plots: read El @ Entry off the ramp
 Q056. Native models: hands, fronts and ramps only, never unit codes. Q057. Ramp front fall with no direction (0.764), not applied, a front corner off over 0.5 mm on 1,664 of 1,759 plots, over 5 mm on 257: accept. Q058. Old 20221206 prototypes: send the folder to check their hands
@@ -48,11 +45,12 @@ Q070. El @ Entry with no schedule: take the ELl@Entry parameter of the key, off 
 Q071. Walls: accept the base at the yard level, the centre on the edge and the open front, ask the architect for the wall top rule (0.346), wall overrides once button 7 places walls
 Q072. Side road of a villa with three road edges (IMC 2301, IME 2710, IMG 441): the side edge, not the back: accept. Q074. Steps of the base and risers, half a riser no step (0.988 on 5 keys), against the count rule of the IMC and IMD schedules (0.934): accept. Q075. 1,346 native entries with no value kept from Round 17, a native2022 build loading them is refused: move them to cannot by a run with --replace native
 Q076. Python checker licences: shapely is BSD-3-Clause and its wheels bundle GEOS under LGPLv2.1, nothing of Python ships: keep it for the checker
-Q077. The worker: buttons 2 and 3 read and build in CadReader.exe beside Revit, the Road Layout read alone took 2,571 to 2,612 MiB and PdfPig needs a System.Memory Revit 2024 lacks: accept. Q078. Rounding: Python and C# round the 15 digit decimal half away from zero (R385), values of both move one unit on a tie: accept
-Q079. netstandard2.0 asks for Microsoft.NETCore.Platforms 1.1.0, Microsoft .NET Library licence, no file copied: pinned to 3.1.0, MIT, build only: accept. Q082. Road level of 33 plots of the keys, listed in noRoadLevel of each plan: no road surface covers a front corner and the Roads folder holds no other road level there: ask the road designer for the road surface or road model of these fronts, else accept them listed and not written
+Q077. The worker: buttons 2 and 3 read and build in CadReader.exe beside Revit: accept. Q078. Rounding: Python and C# round the 15 digit decimal half away from zero (R385), values of both move one unit on a tie: accept
+Q079. Microsoft.NETCore.Platforms of netstandard2.0 pinned to 3.1.0, MIT, build only: accept. Q082. Road level of 33 plots of the keys, listed in noRoadLevel of each plan: no road surface covers a front corner and the Roads folder holds no other road level there: ask the road designer for the road surface or road model of these fronts, else accept them listed and not written
 Q085. Plot, the floor parameter, is a project parameter in all 7 keys with no GUID (R353): bind Plot as a new shared parameter with a GUID Bader fixes in a block of config no run writes, as Q087 gives it (recommended), or as the keys do, read by name. Every key also holds a project parameter CASE beside the shared CASE, its categories not read
 Q086. Check points against the keys (R353): at full precision the floor corners of the extreme plots of the 7 keys lie a median 0.54 mm, at most 1.05 mm, off the baseplan, about 0.5 mm east and about 0.3 mm south on every key, 127 of 141 pass, 4 on vertices CadReader merged 1.29 and 1.42 mm, 5 on floors not their face, 5 with no face: hold the keys at 2 mm and button 1 against Revit at 1 mm (recommended), or 1 mm for both
-Q087. Hand entries in addin.sharedParameters (R353): the merge of a hand GUID with the GUIDs of the keys failed its second review and is withdrawn, a block with a hand entry is refused, the real block holds none. Keep the block a measure the run alone writes, and put a GUID Bader fixes, such as Plot of Q085, in its own block that no run writes, refused when a key gives that GUID to another name (recommended), or bring the merge back with the four cases of the review as its tests.
+Q087. Hand entries in addin.sharedParameters (R353): the merge of a hand GUID with the GUIDs of the keys failed its second review and is withdrawn, a block with a hand entry is refused, the real block holds none, and a hand edit not marked byHand, such as an edited GUID or a mark named hand or manual, is overwritten by the next write with no line printed, the block being the run's. Keep the block a measure the run alone writes, and put a GUID Bader fixes, such as Plot of Q085, in its own block that no run writes, refused when a key gives that GUID to another name (recommended), or bring the merge back with the four cases of the review as its tests.
+Q088. Check points of R353, three residuals after the second fix, latent on the real data: (a) CadReader PlotShapes records a vertex merge at a node but not where a split bends a line to a node or where a merged node is dropped, so a corner can sit up to 10 mm off its drawn line with mergeMm 0 (0 near straight vertices 0.5 to 15 mm off line on the real baseplan), and the worker takes any baseplan name while python/position_file.py holds it to drawings.baseplan by name only. (b) A request with labels alone ends done with not made in the worker and is refused by Python. (c) A labels.csv with no kind column or no clientCode row numbers every IMC and IMD point by the shift alone (the real labels.csv holds 2,704 clientCode rows). Take the check point corners from the drawn line ends with no join, refuse (b) and (c) in both languages, and hold the baseplan by its hash in a fresh PR with the inputs of the reviews as tests (recommended), or keep them as known bugs.
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 
