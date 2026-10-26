@@ -122,3 +122,102 @@ def test_r385_labels_csv_writes_the_page_and_site_points_of_a_label_by_the_rule(
     assert location_plan.page_cells({"x": 2.0465, "y": 0.5005}) == {"pageX": 2.047, "pageY": 0.501}
     assert location_plan.site_cells("512345.6785", 2361234.1235) == {"east": 512345.679, "north": 2361234.124}
     assert round(512345.6785, 3) == 512345.678 and round(2.0465, 3) == 2.046
+
+
+# R387 the control point fit as a check of the schedule fit (Q081): the marks by their shape, the similarity start, the refine
+
+TRUTH = np.array([[1.7, 0.3], [0.3, -1.7], [1000.0, 2000.0]])
+MARK = {"widthPt": 3.96, "heightPt": 3.96, "tolerancePt": 0.01, "points": 6}
+
+
+def curve(x, y, size, points):
+    return {"x0": x - size / 2, "x1": x + size / 2, "top": y - size / 2, "bottom": y + size / 2, "pts": [(x, y)] * points}
+
+
+def control_words(texts):
+    """The words of E = <east> N = <north> for each (start x, top, east, north)."""
+    found = []
+    for x, top, east, north in texts:
+        found += [{"text": t, "x0": x + k * 5.0, "top": top} for k, t in enumerate(("E", "=", "%.3f" % east, "N", "=", "%.3f" % north))]
+    return found
+
+
+def test_r387_the_marks_are_the_curves_of_the_mark_shape_and_the_fit_starts_from_their_similarity():
+    # Three marks almost on one line, as on the sheet, their stated points off by up to 0.02 m
+    marks = [(100.0, 100.0), (500.0, 100.6), (900.0, 101.0)]
+    noise = [(0.02, -0.01), (-0.015, 0.02), (0.01, 0.005)]
+    stated = [tuple(location_plan.apply(TRUTH, [mark])[0] + np.asarray(shift)) for mark, shift in zip(marks, noise)]
+    words = control_words([(mark[0] + 20.0, mark[1] - 8.0, east, north) for mark, (east, north) in zip(marks, stated)])
+    # Beside each mark a small shape of another size nearer the start of its text, never taken
+    curves = [curve(x, y, 3.96, 6) for x, y in marks] + [curve(x + 18.0, y - 7.0, 2.0, 4) for x, y in marks] + [curve(x + 19.0, y - 7.5, 3.96, 5) for x, y in marks]
+    texts = location_plan.control_texts(words)
+    assert [stated for _, stated in texts] == [pytest.approx(point, abs=1e-3) for point in stated]
+    found = location_plan.control_marks(curves, texts, MARK, 120)
+    assert [mark for mark, _ in found] == marks
+    start = location_plan.similarity_fit([mark for mark, _ in found], [point for _, point in found])
+    # The similarity holds the truth within 0.05 m 500 pt off the line of the marks, where the exact affine of the three is far off
+    far = [(500.0, 600.0)]
+    assert np.hypot(*(location_plan.apply(start, far)[0] - location_plan.apply(TRUTH, far)[0])) < 0.05
+    exact = np.linalg.solve(np.hstack([np.asarray(marks), np.ones((3, 1))]), np.asarray(stated))
+    assert np.hypot(*(location_plan.apply(exact, far)[0] - location_plan.apply(TRUTH, far)[0])) > 1.0
+    # A text with no mark of the shape in its search, or two, is refused, never a mark by nearness
+    with pytest.raises(ValueError, match="R387"):
+        location_plan.control_marks(curves[3:], texts, MARK, 120)
+    with pytest.raises(ValueError, match="R387"):
+        location_plan.control_marks(curves + [curve(105.0, 95.0, 3.96, 6)], texts, MARK, 120)
+
+
+def square_faces():
+    from shapely.geometry import box
+    # Six faces of 10 m in a row on the site, labelled 101 to 106
+    return {str(101 + k): box(1000.0 + 10 * k, 1900.0, 1010.0 + 10 * k, 1910.0) for k in range(6)}
+
+
+def page_of(site_point):
+    # The page point TRUTH maps onto a site point, site = [x, y] times its first two rows plus its third
+    return tuple((np.asarray(site_point) - TRUTH[2]) @ np.linalg.inv(TRUTH[:2]))
+
+
+def test_r387_the_refine_takes_only_faces_with_one_label():
+    faces = square_faces()
+    centres = {name: (face.centroid.x, face.centroid.y) for name, face in faces.items()}
+    labels = [{"number": str(1001 + k), "x": p[0], "y": p[1]} for k, p in enumerate(page_of(centres[name]) for name in ("101", "102", "103", "104", "105"))]
+    # A second label inside face 103 and a label outside every face: face 103 holds two labels and is left out of the refine
+    labels.append({"number": "9", "x": page_of((1022.0, 1904.0))[0], "y": page_of((1022.0, 1904.0))[1]})
+    labels.append({"number": "8", "x": page_of((900.0, 1800.0))[0], "y": page_of((900.0, 1800.0))[1]})
+    rough = TRUTH + np.array([[0.0, 0.0], [0.0, 0.0], [0.4, -0.3]])
+    refined, found = location_plan.control_refine(rough, labels, faces, 3, 3, 0.001)
+    assert found["faces"] == ["101", "102", "104", "105"] and found["kept"] == 4
+    assert np.allclose(location_plan.apply(refined, [page_of(centres["104"])])[0], centres["104"], atol=1e-6)
+    with pytest.raises(ValueError, match="R387"):
+        location_plan.control_refine(rough, labels[:2], faces, 3, 3, 0.001)
+
+
+def test_r387_a_face_numbered_otherwise_is_listed_apart_with_its_reason_and_the_check_numbers_nothing():
+    faces = square_faces()
+    centres = {name: (face.centroid.x, face.centroid.y) for name, face in faces.items()}
+    sites = [centres[name] for name in ("101", "102", "103", "104", "105", "106")] + [(1029.97, 1905.0)]
+    labels = [{"number": str(1001 + k), "x": page_of(site)[0], "y": page_of(site)[1]} for k, site in enumerate(sites)]
+    # The schedule fit lies 0.05 m east of the truth and the control fit is the truth, so label 1007, 0.03 m inside face 103 by the
+    # truth, goes on face 104 by the schedule fit, 0.02 m from its edge
+    shifted = TRUTH + np.array([[0.0, 0.0], [0.0, 0.0], [0.05, 0.0]])
+    schedule = location_plan.apply(shifted, [(label["x"], label["y"]) for label in labels])
+    rows = [{"number": label["number"], "face": face, "kind": "clientCode"} for label, face in zip(labels, location_plan.face_of_points(schedule, faces))]
+    before = [dict(row) for row in rows]
+    control = location_plan.apply(TRUTH, [(label["x"], label["y"]) for label in labels])
+    listed = location_plan.numbered_otherwise(rows, location_plan.face_of_points(control, faces), schedule, control, faces)
+    assert [(item["face"], item["schedule"], item["control"]) for item in listed] == [("103", ["1003"], ["1003", "1007"]), ("104", ["1004", "1007"], ["1004"])]
+    why = listed[0]["why"][0]
+    assert why["number"] == "1007" and why["scheduleFace"] == "104" and why["controlFace"] == "103"
+    assert why["edgeM"] == pytest.approx(0.02, abs=1e-6) and why["gapM"] == pytest.approx(0.05, abs=1e-6) and "1007" in why["text"]
+    assert rows == before
+    # The faces the two fits number alike are not listed
+    assert location_plan.numbered_otherwise(rows[:1], ["101"], schedule[:1], control[:1], faces) == []
+    # The whole check on the made up page: the marks by their shape, the similarity, the refine, the list, and no row moved
+    marks = [page_of((500.0, 1880.0)), page_of((1030.0, 1880.5)), page_of((1560.0, 1881.0))]
+    stated = [tuple(location_plan.apply(TRUTH, [mark])[0]) for mark in marks]
+    words = control_words([(mark[0] + 20.0, mark[1] - 8.0, east, north) for mark, (east, north) in zip(marks, stated)])
+    plan = {"controlSearchPt": 120, "controlMark": MARK, "fitDropFactor": 3, "fitRounds": 3, "fitFloorM": 0.001}
+    check = location_plan.control_fit_check(labels, rows, words, [curve(x, y, 3.96, 6) for x, y in marks], faces, plan, schedule)
+    assert check["marks"] == 3 and check["facesNumberedOtherwise"] == 2 and check["unitFacesNumberedOtherwise"] == 2
+    assert [item["face"] for item in check["list"]] == ["103", "104"] and rows == before
