@@ -2,6 +2,7 @@
 (R10): one GUID per name over every key that holds it, the GUID the elements give held as a second route, a conflict or a name no key
 holds listed with why and never given a GUID."""
 import json
+import re
 
 import pytest
 
@@ -64,3 +65,14 @@ def test_r353_the_block_is_written_into_the_addin_block_of_config_and_every_othe
     assert path.read_text(encoding="utf-8").count('"sharedParameters"') == 1
     with pytest.raises(ValueError, match="no key"):
         key_parameters.block(key_parameters.collect({}, NAMES), NAMES, [])
+
+
+def test_r353_config_holds_one_guid_of_the_keys_for_every_name_but_those_noguid_lists_with_why():
+    settings = project_profile.load_settings()
+    block = settings.get("addin")["sharedParameters"]
+    names = key_parameters.names_of(settings)
+    with_guid = [item["name"] for item in block["parameters"]]
+    assert sorted(with_guid + [item["name"] for item in block["noGuid"]]) == sorted(names)
+    assert all(re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", item["guid"]) for item in block["parameters"])
+    assert len({item["guid"] for item in block["parameters"]}) == len(block["parameters"])
+    assert all(item["why"] for item in block["noGuid"]) and sorted(block["keys"]) == sorted(settings.get("majority")["groups"]["parsons"])
