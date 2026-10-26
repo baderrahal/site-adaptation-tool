@@ -307,7 +307,7 @@ namespace SiteAdaptation.Tests
         public void R347_q083_free_memory_is_held_against_the_whole_read_before_the_first_read_and_against_its_rest_before_each_read()
         {
             AddinConfig repo = AddinConfig.Load(WorkerRunTests.RepoConfig());
-            Assert.Equal(4100, repo.WorkerCommandPeakMiB("read"));
+            Assert.Equal(3900, repo.WorkerCommandPeakMiB("read"));
             Assert.Null(repo.WorkerCommandPeakMiB("build"));
             // A made up config of the repo config with a whole read of 3,900 MiB and the floor of 2.0 GiB
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));

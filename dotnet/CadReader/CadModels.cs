@@ -108,6 +108,9 @@ namespace CadReader
         public double[] Center { get; set; }
         public string Reason { get; set; }
         public List<string> Labels { get; set; }
+        // R353. The merge of each vertex of a plot shape, written by --exact alone, so plots.json stays as it was
+        [Newtonsoft.Json.JsonIgnore]
+        public List<double> VertexMergeM { get; set; }
     }
 
     public class PlotsSummary

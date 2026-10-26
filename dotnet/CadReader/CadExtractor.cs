@@ -75,6 +75,47 @@ namespace CadReader
             };
         }
 
+        // R353. The plot entries of a drawing with every digit of their vertices, plots_exact.json of --exact and the baseplan of the
+        // check points, where plots.json writes 3 decimals (R2) and so moved a vertex up to 0.71 mm. Only the fields a face is built from
+        public static Newtonsoft.Json.Linq.JObject ExactPlots(CadExtract extract, string units)
+        {
+            var plots = new Newtonsoft.Json.Linq.JArray();
+            foreach (PlotEntry entry in extract.Plots.Plots)
+            {
+                plots.Add(new Newtonsoft.Json.Linq.JObject
+                {
+                    ["kind"] = entry.Kind, ["layer"] = entry.Layer, ["plot"] = entry.Plot, ["type"] = entry.Type, ["reason"] = entry.Reason,
+                    ["labels"] = entry.Labels == null ? null : new Newtonsoft.Json.Linq.JArray(entry.Labels),
+                    ["vertices"] = new Newtonsoft.Json.Linq.JArray((entry.Vertices ?? new List<double[]>()).Select(vertex => new Newtonsoft.Json.Linq.JArray(vertex.Select(value => (object)value).ToArray()))),
+                    ["vertexMergeM"] = entry.VertexMergeM == null ? null : new Newtonsoft.Json.Linq.JArray(entry.VertexMergeM.Select(value => (object)value).ToArray()),
+                });
+            }
+            return new Newtonsoft.Json.Linq.JObject { ["source"] = extract.Plots.Source, ["units"] = units, ["plots"] = plots };
+        }
+
+        // R353. plots_exact.json of a read into outDir: written with exact, else an earlier one there removed, so it never stands beside a
+        // plots.json of another read. True when it was written
+        public static bool WriteExact(CadExtract extract, string outDir, bool exact)
+        {
+            string path = Path.Combine(outDir, "plots_exact.json");
+            if (!exact)
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+                return false;
+            }
+            File.WriteAllText(path, ExactText(ExactPlots(extract, extract.Layers.Units)), new System.Text.UTF8Encoding(false));
+            return true;
+        }
+
+        // The text of plots_exact.json, every double by ExactDouble.Text so it reads back as the same double in C# and Python
+        public static string ExactText(Newtonsoft.Json.Linq.JObject exact)
+        {
+            return exact.ToString(Newtonsoft.Json.Formatting.None, new ExactDouble.Converter());
+        }
+
         public static void WriteFiles(CadExtract extract, string outDir)
         {
             JsonOut.Write(Path.Combine(outDir, "layers.json"), extract.Layers);

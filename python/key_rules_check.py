@@ -46,7 +46,7 @@ import openpyxl
 
 ROOT = Path(__file__).resolve().parent.parent
 POINT_FIELDS = (("surveyPoint", "position"), ("surveyPoint", "sharedPosition"), ("basePoint", "position"), ("basePoint", "sharedPosition"))
-OWN_FIELDS = {name + "." + field for name, field in POINT_FIELDS} | {"angleToTrueNorthDeg", "projectPosition"}
+OWN_FIELDS = {name + "." + field for name, field in POINT_FIELDS} | {"angleToTrueNorthDeg", "projectPosition", "levelBase"}
 QUADRANTS = {"EN": (0.0, 90.0), "SE": (90.0, 180.0), "WS": (180.0, 270.0), "NW": (270.0, 360.0)}
 # R121: the anchors a link origin is fitted from, a tie going to the first, and the bands the fit counts
 ANCHORS = ("start", "end")
@@ -394,6 +394,9 @@ def site_check(reads, groups, references, first):
                 other = base_site["projectPosition"]
                 if math.sqrt(sum((position[axis] - other[axis]) ** 2 for axis in ("eastWest", "northSouth", "elevation"))) * 1000.0 > 0.5:
                     differ.add("projectPosition")
+                # R353. The Elevation Base of the levels by its own set of the bases of each read
+                if {level.get("elevationBase") for level in site["levels"]} != {level.get("elevationBase") for level in base_site["levels"]}:
+                    differ.add("levelBase")
             # The first method also holds the names and units, this route the points, the angle, the position and the levels only
             theirs = {name for name in ((first.get(group) or {}).get("keys", {}).get(key, {}).get("differ") or {})
                       if name in OWN_FIELDS or name.startswith("levels.")}

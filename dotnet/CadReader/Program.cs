@@ -18,13 +18,17 @@ namespace CadReader
                 return WorkerRunner.Run(args[1], WorkerReads.Commands(), WorkerMemory.FreeMiB);
             }
             string layersPath = null;
-            bool headerOnly = false;
+            bool headerOnly = false, exact = false;
             var positional = new List<string>();
             for (int index = 0; index < args.Length; index++)
             {
                 if (args[index] == "--header-only")
                 {
                     headerOnly = true;
+                }
+                else if (args[index] == "--exact")
+                {
+                    exact = true;
                 }
                 else if (args[index] == "--layers" && index + 1 < args.Length)
                 {
@@ -37,7 +41,7 @@ namespace CadReader
             }
             if (positional.Count != 2)
             {
-                Console.Error.WriteLine("Usage: CadReader <file.dwg|file.dxf> <output folder> [--layers cad_layers.json] [--header-only]");
+                Console.Error.WriteLine("Usage: CadReader <file.dwg|file.dxf> <output folder> [--layers cad_layers.json] [--header-only] [--exact]");
                 return 1;
             }
             string input = positional[0];
@@ -95,6 +99,11 @@ namespace CadReader
             }
 
             CadExtractor.WriteFiles(extract, outDir);
+            // R353. Beside layers.json, which gives its units to cad_units.check of Python, and removed by a read without --exact
+            if (CadExtractor.WriteExact(extract, outDir, exact))
+            {
+                Console.WriteLine("plots_exact.json, plot entries " + extract.Plots.Plots.Count);
+            }
             Console.WriteLine("layers " + extract.Layers.Layers.Count + ", pieces " + pieces + ", plots " + extract.Plots.Summary.Plots + ", other faces " + extract.OtherFaces.Faces.Count + ", texts " + extract.Texts.Texts.Count);
             Console.WriteLine("blocks " + extract.Blocks.Blocks.Count + ", mirrored " + extract.Blocks.Blocks.Count(block => block.Mirrored));
             if (problems.Count > 0)

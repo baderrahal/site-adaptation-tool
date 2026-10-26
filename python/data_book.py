@@ -178,17 +178,31 @@ def load_surfaces(connect, book, scratch):
     return surfaces
 
 
-def schedule_rows(settings, connect):
+def schedule_rows(settings, connect, paths=None):
+    """The plot rows of the schedule of each neighbourhood of connect, by neighbourhood and official number. R351: the sheet is
+    connect.scheduleSheet of config/project.json, and paths may name the file of a neighbourhood, else it is the file of its entry in the
+    References folder of inputRoot."""
     root = Path(levels_proof.input_root(settings)) / full_run.XLSX_FOLDER
     found = {}
     for name, entry in connect["neighbourhoods"].items():
         if not entry:
             continue
-        for row in levels_proof.read_schedule(root / entry["schedule"]):
+        for row in levels_proof.read_schedule((paths or {}).get(name) or root / entry["schedule"], connect["scheduleSheet"]):
             number = levels_proof.number_of(row["plot"])
             if number is not None:
                 found[(name, str(number))] = dict(row, file=entry["schedule"], shift=entry["shift"])
     return found
+
+
+def analysis_file(join):
+    """R166. The analysis.json of the full run whose clusters each row names, the file dataBook.join.analysis names. Never a place in
+    fallbackOutputs: since the review of PR 53 the cadReads folder goes first there, and the second root held no analysis."""
+    if not join.get("analysis"):
+        raise ValueError("dataBook.join.analysis names no analysis.json of the full run, the clusters of plots.csv (R166)")
+    path = Path(join["analysis"])
+    if not path.is_file():
+        raise ValueError("dataBook.join.analysis %s is not on disk (R166)" % path)
+    return path
 
 
 def build(config, settings, scratch):
@@ -234,7 +248,7 @@ def build(config, settings, scratch):
     plan = json.loads(Path(connect["plan"]).read_text(encoding="utf-8"))
     past = {p["plot"]: p.get("levels") or {} for p in plan["plots"]}
     apart = set(prototype_offsets.plot_frame(prototype_offsets.load()).get("apart") or [])
-    analysis = json.loads((Path(roots[1]) / "analysis" / "analysis.json").read_text(encoding="utf-8"))
+    analysis = json.loads(analysis_file(join).read_text(encoding="utf-8"))
     cluster_of = {}
     for index, cluster in enumerate(analysis["clusters"]):
         for plot in cluster["plots"]:

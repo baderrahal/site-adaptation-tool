@@ -305,3 +305,19 @@ def test_r385_a_float_cell_that_is_not_finite_is_written_as_before_the_rule():
     nan, inf = float("nan"), float("inf")
     assert [repr(round(value, 4)) for value in (nan, inf, -inf)] == ["nan", "inf", "-inf"]
     assert [data_book.cell(value) for value in (nan, inf, -inf)] == ["nan", "inf", "-inf"]
+
+
+def test_r166_the_analysis_of_the_clusters_is_the_file_data_book_join_analysis_names_never_a_place_in_fallback_outputs(tmp_path):
+    # Since the review of PR 53 the cadReads folder goes first in fallbackOutputs, so the second root, which held the analysis of the
+    # full run before, holds none and data_book.build failed on a missing analysis.json
+    named = tmp_path / "full" / "analysis" / "analysis.json"
+    named.parent.mkdir(parents=True)
+    named.write_text(json.dumps({"clusters": []}), encoding="utf-8")
+    join = {"analysis": str(named), "fallbackOutputs": [str(tmp_path / "reads"), str(tmp_path / "probe"), str(tmp_path / "full")]}
+    assert data_book.analysis_file(join) == named
+    with pytest.raises(ValueError, match="dataBook.join.analysis"):
+        data_book.analysis_file({"fallbackOutputs": join["fallbackOutputs"]})
+    with pytest.raises(ValueError, match="not on disk"):
+        data_book.analysis_file(dict(join, analysis=str(tmp_path / "probe" / "analysis" / "analysis.json")))
+    # The probe settings name the file, which lies outside the repo, so a runner with no data book holds the setting only
+    assert c3d_run.load_config()["dataBook"]["join"]["analysis"].endswith("/analysis/analysis.json")

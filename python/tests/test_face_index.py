@@ -1,0 +1,112 @@
+"""R351, R352. The one rule of a site point on a baseplan face in Python and C#, python/face_index.py, and the grid by bounding box that
+finds the faces of a point, on made up rings built in code (R10). dotnet/SiteAdaptation.Tests/LocationPlanTests.cs holds the C# side on
+the same rings, on net48 and net8.0."""
+from shapely.geometry import Point
+
+import face_index
+import location_plan
+import yard_rule
+
+
+def square(x0, y0, x1, y1):
+    return [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+
+
+# Face 5 is drawn as two rings that share the edge x = 10, face 6 is one ring that shares the edge x = 20 with the second ring of 5
+RINGS = {"5": [square(0, 0, 10, 10), square(10, 0, 20, 10)], "6": [square(20, 0, 30, 10)]}
+
+
+def plots_of(rings):
+    return [{"kind": "plot_shape", "plot": label, "vertices": [list(point) for point in ring]} for label, found in rings.items() for ring in found]
+
+
+def test_r351_a_label_on_the_edge_two_rings_of_one_label_share_is_on_that_face_as_the_union_of_its_rings_holds_it():
+    index = face_index.FaceIndex(RINGS)
+    assert index.face_of(10.0, 5.0) == "5"
+    assert index.face_of(10.0, 0.0) == "5"
+    assert index.face_of(5.0, 5.0) == "5" and index.face_of(15.0, 5.0) == "5" and index.face_of(25.0, 5.0) == "6"
+    # On the edge of two faces, or on the outline of one ring alone, no face holds the point
+    assert index.face_of(20.0, 5.0) is None and index.holding(20.0, 5.0) == []
+    assert index.face_of(0.0, 5.0) is None and index.face_of(35.0, 5.0) is None
+    # shapely holds the edge of the two rings of 5 within their union, so the rule gives the face the union gives
+    union = yard_rule.face_shapes(plots_of(RINGS), 0)[0]
+    assert Point(10.0, 5.0).within(union["5"]) and not Point(20.0, 5.0).within(union["5"])
+    faces = face_index.plan_faces(plots_of(RINGS))
+    assert location_plan.face_of_points([(10.0, 5.0), (20.0, 5.0), (25.0, 5.0)], faces) == ["5", None, "6"]
+    assert sorted(faces) == ["5", "6"] and faces["5"].area == 200.0
+
+
+# The faces, points and points one face holds on the rings and points below, the same counts as LocationPlanTests.FaceIndexCounts
+FACES, POINTS, ONE = 78, 5130, 2715
+# The cells of the grid and the points one face holds with the face of a spike, the same as LocationPlanTests.SpikeCounts
+SPIKE_CELLS, SPIKE_ONE = 130, 2730
+
+
+def made_rings():
+    """A grid of 12 by 9 squares of 10 m at site coordinates, a face of two squares that share an edge where (7 row + 3 column) mod 10 is
+    under 3, labels by row and column, the same rings as LocationPlanTests.MadeRings."""
+    rings, x0, y0 = {}, 571000.0, 2364000.0
+    for row in range(9):
+        column = 0
+        while column < 12:
+            label = str(100 + row * 12 + column)
+            width = 2 if column < 11 and (7 * row + 3 * column) % 10 < 3 else 1
+            rings[label] = [square(x0 + 10 * (column + k), y0 + 10 * row, x0 + 10 * (column + k + 1), y0 + 10 * (row + 1)) for k in range(width)]
+            column += width
+    return rings
+
+
+def made_points():
+    """Every point of a lattice of 2.5 m over the grid and around it, on its edges and vertices too, and a point at 3 decimals near each,
+    the same points as LocationPlanTests.MadePoints."""
+    points = []
+    for i in range(-4, 53):
+        for k in range(-4, 41):
+            points.append((571000.0 + 2.5 * i, 2364000.0 + 2.5 * k))
+            points.append((571000.0 + 2.5 * i + 0.001 * ((i * 7 + k * 3) % 5 - 2), 2364000.0 + 2.5 * k + 0.001 * ((i * 3 + k * 5) % 5 - 2)))
+    return points
+
+
+def test_r351_the_grid_gives_every_point_the_faces_a_scan_of_every_face_gives():
+    rings = made_rings()
+    index = face_index.FaceIndex(rings)
+    one = 0
+    for x, y in made_points():
+        scan = sorted((label for label, found in rings.items() if face_index.holds(found, x, y)), key=int)
+        assert index.holding(x, y) == scan
+        assert index.face_of(x, y) == (scan[0] if len(scan) == 1 else None)
+        one += len(scan) == 1
+    # The C# test counts the same on the same rings and points
+    assert (len(rings), len(made_points()), one) == (FACES, POINTS, ONE)
+    assert face_index.FaceIndex({}).holding(0.0, 0.0) == []
+
+
+def test_r351_a_face_with_a_far_vertex_is_scanned_apart_and_the_grid_stays_bounded():
+    # Input: the made up grid of 78 faces and one face more, label 999, a simple ring with a spike 5 km west and south of the grid, whose
+    # box would cover about 250,000 cells of 10 m. The probe of the breaker of PR 54 sent such a spike to the origin, 1.77 billion cells
+    rings = made_rings()
+    rings["999"] = [[(571120.0, 2364000.0), (571130.0, 2364000.0), (571130.0, 2364010.0), (566000.0, 2359000.0)]]
+    index = face_index.FaceIndex(rings)
+    assert index.wide == ["999"]
+    assert index.cell_count <= face_index.MAX_CELLS_PER_FACE * len(rings)
+    one = 0
+    for x, y in made_points() + [(571125.0, 2364004.0), (568500.0, 2361500.5), (566000.0, 2359000.0)]:
+        scan = sorted((label for label, found in rings.items() if face_index.holds(found, x, y)), key=int)
+        assert index.holding(x, y) == scan
+        one += len(scan) == 1
+    # The C# test counts the same on the same rings and points
+    assert (index.cell_count, one) == (SPIKE_CELLS, SPIKE_ONE)
+
+
+def test_r351_a_face_whose_cells_cannot_be_counted_in_range_goes_to_the_wide_list_and_is_never_lost():
+    # Input: the probe of the breaker of the third review, 5 faces of 10 m in a row and face 999 with a vertex 1e9, 1e17 and 1e20 m west,
+    # where a grid index of C# past a 32 bit range lost the face. Every face whose box gives a column or a row past the range of
+    # face_index.MAX_INDEX goes to the wide list, so the grid of the C# keys holds it never, and the faces of each point are those of a scan
+    for far, wide in ((1e9, ["999"]), (1e17, ["101", "102", "103", "104", "105", "999"]), (1e20, ["101", "102", "103", "104", "105", "999"])):
+        rings = {str(101 + k): [[(1000.0 + 10 * k, 2000.0), (1010.0 + 10 * k, 2000.0), (1010.0 + 10 * k, 2010.0), (1000.0 + 10 * k, 2010.0)]] for k in range(5)}
+        rings["999"] = [[(1000.0, 2020.0), (1010.0, 2020.0), (1010.0, 2030.0), (-far, 2025.0)]]
+        index = face_index.FaceIndex(rings)
+        assert index.wide == wide, far
+        for x, y in ((1005.0, 2024.0), (1025.0, 2005.0), (1045.0, 2009.0), (-far / 2, 2025.0), (1e30, 2000.0), (-1e30, 2025.0)):
+            assert index.holding(x, y) == sorted((label for label, found in rings.items() if face_index.holds(found, x, y)), key=int), (far, x, y)
+        assert index.holding(1005.0, 2024.0) == ["999"] and index.holding(1025.0, 2005.0) == ["103"]

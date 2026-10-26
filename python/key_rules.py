@@ -45,14 +45,23 @@ def site_parts(document):
     position = site.get("projectPosition") or {}
     return {"position": [position.get("eastWest"), position.get("northSouth"), position.get("elevation")], "angle": position.get("angleDeg"),
             "levels": {level["name"]: level.get("elevation") for level in site.get("levels") or []},
+            "levelBase": level_base(site.get("levels") or []),
             "names": {name: site.get(name) for name in ("activeSite", "sites", "placeName")},
             "units": {name: (site.get("units") or {}).get(name) for name in UNIT_FIELDS}, "accuracy": (site.get("units") or {}).get("lengthAccuracy")}
 
 
+def level_base(levels):
+    """R353. The one Elevation Base the levels of a read are measured from, or the sorted bases joined by a bar when they differ, None
+    for no level or a read of before R311 that gives none."""
+    bases = sorted({str(level.get("elevationBase")) for level in levels if level.get("elevationBase") is not None})
+    return "|".join(bases) if bases else None
+
+
 def site_facts(documents, reference):
     """R331. Each read held against the read of the reference key: the gap of every point in mm, of the angle in degrees, of the
-    project position and of each level by name in mm, and the names and units that differ. oneSet when no key differs. shared
-    holds what button 1 needs and no coordinate: the angle, the shared sites, the level names and their steps over the lowest."""
+    project position and of each level by name in mm, and the names, units and level base that differ. oneSet when no key differs.
+    shared holds what button 1 needs and no coordinate: the angle, the shared sites, the level names and their steps over the lowest,
+    and since R353 the Elevation Base of the levels."""
     base = documents[reference]
     base_site = site_parts(base)
     keys = {}
@@ -89,6 +98,9 @@ def site_facts(documents, reference):
                     compared.append(field)
                     if value != base_site[name][field]:
                         differ[field] = value
+            compared.append("levelBase")
+            if site["levelBase"] != base_site["levelBase"]:
+                differ["levelBase"] = site["levelBase"]
         keys[key] = {"compared": compared, "differ": differ, "lengthAccuracy": None if site is None else site["accuracy"]}
     shared = None
     if base_site is not None:
@@ -96,7 +108,7 @@ def site_facts(documents, reference):
         lowest = ordered[0][1] if ordered else None
         shared = {"angleToTrueNorthDeg": base.get("angleToTrueNorthDeg"), "activeSite": base_site["names"]["activeSite"], "sites": base_site["names"]["sites"],
                   "levels": [name for name, _ in ordered], "levelStepsM": {name: common.fixed(value - lowest, 3) for name, value in ordered[1:]},
-                  "units": dict(base_site["units"])}
+                  "units": dict(base_site["units"]), "levelBase": base_site["levelBase"]}
     return {"reference": reference, "oneSet": all(not entry["differ"] for entry in keys.values()), "keys": keys, "shared": shared}
 
 

@@ -27,6 +27,7 @@ import c3d_run
 import common
 import data_book
 import data_book_analysis
+import face_index
 import link_summary
 import yard_rule
 
@@ -210,14 +211,10 @@ def similarity_fit(page, site):
 
 
 def face_of_points(points, faces):
-    """R182, R387. The baseplan face that holds each site point, None where no face or more than one holds it."""
-    names = sorted(faces, key=int)
-    tree = STRtree([faces[name] for name in names])
-    found = []
-    for east, north in points:
-        hits = [names[int(k)] for k in tree.query(Point(east, north), predicate="within")]
-        found.append(hits[0] if len(hits) == 1 else None)
-    return found
+    """R182, R387, R351. The baseplan face that holds each site point, None where no face or more than one holds it, by the one rule of
+    face_index.holds and its grid: inside one ring of the face, or on the outline of two of its rings, as the C# takes it."""
+    index = face_index.index_of(faces)
+    return [index.face_of(east, north) for east, north in points]
 
 
 def control_refine(matrix, labels, faces, drop_factor, rounds, floor):
@@ -232,7 +229,8 @@ def control_refine(matrix, labels, faces, drop_factor, rounds, floor):
     page = [points[index] for _, index in taken]
     site = [(faces[home].centroid.x, faces[home].centroid.y) for home, _ in taken]
     refined, residual, keep = robust_fit(page, site, drop_factor, rounds, floor)
-    return refined, {"faces": [home for home, _ in taken], "kept": len(keep), "residualKeptM": stats(residual[keep]), "residualAllM": stats(residual)}
+    return refined, {"faces": [home for home, _ in taken], "kept": len(keep), "residualKeptM": stats(residual[keep]), "residualAllM": stats(residual),
+                     "residual": residual, "keep": keep}
 
 
 def numbered_otherwise(rows, control_faces, schedule_site, control_site, faces):
@@ -263,27 +261,47 @@ def numbered_otherwise(rows, control_faces, schedule_site, control_site, faces):
     return found
 
 
-def control_fit_check(labels, rows, words, curves, faces, plan, schedule_site):
-    """R387. The control point fit as a check of the schedule fit of R181, which stays the numbering: the marks are the curves of the
-    mark shape of controlMark, the fit starts from their similarity and is refined on the faces that hold one label each, then every
-    face it numbers otherwise than the schedule fit is listed apart with why. It writes no number into labels.csv or any row."""
-    texts = control_texts(words)
-    marks = control_marks(curves, texts, plan["controlMark"], plan["controlSearchPt"])
-    start = similarity_fit([mark for mark, _ in marks], [stated for _, stated in marks])
-    refined, refine = control_refine(start, labels, faces, plan["fitDropFactor"], plan["fitRounds"], plan["fitFloorM"])
+def mark_gaps(matrix, marks):
+    """R387. How far the fit puts each control mark from its stated point, in metres, unrounded."""
+    return [float(np.hypot(*(apply(matrix, [mark])[0] - np.asarray(stated)))) for mark, stated in marks]
+
+
+def control_fit_parts(labels, rows, words, curves, faces, plan, schedule_site):
+    """R387, R351. The parts of the control point fit as a check of the schedule fit, unrounded: the texts and marks, the start and the
+    refined fit with the refine, the site point and face of every label by the control fit and the faces it numbers otherwise. It
+    writes no number into labels.csv or any row. A check that cannot be made, a control text with no mark or two, marks that give no
+    similarity or a refine of under three faces, gives failed with why and nothing else, an issue of the read, and the numbering of the
+    schedule fit goes on as it is."""
+    try:
+        texts = control_texts(words)
+        marks = control_marks(curves, texts, plan["controlMark"], plan["controlSearchPt"])
+        start = similarity_fit([mark for mark, _ in marks], [stated for _, stated in marks])
+        refined, refine = control_refine(start, labels, faces, plan["fitDropFactor"], plan["fitRounds"], plan["fitFloorM"])
+    except ValueError as failure:
+        return {"failed": str(failure)}
     points = [(label["x"], label["y"]) for label in labels]
     control_site = apply(refined, points) if points else []
     control_faces = face_of_points(control_site, faces)
     listed = numbered_otherwise(rows, control_faces, schedule_site, control_site, faces)
     unit_numbers = {row["number"] for row in rows if row["kind"] == "clientCode"}
-    at = lambda matrix: [common.fixed(float(np.hypot(*(apply(matrix, [mark])[0] - np.asarray(stated)))), 3) for mark, stated in marks]
     apart = np.hypot(*(np.asarray(control_site) - np.asarray(schedule_site)).T) if points else []
-    return {"controlTexts": len(texts), "marks": len(marks), "markGapStartM": at(start), "markGapRefinedM": at(refined),
-            "refineFaces": len(refine["faces"]), "refineKept": refine["kept"], "refineResidualKeptM": refine["residualKeptM"],
-            "againstScheduleM": stats(apart), "labelsOnAFace": {"schedule": sum(1 for row in rows if row["face"] is not None),
-                                                                 "control": sum(1 for face in control_faces if face is not None)},
-            "facesNumberedOtherwise": len(listed), "unitFacesNumberedOtherwise": sum(1 for item in listed if set(item["schedule"] + item["control"]) & unit_numbers),
-            "list": listed}
+    return {"texts": texts, "marks": marks, "start": start, "refined": refined, "refine": refine, "controlSite": control_site, "controlFaces": control_faces,
+            "listed": listed, "apart": apart, "unitFaces": sum(1 for item in listed if set(item["schedule"] + item["control"]) & unit_numbers), "failed": None}
+
+
+def control_fit_check(labels, rows, words, curves, faces, plan, schedule_site):
+    """R387. The control point fit as a check of the schedule fit of R181, which stays the numbering: the marks are the curves of the
+    mark shape of controlMark, the fit starts from their similarity and is refined on the faces that hold one label each, then every
+    face it numbers otherwise than the schedule fit is listed apart with why. It writes no number into labels.csv or any row."""
+    parts = control_fit_parts(labels, rows, words, curves, faces, plan, schedule_site)
+    if parts["failed"]:
+        return {"failed": parts["failed"], "list": []}
+    at = lambda matrix: [common.fixed(gap, 3) for gap in mark_gaps(matrix, parts["marks"])]
+    return {"failed": None, "controlTexts": len(parts["texts"]), "marks": len(parts["marks"]), "markGapStartM": at(parts["start"]), "markGapRefinedM": at(parts["refined"]),
+            "refineFaces": len(parts["refine"]["faces"]), "refineKept": parts["refine"]["kept"], "refineResidualKeptM": parts["refine"]["residualKeptM"],
+            "againstScheduleM": stats(parts["apart"]), "labelsOnAFace": {"schedule": sum(1 for row in rows if row["face"] is not None),
+                                                                          "control": sum(1 for face in parts["controlFaces"] if face is not None)},
+            "facesNumberedOtherwise": len(parts["listed"]), "unitFacesNumberedOtherwise": parts["unitFaces"], "list": parts["listed"]}
 
 
 def read_table(path, sheet, header_row, columns):
@@ -319,21 +337,33 @@ def site_cells(east, north):
     return {"east": common.fixed(float(east), 3), "north": common.fixed(float(north), 3)}
 
 
-def run(config, settings, check=None):
-    book = config["dataBook"]
-    plan = book["locationPlan"]
-    root = Path(book["root"])
-    work = root / "work"
-    with pdfplumber.open(work / plan["pdf"]) as pdf:
+def read_page(path, plan, check=None):
+    """R179, R181, R387. The first page of the location plan as pdfplumber gives it: its characters, its lines, its words with their
+    size, the small shapes the control point check of R181 looks at, the curves of R387 when the control check is asked, and the facts
+    of the sheet."""
+    with pdfplumber.open(path) as pdf:
         page = pdf.pages[0]
+        # R351. pdfplumber gives the points of the media box whatever the CropBox, PdfPig of the worker shifts them by the crop origin, so
+        # a page whose CropBox is not its MediaBox is refused on both sides and never read two ways
+        media, crop = [float(value) for value in page.page_obj.mediabox], [float(value) for value in page.page_obj.cropbox]
+        if crop != media:
+            raise ValueError("%s: the CropBox of the page %s is not its MediaBox %s, pdfplumber gives the points of the media box and PdfPig those of "
+                             "the crop box, a page read is refused (R351)" % (Path(path).name, crop, media))
         chars = page.chars
-        page_lines = [dict(l, pts=[(p[0], p[1]) for p in l.get("pts") or []]) for l in page.lines]
         words = page.extract_words(extra_attrs=["size"])
-        small = [((s["x0"] + s["x1"]) / 2, (s["top"] + s["bottom"]) / 2) for s in page.curves + page.rects + page.lines
-                 if s["x1"] - s["x0"] <= plan["controlShapeMaxPt"] and s["bottom"] - s["top"] <= plan["controlShapeMaxPt"]]
-        curves = [{key: s[key] for key in ("x0", "x1", "top", "bottom", "pts")} for s in page.curves] if check == "control" else []
-        meta = {"pages": len(pdf.pages), "width": float(page.width), "height": float(page.height), "rotate": page.page_obj.attrs.get("Rotate"),
-                "words": len(words), "chars": len(chars), "images": len(page.images)}
+        found = {"chars": chars, "words": words,
+                 "lines": [dict(l, pts=[(p[0], p[1]) for p in l.get("pts") or []]) for l in page.lines],
+                 "small": [((s["x0"] + s["x1"]) / 2, (s["top"] + s["bottom"]) / 2) for s in page.curves + page.rects + page.lines
+                           if s["x1"] - s["x0"] <= plan["controlShapeMaxPt"] and s["bottom"] - s["top"] <= plan["controlShapeMaxPt"]],
+                 "curves": [{key: s[key] for key in ("x0", "x1", "top", "bottom", "pts")} for s in page.curves] if check == "control" else [],
+                 "meta": {"pages": len(pdf.pages), "width": float(page.width), "height": float(page.height), "rotate": page.page_obj.attrs.get("Rotate"),
+                          "words": len(words), "chars": len(chars), "images": len(page.images)}}
+    return found
+
+
+def label_pairs(chars, plan):
+    """R179, R180. The text lines of the label size with their kind, and the labels: each code line paired with the number line under
+    it, its point the middle of the code line top and the number line bottom, in the order of the pairs."""
     lines = text_lines(chars, plan["labelSize"], plan["joinGapPt"], plan["lineTolerancePt"])
     for line in lines:
         line["kind"] = classify(line["text"], plan["patterns"])
@@ -343,9 +373,92 @@ def run(config, settings, check=None):
     pairs, lone_codes, lone_numbers = pair_labels(codes, numbers, plan["pairDyPt"], plan["pairDxPt"])
     labels = [{"code": codes[i]["text"], "kind": codes[i]["kind"], "number": numbers[k]["text"],
                "x": (codes[i]["x"] + numbers[k]["x"]) / 2, "y": (codes[i]["top"] + numbers[k]["bottom"]) / 2} for i, k in pairs]
-    report = {"sheet": meta, "lines": dict(kinds), "pairs": {"pairs": len(pairs), "codesWithoutNumber": len(lone_codes), "numbersWithoutCode": len(lone_numbers),
-                                                              "pairsByKind": dict(Counter(l["kind"] for l in labels)),
-                                                              "duplicateNumbers": sum(1 for n, c in Counter(l["number"] for l in labels).items() if c > 1)}}
+    report = {"lines": dict(kinds), "pairs": {"pairs": len(pairs), "codesWithoutNumber": len(lone_codes), "numbersWithoutCode": len(lone_numbers),
+                                              "pairsByKind": dict(Counter(l["kind"] for l in labels)),
+                                              "duplicateNumbers": sum(1 for n, c in Counter(l["number"] for l in labels).items() if c > 1)}}
+    return lines, labels, report
+
+
+def known_points(labels, faces, officials, shift):
+    """R181. The page point of each label whose number is an official number of a schedule, given once on the page, and the centroid of
+    the baseplan face of that number less the shift, in the order of the official numbers, with the numbers taken."""
+    by_number = defaultdict(list)
+    for label in labels:
+        by_number[label["number"]].append(label)
+    page_points, site_points, numbers_used = [], [], []
+    for official in sorted(officials, key=int):
+        found = by_number.get(official) or []
+        face = faces.get(str(int(official) - shift))
+        if len(found) == 1 and face is not None:
+            page_points.append((found[0]["x"], found[0]["y"]))
+            site_points.append((face.centroid.x, face.centroid.y))
+            numbers_used.append(official)
+    return page_points, site_points, numbers_used
+
+
+def schedule_fit(plan, labels, faces, official_of, shifts):
+    """R181. The page fitted to the site on the labels of fitNeighbourhood by the robust affine fit, with the residuals of the kept
+    points, of all and of every other neighbourhood with its own shift. Gives the matrix, the report and the numbers used and kept."""
+    fit_name = plan["fitNeighbourhood"]
+    page_points, site_points, used = known_points(labels, faces, official_of[fit_name], shifts[fit_name])
+    matrix, residual, keep = robust_fit(page_points, site_points, plan["fitDropFactor"], plan["fitRounds"], plan["fitFloorM"])
+    fit = {"neighbourhood": fit_name, "points": len(page_points), "kept": len(keep), "residualKeptM": stats(residual[keep]), "residualAllM": stats(residual)}
+    fit["metresPerPoint"] = round(float(np.sqrt(abs(np.linalg.det(matrix[:2, :2])))), 4)
+    checks, others = {}, {}
+    for name in shifts:
+        if name == fit_name:
+            continue
+        p, s, numbers = known_points(labels, faces, official_of[name], shifts[name])
+        if p:
+            others[name] = (numbers, np.hypot(*(apply(matrix, p) - np.asarray(s)).T))
+            checks[name] = stats(others[name][1])
+    fit["checkOn"] = checks
+    return matrix, fit, {"used": used, "kept": [used[i] for i in keep], "residual": residual, "keep": keep, "others": others}
+
+
+def number_rows(labels, matrix, faces, official_of, shifts):
+    """R182. Every label through the fit to the baseplan face that holds its point, one face or none, its number less the face label its
+    offset and the neighbourhood whose schedule holds its number its group, else rest. Gives the rows, the site points and the offsets
+    counted per group."""
+    labels_site = apply(matrix, [(l["x"], l["y"]) for l in labels]) if labels else []
+    home = {}
+    for name in shifts:
+        for official in official_of[name]:
+            home[official] = name
+    shift_by = defaultdict(Counter)
+    rows = []
+    for label, face in zip(labels, face_of_points(labels_site, faces) if labels else []):
+        group = home.get(label["number"], "rest")
+        offset = int(label["number"]) - int(face) if face is not None else None
+        shift_by[group]["noFace" if face is None else offset] += 1
+        rows.append(dict({"number": label["number"], "code": label["code"], "kind": label["kind"], "face": face, "offset": offset, "group": group},
+                         **page_cells(label)))
+    return rows, labels_site, shift_by
+
+
+def join_codes(rows, sales, table, plan):
+    """R182. The new code of each row by the code table, and Typology_Rev9, the NBH and the zone of the sales row of its number, the
+    first row of a plot. Gives the sales rows by plot."""
+    sale_of = {}
+    for row in sales:
+        if row["plot"]:
+            sale_of.setdefault(str(int(float(row["plot"]))), row)
+    for row in rows:
+        sale = sale_of.get(row["number"])
+        new = new_code(row["code"], table, plan["formOfSuffix"], plan["patterns"]["clientCode"])
+        row.update({"newCode": new, "rev9": sale["typology"] if sale else None, "nbh": sale["nbh"] if sale else None, "zone": sale["zone"] if sale else None})
+    return sale_of
+
+
+def run(config, settings, check=None):
+    book = config["dataBook"]
+    plan = book["locationPlan"]
+    root = Path(book["root"])
+    work = root / "work"
+    page = read_page(work / plan["pdf"], plan, check)
+    words, curves, page_lines = page["words"], page["curves"], page["lines"]
+    lines, labels, report = label_pairs(page["chars"], plan)
+    report = dict({"sheet": page["meta"]}, **report)
 
     # The fit on the IMC plots, the official number less the shift gives the baseplan face
     connect = config["connect"]
@@ -355,58 +468,14 @@ def run(config, settings, check=None):
     for name, official in schedules:
         official_of[name].add(official)
     plots = link_summary.load(connect["baseplanPlots"])["plots"]
-    faces = yard_rule.face_shapes(plots, 0)[0]
-    by_number = defaultdict(list)
-    for label in labels:
-        by_number[label["number"]].append(label)
-
-    def known(name):
-        page_points, site_points, numbers_used = [], [], []
-        for official in sorted(official_of[name], key=int):
-            found = by_number.get(official) or []
-            face = faces.get(str(int(official) - shifts[name]))
-            if len(found) == 1 and face is not None:
-                page_points.append((found[0]["x"], found[0]["y"]))
-                site_points.append((face.centroid.x, face.centroid.y))
-                numbers_used.append(official)
-        return page_points, site_points, numbers_used
-
-    fit_name = plan["fitNeighbourhood"]
-    page_points, site_points, used = known(fit_name)
-    matrix, residual, keep = robust_fit(page_points, site_points, plan["fitDropFactor"], plan["fitRounds"], plan["fitFloorM"])
-    fit = {"neighbourhood": fit_name, "points": len(page_points), "kept": len(keep), "residualKeptM": stats(residual[keep]), "residualAllM": stats(residual)}
-    scale = float(np.sqrt(abs(np.linalg.det(matrix[:2, :2]))))
-    fit["metresPerPoint"] = round(scale, 4)
-    checks = {}
-    for name in shifts:
-        if name == fit_name:
-            continue
-        p, s, _ = known(name)
-        if p:
-            checks[name] = stats(np.hypot(*(apply(matrix, p) - np.asarray(s)).T))
-    fit["checkOn"] = checks
+    faces = face_index.plan_faces(plots)
+    matrix, fit, _ = schedule_fit(plan, labels, faces, official_of, shifts)
     flat = [w["text"] for w in words]
-    fit["controlPoints"] = [control_check(matrix, word, small, stated, plan["controlSearchPt"]) for word, stated in control_texts(words)]
+    fit["controlPoints"] = [control_check(matrix, word, page["small"], stated, plan["controlSearchPt"]) for word, stated in control_texts(words)]
     report["fit"] = fit
 
     # Every number on its baseplan face
-    labels_site = apply(matrix, [(l["x"], l["y"]) for l in labels]) if labels else []
-    face_labels = sorted(faces, key=int)
-    tree = STRtree([faces[k] for k in face_labels])
-    home = {}
-    for name in shifts:
-        for official in official_of[name]:
-            home[official] = name
-    shift_by = defaultdict(Counter)
-    rows = []
-    for label, (east, north) in zip(labels, labels_site):
-        hits = [face_labels[int(k)] for k in tree.query(Point(east, north), predicate="within")]
-        face = hits[0] if len(hits) == 1 else None
-        group = home.get(label["number"], "rest")
-        offset = int(label["number"]) - int(face) if face is not None else None
-        shift_by[group]["noFace" if face is None else offset] += 1
-        rows.append(dict({"number": label["number"], "code": label["code"], "kind": label["kind"], "face": face, "offset": offset, "group": group},
-                         **page_cells(label)))
+    rows, labels_site, shift_by = number_rows(labels, matrix, faces, official_of, shifts)
     report["numberToFace"] = {g: dict(c.most_common(12)) for g, c in sorted(shift_by.items())}
     if check == "control":
         # R387. A check of the numbering above, never a numbering of its own
@@ -420,16 +489,12 @@ def run(config, settings, check=None):
     sales_book = work / book["rev9"]["workbooks"][plan["sales"]["workbook"]]
     sales = read_table(sales_book, plan["sales"]["sheet"], plan["sales"]["headerRow"], plan["sales"]["columns"])
     table = read_table(sales_book, plan["codeTable"]["sheet"], plan["codeTable"]["headerRow"], plan["codeTable"]["columns"])
-    sale_of = {}
-    for row in sales:
-        if row["plot"]:
-            sale_of.setdefault(str(int(float(row["plot"]))), row)
+    sale_of = join_codes(rows, sales, table, plan)
     compare = Counter()
     pairs_seen = Counter()
     for row in rows:
         sale = sale_of.get(row["number"])
-        new = new_code(row["code"], table, plan["formOfSuffix"], plan["patterns"]["clientCode"])
-        row.update({"newCode": new, "rev9": sale["typology"] if sale else None, "nbh": sale["nbh"] if sale else None, "zone": sale["zone"] if sale else None})
+        new = row["newCode"]
         if row["kind"] != "clientCode":
             continue
         if sale is None:

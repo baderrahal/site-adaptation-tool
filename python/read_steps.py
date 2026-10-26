@@ -15,6 +15,12 @@ replaces give, per item of the data book, written to step_<step>_python.json for
   (area_key.by_plot), the setback sheet of dataBook.rev9.dlus as rev9_workbooks.sheet_rows gives it, and the sales row of
   dataBook.locationPlan.sales as corner_front.sales_rows gives it with the plain values of dataBook.rev9.sales, each workbook by its
   key of dataBook.rev9.workbooks, a table of no row and a value past the stated dimension of a sheet refused
+- locationLabels, locationFit, controlCheck and controlFaces (R351): the location plan as location_plan.py numbers it, per label of the
+  page its number, code and kind, the baseplan face of its point by the schedule fit of R181 with its offset and group, its page and site
+  point and the new code, Typology_Rev9, NBH and zone of R182, per neighbourhood schedule the numbers the fit took and kept with the
+  residuals, the control point fit of R387 as its check and every face it numbers otherwise with why
+- plotTable (R352): per baseplan face inside the Phase 1 border the plot table of python/plot_table.py on the reads and the location plan
+  of the same run, the faces of the baseplan read, the footprint blocks of the footprint read and the area key sheets
 
 Every CadReader output is read through the units check of R388, a LandXML in meter only. A value of no geometry is written as read, a
 value of geometry as common.round_tree writes it. Step files go outside any git work tree, real values stay out of git.
@@ -26,6 +32,9 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+import statistics
+from collections import defaultdict
+
 import numpy
 
 import area_key
@@ -33,10 +42,17 @@ import cad_analysis
 import cad_units
 import common
 import corner_front
+import data_book
+import face_index
+import face_rings as ring_rules
 import footprint_check
+import full_run
 import landxml_reader
+import levels_proof
 import link_summary
+import location_plan
 import parity
+import plot_table
 import plan_from_book
 import plan_from_past
 import plan_rules
@@ -44,6 +60,11 @@ import project_profile
 import rev9_workbooks
 import yard_rule
 
+LOCATION_STEPS = ("locationLabels", "locationFit", "controlCheck", "controlFaces")
+# R387. The fields of the step controlCheck but failed, each null when the check failed
+CHECK_FIELDS = ("controlTexts", "marks", "markGapStartM", "markGapRefinedM", "refineFaces", "refineKept", "refineResidualKeptM", "againstScheduleM",
+                "labelsOnAFaceSchedule", "labelsOnAFaceControl", "facesNumberedOtherwise", "unitFacesNumberedOtherwise")
+TABLE_STEPS = ("plotTable",)
 STEPS = ("labels", "blocks", "curbs", "rows", "setbacks", "surfaces", "roadLevels", "areaKey", "dlusSetbacks", "sales")
 SCOPE = "project"
 NO_GEOMETRY = "noGeometry"
@@ -63,10 +84,19 @@ def jsonable(value):
     return value
 
 
+def at_decimals(value, decimals):
+    """R345, R351. A value of geometry by R385 at the decimals of its field, a list item by item, as common.round_tree writes it at 3 and
+    the C# by Rounding.Fixed at the decimals of the field."""
+    if isinstance(value, (list, tuple)):
+        return [at_decimals(item, decimals) for item in value]
+    return common.r3(value, decimals)
+
+
 def entry(raw, fields):
-    """A plot of a step file: a field of no geometry written as read, a field of geometry as common.round_tree writes it."""
+    """A plot of a step file: a field of no geometry written as read, a field of geometry by R385 at the decimals of its field."""
     raw = json.loads(json.dumps(jsonable(raw)))
-    written = {name: (value if (fields.get(name) or {}).get("kind") == NO_GEOMETRY else common.round_tree(value)) for name, value in raw.items()}
+    written = {name: (value if (fields.get(name) or {}).get("kind") == NO_GEOMETRY else at_decimals(value, (fields.get(name) or {}).get("decimals", common.DECIMALS)))
+               for name, value in raw.items()}
     return {"raw": raw, "written": json.loads(json.dumps(written))}
 
 
@@ -197,6 +227,66 @@ def sales_step(rows, plain_rows):
     return {number: {"row": row, "plain": plain.get(number)} for number, row in rows.items()}
 
 
+def stat_values(values):
+    """R351. The median, the 95th percentile and the largest of residuals as location_plan.stats takes them, unrounded, None for none."""
+    values = sorted(float(value) for value in values)
+    if not values:
+        return None
+    return [float(statistics.median(values)), values[int(0.95 * (len(values) - 1))], values[-1]]
+
+
+def location_steps(settings, pdf, plots, schedule_paths, sales):
+    """R351. The steps of the location plan as location_plan.py numbers it: the page read by pdfplumber, the labels paired, the page fitted
+    to the site on the schedule of fitNeighbourhood (R181), every label on its face and its codes joined (R182), and the control point fit
+    of R387 as its check, numbering nothing. The faces of the baseplan are refused as the build refuses them (R345)."""
+    plan = settings.get("dataBook.locationPlan")
+    connect = settings.get("connect")
+    refused = ring_rules.refusals(plots, plan_from_book.area_tolerance(settings.values))
+    if refused:
+        raise ValueError("%d baseplan faces refused: %s" % (len(refused), ", ".join(refused)))
+    page = location_plan.read_page(pdf, plan, "control")
+    _, labels, _ = location_plan.label_pairs(page["chars"], plan)
+    shifts = {name: entry["shift"] for name, entry in connect["neighbourhoods"].items() if entry}
+    official_of = defaultdict(set)
+    for name, official in data_book.schedule_rows(settings, connect, schedule_paths):
+        official_of[name].add(official)
+    faces = face_index.plan_faces(plots)
+    matrix, _, fit = location_plan.schedule_fit(plan, labels, faces, official_of, shifts)
+    rows, site, _ = location_plan.number_rows(labels, matrix, faces, official_of, shifts)
+    location_plan.join_codes(rows, location_plan.read_table(sales, plan["sales"]["sheet"], plan["sales"]["headerRow"], plan["sales"]["columns"]),
+                             location_plan.read_table(sales, plan["codeTable"]["sheet"], plan["codeTable"]["headerRow"], plan["codeTable"]["columns"]), plan)
+    parts = location_plan.control_fit_parts(labels, rows, page["words"], page["curves"], faces, plan, site)
+    made = {"locationLabels": by_handle((row["number"], {
+        "number": row["number"], "code": row["code"], "kind": row["kind"], "face": row["face"], "offset": row["offset"], "group": row["group"],
+        "page": [label["x"], label["y"]], "site": [float(point[0]), float(point[1])], "newCode": row["newCode"], "rev9": row["rev9"], "nbh": row["nbh"],
+        "zone": row["zone"]}) for row, label, point in zip(rows, labels, site))}
+    keep = fit["keep"]
+    made["locationFit"] = {plan["fitNeighbourhood"]: {
+        "role": "fit", "points": len(fit["used"]), "used": fit["used"], "kept": fit["kept"], "residualKeptM": stat_values(fit["residual"][keep]),
+        "residualAllM": stat_values(fit["residual"]), "metresPerPoint": float(numpy.sqrt(abs(numpy.linalg.det(matrix[:2, :2]))))}}
+    for name, (numbers, residual) in fit["others"].items():
+        made["locationFit"][name] = {"role": "check", "points": len(numbers), "used": numbers, "kept": None, "residualKeptM": None,
+                                     "residualAllM": stat_values(residual), "metresPerPoint": None}
+    if parts["failed"]:
+        # R387. A check that cannot be made is an issue of the read with why, every other field null, and the numbering goes on
+        made["controlCheck"] = {"control": dict(dict.fromkeys(CHECK_FIELDS), failed=parts["failed"])}
+        made["controlFaces"] = {}
+        labels_written = [dict(row, east=common.fixed(float(point[0]), 3), north=common.fixed(float(point[1]), 3)) for row, point in zip(rows, site)]
+        return made, {"labels": labels_written, "shifts": shifts}
+    refine = parts["refine"]
+    made["controlCheck"] = {"control": {
+        "failed": None, "controlTexts": len(parts["texts"]), "marks": len(parts["marks"]), "markGapStartM": location_plan.mark_gaps(parts["start"], parts["marks"]),
+        "markGapRefinedM": location_plan.mark_gaps(parts["refined"], parts["marks"]), "refineFaces": len(refine["faces"]), "refineKept": refine["kept"],
+        "refineResidualKeptM": stat_values(refine["residual"][refine["keep"]]), "againstScheduleM": stat_values(parts["apart"]),
+        "labelsOnAFaceSchedule": sum(1 for row in rows if row["face"] is not None),
+        "labelsOnAFaceControl": sum(1 for face in parts["controlFaces"] if face is not None),
+        "facesNumberedOtherwise": len(parts["listed"]), "unitFacesNumberedOtherwise": parts["unitFaces"]}}
+    made["controlFaces"] = {item["face"]: {"schedule": item["schedule"], "control": item["control"], "why": item["why"]} for item in parts["listed"]}
+    # R352. The rows of the location plan with their site points as labels.csv writes them, for the plot table
+    labels_written = [dict(row, east=common.fixed(float(point[0]), 3), north=common.fixed(float(point[1]), 3)) for row, point in zip(rows, site)]
+    return made, {"labels": labels_written, "shifts": shifts}
+
+
 def workbook(args, settings, entry_name):
     """The workbook of a sheet setting, the file of the role addin.workbookRoles gives its workbook name, a key of dataBook.rev9.workbooks."""
     if entry_name not in ((settings.get("dataBook") or {}).get("rev9") or {}).get("workbooks", {}):
@@ -219,7 +309,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="The Python side of the read steps of the parity harness (R348 to R350).")
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH))
     parser.add_argument("--steps", required=True, help="a folder outside any git work tree for step_<step>_python.json")
-    parser.add_argument("--only", nargs="*", choices=STEPS, help="these steps only, every step when left out")
+    parser.add_argument("--only", nargs="*", choices=STEPS + LOCATION_STEPS + TABLE_STEPS,
+                        help="these steps only, every step when left out, those of the location plan when --plot-numbers is given and the plot table with --border")
     parser.add_argument("--baseplan", help="R388. plots.json of the baseplan read, the one cadReads of config names when left out")
     parser.add_argument("--roads", help="R388. the folder of the road layout read, the one cadReads names when left out")
     parser.add_argument("--footprint-blocks", help="R388. blocks.json of the footprint read, the one cadReads names when left out")
@@ -229,18 +320,27 @@ def main(argv=None):
     parser.add_argument("--labels", help="location_plan/labels.csv of the data book")
     parser.add_argument("--dlus", help="the DLUS workbook, the role of addin.workbookRoles")
     parser.add_argument("--sales", help="the sales workbook, the role of addin.workbookRoles")
+    parser.add_argument("--plot-numbers", help="R351. the location plan PDF, the input plotNumbers")
+    parser.add_argument("--border", help="R352. the Phase 1 border of the data book, phase1_border.csv, the input border")
+    parser.add_argument("--schedule", action="append", default=[], metavar="NBH=PATH",
+                        help="R351. the schedule workbook of a neighbourhood of connect.neighbourhoods, the input schedule:<NBH>, its file in the References folder of inputRoot when left out")
     args = parser.parse_args(argv)
-    steps = args.only or STEPS
+    steps = args.only or (STEPS + (LOCATION_STEPS if args.plot_numbers else ()) + (TABLE_STEPS if args.plot_numbers and args.border else ()))
     try:
         for step in steps:
             parity.clear_step(args.steps, step, "python")
+        # R352. A plot table with no border or no DLUS workbook is refused before any read, never after the location plan is read
+        if "plotTable" in steps and (not args.border or not args.dlus):
+            raise project_profile.ProfileError("the step plotTable needs --border and --dlus (R352)")
         settings = project_profile.load_settings(args.settings)
         values = settings.values
+        if "plotTable" in steps:
+            plot_table.overlap_decimals(values)
         rules = parity.tolerances(values)
         inputs = [parity.input_entry("config", args.settings)]
         made = {}
         plots = None
-        if {"labels", "roadLevels"} & set(steps):
+        if {"labels", "roadLevels"} & set(steps) or set(LOCATION_STEPS) & set(steps):
             args.baseplan = str(cad_units.read_input(settings, "baseplan", args.baseplan))
             inputs.append(parity.input_entry("baseplanPlots", args.baseplan))
             plots = link_summary.load(args.baseplan)["plots"]
@@ -301,6 +401,34 @@ def main(argv=None):
                 plain_rows = sheet(args, settings, book["rev9"]["sales"])
                 held(len(plain_rows), book["rev9"]["sales"], "the sales values")
                 made["sales"] = sales_step(rows, plain_rows)
+        if (set(LOCATION_STEPS) | set(TABLE_STEPS)) & set(steps):
+            if not args.plot_numbers or not args.sales:
+                raise project_profile.ProfileError("the steps of the location plan need --plot-numbers and --sales (R351)")
+            # R351. Every schedule of connect.neighbourhoods is an input of the stamp, by its file in the References folder of inputRoot
+            # when the run names none
+            paths = {name: str(Path(levels_proof.input_root(settings)) / full_run.XLSX_FOLDER / entry["schedule"])
+                     for name, entry in settings.get("connect.neighbourhoods").items() if entry}
+            paths.update(dict(item.split("=", 1) for item in args.schedule))
+            inputs.append(parity.input_entry("plotNumbers", args.plot_numbers))
+            inputs.extend(parity.input_entry("schedule:" + name, path) for name, path in sorted(paths.items()))
+            if not any(item["role"] == "sales" for item in inputs):
+                inputs.append(parity.input_entry("sales", args.sales))
+            found, numbering = location_steps(settings, args.plot_numbers, plots, paths, workbook(args, values, settings.get("dataBook.locationPlan.sales.workbook")))
+            made.update(found)
+            if "plotTable" in steps:
+                inputs.append(parity.input_entry("border", args.border))
+                if not any(item["role"] == "dlus" for item in inputs):
+                    inputs.append(parity.input_entry("dlus", args.dlus))
+                args.footprint_blocks = str(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks))
+                if not any(item["role"] == "footprintBlocks" for item in inputs):
+                    inputs.append(parity.input_entry("footprintBlocks", args.footprint_blocks))
+                book = settings.get("dataBook")
+                dlus, _ = area_key.by_plot(sheet(args, settings, book["data5"]["areaKey"]["dlus"]))
+                sales_key, _ = area_key.by_plot(sheet(args, settings, book["data5"]["areaKey"]["sales"]))
+                table = plot_table.table(plots, plot_table.border_points(args.border), data_book.schedule_rows(settings, settings.get("connect"), paths),
+                                         numbering["shifts"], numbering["labels"], link_summary.load(args.footprint_blocks)["blocks"],
+                                         settings.get("dataBook.wiring.minShare"), dlus, sales_key, plot_table.overlap_decimals(values))
+                made["plotTable"] = {row["baseplanLabel"]: row for row in table}
         for step in steps:
             fields = (values["addin"]["parity"]["steps"]).get(step) or {}
             if step not in rules:

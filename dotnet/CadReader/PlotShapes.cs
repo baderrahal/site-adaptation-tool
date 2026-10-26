@@ -31,6 +31,9 @@ namespace CadReader
         private sealed class Graph
         {
             public readonly List<double[]> Nodes = new List<double[]>();
+            // R353. The farthest point taken into each node within Tolerance on each axis, 0 for a node of one point, so the check points
+            // of button 1 know how far a vertex stands from a line end it stands for. The merge itself is not changed
+            public readonly List<double> Merged = new List<double>();
             public readonly List<Edge> Pieces = new List<Edge>();
             public string Layer;
             private readonly Dictionary<Tuple<long, long>, List<int>> grid = new Dictionary<Tuple<long, long>, List<int>>();
@@ -52,12 +55,15 @@ namespace CadReader
                         {
                             if (Math.Abs(Nodes[index][0] - x) <= Tolerance && Math.Abs(Nodes[index][1] - y) <= Tolerance)
                             {
+                                double distance = Math.Sqrt((Nodes[index][0] - x) * (Nodes[index][0] - x) + (Nodes[index][1] - y) * (Nodes[index][1] - y));
+                                Merged[index] = Math.Max(Merged[index], distance);
                                 return index;
                             }
                         }
                     }
                 }
                 Nodes.Add(new[] { x, y });
+                Merged.Add(0.0);
                 var key = Tuple.Create(cellX, cellY);
                 if (!grid.ContainsKey(key))
                 {
@@ -442,6 +448,7 @@ namespace CadReader
                 Closed = true,
                 Area = area,
                 Vertices = new List<double[]>(),
+                VertexMergeM = new List<double>(),
             };
             for (int index = 0; index < sides.Count; index++)
             {
@@ -449,6 +456,7 @@ namespace CadReader
                 Edge piece = graph.Pieces[half / 2];
                 double[] point = graph.Nodes[From(piece, half)];
                 entry.Vertices.Add(new[] { point[0], point[1] });
+                entry.VertexMergeM.Add(graph.Merged[From(piece, half)]);
                 if (piece.IsArc)
                 {
                     if (entry.Arcs == null)

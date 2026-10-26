@@ -43,8 +43,9 @@ def why(report):
 
 def test_r345_the_config_names_the_tolerances_of_the_design_by_kind_of_field():
     block = project_profile.load_settings().get("addin")["parity"]
-    assert block["kinds"] == {"points": 0.000001, "levels": 0.000001, "areas": 0.000001, "angles": 0.000001, "noGeometry": None}
-    assert block["pagePointsPt"] == 0.01
+    assert {kind: value for kind, value in block["kinds"].items() if kind != "pagePoints"} == {"points": 0.000001, "levels": 0.000001, "areas": 0.000001, "angles": 0.000001, "noGeometry": None}
+    # R351. The page points of the location plan within 0.01 pt, a kind of its own since Round ADDIN 4d
+    assert block["kinds"]["pagePoints"] == 0.01
     assert set(block["steps"]["faces"]) == set(FIELDS)
     for name, field in block["steps"]["faces"].items():
         assert field["kind"] in block["kinds"], name

@@ -174,7 +174,8 @@ def test_r331_keys_that_hold_one_survey_point_base_point_position_angle_and_leve
     facts = key_rules.site_facts({"imc": read_doc(), "imd": read_doc()}, "imc")
     assert facts["oneSet"] is True and facts["keys"]["imd"]["differ"] == {}
     assert facts["shared"] == {"angleToTrueNorthDeg": 0.0, "activeSite": "Internal", "sites": ["Internal"], "levels": ["Level 1", "Level 2"],
-                               "levelStepsM": {"Level 2": 4.0}, "units": {"system": "METRIC", "length": "meters", "lengthSystem": "METRIC"}}
+                               "levelStepsM": {"Level 2": 4.0}, "units": {"system": "METRIC", "length": "meters", "lengthSystem": "METRIC"},
+                               "levelBase": "Survey Point"}
 
 
 def test_r331_a_key_off_by_two_mm_or_another_level_is_named_with_its_gap_and_the_set_is_not_one():
