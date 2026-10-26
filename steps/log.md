@@ -8,7 +8,7 @@ In progress, 4d in review, PR 54.
 
 Goal:
 - Revit 2024 add-in in C# from the 7 Parsons keys (Q050), docs/addin-mock.md
-- 4d: R351 to R353, Q084, five changes, one over the cap (READ round-addin.md)
+- 4d: R351 to R353, Q084, 5 changes, 1 over the cap (READ round-addin.md)
 
 Done:
 - 0a to 4c (PR 41 to 53), 4d and its four reviews: round-addin.md
@@ -21,7 +21,7 @@ Remains:
 
 Known bugs:
 - Q063, Q065, Q070 and the open bugs of steps/PROGRESS.md (READ). xUnit2013 (RAN, p4dfix4_gate_build.txt)
-- Q088 (a) to (d), MergesOf of no merge, lengthAccuracy 1e30 in C# (RAN, p4dfix5_*.txt)
+- Q088 (a) to (d), C# lengthAccuracy 1e30 (RAN, p4dfix4_q088_measure.txt, p4dfix5_*.txt), MergesOf of no merge (READ)
 
 Next:
 - Phase 4e: R354 to R357, then 4f to 4h
@@ -50,7 +50,7 @@ Q079. Microsoft.NETCore.Platforms of netstandard2.0 pinned to 3.1.0, MIT, build 
 Q085. Plot, the floor parameter, is a project parameter in all 7 keys with no GUID (R353): bind Plot as a new shared parameter with a GUID Bader fixes in a block of config no run writes, as Q087 gives it (recommended), or as the keys do, read by name. Every key also holds a project parameter CASE beside the shared CASE, its categories not read
 Q086. Check points against the keys (R353): at full precision the floor corners of the extreme plots of the 7 keys lie a median 0.54 mm, at most 1.05 mm, off the baseplan, about 0.5 mm east and about 0.3 mm south on every key, 127 of 141 pass, 4 on vertices CadReader merged 1.29 and 1.42 mm, 5 on floors not their face, 5 with no face: hold the keys at 2 mm and button 1 against Revit at 1 mm (recommended), or 1 mm for both
 Q087. Hand entries in addin.sharedParameters (R353): the merge of a hand GUID with the GUIDs of the keys failed its second review and is withdrawn, a block with an item key spelled byHand in any case is refused, the real block holds none, and a hand edit not marked so, an unmarked GUID, a mark named hand or manual, byHand as a value, nested or on the block, is overwritten by the next write with no line printed, the block being the run's. Keep the block a measure the run alone writes, and put a GUID Bader fixes, such as Plot of Q085, in its own block that no run writes, refused when a key gives that GUID to another name (recommended), or bring the merge back with the four cases of the review as its tests.
-Q088. Check points of R353, four residuals after the second fix, latent on the real data: (a) CadReader PlotShapes records a vertex merge at a node but not where a split bends a line to a node or where a merged node is dropped, so a corner can sit up to 10 mm off its drawn line with mergeMm 0 (0 near straight vertices 0.5 to 15 mm off line on the real baseplan), and the worker takes any baseplan name while python/position_file.py holds it to drawings.baseplan by name only. (b) A request with labels alone ends done with not made in the worker and is refused by Python. (c) A labels.csv with no kind column or no clientCode row numbers every IMC and IMD point by the shift alone (the real labels.csv holds 2,704 clientCode rows). (d) A key read or parameter file is held to its key by the copy name alone, so copies of one copySha256, a name Windows opens as another, a copy named from another key's stem or two codes differing in case pass, and Python and C# differ on non-ASCII case and a BOM (the real 7 are distinct). Take the check point corners from the drawn line ends with no join, refuse (b) and (c) in both languages, hold the baseplan by its hash, and read answerKeys and key_copies.json through the checked loader of R312 with a key held by copySha256 and ordinal case, in a fresh PR with the inputs of the reviews as tests (recommended), or keep them as known bugs.
+Q088. Check points of R353, four residuals after the second fix, latent on the real data: (a) CadReader PlotShapes records a vertex merge at a node but not where a split bends a line to a node or where a merged node is dropped, so a corner can sit over 10 mm off its drawn line with mergeMm 0 (0 near straight vertices 0.5 to 15 mm off line on the real baseplan), and the worker takes any baseplan name, Python holds it to drawings.baseplan by name. (b) A request with labels alone ends done with not made in the worker and is refused by Python. (c) A labels.csv with no kind column or no clientCode row numbers every IMC and IMD point by the shift alone (the real labels.csv holds 2,704 clientCode rows). (d) A key read or parameter file is held to its key by the copy name alone, so copies of one copySha256, a name Windows opens as another, a copy named from another key's stem or two codes differing in case pass, and Python and C# differ on non-ASCII case and a BOM (the real 7 are distinct). Take the check point corners from the drawn line ends with no join, refuse (b) and (c) in both languages, hold the baseplan by its hash, and read answerKeys and key_copies.json through the checked loader of R312 with a key held by copySha256 and ordinal case, in a fresh PR with the inputs of the reviews as tests (recommended), or keep them as known bugs.
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 
