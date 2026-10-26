@@ -203,3 +203,15 @@ def test_r348_read_steps_refuses_a_cad_output_not_in_meters_and_r349_a_landxml_n
     assert read_steps.main(["--settings", str(settings), "--steps", str(tmp_path / "steps"), "--only", "surfaces", "--landxml", str(tmp_path / "landxml"),
                             "--scratch", str(tmp_path / "scratch")]) == 2
     assert "B__Ground.xml is in foot" in capsys.readouterr().err
+
+
+def test_r349_r344_read_steps_holds_the_snap_against_snap_max_and_reads_no_surface_past_it(tmp_path, capsys):
+    settings, values = made_settings(tmp_path)
+    write_roads(tmp_path / "landxml")
+    for snap in (0.02, -0.001, True):
+        values["siteBuild"]["snapM"] = snap
+        settings.write_text(json.dumps(values), encoding="utf-8")
+        assert read_steps.main(["--settings", str(settings), "--steps", str(tmp_path / "steps"), "--only", "surfaces", "--landxml", str(tmp_path / "landxml"),
+                                "--scratch", str(tmp_path / "scratch")]) == 2
+        assert "snapMaxM" in capsys.readouterr().err
+    assert not (tmp_path / "scratch").exists()

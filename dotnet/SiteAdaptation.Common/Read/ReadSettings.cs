@@ -55,7 +55,36 @@ namespace SiteAdaptation.Common
         // R349. The LandXML files of the road surfaces by the name of each with no extension, in the order a build asks them
         public List<string> RoadSurfaces => Texts("siteBuild.roadSurfaces");
 
-        public double SnapM => Get("siteBuild.snapM").Value<double>();
+        // R344, plan_rules.road_snap. siteBuild.snapM, the one distance a front corner may lie off a road surface and still take its
+        // level, a finite number of 0 m or more and at most siteBuild.snapMaxM, else refused, so a wide snap never takes a road sideways
+        public double SnapM
+        {
+            get
+            {
+                double? limit = Distance(Get("siteBuild.snapMaxM"));
+                if (!limit.HasValue)
+                {
+                    throw new InvalidDataException("siteBuild.snapMaxM must be a finite number of 0 m or more, it holds " + Get("siteBuild.snapMaxM").ToString(Newtonsoft.Json.Formatting.None) + " (R344)");
+                }
+                double? snap = Distance(Get("siteBuild.snapM"));
+                if (!snap.HasValue || snap.Value > limit.Value)
+                {
+                    throw new InvalidDataException("siteBuild.snapM must be a finite number from 0 m to snapMaxM " + limit.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        + " m, it holds " + Get("siteBuild.snapM").ToString(Newtonsoft.Json.Formatting.None) + " (R344)");
+                }
+                return snap.Value;
+            }
+        }
+
+        private static double? Distance(JToken token)
+        {
+            if (token.Type != JTokenType.Integer && token.Type != JTokenType.Float)
+            {
+                return null;
+            }
+            double value = token.Value<double>();
+            return double.IsNaN(value) || double.IsInfinity(value) || value < 0 ? (double?)null : value;
+        }
 
         // The name a build gives a surface, plan_from_book.load_roads: the part of the file name after its last double underscore
         public static string RoadName(string stem)

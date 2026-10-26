@@ -579,6 +579,38 @@ namespace SiteAdaptation.Tests
             Assert.Contains("read_baseplan.json is of a drawing in Millimeters", Run(request, 2).Message);
         }
 
+        // R349 by R344: the snap is held against snapMaxM as plan_rules.road_snap holds it, before any surface is read, and a corner
+        // exactly at the snap off the edge of a road surface is covered, one further off takes no level and no surface sideways
+        [Theory]
+        [InlineData("0.02")]
+        [InlineData("-0.001")]
+        [InlineData("true")]
+        [InlineData("\"0.005\"")]
+        [InlineData("NaN")]
+        public void R349_r344_the_worker_read_refuses_a_snap_that_is_no_distance_of_0_m_to_snap_max(string snap)
+        {
+            string config = Config(item => item["siteBuild"]["snapM"] = JToken.Parse(snap));
+            List<string> roads = WriteRoads();
+            var inputs = new List<WorkerFile> { Input("config", config), Input("roadSurface:A__Road", roads[0]), Input("roadSurface:B__Ground", roads[1]) };
+            WorkerAnswer answer = Run(Request("n1", inputs, ReadSteps.Surfaces), 2);
+            Assert.Contains("siteBuild.snapM must be a finite number from 0 m to snapMaxM", answer.Message);
+            Assert.False(File.Exists(Path.Combine(folder, "out", "read_roadSurfaces.json")));
+        }
+
+        [Fact]
+        public void R349_r344_a_corner_exactly_at_the_snap_is_covered_and_one_past_it_takes_no_road_sideways()
+        {
+            var settings = new ReadSettings(JObject.Parse("{\"siteBuild\": {\"snapM\": 0.005, \"snapMaxM\": 0.01}}"));
+            Assert.Equal(0.005, settings.SnapM);
+            // The road surface of the fixture starts at easting 1000 between northing 5000 and 5010, nothing lies west of it
+            TinSurface road = TinSurface.Of(LandXmlReader.Read(WriteRoads()[0]).Surfaces[0]);
+            KeyValuePair<double?, string> near = TinSurface.RoadLevel(new[] { road }, 999.996, 5005, settings.SnapM);
+            Assert.Equal("Road", near.Value);
+            Assert.Equal(15.0, near.Key.Value, 9);
+            Assert.Null(TinSurface.RoadLevel(new[] { road }, 999.994, 5005, settings.SnapM).Key);
+            Assert.Throws<InvalidDataException>(() => new ReadSettings(JObject.Parse("{\"siteBuild\": {\"snapM\": 0.005}}")).SnapM);
+        }
+
         [Fact]
         public void R349_the_worker_read_takes_the_road_surfaces_of_config_in_their_order_and_refuses_one_not_in_meter()
         {

@@ -161,6 +161,15 @@ namespace CadReader
             {
                 return surfaces;
             }
+            // R344. The snap of the road level is held against snapMaxM before any surface is read, a refusal and never a read in vain
+            try
+            {
+                _ = settings.SnapM;
+            }
+            catch (InvalidDataException refused)
+            {
+                throw run.Refusal(refused.Message);
+            }
             List<string> order = settings.RoadSurfaces;
             List<string> extra = roles.Where(role => !order.Contains(role.Substring(WorkerRunner.RoadSurfaceRole.Length))).ToList();
             List<string> missing = order.Where(name => !roles.Contains(WorkerRunner.RoadSurfaceRole + name)).ToList();

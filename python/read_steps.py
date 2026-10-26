@@ -9,7 +9,8 @@ replaces give, per item of the data book, written to step_<step>_python.json for
   lines the build and the data book take (read_road_edges), each by its place in the read with its handle and layer
 - surfaces and roadLevels (R349): per road surface of siteBuild.roadSurfaces the summary of landxml_reader.read_landxml, and per vertex
   of the baseplan face of every client code plot of the location plan the road level of plan_from_book.road_level, the first surface
-  of the order that covers it snapped within siteBuild.snapM, with the surface that gave it
+  of the order that covers it snapped within siteBuild.snapM, with the surface that gave it, and none where no road surface covers it
+  (R344), the snap held against siteBuild.snapMaxM by plan_rules.road_snap
 - areaKey, dlusSetbacks and sales (R350): per plot the zone and neighbourhood of the DLUS and sales sheets of dataBook.data5.areaKey
   (area_key.by_plot), the setback sheet of dataBook.rev9.dlus as rev9_workbooks.sheet_rows gives it, and the sales row of
   dataBook.locationPlan.sales as corner_front.sales_rows gives it with the plain values of dataBook.rev9.sales
@@ -250,6 +251,8 @@ def main(argv=None):
         if {"surfaces", "roadLevels"} & set(steps):
             if not args.landxml or not args.scratch:
                 raise project_profile.ProfileError("the steps surfaces and roadLevels need --landxml and --scratch")
+            # R344. The snap of the road level held against snapMaxM before any surface is read
+            snap = plan_rules.road_snap(settings.get("siteBuild"))
             profile = project_profile.load_profile(project_profile.profile_path(settings))
             names = plan_rules.road_names(settings.get("siteBuild"), plan_rules.level_profile(profile, plan_rules.profile_name(profile, None)))
             files = [Path(args.landxml) / (name + ".xml") for name in names]
@@ -263,7 +266,7 @@ def main(argv=None):
                     raise project_profile.ProfileError("the step roadLevels needs --plots-csv and --labels")
                 inputs.extend([parity.input_entry("plotsCsv", args.plots_csv), parity.input_entry("labels", args.labels)])
                 _, number_of = plan_from_book.book_rows(args.plots_csv)
-                made["roadLevels"] = road_level_step(plan_from_book.nbh_plots(args.labels, None), face_rings(plots, number_of), surfaces, settings.get("siteBuild.snapM"))
+                made["roadLevels"] = road_level_step(plan_from_book.nbh_plots(args.labels, None), face_rings(plots, number_of), surfaces, snap)
         if {"areaKey", "dlusSetbacks", "sales"} & set(steps):
             inputs.extend(parity.input_entry(role, getattr(args, role)) for role in ("dlus", "sales") if getattr(args, role))
             book = settings.get("dataBook")
