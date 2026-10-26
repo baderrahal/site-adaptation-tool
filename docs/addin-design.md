@@ -53,12 +53,12 @@ dotnet/
 
 | Project | Target | References | Holds |
 |---|---|---|---|
-| SiteAdaptation.Common | netstandard2.0 | Newtonsoft.Json 13.0.1 only | every decision and every computation, tested without Revit |
+| SiteAdaptation.Common | netstandard2.0 | Newtonsoft.Json 13.0.1 only at run time, Microsoft.NETCore.Platforms 3.1.0 build only (R346, Q079) | every decision and every computation, tested without Revit |
 | CadReader, the worker | net48 and net8.0, an exe | Common, ACadSharp, PdfPig, DocumentFormat.OpenXml | reads the input files and runs the Common steps of buttons 2 and 3, writes the two Excel files |
 | SiteAdaptation.AddIn | net48 | Common, the Revit 2024 API, WPF | the ribbon, the commands, the pane, the dialogs, the Revit targets, Extensible Storage |
 | SiteAdaptation.Tests | net48 and net8.0 | Common, CadReader, C3DProbe on net48 | every test, the net8.0 leg runs the tests of Common and CadReader on the Linux runner |
 
-Why Common targets netstandard2.0 (CHOSEN): the round asks that the tests pass on the Linux runner too, and a netstandard2.0 library loads in the net48 process of Revit, which holds netstandard 2.0 support in box. A copy of the 31 source files of today's Common built for netstandard2.0 with Newtonsoft.Json 13.0.1 with 0 errors and 0 warnings (RAN, outside the repo). Phase 4a adds a dotnet job on ubuntu-latest that runs the net8.0 leg, the Windows job keeps running every test.
+Why Common targets netstandard2.0 (CHOSEN): the round asks that the tests pass on the Linux runner too, and a netstandard2.0 library loads in the net48 process of Revit, which holds netstandard 2.0 support in box. A copy of the 31 source files of today's Common built for netstandard2.0 with Newtonsoft.Json 13.0.1 with 0 errors and 0 warnings (RAN, outside the repo). Phase 4a adds a dotnet job on ubuntu-latest that runs the net8.0 leg, the Windows job keeps running every test (R346). The SDK gives netstandard2.0 the NETStandard.Library package, which asks for Microsoft.NETCore.Platforms 1.1.0 under the Microsoft .NET Library licence (READ, dotnet_library_license.txt in the package), so Common pins its first MIT version, 3.1.0, build only, and no package of another licence is restored (R342, Q079). The tests of the Windows tools, the test host guard, the file identity, the window samples and the prototype sets, run on Windows only and the Linux leg skips them with their reason, 52 on the first Linux run (RAN, Phase 4a).
 
 Why Common keeps its name (CHOSEN): the reader, the placer, the test host and both watchers load it by that name, the resolver of the test host names it and Install-TestHost.ps1 checks one hash of it across every installed folder (READ, TestHostApp.cs and Install-TestHost.ps1). A new name would move every reference for no gain.
 
