@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using ACadSharp;
@@ -15,8 +16,8 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // R353. The project position file of button 1 and its check points on made up key reads, key points and baseplan faces built in code
-    // (R10), the C# side of python/tests/test_position_file.py on the same made up reads, on net48 and net8.0
+    // R353. The project position file of button 1 and its check points on made up key reads, key points, baseplan faces and location plan
+    // numbers built in code (R10), the C# side of python/tests/test_position_file.py on the same made up inputs, on net48 and net8.0
     public sealed class PositionFileTests : IDisposable
     {
         private readonly string folder = Path.Combine(Path.GetTempPath(), "sa_r353_" + Guid.NewGuid().ToString("N"));
@@ -43,6 +44,14 @@ namespace SiteAdaptation.Tests
 
         private static readonly string[] Group = { "imc", "ima", "imb", "imd", "ime", "imf", "img" };
 
+        // test_position_file.COPIES: the copy of each made up answer key, its reads named <copy stem>_TEST-<job>
+        private static readonly Dictionary<string, string> Copies = Group.ToDictionary(key => key, key => "copy_" + key);
+
+        private static string Model(string key, string job = null)
+        {
+            return Copies[key] + "_TEST-" + (job ?? "R" + key.Substring(2).ToUpperInvariant());
+        }
+
         private static Func<double, double, double, double[]> Shared(double angle)
         {
             double turn = angle * Math.PI / 180.0;
@@ -51,7 +60,7 @@ namespace SiteAdaptation.Tests
 
         // test_position_file.made_read: the internal origin at shared (1000, 2000, 5) turned by angle, the survey point and the project base
         // point on the internal origin, two levels 4 m apart on one Elevation Base
-        private static JObject MadeRead(double angle = 0.0, string levelBase = "Survey Point")
+        private static JObject MadeRead(double angle = 0.0, string levelBase = "Survey Point", string key = "imc")
         {
             double[] origin = Shared(angle)(0, 0, 0);
             return new JObject
@@ -59,7 +68,7 @@ namespace SiteAdaptation.Tests
                 ["tool"] = "RevitPrototypeReader", ["lengthUnit"] = "m", ["angleUnit"] = "deg",
                 ["documents"] = new JArray(new JObject
                 {
-                    ["file"] = "key_TEST-RC", ["kind"] = "project",
+                    ["file"] = Model(key), ["kind"] = "project",
                     ["surveyPoint"] = new JObject { ["position"] = new JArray(0.0, 0.0, 0.0), ["sharedPosition"] = new JArray(origin) },
                     ["basePoint"] = new JObject { ["position"] = new JArray(0.0, 0.0, 0.0), ["sharedPosition"] = new JArray(origin) },
                     ["angleToTrueNorthDeg"] = angle,
@@ -76,33 +85,53 @@ namespace SiteAdaptation.Tests
             };
         }
 
+        // test_position_file.documents: the made up reads of the 7 keys as documents, change applied to each
+        private static Dictionary<string, JObject> Documents(Action<string, JObject> change = null)
+        {
+            var found = new Dictionary<string, JObject>();
+            foreach (string key in Group)
+            {
+                JObject document = ProjectPositionFile.DocumentOf(MadeRead(key: key));
+                change?.Invoke(key, document);
+                found[key] = document;
+            }
+            return found;
+        }
+
         // test_position_file.FLOORS: the Generic floors of a made up key, internal corners of squares of 10 m, 2001 at the internal origin,
-        // 2002 20 m east, 2003 20 m north, 2004 a yard floor, 2005 two Generic floors
+        // 2002 20 m east, 2003 20 m north, 2004 a yard floor, 2005 two Generic floors, and a Generic floor of no plot 80 m east
         private static readonly object[][] Floors =
         {
             new object[] { "2001", "Generic 150mm", 0.0, 0.0 }, new object[] { "2002", "Generic 150mm", 20.0, 0.0 }, new object[] { "2003", "Generic 150mm", 0.0, 20.0 },
             new object[] { "2004", "yard", 40.0, 40.0 }, new object[] { "2005", "Generic 150mm", -30.0, -30.0 }, new object[] { "2005", "Generic 150mm", -30.0, -30.0 },
+            new object[] { null, "Generic 150mm", 80.0, 0.0 },
         };
 
+        // test_position_file.NUMBERS: the location plan numbers of the made up faces
+        private static readonly Dictionary<string, string> Numbers = new Dictionary<string, string> { ["2001"] = "101", ["2002"] = "102", ["2003"] = "103" };
+
         // test_position_file.made_points: testhost_<code>_points.json of a made up key at full precision
-        private static JObject MadePoints(double angle = 0.0)
+        private static JObject MadePoints(double angle = 0.0, string key = "imc", JArray floors = null)
         {
             Func<double, double, double, double[]> shared = Shared(angle);
-            var floors = new JArray();
-            for (int index = 0; index < Floors.Length; index++)
+            if (floors == null)
             {
-                double x0 = (double)Floors[index][2], y0 = (double)Floors[index][3];
-                double[][] corners = { new[] { x0, y0, 0.15 }, new[] { x0 + 10.0, y0, 0.15 }, new[] { x0 + 10.0, y0 + 10.0, 0.15 }, new[] { x0, y0 + 10.0, 0.15 } };
-                floors.Add(new JObject
+                floors = new JArray();
+                for (int index = 0; index < Floors.Length; index++)
                 {
-                    ["elementId"] = 100 + index, ["typeName"] = (string)Floors[index][1], ["plot"] = (string)Floors[index][0],
-                    ["corners"] = new JArray(corners.Select(corner => new JArray(corner))), ["sharedCorners"] = new JArray(corners.Select(corner => new JArray(shared(corner[0], corner[1], corner[2])))),
-                });
+                    double x0 = (double)Floors[index][2], y0 = (double)Floors[index][3];
+                    double[][] corners = { new[] { x0, y0, 0.15 }, new[] { x0 + 10.0, y0, 0.15 }, new[] { x0 + 10.0, y0 + 10.0, 0.15 }, new[] { x0, y0 + 10.0, 0.15 } };
+                    floors.Add(new JObject
+                    {
+                        ["elementId"] = 100 + index, ["typeName"] = (string)Floors[index][1], ["plot"] = Floors[index][0] == null ? JValue.CreateNull() : (JToken)(string)Floors[index][0],
+                        ["corners"] = new JArray(corners.Select(corner => new JArray(corner))), ["sharedCorners"] = new JArray(corners.Select(corner => new JArray(shared(corner[0], corner[1], corner[2])))),
+                    });
+                }
             }
             double[] origin = shared(0, 0, 0);
             return new JObject
             {
-                ["format"] = KeyPointsFile.FormatText, ["formatVersion"] = 1, ["model"] = "key_TEST-KC.rvt", ["lengthUnit"] = "m", ["angleUnit"] = "deg",
+                ["format"] = KeyPointsFile.FormatText, ["formatVersion"] = 1, ["model"] = Model(key, "K" + key.Substring(2).ToUpperInvariant()) + ".rvt", ["lengthUnit"] = "m", ["angleUnit"] = "deg",
                 ["projectPosition"] = new JObject { ["eastWest"] = 1000.0, ["northSouth"] = 2000.0, ["elevation"] = 5.0, ["angleDeg"] = angle },
                 ["surveyPoint"] = new JObject { ["position"] = new JArray(0.0, 0.0, 0.0), ["sharedPosition"] = new JArray(origin) },
                 ["basePoint"] = new JObject { ["position"] = new JArray(0.0, 0.0, 0.0), ["sharedPosition"] = new JArray(origin) },
@@ -121,7 +150,7 @@ namespace SiteAdaptation.Tests
                 double[][] ring = { new[] { x0, y0 }, new[] { x0 + 10.0, y0 }, new[] { x0 + 10.0, y0 + 10.0 }, new[] { x0, y0 + 10.0 } };
                 plots.Add(new JObject
                 {
-                    ["kind"] = "plot_shape", ["plot"] = (101 + index).ToString(System.Globalization.CultureInfo.InvariantCulture), ["type"] = "DP1",
+                    ["kind"] = "plot_shape", ["plot"] = (101 + index).ToString(CultureInfo.InvariantCulture), ["type"] = "DP1",
                     ["vertices"] = new JArray(ring.Select(point => new JArray((Math.Cos(turn) * point[0] - Math.Sin(turn) * point[1] + 1000.0) * scale + east,
                         (Math.Sin(turn) * point[0] + Math.Cos(turn) * point[1] + 2000.0) * scale))),
                 });
@@ -129,10 +158,11 @@ namespace SiteAdaptation.Tests
             return plots;
         }
 
-        private static Dictionary<string, Dictionary<string, object>> MadeCheck(ProjectPositionFile position, JArray plots, JObject points = null)
+        private static Dictionary<string, Dictionary<string, object>> MadeCheck(ProjectPositionFile position, JArray plots, JObject points = null, Func<string, string, string> numbering = null, IEnumerable<string> keys = null)
         {
-            return ProjectPositionFile.CheckPoints(position, new List<KeyValuePair<string, JObject>> { new KeyValuePair<string, JObject>("imc", points ?? MadePoints()) },
-                LocationPlan.Faces(plots, 0.000001), new Dictionary<string, List<string>> { ["imc"] = new List<string> { "Generic 150mm" } }, 1.0, 2);
+            Dictionary<string, JObject> byKey = (keys ?? new[] { "imc" }).ToDictionary(key => key, key => points ?? MadePoints(key: key));
+            return ProjectPositionFile.CheckPoints(position, byKey, Group, LocationPlan.Faces(plots, 0.000001), Group.ToDictionary(key => key, key => new List<string> { "Generic 150mm" }),
+                numbering ?? ((key, plot) => Numbers.TryGetValue(plot, out string face) ? face : null), 1.0, 2);
         }
 
         [Fact]
@@ -140,12 +170,12 @@ namespace SiteAdaptation.Tests
         {
             ProjectPositionFile position = ProjectPositionFile.From(ProjectPositionFile.DocumentOf(MadeRead()), "imc");
             Assert.Equal("imc", position.Key);
-            Assert.Equal("key_TEST-RC", position.Model);
+            Assert.Equal(Model("imc"), position.Model);
             Assert.Equal(new double?[] { 1000.0, 2000.0, 5.0, 0.0 }, new[] { position.Position.EastM, position.Position.NorthM, position.Position.ElevationM, position.Position.AngleDeg });
             Assert.Equal(new[] { 1000.0, 2000.0, 5.0 }, position.SurveyShared);
             Assert.Equal(new[] { "Level 1", "Level 2" }, position.Levels.Select(level => level.Name));
             Assert.Equal("Survey Point", position.LevelBase);
-            Assert.Equal("Internal|Internal|x|0.01", position.ActiveSite + "|" + string.Join(",", position.Sites.Select(item => (string)item)) + "|" + position.PlaceName + "|" + position.LengthAccuracy.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal("Internal|Internal|x|0.01", position.ActiveSite + "|" + string.Join(",", position.Sites.Select(item => (string)item)) + "|" + position.PlaceName + "|" + position.LengthAccuracy.Value.ToString("R", CultureInfo.InvariantCulture));
             Assert.Empty(ProjectPositionFile.AgainstRules(position, SiteRules));
             var changes = new List<Tuple<string, JToken>>
             {
@@ -186,39 +216,86 @@ namespace SiteAdaptation.Tests
             Assert.Contains("surveyPoint.position", Assert.Throws<InvalidDataException>(() => ProjectPositionFile.From(ProjectPositionFile.DocumentOf(text), "imc")).Message);
         }
 
-        private static Dictionary<string, JObject> Others()
-        {
-            return Group.Skip(1).ToDictionary(key => key, key => ProjectPositionFile.DocumentOf(MadeRead()));
-        }
-
         [Fact]
         public void R353_the_reference_key_is_held_against_every_other_key_of_its_group_and_a_set_that_disagrees_is_refused()
         {
-            JObject reference = ProjectPositionFile.DocumentOf(MadeRead());
-            Assert.Empty(ProjectPositionFile.SetDiffers(reference, Others(), "imc", Group));
-            // The Native set: its survey point and project position 2432 km off the Parsons one in shared coordinates
-            JObject native = MadeRead();
-            JToken document = native["documents"][0];
-            document["surveyPoint"]["sharedPosition"][0] = (double)document["surveyPoint"]["sharedPosition"][0] + 2432000.0;
-            document["basePoint"]["sharedPosition"][0] = (double)document["basePoint"]["sharedPosition"][0] + 2432000.0;
-            document["site"]["projectPosition"]["eastWest"] = (double)document["site"]["projectPosition"]["eastWest"] + 2432000.0;
-            Dictionary<string, JObject> others = Others();
-            others["imb"] = ProjectPositionFile.DocumentOf(native);
-            List<string> found = ProjectPositionFile.SetDiffers(reference, others, "imc", Group);
+            Assert.Empty(ProjectPositionFile.SetDiffers(Documents(), "imc", Group, Copies));
+            // The Native set: the read of IMB with its survey point and project position 2432 km off the Parsons one in shared coordinates
+            List<string> found = ProjectPositionFile.SetDiffers(Documents((key, document) =>
+            {
+                if (key == "imb")
+                {
+                    document["surveyPoint"]["sharedPosition"][0] = (double)document["surveyPoint"]["sharedPosition"][0] + 2432000.0;
+                    document["basePoint"]["sharedPosition"][0] = (double)document["basePoint"]["sharedPosition"][0] + 2432000.0;
+                    document["site"]["projectPosition"]["eastWest"] = (double)document["site"]["projectPosition"]["eastWest"] + 2432000.0;
+                }
+            }), "imc", Group, Copies);
             Assert.NotEmpty(found);
             Assert.All(found, line => Assert.StartsWith("imb ", line));
             Assert.Contains(found, line => line.Contains("surveyPoint.sharedPosition 2432000000"));
             Assert.Contains(found, line => line.Contains("projectPosition"));
-            // A level 1 mm off, another site name and a key of the group not given are each named
-            JObject level = MadeRead();
-            level["documents"][0]["site"]["levels"][0]["elevation"] = 9.001;
-            level["documents"][0]["site"]["activeSite"] = "Site 2";
-            others = Others();
-            others["imd"] = ProjectPositionFile.DocumentOf(level);
-            Assert.Equal(new[] { "imd activeSite Site 2", "imd levels.Level 2 1.0 mm" }, ProjectPositionFile.SetDiffers(reference, others, "imc", Group).OrderBy(line => line, StringComparer.Ordinal));
-            others = Others();
-            others.Remove("img");
-            Assert.Equal(new[] { "img no read, every key of the group is held against the reference" }, ProjectPositionFile.SetDiffers(reference, others, "imc", Group));
+            // A level 1 mm off and another site name are each named, a key of the group not given too
+            Assert.Equal(new[] { "imd activeSite Site 2", "imd levels.Level 2 1.0 mm" }, ProjectPositionFile.SetDiffers(Documents((key, document) =>
+            {
+                if (key == "imd")
+                {
+                    document["site"]["levels"][0]["elevation"] = 9.001;
+                    document["site"]["activeSite"] = "Site 2";
+                }
+            }), "imc", Group, Copies).OrderBy(line => line, StringComparer.Ordinal));
+            Dictionary<string, JObject> missing = Documents();
+            missing.Remove("img");
+            Assert.Equal(new[] { "img no read, every key of the group is held against the reference" }, ProjectPositionFile.SetDiffers(missing, "imc", Group, Copies));
+        }
+
+        [Fact]
+        public void R353_every_value_of_the_set_missing_or_not_read_in_a_key_read_is_refused_naming_the_key_and_the_field()
+        {
+            // The inputs of test_position_file, the same lines: a read of no site, no survey point, no base point and no angle, a read whose
+            // project position is not read, one with no eastWest, one with no levels, no place and no units, and the IMC read given for IMA
+            Assert.Equal(new[]
+            {
+                "ima surveyPoint.position missing", "ima surveyPoint.sharedPosition missing", "ima basePoint.position missing", "ima basePoint.sharedPosition missing",
+                "ima angleToTrueNorthDeg missing", "ima site missing",
+            }, ProjectPositionFile.SetDiffers(Documents((key, document) =>
+            {
+                if (key == "ima")
+                {
+                    foreach (string name in new[] { "site", "surveyPoint", "basePoint", "angleToTrueNorthDeg" })
+                    {
+                        document.Remove(name);
+                    }
+                }
+            }), "imc", Group, Copies));
+            Assert.Equal(new[]
+            {
+                "ima site.projectPosition not read", "imb site.projectPosition.eastWest missing", "imd site.levels missing", "imd site.placeName missing",
+                "imd site.units.system missing", "imd site.units.length missing", "imd site.units.lengthSystem missing", "imd site.units.lengthAccuracy missing",
+            }, ProjectPositionFile.SetDiffers(Documents((key, document) =>
+            {
+                if (key == "ima")
+                {
+                    document["site"]["projectPosition"] = JValue.CreateNull();
+                    document["site"]["notRead"] = new JObject { ["projectPosition"] = "an error" };
+                }
+                if (key == "imb")
+                {
+                    ((JObject)document["site"]["projectPosition"]).Remove("eastWest");
+                }
+                if (key == "imd")
+                {
+                    document["site"]["levels"] = new JArray();
+                    document["site"]["units"] = new JObject();
+                    ((JObject)document["site"]).Remove("placeName");
+                }
+            }), "imc", Group, Copies));
+            Assert.Equal(new[] { "ima model " + Model("imc") + " is not a work copy copy_ima_TEST-<job> of its answer key" }, ProjectPositionFile.SetDiffers(Documents((key, document) =>
+            {
+                if (key == "ima")
+                {
+                    document["file"] = Model("imc");
+                }
+            }), "imc", Group, Copies));
         }
 
         [Fact]
@@ -228,36 +305,109 @@ namespace SiteAdaptation.Tests
             {
                 ProjectPositionFile turned = ProjectPositionFile.From(ProjectPositionFile.DocumentOf(MadeRead(angle)), "imc");
                 Dictionary<string, Dictionary<string, object>> rows = MadeCheck(turned, MadePlots(angle: angle), MadePoints(angle));
-                // The extreme plots by the mean of their corners, 2001 least east and north, 2002 most east, 2003 most north, four corners each
-                Assert.Equal(new[] { "imc 2001 101", "imc 2002 102", "imc 2003 103" }, rows.Values.Select(row => row["key"] + " " + row["plot"] + " " + row["face"]).Distinct().OrderBy(text => text));
+                // The extreme plots by the mean of their corners, the floor of no plot never taken, and the 6 other keys listed apart
+                var taken = rows.Where(row => row.Value["plot"] != null).ToDictionary(row => row.Key, row => row.Value);
+                Assert.Equal(new[] { "imc 2001 101 101", "imc 2002 102 102", "imc 2003 103 103" },
+                    taken.Values.Select(row => row["key"] + " " + row["plot"] + " " + row["face"] + " " + row["expectedFace"]).Distinct().OrderBy(text => text));
                 Assert.Equal(new[] { "imc/2001/0", "imc/2001/1", "imc/2001/2", "imc/2001/3" }, rows.Keys.Take(4));
-                Assert.Equal(12, rows.Count);
-                Assert.All(rows.Values, row => Assert.True((double)row["gapMm"] < 1e-6 && (double)row["revitGapMm"] < 1e-6 && (bool)row["pass"]));
-                Assert.Equal(new[] { 30.0, 0.0 }, (double[])rows["imc/2002/1"]["keyInternalM"]);
-                double[] internalPoint = (double[])rows["imc/2002/1"]["internalM"];
-                Assert.Equal(30.0, internalPoint[0], 9);
-                Assert.Equal(0.0, internalPoint[1], 9);
+                Assert.Equal(12, taken.Count);
+                Assert.All(taken.Values, row => Assert.True((double)row["gapMm"] < 1e-6 && (double)row["revitGapMm"] < 1e-6 && (bool)row["pass"] && row["why"] == null));
+                Assert.Equal(Group.Skip(1).Select(key => key + " no key points False"), rows.Where(row => row.Value["plot"] == null).Select(row => row.Key + " " + row.Value["why"] + " " + row.Value["pass"]));
+                Assert.Equal(new[] { 30.0, 0.0 }, (double[])taken["imc/2002/1"]["keyInternalM"]);
+                Assert.Equal(30.0, ((double[])taken["imc/2002/1"]["internalM"])[0], 9);
             }
             ProjectPositionFile position = ProjectPositionFile.From(ProjectPositionFile.DocumentOf(MadeRead()), "imc");
-            // A baseplan 0.6 mm and 1.2 mm east of the keys: every corner by that much, a pass and a fail at 1 mm
-            foreach (Tuple<double, bool> off in new[] { Tuple.Create(0.0006, true), Tuple.Create(0.0012, false) })
+            foreach (Tuple<double, string> off in new[] { Tuple.Create(0.0006, (string)null), Tuple.Create(0.0012, "gap over the limit") })
             {
-                Assert.All(MadeCheck(position, MadePlots(east: off.Item1)).Values, row =>
+                Assert.All(MadeCheck(position, MadePlots(east: off.Item1), keys: Group).Values, row =>
                 {
                     Assert.Equal(off.Item1 * 1000.0, (double)row["gapMm"], 6);
-                    Assert.Equal(off.Item2, (bool)row["pass"]);
+                    Assert.Equal(off.Item2, (string)row["why"]);
+                    Assert.Equal(off.Item2 == null, (bool)row["pass"]);
                 });
             }
-            // A baseplan drawn in feet and one 1000 km off: no face holds a floor of the keys, every check point fails
-            foreach (JArray plots in new[] { MadePlots(scale: 1 / 0.3048), MadePlots(east: 1000000.0) })
+            // A baseplan drawn in feet, one 1000 km off and one in mm with a header in metres: no face holds a floor, every point fails
+            foreach (JArray plots in new[] { MadePlots(scale: 1 / 0.3048), MadePlots(east: 1000000.0), MadePlots(scale: 1000.0) })
             {
-                Dictionary<string, Dictionary<string, object>> rows = MadeCheck(position, plots);
-                Assert.Equal(12, rows.Count);
-                Assert.All(rows.Values, row => Assert.True(row["face"] == null && row["gapMm"] == null && false.Equals(row["pass"])));
+                Dictionary<string, Dictionary<string, object>> rows = MadeCheck(position, plots, keys: Group);
+                Assert.Equal(84, rows.Count);
+                Assert.All(rows.Values, row => Assert.True(row["face"] == null && row["gapMm"] == null && (string)row["why"] == "no face" && false.Equals(row["pass"])));
             }
             JObject empty = MadePoints();
             empty["floors"] = new JArray();
             Assert.Contains("no Generic floor", Assert.Throws<InvalidDataException>(() => MadeCheck(position, MadePlots(), empty)).Message);
+        }
+
+        [Fact]
+        public void R353_a_point_on_the_face_of_another_plot_fails_whatever_its_gap()
+        {
+            // test_position_file: a row of identical plots and a baseplan whose faces and labels lie one plot east of the keys
+            ProjectPositionFile position = ProjectPositionFile.From(ProjectPositionFile.DocumentOf(MadeRead()), "imc");
+            var floors = new JArray();
+            double[] starts = { 0.0, 10.0, 20.0, 30.0 };
+            for (int index = 0; index < starts.Length; index++)
+            {
+                double x0 = starts[index];
+                double[][] corners = { new[] { x0, 0.0, 0.15 }, new[] { x0 + 10.0, 0.0, 0.15 }, new[] { x0 + 10.0, 10.0, 0.15 }, new[] { x0, 10.0, 0.15 } };
+                floors.Add(new JObject
+                {
+                    ["elementId"] = index, ["typeName"] = "Generic 150mm", ["plot"] = (2001 + index).ToString(CultureInfo.InvariantCulture), ["corners"] = new JArray(corners.Select(corner => new JArray(corner))),
+                    ["sharedCorners"] = new JArray(corners.Select(corner => new JArray(corner[0] + 1000.0, corner[1] + 2000.0, corner[2] + 5.0))),
+                });
+            }
+            var plots = new JArray();
+            double[] faces = { -10.0, 0.0, 10.0, 20.0, 30.0, 40.0 };
+            for (int index = 0; index < faces.Length; index++)
+            {
+                double x0 = faces[index];
+                plots.Add(new JObject
+                {
+                    ["kind"] = "plot_shape", ["plot"] = (100 + index).ToString(CultureInfo.InvariantCulture),
+                    ["vertices"] = new JArray(new JArray(x0 + 1010.0, 2000.0), new JArray(x0 + 1020.0, 2000.0), new JArray(x0 + 1020.0, 2010.0), new JArray(x0 + 1010.0, 2010.0)),
+                });
+            }
+            var numbers = new Dictionary<string, string> { ["2001"] = "101", ["2002"] = "102", ["2003"] = "103", ["2004"] = "104" };
+            Dictionary<string, Dictionary<string, object>> rows = MadeCheck(position, plots, MadePoints(floors: floors), (key, plot) => numbers.TryGetValue(plot, out string face) ? face : null);
+            List<Dictionary<string, object>> taken = rows.Values.Where(row => row["plot"] != null).ToList();
+            Assert.Equal(8, taken.Count);
+            Assert.All(taken, row => Assert.True((double)row["gapMm"] < 1e-6 && (string)row["why"] == "face of another plot" && false.Equals(row["pass"])));
+            Assert.Equal(new[] { "2001 100 101", "2004 103 104" }, taken.Select(row => row["plot"] + " " + row["face"] + " " + row["expectedFace"]).Distinct().OrderBy(text => text));
+            Dictionary<string, object> summary = ProjectPositionFile.Summary(rows, 1.0);
+            Assert.Equal("14 0 8 6 True", string.Join(" ", summary["points"], summary["pass"], summary["otherFace"], summary["noPoints"], summary["failed"]));
+            Assert.Equal(new[] { "no face numbered" }, MadeCheck(position, MadePlots(), numbering: (key, plot) => null).Values.Where(row => row["plot"] != null).Select(row => (string)row["why"]).Distinct());
+            Func<string, string, string> shifts = ProjectPositionFile.Numbering(new List<Dictionary<string, string>>(), new Dictionary<string, int> { ["IMC"] = 10 });
+            Assert.Equal("101", shifts("imc", "111"));
+            Assert.Null(shifts("ima", "111"));
+            var labels = new List<Dictionary<string, string>>
+            {
+                new Dictionary<string, string> { ["number"] = "2001", ["face"] = "101" }, new Dictionary<string, string> { ["number"] = "2001", ["face"] = "101" },
+                new Dictionary<string, string> { ["number"] = "2002", ["face"] = "" }, new Dictionary<string, string> { ["number"] = "2003", ["face"] = "7" },
+                new Dictionary<string, string> { ["number"] = "2003", ["face"] = "8" },
+            };
+            Func<string, string, string> numbered = ProjectPositionFile.Numbering(labels, new Dictionary<string, int> { ["IMC"] = 10 });
+            Assert.Equal(new[] { "101", null, null, "1993" }, new[] { numbered("ima", "2001"), numbered("ima", "2002"), numbered("ima", "2003"), numbered("imc", "2003") });
+            Assert.Equal(10, ProjectPositionFile.Shifts(JObject.Parse("{\"neighbourhoods\": {\"IMC\": {\"shift\": 10}}}"))["IMC"]);
+            Assert.Contains("IMC a shift that is no whole number", Assert.Throws<InvalidDataException>(() => ProjectPositionFile.Shifts(JObject.Parse("{\"neighbourhoods\": {\"IMC\": {\"shift\": 10.0}}}"))).Message);
+        }
+
+        [Fact]
+        public void R353_the_key_points_are_held_to_their_key_and_to_the_position_file()
+        {
+            ProjectPositionFile position = ProjectPositionFile.From(ProjectPositionFile.DocumentOf(MadeRead()), "imc");
+            Assert.Empty(ProjectPositionFile.PointsFaults(MadePoints(), "imc", Copies, position));
+            JObject other = MadePoints();
+            other["model"] = Model("img", "KG") + ".rvt";
+            Assert.Equal(new[] { "imc keyPoints model " + Model("img", "KG") + ".rvt is not a work copy copy_imc_TEST-<job> of its answer key" }, ProjectPositionFile.PointsFaults(other, "imc", Copies, position));
+            JObject far = MadePoints();
+            far["projectPosition"]["eastWest"] = 6000.0;
+            Assert.Equal(new[] { "imc keyPoints projectPosition 5000000.0 mm off the position file" }, ProjectPositionFile.PointsFaults(far, "imc", Copies, position));
+            JObject turned = MadePoints();
+            turned["projectPosition"]["angleDeg"] = 0.5;
+            Assert.Equal(new[] { "imc keyPoints projectPosition angle 0.5 deg off the position file" }, ProjectPositionFile.PointsFaults(turned, "imc", Copies, position));
+            Assert.Equal("a", ProjectPositionFile.AnswerCopies(JObject.Parse("{\"keys\": [{\"code\": \"IMC\", \"copy\": \"a.rvt\"}]}"), JObject.Parse("{\"copies\": [{\"code\": \"IMC\", \"copy\": \"a.rvt\"}]}"))["imc"]);
+            InvalidDataException refused = Assert.Throws<InvalidDataException>(() => ProjectPositionFile.AnswerCopies(JObject.Parse("{\"keys\": [{\"code\": \"IMC\", \"copy\": \"a.rvt\"}]}"), JObject.Parse("{\"copies\": [{\"code\": \"IMC\", \"copy\": \"b.rvt\"}]}")));
+            Assert.Contains("answerKeys names for IMC the copy a.rvt and key_copies.json b.rvt", refused.Message);
+            Assert.Contains("no code or no copy", Assert.Throws<InvalidDataException>(() => ProjectPositionFile.AnswerCopies(JObject.Parse("{\"keys\": [{\"code\": \"IMC\"}]}"), JObject.Parse("{\"copies\": [{\"code\": \"IMC\"}]}"))).Message);
         }
 
         [Fact]
@@ -276,6 +426,22 @@ namespace SiteAdaptation.Tests
             Assert.Throws<InvalidDataException>(() => PositionSettings.From(config));
         }
 
+        // R353. CadReader --exact: the plot shapes of a drawing at full precision, a vertex at 1000.0004 read as it is, where plots.json
+        // writes 1000
+        [Fact]
+        public void R353_the_exact_plots_of_a_drawing_keep_every_digit_of_its_vertices()
+        {
+            string path = Baseplan(0.0004);
+            var problems = new List<string>();
+            CadExtract extract = CadExtractor.Extract(CadExtractor.Open(path, problems), "baseplan.dwg", LayerConfig.Load(Path.Combine(Path.GetDirectoryName(WorkerRunTests.RepoConfig()), "cad_layers.json")), null, path, problems);
+            JObject exact = CadExtractor.ExactPlots(extract, "Meters");
+            JToken face = exact["plots"].First(item => (string)item["kind"] == "plot_shape" && (string)item["plot"] == "101");
+            Assert.Contains(face["vertices"], vertex => (double)vertex[0] == 1000.0004);
+            string text = CadExtractor.ExactText(exact);
+            Assert.Contains("1000.0004", text);
+            Assert.Equal("Meters", (string)JObject.Parse(text)["units"]);
+        }
+
         private static WorkerFile Input(string role, string path)
         {
             return new WorkerFile { Role = role, Path = path, Sha256 = FileHash.Sha256(path) };
@@ -288,8 +454,9 @@ namespace SiteAdaptation.Tests
             return path;
         }
 
-        // test_position_file.made_plots as a baseplan drawing in meters: the three faces on the plot line layer, each with its label inside
-        private string Baseplan()
+        // test_position_file.made_plots as a baseplan drawing in meters, its faces moved east by east: the three faces on the plot line layer,
+        // each with its label inside
+        private string Baseplan(double east = 0.0)
         {
             var document = new CadDocument();
             document.Header.InsUnits = UnitsType.Meters;
@@ -297,7 +464,7 @@ namespace SiteAdaptation.Tests
             var text = new Layer("MP_PLOT_TEXT");
             document.Layers.Add(line);
             document.Layers.Add(text);
-            foreach (JToken plot in MadePlots())
+            foreach (JToken plot in MadePlots(east: east))
             {
                 List<double[]> ring = plot["vertices"].Select(point => new[] { (double)point[0], (double)point[1] }).ToList();
                 for (int corner = 0; corner < ring.Count; corner++)
@@ -307,7 +474,7 @@ namespace SiteAdaptation.Tests
                 }
                 document.Entities.Add(new MText { Value = "DP1\\P" + (string)plot["plot"], InsertPoint = new XYZ(ring[0][0] + 5, ring[0][1] + 5, 0), Layer = text });
             }
-            string path = Path.Combine(folder, "baseplan.dwg");
+            string path = Path.Combine(folder, "baseplan_" + east.ToString("R", CultureInfo.InvariantCulture) + ".dwg");
             using (var writer = new DwgWriter(path, document))
             {
                 writer.Write();
@@ -315,7 +482,16 @@ namespace SiteAdaptation.Tests
             return path;
         }
 
-        private WorkerAnswer RunPosition(string id, JObject read, List<string> steps, out int code, IEnumerable<string> others, params WorkerFile[] more)
+        // The answer keys of config and a key_copies.json that lists the same copies, the reads named as their work copies
+        private Dictionary<string, string> CliCopies(out string manifest)
+        {
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            var keys = (JArray)config["answerKeys"]["keys"];
+            manifest = Write("key_copies.json", new JObject { ["copies"] = new JArray(keys.Select(entry => new JObject { ["code"] = entry["code"], ["copy"] = entry["copy"] })) });
+            return keys.ToDictionary(entry => ((string)entry["code"]).ToLowerInvariant(), entry => ((string)entry["copy"]).Substring(0, ((string)entry["copy"]).Length - 4));
+        }
+
+        private WorkerAnswer RunPosition(string id, JObject read, List<string> steps, out int code, IEnumerable<string> others, Dictionary<string, string> copies, string manifest, params WorkerFile[] more)
         {
             string config = Path.Combine(folder, "project.json");
             if (!File.Exists(config))
@@ -323,8 +499,14 @@ namespace SiteAdaptation.Tests
                 File.Copy(WorkerRunTests.RepoConfig(), config);
             }
             string rules = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(WorkerRunTests.RepoConfig())), "rules", "roshn-makkah.json");
-            var inputs = new List<WorkerFile> { Input("config", config), Input("rules", rules), Input(ProjectPositionFile.KeyReadRole, Write("read_" + id + ".json", read)) };
-            inputs.AddRange(others.Select(key => Input(ProjectPositionFile.KeyReadRole + ":" + key, Write("read_" + id + "_" + key + ".json", MadeRead()))));
+            read["documents"][0]["file"] = copies["imc"] + "_TEST-RC";
+            var inputs = new List<WorkerFile> { Input("config", config), Input("rules", rules), Input(ProjectPositionFile.KeyCopiesRole, manifest), Input(ProjectPositionFile.KeyReadRole, Write("read_" + id + ".json", read)) };
+            foreach (string key in others)
+            {
+                JObject other = MadeRead(key: key);
+                other["documents"][0]["file"] = copies[key] + "_TEST-R" + key.Substring(2).ToUpperInvariant();
+                inputs.Add(Input(ProjectPositionFile.KeyReadRole + ":" + key, Write("read_" + id + "_" + key + ".json", other)));
+            }
             inputs.AddRange(more);
             var request = new WorkerRequest
             {
@@ -337,43 +519,59 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R353_the_command_position_writes_the_file_its_steps_and_the_check_points_and_refuses_a_set_that_disagrees()
+        public void R353_the_command_position_writes_the_file_its_steps_and_the_check_points_and_a_failed_check_is_an_issue_of_the_run()
         {
             int code;
+            string manifest;
+            Dictionary<string, string> copies = CliCopies(out manifest);
             string layers = Path.Combine(Path.GetDirectoryName(WorkerRunTests.RepoConfig()), "cad_layers.json");
-            WorkerAnswer answer = RunPosition("p1", MadeRead(), new List<string> { ProjectPositionFile.PositionStep, ProjectPositionFile.CheckPointsStep }, out code, Group.Skip(1),
-                Input("baseplan", Baseplan()), Input("cadLayers", layers), Input(ProjectPositionFile.KeyPointsRole + ":imc", Write("points_imc.json", MadePoints())));
+            JObject points = MadePoints();
+            points["model"] = copies["imc"] + "_TEST-KC.rvt";
+            string labels = Path.Combine(folder, "labels.csv");
+            File.WriteAllText(labels, "number,face\n2001,101\n2002,102\n2003,103\n");
+            string shifts = Write("plot_numbers.json", JObject.Parse("{\"neighbourhoods\": {\"IMC\": {\"shift\": 10}}}"));
+            // The baseplan 0.0004 m east of the keys at full precision: every corner 0.4 mm off, where the 3 decimals of plots.json gave 0
+            WorkerFile[] check =
+            {
+                Input("baseplan", Baseplan(0.0004)), Input("cadLayers", layers), Input(ProjectPositionFile.KeyPointsRole + ":imc", Write("points_imc.json", points)),
+                Input(ProjectPositionFile.LabelsRole, labels), Input(ProjectPositionFile.PlotShiftsRole, shifts),
+            };
+            WorkerAnswer answer = RunPosition("p1", MadeRead(), new List<string> { ProjectPositionFile.PositionStep, ProjectPositionFile.CheckPointsStep }, out code, Group.Skip(1), copies, manifest, check);
             Assert.True(code == 0, "exit " + code + ": " + answer.Message);
+            Assert.Equal("done", answer.Status);
             string name = Path.GetFileName(PositionSettings.From(JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()))).File);
             JObject written = JObject.Parse(File.ReadAllText(Path.Combine(folder, "out", name)));
             Assert.Equal("Survey Point", (string)written["levelBase"]);
-            Assert.Equal("imc", (string)written["key"]);
             Assert.Equal("Internal", (string)written["activeSite"]);
-            JObject step = JObject.Parse(File.ReadAllText(Path.Combine(folder, "steps", StepFile.FileName(ProjectPositionFile.PositionStep, "csharp"))));
-            Assert.Equal(new[] { "Level 1", "Level 2" }, step["plots"]["position"]["raw"]["levelNames"].Select(item => (string)item));
-            Assert.Equal(Group.Skip(1), step["plots"]["position"]["raw"]["heldAgainst"].Select(item => (string)item));
-            JObject points = JObject.Parse(File.ReadAllText(Path.Combine(folder, "steps", StepFile.FileName(ProjectPositionFile.CheckPointsStep, "csharp"))));
-            Assert.Equal(12, ((JObject)points["plots"]).Count);
-            Assert.All(((JObject)points["plots"]).Properties(), item => Assert.True((bool)item.Value["raw"]["pass"]));
-            Assert.Equal(12, answer.Counts["check points that pass"]);
-            Assert.Equal(new[] { "keyRead", "rules", "keyRead:*" }, WorkerRunner.Steps[ProjectPositionFile.PositionStep]);
-            Assert.Equal(new[] { "keyRead", "rules", "baseplan", "keyPoints:*" }, WorkerRunner.Steps[ProjectPositionFile.CheckPointsStep]);
-            Assert.Equal("position", WorkerRunner.StepCommand[ProjectPositionFile.CheckPointsStep]);
+            // The check of the 6 keys with no points failed: the file records it, every failed point is an issue, the run ends 0 and done
+            Assert.Equal("{\"limitMm\":1.0,\"points\":18,\"pass\":12,\"overLimit\":0,\"noFace\":0,\"otherFace\":0,\"noNumber\":0,\"noPoints\":6,\"failed\":true}", written["checkPoints"].ToString(Newtonsoft.Json.Formatting.None));
+            Assert.StartsWith("the check points failed: 12 of 18 pass at 1.0 mm", answer.Issues[0]);
+            Assert.Contains("ima no key points", answer.Issues);
+            JObject step = JObject.Parse(File.ReadAllText(Path.Combine(folder, "steps", StepFile.FileName(ProjectPositionFile.CheckPointsStep, "csharp"))));
+            Assert.Equal(0.4, (double)step["plots"]["imc/2001/0"]["raw"]["gapMm"], 6);
+            Assert.Equal(new[] { "keyRead", "rules", ProjectPositionFile.KeyCopiesRole, "keyRead:*" }, WorkerRunner.Steps[ProjectPositionFile.PositionStep]);
+            Assert.Equal(new[] { "keyRead", "rules", ProjectPositionFile.KeyCopiesRole, "baseplan", ProjectPositionFile.LabelsRole, ProjectPositionFile.PlotShiftsRole, "keyPoints:*" },
+                WorkerRunner.Steps[ProjectPositionFile.CheckPointsStep]);
             JObject off = MadeRead();
             off["documents"][0]["site"]["levels"][0]["elevation"] = 9.5;
-            answer = RunPosition("p2", off, new List<string>(), out code, Group.Skip(1));
+            answer = RunPosition("p2", off, new List<string>(), out code, Group.Skip(1), copies, manifest);
             Assert.True(code == 2, "exit " + code + ": " + answer.Message);
             Assert.Contains("levelStepsM", answer.Message);
-            // A set with a key left out and a set with a read of the Native keys are refused before anything is written
-            answer = RunPosition("p3", MadeRead(), new List<string>(), out code, Group.Skip(1).Take(5));
+            // A set with a key left out, the IMC read given for IMA, and key points of another position, each refused before anything is written
+            answer = RunPosition("p3", MadeRead(), new List<string>(), out code, Group.Skip(1).Take(5), copies, manifest);
             Assert.True(code == 2, "exit " + code + ": " + answer.Message);
             Assert.Contains("img no read", answer.Message);
-            JObject native = MadeRead();
-            native["documents"][0]["surveyPoint"]["sharedPosition"][0] = 2433000.0;
-            answer = RunPosition("p4", MadeRead(), new List<string>(), out code, Group.Skip(1).Take(5), Input(ProjectPositionFile.KeyReadRole + ":img", Write("native.json", native)));
+            JObject imcForIma = MadeRead();
+            imcForIma["documents"][0]["file"] = copies["imc"] + "_TEST-RC";
+            answer = RunPosition("p4", MadeRead(), new List<string>(), out code, Group.Skip(2), copies, manifest, Input(ProjectPositionFile.KeyReadRole + ":ima", Write("ima_is_imc.json", imcForIma)));
             Assert.True(code == 2, "exit " + code + ": " + answer.Message);
-            Assert.Contains("img surveyPoint.sharedPosition", answer.Message);
-            Assert.False(File.Exists(Path.Combine(folder, "out", "checkPoints_p4.json")));
+            Assert.Contains("ima model " + copies["imc"] + "_TEST-RC is not a work copy", answer.Message);
+            JObject far = (JObject)points.DeepClone();
+            far["projectPosition"]["eastWest"] = 6000.0;
+            check[2] = Input(ProjectPositionFile.KeyPointsRole + ":imc", Write("points_far.json", far));
+            answer = RunPosition("p5", MadeRead(), new List<string>(), out code, Group.Skip(1), copies, manifest, check);
+            Assert.True(code == 2, "exit " + code + ": " + answer.Message);
+            Assert.Contains("imc keyPoints projectPosition 5000000.0 mm off the position file", answer.Message);
         }
     }
 }

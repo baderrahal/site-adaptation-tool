@@ -134,10 +134,13 @@ namespace CadReader
         }
 
         // R353. The command position of button 1: the project position file from the read of the reference key, refused when it differs
-        // from keyRules.site of the level profile or when the reference key differs from another key of its group, keyRead:<key> each, as
-        // R331 holds a read, written to the output folder under the file name of addin.position.file, and when the request names the
-        // baseplan the check points of button 1, the corners of the Generic floors of the extreme plots of each key of keyPoints:<key> at
-        // full precision held against the vertices of the baseplan face of the plot through the position
+        // from keyRules.site of the level profile, when a key read of the group is missing, of another key than its role names (answerKeys
+        // and key_copies.json, the input keyCopies) or lacks a value the set is held on, or when the reference key differs from another key
+        // of its group, keyRead:<key> each, as R331 holds a read. Written to the output folder under the file name of addin.position.file.
+        // When the request names the baseplan, the check points of button 1: the corners of the Generic floors of the extreme plots of each
+        // key of keyPoints:<key> at full precision, the points held to their key and to the file, against the vertices of the baseplan face
+        // of the plot at full precision through the position, the face held to the numbering of the build (labels and plotShifts). A check
+        // that fails ends the run done with an issue per failed point after the summary line, and the position file records the summary
         private static void Position(WorkerContext run)
         {
             WorkerRequest request = run.Request;
@@ -145,9 +148,10 @@ namespace CadReader
             {
                 throw run.Refusal("a position names no output folder for the position file (R353)");
             }
-            if (request.Inputs.All(input => input.Role != ProjectPositionFile.RulesRole) || request.Inputs.All(input => input.Role != ProjectPositionFile.KeyReadRole))
+            string[] needed = { ProjectPositionFile.RulesRole, ProjectPositionFile.KeyReadRole, ProjectPositionFile.KeyCopiesRole };
+            if (needed.Any(role => request.Inputs.All(input => input.Role != role)))
             {
-                throw run.Refusal("the position file is written from the read of a key and held against keyRules.site, the request needs the inputs keyRead and rules (R353)");
+                throw run.Refusal("the position file is written from the read of a key, held against keyRules.site and every key read held to its key, the request needs the inputs keyRead, rules and keyCopies (R353)");
             }
             string readPrefix = ProjectPositionFile.KeyReadRole + ":", pointsPrefix = ProjectPositionFile.KeyPointsRole + ":";
             List<string> pointKeys = request.Inputs.Where(input => input.Role != null && input.Role.StartsWith(pointsPrefix, StringComparison.Ordinal)).Select(input => input.Role.Substring(pointsPrefix.Length)).ToList();
@@ -156,14 +160,20 @@ namespace CadReader
             {
                 throw run.Refusal("the check points hold the baseplan against the key points of the keys, the inputs baseplan and keyPoints:<key>, the request names one of them (R353)");
             }
+            if (withBaseplan && new[] { ProjectPositionFile.LabelsRole, ProjectPositionFile.PlotShiftsRole, "cadLayers" }.Any(role => request.Inputs.All(input => input.Role != role)))
+            {
+                throw run.Refusal("the check points hold the face of each point to the numbering of the build, the request needs the inputs labels, plotShifts and cadLayers (R353)");
+            }
             PositionSettings settings;
             ProjectPositionFile file;
             List<string> differ, set;
             JObject config;
+            Dictionary<string, string> copies;
             try
             {
                 config = (JObject)Parse(WorkFiles.ReadText(run.Input("config")));
                 settings = PositionSettings.From(config);
+                copies = ProjectPositionFile.AnswerCopies(config["answerKeys"] as JObject, Parse(WorkFiles.ReadText(run.Input(ProjectPositionFile.KeyCopiesRole))) as JObject);
                 JObject siteRules = ProjectPositionFile.SiteRules((JObject)Parse(WorkFiles.ReadText(run.Input(ProjectPositionFile.RulesRole))), request.LevelProfile);
                 JObject document = ProjectPositionFile.DocumentOf((JObject)Parse(WorkFiles.ReadText(run.Input(ProjectPositionFile.KeyReadRole))));
                 file = ProjectPositionFile.From(document, settings.Key);
@@ -177,12 +187,12 @@ namespace CadReader
                 }
                 if (differ.Count == 0)
                 {
-                    var others = new Dictionary<string, JObject>();
+                    var documents = new Dictionary<string, JObject> { [settings.Key] = document };
                     foreach (string key in settings.Group.Where(key => key != settings.Key && request.Inputs.Any(input => input.Role == readPrefix + key)))
                     {
-                        others[key] = ProjectPositionFile.DocumentOf((JObject)Parse(WorkFiles.ReadText(run.Input(readPrefix + key))));
+                        documents[key] = ProjectPositionFile.DocumentOf((JObject)Parse(WorkFiles.ReadText(run.Input(readPrefix + key))));
                     }
-                    set = ProjectPositionFile.SetDiffers(document, others, settings.Key, settings.Group);
+                    set = ProjectPositionFile.SetDiffers(documents, settings.Key, settings.Group, copies);
                 }
                 else
                 {
@@ -199,53 +209,77 @@ namespace CadReader
             }
             if (set.Count > 0)
             {
-                throw run.Refusal("the reference key " + settings.Key + " differs from the keys of its group: " + string.Join(", and ", set) + " (R353)");
+                throw run.Refusal("the reference key " + settings.Key + " and the keys of its group are no one set: " + string.Join(", and ", set) + " (R353)");
             }
             List<string> held = settings.Group.Where(key => key != settings.Key).ToList();
             run.Counts["keys held against the reference"] = held.Count;
             var made = new Dictionary<string, Dictionary<string, Dictionary<string, object>>> { [ProjectPositionFile.PositionStep] = file.PositionStepItems(held) };
+            Dictionary<string, object> summary = null;
             if (withBaseplan)
             {
-                if (request.Inputs.All(input => input.Role != "cadLayers"))
-                {
-                    throw run.Refusal("a read of a drawing needs the input cadLayers, the keep and drop list of the layers (config/cad_layers.json)");
-                }
-                JObject baseplan = Drawing(run, "baseplan", LayerConfig.Load(run.Input("cadLayers")), ReadSettings.Load(run.Input("config")));
-                AddinConfig addin = AddinConfig.Load(run.Input("config"));
+                var points = new Dictionary<string, JObject>();
+                var types = new Dictionary<string, List<string>>();
+                List<Dictionary<string, string>> labels;
+                Dictionary<string, int> shifts;
                 try
                 {
-                    Dictionary<string, PlanFace> faces = LocationPlan.Faces((JArray)baseplan["plots"], addin.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)"));
-                    var points = new List<KeyValuePair<string, JObject>>();
-                    var types = new Dictionary<string, List<string>>();
                     foreach (string key in settings.Group.Where(pointKeys.Contains))
                     {
-                        points.Add(new KeyValuePair<string, JObject>(key, KeyPointsFile.PointsOf(WorkFiles.ReadText(run.Input(pointsPrefix + key)))));
+                        points[key] = KeyPointsFile.PointsOf(WorkFiles.ReadText(run.Input(pointsPrefix + key)));
                         types[key] = ProjectPositionFile.GenericTypes(config, key);
                     }
-                    made[ProjectPositionFile.CheckPointsStep] = ProjectPositionFile.CheckPoints(file, points, faces, types, settings.CheckPointLimitMm, settings.GapDecimals);
+                    List<string> faults = points.SelectMany(item => ProjectPositionFile.PointsFaults(item.Value, item.Key, copies, file)).ToList();
+                    if (faults.Count > 0)
+                    {
+                        throw new InvalidDataException("the key points are not those of their keys and of the position file: " + string.Join(", and ", faults) + " (R353)");
+                    }
+                    labels = CsvRows.Read(run.Input(ProjectPositionFile.LabelsRole));
+                    shifts = ProjectPositionFile.Shifts(Parse(WorkFiles.ReadText(run.Input(ProjectPositionFile.PlotShiftsRole))) as JObject);
                 }
                 catch (InvalidDataException refused)
                 {
                     throw run.Refusal(refused.Message);
                 }
-                Dictionary<string, Dictionary<string, object>> rows = made[ProjectPositionFile.CheckPointsStep];
-                run.Counts["check points"] = rows.Count;
-                run.Counts["check points that pass"] = rows.Values.Count(row => true.Equals(row["pass"]));
-                run.Counts["check points of no face"] = rows.Values.Count(row => row["face"] == null);
+                JObject baseplan = Drawing(run, "baseplan", LayerConfig.Load(run.Input("cadLayers")), ReadSettings.Load(run.Input("config")), true);
+                AddinConfig addin = AddinConfig.Load(run.Input("config"));
+                Dictionary<string, Dictionary<string, object>> rows;
+                try
+                {
+                    Dictionary<string, PlanFace> faces = LocationPlan.Faces((JArray)baseplan["plots"], addin.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)"));
+                    rows = ProjectPositionFile.CheckPoints(file, points, settings.Group, faces, types, ProjectPositionFile.Numbering(labels, shifts), settings.CheckPointLimitMm, settings.GapDecimals);
+                }
+                catch (InvalidDataException refused)
+                {
+                    throw run.Refusal(refused.Message);
+                }
+                made[ProjectPositionFile.CheckPointsStep] = rows;
+                summary = ProjectPositionFile.Summary(rows, settings.CheckPointLimitMm);
+                run.Counts["check points"] = (int)summary["points"];
+                run.Counts["check points that pass"] = (int)summary["pass"];
+                run.Counts["check points of no face"] = (int)summary["noFace"];
+                run.Counts["check points on the face of another plot"] = (int)summary["otherFace"];
+                run.Counts["check points over the limit"] = (int)summary["overLimit"];
+                run.Counts["keys with no key points"] = (int)summary["noPoints"];
+                if ((bool)summary["failed"])
+                {
+                    run.Issues.Add(ProjectPositionFile.SummaryLine(summary));
+                    run.Issues.AddRange(ProjectPositionFile.Issues(rows, settings.GapDecimals));
+                }
                 Func<object, int, JToken> pair = (value, decimals) => value == null ? JValue.CreateNull() : new JArray(((double[])value).Select(item => Rounding.Fixed(item, decimals)));
                 Func<object, JToken> gap = value => value == null ? JValue.CreateNull() : new JValue(Rounding.Fixed((double)value, settings.GapDecimals));
                 run.WriteJson(request.OutputFolder, "checkPoints.json", new JObject
                 {
-                    ["limitMm"] = settings.CheckPointLimitMm,
+                    ["summary"] = ProjectPositionFile.SummaryJson(summary),
                     ["points"] = new JArray(rows.Select(row => new JObject
                     {
-                        ["name"] = row.Key, ["key"] = (string)row.Value["key"], ["plot"] = (string)row.Value["plot"], ["face"] = (string)row.Value["face"],
+                        ["name"] = row.Key, ["key"] = (string)row.Value["key"], ["plot"] = (string)row.Value["plot"], ["face"] = (string)row.Value["face"], ["expectedFace"] = (string)row.Value["expectedFace"],
                         ["sharedM"] = pair(row.Value["sharedM"], 3), ["internalM"] = pair(row.Value["internalM"], 3), ["keyInternalM"] = pair(row.Value["keyInternalM"], 3),
                         ["keySharedM"] = pair(row.Value["keySharedM"], 3), ["gapMm"] = gap(row.Value["gapMm"]), ["revitGapMm"] = gap(row.Value["revitGapMm"]), ["pass"] = (bool)row.Value["pass"],
+                        ["why"] = (string)row.Value["why"],
                     })),
                 });
             }
-            run.WriteJson(request.OutputFolder, Path.GetFileName(settings.File), file.Written());
+            run.WriteJson(request.OutputFolder, Path.GetFileName(settings.File), file.Written(summary));
             run.Counts["levels"] = file.Levels.Count;
             AddinConfig fields = AddinConfig.Load(run.Input("config"));
             foreach (string step in request.Steps ?? new List<string>())
@@ -257,8 +291,9 @@ namespace CadReader
 
         // R348. One drawing read: refused for reference only (R300) or when its header InsUnits is not Meters, then extracted with the
         // layer list, the plots of the baseplan, the blocks and the setback pieces of the footprint, the curb and ROW pieces of the road
-        // layout, as CadReader writes them in plots.json, blocks.json and pieces.json
-        private static JObject Drawing(WorkerContext run, string role, LayerConfig layers, ReadSettings settings)
+        // layout, as CadReader writes them in plots.json, blocks.json and pieces.json, or with exact the plots with every digit of their
+        // vertices as plots_exact.json of --exact gives them, for the check points of R353
+        private static JObject Drawing(WorkerContext run, string role, LayerConfig layers, ReadSettings settings, bool exact = false)
         {
             string path = run.Input(role);
             string name = Path.GetFileName(path);
@@ -287,7 +322,7 @@ namespace CadReader
             if (role == "baseplan")
             {
                 output["summary"] = AsWritten(extract.Plots.Summary);
-                output["plots"] = AsWritten(extract.Plots.Plots);
+                output["plots"] = exact ? CadExtractor.ExactPlots(extract, units)["plots"] : AsWritten(extract.Plots.Plots);
             }
             if (role == "villaBlocks")
             {

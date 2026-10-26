@@ -74,13 +74,24 @@ namespace SiteAdaptation.Common
         public const string KeyReadRole = "keyRead";
         public const string KeyPointsRole = "keyPoints";
         public const string RulesRole = "rules";
-        public static readonly string[] PositionRoles = { KeyReadRole, RulesRole, KeyReadRole + ":*" };
-        public static readonly string[] CheckPointRoles = { KeyReadRole, RulesRole, "baseplan", KeyPointsRole + ":*" };
+        public const string KeyCopiesRole = "keyCopies";
+        public const string LabelsRole = "labels";
+        public const string PlotShiftsRole = "plotShifts";
+        public const string NoPoints = "no key points";
+        public static readonly string[] PositionRoles = { KeyReadRole, RulesRole, KeyCopiesRole, KeyReadRole + ":*" };
+        public static readonly string[] CheckPointRoles = { KeyReadRole, RulesRole, KeyCopiesRole, "baseplan", LabelsRole, PlotShiftsRole, KeyPointsRole + ":*" };
         // A level step of the file is the one of the rules within half a mm, the angle within a millionth of a degree, as R331 holds a read
         private const double SameMm = 0.5;
         private const double SameDeg = 1e-6;
         private static readonly string[] UnitFields = { "system", "length", "lengthSystem" };
         private static readonly string[] Points = { "surveyPoint.position", "surveyPoint.sharedPosition", "basePoint.position", "basePoint.sharedPosition" };
+        private static readonly string[] PositionParts = { "eastWest", "northSouth", "elevation", "angleDeg" };
+        // The job of a work copy the read job names, <copy stem>_TEST-<job>, as R200 names it
+        private static readonly System.Text.RegularExpressions.Regex WorkJob = new System.Text.RegularExpressions.Regex(@"\A[A-Z][A-Z0-9]{1,3}\z", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        private static readonly string[][] WhyCounts =
+        {
+            new[] { "overLimit", "gap over the limit" }, new[] { "noFace", "no face" }, new[] { "otherFace", "face of another plot" }, new[] { "noNumber", "no face numbered" }, new[] { "noPoints", NoPoints },
+        };
 
         public string Key { get; private set; }
         public string Model { get; private set; }
@@ -140,6 +151,194 @@ namespace SiteAdaptation.Common
         private static string Text(JToken value)
         {
             return value == null ? "None" : value.Type == JTokenType.String ? (string)value : value.ToString(Newtonsoft.Json.Formatting.None);
+        }
+
+        // python/position_file.text_of: a value of a read as a line names it, None, a text as it is, a number as Python prints it, a list
+        // or an object as compact JSON
+        private static string PyText(JToken value)
+        {
+            if (value == null || value.Type == JTokenType.Null)
+            {
+                return "None";
+            }
+            switch (value.Type)
+            {
+                case JTokenType.String:
+                    return (string)value;
+                case JTokenType.Boolean:
+                    return (bool)value ? "True" : "False";
+                case JTokenType.Float:
+                    return SheetRows.PyRepr(value.Value<double>());
+                case JTokenType.Integer:
+                    return value.ToString(Newtonsoft.Json.Formatting.None);
+                default:
+                    return value.ToString(Newtonsoft.Json.Formatting.None);
+            }
+        }
+
+        private static bool IsFinite(JToken value)
+        {
+            return value != null && (value.Type == JTokenType.Float || value.Type == JTokenType.Integer) && !double.IsNaN(value.Value<double>()) && !double.IsInfinity(value.Value<double>());
+        }
+
+        private static bool IsPoint(JToken value)
+        {
+            return value is JArray items && items.Count == 3 && items.All(IsFinite);
+        }
+
+        private static bool IsText(JToken value)
+        {
+            return value != null && value.Type == JTokenType.String;
+        }
+
+        // python/position_file.read_faults: every value the set of the keys is held on that a key read is missing or did not read, one
+        // line per field, <key> <field> missing or not read
+        public static List<string> ReadFaults(JObject document, string key)
+        {
+            var found = new List<string>();
+            foreach (string path in Points)
+            {
+                string[] parts = path.Split('.');
+                if (!IsPoint((document[parts[0]] as JObject)?[parts[1]]))
+                {
+                    found.Add(key + " " + path + " missing");
+                }
+            }
+            if (!IsFinite(document["angleToTrueNorthDeg"]))
+            {
+                found.Add(key + " angleToTrueNorthDeg missing");
+            }
+            JObject site = document["site"] as JObject;
+            if (site == null)
+            {
+                found.Add(key + " site missing");
+                return found;
+            }
+            var unread = new HashSet<string>((site["notRead"] as JObject)?.Properties().Select(item => item.Name) ?? Enumerable.Empty<string>());
+            found.AddRange(unread.OrderBy(name => name, StringComparer.Ordinal).Select(name => key + " site." + name + " not read"));
+            if (!unread.Contains("projectPosition"))
+            {
+                JObject at = site["projectPosition"] as JObject;
+                if (at == null)
+                {
+                    found.Add(key + " site.projectPosition missing");
+                }
+                else
+                {
+                    found.AddRange(PositionParts.Where(part => !IsFinite(at[part])).Select(part => key + " site.projectPosition." + part + " missing"));
+                }
+            }
+            if (!unread.Contains("levels"))
+            {
+                JArray levels = site["levels"] as JArray;
+                if (levels == null || levels.Count == 0)
+                {
+                    found.Add(key + " site.levels missing");
+                }
+                else
+                {
+                    for (int index = 0; index < levels.Count; index++)
+                    {
+                        string at = key + " site.levels[" + index.ToString(CultureInfo.InvariantCulture) + "]";
+                        JObject level = levels[index] as JObject;
+                        if (level == null)
+                        {
+                            found.Add(at + " missing");
+                            continue;
+                        }
+                        if (!IsText(level["name"]))
+                        {
+                            found.Add(at + ".name missing");
+                        }
+                        if (!IsFinite(level["elevation"]))
+                        {
+                            found.Add(at + ".elevation missing");
+                        }
+                        if (!IsText(level["elevationBase"]))
+                        {
+                            found.Add(at + ".elevationBase missing");
+                        }
+                    }
+                }
+            }
+            foreach (string name in new[] { "activeSite", "placeName" })
+            {
+                if (!unread.Contains(name) && !IsText(site[name]))
+                {
+                    found.Add(key + " site." + name + " missing");
+                }
+            }
+            JArray sites = site["sites"] as JArray;
+            if (!unread.Contains("sites") && (sites == null || sites.Count == 0 || !sites.All(IsText)))
+            {
+                found.Add(key + " site.sites missing");
+            }
+            if (!unread.Contains("units"))
+            {
+                JObject units = site["units"] as JObject;
+                if (units == null)
+                {
+                    found.Add(key + " site.units missing");
+                }
+                else
+                {
+                    found.AddRange(UnitFields.Where(part => !IsText(units[part])).Select(part => key + " site.units." + part + " missing"));
+                    if (!IsFinite(units["lengthAccuracy"]))
+                    {
+                        found.Add(key + " site.units.lengthAccuracy missing");
+                    }
+                }
+            }
+            return found;
+        }
+
+        // python/position_file.answer_copies: the stem of the copy of each answer key by its key in lower case, from answerKeys of config
+        // held against key_copies.json beside the copies (R312), a code the manifest lists with another copy or does not list refused
+        public static Dictionary<string, string> AnswerCopies(JObject answerKeys, JObject manifest)
+        {
+            var listed = new Dictionary<string, JToken>(StringComparer.Ordinal);
+            foreach (JToken item in manifest?["copies"] as JArray ?? new JArray())
+            {
+                if (item is JObject entry && IsText(entry["code"]))
+                {
+                    listed[(string)entry["code"]] = entry["copy"];
+                }
+            }
+            var found = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (JToken item in answerKeys?["keys"] as JArray ?? new JArray())
+            {
+                JToken code = (item as JObject)?["code"], copy = (item as JObject)?["copy"];
+                if (!IsText(code) || !IsText(copy))
+                {
+                    throw new InvalidDataException("answerKeys names a key of no code or no copy, a key read is held to its key by its copy (R353, R312)");
+                }
+                JToken other = listed.TryGetValue((string)code, out JToken given) ? given : null;
+                if (!IsText(other) || (string)other != (string)copy)
+                {
+                    throw new InvalidDataException("answerKeys names for " + (string)code + " the copy " + (string)copy + " and key_copies.json " + PyText(other) + ", a key read is held to its key by one copy (R353, R312)");
+                }
+                string stem = (string)copy;
+                found[((string)code).ToLowerInvariant()] = stem.EndsWith(".rvt", StringComparison.OrdinalIgnoreCase) ? stem.Substring(0, stem.Length - 4) : stem;
+            }
+            return found;
+        }
+
+        // python/position_file.model_faults: a read or a key points file is of its key when the model it names is a work copy of the copy of
+        // that key, <copy stem>_TEST-<job>, else one line naming the key and the model
+        public static List<string> ModelFaults(JToken name, string key, IReadOnlyDictionary<string, string> copies, string what = "model")
+        {
+            if (!copies.TryGetValue(key, out string stem))
+            {
+                return new List<string> { key + " " + what + " " + PyText(name) + " of no answer key" };
+            }
+            string text = IsText(name) ? (string)name : "";
+            string bare = text.EndsWith(".rvt", StringComparison.OrdinalIgnoreCase) ? text.Substring(0, text.Length - 4) : text;
+            string prefix = stem + "_TEST-";
+            if (bare.Length < prefix.Length || !string.Equals(bare.Substring(0, prefix.Length), prefix, StringComparison.OrdinalIgnoreCase) || !WorkJob.IsMatch(bare.Substring(prefix.Length)))
+            {
+                return new List<string> { key + " " + what + " " + PyText(name) + " is not a work copy " + prefix + "<job> of its answer key" };
+            }
+            return new List<string>();
         }
 
         public static ProjectPositionFile From(JObject document, string key)
@@ -332,14 +531,14 @@ namespace SiteAdaptation.Common
             {
                 if (!JToken.DeepEquals(site[name] ?? JValue.CreateNull(), baseSite[name] ?? JValue.CreateNull()))
                 {
-                    differ[name] = Text(site[name]);
+                    differ[name] = PyText(site[name]);
                 }
             }
             foreach (string name in UnitFields)
             {
                 if (!JToken.DeepEquals((site["units"] as JObject)?[name] ?? JValue.CreateNull(), (baseSite["units"] as JObject)?[name] ?? JValue.CreateNull()))
                 {
-                    differ[name] = Text((site["units"] as JObject)?[name]);
+                    differ[name] = PyText((site["units"] as JObject)?[name]);
                 }
             }
             Func<JObject, string> levelBase = item => string.Join("|", (item["levels"] as JArray ?? new JArray()).OfType<JObject>().Where(level => level["elevationBase"] != null && level["elevationBase"].Type != JTokenType.Null)
@@ -351,19 +550,105 @@ namespace SiteAdaptation.Common
             return differ;
         }
 
-        // python/position_file.set_differs: the reference key read held against the read of every other key of its group as R331 holds a
-        // read, one line per key and field that differs, and a key of the group with no read, empty when the set is one
-        public static List<string> SetDiffers(JObject reference, IReadOnlyDictionary<string, JObject> others, string referenceKey, IReadOnlyList<string> group)
+        // python/position_file.set_differs: the reads of the keys of a group held as one set, per key of the group in its order a read
+        // given, of its key (ModelFaults) and holding every value the set is held on (ReadFaults), then the reference key held against
+        // every other key as R331 holds a read, one line per key and field that differs, empty when the set is one
+        public static List<string> SetDiffers(IReadOnlyDictionary<string, JObject> documents, string referenceKey, IReadOnlyList<string> group, IReadOnlyDictionary<string, string> copies)
         {
-            List<string> found = group.Where(key => key != referenceKey && !others.ContainsKey(key)).Select(key => key + " no read, every key of the group is held against the reference").ToList();
-            foreach (KeyValuePair<string, JObject> other in others.Where(item => item.Key != referenceKey).OrderBy(item => item.Key, StringComparer.Ordinal))
+            var found = new List<string>();
+            foreach (string key in group)
             {
-                foreach (KeyValuePair<string, string> field in Differ(other.Value, reference))
+                if (!documents.TryGetValue(key, out JObject document))
                 {
-                    found.Add(other.Key + " " + field.Key + " " + field.Value);
+                    found.Add(key + " no read, every key of the group is held against the reference");
+                    continue;
+                }
+                found.AddRange(ModelFaults(document["file"], key, copies));
+                found.AddRange(ReadFaults(document, key));
+            }
+            if (found.Count > 0)
+            {
+                return found;
+            }
+            JObject reference = documents[referenceKey];
+            foreach (string key in group.Distinct().OrderBy(key => key, StringComparer.Ordinal))
+            {
+                foreach (KeyValuePair<string, string> field in Differ(documents[key], reference))
+                {
+                    found.Add(key + " " + field.Key + " " + field.Value);
                 }
             }
             return found;
+        }
+
+        // python/position_file.points_faults: the key points of a key held to its key, by the model they name, and to the position file,
+        // by their full precision project position within half a mm and a millionth of a degree
+        public static List<string> PointsFaults(JObject points, string key, IReadOnlyDictionary<string, string> copies, ProjectPositionFile position)
+        {
+            List<string> found = ModelFaults(points["model"], key, copies, "keyPoints model");
+            JObject at = points["projectPosition"] as JObject ?? new JObject();
+            if (!PositionParts.All(part => IsFinite(at[part])))
+            {
+                found.Add(key + " keyPoints projectPosition missing");
+                return found;
+            }
+            double gap = Distance(new[] { at["eastWest"].Value<double>(), at["northSouth"].Value<double>(), at["elevation"].Value<double>() },
+                new[] { position.Position.EastM.Value, position.Position.NorthM.Value, position.Position.ElevationM.Value }) * 1000.0;
+            if (gap > SameMm)
+            {
+                found.Add(key + " keyPoints projectPosition " + SheetRows.PyRepr(Rounding.Fixed(gap, 1)) + " mm off the position file");
+            }
+            double turn = AngleGap(at["angleDeg"].Value<double>(), position.Position.AngleDeg.Value);
+            if (turn > SameDeg)
+            {
+                found.Add(key + " keyPoints projectPosition angle " + SheetRows.PyRepr(Rounding.Fixed(turn, 6)) + " deg off the position file");
+            }
+            return found;
+        }
+
+        // python/position_file.shifts_of: the shift of each neighbourhood config/plot_numbers.json names, a whole number
+        public static Dictionary<string, int> Shifts(JObject plotNumbers)
+        {
+            var found = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (JProperty item in (plotNumbers?["neighbourhoods"] as JObject)?.Properties() ?? Enumerable.Empty<JProperty>())
+            {
+                JToken shift = (item.Value as JObject)?["shift"];
+                if (shift == null || shift.Type != JTokenType.Integer)
+                {
+                    throw new InvalidDataException("config/plot_numbers.json gives " + item.Name + " a shift that is no whole number (R353, R28)");
+                }
+                found[item.Name] = shift.Value<int>();
+            }
+            return found;
+        }
+
+        // python/position_file.numbering: the face of a plot by the numbering the build uses, the one face labels.csv of the schedule fit
+        // of R351 gives its number, else for a key whose code config/plot_numbers.json names, the number less its shift, else null
+        public static Func<string, string, string> Numbering(IReadOnlyList<Dictionary<string, string>> labels, IReadOnlyDictionary<string, int> shifts)
+        {
+            var faces = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+            foreach (Dictionary<string, string> row in labels)
+            {
+                string number = (row.TryGetValue("number", out string a) ? a ?? "" : "").Trim(), face = (row.TryGetValue("face", out string b) ? b ?? "" : "").Trim();
+                if (number.Length > 0 && face.Length > 0)
+                {
+                    if (!faces.ContainsKey(number))
+                    {
+                        faces[number] = new HashSet<string>(StringComparer.Ordinal);
+                    }
+                    faces[number].Add(face);
+                }
+            }
+            return (key, plot) =>
+            {
+                if (faces.TryGetValue(plot, out HashSet<string> held) && held.Count == 1)
+                {
+                    return held.First();
+                }
+                bool digits = plot.Length > 0 && plot.All(letter => letter >= '0' && letter <= '9');
+                return digits && shifts.TryGetValue(key.ToUpperInvariant(), out int shift)
+                    ? (System.Numerics.BigInteger.Parse(plot, CultureInfo.InvariantCulture) - shift).ToString(CultureInfo.InvariantCulture) : null;
+            };
         }
 
         // python/position_file.generic_types: the type names of the Generic floors of a key, floors.keyTypes of its code, else floors.types
@@ -456,23 +741,35 @@ namespace SiteAdaptation.Common
             return value.Select(item => item.Value<double>()).ToArray();
         }
 
-        // python/position_file.check_points: per key the corners of the Generic floors of its extreme plots, each with its CAD point, the
-        // nearest vertex of the baseplan face that holds the middle of its floor taken to shared coordinates by the file, the gap of that
-        // point taken to internal by the file to the corner in plan in mm, the gap to the shared corner Revit gives, and whether it passes
-        public static Dictionary<string, Dictionary<string, object>> CheckPoints(ProjectPositionFile file, IReadOnlyList<KeyValuePair<string, JObject>> pointsByKey,
-            IReadOnlyDictionary<string, PlanFace> faces, IReadOnlyDictionary<string, List<string>> typesByKey, double limitMm, int decimals)
+        // python/position_file.check_points: by <key>/<plot>/<corner>, per key of the group the corners of the Generic floors of its
+        // extreme plots, each with its CAD point, the nearest vertex of the baseplan face that holds the middle of its floor taken to shared
+        // coordinates by the file, the face the numbering gives its plot, the gap through the file in mm and whether it passes, and why not:
+        // no face, no face numbered, the face of another plot or the gap over the limit. A key of the group with no key points is one row
+        // of its own, why no key points
+        public static Dictionary<string, Dictionary<string, object>> CheckPoints(ProjectPositionFile file, IReadOnlyDictionary<string, JObject> pointsByKey, IReadOnlyList<string> group,
+            IReadOnlyDictionary<string, PlanFace> faces, IReadOnlyDictionary<string, List<string>> typesByKey, Func<string, string, string> faceNumbered, double limitMm, int decimals)
         {
             var index = new FaceIndex(faces.Values);
             var rows = new Dictionary<string, Dictionary<string, object>>();
-            foreach (KeyValuePair<string, JObject> key in pointsByKey)
+            foreach (string key in group)
             {
-                foreach (KeyValuePair<string, JObject> chosen in ChosenFloors(key.Value, typesByKey[key.Key]))
+                if (!pointsByKey.TryGetValue(key, out JObject points))
+                {
+                    rows[key] = new Dictionary<string, object>
+                    {
+                        ["key"] = key, ["plot"] = null, ["face"] = null, ["expectedFace"] = null, ["sharedM"] = null, ["internalM"] = null, ["keyInternalM"] = null, ["keySharedM"] = null,
+                        ["gapMm"] = null, ["revitGapMm"] = null, ["pass"] = false, ["why"] = NoPoints,
+                    };
+                    continue;
+                }
+                foreach (KeyValuePair<string, JObject> chosen in ChosenFloors(points, typesByKey[key]))
                 {
                     var corners = (JArray)chosen.Value["corners"];
                     var sharedCorners = (JArray)chosen.Value["sharedCorners"];
                     double[] centre = Mean(corners);
                     double[] middle = SiteCoordinates.ToShared(file.Position, new[] { centre[0], centre[1], 0.0 });
                     string face = index.FaceOf(middle[0], middle[1]);
+                    string expected = faceNumbered(key, chosen.Key);
                     List<double[]> vertices = face == null ? new List<double[]>() : faces[face].Rings.SelectMany(ring => ring).ToList();
                     for (int k = 0; k < corners.Count; k++)
                     {
@@ -497,16 +794,59 @@ namespace SiteAdaptation.Common
                             gap = LocationPlan.Hypot(internalPoint[0] - corner[0], internalPoint[1] - corner[1]) * 1000.0;
                             revit = LocationPlan.Hypot(cad[0] - sharedCorner[0], cad[1] - sharedCorner[1]) * 1000.0;
                         }
-                        rows[key.Key + "/" + chosen.Key + "/" + k.ToString(CultureInfo.InvariantCulture)] = new Dictionary<string, object>
+                        string why = face == null ? "no face" : expected == null ? "no face numbered" : face != expected ? "face of another plot"
+                            : Rounding.Fixed(gap.Value, decimals) > limitMm ? "gap over the limit" : null;
+                        rows[key + "/" + chosen.Key + "/" + k.ToString(CultureInfo.InvariantCulture)] = new Dictionary<string, object>
                         {
-                            ["key"] = key.Key, ["plot"] = chosen.Key, ["face"] = face, ["sharedM"] = cad, ["internalM"] = internalPoint, ["keyInternalM"] = new[] { corner[0], corner[1] },
-                            ["keySharedM"] = new[] { sharedCorner[0], sharedCorner[1] }, ["gapMm"] = gap, ["revitGapMm"] = revit,
-                            ["pass"] = gap.HasValue && Rounding.Fixed(gap.Value, decimals) <= limitMm,
+                            ["key"] = key, ["plot"] = chosen.Key, ["face"] = face, ["expectedFace"] = expected, ["sharedM"] = cad, ["internalM"] = internalPoint,
+                            ["keyInternalM"] = new[] { corner[0], corner[1] }, ["keySharedM"] = new[] { sharedCorner[0], sharedCorner[1] }, ["gapMm"] = gap, ["revitGapMm"] = revit,
+                            ["pass"] = why == null, ["why"] = why,
                         };
                     }
                 }
             }
             return rows;
+        }
+
+        // python/position_file.summary_of: the check points in counts as the position file records them, the points, those that pass,
+        // each why apart, and whether the check failed
+        public static Dictionary<string, object> Summary(IReadOnlyDictionary<string, Dictionary<string, object>> rows, double limitMm)
+        {
+            int points = rows.Count, pass = rows.Values.Count(row => true.Equals(row["pass"]));
+            var found = new Dictionary<string, object> { ["limitMm"] = limitMm, ["points"] = points, ["pass"] = pass };
+            foreach (string[] why in WhyCounts)
+            {
+                found[why[0]] = rows.Values.Count(row => (string)row["why"] == why[1]);
+            }
+            found["failed"] = pass < points;
+            return found;
+        }
+
+        // The summary as the position file writes it, its counts in the order Summary gives them
+        public static JObject SummaryJson(IReadOnlyDictionary<string, object> summary)
+        {
+            var found = new JObject { ["limitMm"] = (double)summary["limitMm"] };
+            foreach (string name in new[] { "points", "pass" }.Concat(WhyCounts.Select(why => why[0])))
+            {
+                found[name] = (int)summary[name];
+            }
+            found["failed"] = (bool)summary["failed"];
+            return found;
+        }
+
+        // python/position_file.summary_line: the line of a check, the first issue of the answer of the worker when the check failed
+        public static string SummaryLine(IReadOnlyDictionary<string, object> summary)
+        {
+            return "the check points " + ((bool)summary["failed"] ? "failed" : "passed") + ": " + summary["pass"] + " of " + summary["points"] + " pass at " + SheetRows.PyRepr((double)summary["limitMm"])
+                + " mm, gap over the limit " + summary["overLimit"] + ", no face " + summary["noFace"] + ", face of another plot " + summary["otherFace"] + ", no face numbered " + summary["noNumber"]
+                + ", no key points " + summary["noPoints"];
+        }
+
+        // python/position_file.issues_of: one line per check point that fails, its name and why, with its gap when it has one
+        public static List<string> Issues(IReadOnlyDictionary<string, Dictionary<string, object>> rows, int decimals)
+        {
+            return rows.Where(row => !true.Equals(row.Value["pass"])).Select(row => row.Key + " " + (string)row.Value["why"]
+                + (row.Value["gapMm"] == null ? "" : ", gap " + SheetRows.PyRepr(Rounding.Fixed((double)row.Value["gapMm"], decimals)) + " mm")).ToList();
         }
 
         // The step position of the parity, one item, with the keys the reference key was held against
@@ -530,10 +870,11 @@ namespace SiteAdaptation.Common
             return new JArray(values.Select(value => Rounding.Fixed(value, decimals)));
         }
 
-        // The file as written, every length by R385 at 3 decimals and the angles at 6, as position_file.written gives it
-        public JObject Written()
+        // The file as written, every length by R385 at 3 decimals and the angles at 6, as position_file.written gives it, with the summary
+        // of its check points when the check ran
+        public JObject Written(IReadOnlyDictionary<string, object> summary = null)
         {
-            return new JObject
+            var found = new JObject
             {
                 ["format"] = Format, ["formatVersion"] = FormatVersion, ["key"] = Key, ["model"] = Model,
                 ["projectPosition"] = new JObject
@@ -550,6 +891,11 @@ namespace SiteAdaptation.Common
                 ["lengthAccuracy"] = LengthAccuracy.HasValue ? new JValue(LengthAccuracy.Value) : JValue.CreateNull(),
                 ["activeSite"] = ActiveSite, ["sites"] = Sites.DeepClone(), ["placeName"] = PlaceName,
             };
+            if (summary != null)
+            {
+                found["checkPoints"] = SummaryJson(summary);
+            }
+            return found;
         }
 
         // keyRules.site of a level profile of the rules profile: the request names one or the profile gives levelProfiles.default

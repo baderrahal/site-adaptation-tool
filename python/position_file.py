@@ -12,20 +12,27 @@ as the Native keys 2432 km off, is refused, and a key of the group with no read 
 
 The check points of button 1 hold the CAD against the keys: per answer key the corners of the Generic floors of its extreme plots (the
 plots of one Generic floor whose corners have the least and the greatest mean east and north), read at full precision by the step
-keyPoints of the read job of the test host, where the reader writes 3 decimals. Each corner is taken to shared coordinates by the position
-file, the baseplan face that holds the middle of its floor so taken is the face of the plot, and the vertex of that face nearest the corner
-is its CAD point, in site metres. The CAD point is taken to its internal point by SiteCoordinates of R211 from the file and the gap to the
-corner in plan is the check, in mm by R385 at addin.position.gapDecimals and passing at addin.position.checkPointLimitMm. revitGapMm is
-the gap of the CAD point to the shared corner Revit gives, apart from the file. A floor of no face, such as one a baseplan in feet or
-offset leaves on no face, gives no CAD point and fails. Values are written by R385 at 3 decimals, the angle at 6, as R311 gives them. The
-C# of the worker gives the same (ProjectPositionFile of Common).
+keyPoints of the read job of the test host, where the reader writes 3 decimals, against the baseplan at full precision, plots_exact.json of
+CadReader --exact, where plots.json holds 3 decimals. Each corner is taken to shared coordinates by the position file, the baseplan face that
+holds the middle of its floor so taken is the face of the plot and must be the face the numbering of the build gives the plot (labels.csv of
+the schedule fit of R351, else the shift of config/plot_numbers.json), and the vertex of that face nearest the corner is its CAD point, in
+site metres. The CAD point is taken to its internal point by SiteCoordinates of R211 from the file and the gap to the corner in plan is the
+check, in mm by R385 at addin.position.gapDecimals and passing at addin.position.checkPointLimitMm. revitGapMm is the gap of the CAD point to
+the shared corner Revit gives, apart from the file. A point fails with why: no face, the face of another plot, no face numbered or the gap
+over the limit, and a key of the group with no key points is listed as missing. The key points are held to their key and to the position
+file, and every key read to its key by the model it names (answerKeys and key_copies.json). A check that fails is an issue of the run and
+the position file records its summary. Values are written by R385 at 3 decimals, the angle at 6, as R311 gives them. The C# of the worker
+gives the same (ProjectPositionFile of Common).
 """
 import argparse
+import csv
 import json
 import math
+import re
 import sys
 from pathlib import Path
 
+import cad_links
 import cad_units
 import common
 import face_index
@@ -139,17 +146,178 @@ def against_rules(position, site_rules):
     return found
 
 
-def set_differs(reference, others, reference_key, group):
-    """R353, R331. The reference key read held against the read of every other key of its group as key_rules.site_facts holds a read:
-    one line per key and field that differs, with its gap in mm or degrees or its value, and a key of the group with no read. []
-    when the set is one."""
-    found = ["%s no read, every key of the group is held against the reference" % key for key in group if key != reference_key and key not in others]
-    facts = key_rules.site_facts(dict({reference_key: reference}, **{key: document for key, document in others.items() if key != reference_key}), reference_key)
+POINTS_OF_READ = ("surveyPoint.position", "surveyPoint.sharedPosition", "basePoint.position", "basePoint.sharedPosition")
+POSITION_PARTS = ("eastWest", "northSouth", "elevation", "angleDeg")
+WORK_JOB = re.compile(r"[A-Z][A-Z0-9]{1,3}")
+
+
+def text_of(value):
+    """A value of a read as a line names it, as ProjectPositionFile.PyText gives it: None, a text as it is, a number as Python prints it, a
+    list or an object as compact JSON."""
+    if isinstance(value, (list, dict)):
+        return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+    return str(value)
+
+
+def is_finite(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def is_point(value):
+    return isinstance(value, list) and len(value) == 3 and all(is_finite(item) for item in value)
+
+
+def read_faults(document, key):
+    """R353, R331. Every value the set of the keys is held on that a key read is missing or did not read, one line per field, <key>
+    <field> missing or not read, as ProjectPositionFile.ReadFaults gives them: the survey point and the project base point in internal
+    and shared coordinates, the angle to true north, the site, every part of it the read lists in notRead, the project position by its
+    east, north, elevation and angle, the levels with their names, elevations and Elevation Bases, the active site, the place, the sites
+    and the units with the length accuracy."""
+    found = []
+    for path in POINTS_OF_READ:
+        first, second = path.split(".")
+        if not is_point((document.get(first) or {}).get(second) if isinstance(document.get(first), dict) else None):
+            found.append("%s %s missing" % (key, path))
+    if not is_finite(document.get("angleToTrueNorthDeg")):
+        found.append("%s angleToTrueNorthDeg missing" % key)
+    site = document.get("site")
+    if not isinstance(site, dict):
+        return found + ["%s site missing" % key]
+    unread = site.get("notRead") if isinstance(site.get("notRead"), dict) else {}
+    found += ["%s site.%s not read" % (key, name) for name in sorted(unread)]
+    at = site.get("projectPosition")
+    if "projectPosition" not in unread:
+        if not isinstance(at, dict):
+            found.append("%s site.projectPosition missing" % key)
+        else:
+            found += ["%s site.projectPosition.%s missing" % (key, part) for part in POSITION_PARTS if not is_finite(at.get(part))]
+    levels = site.get("levels")
+    if "levels" not in unread:
+        if not isinstance(levels, list) or not levels:
+            found.append("%s site.levels missing" % key)
+        else:
+            for index, level in enumerate(levels):
+                if not isinstance(level, dict):
+                    found.append("%s site.levels[%d] missing" % (key, index))
+                    continue
+                if not isinstance(level.get("name"), str):
+                    found.append("%s site.levels[%d].name missing" % (key, index))
+                if not is_finite(level.get("elevation")):
+                    found.append("%s site.levels[%d].elevation missing" % (key, index))
+                if not isinstance(level.get("elevationBase"), str):
+                    found.append("%s site.levels[%d].elevationBase missing" % (key, index))
+    for name in ("activeSite", "placeName"):
+        if name not in unread and not isinstance(site.get(name), str):
+            found.append("%s site.%s missing" % (key, name))
+    sites = site.get("sites")
+    if "sites" not in unread and (not isinstance(sites, list) or not sites or not all(isinstance(item, str) for item in sites)):
+        found.append("%s site.sites missing" % key)
+    units = site.get("units")
+    if "units" not in unread:
+        if not isinstance(units, dict):
+            found.append("%s site.units missing" % key)
+        else:
+            found += ["%s site.units.%s missing" % (key, part) for part in UNIT_FIELDS if not isinstance(units.get(part), str)]
+            if not is_finite(units.get("lengthAccuracy")):
+                found.append("%s site.units.lengthAccuracy missing" % key)
+    return found
+
+
+def answer_copies(answer_keys, manifest):
+    """R353, R312. The stem of the copy of each answer key by its key in lower case, from answerKeys of config held against key_copies.json
+    beside the copies: a code the manifest lists with another copy, or does not list, is refused."""
+    listed = {item["code"]: item.get("copy") for item in (manifest or {}).get("copies") or [] if isinstance(item, dict) and isinstance(item.get("code"), str)}
+    found = {}
+    for entry in (answer_keys or {}).get("keys") or []:
+        code, copy = (entry.get("code"), entry.get("copy")) if isinstance(entry, dict) else (None, None)
+        if not isinstance(code, str) or not isinstance(copy, str):
+            raise PositionError("answerKeys names a key of no code or no copy, a key read is held to its key by its copy (R353, R312)")
+        if listed.get(code) != copy:
+            raise PositionError("answerKeys names for %s the copy %s and key_copies.json %s, a key read is held to its key by one copy (R353, R312)" % (code, copy, text_of(listed.get(code))))
+        found[str(code).lower()] = copy[:-4] if copy.lower().endswith(".rvt") else copy
+    return found
+
+
+def model_faults(name, key, copies, what="model"):
+    """R353. A read or key points file is of its key when the model it names is a work copy of the copy of that key, <copy stem>_TEST-<job>,
+    as the read job names it: else one line naming the key and the model, as ProjectPositionFile.ModelFaults gives it."""
+    stem = copies.get(key)
+    if stem is None:
+        return ["%s %s %s of no answer key" % (key, what, text_of(name))]
+    text = name if isinstance(name, str) else ""
+    bare = text[:-4] if text.lower().endswith(".rvt") else text
+    prefix = stem + "_TEST-"
+    if bare[:len(prefix)].casefold() != prefix.casefold() or not WORK_JOB.fullmatch(bare[len(prefix):]):
+        return ["%s %s %s is not a work copy %s<job> of its answer key" % (key, what, text_of(name), prefix)]
+    return []
+
+
+def set_differs(documents, reference_key, group, copies):
+    """R353, R331. The reads of the keys of a group held as one set: per key of the group in its order a read given, of its key and holding
+    every value the set is held on (read_faults), then the reference key held against every other key as key_rules.site_facts holds a
+    read, one line per key and field that differs with its gap in mm or degrees or its value. [] when the set is one."""
+    found = []
+    for key in group:
+        if key not in documents:
+            found.append("%s no read, every key of the group is held against the reference" % key)
+            continue
+        found += model_faults(documents[key].get("file"), key, copies)
+        found += read_faults(documents[key], key)
+    if found:
+        return found
+    facts = key_rules.site_facts({key: documents[key] for key in group}, reference_key)
     for key in sorted(facts["keys"]):
         for field, value in sorted(facts["keys"][key]["differ"].items()):
             unit = "" if value is None or field in ("activeSite", "sites", "placeName", "levelBase") or field in UNIT_FIELDS else " deg" if field == "angleToTrueNorthDeg" else " mm"
-            found.append("%s %s %s%s" % (key, field, value, unit))
+            found.append("%s %s %s%s" % (key, field, text_of(value), unit))
     return found
+
+
+def points_faults(points, key, copies, position):
+    """R353. The key points of a key held to its key, by the model they name, and to the position file, by their full precision project
+    position within SAME_MM and SAME_DEG, one line per fault as ProjectPositionFile.PointsFaults gives it."""
+    found = model_faults(points.get("model"), key, copies, "keyPoints model")
+    at = points.get("projectPosition") if isinstance(points.get("projectPosition"), dict) else {}
+    if not all(is_finite(at.get(part)) for part in POSITION_PARTS):
+        return found + ["%s keyPoints projectPosition missing" % key]
+    mine = position["projectPosition"]
+    gap = math.dist([at["eastWest"], at["northSouth"], at["elevation"]], [mine["eastM"], mine["northM"], mine["elevationM"]]) * 1000.0
+    if gap > SAME_MM:
+        found.append("%s keyPoints projectPosition %s mm off the position file" % (key, common.fixed(gap, 1)))
+    turn = cad_links.angle_gap(at["angleDeg"], mine["angleDeg"])
+    if turn > SAME_DEG:
+        found.append("%s keyPoints projectPosition angle %s deg off the position file" % (key, common.fixed(turn, 6)))
+    return found
+
+
+def shifts_of(payload):
+    """R353, R28. The shift of each neighbourhood config/plot_numbers.json names, a whole number, as ProjectPositionFile.Shifts reads it."""
+    found = {}
+    for name, entry in ((payload or {}).get("neighbourhoods") or {}).items():
+        shift = entry.get("shift") if isinstance(entry, dict) else None
+        if isinstance(shift, bool) or not isinstance(shift, int):
+            raise PositionError("config/plot_numbers.json gives %s a shift that is no whole number (R353, R28)" % name)
+        found[name] = shift
+    return found
+
+
+def numbering(labels, shifts):
+    """R353, R351. The face of a plot by the numbering the build uses: the one face labels.csv of the schedule fit of R351 gives its number,
+    as plots.csv and plan_from_book.py take it, else for a key whose code config/plot_numbers.json names, the number less its shift, else
+    None. Gives a function of the key and the plot."""
+    faces = {}
+    for row in labels:
+        number, face = str(row.get("number") or "").strip(), str(row.get("face") or "").strip()
+        if number and face:
+            faces.setdefault(number, set()).add(face)
+
+    def face_of(key, plot):
+        held = faces.get(plot) or set()
+        if len(held) == 1:
+            return next(iter(held))
+        shift = shifts.get(key.upper())
+        return str(int(plot) - shift) if shift is not None and plot.isascii() and plot.isdigit() else None
+    return face_of
 
 
 def to_internal(position, shared):
@@ -185,11 +353,12 @@ def plot_order(plot):
 
 def chosen_floors(points, types):
     """R353. The Generic floors of the extreme plots of a key: the plots with one floor of the types, whose corners have the least mean
-    east, the greatest mean east, the least mean north and the greatest mean north, a tie to the lower plot, each plot once in that order."""
+    east, the greatest mean east, the least mean north and the greatest mean north, a tie to the lower plot, each plot once in that order.
+    A floor of no plot is never taken."""
     by_plot = {}
     for floor in points.get("floors") or []:
-        if floor.get("typeName") in types and floor.get("plot") and len(floor.get("corners") or []) >= 3:
-            by_plot.setdefault(str(floor["plot"]), []).append(floor)
+        if floor.get("typeName") in types and isinstance(floor.get("plot"), str) and floor["plot"] and len(floor.get("corners") or []) >= 3:
+            by_plot.setdefault(floor["plot"], []).append(floor)
     single = {plot: found[0] for plot, found in by_plot.items() if len(found) == 1}
     if not single:
         raise PositionError("the key points of %s hold no Generic floor of %s on a plot of one such floor, the check points need one (R353)" % (points.get("model"), ", ".join(types)))
@@ -202,17 +371,27 @@ def chosen_floors(points, types):
     return [(plot, single[plot]) for plot in picked]
 
 
-def check_points(position, points_by_key, rings, types_by_key, limit_mm, decimals):
-    """R353. The check points of button 1 by <key>/<plot>/<corner>: per key of points_by_key the corners of the Generic floors of its
-    extreme plots, each with its CAD point, the nearest vertex of the baseplan face that holds the middle of its floor taken to shared
-    coordinates by the file, rings the rings of the baseplan faces by label, the gap through the file in mm and whether it passes."""
+NO_POINTS = "no key points"
+
+
+def check_points(position, points_by_key, group, rings, types_by_key, face_numbered, limit_mm, decimals):
+    """R353. The check points of button 1 by <key>/<plot>/<corner>: per key of the group the corners of the Generic floors of its extreme
+    plots, each with its CAD point, the nearest vertex of the baseplan face that holds the middle of its floor taken to shared coordinates
+    by the file, the face the numbering gives its plot (face_numbered), the gap through the file in mm and whether it passes, and why not:
+    no face, the face of another plot, no face numbered or the gap over the limit. A key of the group with no key points is one row of its
+    own, why no key points."""
     index = face_index.FaceIndex(rings)
     rows = {}
-    for key, points in points_by_key.items():
-        for plot, floor in chosen_floors(points, types_by_key[key]):
+    for key in group:
+        if key not in points_by_key:
+            rows[key] = {"key": key, "plot": None, "face": None, "expectedFace": None, "sharedM": None, "internalM": None, "keyInternalM": None, "keySharedM": None,
+                         "gapMm": None, "revitGapMm": None, "pass": False, "why": NO_POINTS}
+            continue
+        for plot, floor in chosen_floors(points_by_key[key], types_by_key[key]):
             corners = floor["corners"]
             middle = to_shared(position, list(mean_of(corners)) + [0.0])
             face = index.face_of(middle[0], middle[1])
+            expected = face_numbered(key, plot)
             vertices = [vertex for ring in rings[face] for vertex in ring] if face is not None else []
             for k, corner in enumerate(corners):
                 shared_corner = floor["sharedCorners"][k]
@@ -223,10 +402,37 @@ def check_points(position, points_by_key, rings, types_by_key, limit_mm, decimal
                     internal = to_internal(position, [cad[0], cad[1], 0.0])[:2]
                     gap = math.hypot(internal[0] - corner[0], internal[1] - corner[1]) * 1000.0
                     revit = math.hypot(cad[0] - shared_corner[0], cad[1] - shared_corner[1]) * 1000.0
-                rows["%s/%s/%d" % (key, plot, k)] = {"key": key, "plot": plot, "face": face, "sharedM": cad, "internalM": internal, "keyInternalM": [corner[0], corner[1]],
-                                                     "keySharedM": [shared_corner[0], shared_corner[1]], "gapMm": gap, "revitGapMm": revit,
-                                                     "pass": gap is not None and common.fixed(gap, decimals) <= limit_mm}
+                why = ("no face" if face is None else "no face numbered" if expected is None else "face of another plot" if face != expected
+                       else "gap over the limit" if common.fixed(gap, decimals) > limit_mm else None)
+                rows["%s/%s/%d" % (key, plot, k)] = {"key": key, "plot": plot, "face": face, "expectedFace": expected, "sharedM": cad, "internalM": internal,
+                                                     "keyInternalM": [corner[0], corner[1]], "keySharedM": [shared_corner[0], shared_corner[1]], "gapMm": gap,
+                                                     "revitGapMm": revit, "pass": why is None, "why": why}
     return rows
+
+
+WHY_COUNTS = (("overLimit", "gap over the limit"), ("noFace", "no face"), ("otherFace", "face of another plot"), ("noNumber", "no face numbered"), ("noPoints", NO_POINTS))
+
+
+def summary_of(rows, limit_mm):
+    """R353. The check points in counts as the position file records them: the points, those that pass, each why apart, and whether the
+    check failed."""
+    found = {"limitMm": float(limit_mm), "points": len(rows), "pass": sum(1 for row in rows.values() if row["pass"])}
+    for name, why in WHY_COUNTS:
+        found[name] = sum(1 for row in rows.values() if row["why"] == why)
+    found["failed"] = found["pass"] < found["points"]
+    return found
+
+
+def summary_line(summary):
+    """The line of a check, the same in the answer of the worker."""
+    return "the check points %s: %d of %d pass at %s mm, gap over the limit %d, no face %d, face of another plot %d, no face numbered %d, no key points %d" % (
+        "failed" if summary["failed"] else "passed", summary["pass"], summary["points"], summary["limitMm"], summary["overLimit"], summary["noFace"],
+        summary["otherFace"], summary["noNumber"], summary["noPoints"])
+
+
+def issues_of(rows, decimals):
+    """One line per check point that fails, its name and why, with its gap when it has one."""
+    return ["%s %s%s" % (name, row["why"], "" if row["gapMm"] is None else ", gap %s mm" % common.fixed(row["gapMm"], decimals)) for name, row in rows.items() if not row["pass"]]
 
 
 def points_of(path):
@@ -237,8 +443,19 @@ def points_of(path):
     return payload
 
 
-def written(position):
-    """The position file as written, every length by R385 at 3 decimals and the angles at 6."""
+def exact_plots(path):
+    """R353. plots_exact.json of CadReader --exact, the plot shapes of the baseplan at full precision, its units Meters by the layers.json
+    of its read (R388)."""
+    cad_units.check(path)
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if payload.get("units") != cad_units.METRES:
+        raise PositionError("%s holds the plots of a drawing in %s, a drawing is read only in %s (R388)" % (path, payload.get("units"), cad_units.METRES))
+    return payload["plots"]
+
+
+def written(position, summary=None):
+    """The position file as written, every length by R385 at 3 decimals and the angles at 6, with the summary of its check points when the
+    check ran."""
     found = json.loads(json.dumps(position))
     found["projectPosition"] = {name: common.fixed(value, 6 if name == "angleDeg" else 3) for name, value in position["projectPosition"].items()}
     found["angleToTrueNorthDeg"] = common.fixed(position["angleToTrueNorthDeg"], 6)
@@ -246,6 +463,8 @@ def written(position):
         found[name] = {part: [common.fixed(value, 3) for value in values] for part, values in position[name].items()}
     found["levels"] = [{"name": level["name"], "elevationM": common.fixed(level["elevationM"], 3), "projectElevationM": common.fixed(level["projectElevationM"], 3)}
                        for level in position["levels"]]
+    if summary is not None:
+        found["checkPoints"] = summary
     return found
 
 
@@ -314,9 +533,12 @@ def main(argv=None):
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH))
     parser.add_argument("--key-read", required=True, help="the reader output of the reference key of majority.siteReference")
     parser.add_argument("--key-reads", action="append", default=[], metavar="KEY=FILE", help="the reader output of every other key of the group of majority.check.group")
+    parser.add_argument("--key-copies", help="key_copies.json beside the copies of the answer keys, the one of answerKeys when left out")
     parser.add_argument("--key-points", action="append", default=[], metavar="KEY=FILE", help="testhost_<code>_points.json of a key, its check points")
+    parser.add_argument("--baseplan-exact", help="plots_exact.json of CadReader --exact on the baseplan, the faces of the check points at full precision")
+    parser.add_argument("--labels", help="labels.csv of the location plan, the numbers of the faces by the schedule fit of R351")
+    parser.add_argument("--plot-shifts", default=str(project_profile.ROOT / "config" / "plot_numbers.json"), help="config/plot_numbers.json, the shift of a neighbourhood it names")
     parser.add_argument("--out", help="the folder of the position file, outside any git work tree, the file name that of addin.position.file")
-    parser.add_argument("--baseplan", help="R388. plots.json of the baseplan read, the one cadReads names when left out")
     parser.add_argument("--steps", help="a folder outside any git work tree for step_position_python.json and step_checkPoints_python.json")
     args = parser.parse_args(argv)
     try:
@@ -327,6 +549,9 @@ def main(argv=None):
         block = settings_of(settings)
         reference = key_of(settings)
         group = group_of(settings)
+        answer_keys = settings.get("answerKeys")
+        manifest_path = args.key_copies or str(Path(settings.get("inputRoot")) / answer_keys["folder"] / answer_keys["manifest"])
+        copies = answer_copies(answer_keys, json.loads(Path(manifest_path).read_text(encoding="utf-8")))
         document = document_of(json.loads(Path(args.key_read).read_text(encoding="utf-8")))
         position = position_of(document, reference)
         differ = against_rules(position, level_profile_site(settings))
@@ -337,35 +562,47 @@ def main(argv=None):
         if stray:
             raise PositionError("the key reads %s are of no other key of the group %s (R353)" % (", ".join(stray), ", ".join(group)))
         documents = {key: document_of(json.loads(Path(path).read_text(encoding="utf-8"))) for key, path in others.items()}
-        differ = set_differs(document, documents, reference, group)
+        documents[reference] = document
+        differ = set_differs(documents, reference, group, copies)
         if differ:
-            raise PositionError("the reference key %s differs from the keys of its group: %s (R353)" % (reference, ", and ".join(differ)))
+            raise PositionError("the reference key %s and the keys of its group are no one set: %s (R353)" % (reference, ", and ".join(differ)))
         held = [key for key in group if key != reference]
-        inputs = [parity.input_entry("config", args.settings), parity.input_entry("rules", str(project_profile.profile_path(settings))), parity.input_entry("keyRead", args.key_read)]
+        inputs = [parity.input_entry("config", args.settings), parity.input_entry("rules", str(project_profile.profile_path(settings))), parity.input_entry("keyRead", args.key_read),
+                  parity.input_entry("keyCopies", manifest_path)]
         inputs += [parity.input_entry("keyRead:" + key, path) for key, path in sorted(others.items())]
         made = {"position": position_step(position, held)}
-        rows = None
+        rows = summary = None
         if args.key_points:
             given = dict(item.split("=", 1) for item in args.key_points)
             stray = sorted(key for key in given if key not in group)
             if stray:
                 raise PositionError("the key points %s are of no key of the group %s (R353)" % (", ".join(stray), ", ".join(group)))
-            baseplan = cad_units.read_input(settings, "baseplan", args.baseplan)
-            plots = link_summary.load(baseplan)["plots"]
+            if not args.baseplan_exact or not args.labels:
+                raise PositionError("the check points need --baseplan-exact and --labels (R353)")
+            points = {key: points_of(given[key]) for key in group if key in given}
+            faults = [line for key, payload in points.items() for line in points_faults(payload, key, copies, position)]
+            if faults:
+                raise PositionError("the key points are not those of their keys and of the position file: %s (R353)" % ", and ".join(faults))
+            plots = exact_plots(args.baseplan_exact)
             # R345. The faces of the baseplan are refused as the build and the C# refuse them
             refused = face_rings.refusals(plots, settings.get("addin")["parity"]["kinds"]["areas"])
             if refused:
                 raise PositionError("%d baseplan faces refused: %s" % (len(refused), ", ".join(refused)))
-            points = {key: points_of(given[key]) for key in group if key in given}
-            rows = check_points(position, points, face_index.rings_of(plots), {key: generic_types(settings, key) for key in points}, block["checkPointLimitMm"], block["gapDecimals"])
+            with open(args.labels, encoding="utf-8-sig") as handle:
+                labels = list(csv.DictReader(handle))
+            shifts = shifts_of(json.loads(Path(args.plot_shifts).read_text(encoding="utf-8")))
+            rows = check_points(position, points, group, face_index.rings_of(plots), {key: generic_types(settings, key) for key in points}, numbering(labels, shifts),
+                                block["checkPointLimitMm"], block["gapDecimals"])
+            summary = summary_of(rows, block["checkPointLimitMm"])
             made["checkPoints"] = rows
-            inputs += [parity.input_entry("keyPoints:" + key, path) for key, path in sorted(given.items())] + [parity.input_entry("baseplanPlots", str(baseplan))]
+            inputs += [parity.input_entry("keyPoints:" + key, path) for key, path in sorted(given.items())]
+            inputs += [parity.input_entry("baseplanExact", args.baseplan_exact), parity.input_entry("labels", args.labels), parity.input_entry("plotShifts", args.plot_shifts)]
         if args.out:
             out = Path(args.out)
             plot_relations.refuse_inside_repo(out.resolve())
             out.mkdir(parents=True, exist_ok=True)
             target = out / Path(block["file"]).name
-            target.write_text(json.dumps(written(position), indent=1, ensure_ascii=False), encoding="utf-8")
+            target.write_text(json.dumps(written(position, summary), indent=1, ensure_ascii=False), encoding="utf-8")
             print(target)
         if args.steps:
             values = settings.values
@@ -374,11 +611,10 @@ def main(argv=None):
                 parity.write_step(args.steps, step, "python", "project", {name: entry_of(item, fields) for name, item in items.items()}, values, inputs)
                 print("step %s: %d items" % (step, len(items)))
         print("the reference key %s held against %d keys of its group, the set is one" % (reference, len(held)))
-        if rows is not None:
-            gaps = [row["gapMm"] for row in rows.values() if row["gapMm"] is not None]
-            print("check points %d, pass %d at %s mm, no face %d, largest gap %s mm" % (
-                len(rows), sum(1 for row in rows.values() if row["pass"]), block["checkPointLimitMm"], sum(1 for row in rows.values() if row["face"] is None),
-                common.fixed(max(gaps), block["gapDecimals"]) if gaps else None))
+        if summary is not None:
+            print(summary_line(summary))
+            for line in issues_of(rows, block["gapDecimals"]):
+                print("issue " + line)
     except (project_profile.ProfileError, cad_units.UnitError, PositionError, KeyError, OSError, ValueError) as error:
         print("position_file: " + str(error), file=sys.stderr)
         return 2

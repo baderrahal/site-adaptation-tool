@@ -581,13 +581,15 @@
             "key": {"kind": "noGeometry"},
             "plot": {"kind": "noGeometry"},
             "face": {"kind": "noGeometry"},
+            "expectedFace": {"kind": "noGeometry"},
             "sharedM": {"kind": "points", "decimals": 3},
             "internalM": {"kind": "points", "decimals": 3},
             "keyInternalM": {"kind": "points", "decimals": 3},
             "keySharedM": {"kind": "points", "decimals": 3},
             "gapMm": {"kind": "points", "decimals": 2},
             "revitGapMm": {"kind": "points", "decimals": 2},
-            "pass": {"kind": "noGeometry"}
+            "pass": {"kind": "noGeometry"},
+            "why": {"kind": "noGeometry"}
         }
       }
     }
