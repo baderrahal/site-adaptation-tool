@@ -369,7 +369,7 @@ def cluster_top(pool, profile, block):
     for members in by_cluster.values():
         top = max(value for value, _ in members)
         for _, item in members:
-            found[id(item)] = round(top - clean_entry(item["row"], block["entryRampM"]), 4)
+            found[id(item)] = common.fixed(top - clean_entry(item["row"], block["entryRampM"]), 4)
     return found
 
 
@@ -382,7 +382,7 @@ def levels_rule(pool, clusters, profile, block):
         held = [cluster for cluster in clusters if set(cluster["plots"]) <= set(mine)]
         for plot, row in plan_from_cad.plot_levels(profile, held, entries).items():
             if row.get("ffl") is not None and plot in mine:
-                found[id(mine[plot])] = round(row["ffl"] - entries[plot]["entry"], 4)
+                found[id(mine[plot])] = common.fixed(row["ffl"] - entries[plot]["entry"], 4)
     return found
 
 
@@ -502,7 +502,7 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
                 formulas[surface + " less datum %+.3f" % datum] = lambda item, guess=guess, datum=datum: None if guess(item) is None else guess(item) + datum
                 formulas[surface + " less the datum of each key"] = lambda item, guess=guess, key_datum=key_datum: None if guess(item) is None else guess(item) + key_datum[item["key"]]
                 if surface in block["datumSurfaces"]:
-                    datums.setdefault(group + " entry", {})[surface] = {key: round(value, 4) for key, value in sorted(key_datum.items())}
+                    datums.setdefault(group + " entry", {})[surface] = {key: common.fixed(value, 4) for key, value in sorted(key_datum.items())}
             record(group + " entry", entries, target, formulas, by_group, "entryM", level_hold)
             # R275. The ramp front, the mean of its two low corners, against every road surface as it is and less the datum of each key
             fronts = [item for item in kept("rampFront") if item["row"]["rampFront"] is not None]
@@ -517,7 +517,7 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
                         by_key[item["key"]].append(front_target(item) - road(item))
                 key_datum = {key: statistics.median(values) for key, values in by_key.items()}
                 if surface in block["datumSurfaces"]:
-                    datums.setdefault(group + " rampFront", {})[surface] = {key: round(value, 4) for key, value in sorted(key_datum.items())}
+                    datums.setdefault(group + " rampFront", {})[surface] = {key: common.fixed(value, 4) for key, value in sorted(key_datum.items())}
                 front_formulas[surface] = road
                 front_formulas[surface + " less the datum of each key"] = lambda item, road=road, key_datum=key_datum: None if road(item) is None else road(item) + key_datum[item["key"]]
             record(group + " rampFront", fronts, front_target, front_formulas, by_group, "rampFrontM", level_hold)
@@ -533,12 +533,12 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
         if lv is None:
             # R275. FFL less El @ Entry and the steps
             heights = [item for item in kept("height") if clean_entry(item["row"], block["entryRampM"]) is not None and item["row"]["ffl"] is not None]
-            height = lambda item: round(item["row"]["ffl"] - clean_entry(item["row"], block["entryRampM"]), 4)
+            height = lambda item: common.fixed(item["row"]["ffl"] - clean_entry(item["row"], block["entryRampM"]), 4)
             tops = cluster_top(heights, profile, block)
             from_levels = levels_rule(heights, clusters, profile, block)
             record(group + " height", heights, height, {
                 "typology": "typology", "typologySteps": "typologySteps", "key": "key",
-                "baseAndRisers": lambda item: None if item["factors"]["steps"] is None else round(base_height(profile, item["code"]) + riser * (int(item["factors"]["steps"]) - 1), 4),
+                "baseAndRisers": lambda item: None if item["factors"]["steps"] is None else common.fixed(base_height(profile, item["code"]) + riser * (int(item["factors"]["steps"]) - 1), 4),
                 "baseOnly": lambda item: base_height(profile, item["code"]),
                 "oneFflPerClusterAtTheHighestEntry": lambda item: tops.get(id(item), base_height(profile, item["code"]) if not item["role"] else None),
                 "levelsPyFromEntry": lambda item: from_levels.get(id(item)),
@@ -726,7 +726,7 @@ def overrides(misses, block, models):
             raise project_profile.ProfileError("key %s has misses for the override list and no past model file, give --model %s FILE (R330)" % (miss["key"], miss["key"]))
         value, rule = miss["value"], miss["rule"]
         if miss["field"] in ("heightM", "entryM", "rampFrontM", "rampFrontFallM"):
-            value, rule = (None if rule is None else {"gapToRuleM": round(value - rule, 4)}), None
+            value, rule = (None if rule is None else {"gapToRuleM": common.fixed(value - rule, 4)}), None
         if "overrideValue" in miss:
             # R332. A gap the decision gives in its own terms, the link axes or degrees, never a coordinate
             value, rule = miss["overrideValue"], None

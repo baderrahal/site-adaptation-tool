@@ -253,9 +253,9 @@ def test_r67_a_legend_that_is_not_a_list_of_height_and_steps_pairs_with_rising_h
 
 def test_r67_a_height_exactly_half_a_millimetre_off_the_span_is_inside_it_whatever_the_float_noise(tmp_path):
     profile = dummy_profile(tmp_path)
-    # 119.3075 plus 0.1 is 119.4075, the FFL takes it to 119.407 and the height is 0.0995, half a millimetre under 0.1. round(0.0995, 3) would be 0.099 and flag it
+    # 119.3075 plus 0.1 is the tie 119.4075, R385 takes the FFL to 119.408 and the height is 0.1005, half a millimetre over 0.1 (Round ADDIN 4b)
     top = by_plot(levels.compute(profile, [], entries_of(("1", "VL4", 119.3075))))
-    assert (top["1"]["ffl"], top["1"]["height"], top["1"]["flags"]) == (119.407, 0.0995, [])
+    assert (top["1"]["ffl"], top["1"]["height"], top["1"]["flags"]) == (119.408, 0.1005, [])
     rows = by_plot(levels.compute(profile, [{"plots": ["1", "2", "3"]}], entries_of(("1", "VL4", 10.0), ("2", "VL4", 9.5595), ("3", "VL4", 9.5594))))
     assert [rows[plot]["height"] for plot in "123"] == [0.1, 0.5405, 0.5406]
     assert [rows[plot]["flags"] for plot in "123"] == [[], [], ["height over 0.54 m"]]

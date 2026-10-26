@@ -19,6 +19,7 @@ import math
 from collections import defaultdict
 from pathlib import Path
 
+import common
 import project_profile
 
 FIELDS = ("mirrored", "rampType", "entryM", "heightM", "rampFrontM")
@@ -127,9 +128,9 @@ def heights(entries, clusters, lp, profile):
     rows = {}
     for plot, level in ffl.items():
         entry = entries[plot]["entry"]
-        height = round(level - entry, 4)
-        rows[plot] = {"plot": plot, "ffl": round(level, 3), "ssl": round(level + ground, 3), "entry": round(entry, 4), "height": height,
-                      "steps": steps_of(height, lp), "flags": []}
+        height = common.fixed(level - entry, ENTRY_DECIMALS)
+        rows[plot] = {"plot": plot, "ffl": common.fixed(level, FFL_DECIMALS), "ssl": common.fixed(level + ground, FFL_DECIMALS), "entry": common.fixed(entry, ENTRY_DECIMALS),
+                      "height": height, "steps": steps_of(height, lp), "flags": []}
     return rows
 
 
@@ -407,7 +408,7 @@ def key_entry(front, code, lp, depth):
     depth (R278), at the 4 decimals of R2, None with no road level at a front corner."""
     if not front or depth is None or code is None or any(level is None for level in front):
         return None
-    return round(entry_of(front, code, lp, depth)[0], ENTRY_DECIMALS)
+    return common.fixed(entry_of(front, code, lp, depth)[0], ENTRY_DECIMALS)
 
 
 def split_walls(pattern, count):
@@ -478,14 +479,14 @@ def piece_ffl(members, profile, base_rule=None):
     """R339, R67. The FFL of a piece: its highest El @ Entry plus the base of that unit, rounded to the mm first. members is a list of
     (El @ Entry, unit), None when no member has one."""
     known = [entry + base_by_rule(profile, unit, base_rule) for entry, unit in members if entry is not None and unit is not None]
-    return None if not known else round(max(known), FFL_DECIMALS)
+    return None if not known else common.fixed(max(known), FFL_DECIMALS)
 
 
 def steps_from_height(height, base, riser):
     """R339. The steps of the base and the risers: one step for the base, then one per riser over it, a part of a riser over half
     counting as one and half a riser not, as the keys count it: the 9 key plots whose height lies half a riser over their base, such
     as 0.185 m over 0.10 m, have 1 step (Round ADDIN 3c)."""
-    return 1 + max(0, int(math.ceil(round((round(height, BAND_DECIMALS) - base) / riser, BAND_DECIMALS) - 0.5)))
+    return 1 + max(0, int(math.ceil(common.fixed((common.fixed(height, BAND_DECIMALS) - base) / riser, BAND_DECIMALS) - 0.5)))
 
 
 def steps_by_rule(rule, height, code, profile, lp, base_rule=None):
@@ -495,7 +496,7 @@ def steps_by_rule(rule, height, code, profile, lp, base_rule=None):
     if rule == "stepsFromHeight":
         return steps_from_height(height, base_by_rule(profile, code, base_rule), profile.get("steps.riser_added") / 1000.0)
     if rule == "stepBands":
-        return steps_of(round(height, BAND_DECIMALS), lp)
+        return steps_of(common.fixed(height, BAND_DECIMALS), lp)
     raise project_profile.ProfileError("keyRules.steps codes %s, a build gives stepsFromHeight or stepBands (R339)" % rule)
 
 
@@ -503,7 +504,7 @@ def prototype_ffl(rule, ffl):
     """R339. The text of the RRE_ZZ_SP_Prototype-FFL parameter: the FFL down to the cm, or the FFL, written with 3 decimals."""
     if ffl is None:
         return None
-    millimetres = int(round(ffl * 1000))
+    millimetres = int(common.fixed(ffl * 1000, 0))
     if rule == "fflDownToTheCm":
         return "%.3f" % ((millimetres // 10) / 100.0)
     if rule == "ffl":
@@ -529,7 +530,7 @@ def key_level_rows(entries, pieces, profile, lp, key):
         ffl = piece_ffl([(rule_entry(entries.get(other)), (entries.get(other) or {}).get("unit")) for other in piece], profile, base_rule)
         if ffl is None:
             continue
-        height = round(ffl - item["entry"], ENTRY_DECIMALS)
-        rows[plot] = {"plot": plot, "ffl": ffl, "ssl": round(ffl + ground, FFL_DECIMALS), "entry": item["entry"], "height": height,
+        height = common.fixed(ffl - item["entry"], ENTRY_DECIMALS)
+        rows[plot] = {"plot": plot, "ffl": ffl, "ssl": common.fixed(ffl + ground, FFL_DECIMALS), "entry": item["entry"], "height": height,
                       "steps": steps_by_rule(key["steps"]["rule"], height, item["unit"], profile, lp, base_rule), "flags": [], "piece": piece}
     return rows

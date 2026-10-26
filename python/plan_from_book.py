@@ -267,9 +267,9 @@ def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers
         row["fflRule"] = row["ffl"]
         gap = plan_rules.gap_of(mine.get("heightM"))
         if gap is not None:
-            row["ffl"] = round(row["ffl"] + gap, plan_rules.FFL_DECIMALS)
-            row["ssl"] = round(row["ffl"] + ground, plan_rules.FFL_DECIMALS)
-            row["height"] = round(row["ffl"] - row["entry"], plan_rules.ENTRY_DECIMALS)
+            row["ffl"] = common.fixed(row["ffl"] + gap, plan_rules.FFL_DECIMALS)
+            row["ssl"] = common.fixed(row["ffl"] + ground, plan_rules.FFL_DECIMALS)
+            row["height"] = common.fixed(row["ffl"] - row["entry"], plan_rules.ENTRY_DECIMALS)
             row["steps"] = plan_rules.steps_by_rule(key["steps"]["rule"], row["height"], entries[number]["unit"], profile, lp, key.get("baseHeight"))
             outcomes.applied(number, "heightM")
         elif "heightM" in mine:
@@ -292,7 +292,7 @@ def rule_levels(row, entry, item, key, unit, profile, rules):
     steps, the level parameters of keyRules and the two front corners of the ramp at the 3 decimals the plan writes them, their mean
     left to the proof, which a plan written to 3 decimals would round off its half mm, so the proof tells a level that holds by the rule
     from one an override puts on the key."""
-    height = round(row["fflRule"] - entry["rule"], plan_rules.ENTRY_DECIMALS)
+    height = common.fixed(row["fflRule"] - entry["rule"], plan_rules.ENTRY_DECIMALS)
     found = {"entry": entry["rule"], "ffl": row["fflRule"], "height": height,
              "steps": plan_rules.steps_by_rule(key["steps"]["rule"], height, unit, profile, rules["levelProfile"], key.get("baseHeight"))}
     for word, rule in key.items():
@@ -388,11 +388,11 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                 value, slope = plan_rules.entry_of(item["front"], item["unit"], rules["levelProfile"], item["depth"])
                 if by_levels:
                     # R340. At the 4 decimals of R2, as R339 measured it, so a gap moves it onto the key exactly
-                    value = rule = round(value, plan_rules.ENTRY_DECIMALS)
+                    value = rule = common.fixed(value, plan_rules.ENTRY_DECIMALS)
                 gap = plan_rules.gap_of(overrides.get(number, {}).get("entryM"))
                 # R340. With the level rules a gap moves the El @ Entry of its own plot only, so one of a plot outside the build moves nothing
                 if gap is not None and not (by_levels and number not in in_build):
-                    value = round(value + gap, plan_rules.ENTRY_DECIMALS) if by_levels else value + gap
+                    value = common.fixed(value + gap, plan_rules.ENTRY_DECIMALS) if by_levels else value + gap
                     outcomes.applied(number, "entryM")
                 elif gap is None and "entryM" in overrides.get(number, {}):
                     outcomes.left(number, "entryM", NO_GAP)
@@ -409,9 +409,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         for number, row in level_rows.items():
             gap = plan_rules.gap_of(overrides.get(number, {}).get("heightM"))
             if gap is not None:
-                row["ffl"] = round(row["ffl"] + gap, 3)
-                row["ssl"] = round(row["ssl"] + gap, 3)
-                row["height"] = round(row["height"] + gap, 4)
+                row["ffl"] = common.fixed(row["ffl"] + gap, plan_rules.FFL_DECIMALS)
+                row["ssl"] = common.fixed(row["ssl"] + gap, plan_rules.FFL_DECIMALS)
+                row["height"] = common.fixed(row["height"] + gap, plan_rules.ENTRY_DECIMALS)
                 row["steps"] = plan_rules.steps_of(row["height"], rules["levelProfile"])
                 outcomes.applied(number, "heightM")
             elif "heightM" in overrides.get(number, {}):
@@ -483,7 +483,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                         if gap is None or current is None:
                             outcomes.left(number, field, NO_GAP if gap is None else "the rule gives the parameter no value to move")
                             continue
-                        builder.entry["parameters"][name] = sourced("%.3f" % round(current + gap, 3), OVERRIDE)
+                        builder.entry["parameters"][name] = sourced("%.3f" % common.fixed(current + gap, plan_rules.FFL_DECIMALS), OVERRIDE)
                     else:
                         builder.entry["parameters"][name] = sourced(str(value), OVERRIDE)
                     outcomes.applied(number, field)

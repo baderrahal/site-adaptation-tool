@@ -39,6 +39,7 @@ import re
 import statistics
 import sys
 from collections import Counter, defaultdict
+from fractions import Fraction
 from pathlib import Path
 
 import openpyxl
@@ -329,7 +330,7 @@ def own_fits(links):
             score = (sum(1 for gap in gaps if gap <= FIT_BANDS[1] + 1e-9), sum(1 for gap in gaps if gap <= FIT_BANDS[0] + 1e-9))
             if best is None or score > best[0]:
                 best = (score, anchor, middle)
-        fits[code] = {"anchor": best[1], "offset": [round(best[2][0], 3), round(best[2][1], 3)]}
+        fits[code] = {"anchor": best[1], "offset": [own_fixed(best[2][0], 3), own_fixed(best[2][1], 3)]}
     return fits
 
 
@@ -506,7 +507,7 @@ def own_refit(rows, seed):
             random.Random(seed).shuffle(ordered)
             pool = ordered[:(len(ordered) + 1) // 2]
         best = min(pool, key=lambda row: (max(own_boundary_gap(row["loops"], other["loops"]) for other in pool), int(row["plot"])))
-        fits[key] = [[(round(x, 3), round(y, 3)) for x, y in loop] for loop in best["loops"]]
+        fits[key] = [[(own_fixed(x, 3), own_fixed(y, 3)) for x, y in loop] for loop in best["loops"]]
     return fits
 
 
@@ -1138,17 +1139,31 @@ def own_road(tins, point, snap):
     return None
 
 
+def own_fixed(value, decimals):
+    """R341, R385. The rounding rule by an own route, integer arithmetic on the exact fraction of the 15 significant digit text of the
+    value, half away from zero by its absolute value, never common.fixed: a tie such as 119.4075 to 3 decimals goes to 119.408."""
+    if not math.isfinite(value):
+        return None
+    exact = Fraction(format(value, ".15g"))
+    scaled = abs(exact) * 10 ** decimals
+    whole = int(scaled)
+    if scaled - whole >= Fraction(1, 2):
+        whole += 1
+    found = float(Fraction(whole, 10 ** decimals)) * (1 if exact >= 0 else -1)
+    return 0 if found == 0 else found
+
+
 def own_ffl(members):
     """R341. One FFL of a piece: its highest El @ Entry plus the base of that unit, to the mm. members are (El @ Entry, base)."""
     known = [entry + base for entry, base in members if entry is not None and base is not None]
-    return None if not known else round(max(known), 3)
+    return None if not known else own_fixed(max(known), 3)
 
 
 def own_steps(rule, height, base, riser, bands):
     """R341. The steps of a height: the base and the risers, half a riser over the base no step, or the step bands of the profile."""
-    height = round(height, 6)
+    height = own_fixed(height, 6)
     if rule == "stepsFromHeight":
-        return 1 + max(0, math.ceil(round((height - base) / riser, 6) - 0.5))
+        return 1 + max(0, math.ceil(own_fixed((height - base) / riser, 6) - 0.5))
     if rule == "stepBands":
         return next((steps for limit, steps in bands if height < limit), None)
     return None
@@ -1156,7 +1171,7 @@ def own_steps(rule, height, base, riser, bands):
 
 def own_down_to_the_cm(level):
     """R341. The FFL down to the cm, the Prototype-FFL parameter."""
-    return (int(round(level * 1000)) // 10) / 100.0
+    return (int(own_fixed(level * 1000, 0)) // 10) / 100.0
 
 
 def own_walls(pattern, count):
@@ -1232,7 +1247,7 @@ def level_verdicts(rows, road, shapes, units, report, profile, lp, block, reads)
             if coded == "typology":
                 guess = learned(decisions["steps"]["tests"]["typology"]["rule"], group, units.get(plot))
             else:
-                guess = None if level is None or entry is None else own_steps(coded, round(level - entry, 4), base(units.get(plot)), riser, lp.get("stepBands") or [])
+                guess = None if level is None or entry is None else own_steps(coded, own_fixed(level - entry, 4), base(units.get(plot)), riser, lp.get("stepBands") or [])
             verdict["steps"] = guess is not None and str(guess) == str(int(float(row["steps"])))
         for name in block["parameterLevels"]:
             word, value = "parameter " + name, number((reads.get((key, plot)) or {}).get(name))
@@ -1249,7 +1264,7 @@ def level_verdicts(rows, road, shapes, units, report, profile, lp, block, reads)
                 rows_of = [mine.get((key, plot)) for plot in ordered]
                 if any(row is None or out(row, "levelSplit") or number(row.get("ffl")) is None for row in rows_of):
                     continue
-                levels = [round(number(row["ffl"]), 3) for row in rows_of]
+                levels = [own_fixed(number(row["ffl"]), 3) for row in rows_of]
                 walls = [index + 1 for index in range(len(levels) - 1) if abs(levels[index] - levels[index + 1]) > 0.0005]
                 pattern = "none" if not walls else "middle" if len(levels) % 2 == 0 and walls == [len(levels) // 2] else "walls " + ",".join(str(wall) for wall in walls)
                 coded = decisions["levelSplit"]["coded"]
@@ -1266,12 +1281,12 @@ def level_verdicts(rows, road, shapes, units, report, profile, lp, block, reads)
             rows_of = [mine.get((key, other)) for other in members]
             if any(other is None or key_entry.get((key, other["plot"])) is None or number(other.get("ffl")) is None for other in rows_of):
                 continue
-            if len({round(number(other["ffl"]), 3) for other in rows_of}) != 1:
+            if len({own_fixed(number(other["ffl"]), 3) for other in rows_of}) != 1:
                 continue
             top = max(rows_of, key=lambda other: key_entry[(key, other["plot"])] + profile_base(units.get(other["plot"])))
             coded = decisions["baseHeight"]["coded"]
             guess = profile_base(units.get(top["plot"])) if coded == "profile" else learned_base.get(units.get(top["plot"]))
-            found[(key, top["plot"])]["baseHeight"] = within(None if guess is None else float(guess), round(number(top["ffl"]) - key_entry[(key, top["plot"])], 4))
+            found[(key, top["plot"])]["baseHeight"] = within(None if guess is None else float(guess), own_fixed(number(top["ffl"]) - key_entry[(key, top["plot"])], 4))
     return {pair: verdict for pair, verdict in found.items() if verdict}
 
 
@@ -1351,7 +1366,7 @@ def level_inputs(ctx, settings, profile, rows, folder):
         code = units[plot]
         front = (levels[0] + levels[1]) / 2.0
         slope = lp["rampSlopePercent"].get(code, lp["rampSlopePercent"]["default"])
-        road[plot] = {"front": front, "entry": round(front + lp["frontRoad"]["offsetM"] + slope / 100.0 * setbacks.get(code, setbacks["default"]) / 1000.0, 4)}
+        road[plot] = {"front": front, "entry": own_fixed(front + lp["frontRoad"]["offsetM"] + slope / 100.0 * setbacks.get(code, setbacks["default"]) / 1000.0, 4)}
     return road, {"order": order, "partners": partners}, units, lp
 
 
