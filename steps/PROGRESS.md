@@ -1,10 +1,10 @@
-STATE WAITING, 2026-10-27 17:11, for the 4g session, Bader pastes steps/START.md into a fresh session
+STATE WAITING, 2026-10-27 17:32, for the 4g session, Bader pastes steps/START.md into a fresh session
 # Progress
 Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
 
 ## State
 
-- 4f done on 2026-10-27, PR 61 to 66. The next phase is 4g by steps/START.md, its state is the first line
+- AUDIT-RULES done on 2026-10-27, PR 67 and 68, no logic change: steps/investigations/rule-status-audit.md, Q100 to Q103
 - 4f: Q089 the footprint clusters alone, steps 8, 10, 12 and 13 in C# with parity on 2,704 plots, 0 failures
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
 - Phases 0a to 4f merged, PR 41 to 66: the reads of button 2, then steps 4 to 8, 10, 12 and 13 of the plan builder in C# with parity
@@ -13,7 +13,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## Done
 
-- ADDIN 4f: PR 61 and 62 records, PR 63 Q089, PR 64 R358 and R359, PR 65 R360 and R361, PR 66 the records of the phase
+- AUDIT-RULES: PR 67 AI MAX v4 and the log split, PR 68 the audit. 4f: PR 61, 62 records, PR 63 Q089, PR 64 R358, R359, PR 65 R360, R361, PR 66 records
 - REC, PR 56 to 60: rules, design and round file in parts, questions-open.md, latent.md, CLAUDE.md to 9 KB, R400, START.md
 - ADDIN 4e, PR 55: R354 to R357, parity on net48 and net8.0 with 0 failures, the proof 0 unexplained on 7 keys
 - ADDIN 4d, PR 54: R351 to R353. 4c, PR 53: R348 to R350. Q081 and Q073, PR 52. 4b, PR 51. 4a, PR 50. 3b to 0a, PR 41 to 49
@@ -51,7 +51,7 @@ Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario
 Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
 Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
 Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters. Q098 Hand of 5 DP2 plots in DP4 clusters.
-Q099 Link Name of a build.
+Q099 Link Name of a build. Q100 Status of values from the Rev 06 report. Q101 Level profile fields with no share. Q102 Show the assumed values per plot. Q103 Design values in code, not in config.
 
 ## Next three steps
 
