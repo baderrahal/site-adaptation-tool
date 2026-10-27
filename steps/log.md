@@ -2,6 +2,48 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round AUDIT-RULES, 2026-10-27, AI MAX version 4 and the status of every rule value
+
+Goal:
+- The skill refresh and record upkeep, then the status of every rule value, no logic change
+
+Done:
+- PR 67: .claude/skills/ai-max is version 4, the 33 log entries before REC moved byte for byte to steps/history/log-before-rec.md, STATE first in PROGRESS
+- PR 68: steps/investigations/rule-status-audit.md, Q100 to Q103
+
+Checked:
+- Log move: SHA-256 108cc030... on the cut and the new file, the old log equal to the kept part plus it, Q, R of 2 or 3 digits and PR ids 303, 213, 40 both sides (RAN)
+- Audit by steps/investigations/rule-status-scripts/audit.py: 316 rules, 128 process, 591 values, Bader 3, MEASURED 35, RECOMMENDED 9, Code 16, UNKNOWN 528 (RAN)
+- second_check.ps1 equal. Reviews found statuses by text match, Code by absence and marks not read, fixed in the script. Code sweep 120 rows (RAN)
+
+Remains:
+- No output shows assumed values per plot (Q102). R366 not built. The statuses rest on text matching (Q104)
+
+Known bugs:
+- Two relative links of the moved log, history/round-2.md and round-3.md, do not resolve from steps/history/, kept byte for byte
+
+Next:
+- 4g: Bader pastes steps/START.md into a fresh session
+
+Your turn:
+Full text and the recommended answers by ID: steps/questions-open.md.
+
+Q001 El @ Entry rule. Q002 Ramp type by Rev 9 code. Q003 Villa mirror by block flag. Q004 Setback from the DLUS front. Q005 Front level snapped to the road. Q006 Back corners parallel.
+Q007 Generic floor on the whole face. Q008 Units, a baseplan with 01b. Q009 Typology_Rev9 for codes with no schedule. Q010 Sales Land Width. Q012 FFL split by units. Q013 CASE second letter as built.
+Q015 Yard depth under the floor top. Q016 Plots 2311 and 2312 by baseplan. Q017 IMC 2301, 2302 and IMG 544 as VD4. Q018 58 past ramps listed. Q019 Schedule FFL. Q020 Keep the north stop.
+Q021 Parallel windows over 8 GB free. Q022 TEST copies in Zone 02 ARC. Q023 Delete the empty 15a folder. Q024 Curb and ROW from the R94 edge. Q025 13 PDF refusals listed.
+Q026 Two curbs of one drawing. Q027 Two DP4 labels in one face. Q029 Location plan number per face. Q030 The 01b sales rows. Q031 Rev 9 faces, 97 differ. Q032 1.4 FFL parameter as design level.
+Q033 Lone DT3 on a VL3 face. Q036 TBD for DLUS, accommodation for sales. Q037 Corner fronts by the Orientation side. Q038 Native ramp fronts over the subgrade. Q039 Footprint test as third check.
+Q041 Rows 2290 to 2299 as overrides. Q042 Lone duplex hand by row pairs. Q051 Rev 01 values of steps and ramps. Q052 Weak rules held through their overrides. Q053 The override list, native and byHand.
+Q054 R260 of DATA-5 and R261 to R282. Q055 1.4 ELl@Entry typed off its ramp. Q056 Native models for hands, fronts, ramps only. Q057 Ramp front fall with no direction.
+Q058 Old 20221206 prototypes and their hands. Q059 NBH 03 build on native2022. Q062 Rev 9 attribute values of the probe. Q063 Whole NBH 03 image past 30 minutes.
+Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario master. Q066 No Parsons TU model of Zone 1. Q068 Project position of button 1. Q069 A remade key copy by its hashes.
+Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
+Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
+Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters. Q098 Hand of 5 DP2 plots in DP4 clusters.
+Q099 Link Name of a build. Q100 Status of values from client documents. Q101 Level profile fields with no share. Q102 Show the assumed values per plot. Q103 Design values in code, not in config.
+Q104 Audit statuses rest on text matching.
+
 ## Round ADDIN 4f, 2026-10-27, Q089 and steps 8, 10, 12 and 13 in C#
 
 Goal:
