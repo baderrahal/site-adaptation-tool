@@ -8,29 +8,42 @@ Goal:
 - Small start reads, no record over 100 KB, nothing lost, real token use measured, Q095 to Q097 in the rules, the plan to finish Part 1. No logic change
 
 Done:
-- PR 56 rec/rules-split: docs/rules.md in 7 parts of docs/rules/, 37,568 to 92,952 bytes (RAN, wc), docs/rules/index.md of 311 rules by python/rules_index.py, the 12 C# root finders and 2 Python tests read the parts, test_harness checks the CLAUDE.md pointer (RAN, grep -l), steps/usage.md
-- PR 57 rec/design-split: docs/addin-design.md in 11 parts of docs/design/, 3,114 to 28,793 bytes, with a README, round-addin.md in 15 phase files of steps/history/round-addin/, a new round-addin.md for 4f on, test_addin_design reads the parts (RAN, wc)
+- PR 56: docs/rules.md in 7 parts of docs/rules/, 37,568 to 92,952 bytes, docs/rules/index.md of 311 rules by python/rules_index.py, 12 C# root finders and 2 Python tests read the parts, steps/usage.md (RAN, wc, grep -l)
+- PR 57: docs/addin-design.md in 11 parts of docs/design/, 3,114 to 28,793 bytes, with a README, round-addin.md in 15 phase files of steps/history/round-addin/, a new round-addin.md for 4f on (RAN, wc)
+- PR 3 rec/questions: steps/questions-open.md with the full text of 65 open questions, Q095 to Q097 closed, Q088 to Q094 closed by Q095 into steps/latent.md with the latent open bugs and review findings, PROGRESS keeps IDs and titles, the old PROGRESS in steps/history/progress-addin-4e.md
 
 Checked:
 - Gate on main at 73b8c42 before any change: pytest 1,792 passed 1 skipped, build 0 errors 2 warnings, dotnet test 763 net8.0 and 789 net48 (RAN, steps/runs/rec/gate_main.txt)
-- Gate on PR 56 and on PR 2: pytest 1,794 passed 1 skipped, build 0 errors 2 warnings, dotnet test 763 and 789 (RAN, gate_pr1.txt, gate_pr2.txt)
-- 3 splits equal by SHA-256 in python/split_proof.py and by sha256sum over cat of the parts (RAN, split_proof.txt, second_route.txt)
-- Distinct ids of the records 346 R and 94 Q before, 0 lost, by the script and by grep over git archive (RAN)
-- PR 56 reviewer APPROVE, 1 REAL: CLAUDE.md lines 42, 64, 69 name docs/rules.md, they move in PR 4 with a pointer above them. 3 LATENT for steps/latent.md. Claim-checker 0 WRONG (READ, steps/runs/rec/reviews.txt)
-- PR 57 reviewer CHANGES NEEDED, 1 REAL: round-addin.md named files of later PRs, fixed. 3 LATENT. Claim-checker 0 WRONG (READ, reviews.txt)
+- Gate on PR 56, PR 57 and PR 3: pytest 1,794 passed 1 skipped, build 0 errors, dotnet test 763 and 789 (RAN, gate_pr1.txt to gate_pr3.txt)
+- 3 splits equal by SHA-256, the PROGRESS copy equal, 30 and 47 moved question lines and 2 latent bug runs held whole, by python/split_proof.py and by second_route.sh (RAN, split_proof.txt, second_route.txt)
+- Distinct ids of the records 346 R and 94 Q before, 0 lost (RAN, both routes)
+- Reviews: PR 56 APPROVE, PR 57 1 REAL and PR 58 4 REAL fixed or listed as open bugs, LATENT ones in steps/latent.md, claim-checkers 0 WRONG (READ, steps/runs/rec/reviews.txt)
 
 Remains:
-- PR 3 questions, PR 4 CLAUDE.md and agents, PR 5 R400, 01_next.md, START.md, PROGRESS
-- Comments and config notes that name a section of docs/addin-design.md stay as they are, docs/design/README.md maps the numbers (CHOSEN)
+- PR 4 CLAUDE.md and agents, PR 5 R400, 01_next.md, START.md, PROGRESS
+- Comments and config notes that name a section of docs/addin-design.md stay, docs/design/README.md maps the numbers (CHOSEN)
 
 Known bugs:
-- As in steps/PROGRESS.md (READ)
+- steps/PROGRESS.md open bugs and steps/latent.md (READ)
 
 Next:
-- PR 3 rec/questions
+- PR 4 rec/claude-md
 
 Your turn:
-- The open questions Q001 to Q094 of steps/PROGRESS.md (READ), moved to steps/questions-open.md by PR 3
+Full text and the recommended answers by ID: steps/questions-open.md.
+Q001 El @ Entry rule. Q002 Ramp type by Rev 9 code. Q003 Villa mirror by block flag. Q004 Setback from the DLUS front. Q005 Front level snapped to the road. Q006 Back corners parallel.
+Q007 Generic floor on the whole face. Q008 Units, a baseplan with 01b. Q009 Typology_Rev9 for codes with no schedule. Q010 Sales Land Width. Q012 FFL split by units. Q013 CASE second letter as built.
+Q015 Yard depth under the floor top. Q016 Plots 2311 and 2312 by baseplan. Q017 IMC 2301, 2302 and IMG 544 as VD4. Q018 58 past ramps listed. Q019 Schedule FFL. Q020 Keep the north stop.
+Q021 Parallel windows over 8 GB free. Q022 TEST copies in Zone 02 ARC. Q023 Delete the empty 15a folder. Q024 Curb and ROW from the R94 edge. Q025 13 PDF refusals listed.
+Q026 Two curbs of one drawing. Q027 Two DP4 labels in one face. Q029 Location plan number per face. Q030 The 01b sales rows. Q031 Rev 9 faces, 97 differ. Q032 1.4 FFL parameter as design level.
+Q033 Lone DT3 on a VL3 face. Q036 TBD for DLUS, accommodation for sales. Q037 Corner fronts by the Orientation side. Q038 Native ramp fronts over the subgrade. Q039 Footprint test as third check.
+Q041 Rows 2290 to 2299 as overrides. Q042 Lone duplex hand by row pairs. Q051 Rev 01 values of steps and ramps. Q052 Weak rules held through their overrides. Q053 The override list, native and byHand.
+Q054 R260 of DATA-5 and R261 to R282. Q055 1.4 ELl@Entry typed off its ramp. Q056 Native models for hands, fronts, ramps only. Q057 Ramp front fall with no direction.
+Q058 Old 20221206 prototypes and their hands. Q059 NBH 03 build on native2022. Q062 Rev 9 attribute values of the probe. Q063 Whole NBH 03 image past 30 minutes.
+Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario master. Q066 No Parsons TU model of Zone 1. Q068 Project position of button 1. Q069 A remade key copy by its hashes.
+Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
+Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
+Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
 
 ## Round ADDIN Part 1, 2026-10-25, the add-in
 

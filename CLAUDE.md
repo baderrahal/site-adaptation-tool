@@ -154,13 +154,13 @@ The top entry of steps/log.md fits on one page and has these headings in this or
 6. Next
 7. Your turn
 
-Your turn is one list of every open question for Bader by fixed ID, recommended answer first.
+Your turn lists every open question by fixed ID and title, as Bader's turn of steps/PROGRESS.md does. The full text is in steps/questions-open.md.
 steps/PROGRESS.md is 60 lines at most and holds state, done, open bugs, Bader's turn and the next three steps.
 
 ## Questions
 
 - Every question for Bader has a fixed ID, Q001 upward. Never renumber an ID and never reuse one. A new question takes the next free ID.
-- Bader's turn in steps/PROGRESS.md and in the top entry of steps/log.md list the open questions by ID with the same text in both.
+- steps/questions-open.md holds the full text of every open question with its recommended answer first. Bader's turn in steps/PROGRESS.md and Your turn in the top entry of steps/log.md list them by ID and a title of at most 8 words, the same in both.
 - A closed question moves to steps/questions-closed.md with its answer and the date, and keeps its ID. That file also maps old round numbers to IDs.
 - Steps files and reports name a question by its ID, never by a list position.
 
