@@ -838,6 +838,32 @@ namespace SiteAdaptation.Tests
                 Assert.Throws<InvalidDataException>(() => HandSteps(linkKey: key => ((JObject)key["linkOrigin"]).Remove("byCode"))).Message);
         }
 
+        // F1 of the third review of PR 55, test_build_steps.FIT_LINES: a fit with no anchor put the link at the end corner here, a list or null
+        // left the plot not placed in silence, a bad fit of a code out of the scope passed and an offset of a text was taken as a number, where
+        // Python stops. Every fit of the table is held, by CheckKeyRules and by LinkFrames.Step, with the line of Python
+        [Fact]
+        public void R356_a_link_fit_of_the_wrong_shape_or_kind_is_refused_with_the_line_of_python()
+        {
+            JObject key = (JObject)JObject.Parse(File.ReadAllText(RepoRules()))["levelProfiles"]["parsons2024Rev6"]["keyRules"];
+            var cases = new[]
+            {
+                Tuple.Create("DP2", (JToken)new JObject { ["offset"] = new JArray(1.0, 2.0) }, "keyRules linkOrigin byCode DP2 holds anchor None, a build takes start or end (R337)"),
+                Tuple.Create("DP2", (JToken)new JArray(), "keyRules linkOrigin holds byCode DP2 as a list, a build takes it as an object of anchor and offset (R337)"),
+                Tuple.Create("DP2", (JToken)JValue.CreateNull(), "keyRules linkOrigin holds byCode DP2 as null, a build takes it as an object of anchor and offset (R337)"),
+                Tuple.Create("ZZ9", (JToken)new JObject { ["anchor"] = "middle", ["offset"] = new JArray(1.0, 2.0) }, "keyRules linkOrigin byCode ZZ9 holds anchor middle, a build takes start or end (R337)"),
+                Tuple.Create("DP2", (JToken)new JObject { ["anchor"] = "start", ["offset"] = new JArray("1.0", 2.0) }, "keyRules linkOrigin byCode DP2 holds offset ['1.0', 2.0], a build takes a list of two numbers (R337)"),
+                Tuple.Create("DP2", (JToken)new JObject { ["anchor"] = "start", ["offset"] = new JArray(1.0) }, "keyRules linkOrigin byCode DP2 holds offset [1.0], a build takes a list of two numbers (R337)"),
+                Tuple.Create("DP2", (JToken)new JObject { ["anchor"] = "end", ["offset"] = new JArray(true, 1) }, "keyRules linkOrigin byCode DP2 holds offset [True, 1], a build takes a list of two numbers (R337)"),
+            };
+            foreach (Tuple<string, JToken, string> item in cases)
+            {
+                var changed = (JObject)key.DeepClone();
+                changed["linkOrigin"]["byCode"][item.Item1] = item.Item2;
+                Assert.Equal(item.Item3, Assert.Throws<InvalidDataException>(() => BuildRules.CheckKeyRules(changed)).Message);
+                Assert.Equal(item.Item3, Assert.Throws<InvalidDataException>(() => HandSteps(linkKey: linked => linked["linkOrigin"]["byCode"][item.Item1] = item.Item2.DeepClone())).Message);
+            }
+        }
+
         [Fact]
         public void R356_the_link_of_a_plot_is_the_fit_of_its_code_from_the_anchor_corner_of_its_front_in_the_link_axes_of_its_hand()
         {

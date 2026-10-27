@@ -114,6 +114,30 @@ namespace SiteAdaptation.Common
             return entry;
         }
 
+        // R356, F1 of the third review of PR 55. plan_rules.check_link_fits: every fit of keyRules.linkOrigin.byCode, of a code of the scope or
+        // not, an object with an anchor of start or end and an offset of two numbers, else refused with the line of Python, where a fit with no
+        // anchor put the link at the end corner, a list or null left the plot not placed in silence and an offset of a text was a number
+        public static void CheckLinkFits(JObject rules)
+        {
+            foreach (JProperty item in ((JObject)rules["linkOrigin"]["byCode"]).Properties())
+            {
+                if (!(item.Value is JObject fit))
+                {
+                    throw new InvalidDataException("keyRules linkOrigin holds byCode " + item.Name + " as " + ShapeName(item.Value.Type) + ", a build takes it as an object of anchor and offset (R337)");
+                }
+                JToken anchor = fit["anchor"];
+                if (anchor == null || anchor.Type != JTokenType.String || ((string)anchor != "start" && (string)anchor != "end"))
+                {
+                    throw new InvalidDataException("keyRules linkOrigin byCode " + item.Name + " holds anchor " + SiteClusters.PyText(anchor) + ", a build takes start or end (R337)");
+                }
+                JToken offset = fit["offset"];
+                if (!(offset is JArray pair) || pair.Count != 2 || pair.Any(value => value.Type != JTokenType.Integer && value.Type != JTokenType.Float))
+                {
+                    throw new InvalidDataException("keyRules linkOrigin byCode " + item.Name + " holds offset " + SiteClusters.PyText(offset) + ", a build takes a list of two numbers (R337)");
+                }
+            }
+        }
+
         // plan_rules.shape_name: the kind of a JSON value as a message names it
         public static string ShapeName(JTokenType type)
         {
@@ -140,6 +164,7 @@ namespace SiteAdaptation.Common
         {
             Need(rules, "linkRotation", new[] { "frontRule" });
             Need(rules, "linkOrigin", new[] { "plotFrameRefit" }, "byCode");
+            CheckLinkFits(rules);
             foreach (string unitClass in new[] { "villa", "cluster", "alone" })
             {
                 Need(rules, "hand " + unitClass, HandFactors, "byFile");

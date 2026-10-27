@@ -231,6 +231,7 @@ def check_key_rules(rules):
     # A build takes the front of R226 with --sales and no other, so the edge nearest a curb is a candidate it does not carry out
     need("linkRotation", ("frontRule",))
     need("linkOrigin", ("plotFrameRefit",), "byCode")
+    check_link_fits(rules)
     for unit_class in ("villa", "cluster", "alone"):
         need("hand " + unit_class, HAND_FACTORS, "byFile")
     need("rampSlope", ("typology",), "table")
@@ -321,6 +322,25 @@ def key_hand(rules, unit_class_name, link_file, factors):
     return (entry["byFile"].get(link_file) or {}).get(value), entry["rule"]
 
 
+# R356, F1 of the third review of PR 55. The corners a fit of keyRules.linkOrigin anchors at, cad_links.anchor_corner
+LINK_ANCHORS = ("start", "end")
+
+
+def check_link_fits(rules):
+    """R337, R356. Every fit of keyRules.linkOrigin.byCode, of a code of the scope or not, an object with an anchor of LINK_ANCHORS and an
+    offset of two numbers, else refused with one line as BuildRules.CheckLinkFits refuses it, where a fit with no anchor stopped Python with
+    KeyError and put the link of the C# at the end corner."""
+    for code, fit in rules["linkOrigin"]["byCode"].items():
+        if not isinstance(fit, dict):
+            raise project_profile.ProfileError("keyRules linkOrigin holds byCode %s as %s, a build takes it as an object of anchor and offset (R337)"
+                                               % (code, shape_name(fit)))
+        if fit.get("anchor") not in LINK_ANCHORS:
+            raise project_profile.ProfileError("keyRules linkOrigin byCode %s holds anchor %s, a build takes start or end (R337)" % (code, fit.get("anchor")))
+        offset = fit.get("offset")
+        if not isinstance(offset, list) or len(offset) != 2 or not all(isinstance(item, (int, float)) and not isinstance(item, bool) for item in offset):
+            raise project_profile.ProfileError("keyRules linkOrigin byCode %s holds offset %s, a build takes a list of two numbers (R337)" % (code, offset))
+
+
 def key_frame_section(rules):
     """R337. The plotFrame fits per code of keyRules.linkOrigin, fitted again on the keys, in the form of the plotFrame section. A
     linkOrigin with no byCode object is refused with the line of check_key_rules, as LinkFrames.Step refuses it (B3 of the review of PR 55)."""
@@ -328,6 +348,7 @@ def key_frame_section(rules):
     if not isinstance(entry, dict) or not isinstance(entry.get("byCode"), dict):
         raise project_profile.ProfileError("keyRules linkOrigin codes %s, a build gives only plotFrameRefit with byCode (R337)" % (
             entry.get("rule") if isinstance(entry, dict) else None))
+    check_link_fits(rules)
     return {"units": {code: {"anchor": fit["anchor"], "offset": list(fit["offset"])} for code, fit in entry["byCode"].items()}}
 
 

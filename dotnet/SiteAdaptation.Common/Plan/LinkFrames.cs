@@ -115,6 +115,7 @@ namespace SiteAdaptation.Common
             // plan_rules.key_frame_section: a linkOrigin with no byCode object is refused with the line of check_key_rules, never read as empty
             JObject section = keyRules["linkOrigin"]?["byCode"] as JObject ?? throw new System.IO.InvalidDataException("keyRules linkOrigin codes "
                 + ((keyRules["linkOrigin"] as JObject) == null ? "None" : SiteClusters.PyText(keyRules["linkOrigin"]["rule"])) + ", a build gives only plotFrameRefit with byCode (R337)");
+            BuildRules.CheckLinkFits(keyRules);
             var found = new Dictionary<string, Dictionary<string, object>>();
             foreach (string number in numbers)
             {

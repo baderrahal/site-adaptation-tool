@@ -317,6 +317,33 @@ def test_r337_a_key_rule_of_another_kind_is_refused_with_one_line_the_same_in_cs
         assert str(error.value) == line, path
 
 
+# F1 of the third review of PR 55: each fit of keyRules.linkOrigin.byCode in the shape a build reads it, every code of the table in the
+# scope or not, refused with one line in both languages (R356_a_link_fit_of_the_wrong_shape_or_kind_is_refused_with_the_line_of_python)
+FIT_LINES = (
+    ("DP2", {"offset": [1.0, 2.0]}, "keyRules linkOrigin byCode DP2 holds anchor None, a build takes start or end (R337)"),
+    ("DP2", [], "keyRules linkOrigin holds byCode DP2 as a list, a build takes it as an object of anchor and offset (R337)"),
+    ("DP2", None, "keyRules linkOrigin holds byCode DP2 as null, a build takes it as an object of anchor and offset (R337)"),
+    ("ZZ9", {"anchor": "middle", "offset": [1.0, 2.0]}, "keyRules linkOrigin byCode ZZ9 holds anchor middle, a build takes start or end (R337)"),
+    ("DP2", {"anchor": "start", "offset": ["1.0", 2.0]}, "keyRules linkOrigin byCode DP2 holds offset ['1.0', 2.0], a build takes a list of two numbers (R337)"),
+    ("DP2", {"anchor": "start", "offset": [1.0]}, "keyRules linkOrigin byCode DP2 holds offset [1.0], a build takes a list of two numbers (R337)"),
+    ("DP2", {"anchor": "end", "offset": [True, 1]}, "keyRules linkOrigin byCode DP2 holds offset [True, 1], a build takes a list of two numbers (R337)"))
+
+
+def test_r356_a_link_fit_of_the_wrong_shape_or_kind_is_refused_with_the_line_of_csharp():
+    import copy
+    import plan_rules
+    real = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    key = real.values["levelProfiles"]["parsons2024Rev6"]["keyRules"]
+    assert len(plan_rules.key_frame_section(key)["units"]) == len(key["linkOrigin"]["byCode"])
+    for code, fit, line in FIT_LINES:
+        changed = copy.deepcopy(key)
+        changed["linkOrigin"]["byCode"][code] = fit
+        for check in (plan_rules.check_key_rules, plan_rules.key_frame_section):
+            with pytest.raises(project_profile.ProfileError) as error:
+                check(changed)
+            assert str(error.value) == line, (code, fit)
+
+
 # R355 the fronts: a 12 m face 3 m off a road along y = -3, a corner face with a second road along x = 45, and a face with no unit
 FRONT_FACES = {"11": ring(0.0, 0.0, 12.0, 25.0), "12": ring(30.0, 0.0, 42.0, 25.0), "13": ring(60.0, 0.0, 72.0, 25.0)}
 FRONT_ROWS = {"11": {"typologyRev9": "DP2"}, "12": {"typologyRev9": "C10"}, "13": {"typologyRev9": ""}}
