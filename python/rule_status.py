@@ -31,11 +31,17 @@ HOST = re.compile(r"(Minutes|Seconds|TimeLimit|Peak|MiB|minFreeGB|staleHours|hel
 BOOKKEEPING = ("addin.parity", "addin.sharedParameters", "answerKeys", "prototypeNames", "prototypeSets", "pastJob", "handCheck", "cadReads",
                "tableUnits", "drawings", "schedules", "profile", "inputRoot", "siteBuild.snapshot", "siteBuild.roadFolder", "testHost.order",
                "testHost.model", "pastAll", "majority.check", "project", "units_mm", "addin.workbookRoles")
+# Settings inside a bookkeeping block that still choose what a build or button 1 takes: the group the reference key of the position
+# file and the overrides follow (position_file.key_of, ProjectPositionFile.cs), and the job of a level profile (plan_rules.check_override_jobs)
+CHOOSERS = ("majority.check.group",)
 # Q101 (Bader, 2026-10-27). The keyRules entry that measures the decision a field of a level profile outside keyRules holds, so the
 # field shows the share of that entry. A level profile with no such entry, native2022, keeps its status (CHOSEN, the pairs read from
-# the rule of each entry and the code that reads the field, listed in steps/investigations/status-review.md)
-TIES = {"frontRoad": "rampFront", "rampSlopePercent": "rampSlope", "rampTypes": "rampSlope", "height": "ffl", "steps": "steps",
-        "stepBands": "steps", "yardBelowFflM": "yard"}
+# the rule of each entry and the code that reads the field). A field is looked up by its two keys first, so
+# frontRoad.offsetM, a term of El @ Entry (key_rules_check.py, plan_rules.entry_of), goes to entry and the road surface to rampFront.
+# A field whose value, or whose name, is a candidate of its entry takes the share of that candidate. The note says what no code reads.
+TIES = {"frontRoad.surface": ("rampFront", None), "frontRoad.offsetM": ("entry", None), "rampSlopePercent": ("rampSlope", None),
+        "rampTypes": ("rampSlope", None), "height": ("ffl", None), "stepBands": ("steps", None), "yardBelowFflM": ("yard", None),
+        "steps": ("steps", "no code reads this field, a build takes its steps from keyRules.steps and the stepBands")}
 # Q100 asked these five of the audit itself, so they are no evidence of a value, their answers give DOCUMENT and the ties
 AUDIT_QUESTIONS = {"Q100", "Q101", "Q102", "Q103", "Q104"}
 NEAR = 80
@@ -50,7 +56,8 @@ QUESTION_START = re.compile(r"(?:^|(?<=\. ))(?=Q\d{3}\. )")
 
 
 def leaves(o, p):
-    if isinstance(o, dict):
+    # An empty object is a leaf, as an empty list and null are, so majority.overrideKeep.laterFields {} is a value
+    if isinstance(o, dict) and (o or not p):
         for k, v in o.items():
             yield from leaves(v, p + [k])
     elif isinstance(o, list) and any(isinstance(x, (dict, list)) for x in o):
@@ -244,20 +251,34 @@ class Audit:
 
     def tie(self, p, flat):
         """Q101. The keyRules entry of the same level profile that measures the field p[2], when the profile holds it with a share."""
-        if len(p) < 3 or p[0] != "levelProfiles" or p[2] not in TIES:
+        if len(p) < 3 or p[0] != "levelProfiles":
             return None
-        base = tuple(p[:2]) + ("keyRules", TIES[p[2]])
+        found = TIES.get(".".join(p[2:4])) or TIES.get(p[2])
+        if found is None:
+            return None
+        base = tuple(p[:2]) + ("keyRules", found[0])
         share = flat.get(base + ("share",))
-        return None if share is None else (".".join(base), share)
+        if share is None:
+            return None
+        value = flat.get(tuple(p))
+        candidate = next((name for name in (value, p[2]) if isinstance(name, str) and base + ("candidates", name) in flat), None)
+        extra = {}
+        if candidate is not None:
+            share = flat[base + ("candidates", candidate)]
+            extra["candidate"] = candidate
+        if found[1]:
+            extra["note"] = found[1]
+        return ".".join(base), share, extra
 
     def classify(self, fname, data):
         rows = []
         flat = {tuple(p): v for p, v in leaves(data, [])}
         self.leaf.update({(fname, ".".join(p)): v for p, v in flat.items()})
 
-        def measured(path, kind, share, strength, by, evidence, tied=False):
+        def measured(path, kind, share, strength, by, evidence, tied=None):
             rows.append((path, kind, MEASURED, "share %s, %s" % (share, strength), evidence))
-            self.extra[(fname, path)] = dict({"share": share, "strength": strength, "measuredBy": by}, **({"tiedBy": "Q101"} if tied else {}))
+            self.extra[(fname, path)] = dict({"share": share, "strength": strength, "measuredBy": by},
+                                             **(dict({"tiedBy": "Q101"}, **tied) if tied is not None else {}))
 
         for p, v in leaves(data, []):
             path = ".".join(p)
@@ -290,10 +311,8 @@ class Audit:
                 rows.append((path, "input", "input name or location, no design value", "", ""))
                 continue
             numbers = isinstance(v, list) and v and all(isinstance(x, (int, float)) for x in v)
-            if any(path == b or path.startswith(b + ".") for b in BOOKKEEPING) or (p[0] in ("dataBook", "connect") and isinstance(v, (str, list)) and not numbers):
-                rows.append((path, "setting", "setting of a reader or check, no design value", "", ""))
-                continue
-            if fname == self.profile and p[0] == "levelProfiles" and p[-1] == "job":
+            if path not in CHOOSERS and (any(path == b or path.startswith(b + ".") for b in BOOKKEEPING)
+                                         or (p[0] in ("dataBook", "connect") and isinstance(v, (str, list)) and not numbers)):
                 rows.append((path, "setting", "setting of a reader or check, no design value", "", ""))
                 continue
             kind = "host" if HOST.search(path) else "value"
@@ -316,7 +335,7 @@ class Audit:
             if fname == self.profile and v is not None and v != [] and v != {}:
                 tied = self.tie(p, flat)
                 if tied:
-                    measured(path, kind, tied[1], "strong" if tied[1] >= self.strong else "weak", tied[0], "tied by Q101 to " + tied[0], True)
+                    measured(path, kind, tied[1], "strong" if tied[1] >= self.strong else "weak", tied[0], "tied by Q101 to " + tied[0], tied[2])
                     continue
             texts = []
             par = tuple(p[:-1])
@@ -493,7 +512,7 @@ class Audit:
         """The block entry of a value: its status first, then the fields its status needs."""
         e = self.extra.get((f, path), {})
         keep = {BADER: ("question", "line", "where"), RECOMMENDED: ("question", "where"), CODE: ("where",),
-                MEASURED: ("share", "strength", "measuredBy", "tiedBy"), DOCUMENT: ("document", "pageOrSheet", "source"),
+                MEASURED: ("share", "strength", "measuredBy", "tiedBy", "candidate", "note"), DOCUMENT: ("document", "pageOrSheet", "source"),
                 UNKNOWN: ("nearestSource", "why")}[status]
         return dict({"status": status}, **{k: e[k] for k in keep if k in e})
 

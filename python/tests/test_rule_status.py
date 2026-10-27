@@ -12,7 +12,8 @@ import rule_status
 
 ROOT = Path(__file__).resolve().parents[2]
 FIELDS = {"CHOSEN by Bader": ({"where"}, [{"question"}, {"line"}]), "RECOMMENDED": ({"question", "where"}, [set()]),
-          "CHOSEN by Code": ({"where"}, [set()]), "MEASURED": ({"share", "strength", "measuredBy"}, [set(), {"tiedBy"}]),
+          "CHOSEN by Code": ({"where"}, [set()]), "MEASURED": ({"share", "strength", "measuredBy"}, [set(), {"tiedBy"}, {"tiedBy", "candidate"}, {"tiedBy", "note"},
+                                                                                      {"tiedBy", "candidate", "note"}]),
           "DOCUMENT": ({"document", "pageOrSheet", "source"}, [set()]), "UNKNOWN": ({"why"}, [set(), {"nearestSource"}])}
 
 
@@ -24,7 +25,7 @@ def write_json(path, value):
 def make_repo(root, open_text="Q005. Tolerance: is analysis.toleranceM right (recommended).\n"):
     """A small repo with one value of each status, built in code."""
     write_json(root / "config" / "project.json", {
-        "profile": "rules/p.json", "majority": {"strongShare": 0.9},
+        "profile": "rules/p.json", "majority": {"strongShare": 0.9, "check": {"group": "g", "file": "c.csv"}, "keep": {}},
         "addin": {"limitMm": 5, "limitMmNote": "Code set it (CHOSEN)", "gapMm": 2, "gapMmNote": "answered (Q002)"},
         "analysis": {"toleranceM": 0.01, "endShare": 0.25, "otherShare": 0.5}})
     write_json(root / "rules" / "p.json", {
@@ -65,8 +66,8 @@ def test_r401_every_value_has_one_entry_and_no_entry_names_a_missing_value(tmp_p
         assert sorted(block[name]) == sorted(values) and len(values) == len(set(values))
         for path in block[name]:
             found = rule_status.value_at(data, path)
-            assert not isinstance(found, dict)
-    assert len(block["rules/p.json"]) == 13 and len(block["config/project.json"]) == 6
+            assert not (isinstance(found, dict) and found)
+    assert len(block["rules/p.json"]) == 14 and len(block["config/project.json"]) == 8
 
 
 def test_r401_each_status_holds_the_fields_it_needs(tmp_path):
@@ -193,7 +194,8 @@ def test_r401_the_real_block_covers_every_value_of_the_two_files():
         entry = block[f][path]
         need, optional = FIELDS[entry["status"]]
         assert any(set(entry) - {"status"} == need | extra for extra in optional), (f, path, entry)
-        assert not isinstance(rule_status.value_at(files[f], path), dict)
+        found = rule_status.value_at(files[f], path)
+        assert not (isinstance(found, dict) and found)
 
 
 def test_r401_every_reader_of_the_rules_profile_keeps_reading_it_with_the_block():
@@ -210,3 +212,57 @@ def test_r401_every_reader_of_the_rules_profile_keeps_reading_it_with_the_block(
     new = key_rules_block.put_block(text, name, found)
     start = text.index('\n  "status": {')
     assert new[new.index('\n  "status": {'):] == text[start:]
+
+
+def test_r401_a_field_is_tied_by_its_own_key_to_the_entry_or_candidate_that_measures_it(tmp_path):
+    root = make_repo(tmp_path)
+    path = root / "rules" / "p.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    p1 = data["levelProfiles"]["p1"]
+    p1.update(frontRoad={"surface": "roadLevel", "offsetM": 0.0}, height="perCluster", stepBands=[[0.2, 1], [99.0, 2]], steps="countRule")
+    p1["keyRules"].update(rampFront={"rule": "roadLevel", "share": 0.7, "strong": False, "candidates": {"roadLevel": 0.7, "other": 0.1}},
+                          entry={"rule": "roadLevel", "share": 0.088, "strong": False},
+                          ffl={"rule": "perPiece", "share": 0.75, "strong": False, "candidates": {"perPiece": 0.75, "perCluster": 0.68}})
+    p1["keyRules"]["steps"]["candidates"] = {"fromHeight": 0.8, "stepBands": 0.93}
+    write_json(path, data)
+    rule_status.write(root)
+    rules = entries(root)["rules/p.json"]
+    base = "levelProfiles.p1."
+    assert rules[base + "frontRoad.offsetM"] == {"status": "MEASURED", "share": 0.088, "strength": "weak",
+                                                 "measuredBy": base + "keyRules.entry", "tiedBy": "Q101"}
+    assert rules[base + "frontRoad.surface"]["measuredBy"] == base + "keyRules.rampFront"
+    assert rules[base + "frontRoad.surface"]["candidate"] == "roadLevel"
+    assert rules[base + "height"] == {"status": "MEASURED", "share": 0.68, "strength": "weak", "measuredBy": base + "keyRules.ffl",
+                                      "tiedBy": "Q101", "candidate": "perCluster"}
+    assert rules[base + "stepBands.1"] == {"status": "MEASURED", "share": 0.93, "strength": "strong", "measuredBy": base + "keyRules.steps",
+                                           "tiedBy": "Q101", "candidate": "stepBands"}
+    assert rules[base + "steps"]["share"] == 0.8 and "no code reads" in rules[base + "steps"]["note"]
+
+
+def test_r401_an_empty_object_and_the_choosers_of_a_bookkeeping_block_have_an_entry(tmp_path):
+    root = make_repo(tmp_path)
+    rule_status.write(root)
+    block = entries(root)
+    assert block["config/project.json"]["majority.keep"] == {"status": "UNKNOWN", "why": "null or empty"}
+    assert block["config/project.json"]["majority.check.group"]["status"] == "UNKNOWN"
+    assert "majority.check.file" not in block["config/project.json"]
+    assert block["rules/p.json"]["levelProfiles.p1.job"]["status"] == "UNKNOWN"
+
+
+def test_r401_cross_sections_leaves_the_status_block_out():
+    import cross_sections
+    profile = {"status": {"rules/p.json": {"curbs.curb_height": {"status": "UNKNOWN"}}}, "curbs": {"curb_height": 150}}
+    assert cross_sections.profile_values(profile, ["curb"]) == {"curbs.curb_height": 150}
+
+
+def test_r401_each_measured_entry_of_the_real_block_holds_the_share_of_the_profile():
+    """A rewrite of keyRules with no --write fails here. Open and closed questions are left to rule_status.py --check."""
+    settings = json.loads((ROOT / "config" / "project.json").read_text(encoding="utf-8"))
+    profile = json.loads((ROOT / settings["profile"]).read_text(encoding="utf-8"))
+    strong = settings["majority"]["strongShare"]
+    measured = [(f, path, e) for f, block in profile["status"].items() if f != "note" for path, e in block.items() if e["status"] == "MEASURED"]
+    assert len(measured) >= 35
+    for f, path, e in measured:
+        entry = rule_status.value_at(profile, e["measuredBy"])
+        share = entry["candidates"][e["candidate"]] if "candidate" in e else entry["share"]
+        assert (e["share"], e["strength"]) == (share, "strong" if share >= strong else "weak"), (f, path)

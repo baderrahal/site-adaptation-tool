@@ -54,7 +54,8 @@ foreach ($file in ($block.Keys | Where-Object { $_ -ne 'note' } | Sort-Object)) 
         if ($e['status'] -eq 'MEASURED') {
             $node = $all
             foreach ($part in $e['measuredBy'].Split('.')) { $node = $node[$part] }
-            if ([double]$node['share'] -ne [double]$e['share']) { $shareBad++ }
+            $want = if ($e.ContainsKey('candidate')) { $node['candidates'][$e['candidate']] } else { $node['share'] }
+            if ([double]$want -ne [double]$e['share']) { $shareBad++ }
         }
         if ($e['status'] -eq 'DOCUMENT') { if ($e['pageOrSheet'] -eq 'UNKNOWN') { $pageUnknown++ } else { $withPage++ } }
     }

@@ -146,6 +146,9 @@ def profile_values(profile, words):
     def walk(value, path):
         if isinstance(value, dict):
             for key, item in value.items():
+                # R401. The block status of the profile names values by their paths, it holds no value of its own
+                if not path and key == "status":
+                    continue
                 walk(item, path + [key])
         elif any(w in "_".join(path).lower() for w in words):
             found[".".join(path)] = value
