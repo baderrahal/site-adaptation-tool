@@ -835,6 +835,27 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        // F2 of the third review of PR 55, test_build_steps.LEAF_LINES: a hand of a byFile table that is no true or false, taken as truthy,
+        // so the text false mirrored the link, refused with the line of Python
+        [Fact]
+        public void R357_a_hand_of_a_byfile_table_that_is_no_true_or_false_is_refused_with_the_line_of_python()
+        {
+            JObject key = (JObject)JObject.Parse(File.ReadAllText(RepoRules()))["levelProfiles"]["parsons2024Rev6"]["keyRules"];
+            string name = ((JObject)key["hand villa"]["byFile"]).Properties().Select(item => item.Name).OrderBy(item => item, StringComparer.Ordinal).First();
+            string factor = ((JObject)key["hand villa"]["byFile"][name]).Properties().Select(item => item.Name).OrderBy(item => item, StringComparer.Ordinal).First();
+            var cases = new[]
+            {
+                Tuple.Create((JToken)"false", "a text"), Tuple.Create((JToken)1, "a number"), Tuple.Create((JToken)JValue.CreateNull(), "null"), Tuple.Create((JToken)new JArray(true), "a list"),
+            };
+            foreach (Tuple<JToken, string> item in cases)
+            {
+                var changed = (JObject)key.DeepClone();
+                changed["hand villa"]["byFile"][name][factor] = item.Item1;
+                Assert.Equal("keyRules hand villa holds byFile " + name + " " + factor + " as " + item.Item2 + ", a build takes true or false (R337)",
+                    Assert.Throws<InvalidDataException>(() => BuildRules.CheckKeyRules(changed)).Message);
+            }
+        }
+
         [Fact]
         public void R356_the_link_of_a_plot_is_the_fit_of_its_code_from_the_anchor_corner_of_its_front_in_the_link_axes_of_its_hand()
         {

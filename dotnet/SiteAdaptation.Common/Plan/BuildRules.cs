@@ -105,9 +105,17 @@ namespace SiteAdaptation.Common
                 }
                 if (field == "byFile")
                 {
-                    foreach (JProperty table in ((JObject)entry[field]).Properties().Where(table => table.Value.Type != JTokenType.Object))
+                    foreach (JProperty table in ((JObject)entry[field]).Properties())
                     {
-                        throw new InvalidDataException("keyRules " + word + " holds byFile " + table.Name + " as " + ShapeName(table.Value.Type) + ", a build takes it as an object of factor values (R337)");
+                        if (table.Value.Type != JTokenType.Object)
+                        {
+                            throw new InvalidDataException("keyRules " + word + " holds byFile " + table.Name + " as " + ShapeName(table.Value.Type) + ", a build takes it as an object of factor values (R337)");
+                        }
+                        // F2 of the third review of PR 55: a hand is true or false, never a text a build would take as true
+                        foreach (JProperty hand in ((JObject)table.Value).Properties().Where(hand => hand.Value.Type != JTokenType.Boolean))
+                        {
+                            throw new InvalidDataException("keyRules " + word + " holds byFile " + table.Name + " " + hand.Name + " as " + ShapeName(hand.Value.Type) + ", a build takes true or false (R337)");
+                        }
                     }
                 }
             }

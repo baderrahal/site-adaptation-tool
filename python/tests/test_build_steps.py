@@ -344,6 +344,26 @@ def test_r356_a_link_fit_of_the_wrong_shape_or_kind_is_refused_with_the_line_of_
             assert str(error.value) == line, (code, fit)
 
 
+# F2 of the third review of PR 55: a hand of a byFile table that is no true or false, taken as truthy on both sides, so the text false
+# mirrored the link, refused with one line (R357_a_hand_of_a_byfile_table_that_is_no_true_or_false_is_refused_with_the_line_of_python)
+LEAF_LINES = (("false", "a text"), (1, "a number"), (None, "null"), ([True], "a list"))
+
+
+def test_r357_a_hand_of_a_byfile_table_that_is_no_true_or_false_is_refused_with_the_line_of_csharp():
+    import copy
+    import plan_rules
+    real = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    key = real.values["levelProfiles"]["parsons2024Rev6"]["keyRules"]
+    name = sorted(key["hand villa"]["byFile"])[0]
+    factor = sorted(key["hand villa"]["byFile"][name])[0]
+    for value, kind in LEAF_LINES:
+        changed = copy.deepcopy(key)
+        changed["hand villa"]["byFile"][name][factor] = value
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_rules.check_key_rules(changed)
+        assert str(error.value) == "keyRules hand villa holds byFile %s %s as %s, a build takes true or false (R337)" % (name, factor, kind)
+
+
 # R355 the fronts: a 12 m face 3 m off a road along y = -3, a corner face with a second road along x = 45, and a face with no unit
 FRONT_FACES = {"11": ring(0.0, 0.0, 12.0, 25.0), "12": ring(30.0, 0.0, 42.0, 25.0), "13": ring(60.0, 0.0, 72.0, 25.0)}
 FRONT_ROWS = {"11": {"typologyRev9": "DP2"}, "12": {"typologyRev9": "C10"}, "13": {"typologyRev9": ""}}

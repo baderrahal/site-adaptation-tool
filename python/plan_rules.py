@@ -227,6 +227,11 @@ def check_key_rules(rules):
                     if not isinstance(table, dict):
                         raise project_profile.ProfileError("keyRules %s holds byFile %s as %s, a build takes it as an object of factor values (R337)" % (
                             word, name, shape_name(table)))
+                    # F2 of the third review of PR 55: a hand is true or false, never a text a build would take as true
+                    for factor, hand in table.items():
+                        if not isinstance(hand, bool):
+                            raise project_profile.ProfileError("keyRules %s holds byFile %s %s as %s, a build takes true or false (R337)" % (
+                                word, name, factor, shape_name(hand)))
         return entry
     # A build takes the front of R226 with --sales and no other, so the edge nearest a curb is a candidate it does not carry out
     need("linkRotation", ("frontRule",))
