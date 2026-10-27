@@ -18,7 +18,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - The status block of rules/roshn-makkah.json, written by audit.py with DOCUMENT of Q100 and the shares of Q101, and steps/investigations/status-review.md, Bader's review list of Q104
 - R401, the status of each plotted value, the next free rule id (CHOSEN): the status of each sourced value of a plot of the plan, as section 10 point 1 of steps/investigations/rule-status-audit.md gives it, and its count by field and status in the plan summary of step 15
 - Design: docs/design/05-plan-steps.md steps 5 to 13 and 15, steps/investigations/rule-status-audit.md sections 1, 8 and 10
-- Done when: parity holds on the 7 keys and the whole project for the hands, the parameters and the status of each plotted value, the summary of step 15 of Python counts plots by field and status, and steps/investigations/status-review.md holds Bader's review list of Q104. The parity of that count goes with step 15 in 4g2
+- Done when: parity holds on the 7 keys and the whole project for the hands, the parameters and the status of each plotted value, the summary of step 15 of Python counts plots by field and status, and steps/investigations/status-review.md holds Bader's review list of Q104. The parity of that count goes with step 15 in 4g3
 
 ## 4g2, Q105, Q107, the walls and the check rows
 

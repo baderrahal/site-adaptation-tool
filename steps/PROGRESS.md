@@ -5,7 +5,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 ## State
 
 - 4g1 done on 2026-10-27, PR 69 to 73: Q098 and Q099 coded, the status block of R401 on 595 values, the status of each plotted value
-- Every written plot holds an assumed value. Bader's review list of Q104: steps/investigations/status-review.md, 41 rows
+- Every written plot holds an assumed value. Bader accepted the 41 rows of steps/investigations/status-review.md, each CHOSEN by Bader, Q104 (4g2 PR 1)
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
 - Phases 0a to 4g1 merged, PR 41 to 73: the reads of button 2, steps 4 to 8, 10, 12, 13 and the status of the plan builder in C# with parity
 - Plan: steps/01_next.md. Design: docs/design/. Rules: docs/rules/index.md. Findings: steps/investigations/round-addin.md. Part 2 waits for Bader's check of Part 1
