@@ -41,7 +41,8 @@ def make_repo(root, open_text="Q005. Tolerance: is analysis.toleranceM right (re
     (root / "steps" / "PROGRESS.md").write_text("# Progress\n\n## Bader's turn\n\nQ005 Tolerance.\n\n## Next\n", encoding="utf-8")
     (root / "steps" / "questions-open.md").write_text(open_text, encoding="utf-8")
     (root / "steps" / "questions-closed.md").write_text(
-        "| Q002 | Gap | Yes (Bader) | 2026-10-27 |\n| Q003 | End | Yes (Bader) | 2026-10-27 |\n\nQ003. End share: is analysis.endShare right\n",
+        "| Q002 | Gap of analysis.otherShare | Yes (Bader) | 2026-10-27 |\n| Q003 | End | Yes (Bader): analysis.endShare stays | 2026-10-27 |\n\n"
+        "## Q002\n\nQ002. Gap: is analysis.otherShare right\n",
         encoding="utf-8")
     (root / "docs" / "rules").mkdir(parents=True)
     (root / "docs" / "rules" / "index.md").write_text("# Rules index\n\n- R1 Rule one.\n", encoding="utf-8")
@@ -89,7 +90,7 @@ def test_r401_each_status_holds_the_fields_it_needs(tmp_path):
     assert config["majority.strongShare"]["line"] == "the Majority rule of CLAUDE.md"
     assert config["addin.limitMm"] == {"status": "CHOSEN by Code", "where": "addin.limitMmNote"}
     assert config["addin.gapMm"] == {"status": "CHOSEN by Bader", "question": "Q002", "where": "addin.gapMmNote"}
-    # A question that moved to the closed file with an answer of Bader names its value as a choice of Bader
+    # A closed answer of Bader that names the value in its row of the table is a choice of Bader
     assert config["analysis.endShare"] == {"status": "CHOSEN by Bader", "question": "Q003", "where": "Q003"}
     assert config["analysis.toleranceM"] == {"status": "RECOMMENDED", "question": "Q005", "where": "Q005"}
     assert config["analysis.otherShare"]["status"] == "UNKNOWN"
@@ -140,12 +141,18 @@ def test_r401_check_lists_an_entry_whose_evidence_changed(tmp_path):
 
 
 def test_r401_a_question_id_inside_a_sentence_starts_no_question(tmp_path):
-    root = make_repo(tmp_path)
-    (root / "steps" / "questions-closed.md").write_text(
-        "| Q002 | Gap | Yes (Bader) | 2026-10-27 |\n| Q003 | End | Yes (Bader) | 2026-10-27 |\n\n"
-        "Q003. End share: asked since Q002. so is analysis.endShare right\n", encoding="utf-8")
+    root = make_repo(tmp_path, open_text="Q005. Tolerance: asked since Q003. so is analysis.toleranceM right\n")
     rule_status.write(root)
-    assert entries(root)["config/project.json"]["analysis.endShare"]["question"] == "Q003"
+    assert entries(root)["config/project.json"]["analysis.toleranceM"]["question"] == "Q005"
+
+
+def test_r401_a_closed_question_counts_by_its_answer_never_by_its_moved_text(tmp_path):
+    root = make_repo(tmp_path)
+    rule_status.write(root)
+    config = entries(root)["config/project.json"]
+    # The question cell and the moved text of Q002 name analysis.otherShare, its answer does not, so the value takes no status from it
+    assert config["analysis.otherShare"]["status"] == "UNKNOWN"
+    assert config["analysis.endShare"]["question"] == "Q003"
 
 
 def test_r401_a_question_of_the_new_range_is_open_and_the_audit_questions_are_no_evidence(tmp_path):

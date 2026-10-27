@@ -93,6 +93,12 @@ def value_at(data, dotted):
     raise KeyError(dotted)
 
 
+def answer_cell(row):
+    """The answer of a row | Qnnn | question | answer | date | of the table of the closed questions."""
+    cells = [cell.strip() for cell in row.strip().strip("|").split(" | ")]
+    return cells[2] if len(cells) >= 4 else ""
+
+
 def load(root, name, profile):
     """A file of the two as values: the block status of the rules profile is left out, it is the output, never a value or evidence."""
     data = json.loads((Path(root) / name).read_text(encoding="utf-8"))
@@ -155,15 +161,16 @@ class Audit:
                 if m and m.group(1) in self.open:
                     for rid in RID.findall(piece):
                         self.open_by_rule[rid].add(m.group(1))
-        # Each question by its text, the short lines hold several, so a line is cut where "Qnnn. " starts a sentence. A question whose text
-        # moved to the closed file with an answer of Bader names its values as it did when open, now as a choice of Bader
+        # Each open question by its text, the short lines hold several, so a line is cut where "Qnnn. " starts a sentence
         self.question_pieces = []
-        for text, wanted in ((open_text, self.open), (closed_text, self.closed_bader)):
-            for line in text.splitlines():
-                for piece in re.split(QUESTION_START, line):
-                    m = re.match(r"(Q\d{3})\. ", piece)
-                    if m and m.group(1) in wanted:
-                        self.question_pieces.append((m.group(1), piece))
+        for line in open_text.splitlines():
+            for piece in re.split(QUESTION_START, line):
+                m = re.match(r"(Q\d{3})\. ", piece)
+                if m and m.group(1) in self.open:
+                    self.question_pieces.append((m.group(1), piece))
+        # A closed question of Bader by the answer cell of its row of the table alone. The question cell and the old text moved under a
+        # section below the table name what was asked, not what Bader chose, as the text of Q098 names Duplex_DP4 clusters, not D04
+        self.question_pieces += [(q, answer_cell(row)) for q, row in self.closed_rows.items() if q in self.closed_bader]
         self.bader_by_rule = collections.defaultdict(set)
         for q, row in self.closed_rows.items():
             if q in self.closed_bader:

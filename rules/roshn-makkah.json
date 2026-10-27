@@ -607,7 +607,7 @@
       "analysis.noRev6Match": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "analysis.pairRule": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "analysis.blockClusters.Duplex_DP2": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
-      "analysis.blockClusters.Duplex_DP4": {"status": "CHOSEN by Bader", "question": "Q098", "where": "Q098"},
+      "analysis.blockClusters.Duplex_DP4": {"status": "RECOMMENDED", "question": "Q105", "where": "Q105"},
       "analysis.blockClusters.Townhouse_TH1": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "analysis.blockClusters.Townhouse_TH3": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "dataBook.rev9.dlus.headerRow": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},

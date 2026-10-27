@@ -6,21 +6,21 @@ Round ADDIN 4g1 PR 3, 2026-10-27. Bader's review list of Q104: the values of the
 
 | Status | Before, the audit of PR 68 | After, the block of this PR |
 |---|---:|---:|
-| CHOSEN by Bader | 3 | 4 |
+| CHOSEN by Bader | 3 | 3 |
 | MEASURED | 35 | 50 |
 | DOCUMENT | not a status then | 275 |
-| RECOMMENDED | 9 | 8 |
+| RECOMMENDED | 9 | 9 |
 | CHOSEN by Code | 16 | 16 |
 | UNKNOWN | 528 | 238 |
 | Values of the two files | 591 | 591 |
 
-Before is section 2 of steps/investigations/rule-status-audit.md (READ). After is RAN by python/rule_status.py and recounted from the JSON by steps/investigations/rule-status-scripts/second_check.ps1 with the same counts (RAN). The changes: DOCUMENT of Q100 takes the 275 values under a client document, 139 of the Rev 06 report, 130 of the DLUS Schedule Rev 9 workbook and 6 base heights of the past job schedules. MEASURED of Q101 takes the 15 fields of parsons2024Rev6 outside keyRules. Q098, closed by Bader, turns its one value from RECOMMENDED to CHOSEN by Bader.
+Before is section 2 of steps/investigations/rule-status-audit.md (READ). After is RAN by python/rule_status.py and recounted from the JSON by steps/investigations/rule-status-scripts/second_check.ps1 with the same counts (RAN). The changes: DOCUMENT of Q100 takes the 275 values under a client document, 139 of the Rev 06 report, 130 of the DLUS Schedule Rev 9 workbook and 6 base heights of the past job schedules. MEASURED of Q101 takes the 15 fields of parsons2024Rev6 outside keyRules. The one value of Q098, closed now, is RECOMMENDED by Q105 instead, see below.
 
 ## How the values of table 2 were chosen
 
 - A value is in table 2 when code on the route of a build or a placement reads it and it changes one of: the insert, rotation, mirror, front, link frame, FFL, El @ Entry, SSL, height, steps, a ramp or floor level or outline of a plot. The route is python/plan_from_book.py with what it calls for those fields (plan_rules.py, cad_links.py, corner_front.py, floor_fit.py, override_source.py, plan_from_past.load_floors), python/position_file.py for the project position, and their C# twins in dotnet/SiteAdaptation.Common/Plan/, Read/ and FloorPlacer.cs (CHOSEN).
 - Each UNKNOWN value was looked up by its key in python/ and dotnet/, outside the tests, and each reader line of the table was opened and read (SEARCHED, then READ at the line given).
-- The native2022 values are listed, though native2022 is never the default (Q050), since a build named with it takes them.
+- Table 2 holds the values a parsons2024Rev6 build or the add-in reads, Bader's list. Table 2b holds the values only a build named with native2022 reads, the 21 of its level profile and the two of config read for it alone, majority.overrideRounding.levelProfiles.native2022 and majority.siteReference.native (READ, python/plan_rules.py:118 takes the rounding of the profile built, python/position_file.py:565 the reference key of majority.check.group, parsons). native2022 is a reference profile no build takes by default (Q050), so 2b is for information.
 - Left out, 193 of the 238 UNKNOWN values (RAN, the grouping script of this PR):
   - read by no code, 19: the 14 empty cells of typology_codes, steps.riser_height, the rule texts of keyRules site and ssl (SSL is the FFL plus levels.ground_ssl, python/plan_rules.py:670, a DOCUMENT value), native2022 medianOf and steps (READ, no reader found)
   - the data book and the plot table, 54, which number the faces and never move one: dataBook.locationPlan 24, dataBook.wiring 23, dataBook.rev9 2, dataBook.data5 2, connect 3 (the label shifts) (CHOSEN, a number decides which plot a face is, not where it is)
@@ -32,8 +32,9 @@ Before is section 2 of steps/investigations/rule-status-audit.md (READ). After i
 
 ## Found while writing the list
 
-- Row 2 of table 3 is CHOSEN by Bader by the text of Q098, as Bader's answer gives a value an open question named and Bader closed. The text names Duplex_DP4 as a kind of footprint cluster, not the block cluster code D04 of analysis.blockClusters.Duplex_DP4, so the match is likely wrong and the value UNKNOWN (CHOSEN, a reading of the text). Left as the rule gives it, for Bader.
-- In the first run of this PR the same value took Q089: the closed file holds the text of Q098 with "since Q089. keyRules" inside it, and the cut of a question text at each "Qnnn. " started a question there. python/rule_status.py now starts a question only at a line start or after a sentence end, the test test_r401_a_question_id_inside_a_sentence_starts_no_question holds it, and --check showed that one entry change (RAN).
+- analysis.blockClusters.Duplex_DP4 first took CHOSEN by Bader from the old text of Q098 moved below the table of steps/questions-closed.md. That text names Duplex_DP4 as a kind of footprint cluster, not the block cluster code D04, so the match was wrong. A closed question now counts by the answer cell of its row of the table alone, never by its question cell or its moved text (test_r401_a_closed_question_counts_by_its_answer_never_by_its_moved_text). The value is now RECOMMENDED by Q105, open, whose text names Duplex_DP4 in the same sense of a footprint cluster, so that match is likely wrong as well (CHOSEN, a reading of the text). Q105 is in Bader's turn, so Bader reads it there.
+- With that rule a second entry moved and moved back: the question cell of the row of Q073 names siteBuild.roadSurfaces, which gave it CHOSEN by Bader while the question cell counted. Its answer cell does not name the value, so it stays UNKNOWN (RAN, --check).
+- Before that, a question text was cut at each "Qnnn. ", and "since Q089. keyRules" inside the text of Q098 started a question there. python/rule_status.py now starts a question only at a line start or after a sentence end (test_r401_a_question_id_inside_a_sentence_starts_no_question).
 - The Q101 tie gives height the share of keyRules ffl, 0.7465 weak, while ffl codes oneFflPerPieceAtTheHighestEntry and height holds oneFflPerClusterAtTheHighestEntry, a candidate of ffl at 0.6868, weak as well. stepBands takes the share of keyRules steps, 0.9877 strong, while the candidate stepBands of that entry holds 0.9336, strong as well. frontRoad is tied to rampFront, 0.6924 weak, whose candidates are the road surfaces, entry, 0.088 weak, measures against the same road (READ, rules/roshn-makkah.json keyRules, CHOSEN).
 
 ## 1 Values CHOSEN by Code
@@ -59,7 +60,7 @@ Before is section 2 of steps/investigations/rule-status-audit.md (READ). After i
 
 Rows: 16 (RAN, python/rule_status.py, every value of status CHOSEN by Code).
 
-## 2 Values still UNKNOWN that set the position or a level of a plot
+## 2 Values still UNKNOWN that set the position or a level of a plot in a parsons2024Rev6 build or the add-in
 
 | # | What it sets | File and dotted path | Read by | Value |
 |---:|---|---|---|---|
@@ -84,40 +85,48 @@ Rows: 16 (RAN, python/rule_status.py, every value of status CHOSEN by Code).
 | 19 | overrides: the keys of the native source, the same for a native build | config/project.json majority.groups.native | python/plan_from_book.py:1278, dotnet/SiteAdaptation.Common/Plan/PlanOverrides.cs:263 | ["u11", "u12", "u13", "u14"] |
 | 20 | overrides: the sources a build applies when it names none (R330) | config/project.json majority.overrideDefaultSources | python/override_source.py:177, dotnet/SiteAdaptation.Common/Plan/PlanOverrides.cs:262 | ["parsons"] |
 | 21 | levels: the rounding of the levels and level overrides of a build of parsons2024Rev6 (R385) | config/project.json majority.overrideRounding.levelProfiles.parsons2024Rev6 | python/plan_rules.py:118 | "R385" |
-| 22 | levels: the rounding of a build of native2022, never the default (Q050) | config/project.json majority.overrideRounding.levelProfiles.native2022 | python/plan_rules.py:118 | "pythonRound" |
-| 23 | insert of every plot: the key the project position file of button 1 is written from (R353) | config/project.json majority.siteReference.parsons | python/position_file.py:565, dotnet/SiteAdaptation.Common/Read/ProjectPositionFile.cs:41 | "imc" |
-| 24 | the same for the native group, read only when majority.check.group is native | config/project.json majority.siteReference.native | python/position_file.py:565, dotnet/SiteAdaptation.Common/Read/ProjectPositionFile.cs:41 | "u14" |
-| 25 | El @ Entry of a native2022 build: the road surface at the front | rules/roshn-makkah.json levelProfiles.native2022.frontRoad.surface | python/plan_rules.py:279 | an input name, not shown |
-| 26 | El @ Entry of a native2022 build: the offset above that road | rules/roshn-makkah.json levelProfiles.native2022.frontRoad.offsetM | python/plan_rules.py:94 | 0.7 |
-| 27 | El @ Entry and ramp of a native2022 build: the ramp slope | rules/roshn-makkah.json levelProfiles.native2022.rampSlopePercent.default | python/plan_rules.py:77 | 2.0 |
-| 28 | ramp of a native2022 build: the ramp type of the 2 percent class | rules/roshn-makkah.json levelProfiles.native2022.rampTypes.2 | python/plan_from_book.py:349 | "Ramps 2%" |
-| 29 | FFL of a native2022 build: the height rule | rules/roshn-makkah.json levelProfiles.native2022.height | python/plan_rules.py:147 | "medianPerUnit" |
-| 30 | FFL and height of a native2022 build: the median height of C10 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.C10 | python/plan_rules.py:149 | 0.1 |
-| 31 | FFL and height of a native2022 build: the median height of DP1 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.DP1 | python/plan_rules.py:149 | 0.24 |
-| 32 | FFL and height of a native2022 build: the median height of DP2 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.DP2 | python/plan_rules.py:149 | 0.12 |
-| 33 | FFL and height of a native2022 build: the median height of DP3 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.DP3 | python/plan_rules.py:149 | 0.24 |
-| 34 | FFL and height of a native2022 build: the median height of DP4 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.DP4 | python/plan_rules.py:149 | 0.12 |
-| 35 | FFL and height of a native2022 build: the median height of DT1 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.DT1 | python/plan_rules.py:149 | 0.254 |
-| 36 | FFL and height of a native2022 build: the median height of DT3 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.DT3 | python/plan_rules.py:149 | 0.244 |
-| 37 | FFL and height of a native2022 build: the median height of TH1 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.TH1 | python/plan_rules.py:149 | 0.297 |
-| 38 | FFL and height of a native2022 build: the median height of TH1-IM | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.TH1-IM | python/plan_rules.py:149 | 0.289 |
-| 39 | FFL and height of a native2022 build: the median height of TH3 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.TH3 | python/plan_rules.py:149 | 0.3 |
-| 40 | FFL and height of a native2022 build: the median height of VD1 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.VD1 | python/plan_rules.py:149 | 0.28 |
-| 41 | FFL and height of a native2022 build: the median height of VD2 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.VD2 | python/plan_rules.py:149 | 0.1 |
-| 42 | FFL and height of a native2022 build: the median height of VD4 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.VD4 | python/plan_rules.py:149 | 0.141 |
-| 43 | FFL and height of a native2022 build: the median height of VL4 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.VL4 | python/plan_rules.py:149 | 0.182 |
-| 44 | FFL and height of a native2022 build: the median height of VL6 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.VL6 | python/plan_rules.py:149 | 0.1 |
-| 45 | yard level of a native2022 build: null, so a build of it makes no yard | rules/roshn-makkah.json levelProfiles.native2022.yardBelowFflM | python/plan_from_book.py:994 | null |
+| 22 | insert of every plot: the key the project position file of button 1 is written from (R353) | config/project.json majority.siteReference.parsons | python/position_file.py:565, dotnet/SiteAdaptation.Common/Read/ProjectPositionFile.cs:41 | "imc" |
 
-Rows: 45 of the 238 UNKNOWN values (RAN, python/rule_status.py, each listed value checked UNKNOWN in the block).
+Rows: 22 (RAN, python/rule_status.py, each listed value checked UNKNOWN in the block).
+
+## 2b Values still UNKNOWN of the reference profile native2022, which no build takes by default (Q050), for information
+
+| # | What it sets | File and dotted path | Read by | Value |
+|---:|---|---|---|---|
+| 1 | levels: the rounding of a build of native2022, never the default (Q050) | config/project.json majority.overrideRounding.levelProfiles.native2022 | python/plan_rules.py:118 | "pythonRound" |
+| 2 | the same for the native group, read only when majority.check.group is native | config/project.json majority.siteReference.native | python/position_file.py:565, dotnet/SiteAdaptation.Common/Read/ProjectPositionFile.cs:41 | "u14" |
+| 3 | El @ Entry of a native2022 build: the road surface at the front | rules/roshn-makkah.json levelProfiles.native2022.frontRoad.surface | python/plan_rules.py:279 | an input name, not shown |
+| 4 | El @ Entry of a native2022 build: the offset above that road | rules/roshn-makkah.json levelProfiles.native2022.frontRoad.offsetM | python/plan_rules.py:94 | 0.7 |
+| 5 | El @ Entry and ramp of a native2022 build: the ramp slope | rules/roshn-makkah.json levelProfiles.native2022.rampSlopePercent.default | python/plan_rules.py:77 | 2.0 |
+| 6 | ramp of a native2022 build: the ramp type of the 2 percent class | rules/roshn-makkah.json levelProfiles.native2022.rampTypes.2 | python/plan_from_book.py:349 | "Ramps 2%" |
+| 7 | FFL of a native2022 build: the height rule | rules/roshn-makkah.json levelProfiles.native2022.height | python/plan_rules.py:147 | "medianPerUnit" |
+| 8 | FFL and height of a native2022 build: the median height of C10 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.C10 | python/plan_rules.py:149 | 0.1 |
+| 9 | FFL and height of a native2022 build: the median height of DP1 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.DP1 | python/plan_rules.py:149 | 0.24 |
+| 10 | FFL and height of a native2022 build: the median height of DP2 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.DP2 | python/plan_rules.py:149 | 0.12 |
+| 11 | FFL and height of a native2022 build: the median height of DP3 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.DP3 | python/plan_rules.py:149 | 0.24 |
+| 12 | FFL and height of a native2022 build: the median height of DP4 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.DP4 | python/plan_rules.py:149 | 0.12 |
+| 13 | FFL and height of a native2022 build: the median height of DT1 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.DT1 | python/plan_rules.py:149 | 0.254 |
+| 14 | FFL and height of a native2022 build: the median height of DT3 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.DT3 | python/plan_rules.py:149 | 0.244 |
+| 15 | FFL and height of a native2022 build: the median height of TH1 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.TH1 | python/plan_rules.py:149 | 0.297 |
+| 16 | FFL and height of a native2022 build: the median height of TH1-IM | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.TH1-IM | python/plan_rules.py:149 | 0.289 |
+| 17 | FFL and height of a native2022 build: the median height of TH3 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.TH3 | python/plan_rules.py:149 | 0.3 |
+| 18 | FFL and height of a native2022 build: the median height of VD1 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.VD1 | python/plan_rules.py:149 | 0.28 |
+| 19 | FFL and height of a native2022 build: the median height of VD2 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.VD2 | python/plan_rules.py:149 | 0.1 |
+| 20 | FFL and height of a native2022 build: the median height of VD4 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.VD4 | python/plan_rules.py:149 | 0.141 |
+| 21 | FFL and height of a native2022 build: the median height of VL4 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.VL4 | python/plan_rules.py:149 | 0.182 |
+| 22 | FFL and height of a native2022 build: the median height of VL6 | rules/roshn-makkah.json levelProfiles.native2022.medianHeightM.VL6 | python/plan_rules.py:149 | 0.1 |
+| 23 | yard level of a native2022 build: null, so a build of it makes no yard | rules/roshn-makkah.json levelProfiles.native2022.yardBelowFflM | python/plan_from_book.py:994 | null |
+
+Rows: 23 (RAN, python/rule_status.py, each listed value checked UNKNOWN in the block).
+
+Bader's review list is table 1 and table 2: 38 rows. Tables 2 and 2b together hold 45 of the 238 UNKNOWN values.
 
 ## 3 Values CHOSEN by Bader, for information
 
 | # | File and dotted path | Value | Question or line | The text that gave the status |
 |---:|---|---|---|---|
 | 1 | rules/roshn-makkah.json levelProfiles.default | "parsons2024Rev6" | Q050 | CLAUDE.md and steps/questions-closed.md: parsons2024Rev6 is the level profile of every new build, Rev 6 prevails |
-| 2 | config/project.json analysis.blockClusters.Duplex_DP4 | "D04" | Q098 | Q098: Q098. Hand of 5 DP2 plots in DP4 clusters (R354, R357, Round ADDIN 4f PR 2): the build by keyRules takes the footprint clusters alone since Q089. keyRules hand cluster, measured again on them, learned no table for DP2 or DP4, since no footprint cluster of the 7 keys holds such a unit, where the analysis clusters M02 and M04 gave one before. On the whole project 5 DP2 units sit in Duplex_DP4 footprint clusters, 859/86... |
-| 3 | config/project.json testHost.imageStepMinutes | 30 | Q061 | R302: - **R302 Image step limit.** The image step of an image job of the test host runs at most testHost.imageStepMinutes of config/project.json, 30 (Bader, Q061). |
-| 4 | config/project.json majority.strongShare | 0.9 | the Majority rule of CLAUDE.md | CLAUDE.md: Bader's standing rule since Round 17, for every round |
+| 2 | config/project.json testHost.imageStepMinutes | 30 | Q061 | R302: - **R302 Image step limit.** The image step of an image job of the test host runs at most testHost.imageStepMinutes of config/project.json, 30 (Bader, Q061). |
+| 3 | config/project.json majority.strongShare | 0.9 | the Majority rule of CLAUDE.md | CLAUDE.md: Bader's standing rule since Round 17, for every round |
 
-Rows: 4 (RAN, python/rule_status.py, every value of status CHOSEN by Bader).
+Rows: 3 (RAN, python/rule_status.py, every value of status CHOSEN by Bader).
