@@ -149,7 +149,7 @@ def test_r388_majority_and_plan_from_book_take_their_cad_outputs_from_the_one_pl
     monkeypatch.setattr(majority.plan_from_book, "book_rows", lambda path: ({}, {}))
     monkeypatch.setattr(majority, "read_rows", lambda path, settings, block: [])
     monkeypatch.setattr(project_profile, "load_settings", lambda path=None: settings)
-    assert majority.main(["t.csv", "--plots-csv", "p.csv", "--analysis", "a.json", "--sales", "s.xlsx", "--out", str(tmp_path / "m.json"),
+    assert majority.main(["t.csv", "--plots-csv", "p.csv", "--sales", "s.xlsx", "--out", str(tmp_path / "m.json"),
                           "--overrides", str(tmp_path / "o.json")]) == 2
     assert seen == [("baseplan", None)]
     seen.clear()

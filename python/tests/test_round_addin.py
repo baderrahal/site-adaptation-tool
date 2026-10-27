@@ -79,10 +79,10 @@ SUMMARY = {"written": 0, "plots": 0, "missingByKey": {}, "inACluster": 0, "clust
            "rules": {"keyRules": False, "laterFields": [], "overridesNotApplied": {}, "yardNotMeasured": {}}}
 
 
-def run_book(tmp_path, monkeypatch, extra, read_input=None, build=None, edges=None):
+def run_book(tmp_path, monkeypatch, extra, read_input=None, build=None, edges=None, footprint=True):
     """plan_from_book.main on the real config and rules profile with the readers of the drawings, the LandXML and the site
     stubbed, so the rules a build gets and its refusals are seen through main itself. read_input stands for the R388 read of the
-    CadReader outputs, the file given when left out."""
+    CadReader outputs, the file given when left out. footprint gives the made up footprint read of no block, the clusters of R236."""
     seen = {}
     monkeypatch.setattr(plan_from_book, "book_rows", lambda path: ({}, {}))
     monkeypatch.setattr(plan_from_book.link_summary, "load", lambda path: {"plots": []})
@@ -107,12 +107,12 @@ def run_book(tmp_path, monkeypatch, extra, read_input=None, build=None, edges=No
     monkeypatch.setattr(plan_from_book, "build", build or built)
     cover = tmp_path / "cover.json"
     cover.write_text(json.dumps({"neighbourhood": "N1", "plots": ["1"]}), encoding="utf-8")
-    analysis = tmp_path / "analysis.json"
-    # R354. The analysis a build joins is of the baseplan drawing config names
-    analysis.write_text(json.dumps({"source": project_profile.load_settings().get("drawings")["baseplan"], "clusters": [], "plots": [], "summary": {"plotFaces": 0}}),
-                        encoding="utf-8")
-    argv = [str(cover), "--plots-csv", "p.csv", "--landxml", "x", "--site", "s.json", "--baseplan", "b.json", "--roads", "r", "--analysis", str(analysis),
-            "--scratch", str(tmp_path), "--sales", "s.xlsx", "--out", str(tmp_path / "plan.json")] + extra
+    # R354. Since Q089 a build takes the footprint clusters alone, so the made up footprint read holds no block
+    monkeypatch.setattr(plan_from_book.footprint_check, "footprint_blocks", lambda path, settings: [])
+    blocks = tmp_path / "f.json"
+    blocks.write_text("made up", encoding="utf-8")
+    argv = [str(cover), "--plots-csv", "p.csv", "--landxml", "x", "--site", "s.json", "--baseplan", "b.json", "--roads", "r",
+            "--scratch", str(tmp_path), "--sales", "s.xlsx", "--out", str(tmp_path / "plan.json")] + (["--footprint-blocks", str(blocks)] if footprint else []) + extra
     return plan_from_book.main(argv), seen
 
 

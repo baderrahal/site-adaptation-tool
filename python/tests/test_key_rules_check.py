@@ -61,7 +61,6 @@ def made_up(tmp_path, decisions=None, later=None):
     for plot in faces:
         sheet.append([int(plot), "EN"])
     book.save(sales)
-    (tmp_path / "analysis.json").write_text(json.dumps({"clusters": []}), encoding="utf-8")
     (tmp_path / "blocks.json").write_text(json.dumps({"source": "made up", "blocks": []}), encoding="utf-8")
     majority_json = tmp_path / "majority.json"
     decision = {"decision": "parsons linkOrigin", "plots": 4, "coded": "plotFrameRefit", "field": "insert",
@@ -79,7 +78,7 @@ def made_up(tmp_path, decisions=None, later=None):
     (tmp_path / "input" / real["pastJob"]["upgradedPrototypeFolder"]).mkdir(parents=True)
     settings.write_text(json.dumps(real), encoding="utf-8")
     return ["--settings", str(settings), "--past-all", str(past), "--majority", str(majority_json), "--overrides", str(overrides), "--plots-csv", str(plots),
-            "--baseplan", str(baseplan), "--roads", str(roads), "--sales", str(sales), "--analysis", str(tmp_path / "analysis.json"),
+            "--baseplan", str(baseplan), "--roads", str(roads), "--sales", str(sales),
             "--footprint-blocks", str(tmp_path / "blocks.json"), "--out", str(tmp_path / "out" / "check.json")], tmp_path / "out" / "check.json"
 
 
@@ -158,12 +157,16 @@ def test_r336_the_yard_outline_of_a_group_is_made_again_from_the_plot_of_its_fit
     assert few[("DP2", False, 12.0)] == [[(0.0, 0.0), (5.0, 0.0), (5.0, 3.0), (0.0, 3.0)]]
 
 
-def test_r336_the_clusters_are_made_again_from_the_footprint_blocks_and_the_analysis():
+def test_r354_the_check_makes_the_clusters_again_from_the_footprint_blocks_alone_and_refuses_an_analysis(tmp_path, capsys):
     faces = {str(plot): [(plot * 10.0, 0.0), (plot * 10.0 + 10.0, 0.0), (plot * 10.0 + 10.0, 25.0), (plot * 10.0, 25.0)] for plot in range(1, 6)}
-    book = {plot: {"baseplanLabel": "L" + plot, "footprintBlock": "Duplex" if plot in ("1", "2") else ""} for plot in faces}
+    book = {plot: {"baseplanLabel": "L" + plot, "footprintBlock": "Duplex" if plot in ("1", "2", "3", "4") else ""} for plot in faces}
     blocks = [{"name": "Duplex", "outline": [[10.0, 5.0], [30.0, 5.0], [30.0, 20.0], [10.0, 20.0]]}, {"name": "Duplex", "outline": [[60.0, 5.0], [70.0, 5.0], [70.0, 20.0]]}]
-    analysis = [{"plots": ["L2", "L3", "L4"]}, {"plots": ["L5"]}]
-    assert key_rules_check.own_clusters(sorted(faces), book, faces, blocks, analysis) == [["1", "2"], ["3", "4"]]
+    # 3 and 4 name a block that lies on neither, and since Q089 no analysis makes them a cluster
+    assert key_rules_check.own_clusters(sorted(faces), book, faces, blocks) == [["1", "2"]]
+    argv, _ = made_up(tmp_path)
+    assert key_rules_check.main(argv + ["--analysis", str(tmp_path / "analysis.json")]) == 2
+    assert capsys.readouterr().err.strip() == ("key_rules_check: the analysis is no input of the majority rule since Q089, it measures on the footprint "
+                                               "clusters of R236 alone (R354)")
 
 
 def test_r336_the_area_two_rings_share_is_exact_for_a_ring_with_a_reflex_corner():

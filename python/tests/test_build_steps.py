@@ -33,44 +33,44 @@ BLOCKS = [{"name": "Duplex_DP2", "outline": ring(2.0, 5.0, 22.0, 20.0)}, {"name"
           {"name": "Pair_N", "outline": ring(106.0, 0.0, 118.0, 25.0)},
           # A block of the name of 6 that touches it along an edge only, area 0, so it joins 6 to nothing
           {"name": "Duplex_DP2", "outline": ring(72.0, 5.0, 80.0, 20.0)}]
-# The analysis by baseplan labels: 104 to 106, 104 taken by a block, so 5 and 6 stay a cluster of the analysis
 DRAWINGS = project_profile.load_settings().get("drawings")
-ANALYSIS = {"source": DRAWINGS["baseplan"], "clusters": [{"code": "M02", "plots": ["104", "105", "106"]}]}
 
 
-def made_clusters(analysis=ANALYSIS, rows=ROWS, number_of=NUMBER_OF):
+def made_clusters(rows=ROWS):
     import footprint_check
     shapes = footprint_check.block_shapes(BLOCKS)
     units = [number for number, row in rows.items() if row.get("typologyRev9") and number in FACES]
-    return plan_from_book.site_clusters(units, rows, FACES, shapes, analysis["clusters"], number_of)
+    return plan_from_book.site_clusters(units, rows, FACES, shapes)
 
 
-def test_r354_the_clusters_of_a_build_are_the_footprint_clusters_then_the_rest_of_the_analysis_each_with_its_source():
+def test_r354_the_clusters_of_a_build_are_the_footprint_clusters_alone_since_q089():
     clusters = made_clusters()
     assert [(cluster["code"], cluster["plots"], cluster["source"]) for cluster in clusters] == [
-        ("Duplex_DP2", ["1", "2"], "footprint"), ("Duplex_DP2", ["3", "4"], "footprint"), ("M02", ["5", "6"], "analysis")]
+        ("Duplex_DP2", ["1", "2"], "footprint"), ("Duplex_DP2", ["3", "4"], "footprint")]
     step = plan_from_book.cluster_step([str(number) for number in range(1, 9)], clusters)
-    assert step == {"1|2": {"plots": ["1", "2"], "code": "Duplex_DP2", "source": "footprint"}, "3|4": {"plots": ["3", "4"], "code": "Duplex_DP2", "source": "footprint"},
-                    "5|6": {"plots": ["5", "6"], "code": "M02", "source": "analysis"}}
+    assert step == {"1|2": {"plots": ["1", "2"], "code": "Duplex_DP2", "source": "footprint"}, "3|4": {"plots": ["3", "4"], "code": "Duplex_DP2", "source": "footprint"}}
     # A scope holds the clusters that hold one of its plots, the whole cluster
     assert list(plan_from_book.cluster_step(["2"], clusters)) == ["1|2"]
-    assert plan_from_book.cluster_step(["7", "8"], clusters) == {}
+    assert plan_from_book.cluster_step(["5", "6", "7", "8"], clusters) == {}
+    # Q089. The analysis join is gone from the build, so no function of it is left to call
+    assert not any(hasattr(plan_from_book, name) for name in ("joined_clusters", "analysis_clusters", "hold_analysis", "ANALYSIS"))
 
 
 def test_r354_two_blocks_of_one_name_that_tie_on_a_face_give_it_the_first_and_a_block_on_its_edge_gives_none():
     clusters = made_clusters()
     # 7 holds 150 m2 of each block of Pair_N, the first in the read takes it, so 7 and 8 lie on two blocks and form no cluster
     assert not any(set(cluster["plots"]) & {"7", "8"} for cluster in clusters)
-    # The block that touches 6 along an edge shares no area with it
-    assert all(cluster["source"] == "analysis" for cluster in clusters if "6" in cluster["plots"])
+    # The block that touches 6 along an edge shares no area with it, and since Q089 no analysis gives 6 a cluster
+    assert not any("6" in cluster["plots"] for cluster in clusters)
 
 
 def test_r354_a_plot_of_two_plan_numbers_or_a_cluster_left_with_one_plot_is_no_cluster():
-    rows = dict(ROWS, **{"7|8": dict(ROWS["7"], locationPlanNumber="7|8")})
-    number_of = dict(NUMBER_OF, **{"107": "7|8"})
-    analysis = {"clusters": [{"code": "M04", "plots": ["107", "108"]}, {"code": "M02", "plots": ["101", "105"]}]}
-    clusters = made_clusters(analysis, rows, number_of)
-    assert [cluster["plots"] for cluster in clusters] == [["1", "2"], ["3", "4"]]
+    rows = dict(ROWS, **{"2|9": dict(ROWS["2"], locationPlanNumber="2|9")})
+    faces = dict(FACES, **{"2|9": FACES["2"]})
+    import footprint_check
+    clusters = plan_from_book.site_clusters(["1", "2|9", "3", "4"], rows, faces, footprint_check.block_shapes(BLOCKS))
+    # 1 and 2|9 share the first duplex block, 2|9 is no plot of its own, so 1 is left alone and no cluster
+    assert [cluster["plots"] for cluster in clusters] == [["3", "4"]]
 
 
 def test_r354_a_label_of_two_rings_is_refused_by_the_build_steps():
@@ -91,65 +91,23 @@ def test_r354_a_footprint_block_that_is_not_a_simple_ring_is_refused_by_the_buil
     assert plan_from_book.simple_blocks(BLOCKS) == BLOCKS
 
 
-def test_r354_an_analysis_of_another_drawing_or_with_no_clusters_is_refused(tmp_path):
-    settings = project_profile.load_settings()
-    path = tmp_path / "analysis.json"
-    path.write_text(json.dumps(HELD), encoding="utf-8")
-    assert plan_from_book.analysis_clusters(path, settings, READ) == ANALYSIS["clusters"]
-    for content, why in (({"source": DRAWINGS["villaBlocks"], "clusters": []}, "is of " + DRAWINGS["villaBlocks"]),
-                         ({"clusters": []}, "is of None"), ({"source": DRAWINGS["baseplan"]}, "holds no clusters list"),
-                         ({"source": DRAWINGS["baseplan"].swapcase(), "clusters": []}, "is of " + DRAWINGS["baseplan"].swapcase())):
-        path.write_text(json.dumps(content), encoding="utf-8")
-        with pytest.raises(project_profile.ProfileError) as error:
-            plan_from_book.analysis_clusters(path, settings, READ)
-        assert why in str(error.value) and "(R354)" in str(error.value)
+ANALYSIS_LINE = "the analysis is no input of a build since Q089, a build takes the footprint clusters of R236 alone (R354)"
 
 
-# B1 of the review of PR 55. The baseplan read of the made up faces with a type, the footprint blocks with a rotation, and an analysis made
-# from them, which records no hash or date of its drawings, only their name (Q089)
-READ = [dict(plot_shape(str(100 + int(number)), vertices), type="DP2") for number, vertices in {**ROW, **APART}.items()]
-TURNED = [dict(block, rotationDeg=turn) for block, turn in zip(BLOCKS, (0.0, 90.0, 0.0, 180.0, 180.0, 0.0))]
-HELD = dict(ANALYSIS, summary={"plotFaces": 8}, plots=[{"plot": "101", "cadType": "DP2", "block": "Duplex_DP2", "rotation": 0.0},
-                                                       {"plot": "103", "cadType": "DP2", "block": "Duplex_DP2", "rotation": 90.0},
-                                                       {"plot": "105", "cadType": "DP2", "block": "Villa_VD2", "rotation": 359.9996},
-                                                       {"plot": "106", "cadType": "DP2", "block": None, "rotation": None}])
+def test_r354_a_build_given_an_analysis_is_refused_with_one_line_before_any_step_file(tmp_path, capsys):
+    steps = tmp_path / "steps"
+    argv = ["all", "--labels", "l.csv", "--plots-csv", "p.csv", "--landxml", "x", "--site", "s.json", "--scratch", str(tmp_path), "--out", str(tmp_path / "plan.json"),
+            "--analysis", "analysis.json", "--footprint-blocks", "blocks.json", "--steps", str(steps)]
+    assert plan_from_book.main(argv) == 2
+    assert capsys.readouterr().err.strip() == "plan_from_book: " + ANALYSIS_LINE
+    assert not list(steps.glob("step_*")) and not (tmp_path / "plan.json").exists()
 
 
-def held(**changes):
-    plots = [dict(record, **changes.pop(record["plot"], {})) for record in HELD["plots"]]
-    return dict(HELD, plots=plots + changes.pop("more", []), **changes)
-
-
-def test_r354_an_analysis_is_held_to_the_reads_it_was_made_from_by_its_face_count_the_type_of_each_label_and_the_block_under_it(tmp_path):
-    settings = project_profile.load_settings()
-    path = tmp_path / "analysis.json"
-    path.write_text(json.dumps(HELD), encoding="utf-8")
-    assert plan_from_book.analysis_clusters(path, settings, READ, TURNED) == ANALYSIS["clusters"]
-    # Within half a unit of the 3 decimals the rotation is written at, by the turn
-    path.write_text(json.dumps(held(**{"101": {"rotation": 0.0004}})), encoding="utf-8")
-    assert plan_from_book.analysis_clusters(path, settings, READ, TURNED) == ANALYSIS["clusters"]
-    cases = (
-        (held(summary={}), "analysis.json holds no plots list or no summary.plotFaces, which hold the analysis a build joins to the reads it was made "
-                           "from (R354)"),
-        ({k: v for k, v in HELD.items() if k != "plots"}, "analysis.json holds no plots list or no summary.plotFaces"),
-        (held(summary={"plotFaces": 9}), "analysis.json counts 9 plot faces and the baseplan read holds 8, the analysis a build joins is of the reads it "
-                                         "was made from (R354)"),
-        (held(**{"103": {"cadType": "VL4"}}, more=[{"plot": "999", "cadType": "DP2"}]),
-         "2 plots of analysis.json lie on no face of their label or on one of another type in the baseplan read: 103, 999, the analysis a build "
-         "joins is of the reads it was made from (R354)"),
-        # Plot 101 of a later drawing whose labels moved: its face lies on the first duplex block, of rotation 0, and the analysis gives 90
-        (held(**{"101": {"rotation": 90.0}}), "1 plots of analysis.json lie on no block of their name or on one of another rotation in the footprint "
-                                              "read: 101, the analysis a build joins is of the reads it was made from (R354)"),
-        (held(**{"101": {"rotation": 0.0006}, "105": {"block": "Duplex_DP2"}}), "2 plots of analysis.json lie on no block of their name or on one of "
-                                                                                "another rotation in the footprint read: 101, 105"))
-    for content, why in cases:
-        path.write_text(json.dumps(content), encoding="utf-8")
-        with pytest.raises(project_profile.ProfileError) as error:
-            plan_from_book.analysis_clusters(path, settings, READ, TURNED)
-        assert why in str(error.value)
-    # With no footprint read the blocks are not held, the count and the labels are
-    path.write_text(json.dumps(held(**{"101": {"rotation": 90.0}})), encoding="utf-8")
-    assert plan_from_book.analysis_clusters(path, settings, READ) == ANALYSIS["clusters"]
+def test_r354_a_build_with_no_footprint_blocks_has_no_clusters_and_is_refused(tmp_path, monkeypatch, capsys):
+    from test_round_addin import run_book
+    code, _ = run_book(tmp_path, monkeypatch, [], footprint=False)
+    assert code == 2
+    assert capsys.readouterr().err.strip() == "plan_from_book: give --footprint-blocks for the clusters, a build takes the footprint clusters of R236 alone (R354)"
 
 
 # B4 of the review of PR 55, the text of R354_every_number_of_a_json_input_is_the_double_or_integer_python_reads_from_its_text of the C#
