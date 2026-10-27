@@ -428,23 +428,30 @@ AREA_LINES = (
     (float("inf"), "addin.parity.kinds.areas is Infinity, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
     (-1, "addin.parity.kinds.areas is -1, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
     ("x", "addin.parity.kinds.areas is \"x\", a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+    # H2 of the fifth review of PR 55: a text and a nested value as json.dumps writes them, the line AddinConfig.ParityTolerance now gives
+    ("\u00e9", "addin.parity.kinds.areas is \"\\u00e9\", a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+    ("Infinity", "addin.parity.kinds.areas is \"Infinity\", a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+    ([-1e20], "addin.parity.kinds.areas is [-1e+20], a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+    ({"a": ["\u00e9\n", 1.5, None, False]}, "addin.parity.kinds.areas is {\"a\":[\"\\u00e9\\n\",1.5,null,false]}, a tolerance is a finite number of zero or more, or null "
+                                             "for a kind compared exactly (R345)"),
+    (float("-inf"), "addin.parity.kinds.areas is -Infinity, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
     (None, "addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)"))
 
 
 def test_r345_the_areas_tolerance_is_held_as_the_csharp_holds_it(tmp_path):
     real = json.loads(project_profile.SETTINGS_PATH.read_text(encoding="utf-8"))
-    assert plan_from_book.area_tolerance(project_profile.load_settings()) == real["addin"]["parity"]["kinds"]["areas"]
+    assert parity.area_tolerance(project_profile.load_settings()) == real["addin"]["parity"]["kinds"]["areas"]
     path = tmp_path / "project.json"
     for value, line in AREA_LINES:
         real["addin"]["parity"]["kinds"]["areas"] = value
         path.write_text(json.dumps(real), encoding="utf-8")
         with pytest.raises(project_profile.ProfileError) as error:
-            plan_from_book.area_tolerance(project_profile.load_settings(path))
+            parity.area_tolerance(project_profile.load_settings(path))
         assert str(error.value) == line, value
     del real["addin"]["parity"]["kinds"]["areas"]
     path.write_text(json.dumps(real), encoding="utf-8")
     with pytest.raises(project_profile.ProfileError) as error:
-        plan_from_book.area_tolerance(project_profile.load_settings(path))
+        parity.area_tolerance(project_profile.load_settings(path))
     assert str(error.value) == "addin.parity.kinds names no kind areas (R345)"
 
 

@@ -529,6 +529,12 @@ namespace SiteAdaptation.Tests
                 Tuple.Create("Infinity", "addin.parity.kinds.areas is Infinity, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
                 Tuple.Create("-1", "addin.parity.kinds.areas is -1, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
                 Tuple.Create("\"x\"", "addin.parity.kinds.areas is \"x\", a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+                // H2 of the fifth review of PR 55: a text and a nested value written as json.dumps writes them, ASCII with escapes and a float by repr
+                Tuple.Create("\"\u00e9\"", "addin.parity.kinds.areas is \"\\u00e9\", a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+                Tuple.Create("\"Infinity\"", "addin.parity.kinds.areas is \"Infinity\", a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+                Tuple.Create("[-1E+20]", "addin.parity.kinds.areas is [-1e+20], a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+                Tuple.Create("{\"a\": [\"\u00e9\\n\", 1.5, null, false]}", "addin.parity.kinds.areas is {\"a\":[\"\\u00e9\\n\",1.5,null,false]}, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+                Tuple.Create("-1E400", "addin.parity.kinds.areas is -Infinity, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
             };
             string path = Path.Combine(folder, "project.json");
             foreach (Tuple<string, string> item in cases)

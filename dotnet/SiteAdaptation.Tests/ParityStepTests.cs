@@ -455,5 +455,29 @@ namespace SiteAdaptation.Tests
             Assert.Equal(0.0, AddinConfig.Load(path).ParityTolerance("areas"));
             Assert.Null(AddinConfig.Load(path).ParityTolerance("noGeometry"));
         }
+
+        // H2 of the fifth review of PR 55, test_parity.TOLERANCES_LINES: every kind the fields of the steps name held in their order with
+        // the lines of parity.tolerances
+        [Fact]
+        public void R345_parity_tolerances_hold_every_kind_the_steps_name_with_the_lines_of_python()
+        {
+            string path = Path.Combine(folder, "config.json");
+            var cases = new[]
+            {
+                Tuple.Create("{\"areas\": 0.1}", "{\"faces\": {\"area\": {\"kind\": \"volumes\", \"decimals\": 3}}}", "addin.parity.steps.faces.area names the kind volumes, which addin.parity.kinds does not hold (R345)"),
+                Tuple.Create("{\"areas\": 0.1}", "{\"faces\": {\"area\": {\"decimals\": 3}}}", "addin.parity.steps.faces.area names the kind None, which addin.parity.kinds does not hold (R345)"),
+                Tuple.Create("{\"areas\": 0.1}", "{\"faces\": {\"area\": {\"kind\": \"areas\"}}}", "addin.parity.steps.faces.area: a kind with a tolerance has decimals and a kind compared exactly has none (R345)"),
+                Tuple.Create("{\"areas\": null}", "{\"faces\": {\"area\": {\"kind\": \"areas\", \"decimals\": 3}}}", "addin.parity.steps.faces.area: a kind with a tolerance has decimals and a kind compared exactly has none (R345)"),
+                Tuple.Create("{\"areas\": 0.1, \"points\": NaN}", "{\"faces\": {\"area\": {\"kind\": \"areas\", \"decimals\": 3}, \"centroid\": {\"kind\": \"points\", \"decimals\": 3}}}",
+                    "addin.parity.kinds.points is NaN, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+                Tuple.Create("{\"areas\": 0.1}", "[]", "config holds no addin.parity block with kinds and steps (R345)"),
+            };
+            foreach (Tuple<string, string, string> item in cases)
+            {
+                File.WriteAllText(path, "{\"addin\": {\"parity\": {\"kinds\": " + item.Item1 + ", \"steps\": " + item.Item2 + "}}}");
+                Assert.Equal(item.Item3, Assert.Throws<InvalidDataException>(() => AddinConfig.Load(path).ParityTolerances()).Message);
+            }
+            AddinConfig.Load(WorkerRunTests.RepoConfig()).ParityTolerances();
+        }
     }
 }

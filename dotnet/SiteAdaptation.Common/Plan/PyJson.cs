@@ -71,6 +71,107 @@ namespace SiteAdaptation.Common
             }
         }
 
+        // R345. The text json.dumps of Python gives a value with separators (",", ":") and ensure_ascii: a text in double quotes with every
+        // character past ~ and every control as \uXXXX in small hex, a float by repr with NaN, Infinity and -Infinity bare, an integer by
+        // its digits, a list and an object in their order. Newtonsoft wrote é bare and -1E+20 (H2 of the fifth review of PR 55)
+        public static string Dumps(JToken value)
+        {
+            var written = new StringBuilder();
+            Dump(value, written);
+            return written.ToString();
+        }
+
+        private static void Dump(JToken value, StringBuilder written)
+        {
+            switch (value?.Type ?? JTokenType.Null)
+            {
+                case JTokenType.Null:
+                case JTokenType.Undefined:
+                    written.Append("null");
+                    break;
+                case JTokenType.Boolean:
+                    written.Append((bool)value ? "true" : "false");
+                    break;
+                case JTokenType.Integer:
+                    written.Append(((JValue)value).Value is BigInteger big ? big.ToString(CultureInfo.InvariantCulture) : Convert.ToInt64(((JValue)value).Value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture));
+                    break;
+                case JTokenType.Float:
+                    double number = (double)value;
+                    written.Append(double.IsNaN(number) ? "NaN" : double.IsPositiveInfinity(number) ? "Infinity" : double.IsNegativeInfinity(number) ? "-Infinity" : SheetRows.PyRepr(number));
+                    break;
+                case JTokenType.Array:
+                    written.Append('[');
+                    bool first = true;
+                    foreach (JToken item in (JArray)value)
+                    {
+                        written.Append(first ? "" : ",");
+                        first = false;
+                        Dump(item, written);
+                    }
+                    written.Append(']');
+                    break;
+                case JTokenType.Object:
+                    written.Append('{');
+                    bool start = true;
+                    foreach (JProperty property in ((JObject)value).Properties())
+                    {
+                        written.Append(start ? "" : ",");
+                        start = false;
+                        Quote(property.Name, written);
+                        written.Append(':');
+                        Dump(property.Value, written);
+                    }
+                    written.Append('}');
+                    break;
+                default:
+                    Quote((string)value, written);
+                    break;
+            }
+        }
+
+        private static void Quote(string text, StringBuilder written)
+        {
+            written.Append('"');
+            foreach (char letter in text)
+            {
+                switch (letter)
+                {
+                    case '"':
+                        written.Append("\\\"");
+                        break;
+                    case '\\':
+                        written.Append("\\\\");
+                        break;
+                    case '\n':
+                        written.Append("\\n");
+                        break;
+                    case '\r':
+                        written.Append("\\r");
+                        break;
+                    case '\t':
+                        written.Append("\\t");
+                        break;
+                    case '\b':
+                        written.Append("\\b");
+                        break;
+                    case '\f':
+                        written.Append("\\f");
+                        break;
+                    default:
+                        if (letter < ' ' || letter > '~')
+                        {
+                            written.Append("\\u").Append(((int)letter).ToString("x4", CultureInfo.InvariantCulture));
+                        }
+                        else
+                        {
+                            written.Append(letter);
+                        }
+                        break;
+                }
+            }
+            written.Append('"');
+        }
+
         private static bool Digit(char letter)
         {
             return letter >= '0' && letter <= '9';

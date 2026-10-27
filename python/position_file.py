@@ -650,7 +650,7 @@ def main(argv=None):
                 raise PositionError("the key points are not those of their keys and of the position file: %s (R353)" % ", and ".join(faults))
             plots = exact_plots(args.baseplan_exact, settings)
             # R345. The faces of the baseplan are refused as the build and the C# refuse them
-            refused = face_rings.refusals(plots, settings.get("addin")["parity"]["kinds"]["areas"])
+            refused = face_rings.refusals(plots, parity.area_tolerance(settings))
             if refused:
                 raise PositionError("%d baseplan faces refused: %s" % (len(refused), ", ".join(refused)))
             with open(args.labels, encoding="utf-8-sig") as handle:

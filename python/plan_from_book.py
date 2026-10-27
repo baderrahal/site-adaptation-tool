@@ -22,7 +22,6 @@ link parameters by the rules measured on its answer keys and places their overri
 import argparse
 import csv
 import json
-import math
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -931,22 +930,6 @@ def step_entry(raw):
     return {"raw": raw, "written": json.loads(json.dumps(common.round_tree(raw)))}
 
 
-def area_tolerance(settings):
-    """R345. The areas tolerance of addin.parity, the most the union of the rings of a label may fall short of their sum, held as
-    AddinConfig.ParityTolerance holds it with its lines: a finite number of zero or more, where true, NaN, inf and -1 were taken (G3 of the
-    fourth review of PR 55)."""
-    kinds = ((settings.get("addin") or {}).get("parity") or {}).get("kinds") or {}
-    if "areas" not in kinds:
-        raise project_profile.ProfileError("addin.parity.kinds names no kind areas (R345)")
-    value = kinds["areas"]
-    if value is None:
-        raise project_profile.ProfileError("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)")
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
-        raise project_profile.ProfileError("addin.parity.kinds.areas is %s, a tolerance is a finite number of zero or more, or null for a kind compared "
-                                           "exactly (R345)" % json.dumps(value, separators=(",", ":")))
-    return value
-
-
 def step_scope(cover):
     """R345. The scope of a step file as the worker names it: project for all, nbh=<NBH>, or cover=<file> for a cover file."""
     return "project" if cover == "all" else cover if cover.startswith("nbh=") else "cover=" + Path(cover).name
@@ -1167,7 +1150,7 @@ def main(argv=None):
         args.baseplan = str(cad_units.read_input(settings, "baseplan", args.baseplan))
         baseplan = link_summary.load(args.baseplan)["plots"]
         # R345. A ring shapely would mend and the C# would not is refused, so the build and its C# take the same faces
-        refused = face_rings.refusals(baseplan, area_tolerance(settings))
+        refused = face_rings.refusals(baseplan, parity.area_tolerance(settings))
         if refused:
             raise project_profile.ProfileError("%d baseplan faces refused: %s" % (len(refused), ", ".join(refused)))
         by_label, _ = yard_rule.face_shapes(baseplan, 0)

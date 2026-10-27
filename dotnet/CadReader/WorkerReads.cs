@@ -72,6 +72,19 @@ namespace CadReader
                 throw run.Refusal("the read steps are of the whole project, the scope project of read_steps.py, a read of the steps " + string.Join(", ", request.Steps)
                     + " with the scope " + StepFile.ScopeText(request.Scope) + " is refused (R348)");
             }
+            // H2 of the fifth review of PR 55. Every tolerance of the parity held before any read, as read_steps.py holds them by
+            // parity.tolerances, where only the steps of the location plan and the position held the areas tolerance
+            if (steps.Count > 0)
+            {
+                try
+                {
+                    AddinConfig.Load(run.Input("config")).ParityTolerances();
+                }
+                catch (InvalidDataException refused)
+                {
+                    throw run.Refusal(refused.Message);
+                }
+            }
             var made = new Dictionary<string, Dictionary<string, Dictionary<string, object>>>();
             var reads = new Dictionary<string, JObject>();
             bool anyDrawing = Drawings.Any(role => request.Inputs.Any(input => input.Role == role));

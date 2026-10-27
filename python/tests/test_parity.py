@@ -404,6 +404,37 @@ def test_r345_a_tolerance_is_a_finite_number_of_zero_or_more_or_null_for_an_exac
     assert parity.tolerances(settings)["faces"]["area"] == ("areas", 0, 3)
 
 
+def test_r345_a_tolerance_refused_is_written_as_json_dumps_writes_it_as_the_csharp_writes_it():
+    # H2 of the fifth review of PR 55: parity.tolerances wrote the value by %r, True, nan and 'Infinity', where AddinConfig.ParityTolerance
+    # and the build write true, NaN and "Infinity", so both languages give one line for each value of test_build_steps.AREA_LINES
+    from test_build_steps import AREA_LINES
+    for value, line in AREA_LINES[:-1]:
+        settings = copy.deepcopy(SETTINGS)
+        settings["addin"]["parity"]["kinds"]["areas"] = value
+        with pytest.raises(project_profile.ProfileError) as error:
+            parity.tolerances(settings)
+        assert str(error.value) == line, value
+
+
+# H2 of the fifth review of PR 55: the lines of parity.tolerances, which AddinConfig.ParityTolerances gives the same for a read of steps
+# (R345_parity_tolerances_hold_every_kind_the_steps_name_with_the_lines_of_python)
+TOLERANCES_LINES = (
+    ({"areas": 0.1}, {"faces": {"area": {"kind": "volumes", "decimals": 3}}}, "addin.parity.steps.faces.area names the kind volumes, which addin.parity.kinds does not hold (R345)"),
+    ({"areas": 0.1}, {"faces": {"area": {"decimals": 3}}}, "addin.parity.steps.faces.area names the kind None, which addin.parity.kinds does not hold (R345)"),
+    ({"areas": 0.1}, {"faces": {"area": {"kind": "areas"}}}, "addin.parity.steps.faces.area: a kind with a tolerance has decimals and a kind compared exactly has none (R345)"),
+    ({"areas": None}, {"faces": {"area": {"kind": "areas", "decimals": 3}}}, "addin.parity.steps.faces.area: a kind with a tolerance has decimals and a kind compared exactly has none (R345)"),
+    ({"areas": 0.1, "points": float("nan")}, {"faces": {"area": {"kind": "areas", "decimals": 3}, "centroid": {"kind": "points", "decimals": 3}}},
+     "addin.parity.kinds.points is NaN, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+    ({"areas": 0.1}, [], "config holds no addin.parity block with kinds and steps (R345)"))
+
+
+def test_r345_parity_tolerances_hold_every_kind_the_steps_name_with_the_lines_of_csharp():
+    for kinds, steps, line in TOLERANCES_LINES:
+        with pytest.raises(project_profile.ProfileError) as error:
+            parity.tolerances({"addin": {"parity": {"kinds": kinds, "steps": steps}}})
+        assert str(error.value) == line
+
+
 def test_r345_a_python_run_that_fails_leaves_no_step_file_and_parity_fails_as_missing(tmp_path, monkeypatch):
     assert run_steps(tmp_path, "all") == 0
     path = tmp_path / "steps" / "step_faces_python.json"

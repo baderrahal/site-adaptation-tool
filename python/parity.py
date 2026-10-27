@@ -45,14 +45,34 @@ def tolerances(settings):
             kind = field.get("kind")
             if kind not in block["kinds"]:
                 raise project_profile.ProfileError("addin.parity.steps.%s.%s names the kind %s, which addin.parity.kinds does not hold (R345)" % (step, name, kind))
-            tolerance = block["kinds"][kind]
-            # True is 1 and NaN passes every comparison, so a tolerance is a finite number of zero or more, or null for an exact kind
-            if tolerance is not None and (isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)) or not math.isfinite(tolerance) or tolerance < 0):
-                raise project_profile.ProfileError("addin.parity.kinds.%s is %r, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)" % (kind, tolerance))
+            tolerance = tolerance_of(block["kinds"], kind)
             if (tolerance is None) != ("decimals" not in field):
                 raise project_profile.ProfileError("addin.parity.steps.%s.%s: a kind with a tolerance has decimals and a kind compared exactly has none (R345)" % (step, name))
             found[step][name] = (kind, tolerance, field.get("decimals"))
     return found
+
+
+def tolerance_of(kinds, kind):
+    """R345. The tolerance of a kind of addin.parity.kinds, None for a kind compared exactly. True is 1 and NaN passes every comparison, so
+    a tolerance is a finite number of zero or more, a value refused written as json.dumps writes it, the line of AddinConfig.ParityTolerance,
+    where %r wrote True, nan and 'Infinity' (H2 of the fifth review of PR 55)."""
+    tolerance = kinds[kind]
+    if tolerance is not None and (isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)) or not math.isfinite(tolerance) or tolerance < 0):
+        raise project_profile.ProfileError("addin.parity.kinds.%s is %s, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"
+                                           % (kind, json.dumps(tolerance, separators=(",", ":"))))
+    return tolerance
+
+
+def area_tolerance(settings):
+    """R345. The areas tolerance of addin.parity, the most the union of the rings of a label may fall short of their sum, held as
+    AddinConfig.ParityTolerance holds it with its lines, for the build, the read steps of the location plan and the check points of
+    position_file.py, which took it raw (G3 of the fourth review and H2 of the fifth review of PR 55)."""
+    kinds = ((settings.get("addin") or {}).get("parity") or {}).get("kinds") or {}
+    if "areas" not in kinds:
+        raise project_profile.ProfileError("addin.parity.kinds names no kind areas (R345)")
+    if kinds["areas"] is None:
+        raise project_profile.ProfileError("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)")
+    return tolerance_of(kinds, "areas")
 
 
 def sha256(path):

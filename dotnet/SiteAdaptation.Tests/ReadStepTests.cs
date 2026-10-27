@@ -566,6 +566,20 @@ namespace SiteAdaptation.Tests
             Assert.False(File.Exists(Path.Combine(folder, "steps", "step_labels_csharp.json")));
         }
 
+        // H2 of the fifth review of PR 55: a read with steps holds every tolerance of addin.parity as read_steps.py holds them through
+        // parity.tolerances, where a read of the labels step alone passed a NaN areas tolerance that Python refused
+        [Fact]
+        public void R348_a_read_with_steps_holds_every_tolerance_of_the_parity_as_read_steps_does()
+        {
+            // NaN bare, as json.dumps writes it, where Newtonsoft writes a double NaN as the text "NaN"
+            string config = Config(item => item["addin"]["parity"]["kinds"]["areas"] = new JRaw("NaN"));
+            var inputs = new List<WorkerFile> { Input("config", config), Input("cadLayers", LayersFile()), Input("baseplan", Drawing("Base.dwg", UnitsType.Meters)) };
+            Run(Request("h2", inputs, ReadSteps.Labels), 2);
+            Assert.Equal("addin.parity.kinds.areas is NaN, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)",
+                WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "h2")).Message);
+            Assert.False(File.Exists(Path.Combine(folder, "out", "read_baseplan.json")));
+        }
+
         [Fact]
         public void R348_a_drawing_not_in_meters_or_kept_for_reference_only_is_refused_with_exit_2_and_nothing_is_written()
         {
