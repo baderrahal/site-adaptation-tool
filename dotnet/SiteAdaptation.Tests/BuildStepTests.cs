@@ -373,6 +373,16 @@ namespace SiteAdaptation.Tests
             Assert.Equal(2, WorkerRunner.Run(twice.Write(folder), WorkerCommands.Default(), () => 9000.0));
             Assert.Contains("project.json has a duplicate key twice", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c7")).Message);
 
+            // F3. A setting due as a number given as a text is refused before any step
+            WorkerRequest text = BuildRequest("c9", new[] { "clusters" });
+            JObject textConfig = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            textConfig["siteBuild"]["corner"]["roadEdgeM"] = "1.0";
+            string textCopy = Path.Combine(folder, "project.json");
+            File.WriteAllText(textCopy, textConfig.ToString());
+            text.Inputs[0] = Input("config", textCopy);
+            Assert.Equal(2, WorkerRunner.Run(text.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("config siteBuild.corner.roadEdgeM holds a text, a build takes it as a number (R355)", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c9")).Message);
+
             // P2. The analysis is read as json.loads reads it, so a byte order mark is refused
             WorkerRequest marked = BuildRequest("c8", new[] { "clusters" });
             File.WriteAllBytes(marked.Inputs[6].Path, new byte[] { 0xEF, 0xBB, 0xBF }.Concat(File.ReadAllBytes(marked.Inputs[6].Path)).ToArray());
@@ -431,6 +441,39 @@ namespace SiteAdaptation.Tests
                 }
                 place[item.Item1.Last()] = item.Item2;
                 Assert.Equal(item.Item3, Assert.Throws<InvalidDataException>(() => BuildRules.KeyRules(rules, null, "hands")).Message);
+            }
+        }
+
+        // F3 of the third review of PR 55, test_build_steps.NUMBER_LINES: a setting a build reads as a number given as a text, true or false
+        // or null, which (double)token took as a number where Python stopped on TypeError, refused with the line of Python
+        [Fact]
+        public void R355_a_setting_due_as_a_number_is_refused_with_the_line_of_python()
+        {
+            JObject real = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            BuildRules.NumberSettings(real, "project.json");
+            var cases = new[]
+            {
+                Tuple.Create(new[] { "siteBuild", "corner", "roadEdgeM" }, (JToken)"1.0", "config siteBuild.corner.roadEdgeM holds a text, a build takes it as a number (R355)"),
+                Tuple.Create(new[] { "analysis", "toleranceM" }, (JToken)true, "config analysis.toleranceM holds true or false, a build takes it as a number (R355)"),
+                Tuple.Create(new[] { "analysis", "partyWallShare" }, (JToken)JValue.CreateNull(), "config analysis.partyWallShare holds null, a build takes it as a number (R355)"),
+            };
+            foreach (Tuple<string[], JToken, string> item in cases)
+            {
+                var changed = (JObject)real.DeepClone();
+                JToken place = changed;
+                foreach (string key in item.Item1.Take(item.Item1.Length - 1))
+                {
+                    place = place[key];
+                }
+                place[item.Item1.Last()] = item.Item2;
+                Assert.Equal(item.Item3, Assert.Throws<InvalidDataException>(() => BuildRules.NumberSettings(changed, "project.json")).Message);
+            }
+            foreach (Tuple<JToken, string> slope in new[] { Tuple.Create((JToken)"2.0", "a text"), Tuple.Create((JToken)false, "true or false") })
+            {
+                JObject rules = JObject.Parse(File.ReadAllText(RepoRules()));
+                rules["levelProfiles"]["parsons2024Rev6"]["rampSlopePercent"]["C10"] = slope.Item1;
+                Assert.Equal("rampSlopePercent C10 of the level profile holds " + slope.Item2 + ", a build takes it as a number (R337)",
+                    Assert.Throws<InvalidDataException>(() => BuildRules.KeyRules(rules, null, "fronts")).Message);
             }
         }
 

@@ -364,6 +364,38 @@ def test_r357_a_hand_of_a_byfile_table_that_is_no_true_or_false_is_refused_with_
         assert str(error.value) == "keyRules hand villa holds byFile %s %s as %s, a build takes true or false (R337)" % (name, factor, kind)
 
 
+# F3 of the third review of PR 55: a setting a build reads as a number given as a text, true or false or null, which the C# took as a
+# number and Python stopped on with TypeError, refused with one line (R355_a_setting_due_as_a_number_is_refused_with_the_line_of_python)
+NUMBER_LINES = (
+    (("siteBuild", "corner", "roadEdgeM"), "1.0", "config siteBuild.corner.roadEdgeM holds a text, a build takes it as a number (R355)"),
+    (("analysis", "toleranceM"), True, "config analysis.toleranceM holds true or false, a build takes it as a number (R355)"),
+    (("analysis", "partyWallShare"), None, "config analysis.partyWallShare holds null, a build takes it as a number (R355)"))
+
+
+def test_r355_a_setting_due_as_a_number_is_refused_with_the_line_of_csharp(tmp_path):
+    import copy
+    import plan_rules
+    real = json.loads(project_profile.SETTINGS_PATH.read_text(encoding="utf-8"))
+    plan_from_book.number_settings(project_profile.load_settings())
+    for path, value, line in NUMBER_LINES:
+        changed = copy.deepcopy(real)
+        place = changed
+        for key in path[:-1]:
+            place = place[key]
+        place[path[-1]] = value
+        (tmp_path / "project.json").write_text(json.dumps(changed), encoding="utf-8")
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_from_book.number_settings(project_profile.load_settings(tmp_path / "project.json"))
+        assert str(error.value) == line, path
+    profile = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    for slope, kind in (("2.0", "a text"), (False, "true or false")):
+        lp = copy.deepcopy(profile.values["levelProfiles"]["parsons2024Rev6"])
+        lp["rampSlopePercent"]["C10"] = slope
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_rules.check_ramp_slopes(lp["keyRules"], lp)
+        assert str(error.value) == "rampSlopePercent C10 of the level profile holds %s, a build takes it as a number (R337)" % kind
+
+
 # R355 the fronts: a 12 m face 3 m off a road along y = -3, a corner face with a second road along x = 45, and a face with no unit
 FRONT_FACES = {"11": ring(0.0, 0.0, 12.0, 25.0), "12": ring(30.0, 0.0, 42.0, 25.0), "13": ring(60.0, 0.0, 72.0, 25.0)}
 FRONT_ROWS = {"11": {"typologyRev9": "DP2"}, "12": {"typologyRev9": "C10"}, "13": {"typologyRev9": ""}}

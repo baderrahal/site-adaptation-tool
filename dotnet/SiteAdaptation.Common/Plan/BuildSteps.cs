@@ -323,6 +323,8 @@ namespace SiteAdaptation.Common
                 var site = new Site(run, config);
                 JObject levelProfile = BuildRules.LevelProfile(site.Rules, request.LevelProfile);
                 BuildRules.KeyRules(site.Rules, request.LevelProfile, string.Join(", ", Names));
+                // F3. The settings a build reads as numbers, as rule_inputs of Python holds them before any step is written
+                BuildRules.NumberSettings(site.Settings, Path.GetFileName(run.Input("config")));
                 if (asked.Contains(SiteClusters.StepName))
                 {
                     run.Counts["clusters of the build"] = site.Clusters.Count;

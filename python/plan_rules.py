@@ -184,6 +184,12 @@ def check_ramp_slopes(rules, lp):
     """R337. El @ Entry takes the slope of a code from rampSlopePercent of the level profile and the ramp from the class of
     keyRules.rampSlope, so for every code the class holds the two must name one slope class, else the build is refused with the codes
     named, never built on two slopes."""
+    # F3 of the third review of PR 55: a slope of a text or true or false refused by its line, where it stopped Python with TypeError
+    table = lp["rampSlopePercent"]
+    for code in rules["rampSlope"]["table"]:
+        named = code if code in table else "default"
+        if not isinstance(table.get(named), (int, float)) or isinstance(table.get(named), bool):
+            raise project_profile.ProfileError("rampSlopePercent %s of the level profile holds %s, a build takes it as a number (R337)" % (named, shape_name(table.get(named))))
     wrong = sorted("%s (rampSlopePercent %s, keyRules.rampSlope %s)" % (code, slope_of(code, lp), found) for code, found in rules["rampSlope"]["table"].items()
                    if slope_class(slope_of(code, lp)) != found)
     if wrong:

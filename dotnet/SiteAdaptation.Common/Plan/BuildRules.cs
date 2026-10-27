@@ -146,6 +146,26 @@ namespace SiteAdaptation.Common
             }
         }
 
+        // R355, F3 of the third review of PR 55. plan_from_book.number_settings: each setting of config a build reads as a number a number,
+        // else refused with the line of Python, where (double)token took a text as a number and Python stopped on TypeError
+        public static readonly string[] Numbers = { "siteBuild.corner.roadEdgeM", "analysis.toleranceM", "analysis.partyWallShare" };
+
+        public static void NumberSettings(JObject settings, string configName)
+        {
+            foreach (string dotted in Numbers)
+            {
+                JToken value = settings;
+                foreach (string part in dotted.Split('.'))
+                {
+                    value = value is JObject node && node[part] != null ? node[part] : throw new InvalidDataException(configName + " has no value " + dotted);
+                }
+                if (value.Type != JTokenType.Integer && value.Type != JTokenType.Float)
+                {
+                    throw new InvalidDataException("config " + dotted + " holds " + ShapeName(value.Type) + ", a build takes it as a number (R355)");
+                }
+            }
+        }
+
         // plan_rules.shape_name: the kind of a JSON value as a message names it
         public static string ShapeName(JTokenType type)
         {
@@ -228,6 +248,16 @@ namespace SiteAdaptation.Common
             // An object since CheckKeyRules held it so, never a list read as empty (P3 of the review of PR 55)
             JObject table = (JObject)rules["rampSlope"]["table"];
             JObject slopes = profile["rampSlopePercent"] as JObject ?? new JObject();
+            // F3 of the third review of PR 55: a slope of a text or true or false refused by its line, never taken as a number
+            foreach (JProperty code in table.Properties())
+            {
+                string named = slopes[code.Name] != null ? code.Name : "default";
+                JToken slope = slopes[named];
+                if (slope == null || (slope.Type != JTokenType.Integer && slope.Type != JTokenType.Float))
+                {
+                    throw new InvalidDataException("rampSlopePercent " + named + " of the level profile holds " + ShapeName(slope?.Type ?? JTokenType.Null) + ", a build takes it as a number (R337)");
+                }
+            }
             var wrong = new List<string>();
             foreach (JProperty code in table.Properties())
             {

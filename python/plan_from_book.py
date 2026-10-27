@@ -989,6 +989,19 @@ def hand_settings(block):
     return block
 
 
+# R355, F3 of the third review of PR 55. The settings of config a build by keyRules reads as numbers, BuildRules.NumberSettings of the C#
+NUMBER_SETTINGS = ("siteBuild.corner.roadEdgeM", "analysis.toleranceM", "analysis.partyWallShare")
+
+
+def number_settings(settings):
+    """R355. Each setting of NUMBER_SETTINGS a number that is no bool, else refused with one line, where a text stopped Python with TypeError
+    and the C# took it as a number."""
+    for dotted in NUMBER_SETTINGS:
+        value = settings.get(dotted)
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            raise project_profile.ProfileError("config %s holds %s, a build takes it as a number (R355)" % (dotted, plan_rules.shape_name(value)))
+
+
 def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters=()):
     """R277 to R280. The level profile, named or the default of R277, the hand rules, the open end of every plot and the overrides
     of the source models. R337: for a profile with keyRules also the side road, the pair of its row of units in no cluster (the
@@ -999,6 +1012,8 @@ def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clu
     lp = plan_rules.level_profile(profile, name)
     key = plan_rules.key_rules_of(lp)
     block = settings.get("majority") if key is None else hand_settings(settings.get("majority"))
+    if key is not None:
+        number_settings(settings)
     corner = settings.get("siteBuild")["corner"]
     if key is not None and key["linkRotation"]["rule"] == "frontRule" and sales is None:
         raise project_profile.ProfileError("keyRules.linkRotation of %s takes the front of R226, give --sales for the Orientation of a corner plot (R337)" % name)
