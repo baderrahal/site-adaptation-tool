@@ -1970,3 +1970,81 @@ Records only, no code change, on b2f69e5, where the main session had added the l
 - The top log entry fits at 8989 characters: its head lines and Known bugs shorter, Checked naming the real data parity at 1b701cd, the gate at 7b49a36 and the CI runs, and the short lines of Q052, Q053, Q072 and Q075 in PROGRESS and the log alike keeping their decisions. The full texts of Q052, Q053 and Q074 in steps/questions-closed.md held the figures of the refused first version of R344, and the main session set them to those of R344 as merged, from the logs of PR 52 (157 of 1,753, 220 of 1,759, 1,283 of 1,759, 12,421 and 154, and the 48 steps overrides of the review of PR 48).
 
 Not done: Q087 and Q088 stay open for a fresh PR. CLAUDE.md was changed by the main session in 2fb6021 and b2f69e5, not here.
+
+## Phase 4 part e, PR 55 logic/addin-4e
+
+Branch logic/addin-4e from main at 2efb236, equal to origin/main after git fetch (RAN). R354, R355, R356 and R357 are new, R345 and R352 name them. Four changes, steps 4 to 7 of the parity table of docs/addin-design.md section 5, each in C# in Common with its Python step and parity, committed in the order the steps need each other: R354 the clusters (e9910a7), R355 the fronts (e6fd7ac), R357 the hands (28fe3c4), R356 the link frame (da58c0f), which takes the hand of R357, then these records. The phase ran in a helper agent started by the main session, which runs the breaker and the claim-checker and merges. No Revit or Civil 3D window was opened: round_addin\logs\windows.jsonl was last written at 22:49:40 on 2026-10-26, no window.lock is on disk and no Revit, acad or accoreconsole process ran at the end, the RevitAccelerator.exe service of Autodesk alone (READ, a listing and tasklist). The registry was not read or written. Real values stay in round_addin\parity\build4e, rules4e and the logs, this file holds counts, gaps and plot numbers only.
+
+### Originals and inputs (R201, R202)
+
+- 60 originals, 99 inputs, 32 extras, 14 reads of 4c, 17 of 4d, 14 P and 14 K reads, and 15 files of 4e, the 13 prototype files of pastJob.upgradedPrototypeFolder, the analysis.json of the snapshot and the site report of the build route, hashed by p4e_hash.sh before the first edit and after the last run, every list equal, the before lists equal to the after lists of the fourth review of PR 54, config/overrides/roshn-makkah.json and rules/roshn-makkah.json unchanged (RAN, round_addin\logs\originals_p4e_before.txt and _after.txt and the others).
+
+### Measures before the code (RAN, read only)
+
+- The analysis clusters (Q089, p4e_q089_measure.txt at 2efb236): the analysis.json of the snapshot that the build route reads was written at 05:50 on 24 October by the code of Round 12b, units by block 2,346 and by Excel 73, while cad_analysis.py of today on the same reads with the IMC and IMD schedule coords gives 225 clusters of two or more against its 535, 150 sets equal, and the round12 file of dataBook.join.analysis holds 548, 482 equal to the snapshot's. 22 of the 568 clusters of the build, 44 plots, come from the analysis alone, IMC 26, IMD 16 and 2 of no key. So step 4 takes the file as its input, no C# of R64 and R70 is written, and Q089 asks the source of the add-in.
+- The ring of a face (p4e_buffer_order.txt): Polygon(vertices).buffer(0) gave every one of the 2,962 rings of the baseplan read, each drawn anticlockwise, as its first vertex and then the others in reverse, keeps a clockwise ring, drops a repeated vertex and keeps a collinear one, and no label holds two rings.
+- The bits the C# must match (p4e_probe_dist.txt and p4e_probes_head.txt, the probe and its makers in p4e_probe_dist): PyMath.Dist, the vector_norm of CPython 3.12, equals math.dist on 212,252 of 212,252 made up and real edges, and the GEOS formula of a point to a segment equals shapely on 104,200 of 104,200 real edge middles and curb segments, bit for bit on net48 and net8.0. BuildFace gives shapely's centroid bit for bit and the ring of buffer(0) on 2,962 of 2,962 faces (p4e_probe_centroid.txt). The band length of Hands lies within 6.6E-09 m of shapely on 16,386 of 16,386 pairs of faces whose boxes lie within 0.05 m (p4e_band_check.txt).
+- The margins of the decisions on the data book (p4e_margins_head.txt at da58c0f): the best block of a plot leads the next of its name by 213 m2 or more and takes 175 m2 or more, an edge length lies 8.9 mm or more from a front limit, the nearest curb 0.022 mm or more ahead of the next, FRONT_TIE 7.2 mm off, roadEdgeM 8.8 mm, a quadrant bound 30 degrees, the edge picked 0.0017 degree ahead of the next, a band 0.099 m or more from sideShare of the depth, the side road 0.58 m between across and along and 0.012 mm from the line of the centre. The side neighbour 1129 of 1076 lies 2.3E-10 m along the front, a decision on binary noise, which both sides take alike as BuildFace gives the centroid of GEOS bit for bit. The corner rule of R226 fronts 45 of the 965 corner plots on another edge than the R122 front of plots.csv, 0 corner plots lack an Orientation.
+
+### R354, the clusters (change 1, e9910a7)
+
+- plan_from_book.site_clusters and cluster_step, SiteClusters, BuildFace, BuildRules, BuildSteps and PyMath of Common, the step clusters of the command build. Refused alike in both languages with the same line: a label of two rings (one_ring_faces, BuildFace.OneRing), a footprint block that is not a simple ring (simple_blocks, SiteClusters.BlocksByName), an analysis of another drawing or with no clusters list (analysis_clusters, SiteClusters.AnalysisOf), a level profile with no keyRules for the build steps and every keyRules check of R337 (build_step_rules, BuildRules.KeyRules). The worker holds each read to the role it names, its drawing in Meters and its run stamp, and reads every JSON number as the nearest double of its text (PyMath.ReadJson).
+- Tests first: 7 of 7 Python tests failed (RAN, p4e_r354_first_python.txt), the C# did not build on the missing BuildFace and SiteCluster (p4e_r354_first_csharp.txt). Written after their code and passing on their first run: the worker test R354_the_worker_build_writes_the_step_clusters_from_the_reads_and_refuses_..., the C# and Python tests of the keyRules lines and the Python test of the ring order. Tests on R354 in python/tests/test_build_steps.py and dotnet/SiteAdaptation.Tests/BuildStepTests.cs: ties of two blocks of one name, a block on an edge, two plan numbers, a cluster left with one plot, the refusals, the ring order, the config fields.
+- The tests of R280, R330 and R277 that run main() gave a made up analysis.json with no source, which R354 refuses, they give the baseplan of config now.
+
+### R355, the fronts (change 2, e6fd7ac)
+
+- plan_from_book.front_step on the fronts the build traces, Fronts, RoadLines and FrontFrame of Common: the corner rule of R226, the frame of R122, the ramp outline of R127, the road level of R344 at the two front corners and noRoadLevel. A road layout read with no curb line is refused in both languages, where corner_front.road_edges raised an IndexError on an empty tree. The worker holds the sales read to its run stamp and to the workbook of dataBook.locationPlan.sales.workbook by name, and the road surfaces to those of the level profile.
+- The plot table keeps no front column (CHOSEN): the front frame and the road levels at the two front corners the plot table of R352 left to this step are those the build takes, which the step fronts gives every plot, since the R122 front of plots.csv is another edge on 45 of the 965 corner plots. R352 and design section 4 say so. The summary line frontLevelAgainstPlotsCsv of step 15 compares the build with plots.csv and is left to 4g.
+- Tests: the Python tests were written after front_step and run on the plan_from_book.py of e9910a7, before the code of R355, 3 of 3 failed (RAN, p4e_r355_first_python.txt), the C# tests did not build on that head, FrontItem missing (p4e_r355_first_csharp.txt). The worker test R355_the_worker_build_writes_the_step_fronts_... passed on its first run after its code. The test of run_book gives its made up road layout one line far off.
+
+### R357, the hands (change 3, 28fe3c4)
+
+- plan_from_book.hand_step with the roles and the hands the build traces, rule_inputs giving its neighbours and row pairs, Hands of Common: the kind and pair kind, the unit class, the cluster roles, the side neighbours by the band of the GEOS buffer, the open end, the side road, the row pairs, the factors joined of two, the rule, the file and the hand of its table before an override. Python refuses a hand of the step other than the one the build took. BuildFace takes the centroid of GEOS. The worker takes every prototype file as prototype:<name>, held to its own name and to one folder.
+- Tests: the Python tests were written after hand_step and run on the plan_from_book.py of e6fd7ac, before the code of R357, 3 of 3 failed (RAN, p4e_r357_first_python.txt), the C# tests did not build on that head, Hands, HandContext and Sides missing (p4e_r357_first_csharp.txt). The worker test of R357 passed on its first run after its code, and the two Python twins, of the side neighbours and the prototype files, test Python that was there and passed at once.
+
+### R356, the link frame (change 4, da58c0f)
+
+- plan_from_book.link_step and LinkFrames of Common: the prototype file, the fit of keyRules.linkOrigin of the code or its keo_file, the insert from the anchor corner of the front in the link axes of the hand of R357, the rotation written by plan_rotation, 0 for one that rounds to 360, through StepValue of StepFile and plan_from_book.step_entries, and what the link lacks with why. Steps 6 and 7 hold the link and the hand by the rule, the mirror flag, insert and rotation overrides go to step 12 (R360), as the design rows of steps 6, 7 and 12 say now (CHOSEN, a partial port of the override list beside R360 would hold another set of refusals).
+- Tests: the Python tests were written after link_step and run on the plan_from_book.py of 28fe3c4, before the code of R356, 4 of 4 failed (RAN, p4e_r356_first_python.txt), the C# tests did not build on that head, LinkFrames and StepValue missing (p4e_r356_first_csharp.txt).
+
+### The parity (RAN, p4e_parity_head.txt at da58c0f, no file changed, round_addin\parity\build4e)
+
+The worker reads the copies of the three drawings, the six road surfaces and the two Rev 9 workbooks, on each runtime, 21.8 s at 2,486 MiB peak on net48 and 18.1 s at 2,556 MiB on net8.0, then builds the four steps on its own reads, 9.2 s and 8.3 s, 786 and 842 MiB, every input equal before and after. Python is plan_from_book.py all --steps, the build route of R340 on the reads cadReads names, 14 to 15 s. Every comparison of the 64, 8 scopes by 4 steps by 2 runtimes, has 0 one unit cases and 0 failures, 47 inputs equal by SHA-256 before and after, the C# stamps naming SiteAdaptation.Common of da58c0f.
+
+| Scope | clusters | fronts | hands | linkFrame |
+|---|---|---|---|---|
+| Whole project, 2,704 client code plots | 567, 1,701 fields | 2,704, 43,264 | 2,704, 62,192 | 2,704, 21,632 |
+| IMA, 420 plots | 90, 270 | 420, 6,720 | 420, 9,660 | 420, 3,360 |
+| IMB, 290 | 61, 183 | 290, 4,640 | 290, 6,670 | 290, 2,320 |
+| IMC, 324 | 87, 261 | 324, 5,184 | 324, 7,452 | 324, 2,592 |
+| IMD, 403 | 95, 285 | 403, 6,448 | 403, 9,269 | 403, 3,224 |
+| IME, 320 | 61, 183 | 320, 5,120 | 320, 7,360 | 320, 2,560 |
+| IMF, 476 | 100, 300 | 476, 7,616 | 476, 10,948 | 476, 3,808 |
+| IMG, 268 | 55, 165 | 268, 4,288 | 268, 6,164 | 268, 2,144 |
+
+Each cell gives the items and the fields equal on each runtime, the key covers those of build_proof.py covers. The step clusters holds every cluster of the build with a plot of the scope, 567 of the 568 on the whole project. The C# counts of the whole project, the same on both runtimes: 22 clusters from the analysis, 2,555 fronts with a frame, 35 unit plots with no road level, 2,545 hands with a mirror flag and as many links placed, 4,587 side neighbour pairs. The first runs of each step, before its commit, gave the same counts (p4e_parity_clusters_keys.txt, p4e_parity_fronts_first.txt, p4e_parity_hands_first.txt, p4e_parity_all_first.txt).
+
+### Second method (RAN, p4e_second_head.txt at da58c0f)
+
+python on the step files, plain math and json from the rule texts, the plain helpers of key_rules_check.py of R336 and R341 and no code of the build, shapely or the C#: the clusters by clipping, the fronts by own_frame on the rings as drawn with the road levels of the own LandXML text route, the hands by exact capsules with true circles and the own centres of area, the side road in the ring order of the rule, the row pairs walked again and the tables of keyRules for the files listed again, the link by own_origin. Every item equal on the Python, net48 and net8.0 files: clusters 567 of 567, fronts 2,704 of 2,704, hands 2,704 of 2,704 on 11 fields, links 2,704 of 2,704 with 2,545 placed, and 20 of 20 draws with replacement at seed 14 and at seed 7 on each step and side.
+
+### The build proof (RAN, p4e_proof.txt and p4e_proof_plans_equal.txt at da58c0f)
+
+p4c_build_route.sh on the 7 keys: 0 unexplained on every key, 0 unexplained levels at the pass, 1 mm and 5 mm, holds 47,569, and the 7 plans equal those of the proof of 4c at fcf5f0e by SHA-256, so the refusals, the trace and the step functions moved no plan.
+
+### Choices and limits (CHOSEN)
+
+- The C# reads the worker outputs and the files the Python build reads by path, plots.csv and labels.csv of the snapshot as the faces step of 4a does, since the plot table of R352 differs from the snapshot plots.csv on 170 cells (R352).
+- A prototype file is an input of its own, hashed whole by the runner, 1,027 MiB for the 13, which a build run of 8 to 9 s carries.
+- Known limits, each latent on the data book: a JSON number past 7.9E+28 is refused by the C# read and fails Python only when R385 writes it, exit 2 against an OverflowError, a plot of non-ASCII digits follows the Unicode data of each runtime, and the band of the C# leaves out the simplification GEOS gives a concavity under 0.5 mm deep.
+
+### Not done in this PR
+
+- The analysis clusters of the add-in (Q089). The overrides of the hand, insert and rotation (R360, 4f). The plot table keeps no front (above). CLAUDE.md is not changed, the lines it should gain are in the report of the PR.
+
+### Questions
+
+- Q089 new: the analysis clusters of a build. The same short text in steps/PROGRESS.md and the top entry of steps/log.md, the full text in steps/questions-closed.md. The short line of Q086 in both keeps its decision and recommended answer and leaves its evidence to its full text, to keep the top entry of the log under 9,000 characters.
+
+Gate: at the head of the PR, in the PR body and round_addin\logs\p4e_gate_*.txt.

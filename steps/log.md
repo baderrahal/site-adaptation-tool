@@ -4,27 +4,26 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 
 ## Round ADDIN Part 1, 2026-10-25, the Revit 2024 add-in from the Parsons site models
 
-In progress, 4d in review, PR 54.
+In progress, 4e in review, PR 55.
 
 Goal:
 - Revit 2024 add-in in C# from the 7 Parsons keys (Q050), docs/addin-mock.md
-- 4d: R351 to R353, Q084, 5 changes, 1 over the cap (READ round-addin.md)
+- 4e: R354 to R357, steps 4 to 7 in C# (READ round-addin.md)
 
 Done:
-- 0a to 4c (PR 41 to 53), 4d and its four reviews: round-addin.md
+- 0a to 4d (PR 41 to 54), 4e: round-addin.md
 
 Checked:
-- Real data parity at 1b701cd (RAN, p4dfix3_parity_position.txt), gate at 7b49a36 (RAN, p4dfix4_gate_*.txt), CI 40411960505 and at the head
+- Parity, second method, proof at da58c0f (RAN, p4e_*_head.txt, p4e_proof.txt), gate (RAN, p4e_gate_*.txt), CI at the head
 
 Remains:
-- 4e to 4h, Phases 5, 6, CASE categories
+- 4f to 4h, Phases 5, 6, CASE categories
 
 Known bugs:
-- Q063, Q065, Q070 and the open bugs of steps/PROGRESS.md (READ). xUnit2013 (RAN, p4dfix4_gate_build.txt)
-- Q088 (a) to (d), C# lengthAccuracy 1e30 (RAN, p4dfix4_q088_measure.txt, p4dfix5_*.txt), MergesOf of no merge (READ)
+- Q063, Q065, Q070, Q088 and the open bugs of steps/PROGRESS.md (READ). xUnit2013 (RAN, p4e_gate_build.txt)
 
 Next:
-- Phase 4e: R354 to R357, then 4f to 4h
+- Phase 4f: R358 to R361, then 4g and 4h
 
 Your turn:
 Q001. El @ Entry: still open (Bader, 2026-10-26), the team is asking for the Infrastructure IFC package and the ramp slope, the current overrides stay until then
@@ -48,9 +47,10 @@ Q076. Python checker licences: shapely is BSD-3-Clause and its wheels bundle GEO
 Q077. The worker: buttons 2 and 3 read and build in CadReader.exe beside Revit: accept. Q078. Rounding: Python and C# round the 15 digit decimal half away from zero (R385), values of both move one unit on a tie: accept
 Q079. Microsoft.NETCore.Platforms of netstandard2.0 pinned to 3.1.0, MIT, build only: accept. Q082. Road level of 33 plots of the keys, listed in noRoadLevel of each plan: no road surface covers a front corner and the Roads folder holds no other road level there: ask the road designer for the road surface or road model of these fronts, else accept them listed and not written
 Q085. Plot, the floor parameter, is a project parameter in all 7 keys with no GUID (R353): bind Plot as a new shared parameter with a GUID Bader fixes in a block of config no run writes, as Q087 gives it (recommended), or as the keys do, read by name. Every key also holds a project parameter CASE beside the shared CASE, its categories not read
-Q086. Check points against the keys (R353): at full precision the floor corners of the extreme plots of the 7 keys lie a median 0.54 mm, at most 1.05 mm, off the baseplan, about 0.5 mm east and about 0.3 mm south on every key, 127 of 141 pass, 4 on vertices CadReader merged 1.29 and 1.42 mm, 5 on floors not their face, 5 with no face: hold the keys at 2 mm and button 1 against Revit at 1 mm (recommended), or 1 mm for both
+Q086. Check points against the keys (R353): the keys lie about half a mm off the baseplan, 127 of 141 pass at 1 mm: hold the keys at 2 mm and button 1 against Revit at 1 mm (recommended), or 1 mm for both
 Q087. Hand entries in addin.sharedParameters (R353): the merge of a hand GUID with the GUIDs of the keys failed its second review and is withdrawn, a block with an item key spelled byHand in any case is refused, the real block holds none, and a hand edit not marked so, an unmarked GUID, a mark named hand or manual, byHand as a value, nested or on the block, is overwritten by the next write with no line printed, the block being the run's. Keep the block a measure the run alone writes, and put a GUID Bader fixes, such as Plot of Q085, in its own block that no run writes, refused when a key gives that GUID to another name (recommended), or bring the merge back with the four cases of the review as its tests.
 Q088. Check points of R353, four residuals after the second fix, latent on the real data: (a) CadReader PlotShapes records a vertex merge at a node but not where a split bends a line to a node or where a merged node is dropped, so a corner can sit over 10 mm off its drawn line with mergeMm 0 (0 near straight vertices 0.5 to 15 mm off line on the real baseplan), and the worker takes any baseplan name, Python holds it to drawings.baseplan by name. (b) A request with labels alone ends done with not made in the worker and is refused by Python. (c) A labels.csv with no kind column or no clientCode row numbers every IMC and IMD point by the shift alone (the real labels.csv holds 2,704 clientCode rows). (d) A key read or parameter file is held to its key by the copy name alone, so copies of one copySha256, a name Windows opens as another, a copy named from another key's stem or two codes differing in case pass, and Python and C# differ on non-ASCII case and a BOM (the real 7 are distinct). Take the check point corners from the drawn line ends with no join, refuse (b) and (c) in both languages, hold the baseplan by its hash, and read answerKeys and key_copies.json through the checked loader of R312 with a key held by copySha256 and ordinal case, in a fresh PR with the inputs of the reviews as tests (recommended), or keep them as known bugs.
+Q089. Analysis clusters of a build (R354): a build by keyRules joins 22 clusters of 44 plots, IMC 26 and IMD 16, from the snapshot analysis.json of Round 12b, no code of today remakes it: drop them if the build proof on the footprint clusters alone keeps 0 unexplained with the overrides measured again (recommended), or name the snapshot file in config as an input of button 3
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 
