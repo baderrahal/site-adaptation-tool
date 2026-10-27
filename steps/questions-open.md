@@ -4,7 +4,7 @@ The full text of every question open for Bader, by its fixed ID. steps/PROGRESS.
 
 ## Bader's turn of 2026-10-27
 
-The lines of Bader's turn of steps/PROGRESS.md at 73b8c42, moved in Round REC with no word changed, the latest state of each question.
+The lines of Bader's turn of steps/PROGRESS.md at 73b8c42, moved in Round REC with no word changed, the latest state of each question. Q098 and Q099 were added in Round ADDIN 4f.
 
 Q001. El @ Entry: still open (Bader, 2026-10-26), the team is asking for the Infrastructure IFC package and the ramp slope, the current overrides stay until then
 Q002. Ramp type: by Rev 9 code (0.988 on 5 keys), the 21 Flat Ramps are the plots with a placeholder ELl@Entry, overrides: accept. Q003. Villa mirror: block mirror flag with the side road (0.960), one plot ahead of the open end: accept

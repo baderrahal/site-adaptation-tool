@@ -31,7 +31,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - A native2022 build with --overrides is refused on 1,346 native entries with no value (Q075)
-- The steps give values for 44 unit plots the plan does not place, the missing list of step 14 decides (R363, 4g)
+- For the check rows of 4g: 44 unit plots in the steps the plan does not place, 5 DP2 plots with no hand (Q098), no linkName on 2,513 (Q099)
 - Not in 4f: heightOffset and floor z need the site file of button 1, roadAtFrontM in the plan with R364, the past_all.csv rebuild of R385
 
 ## Bader's turn

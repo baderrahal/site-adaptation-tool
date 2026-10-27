@@ -14,12 +14,12 @@ Done:
 Checked:
 - Q089: 0 unexplained on all 7 keys, levels 0 at pass, 1 mm and 5 mm, the control route equal to main by SHA-256 (RAN, q089_none.txt, q089_snap.txt)
 - Parity net48 and net8.0, whole project and 7 keys: 96 and 128 runs, 0 one unit cases, 0 failures (RAN, p4f_ and p4fb_parity_build)
-- Second methods 0 mismatches, proof 0 unexplained with the 7 plans byte equal (RAN). Gate at PR 65: pytest 1825 passed 1 skipped, dotnet 811 and 785
+- Second methods 0 mismatches, proof 0 unexplained, 7 plans byte equal (RAN). Gate: pytest 1825 passed 1 skipped, dotnet 811 and 785 (RAN, p4f_end_gate_python, p4fb_gate_test)
 - Reviews: REAL fixed with tests or records, LATENT in steps/latent.md, at most 2 passes per PR
 
 Remains:
 - Not in 4f: heightOffset and floor z need the site file of button 1, roadAtFrontM with R364, the past_all.csv rebuild of R385
-- Skill refresh skipped, ai-max.skill not in Downloads. The Usage rules of the synced version 4 not followed yet: steps/investigations/round-addin.md, 4f
+- Skill refresh skipped, ai-max.skill came to Downloads at 16:35, after the check, PR 1 of AUDIT-RULES. Usage rules of version 4 not followed: round-addin.md, 4f
 
 Known bugs:
 - 5 DP2 plots get no hand since Q089 (Q098), a build writes no linkName (Q099), steps/PROGRESS.md open bugs
