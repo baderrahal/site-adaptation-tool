@@ -35,3 +35,8 @@ Moved from the open bugs of steps/PROGRESS.md at 73b8c42 with no word changed.
 - PR 60, python/tests/test_records.py test_r400_a_cap_reached_exactly_holds: PROGRESS 30 lines of 6,030 bytes and a log top of 4,086 bytes are under their caps, not at them, so a slip of > to >= on those three caps stays green
 - PR 60, python/record_parts.py cap_breaches: the log is read as text, so a CRLF log is counted short, and a ## line inside a code fence ends the top entry early. steps/log.md is LF by .gitattributes and holds no such fence
 - PR 58, python/split_proof.py MOVED_LINES: a moved line passes when either new file holds it, so an open question moved into latent.md or a line held twice would pass. The ids of the records show no such move (RAN, 65 open, Q088 to Q094 closed)
+
+## Round ADDIN 4f
+
+- 4f PR 1a, python/parity.py line 6, python/plan_from_book.py line 893, python/tests/test_rounding.py line 11 and test_rounding_levels.py line 213: comments and docstrings name docs/addin-design.md, which Round REC cut into docs/design/. No output carries them, and docs/design/README.md finds a section by its number
+- 4f PR 1a, python/tests/test_key_join.py test_r326_the_area_rows_name_the_record_of_2b_where_it_lies_since_round_rec: its all() holds on an empty list of areas. The fixture joins 1 area today (RAN)
