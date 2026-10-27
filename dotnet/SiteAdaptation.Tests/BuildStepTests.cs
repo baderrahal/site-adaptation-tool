@@ -869,7 +869,7 @@ namespace SiteAdaptation.Tests
         // The steps hands and linkFrame of the made up row, the second with the hand of the first
         private static Tuple<Dictionary<string, Dictionary<string, object>>, Dictionary<string, Dictionary<string, object>>> HandSteps(Dictionary<string, string> codes = null,
             Func<Dictionary<string, Dictionary<string, object>>, Dictionary<string, Dictionary<string, object>>> handsOf = null, Dictionary<string, string> filesOf = null,
-            Action<JObject> contextConfig = null, Action<JObject> stepConfig = null, Action<JObject> linkKey = null)
+            Action<JObject> contextConfig = null, Action<JObject> stepConfig = null, Action<JObject> linkKey = null, Action<JObject> handKey = null)
         {
             JObject rules = HandRules();
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
@@ -888,6 +888,7 @@ namespace SiteAdaptation.Tests
             HandContext context = Hands.Context(numbers, rows, faces, clusters, fronts.ToDictionary(item => item.Key, item => item.Value.Frame), roads, rules, config);
             var files = new Dictionary<string, string> { ["DP2"] = Dp2File, ["VD2"] = Vd2File };
             JObject key = BuildRules.KeyRules(rules, null, "hands");
+            handKey?.Invoke(key);
             stepConfig?.Invoke(config);
             Dictionary<string, Dictionary<string, object>> hands = Hands.Step(numbers.Concat(new[] { "7" }), rows, context, key, files, rules, config);
             hands = handsOf == null ? hands : handsOf(hands);
@@ -1062,7 +1063,40 @@ namespace SiteAdaptation.Tests
             Assert.Null(step["7"]["mirrored"]);
             Assert.Null(step["7"]["handRule"]);
             Assert.Equal("alone", step["7"]["unitClass"]);
-            Assert.Equal(23, step["7"].Count);
+            Assert.Null(step["7"]["handTable"]);
+            Assert.Equal("villa cluster alone", villa["handTable"] + " " + step["2"]["handTable"] + " " + step["4"]["handTable"]);
+            Assert.Equal(24, step["7"].Count);
+        }
+
+        // test_build_steps.no_cluster_table, Q098: the file of DP2 holds no table of hand cluster, as no footprint cluster of the 7 keys holds a
+        // DP2 unit, and its table of hand alone holds the factor plots 2 and 3 of the made up row take
+        private static void NoClusterTable(JObject key)
+        {
+            ((JObject)key["hand cluster"]["byFile"]).Remove(Dp2File);
+            key["hand alone"]["byFile"][Dp2File]["alone no none"] = true;
+        }
+
+        [Fact]
+        public void R357_Q098_a_cluster_unit_whose_file_has_no_table_of_hand_cluster_takes_the_table_of_hand_alone()
+        {
+            Dictionary<string, Dictionary<string, object>> step = HandSteps(handKey: NoClusterTable).Item1;
+            foreach (string number in new[] { "2", "3" })
+            {
+                Assert.Equal("cluster alone rowPairSideOrBlockMirrorOpenEnd alone no none", string.Join(" ", new[] { "unitClass", "handTable", "handRule", "factor" }.Select(name => step[number][name])));
+                Assert.True((bool)(JToken)step[number]["mirrored"]);
+            }
+            Assert.Equal("alone villa", step["4"]["handTable"] + " " + step["1"]["handTable"]);
+        }
+
+        [Fact]
+        public void R357_Q098_the_table_of_a_unit_is_that_of_its_class_and_a_cluster_unit_falls_back_only_to_a_table_of_hand_alone_of_its_file()
+        {
+            JObject key = JObject.Parse("{\"hand villa\": {\"rule\": \"blockMirrorRoadSide\", \"byFile\": {\"" + Vd2File + "\": {}}}, \"hand cluster\": {\"rule\": \"clusterSide\", "
+                + "\"byFile\": {\"" + Dp2File + "\": {}}}, \"hand alone\": {\"rule\": \"rowPairSideOrBlockMirrorOpenEnd\", \"byFile\": {\"" + Dp2File + "\": {}, \"alone.rvt\": {}}}}");
+            Assert.Equal("cluster", Hands.HandTable(key, "cluster", Dp2File));
+            Assert.Equal("alone", Hands.HandTable(key, "cluster", "alone.rvt"));
+            Assert.Equal("cluster cluster", Hands.HandTable(key, "cluster", "other.rvt") + " " + Hands.HandTable(key, "cluster", null));
+            Assert.Equal("villa alone", Hands.HandTable(key, "villa", "alone.rvt") + " " + Hands.HandTable(key, "alone", "other.rvt"));
         }
 
         // The length of the boundary of a face within the buffer of another at 0.05 m, the buffer as GEOS builds it with 16 segments a
@@ -1111,7 +1145,7 @@ namespace SiteAdaptation.Tests
         {
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
             Assert.Equal("unit kind pairKind unitClass cluster clusterCode clusterSide clusterRole clusterIndex clusterUnits left right openEnd roadSide rowPair blockMirror "
-                + "blockMirrorRoadSide blockMirrorOpenEnd rowPairSideOrBlockMirrorOpenEnd handRule factor linkFile mirrored", string.Join(" ", config.StepFields(Hands.StepName).Select(field => field.Name)));
+                + "blockMirrorRoadSide blockMirrorOpenEnd rowPairSideOrBlockMirrorOpenEnd handTable handRule factor linkFile mirrored", string.Join(" ", config.StepFields(Hands.StepName).Select(field => field.Name)));
             Assert.All(config.StepFields(Hands.StepName), field => Assert.Equal("noGeometry", field.Kind));
         }
 

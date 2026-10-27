@@ -312,7 +312,7 @@ namespace SiteAdaptation.Tests
                 + "\"RRE_ZZ_SP_Prototype-Foundation-Type\":\"VD2-T2\",\"RRE_ZZ_SP_Prototype-HVAC-Schedule-Type\":\"SCHEDULES OF VRF INDOOR & OUTDOOR UNITS-DP2\",\"CASE\":\"E\","
                 + "\"RRE_ZZ_SP_Plot-Number\":\"1\",\"RRE_ZZ_SP_RVT-Name\":\"1 | VD2 | 1 | XX | XX\",\"RRE_ZZ_SP_Prototype-FFL\":\"10.280\"}", PyJson.Dumps((JObject)step["1"]["parameters"]));
             Assert.True(((JObject)step["1"]["sources"]).Properties().All(item => (string)item.Value == "keyRules"));
-            Assert.Equal("True  null", Text(step["1"]["written"]) + " " + Text(step["1"]["lacks"]) + " " + Text(step["1"]["linkName"]));
+            Assert.Equal("True  1 | VD2 | 1 | XX | XX", Text(step["1"]["written"]) + " " + Text(step["1"]["lacks"]) + " " + Text(step["1"]["linkName"]));
             // 2 its CASE by the text of its override, 3 its Prototype-FFL from the FFL moved by 10 cm, down to the cm, then its gap of 2 cm
             Assert.Equal("Z override", (string)((JObject)step["2"]["parameters"])["CASE"] + " " + (string)((JObject)step["2"]["sources"])["CASE"]);
             Assert.Equal("10.640 override", (string)((JObject)step["3"]["parameters"])["RRE_ZZ_SP_Prototype-FFL"] + " " + (string)((JObject)step["3"]["sources"])["RRE_ZZ_SP_Prototype-FFL"]);
@@ -325,6 +325,44 @@ namespace SiteAdaptation.Tests
             Assert.Null(five["RRE_ZZ_SP_Number-of-Steps"]);
             Assert.Equal("RRE_ZZ_SP_Number-of-Steps True", Text(step["5"]["lacks"]) + " " + Text(step["5"]["written"]));
             Assert.True(step["7"].All(item => item.Key == "written" ? (bool)item.Value == false : item.Value == null));
+        }
+
+        // test_override_param_steps.test_r361_r107_q099_...: the link Name of R107 is the text of RRE_ZZ_SP_RVT-Name after its overrides
+        [Fact]
+        public void R361_R107_Q099_a_build_writes_the_link_name_as_the_rvt_name_parameter_after_its_overrides()
+        {
+            Dictionary<string, PlotPlan> plans = Build(Made()).Plans;
+            Dictionary<string, Dictionary<string, object>> step = LinkParameters.Step(plans.Keys, plans);
+            Assert.Equal("1 | VD2 | 1 | XX | XX|a made up name|5 | DP2 | 4 | XX | XX", Text(step["1"]["linkName"]) + "|" + Text(step["4"]["linkName"]) + "|" + Text(step["5"]["linkName"]));
+            foreach (string number in new[] { "1", "2", "3", "4", "5", "6" })
+            {
+                Assert.Equal((string)((JObject)step[number]["parameters"])[LinkFields.RvtName], (string)step[number]["linkName"]);
+            }
+            Assert.Null(step["7"]["linkName"]);
+            // A plot the plan does not write holds the name of its parameter all the same
+            plans = Build(new OverrideList(new Dictionary<string, JObject>()), null, new[] { "8" }).Plans;
+            step = LinkParameters.Step(plans.Keys, plans);
+            Assert.Equal("False 8 | DP2 | None | XX | XX", Text(step["8"]["written"]) + " " + Text(step["8"]["linkName"]));
+        }
+
+        [Fact]
+        public void R361_R107_Q099_a_rule_that_gives_no_rvt_name_leaves_the_link_name_null()
+        {
+            Dictionary<string, PlotPlan> plans = Build(new OverrideList(new Dictionary<string, JObject>()), key => key.Remove("parameter " + LinkFields.RvtName)).Plans;
+            Dictionary<string, Dictionary<string, object>> step = LinkParameters.Step(plans.Keys, plans);
+            Assert.Equal("True null", Text(step["1"]["written"]) + " " + Text(step["1"]["linkName"]));
+        }
+
+        // Q098: a cluster unit whose file holds no table of hand cluster takes that of hand alone, so the plan writes plots 2 and 3 with its hand
+        [Fact]
+        public void R357_R360_Q098_the_plan_writes_a_cluster_unit_whose_file_has_no_table_of_hand_cluster_by_the_table_of_hand_alone()
+        {
+            Dictionary<string, PlotPlan> plans = Build(new OverrideList(new Dictionary<string, JObject>()), key =>
+            {
+                ((JObject)key["hand cluster"]["byFile"]).Remove(Dp2File);
+                key["hand alone"]["byFile"][Dp2File]["alone no none"] = true;
+            }).Plans;
+            Assert.Equal("True true|True true", string.Join("|", new[] { "2", "3" }.Select(number => Text(plans[number].Overrides["written"]) + " " + Text(plans[number].Overrides["mirrored"]))));
         }
 
         [Fact]

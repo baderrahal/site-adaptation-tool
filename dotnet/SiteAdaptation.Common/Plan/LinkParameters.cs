@@ -78,8 +78,15 @@ namespace SiteAdaptation.Common
             return Tuple.Create(values, lacking);
         }
 
+        // R107, Q099. The instance Name the placer writes, the text of RRE_ZZ_SP_RVT-Name after its overrides, null when its rule gives none,
+        // as plan_from_book.build sets linkName
+        public static string LinkName(JObject texts)
+        {
+            return (string)texts[LinkFields.RvtName];
+        }
+
         // plan_from_book.parameter_step: per plot of the scope the link parameters of step 13 the build gave it after the overrides (PlanOverrides),
-        // their texts and sources, the names a rule gave no value and the link Name, which a build from the data book never writes (R107)
+        // their texts and sources, the names a rule gave no value and the link Name of R107 (LinkName)
         public static Dictionary<string, Dictionary<string, object>> Step(IEnumerable<string> numbers, IReadOnlyDictionary<string, PlotPlan> plans)
         {
             return numbers.ToDictionary(number => number, number => plans[number].Parameters);

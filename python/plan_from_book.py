@@ -193,7 +193,7 @@ def hand_step(numbers, rows, rules, trace, files, profile, block):
     takes it: the kind and the pair kind of its unit (majority.kind_of, pair_kind), its unit class, its cluster, side, role, index and
     count (cad_links.cluster_roles), its side neighbours left and right in the order of their numbers (majority.side_neighbours), the open
     end, the side road, its row pair (key_rules.row_pairs), the block mirror flag, the factors joined of two (plan_rules.joined_factors),
-    the rule of hand villa, cluster or alone, the value of its factor, the file the plot links and the mirror flag the table of that file
+    the table of hand villa, cluster or alone it takes (plan_rules.hand_table, Q098) and its rule, the value of its factor, the file the plot links and the mirror flag the table of that file
     gives (plan_rules.key_hand), before an override of the list. A hand that differs from the one the build took is refused."""
     import majority
     key, roles = rules["keyRules"], trace["roles"]
@@ -208,7 +208,8 @@ def hand_step(numbers, rows, rules, trace, files, profile, block):
                                              "clusterSide": role["side"] if role is not None else "alone", "openEnd": rules["openEnds"].get(number),
                                              "roadSide": rules["roadSides"].get(number), "rowPairSide": rules["pairs"].get(number)})
         unit_class = plan_rules.unit_class(rules["kinds"].get(number), role)
-        hand, rule = plan_rules.key_hand(key, unit_class, files.get(unit), factors) if unit else (None, None)
+        table = plan_rules.hand_table(key, unit_class, files.get(unit)) if unit else None
+        hand, rule = plan_rules.key_hand(key, table, files.get(unit), factors) if unit else (None, None)
         built = trace["hands"].get(number)
         if built is not None and (built["mirrored"], built["rule"]) != (hand, rule):
             raise ValueError("the step hands gives plot %s the hand %r by %s and the build took %r by %s (R357)" % (number, hand, rule, built["mirrored"], built["rule"]))
@@ -221,7 +222,7 @@ def hand_step(numbers, rows, rules, trace, files, profile, block):
             "openEnd": rules["openEnds"].get(number), "roadSide": rules["roadSides"].get(number),
             "rowPair": None if pair is None else {"left": pair["left"], "right": pair["right"], "length": pair["length"], "side": pair["side"]},
             "blockMirror": factors["blockMirror"], "blockMirrorRoadSide": factors["blockMirrorRoadSide"], "blockMirrorOpenEnd": factors["blockMirrorOpenEnd"],
-            "rowPairSideOrBlockMirrorOpenEnd": factors["rowPairSideOrBlockMirrorOpenEnd"], "handRule": rule, "factor": factors.get(rule) if rule else None,
+            "rowPairSideOrBlockMirrorOpenEnd": factors["rowPairSideOrBlockMirrorOpenEnd"], "handTable": table, "handRule": rule, "factor": factors.get(rule) if rule else None,
             "linkFile": files.get(unit) if unit else None, "mirrored": hand}
     return found
 
@@ -475,7 +476,7 @@ def parameter_step(numbers, rows, trace, rules):
     """R361. The step parameters of the parity harness: per plot of the scope the link parameters the build gives it, as the plan writes them
     for a plot it writes and as the missing list holds it for one it does not, the text of each by plan_rules.key_parameters on the mirror flag,
     the steps and the FFL after the overrides, then the parameter overrides of the list, the source of each, keyRules or override, the
-    parameters the rules give no value with the lack of the plan, and the link Name of R107, which a build from the data book never writes."""
+    parameters the rules give no value with the lack of the plan, and the link Name of R107, the text of RRE_ZZ_SP_RVT-Name (Q099)."""
     skip = getattr(rules["overrides"], "skip", {})
     built = trace.get("built") or {}
     found = {}
@@ -914,7 +915,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                 factors = plan_rules.joined_factors({"all": "all", "blockMirror": block_mirror, "clusterSide": roles[number]["side"] if number in roles else "alone",
                                                      "openEnd": rules["openEnds"].get(number), "roadSide": rules["roadSides"].get(number),
                                                      "rowPairSide": rules["pairs"].get(number)})
-                hand, rule = plan_rules.key_hand(key, plan_rules.unit_class(rules["kinds"].get(number), roles.get(number)), files.get(unit), factors)
+                # Q098. A cluster unit whose file holds no table of hand cluster takes that of hand alone
+                table = plan_rules.hand_table(key, plan_rules.unit_class(rules["kinds"].get(number), roles.get(number)), files.get(unit))
+                hand, rule = plan_rules.key_hand(key, table, files.get(unit), factors)
                 if trace is not None:
                     # R357. The hand by the rule, before an override of the list sets it
                     trace["hands"][number] = {"mirrored": hand, "rule": rule}
@@ -961,6 +964,10 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                     outcomes.applied(number, field)
                 elif field.startswith(plan_rules.PARAMETER):
                     outcomes.left(number, field, "left to 3c, majority.overrideKeep.laterFields, the build writes no such parameter")
+            # R107, Q099. The instance Name the placer writes is the text of RRE_ZZ_SP_RVT-Name after its overrides, with its source
+            link_name = builder.entry["parameters"].get(plan_from_past.RVT_NAME_PARAMETER)
+            if link_name is not None:
+                builder.entry["linkName"] = dict(link_name)
         else:
             builder.entry["parameters"] = {plan_from_past.PLOT_PARAMETER: sourced(number, LOCATION), plan_from_past.UNIT_PARAMETER: sourced(unit, LOCATION)}
             if steps is not None:

@@ -8,6 +8,7 @@ from shapely.geometry import Polygon, box
 
 import parity
 import plan_from_book
+import plan_rules
 import project_profile
 
 
@@ -614,14 +615,17 @@ def hand_rules():
     return project_profile.ProjectProfile(real.path, values)
 
 
-def hand_build(monkeypatch):
-    """plan_from_book.rule_inputs and build with a trace on the made up row, the road level stubbed, as key_build of the R337 tests."""
+def hand_build(monkeypatch, change=None):
+    """plan_from_book.rule_inputs and build with a trace on the made up row, the road level stubbed, as key_build of the R337 tests, change
+    a change of the made up keyRules."""
     import argparse
     from shapely.geometry import LineString, box
     import plan_from_past
     from pathlib import Path
     settings = project_profile.load_settings()
     profile = hand_rules()
+    if change is not None:
+        change(profile.values["levelProfiles"]["parsons2024Rev6"]["keyRules"])
     numbers = [str(index) for index in range(1, 7)]
     rows = {number: {"locationPlanNumber": number, "typologyRev9": HAND_UNITS[number], "footprintMirrored": "no", "zone": "Zone 2"} for number in numbers}
     faces = {number: box(index * 12.0, 0.0, index * 12.0 + 12.0, 25.0).buffer(0) for index, number in enumerate(numbers)}
@@ -637,8 +641,9 @@ def hand_build(monkeypatch):
     outlines = json.loads((Path(__file__).resolve().parents[2] / "config" / "floor_outlines.json").read_text(encoding="utf-8"))
     files = {"DP2": DP2_FILE, "VD2": VD2_FILE}
     trace = {}
-    plan_from_book.build(numbers, rows, {}, faces, roads, clusters, profile, settings, {"units": {}}, files, "folder", site, [("road", None)], outlines, "N1", sales,
-                         True, rules, trace=trace)
+    plan = plan_from_book.build(numbers, rows, {}, faces, roads, clusters, profile, settings, {"units": {}}, files, "folder", site, [("road", None)], outlines, "N1",
+                                sales, True, rules, trace=trace)
+    trace["plan"] = plan
     return plan_from_book.hand_step(numbers + ["7"], rows, rules, trace, files, profile, settings.get("majority")), trace
 
 
@@ -691,7 +696,7 @@ def test_r357_the_hand_of_a_plot_is_the_table_of_its_file_read_by_the_factor_of_
     assert step["1"] == {"unit": "VD2", "kind": "villa", "pairKind": "villa", "unitClass": "villa", "cluster": None, "clusterCode": None, "clusterSide": None,
                          "clusterRole": None, "clusterIndex": None, "clusterUnits": None, "left": [], "right": ["2"], "openEnd": "left", "roadSide": "left", "rowPair": None,
                          "blockMirror": "no", "blockMirrorRoadSide": "no left", "blockMirrorOpenEnd": "no left", "rowPairSideOrBlockMirrorOpenEnd": "alone no left",
-                         "handRule": "blockMirrorRoadSide", "factor": "no left", "linkFile": VD2_FILE, "mirrored": True}
+                         "handTable": "villa", "handRule": "blockMirrorRoadSide", "factor": "no left", "linkFile": VD2_FILE, "mirrored": True}
     assert step["2"]["unitClass"] == "cluster" and step["2"]["cluster"] == ["2", "3"] and step["2"]["clusterSide"] == "left" and step["2"]["clusterRole"] == "pair"
     assert (step["2"]["clusterIndex"], step["2"]["clusterUnits"], step["2"]["mirrored"]) == (1, 2, False)
     assert (step["3"]["clusterSide"], step["3"]["clusterIndex"], step["3"]["mirrored"], step["3"]["factor"]) == ("right", 2, True, "right")
@@ -703,7 +708,39 @@ def test_r357_the_hand_of_a_plot_is_the_table_of_its_file_read_by_the_factor_of_
     assert step["6"]["openEnd"] == "right" and step["4"]["roadSide"] == "none" and step["4"]["left"] == ["3"] and step["4"]["right"] == ["5"]
     # Plot 7 holds no row and no face: no unit, no hand, every field of what it lacks null
     assert step["7"]["unit"] is None and step["7"]["mirrored"] is None and step["7"]["handRule"] is None and step["7"]["unitClass"] == "alone"
+    assert step["7"]["handTable"] is None and step["2"]["handTable"] == "cluster" and step["4"]["handTable"] == "alone"
     assert trace["hands"]["4"] == {"mirrored": True, "rule": "rowPairSideOrBlockMirrorOpenEnd"}
+
+
+def no_cluster_table(key):
+    """Q098. The file of DP2 holds no table of hand cluster, as no footprint cluster of the 7 keys holds a DP2 unit, and its table of
+    hand alone holds the factor plots 2 and 3 of the made up row take, alone with the block mirror flag no and no open end."""
+    del key["hand cluster"]["byFile"][DP2_FILE]
+    key["hand alone"]["byFile"][DP2_FILE]["alone no none"] = True
+
+
+def test_r357_q098_a_cluster_unit_whose_file_has_no_table_of_hand_cluster_takes_the_table_of_hand_alone(monkeypatch):
+    step, trace = hand_build(monkeypatch, no_cluster_table)
+    for number in ("2", "3"):
+        found = step[number]
+        assert (found["unitClass"], found["handTable"], found["handRule"], found["factor"], found["mirrored"]) == (
+            "cluster", "alone", "rowPairSideOrBlockMirrorOpenEnd", "alone no none", True)
+        assert trace["hands"][number] == {"mirrored": True, "rule": "rowPairSideOrBlockMirrorOpenEnd"}
+    # The plan writes both with that hand, where with no fall back they had no hand and were not written
+    written = {entry["plot"]: entry for entry in trace["plan"]["plots"]}
+    assert written["2"]["mirrored"]["value"] is True and written["3"]["mirrored"]["value"] is True
+    # A unit in no cluster and the villa keep their own table
+    assert (step["4"]["handTable"], step["1"]["handTable"]) == ("alone", "villa")
+
+
+def test_r357_q098_the_table_of_a_unit_is_that_of_its_class_and_a_cluster_unit_falls_back_only_to_a_table_of_hand_alone_of_its_file():
+    key = {"hand villa": {"rule": "blockMirrorRoadSide", "byFile": {VD2_FILE: {}}}, "hand cluster": {"rule": "clusterSide", "byFile": {DP2_FILE: {}}},
+           "hand alone": {"rule": "rowPairSideOrBlockMirrorOpenEnd", "byFile": {DP2_FILE: {}, "alone.rvt": {}}}}
+    assert plan_rules.hand_table(key, "cluster", DP2_FILE) == "cluster"
+    assert plan_rules.hand_table(key, "cluster", "alone.rvt") == "alone"
+    # A file of no table of either keeps its class, so its rule stays that of hand cluster, and a unit with no file too
+    assert plan_rules.hand_table(key, "cluster", "other.rvt") == "cluster" and plan_rules.hand_table(key, "cluster", None) == "cluster"
+    assert plan_rules.hand_table(key, "villa", "alone.rvt") == "villa" and plan_rules.hand_table(key, "alone", "other.rvt") == "alone"
 
 
 def test_r357_a_hand_of_the_step_that_differs_from_the_hand_the_build_took_is_refused(monkeypatch):
@@ -720,7 +757,7 @@ def test_r357_a_hand_of_the_step_that_differs_from_the_hand_the_build_took_is_re
 def test_r357_the_config_names_the_fields_of_the_step_hands_all_exact():
     fields = project_profile.load_settings().get("addin")["parity"]["steps"]["hands"]
     assert list(fields) == ["unit", "kind", "pairKind", "unitClass", "cluster", "clusterCode", "clusterSide", "clusterRole", "clusterIndex", "clusterUnits", "left", "right",
-                            "openEnd", "roadSide", "rowPair", "blockMirror", "blockMirrorRoadSide", "blockMirrorOpenEnd", "rowPairSideOrBlockMirrorOpenEnd", "handRule",
+                            "openEnd", "roadSide", "rowPair", "blockMirror", "blockMirrorRoadSide", "blockMirrorOpenEnd", "rowPairSideOrBlockMirrorOpenEnd", "handTable", "handRule",
                             "factor", "linkFile", "mirrored"]
     assert all(field == {"kind": "noGeometry"} for field in fields.values())
 

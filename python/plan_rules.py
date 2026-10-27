@@ -317,6 +317,16 @@ def unit_class(kind, role):
     return "villa" if kind == "villa" else "cluster" if role is not None else "alone"
 
 
+def hand_table(rules, unit_class_name, link_file):
+    """R357, Q098. The class whose hand table of keyRules gives the hand of a plot: its unit class, but a cluster unit whose file holds no
+    table of hand cluster and one of hand alone takes hand alone, the class of the unit when no cluster held it. Since Q089 no footprint
+    cluster of the 7 keys holds a DP2 unit, so hand cluster learned no table of its file."""
+    if unit_class_name == "cluster" and link_file is not None and rules["hand cluster"]["byFile"].get(link_file) is None \
+            and rules["hand alone"]["byFile"].get(link_file) is not None:
+        return "alone"
+    return unit_class_name
+
+
 def joined_factors(factors):
     """R271, R333. The factors made of two others, blockMirrorRoadSide, blockMirrorOpenEnd and rowPairSideOrBlockMirrorOpenEnd, the one
     place majority.py and a build make them."""

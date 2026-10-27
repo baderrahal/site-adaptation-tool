@@ -793,6 +793,7 @@ namespace SiteAdaptation.Common
                 parameters["parameters"] = texts;
                 parameters["sources"] = sources;
                 parameters["lacks"] = values.Item2;
+                parameters["linkName"] = LinkParameters.LinkName(texts);
             }
             return found;
         }

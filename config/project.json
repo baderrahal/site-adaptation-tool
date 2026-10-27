@@ -636,6 +636,7 @@
             "blockMirrorRoadSide": {"kind": "noGeometry"},
             "blockMirrorOpenEnd": {"kind": "noGeometry"},
             "rowPairSideOrBlockMirrorOpenEnd": {"kind": "noGeometry"},
+            "handTable": {"kind": "noGeometry"},
             "handRule": {"kind": "noGeometry"},
             "factor": {"kind": "noGeometry"},
             "linkFile": {"kind": "noGeometry"},
