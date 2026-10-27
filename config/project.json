@@ -676,6 +676,33 @@
             "yardType": {"kind": "noGeometry"},
             "yardOutline": {"kind": "points", "decimals": 3},
             "lacks": {"kind": "noGeometry"}
+        },
+        "overrides": {
+            "unit": {"kind": "noGeometry"},
+            "skip": {"kind": "noGeometry"},
+            "written": {"kind": "noGeometry"},
+            "applied": {"kind": "noGeometry"},
+            "notApplied": {"kind": "noGeometry"},
+            "mirrored": {"kind": "noGeometry"},
+            "insert": {"kind": "points", "decimals": 3},
+            "rotationDeg": {"kind": "angles", "decimals": 3},
+            "entry": {"kind": "levels", "decimals": 4},
+            "ffl": {"kind": "levels", "decimals": 3},
+            "ssl": {"kind": "levels", "decimals": 3},
+            "height": {"kind": "levels", "decimals": 4},
+            "steps": {"kind": "noGeometry"},
+            "rampZ": {"kind": "levels", "decimals": 3},
+            "rampType": {"kind": "noGeometry"},
+            "yardZ": {"kind": "levels", "decimals": 3},
+            "yardOutline": {"kind": "points", "decimals": 3}
+        },
+        "parameters": {
+            "unit": {"kind": "noGeometry"},
+            "written": {"kind": "noGeometry"},
+            "parameters": {"kind": "noGeometry"},
+            "sources": {"kind": "noGeometry"},
+            "lacks": {"kind": "noGeometry"},
+            "linkName": {"kind": "noGeometry"}
         }
       }
     }

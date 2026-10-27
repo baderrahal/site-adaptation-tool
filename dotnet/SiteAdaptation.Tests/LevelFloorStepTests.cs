@@ -34,7 +34,7 @@ namespace SiteAdaptation.Tests
             }
         }
 
-        private static double[][] Ring(double x0, double y0, double x1, double y1)
+        internal static double[][] Ring(double x0, double y0, double x1, double y1)
         {
             return new[] { new[] { x0, y0 }, new[] { x1, y0 }, new[] { x1, y1 }, new[] { x0, y1 } };
         }
@@ -62,7 +62,7 @@ namespace SiteAdaptation.Tests
 
         // keyRules as the rules profile holds them, the hands of test_build_steps.py with every factor of the hand alone not mirrored for the file
         // of TH1, the yard groups the made up ones, no split of a cluster
-        private static JObject MadeRules()
+        internal static JObject MadeRules()
         {
             JObject rules = JObject.Parse(File.ReadAllText(BuildStepTests.RepoRules()));
             JObject key = (JObject)rules["levelProfiles"]["parsons2024Rev6"]["keyRules"];
@@ -311,7 +311,7 @@ namespace SiteAdaptation.Tests
                 string.Join(" ", config.StepFields(KeyLevels.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
             Assert.Equal("unit:noGeometry generic:points3 rampOutline:points3 rampZ:levels3 rampClass:noGeometry rampType:noGeometry yardDepth:levels3 yardUnit:noGeometry "
                 + "yardWidth:points3 yardType:noGeometry yardOutline:points3 lacks:noGeometry", string.Join(" ", config.StepFields(FloorOutlines.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
-            Assert.Equal("clusters fronts hands linkFrame levels floors", string.Join(" ", BuildSteps.Names));
+            Assert.Equal("clusters fronts hands linkFrame levels floors overrides parameters", string.Join(" ", BuildSteps.Names));
         }
 
         private string ReadFile(string name, string role, string source, JObject content)
@@ -345,7 +345,7 @@ namespace SiteAdaptation.Tests
 
         // The request of a worker build of the steps levels and floors on made up reads of the made up row, a footprint block on 2 and 3, the
         // made up rules, two made up prototype files and the road surfaces of config, the first flat at 10 m under the whole row
-        private WorkerRequest Request(string runId, params string[] steps)
+        internal WorkerRequest Request(string runId, params string[] steps)
         {
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
             var numbers = new[] { "1", "2", "3", "4", "5", "6" };
@@ -391,7 +391,7 @@ namespace SiteAdaptation.Tests
             {
                 inputs.Add(Input(WorkerRunner.RoadSurfaceRole + name, place++ == 0 ? Surface(name, -60.0, -20.0, 100.0, 30.0, 10.0) : Surface(name, 1000.0, 1000.0, 1010.0, 1010.0, 99.0)));
             }
-            if (steps.Contains(FloorOutlines.StepName))
+            if (steps.Contains(FloorOutlines.StepName) || steps.Contains(PlanOverrides.StepName) || steps.Contains(LinkParameters.StepName))
             {
                 foreach (string name in new[] { Dp2File, Vd2File })
                 {
