@@ -1,4 +1,4 @@
-"""R343. docs/addin-design.md, the written design of the add-in, holds its sections, the labels of the approved mock in order and no coordinate."""
+"""R343. docs/design/, the written design of the add-in, holds its sections, the labels of the approved mock in order and no coordinate."""
 import json
 import re
 from bisect import bisect_left
@@ -10,7 +10,7 @@ import pytest
 import record_parts
 
 ROOT = Path(__file__).resolve().parents[2]
-DESIGN = ROOT / "docs" / "addin-design.md"
+DESIGN = ROOT / "docs" / "design"
 MOCK = ROOT / "docs" / "addin-mock.md"
 RULES = ROOT / "docs" / "rules"
 SETTINGS = ROOT / "config" / "project.json"
@@ -148,14 +148,15 @@ def round_outputs():
 def records():
     """The texts this round writes its design and its state into: the design, the licences, PROGRESS, the top log entry and the round file."""
     log = (ROOT / "steps" / "log.md").read_text(encoding="utf-8")
-    texts = {"docs/addin-design.md": DESIGN.read_text(encoding="utf-8"), "docs/licences.md": (ROOT / "docs" / "licences.md").read_text(encoding="utf-8"),
+    texts = {"docs/design": record_parts.text(DESIGN), "docs/licences.md": (ROOT / "docs" / "licences.md").read_text(encoding="utf-8"),
              "steps/PROGRESS.md": (ROOT / "steps" / "PROGRESS.md").read_text(encoding="utf-8"), "steps/log.md top": re.split(r"^## ", log, flags=re.MULTILINE)[1]}
+    texts["steps/history/round-addin"] = record_parts.text(record_parts.ROUND_ADDIN)
     texts["steps/investigations/round-addin.md"] = (ROOT / "steps" / "investigations" / "round-addin.md").read_text(encoding="utf-8")
     return texts
 
 
 def test_r343_the_design_holds_its_ten_sections_in_order():
-    text = DESIGN.read_text(encoding="utf-8")
+    text = record_parts.text(DESIGN)
     places = [text.find("\n## %d. %s" % (number, name)) for number, name in enumerate(SECTIONS, start=1)]
     assert all(place >= 0 for place in places), [name for name, place in zip(SECTIONS, places) if place < 0]
     assert places == sorted(places)
@@ -164,7 +165,7 @@ def test_r343_the_design_holds_its_ten_sections_in_order():
 def test_r343_every_label_of_the_mock_is_in_the_mock_and_in_section_7_in_the_order_of_the_mock():
     mock = MOCK.read_text(encoding="utf-8")
     assert [label for label in MOCK_LABELS if label not in mock] == []
-    assert labels_in_order(section(DESIGN.read_text(encoding="utf-8"), 7), MOCK_LABELS) == []
+    assert labels_in_order(section(record_parts.text(DESIGN), 7), MOCK_LABELS) == []
 
 
 def test_r343_the_order_check_finds_a_label_out_of_place():
@@ -173,7 +174,7 @@ def test_r343_the_order_check_finds_a_label_out_of_place():
 
 
 def test_r343_the_design_holds_no_coordinate_and_shows_coordinates_and_levels_as_placeholders():
-    text = DESIGN.read_text(encoding="utf-8")
+    text = record_parts.text(DESIGN)
     assert COORDINATE.findall(text) == []
     assert "[coordinate]" in text and "[level]" in text
     assert "mock_filled.md" in text
@@ -206,7 +207,7 @@ def test_r343_the_leak_check_finds_a_real_level_or_coordinate_however_it_is_writ
 
 
 def test_r343_the_rounding_ties_the_design_gives_hold_under_r385_and_differ_from_python_round():
-    text = section(DESIGN.read_text(encoding="utf-8"), 5)
+    text = section(record_parts.text(DESIGN), 5)
     against = re.findall(r"(\d+\.\d+) to (\d+(?:\.\d+)?) against (\d+\.\d+)", text)
     assert len(against) == 4
     for value, by_round, by_rule in against:
@@ -225,7 +226,7 @@ def test_r343_the_rounding_rule_drops_float_noise_and_minus_zero():
 
 
 def test_r343_every_schema_name_of_the_design_is_letters_digits_and_underscore():
-    text = DESIGN.read_text(encoding="utf-8")
+    text = record_parts.text(DESIGN)
     names = re.findall(r"\bschema (SiteAdaptation\w*(?:\.\w+)*)", text) + re.findall(r"\b(SiteAdaptation_\w+)", text)
     assert {"SiteAdaptation_Placed", "SiteAdaptation_Settings"} <= set(names)
     assert [name for name in names if not SCHEMA_NAME.match(name)] == []
@@ -235,7 +236,7 @@ def test_r343_every_schema_name_of_the_design_is_letters_digits_and_underscore()
 def test_r343_past_writes_the_form_the_build_reads_for_every_check_and_every_override_field():
     import plan_from_book
     import plan_rules
-    rows = table_after(DESIGN.read_text(encoding="utf-8"), "What Past writes, by check and field:")
+    rows = table_after(record_parts.text(DESIGN), "What Past writes, by check and field:")
     read = set(plan_rules.FIELDS) | set(plan_rules.KEY_FIELDS)
     fields = [(row, field.strip()) for row in rows for field in row["Field"].split(",")]
     assert [check for check in CHECK_TYPES if not any(row["Check"].startswith(check) for row in rows)] == []
@@ -254,7 +255,7 @@ def test_r343_the_report_summary_of_the_design_has_the_five_columns_of_the_mock(
     mock = MOCK.read_text(encoding="utf-8")
     columns = re.search(r"Summary table with columns ([^,]+(?:, [^,]+)*?), one row per button", mock).group(1).split(", ")
     assert columns == ["Step", "Done", "Skipped", "Override", "Issues"]
-    report = section(DESIGN.read_text(encoding="utf-8"), 7).split("### 7.6", 1)[1].split("### 7.7", 1)[0]
+    report = section(record_parts.text(DESIGN), 7).split("### 7.6", 1)[1].split("### 7.7", 1)[0]
     assert "the five columns of the mock" in report and "six columns" not in report
 
 
@@ -274,7 +275,7 @@ def test_r343_every_sentence_of_the_mock_stands_in_section_7_word_for_word_with_
     sentences = mock_sentences()
     assert len(sentences) == 35
     assert "Level Excel, file <NBH>_Levels_<profile>.xlsx." in sentences
-    assert labels_in_order(section(DESIGN.read_text(encoding="utf-8"), 7), sentences) == []
+    assert labels_in_order(section(record_parts.text(DESIGN), 7), sentences) == []
 
 
 def test_r343_the_sentence_check_finds_a_colon_made_a_period():
@@ -282,7 +283,7 @@ def test_r343_the_sentence_check_finds_a_colon_made_a_period():
 
 
 def test_r343_the_rounding_rule_reads_the_15_digit_text_with_its_exponent_and_4a_tests_float_noise_in_csharp():
-    text = section(DESIGN.read_text(encoding="utf-8"), 5)
+    text = section(record_parts.text(DESIGN), 5)
     assert "NumberStyles.Float" in text
     assert [format(value, ".15g") for value in (0.1 + 0.2 - 0.3, 0.000004)] == ["5.55111512312578e-17", "4e-06"]
     assert fixed(0.1 + 0.2 - 0.3, 3) == 0 and fixed(0.000004, 4) == 0
@@ -292,7 +293,7 @@ def test_r343_the_rounding_rule_reads_the_15_digit_text_with_its_exponent_and_4a
 
 
 def test_r343_the_parity_tolerances_are_named_per_field_and_small_against_the_pass_limit():
-    rows = table_after(section(DESIGN.read_text(encoding="utf-8"), 5), "### Parity tolerances")
+    rows = table_after(section(record_parts.text(DESIGN), 5), "### Parity tolerances")
     by_kind = {row["Kind"]: row for row in rows}
     assert {"Points and lengths", "Levels", "Areas", "Angles", "No geometry"} <= set(by_kind)
     for kind, unit in (("Points and lengths", "m"), ("Levels", "m"), ("Areas", "m2"), ("Angles", "degree")):
@@ -304,7 +305,7 @@ def test_r343_the_parity_tolerances_are_named_per_field_and_small_against_the_pa
 
 
 def test_r343_every_build_is_numbered_by_the_schedule_fit_and_the_control_point_fit_is_a_check():
-    text = DESIGN.read_text(encoding="utf-8")
+    text = record_parts.text(DESIGN)
     planned = {row["Id"]: row["Rule"] for row in table_after(section(text, 10), "Planned rules, taken from")}
     assert "schedule fit" in planned["R351"] and "schedule fit" in planned["R352"]
     assert "check" in planned["R387"] and "otherwise" in planned["R387"]
@@ -322,7 +323,7 @@ def test_r343_the_steps_files_hold_no_control_byte_but_tab_and_line_feed():
 
 
 def test_r343_the_review_tables_of_pr_49_number_every_item_once():
-    text = (ROOT / "steps" / "investigations" / "round-addin.md").read_text(encoding="utf-8")
+    text = record_parts.text(record_parts.ROUND_ADDIN)
     first = review_numbers(text, "### Review of PR 49, the breaker and the claim-checker")
     assert first == list(range(1, 28))
     last = review_numbers(text, "### Last pass on PR 49")
@@ -330,12 +331,12 @@ def test_r343_the_review_tables_of_pr_49_number_every_item_once():
 
 
 def test_r343_the_round_plan_gives_phase_6_the_ids_after_the_python_changes():
-    plan = (ROOT / "steps" / "investigations" / "round-addin.md").read_text(encoding="utf-8").split("### Order of work", 1)[0]
+    plan = record_parts.text(record_parts.ROUND_ADDIN).split("### Order of work", 1)[0]
     assert "Phase 6 R389 to R399" in plan and "Phase 6 R385 to R399" not in plan
 
 
 def test_r343_every_point_only_a_revit_run_settles_is_on_the_open_list_with_the_phase_that_measures_it():
-    text = DESIGN.read_text(encoding="utf-8")
+    text = record_parts.text(DESIGN)
     part = text[text.index("### Open until a Revit run"):]
     items = re.findall(r"^\d+\. (.*)$", part.split("\n## ", 1)[0], flags=re.MULTILINE)
     assert len(items) >= 8
@@ -343,7 +344,7 @@ def test_r343_every_point_only_a_revit_run_settles_is_on_the_open_list_with_the_
 
 
 def test_r343_every_rule_the_design_names_below_the_planned_range_is_in_the_rules_file_and_the_planned_ones_lie_in_phases_4_and_5():
-    text = DESIGN.read_text(encoding="utf-8")
+    text = record_parts.text(DESIGN)
     rules = set(re.findall(r"\*\*(R\d+) ", record_parts.text(RULES)))
     named = {int(found) for found in re.findall(r"\bR(\d{1,3})\b", text)}
     assert [number for number in sorted(named) if number < 345 and "R%d" % number not in rules] == []

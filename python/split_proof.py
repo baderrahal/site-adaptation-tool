@@ -18,6 +18,13 @@ SPLITS = [
     ("docs/rules.md", ["docs/rules/01-reader-to-round-15a.md", "docs/rules/02-round-13-to-data-2.md", "docs/rules/03-round-z4-to-17.md",
                        "docs/rules/04-addin-r300-r327.md", "docs/rules/05-addin-r328-r344.md", "docs/rules/06-addin-r345-r353.md",
                        "docs/rules/07-addin-r354-r388.md"]),
+    ("docs/addin-design.md", ["docs/design/" + name for name in [
+        "01-option-b.md", "02-folders.md", "03a-buttons-shared-and-1.md", "03b-buttons-2-to-8.md", "04-inputs.md", "05-plan-steps.md",
+        "06-settings.md", "07-mock.md", "08-install.md", "09-risks.md", "10-rule-ids.md"]]),
+    ("steps/investigations/round-addin.md", ["steps/history/round-addin/" + name for name in [
+        "01-plan-0a.md", "02-phase-0b.md", "03-phase-1.md", "04-phase-1b.md", "05-phase-2a.md", "06-phase-2b.md", "07-phase-3a.md",
+        "08-phase-3c.md", "09-phase-3b.md", "10-phase-4a.md", "11-phase-4b.md", "12-q081-q073.md", "13-phase-4c.md", "14-phase-4d.md",
+        "15-phase-4e.md"]]),
 ]
 # The record files whose ids are counted before and after: the docs, the steps, CLAUDE.md and the agents
 RECORD_PREFIXES = ("docs/", "steps/", "CLAUDE.md", ".claude/agents/")

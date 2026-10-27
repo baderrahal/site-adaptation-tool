@@ -1,10 +1,13 @@
-"""The records kept in parts since Round REC: the rules in docs/rules/, each part a run of whole lines of the old docs/rules.md in
-its order. A reader that needs a whole record joins its parts in name order, which gives the old file byte for byte."""
+"""The records kept in parts since Round REC: the rules in docs/rules/, the design in docs/design/ and the round file of Round ADDIN
+phases 0a to 4e in steps/history/round-addin/, each part a run of whole lines of the old file in its order. A reader that needs a
+whole record joins its parts in name order, which gives the old file byte for byte."""
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "docs" / "rules"
+DESIGN = ROOT / "docs" / "design"
+ROUND_ADDIN = ROOT / "steps" / "history" / "round-addin"
 # The files of a parts folder that are no part of the record
 NOT_PARTS = {"index.md", "README.md"}
 RULE_TITLE = re.compile(r"^- \*\*(R\d+)( [^*]*)\*\*", re.MULTILINE)

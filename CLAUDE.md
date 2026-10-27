@@ -17,7 +17,7 @@ The rules live in docs/rules/ (docs/rules/index.md finds a rule by id) and nowhe
 
 ## Round ADDIN
 
-Part 1 is the add-in. Part 2, the output sheets, waits for Bader's check of Part 1. The plan and the findings are in steps/investigations/round-addin.md. Rule numbers R300 to R399.
+Part 1 is the add-in. Part 2, the output sheets, waits for Bader's check of Part 1. The plan and the findings of 0a to 4e are in steps/history/round-addin/, those from 4f in steps/investigations/round-addin.md. Rule numbers R300 to R399.
 
 - Option B (Bader): the add-in does everything inside Revit 2024 in C#, .NET Framework 4.8. No Python on the user's PC. Python stays in the repo only as the test checker.
 - Q050 (Bader): parsons2024Rev6 is the level profile of every new build, Rev 6 prevails. native2022 stays for reference and is never the default.

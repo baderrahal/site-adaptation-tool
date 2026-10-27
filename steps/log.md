@@ -8,23 +8,25 @@ Goal:
 - Small start reads, no record over 100 KB, nothing lost, real token use measured, Q095 to Q097 in the rules, the plan to finish Part 1. No logic change
 
 Done:
-- PR 1 rec/rules-split: docs/rules.md cut into 7 parts of docs/rules/ at line ends, 37,568 to 92,952 bytes (RAN, wc), docs/rules/index.md of 311 rules by python/rules_index.py, the 12 C# root finders and 3 Python tests read the parts, steps/usage.md
+- PR 56 rec/rules-split: docs/rules.md in 7 parts of docs/rules/, 37,568 to 92,952 bytes (RAN, wc), docs/rules/index.md of 311 rules by python/rules_index.py, the 12 C# root finders and 3 Python tests read the parts, steps/usage.md
+- PR 2 rec/design-split: docs/addin-design.md in 11 parts of docs/design/, 3,114 to 28,793 bytes, with a README, round-addin.md in 15 phase files of steps/history/round-addin/, a new round-addin.md for 4f on, test_addin_design reads the parts (RAN, wc)
 
 Checked:
 - Gate on main at 73b8c42 before any change: pytest 1,792 passed 1 skipped, build 0 errors 2 warnings, dotnet test 763 net8.0 and 789 net48 (RAN, steps/runs/rec/gate_main.txt)
-- Gate on PR 1: pytest 1,794 passed 1 skipped, build 0 errors 2 warnings, dotnet test 763 and 789 (RAN, gate_pr1.txt)
-- Split proof equal by SHA-256, 893 R ids and 40 three digit Q ids on both sides (RAN, split_proof.txt), the same hash by sha256sum over cat of the parts (RAN)
+- Gate on PR 56 and on PR 2: pytest 1,794 passed 1 skipped, build 0 errors 2 warnings, dotnet test 763 and 789 (RAN, gate_pr1.txt, gate_pr2.txt)
+- 3 splits equal by SHA-256 in python/split_proof.py and by sha256sum over cat of the parts (RAN, split_proof.txt, second_route.txt)
 - Distinct ids of the records 346 R and 94 Q before, 0 lost, by the script and by grep over git archive (RAN)
-- Reviewer APPROVE, 1 REAL: CLAUDE.md lines 42, 64, 69 name docs/rules.md, they move in PR 4 with a pointer above them. 3 LATENT for steps/latent.md. Claim-checker 0 WRONG
+- PR 56 reviewer APPROVE, 1 REAL: CLAUDE.md lines 42, 64, 69 name docs/rules.md, they move in PR 4 with a pointer above them. 3 LATENT for steps/latent.md. Claim-checker 0 WRONG
 
 Remains:
-- PR 2 design and round file, PR 3 questions, PR 4 CLAUDE.md and agents, PR 5 R400, 01_next.md, START.md, PROGRESS
+- PR 3 questions, PR 4 CLAUDE.md and agents, PR 5 R400, 01_next.md, START.md, PROGRESS
+- Comments and config notes that name a section of docs/addin-design.md stay as they are, docs/design/README.md maps the numbers (CHOSEN)
 
 Known bugs:
 - As in steps/PROGRESS.md (READ)
 
 Next:
-- PR 2 rec/design-split
+- PR 3 rec/questions
 
 Your turn:
 - The open questions Q001 to Q094 of steps/PROGRESS.md (READ), moved to steps/questions-open.md by PR 3

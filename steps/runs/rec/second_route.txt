@@ -1,0 +1,5 @@
+docs/rules.md: 4a9297fa193e2664e422f841d67fdba5459c1717a9ee2076a9e3e81d3139a802 original, 4a9297fa193e2664e422f841d67fdba5459c1717a9ee2076a9e3e81d3139a802 parts
+docs/addin-design.md: 75313f1b64a81b1b89979e2c4da929c35f3d2441b77355b48fbd0276c59a8dda original, 75313f1b64a81b1b89979e2c4da929c35f3d2441b77355b48fbd0276c59a8dda parts
+steps/investigations/round-addin.md: 2f1de10023e27566a401a073a0568fd7fc11af2753e2466ca71eeb6831bd265c original, 2f1de10023e27566a401a073a0568fd7fc11af2753e2466ca71eeb6831bd265c parts
+R[0-9]{1,3} distinct: before 346, after 347, lost 0
+Q[0-9]{3} distinct: before 94, after 96, lost 0
