@@ -201,7 +201,8 @@ namespace SiteAdaptation.Common
             }
 
             // R357, R128. The prototype file of each code, plan_from_cad.prototype_files of the names of the inputs prototype:<name>, each
-            // named by its own file name and all of one folder, as plan_from_book.folder_files lists one folder
+            // named by its own file name, all of the prototype folder of pastJob and every file of it, as plan_from_book.folder_files lists
+            // the whole folder, so the request names each file it takes and the run stamp and parity see the listing (B2 of the review of PR 55)
             public Dictionary<string, string> Files()
             {
                 List<WorkerFile> inputs = run.Request.Inputs.Where(input => input.Role != null && input.Role.StartsWith(PrototypeRole, StringComparison.Ordinal)).ToList();
@@ -217,7 +218,25 @@ namespace SiteAdaptation.Common
                 {
                     throw new InvalidDataException("the prototype files of the request lie in " + folders.Count + " folders, " + string.Join(", ", folders) + ", a build takes the files of one folder (R357)");
                 }
-                return Hands.PrototypeFiles(inputs.Select(input => input.Role.Substring(PrototypeRole.Length)), Rules);
+                string folder = PrototypeFolder(Settings);
+                if (!Directory.Exists(folder))
+                {
+                    throw new InvalidDataException("the prototype folder " + folder + " of pastJob is not on disk (R357)");
+                }
+                if (folders.Count == 1 && !string.Equals(folders[0].TrimEnd(Path.DirectorySeparatorChar), Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException("the prototype files of the request lie in " + folders[0] + ", pastJob names the prototype folder " + folder + " (R357)");
+                }
+                List<string> listed = Directory.GetFiles(folder).Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal).ToList();
+                List<string> named = inputs.Select(input => input.Role.Substring(PrototypeRole.Length)).ToList();
+                List<string> notNamed = listed.Except(named, StringComparer.Ordinal).ToList();
+                List<string> notHeld = named.Except(listed, StringComparer.Ordinal).OrderBy(name => name, StringComparer.Ordinal).ToList();
+                if (notNamed.Count > 0 || notHeld.Count > 0)
+                {
+                    throw new InvalidDataException("the prototype folder " + folder + " holds files the request does not name: " + (notNamed.Count > 0 ? string.Join(", ", notNamed) : "none")
+                        + ", and the request names files it does not hold: " + (notHeld.Count > 0 ? string.Join(", ", notHeld) : "none") + ", a build takes the whole folder as plan_from_book.folder_files lists it (R357)");
+                }
+                return Hands.PrototypeFiles(listed, Rules);
             }
 
             // A read of the worker of the role it names, its drawing in Meters and every input of its run stamp on disk with its SHA-256
@@ -237,6 +256,26 @@ namespace SiteAdaptation.Common
                 }
                 return found;
             }
+        }
+
+        // plan_from_past.prototype_folders of input_root: the folder of SITE_ADAPTATION_INPUT, else inputRoot of config, with
+        // pastJob.upgradedPrototypeFolder, else pastJob.prototypeFolder, the folder Python lists for a build
+        public static string PrototypeFolder(JObject settings)
+        {
+            string root = Environment.GetEnvironmentVariable("SITE_ADAPTATION_INPUT");
+            if (string.IsNullOrEmpty(root))
+            {
+                root = settings["inputRoot"]?.Type == JTokenType.String ? (string)settings["inputRoot"] : null;
+            }
+            JObject job = settings["pastJob"] as JObject;
+            string upgraded = job?["upgradedPrototypeFolder"]?.Type == JTokenType.String ? (string)job["upgradedPrototypeFolder"] : null;
+            string past = job?["prototypeFolder"]?.Type == JTokenType.String ? (string)job["prototypeFolder"] : null;
+            string named = string.IsNullOrEmpty(upgraded) ? past : upgraded;
+            if (string.IsNullOrEmpty(root) || string.IsNullOrEmpty(named))
+            {
+                throw new InvalidDataException("config holds no inputRoot or no pastJob.prototypeFolder, the folder of the prototype files (R357)");
+            }
+            return Path.Combine(root, named);
         }
 
         // RunStamp.Refusal with each input of the stamps of one run hashed once

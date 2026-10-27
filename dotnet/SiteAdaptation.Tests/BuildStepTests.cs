@@ -818,9 +818,14 @@ namespace SiteAdaptation.Tests
             File.WriteAllText(rules, HandRules().ToString());
             string prototypes = Path.Combine(folder, "prototypes");
             Directory.CreateDirectory(prototypes);
+            // B2. The prototype folder of pastJob, the one Python lists, here the made up folder
+            config["inputRoot"] = folder;
+            config["pastJob"]["upgradedPrototypeFolder"] = "prototypes";
+            string settings = Path.Combine(folder, "project.json");
+            File.WriteAllText(settings, config.ToString());
             var inputs = new List<WorkerFile>
             {
-                Input("config", WorkerRunTests.RepoConfig()), Input("rules", rules), Input("plotsCsv", data), Input("labels", labels), Input("baseplanRead", baseplan),
+                Input("config", settings), Input("rules", rules), Input("plotsCsv", data), Input("labels", labels), Input("baseplanRead", baseplan),
                 Input("villaBlocksRead", footprint), Input("analysis", analysis), Input("curbsRead", curbs), Input("workbooksRead", workbooks),
             };
             foreach (string name in new[] { Dp2File, Vd2File })
@@ -862,6 +867,48 @@ namespace SiteAdaptation.Tests
             apart.Inputs[10] = Input(BuildSteps.PrototypeRole + Vd2File, Path.Combine(elsewhere, Vd2File));
             Assert.Equal(2, WorkerRunner.Run(apart.Write(folder), WorkerCommands.Default(), () => 9000.0));
             Assert.Contains("the prototype files of the request lie in 2 folders", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "h3")).Message);
+        }
+
+        // B2 of the review of PR 55: the C# took the files the request named where Python takes the whole prototype folder of pastJob, so with two
+        // DP2 files in the folder and one named the C# gave DP2 a file and Python none. The request names every file of that folder or is refused
+        [Fact]
+        public void R357_the_worker_takes_the_whole_prototype_folder_of_past_job_and_refuses_a_request_that_names_less_or_another_folder()
+        {
+            WorkerRequest named = HandRequest("h4");
+            string prototypes = Path.Combine(folder, "prototypes");
+            const string other = "RRE-WP-NSP-KEO-ARC-DP2-ZZ-MOD-2201.rvt";
+            File.WriteAllText(Path.Combine(prototypes, other), "a second made up DP2 file");
+            Assert.Equal(2, WorkerRunner.Run(named.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("the prototype folder " + prototypes + " holds files the request does not name: " + other + ", and the request names files it does not hold: none, "
+                + "a build takes the whole folder as plan_from_book.folder_files lists it (R357)", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "h4")).Message);
+
+            WorkerRequest both = HandRequest("h5");
+            both.Inputs.Add(Input(BuildSteps.PrototypeRole + other, Path.Combine(prototypes, other)));
+            Assert.Equal(0, WorkerRunner.Run(both.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            JObject hands = RunStamp.Read(Path.Combine(folder, "steps", "step_hands_csharp.json"));
+            Assert.Equal(JTokenType.Null, hands["plots"]["2"]["written"]["linkFile"].Type);
+            Assert.Equal(Vd2File, (string)hands["plots"]["1"]["written"]["linkFile"]);
+            File.Delete(Path.Combine(prototypes, other));
+
+            WorkerRequest moved = HandRequest("h6");
+            string elsewhere = Path.Combine(folder, "elsewhere");
+            Directory.CreateDirectory(elsewhere);
+            foreach (string name in new[] { Dp2File, Vd2File })
+            {
+                File.Copy(Path.Combine(prototypes, name), Path.Combine(elsewhere, name), true);
+            }
+            moved.Inputs[9] = Input(BuildSteps.PrototypeRole + Dp2File, Path.Combine(elsewhere, Dp2File));
+            moved.Inputs[10] = Input(BuildSteps.PrototypeRole + Vd2File, Path.Combine(elsewhere, Vd2File));
+            Assert.Equal(2, WorkerRunner.Run(moved.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("the prototype files of the request lie in " + elsewhere + ", pastJob names the prototype folder " + prototypes + " (R357)",
+                WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "h6")).Message);
+
+            WorkerRequest gone = HandRequest("h7");
+            Directory.Delete(prototypes, true);
+            gone.Inputs[9] = moved.Inputs[9];
+            gone.Inputs[10] = moved.Inputs[10];
+            Assert.Equal(2, WorkerRunner.Run(gone.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("the prototype folder " + prototypes + " of pastJob is not on disk (R357)", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "h7")).Message);
         }
 
         private static string Text(IEnumerable<double[]> ring)

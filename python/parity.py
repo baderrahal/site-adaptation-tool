@@ -176,6 +176,17 @@ def same_inputs(python, csharp):
             raise ValueError("the two step files were written from other %s files, SHA-256 %s and %s" % (role, mine[role], item.get("sha256")))
 
 
+def listed_inputs(python, csharp, prefix="prototype:"):
+    """R357. The files of a listing both step files take, the prototype folder, are the same files on both sides: same_inputs holds each file
+    both name, this holds that neither names one the other does not, as the review of PR 55 found the C# took one of two files Python listed."""
+    def roles(payload):
+        return {item.get("role") for item in (payload.get("run") or {}).get("inputs") or [] if str(item.get("role")).startswith(prefix)}
+    mine, theirs = roles(python), roles(csharp)
+    if mine != theirs:
+        raise ValueError("the two step files list other prototype files, only python %s, only csharp %s (R357)" % (
+            ", ".join(sorted(mine - theirs)) or "none", ", ".join(sorted(theirs - mine)) or "none"))
+
+
 def workbook_inputs(payload, side, values):
     """R350. Each workbook input of a step file is the file config names for it: the role of addin.workbookRoles of a workbook key is the
     file of dataBook.rev9.workbooks of that key, by its name without case. Both sides find the workbooks through the same config, so a
@@ -369,6 +380,7 @@ def main(argv=None):
     python = load_step(args.python, "python")
     csharp = load_step(args.csharp, "csharp")
     same_inputs(python, csharp)
+    listed_inputs(python, csharp)
     workbook_inputs(python, "python", values)
     workbook_inputs(csharp, "csharp", values)
     for side, payload in (("python", python), ("csharp", csharp)):

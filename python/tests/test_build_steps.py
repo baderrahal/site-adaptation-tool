@@ -372,6 +372,41 @@ def test_r357_the_prototype_file_of_a_code_is_the_one_of_the_folder_else_that_of
     assert files["VD1"] == files["DP1"] and "TH1" not in files and "DT1" not in files and twice == ["TH1"]
 
 
+def test_r357_the_steps_that_take_the_prototype_files_list_every_file_of_the_folder_in_their_inputs_and_a_folder_not_on_disk_is_refused(tmp_path):
+    """B2 of the review of PR 55: the C# took the files the request named, Python the whole folder, so both take the whole folder as
+    plan_from_book.folder_files lists it, recorded in the inputs of the steps hands and linkFrame, and parity refuses another listing."""
+    import argparse
+    folder = tmp_path / "prototypes"
+    (folder / "sub").mkdir(parents=True)
+    for name in ("RRE-WP-NSP-KEO-ARC-DP1-ZZ-MOD-2100.rvt", "RRE-WP-NSP-KEO-ARC-DP1-ZZ-MOD-2101.rvt", "notes.txt"):
+        (folder / name).write_text("a made up file " + name, encoding="utf-8")
+    labels = tmp_path / "labels.csv"
+    labels.write_text("kind,number\n", encoding="utf-8")
+    args = argparse.Namespace(settings=str(project_profile.SETTINGS_PATH), baseplan=None, plots_csv=str(labels), labels=str(labels), cover="all",
+                              footprint_blocks=None, analysis=None, sales=None, roads=None, landxml=None, road_names=[], prototypes=str(folder))
+    settings = project_profile.load_settings()
+    for step in ("hands", "linkFrame"):
+        listed = [item for item in plan_from_book.build_inputs(args, settings, step) if item["role"].startswith("prototype:")]
+        assert [item["role"] for item in listed] == ["prototype:RRE-WP-NSP-KEO-ARC-DP1-ZZ-MOD-2100.rvt", "prototype:RRE-WP-NSP-KEO-ARC-DP1-ZZ-MOD-2101.rvt",
+                                                     "prototype:notes.txt"]
+        assert listed[0]["sha256"] == parity.sha256(folder / "RRE-WP-NSP-KEO-ARC-DP1-ZZ-MOD-2100.rvt")
+    for step in ("clusters", "fronts"):
+        assert not [item for item in plan_from_book.build_inputs(args, settings, step) if item["role"].startswith("prototype:")]
+    profile = project_profile.load_profile(project_profile.profile_path(settings))
+    # Two files of one code in the folder give it none, whatever a request names
+    assert "DP1" not in plan_from_book.folder_files(folder, profile)
+    with pytest.raises(project_profile.ProfileError) as error:
+        plan_from_book.folder_files(tmp_path / "none", profile)
+    assert str(error.value) == "the prototype folder %s of pastJob is not on disk (R357)" % (tmp_path / "none")
+    python = {"run": {"inputs": [{"role": "prototype:a.rvt", "sha256": "1"}, {"role": "prototype:b.rvt", "sha256": "2"}, {"role": "labels", "sha256": "3"}]}}
+    csharp = {"run": {"inputs": [{"role": "prototype:a.rvt", "sha256": "1"}, {"role": "labels", "sha256": "3"}, {"role": "prototype:c.rvt", "sha256": "4"}]}}
+    with pytest.raises(ValueError) as error:
+        parity.listed_inputs(python, csharp)
+    assert str(error.value) == "the two step files list other prototype files, only python prototype:b.rvt, only csharp prototype:c.rvt (R357)"
+    parity.listed_inputs(python, python)
+    parity.listed_inputs({"run": {"inputs": []}}, {"run": {"inputs": [{"role": "labels"}]}})
+
+
 def test_r356_the_link_of_a_plot_is_the_fit_of_its_code_from_the_anchor_corner_of_its_front_in_the_link_axes_of_its_hand(monkeypatch):
     hands, trace = hand_build(monkeypatch)
     key = hand_rules().get("levelProfiles")["parsons2024Rev6"]["keyRules"]

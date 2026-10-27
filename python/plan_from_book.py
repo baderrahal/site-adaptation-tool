@@ -912,12 +912,25 @@ def step_inputs(args):
     return [parity.input_entry(role, path) for role, path in roles if path]
 
 
-def build_inputs(args, settings):
-    """R345, R354 to R357. The inputs the build steps were made from, those of the faces and every other file the steps read, by role."""
+# R357. The build steps that take the prototype files, each file of the folder an input of its own, prototype:<its name>
+PROTOTYPE_STEPS = ("hands", "linkFrame")
+PROTOTYPE_ROLE = "prototype:"
+
+
+def build_inputs(args, settings, step):
+    """R345, R354 to R357. The inputs a build step was made from, those of the faces and every other file the steps read, by role, and for
+    the steps of PROTOTYPE_STEPS every file of the prototype folder as folder_files lists it, so parity sees the listing each side took."""
     roles = [("rules", project_profile.profile_path(settings)), ("footprintBlocks", args.footprint_blocks), ("analysis", args.analysis), ("sales", args.sales),
              ("roadPieces", Path(args.roads) / "pieces.json" if args.roads else None)]
     roles += [("roadSurface:" + name, Path(args.landxml) / (name + ".xml")) for name in getattr(args, "road_names", None) or []]
-    return step_inputs(args) + [parity.input_entry(role, path) for role, path in roles if path]
+    found = step_inputs(args) + [parity.input_entry(role, path) for role, path in roles if path]
+    if step in PROTOTYPE_STEPS and getattr(args, "prototypes", None):
+        # A prototype file is a whole Revit model, so each is hashed once a run
+        listed = getattr(args, "prototype_entries", None)
+        if listed is None:
+            listed = args.prototype_entries = [parity.input_entry(PROTOTYPE_ROLE + name, Path(args.prototypes) / name) for name in folder_listing(args.prototypes)]
+        found += listed
+    return found
 
 
 def step_entries(settings, step, made, written=None):
@@ -935,7 +948,7 @@ def step_entries(settings, step, made, written=None):
 def write_build_step(args, settings, step, made, written=None):
     """R345, R354 to R357. step_<step>_python.json of a build step (step_entries)."""
     plots = step_entries(settings, step, made, written)
-    parity.write_step(args.steps, step, "python", step_scope(args.cover), plots, settings.values, build_inputs(args, settings))
+    parity.write_step(args.steps, step, "python", step_scope(args.cover), plots, settings.values, build_inputs(args, settings, step))
     print("step %s: %d items (R345)" % (step, len(plots)))
 
 
@@ -946,10 +959,18 @@ def site_report(path):
             "levels": {level["name"]: level["elevationM"] for level in report["levels"]}}
 
 
+def folder_listing(folder):
+    """R357. The names of the files of the prototype folder in the order of sorted, refused when the folder is not on disk, the listing the C#
+    takes of the same folder (BuildSteps)."""
+    folder = Path(folder)
+    if not folder.is_dir():
+        raise project_profile.ProfileError("the prototype folder %s of pastJob is not on disk (R357)" % folder)
+    return sorted(path.name for path in folder.iterdir() if path.is_file())
+
+
 def folder_files(folder, profile):
     """The prototype file of each unit with its name as the folder spells it."""
-    names = sorted(path.name for path in Path(folder).iterdir() if path.is_file())
-    return plan_from_cad.prototype_files(names, profile)[0]
+    return plan_from_cad.prototype_files(folder_listing(folder), profile)[0]
 
 
 def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters=()):
@@ -1102,6 +1123,7 @@ def main(argv=None):
             raise project_profile.ProfileError("give --analysis or --footprint-blocks for the clusters")
         job = plan_from_past.load_job(settings)
         folder, _ = plan_from_past.prototype_folders(plan_from_past.input_root(settings), job)
+        args.prototypes = str(folder)
         # R337. A build by keyRules walks the rows of units past its own plots, so the clusters of every unit plot tell which units pair
         if args.steps:
             build_step_rules(profile, args.level_profile)
