@@ -28,7 +28,7 @@ Part 1 is the add-in. Part 2, the output sheets, waits for Bader's check of Part
 
 How the round runs:
 
-- One phase per session (Q096). Bader pastes steps/START.md into a fresh session, which runs the next open phase of steps/01_next.md (PR 5 of Round REC writes it and START.md). At the end of the phase it merges, rewrites steps/PROGRESS.md and stops.
+- One phase per session (Q096). Bader pastes steps/START.md into a fresh session, which runs the next open phase of steps/01_next.md. At the end of the phase it merges, rewrites steps/PROGRESS.md and stops.
 - The main session plans, orchestrates and merges. One developer helper per PR.
 - No approval stop: a PR is merged when gh pr checks passes and the checkers found nothing open.
 - The breaker and the claim-checker read each PR before it merges. Each REAL finding is fixed with a test.
@@ -52,7 +52,7 @@ How the round runs:
 - At start a session reads CLAUDE.md and steps/PROGRESS.md, and for a phase its entry of steps/01_next.md. An agent reads what its file in .claude/agents lists.
 - Everything else is read by grep or a line range: a rule by its id through docs/rules/index.md, a question by its id in steps/questions-open.md, the docs/design/ part of the step.
 - Never read a whole file over 30 KB.
-- The caps: CLAUDE.md at most 10 KB, steps/PROGRESS.md at most 60 lines and 6 KB with no line over 200 characters, the top entry of steps/log.md at most 4 KB, and no file of docs/ or steps/ outside steps/history/ over 100 KB.
+- The caps of R400, held by test_r400_record_sizes: CLAUDE.md at most 10 KB, steps/PROGRESS.md at most 60 lines and 6 KB with no line over 200 characters, the top entry of steps/log.md at most 4 KB, and no file of docs/ or steps/ outside steps/history/ over 100 KB.
 
 ## Real files
 

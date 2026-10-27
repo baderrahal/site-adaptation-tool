@@ -333,3 +333,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R13 No attribution lines.
 - R14 No emoji and no em dash
 - R15 No semicolons in prose, comments, documents, commit messages, or in Python, YAML, JSON and Markdown files.
+
+## 08-round-rec.md
+
+- R400 Record sizes.
