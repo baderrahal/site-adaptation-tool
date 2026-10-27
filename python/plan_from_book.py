@@ -264,8 +264,8 @@ YARD_GROUPS = ("the step floors of the parity harness takes the yard outlines of
 def level_step(numbers, rows, trace, rules, profile):
     """R359. The step levels of the parity harness: per plot of the scope the levels the level rules of keyRules give it, as the build
     takes them before an override of the list moves them, which step 12 applies (R360), the values plan_rules.key_level_rows and
-    rule_levels give and the plan writes in levelRule: the unit, the other unit of its row pair (plan_rules.row_partners), the piece that
-    shares its FFL, the road at front and El @ Entry from the one unrounded mean of the road levels at its two front corners, the FFL of the
+    rule_levels give: the unit, the other unit of its row pair (plan_rules.row_partners), the piece that shares its FFL and the road at
+    front, held in the step alone, and El @ Entry from the one unrounded mean of the road levels at its two front corners, the FFL of the
     piece unrounded, its SSL and height from the FFL as written, the steps of that height at 4 decimals and the level parameters, each raw
     the value just before its last rounding, null where the plot has none."""
     key, lp = rules["keyRules"], rules["levelProfile"]
