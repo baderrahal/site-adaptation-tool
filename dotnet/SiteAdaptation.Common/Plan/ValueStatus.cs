@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
@@ -7,16 +8,22 @@ using Newtonsoft.Json.Linq;
 namespace SiteAdaptation.Common
 {
     // R401, the plan part, as value_status.Table of Python gives it. The map of valueStatus of the settings and the block status of the rules
-    // profile, read once per build for the level profile the build follows: the status of a value of a field from a source and the detail that
-    // gives it. A pair the map does not hold, or an entry the block lacks, is UNKNOWN with why, never a guess
+    // profile, read once per build for the level profile the build follows: the status of a value of a field from a source, its detail and the
+    // key the plan writes the detail by. The map names one block entry or a list of them, by the code that computes the value, and a value takes
+    // the status of the first assumed one, else of the first, listing each. An override of the list marks every field of its overrideSets. A
+    // pair the map does not hold, or an entry the block lacks, is UNKNOWN with why, never a guess
     public sealed class ValueStatusTable
     {
         private const string Override = "override";
         private const string Parameters = "parameters.";
         private const string AnyParameter = "parameters.*";
+        private const string Measured = "MEASURED";
+        private const string SetsLine = "valueStatus.overrideSets maps each override of the list to the list of the fields it moves, the settings hold {0} (R401)";
         private static readonly Regex Placeholder = new Regex(@"\{(\w+)\}");
 
-        private readonly JObject sources, fields, sets, block;
+        private readonly JObject sources, fields, block;
+        private readonly Dictionary<string, List<string>> sets = new Dictionary<string, List<string>>();
+        private readonly HashSet<string> assumed;
         private readonly Dictionary<string, string> files;
         private readonly string levelProfile;
 
@@ -24,67 +31,95 @@ namespace SiteAdaptation.Common
         {
             sources = map?["sources"] as JObject ?? new JObject();
             fields = map?["fields"] as JObject ?? new JObject();
-            sets = map?["overrideSets"] as JObject ?? new JObject();
+            assumed = new HashSet<string>(((map?["assumed"] as JArray) ?? new JArray()).Select(item => (string)item));
+            if (map != null && map.HasValues)
+            {
+                // value_status.override_sets: each override to a list of field names, else refused with one line
+                if (!(map["overrideSets"] is JObject given) || !given.HasValues)
+                {
+                    throw new InvalidDataException(string.Format(SetsLine, "none"));
+                }
+                foreach (JProperty item in given.Properties())
+                {
+                    if (!(item.Value is JArray names) || names.Count == 0 || names.Any(name => name.Type != JTokenType.String))
+                    {
+                        throw new InvalidDataException(string.Format(SetsLine, item.Name + ": " + PlanOverrides.Dumps(item.Value)));
+                    }
+                    sets[item.Name] = names.Select(name => (string)name).ToList();
+                }
+            }
             this.block = block ?? new JObject();
             files = new Dictionary<string, string> { ["profile"] = profileFile, ["config"] = ValueStatus.SettingsFile };
             this.levelProfile = levelProfile;
         }
 
-        // An applied override of overrideSets that sets the field gives it the status of the source override, as its source stays
-        public Tuple<string, JObject> Of(string field, string source, string hand = null, IEnumerable<string> applied = null)
+        private static List<JObject> AsList(JToken found)
         {
-            string moved = (applied ?? Enumerable.Empty<string>()).FirstOrDefault(name => sets[name]?.Type == JTokenType.String && (string)sets[name] == field);
+            return found is JArray list ? list.OfType<JObject>().ToList() : found is JObject one ? new List<JObject> { one } : null;
+        }
+
+        private List<JObject> Refs(string field, string source)
+        {
+            foreach (string name in field.StartsWith(Parameters, StringComparison.Ordinal) ? new[] { field, AnyParameter } : new[] { field })
+            {
+                List<JObject> found = AsList((fields[name] as JObject)?[source]);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+            return AsList(sources[source]);
+        }
+
+        private static string EntryLabel(JObject entry)
+        {
+            return ValueStatus.Label((string)entry["status"], entry);
+        }
+
+        // value_status.Table.of: the status, the detail and its key
+        public Tuple<string, JObject, string> Of(string field, string source, string hand = null, IEnumerable<string> applied = null)
+        {
+            string moved = source == Override ? null : (applied ?? Enumerable.Empty<string>()).FirstOrDefault(name => sets.TryGetValue(name, out List<string> moves) && moves.Contains(field));
             if (moved != null)
             {
                 source = Override;
             }
-            JObject reference = null;
-            foreach (string name in field.StartsWith(Parameters, StringComparison.Ordinal) ? new[] { field, AnyParameter } : new[] { field })
+            List<JObject> refs = Refs(field, source);
+            List<JObject> entries = refs == null
+                ? new List<JObject> { new JObject { ["status"] = "UNKNOWN", ["why"] = "valueStatus holds no status for " + field + " from " + source + " (R401)" } }
+                : refs.Select(reference => Resolve(field, source, reference, hand)).ToList();
+            JObject chosen = entries.FirstOrDefault(entry => assumed.Contains(EntryLabel(entry))) ?? entries[0];
+            var detail = new JObject { ["entries"] = new JArray(entries) };
+            if ((string)chosen["status"] == Measured && chosen["strength"]?.Type == JTokenType.String && ((string)chosen["strength"]).Length > 0)
             {
-                reference = (fields[name] as JObject)?[source] as JObject;
-                if (reference != null)
-                {
-                    break;
-                }
+                detail["strength"] = chosen["strength"].DeepClone();
             }
-            reference = reference ?? sources[source] as JObject;
-            Tuple<string, JObject> found = Resolve(field, source, reference, hand);
             if (moved != null)
             {
-                found.Item2["override"] = moved;
+                detail["override"] = moved;
             }
-            return found;
-        }
-
-        private static Tuple<string, JObject> Unknown(string why)
-        {
-            return Tuple.Create("UNKNOWN", new JObject { ["why"] = why + " (R401)" });
-        }
-
-        private static JObject Rest(JObject entry)
-        {
-            var rest = new JObject();
-            foreach (JProperty item in entry.Properties().Where(item => item.Name != "status"))
+            string key = field + " from " + source;
+            if ((refs ?? new List<JObject>()).Any(reference => new[] { "profile", "config" }.Any(kind => reference[kind]?.Type == JTokenType.String && ((string)reference[kind]).Contains("{hand}"))))
             {
-                rest[item.Name] = item.Value.DeepClone();
+                key += " hand " + (hand ?? "None");
             }
-            return rest;
+            if (moved != null)
+            {
+                key += " by " + moved;
+            }
+            return Tuple.Create((string)chosen["status"], detail, key);
         }
 
-        private Tuple<string, JObject> Resolve(string field, string source, JObject reference, string hand)
+        private JObject Resolve(string field, string source, JObject reference, string hand)
         {
-            if (reference == null)
-            {
-                return Unknown("valueStatus holds no status for " + field + " from " + source);
-            }
             if (reference.Property("status") != null)
             {
-                return Tuple.Create((string)reference["status"], Rest(reference));
+                return (JObject)reference.DeepClone();
             }
             string kind = reference.Property("profile") != null ? "profile" : reference.Property("config") != null ? "config" : null;
             if (kind == null)
             {
-                return Unknown("valueStatus names no block entry and no status for " + field + " from " + source);
+                return new JObject { ["status"] = "UNKNOWN", ["why"] = "valueStatus names no block entry and no status for " + field + " from " + source + " (R401)" };
             }
             string template = (string)reference[kind];
             var names = new Dictionary<string, string>
@@ -95,20 +130,20 @@ namespace SiteAdaptation.Common
                 .FirstOrDefault(word => !names.TryGetValue(word, out string value) || value == null);
             if (lacking != null)
             {
-                return Unknown("the plot holds no " + lacking + " for " + template);
+                return new JObject { ["entry"] = template, ["status"] = "UNKNOWN", ["why"] = "the plot holds no " + lacking + " (R401)" };
             }
             string path = Placeholder.Replace(template, match => names[match.Groups[1].Value]);
             JObject entry = (block[files[kind]] as JObject)?[path] as JObject;
             if (entry == null || entry.Property("status") == null)
             {
-                return Unknown("the block status holds no entry " + files[kind] + " " + path);
+                return new JObject { ["entry"] = files[kind] + " " + path, ["status"] = "UNKNOWN", ["why"] = "the block status holds no entry (R401)" };
             }
-            JObject detail = new JObject { ["entry"] = files[kind] + " " + path };
-            foreach (JProperty item in Rest(entry).Properties())
+            var found = new JObject { ["entry"] = files[kind] + " " + path, ["status"] = entry["status"].DeepClone() };
+            foreach (JProperty item in entry.Properties().Where(item => item.Name != "status"))
             {
-                detail[item.Name] = item.Value;
+                found[item.Name] = item.Value.DeepClone();
             }
-            return Tuple.Create((string)entry["status"], detail);
+            return found;
         }
     }
 
@@ -192,7 +227,7 @@ namespace SiteAdaptation.Common
                     fields = new JObject();
                     foreach (Tuple<string, string> item in Sources(plan))
                     {
-                        Tuple<string, JObject> status = table.Of(item.Item1, item.Item2, handTable as string, applied);
+                        Tuple<string, JObject, string> status = table.Of(item.Item1, item.Item2, handTable as string, applied);
                         fields[item.Item1] = new JObject { ["source"] = item.Item2, ["status"] = status.Item1, ["statusFrom"] = status.Item2 };
                     }
                 }

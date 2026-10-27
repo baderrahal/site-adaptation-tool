@@ -502,12 +502,16 @@ STATUS_FIELDS = ("unit", "written", "fields")
 def status_step(numbers, rows, trace):
     """R401. The step status of the parity harness: per plot of the scope each sourced value of the plot the plan writes by its field, with its
     source, its status and the detail that gives it, and no field for a plot the plan does not write."""
-    built = trace.get("built") or {}
+    built, details = trace.get("built") or {}, trace.get("statusFrom") or {}
     found = {}
     for number in numbers:
         plot = built.get(number) or {"entry": {}, "written": False}
         fields = {field: {"source": item["source"], "status": item["status"], "statusFrom": item["statusFrom"]}
                   for field, item in value_status.fields_of(plot["entry"]).items()} if plot["written"] else None
+        if fields:
+            # R401. The plan writes each detail once in its table statusFrom, the step the detail of each value
+            for item in fields.values():
+                item["statusFrom"] = details[item["statusFrom"]]
         found[number] = {"unit": (rows.get(number) or {}).get("typologyRev9") or None, "written": plot["written"], "fields": fields}
     return found
 
@@ -909,6 +913,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     # R401. The status of each sourced value from the block status of the rules profile, the map and the block read once per build
     statuses = value_status.table_of(settings, profile, None if rules is None else rules["name"])
     if trace is not None:
+        trace["statusFrom"] = statuses.used
+    if trace is not None:
         # R360, R361. What the build did with each override of each plot and the entry it built, written or not, for the steps overrides and parameters
         trace.update(records=records, built={})
     for number in numbers:
@@ -1082,6 +1088,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         "prototypeFolder": str(folder),
         "floorSettings": {"types": floors_config["types"], "levels": floors_config["levels"], "plotParameter": floors_config["plotParameter"]},
         "sources": {"plots": "plots.csv of the data book snapshot", "survey": "the new site file", "pastModel": "none"},
+        # R401. The detail of the status of the values, written once by its key, which each value holds in statusFrom
+        "statusFrom": dict(sorted(statuses.used.items())),
         "summary": {
             "plots": len(numbers), "written": len(plots), "notWritten": len(numbers) - len(plots), "missingByKey": dict(sorted(lacking.items())),
             "skipped": sorted((number for number in numbers if number in skip), key=link_summary.sort_key),
@@ -1094,7 +1102,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             "floorTypes": dict(sorted(Counter(kind + ": " + floor["type"]["value"] for entry in plots for kind, floor in entry["floors"].items()).items())),
             "rules": None if rules is None else {"levelProfile": rules["name"], "overrideSource": rules["sources"], "overrideModel": rules.get("models", []),
                                                 "applied": dict(sorted(Counter(field for found in records.values() if found for field in found["applied"]).items())),
-                                                **value_status.summary(plots, (settings.get("valueStatus") or {}).get("assumed")),
+                                                **value_status.summary(plots, (settings.get("valueStatus") or {}).get("assumed"), statuses.used),
                                                 "appliedOutsideBuild": dict(sorted(outcomes.outside.items())), "handRules": dict(sorted(hand_rules.items())),
                                                 "keyRules": key is not None, "laterFields": rules.get("laterFields") or [],
                                                 "overridesNotApplied": dict(sorted(Counter(field for found in records.values() if found for field in found["notApplied"]).items())),
