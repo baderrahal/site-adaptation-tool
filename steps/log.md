@@ -11,16 +11,16 @@ Goal:
 - 4e: R354 to R357, steps 4 to 7 in C# (READ round-addin.md)
 
 Done:
-- 0a to 4e, 3 fixes: round-addin.md (READ)
+- 0a to 4d, 4e in review: round-addin.md (READ)
 
 Checked:
-- Runs at 79f57b8, CI 40448451345, gate at the head (RAN, p4efix3_*.txt, gh)
+- Runs at 40f6c1a, CI 40453535483, gate at the records commit on 40f6c1a (RAN, p4efix4_*.txt, gh)
 
 Remains:
 - 4f to 4h, Phases 5, 6, CASE categories (READ, addin-design.md)
 
 Known bugs:
-- Q063, Q065, Q070, Q088, Q089, Q090 (three defects), Q091 and the open bugs of steps/PROGRESS.md (READ). xUnit2013 (RAN, p4efix3_gate_build.txt)
+- Q063, Q065, Q070, Q088 to Q092, Q090 three defects, and the open bugs of steps/PROGRESS.md (READ). xUnit2013 (RAN, p4efix4_gate_build.txt)
 
 Next:
 - Phase 4f: R358 to R361, then 4g and 4h (READ, addin-design.md)
@@ -48,11 +48,12 @@ Q077. The worker: buttons 2 and 3 read and build in CadReader.exe beside Revit: 
 Q079. Microsoft.NETCore.Platforms of netstandard2.0 pinned to 3.1.0, MIT, build only: accept. Q082. Road level of 33 plots of the keys, listed in noRoadLevel of each plan: no road surface covers a front corner and the Roads folder holds no other road level there: ask the road designer for the road surface or road model of these fronts, else accept them listed and not written
 Q085. Plot, the floor parameter, is a project parameter in all 7 keys with no GUID (R353): bind Plot as a new shared parameter with a GUID Bader fixes in a block of config no run writes, as Q087 gives it (recommended), or as the keys do, read by name. Every key also holds a project parameter CASE beside the shared CASE, its categories not read
 Q086. Check points against the keys (R353): the keys lie about half a mm off the baseplan, 127 of 141 pass at 1 mm, 10 of the 14 failures fail at any limit, 4 are merged vertices: hold the keys at 2 mm and button 1 against Revit at 1 mm (recommended), or 1 mm for both
-Q087. Hand entries in addin.sharedParameters (R353): the merge of a hand GUID with the GUIDs of the keys failed its second review and is withdrawn, a block with an item key spelled byHand in any case is refused, the real block holds none, and a hand edit not marked so, an unmarked GUID, a mark named hand or manual, byHand as a value, nested or on the block, is overwritten by the next write with no line printed, the block being the run's. Keep the block a measure the run alone writes, and put a GUID Bader fixes, such as Plot of Q085, in its own block that no run writes, refused when a key gives that GUID to another name (recommended), or bring the merge back with the four cases of the review as its tests.
+Q087. Hand entries in addin.sharedParameters (R353): a hand edit of the block is refused or overwritten by the next write, as its full text measures. Keep the block a measure the run alone writes, and put a GUID Bader fixes, such as Plot of Q085, in its own block that no run writes, refused when a key gives that GUID to another name (recommended), or bring the merge back with the four cases of the review as its tests.
 Q088. Check points of R353, four residuals (a) to (d) of its full text after the second fix, latent on the real data. Take the check point corners from the drawn line ends with no join, refuse (b) and (c) in both languages, hold the baseplan by its hash, and read answerKeys and key_copies.json through the checked loader of R312 with a key held by copySha256 and ordinal case, in a fresh PR with the inputs of the reviews as tests (recommended), or keep them as known bugs.
-Q089. Analysis clusters of a build (R354): a build by keyRules joins 22 clusters of 44 plots from the analysis.json of Round 12b no code remakes: drop them if the build proof on the footprint clusters alone keeps 0 unexplained with the overrides measured again (recommended), or name the snapshot file in config as an input of button 3
-Q090. Prototype folder of a build (R357): three measured defects, a folder value that is no text, a partial folder and SITE_ADAPTATION_INPUT in the C# tests: a fresh PR that refuses a folder value that is no text as Python does, refuses a folder that lacks a file for a code of the scope, and clears SITE_ADAPTATION_INPUT in the tests, with the inputs of the reviews as tests (recommended), or keep them as known bugs
-Q091. JSON reads of the worker that still differ from Python (R354): four reads measured, no real input reaching one: a fresh PR that routes every JSON input of the worker through PyJson and raises a duplicate when the object closes, with the same messages and the inputs of the reviews as tests (recommended), or keep them as known limits
+Q089. Analysis clusters of a build (R354): a build by keyRules joins 22 clusters of 44 plots from an analysis.json no code remakes: drop them if the build proof on the footprint clusters alone keeps 0 unexplained with the overrides measured again (recommended), or name the snapshot file in config as an input of button 3
+Q090. Prototype folder of a build (R357): three measured defects (RAN, p4efix2_q090_*.txt): a fresh PR that refuses a folder value that is no text as Python does, refuses a folder that lacks a file for a code of the scope, and clears SITE_ADAPTATION_INPUT in the tests, with the inputs of the reviews as tests (recommended), or keep them as known bugs
+Q091. JSON reads of the worker that still differ from Python (R354): four reads measured (RAN, p4efix3_q091_*.txt), no real input reaching one: a fresh PR that routes every JSON input of the worker through PyJson and raises a duplicate when the object closes, with the same messages and the inputs of the reviews as tests (recommended), or keep them as known limits
+Q092. Settings and keyRules values a build takes unchecked (R355 to R357): five cases measured (RAN, p4efix4_q092_*.txt), none in the real config or rules: a fresh PR that gives every number setting and keyRules number its range in config, finite, sign and bounds, and one check order in both languages, with the inputs of the reviews as tests (recommended), or keep them as known limits
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 
