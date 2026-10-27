@@ -83,10 +83,15 @@ def slope_class(slope):
     return "flat" if slope == 0 else "%g" % slope
 
 
+def road_at_front(front):
+    """R359. The road at front, the mean of the road levels at the two front corners, unrounded, the one mean El @ Entry is taken from."""
+    return (front[0] + front[1]) / 2.0
+
+
 def entry_of(front, code, lp, depth):
-    """R278. El @ Entry from the road levels of the two front corners, the offset of the profile and the slope of the unit."""
+    """R278, R359. El @ Entry from the road at front, the offset of the profile and the slope of the unit."""
     slope = slope_of(code, lp)
-    return (front[0] + front[1]) / 2.0 + lp["frontRoad"]["offsetM"] + slope / 100.0 * depth, slope
+    return road_at_front(front) + lp["frontRoad"]["offsetM"] + slope / 100.0 * depth, slope
 
 
 def base_of(profile, code):
@@ -593,11 +598,17 @@ def base_by_rule(profile, code, rule=None):
     return base_of(profile, code)
 
 
-def piece_ffl(members, profile, base_rule=None):
-    """R339, R67. The FFL of a piece: its highest El @ Entry plus the base of that unit, rounded to the mm first. members is a list of
-    (El @ Entry, unit), None when no member has one."""
+def piece_top(members, profile, base_rule=None):
+    """R339, R359. The highest El @ Entry plus the base of that unit over the members of a piece, unrounded, the value the FFL is rounded
+    from. members is a list of (El @ Entry, unit), None when no member has one."""
     known = [entry + base_by_rule(profile, unit, base_rule) for entry, unit in members if entry is not None and unit is not None]
-    return None if not known else common.fixed(max(known), FFL_DECIMALS)
+    return None if not known else max(known)
+
+
+def piece_ffl(members, profile, base_rule=None):
+    """R339, R67. The FFL of a piece: its highest El @ Entry plus the base of that unit, rounded to the mm first, None when no member has one."""
+    top = piece_top(members, profile, base_rule)
+    return None if top is None else common.fixed(top, FFL_DECIMALS)
 
 
 def steps_from_height(height, base, riser):
@@ -628,6 +639,13 @@ def prototype_ffl(rule, ffl):
     if rule == "ffl":
         return "%.3f" % (millimetres / 1000.0)
     raise project_profile.ProfileError("keyRules parameter RRE_ZZ_SP_Prototype-FFL codes %s, a build gives fflDownToTheCm or ffl (R339)" % rule)
+
+
+def level_parameters(rules, ffl, later):
+    """R339, R359. The level parameters of keyRules, each of a rule of LEVEL_RULES and not left to a later phase, the text of prototype_ffl
+    of the FFL."""
+    return {word: prototype_ffl(rule["rule"], ffl) for word, rule in rules.items()
+            if word.startswith(PARAMETER) and word not in later and isinstance(rule, dict) and rule.get("rule") in LEVEL_RULES}
 
 
 def rule_entry(item):

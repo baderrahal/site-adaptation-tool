@@ -59,9 +59,9 @@ ESTIMATE = "estimate"
 LOCATION = "locationPlan"
 OVERRIDE = "override"
 KEY_RULES = "keyRules"
-# R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R357 after the faces
-PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame")
-BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame")
+# R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R359 after the faces
+PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame", "levels", "floors")
+BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame", "levels", "floors")
 FOOTPRINT = "footprint"
 # R354, Q089. The one line a build and its C# refuse an analysis with, as a build takes the footprint clusters alone
 ANALYSIS_REFUSED = "the analysis is no input of a build since Q089, a build takes the footprint clusters of R236 alone (R354)"
@@ -254,6 +254,101 @@ def link_step(numbers, rows, trace, hands, key, files, profile):
     return found
 
 
+# R359, R358. The lines the steps levels and floors and their C# refuse a level profile with, as the C# builds by keyRules alone
+LEVELS_NO_FFL = "the step levels of the parity harness is a build by the level rules of keyRules, keyRules of %s codes no ffl, the C# builds the levels by keyRules alone (R359)"
+YARD_GROUPS = ("the step floors of the parity harness takes the yard outlines of keyRules.yardOutline groups, keyRules of %s codes fittedOutline, whose outlines "
+               "lie in config/floor_outlines.json, which the C# does not read (R358)")
+
+
+def level_step(numbers, rows, trace, rules, profile):
+    """R359. The step levels of the parity harness: per plot of the scope the levels the level rules of keyRules give it, as the build
+    takes them before an override of the list moves them, which step 12 applies (R360), the values plan_rules.key_level_rows and
+    rule_levels give and the plan writes in levelRule: the unit, the other unit of its row pair (plan_rules.row_partners), the piece that
+    shares its FFL, the road at front and El @ Entry from the one unrounded mean of the road levels at its two front corners, the FFL of the
+    piece unrounded, its SSL and height from the FFL as written, the steps of that height at 4 decimals and the level parameters, each raw
+    the value just before its last rounding, null where the plot has none."""
+    key, lp = rules["keyRules"], rules["levelProfile"]
+    if not plan_rules.key_levels_of(key):
+        raise project_profile.ProfileError(LEVELS_NO_FFL % rules["name"])
+    ground = profile.metres("levels.ground_ssl")
+    base_rule = key.get("baseHeight")
+    entries, level_rows, front = trace.get("entries") or {}, trace.get("levelRows") or {}, trace.get("front") or {}
+    found = {}
+    for number in numbers:
+        item, entry, row = front.get(number) or {}, entries.get(number), level_rows.get(number)
+        made = {"unit": (rows.get(number) or {}).get("typologyRev9") or None, "partner": rules["partners"].get(number), "piece": None, "roadAtFront": None,
+                "entry": None, "ffl": None, "ssl": None, "height": None, "steps": None, "parameters": None}
+        if item.get("front") is not None:
+            made["roadAtFront"] = plan_rules.road_at_front(item["front"])
+        if entry is not None:
+            made["entry"] = trace["entryRaw"][number]
+        if row is not None:
+            top = plan_rules.piece_top([(plan_rules.rule_entry(entries.get(other)), (entries.get(other) or {}).get("unit")) for other in row["piece"]], profile, base_rule)
+            if common.fixed(top, plan_rules.FFL_DECIMALS) != row["fflRule"]:
+                raise ValueError("the step levels gives plot %s the FFL %r and the build took %r (R359)" % (number, common.fixed(top, plan_rules.FFL_DECIMALS), row["fflRule"]))
+            ffl, rule = row["fflRule"], entry["rule"]
+            made.update(piece=list(row["piece"]), ffl=top, ssl=ffl + ground, height=ffl - rule,
+                        steps=plan_rules.steps_by_rule(key["steps"]["rule"], common.fixed(ffl - rule, plan_rules.ENTRY_DECIMALS), entry["unit"], profile, lp, base_rule),
+                        parameters=plan_rules.level_parameters(key, ffl, rules["laterParameters"]))
+        found[number] = made
+    return found
+
+
+FLOOR_FIELDS = ("unit", "generic", "rampOutline", "rampZ", "rampClass", "rampType", "yardDepth", "yardUnit", "yardWidth", "yardType", "yardOutline", "lacks")
+
+
+def floor_step(numbers, rows, trace, links, rules, profile, step):
+    """R358. The step floors of the parity harness: per unit plot of the scope the floors the rules of keyRules give it, as the build takes
+    them before an override of the list moves them (R360): the Generic floor on the whole face as shapely gives its rings, the ramp of R127
+    on the front of R355 with the Z of its four corners by the chain of ramp_heights, the front pair at the road and the back pair from El @
+    Entry by the rule as written at 4 decimals, its class of keyRules.rampSlope and the ramp type rampTypes names for it, and the yard of
+    keyRules.yard of its zone on the outline keyRules.yardOutline fits its unit, mirror flag and plot width, placed by the link of R356 as the
+    plan writes it, the width a lookup by floor_fit.width_key, with what the floors lack and why."""
+    key, lp = rules["keyRules"], rules["levelProfile"]
+    if key["yardOutline"]["rule"] != "fittedOutlineRefit":
+        raise project_profile.ProfileError(YARD_GROUPS % rules["name"])
+    outlines = plan_rules.key_outlines(key, {"outlines": {}})
+    entries, front = trace.get("entries") or {}, trace.get("front") or {}
+    found = {}
+    for number in numbers:
+        row = rows.get(number) or {}
+        unit = row.get("typologyRev9") or None
+        made = dict.fromkeys(FLOOR_FIELDS)
+        made.update(unit=unit, lacks=[])
+        found[number] = made
+        if unit is None:
+            continue
+        item, entry, link = front.get(number) or {}, entries.get(number), links.get(number) or {}
+        builder = plan_from_past.PlotBuilder(number)
+        face = item.get("face")
+        if face is not None:
+            made["generic"] = [[list(point[:2]) for point in list(ring.coords)[:-1]] for ring in [face.exterior] + list(face.interiors)]
+        if item.get("corners") is not None:
+            made["rampOutline"] = [list(corner) for corner in item["corners"]]
+        if item.get("front") is not None and entry is not None:
+            made["rampZ"] = ramp_heights(item["front"], plan_rules.rule_entry(entry))
+        below, _ = plan_rules.key_yard(key, row.get("zone") or "")
+        made["yardDepth"] = below
+        if below is not None and link.get("insert") is not None:
+            mirrored = link["mirrored"]
+            yard_unit = unit if any(group["unit"] == unit for group in outlines["outlines"].get("yard") or []) else (
+                ((profile.get("typologies") or {}).get(unit) or {}).get("keo_file") or unit)
+            width = floor_fit.width_key(item["frame"]["length"], step)
+            group = floor_fit.outline_for(outlines, "yard", yard_unit, mirrored, width)
+            made.update(yardUnit=yard_unit, yardWidth=width)
+            if group is None:
+                builder.lack("floors.yard", "no fitted outline for " + yard_unit + (" mirrored" if mirrored else " not mirrored") + " on a plot " + str(width) + " m wide")
+            else:
+                insert, rotation = plan_from_past.point(link["insert"]), plan_from_past.plan_rotation(link["rotationDeg"])
+                made.update(yardType=group["type"], yardOutline=[[list(point) for point in floor_fit.to_world(loop, insert, rotation, mirrored)] for loop in group["loops"]])
+        ramp_class = plan_rules.key_ramp_class(key, unit)
+        made.update(rampClass=ramp_class, rampType=lp["rampTypes"].get(ramp_class) if ramp_class is not None else None)
+        if made["rampType"] is None:
+            builder.lack("floors.ramp", "keyRules.rampSlope and rampTypes give no ramp type for " + unit)
+        made["lacks"] = builder.missing
+    return found
+
+
 def one_ring_faces(plots):
     """R354. A build takes the face of a label as one ring, whose edges it walks in the order shapely gives them (face_ring), so a label of
     two rings or more, which face_shapes joins by a union whose ring order only shapely knows, is refused here and in the C# alike. A ring
@@ -340,11 +435,17 @@ def generic_floor(builder, face, inputs, z):
             "heightOffset": sourced(common.r3(z - elevation), ESTIMATE)}
 
 
+def ramp_heights(front, entry):
+    """R210, R358. The Z of the four ramp corners, raw: the front pair the road levels given, the back pair El @ Entry plus its front corner
+    less the mean of the two, so it runs parallel to the front with its mean at El @ Entry, the El @ Entry the plan writes."""
+    middle = (front[0] + front[1]) / 2.0
+    return list(front) + [entry + front[1] - middle, entry + front[0] - middle]
+
+
 def ramp_floor(builder, frame, corners, front, entry, slope, inputs, kind=None):
     """R210. The ramp of the Rev 6 outline, the front corners at the road, the back pair parallel with its mean at El @ Entry.
     R278: the ramp type the level profile names, else the type of its slope band."""
-    middle = (front[0] + front[1]) / 2.0
-    heights = list(front) + [entry + front[1] - middle, entry + front[0] - middle]
+    heights = ramp_heights(front, entry)
     kind = kind or floor_fit.type_of(slope, inputs["bands"])
     level = inputs["floors"]["levels"]["ramp"]
     elevation = inputs["levels"].get(level)
@@ -485,9 +586,7 @@ def rule_levels(row, entry, item, key, unit, profile, rules):
     height = common.fixed(row["fflRule"] - entry["rule"], plan_rules.ENTRY_DECIMALS)
     found = {"entry": entry["rule"], "ffl": row["fflRule"], "height": height,
              "steps": plan_rules.steps_by_rule(key["steps"]["rule"], height, unit, profile, rules["levelProfile"], key.get("baseHeight"))}
-    for word, rule in key.items():
-        if word.startswith(plan_rules.PARAMETER) and word not in rules["laterParameters"] and isinstance(rule, dict) and rule.get("rule") in plan_rules.LEVEL_RULES:
-            found[word] = plan_rules.prototype_ffl(rule["rule"], row["fflRule"])
+    found.update(plan_rules.level_parameters(key, row["fflRule"], rules["laterParameters"]))
     if item["front"] is not None:
         found["rampFrontCorners"] = [common.r3(z) for z in item["front"]]
     return found
@@ -585,6 +684,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                 value, slope = entry_estimate(item["front"], item["unit"], profile, steep, item["depth"])
             else:
                 value, slope = plan_rules.entry_of(item["front"], item["unit"], rules["levelProfile"], item["depth"])
+                if trace is not None:
+                    # R359. El @ Entry unrounded, the value the step levels holds its rounding to 4 decimals against
+                    trace.setdefault("entryRaw", {})[number] = value
                 if by_levels:
                     # R340. At the 4 decimals of R2, as R339 measured it, so a gap moves it onto the key exactly
                     value = rule = common.fixed(value, plan_rules.ENTRY_DECIMALS)
@@ -603,6 +705,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         level_rows = plan_from_cad.plot_levels(profile, mine, entries)
     elif by_levels:
         level_rows = key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, rules["levelProfile"])
+        if trace is not None:
+            # R359. The El @ Entry and the levels of each plot with the FFL by the rule kept apart, for the step levels
+            trace.update(entries=entries, levelRows=level_rows)
     else:
         # R385. The levels of R278 and their overrides by the rounding the overrides of the profile were measured on, Round 17 for native2022
         fix = rules["rounding"]
@@ -1131,8 +1236,10 @@ def main(argv=None):
             write_build_step(args, settings, "fronts", front_step(cover["plots"], trace["front"], surfaces, trace["snap"]))
             hands = hand_step(cover["plots"], rows, rules, trace, files, profile, settings.get("majority"))
             write_build_step(args, settings, "hands", hands)
-            write_build_step(args, settings, "linkFrame", link_step(cover["plots"], rows, trace, hands, rules["keyRules"], files, profile),
-                             {"rotationDeg": plan_from_past.plan_rotation})
+            links = link_step(cover["plots"], rows, trace, hands, rules["keyRules"], files, profile)
+            write_build_step(args, settings, "linkFrame", links, {"rotationDeg": plan_from_past.plan_rotation})
+            write_build_step(args, settings, "levels", level_step(cover["plots"], rows, trace, rules, profile))
+            write_build_step(args, settings, "floors", floor_step(cover["plots"], rows, trace, links, rules, profile, floor_fit.width_step(settings)))
         plan_from_past.write_plan(out, plan)
         done = True
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
