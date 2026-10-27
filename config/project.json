@@ -640,6 +640,16 @@
             "factor": {"kind": "noGeometry"},
             "linkFile": {"kind": "noGeometry"},
             "mirrored": {"kind": "noGeometry"}
+        },
+        "linkFrame": {
+            "prototypeFile": {"kind": "noGeometry"},
+            "fitUnit": {"kind": "noGeometry"},
+            "anchor": {"kind": "noGeometry"},
+            "offset": {"kind": "points", "decimals": 3},
+            "mirrored": {"kind": "noGeometry"},
+            "insert": {"kind": "points", "decimals": 3},
+            "rotationDeg": {"kind": "angles", "decimals": 3},
+            "lacks": {"kind": "noGeometry"}
         }
       }
     }

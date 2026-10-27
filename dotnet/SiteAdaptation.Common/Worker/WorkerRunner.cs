@@ -25,6 +25,8 @@ namespace SiteAdaptation.Common
             [Fronts.StepName] = BuildSteps.FrontRoles,
             // R357. The hands of a build, on the reads of the clusters and the fronts and the prototype files of the folder
             [Hands.StepName] = BuildSteps.HandRoles,
+            // R356. The link frame of a build, on the inputs of the hands
+            [LinkFrames.StepName] = BuildSteps.HandRoles,
             [ReadSteps.Labels] = new[] { "baseplan" },
             [ReadSteps.Blocks] = new[] { "villaBlocks" },
             [ReadSteps.Setbacks] = new[] { "villaBlocks" },

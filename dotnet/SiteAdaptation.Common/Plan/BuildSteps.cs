@@ -13,7 +13,7 @@ namespace SiteAdaptation.Common
     // order. Every number of a JSON input is the nearest double of its text, as Python reads it, and each input is read once per run
     public static class BuildSteps
     {
-        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName };
+        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName, LinkFrames.StepName };
 
         public static readonly string[] ClusterRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead", "analysis" };
 
@@ -294,7 +294,7 @@ namespace SiteAdaptation.Common
                     run.Counts["fronts with no road level of a unit plot"] = fronts.Values.Count(item => item.Unit != null && item.Front == null);
                     made[Fronts.StepName] = Fronts.Step(site.Numbers, fronts, surfaces.Select(surface => surface.Name).ToList(), snap);
                 }
-                if (asked.Contains(Hands.StepName))
+                if (asked.Contains(Hands.StepName) || asked.Contains(LinkFrames.StepName))
                 {
                     double roadEdgeM = BuildFace.Number(site.Settings["siteBuild"]["corner"]["roadEdgeM"]);
                     var wanted = new HashSet<string>(site.Numbers);
@@ -304,9 +304,20 @@ namespace SiteAdaptation.Common
                         (x, y) => new KeyValuePair<double?, string>(null, null), site.Rules, roadEdgeM, site.Sales, site.RulesName);
                     HandContext context = Hands.Context(site.Numbers, site.Rows, site.Faces, site.Clusters, fronts.ToDictionary(item => item.Key, item => item.Value.Frame), site.Roads, site.Rules, site.Settings);
                     JObject key = BuildRules.KeyRules(site.Rules, request.LevelProfile, string.Join(", ", Names));
-                    made[Hands.StepName] = Hands.Step(site.Numbers, site.Rows, context, key, site.Files(), site.Rules, site.Settings);
-                    run.Counts["hands of the scope with a mirror flag"] = made[Hands.StepName].Values.Count(item => item["mirrored"] != null);
+                    Dictionary<string, string> files = site.Files();
+                    Dictionary<string, Dictionary<string, object>> hands = Hands.Step(site.Numbers, site.Rows, context, key, files, site.Rules, site.Settings);
+                    run.Counts["hands of the scope with a mirror flag"] = hands.Values.Count(item => item["mirrored"] != null);
                     run.Counts["side neighbour pairs"] = context.Neighbours.Values.Sum(sides => sides.Left.Count + sides.Right.Count);
+                    if (asked.Contains(Hands.StepName))
+                    {
+                        made[Hands.StepName] = hands;
+                    }
+                    if (asked.Contains(LinkFrames.StepName))
+                    {
+                        // R356. The link of each plot on the front of R355 with the hand of the rule (R357)
+                        made[LinkFrames.StepName] = LinkFrames.Step(site.Numbers, site.Rows, fronts, context.Roles, hands, key, files, site.Rules);
+                        run.Counts["links of the scope placed"] = made[LinkFrames.StepName].Values.Count(item => item["insert"] != null);
+                    }
                 }
             }
             catch (InvalidDataException refused)

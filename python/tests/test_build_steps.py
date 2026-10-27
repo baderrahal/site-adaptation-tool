@@ -323,3 +323,47 @@ def test_r357_the_prototype_file_of_a_code_is_the_one_of_the_folder_else_that_of
                                                    "RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3100.rvt", "RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3101.rvt"], profile)
     assert files["DP1"] == "RRE-WP-NSP-KEO-ARC-DP1-ZZ-MOD-2100.rvt" and files["DP2"] == "RRE-WP-NSP-KEO-arc-dp2-ZZ-MOD-2200.rvt"
     assert files["VD1"] == files["DP1"] and "TH1" not in files and "DT1" not in files and twice == ["TH1"]
+
+
+def test_r356_the_link_of_a_plot_is_the_fit_of_its_code_from_the_anchor_corner_of_its_front_in_the_link_axes_of_its_hand(monkeypatch):
+    hands, trace = hand_build(monkeypatch)
+    key = hand_rules().get("levelProfiles")["parsons2024Rev6"]["keyRules"]
+    rows = {number: {"typologyRev9": HAND_UNITS[number]} for number in HAND_UNITS}
+    step = plan_from_book.link_step([str(index) for index in range(1, 8)], rows, trace, hands, key, {"DP2": DP2_FILE, "VD2": VD2_FILE}, hand_rules())
+    fit = key["linkOrigin"]["byCode"]["DP2"]
+    # 4 mirrored: the link X axis runs west, the end anchor the left end of the front seen from the road, (36, 0)
+    assert step["4"]["prototypeFile"] == DP2_FILE and step["4"]["fitUnit"] == "DP2" and step["4"]["anchor"] == fit["anchor"] and step["4"]["offset"] == fit["offset"]
+    assert step["4"]["mirrored"] is True and step["4"]["insert"] == [36.0 - fit["offset"][0], fit["offset"][1]] and step["4"]["rotationDeg"] == 180.0
+    # 5 not mirrored: the X axis runs east, the end anchor the right end, (60, 0), the rotation the 0.0 Python % gives minus zero
+    assert step["5"]["mirrored"] is False and step["5"]["insert"] == [60.0 + fit["offset"][0], fit["offset"][1]] and step["5"]["rotationDeg"] == 0.0
+    assert step["4"]["lacks"] == [] and step["7"] == {"prototypeFile": None, "fitUnit": None, "anchor": None, "offset": None, "mirrored": None, "insert": None,
+                                                      "rotationDeg": None, "lacks": []}
+
+
+def test_r356_a_plot_with_no_hand_no_fit_no_face_or_no_file_lacks_its_link_with_why(monkeypatch):
+    hands, trace = hand_build(monkeypatch)
+    key = hand_rules().get("levelProfiles")["parsons2024Rev6"]["keyRules"]
+    rows = {"4": {"typologyRev9": "DP2"}, "5": {"typologyRev9": "XX9"}, "6": {"typologyRev9": "DP2"}}
+    hands = dict(hands, **{"4": dict(hands["4"], mirrored=None)})
+    trace["front"]["6"] = dict(trace["front"]["6"], face=None)
+    step = plan_from_book.link_step(["4", "5", "6"], rows, trace, hands, key, {"VD2": VD2_FILE}, hand_rules())
+    assert step["4"]["lacks"] == [{"key": "prototypeFile", "why": "no single prototype file in the folder carries the unit DP2"},
+                                  {"key": "mirrored", "why": "no rule gives the mirror flag of DP2 in no cluster"}]
+    assert step["5"]["lacks"][-1] == {"key": "insert", "why": "plotFrame holds no anchor and offset for XX9"} and step["5"]["fitUnit"] is None
+    assert step["6"]["lacks"][-1] == {"key": "transform", "why": "no baseplan face carries the label of the plot"} and step["6"]["insert"] is None
+
+
+def test_r356_the_rotation_of_a_link_is_written_as_the_plan_writes_it_and_one_that_rounds_to_360_as_0():
+    import plan_from_past
+    settings = project_profile.load_settings()
+    made = {"1": {"rotationDeg": 359.9996, "insert": [1.00049, 2.0]}, "2": {"rotationDeg": None, "insert": None}}
+    entries = plan_from_book.step_entries(settings, "linkFrame", made, {"rotationDeg": plan_from_past.plan_rotation})
+    assert entries["1"]["written"]["rotationDeg"] == 0 and entries["1"]["raw"]["rotationDeg"] == 359.9996 and entries["1"]["written"]["insert"] == [1.0, 2.0]
+    assert entries["2"]["written"]["rotationDeg"] is None
+
+
+def test_r356_the_config_names_the_fields_of_the_step_link_frame_by_their_kind():
+    fields = project_profile.load_settings().get("addin")["parity"]["steps"]["linkFrame"]
+    assert {name: (field["kind"], field.get("decimals")) for name, field in fields.items()} == {
+        "prototypeFile": ("noGeometry", None), "fitUnit": ("noGeometry", None), "anchor": ("noGeometry", None), "offset": ("points", 3), "mirrored": ("noGeometry", None),
+        "insert": ("points", 3), "rotationDeg": ("angles", 3), "lacks": ("noGeometry", None)}

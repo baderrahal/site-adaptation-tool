@@ -60,8 +60,8 @@ LOCATION = "locationPlan"
 OVERRIDE = "override"
 KEY_RULES = "keyRules"
 # R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R357 after the faces
-PARITY_STEPS = ("faces", "clusters", "fronts", "hands")
-BUILD_STEPS = ("clusters", "fronts", "hands")
+PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame")
+BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame")
 FOOTPRINT, ANALYSIS = "footprint", "analysis"
 # R337. The source of a parameter that reads the steps, the stepBands of the level profile when keyRules codes no steps
 STEP_BANDS = "levelProfileStepBands"
@@ -204,6 +204,34 @@ def hand_step(numbers, rows, rules, trace, files, profile, block):
             "blockMirror": factors["blockMirror"], "blockMirrorRoadSide": factors["blockMirrorRoadSide"], "blockMirrorOpenEnd": factors["blockMirrorOpenEnd"],
             "rowPairSideOrBlockMirrorOpenEnd": factors["rowPairSideOrBlockMirrorOpenEnd"], "handRule": rule, "factor": factors.get(rule) if rule else None,
             "linkFile": files.get(unit) if unit else None, "mirrored": hand}
+    return found
+
+
+def link_step(numbers, rows, trace, hands, key, files, profile):
+    """R356. The step linkFrame of the parity harness: per plot of the scope the link plan_from_cad.link_values gives on the front the
+    build takes (fronts) with the hand by the rule of the step hands, before an insert or rotation override of the list moves it (R360):
+    the prototype file of its code, the unit whose fit of keyRules.linkOrigin it takes, its own or that of its keo_file, the anchor and
+    offset of that fit, the mirror flag, the insert in plan unrounded and the rotation of the link X axis, written as the plan writes them,
+    and what the link lacks with why, as the plan lists it."""
+    section = plan_rules.key_frame_section(key)
+    found = {}
+    for number in numbers:
+        unit = (rows.get(number) or {}).get("typologyRev9") or None
+        item = trace["front"].get(number) or {"face": None, "frame": None}
+        builder = plan_from_past.PlotBuilder(number)
+        fit_unit = fit = None
+        mirrored = hands[number]["mirrored"]
+        if unit:
+            keo = ((profile.get("typologies") or {}).get(unit) or {}).get("keo_file")
+            fit_unit = unit if unit in section["units"] else keo
+            fit = section["units"].get(fit_unit)
+            plan_from_cad.link_values(builder, unit, item["face"], item["frame"], trace["roles"].get(number), section, files, mirrored, fit_unit)
+        placed = builder.has("insert")
+        found[number] = {
+            "prototypeFile": (builder.entry.get("prototypeFile") or {}).get("value"), "fitUnit": fit_unit, "anchor": None if fit is None else fit["anchor"],
+            "offset": None if fit is None else list(fit["offset"]), "mirrored": mirrored if unit else None,
+            "insert": list(cad_links.predicted_origin(item["frame"], mirrored, fit)) if placed else None,
+            "rotationDeg": cad_links.rotation_of(item["frame"], mirrored) if placed else None, "lacks": builder.missing}
     return found
 
 
@@ -837,10 +865,21 @@ def build_inputs(args, settings):
     return step_inputs(args) + [parity.input_entry(role, path) for role, path in roles if path]
 
 
-def write_build_step(args, settings, step, made):
-    """R345, R354 to R357. step_<step>_python.json of a build step, each item by the fields of the step in addin.parity."""
+def step_entries(settings, step, made, written=None):
+    """R345, R354 to R357. The items of a build step by the fields of the step in addin.parity, a field of written written by its own
+    function of the raw value where the plan writes it so, such as the rotation by plan_rotation, which writes 0 for one that rounds to 360."""
     fields = ((settings.get("addin") or {}).get("parity") or {}).get("steps", {}).get(step) or {}
     plots = {key: parity.fields_entry(raw, fields) for key, raw in made.items()}
+    for entry in plots.values():
+        for name, function in (written or {}).items():
+            if entry["raw"].get(name) is not None:
+                entry["written"][name] = function(entry["raw"][name])
+    return plots
+
+
+def write_build_step(args, settings, step, made, written=None):
+    """R345, R354 to R357. step_<step>_python.json of a build step (step_entries)."""
+    plots = step_entries(settings, step, made, written)
     parity.write_step(args.steps, step, "python", step_scope(args.cover), plots, settings.values, build_inputs(args, settings))
     print("step %s: %d items (R345)" % (step, len(plots)))
 
@@ -1029,7 +1068,10 @@ def main(argv=None):
                      site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, by_keys or bool(args.footprint_blocks), rules, trace=trace)
         if args.steps:
             write_build_step(args, settings, "fronts", front_step(cover["plots"], trace["front"], surfaces, trace["snap"]))
-            write_build_step(args, settings, "hands", hand_step(cover["plots"], rows, rules, trace, files, profile, settings.get("majority")))
+            hands = hand_step(cover["plots"], rows, rules, trace, files, profile, settings.get("majority"))
+            write_build_step(args, settings, "hands", hands)
+            write_build_step(args, settings, "linkFrame", link_step(cover["plots"], rows, trace, hands, rules["keyRules"], files, profile),
+                             {"rotationDeg": plan_from_past.plan_rotation})
         plan_from_past.write_plan(out, plan)
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
         print("plan_from_book: " + str(error), file=sys.stderr)

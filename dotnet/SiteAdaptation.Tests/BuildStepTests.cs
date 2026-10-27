@@ -534,6 +534,13 @@ namespace SiteAdaptation.Tests
 
         private static Dictionary<string, Dictionary<string, object>> HandStep()
         {
+            return HandSteps().Item1;
+        }
+
+        // The steps hands and linkFrame of the made up row, the second with the hand of the first
+        private static Tuple<Dictionary<string, Dictionary<string, object>>, Dictionary<string, Dictionary<string, object>>> HandSteps(Dictionary<string, string> codes = null,
+            Func<Dictionary<string, Dictionary<string, object>>, Dictionary<string, Dictionary<string, object>>> handsOf = null, Dictionary<string, string> filesOf = null)
+        {
             JObject rules = HandRules();
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
             var numbers = new List<string> { "1", "2", "3", "4", "5", "6" };
@@ -549,7 +556,77 @@ namespace SiteAdaptation.Tests
                 (double)config["siteBuild"]["corner"]["roadEdgeM"], sales);
             HandContext context = Hands.Context(numbers, rows, faces, clusters, fronts.ToDictionary(item => item.Key, item => item.Value.Frame), roads, rules, config);
             var files = new Dictionary<string, string> { ["DP2"] = Dp2File, ["VD2"] = Vd2File };
-            return Hands.Step(numbers.Concat(new[] { "7" }), rows, context, BuildRules.KeyRules(rules, null, "hands"), files, rules, config);
+            JObject key = BuildRules.KeyRules(rules, null, "hands");
+            Dictionary<string, Dictionary<string, object>> hands = Hands.Step(numbers.Concat(new[] { "7" }), rows, context, key, files, rules, config);
+            hands = handsOf == null ? hands : handsOf(hands);
+            Dictionary<string, Dictionary<string, string>> linkRows = codes == null ? rows : codes.ToDictionary(item => item.Key, item => new Dictionary<string, string> { ["typologyRev9"] = item.Value });
+            if (codes != null)
+            {
+                fronts["6"] = new FrontItem { Face = null, Frame = null, Unit = "DP2", FrontRule = "nearestCurb" };
+            }
+            return Tuple.Create(hands, LinkFrames.Step(numbers.Concat(new[] { "7" }), linkRows, fronts, context.Roles, hands, key, filesOf ?? files, rules));
+        }
+
+        [Fact]
+        public void R356_the_link_of_a_plot_is_the_fit_of_its_code_from_the_anchor_corner_of_its_front_in_the_link_axes_of_its_hand()
+        {
+            Dictionary<string, Dictionary<string, object>> step = HandSteps().Item2;
+            JObject fit = (JObject)JObject.Parse(File.ReadAllText(RepoRules()))["levelProfiles"]["parsons2024Rev6"]["keyRules"]["linkOrigin"]["byCode"]["DP2"];
+            double along = (double)fit["offset"][0], into = (double)fit["offset"][1];
+            Assert.Equal(Dp2File + "|DP2|" + (string)fit["anchor"], step["4"]["prototypeFile"] + "|" + step["4"]["fitUnit"] + "|" + step["4"]["anchor"]);
+            Assert.Equal(new[] { along, into }, (double[])step["4"]["offset"]);
+            Assert.True((bool)(JToken)step["4"]["mirrored"]);
+            Assert.Equal(new[] { 36.0 - along, into }, (double[])step["4"]["insert"]);
+            Assert.Equal(180.0, ((StepValue)step["4"]["rotationDeg"]).Raw);
+            Assert.False((bool)(JToken)step["5"]["mirrored"]);
+            Assert.Equal(new[] { 60.0 + along, into }, (double[])step["5"]["insert"]);
+            Assert.Equal(0.0, ((StepValue)step["5"]["rotationDeg"]).Raw);
+            Assert.Empty((JArray)step["4"]["lacks"]);
+            Assert.All(step["7"].Where(item => item.Key != "lacks"), item => Assert.Null(item.Value));
+            Assert.Empty((JArray)step["7"]["lacks"]);
+            Assert.Equal(8, step["7"].Count);
+        }
+
+        [Fact]
+        public void R356_a_plot_with_no_hand_no_fit_no_face_or_no_file_lacks_its_link_with_why()
+        {
+            var codes = new Dictionary<string, string> { ["4"] = "DP2", ["5"] = "XX9", ["6"] = "DP2" };
+            Dictionary<string, Dictionary<string, object>> step = HandSteps(codes, hands =>
+            {
+                hands["4"]["mirrored"] = null;
+                return hands;
+            }, new Dictionary<string, string> { ["VD2"] = Vd2File }).Item2;
+            Func<string, string> lacks = number => ((JArray)step[number]["lacks"]).ToString(Newtonsoft.Json.Formatting.None);
+            Assert.Equal("[{'key':'prototypeFile','why':'no single prototype file in the folder carries the unit DP2'},{'key':'mirrored','why':'no rule gives the mirror flag of DP2 in no cluster'}]".Replace('\'', '"'), lacks("4"));
+            Assert.EndsWith("{'key':'insert','why':'plotFrame holds no anchor and offset for XX9'}]".Replace('\'', '"'), lacks("5"));
+            Assert.Null(step["5"]["fitUnit"]);
+            Assert.EndsWith("{'key':'transform','why':'no baseplan face carries the label of the plot'}]".Replace('\'', '"'), lacks("6"));
+            Assert.Null(step["6"]["insert"]);
+        }
+
+        [Fact]
+        public void R356_the_rotation_of_a_link_is_written_as_the_plan_writes_it_and_one_that_rounds_to_360_as_0()
+        {
+            Assert.Equal(0.0, LinkFrames.PlanRotation(359.9996));
+            Assert.Equal(359.999, LinkFrames.PlanRotation(359.9994));
+            Assert.Equal(0.0, LinkFrames.PlanRotation(-0.0));
+            var fields = new List<ParityField> { new ParityField { Name = "rotationDeg", Kind = "angles", Decimals = 3 }, new ParityField { Name = "insert", Kind = "points", Decimals = 3 } };
+            var plots = new Dictionary<string, Dictionary<string, object>>
+            {
+                ["1"] = new Dictionary<string, object> { ["rotationDeg"] = new StepValue { Raw = 359.9996, Written = LinkFrames.PlanRotation(359.9996) }, ["insert"] = new[] { 1.00049, 2.0 } },
+            };
+            JObject file = StepFile.Build("linkFrame", "csharp", "project", plots, fields);
+            Assert.Equal(359.9996, (double)file["plots"]["1"]["raw"]["rotationDeg"]);
+            Assert.Equal(0.0, (double)file["plots"]["1"]["written"]["rotationDeg"]);
+            Assert.Equal(1.0, (double)file["plots"]["1"]["written"]["insert"][0]);
+        }
+
+        [Fact]
+        public void R356_the_config_names_the_fields_of_the_step_link_frame_by_their_kind()
+        {
+            AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
+            Assert.Equal("prototypeFile:noGeometry: fitUnit:noGeometry: anchor:noGeometry: offset:points:3 mirrored:noGeometry: insert:points:3 rotationDeg:angles:3 lacks:noGeometry:",
+                string.Join(" ", config.StepFields(LinkFrames.StepName).Select(field => field.Name + ":" + field.Kind + ":" + field.Decimals)));
         }
 
         [Fact]
@@ -679,7 +756,7 @@ namespace SiteAdaptation.Tests
             return new WorkerRequest
             {
                 FormatVersion = 1, RunId = runId, Command = "build", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" }, Inputs = inputs,
-                Scope = new WorkerScope { Kind = "project" }, OutputFolder = folder, Steps = new List<string> { "clusters", "hands" }, StepsFolder = Path.Combine(folder, "steps"), TimeLimitS = 600,
+                Scope = new WorkerScope { Kind = "project" }, OutputFolder = folder, Steps = new List<string> { "clusters", "hands", "linkFrame" }, StepsFolder = Path.Combine(folder, "steps"), TimeLimitS = 600,
             };
         }
 
@@ -694,6 +771,9 @@ namespace SiteAdaptation.Tests
             Assert.True((bool)plots["1"]["written"]["mirrored"]);
             Assert.Equal(Vd2File, (string)plots["1"]["written"]["linkFile"]);
             Assert.Equal(new[] { "2|3" }, ((JObject)RunStamp.Read(Path.Combine(folder, "steps", "step_clusters_csharp.json"))["plots"]).Properties().Select(item => item.Name).ToArray());
+            JObject link = RunStamp.Read(Path.Combine(folder, "steps", "step_linkFrame_csharp.json"));
+            Assert.Equal(180.0, (double)link["plots"]["4"]["written"]["rotationDeg"]);
+            Assert.Equal(Dp2File, (string)link["plots"]["4"]["written"]["prototypeFile"]);
 
             WorkerRequest renamed = HandRequest("h2");
             renamed.Inputs[9] = new WorkerFile { Role = BuildSteps.PrototypeRole + "other.rvt", Path = renamed.Inputs[9].Path, Sha256 = renamed.Inputs[9].Sha256 };
