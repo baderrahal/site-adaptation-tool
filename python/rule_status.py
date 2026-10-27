@@ -38,10 +38,14 @@ CHOOSERS = ("majority.check.group",)
 # field shows the share of that entry. A level profile with no such entry, native2022, keeps its status (CHOSEN, the pairs read from
 # the rule of each entry and the code that reads the field). A field is looked up by its two keys first, so
 # frontRoad.offsetM, a term of El @ Entry (key_rules_check.py, plan_rules.entry_of), goes to entry and the road surface to rampFront.
-# A field whose value, or whose name, is a candidate of its entry takes the share of that candidate. The note says what no code reads.
-TIES = {"frontRoad.surface": ("rampFront", None), "frontRoad.offsetM": ("entry", None), "rampSlopePercent": ("rampSlope", None),
-        "rampTypes": ("rampSlope", None), "height": ("ffl", None), "stepBands": ("steps", None), "yardBelowFflM": ("yard", None),
-        "steps": ("steps", "no code reads this field, a build takes its steps from keyRules.steps and the stepBands")}
+# A field whose value, or whose name, is a candidate of its entry takes the share of that candidate. The note says what no code reads:
+# a build takes the FFL from keyRules.ffl whenever keyRules holds it (plan_rules.key_levels_of), and the stepBands only under the
+# rule stepBands of keyRules.steps (plan_rules.steps_by_rule), the rule named third
+TIES = {"frontRoad.surface": ("rampFront", None, None), "frontRoad.offsetM": ("entry", None, None), "rampSlopePercent": ("rampSlope", None, None),
+        "rampTypes": ("rampSlope", None, None), "yardBelowFflM": ("yard", None, None),
+        "height": ("ffl", "no code reads this field while keyRules holds ffl, a build takes its FFL from keyRules.ffl", None),
+        "stepBands": ("steps", "no code reads this field while keyRules.steps codes another rule than stepBands", "stepBands"),
+        "steps": ("steps", "no code reads this field, a build takes its steps by the rule keyRules.steps codes", None)}
 # Q100 asked these five of the audit itself, so they are no evidence of a value, their answers give DOCUMENT and the ties
 AUDIT_QUESTIONS = {"Q100", "Q101", "Q102", "Q103", "Q104"}
 NEAR = 80
@@ -266,7 +270,7 @@ class Audit:
         if candidate is not None:
             share = flat[base + ("candidates", candidate)]
             extra["candidate"] = candidate
-        if found[1]:
+        if found[1] and flat.get(base + ("rule",)) != found[2]:
             extra["note"] = found[1]
         return ".".join(base), share, extra
 

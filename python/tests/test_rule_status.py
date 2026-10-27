@@ -233,10 +233,32 @@ def test_r401_a_field_is_tied_by_its_own_key_to_the_entry_or_candidate_that_meas
     assert rules[base + "frontRoad.surface"]["measuredBy"] == base + "keyRules.rampFront"
     assert rules[base + "frontRoad.surface"]["candidate"] == "roadLevel"
     assert rules[base + "height"] == {"status": "MEASURED", "share": 0.68, "strength": "weak", "measuredBy": base + "keyRules.ffl",
-                                      "tiedBy": "Q101", "candidate": "perCluster"}
+                                      "tiedBy": "Q101", "candidate": "perCluster",
+                                      "note": "no code reads this field while keyRules holds ffl, a build takes its FFL from keyRules.ffl"}
     assert rules[base + "stepBands.1"] == {"status": "MEASURED", "share": 0.93, "strength": "strong", "measuredBy": base + "keyRules.steps",
-                                           "tiedBy": "Q101", "candidate": "stepBands"}
+                                           "tiedBy": "Q101", "candidate": "stepBands",
+                                           "note": "no code reads this field while keyRules.steps codes another rule than stepBands"}
     assert rules[base + "steps"]["share"] == 0.8 and "no code reads" in rules[base + "steps"]["note"]
+
+
+def test_r401_a_tied_field_no_build_reads_says_so_by_the_rule_keyrules_codes(tmp_path):
+    root = make_repo(tmp_path)
+    path = root / "rules" / "p.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    p1 = data["levelProfiles"]["p1"]
+    p1.update(height="perCluster", stepBands=[[0.2, 1], [99.0, 2]], steps="countRule")
+    p1["keyRules"].update(ffl={"rule": "perPiece", "share": 0.75, "strong": False, "candidates": {"perPiece": 0.75, "perCluster": 0.68}})
+    notes = {}
+    for rule in ("stepsFromHeight", "stepBands"):
+        p1["keyRules"]["steps"]["rule"] = rule
+        write_json(path, data)
+        rule_status.write(root)
+        rules = entries(root)["rules/p.json"]
+        notes[rule] = {field: rules["levelProfiles.p1." + field].get("note", "") for field in ("height", "stepBands.0", "steps")}
+    # keyRules holds ffl, so a build takes its FFL from it and never reads height, and stepBands only under the rule stepBands
+    assert "no code reads" in notes["stepsFromHeight"]["height"] and "no code reads" in notes["stepBands"]["height"]
+    assert "no code reads" in notes["stepsFromHeight"]["stepBands.0"] and notes["stepBands"]["stepBands.0"] == ""
+    assert "stepBands" not in notes["stepsFromHeight"]["steps"].split("from ", 1)[-1]
 
 
 def test_r401_an_empty_object_and_the_choosers_of_a_bookkeeping_block_have_an_entry(tmp_path):
