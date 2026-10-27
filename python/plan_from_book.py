@@ -268,17 +268,72 @@ def simple_blocks(blocks):
     return blocks
 
 
-def analysis_clusters(path, settings):
+def analysis_clusters(path, settings, baseplan, blocks=None):
     """R354. The clusters of the analysis.json a build joins (R236), held to what it claims to be: the analysis of the baseplan drawing
-    drawings.baseplan names, by the name in its source, and a clusters list."""
+    drawings.baseplan names, by the name in its source, a clusters list, and the reads it was made from (hold_analysis)."""
     path = Path(path)
     data = json.loads(path.read_text(encoding="utf-8"))
-    baseplan = settings.get("drawings")["baseplan"]
-    if data.get("source") != baseplan:
-        raise project_profile.ProfileError("%s is of %s, the analysis a build joins is of the baseplan drawings.baseplan names, %s (R354)" % (path.name, data.get("source"), baseplan))
+    drawing = settings.get("drawings")["baseplan"]
+    if data.get("source") != drawing:
+        raise project_profile.ProfileError("%s is of %s, the analysis a build joins is of the baseplan drawings.baseplan names, %s (R354)" % (path.name, data.get("source"), drawing))
     if not isinstance(data.get("clusters"), list):
         raise project_profile.ProfileError("%s holds no clusters list, the clusters of the analysis a build joins (R354)" % path.name)
+    hold_analysis(data, path.name, baseplan, blocks)
     return data["clusters"]
+
+
+# R354, R2. Half a unit of the 3 decimals cad_analysis writes the rotation of a block at
+ANALYSIS_TURN = 0.0005
+
+
+def hold_analysis(data, name, baseplan, blocks=None):
+    """R354, Q089. The analysis records the name of its drawing and no hash or date of it, so a build holds it to the reads it was made
+    from by what it records of them, as SiteClusters.HoldAnalysis does: summary.plotFaces is the count of the plot faces of the baseplan read
+    (cad_analysis.plot_faces), each plot of its plots list lies on the face of its label in that read with its type, cadType, and each plot
+    it gives a block name lies on a block of that name in the footprint read, the one that shares the most of its face, at its rotation within
+    ANALYSIS_TURN by the turn. An analysis of a later drawing whose labels moved puts a label on another face, type or block."""
+    summary, records = data.get("summary"), data.get("plots")
+    counted = summary.get("plotFaces") if isinstance(summary, dict) else None
+    if not isinstance(records, list) or not isinstance(counted, int) or isinstance(counted, bool):
+        raise project_profile.ProfileError("%s holds no plots list or no summary.plotFaces, which hold the analysis a build joins to the reads it was "
+                                           "made from (R354)" % name)
+    faces, count = {}, 0
+    for entry in baseplan or []:
+        if entry.get("kind") == "plot_shape" and entry.get("plot") not in (None, "") and len(entry.get("vertices") or []) >= 3:
+            faces[str(entry["plot"])] = entry
+            count += 1
+    if count != counted:
+        raise project_profile.ProfileError("%s counts %d plot faces and the baseplan read holds %d, the analysis a build joins is of the reads it was "
+                                           "made from (R354)" % (name, counted, count))
+    labels = [record.get("plot") if isinstance(record, dict) else None for record in records]
+    off = [label for label, record in zip(labels, records)
+           if not isinstance(label, str) or label not in faces or faces[label].get("type") != record.get("cadType")]
+    if off:
+        raise project_profile.ProfileError("%d plots of %s lie on no face of their label or on one of another type in the baseplan read: %s, the analysis "
+                                           "a build joins is of the reads it was made from (R354)" % (len(off), name, ", ".join(str(label) for label in off[:10])))
+    if blocks is None:
+        return
+    shapes = defaultdict(list)
+    for block in blocks:
+        if len(block.get("outline") or []) >= 3:
+            shapes[block.get("name")].append((Polygon([(point[0], point[1]) for point in block["outline"]]).buffer(0), block))
+    for label, record in zip(labels, records):
+        if not isinstance(record.get("block"), str) or not record["block"]:
+            continue
+        face = Polygon([(vertex[0], vertex[1]) for vertex in faces[label]["vertices"]]).buffer(0)
+        best, held = None, 0.0
+        for shape, block in shapes.get(record["block"], []):
+            if shape.intersects(face):
+                share = shape.intersection(face).area
+                if share > held:
+                    best, held = block, share
+        turn = record.get("rotation")
+        if best is None or (isinstance(turn, (int, float)) and not isinstance(turn, bool) and not (
+                isinstance(best.get("rotationDeg"), (int, float)) and abs((best["rotationDeg"] - turn + 180.0) % 360.0 - 180.0) <= ANALYSIS_TURN)):
+            off.append(label)
+    if off:
+        raise project_profile.ProfileError("%d plots of %s lie on no block of their name or on one of another rotation in the footprint read: %s, the "
+                                           "analysis a build joins is of the reads it was made from (R354)" % (len(off), name, ", ".join(off[:10])))
 
 
 def load_roads(files, scratch):
@@ -1033,8 +1088,10 @@ def main(argv=None):
                                                "nearest a curb (R355)")
         if args.footprint_blocks:
             args.footprint_blocks = str(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks))
-        shapes = footprint_check.block_shapes(simple_blocks(footprint_check.footprint_blocks(args.footprint_blocks, settings))) if args.footprint_blocks else None
-        analysis = analysis_clusters(args.analysis, settings) if args.analysis else None
+        blocks = simple_blocks(footprint_check.footprint_blocks(args.footprint_blocks, settings)) if args.footprint_blocks else None
+        shapes = footprint_check.block_shapes(blocks) if blocks is not None else None
+        # R354. The analysis held to the baseplan read and the footprint read it was made from, not by the name of its drawing alone
+        analysis = analysis_clusters(args.analysis, settings, baseplan, blocks) if args.analysis else None
         if shapes is not None:
             clusters = footprint_clusters(cover["plots"], rows, faces, shapes)
             if analysis is not None:

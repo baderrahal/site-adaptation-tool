@@ -105,6 +105,115 @@ namespace SiteAdaptation.Common
             }).ToList();
         }
 
+        // R354, R2. Half a unit of the 3 decimals cad_analysis writes the rotation of a block at
+        public const double AnalysisTurn = 0.0005;
+
+        // plan_from_book.hold_analysis, Q089. The analysis records the name of its drawing and no hash or date of it, so it is held to the
+        // reads it was made from by what it records of them: summary.plotFaces is the count of the plot faces of the baseplan read, each plot
+        // of its plots list lies on the face of its label there with its type, cadType, and each plot it gives a block name lies on a block of
+        // that name in the footprint read, the one that shares the most of its face, at its rotation within AnalysisTurn by the turn. With no
+        // footprint read, blocks null, the blocks are not held
+        public static void HoldAnalysis(JObject analysis, string fileName, JArray baseplanPlots, JArray blocks)
+        {
+            JToken counted = (analysis["summary"] as JObject)?["plotFaces"];
+            if (!(analysis["plots"] is JArray records) || counted == null || counted.Type != JTokenType.Integer)
+            {
+                throw new InvalidDataException(fileName + " holds no plots list or no summary.plotFaces, which hold the analysis a build joins to the reads it was made from (R354)");
+            }
+            var faces = new Dictionary<string, JObject>(StringComparer.Ordinal);
+            long count = 0;
+            foreach (JObject entry in (baseplanPlots ?? new JArray()).OfType<JObject>())
+            {
+                JToken plot = entry["plot"];
+                if (entry["kind"]?.Type == JTokenType.String && (string)entry["kind"] == "plot_shape" && plot != null && plot.Type != JTokenType.Null
+                    && !(plot.Type == JTokenType.String && (string)plot == "") && entry["vertices"] is JArray vertices && vertices.Count >= 3)
+                {
+                    faces[PyText(plot)] = entry;
+                    count++;
+                }
+            }
+            string countedText = Convert.ToString(((JValue)counted).Value, System.Globalization.CultureInfo.InvariantCulture);
+            if (countedText != count.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            {
+                throw new InvalidDataException(fileName + " counts " + countedText + " plot faces and the baseplan read holds " + count + ", the analysis a build joins is of the reads it was made from (R354)");
+            }
+            var off = new List<JToken>();
+            foreach (JToken record in records)
+            {
+                JToken label = (record as JObject)?["plot"];
+                if (label == null || label.Type != JTokenType.String || !faces.ContainsKey((string)label) || !Same(faces[(string)label]["type"], record["cadType"]))
+                {
+                    off.Add(label);
+                }
+            }
+            if (off.Count > 0)
+            {
+                throw new InvalidDataException(off.Count + " plots of " + fileName + " lie on no face of their label or on one of another type in the baseplan read: "
+                    + string.Join(", ", off.Take(10).Select(PyText)) + ", the analysis a build joins is of the reads it was made from (R354)");
+            }
+            if (blocks == null)
+            {
+                return;
+            }
+            var shapes = new Dictionary<string, List<Tuple<double[][], JToken>>>(StringComparer.Ordinal);
+            foreach (JToken block in blocks)
+            {
+                if (block["outline"] is JArray outline && outline.Count >= 3 && block["name"]?.Type == JTokenType.String)
+                {
+                    string name = (string)block["name"];
+                    if (!shapes.ContainsKey(name))
+                    {
+                        shapes[name] = new List<Tuple<double[][], JToken>>();
+                    }
+                    shapes[name].Add(Tuple.Create(FaceRings.Clean(outline.Select(point => new[] { BuildFace.Number(point[0]), BuildFace.Number(point[1]) })).ToArray(), block));
+                }
+            }
+            foreach (JToken record in records)
+            {
+                JToken named = record["block"];
+                if (named == null || named.Type != JTokenType.String || (string)named == "")
+                {
+                    continue;
+                }
+                string label = (string)record["plot"];
+                BuildFace face = BuildFace.Of(label, ((JArray)faces[label]["vertices"]).Select(vertex => new[] { BuildFace.Number(vertex[0]), BuildFace.Number(vertex[1]) }).ToArray());
+                JToken best = null;
+                double held = 0.0;
+                if (shapes.TryGetValue((string)named, out List<Tuple<double[][], JToken>> candidates))
+                {
+                    foreach (Tuple<double[][], JToken> candidate in candidates)
+                    {
+                        double share = Overlap(candidate.Item1, face);
+                        if (share > held)
+                        {
+                            best = candidate.Item2;
+                            held = share;
+                        }
+                    }
+                }
+                JToken turn = record["rotation"];
+                JToken rotation = best?["rotationDeg"];
+                bool numberTurn = turn != null && (turn.Type == JTokenType.Integer || turn.Type == JTokenType.Float);
+                bool numberRotation = rotation != null && (rotation.Type == JTokenType.Integer || rotation.Type == JTokenType.Float);
+                if (best == null || (numberTurn && !(numberRotation && Math.Abs(PyMath.Mod(BuildFace.Number(rotation) - BuildFace.Number(turn) + 180.0, 360.0) - 180.0) <= AnalysisTurn)))
+                {
+                    off.Add(record["plot"]);
+                }
+            }
+            if (off.Count > 0)
+            {
+                throw new InvalidDataException(off.Count + " plots of " + fileName + " lie on no block of their name or on one of another rotation in the footprint read: "
+                    + string.Join(", ", off.Take(10).Select(PyText)) + ", the analysis a build joins is of the reads it was made from (R354)");
+            }
+        }
+
+        // Two values of a JSON file the same as Python == takes them, a missing value as None
+        private static bool Same(JToken a, JToken b)
+        {
+            bool noA = a == null || a.Type == JTokenType.Null, noB = b == null || b.Type == JTokenType.Null;
+            return noA || noB ? noA && noB : JToken.DeepEquals(a, b);
+        }
+
         // plan_from_book.footprint_clusters over the unit plots
         public static List<SiteCluster> Footprint(IEnumerable<string> units, IReadOnlyDictionary<string, Dictionary<string, string>> rows, IReadOnlyDictionary<string, BuildFace> faces,
             IReadOnlyDictionary<string, List<double[][]>> blocks)

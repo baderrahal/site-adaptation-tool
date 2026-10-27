@@ -31,6 +31,7 @@ namespace SiteAdaptation.Common
             private readonly AddinConfig config;
             private readonly Dictionary<string, string> hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             private Dictionary<string, BuildFace> faces;
+            private JObject baseplanRead;
             private List<SiteCluster> clusters;
             private RoadLines roads;
             private JObject sales;
@@ -74,13 +75,15 @@ namespace SiteAdaptation.Common
                 {
                     if (faces == null)
                     {
-                        JObject baseplan = Read("baseplanRead", "baseplan");
+                        JObject baseplan = BaseplanRead;
                         double overlap = config.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)");
                         faces = BuildFace.Faces(baseplan["plots"] as JArray ?? throw new InvalidDataException("the baseplan read holds no plots list"), NumberOf, overlap);
                     }
                     return faces;
                 }
             }
+
+            public JObject BaseplanRead => baseplanRead ?? (baseplanRead = Read("baseplanRead", "baseplan"));
 
             // The unit plots, those of plots.csv with Typology_Rev9 and a face, in the order of plots.csv
             public List<string> Units => Rows.Where(item => item.Value.TryGetValue("typologyRev9", out string unit) && !string.IsNullOrEmpty(unit) && Faces.ContainsKey(item.Key)).Select(item => item.Key).ToList();
@@ -91,6 +94,8 @@ namespace SiteAdaptation.Common
                 {
                     if (clusters == null)
                     {
+                        // The faces first, as plan_from_book.py refuses a face before it reads the footprint and the analysis
+                        Dictionary<string, BuildFace> held = Faces;
                         JObject footprint = Read("villaBlocksRead", "villaBlocks");
                         // R300. The villa blocks of a drawing kept for reference only are never read
                         string source = (string)footprint["source"] ?? "";
@@ -100,9 +105,11 @@ namespace SiteAdaptation.Common
                         }
                         Dictionary<string, List<double[][]>> blocks = SiteClusters.BlocksByName(footprint["blocks"] as JArray ?? throw new InvalidDataException("the footprint read holds no blocks list"));
                         string analysisPath = run.Input("analysis");
-                        List<SiteCluster> analysis = SiteClusters.AnalysisOf(PyMath.ReadJson(analysisPath, "analysis") as JObject ?? new JObject(), Path.GetFileName(analysisPath),
-                            (string)Settings["drawings"]?["baseplan"]);
-                        clusters = SiteClusters.Site(Units, Rows, Faces, blocks, analysis, NumberOf);
+                        JObject read = PyMath.ReadJson(analysisPath, "analysis") as JObject ?? new JObject();
+                        List<SiteCluster> analysis = SiteClusters.AnalysisOf(read, Path.GetFileName(analysisPath), (string)Settings["drawings"]?["baseplan"]);
+                        // R354. The analysis held to the reads it was made from, not by the name of its drawing alone
+                        SiteClusters.HoldAnalysis(read, Path.GetFileName(analysisPath), BaseplanRead["plots"] as JArray, footprint["blocks"] as JArray);
+                        clusters = SiteClusters.Site(Units, Rows, held, blocks, analysis, NumberOf);
                     }
                     return clusters;
                 }

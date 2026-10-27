@@ -94,15 +94,62 @@ def test_r354_a_footprint_block_that_is_not_a_simple_ring_is_refused_by_the_buil
 def test_r354_an_analysis_of_another_drawing_or_with_no_clusters_is_refused(tmp_path):
     settings = project_profile.load_settings()
     path = tmp_path / "analysis.json"
-    path.write_text(json.dumps(ANALYSIS), encoding="utf-8")
-    assert plan_from_book.analysis_clusters(path, settings) == ANALYSIS["clusters"]
+    path.write_text(json.dumps(HELD), encoding="utf-8")
+    assert plan_from_book.analysis_clusters(path, settings, READ) == ANALYSIS["clusters"]
     for content, why in (({"source": DRAWINGS["villaBlocks"], "clusters": []}, "is of " + DRAWINGS["villaBlocks"]),
                          ({"clusters": []}, "is of None"), ({"source": DRAWINGS["baseplan"]}, "holds no clusters list"),
                          ({"source": DRAWINGS["baseplan"].swapcase(), "clusters": []}, "is of " + DRAWINGS["baseplan"].swapcase())):
         path.write_text(json.dumps(content), encoding="utf-8")
         with pytest.raises(project_profile.ProfileError) as error:
-            plan_from_book.analysis_clusters(path, settings)
+            plan_from_book.analysis_clusters(path, settings, READ)
         assert why in str(error.value) and "(R354)" in str(error.value)
+
+
+# B1 of the review of PR 55. The baseplan read of the made up faces with a type, the footprint blocks with a rotation, and an analysis made
+# from them, which records no hash or date of its drawings, only their name (Q089)
+READ = [dict(plot_shape(str(100 + int(number)), vertices), type="DP2") for number, vertices in {**ROW, **APART}.items()]
+TURNED = [dict(block, rotationDeg=turn) for block, turn in zip(BLOCKS, (0.0, 90.0, 0.0, 180.0, 180.0, 0.0))]
+HELD = dict(ANALYSIS, summary={"plotFaces": 8}, plots=[{"plot": "101", "cadType": "DP2", "block": "Duplex_DP2", "rotation": 0.0},
+                                                       {"plot": "103", "cadType": "DP2", "block": "Duplex_DP2", "rotation": 90.0},
+                                                       {"plot": "105", "cadType": "DP2", "block": "Villa_VD2", "rotation": 359.9996},
+                                                       {"plot": "106", "cadType": "DP2", "block": None, "rotation": None}])
+
+
+def held(**changes):
+    plots = [dict(record, **changes.pop(record["plot"], {})) for record in HELD["plots"]]
+    return dict(HELD, plots=plots + changes.pop("more", []), **changes)
+
+
+def test_r354_an_analysis_is_held_to_the_reads_it_was_made_from_by_its_face_count_the_type_of_each_label_and_the_block_under_it(tmp_path):
+    settings = project_profile.load_settings()
+    path = tmp_path / "analysis.json"
+    path.write_text(json.dumps(HELD), encoding="utf-8")
+    assert plan_from_book.analysis_clusters(path, settings, READ, TURNED) == ANALYSIS["clusters"]
+    # Within half a unit of the 3 decimals the rotation is written at, by the turn
+    path.write_text(json.dumps(held(**{"101": {"rotation": 0.0004}})), encoding="utf-8")
+    assert plan_from_book.analysis_clusters(path, settings, READ, TURNED) == ANALYSIS["clusters"]
+    cases = (
+        (held(summary={}), "analysis.json holds no plots list or no summary.plotFaces, which hold the analysis a build joins to the reads it was made "
+                           "from (R354)"),
+        ({k: v for k, v in HELD.items() if k != "plots"}, "analysis.json holds no plots list or no summary.plotFaces"),
+        (held(summary={"plotFaces": 9}), "analysis.json counts 9 plot faces and the baseplan read holds 8, the analysis a build joins is of the reads it "
+                                         "was made from (R354)"),
+        (held(**{"103": {"cadType": "VL4"}}, more=[{"plot": "999", "cadType": "DP2"}]),
+         "2 plots of analysis.json lie on no face of their label or on one of another type in the baseplan read: 103, 999, the analysis a build "
+         "joins is of the reads it was made from (R354)"),
+        # Plot 101 of a later drawing whose labels moved: its face lies on the first duplex block, of rotation 0, and the analysis gives 90
+        (held(**{"101": {"rotation": 90.0}}), "1 plots of analysis.json lie on no block of their name or on one of another rotation in the footprint "
+                                              "read: 101, the analysis a build joins is of the reads it was made from (R354)"),
+        (held(**{"101": {"rotation": 0.0006}, "105": {"block": "Duplex_DP2"}}), "2 plots of analysis.json lie on no block of their name or on one of "
+                                                                                "another rotation in the footprint read: 101, 105"))
+    for content, why in cases:
+        path.write_text(json.dumps(content), encoding="utf-8")
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_from_book.analysis_clusters(path, settings, READ, TURNED)
+        assert why in str(error.value)
+    # With no footprint read the blocks are not held, the count and the labels are
+    path.write_text(json.dumps(held(**{"101": {"rotation": 90.0}})), encoding="utf-8")
+    assert plan_from_book.analysis_clusters(path, settings, READ) == ANALYSIS["clusters"]
 
 
 def test_r354_the_config_names_the_fields_of_the_step_clusters_all_exact():

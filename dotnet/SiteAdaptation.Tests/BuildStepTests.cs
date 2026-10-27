@@ -182,6 +182,69 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        // B1 of the review of PR 55, test_build_steps.READ, TURNED and HELD: the baseplan read of the made up faces with a type, the
+        // footprint blocks with a rotation and an analysis made from them, which records no hash or date of its drawings (Q089)
+        private static JArray HeldRead()
+        {
+            return new JArray(Rings().Select(item => { JObject shape = Shape((100 + int.Parse(item.Key)).ToString(), item.Value); shape["type"] = "DP2"; return shape; }));
+        }
+
+        private static JArray Turned()
+        {
+            var turns = new[] { 0.0, 90.0, 0.0, 180.0, 180.0, 0.0 };
+            JArray blocks = Blocks();
+            for (int index = 0; index < blocks.Count; index++)
+            {
+                blocks[index]["rotationDeg"] = turns[index];
+            }
+            return blocks;
+        }
+
+        private static JObject Held(Action<JObject> change = null)
+        {
+            JObject analysis = Analysis();
+            analysis["summary"] = new JObject { ["plotFaces"] = 8 };
+            analysis["plots"] = new JArray(
+                new JObject { ["plot"] = "101", ["cadType"] = "DP2", ["block"] = "Duplex_DP2", ["rotation"] = 0.0 },
+                new JObject { ["plot"] = "103", ["cadType"] = "DP2", ["block"] = "Duplex_DP2", ["rotation"] = 90.0 },
+                new JObject { ["plot"] = "105", ["cadType"] = "DP2", ["block"] = "Villa_VD2", ["rotation"] = 359.9996 },
+                new JObject { ["plot"] = "106", ["cadType"] = "DP2", ["block"] = null, ["rotation"] = null });
+            change?.Invoke(analysis);
+            return analysis;
+        }
+
+        [Fact]
+        public void R354_an_analysis_is_held_to_the_reads_it_was_made_from_by_its_face_count_the_type_of_each_label_and_the_block_under_it()
+        {
+            SiteClusters.HoldAnalysis(Held(), "analysis.json", HeldRead(), Turned());
+            SiteClusters.HoldAnalysis(Held(analysis => analysis["plots"][0]["rotation"] = 0.0004), "analysis.json", HeldRead(), Turned());
+            var cases = new[]
+            {
+                Tuple.Create(Held(analysis => analysis["summary"] = new JObject()), "analysis.json holds no plots list or no summary.plotFaces, which hold the analysis a build joins to the reads it was made from (R354)"),
+                Tuple.Create(Held(analysis => analysis.Remove("plots")), "analysis.json holds no plots list or no summary.plotFaces"),
+                Tuple.Create(Held(analysis => analysis["summary"]["plotFaces"] = 9), "analysis.json counts 9 plot faces and the baseplan read holds 8, the analysis a build joins is of the reads it was made from (R354)"),
+                Tuple.Create(Held(analysis =>
+                {
+                    analysis["plots"][1]["cadType"] = "VL4";
+                    ((JArray)analysis["plots"]).Add(new JObject { ["plot"] = "999", ["cadType"] = "DP2" });
+                }), "2 plots of analysis.json lie on no face of their label or on one of another type in the baseplan read: 103, 999, the analysis a build joins is of the reads it was made from (R354)"),
+                Tuple.Create(Held(analysis => analysis["plots"][0]["rotation"] = 90.0),
+                    "1 plots of analysis.json lie on no block of their name or on one of another rotation in the footprint read: 101, the analysis a build joins is of the reads it was made from (R354)"),
+                Tuple.Create(Held(analysis =>
+                {
+                    analysis["plots"][0]["rotation"] = 0.0006;
+                    analysis["plots"][2]["block"] = "Duplex_DP2";
+                }), "2 plots of analysis.json lie on no block of their name or on one of another rotation in the footprint read: 101, 105"),
+            };
+            foreach (Tuple<JObject, string> item in cases)
+            {
+                InvalidDataException refused = Assert.Throws<InvalidDataException>(() => SiteClusters.HoldAnalysis(item.Item1, "analysis.json", HeldRead(), Turned()));
+                Assert.Contains(item.Item2, refused.Message);
+            }
+            // With no footprint read the blocks are not held, the count and the labels are
+            SiteClusters.HoldAnalysis(Held(analysis => analysis["plots"][0]["rotation"] = 90.0), "analysis.json", HeldRead(), null);
+        }
+
         [Fact]
         public void R354_the_config_names_the_fields_of_the_step_clusters_all_exact()
         {
@@ -243,7 +306,10 @@ namespace SiteAdaptation.Tests
             string labels = Path.Combine(folder, "labels.csv");
             File.WriteAllText(labels, "kind,number,nbh\n" + string.Join("\n", Wired.Select(item => "clientCode," + item[0] + ",012")) + "\n");
             string analysis = Path.Combine(folder, "analysis.json");
-            File.WriteAllText(analysis, Analysis().ToString());
+            JObject held = Analysis();
+            held["summary"] = new JObject { ["plotFaces"] = rings.Count };
+            held["plots"] = new JArray();
+            File.WriteAllText(analysis, held.ToString());
             string config = WorkerRunTests.RepoConfig();
             return new WorkerRequest
             {
@@ -289,6 +355,15 @@ namespace SiteAdaptation.Tests
             lacking.Inputs.RemoveAt(6);
             Assert.Equal(2, WorkerRunner.Run(lacking.Write(folder), WorkerCommands.Default(), () => 9000.0));
             Assert.Contains("the step clusters needs the input analysis", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c5")).Message);
+
+            // B1. An analysis of more plot faces than the baseplan read holds is of another drawing, whatever the name in its source
+            WorkerRequest later = BuildRequest("c6", new[] { "clusters" });
+            JObject counted = JObject.Parse(File.ReadAllText(later.Inputs[6].Path));
+            counted["summary"]["plotFaces"] = 9;
+            File.WriteAllText(later.Inputs[6].Path, counted.ToString());
+            later.Inputs[6] = Input("analysis", later.Inputs[6].Path);
+            Assert.Equal(2, WorkerRunner.Run(later.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("analysis.json counts 9 plot faces and the baseplan read holds 8", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c6")).Message);
         }
 
         [Fact]
@@ -738,7 +813,7 @@ namespace SiteAdaptation.Tests
             string labels = Path.Combine(folder, "labels.csv");
             File.WriteAllText(labels, "kind,number,nbh\n" + string.Join("\n", numbers.Select(number => "clientCode," + number + ",012")) + "\n");
             string analysis = Path.Combine(folder, "analysis.json");
-            File.WriteAllText(analysis, new JObject { ["source"] = (string)config["drawings"]["baseplan"], ["clusters"] = new JArray() }.ToString());
+            File.WriteAllText(analysis, new JObject { ["source"] = (string)config["drawings"]["baseplan"], ["clusters"] = new JArray(), ["plots"] = new JArray(), ["summary"] = new JObject { ["plotFaces"] = numbers.Length } }.ToString());
             string rules = Path.Combine(folder, "rules.json");
             File.WriteAllText(rules, HandRules().ToString());
             string prototypes = Path.Combine(folder, "prototypes");
