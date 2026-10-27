@@ -19,7 +19,7 @@ By the end of the round:
 - [an observable outcome]
 
 Read first, in this order
-CLAUDE.md, every file under .claude/rules, steps/PROGRESS.md, .claude/skills/ai-max/SKILL.md, then [files by path].
+CLAUDE.md, every file under .claude/rules, steps/PROGRESS.md, .claude/skills/ai-max/SKILL.md, then [files by path, a rule by its id, a design part by its section]. Never a whole file over 30 KB.
 
 Do this
 1. [one action]
@@ -37,7 +37,7 @@ sh .claude/hooks/hook-tests.sh
 Rules
 - Branch off a fresh pull of main. Nothing is committed or pushed on main.
 - Run the full checks above after the last file is written. Keep the counts before and after.
-- Ask breaker to review every file you changed and reviewer to review the change. Draft the log entry, then ask claim-checker to check it against the repo. Fix every WRONG or UNBACKED claim.
+- Ask breaker to review every file you changed and reviewer to review the change. Each finding is REAL or LATENT. Fix REAL with a test. Put LATENT in steps/latent.md with no fix. At most 2 review passes, then what is left becomes a question. Draft the log entry, then ask claim-checker to check it against the repo. Fix every WRONG or UNBACKED claim.
 - Write the round's entry at the top of steps/log.md in the shape the file already uses: Goal, Done, Checked, UNKNOWN, Remains, Known bugs, Next, Your turn. Numbers only from runs made after the last file was written.
 - Rewrite steps/PROGRESS.md, never append. STATE WAITING with what it waits for, or OPEN if work continues.
 - Where the host side changed, rewrite steps/03_your_steps.md: at most 30 steps, one action each, the exact command in a code block, a Look for line, and what to send back.
@@ -49,6 +49,7 @@ Rules
 - Name anything recurring you start, such as a scheduled check-in, and remove it.
 - Never report a check that did not run. Say UNKNOWN instead.
 - If this round is too large for one pull request, split it and say so. Never quietly do half.
+- After the last merge, add this session's row to steps/usage.md with npx ccusage@latest session --since [yyyymmdd], or UNKNOWN. Set PROGRESS.md to STATE WAITING for a fresh session and stop. Do not start the next phase.
 
 Final message to [Name]
 Plain and short: what is done, what is open, what is UNKNOWN, and anything that needs [Name]'s hand.

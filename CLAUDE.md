@@ -38,7 +38,7 @@ How the round runs:
 - A fix on its third attempt stops, goes back to measuring and becomes a question.
 - A new question takes the next free ID, Q100 now.
 - Every fact in a report is tagged READ with a path, RAN with a count, SEARCHED with a link, CHOSEN or UNKNOWN.
-- .claude/agents holds developer, reviewer and breaker on opus, prober, claim-checker and log-reader on sonnet, runner on haiku. .claude/skills/ai-max holds the AI MAX skill, version 3.
+- .claude/agents holds developer, reviewer and breaker on opus, prober, claim-checker and log-reader on sonnet, runner on haiku. .claude/skills/ai-max holds the AI MAX skill, version 4.
 
 ## Records
 

@@ -105,7 +105,7 @@ If the repo does not exist yet, say so and go to phase 4 with everything ABSENT.
 
 Copy `assets/CLAUDE.md.template` and fill it in.
 
-Keep `CLAUDE.md` under 200 lines. Past that, the rules for one folder go in `.claude/rules/<folder>.md` with a `paths` field at the top, so they load only when a file under that folder is touched. Each rules file stays under 200 lines too. One past repo let a rules file grow to 2,900 lines of specification, which loads every time anyone touches that folder. A specification goes in `docs/` and is read when needed. The reasons and measurements behind a rule go in `docs/history/`, so the rule itself stays one line.
+Keep `CLAUDE.md` under 200 lines and 10 KB. Past that, the rules for one folder go in `.claude/rules/<folder>.md` with a `paths` field at the top, so they load only when a file under that folder is touched. Each rules file stays under 200 lines too. One past repo let a rules file grow to 2,900 lines of specification, which loads every time anyone touches that folder. A specification goes in `docs/` and is read when needed. The reasons and measurements behind a rule go in `docs/history/`, so the rule itself stays one line.
 
 What belongs in it:
 
@@ -166,7 +166,7 @@ A scope on Bash in an agent's tools line, such as `Bash(git log:*)`, fails open.
 
 Copy `assets/workflow-dotnet.yml` or `assets/workflow-python.yml` to `.github/workflows/tests.yml` and set the commands.
 
-The gate runs the hook tests first, then builds, then tests, then reads the count out of the result file and fails when it is zero. A gate that runs zero tests reports green forever, and a folder named tests is not a test.
+The gate runs the hook tests first, then builds, then tests, then reads the count out of the result file and fails when it is zero. One test in it holds the record size caps of the Usage section of `SKILL.md`, so a record that grows past its cap fails the pull request. A gate that runs zero tests reports green forever, and a folder named tests is not a test.
 
 **Add-ins for a host program.** Split the code in two from the first day:
 
@@ -230,6 +230,7 @@ Rules that came out of using them:
 - agents read files when they are dispatched. If a source changes mid-run, start again from the first affected step rather than patching
 - a checker that could not run, such as one stopped by a usage limit, means the work is not machine audited, and the log says so
 - never put an agent on a required path. A commit gate that waits on an agent hangs the day the agent stalls
+- breaker and reviewer mark each finding REAL or LATENT, and a pull request gets at most 2 review passes, as the Usage section of `SKILL.md` says
 
 **Output:** what each agent found and what was done about each finding.
 

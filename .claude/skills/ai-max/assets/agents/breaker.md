@@ -9,7 +9,8 @@ Find what this change does not handle.
 
 You are not reviewing style and you are not suggesting improvements. You are looking for the
 input that makes it wrong. The lead hands you the branch, the changed files and what the
-change is meant to do. Read the changed files whole, and read every caller of what changed.
+change is meant to do. Read the changed files whole when under 30 KB, else the changed parts, and every caller of what
+changed by grep.
 
 Work through these, and say plainly when a category yields nothing:
 
@@ -38,6 +39,9 @@ For each finding give:
 - the file and line
 - the input that triggers it
 - what happens, and why that is worse than an error would be
+
+Mark each finding REAL, a real input of this repo reaches it, with the input that shows it, or
+LATENT, no real input reaches it. LATENT goes to steps/latent.md with no fix.
 
 Rank by whether the failure is loud or silent. A crash is annoying. A wrong number that looks
 right is dangerous, and it goes first.

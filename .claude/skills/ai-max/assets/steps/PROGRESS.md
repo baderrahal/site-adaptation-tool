@@ -1,8 +1,9 @@
 STATE OPEN, yyyy-mm-dd hh:mm
 
-<!-- At most 60 lines. Rewritten, never appended, after every merge, every run, every answer and before
+<!-- At most 60 lines and 6 KB, no line over 200 characters. Rewritten, never appended, after every merge, every run, every answer and before
 any stop. STATE is OPEN while a session works on its own, WAITING when it needs the person, CLOSED when
-the work is done. -->
+the work is done. A phase that ends sets WAITING for a fresh session. Questions by number and a
+short title only, their full text is in 02_questions.md. -->
 
 ## Now
 - [what is in work, one line each]

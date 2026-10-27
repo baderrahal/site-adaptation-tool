@@ -65,5 +65,5 @@ case $state in
     *) exit 0 ;;
 esac
 
-printf '%s\n' '{"decision": "block", "reason": "steps/PROGRESS.md reads STATE OPEN. Before stopping, push and merge what is finished, then rewrite the page, never append: STATE WAITING and what it waits for, or STATE CLOSED. Or carry on from the first step of Next."}'
+printf '%s\n' '{"decision": "block", "reason": "steps/PROGRESS.md reads STATE OPEN. Before stopping, push and merge what is finished, then rewrite the page, never append: STATE WAITING and what it waits for, such as a fresh session for the next phase, or STATE CLOSED. Or carry on with the open step of this phase."}'
 exit 0

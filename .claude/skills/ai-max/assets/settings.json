@@ -50,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'Read CLAUDE.md, every file under .claude/rules, steps/PROGRESS.md and .claude/skills/ai-max/SKILL.md before any work.'"
+            "command": "echo 'Read CLAUDE.md, every file under .claude/rules, steps/PROGRESS.md and .claude/skills/ai-max/SKILL.md before any work. Never read a whole file over 30 KB. One phase per session.'"
           }
         ]
       }

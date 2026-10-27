@@ -16,7 +16,7 @@ ITEM | PRESENT or ABSENT or UNKNOWN | path | one short fact
 
 | # | Item | What to look for | Why it matters |
 |---|---|---|---|
-| 1 | Rules file | `CLAUDE.md` and its line count | Over 200 lines costs context on every message |
+| 1 | Rules file | `CLAUDE.md`, its line count and its bytes | Over 200 lines or 10 KB costs context on every message |
 | 2 | Scoped rules | `.claude/rules/`, each file's `paths` field and line count | A rules file loads whenever its folder is touched, so a long one costs as much as a long `CLAUDE.md` |
 | 3 | Skills | `.claude/skills/`, names, and the version line of any `ai-max` copy | A stale copy runs an older workflow |
 | 4 | Agents | `.claude/agents/`, each one's model and tools | A checker holding Bash or Write can change what it checks |
@@ -36,6 +36,8 @@ ITEM | PRESENT or ABSENT or UNKNOWN | path | one short fact
 | 18 | Source on one machine | code the person mentions that is not in git, such as a zip or a folder on their desktop | Code cannot fix what it cannot see, and must not write a second copy from scratch |
 | 19 | Pull requests | how many open, any approved and not merged, any older than main | Stacked pull requests and work left on branches |
 | 20 | Branch state | current branch, distance from main, branches already merged | What a pull of main would actually contain |
+| 21 | Record sizes | bytes of `PROGRESS.md` and its longest line, the top log entry, and the largest file in `docs/` and `steps/` outside history | A session pays for these on every turn |
+| 22 | Usage record | `steps/usage.md` and its newest row | Whether cost is measured or guessed |
 
 ## Rules for the scan
 
@@ -45,7 +47,7 @@ ITEM | PRESENT or ABSENT or UNKNOWN | path | one short fact
 
 **No recommendations here.** Phase 3 reports. Phases 4 to 6 propose. Mixing them means the reader cannot tell what was seen from what was inferred.
 
-**Item 20 last, and say it plainly.** If work exists only on a branch, anyone pulling main does not have it. This catches a tool that looks finished but is not reachable by the person who has to run it. One past repo held 80 unmerged commits while the person ran an old copy of main.
+**Item 20 before 21 and 22, and say it plainly.** If work exists only on a branch, anyone pulling main does not have it. This catches a tool that looks finished but is not reachable by the person who has to run it. One past repo held 80 unmerged commits while the person ran an old copy of main.
 
 **From chat, through the connector,** items that need a command, such as which hooks actually fire or where `core.hooksPath` points, are UNKNOWN. Say so rather than inferring from the files.
 
@@ -75,5 +77,7 @@ At the start of a tool, and again every 5 to 7 exchanges, look for help that is 
 | A scheduled task | something should run weekly or report on its own |
 | A model per agent | search work can run on a faster model and review on a stronger one |
 | A model call inside the tool | the tool compares text today but the job needs judgement |
+| The record size test | a record file is near its cap, or the repo has none |
+| A usage row per phase | cost is guessed, or one phase seemed to run long |
 
 Check that a capability is actually available in the person's setup before recommending it. If it is not, say so in one line.

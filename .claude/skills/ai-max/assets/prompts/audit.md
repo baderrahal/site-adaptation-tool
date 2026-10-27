@@ -20,7 +20,7 @@ Do this
 3. Ask breaker to review every file round [N] changed, and reviewer to review the change as a whole.
 4. Ask claim-checker to check round [N]'s log entry and its pull request body against the repo and the counts from step 2.
 5. Recount every number in the entry yourself. Open every file it names. Mark each claim BACKED, UNBACKED or WRONG with what shows it.
-6. Check the steps folder: PROGRESS.md under 60 lines and true to main, 03_your_steps.md at most 30 steps with a Look for line on each, every open question numbered in 02_questions.md.
+6. Check the steps folder: PROGRESS.md inside its caps (run the record size test) and true to main, the newest row of steps/usage.md, 03_your_steps.md at most 30 steps with a Look for line on each, every open question numbered in 02_questions.md.
 7. Check for open pull requests and branches already merged. Name them.
 8. Write the result as a new entry at the top of steps/log.md titled Audit of round [N]: what was checked, every WRONG and UNBACKED claim with its evidence, every breaker and reviewer finding, and what is fixed in this round versus filed as an item in 01_next.md.
 9. Fix only what is wrong in the records, such as a wrong count in the log or a stale PROGRESS.md. A code fault found here becomes an item in 01_next.md, not a fix in this round.

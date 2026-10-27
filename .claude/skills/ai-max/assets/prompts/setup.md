@@ -27,7 +27,7 @@ Do this
 5. .gitignore from assets/gitignore.template, .gitattributes from assets/gitattributes.template, .claude/settings.json from assets/settings.json.
 6. The four hooks and hook-tests.sh from assets/hooks into .claude/hooks. Set the PROTECTED and LIVE lists for this repo: [the evidence folders, the live project folders]. Run sh .claude/hooks/hook-tests.sh and keep the count.
 7. The agents from assets/agents into .claude/agents.
-8. [The project layout: for an add-in, src/(Name).Core with no host reference, src/(Name).(Host) with the host calls, tests/(Name).Core.Tests, and the solution file. For a script, its folder and tests.] One real test of one real rule, so the gate has something to run.
+8. [The project layout: for an add-in, src/(Name).Core with no host reference, src/(Name).(Host) with the host calls, tests/(Name).Core.Tests, and the solution file. For a script, its folder and tests.] One real test of one real rule, so the gate has something to run, and the record size test that holds the caps of the Usage section of the skill.
 9. The test gate from assets/workflow-[dotnet or python].yml into .github/workflows/tests.yml, with the build and test commands set.
 10. Run every check. Then try each wall for real in this session: write steps/logs/probe.txt with the file tool, and commit with steps/log.md unchanged. If the file gets written or the commit goes through, undo it at once and record that wall as not firing. Settings load when a session starts, so a wall that does not fire here is UNKNOWN until the next session proves it. Never report a wall as working unless it was seen refusing.
 11. Write the Round 0 entry at the top of steps/log.md: the scan table, what was added, every count, what is UNKNOWN.
