@@ -35,6 +35,8 @@ namespace SiteAdaptation.Common
             [PlanOverrides.StepName] = BuildSteps.OverrideRoles,
             // R361. The link parameters of a build, on the inputs of the overrides
             [LinkParameters.StepName] = BuildSteps.OverrideRoles,
+            // R401. The status of each sourced value of a build, on the inputs of the overrides
+            [ValueStatus.StepName] = BuildSteps.OverrideRoles,
             [ReadSteps.Labels] = new[] { "baseplan" },
             [ReadSteps.Blocks] = new[] { "villaBlocks" },
             [ReadSteps.Setbacks] = new[] { "villaBlocks" },

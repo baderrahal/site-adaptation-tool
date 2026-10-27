@@ -13,7 +13,7 @@ namespace SiteAdaptation.Common
     // the clusters are those of the footprint blocks alone. Every number of a JSON input is the nearest double of its text, as Python reads it, and each input is read once per run
     public static class BuildSteps
     {
-        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName, LinkFrames.StepName, KeyLevels.StepName, FloorOutlines.StepName, PlanOverrides.StepName, LinkParameters.StepName };
+        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName, LinkFrames.StepName, KeyLevels.StepName, FloorOutlines.StepName, PlanOverrides.StepName, LinkParameters.StepName, ValueStatus.StepName };
 
         public static readonly string[] ClusterRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead" };
 
@@ -352,7 +352,7 @@ namespace SiteAdaptation.Common
                     run.Counts["fronts with no road level of a unit plot"] = fronts.Values.Count(item => item.Unit != null && item.Front == null);
                     made[Fronts.StepName] = Fronts.Step(site.Numbers, fronts, surfaces.Select(surface => surface.Name).ToList(), snap);
                 }
-                bool planned = asked.Contains(PlanOverrides.StepName) || asked.Contains(LinkParameters.StepName);
+                bool planned = asked.Contains(PlanOverrides.StepName) || asked.Contains(LinkParameters.StepName) || asked.Contains(ValueStatus.StepName);
                 bool linked = asked.Contains(Hands.StepName) || asked.Contains(LinkFrames.StepName) || asked.Contains(FloorOutlines.StepName) || planned;
                 bool leveled = asked.Contains(KeyLevels.StepName) || asked.Contains(FloorOutlines.StepName) || planned;
                 if (linked || leveled)
@@ -436,6 +436,16 @@ namespace SiteAdaptation.Common
                                 // R361. The link parameters after the overrides
                                 made[LinkParameters.StepName] = LinkParameters.Step(site.Numbers, plans);
                                 run.Counts["plots with link parameters"] = plans.Values.Count(plan => plan.Parameters["parameters"] != null);
+                            }
+                            if (asked.Contains(ValueStatus.StepName))
+                            {
+                                // R401. The status of each sourced value of a written plot, by the map of the settings and the block of the rules profile
+                                ValueStatusTable table = ValueStatus.Table(site.Settings, site.Rules, profileName);
+                                made[ValueStatus.StepName] = ValueStatus.Step(site.Numbers, plans, hands, table);
+                                foreach (KeyValuePair<Tuple<string, string>, int> count in ValueStatus.Counts(made[ValueStatus.StepName]))
+                                {
+                                    run.Counts["status " + count.Key.Item1 + " " + count.Key.Item2] = count.Value;
+                                }
                             }
                         }
                     }

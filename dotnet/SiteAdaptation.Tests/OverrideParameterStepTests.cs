@@ -36,7 +36,7 @@ namespace SiteAdaptation.Tests
         }
 
         // test_override_param_steps.MADE, one override of each path a build takes, applied or left
-        private static OverrideList Made()
+        internal static OverrideList Made()
         {
             return new OverrideList(new Dictionary<string, JObject>
             {
@@ -49,22 +49,24 @@ namespace SiteAdaptation.Tests
             });
         }
 
-        private sealed class Built
+        internal sealed class Built
         {
             public Dictionary<string, PlotPlan> Plans;
             public Dictionary<string, Dictionary<string, object>> Hands;
             public Dictionary<string, Dictionary<string, object>> Links;
             public LevelBuild Build;
             public JObject Config;
+            public JObject Rules;
         }
 
         // test_level_floor_steps.made_build and test_override_param_steps.row_build: the row of six 12 m faces, the plots of faceless DP2 units with no
         // face, the plots of dry with no road level past their left corner, the step scope the plots and 7, a number with no row
-        private static Built Build(OverrideList list, Action<JObject> change = null, string[] faceless = null, string[] dry = null)
+        internal static Built Build(OverrideList list, Action<JObject> change = null, string[] faceless = null, string[] dry = null, Action<JObject> changeRules = null)
         {
             faceless = faceless ?? new string[0];
             dry = dry ?? new string[0];
             JObject rules = LevelFloorStepTests.MadeRules();
+            changeRules?.Invoke(rules);
             change?.Invoke((JObject)rules["levelProfiles"]["parsons2024Rev6"]["keyRules"]);
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
             List<string> numbers = new[] { "1", "2", "3", "4", "5", "6" }.Concat(faceless).ToList();
@@ -92,7 +94,7 @@ namespace SiteAdaptation.Tests
             return new Built
             {
                 Plans = PlanOverrides.Of(scope, rows, build, fronts, context, hands, key, profile, rules, config, files, list, "parsons2024Rev6", 0.5), Hands = hands,
-                Links = LinkFrames.Step(scope, rows, fronts, context.Roles, hands, key, files, rules), Build = build, Config = config,
+                Links = LinkFrames.Step(scope, rows, fronts, context.Roles, hands, key, files, rules), Build = build, Config = config, Rules = rules,
             };
         }
 
@@ -397,7 +399,7 @@ namespace SiteAdaptation.Tests
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
             Assert.Equal("unit:noGeometry written:noGeometry parameters:noGeometry sources:noGeometry lacks:noGeometry linkName:noGeometry",
                 string.Join(" ", config.StepFields(LinkParameters.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
-            Assert.Equal("clusters fronts hands linkFrame levels floors overrides parameters", string.Join(" ", BuildSteps.Names));
+            Assert.Equal("clusters fronts hands linkFrame levels floors overrides parameters status", string.Join(" ", BuildSteps.Names));
         }
     }
 }
