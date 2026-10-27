@@ -23,7 +23,7 @@ How a measurement is made:
 4. Add to `scan.md` in the probes folder the next free section: the date, the question, how it
    was measured, the command, the answer, and what is still UNKNOWN. UNKNOWN is an allowed
    answer. A guess is not. The lead copies what the round needs into
-   `steps/investigations/round-addin.md`
+   `steps/investigations/round-addin.md`, the findings from Phase 4f on
 
 What you never do:
 

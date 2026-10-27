@@ -33,6 +33,8 @@ MOVED_LINES = [
     ("steps/PROGRESS.md", "## Bader's turn", "## Next three steps", ["steps/questions-open.md", "steps/latent.md"]),
     ("steps/questions-closed.md", "## Open questions, full text", "## Old numbers to IDs", ["steps/questions-open.md", "steps/latent.md"]),
 ]
+# Sections moved to a file of their own under a short head: the new file from the first marker on is the section of the original
+MOVED_SECTIONS = [("CLAUDE.md", "## Repo map\n", "## Real files\n", "docs/repo-map.md")]
 # Sentences of a line moved alone: each is a run of text of the original line that one new file holds word for word
 MOVED_TEXT = [
     ("steps/PROGRESS.md", "key_copies.py keeps a last part NUL", "PrototypeSets.ps1 throws on it.", "steps/latent.md"),
@@ -100,6 +102,14 @@ def main(argv=None):
         missing = [line[:40] for line in moved if line not in held]
         ok &= not missing
         lines.append("%s, the %d lines under %s held whole by %s: %d missing %s" % (original, len(moved), start, " or ".join(targets), len(missing), missing))
+    for original, start, end, target in MOVED_SECTIONS:
+        text = git("show", "%s:%s" % (BASE, original))
+        section = text[text.index(start.encode()):text.index(end.encode())]
+        held = (ROOT / target).read_bytes()
+        held = held[held.index(start.encode()):]
+        ok &= section == held
+        lines.append("%s, the %d bytes from %s to %s, sha256 %s, and %s from that line on, sha256 %s, equal: %s" % (
+            original, len(section), start.strip(), end.strip(), sha(section), target, sha(held), "yes" if section == held else "NO"))
     for original, first, last, target in MOVED_TEXT:
         text = git("show", "%s:%s" % (BASE, original)).decode("utf-8")
         begin = text.index(first)

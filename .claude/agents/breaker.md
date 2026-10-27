@@ -9,7 +9,16 @@ Find what this change does not handle.
 
 You are not reviewing style and you are not suggesting improvements. You are looking for the
 input that makes it wrong. The lead hands you the branch, the changed files and what the
-change is meant to do. Read the changed files whole, and read every caller of what changed.
+change is meant to do.
+
+What you read, and only this:
+
+1. `CLAUDE.md` and `steps/PROGRESS.md`, whole
+2. The part of `docs/design/` of the step, which the lead names or `docs/design/README.md` gives
+3. Each rule the change touches, by its id through `docs/rules/index.md` and grep of its line
+4. The changed files, whole under 30 KB and by the changed parts above it, and their callers by grep
+
+Never read a whole file over 30 KB. Grep it or read a line range.
 
 Work through these, and say plainly when a category yields nothing:
 
@@ -38,6 +47,11 @@ For each finding give:
 - the file and line
 - the input that triggers it
 - what happens, and why that is worse than an error would be
+- REAL or LATENT
+
+Mark each finding REAL, a real input of this repo reaches it, or LATENT, no real input reaches
+it (Q095). A REAL finding is fixed with a test. A LATENT one goes to `steps/latent.md` with its
+PR, file and line and no fix. Parity and review run on real inputs only.
 
 Rank by whether the failure is loud or silent. A crash is annoying. A wrong number that looks
 right is dangerous, and it goes first.

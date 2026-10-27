@@ -4,6 +4,7 @@ steps/investigations/round-addin.md: 2f1de10023e27566a401a073a0568fd7fc11af2753e
 steps/PROGRESS.md copy: f56370b5c57a6d83925bf3b8deee5ad3fe7e9f320a1fbf988c06de45b6b959ed original, f56370b5c57a6d83925bf3b8deee5ad3fe7e9f320a1fbf988c06de45b6b959ed copy
 steps/PROGRESS.md under ## Bader's turn: 30 lines, 0 not held whole
 steps/questions-closed.md under ## Open questions, full text: 47 lines, 0 not held whole
+CLAUDE.md Repo map to Real files: 875e74b19ddb582820ab5ecfef973ff402bfc37fe52e85bf877aca31cf21a37c original, 875e74b19ddb582820ab5ecfef973ff402bfc37fe52e85bf877aca31cf21a37c docs/repo-map.md
 PROGRESS run from key_copies.py keeps a last part NUL: 172 bytes, held by steps/latent.md 1 times
 PROGRESS run from The check points of R353 hold the residuals: 1464 bytes, held by steps/latent.md 1 times
 R[0-9]{1,3} distinct: before 346, after 347, lost 0

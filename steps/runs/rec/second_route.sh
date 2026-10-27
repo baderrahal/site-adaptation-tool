@@ -19,6 +19,7 @@ run() {
   git show $base:steps/PROGRESS.md | awk -v a="$1" -v b="$2" '{i=index($0,a); if(i){s=substr($0,i); j=index(s,b); print substr(s,1,j+length(b)-1)}}' > "$tmp/run"
   echo "PROGRESS run from $1: $(wc -c < "$tmp/run") bytes, held by steps/latent.md $(grep -cF -f "$tmp/run" steps/latent.md) times"
 }
+echo "CLAUDE.md Repo map to Real files: $(git show $base:CLAUDE.md | awk '/^## Repo map$/{f=1} /^## Real files$/{f=0} f' | sha256sum | cut -c1-64) original, $(awk '/^## Repo map$/{f=1} f' docs/repo-map.md | sha256sum | cut -c1-64) docs/repo-map.md"
 run "key_copies.py keeps a last part NUL" "PrototypeSets.ps1 throws on it."
 run "The check points of R353 hold the residuals" "none reached by a real input (READ, steps/questions-closed.md)"
 git archive $base docs steps CLAUDE.md .claude/agents | tar -x -C "$tmp"

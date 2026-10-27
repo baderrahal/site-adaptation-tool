@@ -21,6 +21,7 @@ steps/investigations/round-addin.md: 470100 bytes, sha256 2f1de10023e27566a401a0
 steps/PROGRESS.md copied to steps/history/progress-addin-4e.md: sha256 f56370b5c57a6d83925bf3b8deee5ad3fe7e9f320a1fbf988c06de45b6b959ed and f56370b5c57a6d83925bf3b8deee5ad3fe7e9f320a1fbf988c06de45b6b959ed, equal: yes
 steps/PROGRESS.md, the 30 lines under ## Bader's turn held whole by steps/questions-open.md or steps/latent.md: 0 missing []
 steps/questions-closed.md, the 47 lines under ## Open questions, full text held whole by steps/questions-open.md or steps/latent.md: 0 missing []
+CLAUDE.md, the 22124 bytes from ## Repo map to ## Real files, sha256 875e74b19ddb582820ab5ecfef973ff402bfc37fe52e85bf877aca31cf21a37c, and docs/repo-map.md from that line on, sha256 875e74b19ddb582820ab5ecfef973ff402bfc37fe52e85bf877aca31cf21a37c, equal: yes
 steps/PROGRESS.md, the 171 characters from 'key_copies.py keeps a last par' held word for word by steps/latent.md: yes
 steps/PROGRESS.md, the 1463 characters from 'The check points of R353 hold ' held word for word by steps/latent.md: yes
 

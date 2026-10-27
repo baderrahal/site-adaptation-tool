@@ -5,29 +5,27 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 ## Round REC, 2026-10-27, the records diet and Q095 to Q097
 
 Goal:
-- Small start reads, no record over 100 KB, nothing lost, real token use measured, Q095 to Q097 in the rules, the plan to finish Part 1. No logic change
+- Small start reads, no record over 100 KB, nothing lost, token use measured, Q095 to Q097 in the rules, the plan of Part 1. No logic change
 
 Done:
-- PR 56: docs/rules.md in 7 parts of docs/rules/, 37,568 to 92,952 bytes, docs/rules/index.md of 311 rules by python/rules_index.py, 12 C# root finders and 2 Python tests read the parts, steps/usage.md (RAN, wc, grep -l)
-- PR 57: docs/addin-design.md in 11 parts of docs/design/, 3,114 to 28,793 bytes, with a README, round-addin.md in 15 phase files of steps/history/round-addin/, a new round-addin.md for 4f on (RAN, wc)
-- PR 3 rec/questions: steps/questions-open.md with the full text of 65 open questions, Q095 to Q097 closed, Q088 to Q094 closed by Q095 into steps/latent.md with the latent open bugs and review findings, PROGRESS keeps IDs and titles, the old PROGRESS in steps/history/progress-addin-4e.md
+- PR 56: docs/rules.md in 7 parts of docs/rules/ with index.md of 311 rules, steps/usage.md. PR 57: the design in 11 parts of docs/design/, round-addin.md 0a to 4e in 15 files of steps/history/round-addin/
+- PR 58: steps/questions-open.md with 65 open questions, Q095 to Q097 closed, Q088 to Q094 into steps/latent.md, PROGRESS lists IDs and titles
+- PR 4 rec/claude-md: Repo map and Rules in short moved to docs/repo-map.md, CLAUDE.md 29,428 to 9,462 bytes with Q095 to Q097 and a Reading budget, developer, reviewer and breaker read by id and mark REAL or LATENT
 
 Checked:
-- Gate on main at 73b8c42 before any change: pytest 1,792 passed 1 skipped, build 0 errors 2 warnings, dotnet test 763 net8.0 and 789 net48 (RAN, steps/runs/rec/gate_main.txt)
-- Gate on PR 56, PR 57 and PR 3: pytest 1,794 passed 1 skipped, build 0 errors, dotnet test 763 and 789 (RAN, gate_pr1.txt to gate_pr3.txt)
-- 3 splits equal by SHA-256, the PROGRESS copy equal, 30 and 47 moved question lines and 2 latent bug runs held whole, by python/split_proof.py and by second_route.sh (RAN, split_proof.txt, second_route.txt)
-- Distinct ids of the records 346 R and 94 Q before, 0 lost (RAN, both routes)
-- Reviews: PR 56 APPROVE, PR 57 1 REAL and PR 58 4 REAL fixed or listed as open bugs, LATENT ones in steps/latent.md, claim-checkers 0 WRONG (READ, steps/runs/rec/reviews.txt)
+- Gate on main at 73b8c42: pytest 1,792 passed 1 skipped, build 0 errors 2 warnings, dotnet test 763 net8.0 and 789 net48 (RAN, steps/runs/rec/gate_main.txt)
+- Gate on each PR: pytest 1,794 passed 1 skipped, build 0 errors, dotnet test 763 and 789 (RAN, gate_pr1.txt to gate_pr4.txt)
+- Every split, copy, moved line, run and section equal, 0 of 346 R and 94 Q ids lost, by split_proof.py and second_route.sh (RAN, split_proof.txt, second_route.txt)
+- Reviews: every REAL finding fixed or listed in the open bugs, LATENT ones in steps/latent.md, claim-checkers 0 WRONG (READ, reviews.txt)
 
 Remains:
-- PR 4 CLAUDE.md and agents, PR 5 R400, 01_next.md, START.md, PROGRESS
-- Comments and config notes that name a section of docs/addin-design.md stay, docs/design/README.md maps the numbers (CHOSEN)
+- PR 5: R400, 01_next.md, START.md, PROGRESS
 
 Known bugs:
 - steps/PROGRESS.md open bugs and steps/latent.md (READ)
 
 Next:
-- PR 4 rec/claude-md
+- PR 5 rec/plan-caps
 
 Your turn:
 Full text and the recommended answers by ID: steps/questions-open.md.
