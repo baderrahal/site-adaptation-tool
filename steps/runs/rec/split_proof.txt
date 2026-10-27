@@ -6,7 +6,9 @@ docs/rules.md: 405469 bytes, sha256 4a9297fa193e2664e422f841d67fdba5459c1717a9ee
   Q ids named: original 40, parts 40
   equal: yes
 
-R ids of every record file (docs/, steps/, CLAUDE.md, .claude/agents/): before 346 distinct, after 346 distinct, lost 0 [], added 0 []
-Q ids of every record file (docs/, steps/, CLAUDE.md, .claude/agents/): before 94 distinct, after 94 distinct, lost 0 [], added 0 []
+R ids of every record file (docs/, steps/, CLAUDE.md, .claude/agents/): before 346 distinct, after 347 distinct, lost 0 [], added 1 ['R400']
+Q ids of every record file (docs/, steps/, CLAUDE.md, .claude/agents/): before 94 distinct, after 96 distinct, lost 0 [], added 2 ['Q095', 'Q097']
 
 result: every pair equal, no id lost
+
+Second route on 2026-10-27: grep -ohE over git archive 73b8c42 of docs, steps, CLAUDE.md and .claude/agents against git ls-files of the tree, distinct R ids 346 before and 347 after, Q ids 94 before and 96 after, the same as above.

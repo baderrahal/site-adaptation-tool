@@ -1,0 +1,6 @@
+Gate on main at 73b8c42 before any change of Round REC, summary lines
+1792 passed, 1 skipped in 70.94s (0:01:10)
+2 Warning(s)
+0 Error(s)
+Passed!  - Failed:     0, Passed:   763, Skipped:     0, Total:   763 SiteAdaptation.Tests.dll (net8.0)
+Passed!  - Failed:     0, Passed:   789, Skipped:     0, Total:   789 SiteAdaptation.Tests.dll (net48)
