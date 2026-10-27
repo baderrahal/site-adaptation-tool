@@ -15,19 +15,19 @@ Done:
 
 Checked:
 - Gate green and the three checks passed before each merge (RAN)
-- Parity, whole project and 7 keys, net48 and net8.0: PR 70 128 of 128 lines, PR 72 144 of 144, 0 failures. The proof 0 unexplained (RAN)
+- Parity, whole project and 7 keys, net48 and net8.0: PR 70 128 of 128 lines, PR 72 144 of 144, 0 failures. The proof of PR 70 0 unexplained (RAN)
 - Block: 595 values, Bader 3, MEASURED 50, DOCUMENT 273, RECOMMENDED 11, Code 16, UNKNOWN 242, equal by second_check.ps1 (RAN)
-- Plan: 105,861 values, a build with no override gives 20,026 values that differ, all with the override status (RAN)
-- Two passes of the breaker and the claim-checker per PR, REAL fixed with tests, LATENT in steps/latent.md
+- Plan: 105,861 values, 20,026 differ from a build with no override, all with the override status (RAN)
+- One pass of the two checkers on PR 69 and 70, two on PR 71 and 72, REAL fixed with tests, LATENT in steps/latent.md
 
 Remains:
 - The 5 DP2 plots still get no hand (Q105). Every written plot holds an assumed value. Bader's review list: status-review.md, 41 rows
 
 Known bugs:
-- The status step lifts the peak of a whole build to 3,259 MiB and the plan to 26.2 MB from 15.5 (Q107)
+- A whole build peaks at 3,262 MiB on net8.0, 1,012 before the status step, the plan 26.2 MB from 15.5 (Q107)
 
 Next:
-- 4g2: R362 to R365. Bader pastes steps/START.md into a fresh session
+- 4g2: R362 to R365, Bader pastes steps/START.md
 
 Your turn:
 Full text and the recommended answers by ID: steps/questions-open.md.

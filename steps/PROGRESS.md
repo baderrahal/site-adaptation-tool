@@ -31,7 +31,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - A native2022 build with --overrides is refused on 1,346 native entries with no value (Q075)
 - For the check rows of 4g2: 44 unit plots in the steps the plan does not place, 5 DP2 plots with no hand (Q105)
-- The status step lifts the peak of a whole build to 2,909 MiB on net48 and 3,259 on net8.0, the plan to 26.2 MB from 15.5 (Q107)
+- A whole build peaks at 2,913 MiB on net48 and 3,262 on net8.0, 955 and 1,012 before the status step, the plan 26.2 MB from 15.5 (Q107)
 - Not in 4f: heightOffset and floor z need the site file of button 1, roadAtFrontM in the plan with R364, the past_all.csv rebuild of R385
 
 ## Bader's turn

@@ -29,4 +29,4 @@ Logs in Documents\SiteAdaptation\round_addin\logs, counts only.
 - The status of each plotted value (PR 72): parity at e37c33e 144 of 144 lines with 0 failures on the whole project and the 7 keys, net48 and net8.0, the plans equal to main less the status, 105,861 values, and a build with no override applied: 20,026 values differ and all carry the override status (RAN, p4g1_status_*.txt)
 - Whole project, 2,513 written plots: plots holding each status DOCUMENT 2,513, MEASURED strong 2,513, MEASURED weak 2,094, RECOMMENDED 2,355, UNKNOWN 2,513. Every plot holds an assumed value, prototypeFile and the level elevation of each floor being unmapped (RAN)
 - Questions opened: Q105 the row pair of the 5 DP2 cluster units, Q106 the step values of the schedules as DOCUMENT, Q107 the status detail of values built from others
-- Each PR took two review passes of the breaker and the claim-checker. The fixes after the second pass of PR 3 and PR 4 had no third pass, as Q097 allows two
+- PR 69 and PR 70 took one pass of the breaker and the claim-checker each, PR 71 and PR 72 two. The fixes after the second pass of PR 71 and PR 72 had no third pass, as Q097 allows two
