@@ -90,33 +90,29 @@ namespace SiteAdaptation.Tests
                 new JObject { ["name"] = "Duplex_DP2", ["outline"] = Points(Ring(72.0, 5.0, 80.0, 20.0)) });
         }
 
-        private static JObject Analysis()
+        private static List<SiteCluster> MadeClusters()
         {
-            return new JObject { ["source"] = "ROSHN Makkah Baseplan.dwg", ["clusters"] = new JArray(new JObject { ["code"] = "M02", ["plots"] = new JArray("104", "105", "106") }) };
-        }
-
-        private static List<SiteCluster> MadeClusters(JObject analysis = null, Dictionary<string, Dictionary<string, string>> rows = null)
-        {
-            rows = rows ?? Rows();
+            Dictionary<string, Dictionary<string, string>> rows = Rows();
             Dictionary<string, BuildFace> faces = Faces();
             List<string> units = rows.Where(item => !string.IsNullOrEmpty(item.Value["typologyRev9"]) && faces.ContainsKey(item.Key)).Select(item => item.Key).ToList();
-            Dictionary<string, string> numberOf = FaceStep.NumberOfLabel(rows.Values);
-            return SiteClusters.Site(units, rows, faces, SiteClusters.BlocksByName(Blocks()), SiteClusters.AnalysisOf(analysis ?? Analysis(), "analysis.json", "ROSHN Makkah Baseplan.dwg"), numberOf);
+            return SiteClusters.Site(units, rows, faces, SiteClusters.BlocksByName(Blocks()));
         }
 
         [Fact]
-        public void R354_the_clusters_of_a_build_are_the_footprint_clusters_then_the_rest_of_the_analysis_each_with_its_source()
+        public void R354_the_clusters_of_a_build_are_the_footprint_clusters_alone_since_q089()
         {
             List<SiteCluster> clusters = MadeClusters();
-            Assert.Equal(new[] { "Duplex_DP2 1,2 footprint", "Duplex_DP2 3,4 footprint", "M02 5,6 analysis" },
+            Assert.Equal(new[] { "Duplex_DP2 1,2 footprint", "Duplex_DP2 3,4 footprint" },
                 clusters.Select(cluster => cluster.Code + " " + string.Join(",", cluster.Plots) + " " + cluster.Source).ToArray());
             Dictionary<string, Dictionary<string, object>> step = SiteClusters.Step(Enumerable.Range(1, 8).Select(number => number.ToString()), clusters);
-            Assert.Equal(new[] { "1|2", "3|4", "5|6" }, step.Keys.ToArray());
-            Assert.Equal(new[] { "5", "6" }, (List<string>)step["5|6"]["plots"]);
-            Assert.Equal("M02", step["5|6"]["code"]);
-            Assert.Equal("analysis", step["5|6"]["source"]);
+            Assert.Equal(new[] { "1|2", "3|4" }, step.Keys.ToArray());
+            Assert.Equal(new[] { "3", "4" }, (List<string>)step["3|4"]["plots"]);
+            Assert.Equal("Duplex_DP2", step["3|4"]["code"]);
+            Assert.Equal("footprint", step["3|4"]["source"]);
             Assert.Equal(new[] { "1|2" }, SiteClusters.Step(new[] { "2" }, clusters).Keys.ToArray());
-            Assert.Empty(SiteClusters.Step(new[] { "7", "8" }, clusters));
+            Assert.Empty(SiteClusters.Step(new[] { "5", "6", "7", "8" }, clusters));
+            // Q089. The analysis join is gone, so SiteClusters holds no member of it
+            Assert.DoesNotContain(typeof(SiteClusters).GetMembers(), member => new[] { "AnalysisOf", "HoldAnalysis", "Joined", "Numbered", "AnalysisSource", "AnalysisTurn" }.Contains(member.Name));
         }
 
         [Fact]
@@ -124,20 +120,20 @@ namespace SiteAdaptation.Tests
         {
             List<SiteCluster> clusters = MadeClusters();
             Assert.DoesNotContain(clusters, cluster => cluster.Plots.Contains("7") || cluster.Plots.Contains("8"));
-            Assert.All(clusters.Where(cluster => cluster.Plots.Contains("6")), cluster => Assert.Equal("analysis", cluster.Source));
+            // The block that touches 6 along an edge shares no area with it, and since Q089 no analysis gives 6 a cluster
+            Assert.DoesNotContain(clusters, cluster => cluster.Plots.Contains("6"));
         }
 
         [Fact]
         public void R354_a_plot_of_two_plan_numbers_or_a_cluster_left_with_one_plot_is_no_cluster()
         {
             Dictionary<string, Dictionary<string, string>> rows = Rows();
-            rows["7|8"] = new Dictionary<string, string>(rows["7"]) { ["locationPlanNumber"] = "7|8", ["baseplanLabel"] = "107" };
-            var analysis = new JObject
-            {
-                ["source"] = "ROSHN Makkah Baseplan.dwg",
-                ["clusters"] = new JArray(new JObject { ["code"] = "M04", ["plots"] = new JArray("107", "108") }, new JObject { ["code"] = "M02", ["plots"] = new JArray("101", "105") }),
-            };
-            Assert.Equal(new[] { "1,2", "3,4" }, MadeClusters(analysis, rows).Select(cluster => string.Join(",", cluster.Plots)).ToArray());
+            rows["2|9"] = new Dictionary<string, string>(rows["2"]) { ["locationPlanNumber"] = "2|9" };
+            Dictionary<string, BuildFace> faces = Faces();
+            faces["2|9"] = faces["2"];
+            // 1 and 2|9 share the first duplex block, 2|9 is no plot of its own, so 1 is left alone and no cluster
+            Assert.Equal(new[] { "3,4" }, SiteClusters.Site(new[] { "1", "2|9", "3", "4" }, rows, faces, SiteClusters.BlocksByName(Blocks()))
+                .Select(cluster => string.Join(",", cluster.Plots)).ToArray());
         }
 
         [Fact]
@@ -161,88 +157,6 @@ namespace SiteAdaptation.Tests
                 + "so the build refuses it (R354)", refused.Message);
             Assert.Equal(new[] { "Duplex_DP2", "Villa_VD2", "Pair_N" }, SiteClusters.BlocksByName(Blocks()).Keys.ToArray());
             Assert.Equal(3, SiteClusters.BlocksByName(Blocks())["Duplex_DP2"].Count);
-        }
-
-        [Fact]
-        public void R354_an_analysis_of_another_drawing_or_with_no_clusters_is_refused()
-        {
-            Assert.Single(SiteClusters.AnalysisOf(Analysis(), "analysis.json", "ROSHN Makkah Baseplan.dwg"));
-            var cases = new[]
-            {
-                Tuple.Create(new JObject { ["source"] = "Makkah Building Footprint.dwg", ["clusters"] = new JArray() }, "is of Makkah Building Footprint.dwg"),
-                Tuple.Create(new JObject { ["clusters"] = new JArray() }, "is of None"),
-                Tuple.Create(new JObject { ["source"] = "ROSHN Makkah Baseplan.dwg" }, "holds no clusters list"),
-                Tuple.Create(new JObject { ["source"] = "rosHN Makkah Baseplan.dwg", ["clusters"] = new JArray() }, "is of rosHN Makkah Baseplan.dwg"),
-            };
-            foreach (Tuple<JObject, string> item in cases)
-            {
-                InvalidDataException refused = Assert.Throws<InvalidDataException>(() => SiteClusters.AnalysisOf(item.Item1, "analysis.json", "ROSHN Makkah Baseplan.dwg"));
-                Assert.Contains(item.Item2, refused.Message);
-                Assert.EndsWith("(R354)", refused.Message);
-            }
-        }
-
-        // B1 of the review of PR 55, test_build_steps.READ, TURNED and HELD: the baseplan read of the made up faces with a type, the
-        // footprint blocks with a rotation and an analysis made from them, which records no hash or date of its drawings (Q089)
-        private static JArray HeldRead()
-        {
-            return new JArray(Rings().Select(item => { JObject shape = Shape((100 + int.Parse(item.Key)).ToString(), item.Value); shape["type"] = "DP2"; return shape; }));
-        }
-
-        private static JArray Turned()
-        {
-            var turns = new[] { 0.0, 90.0, 0.0, 180.0, 180.0, 0.0 };
-            JArray blocks = Blocks();
-            for (int index = 0; index < blocks.Count; index++)
-            {
-                blocks[index]["rotationDeg"] = turns[index];
-            }
-            return blocks;
-        }
-
-        private static JObject Held(Action<JObject> change = null)
-        {
-            JObject analysis = Analysis();
-            analysis["summary"] = new JObject { ["plotFaces"] = 8 };
-            analysis["plots"] = new JArray(
-                new JObject { ["plot"] = "101", ["cadType"] = "DP2", ["block"] = "Duplex_DP2", ["rotation"] = 0.0 },
-                new JObject { ["plot"] = "103", ["cadType"] = "DP2", ["block"] = "Duplex_DP2", ["rotation"] = 90.0 },
-                new JObject { ["plot"] = "105", ["cadType"] = "DP2", ["block"] = "Villa_VD2", ["rotation"] = 359.9996 },
-                new JObject { ["plot"] = "106", ["cadType"] = "DP2", ["block"] = null, ["rotation"] = null });
-            change?.Invoke(analysis);
-            return analysis;
-        }
-
-        [Fact]
-        public void R354_an_analysis_is_held_to_the_reads_it_was_made_from_by_its_face_count_the_type_of_each_label_and_the_block_under_it()
-        {
-            SiteClusters.HoldAnalysis(Held(), "analysis.json", HeldRead(), Turned());
-            SiteClusters.HoldAnalysis(Held(analysis => analysis["plots"][0]["rotation"] = 0.0004), "analysis.json", HeldRead(), Turned());
-            var cases = new[]
-            {
-                Tuple.Create(Held(analysis => analysis["summary"] = new JObject()), "analysis.json holds no plots list or no summary.plotFaces, which hold the analysis a build joins to the reads it was made from (R354)"),
-                Tuple.Create(Held(analysis => analysis.Remove("plots")), "analysis.json holds no plots list or no summary.plotFaces"),
-                Tuple.Create(Held(analysis => analysis["summary"]["plotFaces"] = 9), "analysis.json counts 9 plot faces and the baseplan read holds 8, the analysis a build joins is of the reads it was made from (R354)"),
-                Tuple.Create(Held(analysis =>
-                {
-                    analysis["plots"][1]["cadType"] = "VL4";
-                    ((JArray)analysis["plots"]).Add(new JObject { ["plot"] = "999", ["cadType"] = "DP2" });
-                }), "2 plots of analysis.json lie on no face of their label or on one of another type in the baseplan read: 103, 999, the analysis a build joins is of the reads it was made from (R354)"),
-                Tuple.Create(Held(analysis => analysis["plots"][0]["rotation"] = 90.0),
-                    "1 plots of analysis.json lie on no block of their name or on one of another rotation in the footprint read: 101, the analysis a build joins is of the reads it was made from (R354)"),
-                Tuple.Create(Held(analysis =>
-                {
-                    analysis["plots"][0]["rotation"] = 0.0006;
-                    analysis["plots"][2]["block"] = "Duplex_DP2";
-                }), "2 plots of analysis.json lie on no block of their name or on one of another rotation in the footprint read: 101, 105"),
-            };
-            foreach (Tuple<JObject, string> item in cases)
-            {
-                InvalidDataException refused = Assert.Throws<InvalidDataException>(() => SiteClusters.HoldAnalysis(item.Item1, "analysis.json", HeldRead(), Turned()));
-                Assert.Contains(item.Item2, refused.Message);
-            }
-            // With no footprint read the blocks are not held, the count and the labels are
-            SiteClusters.HoldAnalysis(Held(analysis => analysis["plots"][0]["rotation"] = 90.0), "analysis.json", HeldRead(), null);
         }
 
         [Fact]
@@ -305,11 +219,6 @@ namespace SiteAdaptation.Tests
             File.WriteAllText(data, "locationPlanNumber,baseplanLabel,typologyRev9,footprintBlock\n" + string.Join("\n", Wired.Select(item => item[0] + "," + (100 + int.Parse(item[0])) + ",DP2," + item[1])) + "\n");
             string labels = Path.Combine(folder, "labels.csv");
             File.WriteAllText(labels, "kind,number,nbh\n" + string.Join("\n", Wired.Select(item => "clientCode," + item[0] + ",012")) + "\n");
-            string analysis = Path.Combine(folder, "analysis.json");
-            JObject held = Analysis();
-            held["summary"] = new JObject { ["plotFaces"] = rings.Count };
-            held["plots"] = new JArray();
-            File.WriteAllText(analysis, held.ToString());
             string config = WorkerRunTests.RepoConfig();
             return new WorkerRequest
             {
@@ -317,7 +226,7 @@ namespace SiteAdaptation.Tests
                 Inputs = new List<WorkerFile>
                 {
                     Input("config", config), Input("rules", RepoRules()), Input("plotsCsv", data), Input("labels", labels), Input("baseplanRead", baseplan),
-                    Input("villaBlocksRead", footprint), Input("analysis", analysis),
+                    Input("villaBlocksRead", footprint),
                 },
                 Scope = new WorkerScope { Kind = "project" }, OutputFolder = folder, Steps = steps.ToList(), StepsFolder = Path.Combine(folder, "steps"), TimeLimitS = 600,
             };
@@ -329,10 +238,10 @@ namespace SiteAdaptation.Tests
             Assert.Equal(0, WorkerRunner.Run(BuildRequest("c1", new[] { "clusters" }).Write(folder), WorkerCommands.Default(), () => 9000.0));
             WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c1"));
             JObject file = RunStamp.Read(Path.Combine(folder, "steps", "step_clusters_csharp.json"));
-            Assert.Equal(new[] { "1|2", "3|4", "5|6" }, ((JObject)file["plots"]).Properties().Select(item => item.Name).ToArray());
-            Assert.Equal("analysis", (string)file["plots"]["5|6"]["written"]["source"]);
-            Assert.Equal(3, answer.Counts["clusters items"]);
-            Assert.Equal(1, answer.Counts["clusters of the build from the analysis"]);
+            Assert.Equal(new[] { "1|2", "3|4" }, ((JObject)file["plots"]).Properties().Select(item => item.Name).ToArray());
+            Assert.Equal("footprint", (string)file["plots"]["3|4"]["written"]["source"]);
+            Assert.Equal(2, answer.Counts["clusters items"]);
+            Assert.False(answer.Counts.ContainsKey("clusters of the build from the analysis"));
 
             WorkerRequest other = BuildRequest("c2", new[] { "clusters" });
             other.Inputs[5] = Input("villaBlocksRead", other.Inputs[4].Path);
@@ -351,19 +260,18 @@ namespace SiteAdaptation.Tests
             Assert.Equal(2, WorkerRunner.Run(millimetres.Write(folder), WorkerCommands.Default(), () => 9000.0));
             Assert.Contains("a drawing is read only in Meters", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c4")).Message);
 
-            WorkerRequest lacking = BuildRequest("c5", new[] { "clusters" });
-            lacking.Inputs.RemoveAt(6);
-            Assert.Equal(2, WorkerRunner.Run(lacking.Write(folder), WorkerCommands.Default(), () => 9000.0));
-            Assert.Contains("the step clusters needs the input analysis", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c5")).Message);
-
-            // B1. An analysis of more plot faces than the baseplan read holds is of another drawing, whatever the name in its source
-            WorkerRequest later = BuildRequest("c6", new[] { "clusters" });
-            JObject counted = JObject.Parse(File.ReadAllText(later.Inputs[6].Path));
-            counted["summary"]["plotFaces"] = 9;
-            File.WriteAllText(later.Inputs[6].Path, counted.ToString());
-            later.Inputs[6] = Input("analysis", later.Inputs[6].Path);
-            Assert.Equal(2, WorkerRunner.Run(later.Write(folder), WorkerCommands.Default(), () => 9000.0));
-            Assert.Contains("analysis.json counts 9 plot faces and the baseplan read holds 8", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c6")).Message);
+            // Q089. A request that names an analysis is refused with the line of plan_from_book.py, for the faces as for the build steps
+            foreach (string[] steps in new[] { new[] { "clusters" }, new[] { "faces" } })
+            {
+                WorkerRequest named = BuildRequest("c5", steps);
+                string analysis = Path.Combine(folder, "analysis.json");
+                File.WriteAllText(analysis, new JObject { ["source"] = "ROSHN Makkah Baseplan.dwg", ["clusters"] = new JArray() }.ToString());
+                named.Inputs.Add(Input("analysis", analysis));
+                Assert.Equal(2, WorkerRunner.Run(named.Write(folder), WorkerCommands.Default(), () => 9000.0));
+                Assert.Equal(BuildSteps.AnalysisRefused, WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c5")).Message);
+                Assert.Equal("the analysis is no input of a build since Q089, a build takes the footprint clusters of R236 alone (R354)", BuildSteps.AnalysisRefused);
+                Assert.False(File.Exists(Path.Combine(folder, "steps", "step_" + steps[0] + "_csharp.json")), "a run refused leaves no step file");
+            }
 
             // P2. The config of a build is read as project_profile.read_object reads it, a duplicate key refused by the name of the file
             WorkerRequest twice = BuildRequest("c7", new[] { "clusters" });
@@ -389,13 +297,6 @@ namespace SiteAdaptation.Tests
             empty.Inputs[3] = Input("labels", empty.Inputs[3].Path);
             Assert.Equal(2, WorkerRunner.Run(empty.Write(folder), WorkerCommands.Default(), () => 9000.0));
             Assert.Contains("labels.csv holds no row under its header (R345)", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c10")).Message);
-
-            // P2. The analysis is read as json.loads reads it, so a byte order mark is refused
-            WorkerRequest marked = BuildRequest("c8", new[] { "clusters" });
-            File.WriteAllBytes(marked.Inputs[6].Path, new byte[] { 0xEF, 0xBB, 0xBF }.Concat(File.ReadAllBytes(marked.Inputs[6].Path)).ToArray());
-            marked.Inputs[6] = Input("analysis", marked.Inputs[6].Path);
-            Assert.Equal(2, WorkerRunner.Run(marked.Write(folder), WorkerCommands.Default(), () => 9000.0));
-            Assert.Contains("the input analysis is no JSON as Python reads it: Unexpected UTF-8 BOM", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c8")).Message);
         }
 
         // P3 of the review of PR 55, test_build_steps.SHAPES: a keyRules value of the wrong shape, which Need let through as a list and the C#
@@ -1241,8 +1142,6 @@ namespace SiteAdaptation.Tests
                 + (number == "1" ? "VD2," : "DP2,") + (number == "2" || number == "3" ? "Duplex_DP2" : "") + ",no")) + "\n");
             string labels = Path.Combine(folder, "labels.csv");
             File.WriteAllText(labels, "kind,number,nbh\n" + string.Join("\n", numbers.Select(number => "clientCode," + number + ",012")) + "\n");
-            string analysis = Path.Combine(folder, "analysis.json");
-            File.WriteAllText(analysis, new JObject { ["source"] = (string)config["drawings"]["baseplan"], ["clusters"] = new JArray(), ["plots"] = new JArray(), ["summary"] = new JObject { ["plotFaces"] = numbers.Length } }.ToString());
             string rules = Path.Combine(folder, "rules.json");
             File.WriteAllText(rules, HandRules().ToString());
             string prototypes = Path.Combine(folder, "prototypes");
@@ -1255,7 +1154,7 @@ namespace SiteAdaptation.Tests
             var inputs = new List<WorkerFile>
             {
                 Input("config", settings), Input("rules", rules), Input("plotsCsv", data), Input("labels", labels), Input("baseplanRead", baseplan),
-                Input("villaBlocksRead", footprint), Input("analysis", analysis), Input("curbsRead", curbs), Input("workbooksRead", workbooks),
+                Input("villaBlocksRead", footprint), Input("curbsRead", curbs), Input("workbooksRead", workbooks),
             };
             foreach (string name in new[] { Dp2File, Vd2File })
             {
@@ -1285,15 +1184,15 @@ namespace SiteAdaptation.Tests
             Assert.Equal(Dp2File, (string)link["plots"]["4"]["written"]["prototypeFile"]);
 
             WorkerRequest renamed = HandRequest("h2");
-            renamed.Inputs[9] = new WorkerFile { Role = BuildSteps.PrototypeRole + "other.rvt", Path = renamed.Inputs[9].Path, Sha256 = renamed.Inputs[9].Sha256 };
+            renamed.Inputs[8] = new WorkerFile { Role = BuildSteps.PrototypeRole + "other.rvt", Path = renamed.Inputs[8].Path, Sha256 = renamed.Inputs[8].Sha256 };
             Assert.Equal(2, WorkerRunner.Run(renamed.Write(folder), WorkerCommands.Default(), () => 9000.0));
             Assert.Contains("the input prototype:other.rvt is the file " + Dp2File + ", a prototype file is named by its own file name (R357)", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "h2")).Message);
 
             WorkerRequest apart = HandRequest("h3");
             string elsewhere = Path.Combine(folder, "elsewhere");
             Directory.CreateDirectory(elsewhere);
-            File.Copy(apart.Inputs[10].Path, Path.Combine(elsewhere, Vd2File), true);
-            apart.Inputs[10] = Input(BuildSteps.PrototypeRole + Vd2File, Path.Combine(elsewhere, Vd2File));
+            File.Copy(apart.Inputs[9].Path, Path.Combine(elsewhere, Vd2File), true);
+            apart.Inputs[9] = Input(BuildSteps.PrototypeRole + Vd2File, Path.Combine(elsewhere, Vd2File));
             Assert.Equal(2, WorkerRunner.Run(apart.Write(folder), WorkerCommands.Default(), () => 9000.0));
             Assert.Contains("the prototype files of the request lie in 2 folders", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "h3")).Message);
         }
@@ -1326,16 +1225,16 @@ namespace SiteAdaptation.Tests
             {
                 File.Copy(Path.Combine(prototypes, name), Path.Combine(elsewhere, name), true);
             }
-            moved.Inputs[9] = Input(BuildSteps.PrototypeRole + Dp2File, Path.Combine(elsewhere, Dp2File));
-            moved.Inputs[10] = Input(BuildSteps.PrototypeRole + Vd2File, Path.Combine(elsewhere, Vd2File));
+            moved.Inputs[8] = Input(BuildSteps.PrototypeRole + Dp2File, Path.Combine(elsewhere, Dp2File));
+            moved.Inputs[9] = Input(BuildSteps.PrototypeRole + Vd2File, Path.Combine(elsewhere, Vd2File));
             Assert.Equal(2, WorkerRunner.Run(moved.Write(folder), WorkerCommands.Default(), () => 9000.0));
             Assert.Contains("the prototype files of the request lie in " + elsewhere + ", pastJob names the prototype folder " + prototypes + " (R357)",
                 WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "h6")).Message);
 
             WorkerRequest gone = HandRequest("h7");
             Directory.Delete(prototypes, true);
+            gone.Inputs[8] = moved.Inputs[8];
             gone.Inputs[9] = moved.Inputs[9];
-            gone.Inputs[10] = moved.Inputs[10];
             Assert.Equal(2, WorkerRunner.Run(gone.Write(folder), WorkerCommands.Default(), () => 9000.0));
             Assert.Contains("the prototype folder " + prototypes + " of pastJob is not on disk (R357)", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "h7")).Message);
         }

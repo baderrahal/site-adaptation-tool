@@ -19,7 +19,7 @@ namespace SiteAdaptation.Common
         public static readonly Dictionary<string, string[]> Steps = new Dictionary<string, string[]>
         {
             [FaceStep.Name] = new[] { FaceStep.BaseplanRoles, "plotsCsv", "labels" },
-            // R354. The clusters of a build by keyRules, on the reads of the worker, plots.csv, labels.csv, the rules file and the analysis
+            // R354. The clusters of a build by keyRules, on the reads of the worker, plots.csv, labels.csv and the rules file, no analysis since Q089
             [SiteClusters.StepName] = BuildSteps.ClusterRoles,
             // R355. The fronts of a build, on the curbs and sales reads of the worker and the road surfaces of the level profile
             [Fronts.StepName] = BuildSteps.FrontRoles,

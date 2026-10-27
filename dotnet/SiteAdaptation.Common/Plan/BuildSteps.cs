@@ -9,20 +9,23 @@ namespace SiteAdaptation.Common
     // R354 to R357. The build steps of the worker command build, the C# of plan_from_book.py --steps on the reads of button 2: the inputs
     // the worker read wrote, read_baseplan.json, read_villaBlocks.json, read_curbs.json and read_workbooks.json, each held to what it claims
     // to be by its role or its workbook, its drawing in Meters and its run stamp, plots.csv and labels.csv of the data book, the rules file
-    // with keyRules of the level profile of the request, the analysis of the clusters (Q089) and the road surfaces of the build in their
-    // order. Every number of a JSON input is the nearest double of its text, as Python reads it, and each input is read once per run
+    // with keyRules of the level profile of the request and the road surfaces of the build in their order, and since Q089 no analysis,
+    // the clusters are those of the footprint blocks alone. Every number of a JSON input is the nearest double of its text, as Python reads it, and each input is read once per run
     public static class BuildSteps
     {
         public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName, LinkFrames.StepName };
 
-        public static readonly string[] ClusterRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead", "analysis" };
+        public static readonly string[] ClusterRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead" };
+
+        // R354, Q089. The line of plan_from_book.ANALYSIS_REFUSED, a request that names an analysis is refused with it
+        public const string AnalysisRefused = "the analysis is no input of a build since Q089, a build takes the footprint clusters of R236 alone (R354)";
 
         public static readonly string[] FrontRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "curbsRead", "workbooksRead", WorkerRunner.RoadSurfaceRole + "*" };
 
         // R357. The role of a prototype file, prototype:<its file name>, one per file of the prototype folder
         public const string PrototypeRole = "prototype:";
 
-        public static readonly string[] HandRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead", "analysis", "curbsRead", "workbooksRead", PrototypeRole + "*" };
+        public static readonly string[] HandRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead", "curbsRead", "workbooksRead", PrototypeRole + "*" };
 
         // What the build steps read, each input read when a step first needs it
         private sealed class Site
@@ -97,7 +100,7 @@ namespace SiteAdaptation.Common
                 {
                     if (clusters == null)
                     {
-                        // The faces first, as plan_from_book.py refuses a face before it reads the footprint and the analysis
+                        // The faces first, as plan_from_book.py refuses a face before it reads the footprint
                         Dictionary<string, BuildFace> held = Faces;
                         // P2. The footprint blocks as project_profile.read_villa_blocks reads them, by read_object
                         JObject footprint = Read("villaBlocksRead", "villaBlocks", true);
@@ -108,12 +111,7 @@ namespace SiteAdaptation.Common
                             throw new InvalidDataException(source + " is kept for reference only (drawings.referenceOnly) and is never read for villaBlocks (R300)");
                         }
                         Dictionary<string, List<double[][]>> blocks = SiteClusters.BlocksByName(footprint["blocks"] as JArray ?? throw new InvalidDataException("the footprint read holds no blocks list"));
-                        string analysisPath = run.Input("analysis");
-                        JObject read = PyMath.ReadJson(analysisPath, "analysis") as JObject ?? new JObject();
-                        List<SiteCluster> analysis = SiteClusters.AnalysisOf(read, Path.GetFileName(analysisPath), (string)Settings["drawings"]?["baseplan"]);
-                        // R354. The analysis held to the reads it was made from, not by the name of its drawing alone
-                        SiteClusters.HoldAnalysis(read, Path.GetFileName(analysisPath), BaseplanRead["plots"] as JArray, footprint["blocks"] as JArray);
-                        clusters = SiteClusters.Site(Units, Rows, held, blocks, analysis, NumberOf);
+                        clusters = SiteClusters.Site(Units, Rows, held, blocks);
                     }
                     return clusters;
                 }
@@ -330,7 +328,6 @@ namespace SiteAdaptation.Common
                 if (asked.Contains(SiteClusters.StepName))
                 {
                     run.Counts["clusters of the build"] = site.Clusters.Count;
-                    run.Counts["clusters of the build from the analysis"] = site.Clusters.Count(cluster => cluster.Source == SiteClusters.AnalysisSource);
                     made[SiteClusters.StepName] = SiteClusters.Step(site.Numbers, site.Clusters);
                 }
                 if (asked.Contains(Fronts.StepName))
