@@ -256,29 +256,19 @@ namespace SiteAdaptation.Common
             return Math.Sqrt(dx * dx + dy * dy);
         }
 
-        // A JSON input as Python json.loads reads it: every number with a point or an exponent the nearest double of its text by ExactDouble,
-        // where double.Parse of net48 can take one unit of the last bit off, texts kept as texts and never taken for dates. A number past the
-        // decimal type is refused with the role named
+        // A JSON input as Python json.loads reads it, by PyJson: every number with a point or an exponent the nearest double of its text,
+        // one of digits alone an integer, texts kept as texts and never taken for dates, and a text json.loads refuses refused with the role
+        // named (B4 of the review of PR 55)
         public static JToken ReadJson(string path, string role)
         {
-            JToken found;
             try
             {
-                using (var reader = new JsonTextReader(new StringReader(WorkFiles.ReadText(path))) { DateParseHandling = DateParseHandling.None, FloatParseHandling = FloatParseHandling.Decimal })
-                {
-                    found = JToken.Load(reader);
-                }
+                return PyJson.Parse(WorkFiles.ReadText(path));
             }
-            catch (JsonReaderException failure) when (failure.InnerException is OverflowException)
+            catch (FormatException failure)
             {
-                throw new InvalidDataException("the input " + role + " holds a number past 7.9E+28, which R385 never writes, " + failure.Message + " (R354)");
+                throw new InvalidDataException("the input " + role + " is no JSON as Python reads it: " + failure.Message + " (R354)");
             }
-            IEnumerable<JToken> tokens = found is JContainer container ? container.DescendantsAndSelf() : new[] { found };
-            foreach (JValue value in tokens.OfType<JValue>().Where(item => item.Type == JTokenType.Float).ToList())
-            {
-                value.Value = ExactDouble.Parse(((decimal)value.Value).ToString(CultureInfo.InvariantCulture));
-            }
-            return found;
         }
     }
 }

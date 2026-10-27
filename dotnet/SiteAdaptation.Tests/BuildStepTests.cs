@@ -486,6 +486,49 @@ namespace SiteAdaptation.Tests
                 string.Join(" ", config.StepFields(Fronts.StepName).Select(field => field.Name + ":" + field.Kind + ":" + field.Decimals)));
         }
 
+        // B4 of the review of PR 55. ReadJson took every number through decimal, so 1.2345678901234567e-15, 3e-29 and -0.0 came out other
+        // doubles than Python reads and a number past the decimal range was refused. The bits are those json.loads of Python 3.12.10 gives
+        // for the same text, test_build_steps.JSON_TEXT
+        internal const string JsonText = "{\"a\": 1.2345678901234567e-15, \"b\": 3e-29, \"c\": -0.0, \"d\": 1e30, \"e\": 8e28, \"f\": [0.1, 2264.253152, 1E+400, -1e-400, "
+            + "4.9406564584124654e-324, 2.4703282292062328e-324, 1.7976931348623158e+308], \"g\": 12345678901234567890123, \"h\": -0, \"i\": 7.9228162514264337593543950336e28, "
+            + "\"j\": \"x\\u00e9\\ud83d\\ude00\", \"a\": 1.2345678901234567e-15}";
+
+        [Fact]
+        public void R354_every_number_of_a_json_input_is_the_double_or_integer_python_reads_from_its_text()
+        {
+            string path = Path.Combine(folder, "numbers.json");
+            File.WriteAllText(path, JsonText);
+            JObject read = (JObject)PyMath.ReadJson(path, "numbers");
+            string Bits(JToken token) => BitConverter.DoubleToInt64Bits((double)token).ToString("x16");
+            Assert.Equal(new[] { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j" }, read.Properties().Select(item => item.Name).ToArray());
+            Assert.Equal("3cd63d70819bfe6b", Bits(read["a"]));
+            Assert.Equal("3a0303c73efd0676", Bits(read["b"]));
+            Assert.Equal("8000000000000000", Bits(read["c"]));
+            Assert.Equal("46293e5939a08cea", Bits(read["d"]));
+            Assert.Equal("45f027e72f1f1281", Bits(read["e"]));
+            Assert.Equal(new[] { "3fb999999999999a", "40a1b0819d2391d5", "7ff0000000000000", "8000000000000000", "0000000000000001", "0000000000000001", "7fefffffffffffff" },
+                ((JArray)read["f"]).Select(Bits).ToArray());
+            Assert.Equal(JTokenType.Integer, read["g"].Type);
+            Assert.Equal("12345678901234567890123", read["g"].ToString());
+            Assert.Equal(JTokenType.Integer, read["h"].Type);
+            Assert.Equal(0L, (long)read["h"]);
+            Assert.Equal("45f0000000000000", Bits(read["i"]));
+            Assert.Equal(JTokenType.Float, read["i"].Type);
+            Assert.Equal("x\u00e9\ud83d\ude00", (string)read["j"]);
+            // Python json.loads refuses each of these, so the build does
+            foreach (string text in new[] { "{\"a\": 1,}", "{\"a\": 01}", "// a note\n{}", "{'a': 1}", "[1] 2", "{\"a\": \"x\ty\"}", "", "{\"a\": .5}", "{\"a\": 1.}", "{\"a\": +1}" })
+            {
+                File.WriteAllText(path, text);
+                InvalidDataException refused = Assert.Throws<InvalidDataException>(() => PyMath.ReadJson(path, "numbers"));
+                Assert.StartsWith("the input numbers is no JSON as Python reads it", refused.Message);
+            }
+            File.WriteAllText(path, "[NaN, Infinity, -Infinity, true, false, null]");
+            JArray named = (JArray)PyMath.ReadJson(path, "numbers");
+            Assert.True(double.IsNaN((double)named[0]));
+            Assert.Equal(new object[] { double.PositiveInfinity, double.NegativeInfinity, true, false }, new object[] { (double)named[1], (double)named[2], (bool)named[3], (bool)named[4] });
+            Assert.Equal(JTokenType.Null, named[5].Type);
+        }
+
         // Python math.dist, the hypot of CPython 3.12 vector_norm, and the distance of GEOS from a point to a segment, as the values Python
         // 3.12.10 gave for these made up pairs, the last digit of each
         [Fact]

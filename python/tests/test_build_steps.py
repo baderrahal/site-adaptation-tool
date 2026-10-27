@@ -152,6 +152,30 @@ def test_r354_an_analysis_is_held_to_the_reads_it_was_made_from_by_its_face_coun
     assert plan_from_book.analysis_clusters(path, settings, READ) == ANALYSIS["clusters"]
 
 
+# B4 of the review of PR 55, the text of R354_every_number_of_a_json_input_is_the_double_or_integer_python_reads_from_its_text of the C#
+JSON_TEXT = ('{"a": 1.2345678901234567e-15, "b": 3e-29, "c": -0.0, "d": 1e30, "e": 8e28, "f": [0.1, 2264.253152, 1E+400, -1e-400, '
+             '4.9406564584124654e-324, 2.4703282292062328e-324, 1.7976931348623158e+308], "g": 12345678901234567890123, "h": -0, '
+             '"i": 7.9228162514264337593543950336e28, "j": "x\\u00e9\\ud83d\\ude00", "a": 1.2345678901234567e-15}')
+
+
+def test_r354_every_number_of_a_json_input_is_the_double_or_integer_python_reads_from_its_text():
+    """The bits the C# test holds PyMath.ReadJson to, as json.loads gives them here, and the texts it refuses as json.loads refuses them."""
+    import struct
+    read = json.loads(JSON_TEXT)
+    def bits(value):
+        return struct.pack(">d", value).hex()
+    assert list(read) == list("abcdefghij")
+    assert [bits(read[name]) for name in "abcde"] == ["3cd63d70819bfe6b", "3a0303c73efd0676", "8000000000000000", "46293e5939a08cea", "45f027e72f1f1281"]
+    assert [bits(value) for value in read["f"]] == ["3fb999999999999a", "40a1b0819d2391d5", "7ff0000000000000", "8000000000000000", "0000000000000001",
+                                                    "0000000000000001", "7fefffffffffffff"]
+    assert read["g"] == 12345678901234567890123 and read["h"] == 0 and isinstance(read["h"], int) and bits(read["i"]) == "45f0000000000000"
+    # The surrogate pair of the text is one character to Python, two UTF-16 units of the same character to C#
+    assert read["j"] == "x\u00e9\U0001f600"
+    for text in ('{"a": 1,}', '{"a": 01}', '// a note\n{}', "{'a': 1}", "[1] 2", '{"a": "x\ty"}', "", '{"a": .5}', '{"a": 1.}', '{"a": +1}'):
+        with pytest.raises(ValueError):
+            json.loads(text)
+
+
 def test_r354_the_config_names_the_fields_of_the_step_clusters_all_exact():
     block = project_profile.load_settings().get("addin")["parity"]["steps"]
     assert block["clusters"] == {"plots": {"kind": "noGeometry"}, "code": {"kind": "noGeometry"}, "source": {"kind": "noGeometry"}}
