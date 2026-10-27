@@ -605,6 +605,30 @@ namespace SiteAdaptation.Tests
             Assert.Equal("1e-07", SiteClusters.PyRepr(1e-07));
         }
 
+        // L6 of the fifth review of PR 55, test_build_steps.LINK_FIT_LINES: PyText of R337 in the lines of the link fits a build by keyRules
+        // refuses, the value written as str() of Python writes it for %s
+        [Fact]
+        public void R337_py_text_writes_the_value_of_a_link_fit_line_as_python_str_writes_it()
+        {
+            var cases = new[]
+            {
+                Tuple.Create<JToken, JToken, string>("middle", new JArray(1.0, 2.0), "keyRules linkOrigin byCode DP1 holds anchor middle, a build takes start or end (R337)"),
+                Tuple.Create<JToken, JToken, string>(null, new JArray(1.0, 2.0), "keyRules linkOrigin byCode DP1 holds anchor None, a build takes start or end (R337)"),
+                Tuple.Create<JToken, JToken, string>("start", new JArray(1.5, "x"), "keyRules linkOrigin byCode DP1 holds offset [1.5, 'x'], a build takes a list of two numbers (R337)"),
+                Tuple.Create<JToken, JToken, string>("end", new JObject { ["a"] = true }, "keyRules linkOrigin byCode DP1 holds offset {'a': True}, a build takes a list of two numbers (R337)"),
+            };
+            foreach (Tuple<JToken, JToken, string> item in cases)
+            {
+                var fit = new JObject { ["offset"] = item.Item2 };
+                if (item.Item1 != null)
+                {
+                    fit["anchor"] = item.Item1;
+                }
+                var rules = new JObject { ["linkOrigin"] = new JObject { ["byCode"] = new JObject { ["DP1"] = fit } } };
+                Assert.Equal(item.Item3, Assert.Throws<InvalidDataException>(() => BuildRules.CheckLinkFits(rules)).Message);
+            }
+        }
+
         [Fact]
         public void R345_first_invalid_names_the_first_byte_of_a_broken_utf8_sequence()
         {

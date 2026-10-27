@@ -420,6 +420,23 @@ def test_r337_shape_name_names_each_kind_of_a_json_value_as_the_csharp_names_it(
     assert plan_rules.shape_name(dict()) == plan_rules.shape_name(plan_rules.KEY_SHAPES["table"]())
 
 
+# L6 of the fifth review of PR 55: the lines of the link fits with the value as str() writes it, which SiteClusters.PyText of the C# writes the
+# same (R337_py_text_writes_the_value_of_a_link_fit_line_as_python_str_writes_it)
+LINK_FIT_LINES = (("middle", [1.0, 2.0], "keyRules linkOrigin byCode DP1 holds anchor middle, a build takes start or end (R337)"),
+                  (None, [1.0, 2.0], "keyRules linkOrigin byCode DP1 holds anchor None, a build takes start or end (R337)"),
+                  ("start", [1.5, "x"], "keyRules linkOrigin byCode DP1 holds offset [1.5, 'x'], a build takes a list of two numbers (R337)"),
+                  ("end", {"a": True}, "keyRules linkOrigin byCode DP1 holds offset {'a': True}, a build takes a list of two numbers (R337)"))
+
+
+def test_r337_the_lines_of_the_link_fits_write_the_value_as_the_csharp_writes_it():
+    import plan_rules
+    for anchor, offset, line in LINK_FIT_LINES:
+        fit = {"offset": offset} if anchor is None else {"anchor": anchor, "offset": offset}
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_rules.check_link_fits({"linkOrigin": {"byCode": {"DP1": fit}}})
+        assert str(error.value) == line
+
+
 # G3 of the fourth review of PR 55: the areas tolerance of addin.parity held as AddinConfig.ParityTolerance holds it, with its lines
 # (R345_the_areas_tolerance_is_held_as_python_holds_it)
 AREA_LINES = (
