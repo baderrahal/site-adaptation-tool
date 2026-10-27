@@ -4,26 +4,23 @@ Newest entry first. The top entry is one page at most. Older rounds keep a short
 
 ## Round ADDIN Part 1, 2026-10-25, the Revit 2024 add-in from the Parsons site models
 
-In progress, 4e in review, PR 55 (READ, gh pr view).
-
 Goal:
-- Revit 2024 add-in in C# from the 7 Parsons keys (Q050), docs/addin-mock.md
-- 4e: R354 to R357, steps 4 to 7 in C# (READ round-addin.md)
+- Add-in of docs/addin-mock.md from the 7 Parsons keys (Q050), 4e R354 to R357 (READ round-addin.md)
 
 Done:
-- 0a to 4d, 4e in review: round-addin.md (READ)
+- 0a to 4d, 4e in review as PR 55 (READ round-addin.md, gh)
 
 Checked:
-- Runs at 40f6c1a, CI 40453535483, gate at the records commit on 40f6c1a (RAN, p4efix4_*.txt, gh)
+- Pass 5 at b6c0fe6, CI 40459715155, gate (RAN, p4efix5_*.txt, gh)
 
 Remains:
-- 4f to 4h, Phases 5, 6, CASE categories (READ, addin-design.md)
+- 4f to 4h, Phases 5 and 6, CASE categories (READ addin-design.md)
 
 Known bugs:
-- Q063, Q065, Q070, Q088 to Q092, Q090 three defects, and the open bugs of steps/PROGRESS.md (READ). xUnit2013 (RAN, p4efix4_gate_build.txt)
+- Q063, Q065, Q070, Q088 to Q093, open bugs of PROGRESS.md (READ), xUnit2013 (RAN, p4efix5_gate_build.txt)
 
 Next:
-- Phase 4f: R358 to R361, then 4g and 4h (READ, addin-design.md)
+- 4f: R358 to R361, then 4g and 4h (READ addin-design.md)
 
 Your turn:
 Q001. El @ Entry: still open (Bader, 2026-10-26), the team is asking for the Infrastructure IFC package and the ramp slope, the current overrides stay until then
@@ -51,9 +48,10 @@ Q086. Check points against the keys (R353): the keys lie about half a mm off the
 Q087. Hand entries in addin.sharedParameters (R353): a hand edit of the block is refused or overwritten by the next write, as its full text measures. Keep the block a measure the run alone writes, and put a GUID Bader fixes, such as Plot of Q085, in its own block that no run writes, refused when a key gives that GUID to another name (recommended), or bring the merge back with the four cases of the review as its tests.
 Q088. Check points of R353, four residuals (a) to (d) of its full text after the second fix, latent on the real data. Take the check point corners from the drawn line ends with no join, refuse (b) and (c) in both languages, hold the baseplan by its hash, and read answerKeys and key_copies.json through the checked loader of R312 with a key held by copySha256 and ordinal case, in a fresh PR with the inputs of the reviews as tests (recommended), or keep them as known bugs.
 Q089. Analysis clusters of a build (R354): a build by keyRules joins 22 clusters of 44 plots from an analysis.json no code remakes: drop them if the build proof on the footprint clusters alone keeps 0 unexplained with the overrides measured again (recommended), or name the snapshot file in config as an input of button 3
-Q090. Prototype folder of a build (R357): three measured defects (RAN, p4efix2_q090_*.txt): a fresh PR that refuses a folder value that is no text as Python does, refuses a folder that lacks a file for a code of the scope, and clears SITE_ADAPTATION_INPUT in the tests, with the inputs of the reviews as tests (recommended), or keep them as known bugs
-Q091. JSON reads of the worker that still differ from Python (R354): four reads measured (RAN, p4efix3_q091_*.txt), no real input reaching one: a fresh PR that routes every JSON input of the worker through PyJson and raises a duplicate when the object closes, with the same messages and the inputs of the reviews as tests (recommended), or keep them as known limits
-Q092. Settings and keyRules values a build takes unchecked (R355 to R357): five cases measured (RAN, p4efix4_q092_*.txt), none in the real config or rules: a fresh PR that gives every number setting and keyRules number its range in config, finite, sign and bounds, and one check order in both languages, with the inputs of the reviews as tests (recommended), or keep them as known limits
+Q090. Prototype folder of a build (R357): a fresh PR that refuses a folder value that is no text as Python does, refuses a folder that lacks a file for a code of the scope, and clears SITE_ADAPTATION_INPUT in the tests, with the inputs of the reviews as tests (recommended), or keep them as known bugs
+Q091. JSON reads of the worker that still differ from Python (R354): a fresh PR that routes every JSON input of the worker through PyJson and raises a duplicate when the object closes, with the same messages and the inputs of the reviews as tests (recommended), or keep them as known limits
+Q092. Settings and keyRules values a build takes unchecked (R355 to R357): a fresh PR that gives every number setting and keyRules number its range in config, finite, sign and bounds, and one check order in both languages, with the inputs of the reviews as tests (recommended), or keep them as known limits
+Q093. CSV reads that still differ (R345): a fresh PR that routes every Python reader of plots.csv, labels.csv and phase1_border.csv through csv_rows, which sets its own field limit and restores it, counts the C# limit in code points and gives the same decode line, with the inputs of the reviews as tests (recommended), or keep them as known limits
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 
