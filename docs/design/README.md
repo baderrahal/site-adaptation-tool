@@ -10,7 +10,7 @@ docs/addin-design.md of Round ADDIN Phase 3b, cut in Round REC at its numbered s
 | 03b-buttons-2-to-8.md | 3 | The buttons 2 Read data to 8 Report |
 | 04-inputs.md | 4 | From each input file to Revit |
 | 05-plan-steps.md | 5 | The plan builder steps Phase 4 moves to C#: the rounding rule, the parity tolerances, the steps, step 8, the location plan fit, the Python changes |
-| 06-settings.md | 6 | The settings of config/project.json addin |
+| 06-settings.md | 6 | The settings of the pane, where they are kept, the work folder and the addin block of config |
 | 07-mock.md | 7 | Every screen and file of the mock, 7.1 to 7.7 |
 | 08-install.md | 8 | Install and the unattended runs |
 | 09-risks.md | 9 | The risks and the list open until a Revit run |

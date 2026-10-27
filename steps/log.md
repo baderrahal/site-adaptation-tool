@@ -8,15 +8,16 @@ Goal:
 - Small start reads, no record over 100 KB, nothing lost, real token use measured, Q095 to Q097 in the rules, the plan to finish Part 1. No logic change
 
 Done:
-- PR 56 rec/rules-split: docs/rules.md in 7 parts of docs/rules/, 37,568 to 92,952 bytes (RAN, wc), docs/rules/index.md of 311 rules by python/rules_index.py, the 12 C# root finders and 3 Python tests read the parts, steps/usage.md
-- PR 2 rec/design-split: docs/addin-design.md in 11 parts of docs/design/, 3,114 to 28,793 bytes, with a README, round-addin.md in 15 phase files of steps/history/round-addin/, a new round-addin.md for 4f on, test_addin_design reads the parts (RAN, wc)
+- PR 56 rec/rules-split: docs/rules.md in 7 parts of docs/rules/, 37,568 to 92,952 bytes (RAN, wc), docs/rules/index.md of 311 rules by python/rules_index.py, the 12 C# root finders and 2 Python tests read the parts, test_harness checks the CLAUDE.md pointer (RAN, grep -l), steps/usage.md
+- PR 57 rec/design-split: docs/addin-design.md in 11 parts of docs/design/, 3,114 to 28,793 bytes, with a README, round-addin.md in 15 phase files of steps/history/round-addin/, a new round-addin.md for 4f on, test_addin_design reads the parts (RAN, wc)
 
 Checked:
 - Gate on main at 73b8c42 before any change: pytest 1,792 passed 1 skipped, build 0 errors 2 warnings, dotnet test 763 net8.0 and 789 net48 (RAN, steps/runs/rec/gate_main.txt)
 - Gate on PR 56 and on PR 2: pytest 1,794 passed 1 skipped, build 0 errors 2 warnings, dotnet test 763 and 789 (RAN, gate_pr1.txt, gate_pr2.txt)
 - 3 splits equal by SHA-256 in python/split_proof.py and by sha256sum over cat of the parts (RAN, split_proof.txt, second_route.txt)
 - Distinct ids of the records 346 R and 94 Q before, 0 lost, by the script and by grep over git archive (RAN)
-- PR 56 reviewer APPROVE, 1 REAL: CLAUDE.md lines 42, 64, 69 name docs/rules.md, they move in PR 4 with a pointer above them. 3 LATENT for steps/latent.md. Claim-checker 0 WRONG
+- PR 56 reviewer APPROVE, 1 REAL: CLAUDE.md lines 42, 64, 69 name docs/rules.md, they move in PR 4 with a pointer above them. 3 LATENT for steps/latent.md. Claim-checker 0 WRONG (READ, steps/runs/rec/reviews.txt)
+- PR 57 reviewer CHANGES NEEDED, 1 REAL: round-addin.md named files of later PRs, fixed. 3 LATENT. Claim-checker 0 WRONG (READ, reviews.txt)
 
 Remains:
 - PR 3 questions, PR 4 CLAUDE.md and agents, PR 5 R400, 01_next.md, START.md, PROGRESS
