@@ -8,24 +8,24 @@ Goal:
 - Small start reads, no record over 100 KB, nothing lost, token use measured, Q095 to Q097 in the rules, the plan of Part 1. No logic change
 
 Done:
-- PR 56: docs/rules.md in 7 parts of docs/rules/ with index.md of 311 rules, steps/usage.md. PR 57: the design in 11 parts of docs/design/, round-addin.md 0a to 4e in 15 files of steps/history/round-addin/
-- PR 58: steps/questions-open.md with 65 open questions, Q095 to Q097 closed, Q088 to Q094 into steps/latent.md, PROGRESS lists IDs and titles
-- PR 4 rec/claude-md: Repo map and Rules in short moved to docs/repo-map.md, CLAUDE.md 29,428 to 9,462 bytes with Q095 to Q097 and a Reading budget, developer, reviewer and breaker read by id and mark REAL or LATENT
+- PR 56 rules in 7 parts with an index, R400 an 8th, usage.md. PR 57 design in 11 parts, round-addin.md 0a to 4e in 15 history files
+- PR 58 questions-open.md, Q095 to Q097 closed, Q088 to Q094 in latent.md. PR 59 CLAUDE.md 29,428 to 9,462 bytes, repo-map.md, agents
+- PR 60: R400 with test_r400_record_sizes, steps/01_next.md, steps/START.md, PROGRESS 21,479 to 5,419 bytes, CLAUDE.md 9,552 (RAN, wc)
 
 Checked:
-- Gate on main at 73b8c42: pytest 1,792 passed 1 skipped, build 0 errors 2 warnings, dotnet test 763 net8.0 and 789 net48 (RAN, steps/runs/rec/gate_main.txt)
-- Gate on each PR: pytest 1,794 passed 1 skipped, build 0 errors, dotnet test 763 and 789 (RAN, gate_pr1.txt to gate_pr4.txt)
-- Every split, copy, moved line, run and section equal, 0 of 346 R and 94 Q ids lost, by split_proof.py and second_route.sh (RAN, split_proof.txt, second_route.txt)
-- Reviews: every REAL finding fixed or listed in the open bugs, LATENT ones in steps/latent.md, claim-checkers 0 WRONG (READ, reviews.txt)
+- Gate on main at 73b8c42: pytest 1,792 passed 1 skipped, build 0 errors 2 warnings, dotnet test 763 net8.0 and 789 net48 (RAN, gate_main.txt)
+- Gate at the end: pytest 1,798 passed 1 skipped, 6 tests new in the round, build 0 errors 2 warnings, dotnet test 763 and 789 (RAN, gate_pr5.txt)
+- Every split, copy, moved line and section equal, 0 of 346 R and 94 Q ids lost, two routes (RAN, split_proof.txt, second_route.txt)
+- Reviews: REAL findings fixed or open bugs, LATENT in latent.md, wrong claims fixed (READ, steps/runs/rec/reviews.txt)
 
 Remains:
-- PR 5: R400, 01_next.md, START.md, PROGRESS
+- ADDIN 4f to 6 by steps/01_next.md, one session per phase
 
 Known bugs:
 - steps/PROGRESS.md open bugs and steps/latent.md (READ)
 
 Next:
-- PR 5 rec/plan-caps
+- 4f: Bader pastes steps/START.md into a fresh session
 
 Your turn:
 Full text and the recommended answers by ID: steps/questions-open.md.

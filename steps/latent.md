@@ -34,4 +34,6 @@ Moved from the open bugs of steps/PROGRESS.md at 73b8c42 with no word changed.
 - PR 56, python/record_parts.py RULE_TITLE: the title part [^*]* also takes a line break, and a title that holds a star would leave the index with no word. No rule title of docs/rules/ holds one, the index lists 311 of 311 (RAN)
 - PR 56, python/record_parts.py parts: any other .md file put in docs/rules/ would join the rules
 - PR 56, docs/rules/07-addin-r354-r388.md also holds R11 to R15 of the Test and Writing rules sections, the index lists them under it
+- PR 60, python/tests/test_records.py test_r400_a_cap_reached_exactly_holds: PROGRESS 30 lines of 6,030 bytes and a log top of 4,086 bytes are under their caps, not at them, so a slip of > to >= on those three caps stays green
+- PR 60, python/record_parts.py cap_breaches: the log is read as text, so a CRLF log is counted short, and a ## line inside a code fence ends the top entry early. steps/log.md is LF by .gitattributes and holds no such fence
 - PR 58, python/split_proof.py MOVED_LINES: a moved line passes when either new file holds it, so an open question moved into latent.md or a line held twice would pass. The ids of the records show no such move (RAN, 65 open, Q088 to Q094 closed)
