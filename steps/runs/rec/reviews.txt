@@ -11,3 +11,7 @@ PR 57, pass 1
 PR 58, pass 1
 - reviewer CHANGES NEEDED. REAL: the Q095 to Q097 rows named files later PRs write, fixed by naming the PR. The second route lacked the check of the 2 latent bug runs, added. Q089 is closed by Q095 yet reached by every button 3 build, now a line of the PROGRESS open bugs. key_join.py writes the old round file path into config/area_codes.json notes, moved from latent.md to the open bugs, no code change in this round. LATENT: a moved line passes when either new file holds it, in steps/latent.md
 - claim-checker 0 WRONG. Loose: the PR body put the 8 word limit on the open bug lines too, the body was fixed. UNBACKED: the dotnet counts rest on gate_pr3.txt, CI checked before the merge
+
+PR 59, pass 1
+- reviewer CHANGES NEEDED, 3 REAL, fixed: the reviewer and breaker read lists said whole and by grep at once, CLAUDE.md named 01_next.md and START.md before PR 5 writes them, now marked, the RevitPrototypeReader guard left CLAUDE.md with the repo map, now a line of Round ADDIN
+- claim-checker 2 WRONG, fixed: the CLAUDE.md sizes were measured before later edits, now 29,428 at 73b8c42 and the size after the last edit. UNBACKED: the dotnet counts of gate_pr4.txt were taken before the commit, the gate ran again after the fixes

@@ -9,15 +9,14 @@ Find what this change does not handle.
 
 You are not reviewing style and you are not suggesting improvements. You are looking for the
 input that makes it wrong. The lead hands you the branch, the changed files and what the
-change is meant to do. Read every changed file under 30 KB whole and the changed parts of a
-larger one, and every caller of what changed.
+change is meant to do.
 
 What you read, and only this:
 
 1. `CLAUDE.md` and `steps/PROGRESS.md`, whole
 2. The part of `docs/design/` of the step, which the lead names or `docs/design/README.md` gives
 3. Each rule the change touches, by its id through `docs/rules/index.md` and grep of its line
-4. The changed files and their callers, by grep and line range
+4. The changed files, whole under 30 KB and by the changed parts above it, and their callers by grep
 
 Never read a whole file over 30 KB. Grep it or read a line range.
 

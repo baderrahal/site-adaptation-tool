@@ -14,12 +14,11 @@ What you read, and only this:
 1. `CLAUDE.md` and `steps/PROGRESS.md`, whole
 2. The part of `docs/design/` of the step, which the lead names or `docs/design/README.md` gives
 3. Each rule the change touches, by its id through `docs/rules/index.md` and grep of its line
-4. The changed files and their callers, by grep and line range
+4. The changed files, whole under 30 KB and by the changed parts above it, and their callers by grep
 
 Never read a whole file over 30 KB. Grep it or read a line range.
 
-Read every changed file under 30 KB whole and the changed parts of a larger one, not only the
-diff, and every caller of every member that changed. Then check, and quote the line for each thing you find:
+Then check, and quote the line for each thing you find:
 
 1. **Root cause.** Does the change fix the fault at the line that causes it, or hide a symptom
 2. **Test first.** Is there a test that fails without the change and passes with it. Does it

@@ -10,7 +10,7 @@ Goal:
 Done:
 - PR 56: docs/rules.md in 7 parts of docs/rules/ with index.md of 311 rules, steps/usage.md. PR 57: the design in 11 parts of docs/design/, round-addin.md 0a to 4e in 15 files of steps/history/round-addin/
 - PR 58: steps/questions-open.md with 65 open questions, Q095 to Q097 closed, Q088 to Q094 into steps/latent.md, PROGRESS lists IDs and titles
-- PR 4 rec/claude-md: Repo map and Rules in short moved to docs/repo-map.md, CLAUDE.md 29,524 to 9,351 bytes with Q095 to Q097 and a Reading budget, developer, reviewer and breaker read by id and mark REAL or LATENT
+- PR 4 rec/claude-md: Repo map and Rules in short moved to docs/repo-map.md, CLAUDE.md 29,428 to 9,462 bytes with Q095 to Q097 and a Reading budget, developer, reviewer and breaker read by id and mark REAL or LATENT
 
 Checked:
 - Gate on main at 73b8c42: pytest 1,792 passed 1 skipped, build 0 errors 2 warnings, dotnet test 763 net8.0 and 789 net48 (RAN, steps/runs/rec/gate_main.txt)

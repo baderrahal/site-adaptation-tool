@@ -22,12 +22,13 @@ Part 1 is the add-in. Part 2, the output sheets, waits for Bader's check of Part
 - Option B (Bader): the add-in does everything inside Revit 2024 in C#, .NET Framework 4.8. No Python on the user's PC. Python stays in the repo only as the test checker.
 - Q050 (Bader): parsons2024Rev6 is the level profile of every new build, Rev 6 prevails. native2022 stays for reference and is never the default.
 - Answer keys: the 7 Rev 6 Parsons site models in C:\02-Site Adaptation\Revit All Zones, IMA and IMB Zone 1, IMC and IMD Zone 2, IME and IMF Zone 3, IMG Zone 4. They are the main reference for every rule. The Native 1.1 to 1.4 reads are a second reference only, for plots none of the 7 hold, and never for unit codes. Their Revit 2024 copies sit in Revit All Zones\2024, listed in answerKeys of config/project.json and checked or made by python/key_copies.py against key_copies.json beside them (R312). The IMC copy comes from the Zone 02\ARC original (Q065).
+- dotnet/RevitPrototypeReader reads the answer keys, do not change it unless the round says so.
 - The area key is the Neighbourhood_ID, never an IM letter. The Parsons and the Native job use the IM letters for other areas.
 - The approved mock lives word for word in docs/addin-mock.md. It sets the content and the order of the ribbon, the dockable pane, the Set up site dialog, the check table and the two Excel files.
 
 How the round runs:
 
-- One phase per session (Q096). Bader pastes steps/START.md into a fresh session, which runs the next open phase of steps/01_next.md. At the end of the phase it merges, rewrites steps/PROGRESS.md and stops.
+- One phase per session (Q096). Bader pastes steps/START.md into a fresh session, which runs the next open phase of steps/01_next.md (PR 5 of Round REC writes it and START.md). At the end of the phase it merges, rewrites steps/PROGRESS.md and stops.
 - The main session plans, orchestrates and merges. One developer helper per PR.
 - No approval stop: a PR is merged when gh pr checks passes and the checkers found nothing open.
 - The breaker and the claim-checker read each PR before it merges. Each REAL finding is fixed with a test.
