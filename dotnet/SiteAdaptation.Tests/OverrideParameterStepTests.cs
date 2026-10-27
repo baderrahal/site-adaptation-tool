@@ -300,5 +300,66 @@ namespace SiteAdaptation.Tests
                 string.Join(" ", config.StepFields(PlanOverrides.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
             Assert.Equal(string.Join(" ", config.StepFields(PlanOverrides.StepName).Select(field => field.Name)), string.Join(" ", Build(Made()).Plans["5"].Overrides.Keys));
         }
+
+        [Fact]
+        public void R361_parity_parameters_the_text_of_each_link_parameter_the_plan_writes_with_its_source()
+        {
+            Built built = Build(Made());
+            Dictionary<string, PlotPlan> plans = built.Plans;
+            Dictionary<string, Dictionary<string, object>> step = LinkParameters.Step(plans.Keys, plans);
+            // Plot 1 with no override as the Python build writes it, the tables first and then the formulas, the link Name of R107 never written
+            Assert.Equal("{\"RRE_ZZ_SP_Prototype\":\"VD2\",\"RRE_ZZ_SP_Number-of-Steps\":\"1\",\"RRE_ZZ_SP_Fa\\u00e7ade-Color\":\"XX\",\"RRE_ZZ_SP_Fa\\u00e7ade-Design-Option\":\"XX\","
+                + "\"RRE_ZZ_SP_Prototype-Foundation-Type\":\"VD2-T2\",\"RRE_ZZ_SP_Prototype-HVAC-Schedule-Type\":\"SCHEDULES OF VRF INDOOR & OUTDOOR UNITS-DP2\",\"CASE\":\"E\","
+                + "\"RRE_ZZ_SP_Plot-Number\":\"1\",\"RRE_ZZ_SP_RVT-Name\":\"1 | VD2 | 1 | XX | XX\",\"RRE_ZZ_SP_Prototype-FFL\":\"10.280\"}", PyJson.Dumps((JObject)step["1"]["parameters"]));
+            Assert.True(((JObject)step["1"]["sources"]).Properties().All(item => (string)item.Value == "keyRules"));
+            Assert.Equal("True  null", Text(step["1"]["written"]) + " " + Text(step["1"]["lacks"]) + " " + Text(step["1"]["linkName"]));
+            // 2 its CASE by the text of its override, 3 its Prototype-FFL from the FFL moved by 10 cm, down to the cm, then its gap of 2 cm
+            Assert.Equal("Z override", (string)((JObject)step["2"]["parameters"])["CASE"] + " " + (string)((JObject)step["2"]["sources"])["CASE"]);
+            Assert.Equal("10.640 override", (string)((JObject)step["3"]["parameters"])["RRE_ZZ_SP_Prototype-FFL"] + " " + (string)((JObject)step["3"]["sources"])["RRE_ZZ_SP_Prototype-FFL"]);
+            // 4 not mirrored by its override takes the CASE of DP2 not mirrored, its link Name the text of its override
+            JObject four = (JObject)step["4"]["parameters"], five = (JObject)step["5"]["parameters"];
+            Assert.Equal((string)five["CASE"] + " keyRules", (string)four["CASE"] + " " + (string)((JObject)step["4"]["sources"])["CASE"]);
+            Assert.Equal("a made up name override", (string)four["RRE_ZZ_SP_RVT-Name"] + " " + (string)((JObject)step["4"]["sources"])["RRE_ZZ_SP_RVT-Name"]);
+            // 5 its steps of the override in the link Name, keyRules.steps of Number-of-Steps holds no 4, so the plot lacks it and is written all the same
+            Assert.Equal("5 | DP2 | 4 | XX | XX", (string)five["RRE_ZZ_SP_RVT-Name"]);
+            Assert.Null(five["RRE_ZZ_SP_Number-of-Steps"]);
+            Assert.Equal("RRE_ZZ_SP_Number-of-Steps True", Text(step["5"]["lacks"]) + " " + Text(step["5"]["written"]));
+            Assert.True(step["7"].All(item => item.Key == "written" ? (bool)item.Value == false : item.Value == null));
+        }
+
+        [Fact]
+        public void R361_a_plot_the_plan_does_not_write_holds_the_parameters_the_build_gave_it_with_the_names_it_lacks()
+        {
+            var list = new OverrideList(new Dictionary<string, JObject> { ["6"] = JObject.Parse("{\"mirrored\": false, \"parameter CASE\": \"H\"}") });
+            Dictionary<string, PlotPlan> plans = Build(list, null, new[] { "8" }, new[] { "6" }).Plans;
+            Dictionary<string, Dictionary<string, object>> step = LinkParameters.Step(plans.Keys, plans);
+            Assert.Equal("False H override RRE_ZZ_SP_Number-of-Steps RRE_ZZ_SP_Prototype-FFL", Text(step["6"]["written"]) + " " + (string)((JObject)step["6"]["parameters"])["CASE"] + " "
+                + (string)((JObject)step["6"]["sources"])["CASE"] + " " + Text(step["6"]["lacks"]));
+            Assert.Equal("CASE RRE_ZZ_SP_Number-of-Steps RRE_ZZ_SP_Prototype-FFL RRE_ZZ_SP_Prototype-Foundation-Type", Text(step["8"]["lacks"]));
+            Assert.Equal("8 | DP2 | None | XX | XX", (string)((JObject)step["8"]["parameters"])["RRE_ZZ_SP_RVT-Name"]);
+        }
+
+        [Fact]
+        public void R361_the_worker_build_writes_the_step_parameters_and_the_config_names_its_fields()
+        {
+            using (var maker = new LevelFloorStepTests())
+            {
+                WorkerRequest request = maker.Request("p1", LinkParameters.StepName, PlanOverrides.StepName);
+                string list = Path.Combine(request.OutputFolder, "overrides.json");
+                File.WriteAllText(list, new JObject { ["overrides"] = new JArray(Entry("5", "parameter CASE", "H")) }.ToString());
+                request.Inputs.Add(new WorkerFile { Role = "overrides", Path = list, Sha256 = FileHash.Sha256(list) });
+                Assert.Equal(0, WorkerRunner.Run(request.Write(request.OutputFolder), WorkerCommands.Default(), () => 9000.0));
+                JObject step = RunStamp.Read(Path.Combine(request.OutputFolder, "steps", "step_parameters_csharp.json"));
+                // A flat road at 10 m: one step and the FFL 10.228 of the pair 5 and 6, down to the cm in the Prototype-FFL
+                JToken five = step["plots"]["5"]["written"];
+                Assert.Equal("5 | DP2 | 1 | XX | XX 10.220 H override", (string)five["parameters"]["RRE_ZZ_SP_RVT-Name"] + " " + (string)five["parameters"]["RRE_ZZ_SP_Prototype-FFL"] + " "
+                    + (string)five["parameters"]["CASE"] + " " + (string)five["sources"]["CASE"]);
+                Assert.True(File.Exists(Path.Combine(request.OutputFolder, "steps", "step_overrides_csharp.json")));
+            }
+            AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
+            Assert.Equal("unit:noGeometry written:noGeometry parameters:noGeometry sources:noGeometry lacks:noGeometry linkName:noGeometry",
+                string.Join(" ", config.StepFields(LinkParameters.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
+            Assert.Equal("clusters fronts hands linkFrame levels floors overrides parameters", string.Join(" ", BuildSteps.Names));
+        }
     }
 }

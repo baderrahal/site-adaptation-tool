@@ -11,6 +11,8 @@ namespace SiteAdaptation.Common
     // that gives no value naming its parameter in the lacks
     public static class LinkParameters
     {
+        public const string StepName = "parameters";
+
         private const string ParameterWord = "parameter ";
         private static readonly string[] TableFactors = { "all", "typology", "mirroredFactor", "typologyMirrored", "steps", "typologySteps" };
 
@@ -74,6 +76,13 @@ namespace SiteAdaptation.Common
             }
             List<string> lacking = words.Select(word => word.Name.Substring(ParameterWord.Length)).Where(name => values[name] == null).OrderBy(name => name, StringComparer.Ordinal).ToList();
             return Tuple.Create(values, lacking);
+        }
+
+        // plan_from_book.parameter_step: per plot of the scope the link parameters of step 13 the build gave it after the overrides (PlanOverrides),
+        // their texts and sources, the names a rule gave no value and the link Name, which a build from the data book never writes (R107)
+        public static Dictionary<string, Dictionary<string, object>> Step(IEnumerable<string> numbers, IReadOnlyDictionary<string, PlotPlan> plans)
+        {
+            return numbers.ToDictionary(number => number, number => plans[number].Parameters);
         }
     }
 }
