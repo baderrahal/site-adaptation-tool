@@ -40,3 +40,6 @@ Moved from the open bugs of steps/PROGRESS.md at 73b8c42 with no word changed.
 
 - 4f PR 1a, python/parity.py line 6, python/plan_from_book.py line 893, python/tests/test_rounding.py line 11 and test_rounding_levels.py line 213: comments and docstrings name docs/addin-design.md, which Round REC cut into docs/design/. No output carries them, and docs/design/README.md finds a section by its number
 - 4f PR 1a, python/tests/test_key_join.py test_r326_the_area_rows_name_the_record_of_2b_where_it_lies_since_round_rec: its all() holds on an empty list of areas. The fixture joins 1 area today (RAN)
+- 4f PR 1b, steps/START.md step 7: npx ccusage@latest may change its columns or how it groups sessions between two rows, and the row does not record the version
+- 4f PR 1b, steps/START.md step 7: a resumed session or a late fix PR that runs the step again adds a second row of the same session, and steps/usage.md holds no total that would count it twice
+- 4f PR 1b, steps/START.md step 7: whether ccusage counts the helpers of a session, whose transcripts lie in <session>\subagents, under the row of its session is UNKNOWN
