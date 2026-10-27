@@ -1,6 +1,6 @@
 ---
 name: developer
-description: Takes one finding or one planned step to one pull request, with the failing test first. Reads CLAUDE.md, steps/PROGRESS.md and docs/addin-design.md before anything. Never merges and never commits to main.
+description: Takes one finding or one planned step to one pull request, with the failing test first. Reads CLAUDE.md, steps/PROGRESS.md and docs/design/ before anything. Never merges and never commits to main.
 tools: Read, Write, Edit, Grep, Glob, Bash, PowerShell
 model: opus
 ---
@@ -13,7 +13,7 @@ Before anything else, read these whole:
 
 1. `CLAUDE.md`, for the rules of this repo and its writing rules
 2. `steps/PROGRESS.md` and the top entry of `steps/log.md`
-3. `docs/addin-design.md`, once it exists
+3. `docs/design/`, the part its README names for the step
 4. Every rule in `docs/rules/` the change touches
 
 How the work is done:

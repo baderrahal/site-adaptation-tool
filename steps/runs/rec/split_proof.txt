@@ -6,9 +6,19 @@ docs/rules.md: 405469 bytes, sha256 4a9297fa193e2664e422f841d67fdba5459c1717a9ee
   Q ids named: original 40, parts 40
   equal: yes
 
+docs/addin-design.md: 149659 bytes, sha256 75313f1b64a81b1b89979e2c4da929c35f3d2441b77355b48fbd0276c59a8dda
+  11 parts joined: 149659 bytes, sha256 75313f1b64a81b1b89979e2c4da929c35f3d2441b77355b48fbd0276c59a8dda
+  R ids named: original 488, parts 488
+  Q ids named: original 70, parts 70
+  equal: yes
+
+steps/investigations/round-addin.md: 470100 bytes, sha256 2f1de10023e27566a401a073a0568fd7fc11af2753e2466ca71eeb6831bd265c
+  15 parts joined: 470100 bytes, sha256 2f1de10023e27566a401a073a0568fd7fc11af2753e2466ca71eeb6831bd265c
+  R ids named: original 797, parts 797
+  Q ids named: original 382, parts 382
+  equal: yes
+
 R ids of every record file (docs/, steps/, CLAUDE.md, .claude/agents/): before 346 distinct, after 347 distinct, lost 0 [], added 1 ['R400']
 Q ids of every record file (docs/, steps/, CLAUDE.md, .claude/agents/): before 94 distinct, after 96 distinct, lost 0 [], added 2 ['Q095', 'Q097']
 
 result: every pair equal, no id lost
-
-Second route on 2026-10-27: grep -ohE over git archive 73b8c42 of docs, steps, CLAUDE.md and .claude/agents against git ls-files of the tree, distinct R ids 346 before and 347 after, Q ids 94 before and 96 after, the same as above.

@@ -1,0 +1,9 @@
+Round REC, the verdicts of the reviewer and the claim-checker on each PR, as each agent reported them
+
+PR 56, pass 1
+- reviewer APPROVE. REAL: CLAUDE.md lines 42, 64 and 69 name docs/rules.md, they move in PR 4. LATENT: the RULE_TITLE pattern takes a line break, any .md in docs/rules/ joins the rules, 07-addin-r354-r388.md also holds R11 to R15
+- claim-checker 12 claims, 9 BACKED, 3 UNBACKED, 0 WRONG. UNBACKED: the gate counts of main and of the dotnet run had no file, the distinct id counts had one route only. Fixed by gate_main.txt, gate_pr1.txt and the second route
+
+PR 57, pass 1
+- reviewer CHANGES NEEDED. REAL: the new round-addin.md named steps/01_next.md, steps/latent.md, Q095 and Q097 before they exist, fixed by naming the PR that brings each. LATENT: key_join.py line 193 writes the old round file path into a measured note, the proof base of the design and round pairs is 73b8c42 and not the PR parent, the README row of 06-settings. The README row was fixed. The base needs none, as the parts equal the file at 73b8c42
+- claim-checker 0 WRONG, 3 UNBACKED: no file held the review verdicts (this file), the count of test readers (2 Python tests read the parts, test_harness checks the CLAUDE.md pointer), the gate file was written before the commit and CI dotnet was pending (merged only after gh pr checks passed)

@@ -22,7 +22,7 @@ changed. Then check, and quote the line for each thing you find:
 5. **No swallowed error.** A catch logs and carries on, or rethrows. A caught value never
    falls through into a success message
 6. **The host split.** No Revit type in the logic: SiteAdaptation.Common today, and the logic
-   project docs/addin-design.md will name. The Revit projects hold only the calls into Revit
+   project docs/design/ will name. The Revit projects hold only the calls into Revit
 7. **Host handles.** Every host object that must be disposed or released is, and none is kept
    across a call that changes the document
 8. **Nothing weakened.** No test skipped, deleted or loosened to get green, and no expected

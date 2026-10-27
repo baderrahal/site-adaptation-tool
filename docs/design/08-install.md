@@ -1,0 +1,17 @@
+## 8. Install and the unattended runs
+
+Install (R370 planned):
+
+- dotnet/SiteAdaptation.AddIn/Install-SiteAdaptation.ps1, PowerShell 7 (#Requires -Version 7). It refuses while Revit runs, builds unless -NoBuild, copies the add-in, Common and the icons into %APPDATA%\Autodesk\Revit\Addins\2024\SiteAdaptationAddIn and the worker with its libraries and exe.config into its Worker folder, and writes SiteAdaptationAddIn_Revit2024.addin into %APPDATA%\Autodesk\Revit\Addins\2024 with the full path of the DLL. It copies no config file: the user picks config/project.json in the pane, and the config files it names lie beside it (section 6).
+- The manifest: AddIn Type Application, Name Site Adaptation, FullClassName SiteAdaptation.AddIn.App, an AddInId of its own fixed in the repo, VendorId SITEADAPT and VendorDescription Site Adaptation Tool, as the three manifests of today (READ).
+- No admin rights: every path is under %APPDATA% of the user. Never the registry: the script reads no CodeSigning key and writes none (R106), unlike the optional report of Install-TestHost.ps1. Revit asks once whether to load the unsigned add-in, Bader answers it by hand, the watcher answers Load Once in a test window (R108), whose list of the tool's add-ins gains the new manifest.
+- One Common: Revit loads one SiteAdaptation.Common.dll for every add-in of the tool, the first it meets, so the script installs Common into every folder of the tool from the same build and checks one SHA-256 across them, as Install-TestHost.ps1 does today (READ).
+- Inside Revit the add-in registers an AssemblyResolve handler first thing in OnStartup that serves only the assemblies of its own folder of the same or a higher version, and only to a request of the tool's assemblies or with no requester, never to another add-in (RAN in the host simulation of docs/licences.md). Newtonsoft.Json comes from Revit's own copy by the redirect of Revit.exe.config (READ).
+
+Unattended runs for Phase 6 (R384 planned):
+
+- Run-TestHost.ps1 gains a round spec of the buttons: a job of kind newProject makes `<name>-TEST-NEW.rvt` (R213) from DefaultMetric.rte or from no template with imperial units (Application.NewProjectDocument with UnitSystem.Imperial) and saves it under that name before any button, since a document with no path has no work folder (section 6), then a job of kind buttons names the settings, the scope (one NBH), the buttons 1 to 8, dryRun false, the answers of the dialogs (Apply in Set up site, the Use of every row as built, Apply after each dry run) and the screenshots. The guard of R103 learns both kinds, one window at a time under the lock of R200, the 2 GB floor, the watcher in our own Revit only.
+- The test host calls the public entry of each button, SiteAdaptation.AddIn.Buttons.Run, the one the ribbon command calls, so no run logic is copied (as R102 does for the placer). A dialog is a view model first, the ribbon command shows it as a window, the test host answers it from the job, so no window waits for a click.
+- Screenshots of our own Revit only: the pane page, the Set up site dialog and the check table are WPF visuals of the add-in, rendered to PNG by RenderTargetBitmap inside the Revit process the run script started. The ribbon tab is taken by PrintWindow of the main window handle of that same process, cropped to the ribbon. Never a screen grab of the desktop, never another process (CHOSEN, Phase 6c proves it or the step becomes a question).
+- Each run writes its samples (R310), its log and the hashes of every source before and after (R201, R202).
+

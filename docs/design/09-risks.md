@@ -1,0 +1,34 @@
+## 9. Risks
+
+| Risk | Evidence | Handling |
+|---|---|---|
+| ACadSharp inside Revit | it needs System.Memory 4.0.5.0, Revit 2024 holds 4.0.1.1 with no redirect, it ran beside the host copy in the Revit-like host (RAN) | it runs in the worker, never inside Revit |
+| The xlsx writer inside Revit | DocumentFormat.OpenXml 3.5.1 loads beside an older one (RAN), Dynamo for Revit ships 2.12.3.0 (READ) | it runs in the worker, Revit writes no xlsx |
+| The PDF reader inside Revit | PdfPig failed on System.Memory 4.0.2.0 with no resolver, ran with one (RAN) | it runs in the worker, whose generated redirects let it run with no resolver (RAN) |
+| Newtonsoft.Json | Revit 2024 ships 13.0.1, its config redirects 0.0.0.0 to 13.0.0.0, the host copy served the add-in (READ, RAN) | Common and the add-in pin 13.0.1, the add-in ships no copy, the run log writes the version and file loaded |
+| Another add-in hands back a wrong version | the resolver of an add-in that loaded first could answer any request (UNKNOWN in Revit) | the library line of every run log, a button stops naming the assembly when Common or Newtonsoft.Json is not the one expected |
+| Memory of a full NBH build | the Road Layout read alone took 2,571 MiB in the saved log (RAN, cadreader_peaks_pr49.txt, which holds 2,571, 100 and 77 MiB private for the three drawings) and 2,576 and 2,612 MiB in the runs of 3b and of the claim-checker, neither output saved (READ, round-addin.md 3b), free memory fell to 0.53 to 1.42 GiB in each read window of 2a (READ, steps/PROGRESS.md), the whole NBH 03 image held 10,732 MiB and hung (Q063), each upgrade window of an STR prototype took up to 2,053 MiB (READ, round-addin.md) | the reads and the build run in the worker, which ends after each button, every large read checks free memory against its measured peak plus the floor first and refuses with both named (R347, section 2), Phase 5d places NBH 012 with all 13 prototype files in one window and logs the peak by R310 before any larger scope runs, and if one transaction for all codes does not fit, the change of the button to one transaction per code becomes a question |
+| The 2 GB floor | R200 checks free memory at the lock, R310 logs it in every sample and stops nothing (READ) | the worker reads free memory by GlobalMemoryStatusEx before each large read against its peak plus the floor (R347), the add-in before each link type load against the floor, each stops naming both numbers, the floor and the peaks in config |
+| The Zone 1 gap of Q066 | IMA and IMB hold no level, ramp or yard, the yard of Zone 1 is taken from Zones 2 and 3, notMeasured (READ, keyRules.yard) | the build says it on every Zone 1 plot, the check table shows an empty Past job and Source Rule (no key, Q066) |
+| Open questions that set values | Q001 El @ Entry, Q012 the split, Q013 CASE, Q017 VD4, Q057 the ramp fall, Q066 Zone 1, Q068 the position, Q070 the entry parameter, Q071 the wall top, Q072 the side road, Q074 the steps, Q082 the 33 plots with no road level | each value lives in keyRules or the override list, never in code, and every plot a question decides shows that question in its check row and in Source, so the answer changes data, not code |
+| Rough levels on an NBH with no key | by the rule alone El @ Entry holds on 157 of 1,753 key plots, the FFL on 217 (READ, round-addin.md 3c) | the Source column of the level Excel and the check rows say Rule or Override plot by plot (Q001) |
+| Settings lost or wrong | a path chosen on another PC | the Settings entity keeps each path and hash, a missing file stops the button naming it |
+| Revit API steps not yet proven | moving the survey point, a project from no template, the WPF pane and windows, the screenshots | each is on the open list below with the phase that measures it, proven on the smallest case in its Phase 5 PR on a copy, an attempt that fails three times becomes a question |
+
+### Open until a Revit run
+
+What only a Revit run can settle, each with the phase that measures it. Until then each stays as this design says, and a result otherwise changes this design first (R343).
+
+1. Phase 5a: the session id given on DocumentOpened and on a new document, the pane loaded again at ViewActivated, DocumentOpened and DocumentClosed, and a worker answer that ends while another document is active written to its own document, or dropped with its issue once that document closed (section 2, 7.2).
+2. Phase 5a: Document.Title and Document.PathName of a detached document and of one never saved, and the stop that asks for a save first (section 6).
+3. Phase 5b: BasePoint.Clipped set on the survey point inside the transaction of button 1, the clip state in which MoveElement moves the survey point and not the shared coordinates, and whether SetProjectPosition moves the survey point or the project base point in internal coordinates (3.1, order step 2).
+4. Phase 5b: the Elevation Base of the level type of a project from the default metric template and from no template, and Level.Elevation set on the Survey Point base giving the Level.ProjectElevation of the keys within 0.5 mm (3.1, order step 3).
+5. Phase 5b: the length unit, the floor types and the wall types of a project from the default metric template and from no template, and whether one from no template holds a floor type at all (3.1, 7.3).
+6. Phase 5b: the Revit column of the check points in a dry run, from the Transform made of the position Apply would set, against the value GetTotalTransform gives after Apply, equal at the two decimals of the Diff on every check point (3.1 Checks).
+7. Phase 5b: the shared parameters bound by the GUIDs of config, read and written by Element.get_Parameter(Guid), and the stop with the list on a copy of 01101-PSN-IMC-R17B-TEST-NEW (3.1, Shared parameters).
+8. Phase 5b: the badge on the four copies of 3.1, each by the signs it holds.
+9. Phase 5c: RevitLinkType.Load of an unloaded type and RevitLinkType.Reload of a loaded type whose file changed, outside any transaction, the Undo list cleared, on one link each (3.4).
+10. Phase 5d: the wait for the worker inside the transaction of button 6 within addin.workerTimeLimitS.levelExcel, the roll back when it fails, and the move after the commit onto an Excel held open, which leaves step 6 not Done (3.6).
+11. Phase 5d: the peak memory of NBH 012 placed with all 13 prototype files in one window (Risks, memory of a full NBH build).
+12. Phase 5e: the screenshots of the pane, the dialog and the check table by RenderTargetBitmap and of the ribbon by PrintWindow, in our own Revit only (section 8).
+
