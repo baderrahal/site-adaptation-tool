@@ -2,7 +2,7 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
-## Round ADDIN Part 1, 2026-10-25, the Revit 2024 add-in from the Parsons site models
+## Round ADDIN Part 1, 2026-10-25, the add-in
 
 Goal:
 - Add-in from 7 keys (Q050), 4e R354 to R357 (READ round-addin.md)
@@ -11,13 +11,13 @@ Done:
 - To 4d, 4e in review (READ round-addin.md)
 
 Checked:
-- b6c0fe6 runs, gate (RAN, p4efix5, p4efix6_gate)
+- 64 of 64 parity at b6c0fe6, gate 1792 passed at 9208481 (RAN, p4efix5_parity_head, p4efix6_gate)
 
 Remains:
 - 4f to 4h, Phases 5, 6, CASE categories (READ addin-design.md)
 
 Known bugs:
-- Q063, Q065, Q070, Q088 to Q094, PROGRESS.md open bugs (READ), xUnit2013 (RAN, p4efix6_gate_build.txt)
+- Q063, Q065, Q070, Q088 to Q094, PROGRESS.md open bugs (READ), xUnit2013 (RAN, p4efix6_gate)
 
 Next:
 - 4f: R358 to R361 (READ addin-design.md)
@@ -40,9 +40,9 @@ Q068. Project position of button 1: set the Parsons position from config, not R2
 Q070. El @ Entry with no schedule: take the ELl@Entry parameter of the key, off the IMC schedule over 30 mm on 100 of 314 plots and the IMD schedule on 115 of 398, ask Parsons for the IME to IMG schedules
 Q071. Walls: accept the base at the yard level, the centre on the edge and the open front, ask the architect for the wall top rule (0.346), wall overrides once button 7 places walls
 Q072. Side road of a villa with three road edges: the side edge, not the back: accept. Q074. Steps of the base and risers, half a riser no step (0.988 on 5 keys), against the count rule of the IMC and IMD schedules (0.934): accept. Q075. Native entries with no value from Round 17: move them to cannot by a run with --replace native
-Q076. Python checker licences: shapely is BSD-3-Clause and its wheels bundle GEOS under LGPLv2.1, nothing of Python ships: keep it for the checker
+Q076. Python checker licences: shapely is BSD-3-Clause, its wheels bundle GEOS under LGPLv2.1, no Python ships: keep it for the checker
 Q077. The worker: buttons 2 and 3 read and build in CadReader.exe beside Revit: accept. Q078. Rounding: Python and C# round the 15 digit decimal half away from zero (R385), values of both move one unit on a tie: accept
-Q079. Microsoft.NETCore.Platforms of netstandard2.0 pinned to 3.1.0, MIT, build only: accept. Q082. Road level of 33 plots of the keys, listed in noRoadLevel of each plan: no road surface covers a front corner and the Roads folder holds no other road level there: ask the road designer for the road surface or road model of these fronts, else accept them listed and not written
+Q079. Microsoft.NETCore.Platforms of netstandard2.0 pinned to 3.1.0, MIT, build only: accept. Q082. Road level of 33 plots of the keys, listed in noRoadLevel of each plan: no road surface covers a front corner and the Roads folder holds no other level there: ask the road designer for the road surface or road model of these fronts, else accept them listed and not written
 Q085. Plot, the floor parameter, is a project parameter in all 7 keys with no GUID (R353): bind Plot as a new shared parameter with a GUID Bader fixes in a block of config no run writes, as Q087 gives it (recommended), or as the keys do, read by name.
 Q086. Check points against the keys (R353): the keys lie about half a mm off the baseplan, 127 of 141 pass at 1 mm, 10 of the 14 failures fail at any limit, 4 are merged vertices: hold the keys at 2 mm and button 1 against Revit at 1 mm (recommended), or 1 mm for both
 Q087. Hand entries in addin.sharedParameters (R353): a hand edit of the block is refused or overwritten by the next write, as its full text measures. Keep the block a measure the run alone writes, and put a GUID Bader fixes, such as Plot of Q085, in its own block that no run writes, refused when a key gives that GUID to another name (recommended), or bring the merge back with the four cases of the review as its tests.
@@ -52,7 +52,7 @@ Q090. Prototype folder of a build (R357): a fresh PR that refuses a folder value
 Q091. JSON reads of the worker that still differ from Python (R354): a fresh PR that routes every JSON input of the worker through PyJson and raises a duplicate when the object closes, with the same messages and the inputs of the reviews as tests (recommended), or keep them as known limits
 Q092. Settings and keyRules values a build takes unchecked (R355 to R357): a fresh PR that gives every number setting and keyRules number its range in config, finite, sign and bounds, and one check order in both languages, with the inputs of the reviews as tests (recommended), or keep them as known limits
 Q093. CSV reads that still differ (R345): a fresh PR that routes every Python reader of plots.csv, labels.csv and phase1_border.csv through csv_rows, which sets its own field limit and restores it, counts the C# limit in code points and gives the same decode line, with the inputs of the reviews as tests (recommended), or keep them as known limits
-Q094. Scope and tolerance refusals that still differ (R345, R348): one hardening PR that refuses each case with one line and exit 2 on both sides (recommended), or keep them as known limits
+Q094. Scope and tolerance refusals: one hardening PR that refuses each case, a faceless number only in a list or cover, with one line and exit 2 on both sides (recommended), or keep them as known limits
 
 ## Round 17, 2026-10-25, the past models of all four sub-phases, the majority rule and the IMC rebuild
 
