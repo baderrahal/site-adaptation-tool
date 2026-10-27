@@ -156,10 +156,9 @@ MADE_COUNTS = ("floors.generic.heightOffset:RECOMMENDED=1 floors.generic.heightO
                "floors.generic.z:RECOMMENDED=1 floors.generic.z:UNKNOWN=5 floors.ramp.corners:RECOMMENDED=2 floors.ramp.corners:UNKNOWN=4 "
                "floors.ramp.heightOffset:RECOMMENDED=2 floors.ramp.heightOffset:UNKNOWN=4 floors.ramp.level:UNKNOWN=6 floors.ramp.levelElevation:UNKNOWN=6 "
                "floors.ramp.outline:UNKNOWN=6 floors.ramp.plotValue:DOCUMENT=6 floors.ramp.slopePercent:CHOSEN by Code=6 floors.ramp.type:CHOSEN by Code=5 "
-               "floors.ramp.type:RECOMMENDED=1 floors.yard.heightOffset:RECOMMENDED=1 floors.yard.heightOffset:UNKNOWN=2 floors.yard.level:RECOMMENDED=1 "
-               "floors.yard.level:UNKNOWN=2 floors.yard.levelElevation:RECOMMENDED=1 floors.yard.levelElevation:UNKNOWN=2 floors.yard.outline:RECOMMENDED=3 "
-               "floors.yard.plotValue:DOCUMENT=2 floors.yard.plotValue:RECOMMENDED=1 floors.yard.type:RECOMMENDED=1 floors.yard.type:UNKNOWN=2 "
-               "floors.yard.z:RECOMMENDED=1 floors.yard.z:UNKNOWN=2 insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 "
+               "floors.ramp.type:RECOMMENDED=1 floors.yard.heightOffset:UNKNOWN=3 floors.yard.level:UNKNOWN=3 "
+               "floors.yard.levelElevation:UNKNOWN=3 floors.yard.outline:RECOMMENDED=3 floors.yard.plotValue:DOCUMENT=3 floors.yard.type:UNKNOWN=3 "
+               "floors.yard.z:UNKNOWN=3 insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 "
                "levels.entry:RECOMMENDED=1 levels.ffl:RECOMMENDED=1 levels.ffl:UNKNOWN=5 levels.height:MEASURED weak=4 levels.height:RECOMMENDED=2 "
                "levels.ssl:RECOMMENDED=1 levels.ssl:UNKNOWN=5 levels.steps:MEASURED weak=3 levels.steps:RECOMMENDED=3 linkName:MEASURED weak=2 "
                "linkName:RECOMMENDED=4 mirrored:MEASURED strong=5 mirrored:RECOMMENDED=1 parameters.CASE:MEASURED weak=4 parameters.CASE:RECOMMENDED=2 "
@@ -219,17 +218,22 @@ def test_r401_each_sourced_value_of_a_written_plot_holds_its_status_by_its_sourc
 
 
 def test_r401_every_value_an_override_moves_carries_the_status_of_the_override_list(monkeypatch):
-    """The second method: the made row built with no override, every value of a plot both write that differs carries the override status."""
+    """The second method: the made row built with no override, every value of a plot both write that differs carries the override status.
+    The yard of 4 is there only by its mirror flag override, which picks the outline alone, so of its fields the outline carries it."""
     built, plain = made_row(monkeypatch, MADE), made_row(monkeypatch, {})
-    differ, carry = [], []
+    differ, carry, only = [], [], []
     for number, entry in built["plan"].items():
         other = value_status.fields_of(plain["plan"][number])
         for field, item in value_status.fields_of(entry).items():
-            if field not in other or other[field]["value"] != item["value"]:
+            carries = detail(built, item)["entries"][0].get("question") == "Q053"
+            if field not in other:
+                only.append((number, field, carries))
+            elif other[field]["value"] != item["value"]:
                 differ.append((number, field))
-                if detail(built, item)["entries"][0].get("question") == "Q053":
+                if carries:
                     carry.append((number, field))
     assert differ == carry and len(differ) > 20
+    assert only == [("4", "floors.yard." + name, name == "outline") for name in ("type", "level", "levelElevation", "outline", "plotValue", "z", "heightOffset")]
 
 
 def strip(value):

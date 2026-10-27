@@ -714,7 +714,7 @@
     }
   },
   "valueStatus": {
-    "note": "R401. The status of each sourced value of a plot of the plan, by its field and its source, from the block status of the rules profile. fields holds a field, parameters.* for every parameter, and per source the list of the block entries the code that computes the value reads, each by its path in the rules profile (profile) or in this file (config), where {levelProfile} is the level profile of the build, {parameter} the parameter name and {hand} the hand table the plot took, or the status itself. A value takes the status of the first assumed entry of its list, else of the first, and lists each. sources holds a source for every field. A pair neither holds, or an entry the block lacks, is UNKNOWN. overrideSets names per override of the list every field it moves or makes, as the mirror flag picks the yard, which then takes the status of the source override. assumed names the statuses the plan summary lists by plot, MEASURED with its strength.",
+    "note": "R401. The status of each sourced value of a plot of the plan, by its field and its source, from the block status of the rules profile. fields holds a field, parameters.* for every parameter, and per source the list of the block entries the code that computes the value reads, each by its path in the rules profile (profile) or in this file (config), where {levelProfile} is the level profile of the build, {parameter} the parameter name and {hand} the hand table the plot took, or the status itself. A value takes the status of the first assumed entry of its list, else of the first, and lists each. sources holds a source for every field. A pair neither holds, or an entry the block lacks, is UNKNOWN. overrideSets names per override of the list every field it moves, the mirror flag the yard outline alone of the yard, which then takes the status of the source override. assumed names the statuses the plan summary lists by plot, MEASURED with its strength.",
     "sources": {
       "override": {"status": "RECOMMENDED", "question": "Q053", "where": "steps/investigations/rule-status-audit.md section 6"},
       "locationPlan": {"status": "DOCUMENT", "document": "the location plan, labels.csv of the data book"},
@@ -762,7 +762,7 @@
       "steps": ["levels.steps", "parameters.RRE_ZZ_SP_Number-of-Steps", "parameters.RRE_ZZ_SP_RVT-Name", "linkName"],
       "rampFrontM": ["floors.ramp.corners", "floors.ramp.heightOffset"],
       "rampType": ["floors.ramp.type"],
-      "mirrored": ["mirrored", "insert", "rotationDeg", "parameters.CASE", "parameters.RRE_ZZ_SP_Prototype-Foundation-Type", "floors.yard.outline", "floors.yard.type", "floors.yard.level", "floors.yard.levelElevation", "floors.yard.plotValue", "floors.yard.z", "floors.yard.heightOffset"],
+      "mirrored": ["mirrored", "insert", "rotationDeg", "parameters.CASE", "parameters.RRE_ZZ_SP_Prototype-Foundation-Type", "floors.yard.outline"],
       "insert": ["insert", "floors.yard.outline"],
       "rotationDeg": ["rotationDeg", "floors.yard.outline"]
     },

@@ -82,10 +82,9 @@ namespace SiteAdaptation.Tests
             + "floors.generic.z:RECOMMENDED=1 floors.generic.z:UNKNOWN=5 floors.ramp.corners:RECOMMENDED=2 floors.ramp.corners:UNKNOWN=4 "
             + "floors.ramp.heightOffset:RECOMMENDED=2 floors.ramp.heightOffset:UNKNOWN=4 floors.ramp.level:UNKNOWN=6 floors.ramp.levelElevation:UNKNOWN=6 "
             + "floors.ramp.outline:UNKNOWN=6 floors.ramp.plotValue:DOCUMENT=6 floors.ramp.slopePercent:CHOSEN by Code=6 floors.ramp.type:CHOSEN by Code=5 "
-            + "floors.ramp.type:RECOMMENDED=1 floors.yard.heightOffset:RECOMMENDED=1 floors.yard.heightOffset:UNKNOWN=2 floors.yard.level:RECOMMENDED=1 "
-            + "floors.yard.level:UNKNOWN=2 floors.yard.levelElevation:RECOMMENDED=1 floors.yard.levelElevation:UNKNOWN=2 floors.yard.outline:RECOMMENDED=3 "
-            + "floors.yard.plotValue:DOCUMENT=2 floors.yard.plotValue:RECOMMENDED=1 floors.yard.type:RECOMMENDED=1 floors.yard.type:UNKNOWN=2 "
-            + "floors.yard.z:RECOMMENDED=1 floors.yard.z:UNKNOWN=2 insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 "
+            + "floors.ramp.type:RECOMMENDED=1 floors.yard.heightOffset:UNKNOWN=3 floors.yard.level:UNKNOWN=3 "
+            + "floors.yard.levelElevation:UNKNOWN=3 floors.yard.outline:RECOMMENDED=3 floors.yard.plotValue:DOCUMENT=3 floors.yard.type:UNKNOWN=3 "
+            + "floors.yard.z:UNKNOWN=3 insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 "
             + "levels.entry:RECOMMENDED=1 levels.ffl:RECOMMENDED=1 levels.ffl:UNKNOWN=5 levels.height:MEASURED weak=4 levels.height:RECOMMENDED=2 "
             + "levels.ssl:RECOMMENDED=1 levels.ssl:UNKNOWN=5 levels.steps:MEASURED weak=3 levels.steps:RECOMMENDED=3 linkName:MEASURED weak=2 "
             + "linkName:RECOMMENDED=4 mirrored:MEASURED strong=5 mirrored:RECOMMENDED=1 parameters.CASE:MEASURED weak=4 parameters.CASE:RECOMMENDED=2 "
@@ -250,15 +249,22 @@ namespace SiteAdaptation.Tests
             MadeStep(new OverrideList(new Dictionary<string, JObject>()), out OverrideParameterStepTests.Built plain);
             var differ = new List<string>();
             var carry = new List<string>();
+            var only = new List<string>();
             foreach (string number in new[] { "1", "2", "3", "4", "5", "6" })
             {
                 Dictionary<string, string> mine = Values(built.Plans[number]), other = Values(plain.Plans[number]);
                 foreach (KeyValuePair<string, string> value in mine.Where(item => ((JObject)step[number]["fields"])[item.Key] != null))
                 {
-                    if (!other.TryGetValue(value.Key, out string before) || before != value.Value)
+                    bool carries = (string)Field(step, number, value.Key)["statusFrom"]["entries"][0]["question"] == "Q053";
+                    if (!other.TryGetValue(value.Key, out string before) || before == "null")
+                    {
+                        // A field the build with no override does not hold, as the yard of 4 its mirror flag override alone picks
+                        only.Add(number + " " + value.Key + " " + carries);
+                    }
+                    else if (before != value.Value)
                     {
                         differ.Add(number + " " + value.Key);
-                        if ((string)Field(step, number, value.Key)["statusFrom"]["entries"][0]["question"] == "Q053")
+                        if (carries)
                         {
                             carry.Add(number + " " + value.Key);
                         }
@@ -266,6 +272,7 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Equal(string.Join(", ", differ), string.Join(", ", carry));
+            Assert.Equal("4 floors.yard.z False, 4 floors.yard.outline True", string.Join(", ", only));
             Assert.True(differ.Count > 15, differ.Count.ToString());
         }
 
