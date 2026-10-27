@@ -63,7 +63,7 @@ def made_build(monkeypatch, overrides=None, split=None, units=None, zones=None):
     monkeypatch.setattr(plan_from_book, "road_level", lambda surfaces, point, snap: (10.0 + point[0] / 100.0, "road"))
     args = argparse.Namespace(level_profile=None, overrides=None, override_source=None, override_model=[], override_fields=None)
     rules = plan_from_book.rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters)
-    rules["overrides"] = overrides or {}
+    rules["overrides"] = {} if overrides is None else overrides
     floors = plan_from_past.load_floors(settings)
     site = {"levels": {floors["levels"][kind]: 0.0 for kind in ("generic", "yard", "ramp")}, "surveyPoint": {"position": [0, 0, 0], "sharedPosition": [0, 0, 0]},
             "angleToTrueNorthDeg": 0.0}
@@ -77,8 +77,9 @@ def made_build(monkeypatch, overrides=None, split=None, units=None, zones=None):
     links = plan_from_book.link_step(scope, rows, trace, hands, rules["keyRules"], files, profile)
     levels = plan_from_book.level_step(scope, rows, trace, rules, profile)
     made = plan_from_book.floor_step(scope, rows, trace, links, rules, profile, 0.5)
-    return {"plan": {entry["plot"]: entry for entry in plan["plots"]}, "plots": plan["plots"],
-            "levels": levels, "floors": made, "links": links, "profile": profile, "rules": rules}
+    return {"plan": {entry["plot"]: entry for entry in plan["plots"]}, "plots": plan["plots"], "missing": {entry["plot"]: entry for entry in plan["missing"]},
+            "summary": plan["summary"], "levels": levels, "floors": made, "links": links, "profile": profile, "rules": rules, "trace": trace, "hands": hands,
+            "rows": rows, "scope": scope, "files": files}
 
 
 def entry_of(mean):
@@ -247,5 +248,5 @@ def test_r358_r359_the_config_names_the_fields_of_the_steps_levels_and_floors_by
         "unit": ("noGeometry", None), "generic": ("points", 3), "rampOutline": ("points", 3), "rampZ": ("levels", 3), "rampClass": ("noGeometry", None),
         "rampType": ("noGeometry", None), "yardDepth": ("levels", 3), "yardUnit": ("noGeometry", None), "yardWidth": ("points", 3), "yardType": ("noGeometry", None),
         "yardOutline": ("points", 3), "lacks": ("noGeometry", None)}
-    assert plan_from_book.BUILD_STEPS == ("clusters", "fronts", "hands", "linkFrame", "levels", "floors")
+    assert plan_from_book.BUILD_STEPS == ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "overrides", "parameters")
     assert "floors" in plan_from_book.PROTOTYPE_STEPS and "levels" not in plan_from_book.PROTOTYPE_STEPS

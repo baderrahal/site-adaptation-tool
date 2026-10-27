@@ -59,9 +59,9 @@ ESTIMATE = "estimate"
 LOCATION = "locationPlan"
 OVERRIDE = "override"
 KEY_RULES = "keyRules"
-# R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R359 after the faces
-PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame", "levels", "floors")
-BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame", "levels", "floors")
+# R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R361 after the faces
+PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame", "levels", "floors", "overrides", "parameters")
+BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "overrides", "parameters")
 FOOTPRINT = "footprint"
 # R354, Q089. The one line a build and its C# refuse an analysis with, as a build takes the footprint clusters alone
 ANALYSIS_REFUSED = "the analysis is no input of a build since Q089, a build takes the footprint clusters of R236 alone (R354)"
@@ -353,6 +353,147 @@ def floor_step(numbers, rows, trace, links, rules, profile, step):
     return found
 
 
+OVERRIDE_FIELDS = ("unit", "skip", "written", "applied", "notApplied", "mirrored", "insert", "rotationDeg", "entry", "ffl", "ssl", "height", "steps", "rampZ",
+                   "rampType", "yardZ", "yardOutline")
+
+
+def held_plan(number, name, made, written):
+    """R360. A value of the step overrides as the plan writes it, refused when the plan writes another."""
+    if made != written:
+        raise ValueError("the step overrides gives plot %s the %s %r and the plan writes %r (R360)" % (number, name, made, written))
+
+
+def override_step(numbers, rows, trace, hands, files, rules, profile, step):
+    """R360. The step overrides of the parity harness: per plot of the scope what the build did with each override of the list, the Outcomes of
+    the build, applied or left with why, whether the plan writes the plot and the skip reason of R386, and the values after the overrides as
+    the build places them: the mirror flag, the link of R356 on that hand with the insert moved by its gap in the link axes and the rotation
+    turned by its gap, El @ Entry with its entryM gap, the FFL with its heightM gap, SSL, the height and the steps or its override from them,
+    and for a plot the plan writes the ramp corners of Step 8 with the rampFrontM gap, the ramp type of a rampType override and the yard of
+    R358 on the link after the overrides at the FFL less its depth, each raw the value just before its last rounding. Each value the plan
+    writes is held to it, a level of a plot not written to the level rows of the build."""
+    key, lp = rules["keyRules"], rules["levelProfile"]
+    if not plan_rules.key_levels_of(key):
+        raise project_profile.ProfileError(LEVELS_NO_FFL % rules["name"])
+    if key["yardOutline"]["rule"] != "fittedOutlineRefit":
+        raise project_profile.ProfileError(YARD_GROUPS % rules["name"])
+    overrides = rules["overrides"]
+    skip = getattr(overrides, "skip", {})
+    section = plan_rules.key_frame_section(key)
+    outlines = plan_rules.key_outlines(key, {"outlines": {}})
+    ground = profile.metres("levels.ground_ssl")
+    base_rule = key.get("baseHeight")
+    entries, level_rows, front = trace.get("entries") or {}, trace.get("levelRows") or {}, trace.get("front") or {}
+    built, records = trace.get("built") or {}, trace.get("records") or {}
+    found = {}
+    for number in numbers:
+        row = rows.get(number) or {}
+        unit = row.get("typologyRev9") or None
+        record, plot = records.get(number), built.get(number) or {"entry": {}, "written": False}
+        made = dict.fromkeys(OVERRIDE_FIELDS)
+        made.update(unit=unit, skip=skip.get(number), written=plot["written"], applied=None if record is None else list(record["applied"]),
+                    notApplied=None if record is None else dict(record["notApplied"]))
+        found[number] = made
+        if unit is None or number in skip:
+            continue
+        mine = overrides.get(number) or {}
+        item, entry, level = front[number], entries.get(number), level_rows.get(number)
+        mirrored = mine["mirrored"] if isinstance(mine.get("mirrored"), bool) else hands[number]["mirrored"]
+        keo = ((profile.get("typologies") or {}).get(unit) or {}).get("keo_file")
+        fit_unit = unit if unit in section["units"] else keo
+        builder = plan_from_past.PlotBuilder(number)
+        plan_from_cad.link_values(builder, unit, item["face"], item["frame"], trace["roles"].get(number), section, files, mirrored, fit_unit)
+        if builder.has("insert"):
+            frame = item["frame"]
+            insert = list(cad_links.predicted_origin(frame, mirrored, section["units"].get(fit_unit or unit)))
+            rotation = cad_links.rotation_of(frame, mirrored)
+            gap = mine["insert"].get("gapToRuleM") if isinstance(mine.get("insert"), dict) else None
+            if gap is not None:
+                # moved_link: the insert as the rule writes it, moved by the gap along the link X and Y axes of the hand
+                axis_x, axis_y = cad_links.link_axes(frame, mirrored)
+                point = plan_from_past.point(insert)
+                insert = [point[0] + gap[0] * axis_x[0] + gap[1] * axis_y[0], point[1] + gap[0] * axis_x[1] + gap[1] * axis_y[1]]
+            gap = mine["rotationDeg"].get("gapToRuleDeg") if isinstance(mine.get("rotationDeg"), dict) else None
+            if gap is not None:
+                rotation = plan_from_past.plan_rotation(rotation) + gap
+            made.update(mirrored=mirrored, insert=insert, rotationDeg=rotation)
+        if entry is not None:
+            gap = plan_rules.gap_of(mine.get("entryM"))
+            made["entry"] = trace["entryRaw"][number] if gap is None else entry["rule"] + gap
+        if level is not None:
+            gap = plan_rules.gap_of(mine.get("heightM"))
+            if gap is None:
+                pieces = [(plan_rules.rule_entry(entries.get(other)), (entries.get(other) or {}).get("unit")) for other in level["piece"]]
+                ffl_raw = plan_rules.piece_top(pieces, profile, base_rule)
+            else:
+                ffl_raw = level["fflRule"] + gap
+            ffl = common.fixed(ffl_raw, plan_rules.FFL_DECIMALS)
+            height = ffl - entry["entry"]
+            count = plan_rules.whole_number(mine.get("steps"))
+            made.update(ffl=ffl_raw, ssl=ffl + ground, height=height, steps=count if count is not None else plan_rules.steps_by_rule(
+                key["steps"]["rule"], common.fixed(height, plan_rules.ENTRY_DECIMALS), entry["unit"], profile, lp, base_rule))
+            for name, decimals in (("entry", plan_rules.ENTRY_DECIMALS), ("ffl", plan_rules.FFL_DECIMALS), ("ssl", plan_rules.FFL_DECIMALS), ("height", plan_rules.ENTRY_DECIMALS)):
+                if common.fixed(made[name], decimals) != level[name]:
+                    raise ValueError("the step overrides gives plot %s the %s %r and the build took %r (R360)" % (number, name, common.fixed(made[name], decimals), level[name]))
+            if made["steps"] != level["steps"]:
+                raise ValueError("the step overrides gives plot %s the steps %r and the build took %r (R360)" % (number, made["steps"], level["steps"]))
+        if not plot["written"]:
+            continue
+        gap = plan_rules.gap_of(mine.get("rampFrontM"))
+        ramp_front = item["front"] if gap is None else [z + gap for z in item["front"]]
+        ramp_class = mine.get("rampType") or plan_rules.key_ramp_class(key, unit)
+        kind = lp["rampTypes"].get(ramp_class) if ramp_class is not None else None
+        if kind is not None:
+            made.update(rampZ=ramp_heights(ramp_front, entry["entry"]), rampType=kind)
+        below, _ = plan_rules.key_yard(key, row.get("zone") or "")
+        if below is not None:
+            yard_unit = unit if any(group["unit"] == unit for group in outlines["outlines"].get("yard") or []) else keo or unit
+            group = floor_fit.outline_for(outlines, "yard", yard_unit, mirrored, floor_fit.width_key(item["frame"]["length"], step))
+            if group is not None:
+                origin, turn = plan_from_past.point(made["insert"]), plan_from_past.plan_rotation(made["rotationDeg"])
+                made.update(yardZ=ffl - below, yardOutline=[[list(point) for point in floor_fit.to_world(loop, origin, turn, mirrored)] for loop in group["loops"]])
+        written = plot["entry"]
+        held_plan(number, "mirror flag", made["mirrored"], written["mirrored"]["value"])
+        held_plan(number, "insert", plan_from_past.point(made["insert"]), written["insert"]["value"][:2])
+        held_plan(number, "rotation", plan_from_past.plan_rotation(made["rotationDeg"]), written["rotationDeg"]["value"])
+        for name, decimals in (("entry", plan_rules.ENTRY_DECIMALS), ("ffl", plan_rules.FFL_DECIMALS), ("ssl", plan_rules.FFL_DECIMALS), ("height", plan_rules.ENTRY_DECIMALS)):
+            held_plan(number, name, common.fixed(made[name], decimals), written["levels"][name]["value"])
+        held_plan(number, "steps", made["steps"], written["levels"]["steps"]["value"])
+        ramp, yard = written["floors"].get("ramp"), written["floors"].get("yard")
+        held_plan(number, "ramp corner Z", None if made["rampZ"] is None else [common.r3(z) for z in made["rampZ"]],
+                  None if ramp is None else [corner[2] for corner in ramp["corners"]["value"]])
+        held_plan(number, "ramp type", made["rampType"], None if ramp is None else ramp["type"]["value"])
+        held_plan(number, "yard outline", None if made["yardOutline"] is None else [plan_from_past.point(point) for loop in made["yardOutline"] for point in loop],
+                  None if yard is None else [point for loop in yard["outline"]["value"]["loops"] for point in loop["points"]])
+        held_plan(number, "yard Z", None if made["yardZ"] is None else common.r3(made["yardZ"]), None if yard is None else yard["z"]["value"])
+    return found
+
+
+PARAMETER_FIELDS = ("unit", "written", "parameters", "sources", "lacks", "linkName")
+
+
+def parameter_step(numbers, rows, trace, rules):
+    """R361. The step parameters of the parity harness: per plot of the scope the link parameters the build gives it, as the plan writes them
+    for a plot it writes and as the missing list holds it for one it does not, the text of each by plan_rules.key_parameters on the mirror flag,
+    the steps and the FFL after the overrides, then the parameter overrides of the list, the source of each, keyRules or override, the
+    parameters the rules give no value with the lack of the plan, and the link Name of R107, which a build from the data book never writes."""
+    skip = getattr(rules["overrides"], "skip", {})
+    built = trace.get("built") or {}
+    found = {}
+    for number in numbers:
+        unit = (rows.get(number) or {}).get("typologyRev9") or None
+        plot = built.get(number) or {"entry": {}, "written": False, "missing": []}
+        made = dict.fromkeys(PARAMETER_FIELDS)
+        made.update(unit=unit, written=plot["written"])
+        found[number] = made
+        if unit is None or number in skip:
+            continue
+        parameters = plot["entry"].get("parameters") or {}
+        made.update(parameters={name: item["value"] for name, item in parameters.items()}, sources={name: item["source"] for name, item in parameters.items()},
+                    lacks=[name[len("parameters."):] for name in plot["missing"] if name.startswith("parameters.")],
+                    linkName=(plot["entry"].get("linkName") or {}).get("value"))
+    return found
+
+
 def one_ring_faces(plots):
     """R354. A build takes the face of a label as one ring, whose edges it walks in the order shapely gives them (face_ring), so a label of
     two rings or more, which face_shapes joins by a union whose ring order only shapely knows, is refused here and in the C# alike. A ring
@@ -536,6 +677,12 @@ class Outcomes:
             else:
                 left[field] = "a build of %s does not apply the field" % self.name
         return {"applied": applied, "notApplied": left}
+
+
+def built_entry(trace, builder, written):
+    """R360, R361. The entry the build made for a plot, whether the plan writes it and the keys it lacks, kept in the trace for the steps."""
+    if trace is not None:
+        trace["built"][builder.plot] = {"entry": builder.entry, "written": written, "missing": [found["key"] for found in builder.missing]}
 
 
 def not_applied_why(records):
@@ -733,6 +880,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     inputs = {"outlines": outlines, "step": floor_fit.width_step(settings), "levels": site["levels"], "floors": floors_config, "bands": outlines["rampTypes"]["bands"]}
     plots, missing, lacking, surface_count, no_level, book_check, no_road = [], [], Counter(), Counter(), [], Counter(), []
     not_measured, not_measured_plots, records, hand_rules = {}, Counter(), {}, Counter()
+    if trace is not None:
+        # R360, R361. What the build did with each override of each plot and the entry it built, written or not, for the steps overrides and parameters
+        trace.update(records=records, built={})
     for number in numbers:
         item = front[number]
         builder = plan_from_past.PlotBuilder(number)
@@ -740,6 +890,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         if number in skip:
             builder.lack("skip", "the skip list of the override list: %s (R386)" % skip[number])
             records[number] = outcomes.plot(number, False, ["skip"])
+            built_entry(trace, builder, False)
             missing.append({"plot": number, "written": False, "missing": builder.missing, **({"overrides": records[number]} if records[number] else {})})
             lacking.update(entry["key"] for entry in builder.missing)
             continue
@@ -747,6 +898,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             # R230. A location plan number with no plots.csv row or no Typology_Rev9, such as a label sharing its face, is listed
             builder.lack("unit", "plots.csv holds no row or no Typology_Rev9 for the plot")
             records[number] = outcomes.plot(number, False, ["unit"])
+            built_entry(trace, builder, False)
             missing.append({"plot": number, "written": False, "missing": builder.missing, **({"overrides": records[number]} if records[number] else {})})
             lacking.update(entry["key"] for entry in builder.missing)
             continue
@@ -874,6 +1026,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         builder.entry["roadSurfaces"] = item["surfaces"]
         # R337. What the build did with each override of the plot, in the plan entry or the missing entry of a plot not written
         records[number] = outcomes.plot(number, complete, [found["key"] for found in builder.missing])
+        built_entry(trace, builder, complete)
         if complete:
             if records[number]:
                 builder.entry["overrides"] = records[number]
@@ -985,7 +1138,7 @@ def build_inputs(args, settings, step):
     """R345, R354 to R357. The inputs a build step was made from, those of the faces and every other file the steps read, by role, and for
     the steps of PROTOTYPE_STEPS every file of the prototype folder as folder_files lists it, so parity sees the listing each side took."""
     roles = [("rules", project_profile.profile_path(settings)), ("footprintBlocks", args.footprint_blocks), ("sales", args.sales),
-             ("roadPieces", Path(args.roads) / "pieces.json" if args.roads else None)]
+             ("roadPieces", Path(args.roads) / "pieces.json" if args.roads else None), ("overrides", getattr(args, "overrides", None))]
     roles += [("roadSurface:" + name, Path(args.landxml) / (name + ".xml")) for name in getattr(args, "road_names", None) or []]
     found = step_inputs(args) + [parity.input_entry(role, path) for role, path in roles if path]
     if step in PROTOTYPE_STEPS and getattr(args, "prototypes", None):
@@ -1244,6 +1397,9 @@ def main(argv=None):
             write_build_step(args, settings, "linkFrame", links, {"rotationDeg": plan_from_past.plan_rotation})
             write_build_step(args, settings, "levels", level_step(cover["plots"], rows, trace, rules, profile))
             write_build_step(args, settings, "floors", floor_step(cover["plots"], rows, trace, links, rules, profile, floor_fit.width_step(settings)))
+            write_build_step(args, settings, "overrides", override_step(cover["plots"], rows, trace, hands, files, rules, profile, floor_fit.width_step(settings)),
+                             {"rotationDeg": plan_from_past.plan_rotation})
+            write_build_step(args, settings, "parameters", parameter_step(cover["plots"], rows, trace, rules))
         plan_from_past.write_plan(out, plan)
         done = True
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
