@@ -5,7 +5,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 ## State
 
 - 4g1 done on 2026-10-27, PR 69 to 73: Q098 and Q099 coded, the status block of R401 on 595 values, the status of each plotted value
-- Every written plot holds an assumed value. Bader's review list of Q104: steps/investigations/status-review.md, 41 rows
+- Every written plot holds an assumed value. Bader accepted the 41 rows of steps/investigations/status-review.md, each CHOSEN by Bader, Q104 (4g2 PR 1)
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
 - Phases 0a to 4g1 merged, PR 41 to 73: the reads of button 2, steps 4 to 8, 10, 12, 13 and the status of the plan builder in C# with parity
 - Plan: steps/01_next.md. Design: docs/design/. Rules: docs/rules/index.md. Findings: steps/investigations/round-addin.md. Part 2 waits for Bader's check of Part 1
@@ -50,11 +50,10 @@ Q058 Old 20221206 prototypes and their hands. Q059 NBH 03 build on native2022. Q
 Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario master. Q066 No Parsons TU model of Zone 1. Q068 Project position of button 1. Q069 A remade key copy by its hashes.
 Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
 Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
-Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters. Q105 Row pair of 5 DP2 cluster units.
-Q106 Step values of the schedules as DOCUMENT. Q107 Status detail of values built from others.
+Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
 
 ## Next three steps
 
-1. ADDIN 4g2: R362 to R365, the walls, issues and the two Excel files, with the Assumed chip and sheet. Bader pastes steps/START.md
-2. ADDIN 4h: R366 to R369, one session by steps/START.md
-3. ADDIN Phase 5 with Q103, the Revit run after 5c, then Phase 6, as steps/01_next.md gives them
+1. ADDIN 4g2: Q105, Q107, the walls of R362 and the check rows of R363 with the grouped chip Assumed of Q108. Bader pastes steps/START.md
+2. ADDIN 4g3: R364 the level Excel and R365 the report Excel with the sheet Assumed, one session by steps/START.md
+3. ADDIN 4h: R366 to R369, one session by steps/START.md

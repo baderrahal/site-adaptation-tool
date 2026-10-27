@@ -58,6 +58,11 @@ REV = re.compile(r"\bRev ?0?(\d+)\b")
 WHY_NONE = "no Q, no share, no Bader line and no CHOSEN mark"
 # A question starts its line or a sentence, "since Q089. keyRules" inside the text of Q098 starts none
 QUESTION_START = re.compile(r"(?:^|(?<=\. ))(?=Q\d{3}\. )")
+# Q104 (Bader, 2026-10-27). Bader accepted the 41 rows of tables 1 and 2 of the review list as they are. Tables 2b and 3 are for
+# information only, so a heading of table 1 or 2 alone opens a part the list is read from
+REVIEW_FILE = "steps/investigations/status-review.md"
+REVIEW_TABLE = re.compile(r"^## ([12]) ")
+REVIEW_COLUMN = "File and dotted path"
 
 
 def leaves(o, p):
@@ -111,6 +116,30 @@ def answer_cell(row):
     return cells[2] if len(cells) >= 4 else ""
 
 
+def review_list(root):
+    """Q104. The values of tables 1 and 2 of the review list by (file, dotted path), each with the table and row it is listed at. The
+    list is read only, it stays as Bader reviewed it. A repo with no list gives none."""
+    path = Path(root) / REVIEW_FILE
+    if not path.is_file():
+        return {}
+    listed = {}
+    table = column = None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            m = REVIEW_TABLE.match(line)
+            table, column = (m.group(1) if m else None), None
+            continue
+        if table is None or not line.startswith("|") or set(line) <= set("|-: "):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if column is None:
+            column = cells.index(REVIEW_COLUMN) if REVIEW_COLUMN in cells else None
+            continue
+        fname, _, dotted = cells[column].partition(" ")
+        listed[(fname, dotted)] = "%s table %s row %s" % (REVIEW_FILE, table, cells[0])
+    return listed
+
+
 def load(root, name, profile):
     """A file of the two as values: the block status of the rules profile is left out, it is the output, never a value or evidence."""
     data = json.loads((Path(root) / name).read_text(encoding="utf-8"))
@@ -152,7 +181,14 @@ class Audit:
         readme = self.root / Path(self.profile).parent / "README.md"
         self.page_records = [("README", readme.read_text(encoding="utf-8"))] if readme.is_file() else []
         self.page_records += list(self.rule_text.items()) + self.note_text
+        self.review = review_list(self.root)
+        self.reviewed = set()
         self.value_rows = {f: self.classify(f, self.data[f]) for f in self.files}
+        # A listed path the files do not hold as a value would leave a row of Bader's review with no entry, so nothing is written
+        missing = sorted(set(self.review) - self.reviewed)
+        if missing:
+            raise ValueError("the review list of Q104 in %s names what is no value of the two files: %s"
+                             % (REVIEW_FILE, ", ".join("%s %s" % key for key in missing)))
         self._pages()
         self.rule_rows = self._rule_rows()
 
@@ -321,6 +357,12 @@ class Audit:
                 rows.append((path, "setting", "setting of a reader or check, no design value", "", ""))
                 continue
             kind = "host" if HOST.search(path) else "value"
+            listed = self.review.get((fname, path))
+            if listed:
+                rows.append((path, kind, BADER, "Q104", listed))
+                self.extra[(fname, path)] = {"question": "Q104", "where": listed}
+                self.reviewed.add((fname, path))
+                continue
             inpath = [s for s in p if re.fullmatch(r"Q\d{3}", s)]
             if inpath:
                 q = inpath[0]
@@ -390,6 +432,11 @@ class Audit:
                         break
                 if src:
                     break
+            # Q106 (Bader, 2026-10-27). A source that starts with UNKNOWN says the records name no document of the value
+            if src and src[0] != "levelProfiles" and flat[src].startswith(UNKNOWN):
+                rows.append((path, kind, UNKNOWN, "", "%s: %s" % (".".join(src), flat[src][:48])))
+                self.extra[(fname, path)] = {"nearestSource": ".".join(src), "why": flat[src]}
+                continue
             # Q100 (Bader, 2026-10-27). A source outside the level profiles names a client document the value is copied from, a level
             # profile source names a past model, which only a share of Q101 measures
             if src and src[0] != "levelProfiles":

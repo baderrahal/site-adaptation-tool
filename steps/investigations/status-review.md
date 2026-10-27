@@ -1,27 +1,29 @@
 # Status review
 
+Bader's answer of 2026-10-27 (Q104): all 41 rows of tables 1 and 2 accepted as they are, each CHOSEN by Bader, Q104. python/rule_status.py reads the two tables from this file, never 2b or 3, and --write gave that status in Round ADDIN 4g2 PR 1. The tables stay as Bader reviewed them, the script never rewrites this file.
+
 Round ADDIN 4g1 PR 3, 2026-10-27. Bader's review list of Q104: the values of the block status of rules/roshn-makkah.json marked CHOSEN by Code, and the values still UNKNOWN that set the position or a level of a plot. Two tables for information follow: the UNKNOWN values only a native2022 build reads, and the values marked CHOSEN by Bader with the text that gave that status, since a wrong text match there would never be reviewed. The block is written by python/rule_status.py (R401). Each fact is tagged READ with a path, RAN with a count, SEARCHED, CHOSEN or UNKNOWN. No coordinate and no level of a real site is shown.
 
 Every cite file:line points at the line that reads the key at 97379db, main after PR 2. This PR changes none of the cited files. The script that wrote the tables finds each line by its text and stops when a text is missing (RAN).
 
 ## Counts
 
-| Status | Before, the audit of PR 68 | After, the block of this PR |
-|---|---:|---:|
-| CHOSEN by Bader | 3 | 3 |
-| MEASURED | 35 | 50 |
-| DOCUMENT | not a status then | 273 |
-| RECOMMENDED | 9 | 11 |
-| CHOSEN by Code | 16 | 16 |
-| UNKNOWN | 528 | 242 |
-| Values of the two files | 591 | 595 |
+| Status | Before, the audit of PR 68 | After, the block of this PR | After Bader's review, 4g2 PR 1 |
+|---|---:|---:|---:|
+| CHOSEN by Bader | 3 | 3 | 44 |
+| MEASURED | 35 | 50 | 50 |
+| DOCUMENT | not a status then | 273 | 274 |
+| RECOMMENDED | 9 | 11 | 8 |
+| CHOSEN by Code | 16 | 16 | 0 |
+| UNKNOWN | 528 | 242 | 219 |
+| Values of the two files | 591 | 595 | 595 |
 
-Before is section 2 of steps/investigations/rule-status-audit.md (READ). After is RAN by python/rule_status.py and recounted from the JSON by steps/investigations/rule-status-scripts/second_check.ps1 with the same counts (RAN).
+Before is section 2 of steps/investigations/rule-status-audit.md (READ). After is RAN by python/rule_status.py and recounted from the JSON by steps/investigations/rule-status-scripts/second_check.ps1 with the same counts (RAN). After Bader's review is RAN by python/rule_status.py --write in 4g2 PR 1, 44 entries changed status, and recounted by second_check.ps1 with the same counts (RAN).
 
-- DOCUMENT of Q100 takes the values under a client document: 137 of the Rev 06 report, 130 of the DLUS Schedule Rev 9 workbook and 6 base heights of the past job schedules. Two more of the Rev 06 report, steps.count_rule and steps.riser_added, are RECOMMENDED by Q106, which names them.
+- DOCUMENT of Q100 takes the values under a client document: 137 of the Rev 06 report, 130 of the DLUS Schedule Rev 9 workbook and 6 base heights of the past job schedules. Two more of the Rev 06 report, steps.count_rule and steps.riser_added, were RECOMMENDED by Q106 while it was open. Since Q106 was answered (Bader, 2026-10-27) steps.count_rule and the 6 values of steps.legend are DOCUMENT of the past job schedules by a source beside them, and steps.riser_added is UNKNOWN by its source, which names no document (RAN, 4g2 PR 1).
 - MEASURED of Q101 takes the 15 fields of parsons2024Rev6 outside keyRules, each tied to the keyRules entry that measures its decision, or to the candidate of that entry it holds.
 - 4 values are counted that the audit of PR 68 left out: majority.overrideKeep.laterFields, an empty object, majority.check.group and the job of each level profile, which choose the reference key and the overrides a build takes.
-- The one value of Q098, closed now, is RECOMMENDED by Q105 instead, see below.
+- The one value of Q098, closed now, is RECOMMENDED by Q105 instead, see below. Since Q105 was closed on 2026-10-27 it is UNKNOWN, the answer of Q105 does not name it (RAN, 4g2 PR 1).
 
 ## How the values of tables 2 and 2b were chosen
 
@@ -39,11 +41,11 @@ Before is section 2 of steps/investigations/rule-status-audit.md (READ). After i
 
 ## Found while writing the list
 
-- analysis.blockClusters.Duplex_DP4 first took CHOSEN by Bader from the old text of Q098 moved below the table of steps/questions-closed.md. That text names Duplex_DP4 as a kind of footprint cluster, not the block cluster code D04, so the match was wrong. A closed question now counts by the answer cell of its row of the table alone, never by its question cell or its moved text (test_r401_a_closed_question_counts_by_its_answer_never_by_its_moved_text). The value is now RECOMMENDED by Q105, open, whose text names Duplex_DP4 in the same sense of a footprint cluster, so that match is likely wrong as well (CHOSEN, a reading of the text). Q105 is in Bader's turn, so Bader reads it there.
+- analysis.blockClusters.Duplex_DP4 first took CHOSEN by Bader from the old text of Q098 moved below the table of steps/questions-closed.md. That text names Duplex_DP4 as a kind of footprint cluster, not the block cluster code D04, so the match was wrong. A closed question now counts by the answer cell of its row of the table alone, never by its question cell or its moved text (test_r401_a_closed_question_counts_by_its_answer_never_by_its_moved_text). The value is now RECOMMENDED by Q105, open, whose text names Duplex_DP4 in the same sense of a footprint cluster, so that match is likely wrong as well (CHOSEN, a reading of the text). Q105 is in Bader's turn, so Bader reads it there. Q105 was closed on 2026-10-27, its answer does not name the value, so it is UNKNOWN again (RAN, 4g2 PR 1).
 - With that rule a second entry moved and moved back: the question cell of the row of Q073 names siteBuild.roadSurfaces, which gave it CHOSEN by Bader while the question cell counted. Its answer cell does not name the value, so it stays UNKNOWN (RAN, --check).
 - Before that, a question text was cut at each "Qnnn. ", and "since Q089. keyRules" inside the text of Q098 started a question there. python/rule_status.py now starts a question only at a line start or after a sentence end (test_r401_a_question_id_inside_a_sentence_starts_no_question).
 - The Q101 ties after review pass 1 of this PR: frontRoad.offsetM, a term of El @ Entry, goes to keyRules entry, 0.088 weak, and frontRoad.surface to rampFront, 0.6924 weak, the share of its candidate roadLevel. height takes the share of the candidate it holds, oneFflPerClusterAtTheHighestEntry of keyRules ffl, 0.6868 weak, and stepBands the candidate stepBands of keyRules steps, 0.9336 strong. The field steps, countRule, is read by no code, its entry says so (READ, rules/roshn-makkah.json keyRules, CHOSEN).
-- The steps values rules/README.md ties to the schedules took DOCUMENT of the Rev 06 report by the top source. Q106 asks Bader which document they belong to, and while it is open steps.count_rule and steps.riser_added are RECOMMENDED by it. The 6 values of steps.legend, a list of pairs, have no name of their own the text can match, so they stay DOCUMENT of the Rev 06 report (RAN, --check).
+- The steps values rules/README.md ties to the schedules took DOCUMENT of the Rev 06 report by the top source. Q106 asks Bader which document they belong to, and while it is open steps.count_rule and steps.riser_added are RECOMMENDED by it. The 6 values of steps.legend, a list of pairs, have no name of their own the text can match, so they stayed DOCUMENT of the Rev 06 report (RAN, --check). Since Q106 was answered on 2026-10-27 they are DOCUMENT of the past job schedules by steps.legend_source (RAN, 4g2 PR 1).
 
 ## 1 Values CHOSEN by Code
 
