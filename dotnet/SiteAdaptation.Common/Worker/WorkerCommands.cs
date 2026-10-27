@@ -43,7 +43,7 @@ namespace SiteAdaptation.Common
         private static void Faces(WorkerContext run, AddinConfig config)
         {
             WorkerRequest request = run.Request;
-            List<string> numbers = PlotScope.Numbers(request.Scope, CsvRows.Read(run.Input("labels")));
+            List<string> numbers = PlotScope.Numbers(request.Scope, CsvRows.Read(run.Input("labels"), CsvRows.LabelsOf(request.Scope)));
             string role = request.Inputs.Any(input => input.Role == "baseplanRead") ? "baseplanRead" : "baseplanPlots";
             if (request.Inputs.Count(input => input.Role == "baseplanRead" || input.Role == "baseplanPlots") > 1)
             {
@@ -58,7 +58,7 @@ namespace SiteAdaptation.Common
                 throw new WorkerStop(WorkerExit.Refused, refusal);
             }
             JArray plots = baseplan["plots"] as JArray ?? throw new InvalidDataException("the baseplan plots.json holds no plots list");
-            var faces = FaceStep.Build(numbers, plots, CsvRows.Read(run.Input("plotsCsv")), config.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)"));
+            var faces = FaceStep.Build(numbers, plots, CsvRows.Read(run.Input("plotsCsv"), CsvRows.PlotsColumns), config.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)"));
             run.Counts[FaceStep.Name + " plots"] = faces.Count;
             run.Counts[FaceStep.Name + " with a face"] = faces.Values.Count(face => true.Equals(face["face"]));
             run.WriteJson(request.StepsFolder, StepFile.FileName(FaceStep.Name, "csharp"), StepFile.Build(FaceStep.Name, "csharp", StepFile.ScopeText(request.Scope), faces, config.StepFields(FaceStep.Name)));

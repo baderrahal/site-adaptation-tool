@@ -69,22 +69,37 @@ STEP_BANDS = "levelProfileStepBands"
 sourced = plan_from_cad.sourced
 
 
-def csv_rows(path):
+def csv_rows(path, columns=()):
     """R345. The rows of a CSV file of the data book as CsvRows.Read of the C# reads them: utf-8-sig drops the byte order mark a file saved
     by Excel starts with, newline="" keeps a line end inside a quoted field as it is, and strict refuses an unclosed quote, a text after a
     closing quote and a field past the limit of csv with the line of csv, where Python took the rest of the file into one field and kept
-    the rows before it (G2 of the fourth review of PR 55)."""
+    the rows before it (G2 of the fourth review of PR 55). With columns named, a header that lacks one and a file of no row are refused,
+    where an empty labels.csv gave a build of no plot and a plots.csv of two byte order marks no row (G1 of the fourth review of PR 55)."""
     path = Path(path)
     try:
         with open(path, encoding="utf-8-sig", newline="") as handle:
-            return list(csv.DictReader(handle, strict=True))
+            reader = csv.DictReader(handle, strict=True)
+            rows = list(reader)
+            header = reader.fieldnames or []
     except csv.Error as error:
         raise project_profile.ProfileError("%s is no CSV as Python reads it: %s (R345)" % (path.name, error)) from error
+    if columns:
+        missing = [column for column in columns if column not in header]
+        if missing:
+            raise project_profile.ProfileError("%s has no column %s in its header (R345)" % (path.name, ", ".join(missing)))
+        if not rows:
+            raise project_profile.ProfileError("%s holds no row under its header (R345)" % path.name)
+    return rows
+
+
+# R345, G1. The columns of plots.csv and labels.csv a build reads, CsvRows.PlotsColumns and LabelsColumns of the C#
+PLOTS_COLUMNS = ("locationPlanNumber", "baseplanLabel")
+LABELS_COLUMNS = ("kind", "number")
 
 
 def book_rows(plots_csv):
     """The rows of plots.csv by location plan number, and the number of each baseplan label (csv_rows, R345)."""
-    rows = [row for row in csv_rows(plots_csv) if row.get("locationPlanNumber")]
+    rows = [row for row in csv_rows(plots_csv, PLOTS_COLUMNS) if row.get("locationPlanNumber")]
     return {row["locationPlanNumber"]: row for row in rows}, {row["baseplanLabel"]: row["locationPlanNumber"] for row in rows if row.get("baseplanLabel")}
 
 
@@ -877,7 +892,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
 def nbh_plots(labels_path, nbh):
     """Every unit plot of a neighbourhood on the location plan, by its number, in order. R345: nbh None gives every unit plot of the
     location plan, the whole project of the scope of the add-in (docs/addin-design.md section 3)."""
-    rows = [row for row in csv_rows(labels_path) if (nbh is None or row.get("nbh") == nbh) and row.get("kind") == "clientCode"]
+    rows = [row for row in csv_rows(labels_path, LABELS_COLUMNS + (("nbh",) if nbh is not None else ())) if (nbh is None or row.get("nbh") == nbh)
+            and row.get("kind") == "clientCode"]
     return sorted({row["number"] for row in rows}, key=link_summary.sort_key)
 
 

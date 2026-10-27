@@ -120,8 +120,9 @@ namespace CadReader
             }
             if (steps.Contains(ReadSteps.RoadLevels))
             {
-                List<Dictionary<string, string>> labels = CsvRows.Read(run.Input("labels"));
-                List<Dictionary<string, string>> plotsCsv = CsvRows.Read(run.Input("plotsCsv"));
+                // G1. As read_steps.py takes them through plan_from_book.nbh_plots and book_rows
+                List<Dictionary<string, string>> labels = CsvRows.Read(run.Input("labels"), CsvRows.LabelsColumns);
+                List<Dictionary<string, string>> plotsCsv = CsvRows.Read(run.Input("plotsCsv"), CsvRows.PlotsColumns);
                 Dictionary<string, List<double[][]>> faces = ReadSteps.FaceRings((JArray)reads["baseplan"]["plots"], plotsCsv);
                 made[ReadSteps.RoadLevels] = ReadSteps.RoadLevelStep(PlotScope.Numbers(request.Scope, labels), faces, surfaces, settings.SnapM);
             }

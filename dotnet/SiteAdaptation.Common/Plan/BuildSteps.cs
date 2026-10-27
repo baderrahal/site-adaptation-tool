@@ -45,7 +45,8 @@ namespace SiteAdaptation.Common
                 Settings = PyMath.ReadJson(run.Input("config"), "config", true) as JObject ?? throw new InvalidDataException("the config is no JSON object");
                 Rules = PyMath.ReadJson(run.Input("rules"), "rules", true) as JObject ?? throw new InvalidDataException("the rules file is no JSON object");
                 RulesName = Path.GetFileName(run.Request.Inputs.First(input => input.Role == "rules").Path);
-                List<Dictionary<string, string>> csv = CsvRows.Read(run.Input("plotsCsv"));
+                // G1. plots.csv and labels.csv with the columns a build reads and a row at least, as plan_from_book.csv_rows holds them
+                List<Dictionary<string, string>> csv = CsvRows.Read(run.Input("plotsCsv"), CsvRows.PlotsColumns);
                 Rows = new Dictionary<string, Dictionary<string, string>>();
                 foreach (Dictionary<string, string> row in csv)
                 {
@@ -55,7 +56,7 @@ namespace SiteAdaptation.Common
                     }
                 }
                 NumberOf = FaceStep.NumberOfLabel(csv);
-                Numbers = PlotScope.Numbers(run.Request.Scope, CsvRows.Read(run.Input("labels")));
+                Numbers = PlotScope.Numbers(run.Request.Scope, CsvRows.Read(run.Input("labels"), CsvRows.LabelsOf(run.Request.Scope)));
             }
 
             public JObject Settings { get; }

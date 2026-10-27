@@ -383,6 +383,13 @@ namespace SiteAdaptation.Tests
             Assert.Equal(2, WorkerRunner.Run(text.Write(folder), WorkerCommands.Default(), () => 9000.0));
             Assert.Contains("config siteBuild.corner.roadEdgeM holds a text, a build takes it as a number (R355)", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c9")).Message);
 
+            // G1. A labels.csv with no row is refused, where it gave a build of no plot reported done
+            WorkerRequest empty = BuildRequest("c10", new[] { "clusters" });
+            File.WriteAllText(empty.Inputs[3].Path, "kind,number,nbh\n");
+            empty.Inputs[3] = Input("labels", empty.Inputs[3].Path);
+            Assert.Equal(2, WorkerRunner.Run(empty.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("labels.csv holds no row under its header (R345)", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c10")).Message);
+
             // P2. The analysis is read as json.loads reads it, so a byte order mark is refused
             WorkerRequest marked = BuildRequest("c8", new[] { "clusters" });
             File.WriteAllBytes(marked.Inputs[6].Path, new byte[] { 0xEF, 0xBB, 0xBF }.Concat(File.ReadAllBytes(marked.Inputs[6].Path)).ToArray());
@@ -560,6 +567,24 @@ namespace SiteAdaptation.Tests
                 File.WriteAllText(path, item.Item1);
                 Assert.Equal("plots.csv is no CSV as Python reads it: " + item.Item2 + " (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(path)).Message);
             }
+        }
+
+        // G1 of the fourth review of PR 55: a plots.csv or labels.csv with no row, or a header that lacks a column the build reads, refused
+        // with the line of Python, where an empty labels.csv gave a build of no plot reported done
+        [Fact]
+        public void R345_a_csv_of_the_data_book_with_no_row_or_a_header_that_lacks_a_column_is_refused()
+        {
+            string labels = Path.Combine(folder, "labels.csv"), plots = Path.Combine(folder, "plots.csv");
+            foreach (byte[] content in new[] { new byte[0], new byte[] { 0xEF, 0xBB, 0xBF } })
+            {
+                File.WriteAllBytes(labels, content);
+                Assert.Equal("labels.csv has no column kind, number in its header (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(labels, "kind", "number")).Message);
+            }
+            File.WriteAllText(labels, "kind,number,nbh\n");
+            Assert.Equal("labels.csv holds no row under its header (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(labels, "kind", "number")).Message);
+            File.WriteAllBytes(plots, new byte[] { 0xEF, 0xBB, 0xBF, 0xEF, 0xBB, 0xBF }.Concat(System.Text.Encoding.ASCII.GetBytes("locationPlanNumber,baseplanLabel\n1,101\n")).ToArray());
+            Assert.Equal("plots.csv has no column locationPlanNumber in its header (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(plots, "locationPlanNumber", "baseplanLabel")).Message);
+            Assert.Single(CsvRows.Read(plots));
         }
 
         [Fact]

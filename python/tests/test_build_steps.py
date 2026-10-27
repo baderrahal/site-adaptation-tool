@@ -473,6 +473,34 @@ def test_r345_a_csv_of_the_data_book_is_read_as_the_csharp_reads_it_with_newline
         assert str(error.value) == "plots.csv is no CSV as Python reads it: %s (R345)" % why
 
 
+# G1 of the fourth review of PR 55: a plots.csv or labels.csv with no row, or with a header that lacks a column the build reads, refused on
+# both sides with one line, where an empty labels.csv gave plots written 0 of 0 and a plots.csv with two byte order marks 0 rows
+# (R345_a_csv_of_the_data_book_with_no_row_or_a_header_that_lacks_a_column_is_refused)
+def test_r345_a_csv_of_the_data_book_with_no_row_or_a_header_that_lacks_a_column_is_refused_as_the_csharp_refuses_it(tmp_path):
+    labels, plots = tmp_path / "labels.csv", tmp_path / "plots.csv"
+    for content in (b"", b"\xef\xbb\xbf"):
+        labels.write_bytes(content)
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_from_book.nbh_plots(labels, None)
+        assert str(error.value) == "labels.csv has no column kind, number in its header (R345)"
+    labels.write_bytes(b"kind,number\nclientCode,1\n")
+    with pytest.raises(project_profile.ProfileError) as error:
+        plan_from_book.nbh_plots(labels, "012")
+    assert str(error.value) == "labels.csv has no column nbh in its header (R345)"
+    labels.write_bytes(b"kind,number,nbh\n")
+    with pytest.raises(project_profile.ProfileError) as error:
+        plan_from_book.nbh_plots(labels, None)
+    assert str(error.value) == "labels.csv holds no row under its header (R345)"
+    plots.write_bytes(b"\xef\xbb\xbf\xef\xbb\xbflocationPlanNumber,baseplanLabel\n1,101\n")
+    with pytest.raises(project_profile.ProfileError) as error:
+        plan_from_book.book_rows(plots)
+    assert str(error.value) == "plots.csv has no column locationPlanNumber in its header (R345)"
+    plots.write_bytes(b"locationPlanNumber,baseplanLabel\n")
+    with pytest.raises(project_profile.ProfileError) as error:
+        plan_from_book.book_rows(plots)
+    assert str(error.value) == "plots.csv holds no row under its header (R345)"
+
+
 # R355 the fronts: a 12 m face 3 m off a road along y = -3, a corner face with a second road along x = 45, and a face with no unit
 FRONT_FACES = {"11": ring(0.0, 0.0, 12.0, 25.0), "12": ring(30.0, 0.0, 42.0, 25.0), "13": ring(60.0, 0.0, 72.0, 25.0)}
 FRONT_ROWS = {"11": {"typologyRev9": "DP2"}, "12": {"typologyRev9": "C10"}, "13": {"typologyRev9": ""}}

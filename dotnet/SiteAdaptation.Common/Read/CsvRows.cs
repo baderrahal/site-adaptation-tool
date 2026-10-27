@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace SiteAdaptation.Common
@@ -10,9 +11,21 @@ namespace SiteAdaptation.Common
     // A short row has only the fields it holds
     public static class CsvRows
     {
+        // R345, G1 of the fourth review of PR 55. The columns of plots.csv and labels.csv a build reads, PLOTS_COLUMNS and LABELS_COLUMNS of
+        // plan_from_book.py, a labels.csv of a scope of a neighbourhood with nbh besides
+        public static readonly string[] PlotsColumns = { "locationPlanNumber", "baseplanLabel" };
+        public static readonly string[] LabelsColumns = { "kind", "number" };
+
+        // The labels.csv columns a scope reads, nbh besides for the scope of a neighbourhood
+        public static string[] LabelsOf(WorkerScope scope)
+        {
+            return scope?.Kind == "nbh" ? LabelsColumns.Concat(new[] { "nbh" }).ToArray() : LabelsColumns;
+        }
+
         // The text of the file as Python opens it with utf-8-sig, book_rows and nbh_plots of plan_from_book.py: a byte order mark of UTF-8
-        // dropped and a byte that is no UTF-8 refused, where File.ReadAllText took 0xE9 as U+FFFD (F5 of the third review of PR 55)
-        public static List<Dictionary<string, string>> Read(string path)
+        // dropped and a byte that is no UTF-8 refused, where File.ReadAllText took 0xE9 as U+FFFD (F5 of the third review of PR 55). With
+        // columns named, plan_from_book.csv_rows: a header that lacks one and a file of no row refused with its line (G1)
+        public static List<Dictionary<string, string>> Read(string path, params string[] columns)
         {
             byte[] bytes = WorkFiles.ReadBytes(path);
             int start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
@@ -26,14 +39,29 @@ namespace SiteAdaptation.Common
                 int at = FirstInvalid(bytes, start);
                 throw new InvalidDataException(Path.GetFileName(path) + " is no UTF-8 text, the byte 0x" + bytes[at].ToString("X2") + " at " + at + " is none, as Python reads it with utf-8-sig (R345)");
             }
+            List<Dictionary<string, string>> rows;
+            List<string> header;
             try
             {
-                return Parse(text);
+                rows = Parse(text, out header);
             }
             catch (CsvError failure)
             {
                 throw new InvalidDataException(Path.GetFileName(path) + " is no CSV as Python reads it: " + failure.Message + " (R345)");
             }
+            if (columns.Length > 0)
+            {
+                List<string> missing = columns.Where(column => !header.Contains(column)).ToList();
+                if (missing.Count > 0)
+                {
+                    throw new InvalidDataException(Path.GetFileName(path) + " has no column " + string.Join(", ", missing) + " in its header (R345)");
+                }
+                if (rows.Count == 0)
+                {
+                    throw new InvalidDataException(Path.GetFileName(path) + " holds no row under its header (R345)");
+                }
+            }
+            return rows;
         }
 
         // R345, G2 of the fourth review of PR 55. The csv module of Python with strict: the line it gives for a file it refuses
@@ -76,13 +104,19 @@ namespace SiteAdaptation.Common
 
         public static List<Dictionary<string, string>> Parse(string text)
         {
+            return Parse(text, out _);
+        }
+
+        // The rows and the header, the fieldnames of csv.DictReader, empty for a text of no line
+        public static List<Dictionary<string, string>> Parse(string text, out List<string> header)
+        {
             List<List<string>> records = Records(text);
             var rows = new List<Dictionary<string, string>>();
+            header = records.Count == 0 ? new List<string>() : records[0];
             if (records.Count == 0)
             {
                 return rows;
             }
-            List<string> header = records[0];
             for (int index = 1; index < records.Count; index++)
             {
                 List<string> record = records[index];
