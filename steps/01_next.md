@@ -20,10 +20,10 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Design: docs/design/05-plan-steps.md steps 5 to 13 and 15, steps/investigations/rule-status-audit.md sections 1, 8 and 10
 - Done when: parity holds on the 7 keys and the whole project for the hands, the parameters and the status of each plotted value, the summary of step 15 of Python counts plots by field and status, and steps/investigations/status-review.md holds Bader's review list of Q104. The parity of that count goes with step 15 in 4g3
 
-## 4g2, Q105, Q107, the walls and the check rows
+## 4g2, Q105, Q107, Q109, Q110, the walls and the check rows
 
 - Status: open
-- Rules: Q105 in the hand step. Q107 in the status step and the build memory. R362 walls and python/plan_walls.py. R363 issues and the check rows, python/check_rows.py, with the grouped chip Assumed of Q108
+- Rules: Q105 in the hand step. Q107 in the status step and the build memory. Q109 the status block held by the gate. Q110 the status of prototypeFile. R362 walls and python/plan_walls.py. R363 issues and the check rows, python/check_rows.py, with the grouped chip Assumed of Q108
 - Design: docs/design/05-plan-steps.md steps 7, 11, 14 and 15 (status), docs/design/03b-buttons-2-to-8.md (7 Walls), docs/design/07-mock.md 7.4 and 7.7
 - Done when: parity holds for steps 7, 11, 14 and the status of step 15, and the build peak is measured and set
 
