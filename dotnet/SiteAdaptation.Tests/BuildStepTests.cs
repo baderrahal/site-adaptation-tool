@@ -510,6 +510,29 @@ namespace SiteAdaptation.Tests
             Assert.Throws<InvalidOperationException>(() => WorkFiles.ReadBytes(path + WorkFiles.Marker + "r1"));
         }
 
+        // G3 of the fourth review of PR 55, test_build_steps.AREA_LINES: the lines AddinConfig.ParityTolerance and the faces of the build give,
+        // which plan_from_book.area_tolerance now gives the same
+        [Fact]
+        public void R345_the_areas_tolerance_is_held_as_python_holds_it()
+        {
+            var cases = new[]
+            {
+                Tuple.Create("true", "addin.parity.kinds.areas is true, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+                Tuple.Create("NaN", "addin.parity.kinds.areas is NaN, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+                Tuple.Create("Infinity", "addin.parity.kinds.areas is Infinity, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+                Tuple.Create("-1", "addin.parity.kinds.areas is -1, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+                Tuple.Create("\"x\"", "addin.parity.kinds.areas is \"x\", a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+            };
+            string path = Path.Combine(folder, "project.json");
+            foreach (Tuple<string, string> item in cases)
+            {
+                File.WriteAllText(path, "{\"addin\": {\"parity\": {\"kinds\": {\"areas\": " + item.Item1 + "}}}}");
+                Assert.Equal(item.Item2, Assert.Throws<InvalidDataException>(() => AddinConfig.Load(path).ParityTolerance("areas")).Message);
+            }
+            File.WriteAllText(path, "{\"addin\": {\"parity\": {\"kinds\": {}}}}");
+            Assert.Equal("addin.parity.kinds names no kind areas (R345)", Assert.Throws<InvalidDataException>(() => AddinConfig.Load(path).ParityTolerance("areas")).Message);
+        }
+
         [Fact]
         public void R354_a_level_profile_with_no_key_rules_or_a_key_rule_a_build_cannot_give_is_refused_with_the_lines_of_python()
         {

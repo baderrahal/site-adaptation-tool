@@ -420,6 +420,34 @@ def test_r337_shape_name_names_each_kind_of_a_json_value_as_the_csharp_names_it(
     assert plan_rules.shape_name(dict()) == plan_rules.shape_name(plan_rules.KEY_SHAPES["table"]())
 
 
+# G3 of the fourth review of PR 55: the areas tolerance of addin.parity held as AddinConfig.ParityTolerance holds it, with its lines
+# (R345_the_areas_tolerance_is_held_as_python_holds_it)
+AREA_LINES = (
+    (True, "addin.parity.kinds.areas is true, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+    (float("nan"), "addin.parity.kinds.areas is NaN, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+    (float("inf"), "addin.parity.kinds.areas is Infinity, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+    (-1, "addin.parity.kinds.areas is -1, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+    ("x", "addin.parity.kinds.areas is \"x\", a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"),
+    (None, "addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)"))
+
+
+def test_r345_the_areas_tolerance_is_held_as_the_csharp_holds_it(tmp_path):
+    real = json.loads(project_profile.SETTINGS_PATH.read_text(encoding="utf-8"))
+    assert plan_from_book.area_tolerance(project_profile.load_settings()) == real["addin"]["parity"]["kinds"]["areas"]
+    path = tmp_path / "project.json"
+    for value, line in AREA_LINES:
+        real["addin"]["parity"]["kinds"]["areas"] = value
+        path.write_text(json.dumps(real), encoding="utf-8")
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_from_book.area_tolerance(project_profile.load_settings(path))
+        assert str(error.value) == line, value
+    del real["addin"]["parity"]["kinds"]["areas"]
+    path.write_text(json.dumps(real), encoding="utf-8")
+    with pytest.raises(project_profile.ProfileError) as error:
+        plan_from_book.area_tolerance(project_profile.load_settings(path))
+    assert str(error.value) == "addin.parity.kinds names no kind areas (R345)"
+
+
 # R355 the fronts: a 12 m face 3 m off a road along y = -3, a corner face with a second road along x = 45, and a face with no unit
 FRONT_FACES = {"11": ring(0.0, 0.0, 12.0, 25.0), "12": ring(30.0, 0.0, 42.0, 25.0), "13": ring(60.0, 0.0, 72.0, 25.0)}
 FRONT_ROWS = {"11": {"typologyRev9": "DP2"}, "12": {"typologyRev9": "C10"}, "13": {"typologyRev9": ""}}

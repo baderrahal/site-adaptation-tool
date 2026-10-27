@@ -148,7 +148,10 @@ namespace SiteAdaptation.Common
             double tolerance = value.Type == JTokenType.Integer || value.Type == JTokenType.Float ? value.Value<double>() : double.NaN;
             if (double.IsNaN(tolerance) || double.IsInfinity(tolerance) || tolerance < 0)
             {
-                throw new InvalidDataException("addin.parity.kinds." + kind + " is " + value.ToString(Newtonsoft.Json.Formatting.None)
+                // A float as json.dumps of Python writes it, NaN and Infinity bare and the shortest digits, so both languages give one line (G3)
+                string written = value.Type == JTokenType.Float ? (double.IsNaN((double)value) ? "NaN" : double.IsInfinity((double)value) ? ((double)value > 0 ? "Infinity" : "-Infinity")
+                    : SheetRows.PyRepr((double)value)) : value.ToString(Newtonsoft.Json.Formatting.None);
+                throw new InvalidDataException("addin.parity.kinds." + kind + " is " + written
                     + ", a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)");
             }
             return tolerance;

@@ -22,6 +22,7 @@ link parameters by the rules measured on its answer keys and places their overri
 import argparse
 import csv
 import json
+import math
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -893,11 +894,19 @@ def step_entry(raw):
 
 
 def area_tolerance(settings):
-    """R345. The areas tolerance of addin.parity, the most the union of the rings of a label may fall short of their sum."""
+    """R345. The areas tolerance of addin.parity, the most the union of the rings of a label may fall short of their sum, held as
+    AddinConfig.ParityTolerance holds it with its lines: a finite number of zero or more, where true, NaN, inf and -1 were taken (G3 of the
+    fourth review of PR 55)."""
     kinds = ((settings.get("addin") or {}).get("parity") or {}).get("kinds") or {}
-    if not isinstance(kinds.get("areas"), (int, float)):
-        raise project_profile.ProfileError("config holds no addin.parity.kinds.areas, the tolerance of the baseplan faces (R345)")
-    return kinds["areas"]
+    if "areas" not in kinds:
+        raise project_profile.ProfileError("addin.parity.kinds names no kind areas (R345)")
+    value = kinds["areas"]
+    if value is None:
+        raise project_profile.ProfileError("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)")
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+        raise project_profile.ProfileError("addin.parity.kinds.areas is %s, a tolerance is a finite number of zero or more, or null for a kind compared "
+                                           "exactly (R345)" % json.dumps(value, separators=(",", ":")))
+    return value
 
 
 def step_scope(cover):
