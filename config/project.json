@@ -650,6 +650,32 @@
             "insert": {"kind": "points", "decimals": 3},
             "rotationDeg": {"kind": "angles", "decimals": 3},
             "lacks": {"kind": "noGeometry"}
+        },
+        "levels": {
+            "unit": {"kind": "noGeometry"},
+            "partner": {"kind": "noGeometry"},
+            "piece": {"kind": "noGeometry"},
+            "roadAtFront": {"kind": "levels", "decimals": 4},
+            "entry": {"kind": "levels", "decimals": 4},
+            "ffl": {"kind": "levels", "decimals": 3},
+            "ssl": {"kind": "levels", "decimals": 3},
+            "height": {"kind": "levels", "decimals": 4},
+            "steps": {"kind": "noGeometry"},
+            "parameters": {"kind": "noGeometry"}
+        },
+        "floors": {
+            "unit": {"kind": "noGeometry"},
+            "generic": {"kind": "points", "decimals": 3},
+            "rampOutline": {"kind": "points", "decimals": 3},
+            "rampZ": {"kind": "levels", "decimals": 3},
+            "rampClass": {"kind": "noGeometry"},
+            "rampType": {"kind": "noGeometry"},
+            "yardDepth": {"kind": "levels", "decimals": 3},
+            "yardUnit": {"kind": "noGeometry"},
+            "yardWidth": {"kind": "points", "decimals": 3},
+            "yardType": {"kind": "noGeometry"},
+            "yardOutline": {"kind": "points", "decimals": 3},
+            "lacks": {"kind": "noGeometry"}
         }
       }
     }

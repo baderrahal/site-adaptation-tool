@@ -6,14 +6,14 @@ using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common
 {
-    // R354 to R357. The build steps of the worker command build, the C# of plan_from_book.py --steps on the reads of button 2: the inputs
+    // R354 to R359. The build steps of the worker command build, the C# of plan_from_book.py --steps on the reads of button 2: the inputs
     // the worker read wrote, read_baseplan.json, read_villaBlocks.json, read_curbs.json and read_workbooks.json, each held to what it claims
     // to be by its role or its workbook, its drawing in Meters and its run stamp, plots.csv and labels.csv of the data book, the rules file
     // with keyRules of the level profile of the request and the road surfaces of the build in their order, and since Q089 no analysis,
     // the clusters are those of the footprint blocks alone. Every number of a JSON input is the nearest double of its text, as Python reads it, and each input is read once per run
     public static class BuildSteps
     {
-        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName, LinkFrames.StepName };
+        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName, LinkFrames.StepName, KeyLevels.StepName, FloorOutlines.StepName };
 
         public static readonly string[] ClusterRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead" };
 
@@ -26,6 +26,12 @@ namespace SiteAdaptation.Common
         public const string PrototypeRole = "prototype:";
 
         public static readonly string[] HandRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead", "curbsRead", "workbooksRead", PrototypeRole + "*" };
+
+        // R359. The levels read the clusters, the fronts with their road levels and the row pairs of the hands, with no prototype file
+        public static readonly string[] LevelRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead", "curbsRead", "workbooksRead", WorkerRunner.RoadSurfaceRole + "*" };
+
+        // R358. The floors read the levels and the link of the hand, so the prototype files as well
+        public static readonly string[] FloorRoles = LevelRoles.Concat(new[] { PrototypeRole + "*" }).ToArray();
 
         // What the build steps read, each input read when a step first needs it
         private sealed class Site
@@ -343,7 +349,9 @@ namespace SiteAdaptation.Common
                     run.Counts["fronts with no road level of a unit plot"] = fronts.Values.Count(item => item.Unit != null && item.Front == null);
                     made[Fronts.StepName] = Fronts.Step(site.Numbers, fronts, surfaces.Select(surface => surface.Name).ToList(), snap);
                 }
-                if (asked.Contains(Hands.StepName) || asked.Contains(LinkFrames.StepName))
+                bool linked = asked.Contains(Hands.StepName) || asked.Contains(LinkFrames.StepName) || asked.Contains(FloorOutlines.StepName);
+                bool leveled = asked.Contains(KeyLevels.StepName) || asked.Contains(FloorOutlines.StepName);
+                if (linked || leveled)
                 {
                     double roadEdgeM = BuildFace.Number(site.Settings["siteBuild"]["corner"]["roadEdgeM"]);
                     var wanted = new HashSet<string>(site.Numbers);
@@ -353,19 +361,53 @@ namespace SiteAdaptation.Common
                         (x, y) => new KeyValuePair<double?, string>(null, null), site.Rules, roadEdgeM, site.Sales, site.RulesName);
                     HandContext context = Hands.Context(site.Numbers, site.Rows, site.Faces, site.Clusters, fronts.ToDictionary(item => item.Key, item => item.Value.Frame), site.Roads, site.Rules, site.Settings);
                     JObject key = BuildRules.KeyRules(site.Rules, request.LevelProfile, string.Join(", ", Names));
-                    Dictionary<string, string> files = site.Files();
-                    Dictionary<string, Dictionary<string, object>> hands = Hands.Step(site.Numbers, site.Rows, context, key, files, site.Rules, site.Settings);
-                    run.Counts["hands of the scope with a mirror flag"] = hands.Values.Count(item => item["mirrored"] != null);
-                    run.Counts["side neighbour pairs"] = context.Neighbours.Values.Sum(sides => sides.Left.Count + sides.Right.Count);
-                    if (asked.Contains(Hands.StepName))
+                    Dictionary<string, Dictionary<string, object>> links = null;
+                    if (linked)
                     {
-                        made[Hands.StepName] = hands;
+                        Dictionary<string, string> files = site.Files();
+                        Dictionary<string, Dictionary<string, object>> hands = Hands.Step(site.Numbers, site.Rows, context, key, files, site.Rules, site.Settings);
+                        run.Counts["hands of the scope with a mirror flag"] = hands.Values.Count(item => item["mirrored"] != null);
+                        run.Counts["side neighbour pairs"] = context.Neighbours.Values.Sum(sides => sides.Left.Count + sides.Right.Count);
+                        if (asked.Contains(Hands.StepName))
+                        {
+                            made[Hands.StepName] = hands;
+                        }
+                        // R356. The link of each plot on the front of R355 with the hand of the rule (R357), which the yard of R358 is placed by
+                        links = LinkFrames.Step(site.Numbers, site.Rows, fronts, context.Roles, hands, key, files, site.Rules);
+                        if (asked.Contains(LinkFrames.StepName))
+                        {
+                            made[LinkFrames.StepName] = links;
+                            run.Counts["links of the scope placed"] = links.Values.Count(item => item["insert"] != null);
+                        }
                     }
-                    if (asked.Contains(LinkFrames.StepName))
+                    if (leveled)
                     {
-                        // R356. The link of each plot on the front of R355 with the hand of the rule (R357)
-                        made[LinkFrames.StepName] = LinkFrames.Step(site.Numbers, site.Rows, fronts, context.Roles, hands, key, files, site.Rules);
-                        run.Counts["links of the scope placed"] = made[LinkFrames.StepName].Values.Count(item => item["insert"] != null);
+                        string profileName = BuildRules.ProfileName(site.Rules, request.LevelProfile);
+                        if (asked.Contains(FloorOutlines.StepName))
+                        {
+                            // plan_from_book.build refuses a unit plot of a zone keyRules.yard holds no yard for, before any step file
+                            FloorOutlines.CheckZones(site.Numbers, site.Rows, key);
+                        }
+                        // R359. The fronts of the plots whose levels the build works out, with the road levels of the surfaces of the level profile
+                        ReadSettings read = ReadSettings.Load(run.Input("config"));
+                        double snap = read.SnapM;
+                        List<TinSurface> surfaces = site.Surfaces(levelProfile);
+                        double[] limits = Fronts.Limits(site.Rules, site.Settings, site.RulesName);
+                        LevelBuild build = KeyLevels.Of(site.Numbers, site.Rows, site.Clusters, context, members => Fronts.Of(members, site.Rows, site.Faces, site.Roads, limits,
+                            (x, y) => TinSurface.RoadLevel(surfaces, x, y, snap), site.Rules, roadEdgeM, site.Sales, site.RulesName), site.Rules, key, levelProfile, profileName);
+                        run.Counts["plots with El @ Entry"] = build.Entries.Count;
+                        run.Counts["row partners"] = build.Partners.Count;
+                        if (asked.Contains(KeyLevels.StepName))
+                        {
+                            made[KeyLevels.StepName] = KeyLevels.Step(site.Numbers, site.Rows, build, key, levelProfile, site.Rules, KeyLevels.LaterParameters(site.Settings, levelProfile), site.RulesName);
+                            run.Counts["levels of the scope with an FFL"] = made[KeyLevels.StepName].Values.Count(item => item["ffl"] != null);
+                        }
+                        if (asked.Contains(FloorOutlines.StepName))
+                        {
+                            made[FloorOutlines.StepName] = FloorOutlines.Step(site.Numbers, site.Rows, build, links, key, levelProfile, site.Rules,
+                                FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), profileName);
+                            run.Counts["floors of the scope with a yard outline"] = made[FloorOutlines.StepName].Values.Count(item => item["yardOutline"] != null);
+                        }
                     }
                 }
             }
