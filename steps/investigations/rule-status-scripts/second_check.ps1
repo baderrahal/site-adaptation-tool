@@ -36,3 +36,29 @@ foreach ($row in $measuredRows) {
         "mismatch $($row[0]) $($row[1])" }
 }
 "MEASURED rows $($measuredRows.Count), shares that differ from the JSON: $bad"
+
+# Round ADDIN 4g1 (R401). The block status of the rules profile recounted from the JSON as written, with no line of python/rule_status.py
+$profilePath = (Get-Content 'config/project.json' -Raw -Encoding utf8 | ConvertFrom-Json).profile
+$all = Get-Content $profilePath -Raw -Encoding utf8 | ConvertFrom-Json -AsHashtable
+$block = $all['status']
+$byStatus = [ordered]@{}
+$entries = 0
+$shareBad = 0
+$withPage = 0
+$pageUnknown = 0
+foreach ($file in ($block.Keys | Where-Object { $_ -ne 'note' } | Sort-Object)) {
+    "block entries of ${file}: $($block[$file].Count)"
+    foreach ($e in $block[$file].Values) {
+        $entries++
+        $byStatus[$e['status']] += 1
+        if ($e['status'] -eq 'MEASURED') {
+            $node = $all
+            foreach ($part in $e['measuredBy'].Split('.')) { $node = $node[$part] }
+            $want = if ($e.ContainsKey('candidate')) { $node['candidates'][$e['candidate']] } else { $node['share'] }
+            if ([double]$want -ne [double]$e['share']) { $shareBad++ }
+        }
+        if ($e['status'] -eq 'DOCUMENT') { if ($e['pageOrSheet'] -eq 'UNKNOWN') { $pageUnknown++ } else { $withPage++ } }
+    }
+}
+foreach ($k in $byStatus.Keys | Sort-Object) { "block $k $($byStatus[$k])" }
+"block entries $entries, MEASURED shares that differ from the entry they name: $shareBad, DOCUMENT with a page or sheet $withPage, page UNKNOWN $pageUnknown"

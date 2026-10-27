@@ -48,6 +48,7 @@ Planned rules, taken from R345 to R388, each written into docs/rules.md with its
 | R380 | Button 7 Walls | 5d |
 | R381 | Button 8 Report | 5e |
 | R384 | The test host jobs of the buttons and the screenshots | 5e |
+| R401 | The status of each plotted value: the block status of the rules profile written by python/rule_status.py with --check, then the status beside each sourced value of a plot and its count by field and status in the summary of step 15 | 4g1, PR 3 the block, PR 4 the plan |
 
 Conflicts, none resolved silently:
 

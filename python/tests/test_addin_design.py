@@ -349,5 +349,7 @@ def test_r343_every_rule_the_design_names_below_the_planned_range_is_in_the_rule
     named = {int(found) for found in re.findall(r"\bR(\d{1,3})\b", text)}
     assert [number for number in sorted(named) if number < 345 and "R%d" % number not in rules] == []
     planned = {int(found) for found in re.findall(r"^\| R(\d{3}) \|", section(text, 10), flags=re.MULTILINE)}
-    assert planned == set(range(345, 389))
-    assert [number for number in sorted(named) if number > 399] == []
+    # R401 of Round ADDIN 4g1 takes the next free id after R400 of Round REC, so an id from R400 up is named only once its rule is written
+    written = {number for number in planned | named if number >= 400 and "R%d" % number in rules}
+    assert planned - written == set(range(345, 389)) and 401 in written
+    assert [number for number in sorted(named) if 399 < number and number not in written] == []
