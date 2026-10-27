@@ -517,6 +517,198 @@ namespace SiteAdaptation.Tests
             Assert.Contains("the road layout read holds no line of the curb layers analysis.roadEdgeLayers names", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "f4")).Message);
         }
 
+        // R357 the hands of test_build_steps.hand_build: a row of six 12 m faces along a road at y = -3, plot 1 a VD2 villa with a side
+        // road at x = -3, plots 2 and 3 a DP2 pair of the footprint, plots 4 to 6 DP2 units in no cluster, the hand tables made up
+        private const string Dp2File = "RRE-WP-NSP-KEO-ARC-DP2-ZZ-MOD-2200.rvt";
+        private const string Vd2File = "RRE-WP-NSP-KEO-ARC-VD2-ZZ-MOD-2200.rvt";
+
+        private static JObject HandRules()
+        {
+            JObject rules = JObject.Parse(File.ReadAllText(RepoRules()));
+            JObject key = (JObject)rules["levelProfiles"]["parsons2024Rev6"]["keyRules"];
+            key["hand villa"] = new JObject { ["rule"] = "blockMirrorRoadSide", ["byFile"] = new JObject { [Vd2File] = new JObject { ["no left"] = true, ["no none"] = false } } };
+            key["hand cluster"] = new JObject { ["rule"] = "clusterSide", ["byFile"] = new JObject { [Dp2File] = new JObject { ["left"] = false, ["right"] = true } } };
+            key["hand alone"] = new JObject { ["rule"] = "rowPairSideOrBlockMirrorOpenEnd", ["byFile"] = new JObject { [Dp2File] = new JObject { ["pair left"] = false, ["pair right"] = true } } };
+            return rules;
+        }
+
+        private static Dictionary<string, Dictionary<string, object>> HandStep()
+        {
+            JObject rules = HandRules();
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            var numbers = new List<string> { "1", "2", "3", "4", "5", "6" };
+            var faces = numbers.ToDictionary(number => number, number => BuildFace.Of(number, Ring((int.Parse(number) - 1) * 12.0, 0.0, int.Parse(number) * 12.0, 25.0)));
+            var rows = numbers.ToDictionary(number => number, number => new Dictionary<string, string>
+            {
+                ["locationPlanNumber"] = number, ["typologyRev9"] = number == "1" ? "VD2" : "DP2", ["footprintMirrored"] = "no", ["zone"] = "Zone 2",
+            });
+            var roads = new RoadLines(new[] { new[] { new[] { -50.0, -3.0 }, new[] { 100.0, -3.0 } }, new[] { new[] { -3.0, -10.0 }, new[] { -3.0, 40.0 } } });
+            var sales = new JObject { ["1"] = new JObject { ["Orientation"] = "WS" } };
+            var clusters = new List<SiteCluster> { new SiteCluster { Code = "Duplex_DP2", Plots = new List<string> { "2", "3" }, Source = "footprint" } };
+            Dictionary<string, FrontItem> fronts = Fronts.Of(numbers, rows, faces, roads, Fronts.Limits(rules, config), (x, y) => new KeyValuePair<double?, string>(null, null), rules,
+                (double)config["siteBuild"]["corner"]["roadEdgeM"], sales);
+            HandContext context = Hands.Context(numbers, rows, faces, clusters, fronts.ToDictionary(item => item.Key, item => item.Value.Frame), roads, rules, config);
+            var files = new Dictionary<string, string> { ["DP2"] = Dp2File, ["VD2"] = Vd2File };
+            return Hands.Step(numbers.Concat(new[] { "7" }), rows, context, BuildRules.KeyRules(rules, null, "hands"), files, rules, config);
+        }
+
+        [Fact]
+        public void R357_the_hand_of_a_plot_is_the_table_of_its_file_read_by_the_factor_of_its_unit_class()
+        {
+            Dictionary<string, Dictionary<string, object>> step = HandStep();
+            Dictionary<string, object> villa = step["1"];
+            Assert.Equal("VD2|villa|villa|villa", villa["unit"] + "|" + villa["kind"] + "|" + villa["pairKind"] + "|" + villa["unitClass"]);
+            Assert.Null(villa["cluster"]);
+            Assert.Empty((List<string>)villa["left"]);
+            Assert.Equal(new[] { "2" }, (List<string>)villa["right"]);
+            Assert.Equal("left|left|no|no left|no left|alone no left|blockMirrorRoadSide|no left|" + Vd2File,
+                string.Join("|", new[] { "openEnd", "roadSide", "blockMirror", "blockMirrorRoadSide", "blockMirrorOpenEnd", "rowPairSideOrBlockMirrorOpenEnd", "handRule", "factor", "linkFile" }.Select(name => villa[name])));
+            Assert.Null(villa["rowPair"]);
+            Assert.True((bool)(JToken)villa["mirrored"]);
+            Assert.Equal(new[] { "2", "3" }, (List<string>)step["2"]["cluster"]);
+            Assert.Equal("cluster|left|pair|1|2|Duplex_DP2", string.Join("|", new[] { "unitClass", "clusterSide", "clusterRole", "clusterIndex", "clusterUnits", "clusterCode" }.Select(name => step["2"][name])));
+            Assert.False((bool)(JToken)step["2"]["mirrored"]);
+            Assert.Equal("right|2|right", step["3"]["clusterSide"] + "|" + step["3"]["clusterIndex"] + "|" + step["3"]["factor"]);
+            Assert.True((bool)(JToken)step["3"]["mirrored"]);
+            Assert.Equal("0 2 3 right|1 1 3 left|2 0 3 right", string.Join("|", new[] { "4", "5", "6" }.Select(number => (JObject)step[number]["rowPair"])
+                .Select(pair => pair["left"] + " " + pair["right"] + " " + pair["length"] + " " + pair["side"])));
+            Assert.Equal(new[] { true, false, true }, new[] { "4", "5", "6" }.Select(number => (bool)(JToken)step[number]["mirrored"]).ToArray());
+            Assert.Equal("right", step["6"]["openEnd"]);
+            Assert.Equal("none", step["4"]["roadSide"]);
+            Assert.Equal(new[] { "3" }, (List<string>)step["4"]["left"]);
+            Assert.Null(step["7"]["unit"]);
+            Assert.Null(step["7"]["mirrored"]);
+            Assert.Null(step["7"]["handRule"]);
+            Assert.Equal("alone", step["7"]["unitClass"]);
+            Assert.Equal(23, step["7"].Count);
+        }
+
+        // The length of the boundary of a face within the buffer of another at 0.05 m, the buffer as GEOS builds it with 16 segments a
+        // quarter, against what shapely gave for these made up faces: side by side, a back neighbour, a neighbour of 12.45 m and a fan
+        [Fact]
+        public void R357_the_band_length_of_a_face_is_the_one_shapely_gives_with_its_buffer_of_16_segments_a_quarter()
+        {
+            BuildFace a = BuildFace.Of("1", Ring(0, 0, 12, 25));
+            Assert.Equal(25.1, Hands.BandLength(a, BuildFace.Of("2", Ring(12, 0, 24, 25)), 0.05), 9);
+            Assert.Equal(12.100000000000001, Hands.BandLength(a, BuildFace.Of("3", Ring(0, 25, 12, 37.4)), 0.05), 9);
+            Assert.Equal(12.55, Hands.BandLength(a, BuildFace.Of("4", Ring(12, 0, 24, 12.45)), 0.05), 9);
+            Assert.Equal(1.059800209322752, Hands.BandLength(BuildFace.Of("5", Ring(0, 0, 12, 40)), BuildFace.Of("6", Ring(12.04, 30, 14, 31)), 0.05), 9);
+        }
+
+        [Fact]
+        public void R357_a_side_neighbour_shares_side_share_of_the_depth_by_its_band_and_takes_its_side_by_the_centroids_along_the_front()
+        {
+            var faces = new Dictionary<string, BuildFace>
+            {
+                ["1"] = BuildFace.Of("1", Ring(0, 0, 12, 25)), ["2"] = BuildFace.Of("2", Ring(12, 0, 24, 12.45)), ["3"] = BuildFace.Of("3", Ring(-12, 0, 0, 12.39)),
+            };
+            var frames = new Dictionary<string, FrontFrame> { ["1"] = new FrontFrame { N = new[] { 0.0, 1.0 }, R = new[] { 1.0, 0.0 }, Left = new[] { 0.0, 0.0 }, Right = new[] { 12.0, 0.0 } } };
+            Dictionary<string, Sides> found = Hands.SideNeighbours(new[] { "1", "2", "3" }, faces, frames, 0.5, 25.0);
+            Assert.Equal(new[] { "2" }, found["1"].Right);
+            Assert.Empty(found["1"].Left);
+            Assert.False(found["2"].Framed);
+            Assert.Empty(found["2"].Left);
+        }
+
+        [Fact]
+        public void R357_the_prototype_file_of_a_code_is_the_one_of_the_folder_else_that_of_its_keo_file_and_a_code_of_two_files_gets_none()
+        {
+            JObject rules = JObject.Parse(File.ReadAllText(RepoRules()));
+            Dictionary<string, string> files = Hands.PrototypeFiles(new[] { "RRE-WP-NSP-KEO-ARC-DP1-ZZ-MOD-2100.rvt", "RRE-WP-NSP-KEO-arc-dp2-ZZ-MOD-2200.rvt", "notes.txt",
+                "RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3100.rvt", "RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3101.rvt" }, rules);
+            Assert.Equal("RRE-WP-NSP-KEO-ARC-DP1-ZZ-MOD-2100.rvt", files["DP1"]);
+            Assert.Equal("RRE-WP-NSP-KEO-arc-dp2-ZZ-MOD-2200.rvt", files["DP2"]);
+            // VD1 links the file of its keo_file DP1, TH1 holds two files so neither it nor DT1 of keo_file TH1 gets one
+            Assert.Equal("RRE-WP-NSP-KEO-ARC-DP1-ZZ-MOD-2100.rvt", files["VD1"]);
+            Assert.False(files.ContainsKey("TH1"));
+            Assert.False(files.ContainsKey("DT1"));
+        }
+
+        [Fact]
+        public void R357_the_config_names_the_fields_of_the_step_hands_all_exact()
+        {
+            AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
+            Assert.Equal("unit kind pairKind unitClass cluster clusterCode clusterSide clusterRole clusterIndex clusterUnits left right openEnd roadSide rowPair blockMirror "
+                + "blockMirrorRoadSide blockMirrorOpenEnd rowPairSideOrBlockMirrorOpenEnd handRule factor linkFile mirrored", string.Join(" ", config.StepFields(Hands.StepName).Select(field => field.Name)));
+            Assert.All(config.StepFields(Hands.StepName), field => Assert.Equal("noGeometry", field.Kind));
+        }
+
+        // The request of a worker build of the step hands on made up reads of the row of HandStep, a footprint block on 2 and 3, a rules file
+        // with the made up hand tables and two made up prototype files
+        private WorkerRequest HandRequest(string runId)
+        {
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            var numbers = new[] { "1", "2", "3", "4", "5", "6" };
+            var plots = new JArray(numbers.Select(number => Shape(number, Ring((int.Parse(number) - 1) * 12.0, 0.0, int.Parse(number) * 12.0, 25.0))));
+            string baseplan = ReadFile("read_baseplan.json", "baseplan", (string)config["drawings"]["baseplan"], new JObject { ["plots"] = plots });
+            var blocks = new JArray(new JObject { ["name"] = "Duplex_DP2", ["outline"] = Points(Ring(14.0, 5.0, 34.0, 20.0)) });
+            string footprint = ReadFile("read_villaBlocks.json", "villaBlocks", (string)config["drawings"]["villaBlocks"], new JObject { ["blocks"] = blocks });
+            string layer = (string)config["analysis"]["roadEdgeLayers"][0];
+            var pieces = new JArray(new JObject { ["kind"] = "line", ["layer"] = layer, ["pts"] = new JArray(new JArray(-50.0, -3.0), new JArray(100.0, -3.0)) },
+                new JObject { ["kind"] = "line", ["layer"] = layer, ["pts"] = new JArray(new JArray(-3.0, -10.0), new JArray(-3.0, 40.0)) });
+            string curbs = ReadFile("read_curbs.json", "curbs", (string)config["drawings"]["roadLayout"], new JObject { ["pieces"] = pieces });
+            string salesFile = Path.Combine(folder, Path.GetFileName((string)config["dataBook"]["rev9"]["workbooks"][(string)config["dataBook"]["locationPlan"]["sales"]["workbook"]]));
+            File.WriteAllText(salesFile, "a made up sales workbook");
+            string workbooks = Path.Combine(folder, "read_workbooks.json");
+            File.WriteAllText(workbooks, new JObject
+            {
+                ["sales"] = new JObject { ["1"] = new JObject { ["Orientation"] = "WS" } },
+                [RunStamp.Key] = new JObject { ["runId"] = "r0", ["inputs"] = new JArray(new JObject { ["role"] = "sales", ["path"] = salesFile, ["sha256"] = FileHash.Sha256(salesFile) }) },
+            }.ToString());
+            string data = Path.Combine(folder, "plots.csv");
+            File.WriteAllText(data, "locationPlanNumber,baseplanLabel,typologyRev9,footprintBlock,footprintMirrored\n" + string.Join("\n", numbers.Select(number => number + "," + number + ","
+                + (number == "1" ? "VD2," : "DP2,") + (number == "2" || number == "3" ? "Duplex_DP2" : "") + ",no")) + "\n");
+            string labels = Path.Combine(folder, "labels.csv");
+            File.WriteAllText(labels, "kind,number,nbh\n" + string.Join("\n", numbers.Select(number => "clientCode," + number + ",012")) + "\n");
+            string analysis = Path.Combine(folder, "analysis.json");
+            File.WriteAllText(analysis, new JObject { ["source"] = (string)config["drawings"]["baseplan"], ["clusters"] = new JArray() }.ToString());
+            string rules = Path.Combine(folder, "rules.json");
+            File.WriteAllText(rules, HandRules().ToString());
+            string prototypes = Path.Combine(folder, "prototypes");
+            Directory.CreateDirectory(prototypes);
+            var inputs = new List<WorkerFile>
+            {
+                Input("config", WorkerRunTests.RepoConfig()), Input("rules", rules), Input("plotsCsv", data), Input("labels", labels), Input("baseplanRead", baseplan),
+                Input("villaBlocksRead", footprint), Input("analysis", analysis), Input("curbsRead", curbs), Input("workbooksRead", workbooks),
+            };
+            foreach (string name in new[] { Dp2File, Vd2File })
+            {
+                File.WriteAllText(Path.Combine(prototypes, name), "a made up prototype " + name);
+                inputs.Add(Input(BuildSteps.PrototypeRole + name, Path.Combine(prototypes, name)));
+            }
+            return new WorkerRequest
+            {
+                FormatVersion = 1, RunId = runId, Command = "build", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" }, Inputs = inputs,
+                Scope = new WorkerScope { Kind = "project" }, OutputFolder = folder, Steps = new List<string> { "clusters", "hands" }, StepsFolder = Path.Combine(folder, "steps"), TimeLimitS = 600,
+            };
+        }
+
+        [Fact]
+        public void R357_the_worker_build_writes_the_step_hands_and_refuses_a_prototype_named_otherwise_or_prototypes_of_two_folders()
+        {
+            Assert.Equal(0, WorkerRunner.Run(HandRequest("h1").Write(folder), WorkerCommands.Default(), () => 9000.0));
+            JObject file = RunStamp.Read(Path.Combine(folder, "steps", "step_hands_csharp.json"));
+            JToken plots = file["plots"];
+            Assert.Equal("Duplex_DP2", (string)plots["2"]["written"]["clusterCode"]);
+            Assert.Equal(new[] { false, true, true, false, true }, new[] { "2", "3", "4", "5", "6" }.Select(number => (bool)plots[number]["written"]["mirrored"]).ToArray());
+            Assert.True((bool)plots["1"]["written"]["mirrored"]);
+            Assert.Equal(Vd2File, (string)plots["1"]["written"]["linkFile"]);
+            Assert.Equal(new[] { "2|3" }, ((JObject)RunStamp.Read(Path.Combine(folder, "steps", "step_clusters_csharp.json"))["plots"]).Properties().Select(item => item.Name).ToArray());
+
+            WorkerRequest renamed = HandRequest("h2");
+            renamed.Inputs[9] = new WorkerFile { Role = BuildSteps.PrototypeRole + "other.rvt", Path = renamed.Inputs[9].Path, Sha256 = renamed.Inputs[9].Sha256 };
+            Assert.Equal(2, WorkerRunner.Run(renamed.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("the input prototype:other.rvt is the file " + Dp2File + ", a prototype file is named by its own file name (R357)", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "h2")).Message);
+
+            WorkerRequest apart = HandRequest("h3");
+            string elsewhere = Path.Combine(folder, "elsewhere");
+            Directory.CreateDirectory(elsewhere);
+            File.Copy(apart.Inputs[10].Path, Path.Combine(elsewhere, Vd2File), true);
+            apart.Inputs[10] = Input(BuildSteps.PrototypeRole + Vd2File, Path.Combine(elsewhere, Vd2File));
+            Assert.Equal(2, WorkerRunner.Run(apart.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("the prototype files of the request lie in 2 folders", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "h3")).Message);
+        }
+
         private static string Text(IEnumerable<double[]> ring)
         {
             return string.Join(" ", ring.Select(point => point[0].ToString(System.Globalization.CultureInfo.InvariantCulture) + "," + point[1].ToString(System.Globalization.CultureInfo.InvariantCulture)));

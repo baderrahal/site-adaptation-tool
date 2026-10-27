@@ -615,6 +615,31 @@
             "surfaceLeft": {"kind": "noGeometry"},
             "surfaceRight": {"kind": "noGeometry"},
             "noRoadLevel": {"kind": "noGeometry"}
+        },
+        "hands": {
+            "unit": {"kind": "noGeometry"},
+            "kind": {"kind": "noGeometry"},
+            "pairKind": {"kind": "noGeometry"},
+            "unitClass": {"kind": "noGeometry"},
+            "cluster": {"kind": "noGeometry"},
+            "clusterCode": {"kind": "noGeometry"},
+            "clusterSide": {"kind": "noGeometry"},
+            "clusterRole": {"kind": "noGeometry"},
+            "clusterIndex": {"kind": "noGeometry"},
+            "clusterUnits": {"kind": "noGeometry"},
+            "left": {"kind": "noGeometry"},
+            "right": {"kind": "noGeometry"},
+            "openEnd": {"kind": "noGeometry"},
+            "roadSide": {"kind": "noGeometry"},
+            "rowPair": {"kind": "noGeometry"},
+            "blockMirror": {"kind": "noGeometry"},
+            "blockMirrorRoadSide": {"kind": "noGeometry"},
+            "blockMirrorOpenEnd": {"kind": "noGeometry"},
+            "rowPairSideOrBlockMirrorOpenEnd": {"kind": "noGeometry"},
+            "handRule": {"kind": "noGeometry"},
+            "factor": {"kind": "noGeometry"},
+            "linkFile": {"kind": "noGeometry"},
+            "mirrored": {"kind": "noGeometry"}
         }
       }
     }

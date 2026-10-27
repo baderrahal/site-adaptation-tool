@@ -215,3 +215,111 @@ def test_r355_the_config_names_the_fields_of_the_step_fronts_by_their_kind():
         "length": ("points", 3), "distance": ("points", 3), "tied": ("noGeometry", None), "depth": ("points", 3), "corners": ("points", 3),
         "roadLevelLeft": ("levels", 4), "roadLevelRight": ("levels", 4), "surfaceLeft": ("noGeometry", None), "surfaceRight": ("noGeometry", None),
         "noRoadLevel": ("noGeometry", None)}
+
+
+# R357 the hands: a row of six 12 m faces along a road at y = -3, plot 1 a VD2 villa with a side road at x = -3, plots 2 and 3 a DP2 pair of
+# the footprint, plots 4 to 6 DP2 units in no cluster, the tables of keyRules made up for one file each
+DP2_FILE = "RRE-WP-NSP-KEO-ARC-DP2-ZZ-MOD-2200.rvt"
+VD2_FILE = "RRE-WP-NSP-KEO-ARC-VD2-ZZ-MOD-2200.rvt"
+HAND_UNITS = {"1": "VD2", "2": "DP2", "3": "DP2", "4": "DP2", "5": "DP2", "6": "DP2"}
+
+
+def hand_rules():
+    """keyRules as the rules profile holds them, the hand tables made up for the made up row."""
+    import copy
+    real = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    values = copy.deepcopy(real.values)
+    key = values["levelProfiles"]["parsons2024Rev6"]["keyRules"]
+    key["hand villa"] = {"rule": "blockMirrorRoadSide", "byFile": {VD2_FILE: {"no left": True, "no none": False}}}
+    key["hand cluster"] = {"rule": "clusterSide", "byFile": {DP2_FILE: {"left": False, "right": True}}}
+    key["hand alone"] = {"rule": "rowPairSideOrBlockMirrorOpenEnd", "byFile": {DP2_FILE: {"pair left": False, "pair right": True}}}
+    return project_profile.ProjectProfile(real.path, values)
+
+
+def hand_build(monkeypatch):
+    """plan_from_book.rule_inputs and build with a trace on the made up row, the road level stubbed, as key_build of the R337 tests."""
+    import argparse
+    from shapely.geometry import LineString, box
+    import plan_from_past
+    from pathlib import Path
+    settings = project_profile.load_settings()
+    profile = hand_rules()
+    numbers = [str(index) for index in range(1, 7)]
+    rows = {number: {"locationPlanNumber": number, "typologyRev9": HAND_UNITS[number], "footprintMirrored": "no", "zone": "Zone 2"} for number in numbers}
+    faces = {number: box(index * 12.0, 0.0, index * 12.0 + 12.0, 25.0).buffer(0) for index, number in enumerate(numbers)}
+    roads = [LineString([(-50.0, -3.0), (100.0, -3.0)]), LineString([(-3.0, -10.0), (-3.0, 40.0)])]
+    sales = {"1": {"Orientation": "WS"}}
+    clusters = [{"code": "Duplex_DP2", "plots": ["2", "3"], "source": "footprint"}]
+    monkeypatch.setattr(plan_from_book, "road_level", lambda surfaces, point, snap: (10.0, "road"))
+    args = argparse.Namespace(level_profile=None, overrides=None, override_source=None, override_model=[], override_fields=None)
+    rules = plan_from_book.rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters)
+    floors = plan_from_past.load_floors(settings)
+    site = {"levels": {floors["levels"][kind]: 0.0 for kind in ("generic", "yard", "ramp")}, "surveyPoint": {"position": [0, 0, 0], "sharedPosition": [0, 0, 0]},
+            "angleToTrueNorthDeg": 0.0}
+    outlines = json.loads((Path(__file__).resolve().parents[2] / "config" / "floor_outlines.json").read_text(encoding="utf-8"))
+    files = {"DP2": DP2_FILE, "VD2": VD2_FILE}
+    trace = {}
+    plan_from_book.build(numbers, rows, {}, faces, roads, clusters, profile, settings, {"units": {}}, files, "folder", site, [("road", None)], outlines, "N1", sales,
+                         True, rules, trace=trace)
+    return plan_from_book.hand_step(numbers + ["7"], rows, rules, trace, files, profile, settings.get("majority")), trace
+
+
+def test_r357_the_hand_of_a_plot_is_the_table_of_its_file_read_by_the_factor_of_its_unit_class(monkeypatch):
+    step, trace = hand_build(monkeypatch)
+    assert step["1"] == {"unit": "VD2", "kind": "villa", "pairKind": "villa", "unitClass": "villa", "cluster": None, "clusterCode": None, "clusterSide": None,
+                         "clusterRole": None, "clusterIndex": None, "clusterUnits": None, "left": [], "right": ["2"], "openEnd": "left", "roadSide": "left", "rowPair": None,
+                         "blockMirror": "no", "blockMirrorRoadSide": "no left", "blockMirrorOpenEnd": "no left", "rowPairSideOrBlockMirrorOpenEnd": "alone no left",
+                         "handRule": "blockMirrorRoadSide", "factor": "no left", "linkFile": VD2_FILE, "mirrored": True}
+    assert step["2"]["unitClass"] == "cluster" and step["2"]["cluster"] == ["2", "3"] and step["2"]["clusterSide"] == "left" and step["2"]["clusterRole"] == "pair"
+    assert (step["2"]["clusterIndex"], step["2"]["clusterUnits"], step["2"]["mirrored"]) == (1, 2, False)
+    assert (step["3"]["clusterSide"], step["3"]["clusterIndex"], step["3"]["mirrored"], step["3"]["factor"]) == ("right", 2, True, "right")
+    # The units in no cluster pair along their row from its right end: 6 and 5 a pair, 4 alone on the left, the side of 4 its pair side right
+    assert {number: step[number]["rowPair"] for number in ("4", "5", "6")} == {"4": {"left": 0, "right": 2, "length": 3, "side": "right"},
+                                                                                "5": {"left": 1, "right": 1, "length": 3, "side": "left"},
+                                                                                "6": {"left": 2, "right": 0, "length": 3, "side": "right"}}
+    assert [step[number]["mirrored"] for number in ("4", "5", "6")] == [True, False, True]
+    assert step["6"]["openEnd"] == "right" and step["4"]["roadSide"] == "none" and step["4"]["left"] == ["3"] and step["4"]["right"] == ["5"]
+    # Plot 7 holds no row and no face: no unit, no hand, every field of what it lacks null
+    assert step["7"]["unit"] is None and step["7"]["mirrored"] is None and step["7"]["handRule"] is None and step["7"]["unitClass"] == "alone"
+    assert trace["hands"]["4"] == {"mirrored": True, "rule": "rowPairSideOrBlockMirrorOpenEnd"}
+
+
+def test_r357_a_hand_of_the_step_that_differs_from_the_hand_the_build_took_is_refused(monkeypatch):
+    import argparse
+    step, trace = hand_build(monkeypatch)
+    trace["hands"]["4"] = {"mirrored": False, "rule": "rowPairSideOrBlockMirrorOpenEnd"}
+    rules = {"keyRules": hand_rules().get("levelProfiles")["parsons2024Rev6"]["keyRules"], "neighbours": {}, "rowPairs": {}, "openEnds": {}, "roadSides": {},
+             "pairs": {"4": "right"}, "kinds": {"4": "duplex"}}
+    with pytest.raises(ValueError) as error:
+        plan_from_book.hand_step(["4"], {"4": {"typologyRev9": "DP2"}}, rules, trace, {"DP2": DP2_FILE}, hand_rules(), project_profile.load_settings().get("majority"))
+    assert str(error.value) == "the step hands gives plot 4 the hand True by rowPairSideOrBlockMirrorOpenEnd and the build took False by rowPairSideOrBlockMirrorOpenEnd (R357)"
+
+
+def test_r357_the_config_names_the_fields_of_the_step_hands_all_exact():
+    fields = project_profile.load_settings().get("addin")["parity"]["steps"]["hands"]
+    assert list(fields) == ["unit", "kind", "pairKind", "unitClass", "cluster", "clusterCode", "clusterSide", "clusterRole", "clusterIndex", "clusterUnits", "left", "right",
+                            "openEnd", "roadSide", "rowPair", "blockMirror", "blockMirrorRoadSide", "blockMirrorOpenEnd", "rowPairSideOrBlockMirrorOpenEnd", "handRule",
+                            "factor", "linkFile", "mirrored"]
+    assert all(field == {"kind": "noGeometry"} for field in fields.values())
+
+
+def test_r357_a_side_neighbour_shares_side_share_of_the_depth_by_its_band_and_takes_its_side_by_the_centroids_along_the_front():
+    import majority
+    faces = {"1": box(0, 0, 12, 25).buffer(0), "2": box(12, 0, 24, 12.45).buffer(0), "3": box(-12, 0, 0, 12.39).buffer(0)}
+    # The band lengths shapely gives, which BuildStepTests.cs holds the C# to
+    assert faces["1"].boundary.intersection(faces["2"].buffer(0.05)).length == 12.55
+    assert faces["1"].boundary.intersection(box(12, 0, 24, 25).buffer(0).buffer(0.05)).length == 25.1
+    assert faces["1"].boundary.intersection(box(0, 25, 12, 37.4).buffer(0).buffer(0.05)).length == 12.100000000000001
+    assert box(0, 0, 12, 40).buffer(0).boundary.intersection(box(12.04, 30, 14, 31).buffer(0).buffer(0.05)).length == 1.059800209322752
+    frames = {"1": {"n": (0.0, 1.0), "r": (1.0, 0.0), "left": (0.0, 0.0), "right": (12.0, 0.0)}}
+    found = majority.side_neighbours(["1", "2", "3"], faces, frames, 0.5, 25.0)
+    assert found["1"] == {"left": [], "right": ["2"], "framed": True} and found["2"] == {"left": [], "right": [], "framed": False}
+
+
+def test_r357_the_prototype_file_of_a_code_is_the_one_of_the_folder_else_that_of_its_keo_file_and_a_code_of_two_files_gets_none():
+    import plan_from_cad
+    profile = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    files, twice = plan_from_cad.prototype_files(["RRE-WP-NSP-KEO-ARC-DP1-ZZ-MOD-2100.rvt", "RRE-WP-NSP-KEO-arc-dp2-ZZ-MOD-2200.rvt", "notes.txt",
+                                                   "RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3100.rvt", "RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-3101.rvt"], profile)
+    assert files["DP1"] == "RRE-WP-NSP-KEO-ARC-DP1-ZZ-MOD-2100.rvt" and files["DP2"] == "RRE-WP-NSP-KEO-arc-dp2-ZZ-MOD-2200.rvt"
+    assert files["VD1"] == files["DP1"] and "TH1" not in files and "DT1" not in files and twice == ["TH1"]

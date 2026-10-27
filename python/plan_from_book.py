@@ -60,8 +60,8 @@ LOCATION = "locationPlan"
 OVERRIDE = "override"
 KEY_RULES = "keyRules"
 # R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R357 after the faces
-PARITY_STEPS = ("faces", "clusters", "fronts")
-BUILD_STEPS = ("clusters", "fronts")
+PARITY_STEPS = ("faces", "clusters", "fronts", "hands")
+BUILD_STEPS = ("clusters", "fronts", "hands")
 FOOTPRINT, ANALYSIS = "footprint", "analysis"
 # R337. The source of a parameter that reads the steps, the stepBands of the level profile when keyRules codes no steps
 STEP_BANDS = "levelProfileStepBands"
@@ -166,6 +166,44 @@ def front_step(numbers, front, surfaces, snap):
             "depth": item.get("depth"), "corners": None if item["corners"] is None else [list(corner) for corner in item["corners"]],
             "roadLevelLeft": levels[0], "roadLevelRight": levels[1], "surfaceLeft": names[0], "surfaceRight": names[1],
             "noRoadLevel": no_road_level(number, item, surfaces, snap) if item["unit"] and item["front"] is None else None}
+    return found
+
+
+def hand_step(numbers, rows, rules, trace, files, profile, block):
+    """R357. The step hands of the parity harness: per plot of the scope what the hand rule of keyRules reads and gives, as the build
+    takes it: the kind and the pair kind of its unit (majority.kind_of, pair_kind), its unit class, its cluster, side, role, index and
+    count (cad_links.cluster_roles), its side neighbours left and right in the order of their numbers (majority.side_neighbours), the open
+    end, the side road, its row pair (key_rules.row_pairs), the block mirror flag, the factors joined of two (plan_rules.joined_factors),
+    the rule of hand villa, cluster or alone, the value of its factor, the file the plot links and the mirror flag the table of that file
+    gives (plan_rules.key_hand), before an override of the list. A hand that differs from the one the build took is refused."""
+    import majority
+    key, roles = rules["keyRules"], trace["roles"]
+    found = {}
+    for number in numbers:
+        row = rows.get(number) or {}
+        unit = row.get("typologyRev9") or None
+        role = roles.get(number)
+        sides = rules["neighbours"].get(number)
+        pair = rules["rowPairs"].get(number)
+        factors = plan_rules.joined_factors({"all": "all", "blockMirror": {"yes": "yes", "no": "no"}.get(row.get("footprintMirrored")),
+                                             "clusterSide": role["side"] if role is not None else "alone", "openEnd": rules["openEnds"].get(number),
+                                             "roadSide": rules["roadSides"].get(number), "rowPairSide": rules["pairs"].get(number)})
+        unit_class = plan_rules.unit_class(rules["kinds"].get(number), role)
+        hand, rule = plan_rules.key_hand(key, unit_class, files.get(unit), factors) if unit else (None, None)
+        built = trace["hands"].get(number)
+        if built is not None and (built["mirrored"], built["rule"]) != (hand, rule):
+            raise ValueError("the step hands gives plot %s the hand %r by %s and the build took %r by %s (R357)" % (number, hand, rule, built["mirrored"], built["rule"]))
+        found[number] = {
+            "unit": unit, "kind": rules["kinds"].get(number), "pairKind": majority.pair_kind(number, rows, profile, block), "unitClass": unit_class,
+            "cluster": None if role is None else list(role["plots"]), "clusterCode": None if role is None else role["cluster"],
+            "clusterSide": None if role is None else role["side"], "clusterRole": None if role is None else role["role"],
+            "clusterIndex": None if role is None else role["index"], "clusterUnits": None if role is None else role["units"],
+            "left": None if sides is None else sorted(sides["left"], key=link_summary.sort_key), "right": None if sides is None else sorted(sides["right"], key=link_summary.sort_key),
+            "openEnd": rules["openEnds"].get(number), "roadSide": rules["roadSides"].get(number),
+            "rowPair": None if pair is None else {"left": pair["left"], "right": pair["right"], "length": pair["length"], "side": pair["side"]},
+            "blockMirror": factors["blockMirror"], "blockMirrorRoadSide": factors["blockMirrorRoadSide"], "blockMirrorOpenEnd": factors["blockMirrorOpenEnd"],
+            "rowPairSideOrBlockMirrorOpenEnd": factors["rowPairSideOrBlockMirrorOpenEnd"], "handRule": rule, "factor": factors.get(rule) if rule else None,
+            "linkFile": files.get(unit) if unit else None, "mirrored": hand}
     return found
 
 
@@ -497,6 +535,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         trace.update(front=front, snap=snap)
     frames = {number: item["frame"] for number, item in front.items()}
     roles = cad_links.cluster_roles(mine, 0, {number: item["face"] for number, item in front.items() if item["face"] is not None}, frames)
+    if trace is not None:
+        trace.update(roles=roles, hands={})
     entries, slopes = {}, {}
     overrides = {} if rules is None else rules["overrides"]
     outcomes = Outcomes(overrides, numbers, [] if rules is None else rules.get("laterFields") or [], "the estimate of R209" if rules is None else rules["name"])
@@ -580,6 +620,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                                                      "openEnd": rules["openEnds"].get(number), "roadSide": rules["roadSides"].get(number),
                                                      "rowPairSide": rules["pairs"].get(number)})
                 hand, rule = plan_rules.key_hand(key, plan_rules.unit_class(rules["kinds"].get(number), roles.get(number)), files.get(unit), factors)
+                if trace is not None:
+                    # R357. The hand by the rule, before an override of the list sets it
+                    trace["hands"][number] = {"mirrored": hand, "rule": rule}
             else:
                 sides = {code: {"drawnSide": value.get("drawnSide")} for code, value in frame_section["units"].items()}
                 kind = ((profile.get("typologies") or {}).get(unit) or {}).get("kind")
@@ -873,6 +916,7 @@ def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clu
     later = set((block.get("overrideKeep") or {}).get("laterFields", {}).get(lp.get("job")) or ())
     return {"name": name, "levelProfile": lp, "rounding": plan_rules.rounding_of(settings, name, key), "hands": profile.get("hands") or {}, "openEnds": open_ends, "overrides": overrides,
             "sources": sources, "models": list(models), "keyRules": key, "roadSides": road_sides, "pairs": pairs, "kinds": kinds, "partners": partners,
+            "neighbours": neighbours, "rowPairs": found if key is not None else {},
             "laterFields": [field for field in ((block.get("overrideKeep") or {}).get("laterFields", {}).get(lp.get("job")) or [])] if key is not None else [],
             "laterParameters": {field for field in later if field.startswith(plan_rules.PARAMETER)}, "facade": list(block.get("linkNameFacade") or [])}
 
@@ -979,11 +1023,13 @@ def main(argv=None):
         surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in args.road_names], args.scratch)
         # R337. A build by keyRules takes the clusters of every unit plot, the site as the keys were measured on (R271)
         trace = {}
+        files = folder_files(folder, profile)
         plan = build(cover["plots"], rows, number_of, faces, roads, everything if by_keys else clusters, profile, settings,
-                     prototype_offsets.plot_frame(prototype_offsets.load(args.offsets)), folder_files(folder, profile), folder,
+                     prototype_offsets.plot_frame(prototype_offsets.load(args.offsets)), files, folder,
                      site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, by_keys or bool(args.footprint_blocks), rules, trace=trace)
         if args.steps:
             write_build_step(args, settings, "fronts", front_step(cover["plots"], trace["front"], surfaces, trace["snap"]))
+            write_build_step(args, settings, "hands", hand_step(cover["plots"], rows, rules, trace, files, profile, settings.get("majority")))
         plan_from_past.write_plan(out, plan)
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
         print("plan_from_book: " + str(error), file=sys.stderr)

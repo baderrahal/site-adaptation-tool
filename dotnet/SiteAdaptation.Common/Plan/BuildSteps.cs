@@ -13,11 +13,16 @@ namespace SiteAdaptation.Common
     // order. Every number of a JSON input is the nearest double of its text, as Python reads it, and each input is read once per run
     public static class BuildSteps
     {
-        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName };
+        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName };
 
         public static readonly string[] ClusterRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead", "analysis" };
 
         public static readonly string[] FrontRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "curbsRead", "workbooksRead", WorkerRunner.RoadSurfaceRole + "*" };
+
+        // R357. The role of a prototype file, prototype:<its file name>, one per file of the prototype folder
+        public const string PrototypeRole = "prototype:";
+
+        public static readonly string[] HandRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead", "analysis", "curbsRead", "workbooksRead", PrototypeRole + "*" };
 
         // What the build steps read, each input read when a step first needs it
         private sealed class Site
@@ -188,6 +193,26 @@ namespace SiteAdaptation.Common
                 return surfaces;
             }
 
+            // R357, R128. The prototype file of each code, plan_from_cad.prototype_files of the names of the inputs prototype:<name>, each
+            // named by its own file name and all of one folder, as plan_from_book.folder_files lists one folder
+            public Dictionary<string, string> Files()
+            {
+                List<WorkerFile> inputs = run.Request.Inputs.Where(input => input.Role != null && input.Role.StartsWith(PrototypeRole, StringComparison.Ordinal)).ToList();
+                foreach (WorkerFile input in inputs)
+                {
+                    if (input.Role.Substring(PrototypeRole.Length) != Path.GetFileName(input.Path))
+                    {
+                        throw new InvalidDataException("the input " + input.Role + " is the file " + Path.GetFileName(input.Path) + ", a prototype file is named by its own file name (R357)");
+                    }
+                }
+                List<string> folders = inputs.Select(input => Path.GetDirectoryName(Path.GetFullPath(input.Path))).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                if (folders.Count > 1)
+                {
+                    throw new InvalidDataException("the prototype files of the request lie in " + folders.Count + " folders, " + string.Join(", ", folders) + ", a build takes the files of one folder (R357)");
+                }
+                return Hands.PrototypeFiles(inputs.Select(input => input.Role.Substring(PrototypeRole.Length)), Rules);
+            }
+
             // A read of the worker of the role it names, its drawing in Meters and every input of its run stamp on disk with its SHA-256
             private JObject Read(string role, string readRole)
             {
@@ -268,6 +293,20 @@ namespace SiteAdaptation.Common
                     run.Counts["fronts with a frame"] = fronts.Values.Count(item => item.Frame != null);
                     run.Counts["fronts with no road level of a unit plot"] = fronts.Values.Count(item => item.Unit != null && item.Front == null);
                     made[Fronts.StepName] = Fronts.Step(site.Numbers, fronts, surfaces.Select(surface => surface.Name).ToList(), snap);
+                }
+                if (asked.Contains(Hands.StepName))
+                {
+                    double roadEdgeM = BuildFace.Number(site.Settings["siteBuild"]["corner"]["roadEdgeM"]);
+                    var wanted = new HashSet<string>(site.Numbers);
+                    List<string> framed = site.Numbers.Concat(site.Units).Concat(site.Clusters.Where(cluster => cluster.Plots.Any(wanted.Contains)).SelectMany(cluster => cluster.Plots)).Distinct().ToList();
+                    // R357. The front of each plot by the corner rule of R226 as rule_inputs takes it, with no road level
+                    Dictionary<string, FrontItem> fronts = Fronts.Of(framed, site.Rows, site.Faces, site.Roads, Fronts.Limits(site.Rules, site.Settings, site.RulesName),
+                        (x, y) => new KeyValuePair<double?, string>(null, null), site.Rules, roadEdgeM, site.Sales, site.RulesName);
+                    HandContext context = Hands.Context(site.Numbers, site.Rows, site.Faces, site.Clusters, fronts.ToDictionary(item => item.Key, item => item.Value.Frame), site.Roads, site.Rules, site.Settings);
+                    JObject key = BuildRules.KeyRules(site.Rules, request.LevelProfile, string.Join(", ", Names));
+                    made[Hands.StepName] = Hands.Step(site.Numbers, site.Rows, context, key, site.Files(), site.Rules, site.Settings);
+                    run.Counts["hands of the scope with a mirror flag"] = made[Hands.StepName].Values.Count(item => item["mirrored"] != null);
+                    run.Counts["side neighbour pairs"] = context.Neighbours.Values.Sum(sides => sides.Left.Count + sides.Right.Count);
                 }
             }
             catch (InvalidDataException refused)

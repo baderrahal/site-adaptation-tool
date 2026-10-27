@@ -23,6 +23,8 @@ namespace SiteAdaptation.Common
             [SiteClusters.StepName] = BuildSteps.ClusterRoles,
             // R355. The fronts of a build, on the curbs and sales reads of the worker and the road surfaces of the level profile
             [Fronts.StepName] = BuildSteps.FrontRoles,
+            // R357. The hands of a build, on the reads of the clusters and the fronts and the prototype files of the folder
+            [Hands.StepName] = BuildSteps.HandRoles,
             [ReadSteps.Labels] = new[] { "baseplan" },
             [ReadSteps.Blocks] = new[] { "villaBlocks" },
             [ReadSteps.Setbacks] = new[] { "villaBlocks" },

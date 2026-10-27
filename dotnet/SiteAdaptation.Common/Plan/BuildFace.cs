@@ -21,7 +21,9 @@ namespace SiteAdaptation.Common
 
         public double Area { get; private set; }
 
-        // The centroid about the first vertex, as FaceStep takes it (R345)
+        // R357. The centroid as GEOS gives it, Centroid::addShell: the triangles from the first vertex of the ring, each its area times the
+        // sum of its three corners, summed and divided by 3 and then by the area, the same bit for bit as shapely on the 2,962 faces of the
+        // baseplan, where a side neighbour of 1076 lies 2.3E-10 m along the front of 1129 (round_addin logs p4e_margins_hands.txt)
         public double CentroidX { get; private set; }
 
         public double CentroidY { get; private set; }
@@ -49,10 +51,20 @@ namespace SiteAdaptation.Common
                 return null;
             }
             double[][] ordered = twice > 0 ? new[] { ring[0] }.Concat(Enumerable.Range(1, ring.Count - 1).Select(index => ring[ring.Count - index])).ToArray() : ring.ToArray();
-            FaceStep.RingValues values = FaceStep.Ring(ordered);
+            double[] origin = ordered[0];
+            double sumX = 0, sumY = 0, sumArea = 0;
+            for (int index = 0; index < ordered.Length; index++)
+            {
+                double[] p1 = ordered[index], p2 = ordered[(index + 1) % ordered.Length];
+                double x3 = origin[0] + p1[0] + p2[0], y3 = origin[1] + p1[1] + p2[1];
+                double area2 = (p1[0] - origin[0]) * (p2[1] - origin[1]) - (p2[0] - origin[0]) * (p1[1] - origin[1]);
+                sumX += area2 * x3;
+                sumY += area2 * y3;
+                sumArea += area2;
+            }
             return new BuildFace
             {
-                Label = label, Ring = ordered, Area = values.Area, CentroidX = values.X, CentroidY = values.Y,
+                Label = label, Ring = ordered, Area = FaceStep.Ring(ordered).Area, CentroidX = sumX / 3 / sumArea, CentroidY = sumY / 3 / sumArea,
                 Low = new[] { ordered.Min(point => point[0]), ordered.Min(point => point[1]) }, High = new[] { ordered.Max(point => point[0]), ordered.Max(point => point[1]) },
             };
         }
