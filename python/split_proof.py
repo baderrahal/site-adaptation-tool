@@ -26,6 +26,18 @@ SPLITS = [
         "08-phase-3c.md", "09-phase-3b.md", "10-phase-4a.md", "11-phase-4b.md", "12-q081-q073.md", "13-phase-4c.md", "14-phase-4d.md",
         "15-phase-4e.md"]]),
 ]
+# Records moved whole to a new path
+COPIES = [("steps/PROGRESS.md", "steps/history/progress-addin-4e.md")]
+# Lines moved whole: every line of the original between the two markers is a line of one of the new files
+MOVED_LINES = [
+    ("steps/PROGRESS.md", "## Bader's turn", "## Next three steps", ["steps/questions-open.md", "steps/latent.md"]),
+    ("steps/questions-closed.md", "## Open questions, full text", "## Old numbers to IDs", ["steps/questions-open.md", "steps/latent.md"]),
+]
+# Sentences of a line moved alone: each is a run of text of the original line that one new file holds word for word
+MOVED_TEXT = [
+    ("steps/PROGRESS.md", "key_copies.py keeps a last part NUL", "PrototypeSets.ps1 throws on it.", "steps/latent.md"),
+    ("steps/PROGRESS.md", "The check points of R353 hold the residuals", "none reached by a real input (READ, steps/questions-closed.md)", "steps/latent.md"),
+]
 # The record files whose ids are counted before and after: the docs, the steps, CLAUDE.md and the agents
 RECORD_PREFIXES = ("docs/", "steps/", "CLAUDE.md", ".claude/agents/")
 R_ID = re.compile(rb"\bR\d{1,3}\b")
@@ -77,6 +89,25 @@ def main(argv=None):
             lines.append("  %s ids named: original %d, parts %d" % (kind, len(pattern.findall(before)), len(pattern.findall(after))))
         lines.append("  equal: %s" % ("yes" if equal else "NO"))
         lines.append("")
+    for original, copy in COPIES:
+        before, after = git("show", "%s:%s" % (BASE, original)), (ROOT / copy).read_bytes()
+        ok &= before == after
+        lines.append("%s copied to %s: sha256 %s and %s, equal: %s" % (original, copy, sha(before), sha(after), "yes" if before == after else "NO"))
+    for original, start, end, targets in MOVED_LINES:
+        text = git("show", "%s:%s" % (BASE, original)).decode("utf-8")
+        moved = [line for line in text.split(start, 1)[1].split(end, 1)[0].split("\n")[1:] if line.strip()]
+        held = set(line for target in targets for line in (ROOT / target).read_text(encoding="utf-8").split("\n"))
+        missing = [line[:40] for line in moved if line not in held]
+        ok &= not missing
+        lines.append("%s, the %d lines under %s held whole by %s: %d missing %s" % (original, len(moved), start, " or ".join(targets), len(missing), missing))
+    for original, first, last, target in MOVED_TEXT:
+        text = git("show", "%s:%s" % (BASE, original)).decode("utf-8")
+        begin = text.index(first)
+        run = text[begin:text.index(last, begin) + len(last)]
+        found = run in (ROOT / target).read_text(encoding="utf-8")
+        ok &= found
+        lines.append("%s, the %d characters from %r held word for word by %s: %s" % (original, len(run), first[:30], target, "yes" if found else "NO"))
+    lines.append("")
     before, after = base_records(), now_records()
     for pattern, kind in ((R_ID, "R"), (Q_ID, "Q")):
         old, new = ids(before, pattern), ids(after, pattern)

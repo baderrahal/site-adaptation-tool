@@ -18,7 +18,13 @@ steps/investigations/round-addin.md: 470100 bytes, sha256 2f1de10023e27566a401a0
   Q ids named: original 382, parts 382
   equal: yes
 
+steps/PROGRESS.md copied to steps/history/progress-addin-4e.md: sha256 f56370b5c57a6d83925bf3b8deee5ad3fe7e9f320a1fbf988c06de45b6b959ed and f56370b5c57a6d83925bf3b8deee5ad3fe7e9f320a1fbf988c06de45b6b959ed, equal: yes
+steps/PROGRESS.md, the 30 lines under ## Bader's turn held whole by steps/questions-open.md or steps/latent.md: 0 missing []
+steps/questions-closed.md, the 47 lines under ## Open questions, full text held whole by steps/questions-open.md or steps/latent.md: 0 missing []
+steps/PROGRESS.md, the 171 characters from 'key_copies.py keeps a last par' held word for word by steps/latent.md: yes
+steps/PROGRESS.md, the 1463 characters from 'The check points of R353 hold ' held word for word by steps/latent.md: yes
+
 R ids of every record file (docs/, steps/, CLAUDE.md, .claude/agents/): before 346 distinct, after 347 distinct, lost 0 [], added 1 ['R400']
-Q ids of every record file (docs/, steps/, CLAUDE.md, .claude/agents/): before 94 distinct, after 96 distinct, lost 0 [], added 2 ['Q095', 'Q097']
+Q ids of every record file (docs/, steps/, CLAUDE.md, .claude/agents/): before 94 distinct, after 97 distinct, lost 0 [], added 3 ['Q095', 'Q096', 'Q097']
 
 result: every pair equal, no id lost
