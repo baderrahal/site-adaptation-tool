@@ -1,4 +1,10 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(npx ccusage@latest *)",
+      "PowerShell(npx ccusage@latest *)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
