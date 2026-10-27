@@ -50,7 +50,7 @@ As the mock, these icons, large buttons, labels "1 Set up site" to "8 Report".
 Top to bottom:
 
 - Band, SA.Band: small "Project" in SA.BandAccent, the project name 16 SemiBold white, "not saved" when the title is empty.
-- NEW Next step box, SA.Guide with SA.GuideBorder line under it: "Next step" 13 SemiBold SA.Info, the next button's name 18 SemiBold, one plain line on what it does and that dry run is on or off, a primary button `Run <n> <name>` that runs that ribbon button.
+- NEW Next step box, SA.Guide with SA.GuideBorder line under it: "Next step" 13 SemiBold SA.Info, the next button's name 18 SemiBold, one plain line on what it does and that dry run is on or off, a primary button `"Run <n> <name>"` that runs that ribbon button.
 - NEW First open state, when no settings file is chosen: the box reads "Start here", "Choose the settings file", "It names the drawings, the rules and the prototypes for this job. The tool fills the rest of this panel from it.", button "Choose settings file". Settings row shows an amber mark and "Not chosen". Steps show "Needs settings" or "Needs step n".
 - Sections Project, Input files, Scope, Steps in the mock's order and labels. Section titles 15 SemiBold SA.Heading.
 - NEW One help line under each section title, 13 SA.TextMuted: Project "Rules and settings for this job. Set once." Input files `"The drawings and schedules the tool reads. All <n> found."` Scope "Which plots the next button works on." Steps "Run them in order. Each one waits for the one before."

@@ -27,7 +27,7 @@ The base of each villa solid follows the exact base boundary shape of its protot
 
 - Before the Revit run after 5c, one Revit window at a time.
 - From that run on, the number of windows open together is (free RAM minus 8 GB) divided by the peak that run measured for one window in that mode, rounded down, at least 1 and at most 3.
-- The shared window lock per copy and the 2 GB floor of R310 hold in every window. Never two windows on the same file.
+- The shared window lock per copy and the 2 GB floor of R310 hold in every window. Never two windows on the same file. The floor itself is minFreeGB of R200. R310 samples the free memory per window and does not stop at the floor (steps/PROGRESS.md, open bugs).
 - Q021 "Parallel windows over 8 GB free" closes with this answer at the fold in.
 
 ## U1 to U7. The UI, approved on the canvas "Site Adaptation UI"
