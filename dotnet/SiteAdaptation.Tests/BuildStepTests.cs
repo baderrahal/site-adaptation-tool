@@ -614,10 +614,12 @@ namespace SiteAdaptation.Tests
 
         // The steps hands and linkFrame of the made up row, the second with the hand of the first
         private static Tuple<Dictionary<string, Dictionary<string, object>>, Dictionary<string, Dictionary<string, object>>> HandSteps(Dictionary<string, string> codes = null,
-            Func<Dictionary<string, Dictionary<string, object>>, Dictionary<string, Dictionary<string, object>>> handsOf = null, Dictionary<string, string> filesOf = null)
+            Func<Dictionary<string, Dictionary<string, object>>, Dictionary<string, Dictionary<string, object>>> handsOf = null, Dictionary<string, string> filesOf = null,
+            Action<JObject> contextConfig = null, Action<JObject> stepConfig = null, Action<JObject> linkKey = null)
         {
             JObject rules = HandRules();
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            contextConfig?.Invoke(config);
             var numbers = new List<string> { "1", "2", "3", "4", "5", "6" };
             var faces = numbers.ToDictionary(number => number, number => BuildFace.Of(number, Ring((int.Parse(number) - 1) * 12.0, 0.0, int.Parse(number) * 12.0, 25.0)));
             var rows = numbers.ToDictionary(number => number, number => new Dictionary<string, string>
@@ -632,6 +634,7 @@ namespace SiteAdaptation.Tests
             HandContext context = Hands.Context(numbers, rows, faces, clusters, fronts.ToDictionary(item => item.Key, item => item.Value.Frame), roads, rules, config);
             var files = new Dictionary<string, string> { ["DP2"] = Dp2File, ["VD2"] = Vd2File };
             JObject key = BuildRules.KeyRules(rules, null, "hands");
+            stepConfig?.Invoke(config);
             Dictionary<string, Dictionary<string, object>> hands = Hands.Step(numbers.Concat(new[] { "7" }), rows, context, key, files, rules, config);
             hands = handsOf == null ? hands : handsOf(hands);
             Dictionary<string, Dictionary<string, string>> linkRows = codes == null ? rows : codes.ToDictionary(item => item.Key, item => new Dictionary<string, string> { ["typologyRev9"] = item.Value });
@@ -639,7 +642,33 @@ namespace SiteAdaptation.Tests
             {
                 fronts["6"] = new FrontItem { Face = null, Frame = null, Unit = "DP2", FrontRule = "nearestCurb" };
             }
+            linkKey?.Invoke(key);
             return Tuple.Create(hands, LinkFrames.Step(numbers.Concat(new[] { "7" }), linkRows, fronts, context.Roles, hands, key, filesOf ?? files, rules));
+        }
+
+        // B3 of the review of PR 55, MAJORITY_LINES of test_build_steps.py: a missing majority.pairKinds, kindByPrefix or sideShare, or a
+        // keyRules.linkOrigin with no byCode, was read as empty here where Python raised KeyError, so both refuse it with one line
+        [Fact]
+        public void R357_a_missing_majority_list_or_link_fit_is_refused_with_the_line_of_python_and_never_read_as_empty()
+        {
+            var lines = new[]
+            {
+                Tuple.Create("pairKinds", "config holds no majority.pairKinds list of texts, the unit kinds that pair in a row of units (R357)"),
+                Tuple.Create("kindByPrefix", "config holds no majority.kindByPrefix object of texts, the kind of a unit code the rules profile gives none (R357)"),
+                Tuple.Create("sideShare", "config holds no majority.sideShare number, the share of the depth a side neighbour shares (R357)"),
+            };
+            foreach (Tuple<string, string> line in lines)
+            {
+                Assert.Equal(line.Item2, Assert.Throws<InvalidDataException>(() => HandSteps(contextConfig: config => ((JObject)config["majority"]).Remove(line.Item1))).Message);
+                Assert.Equal(line.Item2, Assert.Throws<InvalidDataException>(() => HandSteps(stepConfig: config => ((JObject)config["majority"]).Remove(line.Item1))).Message);
+            }
+            Assert.Equal(lines[0].Item2, Assert.Throws<InvalidDataException>(() => HandSteps(contextConfig: config => config["majority"]["pairKinds"] = new JArray(1))).Message);
+            Assert.Equal(lines[1].Item2, Assert.Throws<InvalidDataException>(() => HandSteps(contextConfig: config => config["majority"]["kindByPrefix"] = new JObject { ["DP"] = 2 })).Message);
+            Assert.Equal(lines[2].Item2, Assert.Throws<InvalidDataException>(() => HandSteps(contextConfig: config => config["majority"]["sideShare"] = true)).Message);
+            Assert.Equal("config holds no majority block, the settings of the majority rule a build by keyRules reads (R357)",
+                Assert.Throws<InvalidDataException>(() => HandSteps(contextConfig: config => config.Remove("majority"))).Message);
+            Assert.Equal("keyRules linkOrigin codes plotFrameRefit, a build gives only plotFrameRefit with byCode (R337)",
+                Assert.Throws<InvalidDataException>(() => HandSteps(linkKey: key => ((JObject)key["linkOrigin"]).Remove("byCode"))).Message);
         }
 
         [Fact]

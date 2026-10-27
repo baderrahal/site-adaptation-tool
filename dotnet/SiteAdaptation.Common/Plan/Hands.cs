@@ -94,7 +94,37 @@ namespace SiteAdaptation.Common
             {
                 return null;
             }
-            return (kindByPrefix ?? new JObject()).Properties().Where(item => code.StartsWith(item.Name, StringComparison.Ordinal)).Select(item => (string)item.Value).FirstOrDefault();
+            if (kindByPrefix == null)
+            {
+                throw new InvalidDataException(KindByPrefixLine);
+            }
+            return kindByPrefix.Properties().Where(item => code.StartsWith(item.Name, StringComparison.Ordinal)).Select(item => (string)item.Value).FirstOrDefault();
+        }
+
+        private const string KindByPrefixLine = "config holds no majority.kindByPrefix object of texts, the kind of a unit code the rules profile gives none (R357)";
+
+        // plan_from_book.hand_settings: the settings of the majority rule a build by keyRules reads for the hands, refused when one is missing or
+        // of another kind and never read as empty, with the lines of Python (B3 of the review of PR 55)
+        public static JObject Majority(JObject config)
+        {
+            if (!(config["majority"] is JObject block))
+            {
+                throw new InvalidDataException("config holds no majority block, the settings of the majority rule a build by keyRules reads (R357)");
+            }
+            if (!(block["pairKinds"] is JArray kinds) || kinds.Any(kind => kind.Type != JTokenType.String))
+            {
+                throw new InvalidDataException("config holds no majority.pairKinds list of texts, the unit kinds that pair in a row of units (R357)");
+            }
+            if (!(block["kindByPrefix"] is JObject prefixes) || prefixes.Properties().Any(item => item.Value.Type != JTokenType.String))
+            {
+                throw new InvalidDataException(KindByPrefixLine);
+            }
+            JToken share = block["sideShare"];
+            if (share == null || (share.Type != JTokenType.Integer && share.Type != JTokenType.Float))
+            {
+                throw new InvalidDataException("config holds no majority.sideShare number, the share of the depth a side neighbour shares (R357)");
+            }
+            return block;
         }
 
         // majority.pair_kind: the kind of the unit of a plot of digits, none for a face of two plan numbers
@@ -492,8 +522,8 @@ namespace SiteAdaptation.Common
         public static HandContext Context(IReadOnlyList<string> numbers, IReadOnlyDictionary<string, Dictionary<string, string>> rows, IReadOnlyDictionary<string, BuildFace> faces,
             IReadOnlyList<SiteCluster> clusters, IReadOnlyDictionary<string, FrontFrame> frames, RoadLines roads, JObject rules, JObject config)
         {
-            JObject block = config["majority"] as JObject ?? new JObject();
-            JObject prefixes = block["kindByPrefix"] as JObject ?? new JObject();
+            JObject block = Majority(config);
+            JObject prefixes = (JObject)block["kindByPrefix"];
             List<string> units = rows.Where(item => Code(rows, item.Key) != null && faces.ContainsKey(item.Key)).Select(item => item.Key).ToList();
             var context = new HandContext
             {
@@ -514,7 +544,7 @@ namespace SiteAdaptation.Common
             }
             var unitFaces = units.ToDictionary(number => number, number => faces[number]);
             Dictionary<string, ClusterRole> ruleRoles = ClusterRoles(clusters.Where(cluster => cluster.Plots.Count > 1), unitFaces, frames);
-            var kinds = new HashSet<string>((block["pairKinds"] as JArray ?? new JArray()).Select(item => (string)item));
+            var kinds = new HashSet<string>(((JArray)block["pairKinds"]).Select(item => (string)item));
             context.RowPairs = RowPairs(units, context.Neighbours, plot => PairKind(plot, rows, rules, prefixes), ruleRoles.ContainsKey, kinds);
             foreach (string number in numbers)
             {
@@ -530,7 +560,7 @@ namespace SiteAdaptation.Common
         public static Dictionary<string, Dictionary<string, object>> Step(IEnumerable<string> numbers, IReadOnlyDictionary<string, Dictionary<string, string>> rows, HandContext context,
             JObject keyRules, IReadOnlyDictionary<string, string> files, JObject rules, JObject config)
         {
-            JObject prefixes = config["majority"]?["kindByPrefix"] as JObject ?? new JObject();
+            JObject prefixes = (JObject)Majority(config)["kindByPrefix"];
             var found = new Dictionary<string, Dictionary<string, object>>();
             foreach (string number in numbers)
             {

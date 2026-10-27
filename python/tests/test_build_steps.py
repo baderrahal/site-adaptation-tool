@@ -311,6 +311,50 @@ def hand_build(monkeypatch):
     return plan_from_book.hand_step(numbers + ["7"], rows, rules, trace, files, profile, settings.get("majority")), trace
 
 
+MAJORITY_LINES = (
+    ("pairKinds", "config holds no majority.pairKinds list of texts, the unit kinds that pair in a row of units (R357)"),
+    ("kindByPrefix", "config holds no majority.kindByPrefix object of texts, the kind of a unit code the rules profile gives none (R357)"),
+    ("sideShare", "config holds no majority.sideShare number, the share of the depth a side neighbour shares (R357)"))
+
+
+def test_r357_a_missing_majority_list_or_link_fit_is_refused_with_the_line_of_csharp_and_never_read_as_empty(monkeypatch, tmp_path):
+    """B3 of the review of PR 55: the C# read a missing majority.pairKinds, kindByPrefix or keyRules.linkOrigin.byCode as empty where
+    Python raised KeyError, so both refuse it with one line."""
+    import argparse
+    import plan_rules
+    from shapely.geometry import LineString, box
+    block = project_profile.load_settings().get("majority")
+    assert plan_from_book.hand_settings(block) is block
+    for drop, line in MAJORITY_LINES:
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_from_book.hand_settings({key: value for key, value in block.items() if key != drop})
+        assert str(error.value) == line
+    for wrong, line in ((dict(block, pairKinds=[1]), MAJORITY_LINES[0][1]), (dict(block, kindByPrefix={"DP": 2}), MAJORITY_LINES[1][1]),
+                        (dict(block, sideShare=True), MAJORITY_LINES[2][1]),
+                        (None, "config holds no majority block, the settings of the majority rule a build by keyRules reads (R357)")):
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_from_book.hand_settings(wrong)
+        assert str(error.value) == line
+    # Through rule_inputs of a build by keyRules, on a config with no pairKinds
+    real = json.loads(project_profile.SETTINGS_PATH.read_text(encoding="utf-8"))
+    del real["majority"]["pairKinds"]
+    path = tmp_path / "project.json"
+    path.write_text(json.dumps(real), encoding="utf-8")
+    numbers = [str(index) for index in range(1, 7)]
+    rows = {number: {"locationPlanNumber": number, "typologyRev9": HAND_UNITS[number], "footprintMirrored": "no", "zone": "Zone 2"} for number in numbers}
+    faces = {number: box(index * 12.0, 0.0, index * 12.0 + 12.0, 25.0).buffer(0) for index, number in enumerate(numbers)}
+    roads = [LineString([(-50.0, -3.0), (100.0, -3.0)])]
+    args = argparse.Namespace(level_profile=None, overrides=None, override_source=None, override_model=[], override_fields=None)
+    with pytest.raises(project_profile.ProfileError) as error:
+        plan_from_book.rule_inputs(args, project_profile.load_settings(path), hand_rules(), numbers, rows, faces, roads, {"1": {"Orientation": "WS"}}, [])
+    assert str(error.value) == MAJORITY_LINES[0][1]
+    key = json.loads(json.dumps(plan_rules.key_rules_of(plan_rules.level_profile(hand_rules(), None))))
+    del key["linkOrigin"]["byCode"]
+    with pytest.raises(project_profile.ProfileError) as error:
+        plan_rules.key_frame_section(key)
+    assert str(error.value) == "keyRules linkOrigin codes plotFrameRefit, a build gives only plotFrameRefit with byCode (R337)"
+
+
 def test_r357_the_hand_of_a_plot_is_the_table_of_its_file_read_by_the_factor_of_its_unit_class(monkeypatch):
     step, trace = hand_build(monkeypatch)
     assert step["1"] == {"unit": "VD2", "kind": "villa", "pairKind": "villa", "unitClass": "villa", "cluster": None, "clusterCode": None, "clusterSide": None,

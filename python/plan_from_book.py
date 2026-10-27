@@ -973,6 +973,22 @@ def folder_files(folder, profile):
     return plan_from_cad.prototype_files(folder_listing(folder), profile)[0]
 
 
+def hand_settings(block):
+    """R357. The settings of the majority rule a build by keyRules reads for the hands, refused when one is missing or of another kind and
+    never read as empty, with the lines of Hands.Majority of the C# (B3 of the review of PR 55)."""
+    def number(value):
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if not isinstance(block, dict):
+        raise project_profile.ProfileError("config holds no majority block, the settings of the majority rule a build by keyRules reads (R357)")
+    if not isinstance(block.get("pairKinds"), list) or not all(isinstance(kind, str) for kind in block["pairKinds"]):
+        raise project_profile.ProfileError("config holds no majority.pairKinds list of texts, the unit kinds that pair in a row of units (R357)")
+    if not isinstance(block.get("kindByPrefix"), dict) or not all(isinstance(kind, str) for kind in block["kindByPrefix"].values()):
+        raise project_profile.ProfileError("config holds no majority.kindByPrefix object of texts, the kind of a unit code the rules profile gives none (R357)")
+    if not number(block.get("sideShare")):
+        raise project_profile.ProfileError("config holds no majority.sideShare number, the share of the depth a side neighbour shares (R357)")
+    return block
+
+
 def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters=()):
     """R277 to R280. The level profile, named or the default of R277, the hand rules, the open end of every plot and the overrides
     of the source models. R337: for a profile with keyRules also the side road, the pair of its row of units in no cluster (the
@@ -982,7 +998,7 @@ def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clu
     name = plan_rules.profile_name(profile, args.level_profile)
     lp = plan_rules.level_profile(profile, name)
     key = plan_rules.key_rules_of(lp)
-    block = settings.get("majority")
+    block = settings.get("majority") if key is None else hand_settings(settings.get("majority"))
     corner = settings.get("siteBuild")["corner"]
     if key is not None and key["linkRotation"]["rule"] == "frontRule" and sales is None:
         raise project_profile.ProfileError("keyRules.linkRotation of %s takes the front of R226, give --sales for the Orientation of a corner plot (R337)" % name)

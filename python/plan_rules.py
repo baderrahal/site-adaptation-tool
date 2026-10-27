@@ -293,8 +293,13 @@ def key_hand(rules, unit_class_name, link_file, factors):
 
 
 def key_frame_section(rules):
-    """R337. The plotFrame fits per code of keyRules.linkOrigin, fitted again on the keys, in the form of the plotFrame section."""
-    return {"units": {code: {"anchor": fit["anchor"], "offset": list(fit["offset"])} for code, fit in rules["linkOrigin"]["byCode"].items()}}
+    """R337. The plotFrame fits per code of keyRules.linkOrigin, fitted again on the keys, in the form of the plotFrame section. A
+    linkOrigin with no byCode object is refused with the line of check_key_rules, as LinkFrames.Step refuses it (B3 of the review of PR 55)."""
+    entry = rules.get("linkOrigin")
+    if not isinstance(entry, dict) or not isinstance(entry.get("byCode"), dict):
+        raise project_profile.ProfileError("keyRules linkOrigin codes %s, a build gives only plotFrameRefit with byCode (R337)" % (
+            entry.get("rule") if isinstance(entry, dict) else None))
+    return {"units": {code: {"anchor": fit["anchor"], "offset": list(fit["offset"])} for code, fit in entry["byCode"].items()}}
 
 
 def key_ramp_class(rules, code):
