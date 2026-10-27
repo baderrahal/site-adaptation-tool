@@ -5,173 +5,237 @@ Round AUDIT-RULES, 2026-10-27, on main at 69a3711. The status of every rule valu
 ## 1 Method
 
 - Statuses, as the round prompt gives them: CHOSEN by Bader (an answer in steps/questions-closed.md or a Bader line in CLAUDE.md), MEASURED (taken from the past models by the majority rule, with a share and keys), RECOMMENDED (an open question carries it), CHOSEN by Code (a threshold or setting Code set with no answer from Bader), UNKNOWN (none of the above can be shown).
-- The statuses come from two scripts of this session, kept outside the repo in the scratchpad: audit.py and tables.py (CHOSEN). No status is typed by hand.
-- A value is a leaf of the JSON. A leaf gets its status only from evidence in its own text: its own note (a key named with Note added), the note, why, source or question of a small parent of at most 8 leaves, the sentence of a rule line of docs/rules/ that names it by its last two keys or by a key name of 9 letters or more, and a Q ID in its path (CHOSEN).
-- Order of the tests (CHOSEN): a closed Q in that text with Bader named gives CHOSEN by Bader. Else an open Q gives RECOMMENDED. A keyRules entry with a share and the hands rules give MEASURED with the share and the keys of byKey. majority.strongShare is CHOSEN by Bader by the Majority rule of CLAUDE.md, levelProfiles.default by Q050.
-- What is left: a value of rules/roshn-makkah.json is UNKNOWN with the source its profile names. A value of config/project.json with no Q, no share and no Bader line is CHOSEN by Code, a status shown by absence: no Q, no share and no Bader line names it. A null or empty value is UNKNOWN.
-- Not values: note text, the measurement records of a keyRule or hand rule (plots, misses, byKey, candidates and such), input names and locations (file, folder, sheet and parameter names of the real inputs), and settings of a reader or check with no design value (parity lists, shared parameter GUIDs, the answer key list, prototype names, the snapshot list, the text patterns of the readers of dataBook and connect). They are counted, not given a status.
-- Open questions are the 67 IDs of Bader's turn of steps/PROGRESS.md and closed ones the 32 of the table of steps/questions-closed.md, 14 of whose answers name Bader (RAN, audit.py).
-- A rule line gets every status its text shows: CHOSEN by Bader for a closed Q with Bader named, RECOMMENDED for an open Q, MEASURED for keyRules, majority or a share, and CHOSEN by Code for a number with a unit or a config key and none of those. A rule line with neither a value nor a Q is process, no value.
-- Limits: the evidence match is by text, so a sentence that names a key and a Q about something else gives that Q. The rule-level status is the set the line holds, not one per value. Both are the reason each row gives its evidence.
+- The statuses come from one script, steps/investigations/rule-status-scripts/audit.py, kept in the repo so every count tagged RAN can be run again: `.venv/Scripts/python -I steps/investigations/rule-status-scripts/audit.py . <folder>`. No status is typed by hand. After review pass 1 of PR 68 it replaced the first script, which gave a status by a Q anywhere in a sentence and CHOSEN by Code by absence.
+- A value is a leaf of the JSON, a scalar or a list of scalars. Kinds: value, a design value, and host, a value of the host program such as a time limit or a memory peak. Both get a status and both count in the values below.
+- Not values, counted and given no status: note text, the measurement records of a keyRule or hand rule (plots, misses, byKey, candidates and such), input names and locations (file, folder, sheet and parameter names of the real inputs), and settings of a reader or check with no design value (parity lists, shared parameter GUIDs, the answer key list, prototype names, the snapshot list, the text patterns of the readers of dataBook and connect).
+- Evidence of a value, its own text only: its own note (a key named with Note added), the note, why or question of its parent when the parent has at most 8 leaves, the sentences of the rule lines of docs/rules/ that name it by its last two keys (three when the two are a path of their own in a file) or by its own key name when that is 9 letters or more and unique in the two files, and a Q ID in its path.
+- A mark in that text counts only within 80 characters of a name of the value, so a Q about another key of the same sentence does not count. In its own note, or the note of an object of at most 3 leaves, a mark counts anywhere.
+- Order: a closed Q whose answer names Bader, or with Bader within 40 characters of it as R302 writes (Bader, Q061), gives CHOSEN by Bader. Else an open Q of Q001 to Q099 gives RECOMMENDED. Else the word CHOSEN gives CHOSEN by Code. A keyRules entry with a share, and the hands rules, give MEASURED with the share, strong or weak and the keys of byKey. majority.strongShare is CHOSEN by Bader by the Majority rule of CLAUDE.md, levelProfiles.default by Q050.
+- Anything else is UNKNOWN, with the nearest source above the value when there is one. Absence of a mark never gives CHOSEN by Code.
+- Open questions are the 67 IDs of Bader's turn of steps/PROGRESS.md before Q100, as Q100 to Q103 come from this audit, closed ones the 32 of the table of steps/questions-closed.md, 14 of whose answers name Bader (RAN, audit.py).
+- A rule takes every status of the values it names and of the values whose evidence names it, every closed Q of Bader and open Q its line names, every open question whose text names the rule and every closed answer of Bader that names it, MEASURED with the share of each keyRules entry it names, and CHOSEN by Code for the word CHOSEN. A rule with a value, a number with a unit or a key, and none of those is UNKNOWN. A rule with nothing of these is process, no value.
+- Limits: the match is by text, so a status rests on the words of the records, not on a reading of each rule. Each row gives its evidence so a reader can check it. The rule-level status is the set of the statuses of its values, not one status.
+- Second check by another tool: PowerShell, ConvertFrom-Json and Select-String in place of Python, recounted the rule ids, the MEASURED shares and the sums of section 5 by status (section 12).
 
 ## 2 Counts
 
 | What | Count | Source |
 |---|---:|---|
 | Rule ids of docs/rules/index.md | 316 | RAN, audit.py |
-| of them process, no value | 191 | RAN |
-| of them with a value | 125 | RAN |
-| rules with CHOSEN by Bader | 11 | RAN, a rule may hold several statuses |
-| rules with MEASURED | 30 | RAN |
-| rules with RECOMMENDED | 15 | RAN |
-| rules with CHOSEN by Code | 88 | RAN |
+| of them process, no value | 129 | RAN |
+| of them with a value | 187 | RAN |
+| rules with UNKNOWN | 172 | RAN, a rule may hold several statuses |
+| rules with RECOMMENDED | 32 | RAN |
+| rules with MEASURED | 20 | RAN |
+| rules with CHOSEN by Bader | 17 | RAN |
+| rules with CHOSEN by Code | 3 | RAN |
 | Leaves of rules/roshn-makkah.json | 2,798 | RAN |
 | Leaves of config/project.json | 853 | RAN |
-| Values of the two files, value and host settings | 591 | RAN |
-| CHOSEN by Bader | 12 | RAN, rules 1, config 11 |
-| MEASURED | 35 | RAN, rules 35 |
-| RECOMMENDED | 9 | RAN, config 9 |
-| CHOSEN by Code | 202 | RAN, config 179 values and 23 host settings |
-| UNKNOWN | 333 | RAN, rules 330, config 3 |
+| Values of the two files, kinds value and host | 591 | RAN |
+| CHOSEN by Bader | 4 | RAN, Q050 1, Q061 2, the Majority rule of CLAUDE.md 1 |
+| MEASURED | 35 | RAN, 32 keyRules entries and 3 hands rules |
+| RECOMMENDED | 4 | RAN, Q017 3, Q066 1 |
+| CHOSEN by Code | 5 | RAN, the word CHOSEN in R347 and its note |
+| UNKNOWN | 543 | RAN, rules 330, config 213 |
 | Overrides of config/overrides/roshn-makkah.json | 12,421 | RAN, all RECOMMENDED by Q053 |
 | Cannot list of the overrides file | 154 | RAN |
 | Design values in code, rows | 120 | RAN by the Explore helper, 14 duplicate a config key, 106 not in config |
 
-The 333 UNKNOWN by evidence (RAN): 284 the top source of the rules profile names the Rev 06 report, 6 steps.base_height with base_height_source past job schedules, 747 plots, 38 fields of the level profiles outside keyRules whose source names a past model with no share, 2 keyRules entries with no share (site and ssl), 3 null or empty in config. Of the 40 level profile fields, 17 are of parsons2024Rev6 and 23 of native2022.
-
-The 12 CHOSEN by Bader (RAN): Q050 4, Q081 4, Q061 2, Q089 1, the Majority rule of CLAUDE.md 1. The 9 RECOMMENDED (RAN): Q017 3, Q037 2, Q068 2, Q057 1, Q066 1.
+The 543 UNKNOWN by evidence (RAN): rules/roshn-makkah.json 139 under the top source, the Rev 06 report with Rev 01 for foundations, 130 under typology_codes.source, the DLUS Schedule Rev 9 workbook, 6 under steps.base_height_source, past job schedules of 747 plots, 15 fields of parsons2024Rev6 and 21 of native2022 under the source of their profile with no share, 2 keyRules entries with no share (site and ssl), 17 null. config/project.json 210 with no Q, no share, no Bader line and no CHOSEN mark, 3 null.
 
 ## 3 Rules with a value
 
-Where the value lives names the keys of config/project.json or rules/roshn-makkah.json the rule line names, at most 4, else the rule text. The shares are the numbers of 0.nnn form in the rule line, at most 4 (RAN, tables.py).
+Where the value lives names the keys of config/project.json or rules/roshn-makkah.json the rule line names, at most 4, else the rule text. The Q ID or share column gives the Q IDs, the standing rule or the CHOSEN mark, then each keyRules or hands entry with its share (RAN, audit.py).
 
 | Rule | Title | Where the value lives | Status | Q ID or share |
 |---|---|---|---|---|
-| R2 | Round to 3 decimals. | the rule text | CHOSEN by Code |  |
-| R27 | Link summary. | the rule text | CHOSEN by Code |  |
-| R29 | Master Plan roles and skip list. | drawings.previousMasterplan, drawings.skip | CHOSEN by Code |  |
-| R31 | Second source check. | drawings.masterplan | CHOSEN by Code |  |
-| R33 | Face and label reasons. | the rule text | CHOSEN by Code |  |
-| R45 | Gap bands. | the rule text | CHOSEN by Code |  |
-| R47 | Ramp corner levels. | the rule text | CHOSEN by Code |  |
-| R48 | Role proposal. | the rule text | CHOSEN by Code |  |
-| R49 | Floor count per plot. | the rule text | CHOSEN by Code |  |
-| R58 | Yard and shared edges. | the rule text | CHOSEN by Code |  |
-| R60 | Gaps, overlaps and link box. | the rule text | CHOSEN by Code |  |
-| R61 | Relation summary. | the rule text | CHOSEN by Code |  |
-| R63 | Project settings. | the rule text | CHOSEN by Code |  |
-| R67 | FFL, SSL and steps. | levels.ground_ssl, steps.base_height, steps.base_height_source, steps.count_rule | CHOSEN by Code |  |
-| R70 | Row split. | analysis.pairRule | CHOSEN by Code |  |
-| R73 | Block scan. | analysis.noRev6Match, analysis.unitPlotTypes | CHOSEN by Code |  |
-| R76 | Second block match. | the rule text | CHOSEN by Code |  |
-| R80 | Plan file. | the rule text | CHOSEN by Code |  |
-| R81 | Plan from the past job. | levels.ffl | CHOSEN by Code |  |
-| R82 | Shared position proof. | the rule text | CHOSEN by Code |  |
-| R83 | Coordinates check. | the rule text | CHOSEN by Code |  |
-| R84 | Villa link placement. | levels.ffl | CHOSEN by Code |  |
-| R89 | Plan against the placed model. | the rule text | CHOSEN by Code |  |
-| R103 | Test host guard. | the rule text | CHOSEN by Code |  |
-| R104 | Test host steps and log. | the rule text | CHOSEN by Code |  |
-| R105 | Placer check. | pastJob.parameters | CHOSEN by Code |  |
-| R108 | Add-in security dialogs. | 0.5 | CHOSEN by Code |  |
-| R109 | Prototype upgrade job. | pastJob.prototypeFolder, pastJob.upgradedPrototypeFolder | CHOSEN by Code |  |
-| R110 | Parallel windows. | the rule text | CHOSEN by Code |  |
-| R90 | Block as a cluster hint. | analysis.blockClusters | CHOSEN by Code |  |
-| R93 | Entry measurement. | the rule text | CHOSEN by Code |  |
-| R94 | Entry rule. | the rule text | CHOSEN by Code |  |
-| R95 | Entry proof. | the rule text | CHOSEN by Code |  |
-| R97 | Block offset. | the rule text | CHOSEN by Code |  |
-| R98 | Fit and test per group. | the rule text | CHOSEN by Code |  |
-| R99 | Entrance point per block. | the rule text | CHOSEN by Code |  |
-| R101 | Second methods. | the rule text | CHOSEN by Code |  |
-| R111 | Yard rule. | 0.5, floors.yardMinShare, floors.yardShareTie, pastJob.baseplanPlots | CHOSEN by Code |  |
-| R112 | Floors in the plan. | floors.keyTypes, floors.levels, floors.types, floors.yardBelowFflM | CHOSEN by Code |  |
-| R113 | Floor step. | the rule text | CHOSEN by Code |  |
-| R114 | Plot value, skip and ramp corners. | the rule text | CHOSEN by Code |  |
-| R115 | Floor geometry. | the rule text | CHOSEN by Code |  |
-| R116 | Floor run and report. | the rule text | CHOSEN by Code |  |
-| R119 | Floor check. | pastJob.prototypes | CHOSEN by Code |  |
-| R120 | Plot cut list. | 0.5, cadLinks.cutNeighbours, cadLinks.cutShareMin | MEASURED | shares 0.0001 0.833 |
-| R121 | Corner test and origin offset. | the rule text | CHOSEN by Code |  |
-| R122 | Rotation from the front edge. | analysis.partyWallShare, analysis.toleranceM, plot.long_side | CHOSEN by Code |  |
-| R124 | Second method for the links from CAD. | the rule text | CHOSEN by Code |  |
-| R126 | Levels of the CAD plan. | steps.one_step_only | CHOSEN by Code |  |
-| R127 | Ramp outline test. | ramp.front_setback | CHOSEN by Code |  |
-| R128 | Plan from CAD. | cadLinks.planOutput, pastJob.prototypes | CHOSEN by Code |  |
-| R129 | Plan against plan. | the rule text | CHOSEN by Code |  |
-| R130 | Second method for the CAD plan. | the rule text | CHOSEN by Code |  |
-| R133 | FFL split test. | steps.legend | CHOSEN by Code |  |
-| R135 | Floor outlines in the link frame. | 0.5, cadLinks.floorWidthStepM, pastJob.output | CHOSEN by Code |  |
-| R136 | Ramp type and front level. | 0.5, Ramps 0.5% | CHOSEN by Code |  |
-| R137 | Floors in the plan from CAD. | floors.levels, floors.yardBelowFflM, pastJob.prototypes | CHOSEN by Code |  |
-| R138 | Floors against a plan. | the rule text | CHOSEN by Code |  |
-| R139 | Second method for the floors. | the rule text | CHOSEN by Code |  |
-| R152 | TIN border. | the rule text | CHOSEN by Code |  |
-| R156 | Plot front against the lines and the surfaces. | 0.5 | CHOSEN by Code |  |
-| R157 | Front corner levels. | the rule text | CHOSEN by Code |  |
-| R159 | Second method for the C3D round. | the rule text | CHOSEN by Code |  |
-| R162 | Data command. | the rule text | CHOSEN by Code |  |
-| R166 | Plots joined. | 0.5, dataBook.wiring | CHOSEN by Code |  |
-| R168 | Second method for the data book. | the rule text | CHOSEN by Code |  |
-| R170 | El @ Entry from the road and the ramp. | ramp.front_setback, slopes_percent.front_min | CHOSEN by Code |  |
-| R173 | Second method for round DATA-2. | check.minEdgeM | CHOSEN by Code |  |
-| R174 | Wiring methods. | dataBook.wiring | CHOSEN by Code |  |
-| R211 | Site coordinates. | siteBuild.coordinateStepM | CHOSEN by Code |  |
-| R214 | Plan view image. | siteBuild.folder | CHOSEN by Code |  |
-| R225 | Corner front rules. | the rule text | CHOSEN by Code |  |
-| R229 | Footprint band of a key. | siteBuild.footprint | CHOSEN by Code |  |
-| R236 | Clusters from the footprint blocks. | the rule text | CHOSEN by Bader Q089 | Q089 |
-| R245 | Rooms and doors of a read. | handCheck.folders | CHOSEN by Code |  |
-| R246 | Villa hand. | 0.5 | CHOSEN by Code |  |
-| R261 | Plan position and level apart. | level.passMm, position.passMm | CHOSEN by Code |  |
-| R272 | The majority rule. | majority.decidedByQuestion, majority.siteReference, majority.strongShare | MEASURED |  |
-| R277 | Level profiles. | levelProfiles.default, majority.groups | CHOSEN by Bader Q050, MEASURED | Q050 |
-| R279 | Hands of a plan from CAD. | the rule text | MEASURED |  |
-| R300 | Villa blocks from the Building Footprint. | drawings.referenceOnly, drawings.villaBlocks, join.footprint | CHOSEN by Bader Q045, MEASURED | Q045 |
-| R301 | Area codes by job. | dataBook.data5, majority.groups | MEASURED |  |
-| R302 | Image step limit. | testHost.imageMarginMinutes, testHost.imageStepMinutes | CHOSEN by Bader Q061 | Q061 |
-| R303 | Withdrawn. | the rule text | RECOMMENDED Q064 | Q064 |
-| R310 | Window samples. | siteBuild.minFreeGB, testHost.cimTimeoutSeconds, testHost.helperProcesses, testHost.sam... | CHOSEN by Code |  |
-| R311 | Site facts of the reader. | the rule text | CHOSEN by Code |  |
-| R312 | Key copies by code. | the rule text | RECOMMENDED Q065 Q069 | Q065 Q069 |
-| R313 | Prototype sets of the upgrade. | pastJob.prototypeFolder, pastJob.upgradedPrototypeFolder | CHOSEN by Bader Q067 | Q067 |
-| R321 | Floor types of each key. | answerKeys.keys, floors.keyTypes, floors.types | CHOSEN by Code |  |
-| R323 | Second method of the key reads. | 0.5, floors.keyTypes, floors.plotParameter, floors.types | CHOSEN by Code |  |
-| R325 | Plans of the answer keys. | cadLinks.cutShareMin, keyPlans.entryHeightM, keyPlans.flatTopM, keyPlans.minShare | CHOSEN by Code |  |
-| R326 | The join of the answer keys. | answerKeys.kinds, cadLinks.cutShareMin, keyPlans.minShare, majority.groups | RECOMMENDED Q066, MEASURED | Q066 |
-| R327 | Spot elevations at the plot entrance. | entrySpots.bandsM, entrySpots.cornerM, entrySpots.radiiM, keyPlans.entryHeightM | CHOSEN by Code |  |
-| R328 | Second method of Phase 2b. | floors.plotParameter, keyPlans.entryHeightM, keyPlans.flatTopM, keyPlans.minShare | MEASURED | shares 0.005 |
-| R330 | The source of an override. | majority.groups, majority.overrideDefaultSources, majority.overrideKeep | MEASURED |  |
-| R331 | Coordinates of the keys. | 0.5, keyRules.site, levelProfiles.parsons2024Rev6, majority.groups | RECOMMENDED Q068, MEASURED | Q068 shares 0.001 |
-| R332 | Link origin and rotation on the keys. | keyRules.linkOrigin, majority.linkHoldMm, majority.rotationHoldDeg | RECOMMENDED Q037, MEASURED | Q037 |
-| R333 | Hands on the keys. | keyRules.hand villa, majority.pairKinds | CHOSEN by Bader Q089, MEASURED | Q014 Q040 Q089 |
-| R334 | Ramps and floors on the keys. | majority.check, majority.outlineHoldMm | RECOMMENDED Q066, MEASURED | Q066 |
-| R335 | Walls and shared parameters on the keys. | keyPlans.wallEdgeM, majority.frontOpenShare, majority.kindLeaveOut, majority.levelHoldMm | MEASURED |  |
-| R336 | Second method of Round ADDIN 3a. | majority.check, majority.overrideKeep, siteBuild.corner | CHOSEN by Bader Q089, MEASURED | Q089 |
-| R337 | A build by the rules of the keys. | keyRules.linkOrigin, keyRules.rampSlope, keyRules.yard, keyRules.yardOutline | RECOMMENDED Q057, MEASURED | Q057 |
-| R338 | The keyRules block. | keyRulesBlock.nativeRound17, keyRulesBlock.zoneFrom, keyRulesBlock.zonePrefix, majority... | MEASURED |  |
-| R339 | Levels of the keys to the mm. | 0.5, keyRules.levelSplit, levels.ground_ssl, majority.levelBandsMm | RECOMMENDED Q012, MEASURED | Q012 |
-| R340 | A build and its proof by the level rules of the... | keyRules.steps, levels.ground_ssl, majority.levelBandsMm, majority.levelPassMm | RECOMMENDED Q057, MEASURED | Q057 |
-| R343 | The add-in design. | siteBuild.folder | CHOSEN by Code |  |
-| R344 | The road at a front corner from the Roads folder. | siteBuild.roadFolder, siteBuild.roadSurfaces, siteBuild.snapMaxM | CHOSEN by Bader Q073, RECOMMENDED Q082, MEASURED | Q073 Q082 |
-| R345 | The parity harness. | addin.parity | CHOSEN by Code |  |
-| R346 | The projects of the add-in. | the rule text | RECOMMENDED Q079 | Q079 |
-| R347 | The worker run. | addin.workerPeakMiB, addin.workerTimeLimitMinS, addin.workerTimeLimitS, commands.read | CHOSEN by Code | Q083 Q084 |
-| R349 | The LandXML read and the road level snap of but... | 0.5, siteBuild.roadSurfaces, siteBuild.snapMaxM | CHOSEN by Code |  |
-| R350 | The DLUS and sales reads of button 2. | addin.workbookRoles, dataBook.data5, dataBook.locationPlan, dataBook.rev9 | CHOSEN by Code |  |
-| R351 | The location plan of button 2. | addin.parity, connect.neighbourhoods, connect.scheduleSheet, dataBook.locationPlan | CHOSEN by Code |  |
-| R353 | The project position file, the check points and... | 0.5, addin.position, addin.sharedParameters, drawings.baseplan | RECOMMENDED Q068 Q085 Q086 Q087, MEASURED | Q068 Q085 Q086 Q087 Q088 shares 0.000 |
-| R354 | The clusters of a build. | drawings.referenceOnly | CHOSEN by Bader Q040 Q050 Q089, MEASURED | Q040 Q050 Q089 shares 0.071 0.177 |
-| R355 | The front of a plot in a build. | analysis.partyWallShare, analysis.roadEdgeLayers, analysis.toleranceM, dataBook.locatio... | CHOSEN by Code |  |
-| R356 | The link frame of a plot in a build. | keyRules.linkOrigin | MEASURED |  |
-| R357 | The hand of a plot in a build. | keyRules.linkOrigin, majority.pairKinds, majority.sideShare | RECOMMENDED Q072, MEASURED | Q072 shares 0.0118 0.0987 0.575 |
-| R358 | The floors of a plot in a build. | cadLinks.floorWidthStepM, keyRules.rampSlope, keyRules.yard, keyRules.yardOutline | MEASURED |  |
-| R359 | The levels of a plot in a build. | keyRules.baseHeight, keyRules.ffl, keyRules.levelSplit, keyRules.steps | MEASURED |  |
-| R360 | The overrides of a plot in a build. | floors.levels, majority.overrideDefaultSources | RECOMMENDED Q057, MEASURED | Q057 |
-| R361 | The link parameters of a plot in a build. | majority.linkNameFacade | RECOMMENDED Q099, MEASURED | Q099 |
-| R385 | One rounding rule in Python and C#. | 0.5, keyRules.baseHeight, levels.ground_ssl, majority.overrideRounding | CHOSEN by Bader Q050, MEASURED | Q050 Q080 shares 0.0005 0.1005 0.101 0.346 |
-| R387 | The control point fit as a check of the schedul... | dataBook.locationPlan | CHOSEN by Bader Q081 | Q081 |
-| R388 | Units of the inputs of the Python reference. | cadReads.root, dataBook.join | MEASURED | shares 0.001 |
+| R2 | Round to 3 decimals. | the rule text | UNKNOWN |  |
+| R27 | Link summary. | the rule text | UNKNOWN |  |
+| R29 | Master Plan roles and skip list. | the rule text | UNKNOWN |  |
+| R31 | Second source check. | the rule text | UNKNOWN |  |
+| R33 | Face and label reasons. | the rule text | UNKNOWN |  |
+| R38 | Link name parse. | parameter RRE_ZZ_SP_RVT-Name | MEASURED | parameter RRE_ZZ_SP_RVT-Name 0.9916 |
+| R45 | Gap bands. | the rule text | UNKNOWN |  |
+| R47 | Ramp corner levels. | the rule text | UNKNOWN |  |
+| R48 | Role proposal. | the rule text | UNKNOWN |  |
+| R49 | Floor count per plot. | the rule text | UNKNOWN |  |
+| R53 | Parameter details and floor types. | floorTypes | UNKNOWN |  |
+| R58 | Yard and shared edges. | the rule text | UNKNOWN |  |
+| R59 | Ramp geometry. | Flat Ramps | UNKNOWN |  |
+| R60 | Gaps, overlaps and link box. | the rule text | UNKNOWN |  |
+| R61 | Relation summary. | the rule text | UNKNOWN |  |
+| R62 | Project profile. | cluster_aliases, clusters.Q01, riser_height | UNKNOWN |  |
+| R63 | Project settings. | blockClusters, noRev6Match, partyWallShare, roadEdgeLayers | UNKNOWN |  |
+| R64 | Cluster derivation. | analysis.endShare, analysis.partyWallShare, analysis.toleranceM, pl... | UNKNOWN |  |
+| R66 | Only listed clusters are valid. | typologies | UNKNOWN |  |
+| R67 | FFL, SSL and steps. | baseHeight, levels.ground_ssl, riser_added, riser_height | MEASURED, UNKNOWN | baseHeight 0.8433 |
+| R69 | Unit code per plot. | analysis.unitPlotTypes | UNKNOWN |  |
+| R70 | Row split. | analysis.pairRule, typologies | UNKNOWN |  |
+| R71 | Front by road edge. | analysis.endShare, analysis.roadEdgeLayers, analysis.toleranceM, pl... | UNKNOWN |  |
+| R73 | Block scan. | analysis.noRev6Match, analysis.unitPlotTypes, cluster_aliases | UNKNOWN |  |
+| R75 | Cluster with no Rev 6 match. | analysis.noRev6Match, cluster_aliases | UNKNOWN |  |
+| R81 | Plan from the past job. | the rule text | UNKNOWN |  |
+| R82 | Shared position proof. | the rule text | UNKNOWN |  |
+| R83 | Coordinates check. | the rule text | UNKNOWN |  |
+| R84 | Villa link placement. | the rule text | UNKNOWN |  |
+| R89 | Plan against the placed model. | the rule text | UNKNOWN |  |
+| R103 | Test host guard. | the rule text | UNKNOWN |  |
+| R104 | Test host steps and log. | the rule text | UNKNOWN |  |
+| R105 | Placer check. | the rule text | UNKNOWN |  |
+| R107 | Link instance name. | the rule text | RECOMMENDED | Q099 |
+| R108 | Add-in security dialogs. | the rule text | UNKNOWN |  |
+| R109 | Prototype upgrade job. | the rule text | CHOSEN by Bader | Q067 |
+| R110 | Parallel windows. | the rule text | UNKNOWN |  |
+| R90 | Block as a cluster hint. | Duplex_DP2, Duplex_DP4, Townhouse_TH1, Townhouse_TH3 | UNKNOWN |  |
+| R93 | Entry measurement. | the rule text | UNKNOWN |  |
+| R94 | Entry rule. | the rule text | RECOMMENDED | Q024 |
+| R95 | Entry proof. | the rule text | UNKNOWN |  |
+| R97 | Block offset. | the rule text | UNKNOWN |  |
+| R98 | Fit and test per group. | the rule text | UNKNOWN |  |
+| R99 | Entrance point per block. | the rule text | UNKNOWN |  |
+| R101 | Second methods. | the rule text | UNKNOWN |  |
+| R111 | Yard rule. | floors.yardMinShare, floors.yardShareTie | UNKNOWN |  |
+| R112 | Floors in the plan. | floors.keyTypes, floors.levels, floors.types, floors.yardBelowFflM | UNKNOWN |  |
+| R113 | Floor step. | the rule text | UNKNOWN |  |
+| R114 | Plot value, skip and ramp corners. | the rule text | UNKNOWN |  |
+| R115 | Floor geometry. | the rule text | UNKNOWN |  |
+| R116 | Floor run and report. | the rule text | UNKNOWN |  |
+| R119 | Floor check. | the rule text | UNKNOWN |  |
+| R120 | Plot cut list. | cadLinks.cutNeighbours, cadLinks.cutShareMin | UNKNOWN |  |
+| R121 | Corner test and origin offset. | the rule text | UNKNOWN |  |
+| R122 | Rotation from the front edge. | analysis.partyWallShare, analysis.toleranceM, plot.long_side | UNKNOWN |  |
+| R123 | Mirror and CASE. | analysis.pairRule, foundation | UNKNOWN |  |
+| R124 | Second method for the links from CAD. | the rule text | UNKNOWN |  |
+| R125 | One FFL per cluster. | cluster_max_units, cluster_split_positions | UNKNOWN |  |
+| R126 | Levels of the CAD plan. | steps.one_step_only, typologies | UNKNOWN |  |
+| R127 | Ramp outline test. | ramp.front_setback | UNKNOWN |  |
+| R128 | Plan from CAD. | the rule text | UNKNOWN |  |
+| R129 | Plan against plan. | the rule text | UNKNOWN |  |
+| R130 | Second method for the CAD plan. | the rule text | UNKNOWN |  |
+| R131 | Villa hand test. | analysis.partyWallShare, analysis.unitPlotTypes, plot.long_side, vi... | UNKNOWN |  |
+| R132 | CASE second letter test. | typologies | UNKNOWN |  |
+| R133 | FFL split test. | steps.legend | UNKNOWN |  |
+| R135 | Floor outlines in the link frame. | cadLinks.floorWidthStepM | UNKNOWN |  |
+| R136 | Ramp type and front level. | Flat Ramps | UNKNOWN |  |
+| R137 | Floors in the plan from CAD. | floors.levels, floors.yardBelowFflM | UNKNOWN |  |
+| R138 | Floors against a plan. | the rule text | UNKNOWN |  |
+| R139 | Second method for the floors. | the rule text | UNKNOWN |  |
+| R152 | TIN border. | the rule text | UNKNOWN |  |
+| R156 | Plot front against the lines and the surfaces. | the rule text | UNKNOWN |  |
+| R157 | Front corner levels. | the rule text | UNKNOWN |  |
+| R159 | Second method for the C3D round. | the rule text | UNKNOWN |  |
+| R162 | Data command. | the rule text | UNKNOWN |  |
+| R166 | Plots joined. | dataBook.wiring | UNKNOWN |  |
+| R170 | El @ Entry from the road and the ramp. | ramp.front_setback, slopes_percent, slopes_percent.front_min | UNKNOWN |  |
+| R172 | Width meaning. | typologies | UNKNOWN |  |
+| R173 | Second method for round DATA-2. | check.minEdgeM | UNKNOWN |  |
+| R174 | Wiring methods. | dataBook.wiring, labelNearM, levelToleranceM, pdfToleranceM | UNKNOWN |  |
+| R175 | Score and pick. | answerShareMin, dataBook.wiring, ownerShareMin | UNKNOWN |  |
+| R176 | Weak spots and drawing to drawing. | blockOverlapMin, curbBandsM, curbStepM, labelNearM | UNKNOWN |  |
+| R177 | Chosen wiring. | dataBook.wiring | UNKNOWN |  |
+| R178 | Second method for the wiring. | distanceSlackM, maxGridPoints, shareSlack | UNKNOWN |  |
+| R179 | Location plan text. | dataBook.locationPlan, joinGapPt, labelSize, lineTolerancePt | UNKNOWN |  |
+| R181 | Page to site. | controlSearchPt, controlShapeMaxPt, fitDropFactor, fitFloorM | CHOSEN by Bader, UNKNOWN | Q081 |
+| R182 | Number to face and code. | codeTable | UNKNOWN |  |
+| R183 | Zones and wiring. | dataBook.wiring, zoneHatch, zoneStyles | UNKNOWN |  |
+| R200 | Window lock. | siteBuild, siteBuild.minFreeGB, siteBuild.staleHours, siteBuild.wai... | UNKNOWN |  |
+| R201 | Snapshot. | siteBuild | UNKNOWN |  |
+| R202 | Originals. | siteBuild | UNKNOWN |  |
+| R204 | Site upgrade. | siteBuild, siteBuild.answerKey | UNKNOWN |  |
+| R206 | Answer key. | siteBuild, siteBuild.zoneNbh | UNKNOWN |  |
+| R208 | Plan from the data book. | floors.yardBelowFflM | UNKNOWN |  |
+| R209 | Estimated levels. | siteBuild, siteBuild.roadSurfaces, siteBuild.snapM, siteBuild.steep... | UNKNOWN |  |
+| R211 | Site coordinates. | siteBuild, siteBuild.coordinateStepM | RECOMMENDED, UNKNOWN | Q068 Q086 |
+| R212 | New site file. | floors.levels, floors.plotParameter, floors.types, siteBuild | UNKNOWN |  |
+| R213 | New site file name. | siteBuild, siteBuild.newFile | UNKNOWN |  |
+| R214 | Plan view image. | siteBuild | UNKNOWN |  |
+| R215 | Compare in bands. | siteBuild, siteBuild.bandsMm | UNKNOWN |  |
+| R218 | Clean up. | siteBuild | UNKNOWN |  |
+| R185 | Rev 9 workbook inventory and diff. | dataBook.rev9 | UNKNOWN |  |
+| R186 | DLUS setbacks. | dataBook.rev9 | UNKNOWN |  |
+| R187 | Land width and length. | dataBook.rev9 | UNKNOWN |  |
+| R188 | Old to new code table. | dataBook.rev9, typology_codes | UNKNOWN |  |
+| R189 | Rev 9 drawing read. | dataBook.rev9 | RECOMMENDED, UNKNOWN | Q062 |
+| R190 | Rev 9 PDF labels and wiring. | labelSize | UNKNOWN |  |
+| R221 | Two past jobs on the same plots. | siteBuild, siteBuild.bandsMm, siteBuild.key14 | UNKNOWN |  |
+| R224 | Road edges and the past ramp edge. | siteBuild, siteBuild.corner | UNKNOWN |  |
+| R225 | Corner front rules. | the rule text | UNKNOWN |  |
+| R227 | House outline of a prototype. | siteBuild, siteBuild.footprint | UNKNOWN |  |
+| R228 | Footprint of a plot. | siteBuild, siteBuild.footprint | UNKNOWN |  |
+| R229 | Footprint band of a key. | siteBuild, siteBuild.footprint | UNKNOWN |  |
+| R231 | One run per prototype code. | siteBuild, siteBuild.minFreeGB, siteBuild.placeSettleMinutes | UNKNOWN |  |
+| R236 | Clusters from the footprint blocks. | the rule text | CHOSEN by Bader | Q089 |
+| R245 | Rooms and doors of a read. | the rule text | UNKNOWN |  |
+| R251 | Audit of DATA-4. | dataBook.data5 | UNKNOWN |  |
+| R252 | Xref search. | dataBook.data5 | UNKNOWN |  |
+| R255 | Two road layouts. | curbStepM, dataBook.data5 | UNKNOWN |  |
+| R256 | Area key. | dataBook.data5 | UNKNOWN |  |
+| R257 | IM codes. | dataBook.data5, neighbourhoods | UNKNOWN |  |
+| R258 | IFC header. | dataBook.data5 | UNKNOWN |  |
+| R259 | Coverage table. | dataBook.data5 | UNKNOWN |  |
+| R260 | Second method for round DATA-5. | dataBook.data5 | RECOMMENDED, UNKNOWN | Q054 |
+| R261 | Plan position and level apart. | level.passMm, placerCheck, position.passMm | RECOMMENDED, UNKNOWN | Q054 |
+| R263 | The Native dialect. | floorTypes, placerCheck, placerCheck.dialects | UNKNOWN |  |
+| R270 | El @ Entry gaps between keys. | entryGapM, majority.entryGaps, majority.kindLeaveOut, sameFaceShare | UNKNOWN |  |
+| R271 | Context of a past plot. | majority.groups | RECOMMENDED, UNKNOWN | Q072 |
+| R272 | The majority rule. | decidedByQuestion, majority.decidedByQuestion, majority.siteReferen... | CHOSEN by Bader, RECOMMENDED, UNKNOWN | Q017 standing rule |
+| R274 | Hand. | the rule text | MEASURED | alone 0.938 cluster 0.981 villa 0.913 |
+| R275 | Levels. | majority.levelHoldMm | UNKNOWN |  |
+| R276 | Floors and parameters. | parameterTests, wholeFaceShare | UNKNOWN |  |
+| R277 | Level profiles. | levelProfiles.default, majority.groups | CHOSEN by Bader, UNKNOWN | Q050 |
+| R278 | Levels and ramps of a plan from CAD. | levels.ground_ssl | UNKNOWN |  |
+| R279 | Hands of a plan from CAD. | the rule text | UNKNOWN |  |
+| R280 | Overrides in a plan from CAD. | majority.overrideDefaultSources | UNKNOWN |  |
+| R281 | Second method for round 17. | majority.overrideDecisions | UNKNOWN |  |
+| R282 | Hands against a Native key. | the rule text | RECOMMENDED | Q054 |
+| R300 | Villa blocks from the Building Footprint. | the rule text | CHOSEN by Bader | Q045 |
+| R301 | Area codes by job. | dataBook.data5, majority.groups | CHOSEN by Bader, UNKNOWN | Q044 |
+| R302 | Image step limit. | imageMarginMinutes, testHost.imageMarginMinutes, testHost.imageStep... | CHOSEN by Bader | Q061 |
+| R303 | Withdrawn. | the rule text | RECOMMENDED | Q064 |
+| R310 | Window samples. | sampleSeconds, siteBuild, siteBuild.minFreeGB, testHost.cimTimeoutS... | UNKNOWN |  |
+| R312 | Key copies by code. | siteBuild | RECOMMENDED, UNKNOWN | Q065 Q069 |
+| R313 | Prototype sets of the upgrade. | the rule text | CHOSEN by Bader | Q067 |
+| R321 | Floor types of each key. | floors.keyTypes, floors.types | UNKNOWN |  |
+| R323 | Second method of the key reads. | floors.keyTypes, floors.plotParameter, floors.types | UNKNOWN |  |
+| R325 | Plans of the answer keys. | cadLinks.cutShareMin, keyPlans.entryHeightM, keyPlans.flatTopM, key... | UNKNOWN |  |
+| R326 | The join of the answer keys. | cadLinks.cutShareMin, cutShareMin, keyPlans.minShare, majority.groups | RECOMMENDED, UNKNOWN | Q066 |
+| R327 | Spot elevations at the plot entrance. | cutShareMin, entrySpots, entrySpots.bandsM, entrySpots.cornerM | RECOMMENDED, UNKNOWN | Q001 |
+| R328 | Second method of Phase 2b. | cutShareMin, floors.plotParameter, keyPlans.entryHeightM, keyPlans.... | UNKNOWN |  |
+| R330 | The source of an override. | laterPhase, majority.groups, majority.overrideDefaultSources, major... | RECOMMENDED, UNKNOWN | Q053 |
+| R331 | Coordinates of the keys. | keyRules.site, levelProfiles.parsons2024Rev6, majority.groups, majo... | MEASURED, RECOMMENDED, UNKNOWN | Q068 baseHeight 0.8433 entry 0.088 ffl 0.7465 frontCorner 0.9776 frontOpen 0.9883 generic 0.9908 ... |
+| R332 | Link origin and rotation on the keys. | keyRules.linkOrigin, linkOrigin, linkRotation, majority.linkHoldMm | MEASURED, RECOMMENDED, UNKNOWN | Q037 frontCorner 0.9776 linkOrigin 0.9712 linkRotation 0.9908 |
+| R333 | Hands on the keys. | keyRules.hand villa, majority.pairKinds | CHOSEN by Bader, MEASURED, UNKNOWN | Q089 hand alone 1.0 hand cluster 0.9805 hand villa 0.9598 |
+| R334 | Ramps and floors on the keys. | majority.outlineHoldMm, outlineHoldMm | MEASURED, RECOMMENDED, UNKNOWN | Q066 generic 0.9908 rampOutline 0.9687 yardOutline 0.9632 |
+| R335 | Walls and shared parameters on the keys. | frontOpen, keyPlans.wallEdgeM, levelHoldMm, majority.frontOpenShare | MEASURED, RECOMMENDED, UNKNOWN | Q071 frontOpen 0.9883 wallBase 0.9825 wallLine 0.9208 wallTop 0.3465 |
+| R336 | Second method of Round ADDIN 3a. | decidedByQuestion, frontOpen, majority.overrideKeep, siteBuild | CHOSEN by Bader, MEASURED, RECOMMENDED, UNKNOWN | Q017 Q072 Q089 frontOpen 0.9883 |
+| R337 | A build by the rules of the keys. | keyRules.linkOrigin, keyRules.rampSlope, keyRules.yard, keyRules.ya... | MEASURED, RECOMMENDED, UNKNOWN | Q017 Q057 generic 0.9908 hand alone 1.0 hand cluster 0.9805 hand villa 0.9598 linkOrigin 0.9712 r... |
+| R338 | The keyRules block. | keyRulesBlock, keyRulesBlock.nativeRound17, keyRulesBlock.zoneFrom,... | RECOMMENDED, UNKNOWN | Q066 |
+| R339 | Levels of the keys to the mm. | baseHeight, keyRules.levelSplit, levelSplit, levels.ground_ssl | CHOSEN by Bader, MEASURED, RECOMMENDED, UNKNOWN | Q012 standing rule baseHeight 0.8433 generic 0.9908 levelSplit 0.7024 |
+| R340 | A build and its proof by the level rules of the... | baseHeight, keyRules.steps, levelSplit, levels.ground_ssl | MEASURED, RECOMMENDED, UNKNOWN | Q057 baseHeight 0.8433 levelSplit 0.7024 rampFront 0.6924 steps 0.9877 |
+| R341 | Second method of the levels of Round ADDIN 3c. | levelPassMm, majority.levelPassMm, siteBuild, siteBuild.roadSurfaces | UNKNOWN |  |
+| R342 | Licences of the libraries. | the rule text | RECOMMENDED | Q079 |
+| R343 | The add-in design. | siteBuild | UNKNOWN |  |
+| R344 | The road at a front corner from the Roads folder. | siteBuild, siteBuild.roadSurfaces, siteBuild.snapMaxM | CHOSEN by Bader, RECOMMENDED, UNKNOWN | Q052 Q053 Q057 Q073 Q074 Q082 |
+| R345 | The parity harness. | the rule text | UNKNOWN |  |
+| R346 | The projects of the add-in. | the rule text | RECOMMENDED | Q079 |
+| R347 | The worker run. | addin.workerPeakMiB, addin.workerTimeLimitMinS, addin.workerTimeLim... | CHOSEN by Code, UNKNOWN | CHOSEN mark |
+| R348 | The DWG reads of button 2. | analysis.roadEdgeLayers | UNKNOWN |  |
+| R349 | The LandXML read and the road level snap of but... | siteBuild, siteBuild.roadSurfaces, siteBuild.snapMaxM | UNKNOWN |  |
+| R350 | The DLUS and sales reads of button 2. | dataBook.data5, dataBook.locationPlan, dataBook.rev9, locationPlan.... | CHOSEN by Code, UNKNOWN | CHOSEN mark |
+| R351 | The location plan of button 2. | connect.neighbourhoods, dataBook.locationPlan | UNKNOWN |  |
+| R352 | The plot table of button 2. | addin.plotTable, dataBook.wiring | CHOSEN by Code, UNKNOWN | CHOSEN mark |
+| R353 | The project position file, the check points and... | addin.position, floors.keyTypes, floors.plotParameter, floors.types | CHOSEN by Bader, RECOMMENDED, UNKNOWN | Q050 Q068 Q085 Q086 Q087 |
+| R354 | The clusters of a build. | Duplex_DP4, baseHeight | CHOSEN by Bader, MEASURED, RECOMMENDED, UNKNOWN | Q050 Q089 Q098 baseHeight 0.8433 hand alone 1.0 hand cluster 0.9805 hand villa 0.9598 parameter C... |
+| R355 | The front of a plot in a build. | analysis.partyWallShare, analysis.roadEdgeLayers, analysis.toleranc... | UNKNOWN |  |
+| R356 | The link frame of a plot in a build. | keyRules.linkOrigin | MEASURED | linkOrigin 0.9712 |
+| R357 | The hand of a plot in a build. | keyRules.linkOrigin, kindByPrefix, majority.pairKinds, majority.sid... | MEASURED, RECOMMENDED, UNKNOWN | Q072 Q098 hand alone 1.0 hand cluster 0.9805 hand villa 0.9598 linkOrigin 0.9712 |
+| R358 | The floors of a plot in a build. | cadLinks.floorWidthStepM, keyRules.rampSlope, keyRules.yard, keyRul... | MEASURED, UNKNOWN | rampSlope 0.9883 yard 1.0 yardOutline 0.9632 |
+| R359 | The levels of a plot in a build. | keyRules.baseHeight, keyRules.ffl, keyRules.levelSplit, keyRules.steps | MEASURED, UNKNOWN | baseHeight 0.8433 ffl 0.7465 levelSplit 0.7024 steps 0.9877 |
+| R360 | The overrides of a plot in a build. | floors.levels, majority.overrideDefaultSources | MEASURED, RECOMMENDED, UNKNOWN | Q057 rampOutline 0.9687 yardOutline 0.9632 |
+| R361 | The link parameters of a plot in a build. | parameter RRE_ZZ_SP_RVT-Name | MEASURED, RECOMMENDED | Q099 parameter RRE_ZZ_SP_RVT-Name 0.9916 |
+| R385 | One rounding rule in Python and C#. | keyRules.baseHeight, levels.ground_ssl, majority.overrideRounding | CHOSEN by Bader, MEASURED, RECOMMENDED, UNKNOWN | Q050 Q052 Q078 baseHeight 0.8433 |
+| R387 | The control point fit as a check of the schedul... | controlSearchPt, dataBook.locationPlan, tolerancePt | CHOSEN by Bader, UNKNOWN | Q081 |
+| R388 | Units of the inputs of the Python reference. | the rule text | UNKNOWN |  |
 
 ## 4 Rules with no design value
 
@@ -204,7 +268,6 @@ Where the value lives names the keys of config/project.json or rules/roshn-makka
 | R35 | Corner source and slope. | process, no value |
 | R36 | Spot elevations. | process, no value |
 | R37 | Floor and wall plot numbers. | process, no value |
-| R38 | Link name parse. | process, no value |
 | R39 | Link contents default. | process, no value |
 | R40 | LandXML reader. | process, no value |
 | R41 | Invisible faces. | process, no value |
@@ -215,40 +278,29 @@ Where the value lives names the keys of config/project.json or rules/roshn-makka
 | R50 | One line for floors with no Plot parameter. | process, no value |
 | R51 | Shared coordinates. | process, no value |
 | R52 | Floor measurements. | process, no value |
-| R53 | Parameter details and floor types. | process, no value |
 | R54 | Link state. | process, no value |
 | R55 | Spot host. | process, no value |
 | R56 | Output size. | process, no value |
 | R57 | Plot relation report. | process, no value |
-| R59 | Ramp geometry. | process, no value |
-| R62 | Project profile. | process, no value |
-| R64 | Cluster derivation. | process, no value |
 | R65 | Attachment follows the cluster position. | process, no value |
-| R66 | Only listed clusters are valid. | process, no value |
 | R68 | Block inserts. | process, no value |
-| R69 | Unit code per plot. | process, no value |
-| R71 | Front by road edge. | process, no value |
 | R72 | Xref resolution. | process, no value |
 | R74 | Excel unit by baseplan label. | process, no value |
-| R75 | Cluster with no Rev 6 match. | process, no value |
+| R76 | Second block match. | process, no value |
 | R77 | Block against link. | process, no value |
+| R80 | Plan file. | process, no value |
 | R85 | Link parameters. | process, no value |
 | R86 | Dry run and one transaction. | process, no value |
 | R87 | Placer report and skip. | process, no value |
 | R88 | Placer install. | process, no value |
 | R102 | Placer filter. | process, no value |
 | R106 | No registry change. | process, no value |
-| R107 | Link instance name. | process, no value |
 | R91 | Road level lookup. | process, no value |
 | R92 | Ramp test with the lookup. | process, no value |
 | R96 | Computed entry levels through the level rule. | process, no value |
 | R100 | Measured offsets file. | process, no value |
 | R117 | Floor jobs of the test host. | process, no value |
 | R118 | Work file life cycle. | process, no value |
-| R123 | Mirror and CASE. | process, no value |
-| R125 | One FFL per cluster. | process, no value |
-| R131 | Villa hand test. | process, no value |
-| R132 | CASE second letter test. | process, no value |
 | R134 | Second method for the rule tests. | process, no value |
 | R150 | Civil 3D probe. | process, no value |
 | R151 | Core console runner. | process, no value |
@@ -262,42 +314,17 @@ Where the value lives names the keys of config/project.json or rules/roshn-makka
 | R164 | Stand-in tables and the size limit. | process, no value |
 | R165 | Workbook sheets. | process, no value |
 | R167 | Analysis. | process, no value |
+| R168 | Second method for the data book. | process, no value |
 | R169 | Export every surface. | process, no value |
 | R171 | Units per face. | process, no value |
-| R172 | Width meaning. | process, no value |
-| R175 | Score and pick. | process, no value |
-| R176 | Weak spots and drawing to drawing. | process, no value |
-| R177 | Chosen wiring. | process, no value |
-| R178 | Second method for the wiring. | process, no value |
-| R179 | Location plan text. | process, no value |
 | R180 | Label pairs. | process, no value |
-| R181 | Page to site. | process, no value |
-| R182 | Number to face and code. | process, no value |
-| R183 | Zones and wiring. | process, no value |
 | R184 | Second method for the location plan. | process, no value |
-| R200 | Window lock. | process, no value |
-| R201 | Snapshot. | process, no value |
-| R202 | Originals. | process, no value |
 | R203 | Revit file info from bytes. | process, no value |
-| R204 | Site upgrade. | process, no value |
 | R205 | Read. | process, no value |
-| R206 | Answer key. | process, no value |
 | R207 | Prototype choice. | process, no value |
-| R208 | Plan from the data book. | process, no value |
-| R209 | Estimated levels. | process, no value |
 | R210 | Ramp from CAD. | process, no value |
-| R212 | New site file. | process, no value |
-| R213 | New site file name. | process, no value |
-| R215 | Compare in bands. | process, no value |
 | R216 | Plan before Revit. | process, no value |
 | R217 | Second method of the round. | process, no value |
-| R218 | Clean up. | process, no value |
-| R185 | Rev 9 workbook inventory and diff. | process, no value |
-| R186 | DLUS setbacks. | process, no value |
-| R187 | Land width and length. | process, no value |
-| R188 | Old to new code table. | process, no value |
-| R189 | Rev 9 drawing read. | process, no value |
-| R190 | Rev 9 PDF labels and wiring. | process, no value |
 | R191 | Rev 9 faces against the baseplan. | process, no value |
 | R192 | Cross sections read in full. | process, no value |
 | R193 | El @ Entry from its terms. | process, no value |
@@ -306,15 +333,10 @@ Where the value lives names the keys of config/project.json or rules/roshn-makka
 | R197 | Civil 3D under the shared window lock. | process, no value |
 | R198 | Second method for round DATA-3. | process, no value |
 | R220 | Rotation of a placed instance. | process, no value |
-| R221 | Two past jobs on the same plots. | process, no value |
 | R222 | Road surface of the past ramp fronts. | process, no value |
 | R223 | Gap per unit. | process, no value |
-| R224 | Road edges and the past ramp edge. | process, no value |
 | R226 | Corner front in the plan. | process, no value |
-| R227 | House outline of a prototype. | process, no value |
-| R228 | Footprint of a plot. | process, no value |
 | R230 | Plan of a whole neighbourhood. | process, no value |
-| R231 | One run per prototype code. | process, no value |
 | R234 | Links loaded for an image. | process, no value |
 | R235 | Second method of round 16. | process, no value |
 | R240 | Civil 3D dialogs by rule 3. | process, no value |
@@ -322,45 +344,25 @@ Where the value lives names the keys of config/project.json or rules/roshn-makka
 | R242 | Surface survey. | process, no value |
 | R243 | Parcels of a drawing. | process, no value |
 | R244 | Parcels against the plan. | process, no value |
+| R246 | Villa hand. | process, no value |
 | R247 | Past schedule formulas. | process, no value |
 | R248 | El @ Entry by surface version. | process, no value |
 | R249 | The past key by surface version. | process, no value |
 | R250 | Second method for round DATA-4. | process, no value |
-| R251 | Audit of DATA-4. | process, no value |
-| R252 | Xref search. | process, no value |
 | R253 | DXF of a copy and its count. | process, no value |
 | R254 | Readers against the third count. | process, no value |
-| R255 | Two road layouts. | process, no value |
-| R256 | Area key. | process, no value |
-| R257 | IM codes. | process, no value |
-| R258 | IFC header. | process, no value |
-| R259 | Coverage table. | process, no value |
-| R260 | Second method for round DATA-5. | process, no value |
 | R262 | The footprint as the third check. | process, no value |
-| R263 | The Native dialect. | process, no value |
 | R264 | Names that are no plot. | process, no value |
 | R265 | A shortened TransmissionData. | process, no value |
 | R266 | Dates from the bytes. | process, no value |
 | R267 | Coverage of the past keys. | process, no value |
 | R268 | Model inventory. | process, no value |
 | R269 | One table of every past plot. | process, no value |
-| R270 | El @ Entry gaps between keys. | process, no value |
-| R271 | Context of a past plot. | process, no value |
 | R273 | Ramp type and slope. | process, no value |
-| R274 | Hand. | process, no value |
-| R275 | Levels. | process, no value |
-| R276 | Floors and parameters. | process, no value |
-| R278 | Levels and ramps of a plan from CAD. | process, no value |
-| R280 | Overrides in a plan from CAD. | process, no value |
-| R281 | Second method for round 17. | process, no value |
-| R282 | Hands against a Native key. | process, no value |
 | R304 | A clean build in a deep folder. | process, no value |
+| R311 | Site facts of the reader. | process, no value |
 | R320 | Spot value and base. | process, no value |
 | R322 | Counts of each key read. | process, no value |
-| R341 | Second method of the levels of Round ADDIN 3c. | process, no value |
-| R342 | Licences of the libraries. | process, no value |
-| R348 | The DWG reads of button 2. | process, no value |
-| R352 | The plot table of button 2. | process, no value |
 | R386 | Use and skip in the override list. | process, no value |
 | R11 | Zero tests is a failure. | process, no value |
 | R12 | Every rule has a test. | process, no value |
@@ -371,138 +373,140 @@ Where the value lives names the keys of config/project.json or rules/roshn-makka
 
 ## 5 Values of the rules profile and the settings
 
-One row per value, or per group of values that share a pattern (a code, a number or a key letter as *), a kind and a status, with n the values of the group (RAN, tables.py). A keyRules row is its rule field, the rest of the entry is its measurement record. No coordinate and no level of a key is shown: keyRules site shows its rule only.
+One row per value, or per group of values that share a pattern (a code, a number or a key letter as *), a kind and a status, with n the values of the group (RAN, audit.py). A keyRules row is its rule field, the rest of the entry is its measurement record. No coordinate and no level of a key is shown: keyRules site shows its rule only.
 
 ### Values of rules/roshn-makkah.json
 
 | Value | n | Kind | Status | Q ID or share | Evidence |
 |---|---|---|---|---|---|
-| typologies.*.kind | 16 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| typologies.*.attachment | 16 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| typologies.*.keo_file | 16 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| typologies.*.plot_width_m | 16 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| clusters.* | 15 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| cluster_aliases.* | 3 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| cluster_max_units = 4 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| cluster_split_positions = [2, 3] | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| cluster_block_max = 4 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| cluster_six_unit_joint_after = 4 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| slopes_percent.front_min = 0.5 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| slopes_percent.front_max = 2.0 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| slopes_percent.front_default = 0.5 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| slopes_percent.back_min = 0.5 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| slopes_percent.back_target_max = 1.0 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| slopes_percent.back_hard_max = 2.0 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.front_min = 1 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.front_max = 3 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.riser_max = 180 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.riser_min = 100 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.riser_height = null | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.tread_min = 280 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.tread_added = 300 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.landing_depth_min = 1000 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.landing_depth_code_min = 914 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.passage_min = 800 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.planter_width = 300 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.back_step = 100 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.landing_required_from_steps = 3 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.handrail_required_from_steps = 4 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.legend.* | 6 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.riser_added = 170 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.count_rule = "under 0.205 is 1, 0.205 to under 0.3... | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| steps.base_height.default = 100 | 1 | value | UNKNOWN |  | steps.base_height_source: past job schedules, 747 plots. ... |
-| steps.base_height.* | 5 | value | UNKNOWN |  | steps.base_height_source: past job schedules, 747 plots. ... |
-| steps.one_step_only = ["C10", "VL4", "VL6"] | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| ramp.front_setback.default = 5520 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| ramp.front_setback.C10 = 5500 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| villa.driver_house = ["C10", "VL6"] | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| typology_codes.rows.*.form | 18 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| typology_codes.rows.*.* | 36 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| typology_codes.rows.*.width_m | 18 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| typology_codes.rows.*.depth_m | 18 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| typology_codes.rows.*.plot_area_m2 | 18 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| typology_codes.rows.*.gfa_m2 | 18 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| typology_codes.rows.*.bua_m2 | 18 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| plot.long_side = 25000 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| plot.boundary_wall_thickness = 200 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| plot.vl3_width = 12000 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| plot.vl3_front_yard = 5520 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| plot.vl3_back_yard = 4420 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| plot.th1_width = 8000 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| plot.vl4_width = "derive" | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| levels.ground_ssl = -75 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| levels.floor_to_floor_contemporary = 3200 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| levels.floor_to_floor_makkawi = 3400 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| levels.precast_wall_thickness = 330 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| foundation.depth_min_below_ngl = 1200 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| foundation.bearing_capacity_kpa = 150 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| mep.tie_ins = ["sewage", "water", "power", "telecom"] | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| mep.sewage_encasement_cover_under = 1000 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| rev6.back_slope_to_front_min_percent = 0.3 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| rev6.back_slope_to_front_max_percent = 0.5 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| rev6.th_back_slope_percent = 2.0 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| rev6.boundary_wall_top_above_ffl = 1700 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| rev6.boundary_wall_continuity_limit = 500 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| rev6.garden_wall_top_above_ffl = 1700 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| rev6.utility_cabinet_raise = 100 | 1 | value | UNKNOWN |  | top source names the Rev 06 report, no Q and no share |
-| hands.villa.rule = "blockMirrorOpenEnd" | 1 | value | MEASURED | share 0.913 | hands.source, Round 17 Parsons IMC key, R274 |
-| hands.alone.rule = "blockMirrorOpenEnd" | 1 | value | MEASURED | share 0.938 | hands.source, Round 17 Parsons IMC key, R274 |
-| hands.cluster.rule = "clusterSide" | 1 | value | MEASURED | share 0.981 | hands.source, Round 17 Parsons IMC key, R274 |
-| levelProfiles.default = "parsons2024Rev6" | 1 | value | CHOSEN by Bader | Q050 | CLAUDE.md and questions-closed.md |
-| levelProfiles.parsons2024Rev6.frontRoad.surface = "roadLevel" | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.parsons2024Rev6.frontRoad.offsetM = 0.0 | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.parsons2024Rev6.rampSlopePercent.default = 0.5 | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.parsons2024Rev6.rampSlopePercent.* | 3 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.parsons2024Rev6.rampTypes.0.5 = null | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.parsons2024Rev6.rampTypes.2 = "Ramps 2%" | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.parsons2024Rev6.rampTypes.flat = "Flat Ramps" | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.parsons2024Rev6.height = "oneFflPerClusterAtTheHighestEntry" | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.parsons2024Rev6.steps = "countRule" | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.parsons2024Rev6.stepBands.* | 3 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.parsons2024Rev6.yardBelowFflM = 0.1 | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.parsons2024Rev6.keyRules.site.rule = "oneSet" | 1 | value | UNKNOWN | no share | keyRules entry with no share |
-| levelProfiles.parsons2024Rev6.keyRules.linkRotation.rule = "frontRule" | 1 | value | MEASURED | share 0.9908, strong True | keys ima imb imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.frontCorner.rule = "frontRule" | 1 | value | MEASURED | share 0.9776, strong True | keys ima imb imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.linkOrigin.rule = "plotFrameRefit" | 1 | value | MEASURED | share 0.9712, strong True | keys ima imb imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.hand villa.rule = "blockMirrorRoadSide" | 1 | value | MEASURED | share 0.9598, strong True | keys ima imb imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.hand cluster.rule = "clusterSide" | 1 | value | MEASURED | share 0.9805, strong True | keys ima imb imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.hand alone.rule = "rowPairSideOrBlockMirrorOpenEnd" | 1 | value | MEASURED | share 1.0, strong True | keys ima imb imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.rampSlope.rule = "typology" | 1 | value | MEASURED | share 0.9883, strong True | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.rampOutline.rule = "outlineR127" | 1 | value | MEASURED | share 0.9687, strong True | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.rampFront.rule = "roadLevel" | 1 | value | MEASURED | share 0.6924, strong False | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.rampFrontFall.rule = "roadAtEachCorner" | 1 | value | MEASURED | share 0.7638, strong False | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.generic.rule = "all" | 1 | value | MEASURED | share 0.9908, strong True | keys ima imb imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.yard.rule = "zone" | 1 | value | MEASURED | share 1.0, strong True | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.yardOutline.rule = "fittedOutlineRefit" | 1 | value | MEASURED | share 0.9632, strong True | keys imc imd ime imf |
-| levelProfiles.parsons2024Rev6.keyRules.wallBase.rule = "yardLevelOfTheHigherPlot" | 1 | value | MEASURED | share 0.9825, strong True | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.wallTop.rule = "higherFflPlusRev6" | 1 | value | MEASURED | share 0.3465, strong False | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.wallLine.rule = "centreOnTheEdge" | 1 | value | MEASURED | share 0.9208, strong True | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.frontOpen.rule = "all" | 1 | value | MEASURED | share 0.9883, strong True | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Plot-Number.rule = "plot" | 1 | value | MEASURED | share 1.0, strong True | keys ima imb imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Prototype.rule = "typology" | 1 | value | MEASURED | share 1.0, strong True | keys ima imb imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_RVT-Name.rule = "plotCodeStepsAndFacade" | 1 | value | MEASURED | share 0.9916, strong True | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Number-of-Steps.rule = "steps" | 1 | value | MEASURED | share 1.0, strong True | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Façade-Color.rule = "all" | 1 | value | MEASURED | share 1.0, strong True | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Façade-Design-Option.rule = "all" | 1 | value | MEASURED | share 1.0, strong True | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Prototype-Foundation-Type.rule = "typologyMirrored" | 1 | value | MEASURED | share 0.6198, strong False | keys ima imb imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Prototype-HVAC-Schedule-Type.rule = "typology" | 1 | value | MEASURED | share 1.0, strong True | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.parameter CASE.rule = "typologyMirrored" | 1 | value | MEASURED | share 0.2747, strong False | keys ima imb imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Prototype-FFL.rule = "fflDownToTheCm" | 1 | value | MEASURED | share 0.9939, strong True | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.entry.rule = "roadLevel" | 1 | value | MEASURED | share 0.088, strong False | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.levelSplit.rule = "units" | 1 | value | MEASURED | share 0.7024, strong False | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.baseHeight.rule = "profile" | 1 | value | MEASURED | share 0.8433, strong False | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.ffl.rule = "oneFflPerPieceAtTheHighestEntry" | 1 | value | MEASURED | share 0.7465, strong False | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.steps.rule = "stepsFromHeight" | 1 | value | MEASURED | share 0.9877, strong True | keys imc imd ime imf img |
-| levelProfiles.parsons2024Rev6.keyRules.ssl.rule = "fflPlusGroundSsl" | 1 | value | UNKNOWN | no share | keyRules entry with no share |
-| levelProfiles.native2022.frontRoad.surface = "Makkah Phase 1_Rough Grading__Total ... | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.native2022.frontRoad.offsetM = 0.7 | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.native2022.rampSlopePercent.default = 2.0 | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.native2022.rampTypes.2 = "Ramps 2%" | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.native2022.height = "medianPerUnit" | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.native2022.medianOf = "the Native plots by their Typology_R... | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.native2022.medianHeightM.* | 15 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.native2022.steps = null | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
-| levelProfiles.native2022.yardBelowFflM = null | 1 | value | UNKNOWN |  | the profile source names a past model, no share for this ... |
+| typologies.*.kind | 16 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| typologies.*.attachment | 16 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| typologies.*.keo_file | 16 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| typologies.*.plot_width_m | 16 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| clusters.* | 15 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| cluster_aliases.* | 3 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| cluster_max_units = 4 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| cluster_split_positions = [2, 3] | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| cluster_block_max = 4 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| cluster_six_unit_joint_after = 4 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| slopes_percent.front_min = 0.5 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| slopes_percent.front_max = 2.0 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| slopes_percent.front_default = 0.5 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| slopes_percent.back_min = 0.5 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| slopes_percent.back_target_max = 1.0 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| slopes_percent.back_hard_max = 2.0 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.front_min = 1 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.front_max = 3 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.riser_max = 180 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.riser_min = 100 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.riser_height = null | 1 | value | UNKNOWN |  | null or empty |
+| steps.tread_min = 280 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.tread_added = 300 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.landing_depth_min = 1000 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.landing_depth_code_min = 914 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.passage_min = 800 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.planter_width = 300 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.back_step = 100 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.landing_required_from_steps = 3 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.handrail_required_from_steps = 4 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.legend.* | 6 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.riser_added = 170 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.count_rule = "under 0.205 is 1, 0.205 to under 0.3... | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| steps.base_height.default = 100 | 1 | value | UNKNOWN |  | steps.base_height_source: past job schedules, 747 plots... |
+| steps.base_height.* | 5 | value | UNKNOWN |  | steps.base_height_source: past job schedules, 747 plots... |
+| steps.one_step_only = ["C10", "VL4", "VL6"] | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| ramp.front_setback.default = 5520 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| ramp.front_setback.C10 = 5500 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| villa.driver_house = ["C10", "VL6"] | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| typology_codes.rows.*.form | 12 | value | UNKNOWN |  | null or empty |
+| typology_codes.rows.*.* | 34 | value | UNKNOWN |  | typology_codes.source: PSN-ZZZ-XXX-SCH-TM-000201- DLUS ... |
+| typology_codes.rows.*.width_m | 18 | value | UNKNOWN |  | typology_codes.source: PSN-ZZZ-XXX-SCH-TM-000201- DLUS ... |
+| typology_codes.rows.*.depth_m | 18 | value | UNKNOWN |  | typology_codes.source: PSN-ZZZ-XXX-SCH-TM-000201- DLUS ... |
+| typology_codes.rows.*.plot_area_m2 | 18 | value | UNKNOWN |  | typology_codes.source: PSN-ZZZ-XXX-SCH-TM-000201- DLUS ... |
+| typology_codes.rows.*.gfa_m2 | 18 | value | UNKNOWN |  | typology_codes.source: PSN-ZZZ-XXX-SCH-TM-000201- DLUS ... |
+| typology_codes.rows.*.bua_m2 | 18 | value | UNKNOWN |  | typology_codes.source: PSN-ZZZ-XXX-SCH-TM-000201- DLUS ... |
+| typology_codes.rows.*.form | 6 | value | UNKNOWN |  | typology_codes.source: PSN-ZZZ-XXX-SCH-TM-000201- DLUS ... |
+| typology_codes.rows.*.* | 2 | value | UNKNOWN |  | null or empty |
+| plot.long_side = 25000 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| plot.boundary_wall_thickness = 200 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| plot.vl3_width = 12000 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| plot.vl3_front_yard = 5520 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| plot.vl3_back_yard = 4420 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| plot.th1_width = 8000 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| plot.vl4_width = "derive" | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| levels.ground_ssl = -75 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| levels.floor_to_floor_contemporary = 3200 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| levels.floor_to_floor_makkawi = 3400 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| levels.precast_wall_thickness = 330 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| foundation.depth_min_below_ngl = 1200 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| foundation.bearing_capacity_kpa = 150 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| mep.tie_ins = ["sewage", "water", "power", "telecom"] | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| mep.sewage_encasement_cover_under = 1000 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| rev6.back_slope_to_front_min_percent = 0.3 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| rev6.back_slope_to_front_max_percent = 0.5 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| rev6.th_back_slope_percent = 2.0 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| rev6.boundary_wall_top_above_ffl = 1700 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| rev6.boundary_wall_continuity_limit = 500 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| rev6.garden_wall_top_above_ffl = 1700 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| rev6.utility_cabinet_raise = 100 | 1 | value | UNKNOWN |  | source: 01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 20... |
+| hands.villa.rule = "blockMirrorOpenEnd" | 1 | value | MEASURED | share 0.913, strong | hands.source, the Parsons IMC key, Round 17, R274 |
+| hands.alone.rule = "blockMirrorOpenEnd" | 1 | value | MEASURED | share 0.938, strong | hands.source, the Parsons IMC key, Round 17, R274 |
+| hands.cluster.rule = "clusterSide" | 1 | value | MEASURED | share 0.981, strong | hands.source, the Parsons IMC key, Round 17, R274 |
+| levelProfiles.default = "parsons2024Rev6" | 1 | value | CHOSEN by Bader | Q050 | CLAUDE.md and steps/questions-closed.md |
+| levelProfiles.parsons2024Rev6.frontRoad.surface = "roadLevel" | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
+| levelProfiles.parsons2024Rev6.frontRoad.offsetM = 0.0 | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
+| levelProfiles.parsons2024Rev6.rampSlopePercent.default = 0.5 | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
+| levelProfiles.parsons2024Rev6.rampSlopePercent.* | 3 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
+| levelProfiles.parsons2024Rev6.rampTypes.0.5 = null | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
+| levelProfiles.parsons2024Rev6.rampTypes.2 = "Ramps 2%" | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
+| levelProfiles.parsons2024Rev6.rampTypes.flat = "Flat Ramps" | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
+| levelProfiles.parsons2024Rev6.height = "oneFflPerClusterAtTheHighestEntry" | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
+| levelProfiles.parsons2024Rev6.steps = "countRule" | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
+| levelProfiles.parsons2024Rev6.stepBands.* | 3 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
+| levelProfiles.parsons2024Rev6.yardBelowFflM = 0.1 | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
+| levelProfiles.parsons2024Rev6.keyRules.site.rule = "oneSet" | 1 | value | UNKNOWN |  | keyRules entry with no share |
+| levelProfiles.parsons2024Rev6.keyRules.linkRotation.rule = "frontRule" | 1 | value | MEASURED | share 0.9908, strong | keys ima imb imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.frontCorner.rule = "frontRule" | 1 | value | MEASURED | share 0.9776, strong | keys ima imb imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.linkOrigin.rule = "plotFrameRefit" | 1 | value | MEASURED | share 0.9712, strong | keys ima imb imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.hand villa.rule = "blockMirrorRoadSide" | 1 | value | MEASURED | share 0.9598, strong | keys ima imb imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.hand cluster.rule = "clusterSide" | 1 | value | MEASURED | share 0.9805, strong | keys ima imb imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.hand alone.rule = "rowPairSideOrBlockMirrorOpenEnd" | 1 | value | MEASURED | share 1.0, strong | keys ima imb imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.rampSlope.rule = "typology" | 1 | value | MEASURED | share 0.9883, strong | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.rampOutline.rule = "outlineR127" | 1 | value | MEASURED | share 0.9687, strong | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.rampFront.rule = "roadLevel" | 1 | value | MEASURED | share 0.6924, weak | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.rampFrontFall.rule = "roadAtEachCorner" | 1 | value | MEASURED | share 0.7638, weak | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.generic.rule = "all" | 1 | value | MEASURED | share 0.9908, strong | keys ima imb imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.yard.rule = "zone" | 1 | value | MEASURED | share 1.0, strong | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.yardOutline.rule = "fittedOutlineRefit" | 1 | value | MEASURED | share 0.9632, strong | keys imc imd ime imf |
+| levelProfiles.parsons2024Rev6.keyRules.wallBase.rule = "yardLevelOfTheHigherPlot" | 1 | value | MEASURED | share 0.9825, strong | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.wallTop.rule = "higherFflPlusRev6" | 1 | value | MEASURED | share 0.3465, weak | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.wallLine.rule = "centreOnTheEdge" | 1 | value | MEASURED | share 0.9208, strong | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.frontOpen.rule = "all" | 1 | value | MEASURED | share 0.9883, strong | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Plot-Number.rule = "plot" | 1 | value | MEASURED | share 1.0, strong | keys ima imb imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Prototype.rule = "typology" | 1 | value | MEASURED | share 1.0, strong | keys ima imb imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_RVT-Name.rule = "plotCodeStepsAndFacade" | 1 | value | MEASURED | share 0.9916, strong | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Number-of-Steps.rule = "steps" | 1 | value | MEASURED | share 1.0, strong | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Façade-Color.rule = "all" | 1 | value | MEASURED | share 1.0, strong | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Façade-Design-Option.rule = "all" | 1 | value | MEASURED | share 1.0, strong | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Prototype-Foundation-Type.rule = "typologyMirrored" | 1 | value | MEASURED | share 0.6198, weak | keys ima imb imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Prototype-HVAC-Schedule-Type.rule = "typology" | 1 | value | MEASURED | share 1.0, strong | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.parameter CASE.rule = "typologyMirrored" | 1 | value | MEASURED | share 0.2747, weak | keys ima imb imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.parameter RRE_ZZ_SP_Prototype-FFL.rule = "fflDownToTheCm" | 1 | value | MEASURED | share 0.9939, strong | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.entry.rule = "roadLevel" | 1 | value | MEASURED | share 0.088, weak | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.levelSplit.rule = "units" | 1 | value | MEASURED | share 0.7024, weak | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.baseHeight.rule = "profile" | 1 | value | MEASURED | share 0.8433, weak | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.ffl.rule = "oneFflPerPieceAtTheHighestEntry" | 1 | value | MEASURED | share 0.7465, weak | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.steps.rule = "stepsFromHeight" | 1 | value | MEASURED | share 0.9877, strong | keys imc imd ime imf img |
+| levelProfiles.parsons2024Rev6.keyRules.ssl.rule = "fflPlusGroundSsl" | 1 | value | UNKNOWN |  | keyRules entry with no share |
+| levelProfiles.native2022.frontRoad.surface = "Makkah Phase 1_Rough Grading__Total ... | 1 | value | UNKNOWN |  | levelProfiles.native2022.source: the Native site models... |
+| levelProfiles.native2022.frontRoad.offsetM = 0.7 | 1 | value | UNKNOWN |  | levelProfiles.native2022.source: the Native site models... |
+| levelProfiles.native2022.rampSlopePercent.default = 2.0 | 1 | value | UNKNOWN |  | levelProfiles.native2022.source: the Native site models... |
+| levelProfiles.native2022.rampTypes.2 = "Ramps 2%" | 1 | value | UNKNOWN |  | levelProfiles.native2022.source: the Native site models... |
+| levelProfiles.native2022.height = "medianPerUnit" | 1 | value | UNKNOWN |  | levelProfiles.native2022.source: the Native site models... |
+| levelProfiles.native2022.medianOf = "the Native plots by their Typology_R... | 1 | value | UNKNOWN |  | levelProfiles.native2022.source: the Native site models... |
+| levelProfiles.native2022.medianHeightM.* | 15 | value | UNKNOWN |  | levelProfiles.native2022.source: the Native site models... |
+| levelProfiles.native2022.steps = null | 1 | value | UNKNOWN |  | null or empty |
+| levelProfiles.native2022.yardBelowFflM = null | 1 | value | UNKNOWN |  | null or empty |
 
 Every leaf of rules/roshn-makkah.json by kind and status (RAN, audit.py): note note text, no value 23, record measurement record of a hand rule 68, record measurement record of a keyRule 2337, setting setting of a reader or check, no design value 4, value CHOSEN by Bader 1, value MEASURED 35, value UNKNOWN 330.
 
@@ -510,215 +514,215 @@ Every leaf of rules/roshn-makkah.json by kind and status (RAN, audit.py): note n
 
 | Value | n | Kind | Status | Q ID or share | Evidence |
 |---|---|---|---|---|---|
-| analysis.toleranceM = 0.01 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| analysis.partyWallShare = 0.75 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| analysis.endShare = 0.25 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| analysis.roadEdgeLayers = ["RD-CURB-LINE"] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| analysis.unitPlotTypes = ["C10", "DP2", "DP4", "TH1", "TH3", "... | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| analysis.noRev6Match = ["Q02"] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| analysis.pairRule = false | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| analysis.blockClusters.Duplex_DP2 = "D02" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| analysis.blockClusters.Duplex_DP4 = "D04" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| analysis.blockClusters.Townhouse_TH1 = "Q01" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| analysis.blockClusters.Townhouse_TH3 = "Q02" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.rev9.dlus.headerRow = 3 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.rev9.sales.headerRow = 1 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.data5.areaKey.dlus.headerRow = 1 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.data5.areaKey.sales.headerRow = 1 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.sales.headerRow = 1 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.labelSize = [1.4, 1.6] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.joinGapPt = 0.3 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.lineTolerancePt = 0.05 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.pairDyPt = [1.3, 1.8] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.pairDxPt = 1.5 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.fitDropFactor = 3 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.fitRounds = 3 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.fitFloorM = 0.001 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.codeTable.headerRow = 2 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.dlus.headerRow = 1 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.zoneStyles.magenta.width = 4.0 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.zoneStyles.red.width = 11.0 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.zoneHatch.width = 2.0 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.zoneHatch.bufferPt = 1.5 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.check.seeds = [14, 7] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.check.size = 20 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.check.windowPt = 4 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.controlSearchPt = 120 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.controlShapeMaxPt = 12 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.locationPlan.controlMark.widthPt = 3.96 | 1 | value | CHOSEN by Bader | Q081 | dataBook.locationPlan.controlMark.note |
-| dataBook.locationPlan.controlMark.heightPt = 3.96 | 1 | value | CHOSEN by Bader | Q081 | dataBook.locationPlan.controlMark.note |
-| dataBook.locationPlan.controlMark.tolerancePt = 0.01 | 1 | value | CHOSEN by Bader | Q081 | dataBook.locationPlan.controlMark.note |
-| dataBook.locationPlan.controlMark.points = 6 | 1 | value | CHOSEN by Bader | Q081 | dataBook.locationPlan.controlMark.note |
-| dataBook.wiring.shiftSearch = 1 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.pdfToleranceM = 1.0 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.widenM = 0.5 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.minShare = 0.1 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.shareTie = 0.02 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.ownerShareMin = 0.5 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.nearestM = 2.0 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.tieM = 0.01 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.labelNearM = 5.0 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.answerShareMin = 0.5 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.frontToleranceM = 0.1 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.nearestVertexM = 1.0 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.levelToleranceM = 0.005 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.blockOverlapMin = 0.5 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.curbStepM = 1.0 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.curbBandsM = [0.01, 0.1, 1.0] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.check.seeds = [14, 7] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.check.size = 20 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.check.gridM = 0.2 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.check.shareSlack = 0.03 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.check.minEdgeM = 1.0 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.check.distanceSlackM = 0.01 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| dataBook.wiring.check.maxGridPoints = 40000 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| connect.neighbourhoods.*.shift | 2 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
+| analysis.toleranceM = 0.01 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| analysis.partyWallShare = 0.75 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| analysis.endShare = 0.25 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| analysis.roadEdgeLayers = ["RD-CURB-LINE"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| analysis.unitPlotTypes = ["C10", "DP2", "DP4", "TH1", "TH3", "... | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| analysis.noRev6Match = ["Q02"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| analysis.pairRule = false | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| analysis.blockClusters.Duplex_DP2 = "D02" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| analysis.blockClusters.Duplex_DP4 = "D04" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| analysis.blockClusters.Townhouse_TH1 = "Q01" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| analysis.blockClusters.Townhouse_TH3 = "Q02" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.rev9.dlus.headerRow = 3 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.rev9.sales.headerRow = 1 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.data5.areaKey.dlus.headerRow = 1 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.data5.areaKey.sales.headerRow = 1 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.sales.headerRow = 1 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.labelSize = [1.4, 1.6] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.joinGapPt = 0.3 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.lineTolerancePt = 0.05 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.pairDyPt = [1.3, 1.8] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.pairDxPt = 1.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.fitDropFactor = 3 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.fitRounds = 3 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.fitFloorM = 0.001 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.codeTable.headerRow = 2 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.dlus.headerRow = 1 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.zoneStyles.magenta.width = 4.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.zoneStyles.red.width = 11.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.zoneHatch.width = 2.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.zoneHatch.bufferPt = 1.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.check.seeds = [14, 7] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.check.size = 20 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.check.windowPt = 4 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.controlSearchPt = 120 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.controlShapeMaxPt = 12 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.controlMark.widthPt = 3.96 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.controlMark.heightPt = 3.96 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.controlMark.tolerancePt = 0.01 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.locationPlan.controlMark.points = 6 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.shiftSearch = 1 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.pdfToleranceM = 1.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.widenM = 0.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.minShare = 0.1 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.shareTie = 0.02 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.ownerShareMin = 0.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.nearestM = 2.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.tieM = 0.01 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.labelNearM = 5.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.answerShareMin = 0.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.frontToleranceM = 0.1 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.nearestVertexM = 1.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.levelToleranceM = 0.005 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.blockOverlapMin = 0.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.curbStepM = 1.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.curbBandsM = [0.01, 0.1, 1.0] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.check.seeds = [14, 7] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.check.size = 20 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.check.gridM = 0.2 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.check.shareSlack = 0.03 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.check.minEdgeM = 1.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.check.distanceSlackM = 0.01 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| dataBook.wiring.check.maxGridPoints = 40000 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| connect.neighbourhoods.*.shift | 2 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | connect.neighbourhoods.IME = null | 1 | value | UNKNOWN |  | null or empty |
 | testHost.imageStepMinutes = 30 | 1 | host | CHOSEN by Bader | Q061 | R302 |
 | testHost.imageMarginMinutes = 10 | 1 | host | CHOSEN by Bader | Q061 | R302 |
-| testHost.sampleSeconds = 5 | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| testHost.cimTimeoutSeconds = 2 | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| testHost.helperProcesses = ["RevitWorker", "sqlservr", "CefSharp... | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| keyPlans.wallEdgeM = 0.3 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| keyPlans.entryHeightM.* | 2 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| keyPlans.flatTopM = 0.0005 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| keyPlans.minShare = 0.001 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| entrySpots.radiiM = [0.5, 6.0] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| entrySpots.cornerM = 0.05 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| entrySpots.bandsM = [0.001, 0.005] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| floors.types.generic = ["Generic 150mm"] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| floors.types.yard = ["yard"] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| floors.types.ramp = ["Ramps 0.5%", "Ramps 2%", "Flat Ramps"] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| floors.keyTypes.*.generic | 2 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| floors.levels.generic = "Level 1" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| floors.levels.yard = "Level 2" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| floors.levels.ramp = "Level 1" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| floors.plotParameter = "Plot" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| floors.yardBelowFflM = 0.1 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| floors.yardShareTie = 0.01 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| floors.yardMinShare = 0.5 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| cadLinks.cutShareMin = 0.9 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| cadLinks.floorWidthStepM = 0.5 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| cadLinks.cutNeighbours = ["2374", "2391", "2543", "2546"] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
+| testHost.sampleSeconds = 5 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| testHost.cimTimeoutSeconds = 2 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| testHost.helperProcesses = ["RevitWorker", "sqlservr", "CefSharp... | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| keyPlans.wallEdgeM = 0.3 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| keyPlans.entryHeightM.* | 2 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| keyPlans.flatTopM = 0.0005 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| keyPlans.minShare = 0.001 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| entrySpots.radiiM = [0.5, 6.0] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| entrySpots.cornerM = 0.05 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| entrySpots.bandsM = [0.001, 0.005] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| floors.types.generic = ["Generic 150mm"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| floors.types.yard = ["yard"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| floors.types.ramp = ["Ramps 0.5%", "Ramps 2%", "Flat Ramps"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| floors.keyTypes.*.generic | 2 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| floors.levels.generic = "Level 1" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| floors.levels.yard = "Level 2" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| floors.levels.ramp = "Level 1" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| floors.plotParameter = "Plot" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| floors.yardBelowFflM = 0.1 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| floors.yardShareTie = 0.01 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| floors.yardMinShare = 0.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| cadLinks.cutShareMin = 0.9 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| cadLinks.floorWidthStepM = 0.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| cadLinks.cutNeighbours = ["2374", "2391", "2543", "2546"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | siteBuild.newFile = null | 1 | value | UNKNOWN |  | null or empty |
 | siteBuild.answerKey.others = [] | 1 | value | UNKNOWN |  | null or empty |
-| siteBuild.answerKey.code = "KC" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.waitMinutes = 5 | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.staleHours = 2 | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.minFreeGB = 2.0 | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.windowProcesses = ["acad", "accoreconsole", "Revit"] | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.zoneNbh = "01A" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.roadSurfaces = ["Makkah Phase 1_Road Surface C3D__To... | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.snapM = 0.005 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.snapMaxM = 0.01 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.coordinateStepM = 100 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.parameterGroup = "SiteAdaptation" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.steepUnits = ["C10", "VL4", "VL6"] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.bandsMm = [0, 1, 10, 30] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.key14.fflParameter = "FFL" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.corner.roadEdgeM = 8.0 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.corner.onEdgeM = 0.3 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.footprint.groundSpanM = 0.5 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.footprint.mirrorGain = 0.05 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.footprint.slack = 0.05 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| siteBuild.placeSettleMinutes = 5 | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| placerCheck.position.bandsMm = [0, 1, 10, 30] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| placerCheck.position.passMm = 1.0 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| placerCheck.level.bandsMm = [0, 1, 10, 30] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| placerCheck.level.passMm = 1.0 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| placerCheck.dialects.imc.plot = "parameter" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| placerCheck.dialects.imc.datum = "none" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| placerCheck.dialects.native.plot = "name" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| placerCheck.dialects.native.datum = "surveyElevation" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| placerCheck.dialects.native.floorTypes.generic = ["FFL"] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| placerCheck.dialects.native.floorTypes.ramp = ["Ramps", "Ramps 2", "Ramps 3", "Ramp... | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| placerCheck.dialects.parsons.plot = "name" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| placerCheck.dialects.parsons.datum = "none" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
+| siteBuild.answerKey.code = "KC" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.waitMinutes = 5 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.staleHours = 2 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.minFreeGB = 2.0 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.windowProcesses = ["acad", "accoreconsole", "Revit"] | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.zoneNbh = "01A" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.roadSurfaces = ["Makkah Phase 1_Road Surface C3D__To... | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.snapM = 0.005 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.snapMaxM = 0.01 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.coordinateStepM = 100 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.parameterGroup = "SiteAdaptation" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.steepUnits = ["C10", "VL4", "VL6"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.bandsMm = [0, 1, 10, 30] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.key14.fflParameter = "FFL" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.corner.roadEdgeM = 8.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.corner.onEdgeM = 0.3 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.footprint.groundSpanM = 0.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.footprint.mirrorGain = 0.05 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.footprint.slack = 0.05 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| siteBuild.placeSettleMinutes = 5 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| placerCheck.position.bandsMm = [0, 1, 10, 30] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| placerCheck.position.passMm = 1.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| placerCheck.level.bandsMm = [0, 1, 10, 30] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| placerCheck.level.passMm = 1.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| placerCheck.dialects.imc.plot = "parameter" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| placerCheck.dialects.imc.datum = "none" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| placerCheck.dialects.native.plot = "name" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| placerCheck.dialects.native.datum = "surveyElevation" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| placerCheck.dialects.native.floorTypes.generic = ["FFL"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| placerCheck.dialects.native.floorTypes.ramp = ["Ramps", "Ramps 2", "Ramps 3", "Ramp... | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| placerCheck.dialects.parsons.plot = "name" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| placerCheck.dialects.parsons.datum = "none" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | majority.strongShare = 0.9 | 1 | value | CHOSEN by Bader | standing rule | CLAUDE.md Majority rule, Bader's standing rule |
-| majority.levelHoldMm = 5 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.levelPassMm = 0.5 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.levelBandsMm = [1, 5] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.entryRampM = 0.3 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.entryGaps.entryGapM = 0.5 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.entryGaps.entryRampM = 0.3 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.entryGaps.sameFaceShare = 0.9 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.groups.native = ["u11", "u12", "u13", "u14"] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.groups.parsons = ["imc", "ima", "imb", "imd", "ime", "... | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.kindLeaveOut.SE = ["rampSlope", "entry", "rampFront", "... | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.kindGroups = ["parsons"] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.kindFoldCase = false | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.codeFrom.native = "keyUnit" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.codeFrom.parsons = "rev9" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.kindByPrefix.* | 3 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.slopeBands.* | 3 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.rampTypeClass.Ramps 0.5% = null | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.rampTypeClass.Ramps 2% = "2" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.rampTypeClass.Flat Ramps = "flat" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.groupSlopes.native.default = 2.0 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.groupSlopes.parsons.default = 0.5 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.groupSlopes.parsons.* | 3 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.depthBands.* | 3 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.heightBands.* | 3 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.sideShare = 0.5 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.wholeFaceShare = 0.98 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.measuredSlopeGroups = ["native"] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.datumSurfaces = ["roadLevel", "Makkah Phase 1_Rough G... | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.parameterTests = ["RRE_ZZ_SP_Number-of-Steps", "RRE_ZZ... | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.wallTypes.boundary = "^BW$" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.wallTypes.garden = "Garden" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.wallTypes.seBoundary = "^SBW" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.wallCentreCodes = [0, 1] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.frontOpenShare = 0.2 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.overrideDecisions = ["rampSlope", "hand", "entry", "heigh... | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.outlineHoldMm = 10 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.pairKinds = ["duplex", "townhouse"] | 1 | value | CHOSEN by Bader | Q089 | R333 |
-| majority.flatRampType = "Flat Ramps" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.rotationHoldDeg = 0.1 | 1 | value | RECOMMENDED | Q037 | R332 |
-| majority.linkHoldMm = 10 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.cornerFrontRule = "orientation" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.siteReference.parsons = "imc" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.siteReference.native = "u14" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.overrideDefaultSources = ["parsons"] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.overrideKeep.sources = ["native"] | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.overrideKeep.laterPhase = "3c" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.overrideRounding.levelProfiles.native2022 = "pythonRound" | 1 | value | CHOSEN by Bader | Q050 | R277 |
-| majority.overrideRounding.levelProfiles.parsons2024Rev6 = "R385" | 1 | value | CHOSEN by Bader | Q050 | R277 |
-| majority.kindDiscipline.SE = "STR" | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
+| majority.levelHoldMm = 5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.levelPassMm = 0.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.levelBandsMm = [1, 5] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.entryRampM = 0.3 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.entryGaps.entryGapM = 0.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.entryGaps.entryRampM = 0.3 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.entryGaps.sameFaceShare = 0.9 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.groups.native = ["u11", "u12", "u13", "u14"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.groups.parsons = ["imc", "ima", "imb", "imd", "ime", "... | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.kindLeaveOut.SE = ["rampSlope", "entry", "rampFront", "... | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.kindGroups = ["parsons"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.kindFoldCase = false | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.codeFrom.native = "keyUnit" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.codeFrom.parsons = "rev9" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.kindByPrefix.* | 3 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.slopeBands.* | 3 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.rampTypeClass.Ramps 0.5% = null | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.rampTypeClass.Ramps 2% = "2" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.rampTypeClass.Flat Ramps = "flat" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.groupSlopes.native.default = 2.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.groupSlopes.parsons.default = 0.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.groupSlopes.parsons.* | 3 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.depthBands.* | 3 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.heightBands.* | 3 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.sideShare = 0.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.wholeFaceShare = 0.98 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.measuredSlopeGroups = ["native"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.datumSurfaces = ["roadLevel", "Makkah Phase 1_Rough G... | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.parameterTests = ["RRE_ZZ_SP_Number-of-Steps", "RRE_ZZ... | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.wallTypes.boundary = "^BW$" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.wallTypes.garden = "Garden" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.wallTypes.seBoundary = "^SBW" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.wallCentreCodes = [0, 1] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.frontOpenShare = 0.2 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.overrideDecisions = ["rampSlope", "hand", "entry", "heigh... | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.outlineHoldMm = 10 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.pairKinds = ["duplex", "townhouse"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.flatRampType = "Flat Ramps" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.rotationHoldDeg = 0.1 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.linkHoldMm = 10 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.cornerFrontRule = "orientation" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.siteReference.parsons = "imc" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.siteReference.native = "u14" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.overrideDefaultSources = ["parsons"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.overrideKeep.sources = ["native"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.overrideKeep.laterPhase = "3c" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.overrideRounding.levelProfiles.native2022 = "pythonRound" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.overrideRounding.levelProfiles.parsons2024Rev6 = "R385" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.kindDiscipline.SE = "STR" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | majority.decidedByQuestion.Q017.fields = ["prototypeFile", "mirrored"] | 1 | value | RECOMMENDED | Q017 | the Q ID in the path |
 | majority.decidedByQuestion.Q017.plots.* | 2 | value | RECOMMENDED | Q017 | the Q ID in the path |
-| majority.keyRulesBlock.levelProfile = "parsons2024Rev6" | 1 | value | CHOSEN by Bader | Q050 | R277 |
-| majority.keyRulesBlock.zonePrefix = "Zone " | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
+| majority.keyRulesBlock.levelProfile = "parsons2024Rev6" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.keyRulesBlock.zonePrefix = "Zone " | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | majority.keyRulesBlock.zoneFrom.Zone 1.from = ["Zone 2", "Zone 3"] | 1 | value | RECOMMENDED | Q066 | majority.keyRulesBlock.zoneFrom.Zone 1.why |
-| majority.keyRulesBlock.nativeRound17.rampSlope = 0.977 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.keyRulesBlock.nativeRound17.hand villa = 0.945 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.keyRulesBlock.nativeRound17.hand cluster = 0.983 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.keyRulesBlock.nativeRound17.hand alone = 0.714 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.keyRulesBlock.nativeRound17.frontCorner = 0.967 | 1 | value | RECOMMENDED | Q037 | R332 |
-| majority.keyRulesBlock.nativeRound17.rampFront = 0.634 | 1 | value | RECOMMENDED | Q057 | R340 |
-| majority.keyRulesBlock.nativeRound17.rampFrontFall = 0.623 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.keyRulesBlock.nativeRound17.generic = 0.899 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.keyRulesBlock.nativeRound17.yard = 1.0 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.keyRulesBlock.nativeRound17.parameter CASE = 0.314 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.keyRulesBlock.sitePosition = "the project position, survey point a... | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.keyRulesBlock.siteNative = "the 4 Native keys hold one set of th... | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.keyRulesBlock.flatRampRule = "no flat ramp is coded, a key ramp of... | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| majority.keyRulesBlock.wallListedIn = "wallMisses of the report, outside gi... | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| addin.workerPeakMiB.roles = ["curbs", "baseplan", "villaBlocks"] | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| addin.workerPeakMiB.files.*.bytes | 3 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| addin.workerPeakMiB.files.*.peakMiB | 3 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| addin.workerPeakMiB.commands.read = 3900 | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| addin.workerTimeLimitS.read = 300 | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| addin.workerTimeLimitS.build = 600 | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| addin.workerTimeLimitS.levelExcel = 60 | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| addin.workerTimeLimitS.reportExcel = 600 | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| addin.workerTimeLimitS.exportChecks = 600 | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| addin.workerTimeLimitS.position = 600 | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| addin.workerTimeLimitMinS = 10 | 1 | host | CHOSEN by Code |  | no Q, no share, no Bader line names it |
-| addin.position.checkPointLimitMm = 1.0 | 1 | value | RECOMMENDED | Q068 | addin.position.note |
-| addin.position.gapDecimals = 2 | 1 | value | RECOMMENDED | Q068 | addin.position.note |
-| addin.plotTable.overlapDecimals = 4 | 1 | value | CHOSEN by Code |  | no Q, no share, no Bader line names it |
+| majority.keyRulesBlock.nativeRound17.rampSlope = 0.977 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.keyRulesBlock.nativeRound17.hand villa = 0.945 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.keyRulesBlock.nativeRound17.hand cluster = 0.983 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.keyRulesBlock.nativeRound17.hand alone = 0.714 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.keyRulesBlock.nativeRound17.frontCorner = 0.967 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.keyRulesBlock.nativeRound17.rampFront = 0.634 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.keyRulesBlock.nativeRound17.rampFrontFall = 0.623 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.keyRulesBlock.nativeRound17.generic = 0.899 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.keyRulesBlock.nativeRound17.yard = 1.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.keyRulesBlock.nativeRound17.parameter CASE = 0.314 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.keyRulesBlock.sitePosition = "the project position, survey point a... | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.keyRulesBlock.siteNative = "the 4 Native keys hold one set of th... | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.keyRulesBlock.flatRampRule = "no flat ramp is coded, a key ramp of... | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.keyRulesBlock.wallListedIn = "wallMisses of the report, outside gi... | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| addin.workerPeakMiB.roles = ["curbs", "baseplan", "villaBlocks"] | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| addin.workerPeakMiB.files.*.bytes | 3 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| addin.workerPeakMiB.files.*.peakMiB | 3 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| addin.workerPeakMiB.commands.read = 3900 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| addin.workerTimeLimitS.read = 300 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| addin.workerTimeLimitS.build = 600 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| addin.workerTimeLimitS.levelExcel = 60 | 1 | host | CHOSEN by Code | CHOSEN mark | R347 |
+| addin.workerTimeLimitS.reportExcel = 600 | 1 | host | CHOSEN by Code | CHOSEN mark | R347 |
+| addin.workerTimeLimitS.exportChecks = 600 | 1 | host | CHOSEN by Code | CHOSEN mark | R347 |
+| addin.workerTimeLimitS.position = 600 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| addin.workerTimeLimitMinS = 10 | 1 | host | CHOSEN by Code | CHOSEN mark | R347 |
+| addin.position.checkPointLimitMm = 1.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| addin.position.gapDecimals = 2 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| addin.plotTable.overlapDecimals = 4 | 1 | value | CHOSEN by Code | CHOSEN mark | addin.plotTable.note |
 
-Every leaf of config/project.json by kind and status (RAN, audit.py): host CHOSEN by Bader 2, host CHOSEN by Code 23, input input name or location, no design value 66, note note text, no value 45, setting setting of a reader or check, no design value 517, value CHOSEN by Bader 9, value CHOSEN by Code 179, value RECOMMENDED 9, value UNKNOWN 3.
+Every leaf of config/project.json by kind and status (RAN, audit.py): host CHOSEN by Bader 2, host CHOSEN by Code 4, host UNKNOWN 19, input input name or location, no design value 66, note note text, no value 45, setting setting of a reader or check, no design value 517, value CHOSEN by Bader 1, value CHOSEN by Code 1, value RECOMMENDED 4, value UNKNOWN 194.
 
 ## 6 The override list
 
@@ -866,12 +870,12 @@ Counts of the helper: 120 rows, Python 97 and C# 23, 14 DUP (Python 12, C# 2), 1
 
 ## 8 Do the outputs show which plots used an assumed value
 
-Assumed here is a value of status RECOMMENDED, CHOSEN by Code or UNKNOWN, and a MEASURED rule that is weak.
+Assumed here is a value of status RECOMMENDED, CHOSEN by Code or UNKNOWN, and a MEASURED rule that is weak. On this audit that is 552 of the 591 values, 543 UNKNOWN, 4 RECOMMENDED and 5 CHOSEN by Code, and 9 of the 35 MEASURED rules weak (RAN, audit.py and section 5).
 
 - The plan of plan_from_book.py: no, not the status. Each value of a plot is a pair of value and source (READ, python/plan_from_past.py:81 `return {"value": value, "source": source}`), the sources being schedule, locationPlan, estimate, override, keyRules, footprint, levelProfileStepBands and pastJob (READ, python/plan_from_book.py:58 to 69, python/plan_from_cad.py:36). So a plot shows a value came from an override, an estimate or keyRules, but not that the keyRules entry is weak, that an open Q carries it, or that Code chose its threshold.
 - The plan summary, step 15 (READ, docs/design/05-plan-steps.md:50): no. It gives counts by field, not plots by status: `"rules": {"levelProfile": ..., "applied": ..., "handRules": ..., "overridesNotApplied": ..., "steps": {"from": "keyRules.steps %s of %s" ...}}` (READ, python/plan_from_book.py:1060 to 1070), and summary_lines prints `built by keyRules of %s (R337)` (READ, python/plan_from_book.py:1431). The place for it is a new count beside applied.
 - The check table of button 3 (READ, docs/design/03b-buttons-2-to-8.md:18 and docs/design/07-mock.md 7.4): only in part. Its rows come from seven sources, one is `a plot and field an open question decides (majority decidedByQuestion)`, and the Rule column names that Q, as the mock row `| 2301 | 012 | VD4 | Unit code | ... | Typology_Rev9, Q017 | Rule |`. A plot that follows a weak rule, a threshold Code chose or an UNKNOWN value with no override has no row and counts in `[n] plots follow every rule`. The place for it is one more chip and source of rows, Assumed.
-- The report Excel of button 8 (READ, docs/design/07-mock.md 7.6, line 238): per decision, not per plot. The box Rules applied has `one line per decision of keyRules the build applied with its coded rule, share and strong or weak`, such as `entry roadLevel 0.088 weak`. It names no plot, no open Q and no Code value. The place for it is a plot count on each line of that box and a sheet Assumed beside Overrides.
+- The report Excel of button 8 (READ, docs/design/07-mock.md 7.6, line 238): per decision, not by status. The box Rules applied has `one line per decision of keyRules the build applied with its coded rule, share and strong or weak`, such as `entry roadLevel 0.088 weak`, and gives plot counts for some decisions, the hand rules and the front rule, such as `the 110 plots of NBH 012 with two or more road edges`. It names no plot by number, no open Q and no UNKNOWN or Code value. The place for it is a plot count by status on each line of that box and a sheet Assumed beside Overrides.
 
 ## 9 What happens today when a value changes
 
@@ -885,7 +889,7 @@ Assumed here is a value of status RECOMMENDED, CHOSEN by Code or UNKNOWN, and a 
 
 Proposed, not coded (CHOSEN, a proposal for Bader, Q102).
 
-1. A status beside each source. Each sourced value of a plot of the plan gets a third field, status, one of the five, taken once per build from one table: keyRules share and strong give MEASURED or weak, a decidedByQuestion or Q named in the rules profile gives RECOMMENDED with the Q, a field with no evidence gives CHOSEN by Code or UNKNOWN. The table is a new block status of rules/roshn-makkah.json, by field, written by this audit's script, so no status sits in code.
+1. A status beside each source. Each sourced value of a plot of the plan gets a third field, status, one of the five, taken once per build from one table: keyRules share and strong give MEASURED or weak, a decidedByQuestion or Q named in the rules profile gives RECOMMENDED with the Q, the word CHOSEN gives CHOSEN by Code, a field with none of these gives UNKNOWN. The table is a new block status of rules/roshn-makkah.json, by field, written from steps/investigations/rule-status-scripts/audit.py once it moves into python/, so no status sits in code.
 2. One count in the plan summary of step 15: plots by field and status, the assumed ones listed by plot, as applied is now.
 3. The check table gets a chip Assumed, one row per plot and field of an assumed status, and the report Excel a plot count on each line of Rules applied and a sheet Assumed. Both read the status of the plan, nothing new is measured.
 
@@ -893,7 +897,16 @@ Proposed, not coded (CHOSEN, a proposal for Bader, Q102).
 
 Full text in steps/questions-open.md.
 
-- Q100 Status of values from the Rev 06 report.
+- Q100 Status of values from client documents.
 - Q101 Level profile fields with no share.
 - Q102 Show the assumed values per plot.
 - Q103 Design values in code, not in config.
+
+## 12 Second check
+
+By another tool than the script, PowerShell with ConvertFrom-Json and Select-String, on the file as written (RAN, a script of the session):
+
+- Rule ids of docs/rules/index.md 316, rows of sections 3 and 4 187 and 129, sum 316.
+- keyRules and hands entries with a share in rules/roshn-makkah.json 35, MEASURED rows of section 5 35, shares that differ from the JSON 0.
+- Sums of n of section 5 by status: CHOSEN by Bader 4, CHOSEN by Code 5, MEASURED 35, RECOMMENDED 4, UNKNOWN 543, the counts of section 2.
+- The claim-checker of PR 68 recounted the leaves, the 35 MEASURED and every count of section 6 with its own Python and found them equal (RAN). The rows it found resting on a Q of another key, pairKinds by Q089, overrideRounding by Q050, rotationHoldDeg by Q037 and the position limits by Q068, are UNKNOWN under the 80 character rule.
