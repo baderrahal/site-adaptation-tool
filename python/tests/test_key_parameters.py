@@ -252,3 +252,8 @@ def test_r353_a_parameter_file_is_held_to_its_key_by_its_model(tmp_path, capsys)
     del nameless["model"]
     out, _ = run_main(path, {"imc": files["imc"], "imd": nameless}, tmp_path, capsys, write=False, code=2)
     assert "imd parameters model None is not a work copy" in out.err
+
+
+def test_r353_the_note_the_measure_writes_is_the_note_config_holds_and_names_the_design_part():
+    held = project_profile.load_settings().get("addin")["sharedParameters"]["note"]
+    assert key_parameters.NOTE == held and "docs/design/03a-buttons-shared-and-1.md 3.1" in held and "addin-design.md" not in held

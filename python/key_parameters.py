@@ -2,12 +2,12 @@
 read job of the test host writes, testhost_<code>_parameters.json (ParameterSteps and SharedParameterFile of Common).
 
 The names are the floor parameter of floors.plotParameter, the link parameters of pastJob.parameters and the level parameters of
-majority.parameterLevels, the 11 of docs/addin-design.md 3.1. A name takes the GUID of its bound SharedParameterElement when every key
+majority.parameterLevels, the 11 of docs/design/03a-buttons-shared-and-1.md 3.1. A name takes the GUID of its bound SharedParameterElement when every key
 that holds the name binds it as a shared parameter of one GUID and the parameters of its elements give that GUID too, the second route of
 the same window. routes says which routes held it, parameterElement alone when no element of a key carries the name. A name with two
 GUIDs or whose elements give another, a name some keys hold only as a project parameter or as an unbound shared element while others
 bind it shared, a conflict, and a name no key binds as a shared parameter get no GUID and are listed in noGuid with why, never resolved
-silently, so button 1 stops naming them (docs/addin-design.md 3.1, Shared parameters). projectParameterIn lists the keys that bind a
+silently, so button 1 stops naming them (docs/design/03a-buttons-shared-and-1.md 3.1, Shared parameters). projectParameterIn lists the keys that bind a
 project parameter of the name, beside its shared one or in its place. conflicts lists every name the keys disagree on, two GUIDs, elements
 of another GUID or project and shared keys. The block is a measure the run alone writes: hand entries are withdrawn until Q087, so a block
 of the config that holds an entry marked byHand, of any value or spelled otherwise, is refused by a write and by a dry run, and so is a run
@@ -24,7 +24,7 @@ from pathlib import Path
 import position_file
 import project_profile
 
-NOTE = ("R353. The shared parameters button 1 binds and every button reads and writes by GUID (docs/addin-design.md 3.1), read from the "
+NOTE = ("R353. The shared parameters button 1 binds and every button reads and writes by GUID (docs/design/03a-buttons-shared-and-1.md 3.1), read from the "
         "answer keys by the read job of the test host (testhost_<code>_parameters.json) and written by python/key_parameters.py: per name its "
         "GUID, the categories the keys bind it to, how many keys hold it and routes, the routes of the read that held the GUID, the "
         "SharedParameterElement and the parameters of the elements. projectParameterIn names the keys that bind a project parameter of the name. "
