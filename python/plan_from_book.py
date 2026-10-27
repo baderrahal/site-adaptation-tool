@@ -255,7 +255,8 @@ def link_step(numbers, rows, trace, hands, key, files, profile):
 
 
 # R359, R358. The lines the steps levels and floors and their C# refuse a level profile with, as the C# builds by keyRules alone
-LEVELS_NO_FFL = "the step levels of the parity harness is a build by the level rules of keyRules, keyRules of %s codes no ffl, the C# builds the levels by keyRules alone (R359)"
+LEVELS_NO_FFL = ("the steps levels and floors of the parity harness are a build by the level rules of keyRules, keyRules of %s codes no ffl, the C# builds the "
+                 "levels by keyRules alone (R359)")
 YARD_GROUPS = ("the step floors of the parity harness takes the yard outlines of keyRules.yardOutline groups, keyRules of %s codes fittedOutline, whose outlines "
                "lie in config/floor_outlines.json, which the C# does not read (R358)")
 
@@ -305,6 +306,9 @@ def floor_step(numbers, rows, trace, links, rules, profile, step):
     keyRules.yard of its zone on the outline keyRules.yardOutline fits its unit, mirror flag and plot width, placed by the link of R356 as the
     plan writes it, the width a lookup by floor_fit.width_key, with what the floors lack and why."""
     key, lp = rules["keyRules"], rules["levelProfile"]
+    # The back corners take El @ Entry of the level rules, which the C# gives by keyRules alone
+    if not plan_rules.key_levels_of(key):
+        raise project_profile.ProfileError(LEVELS_NO_FFL % rules["name"])
     if key["yardOutline"]["rule"] != "fittedOutlineRefit":
         raise project_profile.ProfileError(YARD_GROUPS % rules["name"])
     outlines = plan_rules.key_outlines(key, {"outlines": {}})

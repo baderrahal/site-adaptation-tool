@@ -27,6 +27,10 @@ namespace SiteAdaptation.Common
             [Hands.StepName] = BuildSteps.HandRoles,
             // R356. The link frame of a build, on the inputs of the hands
             [LinkFrames.StepName] = BuildSteps.HandRoles,
+            // R359. The levels of a build, on the reads of the clusters and the fronts with the road surfaces of the level profile
+            [KeyLevels.StepName] = BuildSteps.LevelRoles,
+            // R358. The floors of a build, on the inputs of the levels and the prototype files the link of the hand takes
+            [FloorOutlines.StepName] = BuildSteps.FloorRoles,
             [ReadSteps.Labels] = new[] { "baseplan" },
             [ReadSteps.Blocks] = new[] { "villaBlocks" },
             [ReadSteps.Setbacks] = new[] { "villaBlocks" },

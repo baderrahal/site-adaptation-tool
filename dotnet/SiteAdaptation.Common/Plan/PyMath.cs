@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
@@ -220,6 +221,71 @@ namespace SiteAdaptation.Common
         public static double AngleOf(double[] vector)
         {
             return Mod(Degrees(Math.Atan2(vector[1], vector[0])), 360.0);
+        }
+
+        // math.radians, x times the double of pi over 180
+        public static double Radians(double degrees)
+        {
+            return degrees * (Math.PI / 180.0);
+        }
+
+        // R358. The value times ten to the digits rounded to a whole number half to even on the exact binary value of the double, as the
+        // correctly rounded conversions of CPython round it, where Math.Round of a double scales it by a power of ten that is not exact
+        private static BigInteger ScaledHalfEven(double value, int digits)
+        {
+            long bits = BitConverter.DoubleToInt64Bits(value);
+            int exponent = (int)((bits >> 52) & 0x7FF);
+            long mantissa = bits & 0xFFFFFFFFFFFFFL;
+            if (exponent == 0)
+            {
+                exponent = 1;
+            }
+            else
+            {
+                mantissa |= 1L << 52;
+            }
+            exponent -= 1075;
+            BigInteger scaled = new BigInteger(mantissa) * BigInteger.Pow(10, digits);
+            BigInteger whole;
+            if (exponent >= 0)
+            {
+                whole = scaled << exponent;
+            }
+            else
+            {
+                whole = scaled >> -exponent;
+                int compared = (scaled - (whole << -exponent)).CompareTo(BigInteger.One << (-exponent - 1));
+                if (compared > 0 || (compared == 0 && !whole.IsEven))
+                {
+                    whole += 1;
+                }
+            }
+            return bits < 0 ? -whole : whole;
+        }
+
+        // R358. round(value, digits) of Python for a finite double and 0 or more digits: half to even on its exact binary value, the double
+        // nearest the decimal it gives, the sign of a zero kept. floor_fit.width_key keeps it as the lookup of a yard outline (Phase 4b)
+        public static double Round(double value, int digits)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                return value;
+            }
+            BigInteger whole = ScaledHalfEven(value, digits);
+            if (whole.IsZero)
+            {
+                return BitConverter.DoubleToInt64Bits(value) < 0 ? -0.0 : 0.0;
+            }
+            return (double)whole / Math.Pow(10, digits);
+        }
+
+        // R359. "%.<digits>f" % value of Python: the digits of the exact binary value rounded half to even, a minus for a negative value or zero
+        public static string FixedText(double value, int digits)
+        {
+            BigInteger whole = BigInteger.Abs(ScaledHalfEven(value, digits));
+            string text = whole.ToString(CultureInfo.InvariantCulture).PadLeft(digits + 1, '0');
+            string sign = BitConverter.DoubleToInt64Bits(value) < 0 ? "-" : "";
+            return digits == 0 ? sign + text : sign + text.Substring(0, text.Length - digits) + "." + text.Substring(text.Length - digits);
         }
 
         // cad_links.angle_gap: the turn between two angles in degrees, 0 to 180

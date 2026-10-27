@@ -18,6 +18,11 @@ import project_profile
 DP2_FILE = "RRE-WP-NSP-KEO-ARC-DP2-ZZ-MOD-2200.rvt"
 VD2_FILE = "RRE-WP-NSP-KEO-ARC-VD2-ZZ-MOD-2200.rvt"
 UNITS = {"1": "VD2", "2": "DP2", "3": "DP2", "4": "DP2", "5": "DP2", "6": "DP2"}
+# The lines of LevelFloorStepTests.cs, the C# refuses with the same
+NO_FFL = ("the steps levels and floors of the parity harness are a build by the level rules of keyRules, keyRules of parsons2024Rev6 codes no ffl, the C# builds the "
+          "levels by keyRules alone (R359)")
+YARD_LINE = ("the step floors of the parity harness takes the yard outlines of keyRules.yardOutline groups, keyRules of parsons2024Rev6 codes fittedOutline, whose "
+             "outlines lie in config/floor_outlines.json, which the C# does not read (R358)")
 # A made up yard outline of DP2 not mirrored on a 12 m plot, in the link frame
 YARD = {"unit": "DP2", "mirrored": False, "width": 12.0, "type": "Yard made up", "loops": [[[1.0, 2.0], [5.0, 2.0], [5.0, 6.0], [1.0, 6.0]]]}
 
@@ -129,9 +134,10 @@ def test_r359_the_text_of_the_prototype_ffl_is_the_ffl_down_to_the_cm_with_3_dec
     assert plan_rules.prototype_ffl("fflDownToTheCm", -0.015) == "-0.020"
     built = made_build(monkeypatch)
     rules = dict(built["rules"], keyRules={word: rule for word, rule in built["rules"]["keyRules"].items() if word != "ffl"})
-    with pytest.raises(project_profile.ProfileError) as error:
-        plan_from_book.level_step(["5"], {}, {}, rules, built["profile"])
-    assert str(error.value) == plan_from_book.LEVELS_NO_FFL % "parsons2024Rev6"
+    for step in (lambda: plan_from_book.level_step(["5"], {}, {}, rules, built["profile"]), lambda: plan_from_book.floor_step(["5"], {}, {}, {}, rules, built["profile"], 0.5)):
+        with pytest.raises(project_profile.ProfileError) as error:
+            step()
+        assert str(error.value) == NO_FFL
 
 
 def test_r358_parity_floors_the_ramp_generic_and_yard_outlines_and_the_ramp_type_by_the_rule(monkeypatch):
@@ -181,7 +187,7 @@ def test_r358_a_yard_outline_of_the_floor_file_or_a_width_step_of_another_kind_i
     key = dict(built["rules"]["keyRules"], yardOutline={"rule": "fittedOutline"})
     with pytest.raises(project_profile.ProfileError) as error:
         plan_from_book.floor_step(["5"], {}, {}, {}, dict(built["rules"], keyRules=key), built["profile"], 0.5)
-    assert str(error.value) == plan_from_book.YARD_GROUPS % "parsons2024Rev6"
+    assert str(error.value) == YARD_LINE
 
 
 def test_r358_the_width_key_of_the_yard_lookup_rounds_half_to_even_as_python_round_does():
