@@ -661,7 +661,7 @@ namespace SiteAdaptation.Tests
             WorkerRequest none = FrontRequest("f4");
             none.Inputs[5] = Input("curbsRead", ReadFile("read_curbs.json", "curbs", "a road layout.dwg", new JObject { ["pieces"] = new JArray() }));
             Assert.Equal(2, WorkerRunner.Run(none.Write(folder), WorkerCommands.Default(), () => 9000.0));
-            Assert.Contains("the road layout read holds no line of the curb layers analysis.roadEdgeLayers names", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "f4")).Message);
+            Assert.Contains("the road layout read holds no line of the curb layers analysis.roadEdgeLayers names, the front of a plot is the edge nearest a curb (R355)", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "f4")).Message);
         }
 
         // R357 the hands of test_build_steps.hand_build: a row of six 12 m faces along a road at y = -3, plot 1 a VD2 villa with a side

@@ -299,6 +299,18 @@ def test_r355_a_corner_plot_takes_the_road_edge_its_orientation_names_its_r122_f
         "plot": "12", "corners": [], "tried": [], "reason": "no front frame, so no front corners to take a road level at"}
 
 
+# The line both languages refuse a road layout read with no curb line with, R355_the_worker_build_writes_the_step_fronts of the C#
+NO_CURB = "the road layout read holds no line of the curb layers analysis.roadEdgeLayers names, the front of a plot is the edge nearest a curb (R355)"
+
+
+def test_r355_a_road_layout_read_with_no_curb_line_is_refused_with_the_line_of_csharp(tmp_path, monkeypatch, capsys):
+    """C3 of the review of PR 55: Python had no test of this refusal, which the C# test holds by the same line."""
+    import test_round_addin
+    code, _ = test_round_addin.run_book(tmp_path, monkeypatch, [], edges=lambda folder, layers: [])
+    assert code == 2
+    assert capsys.readouterr().err == "plan_from_book: " + NO_CURB + chr(10)
+
+
 def test_r355_the_config_names_the_fields_of_the_step_fronts_by_their_kind():
     fields = project_profile.load_settings().get("addin")["parity"]["steps"]["fronts"]
     assert {name: (field["kind"], field.get("decimals")) for name, field in fields.items()} == {
