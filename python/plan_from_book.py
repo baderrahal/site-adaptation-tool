@@ -1077,6 +1077,7 @@ def main(argv=None):
     parser.add_argument("--steps", help="R345. a folder outside the repo for the output of each step per plot, step_<step>.json")
     parser.add_argument("--steps-only", action="store_true", help="R345. write the steps that need no build and stop before it")
     args = parser.parse_args(argv)
+    done = False
     try:
         # R345. The step files of this run go first, so a run that fails leaves none and the parity finds them missing
         if args.steps:
@@ -1114,6 +1115,7 @@ def main(argv=None):
             parity.write_step(args.steps, "faces", "python", step_scope(args.cover), face_step(cover["plots"], faces), settings.values, step_inputs(args))
         if args.steps_only:
             print("steps faces of %d plots written to %s, no plan built (R345)" % (len(cover["plots"]), args.steps))
+            done = True
             return 0
         # R354. A build walks the ring of a face in the order shapely gives it, which the C# gives only for a face of one ring
         one_ring_faces(baseplan)
@@ -1168,9 +1170,20 @@ def main(argv=None):
             write_build_step(args, settings, "linkFrame", link_step(cover["plots"], rows, trace, hands, rules["keyRules"], files, profile),
                              {"rotationDeg": plan_from_past.plan_rotation})
         plan_from_past.write_plan(out, plan)
+        done = True
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
         print("plan_from_book: " + str(error), file=sys.stderr)
         return 2
+    finally:
+        # R345, R347. A run that fails, by a refusal or by any error, leaves no step file of its own, as the worker writes its outputs all or
+        # none, so a step written before a later step or the build failed never reads as a run done (B5 of the review of PR 55)
+        if args.steps and not done:
+            for name in PARITY_STEPS:
+                try:
+                    parity.clear_step(args.steps, name, "python")
+                except (ValueError, OSError):
+                    # A folder refused at the start, inside the repo, holds no step file of this run to clear
+                    pass
     for line in summary_lines(plan["summary"], rules["name"], bool(args.level_profile)):
         print(line)
     print(out)

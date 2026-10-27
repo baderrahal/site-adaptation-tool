@@ -79,7 +79,7 @@ SUMMARY = {"written": 0, "plots": 0, "missingByKey": {}, "inACluster": 0, "clust
            "rules": {"keyRules": False, "laterFields": [], "overridesNotApplied": {}, "yardNotMeasured": {}}}
 
 
-def run_book(tmp_path, monkeypatch, extra, read_input=None):
+def run_book(tmp_path, monkeypatch, extra, read_input=None, build=None):
     """plan_from_book.main on the real config and rules profile with the readers of the drawings, the LandXML and the site
     stubbed, so the rules a build gets and its refusals are seen through main itself. read_input stands for the R388 read of the
     CadReader outputs, the file given when left out."""
@@ -100,11 +100,11 @@ def run_book(tmp_path, monkeypatch, extra, read_input=None):
     monkeypatch.setattr(plan_from_book.prototype_offsets, "plot_frame", lambda offsets: {})
     monkeypatch.setattr(plan_from_book.corner_front, "sales_rows", lambda path, sheet, column: {})
 
-    def build(*args, **named):
+    def built(*args, **named):
         seen["rules"] = args[-1]
         return {"summary": SUMMARY}
 
-    monkeypatch.setattr(plan_from_book, "build", build)
+    monkeypatch.setattr(plan_from_book, "build", build or built)
     cover = tmp_path / "cover.json"
     cover.write_text(json.dumps({"neighbourhood": "N1", "plots": []}), encoding="utf-8")
     analysis = tmp_path / "analysis.json"

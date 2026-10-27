@@ -176,6 +176,26 @@ def test_r354_every_number_of_a_json_input_is_the_double_or_integer_python_reads
             json.loads(text)
 
 
+def test_r345_a_run_that_fails_after_the_step_clusters_leaves_no_step_file(tmp_path, monkeypatch, capsys):
+    """B5 of the review of PR 55: the faces and clusters steps were written before the build, which can still fail, so a failed run left
+    step files that read as a run done. A run that fails leaves none, as the worker writes its outputs all or none (R347)."""
+    import test_round_addin
+
+    def failing(*args, **named):
+        raise ValueError("a made up failure of the build after the step clusters")
+
+    steps = tmp_path / "steps"
+    # run_book stubs the readers and the build, the build here fails once the steps faces and clusters are made, the files the step
+    # inputs hash made up here
+    (tmp_path / "r").mkdir()
+    for name in ("p.csv", "b.json", "s.xlsx", "r/pieces.json"):
+        (tmp_path / name).write_text("made up", encoding="utf-8")
+    code, _ = test_round_addin.run_book(tmp_path, monkeypatch, ["--steps", str(steps), "--plots-csv", str(tmp_path / "p.csv"), "--baseplan", str(tmp_path / "b.json"),
+                                                                "--sales", str(tmp_path / "s.xlsx"), "--roads", str(tmp_path / "r")], build=failing)
+    assert code == 2 and "a made up failure of the build after the step clusters" in capsys.readouterr().err
+    assert sorted(path.name for path in steps.iterdir()) == []
+
+
 def test_r354_the_config_names_the_fields_of_the_step_clusters_all_exact():
     block = project_profile.load_settings().get("addin")["parity"]["steps"]
     assert block["clusters"] == {"plots": {"kind": "noGeometry"}, "code": {"kind": "noGeometry"}, "source": {"kind": "noGeometry"}}
