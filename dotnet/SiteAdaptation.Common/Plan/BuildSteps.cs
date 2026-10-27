@@ -13,7 +13,7 @@ namespace SiteAdaptation.Common
     // the clusters are those of the footprint blocks alone. Every number of a JSON input is the nearest double of its text, as Python reads it, and each input is read once per run
     public static class BuildSteps
     {
-        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName, LinkFrames.StepName, KeyLevels.StepName, FloorOutlines.StepName };
+        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName, LinkFrames.StepName, KeyLevels.StepName, FloorOutlines.StepName, PlanOverrides.StepName };
 
         public static readonly string[] ClusterRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead" };
 
@@ -32,6 +32,9 @@ namespace SiteAdaptation.Common
 
         // R358. The floors read the levels and the link of the hand, so the prototype files as well
         public static readonly string[] FloorRoles = LevelRoles.Concat(new[] { PrototypeRole + "*" }).ToArray();
+
+        // R360. The overrides read the inputs of the floors and the override list of the project
+        public static readonly string[] OverrideRoles = FloorRoles.Concat(new[] { "overrides" }).ToArray();
 
         // What the build steps read, each input read when a step first needs it
         private sealed class Site
@@ -349,8 +352,9 @@ namespace SiteAdaptation.Common
                     run.Counts["fronts with no road level of a unit plot"] = fronts.Values.Count(item => item.Unit != null && item.Front == null);
                     made[Fronts.StepName] = Fronts.Step(site.Numbers, fronts, surfaces.Select(surface => surface.Name).ToList(), snap);
                 }
-                bool linked = asked.Contains(Hands.StepName) || asked.Contains(LinkFrames.StepName) || asked.Contains(FloorOutlines.StepName);
-                bool leveled = asked.Contains(KeyLevels.StepName) || asked.Contains(FloorOutlines.StepName);
+                bool planned = asked.Contains(PlanOverrides.StepName);
+                bool linked = asked.Contains(Hands.StepName) || asked.Contains(LinkFrames.StepName) || asked.Contains(FloorOutlines.StepName) || planned;
+                bool leveled = asked.Contains(KeyLevels.StepName) || asked.Contains(FloorOutlines.StepName) || planned;
                 if (linked || leveled)
                 {
                     double roadEdgeM = BuildFace.Number(site.Settings["siteBuild"]["corner"]["roadEdgeM"]);
@@ -361,11 +365,12 @@ namespace SiteAdaptation.Common
                         (x, y) => new KeyValuePair<double?, string>(null, null), site.Rules, roadEdgeM, site.Sales, site.RulesName);
                     HandContext context = Hands.Context(site.Numbers, site.Rows, site.Faces, site.Clusters, fronts.ToDictionary(item => item.Key, item => item.Value.Frame), site.Roads, site.Rules, site.Settings);
                     JObject key = BuildRules.KeyRules(site.Rules, request.LevelProfile, string.Join(", ", Names));
-                    Dictionary<string, Dictionary<string, object>> links = null;
+                    Dictionary<string, Dictionary<string, object>> links = null, hands = null;
+                    Dictionary<string, string> files = null;
                     if (linked)
                     {
-                        Dictionary<string, string> files = site.Files();
-                        Dictionary<string, Dictionary<string, object>> hands = Hands.Step(site.Numbers, site.Rows, context, key, files, site.Rules, site.Settings);
+                        files = site.Files();
+                        hands = Hands.Step(site.Numbers, site.Rows, context, key, files, site.Rules, site.Settings);
                         run.Counts["hands of the scope with a mirror flag"] = hands.Values.Count(item => item["mirrored"] != null);
                         run.Counts["side neighbour pairs"] = context.Neighbours.Values.Sum(sides => sides.Left.Count + sides.Right.Count);
                         if (asked.Contains(Hands.StepName))
@@ -383,10 +388,17 @@ namespace SiteAdaptation.Common
                     if (leveled)
                     {
                         string profileName = BuildRules.ProfileName(site.Rules, request.LevelProfile);
-                        if (asked.Contains(FloorOutlines.StepName))
+                        OverrideList list = null;
+                        if (asked.Contains(FloorOutlines.StepName) || planned)
                         {
                             // plan_from_book.build refuses a unit plot of a zone keyRules.yard holds no yard for, before any step file
                             FloorOutlines.CheckZones(site.Numbers, site.Rows, key);
+                        }
+                        if (planned)
+                        {
+                            // R360, R386. The override list as plan_rules.load_overrides loads it, its skip plots plots of plots.csv, before any step file
+                            list = PlanOverrides.Load(run.Input("overrides"), site.Settings, levelProfile, profileName, Path.GetFileName(run.Input("config")));
+                            PlanOverrides.SkipPlotsKnown(list.Skip, site.Rows, "the skip list of the override list: ");
                         }
                         // R359. The fronts of the plots whose levels the build works out, with the road levels of the surfaces of the level profile
                         ReadSettings read = ReadSettings.Load(run.Input("config"));
@@ -407,6 +419,15 @@ namespace SiteAdaptation.Common
                             made[FloorOutlines.StepName] = FloorOutlines.Step(site.Numbers, site.Rows, build, links, key, levelProfile, site.Rules,
                                 FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), profileName);
                             run.Counts["floors of the scope with a yard outline"] = made[FloorOutlines.StepName].Values.Count(item => item["yardOutline"] != null);
+                        }
+                        if (planned)
+                        {
+                            // R360. The plots after the overrides of the list, on the fronts of the links and the levels of the build
+                            Dictionary<string, PlotPlan> plans = PlanOverrides.Of(site.Numbers, site.Rows, build, fronts, context, hands, key, levelProfile, site.Rules, site.Settings, files, list,
+                                profileName, FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), site.RulesName);
+                            run.Counts["plots the plan writes"] = plans.Values.Count(plan => (bool)plan.Overrides["written"]);
+                            made[PlanOverrides.StepName] = PlanOverrides.Step(site.Numbers, plans);
+                            run.Counts["overrides applied"] = plans.Values.Sum(plan => (plan.Overrides["applied"] as List<string>)?.Count ?? 0);
                         }
                     }
                 }

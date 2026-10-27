@@ -105,8 +105,9 @@ def row_build(monkeypatch, overrides, faceless=(), dry=(), change=None):
     class Patch:
         def setattr(self, target, name, value):
             if name == "road_level":
-                value = (lambda surfaces, point, snap: (None, None) if any(point[0] >= 12.0 * (int(plot) - 1) - 1e-9 and point[0] <= 12.0 * int(plot) + 1e-9
-                                                                         for plot in dry) else (10.0 + point[0] / 100.0, "road"))
+                # No road level past the left corner of a plot of dry up to its right corner, so the plot to its left keeps both of its own
+                value = (lambda surfaces, point, snap: (None, None) if any(12.0 * (int(plot) - 1) + 1e-9 < point[0] <= 12.0 * int(plot) + 1e-9 for plot in dry)
+                         else (10.0 + point[0] / 100.0, "road"))
             monkeypatch.setattr(target, name, value)
     settings = project_profile.load_settings()
     profile = made_rules()
@@ -217,3 +218,48 @@ def test_r360_r361_a_plot_its_hand_rule_gives_no_mirror_flag_holds_its_levels_an
     # The FFL moved by its gap all the same, as the level chain of the build runs before the link, and no link with no hand
     assert common.fixed(six["ffl"], 3) == common.fixed(built["trace"]["levelRows"]["6"]["fflRule"] + 0.1, 3) and (six["mirrored"], six["insert"]) == (None, None)
     assert parameters["6"]["lacks"] == ["CASE", "RRE_ZZ_SP_Prototype-Foundation-Type"] and parameters["6"]["written"] is False
+
+
+def entry(plot, field, value, key="imc", model="a.rvt", **more):
+    """An entry of the override list in the form of R330, the job of its key as source."""
+    return {"plot": plot, "field": field, "value": value, "source": {"u11": "native"}.get(key, "parsons"), "model": model, "key": key, **more}
+
+
+def load(tmp_path, data):
+    path = tmp_path / "overrides.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    settings = project_profile.load_settings()
+    lp = made_rules().get("levelProfiles")["parsons2024Rev6"]
+    return path, lambda: plan_rules.load_overrides(path, set(plan_rules_sources(settings)), None, settings.get("majority")["groups"], "parsons2024Rev6", lp)
+
+
+def plan_rules_sources(settings):
+    import override_source
+    return override_source.default_sources(settings)
+
+
+def test_r360_r386_the_override_list_a_build_loads_with_the_lines_of_the_csharp(tmp_path):
+    # Of the job of the profile only, an entry marked use rule left with why, the plots of skip by plot
+    _, loaded = load(tmp_path, {"overrides": [entry("5", "entryM", {"gapToRuleM": 0.1}), entry("6", "heightM", {"gapToRuleM": 0.2}, use="rule", byHand=True),
+                                             entry("5", "mirrored", True, key="u11")], "skip": [{"plot": "1", "reason": "a made up reason", "byHand": True}]})
+    found = loaded()
+    assert dict(found) == {"5": {"entryM": {"gapToRuleM": 0.1}}} and found.ruled == {"6": {"heightM": plan_rules.USE_RULE}} and found.skip == {"1": "a made up reason"}
+    lines = [({"overrides": [entry("2", "entryM", {"gapToRuleM": 0.1}, key="zz"), entry("3", "heightM", {"gapToRuleM": 0.1}, use="rule")]},
+              "2 overrides refused: override of plot 2 field entryM names key zz, which no group of majority.groups holds (R330) | override of plot 3 field heightM has "
+              "use rule with no \"byHand\": true, a use is a hand edit a majority run must keep (R386)"),
+             ({"overrides": [entry("5", "entryM", {"gapToRuleM": 0.1})], "skip": [{"plot": "1", "reason": ""}]},
+              "1 skip entries refused: {\"plot\": \"1\", \"reason\": \"\"} is not {\"plot\": text, \"reason\": text, \"byHand\": true} (R386)"),
+             ({"overrides": [entry("5", "entryM", {"gapToRuleM": 0.1}), entry("5", "entryM", {"gapToRuleM": 0.2}, key="imd", model="b.rvt")]},
+              "1 plots hold two overrides of one field: plot 5 field entryM of imc a.rvt and imd b.rvt. Narrow the list with --override-model or edit it by hand (R280)"),
+             ({"overrides": [entry("5", "steps", "2.5")]}, "1 steps overrides hold no whole number: plot 5 value \"2.5\" of a.rvt. Give the step count as a whole number (R280, R340)"),
+             ({"overrides": [entry("5", "mirrored", True, key="u11")]}, "the override list holds no override of parsons among the sources parsons (R280, R330)")]
+    for data, line in lines:
+        path, loaded = load(tmp_path, data)
+        with pytest.raises(project_profile.ProfileError) as error:
+            loaded()
+        # The faults of an entry and of the skip list name the list first, as check_entries and check_skip do
+        assert str(error.value) == (str(path) + ": " + line if "refused" in line else line)
+    import override_source
+    with pytest.raises(project_profile.ProfileError) as error:
+        override_source.skip_plots_known({"02": "a made up reason"}, {"2": {}}, "the skip list of the override list: ")
+    assert str(error.value) == "the skip list of the override list: 1 skip plots are no plot of plots.csv, a skip names the plot as plots.csv spells it: \"02\" (R386)"

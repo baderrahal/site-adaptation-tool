@@ -31,6 +31,8 @@ namespace SiteAdaptation.Common
             [KeyLevels.StepName] = BuildSteps.LevelRoles,
             // R358. The floors of a build, on the inputs of the levels and the prototype files the link of the hand takes
             [FloorOutlines.StepName] = BuildSteps.FloorRoles,
+            // R360. The overrides of a build, on the inputs of the floors and the override list
+            [PlanOverrides.StepName] = BuildSteps.OverrideRoles,
             [ReadSteps.Labels] = new[] { "baseplan" },
             [ReadSteps.Blocks] = new[] { "villaBlocks" },
             [ReadSteps.Setbacks] = new[] { "villaBlocks" },
