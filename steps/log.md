@@ -2,6 +2,30 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round REC, 2026-10-27, the records diet and Q095 to Q097
+
+Goal:
+- Small start reads, no record over 100 KB, nothing lost, real token use measured, Q095 to Q097 in the rules, the plan to finish Part 1. No logic change
+
+Done:
+- PR 1 rec/rules-split: docs/rules.md cut into 7 parts of docs/rules/ at line ends, 37,568 to 92,952 bytes (RAN, wc), docs/rules/index.md of 311 rules by python/rules_index.py, the 12 C# root finders and 3 Python tests read the parts, steps/usage.md
+
+Checked:
+- Gate on main before any change at 73b8c42: pytest 1,792 passed 1 skipped, build 0 errors 2 warnings, dotnet test 763 net8.0 and 789 net48 (RAN)
+- Split proof equal by SHA-256, 893 R and 40 Q mentions on both sides, 0 ids lost (RAN, steps/runs/rec/split_proof.txt), the same hash by sha256sum over cat of the parts (RAN)
+
+Remains:
+- PR 2 design and round file, PR 3 questions, PR 4 CLAUDE.md and agents, PR 5 R400, 01_next.md, START.md, PROGRESS
+
+Known bugs:
+- As in steps/PROGRESS.md (READ)
+
+Next:
+- PR 2 rec/design-split
+
+Your turn:
+- The open questions Q001 to Q094 of steps/PROGRESS.md (READ), moved to steps/questions-open.md by PR 3
+
 ## Round ADDIN Part 1, 2026-10-25, the add-in
 
 Goal:

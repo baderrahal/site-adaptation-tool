@@ -1,6 +1,9 @@
 import re
 from pathlib import Path
 
+import record_parts
+import rules_index
+
 ROOT = Path(__file__).resolve().parents[2]
 SKIP_DIRS = {".git", ".venv", "bin", "obj", "__pycache__", ".pytest_cache", ".vs"}
 TEXT_SUFFIXES = {".md", ".py", ".yml", ".yaml", ".json", ".txt", ".props", ".csproj", ".addin", ".cs", ".ps1", ".gitignore", ".gitattributes"}
@@ -98,7 +101,7 @@ def test_r13_no_attribution_lines_in_any_file():
 
 
 def test_r12_every_rule_in_the_rules_file_is_named_by_a_test():
-    text = (ROOT / "docs" / "rules.md").read_text(encoding="utf-8")
+    text = record_parts.text(record_parts.RULES)
     rules = re.findall(r"\*\*(R\d+) ", text)
     assert len(rules) >= 15
     # A withdrawn rule keeps its id and proves nothing, so it needs no test
@@ -111,6 +114,17 @@ def test_r12_every_rule_in_the_rules_file_is_named_by_a_test():
     process_rules = {"R6", "R10", "R11"}
     missing = [rule for rule in rules if rule not in process_rules | withdrawn and not re.search(rule + r"(?!\d)", test_text, re.IGNORECASE)]
     assert missing == []
+
+
+def test_r12_the_rules_index_matches_the_rule_files():
+    assert rules_index.INDEX.read_text(encoding="utf-8") == rules_index.build_index()
+    ids = [rule for path in record_parts.parts(record_parts.RULES) for rule, _ in record_parts.rule_titles(path.read_text(encoding="utf-8"))]
+    assert len(ids) == len(set(ids)) >= 15
+
+
+def test_r12_the_index_lists_a_rule_under_its_part_and_skips_a_rule_named_in_text():
+    part = "## Round X rules\n\n- **R7 Short title.** Text that names **R8 Other** in passing.\n- **R9 Next.** More.\n"
+    assert record_parts.rule_titles(part) == [("R7", "R7 Short title."), ("R9", "R9 Next.")]
 
 
 PROJECT_NAMES = re.compile("ro" + "shn|mak" + "kah", re.IGNORECASE)

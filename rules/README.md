@@ -10,7 +10,7 @@ One JSON file per project. config/project.json names the profile the tool reads 
 - steps.legend, steps.count_rule and steps.base_height_source hold heights in metres as in the schedules. steps.base_height and steps.riser_added are in mm. The base heights come from 747 plots of past schedules and the architect has not confirmed them, so every row of R67 carries a note until steps.base_height_source says otherwise.
 - The loader is python/project_profile.py. load_profile(path) reads the file and profile.get("clusters.Q01") returns a value. A key the file lacks raises an error, a key that holds null returns None, and a key that appears twice raises. profile.metres(key) returns a length in metres.
 - Cluster membership comes from CAD adjacency (R64) and not from any file.
-- Checks 1, 2, 3 and 5 are coded as R65, R66, R125 and R67 in docs/rules.md and are no longer listed here. Each check below moves to docs/rules.md with the next R number once it is coded. The numbers below are kept, so check 3 stays check 3.
+- Checks 1, 2, 3 and 5 are coded as R65, R66, R125 and R67 in docs/rules/ and are no longer listed here. Each check below moves to docs/rules/ with the next R number once it is coded. The numbers below are kept, so check 3 stays check 3.
 - Some older rule constants are already in code, for example the Generic floor type name in python/link_summary.py. They stay until a round moves them into a profile.
 
 ## Checks still to code

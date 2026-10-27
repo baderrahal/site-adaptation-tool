@@ -1,0 +1,12 @@
+Round REC split proof, base 73b8c42. Each pair is the SHA-256 of the original and of its parts joined in order.
+
+docs/rules.md: 405469 bytes, sha256 4a9297fa193e2664e422f841d67fdba5459c1717a9ee2076a9e3e81d3139a802
+  7 parts joined: 405469 bytes, sha256 4a9297fa193e2664e422f841d67fdba5459c1717a9ee2076a9e3e81d3139a802
+  R ids named: original 893, parts 893
+  Q ids named: original 40, parts 40
+  equal: yes
+
+R ids of every record file (docs/, steps/, CLAUDE.md, .claude/agents/): before 346 distinct, after 346 distinct, lost 0 [], added 0 []
+Q ids of every record file (docs/, steps/, CLAUDE.md, .claude/agents/): before 94 distinct, after 94 distinct, lost 0 [], added 0 []
+
+result: every pair equal, no id lost

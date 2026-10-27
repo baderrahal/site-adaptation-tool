@@ -1,0 +1,335 @@
+# Rules index
+
+Written by python/rules_index.py from the parts of docs/rules/, never by hand. The parts joined in name order are the rules. Find a rule here by id, then read its line in its part by grep, never a whole part.
+
+## 01-reader-to-round-15a.md
+
+- R1 Read only.
+- R2 Round to 3 decimals.
+- R3 Small output.
+- R4 Revit prototypes.
+- R5 CAD files.
+- R6 CAD reader library.
+- R7 PDF licence.
+- R8 PDF output.
+- R9 Excel output.
+- R10 No invented data.
+- R16 Revit links.
+- R17 Walls, floors and ramps.
+- R18 Main is protected.
+- R19 Explode.
+- R20 Layer filter.
+- R21 Texts and xrefs.
+- R22 Plot labels.
+- R23 PDF rows.
+- R24 Link table.
+- R25 Full run.
+- R26 Harness files.
+- R27 Link summary.
+- R28 Plot number shift.
+- R29 Master Plan roles and skip list.
+- R30 No plot type against unit type check.
+- R31 Second source check.
+- R32 Workbook survey.
+- R33 Face and label reasons.
+- R34 Floor corners.
+- R35 Corner source and slope.
+- R36 Spot elevations.
+- R37 Floor and wall plot numbers.
+- R38 Link name parse.
+- R39 Link contents default.
+- R40 LandXML reader.
+- R41 Invisible faces.
+- R42 Surface lookup.
+- R43 Surface roles.
+- R44 Ramp road levels.
+- R45 Gap bands.
+- R46 Full run stages and second check.
+- R47 Ramp corner levels.
+- R48 Role proposal.
+- R49 Floor count per plot.
+- R50 One line for floors with no Plot parameter.
+- R51 Shared coordinates.
+- R52 Floor measurements.
+- R53 Parameter details and floor types.
+- R54 Link state.
+- R55 Spot host.
+- R56 Output size.
+- R57 Plot relation report.
+- R58 Yard and shared edges.
+- R59 Ramp geometry.
+- R60 Gaps, overlaps and link box.
+- R61 Relation summary.
+- R62 Project profile.
+- R63 Project settings.
+- R64 Cluster derivation.
+- R65 Attachment follows the cluster position.
+- R66 Only listed clusters are valid.
+- R67 FFL, SSL and steps.
+- R68 Block inserts.
+- R69 Unit code per plot.
+- R70 Row split.
+- R71 Front by road edge.
+- R72 Xref resolution.
+- R73 Block scan.
+- R74 Excel unit by baseplan label.
+- R75 Cluster with no Rev 6 match.
+- R76 Second block match.
+- R77 Block against link.
+- R80 Plan file.
+- R81 Plan from the past job.
+- R82 Shared position proof.
+- R83 Coordinates check.
+- R84 Villa link placement.
+- R85 Link parameters.
+- R86 Dry run and one transaction.
+- R87 Placer report and skip.
+- R88 Placer install.
+- R89 Plan against the placed model.
+- R102 Placer filter.
+- R103 Test host guard.
+- R104 Test host steps and log.
+- R105 Placer check.
+- R106 No registry change.
+- R107 Link instance name.
+- R108 Add-in security dialogs.
+- R109 Prototype upgrade job.
+- R110 Parallel windows.
+
+## 02-round-13-to-data-2.md
+
+- R90 Block as a cluster hint.
+- R91 Road level lookup.
+- R92 Ramp test with the lookup.
+- R93 Entry measurement.
+- R94 Entry rule.
+- R95 Entry proof.
+- R96 Computed entry levels through the level rule.
+- R97 Block offset.
+- R98 Fit and test per group.
+- R99 Entrance point per block.
+- R100 Measured offsets file.
+- R101 Second methods.
+- R111 Yard rule.
+- R112 Floors in the plan.
+- R113 Floor step.
+- R114 Plot value, skip and ramp corners.
+- R115 Floor geometry.
+- R116 Floor run and report.
+- R117 Floor jobs of the test host.
+- R118 Work file life cycle.
+- R119 Floor check.
+- R120 Plot cut list.
+- R121 Corner test and origin offset.
+- R122 Rotation from the front edge.
+- R123 Mirror and CASE.
+- R124 Second method for the links from CAD.
+- R125 One FFL per cluster.
+- R126 Levels of the CAD plan.
+- R127 Ramp outline test.
+- R128 Plan from CAD.
+- R129 Plan against plan.
+- R130 Second method for the CAD plan.
+- R131 Villa hand test.
+- R132 CASE second letter test.
+- R133 FFL split test.
+- R134 Second method for the rule tests.
+- R135 Floor outlines in the link frame.
+- R136 Ramp type and front level.
+- R137 Floors in the plan from CAD.
+- R138 Floors against a plan.
+- R139 Second method for the floors.
+- R150 Civil 3D probe.
+- R151 Core console runner.
+- R152 TIN border.
+- R153 LISP inventory.
+- R154 Drawing survey.
+- R155 Surfaces from the LandXML.
+- R156 Plot front against the lines and the surfaces.
+- R157 Front corner levels.
+- R158 Coverage and cut.
+- R159 Second method for the C3D round.
+- R160 Full window runner.
+- R161 Civil 3D dialog watcher.
+- R162 Data command.
+- R163 Phase 1 border.
+- R164 Stand-in tables and the size limit.
+- R165 Workbook sheets.
+- R166 Plots joined.
+- R167 Analysis.
+- R168 Second method for the data book.
+- R169 Export every surface.
+- R170 El @ Entry from the road and the ramp.
+- R171 Units per face.
+- R172 Width meaning.
+- R173 Second method for round DATA-2.
+- R174 Wiring methods.
+- R175 Score and pick.
+- R176 Weak spots and drawing to drawing.
+- R177 Chosen wiring.
+- R178 Second method for the wiring.
+- R179 Location plan text.
+- R180 Label pairs.
+- R181 Page to site.
+- R182 Number to face and code.
+- R183 Zones and wiring.
+- R184 Second method for the location plan.
+
+## 03-round-z4-to-17.md
+
+- R200 Window lock.
+- R201 Snapshot.
+- R202 Originals.
+- R203 Revit file info from bytes.
+- R204 Site upgrade.
+- R205 Read.
+- R206 Answer key.
+- R207 Prototype choice.
+- R208 Plan from the data book.
+- R209 Estimated levels.
+- R210 Ramp from CAD.
+- R211 Site coordinates.
+- R212 New site file.
+- R213 New site file name.
+- R214 Plan view image.
+- R215 Compare in bands.
+- R216 Plan before Revit.
+- R217 Second method of the round.
+- R218 Clean up.
+- R185 Rev 9 workbook inventory and diff.
+- R186 DLUS setbacks.
+- R187 Land width and length.
+- R188 Old to new code table.
+- R189 Rev 9 drawing read.
+- R190 Rev 9 PDF labels and wiring.
+- R191 Rev 9 faces against the baseplan.
+- R192 Cross sections read in full.
+- R193 El @ Entry from its terms.
+- R194 Unit blocks on no plot.
+- R196 Location plan DWG.
+- R197 Civil 3D under the shared window lock.
+- R198 Second method for round DATA-3.
+- R220 Rotation of a placed instance.
+- R221 Two past jobs on the same plots.
+- R222 Road surface of the past ramp fronts.
+- R223 Gap per unit.
+- R224 Road edges and the past ramp edge.
+- R225 Corner front rules.
+- R226 Corner front in the plan.
+- R227 House outline of a prototype.
+- R228 Footprint of a plot.
+- R229 Footprint band of a key.
+- R230 Plan of a whole neighbourhood.
+- R231 One run per prototype code.
+- R236 Clusters from the footprint blocks.
+- R234 Links loaded for an image.
+- R235 Second method of round 16.
+- R240 Civil 3D dialogs by rule 3.
+- R241 CadReader header only.
+- R242 Surface survey.
+- R243 Parcels of a drawing.
+- R244 Parcels against the plan.
+- R245 Rooms and doors of a read.
+- R246 Villa hand.
+- R247 Past schedule formulas.
+- R248 El @ Entry by surface version.
+- R249 The past key by surface version.
+- R250 Second method for round DATA-4.
+- R251 Audit of DATA-4.
+- R252 Xref search.
+- R253 DXF of a copy and its count.
+- R254 Readers against the third count.
+- R255 Two road layouts.
+- R256 Area key.
+- R257 IM codes.
+- R258 IFC header.
+- R259 Coverage table.
+- R260 Second method for round DATA-5.
+- R261 Plan position and level apart.
+- R262 The footprint as the third check.
+- R263 The Native dialect.
+- R264 Names that are no plot.
+- R265 A shortened TransmissionData.
+- R266 Dates from the bytes.
+- R267 Coverage of the past keys.
+- R268 Model inventory.
+- R269 One table of every past plot.
+- R270 El @ Entry gaps between keys.
+- R271 Context of a past plot.
+- R272 The majority rule.
+- R273 Ramp type and slope.
+- R274 Hand.
+- R275 Levels.
+- R276 Floors and parameters.
+- R277 Level profiles.
+- R278 Levels and ramps of a plan from CAD.
+- R279 Hands of a plan from CAD.
+- R280 Overrides in a plan from CAD.
+- R281 Second method for round 17.
+- R282 Hands against a Native key.
+
+## 04-addin-r300-r327.md
+
+- R300 Villa blocks from the Building Footprint.
+- R301 Area codes by job.
+- R302 Image step limit.
+- R303 Withdrawn.
+- R304 A clean build in a deep folder.
+- R310 Window samples.
+- R311 Site facts of the reader.
+- R312 Key copies by code.
+- R313 Prototype sets of the upgrade.
+- R320 Spot value and base.
+- R321 Floor types of each key.
+- R322 Counts of each key read.
+- R323 Second method of the key reads.
+- R325 Plans of the answer keys.
+- R326 The join of the answer keys.
+- R327 Spot elevations at the plot entrance.
+
+## 05-addin-r328-r344.md
+
+- R328 Second method of Phase 2b.
+- R330 The source of an override.
+- R331 Coordinates of the keys.
+- R332 Link origin and rotation on the keys.
+- R333 Hands on the keys.
+- R334 Ramps and floors on the keys.
+- R335 Walls and shared parameters on the keys.
+- R336 Second method of Round ADDIN 3a.
+- R337 A build by the rules of the keys.
+- R338 The keyRules block.
+- R339 Levels of the keys to the mm.
+- R340 A build and its proof by the level rules of the keys.
+- R341 Second method of the levels of Round ADDIN 3c.
+- R342 Licences of the libraries.
+- R343 The add-in design.
+- R344 The road at a front corner from the Roads folder.
+
+## 06-addin-r345-r353.md
+
+- R345 The parity harness.
+- R346 The projects of the add-in.
+- R347 The worker run.
+- R348 The DWG reads of button 2.
+- R349 The LandXML read and the road level snap of button 2.
+- R350 The DLUS and sales reads of button 2.
+- R351 The location plan of button 2.
+- R352 The plot table of button 2.
+- R353 The project position file, the check points and the shared parameters of the keys.
+
+## 07-addin-r354-r388.md
+
+- R354 The clusters of a build.
+- R355 The front of a plot in a build.
+- R356 The link frame of a plot in a build.
+- R357 The hand of a plot in a build.
+- R385 One rounding rule in Python and C#.
+- R386 Use and skip in the override list.
+- R387 The control point fit as a check of the schedule fit.
+- R388 Units of the inputs of the Python reference.
+- R11 Zero tests is a failure.
+- R12 Every rule has a test.
+- R13 No attribution lines.
+- R14 No emoji and no em dash
+- R15 No semicolons in prose, comments, documents, commit messages, or in Python, YAML, JSON and Markdown files.

@@ -14,7 +14,7 @@ Before anything else, read these whole:
 1. `CLAUDE.md`, for the rules of this repo and its writing rules
 2. `steps/PROGRESS.md` and the top entry of `steps/log.md`
 3. `docs/addin-design.md`, once it exists
-4. Every rule in `docs/rules.md` the change touches
+4. Every rule in `docs/rules/` the change touches
 
 How the work is done:
 
@@ -23,9 +23,9 @@ How the work is done:
 - At most four changes in one pull request. The rest goes into the next one
 - The failing test comes first. Run it and see it fail for the right reason, then make it pass.
   The test name carries the rule id it proves
-- Every function maps to a rule in `docs/rules.md`, with at least one test that names it. A new
+- Every function maps to a rule in `docs/rules/`, with at least one test that names it. A new
   rule takes the next free id of the range the round gives. The rule text lives in
-  `docs/rules.md` and nowhere else
+  `docs/rules/` and nowhere else
 - Keep the Revit API code thin. All logic lives in a project with no Revit reference and is
   tested without Revit. The Revit side only carries the decisions out
 - No project value in code. Project settings go in `config/project.json`, ROSHN values in

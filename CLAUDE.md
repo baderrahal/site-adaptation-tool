@@ -1,7 +1,7 @@
 # Site Adaptation Tool
 
 Data readers for the ROSHN Makkah site adaptation work, and the placer, which reads plan.json and places the villa links.
-The rules live in docs/rules.md and nowhere else. This file points to them and adds the working agreement.
+The rules live in docs/rules/ (docs/rules/index.md finds a rule by id) and nowhere else. This file points to them and adds the working agreement.
 
 ## Roles
 

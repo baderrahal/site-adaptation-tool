@@ -7,10 +7,12 @@ from pathlib import Path
 
 import pytest
 
+import record_parts
+
 ROOT = Path(__file__).resolve().parents[2]
 DESIGN = ROOT / "docs" / "addin-design.md"
 MOCK = ROOT / "docs" / "addin-mock.md"
-RULES = ROOT / "docs" / "rules.md"
+RULES = ROOT / "docs" / "rules"
 SETTINGS = ROOT / "config" / "project.json"
 
 SECTIONS = ["Option B and the two parts", "Folder structure", "The eight buttons", "From each input file to Revit",
@@ -342,7 +344,7 @@ def test_r343_every_point_only_a_revit_run_settles_is_on_the_open_list_with_the_
 
 def test_r343_every_rule_the_design_names_below_the_planned_range_is_in_the_rules_file_and_the_planned_ones_lie_in_phases_4_and_5():
     text = DESIGN.read_text(encoding="utf-8")
-    rules = set(re.findall(r"\*\*(R\d+) ", RULES.read_text(encoding="utf-8")))
+    rules = set(re.findall(r"\*\*(R\d+) ", record_parts.text(RULES)))
     named = {int(found) for found in re.findall(r"\bR(\d{1,3})\b", text)}
     assert [number for number in sorted(named) if number < 345 and "R%d" % number not in rules] == []
     planned = {int(found) for found in re.findall(r"^\| R(\d{3}) \|", section(text, 10), flags=re.MULTILINE)}

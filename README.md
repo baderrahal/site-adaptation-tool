@@ -24,7 +24,7 @@ Every reader only reads. None of them changes a model, a drawing, a PDF or a wor
 ```
 
 The names come from pastJob in config/project.json (R81). The plan is written to pastJob.output, outside the repo.
-The rules are in [docs/rules.md](docs/rules.md). The working agreement is in [CLAUDE.md](CLAUDE.md).
+The rules are in [docs/rules/](docs/rules/index.md). The working agreement is in [CLAUDE.md](CLAUDE.md).
 The latest round is the top entry of [steps/log.md](steps/log.md) and the live state is [steps/PROGRESS.md](steps/PROGRESS.md).
 
 ## Run the Python readers
