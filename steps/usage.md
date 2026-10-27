@@ -43,3 +43,4 @@ One row per phase session since Round ADDIN 4f, added by step 7 of steps/START.m
 | Session | Phase | Total tokens | Cost USD |
 |---|---|---:|---:|
 | a86761c9 | 4f, PR 61 to 66, the row taken before the merge of PR 66 | 187,845,111 | 77.69 |
+| 8429ce98 | AUDIT-RULES, PR 67 and 68, the row taken before the merge of PR 68, its sonnet and haiku tokens are the helpers' | 42,709,465 | 17.07 |
