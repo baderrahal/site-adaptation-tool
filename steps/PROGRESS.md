@@ -1,4 +1,4 @@
-STATE WAITING, 2026-10-27 17:32, for the 4g session, Bader pastes steps/START.md into a fresh session
+STATE WAITING, 2026-10-27 17:32, for the 4g1 session, Bader pastes steps/START.md into a fresh session
 # Progress
 Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
 
@@ -30,7 +30,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - A native2022 build with --overrides is refused on 1,346 native entries with no value (Q075)
-- For the check rows of 4g: 44 unit plots in the steps the plan does not place, 5 DP2 plots with no hand (Q098), no linkName on 2,513 (Q099)
+- For the check rows of 4g2: 44 unit plots in the steps the plan does not place, 5 DP2 plots with no hand (Q098), no linkName on 2,513 (Q099)
 - Not in 4f: heightOffset and floor z need the site file of button 1, roadAtFrontM in the plan with R364, the past_all.csv rebuild of R385
 
 ## Bader's turn
@@ -49,12 +49,10 @@ Q058 Old 20221206 prototypes and their hands. Q059 NBH 03 build on native2022. Q
 Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario master. Q066 No Parsons TU model of Zone 1. Q068 Project position of button 1. Q069 A remade key copy by its hashes.
 Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
 Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
-Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters. Q098 Hand of 5 DP2 plots in DP4 clusters.
-Q099 Link Name of a build. Q100 Status of values from client documents. Q101 Level profile fields with no share. Q102 Show the assumed values per plot. Q103 Design values in code, not in config.
-Q104 Audit statuses rest on text matching.
+Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
 
 ## Next three steps
 
-1. ADDIN 4g: R362 to R365, the walls, issues and the two Excel files. Bader pastes steps/START.md into a fresh session
-2. ADDIN 4h: R366 to R369, one session by steps/START.md
-3. ADDIN Phase 5 and the Revit run after 5c, then Phase 6, as steps/01_next.md gives them
+1. ADDIN 4g1: Q098, Q099, the status block and the status of each plotted value
+2. ADDIN 4g2: R362 to R365, the walls, issues and the two Excel files, with the Assumed chip and sheet
+3. ADDIN 4h: R366 to R369, then Phase 5, the Revit run after 5c and Phase 6, as steps/01_next.md gives them

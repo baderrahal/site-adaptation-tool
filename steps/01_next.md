@@ -10,12 +10,22 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Design: docs/design/05-plan-steps.md, parity steps 8, 10, 12 and 13 and Step 8, the Z of the ramp corners
 - Done when: parity holds on every unit plot of the data book for steps 8, 10, 12 and 13, and each step has tests on small dummy data built in code that run on both runners (05-plan-steps.md, R345)
 
-## 4g, the walls, issues and the two Excel files
+## 4g1, Q098, Q099 and the status of each plotted value
 
 - Status: open
-- Rules: R362 walls and python/plan_walls.py. R363 issues and the check rows, python/check_rows.py. R364 the level Excel. R365 the report Excel
-- Design: docs/design/05-plan-steps.md steps 11, 14 and 15, docs/design/03b-buttons-2-to-8.md (6 Levels, 7 Walls, 8 Report), docs/design/07-mock.md 7.5 and 7.6
-- Done when: parity holds for steps 11, 14 and 15, and each Excel holds the labels of 7.5 and 7.6 of the mock in the order of the mock
+- Answers (Bader, 2026-10-27, steps/questions-closed.md): Q098 and Q099 yes, Q100 to Q103 yes, Q104 by Bader's own answer
+- Q098 in the hand step (R357) and Q099 in the link parameters (R361, R107), in Python and C# with a test each
+- The status block of rules/roshn-makkah.json, written by audit.py with DOCUMENT of Q100 and the shares of Q101, and steps/investigations/status-review.md, Bader's review list of Q104
+- R401, the status of each plotted value, the next free rule id (CHOSEN): the status of each sourced value of a plot of the plan, as section 10 point 1 of steps/investigations/rule-status-audit.md gives it, and its count by field and status in the plan summary of step 15
+- Design: docs/design/05-plan-steps.md steps 5 to 13 and 15, steps/investigations/rule-status-audit.md sections 1, 8 and 10
+- Done when: parity holds on the 7 keys and the whole project for the hands, the parameters and the status of each plotted value, the summary of step 15 of Python counts plots by field and status, and steps/investigations/status-review.md holds Bader's review list of Q104. The parity of that count goes with step 15 in 4g2
+
+## 4g2, the walls, issues and the two Excel files
+
+- Status: open
+- Rules: R362 walls and python/plan_walls.py. R363 issues and the check rows, python/check_rows.py, with the chip Assumed. R364 the level Excel. R365 the report Excel, with the plot count on each line of Rules applied and the sheet Assumed, and the parity of step 15 with the count by field and status of R401
+- Design: docs/design/05-plan-steps.md steps 11, 14 and 15, docs/design/03b-buttons-2-to-8.md (6 Levels, 7 Walls, 8 Report), docs/design/07-mock.md 7.4 to 7.7
+- Done when: parity holds for steps 11, 14 and 15, and each Excel holds the labels of 7.5 and 7.6 of the mock in the order of the mock, with the items of 7.7
 
 ## 4h, the scope, step state, settings and element tags
 
@@ -28,8 +38,9 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 
 - Status: open
 - Rules: R370 install script, manifest, one Common. R371 the ribbon. R372 the pane bound to the active document, the work folder and the settings with the project. R382 one transaction per button, the confirm, the dry folder, the roll back and the stop
+- Q103 (Bader, 2026-10-27): move the 19 design values a build or the add-in uses into config/project.json with a rule id, the rows of section 7 of steps/investigations/rule-status-audit.md that Q103 names, and leave the checkers of past rounds with a note
 - Design: docs/design/02-folders.md, docs/design/07-mock.md 7.1 and 7.2, docs/design/08-install.md, docs/design/09-risks.md open items 1 and 2
-- Done when: the add-in installs into Revit 2024 with the ribbon and pane of 7.1 and 7.2, and open items 1 and 2 are measured in Revit
+- Done when: the add-in installs into Revit 2024 with the ribbon and pane of 7.1 and 7.2, open items 1 and 2 are measured in Revit, and the values of Q103 are in config/project.json with a rule id
 
 ## 5b, button 1 Set up site
 
@@ -42,7 +53,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 
 - Status: open
 - Rules: R375 button 2. R376 button 3, the check table, Use and Save overrides. R377 button 4, link types by full path, the load and reload step, the move of a tagged link
-- Design: docs/design/03b-buttons-2-to-8.md (2 Read data, 3 Check, 4 Place villas), docs/design/07-mock.md 7.4, docs/design/09-risks.md open item 9
+- Design: docs/design/03b-buttons-2-to-8.md (2 Read data, 3 Check, 4 Place villas), docs/design/07-mock.md 7.4 and item 8 of 7.7, the chip Assumed, docs/design/09-risks.md open item 9
 - Done when: buttons 2 to 4 run on one NBH, and open item 9 is proven on one link
 
 ## Revit run after 5c, on Bader's machine by Code
@@ -62,7 +73,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 
 - Status: open
 - Rules: R381 button 8. R384 the test host jobs of the buttons and the screenshots
-- Design: docs/design/03b-buttons-2-to-8.md (8 Report), docs/design/07-mock.md 7.6, docs/design/08-install.md (Unattended runs for Phase 6), docs/design/09-risks.md open item 12
+- Design: docs/design/03b-buttons-2-to-8.md (8 Report), docs/design/07-mock.md 7.6 and item 9 of 7.7, the sheet Assumed, docs/design/08-install.md (Unattended runs for Phase 6), docs/design/09-risks.md open item 12
 - Done when: the test host calls SiteAdaptation.AddIn.Buttons.Run for each button with no click, and open item 12 is measured
 
 ## 6, end to end on all zones
