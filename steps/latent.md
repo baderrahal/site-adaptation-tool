@@ -68,3 +68,5 @@ Moved from the open bugs of steps/PROGRESS.md at 73b8c42 with no word changed.
 - 4f PR 4, BuildSteps.cs: FloorOutlines.CheckZones runs before PlanOverrides.Load where Python loads the list first, so a faulty list with a zone keyRules.yard lacks gets another line on each side
 - 4f PR 4, plan_rules.py and PlanOverrides.cs: an overrides value of an empty text or false, an entry that is no object, a field that is no text and a list rampType get other lines or a traceback on the two sides
 - 4f PR 4, plan_from_book.py override_step: a site file with no ramp or yard level makes the step raise where the build is right to lack those floors. The real site file holds both levels
+- 4f PR 66, python/record_parts.py cap_breaches and python/tests/test_harness.py test_r26: the top log entry ends at the next line that starts with ## and each heading is found anywhere in it, so a ## line inside the entry or a heading word in its text would pass. The 4f entry holds neither
+- 4f PR 66, steps/START.md step 7: a second run of the step adds a second row of the same session id, nothing checks the table for it

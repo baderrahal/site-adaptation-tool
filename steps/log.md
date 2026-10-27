@@ -2,6 +2,49 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round ADDIN 4f, 2026-10-27, Q089 and steps 8, 10, 12 and 13 in C#
+
+Goal:
+- Q089 as Bader answered it, then R358 to R361 with parity on the real data, the records of Bader's brief and addition
+
+Done:
+- PR 61 and 62 records: CLAUDE.md, Q089, paths to docs/design/, START.md step 7, usage.md. PR 63 Q089: the build on the footprint clusters alone
+- PR 64 R359 levels and R358 floors, PR 65 R360 overrides and R361 parameters, PR 66 these records
+
+Checked:
+- Q089: 0 unexplained on all 7 keys, levels 0 at pass, 1 mm and 5 mm, the control route equal to main by SHA-256 (RAN, q089_none.txt, q089_snap.txt)
+- Parity net48 and net8.0, whole project and 7 keys: 96 and 128 runs, 0 one unit cases, 0 failures (RAN, p4f_ and p4fb_parity_build)
+- Second methods 0 mismatches, proof 0 unexplained, 7 plans byte equal (RAN). Gate: pytest 1825 passed 1 skipped, dotnet 811 and 785 (RAN, p4f_end_gate_python, p4fb_gate_test)
+- Reviews: REAL fixed with tests or records, LATENT in steps/latent.md, at most 2 passes per PR
+
+Remains:
+- Not in 4f: heightOffset and floor z need the site file of button 1, roadAtFrontM with R364, the past_all.csv rebuild of R385
+- Skill refresh skipped, ai-max.skill came to Downloads at 16:35, after the check, PR 1 of AUDIT-RULES. Usage rules of version 4 not followed: round-addin.md, 4f
+
+Known bugs:
+- 5 DP2 plots get no hand since Q089 (Q098), a build writes no linkName (Q099), steps/PROGRESS.md open bugs
+
+Next:
+- 4g: Bader pastes steps/START.md into a fresh session
+
+Your turn:
+Full text and the recommended answers by ID: steps/questions-open.md.
+
+Q001 El @ Entry rule. Q002 Ramp type by Rev 9 code. Q003 Villa mirror by block flag. Q004 Setback from the DLUS front. Q005 Front level snapped to the road. Q006 Back corners parallel.
+Q007 Generic floor on the whole face. Q008 Units, a baseplan with 01b. Q009 Typology_Rev9 for codes with no schedule. Q010 Sales Land Width. Q012 FFL split by units. Q013 CASE second letter as built.
+Q015 Yard depth under the floor top. Q016 Plots 2311 and 2312 by baseplan. Q017 IMC 2301, 2302 and IMG 544 as VD4. Q018 58 past ramps listed. Q019 Schedule FFL. Q020 Keep the north stop.
+Q021 Parallel windows over 8 GB free. Q022 TEST copies in Zone 02 ARC. Q023 Delete the empty 15a folder. Q024 Curb and ROW from the R94 edge. Q025 13 PDF refusals listed.
+Q026 Two curbs of one drawing. Q027 Two DP4 labels in one face. Q029 Location plan number per face. Q030 The 01b sales rows. Q031 Rev 9 faces, 97 differ. Q032 1.4 FFL parameter as design level.
+Q033 Lone DT3 on a VL3 face. Q036 TBD for DLUS, accommodation for sales. Q037 Corner fronts by the Orientation side. Q038 Native ramp fronts over the subgrade. Q039 Footprint test as third check.
+Q041 Rows 2290 to 2299 as overrides. Q042 Lone duplex hand by row pairs. Q051 Rev 01 values of steps and ramps. Q052 Weak rules held through their overrides. Q053 The override list, native and byHand.
+Q054 R260 of DATA-5 and R261 to R282. Q055 1.4 ELl@Entry typed off its ramp. Q056 Native models for hands, fronts, ramps only. Q057 Ramp front fall with no direction.
+Q058 Old 20221206 prototypes and their hands. Q059 NBH 03 build on native2022. Q062 Rev 9 attribute values of the probe. Q063 Whole NBH 03 image past 30 minutes.
+Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario master. Q066 No Parsons TU model of Zone 1. Q068 Project position of button 1. Q069 A remade key copy by its hashes.
+Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
+Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
+Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters. Q098 Hand of 5 DP2 plots in DP4 clusters.
+Q099 Link Name of a build.
+
 ## Round REC, 2026-10-27, the records diet and Q095 to Q097
 
 Goal:

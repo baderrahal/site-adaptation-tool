@@ -4,16 +4,17 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## State
 
-- 2026-10-27, Round REC done, PR 56 to 60: the records in parts, small start reads, Q095 to Q097 in CLAUDE.md, no logic change
+- STATE WAITING for a fresh session: 4f done on 2026-10-27, PR 61 to 66. The next phase is 4g by steps/START.md
+- 4f: Q089 the footprint clusters alone, steps 8, 10, 12 and 13 in C# with parity on 2,704 plots, 0 failures
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
-- Phases 0a to 4e merged, PR 41 to 55: the reads of button 2, then the clusters, fronts, hands and link frame in C# with parity
+- Phases 0a to 4f merged, PR 41 to 66: the reads of button 2, then steps 4 to 8, 10, 12 and 13 of the plan builder in C# with parity
 - Plan: steps/01_next.md. Design: docs/design/. Rules: docs/rules/index.md. Findings from 4f: steps/investigations/round-addin.md
 - Part 2, the sheets, waits for Bader's check of Part 1
 
 ## Done
 
-- REC: PR 56 the rules in 7 parts with an index, PR 57 the design and round file in parts, PR 58 the questions and latent.md
-- REC: PR 59 CLAUDE.md to 9 KB and the agents, PR 60 R400, steps/01_next.md and steps/START.md
+- ADDIN 4f: PR 61 and 62 records, PR 63 Q089, PR 64 R358 and R359, PR 65 R360 and R361, PR 66 the records of the phase
+- REC, PR 56 to 60: rules, design and round file in parts, questions-open.md, latent.md, CLAUDE.md to 9 KB, R400, START.md
 - ADDIN 4e, PR 55: R354 to R357, parity on net48 and net8.0 with 0 failures, the proof 0 unexplained on 7 keys
 - ADDIN 4d, PR 54: R351 to R353. 4c, PR 53: R348 to R350. Q081 and Q073, PR 52. 4b, PR 51. 4a, PR 50. 3b to 0a, PR 41 to 49
 - Round 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. Earlier rounds: PRs 1 to 32
@@ -30,7 +31,8 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - A native2022 build with --overrides is refused on 1,346 native entries with no value (Q075)
-- Q089 reopened as REAL and answered by Bader on 2026-10-27, 4f runs it first: drop the 22 analysis clusters or name the file for button 3
+- For the check rows of 4g: 44 unit plots in the steps the plan does not place, 5 DP2 plots with no hand (Q098), no linkName on 2,513 (Q099)
+- Not in 4f: heightOffset and floor z need the site file of button 1, roadAtFrontM in the plan with R364, the past_all.csv rebuild of R385
 
 ## Bader's turn
 
@@ -53,6 +55,6 @@ Q099 Link Name of a build.
 
 ## Next three steps
 
-1. ADDIN 4f: R358 to R361, the outlines, levels, overrides and link parameters. Bader pastes steps/START.md into a fresh session
-2. ADDIN 4g and 4h: R362 to R369, one session each by steps/START.md
+1. ADDIN 4g: R362 to R365, the walls, issues and the two Excel files. Bader pastes steps/START.md into a fresh session
+2. ADDIN 4h: R366 to R369, one session by steps/START.md
 3. ADDIN Phase 5 and the Revit run after 5c, then Phase 6, as steps/01_next.md gives them
