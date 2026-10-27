@@ -411,6 +411,15 @@ def test_r345_a_csv_of_the_data_book_with_a_byte_that_is_no_utf8_is_refused_as_t
     assert plan_from_book.book_rows(path)[0]["1"]["typologyRev9"] == "DP2"
 
 
+def test_r337_shape_name_names_each_kind_of_a_json_value_as_the_csharp_names_it():
+    """F6 of the third review of PR 55: the words of plan_rules.shape_name, which BuildRules.ShapeName gives the same
+    (R337_shape_name_names_each_kind_of_a_json_value_as_python_names_it)."""
+    import plan_rules
+    assert [plan_rules.shape_name(value) for value in ({}, [], "x", True, False, 1, 1.5, None)] == [
+        "an object", "a list", "a text", "true or false", "true or false", "a number", "a number", "null"]
+    assert plan_rules.shape_name(dict()) == plan_rules.shape_name(plan_rules.KEY_SHAPES["table"]())
+
+
 # R355 the fronts: a 12 m face 3 m off a road along y = -3, a corner face with a second road along x = 45, and a face with no unit
 FRONT_FACES = {"11": ring(0.0, 0.0, 12.0, 25.0), "12": ring(30.0, 0.0, 42.0, 25.0), "13": ring(60.0, 0.0, 72.0, 25.0)}
 FRONT_ROWS = {"11": {"typologyRev9": "DP2"}, "12": {"typologyRev9": "C10"}, "13": {"typologyRev9": ""}}

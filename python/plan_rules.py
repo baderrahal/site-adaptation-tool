@@ -202,7 +202,7 @@ KEY_SHAPES = {"byCode": dict, "byFile": dict, "table": dict, "groups": list}
 
 
 def shape_name(value):
-    """The kind of a JSON value as a message names it, the same words as BuildRules.ShapeName of the C#."""
+    """R337. The kind of a JSON value as a message of check_key_rules names it, the same words as BuildRules.ShapeName of the C#."""
     if isinstance(value, dict):
         return "an object"
     if isinstance(value, list):

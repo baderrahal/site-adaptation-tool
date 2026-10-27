@@ -491,6 +491,25 @@ namespace SiteAdaptation.Tests
             Assert.Equal("locationPlanNumber", CsvRows.Read(path)[0].Keys.First());
         }
 
+        // F6 of the third review of PR 55: the words of BuildRules.ShapeName, which plan_rules.shape_name gives the same, and the bytes of an
+        // input read by WorkFiles.ReadBytes, never under a temporary name
+        [Fact]
+        public void R337_shape_name_names_each_kind_of_a_json_value_as_python_names_it()
+        {
+            Assert.Equal(new[] { "an object", "a list", "a text", "true or false", "a number", "a number", "null" },
+                new[] { JTokenType.Object, JTokenType.Array, JTokenType.String, JTokenType.Boolean, JTokenType.Integer, JTokenType.Float, JTokenType.Null }.Select(BuildRules.ShapeName).ToArray());
+        }
+
+        [Fact]
+        public void R347_read_bytes_gives_the_bytes_of_an_input_and_never_reads_a_temporary_name()
+        {
+            string path = Path.Combine(folder, "input.json");
+            File.WriteAllBytes(path, new byte[] { 0xEF, 0xBB, 0xBF, 0x7B, 0x7D });
+            Assert.Equal(new byte[] { 0xEF, 0xBB, 0xBF, 0x7B, 0x7D }, WorkFiles.ReadBytes(path));
+            File.WriteAllText(path + WorkFiles.Marker + "r1", "{}");
+            Assert.Throws<InvalidOperationException>(() => WorkFiles.ReadBytes(path + WorkFiles.Marker + "r1"));
+        }
+
         [Fact]
         public void R354_a_level_profile_with_no_key_rules_or_a_key_rule_a_build_cannot_give_is_refused_with_the_lines_of_python()
         {

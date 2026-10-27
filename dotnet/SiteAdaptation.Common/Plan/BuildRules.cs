@@ -166,7 +166,7 @@ namespace SiteAdaptation.Common
             }
         }
 
-        // plan_rules.shape_name: the kind of a JSON value as a message names it
+        // R337. plan_rules.shape_name: the kind of a JSON value as a message of CheckKeyRules names it
         public static string ShapeName(JTokenType type)
         {
             switch (type)
