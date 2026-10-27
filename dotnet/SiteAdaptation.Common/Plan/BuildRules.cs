@@ -89,13 +89,50 @@ namespace SiteAdaptation.Common
         {
             JObject entry = rules[word] as JObject;
             JToken rule = entry?["rule"];
-            if (entry == null || rule == null || rule.Type != JTokenType.String || !allowed.Contains((string)rule) || fields.Any(field => !(entry[field] is JObject || entry[field] is JArray)))
+            if (entry == null || rule == null || rule.Type != JTokenType.String || !allowed.Contains((string)rule) || fields.Any(field => entry[field] == null))
             {
                 string coded = entry == null ? "None" : SiteClusters.PyText(rule);
                 throw new InvalidDataException("keyRules " + word + " codes " + coded + ", a build gives only " + string.Join(", ", allowed)
                     + (fields.Length == 0 ? "" : " with " + string.Join(" and ", fields)) + " (R337)");
             }
+            // P3 of the review of PR 55: each table in the shape a build reads it, a list where an object is due refused, as Python refuses it
+            foreach (string field in fields)
+            {
+                JTokenType wanted = field == "groups" ? JTokenType.Array : JTokenType.Object;
+                if (entry[field].Type != wanted)
+                {
+                    throw new InvalidDataException("keyRules " + word + " holds " + field + " as " + ShapeName(entry[field].Type) + ", a build takes it as " + ShapeName(wanted) + " (R337)");
+                }
+                if (field == "byFile")
+                {
+                    foreach (JProperty table in ((JObject)entry[field]).Properties().Where(table => table.Value.Type != JTokenType.Object))
+                    {
+                        throw new InvalidDataException("keyRules " + word + " holds byFile " + table.Name + " as " + ShapeName(table.Value.Type) + ", a build takes it as an object of factor values (R337)");
+                    }
+                }
+            }
             return entry;
+        }
+
+        // plan_rules.shape_name: the kind of a JSON value as a message names it
+        public static string ShapeName(JTokenType type)
+        {
+            switch (type)
+            {
+                case JTokenType.Object:
+                    return "an object";
+                case JTokenType.Array:
+                    return "a list";
+                case JTokenType.String:
+                    return "a text";
+                case JTokenType.Boolean:
+                    return "true or false";
+                case JTokenType.Integer:
+                case JTokenType.Float:
+                    return "a number";
+                default:
+                    return "null";
+            }
         }
 
         // plan_rules.check_key_rules, every rule in the order Python holds them
@@ -155,7 +192,8 @@ namespace SiteAdaptation.Common
         // plan_rules.check_ramp_slopes: the slope class of El @ Entry of each code of keyRules.rampSlope equal to the class it codes
         public static void CheckRampSlopes(JObject rules, JObject profile)
         {
-            JObject table = rules["rampSlope"]["table"] as JObject ?? new JObject();
+            // An object since CheckKeyRules held it so, never a list read as empty (P3 of the review of PR 55)
+            JObject table = (JObject)rules["rampSlope"]["table"];
             JObject slopes = profile["rampSlopePercent"] as JObject ?? new JObject();
             var wrong = new List<string>();
             foreach (JProperty code in table.Properties())

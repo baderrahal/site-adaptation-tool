@@ -264,6 +264,31 @@ def test_r354_a_level_profile_with_no_key_rules_or_a_key_rule_a_build_cannot_giv
         assert refused(values, None) == line, word
 
 
+# P3 of the review of PR 55: a keyRules value of the wrong shape, which need() of check_key_rules let through as a list, the C# then reading
+# it as empty or as no hand, refused with one line in both languages (R354_a_key_rule_of_the_wrong_shape_is_refused_with_the_line_of_python)
+SHAPES = (
+    (("rampSlope", "table"), ["C10"], "keyRules rampSlope holds table as a list, a build takes it as an object (R337)"),
+    (("linkOrigin", "byCode"), [], "keyRules linkOrigin holds byCode as a list, a build takes it as an object (R337)"),
+    (("yardOutline", "groups"), {}, "keyRules yardOutline holds groups as an object, a build takes it as a list (R337)"),
+    (("parameter CASE", "table"), "x", "keyRules parameter CASE holds table as a text, a build takes it as an object (R337)"),
+    (("hand villa", "byFile"), {"made-up.rvt": [True]}, "keyRules hand villa holds byFile made-up.rvt as a list, a build takes it as an object of factor values (R337)"),
+    (("hand cluster", "byFile"), {"made-up.rvt": None}, "keyRules hand cluster holds byFile made-up.rvt as null, a build takes it as an object of factor values (R337)"))
+
+
+def test_r354_a_key_rule_of_the_wrong_shape_is_refused_with_the_line_of_csharp():
+    import copy
+    import plan_rules
+    real = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    key = real.values["levelProfiles"]["parsons2024Rev6"]["keyRules"]
+    plan_rules.check_key_rules(key)
+    for (word, field), value, line in SHAPES:
+        changed = copy.deepcopy(key)
+        changed[word][field] = value
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_rules.check_key_rules(changed)
+        assert str(error.value) == line, word
+
+
 # R355 the fronts: a 12 m face 3 m off a road along y = -3, a corner face with a second road along x = 45, and a face with no unit
 FRONT_FACES = {"11": ring(0.0, 0.0, 12.0, 25.0), "12": ring(30.0, 0.0, 42.0, 25.0), "13": ring(60.0, 0.0, 72.0, 25.0)}
 FRONT_ROWS = {"11": {"typologyRev9": "DP2"}, "12": {"typologyRev9": "C10"}, "13": {"typologyRev9": ""}}

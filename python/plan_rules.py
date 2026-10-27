@@ -191,14 +191,42 @@ def check_ramp_slopes(rules, lp):
                                            + ", give both one slope (R337)")
 
 
+# R337, P3 of the review of PR 55. The shape a build takes each table of keyRules in, a list where an object is due let through no more
+KEY_SHAPES = {"byCode": dict, "byFile": dict, "table": dict, "groups": list}
+
+
+def shape_name(value):
+    """The kind of a JSON value as a message names it, the same words as BuildRules.ShapeName of the C#."""
+    if isinstance(value, dict):
+        return "an object"
+    if isinstance(value, list):
+        return "a list"
+    if isinstance(value, str):
+        return "a text"
+    if isinstance(value, bool):
+        return "true or false"
+    if isinstance(value, (int, float)):
+        return "a number"
+    return "null"
+
+
 def check_key_rules(rules):
-    """R337. Every rule of keyRules a build takes must be a candidate it can give, with the table it reads, else the build is refused
-    with the rule named, never built by another rule in silence."""
+    """R337. Every rule of keyRules a build takes must be a candidate it can give, with the table it reads in the shape it reads it, else
+    the build is refused with the rule named, never built by another rule in silence."""
     def need(word, allowed, *fields):
         entry = rules.get(word)
-        if not isinstance(entry, dict) or entry.get("rule") not in allowed or any(not isinstance(entry.get(field), (dict, list)) for field in fields):
+        if not isinstance(entry, dict) or entry.get("rule") not in allowed or any(field not in entry for field in fields):
             raise project_profile.ProfileError("keyRules %s codes %s, a build gives only %s%s (R337)" % (
                 word, (entry or {}).get("rule") if isinstance(entry, dict) else None, ", ".join(allowed), "" if not fields else " with " + " and ".join(fields)))
+        for field in fields:
+            if not isinstance(entry[field], KEY_SHAPES[field]):
+                raise project_profile.ProfileError("keyRules %s holds %s as %s, a build takes it as %s (R337)" % (
+                    word, field, shape_name(entry[field]), shape_name(KEY_SHAPES[field]())))
+            if field == "byFile":
+                for name, table in entry[field].items():
+                    if not isinstance(table, dict):
+                        raise project_profile.ProfileError("keyRules %s holds byFile %s as %s, a build takes it as an object of factor values (R337)" % (
+                            word, name, shape_name(table)))
         return entry
     # A build takes the front of R226 with --sales and no other, so the edge nearest a curb is a candidate it does not carry out
     need("linkRotation", ("frontRule",))

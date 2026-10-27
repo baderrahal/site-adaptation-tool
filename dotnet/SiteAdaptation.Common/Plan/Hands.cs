@@ -473,7 +473,13 @@ namespace SiteAdaptation.Common
             {
                 return new KeyValuePair<JToken, string>(null, rule);
             }
-            JToken hand = linkFile == null ? null : (entry["byFile"]?[linkFile] as JObject)?[value];
+            // byFile and each table of it are objects since CheckKeyRules held them so, a list never read as no hand (P3 of the review of PR 55)
+            JToken found = linkFile == null ? null : entry["byFile"]?[linkFile];
+            if (found != null && found.Type != JTokenType.Object)
+            {
+                throw new InvalidDataException("keyRules hand " + unitClass + " holds byFile " + linkFile + " as " + BuildRules.ShapeName(found.Type) + ", a build takes it as an object of factor values (R337)");
+            }
+            JToken hand = (found as JObject)?[value];
             return new KeyValuePair<JToken, string>(hand?.DeepClone(), rule);
         }
 

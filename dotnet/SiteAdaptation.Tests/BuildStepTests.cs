@@ -381,6 +381,32 @@ namespace SiteAdaptation.Tests
             Assert.Contains("the input analysis is no JSON as Python reads it: Unexpected UTF-8 BOM", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c8")).Message);
         }
 
+        // P3 of the review of PR 55, test_build_steps.SHAPES: a keyRules value of the wrong shape, which Need let through as a list and the C#
+        // then read as empty or as no hand, refused with the line of Python
+        [Fact]
+        public void R354_a_key_rule_of_the_wrong_shape_is_refused_with_the_line_of_python()
+        {
+            JObject key = (JObject)JObject.Parse(File.ReadAllText(RepoRules()))["levelProfiles"]["parsons2024Rev6"]["keyRules"];
+            BuildRules.CheckKeyRules(key);
+            var cases = new[]
+            {
+                Tuple.Create("rampSlope", "table", (JToken)new JArray("C10"), "keyRules rampSlope holds table as a list, a build takes it as an object (R337)"),
+                Tuple.Create("linkOrigin", "byCode", (JToken)new JArray(), "keyRules linkOrigin holds byCode as a list, a build takes it as an object (R337)"),
+                Tuple.Create("yardOutline", "groups", (JToken)new JObject(), "keyRules yardOutline holds groups as an object, a build takes it as a list (R337)"),
+                Tuple.Create("parameter CASE", "table", (JToken)"x", "keyRules parameter CASE holds table as a text, a build takes it as an object (R337)"),
+                Tuple.Create("hand villa", "byFile", (JToken)new JObject { ["made-up.rvt"] = new JArray(true) },
+                    "keyRules hand villa holds byFile made-up.rvt as a list, a build takes it as an object of factor values (R337)"),
+                Tuple.Create("hand cluster", "byFile", (JToken)new JObject { ["made-up.rvt"] = null },
+                    "keyRules hand cluster holds byFile made-up.rvt as null, a build takes it as an object of factor values (R337)"),
+            };
+            foreach (Tuple<string, string, JToken, string> item in cases)
+            {
+                var changed = (JObject)key.DeepClone();
+                changed[item.Item1][item.Item2] = item.Item3;
+                Assert.Equal(item.Item4, Assert.Throws<InvalidDataException>(() => BuildRules.CheckKeyRules(changed)).Message);
+            }
+        }
+
         [Fact]
         public void R354_a_level_profile_with_no_key_rules_or_a_key_rule_a_build_cannot_give_is_refused_with_the_lines_of_python()
         {
