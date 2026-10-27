@@ -184,6 +184,12 @@ def check_ramp_slopes(rules, lp):
     """R337. El @ Entry takes the slope of a code from rampSlopePercent of the level profile and the ramp from the class of
     keyRules.rampSlope, so for every code the class holds the two must name one slope class, else the build is refused with the codes
     named, never built on two slopes."""
+    # F3 of the third review of PR 55: a slope of a text or true or false refused by its line, where it stopped Python with TypeError
+    table = lp["rampSlopePercent"]
+    for code in rules["rampSlope"]["table"]:
+        named = code if code in table else "default"
+        if not isinstance(table.get(named), (int, float)) or isinstance(table.get(named), bool):
+            raise project_profile.ProfileError("rampSlopePercent %s of the level profile holds %s, a build takes it as a number (R337)" % (named, shape_name(table.get(named))))
     wrong = sorted("%s (rampSlopePercent %s, keyRules.rampSlope %s)" % (code, slope_of(code, lp), found) for code, found in rules["rampSlope"]["table"].items()
                    if slope_class(slope_of(code, lp)) != found)
     if wrong:
@@ -191,18 +197,52 @@ def check_ramp_slopes(rules, lp):
                                            + ", give both one slope (R337)")
 
 
+# R337, P3 of the review of PR 55. The shape a build takes each table of keyRules in, a list where an object is due let through no more
+KEY_SHAPES = {"byCode": dict, "byFile": dict, "table": dict, "groups": list}
+
+
+def shape_name(value):
+    """R337. The kind of a JSON value as a message of check_key_rules names it, the same words as BuildRules.ShapeName of the C#."""
+    if isinstance(value, dict):
+        return "an object"
+    if isinstance(value, list):
+        return "a list"
+    if isinstance(value, str):
+        return "a text"
+    if isinstance(value, bool):
+        return "true or false"
+    if isinstance(value, (int, float)):
+        return "a number"
+    return "null"
+
+
 def check_key_rules(rules):
-    """R337. Every rule of keyRules a build takes must be a candidate it can give, with the table it reads, else the build is refused
-    with the rule named, never built by another rule in silence."""
+    """R337. Every rule of keyRules a build takes must be a candidate it can give, with the table it reads in the shape it reads it, else
+    the build is refused with the rule named, never built by another rule in silence."""
     def need(word, allowed, *fields):
         entry = rules.get(word)
-        if not isinstance(entry, dict) or entry.get("rule") not in allowed or any(not isinstance(entry.get(field), (dict, list)) for field in fields):
+        if not isinstance(entry, dict) or entry.get("rule") not in allowed or any(field not in entry for field in fields):
             raise project_profile.ProfileError("keyRules %s codes %s, a build gives only %s%s (R337)" % (
                 word, (entry or {}).get("rule") if isinstance(entry, dict) else None, ", ".join(allowed), "" if not fields else " with " + " and ".join(fields)))
+        for field in fields:
+            if not isinstance(entry[field], KEY_SHAPES[field]):
+                raise project_profile.ProfileError("keyRules %s holds %s as %s, a build takes it as %s (R337)" % (
+                    word, field, shape_name(entry[field]), shape_name(KEY_SHAPES[field]())))
+            if field == "byFile":
+                for name, table in entry[field].items():
+                    if not isinstance(table, dict):
+                        raise project_profile.ProfileError("keyRules %s holds byFile %s as %s, a build takes it as an object of factor values (R337)" % (
+                            word, name, shape_name(table)))
+                    # F2 of the third review of PR 55: a hand is true or false, never a text a build would take as true
+                    for factor, hand in table.items():
+                        if not isinstance(hand, bool):
+                            raise project_profile.ProfileError("keyRules %s holds byFile %s %s as %s, a build takes true or false (R337)" % (
+                                word, name, factor, shape_name(hand)))
         return entry
     # A build takes the front of R226 with --sales and no other, so the edge nearest a curb is a candidate it does not carry out
     need("linkRotation", ("frontRule",))
     need("linkOrigin", ("plotFrameRefit",), "byCode")
+    check_link_fits(rules)
     for unit_class in ("villa", "cluster", "alone"):
         need("hand " + unit_class, HAND_FACTORS, "byFile")
     need("rampSlope", ("typology",), "table")
@@ -214,11 +254,12 @@ def check_key_rules(rules):
         need("yardOutline", ("fittedOutlineRefit",), "groups")
     for word, entry in rules.items():
         if word.startswith(PARAMETER):
-            need(word, FORMULAS + LEVEL_RULES + TABLE_FACTORS, *(("table",) if (entry or {}).get("rule") in TABLE_FACTORS else ()))
+            # F4 of the third review of PR 55: an entry that is no object is refused by need() with its line, never an AttributeError
+            need(word, FORMULAS + LEVEL_RULES + TABLE_FACTORS, *(("table",) if isinstance(entry, dict) and entry.get("rule") in TABLE_FACTORS else ()))
     # R340. The level rules are optional, a rule a build does not carry out refused, and the FFL needs El @ Entry and the steps
     for word, allowed in LEVEL_WORDS.items():
         if word in rules:
-            need(word, allowed, *(("table",) if (rules[word] or {}).get("rule") in ("units", "typology") else ()))
+            need(word, allowed, *(("table",) if isinstance(rules[word], dict) and rules[word].get("rule") in ("units", "typology") else ()))
     if "ffl" in rules:
         needed = LEVEL_NEEDED + PIECE_NEEDED.get(rules["ffl"]["rule"], ())
         for word in needed:
@@ -292,9 +333,34 @@ def key_hand(rules, unit_class_name, link_file, factors):
     return (entry["byFile"].get(link_file) or {}).get(value), entry["rule"]
 
 
+# R356, F1 of the third review of PR 55. The corners a fit of keyRules.linkOrigin anchors at, cad_links.anchor_corner
+LINK_ANCHORS = ("start", "end")
+
+
+def check_link_fits(rules):
+    """R337, R356. Every fit of keyRules.linkOrigin.byCode, of a code of the scope or not, an object with an anchor of LINK_ANCHORS and an
+    offset of two numbers, else refused with one line as BuildRules.CheckLinkFits refuses it, where a fit with no anchor stopped Python with
+    KeyError and put the link of the C# at the end corner."""
+    for code, fit in rules["linkOrigin"]["byCode"].items():
+        if not isinstance(fit, dict):
+            raise project_profile.ProfileError("keyRules linkOrigin holds byCode %s as %s, a build takes it as an object of anchor and offset (R337)"
+                                               % (code, shape_name(fit)))
+        if fit.get("anchor") not in LINK_ANCHORS:
+            raise project_profile.ProfileError("keyRules linkOrigin byCode %s holds anchor %s, a build takes start or end (R337)" % (code, fit.get("anchor")))
+        offset = fit.get("offset")
+        if not isinstance(offset, list) or len(offset) != 2 or not all(isinstance(item, (int, float)) and not isinstance(item, bool) for item in offset):
+            raise project_profile.ProfileError("keyRules linkOrigin byCode %s holds offset %s, a build takes a list of two numbers (R337)" % (code, offset))
+
+
 def key_frame_section(rules):
-    """R337. The plotFrame fits per code of keyRules.linkOrigin, fitted again on the keys, in the form of the plotFrame section."""
-    return {"units": {code: {"anchor": fit["anchor"], "offset": list(fit["offset"])} for code, fit in rules["linkOrigin"]["byCode"].items()}}
+    """R337. The plotFrame fits per code of keyRules.linkOrigin, fitted again on the keys, in the form of the plotFrame section. A
+    linkOrigin with no byCode object is refused with the line of check_key_rules, as LinkFrames.Step refuses it (B3 of the review of PR 55)."""
+    entry = rules.get("linkOrigin")
+    if not isinstance(entry, dict) or not isinstance(entry.get("byCode"), dict):
+        raise project_profile.ProfileError("keyRules linkOrigin codes %s, a build gives only plotFrameRefit with byCode (R337)" % (
+            entry.get("rule") if isinstance(entry, dict) else None))
+    check_link_fits(rules)
+    return {"units": {code: {"anchor": fit["anchor"], "offset": list(fit["offset"])} for code, fit in entry["byCode"].items()}}
 
 
 def key_ramp_class(rules, code):

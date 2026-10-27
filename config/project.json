@@ -592,6 +592,64 @@
             "mergeMm": {"kind": "points", "decimals": 2},
             "pass": {"kind": "noGeometry"},
             "why": {"kind": "noGeometry"}
+        },
+        "clusters": {
+            "plots": {"kind": "noGeometry"},
+            "code": {"kind": "noGeometry"},
+            "source": {"kind": "noGeometry"}
+        },
+        "fronts": {
+            "frontRule": {"kind": "noGeometry"},
+            "unit": {"kind": "noGeometry"},
+            "left": {"kind": "points", "decimals": 3},
+            "right": {"kind": "points", "decimals": 3},
+            "normal": {"kind": "points", "decimals": 6},
+            "rightHand": {"kind": "points", "decimals": 6},
+            "length": {"kind": "points", "decimals": 3},
+            "distance": {"kind": "points", "decimals": 3},
+            "tied": {"kind": "noGeometry"},
+            "depth": {"kind": "points", "decimals": 3},
+            "corners": {"kind": "points", "decimals": 3},
+            "roadLevelLeft": {"kind": "levels", "decimals": 4},
+            "roadLevelRight": {"kind": "levels", "decimals": 4},
+            "surfaceLeft": {"kind": "noGeometry"},
+            "surfaceRight": {"kind": "noGeometry"},
+            "noRoadLevel": {"kind": "noGeometry"}
+        },
+        "hands": {
+            "unit": {"kind": "noGeometry"},
+            "kind": {"kind": "noGeometry"},
+            "pairKind": {"kind": "noGeometry"},
+            "unitClass": {"kind": "noGeometry"},
+            "cluster": {"kind": "noGeometry"},
+            "clusterCode": {"kind": "noGeometry"},
+            "clusterSide": {"kind": "noGeometry"},
+            "clusterRole": {"kind": "noGeometry"},
+            "clusterIndex": {"kind": "noGeometry"},
+            "clusterUnits": {"kind": "noGeometry"},
+            "left": {"kind": "noGeometry"},
+            "right": {"kind": "noGeometry"},
+            "openEnd": {"kind": "noGeometry"},
+            "roadSide": {"kind": "noGeometry"},
+            "rowPair": {"kind": "noGeometry"},
+            "blockMirror": {"kind": "noGeometry"},
+            "blockMirrorRoadSide": {"kind": "noGeometry"},
+            "blockMirrorOpenEnd": {"kind": "noGeometry"},
+            "rowPairSideOrBlockMirrorOpenEnd": {"kind": "noGeometry"},
+            "handRule": {"kind": "noGeometry"},
+            "factor": {"kind": "noGeometry"},
+            "linkFile": {"kind": "noGeometry"},
+            "mirrored": {"kind": "noGeometry"}
+        },
+        "linkFrame": {
+            "prototypeFile": {"kind": "noGeometry"},
+            "fitUnit": {"kind": "noGeometry"},
+            "anchor": {"kind": "noGeometry"},
+            "offset": {"kind": "points", "decimals": 3},
+            "mirrored": {"kind": "noGeometry"},
+            "insert": {"kind": "points", "decimals": 3},
+            "rotationDeg": {"kind": "angles", "decimals": 3},
+            "lacks": {"kind": "noGeometry"}
         }
       }
     }

@@ -26,6 +26,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from shapely.geometry import Polygon
 from shapely.strtree import STRtree
 
 import c3d_connect
@@ -58,18 +59,46 @@ ESTIMATE = "estimate"
 LOCATION = "locationPlan"
 OVERRIDE = "override"
 KEY_RULES = "keyRules"
-# R345. The steps of the parity harness this builder writes with --steps
-PARITY_STEPS = ("faces",)
+# R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R357 after the faces
+PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame")
+BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame")
+FOOTPRINT, ANALYSIS = "footprint", "analysis"
 # R337. The source of a parameter that reads the steps, the stepBands of the level profile when keyRules codes no steps
 STEP_BANDS = "levelProfileStepBands"
 sourced = plan_from_cad.sourced
 
 
+def csv_rows(path, columns=()):
+    """R345. The rows of a CSV file of the data book as CsvRows.Read of the C# reads them: utf-8-sig drops the byte order mark a file saved
+    by Excel starts with, newline="" keeps a line end inside a quoted field as it is, and strict refuses an unclosed quote, a text after a
+    closing quote and a field past the limit of csv with the line of csv, where Python took the rest of the file into one field and kept
+    the rows before it (G2 of the fourth review of PR 55). With columns named, a header that lacks one and a file of no row are refused,
+    where an empty labels.csv gave a build of no plot and a plots.csv of two byte order marks no row (G1 of the fourth review of PR 55)."""
+    path = Path(path)
+    try:
+        with open(path, encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle, strict=True)
+            rows = list(reader)
+            header = reader.fieldnames or []
+    except csv.Error as error:
+        raise project_profile.ProfileError("%s is no CSV as Python reads it: %s (R345)" % (path.name, error)) from error
+    if columns:
+        missing = [column for column in columns if column not in header]
+        if missing:
+            raise project_profile.ProfileError("%s has no column %s in its header (R345)" % (path.name, ", ".join(missing)))
+        if not rows:
+            raise project_profile.ProfileError("%s holds no row under its header (R345)" % path.name)
+    return rows
+
+
+# R345, G1. The columns of plots.csv and labels.csv a build reads, CsvRows.PlotsColumns and LabelsColumns of the C#
+PLOTS_COLUMNS = ("locationPlanNumber", "baseplanLabel")
+LABELS_COLUMNS = ("kind", "number")
+
+
 def book_rows(plots_csv):
-    """The rows of plots.csv by location plan number, and the number of each baseplan label. utf-8-sig drops the byte order mark a
-    file saved by Excel starts with, as the C# reader does (R345)."""
-    with open(plots_csv, encoding="utf-8-sig") as handle:
-        rows = [row for row in csv.DictReader(handle) if row.get("locationPlanNumber")]
+    """The rows of plots.csv by location plan number, and the number of each baseplan label (csv_rows, R345)."""
+    rows = [row for row in csv_rows(plots_csv, PLOTS_COLUMNS) if row.get("locationPlanNumber")]
     return {row["locationPlanNumber"]: row for row in rows}, {row["baseplanLabel"]: row["locationPlanNumber"] for row in rows if row.get("baseplanLabel")}
 
 
@@ -107,6 +136,230 @@ def numbered_clusters(clusters, number_of):
         if plots:
             found.append({**cluster, "plots": plots})
     return found
+
+
+def site_clusters(units, rows, faces, shapes, analysis, number_of):
+    """R236, R354. The clusters a build by keyRules takes, the site as the keys were measured on (R271): the footprint clusters over every
+    unit plot, then each cluster of the analysis less the plots a footprint cluster holds, a face of two plan numbers such as 476|477 left
+    out of its cluster as majority.py leaves it, each of two plots or more with its source, footprint or analysis."""
+    footprint = footprint_clusters(units, rows, faces, shapes) if shapes is not None else []
+    joined = joined_clusters(footprint, numbered_clusters(analysis, number_of)) if analysis is not None else footprint
+    found = []
+    for index, cluster in enumerate(joined):
+        plots = [plot for plot in cluster["plots"] if plot.isdigit()]
+        if len(plots) > 1:
+            found.append({**cluster, "plots": plots, "source": FOOTPRINT if index < len(footprint) else ANALYSIS})
+    return found
+
+
+def cluster_step(numbers, clusters):
+    """R354. The step clusters of the parity harness: every cluster of the build that holds a plot of the scope, whole, by its plots in
+    the order of their numbers joined by a bar, with its plots as the build takes them, its code and its source."""
+    wanted, found = set(numbers), {}
+    for cluster in clusters:
+        if wanted & set(cluster["plots"]):
+            key = "|".join(sorted(cluster["plots"], key=link_summary.sort_key))
+            found[key if key not in found else key + "#" + str(sum(1 for name in found if name.split("#")[0] == key) + 1)] = {
+                "plots": list(cluster["plots"]), "code": cluster.get("code"), "source": cluster["source"]}
+    return found
+
+
+def build_step_rules(profile, name):
+    """R354. keyRules of the level profile of the build steps, held by plan_rules.key_rules_of, and refused when the profile holds none:
+    the C# builds by keyRules alone, so the build steps of the parity harness are those of a build by keyRules (BuildRules.KeyRules)."""
+    key = plan_rules.key_rules_of(plan_rules.level_profile(profile, name))
+    if key is None:
+        raise project_profile.ProfileError("the build steps %s of the parity harness are those of a build by keyRules, the level profile %s holds none, "
+                                           "the C# builds by keyRules alone (R354)" % (", ".join(BUILD_STEPS), plan_rules.profile_name(profile, name)))
+    return key
+
+
+def front_step(numbers, front, surfaces, snap):
+    """R355. The step fronts of the parity harness: per plot of the scope the front the build takes (fronts), the rule that gave it, the
+    frame of R122 or of the edge of R226 with its ends left and right seen from the road, its inward normal and right hand, length,
+    distance to the nearest curb and tie, the ramp outline of R127 on it with its depth, the road level of R344 at the two front corners
+    with the surface that gave each, as the build keeps them, and for a unit plot with none the entry of noRoadLevel with why."""
+    found = {}
+    for number in numbers:
+        item = front[number]
+        frame = item["frame"]
+        levels = item["front"] or [None, None]
+        names = item["surfaces"] or [None, None]
+        found[number] = {
+            "frontRule": item["frontRule"], "unit": item["unit"], "left": None if frame is None else list(frame["left"]), "right": None if frame is None else list(frame["right"]),
+            "normal": None if frame is None else list(frame["n"]), "rightHand": None if frame is None else list(frame["r"]),
+            "length": None if frame is None else frame["length"], "distance": None if frame is None else frame["distance"], "tied": None if frame is None else frame["tied"],
+            "depth": item.get("depth"), "corners": None if item["corners"] is None else [list(corner) for corner in item["corners"]],
+            "roadLevelLeft": levels[0], "roadLevelRight": levels[1], "surfaceLeft": names[0], "surfaceRight": names[1],
+            "noRoadLevel": no_road_level(number, item, surfaces, snap) if item["unit"] and item["front"] is None else None}
+    return found
+
+
+def hand_step(numbers, rows, rules, trace, files, profile, block):
+    """R357. The step hands of the parity harness: per plot of the scope what the hand rule of keyRules reads and gives, as the build
+    takes it: the kind and the pair kind of its unit (majority.kind_of, pair_kind), its unit class, its cluster, side, role, index and
+    count (cad_links.cluster_roles), its side neighbours left and right in the order of their numbers (majority.side_neighbours), the open
+    end, the side road, its row pair (key_rules.row_pairs), the block mirror flag, the factors joined of two (plan_rules.joined_factors),
+    the rule of hand villa, cluster or alone, the value of its factor, the file the plot links and the mirror flag the table of that file
+    gives (plan_rules.key_hand), before an override of the list. A hand that differs from the one the build took is refused."""
+    import majority
+    key, roles = rules["keyRules"], trace["roles"]
+    found = {}
+    for number in numbers:
+        row = rows.get(number) or {}
+        unit = row.get("typologyRev9") or None
+        role = roles.get(number)
+        sides = rules["neighbours"].get(number)
+        pair = rules["rowPairs"].get(number)
+        factors = plan_rules.joined_factors({"all": "all", "blockMirror": {"yes": "yes", "no": "no"}.get(row.get("footprintMirrored")),
+                                             "clusterSide": role["side"] if role is not None else "alone", "openEnd": rules["openEnds"].get(number),
+                                             "roadSide": rules["roadSides"].get(number), "rowPairSide": rules["pairs"].get(number)})
+        unit_class = plan_rules.unit_class(rules["kinds"].get(number), role)
+        hand, rule = plan_rules.key_hand(key, unit_class, files.get(unit), factors) if unit else (None, None)
+        built = trace["hands"].get(number)
+        if built is not None and (built["mirrored"], built["rule"]) != (hand, rule):
+            raise ValueError("the step hands gives plot %s the hand %r by %s and the build took %r by %s (R357)" % (number, hand, rule, built["mirrored"], built["rule"]))
+        found[number] = {
+            "unit": unit, "kind": rules["kinds"].get(number), "pairKind": majority.pair_kind(number, rows, profile, block), "unitClass": unit_class,
+            "cluster": None if role is None else list(role["plots"]), "clusterCode": None if role is None else role["cluster"],
+            "clusterSide": None if role is None else role["side"], "clusterRole": None if role is None else role["role"],
+            "clusterIndex": None if role is None else role["index"], "clusterUnits": None if role is None else role["units"],
+            "left": None if sides is None else sorted(sides["left"], key=link_summary.sort_key), "right": None if sides is None else sorted(sides["right"], key=link_summary.sort_key),
+            "openEnd": rules["openEnds"].get(number), "roadSide": rules["roadSides"].get(number),
+            "rowPair": None if pair is None else {"left": pair["left"], "right": pair["right"], "length": pair["length"], "side": pair["side"]},
+            "blockMirror": factors["blockMirror"], "blockMirrorRoadSide": factors["blockMirrorRoadSide"], "blockMirrorOpenEnd": factors["blockMirrorOpenEnd"],
+            "rowPairSideOrBlockMirrorOpenEnd": factors["rowPairSideOrBlockMirrorOpenEnd"], "handRule": rule, "factor": factors.get(rule) if rule else None,
+            "linkFile": files.get(unit) if unit else None, "mirrored": hand}
+    return found
+
+
+def link_step(numbers, rows, trace, hands, key, files, profile):
+    """R356. The step linkFrame of the parity harness: per plot of the scope the link plan_from_cad.link_values gives on the front the
+    build takes (fronts) with the hand by the rule of the step hands, before an insert or rotation override of the list moves it (R360):
+    the prototype file of its code, the unit whose fit of keyRules.linkOrigin it takes, its own or that of its keo_file, the anchor and
+    offset of that fit, the mirror flag, the insert in plan unrounded and the rotation of the link X axis, written as the plan writes them,
+    and what the link lacks with why, as the plan lists it."""
+    section = plan_rules.key_frame_section(key)
+    found = {}
+    for number in numbers:
+        unit = (rows.get(number) or {}).get("typologyRev9") or None
+        item = trace["front"].get(number) or {"face": None, "frame": None}
+        builder = plan_from_past.PlotBuilder(number)
+        fit_unit = fit = None
+        mirrored = hands[number]["mirrored"]
+        if unit:
+            keo = ((profile.get("typologies") or {}).get(unit) or {}).get("keo_file")
+            fit_unit = unit if unit in section["units"] else keo
+            fit = section["units"].get(fit_unit)
+            plan_from_cad.link_values(builder, unit, item["face"], item["frame"], trace["roles"].get(number), section, files, mirrored, fit_unit)
+        placed = builder.has("insert")
+        found[number] = {
+            "prototypeFile": (builder.entry.get("prototypeFile") or {}).get("value"), "fitUnit": fit_unit, "anchor": None if fit is None else fit["anchor"],
+            "offset": None if fit is None else list(fit["offset"]), "mirrored": mirrored if unit else None,
+            "insert": list(cad_links.predicted_origin(item["frame"], mirrored, fit)) if placed else None,
+            "rotationDeg": cad_links.rotation_of(item["frame"], mirrored) if placed else None, "lacks": builder.missing}
+    return found
+
+
+def one_ring_faces(plots):
+    """R354. A build takes the face of a label as one ring, whose edges it walks in the order shapely gives them (face_ring), so a label of
+    two rings or more, which face_shapes joins by a union whose ring order only shapely knows, is refused here and in the C# alike. A ring
+    is one the build takes: a whole label, three vertices or more and an area."""
+    count = Counter()
+    for entry in plots or []:
+        label = yard_rule.whole_label(entry.get("plot")) if entry.get("kind") == "plot_shape" else None
+        vertices = entry.get("vertices") or []
+        if label is not None and len(vertices) >= 3 and not Polygon([(vertex[0], vertex[1]) for vertex in vertices]).buffer(0).is_empty:
+            count[str(label)] += 1
+    many = sorted((label for label, held in count.items() if held > 1), key=link_summary.sort_key)
+    if many:
+        raise project_profile.ProfileError("%d baseplan labels hold two rings or more: %s, a build takes a face of one ring, whose edges it walks in the order shapely "
+                                           "gives them, so plan_from_book.py and the C# refuse such a label (R354)" % (len(many), ", ".join(many)))
+
+
+def face_ring(shape):
+    """R354. The outer ring of a face as the build walks it, the vertices shapely gives with the closing one left out: for a face of
+    Polygon(vertices).buffer(0) the first vertex and then the others in reverse when the ring was drawn anticlockwise (BuildFace.Of)."""
+    return [(point[0], point[1]) for point in list(shape.exterior.coords)[:-1]]
+
+
+def simple_blocks(blocks):
+    """R354. The footprint blocks of a build, a block whose outline of three points or more is not a simple ring refused with its name,
+    as plot_table.simple_blocks refuses it for the plot table (R352): block_shapes mends it by buffer(0) and the C# would not."""
+    for block in blocks:
+        points = face_rings.clean([point[:2] for point in block.get("outline") or []])
+        if len(points) >= 3 and not face_rings.simple(points):
+            raise ValueError("the footprint block %s at %s is not a simple ring, two of its edges meet, shapely would mend it by buffer(0) and the C# would not, "
+                             "so the build refuses it (R354)" % (block.get("name"), block.get("insertPoint")))
+    return blocks
+
+
+def analysis_clusters(path, settings, baseplan, blocks=None):
+    """R354. The clusters of the analysis.json a build joins (R236), held to what it claims to be: the analysis of the baseplan drawing
+    drawings.baseplan names, by the name in its source, a clusters list, and the reads it was made from (hold_analysis)."""
+    path = Path(path)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    drawing = settings.get("drawings")["baseplan"]
+    if data.get("source") != drawing:
+        raise project_profile.ProfileError("%s is of %s, the analysis a build joins is of the baseplan drawings.baseplan names, %s (R354)" % (path.name, data.get("source"), drawing))
+    if not isinstance(data.get("clusters"), list):
+        raise project_profile.ProfileError("%s holds no clusters list, the clusters of the analysis a build joins (R354)" % path.name)
+    hold_analysis(data, path.name, baseplan, blocks)
+    return data["clusters"]
+
+
+# R354, R2. Half a unit of the 3 decimals cad_analysis writes the rotation of a block at
+ANALYSIS_TURN = 0.0005
+
+
+def hold_analysis(data, name, baseplan, blocks=None):
+    """R354, Q089. The analysis records the name of its drawing and no hash or date of it, so a build holds it to the reads it was made
+    from by what it records of them, as SiteClusters.HoldAnalysis does: summary.plotFaces is the count of the plot faces of the baseplan read
+    (cad_analysis.plot_faces), each plot of its plots list lies on the face of its label in that read with its type, cadType, and each plot
+    it gives a block name lies on a block of that name in the footprint read, the one that shares the most of its face, at its rotation within
+    ANALYSIS_TURN by the turn. An analysis of a later drawing whose labels moved puts a label on another face, type or block."""
+    summary, records = data.get("summary"), data.get("plots")
+    counted = summary.get("plotFaces") if isinstance(summary, dict) else None
+    if not isinstance(records, list) or not isinstance(counted, int) or isinstance(counted, bool):
+        raise project_profile.ProfileError("%s holds no plots list or no summary.plotFaces, which hold the analysis a build joins to the reads it was "
+                                           "made from (R354)" % name)
+    faces, count = {}, 0
+    for entry in baseplan or []:
+        if entry.get("kind") == "plot_shape" and entry.get("plot") not in (None, "") and len(entry.get("vertices") or []) >= 3:
+            faces[str(entry["plot"])] = entry
+            count += 1
+    if count != counted:
+        raise project_profile.ProfileError("%s counts %d plot faces and the baseplan read holds %d, the analysis a build joins is of the reads it was "
+                                           "made from (R354)" % (name, counted, count))
+    labels = [record.get("plot") if isinstance(record, dict) else None for record in records]
+    off = [label for label, record in zip(labels, records)
+           if not isinstance(label, str) or label not in faces or faces[label].get("type") != record.get("cadType")]
+    if off:
+        raise project_profile.ProfileError("%d plots of %s lie on no face of their label or on one of another type in the baseplan read: %s, the analysis "
+                                           "a build joins is of the reads it was made from (R354)" % (len(off), name, ", ".join(str(label) for label in off[:10])))
+    if blocks is None:
+        return
+    shapes = defaultdict(list)
+    for block in blocks:
+        if len(block.get("outline") or []) >= 3:
+            shapes[block.get("name")].append((Polygon([(point[0], point[1]) for point in block["outline"]]).buffer(0), block))
+    for label, record in zip(labels, records):
+        if not isinstance(record.get("block"), str) or not record["block"]:
+            continue
+        face = Polygon([(vertex[0], vertex[1]) for vertex in faces[label]["vertices"]]).buffer(0)
+        best, held = None, 0.0
+        for shape, block in shapes.get(record["block"], []):
+            if shape.intersects(face):
+                share = shape.intersection(face).area
+                if share > held:
+                    best, held = block, share
+        turn = record.get("rotation")
+        if best is None or (isinstance(turn, (int, float)) and not isinstance(turn, bool) and not (
+                isinstance(best.get("rotationDeg"), (int, float)) and abs((best["rotationDeg"] - turn + 180.0) % 360.0 - 180.0) <= ANALYSIS_TURN)):
+            off.append(label)
+    if off:
+        raise project_profile.ProfileError("%d plots of %s lie on no block of their name or on one of another rotation in the footprint read: %s, the "
+                                           "analysis a build joins is of the reads it was made from (R354)" % (len(off), name, ", ".join(off[:10])))
 
 
 def load_roads(files, scratch):
@@ -355,10 +608,12 @@ def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=
     return found
 
 
-def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales=None, numbered=False, rules=None):
+def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales=None, numbered=False, rules=None,
+          trace=None):
     """R208. The plan of R80 for the plots numbers, every value from CAD, the data book and the new site file. R278 to R280: with
     rules the level profile, the hand rules and the overrides of the majority rule give the levels, the ramp type and the hand.
-    main always gives rules (R277), rules None is the estimate of R209 that round Z4 built with."""
+    main always gives rules (R277), rules None is the estimate of R209 that round Z4 built with. R345: trace, a dict, takes the fronts
+    and the snap the build took, for the build steps of the parity harness."""
     block = settings.get("siteBuild")
     floors_config = plan_from_past.load_floors(settings)
     steep = set(block["steepUnits"])
@@ -385,8 +640,12 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     members = sorted({plot for cluster in mine for plot in cluster["plots"]} | set(numbers) | {partners[number] for number in numbers if number in partners},
                      key=link_summary.sort_key)
     front = fronts(members, rows, faces, roads, limits, surfaces, snap, profile, block.get("corner") if sales is not None else None, sales)
+    if trace is not None:
+        trace.update(front=front, snap=snap)
     frames = {number: item["frame"] for number, item in front.items()}
     roles = cad_links.cluster_roles(mine, 0, {number: item["face"] for number, item in front.items() if item["face"] is not None}, frames)
+    if trace is not None:
+        trace.update(roles=roles, hands={})
     entries, slopes = {}, {}
     overrides = {} if rules is None else rules["overrides"]
     outcomes = Outcomes(overrides, numbers, [] if rules is None else rules.get("laterFields") or [], "the estimate of R209" if rules is None else rules["name"])
@@ -470,6 +729,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                                                      "openEnd": rules["openEnds"].get(number), "roadSide": rules["roadSides"].get(number),
                                                      "rowPairSide": rules["pairs"].get(number)})
                 hand, rule = plan_rules.key_hand(key, plan_rules.unit_class(rules["kinds"].get(number), roles.get(number)), files.get(unit), factors)
+                if trace is not None:
+                    # R357. The hand by the rule, before an override of the list sets it
+                    trace["hands"][number] = {"mirrored": hand, "rule": rule}
             else:
                 sides = {code: {"drawnSide": value.get("drawnSide")} for code, value in frame_section["units"].items()}
                 kind = ((profile.get("typologies") or {}).get(unit) or {}).get("kind")
@@ -628,10 +890,22 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
 
 def nbh_plots(labels_path, nbh):
     """Every unit plot of a neighbourhood on the location plan, by its number, in order. R345: nbh None gives every unit plot of the
-    location plan, the whole project of the scope of the add-in (docs/addin-design.md section 3)."""
-    with open(labels_path, encoding="utf-8-sig") as handle:
-        rows = [row for row in csv.DictReader(handle) if (nbh is None or row.get("nbh") == nbh) and row.get("kind") == "clientCode"]
-    return sorted({row["number"] for row in rows}, key=link_summary.sort_key)
+    location plan, the whole project of the scope of the add-in (docs/addin-design.md section 3). A client code row with no number and a
+    scope of no plot are refused, as PlotScope.Numbers of the C# refuses them (H1 of the fifth review of PR 55)."""
+    rows = csv_rows(labels_path, LABELS_COLUMNS + (("nbh",) if nbh is not None else ()))
+    for index, row in enumerate(rows, 1):
+        if row.get("kind") == "clientCode" and not row.get("number"):
+            raise project_profile.ProfileError("a row of kind clientCode of the labels holds no number, row %d of the rows read (R345)" % index)
+    found = sorted({row["number"] for row in rows if (nbh is None or row.get("nbh") == nbh) and row.get("kind") == "clientCode"}, key=link_summary.sort_key)
+    return scope_plots(found, "project" if nbh is None else "nbh=" + nbh)
+
+
+def scope_plots(plots, scope):
+    """R345. The plots of a scope, refused when it numbers none, so a build or a read of no plot never reads as a run done, the line of
+    PlotScope.Numbers of the C# (H1 of the fifth review of PR 55)."""
+    if not plots:
+        raise project_profile.ProfileError("the scope %s numbers no plot, a build or a read of no plot is refused (R345)" % scope)
+    return plots
 
 
 def face_step(numbers, faces):
@@ -656,14 +930,6 @@ def step_entry(raw):
     return {"raw": raw, "written": json.loads(json.dumps(common.round_tree(raw)))}
 
 
-def area_tolerance(settings):
-    """R345. The areas tolerance of addin.parity, the most the union of the rings of a label may fall short of their sum."""
-    kinds = ((settings.get("addin") or {}).get("parity") or {}).get("kinds") or {}
-    if not isinstance(kinds.get("areas"), (int, float)):
-        raise project_profile.ProfileError("config holds no addin.parity.kinds.areas, the tolerance of the baseplan faces (R345)")
-    return kinds["areas"]
-
-
 def step_scope(cover):
     """R345. The scope of a step file as the worker names it: project for all, nbh=<NBH>, or cover=<file> for a cover file."""
     return "project" if cover == "all" else cover if cover.startswith("nbh=") else "cover=" + Path(cover).name
@@ -676,6 +942,46 @@ def step_inputs(args):
     return [parity.input_entry(role, path) for role, path in roles if path]
 
 
+# R357. The build steps that take the prototype files, each file of the folder an input of its own, prototype:<its name>
+PROTOTYPE_STEPS = parity.LISTED_STEPS
+PROTOTYPE_ROLE = "prototype:"
+
+
+def build_inputs(args, settings, step):
+    """R345, R354 to R357. The inputs a build step was made from, those of the faces and every other file the steps read, by role, and for
+    the steps of PROTOTYPE_STEPS every file of the prototype folder as folder_files lists it, so parity sees the listing each side took."""
+    roles = [("rules", project_profile.profile_path(settings)), ("footprintBlocks", args.footprint_blocks), ("analysis", args.analysis), ("sales", args.sales),
+             ("roadPieces", Path(args.roads) / "pieces.json" if args.roads else None)]
+    roles += [("roadSurface:" + name, Path(args.landxml) / (name + ".xml")) for name in getattr(args, "road_names", None) or []]
+    found = step_inputs(args) + [parity.input_entry(role, path) for role, path in roles if path]
+    if step in PROTOTYPE_STEPS and getattr(args, "prototypes", None):
+        # A prototype file is a whole Revit model, so each is hashed once a run
+        listed = getattr(args, "prototype_entries", None)
+        if listed is None:
+            listed = args.prototype_entries = [parity.input_entry(PROTOTYPE_ROLE + name, Path(args.prototypes) / name) for name in folder_listing(args.prototypes)]
+        found += listed
+    return found
+
+
+def step_entries(settings, step, made, written=None):
+    """R345, R354 to R357. The items of a build step by the fields of the step in addin.parity, a field of written written by its own
+    function of the raw value where the plan writes it so, such as the rotation by plan_rotation, which writes 0 for one that rounds to 360."""
+    fields = ((settings.get("addin") or {}).get("parity") or {}).get("steps", {}).get(step) or {}
+    plots = {key: parity.fields_entry(raw, fields) for key, raw in made.items()}
+    for entry in plots.values():
+        for name, function in (written or {}).items():
+            if entry["raw"].get(name) is not None:
+                entry["written"][name] = function(entry["raw"][name])
+    return plots
+
+
+def write_build_step(args, settings, step, made, written=None):
+    """R345, R354 to R357. step_<step>_python.json of a build step (step_entries)."""
+    plots = step_entries(settings, step, made, written)
+    parity.write_step(args.steps, step, "python", step_scope(args.cover), plots, settings.values, build_inputs(args, settings, step))
+    print("step %s: %d items (R345)" % (step, len(plots)))
+
+
 def site_report(path):
     """The survey point, angle and level elevations the newSite job read back from the new file."""
     report = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -683,10 +989,47 @@ def site_report(path):
             "levels": {level["name"]: level["elevationM"] for level in report["levels"]}}
 
 
+def folder_listing(folder):
+    """R357. The names of the files of the prototype folder in the order of sorted, refused when the folder is not on disk, the listing the C#
+    takes of the same folder (BuildSteps)."""
+    folder = Path(folder)
+    if not folder.is_dir():
+        raise project_profile.ProfileError("the prototype folder %s of pastJob is not on disk (R357)" % folder)
+    return sorted(path.name for path in folder.iterdir() if path.is_file())
+
+
 def folder_files(folder, profile):
     """The prototype file of each unit with its name as the folder spells it."""
-    names = sorted(path.name for path in Path(folder).iterdir() if path.is_file())
-    return plan_from_cad.prototype_files(names, profile)[0]
+    return plan_from_cad.prototype_files(folder_listing(folder), profile)[0]
+
+
+def hand_settings(block):
+    """R357. The settings of the majority rule a build by keyRules reads for the hands, refused when one is missing or of another kind and
+    never read as empty, with the lines of Hands.Majority of the C# (B3 of the review of PR 55)."""
+    def number(value):
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if not isinstance(block, dict):
+        raise project_profile.ProfileError("config holds no majority block, the settings of the majority rule a build by keyRules reads (R357)")
+    if not isinstance(block.get("pairKinds"), list) or not all(isinstance(kind, str) for kind in block["pairKinds"]):
+        raise project_profile.ProfileError("config holds no majority.pairKinds list of texts, the unit kinds that pair in a row of units (R357)")
+    if not isinstance(block.get("kindByPrefix"), dict) or not all(isinstance(kind, str) for kind in block["kindByPrefix"].values()):
+        raise project_profile.ProfileError("config holds no majority.kindByPrefix object of texts, the kind of a unit code the rules profile gives none (R357)")
+    if not number(block.get("sideShare")):
+        raise project_profile.ProfileError("config holds no majority.sideShare number, the share of the depth a side neighbour shares (R357)")
+    return block
+
+
+# R355, F3 of the third review of PR 55. The settings of config a build by keyRules reads as numbers, BuildRules.NumberSettings of the C#
+NUMBER_SETTINGS = ("siteBuild.corner.roadEdgeM", "analysis.toleranceM", "analysis.partyWallShare")
+
+
+def number_settings(settings):
+    """R355. Each setting of NUMBER_SETTINGS a number that is no bool, else refused with one line, where a text stopped Python with TypeError
+    and the C# took it as a number."""
+    for dotted in NUMBER_SETTINGS:
+        value = settings.get(dotted)
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            raise project_profile.ProfileError("config %s holds %s, a build takes it as a number (R355)" % (dotted, plan_rules.shape_name(value)))
 
 
 def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters=()):
@@ -698,7 +1041,9 @@ def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clu
     name = plan_rules.profile_name(profile, args.level_profile)
     lp = plan_rules.level_profile(profile, name)
     key = plan_rules.key_rules_of(lp)
-    block = settings.get("majority")
+    block = settings.get("majority") if key is None else hand_settings(settings.get("majority"))
+    if key is not None:
+        number_settings(settings)
     corner = settings.get("siteBuild")["corner"]
     if key is not None and key["linkRotation"]["rule"] == "frontRule" and sales is None:
         raise project_profile.ProfileError("keyRules.linkRotation of %s takes the front of R226, give --sales for the Orientation of a corner plot (R337)" % name)
@@ -747,6 +1092,7 @@ def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clu
     later = set((block.get("overrideKeep") or {}).get("laterFields", {}).get(lp.get("job")) or ())
     return {"name": name, "levelProfile": lp, "rounding": plan_rules.rounding_of(settings, name, key), "hands": profile.get("hands") or {}, "openEnds": open_ends, "overrides": overrides,
             "sources": sources, "models": list(models), "keyRules": key, "roadSides": road_sides, "pairs": pairs, "kinds": kinds, "partners": partners,
+            "neighbours": neighbours, "rowPairs": found if key is not None else {},
             "laterFields": [field for field in ((block.get("overrideKeep") or {}).get("laterFields", {}).get(lp.get("job")) or [])] if key is not None else [],
             "laterParameters": {field for field in later if field.startswith(plan_rules.PARAMETER)}, "facade": list(block.get("linkNameFacade") or [])}
 
@@ -776,6 +1122,7 @@ def main(argv=None):
     parser.add_argument("--steps", help="R345. a folder outside the repo for the output of each step per plot, step_<step>.json")
     parser.add_argument("--steps-only", action="store_true", help="R345. write the steps that need no build and stop before it")
     args = parser.parse_args(argv)
+    done = False
     try:
         # R345. The step files of this run go first, so a run that fails leaves none and the parity finds them missing
         if args.steps:
@@ -791,6 +1138,7 @@ def main(argv=None):
             cover = {"neighbourhood": nbh or "all", "plots": nbh_plots(args.labels, nbh)}
         else:
             cover = json.loads(Path(args.cover).read_text(encoding="utf-8"))
+            scope_plots(cover["plots"], step_scope(args.cover))
         sales = None
         if args.sales:
             sheet = settings.get("dataBook.locationPlan.sales")
@@ -802,7 +1150,7 @@ def main(argv=None):
         args.baseplan = str(cad_units.read_input(settings, "baseplan", args.baseplan))
         baseplan = link_summary.load(args.baseplan)["plots"]
         # R345. A ring shapely would mend and the C# would not is refused, so the build and its C# take the same faces
-        refused = face_rings.refusals(baseplan, area_tolerance(settings))
+        refused = face_rings.refusals(baseplan, parity.area_tolerance(settings))
         if refused:
             raise project_profile.ProfileError("%d baseplan faces refused: %s" % (len(refused), ", ".join(refused)))
         by_label, _ = yard_rule.face_shapes(baseplan, 0)
@@ -813,13 +1161,22 @@ def main(argv=None):
             parity.write_step(args.steps, "faces", "python", step_scope(args.cover), face_step(cover["plots"], faces), settings.values, step_inputs(args))
         if args.steps_only:
             print("steps faces of %d plots written to %s, no plan built (R345)" % (len(cover["plots"]), args.steps))
+            done = True
             return 0
+        # R354. A build walks the ring of a face in the order shapely gives it, which the C# gives only for a face of one ring
+        one_ring_faces(baseplan)
         args.roads = str(cad_units.read_input(settings, "roads", args.roads))
         roads = cad_analysis.read_road_edges(args.roads, settings.get("analysis")["roadEdgeLayers"])
+        if not roads:
+            # R355. The front of a plot is the edge nearest a curb, and corner_front.road_edges asks the nearest of no line
+            raise project_profile.ProfileError("the road layout read holds no line of the curb layers analysis.roadEdgeLayers names, the front of a plot is the edge "
+                                               "nearest a curb (R355)")
         if args.footprint_blocks:
             args.footprint_blocks = str(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks))
-        shapes = footprint_check.block_shapes(footprint_check.footprint_blocks(args.footprint_blocks, settings)) if args.footprint_blocks else None
-        analysis = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"] if args.analysis else None
+        blocks = simple_blocks(footprint_check.footprint_blocks(args.footprint_blocks, settings)) if args.footprint_blocks else None
+        shapes = footprint_check.block_shapes(blocks) if blocks is not None else None
+        # R354. The analysis held to the baseplan read and the footprint read it was made from, not by the name of its drawing alone
+        analysis = analysis_clusters(args.analysis, settings, baseplan, blocks) if args.analysis else None
         if shapes is not None:
             clusters = footprint_clusters(cover["plots"], rows, faces, shapes)
             if analysis is not None:
@@ -830,27 +1187,49 @@ def main(argv=None):
             raise project_profile.ProfileError("give --analysis or --footprint-blocks for the clusters")
         job = plan_from_past.load_job(settings)
         folder, _ = plan_from_past.prototype_folders(plan_from_past.input_root(settings), job)
+        args.prototypes = str(folder)
         # R337. A build by keyRules walks the rows of units past its own plots, so the clusters of every unit plot tell which units pair
+        if args.steps:
+            build_step_rules(profile, args.level_profile)
         everything, by_keys = [], plan_rules.key_rules_of(plan_rules.level_profile(profile, plan_rules.profile_name(profile, args.level_profile))) is not None
         if by_keys:
             units = [number for number, row in rows.items() if row.get("typologyRev9") and number in faces]
-            everything = footprint_clusters(units, rows, faces, shapes) if shapes is not None else []
-            if analysis is not None:
-                everything = joined_clusters(everything, numbered_clusters(analysis, number_of))
             # A face with two plan numbers, such as 476|477, is no plot of its own and leaves its cluster, as majority.py takes them
-            everything = [found for found in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]} for cluster in everything) if len(found["plots"]) > 1]
+            everything = site_clusters(units, rows, faces, shapes, analysis, number_of)
+        if args.steps:
+            write_build_step(args, settings, "clusters", cluster_step(cover["plots"], everything))
         # R277. Every build follows a level profile, the named one or levelProfiles.default
         rules = rule_inputs(args, settings, profile, cover["plots"], rows, faces, roads, sales, everything)
         # R339, R340. The road surfaces of the one setting majority.py measures the levels on
-        surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in plan_rules.road_names(block, rules["levelProfile"])], args.scratch)
+        args.road_names = plan_rules.road_names(block, rules["levelProfile"])
+        surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in args.road_names], args.scratch)
         # R337. A build by keyRules takes the clusters of every unit plot, the site as the keys were measured on (R271)
+        trace = {}
+        files = folder_files(folder, profile)
         plan = build(cover["plots"], rows, number_of, faces, roads, everything if by_keys else clusters, profile, settings,
-                     prototype_offsets.plot_frame(prototype_offsets.load(args.offsets)), folder_files(folder, profile), folder,
-                     site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, by_keys or bool(args.footprint_blocks), rules)
+                     prototype_offsets.plot_frame(prototype_offsets.load(args.offsets)), files, folder,
+                     site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, by_keys or bool(args.footprint_blocks), rules, trace=trace)
+        if args.steps:
+            write_build_step(args, settings, "fronts", front_step(cover["plots"], trace["front"], surfaces, trace["snap"]))
+            hands = hand_step(cover["plots"], rows, rules, trace, files, profile, settings.get("majority"))
+            write_build_step(args, settings, "hands", hands)
+            write_build_step(args, settings, "linkFrame", link_step(cover["plots"], rows, trace, hands, rules["keyRules"], files, profile),
+                             {"rotationDeg": plan_from_past.plan_rotation})
         plan_from_past.write_plan(out, plan)
+        done = True
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
         print("plan_from_book: " + str(error), file=sys.stderr)
         return 2
+    finally:
+        # R345, R347. A run that fails, by a refusal or by any error, leaves no step file of its own, as the worker writes its outputs all or
+        # none, so a step written before a later step or the build failed never reads as a run done (B5 of the review of PR 55)
+        if args.steps and not done:
+            for name in PARITY_STEPS:
+                try:
+                    parity.clear_step(args.steps, name, "python")
+                except (ValueError, OSError):
+                    # A folder refused at the start, inside the repo, holds no step file of this run to clear
+                    pass
     for line in summary_lines(plan["summary"], rules["name"], bool(args.level_profile)):
         print(line)
     print(out)

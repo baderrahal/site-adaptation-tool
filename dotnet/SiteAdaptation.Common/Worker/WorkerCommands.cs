@@ -5,7 +5,8 @@ using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common
 {
-    // R347. The commands the worker runs so far: build, which writes the step files of R345 for the steps the C# gives. The
+    // R347. The commands the worker runs so far: build, which writes the step files of R345 for the steps the C# gives, the faces and the
+    // build steps of R354 to R357. The
     // other commands of the design come with the phase that builds them, and until then a request of one is refused
     public static class WorkerCommands
     {
@@ -30,13 +31,19 @@ namespace SiteAdaptation.Common
                     Faces(run, config);
                 }
             }
+            // R354 to R357. The build steps on the inputs read once, after the faces
+            List<string> built = request.Steps.Where(BuildSteps.Names.Contains).ToList();
+            if (built.Count > 0)
+            {
+                BuildSteps.Run(run, config, built);
+            }
         }
 
         // R345. The step faces of the plots of the scope, step_faces_csharp.json in the steps folder of the request
         private static void Faces(WorkerContext run, AddinConfig config)
         {
             WorkerRequest request = run.Request;
-            List<string> numbers = PlotScope.Numbers(request.Scope, CsvRows.Read(run.Input("labels")));
+            List<string> numbers = PlotScope.Of(run);
             string role = request.Inputs.Any(input => input.Role == "baseplanRead") ? "baseplanRead" : "baseplanPlots";
             if (request.Inputs.Count(input => input.Role == "baseplanRead" || input.Role == "baseplanPlots") > 1)
             {
@@ -51,7 +58,7 @@ namespace SiteAdaptation.Common
                 throw new WorkerStop(WorkerExit.Refused, refusal);
             }
             JArray plots = baseplan["plots"] as JArray ?? throw new InvalidDataException("the baseplan plots.json holds no plots list");
-            var faces = FaceStep.Build(numbers, plots, CsvRows.Read(run.Input("plotsCsv")), config.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)"));
+            var faces = FaceStep.Build(numbers, plots, CsvRows.Read(run.Input("plotsCsv"), CsvRows.PlotsColumns), config.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)"));
             run.Counts[FaceStep.Name + " plots"] = faces.Count;
             run.Counts[FaceStep.Name + " with a face"] = faces.Values.Count(face => true.Equals(face["face"]));
             run.WriteJson(request.StepsFolder, StepFile.FileName(FaceStep.Name, "csharp"), StepFile.Build(FaceStep.Name, "csharp", StepFile.ScopeText(request.Scope), faces, config.StepFields(FaceStep.Name)));

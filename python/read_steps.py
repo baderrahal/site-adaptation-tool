@@ -241,7 +241,7 @@ def location_steps(settings, pdf, plots, schedule_paths, sales):
     of R387 as its check, numbering nothing. The faces of the baseplan are refused as the build refuses them (R345)."""
     plan = settings.get("dataBook.locationPlan")
     connect = settings.get("connect")
-    refused = ring_rules.refusals(plots, plan_from_book.area_tolerance(settings.values))
+    refused = ring_rules.refusals(plots, parity.area_tolerance(settings.values))
     if refused:
         raise ValueError("%d baseplan faces refused: %s" % (len(refused), ", ".join(refused)))
     page = location_plan.read_page(pdf, plan, "control")

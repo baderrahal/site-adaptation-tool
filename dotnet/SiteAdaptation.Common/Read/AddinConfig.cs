@@ -22,9 +22,12 @@ namespace SiteAdaptation.Common
             }
         }
 
+        // The config as json.loads of Python reads it (PyJson), so a text stays a text and -1E400 is -Infinity on net48 as on net8.0, where
+        // Newtonsoft took a date text for a date and threw on -1E400 on net48 only, and a value refused is written as json.dumps writes it (H2)
         public static AddinConfig Load(string path)
         {
-            return new AddinConfig(JObject.Parse(WorkFiles.ReadText(path)), path);
+            JObject root = PyJson.Parse(WorkFiles.ReadText(path)) as JObject ?? throw new InvalidDataException("the config is no JSON object (R347): " + path);
+            return new AddinConfig(root, path);
         }
 
         // The peak private memory in MiB the read of an input file needs, null for an input of no large read. A file of a role that
@@ -140,6 +143,13 @@ namespace SiteAdaptation.Common
             {
                 throw new InvalidDataException("addin.parity.kinds names no kind " + kind + " (R345)");
             }
+            return Tolerance(kinds, kind);
+        }
+
+        // R345. A tolerance of addin.parity.kinds, its value written as json.dumps of Python writes it, so both languages give one line for a
+        // text, a list and an object as for a float (G3, H2 of the fifth review of PR 55), parity.tolerance_of
+        private static double? Tolerance(JObject kinds, string kind)
+        {
             JToken value = kinds[kind];
             if (value.Type == JTokenType.Null)
             {
@@ -148,10 +158,40 @@ namespace SiteAdaptation.Common
             double tolerance = value.Type == JTokenType.Integer || value.Type == JTokenType.Float ? value.Value<double>() : double.NaN;
             if (double.IsNaN(tolerance) || double.IsInfinity(tolerance) || tolerance < 0)
             {
-                throw new InvalidDataException("addin.parity.kinds." + kind + " is " + value.ToString(Newtonsoft.Json.Formatting.None)
+                throw new InvalidDataException("addin.parity.kinds." + kind + " is " + PyJson.Dumps(value)
                     + ", a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)");
             }
             return tolerance;
+        }
+
+        // R345. Every tolerance the fields of addin.parity.steps name, held in their order with the lines of parity.tolerances, which
+        // read_steps.py holds before any read, so a read of steps refuses what Python refuses (H2 of the fifth review of PR 55)
+        public void ParityTolerances()
+        {
+            JObject parity = addin["parity"] as JObject;
+            JObject kinds = parity?["kinds"] as JObject, steps = parity?["steps"] as JObject;
+            if (kinds == null || steps == null)
+            {
+                throw new InvalidDataException("config holds no addin.parity block with kinds and steps (R345)");
+            }
+            foreach (JProperty step in steps.Properties())
+            {
+                foreach (JProperty field in ((JObject)step.Value).Properties())
+                {
+                    JToken kind = (field.Value as JObject)?["kind"];
+                    if (kind == null || kind.Type != JTokenType.String || !kinds.ContainsKey((string)kind))
+                    {
+                        throw new InvalidDataException("addin.parity.steps." + step.Name + "." + field.Name + " names the kind " + SiteClusters.PyText(kind)
+                            + ", which addin.parity.kinds does not hold (R345)");
+                    }
+                    double? tolerance = Tolerance(kinds, (string)kind);
+                    if (tolerance.HasValue != (((JObject)field.Value)["decimals"] != null))
+                    {
+                        throw new InvalidDataException("addin.parity.steps." + step.Name + "." + field.Name
+                            + ": a kind with a tolerance has decimals and a kind compared exactly has none (R345)");
+                    }
+                }
+            }
         }
 
         // R345. The fields of a step with the kind and the decimals of each, as python/parity.py reads them

@@ -318,6 +318,17 @@ namespace SiteAdaptation.Common
             }
         }
 
+        // R347, R354. The bytes of an input, for a reader that decodes them as Python does (PyMath.ReadJson, CsvRows.Read), a name holding
+        // .tmp- never read
+        public static byte[] ReadBytes(string path)
+        {
+            if (IsTemporary(path))
+            {
+                throw new InvalidOperationException("a file under a temporary name is never read: " + path);
+            }
+            return File.ReadAllBytes(path);
+        }
+
         // A name holding .tmp- is never read
         public static string ReadText(string path)
         {

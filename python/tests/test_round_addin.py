@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import pytest
+from shapely.geometry import LineString
 
 import cad_analysis
 import data_book
@@ -78,7 +79,7 @@ SUMMARY = {"written": 0, "plots": 0, "missingByKey": {}, "inACluster": 0, "clust
            "rules": {"keyRules": False, "laterFields": [], "overridesNotApplied": {}, "yardNotMeasured": {}}}
 
 
-def run_book(tmp_path, monkeypatch, extra, read_input=None):
+def run_book(tmp_path, monkeypatch, extra, read_input=None, build=None, edges=None):
     """plan_from_book.main on the real config and rules profile with the readers of the drawings, the LandXML and the site
     stubbed, so the rules a build gets and its refusals are seen through main itself. read_input stands for the R388 read of the
     CadReader outputs, the file given when left out."""
@@ -87,7 +88,8 @@ def run_book(tmp_path, monkeypatch, extra, read_input=None):
     monkeypatch.setattr(plan_from_book.link_summary, "load", lambda path: {"plots": []})
     monkeypatch.setattr(plan_from_book.cad_units, "check", lambda path: "Meters")
     monkeypatch.setattr(plan_from_book.cad_units, "read_input", read_input or (lambda settings, role, given: given))
-    monkeypatch.setattr(plan_from_book.cad_analysis, "read_road_edges", lambda folder, layers: [])
+    # R355. A road layout read with no curb line is refused, so the made up read holds one line far off
+    monkeypatch.setattr(plan_from_book.cad_analysis, "read_road_edges", edges or (lambda folder, layers: [LineString([(0.0, -1000.0), (1.0, -1000.0)])]))
     monkeypatch.setattr(plan_from_book.plan_from_past, "prototype_folders", lambda root, job: ("folder", "upgraded"))
     monkeypatch.setattr(plan_from_book.plan_from_past, "write_plan", lambda out, plan: None)
     monkeypatch.setattr(plan_from_book, "load_roads", lambda paths, scratch: {})
@@ -98,15 +100,17 @@ def run_book(tmp_path, monkeypatch, extra, read_input=None):
     monkeypatch.setattr(plan_from_book.prototype_offsets, "plot_frame", lambda offsets: {})
     monkeypatch.setattr(plan_from_book.corner_front, "sales_rows", lambda path, sheet, column: {})
 
-    def build(*args):
+    def built(*args, **named):
         seen["rules"] = args[-1]
         return {"summary": SUMMARY}
 
-    monkeypatch.setattr(plan_from_book, "build", build)
+    monkeypatch.setattr(plan_from_book, "build", build or built)
     cover = tmp_path / "cover.json"
-    cover.write_text(json.dumps({"neighbourhood": "N1", "plots": []}), encoding="utf-8")
+    cover.write_text(json.dumps({"neighbourhood": "N1", "plots": ["1"]}), encoding="utf-8")
     analysis = tmp_path / "analysis.json"
-    analysis.write_text(json.dumps({"clusters": []}), encoding="utf-8")
+    # R354. The analysis a build joins is of the baseplan drawing config names
+    analysis.write_text(json.dumps({"source": project_profile.load_settings().get("drawings")["baseplan"], "clusters": [], "plots": [], "summary": {"plotFaces": 0}}),
+                        encoding="utf-8")
     argv = [str(cover), "--plots-csv", "p.csv", "--landxml", "x", "--site", "s.json", "--baseplan", "b.json", "--roads", "r", "--analysis", str(analysis),
             "--scratch", str(tmp_path), "--sales", "s.xlsx", "--out", str(tmp_path / "plan.json")] + extra
     return plan_from_book.main(argv), seen

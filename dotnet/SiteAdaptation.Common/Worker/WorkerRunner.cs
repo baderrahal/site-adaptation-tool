@@ -19,6 +19,14 @@ namespace SiteAdaptation.Common
         public static readonly Dictionary<string, string[]> Steps = new Dictionary<string, string[]>
         {
             [FaceStep.Name] = new[] { FaceStep.BaseplanRoles, "plotsCsv", "labels" },
+            // R354. The clusters of a build by keyRules, on the reads of the worker, plots.csv, labels.csv, the rules file and the analysis
+            [SiteClusters.StepName] = BuildSteps.ClusterRoles,
+            // R355. The fronts of a build, on the curbs and sales reads of the worker and the road surfaces of the level profile
+            [Fronts.StepName] = BuildSteps.FrontRoles,
+            // R357. The hands of a build, on the reads of the clusters and the fronts and the prototype files of the folder
+            [Hands.StepName] = BuildSteps.HandRoles,
+            // R356. The link frame of a build, on the inputs of the hands
+            [LinkFrames.StepName] = BuildSteps.HandRoles,
             [ReadSteps.Labels] = new[] { "baseplan" },
             [ReadSteps.Blocks] = new[] { "villaBlocks" },
             [ReadSteps.Setbacks] = new[] { "villaBlocks" },
@@ -42,7 +50,7 @@ namespace SiteAdaptation.Common
         };
 
         public static readonly Dictionary<string, string> StepCommand = Steps.Keys.ToDictionary(step => step,
-            step => step == FaceStep.Name ? "build" : step == ProjectPositionFile.PositionStep || step == ProjectPositionFile.CheckPointsStep ? "position" : "read");
+            step => step == FaceStep.Name || BuildSteps.Names.Contains(step) ? "build" : step == ProjectPositionFile.PositionStep || step == ProjectPositionFile.CheckPointsStep ? "position" : "read");
 
         // R349. The role of a road surface file in a request, roadSurface:<file name with no extension>, one per LandXML file
         public const string RoadSurfaceRole = "roadSurface:";
@@ -198,7 +206,8 @@ namespace SiteAdaptation.Common
                 {
                     throw new WorkerStop(WorkerExit.Refused, "the step " + step + " is a step of the command " + StepCommand[step] + ", the request is " + request.Command);
                 }
-                foreach (string role in Steps[step].Where(role => !Holds(inputs, role)))
+                // R345. A plot list needs no labels.csv, as a cover file of plan_from_book.py (H1 of the fifth review of PR 55)
+                foreach (string role in Steps[step].Where(role => !Holds(inputs, role) && (role != PlotScope.LabelsRole || PlotScope.NeedsLabels(request.Scope))))
                 {
                     throw new WorkerStop(WorkerExit.Refused, "the step " + step + " needs the input " + role + ", the request names none");
                 }

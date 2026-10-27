@@ -8,6 +8,15 @@ using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common
 {
+    // R356. A value of a step whose written value is not the rounding of its raw value at the decimals of its field: the rotation of a link,
+    // which the plan writes by plan_rotation, 0 for one that rounds to 360 (R80)
+    public sealed class StepValue
+    {
+        public object Raw { get; set; }
+
+        public object Written { get; set; }
+    }
+
     // R345. The step file of the C# side, the same form as python/parity.py step_file: its side and scope, and per plot the raw
     // values, every digit of a double kept, and the written values, each number of a field with decimals rounded by R385, a list of
     // points point by point. The worker writes it through WorkerContext.WriteJson, which adds the run stamp of its inputs (R347)
@@ -87,6 +96,12 @@ namespace SiteAdaptation.Common
                 var written = new JObject();
                 foreach (KeyValuePair<string, object> value in plot.Value)
                 {
+                    if (value.Value is StepValue given)
+                    {
+                        raw[value.Key] = Token(given.Raw, null);
+                        written[value.Key] = Token(given.Written, null);
+                        continue;
+                    }
                     ParityField field;
                     int? decimals = byName.TryGetValue(value.Key, out field) ? field.Decimals : null;
                     raw[value.Key] = Token(value.Value, null);

@@ -45,14 +45,34 @@ def tolerances(settings):
             kind = field.get("kind")
             if kind not in block["kinds"]:
                 raise project_profile.ProfileError("addin.parity.steps.%s.%s names the kind %s, which addin.parity.kinds does not hold (R345)" % (step, name, kind))
-            tolerance = block["kinds"][kind]
-            # True is 1 and NaN passes every comparison, so a tolerance is a finite number of zero or more, or null for an exact kind
-            if tolerance is not None and (isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)) or not math.isfinite(tolerance) or tolerance < 0):
-                raise project_profile.ProfileError("addin.parity.kinds.%s is %r, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)" % (kind, tolerance))
+            tolerance = tolerance_of(block["kinds"], kind)
             if (tolerance is None) != ("decimals" not in field):
                 raise project_profile.ProfileError("addin.parity.steps.%s.%s: a kind with a tolerance has decimals and a kind compared exactly has none (R345)" % (step, name))
             found[step][name] = (kind, tolerance, field.get("decimals"))
     return found
+
+
+def tolerance_of(kinds, kind):
+    """R345. The tolerance of a kind of addin.parity.kinds, None for a kind compared exactly. True is 1 and NaN passes every comparison, so
+    a tolerance is a finite number of zero or more, a value refused written as json.dumps writes it, the line of AddinConfig.ParityTolerance,
+    where %r wrote True, nan and 'Infinity' (H2 of the fifth review of PR 55)."""
+    tolerance = kinds[kind]
+    if tolerance is not None and (isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)) or not math.isfinite(tolerance) or tolerance < 0):
+        raise project_profile.ProfileError("addin.parity.kinds.%s is %s, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)"
+                                           % (kind, json.dumps(tolerance, separators=(",", ":"))))
+    return tolerance
+
+
+def area_tolerance(settings):
+    """R345. The areas tolerance of addin.parity, the most the union of the rings of a label may fall short of their sum, held as
+    AddinConfig.ParityTolerance holds it with its lines, for the build, the read steps of the location plan and the check points of
+    position_file.py, which took it raw (G3 of the fourth review and H2 of the fifth review of PR 55)."""
+    kinds = ((settings.get("addin") or {}).get("parity") or {}).get("kinds") or {}
+    if "areas" not in kinds:
+        raise project_profile.ProfileError("addin.parity.kinds names no kind areas (R345)")
+    if kinds["areas"] is None:
+        raise project_profile.ProfileError("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)")
+    return tolerance_of(kinds, "areas")
 
 
 def sha256(path):
@@ -108,6 +128,19 @@ def clear_step(folder, step, side):
     return path
 
 
+def fields_entry(raw, fields):
+    """R345, R354. A plot of a step file of the build steps: the raw values as plain JSON, a field of no geometry written as it is and a
+    field of geometry by R385 at the decimals its field names in addin.parity, a list item by item, as the C# writes it (StepFile)."""
+    raw = json.loads(json.dumps(raw))
+
+    def written(value, decimals):
+        if isinstance(value, list):
+            return [written(item, decimals) for item in value]
+        return common.r3(value, decimals)
+    return {"raw": raw, "written": {name: value if (fields.get(name) or {}).get("kind") == "noGeometry" else written(value, (fields.get(name) or {}).get("decimals", common.DECIMALS))
+                                    for name, value in raw.items()}}
+
+
 def write_step(folder, step, side, scope, plots, settings, inputs):
     """step_<step>_<side>.json in folder, the raw numbers as Python writes a float, so no digit is lost (never through common.write_json)."""
     folder = Path(folder)
@@ -161,6 +194,25 @@ def same_inputs(python, csharp):
         role = item.get("role")
         if role in mine and str(mine[role]).lower() != str(item.get("sha256")).lower():
             raise ValueError("the two step files were written from other %s files, SHA-256 %s and %s" % (role, mine[role], item.get("sha256")))
+
+
+# R357. The steps that take the files of the prototype folder, plan_from_book.PROTOTYPE_STEPS
+LISTED_STEPS = ("hands", "linkFrame")
+
+
+def listed_inputs(python, csharp, prefix="prototype:"):
+    """R357. The files of a listing a step takes, the prototype folder, are the same files on both sides: same_inputs holds each file both
+    name, this holds that neither names one the other does not, as the review of PR 55 found the C# took one of two files Python listed. A step
+    of LISTED_STEPS alone, as the C# stamps every step of a request with all its inputs and the Python steps clusters and fronts name none."""
+    if python.get("step") not in LISTED_STEPS:
+        return
+
+    def roles(payload):
+        return {item.get("role") for item in (payload.get("run") or {}).get("inputs") or [] if str(item.get("role")).startswith(prefix)}
+    mine, theirs = roles(python), roles(csharp)
+    if mine != theirs:
+        raise ValueError("the two step files list other prototype files, only python %s, only csharp %s (R357)" % (
+            ", ".join(sorted(mine - theirs)) or "none", ", ".join(sorted(theirs - mine)) or "none"))
 
 
 def workbook_inputs(payload, side, values):
@@ -356,6 +408,7 @@ def main(argv=None):
     python = load_step(args.python, "python")
     csharp = load_step(args.csharp, "csharp")
     same_inputs(python, csharp)
+    listed_inputs(python, csharp)
     workbook_inputs(python, "python", values)
     workbook_inputs(csharp, "csharp", values)
     for side, payload in (("python", python), ("csharp", csharp)):

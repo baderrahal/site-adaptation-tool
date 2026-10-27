@@ -440,6 +440,18 @@ def test_r353_the_cli_writes_the_file_outside_git_the_position_step_and_the_chec
     assert "levelStepsM" in capsys.readouterr().err
 
 
+def test_r353_the_check_points_take_the_areas_tolerance_as_the_build_holds_it(tmp_path, capsys):
+    # H2 of the fifth review of PR 55: the check points took addin.parity.kinds.areas raw, so a NaN refused no face of two overlapping
+    # rings, where the build, the read and the C# position command refuse the tolerance itself with one line
+    path, values = made_settings(tmp_path)
+    values["addin"]["parity"]["kinds"]["areas"] = float("nan")
+    path.write_text(json.dumps(values), encoding="utf-8")
+    reads, base, check = made_cli(tmp_path, values)
+    assert position_file.main(["--settings", str(path)] + base + check + ["--out", str(tmp_path / "out")]) == 2
+    assert "addin.parity.kinds.areas is NaN, a tolerance is a finite number of zero or more, or null for a kind compared exactly (R345)" in capsys.readouterr().err
+    assert not (tmp_path / "out").exists()
+
+
 def test_r353_the_cli_refuses_a_baseplan_with_no_key_points_and_says_when_the_check_points_were_not_made(tmp_path, capsys):
     # Inputs: the baseplan and labels with no key points, as the worker refuses them, and a run that names neither, whose file is written
     # with an issue that the check points were not made, as R387 lists a check that cannot be made
