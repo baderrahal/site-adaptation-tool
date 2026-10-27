@@ -529,6 +529,35 @@ namespace SiteAdaptation.Tests
             Assert.Equal(JTokenType.Null, named[5].Type);
         }
 
+        // B6 of the review of PR 55. RoadLines filled every 32 m cell of the box of each segment, so a curb vertex 51 km off took 328 MiB and
+        // one at project coordinates billions of cells. A stray vertex now costs no more than any segment, and the distance stays the least
+        // over every segment, as STRtree.query_nearest and GEOS give it
+        [Fact]
+        public void R355_a_stray_curb_vertex_far_off_builds_the_road_lines_in_bounded_memory_with_the_distance_of_every_segment()
+        {
+            var near = new List<double[][]>
+            {
+                new[] { new[] { -50.0, -3.0 }, new[] { 100.0, -3.0 } }, new[] { new[] { -3.0, -10.0 }, new[] { -3.0, 40.0 }, new[] { 20.0, 60.0 } },
+            };
+            // A curb of 200 segments, so the boxes are halved many times
+            near.Add(Enumerable.Range(0, 201).Select(index => new[] { index * 3.0, 80.0 + 5.0 * Math.Sin(index / 7.0) }).ToArray());
+            foreach (double[] stray in new[] { new[] { 36000.0, 36000.0 }, new[] { -2.4e6, 5e5 }, new[] { 1e12, -1e12 } })
+            {
+                var lines = near.Concat(new[] { new[] { new[] { 10.0, 10.0 }, stray } }).ToList();
+                long before = GC.GetTotalMemory(true);
+                var roads = new RoadLines(lines.Select(line => (IReadOnlyList<double[]>)line));
+                long held = GC.GetTotalMemory(true) - before;
+                Assert.True(held < 4 * 1024 * 1024, "the road lines of a vertex at " + stray[0] + ", " + stray[1] + " hold " + held + " bytes");
+                var segments = lines.SelectMany(line => line.Zip(line.Skip(1), (a, b) => new[] { a, b })).ToList();
+                foreach (double[] point in new[] { new[] { 0.0, 0.0 }, new[] { 30.0, 5.0 }, new[] { 18000.0, 18000.0 }, new[] { stray[0] + 5.0, stray[1] - 7.0 }, new[] { -1e5, 3e5 }, new[] { 5e11, -5e11 } })
+                {
+                    double least = segments.Min(segment => PyMath.SegmentDistance(point, segment[0], segment[1]));
+                    Assert.Equal(least, roads.Distance(point[0], point[1]));
+                }
+                GC.KeepAlive(roads);
+            }
+        }
+
         // Python math.dist, the hypot of CPython 3.12 vector_norm, and the distance of GEOS from a point to a segment, as the values Python
         // 3.12.10 gave for these made up pairs, the last digit of each
         [Fact]

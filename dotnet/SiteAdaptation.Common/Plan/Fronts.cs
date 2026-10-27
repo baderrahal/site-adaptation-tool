@@ -7,15 +7,24 @@ using Newtonsoft.Json.Linq;
 namespace SiteAdaptation.Common
 {
     // R355. The road edge lines of the curb layers, analysis.roadEdgeLayers, as cad_analysis.read_road_edges gives them, with the distance
-    // of a point to the nearest of them as shapely STRtree.query_nearest gives it, the least distance of GEOS to a segment of any line. A
-    // grid of the segments finds them, the distance itself is the least over every segment the grid could not rule out
+    // of a point to the nearest of them as shapely STRtree.query_nearest gives it, the least distance of GEOS to a segment of any line. A tree
+    // of the boxes of the segments, halved at the middle of their centres along the wider side down to Leaf segments, finds them, and the
+    // distance itself is the least over every segment the boxes could not rule out. A box is ruled out only when it lies past the least found
+    // by more than the slack, so the least is the one over every segment. The tree holds each segment once, so a stray vertex far off costs
+    // no more than any segment, where the grid of 32 m cells before filled every cell of the box of each segment, 328 MiB for a vertex 51 km
+    // off and billions of cells for one at project coordinates (B6 of the review of PR 55)
     public sealed class RoadLines
     {
-        private const double Cell = 32.0;
+        private const int Leaf = 8;
         private readonly List<double[][]> segments = new List<double[][]>();
-        private readonly Dictionary<long, List<int>> grid = new Dictionary<long, List<int>>();
-        private readonly double originX, originY;
-        private readonly int columns, rowsCount;
+        private readonly Node root;
+
+        private sealed class Node
+        {
+            public double MinX, MinY, MaxX, MaxY;
+            public Node Low, High;
+            public int[] Items;
+        }
 
         public RoadLines(IEnumerable<IReadOnlyList<double[]>> lines)
         {
@@ -27,92 +36,97 @@ namespace SiteAdaptation.Common
                 }
             }
             Count = segments.Count;
-            if (Count == 0)
+            if (Count > 0)
             {
-                return;
-            }
-            originX = segments.Min(item => Math.Min(item[0][0], item[1][0]));
-            originY = segments.Min(item => Math.Min(item[0][1], item[1][1]));
-            columns = (int)Math.Floor((segments.Max(item => Math.Max(item[0][0], item[1][0])) - originX) / Cell) + 1;
-            rowsCount = (int)Math.Floor((segments.Max(item => Math.Max(item[0][1], item[1][1])) - originY) / Cell) + 1;
-            for (int index = 0; index < segments.Count; index++)
-            {
-                double[][] segment = segments[index];
-                int i0 = Column(Math.Min(segment[0][0], segment[1][0])), i1 = Column(Math.Max(segment[0][0], segment[1][0]));
-                int j0 = Row(Math.Min(segment[0][1], segment[1][1])), j1 = Row(Math.Max(segment[0][1], segment[1][1]));
-                for (int i = i0; i <= i1; i++)
-                {
-                    for (int j = j0; j <= j1; j++)
-                    {
-                        long key = (long)i * rowsCount + j;
-                        if (!grid.TryGetValue(key, out List<int> held))
-                        {
-                            grid[key] = held = new List<int>();
-                        }
-                        held.Add(index);
-                    }
-                }
+                root = Build(Enumerable.Range(0, Count).ToArray(), 0, Count);
             }
         }
 
         // The number of segments, 0 for no line
         public int Count { get; }
 
-        private int Column(double x)
+        private Node Build(int[] order, int start, int count)
         {
-            return Math.Max(0, Math.Min(columns - 1, (int)Math.Floor((x - originX) / Cell)));
+            var node = new Node { MinX = double.PositiveInfinity, MinY = double.PositiveInfinity, MaxX = double.NegativeInfinity, MaxY = double.NegativeInfinity };
+            for (int index = start; index < start + count; index++)
+            {
+                double[][] segment = segments[order[index]];
+                node.MinX = Math.Min(node.MinX, Math.Min(segment[0][0], segment[1][0]));
+                node.MaxX = Math.Max(node.MaxX, Math.Max(segment[0][0], segment[1][0]));
+                node.MinY = Math.Min(node.MinY, Math.Min(segment[0][1], segment[1][1]));
+                node.MaxY = Math.Max(node.MaxY, Math.Max(segment[0][1], segment[1][1]));
+            }
+            if (count <= Leaf)
+            {
+                node.Items = new int[count];
+                Array.Copy(order, start, node.Items, 0, count);
+                return node;
+            }
+            bool alongX = node.MaxX - node.MinX >= node.MaxY - node.MinY;
+            var keys = new double[count];
+            for (int index = 0; index < count; index++)
+            {
+                double[][] segment = segments[order[start + index]];
+                keys[index] = alongX ? segment[0][0] + segment[1][0] : segment[0][1] + segment[1][1];
+            }
+            var slice = new int[count];
+            Array.Copy(order, start, slice, 0, count);
+            // The order among equal keys may differ by runtime, which moves no distance: the least over the segments is the same set's
+            Array.Sort(keys, slice);
+            Array.Copy(slice, 0, order, start, count);
+            int half = count / 2;
+            node.Low = Build(order, start, half);
+            node.High = Build(order, start + half, count - half);
+            return node;
         }
 
-        private int Row(double y)
+        private static double BoxDistance(Node node, double x, double y)
         {
-            return Math.Max(0, Math.Min(rowsCount - 1, (int)Math.Floor((y - originY) / Cell)));
+            double dx = Math.Max(Math.Max(node.MinX - x, 0.0), x - node.MaxX);
+            double dy = Math.Max(Math.Max(node.MinY - y, 0.0), y - node.MaxY);
+            return Math.Sqrt(dx * dx + dy * dy);
         }
 
-        // The least distance from the point to a segment of any line, the cells searched ring by ring until no cell left can hold a
-        // segment nearer than the least found
+        // The least distance from the point to a segment of any line
         public double Distance(double x, double y)
         {
             double best = double.PositiveInfinity;
-            var point = new[] { x, y };
-            int ci = (int)Math.Floor((x - originX) / Cell), cj = (int)Math.Floor((y - originY) / Cell);
-            int reach = Math.Max(Math.Max(Math.Abs(ci), Math.Abs(columns - 1 - ci)), Math.Max(Math.Abs(cj), Math.Abs(rowsCount - 1 - cj)));
-            var seen = new HashSet<int>();
-            for (int ring = 0; ring <= reach; ring++)
+            if (root != null)
             {
-                for (int i = ci - ring; i <= ci + ring; i++)
-                {
-                    for (int j = cj - ring; j <= cj + ring; j++)
-                    {
-                        if (Math.Max(Math.Abs(i - ci), Math.Abs(j - cj)) != ring || i < 0 || j < 0 || i >= columns || j >= rowsCount)
-                        {
-                            continue;
-                        }
-                        if (!grid.TryGetValue((long)i * rowsCount + j, out List<int> held))
-                        {
-                            continue;
-                        }
-                        foreach (int index in held)
-                        {
-                            if (seen.Add(index))
-                            {
-                                double distance = PyMath.SegmentDistance(point, segments[index][0], segments[index][1]);
-                                if (distance < best)
-                                {
-                                    best = distance;
-                                }
-                            }
-                        }
-                    }
-                }
-                // Every cell left lies at least this far from the point
-                double free = Math.Min(Math.Min(x - (originX + (ci - ring) * Cell), originX + (ci + ring + 1) * Cell - x),
-                    Math.Min(y - (originY + (cj - ring) * Cell), originY + (cj + ring + 1) * Cell - y));
-                if (best <= free)
-                {
-                    break;
-                }
+                Search(root, new[] { x, y }, ref best);
             }
             return best;
+        }
+
+        private void Search(Node node, double[] point, ref double best)
+        {
+            // The slack, a micrometre and a part in a billion of the least, lies far over the rounding of the box and the segment distance
+            if (BoxDistance(node, point[0], point[1]) > best + 1e-6 + 1e-9 * best)
+            {
+                return;
+            }
+            if (node.Items != null)
+            {
+                foreach (int index in node.Items)
+                {
+                    double distance = PyMath.SegmentDistance(point, segments[index][0], segments[index][1]);
+                    if (distance < best)
+                    {
+                        best = distance;
+                    }
+                }
+                return;
+            }
+            if (BoxDistance(node.Low, point[0], point[1]) <= BoxDistance(node.High, point[0], point[1]))
+            {
+                Search(node.Low, point, ref best);
+                Search(node.High, point, ref best);
+            }
+            else
+            {
+                Search(node.High, point, ref best);
+                Search(node.Low, point, ref best);
+            }
         }
     }
 
