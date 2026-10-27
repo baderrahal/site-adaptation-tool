@@ -324,6 +324,8 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R355 The front of a plot in a build.
 - R356 The link frame of a plot in a build.
 - R357 The hand of a plot in a build.
+- R358 The floors of a plot in a build.
+- R359 The levels of a plot in a build.
 - R385 One rounding rule in Python and C#.
 - R386 Use and skip in the override list.
 - R387 The control point fit as a check of the schedule fit.
