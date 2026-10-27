@@ -50,11 +50,10 @@ Q058 Old 20221206 prototypes and their hands. Q059 NBH 03 build on native2022. Q
 Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario master. Q066 No Parsons TU model of Zone 1. Q068 Project position of button 1. Q069 A remade key copy by its hashes.
 Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
 Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
-Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters. Q105 Row pair of 5 DP2 cluster units.
-Q106 Step values of the schedules as DOCUMENT. Q107 Status detail of values built from others.
+Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
 
 ## Next three steps
 
-1. ADDIN 4g2: R362 to R365, the walls, issues and the two Excel files, with the Assumed chip and sheet. Bader pastes steps/START.md
-2. ADDIN 4h: R366 to R369, one session by steps/START.md
-3. ADDIN Phase 5 with Q103, the Revit run after 5c, then Phase 6, as steps/01_next.md gives them
+1. ADDIN 4g2: Q105, Q107, the walls of R362 and the check rows of R363 with the grouped chip Assumed of Q108. Bader pastes steps/START.md
+2. ADDIN 4g3: R364 the level Excel and R365 the report Excel with the sheet Assumed, one session by steps/START.md
+3. ADDIN 4h: R366 to R369, one session by steps/START.md

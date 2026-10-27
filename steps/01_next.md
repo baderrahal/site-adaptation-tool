@@ -20,12 +20,19 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Design: docs/design/05-plan-steps.md steps 5 to 13 and 15, steps/investigations/rule-status-audit.md sections 1, 8 and 10
 - Done when: parity holds on the 7 keys and the whole project for the hands, the parameters and the status of each plotted value, the summary of step 15 of Python counts plots by field and status, and steps/investigations/status-review.md holds Bader's review list of Q104. The parity of that count goes with step 15 in 4g2
 
-## 4g2, the walls, issues and the two Excel files
+## 4g2, Q105, Q107, the walls and the check rows
 
 - Status: open
-- Rules: R362 walls and python/plan_walls.py. R363 issues and the check rows, python/check_rows.py, with the chip Assumed. R364 the level Excel. R365 the report Excel, with the plot count on each line of Rules applied and the sheet Assumed, and the parity of step 15 with the count by field and status of R401
-- Design: docs/design/05-plan-steps.md steps 11, 14 and 15, docs/design/03b-buttons-2-to-8.md (6 Levels, 7 Walls, 8 Report), docs/design/07-mock.md 7.4 to 7.7
-- Done when: parity holds for steps 11, 14 and 15, and each Excel holds the labels of 7.5 and 7.6 of the mock in the order of the mock, with the items of 7.7
+- Rules: Q105 in the hand step. Q107 in the status step and the build memory. R362 walls and python/plan_walls.py. R363 issues and the check rows, python/check_rows.py, with the grouped chip Assumed of Q108
+- Design: docs/design/05-plan-steps.md steps 7, 11, 14 and 15 (status), docs/design/03b-buttons-2-to-8.md (7 Walls), docs/design/07-mock.md 7.4 and 7.7
+- Done when: parity holds for steps 7, 11, 14 and the status of step 15, and the build peak is measured and set
+
+## 4g3, the level and report Excel
+
+- Status: open
+- Rules: R364 the level Excel. R365 the report Excel, with the plot count on each line of Rules applied and the sheet Assumed, and the parity of step 15 with the count by field and status of R401
+- Design: docs/design/05-plan-steps.md step 15, docs/design/03b-buttons-2-to-8.md (6 Levels, 8 Report), docs/design/07-mock.md 7.5 to 7.7
+- Done when: parity holds for step 15, and each Excel holds the labels of 7.5 and 7.6 of the mock in the order of the mock, with the items of 7.7
 
 ## 4h, the scope, step state, settings and element tags
 
