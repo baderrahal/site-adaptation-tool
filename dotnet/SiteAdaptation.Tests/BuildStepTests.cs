@@ -597,8 +597,8 @@ namespace SiteAdaptation.Tests
             Assert.Equal(JTokenType.Null, named[5].Type);
         }
 
-        // B6 of the review of PR 55. RoadLines filled every 32 m cell of the box of each segment, so a curb vertex 51 km off took 328 MiB and
-        // one at project coordinates billions of cells. A stray vertex now costs no more than any segment, and the distance stays the least
+        // B6 of the review of PR 55. RoadLines filled every 32 m cell of the box of each segment, so the vertex at 36000, 36000 here held
+        // 130,354,888 bytes on net8.0 and 140,498,368 on net48. A stray vertex now costs no more than any segment, and the distance stays the least
         // over every segment, as STRtree.query_nearest and GEOS give it
         [Fact]
         public void R355_a_stray_curb_vertex_far_off_builds_the_road_lines_in_bounded_memory_with_the_distance_of_every_segment()

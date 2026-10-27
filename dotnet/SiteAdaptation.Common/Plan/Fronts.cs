@@ -11,8 +11,8 @@ namespace SiteAdaptation.Common
     // of the boxes of the segments, halved at the middle of their centres along the wider side down to Leaf segments, finds them, and the
     // distance itself is the least over every segment the boxes could not rule out. A box is ruled out only when it lies past the least found
     // by more than the slack, so the least is the one over every segment. The tree holds each segment once, so a stray vertex far off costs
-    // no more than any segment, where the grid of 32 m cells before filled every cell of the box of each segment, 328 MiB for a vertex 51 km
-    // off and billions of cells for one at project coordinates (B6 of the review of PR 55)
+    // no more than any segment, where the grid of 32 m cells before filled every cell of the box of each segment, 130,354,888 bytes on net8.0
+    // and 140,498,368 on net48 for one vertex at 36000, 36000 (B6 of the review of PR 55, round_addin logs p4efix1_b6_first_csharp.txt)
     public sealed class RoadLines
     {
         private const int Leaf = 8;
