@@ -12,7 +12,7 @@ The rules live in docs/rules/ (docs/rules/index.md finds a rule by id) and nowhe
 ## Start of every session
 
 1. Confirm the folder is the repo root, the branch is not main, and `git fetch` shows main level with origin.
-2. Read steps/PROGRESS.md, then the top entry of steps/log.md.
+2. Read steps/PROGRESS.md, and in a phase session its open phase of steps/01_next.md. The top entry of steps/log.md only when PROGRESS leaves a point open.
 3. Open a new branch for the round. Never commit to main. A hook blocks commits and pushes to main.
 
 ## Round ADDIN

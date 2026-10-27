@@ -15,3 +15,7 @@ PR 58, pass 1
 PR 59, pass 1
 - reviewer CHANGES NEEDED, 3 REAL, fixed: the reviewer and breaker read lists said whole and by grep at once, CLAUDE.md named 01_next.md and START.md before PR 5 writes them, now marked, the RevitPrototypeReader guard left CLAUDE.md with the repo map, now a line of Round ADDIN
 - claim-checker 2 WRONG, fixed: the CLAUDE.md sizes were measured before later edits, now 29,428 at 73b8c42 and the size after the last edit. UNBACKED: the dotnet counts of gate_pr4.txt were taken before the commit, the gate ran again after the fixes
+
+PR 60, pass 1
+- reviewer CHANGES NEEDED, 2 REAL, fixed: START.md read nothing else at start while the CLAUDE.md start list read the top log entry, now the log entry is read only when PROGRESS leaves a point open, START.md named other checkers than CLAUDE.md, now the ones CLAUDE.md names. Two done-when lines of 01_next.md said more than the design, now its words. LATENT in steps/latent.md: the exact cap test is under three caps, the log read as text
+- claim-checker 1 WRONG, fixed: "the 6 new tests" are those of the round, this PR adds 4. Loose: the 14,053 byte PROGRESS the test failed on first is that of main at 37ec882, the 21,479 bytes are those of 73b8c42

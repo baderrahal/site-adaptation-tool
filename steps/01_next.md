@@ -7,7 +7,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Status: open
 - Rules: R358 ramp, generic and yard outlines and the ramp type. R359 levels, the row partners and the road at front, the road at front and El @ Entry from one unrounded mean. R360 overrides with the use and skip of R386. R361 link parameters and the link name
 - Design: docs/design/05-plan-steps.md, parity steps 8, 10, 12 and 13 and Step 8, the Z of the ramp corners
-- Done when: parity holds on every plot of the data book for steps 8, 10, 12 and 13, and each step has tests on small dummy data built in code that run on both runners (05-plan-steps.md, R345)
+- Done when: parity holds on every unit plot of the data book for steps 8, 10, 12 and 13, and each step has tests on small dummy data built in code that run on both runners (05-plan-steps.md, R345)
 
 ## 4g, the walls, issues and the two Excel files
 
@@ -21,7 +21,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Status: open
 - Rules: R366 scope with the plot list syntax and the step state by hash. R367 the settings JSON kept in the project. R368 element tags, the match to the plan, the hand change and the schema versions. R369 the second method of Phase 4, seeds 14 and 7
 - Design: docs/design/03a-buttons-shared-and-1.md (What every button shares, Steps and Scope), docs/design/06-settings.md
-- Done when: each rule has its tests on both runners and the second method of Phase 4 at seeds 14 and 7 agrees with the build on every step (R369)
+- Done when: each rule has its tests on both runners and the second method of Phase 4 runs at seeds 14 and 7 (R369, 10-rule-ids.md)
 
 ## 5a, the install, ribbon, pane and one transaction per button
 

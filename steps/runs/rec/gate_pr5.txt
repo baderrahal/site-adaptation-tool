@@ -1,5 +1,5 @@
-Gate on rec/plan-caps after its last edit, summary lines
-1798 passed, 1 skipped in 54.50s
+Gate on rec/plan-caps after the review fixes, the last edit of the round, summary lines
+1798 passed, 1 skipped in 54.49s
 2 Warning(s)
 0 Error(s)
 Passed!  - Failed:     0, Passed:   763, Skipped:     0, Total:   763 SiteAdaptation.Tests.dll (net8.0)
