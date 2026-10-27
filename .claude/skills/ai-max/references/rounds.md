@@ -21,7 +21,7 @@ After setup the work moves in rounds. One round is one goal, one branch, one pul
 
 1. The person picks the goal, from `steps/01_next.md` or a new one
 2. Claude in chat writes the full prompt from `assets/prompts/round.md`
-3. Claude Code plans, branches, works, runs the full tests after the last edit, runs the checkers, writes the log entry, rewrites `steps/PROGRESS.md`, opens the pull request, merges it once the gate is green, and reads the merge back off main
+3. Claude Code, in a fresh session, plans, branches, works, runs the full tests after the last edit, runs the checkers, writes the log entry, rewrites `steps/PROGRESS.md`, opens the pull request, merges it once the gate is green, reads the merge back off main, adds its row to `steps/usage.md`, and stops at the end of its phase
 4. Claude in chat audits the round and tells the person: done, remains, known bugs, next, and their turn
 
 No approval stop anywhere in it. The person decides at the start and at the end, never in the middle.
@@ -45,11 +45,11 @@ Then, in this order. `assets/prompts/round.md` has the blank:
 - **The round's title.** ROUND N, a few words
 - **Context.** The repo, main's commit if known, what the last log entry says, and who does what in one line
 - **Goal.** The outcomes as bullets, each one observable
-- **Read first, in order.** `CLAUDE.md`, `.claude/rules`, `steps/PROGRESS.md`, then the files the round needs, by path
+- **Read first, in order.** `CLAUDE.md`, `.claude/rules`, `steps/PROGRESS.md`, then the files the round needs, by path, and never a whole file over 30 KB
 - **Do this.** Numbered, one action each
 - **Out of scope.** What not to touch
 - **Checks that must pass.** The exact commands
-- **Rules.** Branch, one pull request, tests after the last edit, breaker and claim-checker, merge on green with the squash message passed, the log entry, `PROGRESS.md` rewritten, the run sheet when the host side changed, a question goes in `steps/02_questions.md` and the work carries on, never report a check that did not run, the writing rules
+- **Rules.** Branch, one pull request, tests after the last edit, breaker and claim-checker, findings REAL or LATENT, at most 2 review passes, merge on green with the squash message passed, the log entry, `PROGRESS.md` rewritten, the run sheet when the host side changed, a question goes in `steps/02_questions.md` and the work carries on, never report a check that did not run, the writing rules, the usage row, and stop at the end of the phase
 - **Final message to the person.** Plain and short: what is done, what is open, what is UNKNOWN, and anything that needs their hand
 
 The prompt is complete every time. Never a fragment the person has to assemble from an earlier message, and never a file to download. It goes in the chat as one code block.
@@ -64,13 +64,15 @@ Written by Claude Code, merged to main, pulled by the person with GitHub Desktop
 
 | File | Holds | Rule |
 |---|---|---|
-| `PROGRESS.md` | the one page every session and every reader starts from | at most 60 lines, rewritten never appended |
+| `PROGRESS.md` | the one page every session and every reader starts from | inside the caps of the Usage section of `SKILL.md`, rewritten never appended |
 | `START.md` | the prompt the person pastes into a new Claude Code session | under 20 lines |
 | `00_analysis.md` | what the code does, what is wrong, what is missing | history once the plan exists |
 | `01_next.md` | the plan, items numbered F1, F2, each with a DONE line when done | the order at the top |
 | `02_questions.md` | every question for the person, numbered once, the answer under each | never renumbered |
 | `03_your_steps.md` | what the person does at their machine | rewritten each round, at most 30 steps |
-| `log.md` | one entry per round, newest at the top | older entries move to `history/` past about 100 KB |
+| `log.md` | one entry per round, newest at the top | top entry at most 4 KB, older entries move to `history/` past about 100 KB |
+| `latent.md` | findings no real input reaches, kept with no fix | moved back as REAL when real data reaches one |
+| `usage.md` | one row per session, its tokens and cost | added after each phase merges |
 | `logs/` | run logs the person sends back | evidence, never edited, a hook refuses it |
 
 `PROGRESS.md` starts with one line, `STATE OPEN`, `STATE WAITING`, or `STATE CLOSED`, then a comma and the date and time of the rewrite. Then, each short:
@@ -135,7 +137,7 @@ When Claude Code says a round is finished, nothing else moves until the audit. I
 
 **In chat**, through the GitHub connector:
 
-1. Read `steps/PROGRESS.md` and the top entry of the log on main
+1. Read `steps/PROGRESS.md` and the top entry of the log on main, and the sizes of the start files and the newest row of `steps/usage.md` against the caps
 2. Read the merge commit with its file stats, to see what actually changed
 3. Read the changed files that matter
 4. Compare every claim in the entry with what was read
@@ -154,6 +156,7 @@ Facts about the GitHub connector, from past rounds:
 - read a merge commit with its file stats to see what a round changed
 - a large file can pass the connector's inline limit. Fetch the raw file instead
 - the connector cannot read GitHub Actions results
+- a file over 30 KB is read in parts or searched, never pulled whole into a reply
 - the pull request list can report merged false on a merged pull request. Read merged_at
 - a public repo can also be cloned read only into the chat's own workspace, which is quicker for many files. It is still reading, not checking
 
@@ -189,11 +192,9 @@ Roles the lead can add for the loop, beside the five checkers: a runner that bui
 
 ## 10. Keeping files short
 
-The person reads on a phone. On past tools the run sheet grew past 1,700 lines, one log past 600 KB and one state file past 2,800 lines, and each stopped being read.
+The person reads on a phone. On past tools the run sheet grew past 1,700 lines, one log past 600 KB and one state file past 2,800 lines, and each stopped being read. Every session pays for the same files on every turn.
 
-- `PROGRESS.md` at most 60 lines, rewritten
-- `START.md` under 20 lines
+- the byte caps of every record are in the Usage section of `SKILL.md`, held by one test in the gate
 - the run sheet at most 30 steps, rewritten
-- `CLAUDE.md` and every `.claude/rules` file under 200 lines
-- `log.md` under about 100 KB, older entries moved whole to `steps/history/`
+- every `.claude/rules` file under 200 lines
 - counts on the page are made by a script from the tracker where one exists, never typed

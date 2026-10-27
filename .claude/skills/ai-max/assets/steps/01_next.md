@@ -1,6 +1,7 @@
 # 01 next
 
-The plan. One section per item, F and a number, worked in the order below. A finished item gets
+The plan. One section per item, F and a number, worked in the order below. One session takes the
+first open item, or the group the order line names, and stops when it merges. A finished item gets
 one DONE line under its own section, with the date, the pull request and what proved it.
 
 Order: F1, F2, F3

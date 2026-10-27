@@ -13,6 +13,8 @@ Short lines. One action per step. Every command in a code block.
 - `03_your_steps.md` what the person does at the machine, numbered, one action per step
 - `log.md` one entry per round, newest at the top
 - `logs/` run logs the person sends back. Evidence, never edited
+- `latent.md` findings no real input reaches, kept with no fix
+- `usage.md` one row per session, its tokens and cost
 - `history/` older log entries, opened for a line, never read first
 
 ## How to read it

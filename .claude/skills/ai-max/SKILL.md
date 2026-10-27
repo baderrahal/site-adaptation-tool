@@ -1,11 +1,11 @@
 ---
 name: "ai-max"
-description: "Runs the whole life of a tool. Deciding what it does, picking the language for the host program, setting up the repo with rules, hooks, a test gate and checker agents, every build round after that, and the release to a team. Also runs the split between the person who decides, Claude in chat who drafts and reads, and Claude Code who does and checks, so it covers the prompt for Claude Code, reading what Code did, auditing a finished round, and the steps the person runs on their machine. Use it whenever the user talks about building, making, fixing, auditing or planning a tool, add-in, plugin, script, automation or utility, for Revit, Navisworks, Civil 3D, AutoCAD, Rhino, Excel, the browser or anything else. Trigger on new tool, build an add-in, I want to automate, start a repo, prompt for Code, Code finished, next round, audit the repo, fix round, or any repo setup question, even when the skill is not named and the user only describes the problem."
+description: "Runs the whole life of a tool. Deciding what it does, picking the language for the host program, setting up the repo with rules, hooks, a test gate and checker agents, every build round after that, and the release to a team. Also runs the split between the person who decides, Claude in chat who drafts and reads, and Claude Code who does and checks, so it covers the prompt for Claude Code, reading what Code did, auditing a finished round, and the steps the person runs on their machine. Use it whenever the user talks about building, making, fixing, auditing or planning a tool, add-in, plugin, script, automation or utility, for Revit, Navisworks, Civil 3D, AutoCAD, Rhino, Excel, the browser or anything else. Trigger on new tool, build an add-in, I want to automate, start a repo, prompt for Code, Code finished, next round, audit the repo, fix round, usage or token cost too high, a session that ran too long, or any repo setup question, even when the skill is not named and the user only describes the problem."
 ---
 
 # AI MAX
 
-Version 3, 19 Oct 2026. A copy inside a repo at `.claude/skills/ai-max` is out of date when its version line differs from this one. Version 3 adds the lessons of the NWC Federator, 26 Aug to 19 Oct 2026, in the section of that name below. Where a reference file says less, that section wins.
+Version 4, 27 Oct 2026. A copy inside a repo at `.claude/skills/ai-max` is out of date when its version line differs from this one. Version 3 added the lessons of the NWC Federator, 26 Aug to 19 Oct 2026. Version 4 adds the usage lessons of the Site Adaptation Tool, 25 to 27 Oct 2026, in the section Usage below. Where a reference file says less, those sections win.
 
 A tool goes wrong in the same places every time. It gets built in the wrong language, in a repo with no rules and no automatic check, by sessions that cannot see each other, its state lives in someone's head, and then it cannot be given to anyone else. This runs the order that avoids all of that, from the first idea through every round of building to the team install.
 
@@ -53,15 +53,15 @@ Full detail is in `references/phases.md`. Read the section for a phase before ru
 1. **Decide.** What it does and what counts as done, checkable by the person. Read every input file whole first. Show the window before building it. Then the Day 1 gate in the lessons section: the operating picture, a mock of every output filled with real rows, the window as one route per workflow, and a check of the largest real dataset by hand. Nothing moves until done is answered and the gate is passed.
 2. **Pick the language.** Search the host program's current API, then measure the facts the plan depends on off the installed program. See `references/language-research.md`.
 3. **Scan.** Report what the repo has, item by item, with a path or UNKNOWN. See `references/harness-checklist.md`.
-4. **Rules file.** `CLAUDE.md` from `assets/CLAUDE.md.template`, under 200 lines, plus the steps folder from `assets/steps/` and a copy of this skill in the repo. The person's tool rules go in one file, `docs/rules.md`, as in the lessons section.
+4. **Rules file.** `CLAUDE.md` from `assets/CLAUDE.md.template`, under 200 lines and 10 KB, plus the steps folder from `assets/steps/` and a copy of this skill in the repo. The person's tool rules go in one place, `docs/rules.md`, split into `docs/rules/` with an index once it passes 30 KB, as in the lessons and Usage sections.
 5. **Hooks.** The walls in `assets/hooks/`, the settings in `assets/settings.json`, line endings in `assets/gitattributes.template`. Then prove each wall refuses.
-6. **Test gate.** `assets/workflow-dotnet.yml` or `assets/workflow-python.yml`. It fails when zero tests ran.
+6. **Test gate.** `assets/workflow-dotnet.yml` or `assets/workflow-python.yml`. It fails when zero tests ran, and it holds the record size caps of the Usage section.
 7. **Split.** More sessions only by territory, each owning its own folders.
 8. **Check.** The agents in `assets/agents/`. They report, they never decide or edit.
 9. **Ship.** Pull request, merged by Claude Code once the gate is green, then the proof on the person's machine.
 10. **Package.** The team install kit for the tool, and the harness as a plugin for the team.
 
-Phases 1 to 6 run once. Then one stress test round, in the first week, before any feature round. After that the work moves in rounds, and 7 to 9 repeat inside every round.
+Phases 1 to 6 run once. Then one stress test round, in the first week, before any feature round. After that the work moves in rounds, one phase per fresh session, and 7 to 9 repeat inside every round.
 
 ## Lessons from the NWC Federator
 
@@ -76,7 +76,7 @@ The NWC Federator took 55 days, 1,702 commits and 315 pull requests. About half 
 
 ### Rules
 
-- **One rules file, `docs/rules.md`, is the only source of the person's rules.** Chat memory and prompts point to it and never hold a rule of their own. The Federator's rules lived in chat memory, the repo and the questions file, and drifted.
+- **One rules place, `docs/rules.md` or its parts in `docs/rules/`, is the only source of the person's rules.** Chat memory and prompts point to it and never hold a rule of their own. The Federator's rules lived in chat memory, the repo and the questions file, and drifted.
 - **Every setting's default is the person's stated rule.** A rule off by default needs the person's explicit yes. A rule stated on 18 Sep stayed off by default until 19 Oct.
 - **Every rule has a test that names it, and a line in each run's log saying it was applied.**
 - **One question, one rule, one place, used by every output.** Two checks of the same thing will disagree, and the person loses trust in both.
@@ -99,22 +99,60 @@ Run the largest real dataset end to end, unattended, with one broken file mixed 
 
 ### Records the person reads
 
-- PROGRESS stays at most 60 lines: the state, done, open bugs, the person's turn, the next three steps.
+- PROGRESS holds the state, done, open bugs, the person's turn and the next three steps, inside the caps of the Usage section.
 - Machine logs stay whole. What the person reads is at most one page per round.
-- A plan or questions file past about 100 KB moves its closed items to `steps/history/`. The Federator's plan reached 584 KB.
+- The Federator's plan reached 584 KB. The caps and the split without loss are in the Usage section.
 
 ### Models and mods
 
 - **Each helper agent's model is set by its job.** developer, reviewer and breaker on opus. prober, claim-checker, log-reader and writer on sonnet. runner and file search on haiku. Set it in each agent file's `model` line, or with the person's model-picker mod where it is installed.
 - **The main session's model is picked per round.** Fable or opus for a new tool, a design round or an audit, opus for a fix round.
-- **A fresh session or `/clear` for each round.** Most of the Federator's usage ran with over 150k of context, from sessions left open for eight hours.
 - **The person's mods, where installed:** model-picker sets the agents' models, folder-guard refuses writes into the real project folders wherever a session starts, and round-board shows PROGRESS above the prompt. They add to the repo's own walls and never replace them.
+
+## Usage
+
+The Site Adaptation Tool used 3.85 billion tokens in 3 days, about 1,348 USD at API prices. 97.9 % was cache read, because every turn sends the whole context again. One session ran 15 pull requests over 56 hours and held 95 % of it, while its start files grew to 470 KB, 405 KB and 150 KB. Each rule below closes one of those causes. The evidence, the way to measure and the split without loss are in `references/usage.md`.
+
+### Sessions
+
+- **One phase per session.** A session runs one phase of `steps/01_next.md`, merges, rewrites PROGRESS to STATE WAITING for a fresh session, and stops. The person starts the next by pasting `steps/START.md`. Never carry on into the next phase, however well it goes.
+- **The lead stays light.** The main session plans, hands each change to a helper and merges. It reads the helper's report, not the files the helper read.
+
+### What a session reads
+
+- **At start:** `CLAUDE.md`, `steps/PROGRESS.md` and its entry of `steps/01_next.md`. Nothing else whole, about 20 KB in all.
+- **Never a whole file over 30 KB.** A rule by its id through the index, a question by its number, a design part by its section, the log by its top entry. Grep or a line range.
+- **Agents the same.** An agent's file lists what it reads. No agent reads a whole design or rules file before it starts. A helper that read 150 KB on every spawn was one of the causes.
+- **Chat the same.** PROGRESS and the top log entry, then by path or by id.
+- **Inputs are different.** A file the person gives is still read whole, as the rules below say. The budget is for the repo's own records.
+
+### Caps, held by one test in the gate
+
+- `CLAUDE.md` at most 10 KB. `PROGRESS.md` at most 60 lines and 6 KB, no line over 200 characters. The top log entry at most 4 KB. `START.md` under 20 lines.
+- No file in `docs/` or `steps/` outside `steps/history/` over 100 KB, and a part a helper reads at most 30 KB where it can be.
+- Line caps alone fail. A PROGRESS of 60 lines was 21 KB, one line of it 3,278 characters.
+- Rules in `docs/rules/` with `docs/rules/index.md`, one line per id. A rule's text stays short and its measurements go to `docs/history/`. The design in `docs/design/` by section with a README.
+- Open questions in full in one file, `steps/02_questions.md`. PROGRESS and the log name them by number and a title of at most 8 words. The same text in two files was paid on every read.
+- The test is named for its rule and fails the pull request that grows a file past its cap.
+- A file past its cap is split byte for byte, proved by SHA-256 and a count of every id, never reworded to fit.
+
+### Reviews
+
+- **Real inputs only.** Breaker and reviewer mark each finding REAL, a real input reaches it, or LATENT. REAL is fixed with a test. LATENT goes to `steps/latent.md` with no fix, and moves back as REAL when real data reaches it.
+- **At most 2 review passes per pull request.** What is left becomes a question and the work carries on. One phase took 7 passes and 6 hours, most on inputs no real file reaches.
+- **A port with parity** to a second language is held to the real data, not to every input a reader can imagine.
+
+### Measure every phase
+
+- After a phase merges, the session adds its row to `steps/usage.md` with `npx ccusage@latest session --since <yyyymmdd>`, or UNKNOWN when npx is missing or refused.
+- A phase that costs twice the one before is named in its log entry.
+- The audit checks the caps and the row.
 
 ## Rules that hold everywhere
 
 **Never report a check that did not run.** A count, a passing result, a file that exists. If it was not observed in this session after the last file was written, it is UNKNOWN. A confident wrong count costs more than an honest gap, and on past tools the wrong counts came from status blocks written from memory.
 
-**Read everything before answering.** Every file the person gives, every page, every row. Say how much was read. A partial read reported as whole is worse than no read.
+**Read everything before answering.** Every file the person gives, every page, every row. Say how much was read. A partial read reported as whole is worse than no read. The repo's own records are read by id, as the Usage section says.
 
 **Look before asking.** The repo, the steps folder and the answered questions in `steps/02_questions.md` come first. Ask only what nothing written down answers.
 
@@ -154,6 +192,7 @@ Your turn:   the numbered questions, recommended answer first, or "nothing"
 - `references/harness-checklist.md` the scan list for phase 3 and the capability check
 - `references/writing-rules.md` what must not appear in any output, and how replies read
 - `references/environment.md` facts about the team's machines, Claude Code and the GitHub connector
+- `references/usage.md` what drives the cost of a build, how to measure it, and how to split a record without loss
 - `references/light-path.md` a one file tool with no repo
 
 ## Assets
@@ -164,7 +203,7 @@ Your turn:   the numbered questions, recommended answer first, or "nothing"
 - `assets/hooks/` four walls in plain sh and `hook-tests.sh` that proves them
 - `assets/workflow-dotnet.yml` and `assets/workflow-python.yml` the test gates
 - `assets/agents/` breaker, claim-checker, reviewer, log-reader, prober, researcher
-- `assets/steps/` the steps folder: README, PROGRESS, START, plan, questions, run sheet, log
+- `assets/steps/` the steps folder: README, PROGRESS, START, plan, questions, run sheet, log, latent, usage
 - `assets/prompts/` the setup, round and audit prompts for Claude Code
 - `assets/commands/harness-scan.md` the scan as one command
 - `assets/team/` the team install page and the two launchers

@@ -1,10 +1,10 @@
+STATE WAITING, 2026-10-27 17:11, for the 4g session, Bader pastes steps/START.md into a fresh session
 # Progress
-
 Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
 
 ## State
 
-- STATE WAITING for a fresh session: 4f done on 2026-10-27, PR 61 to 66. The next phase is 4g by steps/START.md
+- 4f done on 2026-10-27, PR 61 to 66. The next phase is 4g by steps/START.md, its state is the first line
 - 4f: Q089 the footprint clusters alone, steps 8, 10, 12 and 13 in C# with parity on 2,704 plots, 0 failures
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
 - Phases 0a to 4f merged, PR 41 to 66: the reads of button 2, then steps 4 to 8, 10, 12 and 13 of the plan builder in C# with parity

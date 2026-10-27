@@ -30,6 +30,8 @@ Facts measured on the team's machines, in Claude Code and through the GitHub con
 - **A squash merge** gets its message built on GitHub's server, where no hook runs, and a co-author line has appeared there. Pass the title and message on every squash merge
 - **Scheduled check-ins.** After opening a pull request a session may schedule its own check-in, and each check-in schedules the next. Name it and remove it unless asked
 - **Usage limits** stop agents part way. Work after that point was not machine audited
+- **Cost is mostly cache read.** Each turn sends the whole context again. On one tool 97.9 % of 3.85 billion tokens was cache read, see `usage.md`
+- **ccusage** reads Claude Code's own logs. `npx ccusage@latest` ran on the author's machine on 27 Oct 2026. Chat cannot reach those logs, they sit in a protected folder
 
 ## The GitHub connector in chat
 
@@ -38,4 +40,5 @@ Facts measured on the team's machines, in Claude Code and through the GitHub con
 - a file past the connector's inline limit is fetched raw instead
 - GitHub Actions results cannot be read from chat
 - the pull request list can report merged false on merged pull requests. Read merged_at
+- a read only clone into chat's own workspace worked for a repo on 27 Oct 2026, which gives sizes and counts by command. It is still reading, not checking
 - reading is not checking. Chat reports what it READ, and everything that needs a run stays UNKNOWN until Claude Code runs it

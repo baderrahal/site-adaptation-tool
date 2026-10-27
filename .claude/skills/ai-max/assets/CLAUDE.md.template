@@ -11,6 +11,15 @@ Every session reads this file, every file under .claude/rules and steps/PROGRESS
 before anything else. It follows .claude/skills/ai-max/SKILL.md. It opens steps/history only for a
 line it needs.
 
+## Reading budget
+
+- At start: this file, steps/PROGRESS.md and the open entry of steps/01_next.md. Nothing else whole
+- Never read a whole file over 30 KB. A rule by its id through docs/rules/index.md, a question by
+  its number, the log by its top entry. Grep or a line range
+- Caps, held by [the record size test]: this file at most 10 KB, PROGRESS.md at most 60 lines and
+  6 KB with no line over 200 characters, the top log entry at most 4 KB, no file of docs/ or
+  steps/ outside steps/history/ over 100 KB
+
 ## Who does what
 
 [Name] decides. Claude in chat drafts the prompts and reads steps/PROGRESS.md and steps/log.md on main
@@ -44,14 +53,17 @@ can run. Put a question in steps/02_questions.md and carry on.
 
 ## How a round works
 
-1. Write the plan first, then work through it. No stop for approval
+1. One phase per session. Write the plan first, then work through it. No stop for approval
 2. Branch off main, one branch per round or per fix. Nothing is committed or pushed on main
 3. Run the full tests after the last edit. Keep the counts before and after
-4. breaker over the changed files, reviewer over the change, claim-checker over the log entry
+4. breaker over the changed files, reviewer over the change, claim-checker over the log entry.
+   Each finding REAL or LATENT. LATENT goes to steps/latent.md with no fix. At most 2 review passes
 5. A new entry at the top of steps/log.md, and steps/PROGRESS.md rewritten, never appended
 6. One pull request. Merge it yourself once the gate is green, passing the squash title and message.
    Never merge red, never leave one open, never open a second while one is open
 7. Where the host side changed, steps/03_your_steps.md is rewritten for the run on the machine
+8. At the end of the phase: the row of steps/usage.md, PROGRESS.md to STATE WAITING for a fresh
+   session, and stop
 
 ## Rules for every file
 
