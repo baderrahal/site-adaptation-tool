@@ -181,7 +181,7 @@ def test_r361_parity_parameters_the_text_of_each_link_parameter_the_plan_writes_
         entry = built["plan"][number]
         assert made[number]["parameters"] == {name: item["value"] for name, item in entry["parameters"].items()}
         assert made[number]["sources"] == {name: item["source"] for name, item in entry["parameters"].items()}
-        assert made[number]["written"] is True and made[number]["linkName"] is None
+        assert made[number]["written"] is True and made[number]["linkName"] == entry["parameters"]["RRE_ZZ_SP_RVT-Name"]["value"]
         assert made[number]["lacks"] == (["RRE_ZZ_SP_Number-of-Steps"] if number == "5" else [])
     # 2 its CASE by the text of its override, 3 its Prototype-FFL from the FFL moved by 10 cm, down to the cm, then its gap of 2 cm
     assert (made["2"]["parameters"]["CASE"], made["2"]["sources"]["CASE"]) == ("Z", "override")
@@ -192,6 +192,30 @@ def test_r361_parity_parameters_the_text_of_each_link_parameter_the_plan_writes_
     # keyRules.steps of Number-of-Steps holds no 4, so the plot lacks it and is written all the same, as LINK_KEYS name no parameter
     assert made["5"]["parameters"]["RRE_ZZ_SP_RVT-Name"] == "5 | DP2 | 4 | XX | XX" and "RRE_ZZ_SP_Number-of-Steps" not in made["5"]["parameters"]
     assert made["7"] == dict.fromkeys(plan_from_book.PARAMETER_FIELDS, None) | {"written": False}
+
+
+def test_r361_r107_q099_a_build_writes_the_link_name_as_the_rvt_name_parameter_after_its_overrides_with_its_source(monkeypatch):
+    built = made_build(monkeypatch, MADE)
+    _, made = steps_of(built)
+    plan = built["plan"]
+    # 1 the formula of keyRules, plot, code, steps and the facade, 4 the text of its override of the parameter
+    assert plan["1"]["linkName"] == {"value": "1 | VD2 | 1 | XX | XX", "source": "keyRules"} and made["1"]["linkName"] == "1 | VD2 | 1 | XX | XX"
+    assert plan["4"]["linkName"] == {"value": "a made up name", "source": "override"} and made["4"]["linkName"] == "a made up name"
+    assert plan["5"]["linkName"]["value"] == "5 | DP2 | 4 | XX | XX"
+    for number in ("1", "2", "3", "4", "5", "6"):
+        assert plan[number]["linkName"] == plan[number]["parameters"][plan_from_past.RVT_NAME_PARAMETER]
+    # A plot the plan does not write holds the name of its parameter in the step, and 7 with no row none
+    built = row_build(monkeypatch, {}, faceless=("8",))
+    _, made = steps_of(built)
+    assert made["8"]["written"] is False and made["8"]["linkName"] == "8 | DP2 | None | XX | XX"
+
+
+def test_r361_r107_q099_a_rule_that_gives_no_rvt_name_leaves_the_link_name_out_and_the_plot_lacks_the_parameter(monkeypatch):
+    def no_name(key):
+        del key["parameter RRE_ZZ_SP_RVT-Name"]
+    built = row_build(monkeypatch, {}, change=no_name)
+    _, made = steps_of(built)
+    assert "linkName" not in built["plan"]["1"] and made["1"]["linkName"] is None and made["1"]["written"] is True
 
 
 def test_r360_r361_the_config_names_the_fields_of_the_steps_overrides_and_parameters_by_their_kind():

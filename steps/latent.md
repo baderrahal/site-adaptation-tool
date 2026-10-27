@@ -70,3 +70,10 @@ Moved from the open bugs of steps/PROGRESS.md at 73b8c42 with no word changed.
 - 4f PR 4, plan_from_book.py override_step: a site file with no ramp or yard level makes the step raise where the build is right to lack those floors. The real site file holds both levels
 - 4f PR 66, python/record_parts.py cap_breaches and python/tests/test_harness.py test_r26: the top log entry ends at the next line that starts with ## and each heading is found anywhere in it, so a ## line inside the entry or a heading word in its text would pass. The 4f entry holds neither
 - 4f PR 66, steps/START.md step 7: a second run of the step adds a second row of the same session id, nothing checks the table for it
+
+## Round ADDIN 4g1
+
+- 4g1 PR 2, python/plan_rules.py hand_table and dotnet/SiteAdaptation.Common/Plan/Hands.cs HandTable: a cluster unit whose file only hand alone holds gets a written hand with no line when its factor alone of block mirror and open end is in the table, as the DP4 table holds alone no right and the ARC DP2 table alone yes left. It is the hand Q098 asks for. The 5 DP2 plots of the whole project hold none of those factors (RAN, the step hands of build4g1)
+- 4g1 PR 2, python/plan_from_book.py build and dotnet/SiteAdaptation.Common/Plan/PlanOverrides.cs: a plot with no steps gets the link name with None as its steps, as str() of the rule writes it. 35 plots of the step parameters carry one, none of the 2,513 written plots. It reaches an output if the check rows or the Excel files of 4g2 show linkName
+- 4g1 PR 2, python/plan_from_book.py build: the 15 overrides of RRE_ZZ_SP_RVT-Name hold the whole text with its steps, so linkName keeps the past steps if the steps of those plots change. Today all 15 equal the steps of the plan
+- 4g1 PR 2, python/build_proof.py: the proof holds no linkName, so unexplained 0 says nothing of the name. On the plans of the 7 keys 1,755 of the 1,759 names of the 5 TU keys equal the past link, the 4 others are past links named for another plot, and the 707 STR links of IMA and IMB are named another way and left out by kindLeaveOut

@@ -449,6 +449,24 @@ namespace SiteAdaptation.Common
             return kind == "villa" ? "villa" : role != null ? "cluster" : "alone";
         }
 
+        // plan_rules.hand_table, Q098: the class whose hand table gives the hand, the unit class, but a cluster unit whose file holds no table of
+        // hand cluster and one of hand alone takes hand alone, as no footprint cluster of the 7 keys holds a DP2 unit since Q089
+        public static string HandTable(JObject keyRules, string unitClass, string linkFile)
+        {
+            if (unitClass == "cluster" && linkFile != null && !Holds(keyRules["hand cluster"]?["byFile"], linkFile) && Holds(keyRules["hand alone"]?["byFile"], linkFile))
+            {
+                return "alone";
+            }
+            return unitClass;
+        }
+
+        // byFile.get(file) is not None of Python
+        private static bool Holds(JToken byFile, string linkFile)
+        {
+            JToken found = (byFile as JObject)?[linkFile];
+            return found != null && found.Type != JTokenType.Null;
+        }
+
         // plan_rules.joined_factors
         public static Dictionary<string, string> JoinedFactors(Dictionary<string, string> factors)
         {
@@ -562,7 +580,8 @@ namespace SiteAdaptation.Common
             return context;
         }
 
-        // plan_from_book.hand_step: per plot of the scope the factors, the rule and the hand of its file, before an override of the list
+        // plan_from_book.hand_step: per plot of the scope the factors, the table it takes (HandTable), its rule and the hand of its file, before an
+        // override of the list
         public static Dictionary<string, Dictionary<string, object>> Step(IEnumerable<string> numbers, IReadOnlyDictionary<string, Dictionary<string, string>> rows, HandContext context,
             JObject keyRules, IReadOnlyDictionary<string, string> files, JObject rules, JObject config)
         {
@@ -588,7 +607,8 @@ namespace SiteAdaptation.Common
                 });
                 string unitClass = UnitClass(kind, role);
                 string linkFile = unit != null && files.TryGetValue(unit, out string file) ? file : null;
-                KeyValuePair<JToken, string> hand = unit != null ? KeyHand(keyRules, unitClass, linkFile, factors) : new KeyValuePair<JToken, string>(null, null);
+                string table = unit != null ? HandTable(keyRules, unitClass, linkFile) : null;
+                KeyValuePair<JToken, string> hand = unit != null ? KeyHand(keyRules, table, linkFile, factors) : new KeyValuePair<JToken, string>(null, null);
                 factors.TryGetValue(hand.Value ?? "", out string factor);
                 found[number] = new Dictionary<string, object>
                 {
@@ -599,7 +619,7 @@ namespace SiteAdaptation.Common
                     ["openEnd"] = open, ["roadSide"] = road,
                     ["rowPair"] = pair == null ? null : new JObject { ["left"] = pair.Left, ["right"] = pair.Right, ["length"] = pair.Length, ["side"] = pair.Side },
                     ["blockMirror"] = factors["blockMirror"], ["blockMirrorRoadSide"] = factors["blockMirrorRoadSide"], ["blockMirrorOpenEnd"] = factors["blockMirrorOpenEnd"],
-                    ["rowPairSideOrBlockMirrorOpenEnd"] = factors["rowPairSideOrBlockMirrorOpenEnd"], ["handRule"] = hand.Value, ["factor"] = hand.Value == null ? null : factor,
+                    ["rowPairSideOrBlockMirrorOpenEnd"] = factors["rowPairSideOrBlockMirrorOpenEnd"], ["handTable"] = table, ["handRule"] = hand.Value, ["factor"] = hand.Value == null ? null : factor,
                     ["linkFile"] = linkFile, ["mirrored"] = hand.Key,
                 };
             }
