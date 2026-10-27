@@ -448,6 +448,31 @@ def test_r345_the_areas_tolerance_is_held_as_the_csharp_holds_it(tmp_path):
     assert str(error.value) == "addin.parity.kinds names no kind areas (R345)"
 
 
+# G2 of the fourth review of PR 55: the CSV files of the data book read the same on both sides, by csv of Python with newline="" and
+# strict, a line end in a quoted field kept as it is, an unclosed quote, a field past the limit of csv and a text after a closing quote
+# refused with the line of csv (R345_a_csv_of_the_data_book_is_read_as_python_reads_it_with_newline_and_strict)
+CSV_HEAD = "locationPlanNumber,baseplanLabel,typologyRev9"
+CSV_KEPT = ((CSV_HEAD + '\r\n1,101,"D\r\nP"\r\n2,102,DP2\r\n', "D\r\nP"), (CSV_HEAD + '\n1,101,"D\rP"\n2,102,DP2\n', "D\rP"))
+CSV_REFUSED = ((CSV_HEAD + '\n1,101,"DP2\n2,102,DP2\n3,103,DP2\n', "unexpected end of data"),
+               (CSV_HEAD + "\n1,101," + "D" * 131073 + "\n", "field larger than field limit (131072)"),
+               (CSV_HEAD + '\n1,101,"DP"2\n', "',' expected after '\"'"))
+
+
+def test_r345_a_csv_of_the_data_book_is_read_as_the_csharp_reads_it_with_newline_and_strict(tmp_path):
+    path = tmp_path / "plots.csv"
+    for text, value in CSV_KEPT:
+        path.write_bytes(text.encode("utf-8"))
+        rows, _ = plan_from_book.book_rows(path)
+        assert rows["1"]["typologyRev9"] == value and rows["2"]["typologyRev9"] == "DP2"
+    path.write_bytes((CSV_HEAD + "\n1,101," + "D" * 131072 + "\n").encode("utf-8"))
+    assert len(plan_from_book.book_rows(path)[0]["1"]["typologyRev9"]) == 131072
+    for text, why in CSV_REFUSED:
+        path.write_bytes(text.encode("utf-8"))
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_from_book.book_rows(path)
+        assert str(error.value) == "plots.csv is no CSV as Python reads it: %s (R345)" % why
+
+
 # R355 the fronts: a 12 m face 3 m off a road along y = -3, a corner face with a second road along x = 45, and a face with no unit
 FRONT_FACES = {"11": ring(0.0, 0.0, 12.0, 25.0), "12": ring(30.0, 0.0, 42.0, 25.0), "13": ring(60.0, 0.0, 72.0, 25.0)}
 FRONT_ROWS = {"11": {"typologyRev9": "DP2"}, "12": {"typologyRev9": "C10"}, "13": {"typologyRev9": ""}}

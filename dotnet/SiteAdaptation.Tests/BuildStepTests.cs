@@ -533,6 +533,35 @@ namespace SiteAdaptation.Tests
             Assert.Equal("addin.parity.kinds names no kind areas (R345)", Assert.Throws<InvalidDataException>(() => AddinConfig.Load(path).ParityTolerance("areas")).Message);
         }
 
+        // G2 of the fourth review of PR 55, test_build_steps.CSV_KEPT and CSV_REFUSED: the CSV files read as csv of Python reads them with
+        // newline="" and strict
+        [Fact]
+        public void R345_a_csv_of_the_data_book_is_read_as_python_reads_it_with_newline_and_strict()
+        {
+            const string head = "locationPlanNumber,baseplanLabel,typologyRev9";
+            string path = Path.Combine(folder, "plots.csv");
+            foreach (Tuple<string, string> item in new[] { Tuple.Create(head + "\r\n1,101,\"D\r\nP\"\r\n2,102,DP2\r\n", "D\r\nP"), Tuple.Create(head + "\n1,101,\"D\rP\"\n2,102,DP2\n", "D\rP") })
+            {
+                File.WriteAllText(path, item.Item1);
+                List<Dictionary<string, string>> rows = CsvRows.Read(path);
+                Assert.Equal(item.Item2, rows[0]["typologyRev9"]);
+                Assert.Equal("DP2", rows[1]["typologyRev9"]);
+            }
+            File.WriteAllText(path, head + "\n1,101," + new string('D', 131072) + "\n");
+            Assert.Equal(131072, CsvRows.Read(path)[0]["typologyRev9"].Length);
+            var refused = new[]
+            {
+                Tuple.Create(head + "\n1,101,\"DP2\n2,102,DP2\n3,103,DP2\n", "unexpected end of data"),
+                Tuple.Create(head + "\n1,101," + new string('D', 131073) + "\n", "field larger than field limit (131072)"),
+                Tuple.Create(head + "\n1,101,\"DP\"2\n", "',' expected after '\"'"),
+            };
+            foreach (Tuple<string, string> item in refused)
+            {
+                File.WriteAllText(path, item.Item1);
+                Assert.Equal("plots.csv is no CSV as Python reads it: " + item.Item2 + " (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(path)).Message);
+            }
+        }
+
         [Fact]
         public void R354_a_level_profile_with_no_key_rules_or_a_key_rule_a_build_cannot_give_is_refused_with_the_lines_of_python()
         {

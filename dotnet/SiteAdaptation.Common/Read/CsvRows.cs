@@ -26,8 +26,26 @@ namespace SiteAdaptation.Common
                 int at = FirstInvalid(bytes, start);
                 throw new InvalidDataException(Path.GetFileName(path) + " is no UTF-8 text, the byte 0x" + bytes[at].ToString("X2") + " at " + at + " is none, as Python reads it with utf-8-sig (R345)");
             }
-            return Parse(text);
+            try
+            {
+                return Parse(text);
+            }
+            catch (CsvError failure)
+            {
+                throw new InvalidDataException(Path.GetFileName(path) + " is no CSV as Python reads it: " + failure.Message + " (R345)");
+            }
         }
+
+        // R345, G2 of the fourth review of PR 55. The csv module of Python with strict: the line it gives for a file it refuses
+        public sealed class CsvError : FormatException
+        {
+            public CsvError(string message) : base(message)
+            {
+            }
+        }
+
+        // csv.field_size_limit() of Python, the most characters of one field
+        public const int FieldLimit = 131072;
 
         // The place in the file of the first byte that starts no UTF-8 sequence, found by the table of well formed sequences, as the index of
         // DecoderFallbackException differs between net48 and net8.0
@@ -99,17 +117,22 @@ namespace SiteAdaptation.Common
                     {
                         if (index + 1 < text.Length && text[index + 1] == '"')
                         {
-                            field.Append('"');
+                            Append(field, '"');
                             index++;
                         }
                         else
                         {
                             quoted = false;
+                            // strict of csv: a closing quote is followed by the delimiter, a line end or the end of the text
+                            if (index + 1 < text.Length && text[index + 1] != ',' && text[index + 1] != '\n' && text[index + 1] != '\r')
+                            {
+                                throw new CsvError("',' expected after '\"'");
+                            }
                         }
                     }
                     else
                     {
-                        field.Append(letter);
+                        Append(field, letter);
                     }
                     continue;
                 }
@@ -138,7 +161,7 @@ namespace SiteAdaptation.Common
                 }
                 else
                 {
-                    field.Append(letter);
+                    Append(field, letter);
                     any = true;
                 }
             }
@@ -149,9 +172,18 @@ namespace SiteAdaptation.Common
             }
             if (quoted)
             {
-                throw new InvalidDataException("a quoted field of the CSV text never ends");
+                throw new CsvError("unexpected end of data");
             }
             return records;
+        }
+
+        private static void Append(StringBuilder field, char letter)
+        {
+            field.Append(letter);
+            if (field.Length > FieldLimit)
+            {
+                throw new CsvError("field larger than field limit (" + FieldLimit + ")");
+            }
         }
     }
 }
