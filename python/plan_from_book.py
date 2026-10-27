@@ -60,8 +60,8 @@ LOCATION = "locationPlan"
 OVERRIDE = "override"
 KEY_RULES = "keyRules"
 # R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R357 after the faces
-PARITY_STEPS = ("faces", "clusters")
-BUILD_STEPS = ("clusters",)
+PARITY_STEPS = ("faces", "clusters", "fronts")
+BUILD_STEPS = ("clusters", "fronts")
 FOOTPRINT, ANALYSIS = "footprint", "analysis"
 # R337. The source of a parameter that reads the steps, the stepBands of the level profile when keyRules codes no steps
 STEP_BANDS = "levelProfileStepBands"
@@ -146,6 +146,27 @@ def build_step_rules(profile, name):
         raise project_profile.ProfileError("the build steps %s of the parity harness are those of a build by keyRules, the level profile %s holds none, "
                                            "the C# builds by keyRules alone (R354)" % (", ".join(BUILD_STEPS), plan_rules.profile_name(profile, name)))
     return key
+
+
+def front_step(numbers, front, surfaces, snap):
+    """R355. The step fronts of the parity harness: per plot of the scope the front the build takes (fronts), the rule that gave it, the
+    frame of R122 or of the edge of R226 with its ends left and right seen from the road, its inward normal and right hand, length,
+    distance to the nearest curb and tie, the ramp outline of R127 on it with its depth, the road level of R344 at the two front corners
+    with the surface that gave each, as the build keeps them, and for a unit plot with none the entry of noRoadLevel with why."""
+    found = {}
+    for number in numbers:
+        item = front[number]
+        frame = item["frame"]
+        levels = item["front"] or [None, None]
+        names = item["surfaces"] or [None, None]
+        found[number] = {
+            "frontRule": item["frontRule"], "unit": item["unit"], "left": None if frame is None else list(frame["left"]), "right": None if frame is None else list(frame["right"]),
+            "normal": None if frame is None else list(frame["n"]), "rightHand": None if frame is None else list(frame["r"]),
+            "length": None if frame is None else frame["length"], "distance": None if frame is None else frame["distance"], "tied": None if frame is None else frame["tied"],
+            "depth": item.get("depth"), "corners": None if item["corners"] is None else [list(corner) for corner in item["corners"]],
+            "roadLevelLeft": levels[0], "roadLevelRight": levels[1], "surfaceLeft": names[0], "surfaceRight": names[1],
+            "noRoadLevel": no_road_level(number, item, surfaces, snap) if item["unit"] and item["front"] is None else None}
+    return found
 
 
 def one_ring_faces(plots):
@@ -440,10 +461,12 @@ def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=
     return found
 
 
-def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales=None, numbered=False, rules=None):
+def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales=None, numbered=False, rules=None,
+          trace=None):
     """R208. The plan of R80 for the plots numbers, every value from CAD, the data book and the new site file. R278 to R280: with
     rules the level profile, the hand rules and the overrides of the majority rule give the levels, the ramp type and the hand.
-    main always gives rules (R277), rules None is the estimate of R209 that round Z4 built with."""
+    main always gives rules (R277), rules None is the estimate of R209 that round Z4 built with. R345: trace, a dict, takes the fronts
+    and the snap the build took, for the build steps of the parity harness."""
     block = settings.get("siteBuild")
     floors_config = plan_from_past.load_floors(settings)
     steep = set(block["steepUnits"])
@@ -470,6 +493,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     members = sorted({plot for cluster in mine for plot in cluster["plots"]} | set(numbers) | {partners[number] for number in numbers if number in partners},
                      key=link_summary.sort_key)
     front = fronts(members, rows, faces, roads, limits, surfaces, snap, profile, block.get("corner") if sales is not None else None, sales)
+    if trace is not None:
+        trace.update(front=front, snap=snap)
     frames = {number: item["frame"] for number, item in front.items()}
     roles = cad_links.cluster_roles(mine, 0, {number: item["face"] for number, item in front.items() if item["face"] is not None}, frames)
     entries, slopes = {}, {}
@@ -763,7 +788,9 @@ def step_inputs(args):
 
 def build_inputs(args, settings):
     """R345, R354 to R357. The inputs the build steps were made from, those of the faces and every other file the steps read, by role."""
-    roles = [("rules", project_profile.profile_path(settings)), ("footprintBlocks", args.footprint_blocks), ("analysis", args.analysis)]
+    roles = [("rules", project_profile.profile_path(settings)), ("footprintBlocks", args.footprint_blocks), ("analysis", args.analysis), ("sales", args.sales),
+             ("roadPieces", Path(args.roads) / "pieces.json" if args.roads else None)]
+    roles += [("roadSurface:" + name, Path(args.landxml) / (name + ".xml")) for name in getattr(args, "road_names", None) or []]
     return step_inputs(args) + [parity.input_entry(role, path) for role, path in roles if path]
 
 
@@ -917,6 +944,10 @@ def main(argv=None):
         one_ring_faces(baseplan)
         args.roads = str(cad_units.read_input(settings, "roads", args.roads))
         roads = cad_analysis.read_road_edges(args.roads, settings.get("analysis")["roadEdgeLayers"])
+        if not roads:
+            # R355. The front of a plot is the edge nearest a curb, and corner_front.road_edges asks the nearest of no line
+            raise project_profile.ProfileError("the road layout read holds no line of the curb layers analysis.roadEdgeLayers names, the front of a plot is the edge "
+                                               "nearest a curb (R355)")
         if args.footprint_blocks:
             args.footprint_blocks = str(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks))
         shapes = footprint_check.block_shapes(simple_blocks(footprint_check.footprint_blocks(args.footprint_blocks, settings))) if args.footprint_blocks else None
@@ -944,11 +975,15 @@ def main(argv=None):
         # R277. Every build follows a level profile, the named one or levelProfiles.default
         rules = rule_inputs(args, settings, profile, cover["plots"], rows, faces, roads, sales, everything)
         # R339, R340. The road surfaces of the one setting majority.py measures the levels on
-        surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in plan_rules.road_names(block, rules["levelProfile"])], args.scratch)
+        args.road_names = plan_rules.road_names(block, rules["levelProfile"])
+        surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in args.road_names], args.scratch)
         # R337. A build by keyRules takes the clusters of every unit plot, the site as the keys were measured on (R271)
+        trace = {}
         plan = build(cover["plots"], rows, number_of, faces, roads, everything if by_keys else clusters, profile, settings,
                      prototype_offsets.plot_frame(prototype_offsets.load(args.offsets)), folder_files(folder, profile), folder,
-                     site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, by_keys or bool(args.footprint_blocks), rules)
+                     site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, by_keys or bool(args.footprint_blocks), rules, trace=trace)
+        if args.steps:
+            write_build_step(args, settings, "fronts", front_step(cover["plots"], trace["front"], surfaces, trace["snap"]))
         plan_from_past.write_plan(out, plan)
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
         print("plan_from_book: " + str(error), file=sys.stderr)

@@ -7,35 +7,207 @@ using Newtonsoft.Json.Linq;
 namespace SiteAdaptation.Common
 {
     // R354 to R357. The build steps of the worker command build, the C# of plan_from_book.py --steps on the reads of button 2: the inputs
-    // the worker read wrote, read_baseplan.json and read_villaBlocks.json, each held to what it claims to be by its role, its drawing in
-    // Meters and its run stamp, plots.csv and labels.csv of the data book, the rules file with keyRules of the level profile of the request
-    // and the analysis of the clusters (Q089). Every number of a JSON input is the nearest double of its text, as Python reads it
+    // the worker read wrote, read_baseplan.json, read_villaBlocks.json, read_curbs.json and read_workbooks.json, each held to what it claims
+    // to be by its role or its workbook, its drawing in Meters and its run stamp, plots.csv and labels.csv of the data book, the rules file
+    // with keyRules of the level profile of the request, the analysis of the clusters (Q089) and the road surfaces of the build in their
+    // order. Every number of a JSON input is the nearest double of its text, as Python reads it, and each input is read once per run
     public static class BuildSteps
     {
-        public static readonly string[] Names = { SiteClusters.StepName };
+        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName };
 
         public static readonly string[] ClusterRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead", "analysis" };
 
-        // A read of the worker of the role it names, its drawing in Meters and every input of its run stamp on disk with its SHA-256, each
-        // input of the stamps of one run hashed once
-        private static JObject Read(WorkerContext run, string role, string readRole, Dictionary<string, string> hashes)
+        public static readonly string[] FrontRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "curbsRead", "workbooksRead", WorkerRunner.RoadSurfaceRole + "*" };
+
+        // What the build steps read, each input read when a step first needs it
+        private sealed class Site
         {
-            string path = run.Input(role);
-            JObject found = PyMath.ReadJson(path, role) as JObject ?? throw run.Refusal("the input " + role + " is no JSON object: " + path);
-            JToken named = found["role"];
-            if (named == null || named.Type != JTokenType.String || (string)named != readRole)
+            private readonly WorkerContext run;
+            private readonly AddinConfig config;
+            private readonly Dictionary<string, string> hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            private Dictionary<string, BuildFace> faces;
+            private List<SiteCluster> clusters;
+            private RoadLines roads;
+            private JObject sales;
+            private List<TinSurface> surfaces;
+
+            public Site(WorkerContext run, AddinConfig config)
             {
-                throw run.Refusal("the input " + role + " is the read of " + SiteClusters.PyText(named) + ", the build takes the read of " + readRole + " (R354)");
+                this.run = run;
+                this.config = config;
+                Settings = PyMath.ReadJson(run.Input("config"), "config") as JObject ?? throw new InvalidDataException("the config is no JSON object");
+                Rules = PyMath.ReadJson(run.Input("rules"), "rules") as JObject ?? throw new InvalidDataException("the rules file is no JSON object");
+                RulesName = Path.GetFileName(run.Request.Inputs.First(input => input.Role == "rules").Path);
+                List<Dictionary<string, string>> csv = CsvRows.Read(run.Input("plotsCsv"));
+                Rows = new Dictionary<string, Dictionary<string, string>>();
+                foreach (Dictionary<string, string> row in csv)
+                {
+                    if (row.TryGetValue("locationPlanNumber", out string number) && !string.IsNullOrEmpty(number))
+                    {
+                        Rows[number] = row;
+                    }
+                }
+                NumberOf = FaceStep.NumberOfLabel(csv);
+                Numbers = PlotScope.Numbers(run.Request.Scope, CsvRows.Read(run.Input("labels")));
             }
-            string refusal = CadUnits.Refusal(path, found) ?? StampRefusal(found, hashes);
-            if (refusal != null)
+
+            public JObject Settings { get; }
+
+            public JObject Rules { get; }
+
+            public string RulesName { get; }
+
+            public Dictionary<string, Dictionary<string, string>> Rows { get; }
+
+            public Dictionary<string, string> NumberOf { get; }
+
+            public List<string> Numbers { get; }
+
+            public Dictionary<string, BuildFace> Faces
             {
-                throw run.Refusal("the input " + role + ": " + refusal);
+                get
+                {
+                    if (faces == null)
+                    {
+                        JObject baseplan = Read("baseplanRead", "baseplan");
+                        double overlap = config.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)");
+                        faces = BuildFace.Faces(baseplan["plots"] as JArray ?? throw new InvalidDataException("the baseplan read holds no plots list"), NumberOf, overlap);
+                    }
+                    return faces;
+                }
             }
-            return found;
+
+            // The unit plots, those of plots.csv with Typology_Rev9 and a face, in the order of plots.csv
+            public List<string> Units => Rows.Where(item => item.Value.TryGetValue("typologyRev9", out string unit) && !string.IsNullOrEmpty(unit) && Faces.ContainsKey(item.Key)).Select(item => item.Key).ToList();
+
+            public List<SiteCluster> Clusters
+            {
+                get
+                {
+                    if (clusters == null)
+                    {
+                        JObject footprint = Read("villaBlocksRead", "villaBlocks");
+                        // R300. The villa blocks of a drawing kept for reference only are never read
+                        string source = (string)footprint["source"] ?? "";
+                        if (ReadSettings.Load(run.Input("config")).IsReferenceOnly(source))
+                        {
+                            throw new InvalidDataException(source + " is kept for reference only (drawings.referenceOnly) and is never read for villaBlocks (R300)");
+                        }
+                        Dictionary<string, List<double[][]>> blocks = SiteClusters.BlocksByName(footprint["blocks"] as JArray ?? throw new InvalidDataException("the footprint read holds no blocks list"));
+                        string analysisPath = run.Input("analysis");
+                        List<SiteCluster> analysis = SiteClusters.AnalysisOf(PyMath.ReadJson(analysisPath, "analysis") as JObject ?? new JObject(), Path.GetFileName(analysisPath),
+                            (string)Settings["drawings"]?["baseplan"]);
+                        clusters = SiteClusters.Site(Units, Rows, Faces, blocks, analysis, NumberOf);
+                    }
+                    return clusters;
+                }
+            }
+
+            // R355. The lines of the curb layers of analysis.roadEdgeLayers in the curbs read, cad_analysis.road_edge_pieces, refused when none
+            public RoadLines Roads
+            {
+                get
+                {
+                    if (roads == null)
+                    {
+                        JObject curbs = Read("curbsRead", "curbs");
+                        List<string> layers = ReadSettings.Load(run.Input("config")).CurbLayers;
+                        roads = new RoadLines(ReadSteps.EdgePieces(curbs["pieces"] as JArray ?? new JArray(), layers).Select(item => (IReadOnlyList<double[]>)item.Value));
+                        if (roads.Count == 0)
+                        {
+                            throw new InvalidDataException("the road layout read holds no line of the curb layers analysis.roadEdgeLayers names, the front of a plot is the edge nearest a curb (R355)");
+                        }
+                    }
+                    return roads;
+                }
+            }
+
+            // R355, R350. The sales rows of the workbooks read, by plot, held to the workbook config names for them
+            public JObject Sales
+            {
+                get
+                {
+                    if (sales == null)
+                    {
+                        JObject workbooks = PyMath.ReadJson(run.Input("workbooksRead"), "workbooksRead") as JObject ?? throw new InvalidDataException("the input workbooksRead is no JSON object");
+                        string refusal = StampRefusal(workbooks, hashes);
+                        if (refusal != null)
+                        {
+                            throw new InvalidDataException("the input workbooksRead: " + refusal);
+                        }
+                        string key = (string)Settings["dataBook"]?["locationPlan"]?["sales"]?["workbook"];
+                        string expected = Path.GetFileName((string)Settings["dataBook"]?["rev9"]?["workbooks"]?[key ?? ""] ?? "");
+                        string named = ((workbooks[RunStamp.Key] as JObject)?["inputs"] as JArray ?? new JArray()).Where(input => (string)input["role"] == "sales").Select(input => Path.GetFileName((string)input["path"] ?? "")).FirstOrDefault();
+                        if (string.IsNullOrEmpty(expected) || named == null || !string.Equals(named, expected, StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw new InvalidDataException("the input workbooksRead is the read of the sales workbook " + (named ?? "None") + ", config names " + expected
+                                + " for the sales rows, dataBook.locationPlan.sales.workbook (R355)");
+                        }
+                        sales = workbooks["sales"] as JObject ?? throw new InvalidDataException("the input workbooksRead holds no sales rows (R355)");
+                    }
+                    return sales;
+                }
+            }
+
+            // R349, R344. The road surfaces of the level profile in their order, plan_rules.road_names, each the input roadSurface:<name>, every
+            // one of the order and no other, the first surface of each file, refused when not in meter
+            public List<TinSurface> Surfaces(JObject levelProfile)
+            {
+                if (surfaces != null)
+                {
+                    return surfaces;
+                }
+                ReadSettings read = ReadSettings.Load(run.Input("config"));
+                string surface = (string)levelProfile["frontRoad"]?["surface"];
+                List<string> order = surface == "roadLevel" ? read.RoadSurfaces : new List<string> { surface };
+                List<string> roles = run.Request.Inputs.Select(input => input.Role).Where(role => role != null && role.StartsWith(WorkerRunner.RoadSurfaceRole, StringComparison.Ordinal)).ToList();
+                List<string> extra = roles.Where(role => !order.Contains(role.Substring(WorkerRunner.RoadSurfaceRole.Length))).ToList();
+                List<string> missing = order.Where(name => !roles.Contains(WorkerRunner.RoadSurfaceRole + name)).ToList();
+                if (extra.Count > 0 || missing.Count > 0)
+                {
+                    throw new InvalidDataException("the road surfaces of the request are not those of the level profile in their order: not in it " + string.Join(", ", extra) + ", not in the request " + string.Join(", ", missing));
+                }
+                surfaces = new List<TinSurface>();
+                foreach (string name in order)
+                {
+                    LandXmlFile file;
+                    try
+                    {
+                        file = LandXmlReader.Read(run.Input(WorkerRunner.RoadSurfaceRole + name));
+                    }
+                    catch (LandXmlUnitException refused)
+                    {
+                        throw new InvalidDataException(refused.Message);
+                    }
+                    if (file.Surfaces.Count == 0)
+                    {
+                        throw new InvalidDataException(file.File + " holds no surface");
+                    }
+                    surfaces.Add(new TinSurface(ReadSettings.RoadName(name), file.Surfaces[0].Points, file.Surfaces[0].Faces));
+                }
+                return surfaces;
+            }
+
+            // A read of the worker of the role it names, its drawing in Meters and every input of its run stamp on disk with its SHA-256
+            private JObject Read(string role, string readRole)
+            {
+                string path = run.Input(role);
+                JObject found = PyMath.ReadJson(path, role) as JObject ?? throw new InvalidDataException("the input " + role + " is no JSON object: " + path);
+                JToken named = found["role"];
+                if (named == null || named.Type != JTokenType.String || (string)named != readRole)
+                {
+                    throw new InvalidDataException("the input " + role + " is the read of " + SiteClusters.PyText(named) + ", the build takes the read of " + readRole + " (R354)");
+                }
+                string refusal = CadUnits.Refusal(path, found) ?? StampRefusal(found, hashes);
+                if (refusal != null)
+                {
+                    throw new InvalidDataException("the input " + role + ": " + refusal);
+                }
+                return found;
+            }
         }
 
-        // RunStamp.Refusal with each input of the stamp hashed once per run
+        // RunStamp.Refusal with each input of the stamps of one run hashed once
         private static string StampRefusal(JObject output, Dictionary<string, string> hashes)
         {
             JArray inputs = (output[RunStamp.Key] as JObject)?["inputs"] as JArray;
@@ -72,60 +244,41 @@ namespace SiteAdaptation.Common
         {
             WorkerRequest request = run.Request;
             List<string> asked = steps.ToList();
-            var hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            JObject settings = PyMath.ReadJson(run.Input("config"), "config") as JObject ?? throw run.Refusal("the config is no JSON object");
-            JObject rules = PyMath.ReadJson(run.Input("rules"), "rules") as JObject ?? throw run.Refusal("the rules file is no JSON object");
-            List<SiteCluster> clusters;
-            List<string> numbers;
+            var made = new Dictionary<string, Dictionary<string, Dictionary<string, object>>>();
             try
             {
-                BuildRules.KeyRules(rules, request.LevelProfile, string.Join(", ", Names));
-                List<Dictionary<string, string>> csv = CsvRows.Read(run.Input("plotsCsv"));
-                var rows = new Dictionary<string, Dictionary<string, string>>();
-                foreach (Dictionary<string, string> row in csv)
+                var site = new Site(run, config);
+                JObject levelProfile = BuildRules.LevelProfile(site.Rules, request.LevelProfile);
+                BuildRules.KeyRules(site.Rules, request.LevelProfile, string.Join(", ", Names));
+                if (asked.Contains(SiteClusters.StepName))
                 {
-                    string number;
-                    if (row.TryGetValue("locationPlanNumber", out number) && !string.IsNullOrEmpty(number))
-                    {
-                        rows[number] = row;
-                    }
+                    run.Counts["clusters of the build"] = site.Clusters.Count;
+                    run.Counts["clusters of the build from the analysis"] = site.Clusters.Count(cluster => cluster.Source == SiteClusters.AnalysisSource);
+                    made[SiteClusters.StepName] = SiteClusters.Step(site.Numbers, site.Clusters);
                 }
-                Dictionary<string, string> numberOf = FaceStep.NumberOfLabel(csv);
-                numbers = PlotScope.Numbers(request.Scope, CsvRows.Read(run.Input("labels")));
-                JObject baseplan = Read(run, "baseplanRead", "baseplan", hashes);
-                double overlap = config.ParityTolerance("areas") ?? throw new InvalidDataException("addin.parity.kinds.areas is null, the tolerance of the baseplan faces (R345)");
-                Dictionary<string, BuildFace> faces = BuildFace.Faces(baseplan["plots"] as JArray ?? throw new InvalidDataException("the baseplan read holds no plots list"), numberOf, overlap);
-                JObject footprint = Read(run, "villaBlocksRead", "villaBlocks", hashes);
-                // R300. The villa blocks of a drawing kept for reference only are never read
-                string source = (string)footprint["source"] ?? "";
-                if (ReadSettings.Load(run.Input("config")).IsReferenceOnly(source))
+                if (asked.Contains(Fronts.StepName))
                 {
-                    throw new InvalidDataException(source + " is kept for reference only (drawings.referenceOnly) and is never read for villaBlocks (R300)");
+                    ReadSettings read = ReadSettings.Load(run.Input("config"));
+                    double snap = read.SnapM;
+                    List<TinSurface> surfaces = site.Surfaces(levelProfile);
+                    double[] limits = Fronts.Limits(site.Rules, site.Settings, site.RulesName);
+                    double roadEdgeM = BuildFace.Number(site.Settings["siteBuild"]["corner"]["roadEdgeM"]);
+                    Dictionary<string, FrontItem> fronts = Fronts.Of(site.Numbers, site.Rows, site.Faces, site.Roads, limits,
+                        (x, y) => TinSurface.RoadLevel(surfaces, x, y, snap), site.Rules, roadEdgeM, site.Sales, site.RulesName);
+                    run.Counts["fronts with a frame"] = fronts.Values.Count(item => item.Frame != null);
+                    run.Counts["fronts with no road level of a unit plot"] = fronts.Values.Count(item => item.Unit != null && item.Front == null);
+                    made[Fronts.StepName] = Fronts.Step(site.Numbers, fronts, surfaces.Select(surface => surface.Name).ToList(), snap);
                 }
-                Dictionary<string, List<double[][]>> blocks = SiteClusters.BlocksByName(footprint["blocks"] as JArray ?? throw new InvalidDataException("the footprint read holds no blocks list"));
-                string analysisPath = run.Input("analysis");
-                List<SiteCluster> analysis = SiteClusters.AnalysisOf(PyMath.ReadJson(analysisPath, "analysis") as JObject ?? new JObject(), Path.GetFileName(analysisPath),
-                    (string)settings["drawings"]?["baseplan"]);
-                List<string> units = rows.Where(item => item.Value.TryGetValue("typologyRev9", out string unit) && !string.IsNullOrEmpty(unit) && faces.ContainsKey(item.Key)).Select(item => item.Key).ToList();
-                clusters = SiteClusters.Site(units, rows, faces, blocks, analysis, numberOf);
             }
             catch (InvalidDataException refused)
             {
                 throw run.Refusal(refused.Message);
             }
-            run.Counts["clusters of the build"] = clusters.Count;
-            run.Counts["clusters of the build from the analysis"] = clusters.Count(cluster => cluster.Source == SiteClusters.AnalysisSource);
-            if (asked.Contains(SiteClusters.StepName))
+            foreach (KeyValuePair<string, Dictionary<string, Dictionary<string, object>>> step in made)
             {
-                Write(run, config, SiteClusters.StepName, SiteClusters.Step(numbers, clusters));
+                run.Counts[step.Key + " items"] = step.Value.Count;
+                run.WriteJson(request.StepsFolder, StepFile.FileName(step.Key, "csharp"), StepFile.Build(step.Key, "csharp", StepFile.ScopeText(request.Scope), step.Value, config.StepFields(step.Key)));
             }
-        }
-
-        private static void Write(WorkerContext run, AddinConfig config, string step, Dictionary<string, Dictionary<string, object>> made)
-        {
-            WorkerRequest request = run.Request;
-            run.Counts[step + " items"] = made.Count;
-            run.WriteJson(request.StepsFolder, StepFile.FileName(step, "csharp"), StepFile.Build(step, "csharp", StepFile.ScopeText(request.Scope), made, config.StepFields(step)));
         }
     }
 }

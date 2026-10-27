@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import pytest
+from shapely.geometry import LineString
 
 import cad_analysis
 import data_book
@@ -87,7 +88,8 @@ def run_book(tmp_path, monkeypatch, extra, read_input=None):
     monkeypatch.setattr(plan_from_book.link_summary, "load", lambda path: {"plots": []})
     monkeypatch.setattr(plan_from_book.cad_units, "check", lambda path: "Meters")
     monkeypatch.setattr(plan_from_book.cad_units, "read_input", read_input or (lambda settings, role, given: given))
-    monkeypatch.setattr(plan_from_book.cad_analysis, "read_road_edges", lambda folder, layers: [])
+    # R355. A road layout read with no curb line is refused, so the made up read holds one line far off
+    monkeypatch.setattr(plan_from_book.cad_analysis, "read_road_edges", lambda folder, layers: [LineString([(0.0, -1000.0), (1.0, -1000.0)])])
     monkeypatch.setattr(plan_from_book.plan_from_past, "prototype_folders", lambda root, job: ("folder", "upgraded"))
     monkeypatch.setattr(plan_from_book.plan_from_past, "write_plan", lambda out, plan: None)
     monkeypatch.setattr(plan_from_book, "load_roads", lambda paths, scratch: {})
@@ -98,7 +100,7 @@ def run_book(tmp_path, monkeypatch, extra, read_input=None):
     monkeypatch.setattr(plan_from_book.prototype_offsets, "plot_frame", lambda offsets: {})
     monkeypatch.setattr(plan_from_book.corner_front, "sales_rows", lambda path, sheet, column: {})
 
-    def build(*args):
+    def build(*args, **named):
         seen["rules"] = args[-1]
         return {"summary": SUMMARY}
 

@@ -134,8 +134,8 @@ def test_r354_a_level_profile_with_no_key_rules_or_a_key_rule_a_build_cannot_giv
         with pytest.raises(project_profile.ProfileError) as error:
             plan_from_book.build_step_rules(project_profile.ProjectProfile(real.path, values), name)
         return str(error.value)
-    assert refused(real.values, "native2022") == ("the build steps clusters of the parity harness are those of a build by keyRules, the level profile native2022 holds "
-                                                  "none, the C# builds by keyRules alone (R354)")
+    assert refused(real.values, "native2022") == ("the build steps %s of the parity harness are those of a build by keyRules, the level profile native2022 holds "
+                                                  "none, the C# builds by keyRules alone (R354)" % ", ".join(plan_from_book.BUILD_STEPS))
     assert refused(real.values, "other") == "the rules profile has no level profile other"
     for word, path, value, line in (
             ("hand villa", ("hand villa", "rule"), "clusterIndexParity", "keyRules hand villa codes clusterIndexParity, a build gives only all, blockMirror, clusterSide, "
@@ -149,3 +149,69 @@ def test_r354_a_level_profile_with_no_key_rules_or_a_key_rule_a_build_cannot_giv
             place = place[key]
         place[path[-1]] = value
         assert refused(values, None) == line, word
+
+
+# R355 the fronts: a 12 m face 3 m off a road along y = -3, a corner face with a second road along x = 45, and a face with no unit
+FRONT_FACES = {"11": ring(0.0, 0.0, 12.0, 25.0), "12": ring(30.0, 0.0, 42.0, 25.0), "13": ring(60.0, 0.0, 72.0, 25.0)}
+FRONT_ROWS = {"11": {"typologyRev9": "DP2"}, "12": {"typologyRev9": "C10"}, "13": {"typologyRev9": ""}}
+
+
+def made_fronts(orientation, numbers=("11", "12", "13", "14")):
+    from shapely.geometry import LineString
+    import cad_links
+    settings = project_profile.load_settings()
+    profile = project_profile.load_profile(project_profile.profile_path(settings))
+    faces = {number: Polygon(vertices).buffer(0) for number, vertices in FRONT_FACES.items()}
+    roads = [LineString([(-50.0, -3.0), (100.0, -3.0)]), LineString([(45.0, -10.0), (45.0, 40.0)])]
+    sales = {"12": {"Orientation": orientation}} if orientation is not None else {"12": {"Orientation": None}}
+    limits = cad_links.front_limits(profile, settings.get("analysis"))
+    return plan_from_book.fronts(list(numbers), FRONT_ROWS, faces, roads, limits, [("Top Surface-02", None)], 0.005, profile, settings.get("siteBuild")["corner"], sales)
+
+
+def stub_levels(monkeypatch):
+    # A level at a corner west of x = 40 only, so the corner face 12 has its right corner on no surface
+    monkeypatch.setattr(plan_from_book, "road_level", lambda surfaces, point, snap: (10.0 + point[0] / 100.0, "Top Surface-02") if point[0] < 40.0 else (None, None))
+
+
+def test_r355_the_front_of_a_plot_is_its_edge_nearest_a_curb_within_the_limits_with_its_frame_ramp_corners_and_road_levels(monkeypatch):
+    stub_levels(monkeypatch)
+    front = made_fronts("WS")
+    step = plan_from_book.front_step(["11", "12", "13", "14"], front, [("Top Surface-02", None)], 0.005)
+    assert step["11"] == {"frontRule": "nearestCurb", "unit": "DP2", "left": [0.0, 0.0], "right": [12.0, 0.0], "normal": [0.0, 1.0], "rightHand": [1.0, -0.0], "length": 12.0,
+                          "distance": 3.0, "tied": False, "depth": 5.52, "corners": [[0.0, 0.0], [12.0, 0.0], [12.0, 5.52], [0.0, 5.52]], "roadLevelLeft": 10.0,
+                          "roadLevelRight": 10.12, "surfaceLeft": "Top Surface-02", "surfaceRight": "Top Surface-02", "noRoadLevel": None}
+    # 13 has a frame and no unit, so no ramp and no road level, 14 has no face
+    assert step["13"]["left"] == [60.0, 0.0] and step["13"]["corners"] is None and step["13"]["noRoadLevel"] is None and step["13"]["unit"] is None
+    assert step["14"] == {"frontRule": "nearestCurb", "unit": None, "left": None, "right": None, "normal": None, "rightHand": None, "length": None, "distance": None,
+                          "tied": None, "depth": None, "corners": None, "roadLevelLeft": None, "roadLevelRight": None, "surfaceLeft": None, "surfaceRight": None,
+                          "noRoadLevel": None}
+
+
+def test_r355_a_corner_plot_takes_the_road_edge_its_orientation_names_its_r122_frame_on_that_edge_and_no_front_with_no_orientation(monkeypatch):
+    stub_levels(monkeypatch)
+    # WS takes the edge facing south, the R122 front, as the rule orientation
+    front = made_fronts("WS")
+    assert front["12"]["frontRule"] == "orientation" and front["12"]["frame"]["left"] == (30.0, 0.0) and front["12"]["frame"]["right"] == (42.0, 0.0)
+    step = plan_from_book.front_step(["12"], front, [("Top Surface-02", None)], 0.005)["12"]
+    assert step["depth"] == 5.5 and step["roadLevelLeft"] is None and step["surfaceLeft"] == "Top Surface-02" and step["surfaceRight"] is None
+    assert step["noRoadLevel"] == {"plot": "12", "corners": ["right"], "tried": ["Top Surface-02"],
+                                   "reason": "no road surface covers the corner within snapM 0.005 m, so no road level is given (R344)"}
+    # SE takes the edge facing east, a frame of its own on it, its ends left and right seen from the road
+    front = made_fronts("SE")
+    frame = front["12"]["frame"]
+    assert front["12"]["frontRule"] == "orientation" and frame["left"] == (42.0, 0.0) and frame["right"] == (42.0, 25.0)
+    assert frame["n"] == (-1.0, -0.0) and frame["r"] == (-0.0, 1.0) and frame["length"] == 25.0 and frame["distance"] == 3.0 and frame["tied"] is False
+    # No Orientation in the sales sheet: no front, and a unit plot with no front frame has no front corners for a road level
+    front = made_fronts(None)
+    assert front["12"]["frame"] is None and front["12"]["frontRule"] == "a corner plot with no Orientation in the sales sheet"
+    assert plan_from_book.front_step(["12"], front, [("Top Surface-02", None)], 0.005)["12"]["noRoadLevel"] == {
+        "plot": "12", "corners": [], "tried": [], "reason": "no front frame, so no front corners to take a road level at"}
+
+
+def test_r355_the_config_names_the_fields_of_the_step_fronts_by_their_kind():
+    fields = project_profile.load_settings().get("addin")["parity"]["steps"]["fronts"]
+    assert {name: (field["kind"], field.get("decimals")) for name, field in fields.items()} == {
+        "frontRule": ("noGeometry", None), "unit": ("noGeometry", None), "left": ("points", 3), "right": ("points", 3), "normal": ("points", 6), "rightHand": ("points", 6),
+        "length": ("points", 3), "distance": ("points", 3), "tied": ("noGeometry", None), "depth": ("points", 3), "corners": ("points", 3),
+        "roadLevelLeft": ("levels", 4), "roadLevelRight": ("levels", 4), "surfaceLeft": ("noGeometry", None), "surfaceRight": ("noGeometry", None),
+        "noRoadLevel": ("noGeometry", None)}

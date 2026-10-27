@@ -597,6 +597,24 @@
             "plots": {"kind": "noGeometry"},
             "code": {"kind": "noGeometry"},
             "source": {"kind": "noGeometry"}
+        },
+        "fronts": {
+            "frontRule": {"kind": "noGeometry"},
+            "unit": {"kind": "noGeometry"},
+            "left": {"kind": "points", "decimals": 3},
+            "right": {"kind": "points", "decimals": 3},
+            "normal": {"kind": "points", "decimals": 6},
+            "rightHand": {"kind": "points", "decimals": 6},
+            "length": {"kind": "points", "decimals": 3},
+            "distance": {"kind": "points", "decimals": 3},
+            "tied": {"kind": "noGeometry"},
+            "depth": {"kind": "points", "decimals": 3},
+            "corners": {"kind": "points", "decimals": 3},
+            "roadLevelLeft": {"kind": "levels", "decimals": 4},
+            "roadLevelRight": {"kind": "levels", "decimals": 4},
+            "surfaceLeft": {"kind": "noGeometry"},
+            "surfaceRight": {"kind": "noGeometry"},
+            "noRoadLevel": {"kind": "noGeometry"}
         }
       }
     }

@@ -21,6 +21,8 @@ namespace SiteAdaptation.Common
             [FaceStep.Name] = new[] { FaceStep.BaseplanRoles, "plotsCsv", "labels" },
             // R354. The clusters of a build by keyRules, on the reads of the worker, plots.csv, labels.csv, the rules file and the analysis
             [SiteClusters.StepName] = BuildSteps.ClusterRoles,
+            // R355. The fronts of a build, on the curbs and sales reads of the worker and the road surfaces of the level profile
+            [Fronts.StepName] = BuildSteps.FrontRoles,
             [ReadSteps.Labels] = new[] { "baseplan" },
             [ReadSteps.Blocks] = new[] { "villaBlocks" },
             [ReadSteps.Setbacks] = new[] { "villaBlocks" },
