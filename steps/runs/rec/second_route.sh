@@ -15,6 +15,12 @@ moved() {
 }
 moved steps/PROGRESS.md "## Bader's turn" "## Next three steps"
 moved steps/questions-closed.md "## Open questions, full text" "## Old numbers to IDs"
+run() {
+  git show $base:steps/PROGRESS.md | awk -v a="$1" -v b="$2" '{i=index($0,a); if(i){s=substr($0,i); j=index(s,b); print substr(s,1,j+length(b)-1)}}' > "$tmp/run"
+  echo "PROGRESS run from $1: $(wc -c < "$tmp/run") bytes, held by steps/latent.md $(grep -cF -f "$tmp/run" steps/latent.md) times"
+}
+run "key_copies.py keeps a last part NUL" "PrototypeSets.ps1 throws on it."
+run "The check points of R353 hold the residuals" "none reached by a real input (READ, steps/questions-closed.md)"
 git archive $base docs steps CLAUDE.md .claude/agents | tar -x -C "$tmp"
 for kind in 'R[0-9]{1,3}' 'Q[0-9]{3}'; do
   before=$(cd "$tmp" && find . -name '*.md' -print0 | xargs -0 grep -ohE "\b$kind\b" | sort -u)

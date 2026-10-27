@@ -28,6 +28,8 @@ Live state of the tool. At most 60 lines. The round detail is in steps/log.md, s
 - Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - A native2022 build with --overrides is refused on 1,346 native entries with no value (Q075)
+- Q089 closed by Q095, yet real: a button 3 build joins 22 clusters from an analysis.json no add-in run makes, Phase 5 must make or name it
+- python/key_join.py writes steps/investigations/round-addin.md into the notes of config/area_codes.json, 2b is now in steps/history/round-addin/
 
 ## Bader's turn
 

@@ -34,4 +34,4 @@ Moved from the open bugs of steps/PROGRESS.md at 73b8c42 with no word changed.
 - PR 56, python/record_parts.py RULE_TITLE: the title part [^*]* also takes a line break, and a title that holds a star would leave the index with no word. No rule title of docs/rules/ holds one, the index lists 311 of 311 (RAN)
 - PR 56, python/record_parts.py parts: any other .md file put in docs/rules/ would join the rules
 - PR 56, docs/rules/07-addin-r354-r388.md also holds R11 to R15 of the Test and Writing rules sections, the index lists them under it
-- PR 57, python/key_join.py line 193 writes steps/investigations/round-addin.md into the measured note of config/area_codes.json on its next run, the 2b finding it names is now steps/history/round-addin/06-phase-2b.md
+- PR 58, python/split_proof.py MOVED_LINES: a moved line passes when either new file holds it, so an open question moved into latent.md or a line held twice would pass. The ids of the records show no such move (RAN, 65 open, Q088 to Q094 closed)

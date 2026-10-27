@@ -7,3 +7,7 @@ PR 56, pass 1
 PR 57, pass 1
 - reviewer CHANGES NEEDED. REAL: the new round-addin.md named steps/01_next.md, steps/latent.md, Q095 and Q097 before they exist, fixed by naming the PR that brings each. LATENT: key_join.py line 193 writes the old round file path into a measured note, the proof base of the design and round pairs is 73b8c42 and not the PR parent, the README row of 06-settings. The README row was fixed. The base needs none, as the parts equal the file at 73b8c42
 - claim-checker 0 WRONG, 3 UNBACKED: no file held the review verdicts (this file), the count of test readers (2 Python tests read the parts, test_harness checks the CLAUDE.md pointer), the gate file was written before the commit and CI dotnet was pending (merged only after gh pr checks passed)
+
+PR 58, pass 1
+- reviewer CHANGES NEEDED. REAL: the Q095 to Q097 rows named files later PRs write, fixed by naming the PR. The second route lacked the check of the 2 latent bug runs, added. Q089 is closed by Q095 yet reached by every button 3 build, now a line of the PROGRESS open bugs. key_join.py writes the old round file path into config/area_codes.json notes, moved from latent.md to the open bugs, no code change in this round. LATENT: a moved line passes when either new file holds it, in steps/latent.md
+- claim-checker 0 WRONG. Loose: the PR body put the 8 word limit on the open bug lines too, the body was fixed. UNBACKED: the dotnet counts rest on gate_pr3.txt, CI checked before the merge

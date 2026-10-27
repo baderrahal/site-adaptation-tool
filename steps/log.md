@@ -17,7 +17,7 @@ Checked:
 - Gate on PR 56, PR 57 and PR 3: pytest 1,794 passed 1 skipped, build 0 errors, dotnet test 763 and 789 (RAN, gate_pr1.txt to gate_pr3.txt)
 - 3 splits equal by SHA-256, the PROGRESS copy equal, 30 and 47 moved question lines and 2 latent bug runs held whole, by python/split_proof.py and by second_route.sh (RAN, split_proof.txt, second_route.txt)
 - Distinct ids of the records 346 R and 94 Q before, 0 lost (RAN, both routes)
-- Reviews: PR 56 APPROVE, PR 57 1 REAL fixed, the LATENT ones in steps/latent.md, claim-checkers 0 WRONG (READ, steps/runs/rec/reviews.txt)
+- Reviews: PR 56 APPROVE, PR 57 1 REAL and PR 58 4 REAL fixed or listed as open bugs, LATENT ones in steps/latent.md, claim-checkers 0 WRONG (READ, steps/runs/rec/reviews.txt)
 
 Remains:
 - PR 4 CLAUDE.md and agents, PR 5 R400, 01_next.md, START.md, PROGRESS
