@@ -498,13 +498,18 @@ def test_r357_the_steps_that_take_the_prototype_files_list_every_file_of_the_fol
     with pytest.raises(project_profile.ProfileError) as error:
         plan_from_book.folder_files(tmp_path / "none", profile)
     assert str(error.value) == "the prototype folder %s of pastJob is not on disk (R357)" % (tmp_path / "none")
-    python = {"run": {"inputs": [{"role": "prototype:a.rvt", "sha256": "1"}, {"role": "prototype:b.rvt", "sha256": "2"}, {"role": "labels", "sha256": "3"}]}}
-    csharp = {"run": {"inputs": [{"role": "prototype:a.rvt", "sha256": "1"}, {"role": "labels", "sha256": "3"}, {"role": "prototype:c.rvt", "sha256": "4"}]}}
-    with pytest.raises(ValueError) as error:
-        parity.listed_inputs(python, csharp)
-    assert str(error.value) == "the two step files list other prototype files, only python prototype:b.rvt, only csharp prototype:c.rvt (R357)"
+    python = {"step": "hands", "run": {"inputs": [{"role": "prototype:a.rvt", "sha256": "1"}, {"role": "prototype:b.rvt", "sha256": "2"}, {"role": "labels", "sha256": "3"}]}}
+    csharp = {"step": "hands", "run": {"inputs": [{"role": "prototype:a.rvt", "sha256": "1"}, {"role": "labels", "sha256": "3"}, {"role": "prototype:c.rvt", "sha256": "4"}]}}
+    for step in ("hands", "linkFrame"):
+        with pytest.raises(ValueError) as error:
+            parity.listed_inputs(dict(python, step=step), dict(csharp, step=step))
+        assert str(error.value) == "the two step files list other prototype files, only python prototype:b.rvt, only csharp prototype:c.rvt (R357)"
     parity.listed_inputs(python, python)
-    parity.listed_inputs({"run": {"inputs": []}}, {"run": {"inputs": [{"role": "labels"}]}})
+    parity.listed_inputs({"step": "hands", "run": {"inputs": []}}, {"step": "hands", "run": {"inputs": [{"role": "labels"}]}})
+    # A step that takes no prototype file, as the C# stamps every step of a request with the inputs of the request, the prototype files
+    # of its steps hands and linkFrame among them, which the Python steps clusters and fronts do not name (the parity of the fix pass)
+    for step in ("clusters", "fronts", "faces"):
+        parity.listed_inputs({"step": step, "run": {"inputs": []}}, dict(csharp, step=step))
 
 
 def test_r356_the_link_of_a_plot_is_the_fit_of_its_code_from_the_anchor_corner_of_its_front_in_the_link_axes_of_its_hand(monkeypatch):

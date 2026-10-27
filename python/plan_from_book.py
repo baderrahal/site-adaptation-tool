@@ -913,7 +913,7 @@ def step_inputs(args):
 
 
 # R357. The build steps that take the prototype files, each file of the folder an input of its own, prototype:<its name>
-PROTOTYPE_STEPS = ("hands", "linkFrame")
+PROTOTYPE_STEPS = parity.LISTED_STEPS
 PROTOTYPE_ROLE = "prototype:"
 
 

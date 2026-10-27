@@ -176,9 +176,17 @@ def same_inputs(python, csharp):
             raise ValueError("the two step files were written from other %s files, SHA-256 %s and %s" % (role, mine[role], item.get("sha256")))
 
 
+# R357. The steps that take the files of the prototype folder, plan_from_book.PROTOTYPE_STEPS
+LISTED_STEPS = ("hands", "linkFrame")
+
+
 def listed_inputs(python, csharp, prefix="prototype:"):
-    """R357. The files of a listing both step files take, the prototype folder, are the same files on both sides: same_inputs holds each file
-    both name, this holds that neither names one the other does not, as the review of PR 55 found the C# took one of two files Python listed."""
+    """R357. The files of a listing a step takes, the prototype folder, are the same files on both sides: same_inputs holds each file both
+    name, this holds that neither names one the other does not, as the review of PR 55 found the C# took one of two files Python listed. A step
+    of LISTED_STEPS alone, as the C# stamps every step of a request with all its inputs and the Python steps clusters and fronts name none."""
+    if python.get("step") not in LISTED_STEPS:
+        return
+
     def roles(payload):
         return {item.get("role") for item in (payload.get("run") or {}).get("inputs") or [] if str(item.get("role")).startswith(prefix)}
     mine, theirs = roles(python), roles(csharp)
