@@ -158,6 +158,28 @@ JSON_TEXT = ('{"a": 1.2345678901234567e-15, "b": 3e-29, "c": -0.0, "d": 1e30, "e
              '"i": 7.9228162514264337593543950336e28, "j": "x\\u00e9\\ud83d\\ude00", "a": 1.2345678901234567e-15}')
 
 
+def test_r354_each_json_input_is_read_as_its_python_reader_reads_it_a_duplicate_key_a_byte_order_mark_and_long_integers(tmp_path):
+    """P2 of the review of PR 55: what the C# test of the same name holds PyMath.ReadJson to, as the Python readers give it. Config, the
+    rules profile and the footprint blocks through project_profile.read_object, the other reads through json.loads."""
+    path = tmp_path / "project.json"
+    path.write_text('{"a": {"b": 1, "b": 2}}', encoding="utf-8")
+    with pytest.raises(project_profile.ProfileError) as error:
+        project_profile.read_object(path)
+    assert str(error.value) == "project.json has a duplicate key b"
+    assert json.loads(path.read_text(encoding="utf-8"))["a"]["b"] == 2
+    path.write_bytes(b"\xef\xbb\xbf" + b'{"a": 1}')
+    assert project_profile.read_object(path) == {"a": 1}
+    with pytest.raises(ValueError, match="Unexpected UTF-8 BOM"):
+        json.loads(path.read_text(encoding="utf-8"))
+    wide = json.loads("[" + "7" * 4300 + ", -" + "7" * 4300 + "]")
+    assert len(str(wide[0])) == 4300 and isinstance(wide[1], int)
+    with pytest.raises(ValueError, match="Exceeds the limit \\(4300 digits\\) for integer string conversion: value has 4301 digits"):
+        json.loads("[-" + "7" * 4301 + "]")
+    assert float(2 ** 70 + 2 ** 17 + 1) == 1180591620717411565568.0 and float(-(2 ** 70 + 2 ** 17 + 1)) == -1180591620717411565568.0
+    with pytest.raises(OverflowError, match="int too large to convert to float"):
+        float(10 ** 400)
+
+
 def test_r354_every_number_of_a_json_input_is_the_double_or_integer_python_reads_from_its_text():
     """The bits the C# test holds PyMath.ReadJson to, as json.loads gives them here, and the texts it refuses as json.loads refuses them."""
     import struct

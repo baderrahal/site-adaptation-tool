@@ -22,10 +22,32 @@ namespace SiteAdaptation.Common
             this.text = text ?? "";
         }
 
-        // The value of the whole text, FormatException with the place when json.loads would refuse it
-        public static JToken Parse(string text)
+        // P2 of the review of PR 55: the int digit limit of Python, int() of a text of more digits raises ValueError, so json.loads does
+        private const int IntDigits = 4300;
+
+        // A key met again in one object where the reader refuses it, as no_duplicate_keys of project_profile.read_object does
+        public sealed class DuplicateKey : FormatException
         {
-            var reader = new PyJson(text);
+            public DuplicateKey(string key) : base("duplicate key " + key)
+            {
+                Key = key;
+            }
+
+            public string Key { get; }
+        }
+
+        private readonly bool refuseDuplicates;
+
+        private PyJson(string text, bool refuseDuplicates) : this(text)
+        {
+            this.refuseDuplicates = refuseDuplicates;
+        }
+
+        // The value of the whole text, FormatException with the place when json.loads would refuse it, DuplicateKey for a key met again
+        // in one object when refuseDuplicates, as project_profile.read_object refuses it
+        public static JToken Parse(string text, bool refuseDuplicates = false)
+        {
+            var reader = new PyJson(text, refuseDuplicates);
             reader.Space();
             JToken value = reader.Value();
             reader.Space();
@@ -127,8 +149,13 @@ namespace SiteAdaptation.Common
                 }
                 at++;
                 Space();
-                // A key met again keeps its first place and takes the last value, as a Python dict does
-                found[key] = Value();
+                // A key met again keeps its first place and takes the last value, as a Python dict does, or is refused
+                JToken value = Value();
+                if (refuseDuplicates && found.ContainsKey(key))
+                {
+                    throw new DuplicateKey(key);
+                }
+                found[key] = value;
                 Space();
                 if (at < text.Length && text[at] == ',')
                 {
@@ -309,6 +336,11 @@ namespace SiteAdaptation.Common
             if (real)
             {
                 return new JValue(ExactDouble.Parse(number));
+            }
+            int digits = number.Length - (number[0] == '-' ? 1 : 0);
+            if (digits > IntDigits)
+            {
+                throw Fail("Exceeds the limit (" + IntDigits + " digits) for integer string conversion: value has " + digits + " digits");
             }
             return long.TryParse(number, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long whole) ? new JValue(whole) : new JValue(BigInteger.Parse(number, CultureInfo.InvariantCulture));
         }

@@ -319,6 +319,15 @@ namespace SiteAdaptation.Common
         }
 
         // A name holding .tmp- is never read
+        public static byte[] ReadBytes(string path)
+        {
+            if (IsTemporary(path))
+            {
+                throw new InvalidOperationException("a file under a temporary name is never read: " + path);
+            }
+            return File.ReadAllBytes(path);
+        }
+
         public static string ReadText(string path)
         {
             if (IsTemporary(path))

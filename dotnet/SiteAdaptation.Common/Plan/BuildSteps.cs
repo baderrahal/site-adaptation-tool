@@ -41,8 +41,9 @@ namespace SiteAdaptation.Common
             {
                 this.run = run;
                 this.config = config;
-                Settings = PyMath.ReadJson(run.Input("config"), "config") as JObject ?? throw new InvalidDataException("the config is no JSON object");
-                Rules = PyMath.ReadJson(run.Input("rules"), "rules") as JObject ?? throw new InvalidDataException("the rules file is no JSON object");
+                // P2. Config and the rules profile as project_profile.read_object reads them
+                Settings = PyMath.ReadJson(run.Input("config"), "config", true) as JObject ?? throw new InvalidDataException("the config is no JSON object");
+                Rules = PyMath.ReadJson(run.Input("rules"), "rules", true) as JObject ?? throw new InvalidDataException("the rules file is no JSON object");
                 RulesName = Path.GetFileName(run.Request.Inputs.First(input => input.Role == "rules").Path);
                 List<Dictionary<string, string>> csv = CsvRows.Read(run.Input("plotsCsv"));
                 Rows = new Dictionary<string, Dictionary<string, string>>();
@@ -96,7 +97,8 @@ namespace SiteAdaptation.Common
                     {
                         // The faces first, as plan_from_book.py refuses a face before it reads the footprint and the analysis
                         Dictionary<string, BuildFace> held = Faces;
-                        JObject footprint = Read("villaBlocksRead", "villaBlocks");
+                        // P2. The footprint blocks as project_profile.read_villa_blocks reads them, by read_object
+                        JObject footprint = Read("villaBlocksRead", "villaBlocks", true);
                         // R300. The villa blocks of a drawing kept for reference only are never read
                         string source = (string)footprint["source"] ?? "";
                         if (ReadSettings.Load(run.Input("config")).IsReferenceOnly(source))
@@ -240,10 +242,10 @@ namespace SiteAdaptation.Common
             }
 
             // A read of the worker of the role it names, its drawing in Meters and every input of its run stamp on disk with its SHA-256
-            private JObject Read(string role, string readRole)
+            private JObject Read(string role, string readRole, bool readObject = false)
             {
                 string path = run.Input(role);
-                JObject found = PyMath.ReadJson(path, role) as JObject ?? throw new InvalidDataException("the input " + role + " is no JSON object: " + path);
+                JObject found = PyMath.ReadJson(path, role, readObject) as JObject ?? throw new InvalidDataException("the input " + role + " is no JSON object: " + path);
                 JToken named = found["role"];
                 if (named == null || named.Type != JTokenType.String || (string)named != readRole)
                 {

@@ -261,9 +261,36 @@ namespace SiteAdaptation.Common
         // named (B4 of the review of PR 55)
         public static JToken ReadJson(string path, string role)
         {
+            return ReadJson(path, role, false);
+        }
+
+        // readObject: the file as project_profile.read_object reads config, the rules profile and the footprint blocks, utf-8-sig and a
+        // duplicate key refused by the name of the file as Python names it, else as json.loads reads the text of read_text(encoding="utf-8"),
+        // a byte order mark refused and a key met again keeping the last value (P2 of the review of PR 55). Text that is no UTF-8 is refused
+        public static JToken ReadJson(string path, string role, bool readObject)
+        {
+            byte[] bytes = WorkFiles.ReadBytes(path);
+            int start = readObject && bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
+            string text;
             try
             {
-                return PyJson.Parse(WorkFiles.ReadText(path));
+                text = new System.Text.UTF8Encoding(false, true).GetString(bytes, start, bytes.Length - start);
+            }
+            catch (System.Text.DecoderFallbackException failure)
+            {
+                throw new InvalidDataException("the input " + role + " is no UTF-8 text: " + failure.Message + " (R354)");
+            }
+            try
+            {
+                if (text.Length > 0 && text[0] == '\uFEFF')
+                {
+                    throw new FormatException("Unexpected UTF-8 BOM (decode using utf-8-sig) at char 0");
+                }
+                return PyJson.Parse(text, readObject);
+            }
+            catch (PyJson.DuplicateKey twice)
+            {
+                throw new InvalidDataException(Path.GetFileName(path) + " has a duplicate key " + twice.Key);
             }
             catch (FormatException failure)
             {

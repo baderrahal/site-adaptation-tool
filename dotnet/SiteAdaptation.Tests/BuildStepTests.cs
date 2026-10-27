@@ -364,6 +364,21 @@ namespace SiteAdaptation.Tests
             later.Inputs[6] = Input("analysis", later.Inputs[6].Path);
             Assert.Equal(2, WorkerRunner.Run(later.Write(folder), WorkerCommands.Default(), () => 9000.0));
             Assert.Contains("analysis.json counts 9 plot faces and the baseplan read holds 8", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c6")).Message);
+
+            // P2. The config of a build is read as project_profile.read_object reads it, a duplicate key refused by the name of the file
+            WorkerRequest twice = BuildRequest("c7", new[] { "clusters" });
+            string copy = Path.Combine(folder, "project.json");
+            File.WriteAllText(copy, "{\"twice\": 1, \"twice\": 2, " + File.ReadAllText(WorkerRunTests.RepoConfig()).Trim().Substring(1));
+            twice.Inputs[0] = Input("config", copy);
+            Assert.Equal(2, WorkerRunner.Run(twice.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("project.json has a duplicate key twice", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c7")).Message);
+
+            // P2. The analysis is read as json.loads reads it, so a byte order mark is refused
+            WorkerRequest marked = BuildRequest("c8", new[] { "clusters" });
+            File.WriteAllBytes(marked.Inputs[6].Path, new byte[] { 0xEF, 0xBB, 0xBF }.Concat(File.ReadAllBytes(marked.Inputs[6].Path)).ToArray());
+            marked.Inputs[6] = Input("analysis", marked.Inputs[6].Path);
+            Assert.Equal(2, WorkerRunner.Run(marked.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("the input analysis is no JSON as Python reads it: Unexpected UTF-8 BOM", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "c8")).Message);
         }
 
         [Fact]
@@ -492,6 +507,33 @@ namespace SiteAdaptation.Tests
         internal const string JsonText = "{\"a\": 1.2345678901234567e-15, \"b\": 3e-29, \"c\": -0.0, \"d\": 1e30, \"e\": 8e28, \"f\": [0.1, 2264.253152, 1E+400, -1e-400, "
             + "4.9406564584124654e-324, 2.4703282292062328e-324, 1.7976931348623158e+308], \"g\": 12345678901234567890123, \"h\": -0, \"i\": 7.9228162514264337593543950336e28, "
             + "\"j\": \"x\\u00e9\\ud83d\\ude00\", \"a\": 1.2345678901234567e-15}";
+
+        // P2 of the review of PR 55, B4 second attempt: each JSON input read as its Python reader reads it. Config, the rules profile and the
+        // footprint blocks go through project_profile.read_object, utf-8-sig with a duplicate key refused, the other reads through json.loads,
+        // a byte order mark refused and a key met again keeping the last value. An integer of more than 4300 digits is refused as int() of
+        // Python refuses it, and float() of an integer past the long range is the nearest double, where (double)BigInteger cut it
+        [Fact]
+        public void R354_each_json_input_is_read_as_its_python_reader_reads_it_a_duplicate_key_a_byte_order_mark_and_long_integers()
+        {
+            string path = Path.Combine(folder, "project.json");
+            File.WriteAllText(path, "{\"a\": {\"b\": 1, \"b\": 2}}");
+            Assert.Equal("project.json has a duplicate key b", Assert.Throws<InvalidDataException>(() => PyMath.ReadJson(path, "config", true)).Message);
+            Assert.Equal(2L, (long)PyMath.ReadJson(path, "analysis")["a"]["b"]);
+            File.WriteAllBytes(path, new byte[] { 0xEF, 0xBB, 0xBF }.Concat(System.Text.Encoding.UTF8.GetBytes("{\"a\": 1}")).ToArray());
+            Assert.Equal(1L, (long)PyMath.ReadJson(path, "config", true)["a"]);
+            Assert.StartsWith("the input analysis is no JSON as Python reads it: Unexpected UTF-8 BOM (decode using utf-8-sig)",
+                Assert.Throws<InvalidDataException>(() => PyMath.ReadJson(path, "analysis")).Message);
+            File.WriteAllText(path, "[" + new string('7', 4300) + ", -" + new string('7', 4300) + "]");
+            JArray wide = (JArray)PyMath.ReadJson(path, "analysis");
+            Assert.Equal(4300, wide[0].ToString().Length);
+            Assert.Equal(JTokenType.Integer, wide[1].Type);
+            File.WriteAllText(path, "[-" + new string('7', 4301) + "]");
+            Assert.Contains("Exceeds the limit (4300 digits) for integer string conversion: value has 4301 digits",
+                Assert.Throws<InvalidDataException>(() => PyMath.ReadJson(path, "analysis")).Message);
+            Assert.Equal(1180591620717411565568.0, BuildFace.Number(new JValue(System.Numerics.BigInteger.Pow(2, 70) + System.Numerics.BigInteger.Pow(2, 17) + 1)));
+            Assert.Equal(-1180591620717411565568.0, BuildFace.Number(new JValue(-(System.Numerics.BigInteger.Pow(2, 70) + System.Numerics.BigInteger.Pow(2, 17) + 1))));
+            Assert.Equal("int too large to convert to float", Assert.Throws<InvalidDataException>(() => BuildFace.Number(new JValue(System.Numerics.BigInteger.Pow(10, 400)))).Message);
+        }
 
         [Fact]
         public void R354_every_number_of_a_json_input_is_the_double_or_integer_python_reads_from_its_text()

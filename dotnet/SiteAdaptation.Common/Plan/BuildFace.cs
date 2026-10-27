@@ -94,7 +94,18 @@ namespace SiteAdaptation.Common
             if (token.Type == JTokenType.Integer)
             {
                 object value = ((JValue)token).Value;
-                return value is System.Numerics.BigInteger large ? (double)large : Convert.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture);
+                if (value is System.Numerics.BigInteger large)
+                {
+                    // float() of Python: the nearest double, ties to even, where (double)BigInteger cuts the digits past 53 bits, and an
+                    // integer past the doubles refused as OverflowError (P2 of the review of PR 55)
+                    double nearest = ExactDouble.Parse(large.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                    if (double.IsInfinity(nearest))
+                    {
+                        throw new System.IO.InvalidDataException("int too large to convert to float");
+                    }
+                    return nearest;
+                }
+                return Convert.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture);
             }
             return (double)token;
         }
