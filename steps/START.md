@@ -10,5 +10,6 @@ Repo baderrahal/site-adaptation-tool. Bader decides, chat drafts and reads, Code
 4. Each PR: at most 4 changes, the gate, the checkers CLAUDE.md names, at most 2 review passes. A REAL finding is fixed with a test, a LATENT one goes to steps/latent.md.
 5. Merge on green with gh pr checks --watch, then delete the branch and pull main. Never two PRs open.
 6. At the end of the phase: mark it done in steps/01_next.md, write the top entry of steps/log.md, rewrite steps/PROGRESS.md to the caps of R400, merge, and stop.
+7. After the merge, run npx ccusage@latest session --since <today as YYYYMMDD> and add one row for this session to steps/usage.md, total tokens and cost only.
 
 Final message to Bader: plain and short, the PR numbers, the checks with their counts, what is UNKNOWN, and every new question by ID.

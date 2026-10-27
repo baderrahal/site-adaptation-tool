@@ -25,13 +25,20 @@ RAN on 2026-10-27 in Round REC: npx ccusage@latest daily --since 20261025 --json
 
 | Session | Last activity | Model | Input | Output | Cache write | Cache read | Total | Cost USD |
 |---|---|---|---:|---:|---:|---:|---:|---:|
-| 2cb85595, 4d and 4e | 2026-10-27 07:42 | opus-5-5 | 20,880 | 12,350,775 | 59,006,996 | 3,355,881,124 | 3,427,259,775 | 1,241.55 |
-| 2cb85595, 4d and 4e | 2026-10-27 07:42 | sonnet-5-5 | 3,918 | 1,613,830 | 5,292,699 | 229,668,485 | 236,578,932 | 52.34 |
+| 2cb85595, 0a to 4e from 25 Oct | 2026-10-27 07:42 | opus-5-5 | 20,880 | 12,350,775 | 59,006,996 | 3,355,881,124 | 3,427,259,775 | 1,241.55 |
+| 2cb85595, 0a to 4e from 25 Oct | 2026-10-27 07:42 | sonnet-5-5 | 3,918 | 1,613,830 | 5,292,699 | 229,668,485 | 236,578,932 | 52.34 |
 | this session, REC | 2026-10-27 08:12 | opus-5-5 | 28 | 15,614 | 82,090 | 1,230,302 | 1,328,034 | 1.22 |
 | Total | | all | 24,826 | 13,980,219 | 64,381,785 | 3,586,779,911 | 3,665,166,741 | 1,295.11 |
 
 ### What the counts show
 
 - Cache read is 97.9 % of every token of the three days (RAN, 3,766,134,695 of 3,845,904,313). Each turn of a session reads its whole context again, so a long session and a large start read cost on every turn.
-- One session, 2cb85595, ran 4d and 4e and holds 95.3 % of the tokens of the three days (RAN, 3,663,838,707 of 3,845,904,313).
+- One session, 2cb85595, ran 0a to 4e from 25 October and holds 95.3 % of the tokens of the three days (RAN, 3,663,838,707 of 3,845,904,313).
 - The session table sums 180,737,572 fewer tokens than the day table. ccusage picks sessions by their last activity and days by each message, the sessions behind the gap are UNKNOWN.
+
+## By phase session
+
+One row per phase session since Round ADDIN 4f, added after its last merge by step 7 of steps/START.md, from npx ccusage@latest session --since <its first day>.
+
+| Session | Phase | Total tokens | Cost USD |
+|---|---|---:|---:|
