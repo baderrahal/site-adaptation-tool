@@ -50,6 +50,10 @@ CANNOT = "cannot"
 ROAD = "roadLevel"
 # R354, Q089. The line the run refuses an analysis with, as it measures on the footprint clusters alone as a build takes them
 ANALYSIS_REFUSED = "the analysis is no input of the majority rule since Q089, it measures on the footprint clusters of R236 alone (R354)"
+# R274, R333. The candidates of the hand rules in the order a tie takes them, so blockMirrorOpenEnd, the rule Round 17 coded, stays ahead of
+# blockMirrorRoadSide. clusterSideAnalysisOnly of Q040 left with the analysis clusters (Q089, R354), it gave the share of all
+HAND_CANDIDATES = ("all", "blockMirror", "clusterSide", "clusterIndexParity", "openEnd", "rowParity", "orientation", "roadSide", "blockMirrorOpenEnd",
+                   "blockMirrorRoadSide", "rowPairSide", "rowPairSideOrBlockMirrorOpenEnd")
 # The first word of each decision run makes, which majority.kindLeaveOut names
 DECISIONS = ("rampSlope", "hand", "entry", "rampFront", "rampFrontFall", "height", "steps", "generic", "yard", "parameter", "linkRotation", "frontCorner",
              "linkOrigin", "rampOutline", "yardOutline", "wallBase", "wallTop", "wallLine", "frontOpen", "levelSplit", "baseHeight", "ffl")
@@ -482,15 +486,13 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
         record(group + " rampOutline", ramps, key_rules.ramp_target, {"outlineR127": key_rules.ramp_rule(profile)}, by_group, "rampOutline",
                key_rules.corner_hold(block["outlineHoldMm"] / 1000.0), gap=key_rules.corner_gap)
         # R274. Hand, per link file, apart for villas, units in a cluster and units alone
-        # R333. The pairs of the rows of units in no cluster, the villas between cluster units. clusterSideAnalysisOnly (Q040) is alone for every plot since Q089 (R354).
-        # A tie goes to the candidate listed first, so blockMirrorOpenEnd, the rule Round 17 coded, stays ahead of blockMirrorRoadSide
+        # R333. The pairs of the rows of units in no cluster, the villas between cluster units. A tie goes to the candidate listed first (HAND_CANDIDATES)
         # R337. Learned and coded per file the key links, judged by the table of the file a build links, so a miss is a plot a build does not reproduce
         built_file = lambda item: (item["group"], item.get("buildFile") or item["file"])
         for unit_class in ("villa", "cluster", "alone"):
             chosen = [item for item in kept("hand") if item["row"]["mirrored"] is not None and hand_class(item) == unit_class]
             record(group + " hand " + unit_class, chosen, lambda item: item["row"]["mirrored"],
-                   {name: name for name in ("all", "blockMirror", "clusterSide", "clusterSideAnalysisOnly", "clusterIndexParity", "openEnd", "rowParity", "orientation",
-                                            "roadSide", "blockMirrorOpenEnd", "blockMirrorRoadSide", "rowPairSide", "rowPairSideOrBlockMirrorOpenEnd")}, by_file, "mirrored",
+                   {name: name for name in HAND_CANDIDATES}, by_file, "mirrored",
                    extra_by={"betweenClusters": lambda item: item.get("betweenClusters")}, judge_scope=built_file)
         if lv is None:
             # R275. El @ Entry: the road level at the front corners of a surface plus the slope of the unit times the ramp depth, as is and less a datum
@@ -710,8 +712,6 @@ def site_context(rows, book, number_of, faces, roads, shapes, sales, profile, se
     pairs = key_rules.row_pairs(units, neighbours, lambda plot: pair_kind(plot, book, profile, block), lambda plot: plot in roles, block["pairKinds"])
     for item in items:
         factors = item["factors"]
-        # R354. No analysis cluster since Q089, so every plot is alone for the candidate of Q040, kept so keyRules keeps the shape it was measured in
-        factors["clusterSideAnalysisOnly"] = "alone"
         factors["rowPairSide"] = (pairs.get(item["plot"]) or {}).get("side")
         plan_rules.joined_factors(factors)
         item["betweenClusters"] = key_rules.between_clusters(item["neighbours"], lambda plot: plot in roles)

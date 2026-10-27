@@ -9,7 +9,7 @@ under that decision, else holds.
 Every decision of the group in majority.json is held by the candidate the first method coded, whichever it is: a factor by its
 own value of that factor looked up in the table the first method learned, a formula by its own sums. The fits are made again
 here, never taken from majority.json: the link origin per code (R121), the yard outlines per unit, mirror flag and width (R135)
-and the clusters from the footprint blocks and the CAD analysis (R236). A decision whose coded candidate has no own route, or a
+and the clusters from the footprint blocks alone since Q089 (R236, R354). A decision whose coded candidate has no own route, or a
 decision with no route at all, is a failure, listed in cannotCheck and the run ends with 1, unless its field is one of
 majority.overrideKeep.laterFields, left to a later phase, listed in leftForLater.
 
@@ -923,8 +923,6 @@ def own_factors(row, ctx, block, profile):
     factors.update({
         "blockMirror": mirror_block, "openEnd": open_end, "roadSide": road, "rowParity": None if not unit else ("odd" if left % 2 == 0 else "even"),
         "clusterSide": "alone" if plot not in ctx["member"] else (role or {}).get("side"),
-        # R354. No analysis cluster since Q089, so every plot is alone for the candidate of Q040
-        "clusterSideAnalysisOnly": "alone",
         "clusterIndexParity": "alone" if plot not in ctx["member"] else None if role is None else ("odd" if role["index"] % 2 else "even"),
         "orientation": sale.get("Orientation") or None, "corner": None if streets is None else ("yes" if (number(streets) or 0) >= 2 else "no"),
         "rowPairSide": pair, "depthBand": band(depth, block["depthBands"]), "measuredBand": band(number(row.get("rampSlopePercent")), block["slopeBands"]),
