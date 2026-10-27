@@ -5,12 +5,12 @@ Round AUDIT-RULES, 2026-10-27, on main at 69a3711. The status of every rule valu
 ## 1 Method
 
 - Statuses, as the round prompt gives them: CHOSEN by Bader (an answer in steps/questions-closed.md or a Bader line in CLAUDE.md), MEASURED (taken from the past models by the majority rule, with a share and keys), RECOMMENDED (an open question carries it), CHOSEN by Code (a threshold or setting Code set with no answer from Bader), UNKNOWN (none of the above can be shown).
-- The statuses come from one script, steps/investigations/rule-status-scripts/audit.py, kept in the repo so every count tagged RAN can be run again: `.venv/Scripts/python -I steps/investigations/rule-status-scripts/audit.py . <folder>`. No status is typed by hand. After review pass 1 of PR 68 it replaced the first script, which gave a status by a Q anywhere in a sentence and CHOSEN by Code by absence.
+- The statuses come from one script, steps/investigations/rule-status-scripts/audit.py, kept in the repo so every count tagged RAN can be run again: `.venv/Scripts/python -I steps/investigations/rule-status-scripts/audit.py . <folder>`. No status is typed by hand. It replaced the first script after review pass 1 of PR 68, which found a status given by a Q anywhere in a sentence and CHOSEN by Code by absence, and took the fixes of pass 2.
 - A value is a leaf of the JSON, a scalar or a list of scalars. Kinds: value, a design value, and host, a value of the host program such as a time limit or a memory peak. Both get a status and both count in the values below.
 - Not values, counted and given no status: note text, the measurement records of a keyRule or hand rule (plots, misses, byKey, candidates and such), input names and locations (file, folder, sheet and parameter names of the real inputs), and settings of a reader or check with no design value (parity lists, shared parameter GUIDs, the answer key list, prototype names, the snapshot list, the text patterns of the readers of dataBook and connect).
-- Evidence of a value, its own text only: its own note (a key named with Note added), the note, why or question of its parent when the parent has at most 8 leaves, the sentences of the rule lines of docs/rules/ that name it by its last two keys (three when the two are a path of their own in a file) or by its own key name when that is 9 letters or more and unique in the two files, and a Q ID in its path.
-- A mark in that text counts only within 80 characters of a name of the value, so a Q about another key of the same sentence does not count. In its own note, or the note of an object of at most 3 leaves, a mark counts anywhere.
-- Order: a closed Q whose answer names Bader, or with Bader within 40 characters of it as R302 writes (Bader, Q061), gives CHOSEN by Bader. Else an open Q of Q001 to Q099 gives RECOMMENDED. Else the word CHOSEN gives CHOSEN by Code. A keyRules entry with a share, and the hands rules, give MEASURED with the share, strong or weak and the keys of byKey. majority.strongShare is CHOSEN by Bader by the Majority rule of CLAUDE.md, levelProfiles.default by Q050.
+- Evidence of a value, its own text only: its own note (a key named with Note added), the note, why or question of its parent when the parent has at most 8 leaves, the sentences of the rule lines of docs/rules/ and of every note of the two files that name it by its last two keys (three when the two are a path of their own in a file), by its own key name when that is 9 letters or more and unique in the two files, or by its key in a list after its parent, as workerTimeLimitS, build, reportExcel, the text of each open question that names it, and a Q ID in its path.
+- A mark in that text counts within 80 characters of a name of the value, or when the last camelCase key named before it is the value's, as a note writes sampleSeconds is how often ... every 5 s (CHOSEN, Round ADDIN). So a Q about another key of the same sentence does not count. In its own note or the note of an object of at most 3 leaves a mark counts anywhere, in the note of an object of at most 8 leaves in the sentence that names the value, and an open question counts for the values its text names.
+- Order: a closed Q whose answer names Bader, or with Bader within 40 characters of it as R302 writes (Bader, Q061), gives CHOSEN by Bader. Else an open Q of Q001 to Q099 gives RECOMMENDED. Else the word CHOSEN gives CHOSEN by Code. A keyRules entry with a share, and the hands rules, give MEASURED with the share, strong or weak against majority.strongShare and the keys of byKey. majority.strongShare is CHOSEN by Bader by the Majority rule of CLAUDE.md, levelProfiles.default by Q050.
 - Anything else is UNKNOWN, with the nearest source above the value when there is one. Absence of a mark never gives CHOSEN by Code.
 - Open questions are the 67 IDs of Bader's turn of steps/PROGRESS.md before Q100, as Q100 to Q103 come from this audit, closed ones the 32 of the table of steps/questions-closed.md, 14 of whose answers name Bader (RAN, audit.py).
 - A rule takes every status of the values it names and of the values whose evidence names it, every closed Q of Bader and open Q its line names, every open question whose text names the rule and every closed answer of Bader that names it, MEASURED with the share of each keyRules entry it names, and CHOSEN by Code for the word CHOSEN. A rule with a value, a number with a unit or a key, and none of those is UNKNOWN. A rule with nothing of these is process, no value.
@@ -22,26 +22,26 @@ Round AUDIT-RULES, 2026-10-27, on main at 69a3711. The status of every rule valu
 | What | Count | Source |
 |---|---:|---|
 | Rule ids of docs/rules/index.md | 316 | RAN, audit.py |
-| of them process, no value | 129 | RAN |
-| of them with a value | 187 | RAN |
-| rules with UNKNOWN | 172 | RAN, a rule may hold several statuses |
-| rules with RECOMMENDED | 32 | RAN |
+| of them process, no value | 128 | RAN |
+| of them with a value | 188 | RAN |
+| rules with UNKNOWN | 170 | RAN, a rule may hold several statuses |
+| rules with RECOMMENDED | 39 | RAN |
 | rules with MEASURED | 20 | RAN |
 | rules with CHOSEN by Bader | 17 | RAN |
-| rules with CHOSEN by Code | 3 | RAN |
+| rules with CHOSEN by Code | 10 | RAN |
 | Leaves of rules/roshn-makkah.json | 2,798 | RAN |
 | Leaves of config/project.json | 853 | RAN |
 | Values of the two files, kinds value and host | 591 | RAN |
-| CHOSEN by Bader | 4 | RAN, Q050 1, Q061 2, the Majority rule of CLAUDE.md 1 |
-| MEASURED | 35 | RAN, 32 keyRules entries and 3 hands rules |
-| RECOMMENDED | 4 | RAN, Q017 3, Q066 1 |
-| CHOSEN by Code | 5 | RAN, the word CHOSEN in R347 and its note |
-| UNKNOWN | 543 | RAN, rules 330, config 213 |
+| CHOSEN by Bader | 3 | RAN, Q050 1, Q061 1, the Majority rule of CLAUDE.md 1 |
+| MEASURED | 35 | RAN, 32 keyRules entries and 3 hands rules, 9 of them weak |
+| RECOMMENDED | 9 | RAN, Q017 3, Q002, Q037, Q066, Q085, Q086 and Q098 1 each |
+| CHOSEN by Code | 16 | RAN, the word CHOSEN in R347, in the root note and in the notes of addin.position and addin.plotTable |
+| UNKNOWN | 528 | RAN, rules 330, config 198 |
 | Overrides of config/overrides/roshn-makkah.json | 12,421 | RAN, all RECOMMENDED by Q053 |
 | Cannot list of the overrides file | 154 | RAN |
 | Design values in code, rows | 120 | RAN by the Explore helper, 14 duplicate a config key, 106 not in config |
 
-The 543 UNKNOWN by evidence (RAN): rules/roshn-makkah.json 139 under the top source, the Rev 06 report with Rev 01 for foundations, 130 under typology_codes.source, the DLUS Schedule Rev 9 workbook, 6 under steps.base_height_source, past job schedules of 747 plots, 15 fields of parsons2024Rev6 and 21 of native2022 under the source of their profile with no share, 2 keyRules entries with no share (site and ssl), 17 null. config/project.json 210 with no Q, no share, no Bader line and no CHOSEN mark, 3 null.
+The 528 UNKNOWN by evidence (RAN): rules/roshn-makkah.json 139 under the top source, the Rev 06 report with Rev 01 for foundations, 130 under typology_codes.source, the DLUS Schedule Rev 9 workbook, 6 under steps.base_height_source, past job schedules of 747 plots, 15 fields of parsons2024Rev6 and 21 of native2022 under the source of their profile with no share, 2 keyRules entries with no share (site and ssl), 17 null. config/project.json 195 with no Q, no share, no Bader line and no CHOSEN mark, 3 null.
 
 ## 3 Rules with a value
 
@@ -61,19 +61,19 @@ Where the value lives names the keys of config/project.json or rules/roshn-makka
 | R49 | Floor count per plot. | the rule text | UNKNOWN |  |
 | R53 | Parameter details and floor types. | floorTypes | UNKNOWN |  |
 | R58 | Yard and shared edges. | the rule text | UNKNOWN |  |
-| R59 | Ramp geometry. | Flat Ramps | UNKNOWN |  |
+| R59 | Ramp geometry. | Flat Ramps | RECOMMENDED | Q002 |
 | R60 | Gaps, overlaps and link box. | the rule text | UNKNOWN |  |
 | R61 | Relation summary. | the rule text | UNKNOWN |  |
 | R62 | Project profile. | cluster_aliases, clusters.Q01, riser_height | UNKNOWN |  |
-| R63 | Project settings. | blockClusters, noRev6Match, partyWallShare, roadEdgeLayers | UNKNOWN |  |
-| R64 | Cluster derivation. | analysis.endShare, analysis.partyWallShare, analysis.toleranceM, pl... | UNKNOWN |  |
+| R63 | Project settings. | blockClusters, noRev6Match, partyWallShare, roadEdgeLayers | RECOMMENDED, UNKNOWN | Q098 |
+| R64 | Cluster derivation. | analysis.endShare, analysis.partyWallShare, analysis.toleranceM, lo... | UNKNOWN |  |
 | R66 | Only listed clusters are valid. | typologies | UNKNOWN |  |
-| R67 | FFL, SSL and steps. | baseHeight, levels.ground_ssl, riser_added, riser_height | MEASURED, UNKNOWN | baseHeight 0.8433 |
-| R69 | Unit code per plot. | analysis.unitPlotTypes | UNKNOWN |  |
+| R67 | FFL, SSL and steps. | baseHeight, base_height, base_height.default, count_rule | MEASURED, UNKNOWN | baseHeight 0.8433 |
+| R69 | Unit code per plot. | analysis.unitPlotTypes, unitPlotTypes | UNKNOWN |  |
 | R70 | Row split. | analysis.pairRule, typologies | UNKNOWN |  |
-| R71 | Front by road edge. | analysis.endShare, analysis.roadEdgeLayers, analysis.toleranceM, pl... | UNKNOWN |  |
-| R73 | Block scan. | analysis.noRev6Match, analysis.unitPlotTypes, cluster_aliases | UNKNOWN |  |
-| R75 | Cluster with no Rev 6 match. | analysis.noRev6Match, cluster_aliases | UNKNOWN |  |
+| R71 | Front by road edge. | analysis.endShare, analysis.roadEdgeLayers, analysis.toleranceM, lo... | UNKNOWN |  |
+| R73 | Block scan. | analysis.noRev6Match, analysis.unitPlotTypes, cluster_aliases, noRe... | UNKNOWN |  |
+| R75 | Cluster with no Rev 6 match. | analysis.noRev6Match, cluster_aliases, noRev6Match | UNKNOWN |  |
 | R81 | Plan from the past job. | the rule text | UNKNOWN |  |
 | R82 | Shared position proof. | the rule text | UNKNOWN |  |
 | R83 | Coordinates check. | the rule text | UNKNOWN |  |
@@ -86,7 +86,7 @@ Where the value lives names the keys of config/project.json or rules/roshn-makka
 | R108 | Add-in security dialogs. | the rule text | UNKNOWN |  |
 | R109 | Prototype upgrade job. | the rule text | CHOSEN by Bader | Q067 |
 | R110 | Parallel windows. | the rule text | UNKNOWN |  |
-| R90 | Block as a cluster hint. | Duplex_DP2, Duplex_DP4, Townhouse_TH1, Townhouse_TH3 | UNKNOWN |  |
+| R90 | Block as a cluster hint. | Duplex_DP2, Duplex_DP4, Townhouse_TH1, Townhouse_TH3 | RECOMMENDED, UNKNOWN | Q098 |
 | R93 | Entry measurement. | the rule text | UNKNOWN |  |
 | R94 | Entry rule. | the rule text | RECOMMENDED | Q024 |
 | R95 | Entry proof. | the rule text | UNKNOWN |  |
@@ -94,29 +94,29 @@ Where the value lives names the keys of config/project.json or rules/roshn-makka
 | R98 | Fit and test per group. | the rule text | UNKNOWN |  |
 | R99 | Entrance point per block. | the rule text | UNKNOWN |  |
 | R101 | Second methods. | the rule text | UNKNOWN |  |
-| R111 | Yard rule. | floors.yardMinShare, floors.yardShareTie | UNKNOWN |  |
+| R111 | Yard rule. | floors.yardMinShare, floors.yardShareTie, yardMinShare, yardShareTie | UNKNOWN |  |
 | R112 | Floors in the plan. | floors.keyTypes, floors.levels, floors.types, floors.yardBelowFflM | UNKNOWN |  |
 | R113 | Floor step. | the rule text | UNKNOWN |  |
 | R114 | Plot value, skip and ramp corners. | the rule text | UNKNOWN |  |
 | R115 | Floor geometry. | the rule text | UNKNOWN |  |
 | R116 | Floor run and report. | the rule text | UNKNOWN |  |
 | R119 | Floor check. | the rule text | UNKNOWN |  |
-| R120 | Plot cut list. | cadLinks.cutNeighbours, cadLinks.cutShareMin | UNKNOWN |  |
+| R120 | Plot cut list. | cadLinks.cutNeighbours, cadLinks.cutShareMin, cutNeighbours, cutSha... | UNKNOWN |  |
 | R121 | Corner test and origin offset. | the rule text | UNKNOWN |  |
-| R122 | Rotation from the front edge. | analysis.partyWallShare, analysis.toleranceM, plot.long_side | UNKNOWN |  |
+| R122 | Rotation from the front edge. | analysis.partyWallShare, analysis.toleranceM, long_side, partyWallS... | UNKNOWN |  |
 | R123 | Mirror and CASE. | analysis.pairRule, foundation | UNKNOWN |  |
 | R124 | Second method for the links from CAD. | the rule text | UNKNOWN |  |
 | R125 | One FFL per cluster. | cluster_max_units, cluster_split_positions | UNKNOWN |  |
-| R126 | Levels of the CAD plan. | steps.one_step_only, typologies | UNKNOWN |  |
-| R127 | Ramp outline test. | ramp.front_setback | UNKNOWN |  |
+| R126 | Levels of the CAD plan. | one_step_only, steps.one_step_only, typologies | UNKNOWN |  |
+| R127 | Ramp outline test. | front_setback, ramp.front_setback | UNKNOWN |  |
 | R128 | Plan from CAD. | the rule text | UNKNOWN |  |
 | R129 | Plan against plan. | the rule text | UNKNOWN |  |
 | R130 | Second method for the CAD plan. | the rule text | UNKNOWN |  |
-| R131 | Villa hand test. | analysis.partyWallShare, analysis.unitPlotTypes, plot.long_side, vi... | UNKNOWN |  |
+| R131 | Villa hand test. | analysis.partyWallShare, analysis.unitPlotTypes, driver_house, long... | UNKNOWN |  |
 | R132 | CASE second letter test. | typologies | UNKNOWN |  |
 | R133 | FFL split test. | steps.legend | UNKNOWN |  |
-| R135 | Floor outlines in the link frame. | cadLinks.floorWidthStepM | UNKNOWN |  |
-| R136 | Ramp type and front level. | Flat Ramps | UNKNOWN |  |
+| R135 | Floor outlines in the link frame. | cadLinks.floorWidthStepM, floorWidthStepM | UNKNOWN |  |
+| R136 | Ramp type and front level. | Flat Ramps | RECOMMENDED | Q002 |
 | R137 | Floors in the plan from CAD. | floors.levels, floors.yardBelowFflM | UNKNOWN |  |
 | R138 | Floors against a plan. | the rule text | UNKNOWN |  |
 | R139 | Second method for the floors. | the rule text | UNKNOWN |  |
@@ -124,9 +124,10 @@ Where the value lives names the keys of config/project.json or rules/roshn-makka
 | R156 | Plot front against the lines and the surfaces. | the rule text | UNKNOWN |  |
 | R157 | Front corner levels. | the rule text | UNKNOWN |  |
 | R159 | Second method for the C3D round. | the rule text | UNKNOWN |  |
+| R160 | Full window runner. | minFreeGB | UNKNOWN |  |
 | R162 | Data command. | the rule text | UNKNOWN |  |
 | R166 | Plots joined. | dataBook.wiring | UNKNOWN |  |
-| R170 | El @ Entry from the road and the ramp. | ramp.front_setback, slopes_percent, slopes_percent.front_min | UNKNOWN |  |
+| R170 | El @ Entry from the road and the ramp. | front_setback, ramp.front_setback, slopes_percent, slopes_percent.f... | UNKNOWN |  |
 | R172 | Width meaning. | typologies | UNKNOWN |  |
 | R173 | Second method for round DATA-2. | check.minEdgeM | UNKNOWN |  |
 | R174 | Wiring methods. | dataBook.wiring, labelNearM, levelToleranceM, pdfToleranceM | UNKNOWN |  |
@@ -138,80 +139,80 @@ Where the value lives names the keys of config/project.json or rules/roshn-makka
 | R181 | Page to site. | controlSearchPt, controlShapeMaxPt, fitDropFactor, fitFloorM | CHOSEN by Bader, UNKNOWN | Q081 |
 | R182 | Number to face and code. | codeTable | UNKNOWN |  |
 | R183 | Zones and wiring. | dataBook.wiring, zoneHatch, zoneStyles | UNKNOWN |  |
-| R200 | Window lock. | siteBuild, siteBuild.minFreeGB, siteBuild.staleHours, siteBuild.wai... | UNKNOWN |  |
+| R200 | Window lock. | minFreeGB, siteBuild, siteBuild.minFreeGB, siteBuild.staleHours | UNKNOWN |  |
 | R201 | Snapshot. | siteBuild | UNKNOWN |  |
 | R202 | Originals. | siteBuild | UNKNOWN |  |
-| R204 | Site upgrade. | siteBuild, siteBuild.answerKey | UNKNOWN |  |
+| R204 | Site upgrade. | answerKey, siteBuild, siteBuild.answerKey | UNKNOWN |  |
 | R206 | Answer key. | siteBuild, siteBuild.zoneNbh | UNKNOWN |  |
 | R208 | Plan from the data book. | floors.yardBelowFflM | UNKNOWN |  |
 | R209 | Estimated levels. | siteBuild, siteBuild.roadSurfaces, siteBuild.snapM, siteBuild.steep... | UNKNOWN |  |
-| R211 | Site coordinates. | siteBuild, siteBuild.coordinateStepM | RECOMMENDED, UNKNOWN | Q068 Q086 |
-| R212 | New site file. | floors.levels, floors.plotParameter, floors.types, siteBuild | UNKNOWN |  |
+| R211 | Site coordinates. | coordinateStepM, siteBuild, siteBuild.coordinateStepM | RECOMMENDED, UNKNOWN | Q068 Q086 |
+| R212 | New site file. | floors.levels, floors.plotParameter, floors.types, plotParameter | RECOMMENDED, UNKNOWN | Q085 |
 | R213 | New site file name. | siteBuild, siteBuild.newFile | UNKNOWN |  |
 | R214 | Plan view image. | siteBuild | UNKNOWN |  |
 | R215 | Compare in bands. | siteBuild, siteBuild.bandsMm | UNKNOWN |  |
 | R218 | Clean up. | siteBuild | UNKNOWN |  |
 | R185 | Rev 9 workbook inventory and diff. | dataBook.rev9 | UNKNOWN |  |
-| R186 | DLUS setbacks. | dataBook.rev9 | UNKNOWN |  |
-| R187 | Land width and length. | dataBook.rev9 | UNKNOWN |  |
-| R188 | Old to new code table. | dataBook.rev9, typology_codes | UNKNOWN |  |
+| R186 | DLUS setbacks. | dataBook.rev9, rev9.dlus | UNKNOWN |  |
+| R187 | Land width and length. | dataBook.rev9, rev9.sales | UNKNOWN |  |
+| R188 | Old to new code table. | codeTable, dataBook.rev9, typology_codes | UNKNOWN |  |
 | R189 | Rev 9 drawing read. | dataBook.rev9 | RECOMMENDED, UNKNOWN | Q062 |
 | R190 | Rev 9 PDF labels and wiring. | labelSize | UNKNOWN |  |
 | R221 | Two past jobs on the same plots. | siteBuild, siteBuild.bandsMm, siteBuild.key14 | UNKNOWN |  |
-| R224 | Road edges and the past ramp edge. | siteBuild, siteBuild.corner | UNKNOWN |  |
+| R224 | Road edges and the past ramp edge. | corner.onEdgeM, corner.roadEdgeM, roadEdgeM, siteBuild | UNKNOWN |  |
 | R225 | Corner front rules. | the rule text | UNKNOWN |  |
-| R227 | House outline of a prototype. | siteBuild, siteBuild.footprint | UNKNOWN |  |
-| R228 | Footprint of a plot. | siteBuild, siteBuild.footprint | UNKNOWN |  |
-| R229 | Footprint band of a key. | siteBuild, siteBuild.footprint | UNKNOWN |  |
-| R231 | One run per prototype code. | siteBuild, siteBuild.minFreeGB, siteBuild.placeSettleMinutes | UNKNOWN |  |
+| R227 | House outline of a prototype. | footprint.groundSpanM, groundSpanM, siteBuild, siteBuild.footprint | UNKNOWN |  |
+| R228 | Footprint of a plot. | footprint.mirrorGain, mirrorGain, siteBuild, siteBuild.footprint | UNKNOWN |  |
+| R229 | Footprint band of a key. | footprint.slack, siteBuild, siteBuild.footprint | UNKNOWN |  |
+| R231 | One run per prototype code. | minFreeGB, placeSettleMinutes, siteBuild, siteBuild.minFreeGB | UNKNOWN |  |
 | R236 | Clusters from the footprint blocks. | the rule text | CHOSEN by Bader | Q089 |
 | R245 | Rooms and doors of a read. | the rule text | UNKNOWN |  |
 | R251 | Audit of DATA-4. | dataBook.data5 | UNKNOWN |  |
 | R252 | Xref search. | dataBook.data5 | UNKNOWN |  |
 | R255 | Two road layouts. | curbStepM, dataBook.data5 | UNKNOWN |  |
-| R256 | Area key. | dataBook.data5 | UNKNOWN |  |
+| R256 | Area key. | data5.areaKey, dataBook.data5 | UNKNOWN |  |
 | R257 | IM codes. | dataBook.data5, neighbourhoods | UNKNOWN |  |
 | R258 | IFC header. | dataBook.data5 | UNKNOWN |  |
 | R259 | Coverage table. | dataBook.data5 | UNKNOWN |  |
 | R260 | Second method for round DATA-5. | dataBook.data5 | RECOMMENDED, UNKNOWN | Q054 |
 | R261 | Plan position and level apart. | level.passMm, placerCheck, position.passMm | RECOMMENDED, UNKNOWN | Q054 |
 | R263 | The Native dialect. | floorTypes, placerCheck, placerCheck.dialects | UNKNOWN |  |
-| R270 | El @ Entry gaps between keys. | entryGapM, majority.entryGaps, majority.kindLeaveOut, sameFaceShare | UNKNOWN |  |
+| R270 | El @ Entry gaps between keys. | entryGapM, entryGaps, entryGaps.entryGapM, kindLeaveOut | UNKNOWN |  |
 | R271 | Context of a past plot. | majority.groups | RECOMMENDED, UNKNOWN | Q072 |
 | R272 | The majority rule. | decidedByQuestion, majority.decidedByQuestion, majority.siteReferen... | CHOSEN by Bader, RECOMMENDED, UNKNOWN | Q017 standing rule |
 | R274 | Hand. | the rule text | MEASURED | alone 0.938 cluster 0.981 villa 0.913 |
-| R275 | Levels. | majority.levelHoldMm | UNKNOWN |  |
+| R275 | Levels. | levelHoldMm, majority.levelHoldMm | UNKNOWN |  |
 | R276 | Floors and parameters. | parameterTests, wholeFaceShare | UNKNOWN |  |
 | R277 | Level profiles. | levelProfiles.default, majority.groups | CHOSEN by Bader, UNKNOWN | Q050 |
-| R278 | Levels and ramps of a plan from CAD. | levels.ground_ssl | UNKNOWN |  |
+| R278 | Levels and ramps of a plan from CAD. | ground_ssl, levels.ground_ssl | UNKNOWN |  |
 | R279 | Hands of a plan from CAD. | the rule text | UNKNOWN |  |
-| R280 | Overrides in a plan from CAD. | majority.overrideDefaultSources | UNKNOWN |  |
-| R281 | Second method for round 17. | majority.overrideDecisions | UNKNOWN |  |
+| R280 | Overrides in a plan from CAD. | majority.overrideDefaultSources, overrideDefaultSources | UNKNOWN |  |
+| R281 | Second method for round 17. | majority.overrideDecisions, overrideDecisions | UNKNOWN |  |
 | R282 | Hands against a Native key. | the rule text | RECOMMENDED | Q054 |
 | R300 | Villa blocks from the Building Footprint. | the rule text | CHOSEN by Bader | Q045 |
 | R301 | Area codes by job. | dataBook.data5, majority.groups | CHOSEN by Bader, UNKNOWN | Q044 |
-| R302 | Image step limit. | imageMarginMinutes, testHost.imageMarginMinutes, testHost.imageStep... | CHOSEN by Bader | Q061 |
+| R302 | Image step limit. | imageMarginMinutes, imageStepMinutes, testHost.imageMarginMinutes, ... | CHOSEN by Bader, CHOSEN by Code | CHOSEN mark Q061 |
 | R303 | Withdrawn. | the rule text | RECOMMENDED | Q064 |
-| R310 | Window samples. | sampleSeconds, siteBuild, siteBuild.minFreeGB, testHost.cimTimeoutS... | UNKNOWN |  |
+| R310 | Window samples. | cimTimeoutSeconds, helperProcesses, minFreeGB, sampleSeconds | CHOSEN by Code, UNKNOWN | CHOSEN mark |
 | R312 | Key copies by code. | siteBuild | RECOMMENDED, UNKNOWN | Q065 Q069 |
 | R313 | Prototype sets of the upgrade. | the rule text | CHOSEN by Bader | Q067 |
 | R321 | Floor types of each key. | floors.keyTypes, floors.types | UNKNOWN |  |
-| R323 | Second method of the key reads. | floors.keyTypes, floors.plotParameter, floors.types | UNKNOWN |  |
-| R325 | Plans of the answer keys. | cadLinks.cutShareMin, keyPlans.entryHeightM, keyPlans.flatTopM, key... | UNKNOWN |  |
-| R326 | The join of the answer keys. | cadLinks.cutShareMin, cutShareMin, keyPlans.minShare, majority.groups | RECOMMENDED, UNKNOWN | Q066 |
-| R327 | Spot elevations at the plot entrance. | cutShareMin, entrySpots, entrySpots.bandsM, entrySpots.cornerM | RECOMMENDED, UNKNOWN | Q001 |
-| R328 | Second method of Phase 2b. | cutShareMin, floors.plotParameter, keyPlans.entryHeightM, keyPlans.... | UNKNOWN |  |
+| R323 | Second method of the key reads. | floors.keyTypes, floors.plotParameter, floors.types, plotParameter | RECOMMENDED, UNKNOWN | Q085 |
+| R325 | Plans of the answer keys. | answerKey, cadLinks.cutShareMin, cutShareMin, entryHeightM | CHOSEN by Code, UNKNOWN | CHOSEN mark |
+| R326 | The join of the answer keys. | cadLinks.cutShareMin, cutShareMin, keyPlans.minShare, kindFoldCase | RECOMMENDED, UNKNOWN | Q066 |
+| R327 | Spot elevations at the plot entrance. | cutShareMin, entryHeightM, entrySpots, entrySpots.bandsM | RECOMMENDED, CHOSEN by Code, UNKNOWN | CHOSEN mark Q001 |
+| R328 | Second method of Phase 2b. | cutShareMin, entryHeightM, floors.plotParameter, keyPlans.entryHeightM | RECOMMENDED, CHOSEN by Code, UNKNOWN | CHOSEN mark Q085 |
 | R330 | The source of an override. | laterPhase, majority.groups, majority.overrideDefaultSources, major... | RECOMMENDED, UNKNOWN | Q053 |
 | R331 | Coordinates of the keys. | keyRules.site, levelProfiles.parsons2024Rev6, majority.groups, majo... | MEASURED, RECOMMENDED, UNKNOWN | Q068 baseHeight 0.8433 entry 0.088 ffl 0.7465 frontCorner 0.9776 frontOpen 0.9883 generic 0.9908 ... |
-| R332 | Link origin and rotation on the keys. | keyRules.linkOrigin, linkOrigin, linkRotation, majority.linkHoldMm | MEASURED, RECOMMENDED, UNKNOWN | Q037 frontCorner 0.9776 linkOrigin 0.9712 linkRotation 0.9908 |
-| R333 | Hands on the keys. | keyRules.hand villa, majority.pairKinds | CHOSEN by Bader, MEASURED, UNKNOWN | Q089 hand alone 1.0 hand cluster 0.9805 hand villa 0.9598 |
+| R332 | Link origin and rotation on the keys. | keyRules.linkOrigin, linkHoldMm, linkOrigin, linkRotation | MEASURED, RECOMMENDED, UNKNOWN | Q037 frontCorner 0.9776 linkOrigin 0.9712 linkRotation 0.9908 |
+| R333 | Hands on the keys. | keyRules.hand villa, majority.pairKinds, pairKinds | CHOSEN by Bader, MEASURED, UNKNOWN | Q089 hand alone 1.0 hand cluster 0.9805 hand villa 0.9598 |
 | R334 | Ramps and floors on the keys. | majority.outlineHoldMm, outlineHoldMm | MEASURED, RECOMMENDED, UNKNOWN | Q066 generic 0.9908 rampOutline 0.9687 yardOutline 0.9632 |
-| R335 | Walls and shared parameters on the keys. | frontOpen, keyPlans.wallEdgeM, levelHoldMm, majority.frontOpenShare | MEASURED, RECOMMENDED, UNKNOWN | Q071 frontOpen 0.9883 wallBase 0.9825 wallLine 0.9208 wallTop 0.3465 |
-| R336 | Second method of Round ADDIN 3a. | decidedByQuestion, frontOpen, majority.overrideKeep, siteBuild | CHOSEN by Bader, MEASURED, RECOMMENDED, UNKNOWN | Q017 Q072 Q089 frontOpen 0.9883 |
-| R337 | A build by the rules of the keys. | keyRules.linkOrigin, keyRules.rampSlope, keyRules.yard, keyRules.ya... | MEASURED, RECOMMENDED, UNKNOWN | Q017 Q057 generic 0.9908 hand alone 1.0 hand cluster 0.9805 hand villa 0.9598 linkOrigin 0.9712 r... |
-| R338 | The keyRules block. | keyRulesBlock, keyRulesBlock.nativeRound17, keyRulesBlock.zoneFrom,... | RECOMMENDED, UNKNOWN | Q066 |
-| R339 | Levels of the keys to the mm. | baseHeight, keyRules.levelSplit, levelSplit, levels.ground_ssl | CHOSEN by Bader, MEASURED, RECOMMENDED, UNKNOWN | Q012 standing rule baseHeight 0.8433 generic 0.9908 levelSplit 0.7024 |
-| R340 | A build and its proof by the level rules of the... | baseHeight, keyRules.steps, levelSplit, levels.ground_ssl | MEASURED, RECOMMENDED, UNKNOWN | Q057 baseHeight 0.8433 levelSplit 0.7024 rampFront 0.6924 steps 0.9877 |
+| R335 | Walls and shared parameters on the keys. | boundary_wall_thickness, boundary_wall_top_above_ffl, frontOpen, fr... | MEASURED, RECOMMENDED, CHOSEN by Code, UNKNOWN | CHOSEN mark Q071 frontOpen 0.9883 wallBase 0.9825 wallLine 0.9208 wallTop 0.3465 |
+| R336 | Second method of Round ADDIN 3a. | check.seeds, corner.roadEdgeM, decidedByQuestion, frontOpen | CHOSEN by Bader, MEASURED, RECOMMENDED, UNKNOWN | Q017 Q072 Q089 frontOpen 0.9883 |
+| R337 | A build by the rules of the keys. | decidedByQuestion, keyRules.linkOrigin, keyRules.rampSlope, keyRule... | MEASURED, RECOMMENDED, UNKNOWN | Q017 Q057 generic 0.9908 hand alone 1.0 hand cluster 0.9805 hand villa 0.9598 linkOrigin 0.9712 r... |
+| R338 | The keyRules block. | keyRulesBlock, keyRulesBlock.levelProfile, keyRulesBlock.nativeRoun... | RECOMMENDED, UNKNOWN | Q066 |
+| R339 | Levels of the keys to the mm. | baseHeight, base_height, ground_ssl, keyRules.levelSplit | CHOSEN by Bader, MEASURED, RECOMMENDED, UNKNOWN | Q012 standing rule baseHeight 0.8433 generic 0.9908 levelSplit 0.7024 |
+| R340 | A build and its proof by the level rules of the... | baseHeight, ground_ssl, keyRules.steps, levelBandsMm | MEASURED, RECOMMENDED, UNKNOWN | Q057 baseHeight 0.8433 levelSplit 0.7024 rampFront 0.6924 steps 0.9877 |
 | R341 | Second method of the levels of Round ADDIN 3c. | levelPassMm, majority.levelPassMm, siteBuild, siteBuild.roadSurfaces | UNKNOWN |  |
 | R342 | Licences of the libraries. | the rule text | RECOMMENDED | Q079 |
 | R343 | The add-in design. | siteBuild | UNKNOWN |  |
@@ -219,22 +220,22 @@ Where the value lives names the keys of config/project.json or rules/roshn-makka
 | R345 | The parity harness. | the rule text | UNKNOWN |  |
 | R346 | The projects of the add-in. | the rule text | RECOMMENDED | Q079 |
 | R347 | The worker run. | addin.workerPeakMiB, addin.workerTimeLimitMinS, addin.workerTimeLim... | CHOSEN by Code, UNKNOWN | CHOSEN mark |
-| R348 | The DWG reads of button 2. | analysis.roadEdgeLayers | UNKNOWN |  |
+| R348 | The DWG reads of button 2. | analysis.roadEdgeLayers, roadEdgeLayers | UNKNOWN |  |
 | R349 | The LandXML read and the road level snap of but... | siteBuild, siteBuild.roadSurfaces, siteBuild.snapMaxM | UNKNOWN |  |
-| R350 | The DLUS and sales reads of button 2. | dataBook.data5, dataBook.locationPlan, dataBook.rev9, locationPlan.... | CHOSEN by Code, UNKNOWN | CHOSEN mark |
-| R351 | The location plan of button 2. | connect.neighbourhoods, dataBook.locationPlan | UNKNOWN |  |
-| R352 | The plot table of button 2. | addin.plotTable, dataBook.wiring | CHOSEN by Code, UNKNOWN | CHOSEN mark |
-| R353 | The project position file, the check points and... | addin.position, floors.keyTypes, floors.plotParameter, floors.types | CHOSEN by Bader, RECOMMENDED, UNKNOWN | Q050 Q068 Q085 Q086 Q087 |
-| R354 | The clusters of a build. | Duplex_DP4, baseHeight | CHOSEN by Bader, MEASURED, RECOMMENDED, UNKNOWN | Q050 Q089 Q098 baseHeight 0.8433 hand alone 1.0 hand cluster 0.9805 hand villa 0.9598 parameter C... |
+| R350 | The DLUS and sales reads of button 2. | data5.areaKey, dataBook.data5, dataBook.locationPlan, dataBook.rev9 | CHOSEN by Code, UNKNOWN | CHOSEN mark |
+| R351 | The location plan of button 2. | connect.neighbourhoods, dataBook.locationPlan, neighbourhoods | UNKNOWN |  |
+| R352 | The plot table of button 2. | addin.plotTable, dataBook.wiring, overlapDecimals, plotTable.overla... | CHOSEN by Code, UNKNOWN | CHOSEN mark |
+| R353 | The project position file, the check points and... | addin.position, checkPointLimitMm, floors.keyTypes, floors.plotPara... | CHOSEN by Bader, RECOMMENDED, CHOSEN by Code, UNKNOWN | CHOSEN mark Q050 Q068 Q085 Q086 Q087 |
+| R354 | The clusters of a build. | Duplex_DP4, baseHeight | CHOSEN by Bader, MEASURED, RECOMMENDED | Q050 Q089 Q098 baseHeight 0.8433 hand alone 1.0 hand cluster 0.9805 hand villa 0.9598 parameter C... |
 | R355 | The front of a plot in a build. | analysis.partyWallShare, analysis.roadEdgeLayers, analysis.toleranc... | UNKNOWN |  |
-| R356 | The link frame of a plot in a build. | keyRules.linkOrigin | MEASURED | linkOrigin 0.9712 |
-| R357 | The hand of a plot in a build. | keyRules.linkOrigin, kindByPrefix, majority.pairKinds, majority.sid... | MEASURED, RECOMMENDED, UNKNOWN | Q072 Q098 hand alone 1.0 hand cluster 0.9805 hand villa 0.9598 linkOrigin 0.9712 |
-| R358 | The floors of a plot in a build. | cadLinks.floorWidthStepM, keyRules.rampSlope, keyRules.yard, keyRul... | MEASURED, UNKNOWN | rampSlope 0.9883 yard 1.0 yardOutline 0.9632 |
-| R359 | The levels of a plot in a build. | keyRules.baseHeight, keyRules.ffl, keyRules.levelSplit, keyRules.steps | MEASURED, UNKNOWN | baseHeight 0.8433 ffl 0.7465 levelSplit 0.7024 steps 0.9877 |
-| R360 | The overrides of a plot in a build. | floors.levels, majority.overrideDefaultSources | MEASURED, RECOMMENDED, UNKNOWN | Q057 rampOutline 0.9687 yardOutline 0.9632 |
+| R356 | The link frame of a plot in a build. | keyRules.linkOrigin, linkOrigin | MEASURED | linkOrigin 0.9712 |
+| R357 | The hand of a plot in a build. | keyRules.linkOrigin, kindByPrefix, linkOrigin, majority.pairKinds | MEASURED, RECOMMENDED, UNKNOWN | Q072 Q098 hand alone 1.0 hand cluster 0.9805 hand villa 0.9598 linkOrigin 0.9712 |
+| R358 | The floors of a plot in a build. | cadLinks.floorWidthStepM, floorWidthStepM, keyRules.rampSlope, keyR... | MEASURED, UNKNOWN | rampSlope 0.9883 yard 1.0 yardOutline 0.9632 |
+| R359 | The levels of a plot in a build. | baseHeight, base_height, ground_ssl, keyRules.baseHeight | MEASURED, UNKNOWN | baseHeight 0.8433 ffl 0.7465 levelSplit 0.7024 steps 0.9877 |
+| R360 | The overrides of a plot in a build. | floors.levels, majority.overrideDefaultSources, overrideDefaultSources | MEASURED, RECOMMENDED, UNKNOWN | Q057 rampOutline 0.9687 yardOutline 0.9632 |
 | R361 | The link parameters of a plot in a build. | parameter RRE_ZZ_SP_RVT-Name | MEASURED, RECOMMENDED | Q099 parameter RRE_ZZ_SP_RVT-Name 0.9916 |
-| R385 | One rounding rule in Python and C#. | keyRules.baseHeight, levels.ground_ssl, majority.overrideRounding | CHOSEN by Bader, MEASURED, RECOMMENDED, UNKNOWN | Q050 Q052 Q078 baseHeight 0.8433 |
-| R387 | The control point fit as a check of the schedul... | controlSearchPt, dataBook.locationPlan, tolerancePt | CHOSEN by Bader, UNKNOWN | Q081 |
+| R385 | One rounding rule in Python and C#. | baseHeight, ground_ssl, keyRules.baseHeight, levels.ground_ssl | CHOSEN by Bader, MEASURED, RECOMMENDED, UNKNOWN | Q050 Q052 Q078 baseHeight 0.8433 |
+| R387 | The control point fit as a check of the schedul... | controlMark, controlSearchPt, dataBook.locationPlan, locationPlan.c... | CHOSEN by Bader, UNKNOWN | Q081 |
 | R388 | Units of the inputs of the Python reference. | the rule text | UNKNOWN |  |
 
 ## 4 Rules with no design value
@@ -308,7 +309,6 @@ Where the value lives names the keys of config/project.json or rules/roshn-makka
 | R154 | Drawing survey. | process, no value |
 | R155 | Surfaces from the LandXML. | process, no value |
 | R158 | Coverage and cut. | process, no value |
-| R160 | Full window runner. | process, no value |
 | R161 | Civil 3D dialog watcher. | process, no value |
 | R163 | Phase 1 border. | process, no value |
 | R164 | Stand-in tables and the size limit. | process, no value |
@@ -457,7 +457,7 @@ One row per value, or per group of values that share a pattern (a code, a number
 | levelProfiles.parsons2024Rev6.frontRoad.offsetM = 0.0 | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
 | levelProfiles.parsons2024Rev6.rampSlopePercent.default = 0.5 | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
 | levelProfiles.parsons2024Rev6.rampSlopePercent.* | 3 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
-| levelProfiles.parsons2024Rev6.rampTypes.0.5 = null | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
+| levelProfiles.parsons2024Rev6.rampTypes.0.5 = "Ramps 0.5%" | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
 | levelProfiles.parsons2024Rev6.rampTypes.2 = "Ramps 2%" | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
 | levelProfiles.parsons2024Rev6.rampTypes.flat = "Flat Ramps" | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
 | levelProfiles.parsons2024Rev6.height = "oneFflPerClusterAtTheHighestEntry" | 1 | value | UNKNOWN |  | levelProfiles.parsons2024Rev6.source: the Parsons IMC k... |
@@ -522,7 +522,7 @@ Every leaf of rules/roshn-makkah.json by kind and status (RAN, audit.py): note n
 | analysis.noRev6Match = ["Q02"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | analysis.pairRule = false | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | analysis.blockClusters.Duplex_DP2 = "D02" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
-| analysis.blockClusters.Duplex_DP4 = "D04" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| analysis.blockClusters.Duplex_DP4 = "D04" | 1 | value | RECOMMENDED | Q098 | Q098 |
 | analysis.blockClusters.Townhouse_TH1 = "Q01" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | analysis.blockClusters.Townhouse_TH3 = "Q02" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | dataBook.rev9.dlus.headerRow = 3 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
@@ -579,17 +579,17 @@ Every leaf of rules/roshn-makkah.json by kind and status (RAN, audit.py): note n
 | connect.neighbourhoods.*.shift | 2 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | connect.neighbourhoods.IME = null | 1 | value | UNKNOWN |  | null or empty |
 | testHost.imageStepMinutes = 30 | 1 | host | CHOSEN by Bader | Q061 | R302 |
-| testHost.imageMarginMinutes = 10 | 1 | host | CHOSEN by Bader | Q061 | R302 |
-| testHost.sampleSeconds = 5 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
-| testHost.cimTimeoutSeconds = 2 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| testHost.imageMarginMinutes = 10 | 1 | host | CHOSEN by Code | CHOSEN mark | note |
+| testHost.sampleSeconds = 5 | 1 | host | CHOSEN by Code | CHOSEN mark | note |
+| testHost.cimTimeoutSeconds = 2 | 1 | host | CHOSEN by Code | CHOSEN mark | note |
 | testHost.helperProcesses = ["RevitWorker", "sqlservr", "CefSharp... | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
-| keyPlans.wallEdgeM = 0.3 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| keyPlans.wallEdgeM = 0.3 | 1 | value | CHOSEN by Code | CHOSEN mark | note |
 | keyPlans.entryHeightM.* | 2 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | keyPlans.flatTopM = 0.0005 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | keyPlans.minShare = 0.001 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | entrySpots.radiiM = [0.5, 6.0] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
-| entrySpots.cornerM = 0.05 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
-| entrySpots.bandsM = [0.001, 0.005] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| entrySpots.cornerM = 0.05 | 1 | value | CHOSEN by Code | CHOSEN mark | note |
+| entrySpots.bandsM = [0.001, 0.005] | 1 | value | CHOSEN by Code | CHOSEN mark | note |
 | floors.types.generic = ["Generic 150mm"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | floors.types.yard = ["yard"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | floors.types.ramp = ["Ramps 0.5%", "Ramps 2%", "Flat Ramps"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
@@ -597,7 +597,7 @@ Every leaf of rules/roshn-makkah.json by kind and status (RAN, audit.py): note n
 | floors.levels.generic = "Level 1" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | floors.levels.yard = "Level 2" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | floors.levels.ramp = "Level 1" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
-| floors.plotParameter = "Plot" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| floors.plotParameter = "Plot" | 1 | value | RECOMMENDED | Q085 | Q085 |
 | floors.yardBelowFflM = 0.1 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | floors.yardShareTie = 0.01 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | floors.yardMinShare = 0.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
@@ -655,9 +655,9 @@ Every leaf of rules/roshn-makkah.json by kind and status (RAN, audit.py): note n
 | majority.codeFrom.parsons = "rev9" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | majority.kindByPrefix.* | 3 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | majority.slopeBands.* | 3 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
-| majority.rampTypeClass.Ramps 0.5% = null | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.rampTypeClass.Ramps 0.5% = "0.5" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | majority.rampTypeClass.Ramps 2% = "2" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
-| majority.rampTypeClass.Flat Ramps = "flat" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.rampTypeClass.Flat Ramps = "flat" | 1 | value | RECOMMENDED | Q002 | Q002 |
 | majority.groupSlopes.native.default = 2.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | majority.groupSlopes.parsons.default = 0.5 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | majority.groupSlopes.parsons.* | 3 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
@@ -679,7 +679,7 @@ Every leaf of rules/roshn-makkah.json by kind and status (RAN, audit.py): note n
 | majority.flatRampType = "Flat Ramps" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | majority.rotationHoldDeg = 0.1 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | majority.linkHoldMm = 10 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
-| majority.cornerFrontRule = "orientation" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| majority.cornerFrontRule = "orientation" | 1 | value | RECOMMENDED | Q037 | note |
 | majority.siteReference.parsons = "imc" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | majority.siteReference.native = "u14" | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | majority.overrideDefaultSources = ["parsons"] | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
@@ -710,19 +710,19 @@ Every leaf of rules/roshn-makkah.json by kind and status (RAN, audit.py): note n
 | addin.workerPeakMiB.roles = ["curbs", "baseplan", "villaBlocks"] | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | addin.workerPeakMiB.files.*.bytes | 3 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
 | addin.workerPeakMiB.files.*.peakMiB | 3 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
-| addin.workerPeakMiB.commands.read = 3900 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
-| addin.workerTimeLimitS.read = 300 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
-| addin.workerTimeLimitS.build = 600 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| addin.workerPeakMiB.commands.read = 3900 | 1 | host | CHOSEN by Code | CHOSEN mark | R347 |
+| addin.workerTimeLimitS.read = 300 | 1 | host | CHOSEN by Code | CHOSEN mark | R347 |
+| addin.workerTimeLimitS.build = 600 | 1 | host | CHOSEN by Code | CHOSEN mark | R347 |
 | addin.workerTimeLimitS.levelExcel = 60 | 1 | host | CHOSEN by Code | CHOSEN mark | R347 |
 | addin.workerTimeLimitS.reportExcel = 600 | 1 | host | CHOSEN by Code | CHOSEN mark | R347 |
 | addin.workerTimeLimitS.exportChecks = 600 | 1 | host | CHOSEN by Code | CHOSEN mark | R347 |
-| addin.workerTimeLimitS.position = 600 | 1 | host | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| addin.workerTimeLimitS.position = 600 | 1 | host | CHOSEN by Code | CHOSEN mark | R347 |
 | addin.workerTimeLimitMinS = 10 | 1 | host | CHOSEN by Code | CHOSEN mark | R347 |
-| addin.position.checkPointLimitMm = 1.0 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
-| addin.position.gapDecimals = 2 | 1 | value | UNKNOWN |  | no Q, no share, no Bader line and no CHOSEN mark |
+| addin.position.checkPointLimitMm = 1.0 | 1 | value | RECOMMENDED | Q086 | Q086 |
+| addin.position.gapDecimals = 2 | 1 | value | CHOSEN by Code | CHOSEN mark | addin.position.note |
 | addin.plotTable.overlapDecimals = 4 | 1 | value | CHOSEN by Code | CHOSEN mark | addin.plotTable.note |
 
-Every leaf of config/project.json by kind and status (RAN, audit.py): host CHOSEN by Bader 2, host CHOSEN by Code 4, host UNKNOWN 19, input input name or location, no design value 66, note note text, no value 45, setting setting of a reader or check, no design value 517, value CHOSEN by Bader 1, value CHOSEN by Code 1, value RECOMMENDED 4, value UNKNOWN 194.
+Every leaf of config/project.json by kind and status (RAN, audit.py): host CHOSEN by Bader 1, host CHOSEN by Code 11, host UNKNOWN 13, input input name or location, no design value 66, note note text, no value 45, setting setting of a reader or check, no design value 517, value CHOSEN by Bader 1, value CHOSEN by Code 5, value RECOMMENDED 9, value UNKNOWN 185.
 
 ## 6 The override list
 
@@ -870,7 +870,7 @@ Counts of the helper: 120 rows, Python 97 and C# 23, 14 DUP (Python 12, C# 2), 1
 
 ## 8 Do the outputs show which plots used an assumed value
 
-Assumed here is a value of status RECOMMENDED, CHOSEN by Code or UNKNOWN, and a MEASURED rule that is weak. On this audit that is 552 of the 591 values, 543 UNKNOWN, 4 RECOMMENDED and 5 CHOSEN by Code, and 9 of the 35 MEASURED rules weak (RAN, audit.py and section 5).
+Assumed here is a value of status RECOMMENDED, CHOSEN by Code or UNKNOWN, and a MEASURED rule that is weak. On this audit that is 562 of the 591 values: 528 UNKNOWN, 9 RECOMMENDED, 16 CHOSEN by Code and the 9 weak of the 35 MEASURED (RAN, audit.py and section 5).
 
 - The plan of plan_from_book.py: no, not the status. Each value of a plot is a pair of value and source (READ, python/plan_from_past.py:81 `return {"value": value, "source": source}`), the sources being schedule, locationPlan, estimate, override, keyRules, footprint, levelProfileStepBands and pastJob (READ, python/plan_from_book.py:58 to 69, python/plan_from_cad.py:36). So a plot shows a value came from an override, an estimate or keyRules, but not that the keyRules entry is weak, that an open Q carries it, or that Code chose its threshold.
 - The plan summary, step 15 (READ, docs/design/05-plan-steps.md:50): no. It gives counts by field, not plots by status: `"rules": {"levelProfile": ..., "applied": ..., "handRules": ..., "overridesNotApplied": ..., "steps": {"from": "keyRules.steps %s of %s" ...}}` (READ, python/plan_from_book.py:1060 to 1070), and summary_lines prints `built by keyRules of %s (R337)` (READ, python/plan_from_book.py:1431). The place for it is a new count beside applied.
@@ -901,12 +901,14 @@ Full text in steps/questions-open.md.
 - Q101 Level profile fields with no share.
 - Q102 Show the assumed values per plot.
 - Q103 Design values in code, not in config.
+- Q104 Audit statuses rest on text matching.
 
 ## 12 Second check
 
-By another tool than the script, PowerShell with ConvertFrom-Json and Select-String, on the file as written (RAN, a script of the session):
+By another tool than the script, steps/investigations/rule-status-scripts/second_check.ps1, PowerShell with ConvertFrom-Json and Select-String, on the file as written (RAN):
 
-- Rule ids of docs/rules/index.md 316, rows of sections 3 and 4 187 and 129, sum 316.
+- Rule ids of docs/rules/index.md 316, rows of sections 3 and 4 188 and 128, sum 316.
 - keyRules and hands entries with a share in rules/roshn-makkah.json 35, MEASURED rows of section 5 35, shares that differ from the JSON 0.
-- Sums of n of section 5 by status: CHOSEN by Bader 4, CHOSEN by Code 5, MEASURED 35, RECOMMENDED 4, UNKNOWN 543, the counts of section 2.
-- The claim-checker of PR 68 recounted the leaves, the 35 MEASURED and every count of section 6 with its own Python and found them equal (RAN). The rows it found resting on a Q of another key, pairKinds by Q089, overrideRounding by Q050, rotationHoldDeg by Q037 and the position limits by Q068, are UNKNOWN under the 80 character rule.
+- Sums of n of section 5 by status: CHOSEN by Bader 3, CHOSEN by Code 16, MEASURED 35, RECOMMENDED 9, UNKNOWN 528, the counts of section 2.
+
+The claim-checker of PR 68 recounted the leaves, the 35 MEASURED, the tables of sections 3 to 5 and every count of section 6 with a Python script of its own that does not import audit.py and found them equal (RAN, pass 2). The rows the reviews found on a Q of another key or with a CHOSEN mark not read, imageMarginMinutes, pairKinds, overrideRounding, rotationHoldDeg, the position limits and the worker limits, now follow the rules of section 1. What text matching cannot settle is Q104.

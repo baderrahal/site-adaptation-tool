@@ -13,11 +13,11 @@ Done:
 
 Checked:
 - Log move: SHA-256 108cc030... on the cut and the new file, the old log equal to the kept part plus it, Q, R of 2 or 3 digits and PR ids 303, 213, 40 both sides (RAN)
-- Audit by steps/investigations/rule-status-scripts/audit.py: 316 rules, 129 process, 591 values, Bader 4, MEASURED 35, RECOMMENDED 4, Code 5, UNKNOWN 543 (RAN)
-- Second check in PowerShell equal. Review 1 found statuses by text match and Code by absence, script redone. Code sweep 120 rows, 106 not in config (RAN)
+- Audit by steps/investigations/rule-status-scripts/audit.py: 316 rules, 128 process, 591 values, Bader 3, MEASURED 35, RECOMMENDED 9, Code 16, UNKNOWN 528 (RAN)
+- second_check.ps1 equal. Reviews found statuses by text match, Code by absence and marks not read, fixed in the script. Code sweep 120 rows (RAN)
 
 Remains:
-- No output shows assumed values per plot (Q102). R366 not built. The status match is by text, each row gives its evidence
+- No output shows assumed values per plot (Q102). R366 not built. The statuses rest on text matching (Q104)
 
 Known bugs:
 - Two relative links of the moved log, history/round-2.md and round-3.md, do not resolve from steps/history/, kept byte for byte
@@ -42,6 +42,7 @@ Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Si
 Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
 Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters. Q098 Hand of 5 DP2 plots in DP4 clusters.
 Q099 Link Name of a build. Q100 Status of values from client documents. Q101 Level profile fields with no share. Q102 Show the assumed values per plot. Q103 Design values in code, not in config.
+Q104 Audit statuses rest on text matching.
 
 ## Round ADDIN 4f, 2026-10-27, Q089 and steps 8, 10, 12 and 13 in C#
 

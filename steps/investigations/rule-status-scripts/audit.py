@@ -13,7 +13,10 @@ from pathlib import Path
 ROOT = Path(sys.argv[1])
 OUT = Path(sys.argv[2])
 # R63, no project name in a Python file, so the rules profile is the one config/project.json names
-PROFILE = json.load(open(ROOT / "config/project.json", encoding="utf-8"))["profile"]
+SETTINGS = json.load(open(ROOT / "config/project.json", encoding="utf-8"))
+PROFILE = SETTINGS["profile"]
+# The Majority rule of CLAUDE.md, the strong share is read from the settings, never written here
+STRONG = SETTINGS["majority"]["strongShare"]
 Q = re.compile(r"\bQ\d{3}\b")
 RID = re.compile(r"\bR\d{1,3}\b")
 BADER, MEASURED, RECOMMENDED, CODE, UNKNOWN = "CHOSEN by Bader", "MEASURED", "RECOMMENDED", "CHOSEN by Code", "UNKNOWN"
@@ -37,6 +40,12 @@ for line in open_text.splitlines():
         if m and m.group(1) in OPEN:
             for rid in RID.findall(piece):
                 OPEN_BY_RULE[rid].add(m.group(1))
+OPEN_PIECES = []
+for line in open_text.splitlines():
+    for piece in re.split(r"(?=Q\d{3}\. )", line):
+        m = re.match(r"(Q\d{3})\. ", piece)
+        if m and m.group(1) in OPEN:
+            OPEN_PIECES.append((m.group(1), piece))
 BADER_BY_RULE = collections.defaultdict(set)
 for q, row in CLOSED_ROWS.items():
     if q in CLOSED_BADER:
@@ -77,7 +86,8 @@ def is_note(p, v):
 
 
 def sentences(text):
-    return re.split(r"(?<=[.)])\s+(?=[A-Z])", text)
+    # Every ". " ends a sentence, a split only before a capital kept "(Bader, Q061). testHost.imageMarginMinutes" in one
+    return re.split(r"(?<=[.])\s+", text)
 
 
 ROOT_PATHS = set()
@@ -97,19 +107,36 @@ def short_names(p):
 
 
 def named_in(name, text):
-    return re.search(r"(?<![\w.])%s(?![\w])" % re.escape(name), text) is not None
+    # A dot before the name is allowed, a rule often spells the whole path such as addin.position.checkPointLimitMm
+    return re.search(r"(?<![\w])%s(?![\w])" % re.escape(name), text) is not None
+
+
+def pair_names(p, s):
+    """The key list form of a rule, workerTimeLimitS, build, reportExcel: the last key counts as a name of the value when its
+    parent, a key of 8 letters or more found once in the two files, is in the same sentence."""
+    if len(p) >= 2 and len(p[-2]) >= 8 and NAME_COUNT[p[-2]] == 1 and re.fullmatch(r"[A-Za-z]+", p[-1]) and named_in(p[-2], s):
+        return [p[-1]] if named_in(p[-1], s) else []
+    return []
 
 
 NEAR = 80
 
 
+CAMEL = re.compile(r"(?<![\w.])[a-z]+[A-Z][A-Za-z]*(?![\w])")
+
+
 def near(s, names, at):
-    """A mark counts when it sits within NEAR characters of a name of the value, so a Q about another key of the sentence does not."""
-    return any(abs(m.start() - at) <= NEAR for n in names for m in re.finditer(re.escape(n), s))
+    """A mark counts when it sits within NEAR characters of a name of the value, or when the last camelCase key named before it is
+    the value's, as a note writes sampleSeconds is how often ... every 5 s (CHOSEN), so a Q about another key of the sentence does not."""
+    if any(abs(m.start() - at) <= NEAR for n in names for m in re.finditer(re.escape(n), s)):
+        return True
+    keys = [m for m in CAMEL.finditer(s[:at]) if m.group(0) in NAME_COUNT]
+    return bool(keys) and any(keys[-1].group(0) == n.split(".")[-1] for n in names)
 
 
 def marks(texts, names):
-    for where, s, own in texts:
+    for where, s, own, extra in texts:
+        names = names + extra
         for m in Q.finditer(s):
             if own or near(s, names, m.start()):
                 yield where, m.group(0)
@@ -125,9 +152,9 @@ def by_text(texts, names):
         if q in CLOSED_BADER:
             return BADER, q, where
     # A closed answer that does not name Bader still counts when the text gives him beside the Q, as R302 gives (Bader, Q061)
-    for where, s, own in texts:
+    for where, s, own, extra in texts:
         for m in Q.finditer(s):
-            if m.group(0) in CLOSED and "Bader" in s[max(0, m.start() - 40):m.end() + 40] and (own or near(s, names, m.start())):
+            if m.group(0) in CLOSED and "Bader" in s[max(0, m.start() - 40):m.end() + 40] and (own or near(s, names + extra, m.start())):
                 return BADER, m.group(0), where
     for where, q in found:
         if q in OPEN:
@@ -138,9 +165,19 @@ def by_text(texts, names):
     return None
 
 
+LEAF = {}
+# Every note of the two files is read as a rule line is, the root note of the settings gives CHOSEN for values far from it
+NOTE_TEXT = []
+for f in (PROFILE, "config/project.json"):
+    for p, v in leaves(json.load(open(ROOT / f, encoding="utf-8")), []):
+        if isinstance(v, str) and is_note(p, v):
+            NOTE_TEXT.append((".".join(p), v))
+
+
 def classify(fname, data):
     rows = []
     flat = {tuple(p): v for p, v in leaves(data, [])}
+    LEAF.update({(fname, ".".join(p)): v for p, v in flat.items()})
     for p, v in leaves(data, []):
         path = ".".join(p)
         if is_note(p, v):
@@ -162,7 +199,7 @@ def classify(fname, data):
         if p[0] == "hands":
             if p[-1] == "rule":
                 share = flat.get(tuple(p[:-1]) + ("share",))
-                strength = "strong" if share >= 0.9 else "weak"
+                strength = "strong" if share >= STRONG else "weak"
                 rows.append((path, "value", MEASURED, "share %s, %s" % (share, strength), "hands.source, the Parsons IMC key, Round 17, R274"))
             else:
                 rows.append((path, "record", "measurement record of a hand rule", "", ""))
@@ -194,17 +231,27 @@ def classify(fname, data):
         par = tuple(p[:-1])
         own = par + (p[-1] + "Note",)
         if own in flat:
-            texts.append((".".join(own), flat[own], True))
+            texts.append((".".join(own), flat[own], True, []))
         size = len([x for x in flat if x[:len(par)] == par])
+        names = short_names(p)
         for k in NOTE_KEYS:
             if par + (k,) in flat and size <= 8 and isinstance(flat[par + (k,)], str):
-                # The note of an object of at most 3 leaves speaks of that one value, as zoneFrom.Zone 1 holds from and why
-                texts.append((".".join(par + (k,)), flat[par + (k,)], size <= 3))
-        names = short_names(p)
-        for rid, t in RULE_TEXT.items():
+                note = flat[par + (k,)]
+                if size <= 3:
+                    # The note of an object of at most 3 leaves speaks of that one value, as zoneFrom.Zone 1 holds from and why
+                    texts.append((".".join(par + (k,)), note, True, []))
+                else:
+                    # In the note of a small object a mark counts in the sentence that names the value, as addin.position gives CHOSEN
+                    texts += [(".".join(par + (k,)), s, True, []) for s in sentences(note) if any(named_in(n, s) for n in names + [p[-1]])]
+        for rid, t in list(RULE_TEXT.items()) + NOTE_TEXT:
             for s in sentences(t):
-                if any(named_in(n, s) for n in names):
-                    texts.append((rid, s, False))
+                extra = pair_names(p, s)
+                if any(named_in(n, s) for n in names) or extra:
+                    texts.append((rid, s, False, extra))
+        # An open question that names the value carries it, its ID is the subject of its own text, as Q086 names checkPointLimitMm
+        for q, piece in OPEN_PIECES:
+            if any(named_in(n, piece) for n in names):
+                texts.append((q, q + " " + " ".join(n for n in names if named_in(n, piece)), True, []))
         found = by_text(texts, names)
         if found:
             rows.append((path, kind) + found)
@@ -311,16 +358,9 @@ def pattern(path):
     return ".".join("*" if i > 0 and CODE_SEG.match(s) and not re.fullmatch(r"Q\d{3}", s) else s for i, s in enumerate(parts))
 
 
-def value_of(data, path):
-    o = data
-    for s in path.split("."):
-        if isinstance(o, dict) and s in o:
-            o = o[s]
-        elif isinstance(o, list) and s.isdigit():
-            o = o[int(s)]
-        else:
-            return None
-    return o
+def value_of(f, path):
+    # By the joined path the leaves were stored under, a key such as 0.5 holds a dot and cannot be split back
+    return LEAF[(f, path)]
 
 
 main = ["| Rule | Title | Where the value lives | Status | Q ID or share |", "|---|---|---|---|---|"]
@@ -347,7 +387,7 @@ for f, rows in VALUE_ROWS.items():
         groups.setdefault(key, []).append(row)
     values += ["### Values of %s" % f, "", "| Value | n | Kind | Status | Q ID or share | Evidence |", "|---|---|---|---|---|---|"]
     for (pat, kind, status, ref, why), members in groups.items():
-        shown = pat if len(members) > 1 else "%s = %s" % (members[0][0], cell(json.dumps(value_of(data, members[0][0]), ensure_ascii=False), 40))
+        shown = pat if len(members) > 1 else "%s = %s" % (members[0][0], cell(json.dumps(value_of(f, members[0][0]), ensure_ascii=False), 40))
         if status == MEASURED:
             ref, why = members[0][3], members[0][4]
         values.append("| %s | %d | %s | %s | %s | %s |" % (cell(shown, 110), len(members), kind, status, cell(ref, 40), cell(why, 58)))

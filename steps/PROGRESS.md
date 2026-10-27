@@ -8,8 +8,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - 4f: Q089 the footprint clusters alone, steps 8, 10, 12 and 13 in C# with parity on 2,704 plots, 0 failures
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
 - Phases 0a to 4f merged, PR 41 to 66: the reads of button 2, then steps 4 to 8, 10, 12 and 13 of the plan builder in C# with parity
-- Plan: steps/01_next.md. Design: docs/design/. Rules: docs/rules/index.md. Findings from 4f: steps/investigations/round-addin.md
-- Part 2, the sheets, waits for Bader's check of Part 1
+- Plan: steps/01_next.md. Design: docs/design/. Rules: docs/rules/index.md. Findings from 4f: steps/investigations/round-addin.md Part 2, the sheets, waits for Bader's check of Part 1
 
 ## Done
 
@@ -52,6 +51,7 @@ Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Si
 Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
 Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters. Q098 Hand of 5 DP2 plots in DP4 clusters.
 Q099 Link Name of a build. Q100 Status of values from client documents. Q101 Level profile fields with no share. Q102 Show the assumed values per plot. Q103 Design values in code, not in config.
+Q104 Audit statuses rest on text matching.
 
 ## Next three steps
 
