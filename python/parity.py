@@ -103,18 +103,22 @@ def code():
     return "python " + commit.stdout.strip() + (" with changes" if changed.stdout.strip() else "")
 
 
-def step_file(step, side, scope, plots, settings, inputs, run_id=None):
+def step_file(step, side, scope, plots, settings, inputs, run_id=None, tables=None):
     """The step file of one side. plots holds per plot raw and written as the side writes them, they are kept as given. The run
-    stamp names the run id, the code that wrote the file and the SHA-256 of the config it read, beside every input (R345, R347)."""
+    stamp names the run id, the code that wrote the file and the SHA-256 of the config it read, beside every input (R345, R347).
+    tables holds per name a table of entries the plots point to by key, written once, such as statusFrom of the step status (R401)."""
     fields = ((settings.get("addin") or {}).get("parity") or {}).get("steps", {}).get(step)
     if fields is None:
         raise project_profile.ProfileError("addin.parity.steps names no step %s (R345)" % step)
     if side not in SIDES:
         raise ValueError("a step file is of the side python or csharp, not %s" % side)
     config = next((item.get("sha256") for item in inputs if item.get("role") == "config"), None)
-    return {"format": FORMAT, "formatVersion": FORMAT_VERSION, "step": step, "side": side, "scope": scope,
-            "run": {"runId": run_id or "python_" + uuid.uuid4().hex[:12], "code": code(), "configSha256": config, "inputs": inputs},
-            "fields": fields, "plots": plots}
+    found = {"format": FORMAT, "formatVersion": FORMAT_VERSION, "step": step, "side": side, "scope": scope,
+             "run": {"runId": run_id or "python_" + uuid.uuid4().hex[:12], "code": code(), "configSha256": config, "inputs": inputs},
+             "fields": fields, "plots": plots}
+    if tables is not None:
+        found["tables"] = tables
+    return found
 
 
 def clear_step(folder, step, side):
@@ -141,13 +145,13 @@ def fields_entry(raw, fields):
                                     for name, value in raw.items()}}
 
 
-def write_step(folder, step, side, scope, plots, settings, inputs):
+def write_step(folder, step, side, scope, plots, settings, inputs, tables=None):
     """step_<step>_<side>.json in folder, the raw numbers as Python writes a float, so no digit is lost (never through common.write_json)."""
     folder = Path(folder)
     plot_relations.refuse_inside_repo(folder)
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / step_name(step, side)
-    path.write_text(json.dumps(step_file(step, side, scope, plots, settings, inputs), indent=1), encoding="utf-8")
+    path.write_text(json.dumps(step_file(step, side, scope, plots, settings, inputs, tables=tables), indent=1), encoding="utf-8")
     return path
 
 
@@ -390,7 +394,23 @@ def compare(python, csharp, rules):
         for name in configured + sorted(held - set(configured)):
             compare_field(plot, name, rules[step].get(name), mine, theirs, step, report)
     report["equal"] = sum(counts["equal"] for counts in report["fields"].values())
+    compare_tables(python.get("tables") or {}, csharp.get("tables") or {}, step, report)
     return report
+
+
+def compare_tables(mine, theirs, step, report):
+    """R401. Each entry of each table of the two step files exactly, an entry or a table on one side only a failure."""
+    report["tables"] = {}
+    for name in sorted(set(mine) | set(theirs)):
+        ours, others = mine.get(name) or {}, theirs.get(name) or {}
+        counts = report["tables"][name] = {"equal": 0, "differ": 0}
+        for key in sorted(set(ours) | set(others)):
+            if key in ours and key in others and ours[key] == others[key]:
+                counts["equal"] += 1
+                continue
+            counts["differ"] += 1
+            report["failures"].append({"step": step, "plot": None, "field": "tables." + name, "index": key, "python": ours.get(key), "csharp": others.get(key),
+                                       "why": "not equal" if key in ours and key in others else "only in python" if key in ours else "only in csharp"})
 
 
 def main(argv=None):
@@ -419,8 +439,9 @@ def main(argv=None):
     report["sources"] = {"python": str(Path(args.python).resolve()), "csharp": str(Path(args.csharp).resolve())}
     out.mkdir(parents=True, exist_ok=True)
     (out / ("parity_%s.json" % report["step"])).write_text(json.dumps(report, indent=1), encoding="utf-8")
-    print("step %s: plots %d (python %d, csharp %d), fields equal %d, one unit cases %d, failures %d" % (
-        report["step"], report["plots"], report["pythonPlots"], report["csharpPlots"], report["equal"], len(report["oneUnit"]), len(report["failures"])))
+    print("step %s: plots %d (python %d, csharp %d), fields equal %d, one unit cases %d, failures %d%s" % (
+        report["step"], report["plots"], report["pythonPlots"], report["csharpPlots"], report["equal"], len(report["oneUnit"]), len(report["failures"]),
+        "".join(", table %s entries equal %d" % (name, counts["equal"]) for name, counts in report["tables"].items())))
     for name, counts in report["fields"].items():
         print("  %s %s" % (name, counts))
     return 0 if not report["failures"] else 1

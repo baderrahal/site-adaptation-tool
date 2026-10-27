@@ -345,6 +345,42 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { 2.047, 0.0 }, written[1].Select(item => (double)item).ToArray());
         }
 
+        // R345, R401, Q107. A step file streamed to its writer is the text of the object StepFile.Build gives, raw and written of each plot,
+        // its tables after the plots, each value given once and never copied into a tree twice, as the step status of a whole build held
+        // its tree three times on net8.0
+        [Fact]
+        public void R345_R401_a_step_file_streamed_is_the_text_of_the_step_file_object_with_its_tables()
+        {
+            var fields = new List<ParityField>
+            {
+                new ParityField { Name = "outline", Kind = "points", Decimals = 3 }, new ParityField { Name = "rotationDeg", Kind = "angles", Decimals = 3 },
+                new ParityField { Name = "fields", Kind = "noGeometry" },
+            };
+            var detail = new JObject { ["source"] = "estimate", ["status"] = "MEASURED", ["statusFrom"] = "levels.entry from estimate" };
+            var plots = new Dictionary<string, Dictionary<string, object>>
+            {
+                ["101"] = new Dictionary<string, object>
+                {
+                    ["outline"] = new[] { new[] { 2361234.1235, 0.7 + 0.0005 }, new[] { 2.0465, double.NaN } }, ["rotationDeg"] = new StepValue { Raw = 359.9996, Written = 0.0 },
+                    ["fields"] = new JObject { ["levels.entry"] = detail }, ["unit"] = "DP2", ["written"] = true, ["count"] = 3, ["none"] = null,
+                },
+                ["7"] = new Dictionary<string, object> { ["outline"] = null, ["fields"] = null, ["unit"] = null },
+            };
+            var tables = new JObject { ["statusFrom"] = new JObject { ["levels.entry from estimate"] = new JObject { ["entries"] = new JArray(new JObject { ["share"] = 0.9883 }) } } };
+            foreach (JObject held in new[] { tables, null })
+            {
+                var text = new StringWriter(System.Globalization.CultureInfo.InvariantCulture);
+                using (var writer = new Newtonsoft.Json.JsonTextWriter(text) { Formatting = Newtonsoft.Json.Formatting.Indented })
+                {
+                    writer.WriteStartObject();
+                    StepFile.Write(writer, new ExactDouble.Converter(), "status", "csharp", "project", plots, fields, held);
+                    writer.WriteEndObject();
+                }
+                Assert.Equal(StepFile.Build("status", "csharp", "project", plots, fields, held).ToString(Newtonsoft.Json.Formatting.Indented, new ExactDouble.Converter()), text.ToString());
+            }
+            Assert.Equal("{\"source\":\"estimate\",\"status\":\"MEASURED\",\"statusFrom\":\"levels.entry from estimate\"}", detail.ToString(Newtonsoft.Json.Formatting.None));
+        }
+
         [Theory]
         [InlineData("project", null, "project")]
         [InlineData("nbh", "012", "nbh=012")]

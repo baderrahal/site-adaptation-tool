@@ -1118,8 +1118,9 @@ def folder_listing(folder):
 
 
 def write_plan(path, plan):
-    # entry and height hold an object, so round_tree leaves them as they are and they keep the 4 decimals set above
-    return common.write_json(path, plan, frozenset(WIDE_LEVELS))
+    # entry and height hold an object, so round_tree leaves them as they are and they keep the 4 decimals set above. The table statusFrom of
+    # R401 keeps the shares of the block status as the block holds them (Q107)
+    return common.write_json(path, plan, frozenset(WIDE_LEVELS), frozenset(("statusFrom",)))
 
 
 def prototype_folders(root, job):

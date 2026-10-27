@@ -10,8 +10,9 @@ namespace SiteAdaptation.Common
     // R401, the plan part, as value_status.Table of Python gives it. The map of valueStatus of the settings and the block status of the rules
     // profile, read once per build for the level profile the build follows: the status of a value of a field from a source, its detail and the
     // key the plan writes the detail by. The map names one block entry or a list of them, by the code that computes the value, and a value takes
-    // the status of the first assumed one, else of the first, listing each. An override of the list marks every field of its overrideSets. A
-    // pair the map does not hold, or an entry the block lacks, is UNKNOWN with why, never a guess
+    // the worst status of the list by worstFirst, else that of the first, listing each (Q107). An override of the list marks every field of its
+    // overrideSets, named by the override applied last whose set holds the field (Q107). A pair the map does not hold, or an entry the block
+    // lacks, is UNKNOWN with why, never a guess
     public sealed class ValueStatusTable
     {
         private const string Override = "override";
@@ -21,17 +22,26 @@ namespace SiteAdaptation.Common
         private const string SetsLine = "valueStatus.overrideSets maps each override of the list to the list of the fields it moves, the settings hold {0} (R401)";
         private static readonly Regex Placeholder = new Regex(@"\{(\w+)\}");
 
+        // value_status.LABELS, the labels a status of a value takes, the six of rule_status.py with MEASURED by its strength
+        public static readonly string[] Labels = { "UNKNOWN", "CHOSEN by Code", "CHOSEN by Bader", "RECOMMENDED", "MEASURED weak", "MEASURED strong", "MEASURED", "DOCUMENT" };
+        private static readonly string OrderLine = "valueStatus.worstFirst lists the statuses a value of several block entries takes first, the worst first, each of "
+            + string.Join(", ", Labels.Take(Labels.Length - 1)) + " or " + Labels.Last() + ", the settings hold {0} (R401)";
+
         private readonly JObject sources, fields, block;
         private readonly Dictionary<string, List<string>> sets = new Dictionary<string, List<string>>();
-        private readonly HashSet<string> assumed;
+        private readonly List<string> order = new List<string>();
+        // The status of each key given, so a value of a key given before takes it with no new detail
+        private readonly Dictionary<string, string> statusOf = new Dictionary<string, string>(StringComparer.Ordinal);
         private readonly Dictionary<string, string> files;
         private readonly string levelProfile;
+
+        // value_status.Table.used: the detail of each key the build gave a value, the table statusFrom
+        public Dictionary<string, JObject> Used { get; } = new Dictionary<string, JObject>(StringComparer.Ordinal);
 
         public ValueStatusTable(JObject map, JObject block, string profileFile, string levelProfile)
         {
             sources = map?["sources"] as JObject ?? new JObject();
             fields = map?["fields"] as JObject ?? new JObject();
-            assumed = new HashSet<string>(((map?["assumed"] as JArray) ?? new JArray()).Select(item => (string)item));
             if (map != null && map.HasValues)
             {
                 // value_status.override_sets: each override to a list of field names, else refused with one line
@@ -47,6 +57,13 @@ namespace SiteAdaptation.Common
                     }
                     sets[item.Name] = names.Select(name => (string)name).ToList();
                 }
+                // value_status.worst_first: a list of labels of Labels, else refused with one line
+                JToken worst = map["worstFirst"];
+                if (!(worst is JArray ranked) || ranked.Count == 0 || ranked.Any(name => name.Type != JTokenType.String || !Labels.Contains((string)name)))
+                {
+                    throw new InvalidDataException(string.Format(OrderLine, worst == null || worst.Type == JTokenType.Null ? "none" : PlanOverrides.Dumps(worst)));
+                }
+                order = ranked.Select(name => (string)name).ToList();
             }
             this.block = block ?? new JObject();
             files = new Dictionary<string, string> { ["profile"] = profileFile, ["config"] = ValueStatus.SettingsFile };
@@ -77,27 +94,15 @@ namespace SiteAdaptation.Common
         }
 
         // value_status.Table.of: the status, the detail and its key
+        // applied in the order the build applied them, so the last whose set holds the field names the override that moved the value (Q107)
         public Tuple<string, JObject, string> Of(string field, string source, string hand = null, IEnumerable<string> applied = null)
         {
-            string moved = source == Override ? null : (applied ?? Enumerable.Empty<string>()).FirstOrDefault(name => sets.TryGetValue(name, out List<string> moves) && moves.Contains(field));
+            string moved = source == Override ? null : (applied ?? Enumerable.Empty<string>()).LastOrDefault(name => sets.TryGetValue(name, out List<string> moves) && moves.Contains(field));
             if (moved != null)
             {
                 source = Override;
             }
             List<JObject> refs = Refs(field, source);
-            List<JObject> entries = refs == null
-                ? new List<JObject> { new JObject { ["status"] = "UNKNOWN", ["why"] = "valueStatus holds no status for " + field + " from " + source + " (R401)" } }
-                : refs.Select(reference => Resolve(field, source, reference, hand)).ToList();
-            JObject chosen = entries.FirstOrDefault(entry => assumed.Contains(EntryLabel(entry))) ?? entries[0];
-            var detail = new JObject { ["entries"] = new JArray(entries) };
-            if ((string)chosen["status"] == Measured && chosen["strength"]?.Type == JTokenType.String && ((string)chosen["strength"]).Length > 0)
-            {
-                detail["strength"] = chosen["strength"].DeepClone();
-            }
-            if (moved != null)
-            {
-                detail["override"] = moved;
-            }
             string key = field + " from " + source;
             if ((refs ?? new List<JObject>()).Any(reference => new[] { "profile", "config" }.Any(kind => reference[kind]?.Type == JTokenType.String && ((string)reference[kind]).Contains("{hand}"))))
             {
@@ -107,6 +112,27 @@ namespace SiteAdaptation.Common
             {
                 key += " by " + moved;
             }
+            // The key names the field, source, hand and override the detail is made of, so a key given before keeps its detail, one copy a build
+            if (statusOf.TryGetValue(key, out string known))
+            {
+                return Tuple.Create(known, Used[key], key);
+            }
+            List<JObject> entries = refs == null
+                ? new List<JObject> { new JObject { ["status"] = "UNKNOWN", ["why"] = "valueStatus holds no status for " + field + " from " + source + " (R401)" } }
+                : refs.Select(reference => Resolve(field, source, reference, hand)).ToList();
+            // Q107. The worst status of the list by worstFirst, else the first entry
+            JObject chosen = entries.Where(entry => order.Contains(EntryLabel(entry))).OrderBy(entry => order.IndexOf(EntryLabel(entry))).FirstOrDefault() ?? entries[0];
+            var detail = new JObject { ["entries"] = new JArray(entries) };
+            if ((string)chosen["status"] == Measured && chosen["strength"]?.Type == JTokenType.String && ((string)chosen["strength"]).Length > 0)
+            {
+                detail["strength"] = chosen["strength"].DeepClone();
+            }
+            if (moved != null)
+            {
+                detail["override"] = moved;
+            }
+            Used[key] = detail;
+            statusOf[key] = (string)chosen["status"];
             return Tuple.Create((string)chosen["status"], detail, key);
         }
 
@@ -223,12 +249,14 @@ namespace SiteAdaptation.Common
                     hands.TryGetValue(number, out Dictionary<string, object> hand);
                     object handTable = null;
                     hand?.TryGetValue("handTable", out handTable);
-                    var applied = plan.Overrides["applied"] as List<string> ?? new List<string>();
+                    // Q107. In the order the build applied them, so the status names the override that moved a value
+                    List<string> applied = plan.AppliedOrder ?? plan.Overrides["applied"] as List<string> ?? new List<string>();
                     fields = new JObject();
                     foreach (Tuple<string, string> item in Sources(plan))
                     {
                         Tuple<string, JObject, string> status = table.Of(item.Item1, item.Item2, handTable as string, applied);
-                        fields[item.Item1] = new JObject { ["source"] = item.Item2, ["status"] = status.Item1, ["statusFrom"] = status.Item2 };
+                        // Q107. The key of the detail, the detail once in the table statusFrom of the step file (Tables)
+                        fields[item.Item1] = new JObject { ["source"] = item.Item2, ["status"] = status.Item1, ["statusFrom"] = status.Item3 };
                     }
                 }
                 found[number] = new Dictionary<string, object> { ["unit"] = plan.Overrides["unit"], ["written"] = written, ["fields"] = fields };
@@ -236,8 +264,25 @@ namespace SiteAdaptation.Common
             return found;
         }
 
-        // value_status.summary statusByField: the plots by field and status, in the order of Python, field then status
-        public static List<KeyValuePair<Tuple<string, string>, int>> Counts(IReadOnlyDictionary<string, Dictionary<string, object>> step)
+        private static IEnumerable<string> Keys(IReadOnlyDictionary<string, Dictionary<string, object>> step)
+        {
+            return step.Values.Select(plot => plot["fields"]).OfType<JObject>().SelectMany(fields => fields.Properties().Select(field => (string)field.Value["statusFrom"]));
+        }
+
+        // plan_from_book.status_step, Q107: the tables of the step file, statusFrom the detail of each key its fields name, once, in the order of the keys
+        public static JObject Tables(IReadOnlyDictionary<string, Dictionary<string, object>> step, ValueStatusTable table)
+        {
+            var details = new JObject();
+            foreach (string key in Keys(step).Distinct().OrderBy(key => key, StringComparer.Ordinal))
+            {
+                details[key] = table.Used[key];
+            }
+            return new JObject { ["statusFrom"] = details };
+        }
+
+        // value_status.summary statusByField: the plots by field and status, in the order of Python, field then status, the strength of a
+        // MEASURED value from the detail of its key
+        public static List<KeyValuePair<Tuple<string, string>, int>> Counts(IReadOnlyDictionary<string, Dictionary<string, object>> step, ValueStatusTable table)
         {
             var counts = new Dictionary<Tuple<string, string>, int>();
             foreach (Dictionary<string, object> plot in step.Values)
@@ -248,7 +293,8 @@ namespace SiteAdaptation.Common
                 }
                 foreach (JProperty field in fields.Properties())
                 {
-                    var key = Tuple.Create(field.Name, Label((string)field.Value["status"], field.Value["statusFrom"] as JObject));
+                    table.Used.TryGetValue((string)field.Value["statusFrom"], out JObject detail);
+                    var key = Tuple.Create(field.Name, Label((string)field.Value["status"], detail));
                     counts[key] = counts.TryGetValue(key, out int count) ? count + 1 : 1;
                 }
             }

@@ -308,7 +308,7 @@ namespace SiteAdaptation.Tests
         {
             AddinConfig repo = AddinConfig.Load(WorkerRunTests.RepoConfig());
             Assert.Equal(3900, repo.WorkerCommandPeakMiB("read"));
-            Assert.Null(repo.WorkerCommandPeakMiB("build"));
+            Assert.Null(repo.WorkerCommandPeakMiB("levelExcel"));
             // A made up config of the repo config with a whole read of 3,900 MiB and the floor of 2.0 GiB
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
             config["addin"]["workerPeakMiB"]["commands"]["read"] = 3900;
@@ -357,6 +357,40 @@ namespace SiteAdaptation.Tests
             held = 3800;
             Assert.Equal(0, WorkerRunner.Run(request("m3").Write(folder), commands, () => free, () => held));
             Assert.True(read);
+        }
+
+        // R347, Q107. A whole build of the whole project peaked at 958.8 to 974.8 MiB on net48 and 844.8 to 845.3 MiB on net8.0 once the step
+        // status wrote keys and the step files were streamed, so commands.build is the highest, 974.8, plus the swing of the read, 1,147, as
+        // three runs are too few to set one, rounded up to 2,200 MiB, and a build asks it and the floor before its first input as a read does
+        [Fact]
+        public void R347_Q107_a_build_asks_its_whole_peak_of_the_config_and_the_floor_and_is_refused_with_its_line_when_less_is_free()
+        {
+            AddinConfig repo = AddinConfig.Load(WorkerRunTests.RepoConfig());
+            Assert.Equal(2200, repo.WorkerCommandPeakMiB("build"));
+            Assert.Equal(2200, (int)(Math.Ceiling((974.8 + Math.Max(16.0, 1147.0)) / 100.0) * 100));
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            config["siteBuild"]["minFreeGB"] = 2.0;
+            string configPath = Path.Combine(folder, "build.json");
+            File.WriteAllText(configPath, config.ToString());
+            string rows = Path.Combine(folder, "plots.csv");
+            File.WriteAllText(rows, "a made up table");
+            double free = 4200;
+            bool built = false;
+            var commands = new Dictionary<string, WorkerCommand> { ["build"] = run => { run.Input("plotsCsv"); built = true; } };
+            Func<string, WorkerRequest> request = id => new WorkerRequest
+            {
+                FormatVersion = 1, RunId = id, Command = "build", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" },
+                Inputs = new List<WorkerFile> { Input("config", configPath), Input("plotsCsv", rows) }, Scope = new WorkerScope { Kind = "project" },
+                OutputFolder = Path.Combine(folder, "out"), TimeLimitS = 600,
+            };
+            // 4,200 MiB free is under the 2,200 of the whole build and the 2,048 of the floor, nothing is built
+            Assert.Equal(3, WorkerRunner.Run(request("b1").Write(folder), commands, () => free, () => 50.0));
+            Assert.False(built);
+            Assert.Equal("free memory 4.10 GiB, the whole build needs 2.15 GiB and the floor 2.00 GiB (Q083)", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "b1")).Message);
+            // 4,250 MiB is enough, 4,248 asked
+            free = 4250;
+            Assert.Equal(0, WorkerRunner.Run(request("b2").Write(folder), commands, () => free, () => 50.0));
+            Assert.True(built);
         }
     }
 }

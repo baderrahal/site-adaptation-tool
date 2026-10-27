@@ -34,7 +34,7 @@ namespace SiteAdaptation.Tests
                          ""floors.generic.type"": {""computed"": {""config"": ""floors.types.generic""}},
                          ""floors.generic.level"": {""computed"": {""profile"": ""levelProfiles.{levelProfile}.keyRules.notInTheBlock""}}},
             ""overrideSets"": " + (sets ?? @"{""entryM"": [""levels.entry"", ""levels.height""], ""heightM"": [""levels.ffl"", ""insert""]}") + @",
-            ""assumed"": [""RECOMMENDED"", ""CHOSEN by Code"", ""UNKNOWN"", ""MEASURED weak""]}");
+            ""assumed"": [""RECOMMENDED"", ""CHOSEN by Code"", ""UNKNOWN"", ""MEASURED weak""], ""worstFirst"": [""UNKNOWN"", ""CHOSEN by Code"", ""RECOMMENDED"", ""MEASURED weak""]}");
         }
 
         private static JObject Without(string text, string key)
@@ -76,7 +76,7 @@ namespace SiteAdaptation.Tests
             return new JObject { ["note"] = "a made up block", [profileFile] = profile, ["config/project.json"] = config };
         }
 
-        // test_value_status.MADE_COUNTS
+        // test_value_status.MADE_COUNTS, since Q107 the steps and the fields of the steps read steps.riser_added, which the made block lacks
         private const string MadeCounts = "floors.generic.heightOffset:RECOMMENDED=1 floors.generic.heightOffset:UNKNOWN=5 floors.generic.level:UNKNOWN=6 "
             + "floors.generic.levelElevation:UNKNOWN=6 floors.generic.outline:UNKNOWN=6 floors.generic.plotValue:DOCUMENT=6 floors.generic.type:UNKNOWN=6 "
             + "floors.generic.z:RECOMMENDED=1 floors.generic.z:UNKNOWN=5 floors.ramp.corners:RECOMMENDED=2 floors.ramp.corners:UNKNOWN=4 "
@@ -86,14 +86,14 @@ namespace SiteAdaptation.Tests
             + "floors.yard.levelElevation:UNKNOWN=3 floors.yard.outline:RECOMMENDED=3 floors.yard.plotValue:DOCUMENT=3 floors.yard.type:UNKNOWN=3 "
             + "floors.yard.z:UNKNOWN=3 insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 "
             + "levels.entry:RECOMMENDED=1 levels.ffl:RECOMMENDED=1 levels.ffl:UNKNOWN=5 levels.height:MEASURED weak=4 levels.height:RECOMMENDED=2 "
-            + "levels.ssl:RECOMMENDED=1 levels.ssl:UNKNOWN=5 levels.steps:MEASURED weak=3 levels.steps:RECOMMENDED=3 linkName:MEASURED weak=2 "
-            + "linkName:RECOMMENDED=4 mirrored:MEASURED strong=5 mirrored:RECOMMENDED=1 parameters.CASE:MEASURED weak=4 parameters.CASE:RECOMMENDED=2 "
+            + "levels.ssl:RECOMMENDED=1 levels.ssl:UNKNOWN=5 levels.steps:RECOMMENDED=3 levels.steps:UNKNOWN=3 "
+            + "linkName:RECOMMENDED=4 linkName:UNKNOWN=2 mirrored:MEASURED strong=5 mirrored:RECOMMENDED=1 parameters.CASE:MEASURED weak=4 parameters.CASE:RECOMMENDED=2 "
             + "parameters.RRE_ZZ_SP_Façade-Color:UNKNOWN=6 parameters.RRE_ZZ_SP_Façade-Design-Option:UNKNOWN=6 "
             + "parameters.RRE_ZZ_SP_Number-of-Steps:RECOMMENDED=2 parameters.RRE_ZZ_SP_Number-of-Steps:UNKNOWN=3 parameters.RRE_ZZ_SP_Plot-Number:UNKNOWN=6 "
             + "parameters.RRE_ZZ_SP_Prototype:UNKNOWN=6 parameters.RRE_ZZ_SP_Prototype-FFL:RECOMMENDED=1 parameters.RRE_ZZ_SP_Prototype-FFL:UNKNOWN=5 "
             + "parameters.RRE_ZZ_SP_Prototype-Foundation-Type:RECOMMENDED=1 parameters.RRE_ZZ_SP_Prototype-Foundation-Type:UNKNOWN=5 "
-            + "parameters.RRE_ZZ_SP_Prototype-HVAC-Schedule-Type:UNKNOWN=6 parameters.RRE_ZZ_SP_RVT-Name:MEASURED weak=2 "
-            + "parameters.RRE_ZZ_SP_RVT-Name:RECOMMENDED=4 prototypeFile:UNKNOWN=6 rotationDeg:MEASURED strong=3 rotationDeg:RECOMMENDED=3 unit:DOCUMENT=6";
+            + "parameters.RRE_ZZ_SP_Prototype-HVAC-Schedule-Type:UNKNOWN=6 "
+            + "parameters.RRE_ZZ_SP_RVT-Name:RECOMMENDED=4 parameters.RRE_ZZ_SP_RVT-Name:UNKNOWN=2 prototypeFile:UNKNOWN=6 rotationDeg:MEASURED strong=3 rotationDeg:RECOMMENDED=3 unit:DOCUMENT=6";
 
         private static ValueStatusTable Table(string levelProfile = "p1")
         {
@@ -185,10 +185,15 @@ namespace SiteAdaptation.Tests
 
         private static Dictionary<string, Dictionary<string, object>> MadeStep(OverrideList list, out OverrideParameterStepTests.Built built)
         {
+            return MadeStep(list, out built, out _);
+        }
+
+        private static Dictionary<string, Dictionary<string, object>> MadeStep(OverrideList list, out OverrideParameterStepTests.Built built, out ValueStatusTable table)
+        {
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
             string profileFile = (string)config["profile"];
             built = OverrideParameterStepTests.Build(list, changeRules: rules => rules["status"] = MadeBlock(profileFile));
-            ValueStatusTable table = ValueStatus.Table(built.Config, built.Rules, "parsons2024Rev6");
+            table = ValueStatus.Table(built.Config, built.Rules, "parsons2024Rev6");
             return ValueStatus.Step(built.Plans.Keys.ToList(), built.Plans, built.Hands, table);
         }
 
@@ -197,20 +202,97 @@ namespace SiteAdaptation.Tests
             return ((JObject)step[number]["fields"])[field];
         }
 
+        // test_r401_q107_a_value_of_several_entries_takes_the_worst_status_in_the_order_of_valueStatus_worst_first
+        [Fact]
+        public void R401_Q107_a_value_of_several_entries_takes_the_worst_status_in_the_order_of_valueStatus_worst_first()
+        {
+            JObject map = Map();
+            map["fields"]["levels.ssl"] = JObject.Parse("{\"estimate\": [{\"profile\": \"levelProfiles.{levelProfile}.keyRules.entry.rule\"}, {\"config\": \"made.caseRule\"}]}");
+            map["fields"]["levels.steps"] = JObject.Parse("{\"estimate\": [{\"profile\": \"levelProfiles.{levelProfile}.keyRules.parameter X.rule\"}, "
+                + "{\"profile\": \"levelProfiles.{levelProfile}.keyRules.ffl.rule\"}]}");
+            var table = new ValueStatusTable(map, Block, ProfileFile, "p1");
+            Tuple<string, JObject, string> found = table.Of("levels.ssl", "estimate");
+            Assert.Equal("CHOSEN by Code MEASURED,CHOSEN by Code False", found.Item1 + " " + string.Join(",", found.Item2["entries"].Select(entry => (string)entry["status"]))
+                + " " + (found.Item2["strength"] != null));
+            // No entry of the order: the first of the list, CHOSEN by Bader before MEASURED strong
+            Assert.Equal("CHOSEN by Bader", table.Of("levels.steps", "estimate").Item1);
+            Assert.Equal("{\"entries\":[" + FflText + "," + EntryText + "],\"strength\":\"weak\"}", table.Of("levels.height", "estimate").Item2.ToString(Formatting.None));
+            Assert.Equal("UNKNOWN", table.Of("insert", "computed").Item1);
+        }
+
+        // test_r401_q107_a_missing_status_order_or_one_holding_an_unknown_status_is_refused_with_one_line
+        [Fact]
+        public void R401_Q107_a_missing_status_order_or_one_holding_an_unknown_status_is_refused_with_one_line()
+        {
+            const string line = "valueStatus.worstFirst lists the statuses a value of several block entries takes first, the worst first, each of UNKNOWN, CHOSEN by Code, "
+                + "CHOSEN by Bader, RECOMMENDED, MEASURED weak, MEASURED strong, MEASURED or DOCUMENT, the settings hold {0} (R401)";
+            foreach (Tuple<string, string> shape in new[]
+            {
+                Tuple.Create("null", "none"), Tuple.Create("[\"UNKNOWN\", \"WRONG\"]", "[\"UNKNOWN\", \"WRONG\"]"), Tuple.Create("\"UNKNOWN\"", "\"UNKNOWN\""), Tuple.Create("[]", "[]"),
+            })
+            {
+                JObject map = Map();
+                map["worstFirst"] = JToken.Parse(shape.Item1);
+                var refused = Assert.Throws<InvalidDataException>(() => new ValueStatusTable(map, Block, ProfileFile, "p1"));
+                Assert.Equal(string.Format(line, shape.Item2), refused.Message);
+            }
+            JObject noOrder = Map();
+            noOrder.Remove("worstFirst");
+            Assert.Equal(string.Format(line, "none"), Assert.Throws<InvalidDataException>(() => new ValueStatusTable(noOrder, Block, ProfileFile, "p1")).Message);
+        }
+
+        // test_r401_q107_the_detail_names_the_override_applied_last_whose_set_holds_the_field
+        [Fact]
+        public void R401_Q107_the_detail_names_the_override_applied_last_whose_set_holds_the_field()
+        {
+            var table = new ValueStatusTable(Map("{\"entryM\": [\"levels.entry\", \"levels.height\"], \"heightM\": [\"levels.ffl\", \"levels.height\", \"insert\"]}"), Block, ProfileFile, "p1");
+            Assert.Equal("RECOMMENDED {\"entries\":[" + Override + "],\"override\":\"heightM\"} | levels.height from override by heightM",
+                Text(table.Of("levels.height", "estimate", null, new[] { "entryM", "heightM" })));
+            Assert.Equal("levels.height from override by entryM", table.Of("levels.height", "estimate", null, new[] { "heightM", "entryM" }).Item3);
+            Assert.Equal("levels.entry from override by entryM", table.Of("levels.entry", "estimate", null, new[] { "entryM", "heightM" }).Item3);
+        }
+
+        // test_r401_q107_the_build_names_the_override_that_moved_the_value_by_the_order_it_applied_them
+        [Fact]
+        public void R401_Q107_the_build_names_the_override_that_moved_the_value_by_the_order_it_applied_them()
+        {
+            var list = new OverrideList(new Dictionary<string, JObject>
+            {
+                ["2"] = JObject.Parse("{\"entryM\": {\"gapToRuleM\": 0.05}, \"heightM\": {\"gapToRuleM\": 0.1}}"), ["5"] = JObject.Parse("{\"entryM\": {\"gapToRuleM\": 0.05}, \"steps\": \"4\"}"),
+                ["6"] = JObject.Parse("{\"entryM\": {\"gapToRuleM\": 0.05}, \"rampFrontM\": {\"gapToRuleM\": -0.05}}"),
+            });
+            Dictionary<string, Dictionary<string, object>> step = MadeStep(list, out OverrideParameterStepTests.Built built);
+            Assert.Equal("entryM heightM | entryM heightM", string.Join(" ", (List<string>)built.Plans["2"].Overrides["applied"]) + " | " + string.Join(" ", built.Plans["2"].AppliedOrder));
+            Func<string, string, string> by = (number, field) => ((string)Field(step, number, field)["statusFrom"]).Split(new[] { " by " }, StringSplitOptions.None).Last();
+            Assert.Equal("entryM heightM heightM heightM", by("2", "levels.entry") + " " + by("2", "levels.height") + " " + by("2", "levels.steps") + " " + by("2", "linkName"));
+            Assert.Equal("steps steps entryM", by("5", "levels.steps") + " " + by("5", "parameters.RRE_ZZ_SP_RVT-Name") + " " + by("5", "levels.height"));
+            Assert.Equal("rampFrontM rampFrontM entryM", by("6", "floors.ramp.heightOffset") + " " + by("6", "floors.ramp.corners") + " " + by("6", "levels.entry"));
+        }
+
         [Fact]
         public void R401_parity_status_each_field_of_a_plot_with_its_source_status_and_detail()
         {
-            Dictionary<string, Dictionary<string, object>> step = MadeStep(OverrideParameterStepTests.Made(), out OverrideParameterStepTests.Built built);
+            // Since Q107 each field holds the key of its detail and the step file the details once in its table statusFrom, as the plan does, where
+            // the detail copied into every value of the step held the build at 2,913 MiB
+            Dictionary<string, Dictionary<string, object>> step = MadeStep(OverrideParameterStepTests.Made(), out OverrideParameterStepTests.Built built, out ValueStatusTable table);
             string profileFile = (string)built.Config["profile"];
-            Assert.Equal("{\"source\":\"estimate\",\"status\":\"MEASURED\",\"statusFrom\":{\"entries\":[{\"entry\":\"" + profileFile + " " + Key
-                + "entry.rule\",\"status\":\"MEASURED\",\"share\":0.5,\"strength\":\"weak\",\"measuredBy\":\"made\"}],\"strength\":\"weak\"}}", Field(step, "1", "levels.entry").ToString(Formatting.None));
-            Assert.Equal("{\"source\":\"estimate\",\"status\":\"RECOMMENDED\",\"statusFrom\":{\"entries\":[{\"status\":\"RECOMMENDED\",\"question\":\"Q053\",\"where\":\"steps/investigations/rule-status-audit.md section 6\"}],"
-                + "\"override\":\"entryM\"}}", Field(step, "2", "levels.entry").ToString(Formatting.None));
-            Assert.Equal(profileFile + " " + Key + "hand cluster.rule", (string)Field(step, "3", "mirrored")["statusFrom"]["entries"][0]["entry"]);
+            JObject details = (JObject)ValueStatus.Tables(step, table)["statusFrom"];
+            Func<string, string, JToken> detail = (number, field) => details[(string)Field(step, number, field)["statusFrom"]];
+            Assert.Equal("{\"source\":\"estimate\",\"status\":\"MEASURED\",\"statusFrom\":\"levels.entry from estimate\"}", Field(step, "1", "levels.entry").ToString(Formatting.None));
+            Assert.Equal("{\"entries\":[{\"entry\":\"" + profileFile + " " + Key + "entry.rule\",\"status\":\"MEASURED\",\"share\":0.5,\"strength\":\"weak\",\"measuredBy\":\"made\"}],\"strength\":\"weak\"}",
+                detail("1", "levels.entry").ToString(Formatting.None));
+            Assert.Equal("{\"entries\":[{\"status\":\"RECOMMENDED\",\"question\":\"Q053\",\"where\":\"steps/investigations/rule-status-audit.md section 6\"}],\"override\":\"entryM\"}",
+                detail("2", "levels.entry").ToString(Formatting.None));
+            Assert.Equal("levels.entry from override by entryM", (string)Field(step, "2", "levels.entry")["statusFrom"]);
+            Assert.Equal(profileFile + " " + Key + "hand cluster.rule", (string)detail("3", "mirrored")["entries"][0]["entry"]);
             Assert.Equal("RECOMMENDED - RECOMMENDED mirrored RECOMMENDED mirrored", string.Join(" ", new[] { "mirrored", "insert", "rotationDeg" }.Select(field =>
-                (string)Field(step, "4", field)["status"] + " " + ((string)Field(step, "4", field)["statusFrom"]["override"] ?? "-"))));
+                (string)Field(step, "4", field)["status"] + " " + ((string)detail("4", field)["override"] ?? "-"))));
             Assert.Equal("RECOMMENDED override heightM override", (string)Field(step, "4", "parameters.CASE")["status"] + " " + (string)Field(step, "2", "parameters.CASE")["source"] + " "
-                + (string)Field(step, "3", "insert")["statusFrom"]["override"] + " " + (string)Field(step, "3", "parameters.RRE_ZZ_SP_Prototype-FFL")["source"]);
+                + (string)detail("3", "insert")["override"] + " " + (string)Field(step, "3", "parameters.RRE_ZZ_SP_Prototype-FFL")["source"]);
+            // The table holds every key the fields name, once, in the order of the keys
+            List<string> used = step.Values.Where(plot => plot["fields"] is JObject).SelectMany(plot => ((JObject)plot["fields"]).Properties().Select(field => (string)field.Value["statusFrom"]))
+                .Distinct().OrderBy(key => key, StringComparer.Ordinal).ToList();
+            Assert.Equal(string.Join("|", used), string.Join("|", details.Properties().Select(item => item.Name)));
             Assert.Equal("DOCUMENT UNKNOWN", (string)Field(step, "1", "unit")["status"] + " " + (string)Field(step, "1", "prototypeFile")["status"]);
             Assert.Equal("floors.generic.heightOffset floors.generic.level floors.generic.levelElevation floors.generic.outline floors.generic.plotValue floors.generic.type "
                 + "floors.generic.z floors.ramp.corners floors.ramp.heightOffset floors.ramp.level floors.ramp.levelElevation floors.ramp.outline floors.ramp.plotValue "
@@ -245,7 +327,7 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R401_every_value_an_override_moves_carries_the_status_of_the_override_list()
         {
-            Dictionary<string, Dictionary<string, object>> step = MadeStep(OverrideParameterStepTests.Made(), out OverrideParameterStepTests.Built built);
+            Dictionary<string, Dictionary<string, object>> step = MadeStep(OverrideParameterStepTests.Made(), out OverrideParameterStepTests.Built built, out ValueStatusTable table);
             MadeStep(new OverrideList(new Dictionary<string, JObject>()), out OverrideParameterStepTests.Built plain);
             var differ = new List<string>();
             var carry = new List<string>();
@@ -255,7 +337,7 @@ namespace SiteAdaptation.Tests
                 Dictionary<string, string> mine = Values(built.Plans[number]), other = Values(plain.Plans[number]);
                 foreach (KeyValuePair<string, string> value in mine.Where(item => ((JObject)step[number]["fields"])[item.Key] != null))
                 {
-                    bool carries = (string)Field(step, number, value.Key)["statusFrom"]["entries"][0]["question"] == "Q053";
+                    bool carries = (string)table.Used[(string)Field(step, number, value.Key)["statusFrom"]]["entries"][0]["question"] == "Q053";
                     if (!other.TryGetValue(value.Key, out string before) || before == "null")
                     {
                         // A field the build with no override does not hold, as the yard of 4 its mirror flag override alone picks
@@ -279,8 +361,8 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R401_the_counts_of_the_build_name_the_plots_by_field_and_status()
         {
-            Dictionary<string, Dictionary<string, object>> step = MadeStep(OverrideParameterStepTests.Made(), out _);
-            Assert.Equal(MadeCounts, string.Join(" ", ValueStatus.Counts(step).Select(item => item.Key.Item1 + ":" + item.Key.Item2 + "=" + item.Value)));
+            Dictionary<string, Dictionary<string, object>> step = MadeStep(OverrideParameterStepTests.Made(), out _, out ValueStatusTable table);
+            Assert.Equal(MadeCounts, string.Join(" ", ValueStatus.Counts(step, table).Select(item => item.Key.Item1 + ":" + item.Key.Item2 + "=" + item.Value)));
         }
 
         [Fact]
@@ -299,6 +381,8 @@ namespace SiteAdaptation.Tests
                 JToken five = step["plots"]["5"]["written"];
                 Assert.Equal("DP2 True locationPlan DOCUMENT override RECOMMENDED", (string)five["unit"] + " " + (bool)five["written"] + " " + (string)five["fields"]["unit"]["source"] + " "
                     + (string)five["fields"]["unit"]["status"] + " " + (string)five["fields"]["parameters.CASE"]["source"] + " " + (string)five["fields"]["parameters.CASE"]["status"]);
+                // Q107: the key of the detail in each field and the details once in the table statusFrom of the file
+                Assert.Equal("unit from locationPlan DOCUMENT", (string)five["fields"]["unit"]["statusFrom"] + " " + (string)step["tables"]["statusFrom"]["unit from locationPlan"]["entries"][0]["status"]);
                 // The worker counts the plots by field and status as the summary of step 15 of Python does
                 WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(request.OutputFolder, "p1"));
                 Assert.Equal(6, answer.Counts["status unit DOCUMENT"]);

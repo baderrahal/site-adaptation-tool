@@ -821,6 +821,7 @@
       "addin.workerPeakMiB.files.2.bytes": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "addin.workerPeakMiB.files.2.peakMiB": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "addin.workerPeakMiB.commands.read": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 7"},
+      "addin.workerPeakMiB.commands.build": {"status": "CHOSEN by Code", "where": "R347"},
       "addin.workerTimeLimitS.read": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 8"},
       "addin.workerTimeLimitS.build": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 9"},
       "addin.workerTimeLimitS.levelExcel": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 10"},

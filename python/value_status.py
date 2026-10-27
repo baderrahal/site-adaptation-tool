@@ -1,8 +1,9 @@
 """R401, the plan part. The status of each sourced value of a plot of the plan, one of the six of rule_status.py, taken once per build from
 the block status of the rules profile through valueStatus of config/project.json. The map names per field and source one block entry or a
 list of them, by the code that computes the value, or the status itself for an override or a client input. A value of several entries takes
-the status of the first assumed one among them, else of the first, and lists each. An override of the list marks every field it moves,
-overrideSets, with the status of the source override. A pair the map does not hold, or an entry the block lacks, is UNKNOWN with why, never
+the worst status among them in the order of valueStatus.worstFirst, else the status of the first, and lists each (Q107). An override of the
+list marks every field it moves, overrideSets, with the status of the source override, named by the override applied last whose set holds
+the field, the one that moved the value (Q107). A pair the map does not hold, or an entry the block lacks, is UNKNOWN with why, never
 a guess. A status changes no value: a value holds its status and the key of its detail, and the detail is written once in the table
 statusFrom at the top of the plan. ValueStatus.cs of the C# gives the same."""
 import json
@@ -21,6 +22,10 @@ ANY_PARAMETER = "parameters.*"
 PLACEHOLDER = re.compile(r"\{(\w+)\}")
 ASSUMED = "assumed"
 SETS_LINE = "valueStatus.overrideSets maps each override of the list to the list of the fields it moves, the settings hold %s (R401)"
+# The labels a status of a value takes, the six of rule_status.py with MEASURED by its strength, which worstFirst names
+LABELS = ("UNKNOWN", "CHOSEN by Code", "CHOSEN by Bader", "RECOMMENDED", "MEASURED weak", "MEASURED strong", "MEASURED", "DOCUMENT")
+ORDER_LINE = ("valueStatus.worstFirst lists the statuses a value of several block entries takes first, the worst first, each of %s or %s, the settings "
+              "hold %%s (R401)") % (", ".join(LABELS[:-1]), LABELS[-1])
 
 
 def override_sets(sets):
@@ -34,6 +39,14 @@ def override_sets(sets):
     return sets
 
 
+def worst_first(order):
+    """Q107. worstFirst, a list of the labels of LABELS, refused with one line when it is missing, empty or holds another."""
+    if not isinstance(order, list) or not order or not all(isinstance(name, str) and name in LABELS for name in order):
+        # json.dumps, so the line is the one of the C#
+        raise project_profile.ProfileError(ORDER_LINE % ("none" if order is None else json.dumps(order)))
+    return order
+
+
 class Table:
     """The map of valueStatus and the block status, read once per build for the level profile the build follows, and the details the build
     used by their key, the table statusFrom of the plan."""
@@ -42,7 +55,7 @@ class Table:
         fields = fields or {}
         self.sources, self.fields = fields.get("sources") or {}, fields.get("fields") or {}
         self.sets = override_sets(fields.get("overrideSets")) if fields else {}
-        self.assumed = set(fields.get("assumed") or ())
+        self.order = worst_first(fields.get("worstFirst")) if fields else []
         self.block = block or {}
         self.files = {"profile": profile_file, "config": SETTINGS_FILE}
         self.level_profile = level_profile
@@ -58,8 +71,9 @@ class Table:
 
     def of(self, field, source, hand=None, applied=()):
         """The status of a value of field from source, its detail and the key of the detail. An applied override whose set holds the field
-        gives a value the status of the source override, as its source stays."""
-        moved = None if source == OVERRIDE else next((name for name in applied or () if field in self.sets.get(name, ())), None)
+        gives a value the status of the source override, as its source stays, applied in the order the build applied them so the last whose
+        set holds the field names the override that moved the value (Q107)."""
+        moved = None if source == OVERRIDE else next((name for name in reversed(list(applied or ())) if field in self.sets.get(name, ())), None)
         if moved is not None:
             source = OVERRIDE
         refs = self.refs(field, source)
@@ -67,7 +81,9 @@ class Table:
             entries = [{"status": "UNKNOWN", "why": "valueStatus holds no status for %s from %s (R401)" % (field, source)}]
         else:
             entries = [self.resolve(field, source, ref, hand) for ref in refs]
-        chosen = next((entry for entry in entries if entry_label(entry) in self.assumed), entries[0])
+        # Q107. The worst status of the list by worstFirst, else the first entry
+        ranked = [(self.order.index(entry_label(entry)), index) for index, entry in enumerate(entries) if entry_label(entry) in self.order]
+        chosen = entries[min(ranked)[1]] if ranked else entries[0]
         detail = {"entries": entries}
         if chosen["status"] == MEASURED and chosen.get("strength"):
             detail["strength"] = chosen["strength"]

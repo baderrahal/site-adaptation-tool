@@ -76,7 +76,8 @@ namespace SiteAdaptation.Common
             return Build(step, side, scope, plots, fields).ToString(Formatting.Indented);
         }
 
-        public static JObject Build(string step, string side, string scope, IDictionary<string, Dictionary<string, object>> plots, IReadOnlyList<ParityField> fields)
+        // tables, parity.step_file: per name a table of entries the plots point to by key, written once, such as statusFrom of the step status (R401)
+        public static JObject Build(string step, string side, string scope, IDictionary<string, Dictionary<string, object>> plots, IReadOnlyList<ParityField> fields, JObject tables = null)
         {
             var byName = fields.ToDictionary(field => field.Name);
             var fieldBlock = new JObject();
@@ -109,7 +110,73 @@ namespace SiteAdaptation.Common
                 }
                 plotBlock[plot.Key] = new JObject { ["raw"] = raw, ["written"] = written };
             }
-            return new JObject { ["format"] = Format, ["formatVersion"] = FormatVersion, ["step"] = step, ["side"] = side, ["scope"] = scope, ["fields"] = fieldBlock, ["plots"] = plotBlock };
+            var found = new JObject { ["format"] = Format, ["formatVersion"] = FormatVersion, ["step"] = step, ["side"] = side, ["scope"] = scope, ["fields"] = fieldBlock, ["plots"] = plotBlock };
+            if (tables != null)
+            {
+                found["tables"] = tables;
+            }
+            return found;
+        }
+
+        // R345, Q107. The keys of the object Build gives, written to writer in its order, each value of a plot made a token for raw and for
+        // written as it is written and let go, a token of the plot written as it is, so no tree of the whole step is made twice
+        public static void Write(JsonWriter writer, JsonConverter exact, string step, string side, string scope, IDictionary<string, Dictionary<string, object>> plots,
+            IReadOnlyList<ParityField> fields, JObject tables = null)
+        {
+            var byName = fields.ToDictionary(field => field.Name);
+            foreach (JProperty head in new JObject { ["format"] = Format, ["formatVersion"] = FormatVersion, ["step"] = step, ["side"] = side, ["scope"] = scope }.Properties())
+            {
+                head.WriteTo(writer, exact);
+            }
+            writer.WritePropertyName("fields");
+            writer.WriteStartObject();
+            foreach (ParityField field in fields)
+            {
+                writer.WritePropertyName(field.Name);
+                var item = new JObject { ["kind"] = field.Kind };
+                if (field.Decimals.HasValue)
+                {
+                    item["decimals"] = field.Decimals.Value;
+                }
+                item.WriteTo(writer, exact);
+            }
+            writer.WriteEndObject();
+            writer.WritePropertyName("plots");
+            writer.WriteStartObject();
+            foreach (KeyValuePair<string, Dictionary<string, object>> plot in plots)
+            {
+                writer.WritePropertyName(plot.Key);
+                writer.WriteStartObject();
+                foreach (bool raw in new[] { true, false })
+                {
+                    writer.WritePropertyName(raw ? "raw" : "written");
+                    writer.WriteStartObject();
+                    foreach (KeyValuePair<string, object> value in plot.Value)
+                    {
+                        writer.WritePropertyName(value.Key);
+                        if (value.Value is JToken token)
+                        {
+                            token.WriteTo(writer, exact);
+                            continue;
+                        }
+                        if (value.Value is StepValue given)
+                        {
+                            Token(raw ? given.Raw : given.Written, null).WriteTo(writer, exact);
+                            continue;
+                        }
+                        int? decimals = !raw && byName.TryGetValue(value.Key, out ParityField field) ? field.Decimals : null;
+                        Token(value.Value, decimals).WriteTo(writer, exact);
+                    }
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndObject();
+            }
+            writer.WriteEndObject();
+            if (tables != null)
+            {
+                writer.WritePropertyName("tables");
+                tables.WriteTo(writer, exact);
+            }
         }
 
         // A double as its 17 digit text, which reads back as the same double on net48 and net8.0, rounded first when decimals are
