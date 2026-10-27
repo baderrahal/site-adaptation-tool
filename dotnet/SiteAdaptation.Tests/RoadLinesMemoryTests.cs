@@ -7,7 +7,7 @@ using Xunit;
 namespace SiteAdaptation.Tests
 {
     // R355. The memory the road lines hold, measured by GC.GetTotalMemory of the whole process, so the test runs alone: in parallel with the
-    // other tests it read 4,740,504 bytes on net48 in one run of the third review of PR 55, the 4 MiB bound broken by the others (round_addin logs p4efix3_b6_flaky.txt)
+    // other tests a run of the third review of PR 55 read 4,740,504 bytes on net48, seen in the session and not saved, the 4 MiB bound broken by the others (round_addin logs p4efix3_b6_flaky.txt)
     [CollectionDefinition(Name, DisableParallelization = true)]
     public sealed class AloneCollection
     {

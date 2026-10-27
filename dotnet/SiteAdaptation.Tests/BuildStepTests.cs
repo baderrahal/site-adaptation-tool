@@ -587,6 +587,38 @@ namespace SiteAdaptation.Tests
             Assert.Single(CsvRows.Read(plots));
         }
 
+        // G4 of the fourth review of PR 55: the helpers that name their rule ids now, each with a test that names the id
+        [Fact]
+        public void R354_py_text_and_py_repr_write_a_value_as_python_str_and_repr_write_it()
+        {
+            Assert.Equal("None", SiteClusters.PyText(null));
+            Assert.Equal("a b", SiteClusters.PyText("a b"));
+            Assert.Equal("['a', 1, 1.5, True, None, {'k': \"it's\"}]", SiteClusters.PyText(new JArray("a", 1, 1.5, true, null, new JObject { ["k"] = "it's" })));
+            Assert.Equal("'a\\\\b\\n\\x00'", SiteClusters.TextRepr("a\\b\n\u0000"));
+            Assert.Equal("'1e-07'", SiteClusters.TextRepr("1e-07"));
+            Assert.Equal("1e-07", SiteClusters.PyRepr(1e-07));
+        }
+
+        [Fact]
+        public void R345_first_invalid_names_the_first_byte_of_a_broken_utf8_sequence()
+        {
+            string path = Path.Combine(folder, "labels.csv");
+            File.WriteAllBytes(path, System.Text.Encoding.ASCII.GetBytes("kind,number\nclientCode,1").Concat(new byte[] { 0xE2, 0x82, 0x0A, 0xC0, 0x80 }).ToArray());
+            Assert.Equal("labels.csv is no UTF-8 text, the byte 0xE2 at 24 is none, as Python reads it with utf-8-sig (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(path)).Message);
+            File.WriteAllBytes(path, System.Text.Encoding.ASCII.GetBytes("kind,number\nclientCode,1\n").Concat(new byte[] { 0xC0, 0x80 }).ToArray());
+            Assert.Equal("labels.csv is no UTF-8 text, the byte 0xC0 at 25 is none, as Python reads it with utf-8-sig (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(path)).Message);
+        }
+
+        [Fact]
+        public void R355_boxes_counts_the_boxes_of_the_tree_of_the_road_lines()
+        {
+            Func<int, RoadLines> lines = count => new RoadLines(new[] { (IReadOnlyList<double[]>)Enumerable.Range(0, count + 1).Select(index => new[] { index * 1.0, 0.0 }).ToList() });
+            Assert.Equal(1, lines(8).Boxes);
+            Assert.Equal(3, lines(9).Boxes);
+            Assert.True(lines(200).Boxes < 2 * lines(200).Count);
+            Assert.Equal(0, new RoadLines(new IReadOnlyList<double[]>[0]).Boxes);
+        }
+
         [Fact]
         public void R354_a_level_profile_with_no_key_rules_or_a_key_rule_a_build_cannot_give_is_refused_with_the_lines_of_python()
         {

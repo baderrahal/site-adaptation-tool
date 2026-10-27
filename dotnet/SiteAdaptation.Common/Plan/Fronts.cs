@@ -45,7 +45,7 @@ namespace SiteAdaptation.Common
         // The number of segments, 0 for no line
         public int Count { get; }
 
-        // The number of boxes of the tree, under twice the segments as each segment lies in one leaf
+        // R355. The number of boxes of the tree, under twice the segments as each segment lies in one leaf
         public int Boxes { get; private set; }
 
         private Node Build(int[] order, int start, int count)

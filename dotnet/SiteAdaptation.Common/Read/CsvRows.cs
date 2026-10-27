@@ -75,7 +75,7 @@ namespace SiteAdaptation.Common
         // csv.field_size_limit() of Python, the most characters of one field
         public const int FieldLimit = 131072;
 
-        // The place in the file of the first byte that starts no UTF-8 sequence, found by the table of well formed sequences, as the index of
+        // R345. The place in the file of the first byte that starts no UTF-8 sequence, found by the table of well formed sequences, as the index of
         // DecoderFallbackException differs between net48 and net8.0
         private static int FirstInvalid(byte[] bytes, int at)
         {

@@ -61,14 +61,14 @@ namespace SiteAdaptation.Common
             return found;
         }
 
-        // A value as Python %s writes it in a message, str() of what json.loads gives: None, a text as it is, anything else by PyRepr, so a
+        // R354, R337. A value as Python %s writes it in a message, str() of what json.loads gives: None, a text as it is, anything else by PyRepr, so a
         // list of texts is ['a', 'b'] as in Python and never [a, b] or JSON over several lines (F4 of the third review of PR 55)
         public static string PyText(JToken token)
         {
             return token != null && token.Type == JTokenType.String ? (string)token : PyRepr(token);
         }
 
-        // repr() of Python of what json.loads gives: None, True and False, a float by its shortest digits, a text in quotes, a list as
+        // R354, R337. repr() of Python of what json.loads gives: None, True and False, a float by its shortest digits, a text in quotes, a list as
         // [a, b] and an object as {'k': v}, each item by repr
         public static string PyRepr(JToken token)
         {
@@ -93,7 +93,7 @@ namespace SiteAdaptation.Common
             }
         }
 
-        // repr() of a Python text: in single quotes, or double ones when it holds a single quote and no double one, the quote, the backslash,
+        // R354, R337. repr() of a Python text: in single quotes, or double ones when it holds a single quote and no double one, the quote, the backslash,
         // a tab, a line feed and a carriage return escaped, another control character as \xNN or \uNNNN
         public static string TextRepr(string text)
         {
