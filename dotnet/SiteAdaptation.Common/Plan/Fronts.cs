@@ -45,9 +45,13 @@ namespace SiteAdaptation.Common
         // The number of segments, 0 for no line
         public int Count { get; }
 
+        // The number of boxes of the tree, under twice the segments as each segment lies in one leaf
+        public int Boxes { get; private set; }
+
         private Node Build(int[] order, int start, int count)
         {
             var node = new Node { MinX = double.PositiveInfinity, MinY = double.PositiveInfinity, MaxX = double.NegativeInfinity, MaxY = double.NegativeInfinity };
+            Boxes++;
             for (int index = start; index < start + count; index++)
             {
                 double[][] segment = segments[order[index]];
