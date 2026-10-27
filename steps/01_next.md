@@ -12,7 +12,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 
 ## 4g1, Q098, Q099 and the status of each plotted value
 
-- Status: open
+- Status: done 2026-10-27, PR 69 to 73, findings in steps/investigations/round-addin.md under 4g1
 - Answers (Bader, 2026-10-27, steps/questions-closed.md): Q098 and Q099 yes, Q100 to Q103 yes, Q104 by Bader's own answer
 - Q098 in the hand step (R357) and Q099 in the link parameters (R361, R107), in Python and C# with a test each
 - The status block of rules/roshn-makkah.json, written by audit.py with DOCUMENT of Q100 and the shares of Q101, and steps/investigations/status-review.md, Bader's review list of Q104

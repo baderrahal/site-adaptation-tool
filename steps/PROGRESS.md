@@ -1,18 +1,18 @@
-STATE WAITING, 2026-10-27 17:32, for the 4g1 session, Bader pastes steps/START.md into a fresh session
+STATE WAITING, 2026-10-27 21:59, for the 4g2 session, Bader pastes steps/START.md into a fresh session
 # Progress
 Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
 
 ## State
 
-- AUDIT-RULES done on 2026-10-27, PR 67 and 68, no logic change: steps/investigations/rule-status-audit.md, Q100 to Q103
-- 4f: Q089 the footprint clusters alone, steps 8, 10, 12 and 13 in C# with parity on 2,704 plots, 0 failures
+- 4g1 done on 2026-10-27, PR 69 to 73: Q098 and Q099 coded, the status block of R401 on 595 values, the status of each plotted value
+- Every written plot holds an assumed value. Bader's review list of Q104: steps/investigations/status-review.md, 41 rows
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
-- Phases 0a to 4f merged, PR 41 to 66: the reads of button 2, then steps 4 to 8, 10, 12 and 13 of the plan builder in C# with parity
-- Plan: steps/01_next.md. Design: docs/design/. Rules: docs/rules/index.md. Findings from 4f: steps/investigations/round-addin.md Part 2, the sheets, waits for Bader's check of Part 1
+- Phases 0a to 4g1 merged, PR 41 to 73: the reads of button 2, steps 4 to 8, 10, 12, 13 and the status of the plan builder in C# with parity
+- Plan: steps/01_next.md. Design: docs/design/. Rules: docs/rules/index.md. Findings: steps/investigations/round-addin.md. Part 2 waits for Bader's check of Part 1
 
 ## Done
 
-- AUDIT-RULES: PR 67 AI MAX v4 and the log split, PR 68 the audit. 4f: PR 61, 62 records, PR 63 Q089, PR 64 R358, R359, PR 65 R360, R361, PR 66 records
+- 4g1: PR 69 records, PR 70 Q098, Q099, PR 71 the status block, PR 72 the status in the plan, PR 73 records. AUDIT-RULES: PR 67, 68. 4f: PR 61 to 66
 - REC, PR 56 to 60: rules, design and round file in parts, questions-open.md, latent.md, CLAUDE.md to 9 KB, R400, START.md
 - ADDIN 4e, PR 55: R354 to R357, parity on net48 and net8.0 with 0 failures, the proof 0 unexplained on 7 keys
 - ADDIN 4d, PR 54: R351 to R353. 4c, PR 53: R348 to R350. Q081 and Q073, PR 52. 4b, PR 51. 4a, PR 50. 3b to 0a, PR 41 to 49
@@ -31,6 +31,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - A native2022 build with --overrides is refused on 1,346 native entries with no value (Q075)
 - For the check rows of 4g2: 44 unit plots in the steps the plan does not place, 5 DP2 plots with no hand (Q105)
+- The status step lifts the peak of a whole build to 2,909 MiB on net48 and 3,259 on net8.0, the plan to 26.2 MB from 15.5 (Q107)
 - Not in 4f: heightOffset and floor z need the site file of button 1, roadAtFrontM in the plan with R364, the past_all.csv rebuild of R385
 
 ## Bader's turn
@@ -54,6 +55,6 @@ Q106 Step values of the schedules as DOCUMENT. Q107 Status detail of values buil
 
 ## Next three steps
 
-1. ADDIN 4g1: Q098, Q099, the status block and the status of each plotted value
-2. ADDIN 4g2: R362 to R365, the walls, issues and the two Excel files, with the Assumed chip and sheet
-3. ADDIN 4h: R366 to R369, then Phase 5, the Revit run after 5c and Phase 6, as steps/01_next.md gives them
+1. ADDIN 4g2: R362 to R365, the walls, issues and the two Excel files, with the Assumed chip and sheet. Bader pastes steps/START.md
+2. ADDIN 4h: R366 to R369, one session by steps/START.md
+3. ADDIN Phase 5 with Q103, the Revit run after 5c, then Phase 6, as steps/01_next.md gives them

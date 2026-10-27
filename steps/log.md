@@ -2,6 +2,51 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round ADDIN 4g1, 2026-10-27, Q098, Q099 and the status of each plotted value
+
+Goal:
+- Q098 to Q104 as Bader answered, the status of every rule value and of each plotted value
+
+Done:
+- PR 69: Q098 to Q104 closed, 4g split into 4g1 and 4g2, the chip and sheet Assumed in 7.7 of the mock
+- PR 70: Q098 hand alone table for a cluster unit with no cluster table, Q099 linkName from RRE_ZZ_SP_RVT-Name, Q105
+- PR 71: R401 the status block by python/rule_status.py, steps/investigations/status-review.md, Q106
+- PR 72: R401 the status of each plotted value, the summary of step 15 and the parity step status, Q107. PR 73 these records
+
+Checked:
+- Gate green and the three checks passed before each merge (RAN)
+- Parity, whole project and 7 keys, net48 and net8.0: PR 70 128 of 128 lines, PR 72 144 of 144, 0 failures. The proof 0 unexplained (RAN)
+- Block: 595 values, Bader 3, MEASURED 50, DOCUMENT 273, RECOMMENDED 11, Code 16, UNKNOWN 242, equal by second_check.ps1 (RAN)
+- Plan: 105,861 values, a build with no override gives 20,026 values that differ, all with the override status (RAN)
+- Two passes of the breaker and the claim-checker per PR, REAL fixed with tests, LATENT in steps/latent.md
+
+Remains:
+- The 5 DP2 plots still get no hand (Q105). Every written plot holds an assumed value. Bader's review list: status-review.md, 41 rows
+
+Known bugs:
+- The status step lifts the peak of a whole build to 3,259 MiB and the plan to 26.2 MB from 15.5 (Q107)
+
+Next:
+- 4g2: R362 to R365. Bader pastes steps/START.md into a fresh session
+
+Your turn:
+Full text and the recommended answers by ID: steps/questions-open.md.
+
+Q001 El @ Entry rule. Q002 Ramp type by Rev 9 code. Q003 Villa mirror by block flag. Q004 Setback from the DLUS front. Q005 Front level snapped to the road. Q006 Back corners parallel.
+Q007 Generic floor on the whole face. Q008 Units, a baseplan with 01b. Q009 Typology_Rev9 for codes with no schedule. Q010 Sales Land Width. Q012 FFL split by units. Q013 CASE second letter as built.
+Q015 Yard depth under the floor top. Q016 Plots 2311 and 2312 by baseplan. Q017 IMC 2301, 2302 and IMG 544 as VD4. Q018 58 past ramps listed. Q019 Schedule FFL. Q020 Keep the north stop.
+Q021 Parallel windows over 8 GB free. Q022 TEST copies in Zone 02 ARC. Q023 Delete the empty 15a folder. Q024 Curb and ROW from the R94 edge. Q025 13 PDF refusals listed.
+Q026 Two curbs of one drawing. Q027 Two DP4 labels in one face. Q029 Location plan number per face. Q030 The 01b sales rows. Q031 Rev 9 faces, 97 differ. Q032 1.4 FFL parameter as design level.
+Q033 Lone DT3 on a VL3 face. Q036 TBD for DLUS, accommodation for sales. Q037 Corner fronts by the Orientation side. Q038 Native ramp fronts over the subgrade. Q039 Footprint test as third check.
+Q041 Rows 2290 to 2299 as overrides. Q042 Lone duplex hand by row pairs. Q051 Rev 01 values of steps and ramps. Q052 Weak rules held through their overrides. Q053 The override list, native and byHand.
+Q054 R260 of DATA-5 and R261 to R282. Q055 1.4 ELl@Entry typed off its ramp. Q056 Native models for hands, fronts, ramps only. Q057 Ramp front fall with no direction.
+Q058 Old 20221206 prototypes and their hands. Q059 NBH 03 build on native2022. Q062 Rev 9 attribute values of the probe. Q063 Whole NBH 03 image past 30 minutes.
+Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario master. Q066 No Parsons TU model of Zone 1. Q068 Project position of button 1. Q069 A remade key copy by its hashes.
+Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
+Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
+Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters. Q105 Row pair of 5 DP2 cluster units.
+Q106 Step values of the schedules as DOCUMENT. Q107 Status detail of values built from others.
+
 ## Round AUDIT-RULES, 2026-10-27, AI MAX version 4 and the status of every rule value
 
 Goal:
