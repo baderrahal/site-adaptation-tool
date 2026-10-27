@@ -388,6 +388,42 @@ def test_r271_a_plot_no_key_holds_keeps_its_front_so_the_row_of_units_is_walked_
     roads = [LineString([(-50.0, -3.0), (100.0, -3.0)])]
     # Plot 3, a cut face, is no row of past_all.csv
     rows = [{"plot": plot, "key": "imc", "typologyRev9": "DP2", "keyUnit": "DP2", "linkFile": "a.rvt", "steps": "1", "mirrored": True} for plot in ("1", "2", "4")]
-    items, clusters, front, table, _ = majority.site_context(rows, book, {"L" + number: number for number in numbers}, faces, roads, {}, [], {}, profile, settings, block)
+    items, clusters, front, table, _ = majority.site_context(rows, book, {"L" + number: number for number in numbers}, faces, roads, {}, {}, profile, settings, block)
     assert table == ["1", "2", "4"] and front["3"]["frame"] is not None and clusters == []
     assert {item["plot"]: item["factors"]["rowPairSide"] for item in items} == {"1": "left", "2": "right", "4": "right"}
+
+
+def test_r333_the_hand_candidates_hold_no_cluster_side_of_an_analysis_since_q089():
+    """R333, R354. The candidate clusterSideAnalysisOnly of Q040 left the hand candidates of majority.py, the factors of key_rules_check.py and
+    keyRules of every level profile, since with no analysis cluster it was the share of all and read as a measured answer to Q040."""
+    import key_rules_check
+    assert "clusterSideAnalysisOnly" not in majority.HAND_CANDIDATES
+    assert {"all", "clusterSide", "blockMirrorRoadSide", "rowPairSideOrBlockMirrorOpenEnd"} <= set(majority.HAND_CANDIDATES)
+    assert "clusterSideAnalysisOnly" not in Path(key_rules_check.__file__).read_text(encoding="utf-8")
+    profile = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    for name, level_profile in (profile.get("levelProfiles") or {}).items():
+        if isinstance(level_profile, dict):
+            assert "clusterSideAnalysisOnly" not in json.dumps(level_profile.get("keyRules") or {}), name
+
+
+def test_r354_the_majority_rule_measures_on_the_footprint_clusters_alone_and_no_plot_has_an_analysis_side_since_q089(capsys):
+    from shapely.geometry import LineString, box
+    settings = project_profile.load_settings()
+    profile = project_profile.load_profile(project_profile.profile_path(settings))
+    block = majority.load_block(settings)
+    numbers = ["1", "2", "3", "4"]
+    book = {number: {"locationPlanNumber": number, "typologyRev9": "DP2", "footprintMirrored": "no", "baseplanLabel": "L" + number,
+                     "footprintBlock": "Duplex_DP2" if number in ("1", "2") else ""} for number in numbers}
+    faces = {number: box(index * 12.0, 0.0, index * 12.0 + 12.0, 25.0) for index, number in enumerate(numbers)}
+    roads = [LineString([(-50.0, -3.0), (100.0, -3.0)])]
+    rows = [{"plot": plot, "key": "imc", "typologyRev9": "DP2", "keyUnit": "DP2", "linkFile": "a.rvt", "steps": "1", "mirrored": True} for plot in numbers]
+    shapes = {"Duplex_DP2": [box(2.0, 5.0, 22.0, 20.0)]}
+    items, clusters, _, _, _ = majority.site_context(rows, book, {"L" + number: number for number in numbers}, faces, roads, shapes, {}, profile, settings, block)
+    assert clusters == [{"code": "Duplex_DP2", "plots": ["1", "2"]}]
+    factors = {item["plot"]: item["factors"] for item in items}
+    assert {plot: found["clusterSide"] for plot, found in factors.items()} == {"1": "left", "2": "right", "3": "alone", "4": "alone"}
+    # R333. With no analysis cluster the candidate of Q040 is gone, as it would give the share of all
+    assert not any("clusterSideAnalysisOnly" in found for found in factors.values())
+    # The run is refused an analysis with one line before it reads any input
+    assert majority.main(["t.csv", "--plots-csv", "p.csv", "--analysis", "a.json", "--sales", "s.xlsx", "--out", "m.json", "--overrides", "o.json"]) == 2
+    assert capsys.readouterr().err.strip() == "majority: the analysis is no input of the majority rule since Q089, it measures on the footprint clusters of R236 alone (R354)"

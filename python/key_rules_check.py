@@ -9,7 +9,7 @@ under that decision, else holds.
 Every decision of the group in majority.json is held by the candidate the first method coded, whichever it is: a factor by its
 own value of that factor looked up in the table the first method learned, a formula by its own sums. The fits are made again
 here, never taken from majority.json: the link origin per code (R121), the yard outlines per unit, mirror flag and width (R135)
-and the clusters from the footprint blocks and the CAD analysis (R236). A decision whose coded candidate has no own route, or a
+and the clusters from the footprint blocks alone since Q089 (R236, R354). A decision whose coded candidate has no own route, or a
 decision with no route at all, is a failure, listed in cannotCheck and the run ends with 1, unless its field is one of
 majority.overrideKeep.laterFields, left to a later phase, listed in leftForLater.
 
@@ -514,10 +514,10 @@ def own_refit(rows, seed):
     return fits
 
 
-def own_clusters(numbers, book, faces, blocks, analysis):
-    """R236 by its own route: per plot the insert of its footprintBlock name whose outline shares the most area with its face,
-    exact by clipping, the plots that share one insert a cluster of two or more in plot order, then each cluster of the CAD
-    analysis by the location plan numbers of its labels less the plots those took, and a face with two plan numbers left out."""
+def own_clusters(numbers, book, faces, blocks):
+    """R236, R354 by its own route: per plot the insert of its footprintBlock name whose outline shares the most area with its face,
+    exact by clipping, the plots that share one insert a cluster of two or more in plot order, a face with two plan numbers left out,
+    and since Q089 no cluster of a CAD analysis."""
     by_name = defaultdict(list)
     for block in blocks:
         outline = block.get("outline")
@@ -537,26 +537,7 @@ def own_clusters(numbers, book, faces, blocks, analysis):
             groups[(row["footprintBlock"], best)].append(number)
     order = lambda plot: (0, int(plot)) if plot.isdigit() else (1, plot)
     footprint = [sorted(plots, key=order) for _, plots in sorted(groups.items()) if len(plots) > 1]
-    number_of = {row["baseplanLabel"]: number for number, row in book.items() if row.get("baseplanLabel")}
-    taken = {plot for cluster in footprint for plot in cluster}
-    rest = []
-    for cluster in analysis:
-        plots = [number_of[label] for label in cluster["plots"] if label in number_of and number_of[label] not in taken]
-        if len(plots) > 1:
-            rest.append(plots)
-    return [plots for plots in ([plot for plot in cluster if plot.isdigit()] for cluster in footprint + rest) if len(plots) > 1]
-
-
-def analysis_only(book, analysis):
-    """The clusters of the CAD analysis alone by location plan number, for clusterSideAnalysisOnly (Q040)."""
-    number_of = {row["baseplanLabel"]: number for number, row in book.items() if row.get("baseplanLabel")}
-    found = []
-    for cluster in analysis:
-        plots = [number_of[label] for label in cluster["plots"] if label in number_of]
-        plots = [plot for plot in plots if plot.isdigit()]
-        if len(plots) > 1:
-            found.append(plots)
-    return found
+    return [plots for plots in ([plot for plot in cluster if plot.isdigit()] for cluster in footprint) if len(plots) > 1]
 
 
 def parameter_verdicts(row, ctx, settings, report, factors=None):
@@ -758,17 +739,14 @@ def plot_context(args, settings, profile, report, table):
                     found["left" if along < 0 else "right"].append(other)
             sides[plot] = found
         return sides[plot]
-    # R236. The clusters made again from the footprint blocks and the analysis, never taken from majority.json
-    analysis = read_json(args.analysis)["clusters"]
+    # R236, R354. The clusters made again from the footprint blocks alone, never taken from majority.json
     site = sorted({row["plot"] for row in table} | set(units))
     # R300. The villa blocks pass the guard of the reference only drawings, an input check and no function that made the rules
     import project_profile
     blocks = project_profile.read_villa_blocks(args.footprint_blocks, project_profile.load_settings(args.settings))["blocks"]
-    clusters = own_clusters(site, book, faces, blocks, analysis)
+    clusters = own_clusters(site, book, faces, blocks)
     # A cluster gives its plots a side when every plot has a face and one has a front, the site as a build sees it (R123, R271)
     member = {plot: cluster for cluster in clusters if all(other in faces for other in cluster) and any(frame_of(other)[0] is not None for other in cluster) for plot in cluster}
-    analysis_member = {plot: cluster for cluster in analysis_only(book, analysis)
-                       if all(other in faces for other in cluster) and any(frame_of(other)[0] is not None for other in cluster) for plot in cluster}
 
     def kind(plot):
         code = (book.get(plot) or {}).get("typologyRev9") or ""
@@ -783,7 +761,7 @@ def plot_context(args, settings, profile, report, table):
             if plot:
                 read_parameters[(key, plot)] = None if (key, plot) in read_parameters else link["parameters"]
     step = settings["cadLinks"]["floorWidthStepM"]
-    ctx = {"book": book, "faces": faces, "frame": frame_of, "curbFrame": curb_frame_of, "sides": sides_of, "member": member, "analysisMember": analysis_member,
+    ctx = {"book": book, "faces": faces, "frame": frame_of, "curbFrame": curb_frame_of, "sides": sides_of, "member": member,
            "clusters": clusters, "kind": kind, "plans": plans, "step": step, "curbs": curbs, "cornerM": corner_m, "fullPlans": full, "sales": sales,
            "readParameters": {pair: found for pair, found in read_parameters.items() if found is not None}}
     # R121, R332. The link origin fitted again per code on every link of the group with a front, by the own frames
@@ -934,7 +912,6 @@ def own_factors(row, ctx, block, profile):
         seen.add(at)
         left += 1
     role = cluster_role(plot, ctx["member"][plot], ctx) if plot in ctx["member"] else None
-    analysis_role = cluster_role(plot, ctx["analysisMember"][plot], ctx) if plot in ctx["analysisMember"] else None
     counted = lambda other: ctx["kind"](other) in block["pairKinds"] and other not in ctx["member"] and other.isdigit()
     pair = own_pair_side(plot, row_sides(plot, ctx, counted), counted) if counted(plot) else None
     sale = ctx["sales"].get(plot) or {}
@@ -946,7 +923,6 @@ def own_factors(row, ctx, block, profile):
     factors.update({
         "blockMirror": mirror_block, "openEnd": open_end, "roadSide": road, "rowParity": None if not unit else ("odd" if left % 2 == 0 else "even"),
         "clusterSide": "alone" if plot not in ctx["member"] else (role or {}).get("side"),
-        "clusterSideAnalysisOnly": "alone" if plot not in ctx["analysisMember"] else (analysis_role or {}).get("side"),
         "clusterIndexParity": "alone" if plot not in ctx["member"] else None if role is None else ("odd" if role["index"] % 2 else "even"),
         "orientation": sale.get("Orientation") or None, "corner": None if streets is None else ("yes" if (number(streets) or 0) >= 2 else "no"),
         "rowPairSide": pair, "depthBand": band(depth, block["depthBands"]), "measuredBand": band(number(row.get("rampSlopePercent")), block["slopeBands"]),
@@ -1433,13 +1409,16 @@ def main(argv=None):
     parser.add_argument("--baseplan", required=True)
     parser.add_argument("--roads", required=True, help="folder with pieces.json")
     parser.add_argument("--sales", required=True)
-    parser.add_argument("--analysis", required=True, help="analysis.json of the CAD analysis, its clusters")
+    parser.add_argument("--analysis", help="R354. refused since Q089, the clusters are those of the footprint blocks alone")
     parser.add_argument("--footprint-blocks", required=True, help="blocks.json of the Building Footprint drawing")
     parser.add_argument("--key-read", nargs=2, action="append", metavar=("KEY", "FILE"), default=[])
     parser.add_argument("--key-plan", nargs=2, action="append", metavar=("KEY", "FILE"), default=[])
     parser.add_argument("--out", required=True)
     parser.add_argument("--landxml", help="R341. the landxml folder of the snapshot, the road surfaces the levels of R339 are held on")
     args = parser.parse_args(argv)
+    if args.analysis:
+        print("key_rules_check: the analysis is no input of the majority rule since Q089, it measures on the footprint clusters of R236 alone (R354)", file=sys.stderr)
+        return 2
     if Path(args.out).resolve().is_relative_to(ROOT):
         print("key_rules_check: write outside the repo", file=sys.stderr)
         return 2

@@ -43,3 +43,9 @@ Moved from the open bugs of steps/PROGRESS.md at 73b8c42 with no word changed.
 - 4f PR 1b, steps/START.md step 7: npx ccusage@latest may change its columns or how it groups sessions between two rows, and the row does not record the version
 - 4f PR 1b, steps/START.md step 7: a resumed session or a late fix PR that runs the step again adds a second row of the same session, and steps/usage.md holds no total that would count it twice
 - 4f PR 1b, steps/START.md step 7: whether ccusage counts the helpers of a session, whose transcripts lie in <session>\subagents, under the row of its session is UNKNOWN
+- 4f PR 2, python/plan_from_book.py site_clusters and dotnet/SiteAdaptation.Common/Plan/SiteClusters.cs Site: an empty footprint read, or one whose block names plots.csv does not wire, gives 0 clusters with exit 0 in both languages
+- 4f PR 2, python/plan_from_book.py, majority.py and key_rules_check.py main: --analysis "" passes, as the refusal tests the text for truth, where the C# refuses an empty input path
+- 4f PR 2, dotnet/SiteAdaptation.Common/Worker/WorkerCommands.cs Build: an input role Analysis passes the exact match on analysis
+- 4f PR 2, dotnet/SiteAdaptation.Common/Worker/WorkerCommands.cs Build: the C# refuses an analysis input only after the checks of WorkerRunner, so another fault of the same request gives another line than Python
+- 4f PR 2, dotnet/SiteAdaptation.Tests/BuildStepTests.cs R354_the_worker_build_writes_the_step_clusters_from_the_reads: the clusters step lost its test of a missing input role with the analysis role
+- 4f PR 2, python/plan_from_book.py main: a build with no --footprint-blocks is refused, where R388 takes the cadReads file config names

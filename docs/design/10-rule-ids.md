@@ -17,7 +17,7 @@ Planned rules, taken from R345 to R388, each written into docs/rules.md with its
 | R351 | The location plan: text lines, pairs, the page to site fit by the schedule fit of R181, which numbers every build, number to face, and the control point fit of R387 as its check, the marks the curves of the mark shape, the start their similarity, the refine on the faces with one label, listing apart the faces it numbers otherwise with why, as the Python does | 4d |
 | R352 | The plot table, numbered by the schedule fit of R351 | 4d |
 | R353 | The project position file written from a key read by the worker, the check points and the shared parameter ids of the keys | 4d |
-| R354 | Footprint and analysis clusters | 4e |
+| R354 | Footprint clusters, alone since Q089 | 4e, 4f |
 | R355 | Front edge and corner front | 4e |
 | R356 | Link frame | 4e |
 | R357 | Hand rules, the kind, pair kind and unit class with them | 4e |

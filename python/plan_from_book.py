@@ -14,8 +14,8 @@ No value comes from a past model. Per plot:
 The survey point, the angle and the level elevations are those the newSite job read back from the new file (R212).
 With the Rev 9 sales sheet the front of a plot with two or more road edges is the edge of the orientation rule (R226), and
 such a plot with no Orientation gets no front. The plots are those of cover.json, or every unit plot of a neighbourhood.
-With the footprint blocks the clusters are the plots that share one Building Footprint block, a duplex pair or a townhouse
-row, and a plot no such block joins to another keeps its cluster of the CAD analysis, less the plots a block took (R236).
+The clusters are the plots that share one Building Footprint block, a duplex pair or a townhouse row (R236), and since Q089
+no cluster of a CAD analysis is joined to them (R354).
 R337: a level profile with keyRules, parsons2024Rev6, builds the hands, link origin, ramp class, yard per zone, yard outline and
 link parameters by the rules measured on its answer keys and places their overrides, the Round 17 tables only for native2022.
 """
@@ -62,7 +62,9 @@ KEY_RULES = "keyRules"
 # R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R357 after the faces
 PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame")
 BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame")
-FOOTPRINT, ANALYSIS = "footprint", "analysis"
+FOOTPRINT = "footprint"
+# R354, Q089. The one line a build and its C# refuse an analysis with, as a build takes the footprint clusters alone
+ANALYSIS_REFUSED = "the analysis is no input of a build since Q089, a build takes the footprint clusters of R236 alone (R354)"
 # R337. The source of a parameter that reads the steps, the stepBands of the level profile when keyRules codes no steps
 STEP_BANDS = "levelProfileStepBands"
 sourced = plan_from_cad.sourced
@@ -104,7 +106,7 @@ def book_rows(plots_csv):
 
 def footprint_clusters(numbers, rows, faces, block_index):
     """R236. The plots of the numbers that share one Building Footprint block of the name the data book wired to them, the block
-    that shares the most of each face, two or more to a cluster, in the shape of the clusters of the CAD analysis."""
+    that shares the most of each face, two or more to a cluster, each with the block name as its code."""
     groups = {}
     for number in numbers:
         row, face = rows.get(number), faces.get(number)
@@ -121,15 +123,8 @@ def footprint_clusters(numbers, rows, faces, block_index):
     return [{"code": name, "plots": sorted(plots, key=link_summary.sort_key)} for (name, _), plots in sorted(groups.items()) if len(plots) > 1]
 
 
-def joined_clusters(footprint, analysis):
-    """R236. The footprint clusters, then each analysis cluster less the plots a footprint cluster holds, when two or more stay."""
-    taken = {plot for cluster in footprint for plot in cluster["plots"]}
-    rest = [{**cluster, "plots": [plot for plot in cluster["plots"] if plot not in taken]} for cluster in analysis]
-    return footprint + [cluster for cluster in rest if len(cluster["plots"]) > 1]
-
-
 def numbered_clusters(clusters, number_of):
-    """The CAD clusters with their plots as location plan numbers. A plot with no number leaves the cluster."""
+    """R208. Clusters given by baseplan label with their plots as location plan numbers. A plot with no number leaves the cluster."""
     found = []
     for cluster in clusters:
         plots = [number_of[label] for label in cluster["plots"] if label in number_of]
@@ -138,17 +133,15 @@ def numbered_clusters(clusters, number_of):
     return found
 
 
-def site_clusters(units, rows, faces, shapes, analysis, number_of):
+def site_clusters(units, rows, faces, shapes):
     """R236, R354. The clusters a build by keyRules takes, the site as the keys were measured on (R271): the footprint clusters over every
-    unit plot, then each cluster of the analysis less the plots a footprint cluster holds, a face of two plan numbers such as 476|477 left
-    out of its cluster as majority.py leaves it, each of two plots or more with its source, footprint or analysis."""
-    footprint = footprint_clusters(units, rows, faces, shapes) if shapes is not None else []
-    joined = joined_clusters(footprint, numbered_clusters(analysis, number_of)) if analysis is not None else footprint
+    unit plot alone since Q089, a face of two plan numbers such as 476|477 left out of its cluster as majority.py leaves it, each of two
+    plots or more with its source, footprint."""
     found = []
-    for index, cluster in enumerate(joined):
+    for cluster in footprint_clusters(units, rows, faces, shapes):
         plots = [plot for plot in cluster["plots"] if plot.isdigit()]
         if len(plots) > 1:
-            found.append({**cluster, "plots": plots, "source": FOOTPRINT if index < len(footprint) else ANALYSIS})
+            found.append({**cluster, "plots": plots, "source": FOOTPRINT})
     return found
 
 
@@ -292,74 +285,6 @@ def simple_blocks(blocks):
             raise ValueError("the footprint block %s at %s is not a simple ring, two of its edges meet, shapely would mend it by buffer(0) and the C# would not, "
                              "so the build refuses it (R354)" % (block.get("name"), block.get("insertPoint")))
     return blocks
-
-
-def analysis_clusters(path, settings, baseplan, blocks=None):
-    """R354. The clusters of the analysis.json a build joins (R236), held to what it claims to be: the analysis of the baseplan drawing
-    drawings.baseplan names, by the name in its source, a clusters list, and the reads it was made from (hold_analysis)."""
-    path = Path(path)
-    data = json.loads(path.read_text(encoding="utf-8"))
-    drawing = settings.get("drawings")["baseplan"]
-    if data.get("source") != drawing:
-        raise project_profile.ProfileError("%s is of %s, the analysis a build joins is of the baseplan drawings.baseplan names, %s (R354)" % (path.name, data.get("source"), drawing))
-    if not isinstance(data.get("clusters"), list):
-        raise project_profile.ProfileError("%s holds no clusters list, the clusters of the analysis a build joins (R354)" % path.name)
-    hold_analysis(data, path.name, baseplan, blocks)
-    return data["clusters"]
-
-
-# R354, R2. Half a unit of the 3 decimals cad_analysis writes the rotation of a block at
-ANALYSIS_TURN = 0.0005
-
-
-def hold_analysis(data, name, baseplan, blocks=None):
-    """R354, Q089. The analysis records the name of its drawing and no hash or date of it, so a build holds it to the reads it was made
-    from by what it records of them, as SiteClusters.HoldAnalysis does: summary.plotFaces is the count of the plot faces of the baseplan read
-    (cad_analysis.plot_faces), each plot of its plots list lies on the face of its label in that read with its type, cadType, and each plot
-    it gives a block name lies on a block of that name in the footprint read, the one that shares the most of its face, at its rotation within
-    ANALYSIS_TURN by the turn. An analysis of a later drawing whose labels moved puts a label on another face, type or block."""
-    summary, records = data.get("summary"), data.get("plots")
-    counted = summary.get("plotFaces") if isinstance(summary, dict) else None
-    if not isinstance(records, list) or not isinstance(counted, int) or isinstance(counted, bool):
-        raise project_profile.ProfileError("%s holds no plots list or no summary.plotFaces, which hold the analysis a build joins to the reads it was "
-                                           "made from (R354)" % name)
-    faces, count = {}, 0
-    for entry in baseplan or []:
-        if entry.get("kind") == "plot_shape" and entry.get("plot") not in (None, "") and len(entry.get("vertices") or []) >= 3:
-            faces[str(entry["plot"])] = entry
-            count += 1
-    if count != counted:
-        raise project_profile.ProfileError("%s counts %d plot faces and the baseplan read holds %d, the analysis a build joins is of the reads it was "
-                                           "made from (R354)" % (name, counted, count))
-    labels = [record.get("plot") if isinstance(record, dict) else None for record in records]
-    off = [label for label, record in zip(labels, records)
-           if not isinstance(label, str) or label not in faces or faces[label].get("type") != record.get("cadType")]
-    if off:
-        raise project_profile.ProfileError("%d plots of %s lie on no face of their label or on one of another type in the baseplan read: %s, the analysis "
-                                           "a build joins is of the reads it was made from (R354)" % (len(off), name, ", ".join(str(label) for label in off[:10])))
-    if blocks is None:
-        return
-    shapes = defaultdict(list)
-    for block in blocks:
-        if len(block.get("outline") or []) >= 3:
-            shapes[block.get("name")].append((Polygon([(point[0], point[1]) for point in block["outline"]]).buffer(0), block))
-    for label, record in zip(labels, records):
-        if not isinstance(record.get("block"), str) or not record["block"]:
-            continue
-        face = Polygon([(vertex[0], vertex[1]) for vertex in faces[label]["vertices"]]).buffer(0)
-        best, held = None, 0.0
-        for shape, block in shapes.get(record["block"], []):
-            if shape.intersects(face):
-                share = shape.intersection(face).area
-                if share > held:
-                    best, held = block, share
-        turn = record.get("rotation")
-        if best is None or (isinstance(turn, (int, float)) and not isinstance(turn, bool) and not (
-                isinstance(best.get("rotationDeg"), (int, float)) and abs((best["rotationDeg"] - turn + 180.0) % 360.0 - 180.0) <= ANALYSIS_TURN)):
-            off.append(label)
-    if off:
-        raise project_profile.ProfileError("%d plots of %s lie on no block of their name or on one of another rotation in the footprint read: %s, the "
-                                           "analysis a build joins is of the reads it was made from (R354)" % (len(off), name, ", ".join(off[:10])))
 
 
 def load_roads(files, scratch):
@@ -950,7 +875,7 @@ PROTOTYPE_ROLE = "prototype:"
 def build_inputs(args, settings, step):
     """R345, R354 to R357. The inputs a build step was made from, those of the faces and every other file the steps read, by role, and for
     the steps of PROTOTYPE_STEPS every file of the prototype folder as folder_files lists it, so parity sees the listing each side took."""
-    roles = [("rules", project_profile.profile_path(settings)), ("footprintBlocks", args.footprint_blocks), ("analysis", args.analysis), ("sales", args.sales),
+    roles = [("rules", project_profile.profile_path(settings)), ("footprintBlocks", args.footprint_blocks), ("sales", args.sales),
              ("roadPieces", Path(args.roads) / "pieces.json" if args.roads else None)]
     roles += [("roadSurface:" + name, Path(args.landxml) / (name + ".xml")) for name in getattr(args, "road_names", None) or []]
     found = step_inputs(args) + [parity.input_entry(role, path) for role, path in roles if path]
@@ -1108,7 +1033,7 @@ def main(argv=None):
     parser.add_argument("--site", required=True, help="testhost_<code>_site.json of the newSite job")
     parser.add_argument("--baseplan", help="R388. plots.json of the baseplan reader, the one cadReads of config names when left out, else a copy of its bytes")
     parser.add_argument("--roads", help="R388. folder with pieces.json of the road layout reader, the one cadReads names when left out, else a copy of its pieces.json")
-    parser.add_argument("--analysis", help="analysis.json of cad_analysis.py, its clusters are used when no footprint blocks are given")
+    parser.add_argument("--analysis", help="R354. refused since Q089, a build takes the footprint clusters alone")
     parser.add_argument("--footprint-blocks", help="R236. blocks.json of the footprint drawing, the plots that share a block are the clusters, R388 the one cadReads names or a copy of its bytes")
     parser.add_argument("--offsets", default=str(prototype_offsets.DEFAULT_PATH))
     parser.add_argument("--floors", default=str(floor_fit.DEFAULT_PATH))
@@ -1128,6 +1053,8 @@ def main(argv=None):
         if args.steps:
             for name in PARITY_STEPS:
                 parity.clear_step(args.steps, name, "python")
+        if args.analysis:
+            raise project_profile.ProfileError(ANALYSIS_REFUSED)
         settings = project_profile.load_settings(args.settings)
         profile = project_profile.load_profile(project_profile.profile_path(settings))
         block = settings.get("siteBuild")
@@ -1171,20 +1098,11 @@ def main(argv=None):
             # R355. The front of a plot is the edge nearest a curb, and corner_front.road_edges asks the nearest of no line
             raise project_profile.ProfileError("the road layout read holds no line of the curb layers analysis.roadEdgeLayers names, the front of a plot is the edge "
                                                "nearest a curb (R355)")
-        if args.footprint_blocks:
-            args.footprint_blocks = str(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks))
-        blocks = simple_blocks(footprint_check.footprint_blocks(args.footprint_blocks, settings)) if args.footprint_blocks else None
-        shapes = footprint_check.block_shapes(blocks) if blocks is not None else None
-        # R354. The analysis held to the baseplan read and the footprint read it was made from, not by the name of its drawing alone
-        analysis = analysis_clusters(args.analysis, settings, baseplan, blocks) if args.analysis else None
-        if shapes is not None:
-            clusters = footprint_clusters(cover["plots"], rows, faces, shapes)
-            if analysis is not None:
-                clusters = joined_clusters(clusters, numbered_clusters(analysis, number_of))
-        elif analysis is not None:
-            clusters = analysis
-        else:
-            raise project_profile.ProfileError("give --analysis or --footprint-blocks for the clusters")
+        if not args.footprint_blocks:
+            raise project_profile.ProfileError("give --footprint-blocks for the clusters, a build takes the footprint clusters of R236 alone (R354)")
+        args.footprint_blocks = str(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks))
+        shapes = footprint_check.block_shapes(simple_blocks(footprint_check.footprint_blocks(args.footprint_blocks, settings)))
+        clusters = footprint_clusters(cover["plots"], rows, faces, shapes)
         job = plan_from_past.load_job(settings)
         folder, _ = plan_from_past.prototype_folders(plan_from_past.input_root(settings), job)
         args.prototypes = str(folder)
@@ -1195,7 +1113,7 @@ def main(argv=None):
         if by_keys:
             units = [number for number, row in rows.items() if row.get("typologyRev9") and number in faces]
             # A face with two plan numbers, such as 476|477, is no plot of its own and leaves its cluster, as majority.py takes them
-            everything = site_clusters(units, rows, faces, shapes, analysis, number_of)
+            everything = site_clusters(units, rows, faces, shapes)
         if args.steps:
             write_build_step(args, settings, "clusters", cluster_step(cover["plots"], everything))
         # R277. Every build follows a level profile, the named one or levelProfiles.default
@@ -1208,7 +1126,7 @@ def main(argv=None):
         files = folder_files(folder, profile)
         plan = build(cover["plots"], rows, number_of, faces, roads, everything if by_keys else clusters, profile, settings,
                      prototype_offsets.plot_frame(prototype_offsets.load(args.offsets)), files, folder,
-                     site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, by_keys or bool(args.footprint_blocks), rules, trace=trace)
+                     site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, True, rules, trace=trace)
         if args.steps:
             write_build_step(args, settings, "fronts", front_step(cover["plots"], trace["front"], surfaces, trace["snap"]))
             hands = hand_step(cover["plots"], rows, rules, trace, files, profile, settings.get("majority"))

@@ -48,6 +48,12 @@ import yard_rule
 
 CANNOT = "cannot"
 ROAD = "roadLevel"
+# R354, Q089. The line the run refuses an analysis with, as it measures on the footprint clusters alone as a build takes them
+ANALYSIS_REFUSED = "the analysis is no input of the majority rule since Q089, it measures on the footprint clusters of R236 alone (R354)"
+# R274, R333. The candidates of the hand rules in the order a tie takes them, so blockMirrorOpenEnd, the rule Round 17 coded, stays ahead of
+# blockMirrorRoadSide. clusterSideAnalysisOnly of Q040 left with the analysis clusters (Q089, R354), it gave the share of all
+HAND_CANDIDATES = ("all", "blockMirror", "clusterSide", "clusterIndexParity", "openEnd", "rowParity", "orientation", "roadSide", "blockMirrorOpenEnd",
+                   "blockMirrorRoadSide", "rowPairSide", "rowPairSideOrBlockMirrorOpenEnd")
 # The first word of each decision run makes, which majority.kindLeaveOut names
 DECISIONS = ("rampSlope", "hand", "entry", "rampFront", "rampFrontFall", "height", "steps", "generic", "yard", "parameter", "linkRotation", "frontCorner",
              "linkOrigin", "rampOutline", "yardOutline", "wallBase", "wallTop", "wallLine", "frontOpen", "levelSplit", "baseHeight", "ffl")
@@ -480,15 +486,13 @@ def run(items, book, profile, block, surfaces, clusters, frame_units=None, key_p
         record(group + " rampOutline", ramps, key_rules.ramp_target, {"outlineR127": key_rules.ramp_rule(profile)}, by_group, "rampOutline",
                key_rules.corner_hold(block["outlineHoldMm"] / 1000.0), gap=key_rules.corner_gap)
         # R274. Hand, per link file, apart for villas, units in a cluster and units alone
-        # R333. The clusters of the CAD analysis alone beside the footprint clusters (Q040), the pairs of the rows of units in no cluster, the villas between cluster units.
-        # A tie goes to the candidate listed first, so blockMirrorOpenEnd, the rule Round 17 coded, stays ahead of blockMirrorRoadSide
+        # R333. The pairs of the rows of units in no cluster, the villas between cluster units. A tie goes to the candidate listed first (HAND_CANDIDATES)
         # R337. Learned and coded per file the key links, judged by the table of the file a build links, so a miss is a plot a build does not reproduce
         built_file = lambda item: (item["group"], item.get("buildFile") or item["file"])
         for unit_class in ("villa", "cluster", "alone"):
             chosen = [item for item in kept("hand") if item["row"]["mirrored"] is not None and hand_class(item) == unit_class]
             record(group + " hand " + unit_class, chosen, lambda item: item["row"]["mirrored"],
-                   {name: name for name in ("all", "blockMirror", "clusterSide", "clusterSideAnalysisOnly", "clusterIndexParity", "openEnd", "rowParity", "orientation",
-                                            "roadSide", "blockMirrorOpenEnd", "blockMirrorRoadSide", "rowPairSide", "rowPairSideOrBlockMirrorOpenEnd")}, by_file, "mirrored",
+                   {name: name for name in HAND_CANDIDATES}, by_file, "mirrored",
                    extra_by={"betweenClusters": lambda item: item.get("betweenClusters")}, judge_scope=built_file)
         if lv is None:
             # R275. El @ Entry: the road level at the front corners of a surface plus the slope of the unit times the ramp depth, as is and less a datum
@@ -682,9 +686,9 @@ def need_roads(groups, landxml, scratch):
         raise project_profile.ProfileError("the levels of %s are measured on the road a build gives, give --landxml and --scratch (R339)" % ", ".join(sorted(groups)))
 
 
-def site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block, surfaces=(), snap=0.0, extra=None):
-    """R271. The context of every row of past_all.csv from the site as a build sees it: the front of every unit plot of plots.csv
-    with a face, the clusters of the footprint blocks over every unit plot joined with those of the CAD analysis, their sides by the
+def site_context(rows, book, number_of, faces, roads, shapes, sales, profile, settings, block, surfaces=(), snap=0.0, extra=None):
+    """R271, R354. The context of every row of past_all.csv from the site as a build sees it: the front of every unit plot of plots.csv
+    with a face, the clusters of the footprint blocks over every unit plot alone since Q089, their sides by the
     faces of every plot, the side neighbours, the side road, the row pairs and the villas between cluster units. A plot no key holds,
     such as a cut face, keeps its front, so a row of units is walked through it as a build walks it (Round ADDIN 3a review).
     Returns the items, the clusters, the fronts, the plots of the table and the tree of the road edges. R339: with surfaces and snap
@@ -693,7 +697,7 @@ def site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, p
     numbers = sorted({row["plot"] for row in rows}, key=link_summary.sort_key)
     units = [number for number, data in book.items() if data.get("typologyRev9") and number in faces]
     site = sorted(set(numbers) | set(units), key=link_summary.sort_key)
-    clusters = plan_from_book.joined_clusters(plan_from_book.footprint_clusters(site, book, faces, shapes), plan_from_book.numbered_clusters(analysis, number_of))
+    clusters = plan_from_book.footprint_clusters(site, book, faces, shapes)
     # A face with two plan numbers, such as 476|477, is no plot of its own and leaves its cluster
     clusters = [cluster for cluster in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]} for cluster in clusters) if len(cluster["plots"]) > 1]
     corner = settings.get("siteBuild")["corner"]
@@ -704,14 +708,10 @@ def site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, p
     tree = STRtree(roads)
     side_roads = {number: road_side(faces.get(number), frames.get(number), tree, roads, corner["roadEdgeM"]) for number in numbers}
     items = contexts(rows, book, sales, faces, roles, neighbours, side_roads, profile, block)
-    # R333. The sides of the clusters of the CAD analysis alone (Q040), the pairs of the rows of units in no cluster and the villas between cluster units
-    analysis_only = [cluster for cluster in ({**cluster, "plots": [plot for plot in cluster["plots"] if plot.isdigit()]} for cluster in plan_from_book.numbered_clusters(analysis, number_of))
-                     if len(cluster["plots"]) > 1]
-    analysis_roles = cad_links.cluster_roles(analysis_only, 0, faces, frames)
+    # R333. The pairs of the rows of units in no cluster and the villas between cluster units
     pairs = key_rules.row_pairs(units, neighbours, lambda plot: pair_kind(plot, book, profile, block), lambda plot: plot in roles, block["pairKinds"])
     for item in items:
         factors = item["factors"]
-        factors["clusterSideAnalysisOnly"] = analysis_roles[item["plot"]]["side"] if item["plot"] in analysis_roles else "alone"
         factors["rowPairSide"] = (pairs.get(item["plot"]) or {}).get("side")
         plan_rules.joined_factors(factors)
         item["betweenClusters"] = key_rules.between_clusters(item["neighbours"], lambda plot: plot in roles)
@@ -895,7 +895,7 @@ def main(argv=None):
     parser.add_argument("--plots-csv", required=True)
     parser.add_argument("--baseplan", help="R388. plots.json of the baseplan, the one cadReads of config names when left out, else a copy of its bytes")
     parser.add_argument("--roads", help="R388. the folder of the road layout read, the one cadReads names when left out, else a copy of its pieces.json")
-    parser.add_argument("--analysis", required=True)
+    parser.add_argument("--analysis", help="R354. refused since Q089, the majority rule measures on the footprint clusters alone")
     parser.add_argument("--footprint-blocks", help="R388. blocks.json of the footprint drawing, the one cadReads names when left out, else a copy of its bytes")
     parser.add_argument("--sales", required=True)
     parser.add_argument("--model", nargs=2, action="append", metavar=("KEY", "FILE"), default=[], help="the past model file of a key, the override source")
@@ -922,6 +922,8 @@ def main(argv=None):
 
 def run_args(args):
     """R271 to R276, R330 to R335. The run of main once its arguments are read, a refusal raised as ProfileError."""
+    if getattr(args, "analysis", None):
+        raise project_profile.ProfileError(ANALYSIS_REFUSED)
     settings = project_profile.load_settings(args.settings)
     profile = project_profile.load_profile(project_profile.profile_path(settings))
     block = load_block(settings)
@@ -934,7 +936,6 @@ def run_args(args):
     sheet = settings.get("dataBook.locationPlan.sales")
     sales = corner_front.sales_rows(args.sales, sheet["sheet"], sheet["columns"]["plot"])
     roads = cad_analysis.read_road_edges(cad_units.read_input(settings, "roads", args.roads), settings.get("analysis")["roadEdgeLayers"])
-    analysis = json.loads(Path(args.analysis).read_text(encoding="utf-8"))["clusters"]
     shapes = footprint_check.block_shapes(footprint_check.footprint_blocks(cad_units.read_input(settings, "footprintBlocks", args.footprint_blocks), settings))
     # R339. The groups a build by keyRules builds have their levels held against the road that build gives at the front corners
     built_levels = level_groups(profile, block)
@@ -945,7 +946,7 @@ def run_args(args):
         road_surfaces = plan_from_book.load_roads([Path(args.landxml) / (name + ".xml") for name in level_road_names(built_levels, profile, settings)], args.scratch)
         snap = plan_rules.road_snap(settings.get("siteBuild"))
     site_extra = {}
-    items, clusters, front, numbers, tree = site_context(rows, book, number_of, faces, roads, shapes, analysis, sales, profile, settings, block, road_surfaces, snap, site_extra)
+    items, clusters, front, numbers, tree = site_context(rows, book, number_of, faces, roads, shapes, sales, profile, settings, block, road_surfaces, snap, site_extra)
     levels = {group: {"lp": plan_rules.level_profile(profile, name), "roles": site_extra["roles"], "partners": site_extra["partners"],
                       "site": {plot: {"front": found["front"], "depth": found.get("depth"), "unit": found.get("unit")} for plot, found in front.items()}}
               for group, name in built_levels.items()}

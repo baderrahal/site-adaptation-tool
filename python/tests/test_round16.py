@@ -259,12 +259,3 @@ def test_r236_plots_sharing_one_footprint_block_are_a_cluster_and_a_lone_plot_is
     clusters = plan_from_book.footprint_clusters(["1", "2", "3", "4", "5"], rows, faces, index)
 
     assert clusters == [{"code": "Row_T", "plots": ["1", "2"]}]
-
-
-def test_r236_an_analysis_cluster_keeps_the_plots_no_footprint_cluster_took():
-    footprint = [{"code": "Row_T", "plots": ["2", "3", "4", "5"]}]
-    analysis = [{"code": "M08", "plots": ["2", "3", "4", "5", "6", "7", "8", "9"]}, {"code": "M02", "plots": ["10", "11"]}, {"code": "M02", "plots": ["1", "2"]}]
-
-    joined = plan_from_book.joined_clusters(footprint, analysis)
-
-    assert [cluster["plots"] for cluster in joined] == [["2", "3", "4", "5"], ["6", "7", "8", "9"], ["10", "11"]]

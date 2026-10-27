@@ -18,6 +18,11 @@ namespace SiteAdaptation.Common
         private static void Build(WorkerContext run)
         {
             WorkerRequest request = run.Request;
+            // R354, Q089. plan_from_book.py refuses --analysis before any step, so the worker refuses a request that names one
+            if ((request.Inputs ?? new List<WorkerFile>()).Any(input => input.Role == "analysis"))
+            {
+                throw new WorkerStop(WorkerExit.Refused, BuildSteps.AnalysisRefused);
+            }
             if (request.Steps == null || request.Steps.Count == 0)
             {
                 run.Issues.Add("no step was asked, the C# build writes no plan before Phase 4h");
