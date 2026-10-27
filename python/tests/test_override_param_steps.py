@@ -199,11 +199,13 @@ def test_r361_r107_q099_a_build_writes_the_link_name_as_the_rvt_name_parameter_a
     _, made = steps_of(built)
     plan = built["plan"]
     # 1 the formula of keyRules, plot, code, steps and the facade, 4 the text of its override of the parameter
-    assert plan["1"]["linkName"] == {"value": "1 | VD2 | 1 | XX | XX", "source": "keyRules"} and made["1"]["linkName"] == "1 | VD2 | 1 | XX | XX"
-    assert plan["4"]["linkName"] == {"value": "a made up name", "source": "override"} and made["4"]["linkName"] == "a made up name"
+    # The status of R401 stands beside value and source
+    assert (plan["1"]["linkName"]["value"], plan["1"]["linkName"]["source"]) == ("1 | VD2 | 1 | XX | XX", "keyRules") and made["1"]["linkName"] == "1 | VD2 | 1 | XX | XX"
+    assert (plan["4"]["linkName"]["value"], plan["4"]["linkName"]["source"]) == ("a made up name", "override") and made["4"]["linkName"] == "a made up name"
     assert plan["5"]["linkName"]["value"] == "5 | DP2 | 4 | XX | XX"
     for number in ("1", "2", "3", "4", "5", "6"):
-        assert plan[number]["linkName"] == plan[number]["parameters"][plan_from_past.RVT_NAME_PARAMETER]
+        name, parameter = plan[number]["linkName"], plan[number]["parameters"][plan_from_past.RVT_NAME_PARAMETER]
+        assert (name["value"], name["source"], name["status"]) == (parameter["value"], parameter["source"], parameter["status"])
     # A plot the plan does not write holds the name of its parameter in the step, and 7 with no row none
     built = row_build(monkeypatch, {}, faceless=("8",))
     _, made = steps_of(built)
@@ -227,7 +229,7 @@ def test_r360_r361_the_config_names_the_fields_of_the_steps_overrides_and_parame
         "yardOutline": ("points", 3)}
     assert tuple(steps["overrides"]) == plan_from_book.OVERRIDE_FIELDS and tuple(steps["parameters"]) == plan_from_book.PARAMETER_FIELDS
     assert all(field["kind"] == "noGeometry" for field in steps["parameters"].values())
-    assert plan_from_book.BUILD_STEPS[-2:] == ("overrides", "parameters") and plan_from_book.PARITY_STEPS[-2:] == ("overrides", "parameters")
+    assert plan_from_book.BUILD_STEPS[-3:-1] == ("overrides", "parameters") and plan_from_book.PARITY_STEPS[-3:-1] == ("overrides", "parameters")
     assert {"overrides", "parameters"} <= set(plan_from_book.PROTOTYPE_STEPS)
 
 

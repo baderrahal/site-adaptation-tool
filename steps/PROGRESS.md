@@ -50,7 +50,7 @@ Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario
 Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
 Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
 Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters. Q105 Row pair of 5 DP2 cluster units.
-Q106 Step values of the schedules as DOCUMENT.
+Q106 Step values of the schedules as DOCUMENT. Q107 Status detail of values built from others.
 
 ## Next three steps
 

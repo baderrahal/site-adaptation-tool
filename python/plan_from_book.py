@@ -53,15 +53,16 @@ import override_source
 import parity
 import ramp_outline
 import surface_lookup
+import value_status
 import yard_rule
 
 ESTIMATE = "estimate"
 LOCATION = "locationPlan"
 OVERRIDE = "override"
 KEY_RULES = "keyRules"
-# R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R361 after the faces
-PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame", "levels", "floors", "overrides", "parameters")
-BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "overrides", "parameters")
+# R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R361 and R401 after the faces
+PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame", "levels", "floors", "overrides", "parameters", "status")
+BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "overrides", "parameters", "status")
 FOOTPRINT = "footprint"
 # R354, Q089. The one line a build and its C# refuse an analysis with, as a build takes the footprint clusters alone
 ANALYSIS_REFUSED = "the analysis is no input of a build since Q089, a build takes the footprint clusters of R236 alone (R354)"
@@ -495,6 +496,34 @@ def parameter_step(numbers, rows, trace, rules):
     return found
 
 
+STATUS_FIELDS = ("unit", "written", "fields")
+
+
+def status_step(numbers, rows, trace):
+    """R401. The step status of the parity harness: per plot of the scope each sourced value of the plot the plan writes by its field, with its
+    source, its status and the detail that gives it, and no field for a plot the plan does not write."""
+    built, details = trace.get("built") or {}, trace.get("statusFrom") or {}
+    found = {}
+    for number in numbers:
+        plot = built.get(number) or {"entry": {}, "written": False}
+        fields = {field: {"source": item["source"], "status": item["status"], "statusFrom": item["statusFrom"]}
+                  for field, item in value_status.fields_of(plot["entry"]).items()} if plot["written"] else None
+        if fields:
+            # R401. The plan writes each detail once in its table statusFrom, the step the detail of each value
+            for item in fields.values():
+                item["statusFrom"] = details[item["statusFrom"]]
+        found[number] = {"unit": (rows.get(number) or {}).get("typologyRev9") or None, "written": plot["written"], "fields": fields}
+    return found
+
+
+def status_line(found):
+    """R401. The line of summary_lines: the plots that hold a value of each status, those with an assumed value and the fields of those."""
+    plots = found.get("statusPlots") or {}
+    counts = ", ".join("%s %d" % (name, count) for name, count in plots.items() if name != value_status.ASSUMED)
+    return "plots by the status of their values (R401): %s, an assumed value %d, in the fields %s" % (
+        counts or "none", plots.get(value_status.ASSUMED, 0), " ".join(found.get("assumedByField") or {}) or "none")
+
+
 def one_ring_faces(plots):
     """R354. A build takes the face of a label as one ring, whose edges it walks in the order shapely gives them (face_ring), so a label of
     two rings or more, which face_shapes joins by a union whose ring order only shapely knows, is refused here and in the C# alike. A ring
@@ -881,6 +910,10 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     inputs = {"outlines": outlines, "step": floor_fit.width_step(settings), "levels": site["levels"], "floors": floors_config, "bands": outlines["rampTypes"]["bands"]}
     plots, missing, lacking, surface_count, no_level, book_check, no_road = [], [], Counter(), Counter(), [], Counter(), []
     not_measured, not_measured_plots, records, hand_rules = {}, Counter(), {}, Counter()
+    # R401. The status of each sourced value from the block status of the rules profile, the map and the block read once per build
+    statuses = value_status.table_of(settings, profile, None if rules is None else rules["name"])
+    if trace is not None:
+        trace["statusFrom"] = statuses.used
     if trace is not None:
         # R360, R361. What the build did with each override of each plot and the entry it built, written or not, for the steps overrides and parameters
         trace.update(records=records, built={})
@@ -904,7 +937,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             lacking.update(entry["key"] for entry in builder.missing)
             continue
         builder.entry["unit"] = sourced(unit, LOCATION)
-        hand, fit_unit, override = None, None, None
+        hand, fit_unit, override, table = None, None, None, None
         mine_overrides = {} if rules is None else rules["overrides"].get(number, {})
         if rules is not None:
             keo = ((profile.get("typologies") or {}).get(unit) or {}).get("keo_file")
@@ -1037,6 +1070,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         if complete:
             if records[number]:
                 builder.entry["overrides"] = records[number]
+            value_status.mark(builder.entry, statuses, table, records[number]["applied"] if records[number] else ())
             if rules is not None:
                 hand_rules[str(rule)] += 1
             plots.append(builder.entry)
@@ -1054,6 +1088,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         "prototypeFolder": str(folder),
         "floorSettings": {"types": floors_config["types"], "levels": floors_config["levels"], "plotParameter": floors_config["plotParameter"]},
         "sources": {"plots": "plots.csv of the data book snapshot", "survey": "the new site file", "pastModel": "none"},
+        # R401. The detail of the status of the values, written once by its key, which each value holds in statusFrom
+        "statusFrom": dict(sorted(statuses.used.items())),
         "summary": {
             "plots": len(numbers), "written": len(plots), "notWritten": len(numbers) - len(plots), "missingByKey": dict(sorted(lacking.items())),
             "skipped": sorted((number for number in numbers if number in skip), key=link_summary.sort_key),
@@ -1066,6 +1102,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             "floorTypes": dict(sorted(Counter(kind + ": " + floor["type"]["value"] for entry in plots for kind, floor in entry["floors"].items()).items())),
             "rules": None if rules is None else {"levelProfile": rules["name"], "overrideSource": rules["sources"], "overrideModel": rules.get("models", []),
                                                 "applied": dict(sorted(Counter(field for found in records.values() if found for field in found["applied"]).items())),
+                                                **value_status.summary(plots, (settings.get("valueStatus") or {}).get("assumed"), statuses.used),
                                                 "appliedOutsideBuild": dict(sorted(outcomes.outside.items())), "handRules": dict(sorted(hand_rules.items())),
                                                 "keyRules": key is not None, "laterFields": rules.get("laterFields") or [],
                                                 "overridesNotApplied": dict(sorted(Counter(field for found in records.values() if found for field in found["notApplied"]).items())),
@@ -1407,6 +1444,7 @@ def main(argv=None):
             write_build_step(args, settings, "overrides", override_step(cover["plots"], rows, trace, hands, files, rules, profile, floor_fit.width_step(settings)),
                              {"rotationDeg": plan_from_past.plan_rotation})
             write_build_step(args, settings, "parameters", parameter_step(cover["plots"], rows, trace, rules))
+            write_build_step(args, settings, "status", status_step(cover["plots"], rows, trace))
         plan_from_past.write_plan(out, plan)
         done = True
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:
@@ -1438,6 +1476,8 @@ def summary_lines(summary, name, named):
         lines.append("built by keyRules of %s (R337)" % name)
     lines.append("overrides applied on written plots %s, of plots outside the build that moved their cluster %s (R280, R337)"
                  % (applied or "none", rules.get("appliedOutsideBuild") or "none"))
+    if "statusPlots" in rules:
+        lines.append(status_line(rules))
     for field, whys in (rules.get("overridesNotAppliedWhy") or {}).items():
         for why, found in whys.items():
             lines.append("override %s left on %d plots, %s, such as %s" % (field, found["plots"], why, " ".join(found["first"][:5])))
