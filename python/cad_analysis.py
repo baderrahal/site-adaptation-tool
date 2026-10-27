@@ -847,7 +847,7 @@ def read_shifts(path):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Clusters of duplex and townhouse plots from the baseplan faces, then the coded checks of rules/README.md and docs/rules.md.")
+    parser = argparse.ArgumentParser(description="Clusters of duplex and townhouse plots from the baseplan faces, then the coded checks of rules/README.md and docs/rules/.")
     parser.add_argument("out_dir", help="where analysis.json is written")
     parser.add_argument("--cad", required=True, help="folder with plots.json from the CAD reader, run on the baseplan")
     parser.add_argument("--blocks", help="folder with blocks.json from the CAD reader, run on the villa block drawing")

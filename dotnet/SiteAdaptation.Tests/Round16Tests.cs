@@ -43,7 +43,7 @@ namespace SiteAdaptation.Tests
         private static string RepoText(params string[] parts)
         {
             string folder = AppContext.BaseDirectory;
-            while (folder != null && !File.Exists(Path.Combine(folder, "docs", "rules.md")))
+            while (folder != null && !File.Exists(Path.Combine(folder, "docs", "rules", "index.md")))
             {
                 folder = Path.GetDirectoryName(folder);
             }

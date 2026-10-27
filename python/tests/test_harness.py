@@ -65,7 +65,7 @@ def test_r18_settings_register_the_hook_for_bash_and_powershell():
 def test_r26_claude_md_is_under_200_lines_and_points_to_the_rules():
     text = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
     assert len(text.splitlines()) < 200
-    assert "docs/rules.md" in text
+    assert "docs/rules/" in text
 
 
 def test_r26_progress_file_is_at_most_60_lines_with_the_five_parts():
