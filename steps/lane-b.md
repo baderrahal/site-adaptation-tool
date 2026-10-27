@@ -20,7 +20,7 @@ Not done on 28 Oct 2026 in L0. Two conditions fail: PR 75 "Round ADDIN 4g2 PR 2"
 
 Waiting for the fold in, in one records commit:
 
-1. steps/01_next.md: an entry for L0 marked done "Lane B, laptop", and the phase changes below. The Phase 4 next step stays as it is.
+1. steps/01_next.md: an entry for L0, and each of 5a and 5b done by then, marked done "Lane B, laptop", and the phase changes below. The Phase 4 next step stays as it is. Without this a START.md session on the personal PC finds 5a open once 4h is done and builds it again.
 2. steps/log.md: one entry within the caps for the Lane B phases done.
 3. steps/PROGRESS.md: the state and the next three steps.
 4. steps/usage.md: the rows of the Usage section below.
@@ -49,8 +49,9 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - J3. Q103 moves from 5a to 5c.
 - J4. The keys of light mode in config/project.json: the Villa mode default, the height of the solid and the limit of the base against the footprint (D2, QL4, QL5).
 - J5. The 10 paths under C:\Users\bader, 9 in config/project.json and 1 in config/road_surfaces.json (QL2, steps/laptop-check.md item 14).
-- J6. The rule id of light mode (D2). Bader gives it "at fold in", and docs/rules/ is outside Lane B while Phase 4 is open, so 5c writes it in docs/rules/ with the code and a test that names it, and names it in docs/design/11-light-mode.md. An id from R400 up must be a written rule with its test, and section 10 holds the planned ids R345 to R388 only, so the id cannot come in a records commit alone.
-- J7. D3 keeps a window lock per copy, while R200 holds one lock siteBuild.lock for every window and refuses a window while a process of siteBuild.windowProcesses runs. Parallel windows need R200 changed before 6b. The peak per window is measured on one NBH, 6b opens whole zones, so the first 6b window measures its own peak before a second opens.
+- J6. The rule id of light mode (D2). Bader gives it "at fold in", and docs/rules/ is outside Lane B while Phase 4 is open, so 5c writes it in docs/rules/ with the code and a test that names it, and names it in docs/design/11-light-mode.md. An id from R400 up must be a written rule with its test, as R401 is, and the planned ids of section 10 are R345 to R388, so the id cannot come in a records commit alone.
+- J8. The code paths that take Documents\SiteAdaptation from the Windows Documents folder: dotnet/SiteAdaptation.TestHost/Run-TestHost.ps1, Run-Parallel.ps1, JobSession.cs and its job guard, dotnet/SiteAdaptation.Placer/PlaceFromPlan.cs and PlaceFromPlanCommand.cs, and the default work folder of docs/design/06-settings.md. Each reads the root of QL2.
+- J7. D3 keeps a window lock per copy, while R200 holds one lock siteBuild.lock for every window and, while a process of siteBuild.windowProcesses runs, logs a wait and looks again after waitMinutes. Parallel windows need R200 changed before 6b. The peak per window is measured on one NBH, 6b opens whole zones, so the first 6b window measures its own peak before a second opens.
 
 ## Latent findings
 
@@ -61,12 +62,12 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 Lane B numbers its questions QL1 upward, CHOSEN by Code: both lanes would take the same next free Q id. At the fold in each takes the next free Q id, item 5 above.
 
 QL1. Inputs on the laptop. C:\02-Site Adaptation is not on the laptop (steps/laptop-check.md item 12).
-- Recommended: copy C:\02-Site Adaptation from the personal PC to the same path on the laptop, steps 1 and 2 of the Bader section of steps/laptop-check.md. inputRoot, the key copies and key_copies.json then hold as they are, and R312 checks the copies.
+- Recommended: copy C:\02-Site Adaptation from the personal PC to the same path on the laptop and compare the counts, steps 1 to 4 of the Bader section of steps/laptop-check.md. inputRoot, the key copies and key_copies.json then hold as they are, and R312 checks the copies.
 - Other: point inputRoot at C:\10- ROSHEN MECCA. It has no Revit 2024 key copies, no key_copies.json and lacks 4 named files (item 13).
 
-QL2. The 10 paths of config under C:\Users\bader (item 14).
-- Recommended: one file per machine outside git, %APPDATA%\SiteAdaptation\machine.json, gives the root that stands for C:\Users\bader\Documents\SiteAdaptation, read before config. 5a reads it for the work folder and the window lock, 5c joins it to the settings of R367 for the rest. On the laptop the root is C:\Users\p003653k\Documents\SiteAdaptation.
-- Other: config gets the laptop paths, and every switch of machine edits it.
+QL2. The work root of the laptop. Config names 10 paths under C:\Users\bader (item 14), and the test host, the job guard, the placer and the default work folder of section 6 take Documents\SiteAdaptation from the Windows Documents folder instead. On the laptop that folder is redirected to C:\Users\p003653k\OneDrive - Parsons Corp\Documents, which syncs to the company cloud, so the two would split, and plans with real coordinates would sync.
+- Recommended: one file per machine outside git, %APPDATA%\SiteAdaptation\machine.json, gives one root that stands for C:\Users\bader\Documents\SiteAdaptation and for Documents\SiteAdaptation, read before config by the C# and the Python side. On the laptop the root is C:\Users\p003653k\Documents\SiteAdaptation, outside OneDrive. 5a codes it in the add-in shell, 5c joins it for the rest (J5, J8). With it the R343 check of item 22 finds siteBuild.folder and runs on the laptop.
+- Other: Lane B works under the OneDrive Documents folder and accepts the sync.
 
 QL3. The split of U1 to U7 in steps/decisions-2026-10-28.md is CHOSEN by Code.
 - Recommended: keep it.

@@ -19,12 +19,12 @@ Lane B L0, 28 Oct 2026, on Bader's company laptop (Windows 11 Enterprise, user p
 | 11 | Write access to %APPDATA%\Autodesk\Revit\Addins\2024 | PASS | A test file written and deleted. The folder holds RcrcGreen.addin already | RAN |
 | 12 | C:\02-Site Adaptation | FAIL | Not on this laptop. config/project.json names it as inputRoot | RAN Test-Path |
 | 13 | C:\10- ROSHEN MECCA, the folder Bader named | FAIL as inputRoot | Local, not cloud only. 2,725 files, 21.4 GiB in 5 folders and 2 PDF files. 17 of the 21 file names config/project.json gives are there in another layout, 4 are missing, see below | RAN |
-| 14 | Paths of config for this user | FAIL | 10 paths are under C:\Users\bader\Documents\SiteAdaptation, 9 in config/project.json (the keys prototypes, output, r06Outlines, planOutput, folders, folder of siteBuild, lock, dataBook, file) and 1 in config/road_surfaces.json (folder). C:\Users\bader does not exist here, question QL2 | RAN Test-Path and a grep of config |
+| 14 | Paths of config for this user | FAIL | 10 paths are under C:\Users\bader\Documents\SiteAdaptation, 9 in config/project.json (the keys prototypes, output, r06Outlines, planOutput, folders, folder of siteBuild, lock, dataBook, file) and 1 in config/road_surfaces.json (folder). C:\Users\bader does not exist here. The test host, the job guard and the placer take Documents\SiteAdaptation from the Windows Documents folder, which on this laptop is C:\Users\p003653k\OneDrive - Parsons Corp\Documents, question QL2 | RAN Test-Path, a grep of config and [Environment]::GetFolderPath('MyDocuments') |
 | 15 | Revit 2024 template | PASS | C:\ProgramData\Autodesk\RVT 2024\Templates\English\DefaultMetric.rte | RAN Test-Path |
 | 16 | RAM | PASS | 63.7 GiB total, 40.0 GiB free when measured | RAN Win32_ComputerSystem, Win32_OperatingSystem |
 | 17 | CPU | PASS | 13th Gen Intel Core i7-13850HX, 20 cores, 28 logical | RAN Win32_Processor |
 | 18 | Graphics chips | PASS | NVIDIA RTX 2000 Ada Generation Laptop GPU, driver 32.0.15.9671. Intel UHD Graphics, driver 32.0.101.7088 | RAN Win32_VideoController |
-| 19 | The chip Revit.exe uses | UNKNOWN | The Revit 2024 Journals folder holds 26 files. 19 of them name the display mode, every one DirectX Hardware, and none names the card in use. The per app choice is in the registry, which this tool never reads. Measured at the first Revit run of 5a from the GPU Engine counters of the Revit.exe process | RAN, the journals |
+| 19 | The chip Revit.exe uses | PASS, by the journals | The NVIDIA RTX 2000 Ada. The Revit 2024 Journals folder holds 26 files, and each of the 19 that record a session gives VIDEO CARD ENVIRONMENT CARD="NVIDIA RTX 2000 Ada Generation Laptop GPU", DX11, driver 32.0.15.9671, with Current Mode DirectX Hardware. The first Revit run of 5a checks it again from the GPU Engine counters of the Revit.exe process | RAN, a grep of the journals |
 | 20 | npx ccusage | FAIL | Node and npx not installed, so the usage row of L0 is UNKNOWN | RAN Get-Command |
 | 21 | Hooks live | PASS | guard-main.sh blocked `git push --dry-run origin HEAD:main`, guard-registry.sh blocked `reg /?` | RAN |
 | 22 | Gate on main, pytest | PASS | 1,833 passed, 32 skipped, 203 s. Among the skipped is the R343 check that the records hold no coordinate or level of the round outputs, since it needs siteBuild.folder under C:\Users\bader (item 14). It is skipped on the Linux CI too | RAN on the branch before any edit, equal to main 935177f |
@@ -56,8 +56,8 @@ Only Bader can do these. In this order.
 ```powershell
 'C:\02-Site Adaptation', 'C:\Users\bader\Documents\SiteAdaptation' | ForEach-Object {
   $root = $_
-  Get-ChildItem $root | ForEach-Object {
-    $s = Get-ChildItem $_.FullName -Recurse -File -Force | Measure-Object Length -Sum
+  Get-ChildItem -LiteralPath $root -Force | ForEach-Object {
+    $s = Get-ChildItem -LiteralPath $_.FullName -Recurse -File -Force | Measure-Object Length -Sum
     "{0}\{1} | {2} files | {3} bytes" -f $root, $_.Name, $s.Count, $s.Sum
   }
 }
@@ -69,7 +69,7 @@ Look for: one line per folder and per loose file, Revit All Zones among them.
 
 Look for: the folder on the laptop.
 
-3. Copy the whole folder C:\Users\bader\Documents\SiteAdaptation from the personal PC to C:\Users\p003653k\Documents\SiteAdaptation on the laptop. It holds the data book, the position file and the reads of Round ADDIN that config/project.json points to (item 14, QL2).
+3. Copy the whole folder C:\Users\bader\Documents\SiteAdaptation from the personal PC to C:\Users\p003653k\Documents\SiteAdaptation on the laptop. It holds the data book, the position file and the reads of Round ADDIN that config/project.json points to (item 14, QL2). Copy it while no Revit window runs on the personal PC, since it holds window.lock. The target is outside OneDrive on purpose, QL2.
 
 Look for: the folder on the laptop.
 
@@ -78,8 +78,8 @@ Look for: the folder on the laptop.
 ```powershell
 'C:\02-Site Adaptation', 'C:\Users\p003653k\Documents\SiteAdaptation' | ForEach-Object {
   $root = $_
-  Get-ChildItem $root | ForEach-Object {
-    $s = Get-ChildItem $_.FullName -Recurse -File -Force | Measure-Object Length -Sum
+  Get-ChildItem -LiteralPath $root -Force | ForEach-Object {
+    $s = Get-ChildItem -LiteralPath $_.FullName -Recurse -File -Force | Measure-Object Length -Sum
     "{0}\{1} | {2} files | {3} bytes" -f $root, $_.Name, $s.Count, $s.Sum
   }
 }
