@@ -148,6 +148,15 @@ def test_r401_a_question_id_inside_a_sentence_starts_no_question(tmp_path):
     assert entries(root)["config/project.json"]["analysis.endShare"]["question"] == "Q003"
 
 
+def test_r401_a_question_of_the_new_range_is_open_and_the_audit_questions_are_no_evidence(tmp_path):
+    root = make_repo(tmp_path, open_text="Q105. Other: is analysis.otherShare right.\nQ101. Ties: analysis.toleranceM.\n")
+    (root / "steps" / "PROGRESS.md").write_text("# Progress\n\n## Bader's turn\n\nQ105 Other. Q101 Ties.\n\n## Next\n", encoding="utf-8")
+    rule_status.write(root)
+    config = entries(root)["config/project.json"]
+    assert config["analysis.otherShare"] == {"status": "RECOMMENDED", "question": "Q105", "where": "Q105"}
+    assert config["analysis.toleranceM"]["status"] == "UNKNOWN"
+
+
 def test_r401_a_block_that_would_change_a_value_is_refused():
     assert rule_status.put_block('{\n  "a": 1\n}\n', {"note": "n"}) == '{\n  "a": 1,\n  "status": {\n    "note": "n"\n  }\n}\n'
     # A value named status inside another object, written at the indent of the top level, is never taken for the block

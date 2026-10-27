@@ -140,8 +140,8 @@ class Audit:
 
     def _questions(self):
         progress = (self.root / "steps/PROGRESS.md").read_text(encoding="utf-8")
-        # Q100 upward were asked by the audit or after it, so an open one is not evidence of it
-        self.open = {q for q in Q.findall(progress.split("## Bader's turn")[1].split("## Next")[0]) if q < "Q100"}
+        # Every question of Bader's turn is open, Q105 upward as well, but for the five the audit asked of itself
+        self.open = {q for q in Q.findall(progress.split("## Bader's turn")[1].split("## Next")[0])} - AUDIT_QUESTIONS
         closed_text = (self.root / "steps/questions-closed.md").read_text(encoding="utf-8")
         self.closed_rows = {m.group(1): m.group(0) for m in re.finditer(r"^\| (Q\d{3}) \|[^\n]*", closed_text, re.M)}
         self.closed = set(self.closed_rows) - AUDIT_QUESTIONS
@@ -155,10 +155,10 @@ class Audit:
                 if m and m.group(1) in self.open:
                     for rid in RID.findall(piece):
                         self.open_by_rule[rid].add(m.group(1))
-        # Each question by its text, the short lines hold several, so a line is cut where "Qnnn. " starts a sentence. A question of Q001 to Q099 whose
-        # text moved to the closed file with an answer of Bader names its values as it did when open, now as a choice of Bader
+        # Each question by its text, the short lines hold several, so a line is cut where "Qnnn. " starts a sentence. A question whose text
+        # moved to the closed file with an answer of Bader names its values as it did when open, now as a choice of Bader
         self.question_pieces = []
-        for text, wanted in ((open_text, self.open), (closed_text, {q for q in self.closed_bader if q < "Q100"})):
+        for text, wanted in ((open_text, self.open), (closed_text, self.closed_bader)):
             for line in text.splitlines():
                 for piece in re.split(QUESTION_START, line):
                     m = re.match(r"(Q\d{3})\. ", piece)
