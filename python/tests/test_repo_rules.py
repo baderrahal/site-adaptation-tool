@@ -15,12 +15,26 @@ EMOJI = re.compile("[" + chr(0x1F300) + "-" + chr(0x1FAFF) + chr(0x2600) + "-" +
 ATTRIBUTION = re.compile(r"co-authored-by\s*:|generated with \[?claude", re.IGNORECASE)
 
 
-def repo_text_files():
-    for path in ROOT.rglob("*"):
-        if not path.is_file() or any(part in SKIP_DIRS for part in path.relative_to(ROOT).parts):
+# A helper agent works in its own checkout under .claude/worktrees, a copy of another branch, not a file of this one
+HELPER_WORKTREES = (".claude", "worktrees")
+
+
+def repo_text_files(root=ROOT):
+    for path in root.rglob("*"):
+        parts = path.relative_to(root).parts
+        if not path.is_file() or any(part in SKIP_DIRS for part in parts) or parts[:2] == HELPER_WORKTREES:
             continue
         if path.suffix in TEXT_SUFFIXES or path.name in {".gitignore", ".gitattributes"}:
             yield path
+
+
+def test_r15_a_helper_worktree_is_not_scanned_as_a_file_of_the_repo(tmp_path):
+    kept = tmp_path / "steps" / "a.md"
+    copy = tmp_path / ".claude" / "worktrees" / "agent-1" / "steps" / "a.md"
+    for path in (kept, copy):
+        path.parent.mkdir(parents=True)
+        path.write_text("text", encoding="utf-8")
+    assert list(repo_text_files(tmp_path)) == [kept]
 
 
 def test_r14_no_em_dash_and_no_emoji_in_any_file():

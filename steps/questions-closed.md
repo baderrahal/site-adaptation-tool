@@ -40,10 +40,10 @@ Round 17 gave the IDs. Each open question of the DATA-4 list kept its number as 
 | Q092 | Settings and keyRules values unchecked | Closed by Q095 as a known limit, no fix. Its full text is in steps/latent.md | 2026-10-27, Round REC |
 | Q093 | CSV reads that still differ | Closed by Q095 as a known limit, no fix. Its full text is in steps/latent.md | 2026-10-27, Round REC |
 | Q094 | Scope and tolerance refusals | Closed by Q095 as a known limit, no fix. Its full text is in steps/latent.md | 2026-10-27, Round REC |
-| Q098 | Hand of 5 DP2 plots in DP4 clusters | Yes (Bader): a cluster unit whose prototype has no table of hand cluster takes the table of hand alone. Done in Round ADDIN 4g1 PR 2 | 2026-10-27, Bader |
-| Q099 | Link Name of a build | Yes (Bader): a build writes linkName from the RVT-Name text keyRules gives. Done in Round ADDIN 4g1 PR 2 | 2026-10-27, Bader |
-| Q100 | Status of values from client documents | Yes (Bader): a sixth status DOCUMENT, with the document and its page or sheet. Done in Round ADDIN 4g1 PR 3 | 2026-10-27, Bader |
-| Q101 | Level profile fields with no share | Yes (Bader): tie each of the 15 level profile fields outside keyRules to its keyRules share. Done in Round ADDIN 4g1 PR 3 | 2026-10-27, Bader |
+| Q098 | Hand of 5 DP2 plots in DP4 clusters | Yes (Bader): a cluster unit whose prototype has no table of hand cluster takes the table of hand alone. To be done in Round ADDIN 4g1 PR 2 | 2026-10-27, Bader |
+| Q099 | Link Name of a build | Yes (Bader): a build writes linkName from the RVT-Name text keyRules gives. To be done in Round ADDIN 4g1 PR 2 | 2026-10-27, Bader |
+| Q100 | Status of values from client documents | Yes (Bader): a sixth status DOCUMENT, with the document and its page or sheet. To be done in Round ADDIN 4g1 PR 3 | 2026-10-27, Bader |
+| Q101 | Level profile fields with no share | Yes (Bader): tie each of the 15 level profile fields outside keyRules to its keyRules share. To be done in Round ADDIN 4g1 PR 3 | 2026-10-27, Bader |
 | Q102 | Show the assumed values per plot | Yes (Bader): the change of section 10 of steps/investigations/rule-status-audit.md, in 4g. The status block and the status in the plan in 4g1, the chip Assumed and the sheet Assumed in 4g2 with R363 and R365 | 2026-10-27, Bader |
 | Q103 | Design values in code, not in config | Yes (Bader): move the 19 design values a build or the add-in uses into config/project.json with a rule id, in Phase 5, added to 5a of steps/01_next.md | 2026-10-27, Bader |
 | Q104 | Audit statuses rest on text matching | Bader's own answer: Code fills the status block from audit.py, with DOCUMENT of Q100 and the shares of Q101. Bader reviews only the values marked CHOSEN by Code, and those still UNKNOWN that change the position or level of a plot, from one table Code writes for him, steps/investigations/status-review.md | 2026-10-27, Bader |
