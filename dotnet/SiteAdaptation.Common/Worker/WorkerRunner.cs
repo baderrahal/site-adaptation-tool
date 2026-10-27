@@ -206,7 +206,8 @@ namespace SiteAdaptation.Common
                 {
                     throw new WorkerStop(WorkerExit.Refused, "the step " + step + " is a step of the command " + StepCommand[step] + ", the request is " + request.Command);
                 }
-                foreach (string role in Steps[step].Where(role => !Holds(inputs, role)))
+                // R345. A plot list needs no labels.csv, as a cover file of plan_from_book.py (H1 of the fifth review of PR 55)
+                foreach (string role in Steps[step].Where(role => !Holds(inputs, role) && (role != PlotScope.LabelsRole || PlotScope.NeedsLabels(request.Scope))))
                 {
                     throw new WorkerStop(WorkerExit.Refused, "the step " + step + " needs the input " + role + ", the request names none");
                 }

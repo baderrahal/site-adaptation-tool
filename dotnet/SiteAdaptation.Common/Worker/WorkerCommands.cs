@@ -43,7 +43,7 @@ namespace SiteAdaptation.Common
         private static void Faces(WorkerContext run, AddinConfig config)
         {
             WorkerRequest request = run.Request;
-            List<string> numbers = PlotScope.Numbers(request.Scope, CsvRows.Read(run.Input("labels"), CsvRows.LabelsOf(request.Scope)));
+            List<string> numbers = PlotScope.Of(run);
             string role = request.Inputs.Any(input => input.Role == "baseplanRead") ? "baseplanRead" : "baseplanPlots";
             if (request.Inputs.Count(input => input.Role == "baseplanRead" || input.Role == "baseplanPlots") > 1)
             {

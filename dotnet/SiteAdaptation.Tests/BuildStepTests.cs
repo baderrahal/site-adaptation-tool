@@ -578,12 +578,12 @@ namespace SiteAdaptation.Tests
             foreach (byte[] content in new[] { new byte[0], new byte[] { 0xEF, 0xBB, 0xBF } })
             {
                 File.WriteAllBytes(labels, content);
-                Assert.Equal("labels.csv has no column kind, number in its header (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(labels, "kind", "number")).Message);
+                Assert.Equal("labels.csv has no column kind, number in its header (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(labels, CsvRows.LabelsColumns)).Message);
             }
             File.WriteAllText(labels, "kind,number,nbh\n");
-            Assert.Equal("labels.csv holds no row under its header (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(labels, "kind", "number")).Message);
+            Assert.Equal("labels.csv holds no row under its header (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(labels, CsvRows.LabelsColumns)).Message);
             File.WriteAllBytes(plots, new byte[] { 0xEF, 0xBB, 0xBF, 0xEF, 0xBB, 0xBF }.Concat(System.Text.Encoding.ASCII.GetBytes("locationPlanNumber,baseplanLabel\n1,101\n")).ToArray());
-            Assert.Equal("plots.csv has no column locationPlanNumber in its header (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(plots, "locationPlanNumber", "baseplanLabel")).Message);
+            Assert.Equal("plots.csv has no column locationPlanNumber in its header (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(plots, CsvRows.PlotsColumns)).Message);
             Assert.Single(CsvRows.Read(plots));
         }
 

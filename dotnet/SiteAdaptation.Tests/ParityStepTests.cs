@@ -203,6 +203,94 @@ namespace SiteAdaptation.Tests
             Assert.False(rows[2].ContainsKey("c"));
         }
 
+        // H1 of the fifth review of PR 55, test_build_steps.SCOPE_CASES: a scope that numbers no plot and a row of kind clientCode with no
+        // number refused with the line of Python, where a build of no plot was reported done and the row was skipped
+        [Fact]
+        public void R345_a_scope_that_numbers_no_plot_or_a_client_code_row_with_no_number_is_refused_with_the_line_of_python()
+        {
+            string none = "the scope {0} numbers no plot, a build or a read of no plot is refused (R345)";
+            string noNumber = "a row of kind clientCode of the labels holds no number, row {0} of the rows read (R345)";
+            var project = new WorkerScope { Kind = "project" };
+            var cases = new[]
+            {
+                Tuple.Create("kind,number,nbh\nlandUse,1,012\nclientCode,2,012\n", new WorkerScope { Kind = "nbh", Nbh = "013" }, string.Format(none, "nbh=013")),
+                Tuple.Create("kind,number,nbh\nlandUse,1,012\n", project, string.Format(none, "project")),
+                Tuple.Create("kind,number,nbh\n\"\"\n", project, string.Format(none, "project")),
+                Tuple.Create("kind,number,nbh\nclientCode,1,012\nclientCode\n", project, string.Format(noNumber, 2)),
+                Tuple.Create("kind,number,nbh\nclientCode,1,012\nclientCode,,012\n", new WorkerScope { Kind = "nbh", Nbh = "012" }, string.Format(noNumber, 2)),
+            };
+            string labels = Path.Combine(folder, "labels.csv");
+            foreach (Tuple<string, WorkerScope, string> item in cases)
+            {
+                File.WriteAllText(labels, item.Item1);
+                Assert.Equal(item.Item3, Assert.Throws<InvalidDataException>(() => PlotScope.Numbers(item.Item2, CsvRows.Read(labels, CsvRows.LabelsOf(item.Item2)))).Message);
+            }
+            var empty = new WorkerScope { Kind = "plots", Plots = new List<string>() };
+            Assert.Equal(string.Format(none, "plots="), Assert.Throws<InvalidDataException>(() => PlotScope.Numbers(empty, new List<Dictionary<string, string>>())).Message);
+        }
+
+        // H1 of the fifth review of PR 55: a line of one empty quoted field is a row of csv, which CsvRows dropped as an empty line
+        [Fact]
+        public void R345_a_line_of_one_empty_quoted_field_is_a_row_and_an_empty_line_is_none()
+        {
+            List<Dictionary<string, string>> rows = CsvRows.Parse("kind,number\n\"\"\n\nclientCode,1\n");
+            Assert.Equal(2, rows.Count);
+            Assert.Equal("", rows[0]["kind"]);
+            Assert.False(rows[0].ContainsKey("number"));
+            Assert.Equal("1", rows[1]["number"]);
+            Assert.Single(CsvRows.Parse("kind,number\n\"\"\n"));
+            string labels = Path.Combine(folder, "labels.csv");
+            File.WriteAllText(labels, "kind,number\n\n");
+            Assert.Equal("labels.csv holds no row under its header (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(labels, CsvRows.LabelsColumns)).Message);
+        }
+
+        // H1 of the fifth review of PR 55: the columns of labels.csv each scope reads, nbh besides for a neighbourhood, refused by its line
+        [Fact]
+        public void R345_labels_of_names_the_columns_a_scope_reads_and_a_neighbourhood_needs_the_column_nbh()
+        {
+            var project = new WorkerScope { Kind = "project" };
+            var nbh = new WorkerScope { Kind = "nbh", Nbh = "012" };
+            Assert.Equal(CsvRows.LabelsColumns, CsvRows.LabelsOf(project));
+            Assert.Equal(CsvRows.LabelsColumns.Concat(new[] { "nbh" }), CsvRows.LabelsOf(nbh));
+            string labels = Path.Combine(folder, "labels.csv");
+            File.WriteAllText(labels, "kind,number\nclientCode,1\n");
+            Assert.Equal("labels.csv has no column nbh in its header (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(labels, CsvRows.LabelsOf(nbh))).Message);
+            Assert.Equal(new[] { "1" }, PlotScope.Numbers(project, CsvRows.Read(labels, CsvRows.LabelsOf(project))));
+        }
+
+        // H1 of the fifth review of PR 55: a plot list needs no labels.csv, as plan_from_book.py never reads --labels for a cover file, and the
+        // project and a neighbourhood do, as it needs --labels for all and nbh=<NBH>
+        [Fact]
+        public void R345_a_plot_list_needs_no_labels_as_a_cover_file_of_python_and_the_project_does()
+        {
+            string plots = Path.Combine(folder, "plots.json");
+            File.WriteAllText(plots, new JObject { ["units"] = "Meters", ["plots"] = Plots() }.ToString());
+            string data = Path.Combine(folder, "plots.csv");
+            File.WriteAllText(data, PlotsCsv);
+            string config = WorkerRunTests.RepoConfig();
+            var request = new WorkerRequest
+            {
+                FormatVersion = 1, RunId = "q1", Command = "build", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" },
+                Inputs = new List<WorkerFile>
+                {
+                    new WorkerFile { Role = "config", Path = config, Sha256 = FileHash.Sha256(config) },
+                    new WorkerFile { Role = "baseplanPlots", Path = plots, Sha256 = FileHash.Sha256(plots) },
+                    new WorkerFile { Role = "plotsCsv", Path = data, Sha256 = FileHash.Sha256(data) },
+                },
+                Scope = new WorkerScope { Kind = "plots", Plots = new List<string> { "103", "101" } }, OutputFolder = folder, Steps = new List<string> { "faces" },
+                StepsFolder = Path.Combine(folder, "steps"), TimeLimitS = 600,
+            };
+            int code = WorkerRunner.Run(request.Write(folder), WorkerCommands.Default(), () => 9000.0);
+            Assert.True(code == 0, WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "q1")).Message);
+            JObject file = RunStamp.Read(Path.Combine(folder, "steps", "step_faces_csharp.json"));
+            Assert.Equal(new[] { "101", "103" }, ((JObject)file["plots"]).Properties().Select(item => item.Name).ToArray());
+            Assert.Equal("plots=103,101", (string)file["scope"]);
+            request.RunId = "q2";
+            request.Scope = new WorkerScope { Kind = "project" };
+            Assert.Equal(2, WorkerRunner.Run(request.Write(folder), WorkerCommands.Default(), () => 9000.0));
+            Assert.Contains("the step faces needs the input labels", WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "q2")).Message);
+        }
+
         [Fact]
         public void R345_the_plots_of_a_scope_come_from_the_client_code_labels_of_the_location_plan()
         {

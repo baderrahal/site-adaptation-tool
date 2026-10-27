@@ -891,10 +891,22 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
 
 def nbh_plots(labels_path, nbh):
     """Every unit plot of a neighbourhood on the location plan, by its number, in order. R345: nbh None gives every unit plot of the
-    location plan, the whole project of the scope of the add-in (docs/addin-design.md section 3)."""
-    rows = [row for row in csv_rows(labels_path, LABELS_COLUMNS + (("nbh",) if nbh is not None else ())) if (nbh is None or row.get("nbh") == nbh)
-            and row.get("kind") == "clientCode"]
-    return sorted({row["number"] for row in rows}, key=link_summary.sort_key)
+    location plan, the whole project of the scope of the add-in (docs/addin-design.md section 3). A client code row with no number and a
+    scope of no plot are refused, as PlotScope.Numbers of the C# refuses them (H1 of the fifth review of PR 55)."""
+    rows = csv_rows(labels_path, LABELS_COLUMNS + (("nbh",) if nbh is not None else ()))
+    for index, row in enumerate(rows, 1):
+        if row.get("kind") == "clientCode" and not row.get("number"):
+            raise project_profile.ProfileError("a row of kind clientCode of the labels holds no number, row %d of the rows read (R345)" % index)
+    found = sorted({row["number"] for row in rows if (nbh is None or row.get("nbh") == nbh) and row.get("kind") == "clientCode"}, key=link_summary.sort_key)
+    return scope_plots(found, "project" if nbh is None else "nbh=" + nbh)
+
+
+def scope_plots(plots, scope):
+    """R345. The plots of a scope, refused when it numbers none, so a build or a read of no plot never reads as a run done, the line of
+    PlotScope.Numbers of the C# (H1 of the fifth review of PR 55)."""
+    if not plots:
+        raise project_profile.ProfileError("the scope %s numbers no plot, a build or a read of no plot is refused (R345)" % scope)
+    return plots
 
 
 def face_step(numbers, faces):
@@ -1143,6 +1155,7 @@ def main(argv=None):
             cover = {"neighbourhood": nbh or "all", "plots": nbh_plots(args.labels, nbh)}
         else:
             cover = json.loads(Path(args.cover).read_text(encoding="utf-8"))
+            scope_plots(cover["plots"], step_scope(args.cover))
         sales = None
         if args.sales:
             sheet = settings.get("dataBook.locationPlan.sales")

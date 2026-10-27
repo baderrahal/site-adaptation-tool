@@ -501,6 +501,40 @@ def test_r345_a_csv_of_the_data_book_with_no_row_or_a_header_that_lacks_a_column
     assert str(error.value) == "plots.csv holds no row under its header (R345)"
 
 
+# H1 of the fifth review of PR 55: a scope that numbers no plot and a row of kind clientCode with no number refused on both sides with one
+# line, where a build of no plot was reported done and Python raised a TypeError (R345_a_scope_that_numbers_no_plot_is_refused)
+SCOPE_NONE = "the scope %s numbers no plot, a build or a read of no plot is refused (R345)"
+NO_NUMBER = "a row of kind clientCode of the labels holds no number, row %d of the rows read (R345)"
+SCOPE_CASES = ((b"kind,number,nbh\nlandUse,1,012\nclientCode,2,012\n", "013", SCOPE_NONE % "nbh=013"),
+               (b"kind,number,nbh\nlandUse,1,012\n", None, SCOPE_NONE % "project"),
+               (b'kind,number,nbh\n""\n', None, SCOPE_NONE % "project"),
+               (b"kind,number,nbh\nclientCode,1,012\nclientCode\n", None, NO_NUMBER % 2),
+               (b"kind,number,nbh\nclientCode,1,012\nclientCode,,012\n", "012", NO_NUMBER % 2))
+
+
+def test_r345_a_scope_that_numbers_no_plot_or_a_client_code_row_with_no_number_is_refused_as_the_csharp_refuses_it(tmp_path):
+    labels = tmp_path / "labels.csv"
+    for content, nbh, line in SCOPE_CASES:
+        labels.write_bytes(content)
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_from_book.nbh_plots(labels, nbh)
+        assert str(error.value) == line, content
+
+
+# H1 of the fifth review of PR 55: a line of one empty quoted field is a row of csv, an empty line is none, as CsvRows of the C# reads them
+# (R345_a_line_of_one_empty_quoted_field_is_a_row_and_an_empty_line_is_none)
+def test_r345_a_line_of_one_empty_quoted_field_is_a_row_and_an_empty_line_is_none(tmp_path):
+    labels = tmp_path / "labels.csv"
+    labels.write_bytes(b'kind,number\n""\n\nclientCode,1\n')
+    assert plan_from_book.csv_rows(labels, plan_from_book.LABELS_COLUMNS) == [{"kind": "", "number": None}, {"kind": "clientCode", "number": "1"}]
+    labels.write_bytes(b'kind,number\n""\n')
+    assert len(plan_from_book.csv_rows(labels, plan_from_book.LABELS_COLUMNS)) == 1
+    labels.write_bytes(b"kind,number\n\n")
+    with pytest.raises(project_profile.ProfileError) as error:
+        plan_from_book.csv_rows(labels, plan_from_book.LABELS_COLUMNS)
+    assert str(error.value) == "labels.csv holds no row under its header (R345)"
+
+
 # R355 the fronts: a 12 m face 3 m off a road along y = -3, a corner face with a second road along x = 45, and a face with no unit
 FRONT_FACES = {"11": ring(0.0, 0.0, 12.0, 25.0), "12": ring(30.0, 0.0, 42.0, 25.0), "13": ring(60.0, 0.0, 72.0, 25.0)}
 FRONT_ROWS = {"11": {"typologyRev9": "DP2"}, "12": {"typologyRev9": "C10"}, "13": {"typologyRev9": ""}}

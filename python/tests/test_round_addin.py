@@ -106,7 +106,7 @@ def run_book(tmp_path, monkeypatch, extra, read_input=None, build=None, edges=No
 
     monkeypatch.setattr(plan_from_book, "build", build or built)
     cover = tmp_path / "cover.json"
-    cover.write_text(json.dumps({"neighbourhood": "N1", "plots": []}), encoding="utf-8")
+    cover.write_text(json.dumps({"neighbourhood": "N1", "plots": ["1"]}), encoding="utf-8")
     analysis = tmp_path / "analysis.json"
     # R354. The analysis a build joins is of the baseplan drawing config names
     analysis.write_text(json.dumps({"source": project_profile.load_settings().get("drawings")["baseplan"], "clusters": [], "plots": [], "summary": {"plotFaces": 0}}),

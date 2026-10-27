@@ -16,7 +16,7 @@ namespace SiteAdaptation.Common
         public static readonly string[] PlotsColumns = { "locationPlanNumber", "baseplanLabel" };
         public static readonly string[] LabelsColumns = { "kind", "number" };
 
-        // The labels.csv columns a scope reads, nbh besides for the scope of a neighbourhood
+        // R345. The labels.csv columns a scope reads, nbh besides for the scope of a neighbourhood, as plan_from_book.nbh_plots reads them
         public static string[] LabelsOf(WorkerScope scope)
         {
             return scope?.Kind == "nbh" ? LabelsColumns.Concat(new[] { "nbh" }).ToArray() : LabelsColumns;
@@ -120,8 +120,9 @@ namespace SiteAdaptation.Common
             for (int index = 1; index < records.Count; index++)
             {
                 List<string> record = records[index];
-                // csv.DictReader skips a line with no field at all
-                if (record.Count == 1 && record[0].Length == 0)
+                // csv.DictReader skips a line with no field at all, an empty line, and keeps a line of one empty quoted field as a row (H1 of
+                // the fifth review of PR 55)
+                if (record.Count == 0)
                 {
                     continue;
                 }
@@ -187,7 +188,11 @@ namespace SiteAdaptation.Common
                     {
                         index++;
                     }
-                    record.Add(field.ToString());
+                    // An empty line is a record of no field, as csv of Python gives it, where a line of "" holds one empty field
+                    if (any)
+                    {
+                        record.Add(field.ToString());
+                    }
                     records.Add(record);
                     record = new List<string>();
                     field.Clear();

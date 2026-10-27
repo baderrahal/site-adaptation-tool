@@ -162,7 +162,35 @@ namespace SiteAdaptation.Common
     {
         private static readonly Regex Number = new Regex(@"^-?\d+(\.\d+)?$");
 
+        public const string LabelsRole = "labels";
+
+        // R345. A plot list needs no labels.csv, as plan_from_book.py never reads --labels for a cover file and needs it for all and
+        // nbh=<NBH> (H1 of the fifth review of PR 55)
+        public static bool NeedsLabels(WorkerScope scope)
+        {
+            return scope?.Kind != "plots";
+        }
+
+        // R345. The plots of the scope of a request, labels.csv read with the columns of its scope when the scope needs it
+        public static List<string> Of(WorkerContext run)
+        {
+            WorkerScope scope = run.Request.Scope;
+            return Numbers(scope, NeedsLabels(scope) ? CsvRows.Read(run.Input(LabelsRole), CsvRows.LabelsOf(scope)) : new List<Dictionary<string, string>>());
+        }
+
+        // A scope that numbers no plot is refused, as plan_from_book.scope_plots refuses it, so a build or a read of no plot never reads as
+        // a run done (H1 of the fifth review of PR 55)
         public static List<string> Numbers(WorkerScope scope, IEnumerable<Dictionary<string, string>> labels)
+        {
+            List<string> numbers = Ordered(scope, labels);
+            if (numbers.Count == 0)
+            {
+                throw new InvalidDataException("the scope " + StepFile.ScopeText(scope) + " numbers no plot, a build or a read of no plot is refused (R345)");
+            }
+            return numbers;
+        }
+
+        private static List<string> Ordered(WorkerScope scope, IEnumerable<Dictionary<string, string>> labels)
         {
             IEnumerable<string> found;
             switch (scope?.Kind)
@@ -183,19 +211,29 @@ namespace SiteAdaptation.Common
                 .ThenBy(text => text, StringComparer.Ordinal).ToList();
         }
 
-        private static IEnumerable<string> ClientCodes(IEnumerable<Dictionary<string, string>> labels, string nbh)
+        // A client code row with no number is refused with its place among the rows read, as plan_from_book.nbh_plots refuses it, every
+        // row before the scope is taken (H1 of the fifth review of PR 55)
+        private static List<string> ClientCodes(IEnumerable<Dictionary<string, string>> labels, string nbh)
         {
+            var found = new List<string>();
+            int index = 0;
             foreach (Dictionary<string, string> row in labels)
             {
+                index++;
                 string kind, number, area;
                 row.TryGetValue("kind", out kind);
                 row.TryGetValue("number", out number);
                 row.TryGetValue("nbh", out area);
-                if (kind == "clientCode" && number != null && (nbh == null || (area ?? "") == nbh))
+                if (kind == "clientCode" && string.IsNullOrEmpty(number))
                 {
-                    yield return number;
+                    throw new InvalidDataException("a row of kind clientCode of the labels holds no number, row " + index + " of the rows read (R345)");
+                }
+                if (kind == "clientCode" && (nbh == null || area == nbh))
+                {
+                    found.Add(number);
                 }
             }
+            return found;
         }
     }
 }

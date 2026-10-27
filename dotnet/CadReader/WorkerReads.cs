@@ -65,6 +65,13 @@ namespace CadReader
                 }
             }
             var steps = new HashSet<string>(request.Steps ?? new List<string>());
+            // H1 of the fifth review of PR 55. The read steps are of the whole project, the scope read_steps.py writes them with, where a read
+            // of a neighbourhood took the road levels of the plots of a labels.csv with no column nbh, none, and was done
+            if (steps.Count > 0 && request.Scope?.Kind != "project")
+            {
+                throw run.Refusal("the read steps are of the whole project, the scope project of read_steps.py, a read of the steps " + string.Join(", ", request.Steps)
+                    + " with the scope " + StepFile.ScopeText(request.Scope) + " is refused (R348)");
+            }
             var made = new Dictionary<string, Dictionary<string, Dictionary<string, object>>>();
             var reads = new Dictionary<string, JObject>();
             bool anyDrawing = Drawings.Any(role => request.Inputs.Any(input => input.Role == role));
@@ -120,11 +127,11 @@ namespace CadReader
             }
             if (steps.Contains(ReadSteps.RoadLevels))
             {
-                // G1. As read_steps.py takes them through plan_from_book.nbh_plots and book_rows
-                List<Dictionary<string, string>> labels = CsvRows.Read(run.Input("labels"), CsvRows.LabelsColumns);
+                // G1, H1. As read_steps.py takes them through plan_from_book.book_rows and then nbh_plots, the plots of the whole project
                 List<Dictionary<string, string>> plotsCsv = CsvRows.Read(run.Input("plotsCsv"), CsvRows.PlotsColumns);
+                List<string> numbers = PlotScope.Of(run);
                 Dictionary<string, List<double[][]>> faces = ReadSteps.FaceRings((JArray)reads["baseplan"]["plots"], plotsCsv);
-                made[ReadSteps.RoadLevels] = ReadSteps.RoadLevelStep(PlotScope.Numbers(request.Scope, labels), faces, surfaces, settings.SnapM);
+                made[ReadSteps.RoadLevels] = ReadSteps.RoadLevelStep(numbers, faces, surfaces, settings.SnapM);
             }
             AddinConfig config = AddinConfig.Load(run.Input("config"));
             foreach (string step in request.Steps ?? new List<string>())

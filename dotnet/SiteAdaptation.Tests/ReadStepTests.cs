@@ -552,6 +552,20 @@ namespace SiteAdaptation.Tests
             Assert.Contains("names two baseplans", Run(build, 2).Message);
         }
 
+        // H1 of the fifth review of PR 55: the read steps are of the whole project, the scope read_steps.py writes, where a read of the
+        // neighbourhood of a labels.csv with no column nbh gave its road levels of no plot, done
+        [Fact]
+        public void R348_the_read_steps_are_of_the_whole_project_as_read_steps_py_writes_them_and_another_scope_is_refused()
+        {
+            var inputs = new List<WorkerFile> { Input("config", Config()), Input("cadLayers", LayersFile()), Input("baseplan", Drawing("Base.dwg", UnitsType.Meters)) };
+            WorkerRequest request = Request("h1", inputs, ReadSteps.Labels);
+            request.Scope = new WorkerScope { Kind = "nbh", Nbh = "012" };
+            Run(request, 2);
+            Assert.Equal("the read steps are of the whole project, the scope project of read_steps.py, a read of the steps labels with the scope nbh=012 is refused (R348)",
+                WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "h1")).Message);
+            Assert.False(File.Exists(Path.Combine(folder, "steps", "step_labels_csharp.json")));
+        }
+
         [Fact]
         public void R348_a_drawing_not_in_meters_or_kept_for_reference_only_is_refused_with_exit_2_and_nothing_is_written()
         {

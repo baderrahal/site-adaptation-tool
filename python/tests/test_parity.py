@@ -243,6 +243,18 @@ def test_r345_a_cover_of_one_neighbourhood_writes_its_plots_only(tmp_path):
     assert sorted(found["plots"]) == ["101", "102"] and found["scope"] == "nbh=012"
 
 
+def test_r345_a_scope_that_numbers_no_plot_is_refused_and_writes_no_step(tmp_path, capsys):
+    # H1 of the fifth review of PR 55: a neighbourhood with no client code row and a cover file of no plot gave the step of no plot, done
+    assert run_steps(tmp_path, "nbh=013") == 2
+    assert "the scope nbh=013 numbers no plot, a build or a read of no plot is refused (R345)" in capsys.readouterr().err
+    assert not (tmp_path / "steps" / "step_faces_python.json").exists()
+    cover = tmp_path / "cover.json"
+    cover.write_text(json.dumps({"neighbourhood": "012", "plots": []}), encoding="utf-8")
+    assert run_steps(tmp_path, str(cover)) == 2
+    assert "the scope cover=cover.json numbers no plot, a build or a read of no plot is refused (R345)" in capsys.readouterr().err
+    assert not (tmp_path / "steps" / "step_faces_python.json").exists()
+
+
 def test_r345_the_python_side_writes_what_the_plan_writes_so_a_1_mm_tie_fails(tmp_path, monkeypatch):
     # A face of area 2.0465, a tie R385 writes 2.047 and round() 2.046. A plan whose writer rounded by round() would write 2.046,
     # and the step must hold what the plan writes, not a value recomputed from raw
