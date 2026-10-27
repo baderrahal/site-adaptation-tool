@@ -577,7 +577,7 @@ Summary table with columns Step, Done, Skipped, Override, Issues, one row per bu
 | 4 Place villas | 336 | 1 | 371 | 0 | plan_012.json: 336 links, 2312 not written, overrides applied mirrored 11, insert 4, CASE 206, Prototype-Foundation-Type 150 |
 | 5 Floors and ramps | 1,003 | 8 | 123 | 112 | plan_012.json: generic 336, yard 331, ramp 336, the 3 floors of 2312 and 5 yards not written, rampType 10 and rampFrontM 113 applied, genericFloor 4, rampOutline 4, yardOutline 14 and rampFrontFallM 90 left (Q057) |
 | 6 Levels | 336 | 1 | 619 | 0 | plan_012.json: entryM 304, heightM 300, steps 5, Prototype-FFL 5 and RVT-Name 5 applied, 2312 with no level |
-| 7 Walls | 0 | 0 | 0 | 1 | no wall placed yet, Phase 4e codes the walls, the wall top rule is weak and no garden wall rule is measured (Q071), keyRules wallTop 0.346 |
+| 7 Walls | 0 | 0 | 0 | 1 | no wall placed yet, Phase 4g codes the walls (R362), the wall top rule is weak and no garden wall rule is measured (Q071), keyRules wallTop 0.346 |
 
 - How: a table of the five columns of the mock from row 3, one row per button 1 to 7. The Source column above is the note of this design on where each count comes from and is no column of the file. The counts of steps 4 to 6 are those of the plan of NBH 012 a real run would place, read from plan_012.json (RAN). No Parsons build has been placed in Revit yet, Phase 6 runs it.
 
