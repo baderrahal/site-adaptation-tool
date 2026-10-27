@@ -61,26 +61,72 @@ namespace SiteAdaptation.Common
             return found;
         }
 
-        // A value as Python %s writes it in a message: None, a text as it is, a number by repr, a list as [a, b]
+        // A value as Python %s writes it in a message, str() of what json.loads gives: None, a text as it is, anything else by PyRepr, so a
+        // list of texts is ['a', 'b'] as in Python and never [a, b] or JSON over several lines (F4 of the third review of PR 55)
         public static string PyText(JToken token)
+        {
+            return token != null && token.Type == JTokenType.String ? (string)token : PyRepr(token);
+        }
+
+        // repr() of Python of what json.loads gives: None, True and False, a float by its shortest digits, a text in quotes, a list as
+        // [a, b] and an object as {'k': v}, each item by repr
+        public static string PyRepr(JToken token)
         {
             if (token == null || token.Type == JTokenType.Null)
             {
                 return "None";
             }
-            if (token is JArray items)
+            switch (token.Type)
             {
-                return "[" + string.Join(", ", items.Select(PyText)) + "]";
+                case JTokenType.Array:
+                    return "[" + string.Join(", ", ((JArray)token).Select(PyRepr)) + "]";
+                case JTokenType.Object:
+                    return "{" + string.Join(", ", ((JObject)token).Properties().Select(item => TextRepr(item.Name) + ": " + PyRepr(item.Value))) + "}";
+                case JTokenType.Float:
+                    return SheetRows.PyRepr((double)token);
+                case JTokenType.Boolean:
+                    return (bool)token ? "True" : "False";
+                case JTokenType.String:
+                    return TextRepr((string)token);
+                default:
+                    return token.ToString();
             }
-            if (token.Type == JTokenType.Float)
+        }
+
+        // repr() of a Python text: in single quotes, or double ones when it holds a single quote and no double one, the quote, the backslash,
+        // a tab, a line feed and a carriage return escaped, another control character as \xNN or \uNNNN
+        public static string TextRepr(string text)
+        {
+            char quote = text.IndexOf('\'') >= 0 && text.IndexOf('"') < 0 ? '"' : '\'';
+            var built = new System.Text.StringBuilder().Append(quote);
+            foreach (char letter in text)
             {
-                return SheetRows.PyRepr((double)token);
+                if (letter == quote || letter == '\\')
+                {
+                    built.Append('\\').Append(letter);
+                }
+                else if (letter == '\t')
+                {
+                    built.Append("\\t");
+                }
+                else if (letter == '\n')
+                {
+                    built.Append("\\n");
+                }
+                else if (letter == '\r')
+                {
+                    built.Append("\\r");
+                }
+                else if (char.IsControl(letter))
+                {
+                    built.Append(letter < 0x100 ? "\\x" + ((int)letter).ToString("x2") : "\\u" + ((int)letter).ToString("x4"));
+                }
+                else
+                {
+                    built.Append(letter);
+                }
             }
-            if (token.Type == JTokenType.Boolean)
-            {
-                return (bool)token ? "True" : "False";
-            }
-            return token.ToString();
+            return built.Append(quote).ToString();
         }
 
         // plan_from_book.analysis_clusters: the clusters of the analysis a build joins, refused when its source is not the baseplan drawing

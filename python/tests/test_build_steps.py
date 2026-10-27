@@ -289,6 +289,34 @@ def test_r354_a_key_rule_of_the_wrong_shape_is_refused_with_the_line_of_csharp()
         assert str(error.value) == line, word
 
 
+# F4 of the third review of PR 55: the lines of a key rule of another kind than a build reads, the same in both languages, Python str()
+# of a list in the C# (SiteClusters.PyText) and no AttributeError of a parameter or level word given as a text
+PARAMETER_RULES = ("plot, rev9Code, plotAndCode, plotCodeStepsAndFacade, ffl, fflDownToTheCm, all, typology, mirroredFactor, typologyMirrored, steps, "
+                   "typologySteps")
+KIND_LINES = (
+    (("linkRotation", "rule"), ["frontRule"], "keyRules linkRotation codes ['frontRule'], a build gives only frontRule (R337)"),
+    (("linkRotation", "rule"), {"a": "it's"}, "keyRules linkRotation codes {'a': \"it's\"}, a build gives only frontRule (R337)"),
+    (("rampSlope", "table", "C10"), ["0.5"], "the slope of El @ Entry and the ramp class of keyRules differ for C10 (rampSlopePercent 2.0, keyRules.rampSlope "
+                                             "['0.5']), give both one slope (R337)"),
+    (("parameter CASE",), "x", "keyRules parameter CASE codes None, a build gives only " + PARAMETER_RULES + " (R337)"),
+    (("entry",), "x", "keyRules entry codes None, a build gives only roadLevel (R337)"))
+
+
+def test_r337_a_key_rule_of_another_kind_is_refused_with_one_line_the_same_in_csharp():
+    import copy
+    import plan_rules
+    real = project_profile.load_profile(project_profile.profile_path(project_profile.load_settings()))
+    for path, value, line in KIND_LINES:
+        values = copy.deepcopy(real.values)
+        place = values["levelProfiles"]["parsons2024Rev6"]["keyRules"]
+        for key in path[:-1]:
+            place = place[key]
+        place[path[-1]] = value
+        with pytest.raises(project_profile.ProfileError) as error:
+            plan_rules.key_rules_of(values["levelProfiles"]["parsons2024Rev6"])
+        assert str(error.value) == line, path
+
+
 # R355 the fronts: a 12 m face 3 m off a road along y = -3, a corner face with a second road along x = 45, and a face with no unit
 FRONT_FACES = {"11": ring(0.0, 0.0, 12.0, 25.0), "12": ring(30.0, 0.0, 42.0, 25.0), "13": ring(60.0, 0.0, 72.0, 25.0)}
 FRONT_ROWS = {"11": {"typologyRev9": "DP2"}, "12": {"typologyRev9": "C10"}, "13": {"typologyRev9": ""}}

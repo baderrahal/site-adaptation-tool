@@ -202,7 +202,7 @@ namespace SiteAdaptation.Common
                 string found = SlopeClass(BuildFace.Number(slope));
                 if (code.Value.Type != JTokenType.String || found != (string)code.Value)
                 {
-                    wrong.Add(code.Name + " (rampSlopePercent " + SiteClusters.PyText(slope) + ", keyRules.rampSlope " + code.Value + ")");
+                    wrong.Add(code.Name + " (rampSlopePercent " + SiteClusters.PyText(slope) + ", keyRules.rampSlope " + SiteClusters.PyText(code.Value) + ")");
                 }
             }
             if (wrong.Count > 0)

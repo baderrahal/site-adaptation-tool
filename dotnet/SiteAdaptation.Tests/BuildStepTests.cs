@@ -407,6 +407,33 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        // F4 of the third review of PR 55, test_build_steps.KIND_LINES: a key rule of another kind than a build reads, the line of Python
+        [Fact]
+        public void R337_a_key_rule_of_another_kind_is_refused_with_one_line_the_same_in_python()
+        {
+            const string parameterRules = "plot, rev9Code, plotAndCode, plotCodeStepsAndFacade, ffl, fflDownToTheCm, all, typology, mirroredFactor, typologyMirrored, steps, typologySteps";
+            var cases = new[]
+            {
+                Tuple.Create(new[] { "linkRotation", "rule" }, (JToken)new JArray("frontRule"), "keyRules linkRotation codes ['frontRule'], a build gives only frontRule (R337)"),
+                Tuple.Create(new[] { "linkRotation", "rule" }, (JToken)new JObject { ["a"] = "it's" }, "keyRules linkRotation codes {'a': \"it's\"}, a build gives only frontRule (R337)"),
+                Tuple.Create(new[] { "rampSlope", "table", "C10" }, (JToken)new JArray("0.5"),
+                    "the slope of El @ Entry and the ramp class of keyRules differ for C10 (rampSlopePercent 2.0, keyRules.rampSlope ['0.5']), give both one slope (R337)"),
+                Tuple.Create(new[] { "parameter CASE" }, (JToken)"x", "keyRules parameter CASE codes None, a build gives only " + parameterRules + " (R337)"),
+                Tuple.Create(new[] { "entry" }, (JToken)"x", "keyRules entry codes None, a build gives only roadLevel (R337)"),
+            };
+            foreach (Tuple<string[], JToken, string> item in cases)
+            {
+                JObject rules = JObject.Parse(File.ReadAllText(RepoRules()));
+                JToken place = rules["levelProfiles"]["parsons2024Rev6"]["keyRules"];
+                foreach (string key in item.Item1.Take(item.Item1.Length - 1))
+                {
+                    place = place[key];
+                }
+                place[item.Item1.Last()] = item.Item2;
+                Assert.Equal(item.Item3, Assert.Throws<InvalidDataException>(() => BuildRules.KeyRules(rules, null, "hands")).Message);
+            }
+        }
+
         [Fact]
         public void R354_a_level_profile_with_no_key_rules_or_a_key_rule_a_build_cannot_give_is_refused_with_the_lines_of_python()
         {

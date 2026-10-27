@@ -242,11 +242,12 @@ def check_key_rules(rules):
         need("yardOutline", ("fittedOutlineRefit",), "groups")
     for word, entry in rules.items():
         if word.startswith(PARAMETER):
-            need(word, FORMULAS + LEVEL_RULES + TABLE_FACTORS, *(("table",) if (entry or {}).get("rule") in TABLE_FACTORS else ()))
+            # F4 of the third review of PR 55: an entry that is no object is refused by need() with its line, never an AttributeError
+            need(word, FORMULAS + LEVEL_RULES + TABLE_FACTORS, *(("table",) if isinstance(entry, dict) and entry.get("rule") in TABLE_FACTORS else ()))
     # R340. The level rules are optional, a rule a build does not carry out refused, and the FFL needs El @ Entry and the steps
     for word, allowed in LEVEL_WORDS.items():
         if word in rules:
-            need(word, allowed, *(("table",) if (rules[word] or {}).get("rule") in ("units", "typology") else ()))
+            need(word, allowed, *(("table",) if isinstance(rules[word], dict) and rules[word].get("rule") in ("units", "typology") else ()))
     if "ffl" in rules:
         needed = LEVEL_NEEDED + PIECE_NEEDED.get(rules["ffl"]["rule"], ())
         for word in needed:
