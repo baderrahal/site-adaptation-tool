@@ -36,7 +36,7 @@ How the round runs:
 - At most 2 review passes per PR (Q097). What is left becomes a new question in steps/questions-open.md and the work carries on.
 - Never two PRs open. At most four changes per PR.
 - A fix on its third attempt stops, goes back to measuring and becomes a question.
-- New question IDs start at Q062.
+- A new question takes the next free ID, Q098 now.
 - Every fact in a report is tagged READ with a path, RAN with a count, SEARCHED with a link, CHOSEN or UNKNOWN.
 - .claude/agents holds developer, reviewer and breaker on opus, prober, claim-checker and log-reader on sonnet, runner on haiku. .claude/skills/ai-max holds the AI MAX skill, version 3.
 
@@ -61,7 +61,7 @@ How the round runs:
 - Never commit real coordinates or levels. Logs and reports hold counts, row numbers and distances only.
 - Full run outputs go to sample_output/full_run/<file name>/.
 - A file that fails or times out is recorded with its exact error and the run carries on. Never swap in a dummy file.
-- The Revit reader and the placer are run by Bader by hand. The placer runs only on a copy of a model.
+- Code runs the reader, the placer and the add-in on copies through the test host, Bader runs them by hand only for his check of Part 1. The placer runs only on a copy of a model.
 
 ## Commands
 

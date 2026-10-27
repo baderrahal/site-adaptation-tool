@@ -6,7 +6,7 @@ using Newtonsoft.Json.Linq;
 namespace SiteAdaptation.Common
 {
     // R348 to R350. The settings of the reads of button 2 in config/project.json, where Phase 4c moved them from python/c3d_probe.json
-    // (docs/addin-design.md 3.2 and section 6): the road edge layers of analysis, the ROW and setback layers of dataBook.join, the road
+    // (docs/design/03b-buttons-2-to-8.md 3.2 and docs/design/06-settings.md): the road edge layers of analysis, the ROW and setback layers of dataBook.join, the road
     // surfaces of siteBuild in their order with the snap, the sheets of dataBook.rev9, data5.areaKey and locationPlan with the workbook
     // role of each by addin.workbookRoles, and drawings.referenceOnly. A setting missing is refused with its name, nothing has a default
     public sealed class ReadSettings

@@ -15,7 +15,7 @@ namespace SiteAdaptation.Common
     {
         public const int CurrentFormatVersion = 1;
 
-        // The commands of docs/addin-design.md section 2
+        // The commands of docs/design/02-folders.md
         public static readonly string[] Commands = { "read", "build", "levelExcel", "reportExcel", "exportChecks", "position" };
 
         public int FormatVersion { get; set; }

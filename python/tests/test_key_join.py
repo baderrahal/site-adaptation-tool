@@ -5,6 +5,7 @@ Every model here is made up in code (R10). The real config is read only where a 
 import csv
 import json
 import math
+from pathlib import Path
 
 import pytest
 from shapely.geometry import box
@@ -131,6 +132,14 @@ def test_r326_the_area_rows_count_the_joined_plots_of_each_area_key_with_the_fil
     assert [(area["nbh"], area["zone"], area["plots"]) for area in row["areas"]] == [("01A", "Zone 4", 2), ("022", "Zone 1", 1)]
     assert all(area["kind"] == "model" and area["file"] == "Revit All Zones/X-IMX.rvt" and "of the 3 plots" in area["measured"] for area in row["areas"])
     assert im_codes.check_job("parsons", [row]) == [row]
+
+
+def test_r326_the_area_rows_name_the_record_of_2b_where_it_lies_since_round_rec():
+    doc = document([key_link("501", 0)], [floor("DP4-501", 0)])
+    row = key_join.area_row("IMX", "Revit All Zones/X-IMX.rvt", key_join.join_plots(doc, FLOORS, places()))
+    record = "steps/history/round-addin/06-phase-2b.md"
+    assert all(record in area["measured"] and "steps/investigations" not in area["measured"] for area in row["areas"])
+    assert (Path(__file__).resolve().parents[2] / record).is_file()
 
 
 def plots_csv(tmp_path):

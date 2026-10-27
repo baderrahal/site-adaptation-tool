@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common
 {
-    // R345, R347. The addin block of config/project.json (docs/addin-design.md section 6) that the worker and the tests read: the
+    // R345, R347. The addin block of config/project.json (docs/design/06-settings.md) that the worker and the tests read: the
     // measured peak of each large input, the time limit of each command and the parity tolerances, and the floor siteBuild.minFreeGB
     public sealed class AddinConfig
     {
