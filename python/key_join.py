@@ -190,7 +190,7 @@ def area_row(code, file, joined):
     counts = Counter((row["areaNbh"], row["areaZone"]) for row in joined["plots"].values() if row["status"] == JOINED and row.get("areaNbh"))
     total = joined["counts"]["keyPlots"]
     areas = [{"nbh": nbh, "zone": zone, "plots": count, "kind": "model", "file": file,
-              "measured": "Round ADDIN 2b, key_join.py R326, steps/investigations/round-addin.md: %d of the %d plots the links of the key copy name "
+              "measured": "Round ADDIN 2b, key_join.py R326, steps/history/round-addin/06-phase-2b.md: %d of the %d plots the links of the key copy name "
                           "join a baseplan face of this neighbourhood by the area key (R256)" % (count, total)}
              for (nbh, zone), count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))]
     return {"code": code, "areas": areas}

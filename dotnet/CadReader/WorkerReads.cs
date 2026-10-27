@@ -9,7 +9,7 @@ using SiteAdaptation.Common;
 
 namespace CadReader
 {
-    // R348 to R350. The command read of the worker, the reads of button 2 (docs/addin-design.md 3.2): each drawing of the request read
+    // R348 to R350. The command read of the worker, the reads of button 2 (docs/design/03b-buttons-2-to-8.md 3.2): each drawing of the request read
     // with ACadSharp by the CadExtractor of CadReader, refused when it is a drawing of drawings.referenceOnly (R300) or its header InsUnits
     // is not Meters, each road surface LandXML read in the order of siteBuild.roadSurfaces and refused when it is not in meter, and the
     // DLUS and sales workbooks read by their sheets in config. Each read is written to the output folder of the request at the

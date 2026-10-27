@@ -5,6 +5,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 ## 4f, the outlines, levels, overrides and link parameters
 
 - Status: open
+- Q089 first (Bader, 2026-10-27, steps/questions-closed.md): the build proof on the footprint clusters alone on the 7 keys with the overrides measured again. 0 unexplained on every key drops the analysis clusters from the build in Python and C# with tests, else the snapshot analysis.json is named in config as an input of button 3 and listed in 5c, with no build logic changed
 - Rules: R358 ramp, generic and yard outlines and the ramp type. R359 levels, the row partners and the road at front, the road at front and El @ Entry from one unrounded mean. R360 overrides with the use and skip of R386. R361 link parameters and the link name
 - Design: docs/design/05-plan-steps.md, parity steps 8, 10, 12 and 13 and Step 8, the Z of the ramp corners
 - Done when: parity holds on every unit plot of the data book for steps 8, 10, 12 and 13, and each step has tests on small dummy data built in code that run on both runners (05-plan-steps.md, R345)

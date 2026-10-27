@@ -333,7 +333,7 @@ namespace SiteAdaptation.Common
     // (R179), the code and number pairs (R180), the page fitted to the site on the schedule of fitNeighbourhood (R181), which numbers every
     // build, each label on the baseplan face that holds its point with its codes (R182), and the control point fit as a check of that
     // numbering (R387), which numbers nothing and lists apart every face it numbers otherwise with why. The fits are taken about the means
-    // of their points, so the coordinates of a site keep their digits (docs/addin-design.md section 5)
+    // of their points, so the coordinates of a site keep their digits (docs/design/05-plan-steps.md)
     public static class LocationPlan
     {
         public const double WordTolerance = 3;

@@ -10,7 +10,7 @@ namespace SiteAdaptation.Common
     // R345. The step faces of the parity harness, the C# of plan_from_book.face_step: the baseplan face of each plot as the build
     // takes it from the plot shapes of plots.json of the baseplan reader (yard_rule.face_shapes) and the number plots.csv gives
     // its label (plan_from_book.book_rows), with its area, centroid and bounds. The area and the centroid are taken about the
-    // first vertex of each ring, so the coordinates of a site keep their digits (docs/addin-design.md section 5)
+    // first vertex of each ring, so the coordinates of a site keep their digits (docs/design/05-plan-steps.md)
     public static class FaceStep
     {
         public const string Name = "faces";
@@ -156,7 +156,7 @@ namespace SiteAdaptation.Common
         }
     }
 
-    // R345. The plots of a scope (docs/addin-design.md section 3): the whole project is every client code label of the location
+    // R345. The plots of a scope (docs/design/03a-buttons-shared-and-1.md): the whole project is every client code label of the location
     // plan, a neighbourhood those of its NBH, a plot list its numbers, each once, in the order of link_summary.sort_key
     public static class PlotScope
     {
