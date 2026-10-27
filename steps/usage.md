@@ -38,7 +38,7 @@ RAN on 2026-10-27 in Round REC: npx ccusage@latest daily --since 20261025 --json
 
 ## By phase session
 
-One row per phase session since Round ADDIN 4f, added after its last merge by step 7 of steps/START.md, from npx ccusage@latest session --since <its first day>.
+One row per phase session since Round ADDIN 4f, added by step 7 of steps/START.md, total tokens and cost only.
 
 | Session | Phase | Total tokens | Cost USD |
 |---|---|---:|---:|

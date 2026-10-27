@@ -9,7 +9,7 @@ Repo baderrahal/site-adaptation-tool. Bader decides, chat drafts and reads, Code
 3. Run that one phase and no other, under the rules of CLAUDE.md. Read its docs/design/ parts and its rules by id, never a whole file over 30 KB.
 4. Each PR: at most 4 changes, the gate, the checkers CLAUDE.md names, at most 2 review passes. A REAL finding is fixed with a test, a LATENT one goes to steps/latent.md.
 5. Merge on green with gh pr checks --watch, then delete the branch and pull main. Never two PRs open.
-6. At the end of the phase: mark it done in steps/01_next.md, write the top entry of steps/log.md, rewrite steps/PROGRESS.md to the caps of R400, merge, and stop.
-7. After the merge, run npx ccusage@latest session --since <today as YYYYMMDD> and add one row for this session to steps/usage.md, total tokens and cost only.
+6. At the end of the phase: mark it done in steps/01_next.md, write the top entry of steps/log.md, rewrite steps/PROGRESS.md to the caps of R400, add the usage row of step 7 to that last PR, merge, and stop.
+7. The usage row: run npx ccusage@latest session --since <yesterday as YYYYMMDD>, since ccusage dates a session by UTC, take the row whose session id starts the folder name of this session's scratchpad path, and add it to steps/usage.md, total tokens and cost only. The turns after the run are not in it.
 
 Final message to Bader: plain and short, the PR numbers, the checks with their counts, what is UNKNOWN, and every new question by ID.
