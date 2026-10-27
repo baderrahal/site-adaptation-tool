@@ -15,6 +15,7 @@ namespace SiteAdaptation.Tests
     {
         private const string Dp2File = "RRE-WP-NSP-KEO-ARC-DP2-ZZ-MOD-2200.rvt";
         private const string Vd2File = "RRE-WP-NSP-KEO-ARC-VD2-ZZ-MOD-2200.rvt";
+        private const string Th1File = "RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-2200.rvt";
         private readonly string folder = Path.Combine(Path.GetTempPath(), "sa_r358_" + Guid.NewGuid().ToString("N"));
 
         public LevelFloorStepTests()
@@ -49,15 +50,31 @@ namespace SiteAdaptation.Tests
             };
         }
 
-        // keyRules as the rules profile holds them, the hands of test_build_steps.py, the yard groups the made up one, no split of a cluster
+        // The made up yard outline of TH1, which TH1-IM takes as its keo_file, holding none of its own
+        private static JObject YardTh1()
+        {
+            return new JObject
+            {
+                ["unit"] = "TH1", ["mirrored"] = false, ["width"] = 12.0, ["type"] = "Yard TH1 made up",
+                ["loops"] = new JArray { new JArray(new JArray(2.0, 3.0), new JArray(6.0, 3.0), new JArray(6.0, 7.0)) },
+            };
+        }
+
+        // keyRules as the rules profile holds them, the hands of test_build_steps.py with every factor of the hand alone not mirrored for the file
+        // of TH1, the yard groups the made up ones, no split of a cluster
         private static JObject MadeRules()
         {
             JObject rules = JObject.Parse(File.ReadAllText(BuildStepTests.RepoRules()));
             JObject key = (JObject)rules["levelProfiles"]["parsons2024Rev6"]["keyRules"];
             key["hand villa"] = new JObject { ["rule"] = "blockMirrorRoadSide", ["byFile"] = new JObject { [Vd2File] = new JObject { ["no left"] = true, ["no none"] = false } } };
             key["hand cluster"] = new JObject { ["rule"] = "clusterSide", ["byFile"] = new JObject { [Dp2File] = new JObject { ["left"] = false, ["right"] = true } } };
-            key["hand alone"] = new JObject { ["rule"] = "rowPairSideOrBlockMirrorOpenEnd", ["byFile"] = new JObject { [Dp2File] = new JObject { ["pair left"] = false, ["pair right"] = true } } };
-            key["yardOutline"] = new JObject { ["rule"] = "fittedOutlineRefit", ["groups"] = new JArray(Yard()) };
+            var th1 = new JObject();
+            foreach (string factor in new[] { "pair left", "pair right", "alone no left", "alone no right", "alone no none", "alone no both" })
+            {
+                th1[factor] = false;
+            }
+            key["hand alone"] = new JObject { ["rule"] = "rowPairSideOrBlockMirrorOpenEnd", ["byFile"] = new JObject { [Dp2File] = new JObject { ["pair left"] = false, ["pair right"] = true }, [Th1File] = th1 } };
+            key["yardOutline"] = new JObject { ["rule"] = "fittedOutlineRefit", ["groups"] = new JArray { Yard(), YardTh1() } };
             key["levelSplit"] = new JObject { ["rule"] = "units", ["table"] = new JObject() };
             return rules;
         }
@@ -73,8 +90,9 @@ namespace SiteAdaptation.Tests
         }
 
         // test_level_floor_steps.made_build: six 12 m faces along a road at y = -3, plot 1 a VD2 villa, 2 and 3 a DP2 pair of the footprint,
-        // 4 to 6 DP2 units in no cluster, the road level 10 m plus a hundredth of x, and the steps linkFrame, levels and floors of it
-        private static Made MadeBuild(Action<JObject> change = null)
+        // 4 to 6 DP2 units in no cluster, each in Zone 2, units and zones another code or zone of a plot, the road level 10 m plus a hundredth of x,
+        // and the steps linkFrame, levels and floors of it
+        private static Made MadeBuild(Action<JObject> change = null, Dictionary<string, string> units = null, Dictionary<string, string> zones = null)
         {
             JObject rules = MadeRules();
             change?.Invoke(rules);
@@ -83,7 +101,8 @@ namespace SiteAdaptation.Tests
             var faces = numbers.ToDictionary(number => number, number => BuildFace.Of(number, Ring((int.Parse(number) - 1) * 12.0, 0.0, int.Parse(number) * 12.0, 25.0)));
             var rows = numbers.ToDictionary(number => number, number => new Dictionary<string, string>
             {
-                ["locationPlanNumber"] = number, ["typologyRev9"] = number == "1" ? "VD2" : "DP2", ["footprintMirrored"] = "no", ["zone"] = "Zone 2",
+                ["locationPlanNumber"] = number, ["typologyRev9"] = units != null && units.ContainsKey(number) ? units[number] : number == "1" ? "VD2" : "DP2", ["footprintMirrored"] = "no",
+                ["zone"] = zones != null && zones.ContainsKey(number) ? zones[number] : "Zone 2",
             });
             var roads = new RoadLines(new[] { new[] { new[] { -50.0, -3.0 }, new[] { 100.0, -3.0 } }, new[] { new[] { -3.0, -10.0 }, new[] { -3.0, 40.0 } } });
             var sales = new JObject { ["1"] = new JObject { ["Orientation"] = "WS" } };
@@ -94,7 +113,7 @@ namespace SiteAdaptation.Tests
             HandContext context = Hands.Context(numbers, rows, faces, clusters, fronts.ToDictionary(item => item.Key, item => item.Value.Frame), roads, rules, config);
             JObject key = BuildRules.KeyRules(rules, null, "levels");
             JObject profile = BuildRules.LevelProfile(rules, null);
-            var files = new Dictionary<string, string> { ["DP2"] = Dp2File, ["VD2"] = Vd2File };
+            var files = new Dictionary<string, string> { ["DP2"] = Dp2File, ["VD2"] = Vd2File, ["TH1-IM"] = Th1File };
             List<string> scope = numbers.Concat(new[] { "7" }).ToList();
             Dictionary<string, Dictionary<string, object>> hands = Hands.Step(scope, rows, context, key, files, rules, config);
             Dictionary<string, Dictionary<string, object>> links = LinkFrames.Step(scope, rows, fronts, context.Roles, hands, key, files, rules);
@@ -203,6 +222,54 @@ namespace SiteAdaptation.Tests
             Assert.Equal("unit generic rampOutline rampZ rampClass rampType yardDepth yardUnit yardWidth yardType yardOutline lacks", string.Join(" ", made.Floors["7"].Keys));
             Assert.All(made.Floors["7"].Where(item => item.Key != "lacks"), item => Assert.Null(item.Value));
             Assert.Equal("[]", Text(made.Floors["7"]["lacks"]));
+        }
+
+        [Fact]
+        public void R358_a_zone_with_no_yard_gives_the_plot_no_yard_and_no_lack()
+        {
+            // keyRules.yard gives Zone 4, the zone of IMG, noYard
+            Dictionary<string, object> five = MadeBuild(zones: new Dictionary<string, string> { ["5"] = "Zone 4" }).Floors["5"];
+            Assert.All(new[] { "yardDepth", "yardUnit", "yardWidth", "yardType", "yardOutline" }, name => Assert.Null(five[name]));
+            Assert.Equal("[]", Text(five["lacks"]));
+            Assert.Equal("\"Ramps 0.5%\"", Text(five["rampType"]));
+        }
+
+        [Fact]
+        public void R358_a_code_with_no_yard_outline_of_its_own_takes_the_outline_of_its_keo_file()
+        {
+            Made made = MadeBuild(units: new Dictionary<string, string> { ["5"] = "TH1-IM" });
+            Dictionary<string, object> five = made.Floors["5"];
+            Assert.False((bool)(JToken)made.Links["5"]["mirrored"]);
+            Assert.Equal("TH1 \"Yard TH1 made up\" 12", Text(five["yardUnit"]) + " " + Text(five["yardType"]) + " " + Text(five["yardWidth"]));
+            Assert.Equal(0.0, (double)((StepValue)made.Links["5"]["rotationDeg"]).Written);
+            double[] insert = ((double[])made.Links["5"]["insert"]).Select(value => Rounding.Fixed(value, 3)).ToArray();
+            var expected = new[] { new[] { 2.0, 3.0 }, new[] { 6.0, 3.0 }, new[] { 6.0, 7.0 } }.Select(point => new[] { insert[0] + point[0], insert[1] + point[1] }).ToArray();
+            Assert.Equal(expected, ((IEnumerable<IEnumerable<double[]>>)five["yardOutline"]).Single().ToArray());
+        }
+
+        [Fact]
+        public void R358_a_code_keyrules_ramp_slope_holds_no_class_for_lacks_its_ramp_type()
+        {
+            // VL3 has no entry in keyRules.rampSlope of the rules profile
+            Assert.Null(MadeRules()["levelProfiles"]["parsons2024Rev6"]["keyRules"]["rampSlope"]["table"]["VL3"]);
+            Dictionary<string, object> five = MadeBuild(units: new Dictionary<string, string> { ["5"] = "VL3" }).Floors["5"];
+            Assert.Null(five["rampClass"]);
+            Assert.Null(five["rampType"]);
+            Assert.NotNull(five["rampOutline"]);
+            Assert.Equal("{\"key\":\"floors.ramp\",\"why\":\"keyRules.rampSlope and rampTypes give no ramp type for VL3\"}", ((JArray)five["lacks"]).Last().ToString(Newtonsoft.Json.Formatting.None));
+        }
+
+        [Fact]
+        public void R359_a_split_pattern_none_keeps_the_cluster_whole()
+        {
+            // The rules profile holds none for a DP3 TH3 TH3 DP3 cluster
+            Assert.Equal("none", (string)JObject.Parse(File.ReadAllText(BuildStepTests.RepoRules()))["levelProfiles"]["parsons2024Rev6"]["keyRules"]["levelSplit"]["table"]["DP3 TH3 TH3 DP3"]);
+            var ordered = new List<string> { "2", "3", "8", "9" };
+            var roles = ordered.ToDictionary(plot => plot, plot => new ClusterRole { Plots = ordered });
+            var units = new Dictionary<string, string> { ["2"] = "DP3", ["3"] = "TH3", ["8"] = "TH3", ["9"] = "DP3" };
+            Dictionary<string, List<string>> pieces = KeyLevels.LevelPieces(new[] { "2", "8" }, roles, new Dictionary<string, string>(), units, new JObject { ["DP3 TH3 TH3 DP3"] = "none" });
+            Assert.Equal("2 3 8 9|2 3 8 9", string.Join(" ", pieces["2"]) + "|" + string.Join(" ", pieces["8"]));
+            Assert.Empty(KeyLevels.SplitWalls("none", 4));
         }
 
         [Fact]

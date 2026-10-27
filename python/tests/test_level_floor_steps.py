@@ -17,6 +17,9 @@ import project_profile
 
 DP2_FILE = "RRE-WP-NSP-KEO-ARC-DP2-ZZ-MOD-2200.rvt"
 VD2_FILE = "RRE-WP-NSP-KEO-ARC-VD2-ZZ-MOD-2200.rvt"
+TH1_FILE = "RRE-WP-NSP-KEO-ARC-TH1-ZZ-MOD-2200.rvt"
+# Every factor of the hand alone a unit in no cluster of the row can take, not mirrored for the file of TH1
+TH1_HANDS = {factor: False for factor in ("pair left", "pair right", "alone no left", "alone no right", "alone no none", "alone no both")}
 UNITS = {"1": "VD2", "2": "DP2", "3": "DP2", "4": "DP2", "5": "DP2", "6": "DP2"}
 # The lines of LevelFloorStepTests.cs, the C# refuses with the same
 NO_FFL = ("the steps levels and floors of the parity harness are a build by the level rules of keyRules, keyRules of parsons2024Rev6 codes no ffl, the C# builds the "
@@ -25,6 +28,8 @@ YARD_LINE = ("the step floors of the parity harness takes the yard outlines of k
              "outlines lie in config/floor_outlines.json, which the C# does not read (R358)")
 # A made up yard outline of DP2 not mirrored on a 12 m plot, in the link frame
 YARD = {"unit": "DP2", "mirrored": False, "width": 12.0, "type": "Yard made up", "loops": [[[1.0, 2.0], [5.0, 2.0], [5.0, 6.0], [1.0, 6.0]]]}
+# A made up yard outline of TH1, which TH1-IM takes as its keo_file, holding none of its own
+YARD_TH1 = {"unit": "TH1", "mirrored": False, "width": 12.0, "type": "Yard TH1 made up", "loops": [[[2.0, 3.0], [6.0, 3.0], [6.0, 7.0]]]}
 
 
 def made_rules(split=None):
@@ -34,19 +39,21 @@ def made_rules(split=None):
     key = values["levelProfiles"]["parsons2024Rev6"]["keyRules"]
     key["hand villa"] = {"rule": "blockMirrorRoadSide", "byFile": {VD2_FILE: {"no left": True, "no none": False}}}
     key["hand cluster"] = {"rule": "clusterSide", "byFile": {DP2_FILE: {"left": False, "right": True}}}
-    key["hand alone"] = {"rule": "rowPairSideOrBlockMirrorOpenEnd", "byFile": {DP2_FILE: {"pair left": False, "pair right": True}}}
-    key["yardOutline"] = {"rule": "fittedOutlineRefit", "groups": [YARD]}
+    key["hand alone"] = {"rule": "rowPairSideOrBlockMirrorOpenEnd", "byFile": {DP2_FILE: {"pair left": False, "pair right": True}, TH1_FILE: TH1_HANDS}}
+    key["yardOutline"] = {"rule": "fittedOutlineRefit", "groups": [YARD, YARD_TH1]}
     key["levelSplit"] = {"rule": "units", "table": split or {}}
     return project_profile.ProjectProfile(real.path, values)
 
 
-def made_build(monkeypatch, overrides=None, split=None):
+def made_build(monkeypatch, overrides=None, split=None, units=None, zones=None):
     """A row of six 12 m faces along a road at y = -3, plot 1 a VD2 villa, 2 and 3 a DP2 pair of the footprint, 4 to 6 DP2 units in no
-    cluster, the road level 10 m plus a hundredth of x, built with a trace, and the steps linkFrame, levels and floors of it."""
+    cluster, each in Zone 2, units and zones another code or zone of a plot, the road level 10 m plus a hundredth of x, built with a trace,
+    and the steps linkFrame, levels and floors of it."""
     settings = project_profile.load_settings()
     profile = made_rules(split)
     numbers = [str(index) for index in range(1, 7)]
-    rows = {number: {"locationPlanNumber": number, "typologyRev9": UNITS[number], "footprintMirrored": "no", "zone": "Zone 2"} for number in numbers}
+    rows = {number: {"locationPlanNumber": number, "typologyRev9": dict(UNITS, **(units or {}))[number], "footprintMirrored": "no",
+                     "zone": (zones or {}).get(number, "Zone 2")} for number in numbers}
     # Each face drawn anticlockwise from its low left corner, as the C# test draws it, so shapely walks it from there the other way round
     faces = {number: Polygon([(index * 12.0, 0.0), (index * 12.0 + 12.0, 0.0), (index * 12.0 + 12.0, 25.0), (index * 12.0, 25.0)]).buffer(0)
              for index, number in enumerate(numbers)}
@@ -61,7 +68,7 @@ def made_build(monkeypatch, overrides=None, split=None):
     site = {"levels": {floors["levels"][kind]: 0.0 for kind in ("generic", "yard", "ramp")}, "surveyPoint": {"position": [0, 0, 0], "sharedPosition": [0, 0, 0]},
             "angleToTrueNorthDeg": 0.0}
     outlines = json.loads((Path(__file__).resolve().parents[2] / "config" / "floor_outlines.json").read_text(encoding="utf-8"))
-    files = {"DP2": DP2_FILE, "VD2": VD2_FILE}
+    files = {"DP2": DP2_FILE, "VD2": VD2_FILE, "TH1-IM": TH1_FILE}
     trace = {}
     plan = plan_from_book.build(numbers, rows, {}, faces, roads, clusters, profile, settings, {"units": {}}, files, "folder", site, [("road", None)], outlines, "N1",
                                 sales, True, rules, trace=trace)
@@ -166,6 +173,41 @@ def test_r358_parity_floors_the_ramp_generic_and_yard_outlines_and_the_ramp_type
     assert entries["5"]["written"]["yardOutline"] == [loop["points"] for loop in plan["yard"]["outline"]["value"]["loops"]]
     assert [corner[:2] for corner in plan["ramp"]["corners"]["value"]] == entries["5"]["written"]["rampOutline"]
     assert [corner[2] for corner in plan["ramp"]["corners"]["value"]] == entries["5"]["written"]["rampZ"] and plan["ramp"]["type"]["value"] == "Ramps 0.5%"
+
+
+def test_r358_a_zone_with_no_yard_gives_the_plot_no_yard_and_no_lack(monkeypatch):
+    # keyRules.yard gives Zone 4, the zone of IMG, noYard
+    built = made_build(monkeypatch, zones={"5": "Zone 4"})
+    five = built["floors"]["5"]
+    assert (five["yardDepth"], five["yardUnit"], five["yardWidth"], five["yardType"], five["yardOutline"], five["lacks"]) == (None, None, None, None, None, [])
+    assert five["rampType"] == "Ramps 0.5%" and "yard" not in built["plan"]["5"]["floors"]
+
+
+def test_r358_a_code_with_no_yard_outline_of_its_own_takes_the_outline_of_its_keo_file(monkeypatch):
+    built = made_build(monkeypatch, units={"5": "TH1-IM"})
+    five, link = built["floors"]["5"], built["links"]["5"]
+    assert link["mirrored"] is False and (five["yardUnit"], five["yardType"], five["yardWidth"]) == ("TH1", "Yard TH1 made up", 12.0)
+    insert = plan_from_past.point(link["insert"])
+    assert plan_from_past.plan_rotation(link["rotationDeg"]) == 0.0
+    assert five["yardOutline"] == [[[insert[0] + x, insert[1] + y] for x, y in YARD_TH1["loops"][0]]]
+
+
+def test_r358_a_code_keyrules_ramp_slope_holds_no_class_for_lacks_its_ramp_type(monkeypatch):
+    # VL3 has no entry in keyRules.rampSlope of the rules profile
+    assert "VL3" not in made_rules().get("levelProfiles")["parsons2024Rev6"]["keyRules"]["rampSlope"]["table"]
+    five = made_build(monkeypatch, units={"5": "VL3"})["floors"]["5"]
+    assert (five["rampClass"], five["rampType"]) == (None, None) and five["rampOutline"] is not None
+    assert five["lacks"][-1] == {"key": "floors.ramp", "why": "keyRules.rampSlope and rampTypes give no ramp type for VL3"}
+
+
+def test_r359_a_split_pattern_none_keeps_the_cluster_whole():
+    # The rules profile holds none for a DP3 TH3 TH3 DP3 cluster
+    assert project_profile.load_profile(project_profile.profile_path(project_profile.load_settings())).get(
+        "levelProfiles")["parsons2024Rev6"]["keyRules"]["levelSplit"]["table"]["DP3 TH3 TH3 DP3"] == "none"
+    roles = {plot: {"plots": ["2", "3", "8", "9"]} for plot in ("2", "3", "8", "9")}
+    units = {"2": "DP3", "3": "TH3", "8": "TH3", "9": "DP3"}
+    pieces = plan_rules.level_pieces(["2", "8"], roles, {}, units, {"DP3 TH3 TH3 DP3": "none"})
+    assert pieces == {"2": ["2", "3", "8", "9"], "8": ["2", "3", "8", "9"]} and plan_rules.split_walls("none", 4) == []
 
 
 def test_r358_the_back_ramp_corners_take_el_at_entry_as_written_at_4_decimals_never_its_raw_value():
