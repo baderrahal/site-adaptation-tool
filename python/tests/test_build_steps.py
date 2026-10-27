@@ -396,6 +396,21 @@ def test_r355_a_setting_due_as_a_number_is_refused_with_the_line_of_csharp(tmp_p
         assert str(error.value) == "rampSlopePercent C10 of the level profile holds %s, a build takes it as a number (R337)" % kind
 
 
+def test_r345_a_csv_of_the_data_book_with_a_byte_that_is_no_utf8_is_refused_as_the_csharp_refuses_it(tmp_path):
+    """F5 of the third review of PR 55: book_rows and nbh_plots read plots.csv and labels.csv as utf-8-sig, so a byte that is no UTF-8 such as
+    0xE9 is refused, where CsvRows of the C# took it as U+FFFD (R345_a_csv_of_the_data_book_with_a_byte_that_is_no_utf8_is_refused)."""
+    path = tmp_path / "plots.csv"
+    path.write_bytes(b"\xef\xbb\xbflocationPlanNumber,baseplanLabel,typologyRev9\n1,101,DP\xe9\n")
+    with pytest.raises(UnicodeDecodeError):
+        plan_from_book.book_rows(path)
+    labels = tmp_path / "labels.csv"
+    labels.write_bytes(b"kind,number,nbh\nclientCode,1,0\xe912\n")
+    with pytest.raises(UnicodeDecodeError):
+        plan_from_book.nbh_plots(labels, None)
+    path.write_bytes(b"\xef\xbb\xbflocationPlanNumber,baseplanLabel,typologyRev9\n1,101,DP2\n")
+    assert plan_from_book.book_rows(path)[0]["1"]["typologyRev9"] == "DP2"
+
+
 # R355 the fronts: a 12 m face 3 m off a road along y = -3, a corner face with a second road along x = 45, and a face with no unit
 FRONT_FACES = {"11": ring(0.0, 0.0, 12.0, 25.0), "12": ring(30.0, 0.0, 42.0, 25.0), "13": ring(60.0, 0.0, 72.0, 25.0)}
 FRONT_ROWS = {"11": {"typologyRev9": "DP2"}, "12": {"typologyRev9": "C10"}, "13": {"typologyRev9": ""}}

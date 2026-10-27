@@ -477,6 +477,20 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        // F5 of the third review of PR 55: plots.csv and labels.csv are read as utf-8-sig, as book_rows and nbh_plots read them, so a byte that
+        // is no UTF-8 such as 0xE9 is refused where File.ReadAllText took it as U+FFFD
+        [Fact]
+        public void R345_a_csv_of_the_data_book_with_a_byte_that_is_no_utf8_is_refused()
+        {
+            string path = Path.Combine(folder, "plots.csv");
+            File.WriteAllBytes(path, new byte[] { 0xEF, 0xBB, 0xBF }.Concat(System.Text.Encoding.ASCII.GetBytes("locationPlanNumber,baseplanLabel,typologyRev9\n1,101,DP"))
+                .Concat(new byte[] { 0xE9, 0x0A }).ToArray());
+            Assert.Equal("plots.csv is no UTF-8 text, the byte 0xE9 at 57 is none, as Python reads it with utf-8-sig (R345)", Assert.Throws<InvalidDataException>(() => CsvRows.Read(path)).Message);
+            File.WriteAllBytes(path, new byte[] { 0xEF, 0xBB, 0xBF }.Concat(System.Text.Encoding.ASCII.GetBytes("locationPlanNumber,baseplanLabel,typologyRev9\n1,101,DP2\n")).ToArray());
+            Assert.Equal("DP2", CsvRows.Read(path)[0]["typologyRev9"]);
+            Assert.Equal("locationPlanNumber", CsvRows.Read(path)[0].Keys.First());
+        }
+
         [Fact]
         public void R354_a_level_profile_with_no_key_rules_or_a_key_rule_a_build_cannot_give_is_refused_with_the_lines_of_python()
         {
