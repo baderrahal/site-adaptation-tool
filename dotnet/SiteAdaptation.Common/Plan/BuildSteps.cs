@@ -458,7 +458,7 @@ namespace SiteAdaptation.Common
                                 List<PlanWall> walls = wallRules == null ? new List<PlanWall>() : Walls.OfPlans(site.Numbers, plans, site.Faces, fronts, wallRules);
                                 foreach (PlanWall wall in walls)
                                 {
-                                    Walls.Mark(wall, table, plans, rulePlans);
+                                    Walls.Mark(wall, table, plans, rulePlans, wallRules);
                                 }
                                 made[Walls.StepName] = Walls.Step(site.Numbers, plans, walls);
                                 tables[Walls.StepName] = Walls.Tables(walls, table);

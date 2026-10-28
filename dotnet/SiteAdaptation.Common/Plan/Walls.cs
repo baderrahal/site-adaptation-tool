@@ -119,6 +119,48 @@ namespace SiteAdaptation.Common
             return (a[0] == left[0] && a[1] == left[1] && b[0] == right[0] && b[1] == right[1]) || (a[0] == right[0] && a[1] == right[1] && b[0] == left[0] && b[1] == left[1]);
         }
 
+        // plan_walls.open_edge, breaker F2 of PR 79: the front of R355 given as frame, or on a plot a rotationDeg override turned, the edge of its
+        // ring whose outward normal runs most against the link Y axis that rotation and mirrored give after the overrides, the inward normal of
+        // the front as LinkFrames.Axes makes it, the first such edge in ring order
+        public static double[][] OpenEdge(double[][] ring, double[][] frame, double rotation, bool mirrored, bool turned)
+        {
+            if (!turned)
+            {
+                return frame;
+            }
+            double turn = rotation * (Math.PI / 180.0);
+            double[] axis = { Math.Cos(turn), Math.Sin(turn) };
+            double[] right = mirrored ? new[] { -axis[0], -axis[1] } : axis;
+            double[] inward = { -right[1], right[0] };
+            double twice = 0.0;
+            for (int index = 0; index < ring.Length; index++)
+            {
+                double[] a = ring[index], b = ring[(index + 1) % ring.Length];
+                twice += a[0] * b[1] - b[0] * a[1];
+            }
+            double? best = null;
+            double[][] found = frame;
+            for (int index = 0; index < ring.Length; index++)
+            {
+                double[] a = ring[index], b = ring[(index + 1) % ring.Length];
+                double dx = b[0] - a[0], dy = b[1] - a[1];
+                double size = Math.Sqrt(dx * dx + dy * dy);
+                if (size == 0)
+                {
+                    continue;
+                }
+                // The outward normal lies right of the edge on an anticlockwise ring and left of it on a clockwise one
+                double[] outward = twice > 0 ? new[] { dy / size, -dx / size } : new[] { -dy / size, dx / size };
+                double against = -(outward[0] * inward[0] + outward[1] * inward[1]);
+                if (best == null || against > best.Value)
+                {
+                    best = against;
+                    found = new[] { a, b };
+                }
+            }
+            return found;
+        }
+
         private static double[] Bounds(double[][] ring)
         {
             return new[] { ring.Min(point => point[0]), ring.Min(point => point[1]), ring.Max(point => point[0]), ring.Max(point => point[1]) };
@@ -300,20 +342,39 @@ namespace SiteAdaptation.Common
                     ffls[item.Key] = Rounding.Fixed(ffl.Value, 3);
                 }
             }
+            Dictionary<string, double[][]> rings = faces.Where(item => item.Value != null).ToDictionary(item => item.Key, item => item.Value.Ring);
             var frames = new Dictionary<string, double[][]>(StringComparer.Ordinal);
             foreach (KeyValuePair<string, FrontItem> item in fronts)
             {
-                if (plans.TryGetValue(item.Key, out PlotPlan plan) && Written(plan) && item.Value?.Frame != null)
+                if (plans.TryGetValue(item.Key, out PlotPlan plan) && Written(plan) && item.Value?.Frame != null && rings.ContainsKey(item.Key))
                 {
-                    frames[item.Key] = new[] { item.Value.Frame.Left, item.Value.Frame.Right };
+                    // Breaker F2 of PR 79. The open edge after the overrides, the front of R355 or the edge a rotation override turned the link to face
+                    var rotation = (StepValue)plan.Overrides["rotationDeg"];
+                    bool turned = AppliedOf(plan).Contains("rotationDeg");
+                    frames[item.Key] = OpenEdge(rings[item.Key], new[] { item.Value.Frame.Left, item.Value.Frame.Right },
+                        Convert.ToDouble(rotation.Written, System.Globalization.CultureInfo.InvariantCulture), (bool)(JToken)plan.Overrides["mirrored"], turned);
                 }
             }
-            return Of(order, new HashSet<string>(ffls.Keys, StringComparer.Ordinal), faces.Where(item => item.Value != null).ToDictionary(item => item.Key, item => item.Value.Ring), frames, ffls, rules);
+            return Of(order, new HashSet<string>(ffls.Keys, StringComparer.Ordinal), rings, frames, ffls, rules);
         }
 
-        // plan_walls.mark: the status of each value of a wall, the base and the top as moved by an override of their plot that moved its FFL, in
-        // the order the build applied them, rulePlans the plots built with no override (Q107)
-        public static void Mark(PlanWall wall, ValueStatusTable table, IReadOnlyDictionary<string, PlotPlan> plans, IReadOnlyDictionary<string, PlotPlan> rulePlans)
+        private static List<string> AppliedOf(PlotPlan plan)
+        {
+            return plan?.AppliedOrder ?? plan?.Overrides["applied"] as List<string> ?? new List<string>();
+        }
+
+        // plan_walls.ffl_of: the FFL of a written plot at the decimals of the plan, null for none
+        private static double? WrittenFfl(PlotPlan plan)
+        {
+            double? ffl = Ffl(plan);
+            return Written(plan) && ffl.HasValue ? Rounding.Fixed(ffl.Value, 3) : (double?)null;
+        }
+
+        // plan_walls.mark: the status of each value of a wall, the base and the top held against the pick of the rule, the plot of the highest or
+        // lowest FFL of the plots of the wall with no override: a value at that FFL keeps its own list, and one an override moved, by the FFL of its
+        // plot or by the pick, names the override applied last on the two plots whose set holds it (Q107, breaker F3 of PR 79). With no plan of the
+        // rule for a plot of the wall the value is held by the FFL of its own plot alone
+        public static void Mark(PlanWall wall, ValueStatusTable table, IReadOnlyDictionary<string, PlotPlan> plans, IReadOnlyDictionary<string, PlotPlan> rulePlans, WallRules higher)
         {
             foreach (string field in Fields)
             {
@@ -323,11 +384,28 @@ namespace SiteAdaptation.Common
                 bool unmoved = false;
                 if (level != null && plans.TryGetValue(level, out PlotPlan plan))
                 {
-                    applied = plan.AppliedOrder ?? plan.Overrides["applied"] as List<string> ?? new List<string>();
-                    PlotPlan rule = null;
-                    rulePlans?.TryGetValue(level, out rule);
-                    rule = rule != null && Written(rule) ? rule : null;
-                    unmoved = applied.Count > 0 && rule != null && ValueStatus.Unmoved(table.MovedBy("walls." + field), plan, rule, table.Decimals);
+                    List<string> writers = wall.Plots.Where(name => plans.TryGetValue(name, out PlotPlan other) && WrittenFfl(other).HasValue).ToList();
+                    var ruleFfls = new Dictionary<string, double?>(StringComparer.Ordinal);
+                    foreach (string name in writers)
+                    {
+                        PlotPlan rule = null;
+                        rulePlans?.TryGetValue(name, out rule);
+                        ruleFfls[name] = WrittenFfl(rule);
+                    }
+                    if (rulePlans != null && rulePlans.Count > 0 && ruleFfls.Values.All(value => value.HasValue))
+                    {
+                        string picked = Pick(writers, ruleFfls.ToDictionary(item => item.Key, item => item.Value.Value), field == "base" ? higher.HigherBase : higher.HigherTop);
+                        applied = AppliedOf(plans[picked]).Concat(level != picked ? AppliedOf(plan) : new List<string>()).ToList();
+                        unmoved = WrittenFfl(plan) == ruleFfls[picked];
+                    }
+                    else
+                    {
+                        applied = AppliedOf(plan);
+                        PlotPlan rule = null;
+                        rulePlans?.TryGetValue(level, out rule);
+                        rule = rule != null && Written(rule) ? rule : null;
+                        unmoved = applied.Count > 0 && rule != null && ValueStatus.Unmoved(table.MovedBy("walls." + field), plan, rule, table.Decimals);
+                    }
                 }
                 Tuple<string, JObject, string> status = table.Of("walls." + field, source, null, applied, unmoved);
                 // Q107. The source stays that of the value, an override that moved it named in the key alone

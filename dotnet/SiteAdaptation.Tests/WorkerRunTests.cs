@@ -205,7 +205,7 @@ namespace SiteAdaptation.Tests
                 (request => request.Inputs[1].Path = Write("plots.csv.tmp-r9", "x"), "temporary name"),
                 (request => request.Command = "draw", "the command draw"),
                 (request => request.Command = "levelExcel", "the command levelExcel is not built yet"),
-                (request => request.Steps = new List<string> { "walls" }, "the step walls"),
+                (request => request.Steps = new List<string> { "gardenWalls" }, "the step gardenWalls is not one the C# build gives"),
                 (request => request.Inputs.RemoveAt(0), "names no config"),
             };
             int index = 0;

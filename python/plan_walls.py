@@ -14,6 +14,8 @@ from collections import Counter
 from shapely.geometry import box
 from shapely.strtree import STRtree
 
+import common
+import plan_rules
 import project_profile
 import value_status
 
@@ -70,6 +72,33 @@ def same_edge(a, b, frame):
     left, right = (frame[0][0], frame[0][1]), (frame[1][0], frame[1][1])
     ends = ((a[0], a[1]), (b[0], b[1]))
     return ends == (left, right) or ends == (right, left)
+
+
+def open_edge(ring, frame, rotation, mirrored, turned):
+    """R362, breaker F2 of PR 79. The edge a wall build leaves open on a plot: the front of R355 given as frame, or on a plot a rotationDeg
+    override turned, the edge of its ring whose outward normal runs most against the link Y axis that rotation and mirrored give after the
+    overrides, the inward normal of the front as cad_links.link_axes makes it, the first such edge in ring order."""
+    if not turned:
+        return frame
+    turn = math.radians(rotation)
+    axis = (math.cos(turn), math.sin(turn))
+    right = (-axis[0], -axis[1]) if mirrored else axis
+    inward = (-right[1], right[0])
+    twice = 0.0
+    for a, b in edges_of(ring):
+        twice += a[0] * b[1] - b[0] * a[1]
+    best, found = None, frame
+    for a, b in edges_of(ring):
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        size = math.sqrt(dx * dx + dy * dy)
+        if size == 0:
+            continue
+        # The outward normal lies right of the edge on an anticlockwise ring and left of it on a clockwise one
+        outward = (dy / size, -dx / size) if twice > 0 else (-dy / size, dx / size)
+        against = -(outward[0] * inward[0] + outward[1] * inward[1])
+        if best is None or against > best:
+            best, found = against, (a, b)
+    return found
 
 
 def bounds_of(ring):
@@ -165,15 +194,33 @@ def entry(wall):
             "basePlot": wall["basePlot"], "topPlot": wall["topPlot"]}
 
 
-def mark(item, wall, table, applied, entries, rules):
-    """R401. The status of each value of a wall through valueStatus, the base and the top as moved by an override of their plot that moved its FFL,
-    applied the overrides of each plot in the order the build applied them, entries the plan entries and rules those with no override (Q107)."""
+def ffl_of(entry):
+    """The FFL of a plan entry at the decimals of the plan, None for none."""
+    value = (((entry or {}).get("levels") or {}).get("ffl") or {}).get("value")
+    return None if value is None else common.fixed(value, plan_rules.FFL_DECIMALS)
+
+
+def mark(item, wall, table, applied, entries, rules, higher):
+    """R401. The status of each value of a wall through valueStatus, applied the overrides of each plot in the order the build applied them,
+    entries the plan entries, rules those with no override and higher the wall rules. The base and the top are held against the pick of the
+    rule, the plot of the highest or lowest FFL of the plots of the wall with no override: a value at that FFL keeps its own list, and one an
+    override moved, by the FFL of its plot or by the pick, names the override applied last on the two plots whose set holds it (Q107, breaker F3
+    of PR 79). With no plan of the rule for a plot of the wall the value is held by the FFL of its own plot alone."""
     for field in FIELDS:
         level = {"base": wall["basePlot"], "top": wall["topPlot"]}.get(field)
-        done = tuple(applied.get(level) or ()) if level is not None else ()
-        rule = rules.get(level) if level is not None else None
-        unmoved = bool(done) and value_status.unmoved("walls." + field, value_status.fields_of(entries[level]),
-                                                      None if rule is None else value_status.fields_of(rule), table)
+        done, unmoved = (), False
+        if level is not None:
+            writers = [plot for plot in wall["plots"] if ffl_of(entries.get(plot)) is not None]
+            rule_ffls = {plot: ffl_of(rules.get(plot)) for plot in writers}
+            if rules and all(value is not None for value in rule_ffls.values()):
+                picked = pick(writers, rule_ffls, higher["higherBase" if field == "base" else "higherTop"])
+                done = tuple(applied.get(picked) or ()) + (tuple(applied.get(level) or ()) if level != picked else ())
+                unmoved = ffl_of(entries[level]) == rule_ffls[picked]
+            else:
+                done = tuple(applied.get(level) or ())
+                rule = rules.get(level)
+                unmoved = bool(done) and value_status.unmoved("walls." + field, value_status.fields_of(entries[level]),
+                                                              None if rule is None else value_status.fields_of(rule), table)
         item[field]["status"], detail, item[field]["statusFrom"] = table.of("walls." + field, item[field]["source"], None, done, unmoved)
         table.used[item[field]["statusFrom"]] = detail
 

@@ -83,7 +83,7 @@ def test_r362_r401_each_wall_value_carries_the_status_of_its_entries_and_an_ffl_
     wall = made()[0]
     entries = {plot: {"plot": plot, "levels": {"ffl": {"value": FFLS[plot], "source": "estimate"}}} for plot in FFLS}
     item = plan_walls.entry(wall)
-    plan_walls.mark(item, wall, table, {}, entries, {})
+    plan_walls.mark(item, wall, table, {}, entries, {}, RULES)
     assert {field: (item[field]["source"], item[field]["status"], item[field]["statusFrom"]) for field in plan_walls.FIELDS} == {
         "plots": ("locationPlan", "DOCUMENT", "walls.plots from locationPlan"), "ends": ("keyRules", "UNKNOWN", "walls.ends from keyRules"),
         "base": ("keyRules", "MEASURED", "walls.base from keyRules"), "top": ("keyRules", "MEASURED", "walls.top from keyRules")}
@@ -92,13 +92,13 @@ def test_r362_r401_each_wall_value_carries_the_status_of_its_entries_and_an_ffl_
     # A heightM override that moved the FFL of 2, the higher plot of the wall, gives its base and top the status of the override list
     rule = {"2": {"plot": "2", "levels": {"ffl": {"value": 100.4, "source": "estimate"}}}}
     item = plan_walls.entry(wall)
-    plan_walls.mark(item, wall, table, {"2": ("heightM",)}, entries, rule)
+    plan_walls.mark(item, wall, table, {"2": ("heightM",)}, entries, rule, RULES)
     assert (item["base"]["status"], item["base"]["statusFrom"], item["top"]["statusFrom"]) == ("RECOMMENDED", "walls.base from override by heightM",
                                                                                             "walls.top from override by heightM")
     assert item["ends"]["statusFrom"] == "walls.ends from keyRules"
     # An override that left the FFL at its value by the rule moved no wall
     item = plan_walls.entry(wall)
-    plan_walls.mark(item, wall, table, {"2": ("heightM",)}, entries, {"2": entries["2"]})
+    plan_walls.mark(item, wall, table, {"2": ("heightM",)}, entries, {"2": entries["2"]}, RULES)
     assert item["base"]["statusFrom"] == "walls.base from keyRules"
 
 
@@ -111,13 +111,16 @@ def test_r362_parity_walls_the_plan_places_on_the_made_up_row_after_the_override
     walls = built["trace"]["walls"]
     assert [(item["plot"], item["edge"], item["plots"]["value"], common.r3(item["base"]["value"]), common.r3(item["top"]["value"]), item["basePlot"]) for item in walls] == [
         ("1", 0, ["1"], 10.188, 11.988, "1"), ("1", 1, ["1"], 10.188, 11.988, "1"), ("1", 2, ["1", "2"], 10.428, 12.228, "2"),
-        ("2", 1, ["2"], 10.428, 12.228, "2"), ("2", 2, ["2", "3"], 10.528, 12.328, "3"), ("3", 1, ["3"], 10.528, 12.328, "3"),
+        ("2", 2, ["2", "3"], 10.528, 12.328, "3"), ("2", 3, ["2"], 10.428, 12.228, "2"), ("3", 1, ["3"], 10.528, 12.328, "3"),
         ("3", 2, ["3", "4"], 10.548, 12.348, "4"), ("4", 1, ["4"], 10.548, 12.348, "4"), ("4", 2, ["4", "5"], 10.788, 12.588, "5"),
         ("5", 1, ["5"], 10.788, 12.588, "5"), ("5", 2, ["5", "6"], 10.788, 12.588, "5"), ("6", 1, ["6"], 10.788, 12.588, "6"),
         ("6", 2, ["6"], 10.788, 12.588, "6")]
     # The FFL of each written plot less the yard depth of 0.1 m and plus the 1.7 m of Rev 6, the front edge along the road at y = -3 open
     assert all(item["base"]["value"] == built["plan"][item["basePlot"]]["levels"]["ffl"]["value"] - 0.1 for item in walls)
-    assert not any(item["ends"]["value"][0][1] == item["ends"]["value"][1][1] == 0.0 for item in walls)
+    # The rotation override of -179.999 turns the link of 2 to face its back edge, so that edge is open and the front of the rule along the road
+    # walled, the only wall on the road (breaker F2 of PR 79). The 1.5 degrees of 6 leave its front facing the road
+    assert [(item["plot"], item["edge"]) for item in walls if item["ends"]["value"][0][1] == item["ends"]["value"][1][1] == 0.0] == [("2", 3)]
+    assert not any(item["ends"]["value"][0][1] == item["ends"]["value"][1][1] == 25.0 and item["plots"]["value"] == ["2"] for item in walls)
     assert [item["base"]["statusFrom"] for item in walls if item["basePlot"] == "3"] == ["walls.base from override by heightM"] * 2
     assert built["summary"]["walls"] == {"walls": 13, "byPlots": {"1": 8, "2": 5}, "statusByField": {
         "walls.plots": {"DOCUMENT": 13}, "walls.ends": {"UNKNOWN": 13}, "walls.base": {"MEASURED weak": 11, "RECOMMENDED": 2},
@@ -131,3 +134,41 @@ def test_r362_parity_walls_the_plan_places_on_the_made_up_row_after_the_override
     assert tables["statusFrom"]["walls.base from override by heightM"]["override"] == "heightM"
     assert tuple(project_profile.load_settings().get("addin")["parity"]["steps"]["walls"]) == plan_walls.STEP_FIELDS
     assert all(tuple(made[number]) == plan_walls.STEP_FIELDS for number in made)
+
+
+def test_r362_a_plot_a_rotation_override_turned_leaves_open_the_edge_its_link_faces():
+    # Breaker F2 of PR 79: the link Y axis of rotationDeg and mirrored after the overrides, the inward normal of the front (cad_links.link_axes),
+    # names the edge whose outward normal runs most against it, the first in ring order. A plot no rotation override turned keeps the front of R355
+    ring, frame = [(0.0, 0.0), (10.0, 0.0), (10.0, 20.0), (0.0, 20.0)], ((0.0, 0.0), (10.0, 0.0))
+    assert plan_walls.open_edge(ring, frame, 0.0, False, True) == ((0.0, 0.0), (10.0, 0.0))
+    assert plan_walls.open_edge(ring, frame, 90.0, False, True) == ((10.0, 0.0), (10.0, 20.0))
+    assert plan_walls.open_edge(ring, frame, 270.0, True, True) == ((10.0, 0.0), (10.0, 20.0))
+    assert plan_walls.open_edge(ring[::-1], frame, 180.0, False, True) == ((0.0, 20.0), (10.0, 20.0))
+    assert plan_walls.open_edge(ring, frame, 90.0, False, False) == frame
+    # The walls of 1, 2 and 5 with the link of 2 turned to face its side on 5: that side open from both, its front on the road walled
+    rings = {plot: RINGS[plot] for plot in ("1", "2", "5")}
+    opened = {"1": FRAMES["1"], "2": plan_walls.open_edge(RINGS["2"], FRAMES["2"], 90.0, False, True), "5": FRAMES["5"]}
+    found = made(rings=rings, frames=opened)
+    assert [(wall["plot"], wall["edge"]) for wall in found] == [("1", 1), ("1", 2), ("1", 3), ("2", 0), ("2", 2), ("5", 1), ("5", 2)]
+
+
+def test_r362_r401_a_base_whose_pick_an_override_changed_names_the_override():
+    # Breaker F3 of PR 79: by the rule 2 is the higher plot of the wall of 1 and 2, its heightM override drops it under 1, so the base and the top
+    # are those of 1, which holds no override, yet differ from those with no override and so name heightM
+    settings = project_profile.load_settings()
+    profile = project_profile.load_profile(project_profile.profile_path(settings))
+    table = value_status.table_of(settings, profile, "parsons2024Rev6")
+    ffls = dict(FFLS, **{"2": 99.98})
+    wall = made(ffls=ffls)[0]
+    assert (wall["plots"], wall["basePlot"], wall["topPlot"]) == (["1", "2"], "1", "1")
+    entries = {plot: {"plot": plot, "levels": {"ffl": {"value": ffls[plot], "source": "estimate"}}} for plot in ffls}
+    rules = {plot: {"plot": plot, "levels": {"ffl": {"value": FFLS[plot], "source": "estimate"}}} for plot in FFLS}
+    item = plan_walls.entry(wall)
+    plan_walls.mark(item, wall, table, {"2": ("heightM",)}, entries, rules, RULES)
+    assert (item["base"]["status"], item["base"]["statusFrom"], item["top"]["statusFrom"]) == ("RECOMMENDED", "walls.base from override by heightM",
+                                                                                            "walls.top from override by heightM")
+    # The pick of the rule the same at the same FFL keeps the list of the value, though the other plot of the wall moved
+    rules = dict(rules, **{"2": {"plot": "2", "levels": {"ffl": {"value": 99.9, "source": "estimate"}}}})
+    item = plan_walls.entry(wall)
+    plan_walls.mark(item, wall, table, {"2": ("heightM",)}, entries, rules, RULES)
+    assert item["base"]["statusFrom"] == "walls.base from keyRules"

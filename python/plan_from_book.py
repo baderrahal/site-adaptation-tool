@@ -1102,10 +1102,12 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         rings = {plot: list(shape.exterior.coords)[:-1] for plot, shape in faces.items() if shape is not None and shape.geom_type == "Polygon"}
         ffls = {plot: common.fixed(entry["levels"]["ffl"]["value"], plan_rules.FFL_DECIMALS) for plot, entry in written.items()
                 if (entry.get("levels") or {}).get("ffl", {}).get("value") is not None}
-        for wall in plan_walls.walls(numbers, set(ffls), rings, {plot: (frames[plot]["left"], frames[plot]["right"]) for plot in written if frames.get(plot)}, ffls,
-                                     wall_rules):
+        # Breaker F2 of PR 79. The open edge after the overrides, the front of R355 or the edge a rotation override turned the link to face
+        opened = {plot: plan_walls.open_edge(rings[plot], (frames[plot]["left"], frames[plot]["right"]), entry["rotationDeg"]["value"], entry["mirrored"]["value"],
+                                             "rotationDeg" in (applied_of.get(plot) or ())) for plot, entry in written.items() if frames.get(plot) and plot in rings}
+        for wall in plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules):
             item = plan_walls.entry(wall)
-            plan_walls.mark(item, wall, statuses, applied_of, written, by_rule)
+            plan_walls.mark(item, wall, statuses, applied_of, written, by_rule, wall_rules)
             walls.append(item)
     if trace is not None:
         trace["walls"] = walls
