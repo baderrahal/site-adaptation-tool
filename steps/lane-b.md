@@ -169,7 +169,7 @@ QL9. Tabular figures. Libre Franklin 2.000 and 3.000 have no tnum feature, so th
 - Other: numbers in Segoe UI. Segoe UI Regular has one width for every digit by default, 539 for each, and Segoe UI Semibold has 5 widths, 402 to 576, by default, both files hold a tnum feature (RAN and READ in 5a PR 2), so the Semibold numbers need the tnum request the theme already makes.
 - Other: Bader gives another font.
 
-QL10. Icon 4 hole. The 12-ui-spec.md line of 4 Place villas reads "M25 6.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 fill white (32 only)" with no "no stroke", so by the defaults of the spec the 2 wide SA.Heading stroke covers the white fill and the pin shows a navy dot. 5a PR 2 draws it as written, seen in a render of the 16 icons (RAN).
+QL10. Icon of Place villas, its hole. The 12-ui-spec.md line of 7 Place villas (4 before Bader's changes of 28 Oct 2026) reads "M25 6.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 fill white (32 only)" with no "no stroke", so by the defaults of the spec the 2 wide SA.Heading stroke covers the white fill and the pin shows a navy dot. 5a PR 2 draws it as written, seen in a render of the 16 icons (RAN).
 - Recommended: "no stroke", a white hole as the canvas likely shows.
 - Other: keep it as written.
 
@@ -190,7 +190,7 @@ QL14. Step rows and rows 32. docs/design/12-ui-spec.md says rows 32 and gives ea
 - Recommended: step rows of 40, on the scale as 24 plus 16, with the input and project rows kept at 32, and the step line cut with an ellipsis and its full text as tooltip.
 - Other: Bader gives the heights.
 
-QL15. Input rows at 380 wide. docs/design/12-ui-spec.md puts mark, label, file name, size, short hash and Browse on one row of 32 at 380 wide, and in steps/ui-shots/pane.png the size and hash show in full on 0 of 9 rows (READ the PNG).
+QL15. Input rows at 380 wide. docs/design/12-ui-spec.md puts mark, label, file name, size, short hash and Browse on one row of 32 at 380 wide, and in steps/ui-shots/pane.png the size and hash show in full on 0 of 9 rows (READ the PNG), and on 0 of 10 since the Shared parameters row (5a PR 8, steps/ui-shots/README.md).
 - Recommended: keep the file name, put size and short hash in the tooltip under the full path, as 7.2 of docs/design/07-mock.md lets the tooltip tell two files apart.
 - Other: two-line input rows.
 - Other: a wider pane.
