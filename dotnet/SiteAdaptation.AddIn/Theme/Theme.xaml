@@ -33,8 +33,9 @@
   <SolidColorBrush x:Key="SA.Error" Color="#B42318" />
   <SolidColorBrush x:Key="SA.ErrorGround" Color="#FDECEA" />
 
-  <!-- Font. The fallbacks of the spec until Libre Franklin is bundled. -->
-  <FontFamily x:Key="SA.Font">Franklin Gothic Book, Segoe UI</FontFamily>
+  <!-- Font. The bundled Libre Franklin first, then the fallbacks of the spec. The file is the variable font, WPF takes its named
+       instances Regular and SemiBold as faces of their own, measured in 5a. -->
+  <FontFamily x:Key="SA.Font">./Fonts/#Libre Franklin, Franklin Gothic Book, Segoe UI</FontFamily>
   <FontNumeralAlignment x:Key="SA.Figures">Tabular</FontNumeralAlignment>
 
   <!-- Type. Each key has its size and its weight for a control, and a TextBlock style of the same name. -->

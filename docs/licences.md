@@ -113,6 +113,17 @@ Python stays in the repo as the checker and the data book builder only, it never
 | Pygments | 2.21.0 | BSD-2-Clause | pytest | READ METADATA |
 | colorama | 0.4.6 | BSD License | pytest on Windows | READ METADATA, the classifier |
 
+## Fonts
+
+A font is no package, so the licence list of the packages above does not cover it. docs/design/12-ui-spec.md, approved by Bader on 28 Oct 2026, names Libre Franklin under the SIL Open Font License for the add-in. The font file is a resource of SiteAdaptation.AddIn.dll and OFL.txt ships beside the DLL as Theme\Fonts\OFL.txt. The OFL lets the font be bundled with software as long as the licence goes with it and the font is not sold alone.
+
+| Font | Version | Licence | Ships with | Source | SHA-256 | Checked |
+|---|---|---|---|---|---|---|
+| Libre Franklin | 3.000, the variable file, weights 100 to 900 | OFL-1.1 | add-in, dotnet/SiteAdaptation.AddIn/Theme/Fonts/LibreFranklin-Variable.ttf, renamed from LibreFranklin[wght].ttf | https://raw.githubusercontent.com/google/fonts/a2daac853851393356624c3a63cf2727da3d1960/ofl/librefranklin/LibreFranklin%5Bwght%5D.ttf, google/fonts commit a2daac853851393356624c3a63cf2727da3d1960 of 2024-09-05, the last commit of the file | 2329f394b10ed1c71107df20fddc11e2bb1b68c1ecbb385f975b36fd64a971f8 | SEARCHED the link, READ METADATA.pb of the same folder, license OFL, RAN, the same SHA-256 as the file on the main branch of google/fonts on 28 Oct 2026 |
+| Libre Franklin licence | the OFL.txt of the same commit | OFL-1.1 | add-in, dotnet/SiteAdaptation.AddIn/Theme/Fonts/OFL.txt | https://raw.githubusercontent.com/google/fonts/a2daac853851393356624c3a63cf2727da3d1960/ofl/librefranklin/OFL.txt | 2710268527181a27b8e938617551bae29e714e6525247be6679bf897a9942a60 | READ, SIL Open Font License Version 1.1 |
+
+The variable file was measured in WPF on .NET Framework 4.8 on the laptop in Lane B 5a (RAN): WPF lists its named instances as faces of their own, and Regular and SemiBold load with weight 400 and 600 and no simulation. A text drawn at 100 px gives 28,901 dark pixels at Regular and 42,033 at SemiBold, against 28,845 and 42,040 from the static Regular and SemiBold files of the font's own repository at commit 310b7eef1f7b7ba82322295e0034675ea68040b0, so the weights are drawn and not only spaced. The static files are not shipped. Neither the 3.000 file nor the 2.000 file of google/fonts commit bac9b4ad19c8f13b8586908f09c735b528a05b2e holds a tnum feature (READ, the GSUB feature list of each), so the tabular figures of the spec do not come from this font.
+
 ## Conflicts
 
 - shapely 2.2.0 is BSD-3-Clause, and its Windows and Linux wheels bundle the GEOS library under LGPLv2.1 (READ licenses\LICENSE_GEOS). numpy, pillow and pypdfium2 hold parts under other permissive licences (0BSD, Zlib, CC0-1.0, MIT-CMU and the dependency licences of PDFium). None of them ships with the add-in. Q076 asks Bader whether the Python checker keeps them.
