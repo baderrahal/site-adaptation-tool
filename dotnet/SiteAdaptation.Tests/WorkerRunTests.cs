@@ -769,6 +769,40 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        // R347, Q107. An output streamed to its file is the text of a copy of its content with the run stamp set, each double exact, a run key of
+        // the content in its place and none after the last key, and the content of the command is left as it gave it, as the step status of a
+        // whole build held its tree four times and the text of the file once, 2,913 MiB in all on net48
+        [Fact]
+        public void R347_R401_an_output_is_the_text_of_its_content_with_the_run_stamp_and_the_content_is_left_as_given()
+        {
+            var given = new List<JObject>
+            {
+                new JObject { ["plots"] = new JObject { ["1"] = new JObject { ["raw"] = new JObject { ["z"] = 0.1 + 0.2, ["list"] = new JArray(1e-7, 12345.678901234567, double.NaN) } } }, ["name"] = "Façade" },
+                new JObject { ["run"] = "an old stamp", ["after"] = new JArray(), ["empty"] = new JObject() },
+            };
+            var texts = new List<string>();
+            var commands = new Dictionary<string, WorkerCommand>
+            {
+                ["build"] = run =>
+                {
+                    for (int index = 0; index < given.Count; index++)
+                    {
+                        var copy = (JObject)given[index].DeepClone();
+                        copy[RunStamp.Key] = RunStamp.Of(run.Request);
+                        texts.Add(copy.ToString(Newtonsoft.Json.Formatting.Indented, new ExactDouble.Converter()));
+                        run.WriteJson(run.Request.OutputFolder, "out_" + index + ".json", given[index]);
+                    }
+                },
+            };
+            Assert.Equal(0, WorkerRunner.Run(Save(Request("r60")), commands, () => 9000.0));
+            for (int index = 0; index < given.Count; index++)
+            {
+                Assert.Equal(new System.Text.UTF8Encoding(false).GetBytes(texts[index]), File.ReadAllBytes(Path.Combine(folder, "out_" + index + ".json")));
+            }
+            Assert.Null(given[0][RunStamp.Key]);
+            Assert.Equal("an old stamp", (string)given[1][RunStamp.Key]);
+        }
+
         // A command that writes two outputs, a.json and then b.json
         private static Dictionary<string, WorkerCommand> TwoOutputs()
         {

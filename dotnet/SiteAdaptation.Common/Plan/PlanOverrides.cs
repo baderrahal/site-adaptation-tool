@@ -40,6 +40,9 @@ namespace SiteAdaptation.Common
         public Dictionary<string, object> Overrides { get; set; }
 
         public Dictionary<string, object> Parameters { get; set; }
+
+        // Q107. The applied overrides of the plot in the order the build applied them, so a status names the one that moved a value
+        public List<string> AppliedOrder { get; set; }
     }
 
     // R360, R337, R340, R280, R386. Step 12 of the plan builder: what a build does with each override of each plot, applied or left with why, as
@@ -401,14 +404,26 @@ namespace SiteAdaptation.Common
         {
             private readonly Dictionary<string, HashSet<string>> done = new Dictionary<string, HashSet<string>>();
             private readonly Dictionary<string, Dictionary<string, string>> why = new Dictionary<string, Dictionary<string, string>>();
+            // Q107. The overrides of each plot in the order the build applied them
+            private readonly Dictionary<string, List<string>> order = new Dictionary<string, List<string>>();
 
             public void Applied(string plot, string field)
             {
                 if (!done.ContainsKey(plot))
                 {
                     done[plot] = new HashSet<string>();
+                    order[plot] = new List<string>();
                 }
-                done[plot].Add(field);
+                if (done[plot].Add(field))
+                {
+                    order[plot].Add(field);
+                }
+            }
+
+            // Outcomes.in_order: the applied overrides of a plot, those Plot gives, in the order the build applied them
+            public List<string> InOrder(string plot, ICollection<string> applied)
+            {
+                return order.TryGetValue(plot, out List<string> found) ? found.Where(applied.Contains).ToList() : new List<string>();
             }
 
             public void Leave(string plot, string field, string because)
@@ -789,6 +804,7 @@ namespace SiteAdaptation.Common
                 made["written"] = written;
                 made["applied"] = outcome?.Item1;
                 made["notApplied"] = outcome?.Item2;
+                found[number].AppliedOrder = outcome == null ? null : outcomes.InOrder(number, outcome.Item1);
                 parameters["written"] = written;
                 parameters["parameters"] = texts;
                 parameters["sources"] = sources;

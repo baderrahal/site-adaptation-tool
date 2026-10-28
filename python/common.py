@@ -52,16 +52,17 @@ def r3(value, decimals=DECIMALS):
 
 
 # Keys named in wide_keys keep WIDE_DECIMALS, every other number keeps DECIMALS
-def round_tree(node, wide_keys=frozenset()):
+def round_tree(node, wide_keys=frozenset(), kept_keys=frozenset()):
+    # A key of kept_keys keeps its value as given, never rounded
     if isinstance(node, dict):
-        return {key: (r3(item, WIDE_DECIMALS) if key in wide_keys else round_tree(item, wide_keys)) for key, item in node.items()}
+        return {key: (item if key in kept_keys else r3(item, WIDE_DECIMALS) if key in wide_keys else round_tree(item, wide_keys, kept_keys)) for key, item in node.items()}
     if isinstance(node, (list, tuple)):
-        return [round_tree(item, wide_keys) for item in node]
+        return [round_tree(item, wide_keys, kept_keys) for item in node]
     return r3(node)
 
 
-def write_json(path, payload, wide_keys=frozenset()):
+def write_json(path, payload, wide_keys=frozenset(), kept_keys=frozenset()):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(round_tree(payload, wide_keys), indent=1, ensure_ascii=False), encoding="utf-8")
+    path.write_text(json.dumps(round_tree(payload, wide_keys, kept_keys), indent=1, ensure_ascii=False), encoding="utf-8")
     return path

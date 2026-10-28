@@ -3,6 +3,7 @@ with no failure, found in the review of PR 53, on made up workbooks (R10). dotne
 side of the same cases."""
 import datetime
 import json
+import math
 import zipfile
 from pathlib import Path
 
@@ -118,8 +119,19 @@ def test_r350_read_steps_refuses_a_table_of_no_row(tmp_path, capsys):
 
 def test_r347_q083_the_config_names_the_peak_of_a_whole_read_with_its_reason():
     peaks = project_profile.load_settings().get("addin.workerPeakMiB")
-    assert peaks["commands"] == {"read": 3900}
+    assert peaks["commands"] == {"read": 3900, "build": 2200}
     assert "4,008" in peaks["commandsNote"] and "CHOSEN" in peaks["commandsNote"]
+
+
+def test_r347_q107_the_peak_of_a_whole_build_is_the_highest_of_six_plus_the_larger_swing_rounded_up():
+    """Q107. Three whole builds of the whole project per runtime once the step status wrote keys and the step files were streamed, the
+    swing of three runs too few to set one, so the larger of it and the 1,147 MiB of the read (round_addin logs p4g2_peaks2.txt)."""
+    peaks = project_profile.load_settings().get("addin.workerPeakMiB")
+    net48, net8 = [958.8, 969.2, 974.8], [845.3, 844.8, 844.9]
+    swing = max(max(net48) - min(net48), max(net8) - min(net8), 3899 - 2752)
+    assert peaks["commands"]["build"] == math.ceil((max(net48 + net8) + swing) / 100) * 100 == 2200
+    note = peaks["commandsNote"]
+    assert "build 2,200" in note and "974.8" in note and "1,147" in note and "4,248" in note and "p4g2_peaks2.txt" in note and chr(59) not in note
 
 
 def test_r347_the_peak_of_a_whole_read_is_the_highest_measured_with_the_read_order_plus_the_largest_swing_measured_rounded_up():

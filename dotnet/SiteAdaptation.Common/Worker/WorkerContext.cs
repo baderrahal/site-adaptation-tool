@@ -90,19 +90,63 @@ namespace SiteAdaptation.Common
         // the run stamp of RunStamp, written by its temporary name. Its name is given back, the file is there once the run is done
         public string WriteJson(string folder, string name, JObject content)
         {
+            return Write(folder, name, (writer, exact, stamp) =>
+            {
+                bool placed = false;
+                foreach (JProperty item in content.Properties())
+                {
+                    if (item.Name == RunStamp.Key)
+                    {
+                        writer.WritePropertyName(item.Name);
+                        stamp.WriteTo(writer, exact);
+                        placed = true;
+                        continue;
+                    }
+                    item.WriteTo(writer, exact);
+                }
+                if (!placed)
+                {
+                    writer.WritePropertyName(RunStamp.Key);
+                    stamp.WriteTo(writer, exact);
+                }
+            });
+        }
+
+        // R345, Q107. An output whose keys write gives to the writer with the converter of exact doubles, such as a step file by StepFile.Write,
+        // the run stamp after them, so no object of the whole output is made first
+        public string WriteJson(string folder, string name, Action<JsonWriter, JsonConverter> write)
+        {
+            return Write(folder, name, (writer, exact, stamp) =>
+            {
+                write(writer, exact);
+                writer.WritePropertyName(RunStamp.Key);
+                stamp.WriteTo(writer, exact);
+            });
+        }
+
+        private string Write(string folder, string name, Action<JsonWriter, JsonConverter, JObject> body)
+        {
             string full = Path.GetFullPath(folder ?? "");
             bool allowed = new[] { Request.OutputFolder, Request.StepsFolder }.Any(place => !string.IsNullOrEmpty(place) && string.Equals(Path.GetFullPath(place).TrimEnd(Path.DirectorySeparatorChar), full.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase));
             if (!allowed || name != Path.GetFileName(name) || WorkFiles.IsTemporary(name))
             {
                 throw new InvalidOperationException("an output of the worker goes only into the output or the steps folder of the request, under a plain name: " + Path.Combine(folder ?? "", name));
             }
-            var stamped = (JObject)content.DeepClone();
-            stamped[RunStamp.Key] = RunStamp.Of(Request);
+            JObject stamp = RunStamp.Of(Request);
             string path = Path.Combine(full, name);
             Directory.CreateDirectory(full);
             string temporary = WorkFiles.TemporaryName(path, Request.RunId);
-            // R350. Every double written so it reads back as the same double, which the format R of net48 does not give
-            File.WriteAllText(temporary, stamped.ToString(Formatting.Indented, new ExactDouble.Converter()), new System.Text.UTF8Encoding(false));
+            // R350. Every double written so it reads back as the same double, which the format R of net48 does not give. Q107: streamed to the
+            // file, the stamp in place of a run key of the content or after its last key, the text a copy of the content with the stamp set
+            // gives, as that copy and the text of the whole file held a step file of a whole build twice more in memory
+            var exact = new ExactDouble.Converter();
+            using (var file = new StreamWriter(temporary, false, new System.Text.UTF8Encoding(false)))
+            using (var writer = new JsonTextWriter(file) { Formatting = Formatting.Indented })
+            {
+                writer.WriteStartObject();
+                body(writer, exact, stamp);
+                writer.WriteEndObject();
+            }
             written.Add(new KeyValuePair<string, string>(temporary, path));
             return path;
         }

@@ -634,13 +634,13 @@ def hand_build(monkeypatch, change=None):
     clusters = [{"code": "Duplex_DP2", "plots": ["2", "3"], "source": "footprint"}]
     monkeypatch.setattr(plan_from_book, "road_level", lambda surfaces, point, snap: (10.0, "road"))
     args = argparse.Namespace(level_profile=None, overrides=None, override_source=None, override_model=[], override_fields=None)
-    rules = plan_from_book.rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters)
+    files = {"DP2": DP2_FILE, "VD2": VD2_FILE}
+    rules = plan_from_book.rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters, files=files)
     floors = plan_from_past.load_floors(settings)
     site = {"levels": {floors["levels"][kind]: 0.0 for kind in ("generic", "yard", "ramp")}, "surveyPoint": {"position": [0, 0, 0], "sharedPosition": [0, 0, 0]},
             "angleToTrueNorthDeg": 0.0}
     outlines = json.loads((Path(__file__).resolve().parents[2] / "config" / "floor_outlines.json").read_text(encoding="utf-8"))
-    files = {"DP2": DP2_FILE, "VD2": VD2_FILE}
-    trace = {}
+    trace = {"partners": rules["partners"]}
     plan = plan_from_book.build(numbers, rows, {}, faces, roads, clusters, profile, settings, {"units": {}}, files, "folder", site, [("road", None)], outlines, "N1",
                                 sales, True, rules, trace=trace)
     trace["plan"] = plan
@@ -721,16 +721,33 @@ def no_cluster_table(key):
 
 def test_r357_q098_a_cluster_unit_whose_file_has_no_table_of_hand_cluster_takes_the_table_of_hand_alone(monkeypatch):
     step, trace = hand_build(monkeypatch, no_cluster_table)
-    for number in ("2", "3"):
+    # Since Q105 their factor is the pair of the row walked as if no cluster held them
+    for number, factor, hand in (("2", "pair right", True), ("3", "pair left", False)):
         found = step[number]
         assert (found["unitClass"], found["handTable"], found["handRule"], found["factor"], found["mirrored"]) == (
-            "cluster", "alone", "rowPairSideOrBlockMirrorOpenEnd", "alone no none", True)
-        assert trace["hands"][number] == {"mirrored": True, "rule": "rowPairSideOrBlockMirrorOpenEnd"}
+            "cluster", "alone", "rowPairSideOrBlockMirrorOpenEnd", factor, hand)
+        assert trace["hands"][number] == {"mirrored": hand, "rule": "rowPairSideOrBlockMirrorOpenEnd"}
     # The plan writes both with that hand, where with no fall back they had no hand and were not written
     written = {entry["plot"]: entry for entry in trace["plan"]["plots"]}
-    assert written["2"]["mirrored"]["value"] is True and written["3"]["mirrored"]["value"] is True
+    assert written["2"]["mirrored"]["value"] is True and written["3"]["mirrored"]["value"] is False
     # A unit in no cluster and the villa keep their own table
     assert (step["4"]["handTable"], step["1"]["handTable"]) == ("alone", "villa")
+
+
+def test_r357_q105_a_cluster_unit_of_the_hand_alone_table_takes_the_row_pair_of_no_cluster_for_its_hand_only(monkeypatch):
+    """Q105. Plots 2 and 3 of the made up row, a DP2 cluster whose file holds no table of hand cluster, take the table of hand alone (Q098)
+    and walk their row pair as if no cluster held them: the row 2 to 6 paired from its right end gives 2 pair right and 3 pair left. The
+    row pairs of 4 to 6 and the row partners of the levels stay those of the plain walk, which leaves a cluster unit out."""
+    step, trace = hand_build(monkeypatch, no_cluster_table)
+    assert step["2"]["rowPair"] == {"left": 0, "right": 4, "length": 5, "side": "right"}
+    assert step["3"]["rowPair"] == {"left": 1, "right": 3, "length": 5, "side": "left"}
+    assert [(step[number]["factor"], step[number]["mirrored"]) for number in ("2", "3")] == [("pair right", True), ("pair left", False)]
+    assert trace["hands"]["3"] == {"mirrored": False, "rule": "rowPairSideOrBlockMirrorOpenEnd"}
+    assert {number: step[number]["rowPair"]["side"] for number in ("4", "5", "6")} == {"4": "right", "5": "left", "6": "right"}
+    plain, _ = hand_build(monkeypatch)
+    assert step["4"]["rowPair"] == plain["4"]["rowPair"] and plain["2"]["rowPair"] is None
+    # The row partners of the levels of R359 from the plain walk, with or without the fall back of Q098
+    assert trace["partners"] == hand_build(monkeypatch)[1]["partners"] and "2" not in trace["partners"] and "3" not in trace["partners"]
 
 
 def test_r357_q098_the_table_of_a_unit_is_that_of_its_class_and_a_cluster_unit_falls_back_only_to_a_table_of_hand_alone_of_its_file():

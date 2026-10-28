@@ -121,6 +121,25 @@ def test_r345_no_geometry_is_exact_and_a_plot_or_a_value_on_one_side_only_fails(
     assert report["plots"] == 4
 
 
+def test_r345_r401_the_tables_of_two_step_files_are_compared_entry_by_entry_exactly_and_a_table_on_one_side_fails():
+    """R401, Q107. The step status writes the key of the detail of each value and the details once in the table statusFrom of the file, so
+    the parity compares each entry of each table exactly, with a count of the entries equal."""
+    detail = {"entries": [{"status": "MEASURED", "share": 0.9883}], "strength": "strong"}
+    python = dict(step("python", {"1": entry(face())}), tables={"statusFrom": {"a": detail, "b": {"entries": []}}})
+    csharp = dict(step("csharp", {"1": entry(face())}), tables={"statusFrom": {"a": copy.deepcopy(detail), "b": {"entries": []}}})
+    report = parity.compare(python, csharp, parity.tolerances(SETTINGS))
+    assert report["failures"] == [] and report["tables"] == {"statusFrom": {"equal": 2, "differ": 0}}
+    csharp["tables"]["statusFrom"]["a"]["entries"][0]["share"] = 0.988
+    csharp["tables"]["statusFrom"]["c"] = {}
+    report = parity.compare(python, csharp, parity.tolerances(SETTINGS))
+    assert why(report) == [("", "tables.statusFrom", "not equal"), ("", "tables.statusFrom", "only in csharp")]
+    assert [item["index"] for item in report["failures"]] == ["a", "c"] and report["tables"] == {"statusFrom": {"equal": 1, "differ": 2}}
+    del csharp["tables"]
+    assert why(parity.compare(python, csharp, parity.tolerances(SETTINGS))) == [("", "tables.statusFrom", "only in python"), ("", "tables.statusFrom", "only in python")]
+    # A step file of no table compares as before
+    assert parity.compare(step("python", {"1": entry(face())}), step("csharp", {"1": entry(face())}), parity.tolerances(SETTINGS))["tables"] == {}
+
+
 def test_r345_every_field_of_either_side_is_compared_a_field_with_no_tolerance_or_a_configured_field_missing_fails():
     extra = dict(face(), units=2)
     python = step("python", {"1": entry(extra), "2": entry({"face": False})})

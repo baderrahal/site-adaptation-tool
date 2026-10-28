@@ -58,7 +58,12 @@ namespace SiteAdaptation.Common
 
         public Dictionary<string, string> Kinds { get; } = new Dictionary<string, string>();
 
+        // The row pairs of the plain walk, which the row partners of the levels of R359 are made of
         public Dictionary<string, RowPair> RowPairs { get; set; }
+
+        // Q105. The row pairs the hands read: those of the plain walk, and for a cluster unit of the table of hand alone that of the walk as
+        // if no cluster held it
+        public Dictionary<string, RowPair> HandRowPairs { get; set; }
 
         public Dictionary<string, ClusterRole> Roles { get; set; }
     }
@@ -541,10 +546,35 @@ namespace SiteAdaptation.Common
             return string.IsNullOrEmpty(code) ? null : code;
         }
 
+        // plan_from_book.alone_table_units, Q105: the unit plots in a cluster that take the table of hand alone (HandTable, Q098), whose row pair
+        // is walked as if no cluster held them, for their hand alone. No key rules or no files leave the set empty
+        public static HashSet<string> AloneTableUnits(IEnumerable<string> units, IReadOnlyDictionary<string, Dictionary<string, string>> rows,
+            IReadOnlyDictionary<string, ClusterRole> roles, JObject keyRules, IReadOnlyDictionary<string, string> files, Func<string, string> kindOf)
+        {
+            var found = new HashSet<string>();
+            if (keyRules == null || files == null)
+            {
+                return found;
+            }
+            foreach (string plot in units)
+            {
+                string code = Code(rows, plot);
+                roles.TryGetValue(plot, out ClusterRole role);
+                string unitClass = UnitClass(kindOf(code), role);
+                string file = code != null && files.TryGetValue(code, out string named) ? named : null;
+                if (unitClass == "cluster" && HandTable(keyRules, unitClass, file) == "alone")
+                {
+                    found.Add(plot);
+                }
+            }
+            return found;
+        }
+
         // What rule_inputs gives a build by keyRules and the roles build takes, frames holding the front of every plot of the scope, of
         // every unit plot and of every plot of the clusters
         public static HandContext Context(IReadOnlyList<string> numbers, IReadOnlyDictionary<string, Dictionary<string, string>> rows, IReadOnlyDictionary<string, BuildFace> faces,
-            IReadOnlyList<SiteCluster> clusters, IReadOnlyDictionary<string, FrontFrame> frames, RoadLines roads, JObject rules, JObject config)
+            IReadOnlyList<SiteCluster> clusters, IReadOnlyDictionary<string, FrontFrame> frames, RoadLines roads, JObject rules, JObject config, JObject keyRules = null,
+            IReadOnlyDictionary<string, string> files = null)
         {
             JObject block = Majority(config);
             JObject prefixes = (JObject)block["kindByPrefix"];
@@ -570,9 +600,21 @@ namespace SiteAdaptation.Common
             Dictionary<string, ClusterRole> ruleRoles = ClusterRoles(clusters.Where(cluster => cluster.Plots.Count > 1), unitFaces, frames);
             var kinds = new HashSet<string>(((JArray)block["pairKinds"]).Select(item => (string)item));
             context.RowPairs = RowPairs(units, context.Neighbours, plot => PairKind(plot, rows, rules, prefixes), ruleRoles.ContainsKey, kinds);
+            context.HandRowPairs = context.RowPairs;
+            HashSet<string> free = AloneTableUnits(units, rows, ruleRoles, keyRules, files, code => KindOf(code, rules, prefixes));
+            if (free.Count > 0)
+            {
+                // Q105. The row pair of such a unit as if no cluster held it, for its hand alone, so RowPairs stays that of the plain walk
+                Dictionary<string, RowPair> walked = RowPairs(units, context.Neighbours, plot => PairKind(plot, rows, rules, prefixes), plot => ruleRoles.ContainsKey(plot) && !free.Contains(plot), kinds);
+                context.HandRowPairs = new Dictionary<string, RowPair>(context.RowPairs);
+                foreach (string plot in free.Where(walked.ContainsKey))
+                {
+                    context.HandRowPairs[plot] = walked[plot];
+                }
+            }
             foreach (string number in numbers)
             {
-                context.Pairs[number] = context.RowPairs.TryGetValue(number, out RowPair pair) ? pair.Side : null;
+                context.Pairs[number] = context.HandRowPairs.TryGetValue(number, out RowPair pair) ? pair.Side : null;
                 context.Kinds[number] = KindOf(Code(rows, number), rules, prefixes);
             }
             var wanted = new HashSet<string>(numbers);
@@ -595,7 +637,7 @@ namespace SiteAdaptation.Common
                 row?.TryGetValue("footprintMirrored", out mirrored);
                 context.Roles.TryGetValue(number, out ClusterRole role);
                 context.Neighbours.TryGetValue(number, out Sides sides);
-                context.RowPairs.TryGetValue(number, out RowPair pair);
+                context.HandRowPairs.TryGetValue(number, out RowPair pair);
                 context.OpenEnds.TryGetValue(number, out string open);
                 context.RoadSides.TryGetValue(number, out string road);
                 context.Pairs.TryGetValue(number, out string pairSide);

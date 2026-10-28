@@ -327,6 +327,8 @@ namespace SiteAdaptation.Common
             WorkerRequest request = run.Request;
             List<string> asked = steps.ToList();
             var made = new Dictionary<string, Dictionary<string, Dictionary<string, object>>>();
+            // R401. The tables of a step its plots point to by key, written once in its step file
+            var tables = new Dictionary<string, JObject>();
             try
             {
                 var site = new Site(run, config);
@@ -363,13 +365,14 @@ namespace SiteAdaptation.Common
                     // R357. The front of each plot by the corner rule of R226 as rule_inputs takes it, with no road level
                     Dictionary<string, FrontItem> fronts = Fronts.Of(framed, site.Rows, site.Faces, site.Roads, Fronts.Limits(site.Rules, site.Settings, site.RulesName),
                         (x, y) => new KeyValuePair<double?, string>(null, null), site.Rules, roadEdgeM, site.Sales, site.RulesName);
-                    HandContext context = Hands.Context(site.Numbers, site.Rows, site.Faces, site.Clusters, fronts.ToDictionary(item => item.Key, item => item.Value.Frame), site.Roads, site.Rules, site.Settings);
                     JObject key = BuildRules.KeyRules(site.Rules, request.LevelProfile, string.Join(", ", Names));
+                    // Q105. The file of each code tells the cluster units of the table of hand alone whose row pair the hand walks
+                    Dictionary<string, string> files = linked ? site.Files() : null;
+                    HandContext context = Hands.Context(site.Numbers, site.Rows, site.Faces, site.Clusters, fronts.ToDictionary(item => item.Key, item => item.Value.Frame), site.Roads, site.Rules,
+                        site.Settings, key, files);
                     Dictionary<string, Dictionary<string, object>> links = null, hands = null;
-                    Dictionary<string, string> files = null;
                     if (linked)
                     {
-                        files = site.Files();
                         hands = Hands.Step(site.Numbers, site.Rows, context, key, files, site.Rules, site.Settings);
                         run.Counts["hands of the scope with a mirror flag"] = hands.Values.Count(item => item["mirrored"] != null);
                         run.Counts["side neighbour pairs"] = context.Neighbours.Values.Sum(sides => sides.Left.Count + sides.Right.Count);
@@ -441,8 +444,14 @@ namespace SiteAdaptation.Common
                             {
                                 // R401. The status of each sourced value of a written plot, by the map of the settings and the block of the rules profile
                                 ValueStatusTable table = ValueStatus.Table(site.Settings, site.Rules, profileName);
-                                made[ValueStatus.StepName] = ValueStatus.Step(site.Numbers, plans, hands, table);
-                                foreach (KeyValuePair<Tuple<string, string>, int> count in ValueStatus.Counts(made[ValueStatus.StepName]))
+                                // Q107, R3 of the review of PR 75. The plots with no override, so a field an override left at its value by the rule
+                                // names no override, as plan_from_book.build builds them
+                                Dictionary<string, PlotPlan> rulePlans = list.Found.Count == 0 ? null : PlanOverrides.Of(site.Numbers, site.Rows, build, fronts, context, hands, key,
+                                    levelProfile, site.Rules, site.Settings, files, new OverrideList(new Dictionary<string, JObject>()), profileName,
+                                    FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), site.RulesName);
+                                made[ValueStatus.StepName] = ValueStatus.Step(site.Numbers, plans, hands, table, rulePlans);
+                                tables[ValueStatus.StepName] = ValueStatus.Tables(made[ValueStatus.StepName], table);
+                                foreach (KeyValuePair<Tuple<string, string>, int> count in ValueStatus.Counts(made[ValueStatus.StepName], table))
                                 {
                                     run.Counts["status " + count.Key.Item1 + " " + count.Key.Item2] = count.Value;
                                 }
@@ -458,7 +467,10 @@ namespace SiteAdaptation.Common
             foreach (KeyValuePair<string, Dictionary<string, Dictionary<string, object>>> step in made)
             {
                 run.Counts[step.Key + " items"] = step.Value.Count;
-                run.WriteJson(request.StepsFolder, StepFile.FileName(step.Key, "csharp"), StepFile.Build(step.Key, "csharp", StepFile.ScopeText(request.Scope), step.Value, config.StepFields(step.Key)));
+                tables.TryGetValue(step.Key, out JObject held);
+                // Q107. Streamed, so the step of a whole build is never made a second tree of raw and written values
+                run.WriteJson(request.StepsFolder, StepFile.FileName(step.Key, "csharp"), (writer, exact) => StepFile.Write(writer, exact, step.Key, "csharp", StepFile.ScopeText(request.Scope),
+                    step.Value, config.StepFields(step.Key), held));
             }
         }
     }

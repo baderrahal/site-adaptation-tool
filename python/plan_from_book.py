@@ -501,19 +501,17 @@ STATUS_FIELDS = ("unit", "written", "fields")
 
 def status_step(numbers, rows, trace):
     """R401. The step status of the parity harness: per plot of the scope each sourced value of the plot the plan writes by its field, with its
-    source, its status and the detail that gives it, and no field for a plot the plan does not write."""
+    source, its status and the key of the detail that gives it, and no field for a plot the plan does not write, and the table statusFrom of
+    the details by key, as the plan writes them once (Q107)."""
     built, details = trace.get("built") or {}, trace.get("statusFrom") or {}
-    found = {}
+    found, used = {}, set()
     for number in numbers:
         plot = built.get(number) or {"entry": {}, "written": False}
         fields = {field: {"source": item["source"], "status": item["status"], "statusFrom": item["statusFrom"]}
                   for field, item in value_status.fields_of(plot["entry"]).items()} if plot["written"] else None
-        if fields:
-            # R401. The plan writes each detail once in its table statusFrom, the step the detail of each value
-            for item in fields.values():
-                item["statusFrom"] = details[item["statusFrom"]]
+        used.update(item["statusFrom"] for item in (fields or {}).values())
         found[number] = {"unit": (rows.get(number) or {}).get("typologyRev9") or None, "written": plot["written"], "fields": fields}
-    return found
+    return found, {"statusFrom": {key: details[key] for key in sorted(used)}}
 
 
 def status_line(found):
@@ -669,12 +667,20 @@ class Outcomes:
         self.overrides, self.numbers, self.later, self.name = overrides, set(numbers), set(later), name
         self.ruled = getattr(overrides, "ruled", {})
         self.done, self.why, self.outside = defaultdict(set), defaultdict(dict), Counter()
+        # Q107. The overrides of each plot in the order the build applied them, so a status names the one that moved a value
+        self.order = defaultdict(list)
 
     def applied(self, number, field):
         if number in self.numbers:
             self.done[number].add(field)
+            if field not in self.order[number]:
+                self.order[number].append(field)
         else:
             self.outside[field] += 1
+
+    def in_order(self, number, applied):
+        """Q107. The applied overrides of a plot, those Outcomes.plot gives, in the order the build applied them."""
+        return [field for field in self.order[number] if field in set(applied)]
 
     def left(self, number, field, why):
         if number in self.numbers:
@@ -912,6 +918,13 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     not_measured, not_measured_plots, records, hand_rules = {}, Counter(), {}, Counter()
     # R401. The status of each sourced value from the block status of the rules profile, the map and the block read once per build
     statuses = value_status.table_of(settings, profile, None if rules is None else rules["name"])
+    by_rule = {}
+    if rules is not None and rules.get("overrides"):
+        # Q107, R3 of the review of PR 75. The plots as the build gives them with no override, so a field an override left at its value by
+        # the rule names no override
+        plain = build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales,
+                      numbered, dict(rules, overrides={}))
+        by_rule = {entry["plot"]: entry for entry in plain["plots"]}
     if trace is not None:
         trace["statusFrom"] = statuses.used
     if trace is not None:
@@ -1070,7 +1083,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         if complete:
             if records[number]:
                 builder.entry["overrides"] = records[number]
-            value_status.mark(builder.entry, statuses, table, records[number]["applied"] if records[number] else ())
+            value_status.mark(builder.entry, statuses, table, outcomes.in_order(number, records[number]["applied"]) if records[number] else (), by_rule.get(number))
             if rules is not None:
                 hand_rules[str(rule)] += 1
             plots.append(builder.entry)
@@ -1206,10 +1219,10 @@ def step_entries(settings, step, made, written=None):
     return plots
 
 
-def write_build_step(args, settings, step, made, written=None):
-    """R345, R354 to R357. step_<step>_python.json of a build step (step_entries)."""
+def write_build_step(args, settings, step, made, written=None, tables=None):
+    """R345, R354 to R357. step_<step>_python.json of a build step (step_entries), with the tables of the step, R401."""
     plots = step_entries(settings, step, made, written)
-    parity.write_step(args.steps, step, "python", step_scope(args.cover), plots, settings.values, build_inputs(args, settings, step))
+    parity.write_step(args.steps, step, "python", step_scope(args.cover), plots, settings.values, build_inputs(args, settings, step), tables)
     print("step %s: %d items (R345)" % (step, len(plots)))
 
 
@@ -1263,11 +1276,24 @@ def number_settings(settings):
             raise project_profile.ProfileError("config %s holds %s, a build takes it as a number (R355)" % (dotted, plan_rules.shape_name(value)))
 
 
-def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters=()):
+def alone_table_units(units, rows, roles, key, files, kind_of):
+    """Q105. The unit plots in a cluster that take the table of hand alone (plan_rules.hand_table, Q098), whose row pair of R333 is walked as
+    if no cluster held them, for their hand alone. files gives the file each code links, none given leaves the set empty."""
+    found = set()
+    for plot in units:
+        code = (rows.get(plot) or {}).get("typologyRev9")
+        name = plan_rules.unit_class(kind_of(code), roles.get(plot))
+        if name == "cluster" and plan_rules.hand_table(key, name, files.get(code)) == "alone":
+            found.add(plot)
+    return found
+
+
+def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters=(), files=None):
     """R277 to R280. The level profile, named or the default of R277, the hand rules, the open end of every plot and the overrides
     of the source models. R337: for a profile with keyRules also the side road, the pair of its row of units in no cluster (the
     clusters given, over every unit plot) and the kind of every plot, as majority.py gives them on the keys, the fronts of every
-    unit plot of plots.csv found so a row is walked past the plots of the build."""
+    unit plot of plots.csv found so a row is walked past the plots of the build. Q105: with files, the file of each code, a cluster unit that
+    takes the table of hand alone gets the row pair of the walk as if no cluster held it, for its hand alone."""
     import majority
     name = plan_rules.profile_name(profile, args.level_profile)
     lp = plan_rules.level_profile(profile, name)
@@ -1293,10 +1319,18 @@ def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clu
         tree = STRtree(roads) if len(roads) else None
         road_sides = {number: majority.road_side(faces.get(number), frames.get(number), tree, roads, corner["roadEdgeM"]) for number in numbers} if tree is not None else {}
         roles = cad_links.cluster_roles([cluster for cluster in clusters if len(cluster["plots"]) > 1], 0, {number: faces[number] for number in units}, frames)
-        found = key_rules.row_pairs(units, neighbours, lambda plot: majority.pair_kind(plot, rows, profile, block), lambda plot: plot in roles, block["pairKinds"])
-        pairs = {number: (found.get(number) or {}).get("side") for number in numbers}
+
+        def pair_kind(plot):
+            return majority.pair_kind(plot, rows, profile, block)
+        found = key_rules.row_pairs(units, neighbours, pair_kind, lambda plot: plot in roles, block["pairKinds"])
         # R340. The other unit of the row pair of every unit in no cluster, which shares its FFL by keyRules.ffl
         partners = plan_rules.row_partners({plot: item.get("side") for plot, item in found.items()}, neighbours)
+        free = alone_table_units(units, rows, roles, key, files or {}, lambda code: majority.kind_of(code, profile, block))
+        if free:
+            # Q105. The row pair of such a unit as if no cluster held it, for its hand alone, so the partners above stay those of the plain walk
+            walked = key_rules.row_pairs(units, neighbours, pair_kind, lambda plot: plot in roles and plot not in free, block["pairKinds"])
+            found = dict(found, **{plot: walked[plot] for plot in free if plot in walked})
+        pairs = {number: (found.get(number) or {}).get("side") for number in numbers}
         kinds = {number: majority.kind_of((rows.get(number) or {}).get("typologyRev9"), profile, block) for number in numbers}
     if args.override_fields:
         known = plan_rules.FIELDS + (plan_rules.KEY_FIELDS if key is not None else ())
@@ -1423,13 +1457,14 @@ def main(argv=None):
         if args.steps:
             write_build_step(args, settings, "clusters", cluster_step(cover["plots"], everything))
         # R277. Every build follows a level profile, the named one or levelProfiles.default
-        rules = rule_inputs(args, settings, profile, cover["plots"], rows, faces, roads, sales, everything)
+        # Q105. The file of each code, which tells the cluster units of the table of hand alone whose row pair the hand walks
+        files = folder_files(folder, profile)
+        rules = rule_inputs(args, settings, profile, cover["plots"], rows, faces, roads, sales, everything, files=files)
         # R339, R340. The road surfaces of the one setting majority.py measures the levels on
         args.road_names = plan_rules.road_names(block, rules["levelProfile"])
         surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in args.road_names], args.scratch)
         # R337. A build by keyRules takes the clusters of every unit plot, the site as the keys were measured on (R271)
         trace = {}
-        files = folder_files(folder, profile)
         plan = build(cover["plots"], rows, number_of, faces, roads, everything if by_keys else clusters, profile, settings,
                      prototype_offsets.plot_frame(prototype_offsets.load(args.offsets)), files, folder,
                      site_report(args.site), surfaces, floor_fit.load(args.floors), cover["neighbourhood"], sales, True, rules, trace=trace)
@@ -1444,7 +1479,8 @@ def main(argv=None):
             write_build_step(args, settings, "overrides", override_step(cover["plots"], rows, trace, hands, files, rules, profile, floor_fit.width_step(settings)),
                              {"rotationDeg": plan_from_past.plan_rotation})
             write_build_step(args, settings, "parameters", parameter_step(cover["plots"], rows, trace, rules))
-            write_build_step(args, settings, "status", status_step(cover["plots"], rows, trace))
+            status, tables = status_step(cover["plots"], rows, trace)
+            write_build_step(args, settings, "status", status, tables=tables)
         plan_from_past.write_plan(out, plan)
         done = True
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:

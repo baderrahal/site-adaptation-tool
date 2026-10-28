@@ -869,7 +869,8 @@ namespace SiteAdaptation.Tests
         // The steps hands and linkFrame of the made up row, the second with the hand of the first
         private static Tuple<Dictionary<string, Dictionary<string, object>>, Dictionary<string, Dictionary<string, object>>> HandSteps(Dictionary<string, string> codes = null,
             Func<Dictionary<string, Dictionary<string, object>>, Dictionary<string, Dictionary<string, object>>> handsOf = null, Dictionary<string, string> filesOf = null,
-            Action<JObject> contextConfig = null, Action<JObject> stepConfig = null, Action<JObject> linkKey = null, Action<JObject> handKey = null)
+            Action<JObject> contextConfig = null, Action<JObject> stepConfig = null, Action<JObject> linkKey = null, Action<JObject> handKey = null,
+            Action<HandContext> seeContext = null)
         {
             JObject rules = HandRules();
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
@@ -885,10 +886,11 @@ namespace SiteAdaptation.Tests
             var clusters = new List<SiteCluster> { new SiteCluster { Code = "Duplex_DP2", Plots = new List<string> { "2", "3" }, Source = "footprint" } };
             Dictionary<string, FrontItem> fronts = Fronts.Of(numbers, rows, faces, roads, Fronts.Limits(rules, config), (x, y) => new KeyValuePair<double?, string>(null, null), rules,
                 (double)config["siteBuild"]["corner"]["roadEdgeM"], sales);
-            HandContext context = Hands.Context(numbers, rows, faces, clusters, fronts.ToDictionary(item => item.Key, item => item.Value.Frame), roads, rules, config);
             var files = new Dictionary<string, string> { ["DP2"] = Dp2File, ["VD2"] = Vd2File };
             JObject key = BuildRules.KeyRules(rules, null, "hands");
             handKey?.Invoke(key);
+            HandContext context = Hands.Context(numbers, rows, faces, clusters, fronts.ToDictionary(item => item.Key, item => item.Value.Frame), roads, rules, config, key, files);
+            seeContext?.Invoke(context);
             stepConfig?.Invoke(config);
             Dictionary<string, Dictionary<string, object>> hands = Hands.Step(numbers.Concat(new[] { "7" }), rows, context, key, files, rules, config);
             hands = handsOf == null ? hands : handsOf(hands);
@@ -1080,12 +1082,35 @@ namespace SiteAdaptation.Tests
         public void R357_Q098_a_cluster_unit_whose_file_has_no_table_of_hand_cluster_takes_the_table_of_hand_alone()
         {
             Dictionary<string, Dictionary<string, object>> step = HandSteps(handKey: NoClusterTable).Item1;
-            foreach (string number in new[] { "2", "3" })
+            // Since Q105 their factor is the pair of the row walked as if no cluster held them
+            foreach (Tuple<string, string, bool> item in new[] { Tuple.Create("2", "pair right", true), Tuple.Create("3", "pair left", false) })
             {
-                Assert.Equal("cluster alone rowPairSideOrBlockMirrorOpenEnd alone no none", string.Join(" ", new[] { "unitClass", "handTable", "handRule", "factor" }.Select(name => step[number][name])));
-                Assert.True((bool)(JToken)step[number]["mirrored"]);
+                Assert.Equal("cluster alone rowPairSideOrBlockMirrorOpenEnd " + item.Item2, string.Join(" ", new[] { "unitClass", "handTable", "handRule", "factor" }.Select(name => step[item.Item1][name])));
+                Assert.Equal(item.Item3, (bool)(JToken)step[item.Item1]["mirrored"]);
             }
             Assert.Equal("alone villa", step["4"]["handTable"] + " " + step["1"]["handTable"]);
+        }
+
+        // test_r357_q105_a_cluster_unit_of_the_hand_alone_table_takes_the_row_pair_of_no_cluster_for_its_hand_only: plots 2 and 3 take the table
+        // of hand alone (Q098) and walk their row pair as if no cluster held them, the row 2 to 6 from its right end, 2 pair right and 3 pair
+        // left, while the row pairs of 4 to 6 and the row pairs the row partners of the levels are made of stay those of the plain walk
+        [Fact]
+        public void R357_Q105_a_cluster_unit_of_the_hand_alone_table_takes_the_row_pair_of_no_cluster_for_its_hand_only()
+        {
+            HandContext context = null;
+            Dictionary<string, Dictionary<string, object>> step = HandSteps(handKey: NoClusterTable, seeContext: found => context = found).Item1;
+            Assert.Equal("{\"left\":0,\"right\":4,\"length\":5,\"side\":\"right\"}", ((JObject)step["2"]["rowPair"]).ToString(Newtonsoft.Json.Formatting.None));
+            Assert.Equal("{\"left\":1,\"right\":3,\"length\":5,\"side\":\"left\"}", ((JObject)step["3"]["rowPair"]).ToString(Newtonsoft.Json.Formatting.None));
+            Assert.Equal("pair right True pair left False", step["2"]["factor"] + " " + (bool)(JToken)step["2"]["mirrored"] + " " + step["3"]["factor"] + " " + (bool)(JToken)step["3"]["mirrored"]);
+            Assert.Equal("right left right", string.Join(" ", new[] { "4", "5", "6" }.Select(number => (string)((JObject)step[number]["rowPair"])["side"])));
+            HandContext plain = null;
+            Dictionary<string, Dictionary<string, object>> before = HandSteps(seeContext: found => plain = found).Item1;
+            Assert.Null(before["2"]["rowPair"]);
+            Assert.Equal(((JObject)before["4"]["rowPair"]).ToString(), ((JObject)step["4"]["rowPair"]).ToString());
+            // The row partners of the levels of R359 from the plain walk, with or without the fall back of Q098
+            Assert.False(context.RowPairs.ContainsKey("2") || context.RowPairs.ContainsKey("3"));
+            Assert.Equal(string.Join(" ", plain.RowPairs.OrderBy(item => item.Key).Select(item => item.Key + item.Value.Side)),
+                string.Join(" ", context.RowPairs.OrderBy(item => item.Key).Select(item => item.Key + item.Value.Side)));
         }
 
         [Fact]
