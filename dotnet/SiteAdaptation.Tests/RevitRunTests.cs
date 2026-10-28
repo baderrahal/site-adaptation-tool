@@ -70,7 +70,7 @@ namespace SiteAdaptation.Tests
             return SecurityDialogs.Read("Security - Unsigned Add-In", "#32770", texts, new[] { "Always Load", "Load Once", "Do Not Load" });
         }
 
-        [Fact]
+        [WindowsFact]
         public void R108_the_watcher_lists_the_add_in_manifest_and_dll_so_its_box_gets_load_once()
         {
             JObject tool = ToolAddIns();
@@ -91,7 +91,7 @@ namespace SiteAdaptation.Tests
                 marks.Where(mark => mark != "Site Adaptation" && mark != "SiteAdaptation.AddIn.dll"), before.Select(at => paths[at])));
         }
 
-        [Fact]
+        [WindowsFact]
         public void R108_each_listed_path_is_the_folder_and_dll_its_install_script_writes()
         {
             JObject tool = ToolAddIns();
