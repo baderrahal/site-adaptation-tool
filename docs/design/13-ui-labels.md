@@ -1,0 +1,150 @@
+## 13. UI labels
+
+The label list of control 2 of docs/design/12-ui-spec.md, UI controls. Every label, title, help line, button text and chip text of a window, word for word from docs/design/12-ui-spec.md and 7.1 to 7.4 of docs/design/07-mock.md, grouped by window. A value is written `<n>`, and `<m>` or `<name>` where the spec writes them so. An entry the spec gives no words for is marked CHOSEN with its reason, for Bader's check.
+
+The gate test UiLabelTests reads this file. It fails on any text in the XAML or the view models of the add-in that the list of its window does not hold, and on any entry of a built window that no file of that window shows. A window with the line "Not built yet" counts against neither until the PR that builds it (QL11).
+
+### Ribbon
+
+- `Site Adaptation`
+- `Setup`
+- `Build`
+- `Output`
+- `1 Set up site`
+- `2 Read data`
+- `3 Check`
+- `4 Place villas`
+- `5 Floors and ramps`
+- `6 Levels`
+- `7 Walls`
+- `8 Report`
+
+### Pane
+
+- `Site Adaptation`
+- `Project`
+- `not saved`
+- `Next step`
+- `Run <n> <name>`
+- `Dry run is on.` CHOSEN, the spec asks one plain line that says dry run is on or off and gives no words
+- `Dry run is off.` CHOSEN, as the line above
+- `Start here`
+- `Choose the settings file`
+- `It names the drawings, the rules and the prototypes for this job. The tool fills the rest of this panel from it.`
+- `Choose settings file`
+- `Rules and settings for this job. Set once.`
+- `Settings`
+- `Rules`
+- `Level profile`
+- `Input files`
+- `The drawings and schedules the tool reads. All <n> found.`
+- `The drawings and schedules the tool reads. <m> of <n> found.`
+- `Baseplan`
+- `Villa blocks`
+- `Curbs`
+- `Road surface`
+- `DLUS and sales`
+- `Plot numbers`
+- `Prototypes`
+- `Browse`
+- `Not chosen`
+- `<n> MiB` CHOSEN, the size alone while the hash of a large file is worked out off the UI thread
+- `<n> MiB <n>`
+- `Scope`
+- `Which plots the next button works on.`
+- `Whole project`
+- `Neighbourhood`
+- `Plot list`
+- `Dry run first, change nothing`
+- `Villa mode`
+- `Masses`
+- `Links`
+- `Steps`
+- `Run them in order. Each one waits for the one before.`
+- `Coordinates, levels and types from CAD`
+- `Reads the drawings and schedules`
+- `Compares the rules with the past job`
+- `Places a villa on each plot`
+- `Generic, yard and ramp floors`
+- `Sets FFL and entry levels`
+- `Boundary and garden walls`
+- `Excel report of the run`
+- `Done`
+- `<n> issues`
+- `Done with <n> issues`
+- `Ready`
+- `Needs step <n>`
+- `Needs settings`
+
+### Set up site
+
+Not built yet, Phase 5b.
+
+- `1 Set up site`
+- `Empty project found`
+- `Existing site file`
+- `Sets the coordinates, levels and types of this model from the CAD drawings.`
+- `<n> of <n>`
+- `check points pass`
+- `What the project has now`
+- `What the tool will set`
+- `Survey point`
+- `Project base point`
+- `Levels`
+- `Floor types and wall types`
+- `Shared parameters`
+- `Units`
+- `Coordinate system`
+- `Angle to true north`
+- `Floor types`
+- `Wall types`
+- `Will change`
+- `Check points from CAD`
+- `Point`
+- `CAD`
+- `Revit`
+- `Diff`
+- `Pass limit 1 mm. <n> of <n> pass`
+- `On an existing site file`
+- `Nothing changes until Apply. Apply sets only the rows that differ.`
+- `Cancel`
+- `Dry run`
+- `Apply`
+
+### Check table
+
+Not built yet, Phase 5c.
+
+- `3 Check, NBH <n>, <n> plots`
+- `3 Check, NBH all, <n> plots`
+- `Level profile <n>, override file <n>, <n> overrides, <n> of them on NBH <n>`
+- `Zoom to plot`
+- `Export to Excel`
+- `Save overrides`
+- `Each row is a plot where the tool and the past job differ. Pick a row to see why, then choose Rule, Past or Skip. Save overrides keeps your choices.`
+- `All`
+- `Plot cut`
+- `Floor`
+- `Hand`
+- `Unit code`
+- `Position`
+- `Level`
+- `Parameter`
+- `<n> plots follow every rule`
+- `Plot`
+- `NBH`
+- `Unit`
+- `Check`
+- `Tool value (rule)`
+- `Past job`
+- `Rule`
+- `Use`
+- `Past`
+- `Skip`
+- `Selected`
+- `Plot <n>, <unit>, <check>`
+- `Tool`
+- `Choose`
+- `Keep the tool value.`
+- `Use the past job. Saved as an override.`
+- `Leave this plot out. It is listed in the report.`
