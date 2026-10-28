@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.AddIn.Pane
 {
@@ -49,14 +50,20 @@ namespace SiteAdaptation.AddIn.Pane
                 new FileRowViewModel(PaneText.DlusAndSales, false, InputKeys.Dlus, InputKeys.Sales),
                 new FileRowViewModel(PaneText.PlotNumbers, false, InputKeys.PlotNumbers),
                 new FileRowViewModel(PaneText.Prototypes, true, InputKeys.Prototypes),
+                new FileRowViewModel(PaneText.SharedParameters, false, InputKeys.ParameterSheet),
             });
             Steps = new ReadOnlyCollection<StepRowViewModel>(RibbonLayout.Buttons.Select(button => new StepRowViewModel(button.Number, StepName(button.Number), PaneText.StepLines[button.Number - 1])).ToList());
             BoxCommand = new PaneCommand(OnBox, () => document != null);
+            ImportCommand = new PaneCommand(() => Tell(PaneText.ImportPastJob), () => document != null);
+            ExportCommand = new PaneCommand(() => Tell(PaneText.Export), () => document != null);
             Load(null);
         }
 
         // The box button picks the settings file on first open, else asks for a run of the ribbon button it names
         public event Action<int> RunRequested;
+
+        // A message for the user, which the Revit side shows in a TaskDialog
+        public event Action<string> Told;
 
         public bool HasDocument { get { return document != null; } }
         public bool FirstOpen { get { return document == null || !document.Settings.Chosen; } }
@@ -68,6 +75,10 @@ namespace SiteAdaptation.AddIn.Pane
         public string BoxButton { get { return boxButton; } private set { Set(ref boxButton, value); } }
         public bool BoxButtonShown { get { return boxButtonShown; } private set { Set(ref boxButtonShown, value); } }
         public PaneCommand BoxCommand { get; }
+
+        // Import from past job and Export of the row Pre-setting. Import pre-setting of the first open box runs Import too
+        public PaneCommand ImportCommand { get; }
+        public PaneCommand ExportCommand { get; }
         public string InputHelp { get { return inputHelp; } private set { Set(ref inputHelp, value); } }
         public FileRowViewModel SettingsRow { get; }
         public FileRowViewModel RulesRow { get; }
@@ -310,6 +321,8 @@ namespace SiteAdaptation.AddIn.Pane
             RefreshSteps();
             RefreshBox();
             BoxCommand.Refresh();
+            ImportCommand.Refresh();
+            ExportCommand.Refresh();
             foreach (string name in new[] { nameof(HasDocument), nameof(FirstOpen), nameof(Settings), nameof(ScopeWhole), nameof(ScopeNbh), nameof(ScopePlots), nameof(Nbh), nameof(Plots), nameof(DryRun), nameof(VillaMasses), nameof(VillaLinks) })
             {
                 Changed(name);
@@ -460,6 +473,13 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 RunRequested?.Invoke(next);
             }
+        }
+
+        // The pre-setting has no logic in 5a, it joins R367 at 5c (W4 of steps/lane-b.md), so its buttons say they are not built
+        // yet in the words of the ribbon buttons with no body
+        private void Tell(string label)
+        {
+            Told?.Invoke(RunTexts.NotBuilt(label));
         }
 
         private bool ScopeIs(string kind)

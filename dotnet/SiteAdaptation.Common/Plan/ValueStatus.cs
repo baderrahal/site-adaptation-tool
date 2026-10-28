@@ -42,25 +42,31 @@ namespace SiteAdaptation.Common
         // value_status.Table.used: the detail of each key the build gave a value, the table statusFrom
         public Dictionary<string, JObject> Used { get; } = new Dictionary<string, JObject>(StringComparer.Ordinal);
 
-        // value_status.decided_by, review 1 of PR 78: majority.decidedByQuestion by plot and field, each to the (question, key) pairs that list it
+        // value_status.decided_by, review 1 of PR 78 and Q114: majority.decidedByQuestion by plot and field, each to the (label, path) pairs that list it
         private readonly Dictionary<Tuple<string, string>, List<Tuple<string, string>>> decided = new Dictionary<Tuple<string, string>, List<Tuple<string, string>>>();
 
         public ValueStatusTable(JObject map, JObject block, string profileFile, string levelProfile, JObject decided = null)
         {
             foreach (JProperty question in (decided ?? new JObject()).Properties().Where(item => item.Value is JObject))
             {
-                foreach (JProperty key in ((question.Value["plots"] as JObject) ?? new JObject()).Properties())
+                // Q114. The followHand part lists the fields that follow the hand the question decides on some of its plots, by their plan paths
+                var parts = new[] { Tuple.Create(question.Value as JObject, "plots", ""), Tuple.Create(question.Value["followHand"] as JObject, "followHand.plots", "followHand ") };
+                foreach (Tuple<JObject, string, string> part in parts.Where(item => item.Item1 != null))
                 {
-                    foreach (JToken plot in (key.Value as JArray) ?? new JArray())
+                    foreach (JProperty key in ((part.Item1["plots"] as JObject) ?? new JObject()).Properties())
                     {
-                        foreach (JToken field in (question.Value["fields"] as JArray) ?? new JArray())
+                        foreach (JToken plot in (key.Value as JArray) ?? new JArray())
                         {
-                            var at = Tuple.Create((string)plot, (string)field);
-                            if (!this.decided.TryGetValue(at, out List<Tuple<string, string>> pairs))
+                            foreach (JToken field in (part.Item1["fields"] as JArray) ?? new JArray())
                             {
-                                this.decided[at] = pairs = new List<Tuple<string, string>>();
+                                var at = Tuple.Create((string)plot, (string)field);
+                                if (!this.decided.TryGetValue(at, out List<Tuple<string, string>> pairs))
+                                {
+                                    this.decided[at] = pairs = new List<Tuple<string, string>>();
+                                }
+                                // The label the key of a detail names and the path of the block entry under majority.decidedByQuestion
+                                pairs.Add(Tuple.Create(question.Name + " " + part.Item3 + key.Name, question.Name + "." + part.Item2 + "." + key.Name));
                             }
-                            pairs.Add(Tuple.Create(question.Name, key.Name));
                         }
                     }
                 }
@@ -165,7 +171,7 @@ namespace SiteAdaptation.Common
             List<Tuple<string, string>> pairs = plot != null && decided.TryGetValue(Tuple.Create(plot, field), out List<Tuple<string, string>> found) ? found : new List<Tuple<string, string>>();
             if (pairs.Count > 0)
             {
-                key += " question " + string.Join(" ", pairs.Select(pair => pair.Item1 + " " + pair.Item2));
+                key += " question " + string.Join(" ", pairs.Select(pair => pair.Item1));
             }
             if (moved.Count > 0)
             {
@@ -179,7 +185,7 @@ namespace SiteAdaptation.Common
             List<JObject> entries = refs == null
                 ? new List<JObject> { new JObject { ["status"] = "UNKNOWN", ["why"] = string.Format(ValueStatus.NoStatus, field, source) } }
                 : refs.Select(reference => Resolve(field, source, reference, hand, unit)).ToList();
-            entries.AddRange(pairs.Select(pair => Resolve(field, source, new JObject { ["config"] = "majority.decidedByQuestion." + pair.Item1 + ".plots." + pair.Item2 }, hand, unit)));
+            entries.AddRange(pairs.Select(pair => Resolve(field, source, new JObject { ["config"] = "majority.decidedByQuestion." + pair.Item2 }, hand, unit)));
             // Q107. The worst status of the list by worstFirst, else the first entry, the first of a tie
             JObject chosen = ValueStatus.WorstEntries(entries, order)[0];
             var detail = new JObject { ["entries"] = new JArray(entries) };
@@ -287,7 +293,7 @@ namespace SiteAdaptation.Common
             {
                 found.Add(Tuple.Create(field, applied.Contains(field) ? OverrideSource : Computed));
             }
-            found.AddRange(new[] { "ffl", "ssl", "entry", "height", "steps" }.Select(name => Tuple.Create("levels." + name, Estimate)));
+            found.AddRange(new[] { "ffl", "ssl", "entry", "height", "steps", "roadAtFrontM" }.Select(name => Tuple.Create("levels." + name, Estimate)));
             JObject sources = plan.Parameters["sources"] as JObject ?? new JObject();
             found.AddRange(sources.Properties().Select(item => Tuple.Create("parameters." + item.Name, (string)item.Value)));
             if (sources[LinkFields.RvtName] != null)

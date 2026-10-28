@@ -24,6 +24,7 @@ namespace SiteAdaptation.AddIn
         private readonly PaneViewModel model;
         private ExternalEvent runEvent;
         private ExternalEvent answerEvent;
+        private ExternalEvent tellEvent;
 
         public static PaneHost Current { get; private set; }
 
@@ -56,6 +57,13 @@ namespace SiteAdaptation.AddIn
             {
                 runner.Number = number;
                 host.runEvent.Raise();
+            };
+            var teller = new TellHandler();
+            host.tellEvent = ExternalEvent.Create(teller);
+            host.model.Told += text =>
+            {
+                teller.Text = text;
+                host.tellEvent.Raise();
             };
             Buttons.State = new PaneRunState(host.model, WorkRoot, WorkFolder.ReadIfThere);
             application.RegisterDockablePane(PaneId, PaneText.Title, host);
@@ -206,6 +214,22 @@ namespace SiteAdaptation.AddIn
         public string GetName()
         {
             return "SiteAdaptation.RunButton";
+        }
+    }
+
+    // A message of the pane in the TaskDialog the ribbon buttons use, shown in the API context of Revit as a run of a button is
+    internal sealed class TellHandler : IExternalEventHandler
+    {
+        public string Text { get; set; }
+
+        public void Execute(UIApplication app)
+        {
+            TaskDialog.Show(RibbonLayout.Tab, Text);
+        }
+
+        public string GetName()
+        {
+            return "SiteAdaptation.Tell";
         }
     }
 

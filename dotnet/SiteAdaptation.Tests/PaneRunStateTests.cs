@@ -48,7 +48,7 @@ namespace SiteAdaptation.Tests
         {
             PaneViewModel model = Loaded(new PaneSettings());
             var state = new PaneRunState(model, () => @"D:\Work", path => null);
-            Assert.Equal(new[] { 0, 1, 2, 3, 4, 5, 6, 3 }, Enumerable.Range(1, 8).Select(state.MissingStep));
+            Assert.Equal(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 4 }, Enumerable.Range(1, 9).Select(state.MissingStep));
             model.PickConfig(Folder + "project.json");
             Assert.Equal(0, state.MissingStep(1));
             Assert.Equal(1, state.MissingStep(2));
@@ -64,7 +64,7 @@ namespace SiteAdaptation.Tests
             Assert.Null(none.Path);
             Assert.False(none.IsFolder);
             model.PickConfig(Folder + "project.json");
-            Assert.All(Enumerable.Range(1, 8), button => Assert.Equal(Folder + "project.json", state.Inputs(button).Single().Path));
+            Assert.All(Enumerable.Range(1, 9), button => Assert.Equal(Folder + "project.json", state.Inputs(button).Single().Path));
         }
 
         [Fact]

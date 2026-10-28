@@ -24,7 +24,7 @@ namespace SiteAdaptation.Common.Flow
             this.newRunId = newRunId;
         }
 
-        // The label is the one of the ribbon, such as "4 Place villas", given by the add-in
+        // The label is the one of the ribbon, such as "7 Place villas", given by the add-in
         public RunOutcome Run(int number, string label, ButtonBody body, string documentPath)
         {
             if (body.NotBuilt != null)

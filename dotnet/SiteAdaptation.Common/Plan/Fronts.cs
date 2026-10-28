@@ -206,6 +206,15 @@ namespace SiteAdaptation.Common
             ["EN"] = new[] { 0.0, 90.0 }, ["SE"] = new[] { 90.0, 180.0 }, ["WS"] = new[] { 180.0, 270.0 }, ["NW"] = new[] { 270.0, 360.0 },
         };
 
+        // plan_rules.road_names: the road surfaces a build asks for El @ Entry and the ramp front, siteBuild.roadSurfaces in their order for
+        // frontRoad roadLevel, else the one surface frontRoad names. The one setting the build steps and the level Excel take them from
+        public static List<string> RoadNames(JObject levelProfile, ReadSettings settings)
+        {
+            JToken surface = levelProfile["frontRoad"]?["surface"];
+            string name = surface?.Type == JTokenType.String ? (string)surface : null;
+            return name == "roadLevel" ? settings.RoadSurfaces : new List<string> { name };
+        }
+
         // project_profile.metres: a length of the rules profile in mm as metres, refused when the profile does not say its lengths are mm
         public static double Metres(JObject rules, string rulesName, JToken value, string dotted)
         {

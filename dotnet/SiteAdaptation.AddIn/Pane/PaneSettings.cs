@@ -72,7 +72,8 @@ namespace SiteAdaptation.AddIn.Pane
         public static readonly string[] All = { Masses, Links };
     }
 
-    // The inputs of 06-settings.md by their names in the settings JSON
+    // The inputs of 06-settings.md by their names in the settings JSON. parameterSheet, the parameter sheet Excel of the row Shared
+    // parameters of Bader's changes of 28 Oct 2026, is named by Code (CHOSEN), 06-settings.md gives it no key
     public static class InputKeys
     {
         public const string Baseplan = "baseplan";
@@ -83,7 +84,8 @@ namespace SiteAdaptation.AddIn.Pane
         public const string Sales = "sales";
         public const string PlotNumbers = "plotNumbers";
         public const string Prototypes = "prototypes";
-        public static readonly string[] All = { Baseplan, VillaBlocks, Curbs, RoadSurface, Dlus, Sales, PlotNumbers, Prototypes };
+        public const string ParameterSheet = "parameterSheet";
+        public static readonly string[] All = { Baseplan, VillaBlocks, Curbs, RoadSurface, Dlus, Sales, PlotNumbers, Prototypes, ParameterSheet };
         public static readonly string[] Folders = { RoadSurface, Prototypes };
     }
 

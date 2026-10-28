@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Threading;
 using SiteAdaptation.AddIn;
@@ -72,9 +73,65 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Not chosen", model.SettingsRow.FileName);
             Assert.True(model.SettingsRow.Shown);
             Assert.False(model.SettingsRow.Found);
-            Assert.Equal("The drawings and schedules the tool reads. 0 of 7 found.", model.InputHelp);
-            Assert.Equal(new[] { "Needs settings", "Needs step 1", "Needs step 2", "Needs step 3", "Needs step 4", "Needs step 5", "Needs step 6", "Needs step 3" }, model.Steps.Select(step => step.ChipText));
+            Assert.Equal("The drawings and schedules the tool reads. 0 of 8 found.", model.InputHelp);
+            Assert.Equal(new[] { "Needs settings", "Needs step 1", "Needs step 2", "Needs step 3", "Needs step 4", "Needs step 5", "Needs step 6", "Needs step 7", "Needs step 4" }, model.Steps.Select(step => step.ChipText));
             Assert.All(model.Steps, step => Assert.Equal(MarkKind.Waiting, step.Mark));
+        }
+
+        // Bader, 28 Oct 2026 (docs/design/13-workflow-changes.md, Pane): the row Shared parameters for the parameter sheet Excel,
+        // after Prototypes, a file of a settings key of its own, counted in the help line
+        [Fact]
+        public void R372_input_files_gain_the_shared_parameters_row_after_prototypes_for_the_parameter_sheet_file()
+        {
+            Assert.Equal(new[] { "Baseplan", "Villa blocks", "Curbs", "Road surface", "DLUS and sales", "Plot numbers", "Prototypes", "Shared parameters" },
+                Model(new FakeProbe()).InputRows.Select(row => row.Label));
+            var probe = new FakeProbe();
+            probe.Add(Folder + "parameters.xlsx", 4096, "fedcba98" + new string('0', 56));
+            var picker = new FakePicker(Folder + "parameters.xlsx");
+            var model = new PaneViewModel(probe, picker);
+            var session = new DocumentSession("s", Folder + "Site.rvt", "Site");
+            model.Load(session);
+            model.LoadSettings(new PaneSettings { ConfigFile = Folder + "project.json" });
+            FileRowViewModel row = model.InputRows.Last();
+            Assert.False(row.Folder);
+            Assert.Equal(new[] { InputKeys.ParameterSheet }, row.Keys);
+            Assert.Equal("The drawings and schedules the tool reads. 0 of 8 found.", model.InputHelp);
+
+            model.Browse(row);
+            Assert.Equal(new string[] { null }, picker.Titles);
+            Assert.Equal(Folder + "parameters.xlsx", session.Settings.InputPath(InputKeys.ParameterSheet));
+            Assert.Equal("parameters.xlsx", row.FileName);
+            Assert.True(row.Found);
+            Assert.Equal("The drawings and schedules the tool reads. 1 of 8 found.", model.InputHelp);
+
+            Assert.Equal("parameterSheet", InputKeys.ParameterSheet);
+            Assert.Contains(InputKeys.ParameterSheet, InputKeys.All);
+            Assert.DoesNotContain(InputKeys.ParameterSheet, InputKeys.Folders);
+            Assert.Equal(@"C:\Job\p.xlsx", SettingsFile.Read(@"{ ""formatVersion"": 1, ""inputs"": { ""parameterSheet"": { ""path"": ""C:\\Job\\p.xlsx"" } } }").InputPath(InputKeys.ParameterSheet));
+        }
+
+        // Bader, 28 Oct 2026: Import from past job and Export of the row Pre-setting, and Import pre-setting of the first open box,
+        // which runs Import from past job, say they are not built yet in 5a. Their logic joins R367 at 5c, W4 of steps/lane-b.md
+        [Fact]
+        public void R372_import_from_past_job_and_export_say_they_are_not_built_yet_and_wait_for_a_document()
+        {
+            PaneViewModel model = Model(new FakeProbe());
+            var told = new List<string>();
+            model.Told += told.Add;
+            Assert.False(model.ImportCommand.CanExecute(null));
+            Assert.False(model.ExportCommand.CanExecute(null));
+
+            model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
+            Assert.True(model.FirstOpen);
+            Assert.True(model.ImportCommand.CanExecute(null));
+            Assert.True(model.ExportCommand.CanExecute(null));
+            model.ImportCommand.Execute(null);
+            model.ExportCommand.Execute(null);
+
+            Assert.Equal(new[] { "Import from past job is not built yet.", "Export is not built yet." }, told);
+            Assert.Null(model.Settings.ConfigFile);
+            Assert.True(model.FirstOpen);
+            Assert.Equal(new[] { "Import from past job", "Export" }, new[] { PaneText.ImportPastJob, PaneText.Export });
         }
 
         // Review 1 of PR 90: the box names config/project.json, which holds no formatVersion, so it picks the config file as the
@@ -157,7 +214,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Set up site", model.BoxName);
             Assert.Equal("Coordinates, levels and types from CAD. Dry run is on.", model.BoxLine);
             Assert.Equal("Run 1 Set up site", model.BoxButton);
-            Assert.Equal(new[] { "Ready", "Needs step 1", "Needs step 2", "Needs step 3", "Needs step 4", "Needs step 5", "Needs step 6", "Needs step 3" }, model.Steps.Select(step => step.ChipText));
+            Assert.Equal(new[] { "Ready", "Needs step 1", "Needs step 2", "Needs step 3", "Needs step 4", "Needs step 5", "Needs step 6", "Needs step 7", "Needs step 4" }, model.Steps.Select(step => step.ChipText));
             Assert.Equal(MarkKind.Next, model.Steps[0].Mark);
             Assert.True(model.DryRun);
 
@@ -171,10 +228,16 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R372_the_step_lines_of_5a_follow_the_order_of_03a_and_8_needs_3()
+        public void R372_the_step_lines_of_5a_follow_the_order_of_the_workflow_changes_each_needs_the_one_before_and_9_needs_4()
         {
-            Assert.Equal(new[] { 0, 1, 2, 3, 4, 5, 6, 3 }, Enumerable.Range(1, 8).Select(StepPlan.Needs));
-            Assert.Throws<ArgumentOutOfRangeException>(() => StepPlan.Needs(9));
+            Assert.Equal(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 4 }, Enumerable.Range(1, 9).Select(StepPlan.Needs));
+            Assert.Throws<ArgumentOutOfRangeException>(() => StepPlan.Needs(0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => StepPlan.Needs(10));
+            Assert.Equal(9, StepPlan.Before5c(true).Count);
+            string changes = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "docs", "design", "13-workflow-changes.md"));
+            Match odd = Regex.Match(changes, @"Each step needs the one before, and (\d) [\w ]+ needs (\d) \w+\.");
+            Assert.True(odd.Success);
+            Assert.Equal(int.Parse(odd.Groups[2].Value), StepPlan.Needs(int.Parse(odd.Groups[1].Value)));
             Assert.Equal(StepKind.NeedsSettings, StepPlan.Before5c(false)[0].Kind);
             Assert.Equal(StepKind.Ready, StepPlan.Before5c(true)[0].Kind);
             Assert.Equal(1, StepPlan.Next(StepPlan.Before5c(true)));
@@ -189,19 +252,36 @@ namespace SiteAdaptation.Tests
             model.LoadSettings(new PaneSettings { ConfigFile = Folder + "project.json" });
             model.SetSteps(new[]
             {
-                new StepStatus(StepKind.Done), new StepStatus(StepKind.Done), new StepStatus(StepKind.Issues, 1247), new StepStatus(StepKind.Ready),
-                new StepStatus(StepKind.NeedsStep, 4), new StepStatus(StepKind.NeedsStep, 5), new StepStatus(StepKind.NeedsStep, 6), new StepStatus(StepKind.Ready),
+                new StepStatus(StepKind.Done), new StepStatus(StepKind.Done), new StepStatus(StepKind.Done), new StepStatus(StepKind.Issues, 1247),
+                new StepStatus(StepKind.Ready), new StepStatus(StepKind.NeedsStep, 5), new StepStatus(StepKind.NeedsStep, 6), new StepStatus(StepKind.NeedsStep, 7),
+                new StepStatus(StepKind.Ready),
             });
 
-            Assert.Equal(new[] { "Done", "Done", "1,247 issues", "Ready", "Needs step 4", "Needs step 5", "Needs step 6", "Ready" }, model.Steps.Select(step => step.ChipText));
-            Assert.Equal("Done with 1,247 issues", model.Steps[2].ChipTip);
-            Assert.Null(model.Steps[3].ChipTip);
-            Assert.Equal(new[] { MarkKind.Done, MarkKind.Done, MarkKind.Issues, MarkKind.Next, MarkKind.Waiting, MarkKind.Waiting, MarkKind.Waiting, MarkKind.Waiting }, model.Steps.Select(step => step.Mark));
-            Assert.Equal("Run 4 Place villas", model.BoxButton);
-            Assert.Equal("Places a villa on each plot. Dry run is on.", model.BoxLine);
-            Assert.Equal(new[] { "Set up site", "Read data", "Check", "Place villas", "Floors and ramps", "Levels", "Walls", "Report" }, model.Steps.Select(step => step.Name));
+            Assert.Equal(new[] { "Done", "Done", "Done", "1,247 issues", "Ready", "Needs step 5", "Needs step 6", "Needs step 7", "Ready" }, model.Steps.Select(step => step.ChipText));
+            Assert.Equal("Done with 1,247 issues", model.Steps[3].ChipTip);
+            Assert.Null(model.Steps[4].ChipTip);
+            Assert.Equal(new[] { MarkKind.Done, MarkKind.Done, MarkKind.Done, MarkKind.Issues, MarkKind.Next, MarkKind.Waiting, MarkKind.Waiting, MarkKind.Waiting, MarkKind.Waiting },
+                model.Steps.Select(step => step.Mark));
+            Assert.Equal("Run 5 Floors and ramps", model.BoxButton);
+            Assert.Equal("Generic, yard and ramp floors. Dry run is on.", model.BoxLine);
+            Assert.Equal(new[] { "Set up site", "Read data", "Review data", "Check", "Floors and ramps", "Levels", "Place villas", "Walls", "Report" }, model.Steps.Select(step => step.Name));
             Assert.Equal(PaneText.StepLines, model.Steps.Select(step => step.Line));
-            Assert.Throws<ArgumentException>(() => model.SetSteps(new StepStatus[7]));
+            Assert.Throws<ArgumentException>(() => model.SetSteps(new StepStatus[8]));
+        }
+
+        // The lines of the steps word for word from 7.2 of docs/design/12-ui-spec.md, a second reading of PaneText
+        [Fact]
+        public void R372_each_step_line_is_the_one_7_2_of_the_ui_spec_gives_its_number()
+        {
+            string spec = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "docs", "design", "12-ui-spec.md"));
+            Match lines = Regex.Match(spec, @"NEW one plain line under it at 12: (.*?)\. The 9 steps");
+            Assert.True(lines.Success);
+            List<string> given = Regex.Matches(lines.Groups[1].Value, @"(\d) ""([^""]+)""").Cast<Match>().Select(match => match.Groups[2].Value).ToList();
+            Assert.Equal(Enumerable.Range(1, 9).Select(number => number.ToString()), Regex.Matches(lines.Groups[1].Value, @"(\d) """).Cast<Match>().Select(match => match.Groups[1].Value));
+
+            Assert.Equal(given, PaneText.StepLines);
+            Assert.Equal("The team checks what was read", PaneText.StepLines[2]);
+            Assert.Equal("Places a villa on each plot at its FFL", PaneText.StepLines[6]);
         }
 
         [Fact]
@@ -229,7 +309,7 @@ namespace SiteAdaptation.Tests
             Assert.False(model.SettingsRow.Found);
             Assert.Equal("project.json", model.SettingsRow.FileName);
             Assert.Equal(string.Empty, model.SettingsRow.Detail);
-            Assert.Equal("The drawings and schedules the tool reads. 1 of 7 found.", model.InputHelp);
+            Assert.Equal("The drawings and schedules the tool reads. 1 of 8 found.", model.InputHelp);
 
             model.PickInput(InputKeys.Dlus, Folder + "dlus.xlsx");
             Assert.False(dlus.Found);
@@ -285,7 +365,7 @@ namespace SiteAdaptation.Tests
             PaneViewModel model = Model(probe);
             model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
             model.LoadSettings(settings);
-            Assert.Equal("The drawings and schedules the tool reads. All 7 found.", model.InputHelp);
+            Assert.Equal("The drawings and schedules the tool reads. All 8 found.", model.InputHelp);
             Assert.All(model.InputRows, row => Assert.True(row.Found, row.Label));
         }
 

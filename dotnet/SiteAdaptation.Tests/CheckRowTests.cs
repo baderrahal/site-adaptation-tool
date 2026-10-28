@@ -353,7 +353,7 @@ namespace SiteAdaptation.Tests
         {
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
             Assert.Equal("unit:noGeometry nbh:noGeometry rows:noGeometry", string.Join(" ", config.StepFields(CheckRows.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
-            Assert.Equal(CheckRows.StepName, BuildSteps.Names.Last());
+            Assert.Equal(CheckRows.StepName, BuildSteps.Names[BuildSteps.Names.Length - 2]);
             Assert.Equal(BuildSteps.OverrideRoles, WorkerRunner.Steps[CheckRows.StepName]);
         }
     }

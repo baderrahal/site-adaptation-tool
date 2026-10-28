@@ -264,7 +264,8 @@ namespace CadReader
             }
         }
 
-        private static string ColumnLetters(int column)
+        // R350, R364. The letters of a column by its number from 1, A to Z then AA, the reference of a cell of a sheet read or written
+        internal static string ColumnLetters(int column)
         {
             string letters = "";
             for (; column > 0; column = (column - 1) / 26)

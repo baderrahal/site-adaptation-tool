@@ -200,9 +200,9 @@ def same_inputs(python, csharp):
             raise ValueError("the two step files were written from other %s files, SHA-256 %s and %s" % (role, mine[role], item.get("sha256")))
 
 
-# R357, R358, R360, R361, R362, R363, R401. The steps that take the files of the prototype folder, plan_from_book.PROTOTYPE_STEPS, floors, walls,
-# overrides, parameters, status and checkRows on the link of the hand
-LISTED_STEPS = ("hands", "linkFrame", "floors", "walls", "overrides", "parameters", "status", "checkRows")
+# R357, R358, R360, R361, R362, R363, R365, R401. The steps that take the files of the prototype folder, plan_from_book.PROTOTYPE_STEPS, floors,
+# walls, overrides, parameters, status, checkRows and summary on the link of the hand
+LISTED_STEPS = ("hands", "linkFrame", "floors", "walls", "overrides", "parameters", "status", "checkRows", "summary")
 
 
 def listed_inputs(python, csharp, prefix="prototype:"):

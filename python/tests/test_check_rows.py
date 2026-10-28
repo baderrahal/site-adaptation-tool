@@ -245,7 +245,7 @@ def test_r363_the_config_names_the_fields_of_the_step_check_rows_and_the_build_s
     settings = project_profile.load_settings()
     fields = settings.get("addin.parity.steps.checkRows")
     assert {name: item["kind"] for name, item in fields.items()} == {"unit": "noGeometry", "nbh": "noGeometry", "rows": "noGeometry"}
-    assert plan_from_book.BUILD_STEPS[-1] == "checkRows" and plan_from_book.PARITY_STEPS[-1] == "checkRows"
+    assert plan_from_book.BUILD_STEPS[-2] == "checkRows" and plan_from_book.PARITY_STEPS[-2] == "checkRows"
     assert json.dumps(BLOCK).count(chr(59)) == 0
 
 
