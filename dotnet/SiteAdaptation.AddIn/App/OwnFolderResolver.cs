@@ -57,7 +57,8 @@ namespace SiteAdaptation.AddIn
             return path == null ? null : Assembly.LoadFrom(path);
         }
 
-        // A file that is no assembly gets no version, and a null version is below every version asked for
+        // A file that is no assembly gets no version. On net48 the compare of a null version throws out of the
+        // handler into the bind that asked, steps/lane-b.md latent findings of 5a PR 2
         private static Version VersionOf(string file)
         {
             try
