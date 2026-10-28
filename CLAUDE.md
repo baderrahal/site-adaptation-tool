@@ -37,7 +37,7 @@ How the round runs:
 - Never two PRs open. At most four changes per PR.
 - A fix on its third attempt stops, goes back to measuring and becomes a question.
 - Line 1 of steps/PROGRESS.md is the state of the records (Bader, 2026-10-28). A session sets it to "STATE RUNNING, <phase>, <date time>" in the first PR of its phase and back to a line that starts with STATE WAITING in its last. Lane B (steps/lane-b.md) reads it on origin/main after git fetch and on STATE RUNNING leaves the shared records alone.
-- A new question takes the next free ID, Q122 now.
+- A new question takes the next free ID, Q123 now.
 - Every fact in a report is tagged READ with a path, RAN with a count, SEARCHED with a link, CHOSEN or UNKNOWN.
 - .claude/agents holds developer, reviewer and breaker on opus, prober, claim-checker and log-reader on sonnet, runner on haiku. .claude/skills/ai-max holds the AI MAX skill, version 4.
 

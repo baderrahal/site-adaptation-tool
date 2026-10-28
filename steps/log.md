@@ -2,6 +2,50 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round ADDIN 4g3, 2026-10-28, 4g3 paused, moved to the laptop
+
+Goal:
+- Q112, Q113, R364, R365, the parity of step 15. Bader moved Phase 4 to the laptop on 28 Oct
+
+Done:
+- PR 83 records. PR 85 Q112 by the fallback (the leave-one-out added 15.5 to 32.2 percent to the time) and Q113
+- PR 88 step 15, roadAtFrontM, Q114, the 18 conflicts of Q116
+- PR 91 R364 the level Excel, one per NBH, with the D4 round trip (Q121)
+- These records: 4g3 in progress, continues on the laptop, Q122 opened
+
+Checked:
+- Gate and three checks green before each merge (RAN). PR 85: 103,131 of 103,131 values name every override that moved them (RAN)
+- PR 88: roadAtFrontM 2,518 of 2,518 against a second script, the summary 8 of 8 checks per cover (RAN)
+- PR 91: 14 workbooks per runtime, peak 628.8 MiB, 138,620 matches and 0 mismatches per runtime (RAN)
+
+Remains:
+- R365 the report Excel and its D4 round trip: Placed keyed by plot, Villa type and Mirror editable, a Settings sheet with the list, build id and plan SHA-256
+- The C# checks on real data of PR 85 and 88, as steps/01_next.md lists them
+- The end records of 4g3. The usage row of this session was not run, UNKNOWN
+
+Known bugs:
+- Python plans hold no build id, so their Excel reads "none, the plan holds no run stamp". 124 plots with no row in plots.csv are in no level Excel, named in the run issue
+
+Next:
+- 4g3 on the laptop, then 4h. steps/01_next.md lists what is left
+
+Your turn:
+Full text and the recommended answers by ID: steps/questions-open.md.
+Q001 El @ Entry rule. Q002 Ramp type by Rev 9 code. Q003 Villa mirror by block flag. Q004 Setback from the DLUS front. Q005 Front level snapped to the road. Q006 Back corners parallel.
+Q007 Generic floor on the whole face. Q008 Units, a baseplan with 01b. Q009 Typology_Rev9 for codes with no schedule. Q010 Sales Land Width. Q012 FFL split by units. Q013 CASE second letter as built.
+Q015 Yard depth under the floor top. Q016 Plots 2311 and 2312 by baseplan. Q017 IMC 2301, 2302 and IMG 544 as VD4. Q018 58 past ramps listed. Q019 Schedule FFL. Q020 Keep the north stop.
+Q021 Parallel windows over 8 GB free. Q022 TEST copies in Zone 02 ARC. Q023 Delete the empty 15a folder. Q024 Curb and ROW from the R94 edge. Q025 13 PDF refusals listed.
+Q026 Two curbs of one drawing. Q027 Two DP4 labels in one face. Q029 Location plan number per face. Q030 The 01b sales rows. Q031 Rev 9 faces, 97 differ. Q032 1.4 FFL parameter as design level.
+Q033 Lone DT3 on a VL3 face. Q036 TBD for DLUS, accommodation for sales. Q037 Corner fronts by the Orientation side. Q038 Native ramp fronts over the subgrade. Q039 Footprint test as third check.
+Q041 Rows 2290 to 2299 as overrides. Q042 Lone duplex hand by row pairs. Q051 Rev 01 values of steps and ramps. Q052 Weak rules held through their overrides. Q053 The override list, native and byHand.
+Q054 R260 of DATA-5 and R261 to R282. Q055 1.4 ELl@Entry typed off its ramp. Q056 Native models for hands, fronts, ramps only. Q057 Ramp front fall with no direction.
+Q058 Old 20221206 prototypes and their hands. Q059 NBH 03 build on native2022. Q062 Rev 9 attribute values of the probe. Q063 Whole NBH 03 image past 30 minutes.
+Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario master. Q066 No Parsons TU model of Zone 1. Q068 Project position of button 1. Q069 A remade key copy by its hashes.
+Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
+Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
+Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
+Q119 Reads of a value several overrides touched. Q120 Mirror and rotation sets too wide. Q122 Clusters FFL by rule or as written.
+
 ## Round ADDIN 4g2, 2026-10-28, Q105, Q107, Q109, Q110, the walls and the check rows
 
 Goal:

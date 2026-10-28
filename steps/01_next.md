@@ -30,7 +30,14 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 
 ## 4g3, Q112, Q113, the level and report Excel
 
-- Status: open
+- Status: in progress, continues on the laptop (Bader, 2026-10-28: Phase 4 moves to the company laptop, where the C# reads have the memory they need)
+- Done on the personal PC: PR 83 records, PR 85 Q112 by the fallback and Q113, PR 88 step 15 with roadAtFrontM, Q114 and the Q116 conflicts, PR 91 R364 the level Excel with the D4 round trip of its sheet Levels, then the handover records
+- Left of 4g3, for the laptop:
+  - R365 the report Excel: the top line, the Summary table of buttons 1 to 7, the box Counts agree across outputs, the box Rules applied with "[n] plots" on each line, the sheets Summary, Placed, Skipped, Overrides, Assumed, Issues, Rules, and a Python second route that opens it against 7.6 and item 9 of 7.7
+  - The D4 round trip of the report, not done: Placed keyed by the plot number in its first column, one row per plot and kind, the columns Villa type and Mirror marked editable in the header and listed in a Settings sheet, which also holds the build id and the SHA-256 of the plan (items 10 to 12 of 7.7). The level Excel holds FFL, El @ Entry and Steps marked, its editable list, the build id and the plan SHA-256 since PR 91
+  - The C# checks on real data that this PC could not run: the C# read and build on real inputs, the parity of the status, walls, checkRows, overrides and summary steps on the 7 keys and the whole project on net48 and net8.0, the worker counts against the summary, the C# build time and peak (commands.build stays 2,200 until then)
+  - Q122, the Clusters FFL by rule or as written, once Bader answers
+  - The end records: 4g3 done here, the top entry of steps/log.md, PROGRESS to STATE WAITING for 4h, the usage row
 - Rules: Q112 and Q113 first (Bader, 2026-10-28, steps/questions-closed.md). Q112: an override moved a value only if removing that one override changes it, the detail names the last applied override that moved it and the status takes the worst of every override that moved it and of the entries still read. Measure first the time and the peak of a build of the 7 keys with it, and if it adds more than 20 percent to either, do not code it, list all overrides that touched the inputs of the value instead and say so in the log. Q113: a value takes the worst status of its inputs and names the override, so the 512 values read RECOMMENDED. R364 the level Excel. R365 the report Excel, with the plot count on each line of Rules applied and the sheet Assumed, and the parity of step 15 with the count by field and status of R401
 - Design: docs/design/05-plan-steps.md step 15, docs/design/03b-buttons-2-to-8.md (6 Levels, 8 Report), docs/design/07-mock.md 7.5 to 7.7
 - Q114 and Q116 (Bader, 2026-10-28): Q114 aligns the field names of majority.decidedByQuestion and the build proof, then carries Q017 to the rotationDeg, insert, floors.yard.outline and parameters.CASE of 2302, in 4g3 if it fits four changes per PR, else a join item of 5c. Q116 lists each plot a rotationDeg override turned in the conflicts of the plan until its ramp moves to the open edge in 5d
@@ -42,7 +49,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 
 ## 4h, the scope, step state, settings and element tags
 
-- Status: open
+- Status: open, starts on the laptop once 4g3 is done (Bader, 2026-10-28)
 - Rules: R366 scope with the plot list syntax and the step state by hash. R367 the settings JSON kept in the project. R368 element tags, the match to the plan, the hand change and the schema versions. R369 the second method of Phase 4, seeds 14 and 7
 - Design: docs/design/03a-buttons-shared-and-1.md (What every button shares, Steps and Scope), docs/design/06-settings.md
 - Done when: each rule has its tests on both runners and the second method of Phase 4 runs at seeds 14 and 7 (R369, 10-rule-ids.md)
