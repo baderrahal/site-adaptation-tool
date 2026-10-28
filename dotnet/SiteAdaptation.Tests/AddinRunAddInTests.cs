@@ -105,6 +105,32 @@ namespace SiteAdaptation.Tests
             Assert.True((double)theme[AddinRunNames.PaneSize] >= 1);
         }
 
+        // The probe walks the panels and the buttons of RibbonLayout the way AddinProbe.Labels does, and gets every button of the ribbon,
+        // the ones with no number among them, so the judge holds the whole ribbon of the build that runs
+        [Fact]
+        public void R372_the_probe_reads_the_panels_and_every_button_of_the_ribbon_from_RibbonLayout()
+        {
+            Type layout = TypeOf(AddinRunNames.RibbonLayout);
+            Assert.Equal(RibbonLayout.Panels.Select(panel => panel.Name), Walk(layout, AddinRunNames.Panels, AddinRunNames.PanelName));
+            List<string> buttons = Walk(layout, AddinRunNames.RibbonButtons, AddinRunNames.ButtonLabel);
+            Assert.Equal(RibbonLayout.AllButtons.Select(button => button.Label), buttons);
+            Assert.Contains(RibbonLayout.AllButtons, button => button.Number == 0);
+            Assert.Equal(RibbonLayout.Panels.Sum(panel => panel.Buttons.Count), buttons.Count);
+        }
+
+        private static List<string> Walk(Type layout, string list, string name)
+        {
+            MemberInfo member = (MemberInfo)layout.GetProperty(list, Any) ?? layout.GetField(list, Any);
+            Assert.True(member != null, layout.FullName + " has no member " + list);
+            object items = member is PropertyInfo property ? property.GetValue(null) : ((FieldInfo)member).GetValue(null);
+            var labels = new List<string>();
+            foreach (object item in (System.Collections.IEnumerable)items)
+            {
+                labels.Add((string)item.GetType().GetProperty(name, Any).GetValue(item));
+            }
+            return labels;
+        }
+
         // One rule of the work root: WorkFolder.Root of the add-in and WorkRoot.Of of Common give the same root, or refuse with the same
         // text, on the same machine files
         [Fact]

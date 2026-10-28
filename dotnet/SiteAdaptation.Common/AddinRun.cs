@@ -128,7 +128,7 @@ namespace SiteAdaptation.Common
         public const string Page = "SiteAdaptation.AddIn.Pane.SitePanePage";
         public const string Panels = "Panels";
         public const string PanelName = "Name";
-        public const string RibbonButtons = "Buttons";
+        public const string RibbonButtons = "AllButtons";
         public const string ButtonLabel = "Label";
         public const string Theme = "SiteAdaptation.AddIn.Theme.ThemeDictionary";
         public const string ThemeLoad = "Load";

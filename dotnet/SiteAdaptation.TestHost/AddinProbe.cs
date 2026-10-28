@@ -159,7 +159,7 @@ namespace SiteAdaptation.TestHost
 
         public List<string> RibbonButtons()
         {
-            return Labels("RibbonLayout.Buttons", AddinRunNames.RibbonButtons, AddinRunNames.ButtonLabel);
+            return Labels("RibbonLayout.AllButtons", AddinRunNames.RibbonButtons, AddinRunNames.ButtonLabel);
         }
 
         private List<string> Labels(string what, string list, string name)
