@@ -30,6 +30,15 @@ The base of each villa solid follows the exact base boundary shape of its protot
 - The shared window lock per copy and the 2 GB floor hold in every window. Never two windows on the same file. Bader's words name it "the 2 GB floor of R310". The floor is minFreeGB of R200, and R310 samples the free memory per window without stopping at it (steps/PROGRESS.md, open bugs).
 - Q021 "Parallel windows over 8 GB free" closes with this answer at the fold in.
 
+## D4. The report reads back, closes Q121
+
+- The add-in gets a button "Update from report", Phase 5f. It reads the report Excel back after the team edits it, lists each change against the model, checks it against the rules and applies it as an override.
+- So the Excel files written from 4g3 on are readable back. Every sheet the team may edit, Levels of the level Excel and Placed of the report Excel, holds the plot number as a stable key in its first column and one row per plot and kind.
+- The editable columns are FFL, El @ Entry, Steps, Villa type and Mirror. Their header cells carry a light fill and their list is written into the Settings sheet. Every other column is read only.
+- The Settings sheet holds the build id and the SHA-256 of the plan the Excel came from, so the update refuses an Excel of another build.
+- The labels and the order of 7.5 and 7.6 of the mock stay. The additions are items 10 to 12 of 7.7 of docs/design/07-mock.md.
+- Built in Round ADDIN 4g3, the level Excel in PR 4 and the report Excel in PR 5. A part that does not fit four changes per PR goes into the last PR of 4g3.
+
 ## U1 to U7. The UI, approved on the canvas "Site Adaptation UI"
 
 Bader designed and approved the UI on the canvas on 28 Oct 2026. The full text is docs/design/12-ui-spec.md. The prompt names the approvals U1 to U7 and does not say which part each covers, so the split below was CHOSEN by Code, and Bader kept it on 28 Oct 2026 (QL3 of steps/lane-b.md).

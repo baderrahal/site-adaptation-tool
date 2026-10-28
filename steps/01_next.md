@@ -35,6 +35,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Design: docs/design/05-plan-steps.md step 15, docs/design/03b-buttons-2-to-8.md (6 Levels, 8 Report), docs/design/07-mock.md 7.5 to 7.7
 - Q114 and Q116 (Bader, 2026-10-28): Q114 aligns the field names of majority.decidedByQuestion and the build proof, then carries Q017 to the rotationDeg, insert, floors.yard.outline and parameters.CASE of 2302, in 4g3 if it fits four changes per PR, else a join item of 5c. Q116 lists each plot a rotationDeg override turned in the conflicts of the plan until its ramp moves to the open edge in 5d
 - C# on real data (Bader, 2026-10-28, by Q111): this PC never has the memory a C# read needs, so 4g3 and 4h do not wait for it or retry it. C# by its unit tests on both runners, Python on the real data with its second method, the top log entry names the C# checks left for the laptop
+- D4 (Bader, 2026-10-28, closes Q121): the sheets Levels and Placed key each row by the plot in the first column, FFL, El @ Entry, Steps, Villa type and Mirror are marked editable and listed in Settings, which also holds the build id and the SHA-256 of the plan, items 10 to 12 of 7.7. The level Excel in PR 4, the report Excel in PR 5
 - Lane B: when the C# check of Q111 is on main in steps/lane-b.md, fold it into the log. A failure there is a REAL finding of 4g3
 - Note: Q113 would move 294 wall values from MEASURED weak to RECOMMENDED (READ, the breaker of PR 79 pass 2, no log), and the rows of the chip Assumed follow the status (R363)
 - Done when: Q112 and Q113 hold in Python and C# with tests, parity holds for step 15, and each Excel holds the labels of 7.5 and 7.6 of the mock in the order of the mock, with the items of 7.7
@@ -95,6 +96,13 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Rules: R381 button 8. R384 the test host jobs of the buttons and the screenshots
 - Design: docs/design/03b-buttons-2-to-8.md (8 Report), docs/design/07-mock.md 7.6 and item 9 of 7.7, the sheet Assumed, docs/design/08-install.md (Unattended runs for Phase 6), docs/design/09-risks.md open item 12
 - Done when: the test host calls SiteAdaptation.AddIn.Buttons.Run for each button with no click, and open item 12 is measured
+
+## 5f, the button Update from report
+
+- Status: open
+- What (Bader, D4 of steps/decisions-2026-10-28.md): a button reads the level Excel and the report Excel back after the team edits them, refuses an Excel whose build id or plan SHA-256 differs from the plan of the model, lists each change of an editable column against the model, checks it against the rules and applies it as an override of the list. Its rule id is given when the phase starts (CHOSEN)
+- Design: items 10 to 12 of docs/design/07-mock.md 7.7, the sheets Levels and Placed and the Settings sheet of both Excel files
+- Done when: an edited copy of each Excel of one NBH gives the list of its changes, each one checked against the rules, the overrides it applies match the edits cell by cell, and an Excel of another build is refused with one line
 
 ## 6, end to end on all zones
 
