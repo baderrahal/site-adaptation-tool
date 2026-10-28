@@ -67,6 +67,10 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 ## Latent findings
 
 - L0 breaker 21. Step 8 of the Bader section of steps/laptop-check.md sets only http.sslBackend. It works because ~/.gitconfig already holds http.schannelcheckrevoke=false, set by someone UNKNOWN. On a machine without that line the step would not be enough. No other machine runs it now.
+- 5a PR 2 review. On net48 the resolver throws ArgumentNullException when a file of its folder is not an assembly, since the Version compare of .NET Framework refuses a null version (OwnFolderResolver.cs lines 46 and 60). AssemblyName or LoadFrom throws there on a malformed name or a file that is no assembly.
+- 5a PR 2 review. The theme gate misses compound property names such as RowBackground and HorizontalGridLinesBrush, SystemColors, a Setter with Value before Property or a Setter.Value element, single-quoted attributes, sc# colours, a FontSize from a Binding FallbackValue or TargetNullValue or from a sys:Double resource, SetValue of FontSizeProperty, FontSize += and *=, and the emSize of FormattedText. Nothing checks the Setters and Colors inside Theme.xaml itself.
+- 5a PR 2 review. The resolver would serve the Newtonsoft.Json.dll of the build output if the install copied it, so the install of PR 4 must leave it out.
+- 5a PR 2 review. CreateRibbonTab throws on a second manifest of the add-in.
 
 ## Lane B rules, Bader 28 Oct 2026
 
@@ -101,7 +105,18 @@ Bader answered QL1 to QL8 in his Lane B prompt of 28 Oct 2026. At the fold in ea
 - QL7: SA.Type.Project 16, SA.Type.Step 14, SA.Type.Count 28, SA.Type.Label 13 SemiBold. Amber to SA.Warn, grey to SA.BorderStrong, green to SA.Ok, white to SA.Surface. A missing file shows "[m] of [n] found". Written into docs/design/12-ui-spec.md with the weights of the recommended answer.
 - QL8: a "Villa mode" row under the Dry run checkbox, a new item of the list of 7.7. Written into docs/design/12-ui-spec.md 7.2 and docs/design/11-light-mode.md.
 
-The questions as L0 asked them:
+## Questions open in Lane B
+
+QL9. Tabular figures. Libre Franklin 2.000 and 3.000 have no tnum feature, so the "Tabular figures for numbers" of docs/design/12-ui-spec.md cannot come from it, and WPF does not fall back to another font for one feature. The GSUB feature list of both files holds aalt ccmp dnom frac liga locl numr ordn sinf subs sups, and rvrn in 3.000, no tnum (READ in 5a PR 2). WPF gives the bundled Regular the digit widths 0=688 1=465 2=599 3=641 4=649 5=654 6=661 7=599 8=668 9=658 in thousandths of the em, 9 widths for 10 digits (RAN), the breaker measured 0=675 1=438 9=641. Under SA.Type.Count "1111", "0000" and "7777" are 55.3, 78.5 and 68.5 px wide (RAN).
+- Recommended: keep Libre Franklin, right-align the number columns and accept proportional digits.
+- Other: numbers in Segoe UI. Segoe UI Regular has one width for every digit by default, 539 for each, and Segoe UI Semibold has 5 widths, 402 to 576, by default, both files hold a tnum feature (RAN and READ in 5a PR 2), so the Semibold numbers need the tnum request the theme already makes.
+- Other: Bader gives another font.
+
+QL10. Icon 4 hole. The 12-ui-spec.md line of 4 Place villas reads "M25 6.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 fill white (32 only)" with no "no stroke", so by the defaults of the spec the 2 wide SA.Heading stroke covers the white fill and the pin shows a navy dot. 5a PR 2 draws it as written, seen in a render of the 16 icons (RAN).
+- Recommended: "no stroke", a white hole as the canvas likely shows.
+- Other: keep it as written.
+
+## The questions as L0 asked them
 
 QL1. Inputs on the laptop. C:\02-Site Adaptation is not on the laptop (steps/laptop-check.md item 12).
 - Recommended: copy C:\02-Site Adaptation from the personal PC to the same path on the laptop and compare the counts, steps 1 to 4 of the Bader section of steps/laptop-check.md. inputRoot, the key copies and key_copies.json then hold as they are, and R312 checks the copies.
