@@ -9,8 +9,9 @@ Phase 5 and 6 on Bader's company laptop (D1 of steps/decisions-2026-10-28.md). W
 | L0 Laptop check, light mode design, UI spec | done, Lane B, laptop, on the merge of branch docs/laptop-l0 after its review |
 | 5a Install, ribbon, pane, one transaction per button | running since 28 Oct 2026, Lane B, laptop |
 | 5b Button 1 Set up site | open |
+| 5f Update from report, new by Bader's changes of 28 Oct 2026, after 5e and before 6a | open |
 
-After 5b Lane B waits until 4g2, 4g3 and 4h are all marked done in steps/01_next.md. Bader's list of the Lane B phases after that, in order: C2 the C# check of 4g3 and 4h, 5c, the Revit run after 5c, 5d, 5e, 6a, 6b, 6c.
+After 5b Lane B waits until 4g2, 4g3 and 4h are all marked done in steps/01_next.md. Bader's list of the Lane B phases after that, in order: C2 the C# check of 4g3 and 4h, 5c, the Revit run after 5c, 5d, 5e, 5f, 6a, 6b, 6c (5f added by Bader's changes of 28 Oct 2026, docs/design/13-workflow-changes.md).
 
 A laptop session starts from Bader's Lane B prompt, never from steps/START.md. START.md runs the first open phase of steps/01_next.md, which is Phase 4, and nothing there names this file until the fold in.
 
@@ -32,6 +33,7 @@ Waiting for the fold in, in one records commit:
 8. CLAUDE.md: the venv command of QL6, `py -3.12 -m venv .venv`, and Rule 1 of the Lane B rules below.
 9. Bader's four UI controls of 28 Oct 2026, the theme test, the text test, the picture test and the UI checklist in review, written as rules in docs/design/12-ui-spec.md, part UI controls. At the fold in (CHOSEN by Code): .claude/agents/reviewer.md gains the UI checklist, control 4, and each phase of steps/01_next.md that touches a window names the four controls in its done-when. The end of 5a gives Bader the UI approval form of item 5 of that part. Until then the lead of each Lane B session puts the checklist into the brief of every reviewer of a PR that touches a window (CHOSEN by Code, .claude/agents is outside Lane B).
 10. docs/design/README.md: the row of 13-ui-labels.md, the label list of control 2 (CHOSEN by Code, as every part of docs/design/ has its row).
+11. Bader's design changes of 28 Oct 2026, docs/design/13-workflow-changes.md, approved on the canvas: docs/addin-mock.md and docs/design/07-mock.md 7.1 and 7.2 take the order of the 9 steps, the ribbon of four panels and the pane changes, as Bader approved them. docs/design/03a-buttons-shared-and-1.md (the steps each button needs) and 03b-buttons-2-to-8.md take the new numbers and the new button 3 Review data, docs/design/10-rule-ids.md the rule ids of the renumbered buttons and of the new windows. steps/01_next.md gains phase 5f Update from report after 5e and before 6a, and the phases 5c and 5d take the changes of the last part of 13-workflow-changes.md. CLAUDE.md, "The approved mock" line, names 13-workflow-changes.md beside docs/addin-mock.md. docs/design/README.md gains the row of 13-workflow-changes.md.
 
 ## Phase changes to steps/01_next.md
 
@@ -51,6 +53,19 @@ Added by Bader's Lane B prompt of 28 Oct 2026, the second of that day, for the f
 - C2, after 4g3 and 4h are done: in a git worktree of origin/main outside the repo, the gate, the C# reads, the parity on the whole project and the 7 keys on net48 and net8.0 as 4g2 ran it, and the build peak, three runs each, the free memory at the start of each read. One PR adds the result to steps/log.md and closes the C# items the 4g3 and 4h log entries left for the laptop.
 - 5c: Rule 3 first, then every join item below and Q117, the optional inputs of button 3, then Q103, then buttons 2 to 4.
 - 5d: Q115, the wall extent per kind of edge, before button 7 places walls. Q116, the ramp of turned plots on the open edge.
+
+## Join items of Bader's changes of 28 Oct 2026
+
+From docs/design/13-workflow-changes.md, part Where each lands. 5a builds the order, the ribbon and the pane in Lane B PR 8.
+
+- W1, 5b. Set up site: the pass limit 0.1 mm read from addin.position.checkPointLimitMm of config, the Floor types row, the Ramp slope row and its dropdown, the Shared parameters row from the parameter sheet, the parameters and GUIDs only from that sheet. Its PNG.
+- W2, 5c. config/project.json gains addin.position.checkPointLimitMm 0.1, config is Phase 4 territory until the fold in.
+- W3, 5c. The rules profile gains the block manualRules, M01 to M15 as drafted on the canvas, with id, text, group, manual section and the steps that check it. Code reads the page numbers from the manual PDF. The texts of M01 to M15 are on the canvas, not in the repo, so 5c asks Bader for them if no file holds them.
+- W4, 5c. The pre-setting: Import from past job and Export with R367, never a drawing path or a coordinate.
+- W5, 5c. The windows 3 Review data and Site Adaptation Rules, their labels in docs/design/13-ui-labels.md, their PNGs, and the manual rule ID on every check row and Review data row, with "Open in Site Adaptation Rules" in the Check table side box.
+- W6, 5d. Place villas places each link at its FFL and writes Prototype-FFL, Levels writes no link parameter, in the buttons of the new order.
+- W7, 5e. The manual rule ID on every report line.
+- W8, 5f. Update from report, the whole window and its run, its labels and PNG.
 
 ## Join items for 5c
 
