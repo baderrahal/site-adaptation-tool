@@ -46,6 +46,8 @@ The gate test UiLabelTests reads this file. It fails on any text in the XAML or 
 - `DLUS and sales`
 - `Plot numbers`
 - `Prototypes`
+- `DLUS schedule` CHOSEN, the title of the first of the two file dialogs of the row DLUS and sales, each picks its workbook by its role
+- `Sales schedule` CHOSEN, the title of the second of them
 - `Browse`
 - `Not chosen`
 - `<n> MiB` CHOSEN, the size alone while the hash of a large file is worked out off the UI thread

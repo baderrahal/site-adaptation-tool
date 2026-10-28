@@ -24,10 +24,9 @@ namespace SiteAdaptation.AddIn.Pane
         // PR 89 has no stop for that, so the refusal is thrown with its text
         public string WorkFolder(string documentPath)
         {
-            string workRoot = root();
-            string folder = Pane.WorkFolder.For(workRoot, documentPath);
+            string folder = Pane.WorkFolder.For(root(), documentPath);
             string configFile = model.Settings == null ? null : model.Settings.ConfigFile;
-            string refused = folder == null ? null : Pane.WorkFolder.Stop(workRoot, documentPath, Pane.WorkFolder.InputRoot(configFile, readText));
+            string refused = folder == null ? null : Pane.WorkFolder.Refusal(folder, Pane.WorkFolder.InputRoot(configFile, readText));
             if (refused != null)
             {
                 throw new InvalidOperationException(refused);

@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace SiteAdaptation.AddIn.Pane
@@ -42,11 +41,6 @@ namespace SiteAdaptation.AddIn.Pane
             return new InvalidOperationException("no document is open");
         }
 
-        public static Exception Paths(int most, int given)
-        {
-            return new ArgumentException("the row takes 1 to " + most + " paths, not " + given);
-        }
-
         public static Exception Steps(int given)
         {
             return new ArgumentException("the pane shows " + StepPlan.Count + " steps, not " + given);
@@ -64,11 +58,27 @@ namespace SiteAdaptation.AddIn.Pane
         IReadOnlyList<string> LevelProfiles(string rulesFile, out string fallback);
     }
 
+    // The dialogs of Browse, so a test picks its own paths. Each gives null on Cancel. title is null for a dialog with no title of
+    // the tool
+    public interface IPathPicker
+    {
+        string File(string title);
+
+        string Folder();
+    }
+
     // R372, docs/design/03a-buttons-shared-and-1.md Steps. A file is hashed by its content, a folder by the list of its files with
-    // name, size and last write time. The hash runs off the UI thread, since a drawing can be large, and done comes back on the
-    // context of the caller
+    // name, size and last write time. The hash runs off the UI thread, since a drawing can be large, and done comes back through
+    // post, the Dispatcher of the page in Revit, since a Revit event may run with no SynchronizationContext
     public sealed class DiskProbe : IInputProbe
     {
+        public DiskProbe(Action<Action> post)
+        {
+            Post = post;
+        }
+
+        public Action<Action> Post { get; set; }
+
         public InputFacts Look(string path, bool folder)
         {
             if (string.IsNullOrEmpty(path))
@@ -101,7 +111,7 @@ namespace SiteAdaptation.AddIn.Pane
 
         public void Hash(string path, bool folder, Action<string> done)
         {
-            SynchronizationContext caller = SynchronizationContext.Current;
+            Action<Action> post = Post;
             Task.Run(() =>
             {
                 string hash;
@@ -113,14 +123,7 @@ namespace SiteAdaptation.AddIn.Pane
                 {
                     hash = null;
                 }
-                if (caller == null)
-                {
-                    done(hash);
-                }
-                else
-                {
-                    caller.Post(state => done(hash), null);
-                }
+                post(() => done(hash));
             });
         }
 
@@ -144,7 +147,7 @@ namespace SiteAdaptation.AddIn.Pane
         public static string FileSha256(string path)
         {
             using (var sha = SHA256.Create())
-            using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20, FileOptions.SequentialScan))
+            using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 1 << 20, FileOptions.SequentialScan))
             {
                 return Hex(sha.ComputeHash(stream));
             }

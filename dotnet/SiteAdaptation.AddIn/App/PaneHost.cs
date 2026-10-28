@@ -5,6 +5,7 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Events;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Events;
+using System.Windows.Threading;
 using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.AddIn.Theme;
 
@@ -18,7 +19,8 @@ namespace SiteAdaptation.AddIn
         public static readonly DockablePaneId PaneId = new DockablePaneId(new Guid("6b1c5a2e-3f47-4d8a-9c0e-5a0f2b7d4e91"));
 
         private readonly PaneSessions sessions = new PaneSessions();
-        private readonly PaneViewModel model = new PaneViewModel(new DiskProbe());
+        private readonly DiskProbe probe;
+        private readonly PaneViewModel model;
         private ExternalEvent runEvent;
         private ExternalEvent answerEvent;
 
@@ -33,6 +35,14 @@ namespace SiteAdaptation.AddIn
 
         // The routes of the answers handed on so far, so the run of PR 6 in Revit can read where each one went
         public List<RoutedAnswer> Routed { get; } = new List<RoutedAnswer>();
+
+        // Register runs on the UI thread of Revit, the thread of the page, so its Dispatcher takes the hashes until the page exists
+        private PaneHost()
+        {
+            Dispatcher ui = Dispatcher.CurrentDispatcher;
+            probe = new DiskProbe(action => ui.BeginInvoke(action));
+            model = new PaneViewModel(probe, new DialogPicker());
+        }
 
         public static void Register(UIControlledApplication application)
         {
@@ -52,6 +62,7 @@ namespace SiteAdaptation.AddIn
             application.ControlledApplication.DocumentCreated += host.OnCreated;
             application.ControlledApplication.DocumentClosing += host.OnClosing;
             application.ControlledApplication.DocumentClosed += host.OnClosed;
+            application.ControlledApplication.DocumentSavedAs += host.OnSavedAs;
             application.ViewActivated += host.OnViewActivated;
             Current = host;
         }
@@ -64,10 +75,13 @@ namespace SiteAdaptation.AddIn
 
         public void SetupDockablePane(DockablePaneProviderData data)
         {
-            data.FrameworkElement = new SitePanePage(model);
+            var page = new SitePanePage(model);
+            probe.Post = action => page.Dispatcher.BeginInvoke(action);
+            data.FrameworkElement = page;
             data.VisibleByDefault = true;
             // DockablePaneState of Revit 2024 gives a docked pane MinimumWidth only, 200 by default, and a size for a floating pane
-            // only, so the least width is the one lever for the 380 the spec starts the pane at, docs/design/09-risks.md open item 1
+            // only, so the least width is the one lever for the 380 the Sizes of docs/design/12-ui-spec.md start the pane at, QL13
+            // of steps/lane-b.md
             data.InitialState = new DockablePaneState
             {
                 DockPosition = DockPosition.Right,
@@ -102,6 +116,17 @@ namespace SiteAdaptation.AddIn
         {
             sessions.Closed(e.DocumentId, e.Status == RevitAPIEventStatus.Succeeded);
             Show(sender as Application);
+        }
+
+        // A new project saved under a name gets its path and title, so the pane shows them and its steps. A plain save keeps both,
+        // so DocumentSaved needs nothing
+        private void OnSavedAs(object sender, DocumentSavedAsEventArgs e)
+        {
+            if (e.Status == RevitAPIEventStatus.Succeeded && e.Document != null && sessions.Find(e.Document) != null)
+            {
+                sessions.Seen(e.Document, e.Document.PathName, e.Document.Title);
+                Show(sender as Application);
+            }
         }
 
         private void OnViewActivated(object sender, ViewActivatedEventArgs e)

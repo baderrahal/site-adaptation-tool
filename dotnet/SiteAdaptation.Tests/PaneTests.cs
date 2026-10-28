@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Windows.Threading;
 using SiteAdaptation.AddIn;
 using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.Common;
@@ -74,10 +75,74 @@ namespace SiteAdaptation.Tests
             Assert.Equal("The drawings and schedules the tool reads. 0 of 7 found.", model.InputHelp);
             Assert.Equal(new[] { "Needs settings", "Needs step 1", "Needs step 2", "Needs step 3", "Needs step 4", "Needs step 5", "Needs step 6", "Needs step 3" }, model.Steps.Select(step => step.ChipText));
             Assert.All(model.Steps, step => Assert.Equal(MarkKind.Waiting, step.Mark));
-            int asked = 0;
-            model.ChooseSettingsRequested += () => asked++;
+        }
+
+        // Review 1 of PR 90: the box names config/project.json, which holds no formatVersion, so it picks the config file as the
+        // Browse of the Settings row does
+        [Fact]
+        public void R372_the_box_on_first_open_picks_the_config_file_as_browse_of_the_settings_row_does_and_leaves_first_open()
+        {
+            var probe = new FakeProbe();
+            probe.Add(Folder + "project.json", 2048, "a1b2c3d4" + new string('0', 56));
+            var picker = new FakePicker(Folder + "project.json");
+            PaneViewModel model = new PaneViewModel(probe, picker);
+            model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
+
             model.BoxCommand.Execute(null);
-            Assert.Equal(1, asked);
+            Assert.Equal(new string[] { null }, picker.Titles);
+            Assert.False(model.FirstOpen);
+            Assert.Equal(Folder + "project.json", model.Settings.ConfigFile);
+            Assert.Equal("project.json", model.SettingsRow.FileName);
+            Assert.True(model.SettingsRow.Found);
+            Assert.Equal("0.00 MiB a1b2c3d4", model.SettingsRow.Detail);
+            Assert.Equal("Run 1 Set up site", model.BoxButton);
+
+            var cancelled = new PaneViewModel(probe, new FakePicker((string)null));
+            cancelled.Load(new DocumentSession("t", Folder + "Other.rvt", "Other"));
+            cancelled.BoxCommand.Execute(null);
+            Assert.True(cancelled.FirstOpen);
+
+            var browsed = new PaneViewModel(probe, new FakePicker(Folder + "project.json"));
+            browsed.Load(new DocumentSession("u", Folder + "Third.rvt", "Third"));
+            browsed.Browse(browsed.SettingsRow);
+            Assert.Equal(Folder + "project.json", browsed.Settings.ConfigFile);
+        }
+
+        // Review 1 of PR 90: each workbook of DLUS and sales by its role in a dialog of its own, so the two never swap and a Cancel
+        // keeps the one the row had
+        [Fact]
+        public void R372_dlus_and_sales_are_picked_each_by_its_role_and_a_cancel_keeps_the_workbook_the_row_had()
+        {
+            var probe = new FakeProbe();
+            PaneViewModel model = new PaneViewModel(probe, new FakePicker(Folder + "dlus.xlsx", Folder + "sales.xlsx"));
+            var session = new DocumentSession("s", Folder + "Site.rvt", "Site");
+            model.Load(session);
+            FileRowViewModel row = model.InputRows.Single(input => input.Label == "DLUS and sales");
+            model.Browse(row);
+            Assert.Equal(Folder + "dlus.xlsx", session.Settings.InputPath(InputKeys.Dlus));
+            Assert.Equal(Folder + "sales.xlsx", session.Settings.InputPath(InputKeys.Sales));
+
+            var sales = new FakePicker(null, Folder + "sales2.xlsx");
+            model = new PaneViewModel(probe, sales);
+            model.Load(session);
+            model.Browse(model.InputRows.Single(input => input.Label == "DLUS and sales"));
+            Assert.Equal(new[] { "DLUS schedule", "Sales schedule" }, sales.Titles);
+            Assert.Equal(Folder + "dlus.xlsx", session.Settings.InputPath(InputKeys.Dlus));
+            Assert.Equal(Folder + "sales2.xlsx", session.Settings.InputPath(InputKeys.Sales));
+
+            model = new PaneViewModel(probe, new FakePicker(Folder + "dlus2.xlsx", null));
+            model.Load(session);
+            model.Browse(model.InputRows.Single(input => input.Label == "DLUS and sales"));
+            Assert.Equal(Folder + "dlus2.xlsx", session.Settings.InputPath(InputKeys.Dlus));
+            Assert.Equal(Folder + "sales2.xlsx", session.Settings.InputPath(InputKeys.Sales));
+            Assert.Equal("dlus2.xlsx, sales2.xlsx", model.InputRows.Single(input => input.Label == "DLUS and sales").FileName);
+
+            var folder = new FakePicker(Folder + "landxml");
+            model = new PaneViewModel(probe, folder);
+            model.Load(session);
+            model.Browse(model.InputRows.Single(input => input.Label == "Road surface"));
+            Assert.Equal(Folder + "landxml", session.Settings.InputPath(InputKeys.RoadSurface));
+            Assert.Equal(new[] { "folder" }, folder.Titles);
         }
 
         [Fact]
@@ -152,7 +217,7 @@ namespace SiteAdaptation.Tests
             FileRowViewModel plots = model.InputRows.Single(row => row.Label == "Plot numbers");
             FileRowViewModel dlus = model.InputRows.Single(row => row.Label == "DLUS and sales");
 
-            model.PickInput(plots, new[] { Folder + "plots.pdf" });
+            model.PickInput(InputKeys.PlotNumbers, Folder + "plots.pdf");
             Assert.True(plots.Found);
             Assert.Equal("plots.pdf", plots.FileName);
             Assert.Equal("2.91 MiB 7061ac0d", plots.Detail);
@@ -166,19 +231,45 @@ namespace SiteAdaptation.Tests
             Assert.Equal(string.Empty, model.SettingsRow.Detail);
             Assert.Equal("The drawings and schedules the tool reads. 1 of 7 found.", model.InputHelp);
 
-            model.PickInput(dlus, new[] { Folder + "dlus.xlsx" });
+            model.PickInput(InputKeys.Dlus, Folder + "dlus.xlsx");
             Assert.False(dlus.Found);
             Assert.Equal("dlus.xlsx", dlus.FileName);
-            model.PickInput(dlus, new[] { Folder + "dlus.xlsx", Folder + "sales.xlsx" });
+            model.PickInput(InputKeys.Sales, Folder + "sales.xlsx");
             Assert.False(dlus.Found);
             Assert.Equal("dlus.xlsx, sales.xlsx", dlus.FileName);
             probe.Add(Folder + "sales.xlsx", 2097152, "bbbbbbbb" + new string('3', 56));
-            model.PickInput(dlus, new[] { Folder + "dlus.xlsx", Folder + "sales.xlsx" });
+            model.PickInput(InputKeys.Sales, Folder + "sales.xlsx");
             Assert.True(dlus.Found);
             Assert.Equal("1.00 MiB aaaaaaaa, 2.00 MiB bbbbbbbb", dlus.Detail);
             Assert.Equal(Folder + "dlus.xlsx" + Environment.NewLine + Folder + "sales.xlsx" + Environment.NewLine + "1.00 MiB aaaaaaaa, 2.00 MiB bbbbbbbb", dlus.ToolTip);
             Assert.Equal(Folder + "project.json", model.SettingsRow.ToolTip);
-            Assert.Throws<ArgumentException>(() => model.PickInput(plots, new[] { "a", "b" }));
+            Assert.Throws<ArgumentException>(() => model.PickInput("roads", "a"));
+        }
+
+        // Review 1 of PR 90: a file written again drops the size and hash the settings held until it is hashed again
+        [Fact]
+        public void R372_an_input_whose_file_changed_drops_its_old_size_and_hash_until_it_is_hashed_again()
+        {
+            var probe = new FakeProbe { Later = true };
+            probe.Add(Folder + "a.dwg", 1048576, "12345678" + new string('0', 56));
+            PaneViewModel model = Model(probe);
+            model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
+            model.LoadSettings(new PaneSettings { ConfigFile = Folder + "project.json" });
+            model.PickInput(InputKeys.Baseplan, Folder + "a.dwg");
+            probe.Finish();
+            InputFile input = model.Settings.Inputs[InputKeys.Baseplan];
+            Assert.Equal(1048576L, input.Size);
+            Assert.StartsWith("12345678", input.Sha256);
+
+            probe.Add(Folder + "a.dwg", 2097152, "87654321" + new string('0', 56), 2);
+            model.PickRules(Folder + "rules.json");
+            Assert.Null(input.Size);
+            Assert.Null(input.Sha256);
+            Assert.Equal("2.00 MiB", model.InputRows[0].Detail);
+            probe.Finish();
+            Assert.Equal(2097152L, input.Size);
+            Assert.StartsWith("87654321", input.Sha256);
+            Assert.Equal("2.00 MiB 87654321", model.InputRows[0].Detail);
         }
 
         [Fact]
@@ -208,7 +299,7 @@ namespace SiteAdaptation.Tests
             model.Load(first);
             model.LoadSettings(new PaneSettings { ConfigFile = Folder + "project.json" });
             FileRowViewModel baseplan = model.InputRows[0];
-            model.PickInput(baseplan, new[] { Folder + "a.dwg" });
+            model.PickInput(InputKeys.Baseplan, Folder + "a.dwg");
             Assert.Equal("1.00 MiB", baseplan.Detail);
             Assert.Single(probe.Waiting);
 
@@ -218,6 +309,27 @@ namespace SiteAdaptation.Tests
             model.Load(first);
             Assert.Equal("1.00 MiB 12345678", model.InputRows[0].Detail);
             Assert.Empty(probe.Waiting);
+        }
+
+        // Review 1 of PR 90: the user went to another document and came back before the hash ended, which shows when it ends
+        [Fact]
+        public void R372_a_hash_that_ends_after_the_user_came_back_to_its_document_shows_on_its_row()
+        {
+            var probe = new FakeProbe { Later = true };
+            probe.Add(Folder + "a.dwg", 1048576, "12345678" + new string('0', 56));
+            PaneViewModel model = Model(probe);
+            var first = new DocumentSession("one", Folder + "One.rvt", "One");
+            model.Load(first);
+            model.LoadSettings(new PaneSettings { ConfigFile = Folder + "project.json" });
+            model.PickInput(InputKeys.Baseplan, Folder + "a.dwg");
+            model.Load(new DocumentSession("two", Folder + "Two.rvt", "Two"));
+            model.Load(first);
+            Assert.Equal("1.00 MiB", model.InputRows[0].Detail);
+            Assert.Single(probe.Waiting);
+
+            probe.Finish();
+            Assert.Equal("1.00 MiB 12345678", model.InputRows[0].Detail);
+            Assert.StartsWith("12345678", first.Settings.Inputs[InputKeys.Baseplan].Sha256);
         }
 
         [Fact]
@@ -273,7 +385,7 @@ namespace SiteAdaptation.Tests
             model.VillaLinks = true;
             model.ScopeNbh = true;
             model.Nbh = "012";
-            model.PickInput(model.InputRows[3], new[] { Folder + "landxml" });
+            model.PickInput(InputKeys.RoadSurface, Folder + "landxml");
 
             Assert.Equal(Folder + "project.json", session.Settings.ConfigFile);
             Assert.Equal(Folder + "rules.json", session.Settings.RulesFile);
@@ -320,6 +432,57 @@ namespace SiteAdaptation.Tests
             Assert.False(open.Single(document => document.SessionId == again.SessionId).Active);
             Assert.Same(two, sessions.KeyOf(second.SessionId));
             Assert.NotNull(sessions.Seen(new object(), Folder + "Three.rvt", "Three").SessionId);
+        }
+
+        // Review 1 of PR 90: after the close a Revit Document may give a false Equals or throw, so the session leaves on
+        // DocumentClosing while it is valid, and nothing compares the closed one after
+        [Fact]
+        public void R372_a_closed_document_leaves_its_session_on_closing_and_is_never_compared_after_its_close()
+        {
+            var sessions = new PaneSessions();
+            var closing = new Fragile();
+            var other = new Fragile();
+            DocumentSession gone = sessions.Opened(closing, Folder + "One.rvt", "One");
+            DocumentSession kept = sessions.Opened(other, Folder + "Two.rvt", "Two");
+
+            sessions.Closing(3, closing);
+            closing.Closed = true;
+            sessions.Closed(3, true);
+            Assert.Equal(1, sessions.Count);
+            List<OpenDocument> open = sessions.Documents(other);
+            Assert.Equal(new[] { kept.SessionId }, open.Select(document => document.SessionId));
+            Assert.Same(kept, sessions.Find(other));
+            var relay = new AnswerRelay(() => { });
+            relay.Post(new WorkerAnswer { RunId = "r3", Document = new WorkerDocument { Path = Folder + "One.rvt", SessionId = gone.SessionId } });
+            Assert.Equal("run r3 ended after its document closed, nothing applied", relay.Route(open).Single().Issue);
+
+            var cancelled = new Fragile();
+            DocumentSession back = sessions.Opened(cancelled, Folder + "Four.rvt", "Four");
+            sessions.Closing(4, cancelled);
+            Assert.Null(sessions.Find(cancelled));
+            sessions.Closed(4, false);
+            Assert.Same(back, sessions.Find(cancelled));
+            sessions.Closed(9, true);
+            Assert.Equal(2, sessions.Count);
+        }
+
+        // Review 1 of PR 90: a new project saved under a name keeps its session and shows its title and its steps
+        [Fact]
+        public void R372_a_new_project_saved_under_a_name_shows_its_title_and_its_steps_with_the_same_session()
+        {
+            var sessions = new PaneSessions();
+            object key = new object();
+            DocumentSession session = sessions.Opened(key, string.Empty, string.Empty);
+            PaneViewModel model = Model(new FakeProbe());
+            model.Load(session);
+            Assert.Equal("not saved", model.ProjectName);
+            Assert.All(model.Steps, step => Assert.Equal(StepKind.None, step.Chip));
+
+            DocumentSession saved = sessions.Seen(key, Folder + "New Site.rvt", "New Site");
+            model.Load(saved);
+            Assert.Same(session, saved);
+            Assert.Equal("New Site", model.ProjectName);
+            Assert.Equal("Needs settings", model.Steps[0].ChipText);
         }
 
         [Fact]
@@ -373,9 +536,9 @@ namespace SiteAdaptation.Tests
             Assert.Null(WorkFolder.For(@"D:\Root", string.Empty));
             Assert.Null(WorkFolder.For(@"D:\Root", null));
 
-            Assert.Equal("Save the project first, its work folder is named by its file", WorkFolder.Stop(@"D:\Root", string.Empty, null));
-            Assert.Null(WorkFolder.Stop(@"D:\Root", @"C:\Work\Site\Model A.rvt", @"C:\02-Site Adaptation"));
-            Assert.Contains("lies inside inputRoot", WorkFolder.Stop(@"C:\02-Site Adaptation\Work", @"C:\Work\Site\Model A.rvt", @"C:\02-site adaptation\"));
+            Assert.Null(WorkFolder.Refusal(@"D:\Root\Model A_45e7c493", @"C:\02-Site Adaptation"));
+            Assert.Null(WorkFolder.Refusal(@"D:\Root\Model A_45e7c493", null));
+            Assert.Contains("lies inside inputRoot", WorkFolder.Refusal(@"C:\02-Site Adaptation\Work\Model A_45e7c493", @"C:\02-site adaptation\"));
             Assert.False(WorkFolder.Inside(@"C:\02-Site Adaptation 2\Work", @"C:\02-Site Adaptation"));
             Assert.True(WorkFolder.Inside(@"C:\02-Site Adaptation", @"C:\02-Site Adaptation"));
 
@@ -410,33 +573,69 @@ namespace SiteAdaptation.Tests
                 File.SetLastWriteTimeUtc(Path.Combine(folder, "one.xml"), time.AddSeconds(1));
                 Assert.NotEqual(before, DiskProbe.FolderSha256(folder));
 
-                var probe = new DiskProbe();
-                InputFacts facts = probe.Look(folder, true);
+                var looked = new DiskProbe(action => action());
+                InputFacts facts = looked.Look(folder, true);
                 Assert.True(facts.Found);
                 Assert.Equal(6L, facts.Size);
-                Assert.False(probe.Look(Path.Combine(root, "none.txt"), false).Found);
-                Assert.Equal(3L, probe.Look(file, false).Size);
+                Assert.False(looked.Look(Path.Combine(root, "none.txt"), false).Found);
+                Assert.Equal(3L, looked.Look(file, false).Size);
 
-                int caller = Thread.CurrentThread.ManagedThreadId;
-                int worker = 0;
-                var context = new RecordingContext();
-                SynchronizationContext previous = SynchronizationContext.Current;
-                SynchronizationContext.SetSynchronizationContext(context);
-                string hash = null;
+                // Review 1 of PR 90: the answer goes to the Dispatcher of the page, here one of a thread of its own, with no
+                // SynchronizationContext on the caller as in a Revit event
+                Dispatcher page = null;
+                var ready = new ManualResetEventSlim();
+                var ui = new Thread(() =>
+                {
+                    page = Dispatcher.CurrentDispatcher;
+                    ready.Set();
+                    Dispatcher.Run();
+                });
+                ui.SetApartmentState(ApartmentState.STA);
+                ui.Start();
+                Assert.True(ready.Wait(TimeSpan.FromSeconds(10)));
                 try
                 {
-                    probe.Hash(file, false, done => hash = done);
+                    int postedFrom = 0;
+                    int doneOn = 0;
+                    string hash = null;
+                    var finished = new ManualResetEventSlim();
+                    var probe = new DiskProbe(action =>
+                    {
+                        postedFrom = Thread.CurrentThread.ManagedThreadId;
+                        page.BeginInvoke(action);
+                    });
+                    SynchronizationContext previous = SynchronizationContext.Current;
+                    SynchronizationContext.SetSynchronizationContext(null);
+                    try
+                    {
+                        probe.Hash(file, false, done =>
+                        {
+                            hash = done;
+                            doneOn = Thread.CurrentThread.ManagedThreadId;
+                            finished.Set();
+                        });
+                    }
+                    finally
+                    {
+                        SynchronizationContext.SetSynchronizationContext(previous);
+                    }
+                    Assert.True(finished.Wait(TimeSpan.FromSeconds(10)));
+                    Assert.Equal(ui.ManagedThreadId, doneOn);
+                    Assert.NotEqual(ui.ManagedThreadId, postedFrom);
+                    Assert.NotEqual(Thread.CurrentThread.ManagedThreadId, postedFrom);
+                    Assert.Equal("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", hash);
                 }
                 finally
                 {
-                    SynchronizationContext.SetSynchronizationContext(previous);
+                    page.InvokeShutdown();
+                    ui.Join();
                 }
-                Assert.True(context.Posted.Wait(TimeSpan.FromSeconds(10)));
-                worker = context.PostedFrom;
-                Assert.NotEqual(caller, worker);
-                Assert.Null(hash);
-                context.RunPosted();
-                Assert.Equal("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", hash);
+
+                // Review 1 of PR 90: a workbook open in Excel, which holds it for writing, is hashed all the same
+                using (new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
+                {
+                    Assert.Equal("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", DiskProbe.FileSha256(file));
+                }
             }
             finally
             {
@@ -461,20 +660,20 @@ namespace SiteAdaptation.Tests
 
         private sealed class FakeProbe : IInputProbe
         {
-            private readonly Dictionary<string, Tuple<long, string>> files = new Dictionary<string, Tuple<long, string>>(StringComparer.OrdinalIgnoreCase);
+            private readonly Dictionary<string, Tuple<long, string, long>> files = new Dictionary<string, Tuple<long, string, long>>(StringComparer.OrdinalIgnoreCase);
 
             public bool Later { get; set; }
             public List<Action> Waiting { get; } = new List<Action>();
             public IReadOnlyList<string> Profiles { get; set; } = new string[0];
 
-            public void Add(string path, long size, string sha256)
+            public void Add(string path, long size, string sha256, long stamp = 1)
             {
-                files[path] = Tuple.Create(size, sha256);
+                files[path] = Tuple.Create(size, sha256, stamp);
             }
 
             public InputFacts Look(string path, bool folder)
             {
-                return files.TryGetValue(path, out Tuple<long, string> file) ? new InputFacts { Found = true, Size = file.Item1, Stamp = 1 } : new InputFacts();
+                return files.TryGetValue(path, out Tuple<long, string, long> file) ? new InputFacts { Found = true, Size = file.Item1, Stamp = file.Item3 } : new InputFacts();
             }
 
             public void Hash(string path, bool folder, Action<string> done)
@@ -504,25 +703,53 @@ namespace SiteAdaptation.Tests
             }
         }
 
-        private sealed class RecordingContext : SynchronizationContext
+        // The dialogs of Browse, each answer in turn, null a Cancel. Titles keeps the title of each file dialog and "folder" for a
+        // folder dialog
+        private sealed class FakePicker : IPathPicker
         {
-            private SendOrPostCallback callback;
-            private object state;
+            private readonly Queue<string> answers;
 
-            public ManualResetEventSlim Posted { get; } = new ManualResetEventSlim();
-            public int PostedFrom { get; private set; }
-
-            public override void Post(SendOrPostCallback d, object s)
+            public FakePicker(params string[] answers)
             {
-                callback = d;
-                state = s;
-                PostedFrom = Thread.CurrentThread.ManagedThreadId;
-                Posted.Set();
+                this.answers = new Queue<string>(answers);
             }
 
-            public void RunPosted()
+            public List<string> Titles { get; } = new List<string>();
+
+            public string File(string title)
             {
-                callback(state);
+                Titles.Add(title);
+                return answers.Dequeue();
+            }
+
+            public string Folder()
+            {
+                Titles.Add("folder");
+                return answers.Dequeue();
+            }
+        }
+
+        // A key as a Revit Document may act after its close: Equals and GetHashCode throw
+        private sealed class Fragile
+        {
+            public bool Closed { get; set; }
+
+            public override bool Equals(object other)
+            {
+                if (Closed)
+                {
+                    throw new InvalidOperationException("the document is closed");
+                }
+                return ReferenceEquals(this, other);
+            }
+
+            public override int GetHashCode()
+            {
+                if (Closed)
+                {
+                    throw new InvalidOperationException("the document is closed");
+                }
+                return 7;
             }
         }
     }

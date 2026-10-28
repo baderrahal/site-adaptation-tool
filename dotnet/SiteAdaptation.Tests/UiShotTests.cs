@@ -81,6 +81,20 @@ namespace SiteAdaptation.Tests
                     Assert.Equal(34.0, primary.ActualHeight);
                     Assert.Equal(8, all.OfType<Ellipse>().Count(mark => mark.ActualWidth == 26.0));
 
+                    // Review 1 of PR 90: the Level profile and Neighbourhood drop downs and the Plot list box start at one x
+                    List<double> lefts = inputs.Select(input => input.TransformToAncestor(page).Transform(new Point(0, 0)).X).ToList();
+                    Assert.All(lefts, left => Assert.Equal(lefts[0], left, 3));
+
+                    // Review 1 of PR 90: one section after the other at 16, a value of the spacing scale of the spec
+                    List<StackPanel> sections = all.OfType<StackPanel>().Where(panel => panel.Margin == (Thickness)page.FindResource("SA.Pad.Section")).ToList();
+                    Assert.Equal(4, sections.Count);
+                    for (int at = 1; at < sections.Count; at++)
+                    {
+                        double bottom = sections[at - 1].TransformToAncestor(page).Transform(new Point(0, sections[at - 1].ActualHeight)).Y;
+                        double top = sections[at].TransformToAncestor(page).Transform(new Point(0, 0)).Y;
+                        Assert.Equal(16.0, top - bottom, 3);
+                    }
+
                     TextBlock name = all.OfType<TextBlock>().Single(block => block.Text == "01101-PSN-IMC-R17B-TEST-NEW");
                     double right = name.TransformToAncestor(page).Transform(new Point(name.ActualWidth, 0)).X;
                     Assert.Equal(page.ActualWidth - 16, right, 1);
@@ -132,7 +146,7 @@ namespace SiteAdaptation.Tests
                     {
                         continue;
                     }
-                    double share = Shots.Differ(Shots.Load(path), Shots.Load(Png(window)));
+                    double share = Shots.Differ(Shots.Load(path), Shots.AsPng(window));
                     compared.Add(window + " differs on " + (share * 100).ToString("0.000") + " percent of its pixels");
                     Assert.True(share <= MostDiffering, compared.Last());
                 }
@@ -159,18 +173,11 @@ namespace SiteAdaptation.Tests
                 Assert.Equal(1.0, Shots.Differ(ground, Plain(100, 101, 0)));
 
                 BitmapSource pane = Shots.Render(Shots.Pane);
-                BitmapSource again = Shots.Load(Png(Shots.Pane));
-                Assert.Equal(0.0, Shots.Differ(Shots.Load(Png(Shots.Pane)), again));
-                Assert.True(Shots.Differ(again, Shots.Load(Png(Shots.PaneFirstOpen))) > MostDiffering);
+                BitmapSource again = Shots.AsPng(Shots.Pane);
+                Assert.Equal(0.0, Shots.Differ(Shots.AsPng(Shots.Pane), again));
+                Assert.True(Shots.Differ(again, Shots.AsPng(Shots.PaneFirstOpen)) > MostDiffering);
                 Assert.Equal(pane.PixelWidth, again.PixelWidth);
             });
-        }
-
-        private static string Png(string window)
-        {
-            string path = Path.Combine(Path.GetTempPath(), "ui-shot-" + window + "-" + Guid.NewGuid().ToString("N") + ".png");
-            File.WriteAllBytes(path, Shots.Png(Shots.Render(window)));
-            return path;
         }
 
         // A white bitmap with its first count pixels black

@@ -134,7 +134,7 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Empty(missing);
-            Assert.Equal(17, chosen);
+            Assert.Equal(19, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
     }

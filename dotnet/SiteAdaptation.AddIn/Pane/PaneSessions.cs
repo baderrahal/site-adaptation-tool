@@ -11,7 +11,7 @@ namespace SiteAdaptation.AddIn.Pane
     public sealed class PaneSessions
     {
         private readonly Dictionary<object, DocumentSession> open = new Dictionary<object, DocumentSession>();
-        private readonly Dictionary<int, object> closing = new Dictionary<int, object>();
+        private readonly Dictionary<int, KeyValuePair<object, DocumentSession>> closing = new Dictionary<int, KeyValuePair<object, DocumentSession>>();
 
         public int Count
         {
@@ -48,20 +48,28 @@ namespace SiteAdaptation.AddIn.Pane
             return session;
         }
 
-        // DocumentClosed gives only the id of DocumentClosing, the close may still be cancelled between the two
+        // The session leaves on DocumentClosing, while the Document is valid, since after the close Revit's Equals of it may be
+        // false or throw. DocumentClosed gives only the id of DocumentClosing, and a close cancelled between the two puts the
+        // session back on the same Document, still open
         public void Closing(int documentId, object key)
         {
-            closing[documentId] = key;
+            DocumentSession session = Find(key);
+            if (session == null)
+            {
+                return;
+            }
+            open.Remove(key);
+            closing[documentId] = new KeyValuePair<object, DocumentSession>(key, session);
         }
 
         public void Closed(int documentId, bool closed)
         {
-            if (closing.TryGetValue(documentId, out object key))
+            if (closing.TryGetValue(documentId, out KeyValuePair<object, DocumentSession> left))
             {
                 closing.Remove(documentId);
-                if (closed)
+                if (!closed)
                 {
-                    open.Remove(key);
+                    open[left.Key] = left.Value;
                 }
             }
         }

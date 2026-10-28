@@ -15,7 +15,6 @@ namespace SiteAdaptation.AddIn.Pane
     {
         public const string Folder = "SiteAdaptation";
         public const string MachineFile = "machine.json";
-        public const string SaveFirst = "Save the project first, its work folder is named by its file";
 
         // readText stands for the file system, so a test needs no machine file. A machine file that is there but gives no
         // workRoot is refused, never passed over for the default
@@ -87,15 +86,10 @@ namespace SiteAdaptation.AddIn.Pane
             return inner.StartsWith(outer, StringComparison.OrdinalIgnoreCase);
         }
 
-        // What a button does before its run: the stop text, or null when the work folder is good. inputRoot is null when no
-        // config names one
-        public static string Stop(string root, string pathName, string inputRoot)
+        // The refusal of a work folder inside inputRoot, or null when the folder is good. The stop of a document with no path is
+        // RunTexts.SaveFirst of the flow. inputRoot is null when no config names one
+        public static string Refusal(string folder, string inputRoot)
         {
-            string folder = For(root, pathName);
-            if (folder == null)
-            {
-                return SaveFirst;
-            }
             if (Inside(folder, inputRoot))
             {
                 return "The work folder " + folder + " lies inside inputRoot " + inputRoot + ", the sources stay read only";

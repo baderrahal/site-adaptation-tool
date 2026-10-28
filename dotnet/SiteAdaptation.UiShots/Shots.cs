@@ -73,6 +73,15 @@ namespace SiteAdaptation.UiShots
             }
         }
 
+        // A window as its PNG gives it back, in memory, so a compare leaves no file behind
+        public static BitmapSource AsPng(string window)
+        {
+            using (var stream = new MemoryStream(Png(Render(window))))
+            {
+                return new PngBitmapDecoder(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad).Frames[0];
+            }
+        }
+
         // The share of pixels that differ in any channel, 1 when the sizes differ
         public static double Differ(BitmapSource one, BitmapSource other)
         {

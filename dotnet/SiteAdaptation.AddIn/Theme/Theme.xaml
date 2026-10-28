@@ -123,7 +123,8 @@
   <!-- R372, the pane of 7.2. Its gaps are the spacing of the spec, a line is 1, the outline of a step mark 2, the label column
        and the mark column are Code's choice, listed in steps/ui-shots/README.md. -->
   <Thickness x:Key="SA.Pad.Box">16,12,16,12</Thickness>
-  <Thickness x:Key="SA.Pad.Section">16,16,16,4</Thickness>
+  <Thickness x:Key="SA.Pad.Section">16,16,16,0</Thickness>
+  <Thickness x:Key="SA.Gap.Bottom16">0,0,0,16</Thickness>
   <Thickness x:Key="SA.Pad.Panel">12,8,12,8</Thickness>
   <Thickness x:Key="SA.Pad.Chip">8,4,8,4</Thickness>
   <Thickness x:Key="SA.Pad.Button">12,0,12,0</Thickness>

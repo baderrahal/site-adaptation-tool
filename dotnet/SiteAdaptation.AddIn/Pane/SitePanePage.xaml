@@ -174,7 +174,7 @@
     </Border>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-      <StackPanel IsEnabled="{Binding HasDocument}">
+      <StackPanel IsEnabled="{Binding HasDocument}" Margin="{StaticResource SA.Gap.Bottom16}">
         <StackPanel Margin="{StaticResource SA.Pad.Section}">
           <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Project" />
           <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Rules and settings for this job. Set once." />
@@ -201,21 +201,24 @@
           <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Scope" />
           <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Which plots the next button works on." />
           <RadioButton Margin="{StaticResource SA.Gap.Top8}" Style="{StaticResource SA.Pane.Radio}" GroupName="Scope" Content="Whole project" IsChecked="{Binding ScopeWhole}" />
+          <!-- The drop down and the box stand in the value column of the rows above, under the Level profile drop down -->
           <Grid>
             <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
               <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <RadioButton Style="{StaticResource SA.Pane.Radio}" GroupName="Scope" Content="Neighbourhood" IsChecked="{Binding ScopeNbh}" />
-            <ComboBox Grid.Column="1" Margin="{StaticResource SA.Gap.Left8}" Style="{StaticResource SA.Pane.Combo}" ItemsSource="{Binding NbhCodes}" SelectedItem="{Binding Nbh}" />
+            <RadioButton Grid.ColumnSpan="2" Style="{StaticResource SA.Pane.Radio}" GroupName="Scope" Content="Neighbourhood" IsChecked="{Binding ScopeNbh}" />
+            <ComboBox Grid.Column="2" Style="{StaticResource SA.Pane.Combo}" ItemsSource="{Binding NbhCodes}" SelectedItem="{Binding Nbh}" />
           </Grid>
           <Grid>
             <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
               <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <RadioButton Style="{StaticResource SA.Pane.Radio}" GroupName="Scope" Content="Plot list" IsChecked="{Binding ScopePlots}" />
-            <TextBox Grid.Column="1" Margin="{StaticResource SA.Gap.Left8}" Style="{StaticResource SA.Pane.Entry}" Text="{Binding Plots, UpdateSourceTrigger=PropertyChanged}" />
+            <RadioButton Grid.ColumnSpan="2" Style="{StaticResource SA.Pane.Radio}" GroupName="Scope" Content="Plot list" IsChecked="{Binding ScopePlots}" />
+            <TextBox Grid.Column="2" Style="{StaticResource SA.Pane.Entry}" Text="{Binding Plots, UpdateSourceTrigger=PropertyChanged}" />
           </Grid>
           <Border Margin="{StaticResource SA.Gap.Top8}" Background="{StaticResource SA.Panel}" CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Panel}">
             <StackPanel>

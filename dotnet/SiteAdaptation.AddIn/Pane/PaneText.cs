@@ -28,6 +28,8 @@ namespace SiteAdaptation.AddIn.Pane
         public const string RoadSurface = "Road surface";
         public const string DlusAndSales = "DLUS and sales";
         public const string PlotNumbers = "Plot numbers";
+        public const string DlusTitle = "DLUS schedule";
+        public const string SalesTitle = "Sales schedule";
         public const string Prototypes = "Prototypes";
 
         public const string NotChosen = "Not chosen";

@@ -15,10 +15,10 @@ namespace SiteAdaptation.AddIn.Pane
     public sealed class PaneViewModel : Bindable
     {
         private readonly IInputProbe probe;
+        private readonly IPathPicker picker;
         private DocumentSession document;
         private IReadOnlyList<StepStatus> statuses = StepPlan.Before5c(false);
         private bool statusesFromOutside;
-        private int generation;
         private bool refreshing;
         private bool again;
         private readonly Dictionary<string, HashedInput> hashes = new Dictionary<string, HashedInput>(StringComparer.OrdinalIgnoreCase);
@@ -34,9 +34,10 @@ namespace SiteAdaptation.AddIn.Pane
         private string levelProfile;
         private IReadOnlyList<string> nbhCodes = new string[0];
 
-        public PaneViewModel(IInputProbe probe)
+        public PaneViewModel(IInputProbe probe, IPathPicker picker = null)
         {
             this.probe = probe;
+            this.picker = picker;
             SettingsRow = new FileRowViewModel(PaneText.Settings, false);
             RulesRow = new FileRowViewModel(PaneText.Rules, false);
             InputRows = new ReadOnlyCollection<FileRowViewModel>(new[]
@@ -54,8 +55,7 @@ namespace SiteAdaptation.AddIn.Pane
             Load(null);
         }
 
-        // The box button asks for the settings file on first open, else for a run of the ribbon button it names
-        public event Action ChooseSettingsRequested;
+        // The box button picks the settings file on first open, else asks for a run of the ribbon button it names
         public event Action<int> RunRequested;
 
         public bool HasDocument { get { return document != null; } }
@@ -127,7 +127,6 @@ namespace SiteAdaptation.AddIn.Pane
         public void Load(DocumentSession active)
         {
             document = active;
-            generation++;
             statusesFromOutside = false;
             ProjectName = active == null ? string.Empty : string.IsNullOrEmpty(active.Title) ? PaneText.NotSaved : active.Title;
             RefreshAll();
@@ -155,18 +154,64 @@ namespace SiteAdaptation.AddIn.Pane
             RefreshAll();
         }
 
-        // The paths of one row in the order of its keys, so DLUS and sales takes two
-        public void PickInput(FileRowViewModel row, IReadOnlyList<string> paths)
+        public void PickInput(string key, string path)
         {
-            if (paths.Count == 0 || paths.Count > row.Keys.Count)
-            {
-                throw PaneErrors.Paths(row.Keys.Count, paths.Count);
-            }
-            for (int at = 0; at < paths.Count; at++)
-            {
-                Settings.Pick(row.Keys[at], paths[at]);
-            }
+            Settings.Pick(key, path);
             RefreshAll();
+        }
+
+        // The box on first open picks the config file, as Browse of the Settings row does. The settings JSON of a document is R367,
+        // kept in the project in 5c and never picked by the user
+        public void ChooseSettings()
+        {
+            string path = document == null || picker == null ? null : picker.File(null);
+            if (path != null)
+            {
+                PickConfig(path);
+            }
+        }
+
+        // Browse asks the user for a path by the row. DLUS and sales asks for each workbook by its role, one dialog after the
+        // other, and a Cancel keeps the workbook the row had
+        public void Browse(FileRowViewModel row)
+        {
+            if (document == null || picker == null)
+            {
+                return;
+            }
+            if (row == SettingsRow)
+            {
+                ChooseSettings();
+                return;
+            }
+            if (row == RulesRow)
+            {
+                string rules = picker.File(null);
+                if (rules != null)
+                {
+                    PickRules(rules);
+                }
+                return;
+            }
+            bool picked = false;
+            foreach (string key in row.Keys)
+            {
+                string path = row.Folder ? picker.Folder() : picker.File(row.Keys.Count > 1 ? RoleTitle(key) : null);
+                if (path != null)
+                {
+                    Settings.Pick(key, path);
+                    picked = true;
+                }
+            }
+            if (picked)
+            {
+                RefreshAll();
+            }
+        }
+
+        private static string RoleTitle(string key)
+        {
+            return key == InputKeys.Dlus ? PaneText.DlusTitle : PaneText.SalesTitle;
         }
 
         // R366 of 4h gives the step state at 5c, the picture test gives the mock's until then
@@ -277,7 +322,6 @@ namespace SiteAdaptation.AddIn.Pane
             var details = new List<string>();
             var tips = new List<string>();
             bool found = true;
-            int stamp = generation;
             for (int at = 0; at < paths.Length; at++)
             {
                 string path = paths[at];
@@ -311,8 +355,16 @@ namespace SiteAdaptation.AddIn.Pane
                     continue;
                 }
                 details.Add(TextTemplate.Fill(PaneText.Size, SizeText(facts.Size)));
+                // The size and hash the settings held belong to the file before it changed
+                if (input != null && input.Path == path)
+                {
+                    input.Size = null;
+                    input.Sha256 = null;
+                }
                 if (hashing.Add(path))
                 {
+                    // The hash is kept by path, so it shows on whatever document is shown when it ends, the one of the
+                    // request again after the user came back to it
                     probe.Hash(path, row.Folder, hash =>
                     {
                         hashing.Remove(path);
@@ -320,7 +372,7 @@ namespace SiteAdaptation.AddIn.Pane
                         {
                             hashes[path] = new HashedInput(facts.Size, facts.Stamp, hash);
                         }
-                        if (hash != null && stamp == generation && document != null)
+                        if (hash != null && document != null)
                         {
                             RefreshAll();
                         }
@@ -395,7 +447,7 @@ namespace SiteAdaptation.AddIn.Pane
         {
             if (FirstOpen)
             {
-                ChooseSettingsRequested?.Invoke();
+                ChooseSettings();
                 return;
             }
             int next = StepPlan.Next(statuses);
