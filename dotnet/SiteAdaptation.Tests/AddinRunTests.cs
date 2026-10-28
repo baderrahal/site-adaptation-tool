@@ -154,13 +154,14 @@ namespace SiteAdaptation.Tests
                 WorkFolderRead = true, ButtonStop = SaveFirst, ButtonStopRead = true });
             record.Documents.Add(new RunDocument { Label = "unsaved", Made = RunDocument.Created, Title = "Project4", PathName = "", SessionId = "s7",
                 WorkFolderRead = true, ButtonStop = SaveFirst, ButtonStopRead = true });
-            record.Steps.Add(new RunStepState { Step = "openFirst", Active = "first", ActiveSession = "s3", PaneSession = "s3", GenerationBefore = 4, GenerationAfter = 6,
+            record.Steps.Add(new RunStepState { Step = "openFirst", Active = "first", ActiveSession = "s3", PaneSession = "s3", LoadsBefore = 4, LoadsAfter = 6,
                 Events = new List<string> { RunEvent.Opened, RunEvent.ViewActivated } });
-            record.Steps.Add(new RunStepState { Step = "switchToFirst", Active = "first", ActiveSession = "s3", PaneSession = "s3", GenerationBefore = 8, GenerationAfter = 9,
+            record.Steps.Add(new RunStepState { Step = "switchToFirst", Active = "first", ActiveSession = "s3", PaneSession = "s3", LoadsBefore = 8, LoadsAfter = 9,
                 Events = new List<string> { RunEvent.ViewActivated } });
-            record.Steps.Add(new RunStepState { Step = "closeSecond", Active = "first", ActiveSession = "s3", PaneSession = "s3", GenerationBefore = 9, GenerationAfter = 10,
+            record.Steps.Add(new RunStepState { Step = "closeSecond", Active = "first", ActiveSession = "s3", PaneSession = "s3", LoadsBefore = 9, LoadsAfter = 10,
                 Events = new List<string> { RunEvent.Closed } });
-            record.Steps.Add(new RunStepState { Step = "secondNew", GenerationBefore = 1, GenerationAfter = 3, Events = new List<string> { RunEvent.Created, RunEvent.Closed } });
+            record.Steps.Add(new RunStepState { Step = "secondNew", LoadsBefore = 1, LoadsAfter = 4,
+                Events = new List<string> { RunEvent.Created, RunEvent.SavedAs, RunEvent.Closed } });
             record.Answers.Add(new RunAnswer { RunId = "sa5a-1", PostedFor = "second", PostedSession = "s4", ActiveWhenPosted = "first", Routed = true, RoutedSession = "s4", RoutedPath = second });
             record.Answers.Add(new RunAnswer { RunId = "sa5a-2", PostedFor = "second", PostedSession = "s4", ActiveWhenPosted = "first", Routed = true,
                 Issue = "run sa5a-2 ended after its document closed, nothing applied" });
@@ -195,7 +196,7 @@ namespace SiteAdaptation.Tests
             AddinRunRecord record = Expected();
             record.Documents.Single(document => document.Label == "second").SessionId = "s3";
             record.Steps.Single(step => step.Step == "switchToFirst").PaneSession = "s4";
-            record.Steps.Single(step => step.Step == "closeSecond").GenerationAfter = 9;
+            record.Steps.Single(step => step.Step == "closeSecond").LoadsAfter = 9;
             record.Answers[0].RoutedSession = "s3";
             record.Answers[1].Issue = null;
             record.Documents.Single(document => document.Label == "detached").Title = "SA5A-CENTRAL-TEST-NEW_detached";
@@ -221,7 +222,7 @@ namespace SiteAdaptation.Tests
             AddinRunRecord record = Expected();
             record.Documents.RemoveAll(document => document.Label == "detached");
             record.Answers.Clear();
-            record.Steps.ForEach(step => step.GenerationAfter = null);
+            record.Steps.ForEach(step => step.LoadsAfter = null);
             record.Shots.Clear();
             AddinRunJudge.Judge(record);
 

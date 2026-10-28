@@ -15,7 +15,6 @@ namespace SiteAdaptation.TestHost
     // copy and changes none of its files. Each member it cannot find is a note of the result and reads as not measured
     internal sealed class AddinProbe
     {
-        public const string AssemblyName = "SiteAdaptation.AddIn";
         private const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
 
         private readonly Assembly assembly;
@@ -29,27 +28,22 @@ namespace SiteAdaptation.TestHost
 
         public static AddinProbe Find(List<string> notes)
         {
-            Assembly found = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(each => each.GetName().Name == AssemblyName);
+            Assembly found = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(each => each.GetName().Name == AddinRunNames.Assembly);
             if (found == null)
             {
-                notes.Add("the add-in assembly " + AssemblyName + " is not loaded in this Revit");
+                notes.Add("the add-in assembly " + AddinRunNames.Assembly + " is not loaded in this Revit");
             }
             return new AddinProbe(found, notes);
         }
 
         private object Host
         {
-            get { return Read("PaneHost.Current", () => Member(TypeOf("SiteAdaptation.AddIn.PaneHost"), "Current", null)); }
+            get { return Read("PaneHost.Current", () => Member(TypeOf(AddinRunNames.PaneHost), AddinRunNames.Current, null)); }
         }
 
         private object Model
         {
-            get { return Read("PaneHost.model", () => Member(Host, "model")); }
-        }
-
-        private static Type WorkFolder(AddinProbe probe)
-        {
-            return probe.TypeOf("SiteAdaptation.AddIn.Pane.WorkFolder");
+            get { return Read("PaneHost.model", () => Member(Host, AddinRunNames.Model)); }
         }
 
         public string SessionOf(Document document)
@@ -60,34 +54,34 @@ namespace SiteAdaptation.TestHost
             }
             return Read("PaneSessions.Find", () =>
             {
-                object sessions = Member(Host, "Sessions");
-                return Member(Call(sessions.GetType(), "Find", sessions, document), "SessionId");
+                object sessions = Member(Host, AddinRunNames.Sessions);
+                return Member(Call(sessions.GetType(), AddinRunNames.Find, sessions, document), AddinRunNames.SessionId);
             }) as string;
         }
 
-        public int? Generation()
+        public int? Loads()
         {
-            return Read("PaneViewModel.generation", () => Member(Model, "generation")) as int?;
+            return Read("PaneViewModel.Loads", () => Member(Model, AddinRunNames.Loads)) as int?;
         }
 
         public string PaneSession()
         {
-            return Read("PaneViewModel.document", () => Member(Member(Model, "document"), "SessionId")) as string;
+            return Read("PaneViewModel.document", () => Member(Member(Model, AddinRunNames.Document), AddinRunNames.SessionId)) as string;
         }
 
         public string PaneProject()
         {
-            return Read("PaneViewModel.ProjectName", () => Member(Model, "ProjectName")) as string;
+            return Read("PaneViewModel.ProjectName", () => Member(Model, AddinRunNames.ProjectName)) as string;
         }
 
         public int? Waiting()
         {
-            return Read("AnswerRelay.Waiting", () => Member(Member(Host, "Answers"), "Waiting")) as int?;
+            return Read("AnswerRelay.Waiting", () => Member(Member(Host, AddinRunNames.Answers), AddinRunNames.Waiting)) as int?;
         }
 
         public int? RoutedCount()
         {
-            return Read("PaneHost.Routed", () => ((ICollection)Member(Host, "Routed")).Count) as int?;
+            return Read("PaneHost.Routed", () => ((ICollection)Member(Host, AddinRunNames.Routed)).Count) as int?;
         }
 
         // The answer at index of PaneHost.Routed into the record: the session and path of the document it went to, or its issue
@@ -95,12 +89,12 @@ namespace SiteAdaptation.TestHost
         {
             Read("RoutedAnswer", () =>
             {
-                object routed = ((IList)Member(Host, "Routed"))[index];
-                object document = Member(routed, "Document");
+                object routed = ((IList)Member(Host, AddinRunNames.Routed))[index];
+                object document = Member(routed, AddinRunNames.RoutedDocument);
                 into.Routed = true;
-                into.RoutedSession = Member(document, "SessionId") as string;
-                into.RoutedPath = Member(document, "Path") as string;
-                into.Issue = Member(routed, "Issue") as string;
+                into.RoutedSession = Member(document, AddinRunNames.SessionId) as string;
+                into.RoutedPath = Member(document, AddinRunNames.RoutedPath) as string;
+                into.Issue = Member(routed, AddinRunNames.Issue) as string;
                 return null;
             });
         }
@@ -111,8 +105,8 @@ namespace SiteAdaptation.TestHost
         {
             return Read("AnswerRelay.Post", () =>
             {
-                object answers = Member(Host, "Answers");
-                MethodInfo post = answers.GetType().GetMethod("Post");
+                object answers = Member(Host, AddinRunNames.Answers);
+                MethodInfo post = answers.GetType().GetMethod(AddinRunNames.Post);
                 var payload = new JObject
                 {
                     ["runId"] = runId,
@@ -125,13 +119,14 @@ namespace SiteAdaptation.TestHost
             }) as bool? == true;
         }
 
+        // The work root as the add-in names it, through WorkFolder.Root, the one the pane side gives the flow
         public string Root()
         {
             return Read("WorkFolder.Root", () =>
             {
-                Type type = WorkFolder(this);
-                var read = (Func<string, string>)Delegate.CreateDelegate(typeof(Func<string, string>), type.GetMethod("ReadIfThere", Any));
-                return Call(type, "Root", null, Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                Type type = TypeOf(AddinRunNames.WorkFolder);
+                var read = (Func<string, string>)Delegate.CreateDelegate(typeof(Func<string, string>), type.GetMethod(AddinRunNames.ReadIfThere, Any));
+                return Call(type, AddinRunNames.Root, null, Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                     Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), read);
             }) as string;
         }
@@ -141,7 +136,7 @@ namespace SiteAdaptation.TestHost
         {
             return Read("Buttons.State", () =>
             {
-                object state = Member(TypeOf("SiteAdaptation.AddIn.Buttons"), "State", null);
+                object state = Member(TypeOf(AddinRunNames.Buttons), AddinRunNames.State, null);
                 if (state != null && !(state is IRunState))
                 {
                     throw new InvalidCastException("Buttons.State is no IRunState of the Common this test host loaded");
@@ -149,19 +144,20 @@ namespace SiteAdaptation.TestHost
                 return state;
             }) as IRunState;
         }
+
         public string Tab()
         {
-            return Read("RibbonLayout.Tab", () => Member(TypeOf("SiteAdaptation.AddIn.RibbonLayout"), "Tab", null)) as string;
+            return Read("RibbonLayout.Tab", () => Member(TypeOf(AddinRunNames.RibbonLayout), AddinRunNames.Tab, null)) as string;
         }
 
         public object PaneId()
         {
-            return Read("PaneHost.PaneId", () => Member(TypeOf("SiteAdaptation.AddIn.PaneHost"), "PaneId", null));
+            return Read("PaneHost.PaneId", () => Member(TypeOf(AddinRunNames.PaneHost), AddinRunNames.PaneId, null));
         }
 
         public Type PageType()
         {
-            return Read("SitePanePage", () => TypeOf("SiteAdaptation.AddIn.Pane.SitePanePage")) as Type;
+            return Read("SitePanePage", () => TypeOf(AddinRunNames.Page)) as Type;
         }
 
         private Type TypeOf(string name)

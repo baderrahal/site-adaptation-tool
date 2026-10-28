@@ -73,6 +73,7 @@ namespace SiteAdaptation.TestHost
             application.ControlledApplication.DocumentOpened += OnOpened;
             application.ControlledApplication.DocumentClosing += OnClosing;
             application.ControlledApplication.DocumentClosed += OnClosed;
+            application.ControlledApplication.DocumentSavedAs += OnSavedAs;
             application.ViewActivated += OnViewActivated;
             runner.Record(log => log.Notes.Add("addinRun: the result goes to " + resultPath + ", the pictures to " + folder));
             Write();
@@ -156,7 +157,7 @@ namespace SiteAdaptation.TestHost
                 Always = always,
                 Action = () =>
                 {
-                    current = new RunStepState { Step = name, GenerationBefore = probe.Generation() };
+                    current = new RunStepState { Step = name, LoadsBefore = probe.Loads() };
                     try
                     {
                         return action();
@@ -164,7 +165,7 @@ namespace SiteAdaptation.TestHost
                     finally
                     {
                         Document active = ui.ActiveUIDocument == null ? null : ui.ActiveUIDocument.Document;
-                        current.GenerationAfter = probe.Generation();
+                        current.LoadsAfter = probe.Loads();
                         current.Active = LabelOf(active);
                         current.ActiveSession = probe.SessionOf(active);
                         current.PaneSession = probe.PaneSession();
@@ -373,6 +374,7 @@ namespace SiteAdaptation.TestHost
             application.ControlledApplication.DocumentOpened -= OnOpened;
             application.ControlledApplication.DocumentClosing -= OnClosing;
             application.ControlledApplication.DocumentClosed -= OnClosed;
+            application.ControlledApplication.DocumentSavedAs -= OnSavedAs;
             application.ViewActivated -= OnViewActivated;
             record.FinishedUtc = DateTime.UtcNow;
             Write();
@@ -397,6 +399,15 @@ namespace SiteAdaptation.TestHost
             if (e.Status == RevitAPIEventStatus.Succeeded && e.Document != null)
             {
                 Seen(RunEvent.Opened, e.Document, null, true);
+            }
+        }
+
+        // PaneHost shows the pane again on a save as of a document it holds a session for, and the session stays
+        private void OnSavedAs(object sender, DocumentSavedAsEventArgs e)
+        {
+            if (e.Status == RevitAPIEventStatus.Succeeded && e.Document != null)
+            {
+                Seen(RunEvent.SavedAs, e.Document, null, probe.SessionOf(e.Document) != null);
             }
         }
 
@@ -433,7 +444,7 @@ namespace SiteAdaptation.TestHost
                     PathName = document == null ? null : document.PathName,
                     SessionId = probe.SessionOf(document),
                     DocumentChanged = changed,
-                    PaneGeneration = probe.Generation(),
+                    PaneLoads = probe.Loads(),
                     PaneSession = probe.PaneSession(),
                 });
                 if (loads && current != null)

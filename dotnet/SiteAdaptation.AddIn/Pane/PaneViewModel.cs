@@ -123,9 +123,14 @@ namespace SiteAdaptation.AddIn.Pane
 
         public IReadOnlyList<StepStatus> Statuses { get { return statuses; } }
 
+        // How often the pane loaded a document. The addinRun job of the test host reads it around each step, to see the pane load again
+        // on each event of docs/design/09-risks.md open item 1
+        public int Loads { get; private set; }
+
         // The pane of the active document, or of none: then it shows its labels with no values and every button grey
         public void Load(DocumentSession active)
         {
+            Loads++;
             document = active;
             statusesFromOutside = false;
             ProjectName = active == null ? string.Empty : string.IsNullOrEmpty(active.Title) ? PaneText.NotSaved : active.Title;

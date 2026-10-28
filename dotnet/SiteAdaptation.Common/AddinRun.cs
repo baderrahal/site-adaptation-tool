@@ -96,6 +96,38 @@ namespace SiteAdaptation.Common
         }
     }
 
+    // R372. The types and members of the add-in the test host reads by reflection, in one list, so a test on net48 holds each against
+    // the add-in it builds with, and a rename there fails the gate before a Revit run
+    public static class AddinRunNames
+    {
+        public const string Assembly = "SiteAdaptation.AddIn";
+        public const string PaneHost = "SiteAdaptation.AddIn.PaneHost";
+        public const string Current = "Current";
+        public const string PaneId = "PaneId";
+        public const string Model = "model";
+        public const string Sessions = "Sessions";
+        public const string Answers = "Answers";
+        public const string Routed = "Routed";
+        public const string Find = "Find";
+        public const string SessionId = "SessionId";
+        public const string Loads = "Loads";
+        public const string Document = "document";
+        public const string ProjectName = "ProjectName";
+        public const string Waiting = "Waiting";
+        public const string Post = "Post";
+        public const string RoutedDocument = "Document";
+        public const string RoutedPath = "Path";
+        public const string Issue = "Issue";
+        public const string WorkFolder = "SiteAdaptation.AddIn.Pane.WorkFolder";
+        public const string Root = "Root";
+        public const string ReadIfThere = "ReadIfThere";
+        public const string Buttons = "SiteAdaptation.AddIn.Buttons";
+        public const string State = "State";
+        public const string RibbonLayout = "SiteAdaptation.AddIn.RibbonLayout";
+        public const string Tab = "Tab";
+        public const string Page = "SiteAdaptation.AddIn.Pane.SitePanePage";
+    }
+
     // R104. The phases of the job, each ended by a wait in Revit's idle time. After a failed phase only the last runs, which holds the
     // steps that always run
     public sealed class AddinRunPhases
@@ -204,6 +236,7 @@ namespace SiteAdaptation.Common
         public const string Created = "DocumentCreated";
         public const string Opened = "DocumentOpened";
         public const string Closed = "DocumentClosed";
+        public const string SavedAs = "DocumentSavedAs";
         public const string ViewActivated = "ViewActivated";
 
         public DateTime Utc { get; set; }
@@ -214,7 +247,7 @@ namespace SiteAdaptation.Common
         public string SessionId { get; set; }
         // ViewActivated only: whether the active document changed, the one case the pane loads again on it
         public bool? DocumentChanged { get; set; }
-        public int? PaneGeneration { get; set; }
+        public int? PaneLoads { get; set; }
         public string PaneSession { get; set; }
     }
 
@@ -226,9 +259,10 @@ namespace SiteAdaptation.Common
         public string ActiveSession { get; set; }
         public string PaneSession { get; set; }
         public string PaneProject { get; set; }
-        public int? GenerationBefore { get; set; }
-        public int? GenerationAfter { get; set; }
-        // The events of the step the pane loads again on, by the code of PaneHost
+        public int? LoadsBefore { get; set; }
+        public int? LoadsAfter { get; set; }
+        // The events of the step the pane loads again on, by the code of PaneHost: created, opened, saved as for a document it knows,
+        // closed, and a view of another document made active
         public List<string> Events { get; set; } = new List<string>();
     }
 
@@ -292,7 +326,7 @@ namespace SiteAdaptation.Common
         public const string PaneShot = "the pane PNG holds a drawn pane";
         public const string RibbonShot = "the ribbon PNG of our own window holds a drawn ribbon";
 
-        private static readonly string[] LoadEvents = { RunEvent.Created, RunEvent.Opened, RunEvent.Closed, RunEvent.ViewActivated };
+        private static readonly string[] LoadEvents = { RunEvent.Created, RunEvent.Opened, RunEvent.SavedAs, RunEvent.Closed, RunEvent.ViewActivated };
 
         public static void Judge(AddinRunRecord record)
         {
@@ -307,8 +341,8 @@ namespace SiteAdaptation.Common
             foreach (string kind in LoadEvents)
             {
                 List<RunStepState> steps = record.Steps.Where(step => step.Events.Contains(kind)).ToList();
-                checks.Add(Every("1", LoadOn + kind, steps.Where(step => step.GenerationBefore.HasValue && step.GenerationAfter.HasValue).ToList(),
-                    step => step.GenerationAfter.Value - step.GenerationBefore.Value == step.Events.Count, step => step.Step));
+                checks.Add(Every("1", LoadOn + kind, steps.Where(step => step.LoadsBefore.HasValue && step.LoadsAfter.HasValue).ToList(),
+                    step => step.LoadsAfter.Value - step.LoadsBefore.Value == step.Events.Count, step => step.Step));
             }
             checks.Add(AnswerCheck(record.Answers.FirstOrDefault(), AnswerToOwn,
                 answer => answer.Routed && answer.PostedFor != answer.ActiveWhenPosted && answer.RoutedSession == answer.PostedSession && answer.Issue == null));

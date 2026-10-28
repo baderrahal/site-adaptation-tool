@@ -140,7 +140,7 @@ namespace SiteAdaptation.Tests
         public void R372_a_machine_file_that_gives_no_plain_full_workRoot_is_refused_never_passed_over()
         {
             foreach (string text in new[] { "not json", "[]", "{}", "{\"workRoot\": 3}", "{\"workRoot\": \" \"}", "{\"workRoot\": \"Documents\\\\SiteAdaptation\"}",
-                "{\"workRoot\": \"C:\\\\a\\\\..\\\\SiteAdaptation\"}" })
+                "{\"workRoot\": \"C:\\\\a\\\\..\\\\SiteAdaptation\"}", "{\"workRoot\": \"C:\\\\Users\\\\x\\\\Documents\\\\Work\"}" })
             {
                 InvalidDataException error = Assert.Throws<InvalidDataException>(() => WorkRoot.Of(AppData, MyDocuments, Reads(text)));
                 Assert.Contains(Machine, error.Message);

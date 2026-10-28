@@ -674,6 +674,21 @@ namespace SiteAdaptation.Tests
             Assert.Equal("2.91", PaneViewModel.SizeText(3056293));
         }
 
+        // Lane B 5a PR 6. The addinRun job of the test host counts the loads of the pane around each step by this counter
+        [Fact]
+        public void R372_the_pane_counts_each_load_of_a_document_or_of_none()
+        {
+            PaneViewModel model = Model(new FakeProbe());
+            int start = model.Loads;
+            var sessions = new PaneSessions();
+
+            model.Load(sessions.Opened(new object(), Folder + "a.rvt", "a"));
+            model.Load(null);
+            model.Load(sessions.Opened(new object(), "", ""));
+
+            Assert.Equal(start + 3, model.Loads);
+        }
+
         private static PaneViewModel Model(IInputProbe probe)
         {
             return new PaneViewModel(probe);
