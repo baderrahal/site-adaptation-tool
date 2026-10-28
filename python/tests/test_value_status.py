@@ -185,12 +185,15 @@ def test_r401_the_summary_counts_plots_by_field_and_status_and_lists_the_assumed
 
 KEY = "levelProfiles.parsons2024Rev6.keyRules."
 WEAK, STRONG = {"status": "MEASURED", "share": 0.5, "strength": "weak", "measuredBy": "made"}, {"status": "MEASURED", "share": 0.97, "strength": "strong", "measuredBy": "made"}
+# Q110. The keo_file of the DP2 typology, so the DP2 plots of the made row take a status for prototypeFile and the VD2 plot, whose keo_file the
+# made block lacks, is UNKNOWN
+KEO = {"status": "DOCUMENT", "document": "a made up document", "pageOrSheet": "UNKNOWN", "source": "source"}
 # The block of the made row in place of the real one, so no status of the made row follows a real share. Every other entry the map names is
 # missing from it, so UNKNOWN
 MADE_BLOCK = {KEY + "entry.rule": WEAK, KEY + "ffl.rule": STRONG, KEY + "steps.rule": STRONG, KEY + "hand villa.rule": STRONG, KEY + "hand cluster.rule": STRONG,
               KEY + "hand alone.rule": STRONG, KEY + "linkOrigin.rule": STRONG, KEY + "linkRotation.rule": STRONG, KEY + "parameter CASE.rule": WEAK,
               KEY + "parameter RRE_ZZ_SP_RVT-Name.rule": {"status": "CHOSEN by Bader", "question": "Q902", "where": "made up"},
-              KEY + "rampSlope.rule": {"status": "CHOSEN by Code", "where": "a made up note"}}
+              KEY + "rampSlope.rule": {"status": "CHOSEN by Code", "where": "a made up note"}, "typologies.DP2.keo_file": KEO}
 MADE_CONFIG_BLOCK = {"floors.types.generic": {"status": "UNKNOWN", "why": "made up", "nearestSource": "floors.note"}}
 # The plots of the made row by field and status with MADE, the made block and the map of config/project.json, which ValueStatusTests.cs holds the same.
 # Since Q107 the steps and the fields of the steps read steps.riser_added and each heightOffset the elevation of its level, which the made
@@ -211,7 +214,7 @@ MADE_COUNTS = ("floors.generic.heightOffset:UNKNOWN=6 floors.generic.level:UNKNO
                "parameters.RRE_ZZ_SP_Prototype:UNKNOWN=6 parameters.RRE_ZZ_SP_Prototype-FFL:RECOMMENDED=1 "
                "parameters.RRE_ZZ_SP_Prototype-FFL:UNKNOWN=5 parameters.RRE_ZZ_SP_Prototype-Foundation-Type:UNKNOWN=6 "
                "parameters.RRE_ZZ_SP_Prototype-HVAC-Schedule-Type:UNKNOWN=6 parameters.RRE_ZZ_SP_RVT-Name:RECOMMENDED=2 "
-               "parameters.RRE_ZZ_SP_RVT-Name:UNKNOWN=4 prototypeFile:UNKNOWN=6 rotationDeg:MEASURED strong=3 rotationDeg:RECOMMENDED=3 "
+               "parameters.RRE_ZZ_SP_RVT-Name:UNKNOWN=4 prototypeFile:DOCUMENT=5 prototypeFile:UNKNOWN=1 rotationDeg:MEASURED strong=3 rotationDeg:RECOMMENDED=3 "
                "unit:DOCUMENT=6")
 
 
@@ -458,3 +461,41 @@ def test_r401_q107_review1_a_ramp_height_offset_is_held_by_its_lowest_corner_whi
     assert value_status.unmoved("floors.ramp.heightOffset", moved, rule, table) and not value_status.unmoved("floors.ramp.corners", moved, rule, table)
     lower = {"floors.ramp.corners": {"value": [[0.0, 0.0, 9.95]] + moved["floors.ramp.corners"]["value"][1:]}}
     assert not value_status.unmoved("floors.ramp.heightOffset", lower, rule, table)
+
+
+# Q110 (Bader, 2026-10-28). The entries valueStatus of config/project.json lists for prototypeFile: the unit of the location plan, the file of
+# the prototype folder named with it and the keo_file of its typology, which plan_from_cad.prototype_files reads for every typology.
+# ValueStatusTests.cs holds the same text
+Q110_DETAIL = ('{"entries":[{"status":"DOCUMENT","document":"the location plan, labels.csv of the data book"},{"status":"DOCUMENT","document":'
+               '"the prototype folder of the build, pastJob.upgradedPrototypeFolder, the file named with the unit code (R128)"},{"entry":"%s '
+               'typologies.VD1.keo_file","status":"DOCUMENT","document":"a made up document","pageOrSheet":"UNKNOWN","source":"source"}]}')
+
+
+def test_r401_q110_prototype_file_takes_the_worst_of_its_unit_its_prototype_folder_and_the_keo_file_of_its_typology():
+    import json
+    name = project_profile.load_settings().get("profile")
+    table = real_table({"typologies.VD1.keo_file": KEO})
+    status, found, key = table.of("prototypeFile", "computed", unit="VD1")
+    assert (status, json.dumps(found, separators=(",", ":"), ensure_ascii=False), key) == ("DOCUMENT", Q110_DETAIL % name, "prototypeFile from computed unit VD1")
+    # A unit whose typology the block holds no keo_file of, and a plot with no unit, are UNKNOWN with why, never a guess
+    assert table.of("prototypeFile", "computed", unit="XX")[1]["entries"][-1] == {"entry": name + " typologies.XX.keo_file", "status": "UNKNOWN",
+                                                                                   "why": "the block status holds no entry (R401)"}
+    assert table.of("prototypeFile", "computed")[0::2] == ("UNKNOWN", "prototypeFile from computed unit None")
+
+
+def test_r401_q110_each_written_plot_holds_a_status_for_prototype_file_with_its_unit(monkeypatch):
+    built = made_row(monkeypatch, MADE)
+    plan = built["plan"]
+    assert [(number, plan[number]["prototypeFile"]["status"], plan[number]["prototypeFile"]["statusFrom"]) for number in ("1", "5")] == [
+        ("1", "UNKNOWN", "prototypeFile from computed unit VD2"), ("5", "DOCUMENT", "prototypeFile from computed unit DP2")]
+    assert [entry["status"] for entry in detail(built, plan["5"]["prototypeFile"])["entries"]] == ["DOCUMENT", "DOCUMENT", "DOCUMENT"]
+    made, _ = plan_from_book.status_step(built["scope"], built["rows"], built["trace"])
+    assert made["5"]["fields"]["prototypeFile"] == {"source": "computed", "status": "DOCUMENT", "statusFrom": "prototypeFile from computed unit DP2"}
+
+
+def test_r401_q110_the_summary_of_step_15_counts_prototype_file_by_field_and_status(monkeypatch):
+    # With the real block every plot of the made row takes the keo_file of its typology, so none is assumed for prototypeFile
+    real = test_level_floor_steps.made_build(monkeypatch, copy.deepcopy(MADE))["summary"]["rules"]
+    assert real["statusByField"]["prototypeFile"] == {"DOCUMENT": 6} and "prototypeFile" not in real["assumedByField"]
+    rules = made_row(monkeypatch, MADE)["summary"]["rules"]
+    assert rules["statusByField"]["prototypeFile"] == {"DOCUMENT": 5, "UNKNOWN": 1} and rules["assumedByField"]["prototypeFile"] == ["1"]

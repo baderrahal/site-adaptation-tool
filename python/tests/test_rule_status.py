@@ -1,6 +1,9 @@
 """R401. The block status of the rules profile: one entry per value of the rules profile and the settings, each with one of the six
 statuses and the fields it needs, written twice to the same bytes, never read as a value, and kept by every reader of the profile."""
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -241,7 +244,7 @@ def test_r401_value_at_takes_a_key_with_a_dot_whole():
 
 def test_r401_the_real_block_covers_every_value_of_the_two_files():
     """For completeness on the real files: every value one entry with the fields of its status, and no entry of no value. The statuses
-    are not held equal to a fresh run, rule_status.py --check reports that."""
+    are held equal to a fresh run by test_r401_q109_the_real_block_equals_a_fresh_run_and_the_review_list_reads_its_41_rows."""
     settings = json.loads((ROOT / "config" / "project.json").read_text(encoding="utf-8"))
     profile = json.loads((ROOT / settings["profile"]).read_text(encoding="utf-8"))
     block = profile.pop("status")
@@ -347,3 +350,48 @@ def test_r401_each_measured_entry_of_the_real_block_holds_the_share_of_the_profi
         entry = rule_status.value_at(profile, e["measuredBy"])
         share = entry["candidates"][e["candidate"]] if "candidate" in e else entry["share"]
         assert (e["share"], e["strength"]) == (share, "strong" if share >= strong else "weak"), (f, path)
+
+
+# Q109 (Bader, 2026-10-28). The rows of tables 1 and 2 of the review list Bader accepted under Q104, the least it may read
+REVIEW_ROWS = 41
+
+
+def held(root):
+    """Q109. rule_status.py --check run on root as the gate runs it, with its exit code and lines, the rows the review list of Q104 reads
+    and the entries of the written block CHOSEN by Bader by Q104."""
+    done = subprocess.run([sys.executable, str(ROOT / "python" / "rule_status.py"), str(root), "--check"], capture_output=True, text=True,
+                          encoding="utf-8", env=dict(os.environ, PYTHONIOENCODING="utf-8"))
+    settings = json.loads((Path(root) / "config" / "project.json").read_text(encoding="utf-8"))
+    block = json.loads((Path(root) / settings["profile"]).read_text(encoding="utf-8")).get("status") or {}
+    chosen = sum(1 for f, entries in block.items() if f != "note" for e in entries.values() if (e["status"], e.get("question")) == ("CHOSEN by Bader", "Q104"))
+    return done.returncode, (done.stdout + done.stderr).splitlines(), len(rule_status.review_list(root)), chosen
+
+
+def test_r401_q109_the_real_block_equals_a_fresh_run_and_the_review_list_reads_its_41_rows():
+    """Q109. A records edit after --write, or a review list that reads short, fails the gate here, so the 41 values of Q104 never go back
+    to their old status in silence."""
+    code, lines, rows, chosen = held(ROOT)
+    assert (code, lines[-1:]) == (0, ["entries whose evidence changed: 0"]), " | ".join(lines[:20])
+    assert rows >= REVIEW_ROWS, "the review list of Q104 reads %d rows of %d" % (rows, REVIEW_ROWS)
+    assert chosen >= REVIEW_ROWS, "the block holds %d values CHOSEN by Bader by Q104 of %d" % (chosen, REVIEW_ROWS)
+
+
+def test_r401_q109_a_stale_block_or_a_review_list_that_reads_short_fails_the_hold(tmp_path):
+    root = make_repo(tmp_path)
+    review = root / "steps" / "investigations" / "status-review.md"
+    review.parent.mkdir(parents=True)
+    review.write_text(REVIEW, encoding="utf-8")
+    rule_status.write(root)
+    code, _, rows, chosen = held(root)
+    assert (code, rows, chosen) == (0, 3, 3)
+    # A records edit after --write leaves the block stale: Q003, which names analysis.endShare, leaves the closed questions
+    closed = root / "steps" / "questions-closed.md"
+    text = closed.read_text(encoding="utf-8")
+    closed.write_text(text.replace("| Q003 | End | Yes (Bader): analysis.endShare stays | 2026-10-27 |\n", ""), encoding="utf-8")
+    code, lines, _, _ = held(root)
+    assert (code, lines[-1]) == (1, "entries whose evidence changed: 1") and lines[0].startswith("config/project.json analysis.endShare: ")
+    closed.write_text(text, encoding="utf-8")
+    # A heading of table 1 spelled otherwise drops its rows with no error: the list reads short and the block is stale
+    review.write_text(REVIEW.replace("## 1 Values", "### 1 Values"), encoding="utf-8")
+    code, lines, rows, chosen = held(root)
+    assert (code, lines[-1], rows, chosen) == (1, "entries whose evidence changed: 1", 2, 3)
