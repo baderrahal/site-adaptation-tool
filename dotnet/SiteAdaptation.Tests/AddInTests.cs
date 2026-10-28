@@ -14,6 +14,7 @@ using System.Windows.Media.Imaging;
 using SiteAdaptation.AddIn;
 using SiteAdaptation.AddIn.Icons;
 using SiteAdaptation.AddIn.Theme;
+using SiteAdaptation.Common.Flow;
 using Xunit;
 
 namespace SiteAdaptation.Tests
@@ -76,6 +77,20 @@ namespace SiteAdaptation.Tests
             Assert.Equal("4 Place villas is not built yet.", Buttons.NotBuiltText(4));
             Assert.Throws<ArgumentOutOfRangeException>(() => Buttons.NotBuiltText(0));
             Assert.Throws<ArgumentOutOfRangeException>(() => Buttons.NotBuiltText(9));
+        }
+
+        // The flow of Common is handed every dependency as null, so a not-built body that touched one would throw
+        [Fact]
+        public void R382_a_button_with_no_body_says_it_is_not_built_yet_through_the_flow_before_any_check()
+        {
+            var untouched = new ButtonFlow(null, null, null, null, null);
+            foreach (RibbonButtonSpec button in RibbonLayout.Buttons)
+            {
+                RunOutcome outcome = untouched.Run(button.Number, button.Label, Bodies.Of(button.Number), null);
+                Assert.Equal(RunEnd.Stopped, outcome.End);
+                Assert.Equal(Buttons.NotBuiltText(button.Number), outcome.Message);
+            }
+            Assert.Equal("4 Place villas is not built yet.", untouched.Run(4, "4 Place villas", Bodies.Of(4), @"C:\Models\Site.rvt").Message);
         }
 
         [Fact]

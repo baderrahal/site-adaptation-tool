@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>Site Adaptation</Name>
+    <Assembly>SiteAdaptation.AddIn.dll</Assembly>
+    <FullClassName>SiteAdaptation.AddIn.App</FullClassName>
+    <AddInId>c330760d-8384-4e69-b4a2-2fe26e0c45fe</AddInId>
+    <VendorId>SITEADAPT</VendorId>
+    <VendorDescription>Site Adaptation Tool</VendorDescription>
+  </AddIn>
+</RevitAddIns>

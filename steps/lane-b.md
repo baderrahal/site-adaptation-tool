@@ -73,6 +73,25 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - 5a PR 2 review. The theme gate misses compound property names such as RowBackground and HorizontalGridLinesBrush, SystemColors, a Setter with Value before Property or a Setter.Value element, single-quoted attributes, sc# colours, a FontSize from a Binding FallbackValue or TargetNullValue or from a sys:Double resource, FontSize += and *=, and the emSize of FormattedText. Nothing checks the Setters and Colors inside Theme.xaml itself.
 - 5a PR 2 review. The resolver would serve the Newtonsoft.Json.dll of the build output if the install copied it, so the install of PR 4 must leave it out.
 - 5a PR 2 review. CreateRibbonTab throws on a second manifest of the add-in.
+- 5a PR 5 review. A folder input is hashed by its file list only, so a copy of the same size and write time passes the Apply re-check, and no slot holds the content hash a body takes as it reads.
+- 5a PR 5 review. With the dry run unticked the inputs are not hashed again at Apply.
+- 5a PR 5 review. A body with a null ReadBack skips the read back.
+- 5a PR 5 review. Install-SiteAdaptation.ps1 -NoBuild can mix two builds of Common, the add-in build and an older worker build.
+- 5a PR 5 review. Every failed move is called held open by another program, and a saved file is reported unsaved when the hash after its move fails.
+- 5a PR 5 review. Two outputs of one file name in different folders collide under the dry folder.
+- 5a PR 5 review. Buttons.State is never set, the pane of PR 4 fills it.
+- 5a PR 5 review. Two inputs of one name or a bad path character throw an ArgumentException the flow does not catch.
+- 5a PR 5 review. A temporary file a body left open in a stream is not deleted on a roll back, and nothing deletes it later.
+- 5a PR 5 review. An exception that is not an IOException after the commit, in a move or its hash, leaves no record of the committed run.
+- 5a PR 5 review. No hook runs the link load before the transaction or puts the shared parameter file back after it.
+- 5a PR 5 review. A workbook open in Excel can fail the FileShare.Read hash of an input.
+- 5a PR 5 review. The folder hash walks every file of the folder, backups and lock files too.
+- 5a PR 5 review. The install writes the manifest before the Common check and copies the add-in before a failing Worker copy.
+- 5a PR 5 review. Copy-Files never removes a file an earlier install left.
+- 5a PR 5 review. The TaskDialog and the Transaction are not disposed on every path.
+- 5a PR 5 review. The list per plot of the confirm is hidden in ExpandedContent.
+- 5a PR 5 review. No test drives WarningCollector, RevitTransaction or TaskDialogConfirm.
+- 5a PR 5 review 2. A running Revit whose path is known but whose version cannot be read, outside a Revit 2024 folder, counts as not Revit 2024 and lets the install go on (dotnet/SiteAdaptation.AddIn/InstallChecks.ps1 lines 21 to 23 and 35). No real input is known to reach it, Revit.exe carries its version.
 
 ## Lane B rules, Bader 28 Oct 2026
 
@@ -121,6 +140,11 @@ QL10. Icon 4 hole. The 12-ui-spec.md line of 4 Place villas reads "M25 6.5a1 1 0
 QL11. The text test and windows not built yet. Bader's control 2 says the gate test fails on any entry of the label list that no window shows. Set up site comes in 5b and the check table in 5c, so their entries would fail every gate of 5a. The UI spec now counts an entry only once its window is built (CHOSEN by Code, docs/design/12-ui-spec.md, UI controls item 2).
 - Recommended: keep it, each window's entries count from the PR that builds it.
 - Other: the entries of a window go into the list only in the PR that builds it.
+
+QL12. Messages and the confirm of a button as TaskDialogs. docs/design/03a-buttons-shared-and-1.md line 5 says a TaskDialog shows the reason of a roll back, and the flow of 5a PR 5 shows every stop and message in a TaskDialog and its confirm (Apply, Cancel, the list per plot) in one too. A TaskDialog takes the Windows font, colours and buttons, none of Theme.xaml (docs/design/12-ui-spec.md lines 9 to 13 and the Font, Colours and Sizes parts), and it cannot scroll, so a whole-project list per plot grows past the screen. In 5a only "<label> is not built yet." is reached.
+- Recommended: keep TaskDialogs for the short stops and messages as 03a says, accepted as the Revit look, and build the confirm as the themed summary window of 7.7 item 1 with the first button that has a body (5b), with its PNG and labels.
+- Other: every message in a themed window of its own.
+- Other: keep TaskDialogs for all, the confirm included.
 
 ## The questions as L0 asked them
 
