@@ -91,6 +91,7 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - 5a PR 5 review. The TaskDialog and the Transaction are not disposed on every path.
 - 5a PR 5 review. The list per plot of the confirm is hidden in ExpandedContent.
 - 5a PR 5 review. No test drives WarningCollector, RevitTransaction or TaskDialogConfirm.
+- 5a PR 5 review 2. A running Revit whose path is known but whose version cannot be read, outside a Revit 2024 folder, counts as not Revit 2024 and lets the install go on (dotnet/SiteAdaptation.AddIn/InstallChecks.ps1 lines 21 to 23 and 35). No real input is known to reach it, Revit.exe carries its version.
 
 ## Lane B rules, Bader 28 Oct 2026
 
