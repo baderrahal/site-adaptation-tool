@@ -30,18 +30,20 @@ namespace SiteAdaptation.AddIn.Pane
 
     // R372. The step lines of the pane until R366, the step state of 4h, comes in. CHOSEN for 5a, joined with R366 at 5c: no step
     // is ever done, so button 1 is Ready once a settings file is chosen and Needs settings before, and every other button needs the
-    // step before it by the order of docs/design/03a-buttons-shared-and-1.md, 8 needs 3
+    // step before it by the order of docs/design/13-workflow-changes.md, 9 Report needs 4 Check
     public static class StepPlan
     {
-        public const int Count = 8;
+        public const int Count = 9;
+        private const int Report = 9;
+        private const int Check = 4;
 
         public static int Needs(int number)
         {
             if (number < 1 || number > Count)
             {
-                throw new ArgumentOutOfRangeException(nameof(number), number, "the steps are 1 to 8");
+                throw new ArgumentOutOfRangeException(nameof(number), number, "the steps are 1 to " + Count);
             }
-            return number == 1 ? 0 : number == 8 ? 3 : number - 1;
+            return number == 1 ? 0 : number == Report ? Check : number - 1;
         }
 
         public static IReadOnlyList<StepStatus> Before5c(bool settingsChosen)

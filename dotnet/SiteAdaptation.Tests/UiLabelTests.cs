@@ -23,7 +23,8 @@ namespace SiteAdaptation.Tests
 
             Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Check table" }, list.Keys.ToArray());
             Assert.Equal(new[] { "Ribbon", "Pane", "Button messages" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
-            Assert.Equal(12, list["Ribbon"].Entries.Count);
+            Assert.Equal(16, list["Ribbon"].Entries.Count);
+            Assert.Contains(shown["Ribbon"], found => found.Text == "Update from report");
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
             Assert.Contains(shown["Pane"], found => found.Text == "Needs step <n>" && found.Where.EndsWith("PaneText.cs", StringComparison.Ordinal));
             Assert.Contains(shown[UiLabels.Messages], found => found.Text == " needs step " && found.Where.EndsWith("RunTexts.cs", StringComparison.Ordinal));
@@ -43,7 +44,7 @@ namespace SiteAdaptation.Tests
                 Directory.CreateDirectory(Path.Combine(root, "Pane"));
                 Directory.CreateDirectory(Path.Combine(root, "Theme"));
                 File.WriteAllText(Path.Combine(root, "App", "RibbonLayout.cs"),
-                    "public const string Tab = \"Site Adaptation\";\nnew RibbonPanelSpec(\"Setup\", new[] { new RibbonButtonSpec(1, \"1 Set up site\", \"SetUpSiteCommand\") });\nnew RibbonPanelSpec(\"Planted panel\", null);");
+                    "public const string Tab = \"Site Adaptation\";\nnew RibbonPanelSpec(\"Setup\", new[] { new RibbonButtonSpec(1, \"1 Set up site\", \"SetUpSiteCommand\") });\nnew RibbonPanelSpec(\"Planted panel\", null);\nnew RibbonButtonSpec(\"Planted button with no number\", \"PlantedCommand\");");
                 File.WriteAllText(Path.Combine(root, "Theme", "Theme.xaml"),
                     "<ResourceDictionary xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"><FontFamily x:Key=\"SA.Font\">Libre Franklin</FontFamily><Style x:Key=\"a\" TargetType=\"TextBlock\"><Setter Property=\"Text\" Value=\"Planted in the theme\" /></Style></ResourceDictionary>");
                 File.WriteAllText(Path.Combine(root, "Pane", "Page.xaml"),
@@ -81,13 +82,13 @@ namespace SiteAdaptation.Tests
                 List<string> offences = UiLabels.Offenders(list, UiLabels.Texts(root, runTexts));
                 string all = string.Join("\n", offences);
 
-                foreach (string planted in new[] { "Planted panel", "Planted in the theme", "Planted string", "Planted attribute", "Planted element", "Planted run", "Planted content",
+                foreach (string planted in new[] { "Planted panel", "Planted button with no number", "Planted in the theme", "Planted string", "Planted attribute", "Planted element", "Planted run", "Planted content",
                     "Planted tooltip", "Planted fallback", "Planted null", "Planted setter", "Planted code behind", "Planted \"verbatim\"", "Planted view model", "Planted {a}",
                     "Planted out of a window", "Planted entry no ribbon shows", "Planted entry no pane shows", "Planted message", "the file is not on disk" })
                 {
                     Assert.True(offences.Count(line => line.Contains(planted)) == 1, planted + " in\n" + all);
                 }
-                Assert.Equal(20, offences.Count);
+                Assert.Equal(21, offences.Count);
                 Assert.DoesNotContain("Not a message text", all);
                 Assert.DoesNotContain("Not text", all);
                 Assert.DoesNotContain("Not a window text", all);
@@ -106,8 +107,9 @@ namespace SiteAdaptation.Tests
         public void R372_each_entry_of_the_list_not_marked_chosen_is_written_in_the_ui_spec_the_mock_or_the_design()
         {
             string root = ThemeGateTests.RepoRoot();
-            // The messages of a button are written in 3 of the design, What every button shares, and the work folder in 6
-            string source = string.Join("\n", new[] { "12-ui-spec.md", "07-mock.md", "03a-buttons-shared-and-1.md", "06-settings.md" }
+            // The messages of a button are written in 3 of the design, What every button shares, the work folder in 6 and Bader's
+            // changes of 28 Oct 2026 in 13
+            string source = string.Join("\n", new[] { "12-ui-spec.md", "13-workflow-changes.md", "07-mock.md", "03a-buttons-shared-and-1.md", "06-settings.md" }
                 .Select(name => File.ReadAllText(Path.Combine(root, "docs", "design", name))));
             Dictionary<string, UiLabels.Window> list = UiLabels.List(File.ReadAllText(Path.Combine(root, UiLabels.ListFile)));
             var missing = new List<string>();
@@ -304,7 +306,7 @@ namespace SiteAdaptation.Tests
 
         private static IEnumerable<string> RibbonTexts(string code)
         {
-            foreach (Match match in Regex.Matches(code, @"\bTab\s*=\s*""([^""]*)""|new RibbonPanelSpec\(\s*""([^""]*)""|new RibbonButtonSpec\(\s*\d+\s*,\s*""([^""]*)"""))
+            foreach (Match match in Regex.Matches(code, @"\bTab\s*=\s*""([^""]*)""|new RibbonPanelSpec\(\s*""([^""]*)""|new RibbonButtonSpec\(\s*(?:\d+\s*,\s*)?""([^""]*)"""))
             {
                 yield return match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Success ? match.Groups[2].Value : match.Groups[3].Value;
             }

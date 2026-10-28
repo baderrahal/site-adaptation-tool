@@ -6,18 +6,24 @@ The gate test UiLabelTests reads this file. It fails on any text in the XAML or 
 
 ### Ribbon
 
+The four panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md).
+
 - `Site Adaptation`
 - `Setup`
+- `Rules`
 - `Build`
 - `Output`
 - `1 Set up site`
 - `2 Read data`
-- `3 Check`
-- `4 Place villas`
+- `3 Review data`
+- `4 Check`
+- `Site Adaptation Rules`
 - `5 Floors and ramps`
 - `6 Levels`
-- `7 Walls`
-- `8 Report`
+- `7 Place villas`
+- `8 Walls`
+- `9 Report`
+- `Update from report`
 
 ### Pane
 
@@ -65,10 +71,11 @@ The gate test UiLabelTests reads this file. It fails on any text in the XAML or 
 - `Run them in order. Each one waits for the one before.`
 - `Coordinates, levels and types from CAD`
 - `Reads the drawings and schedules`
+- `The team checks what was read`
 - `Compares the rules with the past job`
-- `Places a villa on each plot`
 - `Generic, yard and ramp floors`
 - `Sets FFL and entry levels`
+- `Places a villa on each plot at its FFL`
 - `Boundary and garden walls`
 - `Excel report of the run`
 - `Done`

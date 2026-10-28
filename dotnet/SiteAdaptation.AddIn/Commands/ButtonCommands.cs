@@ -4,7 +4,7 @@ using Autodesk.Revit.UI;
 
 namespace SiteAdaptation.AddIn.Commands
 {
-    // R371. One command per ribbon button, each only hands its number to Buttons.Run
+    // R371. One command per ribbon button, each only hands its number, or its own name for a button with no number, to Buttons.Run
 
     [Transaction(TransactionMode.Manual)]
     public sealed class SetUpSiteCommand : IExternalCommand
@@ -25,7 +25,7 @@ namespace SiteAdaptation.AddIn.Commands
     }
 
     [Transaction(TransactionMode.Manual)]
-    public sealed class CheckCommand : IExternalCommand
+    public sealed class ReviewDataCommand : IExternalCommand
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
@@ -34,11 +34,20 @@ namespace SiteAdaptation.AddIn.Commands
     }
 
     [Transaction(TransactionMode.Manual)]
-    public sealed class PlaceVillasCommand : IExternalCommand
+    public sealed class CheckCommand : IExternalCommand
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             return Buttons.Run(4, commandData.Application);
+        }
+    }
+
+    [Transaction(TransactionMode.Manual)]
+    public sealed class SiteAdaptationRulesCommand : IExternalCommand
+    {
+        public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+        {
+            return Buttons.Run(nameof(SiteAdaptationRulesCommand), commandData.Application);
         }
     }
 
@@ -61,7 +70,7 @@ namespace SiteAdaptation.AddIn.Commands
     }
 
     [Transaction(TransactionMode.Manual)]
-    public sealed class WallsCommand : IExternalCommand
+    public sealed class PlaceVillasCommand : IExternalCommand
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
@@ -70,11 +79,29 @@ namespace SiteAdaptation.AddIn.Commands
     }
 
     [Transaction(TransactionMode.Manual)]
-    public sealed class ReportCommand : IExternalCommand
+    public sealed class WallsCommand : IExternalCommand
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             return Buttons.Run(8, commandData.Application);
+        }
+    }
+
+    [Transaction(TransactionMode.Manual)]
+    public sealed class ReportCommand : IExternalCommand
+    {
+        public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+        {
+            return Buttons.Run(9, commandData.Application);
+        }
+    }
+
+    [Transaction(TransactionMode.Manual)]
+    public sealed class UpdateFromReportCommand : IExternalCommand
+    {
+        public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+        {
+            return Buttons.Run(nameof(UpdateFromReportCommand), commandData.Application);
         }
     }
 

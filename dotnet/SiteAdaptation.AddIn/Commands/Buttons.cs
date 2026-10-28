@@ -20,9 +20,21 @@ namespace SiteAdaptation.AddIn
 
         public static Result Run(int number, UIApplication application)
         {
+            return Run(RibbonLayout.Button(number), application);
+        }
+
+        // A button with no number, found by its command, takes the same flow. In 5a it has no body, so the flow stops on its
+        // not built text before it asks for a step (13-workflow-changes.md, 5c and 5f build them)
+        public static Result Run(string commandName, UIApplication application)
+        {
+            return Run(RibbonLayout.ButtonOf(commandName), application);
+        }
+
+        private static Result Run(RibbonButtonSpec button, UIApplication application)
+        {
             Document document = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
-            var flow = new ButtonFlow(State, new RevitModel(document), new TaskDialogConfirm(), InputHash.Of, () => RunIds.New(number, DateTime.Now));
-            RunOutcome outcome = flow.Run(number, RibbonLayout.Button(number).Label, Bodies.Of(number), document == null ? null : document.PathName);
+            var flow = new ButtonFlow(State, new RevitModel(document), new TaskDialogConfirm(), InputHash.Of, () => RunIds.New(button.Number, DateTime.Now));
+            RunOutcome outcome = flow.Run(button.Number, button.Label, Bodies.Of(button), document == null ? null : document.PathName);
             if (outcome.Message != null)
             {
                 TaskDialog.Show(RibbonLayout.Tab, outcome.Message);
@@ -36,7 +48,12 @@ namespace SiteAdaptation.AddIn
     {
         public static ButtonBody Of(int number)
         {
-            return new ButtonBody { NotBuilt = RunTexts.NotBuilt(RibbonLayout.Button(number).Label) };
+            return Of(RibbonLayout.Button(number));
+        }
+
+        public static ButtonBody Of(RibbonButtonSpec button)
+        {
+            return new ButtonBody { NotBuilt = RunTexts.NotBuilt(button.Label) };
         }
     }
 }

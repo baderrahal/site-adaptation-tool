@@ -158,23 +158,26 @@ namespace SiteAdaptation.Tests
             Dictionary<string, XElement> pens = theme.Elements(Wpf + "Pen").ToDictionary(element => Key(element), StringComparer.Ordinal);
             var compared = 0;
 
+            var keys = new List<string>();
             foreach (string line in icons.Split('\n').Where(text => text.Trim().Length > 0))
             {
-                Match head = Regex.Match(line, @"^(\d) [^:]+: (.*)$");
+                Match head = Regex.Match(line, @"^(?:(\d) )?([^:]+): (.*)$");
                 Assert.True(head.Success, line);
-                string number = head.Groups[1].Value;
+                string key = IconKey(head.Groups[1].Success ? head.Groups[1].Value : null, head.Groups[2].Value);
+                keys.Add(key);
                 foreach (int size in new[] { 32, 16 })
                 {
-                    List<string> expected = head.Groups[2].Value.Split('|').Select(part => part.Trim())
+                    List<string> expected = head.Groups[3].Value.Split('|').Select(part => part.Trim())
                         .Select(part => ExpectedDrawing(part, size)).Where(part => part != null).ToList();
-                    List<string> found = theme.Elements(Wpf + "DrawingGroup").Single(element => Key(element) == "SA.Icon." + number + "." + size)
+                    List<string> found = theme.Elements(Wpf + "DrawingGroup").Single(element => Key(element) == "SA.Icon." + key + "." + size)
                         .Elements(Wpf + "GeometryDrawing").Select(element => ThemeDrawing(element, pens, doubles)).ToList();
                     Assert.Equal(expected, found);
                     compared += found.Count;
                 }
             }
-            Assert.Equal(8, theme.Elements(Wpf + "DrawingGroup").Count() / 2);
-            Assert.Equal(31 + 27, compared);
+            Assert.Equal(new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "SiteAdaptationRules", "UpdateFromReport" }, keys);
+            Assert.Equal(11, theme.Elements(Wpf + "DrawingGroup").Count() / 2);
+            Assert.Equal(42 + 38, compared);
             Assert.All(pens.Values, pen =>
             {
                 Assert.Equal("Round", (string)pen.Attribute("StartLineCap"));
@@ -195,6 +198,11 @@ namespace SiteAdaptation.Tests
             string text = Regex.Replace(part, @"^(?:32|16) px joints ", "");
             int end = new[] { " fill", " stroke", " width", " (", " no stroke" }.Select(word => text.IndexOf(word, StringComparison.Ordinal)).Where(at => at >= 0).DefaultIfEmpty(text.Length).Min();
             string geometry = text.Substring(0, end).Trim();
+            Match small = Regex.Match(text, @"\(16 px: ([^)]+)\)");
+            if (small.Success && size == 16)
+            {
+                geometry = small.Groups[1].Value.Trim();
+            }
             string fill = Colour(Regex.Match(text, @"\bfill (SA\.\w+|white)").Groups[1].Value);
             bool noStroke = text.Contains("no stroke");
             string stroke = noStroke ? "" : Colour(Regex.Match(text, @"\bstroke (SA\.\w+|white)").Groups[1].Value);
@@ -205,10 +213,20 @@ namespace SiteAdaptation.Tests
             string width = "";
             if (!noStroke)
             {
+                // "width 2.5 (3 at 16 px)" gives a width for each size, "stroke SA.IconAccent 2.5" one width for both, as no 16 px
+                // width is given beside it (CHOSEN, steps/ui-shots/README.md)
                 Match wide = Regex.Match(text, @"width ([\d.]+) \(([\d.]+) at 16 px\)");
-                width = wide.Success ? wide.Groups[size == 32 ? 1 : 2].Value : (size == 32 ? "2" : "2.4");
+                Match given = Regex.Match(text, @"\bstroke (?:SA\.\w+|white) ([\d.]+)");
+                width = wide.Success ? wide.Groups[size == 32 ? 1 : 2].Value : given.Success ? given.Groups[1].Value : (size == 32 ? "2" : "2.4");
             }
             return geometry + ", " + stroke + ", " + width + ", " + fill;
+        }
+
+        // The theme key of an icon line: the number of a numbered button, else its name with no spaces, each word capitalised, as
+        // RibbonButtonSpec.Key names it
+        internal static string IconKey(string number, string name)
+        {
+            return number ?? string.Concat(name.Split(' ').Select(word => char.ToUpperInvariant(word[0]) + word.Substring(1)));
         }
 
         private static string ThemeDrawing(XElement drawing, Dictionary<string, XElement> pens, Dictionary<string, double> doubles)

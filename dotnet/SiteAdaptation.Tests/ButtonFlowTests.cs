@@ -41,7 +41,7 @@ namespace SiteAdaptation.Tests
         // The labels of the ribbon the add-in passes in, RibbonLayout of the add-in, which the net8.0 leg does not load
         private static string Label(int number)
         {
-            return new Dictionary<int, string> { { 2, "2 Read data" }, { 4, "4 Place villas" }, { 5, "5 Floors and ramps" }, { 6, "6 Levels" } }[number];
+            return new Dictionary<int, string> { { 2, "2 Read data" }, { 7, "7 Place villas" }, { 5, "5 Floors and ramps" }, { 6, "6 Levels" } }[number];
         }
 
         private ButtonFlow Flow()
@@ -86,8 +86,8 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R382_each_stop_comes_before_any_change_with_its_message()
         {
-            Assert.Equal("Save the project first, its work folder is named by its file", Flow().Run(4, Label(4), Body(), "").Message);
-            Assert.Equal("Save the project first, its work folder is named by its file", Flow().Run(4, Label(4), Body(), null).Message);
+            Assert.Equal("Save the project first, its work folder is named by its file", Flow().Run(7, Label(7), Body(), "").Message);
+            Assert.Equal("Save the project first, its work folder is named by its file", Flow().Run(7, Label(7), Body(), null).Message);
 
             state.Missing = 4;
             RunOutcome step = Flow().Run(5, Label(5), Body(), Document);
@@ -113,7 +113,7 @@ namespace SiteAdaptation.Tests
             state.DryRunFirst = true;
             confirm.Answer = false;
 
-            RunOutcome outcome = Flow().Run(4, Label(4), Body(), Document);
+            RunOutcome outcome = Flow().Run(7, Label(7), Body(), Document);
 
             Assert.Equal(RunEnd.Cancelled, outcome.End);
             Assert.Null(outcome.Message);
@@ -121,7 +121,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("dry plan", File.ReadAllText(Path.Combine(work, "dry", RunId, "plan.json")));
             FakeConfirm.Call asked = Assert.Single(confirm.Asked);
             Assert.True(asked.DryRun);
-            Assert.Equal("4 Place villas", asked.Label);
+            Assert.Equal("7 Place villas", asked.Label);
             Assert.Equal(3, asked.Summary.PerPlot.Count);
             AssertNothingChanged();
         }
@@ -132,10 +132,10 @@ namespace SiteAdaptation.Tests
             state.DryRunFirst = true;
             confirm.OnAsk = () => hashes["Curbs"] = "b2";
 
-            RunOutcome outcome = Flow().Run(4, Label(4), Body(), Document);
+            RunOutcome outcome = Flow().Run(7, Label(7), Body(), Document);
 
             Assert.Equal(RunEnd.Stopped, outcome.End);
-            Assert.Equal("4 Place villas: Curbs changed since the dry run, nothing was changed. Run the button again.", outcome.Message);
+            Assert.Equal("7 Place villas: Curbs changed since the dry run, nothing was changed. Run the button again.", outcome.Message);
             Assert.False(File.Exists(Path.Combine(work, "plan.json")));
             AssertNothingChanged();
         }
@@ -146,11 +146,11 @@ namespace SiteAdaptation.Tests
             state.DryRunFirst = true;
             model.WarningsToGive.Add("Highlighted walls overlap");
 
-            RunOutcome outcome = Flow().Run(4, Label(4), Body(), Document);
+            RunOutcome outcome = Flow().Run(7, Label(7), Body(), Document);
 
             Assert.Equal(RunEnd.Committed, outcome.End);
             Assert.Null(outcome.Message);
-            Assert.Equal(new[] { "Site Adaptation 4 Place villas" }, model.Started);
+            Assert.Equal(new[] { "Site Adaptation 7 Place villas" }, model.Started);
             Assert.Equal(1, model.Commits);
             Assert.Equal(0, model.RollBacks);
             Assert.Equal("real plan", File.ReadAllText(Path.Combine(work, "plan.json")));
@@ -178,7 +178,7 @@ namespace SiteAdaptation.Tests
                 return counts(context);
             };
 
-            RunOutcome outcome = Flow().Run(4, Label(4), body, Document);
+            RunOutcome outcome = Flow().Run(7, Label(7), body, Document);
 
             Assert.Equal(RunEnd.Cancelled, outcome.End);
             Assert.Equal(new[] { false }, preview);
@@ -187,7 +187,7 @@ namespace SiteAdaptation.Tests
             AssertNothingChanged();
 
             confirm.Answer = true;
-            Assert.Equal(RunEnd.Committed, Flow().Run(4, Label(4), body, Document).End);
+            Assert.Equal(RunEnd.Committed, Flow().Run(7, Label(7), body, Document).End);
             Assert.Equal(new[] { "plan.json" }, FilesUnderWork());
         }
 
@@ -211,10 +211,10 @@ namespace SiteAdaptation.Tests
                 throw new InvalidOperationException("the link type would not load");
             });
 
-            RunOutcome outcome = Flow().Run(4, Label(4), body, Document);
+            RunOutcome outcome = Flow().Run(7, Label(7), body, Document);
 
             Assert.Equal(RunEnd.RolledBack, outcome.End);
-            Assert.Equal("4 Place villas changed nothing, the model is as it was. The run failed: the link type would not load", outcome.Message);
+            Assert.Equal("7 Place villas changed nothing, the model is as it was. The run failed: the link type would not load", outcome.Message);
             Assert.Equal(1, model.RollBacks);
             Assert.Equal(0, model.Commits);
             Assert.Empty(FilesUnderWork());
@@ -224,10 +224,10 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R382_a_read_back_that_does_not_match_rolls_back()
         {
-            RunOutcome outcome = Flow().Run(4, Label(4), Body(readBack: context => "plot 2290 sits 12 mm off its plan"), Document);
+            RunOutcome outcome = Flow().Run(7, Label(7), Body(readBack: context => "plot 2290 sits 12 mm off its plan"), Document);
 
             Assert.Equal(RunEnd.RolledBack, outcome.End);
-            Assert.Equal("4 Place villas changed nothing, the model is as it was. The read back does not match: plot 2290 sits 12 mm off its plan", outcome.Message);
+            Assert.Equal("7 Place villas changed nothing, the model is as it was. The read back does not match: plot 2290 sits 12 mm off its plan", outcome.Message);
             Assert.Equal(1, model.RollBacks);
             Assert.Equal(0, model.Commits);
             Assert.Empty(FilesUnderWork());
@@ -240,26 +240,26 @@ namespace SiteAdaptation.Tests
             model.CommitEnds = false;
             model.ErrorsToGive.Add("Can't make extrusion.");
 
-            RunOutcome outcome = Flow().Run(4, Label(4), Body(), Document);
+            RunOutcome outcome = Flow().Run(7, Label(7), Body(), Document);
 
             Assert.Equal(RunEnd.RolledBack, outcome.End);
-            Assert.Equal("4 Place villas changed nothing, the model is as it was. Revit refused the change: Can't make extrusion.", outcome.Message);
+            Assert.Equal("7 Place villas changed nothing, the model is as it was. Revit refused the change: Can't make extrusion.", outcome.Message);
             Assert.Empty(FilesUnderWork());
             Assert.Empty(state.Records);
 
             model.ErrorsToGive.Clear();
-            Assert.Equal("4 Place villas changed nothing, the model is as it was. Revit did not commit the change.", Flow().Run(4, Label(4), Body(), Document).Message);
+            Assert.Equal("7 Place villas changed nothing, the model is as it was. Revit did not commit the change.", Flow().Run(7, Label(7), Body(), Document).Message);
 
             model.CommitThrows = true;
-            RunOutcome thrown = Flow().Run(4, Label(4), Body(), Document);
+            RunOutcome thrown = Flow().Run(7, Label(7), Body(), Document);
             Assert.Equal(RunEnd.RolledBack, thrown.End);
-            Assert.Equal("4 Place villas changed nothing, the model is as it was. The run failed: the document is read only", thrown.Message);
+            Assert.Equal("7 Place villas changed nothing, the model is as it was. The run failed: the document is read only", thrown.Message);
             Assert.Empty(FilesUnderWork());
 
             model.StartThrows = true;
-            RunOutcome unstarted = Flow().Run(4, Label(4), Body(), Document);
+            RunOutcome unstarted = Flow().Run(7, Label(7), Body(), Document);
             Assert.Equal(RunEnd.RolledBack, unstarted.End);
-            Assert.Equal("4 Place villas changed nothing, the model is as it was. The run failed: Revit did not start the transaction", unstarted.Message);
+            Assert.Equal("7 Place villas changed nothing, the model is as it was. The run failed: Revit did not start the transaction", unstarted.Message);
             Assert.Empty(state.Records);
         }
 

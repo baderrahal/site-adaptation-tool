@@ -110,12 +110,13 @@ namespace SiteAdaptation.UiShots
             return pixels;
         }
 
-        // The eight icons as the ribbon takes them, the 32 px set over the 16 px set, on the white of the theme
+        // The icons of every ribbon button in its order as the ribbon takes them, the 32 px set over the 16 px set, on the white of
+        // the theme
         private static BitmapSource Icons()
         {
             ResourceDictionary theme = ThemeDictionary.Load();
             double gap = (double)theme["SA.Space.L"];
-            List<RibbonButtonSpec> buttons = RibbonLayout.Buttons.ToList();
+            List<RibbonButtonSpec> buttons = RibbonLayout.AllButtons.ToList();
             int width = (int)(buttons.Count * 32 + (buttons.Count + 1) * gap);
             int height = (int)(32 + 16 + 3 * gap);
             var visual = new DrawingVisual();
@@ -220,18 +221,20 @@ namespace SiteAdaptation.UiShots
             return settings;
         }
 
-        // After buttons 1 to 3 on NBH 012, as the mock fills the steps
+        // The mock's state after Set up site, Read data and Check on NBH 012, in the order of 13-workflow-changes.md: 3 Review data
+        // done, 4 Check with its issues, 5 next and 9 Report ready, since it needs 4 only
         public static IReadOnlyList<StepStatus> Steps()
         {
             return new[]
             {
                 new StepStatus(StepKind.Done),
                 new StepStatus(StepKind.Done),
+                new StepStatus(StepKind.Done),
                 new StepStatus(StepKind.Issues, 1247),
                 new StepStatus(StepKind.Ready),
-                new StepStatus(StepKind.NeedsStep, 4),
                 new StepStatus(StepKind.NeedsStep, 5),
                 new StepStatus(StepKind.NeedsStep, 6),
+                new StepStatus(StepKind.NeedsStep, 7),
                 new StepStatus(StepKind.Ready),
             };
         }

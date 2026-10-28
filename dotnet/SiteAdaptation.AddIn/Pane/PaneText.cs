@@ -38,12 +38,13 @@ namespace SiteAdaptation.AddIn.Pane
 
         public const string StepLine1 = "Coordinates, levels and types from CAD";
         public const string StepLine2 = "Reads the drawings and schedules";
-        public const string StepLine3 = "Compares the rules with the past job";
-        public const string StepLine4 = "Places a villa on each plot";
+        public const string StepLine3 = "The team checks what was read";
+        public const string StepLine4 = "Compares the rules with the past job";
         public const string StepLine5 = "Generic, yard and ramp floors";
         public const string StepLine6 = "Sets FFL and entry levels";
-        public const string StepLine7 = "Boundary and garden walls";
-        public const string StepLine8 = "Excel report of the run";
+        public const string StepLine7 = "Places a villa on each plot at its FFL";
+        public const string StepLine8 = "Boundary and garden walls";
+        public const string StepLine9 = "Excel report of the run";
 
         public const string Done = "Done";
         public const string Issues = "<n> issues";
@@ -52,6 +53,6 @@ namespace SiteAdaptation.AddIn.Pane
         public const string NeedsStep = "Needs step <n>";
         public const string NeedsSettings = "Needs settings";
 
-        public static readonly string[] StepLines = { StepLine1, StepLine2, StepLine3, StepLine4, StepLine5, StepLine6, StepLine7, StepLine8 };
+        public static readonly string[] StepLines = { StepLine1, StepLine2, StepLine3, StepLine4, StepLine5, StepLine6, StepLine7, StepLine8, StepLine9 };
     }
 }

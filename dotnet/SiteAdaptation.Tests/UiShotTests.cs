@@ -79,7 +79,7 @@ namespace SiteAdaptation.Tests
                         && border.BorderBrush == page.FindResource("SA.Border")));
                     Button primary = all.OfType<Button>().Single(button => button.Style == page.FindResource("SA.Button.Primary"));
                     Assert.Equal(34.0, primary.ActualHeight);
-                    Assert.Equal(8, all.OfType<Ellipse>().Count(mark => mark.ActualWidth == 26.0));
+                    Assert.Equal(9, all.OfType<Ellipse>().Count(mark => mark.ActualWidth == 26.0));
 
                     // Review 1 of PR 90: the Level profile and Neighbourhood drop downs and the Plot list box start at one x
                     List<double> lefts = inputs.Select(input => input.TransformToAncestor(page).Transform(new Point(0, 0)).X).ToList();
