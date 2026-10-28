@@ -25,14 +25,16 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Status: open
 - Rules: Q105 in the hand step. Q107 in the status step and the build memory. Q109 the status block held by the gate. Q110 the status of prototypeFile. R362 walls and python/plan_walls.py. R363 issues and the check rows, python/check_rows.py, with the grouped chip Assumed of Q108
 - Design: docs/design/05-plan-steps.md steps 7, 11, 14 and 15 (status), docs/design/03b-buttons-2-to-8.md (7 Walls), docs/design/07-mock.md 7.4 and 7.7
-- Done when: parity holds for steps 7, 11, 14 and the status of step 15, and the build peak is measured and set
+- Done when: parity holds for steps 7, 11, 14 and the status of step 15 on the Python side and in the C# unit tests, and the build peak is measured and set
+- C# check (Q111): a laptop session runs the C# reads, the parity on the whole project and the 7 keys on net48 and net8.0, and the build peak, on main once 4g2 is marked done, and writes the result to steps/lane-b.md. Bader named PR 3, the whole project covers PR 4 and PR 5 too (CHOSEN by Code)
 
-## 4g3, the level and report Excel
+## 4g3, Q112, Q113, the level and report Excel
 
 - Status: open
-- Rules: R364 the level Excel. R365 the report Excel, with the plot count on each line of Rules applied and the sheet Assumed, and the parity of step 15 with the count by field and status of R401
+- Rules: Q112 and Q113 first. Q112: an override moved a value only if removing that one override changes it, measured first for the time and the peak of a build of the 7 keys, and if it adds more than 20 percent to either, list all overrides that touched the inputs of the value instead and say so in the log. Q113: a value takes the worst status of its inputs, so the 512 values read RECOMMENDED. R364 the level Excel. R365 the report Excel, with the plot count on each line of Rules applied and the sheet Assumed, and the parity of step 15 with the count by field and status of R401
 - Design: docs/design/05-plan-steps.md step 15, docs/design/03b-buttons-2-to-8.md (6 Levels, 8 Report), docs/design/07-mock.md 7.5 to 7.7
-- Done when: parity holds for step 15, and each Excel holds the labels of 7.5 and 7.6 of the mock in the order of the mock, with the items of 7.7
+- Lane B: when the C# check of Q111 is on main in steps/lane-b.md, fold it into the log. A failure there is a REAL finding of 4g3
+- Done when: Q112 and Q113 hold in Python and C# with tests, parity holds for step 15, and each Excel holds the labels of 7.5 and 7.6 of the mock in the order of the mock, with the items of 7.7
 
 ## 4h, the scope, step state, settings and element tags
 

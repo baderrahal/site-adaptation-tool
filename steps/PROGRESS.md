@@ -51,10 +51,9 @@ Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario
 Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
 Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
 Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
-Q111 C# reads of 4g2 short of memory. Q112 Which override a value names. Q113 Equal to the rule from overridden inputs.
 
 ## Next three steps
 
-1. ADDIN 4g2: Q105, Q107, the walls of R362 and the check rows of R363 with the grouped chip Assumed of Q108. Bader pastes steps/START.md
-2. ADDIN 4g3: R364 the level Excel and R365 the report Excel with the sheet Assumed, one session by steps/START.md
+1. ADDIN 4g2: Q105, Q107, Q109, Q110, the walls of R362 and the check rows of R363 with the grouped chip Assumed of Q108. Bader pastes steps/START.md
+2. ADDIN 4g3: Q112 and Q113 first, then R364 the level Excel and R365 the report Excel with the sheet Assumed, one session by steps/START.md
 3. ADDIN 4h: R366 to R369, one session by steps/START.md
