@@ -124,7 +124,22 @@ namespace SiteAdaptation.Common
             });
         }
 
-        private string Write(string folder, string name, Action<JsonWriter, JsonConverter, JObject> body)
+        // R364. An output that is no JSON, such as the level Excel, written by its temporary name to the stream write gives it, with the same
+        // folder and name checks and the same commit as a JSON output. It carries the run id by its own content, the Settings sheet of the Excel
+        public string WriteFile(string folder, string name, Action<Stream> write)
+        {
+            string temporary;
+            string path = Place(folder, name, out temporary);
+            using (var file = new FileStream(temporary, FileMode.Create, FileAccess.ReadWrite))
+            {
+                write(file);
+            }
+            written.Add(new KeyValuePair<string, string>(temporary, path));
+            return path;
+        }
+
+        // The path of an output and its temporary name, refused outside the output or the steps folder of the request or under a name that is no plain name
+        private string Place(string folder, string name, out string temporary)
         {
             string full = Path.GetFullPath(folder ?? "");
             bool allowed = new[] { Request.OutputFolder, Request.StepsFolder }.Any(place => !string.IsNullOrEmpty(place) && string.Equals(Path.GetFullPath(place).TrimEnd(Path.DirectorySeparatorChar), full.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase));
@@ -132,10 +147,17 @@ namespace SiteAdaptation.Common
             {
                 throw new InvalidOperationException("an output of the worker goes only into the output or the steps folder of the request, under a plain name: " + Path.Combine(folder ?? "", name));
             }
-            JObject stamp = RunStamp.Of(Request);
             string path = Path.Combine(full, name);
             Directory.CreateDirectory(full);
-            string temporary = WorkFiles.TemporaryName(path, Request.RunId);
+            temporary = WorkFiles.TemporaryName(path, Request.RunId);
+            return path;
+        }
+
+        private string Write(string folder, string name, Action<JsonWriter, JsonConverter, JObject> body)
+        {
+            JObject stamp = RunStamp.Of(Request);
+            string temporary;
+            string path = Place(folder, name, out temporary);
             // R350. Every double written so it reads back as the same double, which the format R of net48 does not give. Q107: streamed to the
             // file, the stamp in place of a run key of the content or after its last key, the text a copy of the content with the stamp set
             // gives, as that copy and the text of the whole file held a step file of a whole build twice more in memory
