@@ -181,9 +181,7 @@ namespace SiteAdaptation.Common
                 {
                     return surfaces;
                 }
-                ReadSettings read = ReadSettings.Load(run.Input("config"));
-                string surface = (string)levelProfile["frontRoad"]?["surface"];
-                List<string> order = surface == "roadLevel" ? read.RoadSurfaces : new List<string> { surface };
+                List<string> order = Fronts.RoadNames(levelProfile, ReadSettings.Load(run.Input("config")));
                 List<string> roles = run.Request.Inputs.Select(input => input.Role).Where(role => role != null && role.StartsWith(WorkerRunner.RoadSurfaceRole, StringComparison.Ordinal)).ToList();
                 List<string> extra = roles.Where(role => !order.Contains(role.Substring(WorkerRunner.RoadSurfaceRole.Length))).ToList();
                 List<string> missing = order.Where(name => !roles.Contains(WorkerRunner.RoadSurfaceRole + name)).ToList();
