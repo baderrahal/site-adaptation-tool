@@ -93,6 +93,9 @@ namespace SiteAdaptation.AddIn.Pane
         public string Title { get; set; }
         public PaneSettings Settings { get; set; }
 
+        // The steps whose real run committed in this session, by button, until R366 keeps the step state with the document
+        public Dictionary<int, StepStatus> Done { get; } = new Dictionary<int, StepStatus>();
+
         public bool HasPath
         {
             get { return !string.IsNullOrEmpty(Path); }

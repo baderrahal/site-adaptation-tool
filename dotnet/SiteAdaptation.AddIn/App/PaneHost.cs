@@ -46,6 +46,7 @@ namespace SiteAdaptation.AddIn
                 runner.Number = number;
                 host.runEvent.Raise();
             };
+            Buttons.State = new PaneRunState(host.model, WorkRoot, WorkFolder.ReadIfThere);
             application.RegisterDockablePane(PaneId, PaneText.Title, host);
             application.ControlledApplication.DocumentOpened += host.OnOpened;
             application.ControlledApplication.DocumentCreated += host.OnCreated;
@@ -53,6 +54,12 @@ namespace SiteAdaptation.AddIn
             application.ControlledApplication.DocumentClosed += host.OnClosed;
             application.ViewActivated += host.OnViewActivated;
             Current = host;
+        }
+
+        private static string WorkRoot()
+        {
+            return WorkFolder.Root(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), WorkFolder.ReadIfThere);
         }
 
         public void SetupDockablePane(DockablePaneProviderData data)

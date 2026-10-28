@@ -19,13 +19,16 @@ namespace SiteAdaptation.Tests
         {
             string root = ThemeGateTests.RepoRoot();
             Dictionary<string, UiLabels.Window> list = UiLabels.List(File.ReadAllText(Path.Combine(root, UiLabels.ListFile)));
-            Dictionary<string, List<UiLabels.Found>> shown = UiLabels.Texts(Path.Combine(root, "dotnet", "SiteAdaptation.AddIn"));
+            Dictionary<string, List<UiLabels.Found>> shown = UiLabels.Texts(Path.Combine(root, "dotnet", "SiteAdaptation.AddIn"), Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Flow", "RunTexts.cs"));
 
-            Assert.Equal(new[] { "Ribbon", "Pane", "Set up site", "Check table" }, list.Keys.ToArray());
-            Assert.Equal(new[] { "Ribbon", "Pane" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Check table" }, list.Keys.ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
             Assert.Equal(12, list["Ribbon"].Entries.Count);
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
             Assert.Contains(shown["Pane"], found => found.Text == "Needs step <n>" && found.Where.EndsWith("PaneText.cs", StringComparison.Ordinal));
+            Assert.Contains(shown[UiLabels.Messages], found => found.Text == " needs step " && found.Where.EndsWith("RunTexts.cs", StringComparison.Ordinal));
+            Assert.Contains(shown[UiLabels.Messages], found => found.Text == "Cancel" && found.Where.EndsWith("RevitModel.cs", StringComparison.Ordinal));
+            Assert.Equal(20, list[UiLabels.Messages].Entries.Count);
 
             Assert.Empty(UiLabels.Offenders(list, shown));
         }
@@ -65,19 +68,27 @@ namespace SiteAdaptation.Tests
                 File.WriteAllText(Path.Combine(root, "Pane", "Helper.cs"), "var a = \"Not a window text\";");
                 File.WriteAllText(Path.Combine(root, "Other.xaml"),
                     "<Grid xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"><TextBlock Text=\"Planted out of a window\" /></Grid>");
+                Directory.CreateDirectory(Path.Combine(root, "Revit"));
+                File.WriteAllText(Path.Combine(root, "Revit", "Model.cs"), "dialog.CommonButtons = TaskDialogCommonButtons.Cancel;\nvar a = \"Not a message text\";");
+                string runTexts = Path.Combine(root, "RunTexts.cs");
+                File.WriteAllText(runTexts, "return label + \" needs step \" + step;\nreturn label + \" needs \" + input.Name + \", the \" + Kind(input) + \" is not chosen\";\n"
+                    + "return input.IsFolder ? \"folder\" : \"file\";\nreturn \"Planted message\";");
 
-                const string listText = "### Ribbon\n\n- `Site Adaptation`\n- `Setup`\n- `1 Set up site`\n- `Planted entry no ribbon shows`\n\n### Pane\n\n- `Browse`\n- `Needs step <n>`\n- `Planted entry no pane shows` CHOSEN, a note\n\n### Check table\n\nNot built yet, Phase 5c.\n\n- `Entry of a window not built`\n";
+                const string listText = "### Ribbon\n\n- `Site Adaptation`\n- `Setup`\n- `1 Set up site`\n- `Planted entry no ribbon shows`\n\n### Pane\n\n- `Browse`\n- `Needs step <n>`\n- `Planted entry no pane shows` CHOSEN, a note\n\n"
+                    + "### Button messages\n\n- `<n> needs step <n>`\n- `<n> needs <n>, the file is not chosen`\n- `<n> needs <n>, the folder is not chosen`\n- `Cancel`\n- `<n> needs <n>, the file is not on disk`\n\n"
+                    + "### Check table\n\nNot built yet, Phase 5c.\n\n- `Entry of a window not built`\n";
                 Dictionary<string, UiLabels.Window> list = UiLabels.List(listText);
-                List<string> offences = UiLabels.Offenders(list, UiLabels.Texts(root));
+                List<string> offences = UiLabels.Offenders(list, UiLabels.Texts(root, runTexts));
                 string all = string.Join("\n", offences);
 
                 foreach (string planted in new[] { "Planted panel", "Planted in the theme", "Planted string", "Planted attribute", "Planted element", "Planted run", "Planted content",
                     "Planted tooltip", "Planted fallback", "Planted null", "Planted setter", "Planted code behind", "Planted \"verbatim\"", "Planted view model", "Planted {a}",
-                    "Planted out of a window", "Planted entry no ribbon shows", "Planted entry no pane shows" })
+                    "Planted out of a window", "Planted entry no ribbon shows", "Planted entry no pane shows", "Planted message", "the file is not on disk" })
                 {
                     Assert.True(offences.Count(line => line.Contains(planted)) == 1, planted + " in\n" + all);
                 }
-                Assert.Equal(18, offences.Count);
+                Assert.Equal(20, offences.Count);
+                Assert.DoesNotContain("Not a message text", all);
                 Assert.DoesNotContain("Not text", all);
                 Assert.DoesNotContain("Not a window text", all);
                 Assert.DoesNotContain("Entry of a window not built", all);
@@ -89,13 +100,15 @@ namespace SiteAdaptation.Tests
             }
         }
 
-        // A second reading: each entry not marked CHOSEN is found word for word in the spec or the mock, a value standing for
+        // A second reading: each entry not marked CHOSEN is found word for word in the spec, the mock or the design, a value standing for
         // any short text there
         [Fact]
-        public void R372_each_entry_of_the_list_not_marked_chosen_is_written_in_the_ui_spec_or_the_mock()
+        public void R372_each_entry_of_the_list_not_marked_chosen_is_written_in_the_ui_spec_the_mock_or_the_design()
         {
             string root = ThemeGateTests.RepoRoot();
-            string source = File.ReadAllText(Path.Combine(root, "docs", "design", "12-ui-spec.md")) + "\n" + File.ReadAllText(Path.Combine(root, "docs", "design", "07-mock.md"));
+            // The messages of a button are written in 3 of the design, What every button shares, and the work folder in 6
+            string source = string.Join("\n", new[] { "12-ui-spec.md", "07-mock.md", "03a-buttons-shared-and-1.md", "06-settings.md" }
+                .Select(name => File.ReadAllText(Path.Combine(root, "docs", "design", name))));
             Dictionary<string, UiLabels.Window> list = UiLabels.List(File.ReadAllText(Path.Combine(root, UiLabels.ListFile)));
             var missing = new List<string>();
             int chosen = 0;
@@ -121,7 +134,7 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Empty(missing);
-            Assert.Equal(3, chosen);
+            Assert.Equal(17, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
     }
@@ -130,6 +143,7 @@ namespace SiteAdaptation.Tests
     {
         public static readonly string ListFile = Path.Combine("docs", "design", "13-ui-labels.md");
         public static readonly Regex Slot = new Regex(@"<[a-z]+>");
+        public const string Messages = "Button messages";
 
         // The folder of the add-in each window's files are in, and the ribbon in its layout file
         private static readonly Dictionary<string, string> Folders = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -195,9 +209,22 @@ namespace SiteAdaptation.Tests
         }
 
         // The texts of each window, and under "no window" those of a XAML file that belongs to none, the theme included
-        public static Dictionary<string, List<Found>> Texts(string addin)
+        // runTexts is RunTexts.cs of the flow, whose texts and parts of texts are the messages of a button, with the common buttons
+        // of a TaskDialog the add-in names, as Cancel
+        public static Dictionary<string, List<Found>> Texts(string addin, string runTexts = null)
         {
-            var texts = new Dictionary<string, List<Found>>(StringComparer.Ordinal) { { "Ribbon", new List<Found>() }, { NoWindow, new List<Found>() } };
+            var texts = new Dictionary<string, List<Found>>(StringComparer.Ordinal) { { "Ribbon", new List<Found>() }, { NoWindow, new List<Found>() }, { Messages, new List<Found>() } };
+            if (runTexts != null)
+            {
+                texts[Messages].AddRange(CodeTexts(File.ReadAllText(runTexts)).Select(text => new Found { Text = text, Where = Path.GetFileName(runTexts) }));
+            }
+            foreach (string path in Directory.EnumerateFiles(addin, "*.cs", SearchOption.AllDirectories).OrderBy(path => path, StringComparer.Ordinal))
+            {
+                foreach (Match match in Regex.Matches(File.ReadAllText(path), @"\bTaskDialogCommonButtons\.(\w+)"))
+                {
+                    texts[Messages].Add(new Found { Text = match.Groups[1].Value, Where = Path.GetFileName(path) });
+                }
+            }
             foreach (string name in Folders.Keys)
             {
                 texts[name] = new List<Found>();
@@ -233,8 +260,11 @@ namespace SiteAdaptation.Tests
             var offences = new List<string>();
             foreach (KeyValuePair<string, List<Found>> window in texts)
             {
-                HashSet<string> allowed = list.TryGetValue(window.Key, out Window listed) ? new HashSet<string>(listed.Entries.Select(entry => entry.Text), StringComparer.Ordinal) : new HashSet<string>();
-                foreach (Found found in window.Value.Where(found => !allowed.Contains(found.Text)))
+                List<string> entries = list.TryGetValue(window.Key, out Window listed) ? listed.Entries.Select(entry => entry.Text).ToList() : new List<string>();
+                Func<string, bool> allowed = window.Key == Messages
+                    ? (Func<string, bool>)(text => entries.Any(entry => entry.Contains(text)))
+                    : text => entries.Contains(text);
+                foreach (Found found in window.Value.Where(found => !allowed(found.Text)))
                 {
                     offences.Add(found.Where + ": text not in the list of " + window.Key + ": " + found.Text);
                 }
@@ -242,12 +272,34 @@ namespace SiteAdaptation.Tests
             foreach (Window window in list.Values.Where(window => window.Built))
             {
                 HashSet<string> shown = texts.TryGetValue(window.Name, out List<Found> found) ? new HashSet<string>(found.Select(item => item.Text), StringComparer.Ordinal) : new HashSet<string>();
-                foreach (Entry entry in window.Entries.Where(entry => !shown.Contains(entry.Text)))
+                Func<string, bool> isShown = window.Name == Messages
+                    ? (Func<string, bool>)(text => Slot.Split(text).All(part => !part.Any(char.IsLetter) || Covered(part, shown)))
+                    : text => shown.Contains(text);
+                foreach (Entry entry in window.Entries.Where(entry => !isShown(entry.Text)))
                 {
                     offences.Add(ListFile + ": no file of " + window.Name + " shows " + entry.Text);
                 }
             }
             return offences;
+        }
+
+        // A message is built from parts, so a part of an entry is shown when the parts of the code make it up end to end
+        private static bool Covered(string part, HashSet<string> pieces)
+        {
+            var reach = new bool[part.Length + 1];
+            reach[0] = true;
+            for (int at = 0; at < part.Length; at++)
+            {
+                if (!reach[at])
+                {
+                    continue;
+                }
+                foreach (string piece in pieces.Where(piece => piece.Length > 0 && at + piece.Length <= part.Length && string.CompareOrdinal(part, at, piece, 0, piece.Length) == 0))
+                {
+                    reach[at + piece.Length] = true;
+                }
+            }
+            return reach[part.Length];
         }
 
         private static IEnumerable<string> RibbonTexts(string code)

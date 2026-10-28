@@ -182,6 +182,23 @@ namespace SiteAdaptation.AddIn.Pane
             RefreshBox();
         }
 
+        public DocumentSession Document
+        {
+            get { return document; }
+        }
+
+        // A real run of a button that committed marks its step line in memory, the lines after it follow
+        public void Committed(int button, StepStatus status)
+        {
+            if (document == null)
+            {
+                return;
+            }
+            document.Done[button] = status;
+            statusesFromOutside = false;
+            RefreshAll();
+        }
+
         public void SetNbhCodes(IReadOnlyList<string> codes)
         {
             NbhCodes = codes;
@@ -226,7 +243,7 @@ namespace SiteAdaptation.AddIn.Pane
         {
             if (!statusesFromOutside)
             {
-                statuses = StepPlan.Before5c(document != null && document.Settings.Chosen);
+                statuses = document == null ? StepPlan.Before5c(false) : StepPlan.From(document.Settings.Chosen, document.Done);
             }
             RefreshRow(SettingsRow, document == null ? null : new[] { document.Settings.ConfigFile });
             RefreshRow(RulesRow, document == null ? null : new[] { document.Settings.RulesFile });

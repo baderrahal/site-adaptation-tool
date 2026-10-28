@@ -27,6 +27,7 @@
     <Compile Remove="DataBookTests.cs" />
     <Compile Remove="AddInTests.cs" />
     <Compile Remove="PaneTests.cs" />
+    <Compile Remove="PaneRunStateTests.cs" />
     <Compile Remove="UiShotTests.cs" />
   </ItemGroup>
 </Project>

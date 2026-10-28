@@ -46,11 +46,28 @@ namespace SiteAdaptation.AddIn.Pane
 
         public static IReadOnlyList<StepStatus> Before5c(bool settingsChosen)
         {
-            return Enumerable.Range(1, Count)
-                .Select(number => number == 1
-                    ? new StepStatus(settingsChosen ? StepKind.Ready : StepKind.NeedsSettings)
-                    : new StepStatus(StepKind.NeedsStep, Needs(number)))
-                .ToList();
+            return From(settingsChosen, new Dictionary<int, StepStatus>());
+        }
+
+        // The step lines with the real runs of this session that committed, held in memory until R366 keeps them. A step done
+        // stays Done or Done with its issues, one whose step before is done is Ready, else it needs the step before it, as the
+        // mock shows 5 Needs step 4 while 4 is Ready
+        public static IReadOnlyList<StepStatus> From(bool settingsChosen, IReadOnlyDictionary<int, StepStatus> done)
+        {
+            return Enumerable.Range(1, Count).Select(number => Line(number, settingsChosen, done)).ToList();
+        }
+
+        private static StepStatus Line(int number, bool settingsChosen, IReadOnlyDictionary<int, StepStatus> done)
+        {
+            if (done.TryGetValue(number, out StepStatus status))
+            {
+                return status;
+            }
+            if (number == 1)
+            {
+                return new StepStatus(settingsChosen ? StepKind.Ready : StepKind.NeedsSettings);
+            }
+            return done.ContainsKey(Needs(number)) ? new StepStatus(StepKind.Ready) : new StepStatus(StepKind.NeedsStep, Needs(number));
         }
 
         // The next step is the first one that is Ready, none when no step is

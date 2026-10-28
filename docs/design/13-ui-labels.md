@@ -76,6 +76,33 @@ The gate test UiLabelTests reads this file. It fails on any text in the XAML or 
 - `Needs step <n>`
 - `Needs settings`
 
+### Button messages
+
+The messages and the confirm of a button, the TaskDialogs of the flow of R382, written in dotnet/SiteAdaptation.Common/Flow/RunTexts.cs, whose texts build a message from parts. A value `<n>` is the ribbon label of the button, an input, a file, a reason or a count. Cancel is the common button of the TaskDialog, Revit gives its word. QL12 of steps/lane-b.md asks Bader whether these stay TaskDialogs.
+
+An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ gives the stop or the step but no words for it.
+
+- `Save the project first, its work folder is named by its file`
+- `<n> is not built yet.` CHOSEN in 5a
+- `Site Adaptation <n>` CHOSEN in 5a, the name of the transaction in the undo list of Revit
+- `<n> needs step <n>`
+- `<n> needs <n>, the file is not chosen` CHOSEN in 5a
+- `<n> needs <n>, the folder is not chosen` CHOSEN in 5a
+- `<n> needs <n>, the file is not on disk`
+- `<n> needs <n>, the folder is not on disk` CHOSEN in 5a
+- `<n>: <n> changed since the dry run, nothing was changed. Run the button again.` CHOSEN in 5a
+- `<n> changed nothing, the model is as it was. <n>` CHOSEN in 5a
+- `The run failed: <n>` CHOSEN in 5a
+- `The read back does not match: <n>` CHOSEN in 5a
+- `Revit refused the change: <n>` CHOSEN in 5a
+- `Revit did not commit the change.` CHOSEN in 5a
+- `<n> changed the model, but <n> was not saved: another program holds it open. Close it and run the button again.` CHOSEN in 5a
+- `<n> was not saved: another program holds it open.` CHOSEN in 5a
+- `Dry run done, nothing was changed.` CHOSEN in 5a
+- `Nothing changes until Apply.`
+- `Apply`
+- `Cancel`
+
 ### Set up site
 
 Not built yet, Phase 5b.
