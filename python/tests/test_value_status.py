@@ -266,7 +266,7 @@ MADE_COUNTS = ("floors.generic.heightOffset:UNKNOWN=6 floors.generic.level:UNKNO
                "floors.yard.outline:UNKNOWN=3 floors.yard.plotValue:DOCUMENT=2 floors.yard.plotValue:RECOMMENDED=1 floors.yard.type:UNKNOWN=3 floors.yard.z:UNKNOWN=3 "
                "insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 levels.entry:RECOMMENDED=1 "
                "levels.ffl:RECOMMENDED=1 levels.ffl:UNKNOWN=5 levels.height:MEASURED weak=4 levels.height:RECOMMENDED=2 "
-               "levels.ssl:UNKNOWN=6 levels.steps:RECOMMENDED=1 levels.steps:UNKNOWN=5 linkName:RECOMMENDED=2 linkName:UNKNOWN=4 "
+               "levels.roadAtFrontM:UNKNOWN=6 levels.ssl:UNKNOWN=6 levels.steps:RECOMMENDED=1 levels.steps:UNKNOWN=5 linkName:RECOMMENDED=2 linkName:UNKNOWN=4 "
                "mirrored:MEASURED strong=5 mirrored:RECOMMENDED=1 parameters.CASE:MEASURED weak=4 parameters.CASE:RECOMMENDED=2 "
                "parameters.RRE_ZZ_SP_Façade-Color:UNKNOWN=6 parameters.RRE_ZZ_SP_Façade-Design-Option:UNKNOWN=6 "
                "parameters.RRE_ZZ_SP_Number-of-Steps:UNKNOWN=5 parameters.RRE_ZZ_SP_Plot-Number:UNKNOWN=6 "
@@ -484,7 +484,7 @@ def test_r401_the_config_names_the_fields_of_the_step_status_and_the_step_takes_
     steps = settings.get("addin")["parity"]["steps"]
     assert {name: field["kind"] for name, field in steps["status"].items()} == {"unit": "noGeometry", "written": "noGeometry", "fields": "noGeometry"}
     assert tuple(steps["status"]) == plan_from_book.STATUS_FIELDS
-    assert plan_from_book.BUILD_STEPS[-2] == "status" and plan_from_book.PARITY_STEPS[-2] == "status" and "status" in plan_from_book.PROTOTYPE_STEPS
+    assert plan_from_book.BUILD_STEPS[-3] == "status" and plan_from_book.PARITY_STEPS[-3] == "status" and "status" in plan_from_book.PROTOTYPE_STEPS
     # The map names its block entries by profile or config, or gives the status, one or a list, and every override names a list of fields
     block = settings.get("valueStatus")
     refs = list(block["sources"].values()) + [ref for sources in block["fields"].values() for found in sources.values() for ref in (found if isinstance(found, list) else [found])]
@@ -572,3 +572,18 @@ def test_r401_review1_pr78_the_plots_q017_decides_read_recommended_for_prototype
     assert (last["entry"], last["status"], last["question"]) == ("config/project.json majority.decidedByQuestion.Q017.plots.imc", "RECOMMENDED", "Q017")
     assert table.of("mirrored", "computed", hand="villa", plot="544")[0::2] == ("RECOMMENDED", "mirrored from computed hand villa question Q017 img")
     assert table.of("prototypeFile", "computed", unit="VD4", plot="2303")[0::2] == ("DOCUMENT", "prototypeFile from computed unit VD4")
+
+
+def test_r401_q114_the_fields_that_follow_the_hand_of_2302_read_recommended_by_q017_while_it_is_open():
+    settings = project_profile.load_settings()
+    profile = project_profile.load_profile(project_profile.profile_path(settings)).values
+    table = value_status.table_of(settings, profile, "parsons2024Rev6")
+    for field, source in (("rotationDeg", "computed"), ("insert", "computed"), ("floors.yard.outline", "computed"), ("parameters.CASE", "keyRules")):
+        status, found, key = table.of(field, source, hand="cluster", unit="DP4", plot="2302")
+        last = found["entries"][-1]
+        assert (status, key.endswith(" question Q017 followHand imc")) == ("RECOMMENDED", True), field
+        assert (last["entry"], last["status"], last["question"]) == ("config/project.json majority.decidedByQuestion.Q017.followHand.plots.imc", "RECOMMENDED", "Q017")
+        # 2301 and 544, whose hand Q017 decides as well, keep the status of their own list for these fields
+        assert "question" not in table.of(field, source, hand="cluster", unit="DP4", plot="2301")[2]
+    # prototypeFile and mirrored of 2302 keep the entry of Q017.plots, its key as before
+    assert table.of("mirrored", "computed", hand="cluster", plot="2302")[2] == "mirrored from computed hand cluster question Q017 imc"

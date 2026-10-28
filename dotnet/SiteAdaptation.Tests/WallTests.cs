@@ -210,7 +210,7 @@ namespace SiteAdaptation.Tests
                 Assert.Equal("walls.base from override by heightM", (string)step["plots"]["3"]["written"]["status"][0]["base"]["statusFrom"]);
                 Assert.NotNull(step["tables"]["statusFrom"]["walls.ends from keyRules"]);
             }
-            Assert.Equal("clusters fronts hands linkFrame levels floors walls overrides parameters status checkRows", string.Join(" ", BuildSteps.Names));
+            Assert.Equal("clusters fronts hands linkFrame levels floors walls overrides parameters status checkRows summary", string.Join(" ", BuildSteps.Names));
         }
 
         [Fact]

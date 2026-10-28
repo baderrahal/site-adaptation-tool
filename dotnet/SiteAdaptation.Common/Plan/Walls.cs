@@ -323,7 +323,8 @@ namespace SiteAdaptation.Common
             return value == null ? (double?)null : Convert.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private static bool Written(PlotPlan plan)
+        // R365. Shared with PlanSummary, a plan whose written is missing, null or false is not written
+        internal static bool Written(PlotPlan plan)
         {
             return plan?.Overrides != null && plan.Overrides.TryGetValue("written", out object written) && written is bool yes && yes;
         }
@@ -358,7 +359,7 @@ namespace SiteAdaptation.Common
             return Of(order, new HashSet<string>(ffls.Keys, StringComparer.Ordinal), rings, frames, ffls, rules);
         }
 
-        private static List<string> AppliedOf(PlotPlan plan)
+        internal static List<string> AppliedOf(PlotPlan plan)
         {
             return plan?.AppliedOrder ?? plan?.Overrides["applied"] as List<string> ?? new List<string>();
         }

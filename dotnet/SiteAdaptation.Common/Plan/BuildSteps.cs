@@ -14,7 +14,7 @@ namespace SiteAdaptation.Common
     public static class BuildSteps
     {
         public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName, LinkFrames.StepName, KeyLevels.StepName, FloorOutlines.StepName, Walls.StepName, PlanOverrides.StepName, LinkParameters.StepName, ValueStatus.StepName,
-            CheckRows.StepName };
+            CheckRows.StepName, PlanSummary.StepName };
 
         public static readonly string[] ClusterRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead" };
 
@@ -356,8 +356,9 @@ namespace SiteAdaptation.Common
                     made[Fronts.StepName] = Fronts.Step(site.Numbers, fronts, surfaces.Select(surface => surface.Name).ToList(), snap);
                 }
                 bool checks = asked.Contains(CheckRows.StepName);
+                bool summed = asked.Contains(PlanSummary.StepName);
                 bool planned = asked.Contains(PlanOverrides.StepName) || asked.Contains(LinkParameters.StepName) || asked.Contains(ValueStatus.StepName) || asked.Contains(Walls.StepName)
-                    || checks;
+                    || checks || summed;
                 bool linked = asked.Contains(Hands.StepName) || asked.Contains(LinkFrames.StepName) || asked.Contains(FloorOutlines.StepName) || planned;
                 bool leveled = asked.Contains(KeyLevels.StepName) || asked.Contains(FloorOutlines.StepName) || planned;
                 if (linked || leveled)
@@ -467,7 +468,7 @@ namespace SiteAdaptation.Common
                             }
                             Dictionary<string, Dictionary<string, object>> status = null;
                             ValueStatusTable statusTable = null;
-                            if (asked.Contains(ValueStatus.StepName) || checks)
+                            if (asked.Contains(ValueStatus.StepName) || checks || summed)
                             {
                                 // R401. The status of each sourced value of a written plot, by the map of the settings and the block of the rules profile
                                 statusTable = ValueStatus.Table(site.Settings, site.Rules, profileName);
@@ -498,6 +499,15 @@ namespace SiteAdaptation.Common
                                 tables[CheckRows.StepName] = rows.Item2;
                                 run.Counts["check rows of the scope"] = rows.Item1.Values.Sum(plot => ((JArray)plot["rows"]).Count);
                                 run.Counts["assumed rows of the scope"] = ((JObject)rows.Item2["assumed"]).Count;
+                            }
+                            if (summed)
+                            {
+                                // R365, Q116. The plan summary of step 15 from the plots after the overrides, the fronts of the build and the status of every value
+                                Tuple<Dictionary<string, Dictionary<string, object>>, JObject> summary = PlanSummary.Step(site.Numbers, plans, build.Fronts, hands, status, statusTable,
+                                    site.Settings, key, profileName, KeyLevels.LaterParameters(site.Settings, levelProfile), site.Faces);
+                                made[PlanSummary.StepName] = summary.Item1;
+                                tables[PlanSummary.StepName] = summary.Item2;
+                                run.Counts["conflicts of the scope"] = ((JArray)summary.Item2["summary"]["conflicts"]).Count;
                             }
                         }
                     }

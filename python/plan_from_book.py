@@ -63,8 +63,8 @@ LOCATION = "locationPlan"
 OVERRIDE = "override"
 KEY_RULES = "keyRules"
 # R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R363 and R401 after the faces
-PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame", "levels", "floors", "walls", "overrides", "parameters", "status", "checkRows")
-BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "walls", "overrides", "parameters", "status", "checkRows")
+PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame", "levels", "floors", "walls", "overrides", "parameters", "status", "checkRows", "summary")
+BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "walls", "overrides", "parameters", "status", "checkRows", "summary")
 FOOTPRINT = "footprint"
 # R354, Q089. The one line a build and its C# refuse an analysis with, as a build takes the footprint clusters alone
 ANALYSIS_REFUSED = "the analysis is no input of a build since Q089, a build takes the footprint clusters of R236 alone (R354)"
@@ -357,7 +357,7 @@ def floor_step(numbers, rows, trace, links, rules, profile, step):
     return found
 
 
-OVERRIDE_FIELDS = ("unit", "skip", "written", "applied", "notApplied", "mirrored", "insert", "rotationDeg", "entry", "ffl", "ssl", "height", "steps", "rampZ",
+OVERRIDE_FIELDS = ("unit", "skip", "written", "applied", "notApplied", "mirrored", "insert", "rotationDeg", "roadAtFront", "entry", "ffl", "ssl", "height", "steps", "rampZ",
                    "rampType", "yardZ", "yardOutline")
 
 
@@ -421,6 +421,8 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
                 rotation = plan_from_past.plan_rotation(rotation) + gap
             made.update(mirrored=mirrored, insert=insert, rotationDeg=rotation)
         if entry is not None:
+            # R364. The unrounded mean of the two front corners, which no override moves
+            made["roadAtFront"] = plan_rules.road_at_front(item["front"])
             gap = plan_rules.gap_of(mine.get("entryM"))
             made["entry"] = trace["entryRaw"][number] if gap is None else entry["rule"] + gap
         if level is not None:
@@ -462,6 +464,7 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
         for name, decimals in (("entry", plan_rules.ENTRY_DECIMALS), ("ffl", plan_rules.FFL_DECIMALS), ("ssl", plan_rules.FFL_DECIMALS), ("height", plan_rules.ENTRY_DECIMALS)):
             held_plan(number, name, common.fixed(made[name], decimals), written["levels"][name]["value"])
         held_plan(number, "steps", made["steps"], written["levels"]["steps"]["value"])
+        held_plan(number, "road at front", common.fixed(made["roadAtFront"], plan_rules.ENTRY_DECIMALS), written["levels"]["roadAtFrontM"]["value"])
         ramp, yard = written["floors"].get("ramp"), written["floors"].get("yard")
         held_plan(number, "ramp corner Z", None if made["rampZ"] is None else [common.r3(z) for z in made["rampZ"]],
                   None if ramp is None else [corner[2] for corner in ramp["corners"]["value"]])
@@ -514,6 +517,24 @@ def status_step(numbers, rows, trace):
         used.update(item["statusFrom"] for item in (fields or {}).values())
         found[number] = {"unit": (rows.get(number) or {}).get("typologyRev9") or None, "written": plot["written"], "fields": fields}
     return found, {"statusFrom": {key: details[key] for key in sorted(used)}}
+
+
+SUMMARY_FIELDS = ("unit", "written")
+# R365. The entries of the table summary of step 15, the top line of the level Excel, the box Rules applied of the report and the status of
+# R401, then the conflicts of the plan (Q116), each from the summary block or under its rules
+SUMMARY_TABLE = ("frontRule", "roadSurfacesOfFrontCorners", "floorsFound", "floorTypes", "handRules", "overridesNotApplied", "steps", "statusByField",
+                 "assumedByField", "statusPlots", "conflicts")
+SUMMARY_TOP = ("frontRule", "roadSurfacesOfFrontCorners", "floorsFound", "floorTypes")
+
+
+def summary_step(numbers, rows, plan):
+    """R365. The step summary of the parity harness: per plot of the scope its unit and whether the plan writes it, and the table summary
+    with the counts and names of step 15 as the plan writes them, one source, which parity.py compares entry by entry exact."""
+    written = {entry["plot"] for entry in plan["plots"]}
+    found = {number: {"unit": (rows.get(number) or {}).get("typologyRev9") or None, "written": number in written} for number in numbers}
+    summary, rules = plan["summary"], plan["summary"].get("rules") or {}
+    table = {name: summary[name] if name in SUMMARY_TOP else plan["conflicts"] if name == "conflicts" else rules.get(name) for name in SUMMARY_TABLE}
+    return found, {"summary": table}
 
 
 def status_line(found):
@@ -981,6 +1002,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                 builder.entry["mirrored"]["source"] = OVERRIDE
             moved_link(builder, item["frame"], mine_overrides, number, outcomes)
         level_values(builder, level_rows.get(number))
+        if by_levels and item["front"] is not None and builder.entry["levels"]:
+            # R359, R364. The unrounded mean entry_of takes El @ Entry from, rounded once, never the 3 decimal corners of levelRule
+            builder.entry["levels"]["roadAtFrontM"] = sourced(common.fixed(plan_rules.road_at_front(item["front"]), plan_rules.ENTRY_DECIMALS), ESTIMATE)
         steps = builder.entry["levels"].get("steps", {}).get("value")
         if key is not None:
             # R337. The link parameters by the parameter rules of the keys, those left to a later phase not written, then their overrides
@@ -1104,6 +1128,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             walls.append(item)
     if trace is not None:
         trace["walls"] = walls
+    conflicts = [] if key is None else turned_ramps(plots, frames, faces, applied_of)
+    if trace is not None:
+        trace["conflicts"] = conflicts
     survey = site["surveyPoint"]
     return {
         "format": plan_from_past.FORMAT,
@@ -1146,8 +1173,30 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         # R362. The boundary walls, each value with its source and status
         "walls": walls,
         "missing": missing,
-        "conflicts": [],
+        # Q116. The plots a rotationDeg override turned to face another edge, whose ramp stays on the front of R355
+        "conflicts": conflicts,
     }
+
+
+# Q116. The conflict of a plot a rotationDeg override turned, PlanSummary of the C# writes the same
+TURNED_KEPT = "the ramp on the front of R355"
+TURNED_OTHER = "the open edge the rotationDeg override turned the link to face, which the walls leave open (R362)"
+
+
+def turned_ramps(plots, frames, faces, applied_of):
+    """Q116. Each written plot with a ramp whose rotationDeg override turned the edge its walls leave open off the edge the rule leaves open,
+    both by plan_walls.open_edge, so the ramp on the front of R355 meets a wall, listed until the ramp moves to the open edge in 5d."""
+    found = []
+    for entry in plots:
+        plot = entry["plot"]
+        face, frame = faces.get(plot), frames.get(plot)
+        if "rotationDeg" not in (applied_of.get(plot) or ()) or "ramp" not in entry["floors"] or not frame or face is None or face.geom_type != "Polygon":
+            continue
+        ring, front, mirrored = list(face.exterior.coords)[:-1], (frame["left"], frame["right"]), entry["mirrored"]["value"]
+        rule = plan_walls.open_edge(ring, front, plan_from_past.plan_rotation(cad_links.rotation_of(frame, mirrored)), mirrored, True)
+        if plan_walls.open_edge(ring, front, entry["rotationDeg"]["value"], mirrored, True) != rule:
+            found.append({"plot": plot, "field": "floors.ramp", "kept": TURNED_KEPT, "other": TURNED_OTHER, "otherSource": "override rotationDeg", "question": "Q116"})
+    return found
 
 
 def nbh_plots(labels_path, nbh):
@@ -1505,6 +1554,8 @@ def main(argv=None):
             listed = json.loads(Path(args.overrides).read_text(encoding="utf-8")) if args.overrides else {}
             made, tables = check_rows.step(cover["plots"], rows, plan, listed, rules["sources"], rules.get("models"), settings)
             write_build_step(args, settings, check_rows.STEP, made, tables=tables)
+            made, tables = summary_step(cover["plots"], rows, plan)
+            write_build_step(args, settings, "summary", made, tables=tables)
         plan_from_past.write_plan(out, plan)
         done = True
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:

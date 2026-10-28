@@ -165,6 +165,18 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R364_the_road_at_front_after_the_overrides_is_the_unrounded_mean_of_the_two_front_corners_that_no_override_moves()
+        {
+            // As test_override_param_steps.py: the road level 10 m plus a hundredth of x, plot 5 with its corners at 10.48 and 10.6, plot 2 an entryM gap
+            Built built = Build(Made());
+            Dictionary<string, PlotPlan> plans = built.Plans;
+            Assert.Equal((10.48 + 10.6) / 2.0, (double)plans["5"].Overrides["roadAtFront"]);
+            Assert.Equal(KeyLevels.RoadAtFront(built.Build.Fronts["2"].Front), (double)plans["2"].Overrides["roadAtFront"]);
+            Assert.Equal(Rounding.Fixed((10.48 + 10.6) / 2.0, 4), (double)Written(built, "5")["roadAtFront"]);
+            Assert.Null(plans["7"].Overrides["roadAtFront"]);
+        }
+
+        [Fact]
         public void R360_a_plot_the_plan_does_not_write_leaves_its_overrides_with_the_keys_it_lacks()
         {
             var list = new OverrideList(new Dictionary<string, JObject>
@@ -299,7 +311,7 @@ namespace SiteAdaptation.Tests
         public void R360_the_config_names_the_fields_of_the_step_overrides_by_their_kind()
         {
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
-            Assert.Equal("unit:noGeometry skip:noGeometry written:noGeometry applied:noGeometry notApplied:noGeometry mirrored:noGeometry insert:points3 rotationDeg:angles3 entry:levels4 "
+            Assert.Equal("unit:noGeometry skip:noGeometry written:noGeometry applied:noGeometry notApplied:noGeometry mirrored:noGeometry insert:points3 rotationDeg:angles3 roadAtFront:levels4 entry:levels4 "
                 + "ffl:levels3 ssl:levels3 height:levels4 steps:noGeometry rampZ:levels3 rampType:noGeometry yardZ:levels3 yardOutline:points3",
                 string.Join(" ", config.StepFields(PlanOverrides.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
             Assert.Equal(string.Join(" ", config.StepFields(PlanOverrides.StepName).Select(field => field.Name)), string.Join(" ", Build(Made()).Plans["5"].Overrides.Keys));
@@ -401,7 +413,7 @@ namespace SiteAdaptation.Tests
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
             Assert.Equal("unit:noGeometry written:noGeometry parameters:noGeometry sources:noGeometry lacks:noGeometry linkName:noGeometry",
                 string.Join(" ", config.StepFields(LinkParameters.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
-            Assert.Equal("clusters fronts hands linkFrame levels floors walls overrides parameters status checkRows", string.Join(" ", BuildSteps.Names));
+            Assert.Equal("clusters fronts hands linkFrame levels floors walls overrides parameters status checkRows summary", string.Join(" ", BuildSteps.Names));
         }
     }
 }

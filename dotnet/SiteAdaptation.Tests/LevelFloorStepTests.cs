@@ -311,7 +311,7 @@ namespace SiteAdaptation.Tests
                 string.Join(" ", config.StepFields(KeyLevels.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
             Assert.Equal("unit:noGeometry generic:points3 rampOutline:points3 rampZ:levels3 rampClass:noGeometry rampType:noGeometry yardDepth:levels3 yardUnit:noGeometry "
                 + "yardWidth:points3 yardType:noGeometry yardOutline:points3 lacks:noGeometry", string.Join(" ", config.StepFields(FloorOutlines.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
-            Assert.Equal("clusters fronts hands linkFrame levels floors walls overrides parameters status checkRows", string.Join(" ", BuildSteps.Names));
+            Assert.Equal("clusters fronts hands linkFrame levels floors walls overrides parameters status checkRows summary", string.Join(" ", BuildSteps.Names));
         }
 
         private string ReadFile(string name, string role, string source, JObject content)

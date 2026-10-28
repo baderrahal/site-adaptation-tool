@@ -47,6 +47,9 @@ namespace SiteAdaptation.Common
         // R363. The keys of the missing list of the plan for the plot in the order plan_from_book.build lists them, for the check rows of step 14.
         // The worker reads no site file, so a floor never lacks its level here
         public List<string> Lacks { get; set; } = new List<string>();
+
+        // R365. The type of the yard outline the plan places, which floorTypes of the plan summary counts
+        public string YardType { get; set; }
     }
 
     // R360, R337, R340, R280, R386. Step 12 of the plan builder: what a build does with each override of each plot, applied or left with why, as
@@ -571,7 +574,7 @@ namespace SiteAdaptation.Common
                 var made = new Dictionary<string, object>
                 {
                     ["unit"] = unit, ["skip"] = skipped, ["written"] = false, ["applied"] = null, ["notApplied"] = null, ["mirrored"] = null, ["insert"] = null, ["rotationDeg"] = null,
-                    ["entry"] = null, ["ffl"] = null, ["ssl"] = null, ["height"] = null, ["steps"] = null, ["rampZ"] = null, ["rampType"] = null, ["yardZ"] = null, ["yardOutline"] = null,
+                    ["roadAtFront"] = null, ["entry"] = null, ["ffl"] = null, ["ssl"] = null, ["height"] = null, ["steps"] = null, ["rampZ"] = null, ["rampType"] = null, ["yardZ"] = null, ["yardOutline"] = null,
                 };
                 var parameters = new Dictionary<string, object> { ["unit"] = unit, ["written"] = false, ["parameters"] = null, ["sources"] = null, ["lacks"] = null, ["linkName"] = null };
                 found[number] = new PlotPlan { Overrides = made, Parameters = parameters };
@@ -582,6 +585,8 @@ namespace SiteAdaptation.Common
                 double? entryWritten = null;
                 if (item?.Front != null && entry != null)
                 {
+                    // R364. The unrounded mean of the two front corners, which no override moves
+                    made["roadAtFront"] = KeyLevels.RoadAtFront(item.Front);
                     JToken gap = GapOf(mine["entryM"]);
                     if (gap != null)
                     {
@@ -656,7 +661,7 @@ namespace SiteAdaptation.Common
                     Tuple<List<string>, JObject> record = outcomes.Plot(number, false, new[] { skipped != null ? "skip" : "unit" }, list, later, profileName);
                     made["applied"] = record?.Item1;
                     made["notApplied"] = record?.Item2;
-                    made["entry"] = made["ffl"] = made["ssl"] = made["height"] = made["steps"] = null;
+                    made["roadAtFront"] = made["entry"] = made["ffl"] = made["ssl"] = made["height"] = made["steps"] = null;
                     found[number].Lacks = new List<string> { skipped != null ? "skip" : "unit" };
                     continue;
                 }
@@ -805,6 +810,7 @@ namespace SiteAdaptation.Common
                             double[] origin = insert.Select(value => Rounding.Fixed(value, 3)).ToArray();
                             made["yardZ"] = fflWritten.Value - below.Value;
                             made["yardOutline"] = ((JArray)group["loops"]).Select(loop => FloorOutlines.ToWorld((JArray)loop, origin, (double)rotation.Written, (bool)mirrored)).ToList();
+                            found[number].YardType = group["type"]?.Type == JTokenType.String ? (string)group["type"] : null;
                         }
                         noYard = group == null;
                     }

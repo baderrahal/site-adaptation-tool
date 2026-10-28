@@ -67,16 +67,21 @@ def override_reads(reads, sets):
 
 
 def decided_by(found):
-    """Review 1 of PR 78. majority.decidedByQuestion of the settings by (plot, field), each to the list of (question, key) that list the plot
-    under the field, as build_proof.py reads it. The note and any item that is no object are left out."""
+    """Review 1 of PR 78. majority.decidedByQuestion of the settings by (plot, field), each to the list of (label, path) that list the plot
+    under the field, as build_proof.py reads it: the label the key of a detail names, the question and key, and the path of its block entry
+    under majority.decidedByQuestion. Since Q114 the followHand part of a question lists the fields that follow the hand it decides on some
+    of its plots, by the plan paths of the status. The note and any item that is no object are left out."""
     decided = {}
     for question, rule in (found or {}).items():
         if not isinstance(rule, dict):
             continue
-        for key, plots in (rule.get("plots") or {}).items():
-            for plot in plots or ():
-                for field in rule.get("fields") or ():
-                    decided.setdefault((str(plot), field), []).append((question, key))
+        for part, tail, word in ((rule, "plots", ""), (rule.get("followHand"), "followHand.plots", "followHand ")):
+            if not isinstance(part, dict):
+                continue
+            for key, plots in (part.get("plots") or {}).items():
+                for plot in plots or ():
+                    for field in part.get("fields") or ():
+                        decided.setdefault((str(plot), field), []).append(("%s %s%s" % (question, word, key), "%s.%s.%s" % (question, tail, key)))
     return decided
 
 
@@ -127,7 +132,7 @@ class Table:
         else:
             entries = [self.resolve(field, source, ref, hand, unit) for ref in refs]
         pairs = self.decided.get((str(plot), field), []) if plot is not None else []
-        entries += [self.resolve(field, source, {"config": "majority.decidedByQuestion.%s.plots.%s" % pair}, hand, unit) for pair in pairs]
+        entries += [self.resolve(field, source, {"config": "majority.decidedByQuestion." + path}, hand, unit) for _, path in pairs]
         # Q107. The worst status of the list by worstFirst, else the first entry, the first of a tie
         chosen = worst_entries(entries, self.order)[0]
         detail = {"entries": entries}
@@ -142,7 +147,7 @@ class Table:
         if any("{unit}" in ref.get(kind, "") for ref in refs or () for kind in ("profile", "config")):
             key += " unit %s" % unit
         if pairs:
-            key += " question " + " ".join("%s %s" % pair for pair in pairs)
+            key += " question " + " ".join(name for name, _ in pairs)
         if moved:
             key += " by " + " ".join(moved)
         return chosen["status"], detail, key

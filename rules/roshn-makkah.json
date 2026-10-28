@@ -796,6 +796,8 @@
       "majority.decidedByQuestion.Q017.fields": {"status": "RECOMMENDED", "question": "Q017", "where": "the Q ID in the path"},
       "majority.decidedByQuestion.Q017.plots.imc": {"status": "RECOMMENDED", "question": "Q017", "where": "the Q ID in the path"},
       "majority.decidedByQuestion.Q017.plots.img": {"status": "RECOMMENDED", "question": "Q017", "where": "the Q ID in the path"},
+      "majority.decidedByQuestion.Q017.followHand.fields": {"status": "RECOMMENDED", "question": "Q017", "where": "the Q ID in the path"},
+      "majority.decidedByQuestion.Q017.followHand.plots.imc": {"status": "RECOMMENDED", "question": "Q017", "where": "the Q ID in the path"},
       "majority.keyRulesBlock.levelProfile": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "majority.keyRulesBlock.zonePrefix": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "majority.keyRulesBlock.zoneFrom.Zone 1.from": {"status": "RECOMMENDED", "question": "Q066", "where": "majority.keyRulesBlock.zoneFrom.Zone 1.why"},

@@ -62,6 +62,9 @@ LEVEL_MOVERS = {"entry": ("entryM",), "ffl": ("heightM",), "height": ("heightM",
                 "rampFrontCorner": ("rampFrontM",)}
 # The fields a build gives by the hand of the plot, besides the parameters whose rule reads the mirror flag
 FOLLOW_HAND = ("rotationDeg", "insert", "yardOutline")
+# Q114. The proof name of a plan path majority.decidedByQuestion names a field by, as the status of R401 reads it, a parameter by its keyRules name
+PROOF_NAMES = {"floors.yard.outline": "yardOutline"}
+PLAN_PARAMETER = "parameters."
 HAND_RULES = ("mirroredFactor", "typologyMirrored")
 WRITTEN = "written"
 EPSILON = 1e-9
@@ -89,16 +92,25 @@ def proof_context(block, names, key_rules, overrides, later):
     for question, rule in (block.get("decidedByQuestion") or {}).items():
         if not isinstance(rule, dict):
             continue
-        for key, plots in rule["plots"].items():
-            for plot in plots:
-                for field in rule["fields"]:
-                    questions[(key, str(plot), field)] = question + ", " + rule["why"]
+        # Q114. The fields that follow the hand the question decides on some of its plots, with their own why
+        for part in (rule, rule.get("followHand") or {"plots": {}, "fields": []}):
+            for key, plots in part["plots"].items():
+                for plot in plots:
+                    for field in part["fields"]:
+                        questions[(key, str(plot), proof_field(field))] = question + ", " + part["why"]
     later = set(later)
     # R340. Once keyRules codes the levels the steps are a rule of its own, no difference is left to the steps of a later phase
     stepped = set() if plan_rules.key_levels_of(key_rules) else plan_rules.step_parameters(key_rules or {}, later)
     return {"block": block, "names": names, "keyRules": key_rules or {}, "overrides": overrides, "later": later, "questions": questions,
             "disciplines": block.get("kindDiscipline") or {}, "stepped": stepped, "handed": hand_parameters(key_rules or {}, later),
             "levelParameters": ["parameter " + name for name in block.get("parameterLevels") or []]}
+
+
+def proof_field(path):
+    """Q114. The field of the proof a plan path of majority.decidedByQuestion names, so a field reads the same in the proof and the status."""
+    if path.startswith(PLAN_PARAMETER):
+        return plan_rules.PARAMETER + path[len(PLAN_PARAMETER):]
+    return PROOF_NAMES.get(path, path)
 
 
 def hand_parameters(rules, later):

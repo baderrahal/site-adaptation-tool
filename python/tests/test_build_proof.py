@@ -162,3 +162,22 @@ def test_r337_the_fields_that_follow_from_a_hand_a_question_decides_or_from_a_pl
     ctx = context(overrides)
     ctx["handed"] = build_proof.hand_parameters(rules, ctx["later"])
     assert states(build_proof.compare("imx", plan, [key_row("3")], {"plots": []}, ctx))[("3", "written")] == "override"
+
+
+def test_r337_q114_the_proof_reads_the_fields_of_decided_by_question_by_their_plan_paths_the_names_the_status_reads():
+    # A field of majority.decidedByQuestion is named by its plan path, as the status of R401 names it, and the proof maps it to its own name
+    assert [build_proof.proof_field(path) for path in ("rotationDeg", "insert", "floors.yard.outline", "parameters.CASE", "prototypeFile", "mirrored")] == [
+        "rotationDeg", "insert", "yardOutline", "parameter CASE", "prototypeFile", "mirrored"]
+    questions = {"Q017": {"fields": ["prototypeFile", "mirrored"], "plots": {"imx": ["2"]}, "why": "made up",
+                          "followHand": {"fields": ["rotationDeg", "floors.yard.outline", "parameters.CASE"], "plots": {"imx": ["2"]}, "why": "follows"}}}
+    ctx = context(questions=questions)
+    assert ctx["questions"][("imx", "2", "yardOutline")] == "Q017, follows" and ctx["questions"][("imx", "2", "parameter CASE")] == "Q017, follows"
+    assert ctx["questions"][("imx", "2", "mirrored")] == "Q017, made up" and ("imx", "2", "floors.yard.outline") not in ctx["questions"]
+    # Every field the real block names maps to a field the proof holds, a parameter by its keyRules entry, so no name matches nothing
+    settings = project_profile.load_settings()
+    real = majority.load_block(settings)["decidedByQuestion"]["Q017"]
+    key = project_profile.load_profile(project_profile.profile_path(settings)).values["levelProfiles"]["parsons2024Rev6"]["keyRules"]
+    named = list(real["fields"]) + list(real["followHand"]["fields"])
+    assert all(build_proof.proof_field(path) in build_proof.DECISION_OF or build_proof.proof_field(path) in key for path in named)
+    assert real["followHand"]["plots"] == {"imc": ["2302"]}
+    assert [build_proof.proof_field(path) for path in real["followHand"]["fields"]] == list(build_proof.FOLLOW_HAND) + ["parameter CASE"]
