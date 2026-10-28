@@ -11,7 +11,7 @@ Phase 5 and 6 on Bader's company laptop (D1 of steps/decisions-2026-10-28.md). W
 | 5b Button 1 Set up site | open |
 | 5f Update from report, new by Bader's changes of 28 Oct 2026, after 5e and before 6a | open |
 
-After 5b Lane B waits until 4g2, 4g3 and 4h are all marked done in steps/01_next.md. Bader's list of the Lane B phases after that, in order: C2 the C# check of 4g3 and 4h, 5c, the Revit run after 5c, 5d, 5e, 5f, 6a, 6b, 6c (5f added by Bader's changes of 28 Oct 2026, docs/design/13-workflow-changes.md).
+After 5b Lane B waits until 4g2, 4g3 and 4h are all marked done in steps/01_next.md. Bader's list of the Lane B phases after that, in order: 5c, the Revit run after 5c, 5d, 5e, 5f, 6a, 6b, 6c (5f added by Bader's changes of 28 Oct 2026, docs/design/13-workflow-changes.md).
 
 A laptop session starts from Bader's Lane B prompt, never from steps/START.md. START.md runs the first open phase of steps/01_next.md, which is Phase 4, and nothing there names this file until the fold in.
 
@@ -50,7 +50,7 @@ Added by Bader's Lane B prompt of 28 Oct 2026, the second of that day, for the f
 
 - 5a: Rule 2 first. Install per user only, no admin, into %APPDATA%\Autodesk\Revit\Addins\2024. R371 ribbon with the icons of docs/design/12-ui-spec.md. Theme.xaml with the gate test that fails on any colour or font size outside it, Libre Franklin bundled from google/fonts. Done when the add-in installs into Revit 2024 on the laptop with the ribbon and pane of 7.1 and 7.2 and the UI spec, open items 1 and 2 of docs/design/09-risks.md are measured in Revit, a screenshot of the ribbon and the pane is in steps/ui-shots/ beside a list of every known difference from the canvas, and the tests run on both runners.
 - 5b: R374 on the R17B file of kept\round_17 among the four copies of 3.1. The Set up site window by 7.3 of docs/design/12-ui-spec.md with its screenshot in steps/ui-shots/.
-- C2, after 4g3 and 4h are done: in a git worktree of origin/main outside the repo, the gate, the C# reads, the parity on the whole project and the 7 keys on net48 and net8.0 as 4g2 ran it, and the build peak, three runs each, the free memory at the start of each read. One PR adds the result to steps/log.md and closes the C# items the 4g3 and 4h log entries left for the laptop.
+- C2, dropped by Bader on 28 Oct 2026 (Lane A on this laptop, item 1), as he first gave it: after 4g3 and 4h are done, in a git worktree of origin/main outside the repo, the gate, the C# reads, the parity on the whole project and the 7 keys on net48 and net8.0 as 4g2 ran it, and the build peak, three runs each, the free memory at the start of each read. One PR adds the result to steps/log.md and closes the C# items the 4g3 and 4h log entries left for the laptop.
 - 5c: Rule 3 first, then every join item below and Q117, the optional inputs of button 3, then Q103, then buttons 2 to 4.
 - 5d: Q115, the wall extent per kind of edge, before button 7 places walls. Q116, the ramp of turned plots on the open edge.
 
@@ -128,6 +128,16 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - 5a PR 4 review 2. The hash of DiskProbe in the pane is a second copy of FileHash.Sha256 and InputHash.OfFolder of Common, now with another share mode. In 5b the pane calls the hash of Common and FileHash takes FileShare.ReadWrite.
 - 5a PR 4 review 2. PaneViewModel.PickInput, SettingsFile.Read and PaneViewModel.Document have test callers only.
 - 5a PR 4 review 2. A hash that fails is swallowed in DiskProbe.Hash, so its row looks like a hash still running.
+
+## Lane A on this laptop, Bader 28 Oct 2026
+
+Phase 4 now runs on this laptop too, as Lane A, in a second clone folder "Site Adaptation Tool Lane A". Bader's changes for Lane B, recorded as his decisions:
+
+1. C2 is dropped from the Lane B list. Lane A runs the C# checks of 4g2, 4g3 and 4h inside its own phases, which closes Q111. 5c starts when 4h is marked done in steps/01_next.md.
+2. Memory: Lane A runs builds of up to about 3 GB at the same time. The window rule counts them: keep 8 GB free across both lanes, so the windows of D3 are (free RAM minus 8 GB minus the Lane A builds running) divided by the peak of one window, rounded down, at least 1 and at most 3.
+3. Speed rules from now on. S2: parity on the 7 keys in each PR, the whole project once at the end of a phase. S3: one review pass for a PR that changes only records, docs or UI text, at most two for logic.
+4. Design changes: Bader may send new design changes during the build. Each goes into docs/design/12-ui-spec.md or docs/design/13-workflow-changes.md and into this file as a join item for the phase that owns that part, recorded as Bader's decision. If it belongs to the current phase and fits, it is done there.
+5. Lane B never edits Lane A's files: the plan builder, config/project.json, rules/, docs/rules/, docs/design/ parts 01 to 10. Shared records only by the fold in rule. Before this rule, 5a PR 5 (PR 89) changed one line of docs/design/08-install.md, line 5, the install refusing only on Revit 2024 (Lane B's own R370). Fold in item 11 names changes of 03a, 03b, 07-mock and 10-rule-ids that wait for whoever owns those parts at the fold in.
 
 ## Lane B rules, Bader 28 Oct 2026
 
