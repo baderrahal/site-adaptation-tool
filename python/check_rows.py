@@ -29,6 +29,9 @@ FROM_ORDER = ("override", "question", "cannot", "missing")
 RULE, PAST, SKIP = "Rule", "Past", "Skip"
 ALL, ASSUMED, FOLLOW = "All", "Assumed", "followEveryRule"
 NO_CHECK = "checkRows.%s names no check for %s (R363)"
+# Q108. The rule of every field and source valueStatus maps to no entry, one cause, and the head of a decidedByQuestion entry, grouped by question
+NO_STATUS_RULE = "valueStatus holds no status for the field and its source (R401)"
+DECIDED = "majority.decidedByQuestion."
 
 
 def list_entries(data, sources, models=None):
@@ -119,47 +122,62 @@ def type_order(rows_by_plot, block):
     return types + sorted({item["check"] for made in rows_by_plot.values() for item in made} - set(types))
 
 
-def chips(numbers, rows_by_plot, assumed, block):
+def chips(numbers, rows_by_plot, assumed, block, moved=()):
     """The filter chips of 7.4 and 7.7 item 8: All, the count per check type in the order of the mock, Assumed, the rows of the chip, and the
-    plots of the scope with no row, which follow every rule. An Assumed row is no issue and counts in no other chip."""
+    plots of the scope with no row and no value an override set or moved, moved, which follow every rule. An Assumed row is no issue and counts
+    in no other chip."""
     found = {ALL: sum(len(rows_by_plot[number]) for number in numbers)}
     for name in type_order(rows_by_plot, block):
         found[name] = sum(1 for number in numbers for item in rows_by_plot[number] if item["check"] == name)
     found[ASSUMED] = len(assumed)
-    found[FOLLOW] = sum(1 for number in numbers if not rows_by_plot[number])
+    found[FOLLOW] = sum(1 for number in numbers if not rows_by_plot[number] and number not in moved)
     return found
 
 
-def entry_label(entry):
-    return value_status.entry_label(entry)
+def rule_name(entry):
+    """Q108. The rule an entry of a detail names: a decidedByQuestion entry by its question, a block entry by its path, else its question or
+    document, and the why of a field and source valueStatus maps to no entry by that one cause (breaker F5 of PR 81), else the why."""
+    path = entry.get("entry")
+    if path:
+        dotted = path.split(" ", 1)[-1]
+        return dotted.split(".")[2] if dotted.startswith(DECIDED) else path
+    for key in ("question", "document"):
+        if entry.get(key):
+            return entry[key]
+    why = entry.get("why")
+    head, tail = value_status.NO_STATUS.split("%s")[0], value_status.NO_STATUS.split("%s")[-1]
+    return NO_STATUS_RULE if why and why.startswith(head) and why.endswith(tail) else why
 
 
-def rule_of(detail, worst):
-    """Q108. The rule a value takes its status from: the entry of its detail value_status chose, the worst by worstFirst, else the first,
-    named by its block entry, else its question, document or why."""
-    entries = detail.get("entries") or [{}]
-    ranked = [(worst.index(entry_label(entry)), index) for index, entry in enumerate(entries) if "status" in entry and entry_label(entry) in worst]
-    chosen = entries[min(ranked)[1]] if ranked else entries[0]
-    return next((chosen[key] for key in ("entry", "question", "document", "why") if chosen.get(key)), None)
+def rules_of(detail, worst):
+    """Q108. The rules a value takes its status from, those of the entries of its detail that tie for its worst status by worstFirst, else of its
+    first entry, each once (breaker F2 of PR 81)."""
+    entries = detail.get("entries") or []
+    return list(dict.fromkeys(rule_name(entry) for entry in value_status.worst_entries(entries, worst))) if entries else [None]
 
 
 def assumed_rows(values, details, assumed, worst):
     """Q108. The rows of the chip Assumed: per rule and status the plots that hold a value of it, the count of the values and their fields. values
-    holds (field, plots, status, statusFrom, source) per value. A status out of assumed, DOCUMENT and strong MEASURED, is not shown, nor a value
-    an override sets, of the source override or moved by one, which has its own row under its check type (7.7 item 8)."""
+    holds (field, plots, status, statusFrom, source) per value. A DOCUMENT or strong MEASURED value is not shown, every other value counts under
+    each rule its worst status ties on, a value an override set or moved under the rule of the override (Bader, Q108)."""
     grouped = {}
-    for field, plots, status, key, source in values:
+    for field, plots, status, key, _ in values:
         detail = details.get(key) or {}
-        label = status + (" " + detail["strength"] if status == value_status.MEASURED and detail.get("strength") else "")
-        if label not in assumed or source == value_status.OVERRIDE or detail.get("override"):
+        label = value_status.status_label(status, detail)
+        if label not in assumed:
             continue
-        rule = rule_of(detail, worst)
-        item = grouped.setdefault("%s | %s" % (rule, label), {"rule": rule, "status": label, "plots": set(), "values": 0, "fields": set()})
-        item["plots"].update(plots)
-        item["values"] += 1
-        item["fields"].add(field)
+        for rule in rules_of(detail, worst):
+            item = grouped.setdefault("%s | %s" % (rule, label), {"rule": rule, "status": label, "plots": set(), "values": 0, "fields": set()})
+            item["plots"].update(plots)
+            item["values"] += 1
+            item["fields"].add(field)
     return {key: {"rule": item["rule"], "status": item["status"], "plotCount": len(item["plots"]), "plots": sorted(item["plots"], key=link_summary.sort_key),
                   "values": item["values"], "fields": sorted(item["fields"])} for key, item in sorted(grouped.items())}
+
+
+def moved_plots(values, details):
+    """The plots that hold a value an override set or moved, its walls included, which follow no rule whole (review 1 of PR 81)."""
+    return {plot for _, plots, _, key, source in values if source == value_status.OVERRIDE or (details.get(key) or {}).get("override") for plot in plots}
 
 
 def plan_values(plan, numbers):
@@ -187,8 +205,9 @@ def checks(numbers, rows, plan, data, sources, models, settings):
     infos = plot_infos(numbers, plan, rows, skip)
     rows_by_plot = plot_rows(numbers, infos, overrides, cannot, (settings.get("majority") or {}).get("decidedByQuestion"), block)
     status = settings.get("valueStatus") or {}
-    assumed = assumed_rows(plan_values(plan, numbers), plan.get("statusFrom") or {}, status.get("assumed") or [], status.get("worstFirst") or [])
-    return infos, rows_by_plot, assumed, chips(numbers, rows_by_plot, assumed, block)
+    values, details = plan_values(plan, numbers), plan.get("statusFrom") or {}
+    assumed = assumed_rows(values, details, status.get("assumed") or [], status.get("worstFirst") or [])
+    return infos, rows_by_plot, assumed, chips(numbers, rows_by_plot, assumed, block, moved_plots(values, details))
 
 
 def step(numbers, rows, plan, data, sources, models, settings):

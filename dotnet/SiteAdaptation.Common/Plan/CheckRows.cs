@@ -53,6 +53,9 @@ namespace SiteAdaptation.Common
         private const string Rule = "Rule";
         private const string Past = "Past";
         private const string Skip = "Skip";
+        // Q108. The rule of every field and source the map gives no entry, one cause, and the head of a decidedByQuestion entry, grouped by question
+        public const string NoStatusRule = "valueStatus holds no status for the field and its source (R401)";
+        private const string Decided = "majority.decidedByQuestion.";
         public const string NoBlock = "the settings hold no block checkRows, the check rows of R363 take their check types and the form of Past from it";
 
         private static string Text(JToken value)
@@ -234,8 +237,9 @@ namespace SiteAdaptation.Common
                 .OrderBy(name => name, StringComparer.Ordinal)).ToList();
         }
 
-        // check_rows.chips: All, the count per check type in the order of the mock, Assumed and the plots of the scope with no row
-        public static JObject Chips(IReadOnlyList<string> numbers, IReadOnlyDictionary<string, List<JObject>> rows, int assumed, JObject block)
+        // check_rows.chips: All, the count per check type in the order of the mock, Assumed and the plots of the scope with no row and no value an
+        // override set or moved, moved
+        public static JObject Chips(IReadOnlyList<string> numbers, IReadOnlyDictionary<string, List<JObject>> rows, int assumed, JObject block, ICollection<string> moved = null)
         {
             var found = new JObject { ["All"] = numbers.Sum(number => rows[number].Count) };
             foreach (string name in TypeOrder(rows, block))
@@ -243,63 +247,65 @@ namespace SiteAdaptation.Common
                 found[name] = numbers.Sum(number => rows[number].Count(item => (string)item["check"] == name));
             }
             found["Assumed"] = assumed;
-            found["followEveryRule"] = numbers.Count(number => rows[number].Count == 0);
+            found["followEveryRule"] = numbers.Count(number => rows[number].Count == 0 && (moved == null || !moved.Contains(number)));
             return found;
         }
 
-        private static string Label(JObject entry)
+        // check_rows.rule_name: the rule an entry of a detail names, a decidedByQuestion entry by its question, a block entry by its path, else its
+        // question or document, and the why of a field and source the map gives no entry by that one cause (breaker F5 of PR 81), else the why
+        public static string RuleName(JObject entry)
         {
-            string status = Text(entry["status"]);
-            string strength = Text(entry["strength"]);
-            return status + (status == "MEASURED" && !string.IsNullOrEmpty(strength) ? " " + strength : "");
-        }
-
-        // check_rows.rule_of: the entry of the detail value_status chose, the worst by worstFirst, else the first, named by its block entry,
-        // else its question, document or why
-        public static string RuleOf(JObject detail, IList<string> worst)
-        {
-            List<JObject> entries = (detail?["entries"] as JArray)?.OfType<JObject>().ToList();
-            if (entries == null || entries.Count == 0)
+            string path = Text(entry["entry"]);
+            if (!string.IsNullOrEmpty(path))
             {
-                entries = new List<JObject> { new JObject() };
+                string dotted = path.Substring(path.IndexOf(' ') + 1);
+                return dotted.StartsWith(Decided, StringComparison.Ordinal) ? dotted.Split('.')[2] : path;
             }
-            JObject chosen = entries[0];
-            int best = int.MaxValue;
-            for (int index = 0; index < entries.Count; index++)
+            foreach (string key in new[] { "question", "document" })
             {
-                int rank = entries[index]["status"] == null ? -1 : worst.IndexOf(Label(entries[index]));
-                if (rank >= 0 && rank < best)
+                if (Truthy(entry[key]))
                 {
-                    best = rank;
-                    chosen = entries[index];
+                    return Text(entry[key]);
                 }
             }
-            return new[] { "entry", "question", "document", "why" }.Select(key => chosen[key]).Where(Truthy).Select(Text).FirstOrDefault();
+            string why = Text(entry["why"]);
+            string head = ValueStatus.NoStatus.Substring(0, ValueStatus.NoStatus.IndexOf("{0}", StringComparison.Ordinal));
+            string tail = ValueStatus.NoStatus.Substring(ValueStatus.NoStatus.IndexOf("{1}", StringComparison.Ordinal) + 3);
+            return !string.IsNullOrEmpty(why) && why.StartsWith(head, StringComparison.Ordinal) && why.EndsWith(tail, StringComparison.Ordinal) ? NoStatusRule : why;
         }
 
-        // check_rows.assumed_rows: per rule and status the plots that hold a value of it, the count of the values and their fields, a status
-        // out of assumed and a value an override sets, of the source override or moved by one, not shown
+        // check_rows.rules_of: the rules of the entries of a detail that tie for its worst status by worstFirst, else of its first entry, each once
+        // (breaker F2 of PR 81)
+        public static List<string> RulesOf(JObject detail, IList<string> worst)
+        {
+            List<JObject> entries = (detail?["entries"] as JArray)?.OfType<JObject>().ToList() ?? new List<JObject>();
+            return entries.Count == 0 ? new List<string> { null } : ValueStatus.WorstEntries(entries, worst).Select(RuleName).Distinct().ToList();
+        }
+
+        // check_rows.assumed_rows: per rule and status the plots that hold a value of it, the count of the values and their fields, a DOCUMENT or
+        // strong MEASURED value not shown, every other value under each rule its worst status ties on (Bader, Q108)
         public static JObject AssumedRows(IEnumerable<StatusValue> values, JObject details, IList<string> assumed, IList<string> worst)
         {
             var grouped = new Dictionary<string, Tuple<string, string, HashSet<string>, int[], HashSet<string>>>(StringComparer.Ordinal);
             foreach (StatusValue value in values)
             {
                 JObject detail = details?[value.StatusFrom] as JObject ?? new JObject();
-                string strength = Text(detail["strength"]);
-                string label = value.Status + (value.Status == "MEASURED" && !string.IsNullOrEmpty(strength) ? " " + strength : "");
-                if (!assumed.Contains(label) || value.Source == "override" || Truthy(detail["override"]))
+                string label = ValueStatus.Label(value.Status, detail);
+                if (!assumed.Contains(label))
                 {
                     continue;
                 }
-                string rule = RuleOf(detail, worst);
-                string key = (rule ?? "None") + " | " + label;
-                if (!grouped.TryGetValue(key, out Tuple<string, string, HashSet<string>, int[], HashSet<string>> item))
+                foreach (string rule in RulesOf(detail, worst))
                 {
-                    item = grouped[key] = Tuple.Create(rule, label, new HashSet<string>(StringComparer.Ordinal), new int[1], new HashSet<string>(StringComparer.Ordinal));
+                    string key = (rule ?? "None") + " | " + label;
+                    if (!grouped.TryGetValue(key, out Tuple<string, string, HashSet<string>, int[], HashSet<string>> item))
+                    {
+                        item = grouped[key] = Tuple.Create(rule, label, new HashSet<string>(StringComparer.Ordinal), new int[1], new HashSet<string>(StringComparer.Ordinal));
+                    }
+                    item.Item3.UnionWith(value.Plots);
+                    item.Item4[0]++;
+                    item.Item5.Add(value.Field);
                 }
-                item.Item3.UnionWith(value.Plots);
-                item.Item4[0]++;
-                item.Item5.Add(value.Field);
             }
             var found = new JObject();
             foreach (KeyValuePair<string, Tuple<string, string, HashSet<string>, int[], HashSet<string>>> item in grouped.OrderBy(pair => pair.Key, StringComparer.Ordinal))
@@ -312,6 +318,13 @@ namespace SiteAdaptation.Common
                 };
             }
             return found;
+        }
+
+        // check_rows.moved_plots: the plots that hold a value an override set or moved, its walls included, which follow no rule whole
+        public static HashSet<string> MovedPlots(IEnumerable<StatusValue> values, JObject details)
+        {
+            return new HashSet<string>(values.Where(value => value.Source == "override" || Truthy((details?[value.StatusFrom] as JObject)?["override"])).SelectMany(value => value.Plots),
+                StringComparer.Ordinal);
         }
 
         // check_rows.plan_values: each sourced value of a written plot of the scope by the step status, and each value of a wall on the written
@@ -358,12 +371,13 @@ namespace SiteAdaptation.Common
             Dictionary<string, List<JObject>> made = Rows(numbers, plots, entries.Item1, entries.Item2, config["majority"]?["decidedByQuestion"] as JObject, block);
             List<string> assumed = (config["valueStatus"]?["assumed"] as JArray ?? new JArray()).Select(item => (string)item).ToList();
             List<string> worst = (config["valueStatus"]?["worstFirst"] as JArray ?? new JArray()).Select(item => (string)item).ToList();
-            JObject groups = AssumedRows(PlanValues(numbers, status, walls), details, assumed, worst);
+            List<StatusValue> values = PlanValues(numbers, status, walls);
+            JObject groups = AssumedRows(values, details, assumed, worst);
             var found = numbers.ToDictionary(number => number, number => new Dictionary<string, object>
             {
                 ["unit"] = plots[number].Unit, ["nbh"] = plots[number].Nbh, ["rows"] = new JArray(made[number]),
             });
-            return Tuple.Create(found, new JObject { ["assumed"] = groups, ["chips"] = Chips(numbers, made, groups.Count, block) });
+            return Tuple.Create(found, new JObject { ["assumed"] = groups, ["chips"] = Chips(numbers, made, groups.Count, block, MovedPlots(values, details)) });
         }
     }
 }

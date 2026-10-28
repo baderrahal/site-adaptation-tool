@@ -127,11 +127,19 @@ namespace SiteAdaptation.Tests
             JObject chips = CheckRows.Chips(Numbers, MadeRows(), 1, Block());
             Assert.Equal("All 13|Plot cut 0|Floor 1|Hand 2|Unit code 2|Position 0|Level 5|Parameter 2|Skip 1|Assumed 1|followEveryRule 1",
                 string.Join("|", chips.Properties().Select(item => item.Name + " " + (int)item.Value)));
+            // Review 1 of PR 81: a plot with no row follows every rule only when no override set or moved a value of it, its walls included
+            Assert.Equal(0, (int)CheckRows.Chips(Numbers, MadeRows(), 0, Block(), new HashSet<string> { "1" })["followEveryRule"]);
         }
 
         // test_check_rows.DETAILS, the details of the statuses of the plan as the table statusFrom holds them (R401)
         private const string Ffl = "rules/r.json levelProfiles.p.keyRules.ffl.rule";
         private const string Elevation = "the elevation of the level of the floor in the new site file";
+        private const string Split = "rules/r.json levelProfiles.p.keyRules.levelSplit.rule";
+
+        private static string Unmapped(string field)
+        {
+            return "{\"entries\": [{\"status\": \"UNKNOWN\", \"why\": \"" + string.Format(ValueStatus.NoStatus, field, "computed") + "\"}]}";
+        }
 
         private static JObject Details()
         {
@@ -148,7 +156,14 @@ namespace SiteAdaptation.Tests
                 + "\"walls.top from keyRules\": {\"entries\": [{\"entry\": \"rules/r.json levelProfiles.p.keyRules.wallTop.rule\", \"status\": \"MEASURED\", \"share\": 0.95, "
                 + "\"strength\": \"strong\"}, " + ffl + "], \"strength\": \"weak\"},"
                 + "\"parameters.CASE from keyRules\": {\"entries\": [{\"entry\": \"rules/r.json levelProfiles.p.keyRules.parameters.CASE.rule\", \"status\": \"CHOSEN by Code\"}]},"
-                + "\"mirrored from override\": {\"entries\": [{\"status\": \"RECOMMENDED\", \"question\": \"Q053\", \"where\": \"a made up place\"}]}}");
+                + "\"mirrored from override\": {\"entries\": [{\"status\": \"RECOMMENDED\", \"question\": \"Q053\", \"where\": \"a made up place\"}]},"
+                + "\"prototypeFile from computed question Q017 img\": {\"entries\": [{\"status\": \"DOCUMENT\", \"document\": \"the prototype folder\"}, "
+                + "{\"entry\": \"config/project.json majority.decidedByQuestion.Q017.plots.img\", \"status\": \"RECOMMENDED\", \"question\": \"Q017\"}]},"
+                // Two weak entries tie for the worst status, so the value counts under both rules (breaker F2 of PR 81)
+                + "\"levels.steps from estimate\": {\"entries\": [{\"entry\": \"" + Split + "\", \"status\": \"MEASURED\", \"share\": 0.8, \"strength\": \"weak\"}, " + ffl
+                + "], \"strength\": \"weak\"},"
+                + "\"floors.generic.levelElevation from computed\": " + Unmapped("floors.generic.levelElevation") + ","
+                + "\"floors.ramp.levelElevation from computed\": " + Unmapped("floors.ramp.levelElevation") + "}");
         }
 
         private static StatusValue Value(string field, string status, string from, string source, params string[] plots)
@@ -166,9 +181,17 @@ namespace SiteAdaptation.Tests
             Value("walls.top", "MEASURED", "walls.top from keyRules", "keyRules", "2", "1"),
             Value("parameters.CASE", "CHOSEN by Code", "parameters.CASE from keyRules", "keyRules", "10"),
             Value("parameters.CASE", "CHOSEN by Code", "parameters.CASE from keyRules", "keyRules", "9"),
-            // A value of the source override, whose detail names no override as no override moved it, has its own row under its check type
             Value("mirrored", "RECOMMENDED", "mirrored from override", "override", "4"),
+            Value("prototypeFile", "RECOMMENDED", "prototypeFile from computed question Q017 img", "computed", "6"),
+            Value("levels.steps", "MEASURED", "levels.steps from estimate", "estimate", "5"),
+            Value("floors.generic.levelElevation", "UNKNOWN", "floors.generic.levelElevation from computed", "computed", "1"),
+            Value("floors.ramp.levelElevation", "UNKNOWN", "floors.ramp.levelElevation from computed", "computed", "1"),
         };
+
+        private static JObject AssumedRow(string rule, string status, string[] plots, int values, params string[] fields)
+        {
+            return new JObject { ["rule"] = rule, ["status"] = status, ["plotCount"] = plots.Length, ["plots"] = new JArray(plots), ["values"] = values, ["fields"] = new JArray(fields) };
+        }
 
         private static readonly string[] Assumed = { "RECOMMENDED", "CHOSEN by Code", "UNKNOWN", "MEASURED weak" };
         private static readonly string[] Worst = { "UNKNOWN", "CHOSEN by Code", "RECOMMENDED", "MEASURED weak" };
@@ -177,20 +200,30 @@ namespace SiteAdaptation.Tests
         public void R363_Q108_the_assumed_chip_groups_by_rule_one_row_per_rule_and_status_with_its_plots()
         {
             JObject found = CheckRows.AssumedRows(Values, Details(), Assumed, Worst);
-            JObject expected = new JObject
+            // Bader's Q108 word for word: DOCUMENT and strong MEASURED values are not shown, nothing else is left out, so a value an override sets or
+            // moved counts under its override rule, Q053, and a value of a tie under each rule of the tie (review 1 of PR 81)
+            var expected = new JObject
             {
-                ["config/project.json majority.decidedByQuestion.Q017.plots.imc | RECOMMENDED"] = JObject.Parse("{\"rule\": \"config/project.json majority.decidedByQuestion.Q017.plots.imc\", "
-                    + "\"status\": \"RECOMMENDED\", \"plotCount\": 1, \"plots\": [\"2\"], \"values\": 1, \"fields\": [\"prototypeFile\"]}"),
-                ["rules/r.json levelProfiles.p.keyRules.ffl.rule | MEASURED weak"] = JObject.Parse("{\"rule\": \"" + Ffl + "\", \"status\": \"MEASURED weak\", \"plotCount\": 2, "
-                    + "\"plots\": [\"1\", \"2\"], \"values\": 3, \"fields\": [\"levels.ffl\", \"walls.top\"]}"),
-                ["rules/r.json levelProfiles.p.keyRules.parameters.CASE.rule | CHOSEN by Code"] = JObject.Parse("{\"rule\": \"rules/r.json levelProfiles.p.keyRules.parameters.CASE.rule\", "
-                    + "\"status\": \"CHOSEN by Code\", \"plotCount\": 2, \"plots\": [\"9\", \"10\"], \"values\": 2, \"fields\": [\"parameters.CASE\"]}"),
-                [Elevation + " | UNKNOWN"] = JObject.Parse("{\"rule\": \"" + Elevation + "\", \"status\": \"UNKNOWN\", \"plotCount\": 1, \"plots\": [\"1\"], \"values\": 1, "
-                    + "\"fields\": [\"floors.generic.heightOffset\"]}"),
+                ["Q017 | RECOMMENDED"] = AssumedRow("Q017", "RECOMMENDED", new[] { "2", "6" }, 2, "prototypeFile"),
+                ["Q053 | RECOMMENDED"] = AssumedRow("Q053", "RECOMMENDED", new[] { "3", "4" }, 2, "levels.ffl", "mirrored"),
+                [Ffl + " | MEASURED weak"] = AssumedRow(Ffl, "MEASURED weak", new[] { "1", "2", "5" }, 4, "levels.ffl", "levels.steps", "walls.top"),
+                [Split + " | MEASURED weak"] = AssumedRow(Split, "MEASURED weak", new[] { "5" }, 1, "levels.steps"),
+                ["rules/r.json levelProfiles.p.keyRules.parameters.CASE.rule | CHOSEN by Code"] = AssumedRow("rules/r.json levelProfiles.p.keyRules.parameters.CASE.rule",
+                    "CHOSEN by Code", new[] { "9", "10" }, 2, "parameters.CASE"),
+                [Elevation + " | UNKNOWN"] = AssumedRow(Elevation, "UNKNOWN", new[] { "1" }, 1, "floors.generic.heightOffset"),
+                [CheckRows.NoStatusRule + " | UNKNOWN"] = AssumedRow(CheckRows.NoStatusRule, "UNKNOWN", new[] { "1" }, 2, "floors.generic.levelElevation", "floors.ramp.levelElevation"),
             };
             Assert.Equal(expected.ToString(Formatting.None), found.ToString(Formatting.None));
-            // DOCUMENT, strong MEASURED and a value an override sets are not shown, the last has its own row under its check type
-            Assert.Equal(Values.Length - 4, found.Properties().Sum(item => (int)item.Value["values"]));
+            // Only the DOCUMENT and the strong MEASURED value are left out, the tie counts twice
+            Assert.Equal(Values.Length - 2 + 1, found.Properties().Sum(item => (int)item.Value["values"]));
+        }
+
+        [Fact]
+        public void R363_the_plots_an_override_set_or_moved_a_value_of_follow_no_rule_whole()
+        {
+            // Plot 3 holds a value an override moved and 4 one of the source override, a wall on 2 and 7 with a moved base puts both in
+            List<StatusValue> values = Values.Concat(new[] { Value("walls.base", "RECOMMENDED", "levels.ffl from override by heightM", "keyRules", "2", "7") }).ToList();
+            Assert.Equal("2 3 4 7", string.Join(" ", CheckRows.MovedPlots(values, Details()).OrderBy(plot => plot, StringComparer.Ordinal)));
         }
 
         [Fact]
@@ -221,13 +254,41 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R363_Q108_the_rule_of_a_value_is_its_worst_entry_by_worst_first_else_its_first()
+        public void R363_Q108_the_rules_of_a_value_are_its_worst_tied_entries_named_by_rule()
         {
             JObject details = Details();
-            Assert.Equal(Elevation, CheckRows.RuleOf((JObject)details["floors.generic.heightOffset from estimate"], Worst));
-            Assert.Equal(Ffl, CheckRows.RuleOf((JObject)details["walls.top from keyRules"], Worst));
-            Assert.Equal("a document", CheckRows.RuleOf(JObject.Parse("{\"entries\": [{\"status\": \"DOCUMENT\", \"document\": \"a document\"}, {\"status\": \"DOCUMENT\", \"document\": \"another\"}]}"), Worst));
-            Assert.Equal("Q053", CheckRows.RuleOf(JObject.Parse("{\"entries\": [{\"status\": \"RECOMMENDED\", \"question\": \"Q053\"}]}"), Worst));
+            Func<JObject, string> rules = detail => string.Join("|", CheckRows.RulesOf(detail, Worst));
+            Assert.Equal(Elevation, rules((JObject)details["floors.generic.heightOffset from estimate"]));
+            Assert.Equal(Ffl, rules((JObject)details["walls.top from keyRules"]));
+            Assert.Equal(Split + "|" + Ffl, rules((JObject)details["levels.steps from estimate"]));
+            Assert.Equal("a document", rules(JObject.Parse("{\"entries\": [{\"status\": \"DOCUMENT\", \"document\": \"a document\"}, {\"status\": \"DOCUMENT\", \"document\": \"another\"}]}")));
+            Assert.Equal("Q053", rules(JObject.Parse("{\"entries\": [{\"status\": \"RECOMMENDED\", \"question\": \"Q053\"}]}")));
+            // A decidedByQuestion entry by its question, and every field valueStatus maps no status for by one cause (breaker F5 of PR 81)
+            Assert.Equal("Q017", rules((JObject)details["prototypeFile from computed question Q017 img"]));
+            Assert.Equal(CheckRows.NoStatusRule, rules((JObject)details["floors.ramp.levelElevation from computed"]));
+        }
+
+        [Fact]
+        public void R401_R363_the_worst_tied_entries_of_a_value_the_status_takes_the_first()
+        {
+            JObject details = Details();
+            List<JObject> tie = ((JArray)details["levels.steps from estimate"]["entries"]).OfType<JObject>().ToList();
+            Assert.Equal(tie, ValueStatus.WorstEntries(tie, Worst));
+            List<JObject> mixed = ((JArray)details["floors.generic.heightOffset from estimate"]["entries"]).OfType<JObject>().ToList();
+            Assert.Equal(new[] { mixed[2] }, ValueStatus.WorstEntries(mixed, Worst));
+            // No entry of a status worstFirst names gives the first entry alone, as Of takes it
+            List<JObject> none = new[] { JObject.Parse("{\"status\": \"DOCUMENT\", \"document\": \"a\"}"), JObject.Parse("{\"status\": \"DOCUMENT\", \"document\": \"b\"}") }.ToList();
+            Assert.Equal(new[] { none[0] }, ValueStatus.WorstEntries(none, Worst));
+            Assert.Equal("MEASURED weak", ValueStatus.Label("MEASURED", JObject.Parse("{\"strength\": \"weak\"}")));
+            Assert.Equal("UNKNOWN", ValueStatus.Label("UNKNOWN", JObject.Parse("{\"strength\": \"weak\"}")));
+            // Of keeps the first of the tie, the status and strength it gave before
+            var map = (JObject)JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()))["valueStatus"];
+            map["fields"] = JObject.Parse("{\"levels.steps\": {\"estimate\": [{\"profile\": \"a.rule\"}, {\"profile\": \"b.rule\"}]}}");
+            var block = JObject.Parse("{\"rules/r.json\": {\"a.rule\": {\"status\": \"MEASURED\", \"share\": 0.8, \"strength\": \"weak\"}, "
+                + "\"b.rule\": {\"status\": \"MEASURED\", \"share\": 0.7, \"strength\": \"weak\"}}}");
+            Tuple<string, JObject, string> status = new ValueStatusTable(map, block, "rules/r.json", "p").Of("levels.steps", "estimate");
+            Assert.Equal("MEASURED weak 0.8 0.7", status.Item1 + " " + (string)status.Item2["strength"] + " "
+                + string.Join(" ", ValueStatus.WorstEntries(((JArray)status.Item2["entries"]).OfType<JObject>().ToList(), Worst).Select(entry => ((double)entry["share"]).ToString(System.Globalization.CultureInfo.InvariantCulture))));
         }
 
         // test_check_rows.ROW_OVERRIDES on the made up row of OverrideParameterStepTests.Build, plot 6 with no road level at a front corner and 8 a

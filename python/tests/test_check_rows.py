@@ -7,6 +7,7 @@ import pytest
 import check_rows
 import plan_from_book
 import project_profile
+import value_status
 
 BLOCK = project_profile.load_settings().get("checkRows")
 GAP = "a build places the outline of its rule and leaves these (LEFT of plan_from_book.py)"
@@ -96,11 +97,20 @@ def test_r363_the_chips_count_the_rows_by_type_in_the_order_of_the_mock_and_the_
     assert list(chips) == ["All", "Plot cut", "Floor", "Hand", "Unit code", "Position", "Level", "Parameter", "Skip", "Assumed", "followEveryRule"]
     assert chips == {"All": 13, "Plot cut": 0, "Floor": 1, "Hand": 2, "Unit code": 2, "Position": 0, "Level": 5, "Parameter": 2, "Skip": 1, "Assumed": 1,
                      "followEveryRule": 1}
+    # Review 1 of PR 81: a plot with no row follows every rule only when no override set or moved a value of it, its walls included
+    assert check_rows.chips(NUMBERS, found, {}, BLOCK, {"1"})["followEveryRule"] == 0
 
 
 # The details of the statuses of the plan, as the table statusFrom holds them (R401)
 FFL = "rules/r.json levelProfiles.p.keyRules.ffl.rule"
+SPLIT = "rules/r.json levelProfiles.p.keyRules.levelSplit.rule"
 ELEVATION = "the elevation of the level of the floor in the new site file"
+
+
+def unmapped(field):
+    return {"entries": [{"status": "UNKNOWN", "why": value_status.NO_STATUS % (field, "computed")}]}
+
+
 DETAILS = {
     "levels.ffl from estimate": {"entries": [{"entry": FFL, "status": "MEASURED", "share": 0.7465, "strength": "weak"}], "strength": "weak"},
     "levels.ffl from override by heightM": {"entries": [{"status": "RECOMMENDED", "question": "Q053", "where": "a made up place"}], "override": "heightM"},
@@ -110,41 +120,57 @@ DETAILS = {
     "prototypeFile from computed question Q017 imc": {"entries": [{"status": "DOCUMENT", "document": "the prototype folder"},
                                                                   {"entry": "config/project.json majority.decidedByQuestion.Q017.plots.imc", "status": "RECOMMENDED",
                                                                    "question": "Q017"}]},
+    "prototypeFile from computed question Q017 img": {"entries": [{"status": "DOCUMENT", "document": "the prototype folder"},
+                                                                  {"entry": "config/project.json majority.decidedByQuestion.Q017.plots.img", "status": "RECOMMENDED",
+                                                                   "question": "Q017"}]},
     "unit from locationPlan": {"entries": [{"status": "DOCUMENT", "document": "the location plan"}]},
     "floors.generic.outline from computed": {"entries": [{"entry": "rules/r.json levelProfiles.p.keyRules.generic.rule", "status": "MEASURED", "share": 0.99,
                                                           "strength": "strong"}], "strength": "strong"},
     "walls.top from keyRules": {"entries": [{"entry": "rules/r.json levelProfiles.p.keyRules.wallTop.rule", "status": "MEASURED", "share": 0.95, "strength": "strong"},
                                             {"entry": FFL, "status": "MEASURED", "share": 0.7465, "strength": "weak"}], "strength": "weak"},
     "parameters.CASE from keyRules": {"entries": [{"entry": "rules/r.json levelProfiles.p.keyRules.parameters.CASE.rule", "status": "CHOSEN by Code"}]},
-    "mirrored from override": {"entries": [{"status": "RECOMMENDED", "question": "Q053", "where": "a made up place"}]}}
+    "mirrored from override": {"entries": [{"status": "RECOMMENDED", "question": "Q053", "where": "a made up place"}]},
+    # Two weak entries tie for the worst status, so the value counts under both rules (breaker F2 of PR 81)
+    "levels.steps from estimate": {"entries": [{"entry": SPLIT, "status": "MEASURED", "share": 0.8, "strength": "weak"},
+                                               {"entry": FFL, "status": "MEASURED", "share": 0.7465, "strength": "weak"}], "strength": "weak"},
+    "floors.generic.levelElevation from computed": unmapped("floors.generic.levelElevation"),
+    "floors.ramp.levelElevation from computed": unmapped("floors.ramp.levelElevation")}
 VALUES = [("levels.ffl", ["1"], "MEASURED", "levels.ffl from estimate", "estimate"), ("levels.ffl", ["2"], "MEASURED", "levels.ffl from estimate", "estimate"),
           ("levels.ffl", ["3"], "RECOMMENDED", "levels.ffl from override by heightM", "estimate"),
           ("floors.generic.heightOffset", ["1"], "UNKNOWN", "floors.generic.heightOffset from estimate", "estimate"),
           ("prototypeFile", ["2"], "RECOMMENDED", "prototypeFile from computed question Q017 imc", "computed"),
+          ("prototypeFile", ["6"], "RECOMMENDED", "prototypeFile from computed question Q017 img", "computed"),
           ("unit", ["1"], "DOCUMENT", "unit from locationPlan", "locationPlan"), ("floors.generic.outline", ["1"], "MEASURED", "floors.generic.outline from computed", "computed"),
           ("walls.top", ["2", "1"], "MEASURED", "walls.top from keyRules", "keyRules"),
           ("parameters.CASE", ["10"], "CHOSEN by Code", "parameters.CASE from keyRules", "keyRules"),
           ("parameters.CASE", ["9"], "CHOSEN by Code", "parameters.CASE from keyRules", "keyRules"),
-          # A value of the source override, whose detail names no override as no override moved it, has its own row under its check type
-          ("mirrored", ["4"], "RECOMMENDED", "mirrored from override", "override")]
+          ("mirrored", ["4"], "RECOMMENDED", "mirrored from override", "override"), ("levels.steps", ["5"], "MEASURED", "levels.steps from estimate", "estimate"),
+          ("floors.generic.levelElevation", ["1"], "UNKNOWN", "floors.generic.levelElevation from computed", "computed"),
+          ("floors.ramp.levelElevation", ["1"], "UNKNOWN", "floors.ramp.levelElevation from computed", "computed")]
 ASSUMED = ["RECOMMENDED", "CHOSEN by Code", "UNKNOWN", "MEASURED weak"]
 WORST = ["UNKNOWN", "CHOSEN by Code", "RECOMMENDED", "MEASURED weak"]
 
 
+def assumed_row(rule, status, plots, values, fields):
+    return {"rule": rule, "status": status, "plotCount": len(plots), "plots": plots, "values": values, "fields": fields}
+
+
 def test_r363_q108_the_assumed_chip_groups_by_rule_one_row_per_rule_and_status_with_its_plots():
     found = check_rows.assumed_rows(VALUES, DETAILS, ASSUMED, WORST)
+    # Bader's Q108 word for word: DOCUMENT and strong MEASURED values are not shown, nothing else is left out, so a value an override sets or
+    # moved counts under its override rule, Q053, and a value of a tie under each rule of the tie (review 1 of PR 81)
     assert found == {
-        FFL + " | MEASURED weak": {"rule": FFL, "status": "MEASURED weak", "plotCount": 2, "plots": ["1", "2"], "values": 3, "fields": ["levels.ffl", "walls.top"]},
-        ELEVATION + " | UNKNOWN": {"rule": ELEVATION, "status": "UNKNOWN", "plotCount": 1, "plots": ["1"], "values": 1, "fields": ["floors.generic.heightOffset"]},
-        "config/project.json majority.decidedByQuestion.Q017.plots.imc | RECOMMENDED": {
-            "rule": "config/project.json majority.decidedByQuestion.Q017.plots.imc", "status": "RECOMMENDED", "plotCount": 1, "plots": ["2"], "values": 1,
-            "fields": ["prototypeFile"]},
-        "rules/r.json levelProfiles.p.keyRules.parameters.CASE.rule | CHOSEN by Code": {
-            "rule": "rules/r.json levelProfiles.p.keyRules.parameters.CASE.rule", "status": "CHOSEN by Code", "plotCount": 2, "plots": ["9", "10"], "values": 2,
-            "fields": ["parameters.CASE"]}}
-    # DOCUMENT, strong MEASURED and a value an override sets are not shown, the last has its own row under its check type
-    shown = sum(item["values"] for item in found.values())
-    assert shown == len(VALUES) - 4
+        FFL + " | MEASURED weak": assumed_row(FFL, "MEASURED weak", ["1", "2", "5"], 4, ["levels.ffl", "levels.steps", "walls.top"]),
+        "Q017 | RECOMMENDED": assumed_row("Q017", "RECOMMENDED", ["2", "6"], 2, ["prototypeFile"]),
+        "Q053 | RECOMMENDED": assumed_row("Q053", "RECOMMENDED", ["3", "4"], 2, ["levels.ffl", "mirrored"]),
+        SPLIT + " | MEASURED weak": assumed_row(SPLIT, "MEASURED weak", ["5"], 1, ["levels.steps"]),
+        "rules/r.json levelProfiles.p.keyRules.parameters.CASE.rule | CHOSEN by Code": assumed_row(
+            "rules/r.json levelProfiles.p.keyRules.parameters.CASE.rule", "CHOSEN by Code", ["9", "10"], 2, ["parameters.CASE"]),
+        ELEVATION + " | UNKNOWN": assumed_row(ELEVATION, "UNKNOWN", ["1"], 1, ["floors.generic.heightOffset"]),
+        check_rows.NO_STATUS_RULE + " | UNKNOWN": assumed_row(check_rows.NO_STATUS_RULE, "UNKNOWN", ["1"], 2,
+                                                             ["floors.generic.levelElevation", "floors.ramp.levelElevation"])}
+    # Only the DOCUMENT and the strong MEASURED value are left out, the tie counts twice
+    assert sum(item["values"] for item in found.values()) == len(VALUES) - 2 + 1
 
 
 def sourced(source, status, key, value=1):
@@ -164,11 +190,37 @@ def test_r363_q108_the_values_of_a_plan_each_value_of_a_written_plot_and_of_a_wa
         ("walls.ends", ["1"], "UNKNOWN", "e", "keyRules"), ("walls.base", ["1"], "MEASURED", "b", "keyRules"), ("walls.top", ["1"], "MEASURED", "t", "keyRules")]
 
 
-def test_r363_q108_the_rule_of_a_value_is_its_worst_entry_by_worst_first_else_its_first():
-    assert check_rows.rule_of(DETAILS["floors.generic.heightOffset from estimate"], WORST) == ELEVATION
-    assert check_rows.rule_of(DETAILS["walls.top from keyRules"], WORST) == FFL
-    assert check_rows.rule_of({"entries": [{"status": "DOCUMENT", "document": "a document"}, {"status": "DOCUMENT", "document": "another"}]}, WORST) == "a document"
-    assert check_rows.rule_of({"entries": [{"status": "RECOMMENDED", "question": "Q053"}]}, WORST) == "Q053"
+def test_r363_the_plots_an_override_set_or_moved_a_value_of_follow_no_rule_whole():
+    # Plot 3 holds a value an override moved and 4 one of the source override, a wall on 2 and 7 with a moved base puts both in
+    values = VALUES + [("walls.base", ["2", "7"], "RECOMMENDED", "levels.ffl from override by heightM", "keyRules")]
+    assert check_rows.moved_plots(values, DETAILS) == {"2", "3", "4", "7"}
+
+
+def test_r363_q108_the_rules_of_a_value_are_its_worst_tied_entries_named_by_rule():
+    assert check_rows.rules_of(DETAILS["floors.generic.heightOffset from estimate"], WORST) == [ELEVATION]
+    assert check_rows.rules_of(DETAILS["walls.top from keyRules"], WORST) == [FFL]
+    assert check_rows.rules_of(DETAILS["levels.steps from estimate"], WORST) == [SPLIT, FFL]
+    assert check_rows.rules_of({"entries": [{"status": "DOCUMENT", "document": "a document"}, {"status": "DOCUMENT", "document": "another"}]}, WORST) == ["a document"]
+    assert check_rows.rules_of({"entries": [{"status": "RECOMMENDED", "question": "Q053"}]}, WORST) == ["Q053"]
+    # A decidedByQuestion entry by its question, and every field valueStatus maps no status for by one cause (breaker F5 of PR 81)
+    assert check_rows.rules_of(DETAILS["prototypeFile from computed question Q017 img"], WORST) == ["Q017"]
+    assert check_rows.rules_of(DETAILS["floors.ramp.levelElevation from computed"], WORST) == [check_rows.NO_STATUS_RULE]
+
+
+def test_r401_r363_the_worst_tied_entries_of_a_value_the_status_takes_the_first():
+    tie = DETAILS["levels.steps from estimate"]["entries"]
+    assert value_status.worst_entries(tie, WORST) == tie
+    mixed = DETAILS["floors.generic.heightOffset from estimate"]["entries"]
+    assert value_status.worst_entries(mixed, WORST) == [mixed[2]]
+    # No entry of a status worstFirst names gives the first entry alone, as Table.of takes it
+    assert value_status.worst_entries([{"status": "DOCUMENT", "document": "a"}, {"status": "DOCUMENT", "document": "b"}], WORST) == [{"status": "DOCUMENT", "document": "a"}]
+    assert value_status.status_label("MEASURED", {"strength": "weak"}) == "MEASURED weak" and value_status.status_label("UNKNOWN", {"strength": "weak"}) == "UNKNOWN"
+    # Table.of keeps the first of the tie, the status and strength it gave before
+    table = value_status.Table(dict(project_profile.load_settings().get("valueStatus"), fields={"levels.steps": {"estimate": [{"profile": "a.rule"}, {"profile": "b.rule"}]}}),
+                               {"rules/r.json": {"a.rule": {"status": "MEASURED", "share": 0.8, "strength": "weak"},
+                                                 "b.rule": {"status": "MEASURED", "share": 0.7, "strength": "weak"}}}, "rules/r.json", "p")
+    status, detail, _ = table.of("levels.steps", "estimate")
+    assert (status, detail["strength"], [entry["share"] for entry in value_status.worst_entries(detail["entries"], WORST)]) == ("MEASURED", "weak", [0.8, 0.7])
 
 
 def test_r363_the_plots_of_a_plan_give_the_applied_and_left_overrides_and_the_keys_each_lacks():

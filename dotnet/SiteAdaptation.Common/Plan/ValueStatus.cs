@@ -147,11 +147,6 @@ namespace SiteAdaptation.Common
             return AsList(sources[source]);
         }
 
-        private static string EntryLabel(JObject entry)
-        {
-            return ValueStatus.Label((string)entry["status"], entry);
-        }
-
         // value_status.Table.of: the status, the detail and its key
         // movedBy of the map: the field whose value tells whether an override moved field, field itself when it names none
         public string MovedBy(string field)
@@ -201,11 +196,11 @@ namespace SiteAdaptation.Common
                 return Tuple.Create(known, Used[key], key);
             }
             List<JObject> entries = refs == null
-                ? new List<JObject> { new JObject { ["status"] = "UNKNOWN", ["why"] = "valueStatus holds no status for " + field + " from " + source + " (R401)" } }
+                ? new List<JObject> { new JObject { ["status"] = "UNKNOWN", ["why"] = string.Format(ValueStatus.NoStatus, field, source) } }
                 : refs.Select(reference => Resolve(field, source, reference, hand, unit)).ToList();
             entries.AddRange(pairs.Select(pair => Resolve(field, source, new JObject { ["config"] = "majority.decidedByQuestion." + pair.Item1 + ".plots." + pair.Item2 }, hand, unit)));
-            // Q107. The worst status of the list by worstFirst, else the first entry
-            JObject chosen = entries.Where(entry => order.Contains(EntryLabel(entry))).OrderBy(entry => order.IndexOf(EntryLabel(entry))).FirstOrDefault() ?? entries[0];
+            // Q107. The worst status of the list by worstFirst, else the first entry, the first of a tie
+            JObject chosen = ValueStatus.WorstEntries(entries, order)[0];
             var detail = new JObject { ["entries"] = new JArray(entries) };
             if ((string)chosen["status"] == Measured && chosen["strength"]?.Type == JTokenType.String && ((string)chosen["strength"]).Length > 0)
             {
@@ -288,7 +283,23 @@ namespace SiteAdaptation.Common
                 levelProfile, decimals, config["majority"]?["decidedByQuestion"] as JObject);
         }
 
-        // value_status.label: the status a count names, MEASURED with its strength
+        // value_status.NO_STATUS, the why of a value whose field and source the map gives no entry
+        public const string NoStatus = "valueStatus holds no status for {0} from {1} (R401)";
+
+        // value_status.worst_entries: the entries that hold the worst status by order, worstFirst, in list order, a tie giving each, else the first
+        // entry alone. Of takes the first of them, the chip Assumed of Q108 counts a value under each (review 1 of PR 81)
+        public static List<JObject> WorstEntries(IList<JObject> entries, IList<string> order)
+        {
+            List<int> ranks = entries.Select(entry => order.IndexOf(Label((string)entry["status"], entry))).ToList();
+            if (ranks.All(rank => rank < 0))
+            {
+                return entries.Take(1).ToList();
+            }
+            int best = ranks.Where(rank => rank >= 0).Min();
+            return entries.Where((entry, index) => ranks[index] == best).ToList();
+        }
+
+        // value_status.status_label: the status a count names, MEASURED with the strength of its detail or entry
         public static string Label(string status, JObject detail)
         {
             string strength = detail?["strength"]?.Type == JTokenType.String ? (string)detail["strength"] : null;

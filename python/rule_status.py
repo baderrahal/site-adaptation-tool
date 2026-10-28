@@ -28,10 +28,11 @@ RID = re.compile(r"\bR\d{1,3}\b")
 NOTE_KEYS = ("note", "why", "source", "question", "matches", "meaning", "listedIn")
 NAMEISH = re.compile(r"(\.dwg|\.xlsx|\.rvt|\.json|\.rte|\.csv|\.pdf|\\|/|^RRE_|^ELl@|PSN-|^C:)", re.I)
 HOST = re.compile(r"(Minutes|Seconds|TimeLimit|Peak|MiB|minFreeGB|staleHours|helperProcesses|windowProcesses|\.lock|cimTimeout)", re.I)
-# valueStatus of R401 maps each plotted value to its entry of the block, it holds no design value of its own
+# valueStatus of R401 maps each plotted value to its entry of the block, it holds no design value of its own, and checkRows of R363 names the check
+# type and the form of Past of each row of the check table, which set no plotted value (review 1 of PR 81)
 BOOKKEEPING = ("addin.parity", "addin.sharedParameters", "answerKeys", "prototypeNames", "prototypeSets", "pastJob", "handCheck", "cadReads",
                "tableUnits", "drawings", "schedules", "profile", "inputRoot", "siteBuild.snapshot", "siteBuild.roadFolder", "testHost.order",
-               "testHost.model", "pastAll", "majority.check", "project", "units_mm", "addin.workbookRoles", "valueStatus")
+               "testHost.model", "pastAll", "majority.check", "project", "units_mm", "addin.workbookRoles", "valueStatus", "checkRows")
 # Settings inside a bookkeeping block that still choose what a build or button 1 takes: the group the reference key of the position
 # file and the overrides follow (position_file.key_of, ProjectPositionFile.cs), and the job of a level profile (plan_rules.check_override_jobs)
 CHOOSERS = ("majority.check.group",)
