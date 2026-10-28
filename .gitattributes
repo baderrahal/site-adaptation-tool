@@ -9,3 +9,5 @@
 *.sh text eol=lf
 # The AI MAX skill copy stays byte for byte with its source, two of its .cmd files hold CRLF
 .claude/skills/ai-max/** -text
+# The font and its licence keep the bytes of their source, so their SHA-256 in docs/licences.md holds
+dotnet/SiteAdaptation.AddIn/Theme/Fonts/** -text

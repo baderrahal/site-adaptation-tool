@@ -30,7 +30,7 @@ At the fold in each item marked NEW joins the list of 7.7, and the icons below t
 
 ### Icons
 
-32 unit grid, stroke SA.Heading width 2, round caps and joins, fill none unless named. Draw as WPF geometry, render to 32 and 16 px PNG for the ribbon. The 16 px set uses stroke 2.4 and drops the parts marked (32 only).
+32 unit grid, stroke SA.Heading width 2, round caps and joins, fill none unless named. Draw as WPF geometry, render to 32 and 16 px PNG for the ribbon. Lane B 5a PR 2 renders them in memory at start from Theme.xaml at the screen scale, with no PNG file, the same drawing at 32 and 16 px at scale 1 and with more pixels above it (CHOSEN by Code). The 16 px set uses stroke 2.4 and drops the parts marked (32 only).
 
 ```text
 1 Set up site: M8 19a8 8 0 1 0 16 0a8 8 0 1 0 -16 0 | M16 14v10M11 19h10 | M16 2l4 7l-4-1.5l-4 1.5z fill SA.IconAccent no stroke
