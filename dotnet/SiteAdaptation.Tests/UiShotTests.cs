@@ -184,15 +184,15 @@ namespace SiteAdaptation.Tests
                     Color shown = ((SolidColorBrush)link.Foreground).Color;
                     looks.Add((open ? "document" : "no document") + ": enabled " + link.IsEnabled + ", " + shown + ", underline " + (link.TextDecorations != null && link.TextDecorations.Count > 0));
 
-                    Assert.Same(page.FindResource("SA.Pane.Link"), link.Style);
                     Assert.Equal(open, model.ImportCommand.CanExecute(null));
                     Assert.Equal(open, link.IsEnabled);
-                    Assert.Equal(open ? accent : wait, shown);
-                    Assert.Equal(open, link.TextDecorations != null && link.TextDecorations.Count > 0);
                     if (!open)
                     {
                         Assert.NotEqual(accent, shown);
                     }
+                    Assert.Equal(open ? accent : wait, shown);
+                    Assert.Equal(open, link.TextDecorations != null && link.TextDecorations.Count > 0);
+                    Assert.Same(page.FindResource("SA.Pane.Link"), link.Style);
                 }
             });
             looks.ForEach(output.WriteLine);

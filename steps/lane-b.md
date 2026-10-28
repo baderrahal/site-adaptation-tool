@@ -20,7 +20,7 @@ A laptop session starts from Bader's Lane B prompt, never from steps/START.md. S
 Bader asked for a stop to restart the laptop. Nothing ran in Revit at the stop and no window lock was held (RAN).
 
 - Merged in 5a: PR 84 records, PR 86 add-in project, theme and ribbon, PR 87 the four UI controls, PR 89 one transaction per button and the install, PR 90 the pane, the label list and the draft PNGs.
-- Open: PR 92, Bader's design changes and the 9 steps, in its review pass 1 fixes. The records fixes are on its branch. The code fixes (the label list renamed to 14-ui-labels.md, its 5b and 5c entries, the look of the Import pre-setting link, README and latent lines) are half done on branch wip/lane-b-5a-pr8-review1, commit 4ea6901, not tested. Finish them there, take them into feat/lane-b-5a-workflow, gate, review pass 2, merge.
+- Open: PR 92, Bader's design changes and the 9 steps, in its review pass 1 fixes. The records fixes are on its branch. The code fixes (the label list renamed to 14-ui-labels.md, its 5b and 5c entries, the look of the Import pre-setting link, README and latent lines), started in commit 4ea6901 of branch wip/lane-b-5a-pr8-review1, are finished and tested on feat/lane-b-5a-workflow, with main merged in. Next: review pass 2, merge.
 - Waiting: branch feat/lane-b-5a-revit-run, the test host side of the Revit run, not yet a PR. Revit run 1 (RAN, 2.98 min) held 12 checks, failed at OpenAndActivateDocument in Idling, and its ribbon and pane pictures were wrong. Its fixes are on the branch at 87ab4d2. After PR 92 merges: merge main into it, build, install, run 2 by the runner under the lock, the Revit ribbon and pane PNGs into steps/ui-shots/, review, merge. A third failed run goes back to measuring and becomes a question.
 - Written on the laptop outside the repo: machine.json in %APPDATA%\SiteAdaptation with workRoot C:\Users\p003653k\Documents\SiteAdaptation, the add-in and the test host installed in %APPDATA%\Autodesk\Revit\Addins\2024 from the run 1 build, lock_settings.json and addin_run_spec.json in C:\Users\p003653k\Documents\SiteAdaptation.
 - Then the end records of 5a: the phase marked done here, the usage row, the open questions, the UI approval form.
@@ -68,7 +68,7 @@ Added by Bader's Lane B prompt of 28 Oct 2026, the second of that day, for the f
 
 From docs/design/13-workflow-changes.md, part Where each lands. 5a builds the order, the ribbon and the pane in Lane B PR 8.
 
-- W1, 5b. Set up site: the pass limit read from config by the answer of QL17, the Floor types row, the Ramp slope row and its dropdown, the Shared parameters row from the parameter sheet, the parameters and GUIDs only from that sheet, the new labels of 7.3 in the label list, its PNG. The default 0.5% and the choices of Ramp slope are project values, so they go into config next to rampSlope and majority.slopeBands, with how they relate to those, by Lane A or at the fold in (CLAUDE.md, no project value in code).
+- W1, 5b. Set up site: the pass limit read from config by the answer of QL17, the Floor types row, the Ramp slope row and its dropdown, the Shared parameters row from the parameter sheet, the parameters and GUIDs only from that sheet, its PNG. The new labels of 7.3 are in the label list since review 1 of PR 92, the pass line as "Pass limit <n> mm" until QL17 is answered. The default 0.5% and the choices of Ramp slope are project values, so they go into config next to rampSlope and majority.slopeBands, with how they relate to those, by Lane A or at the fold in (CLAUDE.md, no project value in code).
 - W2, 5c. The pass limit of 0.1 mm in config by the answer of QL17. addin.position.checkPointLimitMm is there already at 1.0 (R211, R353, Q086), and config is Lane A's file.
 - W3, 5c. The rules profile gains the block manualRules, M01 to M15 as drafted on the canvas, with id, text, group, manual section and the steps that check it. Code reads the page numbers from the manual PDF. The texts of M01 to M15 are on the canvas, not in the repo, so 5c asks Bader for them if no file holds them.
 - W4, 5c. The pre-setting: Import from past job and Export with R367, never a drawing path or a coordinate.
@@ -78,7 +78,7 @@ From docs/design/13-workflow-changes.md, part Where each lands. 5a builds the or
 - W8, 5f. Update from report, the whole window and its run, its labels and PNG.
 - W9, 5c. R366, the step state of 4h, takes the 9 steps and their needs of docs/design/13-workflow-changes.md when the pane joins it. 4h builds from 03a, which keeps the eight buttons until the fold in.
 - W10, 5c. The settings key parameterSheet of the Shared parameters row, named by Code in 5a PR 8, goes into docs/design/06-settings.md and R367 of 4h at the join.
-- W11, 5c. The label list takes the title of the Check table under its new number, 4 Check, with the Check table window.
+- W11, 5c. The Check table window under its new number. Its title "4 Check, NBH <n>, <n> plots" is in the label list since review 1 of PR 92.
 
 ## Join items for 5c
 
