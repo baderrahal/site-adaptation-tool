@@ -48,8 +48,29 @@ namespace SiteAdaptation.Common
         // The decimals of addin.parity a field of the step overrides is written at, by its key
         public Dictionary<string, int> Decimals { get; } = new Dictionary<string, int>(StringComparer.Ordinal);
 
-        public ValueStatusTable(JObject map, JObject block, string profileFile, string levelProfile, IDictionary<string, int> decimals = null)
+        // value_status.decided_by, review 1 of PR 78: majority.decidedByQuestion by plot and field, each to the (question, key) pairs that list it
+        private readonly Dictionary<Tuple<string, string>, List<Tuple<string, string>>> decided = new Dictionary<Tuple<string, string>, List<Tuple<string, string>>>();
+
+        public ValueStatusTable(JObject map, JObject block, string profileFile, string levelProfile, IDictionary<string, int> decimals = null, JObject decided = null)
         {
+            foreach (JProperty question in (decided ?? new JObject()).Properties().Where(item => item.Value is JObject))
+            {
+                foreach (JProperty key in ((question.Value["plots"] as JObject) ?? new JObject()).Properties())
+                {
+                    foreach (JToken plot in (key.Value as JArray) ?? new JArray())
+                    {
+                        foreach (JToken field in (question.Value["fields"] as JArray) ?? new JArray())
+                        {
+                            var at = Tuple.Create((string)plot, (string)field);
+                            if (!this.decided.TryGetValue(at, out List<Tuple<string, string>> pairs))
+                            {
+                                this.decided[at] = pairs = new List<Tuple<string, string>>();
+                            }
+                            pairs.Add(Tuple.Create(question.Name, key.Name));
+                        }
+                    }
+                }
+            }
             foreach (KeyValuePair<string, int> item in decimals ?? new Dictionary<string, int>())
             {
                 Decimals[item.Key] = item.Value;
@@ -140,8 +161,10 @@ namespace SiteAdaptation.Common
 
         // applied in the order the build applied them, so the last whose set holds the field names the override that moved the value, with the
         // entries the code still reads for it by overrideReads, and unmoved, the value equal to the one with no override, leaves the value its own
-        // list (Q107)
-        public Tuple<string, JObject, string> Of(string field, string source, string hand = null, IEnumerable<string> applied = null, bool unmoved = false)
+        // list (Q107). unit is the unit code of the plot, which an entry names as {unit}, the keo_file of its typology for prototypeFile (Q110). A field
+        // an open question of majority.decidedByQuestion decides on the plot adds the block entry of that question and key (review 1 of PR 78)
+        public Tuple<string, JObject, string> Of(string field, string source, string hand = null, IEnumerable<string> applied = null, bool unmoved = false, string unit = null,
+            string plot = null)
         {
             string moved = source == Override || unmoved ? null : (applied ?? Enumerable.Empty<string>()).LastOrDefault(name => sets.TryGetValue(name, out List<string> moves) && moves.Contains(field));
             if (moved != null)
@@ -158,6 +181,16 @@ namespace SiteAdaptation.Common
             {
                 key += " hand " + (hand ?? "None");
             }
+            // Q110. The detail of an entry named by the unit differs per unit, so the key names it
+            if ((refs ?? new List<JObject>()).Any(reference => new[] { "profile", "config" }.Any(kind => reference[kind]?.Type == JTokenType.String && ((string)reference[kind]).Contains("{unit}"))))
+            {
+                key += " unit " + (unit ?? "None");
+            }
+            List<Tuple<string, string>> pairs = plot != null && decided.TryGetValue(Tuple.Create(plot, field), out List<Tuple<string, string>> found) ? found : new List<Tuple<string, string>>();
+            if (pairs.Count > 0)
+            {
+                key += " question " + string.Join(" ", pairs.Select(pair => pair.Item1 + " " + pair.Item2));
+            }
             if (moved != null)
             {
                 key += " by " + moved;
@@ -169,7 +202,8 @@ namespace SiteAdaptation.Common
             }
             List<JObject> entries = refs == null
                 ? new List<JObject> { new JObject { ["status"] = "UNKNOWN", ["why"] = "valueStatus holds no status for " + field + " from " + source + " (R401)" } }
-                : refs.Select(reference => Resolve(field, source, reference, hand)).ToList();
+                : refs.Select(reference => Resolve(field, source, reference, hand, unit)).ToList();
+            entries.AddRange(pairs.Select(pair => Resolve(field, source, new JObject { ["config"] = "majority.decidedByQuestion." + pair.Item1 + ".plots." + pair.Item2 }, hand, unit)));
             // Q107. The worst status of the list by worstFirst, else the first entry
             JObject chosen = entries.Where(entry => order.Contains(EntryLabel(entry))).OrderBy(entry => order.IndexOf(EntryLabel(entry))).FirstOrDefault() ?? entries[0];
             var detail = new JObject { ["entries"] = new JArray(entries) };
@@ -186,7 +220,7 @@ namespace SiteAdaptation.Common
             return Tuple.Create((string)chosen["status"], detail, key);
         }
 
-        private JObject Resolve(string field, string source, JObject reference, string hand)
+        private JObject Resolve(string field, string source, JObject reference, string hand, string unit)
         {
             if (reference.Property("status") != null)
             {
@@ -201,6 +235,7 @@ namespace SiteAdaptation.Common
             var names = new Dictionary<string, string>
             {
                 ["levelProfile"] = levelProfile, ["parameter"] = field.StartsWith(Parameters, StringComparison.Ordinal) ? field.Substring(Parameters.Length) : null, ["hand"] = hand,
+                ["unit"] = unit,
             };
             string lacking = Placeholder.Matches(template).Cast<Match>().Select(match => match.Groups[1].Value)
                 .FirstOrDefault(word => !names.TryGetValue(word, out string value) || value == null);
@@ -250,7 +285,7 @@ namespace SiteAdaptation.Common
                 }
             }
             return new ValueStatusTable(config["valueStatus"] as JObject, rules["status"] as JObject, config["profile"]?.Type == JTokenType.String ? (string)config["profile"] : null,
-                levelProfile, decimals);
+                levelProfile, decimals, config["majority"]?["decidedByQuestion"] as JObject);
         }
 
         // value_status.label: the status a count names, MEASURED with its strength
@@ -318,7 +353,7 @@ namespace SiteAdaptation.Common
                     {
                         // R3 of the review of PR 75: a field left at its value with no override was moved by none
                         bool unmoved = applied.Count > 0 && rule != null && Unmoved(table.MovedBy(item.Item1), plan, rule, table.Decimals);
-                        Tuple<string, JObject, string> status = table.Of(item.Item1, item.Item2, handTable as string, applied, unmoved);
+                        Tuple<string, JObject, string> status = table.Of(item.Item1, item.Item2, handTable as string, applied, unmoved, plan.Overrides["unit"] as string, number);
                         // Q107. The key of the detail, the detail once in the table statusFrom of the step file (Tables)
                         fields[item.Item1] = new JObject { ["source"] = item.Item2, ["status"] = status.Item1, ["statusFrom"] = status.Item3 };
                     }

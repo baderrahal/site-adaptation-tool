@@ -60,6 +60,13 @@ namespace SiteAdaptation.Tests
 
         private const string Key = "levelProfiles.parsons2024Rev6.keyRules.";
 
+        // test_value_status.KEO, Q110: the keo_file of the DP2 typology, so the DP2 plots of the made row take a status for prototypeFile and the
+        // VD2 plot, whose keo_file the made block lacks, is UNKNOWN
+        private static JObject Keo()
+        {
+            return new JObject { ["status"] = "DOCUMENT", ["document"] = "a made up document", ["pageOrSheet"] = "UNKNOWN", ["source"] = "source" };
+        }
+
         // test_value_status.MADE_BLOCK and MADE_CONFIG_BLOCK, the block of the made row in place of the real one
         private static JObject MadeBlock(string profileFile)
         {
@@ -71,7 +78,7 @@ namespace SiteAdaptation.Tests
                 [Key + "hand cluster.rule"] = strong.DeepClone(), [Key + "hand alone.rule"] = strong.DeepClone(), [Key + "linkOrigin.rule"] = strong.DeepClone(),
                 [Key + "linkRotation.rule"] = strong.DeepClone(), [Key + "parameter CASE.rule"] = weak.DeepClone(),
                 [Key + "parameter RRE_ZZ_SP_RVT-Name.rule"] = new JObject { ["status"] = "CHOSEN by Bader", ["question"] = "Q902", ["where"] = "made up" },
-                [Key + "rampSlope.rule"] = new JObject { ["status"] = "CHOSEN by Code", ["where"] = "a made up note" },
+                [Key + "rampSlope.rule"] = new JObject { ["status"] = "CHOSEN by Code", ["where"] = "a made up note" }, ["typologies.DP2.keo_file"] = Keo(),
             };
             var config = new JObject { ["floors.types.generic"] = new JObject { ["status"] = "UNKNOWN", ["why"] = "made up", ["nearestSource"] = "floors.note" } };
             return new JObject { ["note"] = "a made up block", [profileFile] = profile, ["config/project.json"] = config };
@@ -95,7 +102,7 @@ namespace SiteAdaptation.Tests
             + "parameters.RRE_ZZ_SP_Prototype:UNKNOWN=6 parameters.RRE_ZZ_SP_Prototype-FFL:RECOMMENDED=1 "
             + "parameters.RRE_ZZ_SP_Prototype-FFL:UNKNOWN=5 parameters.RRE_ZZ_SP_Prototype-Foundation-Type:UNKNOWN=6 "
             + "parameters.RRE_ZZ_SP_Prototype-HVAC-Schedule-Type:UNKNOWN=6 parameters.RRE_ZZ_SP_RVT-Name:RECOMMENDED=2 "
-            + "parameters.RRE_ZZ_SP_RVT-Name:UNKNOWN=4 prototypeFile:UNKNOWN=6 rotationDeg:MEASURED strong=3 rotationDeg:RECOMMENDED=3 "
+            + "parameters.RRE_ZZ_SP_RVT-Name:UNKNOWN=4 prototypeFile:DOCUMENT=5 prototypeFile:UNKNOWN=1 rotationDeg:MEASURED strong=3 rotationDeg:RECOMMENDED=3 "
             + "unit:DOCUMENT=6";
 
         private static ValueStatusTable Table(string levelProfile = "p1")
@@ -512,10 +519,122 @@ namespace SiteAdaptation.Tests
                 // The worker counts the plots by field and status as the summary of step 15 of Python does
                 WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(request.OutputFolder, "p1"));
                 Assert.Equal(6, answer.Counts["status unit DOCUMENT"]);
+                // Q110: and prototypeFile by the keo_file of the typology of each plot in the real block
+                Assert.Equal(6, answer.Counts["status prototypeFile DOCUMENT"]);
             }
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
             Assert.Equal("unit:noGeometry written:noGeometry fields:noGeometry", string.Join(" ", config.StepFields(ValueStatus.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
             Assert.Equal("status", BuildSteps.Names.Last());
+        }
+
+        // test_value_status.Q110_DETAIL, Q110 (Bader, 2026-10-28): the entries valueStatus of config/project.json lists for prototypeFile, the unit of
+        // the location plan, the file of the prototype folder named with it and the keo_file of its typology, which Hands.PrototypeFiles reads for
+        // every typology
+        private const string Q110Detail = "{\"entries\":[{\"status\":\"DOCUMENT\",\"document\":\"the location plan, labels.csv of the data book\"},{\"status\":\"DOCUMENT\",\"document\":"
+            + "\"the prototype folder of the build, pastJob.upgradedPrototypeFolder, the file named with the unit code, else with the keo_file code of its typology (R128)\"},{\"entry\":\"{0} "
+            + "typologies.VD1.keo_file\",\"status\":\"DOCUMENT\",\"document\":\"a made up document\",\"pageOrSheet\":\"UNKNOWN\",\"source\":\"source\"}]}";
+
+        [Fact]
+        public void R401_Q110_prototype_file_takes_the_worst_of_its_unit_its_prototype_folder_and_the_keo_file_of_its_typology()
+        {
+            string profileFile = (string)JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()))["profile"];
+            ValueStatusTable table = RealTable(new JObject { ["typologies.VD1.keo_file"] = Keo() });
+            Assert.Equal("DOCUMENT " + Q110Detail.Replace("{0}", profileFile) + " | prototypeFile from computed unit VD1", Text(table.Of("prototypeFile", "computed", unit: "VD1")));
+            // A unit whose typology the block holds no keo_file of, and a plot with no unit, are UNKNOWN with why, never a guess
+            Assert.Equal("{\"entry\":\"" + profileFile + " typologies.XX.keo_file\",\"status\":\"UNKNOWN\",\"why\":\"the block status holds no entry (R401)\"}",
+                table.Of("prototypeFile", "computed", unit: "XX").Item2["entries"].Last.ToString(Formatting.None));
+            Tuple<string, JObject, string> none = table.Of("prototypeFile", "computed");
+            Assert.Equal("UNKNOWN prototypeFile from computed unit None", none.Item1 + " " + none.Item3);
+            // The key names the unit, so each unit keeps its own detail in the table statusFrom
+            Assert.Equal("prototypeFile from computed unit None|prototypeFile from computed unit VD1|prototypeFile from computed unit XX",
+                string.Join("|", table.Used.Keys.OrderBy(key => key, StringComparer.Ordinal)));
+        }
+
+        [Fact]
+        public void R401_Q110_each_written_plot_holds_a_status_for_prototype_file_with_its_unit()
+        {
+            Dictionary<string, Dictionary<string, object>> step = MadeStep(OverrideParameterStepTests.Made(), out _, out ValueStatusTable table);
+            Assert.Equal("{\"source\":\"computed\",\"status\":\"UNKNOWN\",\"statusFrom\":\"prototypeFile from computed unit VD2\"}", Field(step, "1", "prototypeFile").ToString(Formatting.None));
+            Assert.Equal("{\"source\":\"computed\",\"status\":\"DOCUMENT\",\"statusFrom\":\"prototypeFile from computed unit DP2\"}", Field(step, "5", "prototypeFile").ToString(Formatting.None));
+            Assert.Equal("DOCUMENT DOCUMENT DOCUMENT", string.Join(" ", table.Used["prototypeFile from computed unit DP2"]["entries"].Select(entry => (string)entry["status"])));
+        }
+
+        [Fact]
+        public void R401_Q110_the_counts_of_step_15_name_prototype_file_by_field_and_status()
+        {
+            Dictionary<string, Dictionary<string, object>> step = MadeStep(OverrideParameterStepTests.Made(), out _, out ValueStatusTable table);
+            Assert.Equal("prototypeFile:DOCUMENT=5 prototypeFile:UNKNOWN=1", string.Join(" ", ValueStatus.Counts(step, table).Where(item => item.Key.Item1 == "prototypeFile")
+                .Select(item => item.Key.Item1 + ":" + item.Key.Item2 + "=" + item.Value)));
+            // With the real block every plot of the made row takes the keo_file of its typology
+            OverrideParameterStepTests.Built real = OverrideParameterStepTests.Build(OverrideParameterStepTests.Made());
+            ValueStatusTable realTable = ValueStatus.Table(real.Config, real.Rules, "parsons2024Rev6");
+            Dictionary<string, Dictionary<string, object>> realStep = ValueStatus.Step(real.Plans.Keys.ToList(), real.Plans, real.Hands, realTable);
+            Assert.Equal("prototypeFile:DOCUMENT=6", string.Join(" ", ValueStatus.Counts(realStep, realTable).Where(item => item.Key.Item1 == "prototypeFile")
+                .Select(item => item.Key.Item1 + ":" + item.Key.Item2 + "=" + item.Value)));
+        }
+
+        // test_value_status.DECIDED, review 1 of PR 78: a made up majority.decidedByQuestion, the open Q900 decides the hand and the file of plot 5,
+        // listed under the key k1
+        private static readonly JObject Decided = JObject.Parse("{\"note\": \"a made up note\", \"Q900\": {\"fields\": [\"mirrored\", \"prototypeFile\"], \"plots\": {\"k1\": [\"5\"]}, \"why\": \"made up\"}}");
+        private const string DecidedEntry = "{\"status\":\"RECOMMENDED\",\"question\":\"Q900\",\"where\":\"the Q ID in the path\"}";
+
+        private static JObject DecidedBlock()
+        {
+            var block = (JObject)Block.DeepClone();
+            block["config/project.json"]["majority.decidedByQuestion.Q900.plots.k1"] = JObject.Parse(DecidedEntry);
+            return block;
+        }
+
+        [Fact]
+        public void R401_review1_PR78_a_field_an_open_question_decides_on_a_plot_takes_the_worst_of_its_entries_and_that_question()
+        {
+            var table = new ValueStatusTable(Map(), DecidedBlock(), ProfileFile, "p1", decided: Decided);
+            Assert.Equal("RECOMMENDED {\"entries\":[" + HandText + ",{\"entry\":\"config/project.json majority.decidedByQuestion.Q900.plots.k1\",\"status\":\"RECOMMENDED\",\"question\":\"Q900\","
+                + "\"where\":\"the Q ID in the path\"}]} | mirrored from computed hand alone question Q900 k1", Text(table.Of("mirrored", "computed", "alone", plot: "5")));
+            // Another plot, or a field the question does not name, keeps its own list
+            Tuple<string, JObject, string> other = table.Of("mirrored", "computed", "alone", plot: "6");
+            Assert.Equal("MEASURED mirrored from computed hand alone", other.Item1 + " " + other.Item3);
+            Tuple<string, JObject, string> entry = table.Of("levels.entry", "estimate", plot: "5");
+            Assert.Equal("MEASURED levels.entry from estimate", entry.Item1 + " " + entry.Item3);
+            // A decided plot whose entry the block lacks is UNKNOWN, never a guess
+            Tuple<string, JObject, string> lacking = new ValueStatusTable(Map(), Block, ProfileFile, "p1", decided: Decided).Of("mirrored", "computed", "alone", plot: "5");
+            Assert.Equal("UNKNOWN {\"entry\":\"config/project.json majority.decidedByQuestion.Q900.plots.k1\",\"status\":\"UNKNOWN\",\"why\":\"the block status holds no entry (R401)\"}",
+                lacking.Item1 + " " + lacking.Item2["entries"].Last.ToString(Formatting.None));
+        }
+
+        [Fact]
+        public void R401_review1_PR78_the_plots_q017_decides_read_recommended_for_prototype_file_and_mirrored()
+        {
+            string configPath = WorkerRunTests.RepoConfig();
+            JObject config = JObject.Parse(File.ReadAllText(configPath));
+            JObject rules = JObject.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(configPath)), (string)config["profile"])));
+            ValueStatusTable table = ValueStatus.Table(config, rules, "parsons2024Rev6");
+            Tuple<string, JObject, string> file = table.Of("prototypeFile", "computed", unit: "VD4", plot: "2301");
+            JToken last = file.Item2["entries"].Last;
+            Assert.Equal("RECOMMENDED prototypeFile from computed unit VD4 question Q017 imc config/project.json majority.decidedByQuestion.Q017.plots.imc RECOMMENDED Q017",
+                file.Item1 + " " + file.Item3 + " " + (string)last["entry"] + " " + (string)last["status"] + " " + (string)last["question"]);
+            Tuple<string, JObject, string> hand = table.Of("mirrored", "computed", "villa", plot: "544");
+            Assert.Equal("RECOMMENDED mirrored from computed hand villa question Q017 img", hand.Item1 + " " + hand.Item3);
+            Tuple<string, JObject, string> free = table.Of("prototypeFile", "computed", unit: "VD4", plot: "2303");
+            Assert.Equal("DOCUMENT prototypeFile from computed unit VD4", free.Item1 + " " + free.Item3);
+        }
+
+        // test_value_status.test_r401_review1_pr78_the_build_marks_the_plot_an_open_question_decides, review 2 of PR 78: Step passes the plot number,
+        // so the decided plot of the made row reads RECOMMENDED by its question and the others keep their status
+        [Fact]
+        public void R401_review1_PR78_the_build_marks_the_plot_an_open_question_decides()
+        {
+            Dictionary<string, Dictionary<string, object>> plain = MadeStep(OverrideParameterStepTests.Made(), out OverrideParameterStepTests.Built built, out _);
+            var config = (JObject)built.Config.DeepClone();
+            config["majority"]["decidedByQuestion"] = Decided.DeepClone();
+            var rules = (JObject)built.Rules.DeepClone();
+            rules["status"]["config/project.json"]["majority.decidedByQuestion.Q900.plots.k1"] = JObject.Parse(DecidedEntry);
+            ValueStatusTable table = ValueStatus.Table(config, rules, "parsons2024Rev6");
+            Dictionary<string, Dictionary<string, object>> step = ValueStatus.Step(built.Plans.Keys.ToList(), built.Plans, built.Hands, table);
+            Assert.Equal("RECOMMENDED " + (string)Field(plain, "5", "mirrored")["statusFrom"] + " question Q900 k1",
+                (string)Field(step, "5", "mirrored")["status"] + " " + (string)Field(step, "5", "mirrored")["statusFrom"]);
+            Assert.Equal((string)Field(plain, "4", "mirrored")["status"] + " " + (string)Field(plain, "4", "mirrored")["statusFrom"],
+                (string)Field(step, "4", "mirrored")["status"] + " " + (string)Field(step, "4", "mirrored")["statusFrom"]);
         }
     }
 }
