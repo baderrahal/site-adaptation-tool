@@ -37,6 +37,8 @@ namespace SiteAdaptation.Common
             [LinkParameters.StepName] = BuildSteps.OverrideRoles,
             // R401. The status of each sourced value of a build, on the inputs of the overrides
             [ValueStatus.StepName] = BuildSteps.OverrideRoles,
+            // R362. The boundary walls of a build, on the inputs of the overrides, as they stand on the FFL after them
+            [Walls.StepName] = BuildSteps.OverrideRoles,
             [ReadSteps.Labels] = new[] { "baseplan" },
             [ReadSteps.Blocks] = new[] { "villaBlocks" },
             [ReadSteps.Setbacks] = new[] { "villaBlocks" },

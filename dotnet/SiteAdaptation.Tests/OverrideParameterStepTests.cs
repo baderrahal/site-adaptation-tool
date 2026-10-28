@@ -57,6 +57,8 @@ namespace SiteAdaptation.Tests
             public LevelBuild Build;
             public JObject Config;
             public JObject Rules;
+            public Dictionary<string, BuildFace> Faces;
+            public Dictionary<string, FrontItem> Fronts;
         }
 
         // test_level_floor_steps.made_build and test_override_param_steps.row_build: the row of six 12 m faces, the plots of faceless DP2 units with no
@@ -94,7 +96,7 @@ namespace SiteAdaptation.Tests
             return new Built
             {
                 Plans = PlanOverrides.Of(scope, rows, build, fronts, context, hands, key, profile, rules, config, files, list, "parsons2024Rev6", 0.5), Hands = hands,
-                Links = LinkFrames.Step(scope, rows, fronts, context.Roles, hands, key, files, rules), Build = build, Config = config, Rules = rules,
+                Links = LinkFrames.Step(scope, rows, fronts, context.Roles, hands, key, files, rules), Build = build, Config = config, Rules = rules, Faces = faces, Fronts = fronts,
             };
         }
 
@@ -399,7 +401,7 @@ namespace SiteAdaptation.Tests
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
             Assert.Equal("unit:noGeometry written:noGeometry parameters:noGeometry sources:noGeometry lacks:noGeometry linkName:noGeometry",
                 string.Join(" ", config.StepFields(LinkParameters.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
-            Assert.Equal("clusters fronts hands linkFrame levels floors overrides parameters status", string.Join(" ", BuildSteps.Names));
+            Assert.Equal("clusters fronts hands linkFrame levels floors walls overrides parameters status", string.Join(" ", BuildSteps.Names));
         }
     }
 }

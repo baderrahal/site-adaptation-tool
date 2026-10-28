@@ -84,7 +84,7 @@
 - Inputs: `plan_<NBH>.json`, the faces, keyRules wallBase, wallLine and frontOpen.
 - Outputs: the boundary walls of type BW along the plot edges by the rules the keys follow: the base at the yard level of the higher plot (0.983), the centre on the edge (0.921), no wall along the front, which is the gate (0.988), one wall per edge shared by two plots (READ, keyRules of the profile). The top at the FFL of the higher plot plus 1.7 m of Rev 6 is coded but weak (0.346), every wall top is an issue until Q071. Garden walls have no measured rule, the 28 garden walls of the IMC key are counted only (READ, key_reads.json), so button 7 places none and the report says so.
 - Checks: each wall read back within 1 mm on its line, base and top, and the walls held against the key walls by the route of R335 in Phase 6.
-- Rules: R335 now, R362 and R380 planned.
+- Rules: R335, R362 the walls of the plan (4g2 PR 4), R380 planned.
 - Empty project, existing site file, dry run, second run: as button 5, the wall key being plot pair and edge.
 - Stop: step 6 not done, the wall type BW missing (button 1 makes it).
 
