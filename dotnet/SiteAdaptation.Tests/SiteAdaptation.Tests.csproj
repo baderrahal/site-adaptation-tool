@@ -12,12 +12,18 @@
     <ProjectReference Include="..\SiteAdaptation.Common\SiteAdaptation.Common.csproj" />
     <ProjectReference Include="..\CadReader\CadReader.csproj" />
   </ItemGroup>
-  <!-- The probe is a net48 library of Civil 3D, its tests run on net48 only -->
+  <!-- The probe is a net48 library of Civil 3D and the add-in a net48 WPF library of Revit, their tests run on net48 only -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <ProjectReference Include="..\SiteAdaptation.C3DProbe\SiteAdaptation.C3DProbe.csproj" />
+    <ProjectReference Include="..\SiteAdaptation.AddIn\SiteAdaptation.AddIn.csproj" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="System.Xaml" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' != 'net48'">
     <Compile Remove="C3DProbeTests.cs" />
     <Compile Remove="DataBookTests.cs" />
+    <Compile Remove="AddInTests.cs" />
   </ItemGroup>
 </Project>
