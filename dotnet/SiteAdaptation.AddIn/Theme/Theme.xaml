@@ -120,6 +120,228 @@
   <CornerRadius x:Key="SA.Radius.Control">3</CornerRadius>
   <CornerRadius x:Key="SA.Radius.Chip">12</CornerRadius>
 
+  <!-- R372, the pane of 7.2. Its gaps are the spacing of the spec, a line is 1, the outline of a step mark 2, the label column
+       and the mark column are Code's choice, listed in steps/ui-shots/README.md. -->
+  <Thickness x:Key="SA.Pad.Box">16,12,16,12</Thickness>
+  <Thickness x:Key="SA.Pad.Section">16,16,16,0</Thickness>
+  <Thickness x:Key="SA.Gap.Bottom16">0,0,0,16</Thickness>
+  <Thickness x:Key="SA.Pad.Panel">12,8,12,8</Thickness>
+  <Thickness x:Key="SA.Pad.Chip">8,4,8,4</Thickness>
+  <Thickness x:Key="SA.Pad.Button">12,0,12,0</Thickness>
+  <Thickness x:Key="SA.Gap.Top4">0,4,0,0</Thickness>
+  <Thickness x:Key="SA.Gap.Top8">0,8,0,0</Thickness>
+  <Thickness x:Key="SA.Gap.Top12">0,12,0,0</Thickness>
+  <Thickness x:Key="SA.Gap.Row">0,4,0,4</Thickness>
+  <Thickness x:Key="SA.Pad.Input">8,0,8,0</Thickness>
+  <Thickness x:Key="SA.Gap.Right8">0,0,8,0</Thickness>
+  <Thickness x:Key="SA.Gap.Left8">8,0,0,0</Thickness>
+  <Thickness x:Key="SA.Gap.Left24">24,0,0,0</Thickness>
+  <Thickness x:Key="SA.Line.Under">0,0,0,1</Thickness>
+  <Thickness x:Key="SA.Line.All">1</Thickness>
+  <sys:Double x:Key="SA.Size.RowMark">16</sys:Double>
+  <sys:Double x:Key="SA.Size.MarkStroke">2</sys:Double>
+  <sys:Double x:Key="SA.Size.Line">1</sys:Double>
+  <sys:Double x:Key="SA.Size.RadioDot">8</sys:Double>
+  <Geometry x:Key="SA.Mark.Down">M0 0l4 4l4-4</Geometry>
+  <GridLength x:Key="SA.Grid.Mark">24</GridLength>
+  <GridLength x:Key="SA.Grid.Label">104</GridLength>
+  <GridLength x:Key="SA.Grid.StepMark">38</GridLength>
+  <Geometry x:Key="SA.Mark.Found">M3 8.5l3.5 3.5l6.5-8</Geometry>
+  <Geometry x:Key="SA.Mark.Missing">M2 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0z</Geometry>
+  <Geometry x:Key="SA.Mark.MissingSign">M8 4.5v4.5M8 11.5v0.1</Geometry>
+
+  <Style x:Key="SA.Pane.Section" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Section}">
+    <Setter Property="Foreground" Value="{StaticResource SA.Heading}" />
+  </Style>
+  <Style x:Key="SA.Pane.Help" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Body}">
+    <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Margin" Value="{StaticResource SA.Gap.Top4}" />
+  </Style>
+  <Style x:Key="SA.Pane.Detail" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Small}">
+    <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    <Style.Triggers>
+      <Trigger Property="Text" Value="">
+        <Setter Property="Visibility" Value="Collapsed" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <Style x:Key="SA.Button.Base" TargetType="Button">
+    <Setter Property="FontFamily" Value="{StaticResource SA.Font}" />
+    <Setter Property="FontSize" Value="{StaticResource SA.Type.Body.Size}" />
+    <Setter Property="FontWeight" Value="{StaticResource SA.Type.Body.Weight}" />
+    <Setter Property="Foreground" Value="{StaticResource SA.Text}" />
+    <Setter Property="Background" Value="{StaticResource SA.Surface}" />
+    <Setter Property="BorderBrush" Value="{StaticResource SA.BorderStrong}" />
+    <Setter Property="BorderThickness" Value="{StaticResource SA.Line.All}" />
+    <Setter Property="Padding" Value="{StaticResource SA.Pad.Button}" />
+    <Setter Property="Height" Value="{StaticResource SA.Size.ButtonMin}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Box" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource SA.Radius.Control}"
+                  Padding="{TemplateBinding Padding}">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Box" Property="Background" Value="{StaticResource SA.WaitGround}" />
+              <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource SA.Border}" />
+              <Setter Property="Foreground" Value="{StaticResource SA.Wait}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="SA.Button.Primary" TargetType="Button" BasedOn="{StaticResource SA.Button.Base}">
+    <Setter Property="Foreground" Value="{StaticResource SA.Surface}" />
+    <Setter Property="Background" Value="{StaticResource SA.Accent}" />
+    <Setter Property="BorderBrush" Value="{StaticResource SA.Accent}" />
+    <Setter Property="FontWeight" Value="{StaticResource SA.Type.Label.Weight}" />
+    <Setter Property="Height" Value="{StaticResource SA.Size.MainButton}" />
+  </Style>
+  <Style x:Key="SA.Pane.Choice" TargetType="ToggleButton">
+    <Setter Property="FontFamily" Value="{StaticResource SA.Font}" />
+    <Setter Property="FontSize" Value="{StaticResource SA.Type.Body.Size}" />
+    <Setter Property="Foreground" Value="{StaticResource SA.Text}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="MinHeight" Value="{StaticResource SA.Size.Row}" />
+  </Style>
+  <!-- The check box and the radio buttons drawn from the theme, radius 3 on the box, the ring and the box in SA.BorderStrong
+       as the grey outline of QL7, a choice made in SA.Accent -->
+  <Style x:Key="SA.Pane.Check" TargetType="CheckBox" BasedOn="{StaticResource SA.Pane.Choice}">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="CheckBox">
+          <StackPanel Orientation="Horizontal" Background="Transparent">
+            <Grid Width="{StaticResource SA.Size.RowMark}" Height="{StaticResource SA.Size.RowMark}" VerticalAlignment="Center">
+              <Border x:Name="Box" Background="{StaticResource SA.Surface}" BorderBrush="{StaticResource SA.BorderStrong}"
+                      BorderThickness="{StaticResource SA.Line.All}" CornerRadius="{StaticResource SA.Radius.Control}" />
+              <Path x:Name="Tick" Data="{StaticResource SA.Mark.Found}" Stroke="{StaticResource SA.Surface}" StrokeThickness="{StaticResource SA.Size.MarkStroke}"
+                    StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed" />
+            </Grid>
+            <ContentPresenter Margin="{StaticResource SA.Gap.Left8}" VerticalAlignment="Center" />
+          </StackPanel>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Box" Property="Background" Value="{StaticResource SA.Accent}" />
+              <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource SA.Accent}" />
+              <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Box" Property="Background" Value="{StaticResource SA.WaitGround}" />
+              <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource SA.Border}" />
+              <Setter Property="Foreground" Value="{StaticResource SA.Wait}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="SA.Pane.Radio" TargetType="RadioButton" BasedOn="{StaticResource SA.Pane.Choice}">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RadioButton">
+          <StackPanel Orientation="Horizontal" Background="Transparent">
+            <Grid Width="{StaticResource SA.Size.RowMark}" Height="{StaticResource SA.Size.RowMark}" VerticalAlignment="Center">
+              <Ellipse x:Name="Ring" Fill="{StaticResource SA.Surface}" Stroke="{StaticResource SA.BorderStrong}" StrokeThickness="{StaticResource SA.Size.Line}" />
+              <Ellipse x:Name="Dot" Width="{StaticResource SA.Size.RadioDot}" Height="{StaticResource SA.Size.RadioDot}" Fill="{StaticResource SA.Accent}" Visibility="Collapsed" />
+            </Grid>
+            <ContentPresenter Margin="{StaticResource SA.Gap.Left8}" VerticalAlignment="Center" />
+          </StackPanel>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource SA.Accent}" />
+              <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Ring" Property="Fill" Value="{StaticResource SA.WaitGround}" />
+              <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource SA.Border}" />
+              <Setter TargetName="Dot" Property="Fill" Value="{StaticResource SA.Wait}" />
+              <Setter Property="Foreground" Value="{StaticResource SA.Wait}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- The inputs, 30 high, radius 3, border SA.Border -->
+  <ControlTemplate x:Key="SA.Pane.ComboToggle" TargetType="ToggleButton">
+    <Border x:Name="Box" Background="{StaticResource SA.Surface}" BorderBrush="{StaticResource SA.Border}"
+            BorderThickness="{StaticResource SA.Line.All}" CornerRadius="{StaticResource SA.Radius.Control}">
+      <Path HorizontalAlignment="Right" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}" Data="{StaticResource SA.Mark.Down}"
+            Stroke="{StaticResource SA.TextMuted}" StrokeThickness="{StaticResource SA.Size.Line}" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+    </Border>
+    <ControlTemplate.Triggers>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter TargetName="Box" Property="Background" Value="{StaticResource SA.WaitGround}" />
+      </Trigger>
+    </ControlTemplate.Triggers>
+  </ControlTemplate>
+  <Style x:Key="SA.Pane.Combo" TargetType="ComboBox">
+    <Setter Property="FontFamily" Value="{StaticResource SA.Font}" />
+    <Setter Property="FontSize" Value="{StaticResource SA.Type.Body.Size}" />
+    <Setter Property="Foreground" Value="{StaticResource SA.Text}" />
+    <Setter Property="Height" Value="{StaticResource SA.Size.Input}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBox">
+          <Grid>
+            <ToggleButton Template="{StaticResource SA.Pane.ComboToggle}" Focusable="False" ClickMode="Press"
+                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
+            <ContentPresenter IsHitTestVisible="False" Margin="{StaticResource SA.Pad.Input}" HorizontalAlignment="Left" VerticalAlignment="Center"
+                              Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" />
+            <Popup x:Name="PART_Popup" Placement="Bottom" Focusable="False" AllowsTransparency="True" IsOpen="{TemplateBinding IsDropDownOpen}">
+              <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                      Background="{StaticResource SA.Surface}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.All}"
+                      CornerRadius="{StaticResource SA.Radius.Control}">
+                <ScrollViewer>
+                  <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                </ScrollViewer>
+              </Border>
+            </Popup>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Foreground" Value="{StaticResource SA.Wait}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="SA.Pane.Entry" TargetType="TextBox">
+    <Setter Property="FontFamily" Value="{StaticResource SA.Font}" />
+    <Setter Property="FontSize" Value="{StaticResource SA.Type.Body.Size}" />
+    <Setter Property="Foreground" Value="{StaticResource SA.Text}" />
+    <Setter Property="Height" Value="{StaticResource SA.Size.Input}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TextBox">
+          <Border x:Name="Box" Background="{StaticResource SA.Surface}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.All}"
+                  CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Input}">
+            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource SA.Accent}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Box" Property="Background" Value="{StaticResource SA.WaitGround}" />
+              <Setter Property="Foreground" Value="{StaticResource SA.Wait}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- Icons on the 32 unit grid. Stroke SA.Heading, round caps and joins, fill none unless named. The 16 px set has stroke 2.4
        and drops the parts the spec marks 32 only. White is SA.Surface (QL7). -->
   <sys:Double x:Key="SA.Icon.Stroke.32">2</sys:Double>

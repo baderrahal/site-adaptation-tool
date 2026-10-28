@@ -14,12 +14,19 @@ namespace SiteAdaptation.AddIn
         {
             OwnFolderResolver.Register(Path.GetDirectoryName(typeof(App).Assembly.Location));
             BuildRibbon(application);
+            RegisterPane(application);
             return Result.Succeeded;
         }
 
         public Result OnShutdown(UIControlledApplication application)
         {
             return Result.Succeeded;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void RegisterPane(UIControlledApplication application)
+        {
+            PaneHost.Register(application);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

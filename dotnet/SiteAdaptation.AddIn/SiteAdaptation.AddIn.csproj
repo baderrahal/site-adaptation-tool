@@ -11,6 +11,8 @@
     <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="2024.3.60" ExcludeAssets="runtime" PrivateAssets="all" />
     <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="2024.3.60" ExcludeAssets="runtime" PrivateAssets="all" />
     <ProjectReference Include="..\SiteAdaptation.Common\SiteAdaptation.Common.csproj" />
+    <!-- net48 WPF has no folder dialog, the folder Browse of Road surface and Prototypes takes the one of Windows Forms -->
+    <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <!-- Libre Franklin under the SIL Open Font License, docs/licences.md. The font is a resource of the DLL, its licence ships beside it -->
   <ItemGroup>

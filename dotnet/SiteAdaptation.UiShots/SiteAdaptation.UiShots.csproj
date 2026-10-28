@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- R372, control 3 of docs/design/12-ui-spec.md. Renders each window of the add-in offscreen with sample data, no Revit, to the
+       PNG files of steps/ui-shots. The picture test calls the same entry -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>SiteAdaptation.UiShots</AssemblyName>
+    <RootNamespace>SiteAdaptation.UiShots</RootNamespace>
+    <UseWPF>true</UseWPF>
+    <!-- The restore of the Linux leg walks the net48 references of the tests too, as for the add-in -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SiteAdaptation.AddIn\SiteAdaptation.AddIn.csproj" />
+  </ItemGroup>
+</Project>
