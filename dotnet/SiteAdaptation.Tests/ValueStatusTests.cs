@@ -34,6 +34,7 @@ namespace SiteAdaptation.Tests
                          ""floors.generic.type"": {""computed"": {""config"": ""floors.types.generic""}},
                          ""floors.generic.level"": {""computed"": {""profile"": ""levelProfiles.{levelProfile}.keyRules.notInTheBlock""}}},
             ""overrideSets"": " + (sets ?? @"{""entryM"": [""levels.entry"", ""levels.height""], ""heightM"": [""levels.ffl"", ""insert""]}") + @",
+            ""overrideReads"": {""entryM"": {""levels.height"": [{""profile"": ""levelProfiles.{levelProfile}.keyRules.ffl.rule""}]}}, ""movedBy"": {},
             ""assumed"": [""RECOMMENDED"", ""CHOSEN by Code"", ""UNKNOWN"", ""MEASURED weak""], ""worstFirst"": [""UNKNOWN"", ""CHOSEN by Code"", ""RECOMMENDED"", ""MEASURED weak""]}");
         }
 
@@ -76,24 +77,26 @@ namespace SiteAdaptation.Tests
             return new JObject { ["note"] = "a made up block", [profileFile] = profile, ["config/project.json"] = config };
         }
 
-        // test_value_status.MADE_COUNTS, since Q107 the steps and the fields of the steps read steps.riser_added, which the made block lacks
-        private const string MadeCounts = "floors.generic.heightOffset:RECOMMENDED=1 floors.generic.heightOffset:UNKNOWN=5 floors.generic.level:UNKNOWN=6 "
-            + "floors.generic.levelElevation:UNKNOWN=6 floors.generic.outline:UNKNOWN=6 floors.generic.plotValue:DOCUMENT=6 floors.generic.type:UNKNOWN=6 "
-            + "floors.generic.z:RECOMMENDED=1 floors.generic.z:UNKNOWN=5 floors.ramp.corners:RECOMMENDED=2 floors.ramp.corners:UNKNOWN=4 "
-            + "floors.ramp.heightOffset:RECOMMENDED=2 floors.ramp.heightOffset:UNKNOWN=4 floors.ramp.level:UNKNOWN=6 floors.ramp.levelElevation:UNKNOWN=6 "
-            + "floors.ramp.outline:UNKNOWN=6 floors.ramp.plotValue:DOCUMENT=6 floors.ramp.slopePercent:CHOSEN by Code=6 floors.ramp.type:CHOSEN by Code=5 "
-            + "floors.ramp.type:RECOMMENDED=1 floors.yard.heightOffset:UNKNOWN=3 floors.yard.level:UNKNOWN=3 "
-            + "floors.yard.levelElevation:UNKNOWN=3 floors.yard.outline:RECOMMENDED=3 floors.yard.plotValue:DOCUMENT=3 floors.yard.type:UNKNOWN=3 "
-            + "floors.yard.z:UNKNOWN=3 insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 "
-            + "levels.entry:RECOMMENDED=1 levels.ffl:RECOMMENDED=1 levels.ffl:UNKNOWN=5 levels.height:MEASURED weak=4 levels.height:RECOMMENDED=2 "
-            + "levels.ssl:RECOMMENDED=1 levels.ssl:UNKNOWN=5 levels.steps:RECOMMENDED=3 levels.steps:UNKNOWN=3 "
-            + "linkName:RECOMMENDED=4 linkName:UNKNOWN=2 mirrored:MEASURED strong=5 mirrored:RECOMMENDED=1 parameters.CASE:MEASURED weak=4 parameters.CASE:RECOMMENDED=2 "
+        // test_value_status.MADE_COUNTS, since Q107 the steps fields read steps.riser_added and each heightOffset the elevation of its level, and a
+        // field an override left at its value by the rule names no override
+        private const string MadeCounts = "floors.generic.heightOffset:UNKNOWN=6 floors.generic.level:UNKNOWN=6 floors.generic.levelElevation:UNKNOWN=6 "
+            + "floors.generic.outline:UNKNOWN=6 floors.generic.plotValue:DOCUMENT=6 floors.generic.type:UNKNOWN=6 "
+            + "floors.generic.z:UNKNOWN=6 floors.ramp.corners:UNKNOWN=6 floors.ramp.heightOffset:UNKNOWN=6 floors.ramp.level:UNKNOWN=6 "
+            + "floors.ramp.levelElevation:UNKNOWN=6 floors.ramp.outline:UNKNOWN=6 floors.ramp.plotValue:DOCUMENT=6 "
+            + "floors.ramp.slopePercent:CHOSEN by Code=6 floors.ramp.type:CHOSEN by Code=5 floors.ramp.type:RECOMMENDED=1 "
+            + "floors.yard.heightOffset:UNKNOWN=3 floors.yard.level:UNKNOWN=3 floors.yard.levelElevation:UNKNOWN=3 "
+            + "floors.yard.outline:UNKNOWN=3 floors.yard.plotValue:DOCUMENT=3 floors.yard.type:UNKNOWN=3 floors.yard.z:UNKNOWN=3 "
+            + "insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 levels.entry:RECOMMENDED=1 "
+            + "levels.ffl:RECOMMENDED=1 levels.ffl:UNKNOWN=5 levels.height:MEASURED weak=4 levels.height:RECOMMENDED=2 "
+            + "levels.ssl:UNKNOWN=6 levels.steps:RECOMMENDED=1 levels.steps:UNKNOWN=5 linkName:RECOMMENDED=2 linkName:UNKNOWN=4 "
+            + "mirrored:MEASURED strong=5 mirrored:RECOMMENDED=1 parameters.CASE:MEASURED weak=4 parameters.CASE:RECOMMENDED=2 "
             + "parameters.RRE_ZZ_SP_Façade-Color:UNKNOWN=6 parameters.RRE_ZZ_SP_Façade-Design-Option:UNKNOWN=6 "
-            + "parameters.RRE_ZZ_SP_Number-of-Steps:RECOMMENDED=2 parameters.RRE_ZZ_SP_Number-of-Steps:UNKNOWN=3 parameters.RRE_ZZ_SP_Plot-Number:UNKNOWN=6 "
-            + "parameters.RRE_ZZ_SP_Prototype:UNKNOWN=6 parameters.RRE_ZZ_SP_Prototype-FFL:RECOMMENDED=1 parameters.RRE_ZZ_SP_Prototype-FFL:UNKNOWN=5 "
-            + "parameters.RRE_ZZ_SP_Prototype-Foundation-Type:RECOMMENDED=1 parameters.RRE_ZZ_SP_Prototype-Foundation-Type:UNKNOWN=5 "
-            + "parameters.RRE_ZZ_SP_Prototype-HVAC-Schedule-Type:UNKNOWN=6 "
-            + "parameters.RRE_ZZ_SP_RVT-Name:RECOMMENDED=4 parameters.RRE_ZZ_SP_RVT-Name:UNKNOWN=2 prototypeFile:UNKNOWN=6 rotationDeg:MEASURED strong=3 rotationDeg:RECOMMENDED=3 unit:DOCUMENT=6";
+            + "parameters.RRE_ZZ_SP_Number-of-Steps:UNKNOWN=5 parameters.RRE_ZZ_SP_Plot-Number:UNKNOWN=6 "
+            + "parameters.RRE_ZZ_SP_Prototype:UNKNOWN=6 parameters.RRE_ZZ_SP_Prototype-FFL:RECOMMENDED=1 "
+            + "parameters.RRE_ZZ_SP_Prototype-FFL:UNKNOWN=5 parameters.RRE_ZZ_SP_Prototype-Foundation-Type:UNKNOWN=6 "
+            + "parameters.RRE_ZZ_SP_Prototype-HVAC-Schedule-Type:UNKNOWN=6 parameters.RRE_ZZ_SP_RVT-Name:RECOMMENDED=2 "
+            + "parameters.RRE_ZZ_SP_RVT-Name:UNKNOWN=4 prototypeFile:UNKNOWN=6 rotationDeg:MEASURED strong=3 rotationDeg:RECOMMENDED=3 "
+            + "unit:DOCUMENT=6";
 
         private static ValueStatusTable Table(string levelProfile = "p1")
         {
@@ -188,13 +191,134 @@ namespace SiteAdaptation.Tests
             return MadeStep(list, out built, out _);
         }
 
+        // The step status of the made row with the overrides of list, the plans of the made row with no override its values by the rule (R3 of the
+        // review of PR 75)
         private static Dictionary<string, Dictionary<string, object>> MadeStep(OverrideList list, out OverrideParameterStepTests.Built built, out ValueStatusTable table)
         {
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
             string profileFile = (string)config["profile"];
             built = OverrideParameterStepTests.Build(list, changeRules: rules => rules["status"] = MadeBlock(profileFile));
+            OverrideParameterStepTests.Built plain = OverrideParameterStepTests.Build(new OverrideList(new Dictionary<string, JObject>()), changeRules: rules => rules["status"] = MadeBlock(profileFile));
             table = ValueStatus.Table(built.Config, built.Rules, "parsons2024Rev6");
-            return ValueStatus.Step(built.Plans.Keys.ToList(), built.Plans, built.Hands, table);
+            return ValueStatus.Step(built.Plans.Keys.ToList(), built.Plans, built.Hands, table, plain.Plans);
+        }
+
+        // The map of config/project.json on a made block of the rules profile
+        private static ValueStatusTable RealTable(JObject block)
+        {
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            return new ValueStatusTable((JObject)config["valueStatus"], new JObject { [(string)config["profile"]] = block }, (string)config["profile"], "parsons2024Rev6");
+        }
+
+        // test_r401_q107_review1_a_height_offset_takes_the_unknown_elevation_of_its_level_in_the_new_site_file: floors.levels names the level,
+        // not its elevation in the new site file, which no block entry maps, so a heightOffset of entries MEASURED weak beside it is UNKNOWN
+        [Fact]
+        public void R401_Q107_review1_a_height_offset_takes_the_unknown_elevation_of_its_level_in_the_new_site_file()
+        {
+            var block = new JObject();
+            foreach (string name in new[] { "generic.rule", "yard.rule", "ffl.rule", "rampFront.rule", "entry.rule" })
+            {
+                block[Key + name] = new JObject { ["status"] = "MEASURED", ["share"] = 0.5, ["strength"] = "weak" };
+            }
+            ValueStatusTable table = RealTable(block);
+            foreach (string kind in new[] { "generic", "yard", "ramp" })
+            {
+                Tuple<string, JObject, string> found = table.Of("floors." + kind + ".heightOffset", "estimate");
+                Assert.Equal("UNKNOWN MEASURED,MEASURED,UNKNOWN", found.Item1 + " " + string.Join(",", found.Item2["entries"].Select(entry => (string)entry["status"])));
+                Assert.DoesNotContain(found.Item2["entries"], entry => ((string)entry["entry"] ?? "").Contains("floors.levels"));
+                Assert.Contains("elevation", (string)found.Item2["entries"][2]["why"]);
+                Assert.Equal("UNKNOWN", table.Of("floors." + kind + ".levelElevation", "computed").Item1);
+            }
+        }
+
+        // test_r401_q107_review1_a_field_an_override_moved_but_the_code_still_computes_takes_the_worst_of_the_override_and_what_it_reads
+        [Fact]
+        public void R401_Q107_review1_a_field_an_override_moved_but_the_code_still_computes_takes_the_worst_of_the_override_and_what_it_reads()
+        {
+            var block = new JObject();
+            foreach (string name in new[] { "steps.rule", "entry.rule", "ffl.rule" })
+            {
+                block[Key + name] = new JObject { ["status"] = "MEASURED", ["share"] = 0.97, ["strength"] = "strong" };
+            }
+            Tuple<string, JObject, string> found = RealTable(block).Of("levels.steps", "estimate", null, new[] { "heightM" });
+            Assert.Equal("UNKNOWN levels.steps from override by heightM heightM RECOMMENDED,MEASURED,UNKNOWN,MEASURED", found.Item1 + " " + found.Item3 + " " + (string)found.Item2["override"] + " "
+                + string.Join(",", found.Item2["entries"].Select(entry => (string)entry["status"])));
+            var riser = (JObject)block.DeepClone();
+            riser["steps.riser_added"] = new JObject { ["status"] = "MEASURED", ["share"] = 0.97, ["strength"] = "strong" };
+            Assert.Equal("RECOMMENDED", RealTable(riser).Of("levels.steps", "estimate", null, new[] { "heightM" }).Item1);
+            found = RealTable(block).Of("levels.ffl", "estimate", null, new[] { "heightM" });
+            Assert.Equal("RECOMMENDED 1", found.Item1 + " " + found.Item2["entries"].Count());
+            Assert.Equal("RECOMMENDED {\"entries\":[" + Override + "," + FflText + "],\"override\":\"entryM\"} | levels.height from override by entryM",
+                Text(Table().Of("levels.height", "estimate", null, new[] { "entryM" })));
+        }
+
+        // test_r401_q107_review1_an_override_reads_list_of_another_shape_or_of_a_field_its_set_does_not_hold_is_refused_with_one_line
+        [Fact]
+        public void R401_Q107_review1_an_override_reads_list_of_another_shape_or_of_a_field_its_set_does_not_hold_is_refused_with_one_line()
+        {
+            const string line = "valueStatus.overrideReads maps an override of overrideSets to the fields of its set the code still computes from other entries, each to "
+                + "the list of them, the settings hold {0} (R401)";
+            foreach (Tuple<string, string> shape in new[]
+            {
+                Tuple.Create("{\"entryM\": {\"levels.ffl\": [{\"profile\": \"a\"}]}}", "entryM: {\"levels.ffl\": [{\"profile\": \"a\"}]}"), Tuple.Create("null", "none"),
+                Tuple.Create("{\"entryM\": {\"levels.height\": {\"profile\": \"a\"}}}", "entryM: {\"levels.height\": {\"profile\": \"a\"}}"), Tuple.Create("{\"other\": {}}", "other: {}"),
+            })
+            {
+                JObject map = Map();
+                map["overrideReads"] = JToken.Parse(shape.Item1);
+                Assert.Equal(string.Format(line, shape.Item2), Assert.Throws<InvalidDataException>(() => new ValueStatusTable(map, Block, ProfileFile, "p1")).Message);
+            }
+            JObject moved = Map();
+            moved["movedBy"] = JObject.Parse("{\"levels.height\": 3}");
+            Assert.Equal("valueStatus.movedBy maps a field to the field whose value tells whether an override moved it, the settings hold {\"levels.height\": 3} (R401)",
+                Assert.Throws<InvalidDataException>(() => new ValueStatusTable(moved, Block, ProfileFile, "p1")).Message);
+        }
+
+        // test_r401_q107_review1_an_override_that_leaves_a_field_at_its_value_by_the_rule_did_not_move_it
+        [Fact]
+        public void R401_Q107_review1_an_override_that_leaves_a_field_at_its_value_by_the_rule_did_not_move_it()
+        {
+            Assert.Equal(Text(Table().Of("levels.height", "estimate")), Text(Table().Of("levels.height", "estimate", null, new[] { "entryM" }, true)));
+        }
+
+        // test_r401_q107_review1_the_build_names_no_override_for_a_value_it_left_at_the_rule: a heightM gap of 0 leaves the FFL of 2 at the rule
+        [Fact]
+        public void R401_Q107_review1_the_build_names_no_override_for_a_value_it_left_at_the_rule()
+        {
+            var list = new OverrideList(new Dictionary<string, JObject>
+            {
+                ["2"] = JObject.Parse("{\"heightM\": {\"gapToRuleM\": 0.0}}"), ["3"] = JObject.Parse("{\"heightM\": {\"gapToRuleM\": 0.1}}"),
+            });
+            Dictionary<string, Dictionary<string, object>> step = MadeStep(list, out OverrideParameterStepTests.Built built);
+            Assert.Equal("heightM", string.Join(" ", (List<string>)built.Plans["2"].Overrides["applied"]));
+            Assert.Equal("levels.ffl from estimate | levels.steps from estimate | levels.ffl from override by heightM", (string)Field(step, "2", "levels.ffl")["statusFrom"] + " | "
+                + (string)Field(step, "2", "levels.steps")["statusFrom"] + " | " + (string)Field(step, "3", "levels.ffl")["statusFrom"]);
+        }
+
+        // test_r401_q107_review1_a_ramp_height_offset_is_held_by_its_lowest_corner_which_an_entry_gap_may_leave_as_it_was: the heightOffset of a
+        // ramp is its lowest corner less the elevation of its level, so an entryM gap that moves the back corners above the front leaves it
+        [Fact]
+        public void R401_Q107_review1_a_ramp_height_offset_is_held_by_its_lowest_corner_which_an_entry_gap_may_leave_as_it_was()
+        {
+            Assert.Equal("floors.ramp.corners lowest", RealTable(new JObject()).MovedBy("floors.ramp.heightOffset"));
+            Func<double[], PlotPlan> plan = corners => new PlotPlan { Overrides = new Dictionary<string, object> { ["rampZ"] = corners }, Parameters = new Dictionary<string, object>() };
+            var decimals = new Dictionary<string, int> { ["rampZ"] = 3 };
+            PlotPlan moved = plan(new[] { 10.0, 10.1, 10.4, 10.3 }), rule = plan(new[] { 10.0, 10.1, 10.35, 10.25 }), lower = plan(new[] { 9.95, 10.1, 10.4, 10.3 });
+            Assert.True(ValueStatus.Unmoved("floors.ramp.corners lowest", moved, rule, decimals));
+            Assert.False(ValueStatus.Unmoved("floors.ramp.corners", moved, rule, decimals));
+            Assert.False(ValueStatus.Unmoved("floors.ramp.corners lowest", lower, rule, decimals));
+        }
+
+        // test_r401_q107_review1_the_yard_outline_names_the_insert_override_applied_after_the_mirror_flag: the build applies the mirror flag before
+        // the insert, where the sorted list puts insert first, so the yard outline both move names insert, the last applied
+        [Fact]
+        public void R401_Q107_review1_the_yard_outline_names_the_insert_override_applied_after_the_mirror_flag()
+        {
+            var list = new OverrideList(new Dictionary<string, JObject> { ["4"] = JObject.Parse("{\"mirrored\": false, \"insert\": {\"gapToRuleM\": [0.3, -0.2]}}") });
+            Dictionary<string, Dictionary<string, object>> step = MadeStep(list, out OverrideParameterStepTests.Built built);
+            Assert.Equal("insert mirrored | mirrored insert", string.Join(" ", (List<string>)built.Plans["4"].Overrides["applied"]) + " | " + string.Join(" ", built.Plans["4"].AppliedOrder));
+            Assert.EndsWith(" by insert", (string)Field(step, "4", "floors.yard.outline")["statusFrom"]);
+            Assert.Equal("insert from override", (string)Field(step, "4", "insert")["statusFrom"]);
         }
 
         private static JToken Field(Dictionary<string, Dictionary<string, object>> step, string number, string field)
@@ -264,7 +388,9 @@ namespace SiteAdaptation.Tests
             Dictionary<string, Dictionary<string, object>> step = MadeStep(list, out OverrideParameterStepTests.Built built);
             Assert.Equal("entryM heightM | entryM heightM", string.Join(" ", (List<string>)built.Plans["2"].Overrides["applied"]) + " | " + string.Join(" ", built.Plans["2"].AppliedOrder));
             Func<string, string, string> by = (number, field) => ((string)Field(step, number, field)["statusFrom"]).Split(new[] { " by " }, StringSplitOptions.None).Last();
-            Assert.Equal("entryM heightM heightM heightM", by("2", "levels.entry") + " " + by("2", "levels.height") + " " + by("2", "levels.steps") + " " + by("2", "linkName"));
+            Assert.Equal("entryM heightM heightM", by("2", "levels.entry") + " " + by("2", "levels.height") + " " + by("2", "levels.ffl"));
+            // The step count of 2 stays that of the rule under both, so neither moved it (R3 of the review of PR 75)
+            Assert.Equal("levels.steps from estimate | linkName from keyRules", (string)Field(step, "2", "levels.steps")["statusFrom"] + " | " + (string)Field(step, "2", "linkName")["statusFrom"]);
             Assert.Equal("steps steps entryM", by("5", "levels.steps") + " " + by("5", "parameters.RRE_ZZ_SP_RVT-Name") + " " + by("5", "levels.height"));
             Assert.Equal("rampFrontM rampFrontM entryM", by("6", "floors.ramp.heightOffset") + " " + by("6", "floors.ramp.corners") + " " + by("6", "levels.entry"));
         }

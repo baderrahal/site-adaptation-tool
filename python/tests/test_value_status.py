@@ -26,6 +26,7 @@ MAP = {"sources": {"override": OVERRIDE, "locationPlan": {"status": "DOCUMENT", 
                   "floors.generic.type": {"computed": {"config": "floors.types.generic"}},
                   "floors.generic.level": {"computed": {"profile": "levelProfiles.{levelProfile}.keyRules.notInTheBlock"}}},
        "overrideSets": {"entryM": ["levels.entry", "levels.height"], "heightM": ["levels.ffl", "insert"]},
+       "overrideReads": {"entryM": {"levels.height": [{"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}]}}, "movedBy": {},
        "assumed": ["RECOMMENDED", "CHOSEN by Code", "UNKNOWN", "MEASURED weak"], "worstFirst": ["UNKNOWN", "CHOSEN by Code", "RECOMMENDED", "MEASURED weak"]}
 ENTRY = {"entry": PROFILE_FILE + " levelProfiles.p1.keyRules.entry.rule", "status": "MEASURED", "share": 0.5, "strength": "weak", "measuredBy": "levelProfiles.p1.keyRules.entry"}
 FFL = {"entry": PROFILE_FILE + " levelProfiles.p1.keyRules.ffl.rule", "status": "MEASURED", "share": 0.95, "strength": "strong", "measuredBy": "levelProfiles.p1.keyRules.ffl"}
@@ -58,7 +59,7 @@ def test_r401_a_value_takes_the_status_of_the_block_entry_its_field_and_source_n
     assert table.of("floors.generic.type", "computed")[0] == "UNKNOWN"
 
 
-def test_r401_a_field_of_several_block_entries_takes_the_first_assumed_one_else_the_first_and_lists_each():
+def test_r401_a_field_of_several_block_entries_takes_the_worst_of_them_and_lists_each():
     table = made_table()
     # ffl strong, then El @ Entry weak: the weak one is the first assumed
     assert table.of("levels.height", "estimate") == ("MEASURED", {"entries": [FFL, ENTRY], "strength": "weak"}, "levels.height from estimate")
@@ -192,24 +193,26 @@ MADE_BLOCK = {KEY + "entry.rule": WEAK, KEY + "ffl.rule": STRONG, KEY + "steps.r
               KEY + "rampSlope.rule": {"status": "CHOSEN by Code", "where": "a made up note"}}
 MADE_CONFIG_BLOCK = {"floors.types.generic": {"status": "UNKNOWN", "why": "made up", "nearestSource": "floors.note"}}
 # The plots of the made row by field and status with MADE, the made block and the map of config/project.json, which ValueStatusTests.cs holds the same.
-# Since Q107 the steps and the fields of the steps read steps.riser_added, which the made block lacks, so they are UNKNOWN as the worst
-MADE_COUNTS = ("floors.generic.heightOffset:RECOMMENDED=1 floors.generic.heightOffset:UNKNOWN=5 floors.generic.level:UNKNOWN=6 "
-               "floors.generic.levelElevation:UNKNOWN=6 floors.generic.outline:UNKNOWN=6 floors.generic.plotValue:DOCUMENT=6 floors.generic.type:UNKNOWN=6 "
-               "floors.generic.z:RECOMMENDED=1 floors.generic.z:UNKNOWN=5 floors.ramp.corners:RECOMMENDED=2 floors.ramp.corners:UNKNOWN=4 "
-               "floors.ramp.heightOffset:RECOMMENDED=2 floors.ramp.heightOffset:UNKNOWN=4 floors.ramp.level:UNKNOWN=6 floors.ramp.levelElevation:UNKNOWN=6 "
-               "floors.ramp.outline:UNKNOWN=6 floors.ramp.plotValue:DOCUMENT=6 floors.ramp.slopePercent:CHOSEN by Code=6 floors.ramp.type:CHOSEN by Code=5 "
-               "floors.ramp.type:RECOMMENDED=1 floors.yard.heightOffset:UNKNOWN=3 floors.yard.level:UNKNOWN=3 "
-               "floors.yard.levelElevation:UNKNOWN=3 floors.yard.outline:RECOMMENDED=3 floors.yard.plotValue:DOCUMENT=3 floors.yard.type:UNKNOWN=3 "
-               "floors.yard.z:UNKNOWN=3 insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 "
-               "levels.entry:RECOMMENDED=1 levels.ffl:RECOMMENDED=1 levels.ffl:UNKNOWN=5 levels.height:MEASURED weak=4 levels.height:RECOMMENDED=2 "
-               "levels.ssl:RECOMMENDED=1 levels.ssl:UNKNOWN=5 levels.steps:RECOMMENDED=3 levels.steps:UNKNOWN=3 "
-               "linkName:RECOMMENDED=4 linkName:UNKNOWN=2 mirrored:MEASURED strong=5 mirrored:RECOMMENDED=1 parameters.CASE:MEASURED weak=4 parameters.CASE:RECOMMENDED=2 "
+# Since Q107 the steps and the fields of the steps read steps.riser_added and each heightOffset the elevation of its level, which the made
+# block lacks or no entry maps, so they are UNKNOWN as the worst, and a field an override left at its value by the rule names no override
+MADE_COUNTS = ("floors.generic.heightOffset:UNKNOWN=6 floors.generic.level:UNKNOWN=6 floors.generic.levelElevation:UNKNOWN=6 "
+               "floors.generic.outline:UNKNOWN=6 floors.generic.plotValue:DOCUMENT=6 floors.generic.type:UNKNOWN=6 "
+               "floors.generic.z:UNKNOWN=6 floors.ramp.corners:UNKNOWN=6 floors.ramp.heightOffset:UNKNOWN=6 floors.ramp.level:UNKNOWN=6 "
+               "floors.ramp.levelElevation:UNKNOWN=6 floors.ramp.outline:UNKNOWN=6 floors.ramp.plotValue:DOCUMENT=6 "
+               "floors.ramp.slopePercent:CHOSEN by Code=6 floors.ramp.type:CHOSEN by Code=5 floors.ramp.type:RECOMMENDED=1 "
+               "floors.yard.heightOffset:UNKNOWN=3 floors.yard.level:UNKNOWN=3 floors.yard.levelElevation:UNKNOWN=3 "
+               "floors.yard.outline:UNKNOWN=3 floors.yard.plotValue:DOCUMENT=3 floors.yard.type:UNKNOWN=3 floors.yard.z:UNKNOWN=3 "
+               "insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 levels.entry:RECOMMENDED=1 "
+               "levels.ffl:RECOMMENDED=1 levels.ffl:UNKNOWN=5 levels.height:MEASURED weak=4 levels.height:RECOMMENDED=2 "
+               "levels.ssl:UNKNOWN=6 levels.steps:RECOMMENDED=1 levels.steps:UNKNOWN=5 linkName:RECOMMENDED=2 linkName:UNKNOWN=4 "
+               "mirrored:MEASURED strong=5 mirrored:RECOMMENDED=1 parameters.CASE:MEASURED weak=4 parameters.CASE:RECOMMENDED=2 "
                "parameters.RRE_ZZ_SP_Façade-Color:UNKNOWN=6 parameters.RRE_ZZ_SP_Façade-Design-Option:UNKNOWN=6 "
-               "parameters.RRE_ZZ_SP_Number-of-Steps:RECOMMENDED=2 parameters.RRE_ZZ_SP_Number-of-Steps:UNKNOWN=3 parameters.RRE_ZZ_SP_Plot-Number:UNKNOWN=6 "
-               "parameters.RRE_ZZ_SP_Prototype:UNKNOWN=6 parameters.RRE_ZZ_SP_Prototype-FFL:RECOMMENDED=1 parameters.RRE_ZZ_SP_Prototype-FFL:UNKNOWN=5 "
-               "parameters.RRE_ZZ_SP_Prototype-Foundation-Type:RECOMMENDED=1 parameters.RRE_ZZ_SP_Prototype-Foundation-Type:UNKNOWN=5 "
-               "parameters.RRE_ZZ_SP_Prototype-HVAC-Schedule-Type:UNKNOWN=6 "
-               "parameters.RRE_ZZ_SP_RVT-Name:RECOMMENDED=4 parameters.RRE_ZZ_SP_RVT-Name:UNKNOWN=2 prototypeFile:UNKNOWN=6 rotationDeg:MEASURED strong=3 rotationDeg:RECOMMENDED=3 unit:DOCUMENT=6")
+               "parameters.RRE_ZZ_SP_Number-of-Steps:UNKNOWN=5 parameters.RRE_ZZ_SP_Plot-Number:UNKNOWN=6 "
+               "parameters.RRE_ZZ_SP_Prototype:UNKNOWN=6 parameters.RRE_ZZ_SP_Prototype-FFL:RECOMMENDED=1 "
+               "parameters.RRE_ZZ_SP_Prototype-FFL:UNKNOWN=5 parameters.RRE_ZZ_SP_Prototype-Foundation-Type:UNKNOWN=6 "
+               "parameters.RRE_ZZ_SP_Prototype-HVAC-Schedule-Type:UNKNOWN=6 parameters.RRE_ZZ_SP_RVT-Name:RECOMMENDED=2 "
+               "parameters.RRE_ZZ_SP_RVT-Name:UNKNOWN=4 prototypeFile:UNKNOWN=6 rotationDeg:MEASURED strong=3 rotationDeg:RECOMMENDED=3 "
+               "unit:DOCUMENT=6")
 
 
 def made_block_rules(monkeypatch):
@@ -259,6 +262,78 @@ def test_r401_each_sourced_value_of_a_written_plot_holds_its_status_by_its_sourc
     assert all(item["statusFrom"] in built["detail"] for entry in built["plots"] for item in value_status.fields_of(entry).values())
 
 
+def real_table(block):
+    """The map of config/project.json on a made block of the rules profile."""
+    settings = project_profile.load_settings()
+    return value_status.Table(settings.get("valueStatus"), {settings.get("profile"): block}, settings.get("profile"), "parsons2024Rev6")
+
+
+def test_r401_q107_review1_a_height_offset_takes_the_unknown_elevation_of_its_level_in_the_new_site_file():
+    """R1 of the review of PR 75: floors.levels names the level, CHOSEN by Bader by Q104, not its elevation in the new site file, which
+    heightOffset is computed from and no block entry maps, so each heightOffset list holds that elevation UNKNOWN as the field levelElevation
+    resolves to, and a heightOffset of entries MEASURED weak beside it is UNKNOWN."""
+    weak = {"status": "MEASURED", "share": 0.5, "strength": "weak"}
+    table = real_table({KEY + name: dict(weak) for name in ("generic.rule", "yard.rule", "ffl.rule", "rampFront.rule", "entry.rule")})
+    for kind in ("generic", "yard", "ramp"):
+        status, detail, _ = table.of("floors.%s.heightOffset" % kind, "estimate")
+        assert status == "UNKNOWN" and [entry["status"] for entry in detail["entries"]] == ["MEASURED", "MEASURED", "UNKNOWN"]
+        assert not any("floors.levels" in entry.get("entry", "") for entry in detail["entries"]) and "elevation" in detail["entries"][2]["why"]
+        assert table.of("floors.%s.levelElevation" % kind, "computed")[0] == "UNKNOWN"
+
+
+def test_r401_q107_review1_a_field_an_override_moved_but_the_code_still_computes_takes_the_worst_of_the_override_and_what_it_reads():
+    """R2 of the review of PR 75: the steps after heightM are still made by steps_by_rule with steps.riser_added, so they take the worst of
+    the override status and the entries overrideReads names, where the override status alone gave RECOMMENDED. A field the override sets
+    outright, the FFL by heightM, takes the override alone."""
+    strong = {"status": "MEASURED", "share": 0.97, "strength": "strong"}
+    block = {KEY + name: dict(strong) for name in ("steps.rule", "entry.rule", "ffl.rule")}
+    status, detail, key = real_table(block).of("levels.steps", "estimate", applied=["heightM"])
+    assert (status, key, detail["override"]) == ("UNKNOWN", "levels.steps from override by heightM", "heightM")
+    assert [entry["status"] for entry in detail["entries"]] == ["RECOMMENDED", "MEASURED", "UNKNOWN", "MEASURED"]
+    assert real_table(dict(block, **{"steps.riser_added": dict(strong)})).of("levels.steps", "estimate", applied=["heightM"])[0] == "RECOMMENDED"
+    status, detail, _ = real_table(block).of("levels.ffl", "estimate", applied=["heightM"])
+    assert status == "RECOMMENDED" and len(detail["entries"]) == 1
+    # The made map: entryM recomputes the height from the FFL
+    assert made_table().of("levels.height", "estimate", applied=["entryM"])[:2] == ("RECOMMENDED", {"entries": [OVERRIDE, FFL], "override": "entryM"})
+
+
+def test_r401_q107_review1_an_override_reads_list_of_another_shape_or_of_a_field_its_set_does_not_hold_is_refused_with_one_line():
+    line = ("valueStatus.overrideReads maps an override of overrideSets to the fields of its set the code still computes from other entries, each to "
+            "the list of them, the settings hold %s (R401)")
+    for reads, held in (({"entryM": {"levels.ffl": [{"profile": "a"}]}}, 'entryM: {"levels.ffl": [{"profile": "a"}]}'), (None, "none"),
+                        ({"entryM": {"levels.height": {"profile": "a"}}}, 'entryM: {"levels.height": {"profile": "a"}}'), ({"other": {}}, "other: {}")):
+        with pytest.raises(project_profile.ProfileError) as refused:
+            made_table(shape={"overrideReads": reads})
+        assert str(refused.value) == line % held
+    with pytest.raises(project_profile.ProfileError) as refused:
+        made_table(shape={"movedBy": {"levels.height": 3}})
+    assert str(refused.value) == "valueStatus.movedBy maps a field to the field whose value tells whether an override moved it, the settings hold {\"levels.height\": 3} (R401)"
+
+
+def test_r401_q107_review1_an_override_that_leaves_a_field_at_its_value_by_the_rule_did_not_move_it():
+    """R3 of the review of PR 75: a field an applied override holds in its set but leaves equal to the value the build gives with no override
+    keeps its own list and names no override."""
+    table = made_table()
+    assert table.of("levels.height", "estimate", applied=["entryM"], unmoved=True) == table.of("levels.height", "estimate")
+
+
+def test_r401_q107_review1_the_build_names_no_override_for_a_value_it_left_at_the_rule(monkeypatch):
+    """R3 of the review of PR 75 on the made row: a heightM gap of 0 leaves the FFL of 2 at the rule, a gap of 0.1 moves that of 3."""
+    plan = made_row(monkeypatch, {"2": {"heightM": {"gapToRuleM": 0.0}}, "3": {"heightM": {"gapToRuleM": 0.1}}})["plan"]
+    assert plan["2"]["overrides"]["applied"] == ["heightM"] and plan["2"]["levels"]["ffl"]["statusFrom"] == "levels.ffl from estimate"
+    assert plan["2"]["levels"]["steps"]["statusFrom"] == "levels.steps from estimate"
+    assert plan["3"]["levels"]["ffl"]["statusFrom"] == "levels.ffl from override by heightM"
+
+
+def test_r401_q107_review1_the_yard_outline_names_the_insert_override_applied_after_the_mirror_flag(monkeypatch):
+    """R4 of the review of PR 75: the build applies the mirror flag before the insert, where the sorted list puts insert first, so the yard
+    outline both move names insert, the last applied. The insert itself is of the source override."""
+    plan = made_row(monkeypatch, {"4": {"mirrored": False, "insert": {"gapToRuleM": [0.3, -0.2]}}})["plan"]
+    assert plan["4"]["overrides"]["applied"] == ["insert", "mirrored"]
+    assert plan["4"]["floors"]["yard"]["outline"]["statusFrom"].endswith(" by insert")
+    assert plan["4"]["insert"]["statusFrom"] == "insert from override"
+
+
 def test_r401_q107_the_build_names_the_override_that_moved_the_value_by_the_order_it_applied_them(monkeypatch):
     """Q107. entryM moves El @ Entry first, then heightM sets the FFL and the height with the steps, a steps override the steps, and rampFrontM
     the front corners of the ramp, so each value names the override applied last whose set holds its field, never the first of the sorted list."""
@@ -268,7 +343,9 @@ def test_r401_q107_the_build_names_the_override_that_moved_the_value_by_the_orde
     assert plan["2"]["overrides"]["applied"] == ["entryM", "heightM"] and plan["6"]["overrides"]["applied"] == ["entryM", "rampFrontM"]
     by = {(number, field): item["statusFrom"].rpartition(" by ")[2] for number in ("2", "5", "6") for field, item in value_status.fields_of(plan[number]).items()
           if " by " in item["statusFrom"]}
-    assert by[("2", "levels.entry")] == "entryM" and by[("2", "levels.height")] == by[("2", "levels.steps")] == by[("2", "linkName")] == "heightM"
+    assert by[("2", "levels.entry")] == "entryM" and by[("2", "levels.height")] == by[("2", "levels.ffl")] == "heightM"
+    # The step count of 2 stays that of the rule under both, so neither moved it (R3 of the review of PR 75)
+    assert ("2", "levels.steps") not in by and ("2", "linkName") not in by
     assert by[("5", "levels.steps")] == by[("5", "parameters.RRE_ZZ_SP_RVT-Name")] == "steps" and by[("5", "levels.height")] == "entryM"
     assert by[("6", "floors.ramp.heightOffset")] == by[("6", "floors.ramp.corners")] == "rampFrontM" and by[("6", "levels.entry")] == "entryM"
 
@@ -321,7 +398,7 @@ def strip(value):
 
 def test_r401_a_status_changes_no_value_of_the_plan(monkeypatch):
     marked = test_level_floor_steps.made_build(monkeypatch, copy.deepcopy(MADE))
-    monkeypatch.setattr(value_status, "mark", lambda entry, table, hand=None, applied=(): None)
+    monkeypatch.setattr(value_status, "mark", lambda entry, table, hand=None, applied=(), rule=None: None)
     monkeypatch.setattr(value_status, "summary", lambda plots, assumed, details: {})
     plain = test_level_floor_steps.made_build(monkeypatch, copy.deepcopy(MADE))
     assert strip(marked["plots"]) == plain["plots"] and strip(marked["summary"]) == strip(plain["summary"])
@@ -368,3 +445,16 @@ def test_r401_the_config_names_the_fields_of_the_step_status_and_the_step_takes_
     assert all(isinstance(fields, list) and fields for fields in block["overrideSets"].values())
     import rule_status
     assert {label.split(" ")[0] if label.startswith("MEASURED") else label for label in block["assumed"]} <= set(rule_status.ORDER)
+
+
+def test_r401_q107_review1_a_ramp_height_offset_is_held_by_its_lowest_corner_which_an_entry_gap_may_leave_as_it_was():
+    """R3 of the review of PR 75: the heightOffset of a ramp is its lowest corner less the elevation of its level, so an entryM gap that moves
+    the back corners above the front leaves it at its value by the rule, held by movedBy at the lowest Z of the corners."""
+    table = real_table({})
+    assert table.moved_by["floors.ramp.heightOffset"] == "floors.ramp.corners lowest"
+    front = [[0.0, 0.0, 10.0], [1.0, 0.0, 10.1]]
+    moved = {"floors.ramp.corners": {"value": front + [[1.0, 5.0, 10.4], [0.0, 5.0, 10.3]]}}
+    rule = {"floors.ramp.corners": {"value": front + [[1.0, 5.0, 10.35], [0.0, 5.0, 10.25]]}}
+    assert value_status.unmoved("floors.ramp.heightOffset", moved, rule, table) and not value_status.unmoved("floors.ramp.corners", moved, rule, table)
+    lower = {"floors.ramp.corners": {"value": [[0.0, 0.0, 9.95]] + moved["floors.ramp.corners"]["value"][1:]}}
+    assert not value_status.unmoved("floors.ramp.heightOffset", lower, rule, table)

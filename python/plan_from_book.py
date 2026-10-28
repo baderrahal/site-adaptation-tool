@@ -918,6 +918,13 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     not_measured, not_measured_plots, records, hand_rules = {}, Counter(), {}, Counter()
     # R401. The status of each sourced value from the block status of the rules profile, the map and the block read once per build
     statuses = value_status.table_of(settings, profile, None if rules is None else rules["name"])
+    by_rule = {}
+    if rules is not None and rules.get("overrides"):
+        # Q107, R3 of the review of PR 75. The plots as the build gives them with no override, so a field an override left at its value by
+        # the rule names no override
+        plain = build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales,
+                      numbered, dict(rules, overrides={}))
+        by_rule = {entry["plot"]: entry for entry in plain["plots"]}
     if trace is not None:
         trace["statusFrom"] = statuses.used
     if trace is not None:
@@ -1076,7 +1083,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         if complete:
             if records[number]:
                 builder.entry["overrides"] = records[number]
-            value_status.mark(builder.entry, statuses, table, outcomes.in_order(number, records[number]["applied"]) if records[number] else ())
+            value_status.mark(builder.entry, statuses, table, outcomes.in_order(number, records[number]["applied"]) if records[number] else (), by_rule.get(number))
             if rules is not None:
                 hand_rules[str(rule)] += 1
             plots.append(builder.entry)

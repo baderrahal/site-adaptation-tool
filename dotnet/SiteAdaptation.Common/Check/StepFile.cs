@@ -79,54 +79,27 @@ namespace SiteAdaptation.Common
         // tables, parity.step_file: per name a table of entries the plots point to by key, written once, such as statusFrom of the step status (R401)
         public static JObject Build(string step, string side, string scope, IDictionary<string, Dictionary<string, object>> plots, IReadOnlyList<ParityField> fields, JObject tables = null)
         {
-            var byName = fields.ToDictionary(field => field.Name);
-            var fieldBlock = new JObject();
-            foreach (ParityField field in fields)
+            // R5 of the review of PR 75: the one layout of a step file is Write, here into a tree
+            using (var writer = new JTokenWriter())
             {
-                var item = new JObject { ["kind"] = field.Kind };
-                if (field.Decimals.HasValue)
-                {
-                    item["decimals"] = field.Decimals.Value;
-                }
-                fieldBlock[field.Name] = item;
+                writer.WriteStartObject();
+                Write(writer, null, step, side, scope, plots, fields, tables);
+                writer.WriteEndObject();
+                return (JObject)writer.Token;
             }
-            var plotBlock = new JObject();
-            foreach (KeyValuePair<string, Dictionary<string, object>> plot in plots)
-            {
-                var raw = new JObject();
-                var written = new JObject();
-                foreach (KeyValuePair<string, object> value in plot.Value)
-                {
-                    if (value.Value is StepValue given)
-                    {
-                        raw[value.Key] = Token(given.Raw, null);
-                        written[value.Key] = Token(given.Written, null);
-                        continue;
-                    }
-                    ParityField field;
-                    int? decimals = byName.TryGetValue(value.Key, out field) ? field.Decimals : null;
-                    raw[value.Key] = Token(value.Value, null);
-                    written[value.Key] = Token(value.Value, decimals);
-                }
-                plotBlock[plot.Key] = new JObject { ["raw"] = raw, ["written"] = written };
-            }
-            var found = new JObject { ["format"] = Format, ["formatVersion"] = FormatVersion, ["step"] = step, ["side"] = side, ["scope"] = scope, ["fields"] = fieldBlock, ["plots"] = plotBlock };
-            if (tables != null)
-            {
-                found["tables"] = tables;
-            }
-            return found;
         }
 
-        // R345, Q107. The keys of the object Build gives, written to writer in its order, each value of a plot made a token for raw and for
-        // written as it is written and let go, a token of the plot written as it is, so no tree of the whole step is made twice
+        // R345, Q107. The keys of a step file written to writer in their order, each value of a plot made a token for raw and for written as it
+        // is written and let go, a token of the plot written as it is, so no tree of the whole step is made twice. exact, the converter of exact
+        // doubles of a file, none for the tree of Build
         public static void Write(JsonWriter writer, JsonConverter exact, string step, string side, string scope, IDictionary<string, Dictionary<string, object>> plots,
             IReadOnlyList<ParityField> fields, JObject tables = null)
         {
             var byName = fields.ToDictionary(field => field.Name);
+            JsonConverter[] converters = exact == null ? new JsonConverter[0] : new[] { exact };
             foreach (JProperty head in new JObject { ["format"] = Format, ["formatVersion"] = FormatVersion, ["step"] = step, ["side"] = side, ["scope"] = scope }.Properties())
             {
-                head.WriteTo(writer, exact);
+                head.WriteTo(writer, converters);
             }
             writer.WritePropertyName("fields");
             writer.WriteStartObject();
@@ -138,7 +111,7 @@ namespace SiteAdaptation.Common
                 {
                     item["decimals"] = field.Decimals.Value;
                 }
-                item.WriteTo(writer, exact);
+                item.WriteTo(writer, converters);
             }
             writer.WriteEndObject();
             writer.WritePropertyName("plots");
@@ -156,16 +129,16 @@ namespace SiteAdaptation.Common
                         writer.WritePropertyName(value.Key);
                         if (value.Value is JToken token)
                         {
-                            token.WriteTo(writer, exact);
+                            token.WriteTo(writer, converters);
                             continue;
                         }
                         if (value.Value is StepValue given)
                         {
-                            Token(raw ? given.Raw : given.Written, null).WriteTo(writer, exact);
+                            Token(raw ? given.Raw : given.Written, null).WriteTo(writer, converters);
                             continue;
                         }
                         int? decimals = !raw && byName.TryGetValue(value.Key, out ParityField field) ? field.Decimals : null;
-                        Token(value.Value, decimals).WriteTo(writer, exact);
+                        Token(value.Value, decimals).WriteTo(writer, converters);
                     }
                     writer.WriteEndObject();
                 }
@@ -175,7 +148,7 @@ namespace SiteAdaptation.Common
             if (tables != null)
             {
                 writer.WritePropertyName("tables");
-                tables.WriteTo(writer, exact);
+                tables.WriteTo(writer, converters);
             }
         }
 

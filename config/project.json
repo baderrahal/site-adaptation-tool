@@ -714,7 +714,7 @@
     }
   },
   "valueStatus": {
-    "note": "R401. The status of each sourced value of a plot of the plan, by its field and its source, from the block status of the rules profile. fields holds a field, parameters.* for every parameter, and per source the list of the block entries the code that computes the value reads, each by its path in the rules profile (profile) or in this file (config), where {levelProfile} is the level profile of the build, {parameter} the parameter name and {hand} the hand table the plot took, or the status itself. A value takes the worst status of its list in the order of worstFirst, else the status of the first entry, and lists each (Q107). sources holds a source for every field. A pair neither holds, or an entry the block lacks, is UNKNOWN. overrideSets names per override of the list every field it moves, the mirror flag the yard outline alone of the yard, which then takes the status of the source override, named by the override applied last whose set holds the field, the one that moved the value (Q107). worstFirst names the statuses worst first. assumed names the statuses the plan summary lists by plot, MEASURED with its strength.",
+    "note": "R401. The status of each sourced value of a plot of the plan, by its field and its source, from the block status of the rules profile. fields holds a field, parameters.* for every parameter, and per source the list of the block entries the code that computes the value reads, each by its path in the rules profile (profile) or in this file (config), where {levelProfile} is the level profile of the build, {parameter} the parameter name and {hand} the hand table the plot took, or the status itself. A value takes the worst status of its list in the order of worstFirst, else the status of the first entry, and lists each (Q107). sources holds a source for every field. A pair neither holds, or an entry the block lacks, is UNKNOWN. overrideSets names per override of the list every field it moves, the mirror flag the yard outline alone of the yard, which then takes the status of the source override, named by the override applied last whose set holds the field, the one that moved the value (Q107). worstFirst names the statuses worst first. overrideReads names per override the fields it moves that the code still computes from other entries, with those entries, so such a field takes the worst of the override status and them, and a field of overrideSets it does not name the override sets outright (Q107). A field whose value equals the value the build gives with no override, the field of movedBy for it when named, the lowest Z of it when movedBy adds lowest, was moved by no override and keeps its own list (Q107). assumed names the statuses the plan summary lists by plot, MEASURED with its strength.",
     "sources": {
       "override": {"status": "RECOMMENDED", "question": "Q053", "where": "steps/investigations/rule-status-audit.md section 6"},
       "locationPlan": {"status": "DOCUMENT", "document": "the location plan, labels.csv of the data book"},
@@ -741,19 +741,19 @@
       "floors.generic.outline": {"computed": [{"profile": "levelProfiles.{levelProfile}.keyRules.generic.rule"}]},
       "floors.generic.plotValue": {"computed": [{"status": "DOCUMENT", "document": "the location plan, labels.csv of the data book"}]},
       "floors.generic.z": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.generic.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}]},
-      "floors.generic.heightOffset": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.generic.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"config": "floors.levels.generic"}]},
+      "floors.generic.heightOffset": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.generic.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"status": "UNKNOWN", "why": "the elevation of the level of the floor in the new site file, which heightOffset is computed from and no block entry maps (R401, Q107)"}]},
       "floors.yard.type": {"computed": [{"config": "floors.types.yard"}]},
       "floors.yard.level": {"computed": [{"config": "floors.levels.yard"}]},
       "floors.yard.outline": {"computed": [{"profile": "levelProfiles.{levelProfile}.keyRules.yardOutline.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.linkOrigin.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.linkRotation.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.hand {hand}.rule"}]},
       "floors.yard.plotValue": {"computed": [{"status": "DOCUMENT", "document": "the location plan, labels.csv of the data book"}]},
       "floors.yard.z": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.yard.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}]},
-      "floors.yard.heightOffset": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.yard.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"config": "floors.levels.yard"}]},
+      "floors.yard.heightOffset": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.yard.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"status": "UNKNOWN", "why": "the elevation of the level of the floor in the new site file, which heightOffset is computed from and no block entry maps (R401, Q107)"}]},
       "floors.ramp.type": {"computed": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampSlope.rule"}]},
       "floors.ramp.level": {"computed": [{"config": "floors.levels.ramp"}]},
       "floors.ramp.outline": {"computed": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampOutline.rule"}]},
       "floors.ramp.plotValue": {"computed": [{"status": "DOCUMENT", "document": "the location plan, labels.csv of the data book"}]},
       "floors.ramp.corners": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampFront.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.rampOutline.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}]},
-      "floors.ramp.heightOffset": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampFront.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}, {"config": "floors.levels.ramp"}]},
+      "floors.ramp.heightOffset": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampFront.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}, {"status": "UNKNOWN", "why": "the elevation of the level of the floor in the new site file, which heightOffset is computed from and no block entry maps (R401, Q107)"}]},
       "floors.ramp.slopePercent": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampSlope.rule"}]}
     },
     "overrideSets": {
@@ -766,6 +766,53 @@
       "insert": ["insert", "floors.yard.outline"],
       "rotationDeg": ["rotationDeg", "floors.yard.outline"]
     },
+    "overrideReads": {
+      "entryM": {
+        "levels.height": [{"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}],
+        "levels.steps": [{"profile": "levelProfiles.{levelProfile}.keyRules.steps.rule"}, {"profile": "steps.riser_added"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}],
+        "parameters.RRE_ZZ_SP_Number-of-Steps": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter {parameter}.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.steps.rule"}, {"profile": "steps.riser_added"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}],
+        "parameters.RRE_ZZ_SP_RVT-Name": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter {parameter}.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.steps.rule"}, {"profile": "steps.riser_added"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}],
+        "linkName": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter RRE_ZZ_SP_RVT-Name.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.steps.rule"}, {"profile": "steps.riser_added"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}],
+        "floors.ramp.corners": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampFront.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.rampOutline.rule"}],
+        "floors.ramp.heightOffset": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampFront.rule"}, {"status": "UNKNOWN", "why": "the elevation of the level of the floor in the new site file, which heightOffset is computed from and no block entry maps (R401, Q107)"}]
+      },
+      "heightM": {
+        "levels.ssl": [{"profile": "levelProfiles.{levelProfile}.keyRules.ssl.rule"}],
+        "levels.height": [{"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}],
+        "levels.steps": [{"profile": "levelProfiles.{levelProfile}.keyRules.steps.rule"}, {"profile": "steps.riser_added"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}],
+        "insert": [{"profile": "levelProfiles.{levelProfile}.keyRules.linkOrigin.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.hand {hand}.rule"}],
+        "floors.generic.z": [{"profile": "levelProfiles.{levelProfile}.keyRules.generic.rule"}],
+        "floors.generic.heightOffset": [{"profile": "levelProfiles.{levelProfile}.keyRules.generic.rule"}, {"status": "UNKNOWN", "why": "the elevation of the level of the floor in the new site file, which heightOffset is computed from and no block entry maps (R401, Q107)"}],
+        "floors.yard.z": [{"profile": "levelProfiles.{levelProfile}.keyRules.yard.rule"}],
+        "floors.yard.heightOffset": [{"profile": "levelProfiles.{levelProfile}.keyRules.yard.rule"}, {"status": "UNKNOWN", "why": "the elevation of the level of the floor in the new site file, which heightOffset is computed from and no block entry maps (R401, Q107)"}],
+        "parameters.RRE_ZZ_SP_Prototype-FFL": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter {parameter}.rule"}],
+        "parameters.RRE_ZZ_SP_Number-of-Steps": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter {parameter}.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.steps.rule"}, {"profile": "steps.riser_added"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}],
+        "parameters.RRE_ZZ_SP_RVT-Name": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter {parameter}.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.steps.rule"}, {"profile": "steps.riser_added"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}],
+        "linkName": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter RRE_ZZ_SP_RVT-Name.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.steps.rule"}, {"profile": "steps.riser_added"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}]
+      },
+      "steps": {
+        "parameters.RRE_ZZ_SP_RVT-Name": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter {parameter}.rule"}],
+        "linkName": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter RRE_ZZ_SP_RVT-Name.rule"}]
+      },
+      "rampFrontM": {
+        "floors.ramp.corners": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampOutline.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}],
+        "floors.ramp.heightOffset": [{"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}, {"status": "UNKNOWN", "why": "the elevation of the level of the floor in the new site file, which heightOffset is computed from and no block entry maps (R401, Q107)"}]
+      },
+      "mirrored": {
+        "insert": [{"profile": "levelProfiles.{levelProfile}.keyRules.linkOrigin.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}],
+        "rotationDeg": [{"profile": "levelProfiles.{levelProfile}.keyRules.linkRotation.rule"}],
+        "parameters.CASE": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter {parameter}.rule"}],
+        "parameters.RRE_ZZ_SP_Prototype-Foundation-Type": [{"profile": "levelProfiles.{levelProfile}.keyRules.parameter {parameter}.rule"}],
+        "floors.yard.outline": [{"profile": "levelProfiles.{levelProfile}.keyRules.yardOutline.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.linkOrigin.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.linkRotation.rule"}]
+      },
+      "insert": {
+        "floors.yard.outline": [{"profile": "levelProfiles.{levelProfile}.keyRules.yardOutline.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.linkRotation.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.hand {hand}.rule"}]
+      },
+      "rotationDeg": {
+        "floors.yard.outline": [{"profile": "levelProfiles.{levelProfile}.keyRules.yardOutline.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.linkOrigin.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.hand {hand}.rule"}]
+      }
+    },
+    "movedBy": {"floors.generic.z": "levels.ffl", "floors.generic.heightOffset": "levels.ffl", "floors.yard.heightOffset": "floors.yard.z", "floors.ramp.heightOffset": "floors.ramp.corners lowest"},
     "assumed": ["RECOMMENDED", "CHOSEN by Code", "UNKNOWN", "MEASURED weak"],
     "worstFirst": ["UNKNOWN", "CHOSEN by Code", "RECOMMENDED", "MEASURED weak"]
   }

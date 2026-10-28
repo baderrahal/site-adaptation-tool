@@ -30,6 +30,13 @@ namespace SiteAdaptation.Common
         private readonly JObject sources, fields, block;
         private readonly Dictionary<string, List<string>> sets = new Dictionary<string, List<string>>();
         private readonly List<string> order = new List<string>();
+        // Q107, R2 and R3 of the review of PR 75: per override the fields it moves that the code still computes, with what it reads, and the
+        // field whose value tells whether an override moved a field
+        private readonly Dictionary<string, Dictionary<string, List<JObject>>> reads = new Dictionary<string, Dictionary<string, List<JObject>>>();
+        private readonly Dictionary<string, string> movedBy = new Dictionary<string, string>(StringComparer.Ordinal);
+        private const string ReadsLine = "valueStatus.overrideReads maps an override of overrideSets to the fields of its set the code still computes from other entries, "
+            + "each to the list of them, the settings hold {0} (R401)";
+        private const string MovedLine = "valueStatus.movedBy maps a field to the field whose value tells whether an override moved it, the settings hold {0} (R401)";
         // The status of each key given, so a value of a key given before takes it with no new detail
         private readonly Dictionary<string, string> statusOf = new Dictionary<string, string>(StringComparer.Ordinal);
         private readonly Dictionary<string, string> files;
@@ -38,8 +45,15 @@ namespace SiteAdaptation.Common
         // value_status.Table.used: the detail of each key the build gave a value, the table statusFrom
         public Dictionary<string, JObject> Used { get; } = new Dictionary<string, JObject>(StringComparer.Ordinal);
 
-        public ValueStatusTable(JObject map, JObject block, string profileFile, string levelProfile)
+        // The decimals of addin.parity a field of the step overrides is written at, by its key
+        public Dictionary<string, int> Decimals { get; } = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        public ValueStatusTable(JObject map, JObject block, string profileFile, string levelProfile, IDictionary<string, int> decimals = null)
         {
+            foreach (KeyValuePair<string, int> item in decimals ?? new Dictionary<string, int>())
+            {
+                Decimals[item.Key] = item.Value;
+            }
             sources = map?["sources"] as JObject ?? new JObject();
             fields = map?["fields"] as JObject ?? new JObject();
             if (map != null && map.HasValues)
@@ -64,6 +78,30 @@ namespace SiteAdaptation.Common
                     throw new InvalidDataException(string.Format(OrderLine, worst == null || worst.Type == JTokenType.Null ? "none" : PlanOverrides.Dumps(worst)));
                 }
                 order = ranked.Select(name => (string)name).ToList();
+                // value_status.override_reads: per override of the sets the fields of its set with the list of entries they still read
+                if (!(map["overrideReads"] is JObject read))
+                {
+                    throw new InvalidDataException(string.Format(ReadsLine, "none"));
+                }
+                foreach (JProperty item in read.Properties())
+                {
+                    if (!sets.ContainsKey(item.Name) || !(item.Value is JObject byField) || !byField.HasValues || byField.Properties().Any(field =>
+                        !sets[item.Name].Contains(field.Name) || !(field.Value is JArray refs) || refs.Count == 0 || refs.Any(reference => reference.Type != JTokenType.Object)))
+                    {
+                        throw new InvalidDataException(string.Format(ReadsLine, item.Name + ": " + PlanOverrides.Dumps(item.Value)));
+                    }
+                    reads[item.Name] = byField.Properties().ToDictionary(field => field.Name, field => ((JArray)field.Value).OfType<JObject>().ToList());
+                }
+                // value_status.moved_by: a field to a field, else refused with one line
+                JToken moved = map["movedBy"];
+                if (!(moved is JObject byName) || byName.Properties().Any(item => item.Value.Type != JTokenType.String))
+                {
+                    throw new InvalidDataException(string.Format(MovedLine, moved == null || moved.Type == JTokenType.Null ? "none" : PlanOverrides.Dumps(moved)));
+                }
+                foreach (JProperty item in byName.Properties())
+                {
+                    movedBy[item.Name] = (string)item.Value;
+                }
             }
             this.block = block ?? new JObject();
             files = new Dictionary<string, string> { ["profile"] = profileFile, ["config"] = ValueStatus.SettingsFile };
@@ -94,15 +132,27 @@ namespace SiteAdaptation.Common
         }
 
         // value_status.Table.of: the status, the detail and its key
-        // applied in the order the build applied them, so the last whose set holds the field names the override that moved the value (Q107)
-        public Tuple<string, JObject, string> Of(string field, string source, string hand = null, IEnumerable<string> applied = null)
+        // movedBy of the map: the field whose value tells whether an override moved field, field itself when it names none
+        public string MovedBy(string field)
         {
-            string moved = source == Override ? null : (applied ?? Enumerable.Empty<string>()).LastOrDefault(name => sets.TryGetValue(name, out List<string> moves) && moves.Contains(field));
+            return movedBy.TryGetValue(field, out string name) ? name : field;
+        }
+
+        // applied in the order the build applied them, so the last whose set holds the field names the override that moved the value, with the
+        // entries the code still reads for it by overrideReads, and unmoved, the value equal to the one with no override, leaves the value its own
+        // list (Q107)
+        public Tuple<string, JObject, string> Of(string field, string source, string hand = null, IEnumerable<string> applied = null, bool unmoved = false)
+        {
+            string moved = source == Override || unmoved ? null : (applied ?? Enumerable.Empty<string>()).LastOrDefault(name => sets.TryGetValue(name, out List<string> moves) && moves.Contains(field));
             if (moved != null)
             {
                 source = Override;
             }
             List<JObject> refs = Refs(field, source);
+            if (moved != null && refs != null && reads.TryGetValue(moved, out Dictionary<string, List<JObject>> byField) && byField.TryGetValue(field, out List<JObject> more))
+            {
+                refs = refs.Concat(more).ToList();
+            }
             string key = field + " from " + source;
             if ((refs ?? new List<JObject>()).Any(reference => new[] { "profile", "config" }.Any(kind => reference[kind]?.Type == JTokenType.String && ((string)reference[kind]).Contains("{hand}"))))
             {
@@ -190,8 +240,17 @@ namespace SiteAdaptation.Common
 
         public static ValueStatusTable Table(JObject config, JObject rules, string levelProfile)
         {
+            // value_status.table_of: the decimals of the fields of the step overrides, which a value is held at against the value with no override
+            var decimals = new Dictionary<string, int>();
+            foreach (JProperty field in ((config["addin"]?["parity"]?["steps"]?["overrides"]) as JObject ?? new JObject()).Properties())
+            {
+                if (field.Value["decimals"] != null && field.Value["decimals"].Type == JTokenType.Integer)
+                {
+                    decimals[field.Name] = (int)field.Value["decimals"];
+                }
+            }
             return new ValueStatusTable(config["valueStatus"] as JObject, rules["status"] as JObject, config["profile"]?.Type == JTokenType.String ? (string)config["profile"] : null,
-                levelProfile);
+                levelProfile, decimals);
         }
 
         // value_status.label: the status a count names, MEASURED with its strength
@@ -236,7 +295,7 @@ namespace SiteAdaptation.Common
 
         // plan_from_book.status_step: no field for a plot the plan does not write
         public static Dictionary<string, Dictionary<string, object>> Step(IEnumerable<string> numbers, IReadOnlyDictionary<string, PlotPlan> plans,
-            IReadOnlyDictionary<string, Dictionary<string, object>> hands, ValueStatusTable table)
+            IReadOnlyDictionary<string, Dictionary<string, object>> hands, ValueStatusTable table, IReadOnlyDictionary<string, PlotPlan> rulePlans = null)
         {
             var found = new Dictionary<string, Dictionary<string, object>>();
             foreach (string number in numbers)
@@ -251,10 +310,15 @@ namespace SiteAdaptation.Common
                     hand?.TryGetValue("handTable", out handTable);
                     // Q107. In the order the build applied them, so the status names the override that moved a value
                     List<string> applied = plan.AppliedOrder ?? plan.Overrides["applied"] as List<string> ?? new List<string>();
+                    PlotPlan rule = null;
+                    rulePlans?.TryGetValue(number, out rule);
+                    rule = rule != null && (bool)rule.Overrides["written"] ? rule : null;
                     fields = new JObject();
                     foreach (Tuple<string, string> item in Sources(plan))
                     {
-                        Tuple<string, JObject, string> status = table.Of(item.Item1, item.Item2, handTable as string, applied);
+                        // R3 of the review of PR 75: a field left at its value with no override was moved by none
+                        bool unmoved = applied.Count > 0 && rule != null && Unmoved(table.MovedBy(item.Item1), plan, rule, table.Decimals);
+                        Tuple<string, JObject, string> status = table.Of(item.Item1, item.Item2, handTable as string, applied, unmoved);
                         // Q107. The key of the detail, the detail once in the table statusFrom of the step file (Tables)
                         fields[item.Item1] = new JObject { ["source"] = item.Item2, ["status"] = status.Item1, ["statusFrom"] = status.Item3 };
                     }
@@ -262,6 +326,80 @@ namespace SiteAdaptation.Common
                 found[number] = new Dictionary<string, object> { ["unit"] = plan.Overrides["unit"], ["written"] = written, ["fields"] = fields };
             }
             return found;
+        }
+
+        // The keys of PlotPlan of a field of the plan, value_status.fields_of of Python
+        private static readonly Dictionary<string, string> OverrideKeys = new Dictionary<string, string>
+        {
+            ["mirrored"] = "mirrored", ["insert"] = "insert", ["rotationDeg"] = "rotationDeg", ["levels.entry"] = "entry", ["levels.ffl"] = "ffl", ["levels.ssl"] = "ssl",
+            ["levels.height"] = "height", ["levels.steps"] = "steps", ["floors.ramp.corners"] = "rampZ", ["floors.ramp.type"] = "rampType", ["floors.yard.z"] = "yardZ",
+            ["floors.yard.outline"] = "yardOutline",
+        };
+
+        // value_status.unmoved: the value of field in the plan the same at the decimals the plan writes it as in the plan of the plot with no
+        // override, false for a field the plan holds no value of. The insert of Python holds the FFL as its Z, which the C# keeps apart
+        public static bool Unmoved(string field, PlotPlan plan, PlotPlan rule, IReadOnlyDictionary<string, int> decimals)
+        {
+            // movedBy may add lowest: the lowest Z of the points of that field, which the heightOffset of a ramp is taken from, the Z of each
+            // corner here
+            string[] parts = field.Split(new[] { ' ' }, 2);
+            if (parts.Length == 2 && parts[1] == "lowest" && OverrideKeys.TryGetValue(parts[0], out string lowestKey))
+            {
+                int? places = decimals.TryGetValue(lowestKey, out int found) ? found : (int?)null;
+                Func<object, double> lowest = value => ((System.Collections.IEnumerable)value).Cast<object>()
+                    .Select(item => Convert.ToDouble(item is JValue token ? token.Value : item, System.Globalization.CultureInfo.InvariantCulture))
+                    .Select(z => places.HasValue ? Rounding.Fixed(z, places.Value) : z).Min();
+                return plan.Overrides[lowestKey] != null && rule.Overrides[lowestKey] != null && lowest(plan.Overrides[lowestKey]) == lowest(rule.Overrides[lowestKey]);
+            }
+            if (OverrideKeys.TryGetValue(field, out string key))
+            {
+                return Held(key, plan, rule, decimals) && (key != "insert" || Held("ffl", plan, rule, decimals));
+            }
+            if (field == "linkName")
+            {
+                return plan.Parameters["linkName"] != null && rule.Parameters["linkName"] != null && Same(plan.Parameters["linkName"], rule.Parameters["linkName"], null);
+            }
+            if (field.StartsWith("parameters.", StringComparison.Ordinal))
+            {
+                JToken mine = (plan.Parameters["parameters"] as JObject)?[field.Substring("parameters.".Length)];
+                JToken other = (rule.Parameters["parameters"] as JObject)?[field.Substring("parameters.".Length)];
+                return mine != null && other != null && JToken.DeepEquals(mine, other);
+            }
+            return false;
+        }
+
+        private static bool Held(string key, PlotPlan plan, PlotPlan rule, IReadOnlyDictionary<string, int> decimals)
+        {
+            return plan.Overrides[key] != null && rule.Overrides[key] != null && Same(plan.Overrides[key], rule.Overrides[key], decimals.TryGetValue(key, out int places) ? places : (int?)null);
+        }
+
+        // Python == of two values at the decimals of value_status.written: numbers by value, a written value by what the plan writes, lists
+        // item by item
+        private static bool Same(object a, object b, int? decimals)
+        {
+            a = a is StepValue first ? first.Written : a;
+            b = b is StepValue second ? second.Written : b;
+            a = a is JValue one ? one.Value : a;
+            b = b is JValue two ? two.Value : b;
+            if (a == null || b == null)
+            {
+                return a == null && b == null;
+            }
+            if (a is JObject || b is JObject)
+            {
+                return JToken.DeepEquals(a as JToken ?? JToken.FromObject(a), b as JToken ?? JToken.FromObject(b));
+            }
+            if (a is string || b is string || a is bool || b is bool)
+            {
+                return a.Equals(b);
+            }
+            if (a is System.Collections.IEnumerable items && b is System.Collections.IEnumerable others)
+            {
+                List<object> left = items.Cast<object>().ToList(), right = others.Cast<object>().ToList();
+                return left.Count == right.Count && left.Zip(right, (one, other) => Same(one, other, decimals)).All(same => same);
+            }
+            double x = Convert.ToDouble(a, System.Globalization.CultureInfo.InvariantCulture), y = Convert.ToDouble(b, System.Globalization.CultureInfo.InvariantCulture);
+            return decimals.HasValue ? Rounding.Fixed(x, decimals.Value) == Rounding.Fixed(y, decimals.Value) : x == y;
         }
 
         private static IEnumerable<string> Keys(IReadOnlyDictionary<string, Dictionary<string, object>> step)

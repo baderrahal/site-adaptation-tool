@@ -444,7 +444,12 @@ namespace SiteAdaptation.Common
                             {
                                 // R401. The status of each sourced value of a written plot, by the map of the settings and the block of the rules profile
                                 ValueStatusTable table = ValueStatus.Table(site.Settings, site.Rules, profileName);
-                                made[ValueStatus.StepName] = ValueStatus.Step(site.Numbers, plans, hands, table);
+                                // Q107, R3 of the review of PR 75. The plots with no override, so a field an override left at its value by the rule
+                                // names no override, as plan_from_book.build builds them
+                                Dictionary<string, PlotPlan> rulePlans = list.Found.Count == 0 ? null : PlanOverrides.Of(site.Numbers, site.Rows, build, fronts, context, hands, key,
+                                    levelProfile, site.Rules, site.Settings, files, new OverrideList(new Dictionary<string, JObject>()), profileName,
+                                    FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), site.RulesName);
+                                made[ValueStatus.StepName] = ValueStatus.Step(site.Numbers, plans, hands, table, rulePlans);
                                 tables[ValueStatus.StepName] = ValueStatus.Tables(made[ValueStatus.StepName], table);
                                 foreach (KeyValuePair<Tuple<string, string>, int> count in ValueStatus.Counts(made[ValueStatus.StepName], table))
                                 {
