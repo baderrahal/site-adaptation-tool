@@ -110,6 +110,9 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - 5a PR 4 review. PaneHost.Current, PaneHost.Sessions, PaneHost.Routed, AnswerRelay.Post and PaneSessions.KeyOf have no production caller yet.
 - 5a PR 4 review. DocumentOpened and DocumentCreated give a session to linked and family documents too, which no button runs on.
 - 5a PR 4 review. A click of the box runs later through an ExternalEvent and may run on another document if the user switched in between.
+- 5a PR 4 review 2. The hash of DiskProbe in the pane is a second copy of FileHash.Sha256 and InputHash.OfFolder of Common, now with another share mode. In 5b the pane calls the hash of Common and FileHash takes FileShare.ReadWrite.
+- 5a PR 4 review 2. PaneViewModel.PickInput, SettingsFile.Read and PaneViewModel.Document have test callers only.
+- 5a PR 4 review 2. A hash that fails is swallowed in DiskProbe.Hash, so its row looks like a hash still running.
 
 ## Lane B rules, Bader 28 Oct 2026
 
@@ -176,6 +179,11 @@ QL15. Input rows at 380 wide. docs/design/12-ui-spec.md puts mark, label, file n
 - Recommended: keep the file name, put size and short hash in the tooltip under the full path, as 7.2 of docs/design/07-mock.md lets the tooltip tell two files apart.
 - Other: two-line input rows.
 - Other: a wider pane.
+
+QL16. Gaps between stacked inputs. docs/design/12-ui-spec.md gives rows 32, inputs 30 and spacing 4, 8, 12, 16, 24 only, so two inputs on stacked rows stand 2 px apart (Neighbourhood and Plot list) and 3 px (Rules Browse and Level profile), seen in steps/ui-shots/pane.png.
+- Recommended: accept the 2 px left by the row and input heights as part of those sizes, not a spacing.
+- Other: inputs 28 high so they stand 4 apart.
+- Other: Bader gives the rule.
 
 ## The questions as L0 asked them
 

@@ -73,3 +73,4 @@ Code went through 7.2 and the parts Rules, Font, Colours and Sizes line by line 
 26. The Neighbourhood list is empty in Revit until button 2 reads the plot table, it lists the NBH codes of that table (7.2 of the mock). The 012 of pane.png is sample data.
 27. On first open the box says "The tool fills the rest of this panel from it.", while in 5a choosing the settings file fills only the Settings row. The rest fills from the config file with join J1 of 5c.
 28. The two dialogs of DLUS and sales are titled "DLUS schedule" and "Sales schedule", one for each workbook by its role (CHOSEN in review 1 of PR 90, docs/design/13-ui-labels.md).
+29. Two inputs on stacked rows stand 2 px apart, the Neighbourhood drop down and the Plot list box, and the Rules Browse and the Level profile drop down 3 px, off the spacing scale 4, 8, 12, 16, 24. The spec gives rows 32 and inputs 30, so no gap of the scale can stand between them while both hold. QL16 of steps/lane-b.md.
