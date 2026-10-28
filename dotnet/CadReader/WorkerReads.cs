@@ -22,6 +22,8 @@ namespace CadReader
             Dictionary<string, WorkerCommand> commands = WorkerCommands.Default();
             commands["read"] = Read;
             commands["position"] = Position;
+            // R364. The level Excel of button 6, made from a plan and written with OpenXml, which only the worker loads
+            commands["levelExcel"] = LevelWorkbook.Command;
             return commands;
         }
 
