@@ -9,6 +9,8 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | ribbon-icons.png | The 11 ribbon icons in the order of the ribbon, 32 px over 16 px: 1 to 4, Site Adaptation Rules, 5 to 9, Update from report | Draft |
 | pane.png | The pane in use, filled like the NBH 012 column of 7.2 of docs/design/07-mock.md, its steps in the order of docs/design/13-workflow-changes.md | Draft |
 | pane-first-open.png | The pane on first open, no settings file chosen, with the line of a past job | Draft |
+| revit-ribbon.png | The Site Adaptation tab in Revit 2024, cut from the window by PrintWindow in Revit run 3 of 5a, 29 Oct 2026 | Taken in Revit, for Bader's check |
+| revit-pane.png | The live pane page in Revit run 3 of 5a by RenderTargetBitmap at 96 DPI, first open state, the detached document of the run active | Taken in Revit, for Bader's check |
 
 Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md) were rendered into all three in Lane B 5a PR 8, his UI answers QL10, QL14 and QL15 of 29 Oct 2026 in Lane B 5a run 3 (fixed items 12 to 14). Set up site comes in 5b (W1 of steps/lane-b.md), the check table, Review data and Site Adaptation Rules in 5c (W5), Update from report in 5f (W8). 5a builds none of these windows, so none has a PNG yet.
 
@@ -91,3 +93,23 @@ Code went through 7.1, 7.2 and the parts Rules, Font, Colours, Sizes and Icons o
 38. docs/addin-mock.md item 1 still names three panels and the old numbers. 7.1 of docs/design/12-ui-spec.md prevails (its Rules line 10), so the ribbon test reads 7.1. The mock changes at the fold in, item 11 of steps/lane-b.md.
 39. The Steps help line "Run them in order. Each one waits for the one before." holds for every step but 9 Report, which waits for 4 Check only, so in pane.png 9 Report is Ready while 6 to 8 wait. QL19 of steps/lane-b.md asks Bader whether 9 needs 8 too.
 40. pane-first-open.png is 85,172 bytes, 83 percent of the 100 KB cap of R400 on every file of steps/ outside steps/history/. A taller pane or one more row may pass the cap, then the render needs fewer colours or a split.
+
+## The Revit shots against the drafts
+
+Revit run 3 of 5a, 29 Oct 2026, Revit 2024 on the laptop at 125 percent scale (RAN, the screen 1920 device px and 1536 logical). The run files stay outside the repo in C:\Users\p003653k\Documents\SiteAdaptation\lane_b_5a_run3\run_outputs. The two PNGs here hash the same as those the run wrote (RAN sha256). The canvas itself is not in the repo, so each shot is held against its draft above and docs/design/12-ui-spec.md, and every difference is listed.
+
+Ribbon, revit-ribbon.png against ribbon-icons.png and 7.1 of 12-ui-spec.md:
+
+1. Same: the tab Site Adaptation active, the panels Setup, Rules, Build and Output in that order, the 11 buttons 1 to 4, Site Adaptation Rules, 5 to 9 and Update from report under them (RAN, the run read 0 panels and 0 buttons missing).
+2. Same: each 32 px icon as drawn in ribbon-icons.png, the Place villas pin with its white hole (QL10).
+3. Different: the labels sit on one line under each icon in Revit's ribbon font, the draft has no labels. Site Adaptation Rules and Update from report do not wrap, which answers item 32.
+4. Not seen: the 16 px icons. Revit shows every button large on this tab, so the shot holds no 16 px icon, and whether they are sharp at 16 px is not measured in Revit.
+
+Pane, revit-pane.png against pane-first-open.png:
+
+5. Width: Revit opened the pane 765 WPF units wide, about 956 device px at 125 percent, against MinimumWidth 380 (QL13, RAN). The draft is 380. At 765 every help line holds on one or two lines and the Browse buttons stand at the right edge, far from the file names.
+6. Height: the shot is 694 high and ends at the Prototypes row, with a scroll bar on the right, so Scope and Steps are below it. The step rows of 40 (QL14) are not in the Revit shot.
+7. Scroll bar: the Revit pane shows the Windows scroll bar beside the Project part. The draft is rendered at full height and has none. 12-ui-spec.md gives no scroll bar look.
+8. Start here box: flat SA.Info in Revit. In the draft, as Code saw it, it shows a fine dot pattern. Its cause is UNKNOWN, not measured.
+9. Project bar: the Revit pane names the document active at the shot, SA5A-CENTRAL-TEST-NEW_detached, a detached copy that was never saved. The pane names it as a project, as the run found it takes the PathName of a detached document as a saved path (steps/lane-b.md, Where 5a stopped).
+10. Same: the fonts, colours, the marks of the rows, Not chosen, 0 of 8 found, the Choose settings file button and the link Import pre-setting, as in the draft.
