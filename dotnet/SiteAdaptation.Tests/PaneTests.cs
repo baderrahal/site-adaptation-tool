@@ -156,7 +156,7 @@ namespace SiteAdaptation.Tests
             Assert.True(plots.Found);
             Assert.Equal("plots.pdf", plots.FileName);
             Assert.Equal("2.91 MiB 7061ac0d", plots.Detail);
-            Assert.Equal(Folder + "plots.pdf", plots.ToolTip);
+            Assert.Equal(Folder + "plots.pdf" + Environment.NewLine + "2.91 MiB 7061ac0d", plots.ToolTip);
             Assert.Equal(3056293L, model.Settings.Inputs[InputKeys.PlotNumbers].Size);
             Assert.StartsWith("7061ac0d", model.Settings.Inputs[InputKeys.PlotNumbers].Sha256);
             Assert.True(model.RulesRow.Found);
@@ -176,7 +176,8 @@ namespace SiteAdaptation.Tests
             model.PickInput(dlus, new[] { Folder + "dlus.xlsx", Folder + "sales.xlsx" });
             Assert.True(dlus.Found);
             Assert.Equal("1.00 MiB aaaaaaaa, 2.00 MiB bbbbbbbb", dlus.Detail);
-            Assert.Equal(Folder + "dlus.xlsx" + Environment.NewLine + Folder + "sales.xlsx", dlus.ToolTip);
+            Assert.Equal(Folder + "dlus.xlsx" + Environment.NewLine + Folder + "sales.xlsx" + Environment.NewLine + "1.00 MiB aaaaaaaa, 2.00 MiB bbbbbbbb", dlus.ToolTip);
+            Assert.Equal(Folder + "project.json", model.SettingsRow.ToolTip);
             Assert.Throws<ArgumentException>(() => model.PickInput(plots, new[] { "a", "b" }));
         }
 

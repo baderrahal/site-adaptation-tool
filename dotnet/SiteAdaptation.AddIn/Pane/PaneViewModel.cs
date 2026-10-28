@@ -311,7 +311,13 @@ namespace SiteAdaptation.AddIn.Pane
                 }
             }
             string name = names.Count == 0 ? PaneText.NotChosen : string.Join(", ", names);
-            row.Show(true, found && names.Count == paths.Length, name, string.Join(", ", details), tips.Count == 0 ? null : string.Join(Environment.NewLine, tips));
+            string detail = string.Join(", ", details);
+            // At 380 wide the grey run is cut on a long name, so the tooltip gives it again under the full path
+            if (detail.Length > 0)
+            {
+                tips.Add(detail);
+            }
+            row.Show(true, found && names.Count == paths.Length, name, detail, tips.Count == 0 ? null : string.Join(Environment.NewLine, tips));
         }
 
         private void RefreshHelp()

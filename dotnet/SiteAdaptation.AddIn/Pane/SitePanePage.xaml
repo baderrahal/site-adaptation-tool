@@ -12,7 +12,7 @@
       <BooleanToVisibilityConverter x:Key="Shown" />
 
       <DataTemplate x:Key="FileRow" DataType="{x:Type pane:FileRowViewModel}">
-        <Grid Margin="{StaticResource SA.Gap.Row}" MinHeight="{StaticResource SA.Size.Row}">
+        <Grid Height="{StaticResource SA.Size.Row}">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
@@ -40,10 +40,11 @@
             </Grid>
           </Grid>
           <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="{Binding Label}" />
-          <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}" ToolTip="{Binding ToolTip}">
-            <TextBlock Style="{StaticResource SA.Type.Body}" TextTrimming="CharacterEllipsis" Text="{Binding FileName}" />
-            <TextBlock Style="{StaticResource SA.Pane.Detail}" Text="{Binding Detail}" />
-          </StackPanel>
+          <TextBlock Grid.Column="2" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}"
+                     TextTrimming="CharacterEllipsis" ToolTip="{Binding ToolTip}">
+            <Run Text="{Binding FileName, Mode=OneWay}" />
+            <Run Text="{Binding Detail, Mode=OneWay}" FontSize="{StaticResource SA.Type.Small.Size}" Foreground="{StaticResource SA.TextMuted}" />
+          </TextBlock>
           <Button Grid.Column="3" Style="{StaticResource SA.Button.Base}" VerticalAlignment="Center" Content="Browse" Click="OnBrowse" />
         </Grid>
       </DataTemplate>
@@ -147,11 +148,17 @@
 
   <DockPanel Background="{StaticResource SA.Surface}">
     <Border DockPanel.Dock="Top" Background="{StaticResource SA.Band}" Padding="{StaticResource SA.Pad.Box}">
-      <StackPanel>
-        <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.BandAccent}" Text="Project" />
-        <TextBlock Style="{StaticResource SA.Type.Project}" Foreground="{StaticResource SA.Surface}" TextTrimming="CharacterEllipsis"
+      <!-- 7.2 of the mock: the project name aligned right in the top row -->
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.BandAccent}" VerticalAlignment="Center" Text="Project" />
+        <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Project}" Foreground="{StaticResource SA.Surface}" Margin="{StaticResource SA.Gap.Left8}"
+                   HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                    Text="{Binding ProjectName}" ToolTip="{Binding ProjectName}" />
-      </StackPanel>
+      </Grid>
     </Border>
 
     <Border DockPanel.Dock="Top" Background="{StaticResource SA.Guide}" BorderBrush="{StaticResource SA.GuideBorder}"
@@ -173,7 +180,7 @@
           <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Rules and settings for this job. Set once." />
           <ContentControl Margin="{StaticResource SA.Gap.Top8}" Content="{Binding SettingsRow}" ContentTemplate="{StaticResource FileRow}" />
           <ContentControl Content="{Binding RulesRow}" ContentTemplate="{StaticResource FileRow}" />
-          <Grid Margin="{StaticResource SA.Gap.Row}" MinHeight="{StaticResource SA.Size.Row}">
+          <Grid Height="{StaticResource SA.Size.Row}">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
               <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
@@ -193,30 +200,30 @@
         <StackPanel Margin="{StaticResource SA.Pad.Section}">
           <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Scope" />
           <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Which plots the next button works on." />
-          <RadioButton Margin="{StaticResource SA.Gap.Top8}" Style="{StaticResource SA.Pane.Choice}" GroupName="Scope" Content="Whole project" IsChecked="{Binding ScopeWhole}" />
+          <RadioButton Margin="{StaticResource SA.Gap.Top8}" Style="{StaticResource SA.Pane.Radio}" GroupName="Scope" Content="Whole project" IsChecked="{Binding ScopeWhole}" />
           <Grid>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" />
               <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <RadioButton Style="{StaticResource SA.Pane.Choice}" GroupName="Scope" Content="Neighbourhood" IsChecked="{Binding ScopeNbh}" />
+            <RadioButton Style="{StaticResource SA.Pane.Radio}" GroupName="Scope" Content="Neighbourhood" IsChecked="{Binding ScopeNbh}" />
             <ComboBox Grid.Column="1" Margin="{StaticResource SA.Gap.Left8}" Style="{StaticResource SA.Pane.Combo}" ItemsSource="{Binding NbhCodes}" SelectedItem="{Binding Nbh}" />
           </Grid>
-          <Grid Margin="{StaticResource SA.Gap.Top4}">
+          <Grid>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" />
               <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <RadioButton Style="{StaticResource SA.Pane.Choice}" GroupName="Scope" Content="Plot list" IsChecked="{Binding ScopePlots}" />
+            <RadioButton Style="{StaticResource SA.Pane.Radio}" GroupName="Scope" Content="Plot list" IsChecked="{Binding ScopePlots}" />
             <TextBox Grid.Column="1" Margin="{StaticResource SA.Gap.Left8}" Style="{StaticResource SA.Pane.Entry}" Text="{Binding Plots, UpdateSourceTrigger=PropertyChanged}" />
           </Grid>
           <Border Margin="{StaticResource SA.Gap.Top8}" Background="{StaticResource SA.Panel}" CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Panel}">
             <StackPanel>
-              <CheckBox Style="{StaticResource SA.Pane.Choice}" Content="Dry run first, change nothing" IsChecked="{Binding DryRun}" />
+              <CheckBox Style="{StaticResource SA.Pane.Check}" Content="Dry run first, change nothing" IsChecked="{Binding DryRun}" />
               <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}" Text="Villa mode" />
-                <RadioButton Style="{StaticResource SA.Pane.Choice}" Margin="{StaticResource SA.Gap.Right8}" GroupName="Villa" Content="Masses" IsChecked="{Binding VillaMasses}" />
-                <RadioButton Style="{StaticResource SA.Pane.Choice}" GroupName="Villa" Content="Links" IsChecked="{Binding VillaLinks}" />
+                <RadioButton Style="{StaticResource SA.Pane.Radio}" Margin="{StaticResource SA.Gap.Right8}" GroupName="Villa" Content="Masses" IsChecked="{Binding VillaMasses}" />
+                <RadioButton Style="{StaticResource SA.Pane.Radio}" GroupName="Villa" Content="Links" IsChecked="{Binding VillaLinks}" />
               </StackPanel>
             </StackPanel>
           </Border>

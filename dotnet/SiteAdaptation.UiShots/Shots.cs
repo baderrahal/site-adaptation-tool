@@ -128,6 +128,16 @@ namespace SiteAdaptation.UiShots
 
         private static BitmapSource PanePage(bool inUse)
         {
+            SitePanePage page = LaidOutPane(inUse);
+            var bitmap = new RenderTargetBitmap((int)page.ActualWidth, (int)page.ActualHeight, Dpi, Dpi, PixelFormats.Pbgra32);
+            bitmap.Render(page);
+            bitmap.Freeze();
+            return bitmap;
+        }
+
+        // The pane with the sample data, measured and arranged at the start width of the spec, so a test can read its parts
+        public static SitePanePage LaidOutPane(bool inUse)
+        {
             var model = new PaneViewModel(new SampleProbe());
             model.Load(Sample.Document());
             if (inUse)
@@ -152,10 +162,7 @@ namespace SiteAdaptation.UiShots
                 }
                 height = measured;
             }
-            var bitmap = new RenderTargetBitmap((int)width, (int)height, Dpi, Dpi, PixelFormats.Pbgra32);
-            bitmap.Render(page);
-            bitmap.Freeze();
-            return bitmap;
+            return page;
         }
     }
 

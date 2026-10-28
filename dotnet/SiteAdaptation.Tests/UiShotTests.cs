@@ -3,8 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Ellipse = System.Windows.Shapes.Ellipse;
+using Path = System.IO.Path;
+using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.UiShots;
 using Xunit;
 using Xunit.Abstractions;
@@ -49,6 +54,53 @@ namespace SiteAdaptation.Tests
             });
             sizes.ForEach(output.WriteLine);
             Assert.Equal(3, sizes.Count);
+        }
+
+        // Control 4, the sizes of docs/design/12-ui-spec.md read off the laid out pane: rows 32, inputs 30, Browse 28, the main
+        // button 34, radius 3, the step marks 26, and the project name at the right of the band as 7.2 of the mock
+        [Fact]
+        public void R372_the_pane_has_rows_32_inputs_30_with_radius_3_and_the_project_name_at_the_right_of_the_band()
+        {
+            var counts = new List<string>();
+            OnSta(() =>
+            {
+                foreach (bool inUse in new[] { true, false })
+                {
+                    SitePanePage page = Shots.LaidOutPane(inUse);
+                    List<FrameworkElement> all = Visuals(page).OfType<FrameworkElement>().ToList();
+                    List<Button> browse = all.OfType<Button>().Where(button => "Browse".Equals(button.Content)).ToList();
+                    Assert.Equal(9, browse.Count);
+                    Assert.All(browse, button => Assert.Equal(32.0, ((FrameworkElement)VisualTreeHelper.GetParent(button)).ActualHeight));
+                    Assert.All(browse, button => Assert.Equal(28.0, button.ActualHeight));
+                    List<Control> inputs = all.OfType<Control>().Where(control => control is ComboBox || control is TextBox).ToList();
+                    Assert.Equal(3, inputs.Count);
+                    Assert.All(inputs, input => Assert.Equal(30.0, input.ActualHeight));
+                    Assert.All(inputs, input => Assert.Contains(Visuals(input).OfType<Border>(), border => border.CornerRadius.TopLeft == 3.0
+                        && border.BorderBrush == page.FindResource("SA.Border")));
+                    Button primary = all.OfType<Button>().Single(button => button.Style == page.FindResource("SA.Button.Primary"));
+                    Assert.Equal(34.0, primary.ActualHeight);
+                    Assert.Equal(8, all.OfType<Ellipse>().Count(mark => mark.ActualWidth == 26.0));
+
+                    TextBlock name = all.OfType<TextBlock>().Single(block => block.Text == "01101-PSN-IMC-R17B-TEST-NEW");
+                    double right = name.TransformToAncestor(page).Transform(new Point(name.ActualWidth, 0)).X;
+                    Assert.Equal(page.ActualWidth - 16, right, 1);
+                    counts.Add((inUse ? "in use" : "first open") + ": " + browse.Count + " rows of 32, " + inputs.Count + " inputs of 30, name right edge " + right);
+                }
+            });
+            counts.ForEach(output.WriteLine);
+        }
+
+        private static IEnumerable<DependencyObject> Visuals(DependencyObject root)
+        {
+            for (int at = 0; at < VisualTreeHelper.GetChildrenCount(root); at++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(root, at);
+                yield return child;
+                foreach (DependencyObject below in Visuals(child))
+                {
+                    yield return below;
+                }
+            }
         }
 
         [Fact]

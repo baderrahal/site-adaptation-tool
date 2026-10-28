@@ -59,7 +59,8 @@ namespace SiteAdaptation.AddIn
         {
             data.FrameworkElement = new SitePanePage(model);
             data.VisibleByDefault = true;
-            // Revit has no start width for a docked pane, its least width is the one lever, docs/design/09-risks.md open item 1
+            // DockablePaneState of Revit 2024 gives a docked pane MinimumWidth only, 200 by default, and a size for a floating pane
+            // only, so the least width is the one lever for the 380 the spec starts the pane at, docs/design/09-risks.md open item 1
             data.InitialState = new DockablePaneState
             {
                 DockPosition = DockPosition.Right,
