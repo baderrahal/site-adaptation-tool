@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using SiteAdaptation.Common;
 
-namespace SiteAdaptation.AddIn.Flow
+namespace SiteAdaptation.Common.Flow
 {
     // R382, R347. What a body sees of its run. Every file it writes goes to <name>.tmp-<run id> first: in a dry run under the dry
     // folder, in the real run beside its name, moved onto the name after the commit
@@ -81,7 +80,8 @@ namespace SiteAdaptation.AddIn.Flow
                 }
                 catch (Exception failure) when (failure is IOException || failure is UnauthorizedAccessException)
                 {
-                    // A name holding .tmp- is never read, and a later run of R347 deletes it
+                    // The file stays under its .tmp- name, which no reader takes. Nothing deletes it later yet (steps/lane-b.md,
+                    // latent findings of 5a PR 5 review)
                 }
             }
         }

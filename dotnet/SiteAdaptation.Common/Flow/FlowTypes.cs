@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace SiteAdaptation.AddIn.Flow
+namespace SiteAdaptation.Common.Flow
 {
     // R382. An input of a button as the pane names it, a file or a folder. Path is null or empty when the user has not chosen it
     public sealed class RunInput

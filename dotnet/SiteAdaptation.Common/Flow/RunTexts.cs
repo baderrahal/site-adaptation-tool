@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SiteAdaptation.AddIn.Flow
+namespace SiteAdaptation.Common.Flow
 {
     // R382. Every text the flow shows a user, in one place for the text test of docs/design/12-ui-spec.md
     public static class RunTexts

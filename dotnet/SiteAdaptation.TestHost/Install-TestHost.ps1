@@ -75,10 +75,12 @@ $manifests = @(
     (Install-Manifest (Join-Path $repo 'dotnet\SiteAdaptation.TestHost\SiteAdaptationTestHost_Revit2024.addin') 'SiteAdaptationTestHost_Revit2024.addin' (Join-Path $hostFolder 'SiteAdaptation.TestHost.dll'))
 )
 
-# Revit loads one SiteAdaptation.Common.dll for all three, so all must come from this build
+# Revit loads one SiteAdaptation.Common.dll for every add-in of the tool, so every folder of the tool under the add-ins root, the
+# SiteAdaptationAddIn of Install-SiteAdaptation.ps1 too, and the reader build must hold the Common of this build (R370)
+. (Join-Path $repo 'dotnet\SiteAdaptation.AddIn\InstallChecks.ps1')
 $built = (Get-FileHash (Join-Path $placer 'SiteAdaptation.Common.dll')).Hash
-$hashes = @((Get-FileHash (Join-Path $readerFolder 'SiteAdaptation.Common.dll')).Hash, (Get-FileHash (Join-Path $placerFolder 'SiteAdaptation.Common.dll')).Hash, (Get-FileHash (Join-Path $watcherFolder 'SiteAdaptation.Common.dll')).Hash, (Get-FileHash (Join-Path $reader 'SiteAdaptation.Common.dll')).Hash)
-$same = @($hashes | Where-Object { $_ -ne $built }).Count -eq 0
+$stale = @(Get-StaleCommons $addins $built)
+$same = $stale.Count -eq 0 -and (Get-FileHash (Join-Path $reader 'SiteAdaptation.Common.dll')).Hash -eq $built
 
 # Revit asks once per add-in with no signature whether to load it, and keeps the answer under CodeSigning.
 # The install only reports that answer and never writes the key. Bader answers the question in Revit
@@ -104,7 +106,7 @@ foreach ($folder in @($readerFolder, $placerFolder, $hostFolder, $watcherFolder)
         e = { $leaf }
     }, Name, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 200 | Out-Host
 }
-"SiteAdaptation.Common.dll the same in the reader, the placer, the watcher and the build: $same"
+"SiteAdaptation.Common.dll the same in every folder of the tool and the build: $same"
 if (-not $same) {
-    throw 'The Common DLLs differ, run the install again with Revit closed.'
+    throw ('The Common DLLs differ, run the install of each add-in again with Revit closed. Not this build: ' + ($stale -join ', '))
 }

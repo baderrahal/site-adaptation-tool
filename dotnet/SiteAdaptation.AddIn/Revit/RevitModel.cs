@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using SiteAdaptation.AddIn.Flow;
+using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.AddIn.Revit
 {

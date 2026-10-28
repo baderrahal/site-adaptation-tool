@@ -4,9 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using SiteAdaptation.Common;
 
-namespace SiteAdaptation.AddIn.Flow
+namespace SiteAdaptation.Common.Flow
 {
     // R382, docs/design/03a-buttons-shared-and-1.md Steps. A file input is hashed by its content. A folder input, Road surface and
     // Prototypes, by the list of its files with name, size and last write time, since their content is over a gigabyte
@@ -40,15 +39,6 @@ namespace SiteAdaptation.AddIn.Flow
         public static string New(int button, DateTime time)
         {
             return button.ToString(CultureInfo.InvariantCulture) + "_" + time.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture);
-        }
-    }
-
-    // R382. The body of each button. In 5a none is built, so each stops with the text of R371 through the flow
-    public static class Bodies
-    {
-        public static ButtonBody Of(int number)
-        {
-            return new ButtonBody { NotBuilt = RunTexts.NotBuilt(RibbonLayout.Button(number).Label) };
         }
     }
 }

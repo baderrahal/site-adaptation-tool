@@ -1,16 +1,18 @@
 #Requires -Version 7
 # R370, docs/design/08-install.md. Installs the add-in for this user only. Every path lies under the add-ins root of %APPDATA%, so no
-# admin right is needed, and the script reads and writes no registry key (R106). Revit must be closed, it holds the DLLs open.
-# -AddinsRoot, -AddInBuild, -WorkerBuild and -RevitRunning let a test run it against a temporary folder and planted builds
+# admin right is needed, and the script reads and writes no registry key (R106). Revit 2024 must be closed, it holds the DLLs open.
+# Revit 2023 and 2025 may run, they load no add-in of this folder.
+# -AddinsRoot, -AddInBuild, -WorkerBuild and -RevitProcesses let a test run it against a temporary folder and planted builds
 param(
     [switch]$NoBuild,
     [string]$AddinsRoot = (Join-Path $env:APPDATA 'Autodesk\Revit\Addins\2024'),
     [string]$AddInBuild = '',
     [string]$WorkerBuild = '',
-    [scriptblock]$RevitRunning = { [bool](Get-Process -Name Revit -ErrorAction SilentlyContinue) }
+    [scriptblock]$RevitProcesses = { Get-RevitProcesses }
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'InstallChecks.ps1')
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 if (-not $AddInBuild) {
     $AddInBuild = Join-Path $repo 'dotnet\SiteAdaptation.AddIn\bin\Release\net48'
@@ -20,15 +22,21 @@ if (-not $WorkerBuild) {
 }
 $common = 'SiteAdaptation.Common.dll'
 
-if (& $RevitRunning) {
-    throw 'Revit is running. Close it before the install.'
+function Assert-Revit2024Closed {
+    if (@(Select-Revit2024 (& $RevitProcesses)).Count -gt 0) {
+        throw 'Revit 2024 is running. Close it before the install.'
+    }
 }
+
+Assert-Revit2024Closed
 if (-not $NoBuild) {
     & dotnet build (Join-Path $repo 'dotnet\SiteAdaptation.sln') -c Release | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw 'The build failed, nothing was installed.'
     }
 }
+# Revit may have started during the build, so the check runs again right before the first copy
+Assert-Revit2024Closed
 
 $addInFolder = Join-Path $AddinsRoot 'SiteAdaptationAddIn'
 $workerFolder = Join-Path $addInFolder 'Worker'
@@ -63,10 +71,10 @@ $manifestPath = Join-Path $AddinsRoot 'SiteAdaptationAddIn_Revit2024.addin'
 $manifest.Save($manifestPath)
 
 # Revit loads one Common for every add-in of the tool, the first it meets, so every folder of the tool gets the Common of this
-# build. A copy that fails, such as onto a Common a running worker holds open, is left to the check below
+# build. A Common a running worker holds open has already stopped the script at the Worker copy above. A copy that fails here,
+# onto the Common of another add-in of the tool, is caught, and the check below names the file and stops the script
 $built = (Get-FileHash -LiteralPath (Join-Path $AddInBuild $common)).Hash
-$found = @(Get-ChildItem -LiteralPath $AddinsRoot -Directory | Where-Object { $_.Name -like 'SiteAdaptation*' } |
-    ForEach-Object { Get-ChildItem -LiteralPath $_.FullName -Recurse -File -Filter $common })
+$found = @(Get-ToolCommons $AddinsRoot)
 $failed = @()
 foreach ($file in $found) {
     if ((Get-FileHash -LiteralPath $file.FullName).Hash -eq $built) {
@@ -79,7 +87,7 @@ foreach ($file in $found) {
         $failed += "$($file.FullName): $($_.Exception.Message)"
     }
 }
-$differ = @($found | Where-Object { (Get-FileHash -LiteralPath $_.FullName).Hash -ne $built } | ForEach-Object { $_.FullName })
+$differ = @(Get-StaleCommons $AddinsRoot $built)
 
 Get-ChildItem -LiteralPath $addInFolder -File -Recurse | Select-Object @{
     n = 'Folder'

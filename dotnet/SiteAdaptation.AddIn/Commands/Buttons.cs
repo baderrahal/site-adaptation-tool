@@ -1,7 +1,7 @@
 using System;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using SiteAdaptation.AddIn.Flow;
+using SiteAdaptation.Common.Flow;
 using SiteAdaptation.AddIn.Revit;
 
 namespace SiteAdaptation.AddIn
@@ -22,12 +22,21 @@ namespace SiteAdaptation.AddIn
         {
             Document document = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
             var flow = new ButtonFlow(State, new RevitModel(document), new TaskDialogConfirm(), InputHash.Of, () => RunIds.New(number, DateTime.Now));
-            RunOutcome outcome = flow.Run(number, Bodies.Of(number), document == null ? null : document.PathName);
+            RunOutcome outcome = flow.Run(number, RibbonLayout.Button(number).Label, Bodies.Of(number), document == null ? null : document.PathName);
             if (outcome.Message != null)
             {
                 TaskDialog.Show(RibbonLayout.Tab, outcome.Message);
             }
             return outcome.End == RunEnd.Cancelled ? Result.Cancelled : Result.Succeeded;
+        }
+    }
+
+    // R382. The body of each button. In 5a none is built, so each stops with the text of R371 through the flow
+    public static class Bodies
+    {
+        public static ButtonBody Of(int number)
+        {
+            return new ButtonBody { NotBuilt = RunTexts.NotBuilt(RibbonLayout.Button(number).Label) };
         }
     }
 }

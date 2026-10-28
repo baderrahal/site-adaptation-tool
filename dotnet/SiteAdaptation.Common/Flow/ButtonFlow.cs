@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using SiteAdaptation.Common;
 
-namespace SiteAdaptation.AddIn.Flow
+namespace SiteAdaptation.Common.Flow
 {
     // R382, docs/design/03a-buttons-shared-and-1.md What every button shares. The run of a button with no Revit type: the stops, the
     // confirm after a dry run or a count, the one transaction of the real run and the moves after its commit
@@ -25,9 +24,9 @@ namespace SiteAdaptation.AddIn.Flow
             this.newRunId = newRunId;
         }
 
-        public RunOutcome Run(int number, ButtonBody body, string documentPath)
+        // The label is the one of the ribbon, such as "4 Place villas", given by the add-in
+        public RunOutcome Run(int number, string label, ButtonBody body, string documentPath)
         {
-            string label = RibbonLayout.Button(number).Label;
             if (body.NotBuilt != null)
             {
                 return Stop(body.NotBuilt);

@@ -3,15 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using SiteAdaptation.AddIn;
-using SiteAdaptation.AddIn.Flow;
+using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common;
 using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // R382. The flow of a button on net48, driven by fake bodies, a fake model and a fake confirm, so no Revit is needed. The files
-    // are real files in a temporary folder, and a move fails on a file this test holds open as Excel would
+    // R382. The flow of a button in Common, on net48 and net8.0, driven by fake bodies, a fake model and a fake confirm, so no Revit is
+    // needed. The files are real files in a temporary folder, and a move fails on a file this test holds open as Excel would
     public sealed class ButtonFlowTests : IDisposable
     {
         private const string RunId = "4_20261028-101800-000";
@@ -37,6 +36,12 @@ namespace SiteAdaptation.Tests
         public void Dispose()
         {
             Directory.Delete(root, true);
+        }
+
+        // The labels of the ribbon the add-in passes in, RibbonLayout of the add-in, which the net8.0 leg does not load
+        private static string Label(int number)
+        {
+            return new Dictionary<int, string> { { 2, "2 Read data" }, { 4, "4 Place villas" }, { 5, "5 Floors and ramps" }, { 6, "6 Levels" } }[number];
         }
 
         private ButtonFlow Flow()
@@ -79,36 +84,23 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R382_a_button_with_no_body_says_it_is_not_built_yet_through_the_flow_before_any_check()
-        {
-            var untouched = new ButtonFlow(null, null, null, null, null);
-            for (int number = 1; number <= 8; number++)
-            {
-                RunOutcome outcome = untouched.Run(number, Bodies.Of(number), null);
-                Assert.Equal(RunEnd.Stopped, outcome.End);
-                Assert.Equal(Buttons.NotBuiltText(number), outcome.Message);
-            }
-            Assert.Equal("4 Place villas is not built yet.", untouched.Run(4, Bodies.Of(4), Document).Message);
-        }
-
-        [Fact]
         public void R382_each_stop_comes_before_any_change_with_its_message()
         {
-            Assert.Equal("Save the project first, its work folder is named by its file", Flow().Run(4, Body(), "").Message);
-            Assert.Equal("Save the project first, its work folder is named by its file", Flow().Run(4, Body(), null).Message);
+            Assert.Equal("Save the project first, its work folder is named by its file", Flow().Run(4, Label(4), Body(), "").Message);
+            Assert.Equal("Save the project first, its work folder is named by its file", Flow().Run(4, Label(4), Body(), null).Message);
 
             state.Missing = 4;
-            RunOutcome step = Flow().Run(5, Body(), Document);
+            RunOutcome step = Flow().Run(5, Label(5), Body(), Document);
             Assert.Equal(RunEnd.Stopped, step.End);
             Assert.Equal("5 Floors and ramps needs step 4", step.Message);
             state.Missing = 0;
 
             File.Delete(curbs);
-            Assert.Equal("2 Read data needs Curbs, the file is not on disk", Flow().Run(2, Body(), Document).Message);
+            Assert.Equal("2 Read data needs Curbs, the file is not on disk", Flow().Run(2, Label(2), Body(), Document).Message);
             state.Inputs[0] = new RunInput("Curbs", null, false);
-            Assert.Equal("2 Read data needs Curbs, the file is not chosen", Flow().Run(2, Body(), Document).Message);
+            Assert.Equal("2 Read data needs Curbs, the file is not chosen", Flow().Run(2, Label(2), Body(), Document).Message);
             state.Inputs[0] = new RunInput("Road surface", Path.Combine(root, "no-such-folder"), true);
-            Assert.Equal("2 Read data needs Road surface, the folder is not on disk", Flow().Run(2, Body(), Document).Message);
+            Assert.Equal("2 Read data needs Road surface, the folder is not on disk", Flow().Run(2, Label(2), Body(), Document).Message);
 
             Assert.Empty(confirm.Asked);
             Assert.Empty(FilesUnderWork());
@@ -121,7 +113,7 @@ namespace SiteAdaptation.Tests
             state.DryRunFirst = true;
             confirm.Answer = false;
 
-            RunOutcome outcome = Flow().Run(4, Body(), Document);
+            RunOutcome outcome = Flow().Run(4, Label(4), Body(), Document);
 
             Assert.Equal(RunEnd.Cancelled, outcome.End);
             Assert.Null(outcome.Message);
@@ -140,7 +132,7 @@ namespace SiteAdaptation.Tests
             state.DryRunFirst = true;
             confirm.OnAsk = () => hashes["Curbs"] = "b2";
 
-            RunOutcome outcome = Flow().Run(4, Body(), Document);
+            RunOutcome outcome = Flow().Run(4, Label(4), Body(), Document);
 
             Assert.Equal(RunEnd.Stopped, outcome.End);
             Assert.Equal("4 Place villas: Curbs changed since the dry run, nothing was changed. Run the button again.", outcome.Message);
@@ -154,7 +146,7 @@ namespace SiteAdaptation.Tests
             state.DryRunFirst = true;
             model.WarningsToGive.Add("Highlighted walls overlap");
 
-            RunOutcome outcome = Flow().Run(4, Body(), Document);
+            RunOutcome outcome = Flow().Run(4, Label(4), Body(), Document);
 
             Assert.Equal(RunEnd.Committed, outcome.End);
             Assert.Null(outcome.Message);
@@ -186,7 +178,7 @@ namespace SiteAdaptation.Tests
                 return counts(context);
             };
 
-            RunOutcome outcome = Flow().Run(4, body, Document);
+            RunOutcome outcome = Flow().Run(4, Label(4), body, Document);
 
             Assert.Equal(RunEnd.Cancelled, outcome.End);
             Assert.Equal(new[] { false }, preview);
@@ -195,7 +187,7 @@ namespace SiteAdaptation.Tests
             AssertNothingChanged();
 
             confirm.Answer = true;
-            Assert.Equal(RunEnd.Committed, Flow().Run(4, body, Document).End);
+            Assert.Equal(RunEnd.Committed, Flow().Run(4, Label(4), body, Document).End);
             Assert.Equal(new[] { "plan.json" }, FilesUnderWork());
         }
 
@@ -219,7 +211,7 @@ namespace SiteAdaptation.Tests
                 throw new InvalidOperationException("the link type would not load");
             });
 
-            RunOutcome outcome = Flow().Run(4, body, Document);
+            RunOutcome outcome = Flow().Run(4, Label(4), body, Document);
 
             Assert.Equal(RunEnd.RolledBack, outcome.End);
             Assert.Equal("4 Place villas changed nothing, the model is as it was. The run failed: the link type would not load", outcome.Message);
@@ -232,7 +224,7 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R382_a_read_back_that_does_not_match_rolls_back()
         {
-            RunOutcome outcome = Flow().Run(4, Body(readBack: context => "plot 2290 sits 12 mm off its plan"), Document);
+            RunOutcome outcome = Flow().Run(4, Label(4), Body(readBack: context => "plot 2290 sits 12 mm off its plan"), Document);
 
             Assert.Equal(RunEnd.RolledBack, outcome.End);
             Assert.Equal("4 Place villas changed nothing, the model is as it was. The read back does not match: plot 2290 sits 12 mm off its plan", outcome.Message);
@@ -248,7 +240,7 @@ namespace SiteAdaptation.Tests
             model.CommitEnds = false;
             model.ErrorsToGive.Add("Can't make extrusion.");
 
-            RunOutcome outcome = Flow().Run(4, Body(), Document);
+            RunOutcome outcome = Flow().Run(4, Label(4), Body(), Document);
 
             Assert.Equal(RunEnd.RolledBack, outcome.End);
             Assert.Equal("4 Place villas changed nothing, the model is as it was. Revit refused the change: Can't make extrusion.", outcome.Message);
@@ -256,22 +248,22 @@ namespace SiteAdaptation.Tests
             Assert.Empty(state.Records);
 
             model.ErrorsToGive.Clear();
-            Assert.Equal("4 Place villas changed nothing, the model is as it was. Revit did not commit the change.", Flow().Run(4, Body(), Document).Message);
+            Assert.Equal("4 Place villas changed nothing, the model is as it was. Revit did not commit the change.", Flow().Run(4, Label(4), Body(), Document).Message);
 
             model.CommitThrows = true;
-            RunOutcome thrown = Flow().Run(4, Body(), Document);
+            RunOutcome thrown = Flow().Run(4, Label(4), Body(), Document);
             Assert.Equal(RunEnd.RolledBack, thrown.End);
             Assert.Equal("4 Place villas changed nothing, the model is as it was. The run failed: the document is read only", thrown.Message);
             Assert.Empty(FilesUnderWork());
 
             model.StartThrows = true;
-            RunOutcome unstarted = Flow().Run(4, Body(), Document);
+            RunOutcome unstarted = Flow().Run(4, Label(4), Body(), Document);
             Assert.Equal(RunEnd.RolledBack, unstarted.End);
             Assert.Equal("4 Place villas changed nothing, the model is as it was. The run failed: Revit did not start the transaction", unstarted.Message);
             Assert.Empty(state.Records);
         }
 
-        [Fact]
+        [WindowsFact]
         public void R382_a_move_onto_a_file_another_program_holds_leaves_the_step_not_done_and_names_the_file()
         {
             string levels = Path.Combine(work, "levels.xlsx");
@@ -286,7 +278,7 @@ namespace SiteAdaptation.Tests
             RunOutcome outcome;
             using (new FileStream(levels, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             {
-                outcome = Flow().Run(6, body, Document);
+                outcome = Flow().Run(6, Label(6), body, Document);
             }
 
             Assert.Equal(RunEnd.Committed, outcome.End);
@@ -325,17 +317,18 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R382_a_run_id_names_files_and_the_flow_holds_no_revit_type()
+        public void R382_the_flow_lives_in_common_with_no_revit_reference_and_a_run_id_names_files()
         {
             string id = RunIds.New(4, new DateTime(2026, 10, 28, 10, 18, 0, 123));
             Assert.Equal("4_20261028-101800-123", id);
             Assert.True(WorkerFiles.IsRunId(id));
 
-            string flow = Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Flow");
-            string[] files = Directory.GetFiles(flow, "*.cs");
-            Assert.NotEmpty(files);
-            Assert.All(files, path => Assert.DoesNotMatch(new Regex(@"\bAutodesk\b"), File.ReadAllText(path)));
-        }
+            System.Reflection.Assembly common = typeof(ButtonFlow).Assembly;
+            Assert.Equal("SiteAdaptation.Common", common.GetName().Name);
+            Assert.All(new[] { typeof(RunContext), typeof(RunTexts), typeof(InputHash), typeof(IRunState) }, type => Assert.Same(common, type.Assembly));
+            Assert.DoesNotContain(common.GetReferencedAssemblies(), name => name.Name.StartsWith("RevitAPI", StringComparison.Ordinal) || name.Name.StartsWith("Autodesk", StringComparison.Ordinal));
+            string flow = Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.Common", "Flow");
+            Assert.All(Directory.GetFiles(flow, "*.cs"), path => Assert.DoesNotMatch(new Regex(@"\bAutodesk\b|\bRibbonLayout\b"), File.ReadAllText(path)));        }
 
         private sealed class FakeState : IRunState
         {

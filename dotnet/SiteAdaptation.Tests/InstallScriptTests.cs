@@ -55,11 +55,25 @@ namespace SiteAdaptation.Tests
             return "'" + text.Replace("'", "''") + "'";
         }
 
-        // Runs the install with -NoBuild and the check of a running Revit given, and gives its exit code and what it printed
-        private Tuple<int, string> Install(bool revitRunning)
+        private const string NoRevit = "@()";
+        private const string Revit2023 = "@([pscustomobject]@{ Path = 'C:\\Program Files\\Autodesk\\Revit 2023\\Revit.exe'; Major = 23 })";
+        private const string Revit2024 = "@([pscustomobject]@{ Path = 'C:\\Program Files\\Autodesk\\Revit 2024\\Revit.exe'; Major = 24 })";
+
+        private static string Checks()
         {
-            string text = "& " + Quoted(Script()) + " -NoBuild -AddinsRoot " + Quoted(addins) + " -AddInBuild " + Quoted(addInBuild)
-                + " -WorkerBuild " + Quoted(workerBuild) + " -RevitRunning { $" + (revitRunning ? "true" : "false") + " }";
+            return Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "InstallChecks.ps1");
+        }
+
+        // Runs the install with -NoBuild and the running Revit processes the body of a scriptblock gives, and gives its exit code and
+        // what it printed
+        private Tuple<int, string> Install(string processes, string before = "")
+        {
+            return Pwsh(before + "& " + Quoted(Script()) + " -NoBuild -AddinsRoot " + Quoted(addins) + " -AddInBuild " + Quoted(addInBuild)
+                + " -WorkerBuild " + Quoted(workerBuild) + " -RevitProcesses { " + processes + " }");
+        }
+
+        private static Tuple<int, string> Pwsh(string text)
+        {
             var info = new ProcessStartInfo("pwsh", "-NoProfile -NonInteractive -EncodedCommand " + Convert.ToBase64String(Encoding.Unicode.GetBytes(text)))
             {
                 UseShellExecute = false,
@@ -84,7 +98,7 @@ namespace SiteAdaptation.Tests
         [WindowsFact]
         public void R370_the_install_writes_the_addin_and_worker_folders_and_the_manifest_with_the_full_dll_path()
         {
-            Tuple<int, string> run = Install(false);
+            Tuple<int, string> run = Install(NoRevit);
             Assert.True(run.Item1 == 0, run.Item2);
 
             string folder = Path.Combine(addins, "SiteAdaptationAddIn");
@@ -129,7 +143,7 @@ namespace SiteAdaptation.Tests
         [WindowsFact]
         public void R370_the_install_copies_no_newtonsoft_into_the_addin_folder_and_no_config_file()
         {
-            Tuple<int, string> run = Install(false);
+            Tuple<int, string> run = Install(NoRevit);
             Assert.True(run.Item1 == 0, run.Item2);
 
             string folder = Path.Combine(addins, "SiteAdaptationAddIn");
@@ -138,13 +152,64 @@ namespace SiteAdaptation.Tests
         }
 
         [WindowsFact]
-        public void R370_the_install_refuses_while_revit_runs_and_writes_nothing()
+        public void R370_the_install_refuses_while_revit_2024_runs_and_writes_nothing_but_a_running_revit_2023_lets_it_install()
         {
-            Tuple<int, string> run = Install(true);
+            Tuple<int, string> run = Install(Revit2024);
+            Assert.NotEqual(0, run.Item1);
+            Assert.Contains("Revit 2024 is running. Close it before the install.", run.Item2);
+            Assert.Empty(Directory.GetFileSystemEntries(addins));
+
+            run = Install(Revit2023);
+            Assert.True(run.Item1 == 0, run.Item2);
+            Assert.True(File.Exists(Path.Combine(addins, "SiteAdaptationAddIn_Revit2024.addin")));
+        }
+
+        [WindowsFact]
+        public void R370_the_install_checks_revit_2024_again_after_the_build_right_before_the_first_copy()
+        {
+            Tuple<int, string> run = Install("$global:asked++\nif ($global:asked -ge 2) { " + Revit2024 + " } else { @() }", "$global:asked = 0\n");
 
             Assert.NotEqual(0, run.Item1);
-            Assert.Contains("Revit is running. Close it before the install.", run.Item2);
+            Assert.Contains("Revit 2024 is running. Close it before the install.", run.Item2);
             Assert.Empty(Directory.GetFileSystemEntries(addins));
+        }
+
+        [WindowsFact]
+        public void R370_revit_2024_is_told_by_its_version_or_its_folder_and_revit_2023_and_2025_are_not()
+        {
+            string list = "@("
+                + "[pscustomobject]@{ Path = 'C:\\Program Files\\Autodesk\\Revit 2023\\Revit.exe'; Major = 23 }, "
+                + "[pscustomobject]@{ Path = 'D:\\Apps\\Revit 2025\\Revit.exe'; Major = 25 }, "
+                + "[pscustomobject]@{ Path = 'D:\\Apps\\Revit\\Revit.exe'; Major = 24 }, "
+                + "[pscustomobject]@{ Path = 'C:\\Program Files\\Autodesk\\Revit 2024\\Revit.exe'; Major = $null }, "
+                + "[pscustomobject]@{ Path = $null; Major = $null })";
+            Tuple<int, string> run = Pwsh("$ErrorActionPreference = 'Stop'\n. " + Quoted(Checks()) + "\n(Select-Revit2024 " + list + " | ForEach-Object { [string]$_.Path + '|' + [string]$_.Major }) -join ';'");
+
+            Assert.True(run.Item1 == 0, run.Item2);
+            Assert.Equal(@"D:\Apps\Revit\Revit.exe|24;C:\Program Files\Autodesk\Revit 2024\Revit.exe|;|", run.Item2.Trim());
+        }
+
+        [WindowsFact]
+        public void R370_the_test_host_install_checks_one_common_in_every_folder_of_the_tool_the_addin_folder_too()
+        {
+            string built = Path.Combine(addInBuild, "SiteAdaptation.Common.dll");
+            string stale = Path.Combine(addins, "SiteAdaptationAddIn", "SiteAdaptation.Common.dll");
+            foreach (string folder in new[] { "SiteAdaptation", "SiteAdaptationPlacer", Path.Combine("SiteAdaptationTestHost", "Watcher"), Path.Combine("SiteAdaptationAddIn", "Worker"), "SiteAdaptationAddIn" })
+            {
+                Directory.CreateDirectory(Path.Combine(addins, folder));
+                File.Copy(built, Path.Combine(addins, folder, "SiteAdaptation.Common.dll"));
+            }
+            File.WriteAllText(stale, "the Common of an earlier add-in install");
+
+            Tuple<int, string> run = Pwsh("$ErrorActionPreference = 'Stop'\n. " + Quoted(Checks()) + "\n(Get-StaleCommons " + Quoted(addins) + " (Get-FileHash -LiteralPath " + Quoted(built) + ").Hash) -join ';'");
+            Assert.True(run.Item1 == 0, run.Item2);
+            Assert.Equal(stale, run.Item2.Trim());
+
+            string host = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.TestHost", "Install-TestHost.ps1"));
+            Assert.Contains(@". (Join-Path $repo 'dotnet\SiteAdaptation.AddIn\InstallChecks.ps1')", host);
+            Assert.Contains("$stale = @(Get-StaleCommons $addins $built)", host);
+            Assert.Matches(new Regex(@"\$same = \$stale\.Count -eq 0 -and "), host);
+            Assert.DoesNotContain("$hashes = @(", host);
         }
 
         [WindowsFact]
@@ -161,7 +226,7 @@ namespace SiteAdaptation.Tests
             }
             string built = FileHash.Sha256(Path.Combine(addInBuild, "SiteAdaptation.Common.dll"));
 
-            Tuple<int, string> run = Install(false);
+            Tuple<int, string> run = Install(NoRevit);
             Assert.True(run.Item1 == 0, run.Item2);
             Assert.All(new[] { reader, placer, watcher }, path => Assert.Equal(built, FileHash.Sha256(path)));
             Assert.Equal("a Common of an earlier build", File.ReadAllText(other));
@@ -170,7 +235,7 @@ namespace SiteAdaptation.Tests
             File.WriteAllText(placer, "a different Common");
             using (new FileStream(placer, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                run = Install(false);
+                run = Install(NoRevit);
             }
             Assert.NotEqual(0, run.Item1);
             Assert.Contains("The Common DLLs differ", run.Item2);
@@ -183,7 +248,7 @@ namespace SiteAdaptation.Tests
         {
             string[] lines = File.ReadAllLines(Script());
             Assert.Equal("#Requires -Version 7", lines[0]);
-            string code = string.Join("\n", lines.Where(line => !line.TrimStart().StartsWith("#", StringComparison.Ordinal)));
+            string code = string.Join("\n", lines.Concat(File.ReadAllLines(Checks())).Where(line => !line.TrimStart().StartsWith("#", StringComparison.Ordinal)));
             Assert.DoesNotMatch(new Regex(@"HKCU|HKLM|HKEY_|Registry|ItemProperty|reg(\.exe)?\s|Microsoft\.Win32", RegexOptions.IgnoreCase), code);
             Assert.DoesNotMatch(new Regex(@"Newtonsoft", RegexOptions.IgnoreCase), code);
         }
