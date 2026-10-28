@@ -478,11 +478,20 @@ namespace SiteAdaptation.Tests
             Assert.Equal("not saved", model.ProjectName);
             Assert.All(model.Steps, step => Assert.Equal(StepKind.None, step.Chip));
 
-            DocumentSession saved = sessions.Seen(key, Folder + "New Site.rvt", "New Site");
-            model.Load(saved);
+            session.Settings.ConfigFile = Folder + "project.json";
+            DocumentSession saved = sessions.SavedAs(key, Folder + "New Site.rvt", "New Site");
             Assert.Same(session, saved);
+            Assert.Equal(Folder + "New Site.rvt", saved.Path);
+            Assert.Equal(Folder + "project.json", saved.Settings.ConfigFile);
+            model.Load(saved);
             Assert.Equal("New Site", model.ProjectName);
-            Assert.Equal("Needs settings", model.Steps[0].ChipText);
+            Assert.Equal("Ready", model.Steps[0].ChipText);
+
+            // Review 2 of PR 90: a document the add-in does not know, a family or a linked one, gets no session on a save as
+            object family = new object();
+            Assert.Null(sessions.SavedAs(family, Folder + "Door.rfa", "Door"));
+            Assert.Null(sessions.Find(family));
+            Assert.Equal(1, sessions.Count);
         }
 
         [Fact]
@@ -593,15 +602,25 @@ namespace SiteAdaptation.Tests
                 ui.SetApartmentState(ApartmentState.STA);
                 ui.Start();
                 Assert.True(ready.Wait(TimeSpan.FromSeconds(10)));
+                // CI of PR 90 failed here twice: the hash queued on the thread pool did not run within 10 s while other tests held
+                // the pool. Every pool thread is held here on purpose, so the hash must take a thread of its own to end
+                var gate = new ManualResetEventSlim();
+                ThreadPool.GetMinThreads(out int poolThreads, out int ioThreads);
+                for (int at = 0; at < poolThreads + 64; at++)
+                {
+                    ThreadPool.QueueUserWorkItem(state => gate.Wait());
+                }
                 try
                 {
                     int postedFrom = 0;
+                    bool postedFromPool = true;
                     int doneOn = 0;
                     string hash = null;
                     var finished = new ManualResetEventSlim();
                     var probe = new DiskProbe(action =>
                     {
                         postedFrom = Thread.CurrentThread.ManagedThreadId;
+                        postedFromPool = Thread.CurrentThread.IsThreadPoolThread;
                         page.BeginInvoke(action);
                     });
                     SynchronizationContext previous = SynchronizationContext.Current;
@@ -619,14 +638,16 @@ namespace SiteAdaptation.Tests
                     {
                         SynchronizationContext.SetSynchronizationContext(previous);
                     }
-                    Assert.True(finished.Wait(TimeSpan.FromSeconds(10)));
+                    Assert.True(finished.Wait(TimeSpan.FromSeconds(10)), "the hash did not end, posted from thread " + postedFrom);
                     Assert.Equal(ui.ManagedThreadId, doneOn);
+                    Assert.False(postedFromPool);
                     Assert.NotEqual(ui.ManagedThreadId, postedFrom);
                     Assert.NotEqual(Thread.CurrentThread.ManagedThreadId, postedFrom);
                     Assert.Equal("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", hash);
                 }
                 finally
                 {
+                    gate.Set();
                     page.InvokeShutdown();
                     ui.Join();
                 }

@@ -122,9 +122,8 @@ namespace SiteAdaptation.AddIn
         // so DocumentSaved needs nothing
         private void OnSavedAs(object sender, DocumentSavedAsEventArgs e)
         {
-            if (e.Status == RevitAPIEventStatus.Succeeded && e.Document != null && sessions.Find(e.Document) != null)
+            if (e.Status == RevitAPIEventStatus.Succeeded && e.Document != null && sessions.SavedAs(e.Document, e.Document.PathName, e.Document.Title) != null)
             {
-                sessions.Seen(e.Document, e.Document.PathName, e.Document.Title);
                 Show(sender as Application);
             }
         }

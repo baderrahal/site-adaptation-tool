@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SiteAdaptation.AddIn.Pane
@@ -109,10 +110,13 @@ namespace SiteAdaptation.AddIn.Pane
             }
         }
 
+        // The hash takes a thread of its own, not one of the pool. A large drawing holds it for seconds, and on .NET Framework
+        // every running process whose output is redirected holds pool threads, so a hash queued on the pool waited past 10 s in
+        // CI run 40684259718 and 40690865729 of PR 90
         public void Hash(string path, bool folder, Action<string> done)
         {
             Action<Action> post = Post;
-            Task.Run(() =>
+            Task.Factory.StartNew(() =>
             {
                 string hash;
                 try
@@ -124,7 +128,7 @@ namespace SiteAdaptation.AddIn.Pane
                     hash = null;
                 }
                 post(() => done(hash));
-            });
+            }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         public IReadOnlyList<string> LevelProfiles(string rulesFile, out string fallback)

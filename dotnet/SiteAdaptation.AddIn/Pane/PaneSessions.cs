@@ -48,6 +48,20 @@ namespace SiteAdaptation.AddIn.Pane
             return session;
         }
 
+        // DocumentSavedAs: a document the add-in knows takes its new path and title and is shown again, with the same session and
+        // settings. One it does not know, as a family or a linked document, gets no session and nothing to show
+        public DocumentSession SavedAs(object key, string path, string title)
+        {
+            DocumentSession session = Find(key);
+            if (session == null)
+            {
+                return null;
+            }
+            session.Path = path;
+            session.Title = title;
+            return session;
+        }
+
         // The session leaves on DocumentClosing, while the Document is valid, since after the close Revit's Equals of it may be
         // false or throw. DocumentClosed gives only the id of DocumentClosing, and a close cancelled between the two puts the
         // session back on the same Document, still open
