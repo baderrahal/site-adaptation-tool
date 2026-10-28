@@ -90,7 +90,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("areas", fields["area"].Kind);
             Assert.Equal(3, fields["area"].Decimals);
             Assert.Equal("points", fields["centroid"].Kind);
-            Assert.Throws<InvalidDataException>(() => config.StepFields("walls"));
+            Assert.Throws<InvalidDataException>(() => config.StepFields("noSuchStep"));
         }
 
         [Fact]

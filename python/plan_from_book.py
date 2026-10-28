@@ -51,6 +51,7 @@ import project_profile
 import prototype_offsets
 import override_source
 import parity
+import plan_walls
 import ramp_outline
 import surface_lookup
 import value_status
@@ -60,9 +61,9 @@ ESTIMATE = "estimate"
 LOCATION = "locationPlan"
 OVERRIDE = "override"
 KEY_RULES = "keyRules"
-# R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R361 and R401 after the faces
-PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame", "levels", "floors", "overrides", "parameters", "status")
-BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "overrides", "parameters", "status")
+# R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R362 and R401 after the faces
+PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame", "levels", "floors", "walls", "overrides", "parameters", "status")
+BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "walls", "overrides", "parameters", "status")
 FOOTPRINT = "footprint"
 # R354, Q089. The one line a build and its C# refuse an analysis with, as a build takes the footprint clusters alone
 ANALYSIS_REFUSED = "the analysis is no input of a build since Q089, a build takes the footprint clusters of R236 alone (R354)"
@@ -820,11 +821,12 @@ def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=
 
 
 def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales=None, numbered=False, rules=None,
-          trace=None):
+          trace=None, walls_too=True):
     """R208. The plan of R80 for the plots numbers, every value from CAD, the data book and the new site file. R278 to R280: with
     rules the level profile, the hand rules and the overrides of the majority rule give the levels, the ramp type and the hand.
     main always gives rules (R277), rules None is the estimate of R209 that round Z4 built with. R345: trace, a dict, takes the fronts
-    and the snap the build took, for the build steps of the parity harness."""
+    and the snap the build took, for the build steps of the parity harness. R362: walls_too False leaves the walls out, as the build with no
+    override the status is held against needs none."""
     block = settings.get("siteBuild")
     floors_config = plan_from_past.load_floors(settings)
     steep = set(block["steepUnits"])
@@ -846,6 +848,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         if missing_zones:
             raise project_profile.ProfileError("keyRules.yard holds no yard for %s, an area missing from the table is refused and never given another value (R337)"
                                                % ", ".join("%s (%d plots, %s)" % (zone, len(plots), " ".join(plots[:5])) for zone, plots in sorted(missing_zones.items())))
+    # R362. The wall rules of the keys, a rule no build places walls by refused before any plot is built
+    wall_rules = plan_walls.wall_rules(key, rules["levelProfile"], rules["name"], profile, settings.get("keyPlans.wallEdgeM")) if key is not None and walls_too else None
     mine = [cluster for cluster in (clusters if numbered else numbered_clusters(clusters, number_of)) if set(cluster["plots"]) & set(numbers)]
     # R340. The other unit of a row pair shares the FFL, so its El @ Entry is worked out as well
     members = sorted({plot for cluster in mine for plot in cluster["plots"]} | set(numbers) | {partners[number] for number in numbers if number in partners},
@@ -915,7 +919,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                 outcomes.left(number, "heightM", "no FFL to move, " + ("no road level at a front corner" if front[number]["front"] is None else "the height rule gives none"))
     inputs = {"outlines": outlines, "step": floor_fit.width_step(settings), "levels": site["levels"], "floors": floors_config, "bands": outlines["rampTypes"]["bands"]}
     plots, missing, lacking, surface_count, no_level, book_check, no_road = [], [], Counter(), Counter(), [], Counter(), []
-    not_measured, not_measured_plots, records, hand_rules = {}, Counter(), {}, Counter()
+    not_measured, not_measured_plots, records, hand_rules, applied_of = {}, Counter(), {}, Counter(), {}
     # R401. The status of each sourced value from the block status of the rules profile, the map and the block read once per build
     statuses = value_status.table_of(settings, profile, None if rules is None else rules["name"])
     by_rule = {}
@@ -923,7 +927,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         # Q107, R3 of the review of PR 75. The plots as the build gives them with no override, so a field an override left at its value by
         # the rule names no override
         plain = build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales,
-                      numbered, dict(rules, overrides={}))
+                      numbered, dict(rules, overrides={}), walls_too=False)
         by_rule = {entry["plot"]: entry for entry in plain["plots"]}
     if trace is not None:
         trace["statusFrom"] = statuses.used
@@ -1083,13 +1087,30 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         if complete:
             if records[number]:
                 builder.entry["overrides"] = records[number]
-            value_status.mark(builder.entry, statuses, table, outcomes.in_order(number, records[number]["applied"]) if records[number] else (), by_rule.get(number))
+            applied_of[number] = outcomes.in_order(number, records[number]["applied"]) if records[number] else ()
+            value_status.mark(builder.entry, statuses, table, applied_of[number], by_rule.get(number))
             if rules is not None:
                 hand_rules[str(rule)] += 1
             plots.append(builder.entry)
         if builder.missing:
             missing.append({"plot": number, "written": complete, "missing": builder.missing, **({"overrides": records[number]} if records[number] and not complete else {})})
             lacking.update(entry["key"] for entry in builder.missing)
+    walls = []
+    if wall_rules is not None:
+        # R362. The boundary walls of the written plots on the faces of the whole site, on the FFL after the overrides at the decimals of the plan
+        written = {entry["plot"]: entry for entry in plots}
+        rings = {plot: list(shape.exterior.coords)[:-1] for plot, shape in faces.items() if shape is not None and shape.geom_type == "Polygon"}
+        ffls = {plot: common.fixed(entry["levels"]["ffl"]["value"], plan_rules.FFL_DECIMALS) for plot, entry in written.items()
+                if (entry.get("levels") or {}).get("ffl", {}).get("value") is not None}
+        # Breaker F2 of PR 79. The open edge after the overrides, the front of R355 or the edge a rotation override turned the link to face
+        opened = {plot: plan_walls.open_edge(rings[plot], (frames[plot]["left"], frames[plot]["right"]), entry["rotationDeg"]["value"], entry["mirrored"]["value"],
+                                             "rotationDeg" in (applied_of.get(plot) or ())) for plot, entry in written.items() if frames.get(plot) and plot in rings}
+        for wall in plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules):
+            item = plan_walls.entry(wall)
+            plan_walls.mark(item, wall, statuses, applied_of, written, by_rule, wall_rules)
+            walls.append(item)
+    if trace is not None:
+        trace["walls"] = walls
     survey = site["surveyPoint"]
     return {
         "format": plan_from_past.FORMAT,
@@ -1113,6 +1134,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             "frontLevelAgainstPlotsCsv": dict(book_check),
             "floorsFound": {kind: sum(1 for entry in plots if kind in entry["floors"]) for kind in plan_from_past.FLOOR_KINDS},
             "floorTypes": dict(sorted(Counter(kind + ": " + floor["type"]["value"] for entry in plots for kind, floor in entry["floors"].items()).items())),
+            # R362. The boundary walls by the number of plots they stand on and by field and status, none with no wall rules of the keys
+            "walls": None if wall_rules is None else plan_walls.summary(walls, statuses.used),
             "rules": None if rules is None else {"levelProfile": rules["name"], "overrideSource": rules["sources"], "overrideModel": rules.get("models", []),
                                                 "applied": dict(sorted(Counter(field for found in records.values() if found for field in found["applied"]).items())),
                                                 **value_status.summary(plots, (settings.get("valueStatus") or {}).get("assumed"), statuses.used),
@@ -1127,6 +1150,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                                                     else {"from": "stepBands of the level profile " + rules["name"], "parameters": sorted(stepped)})},
         },
         "plots": plots,
+        # R362. The boundary walls, each value with its source and status
+        "walls": walls,
         "missing": missing,
         "conflicts": [],
     }
@@ -1476,6 +1501,8 @@ def main(argv=None):
             write_build_step(args, settings, "linkFrame", links, {"rotationDeg": plan_from_past.plan_rotation})
             write_build_step(args, settings, "levels", level_step(cover["plots"], rows, trace, rules, profile))
             write_build_step(args, settings, "floors", floor_step(cover["plots"], rows, trace, links, rules, profile, floor_fit.width_step(settings)))
+            walls, tables = plan_walls.step(cover["plots"], rows, trace)
+            write_build_step(args, settings, "walls", walls, tables=tables)
             write_build_step(args, settings, "overrides", override_step(cover["plots"], rows, trace, hands, files, rules, profile, floor_fit.width_step(settings)),
                              {"rotationDeg": plan_from_past.plan_rotation})
             write_build_step(args, settings, "parameters", parameter_step(cover["plots"], rows, trace, rules))
@@ -1528,6 +1555,9 @@ def summary_lines(summary, name, named):
     for zone, found in (rules.get("yardNotMeasured") or {}).items():
         lines.append("yard of %s on %d plots not measured on a key: %s (R337)" % (zone, found["plots"], found["why"]))
     lines.append("plots written %d of %d, missing %s" % (summary["written"], summary["plots"], summary["missingByKey"]))
+    if summary.get("walls"):
+        lines.append("boundary walls %d, by the plots they stand on %s, by field and status %s (R362)" % (
+            summary["walls"]["walls"], summary["walls"]["byPlots"], summary["walls"]["statusByField"]))
     if summary.get("skipped"):
         lines.append("plots the skip list of the override list leaves out %d: %s (R386)" % (len(summary["skipped"]), " ".join(summary["skipped"][:10])))
     lines.append("in a cluster %d, clusters %d with %d plots" % (summary["inACluster"], summary["clusters"], summary["clusterPlots"]))

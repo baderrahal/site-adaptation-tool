@@ -12,12 +12,11 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## Done
 
-- 4g2 so far: PR 74 records, PR 75 Q105, Q107 and the build memory, PR 77 records and Q109 to Q113 closed
+- 4g2 so far: PR 74 records, PR 75 Q105, Q107 and the build memory, PR 77 records, PR 78 Q109 and Q110, PR 79 the walls of R362
 - 4g1: PR 69 records, PR 70 Q098, Q099, PR 71 the status block, PR 72 the status in the plan, PR 73 records. AUDIT-RULES: PR 67, 68. 4f: PR 61 to 66
 - REC, PR 56 to 60: rules, design and round file in parts, questions-open.md, latent.md, CLAUDE.md to 9 KB, R400, START.md
-- ADDIN 4e, PR 55: R354 to R357, parity on net48 and net8.0 with 0 failures, the proof 0 unexplained on 7 keys
+- ADDIN 4e, PR 55: R354 to R357, parity on net48 and net8.0 with 0 failures, the proof 0 unexplained on 7 keys. Round 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. Earlier: PR 1 to 32
 - ADDIN 4d, PR 54: R351 to R353. 4c, PR 53: R348 to R350. Q081 and Q073, PR 52. 4b, PR 51. 4a, PR 50. 3b to 0a, PR 41 to 49
-- Round 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. Earlier rounds: PRs 1 to 32
 
 ## Open bugs
 
@@ -52,9 +51,10 @@ Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario
 Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
 Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
 Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
+Q114 Fields following the Q017 hand of 2302. Q115 Wall extent along an edge. Q116 Ramp and wall of 18 turned plots.
 
 ## Next three steps
 
-1. ADDIN 4g2: Q109, Q110, the walls of R362 and the check rows of R363 with the grouped chip Assumed of Q108. Bader pastes steps/START.md
+1. ADDIN 4g2: the check rows of R363 with the grouped chip Assumed of Q108. Bader pastes steps/START.md
 2. ADDIN 4g3: Q112 and Q113 first, then R364 the level Excel and R365 the report Excel with the sheet Assumed, one session by steps/START.md
 3. ADDIN 4h: R366 to R369, one session by steps/START.md

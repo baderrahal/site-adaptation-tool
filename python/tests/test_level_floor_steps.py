@@ -248,5 +248,5 @@ def test_r358_r359_the_config_names_the_fields_of_the_steps_levels_and_floors_by
         "unit": ("noGeometry", None), "generic": ("points", 3), "rampOutline": ("points", 3), "rampZ": ("levels", 3), "rampClass": ("noGeometry", None),
         "rampType": ("noGeometry", None), "yardDepth": ("levels", 3), "yardUnit": ("noGeometry", None), "yardWidth": ("points", 3), "yardType": ("noGeometry", None),
         "yardOutline": ("points", 3), "lacks": ("noGeometry", None)}
-    assert plan_from_book.BUILD_STEPS == ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "overrides", "parameters", "status")
+    assert plan_from_book.BUILD_STEPS == ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "walls", "overrides", "parameters", "status")
     assert "floors" in plan_from_book.PROTOTYPE_STEPS and "levels" not in plan_from_book.PROTOTYPE_STEPS

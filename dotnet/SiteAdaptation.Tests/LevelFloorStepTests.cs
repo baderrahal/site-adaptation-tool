@@ -311,7 +311,7 @@ namespace SiteAdaptation.Tests
                 string.Join(" ", config.StepFields(KeyLevels.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
             Assert.Equal("unit:noGeometry generic:points3 rampOutline:points3 rampZ:levels3 rampClass:noGeometry rampType:noGeometry yardDepth:levels3 yardUnit:noGeometry "
                 + "yardWidth:points3 yardType:noGeometry yardOutline:points3 lacks:noGeometry", string.Join(" ", config.StepFields(FloorOutlines.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
-            Assert.Equal("clusters fronts hands linkFrame levels floors overrides parameters status", string.Join(" ", BuildSteps.Names));
+            Assert.Equal("clusters fronts hands linkFrame levels floors walls overrides parameters status", string.Join(" ", BuildSteps.Names));
         }
 
         private string ReadFile(string name, string role, string source, JObject content)
@@ -391,7 +391,8 @@ namespace SiteAdaptation.Tests
             {
                 inputs.Add(Input(WorkerRunner.RoadSurfaceRole + name, place++ == 0 ? Surface(name, -60.0, -20.0, 100.0, 30.0, 10.0) : Surface(name, 1000.0, 1000.0, 1010.0, 1010.0, 99.0)));
             }
-            if (steps.Contains(FloorOutlines.StepName) || steps.Contains(PlanOverrides.StepName) || steps.Contains(LinkParameters.StepName) || steps.Contains(ValueStatus.StepName))
+            if (steps.Contains(FloorOutlines.StepName) || steps.Contains(PlanOverrides.StepName) || steps.Contains(LinkParameters.StepName) || steps.Contains(ValueStatus.StepName)
+                || steps.Contains(Walls.StepName))
             {
                 foreach (string name in new[] { Dp2File, Vd2File })
                 {

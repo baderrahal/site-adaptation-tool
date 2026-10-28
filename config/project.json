@@ -678,6 +678,17 @@
             "yardOutline": {"kind": "points", "decimals": 3},
             "lacks": {"kind": "noGeometry"}
         },
+        "walls": {
+            "unit": {"kind": "noGeometry"},
+            "written": {"kind": "noGeometry"},
+            "edges": {"kind": "noGeometry"},
+            "plots": {"kind": "noGeometry"},
+            "ends": {"kind": "points", "decimals": 3},
+            "base": {"kind": "levels", "decimals": 3},
+            "top": {"kind": "levels", "decimals": 3},
+            "levelPlots": {"kind": "noGeometry"},
+            "status": {"kind": "noGeometry"}
+        },
         "overrides": {
             "unit": {"kind": "noGeometry"},
             "skip": {"kind": "noGeometry"},
@@ -755,11 +766,15 @@
       "floors.ramp.plotValue": {"computed": [{"status": "DOCUMENT", "document": "the location plan, labels.csv of the data book"}]},
       "floors.ramp.corners": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampFront.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.rampOutline.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}]},
       "floors.ramp.heightOffset": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampFront.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}, {"status": "UNKNOWN", "why": "the elevation of the level of the floor in the new site file, which heightOffset is computed from and no block entry maps (R401, Q107)"}]},
-      "floors.ramp.slopePercent": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampSlope.rule"}]}
+      "floors.ramp.slopePercent": {"estimate": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampSlope.rule"}]},
+      "walls.plots": {"locationPlan": [{"status": "DOCUMENT", "document": "the location plan, labels.csv of the data book"}, {"config": "keyPlans.wallEdgeM"}]},
+      "walls.ends": {"keyRules": [{"profile": "levelProfiles.{levelProfile}.keyRules.wallLine.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.frontOpen.rule"}, {"config": "keyPlans.wallEdgeM"}, {"status": "UNKNOWN", "why": "no key rule measures where a boundary wall starts and ends along its edge, a build runs it along the whole edge or part of it another face meets (R362)"}]},
+      "walls.base": {"keyRules": [{"profile": "levelProfiles.{levelProfile}.keyRules.wallBase.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"profile": "levelProfiles.{levelProfile}.yardBelowFflM"}]},
+      "walls.top": {"keyRules": [{"profile": "levelProfiles.{levelProfile}.keyRules.wallTop.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"profile": "rev6.boundary_wall_top_above_ffl"}]}
     },
     "overrideSets": {
       "entryM": ["levels.entry", "levels.height", "levels.steps", "parameters.RRE_ZZ_SP_Number-of-Steps", "parameters.RRE_ZZ_SP_RVT-Name", "linkName", "floors.ramp.corners", "floors.ramp.heightOffset"],
-      "heightM": ["levels.ffl", "levels.ssl", "levels.height", "levels.steps", "insert", "floors.generic.z", "floors.generic.heightOffset", "floors.yard.z", "floors.yard.heightOffset", "parameters.RRE_ZZ_SP_Prototype-FFL", "parameters.RRE_ZZ_SP_Number-of-Steps", "parameters.RRE_ZZ_SP_RVT-Name", "linkName"],
+      "heightM": ["levels.ffl", "levels.ssl", "levels.height", "levels.steps", "insert", "floors.generic.z", "floors.generic.heightOffset", "floors.yard.z", "floors.yard.heightOffset", "parameters.RRE_ZZ_SP_Prototype-FFL", "parameters.RRE_ZZ_SP_Number-of-Steps", "parameters.RRE_ZZ_SP_RVT-Name", "linkName", "walls.base", "walls.top"],
       "steps": ["levels.steps", "parameters.RRE_ZZ_SP_Number-of-Steps", "parameters.RRE_ZZ_SP_RVT-Name", "linkName"],
       "rampFrontM": ["floors.ramp.corners", "floors.ramp.heightOffset"],
       "rampType": ["floors.ramp.type"],
@@ -778,6 +793,8 @@
         "floors.ramp.heightOffset": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampFront.rule"}, {"status": "UNKNOWN", "why": "the elevation of the level of the floor in the new site file, which heightOffset is computed from and no block entry maps (R401, Q107)"}]
       },
       "heightM": {
+        "walls.base": [{"profile": "levelProfiles.{levelProfile}.keyRules.wallBase.rule"}, {"profile": "levelProfiles.{levelProfile}.yardBelowFflM"}],
+        "walls.top": [{"profile": "levelProfiles.{levelProfile}.keyRules.wallTop.rule"}, {"profile": "rev6.boundary_wall_top_above_ffl"}],
         "levels.ssl": [{"profile": "levelProfiles.{levelProfile}.keyRules.ssl.rule"}],
         "levels.height": [{"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}],
         "levels.steps": [{"profile": "levelProfiles.{levelProfile}.keyRules.steps.rule"}, {"profile": "steps.riser_added"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}],
@@ -813,7 +830,7 @@
         "floors.yard.outline": [{"profile": "levelProfiles.{levelProfile}.keyRules.yardOutline.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.linkOrigin.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.hand {hand}.rule"}]
       }
     },
-    "movedBy": {"floors.generic.z": "levels.ffl", "floors.generic.heightOffset": "levels.ffl", "floors.yard.heightOffset": "floors.yard.z", "floors.ramp.heightOffset": "floors.ramp.corners lowest"},
+    "movedBy": {"floors.generic.z": "levels.ffl", "floors.generic.heightOffset": "levels.ffl", "floors.yard.heightOffset": "floors.yard.z", "floors.ramp.heightOffset": "floors.ramp.corners lowest", "walls.base": "levels.ffl", "walls.top": "levels.ffl"},
     "assumed": ["RECOMMENDED", "CHOSEN by Code", "UNKNOWN", "MEASURED weak"],
     "worstFirst": ["UNKNOWN", "CHOSEN by Code", "RECOMMENDED", "MEASURED weak"]
   }

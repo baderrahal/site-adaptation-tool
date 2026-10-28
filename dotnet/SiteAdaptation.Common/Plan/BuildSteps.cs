@@ -13,7 +13,7 @@ namespace SiteAdaptation.Common
     // the clusters are those of the footprint blocks alone. Every number of a JSON input is the nearest double of its text, as Python reads it, and each input is read once per run
     public static class BuildSteps
     {
-        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName, LinkFrames.StepName, KeyLevels.StepName, FloorOutlines.StepName, PlanOverrides.StepName, LinkParameters.StepName, ValueStatus.StepName };
+        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName, LinkFrames.StepName, KeyLevels.StepName, FloorOutlines.StepName, Walls.StepName, PlanOverrides.StepName, LinkParameters.StepName, ValueStatus.StepName };
 
         public static readonly string[] ClusterRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead" };
 
@@ -33,7 +33,7 @@ namespace SiteAdaptation.Common
         // R358. The floors read the levels and the link of the hand, so the prototype files as well
         public static readonly string[] FloorRoles = LevelRoles.Concat(new[] { PrototypeRole + "*" }).ToArray();
 
-        // R360, R361. The overrides and the parameters read the inputs of the floors and the override list of the project
+        // R360, R361, R362. The overrides, the parameters and the walls read the inputs of the floors and the override list of the project
         public static readonly string[] OverrideRoles = FloorRoles.Concat(new[] { "overrides" }).ToArray();
 
         // What the build steps read, each input read when a step first needs it
@@ -354,7 +354,7 @@ namespace SiteAdaptation.Common
                     run.Counts["fronts with no road level of a unit plot"] = fronts.Values.Count(item => item.Unit != null && item.Front == null);
                     made[Fronts.StepName] = Fronts.Step(site.Numbers, fronts, surfaces.Select(surface => surface.Name).ToList(), snap);
                 }
-                bool planned = asked.Contains(PlanOverrides.StepName) || asked.Contains(LinkParameters.StepName) || asked.Contains(ValueStatus.StepName);
+                bool planned = asked.Contains(PlanOverrides.StepName) || asked.Contains(LinkParameters.StepName) || asked.Contains(ValueStatus.StepName) || asked.Contains(Walls.StepName);
                 bool linked = asked.Contains(Hands.StepName) || asked.Contains(LinkFrames.StepName) || asked.Contains(FloorOutlines.StepName) || planned;
                 bool leveled = asked.Contains(KeyLevels.StepName) || asked.Contains(FloorOutlines.StepName) || planned;
                 if (linked || leveled)
@@ -397,11 +397,14 @@ namespace SiteAdaptation.Common
                             // plan_from_book.build refuses a unit plot of a zone keyRules.yard holds no yard for, before any step file
                             FloorOutlines.CheckZones(site.Numbers, site.Rows, key);
                         }
+                        WallRules wallRules = null;
                         if (planned)
                         {
                             // R360, R386. The override list as plan_rules.load_overrides loads it, its skip plots plots of plots.csv, before any step file
                             list = PlanOverrides.Load(run.Input("overrides"), site.Settings, levelProfile, profileName, Path.GetFileName(run.Input("config")));
                             PlanOverrides.SkipPlotsKnown(list.Skip, site.Rows, "the skip list of the override list: ");
+                            // R362. The wall rules of the keys, a rule no build places walls by refused before any step file, as plan_from_book.build refuses it
+                            wallRules = Walls.Rules(key, levelProfile, profileName, site.Rules, site.RulesName, site.Settings["keyPlans"]?["wallEdgeM"]);
                         }
                         // R359. The fronts of the plots whose levels the build works out, with the road levels of the surfaces of the level profile
                         ReadSettings read = ReadSettings.Load(run.Input("config"));
@@ -440,15 +443,31 @@ namespace SiteAdaptation.Common
                                 made[LinkParameters.StepName] = LinkParameters.Step(site.Numbers, plans);
                                 run.Counts["plots with link parameters"] = plans.Values.Count(plan => plan.Parameters["parameters"] != null);
                             }
+                            Dictionary<string, PlotPlan> rulePlans = null;
+                            if ((asked.Contains(ValueStatus.StepName) || (asked.Contains(Walls.StepName) && wallRules != null)) && list.Found.Count > 0)
+                            {
+                                // Q107, R3 of the review of PR 75. The plots with no override, so a field an override left at its value by the rule
+                                // names no override, as plan_from_book.build builds them
+                                rulePlans = PlanOverrides.Of(site.Numbers, site.Rows, build, fronts, context, hands, key, levelProfile, site.Rules, site.Settings, files,
+                                    new OverrideList(new Dictionary<string, JObject>()), profileName, FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), site.RulesName);
+                            }
+                            if (asked.Contains(Walls.StepName))
+                            {
+                                // R362. The boundary walls of the written plots on the faces of the whole site and the fronts of the build, after the overrides
+                                ValueStatusTable table = ValueStatus.Table(site.Settings, site.Rules, profileName);
+                                List<PlanWall> walls = wallRules == null ? new List<PlanWall>() : Walls.OfPlans(site.Numbers, plans, site.Faces, fronts, wallRules);
+                                foreach (PlanWall wall in walls)
+                                {
+                                    Walls.Mark(wall, table, plans, rulePlans, wallRules);
+                                }
+                                made[Walls.StepName] = Walls.Step(site.Numbers, plans, walls);
+                                tables[Walls.StepName] = Walls.Tables(walls, table);
+                                run.Counts["walls of the scope"] = walls.Count;
+                            }
                             if (asked.Contains(ValueStatus.StepName))
                             {
                                 // R401. The status of each sourced value of a written plot, by the map of the settings and the block of the rules profile
                                 ValueStatusTable table = ValueStatus.Table(site.Settings, site.Rules, profileName);
-                                // Q107, R3 of the review of PR 75. The plots with no override, so a field an override left at its value by the rule
-                                // names no override, as plan_from_book.build builds them
-                                Dictionary<string, PlotPlan> rulePlans = list.Found.Count == 0 ? null : PlanOverrides.Of(site.Numbers, site.Rows, build, fronts, context, hands, key,
-                                    levelProfile, site.Rules, site.Settings, files, new OverrideList(new Dictionary<string, JObject>()), profileName,
-                                    FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), site.RulesName);
                                 made[ValueStatus.StepName] = ValueStatus.Step(site.Numbers, plans, hands, table, rulePlans);
                                 tables[ValueStatus.StepName] = ValueStatus.Tables(made[ValueStatus.StepName], table);
                                 foreach (KeyValuePair<Tuple<string, string>, int> count in ValueStatus.Counts(made[ValueStatus.StepName], table))
