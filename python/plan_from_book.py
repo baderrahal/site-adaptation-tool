@@ -924,9 +924,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     # R401. The status of each sourced value from the block status of the rules profile, the map and the block read once per build
     statuses = value_status.table_of(settings, profile, None if rules is None else rules["name"])
     by_rule = {}
-    if rules is not None and rules.get("overrides"):
-        # Q107, R3 of the review of PR 75. The plots as the build gives them with no override, so a field an override left at its value by
-        # the rule names no override
+    if rules is not None and rules.get("overrides") and wall_rules is not None:
+        # Breaker F3 of PR 79. The plots as the build gives them with no override, whose FFL picks the plot of the base and the top of a wall
+        # by the rule, so an override of that plot touched them (Q112)
         plain = build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales,
                       numbered, dict(rules, overrides={}), walls_too=False)
         by_rule = {entry["plot"]: entry for entry in plain["plots"]}
@@ -1089,7 +1089,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             if records[number]:
                 builder.entry["overrides"] = records[number]
             applied_of[number] = outcomes.in_order(number, records[number]["applied"]) if records[number] else ()
-            value_status.mark(builder.entry, statuses, table, applied_of[number], by_rule.get(number))
+            value_status.mark(builder.entry, statuses, table, applied_of[number])
             if rules is not None:
                 hand_rules[str(rule)] += 1
             plots.append(builder.entry)

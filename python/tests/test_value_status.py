@@ -103,13 +103,46 @@ def test_r401_q107_a_missing_status_order_or_one_holding_an_unknown_status_is_re
     assert set(value_status.LABELS) == set(rule_status.ORDER) | {"MEASURED weak", "MEASURED strong"}
 
 
-def test_r401_q107_the_detail_names_the_override_applied_last_whose_set_holds_the_field():
-    """Q107. applied in the order the build applied them: the last whose set holds the field moved the value, as heightM sets the height
-    after entryM moved El @ Entry, where the first applied override was named."""
+def test_r401_q107_q112_the_detail_names_the_overrides_in_the_order_the_build_applied_them():
+    """Q107, Q112. applied in the order the build applied them, each override whose set holds the field named in that order, as heightM sets
+    the height after entryM moved El @ Entry."""
     table = made_table(shape={"overrideSets": {"entryM": ["levels.entry", "levels.height"], "heightM": ["levels.ffl", "levels.height", "insert"]}})
-    assert table.of("levels.height", "estimate", applied=["entryM", "heightM"])[1:] == ({"entries": [OVERRIDE], "override": "heightM"}, "levels.height from override by heightM")
-    assert table.of("levels.height", "estimate", applied=["heightM", "entryM"])[2] == "levels.height from override by entryM"
+    assert table.of("levels.height", "estimate", applied=["entryM", "heightM"])[1:] == (
+        {"entries": [OVERRIDE, FFL], "overrides": ["entryM", "heightM"]}, "levels.height from override by entryM heightM")
+    assert table.of("levels.height", "estimate", applied=["heightM", "entryM"])[2] == "levels.height from override by heightM entryM"
     assert table.of("levels.entry", "estimate", applied=["entryM", "heightM"])[2] == "levels.entry from override by entryM"
+
+
+def test_r401_q112_a_value_names_every_applied_override_whose_set_holds_its_field_in_the_order_applied():
+    """Q112 (Bader, 2026-10-28), the fallback: one more build per override added more than 20 percent to the time of a build of the 7 keys, so
+    a value names every applied override whose set holds its field, the overrides that touched its inputs, in the order the build applied
+    them, each once, and takes the worst of the override status and the entries each of them still reads, each entry once."""
+    ffl, entry = {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}
+    table = made_table(shape={"overrideSets": {"entryM": ["levels.entry", "levels.height"], "heightM": ["levels.ffl", "levels.height", "insert"]},
+                              "overrideReads": {"entryM": {"levels.height": [ffl]}, "heightM": {"levels.height": [entry, ffl]}}})
+    assert table.of("levels.height", "estimate", applied=["entryM", "heightM"]) == (
+        "RECOMMENDED", {"entries": [OVERRIDE, FFL, ENTRY], "overrides": ["entryM", "heightM"]}, "levels.height from override by entryM heightM")
+    assert table.of("levels.height", "estimate", applied=["heightM", "entryM"])[1:] == (
+        {"entries": [OVERRIDE, ENTRY, FFL], "overrides": ["heightM", "entryM"]}, "levels.height from override by heightM entryM")
+    assert table.of("levels.entry", "estimate", applied=["entryM", "heightM"])[2] == "levels.entry from override by entryM"
+    # The overrides of the two plots of a wall may repeat one, which is named once
+    assert table.of("levels.ffl", "estimate", applied=["heightM", "entryM", "heightM"])[1:] == ({"entries": [OVERRIDE], "overrides": ["heightM"]},
+                                                                                                "levels.ffl from override by heightM")
+    assert table.of("levels.ffl", "estimate", applied=["entryM"])[2] == "levels.ffl from estimate"
+
+
+def test_r401_q113_a_value_an_override_touched_takes_the_worst_of_its_inputs_at_its_value_with_no_override(monkeypatch):
+    """Q113 (Bader, 2026-10-28): a value an applied override touched takes the worst status of its inputs and names the override, also when it
+    equals its value with no override, where the equality rule of PR 75 review pass 1 left it its own list. A heightM gap of 0 leaves the FFL of
+    2 at the rule and still names heightM, as the levels.height of 448 and the Prototype-FFL of 441 on the real list."""
+    import inspect
+    assert "unmoved" not in inspect.signature(value_status.Table.of).parameters and not hasattr(value_status, "unmoved")
+    plan = made_row(monkeypatch, {"2": {"heightM": {"gapToRuleM": 0.0}}, "3": {"heightM": {"gapToRuleM": 0.1}}})["plan"]
+    assert plan["2"]["overrides"]["applied"] == ["heightM"]
+    assert (plan["2"]["levels"]["ffl"]["status"], plan["2"]["levels"]["ffl"]["statusFrom"]) == ("RECOMMENDED", "levels.ffl from override by heightM")
+    assert plan["2"]["levels"]["steps"]["statusFrom"] == "levels.steps from override by heightM"
+    assert plan["2"]["parameters"]["RRE_ZZ_SP_Prototype-FFL"]["statusFrom"] == "parameters.RRE_ZZ_SP_Prototype-FFL from override by heightM"
+    assert plan["3"]["levels"]["ffl"]["statusFrom"] == "levels.ffl from override by heightM"
 
 
 def test_r401_an_override_and_a_client_input_take_the_status_the_map_gives_their_source():
@@ -120,11 +153,11 @@ def test_r401_an_override_and_a_client_input_take_the_status_the_map_gives_their
 
 def test_r401_an_override_marks_every_field_it_moves_with_the_status_of_the_override_list():
     table = made_table()
-    assert table.of("levels.entry", "estimate", applied=["entryM", "heightM"]) == ("RECOMMENDED", {"entries": [OVERRIDE], "override": "entryM"},
+    assert table.of("levels.entry", "estimate", applied=["entryM", "heightM"]) == ("RECOMMENDED", {"entries": [OVERRIDE], "overrides": ["entryM"]},
                                                                                   "levels.entry from override by entryM")
     assert table.of("levels.height", "estimate", applied=["entryM"])[0] == "RECOMMENDED"
     # heightM moves the Z of the insert through the FFL
-    assert table.of("insert", "computed", hand="alone", applied=["heightM"])[1] == {"entries": [OVERRIDE], "override": "heightM"}
+    assert table.of("insert", "computed", hand="alone", applied=["heightM"])[1] == {"entries": [OVERRIDE], "overrides": ["heightM"]}
     # An override that moves other fields leaves the value its own status
     assert table.of("levels.ffl", "estimate", applied=["entryM"])[0] == "MEASURED"
 
@@ -197,7 +230,7 @@ MADE_BLOCK = {KEY + "entry.rule": WEAK, KEY + "ffl.rule": STRONG, KEY + "steps.r
 MADE_CONFIG_BLOCK = {"floors.types.generic": {"status": "UNKNOWN", "why": "made up", "nearestSource": "floors.note"}}
 # The plots of the made row by field and status with MADE, the made block and the map of config/project.json, which ValueStatusTests.cs holds the same.
 # Since Q107 the steps and the fields of the steps read steps.riser_added and each heightOffset the elevation of its level, which the made
-# block lacks or no entry maps, so they are UNKNOWN as the worst, and a field an override left at its value by the rule names no override
+# block lacks or no entry maps, so they are UNKNOWN as the worst, and since Q113 a field an override touched names it at any value
 MADE_COUNTS = ("floors.generic.heightOffset:UNKNOWN=6 floors.generic.level:UNKNOWN=6 floors.generic.levelElevation:UNKNOWN=6 "
                "floors.generic.outline:UNKNOWN=6 floors.generic.plotValue:DOCUMENT=6 floors.generic.type:UNKNOWN=6 "
                "floors.generic.z:UNKNOWN=6 floors.ramp.corners:UNKNOWN=6 floors.ramp.heightOffset:UNKNOWN=6 floors.ramp.level:UNKNOWN=6 "
@@ -253,14 +286,14 @@ def test_r401_each_sourced_value_of_a_written_plot_holds_its_status_by_its_sourc
     # 2 moved by its entryM override, which takes the status of the override list with its key
     moved = plan["2"]["levels"]["entry"]
     assert (moved["source"], moved["status"], moved["statusFrom"]) == ("estimate", "RECOMMENDED", "levels.entry from override by entryM")
-    assert detail(built, moved) == {"entries": [{"status": "RECOMMENDED", "question": "Q053", "where": "steps/investigations/rule-status-audit.md section 6"}], "override": "entryM"}
+    assert detail(built, moved) == {"entries": [{"status": "RECOMMENDED", "question": "Q053", "where": "steps/investigations/rule-status-audit.md section 6"}], "overrides": ["entryM"]}
     # The hand of 3 by the table of hand cluster, 4 by its mirror flag override with its CASE, the CASE of 2 by its override
     assert detail(built, plan["3"]["mirrored"])["entries"][0]["entry"] == name + " " + KEY + "hand cluster.rule"
-    assert [(plan["4"][field]["status"], detail(built, plan["4"][field]).get("override")) for field in ("mirrored", "insert", "rotationDeg")] == [
-        ("RECOMMENDED", None), ("RECOMMENDED", "mirrored"), ("RECOMMENDED", "mirrored")]
+    assert [(plan["4"][field]["status"], detail(built, plan["4"][field]).get("overrides")) for field in ("mirrored", "insert", "rotationDeg")] == [
+        ("RECOMMENDED", None), ("RECOMMENDED", ["mirrored"]), ("RECOMMENDED", ["mirrored"])]
     assert plan["4"]["parameters"]["CASE"]["status"] == "RECOMMENDED" and plan["2"]["parameters"]["CASE"]["source"] == "override"
     # The FFL of 3 moved by heightM moves the Z of its insert and its Prototype-FFL
-    assert detail(built, plan["3"]["insert"])["override"] == "heightM" and plan["3"]["parameters"]["RRE_ZZ_SP_Prototype-FFL"]["source"] == "override"
+    assert detail(built, plan["3"]["insert"])["overrides"] == ["heightM"] and plan["3"]["parameters"]["RRE_ZZ_SP_Prototype-FFL"]["source"] == "override"
     assert plan["1"]["unit"]["status"] == "DOCUMENT" and plan["1"]["prototypeFile"]["status"] == "UNKNOWN"
     assert all(item["statusFrom"] in built["detail"] for entry in built["plots"] for item in value_status.fields_of(entry).values())
 
@@ -291,13 +324,13 @@ def test_r401_q107_review1_a_field_an_override_moved_but_the_code_still_computes
     strong = {"status": "MEASURED", "share": 0.97, "strength": "strong"}
     block = {KEY + name: dict(strong) for name in ("steps.rule", "entry.rule", "ffl.rule")}
     status, detail, key = real_table(block).of("levels.steps", "estimate", applied=["heightM"])
-    assert (status, key, detail["override"]) == ("UNKNOWN", "levels.steps from override by heightM", "heightM")
+    assert (status, key, detail["overrides"]) == ("UNKNOWN", "levels.steps from override by heightM", ["heightM"])
     assert [entry["status"] for entry in detail["entries"]] == ["RECOMMENDED", "MEASURED", "UNKNOWN", "MEASURED"]
     assert real_table(dict(block, **{"steps.riser_added": dict(strong)})).of("levels.steps", "estimate", applied=["heightM"])[0] == "RECOMMENDED"
     status, detail, _ = real_table(block).of("levels.ffl", "estimate", applied=["heightM"])
     assert status == "RECOMMENDED" and len(detail["entries"]) == 1
     # The made map: entryM recomputes the height from the FFL
-    assert made_table().of("levels.height", "estimate", applied=["entryM"])[:2] == ("RECOMMENDED", {"entries": [OVERRIDE, FFL], "override": "entryM"})
+    assert made_table().of("levels.height", "estimate", applied=["entryM"])[:2] == ("RECOMMENDED", {"entries": [OVERRIDE, FFL], "overrides": ["entryM"]})
 
 
 def test_r401_q107_review1_an_override_reads_list_of_another_shape_or_of_a_field_its_set_does_not_hold_is_refused_with_one_line():
@@ -308,49 +341,31 @@ def test_r401_q107_review1_an_override_reads_list_of_another_shape_or_of_a_field
         with pytest.raises(project_profile.ProfileError) as refused:
             made_table(shape={"overrideReads": reads})
         assert str(refused.value) == line % held
-    with pytest.raises(project_profile.ProfileError) as refused:
-        made_table(shape={"movedBy": {"levels.height": 3}})
-    assert str(refused.value) == "valueStatus.movedBy maps a field to the field whose value tells whether an override moved it, the settings hold {\"levels.height\": 3} (R401)"
 
 
-def test_r401_q107_review1_an_override_that_leaves_a_field_at_its_value_by_the_rule_did_not_move_it():
-    """R3 of the review of PR 75: a field an applied override holds in its set but leaves equal to the value the build gives with no override
-    keeps its own list and names no override."""
-    table = made_table()
-    assert table.of("levels.height", "estimate", applied=["entryM"], unmoved=True) == table.of("levels.height", "estimate")
-
-
-def test_r401_q107_review1_the_build_names_no_override_for_a_value_it_left_at_the_rule(monkeypatch):
-    """R3 of the review of PR 75 on the made row: a heightM gap of 0 leaves the FFL of 2 at the rule, a gap of 0.1 moves that of 3."""
-    plan = made_row(monkeypatch, {"2": {"heightM": {"gapToRuleM": 0.0}}, "3": {"heightM": {"gapToRuleM": 0.1}}})["plan"]
-    assert plan["2"]["overrides"]["applied"] == ["heightM"] and plan["2"]["levels"]["ffl"]["statusFrom"] == "levels.ffl from estimate"
-    assert plan["2"]["levels"]["steps"]["statusFrom"] == "levels.steps from estimate"
-    assert plan["3"]["levels"]["ffl"]["statusFrom"] == "levels.ffl from override by heightM"
-
-
-def test_r401_q107_review1_the_yard_outline_names_the_insert_override_applied_after_the_mirror_flag(monkeypatch):
-    """R4 of the review of PR 75: the build applies the mirror flag before the insert, where the sorted list puts insert first, so the yard
-    outline both move names insert, the last applied. The insert itself is of the source override."""
+def test_r401_q107_q112_the_yard_outline_names_the_mirror_flag_and_the_insert_in_the_order_the_build_applied_them(monkeypatch):
+    """R4 of the review of PR 75, Q112: the build applies the mirror flag before the insert, where the sorted list puts insert first, so the
+    yard outline both touch names the two in that order. The insert itself is of the source override."""
     plan = made_row(monkeypatch, {"4": {"mirrored": False, "insert": {"gapToRuleM": [0.3, -0.2]}}})["plan"]
     assert plan["4"]["overrides"]["applied"] == ["insert", "mirrored"]
-    assert plan["4"]["floors"]["yard"]["outline"]["statusFrom"].endswith(" by insert")
+    assert plan["4"]["floors"]["yard"]["outline"]["statusFrom"].endswith(" by mirrored insert")
     assert plan["4"]["insert"]["statusFrom"] == "insert from override"
 
 
-def test_r401_q107_the_build_names_the_override_that_moved_the_value_by_the_order_it_applied_them(monkeypatch):
-    """Q107. entryM moves El @ Entry first, then heightM sets the FFL and the height with the steps, a steps override the steps, and rampFrontM
-    the front corners of the ramp, so each value names the override applied last whose set holds its field, never the first of the sorted list."""
+def test_r401_q107_q112_the_build_names_the_overrides_that_touched_the_value_in_the_order_it_applied_them(monkeypatch):
+    """Q107, Q112, Q113. entryM moves El @ Entry first, then heightM sets the FFL and the height with the steps, a steps override the steps, and
+    rampFrontM the front corners of the ramp, so each value names every override whose set holds its field in that order, never the sorted
+    list, also the step count of 2, which both left at the count of the rule."""
     both = {"2": {"entryM": {"gapToRuleM": 0.05}, "heightM": {"gapToRuleM": 0.1}}, "5": {"entryM": {"gapToRuleM": 0.05}, "steps": "4"},
             "6": {"entryM": {"gapToRuleM": 0.05}, "rampFrontM": {"gapToRuleM": -0.05}}}
     plan = made_row(monkeypatch, both)["plan"]
     assert plan["2"]["overrides"]["applied"] == ["entryM", "heightM"] and plan["6"]["overrides"]["applied"] == ["entryM", "rampFrontM"]
     by = {(number, field): item["statusFrom"].rpartition(" by ")[2] for number in ("2", "5", "6") for field, item in value_status.fields_of(plan[number]).items()
           if " by " in item["statusFrom"]}
-    assert by[("2", "levels.entry")] == "entryM" and by[("2", "levels.height")] == by[("2", "levels.ffl")] == "heightM"
-    # The step count of 2 stays that of the rule under both, so neither moved it (R3 of the review of PR 75)
-    assert ("2", "levels.steps") not in by and ("2", "linkName") not in by
-    assert by[("5", "levels.steps")] == by[("5", "parameters.RRE_ZZ_SP_RVT-Name")] == "steps" and by[("5", "levels.height")] == "entryM"
-    assert by[("6", "floors.ramp.heightOffset")] == by[("6", "floors.ramp.corners")] == "rampFrontM" and by[("6", "levels.entry")] == "entryM"
+    assert by[("2", "levels.entry")] == "entryM" and by[("2", "levels.height")] == "entryM heightM" and by[("2", "levels.ffl")] == "heightM"
+    assert by[("2", "levels.steps")] == by[("2", "linkName")] == "entryM heightM"
+    assert by[("5", "levels.steps")] == by[("5", "parameters.RRE_ZZ_SP_RVT-Name")] == "entryM steps" and by[("5", "levels.height")] == "entryM"
+    assert by[("6", "floors.ramp.heightOffset")] == by[("6", "floors.ramp.corners")] == "entryM rampFrontM" and by[("6", "levels.entry")] == "entryM"
 
 
 def test_r401_q107_the_outcomes_give_the_applied_overrides_of_a_plot_in_the_order_the_build_applied_them():
@@ -448,19 +463,6 @@ def test_r401_the_config_names_the_fields_of_the_step_status_and_the_step_takes_
     assert all(isinstance(fields, list) and fields for fields in block["overrideSets"].values())
     import rule_status
     assert {label.split(" ")[0] if label.startswith("MEASURED") else label for label in block["assumed"]} <= set(rule_status.ORDER)
-
-
-def test_r401_q107_review1_a_ramp_height_offset_is_held_by_its_lowest_corner_which_an_entry_gap_may_leave_as_it_was():
-    """R3 of the review of PR 75: the heightOffset of a ramp is its lowest corner less the elevation of its level, so an entryM gap that moves
-    the back corners above the front leaves it at its value by the rule, held by movedBy at the lowest Z of the corners."""
-    table = real_table({})
-    assert table.moved_by["floors.ramp.heightOffset"] == "floors.ramp.corners lowest"
-    front = [[0.0, 0.0, 10.0], [1.0, 0.0, 10.1]]
-    moved = {"floors.ramp.corners": {"value": front + [[1.0, 5.0, 10.4], [0.0, 5.0, 10.3]]}}
-    rule = {"floors.ramp.corners": {"value": front + [[1.0, 5.0, 10.35], [0.0, 5.0, 10.25]]}}
-    assert value_status.unmoved("floors.ramp.heightOffset", moved, rule, table) and not value_status.unmoved("floors.ramp.corners", moved, rule, table)
-    lower = {"floors.ramp.corners": {"value": [[0.0, 0.0, 9.95]] + moved["floors.ramp.corners"]["value"][1:]}}
-    assert not value_status.unmoved("floors.ramp.heightOffset", lower, rule, table)
 
 
 # Q110 (Bader, 2026-10-28). The entries valueStatus of config/project.json lists for prototypeFile: the unit of the location plan, the file of

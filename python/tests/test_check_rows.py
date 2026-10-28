@@ -113,7 +113,7 @@ def unmapped(field):
 
 DETAILS = {
     "levels.ffl from estimate": {"entries": [{"entry": FFL, "status": "MEASURED", "share": 0.7465, "strength": "weak"}], "strength": "weak"},
-    "levels.ffl from override by heightM": {"entries": [{"status": "RECOMMENDED", "question": "Q053", "where": "a made up place"}], "override": "heightM"},
+    "levels.ffl from override by heightM": {"entries": [{"status": "RECOMMENDED", "question": "Q053", "where": "a made up place"}], "overrides": ["heightM"]},
     "floors.generic.heightOffset from estimate": {"entries": [{"entry": "rules/r.json levelProfiles.p.keyRules.generic.rule", "status": "MEASURED", "share": 0.99,
                                                                "strength": "strong"}, {"entry": FFL, "status": "MEASURED", "share": 0.7465, "strength": "weak"},
                                                               {"status": "UNKNOWN", "why": ELEVATION}]},

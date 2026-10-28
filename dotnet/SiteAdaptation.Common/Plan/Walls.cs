@@ -370,10 +370,10 @@ namespace SiteAdaptation.Common
             return Written(plan) && ffl.HasValue ? Rounding.Fixed(ffl.Value, 3) : (double?)null;
         }
 
-        // plan_walls.mark: the status of each value of a wall, the base and the top held against the pick of the rule, the plot of the highest or
-        // lowest FFL of the plots of the wall with no override: a value at that FFL keeps its own list, and one an override moved, by the FFL of its
-        // plot or by the pick, names the override applied last on the two plots whose set holds it (Q107, breaker F3 of PR 79). With no plan of the
-        // rule for a plot of the wall the value is held by the FFL of its own plot alone
+        // plan_walls.mark: the status of each value of a wall. The inputs of the base and the top are the FFL of the pick of the rule, the plot of
+        // the highest or lowest FFL of the plots of the wall with no override, and that of the plot of the level, so each override on those plots
+        // whose set holds the field touched it and is named, the pick first (Q112, Q113, breaker F3 of PR 79), also where the value equals its value
+        // with no override. With no plan of the rule for a plot of the wall the plot of the level alone
         public static void Mark(PlanWall wall, ValueStatusTable table, IReadOnlyDictionary<string, PlotPlan> plans, IReadOnlyDictionary<string, PlotPlan> rulePlans, WallRules higher)
         {
             foreach (string field in Fields)
@@ -381,7 +381,6 @@ namespace SiteAdaptation.Common
                 string level = field == "base" ? wall.BasePlot : field == "top" ? wall.TopPlot : null;
                 string source = field == "plots" ? PlotsSource : Source;
                 List<string> applied = new List<string>();
-                bool unmoved = false;
                 if (level != null && plans.TryGetValue(level, out PlotPlan plan))
                 {
                     List<string> writers = wall.Plots.Where(name => plans.TryGetValue(name, out PlotPlan other) && WrittenFfl(other).HasValue).ToList();
@@ -396,18 +395,13 @@ namespace SiteAdaptation.Common
                     {
                         string picked = Pick(writers, ruleFfls.ToDictionary(item => item.Key, item => item.Value.Value), field == "base" ? higher.HigherBase : higher.HigherTop);
                         applied = AppliedOf(plans[picked]).Concat(level != picked ? AppliedOf(plan) : new List<string>()).ToList();
-                        unmoved = WrittenFfl(plan) == ruleFfls[picked];
                     }
                     else
                     {
                         applied = AppliedOf(plan);
-                        PlotPlan rule = null;
-                        rulePlans?.TryGetValue(level, out rule);
-                        rule = rule != null && Written(rule) ? rule : null;
-                        unmoved = applied.Count > 0 && rule != null && ValueStatus.Unmoved(table.MovedBy("walls." + field), plan, rule, table.Decimals);
                     }
                 }
-                Tuple<string, JObject, string> status = table.Of("walls." + field, source, null, applied, unmoved);
+                Tuple<string, JObject, string> status = table.Of("walls." + field, source, null, applied);
                 // Q107. The source stays that of the value, an override that moved it named in the key alone
                 wall.Status[field] = new[] { source, status.Item1, status.Item3 };
             }

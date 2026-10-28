@@ -447,10 +447,10 @@ namespace SiteAdaptation.Common
                                 run.Counts["plots with link parameters"] = plans.Values.Count(plan => plan.Parameters["parameters"] != null);
                             }
                             Dictionary<string, PlotPlan> rulePlans = null;
-                            if ((asked.Contains(ValueStatus.StepName) || checks || (asked.Contains(Walls.StepName) && wallRules != null)) && list.Found.Count > 0)
+                            if ((asked.Contains(Walls.StepName) || checks) && wallRules != null && list.Found.Count > 0)
                             {
-                                // Q107, R3 of the review of PR 75. The plots with no override, so a field an override left at its value by the rule
-                                // names no override, as plan_from_book.build builds them
+                                // Breaker F3 of PR 79. The plots with no override, whose FFL picks the plot of the base and the top of a wall by the
+                                // rule, so an override of that plot touched them (Q112), as plan_from_book.build builds them
                                 rulePlans = PlanOverrides.Of(site.Numbers, site.Rows, build, fronts, context, hands, key, levelProfile, site.Rules, site.Settings, files,
                                     new OverrideList(new Dictionary<string, JObject>()), profileName, FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), site.RulesName);
                             }
@@ -479,7 +479,7 @@ namespace SiteAdaptation.Common
                             {
                                 // R401. The status of each sourced value of a written plot, by the map of the settings and the block of the rules profile
                                 statusTable = ValueStatus.Table(site.Settings, site.Rules, profileName);
-                                status = ValueStatus.Step(site.Numbers, plans, hands, statusTable, rulePlans);
+                                status = ValueStatus.Step(site.Numbers, plans, hands, statusTable);
                                 if (asked.Contains(ValueStatus.StepName))
                                 {
                                     made[ValueStatus.StepName] = status;
