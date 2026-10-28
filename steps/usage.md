@@ -45,3 +45,4 @@ One row per phase session since Round ADDIN 4f, added by step 7 of steps/START.m
 | a86761c9 | 4f, PR 61 to 66, the row taken before the merge of PR 66 | 187,845,111 | 77.69 |
 | 8429ce98 | AUDIT-RULES, PR 67 and 68, the row taken before the merge of PR 68, its sonnet and haiku tokens are the helpers' | 42,709,465 | 17.07 |
 | dfb83c1c | 4g1, PR 69 to 73, the row taken before the merge of PR 73. npx ccusage was refused by the auto mode of the session, so the tokens are the sum of the usage fields of the session transcript and its 15 helper transcripts by message id, opus 181,149,748 and sonnet 3,461,728, and the cost is UNKNOWN | 184,611,476 | UNKNOWN |
+| 231f3894 | 4g2, PR 74 to 81 and the end records, the row taken before the merge of the end records | 410,432,276 | 222.37 |

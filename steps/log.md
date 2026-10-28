@@ -2,6 +2,50 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round ADDIN 4g2, 2026-10-28, Q105, Q107, Q109, Q110, the walls and the check rows
+
+Goal:
+- Q105, Q107, Q109 and Q110 as Bader answered, R362 the walls, R363 the check rows with the chip Assumed of Q108
+
+Done:
+- PR 74 and 77 records: Q105 to Q113 closed, the 41 review rows CHOSEN by Bader, the state line of PROGRESS
+- PR 75: Q105 hand of 5 DP2 plots, Q107 worst status, the build memory. PR 78: Q109 the block in the gate, Q110 prototypeFile, decidedByQuestion
+- PR 79: R362 boundary walls, the open edge after a rotation override. PR 81: R363 check rows, the chip Assumed word for word by Q108
+- These records: Q117 closed, Q118 opened, 4g2 done
+
+Checked:
+- Gate green and the three checks passed before each merge, two review passes on each code PR (RAN)
+- Python on real inputs: 2,518 plots written, the build proof 0 unexplained on 7 keys, plans equal main outside each PR's change (RAN)
+- Walls: 4,796 of 4,901 key walls along a build wall, base within 5 mm on 4,696. Check rows: 7,679 rows, 17 Assumed rows equal a second count (RAN)
+- C#: unit twins only. The C# read never reached its 5,948 MiB floor on this PC (RAN, p4g2_fix1_wait*.txt), so real-input parity is Q111
+
+Remains:
+- The C# check of Q111 on the laptop. Plot cut rows in 5c (Q117)
+
+Known bugs:
+- The build peak after PR 75 is UNKNOWN until Q111. 7 cut plots of the IMC join follow every rule on the whole project until 5c
+
+Next:
+- 4g3: Q112 and Q113 first, then R364 and R365. Bader pastes steps/START.md
+
+Your turn:
+Full text and the recommended answers by ID: steps/questions-open.md.
+
+Q001 El @ Entry rule. Q002 Ramp type by Rev 9 code. Q003 Villa mirror by block flag. Q004 Setback from the DLUS front. Q005 Front level snapped to the road. Q006 Back corners parallel.
+Q007 Generic floor on the whole face. Q008 Units, a baseplan with 01b. Q009 Typology_Rev9 for codes with no schedule. Q010 Sales Land Width. Q012 FFL split by units. Q013 CASE second letter as built.
+Q015 Yard depth under the floor top. Q016 Plots 2311 and 2312 by baseplan. Q017 IMC 2301, 2302 and IMG 544 as VD4. Q018 58 past ramps listed. Q019 Schedule FFL. Q020 Keep the north stop.
+Q021 Parallel windows over 8 GB free. Q022 TEST copies in Zone 02 ARC. Q023 Delete the empty 15a folder. Q024 Curb and ROW from the R94 edge. Q025 13 PDF refusals listed.
+Q026 Two curbs of one drawing. Q027 Two DP4 labels in one face. Q029 Location plan number per face. Q030 The 01b sales rows. Q031 Rev 9 faces, 97 differ. Q032 1.4 FFL parameter as design level.
+Q033 Lone DT3 on a VL3 face. Q036 TBD for DLUS, accommodation for sales. Q037 Corner fronts by the Orientation side. Q038 Native ramp fronts over the subgrade. Q039 Footprint test as third check.
+Q041 Rows 2290 to 2299 as overrides. Q042 Lone duplex hand by row pairs. Q051 Rev 01 values of steps and ramps. Q052 Weak rules held through their overrides. Q053 The override list, native and byHand.
+Q054 R260 of DATA-5 and R261 to R282. Q055 1.4 ELl@Entry typed off its ramp. Q056 Native models for hands, fronts, ramps only. Q057 Ramp front fall with no direction.
+Q058 Old 20221206 prototypes and their hands. Q059 NBH 03 build on native2022. Q062 Rev 9 attribute values of the probe. Q063 Whole NBH 03 image past 30 minutes.
+Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario master. Q066 No Parsons TU model of Zone 1. Q068 Project position of button 1. Q069 A remade key copy by its hashes.
+Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
+Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
+Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
+Q114 Fields following the Q017 hand of 2302. Q115 Wall extent along an edge. Q116 Ramp and wall of 18 turned plots. Q118 Follow every rule leaves out moved plots.
+
 ## Round ADDIN 4g1, 2026-10-27, Q098, Q099 and the status of each plotted value
 
 Goal:
