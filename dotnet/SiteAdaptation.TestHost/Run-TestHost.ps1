@@ -28,6 +28,8 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'WindowSamples.ps1')
 # R313. The prototype sets an upgrade may take
 . (Join-Path $PSScriptRoot 'PrototypeSets.ps1')
+# R108. The add-ins of this tool the watcher answers Load Once
+. (Join-Path $PSScriptRoot 'TestHostPaths.ps1')
 $spec = $null
 if ($FloorSpec) {
     if ($Code -or $DryStart -or $Upgrade) {
@@ -121,23 +123,12 @@ if ($found.Count -ne 1) {
 }
 $revit = $found[0]
 
-# The three add-ins of this tool by their AddInId and name in the repo manifests. The watcher stops Revit if one of them asks
-$manifests = @('dotnet\RevitPrototypeReader\SiteAdaptation.addin', 'dotnet\SiteAdaptation.Placer\SiteAdaptationPlacer_Revit2024.addin', 'dotnet\SiteAdaptation.TestHost\SiteAdaptationTestHost_Revit2024.addin')
-$ourIds = @()
-$ourMarks = @()
-foreach ($manifest in $manifests) {
-    [xml]$xml = Get-Content -Raw (Join-Path $repo $manifest)
-    $ourIds += [string]$xml.RevitAddIns.AddIn.AddInId
-    $ourMarks += [string]$xml.RevitAddIns.AddIn.Name
-    $ourMarks += Split-Path ([string]$xml.RevitAddIns.AddIn.Assembly) -Leaf
-}
-
-# The three DLLs as Install-TestHost.ps1 puts them. Only a box that names one of these paths gets Load Once
-$ourPaths = @(
-    (Join-Path $addins 'SiteAdaptation\RevitPrototypeReader.dll')
-    (Join-Path $addins 'SiteAdaptationPlacer\SiteAdaptation.Placer.dll')
-    (Join-Path $addins 'SiteAdaptationTestHost\SiteAdaptation.TestHost.dll')
-)
+# The four add-ins of this tool by their AddInId and name in the repo manifests and the DLLs as the install scripts put them.
+# Only a box that names one of these DLLs gets Load Once, the watcher stops Revit on any other box of the tool
+$tool = Get-ToolAddIns -Repo $repo -Addins $addins
+$ourIds = $tool.ids
+$ourMarks = $tool.marks
+$ourPaths = $tool.paths
 
 $original = $null
 $copy = $null

@@ -206,10 +206,13 @@ namespace SiteAdaptation.Tests
         public void R108_the_run_script_takes_the_guids_of_this_tool_from_the_repo_addin_files()
         {
             string script = RepoText("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
+            string paths = RepoText("dotnet", "SiteAdaptation.TestHost", "TestHostPaths.ps1");
 
-            foreach (string manifest in new[] { "SiteAdaptation.addin", "SiteAdaptationPlacer_Revit2024.addin", "SiteAdaptationTestHost_Revit2024.addin" })
+            Assert.Contains(". (Join-Path $PSScriptRoot 'TestHostPaths.ps1')", script);
+            Assert.Contains("Get-ToolAddIns -Repo $repo -Addins $addins", script);
+            foreach (string manifest in new[] { "SiteAdaptation.addin", "SiteAdaptationPlacer_Revit2024.addin", "SiteAdaptationTestHost_Revit2024.addin", "SiteAdaptationAddIn_Revit2024.addin" })
             {
-                Assert.Contains(manifest, script);
+                Assert.Contains(manifest, paths);
             }
             Assert.Contains("SiteAdaptation.DialogWatcher.exe", script);
             Assert.Contains("securityDialogs", script);
