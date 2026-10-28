@@ -35,3 +35,34 @@ function Get-ToolAddIns([string]$Repo, [string]$Addins) {
         paths     = $paths
     }
 }
+
+# R372, QL2. The work root of this machine as WorkRoot of Common reads it for the test host: workRoot of
+# %APPDATA%\SiteAdaptation\machine.json, else SiteAdaptation in the Documents folder. A machine file that gives no plain full path
+# is refused, and so is a root not named SiteAdaptation, the folder name the test host keeps its files in
+function Get-WorkRoot([string]$AppData, [string]$MyDocuments) {
+    $machine = Join-Path $AppData 'SiteAdaptation\machine.json'
+    if (-not (Test-Path -LiteralPath $machine -PathType Leaf)) {
+        return Join-Path $MyDocuments 'SiteAdaptation'
+    }
+    try {
+        $file = Get-Content -Raw -LiteralPath $machine | ConvertFrom-Json -NoEnumerate
+    }
+    catch {
+        throw "$machine is no JSON: $($_.Exception.Message)"
+    }
+    $root = if ($file -is [pscustomobject]) { $file.workRoot } else { $null }
+    if (-not ($root -is [string]) -or [string]::IsNullOrWhiteSpace($root)) {
+        throw "$machine gives no workRoot"
+    }
+    # TestHostGuard.IsPlainFullPath: a drive path or a share, no parent step, no colon after the drive, no slash, no \\?\ or \\.\
+    # prefix, and the path Windows would open is the path given
+    $plain = ($root -match '^[A-Za-z]:\\' -or ($root.StartsWith('\\') -and -not $root.StartsWith('\\?\') -and -not $root.StartsWith('\\.\'))) -and
+        @($root -split '\\') -notcontains '..' -and $root.IndexOf(':', 2) -lt 0 -and $root.IndexOf('/') -lt 0 -and [IO.Path]::GetFullPath($root) -ceq $root
+    if (-not $plain) {
+        throw "$machine gives a workRoot that is not a plain full path: $root"
+    }
+    if ((Split-Path $root -Leaf) -cne 'SiteAdaptation' -or $root.EndsWith('\')) {
+        throw "the work root of the test host is a plain full path to a folder named SiteAdaptation: $root"
+    }
+    return $root
+}

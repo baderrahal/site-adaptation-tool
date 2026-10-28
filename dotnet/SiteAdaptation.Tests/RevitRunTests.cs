@@ -118,5 +118,105 @@ namespace SiteAdaptation.Tests
                 Assert.Equal(ids[at], xml.Descendants("AddInId").Single().Value);
             }
         }
+
+        private const string AppData = @"C:\Users\x\AppData\Roaming";
+        private const string MyDocuments = @"C:\Users\x\OneDrive - Org\Documents";
+        private const string Machine = AppData + @"\SiteAdaptation\machine.json";
+
+        private static Func<string, string> Reads(string text)
+        {
+            return path => path == Machine ? text : null;
+        }
+
+        [WindowsFact]
+        public void R372_the_work_root_is_workRoot_of_the_machine_file_else_documents()
+        {
+            Assert.Equal(MyDocuments + @"\SiteAdaptation", WorkRoot.Of(AppData, MyDocuments, Reads(null)));
+            Assert.Equal(@"C:\Users\x\Documents\SiteAdaptation", WorkRoot.Of(AppData, MyDocuments, Reads("{\"workRoot\": \"C:\\\\Users\\\\x\\\\Documents\\\\SiteAdaptation\"}")));
+            Assert.Equal(Machine, WorkRoot.MachinePath(AppData));
+        }
+
+        [WindowsFact]
+        public void R372_a_machine_file_that_gives_no_plain_full_workRoot_is_refused_never_passed_over()
+        {
+            foreach (string text in new[] { "not json", "[]", "{}", "{\"workRoot\": 3}", "{\"workRoot\": \" \"}", "{\"workRoot\": \"Documents\\\\SiteAdaptation\"}",
+                "{\"workRoot\": \"C:\\\\a\\\\..\\\\SiteAdaptation\"}" })
+            {
+                InvalidDataException error = Assert.Throws<InvalidDataException>(() => WorkRoot.Of(AppData, MyDocuments, Reads(text)));
+                Assert.Contains(Machine, error.Message);
+            }
+        }
+
+        [WindowsFact]
+        public void R372_the_test_host_keeps_its_files_in_the_work_root_itself()
+        {
+            string root = @"C:\Users\x\Documents\SiteAdaptation";
+            string documents = WorkRoot.TestHostDocuments(root);
+
+            Assert.Equal(root, TestHostGuard.SiteAdaptationFolder(documents));
+            Assert.Equal(root + @"\testhost_SA5A_log.json", TestHostGuard.OutputPath(documents, "SA5A", "log"));
+            // TestHostGuard names its folder SiteAdaptation, so a root of another name is refused and never mixed with a folder beside it
+            Assert.Throws<InvalidDataException>(() => WorkRoot.TestHostDocuments(@"C:\Users\x\Documents\Work"));
+            Assert.Throws<InvalidDataException>(() => WorkRoot.TestHostDocuments(@"C:\Users\x\Documents\SiteAdaptation\"));
+        }
+
+        [Fact]
+        public void R372_the_job_session_and_the_run_script_read_the_work_root_of_the_machine_file()
+        {
+            string session = File.ReadAllText(RepoPath("dotnet", "SiteAdaptation.TestHost", "JobSession.cs"));
+            string script = File.ReadAllText(RepoPath("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1"));
+
+            Assert.Contains("string documents = WorkRoot.TestHostDocuments(WorkRoot.Of(", session);
+            Assert.Contains("Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)", session);
+            Assert.Contains("$docs = Get-WorkRoot -AppData $env:APPDATA -MyDocuments ([Environment]::GetFolderPath('MyDocuments'))", script);
+            Assert.DoesNotContain("$docs = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'SiteAdaptation'", script);
+        }
+
+        // The second method: the run script reads the same machine files as WorkRoot and gives the same root or refuses the same
+        [WindowsFact]
+        public void R372_the_run_script_gives_the_work_root_the_test_host_takes()
+        {
+            string folder = Path.Combine(Path.GetTempPath(), "sa-workroot-" + Guid.NewGuid().ToString("N"));
+            string appData = Path.Combine(folder, "AppData");
+            string docs = Path.Combine(folder, "Docs");
+            string machine = WorkRoot.MachinePath(appData);
+            Directory.CreateDirectory(Path.GetDirectoryName(machine));
+            try
+            {
+                var cases = new List<string> { null, "{\"workRoot\": " + JValue.CreateString(Path.Combine(folder, "Local", "SiteAdaptation")).ToString() + "}",
+                    "{\"workRoot\": " + JValue.CreateString(Path.Combine(folder, "Local", "Work")).ToString() + "}", "{}", "not json" };
+                int same = 0;
+                foreach (string text in cases)
+                {
+                    if (text == null)
+                    {
+                        File.Delete(machine);
+                    }
+                    else
+                    {
+                        File.WriteAllText(machine, text);
+                    }
+                    string expected;
+                    try
+                    {
+                        expected = WorkRoot.TestHostDocuments(WorkRoot.Of(appData, docs, WorkRoot.ReadIfThere));
+                        expected = TestHostGuard.SiteAdaptationFolder(expected);
+                    }
+                    catch (InvalidDataException)
+                    {
+                        expected = "refused";
+                    }
+                    Tuple<int, string, string> run = Pwsh("try { Get-WorkRoot -AppData " + Quoted(appData) + " -MyDocuments " + Quoted(docs) + " } catch { 'refused' }");
+                    Assert.True(run.Item1 == 0, run.Item3);
+                    Assert.Equal(expected, run.Item2);
+                    same++;
+                }
+                Assert.Equal(cases.Count, same);
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
+        }
     }
 }

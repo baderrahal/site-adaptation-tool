@@ -63,7 +63,10 @@ namespace SiteAdaptation.TestHost
 
         public static void Start(UIControlledApplication application, string token, string jobPath, string addinsFolder)
         {
-            string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            // R372, QL2. The work root of the machine file, else Documents. A machine file that does not read throws, and the test host
+            // app writes that refusal beside the job file
+            string documents = WorkRoot.TestHostDocuments(WorkRoot.Of(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), WorkRoot.ReadIfThere));
             // A path that is not a job file of the SiteAdaptation folder is never touched, not even to write a refusal
             if (!TestHostGuard.ShouldWake(token, jobPath, File.Exists(jobPath)) || TestHostGuard.CodeOfJobPath(jobPath, documents) == null)
             {

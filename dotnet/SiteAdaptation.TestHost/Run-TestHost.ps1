@@ -84,7 +84,8 @@ if ($PrototypeSet) {
     $set = Get-PrototypeSet -Config $config -Name $PrototypeSet
     $Code = Get-SetJobCode -Set $set -Code $prototypeCode
 }
-$docs = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'SiteAdaptation'
+# R372, QL2. The job, log and sample files sit in the work root of %APPDATA%\SiteAdaptation\machine.json, as the test host reads it
+$docs = Get-WorkRoot -AppData $env:APPDATA -MyDocuments ([Environment]::GetFolderPath('MyDocuments'))
 $addins = Join-Path $env:APPDATA 'Autodesk\Revit\Addins\2024'
 $watcherExe = Join-Path $addins 'SiteAdaptationTestHost\Watcher\SiteAdaptation.DialogWatcher.exe'
 $name = if ($DryStart) { 'dry_start' } elseif ($Upgrade -or ($round -and $round.kind -eq 'siteUpgrade')) { $Code + '_upgrade' } else { $Code }
