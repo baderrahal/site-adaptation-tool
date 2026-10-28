@@ -5,7 +5,7 @@ Bader's design changes from the canvas "Site Adaptation UI", approved by Bader o
 ### Order
 
 - Nine numbered steps: 1 Set up site, 2 Read data, 3 Review data, 4 Check, 5 Floors and ramps, 6 Levels, 7 Place villas, 8 Walls, 9 Report.
-- Each step needs the one before, and 9 Report needs 4 Check.
+- Each step needs the one before, and 9 Report needs 4 Check. 5a reads the second part as the one exception to the first: 9 Report needs 4 Check only, not 8 Walls (CHOSEN by Code, so the pane shows 9 Ready once 4 is done, question QL19 of steps/lane-b.md).
 - Place villas places each link at its FFL and writes Prototype-FFL. Levels writes no link parameter.
 
 ### Ribbon (5a)
@@ -24,7 +24,7 @@ Bader's design changes from the canvas "Site Adaptation UI", approved by Bader o
 
 ### Set up site (5b)
 
-- Pass limit 0.1 mm, from addin.position.checkPointLimitMm of config. Config is Phase 4 territory, so the key is a join item for 5c, and 5b reads it from config.
+- Pass limit 0.1 mm, from addin.position.checkPointLimitMm of config. That key is in config/project.json already at 1.0, the 1 mm of R211 for the check points of button 1, and R353 holds the check points of the worker against the keys by it, where 127 of 141 pass at 1 mm (docs/design/03a-buttons-shared-and-1.md, open question Q086). So where 0.1 mm applies is question QL17 of steps/lane-b.md, and config, Lane A's file, changes only by its answer (CHOSEN by Code).
 - Floor types row: "Generic 150mm, yard, Flat Ramps, and one Ramps type per slope below".
 - New row "Ramp slope" with a dropdown 0.5%, 1%, 2%, then 3% to 15% in 1% steps, default 0.5%, and the line "Default 0.5%. Choices 0.5%, 1%, 2%, then 3% to 15%".
 - The Shared parameters row reads "From the parameter sheet: ..." with the sheet name, its count and Browse. Parameters and their GUIDs come only from that sheet, never made by the tool.
@@ -64,8 +64,8 @@ The UI controls of docs/design/12-ui-spec.md hold as given before: the theme tes
 ### Where each change lands
 
 - 5a, Lane B PR 8: the order of the steps in the pane and in the flow, the ribbon of four panels with the three new icons, the pane changes of the part Pane, the label list and the PNGs. The buttons Site Adaptation Rules and Update from report, and Import from past job and Export, say they are not built yet until their phase (CHOSEN by Code).
-- 5b: the Set up site part, with the pass limit read from config once 5c adds the key.
-- 5c: the key addin.position.checkPointLimitMm 0.1 in config, the manualRules block of the rules profile, the pre-setting logic with R367, the Review data and Site Adaptation Rules windows, the manual rule ID on every check row, Review data row and report line.
+- 5b: the Set up site part, with the pass limit read from config by the answer of QL17.
+- 5c: the pass limit in config by the answer of QL17, the manualRules block of the rules profile, the pre-setting logic with R367, the Review data and Site Adaptation Rules windows, the manual rule ID on every check row, Review data row and report line.
 - 5d: Place villas at the FFL with Prototype-FFL, and Levels with no link parameter, in the buttons of the new order.
 - 5e: the report line with its manual rule ID.
 - 5f: Update from report.

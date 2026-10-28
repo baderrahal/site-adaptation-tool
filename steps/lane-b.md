@@ -58,14 +58,17 @@ Added by Bader's Lane B prompt of 28 Oct 2026, the second of that day, for the f
 
 From docs/design/13-workflow-changes.md, part Where each lands. 5a builds the order, the ribbon and the pane in Lane B PR 8.
 
-- W1, 5b. Set up site: the pass limit 0.1 mm read from addin.position.checkPointLimitMm of config, the Floor types row, the Ramp slope row and its dropdown, the Shared parameters row from the parameter sheet, the parameters and GUIDs only from that sheet. Its PNG.
-- W2, 5c. config/project.json gains addin.position.checkPointLimitMm 0.1, config is Phase 4 territory until the fold in.
+- W1, 5b. Set up site: the pass limit read from config by the answer of QL17, the Floor types row, the Ramp slope row and its dropdown, the Shared parameters row from the parameter sheet, the parameters and GUIDs only from that sheet, the new labels of 7.3 in the label list, its PNG. The default 0.5% and the choices of Ramp slope are project values, so they go into config next to rampSlope and majority.slopeBands, with how they relate to those, by Lane A or at the fold in (CLAUDE.md, no project value in code).
+- W2, 5c. The pass limit of 0.1 mm in config by the answer of QL17. addin.position.checkPointLimitMm is there already at 1.0 (R211, R353, Q086), and config is Lane A's file.
 - W3, 5c. The rules profile gains the block manualRules, M01 to M15 as drafted on the canvas, with id, text, group, manual section and the steps that check it. Code reads the page numbers from the manual PDF. The texts of M01 to M15 are on the canvas, not in the repo, so 5c asks Bader for them if no file holds them.
 - W4, 5c. The pre-setting: Import from past job and Export with R367, never a drawing path or a coordinate.
 - W5, 5c. The windows 3 Review data and Site Adaptation Rules, their labels in docs/design/13-ui-labels.md, their PNGs, and the manual rule ID on every check row and Review data row, with "Open in Site Adaptation Rules" in the Check table side box.
 - W6, 5d. Place villas places each link at its FFL and writes Prototype-FFL, Levels writes no link parameter, in the buttons of the new order.
 - W7, 5e. The manual rule ID on every report line.
 - W8, 5f. Update from report, the whole window and its run, its labels and PNG.
+- W9, 5c. R366, the step state of 4h, takes the 9 steps and their needs of docs/design/13-workflow-changes.md when the pane joins it. 4h builds from 03a, which keeps the eight buttons until the fold in.
+- W10, 5c. The settings key parameterSheet of the Shared parameters row, named by Code in 5a PR 8, goes into docs/design/06-settings.md and R367 of 4h at the join.
+- W11, 5c. The label list takes the title of the Check table under its new number, 4 Check, with the Check table window.
 
 ## Join items for 5c
 
@@ -209,6 +212,18 @@ QL16. Gaps between stacked inputs. docs/design/12-ui-spec.md gives rows 32, inpu
 - Recommended: accept the 2 px left by the row and input heights as part of those sizes, not a spacing.
 - Other: inputs 28 high so they stand 4 apart.
 - Other: Bader gives the rule.
+
+QL17. Where the pass limit of 0.1 mm applies. Bader's change of 28 Oct 2026 gives Set up site a pass limit of 0.1 mm from addin.position.checkPointLimitMm. That key holds 1.0 today in config/project.json, the 1 mm of R211 for the check points of button 1, and R353 holds the check points of the worker against the keys by it, which lie about half a mm off the baseplan, 127 of 141 passing at 1 mm (docs/design/03a-buttons-shared-and-1.md, Q086 open).
+- Recommended: 0.1 mm for the check points of button 1 against Revit, the Revit column after Apply against the transform the dry run gave, under a key of its own, and the key check of R353 kept at the answer of Q086.
+- Other: 0.1 mm for both, so most key check points fail.
+
+QL18. The pane shown again each session. RevitAPIUI.xml says VisibleByDefault counts only the first time a pane loads, after that Revit keeps the state of the last session (SEARCHED, 5a PR 6). So 5a PR 6 shows the pane once per Revit session at the first project view when it is hidden, which also brings back a pane the user closed.
+- Recommended: keep it, the pane is the way into every step.
+- Other: show it only on the first session after the install.
+
+QL19. 9 Report and the steps before it. Bader wrote "Each needs the one before, 9 Report needs 4 Check." 5a reads it as 9 needing 4 only, so 9 is Ready while 5 to 8 wait, and the Steps help line "Each one waits for the one before." then holds for every step but 9.
+- Recommended: keep it, the report can run after the check.
+- Other: 9 needs 8 and 4.
 
 ## The questions as L0 asked them
 
