@@ -57,4 +57,4 @@ Q119 Reads of a value several overrides touched. Q120 Mirror and rotation sets t
 
 1. ADDIN 4g3 on the laptop: R365 the report Excel with D4, the C# checks on real data, the end records (steps/01_next.md)
 2. ADDIN 4h on the laptop once 4g3 is done, R366 to R369
-3. The laptop check of Q111 for 4g3 and 4h, into steps/lane-b.md, before 5c (Bader, 2026-10-28)
+3. Lane A fold-in of steps/lane-b.md as the last records PR of 4h. The C# checks of Q111 run inside 4g3 and 4h (D6)

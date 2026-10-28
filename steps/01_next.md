@@ -41,9 +41,8 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Rules: Q112 and Q113 first (Bader, 2026-10-28, steps/questions-closed.md). Q112: an override moved a value only if removing that one override changes it, the detail names the last applied override that moved it and the status takes the worst of every override that moved it and of the entries still read. Measure first the time and the peak of a build of the 7 keys with it, and if it adds more than 20 percent to either, do not code it, list all overrides that touched the inputs of the value instead and say so in the log. Q113: a value takes the worst status of its inputs and names the override, so the 512 values read RECOMMENDED. R364 the level Excel. R365 the report Excel, with the plot count on each line of Rules applied and the sheet Assumed, and the parity of step 15 with the count by field and status of R401
 - Design: docs/design/05-plan-steps.md step 15, docs/design/03b-buttons-2-to-8.md (6 Levels, 8 Report), docs/design/07-mock.md 7.5 to 7.7
 - Q114 and Q116 (Bader, 2026-10-28): Q114 aligns the field names of majority.decidedByQuestion and the build proof, then carries Q017 to the rotationDeg, insert, floors.yard.outline and parameters.CASE of 2302, in 4g3 if it fits four changes per PR, else a join item of 5c. Q116 lists each plot a rotationDeg override turned in the conflicts of the plan until its ramp moves to the open edge in 5d
-- C# on real data (Bader, 2026-10-28, by Q111): this PC never has the memory a C# read needs, so 4g3 and 4h do not wait for it or retry it. C# by its unit tests on both runners, Python on the real data with its second method, the top log entry names the C# checks left for the laptop
+- C# on real data (Bader, 2026-10-29, D6): the laptop has the memory, so 4g3 runs the C# reads and the C# parity on the whole project and the 7 keys on net48 and net8.0 for everything since PR 75, and three build peaks per runtime. A failure is a REAL finding of 4g3. This replaces the rule of 2026-10-28 for the personal PC
 - D4 (Bader, 2026-10-28, closes Q121): the sheets Levels and Placed key each row by the plot in the first column, FFL, El @ Entry, Steps, Villa type and Mirror are marked editable and listed in Settings, which also holds the build id and the SHA-256 of the plan, items 10 to 12 of 7.7. The level Excel in PR 4, the report Excel in PR 5
-- Lane B: when the C# check of Q111 is on main in steps/lane-b.md, fold it into the log. A failure there is a REAL finding of 4g3
 - Note: Q113 would move 294 wall values from MEASURED weak to RECOMMENDED (READ, the breaker of PR 79 pass 2, no log), and the rows of the chip Assumed follow the status (R363)
 - Done when: Q112 and Q113 hold in Python and C# with tests, parity holds for step 15, and each Excel holds the labels of 7.5 and 7.6 of the mock in the order of the mock, with the items of 7.7
 
@@ -56,9 +55,9 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 
 ## Laptop check after 4h, before 5c
 
-- Status: open
-- What (Bader, 2026-10-28, by Q111): one laptop session runs the C# reads, the parity on the whole project and the 7 keys on net48 and net8.0, and the build peak, for all of 4g3 and 4h together, into steps/lane-b.md
-- Done when: the counts are on main in steps/lane-b.md and every failure is a REAL finding or a question, before 5c starts
+- Status: folded into 4g3 and 4h by D6 (Bader, 2026-10-29). No separate session
+- What (Bader, 2026-10-28, by Q111, moved by D6): the C# reads, the parity on the whole project and the 7 keys on net48 and net8.0, and the build peak, run inside 4g3 for everything since PR 75 and inside 4h for 4h, into the top entry of steps/log.md
+- Done when: 4g3 and 4h each hold their counts in their log entry and every failure is a REAL finding or a question, before 5c starts
 
 ## 5a, the install, ribbon, pane and one transaction per button
 
