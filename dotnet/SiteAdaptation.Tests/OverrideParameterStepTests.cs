@@ -401,7 +401,7 @@ namespace SiteAdaptation.Tests
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
             Assert.Equal("unit:noGeometry written:noGeometry parameters:noGeometry sources:noGeometry lacks:noGeometry linkName:noGeometry",
                 string.Join(" ", config.StepFields(LinkParameters.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
-            Assert.Equal("clusters fronts hands linkFrame levels floors walls overrides parameters status", string.Join(" ", BuildSteps.Names));
+            Assert.Equal("clusters fronts hands linkFrame levels floors walls overrides parameters status checkRows", string.Join(" ", BuildSteps.Names));
         }
     }
 }

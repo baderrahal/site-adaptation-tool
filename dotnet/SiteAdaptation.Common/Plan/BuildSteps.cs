@@ -13,7 +13,8 @@ namespace SiteAdaptation.Common
     // the clusters are those of the footprint blocks alone. Every number of a JSON input is the nearest double of its text, as Python reads it, and each input is read once per run
     public static class BuildSteps
     {
-        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName, LinkFrames.StepName, KeyLevels.StepName, FloorOutlines.StepName, Walls.StepName, PlanOverrides.StepName, LinkParameters.StepName, ValueStatus.StepName };
+        public static readonly string[] Names = { SiteClusters.StepName, Fronts.StepName, Hands.StepName, LinkFrames.StepName, KeyLevels.StepName, FloorOutlines.StepName, Walls.StepName, PlanOverrides.StepName, LinkParameters.StepName, ValueStatus.StepName,
+            CheckRows.StepName };
 
         public static readonly string[] ClusterRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead" };
 
@@ -354,7 +355,9 @@ namespace SiteAdaptation.Common
                     run.Counts["fronts with no road level of a unit plot"] = fronts.Values.Count(item => item.Unit != null && item.Front == null);
                     made[Fronts.StepName] = Fronts.Step(site.Numbers, fronts, surfaces.Select(surface => surface.Name).ToList(), snap);
                 }
-                bool planned = asked.Contains(PlanOverrides.StepName) || asked.Contains(LinkParameters.StepName) || asked.Contains(ValueStatus.StepName) || asked.Contains(Walls.StepName);
+                bool checks = asked.Contains(CheckRows.StepName);
+                bool planned = asked.Contains(PlanOverrides.StepName) || asked.Contains(LinkParameters.StepName) || asked.Contains(ValueStatus.StepName) || asked.Contains(Walls.StepName)
+                    || checks;
                 bool linked = asked.Contains(Hands.StepName) || asked.Contains(LinkFrames.StepName) || asked.Contains(FloorOutlines.StepName) || planned;
                 bool leveled = asked.Contains(KeyLevels.StepName) || asked.Contains(FloorOutlines.StepName) || planned;
                 if (linked || leveled)
@@ -444,36 +447,65 @@ namespace SiteAdaptation.Common
                                 run.Counts["plots with link parameters"] = plans.Values.Count(plan => plan.Parameters["parameters"] != null);
                             }
                             Dictionary<string, PlotPlan> rulePlans = null;
-                            if ((asked.Contains(ValueStatus.StepName) || (asked.Contains(Walls.StepName) && wallRules != null)) && list.Found.Count > 0)
+                            if ((asked.Contains(ValueStatus.StepName) || checks || (asked.Contains(Walls.StepName) && wallRules != null)) && list.Found.Count > 0)
                             {
                                 // Q107, R3 of the review of PR 75. The plots with no override, so a field an override left at its value by the rule
                                 // names no override, as plan_from_book.build builds them
                                 rulePlans = PlanOverrides.Of(site.Numbers, site.Rows, build, fronts, context, hands, key, levelProfile, site.Rules, site.Settings, files,
                                     new OverrideList(new Dictionary<string, JObject>()), profileName, FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), site.RulesName);
                             }
-                            if (asked.Contains(Walls.StepName))
+                            // R363. The check rows take the walls and the status of every value, so either is made for them when not asked
+                            List<PlanWall> walls = null;
+                            ValueStatusTable wallTable = null;
+                            if (asked.Contains(Walls.StepName) || checks)
                             {
                                 // R362. The boundary walls of the written plots on the faces of the whole site and the fronts of the build, after the overrides
-                                ValueStatusTable table = ValueStatus.Table(site.Settings, site.Rules, profileName);
-                                List<PlanWall> walls = wallRules == null ? new List<PlanWall>() : Walls.OfPlans(site.Numbers, plans, site.Faces, fronts, wallRules);
+                                wallTable = ValueStatus.Table(site.Settings, site.Rules, profileName);
+                                walls = wallRules == null ? new List<PlanWall>() : Walls.OfPlans(site.Numbers, plans, site.Faces, fronts, wallRules);
                                 foreach (PlanWall wall in walls)
                                 {
-                                    Walls.Mark(wall, table, plans, rulePlans, wallRules);
+                                    Walls.Mark(wall, wallTable, plans, rulePlans, wallRules);
                                 }
-                                made[Walls.StepName] = Walls.Step(site.Numbers, plans, walls);
-                                tables[Walls.StepName] = Walls.Tables(walls, table);
-                                run.Counts["walls of the scope"] = walls.Count;
+                                if (asked.Contains(Walls.StepName))
+                                {
+                                    made[Walls.StepName] = Walls.Step(site.Numbers, plans, walls);
+                                    tables[Walls.StepName] = Walls.Tables(walls, wallTable);
+                                    run.Counts["walls of the scope"] = walls.Count;
+                                }
                             }
-                            if (asked.Contains(ValueStatus.StepName))
+                            Dictionary<string, Dictionary<string, object>> status = null;
+                            ValueStatusTable statusTable = null;
+                            if (asked.Contains(ValueStatus.StepName) || checks)
                             {
                                 // R401. The status of each sourced value of a written plot, by the map of the settings and the block of the rules profile
-                                ValueStatusTable table = ValueStatus.Table(site.Settings, site.Rules, profileName);
-                                made[ValueStatus.StepName] = ValueStatus.Step(site.Numbers, plans, hands, table, rulePlans);
-                                tables[ValueStatus.StepName] = ValueStatus.Tables(made[ValueStatus.StepName], table);
-                                foreach (KeyValuePair<Tuple<string, string>, int> count in ValueStatus.Counts(made[ValueStatus.StepName], table))
+                                statusTable = ValueStatus.Table(site.Settings, site.Rules, profileName);
+                                status = ValueStatus.Step(site.Numbers, plans, hands, statusTable, rulePlans);
+                                if (asked.Contains(ValueStatus.StepName))
                                 {
-                                    run.Counts["status " + count.Key.Item1 + " " + count.Key.Item2] = count.Value;
+                                    made[ValueStatus.StepName] = status;
+                                    tables[ValueStatus.StepName] = ValueStatus.Tables(status, statusTable);
+                                    foreach (KeyValuePair<Tuple<string, string>, int> count in ValueStatus.Counts(status, statusTable))
+                                    {
+                                        run.Counts["status " + count.Key.Item1 + " " + count.Key.Item2] = count.Value;
+                                    }
                                 }
+                            }
+                            if (checks)
+                            {
+                                // R363, Q108. The check rows of each plot from the plots after the overrides and the list as the build took it, the chip
+                                // Assumed from the status of the values and the walls with the details of both tables
+                                var details = new JObject();
+                                foreach (KeyValuePair<string, JObject> detail in statusTable.Used.Concat(wallTable.Used))
+                                {
+                                    details[detail.Key] = detail.Value;
+                                }
+                                JObject listed = PyMath.ReadJson(run.Input("overrides"), "overrides") as JObject;
+                                Tuple<Dictionary<string, Dictionary<string, object>>, JObject> rows = CheckRows.Step(site.Numbers, plans, site.Rows, listed,
+                                    PlanOverrides.DefaultSources(site.Settings, Path.GetFileName(run.Input("config"))), site.Settings, status, walls, details);
+                                made[CheckRows.StepName] = rows.Item1;
+                                tables[CheckRows.StepName] = rows.Item2;
+                                run.Counts["check rows of the scope"] = rows.Item1.Values.Sum(plot => ((JArray)plot["rows"]).Count);
+                                run.Counts["assumed rows of the scope"] = ((JObject)rows.Item2["assumed"]).Count;
                             }
                         }
                     }

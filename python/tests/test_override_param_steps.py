@@ -229,7 +229,7 @@ def test_r360_r361_the_config_names_the_fields_of_the_steps_overrides_and_parame
         "yardOutline": ("points", 3)}
     assert tuple(steps["overrides"]) == plan_from_book.OVERRIDE_FIELDS and tuple(steps["parameters"]) == plan_from_book.PARAMETER_FIELDS
     assert all(field["kind"] == "noGeometry" for field in steps["parameters"].values())
-    assert plan_from_book.BUILD_STEPS[-3:-1] == ("overrides", "parameters") and plan_from_book.PARITY_STEPS[-3:-1] == ("overrides", "parameters")
+    assert plan_from_book.BUILD_STEPS[-4:-2] == ("overrides", "parameters") and plan_from_book.PARITY_STEPS[-4:-2] == ("overrides", "parameters")
     assert {"overrides", "parameters"} <= set(plan_from_book.PROTOTYPE_STEPS)
 
 

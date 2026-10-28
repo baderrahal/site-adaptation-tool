@@ -720,9 +720,51 @@
             "unit": {"kind": "noGeometry"},
             "written": {"kind": "noGeometry"},
             "fields": {"kind": "noGeometry"}
+        },
+        "checkRows": {
+            "unit": {"kind": "noGeometry"},
+            "nbh": {"kind": "noGeometry"},
+            "rows": {"kind": "noGeometry"}
         }
       }
     }
+  },
+  "checkRows": {
+    "note": "R363. The check rows of button 3 (docs/design/07-mock.md 7.4, docs/design/03b-buttons-2-to-8.md 3 Check). types are the check types of the mock in its order, any other type found follows them by name. fields gives per field of the override list, and of a field an open question of majority.decidedByQuestion decides, its check type and what Past writes in the form of the list, null with why where Past is not offered, a field parameter <name> by its own entry or else parameter *. missing gives the same per key of the missing list of the plan, levels.* and parameters.* for every key under them. cannotWhy is why Past is not offered on a row of the cannot list of R272.",
+    "types": ["Plot cut", "Floor", "Hand", "Unit code", "Position", "Level"],
+    "fields": {
+      "entryM": {"check": "Level", "past": "gapToRuleM"},
+      "heightM": {"check": "Level", "past": "gapToRuleM"},
+      "rampFrontM": {"check": "Level", "past": "gapToRuleM"},
+      "steps": {"check": "Level", "past": "wholeNumber"},
+      "rampFrontFallM": {"check": "Level", "past": null, "why": "a build never applies a fall (Q057)"},
+      "insert": {"check": "Position", "past": "gapToRuleM"},
+      "rotationDeg": {"check": "Position", "past": "gapToRuleDeg"},
+      "mirrored": {"check": "Hand", "past": "trueOrFalse"},
+      "rampType": {"check": "Floor", "past": "slopeClass"},
+      "genericFloor": {"check": "Floor", "past": null, "why": "a build places the outline of its rule and leaves these (LEFT of plan_from_book.py)"},
+      "yardOutline": {"check": "Floor", "past": null, "why": "a build places the outline of its rule and leaves these (LEFT of plan_from_book.py)"},
+      "rampOutline": {"check": "Floor", "past": null, "why": "a build places the outline of its rule and leaves these (LEFT of plan_from_book.py)"},
+      "parameter RRE_ZZ_SP_Prototype-FFL": {"check": "Parameter", "past": "gapToRuleM"},
+      "parameter *": {"check": "Parameter", "past": "text"},
+      "prototypeFile": {"check": "Unit code", "past": null, "why": "no field of the list gives a prototype file, the code is Typology_Rev9 (Q017) and never a key's (Q056)"}
+    },
+    "missing": {
+      "unit": {"check": "Unit code", "past": null, "why": "plots.csv holds no Typology_Rev9 for the plot and no field of the list gives a unit (R230)"},
+      "skip": {"check": "Skip", "past": null, "why": "the skip list of the override list leaves the plot out (R386)"},
+      "prototypeFile": {"check": "Unit code", "past": null, "why": "no field of the list gives a prototype file, the code is Typology_Rev9 (Q017) and never a key's (Q056)"},
+      "transform": {"check": "Position", "past": null, "why": "the plot has no link frame to hold a gap to the rule"},
+      "insert": {"check": "Position", "past": null, "why": "the plot has no link frame to hold a gap to the rule"},
+      "rotationDeg": {"check": "Position", "past": null, "why": "the plot has no link frame to hold a gap to the rule"},
+      "mirrored": {"check": "Hand", "past": "trueOrFalse"},
+      "levels.*": {"check": "Level", "past": null, "why": "the rule gives no level to hold a gap to"},
+      "floors.generic": {"check": "Floor", "past": null, "why": "a build places the outline of its rule and leaves these (LEFT of plan_from_book.py)"},
+      "floors.yard": {"check": "Floor", "past": null, "why": "a build places the outline of its rule and leaves these (LEFT of plan_from_book.py)"},
+      "floors.ramp": {"check": "Floor", "past": "slopeClass"},
+      "parameters.RRE_ZZ_SP_Prototype-FFL": {"check": "Parameter", "past": null, "why": "the rule gives no value to hold a gap to"},
+      "parameters.*": {"check": "Parameter", "past": "text"}
+    },
+    "cannotWhy": "the cannot list holds no past value of the plot and field (R272)"
   },
   "valueStatus": {
     "note": "R401. The status of each sourced value of a plot of the plan, by its field and its source, from the block status of the rules profile. fields holds a field, parameters.* for every parameter, and per source the list of the block entries the code that computes the value reads, each by its path in the rules profile (profile) or in this file (config), where {levelProfile} is the level profile of the build, {parameter} the parameter name, {hand} the hand table the plot took and {unit} the unit code of the plot, or the status itself. prototypeFile lists the unit of the location plan, the file of the prototype folder named with it and the keo_file of its typology, which the code reads for every typology (Q110). A field majority.decidedByQuestion lists for a plot under an open question adds the block entry of that question and key, majority.decidedByQuestion.<Q>.plots.<key>, so it takes the worst of its list, RECOMMENDED by that question while it is open (review 1 of PR 78). A value takes the worst status of its list in the order of worstFirst, else the status of the first entry, and lists each (Q107). sources holds a source for every field. A pair neither holds, or an entry the block lacks, is UNKNOWN. overrideSets names per override of the list every field it moves, the mirror flag the yard outline alone of the yard, which then takes the status of the source override, named by the override applied last whose set holds the field, the one that moved the value (Q107). worstFirst names the statuses worst first. overrideReads names per override the fields it moves that the code still computes from other entries, with those entries, so such a field takes the worst of the override status and them, and a field of overrideSets it does not name the override sets outright (Q107). A field whose value equals the value the build gives with no override, the field of movedBy for it when named, the lowest Z of it when movedBy adds lowest, was moved by no override and keeps its own list (Q107). assumed names the statuses the plan summary lists by plot, MEASURED with its strength.",
