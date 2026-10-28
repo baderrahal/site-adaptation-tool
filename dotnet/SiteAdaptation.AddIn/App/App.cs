@@ -41,7 +41,7 @@ namespace SiteAdaptation.AddIn
                 RibbonPanel ribbonPanel = application.CreateRibbonPanel(RibbonLayout.Tab, panel.Name);
                 foreach (RibbonButtonSpec button in panel.Buttons)
                 {
-                    var data = new PushButtonData("SiteAdaptation.Button" + button.Number, button.Label, assembly, button.CommandClass)
+                    var data = new PushButtonData("SiteAdaptation.Button" + button.Key,button.Label, assembly, button.CommandClass)
                     {
                         LargeImage = IconRenderer.Render(theme, button.IconKey32, 32, scale),
                         Image = IconRenderer.Render(theme, button.IconKey16, 16, scale),

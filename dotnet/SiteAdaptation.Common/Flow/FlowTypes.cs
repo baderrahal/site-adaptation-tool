@@ -71,7 +71,7 @@ namespace SiteAdaptation.Common.Flow
         public IReadOnlyList<string> PerPlot { get; }
     }
 
-    // R382. The body of a button as delegates, so the flow is the same for all eight. Preview changes nothing in the model: with the
+    // R382. The body of a button as delegates, so the flow is the same for every button. Preview changes nothing in the model: with the
     // dry run ticked it is the dry run and may write under its dry folder, unticked it only counts. Apply runs inside the transaction
     // and gives its issues. ReadBack gives null when the model holds what Apply set, else what differs
     public sealed class ButtonBody

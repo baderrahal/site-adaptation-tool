@@ -144,7 +144,8 @@
   <sys:Double x:Key="SA.Size.RadioDot">8</sys:Double>
   <Geometry x:Key="SA.Mark.Down">M0 0l4 4l4-4</Geometry>
   <GridLength x:Key="SA.Grid.Mark">24</GridLength>
-  <GridLength x:Key="SA.Grid.Label">104</GridLength>
+  <!-- The widest row label, Shared parameters at 116 in SA.Type.Body, and a gap of 8 -->
+  <GridLength x:Key="SA.Grid.Label">124</GridLength>
   <GridLength x:Key="SA.Grid.StepMark">38</GridLength>
   <Geometry x:Key="SA.Mark.Found">M3 8.5l3.5 3.5l6.5-8</Geometry>
   <Geometry x:Key="SA.Mark.Missing">M2 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0z</Geometry>
@@ -157,6 +158,18 @@
     <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
     <Setter Property="TextWrapping" Value="Wrap" />
     <Setter Property="Margin" Value="{StaticResource SA.Gap.Top4}" />
+  </Style>
+  <!-- A link in a line of text. When its command cannot run, with no document, it takes the text colour of the grey buttons and
+       no underline, so it does not ask for a click it cannot take -->
+  <Style x:Key="SA.Pane.Link" TargetType="Hyperlink">
+    <Setter Property="Foreground" Value="{StaticResource SA.Accent}" />
+    <Setter Property="TextDecorations" Value="Underline" />
+    <Style.Triggers>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Foreground" Value="{StaticResource SA.Wait}" />
+        <Setter Property="TextDecorations" Value="{x:Null}" />
+      </Trigger>
+    </Style.Triggers>
   </Style>
   <Style x:Key="SA.Pane.Detail" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Small}">
     <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
@@ -343,11 +356,13 @@
   </Style>
 
   <!-- Icons on the 32 unit grid. Stroke SA.Heading, round caps and joins, fill none unless named. The 16 px set has stroke 2.4
-       and drops the parts the spec marks 32 only. White is SA.Surface (QL7). -->
+       and drops the parts the spec marks 32 only, a part marked (16 px: ...) takes the path given there. A button with no
+       number is keyed by its label with no spaces. White is SA.Surface (QL7). -->
   <sys:Double x:Key="SA.Icon.Stroke.32">2</sys:Double>
   <sys:Double x:Key="SA.Icon.Stroke.16">2.4</sys:Double>
   <sys:Double x:Key="SA.Icon.Tick.32">2.5</sys:Double>
   <sys:Double x:Key="SA.Icon.Tick.16">3</sys:Double>
+  <sys:Double x:Key="SA.Icon.Wide">2.5</sys:Double>
 
   <Pen x:Key="SA.Icon.Pen.32" Brush="{StaticResource SA.Heading}" Thickness="{StaticResource SA.Icon.Stroke.32}" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
   <Pen x:Key="SA.Icon.Pen.16" Brush="{StaticResource SA.Heading}" Thickness="{StaticResource SA.Icon.Stroke.16}" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
@@ -357,6 +372,7 @@
   <Pen x:Key="SA.Icon.WhitePen.16" Brush="{StaticResource SA.Surface}" Thickness="{StaticResource SA.Icon.Stroke.16}" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
   <Pen x:Key="SA.Icon.TickPen.32" Brush="{StaticResource SA.IconTick}" Thickness="{StaticResource SA.Icon.Tick.32}" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
   <Pen x:Key="SA.Icon.TickPen.16" Brush="{StaticResource SA.IconTick}" Thickness="{StaticResource SA.Icon.Tick.16}" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
+  <Pen x:Key="SA.Icon.AccentPen.Wide" Brush="{StaticResource SA.IconAccent}" Thickness="{StaticResource SA.Icon.Wide}" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
 
   <!-- 1 Set up site -->
   <DrawingGroup x:Key="SA.Icon.1.32">
@@ -384,31 +400,32 @@
     <GeometryDrawing Pen="{StaticResource SA.Icon.WhitePen.16}" Geometry="M23 20.5v6M20.5 24.5l2.5 2.5l2.5-2.5" />
   </DrawingGroup>
 
-  <!-- 3 Check -->
+  <!-- 3 Review data. Its accent strokes are given 2.5 wide with no width at 16 px, so 2.5 holds at both sizes -->
   <DrawingGroup x:Key="SA.Icon.3.32">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M3 5h18v18H3z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M3 11h18M3 17h18M9 5v18" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.Wide}" Brush="{StaticResource SA.Surface}" Geometry="M18 24a5 5 0 1 0 10 0a5 5 0 1 0 -10 0" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.Wide}" Geometry="M26.8 27.8l3 3" />
+  </DrawingGroup>
+  <DrawingGroup x:Key="SA.Icon.3.16">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M3 5h18v18H3z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M3 11h18M9 5v18" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.Wide}" Brush="{StaticResource SA.Surface}" Geometry="M18 24a5 5 0 1 0 10 0a5 5 0 1 0 -10 0" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.Wide}" Geometry="M26.8 27.8l3 3" />
+  </DrawingGroup>
+
+  <!-- 4 Check -->
+  <DrawingGroup x:Key="SA.Icon.4.32">
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M10 6H7v23h18V6h-3" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M12 4h8v4h-8z" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.TickPen.32}" Geometry="M11 18l4 4l7-8" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M12 26h8" />
   </DrawingGroup>
-  <DrawingGroup x:Key="SA.Icon.3.16">
+  <DrawingGroup x:Key="SA.Icon.4.16">
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M10 6H7v23h18V6h-3" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M12 4h8v4h-8z" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.TickPen.16}" Geometry="M11 18l4 4l7-8" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M12 26h8" />
-  </DrawingGroup>
-
-  <!-- 4 Place villas -->
-  <DrawingGroup x:Key="SA.Icon.4.32">
-    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M3 16l10-8l10 8v11H3z" />
-    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M10 27v-6h6v6" />
-    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M26 2.5a4 4 0 0 1 4 4c0 3-4 7.5-4 7.5s-4-4.5-4-7.5a4 4 0 0 1 4-4z" />
-    <!-- The spec names fill white and no "no stroke" here, so the default stroke stays, as written -->
-    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Brush="{StaticResource SA.Surface}" Geometry="M25 6.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
-  </DrawingGroup>
-  <DrawingGroup x:Key="SA.Icon.4.16">
-    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M3 16l10-8l10 8v11H3z" />
-    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M26 2.5a4 4 0 0 1 4 4c0 3-4 7.5-4 7.5s-4-4.5-4-7.5a4 4 0 0 1 4-4z" />
   </DrawingGroup>
 
   <!-- 5 Floors and ramps -->
@@ -438,31 +455,70 @@
     <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.16}" Geometry="M9 12v8" />
   </DrawingGroup>
 
-  <!-- 7 Walls -->
+  <!-- 7 Place villas -->
   <DrawingGroup x:Key="SA.Icon.7.32">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M3 16l10-8l10 8v11H3z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M10 27v-6h6v6" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M26 2.5a4 4 0 0 1 4 4c0 3-4 7.5-4 7.5s-4-4.5-4-7.5a4 4 0 0 1 4-4z" />
+    <!-- The spec names fill white and no "no stroke" here, so the default stroke stays, as written -->
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Brush="{StaticResource SA.Surface}" Geometry="M25 6.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+  </DrawingGroup>
+  <DrawingGroup x:Key="SA.Icon.7.16">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M3 16l10-8l10 8v11H3z" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M26 2.5a4 4 0 0 1 4 4c0 3-4 7.5-4 7.5s-4-4.5-4-7.5a4 4 0 0 1 4-4z" />
+  </DrawingGroup>
+
+  <!-- 8 Walls -->
+  <DrawingGroup x:Key="SA.Icon.8.32">
     <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M2 8h28v4H2z" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M3 12h26v15H3z" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M3 19.5h26" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M11 12v7.5M21 12v7.5M7 19.5V27M16 19.5V27M25 19.5V27" />
   </DrawingGroup>
-  <DrawingGroup x:Key="SA.Icon.7.16">
+  <DrawingGroup x:Key="SA.Icon.8.16">
     <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M2 8h28v4H2z" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M3 12h26v15H3z" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M3 19.5h26" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M16 12v7.5M9 19.5V27M23 19.5V27" />
   </DrawingGroup>
 
-  <!-- 8 Report -->
-  <DrawingGroup x:Key="SA.Icon.8.32">
+  <!-- 9 Report -->
+  <DrawingGroup x:Key="SA.Icon.9.32">
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M5 5h22v22H5z" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M5 11h22" />
     <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M9 23v-5h3v5zM14.5 23v-8h3v8zM20 23v-6h3v6z" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M8 23h16" />
   </DrawingGroup>
-  <DrawingGroup x:Key="SA.Icon.8.16">
+  <DrawingGroup x:Key="SA.Icon.9.16">
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M5 5h22v22H5z" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M5 11h22" />
     <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M9 23v-5h3v5zM14.5 23v-8h3v8zM20 23v-6h3v6z" />
+  </DrawingGroup>
+
+  <!-- Site Adaptation Rules -->
+  <DrawingGroup x:Key="SA.Icon.SiteAdaptationRules.32">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M3 7c4-2 9-2 13 1v19c-4-3-9-3-13-1z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M29 7c-4-2-9-2-13 1v19c4-3 9-3 13-1z" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M21 5v9l2.5-1.8l2.5 1.8V5z" />
+  </DrawingGroup>
+  <DrawingGroup x:Key="SA.Icon.SiteAdaptationRules.16">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M3 7c4-2 9-2 13 1v19c-4-3-9-3-13-1z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M29 7c-4-2-9-2-13 1v19c4-3 9-3 13-1z" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M21 5v9l2.5-1.8l2.5 1.8V5z" />
+  </DrawingGroup>
+
+  <!-- Update from report -->
+  <DrawingGroup x:Key="SA.Icon.UpdateFromReport.32">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M17 27H5V5h16v9" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M5 11h16M11 5v22" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.Wide}" Geometry="M29 22.5a6 6 0 1 1 -2-4.5" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.Wide}" Geometry="M27.5 14v4.5H23" />
+  </DrawingGroup>
+  <DrawingGroup x:Key="SA.Icon.UpdateFromReport.16">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M17 27H5V5h16v9" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M5 11h16" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.Wide}" Geometry="M29 22.5a6 6 0 1 1 -2-4.5" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.Wide}" Geometry="M27.5 14v4.5H23" />
   </DrawingGroup>
 
 </ResourceDictionary>

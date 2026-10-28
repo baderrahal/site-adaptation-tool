@@ -9,10 +9,21 @@ Phase 5 and 6 on Bader's company laptop (D1 of steps/decisions-2026-10-28.md). W
 | L0 Laptop check, light mode design, UI spec | done, Lane B, laptop, on the merge of branch docs/laptop-l0 after its review |
 | 5a Install, ribbon, pane, one transaction per button | running since 28 Oct 2026, Lane B, laptop |
 | 5b Button 1 Set up site | open |
+| 5f Update from report, new by Bader's changes of 28 Oct 2026, after 5e and before 6a | open |
 
-After 5b Lane B waits until 4g2, 4g3 and 4h are all marked done in steps/01_next.md. Bader's list of the Lane B phases after that, in order: C2 the C# check of 4g3 and 4h, 5c, the Revit run after 5c, 5d, 5e, 6a, 6b, 6c.
+After 5b Lane B waits until 4g2, 4g3 and 4h are all marked done in steps/01_next.md. Bader's list of the Lane B phases after that, in order: 5c, the Revit run after 5c, 5d, 5e, 5f, 6a, 6b, 6c (5f added by Bader's changes of 28 Oct 2026, docs/design/13-workflow-changes.md).
 
 A laptop session starts from Bader's Lane B prompt, never from steps/START.md. START.md runs the first open phase of steps/01_next.md, which is Phase 4, and nothing there names this file until the fold in.
+
+## Where 5a stopped, 28 Oct 2026
+
+Bader asked for a stop to restart the laptop. Nothing ran in Revit at the stop and no window lock was held (RAN).
+
+- Merged in 5a: PR 84 records, PR 86 add-in project, theme and ribbon, PR 87 the four UI controls, PR 89 one transaction per button and the install, PR 90 the pane, the label list and the draft PNGs.
+- Open: PR 92, Bader's design changes and the 9 steps, in its review pass 1 fixes. The records fixes are on its branch. The code fixes (the label list renamed to 14-ui-labels.md, its 5b and 5c entries, the look of the Import pre-setting link, README and latent lines), started in commit 4ea6901 of branch wip/lane-b-5a-pr8-review1, are finished and tested on feat/lane-b-5a-workflow, with main merged in. Next: review pass 2, merge.
+- Waiting: branch feat/lane-b-5a-revit-run, the test host side of the Revit run, not yet a PR. Revit run 1 (RAN, 2.98 min) held 12 checks, failed at OpenAndActivateDocument in Idling, and its ribbon and pane pictures were wrong. Its fixes are on the branch at 87ab4d2. After PR 92 merges: merge main into it, build, install, run 2 by the runner under the lock, the Revit ribbon and pane PNGs into steps/ui-shots/, review, merge. A third failed run goes back to measuring and becomes a question.
+- Written on the laptop outside the repo: machine.json in %APPDATA%\SiteAdaptation with workRoot C:\Users\p003653k\Documents\SiteAdaptation, the add-in and the test host installed in %APPDATA%\Autodesk\Revit\Addins\2024 from the run 1 build, lock_settings.json and addin_run_spec.json in C:\Users\p003653k\Documents\SiteAdaptation.
+- Then the end records of 5a: the phase marked done here, the usage row, the open questions, the UI approval form.
 
 ## Fold in
 
@@ -31,7 +42,8 @@ Waiting for the fold in, in one records commit:
 7. docs/design/07-mock.md: every item marked NEW in docs/design/12-ui-spec.md joins the list of 7.7, as approved by Bader (U6, U7). In 7.1 the icons of 12-ui-spec.md take the place of the plain numbered squares named CHOSEN. These differences of 12-ui-spec.md from the mock carry no NEW mark and join 7.7 too, so the screenshot check of Phase 6 finds none by chance: the Rule column shows the plain name with the id as a tooltip, the "Will change" mark of 7.3, the found and not found marks of the input rows, and the first open state of 7.2 next to the new project prefilled from config of section 6.
 8. CLAUDE.md: the venv command of QL6, `py -3.12 -m venv .venv`, and Rule 1 of the Lane B rules below.
 9. Bader's four UI controls of 28 Oct 2026, the theme test, the text test, the picture test and the UI checklist in review, written as rules in docs/design/12-ui-spec.md, part UI controls. At the fold in (CHOSEN by Code): .claude/agents/reviewer.md gains the UI checklist, control 4, and each phase of steps/01_next.md that touches a window names the four controls in its done-when. The end of 5a gives Bader the UI approval form of item 5 of that part. Until then the lead of each Lane B session puts the checklist into the brief of every reviewer of a PR that touches a window (CHOSEN by Code, .claude/agents is outside Lane B).
-10. docs/design/README.md: the row of 13-ui-labels.md, the label list of control 2 (CHOSEN by Code, as every part of docs/design/ has its row).
+10. docs/design/README.md: the row of 14-ui-labels.md, the label list of control 2 (CHOSEN by Code, as every part of docs/design/ has its row).
+11. Bader's design changes of 28 Oct 2026, docs/design/13-workflow-changes.md, approved on the canvas: docs/addin-mock.md and docs/design/07-mock.md 7.1 and 7.2 take the order of the 9 steps, the ribbon of four panels and the pane changes, as Bader approved them. docs/design/03a-buttons-shared-and-1.md (the steps each button needs) and 03b-buttons-2-to-8.md take the new numbers and the new button 3 Review data, docs/design/10-rule-ids.md the rule ids of the renumbered buttons and of the new windows. steps/01_next.md gains phase 5f Update from report after 5e and before 6a, and the phases 5c and 5d take the changes of the last part of 13-workflow-changes.md. CLAUDE.md, "The approved mock" line, names 13-workflow-changes.md beside docs/addin-mock.md. The old button numbers go wherever a record or note names them, so no later session wires a body to the wrong button: steps/01_next.md 5c ("3 Check and 4 Place villas", "R377 button 4", "buttons 2 to 4"), the Revit run after 5c ("buttons 1 to 4"), 5d ("R379 button 6", "R380 button 7") and 5e ("button 8 Report", and Buttons.Run, which takes a number for the 9 steps and a name for Site Adaptation Rules and Update from report), the R363 text of docs/rules/07-addin-r354-r388.md line 10 and the note of config/project.json that say "check rows of button 3". Until then a Lane B session reads every button number of those files through the order of 13-workflow-changes.md. docs/design/README.md gains the row of 13-workflow-changes.md.
 
 ## Phase changes to steps/01_next.md
 
@@ -48,9 +60,25 @@ Added by Bader's Lane B prompt of 28 Oct 2026, the second of that day, for the f
 
 - 5a: Rule 2 first. Install per user only, no admin, into %APPDATA%\Autodesk\Revit\Addins\2024. R371 ribbon with the icons of docs/design/12-ui-spec.md. Theme.xaml with the gate test that fails on any colour or font size outside it, Libre Franklin bundled from google/fonts. Done when the add-in installs into Revit 2024 on the laptop with the ribbon and pane of 7.1 and 7.2 and the UI spec, open items 1 and 2 of docs/design/09-risks.md are measured in Revit, a screenshot of the ribbon and the pane is in steps/ui-shots/ beside a list of every known difference from the canvas, and the tests run on both runners.
 - 5b: R374 on the R17B file of kept\round_17 among the four copies of 3.1. The Set up site window by 7.3 of docs/design/12-ui-spec.md with its screenshot in steps/ui-shots/.
-- C2, after 4g3 and 4h are done: in a git worktree of origin/main outside the repo, the gate, the C# reads, the parity on the whole project and the 7 keys on net48 and net8.0 as 4g2 ran it, and the build peak, three runs each, the free memory at the start of each read. One PR adds the result to steps/log.md and closes the C# items the 4g3 and 4h log entries left for the laptop.
+- C2, dropped by Bader on 28 Oct 2026 (Lane A on this laptop, item 1), as he first gave it: after 4g3 and 4h are done, in a git worktree of origin/main outside the repo, the gate, the C# reads, the parity on the whole project and the 7 keys on net48 and net8.0 as 4g2 ran it, and the build peak, three runs each, the free memory at the start of each read. One PR adds the result to steps/log.md and closes the C# items the 4g3 and 4h log entries left for the laptop.
 - 5c: Rule 3 first, then every join item below and Q117, the optional inputs of button 3, then Q103, then buttons 2 to 4.
 - 5d: Q115, the wall extent per kind of edge, before button 7 places walls. Q116, the ramp of turned plots on the open edge.
+
+## Join items of Bader's changes of 28 Oct 2026
+
+From docs/design/13-workflow-changes.md, part Where each lands. 5a builds the order, the ribbon and the pane in Lane B PR 8.
+
+- W1, 5b. Set up site: the pass limit read from config by the answer of QL17, the Floor types row, the Ramp slope row and its dropdown, the Shared parameters row from the parameter sheet, the parameters and GUIDs only from that sheet, its PNG. The new labels of 7.3 are in the label list since review 1 of PR 92, the pass line as "Pass limit <n> mm" until QL17 is answered. The default 0.5% of Ramp slope is in the rules profile already, levelProfiles.parsons2024Rev6.rampSlopePercent.default beside rampTypes of rules/roshn-makkah.json, which the build reads (5a PR 8 review 2). Only the list of choices, 0.5%, 1%, 2%, then 3% to 15%, is new, and it goes beside rampTypes by Lane A or at the fold in (CLAUDE.md, no project value in code).
+- W2, 5c. The pass limit of 0.1 mm in config by the answer of QL17. addin.position.checkPointLimitMm is there already at 1.0 (R211, R353, Q086), and config is Lane A's file.
+- W3, 5c. The rules profile gains the block manualRules, M01 to M15 as drafted on the canvas, with id, text, group, manual section and the steps that check it. Code reads the page numbers from the manual PDF. The texts of M01 to M15 are on the canvas, not in the repo, so 5c asks Bader for them if no file holds them.
+- W4, 5c. The pre-setting: Import from past job and Export with R367, never a drawing path or a coordinate.
+- W5, 5c. The windows 3 Review data and Site Adaptation Rules, their labels in docs/design/14-ui-labels.md, their PNGs, and the manual rule ID on every check row and Review data row, with "Open in Site Adaptation Rules" in the Check table side box.
+- W6, 5d. Place villas places each link at its FFL and writes Prototype-FFL, Levels writes no link parameter, in the buttons of the new order.
+- W7, 5e. The manual rule ID on every report line.
+- W8, 5f. Update from report, the whole window and its run, its labels and PNG.
+- W9, 5c. R366, the step state of 4h, takes the 9 steps and their needs of docs/design/13-workflow-changes.md when the pane joins it. 4h builds from 03a, which keeps the eight buttons until the fold in.
+- W10, 5c. The settings key parameterSheet of the Shared parameters row, named by Code in 5a PR 8, goes into docs/design/06-settings.md and R367 of 4h at the join.
+- W11, 5c. The Check table window under its new number. Its title "4 Check, NBH <n>, <n> plots" is in the label list since review 1 of PR 92.
 
 ## Join items for 5c
 
@@ -113,6 +141,22 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - 5a PR 4 review 2. The hash of DiskProbe in the pane is a second copy of FileHash.Sha256 and InputHash.OfFolder of Common, now with another share mode. In 5b the pane calls the hash of Common and FileHash takes FileShare.ReadWrite.
 - 5a PR 4 review 2. PaneViewModel.PickInput, SettingsFile.Read and PaneViewModel.Document have test callers only.
 - 5a PR 4 review 2. A hash that fails is swallowed in DiskProbe.Hash, so its row looks like a hash still running.
+- 5a PR 8 review. The ribbon items are named "SiteAdaptation.Button" and the number, so a Revit shortcut or a Quick Access item set on an old number runs the renumbered step. Name them by the command class before Bader's check of Part 1.
+- 5a PR 8 review. A button with no number enters the flow as step 0, so once it has a body MissingStep(0) reads Statuses[-1] and its run id starts "0_". In 5a the not built stop comes first.
+- 5a PR 8 review. Bodies.Of(int) and Buttons.NotBuiltText(int) have test callers only.
+- 5a PR 8 review. pane-first-open.png is 84,976 bytes of the 100 KB cap of R400.
+- 5a PR 8 review. TellHandler holds one text, so two Told before Revit is idle show the last one only.
+- 5a PR 8 review. The Key of a button with no number comes from its label, so a label with a double or a trailing space gives an empty word and throws.
+
+## Lane A on this laptop, Bader 28 Oct 2026
+
+Phase 4 now runs on this laptop too, as Lane A, in a second clone folder "Site Adaptation Tool Lane A". Bader's changes for Lane B, recorded as his decisions:
+
+1. C2 is dropped from the Lane B list. Lane A runs the C# checks of 4g2, 4g3 and 4h inside its own phases, which closes Q111. 5c starts when 4h is marked done in steps/01_next.md.
+2. Memory: Lane A runs builds of up to about 3 GB at the same time. The window rule counts them: keep 8 GB free across both lanes, so the windows of D3 are (free RAM minus 8 GB minus the Lane A builds running) divided by the peak of one window, rounded down, at least 1 and at most 3.
+3. Speed rules from now on. S2: parity on the 7 keys in each PR, the whole project once at the end of a phase. S3: one review pass for a PR that changes only records, docs or UI text, at most two for logic.
+4. Design changes: Bader may send new design changes during the build. Each goes into docs/design/12-ui-spec.md or docs/design/13-workflow-changes.md and into this file as a join item for the phase that owns that part, recorded as Bader's decision. If it belongs to the current phase and fits, it is done there.
+5. Lane B never edits Lane A's files: the plan builder, config/project.json, rules/, docs/rules/, docs/design/ parts 01 to 10. Shared records only by the fold in rule. Before this rule, 5a PR 5 (PR 89) changed one line of docs/design/08-install.md, line 5, the install refusing only on Revit 2024 (Lane B's own R370). Fold in item 11 names changes of 03a, 03b, 07-mock and 10-rule-ids that wait for whoever owns those parts at the fold in.
 
 ## Lane B rules, Bader 28 Oct 2026
 
@@ -154,7 +198,7 @@ QL9. Tabular figures. Libre Franklin 2.000 and 3.000 have no tnum feature, so th
 - Other: numbers in Segoe UI. Segoe UI Regular has one width for every digit by default, 539 for each, and Segoe UI Semibold has 5 widths, 402 to 576, by default, both files hold a tnum feature (RAN and READ in 5a PR 2), so the Semibold numbers need the tnum request the theme already makes.
 - Other: Bader gives another font.
 
-QL10. Icon 4 hole. The 12-ui-spec.md line of 4 Place villas reads "M25 6.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 fill white (32 only)" with no "no stroke", so by the defaults of the spec the 2 wide SA.Heading stroke covers the white fill and the pin shows a navy dot. 5a PR 2 draws it as written, seen in a render of the 16 icons (RAN).
+QL10. Icon of Place villas, its hole. The 12-ui-spec.md line of 7 Place villas (4 before Bader's changes of 28 Oct 2026) reads "M25 6.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 fill white (32 only)" with no "no stroke", so by the defaults of the spec the 2 wide SA.Heading stroke covers the white fill and the pin shows a navy dot. 5a PR 2 draws it as written, seen in a render of the 16 icons (RAN).
 - Recommended: "no stroke", a white hole as the canvas likely shows.
 - Other: keep it as written.
 
@@ -175,7 +219,7 @@ QL14. Step rows and rows 32. docs/design/12-ui-spec.md says rows 32 and gives ea
 - Recommended: step rows of 40, on the scale as 24 plus 16, with the input and project rows kept at 32, and the step line cut with an ellipsis and its full text as tooltip.
 - Other: Bader gives the heights.
 
-QL15. Input rows at 380 wide. docs/design/12-ui-spec.md puts mark, label, file name, size, short hash and Browse on one row of 32 at 380 wide, and in steps/ui-shots/pane.png the size and hash show in full on 0 of 9 rows (READ the PNG).
+QL15. Input rows at 380 wide. docs/design/12-ui-spec.md puts mark, label, file name, size, short hash and Browse on one row of 32 at 380 wide, and in steps/ui-shots/pane.png the size and hash show in full on 0 of 9 rows (READ the PNG), and on 0 of 10 since the Shared parameters row (5a PR 8, steps/ui-shots/README.md).
 - Recommended: keep the file name, put size and short hash in the tooltip under the full path, as 7.2 of docs/design/07-mock.md lets the tooltip tell two files apart.
 - Other: two-line input rows.
 - Other: a wider pane.
@@ -184,6 +228,18 @@ QL16. Gaps between stacked inputs. docs/design/12-ui-spec.md gives rows 32, inpu
 - Recommended: accept the 2 px left by the row and input heights as part of those sizes, not a spacing.
 - Other: inputs 28 high so they stand 4 apart.
 - Other: Bader gives the rule.
+
+QL17. Where the pass limit of 0.1 mm applies. Bader's change of 28 Oct 2026 gives Set up site a pass limit of 0.1 mm from addin.position.checkPointLimitMm. That key holds 1.0 today in config/project.json, the 1 mm of R211 for the check points of button 1, and R353 holds the check points of the worker against the keys by it, which lie about half a mm off the baseplan, 127 of 141 passing at 1 mm (docs/design/03a-buttons-shared-and-1.md, Q086 open).
+- Recommended: 0.1 mm for the check points of button 1 against Revit, the Revit column after Apply against the transform the dry run gave, under a key of its own, and the key check of R353 kept at the answer of Q086.
+- Other: 0.1 mm for both, so most key check points fail.
+
+QL18. The pane shown again each session. RevitAPIUI.xml says VisibleByDefault counts only the first time a pane loads, after that Revit keeps the state of the last session (SEARCHED, 5a PR 6). So 5a PR 6 shows the pane once per Revit session at the first project view when it is hidden, which also brings back a pane the user closed.
+- Recommended: keep it, the pane is the way into every step.
+- Other: show it only on the first session after the install.
+
+QL19. 9 Report and the steps before it. Bader wrote "Each needs the one before, 9 Report needs 4 Check." 5a reads it as 9 needing 4 only, so 9 is Ready while 5 to 8 wait, and the Steps help line "Each one waits for the one before." then holds for every step but 9.
+- Recommended: keep it, the report can run after the check.
+- Other: 9 needs 8 and 4.
 
 ## The questions as L0 asked them
 

@@ -24,41 +24,60 @@ namespace SiteAdaptation.Tests
     // touched, so no Revit is needed
     public sealed class AddInTests
     {
+        // 7.1 of docs/design/12-ui-spec.md holds the ribbon of Bader's changes of 28 Oct 2026 and prevails over item 1 of
+        // docs/addin-mock.md until the fold in, line 10 of its Rules
         [Fact]
-        public void R371_the_ribbon_layout_is_the_tab_the_panels_and_the_labels_of_the_mock_in_its_order()
+        public void R371_the_ribbon_layout_is_the_tab_the_panels_and_the_labels_of_7_1_of_the_ui_spec_in_its_order()
         {
-            string mock = File.ReadAllLines(Path.Combine(ThemeGateTests.RepoRoot(), "docs", "addin-mock.md")).Single(line => line.StartsWith("1. Ribbon tab ", StringComparison.Ordinal));
-            Match line = Regex.Match(mock, @"Ribbon tab ""([^""]+)"" with three ribbon panels in this order: (.*)\. Large buttons");
-            Assert.True(line.Success, mock);
+            string spec = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "docs", "design", "12-ui-spec.md")).Replace("\r\n", "\n");
+            string ribbon = spec.Split('\n').SkipWhile(text => text != "### 7.1 Ribbon").Skip(1).First(text => text.StartsWith("Ribbon tab ", StringComparison.Ordinal));
+            Match line = Regex.Match(ribbon, @"^Ribbon tab ""([^""]+)"" with four panels in this order \([^)]*\): (.*)\. Large buttons");
+            Assert.True(line.Success, ribbon);
             List<Tuple<string, string[]>> panels = Regex.Matches(line.Groups[2].Value, @"(\w+) \(([^)]*)\)").Cast<Match>()
                 .Select(match => Tuple.Create(match.Groups[1].Value, match.Groups[2].Value.Split(',').Select(label => label.Trim()).ToArray())).ToList();
 
             Assert.Equal(RibbonLayout.Tab, line.Groups[1].Value);
-            Assert.Equal(3, panels.Count);
+            Assert.Equal(4, panels.Count);
             Assert.Equal(panels.Select(panel => panel.Item1), RibbonLayout.Panels.Select(panel => panel.Name));
             for (int at = 0; at < panels.Count; at++)
             {
                 Assert.Equal(panels[at].Item2, RibbonLayout.Panels[at].Buttons.Select(button => button.Label));
             }
-            Assert.Equal(Enumerable.Range(1, 8), RibbonLayout.Buttons.Select(button => button.Number));
+            Assert.Equal(Enumerable.Range(1, 9), RibbonLayout.Buttons.Select(button => button.Number));
             Assert.All(RibbonLayout.Buttons, button => Assert.StartsWith(button.Number + " ", button.Label));
+            Assert.Equal(new[] { "Site Adaptation Rules", "Update from report" }, RibbonLayout.AllButtons.Where(button => button.Number == 0).Select(button => button.Label));
+            Assert.Equal(11, RibbonLayout.AllButtons.Select(button => button.Key).Distinct().Count());
+            Assert.All(RibbonLayout.AllButtons, button => Assert.Equal(ThemeGateTests.IconKey(button.Number > 0 ? button.Number.ToString(CultureInfo.InvariantCulture) : null, button.Label), button.Key));
+            Assert.Equal("SA.Icon.UpdateFromReport.16", RibbonLayout.ButtonOf("UpdateFromReportCommand").IconKey16);
+        }
+
+        // A second reading of the order, from the part Order of docs/design/13-workflow-changes.md
+        [Fact]
+        public void R371_the_numbered_buttons_are_the_nine_steps_of_the_order_of_the_workflow_changes()
+        {
+            string order = File.ReadAllLines(Path.Combine(ThemeGateTests.RepoRoot(), "docs", "design", "13-workflow-changes.md")).Single(text => text.StartsWith("- Nine numbered steps: ", StringComparison.Ordinal));
+            string[] steps = order.Substring("- Nine numbered steps: ".Length).TrimEnd('.').Split(',').Select(step => step.Trim()).ToArray();
+
+            Assert.Equal(steps, RibbonLayout.Buttons.Select(button => button.Label));
         }
 
         [Fact]
-        public void R371_each_button_has_its_own_command_class_that_runs_its_number_and_the_buttons_share_one_availability_class()
+        public void R371_each_button_has_its_own_command_class_that_runs_its_number_or_its_name_and_the_buttons_share_one_availability_class()
         {
             string source = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Commands", "ButtonCommands.cs"));
-            var classes = RibbonLayout.Buttons.Select(button => button.CommandClass).ToList();
+            var classes = RibbonLayout.AllButtons.Select(button => button.CommandClass).ToList();
 
-            Assert.Equal(8, classes.Distinct().Count());
-            foreach (RibbonButtonSpec button in RibbonLayout.Buttons)
+            Assert.Equal(11, classes.Distinct().Count());
+            foreach (RibbonButtonSpec button in RibbonLayout.AllButtons)
             {
                 string name = button.CommandClass.Substring(button.CommandClass.LastIndexOf('.') + 1);
                 Assert.StartsWith("SiteAdaptation.AddIn.Commands.", button.CommandClass);
-                Match body = Regex.Match(source, @"public sealed class " + name + @" : IExternalCommand\s*\{.*?Buttons\.Run\((\d+), ", RegexOptions.Singleline);
+                Match body = Regex.Match(source, @"public sealed class " + name + @" : IExternalCommand\s*\{.*?Buttons\.Run\((\d+|nameof\(\w+\)), ", RegexOptions.Singleline);
                 Assert.True(body.Success, name);
-                Assert.Equal(button.Number.ToString(CultureInfo.InvariantCulture), body.Groups[1].Value);
+                Assert.Equal(button.Number > 0 ? button.Number.ToString(CultureInfo.InvariantCulture) : "nameof(" + name + ")", body.Groups[1].Value);
+                Assert.Same(button, button.Number > 0 ? RibbonLayout.Button(button.Number) : RibbonLayout.ButtonOf(name));
             }
+            Assert.Throws<ArgumentOutOfRangeException>(() => RibbonLayout.ButtonOf("NoSuchCommand"));
             Assert.Matches(@"namespace SiteAdaptation\.AddIn\.Commands", source);
             Assert.Matches(@"public sealed class " + RibbonLayout.AvailabilityClass.Split('.').Last() + @" : IExternalCommandAvailability", source);
         }
@@ -74,23 +93,30 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R371_the_one_entry_of_a_button_tells_its_label_and_refuses_a_number_off_the_ribbon()
         {
-            Assert.Equal("4 Place villas is not built yet.", Buttons.NotBuiltText(4));
+            Assert.Equal("7 Place villas is not built yet.", Buttons.NotBuiltText(7));
+            Assert.Equal("9 Report is not built yet.", Buttons.NotBuiltText(9));
             Assert.Throws<ArgumentOutOfRangeException>(() => Buttons.NotBuiltText(0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => Buttons.NotBuiltText(9));
+            Assert.Throws<ArgumentOutOfRangeException>(() => Buttons.NotBuiltText(10));
         }
 
-        // The flow of Common is handed every dependency as null, so a not-built body that touched one would throw
+        // The flow of Common is handed every dependency as null, so a not-built body that touched one would throw. The two buttons
+        // with no number take the same path, built in 5c and 5f (CHOSEN in docs/design/13-workflow-changes.md)
         [Fact]
         public void R382_a_button_with_no_body_says_it_is_not_built_yet_through_the_flow_before_any_check()
         {
             var untouched = new ButtonFlow(null, null, null, null, null);
-            foreach (RibbonButtonSpec button in RibbonLayout.Buttons)
+            var told = new List<string>();
+            foreach (RibbonButtonSpec button in RibbonLayout.AllButtons)
             {
-                RunOutcome outcome = untouched.Run(button.Number, button.Label, Bodies.Of(button.Number), null);
+                RunOutcome outcome = untouched.Run(button.Number, button.Label, Bodies.Of(button), null);
                 Assert.Equal(RunEnd.Stopped, outcome.End);
-                Assert.Equal(Buttons.NotBuiltText(button.Number), outcome.Message);
+                Assert.Equal(button.Label + " is not built yet.", outcome.Message);
+                told.Add(outcome.Message);
             }
-            Assert.Equal("4 Place villas is not built yet.", untouched.Run(4, "4 Place villas", Bodies.Of(4), @"C:\Models\Site.rvt").Message);
+            Assert.Equal(11, told.Count);
+            Assert.Contains("Site Adaptation Rules is not built yet.", told);
+            Assert.Contains("Update from report is not built yet.", told);
+            Assert.Equal("7 Place villas is not built yet.", untouched.Run(7, "7 Place villas", Bodies.Of(7), @"C:\Models\Site.rvt").Message);
         }
 
         [Fact]
@@ -125,7 +151,7 @@ namespace SiteAdaptation.Tests
                 ResourceDictionary theme = ThemeDictionary.Load();
                 Color heading = ((SolidColorBrush)theme["SA.Heading"]).Color;
                 Color accent = ((SolidColorBrush)theme["SA.IconAccent"]).Color;
-                foreach (RibbonButtonSpec button in RibbonLayout.Buttons)
+                foreach (RibbonButtonSpec button in RibbonLayout.AllButtons)
                 {
                     foreach (double scale in new[] { 1.0, 1.5 })
                     foreach (int units in new[] { 32, 16 })
@@ -156,15 +182,15 @@ namespace SiteAdaptation.Tests
                                 accentLike += Near(pixels, at, accent) ? 1 : 0;
                             }
                         }
-                        counts.Add(button.Number + "@" + units + "x" + scale.ToString(CultureInfo.InvariantCulture) + " drawn " + drawn + " heading " + headingLike + " accent " + accentLike);
+                        counts.Add(button.Key + "@" + units + "x" + scale.ToString(CultureInfo.InvariantCulture) + " drawn " + drawn + " heading " + headingLike + " accent " + accentLike);
                         Assert.True(drawn >= size, counts.Last());
                         Assert.True(drawn < size * size, counts.Last());
                         Assert.True(headingLike > 0, counts.Last());
-                        Assert.True(accentLike > 0 || button.Number == 3, counts.Last());
+                        Assert.True(accentLike > 0 || button.Number == 4, counts.Last());
                     }
                 }
             });
-            Assert.Equal(32, counts.Count);
+            Assert.Equal(44, counts.Count);
         }
 
         // The scale of WPF against the one GDI gives for the screen, a second reading of the same DPI. The test process is DPI
@@ -195,7 +221,7 @@ namespace SiteAdaptation.Tests
             {
                 ResourceDictionary theme = ThemeDictionary.Load();
                 Assert.Throws<ArgumentOutOfRangeException>(() => IconRenderer.Render(theme, "SA.Icon.1.16", 16, 0.01));
-                Assert.Throws<ArgumentException>(() => IconRenderer.Render(theme, "SA.Icon.9.32", 32, 1.0));
+                Assert.Throws<ArgumentException>(() => IconRenderer.Render(theme, "SA.Icon.10.32", 32, 1.0));
             });
         }
 

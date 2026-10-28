@@ -1,4 +1,4 @@
-## 13. UI labels
+## 14. UI labels
 
 The label list of control 2 of docs/design/12-ui-spec.md, UI controls. Every label, title, help line, button text and chip text of a window, word for word from docs/design/12-ui-spec.md and 7.1 to 7.4 of docs/design/07-mock.md, grouped by window. A value is written `<n>`, and `<m>` or `<name>` where the spec writes them so. An entry the spec gives no words for is marked CHOSEN with its reason, for Bader's check.
 
@@ -6,18 +6,24 @@ The gate test UiLabelTests reads this file. It fails on any text in the XAML or 
 
 ### Ribbon
 
+The four panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md).
+
 - `Site Adaptation`
 - `Setup`
+- `Rules`
 - `Build`
 - `Output`
 - `1 Set up site`
 - `2 Read data`
-- `3 Check`
-- `4 Place villas`
+- `3 Review data`
+- `4 Check`
+- `Site Adaptation Rules`
 - `5 Floors and ramps`
 - `6 Levels`
-- `7 Walls`
-- `8 Report`
+- `7 Place villas`
+- `8 Walls`
+- `9 Report`
+- `Update from report`
 
 ### Pane
 
@@ -32,10 +38,16 @@ The gate test UiLabelTests reads this file. It fails on any text in the XAML or 
 - `Choose the settings file`
 - `It names the drawings, the rules and the prototypes for this job. The tool fills the rest of this panel from it.`
 - `Choose settings file`
+- `Or start from a past job:` the first open line of Bader's changes of 28 Oct 2026 in three parts, the second its link
+- `Import pre-setting`
+- `It brings the settings, rules, level profile, ramp slopes, parameter sheet and overrides of that job.`
 - `Rules and settings for this job. Set once.`
 - `Settings`
 - `Rules`
 - `Level profile`
+- `Pre-setting`
+- `Import from past job`
+- `Export`
 - `Input files`
 - `The drawings and schedules the tool reads. All <n> found.`
 - `The drawings and schedules the tool reads. <m> of <n> found.`
@@ -46,6 +58,7 @@ The gate test UiLabelTests reads this file. It fails on any text in the XAML or 
 - `DLUS and sales`
 - `Plot numbers`
 - `Prototypes`
+- `Shared parameters`
 - `DLUS schedule` CHOSEN, the title of the first of the two file dialogs of the row DLUS and sales, each picks its workbook by its role
 - `Sales schedule` CHOSEN, the title of the second of them
 - `Browse`
@@ -65,10 +78,11 @@ The gate test UiLabelTests reads this file. It fails on any text in the XAML or 
 - `Run them in order. Each one waits for the one before.`
 - `Coordinates, levels and types from CAD`
 - `Reads the drawings and schedules`
+- `The team checks what was read`
 - `Compares the rules with the past job`
-- `Places a villa on each plot`
 - `Generic, yard and ramp floors`
 - `Sets FFL and entry levels`
+- `Places a villa on each plot at its FFL`
 - `Boundary and garden walls`
 - `Excel report of the run`
 - `Done`
@@ -126,6 +140,10 @@ Not built yet, Phase 5b.
 - `Coordinate system`
 - `Angle to true north`
 - `Floor types`
+- `Generic 150mm, yard, Flat Ramps, and one Ramps type per slope below`
+- `Ramp slope`
+- `Default 0.5%. Choices 0.5%, 1%, 2%, then 3% to 15%`
+- `From the parameter sheet: <n>` the sheet name and its count
 - `Wall types`
 - `Will change`
 - `Check points from CAD`
@@ -133,7 +151,7 @@ Not built yet, Phase 5b.
 - `CAD`
 - `Revit`
 - `Diff`
-- `Pass limit 1 mm. <n> of <n> pass`
+- `Pass limit <n> mm. <n> of <n> pass` the value is the mock's 1 mm or Bader's 0.1 mm of 28 Oct 2026 by the answer of QL17 of steps/lane-b.md
 - `On an existing site file`
 - `Nothing changes until Apply. Apply sets only the rows that differ.`
 - `Cancel`
@@ -144,8 +162,8 @@ Not built yet, Phase 5b.
 
 Not built yet, Phase 5c.
 
-- `3 Check, NBH <n>, <n> plots`
-- `3 Check, NBH all, <n> plots`
+- `4 Check, NBH <n>, <n> plots` CHOSEN, the title of 7.4 of docs/design/07-mock.md under the number 4 of docs/design/13-workflow-changes.md
+- `4 Check, NBH all, <n> plots` CHOSEN, as the line above
 - `Level profile <n>, override file <n>, <n> overrides, <n> of them on NBH <n>`
 - `Zoom to plot`
 - `Export to Excel`

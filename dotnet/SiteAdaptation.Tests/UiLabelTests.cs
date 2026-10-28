@@ -10,7 +10,7 @@ using Xunit;
 namespace SiteAdaptation.Tests
 {
     // R372, control 2 of docs/design/12-ui-spec.md. Every text of the XAML and the view models of the add-in is in the label list
-    // docs/design/13-ui-labels.md under its window, and every entry of a built window is shown by a file of that window. Files
+    // docs/design/14-ui-labels.md under its window, and every entry of a built window is shown by a file of that window. Files
     // only, so it runs on net48 and on the net8.0 leg of Linux
     public sealed class UiLabelTests
     {
@@ -23,7 +23,8 @@ namespace SiteAdaptation.Tests
 
             Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Check table" }, list.Keys.ToArray());
             Assert.Equal(new[] { "Ribbon", "Pane", "Button messages" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
-            Assert.Equal(12, list["Ribbon"].Entries.Count);
+            Assert.Equal(16, list["Ribbon"].Entries.Count);
+            Assert.Contains(shown["Ribbon"], found => found.Text == "Update from report");
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
             Assert.Contains(shown["Pane"], found => found.Text == "Needs step <n>" && found.Where.EndsWith("PaneText.cs", StringComparison.Ordinal));
             Assert.Contains(shown[UiLabels.Messages], found => found.Text == " needs step " && found.Where.EndsWith("RunTexts.cs", StringComparison.Ordinal));
@@ -43,7 +44,7 @@ namespace SiteAdaptation.Tests
                 Directory.CreateDirectory(Path.Combine(root, "Pane"));
                 Directory.CreateDirectory(Path.Combine(root, "Theme"));
                 File.WriteAllText(Path.Combine(root, "App", "RibbonLayout.cs"),
-                    "public const string Tab = \"Site Adaptation\";\nnew RibbonPanelSpec(\"Setup\", new[] { new RibbonButtonSpec(1, \"1 Set up site\", \"SetUpSiteCommand\") });\nnew RibbonPanelSpec(\"Planted panel\", null);");
+                    "public const string Tab = \"Site Adaptation\";\nnew RibbonPanelSpec(\"Setup\", new[] { new RibbonButtonSpec(1, \"1 Set up site\", \"SetUpSiteCommand\") });\nnew RibbonPanelSpec(\"Planted panel\", null);\nnew RibbonButtonSpec(\"Planted button with no number\", \"PlantedCommand\");");
                 File.WriteAllText(Path.Combine(root, "Theme", "Theme.xaml"),
                     "<ResourceDictionary xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"><FontFamily x:Key=\"SA.Font\">Libre Franklin</FontFamily><Style x:Key=\"a\" TargetType=\"TextBlock\"><Setter Property=\"Text\" Value=\"Planted in the theme\" /></Style></ResourceDictionary>");
                 File.WriteAllText(Path.Combine(root, "Pane", "Page.xaml"),
@@ -81,13 +82,13 @@ namespace SiteAdaptation.Tests
                 List<string> offences = UiLabels.Offenders(list, UiLabels.Texts(root, runTexts));
                 string all = string.Join("\n", offences);
 
-                foreach (string planted in new[] { "Planted panel", "Planted in the theme", "Planted string", "Planted attribute", "Planted element", "Planted run", "Planted content",
+                foreach (string planted in new[] { "Planted panel", "Planted button with no number", "Planted in the theme", "Planted string", "Planted attribute", "Planted element", "Planted run", "Planted content",
                     "Planted tooltip", "Planted fallback", "Planted null", "Planted setter", "Planted code behind", "Planted \"verbatim\"", "Planted view model", "Planted {a}",
                     "Planted out of a window", "Planted entry no ribbon shows", "Planted entry no pane shows", "Planted message", "the file is not on disk" })
                 {
                     Assert.True(offences.Count(line => line.Contains(planted)) == 1, planted + " in\n" + all);
                 }
-                Assert.Equal(20, offences.Count);
+                Assert.Equal(21, offences.Count);
                 Assert.DoesNotContain("Not a message text", all);
                 Assert.DoesNotContain("Not text", all);
                 Assert.DoesNotContain("Not a window text", all);
@@ -106,8 +107,9 @@ namespace SiteAdaptation.Tests
         public void R372_each_entry_of_the_list_not_marked_chosen_is_written_in_the_ui_spec_the_mock_or_the_design()
         {
             string root = ThemeGateTests.RepoRoot();
-            // The messages of a button are written in 3 of the design, What every button shares, and the work folder in 6
-            string source = string.Join("\n", new[] { "12-ui-spec.md", "07-mock.md", "03a-buttons-shared-and-1.md", "06-settings.md" }
+            // The messages of a button are written in 3 of the design, What every button shares, the work folder in 6 and Bader's
+            // changes of 28 Oct 2026 in 13
+            string source = string.Join("\n", new[] { "12-ui-spec.md", "13-workflow-changes.md", "07-mock.md", "03a-buttons-shared-and-1.md", "06-settings.md" }
                 .Select(name => File.ReadAllText(Path.Combine(root, "docs", "design", name))));
             Dictionary<string, UiLabels.Window> list = UiLabels.List(File.ReadAllText(Path.Combine(root, UiLabels.ListFile)));
             var missing = new List<string>();
@@ -134,14 +136,52 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Empty(missing);
-            Assert.Equal(19, chosen);
+            Assert.Equal(21, chosen);
             Assert.True(matched > 100, matched.ToString());
+        }
+
+        // Review 1 of PR 92: the windows not built yet take Bader's changes of 28 Oct 2026 too, the quoted texts of Set up site
+        // in docs/design/13-workflow-changes.md, the pass limit as a value while QL17 is open, and Check under its number 4
+        [Fact]
+        public void R372_the_entries_of_windows_not_built_yet_hold_the_texts_of_the_workflow_changes()
+        {
+            string root = ThemeGateTests.RepoRoot();
+            Dictionary<string, UiLabels.Window> list = UiLabels.List(File.ReadAllText(Path.Combine(root, UiLabels.ListFile)));
+            string changes = File.ReadAllText(Path.Combine(root, "docs", "design", "13-workflow-changes.md")).Replace("\r\n", "\n");
+            int start = changes.IndexOf("### Set up site", StringComparison.Ordinal);
+            string setUp = changes.Substring(start, changes.IndexOf("\n### ", start, StringComparison.Ordinal) - start);
+            List<string> quoted = Regex.Matches(setUp, @"""([^""]+)""").Cast<Match>().Select(match => match.Groups[1].Value.Replace("...", "<n>")).ToList();
+            List<string> setUpEntries = list["Set up site"].Entries.Select(entry => entry.Text).ToList();
+            List<string> checkTitles = list["Check table"].Entries.Select(entry => entry.Text).Where(text => Regex.IsMatch(text, @"^\d Check")).ToList();
+
+            Assert.Equal(new[] { "Generic 150mm, yard, Flat Ramps, and one Ramps type per slope below", "Ramp slope", "Default 0.5%. Choices 0.5%, 1%, 2%, then 3% to 15%", "From the parameter sheet: <n>" }, quoted);
+            Assert.All(quoted, text => Assert.Contains(text, setUpEntries));
+            Assert.Contains("Pass limit <n> mm. <n> of <n> pass", setUpEntries);
+            Assert.DoesNotContain(setUpEntries, text => text.Contains(" 1 mm") || text.Contains("0.1 mm"));
+            Assert.Equal(new[] { "4 Check, NBH <n>, <n> plots", "4 Check, NBH all, <n> plots" }, checkTitles);
+            Assert.Contains("4 Check", list["Ribbon"].Entries.Select(entry => entry.Text));
+            Assert.False(list["Set up site"].Built);
+            Assert.False(list["Check table"].Built);
+        }
+
+        // Review 1 of PR 92: docs/design/README.md finds a part by its number, so no two parts share one, and the label list is 14
+        [Fact]
+        public void R372_each_part_of_docs_design_has_a_number_of_its_own_and_the_label_list_is_part_14()
+        {
+            string design = Path.Combine(ThemeGateTests.RepoRoot(), "docs", "design");
+            List<string> numbers = Directory.GetFiles(design, "*.md").Select(Path.GetFileName)
+                .Select(name => Regex.Match(name, @"^(\d+[a-z]?)-").Groups[1].Value).Where(number => number.Length > 0).ToList();
+
+            Assert.True(numbers.Count >= 14, string.Join(" ", numbers));
+            Assert.Equal(numbers.Distinct().Count(), numbers.Count);
+            Assert.Equal(Path.Combine("docs", "design", "14-ui-labels.md"), UiLabels.ListFile);
+            Assert.Equal("## 14. UI labels", File.ReadAllLines(Path.Combine(design, "14-ui-labels.md"))[0]);
         }
     }
 
     internal static class UiLabels
     {
-        public static readonly string ListFile = Path.Combine("docs", "design", "13-ui-labels.md");
+        public static readonly string ListFile = Path.Combine("docs", "design", "14-ui-labels.md");
         public static readonly Regex Slot = new Regex(@"<[a-z]+>");
         public const string Messages = "Button messages";
 
@@ -304,7 +344,7 @@ namespace SiteAdaptation.Tests
 
         private static IEnumerable<string> RibbonTexts(string code)
         {
-            foreach (Match match in Regex.Matches(code, @"\bTab\s*=\s*""([^""]*)""|new RibbonPanelSpec\(\s*""([^""]*)""|new RibbonButtonSpec\(\s*\d+\s*,\s*""([^""]*)"""))
+            foreach (Match match in Regex.Matches(code, @"\bTab\s*=\s*""([^""]*)""|new RibbonPanelSpec\(\s*""([^""]*)""|new RibbonButtonSpec\(\s*(?:\d+\s*,\s*)?""([^""]*)"""))
             {
                 yield return match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Success ? match.Groups[2].Value : match.Groups[3].Value;
             }

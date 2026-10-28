@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Ellipse = System.Windows.Shapes.Ellipse;
@@ -69,7 +71,7 @@ namespace SiteAdaptation.Tests
                     SitePanePage page = Shots.LaidOutPane(inUse);
                     List<FrameworkElement> all = Visuals(page).OfType<FrameworkElement>().ToList();
                     List<Button> browse = all.OfType<Button>().Where(button => "Browse".Equals(button.Content)).ToList();
-                    Assert.Equal(9, browse.Count);
+                    Assert.Equal(10, browse.Count);
                     Assert.All(browse, button => Assert.Equal(32.0, ((FrameworkElement)VisualTreeHelper.GetParent(button)).ActualHeight));
                     Assert.All(browse, button => Assert.Equal(28.0, button.ActualHeight));
                     List<Control> inputs = all.OfType<Control>().Where(control => control is ComboBox || control is TextBox).ToList();
@@ -79,7 +81,7 @@ namespace SiteAdaptation.Tests
                         && border.BorderBrush == page.FindResource("SA.Border")));
                     Button primary = all.OfType<Button>().Single(button => button.Style == page.FindResource("SA.Button.Primary"));
                     Assert.Equal(34.0, primary.ActualHeight);
-                    Assert.Equal(8, all.OfType<Ellipse>().Count(mark => mark.ActualWidth == 26.0));
+                    Assert.Equal(9, all.OfType<Ellipse>().Count(mark => mark.ActualWidth == 26.0));
 
                     // Review 1 of PR 90: the Level profile and Neighbourhood drop downs and the Plot list box start at one x
                     List<double> lefts = inputs.Select(input => input.TransformToAncestor(page).Transform(new Point(0, 0)).X).ToList();
@@ -102,6 +104,105 @@ namespace SiteAdaptation.Tests
                 }
             });
             counts.ForEach(output.WriteLine);
+        }
+
+        // Bader, 28 Oct 2026, 7.2 of docs/design/12-ui-spec.md: the row Pre-setting right under Level profile with its two buttons,
+        // the row Shared parameters right after Prototypes, and on first open only the line of a past job with its link
+        [Fact]
+        public void R372_the_pane_shows_pre_setting_under_level_profile_shared_parameters_after_prototypes_and_the_past_job_line_on_first_open()
+        {
+            string spec = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "docs", "design", "12-ui-spec.md"));
+            string line = Regex.Match(spec, @"""(Or start from a past job: [^""]+)""").Groups[1].Value;
+            Assert.StartsWith("Or start from a past job: Import pre-setting. ", line);
+            var counts = new List<string>();
+            OnSta(() =>
+            {
+                foreach (bool inUse in new[] { true, false })
+                {
+                    SitePanePage page = Shots.LaidOutPane(inUse);
+                    List<FrameworkElement> all = Visuals(page).OfType<FrameworkElement>().ToList();
+                    Func<FrameworkElement, Point> at = element => element.TransformToAncestor(page).Transform(new Point(0, 0));
+                    Func<string, TextBlock> label = text => all.OfType<TextBlock>().Single(block => block.Text == text);
+
+                    Assert.Equal(at(label("Level profile")).Y + 32, at(label("Pre-setting")).Y, 3);
+                    Assert.Equal(at(label("Prototypes")).Y + 32, at(label("Shared parameters")).Y, 3);
+                    Assert.Equal(inUse ? "The drawings and schedules the tool reads. All 8 found." : "The drawings and schedules the tool reads. 0 of 8 found.", Model(page).InputHelp);
+                    Assert.True(at(label("Pre-setting")).Y < at(label("Input files")).Y);
+                    foreach (string text in new[] { PaneText.ImportPastJob, PaneText.Export })
+                    {
+                        Button button = all.OfType<Button>().Single(item => text.Equals(item.Content));
+                        Assert.Equal(28.0, button.ActualHeight);
+                        Assert.Equal(at(label("Pre-setting")).Y + label("Pre-setting").ActualHeight / 2, at(button).Y + button.ActualHeight / 2, 1);
+                        Assert.True(at(button).X + button.ActualWidth <= page.ActualWidth - 16, text + " runs past the pane at " + (at(button).X + button.ActualWidth));
+                        Assert.Same(text == PaneText.Export ? Model(page).ExportCommand : Model(page).ImportCommand, button.Command);
+                    }
+                    Button import = all.OfType<Button>().Single(item => PaneText.ImportPastJob.Equals(item.Content));
+                    Button export = all.OfType<Button>().Single(item => PaneText.Export.Equals(item.Content));
+                    Assert.Equal(page.ActualWidth - 16, at(export).X + export.ActualWidth, 1);
+                    Assert.True(at(import).X >= at(label("Pre-setting")).X + label("Pre-setting").DesiredSize.Width + 8, "Import from past job stands on the label");
+                    ComboBox profile = all.OfType<ComboBox>().First();
+                    double gap = at(import).Y - (at(profile).Y + profile.ActualHeight);
+                    Assert.Equal(3.0, gap, 3);
+                    counts.Add((inUse ? "in use" : "first open") + ": Import from past job at x " + at(import).X + ", " + gap + " under Level profile");
+
+                    // Every row label shows in full, Shared parameters the widest, with a gap of 8 before the file name
+                    double column = ((GridLength)page.FindResource("SA.Grid.Label")).Value;
+                    foreach (string text in Model(page).InputRows.Select(row => row.Label).Concat(new[] { "Settings", "Rules", "Level profile", "Pre-setting" }))
+                    {
+                        var measure = new TextBlock { Text = text, Style = (Style)page.FindResource("SA.Type.Body") };
+                        measure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                        Assert.True(measure.DesiredSize.Width + 8 <= column, text + " is " + measure.DesiredSize.Width + " wide in a column of " + column);
+                    }
+
+                    TextBlock pastJob = all.OfType<TextBlock>().Single(block => new TextRange(block.ContentStart, block.ContentEnd).Text == line);
+                    Hyperlink link = pastJob.Inlines.OfType<Hyperlink>().Single();
+                    Assert.Equal("Import pre-setting", new TextRange(link.ContentStart, link.ContentEnd).Text);
+                    Assert.Same(Model(page).ImportCommand, link.Command);
+                    Assert.Equal(inUse ? Visibility.Collapsed : Visibility.Visible, pastJob.Visibility);
+                    Assert.Equal(inUse, pastJob.ActualHeight == 0);
+                    counts.Add((inUse ? "in use" : "first open") + ": past job line " + pastJob.ActualHeight + " high");
+                }
+            });
+            counts.ForEach(output.WriteLine);
+        }
+
+        // Review 1 of PR 92: with no document the link cannot run, so it takes the look of the grey buttons, SA.Wait and no
+        // underline, from its style in Theme.xaml, and with a document the accent and the underline
+        [Fact]
+        public void R372_the_link_import_pre_setting_is_accent_and_underlined_only_while_its_command_can_run()
+        {
+            var looks = new List<string>();
+            OnSta(() =>
+            {
+                foreach (bool open in new[] { false, true })
+                {
+                    SitePanePage page = Shots.LaidOutPane(false, open);
+                    PaneViewModel model = Model(page);
+                    Hyperlink link = Visuals(page).OfType<TextBlock>().SelectMany(block => block.Inlines.OfType<Hyperlink>()).Single();
+                    Color accent = ((SolidColorBrush)page.FindResource("SA.Accent")).Color;
+                    Color wait = ((SolidColorBrush)page.FindResource("SA.Wait")).Color;
+                    Color shown = ((SolidColorBrush)link.Foreground).Color;
+                    looks.Add((open ? "document" : "no document") + ": enabled " + link.IsEnabled + ", " + shown + ", underline " + (link.TextDecorations != null && link.TextDecorations.Count > 0));
+
+                    Assert.Equal(open, model.ImportCommand.CanExecute(null));
+                    Assert.Equal(open, link.IsEnabled);
+                    if (!open)
+                    {
+                        Assert.NotEqual(accent, shown);
+                    }
+                    Assert.Equal(open ? accent : wait, shown);
+                    Assert.Equal(open, link.TextDecorations != null && link.TextDecorations.Count > 0);
+                    Assert.Same(page.FindResource("SA.Pane.Link"), link.Style);
+                }
+            });
+            looks.ForEach(output.WriteLine);
+            string xaml = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Pane", "SitePanePage.xaml"));
+            Assert.DoesNotMatch(@"<Hyperlink[^>]*\bForeground=", xaml);
+        }
+
+        private static PaneViewModel Model(SitePanePage page)
+        {
+            return (PaneViewModel)page.DataContext;
         }
 
         private static IEnumerable<DependencyObject> Visuals(DependencyObject root)
