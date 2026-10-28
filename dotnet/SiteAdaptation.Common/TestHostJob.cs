@@ -84,6 +84,8 @@ namespace SiteAdaptation.Common
         public const double MaxClockSkewMinutes = 5;
         public const double DefaultTotalMinutes = 27;
         public const double MaxTotalMinutes = 29;
+        // QL20. The whole addinRun job, exit included, ends by 15 minutes. A tool timing, not a project value
+        public const double AddinRunMaxTotalMinutes = 15;
         public const string TestTag = "_TEST-";
         public const string PlaceKind = "place";
         public const string UpgradeKind = "upgrade";
@@ -259,7 +261,8 @@ namespace SiteAdaptation.Common
                 return Refuse(prototype);
             }
             // Written so that NaN fails too. R302 an image job may add its image minutes to the cap
-            double totalCap = MaxTotalMinutes + (job.Kind == ImageKind && HasImageMinutes(job) ? job.ImageMinutes.Value : 0);
+            double totalCap = job.Kind == AddinRunKind ? AddinRunMaxTotalMinutes
+                : MaxTotalMinutes + (job.Kind == ImageKind && HasImageMinutes(job) ? job.ImageMinutes.Value : 0);
             if (job.TotalMinutes.HasValue && !(job.TotalMinutes.Value > 0 && job.TotalMinutes.Value <= totalCap))
             {
                 return Refuse("totalMinutes must be above 0 and at most " + totalCap);
@@ -499,6 +502,10 @@ namespace SiteAdaptation.Common
         // job time when it names none), else DefaultTotalMinutes. So a job never ends before its image step can
         public static double TotalMinutesOf(TestHostJob job)
         {
+            if (job.Kind == AddinRunKind)
+            {
+                return Math.Min(job.TotalMinutes ?? AddinRunMaxTotalMinutes, AddinRunMaxTotalMinutes);
+            }
             if (job.TotalMinutes.HasValue)
             {
                 return job.TotalMinutes.Value;

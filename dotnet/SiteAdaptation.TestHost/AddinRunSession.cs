@@ -15,7 +15,9 @@ namespace SiteAdaptation.TestHost
     // documents, posts the answers and takes the pictures, and AddinRunRecord and AddinRunJudge of Common hold what it saw and decide.
     // OpenAndActivateDocument may not be called from inside an event handler (RevitAPIUI.xml of Revit 2024), Idling being one, so
     // each phase runs in the Execute of an ExternalEvent of the test host. Between phases the Idling handler only keeps the clock of
-    // AddinRunSchedule: a worker answer waits for the ExternalEvent of the add-in, the pictures for Revit to show and lay out the pane
+    // AddinRunSchedule: a worker answer waits for the ExternalEvent of the add-in, the pictures for Revit to show and lay out the pane.
+    // QL20: Revit refuses a handler added inside its own event (run 2), so Subscribe adds every handler once from OnStartup, none is
+    // ever removed, and the gate starts and ends the job instead
     internal sealed class AddinRunSession
     {
         // How long an idle wait lasts: at least the first, at most the second, in seconds. Tool timings, not project values
@@ -41,6 +43,7 @@ namespace SiteAdaptation.TestHost
         private readonly AddinRunSchedule schedule = new AddinRunSchedule();
         private readonly List<KeyValuePair<string, Document>> labels = new List<KeyValuePair<string, Document>>();
         private readonly Dictionary<int, string> closing = new Dictionary<int, string>();
+        private readonly RunGate gate = new RunGate();
         private ExternalEvent phaseEvent;
         private AddinProbe probe;
         private IRunState state;
@@ -53,7 +56,6 @@ namespace SiteAdaptation.TestHost
         private int routedBefore;
         private bool lastOk = true;
         private bool showWait;
-        private bool finished;
 
         public AddinRunSession(UIControlledApplication application, TestHostJob job, string documents, TestHostRunner runner, Action<UIApplication> exit)
         {
@@ -66,15 +68,9 @@ namespace SiteAdaptation.TestHost
             record = new AddinRunRecord { Code = job.Code, StartedUtc = DateTime.UtcNow };
         }
 
-        // From the first Idling of the job: the reads of the add-in, the events, then the first phase is raised
-        public void Start(UIApplication start)
+        // From OnStartup, outside any Revit event, the one place a handler is added. The handlers wait on the gate until the first tick
+        public void Subscribe()
         {
-            ui = start;
-            probe = AddinProbe.Find(record.Notes);
-            record.WorkRoot = probe.Root();
-            record.SaveFirst = RunTexts.SaveFirst;
-            record.RibbonTab = probe.Tab();
-            state = probe.State();
             phaseEvent = ExternalEvent.Create(new PhaseHandler(this));
             application.ControlledApplication.DocumentCreated += OnCreated;
             application.ControlledApplication.DocumentOpened += OnOpened;
@@ -83,27 +79,50 @@ namespace SiteAdaptation.TestHost
             application.ControlledApplication.DocumentSavedAs += OnSavedAs;
             application.ViewActivated += OnViewActivated;
             application.Idling += OnTick;
-            runner.Record(log => log.Notes.Add("addinRun: the result goes to " + resultPath + ", the pictures to " + folder));
-            Write();
-            schedule.Raise(DateTime.UtcNow);
-            Raise();
         }
 
-        private void Raise()
+        // From the first tick, on the Home screen: the reads of the add-in, then the first phase is raised before any document is
+        // made, and the raise is written at once, so a Revit that never runs it still leaves the record
+        public void Start(UIApplication start)
+        {
+            ui = start;
+            probe = AddinProbe.Find(record.Notes);
+            record.WorkRoot = probe.Root();
+            record.SaveFirst = RunTexts.SaveFirst;
+            record.RibbonTab = probe.Tab();
+            state = probe.State();
+            runner.Record(log => log.Notes.Add("addinRun: the result goes to " + resultPath + ", the pictures to " + folder));
+            int open = start.Application.Documents.Size;
+            schedule.Raise(DateTime.UtcNow);
+            record.HomeEvent.Raise(DateTime.UtcNow, open, Raise());
+            Write();
+        }
+
+        private bool Raise()
         {
             ExternalEventRequest request = phaseEvent.Raise();
             if (request != ExternalEventRequest.Accepted)
             {
                 record.Notes.Add("the phase event of the test host was not taken: " + request);
             }
+            return request == ExternalEventRequest.Accepted;
         }
 
         // In the API context of the ExternalEvent: the phases run one after the other until one ends in a wait
         private void Execute(UIApplication app)
         {
+            if (!gate.Live)
+            {
+                return;
+            }
             schedule.Ran();
             ui = app;
-            while (!finished)
+            // QL20 point 4. The first run of the event, raised on the Home screen, is written before phase 0 makes anything
+            if (record.HomeEvent.Run(DateTime.UtcNow, app.ActiveUIDocument == null, app.Application.Documents.Size))
+            {
+                Write();
+            }
+            while (gate.Live)
             {
                 int phase = phases.Next(lastOk);
                 if (phase < 0)
@@ -413,14 +432,20 @@ namespace SiteAdaptation.TestHost
             }
         }
 
-        // Idling keeps the clock only: it ends a wait and raises the next phase, and stops the job when Revit runs no raised phase
+        // Idling starts the job on its first tick, then keeps the clock only: it ends a wait and raises the next phase, and stops the
+        // job when Revit runs no raised phase
         private void OnTick(object sender, IdlingEventArgs e)
         {
-            if (finished)
+            if (gate.Finished)
             {
                 return;
             }
             e.SetRaiseWithoutDelay();
+            if (gate.Begin())
+            {
+                Start((UIApplication)sender);
+                return;
+            }
             TickAction action = schedule.Tick(DateTime.UtcNow, Pending(), out WaitState? ended, out double seconds);
             if (ended.HasValue && showWait)
             {
@@ -439,6 +464,7 @@ namespace SiteAdaptation.TestHost
             {
                 record.Notes.Add("Revit ran no raised phase of the test host in " + AddinRunSchedule.RaiseMaxSeconds + " s, the job stops");
                 runner.Record(log => log.Notes.Add("addinRun: the phase event did not run, the job stops"));
+                record.HomeEvent.NotRun();
                 lastOk = false;
                 ui = (UIApplication)sender;
                 Finish();
@@ -463,17 +489,17 @@ namespace SiteAdaptation.TestHost
             return (pane ? 0 : 1) + (tab ? 0 : 1);
         }
 
+        // Called inside Idling or the ExternalEvent, so it removes no handler (QL20). The gate ends the job, and the judge runs here
+        // too, so a job that gave up on its phase event still writes its checks
         private void Finish()
         {
-            finished = true;
-            application.Idling -= OnTick;
-            application.ControlledApplication.DocumentCreated -= OnCreated;
-            application.ControlledApplication.DocumentOpened -= OnOpened;
-            application.ControlledApplication.DocumentClosing -= OnClosing;
-            application.ControlledApplication.DocumentClosed -= OnClosed;
-            application.ControlledApplication.DocumentSavedAs -= OnSavedAs;
-            application.ViewActivated -= OnViewActivated;
+            if (gate.Finished)
+            {
+                return;
+            }
+            gate.End();
             record.FinishedUtc = DateTime.UtcNow;
+            AddinRunJudge.Judge(record);
             Write();
             if (phases.Failed || !lastOk)
             {
@@ -505,7 +531,7 @@ namespace SiteAdaptation.TestHost
         // The events PaneHost loads the pane on, each with the pane right after it as the test host sees it
         private void OnCreated(object sender, DocumentCreatedEventArgs e)
         {
-            if (e.Status == RevitAPIEventStatus.Succeeded && e.Document != null)
+            if (gate.Live && e.Status == RevitAPIEventStatus.Succeeded && e.Document != null)
             {
                 Seen(RunEvent.Created, e.Document, null, true);
             }
@@ -513,7 +539,7 @@ namespace SiteAdaptation.TestHost
 
         private void OnOpened(object sender, DocumentOpenedEventArgs e)
         {
-            if (e.Status == RevitAPIEventStatus.Succeeded && e.Document != null)
+            if (gate.Live && e.Status == RevitAPIEventStatus.Succeeded && e.Document != null)
             {
                 Seen(RunEvent.Opened, e.Document, null, true);
             }
@@ -522,7 +548,7 @@ namespace SiteAdaptation.TestHost
         // PaneHost shows the pane again on a save as of a document it holds a session for, and the session stays
         private void OnSavedAs(object sender, DocumentSavedAsEventArgs e)
         {
-            if (e.Status == RevitAPIEventStatus.Succeeded && e.Document != null)
+            if (gate.Live && e.Status == RevitAPIEventStatus.Succeeded && e.Document != null)
             {
                 Seen(RunEvent.SavedAs, e.Document, null, probe.SessionOf(e.Document) != null);
             }
@@ -530,11 +556,19 @@ namespace SiteAdaptation.TestHost
 
         private void OnClosing(object sender, DocumentClosingEventArgs e)
         {
+            if (!gate.Live)
+            {
+                return;
+            }
             closing[e.DocumentId] = LabelOf(e.Document);
         }
 
         private void OnClosed(object sender, DocumentClosedEventArgs e)
         {
+            if (!gate.Live)
+            {
+                return;
+            }
             closing.TryGetValue(e.DocumentId, out string label);
             closing.Remove(e.DocumentId);
             Seen(RunEvent.Closed, null, null, true, label);
@@ -542,14 +576,23 @@ namespace SiteAdaptation.TestHost
 
         private void OnViewActivated(object sender, ViewActivatedEventArgs e)
         {
+            if (!gate.Live)
+            {
+                return;
+            }
             Document now = e.CurrentActiveView == null ? null : e.CurrentActiveView.Document;
             Document before = e.PreviousActiveView == null ? null : e.PreviousActiveView.Document;
             bool changed = now == null || before == null || !now.Equals(before);
             Seen(RunEvent.ViewActivated, now, changed, changed);
         }
 
+        // probe is null before Start, so nothing is recorded outside the live job
         private void Seen(string kind, Document document, bool? changed, bool loads, string title = null)
         {
+            if (!gate.Live)
+            {
+                return;
+            }
             try
             {
                 record.Events.Add(new RunEvent

@@ -193,7 +193,7 @@ namespace SiteAdaptation.Tests
 
                 string token = new string('a', 32);
                 var job = new JObject { ["kind"] = "addinRun", ["token"] = token, ["code"] = "SA5A", ["model"] = model, ["template"] = template,
-                    ["createdUtc"] = DateTime.UtcNow.ToString("o"), ["totalMinutes"] = 27 };
+                    ["createdUtc"] = DateTime.UtcNow.ToString("o"), ["totalMinutes"] = 13 };
                 GuardResult guard = TestHostGuard.Check(job.ToString(), token, DateTime.UtcNow, File.Exists, Directory.Exists);
                 Assert.True(guard.Act, guard.Reason);
                 Assert.Null(TestHostGuard.CheckJobPath(TestHostGuard.JobPath(documents, "SA5A", false), guard.Job, documents));

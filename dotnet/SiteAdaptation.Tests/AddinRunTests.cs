@@ -50,7 +50,7 @@ namespace SiteAdaptation.Tests
                 ["model"] = Model,
                 ["template"] = Template,
                 ["createdUtc"] = Now.ToString("o"),
-                ["totalMinutes"] = 27,
+                ["totalMinutes"] = 13,
             };
         }
 
@@ -179,6 +179,126 @@ namespace SiteAdaptation.Tests
             Assert.False(schedule.Raised);
         }
 
+        // QL20. Run 2 of 5a: Revit refused "application.Idling += OnTick" inside an Idling handler. Every handler is added once at the
+        // start of Revit, and a flag tells each one whether the job runs, so no handler is ever added or removed in an event
+        [Fact]
+        public void R372_the_run_gate_starts_once_and_ends_by_its_flag_never_by_a_handler_removed()
+        {
+            var gate = new RunGate();
+            Assert.False(gate.Started);
+            Assert.False(gate.Live);
+            Assert.True(gate.Begin());
+            Assert.True(gate.Live);
+            Assert.False(gate.Begin());
+            gate.End();
+            Assert.True(gate.Finished);
+            Assert.False(gate.Live);
+            Assert.False(gate.Begin());
+
+            // A job that ends before it started never starts after
+            var early = new RunGate();
+            early.End();
+            Assert.False(early.Begin());
+            Assert.False(early.Live);
+        }
+
+        // QL20 point 4. The first thing run 3 measures: whether a raised ExternalEvent runs on the Home screen of Revit, no document open
+        [Fact]
+        public void R372_the_home_screen_event_records_its_raise_and_its_first_run_only()
+        {
+            var home = new RunHomeEvent();
+            home.Raise(Now, 0, true);
+            Assert.True(home.Raised);
+            Assert.Equal(Now, home.RaisedUtc);
+            Assert.Equal(0, home.DocumentsAtRaise);
+            Assert.Null(home.Ran);
+            Assert.True(home.Run(Now.AddSeconds(1.26), true, 0));
+            Assert.True(home.Ran);
+            Assert.Equal(1.3, home.Seconds);
+            Assert.True(home.NoDocument);
+            Assert.Equal(0, home.DocumentsAtRun);
+            // Later phases run from the same event, and the first run stays the one recorded
+            Assert.False(home.Run(Now.AddSeconds(50), false, 2));
+            Assert.Equal(1.3, home.Seconds);
+            home.NotRun();
+            Assert.True(home.Ran);
+
+            var never = new RunHomeEvent();
+            never.Raise(Now, 0, true);
+            never.NotRun();
+            Assert.False(never.Ran);
+            Assert.False(never.Run(Now.AddSeconds(200), true, 0));
+
+            var refused = new RunHomeEvent();
+            refused.Raise(Now, 0, false);
+            Assert.False(refused.Raised);
+            refused.NotRun();
+            Assert.Null(refused.Ran);
+        }
+
+        [WindowsFact]
+        public void R372_the_home_screen_event_is_held_not_held_or_not_measured()
+        {
+            AddinRunRecord held = Expected();
+            AddinRunJudge.Judge(held);
+            Assert.True(CheckOf(held, AddinRunJudge.HomeScreenEvent).Held == true, CheckOf(held, AddinRunJudge.HomeScreenEvent).Detail);
+            Assert.Equal("home", CheckOf(held, AddinRunJudge.HomeScreenEvent).Item);
+
+            AddinRunRecord never = Expected();
+            never.HomeEvent = new RunHomeEvent();
+            never.HomeEvent.Raise(Now, 0, true);
+            never.HomeEvent.NotRun();
+            AddinRunJudge.Judge(never);
+            Assert.True(CheckOf(never, AddinRunJudge.HomeScreenEvent).Held == false);
+            Assert.Contains("never ran", CheckOf(never, AddinRunJudge.HomeScreenEvent).Detail);
+
+            var unread = new Action<AddinRunRecord>[]
+            {
+                run => run.HomeEvent = new RunHomeEvent(),
+                run => run.HomeEvent.Ran = null,
+                run => run.HomeEvent.NoDocument = false,
+                run => run.HomeEvent.DocumentsAtRun = 1,
+                run => run.HomeEvent.DocumentsAtRaise = 1,
+            };
+            foreach (Action<AddinRunRecord> change in unread)
+            {
+                AddinRunRecord record = Expected();
+                change(record);
+                AddinRunJudge.Judge(record);
+                Assert.Null(CheckOf(record, AddinRunJudge.HomeScreenEvent).Held);
+                Assert.False(string.IsNullOrEmpty(CheckOf(record, AddinRunJudge.HomeScreenEvent).Detail));
+            }
+        }
+
+        // QL20 point 5. The whole addinRun job ends by 15 minutes, a tool timing
+        [WindowsFact]
+        public void R372_an_add_in_run_job_is_capped_at_15_minutes()
+        {
+            Assert.Equal(15, TestHostGuard.AddinRunMaxTotalMinutes);
+            foreach (double minutes in new[] { 13, 15 })
+            {
+                JObject job = Job();
+                job["totalMinutes"] = minutes;
+                GuardResult result = Check(job);
+                Assert.True(result.Act, result.Reason);
+                Assert.Equal(minutes, TestHostGuard.TotalMinutesOf(result.Job));
+            }
+            foreach (double minutes in new[] { 15.5, 16, 27, 29 })
+            {
+                JObject job = Job();
+                job["totalMinutes"] = minutes;
+                GuardResult result = Check(job);
+                Assert.False(result.Act, minutes.ToString());
+                Assert.Contains("at most 15", result.Reason);
+            }
+            JObject none = Job();
+            none.Remove("totalMinutes");
+            Assert.Equal(15, TestHostGuard.TotalMinutesOf(Check(none).Job));
+            Assert.Equal(15, TestHostGuard.TotalMinutesOf(new TestHostJob { Kind = TestHostGuard.AddinRunKind, TotalMinutes = 27 }));
+            // The other kinds keep their limits
+            Assert.Equal(TestHostGuard.DefaultTotalMinutes, TestHostGuard.TotalMinutesOf(new TestHostJob { Kind = TestHostGuard.ReadKind }));
+        }
+
         [Fact]
         public void R372_the_wait_for_the_answer_event_ends_when_the_relay_is_empty_or_at_its_limit()
         {
@@ -237,6 +357,8 @@ namespace SiteAdaptation.Tests
                 Issue = "run sa5a-2 ended after its document closed, nothing applied" });
             record.Shots.Add(new RunShot { Name = "pane", Width = 380, Height = 900, Colours = 40, Blank = false, Shown = true, MinWidth = 380 });
             record.Shots.Add(Ribbon());
+            record.HomeEvent.Raise(Now, 0, true);
+            record.HomeEvent.Run(Now.AddSeconds(1), true, 0);
             return record;
         }
 
@@ -419,7 +541,7 @@ namespace SiteAdaptation.Tests
             // refuses OpenAndActivateDocument
             Assert.Contains("phaseEvent = ExternalEvent.Create(new PhaseHandler(this));", run);
             string tick = Between(run, "private void OnTick(", "private int Pending(");
-            string start = Between(run, "public void Start(", "private void Raise(");
+            string start = Between(run, "public void Start(", "private bool Raise(");
             foreach (string part in new[] { tick, start })
             {
                 Assert.DoesNotContain("runner.Run(", part);
@@ -435,6 +557,41 @@ namespace SiteAdaptation.Tests
             // The work folder comes from the pane side of the add-in, the save stop from the flow of R382 on the path Revit gives
             Assert.Contains("state.WorkFolder(entry.PathName)", run);
             Assert.Contains("new ButtonFlow(state, null, null, null, null).Run(1, \"1\", new ButtonBody(), entry.PathName).Message", run);
+        }
+
+        // QL20 point 2. No handler of a Revit event is removed anywhere, and each is added in the Subscribe of the session, which the
+        // test host runs from OnStartup, never in Start, Execute, OnTick or a handler, where Revit refuses it
+        [Fact]
+        public void R372_every_revit_handler_is_added_from_on_startup_and_none_is_removed()
+        {
+            string app = RepoText("dotnet", "SiteAdaptation.TestHost", "TestHostApp.cs");
+            string session = RepoText("dotnet", "SiteAdaptation.TestHost", "JobSession.cs");
+            string run = RepoText("dotnet", "SiteAdaptation.TestHost", "AddinRunSession.cs");
+            var added = new System.Text.RegularExpressions.Regex(@"\.\w+\s*\+=\s*On\w+");
+
+            Assert.Contains("Wake(application, token, jobPath);", Between(app, "public Result OnStartup(", "public Result OnShutdown("));
+            Assert.Contains("JobSession.Start(application, token, jobPath, addinsFolder);", app);
+            Assert.Contains("session.Subscribe();", Between(session, "public static void Start(", "private static void Refused("));
+            string subscribe = Between(session, "private void Subscribe(", "private void Kill(");
+            Assert.Contains("addinRun.Subscribe();", subscribe);
+            string runSubscribe = Between(run, "public void Subscribe(", "public void Start(");
+            Assert.Contains("phaseEvent = ExternalEvent.Create(new PhaseHandler(this));", runSubscribe);
+            Assert.Contains("application.Idling += OnTick;", runSubscribe);
+            Assert.Contains("application.Idling += OnFirstIdling;", subscribe);
+
+            foreach (string text in new[] { session, run })
+            {
+                Assert.DoesNotContain("-=", text);
+            }
+            Assert.Equal(added.Matches(session).Count, added.Matches(subscribe).Count);
+            Assert.Equal(added.Matches(run).Count, added.Matches(runSubscribe).Count);
+            Assert.Equal(7, added.Matches(runSubscribe).Count);
+            Assert.Equal(5, added.Matches(subscribe).Count);
+            // One Idling handler per job: the add-in run takes its clock, every other kind the first Idling of the job session
+            Assert.Contains("if (addinRun != null)", subscribe);
+            Assert.DoesNotContain("ExternalEvent.Create(", run.Replace(runSubscribe, ""));
+            Assert.Contains("if (!gate.Live)", Between(run, "private void Seen(", "private string LabelOf("));
+            Assert.Contains("if (!gate.Begin())", Between(session, "private void OnFirstIdling(", "private void Exit("));
         }
 
         // The session asks the flow only for a document with no path, where the flow stops before it reads the state, the model or a file

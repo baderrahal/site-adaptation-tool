@@ -238,6 +238,16 @@ if ($round) {
             $original = $build.template
             $roundJob.model = $copy
             $roundJob.template = $build.template
+            # QL20. The whole run, the exit of Revit included, ends by 15 minutes. CHOSEN: the job gets 13 and the window 15, so the
+            # 2 minutes between leave Revit time to exit after the job posts it, before the window stops Revit. Tool timings
+            $addinRunWindowMinutes = 15
+            $addinRunJobMinutes = 13
+            if (-not $PSBoundParameters.ContainsKey('TimeoutMinutes')) {
+                $TimeoutMinutes = $addinRunWindowMinutes
+            }
+            elseif ($TimeoutMinutes -gt $addinRunWindowMinutes) {
+                throw "An addinRun job ends by $addinRunWindowMinutes minutes, -TimeoutMinutes $TimeoutMinutes is more"
+            }
         }
         'linksAndFloors' {
             $copy = Join-Path $work (Get-SiteNewFile $build)
@@ -377,6 +387,9 @@ try {
             $job.totalMinutes = [Math]::Min(27, $TimeoutMinutes - 2)
             if ($round.kind -eq 'image') {
                 $job.totalMinutes = [Math]::Min($imageTotal, $TimeoutMinutes - 2)
+            }
+            elseif ($round.kind -eq 'addinRun') {
+                $job.totalMinutes = [Math]::Min($addinRunJobMinutes, $TimeoutMinutes - 2)
             }
         }
         elseif ($spec) {

@@ -30,7 +30,9 @@ namespace SiteAdaptation.TestHost
         private readonly TestHostRunner runner;
         private readonly DateTime deadlineUtc;
         private readonly Dictionary<string, LinkOpening> openings = new Dictionary<string, LinkOpening>(StringComparer.OrdinalIgnoreCase);
+        private readonly RunGate gate = new RunGate();
         private TestHostWatchdog watchdog;
+        private AddinRunSession addinRun;
         private Document document;
 
         private JobSession(UIControlledApplication application, TestHostJob job, string jobPath, string documents, string addinsFolder)
@@ -144,7 +146,17 @@ namespace SiteAdaptation.TestHost
             application.ControlledApplication.FailuresProcessing += OnFailures;
             application.ControlledApplication.LinkedResourceOpening += OnLinkOpening;
             application.ControlledApplication.LinkedResourceOpened += OnLinkOpened;
-            application.Idling += OnFirstIdling;
+            // QL20. One Idling handler per job, added here in OnStartup and never removed, since Revit refuses a handler added in its
+            // own event. The add-in run spans several idle times and runs its phases in an ExternalEvent made here too
+            addinRun = job.Kind == TestHostGuard.AddinRunKind ? new AddinRunSession(application, job, documents, runner, Exit) : null;
+            if (addinRun != null)
+            {
+                addinRun.Subscribe();
+            }
+            else
+            {
+                application.Idling += OnFirstIdling;
+            }
         }
 
         private void Kill(string why)
@@ -153,19 +165,17 @@ namespace SiteAdaptation.TestHost
             Process.GetCurrentProcess().Kill();
         }
 
+        // The job runs on the first Idling only, every later one returns at once, so the handler stays and nothing changes in the event
         private void OnFirstIdling(object sender, IdlingEventArgs e)
         {
-            application.Idling -= OnFirstIdling;
-            var ui = (UIApplication)sender;
-            if (job.Kind == TestHostGuard.AddinRunKind)
+            if (!gate.Begin())
             {
-                // Lane B 5a. The answers of the add-in wait for its ExternalEvent in Revit's idle time, so this job spans several idle
-                // times and exits Revit itself when it ends
-                new AddinRunSession(application, job, documents, runner, Exit).Start(ui);
                 return;
             }
+            var ui = (UIApplication)sender;
             runner.Run(Steps(ui.Application));
             Exit(ui);
+            gate.End();
         }
 
         private void Exit(UIApplication ui)

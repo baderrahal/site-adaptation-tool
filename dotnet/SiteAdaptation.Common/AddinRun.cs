@@ -281,6 +281,8 @@ namespace SiteAdaptation.Common
         public string RibbonTab { get; set; }
         // Whether the pane was shown when the job came to show it, so after the first project view of the session
         public bool? PaneShownBefore { get; set; }
+        // QL20, what run 3 measures first: the phase event raised on the Home screen before any document
+        public RunHomeEvent HomeEvent { get; set; } = new RunHomeEvent();
         public List<string> Notes { get; set; } = new List<string>();
         public List<RunDocument> Documents { get; set; } = new List<RunDocument>();
         public List<RunEvent> Events { get; set; } = new List<RunEvent>();
@@ -434,12 +436,13 @@ namespace SiteAdaptation.Common
         public const string SavedFolder = "a saved document gets the work folder of its path";
         public const string PaneShot = "the pane PNG holds a drawn pane";
         public const string RibbonShot = "the ribbon PNG of our own window holds a drawn ribbon";
+        public const string HomeScreenEvent = "a raised ExternalEvent runs on the Home screen with no document";
 
         private static readonly string[] LoadEvents = { RunEvent.Created, RunEvent.Opened, RunEvent.SavedAs, RunEvent.Closed, RunEvent.ViewActivated };
 
         public static void Judge(AddinRunRecord record)
         {
-            var checks = new List<RunCheck>();
+            var checks = new List<RunCheck> { Home(record.HomeEvent) };
             List<RunDocument> created = record.Documents.Where(document => document.Made == RunDocument.Created).ToList();
             List<RunDocument> opened = record.Documents.Where(document => document.Made != RunDocument.Created).ToList();
             checks.Add(Every("1", SessionOnCreated, created, document => document.SessionId != null, document => document.Label));
@@ -528,6 +531,40 @@ namespace SiteAdaptation.Common
                 string hex = string.Concat(hash.Take(4).Select(part => part.ToString("x2", CultureInfo.InvariantCulture)));
                 return Path.Combine(root, Path.GetFileNameWithoutExtension(pathName) + "_" + hex);
             }
+        }
+
+        // Held only when the event ran with no document open at the raise and at the run, so on the Home screen. A run with a document
+        // open says nothing of the Home screen, and a raise Revit refused measures nothing
+        private static RunCheck Home(RunHomeEvent home)
+        {
+            var check = new RunCheck { Item = "home", Name = HomeScreenEvent };
+            if (home == null || !home.Raised)
+            {
+                check.Detail = "the event was not raised on the Home screen";
+                return check;
+            }
+            string raised = "raised with " + home.DocumentsAtRaise + " documents open";
+            if (!home.Ran.HasValue)
+            {
+                check.Detail = raised + ", nothing of its run was read";
+                return check;
+            }
+            if (home.Ran == false)
+            {
+                check.Held = false;
+                check.Detail = raised + ", it never ran in " + AddinRunSchedule.RaiseMaxSeconds + " s";
+                return check;
+            }
+            check.Detail = raised + ", it ran after " + home.Seconds + " s with no active document " + home.NoDocument + " and " + home.DocumentsAtRun + " documents open";
+            if (home.DocumentsAtRaise == 0 && home.NoDocument == true && home.DocumentsAtRun == 0)
+            {
+                check.Held = true;
+            }
+            else
+            {
+                check.Detail += ", so not on the Home screen";
+            }
+            return check;
         }
 
         private static RunCheck Every<T>(string item, string name, List<T> items, Func<T, bool> holds, Func<T, string> label)
