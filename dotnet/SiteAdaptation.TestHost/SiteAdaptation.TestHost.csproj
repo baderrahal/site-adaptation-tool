@@ -11,4 +11,11 @@
     <ProjectReference Include="..\RevitPrototypeReader\RevitPrototypeReader.csproj" Private="false" />
     <None Include="SiteAdaptationTestHost_Revit2024.addin" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <!-- The addinRun job renders the pane page of the add-in and the main window of Revit to PNG (R384) -->
+  <ItemGroup>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="System.Xaml" />
+  </ItemGroup>
 </Project>

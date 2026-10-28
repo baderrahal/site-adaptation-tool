@@ -95,7 +95,7 @@ namespace SiteAdaptation.TestHost
             if (guard.Act)
             {
                 string copy = TestHostGuard.IsUpgrade(guard.Job) ? FileIdentity.CheckTargetFolder(Path.GetDirectoryName(guard.Job.Target))
-                    : guard.Job.Kind == TestHostGuard.NewSiteKind ? FileIdentity.CheckTargetFolder(Path.GetDirectoryName(guard.Job.Model))
+                    : guard.Job.Kind == TestHostGuard.NewSiteKind || guard.Job.Kind == TestHostGuard.AddinRunKind ? FileIdentity.CheckTargetFolder(Path.GetDirectoryName(guard.Job.Model))
                     : FileIdentity.CheckCopy(guard.Job.Model, TestHostGuard.OriginalOf(guard.Job.Model));
                 // R204. The source of a site upgrade is a plain file of its own, never a link to the site model it was copied from
                 if (copy == null && guard.Job.Kind == TestHostGuard.SiteUpgradeKind)
@@ -157,7 +157,19 @@ namespace SiteAdaptation.TestHost
         {
             application.Idling -= OnFirstIdling;
             var ui = (UIApplication)sender;
+            if (job.Kind == TestHostGuard.AddinRunKind)
+            {
+                // Lane B 5a. The answers of the add-in wait for its ExternalEvent in Revit's idle time, so this job spans several idle
+                // times and exits Revit itself when it ends
+                new AddinRunSession(application, job, documents, runner, Exit).Start(ui);
+                return;
+            }
             runner.Run(Steps(ui.Application));
+            Exit(ui);
+        }
+
+        private void Exit(UIApplication ui)
+        {
             try
             {
                 ui.PostCommand(RevitCommandId.LookupPostableCommandId(PostableCommand.ExitRevit));

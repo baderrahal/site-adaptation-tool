@@ -66,3 +66,17 @@ function Get-WorkRoot([string]$AppData, [string]$MyDocuments) {
     }
     return $root
 }
+
+# Lane B 5a, R213. The run folder of an addinRun job, made new under the work root, and the first file the job makes in it. A folder
+# that is already there stops the run, so no file of an earlier run is ever overwritten
+function New-AddinRunFolder([string]$Docs, [string]$Code, [string]$Stamp) {
+    $folder = Join-Path $Docs ('addin_run\' + $Code + '_' + $Stamp)
+    if (Test-Path -LiteralPath $folder) {
+        throw "The run folder is already there: $folder"
+    }
+    New-Item -ItemType Directory $folder | Out-Null
+    [pscustomobject]@{
+        folder = $folder
+        model  = Join-Path $folder ($Code + '-TEST-NEW.rvt')
+    }
+}

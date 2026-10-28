@@ -56,8 +56,8 @@ if ($RoundSpec) {
         throw '-RoundSpec goes alone, its code is in the spec.'
     }
     $round = Get-Content -Raw $RoundSpec | ConvertFrom-Json
-    if (@('siteUpgrade', 'read', 'newSite', 'image', 'linksAndFloors') -notcontains $round.kind) {
-        throw "The round spec kind is not siteUpgrade, read, newSite, image or linksAndFloors: $($round.kind)"
+    if (@('siteUpgrade', 'read', 'newSite', 'image', 'linksAndFloors', 'addinRun') -notcontains $round.kind) {
+        throw "The round spec kind is not siteUpgrade, read, newSite, image, linksAndFloors or addinRun: $($round.kind)"
     }
     if ($round.code -notmatch '^[A-Z][A-Z0-9]{1,3}$') {
         throw "The round spec code is not a code of 2 to 4 capitals and digits: $($round.code)"
@@ -86,6 +86,7 @@ if ($PrototypeSet) {
 }
 # R372, QL2. The job, log and sample files sit in the work root of %APPDATA%\SiteAdaptation\machine.json, as the test host reads it
 $docs = Get-WorkRoot -AppData $env:APPDATA -MyDocuments ([Environment]::GetFolderPath('MyDocuments'))
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $addins = Join-Path $env:APPDATA 'Autodesk\Revit\Addins\2024'
 $watcherExe = Join-Path $addins 'SiteAdaptationTestHost\Watcher\SiteAdaptation.DialogWatcher.exe'
 $name = if ($DryStart) { 'dry_start' } elseif ($Upgrade -or ($round -and $round.kind -eq 'siteUpgrade')) { $Code + '_upgrade' } else { $Code }
@@ -228,6 +229,16 @@ if ($round) {
             $roundJob.template = $build.template
             $roundJob.site = [string]$round.site
         }
+        'addinRun' {
+            # Lane B 5a, docs/design/09-risks.md open items 1 and 2. The new projects of the job go into a run folder of their own under
+            # the work root, made here and empty, never a file of the inputs. The template is the one file the job reads
+            $run = New-AddinRunFolder -Docs $docs -Code $Code -Stamp $stamp
+            $runFolder = $run.folder
+            $copy = $run.model
+            $original = $build.template
+            $roundJob.model = $copy
+            $roundJob.template = $build.template
+        }
         'linksAndFloors' {
             $copy = Join-Path $work (Get-SiteNewFile $build)
             $planPath = [string]$round.plan
@@ -336,7 +347,6 @@ if (-not $DryStart -and -not $round) {
 }
 
 # Outputs of an earlier run of this name are moved aside, so a run that writes nothing cannot pass on old files
-$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 # A place run leaves the upgrade outputs of its code alone. A run named <code>_upgrade, an upgrade or a site upgrade, moves its own
 $old = @(Get-ChildItem $docs -Filter ('testhost_' + $name + '_*.json*') | Where-Object { $name -ne $Code -or $_.Name -notlike ('testhost_' + $Code + '_upgrade_*') })
 if ($old.Count -gt 0) {
@@ -656,6 +666,19 @@ if (Test-Path $logPath) {
 if ($Upgrade) {
     'The upgraded prototype folder:'
     Get-ChildItem $targetFolder | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 200
+}
+elseif ($round -and $round.kind -eq 'addinRun') {
+    $result = Join-Path $docs ('testhost_' + $Code + '_addinrun.json')
+    if (Test-Path $result) {
+        $run = Get-Content -Raw $result | ConvertFrom-Json
+        "Add-in run: held $($run.held), not held $($run.notHeld), not measured $($run.notMeasured), result $result"
+        @($run.checks) | Select-Object item, name, held, detail | Format-Table -Wrap -AutoSize | Out-String -Width 250
+    }
+    else {
+        "The add-in run wrote no result at $result"
+    }
+    'Files of the run folder:'
+    Get-ChildItem $runFolder | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 200
 }
 elseif ($round) {
     'Files of the work folder:'

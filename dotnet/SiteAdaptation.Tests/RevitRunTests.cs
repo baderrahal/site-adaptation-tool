@@ -172,6 +172,42 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain("$docs = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'SiteAdaptation'", script);
         }
 
+        // The second method for the addinRun job: the run folder the script makes passes the guard of the test host as the job names it,
+        // and a second run of the same stamp is stopped before it can touch the first
+        [WindowsFact]
+        public void R103_the_run_folder_the_script_makes_is_one_the_guard_of_the_test_host_takes()
+        {
+            string documents = Path.Combine(Path.GetTempPath(), "sa-addinrun-" + Guid.NewGuid().ToString("N"));
+            string root = Path.Combine(documents, WorkRoot.Folder);
+            string template = Path.Combine(documents, "DefaultMetric.rte");
+            Directory.CreateDirectory(root);
+            File.WriteAllText(template, "a template stand in");
+            try
+            {
+                Tuple<int, string, string> run = Pwsh("New-AddinRunFolder -Docs " + Quoted(root) + " -Code SA5A -Stamp 20261028-090000 | ConvertTo-Json");
+                Assert.True(run.Item1 == 0, run.Item3);
+                JObject made = JObject.Parse(run.Item2);
+                string model = (string)made["model"];
+                Assert.True(Directory.Exists((string)made["folder"]));
+                Assert.Equal("SA5A-TEST-NEW.rvt", Path.GetFileName(model));
+
+                string token = new string('a', 32);
+                var job = new JObject { ["kind"] = "addinRun", ["token"] = token, ["code"] = "SA5A", ["model"] = model, ["template"] = template,
+                    ["createdUtc"] = DateTime.UtcNow.ToString("o"), ["totalMinutes"] = 27 };
+                GuardResult guard = TestHostGuard.Check(job.ToString(), token, DateTime.UtcNow, File.Exists, Directory.Exists);
+                Assert.True(guard.Act, guard.Reason);
+                Assert.Null(TestHostGuard.CheckJobPath(TestHostGuard.JobPath(documents, "SA5A", false), guard.Job, documents));
+                Assert.Null(FileIdentity.CheckTargetFolder((string)made["folder"]));
+
+                Tuple<int, string, string> again = Pwsh("try { New-AddinRunFolder -Docs " + Quoted(root) + " -Code SA5A -Stamp 20261028-090000 } catch { 'stopped' }");
+                Assert.Equal("stopped", again.Item2);
+            }
+            finally
+            {
+                Directory.Delete(documents, true);
+            }
+        }
+
         // The second method: the run script reads the same machine files as WorkRoot and gives the same root or refuses the same
         [WindowsFact]
         public void R372_the_run_script_gives_the_work_root_the_test_host_takes()
