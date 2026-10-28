@@ -128,8 +128,6 @@
   <Thickness x:Key="SA.Pad.Panel">12,8,12,8</Thickness>
   <Thickness x:Key="SA.Pad.Chip">8,4,8,4</Thickness>
   <Thickness x:Key="SA.Pad.Button">12,0,12,0</Thickness>
-  <!-- Two buttons on one row of the value column fit the pane at 380 with 8 across only -->
-  <Thickness x:Key="SA.Pad.ButtonPair">8,0,8,0</Thickness>
   <Thickness x:Key="SA.Gap.Top4">0,4,0,0</Thickness>
   <Thickness x:Key="SA.Gap.Top8">0,8,0,0</Thickness>
   <Thickness x:Key="SA.Gap.Top12">0,12,0,0</Thickness>
@@ -146,7 +144,8 @@
   <sys:Double x:Key="SA.Size.RadioDot">8</sys:Double>
   <Geometry x:Key="SA.Mark.Down">M0 0l4 4l4-4</Geometry>
   <GridLength x:Key="SA.Grid.Mark">24</GridLength>
-  <GridLength x:Key="SA.Grid.Label">104</GridLength>
+  <!-- The widest row label, Shared parameters at 116 in SA.Type.Body, and a gap of 8 -->
+  <GridLength x:Key="SA.Grid.Label">124</GridLength>
   <GridLength x:Key="SA.Grid.StepMark">38</GridLength>
   <Geometry x:Key="SA.Mark.Found">M3 8.5l3.5 3.5l6.5-8</Geometry>
   <Geometry x:Key="SA.Mark.Missing">M2 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0z</Geometry>

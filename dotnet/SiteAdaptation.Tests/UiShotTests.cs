@@ -126,6 +126,7 @@ namespace SiteAdaptation.Tests
 
                     Assert.Equal(at(label("Level profile")).Y + 32, at(label("Pre-setting")).Y, 3);
                     Assert.Equal(at(label("Prototypes")).Y + 32, at(label("Shared parameters")).Y, 3);
+                    Assert.Equal(inUse ? "The drawings and schedules the tool reads. All 8 found." : "The drawings and schedules the tool reads. 0 of 8 found.", Model(page).InputHelp);
                     Assert.True(at(label("Pre-setting")).Y < at(label("Input files")).Y);
                     foreach (string text in new[] { PaneText.ImportPastJob, PaneText.Export })
                     {
@@ -134,6 +135,23 @@ namespace SiteAdaptation.Tests
                         Assert.Equal(at(label("Pre-setting")).Y + label("Pre-setting").ActualHeight / 2, at(button).Y + button.ActualHeight / 2, 1);
                         Assert.True(at(button).X + button.ActualWidth <= page.ActualWidth - 16, text + " runs past the pane at " + (at(button).X + button.ActualWidth));
                         Assert.Same(text == PaneText.Export ? Model(page).ExportCommand : Model(page).ImportCommand, button.Command);
+                    }
+                    Button import = all.OfType<Button>().Single(item => PaneText.ImportPastJob.Equals(item.Content));
+                    Button export = all.OfType<Button>().Single(item => PaneText.Export.Equals(item.Content));
+                    Assert.Equal(page.ActualWidth - 16, at(export).X + export.ActualWidth, 1);
+                    Assert.True(at(import).X >= at(label("Pre-setting")).X + label("Pre-setting").DesiredSize.Width + 8, "Import from past job stands on the label");
+                    ComboBox profile = all.OfType<ComboBox>().First();
+                    double gap = at(import).Y - (at(profile).Y + profile.ActualHeight);
+                    Assert.Equal(3.0, gap, 3);
+                    counts.Add((inUse ? "in use" : "first open") + ": Import from past job at x " + at(import).X + ", " + gap + " under Level profile");
+
+                    // Every row label shows in full, Shared parameters the widest, with a gap of 8 before the file name
+                    double column = ((GridLength)page.FindResource("SA.Grid.Label")).Value;
+                    foreach (string text in Model(page).InputRows.Select(row => row.Label).Concat(new[] { "Settings", "Rules", "Level profile", "Pre-setting" }))
+                    {
+                        var measure = new TextBlock { Text = text, Style = (Style)page.FindResource("SA.Type.Body") };
+                        measure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                        Assert.True(measure.DesiredSize.Width + 8 <= column, text + " is " + measure.DesiredSize.Width + " wide in a column of " + column);
                     }
 
                     TextBlock pastJob = all.OfType<TextBlock>().Single(block => new TextRange(block.ContentStart, block.ContentEnd).Text == line);

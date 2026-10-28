@@ -177,7 +177,8 @@ namespace SiteAdaptation.UiShots
     }
 
     // The mock's NBH 012 column of docs/design/07-mock.md 7.2 with file names only, no real path, coordinate or level. The size
-    // and the hash of Plot numbers are the mock's, every other size and hash is a sample value, steps/ui-shots/README.md
+    // and the hash of Plot numbers are the mock's, every other size and hash is a sample value, steps/ui-shots/README.md. The mock
+    // has no parameter sheet, its name is a sample name
     internal static class Sample
     {
         public const string Nbh = "012";
@@ -195,6 +196,7 @@ namespace SiteAdaptation.UiShots
             { "PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx", Tuple.Create(838861L, (string)null) },
             { "01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf", Tuple.Create(3056293L, "7061ac0d") },
             { "Prototypes_2024", Tuple.Create(1076887552L, (string)null) },
+            { "Parameter sheet.xlsx", Tuple.Create(52224L, (string)null) },
         };
 
         public static DocumentSession Document()
@@ -218,6 +220,7 @@ namespace SiteAdaptation.UiShots
             settings.Pick(InputKeys.Sales, Folder + "PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx");
             settings.Pick(InputKeys.PlotNumbers, Folder + "01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf");
             settings.Pick(InputKeys.Prototypes, Folder + "Prototypes_2024");
+            settings.Pick(InputKeys.ParameterSheet, Folder + "Parameter sheet.xlsx");
             return settings;
         }
 

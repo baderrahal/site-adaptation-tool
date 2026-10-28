@@ -196,7 +196,8 @@
             <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="Level profile" />
             <ComboBox Grid.Column="2" Style="{StaticResource SA.Pane.Combo}" ItemsSource="{Binding LevelProfiles}" SelectedItem="{Binding LevelProfile}" />
           </Grid>
-          <!-- Bader, 28 Oct 2026: the row Pre-setting under Level profile. A pre-setting never holds drawing paths or coordinates -->
+          <!-- Bader, 28 Oct 2026: the row Pre-setting under Level profile. A pre-setting never holds drawing paths or coordinates.
+               The two buttons are wider than the value column, so they stand at the right edge as Browse does -->
           <Grid Height="{StaticResource SA.Size.Row}">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
@@ -204,11 +205,10 @@
               <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="Pre-setting" />
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-              <Button Style="{StaticResource SA.Button.Base}" Padding="{StaticResource SA.Pad.ButtonPair}" Margin="{StaticResource SA.Gap.Right8}"
-                      Content="{x:Static pane:PaneText.ImportPastJob}" Command="{Binding ImportCommand}" />
-              <Button Style="{StaticResource SA.Button.Base}" Padding="{StaticResource SA.Pad.ButtonPair}" Content="{x:Static pane:PaneText.Export}"
-                      Command="{Binding ExportCommand}" />
+            <StackPanel Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+              <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static pane:PaneText.ImportPastJob}"
+                      Command="{Binding ImportCommand}" />
+              <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static pane:PaneText.Export}" Command="{Binding ExportCommand}" />
             </StackPanel>
           </Grid>
         </StackPanel>
