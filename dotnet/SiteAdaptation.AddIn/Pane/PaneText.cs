@@ -1,7 +1,7 @@
 namespace SiteAdaptation.AddIn.Pane
 {
     // R372, docs/design/12-ui-spec.md 7.2. Every text the view model of the pane shows. The text test holds each against
-    // docs/design/13-ui-labels.md word for word, a value written <n> as the list writes it and filled by TextTemplate
+    // docs/design/14-ui-labels.md word for word, a value written <n> as the list writes it and filled by TextTemplate
     public static class PaneText
     {
         public const string Title = "Site Adaptation";

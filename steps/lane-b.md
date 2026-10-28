@@ -42,7 +42,7 @@ Waiting for the fold in, in one records commit:
 7. docs/design/07-mock.md: every item marked NEW in docs/design/12-ui-spec.md joins the list of 7.7, as approved by Bader (U6, U7). In 7.1 the icons of 12-ui-spec.md take the place of the plain numbered squares named CHOSEN. These differences of 12-ui-spec.md from the mock carry no NEW mark and join 7.7 too, so the screenshot check of Phase 6 finds none by chance: the Rule column shows the plain name with the id as a tooltip, the "Will change" mark of 7.3, the found and not found marks of the input rows, and the first open state of 7.2 next to the new project prefilled from config of section 6.
 8. CLAUDE.md: the venv command of QL6, `py -3.12 -m venv .venv`, and Rule 1 of the Lane B rules below.
 9. Bader's four UI controls of 28 Oct 2026, the theme test, the text test, the picture test and the UI checklist in review, written as rules in docs/design/12-ui-spec.md, part UI controls. At the fold in (CHOSEN by Code): .claude/agents/reviewer.md gains the UI checklist, control 4, and each phase of steps/01_next.md that touches a window names the four controls in its done-when. The end of 5a gives Bader the UI approval form of item 5 of that part. Until then the lead of each Lane B session puts the checklist into the brief of every reviewer of a PR that touches a window (CHOSEN by Code, .claude/agents is outside Lane B).
-10. docs/design/README.md: the row of 13-ui-labels.md, the label list of control 2 (CHOSEN by Code, as every part of docs/design/ has its row).
+10. docs/design/README.md: the row of 14-ui-labels.md, the label list of control 2 (CHOSEN by Code, as every part of docs/design/ has its row).
 11. Bader's design changes of 28 Oct 2026, docs/design/13-workflow-changes.md, approved on the canvas: docs/addin-mock.md and docs/design/07-mock.md 7.1 and 7.2 take the order of the 9 steps, the ribbon of four panels and the pane changes, as Bader approved them. docs/design/03a-buttons-shared-and-1.md (the steps each button needs) and 03b-buttons-2-to-8.md take the new numbers and the new button 3 Review data, docs/design/10-rule-ids.md the rule ids of the renumbered buttons and of the new windows. steps/01_next.md gains phase 5f Update from report after 5e and before 6a, and the phases 5c and 5d take the changes of the last part of 13-workflow-changes.md. CLAUDE.md, "The approved mock" line, names 13-workflow-changes.md beside docs/addin-mock.md. The old button numbers go wherever a record or note names them, so no later session wires a body to the wrong button: steps/01_next.md 5c ("3 Check and 4 Place villas", "R377 button 4", "buttons 2 to 4"), the Revit run after 5c ("buttons 1 to 4"), 5d ("R379 button 6", "R380 button 7") and 5e ("button 8 Report", and Buttons.Run, which takes a number for the 9 steps and a name for Site Adaptation Rules and Update from report), the R363 text of docs/rules/07-addin-r354-r388.md line 10 and the note of config/project.json that say "check rows of button 3". Until then a Lane B session reads every button number of those files through the order of 13-workflow-changes.md. docs/design/README.md gains the row of 13-workflow-changes.md.
 
 ## Phase changes to steps/01_next.md
@@ -72,7 +72,7 @@ From docs/design/13-workflow-changes.md, part Where each lands. 5a builds the or
 - W2, 5c. The pass limit of 0.1 mm in config by the answer of QL17. addin.position.checkPointLimitMm is there already at 1.0 (R211, R353, Q086), and config is Lane A's file.
 - W3, 5c. The rules profile gains the block manualRules, M01 to M15 as drafted on the canvas, with id, text, group, manual section and the steps that check it. Code reads the page numbers from the manual PDF. The texts of M01 to M15 are on the canvas, not in the repo, so 5c asks Bader for them if no file holds them.
 - W4, 5c. The pre-setting: Import from past job and Export with R367, never a drawing path or a coordinate.
-- W5, 5c. The windows 3 Review data and Site Adaptation Rules, their labels in docs/design/13-ui-labels.md, their PNGs, and the manual rule ID on every check row and Review data row, with "Open in Site Adaptation Rules" in the Check table side box.
+- W5, 5c. The windows 3 Review data and Site Adaptation Rules, their labels in docs/design/14-ui-labels.md, their PNGs, and the manual rule ID on every check row and Review data row, with "Open in Site Adaptation Rules" in the Check table side box.
 - W6, 5d. Place villas places each link at its FFL and writes Prototype-FFL, Levels writes no link parameter, in the buttons of the new order.
 - W7, 5e. The manual rule ID on every report line.
 - W8, 5f. Update from report, the whole window and its run, its labels and PNG.
@@ -141,6 +141,12 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - 5a PR 4 review 2. The hash of DiskProbe in the pane is a second copy of FileHash.Sha256 and InputHash.OfFolder of Common, now with another share mode. In 5b the pane calls the hash of Common and FileHash takes FileShare.ReadWrite.
 - 5a PR 4 review 2. PaneViewModel.PickInput, SettingsFile.Read and PaneViewModel.Document have test callers only.
 - 5a PR 4 review 2. A hash that fails is swallowed in DiskProbe.Hash, so its row looks like a hash still running.
+- 5a PR 8 review. The ribbon items are named "SiteAdaptation.Button" and the number, so a Revit shortcut or a Quick Access item set on an old number runs the renumbered step. Name them by the command class before Bader's check of Part 1.
+- 5a PR 8 review. A button with no number enters the flow as step 0, so once it has a body MissingStep(0) reads Statuses[-1] and its run id starts "0_". In 5a the not built stop comes first.
+- 5a PR 8 review. Bodies.Of(int) and Buttons.NotBuiltText(int) have test callers only.
+- 5a PR 8 review. pane-first-open.png is 84,976 bytes of the 100 KB cap of R400.
+- 5a PR 8 review. TellHandler holds one text, so two Told before Revit is idle show the last one only.
+- 5a PR 8 review. The Key of a button with no number comes from its label, so a label with a double or a trailing space gives an empty word and throws.
 
 ## Lane A on this laptop, Bader 28 Oct 2026
 

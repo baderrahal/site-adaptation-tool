@@ -3,7 +3,7 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:pane="clr-namespace:SiteAdaptation.AddIn.Pane">
   <!-- R372, docs/design/12-ui-spec.md 7.2 top to bottom. Every colour, size and font by StaticResource of Theme.xaml, every
-       text in docs/design/13-ui-labels.md -->
+       text in docs/design/14-ui-labels.md -->
   <Page.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
@@ -174,7 +174,7 @@
         <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top12}" TextWrapping="Wrap"
                    Visibility="{Binding FirstOpen, Converter={StaticResource Shown}}">
           <Run Text="Or start from a past job:" />
-          <Hyperlink Foreground="{StaticResource SA.Accent}" Command="{Binding ImportCommand}">Import pre-setting</Hyperlink><Run Text="." />
+          <Hyperlink Style="{StaticResource SA.Pane.Link}" Command="{Binding ImportCommand}">Import pre-setting</Hyperlink><Run Text="." />
           <Run Text="It brings the settings, rules, level profile, ramp slopes, parameter sheet and overrides of that job." />
         </TextBlock>
       </StackPanel>

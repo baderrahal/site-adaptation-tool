@@ -10,7 +10,7 @@ using Xunit;
 namespace SiteAdaptation.Tests
 {
     // R372, control 2 of docs/design/12-ui-spec.md. Every text of the XAML and the view models of the add-in is in the label list
-    // docs/design/13-ui-labels.md under its window, and every entry of a built window is shown by a file of that window. Files
+    // docs/design/14-ui-labels.md under its window, and every entry of a built window is shown by a file of that window. Files
     // only, so it runs on net48 and on the net8.0 leg of Linux
     public sealed class UiLabelTests
     {
@@ -136,14 +136,52 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Empty(missing);
-            Assert.Equal(19, chosen);
+            Assert.Equal(21, chosen);
             Assert.True(matched > 100, matched.ToString());
+        }
+
+        // Review 1 of PR 92: the windows not built yet take Bader's changes of 28 Oct 2026 too, the quoted texts of Set up site
+        // in docs/design/13-workflow-changes.md, the pass limit as a value while QL17 is open, and Check under its number 4
+        [Fact]
+        public void R372_the_entries_of_windows_not_built_yet_hold_the_texts_of_the_workflow_changes()
+        {
+            string root = ThemeGateTests.RepoRoot();
+            Dictionary<string, UiLabels.Window> list = UiLabels.List(File.ReadAllText(Path.Combine(root, UiLabels.ListFile)));
+            string changes = File.ReadAllText(Path.Combine(root, "docs", "design", "13-workflow-changes.md")).Replace("\r\n", "\n");
+            int start = changes.IndexOf("### Set up site", StringComparison.Ordinal);
+            string setUp = changes.Substring(start, changes.IndexOf("\n### ", start, StringComparison.Ordinal) - start);
+            List<string> quoted = Regex.Matches(setUp, @"""([^""]+)""").Cast<Match>().Select(match => match.Groups[1].Value.Replace("...", "<n>")).ToList();
+            List<string> setUpEntries = list["Set up site"].Entries.Select(entry => entry.Text).ToList();
+            List<string> checkTitles = list["Check table"].Entries.Select(entry => entry.Text).Where(text => Regex.IsMatch(text, @"^\d Check")).ToList();
+
+            Assert.Equal(new[] { "Generic 150mm, yard, Flat Ramps, and one Ramps type per slope below", "Ramp slope", "Default 0.5%. Choices 0.5%, 1%, 2%, then 3% to 15%", "From the parameter sheet: <n>" }, quoted);
+            Assert.All(quoted, text => Assert.Contains(text, setUpEntries));
+            Assert.Contains("Pass limit <n> mm. <n> of <n> pass", setUpEntries);
+            Assert.DoesNotContain(setUpEntries, text => text.Contains(" 1 mm") || text.Contains("0.1 mm"));
+            Assert.Equal(new[] { "4 Check, NBH <n>, <n> plots", "4 Check, NBH all, <n> plots" }, checkTitles);
+            Assert.Contains("4 Check", list["Ribbon"].Entries.Select(entry => entry.Text));
+            Assert.False(list["Set up site"].Built);
+            Assert.False(list["Check table"].Built);
+        }
+
+        // Review 1 of PR 92: docs/design/README.md finds a part by its number, so no two parts share one, and the label list is 14
+        [Fact]
+        public void R372_each_part_of_docs_design_has_a_number_of_its_own_and_the_label_list_is_part_14()
+        {
+            string design = Path.Combine(ThemeGateTests.RepoRoot(), "docs", "design");
+            List<string> numbers = Directory.GetFiles(design, "*.md").Select(Path.GetFileName)
+                .Select(name => Regex.Match(name, @"^(\d+[a-z]?)-").Groups[1].Value).Where(number => number.Length > 0).ToList();
+
+            Assert.True(numbers.Count >= 14, string.Join(" ", numbers));
+            Assert.Equal(numbers.Distinct().Count(), numbers.Count);
+            Assert.Equal(Path.Combine("docs", "design", "14-ui-labels.md"), UiLabels.ListFile);
+            Assert.Equal("## 14. UI labels", File.ReadAllLines(Path.Combine(design, "14-ui-labels.md"))[0]);
         }
     }
 
     internal static class UiLabels
     {
-        public static readonly string ListFile = Path.Combine("docs", "design", "13-ui-labels.md");
+        public static readonly string ListFile = Path.Combine("docs", "design", "14-ui-labels.md");
         public static readonly Regex Slot = new Regex(@"<[a-z]+>");
         public const string Messages = "Button messages";
 

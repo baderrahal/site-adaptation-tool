@@ -148,9 +148,15 @@ namespace SiteAdaptation.UiShots
         // The pane with the sample data, measured and arranged at the start width of the spec, so a test can read its parts
         public static SitePanePage LaidOutPane(bool inUse)
         {
+            return LaidOutPane(inUse, true);
+        }
+
+        // With no document the pane shows its labels with no values and every button grey, as Revit shows it with no project open
+        public static SitePanePage LaidOutPane(bool inUse, bool withDocument)
+        {
             var model = new PaneViewModel(new SampleProbe());
-            model.Load(Sample.Document());
-            if (inUse)
+            model.Load(withDocument ? Sample.Document() : null);
+            if (inUse && withDocument)
             {
                 model.LoadSettings(Sample.Settings());
                 model.SetNbhCodes(new[] { Sample.Nbh });

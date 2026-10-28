@@ -159,6 +159,18 @@
     <Setter Property="TextWrapping" Value="Wrap" />
     <Setter Property="Margin" Value="{StaticResource SA.Gap.Top4}" />
   </Style>
+  <!-- A link in a line of text. When its command cannot run, with no document, it takes the text colour of the grey buttons and
+       no underline, so it does not ask for a click it cannot take -->
+  <Style x:Key="SA.Pane.Link" TargetType="Hyperlink">
+    <Setter Property="Foreground" Value="{StaticResource SA.Accent}" />
+    <Setter Property="TextDecorations" Value="Underline" />
+    <Style.Triggers>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Foreground" Value="{StaticResource SA.Wait}" />
+        <Setter Property="TextDecorations" Value="{x:Null}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
   <Style x:Key="SA.Pane.Detail" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Small}">
     <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />

@@ -166,6 +166,40 @@ namespace SiteAdaptation.Tests
             counts.ForEach(output.WriteLine);
         }
 
+        // Review 1 of PR 92: with no document the link cannot run, so it takes the look of the grey buttons, SA.Wait and no
+        // underline, from its style in Theme.xaml, and with a document the accent and the underline
+        [Fact]
+        public void R372_the_link_import_pre_setting_is_accent_and_underlined_only_while_its_command_can_run()
+        {
+            var looks = new List<string>();
+            OnSta(() =>
+            {
+                foreach (bool open in new[] { false, true })
+                {
+                    SitePanePage page = Shots.LaidOutPane(false, open);
+                    PaneViewModel model = Model(page);
+                    Hyperlink link = Visuals(page).OfType<TextBlock>().SelectMany(block => block.Inlines.OfType<Hyperlink>()).Single();
+                    Color accent = ((SolidColorBrush)page.FindResource("SA.Accent")).Color;
+                    Color wait = ((SolidColorBrush)page.FindResource("SA.Wait")).Color;
+                    Color shown = ((SolidColorBrush)link.Foreground).Color;
+                    looks.Add((open ? "document" : "no document") + ": enabled " + link.IsEnabled + ", " + shown + ", underline " + (link.TextDecorations != null && link.TextDecorations.Count > 0));
+
+                    Assert.Same(page.FindResource("SA.Pane.Link"), link.Style);
+                    Assert.Equal(open, model.ImportCommand.CanExecute(null));
+                    Assert.Equal(open, link.IsEnabled);
+                    Assert.Equal(open ? accent : wait, shown);
+                    Assert.Equal(open, link.TextDecorations != null && link.TextDecorations.Count > 0);
+                    if (!open)
+                    {
+                        Assert.NotEqual(accent, shown);
+                    }
+                }
+            });
+            looks.ForEach(output.WriteLine);
+            string xaml = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Pane", "SitePanePage.xaml"));
+            Assert.DoesNotMatch(@"<Hyperlink[^>]*\bForeground=", xaml);
+        }
+
         private static PaneViewModel Model(SitePanePage page)
         {
             return (PaneViewModel)page.DataContext;

@@ -1,4 +1,4 @@
-## 13. UI labels
+## 14. UI labels
 
 The label list of control 2 of docs/design/12-ui-spec.md, UI controls. Every label, title, help line, button text and chip text of a window, word for word from docs/design/12-ui-spec.md and 7.1 to 7.4 of docs/design/07-mock.md, grouped by window. A value is written `<n>`, and `<m>` or `<name>` where the spec writes them so. An entry the spec gives no words for is marked CHOSEN with its reason, for Bader's check.
 
@@ -140,6 +140,10 @@ Not built yet, Phase 5b.
 - `Coordinate system`
 - `Angle to true north`
 - `Floor types`
+- `Generic 150mm, yard, Flat Ramps, and one Ramps type per slope below`
+- `Ramp slope`
+- `Default 0.5%. Choices 0.5%, 1%, 2%, then 3% to 15%`
+- `From the parameter sheet: <n>` the sheet name and its count
 - `Wall types`
 - `Will change`
 - `Check points from CAD`
@@ -147,7 +151,7 @@ Not built yet, Phase 5b.
 - `CAD`
 - `Revit`
 - `Diff`
-- `Pass limit 1 mm. <n> of <n> pass`
+- `Pass limit <n> mm. <n> of <n> pass` the value is the mock's 1 mm or Bader's 0.1 mm of 28 Oct 2026 by the answer of QL17 of steps/lane-b.md
 - `On an existing site file`
 - `Nothing changes until Apply. Apply sets only the rows that differ.`
 - `Cancel`
@@ -158,8 +162,8 @@ Not built yet, Phase 5b.
 
 Not built yet, Phase 5c.
 
-- `3 Check, NBH <n>, <n> plots`
-- `3 Check, NBH all, <n> plots`
+- `4 Check, NBH <n>, <n> plots` CHOSEN, the title of 7.4 of docs/design/07-mock.md under the number 4 of docs/design/13-workflow-changes.md
+- `4 Check, NBH all, <n> plots` CHOSEN, as the line above
 - `Level profile <n>, override file <n>, <n> overrides, <n> of them on NBH <n>`
 - `Zoom to plot`
 - `Export to Excel`
