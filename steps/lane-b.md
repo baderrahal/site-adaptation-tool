@@ -22,7 +22,7 @@ A laptop session starts from Bader's Lane B prompt, never from steps/START.md. S
 - Merged in 5a: PR 84 records, PR 86 add-in project, theme and ribbon, PR 87 the four UI controls, PR 89 one transaction per button and the install, PR 90 the pane, the label list and the draft PNGs, PR 92 Bader's design changes, the 9 steps, the ribbon of four panels and the pane rows.
 - Done of the done-when: the add-in installs per user into Revit 2024 on this laptop and loads (RAN, the watcher gave Load Once to Site Adaptation in both runs), the theme and the UI spec with their gate tests, the tests on both runners. Open item 1 in part: run 1 held the session id on DocumentCreated and DocumentOpened, every id its own, the pane showing the active document and loading again on DocumentCreated, DocumentOpened, DocumentSavedAs, DocumentClosed and ViewActivated (RAN, 12 held, 0 not held).
 - Not done: open item 1, a worker answer routed to its own document and dropped for a closed one, and open item 2, Title and PathName of a detached and of a never saved document and the stop asking for a save (not measured in run 1, run 2 ran no step). The Revit screenshot of the ribbon and the pane in steps/ui-shots/: run 1 took the Architecture tab and a pane that was not shown, run 2 took none. The offscreen drafts of steps/ui-shots/ are there.
-- Run 1 (RAN, 28 Oct, 2.98 min, peak 2,157 MiB working set, 1,966 private): OpenAndActivateDocument refused inside Idling, "Switching active documents is not allowed during API event handling."
+- Run 1 (RAN, 28 Oct, its JSON files in C:\Users\p003653k\Documents\SiteAdaptation\testhost_old\SA5A_20261029-000118\, 2.98 min, peak 2,157 MiB working set, 1,966 private): OpenAndActivateDocument refused inside Idling, "Switching active documents is not allowed during API event handling."
 - Run 2 (RAN, 29 Oct, 29.6 min, timeout, peak 1,910 MiB working set, 1,727 private, at least 32.39 GiB free): no step ran. The cause, READ in Revit's journal.0132.txt line 1957: "Can not subscribe to an event during execution of that event!" at `application.Idling += OnTick`, AddinRunSession.cs line 85, called from the first Idling handler of the test host. The prober's answer is in C:\Users\p003653k\Documents\SiteAdaptation\probes\lane-b-5a\why-no-step-20261029.txt.
 - Waiting: branch feat/lane-b-5a-revit-run at fb318b8, the test host side of the run with main merged in, not a PR. Its code holds the cause of run 2, so it is not merged until QL20 is answered.
 - Written on the laptop outside the repo: machine.json in %APPDATA%\SiteAdaptation with workRoot C:\Users\p003653k\Documents\SiteAdaptation, the add-in and the test host installed in %APPDATA%\Autodesk\Revit\Addins\2024 from the build of fb318b8, lock_settings.json and addin_run_spec.json in C:\Users\p003653k\Documents\SiteAdaptation.
@@ -290,7 +290,7 @@ QL8. Where the pane shows Villa mode (docs/design/11-light-mode.md). The approve
 | Phase | Date | Tokens | Cost USD | How known |
 |---|---|---:|---:|---|
 | L0 | 28 Oct 2026 | UNKNOWN | UNKNOWN | npx is not installed, steps/laptop-check.md item 20 |
-| 5a, stopped on QL20 | 28 to 29 Oct 2026 | 301,866,959 | 134.32 | RAN npx.cmd ccusage@latest session --since 20261028, session 3ba3cec, opus, sonnet and haiku together |
+| 5a, stopped on QL20 | 28 to 29 Oct 2026 | at least 305,561,554 | at least 135.34 | RAN npx.cmd ccusage@latest session --since 20261028, session 3ba3cec, opus, sonnet and haiku together, taken while the session still ran, so its end adds a little |
 
 ## How L0 ran
 
