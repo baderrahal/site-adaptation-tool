@@ -33,6 +33,8 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Status: open
 - Rules: Q112 and Q113 first (Bader, 2026-10-28, steps/questions-closed.md). Q112: an override moved a value only if removing that one override changes it, the detail names the last applied override that moved it and the status takes the worst of every override that moved it and of the entries still read. Measure first the time and the peak of a build of the 7 keys with it, and if it adds more than 20 percent to either, do not code it, list all overrides that touched the inputs of the value instead and say so in the log. Q113: a value takes the worst status of its inputs and names the override, so the 512 values read RECOMMENDED. R364 the level Excel. R365 the report Excel, with the plot count on each line of Rules applied and the sheet Assumed, and the parity of step 15 with the count by field and status of R401
 - Design: docs/design/05-plan-steps.md step 15, docs/design/03b-buttons-2-to-8.md (6 Levels, 8 Report), docs/design/07-mock.md 7.5 to 7.7
+- Q114 and Q116 (Bader, 2026-10-28): Q114 aligns the field names of majority.decidedByQuestion and the build proof, then carries Q017 to the rotationDeg, insert, floors.yard.outline and parameters.CASE of 2302, in 4g3 if it fits four changes per PR, else a join item of 5c. Q116 lists each plot a rotationDeg override turned in the conflicts of the plan until its ramp moves to the open edge in 5d
+- C# on real data (Bader, 2026-10-28, by Q111): this PC never has the memory a C# read needs, so 4g3 and 4h do not wait for it or retry it. C# by its unit tests on both runners, Python on the real data with its second method, the top log entry names the C# checks left for the laptop
 - Lane B: when the C# check of Q111 is on main in steps/lane-b.md, fold it into the log. A failure there is a REAL finding of 4g3
 - Note: Q113 would move 294 wall values from MEASURED weak to RECOMMENDED (READ, the breaker of PR 79 pass 2, no log), and the rows of the chip Assumed follow the status (R363)
 - Done when: Q112 and Q113 hold in Python and C# with tests, parity holds for step 15, and each Excel holds the labels of 7.5 and 7.6 of the mock in the order of the mock, with the items of 7.7
@@ -43,6 +45,12 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Rules: R366 scope with the plot list syntax and the step state by hash. R367 the settings JSON kept in the project. R368 element tags, the match to the plan, the hand change and the schema versions. R369 the second method of Phase 4, seeds 14 and 7
 - Design: docs/design/03a-buttons-shared-and-1.md (What every button shares, Steps and Scope), docs/design/06-settings.md
 - Done when: each rule has its tests on both runners and the second method of Phase 4 runs at seeds 14 and 7 (R369, 10-rule-ids.md)
+
+## Laptop check after 4h, before 5c
+
+- Status: open
+- What (Bader, 2026-10-28, by Q111): one laptop session runs the C# reads, the parity on the whole project and the 7 keys on net48 and net8.0, and the build peak, for all of 4g3 and 4h together, into steps/lane-b.md
+- Done when: the counts are on main in steps/lane-b.md and every failure is a REAL finding or a question, before 5c starts
 
 ## 5a, the install, ribbon, pane and one transaction per button
 
@@ -77,6 +85,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 
 - Status: open
 - Rules: R378 button 5. R379 button 6, RRE_ZZ_SP_Prototype-FFL written. R380 button 7
+- Q115 and Q116 (Bader, 2026-10-28): before button 7 places walls, measure the wall extent per kind of edge against the villa footprints and code the best rule, weak under majority.strongShare. The ramp of a plot a rotationDeg override turned goes on the open edge the walls take, as the keys do on 18 of 18
 - Design: docs/design/03b-buttons-2-to-8.md (5 Floors and ramps, 6 Levels, 7 Walls), docs/design/09-risks.md open items 10 and 11
 - Done when: NBH 012 is placed with all 13 prototype files in one window with the peak logged by R310, and open items 10 and 11 are measured
 
