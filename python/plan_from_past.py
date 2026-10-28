@@ -63,7 +63,8 @@ READ_FILE = re.compile(r"testhost_(?P<job>[A-Z][A-Z0-9]{1,3})_prototypes\.json")
 WORK_MARK = "_TEST-"
 RVT = ".rvt"
 LEVEL_COLUMNS = (("ffl", "FFL"), ("ssl", "SSL"), ("entry", "El @ Entry"), ("height", "Height"))
-WIDE_LEVELS = ("entry", "height")
+# R364. The road at front keeps its 4 decimals in the plan file as El @ Entry does
+WIDE_LEVELS = ("entry", "height", "roadAtFrontM")
 # R325. A row of an answer key marks that its height is worked out from its FFL and El @ Entry, a schedule row never holds it
 HEIGHT_FROM_LEVELS = "heightFromLevels"
 MODEL_PLOT = "modelPlot"

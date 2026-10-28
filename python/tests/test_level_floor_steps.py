@@ -45,10 +45,10 @@ def made_rules(split=None):
     return project_profile.ProjectProfile(real.path, values)
 
 
-def made_build(monkeypatch, overrides=None, split=None, units=None, zones=None):
+def made_build(monkeypatch, overrides=None, split=None, units=None, zones=None, road=0.0):
     """A row of six 12 m faces along a road at y = -3, plot 1 a VD2 villa, 2 and 3 a DP2 pair of the footprint, 4 to 6 DP2 units in no
-    cluster, each in Zone 2, units and zones another code or zone of a plot, the road level 10 m plus a hundredth of x, built with a trace,
-    and the steps linkFrame, levels and floors of it."""
+    cluster, each in Zone 2, units and zones another code or zone of a plot, the road level 10 m plus road plus a hundredth of x, built with
+    a trace, and the steps linkFrame, levels and floors of it."""
     settings = project_profile.load_settings()
     profile = made_rules(split)
     numbers = [str(index) for index in range(1, 7)]
@@ -60,7 +60,7 @@ def made_build(monkeypatch, overrides=None, split=None, units=None, zones=None):
     roads = [LineString([(-50.0, -3.0), (100.0, -3.0)]), LineString([(-3.0, -10.0), (-3.0, 40.0)])]
     sales = {"1": {"Orientation": "WS"}}
     clusters = [{"code": "Duplex_DP2", "plots": ["2", "3"], "source": "footprint"}]
-    monkeypatch.setattr(plan_from_book, "road_level", lambda surfaces, point, snap: (10.0 + point[0] / 100.0, "road"))
+    monkeypatch.setattr(plan_from_book, "road_level", lambda surfaces, point, snap: (10.0 + road + point[0] / 100.0, "road"))
     args = argparse.Namespace(level_profile=None, overrides=None, override_source=None, override_model=[], override_fields=None)
     rules = plan_from_book.rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters)
     rules["overrides"] = {} if overrides is None else overrides
@@ -79,7 +79,7 @@ def made_build(monkeypatch, overrides=None, split=None, units=None, zones=None):
     made = plan_from_book.floor_step(scope, rows, trace, links, rules, profile, 0.5)
     return {"plan": {entry["plot"]: entry for entry in plan["plots"]}, "plots": plan["plots"], "missing": {entry["plot"]: entry for entry in plan["missing"]},
             "summary": plan["summary"], "levels": levels, "floors": made, "links": links, "profile": profile, "rules": rules, "trace": trace, "hands": hands,
-            "rows": rows, "scope": scope, "files": files}
+            "rows": rows, "scope": scope, "files": files, "conflicts": plan["conflicts"]}
 
 
 def entry_of(mean):
@@ -112,6 +112,26 @@ def test_r359_parity_levels_the_road_at_front_el_at_entry_and_the_fl_of_a_piece_
     assert entries["5"]["written"]["ffl"] == plan["levelRule"]["ffl"] == plan["levels"]["ffl"]["value"]
     assert entries["5"]["written"]["height"] == plan["levelRule"]["height"] and entries["5"]["written"]["ssl"] == plan["levels"]["ssl"]["value"]
     assert entries["5"]["written"]["steps"] == plan["levelRule"]["steps"] and entries["5"]["written"]["roadAtFront"] == common.fixed((10.48 + 10.6) / 2.0, 4)
+
+
+def test_r359_r364_the_plan_writes_road_at_front_m_the_unrounded_mean_of_the_two_front_corners_rounded_once_at_4_decimals(monkeypatch, tmp_path):
+    # A road 0.4 mm over the plain one: the corners of plot 5 lie at 10.4804 and 10.6004, which levelRule.rampFrontCorners writes at
+    # 3 decimals, 10.48 and 10.6, whose mean 10.54 is 0.4 mm off the unrounded mean 10.5404 entry_of takes before the offset and the slope
+    built = made_build(monkeypatch, {"5": {"entryM": {"gapToRuleM": 0.5}}}, road=0.0004)
+    plan, levels = built["plan"]["5"], built["levels"]["5"]
+    assert plan["levelRule"]["rampFrontCorners"] == [10.48, 10.6]
+    assert plan["levels"]["roadAtFrontM"]["value"] == 10.5404 == common.fixed(levels["roadAtFront"], 4)
+    assert plan["levels"]["roadAtFrontM"]["source"] == plan_from_book.ESTIMATE
+    # El @ Entry by the rule from the same unrounded mean, each rounded once, and an entryM override moves El @ Entry, never the road at front
+    assert plan["levelRule"]["entry"] == common.fixed(entry_of(10.5404), 4) and plan["levels"]["entry"]["value"] == common.fixed(common.fixed(entry_of(10.5404), 4) + 0.5, 4)
+    assert list(plan["levels"]) == ["ffl", "ssl", "entry", "height", "steps", "roadAtFrontM"]
+    # Every written plot holds it, each the rounded mean of its own two front corners
+    assert all(entry["levels"]["roadAtFrontM"]["value"] == common.fixed(built["levels"][number]["roadAtFront"], 4) for number, entry in built["plan"].items())
+    # The status of R401 by its own entries of valueStatus, never the UNKNOWN of a field the map does not name
+    assert plan["levels"]["roadAtFrontM"]["statusFrom"] == "levels.roadAtFrontM from estimate" and plan["levels"]["roadAtFrontM"]["status"] != "UNKNOWN"
+    # The plan file keeps its 4 decimals, as it keeps those of El @ Entry, where the 3 decimals of the file would round it a second time
+    written = json.loads(plan_from_past.write_plan(tmp_path / "plan.json", {"plots": built["plots"]}).read_text(encoding="utf-8"))
+    assert next(entry for entry in written["plots"] if entry["plot"] == "5")["levels"]["roadAtFrontM"]["value"] == 10.5404
 
 
 def test_r359_the_levels_of_the_step_are_those_of_the_rule_an_entry_or_height_override_moves_the_plan_only(monkeypatch):
@@ -248,5 +268,5 @@ def test_r358_r359_the_config_names_the_fields_of_the_steps_levels_and_floors_by
         "unit": ("noGeometry", None), "generic": ("points", 3), "rampOutline": ("points", 3), "rampZ": ("levels", 3), "rampClass": ("noGeometry", None),
         "rampType": ("noGeometry", None), "yardDepth": ("levels", 3), "yardUnit": ("noGeometry", None), "yardWidth": ("points", 3), "yardType": ("noGeometry", None),
         "yardOutline": ("points", 3), "lacks": ("noGeometry", None)}
-    assert plan_from_book.BUILD_STEPS == ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "walls", "overrides", "parameters", "status", "checkRows")
+    assert plan_from_book.BUILD_STEPS == ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "walls", "overrides", "parameters", "status", "checkRows", "summary")
     assert "floors" in plan_from_book.PROTOTYPE_STEPS and "levels" not in plan_from_book.PROTOTYPE_STEPS

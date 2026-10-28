@@ -95,7 +95,7 @@ namespace SiteAdaptation.Tests
             + "floors.yard.outline:UNKNOWN=3 floors.yard.plotValue:DOCUMENT=2 floors.yard.plotValue:RECOMMENDED=1 floors.yard.type:UNKNOWN=3 floors.yard.z:UNKNOWN=3 "
             + "insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 levels.entry:RECOMMENDED=1 "
             + "levels.ffl:RECOMMENDED=1 levels.ffl:UNKNOWN=5 levels.height:MEASURED weak=4 levels.height:RECOMMENDED=2 "
-            + "levels.ssl:UNKNOWN=6 levels.steps:RECOMMENDED=1 levels.steps:UNKNOWN=5 linkName:RECOMMENDED=2 linkName:UNKNOWN=4 "
+            + "levels.roadAtFrontM:UNKNOWN=6 levels.ssl:UNKNOWN=6 levels.steps:RECOMMENDED=1 levels.steps:UNKNOWN=5 linkName:RECOMMENDED=2 linkName:UNKNOWN=4 "
             + "mirrored:MEASURED strong=5 mirrored:RECOMMENDED=1 parameters.CASE:MEASURED weak=4 parameters.CASE:RECOMMENDED=2 "
             + "parameters.RRE_ZZ_SP_Façade-Color:UNKNOWN=6 parameters.RRE_ZZ_SP_Façade-Design-Option:UNKNOWN=6 "
             + "parameters.RRE_ZZ_SP_Number-of-Steps:UNKNOWN=5 parameters.RRE_ZZ_SP_Plot-Number:UNKNOWN=6 "
@@ -468,7 +468,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("DOCUMENT UNKNOWN", (string)Field(step, "1", "unit")["status"] + " " + (string)Field(step, "1", "prototypeFile")["status"]);
             Assert.Equal("floors.generic.heightOffset floors.generic.level floors.generic.levelElevation floors.generic.outline floors.generic.plotValue floors.generic.type "
                 + "floors.generic.z floors.ramp.corners floors.ramp.heightOffset floors.ramp.level floors.ramp.levelElevation floors.ramp.outline floors.ramp.plotValue "
-                + "floors.ramp.slopePercent floors.ramp.type insert levels.entry levels.ffl levels.height levels.ssl levels.steps linkName mirrored parameters.CASE "
+                + "floors.ramp.slopePercent floors.ramp.type insert levels.entry levels.ffl levels.height levels.roadAtFrontM levels.ssl levels.steps linkName mirrored parameters.CASE "
                 + "parameters.RRE_ZZ_SP_Façade-Color parameters.RRE_ZZ_SP_Façade-Design-Option parameters.RRE_ZZ_SP_Number-of-Steps parameters.RRE_ZZ_SP_Plot-Number "
                 + "parameters.RRE_ZZ_SP_Prototype parameters.RRE_ZZ_SP_Prototype-FFL parameters.RRE_ZZ_SP_Prototype-Foundation-Type parameters.RRE_ZZ_SP_Prototype-HVAC-Schedule-Type "
                 + "parameters.RRE_ZZ_SP_RVT-Name prototypeFile rotationDeg unit",
@@ -564,7 +564,7 @@ namespace SiteAdaptation.Tests
             }
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
             Assert.Equal("unit:noGeometry written:noGeometry fields:noGeometry", string.Join(" ", config.StepFields(ValueStatus.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
-            Assert.Equal("status", BuildSteps.Names[BuildSteps.Names.Length - 2]);
+            Assert.Equal("status", BuildSteps.Names[BuildSteps.Names.Length - 3]);
         }
 
         // test_value_status.Q110_DETAIL, Q110 (Bader, 2026-10-28): the entries valueStatus of config/project.json lists for prototypeFile, the unit of
@@ -657,6 +657,26 @@ namespace SiteAdaptation.Tests
             Assert.Equal("RECOMMENDED mirrored from computed hand villa question Q017 img", hand.Item1 + " " + hand.Item3);
             Tuple<string, JObject, string> free = table.Of("prototypeFile", "computed", unit: "VD4", plot: "2303");
             Assert.Equal("DOCUMENT prototypeFile from computed unit VD4", free.Item1 + " " + free.Item3);
+        }
+
+        // test_value_status.test_r401_q114_the_fields_that_follow_the_hand_of_2302_read_recommended_by_q017_while_it_is_open
+        [Fact]
+        public void R401_Q114_the_fields_that_follow_the_hand_of_2302_read_recommended_by_Q017_while_it_is_open()
+        {
+            string configPath = WorkerRunTests.RepoConfig();
+            JObject config = JObject.Parse(File.ReadAllText(configPath));
+            JObject rules = JObject.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(configPath)), (string)config["profile"])));
+            ValueStatusTable table = ValueStatus.Table(config, rules, "parsons2024Rev6");
+            foreach (string[] item in new[] { new[] { "rotationDeg", "computed" }, new[] { "insert", "computed" }, new[] { "floors.yard.outline", "computed" }, new[] { "parameters.CASE", "keyRules" } })
+            {
+                Tuple<string, JObject, string> found = table.Of(item[0], item[1], "cluster", unit: "DP4", plot: "2302");
+                JToken last = found.Item2["entries"].Last;
+                Assert.Equal(item[0] + " RECOMMENDED True config/project.json majority.decidedByQuestion.Q017.followHand.plots.imc RECOMMENDED Q017", item[0] + " " + found.Item1 + " "
+                    + found.Item3.EndsWith(" question Q017 followHand imc", StringComparison.Ordinal) + " " + (string)last["entry"] + " " + (string)last["status"] + " " + (string)last["question"]);
+                // 2301 and 544, whose hand Q017 decides as well, keep the status of their own list for these fields
+                Assert.DoesNotContain("question", table.Of(item[0], item[1], "cluster", unit: "DP4", plot: "2301").Item3);
+            }
+            Assert.Equal("mirrored from computed hand cluster question Q017 imc", table.Of("mirrored", "computed", "cluster", plot: "2302").Item3);
         }
 
         // test_value_status.test_r401_review1_pr78_the_build_marks_the_plot_an_open_question_decides, review 2 of PR 78: Step passes the plot number,

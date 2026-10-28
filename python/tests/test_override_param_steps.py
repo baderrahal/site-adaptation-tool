@@ -46,7 +46,7 @@ def test_r360_parity_overrides_what_the_build_did_with_each_override_applied_or_
     assert made["7"] == dict.fromkeys(plan_from_book.OVERRIDE_FIELDS, None) | {"written": False}
 
 
-def test_r360_the_values_after_the_overrides_are_those_the_plan_writes_by_their_kind(monkeypatch):
+def test_r360_r364_the_values_after_the_overrides_are_those_the_plan_writes_by_their_kind(monkeypatch):
     built = made_build(monkeypatch, MADE)
     made, _ = steps_of(built)
     plan = built["plan"]
@@ -56,6 +56,8 @@ def test_r360_the_values_after_the_overrides_are_those_the_plan_writes_by_their_
         assert written["insert"] == entry["insert"]["value"][:2] and written["rotationDeg"] == entry["rotationDeg"]["value"]
         assert written["mirrored"] == entry["mirrored"]["value"]
         assert [written[name] for name in ("entry", "ffl", "ssl", "height", "steps")] == [entry["levels"][name]["value"] for name in ("entry", "ffl", "ssl", "height", "steps")]
+        # R364. The road at front as the plan writes it, the one unrounded mean rounded once, which no override moves
+        assert written["roadAtFront"] == entry["levels"]["roadAtFrontM"]["value"] == common.fixed(built["levels"][number]["roadAtFront"], 4)
         assert written["rampZ"] == [corner[2] for corner in entry["floors"]["ramp"]["corners"]["value"]] and written["rampType"] == entry["floors"]["ramp"]["type"]["value"]
         yard = entry["floors"].get("yard")
         assert written["yardOutline"] == (None if yard is None else [loop["points"] for loop in yard["outline"]["value"]["loops"]])
@@ -224,12 +226,12 @@ def test_r360_r361_the_config_names_the_fields_of_the_steps_overrides_and_parame
     steps = project_profile.load_settings().get("addin")["parity"]["steps"]
     assert {name: (field["kind"], field.get("decimals")) for name, field in steps["overrides"].items()} == {
         "unit": ("noGeometry", None), "skip": ("noGeometry", None), "written": ("noGeometry", None), "applied": ("noGeometry", None), "notApplied": ("noGeometry", None),
-        "mirrored": ("noGeometry", None), "insert": ("points", 3), "rotationDeg": ("angles", 3), "entry": ("levels", 4), "ffl": ("levels", 3), "ssl": ("levels", 3),
+        "mirrored": ("noGeometry", None), "insert": ("points", 3), "rotationDeg": ("angles", 3), "roadAtFront": ("levels", 4), "entry": ("levels", 4), "ffl": ("levels", 3), "ssl": ("levels", 3),
         "height": ("levels", 4), "steps": ("noGeometry", None), "rampZ": ("levels", 3), "rampType": ("noGeometry", None), "yardZ": ("levels", 3),
         "yardOutline": ("points", 3)}
     assert tuple(steps["overrides"]) == plan_from_book.OVERRIDE_FIELDS and tuple(steps["parameters"]) == plan_from_book.PARAMETER_FIELDS
     assert all(field["kind"] == "noGeometry" for field in steps["parameters"].values())
-    assert plan_from_book.BUILD_STEPS[-4:-2] == ("overrides", "parameters") and plan_from_book.PARITY_STEPS[-4:-2] == ("overrides", "parameters")
+    assert plan_from_book.BUILD_STEPS[-5:-3] == ("overrides", "parameters") and plan_from_book.PARITY_STEPS[-5:-3] == ("overrides", "parameters")
     assert {"overrides", "parameters"} <= set(plan_from_book.PROTOTYPE_STEPS)
 
 
