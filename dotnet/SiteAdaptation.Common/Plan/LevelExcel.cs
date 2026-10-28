@@ -18,7 +18,6 @@ namespace SiteAdaptation.Common
         public const string ClustersSheet = "Clusters";
         public const string OverridesSheet = "Overrides used";
         public const string SettingsSheet = "Settings";
-        public static readonly string[] Sheets = { LevelsSheet, ClustersSheet, OverridesSheet, SettingsSheet };
 
         public const string PlotNo = "Plot No";
         public const string Unit = "Unit";
@@ -50,6 +49,7 @@ namespace SiteAdaptation.Common
         public static readonly string[] ClusterFormats = { null, null, null, null, ThreeDecimals };
 
         public const string Field = "Field";
+        // Review 1 of PR 91, CHOSEN: the gap of every level field as a number, the step count of a steps override less the steps of the rule
         public const string Gap = "Gap";
         public const string Reason = "Reason";
         public const string Model = "Model";
@@ -70,11 +70,13 @@ namespace SiteAdaptation.Common
         public const string PlanBuildId = "Plan build id";
         public const string PlanSha = "Plan SHA-256";
 
-        public const string TopLine = "NBH <nbh>, <zones>, road surface <surfaces> of <n> front corners, formulas: El @ Entry = the road at the two front corners + the slope "
+        public const string TopLine = "NBH <nbh>, <zones>, road surface <surfaces> of <n> front corners<none>, formulas: El @ Entry = the road at the two front corners + the slope "
             + "of the unit x the ramp depth (R278, R339), FFL = <ffl> (R340), SSL = FFL <sign> <ssl> m (levels.ground_ssl), Height = FFL - El @ Entry, "
             + "Steps = one for the base and one per riser over it, half a riser no step (R340)";
 
         public const string SurfaceCount = "<name> on <n>";
+        // Review 1 of PR 91: a front corner no road surface covers is counted apart, never named as a surface
+        public const string NoSurface = ", front corners with no road surface <n>";
         public const string ZonesJoin = " and ";
         public const string NoZone = "no zone";
 
@@ -95,7 +97,13 @@ namespace SiteAdaptation.Common
         public const string MissingReason = "<key> (<why>)";
         public const string NoCluster = "none";
         public const string NoSplit = "none";
+        public const string MiddleSplit = "middle";
+        public const string WallsSplit = "walls <n>";
         public const string UnitNotWritten = "not written";
+        // Review 1 of PR 91: a plot of a cluster the plan neither writes nor lists as missing lies outside the scope of the build
+        public const string OutsideScope = "outside the scope";
+        // Review 1 of PR 91: the build id is the run id of the run stamp of the plan only, a Python build writes none
+        public const string NoBuildId = "none, the plan holds no run stamp";
         public const string ClusterJoin = "-";
         public const string ListJoin = ", ";
         public const string PassLimitMm = "<n> mm";
@@ -113,16 +121,23 @@ namespace SiteAdaptation.Common
         public List<object[]> Rows { get; } = new List<object[]>();
     }
 
+    // One workbook, of one NBH of the plan
     public sealed class LevelBook
     {
+        public string Nbh { get; set; }
         public string FileName { get; set; }
         public List<LevelSheet> Sheets { get; } = new List<LevelSheet>();
+    }
+
+    public sealed class LevelResult
+    {
+        public List<LevelBook> Books { get; } = new List<LevelBook>();
         public List<string> Issues { get; } = new List<string>();
         public Dictionary<string, int> Counts { get; } = new Dictionary<string, int>();
     }
 
-    // What the level Excel is made from: the plan as written, its rules profile, config, the override list, the step clusters and the rows of
-    // plots.csv of the build, and the run that writes it
+    // What the level Excel is made from: the plan as written, its rules profile, config with the road surface order of the level profile,
+    // the override list, the step clusters, levels and hands of the build, the rows of plots.csv, and the run that writes it
     public sealed class LevelInputs
     {
         public JObject Plan { get; set; }
@@ -131,9 +146,12 @@ namespace SiteAdaptation.Common
         public string RulesName { get; set; }
         public string RulesSha256 { get; set; }
         public JObject Config { get; set; }
+        public List<string> RoadOrder { get; set; }
         public JObject Overrides { get; set; }
         public string OverridesSha256 { get; set; }
         public JObject Clusters { get; set; }
+        public JObject Levels { get; set; }
+        public JObject Hands { get; set; }
         public List<Dictionary<string, string>> PlotRows { get; set; }
         public string RunId { get; set; }
         public string Profile { get; set; }
@@ -141,8 +159,9 @@ namespace SiteAdaptation.Common
     }
 
     // R364. The sheets of the level Excel from the plan as written, no level recomputed: each value of the levels of a plot is the value the
-    // plan holds, the cluster of a plot is the cluster of the step clusters of the build that holds it, a piece of the sheet Clusters is a run
-    // of plots of one cluster that share one FFL as the plan writes it, and the reason of an override is the one of its entry in the list
+    // plan holds, the cluster of a plot the cluster of the step clusters of the build that holds it, a piece of the sheet Clusters the piece
+    // the step levels of the build give each plot with the FFL of its rule (levelRule.ffl), and the reason of an override the one of its entry
+    // in the list. One workbook per NBH of the plan by nbhId of plots.csv (7.5, review 1 of PR 91)
     public static class LevelSheets
     {
         // The fields of the override list that move a level, El @ Entry, the FFL, the steps or the ramp front (7.5)
@@ -169,10 +188,15 @@ namespace SiteAdaptation.Common
             return value.ToString("0.######", CultureInfo.InvariantCulture);
         }
 
-        // Null when the plan, the rules and the request agree on the level profile and the plan names its NBH, else why the request is refused
+        private static string Count(long value)
+        {
+            return value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        // Null when the plan, the rules and the request agree on the level profile, else why the request is refused
         public static string Refusal(JObject plan, JObject rules, string profile)
         {
-            string built = (string)(plan?["summary"]?["rules"] as JObject)?["levelProfile"];
+            string built = Text((plan?["summary"]?["rules"] as JObject)?["levelProfile"]);
             if (built == null)
             {
                 return "the plan names no level profile in summary.rules, a level Excel is written of a build by its level profile (R364)";
@@ -185,28 +209,89 @@ namespace SiteAdaptation.Common
             {
                 return "the rules profile holds no level profile " + profile + " (R364)";
             }
-            string nbh = plan["neighbourhood"]?.Type == JTokenType.String ? (string)plan["neighbourhood"] : null;
-            if (nbh == null || !NamePart.IsMatch(nbh) || !NamePart.IsMatch(profile))
+            if (!NamePart.IsMatch(profile))
             {
-                return "the neighbourhood " + (nbh ?? "null") + " of the plan or the profile " + profile + " names no file (R364)";
+                return "the profile " + profile + " names no file (R364)";
             }
             return null;
         }
 
-        public static LevelBook Build(LevelInputs inputs)
+        private sealed class Plan
+        {
+            public List<JObject> Written;
+            public List<JObject> NotWritten;
+            public Dictionary<string, JObject> ByNumber;
+            public HashSet<string> Missing;
+            public Dictionary<string, List<string>> ClusterOf;
+            public Dictionary<string, List<string>> PieceOf;
+            public Dictionary<string, List<string>> RowOf;
+            public Dictionary<string, List<JObject>> Entries;
+            public Dictionary<string, Dictionary<string, string>> Rows;
+        }
+
+        public static LevelResult Build(LevelInputs inputs)
         {
             JObject plan = inputs.Plan;
             JObject profile = (JObject)inputs.Rules["levelProfiles"][inputs.Profile];
             JObject keyRules = profile["keyRules"] as JObject;
-            string nbh = (string)plan["neighbourhood"];
-            var book = new LevelBook { FileName = Fill(LevelExcelText.FileName, "nbh", nbh, "profile", inputs.Profile) };
+            JObject rules = (JObject)plan["summary"]["rules"];
+            var made = new Plan
+            {
+                Written = (plan["plots"] as JArray ?? new JArray()).OfType<JObject>().ToList(),
+                NotWritten = (plan["missing"] as JArray ?? new JArray()).OfType<JObject>().Where(item => item["written"]?.Type == JTokenType.Boolean && !(bool)item["written"]).ToList(),
+                ClusterOf = ClustersOf(inputs.Clusters),
+                PieceOf = PiecesOf(inputs.Levels),
+                RowOf = RowsOf(inputs.Hands),
+                Entries = Entries(inputs.Overrides, rules),
+                Rows = new Dictionary<string, Dictionary<string, string>>(),
+            };
+            made.ByNumber = made.Written.ToDictionary(item => (string)item["plot"], item => item);
+            made.Missing = new HashSet<string>(made.NotWritten.Select(item => (string)item["plot"]));
+            foreach (Dictionary<string, string> row in inputs.PlotRows)
+            {
+                string number;
+                if (row.TryGetValue("locationPlanNumber", out number) && !string.IsNullOrEmpty(number))
+                {
+                    made.Rows[number] = row;
+                }
+            }
+            var result = new LevelResult();
+            Func<string, string> nbhOf = number =>
+            {
+                Dictionary<string, string> row;
+                string nbh;
+                return made.Rows.TryGetValue(number, out row) && row.TryGetValue("nbhId", out nbh) && !string.IsNullOrEmpty(nbh) ? nbh : null;
+            };
+            List<string> numbers = made.Written.Select(item => (string)item["plot"]).Concat(made.NotWritten.Select(item => (string)item["plot"])).ToList();
+            List<string> lacking = numbers.Where(number => nbhOf(number) == null).ToList();
+            if (lacking.Count > 0)
+            {
+                result.Issues.Add(lacking.Count + " plots of the plan have no nbhId in plots.csv, so no level Excel lists them: " + string.Join(", ", lacking.Take(10)) + " (R364)");
+            }
+            foreach (string nbh in numbers.Select(nbhOf).Where(item => item != null).Distinct().OrderBy(item => item, StringComparer.Ordinal))
+            {
+                if (!NamePart.IsMatch(nbh))
+                {
+                    throw new InvalidDataException("the nbhId " + nbh + " of plots.csv names no file (R364)");
+                }
+                var mine = new HashSet<string>(numbers.Where(number => nbhOf(number) == nbh));
+                result.Books.Add(Book(inputs, made, profile, keyRules, nbh, mine, result));
+            }
+            result.Counts["level workbooks"] = result.Books.Count;
+            result.Counts["level rows written"] = result.Books.Sum(book => book.Sheets[0].Rows.Count(row => !((string)row[9]).StartsWith(LevelExcelText.NotWritten, StringComparison.Ordinal)));
+            result.Counts["level rows not written"] = result.Books.Sum(book => book.Sheets[0].Rows.Count(row => ((string)row[9]).StartsWith(LevelExcelText.NotWritten, StringComparison.Ordinal)));
+            result.Counts["level rows with no NBH"] = lacking.Count;
+            result.Counts["cluster pieces"] = result.Books.Sum(book => book.Sheets[1].Rows.Count);
+            result.Counts["overrides used"] = result.Books.Sum(book => book.Sheets[2].Rows.Count);
+            return result;
+        }
 
-            List<JObject> written = (plan["plots"] as JArray ?? new JArray()).OfType<JObject>().ToList();
-            List<JObject> notWritten = (plan["missing"] as JArray ?? new JArray()).OfType<JObject>().Where(item => item["written"]?.Type == JTokenType.Boolean && !(bool)item["written"]).ToList();
-            Dictionary<string, List<string>> clusterOf = ClustersOf(inputs.Clusters);
-            Dictionary<string, List<JObject>> entries = Entries(inputs.Overrides, (JObject)plan["summary"]["rules"]);
-
-            var levels = new LevelSheet { Name = LevelExcelText.LevelsSheet, TopLine = TopLine(inputs, plan, profile, keyRules, written, notWritten), Header = LevelExcelText.LevelColumns, Formats = LevelExcelText.LevelFormats };
+        private static LevelBook Book(LevelInputs inputs, Plan made, JObject profile, JObject keyRules, string nbh, HashSet<string> mine, LevelResult result)
+        {
+            var book = new LevelBook { Nbh = nbh, FileName = Fill(LevelExcelText.FileName, "nbh", nbh, "profile", inputs.Profile) };
+            List<JObject> written = made.Written.Where(item => mine.Contains((string)item["plot"])).ToList();
+            List<JObject> notWritten = made.NotWritten.Where(item => mine.Contains((string)item["plot"])).ToList();
+            var levels = new LevelSheet { Name = LevelExcelText.LevelsSheet, TopLine = TopLine(inputs, made, profile, keyRules, nbh, mine, written), Header = LevelExcelText.LevelColumns, Formats = LevelExcelText.LevelFormats };
             var used = new LevelSheet { Name = LevelExcelText.OverridesSheet, Header = LevelExcelText.OverrideColumns, Formats = LevelExcelText.OverrideFormats };
             foreach (JObject plot in written)
             {
@@ -217,32 +302,27 @@ namespace SiteAdaptation.Common
                     JToken value = values[key]?["value"];
                     if (value == null || value.Type == JTokenType.Null)
                     {
-                        book.Issues.Add("plot " + number + " is written with no levels." + key + " (R364)");
+                        result.Issues.Add("plot " + number + " is written with no levels." + key + " (R364)");
                         return null;
                     }
                     return value.Type == JTokenType.Integer ? (object)(long)value : (double)value;
                 };
                 levels.Rows.Add(new[]
                 {
-                    number, (object)(string)plot["unit"]?["value"], ClusterText(clusterOf, number), level("roadAtFrontM"), level("entry"), level("ffl"), level("ssl"), level("height"), level("steps"),
-                    SourceText(book, used, entries, plot, number),
+                    number, (object)Text(plot["unit"]?["value"]), ClusterText(made.ClusterOf, number), level("roadAtFrontM"), level("entry"), level("ffl"), level("ssl"), level("height"), level("steps"),
+                    SourceText(result, used, made.Entries, plot, number),
                 });
             }
             foreach (JObject item in notWritten)
             {
                 string number = (string)item["plot"];
-                IEnumerable<string> why = (item["missing"] as JArray ?? new JArray()).Select(found => Fill(LevelExcelText.MissingReason, "key", (string)found["key"], "why", (string)found["why"]));
-                levels.Rows.Add(new object[] { number, null, ClusterText(clusterOf, number), null, null, null, null, null, null, LevelExcelText.NotWritten + string.Join(LevelExcelText.ListJoin, why) });
+                IEnumerable<string> why = (item["missing"] as JArray ?? new JArray()).Select(found => Fill(LevelExcelText.MissingReason, "key", Text(found["key"]), "why", Text(found["why"])));
+                levels.Rows.Add(new object[] { number, null, ClusterText(made.ClusterOf, number), null, null, null, null, null, null, LevelExcelText.NotWritten + string.Join(LevelExcelText.ListJoin, why) });
             }
-
             book.Sheets.Add(levels);
-            book.Sheets.Add(ClusterSheet(written, notWritten, clusterOf, keyRules));
+            book.Sheets.Add(ClusterSheet(made, written, result));
             book.Sheets.Add(used);
-            book.Sheets.Add(SettingsSheet(inputs, profile, plan));
-            book.Counts["level rows written"] = written.Count;
-            book.Counts["level rows not written"] = notWritten.Count;
-            book.Counts["cluster pieces"] = book.Sheets[1].Rows.Count;
-            book.Counts["overrides used"] = used.Rows.Count;
+            book.Sheets.Add(SettingsSheet(inputs));
             return book;
         }
 
@@ -265,26 +345,52 @@ namespace SiteAdaptation.Common
             return found;
         }
 
+        // The piece of each plot the step levels of the build write, the plots that share its FFL by the rule (R339, R340), one source
+        private static Dictionary<string, List<string>> PiecesOf(JObject step)
+        {
+            var found = new Dictionary<string, List<string>>();
+            foreach (JProperty item in (step?["plots"] as JObject ?? new JObject()).Properties())
+            {
+                JArray piece = (item.Value["written"] ?? item.Value["raw"])?["piece"] as JArray;
+                if (piece != null)
+                {
+                    found[item.Name] = piece.Select(plot => (string)plot).ToList();
+                }
+            }
+            return found;
+        }
+
+        // The row order of the cluster of each plot, the cluster of the step hands of the build
+        private static Dictionary<string, List<string>> RowsOf(JObject step)
+        {
+            var found = new Dictionary<string, List<string>>();
+            foreach (JProperty item in (step?["plots"] as JObject ?? new JObject()).Properties())
+            {
+                JArray row = (item.Value["written"] ?? item.Value["raw"])?["cluster"] as JArray;
+                if (row != null)
+                {
+                    found[item.Name] = row.Select(plot => (string)plot).ToList();
+                }
+            }
+            return found;
+        }
+
         private static string ClusterText(Dictionary<string, List<string>> clusterOf, string number)
         {
             List<string> cluster;
             return clusterOf.TryGetValue(number, out cluster) ? string.Join(LevelExcelText.ClusterJoin, cluster) : LevelExcelText.NoCluster;
         }
 
-        // The entries of the level fields of the override list a build of the plan takes, its sources and its models, by plot and field (R280)
+        // The entries of the level fields of the override list a build of the plan takes, by its sources and models as the check rows take
+        // them (CheckRows.ListEntries), by plot and field (R280)
         private static Dictionary<string, List<JObject>> Entries(JObject list, JObject rules)
         {
             var sources = new HashSet<string>((rules["overrideSource"] as JArray ?? new JArray()).Select(item => (string)item));
             var models = new HashSet<string>((rules["overrideModel"] as JArray ?? new JArray()).Select(item => (string)item));
             var found = new Dictionary<string, List<JObject>>();
-            foreach (JObject entry in (list?["overrides"] as JArray ?? new JArray()).OfType<JObject>())
+            foreach (JObject entry in CheckRows.ListEntries(list, sources, models).Item1.Where(item => LevelFields.Contains(Text(item["field"]))))
             {
-                string field = (string)entry["field"];
-                if (!LevelFields.Contains(field) || !sources.Contains((string)entry["source"]) || models.Count > 0 && !models.Contains((string)entry["model"]))
-                {
-                    continue;
-                }
-                string key = (string)entry["plot"] + "|" + field;
+                string key = Text(entry["plot"]) + "|" + Text(entry["field"]);
                 List<JObject> same;
                 if (!found.TryGetValue(key, out same))
                 {
@@ -296,7 +402,7 @@ namespace SiteAdaptation.Common
         }
 
         // Rule, or Override with each level field the plan applied and the reason of its entry, the order of the applied list of the plan
-        private static string SourceText(LevelBook book, LevelSheet used, Dictionary<string, List<JObject>> entries, JObject plot, string number)
+        private static string SourceText(LevelResult result, LevelSheet used, Dictionary<string, List<JObject>> entries, JObject plot, string number)
         {
             List<string> applied = (plot["overrides"]?["applied"] as JArray ?? new JArray()).Select(item => (string)item).Where(LevelFields.Contains).ToList();
             if (applied.Count == 0)
@@ -309,119 +415,155 @@ namespace SiteAdaptation.Common
                 List<JObject> same;
                 if (!entries.TryGetValue(number + "|" + field, out same))
                 {
-                    book.Issues.Add("plot " + number + " field " + field + ": the plan applied it, the override list holds no entry of its sources (R364)");
+                    result.Issues.Add("plot " + number + " field " + field + ": the plan applied it, the override list holds no entry of its sources (R364)");
                     parts.Add(Fill(LevelExcelText.OverrideReason, "field", field, "reason", LevelExcelText.NoEntry));
                     continue;
                 }
                 if (same.Count > 1)
                 {
-                    book.Issues.Add("plot " + number + " field " + field + ": the override list holds " + same.Count + " entries of its sources, the first is listed (R280, R364)");
+                    result.Issues.Add("plot " + number + " field " + field + ": the override list holds " + same.Count + " entries of its sources, the first is listed (R280, R364)");
                 }
                 JObject entry = same[0];
-                parts.Add(Fill(LevelExcelText.OverrideReason, "field", field, "reason", (string)entry["reason"] ?? ""));
-                used.Rows.Add(new[] { number, field, GapOf(entry["value"]), (object)(string)entry["reason"], (string)entry["source"], (string)entry["model"] });
+                parts.Add(Fill(LevelExcelText.OverrideReason, "field", field, "reason", Text(entry["reason"]) ?? ""));
+                used.Rows.Add(new[] { number, field, GapOf(result, plot, number, field, entry["value"]), (object)Text(entry["reason"]), Text(entry["source"]), Text(entry["model"]) });
             }
             return LevelExcelText.Override + string.Join(LevelExcelText.ListJoin, parts);
         }
 
-        // The gap of a level override to its rule, a step count as the number it is, any other value as json.dumps writes it
-        private static object GapOf(JToken value)
+        // The gap of a level override to its rule as a number: gapToRuleM of a level in metres, the step count less the steps of the rule of
+        // the plan (levelRule.steps) for steps, null with an issue when the entry or the plan gives none
+        private static object GapOf(LevelResult result, JObject plot, string number, string field, JToken value)
         {
-            JToken gap = value is JObject item ? item["gapToRuleM"] : value;
-            if (gap != null && (gap.Type == JTokenType.Float || gap.Type == JTokenType.Integer))
+            if (field == "steps")
             {
-                return gap.Type == JTokenType.Integer ? (object)(long)gap : (double)gap;
-            }
-            return value == null ? null : PlanOverrides.Dumps(value);
-        }
-
-        private static string TopLine(LevelInputs inputs, JObject plan, JObject profile, JObject keyRules, List<JObject> written, List<JObject> notWritten)
-        {
-            var zoneOf = new Dictionary<string, string>();
-            foreach (Dictionary<string, string> row in inputs.PlotRows)
-            {
-                string number, zone;
-                if (row.TryGetValue("locationPlanNumber", out number) && row.TryGetValue("zone", out zone) && !string.IsNullOrEmpty(number))
+                long? count = PlanOverrides.WholeNumber(value);
+                long? rule = PlanOverrides.WholeNumber(plot["levelRule"]?["steps"]);
+                if (count.HasValue && rule.HasValue)
                 {
-                    zoneOf[number] = zone;
+                    return count.Value - rule.Value;
                 }
             }
-            List<string> zones = written.Select(plot => (string)plot["plot"]).Concat(notWritten.Select(item => (string)item["plot"]))
-                .Select(number => { string zone; return zoneOf.TryGetValue(number, out zone) ? zone : null; }).Where(zone => !string.IsNullOrEmpty(zone)).Distinct().OrderBy(zone => zone, StringComparer.Ordinal).ToList();
-            JObject surfaces = plan["summary"]?["roadSurfacesOfFrontCorners"] as JObject ?? new JObject();
-            long corners = surfaces.Properties().Sum(item => (long)item.Value);
+            else
+            {
+                JToken gap = PlanOverrides.GapOf(value);
+                if (gap != null && (gap.Type == JTokenType.Float || gap.Type == JTokenType.Integer))
+                {
+                    return (double)gap;
+                }
+            }
+            result.Issues.Add("plot " + number + " field " + field + ": the entry or the rule of the plan gives no gap (R364)");
+            return null;
+        }
+
+        private static string TopLine(LevelInputs inputs, Plan made, JObject profile, JObject keyRules, string nbh, HashSet<string> mine, List<JObject> written)
+        {
+            List<string> zones = mine.Select(number => { Dictionary<string, string> row; string zone; return made.Rows.TryGetValue(number, out row) && row.TryGetValue("zone", out zone) ? zone : null; })
+                .Where(zone => !string.IsNullOrEmpty(zone)).Distinct().OrderBy(zone => zone, StringComparer.Ordinal).ToList();
+            // The front corners of the written plots of the NBH by the surface each takes its level from, most first, a tie in the order met
+            var surfaces = new List<KeyValuePair<string, int>>();
+            foreach (string name in written.SelectMany(plot => (plot["roadSurfaces"] as JArray ?? new JArray()).Select(Text)).Where(name => name != null))
+            {
+                int at = surfaces.FindIndex(item => item.Key == name);
+                if (at < 0)
+                {
+                    surfaces.Add(new KeyValuePair<string, int>(name, 1));
+                }
+                else
+                {
+                    surfaces[at] = new KeyValuePair<string, int>(name, surfaces[at].Value + 1);
+                }
+            }
+            List<KeyValuePair<string, int>> ordered = surfaces.Select((item, index) => new { item, index }).OrderByDescending(pair => pair.item.Value).ThenBy(pair => pair.index).Select(pair => pair.item).ToList();
+            long none = (inputs.Plan["summary"]?["noRoadLevel"] as JArray ?? new JArray()).OfType<JObject>().Where(item => mine.Contains(Text(item["plot"]) ?? "")).Sum(item => (long)((item["corners"] as JArray)?.Count ?? 0));
             JToken height = keyRules?["ffl"]?["rule"] ?? profile["height"];
-            string rule = height?.Type == JTokenType.String ? (string)height : null;
+            string rule = Text(height);
             string ffl;
             if (rule == null || !LevelExcelText.FflFormulas.TryGetValue(rule, out ffl))
             {
                 throw new InvalidDataException("the level profile " + inputs.Profile + " names the height rule " + (rule ?? "null") + ", the level Excel names the FFL of " + string.Join(", ", LevelExcelText.FflFormulas.Keys) + " (R364)");
             }
             double ground = Fronts.Metres(inputs.Rules, inputs.RulesName, inputs.Rules["levels"]?["ground_ssl"], "levels.ground_ssl");
-            return Fill(LevelExcelText.TopLine, "nbh", (string)plan["neighbourhood"], "zones", zones.Count == 0 ? LevelExcelText.NoZone : string.Join(LevelExcelText.ZonesJoin, zones),
-                "surfaces", string.Join(LevelExcelText.ListJoin, surfaces.Properties().Select(item => Fill(LevelExcelText.SurfaceCount, "name", item.Name, "n", ((long)item.Value).ToString(CultureInfo.InvariantCulture)))),
-                "n", corners.ToString(CultureInfo.InvariantCulture), "ffl", ffl, "sign", ground <= 0 ? "-" : "+", "ssl", Number(Math.Abs(ground)));
+            string named = string.Join(LevelExcelText.ListJoin, ordered.Select(item => Fill(LevelExcelText.SurfaceCount, "name", item.Key, "n", Count(item.Value))));
+            return Fill(LevelExcelText.TopLine, "nbh", nbh, "zones", zones.Count == 0 ? LevelExcelText.NoZone : string.Join(LevelExcelText.ZonesJoin, zones),
+                "surfaces", named, "n", Count(ordered.Sum(item => (long)item.Value)), "none", none > 0 ? Fill(LevelExcelText.NoSurface, "n", Count(none)) : "",
+                "ffl", ffl, "sign", ground <= 0 ? "-" : "+", "ssl", Number(Math.Abs(ground)));
         }
 
-        // One row per piece of a cluster that holds a written plot, in the order the plan writes the plots: the written plots of the cluster in
-        // its order, a piece each run of them with one FFL as written, its unit sequence and the split keyRules.levelSplit gives that sequence
-        private static LevelSheet ClusterSheet(List<JObject> written, List<JObject> notWritten, Dictionary<string, List<string>> clusterOf, JObject keyRules)
+        // One row per piece of the build of a cluster that holds a written plot of the NBH, in the order the plan writes the plots: the pieces the
+        // step levels give the plots of the cluster in its order, the FFL of the rule of the piece, its unit sequence and the split its pieces make
+        private static LevelSheet ClusterSheet(Plan made, List<JObject> written, LevelResult result)
         {
             var sheet = new LevelSheet { Name = LevelExcelText.ClustersSheet, Header = LevelExcelText.ClusterColumns, Formats = LevelExcelText.ClusterFormats };
-            Dictionary<string, JObject> byNumber = written.ToDictionary(plot => (string)plot["plot"], plot => plot);
-            JObject split = keyRules?["levelSplit"] as JObject;
-            JObject table = Text(keyRules?["ffl"]?["rule"]) == "oneFflPerPieceAtTheHighestEntry" && Text(split?["rule"]) == "units" ? split["table"] as JObject : null;
             var listed = new HashSet<string>();
             foreach (string number in written.Select(plot => (string)plot["plot"]))
             {
                 List<string> cluster;
-                if (!clusterOf.TryGetValue(number, out cluster) || !listed.Add(string.Join("|", cluster)))
+                if (!made.ClusterOf.TryGetValue(number, out cluster) || !listed.Add(string.Join("|", cluster)))
                 {
                     continue;
                 }
                 string name = string.Join(LevelExcelText.ClusterJoin, cluster);
-                string sequence = string.Join(" ", cluster.Select(plot => byNumber.ContainsKey(plot) ? (string)byNumber[plot]["unit"]?["value"] : LevelExcelText.UnitNotWritten));
-                string splitText = Text(table?[sequence]) ?? LevelExcelText.NoSplit;
-                var piece = new List<string>();
-                double? top = null;
-                foreach (string plot in cluster.Where(byNumber.ContainsKey))
+                // The row order of the cluster the hands of the build give (R123), which the split and the pieces run along, the step clusters
+                // write the plots sorted
+                List<string> row = cluster.Select(plot => { List<string> found; return made.RowOf.TryGetValue(plot, out found) ? found : null; })
+                    .FirstOrDefault(found => found != null && found.Count == cluster.Count && !found.Except(cluster).Any());
+                if (row == null)
                 {
-                    JToken value = byNumber[plot]["levels"]?["ffl"]?["value"];
-                    double? ffl = value == null || value.Type == JTokenType.Null ? (double?)null : (double)value;
-                    if (piece.Count > 0 && !Nullable.Equals(ffl, top))
-                    {
-                        sheet.Rows.Add(new object[] { name, string.Join(LevelExcelText.ClusterJoin, piece), sequence, splitText, top });
-                        piece.Clear();
-                    }
-                    piece.Add(plot);
-                    top = ffl;
+                    result.Issues.Add("cluster " + name + ": the step hands give no row order, the sorted order is taken (R364)");
+                    row = cluster;
                 }
-                if (piece.Count > 0)
+                string sequence = string.Join(" ", row.Select(plot => made.ByNumber.ContainsKey(plot) ? Text(made.ByNumber[plot]["unit"]?["value"])
+                    : made.Missing.Contains(plot) ? LevelExcelText.UnitNotWritten : LevelExcelText.OutsideScope));
+                var pieces = new List<List<string>>();
+                foreach (string plot in row)
                 {
-                    sheet.Rows.Add(new object[] { name, string.Join(LevelExcelText.ClusterJoin, piece), sequence, splitText, top });
+                    List<string> piece;
+                    if (made.PieceOf.TryGetValue(plot, out piece) && !pieces.Any(other => other.SequenceEqual(piece)))
+                    {
+                        pieces.Add(piece);
+                    }
+                }
+                if (made.ByNumber.Keys.Any(plot => cluster.Contains(plot) && !made.PieceOf.ContainsKey(plot)))
+                {
+                    result.Issues.Add("cluster " + name + ": a written plot has no piece in the step levels (R364)");
+                }
+                // A cut before each piece and after it, so a piece of plots outside the scope, which the step does not hold, still cuts
+                List<int> cuts = pieces.SelectMany(piece => new[] { row.IndexOf(piece[0]), row.IndexOf(piece[piece.Count - 1]) + 1 }).Where(at => at > 0 && at < row.Count).Distinct().OrderBy(at => at).ToList();
+                string split = cuts.Count == 0 ? LevelExcelText.NoSplit : cluster.Count % 2 == 0 && cuts.SequenceEqual(new[] { cluster.Count / 2 }) ? LevelExcelText.MiddleSplit
+                    : Fill(LevelExcelText.WallsSplit, "n", string.Join(",", cuts));
+                foreach (List<string> piece in pieces)
+                {
+                    List<double> rules = piece.Where(made.ByNumber.ContainsKey).Select(plot => made.ByNumber[plot]["levelRule"]?["ffl"]).Where(value => value != null && value.Type != JTokenType.Null).Select(value => (double)value).Distinct().ToList();
+                    // A piece of no written plot has no FFL to list, so it gives no row
+                    if (rules.Count == 0)
+                    {
+                        continue;
+                    }
+                    if (rules.Count > 1)
+                    {
+                        result.Issues.Add("piece " + string.Join(LevelExcelText.ClusterJoin, piece) + ": its plots hold " + rules.Count + " FFLs of the rule, the first is listed (R364)");
+                    }
+                    sheet.Rows.Add(new object[] { name, string.Join(LevelExcelText.ClusterJoin, piece), sequence, split, rules[0] });
                 }
             }
             return sheet;
         }
 
-        private static LevelSheet SettingsSheet(LevelInputs inputs, JObject profile, JObject plan)
+        private static LevelSheet SettingsSheet(LevelInputs inputs)
         {
             var sheet = new LevelSheet { Name = LevelExcelText.SettingsSheet, Header = LevelExcelText.SettingColumns, Formats = new string[2] };
-            string surface = Text(profile["frontRoad"]?["surface"]);
-            IEnumerable<string> order = surface == "roadLevel" ? (inputs.Config["siteBuild"]?["roadSurfaces"] as JArray ?? new JArray()).Select(item => (string)item) : new[] { surface };
             JToken pass = inputs.Config["placerCheck"]?["level"]?["passMm"];
-            string build = plan["run"]?["runId"]?.Type == JTokenType.String ? (string)plan["run"]["runId"] : inputs.RunId;
             var rows = new[]
             {
                 new[] { LevelExcelText.RunId, inputs.RunId },
                 new[] { LevelExcelText.Profile, inputs.Profile },
                 new[] { LevelExcelText.RulesSha, inputs.RulesSha256 },
                 new[] { LevelExcelText.OverridesSha, inputs.OverridesSha256 },
-                new[] { LevelExcelText.RoadOrder, string.Join(LevelExcelText.ListJoin, order) },
+                new[] { LevelExcelText.RoadOrder, string.Join(LevelExcelText.ListJoin, inputs.RoadOrder) },
                 new[] { LevelExcelText.PassLimit, pass == null || pass.Type == JTokenType.Null ? LevelExcelText.NoPassLimit : Fill(LevelExcelText.PassLimitMm, "n", Number((double)pass)) },
                 new[] { LevelExcelText.RunTime, inputs.Now.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture) },
                 new[] { LevelExcelText.EditableColumns, string.Join(LevelExcelText.ListJoin, LevelExcelText.LevelColumns.Where(LevelExcelText.Editable.Contains)) },
-                new[] { LevelExcelText.PlanBuildId, build },
+                new[] { LevelExcelText.PlanBuildId, Text((inputs.Plan["run"] as JObject)?["runId"]) ?? LevelExcelText.NoBuildId },
                 new[] { LevelExcelText.PlanSha, inputs.PlanSha256 },
             };
             foreach (string[] row in rows)

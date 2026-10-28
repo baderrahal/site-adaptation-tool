@@ -11,15 +11,17 @@ using SiteAdaptation.Common;
 
 namespace CadReader
 {
-    // R364. The command levelExcel of the worker: the level Excel <NBH>_Levels_<profile>.xlsx of docs/design/07-mock.md 7.5 from the plan as
-    // written, its override list, the step clusters and plots.csv of its build, the rules profile and config, written with DocumentFormat.OpenXml
-    // by its temporary name into the output folder of the request. OpenXml stays in the worker, never in Revit, so the sheets are made by
+    // R364. The command levelExcel of the worker: one level Excel <NBH>_Levels_<profile>.xlsx of docs/design/07-mock.md 7.5 per NBH of the plan
+    // as written, from its override list, the step clusters, levels and hands and plots.csv of its build, the rules profile and config, written
+    // with DocumentFormat.OpenXml by its temporary name into the output folder of the request. OpenXml stays in the worker, never in Revit, so the sheets are made by
     // LevelSheets of Common and only written here
     public static class LevelWorkbook
     {
         public const string PlanRole = "plan";
         public const string OverridesRole = "overrides";
         public const string ClustersRole = "clusters";
+        public const string LevelsRole = "levels";
+        public const string HandsRole = "hands";
 
         public static void Command(WorkerContext run)
         {
@@ -34,6 +36,7 @@ namespace CadReader
                 throw run.Refusal(refusal);
             }
             string overridesPath = run.Input(OverridesRole);
+            string configPath = run.Input("config");
             var inputs = new LevelInputs
             {
                 Plan = plan,
@@ -42,22 +45,28 @@ namespace CadReader
                 Rules = rules,
                 RulesName = Path.GetFileName(rulesPath),
                 RulesSha256 = FileHash.Sha256(rulesPath),
-                Config = PyJson.Parse(WorkFiles.ReadText(run.Input("config"))) as JObject,
+                Config = PyJson.Parse(WorkFiles.ReadText(configPath)) as JObject,
+                RoadOrder = Fronts.RoadNames((JObject)rules["levelProfiles"][request.LevelProfile], ReadSettings.Load(configPath)),
                 Overrides = PyJson.Parse(WorkFiles.ReadText(overridesPath)) as JObject,
                 OverridesSha256 = FileHash.Sha256(overridesPath),
                 Clusters = PyJson.Parse(WorkFiles.ReadText(run.Input(ClustersRole))) as JObject,
-                PlotRows = CsvRows.Read(run.Input("plotsCsv"), "locationPlanNumber", "zone"),
+                Levels = PyJson.Parse(WorkFiles.ReadText(run.Input(LevelsRole))) as JObject,
+                Hands = PyJson.Parse(WorkFiles.ReadText(run.Input(HandsRole))) as JObject,
+                PlotRows = CsvRows.Read(run.Input("plotsCsv"), "locationPlanNumber", "zone", "nbhId"),
                 RunId = request.RunId,
                 Profile = request.LevelProfile,
                 Now = DateTime.UtcNow,
             };
-            LevelBook book = LevelSheets.Build(inputs);
-            run.Issues.AddRange(book.Issues);
-            foreach (KeyValuePair<string, int> count in book.Counts)
+            LevelResult result = LevelSheets.Build(inputs);
+            run.Issues.AddRange(result.Issues);
+            foreach (KeyValuePair<string, int> count in result.Counts)
             {
                 run.Counts[count.Key] = count.Value;
             }
-            run.WriteFile(request.OutputFolder, book.FileName, stream => Write(stream, book));
+            foreach (LevelBook book in result.Books)
+            {
+                run.WriteFile(request.OutputFolder, book.FileName, stream => Write(stream, book));
+            }
         }
 
         // The style indexes of the stylesheet Styles writes
@@ -94,16 +103,6 @@ namespace CadReader
                 new CellStyles(new CellStyle { Name = "Normal", FormatId = 0, BuiltinId = 0 }) { Count = 1 });
         }
 
-        public static string Letter(int column)
-        {
-            string text = "";
-            for (; column > 0; column = (column - 1) / 26)
-            {
-                text = (char)('A' + (column - 1) % 26) + text;
-            }
-            return text;
-        }
-
         // A number as the shortest text that reads back as the same double, as Python repr gives it, G17 where R of net48 gives another double
         private static string NumberText(object value)
         {
@@ -134,7 +133,7 @@ namespace CadReader
                 column++;
                 if (value != null)
                 {
-                    row.Append(MakeCell(Letter(column) + index, value, style(column - 1)));
+                    row.Append(MakeCell(XlsxSheet.ColumnLetters(column) + index, value, style(column - 1)));
                 }
             }
             return row;
@@ -168,7 +167,7 @@ namespace CadReader
                     var worksheet = new Worksheet(data);
                     if (sheet.TopLine != null)
                     {
-                        worksheet.Append(new MergeCells(new MergeCell { Reference = "A1:" + Letter(sheet.Header.Length) + "1" }) { Count = 1 });
+                        worksheet.Append(new MergeCells(new MergeCell { Reference = "A1:" + XlsxSheet.ColumnLetters(sheet.Header.Length) + "1" }) { Count = 1 });
                     }
                     WorksheetPart page = part.AddNewPart<WorksheetPart>();
                     page.Worksheet = worksheet;

@@ -38,19 +38,27 @@ namespace SiteAdaptation.Tests
 
         private static readonly string[] Columns = { "Plot No", "Unit", "Cluster", "Road at front", "El @ Entry", "FFL", "SSL", "Height", "Steps", "Source" };
 
-        private const string TopLine = "NBH 012, Zone 2, road surface Road A on 6 of 6 front corners, formulas: El @ Entry = the road at the two front corners + the slope "
+        private const string Formulas = "formulas: El @ Entry = the road at the two front corners + the slope "
             + "of the unit x the ramp depth (R278, R339), FFL = the highest El @ Entry of the piece + the base of its unit, to the mm (R340), SSL = FFL - 0.075 m "
             + "(levels.ground_ssl), Height = FFL - El @ Entry, Steps = one for the base and one per riser over it, half a riser no step (R340)";
 
+        // The front corners of the written plots by their surfaces, most first, and the corner of 104 no surface covers counted apart
+        private const string TopLine = "NBH 012, Zone 2, road surface Road A on 5, Road B on 1 of 6 front corners, front corners with no road surface 1, " + Formulas;
+
+        // Review 1 of PR 91: SSL and Height as written, which the FFL as written does not give, so a value worked out again would differ
         private static JObject Levels(double road, double entry, double ffl, double ssl, double height, int steps)
         {
             Func<object, JObject> value = item => new JObject { ["value"] = JToken.FromObject(item), ["source"] = "estimate", ["status"] = "MEASURED" };
             return new JObject { ["ffl"] = value(ffl), ["ssl"] = value(ssl), ["entry"] = value(entry), ["height"] = value(height), ["steps"] = value(steps), ["roadAtFrontM"] = value(road) };
         }
 
-        private static JObject Plot(string number, string unit, JObject levels, params string[] applied)
+        private static JObject Plot(string number, string unit, JObject levels, double ruleFfl, string[] surfaces, params string[] applied)
         {
-            var plot = new JObject { ["plot"] = number, ["unit"] = new JObject { ["value"] = unit, ["source"] = "locationPlan", ["status"] = "DOCUMENT" }, ["levels"] = levels };
+            var plot = new JObject
+            {
+                ["plot"] = number, ["unit"] = new JObject { ["value"] = unit, ["source"] = "locationPlan", ["status"] = "DOCUMENT" }, ["levels"] = levels,
+                ["levelRule"] = new JObject { ["ffl"] = ruleFfl, ["steps"] = 1 }, ["roadSurfaces"] = new JArray(surfaces),
+            };
             if (applied.Length > 0)
             {
                 plot["overrides"] = new JObject { ["applied"] = new JArray(applied), ["notApplied"] = new JObject() };
@@ -58,25 +66,30 @@ namespace SiteAdaptation.Tests
             return plot;
         }
 
-        // Four plots: 101 a lone villa with a height override and an override of no level field, 102 and 103 a duplex where 102 has two
-        // level overrides, and 104 not written for its FFL, in a cluster with 105, which the plan never names
+        // NBH 012: 101 a lone villa with a height override and an override of no level field, 102 and 103 of a cluster with 108, which the plan
+        // never names, 102 with two level overrides and 103 with a steps override, the build cutting the cluster after 102 though both FFLs
+        // are written equal, and 104 not written for its FFL, in a cluster with 105. NBH 013: 201. 999 has no row of plots.csv
         internal static JObject MadePlan()
         {
+            string[] a = { "Road A", "Road A" };
             return new JObject
             {
                 ["format"] = "site-adaptation-plan",
                 ["formatVersion"] = 1,
-                ["neighbourhood"] = "012",
+                ["neighbourhood"] = "all",
                 ["summary"] = new JObject
                 {
-                    ["roadSurfacesOfFrontCorners"] = new JObject { ["Road A"] = 6 },
+                    ["roadSurfacesOfFrontCorners"] = new JObject { ["Road A"] = 5, ["none"] = 1 },
+                    ["noRoadLevel"] = new JArray(new JObject { ["plot"] = "104", ["corners"] = new JArray("left"), ["tried"] = new JArray("Road A"), ["reason"] = "no road" }),
                     ["rules"] = new JObject { ["levelProfile"] = "parsons2024Rev6", ["overrideSource"] = new JArray("parsons"), ["overrideModel"] = new JArray() },
                 },
                 ["plots"] = new JArray
                 {
-                    Plot("101", "VD4", Levels(9.9012, 9.9234, 10.123, 10.048, 0.1996, 1), "heightM", "parameter CASE"),
-                    Plot("102", "DP1", Levels(10.3801, 10.4, 10.5, 10.425, 0.1, 1), "entryM", "rampFrontM"),
-                    Plot("103", "DP1", Levels(10.2857, 10.3115, 10.5, 10.425, 0.1885, 2)),
+                    Plot("101", "VD4", Levels(9.9012, 9.9234, 10.123, 10.041, 0.2101, 1), 10.122, a, "heightM", "parameter CASE"),
+                    Plot("102", "DP1", Levels(10.3801, 10.4, 10.5, 10.43, 0.11, 1), 10.501, new[] { "Road A", "Road B" }, "entryM", "rampFrontM"),
+                    Plot("103", "DP1", Levels(10.2857, 10.3115, 10.5, 10.42, 0.19, 2), 10.499, a, "steps"),
+                    Plot("201", "VD4", Levels(11.1, 11.2, 11.4, 11.3, 0.2, 1), 11.4, new[] { "Road C", "Road C" }),
+                    Plot("999", "VD4", Levels(12.1, 12.2, 12.4, 12.3, 0.2, 1), 12.4, a),
                 },
                 ["missing"] = new JArray
                 {
@@ -101,6 +114,7 @@ namespace SiteAdaptation.Tests
                     Entry("101", "heightM", new JObject { ["gapToRuleM"] = 0.5 }, "a native entry the build does not take", "native"),
                     Entry("101", "parameter CASE", "D", "no level field"),
                     Entry("102", "entryM", new JObject { ["gapToRuleM"] = 0.0123 }, "breaks roadLevel"),
+                    Entry("103", "steps", "2", "breaks stepsFromHeight"),
                     Entry("102", "rampFrontM", new JObject { ["gapToRuleM"] = -0.002 }, "breaks roadLevel"),
                 },
             };
@@ -109,7 +123,25 @@ namespace SiteAdaptation.Tests
         private static JObject MadeClusters()
         {
             Func<string[], JObject> cluster = plots => new JObject { ["written"] = new JObject { ["plots"] = new JArray(plots), ["code"] = "Duplex_DP1", ["source"] = "footprint" } };
-            return new JObject { ["format"] = "siteAdaptationStep", ["step"] = "clusters", ["plots"] = new JObject { ["102|103"] = cluster(new[] { "102", "103" }), ["104|105"] = cluster(new[] { "104", "105" }) } };
+            return new JObject { ["format"] = "siteAdaptationStep", ["step"] = "clusters", ["plots"] = new JObject { ["102|103|108"] = cluster(new[] { "102", "103", "108" }), ["104|105"] = cluster(new[] { "104", "105" }) } };
+        }
+
+        // The pieces of the build per plot, as the step levels write them
+        private static JObject MadeLevels()
+        {
+            Func<string[], JObject> piece = plots => new JObject { ["written"] = new JObject { ["piece"] = new JArray(plots) } };
+            return new JObject
+            {
+                ["format"] = "siteAdaptationStep", ["step"] = "levels",
+                ["plots"] = new JObject { ["101"] = piece(new[] { "101" }), ["102"] = piece(new[] { "102" }), ["103"] = piece(new[] { "108", "103" }), ["201"] = piece(new[] { "201" }), ["999"] = piece(new[] { "999" }) },
+            };
+        }
+
+        // The row order of the cluster of 102 and 103 as the step hands write it, 108 first, the other way to the sorted step clusters
+        private static JObject MadeHands()
+        {
+            Func<string[], JObject> row = plots => new JObject { ["written"] = new JObject { ["cluster"] = new JArray(plots) } };
+            return new JObject { ["format"] = "siteAdaptationStep", ["step"] = "hands", ["plots"] = new JObject { ["102"] = row(new[] { "108", "103", "102" }), ["103"] = row(new[] { "108", "103", "102" }) } };
         }
 
         private static JObject MadeRules()
@@ -153,9 +185,11 @@ namespace SiteAdaptation.Tests
             public string Profile = "parsons2024Rev6";
         }
 
+        private const string PlotsCsv = "locationPlanNumber,baseplanLabel,zone,nbhId\n101,A1,Zone 2,012\n102,A2,Zone 2,012\n103,A3,Zone 2,012\n104,A4,Zone 2,012\n105,A5,Zone 3,012\n201,B1,Zone 3,013\n";
+
         private WorkerAnswer Run(Made made, out int code, out string planPath, string id = "lx1")
         {
-            planPath = Write("plan_012.json", made.Plan.ToString());
+            planPath = Write("plan_all.json", made.Plan.ToString());
             var inputs = new List<WorkerFile>
             {
                 Input("config", Write("project.json", MadeConfig().ToString())),
@@ -163,25 +197,28 @@ namespace SiteAdaptation.Tests
                 Input(LevelWorkbook.PlanRole, planPath),
                 Input(LevelWorkbook.OverridesRole, Write("overrides.json", made.Overrides.ToString())),
                 Input(LevelWorkbook.ClustersRole, Write("step_clusters_python.json", MadeClusters().ToString())),
-                Input("plotsCsv", Write("plots.csv", "locationPlanNumber,baseplanLabel,zone\n101,A1,Zone 2\n102,A2,Zone 2\n103,A3,Zone 2\n104,A4,Zone 2\n105,A5,Zone 3\n")),
+                Input("levels", Write("step_levels_python.json", MadeLevels().ToString())),
+                Input("hands", Write("step_hands_python.json", MadeHands().ToString())),
+                Input("plotsCsv", Write("plots.csv", PlotsCsv)),
             };
             var request = new WorkerRequest
             {
                 FormatVersion = 1, RunId = id, Command = "levelExcel", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" },
-                Inputs = inputs, LevelProfile = made.Profile, Scope = new WorkerScope { Kind = "nbh", Nbh = "012" }, OutputFolder = Path.Combine(folder, "out"), TimeLimitS = 60,
+                Inputs = inputs, LevelProfile = made.Profile, Scope = new WorkerScope { Kind = "project" }, OutputFolder = Path.Combine(folder, "out"), TimeLimitS = 60,
             };
             code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);
             return WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, id));
         }
 
-        private Book RunBook(Made made, out WorkerAnswer answer, out string planPath)
+        // The workbook of one NBH, after the run wrote one workbook per NBH of the plan, 012 and 013
+        private Book RunBook(Made made, out WorkerAnswer answer, out string planPath, string nbh = "012")
         {
             int code;
             answer = Run(made, out code, out planPath);
             Assert.True(code == 0, "exit " + code + ": " + answer.Message);
-            string path = Path.Combine(folder, "out", "012_Levels_parsons2024Rev6.xlsx");
-            Assert.Equal(new[] { path }, answer.Outputs.Select(item => item.Path).ToArray());
-            return Book.Read(path);
+            string[] paths = { Path.Combine(folder, "out", "012_Levels_parsons2024Rev6.xlsx"), Path.Combine(folder, "out", "013_Levels_parsons2024Rev6.xlsx") };
+            Assert.Equal(paths, answer.Outputs.Select(item => item.Path).ToArray());
+            return Book.Read(Path.Combine(folder, "out", nbh + "_Levels_parsons2024Rev6.xlsx"));
         }
 
         // A workbook read back: per sheet in order its rows of cells by column letter, the merged ranges and the style of each cell
@@ -303,36 +340,85 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R364_the_top_line_names_no_surface_none_and_counts_the_corners_no_road_surface_covers_apart()
+        {
+            WorkerAnswer answer;
+            string plan;
+            Book book = RunBook(new Made(), out answer, out plan);
+            string top = (string)book.Row("Levels", 1)[0];
+            Assert.DoesNotContain("none on", top);
+            Assert.StartsWith("NBH 012, Zone 2, road surface Road A on 5, Road B on 1 of 6 front corners, front corners with no road surface 1, formulas: ", top);
+        }
+
+        [Fact]
+        public void R364_one_workbook_per_nbh_of_plots_csv_each_with_its_own_top_line_and_settings_and_a_plot_of_no_nbh_an_issue()
+        {
+            WorkerAnswer answer;
+            string plan;
+            Book other = RunBook(new Made(), out answer, out plan, "013");
+            Assert.Equal("NBH 013, Zone 3, road surface Road C on 2 of 2 front corners, " + Formulas, other.Row("Levels", 1)[0]);
+            Assert.Equal(new[] { 1, 2, 3 }, other.Sheets["Levels"].Keys.ToArray());
+            Assert.Equal(new object[] { "201", "VD4", "none", 11.1, 11.2, 11.4, 11.3, 0.2, 1.0, "Rule" }, other.Row("Levels", 3).ToArray());
+            Assert.Equal(new[] { 1 }, other.Sheets["Clusters"].Keys.ToArray());
+            Assert.Equal(new[] { 1 }, other.Sheets["Overrides used"].Keys.ToArray());
+            Assert.Equal(new object[] { "Plan SHA-256", FileHash.Sha256(plan) }, other.Row("Settings", 11).ToArray());
+            Assert.Equal(2, answer.Counts["level workbooks"]);
+            Assert.Equal(1, answer.Counts["level rows with no NBH"]);
+            Assert.Equal(new[] { "1 plots of the plan have no nbhId in plots.csv, so no level Excel lists them: 999 (R364)" }, answer.Issues.ToArray());
+        }
+
+        [Fact]
         public void R364_every_value_comes_from_the_plan_as_written_with_4_decimals_for_road_entry_and_height_and_3_for_ffl_and_ssl()
         {
             WorkerAnswer answer;
             string plan;
             Book book = RunBook(new Made(), out answer, out plan);
-            Assert.Equal(new object[] { "101", "VD4", "none", 9.9012, 9.9234, 10.123, 10.048, 0.1996, 1.0, "Override heightM (breaks oneFflPerPieceAtTheHighestEntry)" }, book.Row("Levels", 3).ToArray());
-            Assert.Equal(new object[] { "102", "DP1", "102-103", 10.3801, 10.4, 10.5, 10.425, 0.1, 1.0, "Override entryM (breaks roadLevel), rampFrontM (breaks roadLevel)" }, book.Row("Levels", 4).ToArray());
-            Assert.Equal(new object[] { "103", "DP1", "102-103", 10.2857, 10.3115, 10.5, 10.425, 0.1885, 2.0, "Rule" }, book.Row("Levels", 5).ToArray());
+            Assert.Equal(new object[] { "101", "VD4", "none", 9.9012, 9.9234, 10.123, 10.041, 0.2101, 1.0, "Override heightM (breaks oneFflPerPieceAtTheHighestEntry)" }, book.Row("Levels", 3).ToArray());
+            Assert.Equal(new object[] { "102", "DP1", "102-103-108", 10.3801, 10.4, 10.5, 10.43, 0.11, 1.0, "Override entryM (breaks roadLevel), rampFrontM (breaks roadLevel)" }, book.Row("Levels", 4).ToArray());
+            Assert.Equal(new object[] { "103", "DP1", "102-103-108", 10.2857, 10.3115, 10.5, 10.42, 0.19, 2.0, "Override steps (breaks stepsFromHeight)" }, book.Row("Levels", 5).ToArray());
             // A plot not written comes last with its reason, keyed by its number like every other row
             Assert.Equal(new object[] { "104", null, "104-105", null, null, null, null, null, null, "Not written: levels.ffl (no road level)" }, book.Row("Levels", 6).ToArray());
             Dictionary<string, Cell> row = book.Sheets["Levels"][3];
             Assert.Equal(new[] { "0.0000", "0.0000", "0.000", "0.000", "0.0000", "0" }, new[] { "D", "E", "F", "G", "H", "I" }.Select(column => book.Format(row[column])).ToArray());
-            Assert.Equal(3, answer.Counts["level rows written"]);
+            Assert.Equal(4, answer.Counts["level rows written"]);
             Assert.Equal(1, answer.Counts["level rows not written"]);
         }
 
         [Fact]
-        public void R364_the_clusters_the_overrides_used_and_the_settings_come_from_the_plan_its_override_list_and_the_request()
+        public void R364_the_clusters_sheet_lists_the_pieces_of_the_build_with_the_ffl_of_their_rule_and_a_plot_outside_the_scope_by_its_label()
         {
             WorkerAnswer answer;
             string plan;
             Book book = RunBook(new Made(), out answer, out plan);
-            // One row per piece of a cluster with a written plot, its FFL as the plan writes it, the split of keyRules.levelSplit by its unit sequence
-            Assert.Equal(new[] { 1, 2 }, book.Sheets["Clusters"].Keys.ToArray());
-            Assert.Equal(new object[] { "102-103", "102-103", "DP1 DP1", "middle", 10.5 }, book.Row("Clusters", 2).ToArray());
+            // 102 and 103 hold one written FFL, the build cut them apart, so two pieces in the row order of the hands, each with the FFL of its
+            // rule, 108 outside the scope, the cut after the second plot of the row
+            Assert.Equal(new[] { 1, 2, 3 }, book.Sheets["Clusters"].Keys.ToArray());
+            Assert.Equal(new object[] { "102-103-108", "108-103", "outside the scope DP1 DP1", "walls 2", 10.499 }, book.Row("Clusters", 2).ToArray());
+            Assert.Equal(new object[] { "102-103-108", "102", "outside the scope DP1 DP1", "walls 2", 10.501 }, book.Row("Clusters", 3).ToArray());
+        }
+
+        [Fact]
+        public void R364_the_overrides_used_hold_a_number_as_the_gap_of_every_field_the_steps_less_the_steps_of_the_rule()
+        {
+            WorkerAnswer answer;
+            string plan;
+            Book book = RunBook(new Made(), out answer, out plan);
             // The level overrides the plan applied, of the source and models of the plan only, parameter CASE and the native entry left out
             Assert.Equal(new object[] { "101", "heightM", 0.0006, "breaks oneFflPerPieceAtTheHighestEntry", "parsons", "model_parsons.rvt" }, book.Row("Overrides used", 2).ToArray());
             Assert.Equal(new object[] { "102", "entryM", 0.0123, "breaks roadLevel", "parsons", "model_parsons.rvt" }, book.Row("Overrides used", 3).ToArray());
             Assert.Equal(new object[] { "102", "rampFrontM", -0.002, "breaks roadLevel", "parsons", "model_parsons.rvt" }, book.Row("Overrides used", 4).ToArray());
-            Assert.Equal(4, book.Sheets["Overrides used"].Count);
+            // The step count 2 of the list as text, less the 1 step of the rule, a number cell
+            Assert.Equal(new object[] { "103", "steps", 1.0, "breaks stepsFromHeight", "parsons", "model_parsons.rvt" }, book.Row("Overrides used", 5).ToArray());
+            Assert.Null(book.Sheets["Overrides used"][5]["C"].DataType);
+            Assert.Equal(5, book.Sheets["Overrides used"].Count);
+        }
+
+        [Fact]
+        public void R364_the_settings_come_from_the_request_the_rules_the_list_and_config()
+        {
+            WorkerAnswer answer;
+            string plan;
+            Book book = RunBook(new Made(), out answer, out plan);
             Dictionary<string, object> settings = book.Sheets["Settings"].Keys.Skip(1).ToDictionary(row => (string)book.Row("Settings", row)[0], row => book.Row("Settings", row)[1]);
             Assert.Equal("lx1", settings["Run id"]);
             Assert.Equal("parsons2024Rev6", settings["Profile"]);
@@ -341,7 +427,6 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Road A, Road B", settings["Road surface order"]);
             Assert.Equal("1 mm", settings["Pass limit"]);
             Assert.Matches("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$", (string)settings["Run time"]);
-            Assert.Empty(answer.Issues);
         }
 
         [Fact]
@@ -380,12 +465,13 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R364_settings_carry_the_build_id_of_the_plan_or_the_run_id_and_the_lowercase_sha256_of_the_plan_bytes()
+        public void R364_settings_carry_the_build_id_of_the_plan_run_stamp_or_the_label_for_none_and_the_lowercase_sha256_of_the_plan_bytes()
         {
             WorkerAnswer answer;
             string plan;
             Book book = RunBook(new Made(), out answer, out plan);
-            Assert.Equal(new object[] { "Plan build id", "lx1" }, book.Row("Settings", 10).ToArray());
+            // Never the run id of the Excel itself, lx1 here
+            Assert.Equal(new object[] { "Plan build id", "none, the plan holds no run stamp" }, book.Row("Settings", 10).ToArray());
             Assert.Equal(new object[] { "Plan SHA-256", FileHash.Sha256(plan) }, book.Row("Settings", 11).ToArray());
             Assert.Matches("^[0-9a-f]{64}$", (string)book.Row("Settings", 11)[1]);
 
@@ -409,7 +495,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("the plan was built with the level profile parsons2024Rev6, the request names native2022", answer.Message);
 
             var lacking = new Made();
-            ((JArray)lacking.Overrides["overrides"]).RemoveAt(4);
+            ((JArray)lacking.Overrides["overrides"]).RemoveAt(5);
             WorkerAnswer issued;
             Book book = RunBook(lacking, out issued, out plan);
             Assert.Equal("Override entryM (breaks roadLevel), rampFrontM (no entry in the override list)", book.Row("Levels", 4)[9]);
