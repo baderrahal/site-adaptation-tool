@@ -1,0 +1,257 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using SiteAdaptation.AddIn;
+using SiteAdaptation.AddIn.Icons;
+using SiteAdaptation.AddIn.Pane;
+using SiteAdaptation.AddIn.Theme;
+
+namespace SiteAdaptation.UiShots
+{
+    // R372, control 3 of docs/design/12-ui-spec.md. The one entry that renders each window offscreen at 100 percent scale, 96
+    // DPI, with the sample data below and no Revit. The command line writes the drafts, the picture test renders again and holds
+    // each against its baseline. Call it on a thread of a single threaded apartment
+    public static class Shots
+    {
+        public const string RibbonIcons = "ribbon-icons";
+        public const string Pane = "pane";
+        public const string PaneFirstOpen = "pane-first-open";
+        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen };
+
+        private const double Dpi = 96.0;
+
+        public static BitmapSource Render(string window)
+        {
+            switch (window)
+            {
+                case RibbonIcons: return Icons();
+                case Pane: return PanePage(true);
+                case PaneFirstOpen: return PanePage(false);
+                default: throw new ArgumentException("no window " + window + ", only " + string.Join(", ", Windows), nameof(window));
+            }
+        }
+
+        public static List<string> WriteAll(string folder)
+        {
+            Directory.CreateDirectory(folder);
+            var written = new List<string>();
+            foreach (string window in Windows)
+            {
+                string path = Path.Combine(folder, window + ".png");
+                File.WriteAllBytes(path, Png(Render(window)));
+                written.Add(path);
+            }
+            return written;
+        }
+
+        // R400 caps every file of steps/ at 100 KB, so a picture is kept in a palette of its own 256 colours, which the flat colours
+        // and the edges of the text fit in
+        public static byte[] Png(BitmapSource bitmap)
+        {
+            var opaque = new FormatConvertedBitmap(bitmap, PixelFormats.Bgr24, null, 0);
+            var indexed = new FormatConvertedBitmap(opaque, PixelFormats.Indexed8, new BitmapPalette(opaque, 256), 0);
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(indexed));
+            using (var stream = new MemoryStream())
+            {
+                encoder.Save(stream);
+                return stream.ToArray();
+            }
+        }
+
+        public static BitmapSource Load(string path)
+        {
+            using (FileStream stream = File.OpenRead(path))
+            {
+                return new PngBitmapDecoder(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad).Frames[0];
+            }
+        }
+
+        // The share of pixels that differ in any channel, 1 when the sizes differ
+        public static double Differ(BitmapSource one, BitmapSource other)
+        {
+            if (one.PixelWidth != other.PixelWidth || one.PixelHeight != other.PixelHeight)
+            {
+                return 1.0;
+            }
+            byte[] a = Pixels(one);
+            byte[] b = Pixels(other);
+            int differ = 0;
+            for (int at = 0; at < a.Length; at += 4)
+            {
+                if (a[at] != b[at] || a[at + 1] != b[at + 1] || a[at + 2] != b[at + 2] || a[at + 3] != b[at + 3])
+                {
+                    differ++;
+                }
+            }
+            return differ / (double)(a.Length / 4);
+        }
+
+        public static byte[] Pixels(BitmapSource bitmap)
+        {
+            var bgra = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
+            byte[] pixels = new byte[bgra.PixelWidth * bgra.PixelHeight * 4];
+            bgra.CopyPixels(pixels, bgra.PixelWidth * 4, 0);
+            return pixels;
+        }
+
+        // The eight icons as the ribbon takes them, the 32 px set over the 16 px set, on the white of the theme
+        private static BitmapSource Icons()
+        {
+            ResourceDictionary theme = ThemeDictionary.Load();
+            double gap = (double)theme["SA.Space.L"];
+            List<RibbonButtonSpec> buttons = RibbonLayout.Buttons.ToList();
+            int width = (int)(buttons.Count * 32 + (buttons.Count + 1) * gap);
+            int height = (int)(32 + 16 + 3 * gap);
+            var visual = new DrawingVisual();
+            using (DrawingContext context = visual.RenderOpen())
+            {
+                context.DrawRectangle((Brush)theme["SA.Surface"], null, new Rect(0, 0, width, height));
+                for (int at = 0; at < buttons.Count; at++)
+                {
+                    double left = gap + at * (32 + gap);
+                    context.DrawImage(IconRenderer.Render(theme, buttons[at].IconKey32, 32, 1.0), new Rect(left, gap, 32, 32));
+                    context.DrawImage(IconRenderer.Render(theme, buttons[at].IconKey16, 16, 1.0), new Rect(left + 8, 32 + 2 * gap, 16, 16));
+                }
+            }
+            var bitmap = new RenderTargetBitmap(width, height, Dpi, Dpi, PixelFormats.Pbgra32);
+            bitmap.Render(visual);
+            bitmap.Freeze();
+            return bitmap;
+        }
+
+        private static BitmapSource PanePage(bool inUse)
+        {
+            var model = new PaneViewModel(new SampleProbe());
+            model.Load(Sample.Document());
+            if (inUse)
+            {
+                model.LoadSettings(Sample.Settings());
+                model.SetNbhCodes(new[] { Sample.Nbh });
+                model.SetSteps(Sample.Steps());
+            }
+            var page = new SitePanePage(model);
+            double width = (double)page.FindResource("SA.Size.Pane");
+            // The rows of an ItemsControl come after the first layout pass, so the height is taken once it holds still
+            double height = 0;
+            for (int pass = 0; pass < 4; pass++)
+            {
+                page.Measure(new Size(width, double.PositiveInfinity));
+                double measured = Math.Ceiling(page.DesiredSize.Height);
+                page.Arrange(new Rect(0, 0, width, measured));
+                page.UpdateLayout();
+                if (measured == height)
+                {
+                    break;
+                }
+                height = measured;
+            }
+            var bitmap = new RenderTargetBitmap((int)width, (int)height, Dpi, Dpi, PixelFormats.Pbgra32);
+            bitmap.Render(page);
+            bitmap.Freeze();
+            return bitmap;
+        }
+    }
+
+    // The mock's NBH 012 column of docs/design/07-mock.md 7.2 with file names only, no real path, coordinate or level. The size
+    // and the hash of Plot numbers are the mock's, every other size and hash is a sample value, steps/ui-shots/README.md
+    internal static class Sample
+    {
+        public const string Nbh = "012";
+        private const string Folder = @"C:\Sample\";
+
+        public static readonly Dictionary<string, Tuple<long, string>> Files = new Dictionary<string, Tuple<long, string>>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "project.json", Tuple.Create(48213L, (string)null) },
+            { "roshn-makkah.json", Tuple.Create(906118L, (string)null) },
+            { "ROSHN Makkah Baseplan.dwg", Tuple.Create(61458432L, (string)null) },
+            { "Makkah Building Footprint.dwg", Tuple.Create(9437184L, (string)null) },
+            { "Makkah Phase 1_Road Layout.dwg", Tuple.Create(120586240L, (string)null) },
+            { "landxml", Tuple.Create(236978176L, (string)null) },
+            { "TBD-PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_Rev9.0.xlsx", Tuple.Create(1258291L, (string)null) },
+            { "PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx", Tuple.Create(838861L, (string)null) },
+            { "01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf", Tuple.Create(3056293L, "7061ac0d") },
+            { "Prototypes_2024", Tuple.Create(1076887552L, (string)null) },
+        };
+
+        public static DocumentSession Document()
+        {
+            return new DocumentSession("sample", Folder + "01101-PSN-IMC-R17B-TEST-NEW.rvt", "01101-PSN-IMC-R17B-TEST-NEW");
+        }
+
+        public static PaneSettings Settings()
+        {
+            var settings = new PaneSettings
+            {
+                ConfigFile = Folder + "project.json",
+                RulesFile = Folder + "roshn-makkah.json",
+                Scope = new PaneScope { Kind = ScopeKinds.Nbh, Nbh = Nbh },
+            };
+            settings.Pick(InputKeys.Baseplan, Folder + "ROSHN Makkah Baseplan.dwg");
+            settings.Pick(InputKeys.VillaBlocks, Folder + "Makkah Building Footprint.dwg");
+            settings.Pick(InputKeys.Curbs, Folder + "Makkah Phase 1_Road Layout.dwg");
+            settings.Pick(InputKeys.RoadSurface, Folder + "landxml");
+            settings.Pick(InputKeys.Dlus, Folder + "TBD-PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_Rev9.0.xlsx");
+            settings.Pick(InputKeys.Sales, Folder + "PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx");
+            settings.Pick(InputKeys.PlotNumbers, Folder + "01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf");
+            settings.Pick(InputKeys.Prototypes, Folder + "Prototypes_2024");
+            return settings;
+        }
+
+        // After buttons 1 to 3 on NBH 012, as the mock fills the steps
+        public static IReadOnlyList<StepStatus> Steps()
+        {
+            return new[]
+            {
+                new StepStatus(StepKind.Done),
+                new StepStatus(StepKind.Done),
+                new StepStatus(StepKind.Issues, 1247),
+                new StepStatus(StepKind.Ready),
+                new StepStatus(StepKind.NeedsStep, 4),
+                new StepStatus(StepKind.NeedsStep, 5),
+                new StepStatus(StepKind.NeedsStep, 6),
+                new StepStatus(StepKind.Ready),
+            };
+        }
+    }
+
+    internal sealed class SampleProbe : IInputProbe
+    {
+        public InputFacts Look(string path, bool folder)
+        {
+            return Sample.Files.TryGetValue(Path.GetFileName(path), out Tuple<long, string> file) ? new InputFacts { Found = true, Size = file.Item1 } : new InputFacts();
+        }
+
+        // A sample hash of the file name, so no hash of a real file shows unless the mock gives it
+        public void Hash(string path, bool folder, Action<string> done)
+        {
+            string name = Path.GetFileName(path);
+            if (Sample.Files.TryGetValue(name, out Tuple<long, string> file) && file.Item2 != null)
+            {
+                done(file.Item2);
+                return;
+            }
+            using (var sha = SHA256.Create())
+            {
+                done(string.Concat(sha.ComputeHash(Encoding.UTF8.GetBytes(name)).Select(value => value.ToString("x2"))));
+            }
+        }
+
+        public IReadOnlyList<string> LevelProfiles(string rulesFile, out string fallback)
+        {
+            fallback = null;
+            if (string.IsNullOrEmpty(rulesFile))
+            {
+                return new string[0];
+            }
+            fallback = "parsons2024Rev6";
+            return new[] { "parsons2024Rev6", "native2022" };
+        }
+    }
+}
