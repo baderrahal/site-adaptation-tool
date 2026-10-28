@@ -16,10 +16,12 @@ At the fold in each item marked NEW joins the list of 7.7, and the icons below t
 
 - Libre Franklin (SIL Open Font License), bundled in the add-in and loaded from its resources. If no route through the proxy reaches the TTF files, ask Bader to download Libre Franklin from fonts.google.com into a folder, and use Franklin Gothic Book then Segoe UI until then.
 - SA.Type.Title 20 SemiBold. SA.Type.Next 18 SemiBold. SA.Type.Section 15 SemiBold. SA.Type.Body 13 Regular. SA.Type.Small 12 Regular, the smallest. Tabular figures for numbers.
+- Added by Bader's answer QL7 of 28 Oct 2026 (steps/lane-b.md): SA.Type.Project 16 SemiBold, the project name. SA.Type.Step 14 Regular, the step name. SA.Type.Count 28 SemiBold, the check point count. SA.Type.Label 13 SemiBold, the "Next step" label.
 
 ### Colours
 
 - SA.Surface #FFFFFF, SA.Panel #F5F7FA, SA.Band #1B3349, SA.BandText #DCE8F5, SA.BandAccent #9ED9FD, SA.Guide #EAF3FC, SA.GuideBorder #C9DDF3, SA.Border #D5DCE4, SA.BorderStrong #B8C2CD, SA.Text #1B1F24, SA.TextMuted #4A5663, SA.Heading #1B3349, SA.Accent #0052CC, SA.Selected #E3ECF8, SA.IconAccent #00AEE6, SA.IconTick #2F9E2A, SA.Ok #0B6B2E on #E6F4EA, SA.Warn #7A4B00 on #FFF4D6, SA.Info #0A3D91 on #E6EEFB, SA.Wait #4A5663 on #F0F2F5, SA.Error #B42318 on #FDECEA.
+- The plain colour words below take these keys (QL7): amber SA.Warn, grey outline SA.BorderStrong, green check SA.Ok, white SA.Surface.
 
 ### Sizes
 
@@ -53,9 +55,10 @@ Top to bottom:
 - NEW Next step box, SA.Guide with SA.GuideBorder line under it: "Next step" 13 SemiBold SA.Info, the next button's name 18 SemiBold, one plain line on what it does and that dry run is on or off, a primary button `"Run <n> <name>"` that runs that ribbon button.
 - NEW First open state, when no settings file is chosen: the box reads "Start here", "Choose the settings file", "It names the drawings, the rules and the prototypes for this job. The tool fills the rest of this panel from it.", button "Choose settings file". Settings row shows an amber mark and "Not chosen". Steps show "Needs settings" or "Needs step n".
 - Sections Project, Input files, Scope, Steps in the mock's order and labels. Section titles 15 SemiBold SA.Heading.
-- NEW One help line under each section title, 13 SA.TextMuted: Project "Rules and settings for this job. Set once." Input files `"The drawings and schedules the tool reads. All <n> found."` Scope "Which plots the next button works on." Steps "Run them in order. Each one waits for the one before."
+- NEW One help line under each section title, 13 SA.TextMuted: Project "Rules and settings for this job. Set once." Input files `"The drawings and schedules the tool reads. All <n> found."`, or `"The drawings and schedules the tool reads. <m> of <n> found."` when a file is missing (QL7). Scope "Which plots the next button works on." Steps "Run them in order. Each one waits for the one before."
 - Input and project rows: a green check mark when the file is found, amber mark when not, label, file name with tooltip of the full path, size and short hash as the mock's 7.7 item 5, Browse.
 - Dry run checkbox in a SA.Panel box.
+- NEW A row "Villa mode" under the Dry run checkbox, with the choices Masses and Links, Masses by default (QL4, QL8, docs/design/11-light-mode.md). Test runs set it in the settings file.
 - Steps: a round number mark 26 px (filled SA.Band when done, amber when done with issues, SA.Accent outline for the next step, grey outline when waiting), the name 14, NEW one plain line under it at 12: 1 "Coordinates, levels and types from CAD", 2 "Reads the drawings and schedules", 3 "Compares the rules with the past job", 4 "Places a villa on each plot", 5 "Generic, yard and ramp floors", 6 "Sets FFL and entry levels", 7 "Boundary and garden walls", 8 "Excel report of the run". Status chip on the right: Done, `"<n> issues"` (NEW short form of `"Done with <n> issues"`, full text as tooltip), Ready, `Needs step <n>`.
 
 ### 7.3 Set up site
