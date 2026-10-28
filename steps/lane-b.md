@@ -30,6 +30,8 @@ Waiting for the fold in, in one records commit:
 6. docs/design/README.md: the rows of 11-light-mode.md and 12-ui-spec.md.
 7. docs/design/07-mock.md: every item marked NEW in docs/design/12-ui-spec.md joins the list of 7.7, as approved by Bader (U6, U7). In 7.1 the icons of 12-ui-spec.md take the place of the plain numbered squares named CHOSEN. These differences of 12-ui-spec.md from the mock carry no NEW mark and join 7.7 too, so the screenshot check of Phase 6 finds none by chance: the Rule column shows the plain name with the id as a tooltip, the "Will change" mark of 7.3, the found and not found marks of the input rows, and the first open state of 7.2 next to the new project prefilled from config of section 6.
 8. CLAUDE.md: the venv command of QL6, `py -3.12 -m venv .venv`, and Rule 1 of the Lane B rules below.
+9. Bader's four UI controls of 28 Oct 2026, the theme test, the text test, the picture test and the UI checklist in review, written as rules in docs/design/12-ui-spec.md, part UI controls. At the fold in: .claude/agents/reviewer.md gains the UI checklist, control 4, and each phase of steps/01_next.md that touches a window names the four controls in its done-when. Until then the lead of each Lane B session puts the checklist into the brief of every reviewer of a PR that touches a window (CHOSEN by Code, .claude/agents is outside Lane B).
+10. docs/design/README.md: the row of 13-ui-labels.md, the label list of control 2.
 
 ## Phase changes to steps/01_next.md
 
