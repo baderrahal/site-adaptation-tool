@@ -1,4 +1,7 @@
 """R400. The caps of the records: the start reads small and no record outside steps/history/ over 100 KB."""
+import re
+from pathlib import Path
+
 import record_parts
 
 
@@ -28,3 +31,18 @@ def test_r400_each_cap_names_the_file_that_passes_it(tmp_path):
 
 def test_r400_a_cap_reached_exactly_holds(tmp_path):
     assert record_parts.cap_breaches(make_repo(tmp_path, claude=10 * 1024, progress_lines=30, line=200, log_top=4 * 1024 - 20, record=100 * 1024)) == []
+
+
+# Lane B reads line 1 of steps/PROGRESS.md on main before it touches shared records (Bader, 2026-10-28)
+STATE_LINE = re.compile(r"STATE WAITING\b.*|STATE RUNNING, [^,]+, \d{4}-\d{2}-\d{2} \d{2}:\d{2}")
+
+
+def test_line_1_of_progress_is_waiting_or_running_with_phase_and_time():
+    first = (Path(__file__).resolve().parents[2] / "steps" / "PROGRESS.md").read_text(encoding="utf-8").split("\n", 1)[0]
+    assert STATE_LINE.fullmatch(first), first
+
+
+def test_a_state_line_with_no_time_or_another_state_is_refused():
+    assert STATE_LINE.fullmatch("STATE WAITING, 2026-10-27 21:59, for the 4g2 session")
+    for line in ["STATE RUNNING 4g2", "STATE RUNNING, 4g2", "STATE OPEN, 2026-10-28 01:25", "# Progress"]:
+        assert not STATE_LINE.fullmatch(line), line

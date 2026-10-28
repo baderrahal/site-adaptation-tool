@@ -1,4 +1,4 @@
-STATE WAITING, 2026-10-27 21:59, for the 4g2 session, Bader pastes steps/START.md into a fresh session
+STATE RUNNING, 4g2, 2026-10-28 01:25
 # Progress
 Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
 
@@ -12,6 +12,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## Done
 
+- 4g2 so far: PR 74 records, PR 75 Q105, Q107 and the build memory, PR 77 records and Q109 to Q113 closed
 - 4g1: PR 69 records, PR 70 Q098, Q099, PR 71 the status block, PR 72 the status in the plan, PR 73 records. AUDIT-RULES: PR 67, 68. 4f: PR 61 to 66
 - REC, PR 56 to 60: rules, design and round file in parts, questions-open.md, latent.md, CLAUDE.md to 9 KB, R400, START.md
 - ADDIN 4e, PR 55: R354 to R357, parity on net48 and net8.0 with 0 failures, the proof 0 unexplained on 7 keys
@@ -30,8 +31,8 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - A native2022 build with --overrides is refused on 1,346 native entries with no value (Q075)
-- For the check rows of 4g2: 44 unit plots in the steps the plan does not place, 5 DP2 plots with no hand (Q105)
-- A whole build peaks at 2,913 MiB on net48 and 3,262 on net8.0, 955 and 1,012 before the status step, the plan 26.2 MB from 15.5 (Q107)
+- For the check rows of 4g2: 44 unit plots in the steps the plan does not place
+- A whole build peaked at 974.8 MiB on net48 and 845.3 on net8.0 before the review fixes of PR 75, after them UNKNOWN until the C# check of Q111
 - Not in 4f: heightOffset and floor z need the site file of button 1, roadAtFrontM in the plan with R364, the past_all.csv rebuild of R385
 
 ## Bader's turn
@@ -54,6 +55,6 @@ Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 
 
 ## Next three steps
 
-1. ADDIN 4g2: Q105, Q107, the walls of R362 and the check rows of R363 with the grouped chip Assumed of Q108. Bader pastes steps/START.md
-2. ADDIN 4g3: R364 the level Excel and R365 the report Excel with the sheet Assumed, one session by steps/START.md
+1. ADDIN 4g2: Q109, Q110, the walls of R362 and the check rows of R363 with the grouped chip Assumed of Q108. Bader pastes steps/START.md
+2. ADDIN 4g3: Q112 and Q113 first, then R364 the level Excel and R365 the report Excel with the sheet Assumed, one session by steps/START.md
 3. ADDIN 4h: R366 to R369, one session by steps/START.md
