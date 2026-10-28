@@ -17,20 +17,26 @@ namespace SiteAdaptation.Common
         public const string TurnedKept = "the ramp on the front of R355";
         public const string TurnedOther = "the open edge the rotationDeg override turned the link to face, which the walls leave open (R362)";
 
-        // plan_from_past.FLOOR_KINDS and plan_rules.STEP_RULES
-        private static readonly string[] FloorKinds = { "generic", "yard", "ramp" };
+        // plan_rules.STEP_RULES, the floor kinds are SiteCoordinates.FloorKinds, plan_from_past.FLOOR_KINDS
+        private static readonly string[] FloorKinds = SiteCoordinates.FloorKinds;
         private static readonly string[] StepRules = { "steps", "typologySteps", "plotCodeStepsAndFacade" };
         private const string ParameterWord = "parameter ";
         private const string Assumed = "assumed";
 
         private static bool Written(PlotPlan plan)
         {
-            return plan != null && (bool)plan.Overrides["written"];
+            return Walls.Written(plan);
         }
 
         private static List<string> AppliedOf(PlotPlan plan)
         {
-            return plan.AppliedOrder ?? plan.Overrides["applied"] as List<string> ?? new List<string>();
+            return Walls.AppliedOf(plan);
+        }
+
+        // A value of the plan by its field, null where the plan holds none
+        private static object Held(PlotPlan plan, string field)
+        {
+            return plan?.Overrides != null && plan.Overrides.TryGetValue(field, out object value) ? value : null;
         }
 
         private static void Add(Dictionary<string, int> counts, string name)
@@ -108,9 +114,9 @@ namespace SiteAdaptation.Common
             string generic = (string)config["floors"]?["types"]?["generic"]?[0];
             foreach (string number in numbers)
             {
-                PlotPlan plan = plans[number];
+                plans.TryGetValue(number, out PlotPlan plan);
                 fronts.TryGetValue(number, out FrontItem item);
-                string unit = plan.Overrides["unit"] as string;
+                string unit = Held(plan, "unit") as string;
                 bool written = Written(plan);
                 plots[number] = new Dictionary<string, object> { ["unit"] = unit, ["written"] = written };
                 string rule = item?.FrontRule ?? "nearestCurb";
@@ -119,7 +125,7 @@ namespace SiteAdaptation.Common
                     frontSeen.Add(rule);
                 }
                 Add(frontRules, rule);
-                if (unit != null && plan.Overrides["skip"] == null)
+                if (unit != null && Held(plan, "skip") == null)
                 {
                     foreach (string name in (item?.Surfaces ?? new string[0]).Select(name => string.IsNullOrEmpty(name) ? "none" : name))
                     {
@@ -130,7 +136,7 @@ namespace SiteAdaptation.Common
                         Add(surfaces, name);
                     }
                 }
-                if (plan.Overrides["notApplied"] is JObject left)
+                if (Held(plan, "notApplied") is JObject left)
                 {
                     foreach (JProperty field in left.Properties())
                     {

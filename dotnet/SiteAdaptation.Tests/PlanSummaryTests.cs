@@ -77,6 +77,28 @@ namespace SiteAdaptation.Tests
             Assert.Empty(PlanSummary.Conflicts(Numbers, plain.Plans, plain.Build.Fronts, plain.Faces));
         }
 
+        // Review 1 of PR 88: Written of Walls, one source, so a plan whose written is missing or null is no written plot and never throws
+        [Fact]
+        public void R365_review1_a_plan_whose_written_is_missing_or_null_does_not_throw_and_is_not_counted()
+        {
+            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(OverrideParameterStepTests.Made());
+            ValueStatusTable table = ValueStatus.Table(built.Config, built.Rules, "parsons2024Rev6");
+            Dictionary<string, Dictionary<string, object>> status = ValueStatus.Step(Numbers, built.Plans, built.Hands, table);
+            var plans = new Dictionary<string, PlotPlan>(built.Plans)
+            {
+                ["8"] = new PlotPlan { Overrides = new Dictionary<string, object> { ["unit"] = "DP2" } },
+                ["9"] = new PlotPlan { Overrides = new Dictionary<string, object> { ["unit"] = "DP2", ["written"] = null } },
+            };
+            string[] numbers = Numbers.Concat(new[] { "8", "9" }).ToArray();
+            JObject key = BuildRules.KeyRules(built.Rules, null, PlanSummary.StepName);
+            Tuple<Dictionary<string, Dictionary<string, object>>, JObject> made = PlanSummary.Step(numbers, plans, built.Build.Fronts, built.Hands, status, table, built.Config, key,
+                "parsons2024Rev6", KeyLevels.LaterParameters(built.Config, BuildRules.LevelProfile(built.Rules, null)), built.Faces);
+            Assert.Equal("False False", made.Item1["8"]["written"] + " " + made.Item1["9"]["written"]);
+            Assert.Equal("{\"generic\":6,\"yard\":3,\"ramp\":6}", Text(made.Item2["summary"]["floorsFound"]));
+            Assert.Equal(6, ((JObject)made.Item2["summary"]["handRules"]).Properties().Sum(item => (int)item.Value));
+            Assert.Single(PlanSummary.Conflicts(numbers, plans, built.Build.Fronts, built.Faces));
+        }
+
         [Fact]
         public void R365_the_config_names_the_fields_of_the_step_summary_and_the_worker_builds_it_on_the_inputs_of_the_overrides()
         {
