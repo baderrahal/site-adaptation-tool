@@ -25,5 +25,6 @@
     <Compile Remove="C3DProbeTests.cs" />
     <Compile Remove="DataBookTests.cs" />
     <Compile Remove="AddInTests.cs" />
+    <Compile Remove="PaneTests.cs" />
   </ItemGroup>
 </Project>

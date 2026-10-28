@@ -1,0 +1,233 @@
+<Page x:Class="SiteAdaptation.AddIn.Pane.SitePanePage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:pane="clr-namespace:SiteAdaptation.AddIn.Pane">
+  <!-- R372, docs/design/12-ui-spec.md 7.2 top to bottom. Every colour, size and font by StaticResource of Theme.xaml, every
+       text in docs/design/13-ui-labels.md -->
+  <Page.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/SiteAdaptation.AddIn;component/Theme/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <BooleanToVisibilityConverter x:Key="Shown" />
+
+      <DataTemplate x:Key="FileRow" DataType="{x:Type pane:FileRowViewModel}">
+        <Grid Margin="{StaticResource SA.Gap.Row}" MinHeight="{StaticResource SA.Size.Row}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <Grid Width="{StaticResource SA.Size.RowMark}" Height="{StaticResource SA.Size.RowMark}" HorizontalAlignment="Left" VerticalAlignment="Center"
+                Visibility="{Binding Shown, Converter={StaticResource Shown}}">
+            <Path Data="{StaticResource SA.Mark.Found}" Stroke="{StaticResource SA.Ok}" StrokeThickness="{StaticResource SA.Size.MarkStroke}"
+                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                  Visibility="{Binding Found, Converter={StaticResource Shown}}" />
+            <Grid>
+              <Grid.Style>
+                <Style TargetType="Grid">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Found}" Value="True">
+                      <Setter Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Grid.Style>
+              <Path Data="{StaticResource SA.Mark.Missing}" Fill="{StaticResource SA.Warn}" />
+              <Path Data="{StaticResource SA.Mark.MissingSign}" Stroke="{StaticResource SA.Surface}" StrokeThickness="{StaticResource SA.Size.MarkStroke}"
+                    StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+            </Grid>
+          </Grid>
+          <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="{Binding Label}" />
+          <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}" ToolTip="{Binding ToolTip}">
+            <TextBlock Style="{StaticResource SA.Type.Body}" TextTrimming="CharacterEllipsis" Text="{Binding FileName}" />
+            <TextBlock Style="{StaticResource SA.Pane.Detail}" Text="{Binding Detail}" />
+          </StackPanel>
+          <Button Grid.Column="3" Style="{StaticResource SA.Button.Base}" VerticalAlignment="Center" Content="Browse" Click="OnBrowse" />
+        </Grid>
+      </DataTemplate>
+
+      <DataTemplate x:Key="StepRow" DataType="{x:Type pane:StepRowViewModel}">
+        <Grid Margin="{StaticResource SA.Gap.Row}" MinHeight="{StaticResource SA.Size.Row}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{StaticResource SA.Grid.StepMark}" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <Grid Width="{StaticResource SA.Size.StepMark}" Height="{StaticResource SA.Size.StepMark}" HorizontalAlignment="Left" VerticalAlignment="Center">
+            <Ellipse StrokeThickness="{StaticResource SA.Size.MarkStroke}">
+              <Ellipse.Style>
+                <Style TargetType="Ellipse">
+                  <Setter Property="Fill" Value="{StaticResource SA.Surface}" />
+                  <Setter Property="Stroke" Value="{StaticResource SA.BorderStrong}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Mark}" Value="{x:Static pane:MarkKind.Done}">
+                      <Setter Property="Fill" Value="{StaticResource SA.Band}" />
+                      <Setter Property="Stroke" Value="{StaticResource SA.Band}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Mark}" Value="{x:Static pane:MarkKind.Issues}">
+                      <Setter Property="Fill" Value="{StaticResource SA.Warn}" />
+                      <Setter Property="Stroke" Value="{StaticResource SA.Warn}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Mark}" Value="{x:Static pane:MarkKind.Next}">
+                      <Setter Property="Stroke" Value="{StaticResource SA.Accent}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Ellipse.Style>
+            </Ellipse>
+            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding Number}">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Label}">
+                  <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Mark}" Value="{x:Static pane:MarkKind.Done}">
+                      <Setter Property="Foreground" Value="{StaticResource SA.Surface}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Mark}" Value="{x:Static pane:MarkKind.Issues}">
+                      <Setter Property="Foreground" Value="{StaticResource SA.Surface}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Mark}" Value="{x:Static pane:MarkKind.Next}">
+                      <Setter Property="Foreground" Value="{StaticResource SA.Accent}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+          </Grid>
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}">
+            <TextBlock Style="{StaticResource SA.Type.Step}" Text="{Binding Name}" />
+            <TextBlock Style="{StaticResource SA.Pane.Detail}" TextWrapping="Wrap" TextTrimming="None" Text="{Binding Line}" />
+          </StackPanel>
+          <Border Grid.Column="2" VerticalAlignment="Center" CornerRadius="{StaticResource SA.Radius.Chip}" Padding="{StaticResource SA.Pad.Chip}"
+                  ToolTip="{Binding ChipTip}">
+            <Border.Style>
+              <Style TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource SA.WaitGround}" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.None}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Done}">
+                    <Setter Property="Background" Value="{StaticResource SA.OkGround}" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Issues}">
+                    <Setter Property="Background" Value="{StaticResource SA.WarnGround}" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Ready}">
+                    <Setter Property="Background" Value="{StaticResource SA.InfoGround}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding ChipText}">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Small}">
+                  <Setter Property="Foreground" Value="{StaticResource SA.Wait}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Done}">
+                      <Setter Property="Foreground" Value="{StaticResource SA.Ok}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Issues}">
+                      <Setter Property="Foreground" Value="{StaticResource SA.Warn}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Chip}" Value="{x:Static pane:StepKind.Ready}">
+                      <Setter Property="Foreground" Value="{StaticResource SA.Info}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+          </Border>
+        </Grid>
+      </DataTemplate>
+    </ResourceDictionary>
+  </Page.Resources>
+
+  <DockPanel Background="{StaticResource SA.Surface}">
+    <Border DockPanel.Dock="Top" Background="{StaticResource SA.Band}" Padding="{StaticResource SA.Pad.Box}">
+      <StackPanel>
+        <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.BandAccent}" Text="Project" />
+        <TextBlock Style="{StaticResource SA.Type.Project}" Foreground="{StaticResource SA.Surface}" TextTrimming="CharacterEllipsis"
+                   Text="{Binding ProjectName}" ToolTip="{Binding ProjectName}" />
+      </StackPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Top" Background="{StaticResource SA.Guide}" BorderBrush="{StaticResource SA.GuideBorder}"
+            BorderThickness="{StaticResource SA.Line.Under}" Padding="{StaticResource SA.Pad.Box}">
+      <StackPanel>
+        <TextBlock Style="{StaticResource SA.Type.Label}" Foreground="{StaticResource SA.Info}" Text="{Binding BoxLabel}" />
+        <TextBlock Style="{StaticResource SA.Type.Next}" Margin="{StaticResource SA.Gap.Top4}" TextWrapping="Wrap" Text="{Binding BoxName}" />
+        <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{Binding BoxLine}" />
+        <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Top12}" HorizontalAlignment="Left"
+                Content="{Binding BoxButton}" Command="{Binding BoxCommand}"
+                Visibility="{Binding BoxButtonShown, Converter={StaticResource Shown}}" />
+      </StackPanel>
+    </Border>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel IsEnabled="{Binding HasDocument}">
+        <StackPanel Margin="{StaticResource SA.Pad.Section}">
+          <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Project" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Rules and settings for this job. Set once." />
+          <ContentControl Margin="{StaticResource SA.Gap.Top8}" Content="{Binding SettingsRow}" ContentTemplate="{StaticResource FileRow}" />
+          <ContentControl Content="{Binding RulesRow}" ContentTemplate="{StaticResource FileRow}" />
+          <Grid Margin="{StaticResource SA.Gap.Row}" MinHeight="{StaticResource SA.Size.Row}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="Level profile" />
+            <ComboBox Grid.Column="2" Style="{StaticResource SA.Pane.Combo}" ItemsSource="{Binding LevelProfiles}" SelectedItem="{Binding LevelProfile}" />
+          </Grid>
+        </StackPanel>
+
+        <StackPanel Margin="{StaticResource SA.Pad.Section}">
+          <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Input files" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{Binding InputHelp}" />
+          <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding InputRows}" ItemTemplate="{StaticResource FileRow}" />
+        </StackPanel>
+
+        <StackPanel Margin="{StaticResource SA.Pad.Section}">
+          <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Scope" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Which plots the next button works on." />
+          <RadioButton Margin="{StaticResource SA.Gap.Top8}" Style="{StaticResource SA.Pane.Choice}" GroupName="Scope" Content="Whole project" IsChecked="{Binding ScopeWhole}" />
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <RadioButton Style="{StaticResource SA.Pane.Choice}" GroupName="Scope" Content="Neighbourhood" IsChecked="{Binding ScopeNbh}" />
+            <ComboBox Grid.Column="1" Margin="{StaticResource SA.Gap.Left8}" Style="{StaticResource SA.Pane.Combo}" ItemsSource="{Binding NbhCodes}" SelectedItem="{Binding Nbh}" />
+          </Grid>
+          <Grid Margin="{StaticResource SA.Gap.Top4}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <RadioButton Style="{StaticResource SA.Pane.Choice}" GroupName="Scope" Content="Plot list" IsChecked="{Binding ScopePlots}" />
+            <TextBox Grid.Column="1" Margin="{StaticResource SA.Gap.Left8}" Style="{StaticResource SA.Pane.Entry}" Text="{Binding Plots, UpdateSourceTrigger=PropertyChanged}" />
+          </Grid>
+          <Border Margin="{StaticResource SA.Gap.Top8}" Background="{StaticResource SA.Panel}" CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Panel}">
+            <StackPanel>
+              <CheckBox Style="{StaticResource SA.Pane.Choice}" Content="Dry run first, change nothing" IsChecked="{Binding DryRun}" />
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}" Text="Villa mode" />
+                <RadioButton Style="{StaticResource SA.Pane.Choice}" Margin="{StaticResource SA.Gap.Right8}" GroupName="Villa" Content="Masses" IsChecked="{Binding VillaMasses}" />
+                <RadioButton Style="{StaticResource SA.Pane.Choice}" GroupName="Villa" Content="Links" IsChecked="{Binding VillaLinks}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <StackPanel Margin="{StaticResource SA.Pad.Section}">
+          <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Steps" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Run them in order. Each one waits for the one before." />
+          <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding Steps}" ItemTemplate="{StaticResource StepRow}" />
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Page>
