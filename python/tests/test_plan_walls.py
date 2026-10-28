@@ -142,6 +142,8 @@ def test_r362_a_plot_a_rotation_override_turned_leaves_open_the_edge_its_link_fa
     ring, frame = [(0.0, 0.0), (10.0, 0.0), (10.0, 20.0), (0.0, 20.0)], ((0.0, 0.0), (10.0, 0.0))
     assert plan_walls.open_edge(ring, frame, 0.0, False, True) == ((0.0, 0.0), (10.0, 0.0))
     assert plan_walls.open_edge(ring, frame, 90.0, False, True) == ((10.0, 0.0), (10.0, 20.0))
+    # Review 2 of PR 79: the turned plots of the keys are mirrored at about 180 degrees, whose link faces the road again
+    assert plan_walls.open_edge(ring, frame, 180.0, True, True) == ((0.0, 0.0), (10.0, 0.0))
     assert plan_walls.open_edge(ring, frame, 270.0, True, True) == ((10.0, 0.0), (10.0, 20.0))
     assert plan_walls.open_edge(ring[::-1], frame, 180.0, False, True) == ((0.0, 20.0), (10.0, 20.0))
     assert plan_walls.open_edge(ring, frame, 90.0, False, False) == frame
@@ -172,3 +174,13 @@ def test_r362_r401_a_base_whose_pick_an_override_changed_names_the_override():
     item = plan_walls.entry(wall)
     plan_walls.mark(item, wall, table, {"2": ("heightM",)}, entries, rules, RULES)
     assert item["base"]["statusFrom"] == "walls.base from keyRules"
+    # Review 2 of PR 79, the wall of 543 and 544: heightM lifts 1, the plot of the base, to the FFL of 2, the pick of the rule, so the base
+    # equals the base with no override and keeps its own list, though the override sits on its own plot
+    ffls = dict(FFLS, **{"1": 100.5})
+    wall = made(ffls=ffls)[0]
+    assert (wall["plots"], wall["basePlot"]) == (["1", "2"], "1")
+    entries = {plot: {"plot": plot, "levels": {"ffl": {"value": ffls[plot], "source": "estimate"}}} for plot in ffls}
+    rules = {plot: {"plot": plot, "levels": {"ffl": {"value": FFLS[plot], "source": "estimate"}}} for plot in FFLS}
+    item = plan_walls.entry(wall)
+    plan_walls.mark(item, wall, table, {"1": ("heightM",)}, entries, rules, RULES)
+    assert (item["base"]["statusFrom"], item["top"]["statusFrom"]) == ("walls.base from keyRules", "walls.top from keyRules")

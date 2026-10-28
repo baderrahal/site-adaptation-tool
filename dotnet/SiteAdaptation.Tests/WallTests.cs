@@ -218,6 +218,8 @@ namespace SiteAdaptation.Tests
             Func<double[][], string> text = edge => string.Join(" ", edge.SelectMany(point => point).Select(value => value.ToString("R", CultureInfo.InvariantCulture)));
             Assert.Equal("0 0 10 0", text(Walls.OpenEdge(ring, frame, 0.0, false, true)));
             Assert.Equal("10 0 10 20", text(Walls.OpenEdge(ring, frame, 90.0, false, true)));
+            // Review 2 of PR 79: the turned plots of the keys are mirrored at about 180 degrees, whose link faces the road again
+            Assert.Equal("0 0 10 0", text(Walls.OpenEdge(ring, frame, 180.0, true, true)));
             Assert.Equal("10 0 10 20", text(Walls.OpenEdge(ring, frame, 270.0, true, true)));
             Assert.Equal("0 20 10 20", text(Walls.OpenEdge(ring.Reverse().ToArray(), frame, 180.0, false, true)));
             Assert.Equal("0 0 10 0", text(Walls.OpenEdge(ring, frame, 90.0, false, false)));
@@ -243,6 +245,14 @@ namespace SiteAdaptation.Tests
             rulePlans["2"] = Plan(99.9);
             Walls.Mark(wall, table, plans, rulePlans, Higher);
             Assert.Equal("walls.base from keyRules", wall.Status["base"][2]);
+            // Review 2 of PR 79, the wall of 543 and 544: heightM lifts 1, the plot of the base, to the FFL of 2, the pick of the rule, so the base
+            // equals the base with no override and keeps its own list, though the override sits on its own plot
+            var lifted = new Dictionary<string, double>(Ffls) { ["1"] = 100.5 };
+            PlanWall even = Made(ffls: lifted)[0];
+            Assert.Equal("1|2 1", string.Join("|", even.Plots) + " " + even.BasePlot);
+            var liftedPlans = lifted.ToDictionary(item => item.Key, item => item.Key == "1" ? Plan(item.Value, "heightM") : Plan(item.Value));
+            Walls.Mark(even, table, liftedPlans, Ffls.ToDictionary(item => item.Key, item => Plan(item.Value)), Higher);
+            Assert.Equal("walls.base from keyRules walls.top from keyRules", even.Status["base"][2] + " " + even.Status["top"][2]);
         }
     }
 }
