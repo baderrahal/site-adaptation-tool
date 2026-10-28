@@ -21,7 +21,10 @@ function Get-RevitProcesses {
             if ($path -and (Test-Path -LiteralPath $path)) {
                 $major = (Get-Item -LiteralPath $path).VersionInfo.ProductMajorPart
             }
-            [pscustomobject]@{ Path = $path; Major = $major }
+            [pscustomobject]@{
+                Path  = $path
+                Major = $major
+            }
         })
 }
 
