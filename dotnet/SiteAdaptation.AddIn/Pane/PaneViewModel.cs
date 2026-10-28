@@ -365,6 +365,7 @@ namespace SiteAdaptation.AddIn.Pane
                 if (hashes.TryGetValue(path, out known) && known.Size == facts.Size && known.Stamp == facts.Stamp)
                 {
                     details.Add(TextTemplate.Fill(PaneText.SizeAndHash, SizeText(facts.Size), Short(known.Sha256)));
+                    tips.Add(details[details.Count - 1]);
                     if (input != null && input.Path == path)
                     {
                         input.Size = facts.Size;
@@ -373,6 +374,7 @@ namespace SiteAdaptation.AddIn.Pane
                     continue;
                 }
                 details.Add(TextTemplate.Fill(PaneText.Size, SizeText(facts.Size)));
+                tips.Add(details[details.Count - 1]);
                 // The size and hash the settings held belong to the file before it changed
                 if (input != null && input.Path == path)
                 {
@@ -399,11 +401,8 @@ namespace SiteAdaptation.AddIn.Pane
             }
             string name = names.Count == 0 ? PaneText.NotChosen : string.Join(", ", names);
             string detail = string.Join(", ", details);
-            // At 380 wide the grey run is cut on a long name, so the tooltip gives it again under the full path
-            if (detail.Length > 0)
-            {
-                tips.Add(detail);
-            }
+            // QL15. The row shows the file name alone, at 380 wide the size and hash showed on no row, so the tooltip gives each
+            // under its full path
             row.Show(true, found && names.Count == paths.Length, name, detail, tips.Count == 0 ? null : string.Join(Environment.NewLine, tips));
         }
 

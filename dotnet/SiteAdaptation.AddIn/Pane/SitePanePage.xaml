@@ -41,16 +41,13 @@
           </Grid>
           <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="{Binding Label}" />
           <TextBlock Grid.Column="2" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}"
-                     TextTrimming="CharacterEllipsis" ToolTip="{Binding ToolTip}">
-            <Run Text="{Binding FileName, Mode=OneWay}" />
-            <Run Text="{Binding Detail, Mode=OneWay}" FontSize="{StaticResource SA.Type.Small.Size}" Foreground="{StaticResource SA.TextMuted}" />
-          </TextBlock>
+                     TextTrimming="CharacterEllipsis" ToolTip="{Binding ToolTip}" Text="{Binding FileName}" />
           <Button Grid.Column="3" Style="{StaticResource SA.Button.Base}" VerticalAlignment="Center" Content="Browse" Click="OnBrowse" />
         </Grid>
       </DataTemplate>
 
       <DataTemplate x:Key="StepRow" DataType="{x:Type pane:StepRowViewModel}">
-        <Grid Margin="{StaticResource SA.Gap.Row}" MinHeight="{StaticResource SA.Size.Row}">
+        <Grid Margin="{StaticResource SA.Gap.Row}" Height="{StaticResource SA.Size.StepRow}">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="{StaticResource SA.Grid.StepMark}" />
             <ColumnDefinition Width="*" />
@@ -99,7 +96,7 @@
           </Grid>
           <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}">
             <TextBlock Style="{StaticResource SA.Type.Step}" Text="{Binding Name}" />
-            <TextBlock Style="{StaticResource SA.Pane.Detail}" TextWrapping="Wrap" TextTrimming="None" Text="{Binding Line}" />
+            <TextBlock Style="{StaticResource SA.Pane.Detail}" TextWrapping="NoWrap" Text="{Binding Line}" ToolTip="{Binding Line}" />
           </StackPanel>
           <Border Grid.Column="2" VerticalAlignment="Center" CornerRadius="{StaticResource SA.Radius.Chip}" Padding="{StaticResource SA.Pad.Chip}"
                   ToolTip="{Binding ChipTip}">

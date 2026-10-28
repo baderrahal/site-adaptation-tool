@@ -285,7 +285,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R372_each_row_shows_its_mark_the_file_name_the_size_the_short_hash_and_the_full_path_as_tooltip()
+        public void R372_each_row_shows_its_mark_and_the_file_name_with_the_full_path_and_under_it_the_size_and_short_hash_as_tooltip()
         {
             var probe = new FakeProbe();
             probe.Add(Folder + "plots.pdf", 3056293, "7061ac0d" + new string('0', 56));
@@ -321,7 +321,8 @@ namespace SiteAdaptation.Tests
             model.PickInput(InputKeys.Sales, Folder + "sales.xlsx");
             Assert.True(dlus.Found);
             Assert.Equal("1.00 MiB aaaaaaaa, 2.00 MiB bbbbbbbb", dlus.Detail);
-            Assert.Equal(Folder + "dlus.xlsx" + Environment.NewLine + Folder + "sales.xlsx" + Environment.NewLine + "1.00 MiB aaaaaaaa, 2.00 MiB bbbbbbbb", dlus.ToolTip);
+            // QL15: each full path with its own size and short hash right under it
+            Assert.Equal(string.Join(Environment.NewLine, Folder + "dlus.xlsx", "1.00 MiB aaaaaaaa", Folder + "sales.xlsx", "2.00 MiB bbbbbbbb"), dlus.ToolTip);
             Assert.Equal(Folder + "project.json", model.SettingsRow.ToolTip);
             Assert.Throws<ArgumentException>(() => model.PickInput("roads", "a"));
         }

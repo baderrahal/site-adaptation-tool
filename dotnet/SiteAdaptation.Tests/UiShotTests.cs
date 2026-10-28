@@ -106,6 +106,68 @@ namespace SiteAdaptation.Tests
             counts.ForEach(output.WriteLine);
         }
 
+        // QL14 and QL15, Bader 29 Oct 2026, read off the laid out pane at 380: each step row 40 high with its line on one line, cut
+        // with an ellipsis and its full text as tooltip, and each input row the file name alone, its size and hash in the tooltip
+        [Fact]
+        public void R372_step_rows_are_40_with_the_line_on_one_line_and_input_rows_show_the_file_name_only()
+        {
+            var counts = new List<string>();
+            OnSta(() =>
+            {
+                foreach (bool inUse in new[] { true, false })
+                {
+                    SitePanePage page = Shots.LaidOutPane(inUse);
+                    List<FrameworkElement> all = Visuals(page).OfType<FrameworkElement>().ToList();
+                    List<TextBlock> lines = all.OfType<TextBlock>().Where(block => PaneText.StepLines.Contains(block.Text)
+                        && block.DataContext is StepRowViewModel).ToList();
+                    Assert.Equal(9, lines.Count);
+                    var one = new TextBlock { Style = (Style)page.FindResource("SA.Pane.Detail"), Text = "Ag" };
+                    one.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    foreach (TextBlock line in lines)
+                    {
+                        Assert.Equal(TextWrapping.NoWrap, line.TextWrapping);
+                        Assert.Equal(TextTrimming.CharacterEllipsis, line.TextTrimming);
+                        Assert.Equal(line.Text, line.ToolTip as string);
+                        Assert.Equal(one.DesiredSize.Height, line.ActualHeight, 1);
+                        Grid row = Ancestors(line).OfType<Grid>().First(grid => grid.Margin == (Thickness)page.FindResource("SA.Gap.Row"));
+                        Assert.Equal(40.0, row.ActualHeight);
+                    }
+
+                    List<Grid> rows = all.OfType<Button>().Where(button => "Browse".Equals(button.Content))
+                        .Select(button => (Grid)VisualTreeHelper.GetParent(button)).ToList();
+                    int detailed = 0;
+                    foreach (Grid row in rows)
+                    {
+                        var file = (FileRowViewModel)row.DataContext;
+                        TextBlock name = Visuals(row).OfType<TextBlock>().Single(block => Grid.GetColumn(block) == 2);
+                        Assert.Equal(file.FileName, new TextRange(name.ContentStart, name.ContentEnd).Text);
+                        if (file.Detail.Length > 0)
+                        {
+                            detailed++;
+                            Assert.DoesNotContain(file.Detail, new TextRange(name.ContentStart, name.ContentEnd).Text);
+                            Assert.All(file.Detail.Split(new[] { ", " }, StringSplitOptions.None), part => Assert.Contains(part, (string)name.ToolTip));
+                        }
+                    }
+                    Assert.Equal(32.0, rows.First().ActualHeight);
+                    counts.Add((inUse ? "in use" : "first open") + ": " + lines.Count + " step lines on one line in rows of 40, " + rows.Count
+                        + " input rows with the file name only, " + detailed + " with a size in the tooltip");
+                    if (inUse)
+                    {
+                        Assert.True(detailed > 0, counts.Last());
+                    }
+                }
+            });
+            counts.ForEach(output.WriteLine);
+        }
+
+        private static IEnumerable<DependencyObject> Ancestors(DependencyObject child)
+        {
+            for (DependencyObject at = VisualTreeHelper.GetParent(child); at != null; at = VisualTreeHelper.GetParent(at))
+            {
+                yield return at;
+            }
+        }
+
         // Bader, 28 Oct 2026, 7.2 of docs/design/12-ui-spec.md: the row Pre-setting right under Level profile with its two buttons,
         // the row Shared parameters right after Prototypes, and on first open only the line of a past job with its link
         [Fact]

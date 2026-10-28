@@ -137,7 +137,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(Number(sizes, @"Main button (\d+) high"), doubles["SA.Size.MainButton"]);
             Assert.Equal(Number(sizes, @"other buttons (\d+) to \d+"), doubles["SA.Size.ButtonMin"]);
             Assert.Equal(Number(sizes, @"other buttons \d+ to (\d+)"), doubles["SA.Size.ButtonMax"]);
-            Assert.Equal(Number(sizes, @"rows (\d+)"), doubles["SA.Size.Row"]);
+            Assert.Equal(Number(sizes, @"input and project rows (\d+)"), doubles["SA.Size.Row"]);
             Assert.Equal(Number(sizes, @"inputs (\d+)"), doubles["SA.Size.Input"]);
             Assert.Equal(Number(sizes, @"Pane starts (\d+) wide"), doubles["SA.Size.Pane"]);
             Assert.Equal(Number(spec, @"Side box, (\d+) wide"), doubles["SA.Size.SideBox"]);
@@ -184,6 +184,34 @@ namespace SiteAdaptation.Tests
                 Assert.Equal("Round", (string)pen.Attribute("EndLineCap"));
                 Assert.Equal("Round", (string)pen.Attribute("LineJoin"));
             });
+        }
+
+        // QL10, Bader 29 Oct 2026: the hole of the Place villas pin is white with no stroke, so it shows as a hole and not a navy dot
+        [Fact]
+        public void R371_the_hole_of_the_place_villas_pin_is_white_with_no_stroke_at_32_px()
+        {
+            const string hole = "M25 6.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0";
+            string icons = Part(SpecText(), "### Icons");
+            Assert.Contains(hole + " fill white no stroke (32 only)", icons);
+            XElement theme = Theme();
+            XElement drawing = theme.Elements(Wpf + "DrawingGroup").Single(element => Key(element) == "SA.Icon.7.32")
+                .Elements(Wpf + "GeometryDrawing").Single(element => (string)element.Attribute("Geometry") == hole);
+            Assert.Null(drawing.Attribute("Pen"));
+            Assert.Equal("{StaticResource SA.Surface}", (string)drawing.Attribute("Brush"));
+            Assert.DoesNotContain(theme.Elements(Wpf + "DrawingGroup").Single(element => Key(element) == "SA.Icon.7.16").Elements(Wpf + "GeometryDrawing"),
+                element => (string)element.Attribute("Geometry") == hole);
+        }
+
+        // QL14, Bader 29 Oct 2026: step rows 40 high for the name and its line, input and project rows stay 32
+        [Fact]
+        public void R371_step_rows_are_40_high_and_input_and_project_rows_stay_32()
+        {
+            string sizes = Part(SpecText(), "### Sizes");
+            Dictionary<string, double> doubles = Doubles(Theme());
+            Assert.Equal(40, Number(sizes, @"step rows (\d+)"));
+            Assert.Equal(32, Number(sizes, @"input and project rows (\d+)"));
+            Assert.Equal(Number(sizes, @"step rows (\d+)"), doubles["SA.Size.StepRow"]);
+            Assert.Equal(Number(sizes, @"input and project rows (\d+)"), doubles["SA.Size.Row"]);
         }
 
         // One part of an icon line of the spec as "geometry, stroke colour, width, fill colour" at a size, or null when it is not drawn there

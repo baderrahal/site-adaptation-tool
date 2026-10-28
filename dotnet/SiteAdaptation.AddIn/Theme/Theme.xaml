@@ -112,6 +112,7 @@
   <sys:Double x:Key="SA.Size.ButtonMin">28</sys:Double>
   <sys:Double x:Key="SA.Size.ButtonMax">32</sys:Double>
   <sys:Double x:Key="SA.Size.Row">32</sys:Double>
+  <sys:Double x:Key="SA.Size.StepRow">40</sys:Double>
   <sys:Double x:Key="SA.Size.Input">30</sys:Double>
   <sys:Double x:Key="SA.Size.Pane">380</sys:Double>
   <sys:Double x:Key="SA.Size.SideBox">340</sys:Double>
@@ -460,8 +461,7 @@
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M3 16l10-8l10 8v11H3z" />
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M10 27v-6h6v6" />
     <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M26 2.5a4 4 0 0 1 4 4c0 3-4 7.5-4 7.5s-4-4.5-4-7.5a4 4 0 0 1 4-4z" />
-    <!-- The spec names fill white and no "no stroke" here, so the default stroke stays, as written -->
-    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Brush="{StaticResource SA.Surface}" Geometry="M25 6.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+    <GeometryDrawing Brush="{StaticResource SA.Surface}" Geometry="M25 6.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
   </DrawingGroup>
   <DrawingGroup x:Key="SA.Icon.7.16">
     <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M3 16l10-8l10 8v11H3z" />
