@@ -27,6 +27,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+import area_key
 import project_profile
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -160,6 +161,13 @@ def expected(inputs, profile_name, mock):
     not_written = [item for item in plan.get("missing") or [] if item.get("written") is False]
     by_number = {plot["plot"]: plot for plot in written}
     missing = {item["plot"] for item in not_written}
+    # Review 2 of PR 91: a number with no row of its own takes the zone and nbhId of the joined rows whose parts hold it, by area_key.key_of
+    for number in [plot["plot"] for plot in written] + list(missing):
+        if number not in rows:
+            joined = [key for key in inputs["rows"] if "|" in key and number in key.split("|")]
+            found, _ = area_key.key_of(joined, {key: (inputs["rows"][key].get("zone") or "", inputs["rows"][key].get("nbhId") or "") for key in joined})
+            if found is not None:
+                rows[number] = {"zone": found[0], "nbhId": found[1]}
     nbh_of = {number: (rows.get(number) or {}).get("nbhId") or None for number in [plot["plot"] for plot in written] + list(missing)}
     gaps["plots with no nbhId"] = sum(1 for nbh in nbh_of.values() if nbh is None)
     profile = inputs["rules"]["levelProfiles"][profile_name]
@@ -172,7 +180,14 @@ def expected(inputs, profile_name, mock):
     front = profile.get("frontRoad") or {}
     order = inputs["config"]["siteBuild"]["roadSurfaces"] if front.get("surface") == "roadLevel" else [front.get("surface")]
     passed = ((inputs["config"].get("placerCheck") or {}).get("level") or {}).get("passMm")
-    no_road = {item["plot"]: len(item.get("corners") or []) for item in (plan.get("summary") or {}).get("noRoadLevel") or []}
+    # Review 2 of PR 91: each cluster in the row order the step hands give it, named so on both sheets, the sorted order when none does
+    ordered = {}
+    for cluster in {tuple(plots) for plots in cluster_of.values()}:
+        row = next((row_of[member] for member in cluster if row_of.get(member) and sorted(row_of[member]) == sorted(cluster)), None)
+        if row is None:
+            gaps["clusters with no row order"] += 1
+        for member in cluster:
+            ordered[member] = list(row or cluster)
     books = {}
     for nbh in sorted({nbh for nbh in nbh_of.values() if nbh}):
         levels, used = [], []
@@ -200,7 +215,7 @@ def expected(inputs, profile_name, mock):
                 if gap is None:
                     gaps["overrides used with no gap"] += 1
                 used.append([number, field, gap, entry.get("reason"), entry.get("source"), entry.get("model")])
-            row = [number, (plot.get("unit") or {}).get("value"), "-".join(cluster_of[number]) if number in cluster_of else "none"]
+            row = [number, (plot.get("unit") or {}).get("value"), "-".join(ordered[number]) if number in ordered else "none"]
             for column in ("Road at front", "El @ Entry", "FFL", "SSL", "Height", "Steps"):
                 value = ((plot.get("levels") or {}).get(PLAN_KEYS[column]) or {}).get("value")
                 if value is None:
@@ -214,18 +229,14 @@ def expected(inputs, profile_name, mock):
             if nbh_of[item["plot"]] != nbh:
                 continue
             reasons = ", ".join("%s (%s)" % (found["key"], found["why"]) for found in item.get("missing") or [])
-            levels.append([item["plot"], None, "-".join(cluster_of[item["plot"]]) if item["plot"] in cluster_of else "none", None, None, None, None, None, None, "Not written: " + reasons])
+            levels.append([item["plot"], None, "-".join(ordered[item["plot"]]) if item["plot"] in ordered else "none", None, None, None, None, None, None, "Not written: " + reasons])
         pieces, seen = [], set()
         for plot in mine_written:
             cluster = cluster_of.get(plot["plot"])
             if not cluster or tuple(cluster) in seen:
                 continue
             seen.add(tuple(cluster))
-            # The row order the step hands give the cluster (R123), the sorted order of the step clusters when none does
-            row = next((row_of[member] for member in cluster if row_of.get(member) and sorted(row_of[member]) == sorted(cluster)), None)
-            if row is None:
-                gaps["clusters with no row order"] += 1
-                row = cluster
+            row = ordered[plot["plot"]]
             sequence = " ".join(((by_number[member].get("unit") or {}).get("value") or "") if member in by_number else NOT_WRITTEN if member in missing else OUTSIDE for member in row)
             walls = cut(row, table.get(" ".join((rows.get(member) or {}).get("typologyRev9") or "" for member in row)))
             label = split_label(walls, len(row))
@@ -237,12 +248,14 @@ def expected(inputs, profile_name, mock):
                         gaps["cluster plots whose piece %s the step piece" % ("is" if step_piece[member] == piece else "is not")] += 1
                 rules_ffl = [by_number[member]["levelRule"]["ffl"] for member in piece if member in by_number]
                 if rules_ffl:
-                    pieces.append(["-".join(cluster), "-".join(piece), sequence, label, rules_ffl[0]])
-        surfaces = Counter(name for plot in mine_written for name in plot.get("roadSurfaces") or [])
+                    pieces.append(["-".join(row), "-".join(piece), sequence, label, rules_ffl[0]])
+        # Review 2 of PR 91: every front corner of the written plots of the NBH, one basis, a corner with no surface counted apart
+        corners = [name for plot in mine_written for name in plot.get("roadSurfaces") or []]
+        surfaces = Counter(name for name in corners if name not in (None, "none"))
         zones = sorted({(rows.get(number) or {}).get("zone") for number, found in nbh_of.items() if found == nbh and (rows.get(number) or {}).get("zone")})
-        none = sum(count for number, count in no_road.items() if nbh_of.get(number) == nbh)
+        none = sum(1 for name in corners if name in (None, "none"))
         top_line = "NBH %s, %s, road surface %s of %d front corners%s, formulas: " % (
-            nbh, " and ".join(zones) or "no zone", ", ".join("%s on %d" % item for item in surfaces.most_common()), sum(surfaces.values()), NO_SURFACE % none if none else "")
+            nbh, " and ".join(zones) or "no zone", ", ".join("%s on %d" % item for item in surfaces.most_common()), len(corners), NO_SURFACE % none if none else "")
         books[nbh] = {"levels": levels, "clusters": pieces, "used": used, "topLine": top_line, "formulas": formulas if rule == PIECE_RULE else None,
                       "file": mock["file"].replace("<NBH>", nbh).replace("<profile>", profile_name),
                       "settings": {"Profile": profile_name, "Rules SHA-256": inputs["sha"]["rules"], "Override list SHA-256": inputs["sha"]["overrides"],

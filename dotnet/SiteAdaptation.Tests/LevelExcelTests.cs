@@ -43,7 +43,8 @@ namespace SiteAdaptation.Tests
             + "(levels.ground_ssl), Height = FFL - El @ Entry, Steps = one for the base and one per riser over it, half a riser no step (R340)";
 
         // The front corners of the written plots by their surfaces, most first, and the corner of 104 no surface covers counted apart
-        private const string TopLine = "NBH 012, Zone 2, road surface Road A on 5, Road B on 1 of 6 front corners, front corners with no road surface 1, " + Formulas;
+        // Review 2 of PR 91: the 6 corners of the written plots of 012, one of 101 with no surface, never the corner of 104, which is not written
+        private const string TopLine = "NBH 012, Zone 2, road surface Road A on 4, Road B on 1 of 6 front corners, front corners with no road surface 1, " + Formulas;
 
         // Review 1 of PR 91: SSL and Height as written, which the FFL as written does not give, so a value worked out again would differ
         private static JObject Levels(double road, double entry, double ffl, double ssl, double height, int steps)
@@ -68,7 +69,8 @@ namespace SiteAdaptation.Tests
 
         // NBH 012: 101 a lone villa with a height override and an override of no level field, 102 and 103 of a cluster with 108, which the plan
         // never names, 102 with two level overrides and 103 with a steps override, the build cutting the cluster after 102 though both FFLs
-        // are written equal, and 104 not written for its FFL, in a cluster with 105. NBH 013: 201. 999 has no row of plots.csv
+        // are written equal, and 104 not written for its FFL, in a cluster with 105, 104 and 106 not written with the one joined row 104|106 of
+        // plots.csv. NBH 013: 201. 999 has no row of plots.csv
         internal static JObject MadePlan()
         {
             string[] a = { "Road A", "Road A" };
@@ -85,7 +87,7 @@ namespace SiteAdaptation.Tests
                 },
                 ["plots"] = new JArray
                 {
-                    Plot("101", "VD4", Levels(9.9012, 9.9234, 10.123, 10.041, 0.2101, 1), 10.122, a, "heightM", "parameter CASE"),
+                    Plot("101", "VD4", Levels(9.9012, 9.9234, 10.123, 10.041, 0.2101, 1), 10.122, new[] { "Road A", null }, "heightM", "parameter CASE"),
                     Plot("102", "DP1", Levels(10.3801, 10.4, 10.5, 10.43, 0.11, 1), 10.501, new[] { "Road A", "Road B" }, "entryM", "rampFrontM"),
                     Plot("103", "DP1", Levels(10.2857, 10.3115, 10.5, 10.42, 0.19, 2), 10.499, a, "steps"),
                     Plot("201", "VD4", Levels(11.1, 11.2, 11.4, 11.3, 0.2, 1), 11.4, new[] { "Road C", "Road C" }),
@@ -95,6 +97,7 @@ namespace SiteAdaptation.Tests
                 {
                     new JObject { ["plot"] = "101", ["written"] = true, ["missing"] = new JArray(new JObject { ["key"] = "floors.yard", ["why"] = "no yard" }) },
                     new JObject { ["plot"] = "104", ["written"] = false, ["missing"] = new JArray(new JObject { ["key"] = "levels.ffl", ["why"] = "no road level" }) },
+                    new JObject { ["plot"] = "106", ["written"] = false, ["missing"] = new JArray(new JObject { ["key"] = "levels.ffl", ["why"] = "no road level" }) },
                 },
             };
         }
@@ -185,7 +188,7 @@ namespace SiteAdaptation.Tests
             public string Profile = "parsons2024Rev6";
         }
 
-        private const string PlotsCsv = "locationPlanNumber,baseplanLabel,zone,nbhId\n101,A1,Zone 2,012\n102,A2,Zone 2,012\n103,A3,Zone 2,012\n104,A4,Zone 2,012\n105,A5,Zone 3,012\n201,B1,Zone 3,013\n";
+        private const string PlotsCsv = "locationPlanNumber,baseplanLabel,zone,nbhId\n101,A1,Zone 2,012\n102,A2,Zone 2,012\n103,A3,Zone 2,012\n104|106,A4,Zone 2,012\n105,A5,Zone 3,012\n201,B1,Zone 3,013\n";
 
         private WorkerAnswer Run(Made made, out int code, out string planPath, string id = "lx1")
         {
@@ -347,7 +350,7 @@ namespace SiteAdaptation.Tests
             Book book = RunBook(new Made(), out answer, out plan);
             string top = (string)book.Row("Levels", 1)[0];
             Assert.DoesNotContain("none on", top);
-            Assert.StartsWith("NBH 012, Zone 2, road surface Road A on 5, Road B on 1 of 6 front corners, front corners with no road surface 1, formulas: ", top);
+            Assert.StartsWith("NBH 012, Zone 2, road surface Road A on 4, Road B on 1 of 6 front corners, front corners with no road surface 1, formulas: ", top);
         }
 
         [Fact]
@@ -368,20 +371,42 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R364_a_not_written_plot_of_a_joined_row_of_plots_csv_takes_its_nbh_and_every_plot_of_no_nbh_is_named()
+        {
+            WorkerAnswer answer;
+            string plan;
+            // 104 and 106 sit in the one row 104|106, so both are listed at the end of 012 and in no issue
+            Book book = RunBook(new Made(), out answer, out plan);
+            Assert.Equal(new object[] { "104", null, "104-105", null, null, null, null, null, null, "Not written: levels.ffl (no road level)" }, book.Row("Levels", 6).ToArray());
+            Assert.Equal(new object[] { "106", null, "none", null, null, null, null, null, null, "Not written: levels.ffl (no road level)" }, book.Row("Levels", 7).ToArray());
+            Assert.DoesNotContain(answer.Issues, issue => issue.Contains("104") || issue.Contains("106"));
+
+            // Twelve plots of no row, each named, not the first ten only
+            var many = new Made();
+            foreach (int number in Enumerable.Range(901, 11))
+            {
+                ((JArray)many.Plan["missing"]).Add(new JObject { ["plot"] = number.ToString(CultureInfo.InvariantCulture), ["written"] = false, ["missing"] = new JArray() });
+            }
+            Directory.Delete(Path.Combine(folder, "out"), true);
+            RunBook(many, out answer, out plan);
+            Assert.Equal(new[] { "12 plots of the plan have no nbhId in plots.csv, so no level Excel lists them: 999, " + string.Join(", ", Enumerable.Range(901, 11)) + " (R364)" }, answer.Issues.ToArray());
+        }
+
+        [Fact]
         public void R364_every_value_comes_from_the_plan_as_written_with_4_decimals_for_road_entry_and_height_and_3_for_ffl_and_ssl()
         {
             WorkerAnswer answer;
             string plan;
             Book book = RunBook(new Made(), out answer, out plan);
             Assert.Equal(new object[] { "101", "VD4", "none", 9.9012, 9.9234, 10.123, 10.041, 0.2101, 1.0, "Override heightM (breaks oneFflPerPieceAtTheHighestEntry)" }, book.Row("Levels", 3).ToArray());
-            Assert.Equal(new object[] { "102", "DP1", "102-103-108", 10.3801, 10.4, 10.5, 10.43, 0.11, 1.0, "Override entryM (breaks roadLevel), rampFrontM (breaks roadLevel)" }, book.Row("Levels", 4).ToArray());
-            Assert.Equal(new object[] { "103", "DP1", "102-103-108", 10.2857, 10.3115, 10.5, 10.42, 0.19, 2.0, "Override steps (breaks stepsFromHeight)" }, book.Row("Levels", 5).ToArray());
+            Assert.Equal(new object[] { "102", "DP1", "108-103-102", 10.3801, 10.4, 10.5, 10.43, 0.11, 1.0, "Override entryM (breaks roadLevel), rampFrontM (breaks roadLevel)" }, book.Row("Levels", 4).ToArray());
+            Assert.Equal(new object[] { "103", "DP1", "108-103-102", 10.2857, 10.3115, 10.5, 10.42, 0.19, 2.0, "Override steps (breaks stepsFromHeight)" }, book.Row("Levels", 5).ToArray());
             // A plot not written comes last with its reason, keyed by its number like every other row
             Assert.Equal(new object[] { "104", null, "104-105", null, null, null, null, null, null, "Not written: levels.ffl (no road level)" }, book.Row("Levels", 6).ToArray());
             Dictionary<string, Cell> row = book.Sheets["Levels"][3];
             Assert.Equal(new[] { "0.0000", "0.0000", "0.000", "0.000", "0.0000", "0" }, new[] { "D", "E", "F", "G", "H", "I" }.Select(column => book.Format(row[column])).ToArray());
             Assert.Equal(4, answer.Counts["level rows written"]);
-            Assert.Equal(1, answer.Counts["level rows not written"]);
+            Assert.Equal(2, answer.Counts["level rows not written"]);
         }
 
         [Fact]
@@ -393,8 +418,9 @@ namespace SiteAdaptation.Tests
             // 102 and 103 hold one written FFL, the build cut them apart, so two pieces in the row order of the hands, each with the FFL of its
             // rule, 108 outside the scope, the cut after the second plot of the row
             Assert.Equal(new[] { 1, 2, 3 }, book.Sheets["Clusters"].Keys.ToArray());
-            Assert.Equal(new object[] { "102-103-108", "108-103", "outside the scope DP1 DP1", "walls 2", 10.499 }, book.Row("Clusters", 2).ToArray());
-            Assert.Equal(new object[] { "102-103-108", "102", "outside the scope DP1 DP1", "walls 2", 10.501 }, book.Row("Clusters", 3).ToArray());
+            // Review 2 of PR 91: the cluster named in its row order, as its unit sequence and its pieces run
+            Assert.Equal(new object[] { "108-103-102", "108-103", "outside the scope DP1 DP1", "walls 2", 10.499 }, book.Row("Clusters", 2).ToArray());
+            Assert.Equal(new object[] { "108-103-102", "102", "outside the scope DP1 DP1", "walls 2", 10.501 }, book.Row("Clusters", 3).ToArray());
         }
 
         [Fact]
@@ -436,10 +462,10 @@ namespace SiteAdaptation.Tests
             string plan;
             Book book = RunBook(new Made(), out answer, out plan);
             SortedDictionary<int, Dictionary<string, Cell>> levels = book.Sheets["Levels"];
-            Assert.Equal(new[] { 1, 2, 3, 4, 5, 6 }, levels.Keys.ToArray());
+            Assert.Equal(new[] { 1, 2, 3, 4, 5, 6, 7 }, levels.Keys.ToArray());
             Assert.Equal("Plot No", Book.Value(levels[2]["A"]));
             List<string> keys = levels.Keys.Skip(2).Select(row => (string)Book.Value(levels[row]["A"])).ToList();
-            Assert.Equal(new[] { "101", "102", "103", "104" }, keys.ToArray());
+            Assert.Equal(new[] { "101", "102", "103", "104", "106" }, keys.ToArray());
             Assert.Equal(keys.Count, keys.Distinct().Count());
             // The one merged range is the top line, nothing under it is merged, in no sheet
             Assert.All(book.Merged["Levels"], range => Assert.Equal("A1:J1", range));

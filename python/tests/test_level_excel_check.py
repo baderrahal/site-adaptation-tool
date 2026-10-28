@@ -29,12 +29,13 @@ def entry(number, field, value, reason, source="parsons"):
 A = ["Road A", "Road A"]
 PLAN = {"neighbourhood": "all", "summary": {"roadSurfacesOfFrontCorners": {"Road A": 5, "none": 1}, "noRoadLevel": [{"plot": "104", "corners": ["left"]}],
                                             "rules": {"levelProfile": "parsons2024Rev6", "overrideSource": ["parsons"], "overrideModel": []}},
-        "plots": [plot("101", "VD4", levels(9.9012, 9.9234, 10.123, 10.041, 0.2101, 1), 10.122, A, "heightM", "parameter CASE"),
+        "plots": [plot("101", "VD4", levels(9.9012, 9.9234, 10.123, 10.041, 0.2101, 1), 10.122, ["Road A", None], "heightM", "parameter CASE"),
                   plot("102", "DP1", levels(10.3801, 10.4, 10.5, 10.43, 0.11, 1), 10.501, ["Road A", "Road B"], "entryM", "rampFrontM"),
                   plot("103", "DP1", levels(10.2857, 10.3115, 10.5, 10.42, 0.19, 2), 10.499, A, "steps"),
                   plot("201", "VD4", levels(11.1, 11.2, 11.4, 11.3, 0.2, 1), 11.4, ["Road C", "Road C"]),
                   plot("999", "VD4", levels(12.1, 12.2, 12.4, 12.3, 0.2, 1), 12.4, A)],
-        "missing": [{"plot": "104", "written": False, "missing": [{"key": "levels.ffl", "why": "no road level"}]}]}
+        "missing": [{"plot": "104", "written": False, "missing": [{"key": "levels.ffl", "why": "no road level"}]},
+                    {"plot": "106", "written": False, "missing": [{"key": "levels.ffl", "why": "no road level"}]}]}
 OVERRIDES = {"overrides": [entry("101", "heightM", {"gapToRuleM": 0.0006}, "breaks oneFflPerPieceAtTheHighestEntry"),
                            entry("101", "heightM", {"gapToRuleM": 0.5}, "native", "native"), entry("101", "parameter CASE", "D", "no level field"),
                            entry("102", "entryM", {"gapToRuleM": 0.0123}, "breaks roadLevel"), entry("103", "steps", "2", "breaks stepsFromHeight"),
@@ -46,7 +47,7 @@ HANDS = {"plots": {number: {"written": {"cluster": ["108", "103", "102"]}} for n
 RULES = {"units_mm": True, "levels": {"ground_ssl": -75}, "levelProfiles": {"parsons2024Rev6": {"frontRoad": {"surface": "roadLevel"},
          "keyRules": {"ffl": {"rule": "oneFflPerPieceAtTheHighestEntry"}, "levelSplit": {"rule": "units", "table": {"VL1 DP1 DP1": "walls 2"}}}}}}
 CONFIG = {"siteBuild": {"roadSurfaces": ["Road A", "Road B"]}, "placerCheck": {"level": {"passMm": 1.0}}}
-PLOTS = ("locationPlanNumber,zone,nbhId,typologyRev9\n101,Zone 2,012,VD4\n102,Zone 2,012,DP1\n103,Zone 2,012,DP1\n104,Zone 2,012,DT1\n105,Zone 3,012,DT1\n"
+PLOTS = ("locationPlanNumber,zone,nbhId,typologyRev9\n101,Zone 2,012,VD4\n102,Zone 2,012,DP1\n103,Zone 2,012,DP1\n104|106,Zone 2,012,DT1\n105,Zone 3,012,DT1\n"
          "108,Zone 2,,VL1\n201,Zone 3,013,VD4\n")
 FILL = PatternFill(fill_type="solid", fgColor="FFDDEBF7")
 
@@ -121,12 +122,17 @@ def test_r364_one_workbook_per_nbh_and_the_cells_worked_out_again_from_the_plan_
     # SSL and Height as the plan writes them, not as the FFL would give them
     assert book["levels"][0] == ["101", "VD4", "none", 9.9012, 9.9234, 10.123, 10.041, 0.2101, 1, "Override heightM (breaks oneFflPerPieceAtTheHighestEntry)"]
     assert book["levels"][1][-1] == "Override entryM (breaks roadLevel), rampFrontM (breaks roadLevel)"
+    # Review 2 of PR 91: 104 and 106 take the NBH of the one joined row 104|106 of plots.csv by area_key.key_of
     assert book["levels"][3] == ["104", None, "104-105", None, None, None, None, None, None, "Not written: levels.ffl (no road level)"]
+    assert book["levels"][4] == ["106", None, "none", None, None, None, None, None, None, "Not written: levels.ffl (no road level)"]
+    # Review 2 of PR 91: the cluster named in its row order on both sheets
+    assert book["levels"][1][2] == "108-103-102" and book["levels"][2][2] == "108-103-102"
     # The pieces cut here by the typologyRev9 of plots.csv and keyRules.levelSplit, the same as the step levels give them
-    assert book["clusters"] == [["102-103-108", "108-103", "outside the scope DP1 DP1", "walls 2", 10.499], ["102-103-108", "102", "outside the scope DP1 DP1", "walls 2", 10.501]]
+    assert book["clusters"] == [["108-103-102", "108-103", "outside the scope DP1 DP1", "walls 2", 10.499], ["108-103-102", "102", "outside the scope DP1 DP1", "walls 2", 10.501]]
     assert want["gaps"]["cluster plots whose piece is the step piece"] == 2 and "cluster plots whose piece is not the step piece" not in want["gaps"]
     assert [row[:3] for row in book["used"]] == [["101", "heightM", 0.0006], ["102", "entryM", 0.0123], ["102", "rampFrontM", -0.002], ["103", "steps", 1]]
-    assert book["topLine"] == "NBH 012, Zone 2, road surface Road A on 5, Road B on 1 of 6 front corners, front corners with no road surface 1, formulas: "
+    # Review 2 of PR 91: the corners of the written plots of the NBH only, one of 101 with no surface, never the corner of 104 not written
+    assert book["topLine"] == "NBH 012, Zone 2, road surface Road A on 4, Road B on 1 of 6 front corners, front corners with no road surface 1, formulas: "
     assert want["books"]["013"]["topLine"] == "NBH 013, Zone 3, road surface Road C on 2 of 2 front corners, formulas: "
     assert book["settings"]["Plan SHA-256"] == hashlib.sha256(paths["plan"].read_bytes()).hexdigest()
     assert book["settings"]["Plan build id"] == check.NO_BUILD_ID

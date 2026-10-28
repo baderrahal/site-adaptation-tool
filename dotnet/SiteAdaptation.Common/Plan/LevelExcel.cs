@@ -225,6 +225,8 @@ namespace SiteAdaptation.Common
             public Dictionary<string, List<string>> ClusterOf;
             public Dictionary<string, List<string>> PieceOf;
             public Dictionary<string, List<string>> RowOf;
+            public Dictionary<string, List<string>> Ordered;
+            public HashSet<string> Unordered;
             public Dictionary<string, List<JObject>> Entries;
             public Dictionary<string, Dictionary<string, string>> Rows;
         }
@@ -247,14 +249,8 @@ namespace SiteAdaptation.Common
             };
             made.ByNumber = made.Written.ToDictionary(item => (string)item["plot"], item => item);
             made.Missing = new HashSet<string>(made.NotWritten.Select(item => (string)item["plot"]));
-            foreach (Dictionary<string, string> row in inputs.PlotRows)
-            {
-                string number;
-                if (row.TryGetValue("locationPlanNumber", out number) && !string.IsNullOrEmpty(number))
-                {
-                    made.Rows[number] = row;
-                }
-            }
+            made.Rows = RowsByNumber(inputs.PlotRows);
+            OrderClusters(made);
             var result = new LevelResult();
             Func<string, string> nbhOf = number =>
             {
@@ -266,7 +262,7 @@ namespace SiteAdaptation.Common
             List<string> lacking = numbers.Where(number => nbhOf(number) == null).ToList();
             if (lacking.Count > 0)
             {
-                result.Issues.Add(lacking.Count + " plots of the plan have no nbhId in plots.csv, so no level Excel lists them: " + string.Join(", ", lacking.Take(10)) + " (R364)");
+                result.Issues.Add(lacking.Count + " plots of the plan have no nbhId in plots.csv, so no level Excel lists them: " + string.Join(", ", lacking) + " (R364)");
             }
             foreach (string nbh in numbers.Select(nbhOf).Where(item => item != null).Distinct().OrderBy(item => item, StringComparer.Ordinal))
             {
@@ -309,7 +305,7 @@ namespace SiteAdaptation.Common
                 };
                 levels.Rows.Add(new[]
                 {
-                    number, (object)Text(plot["unit"]?["value"]), ClusterText(made.ClusterOf, number), level("roadAtFrontM"), level("entry"), level("ffl"), level("ssl"), level("height"), level("steps"),
+                    number, (object)Text(plot["unit"]?["value"]), ClusterText(made, number), level("roadAtFrontM"), level("entry"), level("ffl"), level("ssl"), level("height"), level("steps"),
                     SourceText(result, used, made.Entries, plot, number),
                 });
             }
@@ -317,7 +313,7 @@ namespace SiteAdaptation.Common
             {
                 string number = (string)item["plot"];
                 IEnumerable<string> why = (item["missing"] as JArray ?? new JArray()).Select(found => Fill(LevelExcelText.MissingReason, "key", Text(found["key"]), "why", Text(found["why"])));
-                levels.Rows.Add(new object[] { number, null, ClusterText(made.ClusterOf, number), null, null, null, null, null, null, LevelExcelText.NotWritten + string.Join(LevelExcelText.ListJoin, why) });
+                levels.Rows.Add(new object[] { number, null, ClusterText(made, number), null, null, null, null, null, null, LevelExcelText.NotWritten + string.Join(LevelExcelText.ListJoin, why) });
             }
             book.Sheets.Add(levels);
             book.Sheets.Add(ClusterSheet(made, written, result));
@@ -375,10 +371,71 @@ namespace SiteAdaptation.Common
             return found;
         }
 
-        private static string ClusterText(Dictionary<string, List<string>> clusterOf, string number)
+        // Review 2 of PR 91: the row of plots.csv of each number, and for a number with no row of its own the zone and nbhId of the joined rows
+        // whose parts hold it, none when they disagree, as area_key.key_of of Python takes one value of the numbers of a plot
+        public static Dictionary<string, Dictionary<string, string>> RowsByNumber(IEnumerable<Dictionary<string, string>> rows)
         {
-            List<string> cluster;
-            return clusterOf.TryGetValue(number, out cluster) ? string.Join(LevelExcelText.ClusterJoin, cluster) : LevelExcelText.NoCluster;
+            var found = new Dictionary<string, Dictionary<string, string>>();
+            var joined = new Dictionary<string, List<Dictionary<string, string>>>();
+            foreach (Dictionary<string, string> row in rows)
+            {
+                string number;
+                if (!row.TryGetValue("locationPlanNumber", out number) || string.IsNullOrEmpty(number))
+                {
+                    continue;
+                }
+                found[number] = row;
+                if (number.Contains("|"))
+                {
+                    foreach (string part in number.Split('|').Where(part => part.Length > 0))
+                    {
+                        List<Dictionary<string, string>> same;
+                        if (!joined.TryGetValue(part, out same))
+                        {
+                            joined[part] = same = new List<Dictionary<string, string>>();
+                        }
+                        same.Add(row);
+                    }
+                }
+            }
+            Func<Dictionary<string, string>, string, string> value = (row, key) => { string text; return row.TryGetValue(key, out text) ? text ?? "" : ""; };
+            foreach (KeyValuePair<string, List<Dictionary<string, string>>> part in joined.Where(item => !found.ContainsKey(item.Key)).ToList())
+            {
+                var pairs = part.Value.Select(row => Tuple.Create(value(row, "zone"), value(row, "nbhId"))).Distinct().ToList();
+                if (pairs.Count == 1)
+                {
+                    found[part.Key] = new Dictionary<string, string> { ["locationPlanNumber"] = part.Key, ["zone"] = pairs[0].Item1, ["nbhId"] = pairs[0].Item2 };
+                }
+            }
+            return found;
+        }
+
+        // Review 2 of PR 91: each cluster in the row order the step hands give it (R123), on both sheets, the sorted order of the step clusters
+        // when the hands give none
+        private static void OrderClusters(Plan made)
+        {
+            made.Ordered = new Dictionary<string, List<string>>();
+            made.Unordered = new HashSet<string>();
+            foreach (List<string> cluster in made.ClusterOf.Values.Distinct())
+            {
+                List<string> row = cluster.Select(plot => { List<string> found; return made.RowOf.TryGetValue(plot, out found) ? found : null; })
+                    .FirstOrDefault(found => found != null && found.Count == cluster.Count && !found.Except(cluster).Any());
+                if (row == null)
+                {
+                    made.Unordered.Add(string.Join("|", cluster));
+                    row = cluster;
+                }
+                foreach (string plot in cluster)
+                {
+                    made.Ordered[plot] = row;
+                }
+            }
+        }
+
+        private static string ClusterText(Plan made, string number)
+        {
+            List<string> row;
+            return made.Ordered.TryGetValue(number, out row) ? string.Join(LevelExcelText.ClusterJoin, row) : LevelExcelText.NoCluster;
         }
 
         // The entries of the level fields of the override list a build of the plan takes, by its sources and models as the check rows take
@@ -459,10 +516,18 @@ namespace SiteAdaptation.Common
         {
             List<string> zones = mine.Select(number => { Dictionary<string, string> row; string zone; return made.Rows.TryGetValue(number, out row) && row.TryGetValue("zone", out zone) ? zone : null; })
                 .Where(zone => !string.IsNullOrEmpty(zone)).Distinct().OrderBy(zone => zone, StringComparer.Ordinal).ToList();
-            // The front corners of the written plots of the NBH by the surface each takes its level from, most first, a tie in the order met
+            // Review 2 of PR 91: every front corner of the written plots of the NBH, one basis, by the surface each takes its level from, most
+            // first, a tie in the order met, a corner with no surface counted apart, so the named and the apart add up to all
             var surfaces = new List<KeyValuePair<string, int>>();
-            foreach (string name in written.SelectMany(plot => (plot["roadSurfaces"] as JArray ?? new JArray()).Select(Text)).Where(name => name != null))
+            long none = 0, corners = 0;
+            foreach (string name in written.SelectMany(plot => (plot["roadSurfaces"] as JArray ?? new JArray()).Select(Text)))
             {
+                corners++;
+                if (name == null || name == LevelExcelText.NoCluster)
+                {
+                    none++;
+                    continue;
+                }
                 int at = surfaces.FindIndex(item => item.Key == name);
                 if (at < 0)
                 {
@@ -474,7 +539,6 @@ namespace SiteAdaptation.Common
                 }
             }
             List<KeyValuePair<string, int>> ordered = surfaces.Select((item, index) => new { item, index }).OrderByDescending(pair => pair.item.Value).ThenBy(pair => pair.index).Select(pair => pair.item).ToList();
-            long none = (inputs.Plan["summary"]?["noRoadLevel"] as JArray ?? new JArray()).OfType<JObject>().Where(item => mine.Contains(Text(item["plot"]) ?? "")).Sum(item => (long)((item["corners"] as JArray)?.Count ?? 0));
             JToken height = keyRules?["ffl"]?["rule"] ?? profile["height"];
             string rule = Text(height);
             string ffl;
@@ -485,7 +549,7 @@ namespace SiteAdaptation.Common
             double ground = Fronts.Metres(inputs.Rules, inputs.RulesName, inputs.Rules["levels"]?["ground_ssl"], "levels.ground_ssl");
             string named = string.Join(LevelExcelText.ListJoin, ordered.Select(item => Fill(LevelExcelText.SurfaceCount, "name", item.Key, "n", Count(item.Value))));
             return Fill(LevelExcelText.TopLine, "nbh", nbh, "zones", zones.Count == 0 ? LevelExcelText.NoZone : string.Join(LevelExcelText.ZonesJoin, zones),
-                "surfaces", named, "n", Count(ordered.Sum(item => (long)item.Value)), "none", none > 0 ? Fill(LevelExcelText.NoSurface, "n", Count(none)) : "",
+                "surfaces", named, "n", Count(corners), "none", none > 0 ? Fill(LevelExcelText.NoSurface, "n", Count(none)) : "",
                 "ffl", ffl, "sign", ground <= 0 ? "-" : "+", "ssl", Number(Math.Abs(ground)));
         }
 
@@ -502,15 +566,12 @@ namespace SiteAdaptation.Common
                 {
                     continue;
                 }
-                string name = string.Join(LevelExcelText.ClusterJoin, cluster);
-                // The row order of the cluster the hands of the build give (R123), which the split and the pieces run along, the step clusters
-                // write the plots sorted
-                List<string> row = cluster.Select(plot => { List<string> found; return made.RowOf.TryGetValue(plot, out found) ? found : null; })
-                    .FirstOrDefault(found => found != null && found.Count == cluster.Count && !found.Except(cluster).Any());
-                if (row == null)
+                // The row order of the cluster, which the name, the split and the pieces run along
+                List<string> row = made.Ordered[number];
+                string name = string.Join(LevelExcelText.ClusterJoin, row);
+                if (made.Unordered.Contains(string.Join("|", cluster)))
                 {
                     result.Issues.Add("cluster " + name + ": the step hands give no row order, the sorted order is taken (R364)");
-                    row = cluster;
                 }
                 string sequence = string.Join(" ", row.Select(plot => made.ByNumber.ContainsKey(plot) ? Text(made.ByNumber[plot]["unit"]?["value"])
                     : made.Missing.Contains(plot) ? LevelExcelText.UnitNotWritten : LevelExcelText.OutsideScope));
