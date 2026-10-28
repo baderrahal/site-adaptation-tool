@@ -440,7 +440,7 @@ def test_r401_the_config_names_the_fields_of_the_step_status_and_the_step_takes_
     steps = settings.get("addin")["parity"]["steps"]
     assert {name: field["kind"] for name, field in steps["status"].items()} == {"unit": "noGeometry", "written": "noGeometry", "fields": "noGeometry"}
     assert tuple(steps["status"]) == plan_from_book.STATUS_FIELDS
-    assert plan_from_book.BUILD_STEPS[-1] == "status" and plan_from_book.PARITY_STEPS[-1] == "status" and "status" in plan_from_book.PROTOTYPE_STEPS
+    assert plan_from_book.BUILD_STEPS[-2] == "status" and plan_from_book.PARITY_STEPS[-2] == "status" and "status" in plan_from_book.PROTOTYPE_STEPS
     # The map names its block entries by profile or config, or gives the status, one or a list, and every override names a list of fields
     block = settings.get("valueStatus")
     refs = list(block["sources"].values()) + [ref for sources in block["fields"].values() for found in sources.values() for ref in (found if isinstance(found, list) else [found])]

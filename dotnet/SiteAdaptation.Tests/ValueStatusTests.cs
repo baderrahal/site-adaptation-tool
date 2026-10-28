@@ -524,7 +524,7 @@ namespace SiteAdaptation.Tests
             }
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
             Assert.Equal("unit:noGeometry written:noGeometry fields:noGeometry", string.Join(" ", config.StepFields(ValueStatus.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
-            Assert.Equal("status", BuildSteps.Names.Last());
+            Assert.Equal("status", BuildSteps.Names[BuildSteps.Names.Length - 2]);
         }
 
         // test_value_status.Q110_DETAIL, Q110 (Bader, 2026-10-28): the entries valueStatus of config/project.json lists for prototypeFile, the unit of

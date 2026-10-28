@@ -395,3 +395,12 @@ def test_r401_q109_a_stale_block_or_a_review_list_that_reads_short_fails_the_hol
     review.write_text(REVIEW.replace("## 1 Values", "### 1 Values"), encoding="utf-8")
     code, lines, rows, chosen = held(root)
     assert (code, lines[-1], rows, chosen) == (1, "entries whose evidence changed: 1", 2, 3)
+
+
+def test_r401_r363_the_block_check_rows_is_a_setting_with_no_entry_of_the_status_block():
+    """Review 1 of PR 81: checkRows of the settings names the check type and the form of Past of the check table, settings of a check as
+    valueStatus and addin.workbookRoles are, so the status block holds no entry of it."""
+    assert "checkRows" in rule_status.BOOKKEEPING
+    settings = json.loads((ROOT / "config" / "project.json").read_text(encoding="utf-8"))
+    profile = json.loads((ROOT / settings["profile"]).read_text(encoding="utf-8"))
+    assert "checkRows" in settings and [path for path in profile["status"]["config/project.json"] if path.split(".")[0] == "checkRows"] == []

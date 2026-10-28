@@ -23,6 +23,8 @@ PARAMETERS = "parameters."
 ANY_PARAMETER = "parameters.*"
 PLACEHOLDER = re.compile(r"\{(\w+)\}")
 ASSUMED = "assumed"
+# The why of a value whose field and source valueStatus maps to no entry, NoStatus of ValueStatus.cs
+NO_STATUS = "valueStatus holds no status for %s from %s (R401)"
 SETS_LINE = "valueStatus.overrideSets maps each override of the list to the list of the fields it moves, the settings hold %s (R401)"
 # The labels a status of a value takes, the six of rule_status.py with MEASURED by its strength, which worstFirst names
 LABELS = ("UNKNOWN", "CHOSEN by Code", "CHOSEN by Bader", "RECOMMENDED", "MEASURED weak", "MEASURED strong", "MEASURED", "DOCUMENT")
@@ -133,14 +135,13 @@ class Table:
         if moved is not None and refs is not None:
             refs = refs + list((self.reads.get(moved) or {}).get(field) or ())
         if refs is None:
-            entries = [{"status": "UNKNOWN", "why": "valueStatus holds no status for %s from %s (R401)" % (field, source)}]
+            entries = [{"status": "UNKNOWN", "why": NO_STATUS % (field, source)}]
         else:
             entries = [self.resolve(field, source, ref, hand, unit) for ref in refs]
         pairs = self.decided.get((str(plot), field), []) if plot is not None else []
         entries += [self.resolve(field, source, {"config": "majority.decidedByQuestion.%s.plots.%s" % pair}, hand, unit) for pair in pairs]
-        # Q107. The worst status of the list by worstFirst, else the first entry
-        ranked = [(self.order.index(entry_label(entry)), index) for index, entry in enumerate(entries) if entry_label(entry) in self.order]
-        chosen = entries[min(ranked)[1]] if ranked else entries[0]
+        # Q107. The worst status of the list by worstFirst, else the first entry, the first of a tie
+        chosen = worst_entries(entries, self.order)[0]
         detail = {"entries": entries}
         if chosen["status"] == MEASURED and chosen.get("strength"):
             detail["strength"] = chosen["strength"]
@@ -177,7 +178,22 @@ class Table:
 
 
 def entry_label(entry):
-    return entry["status"] + (" " + entry["strength"] if entry["status"] == MEASURED and entry.get("strength") else "")
+    return status_label(entry["status"], entry)
+
+
+def status_label(status, detail):
+    """The label of a status, MEASURED with the strength its detail or entry holds, ValueStatus.Label of the C#."""
+    return status + (" " + detail["strength"] if status == MEASURED and detail.get("strength") else "")
+
+
+def worst_entries(entries, order):
+    """Q107, R363. The entries of a value that hold its worst status by order, worstFirst, in list order, a tie giving each, else the first entry
+    alone. Table.of takes the first of them, the chip Assumed of Q108 counts the value under each (review 1 of PR 81)."""
+    ranked = [order.index(entry_label(entry)) if entry_label(entry) in order else None for entry in entries]
+    held = [rank for rank in ranked if rank is not None]
+    if not held:
+        return entries[:1]
+    return [entry for entry, rank in zip(entries, ranked) if rank == min(held)]
 
 
 def table_of(settings, profile, level_profile):
@@ -251,8 +267,7 @@ def mark(entry, table, hand=None, applied=(), rule=None):
 
 def label(item, details):
     """The status a count names, MEASURED with the strength of its detail."""
-    strength = (details.get(item["statusFrom"]) or {}).get("strength")
-    return item["status"] + (" " + strength if item["status"] == MEASURED and strength else "")
+    return status_label(item["status"], details.get(item["statusFrom"]) or {})
 
 
 def summary(plots, assumed, details):

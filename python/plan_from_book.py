@@ -31,6 +31,7 @@ from shapely.strtree import STRtree
 
 import c3d_connect
 import cad_analysis
+import check_rows
 import cad_units
 import cad_links
 import corner_front
@@ -61,9 +62,9 @@ ESTIMATE = "estimate"
 LOCATION = "locationPlan"
 OVERRIDE = "override"
 KEY_RULES = "keyRules"
-# R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R362 and R401 after the faces
-PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame", "levels", "floors", "walls", "overrides", "parameters", "status")
-BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "walls", "overrides", "parameters", "status")
+# R345. The steps of the parity harness this builder writes with --steps, the build steps of R354 to R363 and R401 after the faces
+PARITY_STEPS = ("faces", "clusters", "fronts", "hands", "linkFrame", "levels", "floors", "walls", "overrides", "parameters", "status", "checkRows")
+BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "walls", "overrides", "parameters", "status", "checkRows")
 FOOTPRINT = "footprint"
 # R354, Q089. The one line a build and its C# refuse an analysis with, as a build takes the footprint clusters alone
 ANALYSIS_REFUSED = "the analysis is no input of a build since Q089, a build takes the footprint clusters of R236 alone (R354)"
@@ -1508,6 +1509,10 @@ def main(argv=None):
             write_build_step(args, settings, "parameters", parameter_step(cover["plots"], rows, trace, rules))
             status, tables = status_step(cover["plots"], rows, trace)
             write_build_step(args, settings, "status", status, tables=tables)
+            # R363. The check rows of each plot from the plan and the override list the build took, with the chip Assumed of Q108
+            listed = json.loads(Path(args.overrides).read_text(encoding="utf-8")) if args.overrides else {}
+            made, tables = check_rows.step(cover["plots"], rows, plan, listed, rules["sources"], rules.get("models"), settings)
+            write_build_step(args, settings, check_rows.STEP, made, tables=tables)
         plan_from_past.write_plan(out, plan)
         done = True
     except (project_profile.ProfileError, KeyError, OSError, ValueError) as error:

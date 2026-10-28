@@ -43,6 +43,10 @@ namespace SiteAdaptation.Common
 
         // Q107. The applied overrides of the plot in the order the build applied them, so a status names the one that moved a value
         public List<string> AppliedOrder { get; set; }
+
+        // R363. The keys of the missing list of the plan for the plot in the order plan_from_book.build lists them, for the check rows of step 14.
+        // The worker reads no site file, so a floor never lacks its level here
+        public List<string> Lacks { get; set; } = new List<string>();
     }
 
     // R360, R337, R340, R280, R386. Step 12 of the plan builder: what a build does with each override of each plot, applied or left with why, as
@@ -653,6 +657,7 @@ namespace SiteAdaptation.Common
                     made["applied"] = record?.Item1;
                     made["notApplied"] = record?.Item2;
                     made["entry"] = made["ffl"] = made["ssl"] = made["height"] = made["steps"] = null;
+                    found[number].Lacks = new List<string> { skipped != null ? "skip" : "unit" };
                     continue;
                 }
                 JToken flagged = mine["mirrored"];
@@ -747,6 +752,8 @@ namespace SiteAdaptation.Common
                     outcomes.Applied(number, field.Name);
                 }
                 bool written = link["prototypeFile"] != null && insert != null && level != null;
+                // R363. The floors a written plot lacks, the yard then the ramp as plan_from_book.build lists them
+                bool noYard = false, noRamp = false;
                 if (written)
                 {
                     // plan_from_book.build: the ramp of Step 8 with the rampFrontM gap and the ramp type of a rampType override, then the yard
@@ -770,6 +777,7 @@ namespace SiteAdaptation.Common
                     JToken rampClass = Truthy(named) ? named : keyRules["rampSlope"]["table"][unit];
                     JToken kind = rampClass != null && rampClass.Type == JTokenType.String ? levelProfile["rampTypes"][(string)rampClass] : null;
                     bool ramp = kind != null && kind.Type != JTokenType.Null;
+                    noRamp = !ramp;
                     if (ramp)
                     {
                         made["rampZ"] = FloorOutlines.RampHeights(front, entryWritten.Value);
@@ -798,9 +806,11 @@ namespace SiteAdaptation.Common
                             made["yardZ"] = fflWritten.Value - below.Value;
                             made["yardOutline"] = ((JArray)group["loops"]).Select(loop => FloorOutlines.ToWorld((JArray)loop, origin, (double)rotation.Written, (bool)mirrored)).ToList();
                         }
+                        noYard = group == null;
                     }
                 }
                 Tuple<List<string>, JObject> outcome = outcomes.Plot(number, written, lacks, list, later, profileName);
+                found[number].Lacks = lacks.Concat(noYard ? new[] { "floors.yard" } : new string[0]).Concat(noRamp ? new[] { "floors.ramp" } : new string[0]).ToList();
                 made["written"] = written;
                 made["applied"] = outcome?.Item1;
                 made["notApplied"] = outcome?.Item2;
