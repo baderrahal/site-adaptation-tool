@@ -38,10 +38,16 @@ The four panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Choose the settings file`
 - `It names the drawings, the rules and the prototypes for this job. The tool fills the rest of this panel from it.`
 - `Choose settings file`
+- `Or start from a past job:` the first open line of Bader's changes of 28 Oct 2026 in three parts, the second its link
+- `Import pre-setting`
+- `It brings the settings, rules, level profile, ramp slopes, parameter sheet and overrides of that job.`
 - `Rules and settings for this job. Set once.`
 - `Settings`
 - `Rules`
 - `Level profile`
+- `Pre-setting`
+- `Import from past job`
+- `Export`
 - `Input files`
 - `The drawings and schedules the tool reads. All <n> found.`
 - `The drawings and schedules the tool reads. <m> of <n> found.`
@@ -52,6 +58,7 @@ The four panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `DLUS and sales`
 - `Plot numbers`
 - `Prototypes`
+- `Shared parameters`
 - `DLUS schedule` CHOSEN, the title of the first of the two file dialogs of the row DLUS and sales, each picks its workbook by its role
 - `Sales schedule` CHOSEN, the title of the second of them
 - `Browse`

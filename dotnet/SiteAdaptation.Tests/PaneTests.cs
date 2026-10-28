@@ -73,9 +73,65 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Not chosen", model.SettingsRow.FileName);
             Assert.True(model.SettingsRow.Shown);
             Assert.False(model.SettingsRow.Found);
-            Assert.Equal("The drawings and schedules the tool reads. 0 of 7 found.", model.InputHelp);
+            Assert.Equal("The drawings and schedules the tool reads. 0 of 8 found.", model.InputHelp);
             Assert.Equal(new[] { "Needs settings", "Needs step 1", "Needs step 2", "Needs step 3", "Needs step 4", "Needs step 5", "Needs step 6", "Needs step 7", "Needs step 4" }, model.Steps.Select(step => step.ChipText));
             Assert.All(model.Steps, step => Assert.Equal(MarkKind.Waiting, step.Mark));
+        }
+
+        // Bader, 28 Oct 2026 (docs/design/13-workflow-changes.md, Pane): the row Shared parameters for the parameter sheet Excel,
+        // after Prototypes, a file of a settings key of its own, counted in the help line
+        [Fact]
+        public void R372_input_files_gain_the_shared_parameters_row_after_prototypes_for_the_parameter_sheet_file()
+        {
+            Assert.Equal(new[] { "Baseplan", "Villa blocks", "Curbs", "Road surface", "DLUS and sales", "Plot numbers", "Prototypes", "Shared parameters" },
+                Model(new FakeProbe()).InputRows.Select(row => row.Label));
+            var probe = new FakeProbe();
+            probe.Add(Folder + "parameters.xlsx", 4096, "fedcba98" + new string('0', 56));
+            var picker = new FakePicker(Folder + "parameters.xlsx");
+            var model = new PaneViewModel(probe, picker);
+            var session = new DocumentSession("s", Folder + "Site.rvt", "Site");
+            model.Load(session);
+            model.LoadSettings(new PaneSettings { ConfigFile = Folder + "project.json" });
+            FileRowViewModel row = model.InputRows.Last();
+            Assert.False(row.Folder);
+            Assert.Equal(new[] { InputKeys.ParameterSheet }, row.Keys);
+            Assert.Equal("The drawings and schedules the tool reads. 0 of 8 found.", model.InputHelp);
+
+            model.Browse(row);
+            Assert.Equal(new string[] { null }, picker.Titles);
+            Assert.Equal(Folder + "parameters.xlsx", session.Settings.InputPath(InputKeys.ParameterSheet));
+            Assert.Equal("parameters.xlsx", row.FileName);
+            Assert.True(row.Found);
+            Assert.Equal("The drawings and schedules the tool reads. 1 of 8 found.", model.InputHelp);
+
+            Assert.Equal("parameterSheet", InputKeys.ParameterSheet);
+            Assert.Contains(InputKeys.ParameterSheet, InputKeys.All);
+            Assert.DoesNotContain(InputKeys.ParameterSheet, InputKeys.Folders);
+            Assert.Equal(@"C:\Job\p.xlsx", SettingsFile.Read(@"{ ""formatVersion"": 1, ""inputs"": { ""parameterSheet"": { ""path"": ""C:\\Job\\p.xlsx"" } } }").InputPath(InputKeys.ParameterSheet));
+        }
+
+        // Bader, 28 Oct 2026: Import from past job and Export of the row Pre-setting, and Import pre-setting of the first open box,
+        // which runs Import from past job, say they are not built yet in 5a. Their logic joins R367 at 5c, W4 of steps/lane-b.md
+        [Fact]
+        public void R372_import_from_past_job_and_export_say_they_are_not_built_yet_and_wait_for_a_document()
+        {
+            PaneViewModel model = Model(new FakeProbe());
+            var told = new List<string>();
+            model.Told += told.Add;
+            Assert.False(model.ImportCommand.CanExecute(null));
+            Assert.False(model.ExportCommand.CanExecute(null));
+
+            model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
+            Assert.True(model.FirstOpen);
+            Assert.True(model.ImportCommand.CanExecute(null));
+            Assert.True(model.ExportCommand.CanExecute(null));
+            model.ImportCommand.Execute(null);
+            model.ExportCommand.Execute(null);
+
+            Assert.Equal(new[] { "Import from past job is not built yet.", "Export is not built yet." }, told);
+            Assert.Null(model.Settings.ConfigFile);
+            Assert.True(model.FirstOpen);
+            Assert.Equal(new[] { "Import from past job", "Export" }, new[] { PaneText.ImportPastJob, PaneText.Export });
         }
 
         // Review 1 of PR 90: the box names config/project.json, which holds no formatVersion, so it picks the config file as the
@@ -253,7 +309,7 @@ namespace SiteAdaptation.Tests
             Assert.False(model.SettingsRow.Found);
             Assert.Equal("project.json", model.SettingsRow.FileName);
             Assert.Equal(string.Empty, model.SettingsRow.Detail);
-            Assert.Equal("The drawings and schedules the tool reads. 1 of 7 found.", model.InputHelp);
+            Assert.Equal("The drawings and schedules the tool reads. 1 of 8 found.", model.InputHelp);
 
             model.PickInput(InputKeys.Dlus, Folder + "dlus.xlsx");
             Assert.False(dlus.Found);
@@ -309,7 +365,7 @@ namespace SiteAdaptation.Tests
             PaneViewModel model = Model(probe);
             model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
             model.LoadSettings(settings);
-            Assert.Equal("The drawings and schedules the tool reads. All 7 found.", model.InputHelp);
+            Assert.Equal("The drawings and schedules the tool reads. All 8 found.", model.InputHelp);
             Assert.All(model.InputRows, row => Assert.True(row.Found, row.Label));
         }
 

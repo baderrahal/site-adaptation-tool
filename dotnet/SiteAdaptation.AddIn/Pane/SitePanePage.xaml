@@ -170,6 +170,13 @@
         <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Top12}" HorizontalAlignment="Left"
                 Content="{Binding BoxButton}" Command="{Binding BoxCommand}"
                 Visibility="{Binding BoxButtonShown, Converter={StaticResource Shown}}" />
+        <!-- Bader, 28 Oct 2026: the first open box adds the line of a past job, its link runs Import from past job -->
+        <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top12}" TextWrapping="Wrap"
+                   Visibility="{Binding FirstOpen, Converter={StaticResource Shown}}">
+          <Run Text="Or start from a past job:" />
+          <Hyperlink Foreground="{StaticResource SA.Accent}" Command="{Binding ImportCommand}">Import pre-setting</Hyperlink><Run Text="." />
+          <Run Text="It brings the settings, rules, level profile, ramp slopes, parameter sheet and overrides of that job." />
+        </TextBlock>
       </StackPanel>
     </Border>
 
@@ -188,6 +195,21 @@
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="Level profile" />
             <ComboBox Grid.Column="2" Style="{StaticResource SA.Pane.Combo}" ItemsSource="{Binding LevelProfiles}" SelectedItem="{Binding LevelProfile}" />
+          </Grid>
+          <!-- Bader, 28 Oct 2026: the row Pre-setting under Level profile. A pre-setting never holds drawing paths or coordinates -->
+          <Grid Height="{StaticResource SA.Size.Row}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="Pre-setting" />
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+              <Button Style="{StaticResource SA.Button.Base}" Padding="{StaticResource SA.Pad.ButtonPair}" Margin="{StaticResource SA.Gap.Right8}"
+                      Content="{x:Static pane:PaneText.ImportPastJob}" Command="{Binding ImportCommand}" />
+              <Button Style="{StaticResource SA.Button.Base}" Padding="{StaticResource SA.Pad.ButtonPair}" Content="{x:Static pane:PaneText.Export}"
+                      Command="{Binding ExportCommand}" />
+            </StackPanel>
           </Grid>
         </StackPanel>
 

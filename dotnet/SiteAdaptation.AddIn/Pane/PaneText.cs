@@ -31,6 +31,9 @@ namespace SiteAdaptation.AddIn.Pane
         public const string DlusTitle = "DLUS schedule";
         public const string SalesTitle = "Sales schedule";
         public const string Prototypes = "Prototypes";
+        public const string SharedParameters = "Shared parameters";
+        public const string ImportPastJob = "Import from past job";
+        public const string Export = "Export";
 
         public const string NotChosen = "Not chosen";
         public const string Size = "<n> MiB";
