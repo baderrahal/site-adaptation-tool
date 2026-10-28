@@ -1,0 +1,245 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+  <!-- R371, R372. The one source of every colour, font, size and icon of the add-in, the values of docs/design/12-ui-spec.md.
+       No other XAML or C# file of the add-in holds a colour or a font size, a gate test holds that. -->
+
+  <!-- Colours. A colour the spec gives as one value on another keeps its name for the text and takes Ground for the ground. -->
+  <SolidColorBrush x:Key="SA.Surface" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="SA.Panel" Color="#F5F7FA" />
+  <SolidColorBrush x:Key="SA.Band" Color="#1B3349" />
+  <SolidColorBrush x:Key="SA.BandText" Color="#DCE8F5" />
+  <SolidColorBrush x:Key="SA.BandAccent" Color="#9ED9FD" />
+  <SolidColorBrush x:Key="SA.Guide" Color="#EAF3FC" />
+  <SolidColorBrush x:Key="SA.GuideBorder" Color="#C9DDF3" />
+  <SolidColorBrush x:Key="SA.Border" Color="#D5DCE4" />
+  <SolidColorBrush x:Key="SA.BorderStrong" Color="#B8C2CD" />
+  <SolidColorBrush x:Key="SA.Text" Color="#1B1F24" />
+  <SolidColorBrush x:Key="SA.TextMuted" Color="#4A5663" />
+  <SolidColorBrush x:Key="SA.Heading" Color="#1B3349" />
+  <SolidColorBrush x:Key="SA.Accent" Color="#0052CC" />
+  <SolidColorBrush x:Key="SA.Selected" Color="#E3ECF8" />
+  <SolidColorBrush x:Key="SA.IconAccent" Color="#00AEE6" />
+  <SolidColorBrush x:Key="SA.IconTick" Color="#2F9E2A" />
+  <SolidColorBrush x:Key="SA.Ok" Color="#0B6B2E" />
+  <SolidColorBrush x:Key="SA.OkGround" Color="#E6F4EA" />
+  <SolidColorBrush x:Key="SA.Warn" Color="#7A4B00" />
+  <SolidColorBrush x:Key="SA.WarnGround" Color="#FFF4D6" />
+  <SolidColorBrush x:Key="SA.Info" Color="#0A3D91" />
+  <SolidColorBrush x:Key="SA.InfoGround" Color="#E6EEFB" />
+  <SolidColorBrush x:Key="SA.Wait" Color="#4A5663" />
+  <SolidColorBrush x:Key="SA.WaitGround" Color="#F0F2F5" />
+  <SolidColorBrush x:Key="SA.Error" Color="#B42318" />
+  <SolidColorBrush x:Key="SA.ErrorGround" Color="#FDECEA" />
+
+  <!-- Font. The fallbacks of the spec until Libre Franklin is bundled. -->
+  <FontFamily x:Key="SA.Font">Franklin Gothic Book, Segoe UI</FontFamily>
+  <FontNumeralAlignment x:Key="SA.Figures">Tabular</FontNumeralAlignment>
+
+  <!-- Type. Each key has its size and its weight for a control, and a TextBlock style of the same name. -->
+  <sys:Double x:Key="SA.Type.Title.Size">20</sys:Double>
+  <FontWeight x:Key="SA.Type.Title.Weight">SemiBold</FontWeight>
+  <sys:Double x:Key="SA.Type.Next.Size">18</sys:Double>
+  <FontWeight x:Key="SA.Type.Next.Weight">SemiBold</FontWeight>
+  <sys:Double x:Key="SA.Type.Section.Size">15</sys:Double>
+  <FontWeight x:Key="SA.Type.Section.Weight">SemiBold</FontWeight>
+  <sys:Double x:Key="SA.Type.Body.Size">13</sys:Double>
+  <FontWeight x:Key="SA.Type.Body.Weight">Regular</FontWeight>
+  <sys:Double x:Key="SA.Type.Small.Size">12</sys:Double>
+  <FontWeight x:Key="SA.Type.Small.Weight">Regular</FontWeight>
+  <sys:Double x:Key="SA.Type.Project.Size">16</sys:Double>
+  <FontWeight x:Key="SA.Type.Project.Weight">SemiBold</FontWeight>
+  <sys:Double x:Key="SA.Type.Step.Size">14</sys:Double>
+  <FontWeight x:Key="SA.Type.Step.Weight">Regular</FontWeight>
+  <sys:Double x:Key="SA.Type.Count.Size">28</sys:Double>
+  <FontWeight x:Key="SA.Type.Count.Weight">SemiBold</FontWeight>
+  <sys:Double x:Key="SA.Type.Label.Size">13</sys:Double>
+  <FontWeight x:Key="SA.Type.Label.Weight">SemiBold</FontWeight>
+
+  <Style x:Key="SA.Type.Base" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource SA.Font}" />
+    <Setter Property="Typography.NumeralAlignment" Value="{StaticResource SA.Figures}" />
+    <Setter Property="Foreground" Value="{StaticResource SA.Text}" />
+  </Style>
+  <Style x:Key="SA.Type.Title" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Base}">
+    <Setter Property="FontSize" Value="{StaticResource SA.Type.Title.Size}" />
+    <Setter Property="FontWeight" Value="{StaticResource SA.Type.Title.Weight}" />
+  </Style>
+  <Style x:Key="SA.Type.Next" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Base}">
+    <Setter Property="FontSize" Value="{StaticResource SA.Type.Next.Size}" />
+    <Setter Property="FontWeight" Value="{StaticResource SA.Type.Next.Weight}" />
+  </Style>
+  <Style x:Key="SA.Type.Section" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Base}">
+    <Setter Property="FontSize" Value="{StaticResource SA.Type.Section.Size}" />
+    <Setter Property="FontWeight" Value="{StaticResource SA.Type.Section.Weight}" />
+  </Style>
+  <Style x:Key="SA.Type.Body" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Base}">
+    <Setter Property="FontSize" Value="{StaticResource SA.Type.Body.Size}" />
+    <Setter Property="FontWeight" Value="{StaticResource SA.Type.Body.Weight}" />
+  </Style>
+  <Style x:Key="SA.Type.Small" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Base}">
+    <Setter Property="FontSize" Value="{StaticResource SA.Type.Small.Size}" />
+    <Setter Property="FontWeight" Value="{StaticResource SA.Type.Small.Weight}" />
+  </Style>
+  <Style x:Key="SA.Type.Project" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Base}">
+    <Setter Property="FontSize" Value="{StaticResource SA.Type.Project.Size}" />
+    <Setter Property="FontWeight" Value="{StaticResource SA.Type.Project.Weight}" />
+  </Style>
+  <Style x:Key="SA.Type.Step" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Base}">
+    <Setter Property="FontSize" Value="{StaticResource SA.Type.Step.Size}" />
+    <Setter Property="FontWeight" Value="{StaticResource SA.Type.Step.Weight}" />
+  </Style>
+  <Style x:Key="SA.Type.Count" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Base}">
+    <Setter Property="FontSize" Value="{StaticResource SA.Type.Count.Size}" />
+    <Setter Property="FontWeight" Value="{StaticResource SA.Type.Count.Weight}" />
+  </Style>
+  <Style x:Key="SA.Type.Label" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Base}">
+    <Setter Property="FontSize" Value="{StaticResource SA.Type.Label.Size}" />
+    <Setter Property="FontWeight" Value="{StaticResource SA.Type.Label.Weight}" />
+  </Style>
+
+  <!-- Spacing 4, 8, 12, 16, 24 only. -->
+  <sys:Double x:Key="SA.Space.XS">4</sys:Double>
+  <sys:Double x:Key="SA.Space.S">8</sys:Double>
+  <sys:Double x:Key="SA.Space.M">12</sys:Double>
+  <sys:Double x:Key="SA.Space.L">16</sys:Double>
+  <sys:Double x:Key="SA.Space.XL">24</sys:Double>
+
+  <!-- Control sizes. -->
+  <sys:Double x:Key="SA.Size.MainButton">34</sys:Double>
+  <sys:Double x:Key="SA.Size.ButtonMin">28</sys:Double>
+  <sys:Double x:Key="SA.Size.ButtonMax">32</sys:Double>
+  <sys:Double x:Key="SA.Size.Row">32</sys:Double>
+  <sys:Double x:Key="SA.Size.Input">30</sys:Double>
+  <sys:Double x:Key="SA.Size.Pane">380</sys:Double>
+  <sys:Double x:Key="SA.Size.SideBox">340</sys:Double>
+  <sys:Double x:Key="SA.Size.StepMark">26</sys:Double>
+  <sys:Double x:Key="SA.Size.SelectedMark">3</sys:Double>
+  <CornerRadius x:Key="SA.Radius.Control">3</CornerRadius>
+  <CornerRadius x:Key="SA.Radius.Chip">12</CornerRadius>
+
+  <!-- Icons on the 32 unit grid. Stroke SA.Heading, round caps and joins, fill none unless named. The 16 px set has stroke 2.4
+       and drops the parts the spec marks 32 only. White is SA.Surface (QL7). -->
+  <sys:Double x:Key="SA.Icon.Stroke.32">2</sys:Double>
+  <sys:Double x:Key="SA.Icon.Stroke.16">2.4</sys:Double>
+  <sys:Double x:Key="SA.Icon.Tick.32">2.5</sys:Double>
+  <sys:Double x:Key="SA.Icon.Tick.16">3</sys:Double>
+
+  <Pen x:Key="SA.Icon.Pen.32" Brush="{StaticResource SA.Heading}" Thickness="{StaticResource SA.Icon.Stroke.32}" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
+  <Pen x:Key="SA.Icon.Pen.16" Brush="{StaticResource SA.Heading}" Thickness="{StaticResource SA.Icon.Stroke.16}" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
+  <Pen x:Key="SA.Icon.AccentPen.32" Brush="{StaticResource SA.IconAccent}" Thickness="{StaticResource SA.Icon.Stroke.32}" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
+  <Pen x:Key="SA.Icon.AccentPen.16" Brush="{StaticResource SA.IconAccent}" Thickness="{StaticResource SA.Icon.Stroke.16}" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
+  <Pen x:Key="SA.Icon.WhitePen.32" Brush="{StaticResource SA.Surface}" Thickness="{StaticResource SA.Icon.Stroke.32}" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
+  <Pen x:Key="SA.Icon.WhitePen.16" Brush="{StaticResource SA.Surface}" Thickness="{StaticResource SA.Icon.Stroke.16}" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
+  <Pen x:Key="SA.Icon.TickPen.32" Brush="{StaticResource SA.IconTick}" Thickness="{StaticResource SA.Icon.Tick.32}" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
+  <Pen x:Key="SA.Icon.TickPen.16" Brush="{StaticResource SA.IconTick}" Thickness="{StaticResource SA.Icon.Tick.16}" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
+
+  <!-- 1 Set up site -->
+  <DrawingGroup x:Key="SA.Icon.1.32">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M8 19a8 8 0 1 0 16 0a8 8 0 1 0 -16 0" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M16 14v10M11 19h10" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M16 2l4 7l-4-1.5l-4 1.5z" />
+  </DrawingGroup>
+  <DrawingGroup x:Key="SA.Icon.1.16">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M8 19a8 8 0 1 0 16 0a8 8 0 1 0 -16 0" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M16 14v10M11 19h10" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M16 2l4 7l-4-1.5l-4 1.5z" />
+  </DrawingGroup>
+
+  <!-- 2 Read data -->
+  <DrawingGroup x:Key="SA.Icon.2.32">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M24 16V10l-6-6H7v24h9" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M18 4v6h6M11 15h8M11 19h4" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M17 24a6 6 0 1 0 12 0a6 6 0 1 0 -12 0" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.WhitePen.32}" Geometry="M23 20.5v6M20.5 24.5l2.5 2.5l2.5-2.5" />
+  </DrawingGroup>
+  <DrawingGroup x:Key="SA.Icon.2.16">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M24 16V10l-6-6H7v24h9" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M18 4v6h6M11 15h8M11 19h4" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M17 24a6 6 0 1 0 12 0a6 6 0 1 0 -12 0" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.WhitePen.16}" Geometry="M23 20.5v6M20.5 24.5l2.5 2.5l2.5-2.5" />
+  </DrawingGroup>
+
+  <!-- 3 Check -->
+  <DrawingGroup x:Key="SA.Icon.3.32">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M10 6H7v23h18V6h-3" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M12 4h8v4h-8z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.TickPen.32}" Geometry="M11 18l4 4l7-8" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M12 26h8" />
+  </DrawingGroup>
+  <DrawingGroup x:Key="SA.Icon.3.16">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M10 6H7v23h18V6h-3" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M12 4h8v4h-8z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.TickPen.16}" Geometry="M11 18l4 4l7-8" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M12 26h8" />
+  </DrawingGroup>
+
+  <!-- 4 Place villas -->
+  <DrawingGroup x:Key="SA.Icon.4.32">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M3 16l10-8l10 8v11H3z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M10 27v-6h6v6" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M26 2.5a4 4 0 0 1 4 4c0 3-4 7.5-4 7.5s-4-4.5-4-7.5a4 4 0 0 1 4-4z" />
+    <!-- The spec names fill white and no "no stroke" here, so the default stroke stays, as written -->
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Brush="{StaticResource SA.Surface}" Geometry="M25 6.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+  </DrawingGroup>
+  <DrawingGroup x:Key="SA.Icon.4.16">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M3 16l10-8l10 8v11H3z" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M26 2.5a4 4 0 0 1 4 4c0 3-4 7.5-4 7.5s-4-4.5-4-7.5a4 4 0 0 1 4-4z" />
+  </DrawingGroup>
+
+  <!-- 5 Floors and ramps -->
+  <DrawingGroup x:Key="SA.Icon.5.32">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M2 27h28" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M4 27l12-8v8" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M16 13h13v6H16z" />
+  </DrawingGroup>
+  <DrawingGroup x:Key="SA.Icon.5.16">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M2 27h28" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M4 27l12-8v8" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M16 13h13v6H16z" />
+  </DrawingGroup>
+
+  <!-- 6 Levels -->
+  <DrawingGroup x:Key="SA.Icon.6.32">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M3 9h21M3 23h21" />
+    <GeometryDrawing Brush="{StaticResource SA.Heading}" Geometry="M24 9l-3.5-5h7z" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M24 23l-3.5-5h7z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.32}" Geometry="M9 12v8" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.32}" Geometry="M7 14l2-2l2 2M7 18l2 2l2-2" />
+  </DrawingGroup>
+  <DrawingGroup x:Key="SA.Icon.6.16">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M3 9h21M3 23h21" />
+    <GeometryDrawing Brush="{StaticResource SA.Heading}" Geometry="M24 9l-3.5-5h7z" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M24 23l-3.5-5h7z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.16}" Geometry="M9 12v8" />
+  </DrawingGroup>
+
+  <!-- 7 Walls -->
+  <DrawingGroup x:Key="SA.Icon.7.32">
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M2 8h28v4H2z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M3 12h26v15H3z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M3 19.5h26" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M11 12v7.5M21 12v7.5M7 19.5V27M16 19.5V27M25 19.5V27" />
+  </DrawingGroup>
+  <DrawingGroup x:Key="SA.Icon.7.16">
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M2 8h28v4H2z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M3 12h26v15H3z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M3 19.5h26" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M16 12v7.5M9 19.5V27M23 19.5V27" />
+  </DrawingGroup>
+
+  <!-- 8 Report -->
+  <DrawingGroup x:Key="SA.Icon.8.32">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M5 5h22v22H5z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M5 11h22" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M9 23v-5h3v5zM14.5 23v-8h3v8zM20 23v-6h3v6z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.32}" Geometry="M8 23h16" />
+  </DrawingGroup>
+  <DrawingGroup x:Key="SA.Icon.8.16">
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M5 5h22v22H5z" />
+    <GeometryDrawing Pen="{StaticResource SA.Icon.Pen.16}" Geometry="M5 11h22" />
+    <GeometryDrawing Brush="{StaticResource SA.IconAccent}" Geometry="M9 23v-5h3v5zM14.5 23v-8h3v8zM20 23v-6h3v6z" />
+  </DrawingGroup>
+
+</ResourceDictionary>

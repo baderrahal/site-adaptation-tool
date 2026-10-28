@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>SiteAdaptation.AddIn</AssemblyName>
+    <RootNamespace>SiteAdaptation.AddIn</RootNamespace>
+    <UseWPF>true</UseWPF>
+    <!-- The restore of the Linux leg walks the net48 references of the tests too, and a WPF project there needs this to be read -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+  <!-- PrivateAssets keeps the Revit reference assemblies from flowing into the test project, which loads no Revit type -->
+  <ItemGroup>
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="2024.3.60" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="2024.3.60" ExcludeAssets="runtime" PrivateAssets="all" />
+    <ProjectReference Include="..\SiteAdaptation.Common\SiteAdaptation.Common.csproj" />
+  </ItemGroup>
+</Project>
