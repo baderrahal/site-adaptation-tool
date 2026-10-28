@@ -1,10 +1,10 @@
-STATE WAITING, 4g3 continues on the laptop
+STATE RUNNING, 4g3, 2026-10-29 01:42
 # Progress
 Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
 
 ## State
 
-- 4g3 paused on 2026-10-28, Phase 4 moves to the company laptop (Bader). Left: R365 the report Excel with its D4 round trip, the C# checks on real data
+- 4g3 runs on the laptop in Lane A since 2026-10-29. Left: R365 the report Excel with its D4 round trip, the C# checks on real data (D6)
 - The C# of 4g2 and 4g3 is held by unit twins only. Its parity on real inputs and the build peak run on the laptop
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
 - Phases 0a to 4g2 merged, PR 41 to 81, 4g3 PR 83 to 91: the reads of button 2, steps 4 to 8 and 10 to 15 of the plan builder and its status in C#
@@ -57,4 +57,4 @@ Q119 Reads of a value several overrides touched. Q120 Mirror and rotation sets t
 
 1. ADDIN 4g3 on the laptop: R365 the report Excel with D4, the C# checks on real data, the end records (steps/01_next.md)
 2. ADDIN 4h on the laptop once 4g3 is done, R366 to R369
-3. The laptop check of Q111 for 4g3 and 4h, into steps/lane-b.md, before 5c (Bader, 2026-10-28)
+3. Lane A fold-in of steps/lane-b.md as the last records PR of 4h. The C# checks of Q111 run inside 4g3 and 4h (D6)

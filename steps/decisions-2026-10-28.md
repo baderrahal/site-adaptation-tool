@@ -50,3 +50,20 @@ Bader designed and approved the UI on the canvas on 28 Oct 2026. The full text i
 - U5. The eight icons and the ribbon of 7.1.
 - U6. The pane of 7.2 with its NEW items.
 - U7. Set up site of 7.3 and the check table of 7.4 with their NEW items.
+
+## D5. Speed rules S2 to S5, 28 Oct 2026
+
+Written down in Lane A 4g3 on 29 Oct 2026 from the Lane A prompt.
+
+- S2. Parity on the 7 keys in each PR. The whole project once, in the last code PR of the phase.
+- S3. One review pass for a PR that changes only records, docs or UI text. Two passes at most for logic.
+- S4. Override naming: a value lists every override that touched its inputs. No more attempts at which one moved it.
+- S5. No design freeze. A new design change from Bader goes to the phase that owns that part as a join item, recorded as his decision. If it belongs to the current phase and fits, it is done there.
+
+## D6. The C# checks on the laptop, 29 Oct 2026
+
+- Lane A runs the C# reads and the C# parity on the whole project and the 7 keys, net48 and net8.0, and measures the build peak three times per runtime: in 4g3 for everything since PR 75, in 4h for 4h. A failure is a REAL finding of that phase. This closes the laptop part of Q111.
+
+## D7. The report round trip, 29 Oct 2026
+
+- Bader kept D4 for the report Excel of 4g3: the plot number as a stable key in the first column of Levels and Placed, the editable columns FFL, El @ Entry, Steps, Villa type and Mirror marked in the header and listed in the Settings sheet, the build id and the plan SHA-256 in the Settings sheet. Items 10 to 12 of 7.7 of docs/design/07-mock.md hold it.
