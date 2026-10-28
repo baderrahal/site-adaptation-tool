@@ -1,18 +1,18 @@
-STATE RUNNING, 4g2, 2026-10-28 01:25
+STATE WAITING, 2026-10-28 10:30, for the 4g3 session, Bader pastes steps/START.md
 # Progress
 Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
 
 ## State
 
-- 4g1 done on 2026-10-27, PR 69 to 73: Q098 and Q099 coded, the status block of R401 on 595 values, the status of each plotted value
-- Every written plot holds an assumed value. Bader accepted the 41 rows of steps/investigations/status-review.md, each CHOSEN by Bader, Q104 (4g2 PR 1)
+- 4g2 done on 2026-10-28: Q105, Q107, Q109, Q110, the walls of R362, the check rows of R363 with the chip Assumed of Q108
+- The C# of 4g2 is held by unit twins only. Its parity on real inputs and the build peak are the C# check of Q111 on the laptop
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
-- Phases 0a to 4g1 merged, PR 41 to 73: the reads of button 2, steps 4 to 8, 10, 12, 13 and the status of the plan builder in C# with parity
+- Phases 0a to 4g2 merged, PR 41 to 81: the reads of button 2, steps 4 to 8 and 10 to 15 of the plan builder and its status in C#
 - Plan: steps/01_next.md. Design: docs/design/. Rules: docs/rules/index.md. Findings: steps/investigations/round-addin.md. Part 2 waits for Bader's check of Part 1
 
 ## Done
 
-- 4g2 so far: PR 74 records, PR 75 Q105, Q107 and the build memory, PR 77 records, PR 78 Q109 and Q110, PR 79 the walls of R362
+- 4g2: PR 74 and 77 records, PR 75 Q105, Q107, PR 78 Q109, Q110, PR 79 the walls, PR 81 the check rows, then the end records
 - 4g1: PR 69 records, PR 70 Q098, Q099, PR 71 the status block, PR 72 the status in the plan, PR 73 records. AUDIT-RULES: PR 67, 68. 4f: PR 61 to 66
 - REC, PR 56 to 60: rules, design and round file in parts, questions-open.md, latent.md, CLAUDE.md to 9 KB, R400, START.md
 - ADDIN 4e, PR 55: R354 to R357, parity on net48 and net8.0 with 0 failures, the proof 0 unexplained on 7 keys. Round 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. Earlier: PR 1 to 32
@@ -30,7 +30,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - A native2022 build with --overrides is refused on 1,346 native entries with no value (Q075)
-- For the check rows of 4g2: 44 unit plots in the steps the plan does not place
+- Plot cut rows are not built until 5c (Q117), so Plot cut reads 0 and 7 cut plots of the IMC join count as following every rule
 - A whole build peaked at 974.8 MiB on net48 and 845.3 on net8.0 before the review fixes of PR 75, after them UNKNOWN until the C# check of Q111
 - Not in 4f: heightOffset and floor z need the site file of button 1, roadAtFrontM in the plan with R364, the past_all.csv rebuild of R385
 
@@ -51,10 +51,10 @@ Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario
 Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
 Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
 Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
-Q114 Fields following the Q017 hand of 2302. Q115 Wall extent along an edge. Q116 Ramp and wall of 18 turned plots.
+Q114 Fields following the Q017 hand of 2302. Q115 Wall extent along an edge. Q116 Ramp and wall of 18 turned plots. Q118 Follow every rule leaves out moved plots.
 
 ## Next three steps
 
-1. ADDIN 4g2: the check rows of R363 with the grouped chip Assumed of Q108. Bader pastes steps/START.md
-2. ADDIN 4g3: Q112 and Q113 first, then R364 the level Excel and R365 the report Excel with the sheet Assumed, one session by steps/START.md
+1. ADDIN 4g3: Q112 and Q113 first, then R364 the level Excel and R365 the report Excel with the sheet Assumed. Bader pastes steps/START.md
+2. Lane B: the C# check of Q111 on the company laptop from main, into steps/lane-b.md
 3. ADDIN 4h: R366 to R369, one session by steps/START.md
