@@ -822,12 +822,11 @@ def fronts(numbers, rows, faces, roads, limits, surfaces, snap, profile, corner=
 
 
 def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales=None, numbered=False, rules=None,
-          trace=None, walls_too=True):
+          trace=None):
     """R208. The plan of R80 for the plots numbers, every value from CAD, the data book and the new site file. R278 to R280: with
     rules the level profile, the hand rules and the overrides of the majority rule give the levels, the ramp type and the hand.
     main always gives rules (R277), rules None is the estimate of R209 that round Z4 built with. R345: trace, a dict, takes the fronts
-    and the snap the build took, for the build steps of the parity harness. R362: walls_too False leaves the walls out, as the build with no
-    override the status is held against needs none."""
+    and the snap the build took, for the build steps of the parity harness."""
     block = settings.get("siteBuild")
     floors_config = plan_from_past.load_floors(settings)
     steep = set(block["steepUnits"])
@@ -850,7 +849,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             raise project_profile.ProfileError("keyRules.yard holds no yard for %s, an area missing from the table is refused and never given another value (R337)"
                                                % ", ".join("%s (%d plots, %s)" % (zone, len(plots), " ".join(plots[:5])) for zone, plots in sorted(missing_zones.items())))
     # R362. The wall rules of the keys, a rule no build places walls by refused before any plot is built
-    wall_rules = plan_walls.wall_rules(key, rules["levelProfile"], rules["name"], profile, settings.get("keyPlans.wallEdgeM")) if key is not None and walls_too else None
+    wall_rules = plan_walls.wall_rules(key, rules["levelProfile"], rules["name"], profile, settings.get("keyPlans.wallEdgeM")) if key is not None else None
     mine = [cluster for cluster in (clusters if numbered else numbered_clusters(clusters, number_of)) if set(cluster["plots"]) & set(numbers)]
     # R340. The other unit of a row pair shares the FFL, so its El @ Entry is worked out as well
     members = sorted({plot for cluster in mine for plot in cluster["plots"]} | set(numbers) | {partners[number] for number in numbers if number in partners},
@@ -923,13 +922,6 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     not_measured, not_measured_plots, records, hand_rules, applied_of = {}, Counter(), {}, Counter(), {}
     # R401. The status of each sourced value from the block status of the rules profile, the map and the block read once per build
     statuses = value_status.table_of(settings, profile, None if rules is None else rules["name"])
-    by_rule = {}
-    if rules is not None and rules.get("overrides") and wall_rules is not None:
-        # Breaker F3 of PR 79. The plots as the build gives them with no override, whose FFL picks the plot of the base and the top of a wall
-        # by the rule, so an override of that plot touched them (Q112)
-        plain = build(numbers, rows, number_of, faces, roads, clusters, profile, settings, frame_section, files, folder, site, surfaces, outlines, nbh, sales,
-                      numbered, dict(rules, overrides={}), walls_too=False)
-        by_rule = {entry["plot"]: entry for entry in plain["plots"]}
     if trace is not None:
         trace["statusFrom"] = statuses.used
     if trace is not None:
@@ -1108,7 +1100,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                                              "rotationDeg" in (applied_of.get(plot) or ())) for plot, entry in written.items() if frames.get(plot) and plot in rings}
         for wall in plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules):
             item = plan_walls.entry(wall)
-            plan_walls.mark(item, wall, statuses, applied_of, written, by_rule, wall_rules)
+            plan_walls.mark(item, wall, statuses, applied_of)
             walls.append(item)
     if trace is not None:
         trace["walls"] = walls

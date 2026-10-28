@@ -363,44 +363,16 @@ namespace SiteAdaptation.Common
             return plan?.AppliedOrder ?? plan?.Overrides["applied"] as List<string> ?? new List<string>();
         }
 
-        // plan_walls.ffl_of: the FFL of a written plot at the decimals of the plan, null for none
-        private static double? WrittenFfl(PlotPlan plan)
+        // plan_walls.mark: the status of each value of a wall. The base and the top take the FFL of the highest or lowest of the written plots of
+        // the wall, and the open edge of each plot decides which walls stand, so every override of the plots of the wall, in their order, whose
+        // set holds the field touched it and is named, heightM the base and the top, rotationDeg every value (Q112, Q113, breaker F3 of PR 79, R2
+        // and R3 of the review of PR 85)
+        public static void Mark(PlanWall wall, ValueStatusTable table, IReadOnlyDictionary<string, PlotPlan> plans)
         {
-            double? ffl = Ffl(plan);
-            return Written(plan) && ffl.HasValue ? Rounding.Fixed(ffl.Value, 3) : (double?)null;
-        }
-
-        // plan_walls.mark: the status of each value of a wall. The inputs of the base and the top are the FFL of the pick of the rule, the plot of
-        // the highest or lowest FFL of the plots of the wall with no override, and that of the plot of the level, so each override on those plots
-        // whose set holds the field touched it and is named, the pick first (Q112, Q113, breaker F3 of PR 79), also where the value equals its value
-        // with no override. With no plan of the rule for a plot of the wall the plot of the level alone
-        public static void Mark(PlanWall wall, ValueStatusTable table, IReadOnlyDictionary<string, PlotPlan> plans, IReadOnlyDictionary<string, PlotPlan> rulePlans, WallRules higher)
-        {
+            List<string> applied = wall.Plots.SelectMany(name => plans.TryGetValue(name, out PlotPlan plan) ? AppliedOf(plan) : new List<string>()).ToList();
             foreach (string field in Fields)
             {
-                string level = field == "base" ? wall.BasePlot : field == "top" ? wall.TopPlot : null;
                 string source = field == "plots" ? PlotsSource : Source;
-                List<string> applied = new List<string>();
-                if (level != null && plans.TryGetValue(level, out PlotPlan plan))
-                {
-                    List<string> writers = wall.Plots.Where(name => plans.TryGetValue(name, out PlotPlan other) && WrittenFfl(other).HasValue).ToList();
-                    var ruleFfls = new Dictionary<string, double?>(StringComparer.Ordinal);
-                    foreach (string name in writers)
-                    {
-                        PlotPlan rule = null;
-                        rulePlans?.TryGetValue(name, out rule);
-                        ruleFfls[name] = WrittenFfl(rule);
-                    }
-                    if (rulePlans != null && rulePlans.Count > 0 && ruleFfls.Values.All(value => value.HasValue))
-                    {
-                        string picked = Pick(writers, ruleFfls.ToDictionary(item => item.Key, item => item.Value.Value), field == "base" ? higher.HigherBase : higher.HigherTop);
-                        applied = AppliedOf(plans[picked]).Concat(level != picked ? AppliedOf(plan) : new List<string>()).ToList();
-                    }
-                    else
-                    {
-                        applied = AppliedOf(plan);
-                    }
-                }
                 Tuple<string, JObject, string> status = table.Of("walls." + field, source, null, applied);
                 // Q107. The source stays that of the value, an override that moved it named in the key alone
                 wall.Status[field] = new[] { source, status.Item1, status.Item3 };

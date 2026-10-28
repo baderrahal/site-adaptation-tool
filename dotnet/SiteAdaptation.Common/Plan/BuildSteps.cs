@@ -446,14 +446,6 @@ namespace SiteAdaptation.Common
                                 made[LinkParameters.StepName] = LinkParameters.Step(site.Numbers, plans);
                                 run.Counts["plots with link parameters"] = plans.Values.Count(plan => plan.Parameters["parameters"] != null);
                             }
-                            Dictionary<string, PlotPlan> rulePlans = null;
-                            if ((asked.Contains(Walls.StepName) || checks) && wallRules != null && list.Found.Count > 0)
-                            {
-                                // Breaker F3 of PR 79. The plots with no override, whose FFL picks the plot of the base and the top of a wall by the
-                                // rule, so an override of that plot touched them (Q112), as plan_from_book.build builds them
-                                rulePlans = PlanOverrides.Of(site.Numbers, site.Rows, build, fronts, context, hands, key, levelProfile, site.Rules, site.Settings, files,
-                                    new OverrideList(new Dictionary<string, JObject>()), profileName, FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), site.RulesName);
-                            }
                             // R363. The check rows take the walls and the status of every value, so either is made for them when not asked
                             List<PlanWall> walls = null;
                             ValueStatusTable wallTable = null;
@@ -464,7 +456,7 @@ namespace SiteAdaptation.Common
                                 walls = wallRules == null ? new List<PlanWall>() : Walls.OfPlans(site.Numbers, plans, site.Faces, fronts, wallRules);
                                 foreach (PlanWall wall in walls)
                                 {
-                                    Walls.Mark(wall, wallTable, plans, rulePlans, wallRules);
+                                    Walls.Mark(wall, wallTable, plans);
                                 }
                                 if (asked.Contains(Walls.StepName))
                                 {

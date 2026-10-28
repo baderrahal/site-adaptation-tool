@@ -129,7 +129,8 @@ namespace SiteAdaptation.Common
 
         // value_status.Table.of: the status, the detail and its key. Every override of applied, in the order the build applied them, whose set
         // holds the field touched an input of the value, so the value takes the status of the source override with the entries the code still
-        // reads for it by overrideReads of each, each entry once, and names each override once in that order (Q112, the fallback of its answer),
+        // reads for it by overrideReads of the override applied last that touched it, none when that one sets the field outright (R1 of the
+        // review of PR 85), and names each override once in that order (Q112, the fallback of its answer),
         // also where the value equals its value with no override (Q113). unit is the unit code of the plot, which an entry names as {unit}, the keo_file of its typology for prototypeFile (Q110). A field
         // an open question of majority.decidedByQuestion decides on the plot adds the block entry of that question and key (review 1 of PR 78)
         public Tuple<string, JObject, string> Of(string field, string source, string hand = null, IEnumerable<string> applied = null, string unit = null, string plot = null)
@@ -143,13 +144,12 @@ namespace SiteAdaptation.Common
             List<JObject> refs = Refs(field, source);
             if (moved.Count > 0 && refs != null)
             {
+                // R1 of the review of PR 85. The code computes the field last after the override applied last that touched it, so what that
+                // override reads for it, none when it sets the field outright, is what the value still reads
                 refs = refs.ToList();
-                foreach (string name in moved)
+                if (reads.TryGetValue(moved.Last(), out Dictionary<string, List<JObject>> byField) && byField.TryGetValue(field, out List<JObject> more))
                 {
-                    if (reads.TryGetValue(name, out Dictionary<string, List<JObject>> byField) && byField.TryGetValue(field, out List<JObject> more))
-                    {
-                        refs.AddRange(more.Where(reference => !refs.Any(known => JToken.DeepEquals(known, reference))));
-                    }
+                    refs.AddRange(more.Where(reference => !refs.Any(known => JToken.DeepEquals(known, reference))));
                 }
             }
             string key = field + " from " + source;

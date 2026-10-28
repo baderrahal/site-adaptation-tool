@@ -92,7 +92,7 @@ namespace SiteAdaptation.Tests
             + "floors.ramp.levelElevation:UNKNOWN=6 floors.ramp.outline:UNKNOWN=6 floors.ramp.plotValue:DOCUMENT=6 "
             + "floors.ramp.slopePercent:CHOSEN by Code=6 floors.ramp.type:CHOSEN by Code=5 floors.ramp.type:RECOMMENDED=1 "
             + "floors.yard.heightOffset:UNKNOWN=3 floors.yard.level:UNKNOWN=3 floors.yard.levelElevation:UNKNOWN=3 "
-            + "floors.yard.outline:UNKNOWN=3 floors.yard.plotValue:DOCUMENT=3 floors.yard.type:UNKNOWN=3 floors.yard.z:UNKNOWN=3 "
+            + "floors.yard.outline:UNKNOWN=3 floors.yard.plotValue:DOCUMENT=2 floors.yard.plotValue:RECOMMENDED=1 floors.yard.type:UNKNOWN=3 floors.yard.z:UNKNOWN=3 "
             + "insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 levels.entry:RECOMMENDED=1 "
             + "levels.ffl:RECOMMENDED=1 levels.ffl:UNKNOWN=5 levels.height:MEASURED weak=4 levels.height:RECOMMENDED=2 "
             + "levels.ssl:UNKNOWN=6 levels.steps:RECOMMENDED=1 levels.steps:UNKNOWN=5 linkName:RECOMMENDED=2 linkName:UNKNOWN=4 "
@@ -147,9 +147,9 @@ namespace SiteAdaptation.Tests
             map["overrideReads"] = JObject.Parse("{\"entryM\": {\"levels.height\": [{\"profile\": \"levelProfiles.{levelProfile}.keyRules.ffl.rule\"}]}, "
                 + "\"heightM\": {\"levels.height\": [{\"profile\": \"levelProfiles.{levelProfile}.keyRules.entry.rule\"}, {\"profile\": \"levelProfiles.{levelProfile}.keyRules.ffl.rule\"}]}}");
             var table = new ValueStatusTable(map, Block, ProfileFile, "p1");
-            Assert.Equal("RECOMMENDED {\"entries\":[" + Override + "," + FflText + "," + EntryText + "],\"overrides\":[\"entryM\",\"heightM\"]} | levels.height from override by entryM heightM",
+            Assert.Equal("RECOMMENDED {\"entries\":[" + Override + "," + EntryText + "," + FflText + "],\"overrides\":[\"entryM\",\"heightM\"]} | levels.height from override by entryM heightM",
                 Text(table.Of("levels.height", "estimate", null, new[] { "entryM", "heightM" })));
-            Assert.Equal("RECOMMENDED {\"entries\":[" + Override + "," + EntryText + "," + FflText + "],\"overrides\":[\"heightM\",\"entryM\"]} | levels.height from override by heightM entryM",
+            Assert.Equal("RECOMMENDED {\"entries\":[" + Override + "," + FflText + "],\"overrides\":[\"heightM\",\"entryM\"]} | levels.height from override by heightM entryM",
                 Text(table.Of("levels.height", "estimate", null, new[] { "heightM", "entryM" })));
             Assert.Equal("levels.entry from override by entryM", table.Of("levels.entry", "estimate", null, new[] { "entryM", "heightM" }).Item3);
             // The overrides of the two plots of a wall may repeat one, which is named once
@@ -175,6 +175,46 @@ namespace SiteAdaptation.Tests
                 + "levels.ffl from override by heightM", (string)Field(step, "2", "levels.ffl")["status"] + " " + (string)Field(step, "2", "levels.ffl")["statusFrom"] + " | "
                 + (string)Field(step, "2", "levels.steps")["statusFrom"] + " | " + (string)Field(step, "2", "parameters.RRE_ZZ_SP_Prototype-FFL")["statusFrom"] + " | "
                 + (string)Field(step, "3", "levels.ffl")["statusFrom"]);
+        }
+
+        // test_r401_q112_review1_an_override_that_sets_a_field_outright_drops_the_reads_of_the_overrides_before_it_and_names_all: R1 of the review
+        // of PR 85, a steps override sets the count outright after heightM
+        [Fact]
+        public void R401_Q112_review1_an_override_that_sets_a_field_outright_drops_the_reads_of_the_overrides_before_it_and_names_all()
+        {
+            var block = new JObject();
+            foreach (string name in new[] { "steps.rule", "entry.rule", "ffl.rule", "parameter RRE_ZZ_SP_RVT-Name.rule" })
+            {
+                block[Key + name] = new JObject { ["status"] = "MEASURED", ["share"] = 0.97, ["strength"] = "strong" };
+            }
+            ValueStatusTable table = RealTable(block);
+            foreach (Tuple<string, int> field in new[] { Tuple.Create("levels.steps", 1), Tuple.Create("parameters.RRE_ZZ_SP_Number-of-Steps", 1), Tuple.Create("parameters.RRE_ZZ_SP_RVT-Name", 2),
+                Tuple.Create("linkName", 2) })
+            {
+                Tuple<string, JObject, string> found = table.Of(field.Item1, "estimate", null, new[] { "entryM", "heightM", "steps" });
+                Assert.Equal("RECOMMENDED entryM heightM steps entryM heightM steps " + field.Item2 + " False", found.Item1 + " " + found.Item3.Split(new[] { " by " }, StringSplitOptions.None).Last()
+                    + " " + string.Join(" ", found.Item2["overrides"]) + " " + found.Item2["entries"].Count() + " " + found.Item2["entries"].Any(entry => ((string)entry["entry"] ?? "").Contains("riser")));
+            }
+            Assert.Equal("UNKNOWN", table.Of("levels.steps", "estimate", null, new[] { "heightM" }).Item1);
+        }
+
+        // test_r401_q112_review1_the_mirror_flag_that_decides_the_yard_touches_every_field_of_it: R4 of the review of PR 85, the yard of 1403
+        [Fact]
+        public void R401_Q112_review1_the_mirror_flag_that_decides_the_yard_touches_every_field_of_it()
+        {
+            ValueStatusTable table = RealTable(new JObject { [Key + "yard.rule"] = new JObject { ["status"] = "MEASURED", ["share"] = 0.97, ["strength"] = "strong" } });
+            foreach (Tuple<string, string> field in new[]
+            {
+                Tuple.Create("floors.yard.type", "computed"), Tuple.Create("floors.yard.level", "computed"), Tuple.Create("floors.yard.levelElevation", "computed"),
+                Tuple.Create("floors.yard.plotValue", "computed"), Tuple.Create("floors.yard.z", "estimate"), Tuple.Create("floors.yard.heightOffset", "estimate"),
+                Tuple.Create("floors.yard.outline", "computed"),
+            })
+            {
+                Tuple<string, JObject, string> found = table.Of(field.Item1, field.Item2, "alone", new[] { "mirrored" });
+                Assert.True(found.Item3.EndsWith(" by mirrored", StringComparison.Ordinal) && string.Join(" ", found.Item2["overrides"]) == "mirrored", field.Item1);
+                Assert.Contains(found.Item1, new[] { "UNKNOWN", "RECOMMENDED" });
+            }
+            Assert.Equal("UNKNOWN", table.Of("floors.yard.levelElevation", "computed", null, new[] { "mirrored" }).Item1);
         }
 
         [Fact]
@@ -374,7 +414,8 @@ namespace SiteAdaptation.Tests
         public void R401_Q107_Q112_the_detail_names_the_overrides_in_the_order_the_build_applied_them()
         {
             var table = new ValueStatusTable(Map("{\"entryM\": [\"levels.entry\", \"levels.height\"], \"heightM\": [\"levels.ffl\", \"levels.height\", \"insert\"]}"), Block, ProfileFile, "p1");
-            Assert.Equal("RECOMMENDED {\"entries\":[" + Override + "," + FflText + "],\"overrides\":[\"entryM\",\"heightM\"]} | levels.height from override by entryM heightM",
+            // R1 of the review of PR 85: heightM, applied last, sets the height outright here, so what entryM reads for it is left out
+            Assert.Equal("RECOMMENDED {\"entries\":[" + Override + "],\"overrides\":[\"entryM\",\"heightM\"]} | levels.height from override by entryM heightM",
                 Text(table.Of("levels.height", "estimate", null, new[] { "entryM", "heightM" })));
             Assert.Equal("levels.height from override by heightM entryM", table.Of("levels.height", "estimate", null, new[] { "heightM", "entryM" }).Item3);
             Assert.Equal("levels.entry from override by entryM", table.Of("levels.entry", "estimate", null, new[] { "entryM", "heightM" }).Item3);
@@ -395,6 +436,8 @@ namespace SiteAdaptation.Tests
             Assert.Equal("entryM | entryM heightM | heightM", by("2", "levels.entry") + " | " + by("2", "levels.height") + " | " + by("2", "levels.ffl"));
             Assert.Equal("entryM heightM | entryM heightM", by("2", "levels.steps") + " | " + by("2", "linkName"));
             Assert.Equal("entryM steps | entryM steps | entryM", by("5", "levels.steps") + " | " + by("5", "parameters.RRE_ZZ_SP_RVT-Name") + " | " + by("5", "levels.height"));
+            // R1 of the review of PR 85: the steps override sets the count outright after entryM, so it reads the override status alone
+            Assert.Equal("RECOMMENDED RECOMMENDED", (string)Field(step, "5", "levels.steps")["status"] + " " + (string)Field(step, "5", "parameters.RRE_ZZ_SP_RVT-Name")["status"]);
             Assert.Equal("entryM rampFrontM | entryM rampFrontM | entryM", by("6", "floors.ramp.heightOffset") + " | " + by("6", "floors.ramp.corners") + " | " + by("6", "levels.entry"));
         }
 
@@ -469,7 +512,8 @@ namespace SiteAdaptation.Tests
                     bool carries = (string)table.Used[(string)Field(step, number, value.Key)["statusFrom"]]["entries"][0]["question"] == "Q053";
                     if (!other.TryGetValue(value.Key, out string before) || before == "null")
                     {
-                        // A field the build with no override does not hold, as the yard of 4 its mirror flag override alone picks
+                        // A field the build with no override does not hold, as the yard of 4 its mirror flag override alone picks, so it carries it (R4 of the
+                        // review of PR 85)
                         only.Add(number + " " + value.Key + " " + carries);
                     }
                     else if (before != value.Value)
@@ -483,7 +527,7 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Equal(string.Join(", ", differ), string.Join(", ", carry));
-            Assert.Equal("4 floors.yard.z False, 4 floors.yard.outline True", string.Join(", ", only));
+            Assert.Equal("4 floors.yard.z True, 4 floors.yard.outline True", string.Join(", ", only));
             Assert.True(differ.Count > 15, differ.Count.ToString());
         }
 

@@ -107,7 +107,8 @@ class Table:
     def of(self, field, source, hand=None, applied=(), unit=None, plot=None):
         """The status of a value of field from source, its detail and the key of the detail. Every applied override whose set holds the field
         touched an input of the value, so the value takes the status of the source override, as its source stays, with the entries the code
-        still reads for it by overrideReads of each, each entry once, and names each override once in the order the build applied them
+        still reads for it by overrideReads of the override applied last that touched it, none when that one sets the field outright, as the
+        code computes the field last after it (R1 of the review of PR 85), and names each override once in the order the build applied them
         (Q112, the fallback of its answer, as one more build per override added more than 20 percent to a build of the 7 keys). It does so
         also where the value equals its value with no override, as a value takes the worst status of its inputs (Q113). unit is the unit code
         of the plot, which an entry names as {unit}, the keo_file of its typology for prototypeFile (Q110). A field an open question of majority.decidedByQuestion
@@ -118,9 +119,9 @@ class Table:
             source = OVERRIDE
         refs = self.refs(field, source)
         if moved and refs is not None:
-            refs = list(refs)
-            for name in moved:
-                refs += [ref for ref in (self.reads.get(name) or {}).get(field) or () if ref not in refs]
+            # R1 of the review of PR 85. The code computes the field last after the override applied last that touched it, so what that
+            # override reads for it, none when it sets the field outright, is what the value still reads
+            refs = list(refs) + [ref for ref in (self.reads.get(moved[-1]) or {}).get(field) or () if ref not in refs]
         if refs is None:
             entries = [{"status": "UNKNOWN", "why": NO_STATUS % (field, source)}]
         else:

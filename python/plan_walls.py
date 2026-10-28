@@ -200,23 +200,13 @@ def ffl_of(entry):
     return None if value is None else common.fixed(value, plan_rules.FFL_DECIMALS)
 
 
-def mark(item, wall, table, applied, entries, rules, higher):
-    """R401. The status of each value of a wall through valueStatus, applied the overrides of each plot in the order the build applied them,
-    entries the plan entries, rules those with no override and higher the wall rules. The inputs of the base and the top are the FFL of the pick
-    of the rule, the plot of the highest or lowest FFL of the plots of the wall with no override, and that of the plot of the level, so each
-    override on those plots whose set holds the field touched it and is named, the pick first (Q112, Q113, breaker F3 of PR 79), also where the
-    value equals its value with no override. With no plan of the rule for a plot of the wall the plot of the level alone."""
+def mark(item, wall, table, applied):
+    """R401. The status of each value of a wall through valueStatus, applied the overrides of each plot in the order the build applied them.
+    The base and the top take the FFL of the highest or lowest of the written plots of the wall, and the open edge of each plot decides which
+    walls stand, so every override of the plots of the wall, in their order, whose set holds the field touched it and is named, heightM the base
+    and the top, rotationDeg every value (Q112, Q113, breaker F3 of PR 79, R2 and R3 of the review of PR 85)."""
+    done = tuple(name for plot in wall["plots"] for name in applied.get(plot) or ())
     for field in FIELDS:
-        level = {"base": wall["basePlot"], "top": wall["topPlot"]}.get(field)
-        done = ()
-        if level is not None:
-            writers = [plot for plot in wall["plots"] if ffl_of(entries.get(plot)) is not None]
-            rule_ffls = {plot: ffl_of(rules.get(plot)) for plot in writers}
-            if rules and all(value is not None for value in rule_ffls.values()):
-                picked = pick(writers, rule_ffls, higher["higherBase" if field == "base" else "higherTop"])
-                done = tuple(applied.get(picked) or ()) + (tuple(applied.get(level) or ()) if level != picked else ())
-            else:
-                done = tuple(applied.get(level) or ())
         item[field]["status"], detail, item[field]["statusFrom"] = table.of("walls." + field, item[field]["source"], None, done)
         table.used[item[field]["statusFrom"]] = detail
 

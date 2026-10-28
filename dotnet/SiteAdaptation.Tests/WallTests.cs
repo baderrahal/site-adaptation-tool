@@ -127,18 +127,18 @@ namespace SiteAdaptation.Tests
             ValueStatusTable table = ValueStatus.Table(config, rules, "parsons2024Rev6");
             PlanWall wall = Made()[0];
             var plans = Ffls.ToDictionary(item => item.Key, item => Plan(item.Value));
-            Walls.Mark(wall, table, plans, null, Higher);
+            Walls.Mark(wall, table, plans);
             Assert.Equal("plots locationPlan DOCUMENT walls.plots from locationPlan, ends keyRules UNKNOWN walls.ends from keyRules, base keyRules MEASURED walls.base from keyRules, "
                 + "top keyRules MEASURED walls.top from keyRules", string.Join(", ", Walls.Fields.Select(field => field + " " + wall.Status[field][0] + " " + wall.Status[field][1] + " " + wall.Status[field][2])));
             Assert.Equal("weak weak UNKNOWN", (string)table.Used["walls.base from keyRules"]["strength"] + " " + (string)table.Used["walls.top from keyRules"]["strength"] + " "
                 + (string)table.Used["walls.ends from keyRules"]["entries"].Last["status"]);
             // A heightM override that moved the FFL of 2, the higher plot of the wall, gives its base and top the status of the override list
             plans["2"] = Plan(100.5, "heightM");
-            Walls.Mark(wall, table, plans, new Dictionary<string, PlotPlan> { ["2"] = Plan(100.4) }, Higher);
+            Walls.Mark(wall, table, plans);
             Assert.Equal("RECOMMENDED walls.base from override by heightM walls.top from override by heightM walls.ends from keyRules",
                 wall.Status["base"][1] + " " + wall.Status["base"][2] + " " + wall.Status["top"][2] + " " + wall.Status["ends"][2]);
             // Q113. An override that left the FFL at its value by the rule still touched the wall
-            Walls.Mark(wall, table, plans, new Dictionary<string, PlotPlan> { ["2"] = Plan(100.5) }, Higher);
+            Walls.Mark(wall, table, plans);
             Assert.Equal("walls.base from override by heightM", wall.Status["base"][2]);
         }
 
@@ -148,7 +148,6 @@ namespace SiteAdaptation.Tests
             // test_plan_walls.test_r362_parity_walls_the_plan_places_on_the_made_up_row_after_the_overrides: the row of OverrideParameterStepTests, 3 its FFL
             // 10 cm up by heightM
             OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(OverrideParameterStepTests.Made());
-            OverrideParameterStepTests.Built plain = OverrideParameterStepTests.Build(new OverrideList(new Dictionary<string, JObject>()));
             ValueStatusTable table = ValueStatus.Table(built.Config, built.Rules, "parsons2024Rev6");
             WallRules rules = Walls.Rules((JObject)built.Rules["levelProfiles"]["parsons2024Rev6"]["keyRules"], (JObject)built.Rules["levelProfiles"]["parsons2024Rev6"],
                 "parsons2024Rev6", built.Rules, "roshn-makkah.json", built.Config["keyPlans"]["wallEdgeM"]);
@@ -156,7 +155,7 @@ namespace SiteAdaptation.Tests
             List<PlanWall> walls = Walls.OfPlans(scope, built.Plans, built.Faces, built.Fronts, rules);
             foreach (PlanWall wall in walls)
             {
-                Walls.Mark(wall, table, built.Plans, plain.Plans, rules);
+                Walls.Mark(wall, table, built.Plans);
             }
             Assert.Equal(new[]
             {
@@ -165,7 +164,9 @@ namespace SiteAdaptation.Tests
                 "6 2 6 10.788 12.588 6",
             }, walls.Select(wall => wall.Plot + " " + wall.Edge + " " + string.Join("|", wall.Plots) + " " + Rounding.Fixed(wall.Base, 3).ToString(CultureInfo.InvariantCulture) + " "
                 + Rounding.Fixed(wall.Top, 3).ToString(CultureInfo.InvariantCulture) + " " + wall.BasePlot).ToArray());
-            Assert.Equal(new[] { "walls.base from override by heightM", "walls.base from override by heightM" }, walls.Where(wall => wall.BasePlot == "3").Select(wall => wall.Status["base"][2]).ToArray());
+            // Q112, R2 and R3 of the review of PR 85: a wall names every override of its plots whose set holds the field, in the order of its plots,
+            // the rotations of 2 and 6 every value of their walls
+            Assert.Equal(new[] { "walls.base from override by rotationDeg heightM", "walls.base from override by heightM" }, walls.Where(wall => wall.BasePlot == "3").Select(wall => wall.Status["base"][2]).ToArray());
             // The rotation override of -179.999 turns the link of 2 to face its back edge, so that edge is open and the front of the rule along the road
             // walled, the only wall on the road (breaker F2 of PR 79)
             Assert.Equal("2 3", string.Join(", ", walls.Where(wall => wall.Ends[0][1] == 0.0 && wall.Ends[1][1] == 0.0).Select(wall => wall.Plot + " " + wall.Edge)));
@@ -175,7 +176,9 @@ namespace SiteAdaptation.Tests
                 + " | " + string.Join(" ", ((List<List<string>>)step["3"]["levelPlots"]).SelectMany(item => item)));
             Assert.Equal("{\"status\":\"RECOMMENDED\",\"statusFrom\":\"walls.base from override by heightM\"}", ((JArray)step["3"]["status"])[0]["base"].ToString(Newtonsoft.Json.Formatting.None));
             JObject tables = Walls.Tables(walls, table);
-            Assert.Equal("walls.base from keyRules, walls.base from override by heightM, walls.ends from keyRules, walls.plots from locationPlan, walls.top from keyRules, walls.top from override by heightM",
+            Assert.Equal("walls.base from keyRules, walls.base from override by heightM, walls.base from override by rotationDeg, walls.base from override by rotationDeg heightM, "
+                + "walls.ends from keyRules, walls.ends from override by rotationDeg, walls.plots from locationPlan, walls.plots from override by rotationDeg, walls.top from keyRules, "
+                + "walls.top from override by heightM, walls.top from override by rotationDeg, walls.top from override by rotationDeg heightM",
                 string.Join(", ", ((JObject)tables["statusFrom"]).Properties().Select(item => item.Name)));
             Assert.Equal("heightM", string.Join(" ", tables["statusFrom"]["walls.base from override by heightM"]["overrides"]));
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
@@ -237,13 +240,43 @@ namespace SiteAdaptation.Tests
             ValueStatusTable table = ValueStatus.Table(config, rules, "parsons2024Rev6");
             PlanWall wall = Made()[0];
             var plans = Ffls.ToDictionary(item => item.Key, item => item.Key == "2" ? Plan(item.Value, "heightM") : Plan(item.Value));
-            Walls.Mark(wall, table, plans, new Dictionary<string, PlotPlan> { ["2"] = Plan(100.5) }, Higher);
+            Walls.Mark(wall, table, plans);
             Assert.Equal("RECOMMENDED walls.base from override by heightM walls.top from override by heightM", wall.Status["base"][1] + " " + wall.Status["base"][2] + " " + wall.Status["top"][2]);
             var ffls = new Dictionary<string, double>(Ffls) { ["2"] = 99.98 };
             PlanWall low = Made(ffls: ffls)[0];
             var lowPlans = ffls.ToDictionary(item => item.Key, item => item.Key == "2" ? Plan(item.Value, "heightM") : item.Key == "1" ? Plan(item.Value, "entryM", "heightM") : Plan(item.Value));
-            Walls.Mark(low, table, lowPlans, Ffls.ToDictionary(item => item.Key, item => Plan(item.Value)), Higher);
+            Walls.Mark(low, table, lowPlans);
             Assert.Equal("walls.base from override by heightM heightM", low.Status["base"][2] + " " + string.Join(" ", table.Used[low.Status["base"][2]]["overrides"]));
+        }
+
+        // test_plan_walls.test_r362_r401_q112_review1_a_wall_names_the_overrides_of_every_plot_it_stands_on, R2 of the review of PR 85
+        [Fact]
+        public void R362_R401_Q112_review1_a_wall_names_the_overrides_of_every_plot_it_stands_on()
+        {
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            JObject rules = JObject.Parse(File.ReadAllText(BuildStepTests.RepoRules()));
+            ValueStatusTable table = ValueStatus.Table(config, rules, "parsons2024Rev6");
+            var ffls = new Dictionary<string, double>(Ffls) { ["1"] = 100.6 };
+            PlanWall wall = Made(ffls: ffls)[0];
+            Assert.Equal("1|2 1", string.Join("|", wall.Plots) + " " + wall.BasePlot);
+            Walls.Mark(wall, table, ffls.ToDictionary(item => item.Key, item => item.Key == "2" ? Plan(item.Value, "heightM") : Plan(item.Value)));
+            Assert.Equal("RECOMMENDED walls.base from override by heightM walls.top from override by heightM walls.plots from locationPlan",
+                wall.Status["base"][1] + " " + wall.Status["base"][2] + " " + wall.Status["top"][2] + " " + wall.Status["plots"][2]);
+        }
+
+        // test_plan_walls.test_r362_r401_q112_review1_a_rotation_override_that_moves_the_open_edge_touches_every_value_of_the_walls, R3 of the review
+        // of PR 85
+        [Fact]
+        public void R362_R401_Q112_review1_a_rotation_override_that_moves_the_open_edge_touches_every_value_of_the_walls()
+        {
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            JObject rules = JObject.Parse(File.ReadAllText(BuildStepTests.RepoRules()));
+            ValueStatusTable table = ValueStatus.Table(config, rules, "parsons2024Rev6");
+            PlanWall wall = Made()[0];
+            Walls.Mark(wall, table, Ffls.ToDictionary(item => item.Key, item => item.Key == "1" ? Plan(item.Value, "heightM", "rotationDeg") : Plan(item.Value)));
+            Assert.Equal("walls.plots from override by rotationDeg, walls.ends from override by rotationDeg, walls.base from override by heightM rotationDeg, "
+                + "walls.top from override by heightM rotationDeg", string.Join(", ", Walls.Fields.Select(field => wall.Status[field][2])));
+            Assert.Equal("RECOMMENDED UNKNOWN RECOMMENDED RECOMMENDED", string.Join(" ", Walls.Fields.Select(field => wall.Status[field][1])));
         }
 
         [Fact]
@@ -257,19 +290,19 @@ namespace SiteAdaptation.Tests
             PlanWall wall = Made(ffls: ffls)[0];
             Assert.Equal("1|2 1 1", string.Join("|", wall.Plots) + " " + wall.BasePlot + " " + wall.TopPlot);
             var plans = ffls.ToDictionary(item => item.Key, item => item.Key == "2" ? Plan(item.Value, "heightM") : Plan(item.Value));
-            var rulePlans = Ffls.ToDictionary(item => item.Key, item => Plan(item.Value));
-            Walls.Mark(wall, table, plans, rulePlans, Higher);
+            Walls.Mark(wall, table, plans);
             Assert.Equal("RECOMMENDED walls.base from override by heightM walls.top from override by heightM", wall.Status["base"][1] + " " + wall.Status["base"][2] + " " + wall.Status["top"][2]);
-            rulePlans["2"] = Plan(99.9);
-            Walls.Mark(wall, table, plans, rulePlans, Higher);
-            Assert.Equal("walls.base from keyRules", wall.Status["base"][2]);
+            // R2 of the review of PR 85: the FFL of 2 is compared to pick the plot of the base, so its heightM touched the base also where the pick
+            // of the rule stays 1
+            Walls.Mark(wall, table, plans);
+            Assert.Equal("walls.base from override by heightM", wall.Status["base"][2]);
             // Review 2 of PR 79, the wall of 543 and 544: heightM lifts 1, the plot of the base, to the FFL of 2, the pick of the rule, so the base
             // equals the base with no override, and since Q113 it names heightM, which touched the FFL of its own plot
             var lifted = new Dictionary<string, double>(Ffls) { ["1"] = 100.5 };
             PlanWall even = Made(ffls: lifted)[0];
             Assert.Equal("1|2 1", string.Join("|", even.Plots) + " " + even.BasePlot);
             var liftedPlans = lifted.ToDictionary(item => item.Key, item => item.Key == "1" ? Plan(item.Value, "heightM") : Plan(item.Value));
-            Walls.Mark(even, table, liftedPlans, Ffls.ToDictionary(item => item.Key, item => Plan(item.Value)), Higher);
+            Walls.Mark(even, table, liftedPlans);
             Assert.Equal("walls.base from override by heightM walls.top from override by heightM", even.Status["base"][2] + " " + even.Status["top"][2]);
         }
     }

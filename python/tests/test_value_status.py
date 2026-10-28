@@ -107,8 +107,9 @@ def test_r401_q107_q112_the_detail_names_the_overrides_in_the_order_the_build_ap
     """Q107, Q112. applied in the order the build applied them, each override whose set holds the field named in that order, as heightM sets
     the height after entryM moved El @ Entry."""
     table = made_table(shape={"overrideSets": {"entryM": ["levels.entry", "levels.height"], "heightM": ["levels.ffl", "levels.height", "insert"]}})
+    # R1 of the review of PR 85: heightM, applied last, sets the height outright here, so what entryM reads for it is left out
     assert table.of("levels.height", "estimate", applied=["entryM", "heightM"])[1:] == (
-        {"entries": [OVERRIDE, FFL], "overrides": ["entryM", "heightM"]}, "levels.height from override by entryM heightM")
+        {"entries": [OVERRIDE], "overrides": ["entryM", "heightM"]}, "levels.height from override by entryM heightM")
     assert table.of("levels.height", "estimate", applied=["heightM", "entryM"])[2] == "levels.height from override by heightM entryM"
     assert table.of("levels.entry", "estimate", applied=["entryM", "heightM"])[2] == "levels.entry from override by entryM"
 
@@ -116,14 +117,14 @@ def test_r401_q107_q112_the_detail_names_the_overrides_in_the_order_the_build_ap
 def test_r401_q112_a_value_names_every_applied_override_whose_set_holds_its_field_in_the_order_applied():
     """Q112 (Bader, 2026-10-28), the fallback: one more build per override added more than 20 percent to the time of a build of the 7 keys, so
     a value names every applied override whose set holds its field, the overrides that touched its inputs, in the order the build applied
-    them, each once, and takes the worst of the override status and the entries each of them still reads, each entry once."""
+    them, each once, and takes the worst of the override status and the entries the one applied last still reads (R1 of the review of PR 85)."""
     ffl, entry = {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}
     table = made_table(shape={"overrideSets": {"entryM": ["levels.entry", "levels.height"], "heightM": ["levels.ffl", "levels.height", "insert"]},
                               "overrideReads": {"entryM": {"levels.height": [ffl]}, "heightM": {"levels.height": [entry, ffl]}}})
     assert table.of("levels.height", "estimate", applied=["entryM", "heightM"]) == (
-        "RECOMMENDED", {"entries": [OVERRIDE, FFL, ENTRY], "overrides": ["entryM", "heightM"]}, "levels.height from override by entryM heightM")
+        "RECOMMENDED", {"entries": [OVERRIDE, ENTRY, FFL], "overrides": ["entryM", "heightM"]}, "levels.height from override by entryM heightM")
     assert table.of("levels.height", "estimate", applied=["heightM", "entryM"])[1:] == (
-        {"entries": [OVERRIDE, ENTRY, FFL], "overrides": ["heightM", "entryM"]}, "levels.height from override by heightM entryM")
+        {"entries": [OVERRIDE, FFL], "overrides": ["heightM", "entryM"]}, "levels.height from override by heightM entryM")
     assert table.of("levels.entry", "estimate", applied=["entryM", "heightM"])[2] == "levels.entry from override by entryM"
     # The overrides of the two plots of a wall may repeat one, which is named once
     assert table.of("levels.ffl", "estimate", applied=["heightM", "entryM", "heightM"])[1:] == ({"entries": [OVERRIDE], "overrides": ["heightM"]},
@@ -143,6 +144,31 @@ def test_r401_q113_a_value_an_override_touched_takes_the_worst_of_its_inputs_at_
     assert plan["2"]["levels"]["steps"]["statusFrom"] == "levels.steps from override by heightM"
     assert plan["2"]["parameters"]["RRE_ZZ_SP_Prototype-FFL"]["statusFrom"] == "parameters.RRE_ZZ_SP_Prototype-FFL from override by heightM"
     assert plan["3"]["levels"]["ffl"]["statusFrom"] == "levels.ffl from override by heightM"
+
+
+def test_r401_q112_review1_an_override_that_sets_a_field_outright_drops_the_reads_of_the_overrides_before_it_and_names_all():
+    """R1 of the review of PR 85: a steps override sets the count outright after heightM, so the count takes the override status alone, not
+    the reads heightM and entryM bring, and still names every override that touched it (Q112, Q113). A field still computed after the last
+    override takes its reads."""
+    strong = {"status": "MEASURED", "share": 0.97, "strength": "strong"}
+    table = real_table({KEY + name: dict(strong) for name in ("steps.rule", "entry.rule", "ffl.rule", "parameter RRE_ZZ_SP_RVT-Name.rule")})
+    for field, read in (("levels.steps", 1), ("parameters.RRE_ZZ_SP_Number-of-Steps", 1), ("parameters.RRE_ZZ_SP_RVT-Name", 2), ("linkName", 2)):
+        status, detail, key = table.of(field, "estimate", applied=["entryM", "heightM", "steps"])
+        assert (status, key.rpartition(" by ")[2], detail["overrides"], len(detail["entries"])) == ("RECOMMENDED", "entryM heightM steps", ["entryM", "heightM", "steps"], read)
+        assert not any("riser" in entry.get("entry", "") for entry in detail["entries"])
+    assert table.of("levels.steps", "estimate", applied=["heightM"])[0] == "UNKNOWN"
+
+
+def test_r401_q112_review1_the_mirror_flag_that_decides_the_yard_touches_every_field_of_it():
+    """R4 of the review of PR 85: the yard of 1403 is there only by its mirror flag override, which picks the yard outline of the hand, so
+    every field of the yard names mirrored and takes the worst of the override status and its own entries (Q112, Q113)."""
+    table = real_table({KEY + "yard.rule": {"status": "MEASURED", "share": 0.97, "strength": "strong"}})
+    for field, source in (("floors.yard.type", "computed"), ("floors.yard.level", "computed"), ("floors.yard.levelElevation", "computed"),
+                          ("floors.yard.plotValue", "computed"), ("floors.yard.z", "estimate"), ("floors.yard.heightOffset", "estimate"), ("floors.yard.outline", "computed")):
+        status, detail, key = table.of(field, source, hand="alone", applied=["mirrored"])
+        assert key.endswith(" by mirrored") and detail["overrides"] == ["mirrored"], field
+        assert status in ("UNKNOWN", "RECOMMENDED"), field
+    assert table.of("floors.yard.levelElevation", "computed", applied=["mirrored"])[0] == "UNKNOWN"
 
 
 def test_r401_an_override_and_a_client_input_take_the_status_the_map_gives_their_source():
@@ -237,7 +263,7 @@ MADE_COUNTS = ("floors.generic.heightOffset:UNKNOWN=6 floors.generic.level:UNKNO
                "floors.ramp.levelElevation:UNKNOWN=6 floors.ramp.outline:UNKNOWN=6 floors.ramp.plotValue:DOCUMENT=6 "
                "floors.ramp.slopePercent:CHOSEN by Code=6 floors.ramp.type:CHOSEN by Code=5 floors.ramp.type:RECOMMENDED=1 "
                "floors.yard.heightOffset:UNKNOWN=3 floors.yard.level:UNKNOWN=3 floors.yard.levelElevation:UNKNOWN=3 "
-               "floors.yard.outline:UNKNOWN=3 floors.yard.plotValue:DOCUMENT=3 floors.yard.type:UNKNOWN=3 floors.yard.z:UNKNOWN=3 "
+               "floors.yard.outline:UNKNOWN=3 floors.yard.plotValue:DOCUMENT=2 floors.yard.plotValue:RECOMMENDED=1 floors.yard.type:UNKNOWN=3 floors.yard.z:UNKNOWN=3 "
                "insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 levels.entry:RECOMMENDED=1 "
                "levels.ffl:RECOMMENDED=1 levels.ffl:UNKNOWN=5 levels.height:MEASURED weak=4 levels.height:RECOMMENDED=2 "
                "levels.ssl:UNKNOWN=6 levels.steps:RECOMMENDED=1 levels.steps:UNKNOWN=5 linkName:RECOMMENDED=2 linkName:UNKNOWN=4 "
@@ -365,6 +391,8 @@ def test_r401_q107_q112_the_build_names_the_overrides_that_touched_the_value_in_
     assert by[("2", "levels.entry")] == "entryM" and by[("2", "levels.height")] == "entryM heightM" and by[("2", "levels.ffl")] == "heightM"
     assert by[("2", "levels.steps")] == by[("2", "linkName")] == "entryM heightM"
     assert by[("5", "levels.steps")] == by[("5", "parameters.RRE_ZZ_SP_RVT-Name")] == "entryM steps" and by[("5", "levels.height")] == "entryM"
+    # R1 of the review of PR 85: the steps override sets the count outright after entryM, so it reads the override status alone
+    assert [plan["5"]["levels"]["steps"]["status"], plan["5"]["parameters"]["RRE_ZZ_SP_RVT-Name"]["status"]] == ["RECOMMENDED", "RECOMMENDED"]
     assert by[("6", "floors.ramp.heightOffset")] == by[("6", "floors.ramp.corners")] == "entryM rampFrontM" and by[("6", "levels.entry")] == "entryM"
 
 
@@ -388,7 +416,8 @@ def test_r401_q107_the_plan_writes_the_shares_of_the_table_status_from_unrounded
 
 def test_r401_every_value_an_override_moves_carries_the_status_of_the_override_list(monkeypatch):
     """The second method: the made row built with no override, every value of a plot both write that differs carries the override status.
-    The yard of 4 is there only by its mirror flag override, which picks the outline alone, so of its fields the outline carries it."""
+    The yard of 4 is there only by its mirror flag override, which picks the outline of the hand and so the yard, so every field of it carries
+    it (R4 of the review of PR 85)."""
     built, plain = made_row(monkeypatch, MADE), made_row(monkeypatch, {})
     differ, carry, only = [], [], []
     for number, entry in built["plan"].items():
@@ -402,7 +431,7 @@ def test_r401_every_value_an_override_moves_carries_the_status_of_the_override_l
                 if carries:
                     carry.append((number, field))
     assert differ == carry and len(differ) > 20
-    assert only == [("4", "floors.yard." + name, name == "outline") for name in ("type", "level", "levelElevation", "outline", "plotValue", "z", "heightOffset")]
+    assert only == [("4", "floors.yard." + name, True) for name in ("type", "level", "levelElevation", "outline", "plotValue", "z", "heightOffset")]
 
 
 def strip(value):
