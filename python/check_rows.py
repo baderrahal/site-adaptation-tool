@@ -4,7 +4,7 @@ and field an open question of majority.decidedByQuestion decides, an entry of th
 the plot. Each row holds its check type, its field, the Use it opens on, Past when the build applies the override, Skip on a plot of the skip
 list, else Rule, and what Past writes in the form of the list by check and field (docs/design/03b-buttons-2-to-8.md 3 Check), all from the
 block checkRows of the settings. The chip Assumed of Q108 groups the assumed values of the plan by rule, one row per rule and status with its
-plots, a DOCUMENT or strong MEASURED value and a value an override sets left out (7.7 item 8). The step checkRows of the parity harness, step 14,
+plots, only a DOCUMENT or strong MEASURED value left out (Q108, 7.7 item 8). The step checkRows of the parity harness, step 14,
 holds per plot its rows and the tables assumed and chips.
 
 python python/check_rows.py <plan.json> --plots-csv <plots.csv> [--overrides <list>] --out <folder outside the repo>
