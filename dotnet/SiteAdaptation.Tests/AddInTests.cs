@@ -225,8 +225,8 @@ namespace SiteAdaptation.Tests
             });
         }
 
-        // Libre Franklin 2.000 and 3.000 hold no tnum feature, so the request is met only by a fallback font. The theme asks for it in
-        // every type style all the same, the digits of Libre Franklin are a question for Bader (5a PR 2 report)
+        // Libre Franklin 2.000 and 3.000 hold no tnum feature and WPF takes no other font for one feature, so the digits stay
+        // proportional. The theme asks for it in every type style all the same, question QL9 of steps/lane-b.md
         [Fact]
         public void R371_every_type_style_asks_for_tabular_figures()
         {
