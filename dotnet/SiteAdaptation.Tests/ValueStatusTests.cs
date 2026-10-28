@@ -618,5 +618,23 @@ namespace SiteAdaptation.Tests
             Tuple<string, JObject, string> free = table.Of("prototypeFile", "computed", unit: "VD4", plot: "2303");
             Assert.Equal("DOCUMENT prototypeFile from computed unit VD4", free.Item1 + " " + free.Item3);
         }
+
+        // test_value_status.test_r401_review1_pr78_the_build_marks_the_plot_an_open_question_decides, review 2 of PR 78: Step passes the plot number,
+        // so the decided plot of the made row reads RECOMMENDED by its question and the others keep their status
+        [Fact]
+        public void R401_review1_PR78_the_build_marks_the_plot_an_open_question_decides()
+        {
+            Dictionary<string, Dictionary<string, object>> plain = MadeStep(OverrideParameterStepTests.Made(), out OverrideParameterStepTests.Built built, out _);
+            var config = (JObject)built.Config.DeepClone();
+            config["majority"]["decidedByQuestion"] = Decided.DeepClone();
+            var rules = (JObject)built.Rules.DeepClone();
+            rules["status"]["config/project.json"]["majority.decidedByQuestion.Q900.plots.k1"] = JObject.Parse(DecidedEntry);
+            ValueStatusTable table = ValueStatus.Table(config, rules, "parsons2024Rev6");
+            Dictionary<string, Dictionary<string, object>> step = ValueStatus.Step(built.Plans.Keys.ToList(), built.Plans, built.Hands, table);
+            Assert.Equal("RECOMMENDED " + (string)Field(plain, "5", "mirrored")["statusFrom"] + " question Q900 k1",
+                (string)Field(step, "5", "mirrored")["status"] + " " + (string)Field(step, "5", "mirrored")["statusFrom"]);
+            Assert.Equal((string)Field(plain, "4", "mirrored")["status"] + " " + (string)Field(plain, "4", "mirrored")["statusFrom"],
+                (string)Field(step, "4", "mirrored")["status"] + " " + (string)Field(step, "4", "mirrored")["statusFrom"]);
+        }
     }
 }
