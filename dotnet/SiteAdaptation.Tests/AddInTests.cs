@@ -18,7 +18,7 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // R370, R371, R372. The add-in shell of 5a on net48, the target Revit 2024 runs: the ribbon layout against the approved mock, the
+    // R370, R371. The add-in shell of 5a on net48, the target Revit 2024 runs: the ribbon layout against the approved mock, the
     // commands, the resolver of docs/design/08-install.md, the icons rendered from the theme and the bundled font. No Revit type is
     // touched, so no Revit is needed
     public sealed class AddInTests
@@ -102,7 +102,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R371_each_icon_renders_from_the_theme_at_32_and_16_px_with_drawn_pixels_of_its_colours()
+        public void R371_each_icon_renders_from_the_theme_at_32_and_16_units_at_scale_1_and_1_5_with_drawn_pixels_of_its_colours()
         {
             var counts = new List<string>();
             OnSta(() =>
@@ -112,11 +112,16 @@ namespace SiteAdaptation.Tests
                 Color accent = ((SolidColorBrush)theme["SA.IconAccent"]).Color;
                 foreach (RibbonButtonSpec button in RibbonLayout.Buttons)
                 {
-                    foreach (int size in new[] { 32, 16 })
+                    foreach (double scale in new[] { 1.0, 1.5 })
+                    foreach (int units in new[] { 32, 16 })
                     {
-                        BitmapSource bitmap = IconRenderer.Render(theme, size == 32 ? button.IconKey32 : button.IconKey16, size);
+                        BitmapSource bitmap = IconRenderer.Render(theme, units == 32 ? button.IconKey32 : button.IconKey16, units, scale);
+                        int size = (int)(units * scale);
                         Assert.Equal(size, bitmap.PixelWidth);
                         Assert.Equal(size, bitmap.PixelHeight);
+                        Assert.Equal(units, bitmap.Width, 6);
+                        Assert.Equal(units, bitmap.Height, 6);
+                        Assert.Equal(96 * scale, bitmap.DpiX, 6);
                         Assert.True(bitmap.IsFrozen);
                         byte[] pixels = new byte[size * size * 4];
                         bitmap.CopyPixels(pixels, size * 4, 0);
@@ -136,7 +141,7 @@ namespace SiteAdaptation.Tests
                                 accentLike += Near(pixels, at, accent) ? 1 : 0;
                             }
                         }
-                        counts.Add(button.Number + "@" + size + " drawn " + drawn + " heading " + headingLike + " accent " + accentLike);
+                        counts.Add(button.Number + "@" + units + "x" + scale.ToString(CultureInfo.InvariantCulture) + " drawn " + drawn + " heading " + headingLike + " accent " + accentLike);
                         Assert.True(drawn >= size, counts.Last());
                         Assert.True(drawn < size * size, counts.Last());
                         Assert.True(headingLike > 0, counts.Last());
@@ -144,11 +149,54 @@ namespace SiteAdaptation.Tests
                     }
                 }
             });
-            Assert.Equal(16, counts.Count);
+            Assert.Equal(32, counts.Count);
+        }
+
+        // The scale of WPF against the one GDI gives for the screen, a second reading of the same DPI. The test process is DPI
+        // aware once WPF has loaded, as Revit is
+        [Fact]
+        public void R371_the_icon_scale_is_the_system_dpi_of_the_process_over_96()
+        {
+            double scale = 0;
+            OnSta(() => scale = IconRenderer.ScreenScale());
+            IntPtr screen = GetDC(IntPtr.Zero);
+            int gdiDpi;
+            try
+            {
+                gdiDpi = GetDeviceCaps(screen, LogPixelsX);
+            }
+            finally
+            {
+                ReleaseDC(IntPtr.Zero, screen);
+            }
+            Assert.True(scale >= 1.0, scale.ToString(CultureInfo.InvariantCulture));
+            Assert.Equal(gdiDpi / 96.0, scale, 6);
         }
 
         [Fact]
-        public void R372_the_theme_font_is_the_bundled_libre_franklin_with_a_real_semibold_and_regular()
+        public void R371_an_icon_of_no_pixel_or_a_key_off_the_theme_is_refused()
+        {
+            OnSta(() =>
+            {
+                ResourceDictionary theme = ThemeDictionary.Load();
+                Assert.Throws<ArgumentOutOfRangeException>(() => IconRenderer.Render(theme, "SA.Icon.1.16", 16, 0.01));
+                Assert.Throws<ArgumentException>(() => IconRenderer.Render(theme, "SA.Icon.9.32", 32, 1.0));
+            });
+        }
+
+        private const int LogPixelsX = 88;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr GetDC(IntPtr window);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern int ReleaseDC(IntPtr window, IntPtr context);
+
+        [System.Runtime.InteropServices.DllImport("gdi32.dll")]
+        private static extern int GetDeviceCaps(IntPtr context, int index);
+
+        [Fact]
+        public void R371_the_theme_font_is_the_bundled_libre_franklin_with_a_real_semibold_and_regular()
         {
             OnSta(() =>
             {
@@ -180,7 +228,7 @@ namespace SiteAdaptation.Tests
         // Libre Franklin 2.000 and 3.000 hold no tnum feature, so the request is met only by a fallback font. The theme asks for it in
         // every type style all the same, the digits of Libre Franklin are a question for Bader (5a PR 2 report)
         [Fact]
-        public void R372_every_type_style_asks_for_tabular_figures()
+        public void R371_every_type_style_asks_for_tabular_figures()
         {
             OnSta(() =>
             {

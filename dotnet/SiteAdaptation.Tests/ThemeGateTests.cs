@@ -9,7 +9,7 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // R371, R372, docs/design/12-ui-spec.md. Theme.xaml holds every colour, font size and icon of the add-in. These tests read files
+    // R371, docs/design/12-ui-spec.md. Theme.xaml holds every colour, font size and icon of the add-in. These tests read files
     // only, so they run on net48 and on the net8.0 leg of Linux: the gate on every other XAML and C# file of the add-in, and Theme.xaml
     // against the text of the spec, a second reading of the values the theme was written from
     public sealed class ThemeGateTests
@@ -17,11 +17,8 @@ namespace SiteAdaptation.Tests
         private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
         private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
-        // QL7 of steps/lane-b.md, Bader's answer of 28 Oct 2026, in the spec once the records of 5a PR 1 are on main
-        private static readonly string[] AnsweredTypes = { "SA.Type.Project 16 SemiBold", "SA.Type.Step 14 Regular", "SA.Type.Count 28 SemiBold", "SA.Type.Label 13 SemiBold" };
-
         [Fact]
-        public void R371_R372_no_colour_literal_and_no_font_size_in_any_file_of_the_addin_but_the_theme()
+        public void R371_no_colour_literal_and_no_font_size_in_any_file_of_the_addin_but_the_theme()
         {
             string addin = Path.Combine(RepoRoot(), "dotnet", "SiteAdaptation.AddIn");
             Assert.True(File.Exists(Path.Combine(addin, ThemeGate.ThemeFile)), "no theme file in " + addin);
@@ -31,7 +28,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R371_R372_the_gate_catches_each_planted_literal_and_leaves_the_theme_and_a_clean_file_alone()
+        public void R371_the_gate_catches_each_planted_literal_and_leaves_the_theme_and_a_clean_file_alone()
         {
             var planted = new Dictionary<string, string>
             {
@@ -79,7 +76,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R371_R372_every_colour_of_the_spec_is_in_the_theme_with_its_value_and_the_theme_holds_no_other_colour()
+        public void R371_every_colour_of_the_spec_is_in_the_theme_with_its_value_and_the_theme_holds_no_other_colour()
         {
             string colours = Part(SpecText(), "### Colours");
             var expected = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -100,19 +97,14 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R371_R372_every_type_key_of_the_spec_and_of_QL7_has_its_size_and_weight_and_none_is_below_12()
+        public void R371_every_type_key_of_the_spec_with_the_four_of_QL7_has_its_size_and_weight_and_none_is_below_12()
         {
             string font = Part(SpecText(), "### Font");
             var expected = new Dictionary<string, Tuple<double, string>>(StringComparer.Ordinal);
-            foreach (string text in Regex.Matches(font, @"SA\.Type\.\w+ \d+ (?:SemiBold|Regular)").Cast<Match>().Select(match => match.Value).Concat(AnsweredTypes))
+            foreach (Match match in Regex.Matches(font, @"(SA\.Type\.\w+) (\d+) (SemiBold|Regular)"))
             {
-                string[] parts = text.Split(' ');
-                var value = Tuple.Create(double.Parse(parts[1], CultureInfo.InvariantCulture), parts[2]);
-                if (expected.TryGetValue(parts[0], out Tuple<double, string> before))
-                {
-                    Assert.Equal(before, value);
-                }
-                expected[parts[0]] = value;
+                Assert.False(expected.ContainsKey(match.Groups[1].Value), match.Value);
+                expected.Add(match.Groups[1].Value, Tuple.Create(double.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture), match.Groups[3].Value));
             }
             XElement theme = Theme();
             Dictionary<string, double> doubles = Doubles(theme);
@@ -132,7 +124,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R371_R372_spacing_control_sizes_and_radii_are_the_values_of_the_spec()
+        public void R371_spacing_control_sizes_and_radii_are_the_values_of_the_spec()
         {
             string spec = SpecText();
             string sizes = Part(spec, "### Sizes");
@@ -291,7 +283,7 @@ namespace SiteAdaptation.Tests
         }
     }
 
-    // R371, R372. The gate of docs/design/12-ui-spec.md: a colour or a font size is written in Theme.xaml only
+    // R371. The gate of docs/design/12-ui-spec.md: a colour or a font size is written in Theme.xaml only
     internal static class ThemeGate
     {
         public static readonly string ThemeFile = Path.Combine("Theme", "Theme.xaml");

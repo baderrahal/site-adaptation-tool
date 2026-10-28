@@ -3,7 +3,7 @@ using System.Windows;
 
 namespace SiteAdaptation.AddIn.Theme
 {
-    // R371, R372, docs/design/12-ui-spec.md. Theme.xaml is the one source of every colour, font, size and icon. Revit runs no WPF
+    // R371, docs/design/12-ui-spec.md. Theme.xaml is the one source of every colour, font, size and icon. Revit runs no WPF
     // Application of the tool, so the dictionary is loaded from the compiled resource of this assembly by its name
     public static class ThemeDictionary
     {

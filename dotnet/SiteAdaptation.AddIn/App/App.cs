@@ -26,6 +26,7 @@ namespace SiteAdaptation.AddIn
         private static void BuildRibbon(UIControlledApplication application)
         {
             ResourceDictionary theme = ThemeDictionary.Load();
+            double scale = IconRenderer.ScreenScale();
             string assembly = typeof(App).Assembly.Location;
             application.CreateRibbonTab(RibbonLayout.Tab);
             foreach (RibbonPanelSpec panel in RibbonLayout.Panels)
@@ -35,8 +36,8 @@ namespace SiteAdaptation.AddIn
                 {
                     var data = new PushButtonData("SiteAdaptation.Button" + button.Number, button.Label, assembly, button.CommandClass)
                     {
-                        LargeImage = IconRenderer.Render(theme, button.IconKey32, 32),
-                        Image = IconRenderer.Render(theme, button.IconKey16, 16),
+                        LargeImage = IconRenderer.Render(theme, button.IconKey32, 32, scale),
+                        Image = IconRenderer.Render(theme, button.IconKey16, 16, scale),
                         AvailabilityClassName = RibbonLayout.AvailabilityClass,
                     };
                     ribbonPanel.AddItem(data);

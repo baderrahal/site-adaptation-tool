@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- R346. Every test runs on net48, the tests of Common and CadReader also on net8.0, the leg of the Linux runner -->
+  <!-- R346. Every test runs on net48, the tests of Common and CadReader and the theme tests of the add-in, which read files only, also on net8.0, the leg of the Linux runner -->
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <TargetFramework></TargetFramework>
