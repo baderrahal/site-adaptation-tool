@@ -92,6 +92,24 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - 5a PR 5 review. The list per plot of the confirm is hidden in ExpandedContent.
 - 5a PR 5 review. No test drives WarningCollector, RevitTransaction or TaskDialogConfirm.
 - 5a PR 5 review 2. A running Revit whose path is known but whose version cannot be read, outside a Revit 2024 folder, counts as not Revit 2024 and lets the install go on (dotnet/SiteAdaptation.AddIn/InstallChecks.ps1 lines 21 to 23 and 35). No real input is known to reach it, Revit.exe carries its version.
+- 5a PR 4 review. With no machine.json the work root falls back to the Documents folder, which OneDrive may hold, with no warning. Rank first for 5c.
+- 5a PR 4 review. A work folder inside inputRoot or a machine.json with no workRoot throws out of IRunState.WorkFolder, and the flow has no stop for it.
+- 5a PR 4 review. A relative or unexpanded workRoot of machine.json is taken as written.
+- 5a PR 4 review. A cloud PathName can throw in Path.GetFullPath of the work folder hash.
+- 5a PR 4 review. The folder hash of the pane and the one of the flow differ in case and slash, so they never match each other.
+- 5a PR 4 review. The folder stamp, the latest write time xor the file count, misses a rename.
+- 5a PR 4 review. SettingsFile.Read takes formatVersion 0 and throws an exception it does not catch on a field of the wrong shape.
+- 5a PR 4 review. A folder input with a denied subfolder shows as missing.
+- 5a PR 4 review. A mapped drive and its UNC path give one model two work folders.
+- 5a PR 4 review. The Nbh setter of the view model takes null.
+- 5a PR 4 review. The baseline compare goes through a 256 colour palette and may flake on another machine.
+- 5a PR 4 review. The rules file is parsed on the UI thread at every refresh of the pane.
+- 5a PR 4 review. A file that keeps changing is hashed again at every refresh.
+- 5a PR 4 review. A drive root picked as a folder input is hashed over the whole drive.
+- 5a PR 4 review. The text test checks the messages of RunTexts by their parts, so a short part passes inside any entry, and a text built by code is not seen.
+- 5a PR 4 review. PaneHost.Current, PaneHost.Sessions, PaneHost.Routed, AnswerRelay.Post and PaneSessions.KeyOf have no production caller yet.
+- 5a PR 4 review. DocumentOpened and DocumentCreated give a session to linked and family documents too, which no button runs on.
+- 5a PR 4 review. A click of the box runs later through an ExternalEvent and may run on another document if the user switched in between.
 
 ## Lane B rules, Bader 28 Oct 2026
 
@@ -145,6 +163,19 @@ QL12. Messages and the confirm of a button as TaskDialogs. docs/design/03a-butto
 - Recommended: keep TaskDialogs for the short stops and messages as 03a says, accepted as the Revit look, and build the confirm as the themed summary window of 7.7 item 1 with the first button that has a body (5b), with its PNG and labels.
 - Other: every message in a themed window of its own.
 - Other: keep TaskDialogs for all, the confirm included.
+
+QL13. Pane start width. docs/design/12-ui-spec.md says the pane starts 380 wide. DockablePaneState of Revit 2024 offers DockPosition, MinimumWidth (docked, 200 by default), MinimumHeight, FloatingRectangle (floating only) and TabBehind, and no start width for a docked pane (READ RevitAPIUI.xml of the Revit 2024 API package), so 5a sets MinimumWidth 380, a floor.
+- Recommended: keep MinimumWidth 380 and measure the width Revit opens the pane at in the Revit run of 5a.
+- Other: Bader gives another rule.
+
+QL14. Step rows and rows 32. docs/design/12-ui-spec.md says rows 32 and gives each step its name at 14 and one plain line under it at 12, which needs about 38 (RAN, the layout of the pane in the picture test). On first open the line of step 1 wraps beside the chip "Needs settings" at 380 (steps/ui-shots/pane-first-open.png).
+- Recommended: step rows of 40, on the scale as 24 plus 16, with the input and project rows kept at 32, and the step line cut with an ellipsis and its full text as tooltip.
+- Other: Bader gives the heights.
+
+QL15. Input rows at 380 wide. docs/design/12-ui-spec.md puts mark, label, file name, size, short hash and Browse on one row of 32 at 380 wide, and in steps/ui-shots/pane.png the size and hash show in full on 0 of 9 rows (READ the PNG).
+- Recommended: keep the file name, put size and short hash in the tooltip under the full path, as 7.2 of docs/design/07-mock.md lets the tooltip tell two files apart.
+- Other: two-line input rows.
+- Other: a wider pane.
 
 ## The questions as L0 asked them
 
