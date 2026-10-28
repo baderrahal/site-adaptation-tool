@@ -147,7 +147,7 @@ namespace SiteAdaptation.Tests
             string generic = "{\"entry\": \"rules/r.json levelProfiles.p.keyRules.generic.rule\", \"status\": \"MEASURED\", \"share\": 0.99, \"strength\": \"strong\"}";
             return JObject.Parse("{"
                 + "\"levels.ffl from estimate\": {\"entries\": [" + ffl + "], \"strength\": \"weak\"},"
-                + "\"levels.ffl from override by heightM\": {\"entries\": [{\"status\": \"RECOMMENDED\", \"question\": \"Q053\", \"where\": \"a made up place\"}], \"override\": \"heightM\"},"
+                + "\"levels.ffl from override by heightM\": {\"entries\": [{\"status\": \"RECOMMENDED\", \"question\": \"Q053\", \"where\": \"a made up place\"}], \"overrides\": [\"heightM\"]},"
                 + "\"floors.generic.heightOffset from estimate\": {\"entries\": [" + generic + ", " + ffl + ", {\"status\": \"UNKNOWN\", \"why\": \"" + Elevation + "\"}]},"
                 + "\"prototypeFile from computed question Q017 imc\": {\"entries\": [{\"status\": \"DOCUMENT\", \"document\": \"the prototype folder\"}, "
                 + "{\"entry\": \"config/project.json majority.decidedByQuestion.Q017.plots.imc\", \"status\": \"RECOMMENDED\", \"question\": \"Q017\"}]},"

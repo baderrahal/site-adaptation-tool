@@ -140,3 +140,9 @@ Two items of 4g2 PR 1 review 1 left this list on 2026-10-28 as REAL by Q109 and 
 - 4g2 PR 5 review 2 (PR 81), python/value_status.py worst_entries l.192 and ValueStatus.WorstEntries of ValueStatus.cs l.293: an entry with no status stops Python with KeyError, where the C# reads it as no status and goes on. Every entry value_status writes holds a status (breaker)
 - 4g2 PR 5 review 2 (PR 81), python/check_rows.py rule_name l.142 and CheckRows.RuleName l.261: the file part of an entry path is cut at the first space, so a file name with a space would split it wrongly. The two files of the block, rules/roshn-makkah.json and config/project.json, hold none (breaker)
 - 4g2 PR 5 review 2 (PR 81), python/check_rows.py rule_name l.143 and CheckRows.RuleName l.262: an entry that ends in majority.decidedByQuestion. names an empty rule. Each real entry under it names its question and key (breaker)
+
+## Round ADDIN 4g3
+
+- 4g3 PR 2 review 1 (PR 85), python/tests/test_value_status.py l.29: the test map still holds a movedBy key that no code reads since Q113 removed it. Nothing reads it (reviewer F2)
+- 4g3 PR 2 review 1 (PR 85), ValueStatus.cs Of: within one overrideReads list the C# drops a repeated entry, as AddRange over a lazy Where sees what it just added, where Python keeps it. No list of config/project.json holds a repeat (breaker)
+- 4g3 PR 2 review 1 (PR 85), python/value_status.py and ValueStatus.cs: an override name with a space would split the "by" part of the detail key. No name of overrideSets holds a space (breaker)

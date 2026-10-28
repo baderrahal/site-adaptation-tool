@@ -446,14 +446,6 @@ namespace SiteAdaptation.Common
                                 made[LinkParameters.StepName] = LinkParameters.Step(site.Numbers, plans);
                                 run.Counts["plots with link parameters"] = plans.Values.Count(plan => plan.Parameters["parameters"] != null);
                             }
-                            Dictionary<string, PlotPlan> rulePlans = null;
-                            if ((asked.Contains(ValueStatus.StepName) || checks || (asked.Contains(Walls.StepName) && wallRules != null)) && list.Found.Count > 0)
-                            {
-                                // Q107, R3 of the review of PR 75. The plots with no override, so a field an override left at its value by the rule
-                                // names no override, as plan_from_book.build builds them
-                                rulePlans = PlanOverrides.Of(site.Numbers, site.Rows, build, fronts, context, hands, key, levelProfile, site.Rules, site.Settings, files,
-                                    new OverrideList(new Dictionary<string, JObject>()), profileName, FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), site.RulesName);
-                            }
                             // R363. The check rows take the walls and the status of every value, so either is made for them when not asked
                             List<PlanWall> walls = null;
                             ValueStatusTable wallTable = null;
@@ -464,7 +456,7 @@ namespace SiteAdaptation.Common
                                 walls = wallRules == null ? new List<PlanWall>() : Walls.OfPlans(site.Numbers, plans, site.Faces, fronts, wallRules);
                                 foreach (PlanWall wall in walls)
                                 {
-                                    Walls.Mark(wall, wallTable, plans, rulePlans, wallRules);
+                                    Walls.Mark(wall, wallTable, plans);
                                 }
                                 if (asked.Contains(Walls.StepName))
                                 {
@@ -479,7 +471,7 @@ namespace SiteAdaptation.Common
                             {
                                 // R401. The status of each sourced value of a written plot, by the map of the settings and the block of the rules profile
                                 statusTable = ValueStatus.Table(site.Settings, site.Rules, profileName);
-                                status = ValueStatus.Step(site.Numbers, plans, hands, statusTable, rulePlans);
+                                status = ValueStatus.Step(site.Numbers, plans, hands, statusTable);
                                 if (asked.Contains(ValueStatus.StepName))
                                 {
                                     made[ValueStatus.StepName] = status;

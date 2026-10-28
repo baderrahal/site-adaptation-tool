@@ -2,8 +2,9 @@
 the block status of the rules profile through valueStatus of config/project.json. The map names per field and source one block entry or a
 list of them, by the code that computes the value, or the status itself for an override or a client input. A value of several entries takes
 the worst status among them in the order of valueStatus.worstFirst, else the status of the first, and lists each (Q107). An override of the
-list marks every field it moves, overrideSets, with the status of the source override, named by the override applied last whose set holds
-the field, the one that moved the value (Q107). An entry may name the unit code of the plot, prototypeFile the keo_file of its typology (Q110).
+list marks every field it moves, overrideSets, with the status of the source override, and the value names every applied override whose set
+holds its field, the overrides that touched its inputs, in the order the build applied them (Q112, Q113). An entry may name the unit code of
+the plot, prototypeFile the keo_file of its typology (Q110).
 A pair the map does not hold, or an entry the block lacks, is UNKNOWN with why, never a guess. A status changes no value: a value holds its
 status and the key of its detail, and the detail is written once in the table statusFrom at the top of the plan. ValueStatus.cs of the C#
 gives the same."""
@@ -11,7 +12,6 @@ import json
 import re
 from collections import Counter, defaultdict
 
-import common
 import link_summary
 import project_profile
 
@@ -28,14 +28,8 @@ NO_STATUS = "valueStatus holds no status for %s from %s (R401)"
 SETS_LINE = "valueStatus.overrideSets maps each override of the list to the list of the fields it moves, the settings hold %s (R401)"
 # The labels a status of a value takes, the six of rule_status.py with MEASURED by its strength, which worstFirst names
 LABELS = ("UNKNOWN", "CHOSEN by Code", "CHOSEN by Bader", "RECOMMENDED", "MEASURED weak", "MEASURED strong", "MEASURED", "DOCUMENT")
-# R3 of the review of PR 75. The key of the step overrides (R360) a field of the plan is written as, whose decimals of addin.parity the
-# value is held at when it is held against the value with no override, ValueStatus.OverrideKeys of the C#. A parameter and linkName are texts
-STEP_KEYS = {"mirrored": "mirrored", "insert": "insert", "rotationDeg": "rotationDeg", "levels.entry": "entry", "levels.ffl": "ffl", "levels.ssl": "ssl",
-             "levels.height": "height", "levels.steps": "steps", "floors.ramp.corners": "rampZ", "floors.ramp.type": "rampType", "floors.yard.z": "yardZ",
-             "floors.yard.outline": "yardOutline"}
 READS_LINE = ("valueStatus.overrideReads maps an override of overrideSets to the fields of its set the code still computes from other entries, "
               "each to the list of them, the settings hold %s (R401)")
-MOVED_LINE = "valueStatus.movedBy maps a field to the field whose value tells whether an override moved it, the settings hold %s (R401)"
 ORDER_LINE = ("valueStatus.worstFirst lists the statuses a value of several block entries takes first, the worst first, each of %s or %s, the settings "
               "hold %%s (R401)") % (", ".join(LABELS[:-1]), LABELS[-1])
 
@@ -72,14 +66,6 @@ def override_reads(reads, sets):
     return reads
 
 
-def moved_by(found):
-    """Q107, R3 of the review of PR 75. movedBy, a field to the field whose value tells whether an override moved it, refused with one line
-    when it is missing or of another shape."""
-    if not isinstance(found, dict) or not all(isinstance(value, str) for value in found.values()):
-        raise project_profile.ProfileError(MOVED_LINE % ("none" if found is None else json.dumps(found)))
-    return found
-
-
 def decided_by(found):
     """Review 1 of PR 78. majority.decidedByQuestion of the settings by (plot, field), each to the list of (question, key) that list the plot
     under the field, as build_proof.py reads it. The note and any item that is no object are left out."""
@@ -98,14 +84,12 @@ class Table:
     """The map of valueStatus and the block status, read once per build for the level profile the build follows, and the details the build
     used by their key, the table statusFrom of the plan."""
 
-    def __init__(self, fields, block, profile_file, level_profile, decimals=None, decided=None):
+    def __init__(self, fields, block, profile_file, level_profile, decided=None):
         fields = fields or {}
         self.sources, self.fields = fields.get("sources") or {}, fields.get("fields") or {}
         self.sets = override_sets(fields.get("overrideSets")) if fields else {}
         self.order = worst_first(fields.get("worstFirst")) if fields else []
         self.reads = override_reads(fields.get("overrideReads"), self.sets) if fields else {}
-        self.moved_by = moved_by(fields.get("movedBy")) if fields else {}
-        self.decimals = decimals or {}
         self.block = block or {}
         self.files = {"profile": profile_file, "config": SETTINGS_FILE}
         self.level_profile = level_profile
@@ -120,20 +104,24 @@ class Table:
         found = self.sources.get(source)
         return None if found is None else found if isinstance(found, list) else [found]
 
-    def of(self, field, source, hand=None, applied=(), unmoved=False, unit=None, plot=None):
-        """The status of a value of field from source, its detail and the key of the detail. An applied override whose set holds the field
-        gives a value the status of the source override, as its source stays, applied in the order the build applied them so the last whose
-        set holds the field names the override that moved the value, with the entries the code still reads for it by overrideReads, and
-        unmoved, the value equal to the one with no override, leaves the value its own list (Q107). unit is the unit code of the plot, which
-        an entry names as {unit}, the keo_file of its typology for prototypeFile (Q110). A field an open question of majority.decidedByQuestion
+    def of(self, field, source, hand=None, applied=(), unit=None, plot=None):
+        """The status of a value of field from source, its detail and the key of the detail. Every applied override whose set holds the field
+        touched an input of the value, so the value takes the status of the source override, as its source stays, with the entries the code
+        still reads for it by overrideReads of the override applied last that touched it, none when that one sets the field outright, as the
+        code computes the field last after it (R1 of the review of PR 85), and names each override once in the order the build applied them
+        (Q112, the fallback of its answer, as one more build per override added more than 20 percent to a build of the 7 keys). It does so
+        also where the value equals its value with no override, as a value takes the worst status of its inputs (Q113). unit is the unit code
+        of the plot, which an entry names as {unit}, the keo_file of its typology for prototypeFile (Q110). A field an open question of majority.decidedByQuestion
         decides on the plot adds the block entry of that question and key, so it takes the worst of its list and that question (review 1 of
         PR 78)."""
-        moved = None if source == OVERRIDE or unmoved else next((name for name in reversed(list(applied or ())) if field in self.sets.get(name, ())), None)
-        if moved is not None:
+        moved = [] if source == OVERRIDE else list(dict.fromkeys(name for name in applied or () if field in self.sets.get(name, ())))
+        if moved:
             source = OVERRIDE
         refs = self.refs(field, source)
-        if moved is not None and refs is not None:
-            refs = refs + list((self.reads.get(moved) or {}).get(field) or ())
+        if moved and refs is not None:
+            # R1 of the review of PR 85. The code computes the field last after the override applied last that touched it, so what that
+            # override reads for it, none when it sets the field outright, is what the value still reads
+            refs = list(refs) + [ref for ref in (self.reads.get(moved[-1]) or {}).get(field) or () if ref not in refs]
         if refs is None:
             entries = [{"status": "UNKNOWN", "why": NO_STATUS % (field, source)}]
         else:
@@ -145,8 +133,8 @@ class Table:
         detail = {"entries": entries}
         if chosen["status"] == MEASURED and chosen.get("strength"):
             detail["strength"] = chosen["strength"]
-        if moved is not None:
-            detail["override"] = moved
+        if moved:
+            detail["overrides"] = moved
         key = "%s from %s" % (field, source)
         if any("{hand}" in ref.get(kind, "") for ref in refs or () for kind in ("profile", "config")):
             key += " hand %s" % hand
@@ -155,8 +143,8 @@ class Table:
             key += " unit %s" % unit
         if pairs:
             key += " question " + " ".join("%s %s" % pair for pair in pairs)
-        if moved is not None:
-            key += " by " + moved
+        if moved:
+            key += " by " + " ".join(moved)
         return chosen["status"], detail, key
 
     def resolve(self, field, source, ref, hand, unit=None):
@@ -198,10 +186,7 @@ def worst_entries(entries, order):
 
 def table_of(settings, profile, level_profile):
     """The table of a build: valueStatus of the settings, the block status of the rules profile and the file name it is kept under."""
-    steps = (((settings.get("addin") or {}).get("parity") or {}).get("steps") or {}).get("overrides") or {}
-    return Table(settings.get("valueStatus"), profile.get("status"), settings.get("profile"), level_profile,
-                 {key: field["decimals"] for key, field in steps.items() if isinstance(field, dict) and field.get("decimals") is not None},
-                 (settings.get("majority") or {}).get("decidedByQuestion"))
+    return Table(settings.get("valueStatus"), profile.get("status"), settings.get("profile"), level_profile, (settings.get("majority") or {}).get("decidedByQuestion"))
 
 
 def is_sourced(value):
@@ -222,46 +207,13 @@ def fields_of(entry):
     return found
 
 
-def written(value, decimals):
-    """A value at the decimals of the plan, each number rounded by R385, a list or an object item by item."""
-    if decimals is None or isinstance(value, (bool, str)) or value is None:
-        return value
-    if isinstance(value, dict):
-        return {key: written(item, decimals) for key, item in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [written(item, decimals) for item in value]
-    return common.fixed(value, decimals) if isinstance(value, float) else value
-
-
-def unmoved(field, entry_fields, rule_fields, table):
-    """Q107, R3 of the review of PR 75. True when the value movedBy names for field, else that of field, is the same at the decimals the
-    plan writes it in the entry and in the entry the build gives the plot with no override, false for a field of no step key, parameter or
-    linkName, as ValueStatus.Unmoved of the C#."""
-    if rule_fields is None:
-        return False
-    # movedBy may add lowest: the lowest Z of the points of that field, which the heightOffset of a ramp is taken from
-    name, _, how = table.moved_by.get(field, field).partition(" ")
-    if name not in STEP_KEYS and name != "linkName" and not name.startswith(PARAMETERS):
-        return False
-    mine, rule = entry_fields.get(name), rule_fields.get(name)
-    if mine is None or rule is None:
-        return False
-    decimals = table.decimals.get(STEP_KEYS.get(name))
-    mine, rule = written(mine["value"], decimals), written(rule["value"], decimals)
-    if how == "lowest":
-        return min(point[-1] for point in mine) == min(point[-1] for point in rule)
-    return mine == rule
-
-
-def mark(entry, table, hand=None, applied=(), rule=None):
+def mark(entry, table, hand=None, applied=()):
     """Writes status and statusFrom, the key of its detail in table.used, beside each sourced value of the entry, hand the hand table the
-    plot took, applied the overrides of the list the build applied on it and rule the entry the build gives the plot with no override."""
+    plot took and applied the overrides of the list the build applied on it, in the order it applied them."""
     found = fields_of(entry)
-    rule_fields = None if rule is None else fields_of(rule)
     unit, plot = (found.get("unit") or {}).get("value"), entry.get("plot")
     for field, item in found.items():
-        item["status"], detail, item["statusFrom"] = table.of(field, item["source"], hand, applied, bool(applied) and unmoved(field, found, rule_fields, table), unit,
-                                                              plot)
+        item["status"], detail, item["statusFrom"] = table.of(field, item["source"], hand, applied, unit, plot)
         table.used[item["statusFrom"]] = detail
 
 

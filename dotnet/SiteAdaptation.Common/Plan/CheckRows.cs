@@ -323,7 +323,7 @@ namespace SiteAdaptation.Common
         // check_rows.moved_plots: the plots that hold a value an override set or moved, its walls included, which follow no rule whole
         public static HashSet<string> MovedPlots(IEnumerable<StatusValue> values, JObject details)
         {
-            return new HashSet<string>(values.Where(value => value.Source == "override" || Truthy((details?[value.StatusFrom] as JObject)?["override"])).SelectMany(value => value.Plots),
+            return new HashSet<string>(values.Where(value => value.Source == "override" || Truthy((details?[value.StatusFrom] as JObject)?["overrides"])).SelectMany(value => value.Plots),
                 StringComparer.Ordinal);
         }
 

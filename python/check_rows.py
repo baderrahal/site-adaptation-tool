@@ -177,7 +177,7 @@ def assumed_rows(values, details, assumed, worst):
 
 def moved_plots(values, details):
     """The plots that hold a value an override set or moved, its walls included, which follow no rule whole (review 1 of PR 81)."""
-    return {plot for _, plots, _, key, source in values if source == value_status.OVERRIDE or (details.get(key) or {}).get("override") for plot in plots}
+    return {plot for _, plots, _, key, source in values if source == value_status.OVERRIDE or (details.get(key) or {}).get("overrides") for plot in plots}
 
 
 def plan_values(plan, numbers):

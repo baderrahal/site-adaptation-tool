@@ -200,28 +200,14 @@ def ffl_of(entry):
     return None if value is None else common.fixed(value, plan_rules.FFL_DECIMALS)
 
 
-def mark(item, wall, table, applied, entries, rules, higher):
-    """R401. The status of each value of a wall through valueStatus, applied the overrides of each plot in the order the build applied them,
-    entries the plan entries, rules those with no override and higher the wall rules. The base and the top are held against the pick of the
-    rule, the plot of the highest or lowest FFL of the plots of the wall with no override: a value at that FFL keeps its own list, and one an
-    override moved, by the FFL of its plot or by the pick, names the override applied last on the two plots whose set holds it (Q107, breaker F3
-    of PR 79). With no plan of the rule for a plot of the wall the value is held by the FFL of its own plot alone."""
+def mark(item, wall, table, applied):
+    """R401. The status of each value of a wall through valueStatus, applied the overrides of each plot in the order the build applied them.
+    The base and the top take the FFL of the highest or lowest of the written plots of the wall, and the open edge of each plot decides which
+    walls stand, so every override of the plots of the wall, in their order, whose set holds the field touched it and is named, heightM the base
+    and the top, rotationDeg every value (Q112, Q113, breaker F3 of PR 79, R2 and R3 of the review of PR 85)."""
+    done = tuple(name for plot in wall["plots"] for name in applied.get(plot) or ())
     for field in FIELDS:
-        level = {"base": wall["basePlot"], "top": wall["topPlot"]}.get(field)
-        done, unmoved = (), False
-        if level is not None:
-            writers = [plot for plot in wall["plots"] if ffl_of(entries.get(plot)) is not None]
-            rule_ffls = {plot: ffl_of(rules.get(plot)) for plot in writers}
-            if rules and all(value is not None for value in rule_ffls.values()):
-                picked = pick(writers, rule_ffls, higher["higherBase" if field == "base" else "higherTop"])
-                done = tuple(applied.get(picked) or ()) + (tuple(applied.get(level) or ()) if level != picked else ())
-                unmoved = ffl_of(entries[level]) == rule_ffls[picked]
-            else:
-                done = tuple(applied.get(level) or ())
-                rule = rules.get(level)
-                unmoved = bool(done) and value_status.unmoved("walls." + field, value_status.fields_of(entries[level]),
-                                                              None if rule is None else value_status.fields_of(rule), table)
-        item[field]["status"], detail, item[field]["statusFrom"] = table.of("walls." + field, item[field]["source"], None, done, unmoved)
+        item[field]["status"], detail, item[field]["statusFrom"] = table.of("walls." + field, item[field]["source"], None, done)
         table.used[item[field]["statusFrom"]] = detail
 
 
