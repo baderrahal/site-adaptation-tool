@@ -467,7 +467,7 @@ def test_r401_q107_review1_a_ramp_height_offset_is_held_by_its_lowest_corner_whi
 # the prototype folder named with it and the keo_file of its typology, which plan_from_cad.prototype_files reads for every typology.
 # ValueStatusTests.cs holds the same text
 Q110_DETAIL = ('{"entries":[{"status":"DOCUMENT","document":"the location plan, labels.csv of the data book"},{"status":"DOCUMENT","document":'
-               '"the prototype folder of the build, pastJob.upgradedPrototypeFolder, the file named with the unit code (R128)"},{"entry":"%s '
+               '"the prototype folder of the build, pastJob.upgradedPrototypeFolder, the file named with the unit code, else with the keo_file code of its typology (R128)"},{"entry":"%s '
                'typologies.VD1.keo_file","status":"DOCUMENT","document":"a made up document","pageOrSheet":"UNKNOWN","source":"source"}]}')
 
 
@@ -499,3 +499,45 @@ def test_r401_q110_the_summary_of_step_15_counts_prototype_file_by_field_and_sta
     assert real["statusByField"]["prototypeFile"] == {"DOCUMENT": 6} and "prototypeFile" not in real["assumedByField"]
     rules = made_row(monkeypatch, MADE)["summary"]["rules"]
     assert rules["statusByField"]["prototypeFile"] == {"DOCUMENT": 5, "UNKNOWN": 1} and rules["assumedByField"]["prototypeFile"] == ["1"]
+
+
+# Review 1 of PR 78. A made up majority.decidedByQuestion: the open Q900 decides the hand and the file of plot 5, listed under the key k1
+DECIDED = {"note": "a made up note", "Q900": {"fields": ["mirrored", "prototypeFile"], "plots": {"k1": ["5"]}, "why": "made up"}}
+DECIDED_ENTRY = {"status": "RECOMMENDED", "question": "Q900", "where": "the Q ID in the path"}
+
+
+def test_r401_review1_pr78_a_field_an_open_question_decides_on_a_plot_takes_the_worst_of_its_entries_and_that_question():
+    block = copy.deepcopy(BLOCK)
+    block["config/project.json"]["majority.decidedByQuestion.Q900.plots.k1"] = DECIDED_ENTRY
+    table = value_status.Table(MAP, block, PROFILE_FILE, "p1", decided=DECIDED)
+    status, found, key = table.of("mirrored", "computed", hand="alone", plot="5")
+    assert (status, key) == ("RECOMMENDED", "mirrored from computed hand alone question Q900 k1")
+    assert found == {"entries": [HAND, {"entry": "config/project.json majority.decidedByQuestion.Q900.plots.k1", **DECIDED_ENTRY}]}
+    # Another plot, or a field the question does not name, keeps its own list
+    assert table.of("mirrored", "computed", hand="alone", plot="6")[0::2] == ("MEASURED", "mirrored from computed hand alone")
+    assert table.of("levels.entry", "estimate", plot="5")[0::2] == ("MEASURED", "levels.entry from estimate")
+    # A decided plot whose entry the block lacks is UNKNOWN, never a guess
+    lacking = value_status.Table(MAP, BLOCK, PROFILE_FILE, "p1", decided=DECIDED).of("mirrored", "computed", hand="alone", plot="5")
+    assert lacking[0] == "UNKNOWN" and lacking[1]["entries"][-1] == {"entry": "config/project.json majority.decidedByQuestion.Q900.plots.k1",
+                                                                     "status": "UNKNOWN", "why": "the block status holds no entry (R401)"}
+
+
+def test_r401_review1_pr78_the_build_marks_the_plot_an_open_question_decides():
+    entry = {"plot": "5", "unit": {"value": "VD2", "source": "locationPlan"}, "mirrored": {"value": True, "source": "computed"}}
+    block = copy.deepcopy(BLOCK)
+    block["config/project.json"]["majority.decidedByQuestion.Q900.plots.k1"] = DECIDED_ENTRY
+    table = value_status.Table(MAP, block, PROFILE_FILE, "p1", decided=DECIDED)
+    value_status.mark(entry, table, hand="alone")
+    assert (entry["mirrored"]["status"], entry["mirrored"]["statusFrom"]) == ("RECOMMENDED", "mirrored from computed hand alone question Q900 k1")
+
+
+def test_r401_review1_pr78_the_plots_q017_decides_read_recommended_for_prototype_file_and_mirrored():
+    settings = project_profile.load_settings()
+    profile = project_profile.load_profile(project_profile.profile_path(settings)).values
+    table = value_status.table_of(settings, profile, "parsons2024Rev6")
+    status, found, key = table.of("prototypeFile", "computed", unit="VD4", plot="2301")
+    assert (status, key) == ("RECOMMENDED", "prototypeFile from computed unit VD4 question Q017 imc")
+    last = found["entries"][-1]
+    assert (last["entry"], last["status"], last["question"]) == ("config/project.json majority.decidedByQuestion.Q017.plots.imc", "RECOMMENDED", "Q017")
+    assert table.of("mirrored", "computed", hand="villa", plot="544")[0::2] == ("RECOMMENDED", "mirrored from computed hand villa question Q017 img")
+    assert table.of("prototypeFile", "computed", unit="VD4", plot="2303")[0::2] == ("DOCUMENT", "prototypeFile from computed unit VD4")

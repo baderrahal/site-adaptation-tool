@@ -531,7 +531,7 @@ namespace SiteAdaptation.Tests
         // the location plan, the file of the prototype folder named with it and the keo_file of its typology, which Hands.PrototypeFiles reads for
         // every typology
         private const string Q110Detail = "{\"entries\":[{\"status\":\"DOCUMENT\",\"document\":\"the location plan, labels.csv of the data book\"},{\"status\":\"DOCUMENT\",\"document\":"
-            + "\"the prototype folder of the build, pastJob.upgradedPrototypeFolder, the file named with the unit code (R128)\"},{\"entry\":\"{0} "
+            + "\"the prototype folder of the build, pastJob.upgradedPrototypeFolder, the file named with the unit code, else with the keo_file code of its typology (R128)\"},{\"entry\":\"{0} "
             + "typologies.VD1.keo_file\",\"status\":\"DOCUMENT\",\"document\":\"a made up document\",\"pageOrSheet\":\"UNKNOWN\",\"source\":\"source\"}]}";
 
         [Fact]
@@ -571,6 +571,52 @@ namespace SiteAdaptation.Tests
             Dictionary<string, Dictionary<string, object>> realStep = ValueStatus.Step(real.Plans.Keys.ToList(), real.Plans, real.Hands, realTable);
             Assert.Equal("prototypeFile:DOCUMENT=6", string.Join(" ", ValueStatus.Counts(realStep, realTable).Where(item => item.Key.Item1 == "prototypeFile")
                 .Select(item => item.Key.Item1 + ":" + item.Key.Item2 + "=" + item.Value)));
+        }
+
+        // test_value_status.DECIDED, review 1 of PR 78: a made up majority.decidedByQuestion, the open Q900 decides the hand and the file of plot 5,
+        // listed under the key k1
+        private static readonly JObject Decided = JObject.Parse("{\"note\": \"a made up note\", \"Q900\": {\"fields\": [\"mirrored\", \"prototypeFile\"], \"plots\": {\"k1\": [\"5\"]}, \"why\": \"made up\"}}");
+        private const string DecidedEntry = "{\"status\":\"RECOMMENDED\",\"question\":\"Q900\",\"where\":\"the Q ID in the path\"}";
+
+        private static JObject DecidedBlock()
+        {
+            var block = (JObject)Block.DeepClone();
+            block["config/project.json"]["majority.decidedByQuestion.Q900.plots.k1"] = JObject.Parse(DecidedEntry);
+            return block;
+        }
+
+        [Fact]
+        public void R401_review1_PR78_a_field_an_open_question_decides_on_a_plot_takes_the_worst_of_its_entries_and_that_question()
+        {
+            var table = new ValueStatusTable(Map(), DecidedBlock(), ProfileFile, "p1", decided: Decided);
+            Assert.Equal("RECOMMENDED {\"entries\":[" + HandText + ",{\"entry\":\"config/project.json majority.decidedByQuestion.Q900.plots.k1\",\"status\":\"RECOMMENDED\",\"question\":\"Q900\","
+                + "\"where\":\"the Q ID in the path\"}]} | mirrored from computed hand alone question Q900 k1", Text(table.Of("mirrored", "computed", "alone", plot: "5")));
+            // Another plot, or a field the question does not name, keeps its own list
+            Tuple<string, JObject, string> other = table.Of("mirrored", "computed", "alone", plot: "6");
+            Assert.Equal("MEASURED mirrored from computed hand alone", other.Item1 + " " + other.Item3);
+            Tuple<string, JObject, string> entry = table.Of("levels.entry", "estimate", plot: "5");
+            Assert.Equal("MEASURED levels.entry from estimate", entry.Item1 + " " + entry.Item3);
+            // A decided plot whose entry the block lacks is UNKNOWN, never a guess
+            Tuple<string, JObject, string> lacking = new ValueStatusTable(Map(), Block, ProfileFile, "p1", decided: Decided).Of("mirrored", "computed", "alone", plot: "5");
+            Assert.Equal("UNKNOWN {\"entry\":\"config/project.json majority.decidedByQuestion.Q900.plots.k1\",\"status\":\"UNKNOWN\",\"why\":\"the block status holds no entry (R401)\"}",
+                lacking.Item1 + " " + lacking.Item2["entries"].Last.ToString(Formatting.None));
+        }
+
+        [Fact]
+        public void R401_review1_PR78_the_plots_q017_decides_read_recommended_for_prototype_file_and_mirrored()
+        {
+            string configPath = WorkerRunTests.RepoConfig();
+            JObject config = JObject.Parse(File.ReadAllText(configPath));
+            JObject rules = JObject.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(configPath)), (string)config["profile"])));
+            ValueStatusTable table = ValueStatus.Table(config, rules, "parsons2024Rev6");
+            Tuple<string, JObject, string> file = table.Of("prototypeFile", "computed", unit: "VD4", plot: "2301");
+            JToken last = file.Item2["entries"].Last;
+            Assert.Equal("RECOMMENDED prototypeFile from computed unit VD4 question Q017 imc config/project.json majority.decidedByQuestion.Q017.plots.imc RECOMMENDED Q017",
+                file.Item1 + " " + file.Item3 + " " + (string)last["entry"] + " " + (string)last["status"] + " " + (string)last["question"]);
+            Tuple<string, JObject, string> hand = table.Of("mirrored", "computed", "villa", plot: "544");
+            Assert.Equal("RECOMMENDED mirrored from computed hand villa question Q017 img", hand.Item1 + " " + hand.Item3);
+            Tuple<string, JObject, string> free = table.Of("prototypeFile", "computed", unit: "VD4", plot: "2303");
+            Assert.Equal("DOCUMENT prototypeFile from computed unit VD4", free.Item1 + " " + free.Item3);
         }
     }
 }
