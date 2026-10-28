@@ -150,6 +150,41 @@ namespace SiteAdaptation.TestHost
             return Read("RibbonLayout.Tab", () => Member(TypeOf(AddinRunNames.RibbonLayout), AddinRunNames.Tab, null)) as string;
         }
 
+        // The panel names and the button labels of RibbonLayout as the add-in builds the ribbon, read at run time so the check follows
+        // the ribbon of the build that runs
+        public List<string> RibbonPanels()
+        {
+            return Labels("RibbonLayout.Panels", AddinRunNames.Panels, AddinRunNames.PanelName);
+        }
+
+        public List<string> RibbonButtons()
+        {
+            return Labels("RibbonLayout.Buttons", AddinRunNames.RibbonButtons, AddinRunNames.ButtonLabel);
+        }
+
+        private List<string> Labels(string what, string list, string name)
+        {
+            return Read(what, () =>
+            {
+                var labels = new List<string>();
+                foreach (object item in (IEnumerable)Member(TypeOf(AddinRunNames.RibbonLayout), list, null))
+                {
+                    labels.Add((string)Member(item, name));
+                }
+                return labels;
+            }) as List<string>;
+        }
+
+        // SA.Size.Pane of the theme of the add-in, the least width of the pane in the UI spec
+        public int? PaneMinWidth()
+        {
+            return Read("ThemeDictionary.Load", () =>
+            {
+                var theme = (System.Windows.ResourceDictionary)Call(TypeOf(AddinRunNames.Theme), AddinRunNames.ThemeLoad, null);
+                return (int)Math.Ceiling((double)theme[AddinRunNames.PaneSize]);
+            }) as int?;
+        }
+
         public object PaneId()
         {
             return Read("PaneHost.PaneId", () => Member(TypeOf(AddinRunNames.PaneHost), AddinRunNames.PaneId, null));

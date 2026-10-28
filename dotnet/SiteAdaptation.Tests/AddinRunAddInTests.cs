@@ -97,6 +97,12 @@ namespace SiteAdaptation.Tests
             Assert.Equal(typeof(SiteAdaptation.Common.Flow.IRunState), MemberType(TypeOf(AddinRunNames.Buttons), AddinRunNames.State));
             Assert.Equal(RibbonLayout.Tab, TypeOf(AddinRunNames.RibbonLayout).GetField(AddinRunNames.Tab).GetRawConstantValue());
             Assert.Equal(typeof(SitePanePage), TypeOf(AddinRunNames.Page));
+            // The panels and buttons of the ribbon and the least width of the pane, read at run time
+            Type layout = TypeOf(AddinRunNames.RibbonLayout);
+            Assert.Equal(typeof(string), MemberType(MemberType(layout, AddinRunNames.Panels).GetGenericArguments()[0], AddinRunNames.PanelName));
+            Assert.Equal(typeof(string), MemberType(MemberType(layout, AddinRunNames.RibbonButtons).GetGenericArguments()[0], AddinRunNames.ButtonLabel));
+            var theme = (System.Windows.ResourceDictionary)Method(TypeOf(AddinRunNames.Theme), AddinRunNames.ThemeLoad).Invoke(null, null);
+            Assert.True((double)theme[AddinRunNames.PaneSize] >= 1);
         }
 
         // One rule of the work root: WorkFolder.Root of the add-in and WorkRoot.Of of Common give the same root, or refuse with the same
@@ -152,6 +158,29 @@ namespace SiteAdaptation.Tests
             {
                 return "refused: " + refused.Message;
             }
+        }
+
+        // Run 2 of 5a: Revit kept the pane hidden, since VisibleByDefault counts only the first time a pane is ever loaded. The add-in
+        // shows it once each session, at the first project view, when Revit has it hidden
+        [Fact]
+        public void R372_the_pane_is_shown_once_a_session_at_the_first_project_view_when_revit_keeps_it_hidden()
+        {
+            var hidden = new PaneFirstShow();
+            int asked = 0;
+            Assert.False(hidden.Due(false, () => { asked++; return false; }));
+            Assert.True(hidden.Due(true, () => { asked++; return false; }));
+            Assert.False(hidden.Due(true, () => { asked++; return false; }));
+            Assert.Equal(1, asked);
+
+            var shown = new PaneFirstShow();
+            Assert.False(shown.Due(true, () => true));
+            Assert.False(shown.Due(true, () => false));
+
+            string host = RepoText("dotnet", "SiteAdaptation.AddIn", "App", "PaneHost.cs");
+            Assert.Contains("ShowOnce(sender as UIApplication, now);", host);
+            Assert.Contains("firstShow.Due(now != null && now.IsValidObject && !now.IsFamilyDocument, () => (pane = application.GetDockablePane(PaneId)).IsShown())", host);
+            Assert.Contains("data.VisibleByDefault = true;", host);
+            Assert.Contains("DockPosition = DockPosition.Right,", host);
         }
     }
 }

@@ -688,3 +688,8 @@ elseif (-not $DryStart) {
     'TEST copies next to the model:'
     Get-ChildItem (Split-Path $original) | Where-Object { $_.Name -like ($base + '_TEST-*') } | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 200
 }
+
+# R200. The lock wrapper hands this exit code on, so a job whose log result is not ok, or a window that was stopped, ends with 1
+if (-not $DryStart -and ($stopReason -or $logResult -ne 'ok')) {
+    exit 1
+}

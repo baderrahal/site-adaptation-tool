@@ -58,19 +58,20 @@ namespace SiteAdaptation.TestHost
         [DllImport("gdi32.dll")]
         private static extern bool DeleteDC(IntPtr context);
 
-        // The pane page as Revit hosts it, found among the WPF sources of this thread, drawn at 100 percent scale
-        public static RunShot Pane(Type pageType, string file)
+        // The pane page as Revit hosts it, the widest one shown among the WPF sources of this thread, drawn at 100 percent scale. shown
+        // is DockablePane.IsShown of Revit and minWidth the least width of the UI spec, both kept with the picture for the judge
+        public static RunShot Pane(Type pageType, string file, bool? shown, int? minWidth)
         {
             FrameworkElement page = pageType == null ? null : FindPage(pageType);
             if (page == null)
             {
-                return new RunShot { Name = "pane", Blank = true, Detail = "the pane page is in no WPF source of this Revit, the pane may be hidden" };
+                return new RunShot { Name = "pane", Blank = true, Shown = shown, MinWidth = minWidth, Detail = "the pane page is in no WPF source of this Revit" };
             }
             int width = (int)Math.Ceiling(page.ActualWidth);
             int height = (int)Math.Ceiling(page.ActualHeight);
             if (width < 1 || height < 1)
             {
-                return new RunShot { Name = "pane", Blank = true, Detail = "the pane page is laid out at " + width + " by " + height + " px" };
+                return new RunShot { Name = "pane", Blank = true, Shown = shown, MinWidth = minWidth, Detail = "the pane page is laid out at " + width + " by " + height + " px" };
             }
             // Through a brush, so the offset of the page inside the pane does not shift it out of the picture
             var visual = new DrawingVisual();
@@ -81,35 +82,54 @@ namespace SiteAdaptation.TestHost
             var bitmap = new RenderTargetBitmap(width, height, Dpi, Dpi, PixelFormats.Pbgra32);
             bitmap.Render(visual);
             bitmap.Freeze();
-            return Saved("pane", file, bitmap, "the live page of the pane");
+            RunShot shot = Saved("pane", file, bitmap, "the live page of the pane, visible " + page.IsVisible);
+            shot.Shown = shown;
+            shot.MinWidth = minWidth;
+            return shot;
+        }
+
+        // The width the pane page is laid out at now, 0 when it is in no source, so the job waits for Revit to lay the shown pane out
+        public static int PaneWidth(Type pageType)
+        {
+            FrameworkElement page = pageType == null ? null : FindPage(pageType);
+            return page == null ? 0 : (int)Math.Ceiling(page.ActualWidth);
         }
 
         private static FrameworkElement FindPage(Type pageType)
         {
-            foreach (PresentationSource source in PresentationSource.CurrentSources)
+            FrameworkElement best = null;
+            foreach (DependencyObject item in Walk(PresentationSource.CurrentSources.Cast<PresentationSource>().Select(source => source.RootVisual)))
             {
-                var queue = new Queue<DependencyObject>();
-                if (source.RootVisual != null)
+                var page = item as FrameworkElement;
+                if (page != null && pageType.IsInstanceOfType(page) && (best == null || Rank(page) > Rank(best)))
                 {
-                    queue.Enqueue(source.RootVisual);
+                    best = page;
                 }
-                while (queue.Count > 0)
+            }
+            return best;
+        }
+
+        private static double Rank(FrameworkElement page)
+        {
+            return (page.IsVisible ? 1e6 : 0) + page.ActualWidth;
+        }
+
+        // Every visual under the roots, breadth first
+        private static IEnumerable<DependencyObject> Walk(IEnumerable<Visual> roots)
+        {
+            var queue = new Queue<DependencyObject>(roots.Where(root => root != null));
+            while (queue.Count > 0)
+            {
+                DependencyObject item = queue.Dequeue();
+                yield return item;
+                if (item is Visual || item is System.Windows.Media.Media3D.Visual3D)
                 {
-                    DependencyObject item = queue.Dequeue();
-                    if (pageType.IsInstanceOfType(item))
+                    for (int at = 0; at < VisualTreeHelper.GetChildrenCount(item); at++)
                     {
-                        return (FrameworkElement)item;
-                    }
-                    if (item is Visual || item is System.Windows.Media.Media3D.Visual3D)
-                    {
-                        for (int at = 0; at < VisualTreeHelper.GetChildrenCount(item); at++)
-                        {
-                            queue.Enqueue(VisualTreeHelper.GetChild(item, at));
-                        }
+                        queue.Enqueue(VisualTreeHelper.GetChild(item, at));
                     }
                 }
             }
-            return null;
         }
 
         // The ribbon of Revit is the RibbonControl of AdWindows, read by reflection as the add-in builds its tab with it. The tab of the
@@ -119,21 +139,116 @@ namespace SiteAdaptation.TestHost
             try
             {
                 object ribbon = Ribbon();
-                foreach (object tab in (IEnumerable)ribbon.GetType().GetProperty("Tabs").GetValue(ribbon))
+                object tab = FindTab(ribbon, title);
+                if (tab == null)
                 {
-                    if (tab.GetType().GetProperty("Title").GetValue(tab) as string == title)
-                    {
-                        tab.GetType().GetProperty("IsActive").SetValue(tab, true);
-                        return true;
-                    }
+                    notes.Add("the ribbon has no tab " + title);
+                    return false;
                 }
-                notes.Add("the ribbon has no tab " + title);
+                PropertyInfo active = ribbon.GetType().GetProperty("ActiveTab");
+                if (active != null && active.CanWrite)
+                {
+                    active.SetValue(ribbon, tab);
+                }
+                tab.GetType().GetProperty("IsActive").SetValue(tab, true);
+                return true;
             }
             catch (Exception failure)
             {
                 notes.Add("the ribbon tab was not made active: " + Inner(failure));
+                return false;
             }
-            return false;
+        }
+
+        private static object FindTab(object ribbon, string title)
+        {
+            foreach (object tab in (IEnumerable)ribbon.GetType().GetProperty("Tabs").GetValue(ribbon))
+            {
+                if (Get(tab, "Title") as string == title)
+                {
+                    return tab;
+                }
+            }
+            return null;
+        }
+
+        // The tab of the add-in as AdWindows holds it: found, visible, the tab active now, the button texts of its panels, and where each
+        // of its panels is drawn on the screen, found by the panel each control of the ribbon stands for
+        public static void ReadTab(RunShot shot, string title, List<string> notes)
+        {
+            try
+            {
+                object ribbon = Ribbon();
+                object active = Get(ribbon, "ActiveTab");
+                shot.ActiveTab = active == null ? null : Get(active, "Title") as string;
+                object tab = FindTab(ribbon, title);
+                shot.TabFound = tab != null;
+                if (tab == null)
+                {
+                    return;
+                }
+                shot.TabVisible = Get(tab, "IsVisible") as bool?;
+                var panels = new Dictionary<object, string>();
+                foreach (object panel in (IEnumerable)Get(tab, "Panels"))
+                {
+                    object source = Get(panel, "Source");
+                    string name = source == null ? null : Get(source, "Title") as string;
+                    panels[panel] = name;
+                    if (source != null)
+                    {
+                        panels[source] = name;
+                        Texts(Get(source, "Items") as IEnumerable, shot.Buttons);
+                    }
+                }
+                var seen = new HashSet<string>();
+                foreach (DependencyObject item in Walk(new[] { (Visual)ribbon }))
+                {
+                    var control = item as FrameworkElement;
+                    if (control == null || control.DataContext == null || !control.IsVisible || control.ActualWidth <= 0
+                        || !panels.TryGetValue(control.DataContext, out string name) || name == null || !seen.Add(name))
+                    {
+                        continue;
+                    }
+                    Point topLeft = control.PointToScreen(new Point(0, 0));
+                    Point bottomRight = control.PointToScreen(new Point(control.ActualWidth, control.ActualHeight));
+                    shot.Panels.Add(new RunPanel
+                    {
+                        Title = name,
+                        Bounds = new[] { (int)Math.Floor(topLeft.X), (int)Math.Floor(topLeft.Y), (int)Math.Ceiling(bottomRight.X), (int)Math.Ceiling(bottomRight.Y) },
+                    });
+                }
+                foreach (string name in panels.Values.Distinct().Where(name => name != null && !seen.Contains(name)))
+                {
+                    shot.Panels.Add(new RunPanel { Title = name });
+                }
+            }
+            catch (Exception failure)
+            {
+                notes.Add("the ribbon tab was not read: " + Inner(failure));
+            }
+        }
+
+        // The texts of the items of a panel, the items inside a row, a stack or a split button too
+        private static void Texts(IEnumerable items, List<string> into)
+        {
+            if (items == null)
+            {
+                return;
+            }
+            foreach (object item in items)
+            {
+                if (Get(item, "Text") is string text && text.Length > 0)
+                {
+                    into.Add(text);
+                }
+                Texts(Get(item, "Items") as IEnumerable, into);
+            }
+        }
+
+        private static object Get(object target, string name)
+        {
+            PropertyInfo property = target == null ? null : target.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
+            return property == null ? null : property.GetValue(target);
         }
 
         // left, top, right, bottom of the ribbon in screen pixels, null when it is not read
@@ -162,6 +277,20 @@ namespace SiteAdaptation.TestHost
                 throw new InvalidOperationException("ComponentManager.Ribbon is null");
             }
             return ribbon;
+        }
+
+        // The tab is active when AdWindows says so, which the wait for the pictures asks
+        public static string ActiveTab()
+        {
+            try
+            {
+                object active = Get(Ribbon(), "ActiveTab");
+                return active == null ? null : Get(active, "Title") as string;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         // The main window of this Revit by PrintWindow, saved whole and cut to the ribbon. revitHandle is UIApplication.MainWindowHandle,

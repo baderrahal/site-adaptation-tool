@@ -13,15 +13,19 @@ namespace SiteAdaptation.TestHost
 {
     // Lane B 5a, docs/design/09-risks.md open items 1 and 2 (R372). The Revit side of the addinRun job, thin: it makes and opens the
     // documents, posts the answers and takes the pictures, and AddinRunRecord and AddinRunJudge of Common hold what it saw and decide.
-    // A worker answer waits for the ExternalEvent of the add-in, which runs only once Revit is idle, so the job runs in phases with an
-    // idle wait between them
+    // OpenAndActivateDocument may not be called from inside an event handler (RevitAPIUI.xml of Revit 2024), Idling being one, so
+    // each phase runs in the Execute of an ExternalEvent of the test host. Between phases the Idling handler only keeps the clock of
+    // AddinRunSchedule: a worker answer waits for the ExternalEvent of the add-in, the pictures for Revit to show and lay out the pane
     internal sealed class AddinRunSession
     {
         // How long an idle wait lasts: at least the first, at most the second, in seconds. Tool timings, not project values
         private const double AnswerMinSeconds = 2;
         private const double AnswerMaxSeconds = 60;
         private const double ShowMinSeconds = 3;
-        private const double ShowMaxSeconds = 30;
+        private const double ShowMaxSeconds = 60;
+        // The documents, the routing, the documents of item 2, then the phases that always run: show the pane, the pictures and the end
+        private const int PhaseCount = 5;
+        private const int ShowPhase = 3;
         // The two worksets Revit names when it makes a model workshared
         private const string LevelsWorkset = "Shared Levels and Grids";
         private const string Workset = "Workset1";
@@ -33,9 +37,11 @@ namespace SiteAdaptation.TestHost
         private readonly AddinRunRecord record;
         private readonly string resultPath;
         private readonly string folder;
-        private readonly AddinRunPhases phases = new AddinRunPhases(4);
+        private readonly AddinRunPhases phases = new AddinRunPhases(PhaseCount, ShowPhase);
+        private readonly AddinRunSchedule schedule = new AddinRunSchedule();
         private readonly List<KeyValuePair<string, Document>> labels = new List<KeyValuePair<string, Document>>();
         private readonly Dictionary<int, string> closing = new Dictionary<int, string>();
+        private ExternalEvent phaseEvent;
         private AddinProbe probe;
         private IRunState state;
         private UIApplication ui;
@@ -45,10 +51,9 @@ namespace SiteAdaptation.TestHost
         private Document detached;
         private RunAnswer posted;
         private int routedBefore;
-        private DateTime waitStart;
-        private double waitMin;
-        private double waitMax;
-        private bool lastOk;
+        private bool lastOk = true;
+        private bool showWait;
+        private bool finished;
 
         public AddinRunSession(UIControlledApplication application, TestHostJob job, string documents, TestHostRunner runner, Action<UIApplication> exit)
         {
@@ -61,6 +66,7 @@ namespace SiteAdaptation.TestHost
             record = new AddinRunRecord { Code = job.Code, StartedUtc = DateTime.UtcNow };
         }
 
+        // From the first Idling of the job: the reads of the add-in, the events, then the first phase is raised
         public void Start(UIApplication start)
         {
             ui = start;
@@ -69,36 +75,56 @@ namespace SiteAdaptation.TestHost
             record.SaveFirst = RunTexts.SaveFirst;
             record.RibbonTab = probe.Tab();
             state = probe.State();
+            phaseEvent = ExternalEvent.Create(new PhaseHandler(this));
             application.ControlledApplication.DocumentCreated += OnCreated;
             application.ControlledApplication.DocumentOpened += OnOpened;
             application.ControlledApplication.DocumentClosing += OnClosing;
             application.ControlledApplication.DocumentClosed += OnClosed;
             application.ControlledApplication.DocumentSavedAs += OnSavedAs;
             application.ViewActivated += OnViewActivated;
+            application.Idling += OnTick;
             runner.Record(log => log.Notes.Add("addinRun: the result goes to " + resultPath + ", the pictures to " + folder));
             Write();
-            RunNext(true);
+            schedule.Raise(DateTime.UtcNow);
+            Raise();
         }
 
-        private void RunNext(bool ok)
+        private void Raise()
         {
-            int phase = phases.Next(ok);
-            if (phase < 0)
+            ExternalEventRequest request = phaseEvent.Raise();
+            if (request != ExternalEventRequest.Accepted)
             {
-                Finish();
-                return;
+                record.Notes.Add("the phase event of the test host was not taken: " + request);
             }
-            lastOk = runner.Run(Phase(phase));
-            // After a failed phase the wait has nothing to wait for
-            if (!lastOk || phase == 3)
+        }
+
+        // In the API context of the ExternalEvent: the phases run one after the other until one ends in a wait
+        private void Execute(UIApplication app)
+        {
+            schedule.Ran();
+            ui = app;
+            while (!finished)
             {
-                RunNext(lastOk);
-                return;
+                int phase = phases.Next(lastOk);
+                if (phase < 0)
+                {
+                    Finish();
+                    return;
+                }
+                lastOk = runner.Run(Phase(phase));
+                if (lastOk && phase < 2)
+                {
+                    showWait = false;
+                    schedule.Wait(DateTime.UtcNow, AnswerMinSeconds, AnswerMaxSeconds);
+                    return;
+                }
+                if (phase == ShowPhase)
+                {
+                    showWait = true;
+                    schedule.Wait(DateTime.UtcNow, ShowMinSeconds, ShowMaxSeconds);
+                    return;
+                }
             }
-            waitStart = DateTime.UtcNow;
-            waitMin = phase == 2 ? ShowMinSeconds : AnswerMinSeconds;
-            waitMax = phase == 2 ? ShowMaxSeconds : AnswerMaxSeconds;
-            application.Idling += OnWait;
         }
 
         private IEnumerable<JobStep> Phase(int phase)
@@ -127,16 +153,13 @@ namespace SiteAdaptation.TestHost
                     yield return Step("centralNew", 5, MakeCentral);
                     yield return Step("openDetached", 5, OpenDetached);
                     yield return Step("unsaved", 5, Unsaved);
-                    yield return Step("showPane", 2, ShowPane);
+                    break;
+                case ShowPhase:
+                    yield return Step("showPane", 2, ShowPane, true);
                     break;
                 default:
-                    yield return Step("panePng", 2, () => Shot(RevitShots.Pane(probe.PageType(), Path.Combine(folder, AddinRunFiles.PanePng))));
-                    yield return Step("ribbonPng", 2, () =>
-                    {
-                        List<RunShot> shots = RevitShots.Window(ui.MainWindowHandle, RevitShots.RibbonBounds(record.Notes),
-                            Path.Combine(folder, AddinRunFiles.WindowPng), Path.Combine(folder, AddinRunFiles.RibbonPng));
-                        return string.Join(", ", shots.Select(Shot));
-                    });
+                    yield return Step("panePng", 2, () => Shot(RevitShots.Pane(probe.PageType(), Path.Combine(folder, AddinRunFiles.PanePng), PaneShown(), probe.PaneMinWidth())), true);
+                    yield return Step("ribbonPng", 2, RibbonShots, true);
                     yield return Step("closeDetached", 5, CloseDetached, true);
                     yield return Step("judge", 1, () =>
                     {
@@ -144,6 +167,40 @@ namespace SiteAdaptation.TestHost
                         return "held " + record.Held + ", not held " + record.NotHeld + ", not measured " + record.NotMeasured;
                     }, true);
                     break;
+            }
+        }
+
+        // The window by PrintWindow and the ribbon cut from it, with the tab of the add-in as AdWindows holds it and the panels and
+        // buttons RibbonLayout of the add-in builds, read now, so the check follows the ribbon of the build that runs
+        private string RibbonShots()
+        {
+            List<RunShot> shots = RevitShots.Window(ui.MainWindowHandle, RevitShots.RibbonBounds(record.Notes),
+                Path.Combine(folder, AddinRunFiles.WindowPng), Path.Combine(folder, AddinRunFiles.RibbonPng));
+            RunShot ribbon = shots.FirstOrDefault(shot => shot.Name == "ribbon");
+            if (ribbon == null)
+            {
+                ribbon = new RunShot { Name = "ribbon", Blank = true, Detail = "the ribbon was not read or lies outside the window, no picture cut" };
+                shots.Add(ribbon);
+            }
+            if (record.RibbonTab != null)
+            {
+                RevitShots.ReadTab(ribbon, record.RibbonTab, record.Notes);
+            }
+            ribbon.ExpectedPanels = probe.RibbonPanels();
+            ribbon.ExpectedButtons = probe.RibbonButtons();
+            return string.Join(", ", shots.Select(Shot)) + ", active tab '" + ribbon.ActiveTab + "'";
+        }
+
+        private bool? PaneShown()
+        {
+            try
+            {
+                return probe.PaneId() is DockablePaneId id ? ui.GetDockablePane(id).IsShown() : (bool?)null;
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException failure)
+            {
+                record.Notes.Add("the pane state was not read: " + failure.Message);
+                return null;
             }
         }
 
@@ -286,17 +343,23 @@ namespace SiteAdaptation.TestHost
             return "made, never saved, Title '" + entry.Title + "', PathName '" + entry.PathName + "', then closed";
         }
 
+        // The add-in shows its pane at the first project view of the session (PaneFirstShow), so shownBefore tells whether it did. The
+        // job shows it too when it is not, and makes the tab of the add-in the active one for the pictures
         private string ShowPane()
         {
             string shown = "the pane id was not read";
             if (probe.PaneId() is DockablePaneId id)
             {
                 DockablePane pane = ui.GetDockablePane(id);
-                pane.Show();
-                shown = "the pane shown " + pane.IsShown();
+                record.PaneShownBefore = pane.IsShown();
+                if (record.PaneShownBefore != true)
+                {
+                    pane.Show();
+                }
+                shown = "the pane shown before " + record.PaneShownBefore + ", after " + pane.IsShown();
             }
             bool tab = record.RibbonTab != null && RevitShots.ActivateTab(record.RibbonTab, record.Notes);
-            return shown + ", the tab " + record.RibbonTab + " made active " + tab;
+            return shown + ", the tab " + record.RibbonTab + " made active " + tab + ", active now '" + RevitShots.ActiveTab() + "'";
         }
 
         private string Shot(RunShot shot)
@@ -350,26 +413,60 @@ namespace SiteAdaptation.TestHost
             }
         }
 
-        private void OnWait(object sender, IdlingEventArgs e)
+        // Idling keeps the clock only: it ends a wait and raises the next phase, and stops the job when Revit runs no raised phase
+        private void OnTick(object sender, IdlingEventArgs e)
         {
-            e.SetRaiseWithoutDelay();
-            WaitState state = AddinRunWait.Look(waitStart, DateTime.UtcNow, probe.Waiting() ?? 0, waitMin, waitMax);
-            if (state == WaitState.Wait)
+            if (finished)
             {
                 return;
             }
-            application.Idling -= OnWait;
-            if (posted != null && posted.Wait == null)
+            e.SetRaiseWithoutDelay();
+            TickAction action = schedule.Tick(DateTime.UtcNow, Pending(), out WaitState? ended, out double seconds);
+            if (ended.HasValue && showWait)
             {
-                posted.Wait = state.ToString();
-                posted.WaitedSeconds = Math.Round((DateTime.UtcNow - waitStart).TotalSeconds, 1);
+                record.Notes.Add("the wait for the pane and the tab ended " + ended.Value + " after " + seconds + " s");
             }
-            ui = (UIApplication)sender;
-            RunNext(lastOk);
+            else if (ended.HasValue && posted != null && posted.Wait == null)
+            {
+                posted.Wait = ended.Value.ToString();
+                posted.WaitedSeconds = seconds;
+            }
+            if (action == TickAction.Raise)
+            {
+                Raise();
+            }
+            else if (action == TickAction.GiveUp)
+            {
+                record.Notes.Add("Revit ran no raised phase of the test host in " + AddinRunSchedule.RaiseMaxSeconds + " s, the job stops");
+                runner.Record(log => log.Notes.Add("addinRun: the phase event did not run, the job stops"));
+                lastOk = false;
+                ui = (UIApplication)sender;
+                Finish();
+            }
+        }
+
+        // What the wait waits for: answers the relay of the add-in still holds, or the pane not yet shown at its least width and the
+        // tab of the add-in not yet active
+        private int Pending()
+        {
+            if (!schedule.Waiting)
+            {
+                return 0;
+            }
+            if (!showWait)
+            {
+                return probe.Waiting() ?? 0;
+            }
+            int? least = probe.PaneMinWidth();
+            bool pane = PaneShown() == true && least.HasValue && RevitShots.PaneWidth(probe.PageType()) >= least.Value;
+            bool tab = record.RibbonTab != null && RevitShots.ActiveTab() == record.RibbonTab;
+            return (pane ? 0 : 1) + (tab ? 0 : 1);
         }
 
         private void Finish()
         {
+            finished = true;
+            application.Idling -= OnTick;
             application.ControlledApplication.DocumentCreated -= OnCreated;
             application.ControlledApplication.DocumentOpened -= OnOpened;
             application.ControlledApplication.DocumentClosing -= OnClosing;
@@ -378,11 +475,31 @@ namespace SiteAdaptation.TestHost
             application.ViewActivated -= OnViewActivated;
             record.FinishedUtc = DateTime.UtcNow;
             Write();
-            if (phases.Failed)
+            if (phases.Failed || !lastOk)
             {
                 runner.Record(log => log.Result = "failed");
             }
             exit(ui);
+        }
+
+        private sealed class PhaseHandler : IExternalEventHandler
+        {
+            private readonly AddinRunSession session;
+
+            public PhaseHandler(AddinRunSession session)
+            {
+                this.session = session;
+            }
+
+            public void Execute(UIApplication app)
+            {
+                session.Execute(app);
+            }
+
+            public string GetName()
+            {
+                return "SiteAdaptation.TestHost.AddinRunPhase";
+            }
         }
 
         // The events PaneHost loads the pane on, each with the pane right after it as the test host sees it

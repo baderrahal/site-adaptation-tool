@@ -19,6 +19,7 @@ namespace SiteAdaptation.AddIn
         public static readonly DockablePaneId PaneId = new DockablePaneId(new Guid("6b1c5a2e-3f47-4d8a-9c0e-5a0f2b7d4e91"));
 
         private readonly PaneSessions sessions = new PaneSessions();
+        private readonly PaneFirstShow firstShow = new PaneFirstShow();
         private readonly DiskProbe probe;
         private readonly PaneViewModel model;
         private ExternalEvent runEvent;
@@ -135,6 +136,29 @@ namespace SiteAdaptation.AddIn
             if (now == null || before == null || !now.Equals(before))
             {
                 Load(now);
+            }
+            ShowOnce(sender as UIApplication, now);
+        }
+
+        // The first project view of the session shows the pane when Revit keeps it hidden. A pane Revit will not show stays as it is,
+        // the view goes on
+        private void ShowOnce(UIApplication application, Document now)
+        {
+            if (application == null)
+            {
+                return;
+            }
+            try
+            {
+                DockablePane pane = null;
+                if (firstShow.Due(now != null && now.IsValidObject && !now.IsFamilyDocument, () => (pane = application.GetDockablePane(PaneId)).IsShown()))
+                {
+                    pane.Show();
+                }
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException)
+            {
+                // GetDockablePane throws while the pane is not created yet, and Show may refuse, the user can open it from the tab
             }
         }
 

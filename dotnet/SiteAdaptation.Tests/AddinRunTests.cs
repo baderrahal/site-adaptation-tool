@@ -32,6 +32,14 @@ namespace SiteAdaptation.Tests
             return File.ReadAllText(Path.Combine(new[] { folder }.Concat(parts).ToArray()));
         }
 
+        private static string Between(string text, string from, string to)
+        {
+            int start = text.IndexOf(from, StringComparison.Ordinal);
+            int end = text.IndexOf(to, start + 1, StringComparison.Ordinal);
+            Assert.True(start >= 0 && end > start, from + " to " + to);
+            return text.Substring(start, end - start);
+        }
+
         private static JObject Job()
         {
             return new JObject
@@ -112,20 +120,63 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R104_a_failed_phase_goes_straight_to_the_last_phase_of_the_steps_that_always_run()
+        public void R104_a_failed_phase_goes_on_at_the_phases_that_always_run()
         {
-            var phases = new AddinRunPhases(4);
+            // The documents, the routing, item 2, then from 3 the pane and the pictures, which always run
+            var phases = new AddinRunPhases(5, 3);
             Assert.Equal(0, phases.Next(true));
-            Assert.Equal(1, phases.Next(true));
             Assert.Equal(3, phases.Next(false));
             Assert.True(phases.Failed);
+            Assert.Equal(4, phases.Next(true));
             Assert.Equal(-1, phases.Next(true));
 
-            var clean = new AddinRunPhases(2);
+            // A failed phase among those that always run does not skip the next one
+            var late = new AddinRunPhases(5, 3);
+            Assert.Equal(0, late.Next(true));
+            Assert.Equal(1, late.Next(true));
+            Assert.Equal(2, late.Next(true));
+            Assert.Equal(3, late.Next(true));
+            Assert.Equal(4, late.Next(false));
+            Assert.True(late.Failed);
+            Assert.Equal(-1, late.Next(true));
+
+            var clean = new AddinRunPhases(2, 1);
             Assert.Equal(0, clean.Next(true));
             Assert.Equal(1, clean.Next(true));
             Assert.Equal(-1, clean.Next(true));
             Assert.False(clean.Failed);
+        }
+
+        // Run 2 of 5a: OpenAndActivateDocument from Idling threw "Switching active documents is not allowed during API event handling".
+        // The phases now run in an ExternalEvent, and the Idling clock only ends waits, raises and gives up
+        [Fact]
+        public void R372_the_idle_clock_ends_a_wait_raises_the_next_phase_and_gives_up_on_a_phase_revit_never_runs()
+        {
+            var schedule = new AddinRunSchedule();
+            schedule.Raise(Now);
+            Assert.True(schedule.Raised);
+            Assert.Equal(TickAction.None, schedule.Tick(Now.AddSeconds(5), 0, out WaitState? ended, out double seconds));
+            Assert.Null(ended);
+            schedule.Ran();
+            Assert.False(schedule.Raised);
+
+            schedule.Wait(Now, 2, 60);
+            Assert.Equal(TickAction.None, schedule.Tick(Now.AddSeconds(1), 0, out ended, out seconds));
+            Assert.Equal(TickAction.None, schedule.Tick(Now.AddSeconds(10), 1, out ended, out seconds));
+            Assert.Equal(TickAction.Raise, schedule.Tick(Now.AddSeconds(12), 0, out ended, out seconds));
+            Assert.Equal(WaitState.Ready, ended);
+            Assert.Equal(12, seconds);
+            Assert.False(schedule.Waiting);
+            Assert.True(schedule.Raised);
+
+            schedule.Ran();
+            schedule.Wait(Now, 3, 60);
+            Assert.Equal(TickAction.Raise, schedule.Tick(Now.AddSeconds(60), 2, out ended, out seconds));
+            Assert.Equal(WaitState.TimedOut, ended);
+
+            Assert.Equal(TickAction.None, schedule.Tick(Now.AddSeconds(60 + AddinRunSchedule.RaiseMaxSeconds - 1), 0, out ended, out seconds));
+            Assert.Equal(TickAction.GiveUp, schedule.Tick(Now.AddSeconds(60 + AddinRunSchedule.RaiseMaxSeconds), 0, out ended, out seconds));
+            Assert.False(schedule.Raised);
         }
 
         [Fact]
@@ -135,6 +186,25 @@ namespace SiteAdaptation.Tests
             Assert.Equal(WaitState.Ready, AddinRunWait.Look(Now, Now.AddSeconds(2), 0, 2, 60));
             Assert.Equal(WaitState.Wait, AddinRunWait.Look(Now, Now.AddSeconds(30), 1, 2, 60));
             Assert.Equal(WaitState.TimedOut, AddinRunWait.Look(Now, Now.AddSeconds(60), 1, 2, 60));
+        }
+
+        // The ribbon of the add-in as a run should see it: its tab active, each panel of RibbonLayout drawn inside the cut and each
+        // button on the tab. The names stand for those RibbonLayout gives at run time, whatever they are
+        private static RunShot Ribbon()
+        {
+            return new RunShot
+            {
+                Name = "ribbon", Colours = 90, Blank = false, SameHandle = true, PartRect = new[] { 0, 32, 1922, 183 }, Crop = new[] { 9, 41, 1922, 151 },
+                TabFound = true, TabVisible = true, ActiveTab = "Site Adaptation",
+                ExpectedPanels = new List<string> { "Setup", "Rules", "Build", "Output" },
+                Panels = new List<RunPanel>
+                {
+                    new RunPanel { Title = "Setup", Bounds = new[] { 10, 40, 300, 180 } }, new RunPanel { Title = "Rules", Bounds = new[] { 300, 40, 400, 180 } },
+                    new RunPanel { Title = "Build", Bounds = new[] { 400, 40, 700, 180 } }, new RunPanel { Title = "Output", Bounds = new[] { 700, 40, 900, 180 } },
+                },
+                ExpectedButtons = new List<string> { "1 Set up site", "9 Report" },
+                Buttons = new List<string> { "1 Set up\nsite", "9 Report", "Site Adaptation Rules" },
+            };
         }
 
         // A run as docs/design/09-risks.md and section 6 expect it, every value read
@@ -165,8 +235,8 @@ namespace SiteAdaptation.Tests
             record.Answers.Add(new RunAnswer { RunId = "sa5a-1", PostedFor = "second", PostedSession = "s4", ActiveWhenPosted = "first", Routed = true, RoutedSession = "s4", RoutedPath = second });
             record.Answers.Add(new RunAnswer { RunId = "sa5a-2", PostedFor = "second", PostedSession = "s4", ActiveWhenPosted = "first", Routed = true,
                 Issue = "run sa5a-2 ended after its document closed, nothing applied" });
-            record.Shots.Add(new RunShot { Name = "pane", Colours = 40, Blank = false });
-            record.Shots.Add(new RunShot { Name = "ribbon", Colours = 90, Blank = false, SameHandle = true });
+            record.Shots.Add(new RunShot { Name = "pane", Width = 380, Height = 900, Colours = 40, Blank = false, Shown = true, MinWidth = 380 });
+            record.Shots.Add(Ribbon());
             return record;
         }
 
@@ -214,6 +284,45 @@ namespace SiteAdaptation.Tests
             Assert.True(CheckOf(record, AddinRunJudge.LoadOn + RunEvent.ViewActivated).Held == true);
             Assert.Equal(9, record.NotHeld);
             Assert.Equal(record.Checks.Count, record.Held + record.NotHeld + record.NotMeasured);
+        }
+
+        // Run 2 of 5a passed a pane PNG of 160 by 160 px from a pane Revit did not show, and a ribbon PNG with Architecture active. Each
+        // such picture, and a ribbon whose panels or buttons are not those RibbonLayout gives, is not held
+        [WindowsFact]
+        public void R384_a_pane_not_shown_or_narrow_and_a_ribbon_without_the_active_tab_panels_and_buttons_are_not_held()
+        {
+            var pictures = new List<Tuple<string, Action<AddinRunRecord>>>
+            {
+                Tuple.Create(AddinRunJudge.PaneShot, (Action<AddinRunRecord>)(run => { run.Shots[0].Shown = false; run.Shots[0].Width = 160; run.Shots[0].Height = 160; })),
+                Tuple.Create(AddinRunJudge.PaneShot, (Action<AddinRunRecord>)(run => run.Shots[0].Width = 379)),
+                Tuple.Create(AddinRunJudge.PaneShot, (Action<AddinRunRecord>)(run => run.Shots[0].Shown = false)),
+                Tuple.Create(AddinRunJudge.RibbonShot, (Action<AddinRunRecord>)(run => run.Shots[1].ActiveTab = "Architecture")),
+                Tuple.Create(AddinRunJudge.RibbonShot, (Action<AddinRunRecord>)(run => run.Shots[1].Panels[3].Bounds = null)),
+                Tuple.Create(AddinRunJudge.RibbonShot, (Action<AddinRunRecord>)(run => run.Shots[1].Panels[3].Bounds = new[] { 1900, 40, 2100, 180 })),
+                Tuple.Create(AddinRunJudge.RibbonShot, (Action<AddinRunRecord>)(run => run.Shots[1].Panels.RemoveAt(1))),
+                Tuple.Create(AddinRunJudge.RibbonShot, (Action<AddinRunRecord>)(run => run.Shots[1].Buttons.Remove("9 Report"))),
+                Tuple.Create(AddinRunJudge.RibbonShot, (Action<AddinRunRecord>)(run => run.Shots[1].Crop = null)),
+            };
+            foreach (Tuple<string, Action<AddinRunRecord>> picture in pictures)
+            {
+                AddinRunRecord record = Expected();
+                picture.Item2(record);
+                AddinRunJudge.Judge(record);
+                Assert.True(CheckOf(record, picture.Item1).Held == false, picture.Item1 + ": " + CheckOf(record, picture.Item1).Detail);
+            }
+
+            // A pane whose state, least width, or a tab Revit did not read is not measured
+            foreach (Action<AddinRunRecord> unread in new Action<AddinRunRecord>[] { run => run.Shots[0].Shown = null, run => run.Shots[0].MinWidth = null })
+            {
+                AddinRunRecord record = Expected();
+                unread(record);
+                AddinRunJudge.Judge(record);
+                Assert.Null(CheckOf(record, AddinRunJudge.PaneShot).Held);
+            }
+            AddinRunRecord noTab = Expected();
+            noTab.Shots[1].TabFound = null;
+            AddinRunJudge.Judge(noTab);
+            Assert.Null(CheckOf(noTab, AddinRunJudge.RibbonShot).Held);
         }
 
         [WindowsFact]
@@ -306,6 +415,19 @@ namespace SiteAdaptation.Tests
             Assert.Contains("new AddinRunSession(", session);
             // The answers go through the relay of the add-in, so the ExternalEvent of the add-in routes them
             Assert.Contains("probe.Post(", run);
+            // Run 2: the phases run in the Execute of an ExternalEvent of the test host, never in an Idling handler, where Revit 2024
+            // refuses OpenAndActivateDocument
+            Assert.Contains("phaseEvent = ExternalEvent.Create(new PhaseHandler(this));", run);
+            string tick = Between(run, "private void OnTick(", "private int Pending(");
+            string start = Between(run, "public void Start(", "private void Raise(");
+            foreach (string part in new[] { tick, start })
+            {
+                Assert.DoesNotContain("runner.Run(", part);
+                Assert.DoesNotContain("OpenAndActivateDocument", part);
+            }
+            Assert.Contains("lastOk = runner.Run(Phase(phase));", Between(run, "private void Execute(", "private IEnumerable<JobStep> Phase("));
+            // R200. A failed log ends the run script with 1, which the lock wrapper hands on
+            Assert.Contains("if (-not $DryStart -and ($stopReason -or $logResult -ne 'ok')) {", script);
             Assert.Contains("DetachFromCentralOption.DetachAndPreserveWorksets", run);
             Assert.Contains("SaveAsCentral = true", run);
             Assert.Contains("OpenAndActivateDocument(", run);

@@ -126,18 +126,27 @@ namespace SiteAdaptation.Common
         public const string RibbonLayout = "SiteAdaptation.AddIn.RibbonLayout";
         public const string Tab = "Tab";
         public const string Page = "SiteAdaptation.AddIn.Pane.SitePanePage";
+        public const string Panels = "Panels";
+        public const string PanelName = "Name";
+        public const string RibbonButtons = "Buttons";
+        public const string ButtonLabel = "Label";
+        public const string Theme = "SiteAdaptation.AddIn.Theme.ThemeDictionary";
+        public const string ThemeLoad = "Load";
+        public const string PaneSize = "SA.Size.Pane";
     }
 
-    // R104. The phases of the job, each ended by a wait in Revit's idle time. After a failed phase only the last runs, which holds the
-    // steps that always run
+    // R104. The phases of the job. After a failed phase the job goes on at the first of the phases that always run, which show the
+    // pane, take the pictures, close what is open and judge
     public sealed class AddinRunPhases
     {
         private readonly int count;
+        private readonly int alwaysFrom;
         private int at = -1;
 
-        public AddinRunPhases(int count)
+        public AddinRunPhases(int count, int alwaysFrom)
         {
             this.count = count;
+            this.alwaysFrom = alwaysFrom;
         }
 
         public bool Failed { get; private set; }
@@ -152,11 +161,88 @@ namespace SiteAdaptation.Common
             if (!lastOk)
             {
                 Failed = true;
-                at = count - 1;
+                at = Math.Max(at + 1, alwaysFrom);
                 return at;
             }
             at++;
             return at;
+        }
+    }
+
+    public enum TickAction
+    {
+        None,
+        Raise,
+        GiveUp,
+    }
+
+    // R372, RevitAPIUI.xml of Revit 2024: OpenAndActivateDocument "may not be called from inside an event handler", and Idling is one.
+    // So each phase runs in the Execute of an ExternalEvent of the test host, and the Idling handler only looks at the clock: it ends
+    // a wait and raises the event, and it gives up when Revit has not run a raised event in RaiseMaxSeconds
+    public sealed class AddinRunSchedule
+    {
+        public const double RaiseMaxSeconds = 120;
+
+        private DateTime waitStart;
+        private double waitMin;
+        private double waitMax;
+        private bool waiting;
+        private DateTime? raisedAt;
+
+        public bool Waiting
+        {
+            get { return waiting; }
+        }
+
+        public bool Raised
+        {
+            get { return raisedAt.HasValue; }
+        }
+
+        public void Wait(DateTime nowUtc, double minSeconds, double maxSeconds)
+        {
+            waitStart = nowUtc;
+            waitMin = minSeconds;
+            waitMax = maxSeconds;
+            waiting = true;
+            raisedAt = null;
+        }
+
+        public void Raise(DateTime nowUtc)
+        {
+            waiting = false;
+            raisedAt = nowUtc;
+        }
+
+        public void Ran()
+        {
+            raisedAt = null;
+        }
+
+        // pending is what the wait waits for, answers in the relay or a pane not yet shown, 0 when nothing. ended gives how the
+        // wait ended and its seconds when this tick ends it
+        public TickAction Tick(DateTime nowUtc, int pending, out WaitState? ended, out double seconds)
+        {
+            ended = null;
+            seconds = 0;
+            if (waiting)
+            {
+                WaitState state = AddinRunWait.Look(waitStart, nowUtc, pending, waitMin, waitMax);
+                if (state == WaitState.Wait)
+                {
+                    return TickAction.None;
+                }
+                ended = state;
+                seconds = Math.Round((nowUtc - waitStart).TotalSeconds, 1);
+                Raise(nowUtc);
+                return TickAction.Raise;
+            }
+            if (raisedAt.HasValue && (nowUtc - raisedAt.Value).TotalSeconds >= RaiseMaxSeconds)
+            {
+                raisedAt = null;
+                return TickAction.GiveUp;
+            }
+            return TickAction.None;
         }
     }
 
@@ -167,7 +253,8 @@ namespace SiteAdaptation.Common
         TimedOut,
     }
 
-    // R372. An answer the relay holds waits for the ExternalEvent of the add-in, which runs only in Revit's idle time
+    // R372. An answer the relay holds waits for the ExternalEvent of the add-in, which runs only in Revit's idle time, and the pane for
+    // Revit to show and lay it out
     public static class AddinRunWait
     {
         public static WaitState Look(DateTime startedUtc, DateTime nowUtc, int waiting, double minSeconds, double maxSeconds)
@@ -192,6 +279,8 @@ namespace SiteAdaptation.Common
         public string WorkRoot { get; set; }
         public string SaveFirst { get; set; }
         public string RibbonTab { get; set; }
+        // Whether the pane was shown when the job came to show it, so after the first project view of the session
+        public bool? PaneShownBefore { get; set; }
         public List<string> Notes { get; set; } = new List<string>();
         public List<RunDocument> Documents { get; set; } = new List<RunDocument>();
         public List<RunEvent> Events { get; set; } = new List<RunEvent>();
@@ -296,6 +385,26 @@ namespace SiteAdaptation.Common
         public int[] Crop { get; set; }
         public bool? SameHandle { get; set; }
         public string Detail { get; set; }
+        // The pane: whether Revit shows it, and the least width of docs/design/12-ui-spec.md Sizes, SA.Size.Pane of Theme.xaml
+        public bool? Shown { get; set; }
+        public int? MinWidth { get; set; }
+        // The ribbon: the tab of the add-in found by its title, visible, the tab active when the picture was taken, the panels the
+        // add-in builds and where each panel of the active tab lies on the screen
+        public bool? TabFound { get; set; }
+        public bool? TabVisible { get; set; }
+        public string ActiveTab { get; set; }
+        public List<string> ExpectedPanels { get; set; }
+        // The button labels of RibbonLayout, and the texts of the buttons the active tab holds as AdWindows gives them
+        public List<string> ExpectedButtons { get; set; }
+        public List<string> Buttons { get; set; } = new List<string>();
+        public List<RunPanel> Panels { get; set; } = new List<RunPanel>();
+    }
+
+    public sealed class RunPanel
+    {
+        public string Title { get; set; }
+        // left, top, right, bottom in screen pixels, null when the panel is drawn nowhere
+        public int[] Bounds { get; set; }
     }
 
     public sealed class RunCheck
@@ -368,9 +477,15 @@ namespace SiteAdaptation.Common
 
             RunShot pane = record.Shots.FirstOrDefault(shot => shot.Name == "pane");
             RunShot ribbon = record.Shots.FirstOrDefault(shot => shot.Name == "ribbon");
-            checks.Add(One("shots", PaneShot, pane, shot => !shot.Blank, shot => shot.Colours + " colours, " + shot.Width + " by " + shot.Height + " px"));
-            checks.Add(One("shots", RibbonShot, ribbon, shot => !shot.Blank && shot.SameHandle == true,
-                shot => shot.Colours + " colours, black share " + shot.BlackShare.ToString("0.###", CultureInfo.InvariantCulture) + ", same handle " + shot.SameHandle));
+            checks.Add(One("shots", PaneShot, pane != null && pane.Shown.HasValue && pane.MinWidth.HasValue ? pane : null,
+                shot => !shot.Blank && shot.Shown == true && shot.Width >= shot.MinWidth.Value,
+                shot => "shown " + shot.Shown + ", " + shot.Width + " by " + shot.Height + " px against the least width " + shot.MinWidth + ", " + shot.Colours + " colours"));
+            checks.Add(One("shots", RibbonShot, ribbon != null && ribbon.TabFound.HasValue && ribbon.ExpectedPanels != null && ribbon.ExpectedPanels.Count > 0 ? ribbon : null,
+                shot => !shot.Blank && shot.SameHandle == true && shot.ActiveTab != null && shot.ActiveTab == record.RibbonTab && MissingPanels(shot).Count == 0
+                    && shot.ExpectedButtons != null && shot.ExpectedButtons.Count > 0 && MissingButtons(shot).Count == 0,
+                shot => "tab found " + shot.TabFound + ", visible " + shot.TabVisible + ", active tab '" + shot.ActiveTab + "', panels not in the picture: "
+                    + (MissingPanels(shot).Count == 0 ? "none" : string.Join(", ", MissingPanels(shot))) + ", buttons not on the tab: "
+                    + (MissingButtons(shot).Count == 0 ? "none" : string.Join(", ", MissingButtons(shot))) + ", " + shot.Colours + " colours, same handle " + shot.SameHandle));
 
             record.Checks = checks;
             record.Held = checks.Count(check => check.Held == true);
@@ -378,6 +493,27 @@ namespace SiteAdaptation.Common
             record.NotMeasured = checks.Count(check => check.Held == null);
         }
 
+        // Each panel the add-in builds must be drawn inside the part of the window the ribbon PNG was cut from
+        public static List<string> MissingPanels(RunShot shot)
+        {
+            return (shot.ExpectedPanels ?? new List<string>()).Where(title =>
+            {
+                RunPanel panel = shot.Panels.FirstOrDefault(each => each.Title == title);
+                return panel == null || shot.Crop == null || !ShotCrop.Inside(shot.PartRect, panel.Bounds);
+            }).ToList();
+        }
+
+        // Each button label of RibbonLayout must be a button of the active tab, spaces and line breaks taken as one space
+        public static List<string> MissingButtons(RunShot shot)
+        {
+            var found = new HashSet<string>((shot.Buttons ?? new List<string>()).Select(Words));
+            return (shot.ExpectedButtons ?? new List<string>()).Where(label => !found.Contains(Words(label))).ToList();
+        }
+
+        private static string Words(string text)
+        {
+            return string.Join(" ", (text ?? "").Split(new[] { ' ', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries));
+        }
         // docs/design/06-settings.md: <root>\<file name without extension>_<first 8 hex of the SHA-256 of the full path in lower case>,
         // worked out here a second time, apart from WorkFolder of the add-in, so the run checks the add-in against it
         public static string ExpectedFolder(string root, string pathName)
@@ -448,6 +584,16 @@ namespace SiteAdaptation.Common
     // left, top, right, bottom in screen pixels, the crop x, y, width and height inside the window, null when they do not overlap
     public static class ShotCrop
     {
+        // True when inner lies whole inside outer and has a width and a height
+        public static bool Inside(int[] outer, int[] inner)
+        {
+            if (outer == null || inner == null || outer.Length != 4 || inner.Length != 4 || inner[2] <= inner[0] || inner[3] <= inner[1])
+            {
+                return false;
+            }
+            return inner[0] >= outer[0] && inner[1] >= outer[1] && inner[2] <= outer[2] && inner[3] <= outer[3];
+        }
+
         public static int[] Within(int[] window, int[] part)
         {
             if (window == null || part == null || window.Length != 4 || part.Length != 4)
