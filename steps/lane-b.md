@@ -15,6 +15,16 @@ After 5b Lane B waits until 4g2, 4g3 and 4h are all marked done in steps/01_next
 
 A laptop session starts from Bader's Lane B prompt, never from steps/START.md. START.md runs the first open phase of steps/01_next.md, which is Phase 4, and nothing there names this file until the fold in.
 
+## Where 5a stopped, 28 Oct 2026
+
+Bader asked for a stop to restart the laptop. Nothing ran in Revit at the stop and no window lock was held (RAN).
+
+- Merged in 5a: PR 84 records, PR 86 add-in project, theme and ribbon, PR 87 the four UI controls, PR 89 one transaction per button and the install, PR 90 the pane, the label list and the draft PNGs.
+- Open: PR 92, Bader's design changes and the 9 steps, in its review pass 1 fixes. The records fixes are on its branch. The code fixes (the label list renamed to 14-ui-labels.md, its 5b and 5c entries, the look of the Import pre-setting link, README and latent lines) are half done on branch wip/lane-b-5a-pr8-review1, commit 4ea6901, not tested. Finish them there, take them into feat/lane-b-5a-workflow, gate, review pass 2, merge.
+- Waiting: branch feat/lane-b-5a-revit-run, the test host side of the Revit run, not yet a PR. Revit run 1 (RAN, 2.98 min) held 12 checks, failed at OpenAndActivateDocument in Idling, and its ribbon and pane pictures were wrong. Its fixes are on the branch at 87ab4d2. After PR 92 merges: merge main into it, build, install, run 2 by the runner under the lock, the Revit ribbon and pane PNGs into steps/ui-shots/, review, merge. A third failed run goes back to measuring and becomes a question.
+- Written on the laptop outside the repo: machine.json in %APPDATA%\SiteAdaptation with workRoot C:\Users\p003653k\Documents\SiteAdaptation, the add-in and the test host installed in %APPDATA%\Autodesk\Revit\Addins\2024 from the run 1 build, lock_settings.json and addin_run_spec.json in C:\Users\p003653k\Documents\SiteAdaptation.
+- Then the end records of 5a: the phase marked done here, the usage row, the open questions, the UI approval form.
+
 ## Fold in
 
 Not done on 28 Oct 2026 in L0. Two conditions fail: PR 75 "Round ADDIN 4g2 PR 2" is open, and origin holds the branches docs/addin-4g2-state-line and feat/addin-4g2-status-memory besides main. The top entry of steps/log.md was not checked, since the fold in fails already.
