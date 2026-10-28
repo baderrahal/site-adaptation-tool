@@ -34,7 +34,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Rules: Q112 and Q113 first (Bader, 2026-10-28, steps/questions-closed.md). Q112: an override moved a value only if removing that one override changes it, the detail names the last applied override that moved it and the status takes the worst of every override that moved it and of the entries still read. Measure first the time and the peak of a build of the 7 keys with it, and if it adds more than 20 percent to either, do not code it, list all overrides that touched the inputs of the value instead and say so in the log. Q113: a value takes the worst status of its inputs and names the override, so the 512 values read RECOMMENDED. R364 the level Excel. R365 the report Excel, with the plot count on each line of Rules applied and the sheet Assumed, and the parity of step 15 with the count by field and status of R401
 - Design: docs/design/05-plan-steps.md step 15, docs/design/03b-buttons-2-to-8.md (6 Levels, 8 Report), docs/design/07-mock.md 7.5 to 7.7
 - Lane B: when the C# check of Q111 is on main in steps/lane-b.md, fold it into the log. A failure there is a REAL finding of 4g3
-- Note: Q113 moves the 294 wall values that equal their value with no override while a heightM moved a plot of the wall (PR 79), and the rows of the chip Assumed follow the status (R363)
+- Note: Q113 would move 294 wall values from MEASURED weak to RECOMMENDED (READ, the breaker of PR 79 pass 2, no log), and the rows of the chip Assumed follow the status (R363)
 - Done when: Q112 and Q113 hold in Python and C# with tests, parity holds for step 15, and each Excel holds the labels of 7.5 and 7.6 of the mock in the order of the mock, with the items of 7.7
 
 ## 4h, the scope, step state, settings and element tags
@@ -62,7 +62,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 ## 5c, buttons 2 Read data, 3 Check and 4 Place villas
 
 - Status: open
-- Join item (Q117, Bader 2026-10-28): key_join.json and the past model prototype reads as inputs of button 3, both optional, as a new project has no past job. Present: the Plot cut rows and the key Unit code rows are built from them, and Past of the 51 missing rows and 3 question rows that offer it with no value is filled (PR 81). Absent: button 3 runs as today, Plot cut shows no rows and the check table says in one line that no past job was given, so no plot is counted as following every rule on Plot cut
+- Join item (Q117, Bader 2026-10-28): key_join.json and the past model prototype reads as inputs of button 3, both optional, as a new project has no past job. Present: the Plot cut rows and the key Unit code rows are built from them. Absent: button 3 runs as today, Plot cut shows no rows and the check table says in one line that no past job was given, so no plot is counted as following every rule on Plot cut. With the key reads present, Past of the 51 missing rows and 3 question rows that offer it with no value is filled too (CHOSEN by Code, PR 81 review 2)
 - Rules: R375 button 2. R376 button 3, the check table, Use and Save overrides. R377 button 4, link types by full path, the load and reload step, the move of a tagged link
 - Design: docs/design/03b-buttons-2-to-8.md (2 Read data, 3 Check, 4 Place villas), docs/design/07-mock.md 7.4 and item 8 of 7.7, the chip Assumed, docs/design/09-risks.md open item 9
 - Done when: buttons 2 to 4 run on one NBH, and open item 9 is proven on one link

@@ -23,7 +23,7 @@ Remains:
 - The C# check of Q111 on the laptop. Plot cut rows in 5c (Q117)
 
 Known bugs:
-- The build peak after PR 75 is UNKNOWN until Q111. 7 cut plots of the IMC join count as following every rule until 5c
+- The build peak after PR 75 is UNKNOWN until Q111. 7 cut plots of the IMC join follow every rule on the whole project until 5c
 
 Next:
 - 4g3: Q112 and Q113 first, then R364 and R365. Bader pastes steps/START.md
@@ -45,6 +45,7 @@ Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Si
 Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
 Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
 Q114 Fields following the Q017 hand of 2302. Q115 Wall extent along an edge. Q116 Ramp and wall of 18 turned plots. Q118 Follow every rule leaves out moved plots.
+
 ## Round ADDIN 4g1, 2026-10-27, Q098, Q099 and the status of each plotted value
 
 Goal:

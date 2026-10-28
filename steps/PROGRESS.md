@@ -1,4 +1,4 @@
-STATE WAITING, 2026-10-28 10:30, for the 4g3 session, Bader pastes steps/START.md
+STATE WAITING, 2026-10-28 10:15, for the 4g3 session, Bader pastes steps/START.md
 # Progress
 Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
 
@@ -30,7 +30,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - A native2022 build with --overrides is refused on 1,346 native entries with no value (Q075)
-- Plot cut rows are not built until 5c (Q117), so Plot cut reads 0 and 7 cut plots of the IMC join count as following every rule
+- Plot cut rows are not built until 5c (Q117), so Plot cut reads 0 and 7 cut plots of the IMC join count as following every rule on the whole project
 - A whole build peaked at 974.8 MiB on net48 and 845.3 on net8.0 before the review fixes of PR 75, after them UNKNOWN until the C# check of Q111
 - Not in 4f: heightOffset and floor z need the site file of button 1, roadAtFrontM in the plan with R364, the past_all.csv rebuild of R385
 
