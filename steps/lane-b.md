@@ -74,7 +74,7 @@ Added by Bader's Lane B prompt of 28 Oct 2026, the second of that day, for the f
 From docs/design/13-workflow-changes.md, part Where each lands. 5a builds the order, the ribbon and the pane in Lane B PR 8.
 
 - W1, 5b. Set up site: the pass limit read from config by the answer of QL17, the Floor types row, the Ramp slope row and its dropdown, the Shared parameters row from the parameter sheet, the parameters and GUIDs only from that sheet, its PNG. The new labels of 7.3 are in the label list since review 1 of PR 92, the pass line as "Pass limit <n> mm" until QL17 is answered. The default 0.5% of Ramp slope is in the rules profile already, levelProfiles.parsons2024Rev6.rampSlopePercent.default beside rampTypes of rules/roshn-makkah.json, which the build reads (5a PR 8 review 2). Only the list of choices, 0.5%, 1%, 2%, then 3% to 15%, is new, and it goes beside rampTypes by Lane A or at the fold in (CLAUDE.md, no project value in code).
-- W2, 5c. The pass limit of 0.1 mm in config by the answer of QL17. addin.position.checkPointLimitMm is there already at 1.0 (R211, R353, Q086), and config is Lane A's file.
+- W2, 5c. The pass limit of 0.1 mm in config by the answer of QL17 (Bader, 29 Oct 2026): a key of its own for the check points of button 1 against Revit, the Revit column after Apply against the transform of the dry run. addin.position.checkPointLimitMm stays at 1.0 for the key check of R353 (R211, Q086). Config is Lane A's file, so Lane A or the join adds the key and Code names it then.
 - W3, 5c. The rules profile gains the block manualRules, M01 to M15 as drafted on the canvas, with id, text, group, manual section and the steps that check it. Code reads the page numbers from the manual PDF. The texts of M01 to M15 are on the canvas, not in the repo, so 5c asks Bader for them if no file holds them.
 - W4, 5c. The pre-setting: Import from past job and Export with R367, never a drawing path or a coordinate.
 - W5, 5c. The windows 3 Review data and Site Adaptation Rules, their labels in docs/design/14-ui-labels.md, their PNGs, and the manual rule ID on every check row and Review data row, with "Open in Site Adaptation Rules" in the Check table side box.
@@ -196,7 +196,30 @@ Bader answered QL1 to QL8 in his Lane B prompt of 28 Oct 2026. At the fold in ea
 - QL7: SA.Type.Project 16, SA.Type.Step 14, SA.Type.Count 28, SA.Type.Label 13 SemiBold. Amber to SA.Warn, grey to SA.BorderStrong, green to SA.Ok, white to SA.Surface. A missing file shows "[m] of [n] found". Written into docs/design/12-ui-spec.md with the weights of the recommended answer.
 - QL8: a "Villa mode" row under the Dry run checkbox, a new item of the list of 7.7. Written into docs/design/12-ui-spec.md 7.2 and docs/design/11-light-mode.md.
 
+## Bader's answers of 29 Oct 2026
+
+Bader answered QL9 to QL20 in his Lane B prompt of 29 Oct 2026, with the UI approval and the fold in. Their text as asked is under "Questions answered on 29 Oct 2026". At the fold in each goes to steps/questions-closed.md as item 5 of "Fold in" says.
+
+- QL20: allow Revit run 3 with the fix of the prompt: one Idling handler added once in OnStartup outside any Revit event, a flag for started and finished, no handler added or removed inside Idling or any other Revit event, Finish() ending by the flag, each phase from the ExternalEvent, the first record whether a raised ExternalEvent runs on the Home screen with no document, the whole job capped at 15 minutes. If it fails, one probe only, then stop. No fourth run.
+- Fold in: Lane A does it, as the last records PR of 4h, before 4h is marked done, from the list of "Fold in" above. Lane B does not do it.
+- QL17: 0.1 mm for the check points of button 1 against Revit, under a key of its own. The key check of R353 stays at the answer of Q086. The new key goes into config by the join rule, since config/project.json is Lane A's file, join item W2.
+- QL9: keep Libre Franklin, right-align the number columns, accept proportional digits.
+- QL10: the Place villas icon hole drawn with no stroke.
+- QL11: keep. A window's label entries count from the PR that builds it.
+- QL12: TaskDialogs for short stops and messages. The confirm becomes a themed window in 5b.
+- QL13: keep MinimumWidth 380, and measure the width Revit opens the pane at in run 3.
+- QL14: step rows 40, input and project rows 32, the step line cut with an ellipsis, its full text in the tooltip.
+- QL15: size and short hash move into the tooltip under the full path.
+- QL16: accept the 2 px gaps.
+- QL18: keep, the pane shows again each session.
+- QL19: keep, 9 Report needs only 4 Check.
+- UI approval: ribbon-icons.png, pane.png and pane-first-open.png are approved as drafts. Final approval waits for the Revit shots. In the Revit shot, check the 16 px icons are sharp and readable.
+
 ## Questions open in Lane B
+
+None open on 29 Oct 2026.
+
+## Questions answered on 29 Oct 2026
 
 QL9. Tabular figures. Libre Franklin 2.000 and 3.000 have no tnum feature, so the "Tabular figures for numbers" of docs/design/12-ui-spec.md cannot come from it, and WPF does not fall back to another font for one feature. The GSUB feature list of both files holds aalt ccmp dnom frac liga locl numr ordn sinf subs sups, and rvrn in 3.000, no tnum (READ in 5a PR 2). WPF gives the bundled Regular the digit widths 0=688 1=465 2=599 3=641 4=649 5=654 6=661 7=599 8=668 9=658 in thousandths of the em, 9 widths for 10 digits (RAN), the breaker measured 0=675 1=438 9=641. Under SA.Type.Count "1111", "0000" and "7777" are 55.3, 78.5 and 68.5 px wide (RAN).
 - Recommended: keep Libre Franklin, right-align the number columns and accept proportional digits.
