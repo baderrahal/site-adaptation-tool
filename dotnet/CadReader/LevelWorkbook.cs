@@ -104,7 +104,7 @@ namespace CadReader
         }
 
         // A number as the shortest text that reads back as the same double, as Python repr gives it, G17 where R of net48 gives another double
-        private static string NumberText(object value)
+        internal static string NumberText(object value)
         {
             if (value is long whole)
             {

@@ -24,6 +24,8 @@ namespace CadReader
             commands["position"] = Position;
             // R364. The level Excel of button 6, made from a plan and written with OpenXml, which only the worker loads
             commands["levelExcel"] = LevelWorkbook.Command;
+            // R365. The report Excel of button 8, made from a plan and written with OpenXml as the level Excel is
+            commands["reportExcel"] = ReportWorkbook.Command;
             return commands;
         }
 
