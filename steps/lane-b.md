@@ -7,7 +7,7 @@ Phase 5 and 6 on Bader's company laptop (D1 of steps/decisions-2026-10-28.md). W
 | Phase | Status |
 |---|---|
 | L0 Laptop check, light mode design, UI spec | done, Lane B, laptop, on the merge of branch docs/laptop-l0 after its review |
-| 5a Install, ribbon, pane, one transaction per button | running since 28 Oct 2026, Lane B, laptop |
+| 5a Install, ribbon, pane, one transaction per button | stopped on 29 Oct 2026 on QL20, the Revit run, not done |
 | 5b Button 1 Set up site | open |
 | 5f Update from report, new by Bader's changes of 28 Oct 2026, after 5e and before 6a | open |
 
@@ -15,21 +15,26 @@ After 5b Lane B waits until 4g2, 4g3 and 4h are all marked done in steps/01_next
 
 A laptop session starts from Bader's Lane B prompt, never from steps/START.md. START.md runs the first open phase of steps/01_next.md, which is Phase 4, and nothing there names this file until the fold in.
 
-## Where 5a stopped, 28 Oct 2026
+## Where 5a stopped, 29 Oct 2026
 
-Bader asked for a stop to restart the laptop. Nothing ran in Revit at the stop and no window lock was held (RAN).
+5a is not done. It stopped on the rule that a fix on its third attempt goes back to measuring and becomes a question: the Revit run failed twice, its cause is now measured, and the next run is question QL20. Nothing runs in Revit and no window lock is held (RAN).
 
-- Merged in 5a: PR 84 records, PR 86 add-in project, theme and ribbon, PR 87 the four UI controls, PR 89 one transaction per button and the install, PR 90 the pane, the label list and the draft PNGs.
-- Open: PR 92, Bader's design changes and the 9 steps, in its review pass 1 fixes. The records fixes are on its branch. The code fixes (the label list renamed to 14-ui-labels.md, its 5b and 5c entries, the look of the Import pre-setting link, README and latent lines), started in commit 4ea6901 of branch wip/lane-b-5a-pr8-review1, are finished and tested on feat/lane-b-5a-workflow, with main merged in. Next: review pass 2, merge.
-- Waiting: branch feat/lane-b-5a-revit-run, the test host side of the Revit run, not yet a PR. Revit run 1 (RAN, 2.98 min) held 12 checks, failed at OpenAndActivateDocument in Idling, and its ribbon and pane pictures were wrong. Its fixes are on the branch at 87ab4d2. After PR 92 merges: merge main into it, build, install, run 2 by the runner under the lock, the Revit ribbon and pane PNGs into steps/ui-shots/, review, merge. A third failed run goes back to measuring and becomes a question.
-- Written on the laptop outside the repo: machine.json in %APPDATA%\SiteAdaptation with workRoot C:\Users\p003653k\Documents\SiteAdaptation, the add-in and the test host installed in %APPDATA%\Autodesk\Revit\Addins\2024 from the run 1 build, lock_settings.json and addin_run_spec.json in C:\Users\p003653k\Documents\SiteAdaptation.
-- Then the end records of 5a: the phase marked done here, the usage row, the open questions, the UI approval form.
+- Merged in 5a: PR 84 records, PR 86 add-in project, theme and ribbon, PR 87 the four UI controls, PR 89 one transaction per button and the install, PR 90 the pane, the label list and the draft PNGs, PR 92 Bader's design changes, the 9 steps, the ribbon of four panels and the pane rows.
+- Done of the done-when: the add-in installs per user into Revit 2024 on this laptop and loads (RAN, the watcher gave Load Once to Site Adaptation in both runs), the theme and the UI spec with their gate tests, the tests on both runners. Open item 1 in part: run 1 held the session id on DocumentCreated and DocumentOpened, every id its own, the pane showing the active document and loading again on DocumentCreated, DocumentOpened, DocumentSavedAs, DocumentClosed and ViewActivated (RAN, 12 held, 0 not held).
+- Not done: open item 1, a worker answer routed to its own document and dropped for a closed one, and open item 2, Title and PathName of a detached and of a never saved document and the stop asking for a save (not measured in run 1, run 2 ran no step). The Revit screenshot of the ribbon and the pane in steps/ui-shots/: run 1 took the Architecture tab and a pane that was not shown, run 2 took none. The offscreen drafts of steps/ui-shots/ are there.
+- Run 1 (RAN, 28 Oct, its JSON files in C:\Users\p003653k\Documents\SiteAdaptation\testhost_old\SA5A_20261029-000118\, 2.98 min, peak 2,157 MiB working set, 1,966 private): OpenAndActivateDocument refused inside Idling, "Switching active documents is not allowed during API event handling."
+- Run 2 (RAN, 29 Oct, 29.6 min, timeout, peak 1,910 MiB working set, 1,727 private, at least 32.39 GiB free): no step ran. The cause, READ in Revit's journal.0132.txt line 1957: "Can not subscribe to an event during execution of that event!" at `application.Idling += OnTick`, AddinRunSession.cs line 85, called from the first Idling handler of the test host. The prober's answer is in C:\Users\p003653k\Documents\SiteAdaptation\probes\lane-b-5a\why-no-step-20261029.txt.
+- Waiting: branch feat/lane-b-5a-revit-run at fb318b8, the test host side of the run with main merged in, not a PR. Its code holds the cause of run 2, so it is not merged until QL20 is answered.
+- Written on the laptop outside the repo: machine.json in %APPDATA%\SiteAdaptation with workRoot C:\Users\p003653k\Documents\SiteAdaptation, the add-in and the test host installed in %APPDATA%\Autodesk\Revit\Addins\2024 from the build of fb318b8, lock_settings.json and addin_run_spec.json in C:\Users\p003653k\Documents\SiteAdaptation.
+- Left after QL20: the run, the Revit PNGs into steps/ui-shots/ with the differences, the review and merge of the run branch, 5a marked done here, Bader's approval of the PNGs.
 
 ## Fold in
 
 Not done on 28 Oct 2026 in L0. Two conditions fail: PR 75 "Round ADDIN 4g2 PR 2" is open, and origin holds the branches docs/addin-4g2-state-line and feat/addin-4g2-status-memory besides main. The top entry of steps/log.md was not checked, since the fold in fails already.
 
 Not done on 28 Oct 2026 at the start of 5a. Line 1 of steps/PROGRESS.md on main 09385dd reads "STATE RUNNING, 4g3, 2026-10-28 10:18". The other two conditions held then: no open PR, and origin held main alone (RAN gh pr list, git ls-remote).
+
+On 29 Oct 2026, at the stop of 5a, the three conditions held: line 1 of steps/PROGRESS.md on main 7164e8f reads "STATE WAITING, 4g3 continues on the laptop", no open PR, and origin held main and Lane B branches only (RAN). The fold in was not done, CHOSEN by Code: 5a is not done, items 7 and 11 change docs/design parts 01 to 10, which rule 5 of Bader's Lane A decisions closes to Lane B, and Lane A runs on this laptop and may start a session at any time. Who does the fold in, and when, goes with QL20 in Bader's turn.
 
 Waiting for the fold in, in one records commit:
 
@@ -241,6 +246,10 @@ QL19. 9 Report and the steps before it. Bader wrote "Each needs the one before, 
 - Recommended: keep it, the report can run after the check.
 - Other: 9 needs 8 and 4.
 
+QL20. Revit run 3 of 5a. The run failed twice: run 1 on OpenAndActivateDocument inside Idling, run 2 because Revit refuses to subscribe Idling from inside an Idling handler (READ journal.0132.txt line 1957). The cause is measured and the fix is known, subscribe the clock once in OnStartup, outside any Idling call, and run each phase from an ExternalEvent. Whether a raised ExternalEvent runs on the Home screen of Revit with no document is still UNKNOWN. The rule stops a fix on its third attempt.
+- Recommended: allow run 3 with that fix, and if it fails, measure the ExternalEvent on the Home screen with one probe before any fourth.
+- Other: close 5a with open items 1 and 2 measured in part and the offscreen PNGs only, and measure the rest in 5b.
+
 ## The questions as L0 asked them
 
 QL1. Inputs on the laptop. C:\02-Site Adaptation is not on the laptop (steps/laptop-check.md item 12).
@@ -281,6 +290,7 @@ QL8. Where the pane shows Villa mode (docs/design/11-light-mode.md). The approve
 | Phase | Date | Tokens | Cost USD | How known |
 |---|---|---:|---:|---|
 | L0 | 28 Oct 2026 | UNKNOWN | UNKNOWN | npx is not installed, steps/laptop-check.md item 20 |
+| 5a, stopped on QL20 | 28 to 29 Oct 2026 | at least 305,561,554 | at least 135.34 | RAN npx.cmd ccusage@latest session --since 20261028, session 3ba3cec, opus, sonnet and haiku together, taken while the session still ran, so its end adds a little |
 
 ## How L0 ran
 
