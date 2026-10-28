@@ -1,4 +1,4 @@
-STATE WAITING, 2026-10-28 10:15, for the 4g3 session, Bader pastes steps/START.md
+STATE RUNNING, 4g3, 2026-10-28 10:18
 # Progress
 Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
 
