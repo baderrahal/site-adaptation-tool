@@ -80,6 +80,13 @@ namespace SiteAdaptation.Common.Flow
         public Func<RunContext, RunSummary> Preview { get; set; }
         public Func<RunContext, IReadOnlyList<string>> Apply { get; set; }
         public Func<RunContext, string> ReadBack { get; set; }
+
+        // Q137. A button with a window of its own asks Apply there with the summary of its preview, null for the confirm of the flow
+        public Func<RunContext, RunSummary, bool> Confirm { get; set; }
+
+        // What a real run sets outside its transaction, such as a setting of the application, opened before the transaction starts
+        // and disposed after it commits or rolls back, null for none
+        public Func<RunContext, IDisposable> Outside { get; set; }
     }
 
     public enum RunEnd

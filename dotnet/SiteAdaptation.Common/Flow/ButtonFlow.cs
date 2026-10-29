@@ -74,7 +74,16 @@ namespace SiteAdaptation.Common.Flow
             {
                 summary = MoveDryOutputs(preview, summary);
             }
-            if (!confirm.Apply(label, summary, dryRun))
+            bool apply;
+            try
+            {
+                apply = body.Confirm != null ? body.Confirm(preview, summary) : confirm.Apply(label, summary, dryRun);
+            }
+            catch (Exception failure)
+            {
+                return Stop(RunTexts.ChangedNothing(label, RunTexts.Failed(failure.Message)));
+            }
+            if (!apply)
             {
                 return new RunOutcome(RunEnd.Cancelled, null, null);
             }
@@ -149,6 +158,28 @@ namespace SiteAdaptation.Common.Flow
         }
 
         private RunOutcome Real(ButtonBody body, RunContext context)
+        {
+            IDisposable outside;
+            try
+            {
+                outside = body.Outside == null ? null : body.Outside(context);
+            }
+            catch (Exception failure)
+            {
+                context.DeleteOutputs();
+                return new RunOutcome(RunEnd.RolledBack, RunTexts.ChangedNothing(context.Label, RunTexts.Failed(failure.Message)), null);
+            }
+            try
+            {
+                return Transacted(body, context);
+            }
+            finally
+            {
+                outside?.Dispose();
+            }
+        }
+
+        private RunOutcome Transacted(ButtonBody body, RunContext context)
         {
             var issues = new List<string>();
             IModelTransaction started;
