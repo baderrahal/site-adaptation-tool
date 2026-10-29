@@ -60,3 +60,17 @@ def test_d19_the_record_file_lists_every_input_the_run_opened(tmp_path):
     with input_guard.Guard([root], record=out):
         (root / "plots.csv").read_bytes()
     assert [item["name"] for item in json.loads(out.read_text(encoding="utf-8"))["inputs"]] == ["plots.csv"]
+
+
+def test_d19_a_change_of_the_content_alone_with_size_and_write_time_kept_fails_the_run(tmp_path):
+    # Review 1 of 4h-1: a copy over a file keeps the write time of its source, so the content is held as well
+    root = made(tmp_path)
+    path = root / "plots.csv"
+    with pytest.raises(input_guard.InputChanged, match=r"plots\.csv its SHA-256$"):
+        with input_guard.Guard([root]):
+            path.read_bytes()
+            stamp = os.stat(path).st_mtime_ns
+            input_guard.ACTIVE[-1].active = False
+            path.write_bytes(b"plot\n102\n")
+            input_guard.ACTIVE[-1].active = True
+            os.utime(path, ns=(stamp, stamp))

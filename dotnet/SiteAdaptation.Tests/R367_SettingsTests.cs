@@ -147,6 +147,26 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R367_a_number_with_decimals_in_a_field_that_holds_a_count_is_refused_by_its_value_and_path()
+        {
+            // Review 1 of 4h-1: counts is a known field, so only the decimals check refuses this one
+            var refused = Assert.Throws<InvalidDataException>(() => SettingsJson.Read("{\"formatVersion\": 1, \"lastRuns\": {\"6\": {\"counts\": {\"top\": 12.5}}}}"));
+            Assert.Contains("the number with decimals 12.5 at lastRuns.6.counts.top", refused.Message);
+        }
+
+#if NETFRAMEWORK
+        // The add-in is built for net48 only, so the pane lists are held on that runtime
+        [Fact]
+        public void R367_the_lists_of_common_and_of_the_pane_name_the_same_values_until_5c_joins_them()
+        {
+            // Review 1 of 4h-1: join J1 of 5c moves the pane onto SettingsJson, till then a value one side names the other refuses
+            Assert.Equal(SiteAdaptation.AddIn.Pane.ScopeKinds.All, ScopeKinds.All);
+            Assert.Equal(SiteAdaptation.AddIn.Pane.VillaModes.All, VillaModes.All);
+            Assert.Equal(SiteAdaptation.AddIn.Pane.InputKeys.All, InputNames.All);
+        }
+#endif
+
+        [Fact]
         public void R367_no_field_of_the_settings_json_holds_a_number_with_decimals()
         {
             Type[] types = { typeof(ProjectSettings), typeof(SettingsInput), typeof(SettingsScope), typeof(ButtonRun) };
@@ -235,6 +255,8 @@ namespace SiteAdaptation.Tests
                 Assert.True(store.Record(settings, 6, Run("2026-10-29T10:00:00Z"), RunKind.Real, transaction));
             }
             Assert.Equal(1, entity.Writes);
+            // Review 1 of 4h-1: the record goes on a copy, the settings of the pane are left as they were
+            Assert.Empty(settings.LastRuns);
             ProjectSettings read = store.Load();
             Assert.Equal("2026-10-29T10:00:00Z", read.LastRuns["6"].Time);
             Assert.Equal(new[] { "plot 2291: no front edge" }, read.LastRuns["6"].Issues);

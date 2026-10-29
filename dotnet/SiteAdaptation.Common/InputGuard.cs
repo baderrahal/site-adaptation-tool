@@ -39,5 +39,12 @@ namespace SiteAdaptation.Common
             }
             return parts.Count == 0 ? null : string.Join(", ", parts);
         }
+
+        // The line a read in place ends with when its input changed while it was read, null when it did not
+        public static string ChangedWhileRead(string path, InputMark before)
+        {
+            string change = Change(before, Mark(path));
+            return change == null ? null : "the input changed while it was read, its " + change + " (D19): " + path;
+        }
     }
 }

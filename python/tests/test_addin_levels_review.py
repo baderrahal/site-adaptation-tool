@@ -295,7 +295,11 @@ def test_r272_the_committed_list_holds_no_parsons_override_with_no_value_and_a_p
     path = override_source.list_path(SETTINGS)
     data = json.loads(path.read_text(encoding="utf-8"))
     assert not [item for item in data["overrides"] if item["source"] == "parsons" and item["value"] is None]
-    assert data["cannot"] and all("value" not in item and item["source"] == "parsons" for item in data["cannot"])
+    # Q075 (Bader, 2026-10-29): the native entries with no value moved to cannot in 4h-1, each marked Q075, and none is left in overrides
+    assert data["cannot"] and all("value" not in item and item["source"] in ("parsons", "native") for item in data["cannot"])
+    native = [item for item in data["cannot"] if item["source"] == "native"]
+    assert len(native) == 1346 and all(item["reason"].endswith(" (Q075)") for item in native)
+    assert not [item for item in data["overrides"] if item["source"] == "native" and item["value"] is None]
     assert plan_rules.load_overrides(path, {"parsons"}, None, SETTINGS.get("majority.groups"), "parsons2024Rev6", LP)
 
 

@@ -119,10 +119,10 @@ namespace CadReader
         // D19: exit 5 when the drawing changed while it was read, so no read of a changed input is taken
         private static int Unchanged(string input, InputMark before)
         {
-            string change = InputGuard.Change(before, InputGuard.Mark(input));
-            if (change != null)
+            string changed = InputGuard.ChangedWhileRead(input, before);
+            if (changed != null)
             {
-                Console.Error.WriteLine("the input changed while it was read, its " + change + " (D19): " + input);
+                Console.Error.WriteLine(changed);
                 return 5;
             }
             Console.WriteLine("input unchanged after the read (D19)");
