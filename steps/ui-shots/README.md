@@ -9,10 +9,11 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | ribbon-icons.png | The 11 ribbon icons in the order of the ribbon, 32 px over 16 px: 1 to 4, Site Adaptation Rules, 5 to 9, Update from report | Draft |
 | pane.png | The pane in use, filled like the NBH 012 column of 7.2 of docs/design/07-mock.md, its steps in the order of docs/design/13-workflow-changes.md | Draft |
 | pane-first-open.png | The pane on first open, no settings file chosen, with the line of a past job | Draft |
+| setup-site.png | The Set up site window of button 1, an existing site file after the dry run, 7 of 7 check points pass, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | revit-ribbon.png | The Site Adaptation tab in Revit 2024, cut from the window by PrintWindow in Revit run 3 of 5a, 29 Oct 2026 | Taken in Revit, for Bader's check |
 | revit-pane.png | The live pane page in Revit run 3 of 5a by RenderTargetBitmap at 96 DPI, first open state, the detached document of the run active | Taken in Revit, for Bader's check |
 
-Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md) were rendered into all three in Lane B 5a PR 8, his UI answers Q135, Q139 and Q140 of 29 Oct 2026 in Lane B 5a run 3 (fixed items 12 to 14). Set up site comes in 5b (W1 of steps/lane-b.md), the check table, Review data and Site Adaptation Rules in 5c (W5), Update from report in 5f (W8). 5a builds none of these windows, so none has a PNG yet.
+Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md) were rendered into all three in Lane B 5a PR 8, his UI answers Q135, Q139 and Q140 of 29 Oct 2026 in Lane B 5a run 3 (fixed items 12 to 14). Set up site is built in 5b (W1 of steps/lane-b.md), its PNG is setup-site.png and its lists are at the end of this file. The check table, Review data and Site Adaptation Rules come in 5c (W5), Update from report in 5f (W8), so none of these has a PNG yet.
 
 ## Render them again
 
@@ -115,3 +116,87 @@ Pane, revit-pane.png against pane-first-open.png:
 9. Project bar: the Revit pane names the document active at the shot, SA5A-CENTRAL-TEST-NEW_detached, a detached copy that was never saved. The pane names it as a project, as the run found it takes the PathName of a detached document as a saved path (steps/history/lane-b-2026-10-29.md, Where 5a stopped).
 10. Same: the fonts, colours, the marks of the rows, Not chosen, 0 of 8 found, the Choose settings file button and the link Import pre-setting, as in the draft.
 11. Step rows: each step row is 40 high, as Q139 says, inside the 4 above and below that SA.Gap.Row gave the step rows of 32 before, so the steps stand 48 apart where they stood 40 (CHOSEN, the gap kept as it was). Input and project rows have no such gap and stand 32 apart. Q139 named the row, not the pitch.
+
+## Set up site, setup-site.png against 7.3
+
+The canvas is not in the repo, so the window is held against 7.3 of docs/design/07-mock.md, 7.3 of docs/design/12-ui-spec.md and the part Set up site of docs/design/13-workflow-changes.md. The sample is an existing site file after the dry run with made up numbers only (E 1000.000 style values, no real coordinate and no level), 7 of 7 pass, Levels and Wall types marked Will change. The file is 76,865 bytes, under the 100 KB cap of R400. It is rendered by Shots.Render("setup-site") of dotnet/SiteAdaptation.UiShots/Shots.cs. The 18 tests of dotnet/SiteAdaptation.Tests/SetUpSiteTests.cs read the window off the laid out window and drive its session.
+
+### Every size Code chose
+
+The spec gives no size for these, all are keys of Theme.xaml (CHOSEN).
+
+1. The window is 1280 wide (SA.Size.DialogWidth) and at most 800 high (SA.Size.DialogMaxHeight), with a scroll bar of the body when it is taller. The picture is 1280 by 785.
+2. The left part is 640 wide (SA.Grid.SetUpLeft), the right part takes the rest.
+3. The label column of the left rows is 176 (SA.Grid.SetUpLabel), wide enough for Floor types and wall types on one line.
+4. The check point table has the Point column 128 and the Diff column 80 (SA.Grid.CheckPoint, SA.Grid.CheckDiff), CAD and Revit share the rest.
+5. The Ramp slope drop down is 96 wide (SA.Size.RampBox), 30 high as every input.
+6. A row of a table is at least 32 high (SA.Size.Row) with a padding of 8 across and 4 down (SA.Pad.Cell), a line of SA.Border under it. A row with two lines of text is higher.
+7. The side of the body is 16 (SA.Pad.Side), the foot has a padding of 16 across and 12 down (SA.Pad.Foot), the buttons of the foot stand 8 apart.
+8. The badge is a chip of radius 12 on SA.BandAccent with SA.Band text in SA.Type.Small, 16 right of the title.
+9. The signs line is SA.Type.Small in SA.BandAccent and the line "check points pass" SA.Type.Small in SA.BandText. The spec gives the colour of the signs line only.
+10. The Dry run button is SA.Button.DryRun of Theme.xaml: SA.Heading text and border on the base button of 28 high. Cancel is the base button, Apply the primary button of 34 high.
+
+### Known differences from 7.3 of the mock and the spec
+
+1. The check point table is rows of a Grid, not a DataGrid as the mock says, so its look comes from Theme.xaml alone (CHOSEN). The header row is SA.Type.Label in SA.TextMuted.
+2. Diff shows the number with two decimals and no unit, "0.00", where the mock shows "0.00 mm". The label list has no text for the unit and the pass line names it, "Pass limit 0.1 mm" (CHOSEN).
+3. A point that fails shows its Diff in SA.Error on SA.ErrorGround. The spec gives the look of a passing point only (CHOSEN).
+4. The pass limit shows as the view gives it, 0.1 in the sample. Where 0.1 mm applies is Q142 and Common's side.
+5. The word Browse of the Shared parameters row is the constant PaneText.Browse of the pane, since the Set up site list of docs/design/14-ui-labels.md has no entry Browse and this change does not touch docs/. The merge adds the entry.
+6. docs/design/14-ui-labels.md still says "Not built yet, Phase 5b" under Set up site, and the test R372_the_entries_of_windows_not_built_yet_hold_the_texts_of_the_workflow_changes asserts it. The first half of the text test already holds for the window, every text of the files of SetUpSite is in the list. The second half, every entry shown, is held by the test R373_no_text_of_the_window_is_below_12_and_every_label_of_the_list_is_shown_by_a_file_of_the_window until the merge removes the line and the assert.
+7. The Floor types row always reads the text of 13-workflow-changes.md, whatever value Common gives it. The Shared parameters row reads "From the parameter sheet: <name>" with the count as a number alone and Browse when a sheet name is given, else the value of Common with Browse.
+8. The row Ramp slope is added at its place in the order when Common gives none, so the drop down stands between Floor types and Wall types as the changes of 28 Oct 2026 say.
+9. Apply is off while the view holds a stop or before the dry run. It goes off again when the slope is changed after a dry run, until the next dry run, since the dry run was made on another slope (CHOSEN).
+10. A stop, or the reason of a callback that threw, shows in a box on SA.ErrorGround above the foot in SA.Error. The spec gives no look for it (CHOSEN).
+11. The note "On an existing site file" shows on both badges, as the mock says, in a box of SA.Guide with a line of SA.GuideBorder, its title in SA.Type.Label and SA.Info.
+12. The picture is the content of the window with no title bar of Windows. A window that is not shown has no visual tree, so the render takes its content. The Revit screenshot the spec asks for is not taken, it needs a run in Revit (UNKNOWN).
+13. The drop down list when open keeps the item look of WPF. It is not in the PNG.
+14. The file dialog of Browse is the one of Windows with no filter and no title of ours, as the pane has it.
+15. The PNG is in a palette of 256 colours, so the SA.Guide box shows a fine dot pattern, as item 8 of the Revit differences of the pane says.
+16. Closing the window with the cross is Cancel.
+17. The sign texts, the sheet name and every value of the picture are sample words and numbers, the real ones come from Common.
+
+### Control 4, the UI checklist of 12-ui-spec.md against SetUpSiteWindow.xaml
+
+Each line of the spec, held or not, from the XAML, Theme.xaml and the tests of SetUpSiteTests.cs.
+
+Rules
+1. One theme file holds every colour, font, size and icon, and the gate test fails on a literal elsewhere: held. SetUpSiteWindow.xaml and the C# files of SetUpSite hold no colour literal and no FontSize, and ThemeGateTests passes with them in the folder.
+2. Labels and order follow 7.1 to 7.4 and the changes of 28 Oct 2026: held for the texts, each entry of the list under Set up site is shown by a file of the window and each text of those files is in the list. Not held for Browse, which the list lacks (difference 5).
+3. Nothing smaller than 12: held, the test reads the font size of every text of the laid out window, the smallest is SA.Type.Small 12.
+4. Every rule shown to a user shows a plain name with its id as a tooltip: not applicable, the window shows no rule.
+5. A change to the look is a question for Bader: held, nothing in the spec was changed, each choice is listed above.
+6. Each window gets a Revit screenshot: not held, UNKNOWN until a run in Revit.
+
+UI controls
+7. Control 1, the theme test: held, see line 1.
+8. Control 2, the text test: held, see line 2, except Browse.
+9. Control 3, the picture test: held as a draft. The window renders offscreen at 96 DPI to setup-site.png, 76,865 bytes. There is no baseline yet, so it compares nothing until Bader approves it.
+10. Control 4, this list: this section.
+11. Control 5, the approval form: it goes in the final message of the session of 5b, not here.
+
+Font
+12. Libre Franklin from the resources, Franklin Gothic Book then Segoe UI after it: held, every TextBlock takes SA.Type.* of Theme.xaml and the buttons and the drop down take SA.Font.
+13. Title 20 SemiBold: held, "1 Set up site". Section 15 SemiBold: held, the three section titles. Body 13: held, the rows. Small 12: held, the badge, the signs line, the tag Will change, the caption "check points pass". Count 28 SemiBold: held, "<n> of <n>". Label 13 SemiBold: held, the header of the check table and the title of the guide box. Next 18, Project 16 and Step 14 are not used.
+14. Tabular figures: not held, Libre Franklin has no tnum, proportional digits stay by Q134.
+
+Colours
+15. The band SA.Band with the title white, the badge on SA.BandAccent, the line in SA.BandText, the signs in SA.BandAccent: held, the test of the band reads the band, the badge and the sizes.
+16. Rows that will change on SA.Warn ground with SA.Warn text and "Will change": held, test R373_the_rows_that_differ_stand_on_warn_ground_with_will_change_and_the_others_do_not counts 2 of 2 in the sample.
+17. Diff in SA.Ok on its ground when it passes: held, test R373_the_diff_cell_stands_in_ok_when_the_point_passes_and_the_check_table_has_one_row_per_point counts 6 of 6 on SA.OkGround and 1 failing in SA.Error.
+18. The existing site file note in SA.Guide: held. The foot on SA.Panel: held.
+19. Amber SA.Warn, grey outline SA.BorderStrong, white SA.Surface by Q132: held, the buttons take SA.BorderStrong and the ground is SA.Surface.
+
+Sizes
+20. Spacing 4, 8, 12, 16, 24 only: held for every margin and padding of the window (4, 8, 12, 16). The widths of the columns are not spacing and are listed as chosen sizes.
+21. Main button 34, other buttons 28 to 32: held, Apply 34, Cancel and Dry run 28, Browse 28, read by test.
+22. Input and project rows 32, inputs 30: the drop down is 30, held by test. The rows are at least 32 and grow to two lines where a text wraps, as the Shared parameters and Ramp slope rows do, so not exactly 32 there (CHOSEN).
+23. Radius 3 on controls, 12 on chips: held, the buttons, the drop down, the Diff cell and the guide box 3, the badge 12.
+24. Primary white text on SA.Accent SemiBold, Dry run SA.Heading text with SA.Heading border, Cancel SA.Text with SA.BorderStrong border: held, the styles of Theme.xaml, read by test.
+25. Pane starts 380 wide: not applicable to this window.
+
+7.3
+26. The band with "1 Set up site", the badge, the line, the signs and "<n> of <n>" over "check points pass": held.
+27. Left the two tables as label and value rows with Will change, right the check point table, the pass line and the note, the foot on SA.Panel with Cancel, Dry run and Apply: held.
+28. The Floor types text, the row Ramp slope with its drop down 0.5%, 1%, 2%, then 3% to 15% and default 0.5% and its line, the Shared parameters row with its sheet, count and Browse: held, tests R373_the_ramp_slope_choices_are_05_1_2_then_3_to_15_percent_and_the_default_is_05 and R373_the_ramp_slope_row_holds_a_30_high_drop_down_of_16_choices_and_the_sheet_row_holds_browse.
+29. Apply off while the view holds stops or before the dry run: held, tests R373_apply_is_off_before_the_dry_run_and_while_the_view_holds_a_stop_and_on_after_the_dry_run and R373_the_buttons_of_the_window_drive_the_session_and_apply_is_off_before_the_dry_run.

@@ -10,7 +10,9 @@ using System.Windows.Media.Imaging;
 using SiteAdaptation.AddIn;
 using SiteAdaptation.AddIn.Icons;
 using SiteAdaptation.AddIn.Pane;
+using SiteAdaptation.AddIn.SetUpSite;
 using SiteAdaptation.AddIn.Theme;
+using SiteAdaptation.Common.SetUp;
 
 namespace SiteAdaptation.UiShots
 {
@@ -22,7 +24,8 @@ namespace SiteAdaptation.UiShots
         public const string RibbonIcons = "ribbon-icons";
         public const string Pane = "pane";
         public const string PaneFirstOpen = "pane-first-open";
-        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen };
+        public const string SetUpSite = "setup-site";
+        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite };
 
         private const double Dpi = 96.0;
 
@@ -33,6 +36,7 @@ namespace SiteAdaptation.UiShots
                 case RibbonIcons: return Icons();
                 case Pane: return PanePage(true);
                 case PaneFirstOpen: return PanePage(false);
+                case SetUpSite: return SetUpPage();
                 default: throw new ArgumentException("no window " + window + ", only " + string.Join(", ", Windows), nameof(window));
             }
         }
@@ -143,6 +147,101 @@ namespace SiteAdaptation.UiShots
             bitmap.Render(page);
             bitmap.Freeze();
             return bitmap;
+        }
+
+        private static BitmapSource SetUpPage()
+        {
+            SetUpSiteWindow window = LaidOutSetUp(SampleSetUpView(true, true));
+            FrameworkElement body = Body(window);
+            var bitmap = new RenderTargetBitmap((int)body.ActualWidth, (int)body.ActualHeight, Dpi, Dpi, PixelFormats.Pbgra32);
+            bitmap.Render(body);
+            bitmap.Freeze();
+            return bitmap;
+        }
+
+        // The Set up site window with a view, measured and arranged at the width of the theme and not shown, so a test can read its parts
+        public static SetUpSiteWindow LaidOutSetUp(SetUpSiteView view)
+        {
+            var window = new SetUpSiteWindow(new SetUpSiteSession(view, new SetUpSiteCallbacks(), () => null));
+            LayOut(window);
+            return window;
+        }
+
+        // A window that is not shown builds no visual tree of its own, so its content is measured at the width of the theme and the
+        // height it asks for, capped by the MaxHeight of the theme, and arranged there. Its data context comes down the logical tree
+        public static FrameworkElement LayOut(Window window)
+        {
+            var body = (FrameworkElement)window.Content;
+            double width = (double)window.FindResource("SA.Size.DialogWidth");
+            double cap = (double)window.FindResource("SA.Size.DialogMaxHeight");
+            for (int pass = 0; pass < 3; pass++)
+            {
+                body.Measure(new Size(width, cap));
+                double height = Math.Min(Math.Ceiling(body.DesiredSize.Height), cap);
+                body.Arrange(new Rect(0, 0, width, height));
+                body.UpdateLayout();
+            }
+            return body;
+        }
+
+        public static FrameworkElement Body(Window window)
+        {
+            return (FrameworkElement)window.Content;
+        }
+
+        // Made up numbers only, no coordinate and no level of a real model. The view of an existing site file after the dry run, the
+        // rows that differ marked, or before it with the Revit column empty
+        public static SetUpSiteView SampleSetUpView(bool dryRunDone, bool existing)
+        {
+            var view = new SetUpSiteView
+            {
+                ExistingSite = existing,
+                DryRunDone = dryRunDone,
+                PassLimitMm = 0.1,
+                RampSlope = 0.5,
+                ParameterSheetName = "Parameter sheet.xlsx",
+                ParameterCount = 12,
+            };
+            if (existing)
+            {
+                view.Signs.AddRange(new[] { "Settings entity found", "Survey point off the internal origin" });
+            }
+            view.RampSlopeChoices.AddRange(new[] { 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 });
+            view.Now.AddRange(new[]
+            {
+                new SetUpRow { Label = "Survey point", Value = "E 1000.000, N 2000.000, Z 0.000" },
+                new SetUpRow { Label = "Project base point", Value = "E 1000.000, N 2000.000, Z 0.000" },
+                new SetUpRow { Label = "Levels", Value = "Level 1, Level 2" },
+                new SetUpRow { Label = "Floor types and wall types", Value = "Generic 150mm, Ramps 0.5%, BW" },
+                new SetUpRow { Label = "Shared parameters", Value = "9 found" },
+                new SetUpRow { Label = "Units", Value = "meters, accuracy 0.01" },
+            });
+            view.WillSet.AddRange(new[]
+            {
+                new SetUpRow { Label = "Coordinate system", Value = "Shared coordinates of CAD, site Internal", Differs = false },
+                new SetUpRow { Label = "Survey point", Value = "E 1000.000, N 2000.000, Z 0.000" },
+                new SetUpRow { Label = "Angle to true north", Value = "0" },
+                new SetUpRow { Label = "Levels", Value = "Level 1 at 0.000, Level 2 at 4.000 over Level 1", Differs = true },
+                new SetUpRow { Label = "Floor types", Value = "" },
+                new SetUpRow { Label = "Wall types", Value = "BW, Generic Wall-150mm_ Garden", Differs = true },
+                new SetUpRow { Label = "Shared parameters", Value = "" },
+                new SetUpRow { Label = "Units", Value = "meters, accuracy 0.01" },
+            });
+            string[] names = { "control 1", "control 2", "control 3", "plots min", "plots max", "survey point", "project base point" };
+            for (int at = 0; at < names.Length; at++)
+            {
+                string cad = (1000 + at * 10) + ".000, " + (2000 + at * 10) + ".000, " + at + ".000";
+                view.CheckPoints.Add(new CheckPointRow
+                {
+                    Point = names[at],
+                    Cad = cad,
+                    Revit = dryRunDone ? cad : null,
+                    DiffMm = dryRunDone ? (double?)0.0 : null,
+                    Pass = dryRunDone,
+                });
+            }
+            view.Passing = dryRunDone ? names.Length : 0;
+            return view;
         }
 
         // The pane with the sample data, measured and arranged at the start width of the spec, so a test can read its parts
