@@ -7,7 +7,7 @@ Phase 5 and 6 on Bader's company laptop (D1 of steps/decisions-2026-10-28.md). W
 | Phase | Status |
 |---|---|
 | L0 Laptop check, light mode design, UI spec | done, Lane B, laptop, on the merge of branch docs/laptop-l0 after its review |
-| 5a Install, ribbon, pane, one transaction per button | Revit run 3 ran on 29 Oct 2026, PR 97 and the detached fix merged, not done, its close waits for QL22 |
+| 5a Install, ribbon, pane, one transaction per button | Revit run 3 ran on 29 Oct 2026, PR 97 merged, the detached fix in PR 99, not done, its close waits for QL22 |
 | 5b Button 1 Set up site | open |
 | 5f Update from report, new by Bader's changes of 28 Oct 2026, after 5e and before 6a | open |
 
@@ -36,7 +36,7 @@ Done:
 - Bader's answers of 29 Oct 2026 recorded below, QL17 into join item W2.
 - The fix of QL20 and Revit run 3, once, on copies made by the job (part "Revit run 3 of 5a" above). The raised ExternalEvent ran on the Home screen with no document (RAN). Open item 1 held in full.
 - QL10, QL14 and QL15 in the pane and the icons, the offscreen PNGs made again. The Revit PNGs of the ribbon and the pane are in steps/ui-shots/ with every difference from the drafts.
-- PR 97 merged after two review passes. The fix of the detached document in the next PR: a PathName that is not a full drive or UNC path, as the bare file name Revit gives a detached document, stops with "Save the project first" and gets no work folder (SavedPath.cs in Common, R382).
+- PR 97 merged after two review passes. The fix of the detached document in PR 99: a PathName that is not a full drive or UNC path, as the bare file name Revit gives a detached document, stops with "Save the project first" and gets no work folder (SavedPath.cs in Common, R382).
 
 Remains:
 - Seen in Revit not yet: the stop on a detached document, the first show of a hidden pane by the add-in (QL18), the 16 px icons. QL22.
@@ -45,7 +45,8 @@ Remains:
 
 Known bugs:
 - The title of the tab does not show in the tab strip at 1536 logical px, the tab sits behind the overflow mark (QL21).
-- The pane names a detached document by its Title as the project, since 12-ui-spec.md shows "not saved" only for an empty Title. Its steps show no status after the fix.
+- Fixed in PR 99 review 1: the pane named a detached document by its Title as the project. It now says not saved for every path that is not saved.
+- A cloud model (BIM 360, Autodesk Docs) or a Revit Server model would be told to save first, which does not help (CHOSEN in SavedPath.cs, latent, no host model of this job is one).
 - The latent findings of PR 97 under "Latent findings".
 
 Next: 5b Button 1 Set up site, in a new session, after Bader's answers to QL21 and QL22.
@@ -91,6 +92,13 @@ Waiting for the fold in, in one records commit:
 9. Bader's four UI controls of 28 Oct 2026, the theme test, the text test, the picture test and the UI checklist in review, written as rules in docs/design/12-ui-spec.md, part UI controls. At the fold in (CHOSEN by Code): .claude/agents/reviewer.md gains the UI checklist, control 4, and each phase of steps/01_next.md that touches a window names the four controls in its done-when. The end of 5a gives Bader the UI approval form of item 5 of that part. Until then the lead of each Lane B session puts the checklist into the brief of every reviewer of a PR that touches a window (CHOSEN by Code, .claude/agents is outside Lane B).
 10. docs/design/README.md: the row of 14-ui-labels.md, the label list of control 2 (CHOSEN by Code, as every part of docs/design/ has its row).
 11. Bader's design changes of 28 Oct 2026, docs/design/13-workflow-changes.md, approved on the canvas: docs/addin-mock.md and docs/design/07-mock.md 7.1 and 7.2 take the order of the 9 steps, the ribbon of four panels and the pane changes, as Bader approved them. docs/design/03a-buttons-shared-and-1.md (the steps each button needs) and 03b-buttons-2-to-8.md take the new numbers and the new button 3 Review data, docs/design/10-rule-ids.md the rule ids of the renumbered buttons and of the new windows. steps/01_next.md gains phase 5f Update from report after 5e and before 6a, and the phases 5c and 5d take the changes of the last part of 13-workflow-changes.md. CLAUDE.md, "The approved mock" line, names 13-workflow-changes.md beside docs/addin-mock.md. The old button numbers go wherever a record or note names them, so no later session wires a body to the wrong button: steps/01_next.md 5c ("3 Check and 4 Place villas", "R377 button 4", "buttons 2 to 4"), the Revit run after 5c ("buttons 1 to 4"), 5d ("R379 button 6", "R380 button 7") and 5e ("button 8 Report", and Buttons.Run, which takes a number for the 9 steps and a name for Site Adaptation Rules and Update from report), the R363 text of docs/rules/07-addin-r354-r388.md line 10 and the note of config/project.json that say "check rows of button 3". Until then a Lane B session reads every button number of those files through the order of 13-workflow-changes.md. docs/design/README.md gains the row of 13-workflow-changes.md.
+
+## Fold in items from Revit run 3
+
+For Lane A at the fold in, since docs/design parts 01 to 10 are Lane A's (PR 99 review 1):
+
+- docs/design/06-settings.md line 9 says Document.Title is empty for a detached document and treats a document with no path as never saved or detached. Revit run 3 measured a detached document never saved with the Title "<central>_detached" and the PathName "<central>_detached.rvt", a bare file name (part "Revit run 3 of 5a" above). The rule the add-in now uses, SavedPath.Is in Common, holds a PathName as saved only when it is a full drive or UNC path, and never one with "://", so a cloud or Revit Server model stops with the save first stop (CHOSEN). Both go into 06-settings.md and open item 2 of docs/design/09-risks.md.
+- The two run checks "a detached document has no PathName" and "a detached document has an empty Title" measure the old design claim, so they stay not held on every run until that design text changes or Bader answers QL22.
 
 ## Phase changes to steps/01_next.md
 
@@ -200,6 +208,11 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - PR 97 review. A -TimeoutMinutes of 2 or less gives a job of 0 minutes or less, which the guard refuses with its reason. A -TimeoutMinutes over 15 throws after New-AddinRunFolder made an empty run folder.
 - PR 97 review 2. Item 11 of the Revit part of steps/ui-shots/README.md stands under the pane shot but is read from Theme.xaml lines 115 and 135, since the step rows are not in that shot.
 - PR 97 breaker S1, the part no run reaches. PaneFirstShow.Due marks the show done before it asks IsShown, so if GetDockablePane throws at the first project view the catch of PaneHost swallows it and the pane is not shown in that session, with nothing written.
+- PR 99 breaker. A path SavedPath.Is accepts can still make Path.GetFullPath throw in WorkFolder.PathHash and AddinRunJudge.ExpectedFolder, for C:\a:b.rvt, a ? or * in the name, or a C:\ path over 260 characters, and WorkFolderOf catches only InvalidOperationException. The longest real model path under C:\02-Site Adaptation is 100 characters (RAN).
+- PR 99 breaker. One file can get two work folders, since the hash is of the path text: \\?\C:\a\b.rvt against C:\a\b.rvt, or a mapped drive against its share path. Revit gave plain C:\ paths in run 3. The hash rule is that of 06-settings.md.
+- PR 99 breaker. SavedPath.Is lets a path ending in a separator through, C:\a\, whose file name is empty. Revit gives no such PathName.
+- PR 99 breaker and review. A cloud, BIM 360, Autodesk Docs or RSN path gets "Save the project first", which saving does not cure. No host model of this job is in the cloud, the cloud models are links only.
+- PR 99 breaker. AnswerRouting matches an answer by path and session, so a saved document that gets a SaveAs while a worker run is out has its answer dropped as "ended after its document closed", the wrong reason. From before PR 99.
 
 ## Lane A on this laptop, Bader 28 Oct 2026
 
