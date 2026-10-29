@@ -50,3 +50,4 @@ One row per phase session since Round ADDIN 4f, added by step 7 of steps/START.m
 | UNKNOWN | Lane B L0 on the laptop, 28 Oct 2026. npx was not installed then (steps/laptop-check.md item 20), moved here at the fold in | UNKNOWN | UNKNOWN |
 | 3ba3cec | Lane B 5a, stopped on Q145 (QL20), 28 to 29 Oct 2026, opus, sonnet and haiku, taken while the session still ran, a lower bound, moved here at the fold in | 305,561,554 | 135.34 |
 | a035cccb | Lane B 5a Revit run 3, 29 Oct 2026, opus, sonnet and haiku, taken while the session still ran, a lower bound, moved here at the fold in | 30,713,532 | 17.57 |
+| db6b36f5 | Round FOLD on the laptop, PR 101 to 105 and the end records, the row taken before the merge of the end records, npx ccusage@latest session --since 20261028. The helpers may not be in the row, so it is a lower bound | 75,109,998 | 27.81 |
