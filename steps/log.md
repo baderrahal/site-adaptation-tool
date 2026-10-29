@@ -2,6 +2,45 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round ADDIN 4h-2, 2026-10-29, R366, R369 and the join items, Lane A on the laptop
+
+Goal:
+- 4h-2 of steps/01_next.md in one PR (D20): R366, R369, Q017, Q055, Q119, Q120
+
+Done:
+- R366: ButtonScope (plot list syntax and stops) in Common/Scope, StepStates and StepHash in Common/Steps, for the pane by W9
+- R369: python/phase4_check.py, the second method of Phase 4 at seeds 14 and 7
+- Q017 values CHOSEN by Bader, its two R401 tests moved, HELD_OPEN out of rule_status.py
+- Q055: a key El @ Entry off its own ramp back is read off the ramp back, in clean_entry and entry_of (Q154)
+- Q119 reads by the override that set each input. Q120 mirrored the yard outline and type, rotationDeg turned walls only
+
+Checked:
+- Gate, RAN: Python 2,036 passed, 3 skipped, then 1 status block fixed by --write. C# net48 1,155, net8.0 1,068
+- Whole project on 2a7ea18, RAN: parity 13 of 13 steps per runtime, 0 failures, status step 8,112 fields
+- Level Excel 70,519 matches, 0 mismatches per runtime. Peak net48 1,031 MiB, net8.0 1,018 MiB (RAN)
+- R369, RAN: seed 14 1,154 and seed 7 1,188 matches, 0 mismatches, on the Python and both C# step sets
+- Against 4h-1, RAN: plots and walls equal outside status and reads. 136 Q119 and Q120 moves as aimed, 9 of Q017
+- Q120 second method, RAN: a build with no rotationDeg differs on the 18 walls named and on none of the other 30
+- 5 plots at seed 21, RAN: Python and C# steps equal on 5. 2 plots differ from the levels step by their overrides, as built
+- Reviewer and breaker one pass each (D20). Review: Q055 second route and rule line fixed with a test. Breaker F1 is Q158
+
+Remains:
+- R366 has no caller until W9 of Lane B, which must feed locationPlanNumber and nbhId (steps/latent.md)
+- medianHeightM of native2022 stale until a majority run with the Native reads (Q151)
+
+Known bugs:
+- 4 yards that stand only by a mirror override read a status stronger than their evidence (Q158)
+- R369 passes a short plan or an empty step (LATENT, steps/latent.md)
+
+Next:
+- 5e and 5f together on Lane A. Lane B runs 5b, then 5c with R366 at the pane
+
+Your turn:
+- Opened: Q154 Q055 reads 11 more 1.4 plots off the ramp. Q155 A plot list takes unit plots only
+- Q156 A changed step reruns every higher step. Q157 Reads of entryM with heightM or rampFrontM
+- Q158 A yard that stands only by its mirror. Closed: none
+- 11 questions open, full text and the recommended answers: steps/questions-open.md
+
 ## Round ADDIN 4h-1, 2026-10-29, Q122, R367, R368 and the join items, Lane A on the laptop
 
 Goal:
