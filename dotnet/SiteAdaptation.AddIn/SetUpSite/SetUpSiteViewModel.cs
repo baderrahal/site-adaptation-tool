@@ -35,8 +35,16 @@ namespace SiteAdaptation.AddIn.SetUpSite
         // Before a dry run nothing is measured, so the count and the pass line wait for it
         public bool CountShown => view.DryRunDone;
 
-        // 03a Second run: a view where nothing differs says so, and Apply stays off
-        public bool NothingShown => view.NothingDiffers;
+        // 03a Second run: a view where nothing differs says so, and Apply stays off. It holds for the slope the view was made with
+        public bool NothingShown => view.NothingDiffers && SameSlope;
+
+        // What waits on a question, Plot on Q153, beside the line, so nothing differs never reads as a model complete
+        public bool WaitingShown => view.Waiting.Count > 0;
+
+        public string WaitingLine => string.Join(Environment.NewLine, view.Waiting);
+
+        // The view holds for the slope it was made with. Another slope asks for a dry run, which Common makes for that slope
+        private bool SameSlope => Math.Abs(view.RampSlope - SelectedSlope) < 1e-9;
 
         public string NothingLine => NothingShown ? SetUpSiteText.NothingDiffers : "";
 
@@ -54,8 +62,8 @@ namespace SiteAdaptation.AddIn.SetUpSite
 
         public bool StopsShown => StopsLine.Length > 0;
 
-        // The dry run has filled the view, no stop is found, and the slope is the one the dry run was made with
-        public bool CanApply => view.Stops.Count == 0 && view.DryRunDone && !view.NothingDiffers && (!dryRunSlope.HasValue || Math.Abs(dryRunSlope.Value - SelectedSlope) < 1e-9);
+        // The dry run has filled the view, no stop is found, something differs, and the slope is the one the view was made with
+        public bool CanApply => view.Stops.Count == 0 && view.DryRunDone && !view.NothingDiffers && SameSlope && (!dryRunSlope.HasValue || Math.Abs(dryRunSlope.Value - SelectedSlope) < 1e-9);
 
         public int RampIndex
         {
@@ -67,6 +75,8 @@ namespace SiteAdaptation.AddIn.SetUpSite
                     rampIndex = value;
                     Changed(nameof(RampIndex));
                     Changed(nameof(CanApply));
+                    Changed(nameof(NothingShown));
+                    Changed(nameof(NothingLine));
                 }
             }
         }

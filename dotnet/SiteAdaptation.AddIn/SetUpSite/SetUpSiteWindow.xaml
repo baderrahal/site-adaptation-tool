@@ -216,6 +216,8 @@
                      Visibility="{Binding CountShown, Converter={StaticResource Shown}}" />
           <TextBlock Style="{StaticResource SA.Type.Label}" Margin="{StaticResource SA.Gap.Top8}" Foreground="{StaticResource SA.Ok}" Text="{Binding NothingLine}"
                      Visibility="{Binding NothingShown, Converter={StaticResource Shown}}" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top4}" Foreground="{StaticResource SA.Text}" TextWrapping="Wrap" Text="{Binding WaitingLine}"
+                     Visibility="{Binding WaitingShown, Converter={StaticResource Shown}}" />
           <Border Margin="{StaticResource SA.Gap.Top16}" Background="{StaticResource SA.Guide}" BorderBrush="{StaticResource SA.GuideBorder}"
                   BorderThickness="{StaticResource SA.Line.All}" CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Box}">
             <StackPanel>

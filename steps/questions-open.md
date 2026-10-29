@@ -7,7 +7,15 @@ Every question open before 2026-10-29 was closed in the answer pass of Round FOL
 ## Open
 
 Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal.
-Q151 Freeze guard limit for an image job. Q152 The parameter sheet of button 1. Q153 The GUID of Plot.
+Q151 Freeze guard limit for an image job. Q152 The parameter sheet of button 1. Q153 The GUID of Plot. Q154 The type button 1 copies new types from. Q155 Step 1 Done on a model already set up.
+
+Q154. The type button 1 copies new types from (Lane B 5b, breaker pass 1). 03a lets button 1 make a floor type or a wall type the project lacks as a copy of a type it holds. RevitSiteDocument.cs copies the first basic wall type and the first floor type in element id order, whatever their structure, so BW and Generic Wall-150mm_ Garden take the layers and the width of that first type, and on a project from no template Generic 150mm takes those of Floor 1. Which type comes first in the default metric template and its width are UNKNOWN, the Revit run of 5b read type names only. A wall placed later with a wrong width stands off by the difference with no error. It does not block 5b, 8 Walls places walls in 5d.
+- Recommended: copy each new type from the type of the IMC answer key of the same name, its layers and widths read once into config by the read job, and stop when the key has none.
+- Other: keep the copy of the first type and have 8 Walls and 5 Floors and ramps set the width they need.
+
+Q155. Step 1 Done on a model already set up (Lane B 5b, breaker pass 2). 03a says a step is Done when its last real run committed, and that a second run of button 1 changes nothing and says so. Since 5b a run with nothing to set opens no transaction, so on a model set up in an earlier Revit session, by hand, or by a run whose site.json move failed, step 1 can never become Done in the pane and 2 Read data stays Needs step 1 once 5c joins R366. It does not block 5b, buttons 2 to 9 are not built yet.
+- Recommended: a run where nothing differs counts as Done for the step state and writes site.json and the Settings entity of R367 when they are missing, with no change to the model, and says so.
+- Other: R366 keeps the Done state of the earlier run in the Settings entity, and button 1 never commits when nothing differs.
 
 Q151. The freeze guard limit for an image job (Lane B 5b). Bader asked the test host to end a Revit that does not respond for 5 minutes. An image step may run 30 minutes (R302, Q061), and in Q063 Revit stopped responding inside the whole NBH 03 image, so 5 minutes would end an image job that is still working. It does not block, the only image run is the NBH 03 run after 5c.
 - Recommended: an image job takes the image step limit, testHost.imageStepMinutes, for the not responding check, every other run 5 minutes. Run-TestHost.ps1 does so since 5b and prints the limit, -NotRespondingMinutes overrides it.

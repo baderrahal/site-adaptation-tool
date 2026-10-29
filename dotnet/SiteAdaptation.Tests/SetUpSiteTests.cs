@@ -18,6 +18,14 @@ namespace SiteAdaptation.Tests
     // buttons with no click. WPF, so net48 only
     public sealed class SetUpSiteTests
     {
+        // The view of a dry run as Common makes it, for the slope the dry run was asked with
+        private static SetUpSiteView DryAt(double slope)
+        {
+            SetUpSiteView view = Shots.SampleSetUpView(true, true);
+            view.RampSlope = slope;
+            return view;
+        }
+
         [Fact]
         public void R373_the_view_model_shows_the_badge_the_signs_the_count_and_the_pass_line_of_the_view()
         {
@@ -52,6 +60,40 @@ namespace SiteAdaptation.Tests
             Assert.Equal(SetUpTexts.NothingDiffers, SetUpSiteText.NothingDiffers);
             Assert.False(model.CanApply);
             Assert.False(new SetUpSiteViewModel(Shots.SampleSetUpView(true, true)).NothingShown);
+        }
+
+        // Breaker pass 2 of 5b: what waits, Plot on Q153, shows beside the line, so nothing differs never reads as a model complete
+        [Fact]
+        public void R374_the_items_that_wait_show_in_the_window_beside_nothing_differs()
+        {
+            SetUpSiteView view = Shots.SampleSetUpView(true, true);
+            view.NothingDiffers = true;
+            view.Waiting = new List<string> { "Plot not bound, waiting on Q153" };
+            var model = new SetUpSiteViewModel(view);
+
+            Assert.True(model.WaitingShown);
+            Assert.Equal("Plot not bound, waiting on Q153", model.WaitingLine);
+            Assert.False(new SetUpSiteViewModel(Shots.SampleSetUpView(true, true)).WaitingShown);
+        }
+
+        // Breaker pass 2 of 5b: a view holds for the slope it was made with, another slope asks for a dry run before Apply and before
+        // the line nothing differs is believed, so no Apply ends with nothing done and nothing said
+        [Fact]
+        public void R374_a_slope_picked_after_the_view_turns_apply_and_nothing_differs_off_until_a_dry_run()
+        {
+            SetUpSiteView view = Shots.SampleSetUpView(true, true);
+            view.NothingDiffers = true;
+            var nothing = new SetUpSiteViewModel(view);
+            nothing.RampIndex = 2;
+            Assert.False(nothing.NothingShown);
+            Assert.False(nothing.CanApply);
+
+            var model = new SetUpSiteViewModel(Shots.SampleSetUpView(true, true));
+            Assert.True(model.CanApply);
+            model.RampIndex = 2;
+            Assert.False(model.CanApply);
+            model.RampIndex = 0;
+            Assert.True(model.CanApply);
         }
 
         [Fact]
@@ -127,7 +169,7 @@ namespace SiteAdaptation.Tests
                 DryRun = slope =>
                 {
                     seen.Add(slope);
-                    return Shots.SampleSetUpView(true, true);
+                    return DryAt(slope);
                 },
             };
             var session = new SetUpSiteSession(Shots.SampleSetUpView(false, true), callbacks, () => null);
@@ -146,7 +188,7 @@ namespace SiteAdaptation.Tests
         public void R373_a_slope_changed_after_the_dry_run_turns_apply_off_until_the_next_dry_run()
         {
             var session = new SetUpSiteSession(Shots.SampleSetUpView(false, true),
-                new SetUpSiteCallbacks { DryRun = slope => Shots.SampleSetUpView(true, true) }, () => null);
+                new SetUpSiteCallbacks { DryRun = slope => DryAt(slope) }, () => null);
 
             session.DryRun();
             Assert.True(session.Model.CanApply);
@@ -163,7 +205,7 @@ namespace SiteAdaptation.Tests
         {
             int finished = 0;
             var session = new SetUpSiteSession(Shots.SampleSetUpView(false, true),
-                new SetUpSiteCallbacks { DryRun = slope => Shots.SampleSetUpView(true, true), SheetChosen = path => Shots.SampleSetUpView(true, true) },
+                new SetUpSiteCallbacks { DryRun = slope => DryAt(slope), SheetChosen = path => Shots.SampleSetUpView(true, true) },
                 () => @"C:\Sample\Other sheet.xlsx");
             session.Finished += () => finished++;
 
@@ -236,7 +278,7 @@ namespace SiteAdaptation.Tests
             var session = new SetUpSiteSession(Shots.SampleSetUpView(false, true),
                 new SetUpSiteCallbacks
                 {
-                    DryRun = slope => Shots.SampleSetUpView(true, true),
+                    DryRun = slope => DryAt(slope),
                     SheetChosen = path => throw new InvalidOperationException("The parameter sheet is not read yet"),
                 },
                 () => @"C:\Sample\Bad sheet.xlsx");
@@ -378,7 +420,7 @@ namespace SiteAdaptation.Tests
             {
                 var drawn = new List<double>();
                 var session = new SetUpSiteSession(Shots.SampleSetUpView(false, true),
-                    new SetUpSiteCallbacks { DryRun = slope => { drawn.Add(slope); return Shots.SampleSetUpView(true, true); } }, () => null);
+                    new SetUpSiteCallbacks { DryRun = slope => { drawn.Add(slope); return DryAt(slope); } }, () => null);
                 var window = new SetUpSiteWindow(session);
                 Shots.LayOut(window);
                 int finished = 0;

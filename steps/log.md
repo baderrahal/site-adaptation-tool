@@ -2,6 +2,39 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B 5b, 2026-10-29, button 1 Set up site, the watcher before Revit and the freeze guard
+
+Goal:
+- Button 1 on the four copies of 3.1, open items 3 to 8 in Revit, its window by 7.3. First the frozen Revit of the stopped session
+
+Done:
+- The freeze: a probe started Revit outside the test host and its own watcher left the RCRC Green box open (READ watch_5b logs). No Revit was left, the IMD copy it read unchanged by SHA-256
+- Test host: the watcher starts first and waits for the pid, the tool names come from the installed manifests, probes run by -DryStart -ProbeManifest, the freeze guard (5 min no first step, 10 min no heartbeat, 5 min not responding)
+- Button 1 in Common and the add-in, its window with setup-site.png, the setUp mode of the addinRun job. Q151 to Q154 opened
+
+Checked:
+- Hang probe, RAN: stopped at 7.4 min on not responding, the windows and 40 journal lines logged, that pid only, step failed, exit 1
+- Revit runs of button 1, RAN, 3.3 min each, peak 2,333, 2,247 and 2,250 MiB private, least free 29.1 GiB. Run 1 failed on closing the active document, fixed, runs 2 and 3 8 of 8 steps ok
+- Badge on the 4 copies: template and no template empty, IMD existing with 4 signs, R17B stand-in existing with the parameter sign and 10 stops
+- Second method, RAN: the facts after Apply by the test host's own API reads held 30 of 30 values within 0.5 mm of the position file, largest gap 0 mm, in runs 2 and 3. Dry run Revit column equal to the value after Apply on 6 of 6 points
+- Gate, RAN: dotnet 1,092 and 986, pytest 1,986 passed, 3 skipped, before the review fixes. Parity on the 7 keys not run: no plan or build step changed (CHOSEN). No plot in button 1, so no 5 plot sample (CHOSEN)
+- Reviewer, 1 pass: 2 REAL fixed with tests (sheet count, failed Browse), 1 not a fault, 4 latent. Breaker pass 1: 2 REAL (an empty second run committed, 0 of 2 before a dry run), pass 2: 3 REAL (waiting items not shown, a slope picked after the view), all fixed with tests, 1 question Q155, 17 latent in steps/latent.md
+- Revit run 3, RAN, after the fixes: second runs commit 0 on all 4 copies, the IMD copy first run commits 0 since nothing differs, 30 of 30 values at 0 mm again
+
+Remains:
+- The R17B file is not on the laptop. Its stand-in was made as R212 made it, the parameter names with GUIDs of their own (CHOSEN)
+- In 5b the check table holds the survey point and the project base point. The extreme plots and the control points need the location plan of D15 in 5c
+- J17 to J20 of steps/lane-b.md. The imperial no template project was not run
+
+Known bugs:
+- No Settings entity until R367, Browse stops until the worker reads xlsx, the position path of config is the PC one until J5 (J19)
+
+Next:
+- 5c with the Revit run after 5c on Lane B once 4h-1 is done
+
+Your turn:
+- Opened: Q151 Freeze guard limit for an image job. Q152 The parameter sheet of button 1. Q153 The GUID of Plot. Q154 The type button 1 copies new types from. Q155 Step 1 Done on a model already set up
+- 8 questions open, full text: steps/questions-open.md
 ## Round FOLD, 2026-10-29, the fold in, D9 to D19, the answer pass and the manual rules
 
 Goal:
