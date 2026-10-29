@@ -175,7 +175,7 @@
           <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.BandAccent}" Margin="{StaticResource SA.Gap.Top4}"
                      TextWrapping="Wrap" Text="{Binding SignsLine}" Visibility="{Binding SignsShown, Converter={StaticResource Shown}}" />
         </StackPanel>
-        <StackPanel Grid.Column="1" HorizontalAlignment="Right" Margin="{StaticResource SA.Gap.Left16}">
+        <StackPanel Grid.Column="1" HorizontalAlignment="Right" Margin="{StaticResource SA.Gap.Left16}" Visibility="{Binding CountShown, Converter={StaticResource Shown}}">
           <TextBlock Style="{StaticResource SA.Type.Count}" Foreground="{StaticResource SA.Surface}" HorizontalAlignment="Right" Text="{Binding CountLine}" />
           <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.BandText}" HorizontalAlignment="Right" Text="check points pass" />
         </StackPanel>
@@ -212,7 +212,10 @@
             </Grid>
           </Border>
           <ItemsControl ItemsSource="{Binding CheckPoints}" ItemTemplate="{StaticResource CheckRow}" />
-          <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top8}" Foreground="{StaticResource SA.Text}" Text="{Binding PassLine}" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top8}" Foreground="{StaticResource SA.Text}" Text="{Binding PassLine}"
+                     Visibility="{Binding CountShown, Converter={StaticResource Shown}}" />
+          <TextBlock Style="{StaticResource SA.Type.Label}" Margin="{StaticResource SA.Gap.Top8}" Foreground="{StaticResource SA.Ok}" Text="{Binding NothingLine}"
+                     Visibility="{Binding NothingShown, Converter={StaticResource Shown}}" />
           <Border Margin="{StaticResource SA.Gap.Top16}" Background="{StaticResource SA.Guide}" BorderBrush="{StaticResource SA.GuideBorder}"
                   BorderThickness="{StaticResource SA.Line.All}" CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Box}">
             <StackPanel>

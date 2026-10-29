@@ -355,8 +355,10 @@ namespace SiteAdaptation.Tests
             calls.Clear();
             RunOutcome second = Run(document, dialog, tags, calls);
 
-            Assert.Equal(RunEnd.Committed, second.End);
-            Assert.Equal(new[] { "start", "tag", "commit" }, calls);
+            // Breaker pass 1 of 5b: nothing differs, so no transaction, no site.json and no run record, the window said so
+            Assert.Equal(RunEnd.Cancelled, second.End);
+            Assert.Empty(calls);
+            Assert.Null(second.Record);
             Assert.True(dialog.Shown[1].NothingDiffers);
             Assert.True(dialog.Shown[1].ExistingSite);
             Assert.Contains(SetUpSiteTestsText.NothingDiffers, dialog.Summaries[1]);

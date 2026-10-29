@@ -156,6 +156,7 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `Dry run`
 - `Apply`
 - `Browse` the Browse of the row Shared parameters
+- `Nothing differs, Apply changes nothing.` CHOSEN, under the pass line on a second run by 03a Second run, Apply stays off
 
 ### Check table
 

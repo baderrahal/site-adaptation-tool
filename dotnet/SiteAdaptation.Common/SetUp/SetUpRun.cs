@@ -121,7 +121,9 @@ namespace SiteAdaptation.Common.SetUp
             {
                 throw new InvalidOperationException(string.Join(". ", stops));
             }
-            return true;
+            // 03a Second run: with nothing to set no transaction opens, so no site.json and no run record are made again. The window
+            // said so and kept Apply off, this holds the same for a window that answers Apply anyway
+            return SetUpPlanner.Changes(document.Read(), target).Any;
         }
 
         // 03a The shared parameter file: shared_<run id>.txt in the work folder with the group and the definitions of the sheet, the

@@ -33,7 +33,25 @@ namespace SiteAdaptation.Tests
             var empty = new SetUpSiteViewModel(Shots.SampleSetUpView(false, false));
             Assert.Equal("Empty project found", empty.Badge);
             Assert.False(empty.SignsShown);
-            Assert.Equal("0 of 7", empty.CountLine);
+            // Breaker pass 1 of 5b: before a dry run nothing is measured, so no count reads as points that failed
+            Assert.False(empty.CountShown);
+            Assert.Equal("", empty.CountLine);
+            Assert.Equal("", empty.PassLine);
+        }
+
+        // Breaker pass 1 of 5b, 03a Second run: a view where nothing differs says so and Apply stays off, so no empty run commits
+        [Fact]
+        public void R374_a_view_where_nothing_differs_says_so_and_keeps_apply_off()
+        {
+            SetUpSiteView view = Shots.SampleSetUpView(true, true);
+            view.NothingDiffers = true;
+            var model = new SetUpSiteViewModel(view);
+
+            Assert.True(model.NothingShown);
+            Assert.Equal(SetUpSiteText.NothingDiffers, model.NothingLine);
+            Assert.Equal(SetUpTexts.NothingDiffers, SetUpSiteText.NothingDiffers);
+            Assert.False(model.CanApply);
+            Assert.False(new SetUpSiteViewModel(Shots.SampleSetUpView(true, true)).NothingShown);
         }
 
         [Fact]

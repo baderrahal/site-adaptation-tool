@@ -32,6 +32,14 @@ namespace SiteAdaptation.AddIn.SetUpSite
 
         public string CountLine { get; private set; }
 
+        // Before a dry run nothing is measured, so the count and the pass line wait for it
+        public bool CountShown => view.DryRunDone;
+
+        // 03a Second run: a view where nothing differs says so, and Apply stays off
+        public bool NothingShown => view.NothingDiffers;
+
+        public string NothingLine => NothingShown ? SetUpSiteText.NothingDiffers : "";
+
         public string PassLine { get; private set; }
 
         public IReadOnlyList<SetUpRowViewModel> Now { get; private set; }
@@ -47,7 +55,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
         public bool StopsShown => StopsLine.Length > 0;
 
         // The dry run has filled the view, no stop is found, and the slope is the one the dry run was made with
-        public bool CanApply => view.Stops.Count == 0 && view.DryRunDone && (!dryRunSlope.HasValue || Math.Abs(dryRunSlope.Value - SelectedSlope) < 1e-9);
+        public bool CanApply => view.Stops.Count == 0 && view.DryRunDone && !view.NothingDiffers && (!dryRunSlope.HasValue || Math.Abs(dryRunSlope.Value - SelectedSlope) < 1e-9);
 
         public int RampIndex
         {
@@ -74,8 +82,8 @@ namespace SiteAdaptation.AddIn.SetUpSite
             view = next ?? new SetUpSiteView();
             Badge = view.ExistingSite ? SetUpSiteText.BadgeExisting : SetUpSiteText.BadgeEmpty;
             SignsLine = string.Join(", ", view.Signs.Where(sign => !string.IsNullOrEmpty(sign)));
-            CountLine = TextTemplate.Fill(SetUpSiteText.CountOf, view.Passing, view.CheckPoints.Count);
-            PassLine = TextTemplate.Fill(SetUpSiteText.PassLimit, view.PassLimitMm, view.Passing, view.CheckPoints.Count);
+            CountLine = view.DryRunDone ? TextTemplate.Fill(SetUpSiteText.CountOf, view.Passing, view.CheckPoints.Count) : "";
+            PassLine = view.DryRunDone ? TextTemplate.Fill(SetUpSiteText.PassLimit, view.PassLimitMm, view.Passing, view.CheckPoints.Count) : "";
             RampChoices = view.RampSlopeChoices.Select(Percent).ToList();
             rampIndex = Math.Max(0, view.RampSlopeChoices.FindIndex(choice => Math.Abs(choice - view.RampSlope) < 1e-9));
             Now = Ordered(view.Now, SetUpSiteText.NowOrder, false);
