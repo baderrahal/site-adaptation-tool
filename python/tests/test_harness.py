@@ -205,3 +205,71 @@ def test_r18_text_that_only_mentions_a_commit_is_not_a_commit(repos):
     # A heredoc or a message that holds the words is no git command
     assert real_hook("cat >> notes.txt <<'EOF'" + chr(10) + "then git commit on main" + chr(10) + "EOF", repos["main"])[0] == 0
     assert real_hook('git -C ' + repos["clone"] + ' commit -m "git commit on main later"', repos["main"])[0] == 0
+
+
+INPUTS_HOOK = ROOT / ".claude" / "hooks" / "guard-inputs.sh"
+
+
+def inputs_hook(command, tool="PowerShell", description=None):
+    bash = find_bash()
+    if bash is None:
+        pytest.skip("no bash on this machine")
+    tool_input = {"command": command}
+    if description:
+        tool_input["description"] = description
+    payload = json.dumps({"tool_name": tool, "tool_input": tool_input})
+    env = {"PATH": "/usr/bin:/bin", "CLAUDE_PROJECT_DIR": ROOT.as_posix()}
+    done = subprocess.run([bash, INPUTS_HOOK.as_posix()], input=payload, text=True, capture_output=True, env=env)
+    return done.returncode, done.stderr
+
+
+# D19. Every link is blocked wherever it points, and a write whose target is under an input root, since the Q111 run of 4g3 wrote a
+# request file into the real Prototypes folder through a junction
+@pytest.mark.parametrize("command", [
+    r'cmd /c mklink /J C:\Users\me\Documents\SiteAdaptation\work\proto "C:\02-Site Adaptation\Zone 02\ARC\Prototypes"',
+    r"mklink /D C:\work\link C:\Temp",
+    r'New-Item -ItemType Junction -Path C:\work\p -Target "C:\02-Site Adaptation\Zone 02"',
+    r"New-Item -Path C:\work\p -ItemType SymbolicLink -Value 'C:\10- ROSHEN MECCA'",
+    r"New-Item -Type Junction -Path C:\work\p -Target C:\Temp",
+    r"ni -It SymbolicLink C:\work\p -Value C:\Temp",
+    r'ln -s "/c/02-Site Adaptation" /c/work/link',
+    r'Set-Content -Path "C:\02-Site Adaptation\request.json" -Value x',
+    r'echo x > "/c/02-Site Adaptation/a.txt"',
+    r'Copy-Item C:\work\a.json "C:\02-Site Adaptation\Zone 02\ARC\Prototypes\a.json"',
+    r'Copy-Item -Path C:\work\a.json -Destination "C:\02-Site Adaptation\x"',
+    r'cp work/a.json "/c/02-Site Adaptation/x/a.json"',
+    r'Remove-Item "C:\02-Site Adaptation\Zone 02\ARC\x_TEST-1.rvt"',
+    r'Move-Item "C:\02-Site Adaptation\a" C:\work\a',
+    r'[IO.File]::WriteAllText("C:\02-Site Adaptation\r.json", "x")',
+    "git status" + chr(59) + r' Remove-Item "C:\10- ROSHEN MECCA\x.pdf"',
+])
+def test_d19_links_and_writes_into_an_input_root_are_blocked(command):
+    code, message = inputs_hook(command)
+    assert code == 2, command
+    assert "guard-inputs.sh" in message
+    assert inputs_hook(command, tool="Bash")[0] == 2
+
+
+@pytest.mark.parametrize("command", [
+    r'Copy-Item "C:\02-Site Adaptation\Zone 02\a.rvt" C:\Users\me\Documents\SiteAdaptation\work\a.rvt',
+    r'cp "/c/02-Site Adaptation/a.rvt" /c/Users/me/Documents/SiteAdaptation/work/',
+    r'Get-ChildItem "C:\02-Site Adaptation" -Recurse',
+    r'Get-FileHash "C:\02-Site Adaptation\a.rvt" | Out-File C:\Users\me\Documents\SiteAdaptation\h.txt',
+    r"Set-Content -Path C:\Users\me\Documents\SiteAdaptation\work\a.txt -Value x",
+    r"New-Item -ItemType Directory -Force C:\Users\me\Documents\SiteAdaptation\runner",
+    "git commit -m \"Round FOLD\"",
+])
+def test_d19_reads_of_an_input_root_and_writes_under_the_work_root_pass(command):
+    assert inputs_hook(command) == (0, "")
+    assert inputs_hook(command, tool="Bash")[0] == 0
+
+
+def test_d19_a_description_that_names_an_input_root_is_not_judged():
+    assert inputs_hook("git status", description=r"Copy into C:\02-Site Adaptation")[0] == 0
+
+
+def test_d19_settings_register_the_inputs_hook_for_bash_and_powershell():
+    settings = json.loads((ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    entry = settings["hooks"]["PreToolUse"][0]
+    assert entry["matcher"] == "Bash|PowerShell"
+    assert any("guard-inputs.sh" in hook["command"] for hook in entry["hooks"])

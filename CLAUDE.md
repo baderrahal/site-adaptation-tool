@@ -114,5 +114,5 @@ Bader's standing rule since Round 17, for every round.
 
 ## Hooks
 
-.claude/hooks: guard-main.sh stops commit and push on main, guard-registry.sh every registry change (R106), nothing in the registry is read or written. .claude/skills/ai-max holds the AI MAX skill, version 4.
+.claude/hooks: guard-main.sh stops commit and push on main, guard-registry.sh every registry change (R106), nothing in the registry is read or written, guard-inputs.sh links and writes into an input root (D19). .claude/skills/ai-max holds the AI MAX skill, version 4.
 A hook only loads when a session starts in the repo. A session that started elsewhere has no hooks, say so in the log.
