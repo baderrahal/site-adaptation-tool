@@ -42,6 +42,32 @@ namespace SiteAdaptation.Common.SetUp
         public List<string> Stops { get; set; } = new List<string>();
     }
 
+    // The window of button 1 in the add-in, a stand-in in the test host and the tests, so the run is driven with no click
+    public interface ISetUpSiteDialog
+    {
+        SetUpSiteAnswer Show(SetUpSiteView view, SetUpSiteCallbacks callbacks);
+    }
+
+    public sealed class SetUpSiteCallbacks
+    {
+        // The button Dry run with the ramp slope chosen in percent, a view with the Revit column and What the tool will set filled
+        public System.Func<double, SetUpSiteView> DryRun { get; set; }
+
+        // Browse of the row Shared parameters with the path of the sheet chosen, the view read again on it
+        public System.Func<string, SetUpSiteView> SheetChosen { get; set; }
+    }
+
+    public sealed class SetUpSiteAnswer
+    {
+        // False on Cancel or a closed window
+        public bool Apply { get; set; }
+
+        public double RampSlope { get; set; }
+
+        // The sheet chosen by Browse, null when the pane's own stays
+        public string ParameterSheet { get; set; }
+    }
+
     public sealed class SetUpRow
     {
         public string Label { get; set; }
