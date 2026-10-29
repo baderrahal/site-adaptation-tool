@@ -38,10 +38,6 @@ From docs/design/13-workflow-changes.md, part Where each lands. 5a builds the or
 - W10, 5c. The settings key parameterSheet of the Shared parameters row, named by Code in 5a PR 8, goes into docs/design/06-settings.md and R367 of 4h at the join.
 - W11, 5c. The Check table window under its new number. Its title "4 Check, NBH <n>, <n> plots" is in the label list since review 1 of PR 92.
 
-## Pending in Round FOLD
-
-- Fold in items 7 and 11 for docs/design parts 03a, 03b, 07, 10, docs/addin-mock.md, docs/rules and the config note, and the Fold in items from Revit run 3 for 06-settings.md and 09-risks.md, come in the design PR of Round FOLD (the list: steps/history/lane-b-2026-10-29.md, Fold in).
-
 ## Join items for 5c
 
 Changes Lane B needs in files it may not edit while Phase 4 is open.
@@ -55,7 +51,13 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - J8. The code paths that take Documents\SiteAdaptation from the Windows Documents folder: dotnet/SiteAdaptation.TestHost/Run-TestHost.ps1, Run-Parallel.ps1, JobSession.cs and its job guard, dotnet/SiteAdaptation.Placer/PlaceFromPlan.cs and PlaceFromPlanCommand.cs, and the default work folder of docs/design/06-settings.md. Each reads the root of Q127.
 - J9. The rule text of the Phase 5 ids Lane B codes before the fold in, R370, R371, R372 and R382 in 5a, R373, R374 and R383 in 5b, goes into docs/rules/07-addin-r354-r388.md and docs/rules/index.md at the fold in, from their rows of docs/design/10-rule-ids.md and what the code does. docs/rules/ is outside Lane B while Phase 4 is open, and no test ties a rule id to the index (RAN grep of python/tests), so the tests name the ids before the text is there.
 - J7. D3 keeps a window lock per copy, while R200 holds one lock siteBuild.lock for every window and, while a process of siteBuild.windowProcesses runs, logs a wait and looks again after waitMinutes. Parallel windows need R200 changed before 6b. The peak per window is measured on one NBH, 6b opens whole zones, so the first 6b window measures its own peak before a second opens.
-- J10. The run judge of Revit run 3 checks that a detached document has no PathName and an empty Title, the old claim of docs/design/06-settings.md. The design PR of the fold in of Round FOLD writes what run 3 measured into 06-settings.md and open item 2 of docs/design/09-risks.md, so the Revit run after 5c judges a detached document by that text (Fold in items from Revit run 3, steps/history/lane-b-2026-10-29.md).
+- J10. The run judge of Revit run 3 checks that a detached document has no PathName and an empty Title, the old claim of docs/design/06-settings.md. The design PR of the fold in of Round FOLD wrote what run 3 measured into 06-settings.md and open item 2 of docs/design/09-risks.md, so the Revit run after 5c judges a detached document by that text (Fold in items from Revit run 3, steps/history/lane-b-2026-10-29.md).
+- J11, 5c. docs/addin-mock.md items 1, 2 and 4 and the 7.1 and 7.4 sentences of docs/design/07-mock.md keep the old button names, since python/tests/test_addin_design.py holds them word for word (MOCK_LABELS needs "3 Check", "4 Place villas", "7 Walls", "8 Report", and the sentence test all 35 sentences in order). The fold in wrote the new text beside them with the precedence stated. The phase that changes those labels changes the test with them.
+- J12, 5e. The report Excel keeps the old numbers: ReportExcel.Steps, REPORT_STEP "8 Report", NO_LEVEL_RUN "no run of button 6 yet", addin.report.stepOfField and defaultStep 4 of config, and python/report_excel_check.py ties the 7.6 rows to "1. Ribbon" of docs/addin-mock.md. The 7.6 rows, 7.7 items 13 and 15 and addin.report.note stay as they are until then, marked in 7.7 item 35.
+- J13, 5c and 5f. The rule ids of the windows Review data and Site Adaptation Rules take the next free id at 5c, Update from report at 5f. test_r343 holds the planned table of section 10 to R345 to R388 and the written ids, so no row could be added at the fold in.
+- J14, 5c. Section 3 of the design keeps the title "The eight buttons", since the SECTIONS list of python/tests/test_addin_design.py holds it. A head note in 03a gives the nine steps.
+- J15, 5e. With links placed after Levels, whether the Levels count of the box Counts agree takes the link Z of a run of 7 is open. R365 counts by the run of 6 today.
+- J16, 5c. Item 34 of 7.7: the first open Start here state of 7.2 and the new project prefilled from config of section 6 do not say how they meet. Settle it with R367 and the pre-setting.
 
 ## Open Lane B questions
 
