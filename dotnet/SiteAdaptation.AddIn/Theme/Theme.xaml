@@ -521,4 +521,23 @@
     <GeometryDrawing Pen="{StaticResource SA.Icon.AccentPen.Wide}" Geometry="M27.5 14v4.5H23" />
   </DrawingGroup>
 
+  <!-- R373, 7.3 of docs/design/12-ui-spec.md. The window of Set up site: its width, the left part, the label column of its rows and
+       the foot are Code's choice, listed in steps/ui-shots/README.md -->
+  <sys:Double x:Key="SA.Size.DialogWidth">1280</sys:Double>
+  <sys:Double x:Key="SA.Size.DialogMaxHeight">800</sys:Double>
+  <sys:Double x:Key="SA.Size.RampBox">96</sys:Double>
+  <GridLength x:Key="SA.Grid.SetUpLeft">640</GridLength>
+  <GridLength x:Key="SA.Grid.SetUpLabel">176</GridLength>
+  <GridLength x:Key="SA.Grid.CheckPoint">128</GridLength>
+  <GridLength x:Key="SA.Grid.CheckDiff">80</GridLength>
+  <Thickness x:Key="SA.Pad.Cell">8,4,8,4</Thickness>
+  <Thickness x:Key="SA.Pad.Foot">16,12,16,12</Thickness>
+  <Thickness x:Key="SA.Gap.Top16">0,16,0,0</Thickness>
+  <Thickness x:Key="SA.Gap.Left16">16,0,0,0</Thickness>
+  <Thickness x:Key="SA.Pad.Side">16,16,16,16</Thickness>
+  <Style x:Key="SA.Button.DryRun" TargetType="Button" BasedOn="{StaticResource SA.Button.Base}">
+    <Setter Property="Foreground" Value="{StaticResource SA.Heading}" />
+    <Setter Property="BorderBrush" Value="{StaticResource SA.Heading}" />
+  </Style>
+
 </ResourceDictionary>

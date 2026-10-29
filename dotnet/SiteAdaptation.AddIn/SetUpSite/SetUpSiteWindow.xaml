@@ -1,0 +1,230 @@
+<Window x:Class="SiteAdaptation.AddIn.SetUpSite.SetUpSiteWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:pane="clr-namespace:SiteAdaptation.AddIn.Pane"
+        xmlns:set="clr-namespace:SiteAdaptation.AddIn.SetUpSite"
+        Title="1 Set up site" Width="{DynamicResource SA.Size.DialogWidth}" MaxHeight="{DynamicResource SA.Size.DialogMaxHeight}"
+        SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SA.Surface}">
+  <!-- R373, docs/design/12-ui-spec.md 7.3 top to bottom. Every colour, size and font by Theme.xaml, every text in
+       docs/design/14-ui-labels.md under Set up site -->
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/SiteAdaptation.AddIn;component/Theme/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <BooleanToVisibilityConverter x:Key="Shown" />
+
+      <Style x:Key="RowText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Body}">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+      </Style>
+      <Style x:Key="HeadText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Label}">
+        <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+      </Style>
+
+      <!-- The value cell of a row: the text, the drop down of Ramp slope, or the sheet name with its count and Browse -->
+      <DataTemplate x:Key="PlainValue" DataType="{x:Type set:SetUpRowViewModel}">
+        <TextBlock Text="{Binding Value}">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock" BasedOn="{StaticResource RowText}">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding Differs}" Value="True">
+                  <Setter Property="Foreground" Value="{StaticResource SA.Warn}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
+      </DataTemplate>
+      <DataTemplate x:Key="RampValue" DataType="{x:Type set:SetUpRowViewModel}">
+        <StackPanel>
+          <ComboBox ItemsSource="{Binding Model.RampChoices}" SelectedIndex="{Binding Model.RampIndex, Mode=TwoWay}"
+                    Style="{StaticResource SA.Pane.Combo}" Width="{StaticResource SA.Size.RampBox}" HorizontalAlignment="Left" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Default 0.5%. Choices 0.5%, 1%, 2%, then 3% to 15%" />
+        </StackPanel>
+      </DataTemplate>
+      <DataTemplate x:Key="SheetValue" DataType="{x:Type set:SetUpRowViewModel}">
+        <StackPanel>
+          <TextBlock Style="{StaticResource RowText}" Text="{Binding Value}" />
+          <StackPanel Orientation="Horizontal" Margin="{StaticResource SA.Gap.Top4}">
+            <TextBlock Style="{StaticResource RowText}" Margin="{StaticResource SA.Gap.Right8}" Foreground="{StaticResource SA.TextMuted}"
+                       Text="{Binding Count}" Visibility="{Binding HasCount, Converter={StaticResource Shown}}" />
+            <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static pane:PaneText.Browse}" Click="OnBrowse" />
+          </StackPanel>
+        </StackPanel>
+      </DataTemplate>
+
+      <!-- The tables of the left as label and value rows. A row that will change stands on SA.Warn ground with Will change at the end -->
+      <DataTemplate x:Key="SetRow" DataType="{x:Type set:SetUpRowViewModel}">
+        <Border MinHeight="{StaticResource SA.Size.Row}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}"
+                BorderThickness="{StaticResource SA.Line.Under}">
+          <Border.Style>
+            <Style TargetType="Border">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding Differs}" Value="True">
+                  <Setter Property="Background" Value="{StaticResource SA.WarnGround}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.SetUpLabel}" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Style="{StaticResource RowText}" Text="{Binding Label}" />
+            <ContentControl Grid.Column="1" VerticalAlignment="Center" Content="{Binding}">
+              <ContentControl.Style>
+                <Style TargetType="ContentControl">
+                  <Setter Property="ContentTemplate" Value="{StaticResource PlainValue}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsRamp}" Value="True">
+                      <Setter Property="ContentTemplate" Value="{StaticResource RampValue}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsSheet}" Value="True">
+                      <Setter Property="ContentTemplate" Value="{StaticResource SheetValue}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </ContentControl.Style>
+            </ContentControl>
+            <TextBlock Grid.Column="2" Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.Warn}" VerticalAlignment="Center"
+                       Margin="{StaticResource SA.Gap.Left8}" Text="Will change" Visibility="{Binding Differs, Converter={StaticResource Shown}}" />
+          </Grid>
+        </Border>
+      </DataTemplate>
+
+      <DataTemplate x:Key="CheckRow" DataType="{x:Type set:CheckPointViewModel}">
+        <Border MinHeight="{StaticResource SA.Size.Row}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}"
+                BorderThickness="{StaticResource SA.Line.Under}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.CheckPoint}" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.CheckDiff}" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Style="{StaticResource RowText}" Text="{Binding Point}" />
+            <TextBlock Grid.Column="1" Style="{StaticResource RowText}" Margin="{StaticResource SA.Gap.Right8}" Text="{Binding Cad}" />
+            <TextBlock Grid.Column="2" Style="{StaticResource RowText}" Margin="{StaticResource SA.Gap.Right8}" Text="{Binding Revit}" />
+            <Border Grid.Column="3" CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Cell}" HorizontalAlignment="Right" VerticalAlignment="Center">
+              <Border.Style>
+                <Style TargetType="Border">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Passes}" Value="True">
+                      <Setter Property="Background" Value="{StaticResource SA.OkGround}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Fails}" Value="True">
+                      <Setter Property="Background" Value="{StaticResource SA.ErrorGround}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Border.Style>
+              <TextBlock x:Name="DiffCell" Text="{Binding Diff}">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock" BasedOn="{StaticResource RowText}">
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding Passes}" Value="True">
+                        <Setter Property="Foreground" Value="{StaticResource SA.Ok}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding Fails}" Value="True">
+                        <Setter Property="Foreground" Value="{StaticResource SA.Error}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+            </Border>
+          </Grid>
+        </Border>
+      </DataTemplate>
+    </ResourceDictionary>
+  </Window.Resources>
+
+  <DockPanel Background="{StaticResource SA.Surface}">
+    <!-- The foot on SA.Panel, Cancel, Dry run and Apply. Apply is off while the view holds stops or before the dry run -->
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.Panel}" Padding="{StaticResource SA.Pad.Foot}">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Style="{StaticResource SA.Button.Base}" Content="Cancel" Click="OnCancel" />
+        <Button Style="{StaticResource SA.Button.DryRun}" Margin="{StaticResource SA.Gap.Left8}" Content="Dry run" Click="OnDryRun" />
+        <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Left8}" Content="Apply" IsEnabled="{Binding CanApply}" Click="OnApply" />
+      </StackPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.ErrorGround}" Padding="{StaticResource SA.Pad.Box}"
+            Visibility="{Binding StopsShown, Converter={StaticResource Shown}}">
+      <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.Error}" TextWrapping="Wrap" Text="{Binding StopsLine}" />
+    </Border>
+
+    <Border DockPanel.Dock="Top" Background="{StaticResource SA.Band}" Padding="{StaticResource SA.Pad.Box}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource SA.Type.Title}" Foreground="{StaticResource SA.Surface}" VerticalAlignment="Center" Text="1 Set up site" />
+            <Border Background="{StaticResource SA.BandAccent}" CornerRadius="{StaticResource SA.Radius.Chip}" Padding="{StaticResource SA.Pad.Chip}"
+                    Margin="{StaticResource SA.Gap.Left16}" VerticalAlignment="Center">
+              <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.Band}" Text="{Binding Badge}" />
+            </Border>
+          </StackPanel>
+          <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandText}" Margin="{StaticResource SA.Gap.Top4}"
+                     Text="Sets the coordinates, levels and types of this model from the CAD drawings." />
+          <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.BandAccent}" Margin="{StaticResource SA.Gap.Top4}"
+                     TextWrapping="Wrap" Text="{Binding SignsLine}" Visibility="{Binding SignsShown, Converter={StaticResource Shown}}" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" HorizontalAlignment="Right" Margin="{StaticResource SA.Gap.Left16}">
+          <TextBlock Style="{StaticResource SA.Type.Count}" Foreground="{StaticResource SA.Surface}" HorizontalAlignment="Right" Text="{Binding CountLine}" />
+          <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.BandText}" HorizontalAlignment="Right" Text="check points pass" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="{StaticResource SA.Grid.SetUpLeft}" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Margin="{StaticResource SA.Pad.Side}">
+          <TextBlock Style="{StaticResource SA.Pane.Section}" Text="What the project has now" />
+          <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding Now}" ItemTemplate="{StaticResource SetRow}" />
+          <TextBlock Style="{StaticResource SA.Pane.Section}" Margin="{StaticResource SA.Gap.Top16}" Text="What the tool will set" />
+          <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding WillSet}" ItemTemplate="{StaticResource SetRow}" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Margin="{StaticResource SA.Pad.Side}">
+          <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Check points from CAD" />
+          <Border Margin="{StaticResource SA.Gap.Top8}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.BorderStrong}"
+                  BorderThickness="{StaticResource SA.Line.Under}">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{StaticResource SA.Grid.CheckPoint}" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="{StaticResource SA.Grid.CheckDiff}" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Style="{StaticResource HeadText}" Text="Point" />
+              <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="CAD" />
+              <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="Revit" />
+              <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" HorizontalAlignment="Right" Text="Diff" />
+            </Grid>
+          </Border>
+          <ItemsControl ItemsSource="{Binding CheckPoints}" ItemTemplate="{StaticResource CheckRow}" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top8}" Foreground="{StaticResource SA.Text}" Text="{Binding PassLine}" />
+          <Border Margin="{StaticResource SA.Gap.Top16}" Background="{StaticResource SA.Guide}" BorderBrush="{StaticResource SA.GuideBorder}"
+                  BorderThickness="{StaticResource SA.Line.All}" CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Box}">
+            <StackPanel>
+              <TextBlock Style="{StaticResource SA.Type.Label}" Foreground="{StaticResource SA.Info}" Text="On an existing site file" />
+              <TextBlock Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Text}" Text="Nothing changes until Apply. Apply sets only the rows that differ." />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Grid>
+    </ScrollViewer>
+  </DockPanel>
+</Window>
