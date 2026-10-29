@@ -19,3 +19,4 @@ Parts 01 to 10 are docs/addin-design.md of Round ADDIN Phase 3b, cut in Round RE
 | 12-ui-spec.md | Lane B L0 | The UI spec approved on the canvas: the UI controls, font, colours, sizes, icons and the windows 7.1 to 7.4 |
 | 13-workflow-changes.md | Lane B 5a | Bader's workflow changes of 28 Oct 2026: the 9 steps, the ribbon of four panels, Review data, Site Adaptation Rules, Update from report, and the phase of each |
 | 14-ui-labels.md | Lane B 5a | The label list of the text test, every window text grouped by window |
+| 15-manual-rules.md | Round FOLD | The manual rules M01 to M15 of the canvas with their Rev 06 section and page, for manualRules of the rules profile (W3) |

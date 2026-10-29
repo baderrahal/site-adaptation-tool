@@ -26,7 +26,7 @@ Part 1 is the add-in. Part 2, the output sheets, waits for Bader's check of Part
 - The area key is the Neighbourhood_ID, never an IM letter, the two jobs use the IM letters for other areas.
 - The approved mock is docs/addin-mock.md word for word, Bader's changes of docs/design/13-workflow-changes.md prevail. It sets the ribbon, the pane, Set up site, the check table and the two Excel files.
 
-## Lanes (D10, D17, D18)
+## Lanes
 
 - Two lanes in one repo. Lane A runs in this folder, Lane B in a detached worktree at the sibling folder "Site Adaptation Tool Lane B WT". Each phase of steps/01_next.md names its lane and what it starts when.
 - tools/run-lane.ps1 -Lane A or B runs a lane, one phase session after another, from steps/START.md (Lane A) or steps/START-B.md (Lane B), each ending on one last line the runner reads. steps/STOP-A or steps/STOP-B stops it.
@@ -41,14 +41,14 @@ Part 1 is the add-in. Part 2, the output sheets, waits for Bader's check of Part
 - Reviews (D12): the breaker reads a PR only when it changes build logic, numbers in a plan or an Excel, or the override list, at most 2 passes (Q097). Every other PR gets the reviewer, with the UI checklist where a window changes, one pass. The claim-checker reads only the claims of the log entry of the end records PR.
 - A REAL finding is fixed with a test, a LATENT one (no real input reaches it, Q095) goes to steps/latent.md. Parity and review on real inputs only. What is left after the passes becomes a question.
 - A fix on its third attempt stops, goes back to measuring and becomes a question. A Revit run probes first and its third attempt is a probe of the cause (D11).
-- A new question takes the next free ID, Q148 now.
+- A new question takes the next free ID, Q151 now.
 - Every fact in a report is tagged READ with a path, RAN with a count, SEARCHED with a link, CHOSEN or UNKNOWN.
 
 ## Records
 
 - docs/repo-map.md the repo map, grep it for a path or a rule id. docs/design/ the add-in design, its README names each part.
 - steps/PROGRESS.md the live state, steps/log.md the round log, steps/01_next.md the plan to finish Part 1, steps/lane-b.md the Lane B rules and join items.
-- steps/questions-open.md and steps/questions-closed.md the questions, steps/latent.md the findings no real input reaches, steps/history/ the old rounds.
+- steps/questions-open.md, steps/questions-closed.md and steps/waiting-on-others.md the questions, steps/latent.md the findings no real input reaches, steps/history/ the old rounds.
 
 ## Reading budget
 
