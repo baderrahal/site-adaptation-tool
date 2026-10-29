@@ -62,6 +62,7 @@ Round 17 gave the IDs. Each open question of the DATA-4 list kept its number as 
 | Q117 | Plot cut and key Unit code rows | Yes (Bader), on one condition: key_join.json and the past model prototype reads become inputs of button 3, both optional, as the tool must work on any project and a new project has no past job. When present, the Plot cut rows are built from them. When absent, button 3 runs as today, Plot cut shows no rows, and the check table says in one line that no past job was given, so no plot is counted as following every rule on Plot cut. The code work goes in 5c as a join item, as it does not fit 4g3 within four changes per PR | 2026-10-28, Bader |
 | Q118 | Follow every rule leaves out moved plots | Yes (Bader), as recommended: keep the code. A plot follows every rule only with no check row and no value an override set or moved, its walls included | 2026-10-28, Bader |
 | Q121 | Excel files readable back by Update from report | Decision of Bader, D4 of steps/decisions-2026-10-28.md: the sheets Levels and Placed key each row by the plot in the first column, one row per plot and kind, the columns FFL, El @ Entry, Steps, Villa type and Mirror are marked editable and listed in the Settings sheet, every other column is read only, and the Settings sheet holds the build id and the SHA-256 of the plan, for the button Update from report of 5f. Built in Round ADDIN 4g3 | 2026-10-28, Bader |
+| Q122 | Clusters FFL by rule or as written | Yes (Bader), as recommended: in the sheet Clusters of the level Excel name the column FFL by rule and add a column FFL as written with the written FFLs of the piece where an override moved them, as new items of 7.7 of docs/design/07-mock.md. Built in the first PR of 4h, since Bader ended 4g3 with its end records | 2026-10-29, Bader |
 
 ## Q089
 
@@ -132,6 +133,12 @@ Q118. Follow every rule leaves out moved plots (R363, Q108, PR 81 review pass 2)
 ## Q117
 
 Raised by the developer of PR 81 in the 4g2 session and answered by Bader the same day, 2026-10-28. The answer is in the table above. The question as it was asked: the check rows of a key's join status (Plot cut, R326) and of the prototype file a key links against Typology_Rev9 (Unit code) are not built, as button 3 takes neither key_join.json nor the key reads (READ, docs/design/03b-buttons-2-to-8.md, 3 Check, Inputs). So Plot cut reads 0 on every scope where the mock shows 12 for NBH 012, and 7 cut plots of the IMC join, 2311, 2375, 2376, 2377, 2388, 2389 and 2390, count as following every rule (RAN, round_addin\logs\p4g2_pr5_fix1_breaker_after.txt). Recommended: add both as optional inputs of button 3 and build the two kinds of row. Or drop the two kinds of row from 03b and from 7.4 of the mock.
+
+## Q122
+
+Opened from the second review of PR 91 in the 4g3 session and answered by Bader on 2026-10-29 in the 4g3 laptop session. The answer is in the table above. The question as it was asked:
+
+Q122. Clusters FFL by rule or as written (R364, PR 91 review pass 2). The sheet Clusters of the level Excel gives each piece of the build levelRule.ffl, the FFL by the rule before the overrides, under the header FFL, the same header as the sheet Levels, where the FFL is the one written. On the whole project 354 of 616 piece rows show an FFL that no written plot of the piece holds, 777 plots differ from their Levels FFL, the median gap 19 mm and the largest 400 mm (RAN, the breaker of PR 91 pass 2, brk91b in the scratchpad of the 4g3 session). Each such plot names its override on the sheet Levels. Recommended: name the column FFL by rule and add a column FFL as written with the written FFLs of the piece where an override moved them, as new items of 7.7. Or keep the header FFL of the mock with the value by rule.
 
 ## Old numbers to IDs
 
