@@ -30,7 +30,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 
 ## 4g3, Q112, Q113, the level and report Excel
 
-- Status: done on 2026-10-29 in Lane A on the laptop, PR 95 the start records, PR 96 R365 the report Excel with D4, the C# checks of Q111 with 0 failures, then the end records. Q122 to Q125 stay open. D5 to D7 of steps/decisions-2026-10-28.md hold the speed rules, the C# checks and the report round trip
+- Status: done on 2026-10-29 in Lane A on the laptop, PR 95 the start records, PR 96 R365 the report Excel with D4, the C# checks of Q111 with 0 failures, then the end records. Q123 to Q125 stay open. Q122 answered on 2026-10-29, its code moved to 4h (D8). D5 to D7 of steps/decisions-2026-10-28.md hold the speed rules, the C# checks and the report round trip
 - Done on the laptop: the C# reads and parity of PR 75 to 91 on the 7 keys and the whole project, net48 and net8.0, 228 parity lines and 0 failures, three build peaks per runtime, 973 to 1,064 MiB
 - Done on the personal PC: PR 83 records, PR 85 Q112 by the fallback and Q113, PR 88 step 15 with roadAtFrontM, Q114 and the Q116 conflicts, PR 91 R364 the level Excel with the D4 round trip of its sheet Levels, then the handover records
 - Left of 4g3, for the laptop:
@@ -50,6 +50,8 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 ## 4h, the scope, step state, settings and element tags
 
 - Status: open, starts on the laptop once 4g3 is done (Bader, 2026-10-28)
+- First PR (Bader, 2026-10-29, D8): Q122, the sheet Clusters of the level Excel with the columns FFL by rule and FFL as written, new items of 7.7. A draft sits on the local branch feat/addin-4g3-q122-clusters-ffl at 00d371f, untested
+- Peak once per runtime and one review pass for a records-only PR (D8)
 - Rules: R366 scope with the plot list syntax and the step state by hash. R367 the settings JSON kept in the project. R368 element tags, the match to the plan, the hand change and the schema versions. R369 the second method of Phase 4, seeds 14 and 7
 - Design: docs/design/03a-buttons-shared-and-1.md (What every button shares, Steps and Scope), docs/design/06-settings.md
 - Done when: each rule has its tests on both runners and the second method of Phase 4 runs at seeds 14 and 7 (R369, 10-rule-ids.md)

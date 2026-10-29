@@ -67,3 +67,8 @@ Written down in Lane A 4g3 on 29 Oct 2026 from the Lane A prompt.
 ## D7. The report round trip, 29 Oct 2026
 
 - Bader kept D4 for the report Excel of 4g3: the plot number as a stable key in the first column of Levels and Placed, the editable columns FFL, El @ Entry, Steps, Villa type and Mirror marked in the header and listed in the Settings sheet, the build id and the plan SHA-256 in the Settings sheet. Items 10 to 12 of 7.7 of docs/design/07-mock.md hold it.
+
+## D8. Q122 and the speed of 4g3, 29 Oct 2026
+
+- Q122 answered as recommended, closed in steps/questions-closed.md. Its code, the columns FFL by rule and FFL as written of the sheet Clusters, goes to the first PR of 4h, since Bader ended 4g3 with its end records after PR 99 of Lane B. A draft stopped mid-work sits on the local branch feat/addin-4g3-q122-clusters-ffl at 00d371f of the Lane A clone, untested
+- The build peak is measured once per runtime, not three times. A records-only PR gets one review pass

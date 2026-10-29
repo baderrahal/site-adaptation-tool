@@ -19,7 +19,7 @@ Checked:
 
 Remains:
 - 7 read steps of the location plan, the tables and the position not run, inputs not assembled (UNKNOWN)
-- Q123 to Q125 left after the second pass of PR 96 (Q097)
+- Q123 to Q125 left after PR 96 (Q097). Q122 answered, its code moved to the first PR of 4h (D8)
 
 Known bugs:
 - Q111 used 3 stand-ins: CAD reads made again, the site file from plan_012.json, the 2022 prototypes (CHOSEN, logs p4g3_q111)
@@ -44,7 +44,7 @@ Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario
 Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
 Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
 Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
-Q119 Reads of a value several overrides touched. Q120 Mirror and rotation sets too wide. Q122 Clusters FFL by rule or as written.
+Q119 Reads of a value several overrides touched. Q120 Mirror and rotation sets too wide.
 Q123 2 Read data counts faces or plan plots. Q124 Counts box before the Revit read. Q125 Walls Issues row in the Issues sheet.
 
 ## Round ADDIN 4g3, 2026-10-28, 4g3 paused, moved to the laptop

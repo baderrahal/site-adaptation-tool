@@ -50,11 +50,11 @@ Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario
 Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
 Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
 Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
-Q119 Reads of a value several overrides touched. Q120 Mirror and rotation sets too wide. Q122 Clusters FFL by rule or as written. Q123 2 Read data counts faces or plan plots.
+Q119 Reads of a value several overrides touched. Q120 Mirror and rotation sets too wide. Q123 2 Read data counts faces or plan plots.
 Q124 Counts box before the Revit read. Q125 Walls Issues row in the Issues sheet.
 
 ## Next three steps
 
-1. ADDIN 4h in Lane A on the laptop, R366 to R369 with Bader's 9 steps, then the fold-in of steps/lane-b.md
+1. ADDIN 4h in Lane A on the laptop: Q122 first (D8), R366 to R369 with Bader's 9 steps, then the fold-in of steps/lane-b.md
 2. Phase 4 done after 4h. The C# checks of 4h run inside 4h (D6)
 3. Lane B phases by steps/lane-b.md, Part 2 after Bader's check of Part 1
