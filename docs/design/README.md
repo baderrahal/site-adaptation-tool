@@ -1,6 +1,6 @@
 # The add-in design in parts
 
-docs/addin-design.md of Round ADDIN Phase 3b, cut in Round REC at its numbered sections and, where a section passed 30 KB, at its ### headings, with no byte changed. The parts joined in name order are the design, python/record_parts.py joins them for the tests and steps/runs/rec/split_proof.txt proves the join. A code comment that names a section of docs/addin-design.md finds it here by its number. Read the part of the step at hand, never all of them.
+Parts 01 to 10 are docs/addin-design.md of Round ADDIN Phase 3b, cut in Round REC at its numbered sections and, where a section passed 30 KB, at its ### headings, with no byte changed. The parts joined in name order are the design, python/record_parts.py joins them for the tests and steps/runs/rec/split_proof.txt proves the join. A code comment that names a section of docs/addin-design.md finds it here by its number. Read the part of the step at hand, never all of them.
 
 | File | Section | What it holds |
 |---|---|---|
@@ -15,3 +15,7 @@ docs/addin-design.md of Round ADDIN Phase 3b, cut in Round REC at its numbered s
 | 08-install.md | 8 | Install and the unattended runs |
 | 09-risks.md | 9 | The risks and the list open until a Revit run |
 | 10-rule-ids.md | 10 | The planned rule ids, conflicts and questions |
+| 11-light-mode.md | Lane B L0 | Light mode, Villa mode Masses or Links, the solid on the base boundary of its prototype (D2) |
+| 12-ui-spec.md | Lane B L0 | The UI spec approved on the canvas: the UI controls, font, colours, sizes, icons and the windows 7.1 to 7.4 |
+| 13-workflow-changes.md | Lane B 5a | Bader's workflow changes of 28 Oct 2026: the 9 steps, the ribbon of four panels, Review data, Site Adaptation Rules, Update from report, and the phase of each |
+| 14-ui-labels.md | Lane B 5a | The label list of the text test, every window text grouped by window |

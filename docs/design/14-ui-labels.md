@@ -2,7 +2,7 @@
 
 The label list of control 2 of docs/design/12-ui-spec.md, UI controls. Every label, title, help line, button text and chip text of a window, word for word from docs/design/12-ui-spec.md and 7.1 to 7.4 of docs/design/07-mock.md, grouped by window. A value is written `<n>`, and `<m>` or `<name>` where the spec writes them so. An entry the spec gives no words for is marked CHOSEN with its reason, for Bader's check.
 
-The gate test UiLabelTests reads this file. It fails on any text in the XAML or the view models of the add-in that the list of its window does not hold, and on any entry of a built window that no file of that window shows. A window with the line "Not built yet" counts against neither until the PR that builds it (QL11).
+The gate test UiLabelTests reads this file. It fails on any text in the XAML or the view models of the add-in that the list of its window does not hold, and on any entry of a built window that no file of that window shows. A window with the line "Not built yet" counts against neither until the PR that builds it (Q136).
 
 ### Ribbon
 
@@ -94,7 +94,7 @@ The four panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 
 ### Button messages
 
-The messages and the confirm of a button, the TaskDialogs of the flow of R382, written in dotnet/SiteAdaptation.Common/Flow/RunTexts.cs, whose texts build a message from parts. A value `<n>` is the ribbon label of the button, an input, a file, a reason or a count. Cancel is the common button of the TaskDialog, Revit gives its word. QL12 of steps/lane-b.md asks Bader whether these stay TaskDialogs.
+The messages and the confirm of a button, the TaskDialogs of the flow of R382, written in dotnet/SiteAdaptation.Common/Flow/RunTexts.cs, whose texts build a message from parts. A value `<n>` is the ribbon label of the button, an input, a file, a reason or a count. Cancel is the common button of the TaskDialog, Revit gives its word. Q137 of steps/questions-closed.md asks Bader whether these stay TaskDialogs.
 
 An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ gives the stop or the step but no words for it.
 
@@ -151,7 +151,7 @@ Not built yet, Phase 5b.
 - `CAD`
 - `Revit`
 - `Diff`
-- `Pass limit <n> mm. <n> of <n> pass` the value is the mock's 1 mm or Bader's 0.1 mm of 28 Oct 2026 by the answer of QL17 of steps/lane-b.md
+- `Pass limit <n> mm. <n> of <n> pass` the value is the mock's 1 mm or Bader's 0.1 mm of 28 Oct 2026 by the answer of Q142 of steps/questions-closed.md
 - `On an existing site file`
 - `Nothing changes until Apply. Apply sets only the rows that differ.`
 - `Cancel`

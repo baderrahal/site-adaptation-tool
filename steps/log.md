@@ -2,6 +2,36 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B L0 and 5a, 2026-10-28 to 2026-10-29, folded in by Round FOLD
+
+Goal:
+- L0 the laptop check, light mode and the UI spec. 5a the install, ribbon, pane and one transaction per button
+
+Done:
+- L0: steps/laptop-check.md, docs/design/11-light-mode.md, 12-ui-spec.md, D1 to D3 and U1 to U7
+- 5a: PR 84, 86, 87, 89, 90, 92 (the 9 steps, the ribbon of four panels), 97 the fix of Q145 and Revit run 3, 99 the detached document
+- The full end reports: steps/history/lane-b-2026-10-29.md
+
+Checked:
+- Revit run 3, RAN: 3.4 min, exit 0, peak 2,146 MiB private, 18 of 18 steps ok, judge held 17, not held 2, not measured 2
+- Open item 1 held in full. The raised ExternalEvent ran on the Home screen with 0 documents open (RAN)
+- Open item 2: a detached document never saved has a bare file name as PathName (RAN), fixed in PR 99 by SavedPath.Is
+
+Remains:
+- 5a close waits for Q147. Not seen in Revit: the save stop on a detached document, the first show of a hidden pane, the 16 px icons
+- Bader's final approval of revit-ribbon.png and revit-pane.png
+
+Known bugs:
+- The tab title sits behind the overflow mark at 1536 logical px (Q146). The latent findings: steps/latent.md, part Lane B
+
+Next:
+- 5b Button 1 Set up site on Lane B
+
+Your turn:
+- Opened: Q146 Tab title hidden behind the overflow mark. Q147 Close 5a with three items not seen in Revit
+- Closed: Q126 to Q145, the Lane B QL1 to QL20, answered by Bader on 28 and 29 Oct 2026
+- 71 questions open, full text: steps/questions-open.md
+
 ## Round ADDIN 4g3, 2026-10-29, 4g3 done on the laptop, R365 and the C# checks of Q111
 
 Goal:

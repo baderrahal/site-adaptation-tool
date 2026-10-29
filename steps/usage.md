@@ -47,3 +47,6 @@ One row per phase session since Round ADDIN 4f, added by step 7 of steps/START.m
 | dfb83c1c | 4g1, PR 69 to 73, the row taken before the merge of PR 73. npx ccusage was refused by the auto mode of the session, so the tokens are the sum of the usage fields of the session transcript and its 15 helper transcripts by message id, opus 181,149,748 and sonnet 3,461,728, and the cost is UNKNOWN | 184,611,476 | UNKNOWN |
 | 231f3894 | 4g2, PR 74 to 81 and the end records, the row taken before the merge of the end records | 410,432,276 | 222.37 |
 | 491a6a45 | 4g3 on the laptop, PR 95, 96 and the end records, the row taken before the merge of the end records. The helpers ran on opus and their transcripts may not be in the row, so it is a lower bound | 89,761,189 | 43.47 |
+| UNKNOWN | Lane B L0 on the laptop, 28 Oct 2026. npx was not installed then (steps/laptop-check.md item 20), moved here at the fold in | UNKNOWN | UNKNOWN |
+| 3ba3cec | Lane B 5a, stopped on Q145 (QL20), 28 to 29 Oct 2026, opus, sonnet and haiku, taken while the session still ran, a lower bound, moved here at the fold in | 305,561,554 | 135.34 |
+| a035cccb | Lane B 5a Revit run 3, 29 Oct 2026, opus, sonnet and haiku, taken while the session still ran, a lower bound, moved here at the fold in | 30,713,532 | 17.57 |

@@ -24,7 +24,7 @@ Part 1 is the add-in. Part 2, the output sheets, waits for Bader's check of Part
 - Answer keys: the 7 Rev 6 Parsons site models in C:\02-Site Adaptation\Revit All Zones, IMA and IMB Zone 1, IMC and IMD Zone 2, IME and IMF Zone 3, IMG Zone 4. They are the main reference for every rule. The Native 1.1 to 1.4 reads are a second reference only, for plots none of the 7 hold, and never for unit codes. Their Revit 2024 copies sit in Revit All Zones\2024, listed in answerKeys of config/project.json and checked or made by python/key_copies.py against key_copies.json beside them (R312). The IMC copy comes from the Zone 02\ARC original (Q065).
 - dotnet/RevitPrototypeReader reads the answer keys, do not change it unless the round says so.
 - The area key is the Neighbourhood_ID, never an IM letter. The Parsons and the Native job use the IM letters for other areas.
-- The approved mock lives word for word in docs/addin-mock.md. It sets the content and the order of the ribbon, the dockable pane, the Set up site dialog, the check table and the two Excel files.
+- The approved mock lives word for word in docs/addin-mock.md, Bader's changes of docs/design/13-workflow-changes.md prevail. It sets the content and the order of the ribbon, the dockable pane, the Set up site dialog, the check table and the two Excel files.
 
 How the round runs:
 
@@ -34,7 +34,7 @@ How the round runs:
 - The breaker and the claim-checker read each PR before it merges. Each REAL finding is fixed with a test.
 - Parity and review on real inputs only (Q095). The reviewer and the breaker mark each finding REAL, a real input reaches it, or LATENT. A LATENT finding goes to steps/latent.md with no fix.
 - At most 2 review passes per PR (Q097). What is left becomes a new question in steps/questions-open.md and the work carries on.
-- Never two PRs open. At most four changes per PR.
+- Lane B Rule 1: at most one open PR per lane, never two open PRs on one file. Lane B PR titles start with "Lane B", its branches hold "laptop" or "lane-b". At most four changes per PR.
 - A fix on its third attempt stops, goes back to measuring and becomes a question.
 - Line 1 of steps/PROGRESS.md is the state of the records (Bader, 2026-10-28). A session sets it to "STATE RUNNING, <phase>, <date time>" in the first PR of its phase and back to a line that starts with STATE WAITING in its last. Lane B (steps/lane-b.md) reads it on origin/main after git fetch and on STATE RUNNING leaves the shared records alone.
 - A new question takes the next free ID, Q126 now.
@@ -67,7 +67,7 @@ How the round runs:
 ## Commands
 
 ```
-py -m venv .venv
+py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python -m pytest python
 dotnet build dotnet\SiteAdaptation.sln -c Release
