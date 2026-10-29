@@ -64,6 +64,11 @@ namespace SiteAdaptation.Tests
             Assert.Contains("SetUpSiteView dry = callbacks.DryRun(Slope);", run);
             Assert.Contains("return new SetUpSiteAnswer { Apply = Stops == 0, RampSlope = Slope };", run);
             Assert.Contains("entry[\"secondResult\"] = Button(again, second);", run);
+            // Revit refuses to close the active document from the API (run 1 of 5b), so a copy is closed once the next one is active
+            int open = run.IndexOf("Document document = ui.OpenAndActivateDocument(path).Document;", StringComparison.Ordinal);
+            int close = run.IndexOf("previous.Close(false);", StringComparison.Ordinal);
+            Assert.True(open > 0 && close > open);
+            Assert.DoesNotContain("document.Close(false);", run.Substring(open));
             // The four copies of 3.1 and the files that hold coordinates stay in the run folder under the work root
             foreach (string label in new[] { "\"template\"", "\"noTemplate\"", "\"imd\"", "\"r17b\"" })
             {

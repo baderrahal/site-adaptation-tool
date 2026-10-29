@@ -31,6 +31,8 @@ namespace SiteAdaptation.TestHost
         private readonly JObject result = new JObject();
         private readonly JArray copies = new JArray();
         private UIApplication ui;
+        // Revit refuses to close the active document from the API, so each copy is closed once the next one is active, the last at exit
+        private Document previous;
 
         public SetUpSiteRun(TestHostJob job, TestHostRunner runner)
         {
@@ -121,28 +123,26 @@ namespace SiteAdaptation.TestHost
             var entry = new JObject { ["label"] = label, ["file"] = System.IO.Path.GetFileName(path) };
             copies.Add(entry);
             Document document = ui.OpenAndActivateDocument(path).Document;
-            try
+            if (previous != null && previous.IsValidObject)
             {
-                entry["before"] = Facts(document);
-                var first = new AnswerWindow();
-                var state = new RunState(folder, label, Settings);
-                entry["firstResult"] = Button(state, first);
-                entry["first"] = first.Seen;
-                entry["firstCommitted"] = state.Commits;
-                entry["after"] = Facts(document);
-                var second = new AnswerWindow();
-                var again = new RunState(folder, label, Settings);
-                entry["secondResult"] = Button(again, second);
-                entry["second"] = second.Seen;
-                entry["secondCommitted"] = again.Commits;
-                entry["afterSecond"] = Facts(document);
-                return label + ": first " + (state.Commits > 0 ? "committed" : "not committed") + ", second " + (again.Commits > 0 ? "committed" : "not committed")
-                    + ", stops " + first.Stops;
+                previous.Close(false);
             }
-            finally
-            {
-                document.Close(false);
-            }
+            previous = document;
+            entry["before"] = Facts(document);
+            var first = new AnswerWindow();
+            var state = new RunState(folder, label, Settings);
+            entry["firstResult"] = Button(state, first);
+            entry["first"] = first.Seen;
+            entry["firstCommitted"] = state.Commits;
+            entry["after"] = Facts(document);
+            var second = new AnswerWindow();
+            var again = new RunState(folder, label, Settings);
+            entry["secondResult"] = Button(again, second);
+            entry["second"] = second.Seen;
+            entry["secondCommitted"] = again.Commits;
+            entry["afterSecond"] = Facts(document);
+            return label + ": first " + (state.Commits > 0 ? "committed" : "not committed") + ", second " + (again.Commits > 0 ? "committed" : "not committed")
+                + ", stops " + first.Stops;
         }
 
         // Buttons.Run(1) of the add-in with the run state and the window of this run, both put back after it
