@@ -1121,9 +1121,11 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         ffls = {plot: common.fixed(entry["levels"]["ffl"]["value"], plan_rules.FFL_DECIMALS) for plot, entry in written.items()
                 if (entry.get("levels") or {}).get("ffl", {}).get("value") is not None}
         # Breaker F2 of PR 79. The open edge after the overrides, the front of R355 or the edge a rotation override turned the link to face
-        opened = {plot: plan_walls.open_edge(rings[plot], (frames[plot]["left"], frames[plot]["right"]), entry["rotationDeg"]["value"], entry["mirrored"]["value"],
-                                             "rotationDeg" in (applied_of.get(plot) or ())) for plot, entry in written.items() if frames.get(plot) and plot in rings}
-        for wall in plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules):
+        faced = {plot: (frames[plot]["left"], frames[plot]["right"]) for plot in written if frames.get(plot) and plot in rings}
+        opened = {plot: plan_walls.open_edge(rings[plot], faced[plot], written[plot]["rotationDeg"]["value"], written[plot]["mirrored"]["value"],
+                                             "rotationDeg" in (applied_of.get(plot) or ())) for plot in faced}
+        # Q120. The fronts before a turn, so a wall names the rotation of a plot only where the turn decides whether it stands
+        for wall in plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules, faced):
             item = plan_walls.entry(wall)
             plan_walls.mark(item, wall, statuses, applied_of)
             walls.append(item)

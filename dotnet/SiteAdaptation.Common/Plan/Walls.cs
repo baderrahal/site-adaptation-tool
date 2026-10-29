@@ -41,6 +41,9 @@ namespace SiteAdaptation.Common
 
         public string TopPlot { get; set; }
 
+        // Q120. The plots whose front of R355 before their turn the wall lies on, so it stands as their turn opened another edge
+        public List<string> Turned { get; set; } = new List<string>();
+
         public Dictionary<string, string[]> Status { get; } = new Dictionary<string, string[]>(StringComparer.Ordinal);
     }
 
@@ -60,6 +63,9 @@ namespace SiteAdaptation.Common
 
         private const string Source = "keyRules";
         private const string PlotsSource = "locationPlan";
+
+        // The override of the list that turns a link, plan_walls.ROTATION
+        private const string Rotation = "rotationDeg";
         private static readonly string[][] Known =
         {
             new[] { "wallBase", "yardLevelOfTheHigherPlot", "yardLevelOfTheLowerPlot" }, new[] { "wallTop", "higherFflPlusRev6", "lowerFflPlusRev6" },
@@ -185,6 +191,7 @@ namespace SiteAdaptation.Common
             public double[] P;
             public double[] Q;
             public bool Front;
+            public bool Before;
         }
 
         private sealed class Span
@@ -193,13 +200,25 @@ namespace SiteAdaptation.Common
             public double Low;
             public double High;
             public bool Front;
+            public bool Before;
         }
 
-        // plan_walls.walls: the walls of the plots of order the plan writes, on the rings of every face of the site, the front frames of the
-        // written plots as left and right and their FFL at 3 decimals, in the order of the plot, its edge and its part
-        public static List<PlanWall> Of(IList<string> order, ISet<string> written, IReadOnlyDictionary<string, double[][]> rings, IReadOnlyDictionary<string, double[][]> frames,
-            IReadOnlyDictionary<string, double> ffls, WallRules rules)
+        private sealed class Part
         {
+            public double Start;
+            public double End;
+            public List<string> Owners;
+            public bool Shut;
+            public HashSet<string> Moved;
+        }
+
+        // plan_walls.walls: the walls of the plots of order the plan writes, on the rings of every face of the site, the open edges of the
+        // written plots as left and right and their FFL at 3 decimals, in the order of the plot, its edge and its part. fronts holds the front of
+        // R355 of each written plot before a turn, so Turned lists the plots whose front a wall lies on (Q120)
+        public static List<PlanWall> Of(IList<string> order, ISet<string> written, IReadOnlyDictionary<string, double[][]> rings, IReadOnlyDictionary<string, double[][]> frames,
+            IReadOnlyDictionary<string, double> ffls, WallRules rules, IReadOnlyDictionary<string, double[][]> fronts = null)
+        {
+            fronts = fronts ?? new Dictionary<string, double[][]>();
             double near = rules.Near;
             Dictionary<string, double[]> bounds = rings.ToDictionary(item => item.Key, item => Bounds(item.Value));
             var found = new List<PlanWall>();
@@ -219,14 +238,16 @@ namespace SiteAdaptation.Common
                         continue;
                     }
                     double[][] frame = written.Contains(item.Key) && frames.TryGetValue(item.Key, out double[][] held) ? held : null;
+                    double[][] front = written.Contains(item.Key) && fronts.TryGetValue(item.Key, out double[][] first) ? first : null;
                     double[][] ring = rings[item.Key];
                     for (int index = 0; index < ring.Length; index++)
                     {
                         double[] p = ring[index], q = ring[(index + 1) % ring.Length];
-                        others.Add(new Other { Plot = item.Key, P = p, Q = q, Front = SameEdge(p, q, frame) });
+                        others.Add(new Other { Plot = item.Key, P = p, Q = q, Front = SameEdge(p, q, frame), Before = SameEdge(p, q, front) });
                     }
                 }
                 frames.TryGetValue(plot, out double[][] own);
+                fronts.TryGetValue(plot, out double[][] ownFront);
                 double[][] edges = rings[plot];
                 for (int edge = 0; edge < edges.Length; edge++)
                 {
@@ -235,16 +256,17 @@ namespace SiteAdaptation.Common
                     {
                         continue;
                     }
-                    found.AddRange(EdgeWalls(plot, edge, a, b, others, written, ffls, rules));
+                    found.AddRange(EdgeWalls(plot, edge, a, b, others, written, ffls, rules, SameEdge(a, b, ownFront)));
                 }
             }
             return found;
         }
 
         // plan_walls.edge_walls: the edges of the other faces along the edge within near, the parts between their ends, a part on the front of a
-        // written plot open and a part another written plot comes first on left to it
+        // written plot open and a part another written plot comes first on left to it. turned is the edge on the front of plot before its turn,
+        // and a part on the front of another written plot before its turn names that plot in Turned (Q120)
         private static IEnumerable<PlanWall> EdgeWalls(string plot, int edge, double[] a, double[] b, List<Other> others, ISet<string> written, IReadOnlyDictionary<string, double> ffls,
-            WallRules rules)
+            WallRules rules, bool turned)
         {
             double near = rules.Near;
             double dx = b[0] - a[0], dy = b[1] - a[1];
@@ -266,7 +288,7 @@ namespace SiteAdaptation.Common
                 double low = Math.Max(0.0, Math.Min(tp, tq)), high = Math.Min(length, Math.Max(tp, tq));
                 if (high > low)
                 {
-                    spans.Add(new Span { Plot = other.Plot, Low = low, High = high, Front = other.Front });
+                    spans.Add(new Span { Plot = other.Plot, Low = low, High = high, Front = other.Front, Before = other.Before });
                 }
             }
             // An end of another edge within near of a kept cut or of the end of the edge parts nothing
@@ -279,38 +301,45 @@ namespace SiteAdaptation.Common
                 }
             }
             kept.Add(length);
-            var parts = new List<Tuple<double, double, List<string>, bool>>();
+            var parts = new List<Part>();
             for (int index = 0; index + 1 < kept.Count; index++)
             {
                 double start = kept[index], end = kept[index + 1], middle = (start + end) / 2.0;
                 List<Span> on = spans.Where(span => span.Low <= middle && middle <= span.High).ToList();
                 List<string> owners = new[] { plot }.Concat(on.Select(span => span.Plot)).Distinct().OrderBy(name => name, StringComparer.Ordinal).ToList();
                 bool shut = on.Any(span => span.Front && written.Contains(span.Plot));
-                Tuple<double, double, List<string>, bool> last = parts.Count == 0 ? null : parts[parts.Count - 1];
-                if (last != null && last.Item3.SequenceEqual(owners) && last.Item4 == shut)
+                // A part that stands on the front a plot had before its turn stands as the turn opened another edge
+                var moved = new HashSet<string>(on.Where(span => span.Before && written.Contains(span.Plot)).Select(span => span.Plot), StringComparer.Ordinal);
+                if (turned)
                 {
-                    parts[parts.Count - 1] = Tuple.Create(last.Item1, end, owners, shut);
+                    moved.Add(plot);
+                }
+                Part last = parts.Count == 0 ? null : parts[parts.Count - 1];
+                if (last != null && last.Owners.SequenceEqual(owners) && last.Shut == shut)
+                {
+                    last.End = end;
+                    last.Moved.UnionWith(moved);
                 }
                 else
                 {
-                    parts.Add(Tuple.Create(start, end, owners, shut));
+                    parts.Add(new Part { Start = start, End = end, Owners = owners, Shut = shut, Moved = moved });
                 }
             }
-            foreach (Tuple<double, double, List<string>, bool> part in parts)
+            foreach (Part part in parts)
             {
-                List<string> writers = part.Item3.Where(name => written.Contains(name) && ffls.ContainsKey(name)).ToList();
-                if (part.Item4 || writers[0] != plot)
+                List<string> writers = part.Owners.Where(name => written.Contains(name) && ffls.ContainsKey(name)).ToList();
+                if (part.Shut || writers[0] != plot)
                 {
                     continue;
                 }
-                double start = part.Item1, end = part.Item2;
+                double start = part.Start, end = part.End;
                 double[] first = start == 0.0 ? new[] { a[0], a[1] } : new[] { a[0] + ux * start, a[1] + uy * start };
                 double[] last = end == length ? new[] { b[0], b[1] } : new[] { a[0] + ux * end, a[1] + uy * end };
                 string basePlot = Pick(writers, ffls, rules.HigherBase), topPlot = Pick(writers, ffls, rules.HigherTop);
                 yield return new PlanWall
                 {
-                    Plot = plot, Edge = edge, Plots = part.Item3, Ends = new[] { first, last }, Base = ffls[basePlot] - rules.Depth, Top = ffls[topPlot] + rules.Rise,
-                    BasePlot = basePlot, TopPlot = topPlot,
+                    Plot = plot, Edge = edge, Plots = part.Owners, Ends = new[] { first, last }, Base = ffls[basePlot] - rules.Depth, Top = ffls[topPlot] + rules.Rise,
+                    BasePlot = basePlot, TopPlot = topPlot, Turned = part.Owners.Where(part.Moved.Contains).ToList(),
                 };
             }
         }
@@ -345,18 +374,21 @@ namespace SiteAdaptation.Common
             }
             Dictionary<string, double[][]> rings = faces.Where(item => item.Value != null).ToDictionary(item => item.Key, item => item.Value.Ring);
             var frames = new Dictionary<string, double[][]>(StringComparer.Ordinal);
+            var faced = new Dictionary<string, double[][]>(StringComparer.Ordinal);
             foreach (KeyValuePair<string, FrontItem> item in fronts)
             {
                 if (plans.TryGetValue(item.Key, out PlotPlan plan) && Written(plan) && item.Value?.Frame != null && rings.ContainsKey(item.Key))
                 {
                     // Breaker F2 of PR 79. The open edge after the overrides, the front of R355 or the edge a rotation override turned the link to face
                     var rotation = (StepValue)plan.Overrides["rotationDeg"];
-                    bool turned = AppliedOf(plan).Contains("rotationDeg");
-                    frames[item.Key] = OpenEdge(rings[item.Key], new[] { item.Value.Frame.Left, item.Value.Frame.Right },
+                    bool turned = AppliedOf(plan).Contains(Rotation);
+                    faced[item.Key] = new[] { item.Value.Frame.Left, item.Value.Frame.Right };
+                    frames[item.Key] = OpenEdge(rings[item.Key], faced[item.Key],
                         Convert.ToDouble(rotation.Written, System.Globalization.CultureInfo.InvariantCulture), (bool)(JToken)plan.Overrides["mirrored"], turned);
                 }
             }
-            return Of(order, new HashSet<string>(ffls.Keys, StringComparer.Ordinal), rings, frames, ffls, rules);
+            // Q120. The fronts before a turn, so a wall names the rotation of a plot only where the turn decides whether it stands
+            return Of(order, new HashSet<string>(ffls.Keys, StringComparer.Ordinal), rings, frames, ffls, rules, faced);
         }
 
         internal static List<string> AppliedOf(PlotPlan plan)
@@ -365,16 +397,20 @@ namespace SiteAdaptation.Common
         }
 
         // plan_walls.mark: the status of each value of a wall. The base and the top take the FFL of the highest or lowest of the written plots of
-        // the wall, and the open edge of each plot decides which walls stand, so every override of the plots of the wall, in their order, whose
-        // set holds the field touched it and is named, heightM the base and the top, rotationDeg every value (Q112, Q113, breaker F3 of PR 79, R2
-        // and R3 of the review of PR 85)
+        // the wall, so every override of the plots of the wall, in their order, whose set holds the field touched it and is named, heightM the
+        // base and the top (Q112, Q113, breaker F3 of PR 79, R2 of the review of PR 85). A turn decides only whether a wall stands, so a rotation
+        // of a plot is named only on a wall of Turned, and the plots of a wall come from the faces alone (Q120). The base and the top read what
+        // the overrides of the plot of their level still read (Q119)
         public static void Mark(PlanWall wall, ValueStatusTable table, IReadOnlyDictionary<string, PlotPlan> plans)
         {
-            List<string> applied = wall.Plots.SelectMany(name => plans.TryGetValue(name, out PlotPlan plan) ? AppliedOf(plan) : new List<string>()).ToList();
+            Func<string, List<string>> kept = name => (plans.TryGetValue(name, out PlotPlan plan) ? AppliedOf(plan) : new List<string>())
+                .Where(applied => applied != Rotation || (wall.Turned ?? new List<string>()).Contains(name)).ToList();
+            List<string> done = wall.Plots.SelectMany(kept).ToList();
+            var reading = new Dictionary<string, List<string>> { ["base"] = kept(wall.BasePlot), ["top"] = kept(wall.TopPlot) };
             foreach (string field in Fields)
             {
                 string source = field == "plots" ? PlotsSource : Source;
-                Tuple<string, JObject, string> status = table.Of("walls." + field, source, null, applied);
+                Tuple<string, JObject, string> status = table.Of("walls." + field, source, null, done, null, null, reading.TryGetValue(field, out List<string> setters) ? setters : null);
                 // Q107. The source stays that of the value, an override that moved it named in the key alone
                 wall.Status[field] = new[] { source, status.Item1, status.Item3 };
             }

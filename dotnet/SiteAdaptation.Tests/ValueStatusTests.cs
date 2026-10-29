@@ -85,14 +85,14 @@ namespace SiteAdaptation.Tests
         }
 
         // test_value_status.MADE_COUNTS, since Q107 the steps fields read steps.riser_added and each heightOffset the elevation of its level, and a
-        // field an override left at its value by the rule names no override
+        // field an override left at its value by the rule names no override. Since Q120 the mirror flag of 4 leaves the plotValue of its yard DOCUMENT
         private const string MadeCounts = "floors.generic.heightOffset:UNKNOWN=6 floors.generic.level:UNKNOWN=6 floors.generic.levelElevation:UNKNOWN=6 "
             + "floors.generic.outline:UNKNOWN=6 floors.generic.plotValue:DOCUMENT=6 floors.generic.type:UNKNOWN=6 "
             + "floors.generic.z:UNKNOWN=6 floors.ramp.corners:UNKNOWN=6 floors.ramp.heightOffset:UNKNOWN=6 floors.ramp.level:UNKNOWN=6 "
             + "floors.ramp.levelElevation:UNKNOWN=6 floors.ramp.outline:UNKNOWN=6 floors.ramp.plotValue:DOCUMENT=6 "
             + "floors.ramp.slopePercent:CHOSEN by Code=6 floors.ramp.type:CHOSEN by Code=5 floors.ramp.type:RECOMMENDED=1 "
             + "floors.yard.heightOffset:UNKNOWN=3 floors.yard.level:UNKNOWN=3 floors.yard.levelElevation:UNKNOWN=3 "
-            + "floors.yard.outline:UNKNOWN=3 floors.yard.plotValue:DOCUMENT=2 floors.yard.plotValue:RECOMMENDED=1 floors.yard.type:UNKNOWN=3 floors.yard.z:UNKNOWN=3 "
+            + "floors.yard.outline:UNKNOWN=3 floors.yard.plotValue:DOCUMENT=3 floors.yard.type:UNKNOWN=3 floors.yard.z:UNKNOWN=3 "
             + "insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 levels.entry:RECOMMENDED=1 "
             + "levels.ffl:RECOMMENDED=1 levels.ffl:UNKNOWN=5 levels.height:MEASURED weak=4 levels.height:RECOMMENDED=2 "
             + "levels.roadAtFrontM:UNKNOWN=6 levels.ssl:UNKNOWN=6 levels.steps:RECOMMENDED=1 levels.steps:UNKNOWN=5 linkName:RECOMMENDED=2 linkName:UNKNOWN=4 "
@@ -139,7 +139,8 @@ namespace SiteAdaptation.Tests
                 + "]} | insert from computed hand None", Text(table.Of("insert", "computed")));
         }
 
-        // test_r401_q112_a_value_names_every_applied_override_whose_set_holds_its_field_in_the_order_applied: Q112, the fallback of its answer
+        // test_r401_q112_a_value_names_every_applied_override_whose_set_holds_its_field_in_the_order_applied: Q112, the fallback of its answer,
+        // and since Q119 the entries every override that touched the value still reads
         [Fact]
         public void R401_Q112_a_value_names_every_applied_override_whose_set_holds_its_field_in_the_order_applied()
         {
@@ -147,7 +148,7 @@ namespace SiteAdaptation.Tests
             map["overrideReads"] = JObject.Parse("{\"entryM\": {\"levels.height\": [{\"profile\": \"levelProfiles.{levelProfile}.keyRules.ffl.rule\"}]}, "
                 + "\"heightM\": {\"levels.height\": [{\"profile\": \"levelProfiles.{levelProfile}.keyRules.entry.rule\"}, {\"profile\": \"levelProfiles.{levelProfile}.keyRules.ffl.rule\"}]}}");
             var table = new ValueStatusTable(map, Block, ProfileFile, "p1");
-            Assert.Equal("RECOMMENDED {\"entries\":[" + Override + "," + EntryText + "," + FflText + "],\"overrides\":[\"entryM\",\"heightM\"]} | levels.height from override by entryM heightM",
+            Assert.Equal("RECOMMENDED {\"entries\":[" + Override + "," + FflText + "],\"overrides\":[\"entryM\",\"heightM\"]} | levels.height from override by entryM heightM",
                 Text(table.Of("levels.height", "estimate", null, new[] { "entryM", "heightM" })));
             Assert.Equal("RECOMMENDED {\"entries\":[" + Override + "," + FflText + "],\"overrides\":[\"heightM\",\"entryM\"]} | levels.height from override by heightM entryM",
                 Text(table.Of("levels.height", "estimate", null, new[] { "heightM", "entryM" })));
@@ -198,23 +199,86 @@ namespace SiteAdaptation.Tests
             Assert.Equal("UNKNOWN", table.Of("levels.steps", "estimate", null, new[] { "heightM" }).Item1);
         }
 
-        // test_r401_q112_review1_the_mirror_flag_that_decides_the_yard_touches_every_field_of_it: R4 of the review of PR 85, the yard of 1403
-        [Fact]
-        public void R401_Q112_review1_the_mirror_flag_that_decides_the_yard_touches_every_field_of_it()
+        private static JObject Strong()
         {
-            ValueStatusTable table = RealTable(new JObject { [Key + "yard.rule"] = new JObject { ["status"] = "MEASURED", ["share"] = 0.97, ["strength"] = "strong" } });
-            foreach (Tuple<string, string> field in new[]
-            {
-                Tuple.Create("floors.yard.type", "computed"), Tuple.Create("floors.yard.level", "computed"), Tuple.Create("floors.yard.levelElevation", "computed"),
-                Tuple.Create("floors.yard.plotValue", "computed"), Tuple.Create("floors.yard.z", "estimate"), Tuple.Create("floors.yard.heightOffset", "estimate"),
-                Tuple.Create("floors.yard.outline", "computed"),
-            })
+            return new JObject { ["status"] = "MEASURED", ["share"] = 0.97, ["strength"] = "strong", ["measuredBy"] = "made" };
+        }
+
+        // The block entries of a detail by their path, a status by its question or document, test_value_status.names
+        private static string Names(JObject detail)
+        {
+            return string.Join(" | ", detail["entries"].Select(entry => entry["entry"] != null ? ((string)entry["entry"]).Split(new[] { ' ' }, 2)[1]
+                : (string)entry["question"] ?? (string)entry["document"] ?? (string)entry["why"]));
+        }
+
+        // test_r401_q120_the_mirror_flag_covers_the_yard_outline_and_type_and_a_rotation_no_wall_plots: Q120 (Bader, 2026-10-29), the mirror flag
+        // picks the outline group of the yard, the plots of a wall come from the faces alone
+        [Fact]
+        public void R401_Q120_the_mirror_flag_covers_the_yard_outline_and_type_and_a_rotation_no_wall_plots()
+        {
+            JObject sets = (JObject)JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()))["valueStatus"]["overrideSets"];
+            Assert.Equal("floors.yard.outline floors.yard.type", string.Join(" ", sets["mirrored"].Select(field => (string)field).Where(field => field.StartsWith("floors.yard.", StringComparison.Ordinal))));
+            Assert.Equal("walls.ends walls.base walls.top", string.Join(" ", sets["rotationDeg"].Select(field => (string)field).Where(field => field.StartsWith("walls.", StringComparison.Ordinal))));
+            ValueStatusTable table = RealTable(new JObject { [Key + "yard.rule"] = Strong(), [Key + "ffl.rule"] = Strong() });
+            foreach (Tuple<string, string> field in new[] { Tuple.Create("floors.yard.type", "computed"), Tuple.Create("floors.yard.outline", "computed") })
             {
                 Tuple<string, JObject, string> found = table.Of(field.Item1, field.Item2, "alone", new[] { "mirrored" });
                 Assert.True(found.Item3.EndsWith(" by mirrored", StringComparison.Ordinal) && string.Join(" ", found.Item2["overrides"]) == "mirrored", field.Item1);
                 Assert.Contains(found.Item1, new[] { "UNKNOWN", "RECOMMENDED" });
             }
-            Assert.Equal("UNKNOWN", table.Of("floors.yard.levelElevation", "computed", null, new[] { "mirrored" }).Item1);
+            foreach (Tuple<string, string> field in new[]
+            {
+                Tuple.Create("floors.yard.level", "computed"), Tuple.Create("floors.yard.levelElevation", "computed"), Tuple.Create("floors.yard.plotValue", "computed"),
+                Tuple.Create("floors.yard.z", "estimate"), Tuple.Create("floors.yard.heightOffset", "estimate"),
+            })
+            {
+                Tuple<string, JObject, string> found = table.Of(field.Item1, field.Item2, "alone", new[] { "mirrored" });
+                Assert.Equal(field.Item1 + " from " + field.Item2 + " False", found.Item3 + " " + (found.Item2["overrides"] != null));
+            }
+            Assert.Equal("DOCUMENT", table.Of("floors.yard.plotValue", "computed", null, new[] { "mirrored" }).Item1);
+            Assert.Equal("MEASURED", table.Of("floors.yard.z", "estimate", null, new[] { "mirrored" }).Item1);
+            Tuple<string, JObject, string> plots = table.Of("walls.plots", "locationPlan", null, new[] { "rotationDeg" });
+            Assert.Equal("walls.plots from locationPlan False DOCUMENT", plots.Item3 + " " + (plots.Item2["overrides"] != null) + " " + (string)plots.Item2["entries"][0]["status"]);
+        }
+
+        // test_r401_q119_a_value_reads_the_entries_every_override_that_touched_it_still_reads: Q119 (Bader, 2026-10-29), heightM then mirrored on
+        // the insert leave the link origin alone, and the yard outline of mirrored, insert and rotationDeg reads its own rule alone
+        [Fact]
+        public void R401_Q119_a_value_reads_the_entries_every_override_that_touched_it_still_reads()
+        {
+            var block = new JObject { ["steps.riser_added"] = Strong() };
+            foreach (string name in new[] { "linkOrigin.rule", "ffl.rule", "hand alone.rule", "yardOutline.rule", "linkRotation.rule", "entry.rule", "steps.rule" })
+            {
+                block[Key + name] = Strong();
+            }
+            ValueStatusTable table = RealTable(block);
+            Tuple<string, JObject, string> found = table.Of("insert", "computed", "alone", new[] { "heightM", "mirrored" });
+            Assert.Equal("RECOMMENDED insert from override by heightM mirrored Q053 | " + Key + "linkOrigin.rule", found.Item1 + " " + found.Item3 + " " + Names(found.Item2));
+            found = table.Of("floors.yard.outline", "computed", "alone", new[] { "mirrored", "insert", "rotationDeg" });
+            Assert.Equal("RECOMMENDED floors.yard.outline from override by mirrored insert rotationDeg Q053 | " + Key + "yardOutline.rule", found.Item1 + " " + found.Item3 + " " + Names(found.Item2));
+            // One override alone reads what overrideReads names for it, as before
+            Assert.Equal("Q053 | " + Key + "yardOutline.rule | " + Key + "linkRotation.rule | " + Key + "hand alone.rule",
+                Names(table.Of("floors.yard.outline", "computed", "alone", new[] { "insert" }).Item2));
+            // entryM sets El @ Entry and heightM the FFL, so the height reads neither rule and the steps the step rule and the riser
+            Assert.Equal("Q053", Names(table.Of("levels.height", "estimate", null, new[] { "entryM", "heightM" }).Item2));
+            Assert.Equal("Q053 | " + Key + "steps.rule | steps.riser_added", Names(table.Of("levels.steps", "estimate", null, new[] { "entryM", "heightM" }).Item2));
+        }
+
+        // test_r401_q119_a_value_whose_inputs_another_plot_set_reads_the_overrides_of_its_own_plot: reading names the overrides whose reads the
+        // value takes, the key names a reading other than the overrides that touched it
+        [Fact]
+        public void R401_Q119_a_value_whose_inputs_another_plot_set_reads_the_overrides_of_its_own_plot()
+        {
+            const string yard = "levelProfiles.parsons2024Rev6.yardBelowFflM";
+            ValueStatusTable table = RealTable(new JObject { [Key + "wallBase.rule"] = Strong(), [Key + "ffl.rule"] = Strong(), [yard] = Strong() });
+            Tuple<string, JObject, string> found = table.Of("walls.base", "keyRules", null, new[] { "heightM" }, reading: new string[0]);
+            Assert.Equal("RECOMMENDED walls.base from override by heightM reads of none heightM Q053 | " + Key + "wallBase.rule | " + Key + "ffl.rule | " + yard,
+                found.Item1 + " " + found.Item3 + " " + string.Join(" ", found.Item2["overrides"]) + " " + Names(found.Item2));
+            found = table.Of("walls.base", "keyRules", null, new[] { "heightM", "rotationDeg" }, reading: new[] { "heightM", "rotationDeg" });
+            Assert.Equal("walls.base from override by heightM rotationDeg Q053 | " + Key + "wallBase.rule | " + yard, found.Item3 + " " + Names(found.Item2));
+            Assert.Equal("walls.base from override by heightM rotationDeg reads of rotationDeg", table.Of("walls.base", "keyRules", null, new[] { "heightM", "rotationDeg" }, reading: new[] { "rotationDeg" }).Item3);
+            // An override of reading the set of the field does not hold is no input of it
+            Assert.Equal("walls.base from override by heightM", table.Of("walls.base", "keyRules", null, new[] { "heightM" }, reading: new[] { "heightM", "entryM" }).Item3);
         }
 
         [Fact]
@@ -512,8 +576,8 @@ namespace SiteAdaptation.Tests
                     bool carries = (string)table.Used[(string)Field(step, number, value.Key)["statusFrom"]]["entries"][0]["question"] == "Q053";
                     if (!other.TryGetValue(value.Key, out string before) || before == "null")
                     {
-                        // A field the build with no override does not hold, as the yard of 4 its mirror flag override alone picks, so it carries it (R4 of the
-                        // review of PR 85)
+                        // A field the build with no override does not hold, as the yard of 4 its mirror flag override alone picks, whose outline carries it
+                        // and whose z keeps its own status (Q120, where R4 of the review of PR 85 gave every field of the yard)
                         only.Add(number + " " + value.Key + " " + carries);
                     }
                     else if (before != value.Value)
@@ -527,7 +591,7 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Equal(string.Join(", ", differ), string.Join(", ", carry));
-            Assert.Equal("4 floors.yard.z True, 4 floors.yard.outline True", string.Join(", ", only));
+            Assert.Equal("4 floors.yard.z False, 4 floors.yard.outline True", string.Join(", ", only));
             Assert.True(differ.Count > 15, differ.Count.ToString());
         }
 
