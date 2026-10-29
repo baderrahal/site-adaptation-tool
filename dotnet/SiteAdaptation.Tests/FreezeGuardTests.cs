@@ -399,7 +399,8 @@ namespace SiteAdaptation.Tests
 
             Assert.Contains("TestHostGuard.IsUpgrade(job) ? \"upgrade_heartbeat\" : \"heartbeat\"", session);
             Assert.Contains("new TestHostWatchdog(runner, deadlineUtc, () => DateTime.UtcNow, Kill, TimeSpan.FromSeconds(10), Beat)", session);
-            Assert.Equal(@"C:\Docs\SiteAdaptation\testhost_C10_heartbeat.json", TestHostGuard.OutputPath(@"C:\Docs", "C10", "heartbeat"));
+            // Joined by the separator of the system, so the net8.0 leg on Linux holds it too
+            Assert.Equal(Path.Combine(@"C:\Docs", "SiteAdaptation", "testhost_C10_heartbeat.json"), TestHostGuard.OutputPath(@"C:\Docs", "C10", "heartbeat"));
         }
     }
 }
