@@ -6,7 +6,7 @@ Every question open before 2026-10-29 was closed in the answer pass of Round FOL
 
 ## Open
 
-Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element. Q154 Q055 reads 11 more 1.4 plots off the ramp. Q155 A plot list takes unit plots only. Q156 A changed step reruns every higher step.
+Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element. Q154 Q055 reads 11 more 1.4 plots off the ramp. Q155 A plot list takes unit plots only. Q156 A changed step reruns every higher step. Q157 Reads of entryM with heightM or rampFrontM.
 
 Q148. Place villas before Floors and Levels in the run after 5c (Round FOLD, review of the design PR 102). The new order of docs/design/13-workflow-changes.md has each step wait for the one before, so 7 Place villas waits for 6 Levels, and 5d builds 5 Floors and ramps and 6 Levels. The phase changes of 28 Oct 2026 give 5c the Place villas button with light mode, and the Revit run after 5c places villas in Masses and in one NBH in Links. Round FOLD wrote that the test host runs 7 by Buttons.Run on the plan before 5 and 6 are built (CHOSEN, steps/01_next.md). It does not block 5b or 5c.
 - Recommended: keep it. The test host runs 7 from the plan in the run after 5c, which measures light mode and the base boundary as 28 Oct asks, and the pane keeps the order, so a user cannot run 7 before 6.
@@ -44,3 +44,7 @@ Q155. A plot list takes unit plots only (R366, 4h-2). 03a says the scope Whole p
 Q156. A changed step reruns every higher step (R366, 4h-2). 03a says an input changed since a step makes that step and every step after it need running again. StepStates of Common reads after by step number, so a change or a run again of 5 to 8 makes 9 Report need running again, though 9 needs 4 only, and a step run before a lower step was run again needs running again (CHOSEN by the developer of 4h-2).
 - Recommended: keep it, the report reads what 5 to 8 placed.
 - Other: after by the steps each step needs, so 9 stays Done when only 5 to 8 change.
+
+Q157. Reads of entryM with heightM or rampFrontM (Q119, 4h-2). Q119 asks that a value list the reads of the override that set each input it stands on, and names the wall base and top, the yard and the insert. The one rule of 4h-2 applies to every value, so where entryM is applied with heightM or rampFrontM the reads change too, with no status changed: levels.height 1,499 values now read none, levels.steps 1,485 the steps rule and the riser, parameters.RRE_ZZ_SP_Number-of-Steps 1,485, parameters.RRE_ZZ_SP_RVT-Name and linkName 1,470 each, floors.ramp.corners and floors.ramp.heightOffset 489 each (RAN, the whole project build of 4h-2 against 4h-1).
+- Recommended: keep the one rule on every value, as the sentence of Q119 reads.
+- Other: apply Q119 to the walls, the yard and the insert only.
