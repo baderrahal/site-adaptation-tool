@@ -299,3 +299,13 @@ def test_r336_main_holds_the_merged_list_on_the_join_and_names_an_entry_off_it(t
     found = json.loads(out.read_text(encoding="utf-8"))["merged"]
     assert found["offJoin"] == [{"key": "imx", "plot": "9", "field": "entryM", "source": "parsons"}] and found["runEntriesEqualDry"] is True
     assert found["ok"] is False
+
+
+def test_q055_the_second_method_reads_a_key_entry_off_its_ramp_back_as_majority_does():
+    # Review 1 of 4h-2: entry_of is the second route of clean_entry, so both give one El @ Entry for each row
+    import majority
+    block = {"entryRampM": 0.3}
+    rows = [{"entry": 12.0, "entrySource": "floorParameter", "rampBack": 10.59}, {"entry": 12.0, "entrySource": "floorParameter", "rampBack": 11.8},
+            {"entry": 12.0, "entrySource": "schedule", "rampBack": 10.59}, {"entry": 12.0, "entrySource": "floorParameter", "rampBack": None},
+            {"entry": None, "entrySource": "floorParameter", "rampBack": 10.59}]
+    assert [key_rules_check.entry_of(row, block) for row in rows] == [majority.clean_entry(row, 0.3) for row in rows] == [10.59, 12.0, 12.0, 12.0, None]
