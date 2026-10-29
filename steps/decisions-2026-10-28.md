@@ -72,3 +72,75 @@ Written down in Lane A 4g3 on 29 Oct 2026 from the Lane A prompt.
 
 - Q122 answered as recommended, closed in steps/questions-closed.md. Its code, the columns FFL by rule and FFL as written of the sheet Clusters, goes to the first PR of 4h, since Bader ended 4g3 with its end records after PR 99 of Lane B. A draft stopped mid-work sits on the local branch feat/addin-4g3-q122-clusters-ffl at 00d371f of the Lane A clone, untested
 - The build peak is measured once per runtime, not three times. A records-only PR gets one review pass
+
+## Decisions of 29 Oct 2026, records and speed
+
+Bader's decisions of 29 Oct 2026, written down in Round FOLD from his prompt of that day. D8 above is taken, these are D9 to D19. Each holds from that day.
+
+### D9. 4h in two parts
+
+- 4h-1: first the Q122 code of D8, taken from the local branch feat/addin-4g3-q122-clusters-ffl at 00d371f of the old folder "Site Adaptation Tool Lane A" if that folder and branch still exist and the code holds, else written again, with its test. Then R367 settings and R368 element tags.
+- 4h-2: R366 scope and step state and R369 the second method. R366 joins the pane as a join item of the Lane B phase open when 4h-2 ends.
+
+### D10. Lanes and merged phases
+
+- Lane A: 4h-1, 4h-2, then 5e button 9 Report and 5f Update from report in one session, then its share of 6b.
+- Lane B: 5b, then 5c and the Revit run after 5c in one session, then 5d, 6a, its share of 6b, then 6c.
+- The test host jobs of all buttons (R384) move from 5e to 6a.
+- Each phase in steps/01_next.md has a Status line that names its lane and a line "Starts when" with the phases it waits for: 5c waits for 4h-1 and 5b, 6a waits for 5d and 5f, 6b waits for 6a, 6c waits for 6b.
+- 6b splits the 7 zones: Lane A IMA, IMB, IMC, Lane B IMD, IME, IMF, IMG, each by the window rule D3 with both lanes counted.
+
+### D11. Revit probe first
+
+- Before a phase runs Revit through the test host, it lists each Revit API behaviour the run depends on that no earlier run measured and runs one small probe per item.
+- When a Revit run fails, the third attempt becomes a probe of the cause and the phase carries on. It stops for Bader only if the probe does not find the cause.
+
+### D12. Reviews
+
+- The breaker reads a PR only when it changes build logic, numbers in a plan or an Excel, or the override list.
+- Every other PR gets the reviewer, with the UI checklist where a window changes, one pass. Logic PRs keep at most two passes.
+- The claim-checker reads only the end records PR of each phase, and reads only the claims of the log entry, never whole files.
+
+### D13. Records trim
+
+- The top entry of steps/log.md and Bader's turn in steps/PROGRESS.md list only the questions opened or closed in that phase, by ID and title, plus one line with the count of open questions and the path steps/questions-open.md.
+- python/rule_status.py takes the open questions from Bader's turn of steps/PROGRESS.md (READ, _questions), so until it reads steps/questions-open.md instead, Bader's turn must hold every open ID. That change is a join item of 4h-1 (CHOSEN in Round FOLD, the round changes no code).
+
+### D14. Bigger PRs
+
+- At most 8 changes per PR. A phase aims for one code PR and one end records PR.
+- The STATE RUNNING line rides in the first code PR, no separate records PR at the start.
+- Two developer helpers may work at once in separate worktrees on separate files, one PR.
+
+### D15. Inputs on the laptop
+
+- Rule 3 of the Lane B rules changes: no new copy from the personal PC. 5c checks the laptop inputs by key_copies.json and the hashes of Q126 (QL1).
+- The first step of 5c puts together the inputs the Q111 run of 4g3 lacked, the location plan, the tables and the position, from C:\02-Site Adaptation, and runs the 7 read steps that 4g3 could not run, before any button work.
+
+### D16. Models, effort and turn caps
+
+- Frontmatter of .claude/agents: developer opus, effort high, maxTurns 120. developer-light, new, sonnet, effort medium, maxTurns 80, for UI, install, records, docs and tests-only PRs. reviewer sonnet, high, 40. breaker opus, high, 60. claim-checker sonnet, medium, 30. prober sonnet, medium, 40. log-reader haiku, low, 20. runner haiku, low, 40.
+- A helper that reaches its cap reports what it found and stops, and the lead treats what it did not reach as UNKNOWN.
+- CLAUDE.md names which helper takes which PR. The main session runs on opus at effort high, set by the runner.
+
+### D17. One repo, two lanes, the lane runner
+
+- Both lanes use this one repo. Lane A runs in the repo folder. Lane B runs in a git worktree of this repo at the sibling folder "Site Adaptation Tool Lane B WT", made by the runner with git worktree add --detach if it is missing.
+- tools/run-lane.ps1 -Lane A or B loops: git fetch. Lane A: git switch main and git pull --ff-only in the repo folder. Lane B: git checkout --detach origin/main in its worktree, since main is checked out in the repo folder. If steps/STOP-<lane> exists in the repo folder, it exits. It runs claude -p with the text of steps/START.md for Lane A or steps/START-B.md for Lane B, from that lane's folder, with --model opus --effort high --permission-mode auto --max-budget-usd 200, and writes the output to %USERPROFILE%\Documents\SiteAdaptation\runner\<lane>_<yyyyMMdd-HHmm>.txt.
+- The last line of the output: "PHASE DONE <id>" loops at once. "BLOCKED <reason>" waits 10 minutes and loops. "QUESTION <ids>" beeps, prints the ids and exits. "LANE DONE" exits. Any other end or a non-zero exit code, a git lock error included: wait one minute, retry once, then exit with the last 20 lines printed.
+- The script never edits a tracked file of the repo. steps/STOP-A and steps/STOP-B are in .gitignore.
+
+### D18. Start files
+
+- steps/START.md runs the first open phase whose Status names Lane A and whose "Starts when" phases are all done. steps/START-B.md does the same for Lane B with the Lane B rules of steps/lane-b.md.
+- Line 1 of steps/PROGRESS.md names the running phases of both lanes, a phase added by its first code PR and taken out by its end records PR, so a phase of one lane never stops the other (CHOSEN in Round FOLD, one STATE RUNNING for both lanes would run them one after the other). Never two open PRs on one file still holds, a lane waits for the merge of the other's PR on a shared record.
+- Item 1 of Start of every session in CLAUDE.md accepts a detached HEAD equal to origin/main as level with origin, for the Lane B worktree.
+- In both start files the preflight also runs git worktree prune and deletes local branches already merged into main.
+- Both keep the planning line first and the STATE line rules, and both end with exactly one last line: "PHASE DONE <id>", "BLOCKED <reason>" when the next phase of the lane waits on another, "QUESTION <ids>" only when a question blocks all work of the phase, or "LANE DONE". A question that does not block goes to steps/questions-open.md and the phase carries on.
+
+### D19. Real folders guard
+
+- No link, junction or symbolic link may point into C:\02-Site Adaptation, C:\10- ROSHEN MECCA or any input root of config. The test host and every run write only under the work root.
+- .claude/hooks/guard-inputs.sh, beside guard-registry.sh, blocks mklink, New-Item with ItemType Junction or SymbolicLink, and any write command whose target is under an input root.
+- Before and after each run that reads real inputs, the run records name, size, write time and SHA-256 of every file it opens under an input root and fails on any change. That is code of the test host and the readers, so it is a join item of 4h-1, the next phase to run on real inputs (CHOSEN in Round FOLD).
+- The slip of the Q111 run of 4g3, a request file written into the real Prototypes folder through a link, goes into steps/latent.md as a REAL finding closed by this guard, with the hook.

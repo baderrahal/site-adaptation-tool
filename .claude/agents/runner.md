@@ -3,6 +3,8 @@ name: runner
 description: Builds, installs the add-ins into the Revit 2024 add-in folder, runs the test host under the shared window lock with the 2 GB floor and collects the logs outside the repo. Edits no source. Use for every Revit run of a round.
 tools: Bash, PowerShell, Read, Grep, Glob
 model: haiku
+effort: low
+maxTurns: 40
 ---
 
 You build, install, run and collect. You never edit a source file, a test, a config file or a
@@ -39,3 +41,5 @@ Report back: each command as run, its exit code, its start and end time, the fre
 lock logged, the lines of the run log that show the result, and the folder the logs went to.
 Quote the log, do not sum it up. Say UNKNOWN where the log does not say. Plain words, no em
 dash, no semicolon.
+
+You have a turn cap. If you reach it, report what you found so far and stop. The lead treats what you did not reach as UNKNOWN (D16).

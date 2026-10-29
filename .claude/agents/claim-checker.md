@@ -3,6 +3,8 @@ name: claim-checker
 description: Reads a log entry, a pull request body or a status page before it is final and marks every claim BACKED, UNBACKED or WRONG against the evidence. Use on every round's log entry and before any report goes to the person. Reports findings, never edits and never decides.
 tools: Read, Grep, Glob, Bash
 model: sonnet
+effort: medium
+maxTurns: 30
 ---
 
 Check every claim in the text you are given.
@@ -44,3 +46,5 @@ Bash is for reading and running checks only, such as the tests, wc and hashes, n
 commits or pushes.
 
 Report only. Do not edit anything. Write in plain words, no em dash, no semicolon.
+
+You have a turn cap. If you reach it, report what you found so far and stop. The lead treats what you did not reach as UNKNOWN (D16).

@@ -1,6 +1,6 @@
 # Next, the plan to finish Part 1
 
-One phase per session (Q096). Bader pastes steps/START.md into a fresh session, which runs the first phase below marked open, merges, marks it done here, rewrites steps/PROGRESS.md and stops. The R ids are those of docs/design/10-rule-ids.md, the parity steps those of docs/design/05-plan-steps.md, the open items those of Open until a Revit run in docs/design/09-risks.md. Each done-when line is taken from the design. A phase reads its design parts by section, never a whole file over 30 KB.
+One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lane.ps1 -Lane A runs steps/START.md in the repo folder, -Lane B runs steps/START-B.md in the Lane B worktree. Each session takes the first phase whose Status is open and names its lane and whose "Starts when" phases are all done, merges, marks it done here, rewrites steps/PROGRESS.md and stops. Before a test host run in Revit a phase probes each Revit API behaviour the run needs that no run measured (D11). The R ids are those of docs/design/10-rule-ids.md, the parity steps those of docs/design/05-plan-steps.md, the open items those of Open until a Revit run in docs/design/09-risks.md. Each done-when line is taken from the design. A phase reads its design parts by section, never a whole file over 30 KB.
 
 ## 4f, the outlines, levels, overrides and link parameters
 
@@ -47,13 +47,24 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Note: Q113 would move 294 wall values from MEASURED weak to RECOMMENDED (READ, the breaker of PR 79 pass 2, no log), and the rows of the chip Assumed follow the status (R363)
 - Done when: Q112 and Q113 hold in Python and C# with tests, parity holds for step 15, and each Excel holds the labels of 7.5 and 7.6 of the mock in the order of the mock, with the items of 7.7
 
-## 4h, the scope, step state, settings and element tags
+## 4h-1, Q122, the settings and the element tags
 
-- Status: open, starts on the laptop once 4g3 is done (Bader, 2026-10-28)
-- First PR (Bader, 2026-10-29, D8): Q122, the sheet Clusters of the level Excel with the columns FFL by rule and FFL as written, new items of 7.7. A draft sits on the local branch feat/addin-4g3-q122-clusters-ffl at 00d371f, untested
+- Status: open, Lane A
+- Starts when: 4g3 (done)
+- First (D8, D9): the Q122 code, the sheet Clusters of the level Excel with the columns FFL by rule and FFL as written, new items of 7.7. Take it from the local branch feat/addin-4g3-q122-clusters-ffl at 00d371f of the old folder "Site Adaptation Tool Lane A" if that folder and branch still exist and the code holds, else write it again, with its test
+- Rules: R367 the settings JSON kept in the project. R368 element tags, the match to the plan, the hand change and the schema versions
+- Join items (Round FOLD): python/rule_status.py reads the open questions from steps/questions-open.md, not from Bader's turn of steps/PROGRESS.md, so Bader's turn can list only the questions of the phase (D13). The input guard of D19: before and after each run that reads real inputs, the run records name, size, write time and SHA-256 of every file it opens under an input root and fails on any change
 - Peak once per runtime and one review pass for a records-only PR (D8)
-- Rules: R366 scope with the plot list syntax and the step state by hash. R367 the settings JSON kept in the project. R368 element tags, the match to the plan, the hand change and the schema versions. R369 the second method of Phase 4, seeds 14 and 7
-- Design: docs/design/03a-buttons-shared-and-1.md (What every button shares, Steps and Scope), docs/design/06-settings.md
+- Design: docs/design/03a-buttons-shared-and-1.md (What every button shares), docs/design/06-settings.md
+- Done when: each rule has its tests on both runners, and the C# checks of D6 hold for 4h-1
+
+## 4h-2, the scope, the step state and the second method
+
+- Status: open, Lane A
+- Starts when: 4h-1
+- Rules: R366 scope with the plot list syntax and the step state by hash. R369 the second method of Phase 4, seeds 14 and 7
+- R366 joins the pane as a join item of the Lane B phase open when 4h-2 ends (D9), W9 of steps/lane-b.md
+- Design: docs/design/03a-buttons-shared-and-1.md (Steps and Scope), docs/design/13-workflow-changes.md part Order for the 9 steps
 - Done when: each rule has its tests on both runners and the second method of Phase 4 runs at seeds 14 and 7 (R369, 10-rule-ids.md)
 
 ## Laptop check after 4h, before 5c
@@ -70,6 +81,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 ## 5a, the install, ribbon, pane and one transaction per button
 
 - Status: open, Lane B. Revit run 3 ran on 29 Oct 2026, PR 84, 86, 87, 89, 90, 92, 97 and 99 merged, the close waits for Q147
+- Starts when: L0 (done)
 - Rules: R370 install script, manifest, one Common. R371 the ribbon. R372 the pane bound to the active document, the work folder and the settings with the project. R382 one transaction per button, the confirm, the dry folder, the roll back and the stop
 - Phase changes (Bader, 2026-10-28): R372 settings part waits for R367 of 4h, build the pane against a small settings reader, join at 5c. Q103 moves to 5c. The UI spec and Theme.xaml are part of 5a's done-when. Install per user only, no admin, into %APPDATA%\Autodesk\Revit\Addins\2024. Rule 2 of steps/lane-b.md first. R371 ribbon with the icons of docs/design/12-ui-spec.md. Theme.xaml with the gate test that fails on any colour or font size outside it, Libre Franklin bundled from google/fonts
 - Design: docs/design/02-folders.md, docs/design/07-mock.md 7.1 and 7.2, docs/design/08-install.md, docs/design/09-risks.md open items 1 and 2, docs/design/12-ui-spec.md, docs/design/13-workflow-changes.md
@@ -78,6 +90,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 ## 5b, button 1 Set up site
 
 - Status: open, Lane B
+- Starts when: 5a
 - Rules: R373 button 1 on an empty project. R374 button 1 on an existing site file. R383 element tags in Revit, schema names, the library and memory line of each run
 - Phase changes (Bader, 2026-10-28): R383 element tags wait for R368 of 4h, button 1 calls one tag step that 5c fills. R374 on the R17B file of kept\round_17 among the four copies of 3.1. The Set up site window by 7.3 of docs/design/12-ui-spec.md with its screenshot in steps/ui-shots/
 - Join items: W1 of steps/lane-b.md
@@ -86,18 +99,22 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 
 ## 5c, buttons 2 Read data, 3 Review data, 4 Check and 7 Place villas
 
-- Status: open, Lane B
+- Status: open, Lane B, one session with the Revit run after 5c (D10)
+- Starts when: 4h-1 and 5b
+- First (D15): no new copy from the personal PC. Check the laptop inputs by key_copies.json and the hashes of Q126. Then put together the inputs the Q111 run of 4g3 lacked, the location plan, the tables and the position, from C:\02-Site Adaptation, and run the 7 read steps 4g3 could not run, before any button work
 - Phase changes (Bader, 2026-10-28): Rule 3 of steps/lane-b.md first, then every join item of steps/lane-b.md (J1 R367 settings, J2 R368 tags and the rest), then Q117, the optional inputs of button 4 Check, then Q103, then the buttons 2 Read data, 3 Review data, 4 Check and 7 Place villas with light mode (Masses and Links) and the check table of the UI spec with the plain rule names
 - Join item (Q117, Bader 2026-10-28): key_join.json and the past model prototype reads as inputs of button 4 Check, both optional, as a new project has no past job. Present: the Plot cut rows and the key Unit code rows are built from them. Absent: button 4 runs as today, Plot cut shows no rows and the check table says in one line that no past job was given, so no plot is counted as following every rule on Plot cut. With the key reads present, Past of the 51 missing rows and 3 question rows that offer it with no value is filled too (CHOSEN by Code, PR 81 review 2)
 - Q103 (Bader, 2026-10-27, moved from 5a): move the 19 design values a build or the add-in uses into config/project.json with a rule id, the rows of section 7 of steps/investigations/rule-status-audit.md that Q103 names, and leave the checkers of past rounds with a note
-- Join items: W2 to W5, W9 to W11, J1 to J9, J11, J13, J14 and J16 of steps/lane-b.md
+- Join items: W2 to W5, W10, W11, J1 to J9, J11, J13, J14 and J16 of steps/lane-b.md
 - Rules: R375 button 2. R376 button 4 Check, the check table, Use and Save overrides. R377 button 7 Place villas, link types by full path, the load and reload step, the move of a tagged link
 - Design: docs/design/03b-buttons-2-to-8.md (2 Read data, 4 Check, 7 Place villas), docs/design/07-mock.md 7.4 and item 8 of 7.7, the chip Assumed, docs/design/09-risks.md open item 9, docs/design/11-light-mode.md, docs/design/13-workflow-changes.md parts Review data and Site Adaptation Rules
 - Done when: buttons 2, 3, 4 and 7 run on one NBH, open item 9 is proven on one link, the values of Q103 are in config/project.json with a rule id, and the four UI controls hold for the Review data, Site Adaptation Rules and Check table windows
 
-## Revit run after 5c, on Bader's machine by Code
+## Revit run after 5c, on the laptop by Code
 
-- Status: open, Lane B
+- Status: open, Lane B, in the session of 5c (D10)
+- Starts when: 5c, in the same session
+- First (D11): list each Revit API behaviour the run needs that no run measured, one small probe per item
 - What: Code builds and installs the add-in and runs buttons 1 to 4 and 7 on one NBH from a new project through the test host, with the runner agent under the shared window lock and the 2 GB floor, on copies only, logs outside the repo. The test host runs 7 Place villas by Buttons.Run on the plan before 5 and 6 are built (CHOSEN in Round FOLD, the new order has 7 wait for 6 in the pane)
 - Phase changes (Bader, 2026-10-28): in Masses mode, plus one NBH in Links. Measure the open item of the base boundary. Record the peak memory of one window in each mode, and run the whole NBH 03 image again (Q063) now that 64 GB is free
 - Join items: J10 of steps/lane-b.md
@@ -106,34 +123,59 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 ## 5d, buttons 5 Floors and ramps, 6 Levels and 8 Walls, and 7 Place villas at the FFL
 
 - Status: open, Lane B
+- Starts when: the Revit run after 5c
 - Rules: R378 button 5. R379 button 6 Levels. R380 button 8 Walls. RRE_ZZ_SP_Prototype-FFL is written by 7 Place villas, Levels writes no link parameter (W6 of steps/lane-b.md)
 - Q115 and Q116 (Bader, 2026-10-28): before button 8 places walls, measure the wall extent per kind of edge against the villa footprints and code the best rule, weak under majority.strongShare. The ramp of a plot a rotationDeg override turned goes on the open edge the walls take, as the keys do on 18 of 18
 - Join items: W6 of steps/lane-b.md
 - Design: docs/design/03b-buttons-2-to-8.md (5 Floors and ramps, 6 Levels, 8 Walls), docs/design/09-risks.md open items 10 and 11, docs/design/13-workflow-changes.md part Order
 - Done when (Bader, 2026-10-28): NBH 012 is placed in Masses with all 13 prototype shapes, then in Links, the peaks logged by R310, and open items 10 and 11 are measured
 
-## 5e, button 9 Report and the test host jobs
+## 5e, button 9 Report
 
-- Status: open
-- Rules: R381 button 9 Report. R384 the test host jobs of the buttons and the screenshots
+- Status: open, Lane A, one session with 5f (D10)
+- Starts when: 4h-2
+- Rules: R381 button 9 Report. R384 the test host jobs moved to 6a (D10)
 - Join items: W7, J12 and J15 of steps/lane-b.md
 - Design: docs/design/03b-buttons-2-to-8.md (9 Report), docs/design/07-mock.md 7.6 and item 9 of 7.7, the sheet Assumed, docs/design/08-install.md (Unattended runs for Phase 6), docs/design/09-risks.md open item 12
-- Done when: the test host calls SiteAdaptation.AddIn.Buttons.Run for each button with no click, by a number for the 9 steps and by a name for Site Adaptation Rules and Update from report, and open item 12 is measured
+- Done when: button 9 writes the report of one NBH from a plan and the run logs, its tests run on both runners, and open item 12 is measured
 
 ## 5f, the button Update from report
 
-- Status: open
+- Status: open, Lane A, in the session of 5e (D10)
+- Starts when: 5e
 - What (Bader, D4 of steps/decisions-2026-10-28.md): a button reads the level Excel and the report Excel back after the team edits them, refuses an Excel whose build id or plan SHA-256 differs from the plan of the model, lists each change of an editable column against the model, checks it against the rules and applies it as an override of the list. Its rule id is given when the phase starts (CHOSEN)
 - Join items: W8 of steps/lane-b.md
 - Design: items 10 to 12 of docs/design/07-mock.md 7.7, the sheets Levels and Placed and the Settings sheet of both Excel files, docs/design/13-workflow-changes.md part Update from report
 - Done when: an edited copy of each Excel of one NBH gives the list of its changes, each one checked against the rules, the overrides it applies match the edits cell by cell, an Excel of another build is refused with one line, and the four UI controls hold for the Update from report window
 
-## 6, end to end on all zones
+## 6a, one NBH through all 9 steps, and the test host jobs
 
-- Status: open
+- Status: open, Lane B
+- Starts when: 5d and 5f
+- Rules: R384 the test host jobs of all buttons and the screenshots (moved from 5e by D10), R389 to R399 as 6a needs them
+- What: one NBH from a new project through all 9 steps in the test host, and the fixes
+- Design: docs/design/08-install.md (Unattended runs for Phase 6), docs/design/07-mock.md 7.7, steps/history/round-addin/01-plan-0a.md (Phase 6)
+- Done when: the test host calls SiteAdaptation.AddIn.Buttons.Run for each button with no click, by a number for the 9 steps and by a name for Site Adaptation Rules and Update from report, and one NBH runs through all 9 from a new project
+
+## 6b, Lane A share, IMA, IMB and IMC
+
+- Status: open, Lane A
+- Starts when: 6a
+- What: each of its models from DefaultMetric, compare tables per zone with the worst 10, 10 random plots per zone by id. Masses for each zone, Links for one NBH (Bader, 2026-10-28). Windows by the window rule D3, both lanes counted
+- Done when: its three models have their compare tables and the 10 random plots each
+
+## 6b, Lane B share, IMD, IME, IMF and IMG
+
+- Status: open, Lane B
+- Starts when: 6a
+- What: each of its models from DefaultMetric, one zone again from None, button 1 on the IMD 2024 copy changing nothing, compare tables per zone with the worst 10, 10 random plots per zone by id. Masses for each zone, Links for one NBH (Bader, 2026-10-28). Windows by the window rule D3, both lanes counted
+- Done when: its four models have their compare tables and the 10 random plots each, and button 1 on the IMD 2024 copy changed nothing
+
+## 6c, the mock check and the check sheet of Part 1
+
+- Status: open, Lane B
+- Starts when: 6b, both shares
 - Rules: R389 to R399
+- What: the mock check by screenshots, both Excel files compared item by item, an image of every new file, the clean up, then steps/bader-addin.md for Bader's check of Part 1
 - Design: docs/design/08-install.md, docs/design/07-mock.md 7.7, steps/history/round-addin/01-plan-0a.md (Phase 6)
-- 6a: one NBH from a new project through all 9 steps in the test host, and the fixes
-- 6b: each of the 7 models from DefaultMetric, one zone again from None, button 1 on the IMD 2024 copy changing nothing, compare tables per zone with the worst 10, 10 random plots per zone by id. Phase changes (Bader, 2026-10-28): Masses for all 7 zones, Links for one NBH. Zones run in parallel windows by the window rule (D3)
-- 6c: the mock check by screenshots, both Excel files compared item by item, an image of every new file, the clean up, then steps/bader-addin.md for Bader's check of Part 1
-- Done when: 6a to 6c are done as the plan of the round gives them, and Bader has the check sheet of Part 1
+- Done when: Bader has the check sheet of Part 1

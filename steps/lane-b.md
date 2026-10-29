@@ -9,16 +9,21 @@ Phase 5 and 6 on Bader's company laptop (D1 of steps/decisions-2026-10-28.md). T
 | L0 Laptop check, light mode design, UI spec | done, Lane B, laptop, 28 Oct 2026 |
 | 5a Install, ribbon, pane, one transaction per button | Revit run 3 ran on 29 Oct 2026, PR 97 and PR 99 merged, its close waits for Q147 |
 | 5b Button 1 Set up site | open |
+| 5c with the Revit run after 5c | open |
+| 5d | open |
+| 6a | open |
+| 6b, Lane B share, IMD, IME, IMF, IMG | open |
+| 6c | open |
 
-The phases after 5b and their lane are in steps/01_next.md.
+Lane B runs in the worktree "Site Adaptation Tool Lane B WT" by tools/run-lane.ps1 -Lane B, from steps/START-B.md (D17, D18). Its phases after 5b, by D10: 5c with the Revit run after 5c in one session, 5d, 6a, its share of 6b (IMD, IME, IMF, IMG), then 6c. Each phase's lane and what it starts when are in steps/01_next.md.
 
 ## Lane B rules, Bader 28 Oct 2026
 
-- Rule 1, PRs across lanes: at most one open PR per lane, and never two open PRs that touch the same file. Lane B PR titles start with "Lane B", its branch names hold "laptop" or "lane-b". Into CLAUDE.md at the fold in.
+- Rule 1, PRs across lanes: at most one open PR per lane, and never two open PRs that touch the same file. Lane B PR titles start with "Lane B", its branch names hold "laptop" or "lane-b". In CLAUDE.md since the fold in.
 - Rule 2, Civil 3D: Civil 3D 2025 is installed here, the CAD reads of earlier rounds ran on Civil 3D 2026 on the PC. First thing in 5a, list every place a button or its worker needs Civil 3D, AutoCAD or a DWG reader at run time. Anything a button needs that is built against the 2026 libraries becomes a question before anything is built on it. The list is in steps/history/lane-b-2026-10-29.md, part Rule 2.
-- Rule 3, data copies: the data on this laptop serves 5a and 5b. Before 5c Bader copies the work folder again after Phase 4 ends, and 5c checks it against a fresh PC manifest before it starts.
+- Rule 3, data on the laptop (changed by D15, Bader 29 Oct 2026): no new copy from the personal PC. 5c checks the laptop inputs by key_copies.json and the hashes of Q126, then puts together the inputs the Q111 run of 4g3 lacked from C:\02-Site Adaptation and runs the 7 read steps 4g3 could not run, before any button work.
 - Rule 4, setup report: if SA_COPY\setup_report.md of the OneDrive folder 02_ROSHN MAKKAH exists and steps/laptop-check.md does not hold it, its facts go into steps/laptop-check.md in the first records commit. At the start of 5a the file does not exist (RAN ls of SA_COPY), so nothing was copied.
-- Window rule D3 and Q021 as in steps/decisions-2026-10-28.md. Revit runs on copies only, logs outside the repo, the peak memory of every run recorded, Code runs Revit through the test host and never asks Bader to click.
+- Window rule D3 and Q021 as in steps/decisions-2026-10-28.md. Revit probe first (D11), the real folders guard (D19). Revit runs on copies only, logs outside the repo, the peak memory of every run recorded, Code runs Revit through the test host and never asks Bader to click.
 - Lane A's files, Bader 28 Oct 2026: Lane B never edits the plan builder, config/project.json, rules/, docs/rules/ or docs/design/ parts 01 to 10. Shared records only by the fold in rule.
 - Memory, Bader 28 Oct 2026: Lane A runs builds of up to about 3 GB at the same time, so the windows of D3 are (free RAM minus 8 GB minus the Lane A builds running) divided by the peak of one window, rounded down, at least 1 and at most 3.
 
@@ -34,7 +39,7 @@ From docs/design/13-workflow-changes.md, part Where each lands. 5a builds the or
 - W6, 5d. Place villas places each link at its FFL and writes Prototype-FFL, Levels writes no link parameter, in the buttons of the new order.
 - W7, 5e. The manual rule ID on every report line.
 - W8, 5f. Update from report, the whole window and its run, its labels and PNG.
-- W9, 5c. R366, the step state of 4h, takes the 9 steps and their needs of docs/design/13-workflow-changes.md when the pane joins it. 4h builds from 03a, which keeps the eight buttons until the fold in.
+- W9, the Lane B phase open when 4h-2 ends (D9). R366, the step state of 4h, takes the 9 steps and their needs of docs/design/13-workflow-changes.md when the pane joins it. 4h builds from 03a, which keeps the eight buttons until the fold in.
 - W10, 5c. The settings key parameterSheet of the Shared parameters row, named by Code in 5a PR 8, goes into docs/design/06-settings.md and R367 of 4h at the join.
 - W11, 5c. The Check table window under its new number. Its title "4 Check, NBH <n>, <n> plots" is in the label list since review 1 of PR 92.
 
