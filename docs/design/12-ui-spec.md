@@ -2,7 +2,7 @@
 
 Bader designed and approved it on the canvas "Site Adaptation UI" on 28 Oct 2026, approvals U1 to U7 of steps/decisions-2026-10-28.md. Written in Lane B L0 from Bader's text, word for word where it gives values. Section 7 and docs/addin-mock.md still set the labels and their order. This part sets the look. A text in angle brackets stands for a value, as `<n>` for a number.
 
-At the fold in each item marked NEW joins the list of 7.7, and the icons below take the place of the plain numbered squares that 7.1 names CHOSEN (steps/lane-b.md).
+At the fold in each item marked NEW joins the list of 7.7, and the icons below take the place of the plain numbered squares that 7.1 names CHOSEN (item 7 of the Fold in list, steps/history/lane-b-2026-10-29.md).
 
 ### Rules
 

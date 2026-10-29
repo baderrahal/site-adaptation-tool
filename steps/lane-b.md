@@ -15,10 +15,12 @@ The phases after 5b and their lane are in steps/01_next.md.
 ## Lane B rules, Bader 28 Oct 2026
 
 - Rule 1, PRs across lanes: at most one open PR per lane, and never two open PRs that touch the same file. Lane B PR titles start with "Lane B", its branch names hold "laptop" or "lane-b". Into CLAUDE.md at the fold in.
-- Rule 2, Civil 3D: Civil 3D 2025 is installed here, the CAD reads of earlier rounds ran on Civil 3D 2026 on the PC. First thing in 5a, list every place a button or its worker needs Civil 3D, AutoCAD or a DWG reader at run time. Anything a button needs that is built against the 2026 libraries becomes a question before anything is built on it. The list is below.
+- Rule 2, Civil 3D: Civil 3D 2025 is installed here, the CAD reads of earlier rounds ran on Civil 3D 2026 on the PC. First thing in 5a, list every place a button or its worker needs Civil 3D, AutoCAD or a DWG reader at run time. Anything a button needs that is built against the 2026 libraries becomes a question before anything is built on it. The list is in steps/history/lane-b-2026-10-29.md, part Rule 2.
 - Rule 3, data copies: the data on this laptop serves 5a and 5b. Before 5c Bader copies the work folder again after Phase 4 ends, and 5c checks it against a fresh PC manifest before it starts.
 - Rule 4, setup report: if SA_COPY\setup_report.md of the OneDrive folder 02_ROSHN MAKKAH exists and steps/laptop-check.md does not hold it, its facts go into steps/laptop-check.md in the first records commit. At the start of 5a the file does not exist (RAN ls of SA_COPY), so nothing was copied.
 - Window rule D3 and Q021 as in steps/decisions-2026-10-28.md. Revit runs on copies only, logs outside the repo, the peak memory of every run recorded, Code runs Revit through the test host and never asks Bader to click.
+- Lane A's files, Bader 28 Oct 2026: Lane B never edits the plan builder, config/project.json, rules/, docs/rules/ or docs/design/ parts 01 to 10. Shared records only by the fold in rule.
+- Memory, Bader 28 Oct 2026: Lane A runs builds of up to about 3 GB at the same time, so the windows of D3 are (free RAM minus 8 GB minus the Lane A builds running) divided by the peak of one window, rounded down, at least 1 and at most 3.
 
 ## Join items of Bader's changes of 28 Oct 2026
 
@@ -36,6 +38,10 @@ From docs/design/13-workflow-changes.md, part Where each lands. 5a builds the or
 - W10, 5c. The settings key parameterSheet of the Shared parameters row, named by Code in 5a PR 8, goes into docs/design/06-settings.md and R367 of 4h at the join.
 - W11, 5c. The Check table window under its new number. Its title "4 Check, NBH <n>, <n> plots" is in the label list since review 1 of PR 92.
 
+## Pending in Round FOLD
+
+- Fold in items 7 and 11 for docs/design parts 03a, 03b, 07, 10, docs/addin-mock.md, docs/rules and the config note, and the Fold in items from Revit run 3 for 06-settings.md and 09-risks.md, come in the design PR of Round FOLD (the list: steps/history/lane-b-2026-10-29.md, Fold in).
+
 ## Join items for 5c
 
 Changes Lane B needs in files it may not edit while Phase 4 is open.
@@ -49,7 +55,7 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - J8. The code paths that take Documents\SiteAdaptation from the Windows Documents folder: dotnet/SiteAdaptation.TestHost/Run-TestHost.ps1, Run-Parallel.ps1, JobSession.cs and its job guard, dotnet/SiteAdaptation.Placer/PlaceFromPlan.cs and PlaceFromPlanCommand.cs, and the default work folder of docs/design/06-settings.md. Each reads the root of Q127.
 - J9. The rule text of the Phase 5 ids Lane B codes before the fold in, R370, R371, R372 and R382 in 5a, R373, R374 and R383 in 5b, goes into docs/rules/07-addin-r354-r388.md and docs/rules/index.md at the fold in, from their rows of docs/design/10-rule-ids.md and what the code does. docs/rules/ is outside Lane B while Phase 4 is open, and no test ties a rule id to the index (RAN grep of python/tests), so the tests name the ids before the text is there.
 - J7. D3 keeps a window lock per copy, while R200 holds one lock siteBuild.lock for every window and, while a process of siteBuild.windowProcesses runs, logs a wait and looks again after waitMinutes. Parallel windows need R200 changed before 6b. The peak per window is measured on one NBH, 6b opens whole zones, so the first 6b window measures its own peak before a second opens.
-- J10. The run judge of Revit run 3 checks that a detached document has no PathName and an empty Title, the old claim of docs/design/06-settings.md. The fold in wrote what run 3 measured into 06-settings.md and open item 2 of docs/design/09-risks.md, so the Revit run after 5c judges a detached document by that text (Fold in items from Revit run 3, steps/history/lane-b-2026-10-29.md).
+- J10. The run judge of Revit run 3 checks that a detached document has no PathName and an empty Title, the old claim of docs/design/06-settings.md. The design PR of the fold in of Round FOLD writes what run 3 measured into 06-settings.md and open item 2 of docs/design/09-risks.md, so the Revit run after 5c judges a detached document by that text (Fold in items from Revit run 3, steps/history/lane-b-2026-10-29.md).
 
 ## Open Lane B questions
 

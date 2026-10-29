@@ -4,7 +4,7 @@ The full text of the questions closed at the fold in and the answer pass of Roun
 
 ## Q126 to Q147, the Lane B questions
 
-Lane B numbered its questions Q126 upward, since both lanes would take the same next free Q id. At the fold in each QL id took the next free Q id, QL<n> is Q<125+n>.
+Lane B numbered its questions QL1 upward, since both lanes would take the same next free Q id. At the fold in each QL id took the next free Q id, QL<n> is Q<125+n>.
 
 ### Q126 to Q133, as L0 asked them, 28 Oct 2026
 

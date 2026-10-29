@@ -94,7 +94,7 @@ The four panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 
 ### Button messages
 
-The messages and the confirm of a button, the TaskDialogs of the flow of R382, written in dotnet/SiteAdaptation.Common/Flow/RunTexts.cs, whose texts build a message from parts. A value `<n>` is the ribbon label of the button, an input, a file, a reason or a count. Cancel is the common button of the TaskDialog, Revit gives its word. Q137 of steps/questions-closed.md asks Bader whether these stay TaskDialogs.
+The messages and the confirm of a button, the TaskDialogs of the flow of R382, written in dotnet/SiteAdaptation.Common/Flow/RunTexts.cs, whose texts build a message from parts. A value `<n>` is the ribbon label of the button, an input, a file, a reason or a count. Cancel is the common button of the TaskDialog, Revit gives its word. Bader kept TaskDialogs for the short stops and messages, the confirm becomes a themed window in 5b (Q137 of steps/questions-closed.md).
 
 An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ gives the stop or the step but no words for it.
 
