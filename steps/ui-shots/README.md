@@ -96,11 +96,12 @@ Code went through 7.1, 7.2 and the parts Rules, Font, Colours, Sizes and Icons o
 
 ## The Revit shots against the drafts
 
-Revit run 3 of 5a, 29 Oct 2026, Revit 2024 on the laptop at 125 percent scale (RAN, the screen 1920 device px and 1536 logical). The run files stay outside the repo in C:\Users\p003653k\Documents\SiteAdaptation\lane_b_5a_run3\run_outputs. The two PNGs here hash the same as those the run wrote (RAN sha256). The canvas itself is not in the repo, so each shot is held against its draft above and docs/design/12-ui-spec.md, and every difference is listed.
+Revit run 3 of 5a, 29 Oct 2026, Revit 2024 on the laptop at 125 percent scale (RAN in the lead session, not in a run file: Screen.PrimaryScreen.Bounds gave 1536 wide in a process not DPI aware, and the Revit window of the run is 1938 px wide with a border of 9 each side, 1920 device px, READ the shots of testhost_SA5A_addinrun.json). The run files stay outside the repo in C:\Users\p003653k\Documents\SiteAdaptation\lane_b_5a_run3\run_outputs. The two PNGs here hash the same as those the run wrote (RAN sha256). The canvas itself is not in the repo, so each shot is held against its draft above and docs/design/12-ui-spec.md, and every difference is listed.
 
 Ribbon, revit-ribbon.png against ribbon-icons.png and 7.1 of 12-ui-spec.md:
 
-1. Same: the tab Site Adaptation active, the panels Setup, Rules, Build and Output in that order, the 11 buttons 1 to 4, Site Adaptation Rules, 5 to 9 and Update from report under them (RAN, the run read 0 panels and 0 buttons missing).
+1. Different: the title of the tab Site Adaptation does not show in the tab strip. The strip runs from File to Bird Tools and ends in the overflow mark, so at 1536 logical px a user reaches the tab through that mark. The tab is the active one, its panels show, and the run read it found, visible to the API and active, but the judge does not check that its title shows (READ, AddinRun.cs, ActiveTab only). QL21 of steps/lane-b.md.
+1a. Same: the panels Setup, Rules, Build and Output in that order, the 11 buttons 1 to 4, Site Adaptation Rules, 5 to 9 and Update from report under them (RAN, the run read 0 panels and 0 buttons missing).
 2. Same: each 32 px icon as drawn in ribbon-icons.png, the Place villas pin with its white hole (QL10).
 3. Different: the labels sit on one line under each icon in Revit's ribbon font, the draft has no labels. Site Adaptation Rules and Update from report do not wrap, which answers item 32.
 4. Not seen: the 16 px icons. Revit shows every button large on this tab, so the shot holds no 16 px icon, and whether they are sharp at 16 px is not measured in Revit.
@@ -110,6 +111,7 @@ Pane, revit-pane.png against pane-first-open.png:
 5. Width: Revit opened the pane 765 WPF units wide, about 956 device px at 125 percent, against MinimumWidth 380 (QL13, RAN). The draft is 380. At 765 every help line holds on one or two lines and the Browse buttons stand at the right edge, far from the file names.
 6. Height: the shot is 694 high and ends at the Prototypes row, with a scroll bar on the right, so Scope and Steps are below it. The step rows of 40 (QL14) are not in the Revit shot.
 7. Scroll bar: the Revit pane shows the Windows scroll bar beside the Project part. The draft is rendered at full height and has none. 12-ui-spec.md gives no scroll bar look.
-8. Start here box: flat SA.Info in Revit. In the draft, as Code saw it, it shows a fine dot pattern. Its cause is UNKNOWN, not measured.
+8. Start here box: a flat ground of SA.Guide in Revit, SA.Info being the colour of its label only. In the draft, as Code saw it, it shows a fine dot pattern. Its cause is UNKNOWN, not measured.
 9. Project bar: the Revit pane names the document active at the shot, SA5A-CENTRAL-TEST-NEW_detached, a detached copy that was never saved. The pane names it as a project, as the run found it takes the PathName of a detached document as a saved path (steps/lane-b.md, Where 5a stopped).
 10. Same: the fonts, colours, the marks of the rows, Not chosen, 0 of 8 found, the Choose settings file button and the link Import pre-setting, as in the draft.
+11. Step rows: each step row is 40 high, as QL14 says, inside the 4 above and below that SA.Gap.Row gave the step rows of 32 before, so the steps stand 48 apart where they stood 40 (CHOSEN, the gap kept as it was). Input and project rows have no such gap and stand 32 apart. QL14 named the row, not the pitch.
