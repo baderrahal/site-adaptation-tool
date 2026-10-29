@@ -643,7 +643,9 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R401_review1_PR78_the_plots_q017_decides_read_recommended_for_prototype_file_and_mirrored()
+        // 4h-2: Q017 closed by Bader on 2026-10-29, its entry reads CHOSEN by Bader, so each value takes the status of its other entries,
+        // the one a plot Q017 does not decide reads
+        public void R401_review1_PR78_the_plots_q017_decides_read_chosen_by_bader_for_prototype_file_and_mirrored()
         {
             string configPath = WorkerRunTests.RepoConfig();
             JObject config = JObject.Parse(File.ReadAllText(configPath));
@@ -651,17 +653,18 @@ namespace SiteAdaptation.Tests
             ValueStatusTable table = ValueStatus.Table(config, rules, "parsons2024Rev6");
             Tuple<string, JObject, string> file = table.Of("prototypeFile", "computed", unit: "VD4", plot: "2301");
             JToken last = file.Item2["entries"].Last;
-            Assert.Equal("RECOMMENDED prototypeFile from computed unit VD4 question Q017 imc config/project.json majority.decidedByQuestion.Q017.plots.imc RECOMMENDED Q017",
+            Assert.Equal("DOCUMENT prototypeFile from computed unit VD4 question Q017 imc config/project.json majority.decidedByQuestion.Q017.plots.imc CHOSEN by Bader Q017",
                 file.Item1 + " " + file.Item3 + " " + (string)last["entry"] + " " + (string)last["status"] + " " + (string)last["question"]);
             Tuple<string, JObject, string> hand = table.Of("mirrored", "computed", "villa", plot: "544");
-            Assert.Equal("RECOMMENDED mirrored from computed hand villa question Q017 img", hand.Item1 + " " + hand.Item3);
+            Assert.Equal("MEASURED mirrored from computed hand villa question Q017 img", hand.Item1 + " " + hand.Item3);
+            Assert.Equal("MEASURED", table.Of("mirrored", "computed", "villa", plot: "545").Item1);
             Tuple<string, JObject, string> free = table.Of("prototypeFile", "computed", unit: "VD4", plot: "2303");
             Assert.Equal("DOCUMENT prototypeFile from computed unit VD4", free.Item1 + " " + free.Item3);
         }
 
-        // test_value_status.test_r401_q114_the_fields_that_follow_the_hand_of_2302_read_recommended_by_q017_while_it_is_open
+        // test_value_status.test_r401_q114_the_fields_that_follow_the_hand_of_2302_read_chosen_by_bader_by_q017_once_closed
         [Fact]
-        public void R401_Q114_the_fields_that_follow_the_hand_of_2302_read_recommended_by_Q017_while_it_is_open()
+        public void R401_Q114_the_fields_that_follow_the_hand_of_2302_read_chosen_by_bader_by_Q017_once_closed()
         {
             string configPath = WorkerRunTests.RepoConfig();
             JObject config = JObject.Parse(File.ReadAllText(configPath));
@@ -671,8 +674,9 @@ namespace SiteAdaptation.Tests
             {
                 Tuple<string, JObject, string> found = table.Of(item[0], item[1], "cluster", unit: "DP4", plot: "2302");
                 JToken last = found.Item2["entries"].Last;
-                Assert.Equal(item[0] + " RECOMMENDED True config/project.json majority.decidedByQuestion.Q017.followHand.plots.imc RECOMMENDED Q017", item[0] + " " + found.Item1 + " "
+                Assert.Equal(item[0] + " MEASURED True config/project.json majority.decidedByQuestion.Q017.followHand.plots.imc CHOSEN by Bader Q017", item[0] + " " + found.Item1 + " "
                     + found.Item3.EndsWith(" question Q017 followHand imc", StringComparison.Ordinal) + " " + (string)last["entry"] + " " + (string)last["status"] + " " + (string)last["question"]);
+                Assert.Equal(table.Of(item[0], item[1], "cluster", unit: "DP4", plot: "2301").Item1, found.Item1);
                 // 2301 and 544, whose hand Q017 decides as well, keep the status of their own list for these fields
                 Assert.DoesNotContain("question", table.Of(item[0], item[1], "cluster", unit: "DP4", plot: "2301").Item3);
             }

@@ -562,27 +562,31 @@ def test_r401_review1_pr78_the_build_marks_the_plot_an_open_question_decides():
     assert (entry["mirrored"]["status"], entry["mirrored"]["statusFrom"]) == ("RECOMMENDED", "mirrored from computed hand alone question Q900 k1")
 
 
-def test_r401_review1_pr78_the_plots_q017_decides_read_recommended_for_prototype_file_and_mirrored():
+def test_r401_review1_pr78_the_plots_q017_decides_read_chosen_by_bader_for_prototype_file_and_mirrored():
+    # 4h-2: Q017 closed by Bader on 2026-10-29, its entry reads CHOSEN by Bader, so each value takes the status of its other entries,
+    # the one a plot Q017 does not decide reads
     settings = project_profile.load_settings()
     profile = project_profile.load_profile(project_profile.profile_path(settings)).values
     table = value_status.table_of(settings, profile, "parsons2024Rev6")
     status, found, key = table.of("prototypeFile", "computed", unit="VD4", plot="2301")
-    assert (status, key) == ("RECOMMENDED", "prototypeFile from computed unit VD4 question Q017 imc")
+    assert (status, key) == ("DOCUMENT", "prototypeFile from computed unit VD4 question Q017 imc")
     last = found["entries"][-1]
-    assert (last["entry"], last["status"], last["question"]) == ("config/project.json majority.decidedByQuestion.Q017.plots.imc", "RECOMMENDED", "Q017")
-    assert table.of("mirrored", "computed", hand="villa", plot="544")[0::2] == ("RECOMMENDED", "mirrored from computed hand villa question Q017 img")
+    assert (last["entry"], last["status"], last["question"]) == ("config/project.json majority.decidedByQuestion.Q017.plots.imc", "CHOSEN by Bader", "Q017")
+    assert table.of("mirrored", "computed", hand="villa", plot="544")[0::2] == ("MEASURED", "mirrored from computed hand villa question Q017 img")
+    assert table.of("mirrored", "computed", hand="villa", plot="545")[0] == "MEASURED"
     assert table.of("prototypeFile", "computed", unit="VD4", plot="2303")[0::2] == ("DOCUMENT", "prototypeFile from computed unit VD4")
 
 
-def test_r401_q114_the_fields_that_follow_the_hand_of_2302_read_recommended_by_q017_while_it_is_open():
+def test_r401_q114_the_fields_that_follow_the_hand_of_2302_read_chosen_by_bader_by_q017_once_closed():
     settings = project_profile.load_settings()
     profile = project_profile.load_profile(project_profile.profile_path(settings)).values
     table = value_status.table_of(settings, profile, "parsons2024Rev6")
     for field, source in (("rotationDeg", "computed"), ("insert", "computed"), ("floors.yard.outline", "computed"), ("parameters.CASE", "keyRules")):
         status, found, key = table.of(field, source, hand="cluster", unit="DP4", plot="2302")
         last = found["entries"][-1]
-        assert (status, key.endswith(" question Q017 followHand imc")) == ("RECOMMENDED", True), field
-        assert (last["entry"], last["status"], last["question"]) == ("config/project.json majority.decidedByQuestion.Q017.followHand.plots.imc", "RECOMMENDED", "Q017")
+        assert (status, key.endswith(" question Q017 followHand imc")) == ("MEASURED", True), field
+        assert status == table.of(field, source, hand="cluster", unit="DP4", plot="2301")[0], field
+        assert (last["entry"], last["status"], last["question"]) == ("config/project.json majority.decidedByQuestion.Q017.followHand.plots.imc", "CHOSEN by Bader", "Q017")
         # 2301 and 544, whose hand Q017 decides as well, keep the status of their own list for these fields
         assert "question" not in table.of(field, source, hand="cluster", unit="DP4", plot="2301")[2]
     # prototypeFile and mirrored of 2302 keep the entry of Q017.plots, its key as before
