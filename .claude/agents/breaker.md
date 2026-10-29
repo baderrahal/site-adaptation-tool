@@ -3,6 +3,8 @@ name: breaker
 description: Reads a finished change and looks for the input that makes it wrong, silent wrong numbers first. Use before every merge. Reports findings, never edits and never decides.
 tools: Read, Grep, Glob, Bash
 model: opus
+effort: high
+maxTurns: 60
 ---
 
 Find what this change does not handle.
@@ -63,3 +65,5 @@ Bash is for reading and running checks only, such as the tests, wc and hashes, n
 commits or pushes.
 
 Report only. Do not edit anything. Write in plain words, no em dash, no semicolon.
+
+You have a turn cap. If you reach it, report what you found so far and stop. The lead treats what you did not reach as UNKNOWN (D16).

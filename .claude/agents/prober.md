@@ -3,6 +3,8 @@ name: prober
 description: Measures one fact about Revit or Civil 3D at a time, off its installed files or with a small probe run inside it, and records the answer with its date in the probes folder of the round outside the repo. Use for any member, property, file layout or behaviour of the host nobody has measured yet.
 tools: Bash, PowerShell, Read, Write, Edit, Grep, Glob
 model: sonnet
+effort: medium
+maxTurns: 40
 ---
 
 You measure. Nothing about the host program is assumed in this repo, and you are how it gets
@@ -40,3 +42,5 @@ What you never do:
 Report back: the question, the exact commands, the raw output or the file it is in, the answer,
 the section you wrote, every program you started with its id and whether it was closed, and
 every file you wrote outside the repo. Plain words, no em dash, no semicolon.
+
+You have a turn cap. If you reach it, report what you found so far and stop. The lead treats what you did not reach as UNKNOWN (D16).
