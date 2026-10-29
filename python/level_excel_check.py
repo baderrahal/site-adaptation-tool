@@ -11,7 +11,8 @@ worked out again here with json and csv only.
   Override with the reason of the one entry of the list of the sources and models of the plan
 - Clusters: the pieces worked out here by their own code, each cluster in the row order of the step hands cut where keyRules.levelSplit
   names a split for the typologyRev9 of its plots in plots.csv, the units the build takes, and those pieces held against the piece the
-  step levels give each plot as well
+  step levels give each plot as well, FFL by rule the levelRule.ffl of the piece and FFL as written each written FFL of the piece that rounds
+  off the rule of its plot at 3 decimals, once each in the row order, as text with 3 decimals, empty when none (Q122)
 - Overrides used: each row worked out again, the gap a number for every field, the step count less the steps of the rule for steps
 - Settings: the build id held against the run stamp of the plan, the SHA-256 of the plan file bytes by hashlib, the SHA-256 of the rules and
   the list, and the editable columns, which are the only headers with a fill (Bader, 2026-10-28)
@@ -29,6 +30,7 @@ from pathlib import Path
 
 import area_key
 import project_profile
+from common import fixed
 
 ROOT = Path(__file__).resolve().parent.parent
 LEVEL_FIELDS = ("entryM", "heightM", "steps", "rampFrontM")
@@ -36,7 +38,8 @@ LEVEL_FIELDS = ("entryM", "heightM", "steps", "rampFrontM")
 EDITABLE = ("El @ Entry", "FFL", "Steps")
 SETTINGS = ("Run id", "Profile", "Rules SHA-256", "Override list SHA-256", "Road surface order", "Pass limit", "Run time", "Editable columns",
             "Plan build id", "Plan SHA-256")
-CLUSTER_COLUMNS = ("Cluster", "Plots", "Unit sequence", "Split", "FFL")
+# Q122 (Bader, 2026-10-29): the FFL of the rule of the piece and the written FFLs an override moved off it, new items of 7.7
+CLUSTER_COLUMNS = ("Cluster", "Plots", "Unit sequence", "Split", "FFL by rule", "FFL as written")
 OVERRIDE_COLUMNS = ("Plot No", "Field", "Gap", "Reason", "Source", "Model")
 PLAN_KEYS = {"Road at front": "roadAtFrontM", "El @ Entry": "entry", "FFL": "ffl", "SSL": "ssl", "Height": "height", "Steps": "steps"}
 PIECE_RULE = "oneFflPerPieceAtTheHighestEntry"
@@ -105,6 +108,18 @@ def plan_build_id(plan):
     """The run id of the run stamp a C# build writes into its plan, else the words for none, never the run id of the Excel."""
     stamp = plan.get("run")
     return stamp["runId"] if isinstance(stamp, dict) and isinstance(stamp.get("runId"), str) else NO_BUILD_ID
+
+
+def as_written(plots):
+    """Q122. The written FFLs of a piece an override moved off the rule of their plot, by R385 at 3 decimals, once each in the row order."""
+    moved = []
+    for plot in plots:
+        written, ruled = ((plot.get("levels") or {}).get("ffl") or {}).get("value"), (plot.get("levelRule") or {}).get("ffl")
+        if isinstance(written, (int, float)) and isinstance(ruled, (int, float)) and fixed(written) != fixed(ruled):
+            text = "%.3f" % fixed(written)
+            if text not in moved:
+                moved.append(text)
+    return ", ".join(moved) or None
 
 
 def whole(value):
@@ -248,7 +263,7 @@ def expected(inputs, profile_name, mock):
                         gaps["cluster plots whose piece %s the step piece" % ("is" if step_piece[member] == piece else "is not")] += 1
                 rules_ffl = [by_number[member]["levelRule"]["ffl"] for member in piece if member in by_number]
                 if rules_ffl:
-                    pieces.append(["-".join(row), "-".join(piece), sequence, label, rules_ffl[0]])
+                    pieces.append(["-".join(row), "-".join(piece), sequence, label, rules_ffl[0], as_written([by_number[member] for member in piece if member in by_number])])
         # Review 2 of PR 91: every front corner of the written plots of the NBH, one basis, a corner with no surface counted apart
         corners = [name for plot in mine_written for name in plot.get("roadSurfaces") or []]
         surfaces = Counter(name for name in corners if name not in (None, "none"))
