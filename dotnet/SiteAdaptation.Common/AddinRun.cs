@@ -524,7 +524,7 @@ namespace SiteAdaptation.Common
         // worked out here a second time, apart from WorkFolder of the add-in, so the run checks the add-in against it
         public static string ExpectedFolder(string root, string pathName)
         {
-            if (string.IsNullOrEmpty(pathName) || root == null)
+            if (!SavedPath.Is(pathName) || root == null)
             {
                 return null;
             }

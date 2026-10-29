@@ -31,7 +31,7 @@ namespace SiteAdaptation.Common.Flow
             {
                 return Stop(body.NotBuilt);
             }
-            if (string.IsNullOrEmpty(documentPath))
+            if (!SavedPath.Is(documentPath))
             {
                 return Stop(RunTexts.SaveFirst);
             }

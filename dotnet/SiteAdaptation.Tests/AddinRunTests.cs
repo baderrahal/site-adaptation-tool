@@ -635,6 +635,21 @@ namespace SiteAdaptation.Tests
             Assert.Contains("paneMinWidth", Between(run, "private int Pending(", "private void Finish("));
         }
 
+        // Revit run 3: the detached document gave a bare PathName, which the run measured as saved and never asked the flow about. The
+        // test host asks the flow for every path the rule of R382 does not take as saved, and the judge names no folder for it
+        [Fact]
+        public void R382_the_test_host_asks_the_flow_for_a_path_that_is_not_saved_and_the_judge_names_no_folder()
+        {
+            string run = RepoText("dotnet", "SiteAdaptation.TestHost", "AddinRunSession.cs");
+            string workFolderOf = Between(run, "private void WorkFolderOf(", "private void OnTick(");
+            Assert.Contains("if (!SavedPath.Is(entry.PathName))", workFolderOf);
+            Assert.DoesNotContain("IsNullOrEmpty(entry.PathName)", workFolderOf);
+
+            Assert.Null(AddinRunJudge.ExpectedFolder(Documents + @"\SiteAdaptation", "SA5A-CENTRAL-TEST-NEW_detached.rvt"));
+            Assert.Null(AddinRunJudge.ExpectedFolder(Documents + @"\SiteAdaptation", @"sub\x.rvt"));
+            Assert.NotNull(AddinRunJudge.ExpectedFolder(Documents + @"\SiteAdaptation", Model));
+        }
+
         // The session asks the flow only for a document with no path, where the flow stops before it reads the state, the model or a file
         [Fact]
         public void R382_the_flow_stops_a_document_with_no_path_before_it_reads_anything()

@@ -413,7 +413,8 @@ namespace SiteAdaptation.TestHost
         }
 
         // The work folder as the pane side of the add-in names it for a button, or the refusal it throws, and for a document with no
-        // path the stop of the R382 flow, which Buttons.Run hands document.PathName. In 5a every body says it is not built, which
+        // saved path by SavedPath, as the bare name of run 3's detached document, the stop of the R382 flow, which Buttons.Run hands
+        // document.PathName. In 5a every body says it is not built, which
         // the flow says first, so a body with nothing in it lets the flow reach the path check, where it stops before it reads the
         // pane, the model or a file
         private void WorkFolderOf(RunDocument entry)
@@ -430,7 +431,7 @@ namespace SiteAdaptation.TestHost
                 }
                 entry.WorkFolderRead = true;
             }
-            if (string.IsNullOrEmpty(entry.PathName))
+            if (!SavedPath.Is(entry.PathName))
             {
                 entry.ButtonStop = new ButtonFlow(state, null, null, null, null).Run(1, "1", new ButtonBody(), entry.PathName).Message;
                 entry.ButtonStopRead = true;

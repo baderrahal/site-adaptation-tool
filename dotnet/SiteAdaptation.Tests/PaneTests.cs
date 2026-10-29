@@ -450,6 +450,24 @@ namespace SiteAdaptation.Tests
             Assert.Equal(StepKind.NeedsSettings, model.Steps[0].Chip);
         }
 
+        // R382, Revit run 3 of Lane B 5a: the detached document gave a bare PathName and a Title, so it has no work folder and its
+        // steps show no status, as a document with no path. A file on a share is saved
+        [Fact]
+        public void R382_a_bare_file_name_gets_no_work_folder_and_its_steps_show_no_status()
+        {
+            foreach (string path in new[] { "SA5A-CENTRAL-TEST-NEW_detached.rvt", @"sub\x.rvt", "BIM 360://Project/Site.rvt" })
+            {
+                Assert.Null(WorkFolder.For(@"D:\Root", path));
+                Assert.False(new DocumentSession("s", path, "SA5A-CENTRAL-TEST-NEW_detached").HasPath);
+            }
+            Assert.Equal(@"D:\Root\Site_", WorkFolder.For(@"D:\Root", @"\\server\share\Site.rvt").Substring(0, 13));
+            Assert.True(new DocumentSession("s", @"\\server\share\Site.rvt", "Site").HasPath);
+
+            PaneViewModel model = Model(new FakeProbe());
+            model.Load(new DocumentSession("s", "SA5A-CENTRAL-TEST-NEW_detached.rvt", "SA5A-CENTRAL-TEST-NEW_detached"));
+            Assert.All(model.Steps, step => Assert.Equal(StepKind.None, step.Chip));
+        }
+
         [Fact]
         public void R372_a_pick_changes_the_settings_in_memory_and_villa_mode_starts_on_masses()
         {
