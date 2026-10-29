@@ -34,7 +34,7 @@ namespace SiteAdaptation.AddIn
         {
             Document document = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
             var flow = new ButtonFlow(State, new RevitModel(document), new TaskDialogConfirm(), InputHash.Of, () => RunIds.New(button.Number, DateTime.Now));
-            RunOutcome outcome = flow.Run(button.Number, button.Label, Bodies.Of(button), document == null ? null : document.PathName);
+            RunOutcome outcome = flow.Run(button.Number, button.Label, Bodies.Of(button, () => SetUpSiteBody.For(application)), document == null ? null : document.PathName);
             if (outcome.Message != null)
             {
                 TaskDialog.Show(RibbonLayout.Tab, outcome.Message);
@@ -43,7 +43,8 @@ namespace SiteAdaptation.AddIn
         }
     }
 
-    // R382. The body of each button. In 5a none is built, so each stops with the text of R371 through the flow
+    // R382. The body of each button. Button 1 is built in 5b and runs once its window is set, every other one stops with the text of
+    // R371 through the flow
     public static class Bodies
     {
         public static ButtonBody Of(int number)
@@ -53,6 +54,17 @@ namespace SiteAdaptation.AddIn
 
         public static ButtonBody Of(RibbonButtonSpec button)
         {
+            return Of(button, null);
+        }
+
+        // setUp makes the body of button 1 on the active document. It is a delegate so this class names no Revit type, which the
+        // tests load none of
+        public static ButtonBody Of(RibbonButtonSpec button, Func<ButtonBody> setUp)
+        {
+            if (button.Number == 1 && SetUpSiteBody.Dialog != null && setUp != null)
+            {
+                return setUp();
+            }
             return new ButtonBody { NotBuilt = RunTexts.NotBuilt(button.Label) };
         }
     }

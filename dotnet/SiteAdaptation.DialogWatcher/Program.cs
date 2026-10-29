@@ -22,6 +22,7 @@ namespace SiteAdaptation.DialogWatcher
         private sealed class Options
         {
             public int Pid;
+            public string PidFile;
             public string Out;
             public string StopLog;
             public double Minutes = 10;
@@ -44,6 +45,24 @@ namespace SiteAdaptation.DialogWatcher
                 return BadArguments;
             }
             var report = new WatchReport { Pid = options.Pid, StartedUtc = DateTime.UtcNow };
+            if (options.PidFile != null)
+            {
+                // Lane B 5b. The first report tells the run script the watcher is up, and only then does Revit start
+                report.Result = WatcherStart.WaitingResult;
+                JsonOut.Write(options.Out, report);
+                int? pid = WatcherStart.WaitForPid(() => File.Exists(options.PidFile) ? File.ReadAllText(options.PidFile) : null, () => DateTime.UtcNow,
+                    report.StartedUtc.AddMinutes(options.Minutes), () => Thread.Sleep(200));
+                if (pid == null)
+                {
+                    report.Result = "no pid of Revit in " + options.PidFile + " within " + options.Minutes + " minutes";
+                    report.FinishedUtc = DateTime.UtcNow;
+                    JsonOut.Write(options.Out, report);
+                    return Answered;
+                }
+                options.Pid = pid.Value;
+                report.Pid = pid.Value;
+                report.Result = null;
+            }
             int code = Watch(options, report);
             report.FinishedUtc = DateTime.UtcNow;
             JsonOut.Write(options.Out, report);
@@ -312,6 +331,9 @@ namespace SiteAdaptation.DialogWatcher
                     case "--pid":
                         options.Pid = int.Parse(value);
                         break;
+                    case "--pid-file":
+                        options.PidFile = value;
+                        break;
                     case "--out":
                         options.Out = value;
                         break;
@@ -334,9 +356,9 @@ namespace SiteAdaptation.DialogWatcher
                         throw new ArgumentException("unknown argument " + args[at]);
                 }
             }
-            if (options.Pid <= 0 || string.IsNullOrEmpty(options.Out) || options.OurIds.Count == 0)
+            if ((options.Pid <= 0) == (options.PidFile == null) || string.IsNullOrEmpty(options.Out) || options.OurIds.Count == 0)
             {
-                throw new ArgumentException("--pid, --out and --ours are needed");
+                throw new ArgumentException("--pid or --pid-file, one of them, --out and --ours are needed");
             }
             return options;
         }
