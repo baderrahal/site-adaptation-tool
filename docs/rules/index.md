@@ -332,6 +332,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R363 Issues and the check rows of a build.
 - R364 The level Excel and the road at front.
 - R365 The report Excel and the plan summary.
+- R366 The scope of a button and the step state.
 - R367 The settings JSON kept in the project.
 - R368 Element tags and the second run.
 - R385 One rounding rule in Python and C#.
