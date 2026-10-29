@@ -120,6 +120,11 @@ namespace SiteAdaptation.Common
             return found is JArray list ? list.OfType<JObject>().ToList() : found is JObject one ? new List<JObject> { one } : null;
         }
 
+        private List<JObject> ReadsOf(string name, string field)
+        {
+            return reads.TryGetValue(name, out Dictionary<string, List<JObject>> byField) && byField.TryGetValue(field, out List<JObject> more) ? more : new List<JObject>();
+        }
+
         private List<JObject> Refs(string field, string source)
         {
             foreach (string name in field.StartsWith(Parameters, StringComparison.Ordinal) ? new[] { field, AnyParameter } : new[] { field })
@@ -134,15 +139,20 @@ namespace SiteAdaptation.Common
         }
 
         // value_status.Table.of: the status, the detail and its key. Every override of applied, in the order the build applied them, whose set
-        // holds the field touched an input of the value, so the value takes the status of the source override with the entries the code still
-        // reads for it by overrideReads of the override applied last that touched it, none when that one sets the field outright (R1 of the
-        // review of PR 85), and names each override once in that order (Q112, the fallback of its answer),
-        // also where the value equals its value with no override (Q113). unit is the unit code of the plot, which an entry names as {unit}, the keo_file of its typology for prototypeFile (Q110). A field
-        // an open question of majority.decidedByQuestion decides on the plot adds the block entry of that question and key (review 1 of PR 78)
-        public Tuple<string, JObject, string> Of(string field, string source, string hand = null, IEnumerable<string> applied = null, string unit = null, string plot = null)
+        // holds the field touched an input of the value, so the value takes the status of the source override and names each override once in
+        // that order (Q112, the fallback of its answer), also where the value equals its value with no override (Q113). The value reads the
+        // entries of overrideReads every override of reading still reads for the field, reading the overrides that set the inputs it stands
+        // on, those that touched it when null, none where one sets the field outright, the entries of its own field and source where reading
+        // names none that touched it, and a reading other than the overrides that touched it is named in the key (Q119, R1 of the review of
+        // PR 85). unit is the unit code of the plot, which an entry names as {unit}, the keo_file of its typology for prototypeFile (Q110). A
+        // field an open question of majority.decidedByQuestion decides on the plot adds the block entry of that question and key (review 1 of PR 78)
+        public Tuple<string, JObject, string> Of(string field, string source, string hand = null, IEnumerable<string> applied = null, string unit = null, string plot = null,
+            IEnumerable<string> reading = null)
         {
             List<string> moved = source == Override ? new List<string>()
                 : (applied ?? Enumerable.Empty<string>()).Where(name => sets.TryGetValue(name, out List<string> moves) && moves.Contains(field)).Distinct().ToList();
+            List<string> setters = reading == null ? moved : reading.Distinct().Where(moved.Contains).ToList();
+            List<JObject> own = Refs(field, source);
             if (moved.Count > 0)
             {
                 source = Override;
@@ -150,13 +160,11 @@ namespace SiteAdaptation.Common
             List<JObject> refs = Refs(field, source);
             if (moved.Count > 0 && refs != null)
             {
-                // R1 of the review of PR 85. The code computes the field last after the override applied last that touched it, so what that
-                // override reads for it, none when it sets the field outright, is what the value still reads
+                // Q119. The entries every override that set an input still reads, in the order of the last of them
                 refs = refs.ToList();
-                if (reads.TryGetValue(moved.Last(), out Dictionary<string, List<JObject>> byField) && byField.TryGetValue(field, out List<JObject> more))
-                {
-                    refs.AddRange(more.Where(reference => !refs.Any(known => JToken.DeepEquals(known, reference))));
-                }
+                List<JObject> held = setters.Count == 0 ? own ?? new List<JObject>()
+                    : ReadsOf(setters[setters.Count - 1], field).Where(reference => setters.All(name => ReadsOf(name, field).Any(known => JToken.DeepEquals(known, reference)))).ToList();
+                refs.AddRange(held.Where(reference => !refs.Any(known => JToken.DeepEquals(known, reference))));
             }
             string key = field + " from " + source;
             if ((refs ?? new List<JObject>()).Any(reference => new[] { "profile", "config" }.Any(kind => reference[kind]?.Type == JTokenType.String && ((string)reference[kind]).Contains("{hand}"))))
@@ -176,6 +184,10 @@ namespace SiteAdaptation.Common
             if (moved.Count > 0)
             {
                 key += " by " + string.Join(" ", moved);
+            }
+            if (moved.Count > 0 && !setters.SequenceEqual(moved))
+            {
+                key += " reads of " + (setters.Count == 0 ? "none" : string.Join(" ", setters));
             }
             // The key names the field, source, hand and override the detail is made of, so a key given before keeps its detail, one copy a build
             if (statusOf.TryGetValue(key, out string known))

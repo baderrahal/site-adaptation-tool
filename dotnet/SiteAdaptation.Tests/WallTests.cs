@@ -164,9 +164,15 @@ namespace SiteAdaptation.Tests
                 "6 2 6 10.788 12.588 6",
             }, walls.Select(wall => wall.Plot + " " + wall.Edge + " " + string.Join("|", wall.Plots) + " " + Rounding.Fixed(wall.Base, 3).ToString(CultureInfo.InvariantCulture) + " "
                 + Rounding.Fixed(wall.Top, 3).ToString(CultureInfo.InvariantCulture) + " " + wall.BasePlot).ToArray());
-            // Q112, R2 and R3 of the review of PR 85: a wall names every override of its plots whose set holds the field, in the order of its plots,
-            // the rotations of 2 and 6 every value of their walls
-            Assert.Equal(new[] { "walls.base from override by rotationDeg heightM", "walls.base from override by heightM" }, walls.Where(wall => wall.BasePlot == "3").Select(wall => wall.Status["base"][2]).ToArray());
+            // Q112, R2 of the review of PR 85: a wall names every override of its plots whose set holds the field, in the order of its plots. Q120:
+            // the turn of 2 decides only whether its front stands, and that of 6 leaves its front open, so no other wall names a rotation. Q119: the
+            // wall of 3 and 4 stands on the yard of 4, which holds no override, so it reads the entries of its own field
+            Assert.Equal(new[] { "walls.base from override by heightM", "walls.base from override by heightM" }, walls.Where(wall => wall.BasePlot == "3").Select(wall => wall.Status["base"][2]).ToArray());
+            Assert.Equal("2 2 walls.ends from keyRules walls.base from override by heightM, 2 3 walls.ends from override by rotationDeg walls.base from override by rotationDeg, "
+                + "3 1 walls.ends from keyRules walls.base from override by heightM, 3 2 walls.ends from keyRules walls.base from override by heightM reads of none",
+                string.Join(", ", walls.Where(wall => wall.Status["base"][2].Contains(" by ")).Select(wall => wall.Plot + " " + wall.Edge + " " + wall.Status["ends"][2] + " " + wall.Status["base"][2])));
+            Assert.Equal("walls.plots DOCUMENT 13, walls.base MEASURED 9 RECOMMENDED 4", "walls.plots " + string.Join(" ", walls.GroupBy(wall => wall.Status["plots"][1]).Select(group => group.Key + " " + group.Count()))
+                + ", walls.base " + string.Join(" ", walls.GroupBy(wall => wall.Status["base"][1]).OrderBy(group => group.Key, StringComparer.Ordinal).Select(group => group.Key + " " + group.Count())));
             // The rotation override of -179.999 turns the link of 2 to face its back edge, so that edge is open and the front of the rule along the road
             // walled, the only wall on the road (breaker F2 of PR 79)
             Assert.Equal("2 3", string.Join(", ", walls.Where(wall => wall.Ends[0][1] == 0.0 && wall.Ends[1][1] == 0.0).Select(wall => wall.Plot + " " + wall.Edge)));
@@ -176,9 +182,9 @@ namespace SiteAdaptation.Tests
                 + " | " + string.Join(" ", ((List<List<string>>)step["3"]["levelPlots"]).SelectMany(item => item)));
             Assert.Equal("{\"status\":\"RECOMMENDED\",\"statusFrom\":\"walls.base from override by heightM\"}", ((JArray)step["3"]["status"])[0]["base"].ToString(Newtonsoft.Json.Formatting.None));
             JObject tables = Walls.Tables(walls, table);
-            Assert.Equal("walls.base from keyRules, walls.base from override by heightM, walls.base from override by rotationDeg, walls.base from override by rotationDeg heightM, "
-                + "walls.ends from keyRules, walls.ends from override by rotationDeg, walls.plots from locationPlan, walls.plots from override by rotationDeg, walls.top from keyRules, "
-                + "walls.top from override by heightM, walls.top from override by rotationDeg, walls.top from override by rotationDeg heightM",
+            Assert.Equal("walls.base from keyRules, walls.base from override by heightM, walls.base from override by heightM reads of none, walls.base from override by rotationDeg, "
+                + "walls.ends from keyRules, walls.ends from override by rotationDeg, walls.plots from locationPlan, walls.top from keyRules, "
+                + "walls.top from override by heightM, walls.top from override by heightM reads of none, walls.top from override by rotationDeg",
                 string.Join(", ", ((JObject)tables["statusFrom"]).Properties().Select(item => item.Name)));
             Assert.Equal("heightM", string.Join(" ", tables["statusFrom"]["walls.base from override by heightM"]["overrides"]));
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
@@ -260,23 +266,70 @@ namespace SiteAdaptation.Tests
             PlanWall wall = Made(ffls: ffls)[0];
             Assert.Equal("1|2 1", string.Join("|", wall.Plots) + " " + wall.BasePlot);
             Walls.Mark(wall, table, ffls.ToDictionary(item => item.Key, item => item.Key == "2" ? Plan(item.Value, "heightM") : Plan(item.Value)));
-            Assert.Equal("RECOMMENDED walls.base from override by heightM walls.top from override by heightM walls.plots from locationPlan",
-                wall.Status["base"][1] + " " + wall.Status["base"][2] + " " + wall.Status["top"][2] + " " + wall.Status["plots"][2]);
+            // Q119: the base and top stand on the FFL of 1, which holds no override, so they read the entries of their own field
+            Assert.Equal("RECOMMENDED walls.base from override by heightM reads of none walls.top from override by heightM reads of none walls.plots from locationPlan True",
+                wall.Status["base"][1] + " " + wall.Status["base"][2] + " " + wall.Status["top"][2] + " " + wall.Status["plots"][2] + " "
+                + table.Used[wall.Status["base"][2]]["entries"].Any(entry => ((string)entry["entry"] ?? "").EndsWith("keyRules.ffl.rule", StringComparison.Ordinal)));
         }
 
-        // test_plan_walls.test_r362_r401_q112_review1_a_rotation_override_that_moves_the_open_edge_touches_every_value_of_the_walls, R3 of the review
-        // of PR 85
+        // test_plan_walls.test_r362_r401_q120_a_rotation_touches_a_wall_only_where_the_turn_decides_whether_it_stands: Q120 (Bader, 2026-10-29),
+        // where R3 of the review of PR 85 gave a rotation every value of every wall of its plots
         [Fact]
-        public void R362_R401_Q112_review1_a_rotation_override_that_moves_the_open_edge_touches_every_value_of_the_walls()
+        public void R362_R401_Q120_a_rotation_touches_a_wall_only_where_the_turn_decides_whether_it_stands()
         {
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
             JObject rules = JObject.Parse(File.ReadAllText(BuildStepTests.RepoRules()));
             ValueStatusTable table = ValueStatus.Table(config, rules, "parsons2024Rev6");
             PlanWall wall = Made()[0];
+            Assert.Empty(wall.Turned);
             Walls.Mark(wall, table, Ffls.ToDictionary(item => item.Key, item => item.Key == "1" ? Plan(item.Value, "heightM", "rotationDeg") : Plan(item.Value)));
-            Assert.Equal("walls.plots from override by rotationDeg, walls.ends from override by rotationDeg, walls.base from override by heightM rotationDeg, "
-                + "walls.top from override by heightM rotationDeg", string.Join(", ", Walls.Fields.Select(field => wall.Status[field][2])));
-            Assert.Equal("RECOMMENDED UNKNOWN RECOMMENDED RECOMMENDED", string.Join(" ", Walls.Fields.Select(field => wall.Status[field][1])));
+            // The base and top stand on 2, which holds no override (Q119)
+            Assert.Equal("walls.plots from locationPlan, walls.ends from keyRules, walls.base from override by heightM reads of none, walls.top from override by heightM reads of none",
+                string.Join(", ", Walls.Fields.Select(field => wall.Status[field][2])));
+            // 12 turned from its front on the back of 11 to its back edge: 11 walls that front, on 12 by the turn, and the side walls of 12 stand either way
+            var rings = new Dictionary<string, double[][]> { ["11"] = Points(0, 100, 10, 100, 10, 110, 0, 110), ["12"] = Points(0, 110, 10, 110, 10, 120, 0, 120) };
+            var fronts = new Dictionary<string, double[][]> { ["11"] = Points(0, 100, 10, 100), ["12"] = Points(10, 110, 0, 110) };
+            var opened = new Dictionary<string, double[][]>(fronts) { ["12"] = Walls.OpenEdge(rings["12"], fronts["12"], 180.0, false, true) };
+            Assert.Equal("10 120 0 120", string.Join(" ", opened["12"].SelectMany(point => point).Select(value => value.ToString(CultureInfo.InvariantCulture))));
+            var ffls = new Dictionary<string, double> { ["11"] = 10.0, ["12"] = 11.0 };
+            List<PlanWall> found = Walls.Of(new[] { "11", "12" }, new HashSet<string>(ffls.Keys), rings, opened, ffls, Higher, fronts);
+            Assert.Equal("11 1 11 -, 11 2 11|12 12, 11 3 11 -, 12 1 12 -, 12 3 12 -", string.Join(", ", found.Select(item => item.Plot + " " + item.Edge + " " + string.Join("|", item.Plots) + " "
+                + (item.Turned.Count == 0 ? "-" : string.Join("|", item.Turned)))));
+            // With no front given every wall stands as before and none is turned
+            Assert.Equal(string.Join(", ", found.Select(item => item.Plot + " " + item.Edge + " -")), string.Join(", ", Walls.Of(new[] { "11", "12" }, new HashSet<string>(ffls.Keys), rings, opened, ffls, Higher)
+                .Select(item => item.Plot + " " + item.Edge + " " + (item.Turned.Count == 0 ? "-" : "turned"))));
+            var plans = ffls.ToDictionary(item => item.Key, item => item.Key == "12" ? Plan(item.Value, "heightM", "rotationDeg") : Plan(item.Value));
+            foreach (PlanWall item in found)
+            {
+                Walls.Mark(item, table, plans);
+            }
+            Assert.Equal("walls.plots from locationPlan, walls.ends from override by rotationDeg, walls.base from override by heightM rotationDeg, walls.top from override by heightM rotationDeg",
+                string.Join(", ", Walls.Fields.Select(field => found[1].Status[field][2])));
+            Assert.Equal("walls.plots from locationPlan, walls.ends from keyRules, walls.base from override by heightM, walls.top from override by heightM",
+                string.Join(", ", Walls.Fields.Select(field => found[3].Status[field][2])));
+            // Q119: heightM set the FFL of 12 the wall stands on, so the rotation after it adds no FFL rule
+            Assert.DoesNotContain(table.Used[found[1].Status["base"][2]]["entries"], entry => ((string)entry["entry"] ?? "").EndsWith("keyRules.ffl.rule", StringComparison.Ordinal));
+            Assert.Equal("walls.ends from keyRules", found[0].Status["ends"][2]);
+        }
+
+        // test_plan_walls.test_r362_r401_q119_a_wall_base_and_top_read_the_overrides_of_the_plot_they_stand_on: Q119 (Bader, 2026-10-29)
+        [Fact]
+        public void R362_R401_Q119_a_wall_base_and_top_read_the_overrides_of_the_plot_they_stand_on()
+        {
+            JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
+            JObject rules = JObject.Parse(File.ReadAllText(BuildStepTests.RepoRules()));
+            ValueStatusTable table = ValueStatus.Table(config, rules, "parsons2024Rev6");
+            PlanWall wall = Made()[0];
+            Assert.Equal("1|2 2 2", string.Join("|", wall.Plots) + " " + wall.BasePlot + " " + wall.TopPlot);
+            Walls.Mark(wall, table, Ffls.ToDictionary(item => item.Key, item => item.Key == "1" ? Plan(item.Value, "heightM") : Plan(item.Value)));
+            Assert.Equal("walls.base from override by heightM reads of none walls.top from override by heightM reads of none True", wall.Status["base"][2] + " " + wall.Status["top"][2] + " "
+                + table.Used[wall.Status["top"][2]]["entries"].Any(entry => ((string)entry["entry"] ?? "").EndsWith("keyRules.ffl.rule", StringComparison.Ordinal)));
+            Walls.Mark(wall, table, Ffls.ToDictionary(item => item.Key, item => item.Key == "5" ? Plan(item.Value) : Plan(item.Value, "heightM")));
+            Assert.Equal("walls.base from override by heightM False", wall.Status["base"][2] + " "
+                + table.Used[wall.Status["base"][2]]["entries"].Any(entry => ((string)entry["entry"] ?? "").EndsWith("keyRules.ffl.rule", StringComparison.Ordinal)));
+            PlanWall low = Made(rules: new WallRules { HigherBase = false, HigherTop = false, Depth = 0.1, Rise = 1.7, Near = 0.3 })[0];
+            Walls.Mark(low, table, Ffls.ToDictionary(item => item.Key, item => item.Key == "1" ? Plan(item.Value, "heightM") : Plan(item.Value)));
+            Assert.Equal("walls.base from override by heightM", low.Status["base"][2]);
         }
 
         [Fact]
@@ -291,11 +344,13 @@ namespace SiteAdaptation.Tests
             Assert.Equal("1|2 1 1", string.Join("|", wall.Plots) + " " + wall.BasePlot + " " + wall.TopPlot);
             var plans = ffls.ToDictionary(item => item.Key, item => item.Key == "2" ? Plan(item.Value, "heightM") : Plan(item.Value));
             Walls.Mark(wall, table, plans);
-            Assert.Equal("RECOMMENDED walls.base from override by heightM walls.top from override by heightM", wall.Status["base"][1] + " " + wall.Status["base"][2] + " " + wall.Status["top"][2]);
+            // Q119: 1 holds no override, so the base and top read the entries of their own field
+            Assert.Equal("RECOMMENDED walls.base from override by heightM reads of none walls.top from override by heightM reads of none",
+                wall.Status["base"][1] + " " + wall.Status["base"][2] + " " + wall.Status["top"][2]);
             // R2 of the review of PR 85: the FFL of 2 is compared to pick the plot of the base, so its heightM touched the base also where the pick
             // of the rule stays 1
             Walls.Mark(wall, table, plans);
-            Assert.Equal("walls.base from override by heightM", wall.Status["base"][2]);
+            Assert.Equal("walls.base from override by heightM reads of none", wall.Status["base"][2]);
             // Review 2 of PR 79, the wall of 543 and 544: heightM lifts 1, the plot of the base, to the FFL of 2, the pick of the rule, so the base
             // equals the base with no override, and since Q113 it names heightM, which touched the FFL of its own plot
             var lifted = new Dictionary<string, double>(Ffls) { ["1"] = 100.5 };

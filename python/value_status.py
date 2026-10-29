@@ -3,7 +3,8 @@ the block status of the rules profile through valueStatus of config/project.json
 list of them, by the code that computes the value, or the status itself for an override or a client input. A value of several entries takes
 the worst status among them in the order of valueStatus.worstFirst, else the status of the first, and lists each (Q107). An override of the
 list marks every field it moves, overrideSets, with the status of the source override, and the value names every applied override whose set
-holds its field, the overrides that touched its inputs, in the order the build applied them (Q112, Q113). An entry may name the unit code of
+holds its field, the overrides that touched its inputs, in the order the build applied them (Q112, Q113), and reads what the overrides that
+set the inputs it stands on still read (Q119). An entry may name the unit code of
 the plot, prototypeFile the keo_file of its typology (Q110).
 A pair the map does not hold, or an entry the block lacks, is UNKNOWN with why, never a guess. A status changes no value: a value holds its
 status and the key of its detail, and the detail is written once in the table statusFrom at the top of the plan. ValueStatus.cs of the C#
@@ -109,24 +110,29 @@ class Table:
         found = self.sources.get(source)
         return None if found is None else found if isinstance(found, list) else [found]
 
-    def of(self, field, source, hand=None, applied=(), unit=None, plot=None):
+    def of(self, field, source, hand=None, applied=(), unit=None, plot=None, reading=None):
         """The status of a value of field from source, its detail and the key of the detail. Every applied override whose set holds the field
-        touched an input of the value, so the value takes the status of the source override, as its source stays, with the entries the code
-        still reads for it by overrideReads of the override applied last that touched it, none when that one sets the field outright, as the
-        code computes the field last after it (R1 of the review of PR 85), and names each override once in the order the build applied them
-        (Q112, the fallback of its answer, as one more build per override added more than 20 percent to a build of the 7 keys). It does so
-        also where the value equals its value with no override, as a value takes the worst status of its inputs (Q113). unit is the unit code
-        of the plot, which an entry names as {unit}, the keo_file of its typology for prototypeFile (Q110). A field an open question of majority.decidedByQuestion
-        decides on the plot adds the block entry of that question and key, so it takes the worst of its list and that question (review 1 of
-        PR 78)."""
+        touched an input of the value, so the value takes the status of the source override, as its source stays, and names each override
+        once in the order the build applied them (Q112, the fallback of its answer, as one more build per override added more than 20 percent
+        to a build of the 7 keys). It does so also where the value equals its value with no override, as a value takes the worst status of
+        its inputs (Q113). The value reads the entries of overrideReads every override of reading still reads for the field, reading the
+        overrides that set the inputs it stands on, those that touched it when None. Each override reads the entries of the inputs it leaves,
+        so an entry one of them set is read by none of the others, and one that sets the field outright reads none (Q119, R1 of the review of
+        PR 85). A reading that names no override that touched the field reads the entries of the field and its own source, and a reading
+        other than the overrides that touched it is named in the key. unit is the unit code of the plot, which an entry names as {unit}, the
+        keo_file of its typology for prototypeFile (Q110). A field an open question of majority.decidedByQuestion decides on the plot adds
+        the block entry of that question and key, so it takes the worst of its list and that question (review 1 of PR 78)."""
         moved = [] if source == OVERRIDE else list(dict.fromkeys(name for name in applied or () if field in self.sets.get(name, ())))
+        setters = moved if reading is None else [name for name in dict.fromkeys(reading) if name in moved]
+        own = self.refs(field, source)
         if moved:
             source = OVERRIDE
         refs = self.refs(field, source)
         if moved and refs is not None:
-            # R1 of the review of PR 85. The code computes the field last after the override applied last that touched it, so what that
-            # override reads for it, none when it sets the field outright, is what the value still reads
-            refs = list(refs) + [ref for ref in (self.reads.get(moved[-1]) or {}).get(field) or () if ref not in refs]
+            # Q119. The entries every override that set an input still reads, in the order of the last of them
+            held = (own or []) if not setters else [ref for ref in (self.reads.get(setters[-1]) or {}).get(field) or ()
+                                                  if all(ref in ((self.reads.get(name) or {}).get(field) or ()) for name in setters)]
+            refs = list(refs) + [ref for ref in held if ref not in refs]
         if refs is None:
             entries = [{"status": "UNKNOWN", "why": NO_STATUS % (field, source)}]
         else:
@@ -150,6 +156,8 @@ class Table:
             key += " question " + " ".join(name for name, _ in pairs)
         if moved:
             key += " by " + " ".join(moved)
+        if moved and setters != moved:
+            key += " reads of " + (" ".join(setters) or "none")
         return chosen["status"], detail, key
 
     def resolve(self, field, source, ref, hand, unit=None):

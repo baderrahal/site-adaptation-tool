@@ -45,7 +45,9 @@ def test_r365_r401_parity_summary_the_step_holds_the_counts_and_names_of_the_pla
     assert table["floorTypes"] == {"generic: Generic 150mm": 6, "ramp: Flat Ramps": 1, "ramp: Ramps 0.5%": 5, "yard: Yard made up": 3}
     assert table["handRules"] == {"blockMirrorRoadSide": 1, "clusterSide": 2, "override": 1, "rowPairSideOrBlockMirrorOpenEnd": 2}
     assert table["steps"] == {"from": "keyRules.steps stepsFromHeight of parsons2024Rev6", "parameters": ["RRE_ZZ_SP_Number-of-Steps", "RRE_ZZ_SP_RVT-Name"]}
-    assert (sum(sum(counts.values()) for counts in table["statusByField"].values()), len(table["statusByField"]), len(table["assumedByField"])) == (242, 44, 30)
+    # Q120: the mirror flag of 4 touches only the outline and type of its yard, so its level and plotValue are no longer assumed
+    assert (sum(sum(counts.values()) for counts in table["statusByField"].values()), len(table["statusByField"]), len(table["assumedByField"])) == (242, 44, 28)
+    assert "floors.yard.level" not in table["assumedByField"] and "floors.yard.plotValue" not in table["assumedByField"]
     assert [table["assumedByField"][field] for field in ("floors.yard.outline", "mirrored", "parameters.RRE_ZZ_SP_Number-of-Steps", "rotationDeg")] == [
         ["2", "4", "5"], ["4"], ["1", "2", "3", "4", "6"], ["2", "4", "6"]]
     assert table["statusPlots"] == {"CHOSEN by Bader": 6, "DOCUMENT": 6, "MEASURED strong": 6, "MEASURED weak": 6, "RECOMMENDED": 5, "UNKNOWN": 6, "assumed": 6}
