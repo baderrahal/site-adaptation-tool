@@ -285,7 +285,8 @@ namespace SiteAdaptation.Common
             }
             foreach (WorkerFile input in inputs)
             {
-                var opened = new WorkerOpened { Role = input.Role, Path = input.Path, Sha256Before = FileHash.Sha256(input.Path) };
+                InputMark before = InputGuard.Mark(input.Path);
+                var opened = new WorkerOpened { Role = input.Role, Path = input.Path, Sha256Before = before.Sha256, SizeBefore = before.Size, WriteTimeBefore = before.WriteTimeUtc };
                 answer.Opened.Add(opened);
                 if (!string.Equals(opened.Sha256Before, input.Sha256, StringComparison.OrdinalIgnoreCase))
                 {
@@ -295,14 +296,24 @@ namespace SiteAdaptation.Common
             var context = new WorkerContext(request, answer, config, freeMiB, privateMiB);
             made.Add(context);
             command(context);
+            string change = null;
+            WorkerOpened changed = null;
             foreach (WorkerOpened opened in answer.Opened)
             {
-                opened.Sha256After = FileHash.Sha256(opened.Path);
+                InputMark after = InputGuard.Mark(opened.Path);
+                opened.Sha256After = after.Sha256;
+                opened.SizeAfter = after.Size;
+                opened.WriteTimeAfter = after.WriteTimeUtc;
+                string differs = InputGuard.Change(new InputMark { Size = opened.SizeBefore ?? -1, WriteTimeUtc = opened.WriteTimeBefore, Sha256 = opened.Sha256Before }, after);
+                if (differs != null && changed == null)
+                {
+                    change = differs;
+                    changed = opened;
+                }
             }
-            WorkerOpened changed = answer.Opened.FirstOrDefault(opened => opened.Sha256After != opened.Sha256Before);
             if (changed != null)
             {
-                throw new WorkerStop(WorkerExit.InputChanged, "the input " + changed.Role + " changed while it was read, nothing of the run is used (R1): " + changed.Path);
+                throw new WorkerStop(WorkerExit.InputChanged, "the input " + changed.Role + " changed while it was read, its " + change + ", nothing of the run is used (R1, D19): " + changed.Path);
             }
             // Every check passed, so the outputs move onto their names, all of them or none, each replacing the one of an earlier run
             // only now. Their hashes are taken first, so nothing that can fail comes after the commit

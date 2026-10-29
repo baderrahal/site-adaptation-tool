@@ -243,6 +243,20 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void D19_an_input_whose_write_time_alone_changed_while_it_was_read_ends_with_4_and_the_answer_holds_size_and_time_both_sides()
+        {
+            WorkerRequest during = Request("r3");
+            Assert.Equal(4, WorkerRunner.Run(Save(during), Writing(request => File.SetLastWriteTimeUtc(request.Inputs[1].Path, new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc))), () => 9000.0));
+            WorkerAnswer answer = Answer(WorkerFiles.AnswerPath(folder, "r3"));
+            Assert.Contains("plotsCsv changed while it was read, its write time", answer.Message);
+            WorkerOpened opened = answer.Opened[1];
+            Assert.Equal(opened.SizeBefore, opened.SizeAfter);
+            Assert.Equal(opened.Sha256Before, opened.Sha256After);
+            Assert.Equal("2020-01-02T03:04:05.0000000Z", opened.WriteTimeAfter);
+            Assert.NotEqual(opened.WriteTimeBefore, opened.WriteTimeAfter);
+        }
+
+        [Fact]
         public void R347_short_of_free_memory_the_worker_reads_nothing_and_refuses_with_3_naming_both_numbers()
         {
             WorkerRequest request = Request("r1", Config(peakMiB: 2612));
