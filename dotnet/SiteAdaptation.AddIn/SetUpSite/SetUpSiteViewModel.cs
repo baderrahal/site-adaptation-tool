@@ -132,27 +132,13 @@ namespace SiteAdaptation.AddIn.SetUpSite
             var made = rows.Select(row => new SetUpRowViewModel(this, row)).ToList();
             if (will)
             {
+                // The values are Common's as given, the Floor types text and the sheet line with its count among them (7.3). The
+                // window only adds the Browse of the sheet row and the dropdown of the Ramp slope row
                 foreach (SetUpRowViewModel row in made)
                 {
-                    if (row.Label == SetUpSiteText.FloorTypes)
-                    {
-                        row.Value = SetUpSiteText.FloorTypesValue;
-                    }
-                    else if (row.Label == SetUpSiteText.SharedParameters)
-                    {
-                        row.IsSheet = true;
-                        if (view.ParameterSheetName != null)
-                        {
-                            row.Value = TextTemplate.Fill(SetUpSiteText.SheetLine, view.ParameterSheetName);
-                            row.Count = view.ParameterCount.ToString(CultureInfo.InvariantCulture);
-                        }
-                    }
+                    row.IsSheet = row.Label == SetUpSiteText.SharedParameters;
+                    row.IsRamp = row.Label == SetUpSiteText.RampSlope;
                 }
-                if (made.All(row => row.Label != SetUpSiteText.RampSlope))
-                {
-                    made.Add(new SetUpRowViewModel(this, new SetUpRow { Label = SetUpSiteText.RampSlope, Value = "" }));
-                }
-                made.First(row => row.Label == SetUpSiteText.RampSlope).IsRamp = true;
             }
             return made.Select((row, at) => new { row, at })
                 .OrderBy(item => Rank(item.row.Label, order)).ThenBy(item => item.at)
@@ -192,12 +178,8 @@ namespace SiteAdaptation.AddIn.SetUpSite
 
         public bool IsRamp { get; set; }
 
-        // The row Shared parameters, with its count and Browse
+        // The row Shared parameters, which gets Browse beside Common's sheet line
         public bool IsSheet { get; set; }
-
-        public string Count { get; set; } = "";
-
-        public bool HasCount => Count.Length > 0;
     }
 
     public sealed class CheckPointViewModel

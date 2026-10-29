@@ -48,9 +48,8 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Generic 150mm, yard, Flat Ramps, and one Ramps type per slope below", floor.Value);
             SetUpRowViewModel sheet = model.WillSet.Single(row => row.Label == "Shared parameters");
             Assert.True(sheet.IsSheet);
-            Assert.StartsWith("From the parameter sheet: ", sheet.Value);
-            Assert.True(sheet.HasCount);
-            Assert.Equal("12", sheet.Count);
+            // 7.3: the sheet name and its count in the one line Common gives, never a number alone beside Browse
+            Assert.Equal("From the parameter sheet: Parameter sheet.xlsx, 12 parameters", sheet.Value);
             Assert.True(model.WillSet.Single(row => row.Label == "Ramp slope").IsRamp);
         }
 
@@ -193,6 +192,7 @@ namespace SiteAdaptation.Tests
                         SetUpSiteView view = Shots.SampleSetUpView(false, true);
                         view.ParameterSheetName = "Other sheet.xlsx";
                         view.ParameterCount = 14;
+                        view.WillSet.Single(row => row.Label == "Shared parameters").Value = SetUpTexts.FromSheet("Other sheet.xlsx, 14 parameters");
                         return view;
                     },
                 },
@@ -208,8 +208,29 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { pick }, paths);
             Assert.Equal(pick, session.Model.ChosenSheet);
             SetUpRowViewModel sheet = session.Model.WillSet.Single(row => row.IsSheet);
-            Assert.Equal("From the parameter sheet: Other sheet.xlsx", sheet.Value);
-            Assert.Equal("14", sheet.Count);
+            Assert.Equal("From the parameter sheet: Other sheet.xlsx, 14 parameters", sheet.Value);
+        }
+
+        // Review 1 of 5b: in Revit every Browse fails until the worker reads the sheet (Q152), so the failed path is never kept for Apply
+        [Fact]
+        public void R373_a_browse_whose_sheet_does_not_read_keeps_no_sheet_for_apply()
+        {
+            var session = new SetUpSiteSession(Shots.SampleSetUpView(false, true),
+                new SetUpSiteCallbacks
+                {
+                    DryRun = slope => Shots.SampleSetUpView(true, true),
+                    SheetChosen = path => throw new InvalidOperationException("The parameter sheet is not read yet"),
+                },
+                () => @"C:\Sample\Bad sheet.xlsx");
+
+            session.DryRun();
+            session.Browse();
+            session.Apply();
+
+            Assert.Null(session.Model.ChosenSheet);
+            Assert.True(session.Model.StopsShown);
+            Assert.True(session.Answer.Apply);
+            Assert.Null(session.Answer.ParameterSheet);
         }
 
         [Fact]

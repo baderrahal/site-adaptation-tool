@@ -142,10 +142,10 @@ The spec gives no size for these, all are keys of Theme.xaml (CHOSEN).
 2. Diff shows the number with two decimals and no unit, "0.00", where the mock shows "0.00 mm". The label list has no text for the unit and the pass line names it, "Pass limit 0.1 mm" (CHOSEN).
 3. A point that fails shows its Diff in SA.Error on SA.ErrorGround. The spec gives the look of a passing point only (CHOSEN).
 4. The pass limit shows as the view gives it, 0.1 in the sample. Where 0.1 mm applies is Q142 and Common's side.
-5. The word Browse of the Shared parameters row is the constant PaneText.Browse of the pane, since the Set up site list of docs/design/14-ui-labels.md has no entry Browse and this change does not touch docs/. The merge adds the entry.
-6. docs/design/14-ui-labels.md still says "Not built yet, Phase 5b" under Set up site, and the test R372_the_entries_of_windows_not_built_yet_hold_the_texts_of_the_workflow_changes asserts it. The first half of the text test already holds for the window, every text of the files of SetUpSite is in the list. The second half, every entry shown, is held by the test R373_no_text_of_the_window_is_below_12_and_every_label_of_the_list_is_shown_by_a_file_of_the_window until the merge removes the line and the assert.
-7. The Floor types row always reads the text of 13-workflow-changes.md, whatever value Common gives it. The Shared parameters row reads "From the parameter sheet: <name>" with the count as a number alone and Browse when a sheet name is given, else the value of Common with Browse.
-8. The row Ramp slope is added at its place in the order when Common gives none, so the drop down stands between Floor types and Wall types as the changes of 28 Oct 2026 say.
+5. The word Browse of the Shared parameters row is SetUpSiteText.Browse of the window, the entry Browse of the Set up site list of docs/design/14-ui-labels.md since the merge of 5b.
+6. The Set up site list of docs/design/14-ui-labels.md is a built window since the merge of 5b. Both halves of the text test hold for it, every text of the files of SetUpSite is in the list and every entry is shown by them.
+7. The Floor types and Shared parameters rows show the values Common gives, the text of 13-workflow-changes.md and "From the parameter sheet: <sheet>, <n> parameters", with Browse under the sheet line (review 1 of 5b).
+8. Common gives the row Ramp slope in every view, at its place between Floor types and Wall types, and the window puts the drop down in it.
 9. Apply is off while the view holds a stop or before the dry run. It goes off again when the slope is changed after a dry run, until the next dry run, since the dry run was made on another slope (CHOSEN).
 10. A stop, or the reason of a callback that threw, shows in a box on SA.ErrorGround above the foot in SA.Error. The spec gives no look for it (CHOSEN).
 11. The note "On an existing site file" shows on both badges, as the mock says, in a box of SA.Guide with a line of SA.GuideBorder, its title in SA.Type.Label and SA.Info.
@@ -162,7 +162,7 @@ Each line of the spec, held or not, from the XAML, Theme.xaml and the tests of S
 
 Rules
 1. One theme file holds every colour, font, size and icon, and the gate test fails on a literal elsewhere: held. SetUpSiteWindow.xaml and the C# files of SetUpSite hold no colour literal and no FontSize, and ThemeGateTests passes with them in the folder.
-2. Labels and order follow 7.1 to 7.4 and the changes of 28 Oct 2026: held for the texts, each entry of the list under Set up site is shown by a file of the window and each text of those files is in the list. Not held for Browse, which the list lacks (difference 5).
+2. Labels and order follow 7.1 to 7.4 and the changes of 28 Oct 2026: held, each entry of the list under Set up site is shown by a file of the window and each text of those files is in the list, Browse among them.
 3. Nothing smaller than 12: held, the test reads the font size of every text of the laid out window, the smallest is SA.Type.Small 12.
 4. Every rule shown to a user shows a plain name with its id as a tooltip: not applicable, the window shows no rule.
 5. A change to the look is a question for Bader: held, nothing in the spec was changed, each choice is listed above.
@@ -170,8 +170,8 @@ Rules
 
 UI controls
 7. Control 1, the theme test: held, see line 1.
-8. Control 2, the text test: held, see line 2, except Browse.
-9. Control 3, the picture test: held as a draft. The window renders offscreen at 96 DPI to setup-site.png, 76,865 bytes. There is no baseline yet, so it compares nothing until Bader approves it.
+8. Control 2, the text test: held, see line 2.
+9. Control 3, the picture test: held as a draft. The window renders offscreen at 96 DPI to setup-site.png, 77,246 bytes. There is no baseline yet, so it compares nothing until Bader approves it.
 10. Control 4, this list: this section.
 11. Control 5, the approval form: it goes in the final message of the session of 5b, not here.
 
@@ -198,5 +198,5 @@ Sizes
 7.3
 26. The band with "1 Set up site", the badge, the line, the signs and "<n> of <n>" over "check points pass": held.
 27. Left the two tables as label and value rows with Will change, right the check point table, the pass line and the note, the foot on SA.Panel with Cancel, Dry run and Apply: held.
-28. The Floor types text, the row Ramp slope with its drop down 0.5%, 1%, 2%, then 3% to 15% and default 0.5% and its line, the Shared parameters row with its sheet, count and Browse: held, tests R373_the_ramp_slope_choices_are_05_1_2_then_3_to_15_percent_and_the_default_is_05 and R373_the_ramp_slope_row_holds_a_30_high_drop_down_of_16_choices_and_the_sheet_row_holds_browse.
+28. The Floor types text, the row Ramp slope with its drop down 0.5%, 1%, 2%, then 3% to 15% and default 0.5% and its line, the Shared parameters row with its sheet and count in one line and Browse: held, tests R373_the_rows_stand_in_the_order_of_the_mock_with_the_three_rows_of_28_oct_2026, R373_the_ramp_slope_choices_are_05_1_2_then_3_to_15_percent_and_the_default_is_05 and R373_the_ramp_slope_row_holds_a_30_high_drop_down_of_16_choices_and_the_sheet_row_holds_browse.
 29. Apply off while the view holds stops or before the dry run: held, tests R373_apply_is_off_before_the_dry_run_and_while_the_view_holds_a_stop_and_on_after_the_dry_run and R373_the_buttons_of_the_window_drive_the_session_and_apply_is_off_before_the_dry_run.

@@ -12,8 +12,8 @@ namespace SiteAdaptation.AddIn
     // the tag step of 5b, which does nothing until 5c fills it from R368
     public static class SetUpSiteBody
     {
-        // The window of button 1 for its owner, the Revit main window. The main session sets it at the merge of 5b to
-        // owner => new SetUpSite.SetUpSiteDialog(owner). Null keeps button 1 not built
+        // The window of button 1 for its owner, the Revit main window, set by App at start. The test host sets a window of its own
+        // for a run with no click. Null keeps button 1 not built
         public static Func<IntPtr, ISetUpSiteDialog> Dialog { get; set; }
 
         public static ButtonBody For(UIApplication application)

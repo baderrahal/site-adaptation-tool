@@ -222,9 +222,10 @@ namespace SiteAdaptation.UiShots
                 new SetUpRow { Label = "Survey point", Value = "E 1000.000, N 2000.000, Z 0.000" },
                 new SetUpRow { Label = "Angle to true north", Value = "0" },
                 new SetUpRow { Label = "Levels", Value = "Level 1 at 0.000, Level 2 at 4.000 over Level 1", Differs = true },
-                new SetUpRow { Label = "Floor types", Value = "" },
+                new SetUpRow { Label = "Floor types", Value = SetUpTexts.FloorTypesRow },
+                new SetUpRow { Label = "Ramp slope", Value = "0.5%" },
                 new SetUpRow { Label = "Wall types", Value = "BW, Generic Wall-150mm_ Garden", Differs = true },
-                new SetUpRow { Label = "Shared parameters", Value = "" },
+                new SetUpRow { Label = "Shared parameters", Value = SetUpTexts.FromSheet("Parameter sheet.xlsx, 12 parameters") },
                 new SetUpRow { Label = "Units", Value = "meters, accuracy 0.01" },
             });
             string[] names = { "control 1", "control 2", "control 3", "plots min", "plots max", "survey point", "project base point" };

@@ -41,13 +41,17 @@ namespace SiteAdaptation.AddIn.SetUpSite
             {
                 return;
             }
-            Model.ChosenSheet = path;
             if (callbacks.SheetChosen == null)
             {
+                Model.ChosenSheet = path;
                 return;
             }
             double slope = Model.SelectedSlope;
-            Run(() => callbacks.SheetChosen(path), slope);
+            // The path is kept only once its sheet read, so Apply never hands on a sheet the run cannot read
+            if (Run(() => callbacks.SheetChosen(path), slope))
+            {
+                Model.ChosenSheet = path;
+            }
         }
 
         public void Apply()
@@ -66,7 +70,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
             Finished?.Invoke();
         }
 
-        private void Run(Func<SetUpSiteView> call, double slope)
+        private bool Run(Func<SetUpSiteView> call, double slope)
         {
             Model.ClearProblem();
             try
@@ -75,10 +79,12 @@ namespace SiteAdaptation.AddIn.SetUpSite
                 Model.Load(next);
                 Model.Keep(slope);
                 Model.MarkDry(slope);
+                return true;
             }
             catch (Exception error)
             {
                 Model.Fail(error.Message);
+                return false;
             }
         }
     }
