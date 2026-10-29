@@ -41,7 +41,7 @@ Part 1 is the add-in. Part 2, the output sheets, waits for Bader's check of Part
 - Reviews in Phase 4 and 5 (D20): reviewer and breaker at once, one pass each, only on build logic, plan or Excel numbers, the override list or code that writes into a Revit model, a second pass only on a REAL logic fault. A window PR gets the reviewer alone with the UI checklist. Records, docs, tests only or install get none. No claim-checker, no prober. Elsewhere D12.
 - A REAL finding is fixed with a test, a LATENT one (no real input reaches it, Q095) goes to steps/latent.md. Parity and review on real inputs only. What is left after the passes becomes a question.
 - A fix on its third attempt stops, goes back to measuring and becomes a question. A Revit run probes first and its third attempt is a probe of the cause (D11).
-- A new question takes the next free ID, Q151 now.
+- A new question takes the next free ID, Q152 now.
 - Every fact in a report is tagged READ with a path, RAN with a count, SEARCHED with a link, CHOSEN or UNKNOWN.
 
 ## Records
@@ -91,7 +91,7 @@ These apply to every file, commit message, pull request text and report.
 ## Log shape
 
 The top entry of steps/log.md fits on one page with the headings Goal, Done, Checked, Remains, Known bugs, Next, Your turn. steps/PROGRESS.md holds state, done, open bugs, Bader's turn and the next three steps.
-Your turn and Bader's turn list only the questions opened or closed in the phase, by ID and title, the same in both, and one line with the open count and steps/questions-open.md (D13). Until python/rule_status.py reads questions-open.md (4h-1), Bader's turn holds every open ID.
+Your turn and Bader's turn list only the questions opened or closed in the phase, by ID and title, the same in both, and one line with the open count and steps/questions-open.md (D13).
 
 ## Questions
 
