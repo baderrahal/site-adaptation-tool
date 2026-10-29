@@ -151,11 +151,12 @@ def road_corners(data):
 
 
 def clean_entry(row, limit):
-    """El @ Entry of a row, None where a key parameter is off its own ramp back by more than limit (R270)."""
+    """El @ Entry of a row. Where a key parameter is off its own ramp back by more than limit (R270), a typed fault of the parameter,
+    El @ Entry is read off the ramp back, which is where El @ Entry stands (Q055, Bader, 2026-10-29)."""
     if row["entry"] is None:
         return None
     if row["entrySource"] == "floorParameter" and row["rampBack"] is not None and abs(row["entry"] - row["rampBack"]) > limit:
-        return None
+        return row["rampBack"]
     return row["entry"]
 
 

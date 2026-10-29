@@ -6,7 +6,7 @@ Every question open before 2026-10-29 was closed in the answer pass of Round FOL
 
 ## Open
 
-Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
+Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element. Q154 Q055 reads 11 more 1.4 plots off the ramp.
 
 Q148. Place villas before Floors and Levels in the run after 5c (Round FOLD, review of the design PR 102). The new order of docs/design/13-workflow-changes.md has each step wait for the one before, so 7 Place villas waits for 6 Levels, and 5d builds 5 Floors and ramps and 6 Levels. The phase changes of 28 Oct 2026 give 5c the Place villas button with light mode, and the Revit run after 5c places villas in Masses and in one NBH in Links. Round FOLD wrote that the test host runs 7 by Buttons.Run on the plan before 5 and 6 are built (CHOSEN, steps/01_next.md). It does not block 5b or 5c.
 - Recommended: keep it. The test host runs 7 from the plan in the run after 5c, which measures light mode and the base boundary as 28 Oct asks, and the pane keeps the order, so a user cannot run 7 before 6.
@@ -32,3 +32,7 @@ Q152. Mode of the last run of a button (R367, 4h-1). docs/design/06-settings.md 
 Q153. A lone copy of a tagged element (R368, 4h-1). 03a lists a key held by two elements, where the one whose UniqueId equals its placedId stays the tool's. It does not say what to do with one element alone on its key whose UniqueId is not its placedId, such as a copy whose original was deleted. SecondRun.Match lists it and leaves it and skips the item, as when none holds its own UniqueId (CHOSEN by the developer of 4h-1).
 - Recommended: keep it, list and leave the element and skip the item, so the tool never takes over an element it did not place.
 - Other: take the lone element over as the tool's element and tag it with its own UniqueId.
+
+Q154. Q055 reads 11 more 1.4 plots off the ramp (4h-2). Bader answered Q055 for the 5 TH3 plots 2461, 2470, 2473, 2481 and 2557, where Round 17 found the 1.4 ELl@Entry 0.41 to 1.59 m off its own ramp back while the ramp backs of the two keys agree (steps/investigations/round-17.md). clean_entry of python/majority.py already took every key parameter off its own ramp back by more than majority.entryRampM, 0.3 m, as no value, and on past_all.csv of the laptop that holds 16 rows, all of the 1.4 key u14: the 5 and 2018, 2025, 2071, 2075, 2080, 2083, 2088, 2092, 2176, 2466 and 2478, 0.30 to 3.45 m off (RAN). 4h-2 reads El @ Entry off the ramp back on all 16, one rule for the one fault. No parsons2024Rev6 build reads it, majority.py and build_proof.py do.
+- Recommended: keep the one rule on all 16.
+- Other: read off the ramp on the 5 alone, the other 11 kept as no value.
