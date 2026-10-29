@@ -6,7 +6,7 @@ Every question open before 2026-10-29 was closed in the answer pass of Round FOL
 
 ## Open
 
-Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run.
+Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
 
 Q148. Place villas before Floors and Levels in the run after 5c (Round FOLD, review of the design PR 102). The new order of docs/design/13-workflow-changes.md has each step wait for the one before, so 7 Place villas waits for 6 Levels, and 5d builds 5 Floors and ramps and 6 Levels. The phase changes of 28 Oct 2026 give 5c the Place villas button with light mode, and the Revit run after 5c places villas in Masses and in one NBH in Links. Round FOLD wrote that the test host runs 7 by Buttons.Run on the plan before 5 and 6 are built (CHOSEN, steps/01_next.md). It does not block 5b or 5c.
 - Recommended: keep it. The test host runs 7 from the plan in the run after 5c, which measures light mode and the base boundary as 28 Oct asks, and the pane keeps the order, so a user cannot run 7 before 6.
@@ -20,6 +20,15 @@ Q150. M15, the foundation depth (Round FOLD, docs/design/15-manual-rules.md, rev
 - Recommended: keep the canvas text, at least 1.20 m, as the check of 9 Report, since a foundation deeper than the design depth is no fault on site.
 - Other: the PDF reading, the foundation at 1.20 m, a deeper one reported too.
 
-Q151. Q075 moved without the majority run (4h-1). Bader answered Q075 to move the 1,346 native entries with no value to the cannot list by a run of python/majority.py with --replace native, once the other native entries of that run are shown equal to the kept ones. That run needs the reads of the 4 Native keys u11 to u14 and their models, and this laptop holds only the reads of the 7 Parsons keys (round_addineads, READ), so the run cannot be made here. 4h-1 moved them instead by the new command cannot of python/override_source.py with --source native: 1,346 entries moved (entryM 657, rampFrontM 657, rampFrontFallM 32), each with no value and no rule and its reason marked Q075, the other 11,075 entries equal to the list before in their order and the 154 parsons cannot entries kept (RAN, test_override_cannot.py and the run on a copy). A parsons2024Rev6 build reads native entries of neither list.
+Q151. Q075 moved without the majority run (4h-1). Bader answered Q075 to move the 1,346 native entries with no value to the cannot list by a run of python/majority.py with --replace native, once the other native entries of that run are shown equal to the kept ones. That run needs the reads of the 4 Native keys u11 to u14 and their models, and this laptop holds only the reads of the 7 Parsons keys (round_addin
+eads, READ), so the run cannot be made here. 4h-1 moved them instead by the new command cannot of python/override_source.py with --source native: 1,346 entries moved (entryM 657, rampFrontM 657, rampFrontFallM 32), each with no value and no rule and its reason marked Q075, the other 11,075 entries equal to the list before in their order and the 154 parsons cannot entries kept (RAN, test_override_cannot.py and the run on a copy). A parsons2024Rev6 build reads native entries of neither list.
 - Recommended: accept the move. The run with --replace native comes when the Native reads are back, and it re-measures the other 3,876 native entries then.
 - Other: put the 1,346 entries back and wait for the Native reads.
+
+Q152. Mode of the last run of a button (R367, 4h-1). docs/design/06-settings.md gives each button a last run with "mode" and does not say what the mode holds. Only a real run writes the settings, so "dry" never appears there. SettingsJson of Common holds afterDryRun or direct (CHOSEN by the developer of 4h-1).
+- Recommended: mode is how the real run was confirmed, afterDryRun when Apply followed a dry run, direct when the box was unticked.
+- Other: name another meaning for mode, or drop the field.
+
+Q153. A lone copy of a tagged element (R368, 4h-1). 03a lists a key held by two elements, where the one whose UniqueId equals its placedId stays the tool's. It does not say what to do with one element alone on its key whose UniqueId is not its placedId, such as a copy whose original was deleted. SecondRun.Match lists it and leaves it and skips the item, as when none holds its own UniqueId (CHOSEN by the developer of 4h-1).
+- Recommended: keep it, list and leave the element and skip the item, so the tool never takes over an element it did not place.
+- Other: take the lone element over as the tool's element and tag it with its own UniqueId.
