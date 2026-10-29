@@ -107,7 +107,11 @@ $docs = Get-WorkRoot -AppData $env:APPDATA -MyDocuments ([Environment]::GetFolde
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $addins = Join-Path $env:APPDATA 'Autodesk\Revit\Addins\2024'
 $watcherExe = Join-Path $addins 'SiteAdaptationTestHost\Watcher\SiteAdaptation.DialogWatcher.exe'
-$name = if ($probe) { 'probe_' + $probe.code } elseif ($DryStart) { 'dry_start' } elseif ($Upgrade -or ($round -and $round.kind -eq 'siteUpgrade')) { $Code + '_upgrade' } else { $Code }
+$name = if ($DryStart) { 'dry_start' } elseif ($Upgrade -or ($round -and $round.kind -eq 'siteUpgrade')) { $Code + '_upgrade' } else { $Code }
+# Lane B 5b. A probe names its own log, heartbeat and watcher files
+if ($probe) {
+    $name = 'probe_' + $probe.code
+}
 # R110. One job file per window, its path goes to that Revit alone in SITEADAPT_JOB. Other Revit windows may run beside it
 $jobPath = if ($DryStart) { $null } else { Join-Path $docs ('testhost_job_' + $name + '.json') }
 $refused = if ($jobPath) { [IO.Path]::ChangeExtension($jobPath, '.refused.json') } else { $null }
@@ -804,7 +808,10 @@ elseif (-not $DryStart) {
 }
 
 # R200. The lock wrapper hands this exit code on, so a job whose log result is not ok, or a window that was stopped, ends with 1
-# A probe ends as a job does, and a dry start that froze ends with 1 too (Lane B 5b)
-if ((((-not $DryStart) -or $probe) -and ($stopReason -or $logResult -ne 'ok')) -or ($stopReason -like 'freeze guard: *')) {
+if (-not $DryStart -and ($stopReason -or $logResult -ne 'ok')) {
+    exit 1
+}
+# Lane B 5b. A probe ends as a job does, and a dry start that froze ends with 1 too
+if (($probe -and ($stopReason -or $logResult -ne 'ok')) -or ($stopReason -like 'freeze guard: *')) {
     exit 1
 }
