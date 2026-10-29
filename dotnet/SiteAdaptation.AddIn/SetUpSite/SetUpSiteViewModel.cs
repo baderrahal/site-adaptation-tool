@@ -38,7 +38,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
         // 03a Second run: a view where nothing differs says so, and Apply stays off. It holds for the slope the view was made with
         public bool NothingShown => view.NothingDiffers && SameSlope;
 
-        // What waits on a question, Plot on Q153, beside the line, so nothing differs never reads as a model complete
+        // What waits on a question, Plot on Q156, beside the line, so nothing differs never reads as a model complete
         public bool WaitingShown => view.Waiting.Count > 0;
 
         public string WaitingLine => string.Join(Environment.NewLine, view.Waiting);

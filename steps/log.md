@@ -10,7 +10,7 @@ Goal:
 Done:
 - The freeze: a probe started Revit outside the test host and its own watcher left the RCRC Green box open (READ watch_5b logs). No Revit was left, the IMD copy it read unchanged by SHA-256
 - Test host: the watcher starts first and waits for the pid, the tool names come from the installed manifests, probes run by -DryStart -ProbeManifest, the freeze guard (5 min no first step, 10 min no heartbeat, 5 min not responding)
-- Button 1 in Common and the add-in, its window with setup-site.png, the setUp mode of the addinRun job. Q151 to Q154 opened
+- Button 1 in Common and the add-in, its window with setup-site.png, the setUp mode of the addinRun job. Q154 to Q157 opened
 
 Checked:
 - Hang probe, RAN: stopped at 7.4 min on not responding, the windows and 40 journal lines logged, that pid only, step failed, exit 1
@@ -18,7 +18,7 @@ Checked:
 - Badge on the 4 copies: template and no template empty, IMD existing with 4 signs, R17B stand-in existing with the parameter sign and 10 stops
 - Second method, RAN: the facts after Apply by the test host's own API reads held 30 of 30 values within 0.5 mm of the position file, largest gap 0 mm, in runs 2 and 3. Dry run Revit column equal to the value after Apply on 6 of 6 points
 - Gate, RAN: dotnet 1,092 and 986, pytest 1,986 passed, 3 skipped, before the review fixes. Parity on the 7 keys not run: no plan or build step changed (CHOSEN). No plot in button 1, so no 5 plot sample (CHOSEN)
-- Reviewer, 1 pass: 2 REAL fixed with tests (sheet count, failed Browse), 1 not a fault, 4 latent. Breaker pass 1: 2 REAL (an empty second run committed, 0 of 2 before a dry run), pass 2: 3 REAL (waiting items not shown, a slope picked after the view), all fixed with tests, 1 question Q155, 17 latent in steps/latent.md
+- Reviewer, 1 pass: 2 REAL fixed with tests (sheet count, failed Browse), 1 not a fault, 4 latent. Breaker pass 1: 2 REAL (an empty second run committed, 0 of 2 before a dry run), pass 2: 3 REAL (waiting items not shown, a slope picked after the view), all fixed with tests, 1 question Q158, 17 latent in steps/latent.md
 - Revit run 3, RAN, after the fixes: second runs commit 0 on all 4 copies, the IMD copy first run commits 0 since nothing differs, 30 of 30 values at 0 mm again
 
 Remains:
@@ -30,11 +30,50 @@ Known bugs:
 - No Settings entity until R367, Browse stops until the worker reads xlsx, the position path of config is the PC one until J5 (J19)
 
 Next:
-- 5c with the Revit run after 5c on Lane B once 4h-1 is done
+- 5c with the Revit run after 5c on Lane B, 4h-1 is done (PR 107)
 
 Your turn:
-- Opened: Q151 Freeze guard limit for an image job. Q152 The parameter sheet of button 1. Q153 The GUID of Plot. Q154 The type button 1 copies new types from. Q155 Step 1 Done on a model already set up
-- 8 questions open, full text: steps/questions-open.md
+- Opened: Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up
+- 11 questions open, full text: steps/questions-open.md
+
+## Round ADDIN 4h-1, 2026-10-29, Q122, R367, R368 and the join items, Lane A on the laptop
+
+Goal:
+- 4h-1 of steps/01_next.md in one PR (D20): Q122, R367, R368, D13, the D19 input guard, Q075
+
+Done:
+- D20 into CLAUDE.md and steps/decisions-2026-10-28.md. The draft 00d371f was in C:\Dev\site-adaptation-tool-a, Q122 written again
+- Q122: Clusters columns FFL by rule and FFL as written, items 36 and 37 of 7.7, read by the checker from 7.7
+- R367 settings JSON in Common/Settings, R368 tags and the second run match in Common/Tags, Revit adapters in AddIn/Revit
+- D13: rule_status.py reads open questions from questions-open.md, Q017 held open by name until 4h-2
+- D19: python/input_guard.py in plan_from_book.py and read_steps.py, InputGuard of Common in the worker and CadReader
+- Q075: 1,346 native entries with no value moved to cannot by override_source.py cannot, not by majority (Q151)
+
+Checked:
+- Gate, RAN: Python 1,998 passed, 3 skipped, then the one failure test_r272 fixed for Q075. C# net48 1,089, net8.0 1,003
+- Whole project on 974a869, RAN: parity 13 of 13 steps per runtime, 0 failures. Level Excel 70,519 matches, 0 mismatches
+- Runtimes, RAN: 102,862 cells equal, 0 differ. 355 of 616 piece rows hold an FFL as written
+- D19, RAN: worker read 15 of 15 inputs unchanged per runtime, 3 drawings in place. Python build 13 of 13 unchanged
+- Peak once per runtime (D8), RAN: net48 1,065 MiB in 25.7 s, net8.0 1,021 MiB in 19.2 s
+- Q075 second method, RAN: 11,075 kept entries equal in order, parsons build 2,518 of 2,518 plots equal to p4g3_prB
+- 5 random pieces by id, RAN: 12 plots, plan, Levels and Clusters agree on 12, differ on 0 (seed 14)
+- Reviewer and breaker one pass each (D20). No REAL logic fault. Review test gaps fixed with tests, the LATENT ones to latent.md under 4h-1
+
+Remains:
+- The Revit adapters of R367 and R368 never ran in Revit, the run after 5c judges them (UNKNOWN)
+- The majority run with --replace native needs the 4 Native reads, not on this laptop (Q151)
+
+Known bugs:
+- A guard failure at the end leaves the plan and step files of the failed run (LATENT, steps/latent.md)
+- Prototypes_2024 is a copy under the work root with its write times, not the upgraded set
+
+Next:
+- 4h-2, then 5e and 5f together. Lane B runs 5b
+
+Your turn:
+- Opened: Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element
+- 6 questions open, full text and the recommended answers: steps/questions-open.md
+
 ## Round FOLD, 2026-10-29, the fold in, D9 to D19, the answer pass and the manual rules
 
 Goal:

@@ -557,10 +557,10 @@ try {
     $hasJob = (-not $DryStart) -or [bool]$probe
     $firstStepAt = $null
     $notRespondingSince = $null
-    # Q151, the recommended reading until Bader answers: an image step may hold Revit busy for its whole limit (Q063)
+    # Q154, the recommended reading until Bader answers: an image step may hold Revit busy for its whole limit (Q063)
     if ($round -and $round.kind -eq 'image' -and -not $PSBoundParameters.ContainsKey('NotRespondingMinutes')) {
         $NotRespondingMinutes = [int][Math]::Ceiling($imageMinutes)
-        "Freeze guard: an image job, Revit may not respond for up to $NotRespondingMinutes minutes (Q151)"
+        "Freeze guard: an image job, Revit may not respond for up to $NotRespondingMinutes minutes (Q154)"
     }
     $clock = New-LookClock -Start $start -CheckSeconds $checkSeconds -SampleSeconds $sampleSeconds
     while ($true) {

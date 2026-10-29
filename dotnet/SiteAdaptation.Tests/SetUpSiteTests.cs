@@ -62,17 +62,17 @@ namespace SiteAdaptation.Tests
             Assert.False(new SetUpSiteViewModel(Shots.SampleSetUpView(true, true)).NothingShown);
         }
 
-        // Breaker pass 2 of 5b: what waits, Plot on Q153, shows beside the line, so nothing differs never reads as a model complete
+        // Breaker pass 2 of 5b: what waits, Plot on Q156, shows beside the line, so nothing differs never reads as a model complete
         [Fact]
         public void R374_the_items_that_wait_show_in_the_window_beside_nothing_differs()
         {
             SetUpSiteView view = Shots.SampleSetUpView(true, true);
             view.NothingDiffers = true;
-            view.Waiting = new List<string> { "Plot not bound, waiting on Q153" };
+            view.Waiting = new List<string> { "Plot not bound, waiting on Q156" };
             var model = new SetUpSiteViewModel(view);
 
             Assert.True(model.WaitingShown);
-            Assert.Equal("Plot not bound, waiting on Q153", model.WaitingLine);
+            Assert.Equal("Plot not bound, waiting on Q156", model.WaitingLine);
             Assert.False(new SetUpSiteViewModel(Shots.SampleSetUpView(true, true)).WaitingShown);
         }
 
@@ -271,7 +271,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("From the parameter sheet: Other sheet.xlsx, 14 parameters", sheet.Value);
         }
 
-        // Review 1 of 5b: in Revit every Browse fails until the worker reads the sheet (Q152), so the failed path is never kept for Apply
+        // Review 1 of 5b: in Revit every Browse fails until the worker reads the sheet (Q155), so the failed path is never kept for Apply
         [Fact]
         public void R373_a_browse_whose_sheet_does_not_read_keeps_no_sheet_for_apply()
         {

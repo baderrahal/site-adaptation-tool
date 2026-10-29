@@ -44,7 +44,7 @@ namespace SiteAdaptation.Common.SetUp
         // A stop found before any change, such as a shared parameter of a name of the sheet with another GUID. Apply is off while set
         public List<string> Stops { get; set; } = new List<string>();
 
-        // What is listed and not set, never a stop, such as Plot with no GUID until Q153 gives it one
+        // What is listed and not set, never a stop, such as Plot with no GUID until Q156 gives it one
         public List<string> Waiting { get; set; } = new List<string>();
 
         // True on a second run of a document that holds every value, so Apply says it changes nothing

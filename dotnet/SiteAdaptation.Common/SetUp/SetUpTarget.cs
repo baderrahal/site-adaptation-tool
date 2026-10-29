@@ -29,7 +29,7 @@ namespace SiteAdaptation.Common.SetUp
         public string RampType { get; set; }
         public ParameterSheet Parameters { get; set; }
 
-        // The parameter of floors.plotParameter, bound once Q153 gives it a GUID
+        // The parameter of floors.plotParameter, bound once Q156 gives it a GUID
         public string PlotParameter { get; set; }
         public string ParameterGroup { get; set; }
         public double PassLimitMm { get; set; }

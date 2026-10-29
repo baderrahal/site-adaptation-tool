@@ -47,6 +47,7 @@ import face_index
 import face_rings as ring_rules
 import footprint_check
 import full_run
+import input_guard
 import landxml_reader
 import levels_proof
 import link_summary
@@ -325,6 +326,12 @@ def main(argv=None):
     parser.add_argument("--schedule", action="append", default=[], metavar="NBH=PATH",
                         help="R351. the schedule workbook of a neighbourhood of connect.neighbourhoods, the input schedule:<NBH>, its file in the References folder of inputRoot when left out")
     args = parser.parse_args(argv)
+    # D19. Every file the read steps open under an input root is held from its first open to the end, recorded in the steps folder
+    with input_guard.Guard(input_guard.roots(args.settings), record=Path(args.steps) / "inputs_guard.json"):
+        return run_steps(args)
+
+
+def run_steps(args):
     steps = args.only or (STEPS + (LOCATION_STEPS if args.plot_numbers else ()) + (TABLE_STEPS if args.plot_numbers and args.border else ()))
     try:
         for step in steps:

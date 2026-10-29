@@ -159,12 +159,12 @@ namespace SiteAdaptation.Tests
             SetUpSiteView view = SetUpPlanner.View(Template(), target, null);
 
             Assert.Equal(new[] { "RRE_ZZ_SP_Prototype has no GUID in the parameter sheet" }, view.Stops);
-            Assert.Equal(new[] { "Plot not bound, waiting on Q153" }, view.Waiting);
-            Assert.Equal(new[] { "Plot not bound, waiting on Q153" }, SetUpPlanner.View(Template(), Target(), null).Waiting);
+            Assert.Equal(new[] { "Plot not bound, waiting on Q156" }, view.Waiting);
+            Assert.Equal(new[] { "Plot not bound, waiting on Q156" }, SetUpPlanner.View(Template(), Target(), null).Waiting);
         }
 
         [Fact]
-        public void R373_until_a_sheet_is_chosen_the_parameters_are_the_10_of_config_with_the_text_of_q152()
+        public void R373_until_a_sheet_is_chosen_the_parameters_are_the_10_of_config_with_the_text_of_q155()
         {
             ParameterSheet sheet = ParameterSheet.FromConfig(config);
 

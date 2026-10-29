@@ -72,7 +72,7 @@ namespace SiteAdaptation.Common.SetUp
 
         // 03a Shared parameters and Stop. A parameter of a name of the sheet with another GUID, listed with the GUID found and the GUID of
         // the sheet, so a second parameter of one name is never added, a parameter of the sheet with no GUID, and a type with nothing to
-        // copy it from. Plot with no GUID waits on Q153 and is no stop
+        // copy it from. Plot with no GUID waits on Q156 and is no stop
         public static List<string> Stops(SiteState now, SetUpTarget target)
         {
             var stops = new List<string>();
@@ -103,7 +103,7 @@ namespace SiteAdaptation.Common.SetUp
             return stops;
         }
 
-        // Q153. Plot is bound once it has a GUID, until then it is listed and never a stop
+        // Q156. Plot is bound once it has a GUID, until then it is listed and never a stop
         public static List<string> Waiting(SetUpTarget target)
         {
             bool plotHasGuid = target.Parameters.Parameters.Any(item => item.Name == target.PlotParameter && item.Guid != null);

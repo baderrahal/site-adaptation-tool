@@ -78,6 +78,11 @@ namespace SiteAdaptation.Common
         public string Path { get; set; }
         public string Sha256Before { get; set; }
         public string Sha256After { get; set; }
+        // D19: the size and the write time of the input as well, before and after the read
+        public long? SizeBefore { get; set; }
+        public long? SizeAfter { get; set; }
+        public string WriteTimeBefore { get; set; }
+        public string WriteTimeAfter { get; set; }
     }
 
     // R347. What the worker writes as its last act, or the add-in itself for a worker it ended at the time limit

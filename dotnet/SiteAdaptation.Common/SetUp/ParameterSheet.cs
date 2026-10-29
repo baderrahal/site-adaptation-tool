@@ -16,7 +16,7 @@ namespace SiteAdaptation.Common.SetUp
         public List<string> Categories { get; set; } = new List<string>();
     }
 
-    // R373, Q152 by its recommended reading. The parameters and their GUIDs come only from the parameter sheet, one sheet with one row
+    // R373, Q155 by its recommended reading. The parameters and their GUIDs come only from the parameter sheet, one sheet with one row
     // per parameter and the columns Name, GUID, Data type and Categories, never made by the tool. Until a sheet is chosen they are the
     // ones config measured on the answer keys, addin.sharedParameters, which the read job of the test host took from the 7 keys
     public sealed class ParameterSheet
@@ -51,7 +51,7 @@ namespace SiteAdaptation.Common.SetUp
             JArray items = ((config["addin"] as JObject)?["sharedParameters"] as JObject)?["parameters"] as JArray;
             if (items == null || items.Count == 0)
             {
-                throw new InvalidDataException("config holds no addin.sharedParameters.parameters, the parameters of button 1 until a parameter sheet is chosen (R353, Q152)");
+                throw new InvalidDataException("config holds no addin.sharedParameters.parameters, the parameters of button 1 until a parameter sheet is chosen (R353, Q155)");
             }
             var sheet = new ParameterSheet();
             foreach (JObject item in items.OfType<JObject>())
@@ -74,14 +74,14 @@ namespace SiteAdaptation.Common.SetUp
         {
             if (rows == null || rows.Count == 0)
             {
-                throw new InvalidDataException("the parameter sheet " + sheetName + " holds no row (Q152)");
+                throw new InvalidDataException("the parameter sheet " + sheetName + " holds no row (Q155)");
             }
             List<string> header = rows[0].Select(cell => (Cell(cell) ?? "").ToLowerInvariant()).ToList();
             int[] at = Columns.Select(column => header.IndexOf(column.ToLowerInvariant())).ToArray();
             List<string> missing = Columns.Where((column, index) => at[index] < 0).ToList();
             if (missing.Count > 0)
             {
-                throw new InvalidDataException("the parameter sheet " + sheetName + " has no column " + string.Join(", ", missing) + " in its first row (Q152)");
+                throw new InvalidDataException("the parameter sheet " + sheetName + " has no column " + string.Join(", ", missing) + " in its first row (Q155)");
             }
             var sheet = new ParameterSheet { Sheet = sheetName };
             foreach (object[] row in rows.Skip(1))
@@ -108,19 +108,19 @@ namespace SiteAdaptation.Common.SetUp
         {
             if (parameters.Any(item => string.IsNullOrWhiteSpace(item.Name)))
             {
-                throw new InvalidDataException(source + " holds a parameter with no name (Q152)");
+                throw new InvalidDataException(source + " holds a parameter with no name (Q155)");
             }
             List<string> twice = parameters.GroupBy(item => item.Name, StringComparer.Ordinal).Where(group => group.Count() > 1).Select(group => group.Key).ToList();
             if (twice.Count > 0)
             {
-                throw new InvalidDataException(source + " names " + string.Join(", ", twice) + " twice, one parameter per name (Q152)");
+                throw new InvalidDataException(source + " names " + string.Join(", ", twice) + " twice, one parameter per name (Q155)");
             }
             foreach (ParameterSpec item in parameters.Where(item => item.Guid != null))
             {
                 Guid parsed;
                 if (!System.Guid.TryParseExact(item.Guid, "D", out parsed))
                 {
-                    throw new InvalidDataException(source + " gives " + item.Name + " the GUID " + item.Guid + ", which is no GUID (Q152)");
+                    throw new InvalidDataException(source + " gives " + item.Name + " the GUID " + item.Guid + ", which is no GUID (Q155)");
                 }
                 item.Guid = parsed.ToString("D");
             }

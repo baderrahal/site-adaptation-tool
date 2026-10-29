@@ -32,7 +32,7 @@ namespace SiteAdaptation.Common.SetUp
         public const string NothingDiffers = "Nothing differs, Apply changes nothing.";
         public const string AtOrigin = "at the internal origin";
         public const string SettingsNotWritten = "The Settings entity is not written yet, it joins at 5c with R367";
-        public const string SheetNotRead = "The parameter sheet is not read yet, the worker reads it from 5c (Q152)";
+        public const string SheetNotRead = "The parameter sheet is not read yet, the worker reads it from 5c (Q155)";
 
         public static string NotOnDisk(string what, string path)
         {
@@ -61,7 +61,7 @@ namespace SiteAdaptation.Common.SetUp
 
         public static string PlotWaits(string name)
         {
-            return name + " not bound, waiting on Q153";
+            return name + " not bound, waiting on Q156";
         }
 
         public static string FromSheet(string source)

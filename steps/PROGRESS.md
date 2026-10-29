@@ -4,17 +4,19 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## State
 
-- Round FOLD done on 2026-10-29 on the laptop: the fold in of steps/lane-b.md, D9 to D19, the answer pass, M01 to M15 in docs/design/15-manual-rules.md
-- Two lanes in one repo by tools/run-lane.ps1 (D17): Lane A in this folder, Lane B in the worktree Site Adaptation Tool Lane B WT
+- 4h-1 done on 2026-10-29 in Lane A on the laptop, one PR (D20): Q122, R367 settings, R368 tags, D13, the D19 input guard, Q075
+- Round FOLD done on 2026-10-29: the fold in of steps/lane-b.md, D9 to D19, the answer pass, M01 to M15. D20 on 29 Oct for Phase 4 and 5
+- Two lanes in one repo, each a live session, tools/run-lane.ps1 retired: Lane A here, Lane B in the worktree Site Adaptation Tool Lane B WT
 - 4g3 done on 2026-10-29 in Lane A on the laptop: R365 the report Excel with D4, the C# checks of Q111 with 0 failures
-- Lane B: 5b done on 2026-10-29, button 1 on the four copies of 3.1 in Revit, the watcher before Revit and the freeze guard. 5c next after 4h-1
+- Lane B: 5b done on 2026-10-29, button 1 on the four copies of 3.1 in Revit, the watcher before Revit and the freeze guard. 5c next
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
 - Plan: steps/01_next.md. Design: docs/design/. Rules: docs/rules/index.md. Lane B: steps/lane-b.md. Part 2 waits for Bader's check of Part 1
 
 ## Done
 
+- 4h-1: one PR with code, tests and records (D20)
 - FOLD: PR 101 fold in, 102 design, 103 D9 to D19, 104 runner and guard, 105 answer pass and manual rules, then the end records
-- Lane B 5b: the PR of 5b. 5a: PR 84, 86, 87, 89, 90, 92, 97, 99. L0: branch docs/laptop-l0
+- Lane B 5b: one PR with code, tests and records (D20). 5a: PR 84, 86, 87, 89, 90, 92, 97, 99. L0: branch docs/laptop-l0
 - 4g3: PR 83, 85 Q112 and Q113, 88 step 15, 91 the level Excel, 93 handover, 95 laptop start, 96 R365 the report Excel, then the end records
 - 4g2: PR 74 to 81, Q105 to Q110, the walls, the check rows. 4g1: PR 69 to 73, Q098, Q099, the status block and the status in the plan. AUDIT-RULES: PR 67, 68. 4f: PR 61 to 66
 - REC, PR 56 to 60: rules, design and round file in parts, questions-open.md, latent.md, CLAUDE.md to 9 KB, R400, START.md
@@ -31,24 +33,22 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - ELl@Entry is off its schedule over 30 mm on 100 IMC and 115 IMD plots (Q070), no entrance spot gives El @ Entry (R327)
 - Civil 3D ends with 0xC0000005 or 0xC0000409 after C3DQUIT
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
-- A native2022 build with --overrides is refused on 1,346 native entries with no value (Q075)
 - Plot cut rows are not built until 5c (Q117), so Plot cut reads 0 and 7 cut plots of the IMC join count as following every rule on the whole project
 - Report Excel: 2 Read data counts plan plots not faces, the Counts box holds the plan against itself, until 5e (Q123, Q124)
-- rule_status.py reads the open questions from Bader's turn, so it holds every open ID until 4h-1 (D13)
+- A guard failure at the end of plan_from_book.py leaves the plan and step files of that run (LATENT, steps/latent.md)
 - The tab title of the ribbon sits behind the overflow mark at 1536 logical px (Q146)
-- Button 1 writes no Settings entity until R367, Browse of the sheet stops until 5c, the position path of config is the PC one until J5 (J19)
+- Button 1 writes no Settings entity until R367 joins, Browse of the sheet stops until 5c, the position path of config is the PC one until J5 (J19)
 
 ## Bader's turn
 
-Opened in Lane B 5b: Q151 Freeze guard limit for an image job. Q152 The parameter sheet of button 1. Q153 The GUID of Plot.
-Q154 The type button 1 copies new types from. Q155 Step 1 Done on a model already set up.
-Open before: Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot.
-Q150 M15 foundation depth, at least or equal.
-8 questions open, full text and the recommended answers: steps/questions-open.md.
-Q017 is closed, its status block held at RECOMMENDED until 4h-2 updates the two tests of R401 that pin it (join item).
+Opened in 4h-1: Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
+Opened in Lane B 5b: Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot.
+Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up.
+11 questions open, full text and the recommended answers: steps/questions-open.md. Asks of others: steps/waiting-on-others.md.
+Q017 is closed, its values held at RECOMMENDED by HELD_OPEN of rule_status.py until 4h-2 updates the two tests of R401 that pin it.
 
 ## Next three steps
 
-1. 4h-1 on Lane A, 5b on Lane B, both by tools/run-lane.ps1
-2. 4h-2 on Lane A, then 5c with the Revit run after 5c on Lane B
+1. 4h-2 on Lane A, 5c with the Revit run after 5c on Lane B, each a live session
+2. 5e and 5f together on Lane A after 4h-2, 5d on Lane B
 3. Part 2 after Bader's check of Part 1
