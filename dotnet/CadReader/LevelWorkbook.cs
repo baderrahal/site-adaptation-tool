@@ -69,76 +69,6 @@ namespace CadReader
             }
         }
 
-        // The style indexes of the stylesheet Styles writes
-        private const uint Plain = 0;
-        private const uint Bold = 1;
-        private const uint Editable = 2;
-        private static readonly Dictionary<string, uint> FormatStyle = new Dictionary<string, uint>
-        {
-            [LevelExcelText.FourDecimals] = 3,
-            [LevelExcelText.ThreeDecimals] = 4,
-            [LevelExcelText.Whole] = 5,
-        };
-
-        private static Stylesheet Styles()
-        {
-            return new Stylesheet(
-                new NumberingFormats(
-                    new NumberingFormat { NumberFormatId = 164, FormatCode = LevelExcelText.FourDecimals },
-                    new NumberingFormat { NumberFormatId = 165, FormatCode = LevelExcelText.ThreeDecimals }) { Count = 2 },
-                new Fonts(new Font(), new Font(new Bold())) { Count = 2 },
-                new Fills(
-                    new Fill(new PatternFill { PatternType = PatternValues.None }),
-                    new Fill(new PatternFill { PatternType = PatternValues.Gray125 }),
-                    new Fill(new PatternFill(new ForegroundColor { Rgb = LevelExcelText.EditableFill }) { PatternType = PatternValues.Solid })) { Count = 3 },
-                new Borders(new Border()) { Count = 1 },
-                new CellStyleFormats(new CellFormat()) { Count = 1 },
-                new CellFormats(
-                    new CellFormat(),
-                    new CellFormat { FontId = 1, ApplyFont = true },
-                    new CellFormat { FillId = 2, ApplyFill = true },
-                    new CellFormat { NumberFormatId = 164, ApplyNumberFormat = true },
-                    new CellFormat { NumberFormatId = 165, ApplyNumberFormat = true },
-                    new CellFormat { NumberFormatId = 1, ApplyNumberFormat = true }) { Count = 6 },
-                new CellStyles(new CellStyle { Name = "Normal", FormatId = 0, BuiltinId = 0 }) { Count = 1 });
-        }
-
-        // A number as the shortest text that reads back as the same double, as Python repr gives it, G17 where R of net48 gives another double
-        private static string NumberText(object value)
-        {
-            if (value is long whole)
-            {
-                return whole.ToString(CultureInfo.InvariantCulture);
-            }
-            double number = (double)value;
-            string text = number.ToString("R", CultureInfo.InvariantCulture);
-            return ExactDouble.Parse(text) == number ? text : number.ToString("G17", CultureInfo.InvariantCulture);
-        }
-
-        private static Cell MakeCell(string reference, object value, uint style)
-        {
-            if (value is string text)
-            {
-                return new Cell(new InlineString(new Text(text) { Space = SpaceProcessingModeValues.Preserve })) { CellReference = reference, DataType = CellValues.InlineString, StyleIndex = style };
-            }
-            return new Cell(new CellValue(NumberText(value))) { CellReference = reference, StyleIndex = style };
-        }
-
-        private static Row MakeRow(int index, IEnumerable<object> values, Func<int, uint> style)
-        {
-            var row = new Row { RowIndex = (uint)index };
-            int column = 0;
-            foreach (object value in values)
-            {
-                column++;
-                if (value != null)
-                {
-                    row.Append(MakeCell(XlsxSheet.ColumnLetters(column) + index, value, style(column - 1)));
-                }
-            }
-            return row;
-        }
-
         // Each sheet in order: the top line over the header in one merged bold cell, the header, the editable headers of the Levels sheet in
         // the one fill, then one row per item with no blank row, each number in the format of its column
         public static void Write(Stream stream, LevelBook book)
@@ -147,7 +77,7 @@ namespace CadReader
             {
                 WorkbookPart part = document.AddWorkbookPart();
                 part.Workbook = new Workbook();
-                part.AddNewPart<WorkbookStylesPart>().Stylesheet = Styles();
+                part.AddNewPart<WorkbookStylesPart>().Stylesheet = XlsxCells.Styles();
                 Sheets sheets = part.Workbook.AppendChild(new Sheets());
                 uint id = 1;
                 foreach (LevelSheet sheet in book.Sheets)
@@ -156,13 +86,13 @@ namespace CadReader
                     int index = 1;
                     if (sheet.TopLine != null)
                     {
-                        data.Append(MakeRow(index++, new object[] { sheet.TopLine }, column => Bold));
+                        data.Append(XlsxCells.MakeRow(index++, new object[] { sheet.TopLine }, column => XlsxCells.Bold));
                     }
                     bool levels = sheet.Name == LevelExcelText.LevelsSheet;
-                    data.Append(MakeRow(index++, sheet.Header, column => levels && LevelExcelText.Editable.Contains(sheet.Header[column]) ? Editable : Plain));
+                    data.Append(XlsxCells.MakeRow(index++, sheet.Header, column => levels && LevelExcelText.Editable.Contains(sheet.Header[column]) ? XlsxCells.Editable : XlsxCells.Plain));
                     foreach (object[] values in sheet.Rows)
                     {
-                        data.Append(MakeRow(index++, values, column => sheet.Formats[column] != null && !(values[column] is string) ? FormatStyle[sheet.Formats[column]] : Plain));
+                        data.Append(XlsxCells.MakeRow(index++, values, column => sheet.Formats[column] != null && !(values[column] is string) ? XlsxCells.FormatStyle[sheet.Formats[column]] : XlsxCells.Plain));
                     }
                     var worksheet = new Worksheet(data);
                     if (sheet.TopLine != null)
