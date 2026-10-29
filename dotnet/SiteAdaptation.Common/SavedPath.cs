@@ -17,10 +17,8 @@ namespace SiteAdaptation.Common
             {
                 return false;
             }
-            if (!Path.IsPathRooted(pathName))
-            {
-                return false;
-            }
+            // The root is read by hand, not by Path.IsPathRooted, which on Linux holds C:\ and \\server as not rooted and so failed
+            // the dotnet-linux check, while the rule is about the Windows paths Revit gives
             return OnDrive(pathName) || OnShare(pathName);
         }
 
