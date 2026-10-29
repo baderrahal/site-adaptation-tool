@@ -2,6 +2,44 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round ADDIN 4h-1, 2026-10-29, Q122, R367, R368 and the join items, Lane A on the laptop
+
+Goal:
+- 4h-1 of steps/01_next.md in one PR (D20): Q122, R367, R368, D13, the D19 input guard, Q075
+
+Done:
+- D20 into CLAUDE.md and steps/decisions-2026-10-28.md. The draft 00d371f was in C:\Dev\site-adaptation-tool-a, Q122 written again
+- Q122: Clusters columns FFL by rule and FFL as written, items 36 and 37 of 7.7, read by the checker from 7.7
+- R367 settings JSON in Common/Settings, R368 tags and the second run match in Common/Tags, Revit adapters in AddIn/Revit
+- D13: rule_status.py reads open questions from questions-open.md, Q017 held open by name until 4h-2
+- D19: python/input_guard.py in plan_from_book.py and read_steps.py, InputGuard of Common in the worker and CadReader
+- Q075: 1,346 native entries with no value moved to cannot by override_source.py cannot, not by majority (Q151)
+
+Checked:
+- Gate, RAN: Python 1,998 passed, 3 skipped, then the one failure test_r272 fixed for Q075. C# net48 1,089, net8.0 1,003
+- Whole project on 974a869, RAN: parity 13 of 13 steps per runtime, 0 failures. Level Excel 70,519 matches, 0 mismatches
+- Runtimes, RAN: 102,862 cells equal, 0 differ. 355 of 616 piece rows hold an FFL as written
+- D19, RAN: worker read 15 of 15 inputs unchanged per runtime, 3 drawings in place. Python build 13 of 13 unchanged
+- Peak once per runtime (D8), RAN: net48 1,065 MiB in 25.7 s, net8.0 1,021 MiB in 19.2 s
+- Q075 second method, RAN: 11,075 kept entries equal in order, parsons build 2,518 of 2,518 plots equal to p4g3_prB
+- 5 random pieces by id, RAN: 12 plots, plan, Levels and Clusters agree on 12, differ on 0 (seed 14)
+- Reviewer and breaker one pass each (D20). No REAL logic fault. Review test gaps fixed with tests, the LATENT ones to latent.md under 4h-1
+
+Remains:
+- The Revit adapters of R367 and R368 never ran in Revit, the run after 5c judges them (UNKNOWN)
+- The majority run with --replace native needs the 4 Native reads, not on this laptop (Q151)
+
+Known bugs:
+- A guard failure at the end leaves the plan and step files of the failed run (LATENT, steps/latent.md)
+- Prototypes_2024 is a copy under the work root with its write times, not the upgraded set
+
+Next:
+- 4h-2, then 5e and 5f together. Lane B runs 5b
+
+Your turn:
+- Opened: Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element
+- 6 questions open, full text and the recommended answers: steps/questions-open.md
+
 ## Round FOLD, 2026-10-29, the fold in, D9 to D19, the answer pass and the manual rules
 
 Goal:
