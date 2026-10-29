@@ -29,5 +29,6 @@
     <Compile Remove="PaneTests.cs" />
     <Compile Remove="PaneRunStateTests.cs" />
     <Compile Remove="UiShotTests.cs" />
+    <Compile Remove="AddinRunAddInTests.cs" />
   </ItemGroup>
 </Project>

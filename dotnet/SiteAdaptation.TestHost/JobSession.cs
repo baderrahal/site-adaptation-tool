@@ -30,7 +30,9 @@ namespace SiteAdaptation.TestHost
         private readonly TestHostRunner runner;
         private readonly DateTime deadlineUtc;
         private readonly Dictionary<string, LinkOpening> openings = new Dictionary<string, LinkOpening>(StringComparer.OrdinalIgnoreCase);
+        private readonly RunGate gate = new RunGate();
         private TestHostWatchdog watchdog;
+        private AddinRunSession addinRun;
         private Document document;
 
         private JobSession(UIControlledApplication application, TestHostJob job, string jobPath, string documents, string addinsFolder)
@@ -63,7 +65,10 @@ namespace SiteAdaptation.TestHost
 
         public static void Start(UIControlledApplication application, string token, string jobPath, string addinsFolder)
         {
-            string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            // R372, QL2. The work root of the machine file, else Documents. A machine file that does not read throws, and the test host
+            // app writes that refusal beside the job file
+            string documents = WorkRoot.TestHostDocuments(WorkRoot.Of(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), WorkRoot.ReadIfThere));
             // A path that is not a job file of the SiteAdaptation folder is never touched, not even to write a refusal
             if (!TestHostGuard.ShouldWake(token, jobPath, File.Exists(jobPath)) || TestHostGuard.CodeOfJobPath(jobPath, documents) == null)
             {
@@ -92,7 +97,7 @@ namespace SiteAdaptation.TestHost
             if (guard.Act)
             {
                 string copy = TestHostGuard.IsUpgrade(guard.Job) ? FileIdentity.CheckTargetFolder(Path.GetDirectoryName(guard.Job.Target))
-                    : guard.Job.Kind == TestHostGuard.NewSiteKind ? FileIdentity.CheckTargetFolder(Path.GetDirectoryName(guard.Job.Model))
+                    : guard.Job.Kind == TestHostGuard.NewSiteKind || guard.Job.Kind == TestHostGuard.AddinRunKind ? FileIdentity.CheckTargetFolder(Path.GetDirectoryName(guard.Job.Model))
                     : FileIdentity.CheckCopy(guard.Job.Model, TestHostGuard.OriginalOf(guard.Job.Model));
                 // R204. The source of a site upgrade is a plain file of its own, never a link to the site model it was copied from
                 if (copy == null && guard.Job.Kind == TestHostGuard.SiteUpgradeKind)
@@ -141,7 +146,17 @@ namespace SiteAdaptation.TestHost
             application.ControlledApplication.FailuresProcessing += OnFailures;
             application.ControlledApplication.LinkedResourceOpening += OnLinkOpening;
             application.ControlledApplication.LinkedResourceOpened += OnLinkOpened;
-            application.Idling += OnFirstIdling;
+            // QL20. One Idling handler per job, added here in OnStartup and never removed, since Revit refuses a handler added in its
+            // own event. The add-in run spans several idle times and runs its phases in an ExternalEvent made here too
+            addinRun = job.Kind == TestHostGuard.AddinRunKind ? new AddinRunSession(application, job, documents, runner, Exit) : null;
+            if (addinRun != null)
+            {
+                addinRun.Subscribe();
+            }
+            else
+            {
+                application.Idling += OnFirstIdling;
+            }
         }
 
         private void Kill(string why)
@@ -150,11 +165,21 @@ namespace SiteAdaptation.TestHost
             Process.GetCurrentProcess().Kill();
         }
 
+        // The job runs on the first Idling only, every later one returns at once, so the handler stays and nothing changes in the event
         private void OnFirstIdling(object sender, IdlingEventArgs e)
         {
-            application.Idling -= OnFirstIdling;
+            if (!gate.Begin())
+            {
+                return;
+            }
             var ui = (UIApplication)sender;
             runner.Run(Steps(ui.Application));
+            Exit(ui);
+            gate.End();
+        }
+
+        private void Exit(UIApplication ui)
+        {
             try
             {
                 ui.PostCommand(RevitCommandId.LookupPostableCommandId(PostableCommand.ExitRevit));

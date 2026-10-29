@@ -84,6 +84,8 @@ namespace SiteAdaptation.Common
         public const double MaxClockSkewMinutes = 5;
         public const double DefaultTotalMinutes = 27;
         public const double MaxTotalMinutes = 29;
+        // QL20. The whole addinRun job, exit included, ends by 15 minutes. A tool timing, not a project value
+        public const double AddinRunMaxTotalMinutes = 15;
         public const string TestTag = "_TEST-";
         public const string PlaceKind = "place";
         public const string UpgradeKind = "upgrade";
@@ -96,6 +98,8 @@ namespace SiteAdaptation.Common
         public const string ReadKind = "read";
         public const string NewSiteKind = "newSite";
         public const string ImageKind = "image";
+        // Lane B 5a. New projects from the template in one Revit window, to measure what the add-in does with each (R372)
+        public const string AddinRunKind = "addinRun";
         // R117. The one master file and the work files of the floor scenarios, named after the site model
         public const string MasterCode = "MST";
         public const string MasterTag = "_TEST-MASTER";
@@ -105,7 +109,7 @@ namespace SiteAdaptation.Common
         // R204. Run-TestHost.ps1 makes the work folder as siteBuild.folder\work
         public const string WorkFolderName = "work";
         public const int MaxPlots = 1000;
-        private static readonly string[] Kinds = { PlaceKind, UpgradeKind, MasterKind, FloorsKind, LinksAndFloorsKind, SiteUpgradeKind, ReadKind, NewSiteKind, ImageKind };
+        private static readonly string[] Kinds = { PlaceKind, UpgradeKind, MasterKind, FloorsKind, LinksAndFloorsKind, SiteUpgradeKind, ReadKind, NewSiteKind, ImageKind, AddinRunKind };
         private static readonly string[] Deletes = { "all", "plots" };
         private static readonly string[] Expects = { "stop", "rollBack" };
         private static readonly Regex WorkCode = new Regex(@"\AS[1-9][0-9]{0,2}\z", RegexOptions.CultureInvariant);
@@ -162,7 +166,7 @@ namespace SiteAdaptation.Common
             {
                 return "the job kind does not fit its file name";
             }
-            return null;
+            return job.Kind == AddinRunKind ? AddinRunFiles.CheckPlace(job.Model, documents) : null;
         }
 
         // Where a refusal of this job is written, next to its job file, so two windows never write one file
@@ -257,7 +261,8 @@ namespace SiteAdaptation.Common
                 return Refuse(prototype);
             }
             // Written so that NaN fails too. R302 an image job may add its image minutes to the cap
-            double totalCap = MaxTotalMinutes + (job.Kind == ImageKind && HasImageMinutes(job) ? job.ImageMinutes.Value : 0);
+            double totalCap = job.Kind == AddinRunKind ? AddinRunMaxTotalMinutes
+                : MaxTotalMinutes + (job.Kind == ImageKind && HasImageMinutes(job) ? job.ImageMinutes.Value : 0);
             if (job.TotalMinutes.HasValue && !(job.TotalMinutes.Value > 0 && job.TotalMinutes.Value <= totalCap))
             {
                 return Refuse("totalMinutes must be above 0 and at most " + totalCap);
@@ -292,6 +297,11 @@ namespace SiteAdaptation.Common
             if (job.Kind == NewSiteKind)
             {
                 return CheckNewSite(job, fileExists, folderExists);
+            }
+            if (job.Kind == AddinRunKind)
+            {
+                string run = AddinRunFiles.CheckJob(job, fileExists, folderExists);
+                return run == null ? new GuardResult { Act = true, Job = job } : Refuse(run);
             }
             if (job.Kind == ReadKind || job.Kind == ImageKind)
             {
@@ -492,6 +502,10 @@ namespace SiteAdaptation.Common
         // job time when it names none), else DefaultTotalMinutes. So a job never ends before its image step can
         public static double TotalMinutesOf(TestHostJob job)
         {
+            if (job.Kind == AddinRunKind)
+            {
+                return Math.Min(job.TotalMinutes ?? AddinRunMaxTotalMinutes, AddinRunMaxTotalMinutes);
+            }
             if (job.TotalMinutes.HasValue)
             {
                 return job.TotalMinutes.Value;
@@ -506,9 +520,13 @@ namespace SiteAdaptation.Common
         // The fields of the newSite and image jobs belong to those jobs alone
         private static string CheckExtras(TestHostJob job)
         {
-            if (job.Kind != NewSiteKind && (job.Template != null || job.Site != null))
+            if (job.Kind != NewSiteKind && job.Site != null)
             {
-                return "template and site go with a newSite job only";
+                return "site goes with a newSite job only";
+            }
+            if (job.Kind != NewSiteKind && job.Kind != AddinRunKind && job.Template != null)
+            {
+                return "template goes with an addinRun job or a newSite job only";
             }
             if (job.Kind != SiteUpgradeKind && job.WorkFolder != null)
             {
@@ -556,7 +574,8 @@ namespace SiteAdaptation.Common
         // R313. The file name is made of the parts of prototypeNames the job carries, which go with a prototype file only
         private static string CheckPrototype(TestHostJob job)
         {
-            if (job.Kind == MasterKind || job.Kind == FloorsKind || job.Kind == SiteUpgradeKind || job.Kind == ReadKind || job.Kind == NewSiteKind || job.Kind == ImageKind)
+            if (job.Kind == MasterKind || job.Kind == FloorsKind || job.Kind == SiteUpgradeKind || job.Kind == ReadKind || job.Kind == NewSiteKind || job.Kind == ImageKind
+                || job.Kind == AddinRunKind)
             {
                 if (job.PrototypeFile != null)
                 {
@@ -705,9 +724,9 @@ namespace SiteAdaptation.Common
             }
             string name = Path.GetFileName(job.Model);
             // R213. Only the newSite job makes a new site file, and only the floor steps and the image may open one after it
-            if (job.Kind == NewSiteKind)
+            if (job.Kind == NewSiteKind || job.Kind == AddinRunKind)
             {
-                return IsNewSiteName(name) ? null : "a newSite job makes a file named <name>" + NewSiteTag + ".rvt";
+                return IsNewSiteName(name) ? null : "a " + job.Kind + " job makes a file named <name>" + NewSiteTag + ".rvt";
             }
             if (IsNewSiteName(name) && (PlacesFloors(job) || job.Kind == ImageKind))
             {

@@ -151,7 +151,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(Folder + "project.json", model.Settings.ConfigFile);
             Assert.Equal("project.json", model.SettingsRow.FileName);
             Assert.True(model.SettingsRow.Found);
-            Assert.Equal("0.00 MiB a1b2c3d4", model.SettingsRow.Detail);
+            Assert.Equal(Folder + "project.json" + Environment.NewLine + "0.00 MiB a1b2c3d4", model.SettingsRow.ToolTip);
             Assert.Equal("Run 1 Set up site", model.BoxButton);
 
             var cancelled = new PaneViewModel(probe, new FakePicker((string)null));
@@ -284,8 +284,15 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Places a villa on each plot at its FFL", PaneText.StepLines[6]);
         }
 
+        // Review 1 of PR 97: QL15 moved the size and hash into the tooltip, so a member no page binds would only feed the tests
         [Fact]
-        public void R372_each_row_shows_its_mark_the_file_name_the_size_the_short_hash_and_the_full_path_as_tooltip()
+        public void R372_a_file_row_has_no_detail_member_since_the_tooltip_holds_the_size_and_hash()
+        {
+            Assert.Null(typeof(FileRowViewModel).GetProperty("Detail"));
+        }
+
+        [Fact]
+        public void R372_each_row_shows_its_mark_and_the_file_name_with_the_full_path_and_under_it_the_size_and_short_hash_as_tooltip()
         {
             var probe = new FakeProbe();
             probe.Add(Folder + "plots.pdf", 3056293, "7061ac0d" + new string('0', 56));
@@ -300,15 +307,14 @@ namespace SiteAdaptation.Tests
             model.PickInput(InputKeys.PlotNumbers, Folder + "plots.pdf");
             Assert.True(plots.Found);
             Assert.Equal("plots.pdf", plots.FileName);
-            Assert.Equal("2.91 MiB 7061ac0d", plots.Detail);
             Assert.Equal(Folder + "plots.pdf" + Environment.NewLine + "2.91 MiB 7061ac0d", plots.ToolTip);
             Assert.Equal(3056293L, model.Settings.Inputs[InputKeys.PlotNumbers].Size);
             Assert.StartsWith("7061ac0d", model.Settings.Inputs[InputKeys.PlotNumbers].Sha256);
             Assert.True(model.RulesRow.Found);
-            Assert.Equal("0.00 MiB 205000fc", model.RulesRow.Detail);
+            Assert.Equal(Folder + "rules.json" + Environment.NewLine + "0.00 MiB 205000fc", model.RulesRow.ToolTip);
             Assert.False(model.SettingsRow.Found);
             Assert.Equal("project.json", model.SettingsRow.FileName);
-            Assert.Equal(string.Empty, model.SettingsRow.Detail);
+            Assert.Equal(Folder + "project.json", model.SettingsRow.ToolTip);
             Assert.Equal("The drawings and schedules the tool reads. 1 of 8 found.", model.InputHelp);
 
             model.PickInput(InputKeys.Dlus, Folder + "dlus.xlsx");
@@ -320,8 +326,8 @@ namespace SiteAdaptation.Tests
             probe.Add(Folder + "sales.xlsx", 2097152, "bbbbbbbb" + new string('3', 56));
             model.PickInput(InputKeys.Sales, Folder + "sales.xlsx");
             Assert.True(dlus.Found);
-            Assert.Equal("1.00 MiB aaaaaaaa, 2.00 MiB bbbbbbbb", dlus.Detail);
-            Assert.Equal(Folder + "dlus.xlsx" + Environment.NewLine + Folder + "sales.xlsx" + Environment.NewLine + "1.00 MiB aaaaaaaa, 2.00 MiB bbbbbbbb", dlus.ToolTip);
+            // QL15: each full path with its own size and short hash right under it
+            Assert.Equal(string.Join(Environment.NewLine, Folder + "dlus.xlsx", "1.00 MiB aaaaaaaa", Folder + "sales.xlsx", "2.00 MiB bbbbbbbb"), dlus.ToolTip);
             Assert.Equal(Folder + "project.json", model.SettingsRow.ToolTip);
             Assert.Throws<ArgumentException>(() => model.PickInput("roads", "a"));
         }
@@ -345,11 +351,11 @@ namespace SiteAdaptation.Tests
             model.PickRules(Folder + "rules.json");
             Assert.Null(input.Size);
             Assert.Null(input.Sha256);
-            Assert.Equal("2.00 MiB", model.InputRows[0].Detail);
+            Assert.Equal(Folder + "a.dwg" + Environment.NewLine + "2.00 MiB", model.InputRows[0].ToolTip);
             probe.Finish();
             Assert.Equal(2097152L, input.Size);
             Assert.StartsWith("87654321", input.Sha256);
-            Assert.Equal("2.00 MiB 87654321", model.InputRows[0].Detail);
+            Assert.Equal(Folder + "a.dwg" + Environment.NewLine + "2.00 MiB 87654321", model.InputRows[0].ToolTip);
         }
 
         [Fact]
@@ -380,14 +386,14 @@ namespace SiteAdaptation.Tests
             model.LoadSettings(new PaneSettings { ConfigFile = Folder + "project.json" });
             FileRowViewModel baseplan = model.InputRows[0];
             model.PickInput(InputKeys.Baseplan, Folder + "a.dwg");
-            Assert.Equal("1.00 MiB", baseplan.Detail);
+            Assert.Equal(Folder + "a.dwg" + Environment.NewLine + "1.00 MiB", baseplan.ToolTip);
             Assert.Single(probe.Waiting);
 
             model.Load(new DocumentSession("two", Folder + "Two.rvt", "Two"));
             probe.Finish();
             Assert.Equal("Not chosen", model.InputRows[0].FileName);
             model.Load(first);
-            Assert.Equal("1.00 MiB 12345678", model.InputRows[0].Detail);
+            Assert.Equal(Folder + "a.dwg" + Environment.NewLine + "1.00 MiB 12345678", model.InputRows[0].ToolTip);
             Assert.Empty(probe.Waiting);
         }
 
@@ -404,11 +410,11 @@ namespace SiteAdaptation.Tests
             model.PickInput(InputKeys.Baseplan, Folder + "a.dwg");
             model.Load(new DocumentSession("two", Folder + "Two.rvt", "Two"));
             model.Load(first);
-            Assert.Equal("1.00 MiB", model.InputRows[0].Detail);
+            Assert.Equal(Folder + "a.dwg" + Environment.NewLine + "1.00 MiB", model.InputRows[0].ToolTip);
             Assert.Single(probe.Waiting);
 
             probe.Finish();
-            Assert.Equal("1.00 MiB 12345678", model.InputRows[0].Detail);
+            Assert.Equal(Folder + "a.dwg" + Environment.NewLine + "1.00 MiB 12345678", model.InputRows[0].ToolTip);
             Assert.StartsWith("12345678", first.Settings.Inputs[InputKeys.Baseplan].Sha256);
         }
 
@@ -752,6 +758,21 @@ namespace SiteAdaptation.Tests
             Assert.Throws<ArgumentException>(() => TextTemplate.Fill(PaneText.RunButton, 4));
             Assert.Throws<ArgumentException>(() => TextTemplate.Fill(PaneText.Ready, 4));
             Assert.Equal("2.91", PaneViewModel.SizeText(3056293));
+        }
+
+        // Lane B 5a PR 6. The addinRun job of the test host counts the loads of the pane around each step by this counter
+        [Fact]
+        public void R372_the_pane_counts_each_load_of_a_document_or_of_none()
+        {
+            PaneViewModel model = Model(new FakeProbe());
+            int start = model.Loads;
+            var sessions = new PaneSessions();
+
+            model.Load(sessions.Opened(new object(), Folder + "a.rvt", "a"));
+            model.Load(null);
+            model.Load(sessions.Opened(new object(), "", ""));
+
+            Assert.Equal(start + 3, model.Loads);
         }
 
         private static PaneViewModel Model(IInputProbe probe)

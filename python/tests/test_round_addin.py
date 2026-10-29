@@ -712,3 +712,13 @@ def test_r302_a_plain_image_run_takes_its_window_limit_from_the_image_step_and_t
     assert "$imageTotal = $imageMinutes + $imageMargin" in script
     assert "$TimeoutMinutes = [int][Math]::Ceiling($imageTotal + 3)" in script
     assert "$job.totalMinutes = [Math]::Min($imageTotal, $TimeoutMinutes - 2)" in script
+
+
+# R372, QL20. An addinRun window ends by 15 minutes with its exit, the job takes 13 of them
+def test_r372_an_add_in_run_window_defaults_to_15_minutes_and_its_job_to_13():
+    script = (ROOT / "dotnet" / "SiteAdaptation.TestHost" / "Run-TestHost.ps1").read_text(encoding="utf-8")
+    branch = script[script.index("        'addinRun' {"):script.index("        'linksAndFloors' {")]
+    assert "$addinRunWindowMinutes = 15" in branch and "$addinRunJobMinutes = 13" in branch
+    assert "$TimeoutMinutes = $addinRunWindowMinutes" in branch
+    assert "elseif ($TimeoutMinutes -gt $addinRunWindowMinutes) {" in branch
+    assert "$job.totalMinutes = [Math]::Min($addinRunJobMinutes, $TimeoutMinutes - 2)" in script

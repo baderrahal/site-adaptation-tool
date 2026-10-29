@@ -15,6 +15,19 @@ After 5b Lane B waits until 4g2, 4g3 and 4h are all marked done in steps/01_next
 
 A laptop session starts from Bader's Lane B prompt, never from steps/START.md. START.md runs the first open phase of steps/01_next.md, which is Phase 4, and nothing there names this file until the fold in.
 
+## Revit run 3 of 5a, 29 Oct 2026
+
+Run with the fix of QL20 on branch feat/lane-b-5a-revit-run at 11112fc, PR 97. Its files stay outside the repo in C:\Users\p003653k\Documents\SiteAdaptation\lane_b_5a_run3\ (RAN).
+
+- A first start stopped before Revit opened: the window lock took its default settings, the project config of the PC, whose folder does not exist here. With --settings C:\Users\p003653k\Documents\SiteAdaptation\lock_settings.json it ran once. Revit never started in the first, so it is not counted as a run (RAN, no Revit process).
+- 3.4 minutes, exit 0, under the cap of 15. Peak 2,146 MiB private and 2,345 MiB working set, least free 28.11 GiB, 0 samples under the floor of 2 GiB (RAN).
+- QL20 point 4: the raised ExternalEvent ran on the Home screen with 0 documents open, 0 s after the raise, with no active document (RAN, homeEvent of testhost_SA5A_addinrun.json).
+- 18 of 18 steps ok. Checks held 17, not held 2, not measured 1, by the judge of 11112fc that ran (RAN). The judge of PR 97 review 1 adds the check of the first show, which on the same record gives held 17, not held 2, not measured 2.
+- Open item 1 held in full: session ids on DocumentCreated and DocumentOpened, every id its own, the pane on the active document and loading again on the five events, an answer routed to its own document while another is active, an answer for a closed document dropped with its issue.
+- Open item 2, not as the design read it: a detached document that was never saved has the PathName "SA5A-CENTRAL-TEST-NEW_detached.rvt", a file name with no folder, and the Title "SA5A-CENTRAL-TEST-NEW_detached" (not held 2). The add-in takes that name as a saved path and names a work folder for it, so a button on a detached document asks for no save (READ, the documents of the result). The check of that stop is not measured, as the flow builds the stop only for an empty path. A document never saved has no PathName and asks for a save (held).
+- The pane opened 765 WPF units wide against MinimumWidth 380 (QL13, RAN). The Revit PNGs and every difference from the drafts are in steps/ui-shots/, part "The Revit shots against the drafts". The title of the tab does not show in the tab strip at this screen width (QL21). The 16 px icons are not in the shot, Revit shows each button large.
+- PaneShownBefore was True, which Revit also gives for a pane it restores from the last session, so the first show of a hidden pane by the add-in (QL18) is not measured in Revit (breaker S1 of PR 97).
+
 ## Where 5a stopped, 29 Oct 2026
 
 5a is not done. It stopped on the rule that a fix on its third attempt goes back to measuring and becomes a question: the Revit run failed twice, its cause is now measured, and the next run is question QL20. Nothing runs in Revit and no window lock is held (RAN).
@@ -24,9 +37,9 @@ A laptop session starts from Bader's Lane B prompt, never from steps/START.md. S
 - Not done: open item 1, a worker answer routed to its own document and dropped for a closed one, and open item 2, Title and PathName of a detached and of a never saved document and the stop asking for a save (not measured in run 1, run 2 ran no step). The Revit screenshot of the ribbon and the pane in steps/ui-shots/: run 1 took the Architecture tab and a pane that was not shown, run 2 took none. The offscreen drafts of steps/ui-shots/ are there.
 - Run 1 (RAN, 28 Oct, its JSON files in C:\Users\p003653k\Documents\SiteAdaptation\testhost_old\SA5A_20261029-000118\, 2.98 min, peak 2,157 MiB working set, 1,966 private): OpenAndActivateDocument refused inside Idling, "Switching active documents is not allowed during API event handling."
 - Run 2 (RAN, 29 Oct, 29.6 min, timeout, peak 1,910 MiB working set, 1,727 private, at least 32.39 GiB free): no step ran. The cause, READ in Revit's journal.0132.txt line 1957: "Can not subscribe to an event during execution of that event!" at `application.Idling += OnTick`, AddinRunSession.cs line 85, called from the first Idling handler of the test host. The prober's answer is in C:\Users\p003653k\Documents\SiteAdaptation\probes\lane-b-5a\why-no-step-20261029.txt.
-- Waiting: branch feat/lane-b-5a-revit-run at fb318b8, the test host side of the run with main merged in, not a PR. Its code holds the cause of run 2, so it is not merged until QL20 is answered.
+- Waiting at that stop: branch feat/lane-b-5a-revit-run at fb318b8. It became PR 97 with the fix of QL20, see Revit run 3 above.
 - Written on the laptop outside the repo: machine.json in %APPDATA%\SiteAdaptation with workRoot C:\Users\p003653k\Documents\SiteAdaptation, the add-in and the test host installed in %APPDATA%\Autodesk\Revit\Addins\2024 from the build of fb318b8, lock_settings.json and addin_run_spec.json in C:\Users\p003653k\Documents\SiteAdaptation.
-- Left after QL20: the run, the Revit PNGs into steps/ui-shots/ with the differences, the review and merge of the run branch, 5a marked done here, Bader's approval of the PNGs.
+- Left after QL20, as it stood at that stop: the run, the Revit PNGs, the merge of the run branch, 5a marked done, Bader's approval of the PNGs. Run 3 and its PNGs are done, above.
 
 ## Fold in
 
@@ -74,7 +87,7 @@ Added by Bader's Lane B prompt of 28 Oct 2026, the second of that day, for the f
 From docs/design/13-workflow-changes.md, part Where each lands. 5a builds the order, the ribbon and the pane in Lane B PR 8.
 
 - W1, 5b. Set up site: the pass limit read from config by the answer of QL17, the Floor types row, the Ramp slope row and its dropdown, the Shared parameters row from the parameter sheet, the parameters and GUIDs only from that sheet, its PNG. The new labels of 7.3 are in the label list since review 1 of PR 92, the pass line as "Pass limit <n> mm" until QL17 is answered. The default 0.5% of Ramp slope is in the rules profile already, levelProfiles.parsons2024Rev6.rampSlopePercent.default beside rampTypes of rules/roshn-makkah.json, which the build reads (5a PR 8 review 2). Only the list of choices, 0.5%, 1%, 2%, then 3% to 15%, is new, and it goes beside rampTypes by Lane A or at the fold in (CLAUDE.md, no project value in code).
-- W2, 5c. The pass limit of 0.1 mm in config by the answer of QL17. addin.position.checkPointLimitMm is there already at 1.0 (R211, R353, Q086), and config is Lane A's file.
+- W2, 5c. The pass limit of 0.1 mm in config by the answer of QL17 (Bader, 29 Oct 2026): a key of its own for the check points of button 1 against Revit, the Revit column after Apply against the transform of the dry run. addin.position.checkPointLimitMm stays at 1.0 for the key check of R353 (R211, Q086). Config is Lane A's file, so Lane A or the join adds the key and Code names it then.
 - W3, 5c. The rules profile gains the block manualRules, M01 to M15 as drafted on the canvas, with id, text, group, manual section and the steps that check it. Code reads the page numbers from the manual PDF. The texts of M01 to M15 are on the canvas, not in the repo, so 5c asks Bader for them if no file holds them.
 - W4, 5c. The pre-setting: Import from past job and Export with R367, never a drawing path or a coordinate.
 - W5, 5c. The windows 3 Review data and Site Adaptation Rules, their labels in docs/design/14-ui-labels.md, their PNGs, and the manual rule ID on every check row and Review data row, with "Open in Site Adaptation Rules" in the Check table side box.
@@ -152,6 +165,12 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - 5a PR 8 review. pane-first-open.png is 84,976 bytes of the 100 KB cap of R400.
 - 5a PR 8 review. TellHandler holds one text, so two Told before Revit is idle show the last one only.
 - 5a PR 8 review. The Key of a button with no number comes from its label, so a label with a double or a trailing space gives an empty word and throws.
+- PR 97 breaker E1. A row of two files with one missing shows both names and an amber mark, and the tooltip gives the missing one no size line, so only the absent line tells which is missing (PaneViewModel.cs RefreshRow). Run 3 chose no settings.
+- PR 97 breaker B1. The window of Run-TestHost.ps1 counts its 15 minutes from the start of Revit, the job its 13 from OnStartup. Run 3 took 1.67 minutes to reach OnStartup, so a job that ran to its deadline would leave Revit about 20 s to exit, not the 2 minutes of the comment. Run 3 ended at 3.4 minutes.
+- PR 97 breaker B2 and review. Inside Revit the cap does not hold the exit: Exit moves the watchdog to now plus 5 minutes, so a job written by hand with totalMinutes 15 could run to about 20 minutes. Only Run-TestHost writes the jobs, at most 13, and its window stops Revit at 15.
+- PR 97 review. A -TimeoutMinutes of 2 or less gives a job of 0 minutes or less, which the guard refuses with its reason. A -TimeoutMinutes over 15 throws after New-AddinRunFolder made an empty run folder.
+- PR 97 review 2. Item 11 of the Revit part of steps/ui-shots/README.md stands under the pane shot but is read from Theme.xaml lines 115 and 135, since the step rows are not in that shot.
+- PR 97 breaker S1, the part no run reaches. PaneFirstShow.Due marks the show done before it asks IsShown, so if GetDockablePane throws at the first project view the catch of PaneHost swallows it and the pane is not shown in that session, with nothing written.
 
 ## Lane A on this laptop, Bader 28 Oct 2026
 
@@ -196,7 +215,36 @@ Bader answered QL1 to QL8 in his Lane B prompt of 28 Oct 2026. At the fold in ea
 - QL7: SA.Type.Project 16, SA.Type.Step 14, SA.Type.Count 28, SA.Type.Label 13 SemiBold. Amber to SA.Warn, grey to SA.BorderStrong, green to SA.Ok, white to SA.Surface. A missing file shows "[m] of [n] found". Written into docs/design/12-ui-spec.md with the weights of the recommended answer.
 - QL8: a "Villa mode" row under the Dry run checkbox, a new item of the list of 7.7. Written into docs/design/12-ui-spec.md 7.2 and docs/design/11-light-mode.md.
 
+## Bader's answers of 29 Oct 2026
+
+Bader answered QL9 to QL20 in his Lane B prompt of 29 Oct 2026, with the UI approval and the fold in. Their text as asked is under "Questions answered on 29 Oct 2026". At the fold in each goes to steps/questions-closed.md as item 5 of "Fold in" says.
+
+- QL20: allow Revit run 3 with the fix of the prompt: one Idling handler added once in OnStartup outside any Revit event, a flag for started and finished, no handler added or removed inside Idling or any other Revit event, Finish() ending by the flag, each phase from the ExternalEvent, the first record whether a raised ExternalEvent runs on the Home screen with no document, the whole job capped at 15 minutes. If it fails, one probe only, then stop. No fourth run.
+- Fold in: Lane A does it, as the last records PR of 4h, before 4h is marked done, from the list of "Fold in" above. Lane B does not do it.
+- QL17: 0.1 mm for the check points of button 1 against Revit, under a key of its own. The key check of R353 stays at the answer of Q086. The new key goes into config by the join rule, since config/project.json is Lane A's file, join item W2.
+- QL9: keep Libre Franklin, right-align the number columns, accept proportional digits.
+- QL10: the Place villas icon hole drawn with no stroke.
+- QL11: keep. A window's label entries count from the PR that builds it.
+- QL12: TaskDialogs for short stops and messages. The confirm becomes a themed window in 5b.
+- QL13: keep MinimumWidth 380, and measure the width Revit opens the pane at in run 3.
+- QL14: step rows 40, input and project rows 32, the step line cut with an ellipsis, its full text in the tooltip.
+- QL15: size and short hash move into the tooltip under the full path.
+- QL16: accept the 2 px gaps.
+- QL18: keep, the pane shows again each session.
+- QL19: keep, 9 Report needs only 4 Check.
+- UI approval: ribbon-icons.png, pane.png and pane-first-open.png are approved as drafts. Final approval waits for the Revit shots. In the Revit shot, check the 16 px icons are sharp and readable.
+
 ## Questions open in Lane B
+
+QL21. The tab title in the tab strip. In Revit run 3 the strip on this laptop, 1536 logical px wide, ran from File to Bird Tools and ended in the overflow mark, so the title Site Adaptation did not show although the tab was active and its panels showed (steps/ui-shots/revit-ribbon.png). The other tabs come from Revit and from other add-ins on this laptop.
+- Recommended: accept it as Revit's tab strip, the user reaches the tab through the overflow mark or drags it forward once, and the run judge gains a check that the title shows, reported, not held against 5a.
+- Other: a shorter tab title, which needs a change of 7.1 of docs/design/12-ui-spec.md and the label list.
+
+QL22. Close 5a with three items not seen in Revit. QL20 allowed run 3 and barred a fourth after a failed one. Run 3 did not fail, but a further run is not in Bader's answer, so it waits for his word. Not seen in Revit: the stop asking for a save on a detached document (its fix is the next PR, tested on the PathName run 3 measured), the first show of a hidden pane by the add-in (QL18), and the 16 px icons.
+- Recommended: mark 5a done on the unit tests and run 3, and measure the three in the Revit run after 5c, which runs the buttons in Revit anyway.
+- Other: one more Revit run in 5b, before Set up site is built, for these three only.
+
+## Questions answered on 29 Oct 2026
 
 QL9. Tabular figures. Libre Franklin 2.000 and 3.000 have no tnum feature, so the "Tabular figures for numbers" of docs/design/12-ui-spec.md cannot come from it, and WPF does not fall back to another font for one feature. The GSUB feature list of both files holds aalt ccmp dnom frac liga locl numr ordn sinf subs sups, and rvrn in 3.000, no tnum (READ in 5a PR 2). WPF gives the bundled Regular the digit widths 0=688 1=465 2=599 3=641 4=649 5=654 6=661 7=599 8=668 9=658 in thousandths of the em, 9 widths for 10 digits (RAN), the breaker measured 0=675 1=438 9=641. Under SA.Type.Count "1111", "0000" and "7777" are 55.3, 78.5 and 68.5 px wide (RAN).
 - Recommended: keep Libre Franklin, right-align the number columns and accept proportional digits.

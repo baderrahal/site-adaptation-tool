@@ -134,9 +134,14 @@ namespace SiteAdaptation.AddIn.Pane
 
         public IReadOnlyList<StepStatus> Statuses { get { return statuses; } }
 
+        // How often the pane loaded a document. The addinRun job of the test host reads it around each step, to see the pane load again
+        // on each event of docs/design/09-risks.md open item 1
+        public int Loads { get; private set; }
+
         // The pane of the active document, or of none: then it shows its labels with no values and every button grey
         public void Load(DocumentSession active)
         {
+            Loads++;
             document = active;
             statusesFromOutside = false;
             ProjectName = active == null ? string.Empty : string.IsNullOrEmpty(active.Title) ? PaneText.NotSaved : active.Title;
@@ -328,11 +333,10 @@ namespace SiteAdaptation.AddIn.Pane
         {
             if (paths == null)
             {
-                row.Show(false, false, string.Empty, string.Empty, null);
+                row.Show(false, false, string.Empty, null);
                 return;
             }
             var names = new List<string>();
-            var details = new List<string>();
             var tips = new List<string>();
             bool found = true;
             for (int at = 0; at < paths.Length; at++)
@@ -359,7 +363,7 @@ namespace SiteAdaptation.AddIn.Pane
                 HashedInput known;
                 if (hashes.TryGetValue(path, out known) && known.Size == facts.Size && known.Stamp == facts.Stamp)
                 {
-                    details.Add(TextTemplate.Fill(PaneText.SizeAndHash, SizeText(facts.Size), Short(known.Sha256)));
+                    tips.Add(TextTemplate.Fill(PaneText.SizeAndHash, SizeText(facts.Size), Short(known.Sha256)));
                     if (input != null && input.Path == path)
                     {
                         input.Size = facts.Size;
@@ -367,7 +371,7 @@ namespace SiteAdaptation.AddIn.Pane
                     }
                     continue;
                 }
-                details.Add(TextTemplate.Fill(PaneText.Size, SizeText(facts.Size)));
+                tips.Add(TextTemplate.Fill(PaneText.Size, SizeText(facts.Size)));
                 // The size and hash the settings held belong to the file before it changed
                 if (input != null && input.Path == path)
                 {
@@ -393,13 +397,9 @@ namespace SiteAdaptation.AddIn.Pane
                 }
             }
             string name = names.Count == 0 ? PaneText.NotChosen : string.Join(", ", names);
-            string detail = string.Join(", ", details);
-            // At 380 wide the grey run is cut on a long name, so the tooltip gives it again under the full path
-            if (detail.Length > 0)
-            {
-                tips.Add(detail);
-            }
-            row.Show(true, found && names.Count == paths.Length, name, detail, tips.Count == 0 ? null : string.Join(Environment.NewLine, tips));
+            // QL15. The row shows the file name alone, at 380 wide the size and hash showed on no row, so the tooltip gives each
+            // under its full path
+            row.Show(true, found && names.Count == paths.Length, name, tips.Count == 0 ? null : string.Join(Environment.NewLine, tips));
         }
 
         private void RefreshHelp()
@@ -519,7 +519,6 @@ namespace SiteAdaptation.AddIn.Pane
         private bool shown;
         private bool found;
         private string fileName = string.Empty;
-        private string detail = string.Empty;
         private string toolTip;
 
         public FileRowViewModel(string label, bool folder, params string[] keys)
@@ -535,15 +534,13 @@ namespace SiteAdaptation.AddIn.Pane
         public bool Shown { get { return shown; } private set { Set(ref shown, value); } }
         public bool Found { get { return found; } private set { Set(ref found, value); } }
         public string FileName { get { return fileName; } private set { Set(ref fileName, value); } }
-        public string Detail { get { return detail; } private set { Set(ref detail, value); } }
         public string ToolTip { get { return toolTip; } private set { Set(ref toolTip, value); } }
 
-        internal void Show(bool on, bool isFound, string name, string details, string tip)
+        internal void Show(bool on, bool isFound, string name, string tip)
         {
             Shown = on;
             Found = isFound;
             FileName = name;
-            Detail = details;
             ToolTip = tip;
         }
     }

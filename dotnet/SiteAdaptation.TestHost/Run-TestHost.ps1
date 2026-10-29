@@ -28,6 +28,8 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'WindowSamples.ps1')
 # R313. The prototype sets an upgrade may take
 . (Join-Path $PSScriptRoot 'PrototypeSets.ps1')
+# R108. The add-ins of this tool the watcher answers Load Once
+. (Join-Path $PSScriptRoot 'TestHostPaths.ps1')
 $spec = $null
 if ($FloorSpec) {
     if ($Code -or $DryStart -or $Upgrade) {
@@ -54,8 +56,8 @@ if ($RoundSpec) {
         throw '-RoundSpec goes alone, its code is in the spec.'
     }
     $round = Get-Content -Raw $RoundSpec | ConvertFrom-Json
-    if (@('siteUpgrade', 'read', 'newSite', 'image', 'linksAndFloors') -notcontains $round.kind) {
-        throw "The round spec kind is not siteUpgrade, read, newSite, image or linksAndFloors: $($round.kind)"
+    if (@('siteUpgrade', 'read', 'newSite', 'image', 'linksAndFloors', 'addinRun') -notcontains $round.kind) {
+        throw "The round spec kind is not siteUpgrade, read, newSite, image, linksAndFloors or addinRun: $($round.kind)"
     }
     if ($round.code -notmatch '^[A-Z][A-Z0-9]{1,3}$') {
         throw "The round spec code is not a code of 2 to 4 capitals and digits: $($round.code)"
@@ -82,7 +84,9 @@ if ($PrototypeSet) {
     $set = Get-PrototypeSet -Config $config -Name $PrototypeSet
     $Code = Get-SetJobCode -Set $set -Code $prototypeCode
 }
-$docs = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'SiteAdaptation'
+# R372, QL2. The job, log and sample files sit in the work root of %APPDATA%\SiteAdaptation\machine.json, as the test host reads it
+$docs = Get-WorkRoot -AppData $env:APPDATA -MyDocuments ([Environment]::GetFolderPath('MyDocuments'))
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $addins = Join-Path $env:APPDATA 'Autodesk\Revit\Addins\2024'
 $watcherExe = Join-Path $addins 'SiteAdaptationTestHost\Watcher\SiteAdaptation.DialogWatcher.exe'
 $name = if ($DryStart) { 'dry_start' } elseif ($Upgrade -or ($round -and $round.kind -eq 'siteUpgrade')) { $Code + '_upgrade' } else { $Code }
@@ -121,23 +125,12 @@ if ($found.Count -ne 1) {
 }
 $revit = $found[0]
 
-# The three add-ins of this tool by their AddInId and name in the repo manifests. The watcher stops Revit if one of them asks
-$manifests = @('dotnet\RevitPrototypeReader\SiteAdaptation.addin', 'dotnet\SiteAdaptation.Placer\SiteAdaptationPlacer_Revit2024.addin', 'dotnet\SiteAdaptation.TestHost\SiteAdaptationTestHost_Revit2024.addin')
-$ourIds = @()
-$ourMarks = @()
-foreach ($manifest in $manifests) {
-    [xml]$xml = Get-Content -Raw (Join-Path $repo $manifest)
-    $ourIds += [string]$xml.RevitAddIns.AddIn.AddInId
-    $ourMarks += [string]$xml.RevitAddIns.AddIn.Name
-    $ourMarks += Split-Path ([string]$xml.RevitAddIns.AddIn.Assembly) -Leaf
-}
-
-# The three DLLs as Install-TestHost.ps1 puts them. Only a box that names one of these paths gets Load Once
-$ourPaths = @(
-    (Join-Path $addins 'SiteAdaptation\RevitPrototypeReader.dll')
-    (Join-Path $addins 'SiteAdaptationPlacer\SiteAdaptation.Placer.dll')
-    (Join-Path $addins 'SiteAdaptationTestHost\SiteAdaptation.TestHost.dll')
-)
+# The four add-ins of this tool by their AddInId and name in the repo manifests and the DLLs as the install scripts put them.
+# Only a box that names one of these DLLs gets Load Once, the watcher stops Revit on any other box of the tool
+$tool = Get-ToolAddIns -Repo $repo -Addins $addins
+$ourIds = $tool.ids
+$ourMarks = $tool.marks
+$ourPaths = $tool.paths
 
 $original = $null
 $copy = $null
@@ -235,6 +228,26 @@ if ($round) {
             $roundJob.model = $copy
             $roundJob.template = $build.template
             $roundJob.site = [string]$round.site
+        }
+        'addinRun' {
+            # Lane B 5a, docs/design/09-risks.md open items 1 and 2. The new projects of the job go into a run folder of their own under
+            # the work root, made here and empty, never a file of the inputs. The template is the one file the job reads
+            $run = New-AddinRunFolder -Docs $docs -Code $Code -Stamp $stamp
+            $runFolder = $run.folder
+            $copy = $run.model
+            $original = $build.template
+            $roundJob.model = $copy
+            $roundJob.template = $build.template
+            # QL20. The whole run, the exit of Revit included, ends by 15 minutes. CHOSEN: the job gets 13 and the window 15, so the
+            # 2 minutes between leave Revit time to exit after the job posts it, before the window stops Revit. Tool timings
+            $addinRunWindowMinutes = 15
+            $addinRunJobMinutes = 13
+            if (-not $PSBoundParameters.ContainsKey('TimeoutMinutes')) {
+                $TimeoutMinutes = $addinRunWindowMinutes
+            }
+            elseif ($TimeoutMinutes -gt $addinRunWindowMinutes) {
+                throw "An addinRun job ends by $addinRunWindowMinutes minutes, -TimeoutMinutes $TimeoutMinutes is more"
+            }
         }
         'linksAndFloors' {
             $copy = Join-Path $work (Get-SiteNewFile $build)
@@ -344,7 +357,6 @@ if (-not $DryStart -and -not $round) {
 }
 
 # Outputs of an earlier run of this name are moved aside, so a run that writes nothing cannot pass on old files
-$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 # A place run leaves the upgrade outputs of its code alone. A run named <code>_upgrade, an upgrade or a site upgrade, moves its own
 $old = @(Get-ChildItem $docs -Filter ('testhost_' + $name + '_*.json*') | Where-Object { $name -ne $Code -or $_.Name -notlike ('testhost_' + $Code + '_upgrade_*') })
 if ($old.Count -gt 0) {
@@ -375,6 +387,9 @@ try {
             $job.totalMinutes = [Math]::Min(27, $TimeoutMinutes - 2)
             if ($round.kind -eq 'image') {
                 $job.totalMinutes = [Math]::Min($imageTotal, $TimeoutMinutes - 2)
+            }
+            elseif ($round.kind -eq 'addinRun') {
+                $job.totalMinutes = [Math]::Min($addinRunJobMinutes, $TimeoutMinutes - 2)
             }
         }
         elseif ($spec) {
@@ -665,6 +680,19 @@ if ($Upgrade) {
     'The upgraded prototype folder:'
     Get-ChildItem $targetFolder | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 200
 }
+elseif ($round -and $round.kind -eq 'addinRun') {
+    $result = Join-Path $docs ('testhost_' + $Code + '_addinrun.json')
+    if (Test-Path $result) {
+        $run = Get-Content -Raw $result | ConvertFrom-Json
+        "Add-in run: held $($run.held), not held $($run.notHeld), not measured $($run.notMeasured), result $result"
+        @($run.checks) | Select-Object item, name, held, detail | Format-Table -Wrap -AutoSize | Out-String -Width 250
+    }
+    else {
+        "The add-in run wrote no result at $result"
+    }
+    'Files of the run folder:'
+    Get-ChildItem $runFolder | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 200
+}
 elseif ($round) {
     'Files of the work folder:'
     Get-ChildItem $work | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 200
@@ -672,4 +700,9 @@ elseif ($round) {
 elseif (-not $DryStart) {
     'TEST copies next to the model:'
     Get-ChildItem (Split-Path $original) | Where-Object { $_.Name -like ($base + '_TEST-*') } | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 200
+}
+
+# R200. The lock wrapper hands this exit code on, so a job whose log result is not ok, or a window that was stopped, ends with 1
+if (-not $DryStart -and ($stopReason -or $logResult -ne 'ok')) {
+    exit 1
 }

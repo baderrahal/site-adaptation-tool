@@ -3,49 +3,26 @@ using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common;
 
 namespace SiteAdaptation.AddIn.Pane
 {
-    // R372, docs/design/06-settings.md Work folder. The work root comes from the machine file of Bader's QL2, else from the
-    // Documents folder of the user. The folder of a document is named by its file and the hash of its path, so two files of one
+    // R372, docs/design/06-settings.md Work folder. The work root comes from WorkRoot of Common, the machine file of Bader's QL2 or
+    // the Documents folder of the user. The folder of a document is named by its file and the hash of its path, so two files of one
     // name in two folders never share one, and a document with no path has none
     public static class WorkFolder
     {
-        public const string Folder = "SiteAdaptation";
-        public const string MachineFile = "machine.json";
-
-        // readText stands for the file system, so a test needs no machine file. A machine file that is there but gives no
-        // workRoot is refused, never passed over for the default
+        // R372. The one rule of the work root, in WorkRoot of Common, which the test host reads too: workRoot of the machine file, a
+        // plain full path to a folder named SiteAdaptation, else SiteAdaptation in Documents. readText stands for the file system
         public static string Root(string appData, string myDocuments, Func<string, string> readText)
         {
-            string machine = Path.Combine(appData, Folder, MachineFile);
-            string text = readText(machine);
-            if (text == null)
-            {
-                return Path.Combine(myDocuments, Folder);
-            }
-            JToken root;
-            try
-            {
-                root = JToken.Parse(text);
-            }
-            catch (JsonException error)
-            {
-                throw new InvalidDataException(machine + " is no JSON: " + error.Message, error);
-            }
-            JToken workRoot = root.Type == JTokenType.Object ? root["workRoot"] : null;
-            if (workRoot == null || workRoot.Type != JTokenType.String || string.IsNullOrWhiteSpace(workRoot.Value<string>()))
-            {
-                throw new InvalidDataException(machine + " gives no workRoot");
-            }
-            return workRoot.Value<string>();
+            return WorkRoot.Of(appData, myDocuments, readText);
         }
 
         public static string ReadIfThere(string path)
         {
-            return File.Exists(path) ? File.ReadAllText(path) : null;
+            return WorkRoot.ReadIfThere(path);
         }
 
         // <root>\<file name without extension>_<first 8 hex of the SHA-256 of the full path in lower case>, null with no path

@@ -35,7 +35,7 @@ Bader, 28 Oct 2026, for 5a and every later phase that touches a window.
 
 ### Sizes
 
-- Spacing 4, 8, 12, 16, 24 only. Main button 34 high, other buttons 28 to 32, rows 32, inputs 30. Radius 3 on controls, 12 on chips. Pane starts 380 wide.
+- Spacing 4, 8, 12, 16, 24 only. Main button 34 high, other buttons 28 to 32, input and project rows 32, step rows 40 (QL14, Bader 29 Oct 2026, for the name and its line under it), inputs 30. Radius 3 on controls, 12 on chips. Pane starts 380 wide.
 - Buttons: primary white text on SA.Accent, SemiBold. Dry run SA.Heading text with SA.Heading border. Cancel SA.Text with SA.BorderStrong border.
 
 ### Icons
@@ -49,7 +49,7 @@ Bader, 28 Oct 2026, for 5a and every later phase that touches a window.
 4 Check: M10 6H7v23h18V6h-3 | M12 4h8v4h-8z | M11 18l4 4l7-8 stroke SA.IconTick width 2.5 (3 at 16 px) | M12 26h8
 5 Floors and ramps: M2 27h28 | M4 27l12-8v8 | M16 13h13v6H16z fill SA.IconAccent no stroke
 6 Levels: M3 9h21M3 23h21 | M24 9l-3.5-5h7z fill SA.Heading no stroke | M24 23l-3.5-5h7z fill SA.IconAccent no stroke | M9 12v8 stroke SA.IconAccent | M7 14l2-2l2 2M7 18l2 2l2-2 stroke SA.IconAccent (32 only)
-7 Place villas: M3 16l10-8l10 8v11H3z | M10 27v-6h6v6 (32 only) | M26 2.5a4 4 0 0 1 4 4c0 3-4 7.5-4 7.5s-4-4.5-4-7.5a4 4 0 0 1 4-4z fill SA.IconAccent no stroke | M25 6.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 fill white (32 only)
+7 Place villas: M3 16l10-8l10 8v11H3z | M10 27v-6h6v6 (32 only) | M26 2.5a4 4 0 0 1 4 4c0 3-4 7.5-4 7.5s-4-4.5-4-7.5a4 4 0 0 1 4-4z fill SA.IconAccent no stroke | M25 6.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 fill white no stroke (32 only)
 8 Walls: M2 8h28v4H2z fill SA.IconAccent no stroke | M3 12h26v15H3z | M3 19.5h26 | 32 px joints M11 12v7.5M21 12v7.5M7 19.5V27M16 19.5V27M25 19.5V27 | 16 px joints M16 12v7.5M9 19.5V27M23 19.5V27
 9 Report: M5 5h22v22H5z | M5 11h22 | M9 23v-5h3v5zM14.5 23v-8h3v8zM20 23v-6h3v6z fill SA.IconAccent no stroke | M8 23h16 (32 only)
 Site Adaptation Rules: M3 7c4-2 9-2 13 1v19c-4-3-9-3-13-1z | M29 7c-4-2-9-2-13 1v19c4-3 9-3 13-1z | M21 5v9l2.5-1.8l2.5 1.8V5z fill SA.IconAccent no stroke
@@ -69,11 +69,11 @@ Top to bottom:
 - NEW First open state, when no settings file is chosen: the box reads "Start here", "Choose the settings file", "It names the drawings, the rules and the prototypes for this job. The tool fills the rest of this panel from it.", button "Choose settings file", then the line added by Bader on 28 Oct 2026: "Or start from a past job: Import pre-setting. It brings the settings, rules, level profile, ramp slopes, parameter sheet and overrides of that job." "Import pre-setting" in it runs Import from past job of the Pre-setting row (CHOSEN by Code). Settings row shows an amber mark and "Not chosen". Steps show "Needs settings" or "Needs step n".
 - Sections Project, Input files, Scope, Steps in the mock's order and labels. Section titles 15 SemiBold SA.Heading.
 - NEW One help line under each section title, 13 SA.TextMuted: Project "Rules and settings for this job. Set once." Input files `"The drawings and schedules the tool reads. All <n> found."`, or `"The drawings and schedules the tool reads. <m> of <n> found."` when a file is missing (QL7). Scope "Which plots the next button works on." Steps "Run them in order. Each one waits for the one before."
-- Input and project rows: a green check mark when the file is found, amber mark when not, label, file name with tooltip of the full path, size and short hash as the mock's 7.7 item 5, Browse.
+- Input and project rows: a green check mark when the file is found, amber mark when not, label, the file name only, Browse. Its tooltip gives the full path and under it the size and short hash of the mock's 7.7 item 5, for each file of the row (QL15, Bader 29 Oct 2026).
 - Added by Bader on 28 Oct 2026: in Project a row "Pre-setting" with the buttons "Import from past job" and "Export", under Level profile (the place CHOSEN by Code). A pre-setting never holds drawing paths or coordinates, its logic joins R367 at 5c. In Input files a row "Shared parameters" for the parameter sheet Excel, after Prototypes (the place CHOSEN by Code).
 - Dry run checkbox in a SA.Panel box.
 - NEW A row "Villa mode" under the Dry run checkbox, with the choices Masses and Links, Masses by default (QL4, QL8, docs/design/11-light-mode.md). Test runs set it in the settings file.
-- Steps: a round number mark 26 px (filled SA.Band when done, amber when done with issues, SA.Accent outline for the next step, grey outline when waiting), the name 14, NEW one plain line under it at 12: 1 "Coordinates, levels and types from CAD", 2 "Reads the drawings and schedules", 3 "The team checks what was read", 4 "Compares the rules with the past job", 5 "Generic, yard and ramp floors", 6 "Sets FFL and entry levels", 7 "Places a villa on each plot at its FFL", 8 "Boundary and garden walls", 9 "Excel report of the run". The 9 steps and their order are those of docs/design/13-workflow-changes.md, each needs the one before and 9 needs 4. Status chip on the right: Done, `"<n> issues"` (NEW short form of `"Done with <n> issues"`, full text as tooltip), Ready, `Needs step <n>`.
+- Steps: a round number mark 26 px (filled SA.Band when done, amber when done with issues, SA.Accent outline for the next step, grey outline when waiting), the name 14, NEW one plain line under it at 12: 1 "Coordinates, levels and types from CAD", 2 "Reads the drawings and schedules", 3 "The team checks what was read", 4 "Compares the rules with the past job", 5 "Generic, yard and ramp floors", 6 "Sets FFL and entry levels", 7 "Places a villa on each plot at its FFL", 8 "Boundary and garden walls", 9 "Excel report of the run". The 9 steps and their order are those of docs/design/13-workflow-changes.md, each needs the one before and 9 needs 4. The line stays on one line with no wrap, cut with an ellipsis, its full text as tooltip (QL14, Bader 29 Oct 2026). Status chip on the right: Done, `"<n> issues"` (NEW short form of `"Done with <n> issues"`, full text as tooltip), Ready, `Needs step <n>`.
 
 ### 7.3 Set up site
 
