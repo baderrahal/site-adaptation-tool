@@ -41,7 +41,7 @@ The base of each villa solid follows the exact base boundary shape of its protot
 
 ## U1 to U7. The UI, approved on the canvas "Site Adaptation UI"
 
-Bader designed and approved the UI on the canvas on 28 Oct 2026. The full text is docs/design/12-ui-spec.md. The prompt names the approvals U1 to U7 and does not say which part each covers, so the split below was CHOSEN by Code, and Bader kept it on 28 Oct 2026 (QL3 of steps/lane-b.md).
+Bader designed and approved the UI on the canvas on 28 Oct 2026. The full text is docs/design/12-ui-spec.md. The prompt names the approvals U1 to U7 and does not say which part each covers, so the split below was CHOSEN by Code, and Bader kept it on 28 Oct 2026 (Q128 of steps/questions-closed.md).
 
 - U1. The rules: one theme file Theme.xaml and the test that holds it, labels from the mock, plain rule names, a change to the look is Bader's, a screenshot per window.
 - U2. The font: Libre Franklin bundled, the fallbacks and the five type sizes.

@@ -5,8 +5,8 @@ Bader's decision D2 of 28 Oct 2026, steps/decisions-2026-10-28.md, written in La
 ### Villa mode
 
 - Button 4 has a setting Villa mode with two values, Masses and Links.
-- Default Masses for test runs (D2), and Masses for a run Bader starts by hand too, Links picked per run (QL4, Bader 28 Oct 2026).
-- The setting is a field of the settings of section 6. The pane shows it as a row "Villa mode" under the Dry run checkbox of Scope, a NEW item of 7.7 (QL8, Bader 28 Oct 2026, docs/design/12-ui-spec.md 7.2).
+- Default Masses for test runs (D2), and Masses for a run Bader starts by hand too, Links picked per run (Q129, Bader 28 Oct 2026).
+- The setting is a field of the settings of section 6. The pane shows it as a row "Villa mode" under the Dry run checkbox of Scope, a NEW item of 7.7 (Q133, Bader 28 Oct 2026, docs/design/12-ui-spec.md 7.2).
 - Button 4 sets the mode. Buttons 6 and 8 act on what button 4 placed and must know it, open points 1 and 2 below.
 
 ### The solid of a villa
@@ -20,7 +20,7 @@ Bader's decision D2 of 28 Oct 2026, steps/decisions-2026-10-28.md, written in La
 
 - Each placed base boundary is checked against the villa outline of the CAD building footprint, the villa blocks of R300.
 - Over a limit in config/project.json the plot is flagged in the check rows. The run never stops on it. The check rows of R363 are built by button 3 before button 4 reads any shape, so how the flag reaches them is open point 3 below.
-- The distance between the two outlines is the largest distance from any point of one outline to the other outline, taken both ways, in mm after the placement, against a limit in config/project.json (QL5, Bader 28 Oct 2026).
+- The distance between the two outlines is the largest distance from any point of one outline to the other outline, taken both ways, in mm after the placement, against a limit in config/project.json (Q130, Bader 28 Oct 2026).
 
 ### Links mode
 
