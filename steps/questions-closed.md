@@ -10,6 +10,7 @@ Round 17 gave the IDs. Each open question of the DATA-4 list kept its number as 
 |---|---|---|---|
 | Q011 | IME neighbourhood: nothing names it, Phase 2 answers it if the Parsons IME model names its neighbourhood, else ask which neighbourhood each IM letter is | The IME model names it by its plots: Round ADDIN 2b joined 320 of the 324 plots its links name to the baseplan face that holds 0.9 of their generic floor, all in NBH 02 of Zone 3 by the area key and the location plan (R326), the 4 others are cut, no face holds 0.9 of their floor. The parsons table of config/area_codes.json holds IME 02 Zone 3 320, and IMA 021, IMB 022, IMF 03, IMG 01A by the same join | 2026-10-25, ADDIN 2b |
 | Q014 | VL6 hand: is VL6 drawn the other hand from VL4 | Yes. Round DATA-4 read both prototypes in Revit (R245, R246): the VL6 gate and driver's room sit on the right seen from the road, the VL4 gate on the left | 2026-10-25, DATA-4 |
+| Q021 | Parallel windows over 8 GB free | Closed by D3 of steps/decisions-2026-10-28.md, the window rule: one Revit window at a time before the Revit run after 5c, then (free RAM minus 8 GB minus the Lane A builds running) divided by the peak of one window in that mode, rounded down, at least 1 and at most 3 | 2026-10-28, D3, moved here at the fold in on 2026-10-29 |
 | Q028 | Zone 4: the 1.1 and 1.2 models hold 234 of the 297 plots of 01A, use them as its past key, still send the IMG job if it exists | Replaced by the answer keys (Bader): the IMG model is in C:\02-Site Adaptation\Revit All Zones, and the 7 Rev 6 Parsons site models there (IMA and IMB Zone 1, IMC and IMD Zone 2, IME and IMF Zone 3, IMG Zone 4) are the main reference for every rule. The Native 1.1 to 1.4 reads are a second reference only, for plots none of the 7 hold, and never for unit codes | 2026-10-25, ADDIN |
 | Q034 | Rule 3 of the dialog watcher: where may it click | Inside the Revit or Civil 3D process this session started only, matched by process id. Load Once for this tool's DLLs, Do Not Load for any other add-in, and for an information dialog the button that leaves the file as it is. Never a window of another process. Bader restated it for Round 17 | 2026-10-25, DATA-4 and Round 17 |
 | Q035 | round_z4\work and round_16\work: delete next round | Done: the files the rounds list as kept moved to Documents\SiteAdaptation\kept\round_z4 (6) and kept\round_16 (4), each copy equal to its source by hash, then both work folders deleted whole | 2026-10-25, ADDIN 0b |
@@ -63,6 +64,26 @@ Round 17 gave the IDs. Each open question of the DATA-4 list kept its number as 
 | Q118 | Follow every rule leaves out moved plots | Yes (Bader), as recommended: keep the code. A plot follows every rule only with no check row and no value an override set or moved, its walls included | 2026-10-28, Bader |
 | Q121 | Excel files readable back by Update from report | Decision of Bader, D4 of steps/decisions-2026-10-28.md: the sheets Levels and Placed key each row by the plot in the first column, one row per plot and kind, the columns FFL, El @ Entry, Steps, Villa type and Mirror are marked editable and listed in the Settings sheet, every other column is read only, and the Settings sheet holds the build id and the SHA-256 of the plan, for the button Update from report of 5f. Built in Round ADDIN 4g3 | 2026-10-28, Bader |
 | Q122 | Clusters FFL by rule or as written | Yes (Bader), as recommended: in the sheet Clusters of the level Excel name the column FFL by rule and add a column FFL as written with the written FFLs of the piece where an override moved them, as new items of 7.7 of docs/design/07-mock.md. Built in the first PR of 4h, since Bader ended 4g3 with its end records | 2026-10-29, Bader |
+| Q126 | Inputs on the laptop, was QL1 | The inputs are copied from the PC to C:\02-Site Adaptation, proven by hash. C:\10- ROSHEN MECCA is not used by the tool | 2026-10-28, Lane B L0 |
+| Q127 | Work root of the laptop, was QL2 | One machine file, %APPDATA%\SiteAdaptation\machine.json, gives the work root C:\Users\p003653k\Documents\SiteAdaptation, outside OneDrive. No path of a user goes into config/project.json | 2026-10-28, Lane B L0 |
+| Q128 | Split of U1 to U7, was QL3 | Keep the U1 to U7 split of steps/decisions-2026-10-28.md | 2026-10-28, Lane B L0 |
+| Q129 | Villa mode default, was QL4 | Masses by default, Links picked per run | 2026-10-28, Lane B L0 |
+| Q130 | Base of a solid against the footprint, was QL5 | The largest distance between the two outlines, both ways, in mm, against a limit in config | 2026-10-28, Lane B L0 |
+| Q131 | Python version of the venv, was QL6 | CLAUDE.md says `py -3.12 -m venv .venv`, written at the fold in | 2026-10-28, Lane B L0 |
+| Q132 | Theme keys with no value, was QL7 | SA.Type.Project 16, SA.Type.Step 14, SA.Type.Count 28, SA.Type.Label 13 SemiBold. Amber to SA.Warn, grey to SA.BorderStrong, green to SA.Ok, white to SA.Surface. A missing file shows "[m] of [n] found". Written into docs/design/12-ui-spec.md | 2026-10-28, Lane B L0 |
+| Q133 | Where the pane shows Villa mode, was QL8 | A "Villa mode" row under the Dry run checkbox, a new item of the list of 7.7, in docs/design/12-ui-spec.md 7.2 and docs/design/11-light-mode.md | 2026-10-28, Lane B L0 |
+| Q134 | Tabular figures, was QL9 | Keep Libre Franklin, right-align the number columns, accept proportional digits | 2026-10-29, Lane B 5a |
+| Q135 | Place villas icon hole, was QL10 | The hole drawn with no stroke | 2026-10-29, Lane B 5a |
+| Q136 | Text test and windows not built, was QL11 | Keep. A window's label entries count from the PR that builds it | 2026-10-29, Lane B 5a |
+| Q137 | Messages and the confirm as TaskDialogs, was QL12 | TaskDialogs for short stops and messages. The confirm becomes a themed window in 5b | 2026-10-29, Lane B 5a |
+| Q138 | Pane start width, was QL13 | Keep MinimumWidth 380, and measure the width Revit opens the pane at in run 3. Run 3 measured 765 WPF units | 2026-10-29, Lane B 5a |
+| Q139 | Step rows and rows 32, was QL14 | Step rows 40, input and project rows 32, the step line cut with an ellipsis, its full text in the tooltip | 2026-10-29, Lane B 5a |
+| Q140 | Input rows at 380 wide, was QL15 | Size and short hash move into the tooltip under the full path | 2026-10-29, Lane B 5a |
+| Q141 | Gaps between stacked inputs, was QL16 | Accept the 2 px gaps | 2026-10-29, Lane B 5a |
+| Q142 | Where the pass limit of 0.1 mm applies, was QL17 | 0.1 mm for the check points of button 1 against Revit under a key of its own. The key check of R353 stays at the answer of Q086. The new key goes into config at 5c, join item W2 | 2026-10-29, Lane B 5a |
+| Q143 | Pane shown again each session, was QL18 | Keep, the pane shows again each session | 2026-10-29, Lane B 5a |
+| Q144 | 9 Report and the steps before it, was QL19 | Keep, 9 Report needs only 4 Check | 2026-10-29, Lane B 5a |
+| Q145 | Revit run 3 of 5a, was QL20 | Allow Revit run 3 with the fix: one Idling handler added once in OnStartup outside any Revit event, a flag for started and finished, each phase from the ExternalEvent, the job capped at 15 minutes, one probe only if it fails, no fourth run. Run 3 ran on 2026-10-29, 18 of 18 steps ok | 2026-10-29, Lane B 5a |
 
 ## Q089
 
@@ -193,3 +214,32 @@ The steps files of three rounds named questions by the number they had in that r
 | Rows 2290 to 2293 and 2296 to 2299 | - | - | 41 | Q041 |
 | Duplex plots in no cluster | - | - | 42, written 46 in bader-16.md before the merge renumbered the list | Q042 |
 | The IFC in Downloads | - | - | - | Q043, from DATA-4, closed in DATA-5 |
+
+## Lane B numbers to IDs
+
+Lane B numbered its questions QL1 upward from 28 Oct 2026. At the fold in of Round FOLD, 2026-10-29, each took the next free ID in order, QL<n> became Q<125+n>. Their text as asked is in steps/history/questions-2026-10-29.md. Code comments of the add-in, the test host and the tests written before the fold in still name the QL id.
+
+| QL | ID |
+|---|---|
+| QL1 | Q126 |
+| QL2 | Q127 |
+| QL3 | Q128 |
+| QL4 | Q129 |
+| QL5 | Q130 |
+| QL6 | Q131 |
+| QL7 | Q132 |
+| QL8 | Q133 |
+| QL9 | Q134 |
+| QL10 | Q135 |
+| QL11 | Q136 |
+| QL12 | Q137 |
+| QL13 | Q138 |
+| QL14 | Q139 |
+| QL15 | Q140 |
+| QL16 | Q141 |
+| QL17 | Q142 |
+| QL18 | Q143 |
+| QL19 | Q144 |
+| QL20 | Q145 |
+| QL21 | Q146 |
+| QL22 | Q147 |

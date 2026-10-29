@@ -38,6 +38,11 @@ Then check, and quote the line for each thing you find:
 9. **The build.** The output shows 0 errors and no new warning
 10. **The writing rules.** In every comment, log line and window text the change adds: no em
     dash, no semicolon in prose, no emoji, no code name on a label
+11. **The UI checklist.** When the change touches a window (a XAML file, its view model, the
+    label list or a PNG of steps/ui-shots/), go through `docs/design/12-ui-spec.md` line by
+    line against the XAML and list every difference as REAL. No difference is fixed by
+    changing the spec. Check too that the theme test, the text test and the picture test of
+    its part UI controls ran in the gate (control 4 of that part, Bader, 28 Oct 2026)
 
 Mark each finding REAL, a real input of this repo reaches it, or LATENT, no real input reaches
 it (Q095). A REAL finding is fixed with a test. A LATENT one goes to `steps/latent.md` with its
