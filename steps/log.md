@@ -11,6 +11,8 @@ Done:
 - The freeze: a probe started Revit outside the test host and its own watcher left the RCRC Green box open (READ watch_5b logs). No Revit was left, the IMD copy it read unchanged by SHA-256
 - Test host: the watcher starts first and waits for the pid, the tool names come from the installed manifests, probes run by -DryStart -ProbeManifest, the freeze guard (5 min no first step, 10 min no heartbeat, 5 min not responding)
 - Button 1 in Common and the add-in, its window with setup-site.png, the setUp mode of the addinRun job. Q154 to Q157 opened
+- RCRC Green no longer loads in Revit 2024 here (Bader, 16:31). Its manifest moved from %APPDATA%\Autodesk\Revit\Addins\2024\RcrcGreen.addin into %APPDATA%\Autodesk\Revit\Addins\2024\_disabled\RcrcGreen.addin, SHA-256 271D5599 unchanged, its DLL folder RcrcGreen left. None in C:\ProgramData. Move it back to load it again
+- Test host watcher: Do Not Load for any add-in not Site Adaptation was already the rule of SecurityDialogs.Decide. The test R108_any_add_in_that_is_not_site_adaptation_gets_do_not_load_and_each_answer_is_logged holds it, it passed at its first run
 
 Checked:
 - Hang probe, RAN: stopped at 7.4 min on not responding, the windows and 40 journal lines logged, that pid only, step failed, exit 1

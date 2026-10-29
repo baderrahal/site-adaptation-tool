@@ -117,6 +117,34 @@ namespace SiteAdaptation.Tests
             Assert.Null(WatcherStart.ReadPid("-5"));
         }
 
+        // Bader, 29 Oct 2026: in a test host run no other add-in may block Revit. The RCRC Green box as Revit 2024 showed it in the
+        // runs of 5b gets Do Not Load against the installed tool, the add-in of the probe among the tool, and each answer is kept
+        [Fact]
+        public void R108_any_add_in_that_is_not_site_adaptation_gets_do_not_load_and_each_answer_is_logged()
+        {
+            var texts = new[]
+            {
+                "The publisher of this add-in could not be verified. What do you want to do?",
+                "Name:                RCRC Green\r\nPublisher:           Unknown Publisher\r\nLocation:            C:\\Users\\x\\AppData\\Roaming\\Autodesk\\Revit\\Addins\\2024\\RcrcGreen\\RcrcGreen.Revit.dll\r\nIssuer:                 None",
+            };
+            SecurityDialogEntry rcrc = SecurityDialogs.Read("Security - Unsigned Add-In", "#32770", texts, new[] { "Always Load", "Load Once", "Do Not Load" });
+            var ids = new[] { "c330760d-8384-4e69-b4a2-2fe26e0c45fe", "0edeabc3-f57d-4177-8427-b90d0dbf73d0", "5b5b5b5b-2222-4333-8444-555566667777" };
+            var marks = new[] { "Site Adaptation", "SiteAdaptation.AddIn.dll", "Site Adaptation test host", "SiteAdaptation.TestHost.dll", "SA 5b hang probe", "ProbeHang.dll" };
+            var paths = new[] { @"C:\Users\x\AppData\Roaming\Autodesk\Revit\Addins\2024\SiteAdaptationAddIn\SiteAdaptation.AddIn.dll" };
+
+            Assert.Equal("RCRC Green", rcrc.AddInName);
+            WatchAction action = SecurityDialogs.Decide(rcrc, ids, marks, paths);
+            Assert.Equal(WatchAction.DoNotLoad, action);
+            Assert.Equal(SecurityDialogs.DoNotLoad, SecurityDialogs.ButtonFor(action));
+
+            // The watcher adds every box it answered to its report and writes the report at once, before the next box
+            string program = File.ReadAllText(RepoPath("dotnet", "SiteAdaptation.DialogWatcher", "Program.cs"));
+            int click = program.IndexOf("if (label != null && Click(window, entry, label))", StringComparison.Ordinal);
+            int add = program.IndexOf("report.Dialogs.Add(entry);", click, StringComparison.Ordinal);
+            int write = program.IndexOf("JsonOut.Write(options.Out, report);", add, StringComparison.Ordinal);
+            Assert.True(click > 0 && add > click && write > add);
+        }
+
         [Fact]
         public void R108_the_watcher_takes_a_pid_file_and_writes_its_report_before_it_waits()
         {
