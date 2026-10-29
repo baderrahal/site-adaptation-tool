@@ -141,11 +141,13 @@ namespace SiteAdaptation.Tests
                         var file = (FileRowViewModel)row.DataContext;
                         TextBlock name = Visuals(row).OfType<TextBlock>().Single(block => Grid.GetColumn(block) == 2);
                         Assert.Equal(file.FileName, new TextRange(name.ContentStart, name.ContentEnd).Text);
-                        if (file.Detail.Length > 0)
+                        Assert.Equal(file.ToolTip, (string)name.ToolTip);
+                        List<string> sizes = (file.ToolTip ?? string.Empty).Split(new[] { Environment.NewLine }, StringSplitOptions.None)
+                            .Where(line => line.Contains(" MiB")).ToList();
+                        if (sizes.Count > 0)
                         {
                             detailed++;
-                            Assert.DoesNotContain(file.Detail, new TextRange(name.ContentStart, name.ContentEnd).Text);
-                            Assert.All(file.Detail.Split(new[] { ", " }, StringSplitOptions.None), part => Assert.Contains(part, (string)name.ToolTip));
+                            Assert.All(sizes, size => Assert.DoesNotContain(size, new TextRange(name.ContentStart, name.ContentEnd).Text));
                         }
                     }
                     Assert.Equal(32.0, rows.First().ActualHeight);

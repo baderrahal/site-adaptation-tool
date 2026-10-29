@@ -46,6 +46,8 @@ namespace SiteAdaptation.TestHost
         private readonly RunGate gate = new RunGate();
         private ExternalEvent phaseEvent;
         private AddinProbe probe;
+        // Read once in Start, the read loads Theme.xaml by reflection and the wait asks on every Idling tick
+        private int? paneMinWidth;
         private IRunState state;
         private UIApplication ui;
         private RunStepState current;
@@ -91,6 +93,7 @@ namespace SiteAdaptation.TestHost
             record.SaveFirst = RunTexts.SaveFirst;
             record.RibbonTab = probe.Tab();
             state = probe.State();
+            paneMinWidth = probe.PaneMinWidth();
             runner.Record(log => log.Notes.Add("addinRun: the result goes to " + resultPath + ", the pictures to " + folder));
             int open = start.Application.Documents.Size;
             schedule.Raise(DateTime.UtcNow);
@@ -177,7 +180,7 @@ namespace SiteAdaptation.TestHost
                     yield return Step("showPane", 2, ShowPane, true);
                     break;
                 default:
-                    yield return Step("panePng", 2, () => Shot(RevitShots.Pane(probe.PageType(), Path.Combine(folder, AddinRunFiles.PanePng), PaneShown(), probe.PaneMinWidth())), true);
+                    yield return Step("panePng", 2, () => Shot(RevitShots.Pane(probe.PageType(), Path.Combine(folder, AddinRunFiles.PanePng), PaneShown(), paneMinWidth)), true);
                     yield return Step("ribbonPng", 2, RibbonShots, true);
                     yield return Step("closeDetached", 5, CloseDetached, true);
                     yield return Step("judge", 1, () =>
@@ -362,7 +365,9 @@ namespace SiteAdaptation.TestHost
             return "made, never saved, Title '" + entry.Title + "', PathName '" + entry.PathName + "', then closed";
         }
 
-        // The add-in shows its pane at the first project view of the session (PaneFirstShow), so shownBefore tells whether it did. The
+        // The add-in shows its pane at the first project view of the session when Revit has it hidden (PaneFirstShow). Revit also shows
+        // a pane it restores from the last session (QL18), so a pane shown here does not tell the add-in showed it, and the session
+        // cannot read the state before PaneFirstShow ran. The judge takes a shown pane as not measured and a hidden one as not held. The
         // job shows it too when it is not, and makes the tab of the add-in the active one for the pictures
         private string ShowPane()
         {
@@ -483,8 +488,7 @@ namespace SiteAdaptation.TestHost
             {
                 return probe.Waiting() ?? 0;
             }
-            int? least = probe.PaneMinWidth();
-            bool pane = PaneShown() == true && least.HasValue && RevitShots.PaneWidth(probe.PageType()) >= least.Value;
+            bool pane = PaneShown() == true && paneMinWidth.HasValue && RevitShots.PaneWidth(probe.PageType()) >= paneMinWidth.Value;
             bool tab = record.RibbonTab != null && RevitShots.ActiveTab() == record.RibbonTab;
             return (pane ? 0 : 1) + (tab ? 0 : 1);
         }

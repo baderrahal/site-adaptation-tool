@@ -358,6 +358,7 @@ namespace SiteAdaptation.Tests
             record.Shots.Add(new RunShot { Name = "pane", Width = 380, Height = 900, Colours = 40, Blank = false, Shown = true, MinWidth = 380 });
             record.Shots.Add(Ribbon());
             record.HomeEvent.Raise(Now, 0, true);
+            record.PaneShownBefore = true;
             record.HomeEvent.Run(Now.AddSeconds(1), true, 0);
             return record;
         }
@@ -373,10 +374,13 @@ namespace SiteAdaptation.Tests
             AddinRunRecord record = Expected();
             AddinRunJudge.Judge(record);
 
-            Assert.All(record.Checks, check => Assert.True(check.Held == true, check.Name + ": " + check.Detail));
-            Assert.Equal(record.Checks.Count, record.Held);
+            // The first show of a hidden pane is the one claim no run measures, a shown pane may be one Revit restored (QL18)
+            List<RunCheck> measured = record.Checks.Where(check => check.Name != AddinRunJudge.FirstShow).ToList();
+            Assert.All(measured, check => Assert.True(check.Held == true, check.Name + ": " + check.Detail));
+            Assert.Null(CheckOf(record, AddinRunJudge.FirstShow).Held);
+            Assert.Equal(measured.Count, record.Held);
             Assert.Equal(0, record.NotHeld);
-            Assert.Equal(0, record.NotMeasured);
+            Assert.Equal(1, record.NotMeasured);
             Assert.Contains(record.Checks, check => check.Item == "1");
             Assert.Contains(record.Checks, check => check.Item == "2");
             Assert.Contains(record.Checks, check => check.Item == "shots");
@@ -445,6 +449,30 @@ namespace SiteAdaptation.Tests
             noTab.Shots[1].TabFound = null;
             AddinRunJudge.Judge(noTab);
             Assert.Null(CheckOf(noTab, AddinRunJudge.RibbonShot).Held);
+        }
+
+        // Review 1 of PR 97: Revit shows a pane it restores from the last session (QL18), so a pane shown when the job came to it does
+        // not tell the add-in showed it. Only a pane still hidden after the first project view says something, that the add-in did not
+        [WindowsFact]
+        public void R372_the_first_show_of_a_hidden_pane_is_not_measured_when_revit_may_have_restored_the_pane()
+        {
+            AddinRunRecord shown = Expected();
+            AddinRunJudge.Judge(shown);
+            RunCheck restored = CheckOf(shown, AddinRunJudge.FirstShow);
+            Assert.Null(restored.Held);
+            Assert.Contains("restored", restored.Detail);
+            Assert.Contains("QL18", restored.Detail);
+
+            AddinRunRecord hidden = Expected();
+            hidden.PaneShownBefore = false;
+            AddinRunJudge.Judge(hidden);
+            Assert.True(CheckOf(hidden, AddinRunJudge.FirstShow).Held == false, CheckOf(hidden, AddinRunJudge.FirstShow).Detail);
+
+            AddinRunRecord unread = Expected();
+            unread.PaneShownBefore = null;
+            AddinRunJudge.Judge(unread);
+            Assert.Null(CheckOf(unread, AddinRunJudge.FirstShow).Held);
+            Assert.Equal(unread.Checks.Count, unread.Held + unread.NotHeld + unread.NotMeasured);
         }
 
         [WindowsFact]
@@ -592,6 +620,19 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain("ExternalEvent.Create(", run.Replace(runSubscribe, ""));
             Assert.Contains("if (!gate.Live)", Between(run, "private void Seen(", "private string LabelOf("));
             Assert.Contains("if (!gate.Begin())", Between(session, "private void OnFirstIdling(", "private void Exit("));
+        }
+
+        // Review 1 of PR 97: PaneMinWidth loads Theme.xaml by reflection, and the wait asks for the width on every Idling tick at
+        // SetRaiseWithoutDelay speed, so the session reads it once in Start and the wait and the pane shot take the field
+        [Fact]
+        public void R372_the_least_pane_width_is_read_once_in_start_and_never_on_a_tick()
+        {
+            string run = RepoText("dotnet", "SiteAdaptation.TestHost", "AddinRunSession.cs");
+            var calls = new System.Text.RegularExpressions.Regex(@"probe\.PaneMinWidth\(\)");
+
+            Assert.Single(calls.Matches(run));
+            Assert.Single(calls.Matches(Between(run, "public void Start(", "private bool Raise(")));
+            Assert.Contains("paneMinWidth", Between(run, "private int Pending(", "private void Finish("));
         }
 
         // The session asks the flow only for a document with no path, where the flow stops before it reads the state, the model or a file

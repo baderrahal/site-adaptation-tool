@@ -279,7 +279,8 @@ namespace SiteAdaptation.Common
         public string WorkRoot { get; set; }
         public string SaveFirst { get; set; }
         public string RibbonTab { get; set; }
-        // Whether the pane was shown when the job came to show it, so after the first project view of the session
+        // Whether the pane was shown when the job came to show it, so after the first project view of the session. True also for a
+        // pane Revit restored from the last session (QL18), so it does not tell the add-in showed it
         public bool? PaneShownBefore { get; set; }
         // QL20, what run 3 measures first: the phase event raised on the Home screen before any document
         public RunHomeEvent HomeEvent { get; set; } = new RunHomeEvent();
@@ -437,6 +438,7 @@ namespace SiteAdaptation.Common
         public const string PaneShot = "the pane PNG holds a drawn pane";
         public const string RibbonShot = "the ribbon PNG of our own window holds a drawn ribbon";
         public const string HomeScreenEvent = "a raised ExternalEvent runs on the Home screen with no document";
+        public const string FirstShow = "the add-in shows a hidden pane at the first project view";
 
         private static readonly string[] LoadEvents = { RunEvent.Created, RunEvent.Opened, RunEvent.SavedAs, RunEvent.Closed, RunEvent.ViewActivated };
 
@@ -483,7 +485,8 @@ namespace SiteAdaptation.Common
             checks.Add(One("shots", PaneShot, pane != null && pane.Shown.HasValue && pane.MinWidth.HasValue ? pane : null,
                 shot => !shot.Blank && shot.Shown == true && shot.Width >= shot.MinWidth.Value,
                 shot => "shown " + shot.Shown + ", " + shot.Width + " by " + shot.Height + " px against the least width " + shot.MinWidth + ", " + shot.Colours + " colours"));
-            checks.Add(One("shots", RibbonShot, ribbon != null && ribbon.TabFound.HasValue && ribbon.ExpectedPanels != null && ribbon.ExpectedPanels.Count > 0 ? ribbon : null,
+            checks.Add(Shown(record.PaneShownBefore));
+            checks.Add(One("shots", RibbonShot,ribbon != null && ribbon.TabFound.HasValue && ribbon.ExpectedPanels != null && ribbon.ExpectedPanels.Count > 0 ? ribbon : null,
                 shot => !shot.Blank && shot.SameHandle == true && shot.ActiveTab != null && shot.ActiveTab == record.RibbonTab && MissingPanels(shot).Count == 0
                     && shot.ExpectedButtons != null && shot.ExpectedButtons.Count > 0 && MissingButtons(shot).Count == 0,
                 shot => "tab found " + shot.TabFound + ", visible " + shot.TabVisible + ", active tab '" + shot.ActiveTab + "', panels not in the picture: "
@@ -563,6 +566,27 @@ namespace SiteAdaptation.Common
             else
             {
                 check.Detail += ", so not on the Home screen";
+            }
+            return check;
+        }
+
+        // Never held. A pane shown after the first project view may be one Revit restored from the last session (QL18), and the
+        // session cannot read the state before PaneFirstShow ran, so a shown pane is not measured. A pane still hidden then is not held
+        private static RunCheck Shown(bool? shownBefore)
+        {
+            var check = new RunCheck { Item = "shots", Name = FirstShow };
+            if (!shownBefore.HasValue)
+            {
+                check.Detail = "the pane state was not read";
+            }
+            else if (shownBefore.Value)
+            {
+                check.Detail = "the pane was shown after the first project view, which Revit also gives for a pane it restored from the last session (QL18)";
+            }
+            else
+            {
+                check.Held = false;
+                check.Detail = "the pane was hidden after the first project view";
             }
             return check;
         }
