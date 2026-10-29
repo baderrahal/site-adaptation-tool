@@ -252,3 +252,7 @@ The latent findings of steps/lane-b.md, moved here word for word by Round FOLD o
 - PR 99 breaker. SavedPath.Is lets a path ending in a separator through, C:\a\, whose file name is empty. Revit gives no such PathName.
 - PR 99 breaker and review. A cloud, BIM 360, Autodesk Docs or RSN path gets "Save the project first", which saving does not cure. No host model of this job is in the cloud, the cloud models are links only.
 - PR 99 breaker. AnswerRouting matches an answer by path and session, so a saved document that gets a SaveAs while a worker run is out has its answer dropped as "ended after its document closed", the wrong reason. From before PR 99.
+
+## Round FOLD, D19
+
+- REAL, closed by the guard of D19 (Bader, 2026-10-29). The Q111 run of 4g3 on the laptop wrote one request file into the real Zone 02 ARC Prototypes folder under C:-Site Adaptation through a junction from its work folder. The file was deleted, 13 .rvt files were left, all dated 2024, with no hash taken before, and the junction is gone (the 4g3 log entry of steps/log.md). .claude/hooks/guard-inputs.sh now blocks every link command and every write whose target is under an input root, test_d19 of python/tests/test_harness.py. The hashes before and after each run that reads real inputs are a join item of 4h-1.

@@ -15,3 +15,5 @@ out/
 sample_data/
 sample_output/
 .claude/worktrees/
+steps/STOP-A
+steps/STOP-B
