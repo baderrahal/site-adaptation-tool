@@ -330,6 +330,40 @@ namespace SiteAdaptation.Tests
             string flow = Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.Common", "Flow");
             Assert.All(Directory.GetFiles(flow, "*.cs"), path => Assert.DoesNotMatch(new Regex(@"\bAutodesk\b|\bRibbonLayout\b"), File.ReadAllText(path)));        }
 
+        // Revit run 3 of Lane B 5a: a document opened detached from a central and never saved gave the bare PathName
+        // SA5A-CENTRAL-TEST-NEW_detached.rvt. The flow has no state here, so a read of the state, the model or a file would throw
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("SA5A-CENTRAL-TEST-NEW_detached.rvt")]
+        [InlineData(@"sub\x.rvt")]
+        [InlineData(@"C:x.rvt")]
+        [InlineData(@"\x.rvt")]
+        [InlineData(@"\\server")]
+        [InlineData("BIM 360://Project/Site.rvt")]
+        [InlineData("Autodesk Docs://Project/Site.rvt")]
+        public void R382_a_path_that_is_not_a_full_local_or_unc_path_stops_with_save_first_before_it_reads_anything(string path)
+        {
+            Assert.False(SavedPath.Is(path));
+            RunOutcome outcome = new ButtonFlow(null, null, null, null, null).Run(5, Label(5), Body(), path);
+            Assert.Equal(RunEnd.Stopped, outcome.End);
+            Assert.Equal(RunTexts.SaveFirst, outcome.Message);
+        }
+
+        // A full path on a drive or a share passes the save stop and reaches the next one, the missing step
+        [Theory]
+        [InlineData(@"C:\Models\Site.rvt")]
+        [InlineData("D:/Models/Site.rvt")]
+        [InlineData(@"\\server\share\Models\Site.rvt")]
+        public void R382_a_full_drive_or_unc_path_is_a_saved_path_and_passes_the_save_stop(string path)
+        {
+            Assert.True(SavedPath.Is(path));
+            state.Missing = 4;
+            RunOutcome outcome = Flow().Run(5, Label(5), Body(), path);
+            Assert.Equal(RunEnd.Stopped, outcome.End);
+            Assert.Equal("5 Floors and ramps needs step 4", outcome.Message);
+        }
+
         private sealed class FakeState : IRunState
         {
             private readonly string work;

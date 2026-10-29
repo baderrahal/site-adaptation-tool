@@ -144,7 +144,8 @@ namespace SiteAdaptation.AddIn.Pane
             Loads++;
             document = active;
             statusesFromOutside = false;
-            ProjectName = active == null ? string.Empty : string.IsNullOrEmpty(active.Title) ? PaneText.NotSaved : active.Title;
+            // Revit run 3: a detached document has a Title but no saved path, so the Title alone would name a project with no work folder
+            ProjectName = active == null ? string.Empty : !active.HasPath || string.IsNullOrEmpty(active.Title) ? PaneText.NotSaved : active.Title;
             RefreshAll();
         }
 

@@ -64,7 +64,7 @@ Ribbon tab "Site Adaptation" with four panels in this order (Bader 28 Oct 2026, 
 
 Top to bottom:
 
-- Band, SA.Band: small "Project" in SA.BandAccent, the project name 16 SemiBold white, "not saved" when the title is empty.
+- Band, SA.Band: small "Project" in SA.BandAccent, the project name 16 SemiBold white, "not saved" when the title is empty or the document has no saved path (answer of Revit run 3: a detached document has a title but no saved path, as its steps show no status).
 - NEW Next step box, SA.Guide with SA.GuideBorder line under it: "Next step" 13 SemiBold SA.Info, the next button's name 18 SemiBold, the next by the order of the 9 steps of docs/design/13-workflow-changes.md, one plain line on what it does and that dry run is on or off, a primary button `"Run <n> <name>"` that runs that ribbon button.
 - NEW First open state, when no settings file is chosen: the box reads "Start here", "Choose the settings file", "It names the drawings, the rules and the prototypes for this job. The tool fills the rest of this panel from it.", button "Choose settings file", then the line added by Bader on 28 Oct 2026: "Or start from a past job: Import pre-setting. It brings the settings, rules, level profile, ramp slopes, parameter sheet and overrides of that job." "Import pre-setting" in it runs Import from past job of the Pre-setting row (CHOSEN by Code). Settings row shows an amber mark and "Not chosen". Steps show "Needs settings" or "Needs step n".
 - Sections Project, Input files, Scope, Steps in the mock's order and labels. Section titles 15 SemiBold SA.Heading.

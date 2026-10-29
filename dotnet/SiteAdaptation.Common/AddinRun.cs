@@ -468,10 +468,10 @@ namespace SiteAdaptation.Common
             RunDocument saved = record.Documents.FirstOrDefault(document => document.Label == "first");
             checks.Add(One("2", DetachedNoPath, detached, document => string.IsNullOrEmpty(document.PathName), document => "PathName '" + document.PathName + "'"));
             checks.Add(One("2", DetachedTitleEmpty, detached, document => string.IsNullOrEmpty(document.Title), document => "Title '" + document.Title + "'"));
-            checks.Add(One("2", DetachedStop, detached != null && detached.ButtonStopRead && record.SaveFirst != null ? detached : null,
+            checks.Add(Unasked(DetachedStop, detached, record.SaveFirst) ?? One("2", DetachedStop, detached != null && record.SaveFirst != null ? detached : null,
                 document => document.ButtonStop == record.SaveFirst, document => "the button stop '" + document.ButtonStop + "'"));
             checks.Add(One("2", UnsavedNoPath, unsaved, document => string.IsNullOrEmpty(document.PathName), document => "PathName '" + document.PathName + "', Title '" + document.Title + "'"));
-            checks.Add(One("2", UnsavedStop, unsaved != null && unsaved.WorkFolderRead && unsaved.ButtonStopRead && record.SaveFirst != null ? unsaved : null,
+            checks.Add(Unasked(UnsavedStop, unsaved, record.SaveFirst) ?? One("2", UnsavedStop, unsaved != null && unsaved.WorkFolderRead && record.SaveFirst != null ? unsaved : null,
                 document => document.WorkFolder == null && document.ButtonStop == record.SaveFirst,
                 document => "work folder '" + document.WorkFolder + "', the button stop '" + document.ButtonStop + "'"));
             checks.Add(One("2", SavedFolder, saved != null && saved.WorkFolderRead && record.WorkRoot != null ? saved : null,
@@ -524,7 +524,7 @@ namespace SiteAdaptation.Common
         // worked out here a second time, apart from WorkFolder of the add-in, so the run checks the add-in against it
         public static string ExpectedFolder(string root, string pathName)
         {
-            if (string.IsNullOrEmpty(pathName) || root == null)
+            if (!SavedPath.Is(pathName) || root == null)
             {
                 return null;
             }
@@ -629,6 +629,18 @@ namespace SiteAdaptation.Common
         {
             return One("1", name, answer, holds, entry => "posted for " + entry.PostedFor + " while " + entry.ActiveWhenPosted + " was active, wait " + entry.Wait
                 + ", routed " + entry.Routed + " to the session " + (entry.RoutedSession ?? "none") + ", issue '" + entry.Issue + "'");
+        }
+
+        // Review 1 of PR 99, Revit run 3: the gate asks the flow only for a path SavedPath does not count as saved, so a document of
+        // item 2 whose stop was never read had a path counted as saved and a button on it would run. That is not held, never not measured
+        private static RunCheck Unasked(string name, RunDocument document, string saveFirst)
+        {
+            if (document == null || saveFirst == null || document.ButtonStopRead)
+            {
+                return null;
+            }
+            return new RunCheck { Item = "2", Name = name, Held = false,
+                Detail = "the flow was not asked, the path counted as saved, PathName '" + document.PathName + "', work folder '" + document.WorkFolder + "'" };
         }
 
         private static RunCheck One<T>(string item, string name, T value, Func<T, bool> holds, Func<T, string> detail) where T : class

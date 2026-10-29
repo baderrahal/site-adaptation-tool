@@ -120,7 +120,7 @@ namespace SiteAdaptation.AddIn.Pane
 
         public bool HasPath
         {
-            get { return !string.IsNullOrEmpty(Path); }
+            get { return SavedPath.Is(Path); }
         }
     }
 }

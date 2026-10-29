@@ -25,10 +25,11 @@ namespace SiteAdaptation.AddIn.Pane
             return WorkRoot.ReadIfThere(path);
         }
 
-        // <root>\<file name without extension>_<first 8 hex of the SHA-256 of the full path in lower case>, null with no path
+        // <root>\<file name without extension>_<first 8 hex of the SHA-256 of the full path in lower case>, null with no saved path
+        // by SavedPath of Common, as the bare name of a detached document
         public static string For(string root, string pathName)
         {
-            if (string.IsNullOrEmpty(pathName))
+            if (!SavedPath.Is(pathName))
             {
                 return null;
             }
