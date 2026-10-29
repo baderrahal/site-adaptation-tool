@@ -144,3 +144,13 @@ Bader's decisions of 29 Oct 2026, written down in Round FOLD from his prompt of 
 - .claude/hooks/guard-inputs.sh, beside guard-registry.sh, blocks mklink, New-Item with ItemType Junction or SymbolicLink, and any write command whose target is under an input root.
 - Before and after each run that reads real inputs, the run records name, size, write time and SHA-256 of every file it opens under an input root and fails on any change. That is code of the test host and the readers, so it is a join item of 4h-1, the next phase to run on real inputs (CHOSEN in Round FOLD).
 - The slip of the Q111 run of 4g3, a request file written into the real Prototypes folder through a link, goes into steps/latent.md as a REAL finding closed by this guard, with the hook.
+
+## Decision of 29 Oct 2026, 12:23, Phase 4 and 5
+
+### D20. One PR per phase and the checkers of Phase 4 and 5
+
+- One branch and one PR per phase, holding the code, the tests and the records of that phase.
+- The reviewer (sonnet) and the breaker (opus) read the PR only when it changes build logic, numbers in a plan or an Excel, the override list, or code that writes into a Revit model. Both run at the same time, one pass each. A second pass only when the first found a REAL fault in logic.
+- A PR that changes a window gets the reviewer alone, with the UI checklist, one pass.
+- A PR of records, docs, tests only or install gets no checker.
+- No claim-checker, no prober. This replaces the checker rules of CLAUDE.md and D12 for Phase 4 and 5.

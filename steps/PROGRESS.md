@@ -1,4 +1,4 @@
-STATE WAITING, 2026-10-29 09:12, Round FOLD done, 4h-1 next in Lane A, 5b next in Lane B
+STATE RUNNING, 4h-1 and 5b, 2026-10-29 12:43
 # Progress
 Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
 
