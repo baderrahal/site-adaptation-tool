@@ -7,7 +7,7 @@ Phase 5 and 6 on Bader's company laptop (D1 of steps/decisions-2026-10-28.md). W
 | Phase | Status |
 |---|---|
 | L0 Laptop check, light mode design, UI spec | done, Lane B, laptop, on the merge of branch docs/laptop-l0 after its review |
-| 5a Install, ribbon, pane, one transaction per button | stopped on 29 Oct 2026 on QL20, the Revit run, not done |
+| 5a Install, ribbon, pane, one transaction per button | Revit run 3 ran on 29 Oct 2026, PR 97 and the detached fix merged, not done, its close waits for QL22 |
 | 5b Button 1 Set up site | open |
 | 5f Update from report, new by Bader's changes of 28 Oct 2026, after 5e and before 6a | open |
 
@@ -29,6 +29,35 @@ Run with the fix of QL20 on branch feat/lane-b-5a-revit-run at 11112fc, PR 97. I
 - PaneShownBefore was True, which Revit also gives for a pane it restores from the last session, so the first show of a hidden pane by the add-in (QL18) is not measured in Revit (breaker S1 of PR 97).
 
 ## Where 5a stopped, 29 Oct 2026
+
+### End report of the session of 29 Oct 2026, Revit run 3
+
+Done:
+- Bader's answers of 29 Oct 2026 recorded below, QL17 into join item W2.
+- The fix of QL20 and Revit run 3, once, on copies made by the job (part "Revit run 3 of 5a" above). The raised ExternalEvent ran on the Home screen with no document (RAN). Open item 1 held in full.
+- QL10, QL14 and QL15 in the pane and the icons, the offscreen PNGs made again. The Revit PNGs of the ribbon and the pane are in steps/ui-shots/ with every difference from the drafts.
+- PR 97 merged after two review passes. The fix of the detached document in the next PR: a PathName that is not a full drive or UNC path, as the bare file name Revit gives a detached document, stops with "Save the project first" and gets no work folder (SavedPath.cs in Common, R382).
+
+Remains:
+- Seen in Revit not yet: the stop on a detached document, the first show of a hidden pane by the add-in (QL18), the 16 px icons. QL22.
+- Bader's final approval of the PNGs, now with the Revit shots.
+- The fold in, by Lane A as the last records PR of 4h.
+
+Known bugs:
+- The title of the tab does not show in the tab strip at 1536 logical px, the tab sits behind the overflow mark (QL21).
+- The pane names a detached document by its Title as the project, since 12-ui-spec.md shows "not saved" only for an empty Title. Its steps show no status after the fix.
+- The latent findings of PR 97 under "Latent findings".
+
+Next: 5b Button 1 Set up site, in a new session, after Bader's answers to QL21 and QL22.
+
+Bader's turn, one form, the recommended answer first:
+
+| ID | Question | Recommended | Other |
+|---|---|---|---|
+| QL21 | Tab title hidden behind the overflow mark | Accept it as Revit's tab strip, and the run judge reports whether the title shows | A shorter tab title, a change of 7.1 of 12-ui-spec.md |
+| QL22 | Close 5a with three items not seen in Revit | Mark 5a done on the unit tests and run 3, measure the three in the Revit run after 5c | One more Revit run in 5b for these three |
+| UI | Approve revit-ribbon.png and revit-pane.png | Approve the Revit shots with the differences listed in steps/ui-shots/README.md, the 16 px icons left to the run after 5c | Name the differences to fix first |
+
 
 5a is not done. It stopped on the rule that a fix on its third attempt goes back to measuring and becomes a question: the Revit run failed twice, its cause is now measured, and the next run is question QL20. Nothing runs in Revit and no window lock is held (RAN).
 
@@ -339,6 +368,7 @@ QL8. Where the pane shows Villa mode (docs/design/11-light-mode.md). The approve
 |---|---|---:|---:|---|
 | L0 | 28 Oct 2026 | UNKNOWN | UNKNOWN | npx is not installed, steps/laptop-check.md item 20 |
 | 5a, stopped on QL20 | 28 to 29 Oct 2026 | at least 305,561,554 | at least 135.34 | RAN npx.cmd ccusage@latest session --since 20261028, session 3ba3cec, opus, sonnet and haiku together, taken while the session still ran, so its end adds a little |
+| 5a, Revit run 3 | 29 Oct 2026 | at least 30,713,532 | at least 17.57 | RAN npx.cmd ccusage@latest session --since 20261029 --json, session a035cccb, opus, sonnet and haiku together, taken while the session still ran, so its end adds a little |
 
 ## How L0 ran
 
