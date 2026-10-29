@@ -166,6 +166,7 @@ namespace SiteAdaptation.Common
         public JObject Overrides { get; set; }
         public string OverridesSha256 { get; set; }
         public JObject CheckRows { get; set; }
+        public JObject Summary { get; set; }
         public List<Dictionary<string, string>> PlotRows { get; set; }
         public string RunId { get; set; }
         public string Profile { get; set; }
@@ -217,9 +218,20 @@ namespace SiteAdaptation.Common
             }
         }
 
-        // Null when the plan, the rules and the request agree on the level profile, else why the request is refused
-        public static string Refusal(JObject plan, JObject rules, string profile)
+        // Review 1 of PR 96: the block addin.report of the settings, the button of each override field and the decisions of the walls
+        public const string NoReportBlock = "the settings hold no block addin.report with stepOfField, defaultStep and wallDecisions, the report counts the overrides "
+            + "of each button and the weak wall decisions by it (R365)";
+
+        // Null when the plan, the rules and the request agree on the level profile and the settings hold the block addin.report, else why the
+        // request is refused
+        public static string Refusal(JObject plan, JObject rules, JObject config, string profile)
         {
+            JObject report = config?["addin"]?["report"] as JObject;
+            if (!(report?["stepOfField"] is JObject fields) || fields.Properties().Any(item => item.Value.Type != JTokenType.Integer)
+                || report["defaultStep"]?.Type != JTokenType.Integer || !(report["wallDecisions"] is JArray walls) || walls.Any(item => item.Type != JTokenType.String))
+            {
+                return NoReportBlock;
+            }
             string built = Text((plan?["summary"]?["rules"] as JObject)?["levelProfile"]);
             if (built == null)
             {
@@ -290,10 +302,11 @@ namespace SiteAdaptation.Common
             public List<JObject> Walls;
             public List<JObject> Entries;
             public Dictionary<string, Dictionary<string, string>> Rows;
-            public List<Dictionary<string, string>> PlotRows;
             public JObject StepPlots;
-            public JObject Fields;
-            public HashSet<string> LevelParameters;
+            public Dictionary<string, int> StepOfField;
+            public int DefaultStep;
+            public List<string> WallDecisions;
+            public Dictionary<string, JObject> Scope;
             public List<string> Assumed;
             public List<string> Worst;
             public HashSet<string> Skipped;
@@ -314,10 +327,11 @@ namespace SiteAdaptation.Common
                 Walls = (plan["walls"] as JArray ?? new JArray()).OfType<JObject>().ToList(),
                 Entries = CheckRows.ListEntries(inputs.Overrides, sources, models).Item1,
                 Rows = LevelSheets.RowsByNumber(inputs.PlotRows),
-                PlotRows = inputs.PlotRows,
                 StepPlots = inputs.CheckRows?["plots"] as JObject ?? new JObject(),
-                Fields = inputs.Config["checkRows"]?["fields"] as JObject ?? throw new InvalidDataException(CheckRows.NoBlock),
-                LevelParameters = new HashSet<string>((inputs.Config["majority"]?["parameterLevels"] as JArray ?? new JArray()).Select(item => "parameter " + (string)item)),
+                StepOfField = ((inputs.Config["addin"]?["report"]?["stepOfField"] as JObject) ?? throw new InvalidDataException(NoReportBlock)).Properties().ToDictionary(item => item.Name, item => (int)item.Value),
+                DefaultStep = (int)(inputs.Config["addin"]["report"]["defaultStep"] ?? throw new InvalidDataException(NoReportBlock)),
+                WallDecisions = ((inputs.Config["addin"]["report"]["wallDecisions"] as JArray) ?? throw new InvalidDataException(NoReportBlock)).Select(item => (string)item).ToList(),
+                Scope = (inputs.Summary?["plots"] as JObject ?? new JObject()).Properties().ToDictionary(item => item.Name, item => (item.Value["written"] ?? item.Value["raw"]) as JObject),
                 Assumed = (inputs.Config["valueStatus"]?["assumed"] as JArray ?? new JArray()).Select(item => (string)item).ToList(),
                 Worst = (inputs.Config["valueStatus"]?["worstFirst"] as JArray ?? new JArray()).Select(item => (string)item).ToList(),
                 Skipped = new HashSet<string>((plan["summary"]["skipped"] as JArray ?? new JArray()).Select(item => (string)item)),
@@ -353,17 +367,11 @@ namespace SiteAdaptation.Common
             return result;
         }
 
-        // The step of the summary an override field belongs to by its check type of checkRows.fields: a level, and a parameter that holds a level
-        // (majority.parameterLevels), button 6, a floor button 5, every other field button 4 (CHOSEN in Round ADDIN 4g3 PR 5)
+        // Review 1 of PR 96: the button of the Summary table an override field counts under, addin.report.stepOfField as rows 5 and 6 of 7.6 list
+        // the fields, else addin.report.defaultStep
         private static int StepOf(Made made, string field)
         {
-            if (made.LevelParameters.Contains(field))
-            {
-                return 6;
-            }
-            JObject entry = CheckRows.EntryOf(new JObject { ["fields"] = made.Fields }, "fields", field);
-            string check = (string)entry["check"];
-            return check == "Level" ? 6 : check == "Floor" ? 5 : 4;
+            return made.StepOfField.TryGetValue(field, out int step) ? step : made.DefaultStep;
         }
 
         private static ReportBook Book(ReportInputs inputs, Made made, string nbh, HashSet<string> mine, ReportResult result)
@@ -387,7 +395,7 @@ namespace SiteAdaptation.Common
                 Name = ReportExcelText.SummarySheet,
                 TopLine = Fill(ReportExcelText.TopLine, "nbh", nbh, "n", order.Count.ToString(CultureInfo.InvariantCulture), "profile", inputs.Profile),
             };
-            summary.Tables.Add(StepTable(made, nbh, order, written, walls, placed, skipped, overrides, issues));
+            summary.Tables.Add(StepTable(made, inputs.Rules["levelProfiles"][inputs.Profile]["keyRules"] as JObject ?? new JObject(), order, written, walls, placed, skipped, overrides, issues, result));
             summary.Tables.Add(CountsTable(written, placed, issues, result, nbh));
             summary.Tables.Add(RulesBox(inputs, made, written, walls));
             book.Sheets.Add(summary);
@@ -407,7 +415,7 @@ namespace SiteAdaptation.Common
 
         // D4, items 10 and 11 of 7.7: plot first, one row per written plot and kind, the link with its villa type and mirror flag, then each floor
         // with its type as the plan writes them. CHOSEN: the element id stays empty until the run logs of buttons 4 and 5 are an input
-        private static ReportTable PlacedTable(List<JObject> written)
+        internal static ReportTable PlacedTable(List<JObject> written)
         {
             var table = new ReportTable { Header = ReportExcelText.PlacedColumns, Formats = new string[5], Editable = ReportExcelText.Editable };
             foreach (JObject plot in written)
@@ -567,32 +575,39 @@ namespace SiteAdaptation.Common
             return table;
         }
 
-        private static ReportTable StepTable(Made made, string nbh, List<string> order, List<JObject> written, List<JObject> walls, ReportTable placed, ReportTable skipped,
-            ReportTable overrides, ReportTable issues)
+        private static ReportTable StepTable(Made made, JObject keyRules, List<string> order, List<JObject> written, List<JObject> walls, ReportTable placed, ReportTable skipped,
+            ReportTable overrides, ReportTable issues, ReportResult result)
         {
             var table = new ReportTable { Header = ReportExcelText.StepColumns, Formats = new string[5] };
             Func<int, string, long> outcome = (step, word) => overrides.Rows.Count(row => (string)row[2] == word && StepOf(made, (string)row[1]) == step);
             Func<ReportTable, Func<string, bool>, long> kinds = (sheet, kind) => sheet.Rows.Count(row => kind((string)row[1]));
             Func<string, bool> isFloor = kind => SiteCoordinates.FloorKinds.Contains(kind);
             var orderSet = new HashSet<string>(order);
-            // CHOSEN: the faces of plots.csv in the NBH with no unit code, which 2 Read data reads and leaves
-            long noUnit = made.PlotRows.Count(row => row.TryGetValue("nbhId", out string id) && id == nbh && (!row.TryGetValue("typologyRev9", out string unit) || string.IsNullOrEmpty(unit)));
+            // Review 1 of PR 96: Done and Skipped of 2 Read data over the one scope of the build, the plots of the step summary with a unit and with
+            // none, never the faces of plots.csv outside the scope
+            foreach (string number in order.Where(number => !made.Scope.ContainsKey(number)))
+            {
+                result.Issues.Add("plot " + number + " is in the plan and not in the step summary of the build, so 2 Read data counts it with no unit (R365)");
+            }
+            long withUnit = order.Count(number => made.Scope.TryGetValue(number, out JObject plot) && plot?["unit"]?.Type == JTokenType.String && ((string)plot["unit"]).Length > 0);
             long listed = made.Entries.Count(entry => orderSet.Contains(Text(entry["plot"]) ?? ""));
             long movedWalls = walls.Count(wall => WallValues(wall).Any(value => (made.Details[Text(value["statusFrom"]) ?? ""]?["overrides"] as JArray)?.Count > 0));
+            // Review 1 of PR 96: the Issues of 7 Walls are the weak keyRules decisions of the walls, as 7.6 counts the weak wallTop
+            long weakWalls = made.WallDecisions.Count(name => keyRules[name]?["strong"]?.Type == JTokenType.Boolean && !(bool)keyRules[name]["strong"]);
             long notWritten = order.Count - written.Count;
             table.Rows.Add(new object[] { ReportExcelText.Steps[0], ReportExcelText.NotRun, ReportExcelText.NotRun, ReportExcelText.NotRun, ReportExcelText.NotRun });
-            table.Rows.Add(new object[] { ReportExcelText.Steps[1], (long)order.Count, noUnit, 0L, 0L });
+            table.Rows.Add(new object[] { ReportExcelText.Steps[1], withUnit, order.Count - withUnit, 0L, 0L });
             table.Rows.Add(new object[] { ReportExcelText.Steps[2], (long)order.Count, (long)order.Count(made.Skipped.Contains), listed, (long)issues.Rows.Count });
             table.Rows.Add(new object[] { ReportExcelText.Steps[3], kinds(placed, kind => kind == ReportExcelText.LinkKind), kinds(skipped, kind => kind == ReportExcelText.LinkKind), outcome(4, ReportExcelText.Applied), outcome(4, ReportExcelText.Left) });
             table.Rows.Add(new object[] { ReportExcelText.Steps[4], kinds(placed, isFloor), kinds(skipped, isFloor), outcome(5, ReportExcelText.Applied), outcome(5, ReportExcelText.Left) });
             table.Rows.Add(new object[] { ReportExcelText.Steps[5], (long)written.Count, notWritten, outcome(6, ReportExcelText.Applied), outcome(6, ReportExcelText.Left) });
-            table.Rows.Add(new object[] { ReportExcelText.Steps[6], (long)walls.Count, 0L, movedWalls, 0L });
+            table.Rows.Add(new object[] { ReportExcelText.Steps[6], (long)walls.Count, 0L, movedWalls, weakWalls });
             return table;
         }
 
-        // The box Counts agree across outputs: Revit open until a build is placed, Excel the rows of Placed, the plan held against both apart and a
-        // mismatch of any two counts an issue of the report and the run
-        private static ReportTable CountsTable(List<JObject> written, ReportTable placed, ReportTable issues, ReportResult result, string nbh)
+        // The box Counts agree across outputs: Revit open until the read of 5e fills it, Excel the rows of the Placed sheet the report built, the plan
+        // held against both apart and a mismatch of any two counts an issue of the report and the run
+        internal static ReportTable CountsTable(List<JObject> written, ReportTable placed, ReportTable issues, ReportResult result, string nbh)
         {
             var table = new ReportTable { Title = ReportExcelText.CountsBox, Header = ReportExcelText.CountColumns, Formats = new string[3], Bordered = true };
             long links = placed.Rows.Count(row => (string)row[1] == ReportExcelText.LinkKind);
@@ -622,7 +637,8 @@ namespace SiteAdaptation.Common
             JObject keyRules = inputs.Rules["levelProfiles"][inputs.Profile]["keyRules"] as JObject ?? new JObject();
             string file = Text(inputs.Config["profile"]) ?? "";
             var byEntry = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
-            foreach (Tuple<string, JObject> value in Valued(made, written, walls))
+            // Review 1 of PR 96: a value whose detail names an override took the value of the override, so it counts under no keyRules entry
+            foreach (Tuple<string, JObject> value in Valued(made, written, walls).Where(item => !((item.Item2?["overrides"] as JArray)?.Count > 0)))
             {
                 foreach (string entry in (value.Item2?["entries"] as JArray ?? new JArray()).OfType<JObject>().Select(item => Text(item["entry"])).Where(item => item != null).Distinct())
                 {

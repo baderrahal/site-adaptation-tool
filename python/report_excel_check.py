@@ -27,7 +27,10 @@ from collections import Counter
 from pathlib import Path
 
 import area_key
+import check_rows
 import project_profile
+import value_status
+from level_excel_check import NO_BUILD_ID, listed, section, short
 
 ROOT = Path(__file__).resolve().parent.parent
 LINK = "link"
@@ -42,24 +45,11 @@ OVERRIDE_COLUMNS = ("Plot", "Field", "Outcome", "Why", "Reason", "Source", "Mode
 ISSUE_COLUMNS = ("Step", "Plot", "Check", "Field", "Source", "Use", "Why")
 RULE_SHEET_COLUMNS = ("Rule", "Status", "Basis", "Plots", "Values")
 BASIS = "Basis"
+REPORT_STEP = "8 Report"
+NO_REPORT_BLOCK = ("the settings hold no block addin.report with stepOfField, defaultStep and wallDecisions, the report counts the overrides of each "
+                   "button and the weak wall decisions by it (R365)")
 SETTINGS = ("Run id", "Profile", "Rules SHA-256", "Override list SHA-256", "Run time", "Editable columns", "Plan build id", "Plan SHA-256")
-NO_BUILD_ID = "none, the plan holds no run stamp"
 SHARE_FORMAT = "0.000"
-NO_STATUS = "valueStatus holds no status for %s from %s (R401)"
-NO_STATUS_RULE = "valueStatus holds no status for the field and its source (R401)"
-DECIDED = "majority.decidedByQuestion."
-
-
-def section(text, start, end):
-    """The lines of a Markdown file from the heading start up to the heading end."""
-    lines = text.splitlines()
-    first = next(index for index, line in enumerate(lines) if line.startswith(start))
-    last = next((index for index in range(first + 1, len(lines)) if lines[index].startswith(end)), len(lines))
-    return "\n".join(lines[first:last])
-
-
-def listed(text):
-    return [part.strip() for part in re.sub(r"\s*\([^)]*\)", "", text).split(",") if part.strip()]
 
 
 def title(word):
@@ -125,61 +115,18 @@ def mock_labels(root=ROOT):
     return found
 
 
-def short(value):
-    return ("%.6f" % value).rstrip("0").rstrip(".")
-
-
 def is_number(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
-def label(status, detail):
-    strength = (detail or {}).get("strength")
-    return (status or "") + (" " + strength if status == "MEASURED" and isinstance(strength, str) and strength else "")
-
-
-def rule_name(entry):
-    """The rule an entry of a detail names, read here on its own: a decidedByQuestion entry by its question, a block entry by its path, else
-    its question or document, a field and source with no entry by that one cause, else its why."""
-    path = entry.get("entry")
-    if path:
-        dotted = path.split(" ", 1)[-1]
-        return dotted.split(".")[2] if dotted.startswith(DECIDED) else path
-    for key in ("question", "document"):
-        if entry.get(key) not in (None, ""):
-            return entry[key] if isinstance(entry[key], str) else json.dumps(entry[key], separators=(",", ":"))
-    why = entry.get("why")
-    head, tail = NO_STATUS.split("%s")[0], NO_STATUS.split("%s")[-1]
-    return NO_STATUS_RULE if isinstance(why, str) and why.startswith(head) and why.endswith(tail) else why
-
-
 def basis(entry):
+    """The Q ID, the share or the source of one entry: its question, else its rule with its share, else the rule check_rows.rule_name names."""
     question = entry.get("question")
     if isinstance(question, str) and question:
         return question
     if is_number(entry.get("share")):
-        return "%s share %s" % (rule_name(entry), short(entry["share"]))
-    return rule_name(entry)
-
-
-def worst(entries, order):
-    ranks = [order.index(label(entry["status"], entry)) if label(entry["status"], entry) in order else None for entry in entries]
-    held = [rank for rank in ranks if rank is not None]
-    return entries[:1] if not held else [entry for entry, rank in zip(entries, ranks) if rank == min(held)]
-
-
-def sourced(entry):
-    """Every sourced value of a plot entry by its dotted path, in the order of the entry."""
-    found = []
-
-    def walk(value, path):
-        if isinstance(value, dict) and "value" in value and "source" in value:
-            found.append((".".join(path), value))
-        elif isinstance(value, dict):
-            for key, item in value.items():
-                walk(item, path + [key])
-    walk(entry, [])
-    return found
+        return "%s share %s" % (check_rows.rule_name(entry), short(entry["share"]))
+    return check_rows.rule_name(entry)
 
 
 def cell(value):
@@ -187,28 +134,40 @@ def cell(value):
     return value if value is None or isinstance(value, (str, bool, int, float)) else ("json", value)
 
 
-def load_inputs(plan_path, overrides_path, check_rows_path, plots_csv, rules_path, config_path):
+def load_inputs(plan_path, overrides_path, check_rows_path, summary_path, plots_csv, rules_path, config_path):
     read = lambda path: json.loads(Path(path).read_text(encoding="utf-8"))
     with open(plots_csv, encoding="utf-8-sig", newline="") as handle:
         table = [row for row in csv.DictReader(handle)]
-    return {"plan": read(plan_path), "planBytes": Path(plan_path).read_bytes(), "overrides": read(overrides_path), "checkRows": read(check_rows_path),
+    return {"plan": read(plan_path), "planBytes": Path(plan_path).read_bytes(), "overrides": read(overrides_path), "checkRows": read(check_rows_path), "summary": read(summary_path),
             "table": table, "rows": {row["locationPlanNumber"]: row for row in table if row.get("locationPlanNumber")}, "rules": read(rules_path),
             "config": read(config_path),
             "sha": {name: hashlib.sha256(Path(path).read_bytes()).hexdigest() for name, path in (("rules", rules_path), ("overrides", overrides_path))}}
 
 
-def step_of(field, config):
-    """The button of the summary an override field counts under: a level and a parameter of majority.parameterLevels 6, a floor 5, else 4."""
-    if field in {"parameter " + name for name in (config.get("majority") or {}).get("parameterLevels") or []}:
-        return 6
-    table = config["checkRows"]["fields"]
-    entry = table.get(field)
-    for mark in (".", " "):
-        if entry is None and mark in field and field[:field.index(mark)] + mark + "*" in table:
-            entry = table[field[:field.index(mark)] + mark + "*"]
-    if entry is None:
-        raise ValueError("checkRows.fields names no check for " + field)
-    return {"Level": 6, "Floor": 5}.get(entry["check"], 4)
+def report_block(config):
+    """Review 1 of PR 96: addin.report of the settings, refused when it lacks the button of each field, the default button or the wall decisions."""
+    block = (config.get("addin") or {}).get("report")
+    if not isinstance(block, dict) or not isinstance(block.get("stepOfField"), dict) or not isinstance(block.get("defaultStep"), int) \
+            or not isinstance(block.get("wallDecisions"), list):
+        raise ValueError(NO_REPORT_BLOCK)
+    return block
+
+
+def step_of(field, block):
+    """The button of the Summary table an override field counts under, by addin.report as rows 5 and 6 of 7.6 list the fields."""
+    return block["stepOfField"].get(field, block["defaultStep"])
+
+
+def counts_box(placed, written, mock):
+    """The box Counts agree across outputs from the rows of the Placed sheet, and an Issues row per count the plan holds apart that differs."""
+    links = sum(1 for row in placed if row[1] == LINK)
+    floors = sum(1 for row in placed if row[1] in FLOOR_KINDS)
+    rows = [[mock["countItems"][0], NOT_PLACED, links], [mock["countItems"][1], NOT_PLACED, floors], [mock["countItems"][2], NOT_PLACED, NO_LEVEL_RUN]]
+    issues = []
+    for item, held, excel in ((mock["countItems"][0], len(written), links), (mock["countItems"][1], sum(len(plot.get("floors") or {}) for plot in written), floors)):
+        if held != excel:
+            issues.append([REPORT_STEP, None, "Counts", item, None, None, "the plan holds %d, Revit %s, Excel %d (R365)" % (held, NOT_PLACED, excel)])
+    return rows, issues
 
 
 def expected(inputs, profile_name, mock):
@@ -238,6 +197,8 @@ def expected(inputs, profile_name, mock):
     prefix = "%s levelProfiles.%s.keyRules." % (config.get("profile") or "", profile_name)
     skipped_list = set((plan.get("summary") or {}).get("skipped") or [])
     step_plots = inputs["checkRows"].get("plots") or {}
+    block = report_block(config)
+    scope = {number: item.get("written") or item.get("raw") or {} for number, item in (inputs["summary"].get("plots") or {}).items()}
     books = {}
     for nbh in sorted({nbh for nbh in nbh_of.values() if nbh}):
         mine_written = [plot for plot in written if nbh_of[plot["plot"]] == nbh]
@@ -269,12 +230,12 @@ def expected(inputs, profile_name, mock):
                 overrides.append([number, field, "Left", cell(why), entry.get("reason"), entry.get("source"), entry.get("model")])
         assumed_rows, values = [], []
         for plot in mine_written:
-            for path, value in sourced(plot):
+            for path, value in value_status.fields_of(plot).items():
                 detail = details.get(value.get("statusFrom")) or {}
                 values.append((plot["plot"], detail))
-                name = label(value.get("status"), detail)
+                name = value_status.status_label(value.get("status"), detail)
                 if name in assumed:
-                    shown = list(dict.fromkeys(basis(entry) for entry in worst(detail.get("entries") or [], ranked)))
+                    shown = list(dict.fromkeys(basis(entry) for entry in value_status.worst_entries(detail.get("entries") or [], ranked)))
                     assumed_rows.append([plot["plot"], path, cell(value.get("value")), name, " | ".join(shown)])
         for wall in walls:
             values.extend((wall["plot"], details.get(value.get("statusFrom")) or {}) for value in wall.values() if isinstance(value, dict) and "value" in value and "source" in value)
@@ -286,10 +247,13 @@ def expected(inputs, profile_name, mock):
         grouped, took = {}, {}
         for number, detail in values:
             for entry in detail.get("entries") or []:
-                key = (rule_name(entry) or "", label(entry["status"], entry))
+                key = (check_rows.rule_name(entry) or "", value_status.entry_label(entry))
                 group = grouped.setdefault(key, [basis(entry), set(), 0])
                 group[1].add(number)
                 group[2] += 1
+            # Review 1 of PR 96: a value whose detail names an override took the value of the override, never that of a keyRules entry
+            if detail.get("overrides"):
+                continue
             for path in {entry.get("entry") for entry in detail.get("entries") or [] if entry.get("entry")}:
                 took.setdefault(path, set()).add(number)
         rule_rows = [[rule, name, group[0], len(group[1]), group[2]] for (rule, name), group in sorted(grouped.items())]
@@ -301,22 +265,24 @@ def expected(inputs, profile_name, mock):
             box.append([decision, item["rule"], share if is_number(share) else NOT_MEASURED,
                         NOT_MEASURED if not isinstance(strong, bool) else "strong" if strong else "weak",
                         mock["plotCount"].replace("[n]", str(len(took.get(prefix + decision + ".rule", ())))) ])
-        links = sum(1 for row in placed if row[1] == LINK)
-        floors = sum(1 for row in placed if row[1] in FLOOR_KINDS)
-        gaps["Links of the plan against Placed %s" % ("equal" if links == len(mine_written) else "unequal")] += 1
-        gaps["Floors of the plan against Placed %s" % ("equal" if floors == sum(len(plot.get("floors") or {}) for plot in mine_written) else "unequal")] += 1
-        outcome = lambda step, word: sum(1 for row in overrides if row[2] == word and step_of(row[1], config) == step)
+        counts, unequal = counts_box(placed, mine_written, mock)
+        links, floors = counts[0][2], counts[1][2]
+        gaps["count boxes with a mismatch"] += 1 if unequal else 0
+        outcome = lambda step, word: sum(1 for row in overrides if row[2] == word and step_of(row[1], block) == step)
         moved = sum(1 for wall in walls if any((details.get(value.get("statusFrom")) or {}).get("overrides") for value in wall.values()
                                                if isinstance(value, dict) and "statusFrom" in value))
-        no_unit = sum(1 for row in inputs["table"] if row.get("nbhId") == nbh and not row.get("typologyRev9"))
+        # Review 1 of PR 96: Done and Skipped of 2 Read data over the one scope, the plots of the step summary with a unit and with none
+        with_unit = sum(1 for number in order if (scope.get(number) or {}).get("unit"))
+        gaps["plots of the plan not in the step summary"] += sum(1 for number in order if number not in scope)
+        weak = sum(1 for name in block["wallDecisions"] if (key_rules.get(name) or {}).get("strong") is False)
         steps = [[mock["steps"][0]] + [NOT_RUN] * 4,
-                 [mock["steps"][1], len(order), no_unit, 0, 0],
+                 [mock["steps"][1], with_unit, len(order) - with_unit, 0, 0],
                  [mock["steps"][2], len(order), sum(1 for number in order if number in skipped_list), sum(1 for item in entries if str(item.get("plot")) in set(order)), len(issues)],
                  [mock["steps"][3], links, sum(1 for row in skipped if row[1] == LINK), outcome(4, "Applied"), outcome(4, "Left")],
                  [mock["steps"][4], floors, sum(1 for row in skipped if row[1] in FLOOR_KINDS), outcome(5, "Applied"), outcome(5, "Left")],
                  [mock["steps"][5], len(mine_written), len(mine_not), outcome(6, "Applied"), outcome(6, "Left")],
-                 [mock["steps"][6], len(walls), 0, moved, 0]]
-        counts = [[mock["countItems"][0], NOT_PLACED, links], [mock["countItems"][1], NOT_PLACED, floors], [mock["countItems"][2], NOT_PLACED, NO_LEVEL_RUN]]
+                 [mock["steps"][6], len(walls), 0, moved, weak]]
+        issues.extend(unequal)
         stamp = plan.get("run")
         books[nbh] = {"file": mock["file"].replace("<NBH>", nbh), "topLine": mock["filled"] % {"nbh": nbh, "n": len(order), "profile": profile_name},
                       "steps": steps, "counts": counts, "box": box,
@@ -447,7 +413,7 @@ def check_folder(folder, want, mock, run_id=None):
 
 def run(args):
     mock = mock_labels()
-    inputs = load_inputs(args.plan, args.overrides, args.check_rows, args.plots_csv, args.rules, args.config)
+    inputs = load_inputs(args.plan, args.overrides, args.check_rows, args.summary, args.plots_csv, args.rules, args.config)
     want = expected(inputs, args.profile, mock)
     books = want["books"]
     report = {"plan": Path(args.plan).name, "workbooks": sorted(book["file"] for book in books.values()),
@@ -467,6 +433,7 @@ def main(argv=None):
     parser.add_argument("--plan", required=True)
     parser.add_argument("--overrides", required=True)
     parser.add_argument("--check-rows", required=True, help="the step checkRows file of the build, step_checkRows_python.json or its C# twin")
+    parser.add_argument("--summary", required=True, help="the step summary file of the build, step_summary_python.json, the unit of each plot of the scope")
     parser.add_argument("--plots-csv", required=True)
     parser.add_argument("--rules", help="the rules profile, by default the one config names")
     parser.add_argument("--config", default=str(project_profile.SETTINGS_PATH))

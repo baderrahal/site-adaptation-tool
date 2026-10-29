@@ -25,6 +25,9 @@ DETAILS = {
     # A strong entry before the UNKNOWN one, so the basis is that of the worst entry by worstFirst and never the first entry
     "floors type from computed": {"entries": [{"entry": KEY + "generic.rule", "status": "MEASURED", "share": 0.99, "strength": "strong"},
                                               {"entry": "config/project.json floors.types", "status": "UNKNOWN", "why": "no entry"}]},
+    # Review 1 of PR 96: a height the heightM override touched still reads keyRules.entry, and counts under no keyRules entry
+    "levels.height from estimate by heightM": {"entries": [{"status": "RECOMMENDED", "question": "Q053", "where": "section 6"},
+                                                           {"entry": KEY + "entry.rule", "status": "MEASURED", "share": 0.088, "strength": "weak"}], "overrides": ["heightM"]},
     "walls.base from keyRules": {"entries": [{"entry": KEY + "wallBase.rule", "status": "MEASURED", "share": 0.98, "strength": "strong"}], "strength": "strong"},
     "walls.top from keyRules by heightM": {"entries": [{"status": "RECOMMENDED", "question": "Q053", "where": "section 6"}], "overrides": ["heightM"]},
 }
@@ -39,12 +42,13 @@ def plot(number, unit, mirrored, moved, floors, overrides=None):
             "floors": {kind: {"type": valued(TYPES[kind], "computed", "UNKNOWN", "floors type from computed")} for kind in floors}}
     if overrides is not None:
         item["overrides"] = overrides
+        item["levels"]["height"] = valued(0.2, "estimate", "RECOMMENDED", "levels.height from estimate by heightM")
     return item
 
 
 PLAN = {"format": "site-adaptation-plan", "run": {"runId": "b7"}, "statusFrom": DETAILS,
         "summary": {"skipped": [], "rules": {"levelProfile": "parsons2024Rev6", "overrideSource": ["parsons"], "overrideModel": []}},
-        "plots": [plot("101", "VD4", False, True, ["generic", "ramp"], {"applied": ["entryM", "parameter CASE"], "notApplied": {"rampFrontFallM": "no direction"}}),
+        "plots": [plot("101", "VD4", False, True, ["generic", "ramp"], {"applied": ["entryM", "parameter CASE", "rampFrontM", "parameter RRE_ZZ_SP_RVT-Name"], "notApplied": {"rampFrontFallM": "no direction"}}),
                   plot("102", "DP1", True, False, ["generic", "yard"]), plot("201", "VD1", False, False, ["generic"]), plot("999", "VD1", False, False, ["generic"])],
         "walls": [{"plot": "101", "edge": 1, "plots": valued(["101", "102"], "locationPlan", "DOCUMENT", "unit from locationPlan"),
                    "base": valued(10.1, "keyRules", "MEASURED", "walls.base from keyRules"), "top": valued(10.4, "keyRules", "RECOMMENDED", "walls.top from keyRules by heightM"),
@@ -61,6 +65,8 @@ def entry(number, field, value, reason, source="parsons"):
 
 OVERRIDES = {"overrides": [entry("101", "entryM", {"gapToRuleM": 0.01}, "breaks roadLevel"), entry("101", "heightM", {"gapToRuleM": 0.5}, "native", "native"),
                            entry("101", "parameter CASE", "D", "breaks typologyMirrored"), entry("101", "rampFrontFallM", 0.02, "breaks roadAtEachCorner"),
+                           entry("101", "rampFrontM", {"gapToRuleM": 0.003}, "breaks roadLevel"),
+                           entry("101", "parameter RRE_ZZ_SP_RVT-Name", "101 | VD4 | 1", "breaks plotCodeStepsAndFacade"),
                            entry("103", "mirrored", True, "breaks blockMirrorRoadSide")]}
 
 
@@ -75,11 +81,16 @@ CHECK_ROWS = {"plots": {number: {"written": {"rows": rows}} for number, rows in 
 RULES = {"levelProfiles": {"parsons2024Rev6": {"keyRules": {"note": "made up", "hand villa": {"rule": "blockMirrorRoadSide", "share": 0.96, "strong": True},
                                                             "entry": {"rule": "roadLevel", "share": 0.088, "strong": False},
                                                             "wallBase": {"rule": "yardLevelOfTheHigherPlot", "share": 0.98, "strong": True},
+                                                            "wallTop": {"rule": "higherFflPlusRev6", "share": 0.35, "strong": False},
                                                             "ssl": {"rule": "fflPlusGroundSsl", "notMeasured": "no key"}}}}}
-CONFIG = {"profile": "rules/r.json", "majority": {"parameterLevels": ["RRE_ZZ_SP_Prototype-FFL"]},
+# The step summary of the build, 103 with no unit, 150 of plots.csv in 012 outside the scope as a key cover holds part of an NBH
+SUMMARY = {"plots": {number: {"written": {"unit": unit, "written": unit is not None}} for number, unit in
+                     (("101", "VD4"), ("102", "DP1"), ("103", None), ("201", "VD1"), ("999", "VD1"))}}
+STEP_OF_FIELD = {"rampType": 5, "rampFrontM": 5, "genericFloor": 5, "rampOutline": 5, "yardOutline": 5, "rampFrontFallM": 5, "entryM": 6, "heightM": 6, "steps": 6,
+                 "parameter RRE_ZZ_SP_Prototype-FFL": 6, "parameter RRE_ZZ_SP_RVT-Name": 6}
+CONFIG = {"profile": "rules/r.json", "addin": {"report": {"stepOfField": STEP_OF_FIELD, "defaultStep": 4, "wallDecisions": ["wallBase", "wallTop", "wallLine", "frontOpen"]}},
           "valueStatus": {"assumed": ["RECOMMENDED", "CHOSEN by Code", "UNKNOWN", "MEASURED weak"], "worstFirst": ["UNKNOWN", "CHOSEN by Code", "RECOMMENDED", "MEASURED weak"]},
-          "checkRows": {"fields": {"entryM": {"check": "Level"}, "rampFrontFallM": {"check": "Level"}, "mirrored": {"check": "Hand"}, "rampType": {"check": "Floor"},
-                                   "parameter RRE_ZZ_SP_Prototype-FFL": {"check": "Parameter"}, "parameter *": {"check": "Parameter"}}}}
+          }
 PLOTS = "locationPlanNumber,typologyRev9,zone,nbhId\n101,VD4,Zone 2,012\n102,DP1,Zone 2,012\n103,,Zone 2,012\n150,,Zone 2,012\n201,VD1,Zone 3,013\n"
 FILL = PatternFill(fill_type="solid", fgColor="FFDDEBF7")
 THIN = Side(style="thin")
@@ -88,13 +99,13 @@ THIN = Side(style="thin")
 @pytest.fixture
 def made(tmp_path):
     paths = {}
-    for name, content in (("plan", PLAN), ("overrides", OVERRIDES), ("checkRows", CHECK_ROWS), ("rules", RULES), ("config", CONFIG)):
+    for name, content in (("plan", PLAN), ("overrides", OVERRIDES), ("checkRows", CHECK_ROWS), ("summary", SUMMARY), ("rules", RULES), ("config", CONFIG)):
         paths[name] = tmp_path / (name + ".json")
         paths[name].write_text(json.dumps(content), encoding="utf-8")
     paths["plots"] = tmp_path / "plots.csv"
     paths["plots"].write_text(PLOTS, encoding="utf-8")
     mock = check.mock_labels()
-    inputs = check.load_inputs(paths["plan"], paths["overrides"], paths["checkRows"], paths["plots"], paths["rules"], paths["config"])
+    inputs = check.load_inputs(paths["plan"], paths["overrides"], paths["checkRows"], paths["summary"], paths["plots"], paths["rules"], paths["config"])
     return paths, mock, check.expected(inputs, "parsons2024Rev6", mock)
 
 
@@ -148,15 +159,19 @@ def test_r365_the_plan_side_works_out_the_counts_the_c_sharp_test_asserts(made):
     assert sorted(want["books"]) == ["012", "013"]
     assert want["gaps"]["plots with no nbhId"] == 1
     assert book["topLine"] == "[file name].rvt, NBH 012, 3 plots, parsons2024Rev6, run time [n] min"
-    assert book["steps"] == [["1 Set up site"] + ["not run yet"] * 4, ["2 Read data", 3, 2, 0, 0], ["3 Check", 3, 0, 4, 6], ["4 Place villas", 2, 1, 1, 1],
-                             ["5 Floors and ramps", 4, 4, 0, 0], ["6 Levels", 2, 1, 1, 1], ["7 Walls", 1, 0, 1, 0]]
+    # Review 1 of PR 96: rampFrontM and rampFrontFallM under 5 and RVT-Name under 6 as 7.6 lists them, 2 Read data over the scope alone, 150
+    # left out, and the weak wallTop the Issues of 7 Walls
+    assert book["steps"] == [["1 Set up site"] + ["not run yet"] * 4, ["2 Read data", 2, 1, 0, 0], ["3 Check", 3, 0, 6, 6], ["4 Place villas", 2, 1, 1, 1],
+                             ["5 Floors and ramps", 4, 4, 1, 1], ["6 Levels", 2, 1, 2, 0], ["7 Walls", 1, 0, 1, 1]]
     assert book["counts"] == [["Links", "not placed yet", 2], ["Floors", "not placed yet", 4], ["Levels", "not placed yet", "no run of button 6 yet"]]
     assert book["box"] == [["hand villa", "blockMirrorRoadSide", 0.96, "strong", "2 plots"], ["entry", "roadLevel", 0.088, "weak", "1 plots"],
-                           ["wallBase", "yardLevelOfTheHigherPlot", 0.98, "strong", "1 plots"], ["ssl", "fflPlusGroundSsl", "not measured", "not measured", "0 plots"]]
-    assert book["sheets"]["Assumed"][1] == ["101", "floors.generic.type", "Generic 150mm", "UNKNOWN", "config/project.json floors.types"]
-    assert book["sheets"]["Assumed"][3] == ["102", "levels.entry", 10.25, "MEASURED weak", KEY + "entry.rule share 0.088"]
-    assert len(book["sheets"]["Assumed"]) == 6
-    assert book["sheets"]["Rules"][0] == ["Q053", "RECOMMENDED", "Q053", 1, 2]
+                           ["wallBase", "yardLevelOfTheHigherPlot", 0.98, "strong", "1 plots"], ["wallTop", "higherFflPlusRev6", 0.35, "weak", "0 plots"], ["ssl", "fflPlusGroundSsl", "not measured", "not measured", "0 plots"]]
+    assert book["sheets"]["Assumed"][2] == ["101", "floors.generic.type", "Generic 150mm", "UNKNOWN", "config/project.json floors.types"]
+    assert book["sheets"]["Assumed"][1] == ["101", "levels.height", 0.2, "RECOMMENDED", "Q053"]
+    assert book["sheets"]["Assumed"][4] == ["102", "levels.entry", 10.25, "MEASURED weak", KEY + "entry.rule share 0.088"]
+    assert len(book["sheets"]["Assumed"]) == 7
+    assert book["sheets"]["Rules"][0] == ["Q053", "RECOMMENDED", "Q053", 1, 3]
+    assert book["sheets"]["Rules"][2] == [KEY + "entry.rule", "MEASURED weak", KEY + "entry.rule share 0.088", 2, 2]
     assert book["sheets"]["Rules"][-1] == ["the location plan", "DOCUMENT", "the location plan", 2, 3]
     assert book["settings"]["Plan SHA-256"] == hashlib.sha256(paths["plan"].read_bytes()).hexdigest()
     assert book["settings"]["Editable columns"] == "Type, Mirror"
@@ -204,3 +219,22 @@ def test_r365_the_labels_come_from_the_mock_files_and_their_additions_of_7_7(mad
     assert mock["placed"] == ["Plot", "Kind", "Type", "Mirror", "Element id"]
     assert mock["editable"] == ["Type", "Mirror"]
     assert mock["steps"][-1] == "7 Walls" and len(mock["steps"]) == 7
+
+
+def test_r365_a_placed_sheet_short_of_one_floor_row_gives_the_mismatch_as_an_issue_row(made):
+    paths, mock, want = made
+    written = [plot for plot in PLAN["plots"] if plot["plot"] in ("101", "102")]
+    placed = [row for row in want["books"]["012"]["sheets"]["Placed"]][:-1]
+    rows, issues = check.counts_box(placed, written, mock)
+    assert rows[1] == ["Floors", "not placed yet", 3]
+    assert issues == [["8 Report", None, "Counts", "Floors", None, None, "the plan holds 4, Revit not placed yet, Excel 3 (R365)"]]
+
+
+def test_r365_settings_with_no_block_addin_report_are_refused(made, tmp_path):
+    paths, mock, want = made
+    bare = dict(CONFIG)
+    bare.pop("addin")
+    paths["config"].write_text(json.dumps(bare), encoding="utf-8")
+    inputs = check.load_inputs(paths["plan"], paths["overrides"], paths["checkRows"], paths["summary"], paths["plots"], paths["rules"], paths["config"])
+    with pytest.raises(ValueError, match="no block addin.report"):
+        check.expected(inputs, "parsons2024Rev6", mock)

@@ -62,6 +62,13 @@ namespace SiteAdaptation.Tests
                     ["entries"] = new JArray(new JObject { ["entry"] = KeyPath + "generic.rule", ["status"] = "MEASURED", ["share"] = 0.99, ["strength"] = "strong" },
                         new JObject { ["entry"] = "config/project.json floors.types", ["status"] = "UNKNOWN", ["why"] = "no entry" }),
                 },
+                // Review 1 of PR 96: a height the heightM override touched still reads keyRules.entry, and counts under no keyRules entry
+                ["levels.height from estimate by heightM"] = new JObject
+                {
+                    ["entries"] = new JArray(new JObject { ["status"] = "RECOMMENDED", ["question"] = "Q053", ["where"] = "section 6" },
+                        new JObject { ["entry"] = KeyPath + "entry.rule", ["status"] = "MEASURED", ["share"] = 0.088, ["strength"] = "weak" }),
+                    ["overrides"] = new JArray("heightM"),
+                },
                 ["walls.base from keyRules"] = measured(new JObject { ["entry"] = KeyPath + "wallBase.rule", ["status"] = "MEASURED", ["share"] = 0.98, ["strength"] = "strong" }, "strong"),
                 ["walls.top from keyRules by heightM"] = new JObject
                 {
@@ -87,11 +94,13 @@ namespace SiteAdaptation.Tests
             if (overrides != null)
             {
                 plot["overrides"] = overrides;
+                ((JObject)plot["levels"])["height"] = Valued(0.2, "estimate", "RECOMMENDED", "levels.height from estimate by heightM");
             }
             return plot;
         }
 
-        // NBH 012: 101 with an entryM and a CASE override applied and a ramp front fall left, a ramp, and a wall on 102 whose top heightM moved,
+        // NBH 012: 101 with an entryM, a CASE, a rampFrontM and an RVT-Name override applied and a ramp front fall left, a height the heightM
+        // override touched, a ramp, and a wall on 102 whose top heightM moved,
         // 102 mirrored with a yard and no ramp, 103 not written for its unit with a mirror override left. NBH 013: 201. 999 has no row of plots.csv
         internal static JObject MadePlan()
         {
@@ -109,7 +118,7 @@ namespace SiteAdaptation.Tests
                 ["plots"] = new JArray
                 {
                     Plot("101", "VD4", false, true, new[] { "generic", "ramp" },
-                        new JObject { ["applied"] = new JArray("entryM", "parameter CASE"), ["notApplied"] = new JObject { ["rampFrontFallM"] = "no direction" } }),
+                        new JObject { ["applied"] = new JArray("entryM", "parameter CASE", "rampFrontM", "parameter RRE_ZZ_SP_RVT-Name"), ["notApplied"] = new JObject { ["rampFrontFallM"] = "no direction" } }),
                     Plot("102", "DP1", true, false, new[] { "generic", "yard" }),
                     Plot("201", "VD1", false, false, new[] { "generic" }),
                     Plot("999", "VD1", false, false, new[] { "generic" }),
@@ -148,6 +157,8 @@ namespace SiteAdaptation.Tests
                     Entry("101", "heightM", new JObject { ["gapToRuleM"] = 0.5 }, "a native entry the build does not take", "native"),
                     Entry("101", "parameter CASE", "D", "breaks typologyMirrored"),
                     Entry("101", "rampFrontFallM", 0.02, "breaks roadAtEachCorner"),
+                    Entry("101", "rampFrontM", new JObject { ["gapToRuleM"] = 0.003 }, "breaks roadLevel"),
+                    Entry("101", "parameter RRE_ZZ_SP_RVT-Name", "101 | VD4 | 1", "breaks plotCodeStepsAndFacade"),
                     Entry("103", "mirrored", true, "breaks blockMirrorRoadSide"),
                 },
             };
@@ -175,39 +186,58 @@ namespace SiteAdaptation.Tests
             };
         }
 
+        // The step summary of the build, step 15, the unit of each plot of the scope and whether the plan writes it, 103 with no unit. 150 of
+        // plots.csv lies in 012 outside the scope of the build, as a key cover holds part of an NBH
+        internal static JObject MadeSummary()
+        {
+            Func<string, bool, JObject> plot = (unit, written) =>
+            {
+                var item = new JObject { ["unit"] = unit, ["written"] = written };
+                return new JObject { ["raw"] = item, ["written"] = item.DeepClone() };
+            };
+            return new JObject
+            {
+                ["format"] = "siteAdaptationStep", ["step"] = "summary",
+                ["plots"] = new JObject { ["101"] = plot("VD4", true), ["102"] = plot("DP1", true), ["103"] = plot(null, false), ["201"] = plot("VD1", true), ["999"] = plot("VD1", true) },
+            };
+        }
+
         internal static JObject MadeRules()
         {
             return JObject.Parse("{\"levelProfiles\": {\"parsons2024Rev6\": {\"keyRules\": {\"note\": \"made up\", "
                 + "\"hand villa\": {\"rule\": \"blockMirrorRoadSide\", \"share\": 0.96, \"strong\": true}, \"entry\": {\"rule\": \"roadLevel\", \"share\": 0.088, \"strong\": false}, "
-                + "\"wallBase\": {\"rule\": \"yardLevelOfTheHigherPlot\", \"share\": 0.98, \"strong\": true}, \"ssl\": {\"rule\": \"fflPlusGroundSsl\", \"notMeasured\": \"no key\"}}}, "
+                + "\"wallBase\": {\"rule\": \"yardLevelOfTheHigherPlot\", \"share\": 0.98, \"strong\": true}, "
+                + "\"wallTop\": {\"rule\": \"higherFflPlusRev6\", \"share\": 0.35, \"strong\": false}, \"ssl\": {\"rule\": \"fflPlusGroundSsl\", \"notMeasured\": \"no key\"}}}, "
                 + "\"native2022\": {}}}");
         }
 
         internal static JObject MadeConfig()
         {
-            Func<string, JObject> check = name => new JObject { ["check"] = name };
+            Func<int, JToken> step = value => value;
             return new JObject
             {
                 ["profile"] = ProfileFile,
                 ["siteBuild"] = new JObject { ["minFreeGB"] = 2.0 },
-                ["majority"] = new JObject { ["parameterLevels"] = new JArray("RRE_ZZ_SP_Prototype-FFL") },
                 ["valueStatus"] = new JObject
                 {
                     ["assumed"] = new JArray("RECOMMENDED", "CHOSEN by Code", "UNKNOWN", "MEASURED weak"), ["worstFirst"] = new JArray("UNKNOWN", "CHOSEN by Code", "RECOMMENDED", "MEASURED weak"),
-                },
-                ["checkRows"] = new JObject
-                {
-                    ["fields"] = new JObject
-                    {
-                        ["entryM"] = check("Level"), ["rampFrontFallM"] = check("Level"), ["mirrored"] = check("Hand"), ["rampType"] = check("Floor"),
-                        ["parameter RRE_ZZ_SP_Prototype-FFL"] = check("Parameter"), ["parameter *"] = check("Parameter"),
-                    },
                 },
                 ["addin"] = new JObject
                 {
                     ["workerPeakMiB"] = new JObject { ["roles"] = new JArray("curbs"), ["files"] = new JArray(new JObject { ["name"] = "Road.dwg", ["bytes"] = 1, ["peakMiB"] = 100 }) },
                     ["workerTimeLimitS"] = new JObject { ["reportExcel"] = 600 },
                     ["workerTimeLimitMinS"] = 10,
+                    // Rows 5 Floors and ramps and 6 Levels of 7.6, as config/project.json holds them
+                    ["report"] = new JObject
+                    {
+                        ["stepOfField"] = new JObject
+                        {
+                            ["rampType"] = step(5), ["rampFrontM"] = step(5), ["genericFloor"] = step(5), ["rampOutline"] = step(5), ["yardOutline"] = step(5), ["rampFrontFallM"] = step(5),
+                            ["entryM"] = step(6), ["heightM"] = step(6), ["steps"] = step(6), ["parameter RRE_ZZ_SP_Prototype-FFL"] = step(6), ["parameter RRE_ZZ_SP_RVT-Name"] = step(6),
+                        },
+                        ["defaultStep"] = 4,
+                        ["wallDecisions"] = new JArray("wallBase", "wallTop", "wallLine", "frontOpen"),
+                    },
                 },
             };
         }
@@ -226,16 +256,17 @@ namespace SiteAdaptation.Tests
             return new WorkerFile { Role = role, Path = path, Sha256 = FileHash.Sha256(path) };
         }
 
-        private WorkerAnswer Run(JObject plan, out int code, out string planPath, string profile = "parsons2024Rev6", string id = "rx1")
+        private WorkerAnswer Run(JObject plan, out int code, out string planPath, string profile = "parsons2024Rev6", string id = "rx1", JObject config = null)
         {
             planPath = Write("plan_all.json", plan.ToString());
             var inputs = new List<WorkerFile>
             {
-                Input("config", Write("project.json", MadeConfig().ToString())),
+                Input("config", Write("project.json", (config ?? MadeConfig()).ToString())),
                 Input("rules", Write("rules.json", MadeRules().ToString())),
                 Input(ReportWorkbook.PlanRole, planPath),
                 Input(ReportWorkbook.OverridesRole, Write("overrides.json", MadeOverrides().ToString())),
                 Input(ReportWorkbook.CheckRowsRole, Write("step_checkRows_python.json", MadeCheckRows().ToString())),
+                Input(ReportWorkbook.SummaryRole, Write("step_summary_python.json", MadeSummary().ToString())),
                 Input("plotsCsv", Write("plots.csv", PlotsCsv)),
             };
             var request = new WorkerRequest
@@ -297,16 +328,17 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "A1:E1" }, book.Merged["Summary"].ToArray());
             Assert.Empty(book.Row("Summary", 2));
             Assert.Equal(new[] { "Step", "Done", "Skipped", "Override", "Issues" }, book.Row("Summary", 3).Cast<string>().ToArray());
-            // 2 Read data: the 3 plots of the plan in 012 and the 2 faces of 012 in plots.csv with no unit, 103 and 150. 3 Check: the 4 entries
-            // of the list on them of the source parsons and the 6 rows of 7.4. 4: 2 links, 103 skipped, CASE applied and the mirror of 103 left.
-            // 5: 4 floors, the ramp of 102 and the 3 floors of 103 skipped. 6: entryM applied, rampFrontFallM left. 7: the wall heightM moved
+            // 2 Read data: of the 3 plots of the scope in 012 101 and 102 hold a unit and 103 none, 150 of plots.csv lying outside the scope.
+            // 3 Check: the 6 entries of the list on them of the source parsons and the 6 rows of 7.4. 4: 2 links, 103 skipped, CASE applied and
+            // the mirror of 103 left. 5: 4 floors, the ramp of 102 and the 3 floors of 103 skipped, rampFrontM applied and rampFrontFallM left as
+            // row 5 of 7.6 lists them. 6: entryM and RVT-Name applied as row 6 lists them. 7: the wall heightM moved and the weak wallTop
             Assert.Equal(new object[] { "1 Set up site", "not run yet", "not run yet", "not run yet", "not run yet" }, book.Row("Summary", 4).ToArray());
-            Assert.Equal(new object[] { "2 Read data", 3.0, 2.0, 0.0, 0.0 }, book.Row("Summary", 5).ToArray());
-            Assert.Equal(new object[] { "3 Check", 3.0, 0.0, 4.0, 6.0 }, book.Row("Summary", 6).ToArray());
+            Assert.Equal(new object[] { "2 Read data", 2.0, 1.0, 0.0, 0.0 }, book.Row("Summary", 5).ToArray());
+            Assert.Equal(new object[] { "3 Check", 3.0, 0.0, 6.0, 6.0 }, book.Row("Summary", 6).ToArray());
             Assert.Equal(new object[] { "4 Place villas", 2.0, 1.0, 1.0, 1.0 }, book.Row("Summary", 7).ToArray());
-            Assert.Equal(new object[] { "5 Floors and ramps", 4.0, 4.0, 0.0, 0.0 }, book.Row("Summary", 8).ToArray());
-            Assert.Equal(new object[] { "6 Levels", 2.0, 1.0, 1.0, 1.0 }, book.Row("Summary", 9).ToArray());
-            Assert.Equal(new object[] { "7 Walls", 1.0, 0.0, 1.0, 0.0 }, book.Row("Summary", 10).ToArray());
+            Assert.Equal(new object[] { "5 Floors and ramps", 4.0, 4.0, 1.0, 1.0 }, book.Row("Summary", 8).ToArray());
+            Assert.Equal(new object[] { "6 Levels", 2.0, 1.0, 2.0, 0.0 }, book.Row("Summary", 9).ToArray());
+            Assert.Equal(new object[] { "7 Walls", 1.0, 0.0, 1.0, 1.0 }, book.Row("Summary", 10).ToArray());
             Assert.Empty(book.Row("Summary", 11));
             Assert.Equal(new object[] { "Counts agree across outputs" }, book.Row("Summary", 12).ToArray());
             Assert.True(book.Bold(book.Sheets["Summary"][12]["A"]));
@@ -326,13 +358,15 @@ namespace SiteAdaptation.Tests
             Assert.Empty(book.Row("Summary", 17));
             Assert.Equal(new object[] { "Rules applied" }, book.Row("Summary", 18).ToArray());
             Assert.Equal(new object[] { "Decision", "Rule", "Share", "Strength", "Plots" }, book.Row("Summary", 19).ToArray());
-            // hand villa on the mirror flags of 101 and 102, entry on 102 alone as the entryM override moved that of 101, wallBase on the wall of
-            // 101, ssl measured by no key and read by no value
+            // hand villa on the mirror flags of 101 and 102, entry on 102 alone as the entryM override moved that of 101 and the height of 101 the
+            // heightM override touched still names keyRules.entry, wallBase on the wall of 101, wallTop on none as heightM touched the top, ssl
+            // measured by no key and read by no value
             Assert.Equal(new object[] { "hand villa", "blockMirrorRoadSide", 0.96, "strong", "2 plots" }, book.Row("Summary", 20).ToArray());
             Assert.Equal(new object[] { "entry", "roadLevel", 0.088, "weak", "1 plots" }, book.Row("Summary", 21).ToArray());
             Assert.Equal(new object[] { "wallBase", "yardLevelOfTheHigherPlot", 0.98, "strong", "1 plots" }, book.Row("Summary", 22).ToArray());
-            Assert.Equal(new object[] { "ssl", "fflPlusGroundSsl", "not measured", "not measured", "0 plots" }, book.Row("Summary", 23).ToArray());
-            Assert.Equal(new[] { 1, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23 }, book.Sheets["Summary"].Keys.ToArray());
+            Assert.Equal(new object[] { "wallTop", "higherFflPlusRev6", 0.35, "weak", "0 plots" }, book.Row("Summary", 23).ToArray());
+            Assert.Equal(new object[] { "ssl", "fflPlusGroundSsl", "not measured", "not measured", "0 plots" }, book.Row("Summary", 24).ToArray());
+            Assert.Equal(new[] { 1, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24 }, book.Sheets["Summary"].Keys.ToArray());
             Assert.Equal("0.000", book.Format(book.Sheets["Summary"][20]["C"]));
         }
 
@@ -364,25 +398,27 @@ namespace SiteAdaptation.Tests
 
             Assert.Equal(new object[] { "101", "entryM", "Applied", null, "breaks roadLevel", "parsons", "model_parsons.rvt" }, book.Row("Overrides", 2).ToArray());
             Assert.Equal(new object[] { "101", "parameter CASE", "Applied", null, "breaks typologyMirrored", "parsons", "model_parsons.rvt" }, book.Row("Overrides", 3).ToArray());
-            Assert.Equal(new object[] { "101", "rampFrontFallM", "Left", "no direction", "breaks roadAtEachCorner", "parsons", "model_parsons.rvt" }, book.Row("Overrides", 4).ToArray());
-            Assert.Equal(new object[] { "103", "mirrored", "Left", "plot not written", "breaks blockMirrorRoadSide", "parsons", "model_parsons.rvt" }, book.Row("Overrides", 5).ToArray());
-            Assert.Equal(5, book.Sheets["Overrides"].Count);
+            Assert.Equal(new object[] { "101", "rampFrontM", "Applied", null, "breaks roadLevel", "parsons", "model_parsons.rvt" }, book.Row("Overrides", 4).ToArray());
+            Assert.Equal(new object[] { "101", "rampFrontFallM", "Left", "no direction", "breaks roadAtEachCorner", "parsons", "model_parsons.rvt" }, book.Row("Overrides", 6).ToArray());
+            Assert.Equal(new object[] { "103", "mirrored", "Left", "plot not written", "breaks blockMirrorRoadSide", "parsons", "model_parsons.rvt" }, book.Row("Overrides", 7).ToArray());
+            Assert.Equal(7, book.Sheets["Overrides"].Count);
 
             // A DOCUMENT or strong MEASURED value is not shown, the entryM of 101 reads Q053, the weak entry of 102 its rule and share
             Assert.Equal(new object[] { "101", "levels.entry", 10.5, "RECOMMENDED", "Q053" }, book.Row("Assumed", 2).ToArray());
-            Assert.Equal(new object[] { "101", "floors.generic.type", "Generic 150mm", "UNKNOWN", "config/project.json floors.types" }, book.Row("Assumed", 3).ToArray());
-            Assert.Equal(new object[] { "101", "floors.ramp.type", "Ramps 2%", "UNKNOWN", "config/project.json floors.types" }, book.Row("Assumed", 4).ToArray());
-            Assert.Equal(new object[] { "102", "levels.entry", 10.25, "MEASURED weak", KeyPath + "entry.rule share 0.088" }, book.Row("Assumed", 5).ToArray());
-            Assert.Equal(7, book.Sheets["Assumed"].Count);
+            Assert.Equal(new object[] { "101", "levels.height", 0.2, "RECOMMENDED", "Q053" }, book.Row("Assumed", 3).ToArray());
+            Assert.Equal(new object[] { "101", "floors.generic.type", "Generic 150mm", "UNKNOWN", "config/project.json floors.types" }, book.Row("Assumed", 4).ToArray());
+            Assert.Equal(new object[] { "101", "floors.ramp.type", "Ramps 2%", "UNKNOWN", "config/project.json floors.types" }, book.Row("Assumed", 5).ToArray());
+            Assert.Equal(new object[] { "102", "levels.entry", 10.25, "MEASURED weak", KeyPath + "entry.rule share 0.088" }, book.Row("Assumed", 6).ToArray());
+            Assert.Equal(8, book.Sheets["Assumed"].Count);
 
             Assert.Equal(new object[] { "3 Check", "101", "Level", "entryM", "override", "Past" }, book.Row("Issues", 2).ToArray());
             Assert.Equal(new object[] { "3 Check", "103", "Hand", "mirrored", "override", "Rule", "plot not written" }, book.Row("Issues", 6).ToArray());
             Assert.Equal(new object[] { "3 Check", "103", "Unit code", "unit", "missing", "Rule" }, book.Row("Issues", 7).ToArray());
             Assert.Equal(7, book.Sheets["Issues"].Count);
 
-            Assert.Equal(new object[] { "Q053", "RECOMMENDED", "Q053", 1.0, 2.0 }, book.Row("Rules", 2).ToArray());
+            Assert.Equal(new object[] { "Q053", "RECOMMENDED", "Q053", 1.0, 3.0 }, book.Row("Rules", 2).ToArray());
             Assert.Equal(new object[] { "config/project.json floors.types", "UNKNOWN", "config/project.json floors.types", 2.0, 4.0 }, book.Row("Rules", 3).ToArray());
-            Assert.Equal(new object[] { KeyPath + "entry.rule", "MEASURED weak", KeyPath + "entry.rule share 0.088", 1.0, 1.0 }, book.Row("Rules", 4).ToArray());
+            Assert.Equal(new object[] { KeyPath + "entry.rule", "MEASURED weak", KeyPath + "entry.rule share 0.088", 2.0, 2.0 }, book.Row("Rules", 4).ToArray());
             Assert.Equal(new object[] { KeyPath + "generic.rule", "MEASURED strong", KeyPath + "generic.rule share 0.99", 2.0, 4.0 }, book.Row("Rules", 5).ToArray());
             Assert.Equal(new object[] { KeyPath + "hand villa.rule", "MEASURED strong", KeyPath + "hand villa.rule share 0.96", 2.0, 2.0 }, book.Row("Rules", 6).ToArray());
             Assert.Equal(new object[] { KeyPath + "wallBase.rule", "MEASURED strong", KeyPath + "wallBase.rule share 0.98", 1.0, 1.0 }, book.Row("Rules", 7).ToArray());
@@ -417,7 +453,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R365_a_plan_of_another_level_profile_or_with_no_table_statusFrom_is_refused()
+        public void R365_a_plan_of_another_level_profile_or_with_no_table_statusFrom_or_settings_with_no_block_addin_report_is_refused()
         {
             WorkerAnswer answer = Run(MadePlan(), out int code, out string plan, "native2022", "rx2");
             Assert.Equal(2, code);
@@ -427,7 +463,27 @@ namespace SiteAdaptation.Tests
             answer = Run(bare, out code, out plan, id: "rx3");
             Assert.Equal(2, code);
             Assert.Contains("no table statusFrom", answer.Message);
+            JObject bareConfig = MadeConfig();
+            ((JObject)bareConfig["addin"]).Remove("report");
+            answer = Run(MadePlan(), out code, out plan, id: "rx4", config: bareConfig);
+            Assert.Equal(2, code);
+            Assert.Contains(ReportSheets.NoReportBlock, answer.Message);
             Assert.False(Directory.Exists(Path.Combine(folder, "out")) && Directory.GetFiles(Path.Combine(folder, "out"), "*.xlsx").Length > 0);
+        }
+
+        [Fact]
+        public void R365_a_placed_sheet_short_of_one_floor_row_gives_the_mismatch_of_the_box_as_an_issue_row()
+        {
+            List<JObject> written = ((JArray)MadePlan()["plots"]).OfType<JObject>().Where(plot => (string)plot["plot"] == "101" || (string)plot["plot"] == "102").ToList();
+            ReportTable placed = ReportSheets.PlacedTable(written);
+            Assert.Equal(6, placed.Rows.Count);
+            placed.Rows.RemoveAt(placed.Rows.Count - 1);
+            var issues = new ReportTable { Header = ReportExcelText.IssueColumns, Formats = new string[7] };
+            var result = new ReportResult();
+            ReportTable box = ReportSheets.CountsTable(written, placed, issues, result, "012");
+            Assert.Equal(new object[] { "Floors", "not placed yet", 3L }, box.Rows[1]);
+            Assert.Equal(new object[] { "8 Report", null, "Counts", "Floors", null, null, "the plan holds 4, Revit not placed yet, Excel 3 (R365)" }, Assert.Single(issues.Rows));
+            Assert.Equal(new[] { "NBH 012 Floors: the plan holds 4, Revit not placed yet, Excel 3 (R365)" }, result.Issues.ToArray());
         }
     }
 }
