@@ -494,6 +494,36 @@ namespace SiteAdaptation.Tests
             Assert.True(record.NotMeasured >= 6);
         }
 
+        // Review 1 of PR 99, Revit run 3: the detached document gave the bare PathName below, the gate counted it as saved and never
+        // asked the flow, while a button on it would have run. A document there whose stop was not read is not held, never not measured
+        [WindowsFact]
+        public void R382_a_detached_or_unsaved_document_whose_stop_the_flow_was_never_asked_is_not_held()
+        {
+            AddinRunRecord record = Expected();
+            RunDocument detached = record.Documents.Single(document => document.Label == "detached");
+            detached.PathName = "SA5A-CENTRAL-TEST-NEW_detached.rvt";
+            detached.Title = "SA5A-CENTRAL-TEST-NEW_detached";
+            detached.WorkFolder = Documents + @"\SiteAdaptation\SA5A-CENTRAL-TEST-NEW_detached_00000000";
+            detached.ButtonStop = null;
+            detached.ButtonStopRead = false;
+            RunDocument unsaved = record.Documents.Single(document => document.Label == "unsaved");
+            unsaved.ButtonStop = null;
+            unsaved.ButtonStopRead = false;
+            AddinRunJudge.Judge(record);
+
+            foreach (string name in new[] { AddinRunJudge.DetachedStop, AddinRunJudge.UnsavedStop })
+            {
+                Assert.True(CheckOf(record, name).Held == false, name + ": " + CheckOf(record, name).Detail);
+                Assert.Contains("the flow was not asked", CheckOf(record, name).Detail);
+            }
+
+            AddinRunRecord noText = Expected();
+            noText.SaveFirst = null;
+            AddinRunJudge.Judge(noText);
+            Assert.Null(CheckOf(noText, AddinRunJudge.DetachedStop).Held);
+            Assert.Null(CheckOf(noText, AddinRunJudge.UnsavedStop).Held);
+        }
+
         // The second method for the work folder: the hash of the lower case full path, here a value worked out by python hashlib
         [WindowsFact]
         public void R372_the_judge_works_out_the_work_folder_by_its_own_hash_of_the_path()

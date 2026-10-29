@@ -468,6 +468,21 @@ namespace SiteAdaptation.Tests
             Assert.All(model.Steps, step => Assert.Equal(StepKind.None, step.Chip));
         }
 
+        // Review 1 of PR 99, Revit run 3: the detached document showed its Title as the project while its steps showed no status. A
+        // document with no saved path reads not saved whatever its Title
+        [Fact]
+        public void R382_a_document_with_no_saved_path_reads_not_saved_whatever_its_title()
+        {
+            PaneViewModel model = Model(new FakeProbe());
+            foreach (string path in new[] { "SA5A-CENTRAL-TEST-NEW_detached.rvt", string.Empty, "BIM 360://Project/Site.rvt" })
+            {
+                model.Load(new DocumentSession("s", path, "SA5A-CENTRAL-TEST-NEW_detached"));
+                Assert.Equal(PaneText.NotSaved, model.ProjectName);
+            }
+            model.Load(new DocumentSession("s", @"\\server\share\Site.rvt", "Site"));
+            Assert.Equal("Site", model.ProjectName);
+        }
+
         [Fact]
         public void R372_a_pick_changes_the_settings_in_memory_and_villa_mode_starts_on_masses()
         {
