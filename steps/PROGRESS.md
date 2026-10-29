@@ -37,11 +37,9 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## Bader's turn
 
-Opened in Round FOLD so far: Q146 Tab title hidden behind the overflow mark. Q147 Close 5a with three items not seen in Revit.
-Open: Q001 Q002 Q003 Q004 Q005 Q006 Q007 Q008 Q009 Q010 Q012 Q013 Q015 Q016 Q017 Q018 Q019 Q020 Q022 Q023 Q024 Q025 Q026 Q027 Q029 Q030 Q031 Q032 Q033 Q036 Q037 Q038 Q039 Q041 Q042 Q051 Q052
-Q053 Q054 Q055 Q056 Q057 Q058 Q059 Q062 Q063 Q064 Q065 Q066 Q068 Q069 Q070 Q071 Q072 Q074 Q075 Q076 Q077 Q078 Q079 Q082 Q085 Q086 Q087 Q119 Q120 Q123 Q124 Q125 Q146 Q147
-Also open with no ID: Bader's final approval of revit-ribbon.png and revit-pane.png, steps/ui-shots/README.md.
-71 questions open, full text and the recommended answers by ID: steps/questions-open.md.
+Opened in Round FOLD, open: Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot.
+Closed in Round FOLD: 92, every question open before and the 22 Lane B questions, ids in steps/questions-closed.md. Asks of others: steps/waiting-on-others.md.
+2 questions open, full text and the recommended answers: steps/questions-open.md.
 
 ## Next three steps
 

@@ -7,7 +7,7 @@ Phase 5 and 6 on Bader's company laptop (D1 of steps/decisions-2026-10-28.md). T
 | Phase | Status |
 |---|---|
 | L0 Laptop check, light mode design, UI spec | done, Lane B, laptop, 28 Oct 2026 |
-| 5a Install, ribbon, pane, one transaction per button | Revit run 3 ran on 29 Oct 2026, PR 97 and PR 99 merged, its close waits for Q147 |
+| 5a Install, ribbon, pane, one transaction per button | done, Lane B, laptop, 29 Oct 2026, on the unit tests and Revit run 3 (Q147) |
 | 5b Button 1 Set up site | open |
 | 5c with the Revit run after 5c | open |
 | 5d | open |
@@ -33,7 +33,7 @@ From docs/design/13-workflow-changes.md, part Where each lands. 5a builds the or
 
 - W1, 5b. Set up site: the pass limit read from config by the answer of Q142, the Floor types row, the Ramp slope row and its dropdown, the Shared parameters row from the parameter sheet, the parameters and GUIDs only from that sheet, its PNG. The new labels of 7.3 are in the label list since review 1 of PR 92, the pass line as "Pass limit <n> mm" until Q142 is answered. The default 0.5% of Ramp slope is in the rules profile already, levelProfiles.parsons2024Rev6.rampSlopePercent.default beside rampTypes of rules/roshn-makkah.json, which the build reads (5a PR 8 review 2). Only the list of choices, 0.5%, 1%, 2%, then 3% to 15%, is new, and it goes beside rampTypes by Lane A or at the fold in (CLAUDE.md, no project value in code).
 - W2, 5c. The pass limit of 0.1 mm in config by the answer of Q142 (Bader, 29 Oct 2026): a key of its own for the check points of button 1 against Revit, the Revit column after Apply against the transform of the dry run. addin.position.checkPointLimitMm stays at 1.0 for the key check of R353 (R211, Q086). Config is Lane A's file, so Lane A or the join adds the key and Code names it then.
-- W3, 5c. The rules profile gains the block manualRules, M01 to M15 as drafted on the canvas, with id, text, group, manual section and the steps that check it. Code reads the page numbers from the manual PDF. The texts of M01 to M15 are on the canvas, not in the repo, so 5c asks Bader for them if no file holds them.
+- W3, 5c. The rules profile gains the block manualRules, M01 to M15, with id, text, group, manual section and the steps that check it, taken from docs/design/15-manual-rules.md, which holds the canvas texts and the Rev 06 section and page of each (Round FOLD).
 - W4, 5c. The pre-setting: Import from past job and Export with R367, never a drawing path or a coordinate.
 - W5, 5c. The windows 3 Review data and Site Adaptation Rules, their labels in docs/design/14-ui-labels.md, their PNGs, and the manual rule ID on every check row and Review data row, with "Open in Site Adaptation Rules" in the Check table side box.
 - W6, 5d. Place villas places each link at its FFL and writes Prototype-FFL, Levels writes no link parameter, in the buttons of the new order.
@@ -66,4 +66,4 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 
 ## Open Lane B questions
 
-Q146 Tab title hidden behind the overflow mark. Q147 Close 5a with three items not seen in Revit. Full text in steps/questions-open.md.
+Q148 Place villas before Floors and Levels after 5c. Full text in steps/questions-open.md. Q146 and Q147 were closed in the answer pass of 2026-10-29.
