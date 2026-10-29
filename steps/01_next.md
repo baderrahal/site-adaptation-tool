@@ -65,7 +65,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 - Starts when: 4h-1
 - Rules: R366 scope with the plot list syntax and the step state by hash. R369 the second method of Phase 4, seeds 14 and 7
 - R366 joins the pane as a join item of the Lane B phase open when 4h-2 ends (D9), W9 of steps/lane-b.md
-- Join items of the answer pass (Bader, 2026-10-29): Q055, El @ Entry of the 1.4 key read off its ramp on the 5 plots. Q119, a value lists the reads of the override that set the input it stands on. Q120, mirrored covers the yard outline and type only, rotationDeg a wall only where the turn decides it stands. Each measures the plan values it changes against a build before it
+- Join items of the answer pass (Bader, 2026-10-29): Q055, El @ Entry of the 1.4 key read off its ramp on the 5 plots. Q119, a value lists the reads of the override that set the input it stands on. Q120, mirrored covers the yard outline and type only, rotationDeg a wall only where the turn decides it stands. Each measures the plan values it changes against a build before it. Q017: its values go from RECOMMENDED to CHOSEN by Bader, with the two tests of R401 that pin them while Q017 was open (test_value_status.py and ValueStatusTests, review 1 of PR 78 and Q114), and Q017 leaves Bader's turn of steps/PROGRESS.md
 - Design: docs/design/03a-buttons-shared-and-1.md (Steps and Scope), docs/design/13-workflow-changes.md part Order for the 9 steps
 - Done when: each rule has its tests on both runners and the second method of Phase 4 runs at seeds 14 and 7 (R369, 10-rule-ids.md)
 

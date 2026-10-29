@@ -41,6 +41,7 @@ Opened in Round FOLD, open: Q148 Place villas before Floors and Levels after 5c.
 Q150 M15 foundation depth, at least or equal.
 Closed in Round FOLD: 92, Q021, the 22 Lane B questions and 69 more in the answer pass, ids in steps/questions-closed.md. Asks of others: steps/waiting-on-others.md.
 3 questions open, full text and the recommended answers: steps/questions-open.md.
+Q017 is closed, its status block held at RECOMMENDED until 4h-2 updates the two tests of R401 that pin it (join item).
 
 ## Next three steps
 
