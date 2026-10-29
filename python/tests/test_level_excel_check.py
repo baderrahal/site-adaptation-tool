@@ -218,3 +218,14 @@ def test_r364_ffl_as_written_lists_the_written_ffls_an_override_moved_off_the_ru
     want = check.expected(inputs_of(paths), "parsons2024Rev6", mock)
     assert [row[4:] for row in want["books"]["012"]["clusters"]] == [[10.499, "10.520, 10.500"], [10.501, None]]
     assert check.CLUSTER_COLUMNS[4:] == ("FFL by rule", "FFL as written")
+
+
+def test_r364_the_two_ffl_columns_of_clusters_are_read_from_7_7_and_a_mock_that_names_others_is_refused(tmp_path):
+    # Q122: the names of items 36 and 37 of 7.7, read from the file as every other label of the checker is, never from the C#
+    assert check.mock_labels()["clusterFfl"] == ["FFL by rule", "FFL as written"]
+    for name in ("addin-mock.md", "design/07-mock.md"):
+        target = tmp_path / "docs" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text((check.ROOT / "docs" / name).read_text(encoding="utf-8").replace('"FFL as written"', '"FFL written"'), encoding="utf-8")
+    with pytest.raises(ValueError, match="7.7 of docs/design/07-mock.md names the FFL columns of the sheet Clusters FFL by rule, FFL written"):
+        check.mock_labels(tmp_path)

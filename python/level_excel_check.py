@@ -92,7 +92,12 @@ def mock_labels(root=ROOT):
         for name in re.split(r", | and ", names):
             decimals[name.strip()] = int(count)
     filled = re.search(r'Filled: "(NBH .*?)"', part).group(1)
-    found.update(decimals=decimals, formulas=filled.split("formulas: ", 1)[1])
+    # Q122: the two FFL columns of the sheet Clusters by the items of 7.7 that name them, in their order
+    extra = section((root / "docs" / "design" / "07-mock.md").read_text(encoding="utf-8"), "### 7.7", "### 7.8")
+    named = [name for line in extra.splitlines() if re.match(r"\d+\. Q122 ", line) for name in re.findall(r'"(FFL [^"]+)"', line)]
+    if named != list(CLUSTER_COLUMNS[4:]):
+        raise ValueError("7.7 of docs/design/07-mock.md names the FFL columns of the sheet Clusters " + ", ".join(named))
+    found.update(decimals=decimals, formulas=filled.split("formulas: ", 1)[1], clusterFfl=named)
     return found
 
 
