@@ -2,6 +2,41 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round FOLD, 2026-10-29, the fold in, D9 to D19, the answer pass and the manual rules
+
+Goal:
+- Fold Lane B into the shared records, write D9 to D19 with the lane runner and the real folders guard, take Bader's answer pass, write M01 to M15
+
+Done:
+- PR 101 the fold in records, PR 102 the design (9 steps, Revit run 3), PR 103 D9 to D19 and the start files, PR 104 tools/run-lane.ps1 and guard-inputs.sh, PR 105 the answer pass and docs/design/15-manual-rules.md
+- QL1 to QL22 are Q126 to Q147. 5a done by Q147. steps/lane-b.md 54 KB to under 15 KB, the rest in steps/history
+
+Checked:
+- Questions, RAN: before 70 open, 55 closed, 22 QL, after 3 open, 147 closed, 16 of them in steps/waiting-on-others.md, no id lost
+- M01 to M15, RAN: 15 found, 15 equal to the prompt. M14 and M15 differ from the PDF in meaning (Q149, Q150)
+- D19 hook, RAN: 25 cases pass. Runner, RAN: Lane A and Lane B each exited 0 on LANE DONE, Lane B made its worktree, STOP ends it
+- Each PR one reviewer pass, CI green on all five. Local gate runs, RAN, outputs in the scratchpad of this session outside the repo:
+- PR 102: one run 29 failed and 6 errors beside other Python runs, the 35 passed on rerun. One run 2 net48 failures, 1037 of 1037 on rerun, names not kept
+- PR 103: 1 failed, passed on rerun, name UNKNOWN. PR 104: 1 failed, test_r343 on a control byte in steps/latent.md, fixed. PR 105: 2 per runtime on the status of Q017, held as below
+
+Remains:
+- 4h-1 the first PR takes the Q122 code. The old Lane A folder is not on this laptop (SEARCHED the C drive to depth 4 by Get-ChildItem, only the Lane B worktree found), so 4h-1 writes Q122 again unless it is found elsewhere
+- The rule_status.py change of D13 and the input hashes of D19 are join items of 4h-1
+- Answers that change a value of a built plan or its outputs, each measured by the phase that codes it: Q075 the native list (4h-1), Q055 El @ Entry of 1.4, Q119 and Q120 the status detail and sets (4h-2), Q086 the key check at 2 mm (5c), Q123 to Q125 the report counts (5e). The status block of rules/roshn-makkah.json moved 5 values off RECOMMENDED, 4 to CHOSEN by Bader, 1 to CHOSEN by Code. The 5 of Q017 stay RECOMMENDED until 4h-2 changes the two R401 tests that pin them (CHOSEN, no test logic changed in this round)
+
+Known bugs:
+- python/rule_status.py reads the open questions from Bader's turn, so D13 holds in full only after 4h-1
+- The hook judges words: a command line that names the link command or an input root beside a write word is blocked (steps/latent.md)
+- git cannot delete 4 stale .git/worktrees entries, Permission denied
+
+Next:
+- 4h-1 on Lane A, 5b on Lane B, both by tools/run-lane.ps1
+
+Your turn:
+- Opened: Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal
+- Closed: 92, Q021 by D3, the 22 Lane B questions and 69 more in the answer pass, ids in steps/questions-closed.md
+- 3 questions open, full text: steps/questions-open.md
+
 ## Lane B L0 and 5a, 2026-10-28 to 2026-10-29, folded in by Round FOLD
 
 Goal:
