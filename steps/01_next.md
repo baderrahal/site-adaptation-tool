@@ -61,7 +61,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## 4h-2, the scope, the step state and the second method
 
-- Status: done on 2026-10-29 in Lane A on the laptop, one PR (D20), Q154 to Q158 opened, its latent findings in steps/latent.md under 4h-2
+- Status: done on 2026-10-29 in Lane A on the laptop, one PR (D20), Q159 to Q163 opened, its latent findings in steps/latent.md under 4h-2
 - Starts when: 4h-1
 - Rules: R366 scope with the plot list syntax and the step state by hash. R369 the second method of Phase 4, seeds 14 and 7
 - R366 joins the pane as a join item of the Lane B phase open when 4h-2 ends (D9), W9 of steps/lane-b.md
@@ -91,7 +91,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## 5b, button 1 Set up site
 
-- Status: open, Lane B
+- Status: done, Lane B, laptop, 29 Oct 2026, on the unit tests and the Revit runs of button 1 on the four copies of 3.1. Open items 3 to 8 measured, their text joins 09-risks.md at the fold in (J17 of steps/lane-b.md)
 - Starts when: 5a
 - Rules: R373 button 1 on an empty project. R374 button 1 on an existing site file. R383 element tags in Revit, schema names, the library and memory line of each run
 - Phase changes (Bader, 2026-10-28): R383 element tags wait for R368 of 4h, button 1 calls one tag step that 5c fills. R374 on the R17B file of kept\round_17 among the four copies of 3.1. The Set up site window by 7.3 of docs/design/12-ui-spec.md with its screenshot in steps/ui-shots/

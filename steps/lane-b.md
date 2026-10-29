@@ -8,7 +8,7 @@ Phase 5 and 6 on Bader's company laptop (D1 of steps/decisions-2026-10-28.md). T
 |---|---|
 | L0 Laptop check, light mode design, UI spec | done, Lane B, laptop, 28 Oct 2026 |
 | 5a Install, ribbon, pane, one transaction per button | done, Lane B, laptop, 29 Oct 2026, on the unit tests and Revit run 3 (Q147) |
-| 5b Button 1 Set up site | open |
+| 5b Button 1 Set up site | done, Lane B, laptop, 29 Oct 2026, the PR of 5b and Revit runs 1 to 3 of button 1 |
 | 5c with the Revit run after 5c | open |
 | 5d | open |
 | 6a | open |
@@ -64,6 +64,12 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - J15, 5e. With links placed after Levels, whether the Levels count of the box Counts agree takes the link Z of a run of 7 is open. R365 counts by the run of 6 today.
 - J16, 5c. Item 34 of 7.7: the first open Start here state of 7.2 and the new project prefilled from config of section 6 do not say how they meet. Settle it with R367 and the pre-setting.
 
+## Join items from 5b
+
+- J17, fold in. docs/design/09-risks.md open items 3 to 8 were measured in the Revit runs of button 1 of 5b (the 5b entry of steps/log.md). 09-risks.md is Lane A's file, so the measures go into it at the fold in. Item 5: a project from UnitSystem.Metric with no template holds 2 floor types and 1 wall type. The imperial project of 03a was not run, it joins the Revit run after 5c.
+- J18, 5c or the fold in. Values button 1 takes from code until config holds them, each with a comment naming this item: the wall types BW and Generic Wall-150mm_ Garden (no addin.wallTypes in config), the units of area, angle and slope, the ramp slope choices of W1. Config and rules are Lane A's files.
+- J19, 5c. Button 1 writes no Settings entity until R367 (J1) gives its schema, each run lists the issue. Browse of the parameter sheet stops until the worker reads xlsx (Q155, R350). The position file is read from addin.position.file, a path of the personal PC until J5, the Revit runs of 5b gave the laptop copy through the settings of the run.
+- J20, fold in. R104 and R108 changed in 5b: the watcher starts before Revit and waits for its pid file, the add-ins of the tool are named by the installed manifests, a probe runs by -DryStart -ProbeManifest, and the freeze guard ends a window with no first log step in 5 minutes, no heartbeat for 10 or no answer for 5 (Q154 for an image job). Their text goes into docs/rules at the fold in with J9.
 ## Open Lane B questions
 
-Q148 Place villas before Floors and Levels after 5c. Full text in steps/questions-open.md. Q146 and Q147 were closed in the answer pass of 2026-10-29.
+Q148 Place villas before Floors and Levels after 5c. Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Full text in steps/questions-open.md. Q146 and Q147 were closed in the answer pass of 2026-10-29.

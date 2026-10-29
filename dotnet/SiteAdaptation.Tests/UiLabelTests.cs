@@ -22,7 +22,7 @@ namespace SiteAdaptation.Tests
             Dictionary<string, List<UiLabels.Found>> shown = UiLabels.Texts(Path.Combine(root, "dotnet", "SiteAdaptation.AddIn"), Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Flow", "RunTexts.cs"));
 
             Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Check table" }, list.Keys.ToArray());
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
             Assert.Equal(16, list["Ribbon"].Entries.Count);
             Assert.Contains(shown["Ribbon"], found => found.Text == "Update from report");
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
@@ -136,7 +136,8 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Empty(missing);
-            Assert.Equal(21, chosen);
+            // 22 since Lane B 5b, the line of a second run of Set up site
+            Assert.Equal(22, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
@@ -160,7 +161,8 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain(setUpEntries, text => text.Contains(" 1 mm") || text.Contains("0.1 mm"));
             Assert.Equal(new[] { "4 Check, NBH <n>, <n> plots", "4 Check, NBH all, <n> plots" }, checkTitles);
             Assert.Contains("4 Check", list["Ribbon"].Entries.Select(entry => entry.Text));
-            Assert.False(list["Set up site"].Built);
+            // Lane B 5b built the window of button 1, so its entries are held against its files as every built window is
+            Assert.True(list["Set up site"].Built);
             Assert.False(list["Check table"].Built);
         }
 

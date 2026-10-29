@@ -11,7 +11,7 @@ Done:
 - R366: ButtonScope (plot list syntax and stops) in Common/Scope, StepStates and StepHash in Common/Steps, for the pane by W9
 - R369: python/phase4_check.py, the second method of Phase 4 at seeds 14 and 7
 - Q017 values CHOSEN by Bader, its two R401 tests moved, HELD_OPEN out of rule_status.py
-- Q055: a key El @ Entry off its own ramp back is read off the ramp back, in clean_entry and entry_of (Q154)
+- Q055: a key El @ Entry off its own ramp back is read off the ramp back, in clean_entry and entry_of (Q159)
 - Q119 reads by the override that set each input. Q120 mirrored the yard outline and type, rotationDeg turned walls only
 
 Checked:
@@ -22,24 +22,60 @@ Checked:
 - Against 4h-1, RAN: plots and walls equal outside status and reads. 136 Q119 and Q120 moves as aimed, 9 of Q017
 - Q120 second method, RAN: a build with no rotationDeg differs on the 18 walls named and on none of the other 30
 - 5 plots at seed 21, RAN: Python and C# steps equal on 5. 2 plots differ from the levels step by their overrides, as built
-- Reviewer and breaker one pass each (D20). Review: Q055 second route and rule line fixed with a test. Breaker F1 is Q158
+- Reviewer and breaker one pass each (D20). Review: Q055 second route and rule line fixed with a test. Breaker F1 is Q163
 
 Remains:
 - R366 has no caller until W9 of Lane B, which must feed locationPlanNumber and nbhId (steps/latent.md)
 - medianHeightM of native2022 stale until a majority run with the Native reads (Q151)
 
 Known bugs:
-- 4 yards that stand only by a mirror override read a status stronger than their evidence (Q158)
+- 4 yards that stand only by a mirror override read a status stronger than their evidence (Q163)
 - R369 passes a short plan or an empty step (LATENT, steps/latent.md)
 
 Next:
 - 5e and 5f together on Lane A. Lane B runs 5b, then 5c with R366 at the pane
 
 Your turn:
-- Opened: Q154 Q055 reads 11 more 1.4 plots off the ramp. Q155 A plot list takes unit plots only
-- Q156 A changed step reruns every higher step. Q157 Reads of entryM with heightM or rampFrontM
-- Q158 A yard that stands only by its mirror. Closed: none
-- 11 questions open, full text and the recommended answers: steps/questions-open.md
+- Opened: Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only
+- Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM
+- Q163 A yard that stands only by its mirror. Closed: none
+- 16 questions open, full text and the recommended answers: steps/questions-open.md
+
+## Lane B 5b, 2026-10-29, button 1 Set up site, the watcher before Revit and the freeze guard
+
+Goal:
+- Button 1 on the four copies of 3.1, open items 3 to 8 in Revit, its window by 7.3. First the frozen Revit of the stopped session
+
+Done:
+- The freeze: a probe started Revit outside the test host and its own watcher left the RCRC Green box open (READ watch_5b logs). No Revit was left, the IMD copy it read unchanged by SHA-256
+- Test host: the watcher starts first and waits for the pid, the tool names come from the installed manifests, probes run by -DryStart -ProbeManifest, the freeze guard (5 min no first step, 10 min no heartbeat, 5 min not responding)
+- Button 1 in Common and the add-in, its window with setup-site.png, the setUp mode of the addinRun job. Q154 to Q157 opened
+- RCRC Green no longer loads in Revit 2024 here (Bader, 16:31). Its manifest moved from %APPDATA%\Autodesk\Revit\Addins\2024\RcrcGreen.addin into %APPDATA%\Autodesk\Revit\Addins\2024\_disabled\RcrcGreen.addin, SHA-256 271D5599 unchanged, its DLL folder RcrcGreen left. None in C:\ProgramData. Move it back to load it again
+- Test host watcher: Do Not Load for any add-in not Site Adaptation was already the rule of SecurityDialogs.Decide. The test R108_any_add_in_that_is_not_site_adaptation_gets_do_not_load_and_each_answer_is_logged holds it, it passed at its first run
+
+Checked:
+- Hang probe, RAN: stopped at 7.4 min on not responding, the windows and 40 journal lines logged, that pid only, step failed, exit 1
+- Revit runs of button 1, RAN, 3.3 min each, peak 2,333, 2,247 and 2,250 MiB private, least free 29.1 GiB. Run 1 failed on closing the active document, fixed, runs 2 and 3 8 of 8 steps ok
+- Badge on the 4 copies: template and no template empty, IMD existing with 4 signs, R17B stand-in existing with the parameter sign and 10 stops
+- Second method, RAN: the facts after Apply by the test host's own API reads held 30 of 30 values within 0.5 mm of the position file, largest gap 0 mm, in runs 2 and 3. Dry run Revit column equal to the value after Apply on 6 of 6 points
+- Gate, RAN, on the last commit after the merge of main: dotnet net48 1,152 and net8.0 1,041 passed, pytest 2,000 passed, 3 skipped. Parity on the 7 keys not run: no plan or build step changed (CHOSEN). No plot in button 1, so no 5 plot sample (CHOSEN)
+- Reviewer, 1 pass: 2 REAL fixed with tests (sheet count, failed Browse), 1 not a fault, 4 latent. Breaker pass 1: 2 REAL (an empty second run committed, 0 of 2 before a dry run), pass 2: 3 REAL (waiting items not shown, a slope picked after the view), all fixed with tests, 1 question Q158, 17 latent in steps/latent.md
+- Revit run 3, RAN, after the fixes: second runs commit 0 on all 4 copies, the IMD copy first run commits 0 since nothing differs, 30 of 30 values at 0 mm again
+
+Remains:
+- The R17B file is not on the laptop. Its stand-in was made as R212 made it, the parameter names with GUIDs of their own (CHOSEN)
+- In 5b the check table holds the survey point and the project base point. The extreme plots and the control points need the location plan of D15 in 5c
+- J17 to J20 of steps/lane-b.md. The imperial no template project was not run
+
+Known bugs:
+- No Settings entity until R367, Browse stops until the worker reads xlsx, the position path of config is the PC one until J5 (J19)
+
+Next:
+- 5c with the Revit run after 5c on Lane B, 4h-1 is done (PR 107)
+
+Your turn:
+- Opened: Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up
+- 11 questions open, full text: steps/questions-open.md
 
 ## Round ADDIN 4h-1, 2026-10-29, Q122, R367, R368 and the join items, Lane A on the laptop
 

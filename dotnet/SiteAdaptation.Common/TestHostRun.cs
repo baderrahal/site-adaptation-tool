@@ -229,15 +229,18 @@ namespace SiteAdaptation.Common
         private readonly TestHostRunner runner;
         private readonly Func<DateTime> clock;
         private readonly Action<string> kill;
+        private readonly Action<string> beat;
         private DateTime deadlineUtc;
         private int fired;
 
-        public TestHostWatchdog(TestHostRunner runner, DateTime deadlineUtc, Func<DateTime> clock, Action<string> kill, TimeSpan period)
+        // R104, Lane B 5b. The beat gets the heartbeat text on every look, which the freeze guard of the run script reads from outside
+        public TestHostWatchdog(TestHostRunner runner, DateTime deadlineUtc, Func<DateTime> clock, Action<string> kill, TimeSpan period, Action<string> beat = null)
         {
             this.runner = runner;
             this.deadlineUtc = deadlineUtc;
             this.clock = clock;
             this.kill = kill;
+            this.beat = beat;
             timer = new Timer(_ => Look(), null, period, period);
         }
 
@@ -249,6 +252,23 @@ namespace SiteAdaptation.Common
 
         public void Look()
         {
+            if (beat != null)
+            {
+                try
+                {
+                    beat(new Newtonsoft.Json.Linq.JObject
+                    {
+                        { "utc", clock() },
+                        { "pid", Process.GetCurrentProcess().Id },
+                        { "step", runner.CurrentStep },
+                    }.ToString());
+                }
+                catch (Exception failure)
+                {
+                    // A beat that is not written is a missed beat for the freeze guard, never a stop of the job
+                    Trace.WriteLine("test host heartbeat not written: " + failure.Message);
+                }
+            }
             string why = runner.Overrun(clock(), deadlineUtc);
             if (why != null && Interlocked.Exchange(ref fired, 1) == 0)
             {

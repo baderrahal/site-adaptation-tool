@@ -52,9 +52,30 @@ namespace SiteAdaptation.Tests
             }
         }
 
+        // The manifests as Install-TestHost.ps1 and Install-SiteAdaptation.ps1 write them, each Assembly the DLL under the add-ins root
+        private static string Installed()
+        {
+            string folder = Path.Combine(Path.GetTempPath(), "sa_addins_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            var installs = new[]
+            {
+                Tuple.Create(RepoPath("dotnet", "RevitPrototypeReader", "SiteAdaptation.addin"), "SiteAdaptation_Revit2024.addin", @"SiteAdaptation\RevitPrototypeReader.dll"),
+                Tuple.Create(RepoPath("dotnet", "SiteAdaptation.Placer", "SiteAdaptationPlacer_Revit2024.addin"), "SiteAdaptationPlacer_Revit2024.addin", @"SiteAdaptationPlacer\SiteAdaptation.Placer.dll"),
+                Tuple.Create(RepoPath("dotnet", "SiteAdaptation.TestHost", "SiteAdaptationTestHost_Revit2024.addin"), "SiteAdaptationTestHost_Revit2024.addin", @"SiteAdaptationTestHost\SiteAdaptation.TestHost.dll"),
+                Tuple.Create(RepoPath("dotnet", "SiteAdaptation.AddIn", "SiteAdaptationAddIn_Revit2024.addin"), "SiteAdaptationAddIn_Revit2024.addin", @"SiteAdaptationAddIn\SiteAdaptation.AddIn.dll"),
+            };
+            foreach (Tuple<string, string, string> install in installs)
+            {
+                var xml = System.Xml.Linq.XDocument.Load(install.Item1);
+                xml.Descendants("Assembly").Single().Value = Addins + @"\" + install.Item3;
+                xml.Save(Path.Combine(folder, install.Item2));
+            }
+            return folder;
+        }
+
         private static JObject ToolAddIns()
         {
-            Tuple<int, string, string> run = Pwsh("Get-ToolAddIns -Repo " + Quoted(RepoPath()) + " -Addins " + Quoted(Addins) + " | ConvertTo-Json -Depth 3");
+            Tuple<int, string, string> run = Pwsh("Get-ToolAddIns -Repo " + Quoted(RepoPath()) + " -Addins " + Quoted(Installed()) + " | ConvertTo-Json -Depth 3");
             Assert.True(run.Item1 == 0, run.Item3);
             return JObject.Parse(run.Item2);
         }

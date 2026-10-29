@@ -37,6 +37,8 @@ namespace SiteAdaptation.Common
         public string Expect { get; set; }
         // R212. The template a newSite job starts from and the site file of SiteSpec it sets up the new file with
         public string Template { get; set; }
+        // Lane B 5b. An addinRun job that runs button 1 on the four copies of 3.1 in place of the checks of 5a
+        public bool? SetUp { get; set; }
         public string Site { get; set; }
         // R214. The folder an image job writes to, the level of its plan view and the area [minE, minN, maxE, maxN] in shared metres
         public string ImageFolder { get; set; }

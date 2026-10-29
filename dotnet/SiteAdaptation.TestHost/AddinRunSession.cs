@@ -44,6 +44,8 @@ namespace SiteAdaptation.TestHost
         private readonly List<KeyValuePair<string, Document>> labels = new List<KeyValuePair<string, Document>>();
         private readonly Dictionary<int, string> closing = new Dictionary<int, string>();
         private readonly RunGate gate = new RunGate();
+        // Lane B 5b. Button 1 on the four copies of 3.1 in place of the phases of 5a, null for the job of 5a
+        private readonly SetUpSiteRun setUp;
         private ExternalEvent phaseEvent;
         private AddinProbe probe;
         // Read once in Start, the read loads Theme.xaml by reflection and the wait asks on every Idling tick
@@ -68,6 +70,7 @@ namespace SiteAdaptation.TestHost
             folder = Path.GetDirectoryName(job.Model);
             resultPath = TestHostGuard.OutputPath(documents, job.Code, AddinRunFiles.ResultPart);
             record = new AddinRunRecord { Code = job.Code, StartedUtc = DateTime.UtcNow };
+            setUp = job.SetUp == true ? new SetUpSiteRun(job, runner) : null;
         }
 
         // From OnStartup, outside any Revit event, the one place a handler is added. The handlers wait on the gate until the first tick
@@ -124,6 +127,18 @@ namespace SiteAdaptation.TestHost
             if (record.HomeEvent.Run(DateTime.UtcNow, app.ActiveUIDocument == null, app.Application.Documents.Size))
             {
                 Write();
+            }
+            if (setUp != null)
+            {
+                // All its steps run in this one event, each copy opened, run and closed in turn, so no wait sits between them
+                lastOk = runner.Run(setUp.Steps(app));
+                gate.End();
+                if (!lastOk)
+                {
+                    runner.Record(log => log.Result = "failed");
+                }
+                exit(ui);
+                return;
             }
             while (gate.Live)
             {
