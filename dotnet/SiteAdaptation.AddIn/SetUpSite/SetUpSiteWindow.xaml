@@ -1,7 +1,6 @@
 <Window x:Class="SiteAdaptation.AddIn.SetUpSite.SetUpSiteWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:pane="clr-namespace:SiteAdaptation.AddIn.Pane"
         xmlns:set="clr-namespace:SiteAdaptation.AddIn.SetUpSite"
         Title="1 Set up site" Width="{DynamicResource SA.Size.DialogWidth}" MaxHeight="{DynamicResource SA.Size.DialogMaxHeight}"
         SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
@@ -51,7 +50,7 @@
           <StackPanel Orientation="Horizontal" Margin="{StaticResource SA.Gap.Top4}">
             <TextBlock Style="{StaticResource RowText}" Margin="{StaticResource SA.Gap.Right8}" Foreground="{StaticResource SA.TextMuted}"
                        Text="{Binding Count}" Visibility="{Binding HasCount, Converter={StaticResource Shown}}" />
-            <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static pane:PaneText.Browse}" Click="OnBrowse" />
+            <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static set:SetUpSiteText.Browse}" Click="OnBrowse" />
           </StackPanel>
         </StackPanel>
       </DataTemplate>

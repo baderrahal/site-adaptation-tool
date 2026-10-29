@@ -34,7 +34,6 @@ namespace SiteAdaptation.AddIn.Pane
         public const string SharedParameters = "Shared parameters";
         public const string ImportPastJob = "Import from past job";
         public const string Export = "Export";
-        public const string Browse = "Browse";
 
         public const string NotChosen = "Not chosen";
         public const string Size = "<n> MiB";

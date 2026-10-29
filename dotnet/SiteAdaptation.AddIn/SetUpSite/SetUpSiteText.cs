@@ -32,6 +32,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
         public const string SheetLine = "From the parameter sheet: <n>";
 
         public const string PassLimit = "Pass limit <n> mm. <n> of <n> pass";
+        public const string Browse = "Browse";
 
         // The rows of the two tables in the order of the mock, a row of another label stands after them
         public static readonly string[] NowOrder = { SurveyPoint, ProjectBasePoint, Levels, FloorAndWallTypes, SharedParameters, Units };

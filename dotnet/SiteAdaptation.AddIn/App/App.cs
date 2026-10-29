@@ -15,7 +15,15 @@ namespace SiteAdaptation.AddIn
             OwnFolderResolver.Register(Path.GetDirectoryName(typeof(App).Assembly.Location));
             BuildRibbon(application);
             RegisterPane(application);
+            JoinWindows();
             return Result.Succeeded;
+        }
+
+        // R373. The body of button 1 knows its window only by ISetUpSiteDialog, so the tests of the body load no WPF window
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void JoinWindows()
+        {
+            SetUpSiteBody.Dialog = owner => new SetUpSite.SetUpSiteDialog(owner);
         }
 
         public Result OnShutdown(UIControlledApplication application)

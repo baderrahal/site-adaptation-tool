@@ -121,8 +121,6 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 
 ### Set up site
 
-Not built yet, Phase 5b.
-
 - `1 Set up site`
 - `Empty project found`
 - `Existing site file`
@@ -157,6 +155,7 @@ Not built yet, Phase 5b.
 - `Cancel`
 - `Dry run`
 - `Apply`
+- `Browse` the Browse of the row Shared parameters
 
 ### Check table
 
