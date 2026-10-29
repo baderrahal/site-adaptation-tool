@@ -15,7 +15,7 @@ Checked:
 - Q111, RAN: 228 parity lines, 0 failures, both runtimes, the 7 keys and the whole project
 - Q111, RAN: level Excel 69,903 matches, 0 mismatches per runtime. Build peak 973 to 1,064 MiB, 11 to 13 s
 - PR 96, RAN: gate green, 14 workbooks and 901,701 matches, 0 mismatches per runtime
-- PR 96: 2 review passes. Rows 4 and 5 of NBH 012 equal 7.6 (RAN). Hooks loaded
+- PR 96: 2 review passes. Rows 4 and 5 of NBH 012 equal 7.6 (RAN). Started in the repo
 
 Remains:
 - 7 read steps of the location plan, the tables and the position not run, inputs not assembled (UNKNOWN)
@@ -23,7 +23,7 @@ Remains:
 
 Known bugs:
 - Q111 used 3 stand-ins: CAD reads made again, the site file from plan_012.json, the 2022 prototypes (CHOSEN, logs p4g3_q111)
-- The Q111 run wrote one request file into the real Zone 02 ARC Prototypes folder by a junction. Deleted at once, its 13 .rvt unchanged (RAN), the junction removed
+- The Q111 run wrote one request file into the real Zone 02 ARC Prototypes folder by a junction. Deleted, 13 .rvt left, all dated 2024 (RAN, no hash before), junction gone
 - Plans hold no build id, so D4 rests on the plan SHA-256
 
 Next:
