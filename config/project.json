@@ -741,7 +741,7 @@
     }
   },
   "checkRows": {
-    "note": "R363. The check rows of button 3 (docs/design/07-mock.md 7.4, docs/design/03b-buttons-2-to-8.md 3 Check). types are the check types of the mock in its order, any other type found follows them by name. fields gives per field of the override list, and of a field an open question of majority.decidedByQuestion decides, its check type and what Past writes in the form of the list, null with why where Past is not offered, a field parameter <name> by its own entry or else parameter *. missing gives the same per key of the missing list of the plan, levels.* and parameters.* for every key under them. cannotWhy is why Past is not offered on a row of the cannot list of R272.",
+    "note": "R363. The check rows of button 4 Check, button 3 in the mock of 25 Oct (docs/design/07-mock.md 7.4, docs/design/03b-buttons-2-to-8.md 4 Check). types are the check types of the mock in its order, any other type found follows them by name. fields gives per field of the override list, and of a field an open question of majority.decidedByQuestion decides, its check type and what Past writes in the form of the list, null with why where Past is not offered, a field parameter <name> by its own entry or else parameter *. missing gives the same per key of the missing list of the plan, levels.* and parameters.* for every key under them. cannotWhy is why Past is not offered on a row of the cannot list of R272.",
     "types": ["Plot cut", "Floor", "Hand", "Unit code", "Position", "Level"],
     "fields": {
       "entryM": {"check": "Level", "past": "gapToRuleM"},
