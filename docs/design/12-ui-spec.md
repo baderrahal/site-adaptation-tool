@@ -81,7 +81,7 @@ Top to bottom:
 - Left: the two tables of the mock as label and value rows, rows that will change on SA.Warn ground with "Will change" at the end.
 - Right: the check point table, Diff in SA.Ok when it passes, the pass line, the existing site file note in a SA.Guide box.
 - Foot on SA.Panel: Cancel, Dry run, Apply.
-- Added by Bader on 28 Oct 2026 for 5b (docs/design/13-workflow-changes.md, Set up site): the pass limit 0.1 mm from addin.position.checkPointLimitMm of config. The Floor types row reads "Generic 150mm, yard, Flat Ramps, and one Ramps type per slope below". A new row "Ramp slope" with a dropdown 0.5%, 1%, 2%, then 3% to 15% in 1% steps, default 0.5%, and the line "Default 0.5%. Choices 0.5%, 1%, 2%, then 3% to 15%". The Shared parameters row reads "From the parameter sheet: ..." with the sheet name, its count and Browse.
+- Added by Bader on 28 Oct 2026 for 5b (docs/design/13-workflow-changes.md, Set up site): the pass limit 0.1 mm, under a key of its own by Q142, while the key check of R353 keeps addin.position.checkPointLimitMm of config. The Floor types row reads "Generic 150mm, yard, Flat Ramps, and one Ramps type per slope below". A new row "Ramp slope" with a dropdown 0.5%, 1%, 2%, then 3% to 15% in 1% steps, default 0.5%, and the line "Default 0.5%. Choices 0.5%, 1%, 2%, then 3% to 15%". The Shared parameters row reads "From the parameter sheet: ..." with the sheet name, its count and Browse.
 
 ### 7.4 Check table
 

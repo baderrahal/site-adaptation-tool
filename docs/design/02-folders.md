@@ -21,7 +21,7 @@ dotnet/
 | Project | Target | References | Holds |
 |---|---|---|---|
 | SiteAdaptation.Common | netstandard2.0 | Newtonsoft.Json 13.0.1 only at run time, Microsoft.NETCore.Platforms 3.1.0 build only (R346, Q079) | every decision and every computation, tested without Revit |
-| CadReader, the worker | net48 and net8.0, an exe | Common, ACadSharp, PdfPig, DocumentFormat.OpenXml | reads the input files and runs the Common steps of buttons 2 and 3, writes the two Excel files |
+| CadReader, the worker | net48 and net8.0, an exe | Common, ACadSharp, PdfPig, DocumentFormat.OpenXml | reads the input files and runs the Common steps of buttons 2 and 4, writes the two Excel files |
 | SiteAdaptation.AddIn | net48 | Common, the Revit 2024 API, WPF | the ribbon, the commands, the pane, the dialogs, the Revit targets, Extensible Storage |
 | SiteAdaptation.Tests | net48 and net8.0 | Common, CadReader, C3DProbe on net48 | every test, the net8.0 leg runs the tests of Common and CadReader on the Linux runner |
 
@@ -46,7 +46,7 @@ What is reused, what moves, what goes:
 
 | From | What | Fate |
 |---|---|---|
-| Common | Placer, FloorPlacer, IPlacerTarget, IFloorTarget, PlanFile, SiteCoordinates, SiteSpec, SiteFacts, SharedCoordinates, LinkMath, FloorMath, OutlineLoops, PlacementRotation, PlotParts, UnitMath, JsonOut, ErrorLines | reused by buttons 1, 4, 5 and 6 as they are, retargeted to netstandard2.0 in Phase 4a |
+| Common | Placer, FloorPlacer, IPlacerTarget, IFloorTarget, PlanFile, SiteCoordinates, SiteSpec, SiteFacts, SharedCoordinates, LinkMath, FloorMath, OutlineLoops, PlacementRotation, PlotParts, UnitMath, JsonOut, ErrorLines | reused by buttons 1, 5, 6 and 7 as they are, retargeted to netstandard2.0 in Phase 4a |
 | CadReader | Exploder, PlotShapes, PlotLabels, LayerConfig, MTextCleaner, CadExtractor, CadModels | reused by the worker, its old command line stays for the data book |
 | SiteAdaptation.Placer | RevitPlacerTarget, RevitFloorTarget, WarningCollector | move to SiteAdaptation.AddIn/Revit in Phase 5a, the old Place from plan button stays until the test host jobs call the add-in, then the project is removed |
 | SiteAdaptation.TestHost | SiteSteps (new project, coordinates, levels, floor types, parameters, image) | the Revit side of button 1 moves to SiteAdaptation.AddIn/Revit/SiteTarget in Phase 5b, the test host calls the add-in entry |

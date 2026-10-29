@@ -6,14 +6,16 @@ In the order of docs/addin-mock.md, every sentence of the mock word for word wit
 
 Ribbon tab "Site Adaptation" with three ribbon panels in this order: Setup (1 Set up site, 2 Read data, 3 Check), Build (4 Place villas, 5 Floors and ramps, 6 Levels, 7 Walls), Output (8 Report). Large buttons, one icon each.
 
-- How: App.OnStartup calls UIControlledApplication.CreateRibbonTab("Site Adaptation"), then CreateRibbonPanel for "Setup", "Build" and "Output" in that order, and one PushButtonData per button with its text as the mock gives it, the full class name of its IExternalCommand, a LargeImage of 32 px and an Image of 16 px, so each is a large button in the normal Revit look (R371 planned). The icons are PNG files of the add-in, one per button, the number of the button on a plain square (CHOSEN, the mock asks one icon each and shows none). An availability class keeps the buttons grey with no project open.
+Bader's changes of 28 Oct 2026 prevail over the sentence above (docs/design/13-workflow-changes.md, Order and Ribbon, approved on the canvas): nine numbered steps, 1 Set up site, 2 Read data, 3 Review data, 4 Check, 5 Floors and ramps, 6 Levels, 7 Place villas, 8 Walls, 9 Report, on four panels in this order: Setup (1 Set up site, 2 Read data, 3 Review data, 4 Check), Rules (Site Adaptation Rules), Build (5 Floors and ramps, 6 Levels, 7 Place villas, 8 Walls), Output (9 Report, Update from report). Large buttons, the icons of docs/design/12-ui-spec.md, Icons. The sentence of the mock stays above word for word, as the test of R343 holds it.
+
+- How: App.OnStartup calls UIControlledApplication.CreateRibbonTab("Site Adaptation"), then CreateRibbonPanel for "Setup", "Rules", "Build" and "Output" in that order, and one PushButtonData per button with its text as 7.1 of docs/design/12-ui-spec.md gives it, the full class name of its IExternalCommand, a LargeImage of 32 px and an Image of 16 px, so each is a large button in the normal Revit look (R371). The icons are those of docs/design/12-ui-spec.md, Icons, WPF geometry on the 32 unit grid drawn from Theme.xaml at 32 and 16 px, one per button, in place of the plain numbered squares this part named CHOSEN before (Bader, U5 of steps/decisions-2026-10-28.md, and the three new icons of 13-workflow-changes.md). An availability class keeps the buttons grey with no project open. Site Adaptation Rules and Update from report say they are not built yet until 5c and 5f.
 - Values: the labels only.
 
 ### 7.2 Dockable pane
 
 Dockable pane "Site Adaptation" on the right, project name at the top right, four sections in this order:
 
-- How: App.OnStartup registers a DockablePaneId with a fixed GUID and an IDockablePaneProvider whose FrameworkElement is a WPF Page and whose InitialState docks it right. The page is a stack of four sections under a top row, each a header TextBlock and a Grid. The project name is a TextBlock aligned right in the top row, Document.Title of the active document, or "not saved" when the title is empty, as for a detached document. On DocumentOpened and on a new document the add-in gives the document a session id, a new GUID held in memory beside the Document, which the requests of its worker runs carry (section 2). The pane, its view model and the check table belong to the active document: on ViewActivated when the document of the view changes, on DocumentOpened and on DocumentClosed the pane loads the settings and the step state of the active document again, every row and every status, and a check table window open on another document closes, so no row and no button click acts on a document that is not the active one, and a worker answer acts only on the document of its request, active or not (section 2). With no document open the pane shows its labels with no values and every button is grey. A real run reaches the model through an ExternalEvent (R372 planned).
+- How: App.OnStartup registers a DockablePaneId with a fixed GUID and an IDockablePaneProvider whose FrameworkElement is a WPF Page and whose InitialState docks it right. The page is a stack of four sections under a top row, each a header TextBlock and a Grid. The project name is a TextBlock in the band of 7.2 of docs/design/12-ui-spec.md, Document.Title of the active document, or "not saved" when the title is empty or the PathName is no saved path (section 6, Work folder): Revit run 3 of Lane B 5a measured a detached document with a Title and a bare file name as its PathName. On DocumentOpened and on a new document the add-in gives the document a session id, a new GUID held in memory beside the Document, which the requests of its worker runs carry (section 2). The pane, its view model and the check table belong to the active document: on ViewActivated when the document of the view changes, on DocumentOpened and on DocumentClosed the pane loads the settings and the step state of the active document again, every row and every status, and a check table window open on another document closes, so no row and no button click acts on a document that is not the active one, and a worker answer acts only on the document of its request, active or not (section 2). With no document open the pane shows its labels with no values and every button is grey. A real run reaches the model through an ExternalEvent (R372 planned).
 - Project name filled: 01101-PSN-IMC-R17B-TEST-NEW, the last new IMC site file this tool made (READ, kept\round_17).
 
 Project: Settings (config file), Rules (rules file), Level profile
@@ -23,6 +25,7 @@ Project: Settings (config file), Rules (rules file), Level profile
 | Settings | TextBlock with the file name and a Browse button (Microsoft.Win32.OpenFileDialog) | project.json | config/project.json |
 | Rules | TextBlock and Browse | roshn-makkah.json | profile of config/project.json |
 | Level profile | ComboBox of the names of levelProfiles of the rules file | parsons2024Rev6 | levelProfiles.default, Q050 |
+| Pre-setting | two buttons "Import from past job" and "Export", under Level profile (the place CHOSEN by Code) | not built until 5c | Bader's changes of 28 Oct 2026, the logic joins R367 at 5c, a pre-setting never holds drawing paths or coordinates |
 
 Input files: Baseplan, Villa blocks, Curbs, Road surface, DLUS and sales, Plot numbers, Prototypes. Each shows the chosen file or folder name.
 
@@ -35,8 +38,9 @@ Input files: Baseplan, Villa blocks, Curbs, Road surface, DLUS and sales, Plot n
 | DLUS and sales | TextBlock with two names and Browse | TBD-PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_Rev9.0.xlsx, PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx | dataBook.data5.areaKey and dataBook.locationPlan.sales of python/c3d_probe.json |
 | Plot numbers | TextBlock and Browse | 01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf, then in grey 2.91 MiB 7061ac0d | dataBook.locationPlan.pdf, the file of Master Plan Rev.09, 3,056,293 bytes |
 | Prototypes | TextBlock and a folder Browse | Prototypes_2024 | pastJob.upgradedPrototypeFolder |
+| Shared parameters | TextBlock and Browse, the parameter sheet Excel, after Prototypes (the place CHOSEN by Code) | not chosen | Bader's changes of 28 Oct 2026, the settings key parameterSheet (CHOSEN by Code in PaneSettings.cs) |
 
-How each input row tells two files of one name apart: the TextBlock shows the file or folder name as the mock asks, then in a smaller grey run its size and the first 8 hex digits of its SHA-256, and its ToolTip gives the full path with the folder. So the two different files named 01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf on this machine, 3,056,293 bytes (7061ac0d) and 2,395,117 bytes (24ffcbac), read apart in the pane (READ, 3.2). The label of the row stays the mock's.
+How each input row tells two files of one name apart: the TextBlock shows the file or folder name as the mock asks, then in a smaller grey run its size and the first 8 hex digits of its SHA-256, and its ToolTip gives the full path with the folder. So the two different files named 01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf on this machine, 3,056,293 bytes (7061ac0d) and 2,395,117 bytes (24ffcbac), read apart in the pane (READ, 3.2). The label of the row stays the mock's. Since Bader's answer to Q140 of 29 Oct 2026 the row shows the file name only, with a green check when the file is found and an amber mark when not, and its tooltip gives the full path with the size and short hash under it (docs/design/12-ui-spec.md 7.2, items 5 and 33 of 7.7).
 
 Scope: radio Whole project, Neighbourhood [code], Plot list. Checkbox "Dry run first, change nothing", on by default.
 
@@ -49,18 +53,23 @@ Scope: radio Whole project, Neighbourhood [code], Plot list. Checkbox "Dry run f
 
 Steps: one line per button 1 to 8 with a status: Done, Done with [n] issues, Ready, or Needs step [n].
 
-| Line | Filled, after buttons 1 to 3 on NBH 012 | Source |
+Bader's changes of 28 Oct 2026 prevail over the sentence above: one line per step 1 to 9 in the order of 7.1, each needing the one before and 9 Report needing 4 Check only (Q144), the line of 3 "The team checks what was read" and the line of 7 "Places a villa on each plot at its FFL" (docs/design/13-workflow-changes.md, Pane). The Next step box follows that order.
+
+| Line | Filled, after buttons 1 to 4 on NBH 012 | Source |
 |---|---|---|
 | 1 Set up site | Done | 5 of 5 check points at 0.0 mm on the IMC new site file of Round 17 (READ, site_report_i18.json) |
 | 2 Read data | Done | the reads of the data book, section 4 |
-| 3 Check | Done with 1,247 issues | the rows of the check table, 7.4 |
-| 4 Place villas | Ready | step 3 done |
-| 5 Floors and ramps | Needs step 4 | |
+| 3 Review data | Done | no team check is recorded for NBH 012, the window comes in 5c, shown Done for this page (CHOSEN) |
+| 4 Check | Done with 1,247 issues | the rows of the check table, 7.4 |
+| 5 Floors and ramps | Ready | step 4 done |
 | 6 Levels | Needs step 5 | |
-| 7 Walls | Needs step 6 | |
-| 8 Report | Ready | step 3 done |
+| 7 Place villas | Needs step 6 | |
+| 8 Walls | Needs step 7 | |
+| 9 Report | Ready | step 4 done |
 
-How: an ItemsControl of eight rows, the text of each from the step state of Common (R366 planned), refreshed after every run and every settings change.
+How: an ItemsControl of nine rows, the text of each from the step state of Common (R366 planned), refreshed after every run and every settings change.
+
+The look of the pane is 7.2 of docs/design/12-ui-spec.md. What it adds to the mock is in 7.7: the pane changes of Bader's changes of 28 Oct 2026 in item 17, the NEW items in items 23 to 27, and the marks of the input rows and the first open state in items 33 and 34.
 
 ### 7.3 Set up site dialog
 
@@ -117,17 +126,18 @@ Below it: "On an existing site file" with a line saying nothing changes until Ap
 Buttons Cancel, Dry run, Apply.
 
 - How: Cancel closes with no change. Dry run runs the dry run of button 1 and fills both tables. Apply runs the real run in one transaction and closes when it commits, else shows the reason and stays open (R382 planned).
+- Bader's changes of 28 Oct 2026 for 5b prevail over this part where they differ, the pass limit, the Floor types row, the row Ramp slope and the Shared parameters row (item 18 of 7.7). The look is 7.3 of docs/design/12-ui-spec.md, its additions in items 28 and 32 of 7.7.
 
 ### 7.4 Check table
 
 Check table. Title "3 Check, NBH [code], [n] plots", a line with the level profile and the override file.
 
-- How: a modeless WPF Window owned by the Revit main window, so the user can work in Revit while it is open, built from `checks_<NBH>.json` and bound to the document it was opened on, which closes it when another document becomes active (7.2). The title is a TextBlock, the line under it a TextBlock (R376 planned). For Neighbourhood [code] is the code of the NBH. For Whole project the title reads "3 Check, NBH all, [n] plots", [code] showing all and [n] every unit plot of the scope in one table, the NBH column telling the rows apart and the filter chips counting over all of them. For a Plot list [code] is the codes of the NBH the list touches, joined by commas.
-- Filled: "3 Check, NBH 012, 337 plots", then "Level profile parsons2024Rev6, override file roshn-makkah.json, 12,421 overrides, 1,227 of them on NBH 012". Source: the 337 client code labels of NBH 012 (RAN, labels.csv), the list after PR 52 (READ, config/overrides/roshn-makkah.json, 12,421 entries, 1,227 of key imc). The counts of the summary table and the chips below were taken on the 3c list of 12,424 with 1,225 of key imc and are not counted again.
+- How: a modeless WPF Window owned by the Revit main window, so the user can work in Revit while it is open, built from `checks_<NBH>.json` and bound to the document it was opened on, which closes it when another document becomes active (7.2). The title is a TextBlock, the line under it a TextBlock (R376 planned). For Neighbourhood [code] is the code of the NBH. Under the order of Bader's changes of 28 Oct 2026 Check is button 4, so the title reads "4 Check, NBH [code], [n] plots" (docs/design/13-workflow-changes.md, item 16 of 7.7). For Whole project the title reads "4 Check, NBH all, [n] plots", [code] showing all and [n] every unit plot of the scope in one table, the NBH column telling the rows apart and the filter chips counting over all of them. For a Plot list [code] is the codes of the NBH the list touches, joined by commas.
+- Filled: "4 Check, NBH 012, 337 plots", then "Level profile parsons2024Rev6, override file roshn-makkah.json, 12,421 overrides, 1,227 of them on NBH 012". Source: the 337 client code labels of NBH 012 (RAN, labels.csv), the list after PR 52 (READ, config/overrides/roshn-makkah.json, 12,421 entries, 1,227 of key imc). The counts of the summary table and the chips below were taken on the 3c list of 12,424 with 1,225 of key imc and are not counted again.
 
 Buttons Zoom to plot, Export to Excel, Save overrides.
 
-- How: three Buttons. Zoom to plot raises an ExternalEvent that calls UIDocument.ShowElements on the tagged elements of the plot, else zooms the active view to the face box by UIView.ZoomAndCenterRectangle. Export to Excel asks the worker to write the rows shown to `Check_<NBH>.xlsx`. Save overrides writes the rows whose Use the user changed in this session into the override list as 3.3 says, each marked byHand and no other row, and rebuilds the plan.
+- How: three Buttons. Zoom to plot raises an ExternalEvent that calls UIDocument.ShowElements on the tagged elements of the plot, else zooms the active view to the face box by UIView.ZoomAndCenterRectangle. Export to Excel asks the worker to write the rows shown to `Check_<NBH>.xlsx`. Save overrides writes the rows whose Use the user changed in this session into the override list as 3.4 says, each marked byHand and no other row, and rebuilds the plan.
 
 Filter chips: All, then one per check type (Plot cut, Floor, Hand, Unit code, Position, Level, and any other type found), each with its count, and "[n] plots follow every rule" on the right.
 
@@ -149,7 +159,7 @@ Filter chips: All, then one per check type (Plot cut, Floor, Hand, Unit code, Po
 
 Columns: Plot, NBH, Unit, Check, Tool value (rule), Past job, Rule, Use. Use is a dropdown Rule, Past, Skip. Past writes the past value to the override list with source parsons. Skip leaves the plot out and lists it in the report. Selecting a row zooms the Revit view to that plot.
 
-- How: a DataGrid, Plot, NBH, Unit, Check, Tool value (rule), Past job and Rule as read only text columns, Use a DataGridComboBoxColumn with Rule, Past and Skip, each row opening on the Use of 3.3. Past writes in the form of the table of 3.3, a gap to the rule for a level or a position and never the level or the coordinate, and is grey on a row whose field no build reads, on every row of an existing site file that is no answer key and on every row of a plot no answer key holds. Skip writes the plot to the skip list, which the report lists. A selected row raises the same ExternalEvent as Zoom to plot.
+- How: a DataGrid, Plot, NBH, Unit, Check, Tool value (rule), Past job and Rule as read only text columns, Use a DataGridComboBoxColumn with Rule, Past and Skip, each row opening on the Use of 3.4. Past writes in the form of the table of 3.4, a gap to the rule for a level or a position and never the level or the coordinate, and is grey on a row whose field no build reads, on every row of an existing site file that is no answer key and on every row of a plot no answer key holds. Skip writes the plot to the skip list, which the report lists. A selected row raises the same ExternalEvent as Zoom to plot.
 - Filled, real IMC rows (the levels as [level], the past value of a level row is the rule value plus the gap of its entry, the gap a distance):
 
 | Plot | NBH | Unit | Check | Tool value (rule) | Past job | Rule | Use |
@@ -164,6 +174,8 @@ Columns: Plot, NBH, Unit, Check, Tool value (rule), Past job, Rule, Use. Use is 
 | 2290 | 012 | VD1 | Level | El @ Entry [level] | [level], 0.0077 m lower | entry, roadLevel | Past |
 | 2289 | 012 | VD4 | Level | FFL [level] | [level], 0.001 m higher | ffl, oneFflPerPieceAtTheHighestEntry | Past |
 | 2291 | 012 | DT1 | Parameter | CASE D | F | parameter CASE, typologyMirrored | Past |
+
+The look of the check table is 7.4 of docs/design/12-ui-spec.md, its additions in items 29 to 31 of 7.7, and the manual rule ID of each row with "Open in Site Adaptation Rules" in item 20 (5c).
 
 ### 7.5 Level Excel
 
@@ -202,7 +214,7 @@ Sheets: Levels, Clusters, Overrides used, Settings.
 Report Excel, file <NBH>_Report.xlsx.
 ```
 
-- How: the worker writes it with DocumentFormat.OpenXml from the run logs of buttons 1 to 7 and the counts the add-in read from the model at report time (R365 planned). Every number of one report comes from one build, the plan of the last real run of button 3, and one read of the model. Filled: 012_Report.xlsx, every number of this page from the one build plan_012.json (RAN).
+- How: the worker writes it with DocumentFormat.OpenXml from the run logs of buttons 1 to 7 and the counts the add-in read from the model at report time (R365 planned). Every number of one report comes from one build, the plan of the last real run of button 4 Check, and one read of the model. Filled: 012_Report.xlsx, every number of this page from the one build plan_012.json (RAN).
 
 A top line with file name, NBH, plot count, profile, run time.
 
@@ -220,7 +232,7 @@ Summary table with columns Step, Done, Skipped, Override, Issues, one row per bu
 | 6 Levels | 336 | 1 | 619 | 0 | plan_012.json: entryM 304, heightM 300, steps 5, Prototype-FFL 5 and RVT-Name 5 applied, 2312 with no level |
 | 7 Walls | 0 | 0 | 0 | 1 | no wall placed yet, Phase 4g codes the walls (R362), the wall top rule is weak and no garden wall rule is measured (Q071), keyRules wallTop 0.346 |
 
-- How: a table of the five columns of the mock from row 3, one row per button 1 to 7. The Source column above is the note of this design on where each count comes from and is no column of the file. The counts of steps 4 to 6 are those of the plan of NBH 012 a real run would place, read from plan_012.json (RAN). No Parsons build has been placed in Revit yet, Phase 6 runs it.
+- How: a table of the five columns of the mock from row 3, one row per button 1 to 7 by the numbers of the mock of 25 Oct until 5e takes the order of Bader's changes of 28 Oct 2026 (item 35 of 7.7). The Source column above is the note of this design on where each count comes from and is no column of the file. The counts of steps 4 to 6 are those of the plan of NBH 012 a real run would place, read from plan_012.json (RAN). No Parsons build has been placed in Revit yet, Phase 6 runs it.
 
 A box "Counts agree across outputs" with columns Item, Revit, Excel for Links, Floors, Levels.
 
@@ -230,7 +242,7 @@ A box "Counts agree across outputs" with columns Item, Revit, Excel for Links, F
 | Floors | not placed yet | 1,003 |
 | Levels | not placed yet | 336 |
 
-- Source: the one build of this page, plan_012.json (RAN). Excel is what the files of that build hold: the rows of the Placed sheet of kind link, 336, and of the floor kinds, generic 336, yard 331 and ramp 336, 1,003, the rows of the Levels sheet of the level Excel, 336, the same numbers as the summary above. Revit is read from the model at report time by the tags, Levels by the elements the last run of button 6 that committed set (3.8), and no Parsons build is placed yet, so it stays open until Phase 6 places NBH 012. The plan count is held against both apart and a mismatch of any two is an issue of the report. The Round 17 IMC rebuild placed another build, 336 links and 999 floors (RAN, prototypes_imc_r17b.json against plan_imc_r17b.json), and is not shown here.
+- Source: the one build of this page, plan_012.json (RAN). Excel is what the files of that build hold: the rows of the Placed sheet of kind link, 336, and of the floor kinds, generic 336, yard 331 and ramp 336, 1,003, the rows of the Levels sheet of the level Excel, 336, the same numbers as the summary above. Revit is read from the model at report time by the tags, Levels by the elements the last run of button 6 that committed set (3.9), and no Parsons build is placed yet, so it stays open until Phase 6 places NBH 012. The plan count is held against both apart and a mismatch of any two is an issue of the report. The Round 17 IMC rebuild placed another build, 336 links and 999 floors (RAN, prototypes_imc_r17b.json against plan_imc_r17b.json), and is not shown here.
 - How: a bordered range of three columns under the summary.
 
 A box "Rules applied".
@@ -244,12 +256,12 @@ Sheets: Summary, Placed, Skipped, Overrides, Issues, Rules.
 
 ### 7.7 What the add-in shows that the mock does not
 
-The mock wins. Each item below is a screen or a part the mock does not show, kept because a rule of section 3 needs it, and Phase 6 step 6 checks the screenshots against the mock and this list, so each difference is named and none is found by chance:
+The mock wins, and where Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md, approved on the canvas) differ from it, those changes win. Each item below is a screen or a part the mock does not show, kept because a rule of section 3 needs it, because Bader approved it on the canvas (docs/design/12-ui-spec.md, U1 to U7 of steps/decisions-2026-10-28.md) or because his changes of 28 Oct 2026 give it, and Phase 6 step 6 checks the screenshots against the mock and this list, so each difference is named and none is found by chance:
 
-1. The summary of a run before any write, with Cancel and Apply, for buttons 2 to 8: after the dry run when the box is ticked, and as the confirm when it is not (section 3). Button 1 has its own Dry run and Apply in the mock.
-2. The TaskDialog of button 4 before its transaction when a link type must be loaded again, or reloaded since its file changed, with Load and Cancel and the line that Undo is cleared (3.4).
+1. The summary of a run before any write, with Cancel and Apply, for buttons 2 to 9: after the dry run when the box is ticked, and as the confirm when it is not (section 3). Button 1 has its own Dry run and Apply in the mock.
+2. The TaskDialog of button 7 Place villas before its transaction when a link type must be loaded again, or reloaded since its file changed, with Load and Cancel and the line that Undo is cleared (3.7).
 3. Leave or Set to the plan per element changed by hand, in the summary of a second run (section 3).
-4. Past grey in the Use dropdown, with its reason as a tooltip, on a row whose field no build reads, on every row of an existing site file that is no answer key, and on every row of a plot no answer key holds, which has no key or model to write (3.3).
+4. Past grey in the Use dropdown, with its reason as a tooltip, on a row whose field no build reads, on every row of an existing site file that is no answer key, and on every row of a plot no answer key holds, which has no key or model to write (3.4).
 5. The size and the short SHA-256 in grey beside each input name, and the full path as a tooltip (7.2).
 6. The line under the badge that names the signs found (7.3), and the marks on the rows of What the tool will set that differ from What the project has now, with no tick per row.
 7. The tooltip of the Settings row with the override list, the work folder and the fit schedule of the location plan, which the config file holds since the mock gives them no row (section 6).
@@ -261,4 +273,24 @@ The mock wins. Each item below is a screen or a part the mock does not show, kep
 13. The words of the report Excel the mock does not give, CHOSEN in Round ADDIN 4g3 PR 5 (R365): not run yet in each cell of 1 Set up site and no run of button 6 yet as the Excel count of Levels while the worker holds no run log of buttons 1 to 7, the columns Decision, Rule, Share, Strength, Plots of the box Rules applied with not measured for a decision with no share, the columns of Overrides (Plot, Field, Outcome, Why, Reason, Source, Model), Issues (Step, Plot, Check, Field, Source, Use, Why) and Rules (Rule, Status, Basis, Plots, Values), the column Basis of Assumed, the empty Element id of Placed until the run logs of buttons 4 and 5 are an input, and the block addin.report of config, the button each override field counts under as rows 5 and 6 of 7.6 list them, 4 for every other field, and the wall decisions whose weak ones are the Issues of 7 Walls (review 1 of PR 96).
 14. The sheet Rules of the report Excel lists each block entry the status of a value of the NBH names, with its status, basis, plots and values, in place of the rule text of docs/rules.md, which the add-in does not ship (R365).
 15. Three counts of the Summary of the report Excel that differ from 7.6 by how they count, not by a later plan, since Round ADDIN 4g3 PR 5 review 1, each open for Bader: 2 Read data counts the plots of the build scope, with a unit as Done and with none as Skipped, where 7.6 counts the faces of plots.csv of the NBH, 336 and 1 against 337 and 43 on NBH 012 (Q123). The box Counts agree across outputs holds the rows of Placed against the plan, both made from the one plan, until the Revit read of 5e fills its Revit column (Q124). The Issues 1 of 7 Walls, the weak wallTop, has no row of its own in the sheet Issues (Q125).
+16. The order and the ribbon of Bader's changes of 28 Oct 2026 (7.1): nine numbered steps, 1 Set up site, 2 Read data, 3 Review data, 4 Check, 5 Floors and ramps, 6 Levels, 7 Place villas, 8 Walls, 9 Report, each needing the one before and 9 Report needing 4 Check only (Q144), on four panels Setup, Rules, Build and Output, with the button Site Adaptation Rules on Rules and Update from report on Output after 9 Report. The check table title reads "4 Check, NBH [code], [n] plots". Place villas places each link at its FFL and writes Prototype-FFL, and Levels writes no link parameter.
+17. The pane changes of Bader's changes of 28 Oct 2026 (7.2): the row "Shared parameters" in Input files for the parameter sheet Excel, the row "Pre-setting" in Project with the buttons "Import from past job" and "Export", and in the first open Start here box the line "Or start from a past job: Import pre-setting. It brings the settings, rules, level profile, ramp slopes, parameter sheet and overrides of that job." A pre-setting never holds drawing paths or coordinates, its logic joins R367 at 5c.
+18. Set up site by Bader's changes of 28 Oct 2026 (7.3, built in 5b): a pass limit of 0.1 mm for the check points of button 1 against Revit, under a key of its own in config (Q142, join item W2 of steps/lane-b.md), where the mock says "Pass limit 1 mm.", the Floor types row "Generic 150mm, yard, Flat Ramps, and one Ramps type per slope below", the row "Ramp slope" with a dropdown 0.5%, 1%, 2%, then 3% to 15% in 1% steps, default 0.5%, and the line "Default 0.5%. Choices 0.5%, 1%, 2%, then 3% to 15%", and the Shared parameters row "From the parameter sheet: ..." with the sheet name, its count and Browse.
+19. The window 3 Review data (5c), its title, band line, How to use line, chips, Find plot box, columns and side box as docs/design/13-workflow-changes.md gives them word for word (section 3, 3 Review data).
+20. The window Site Adaptation Rules (5c), its band line, buttons, chips, columns and side box as 13-workflow-changes.md gives them, the rules M01 to M15 in the block manualRules of the rules profile, and the manual rule ID on every check row, Review data row and report line, with "Open in Site Adaptation Rules" in the side box of the check table (section 3, Site Adaptation Rules).
+21. The window Update from report (5f), its tiles, chips, columns, foot line and buttons as 13-workflow-changes.md gives them (section 3, Update from report).
+22. The icons of docs/design/12-ui-spec.md, Icons, one per button on the 32 unit grid, in place of the plain numbered squares 7.1 named CHOSEN (U5), with the three new icons of 3 Review data, Site Adaptation Rules and Update from report.
+23. NEW of 12-ui-spec.md 7.2: the Next step box under the band, "Next step", the name of the next button by the order of item 16, one plain line on what it does and that dry run is on or off, and a primary button "Run [n] [name]" that runs that ribbon button.
+24. NEW of 12-ui-spec.md 7.2: the first open state when no settings file is chosen, the box "Start here", "Choose the settings file", "It names the drawings, the rules and the prototypes for this job. The tool fills the rest of this panel from it.", the button "Choose settings file", the Settings row with an amber mark and "Not chosen", and steps that show "Needs settings" or "Needs step n".
+25. NEW of 12-ui-spec.md 7.2: one help line under each section title, Project "Rules and settings for this job. Set once.", Input files "The drawings and schedules the tool reads. All [n] found." or "The drawings and schedules the tool reads. [m] of [n] found." when a file is missing, Scope "Which plots the next button works on.", Steps "Run them in order. Each one waits for the one before."
+26. NEW of 12-ui-spec.md 7.2: the row "Villa mode" under the Dry run checkbox, with the choices Masses and Links, Masses by default (Q129, Q133, docs/design/11-light-mode.md).
+27. NEW of 12-ui-spec.md 7.2: one plain line under each step name, the nine lines of 12-ui-spec.md 7.2 on one line with an ellipsis and the full text as tooltip (Q139), and the status chip "[n] issues", the short form of "Done with [n] issues" with the full text as tooltip.
+28. NEW of 12-ui-spec.md 7.3: the line "Sets the coordinates, levels and types of this model from the CAD drawings." in the band, and on its right "[n] of [n]" over "check points pass".
+29. NEW of 12-ui-spec.md 7.4: the How to use band "Each row is a plot where the tool and the past job differ. Pick a row to see why, then choose Rule, Past or Skip. Save overrides keeps your choices."
+30. NEW of 12-ui-spec.md 7.4: the side box of the check table, "Selected", "Plot [n], [unit], [check]", the boxes Tool and Past job, one plain line on the rule with its share and strong or weak, and "Choose" with Rule "Keep the tool value.", Past "Use the past job. Saved as an override." and Skip "Leave this plot out. It is listed in the report.", each with the value it would give, setting the same Use as the dropdown of the row.
+31. Not marked NEW in 12-ui-spec.md: the Rule column of the check table shows the plain name of the rule, at most 6 words, with its rule id as a tooltip, where the mock gives the column Rule no form.
+32. Not marked NEW in 12-ui-spec.md: the rows of What the tool will set that will change stand on SA.Warn ground with "Will change" at the end (7.3), the form the marks of item 6 take.
+33. Not marked NEW in 12-ui-spec.md: the found and not found marks of the input and project rows, a green check when the file is found and an amber mark when not, the file name only, and the size and short hash of item 5 moved from a grey run beside the name into the tooltip under the full path (Q140).
+34. Not marked NEW in 12-ui-spec.md: the first open state of item 24 stands next to section 6, where a new project starts with the defaults config names, prefilled from inputRoot and drawings of config. The pane shows Start here until a settings file is chosen, and section 6 does not say whether the prefill waits for that choice. Listed here as a difference, not settled by this record.
+35. The report Excel of R365 built in 4g3 still names its Summary rows, its Issues steps and the words of item 13 by the numbers of the mock of 25 Oct, 1 Set up site to 7 Walls with no row of 3 Review data, as the step rows of 7.6 do, until 5e takes the order of item 16.
 

@@ -28,6 +28,6 @@ Part 1, this round, is the add-in: the ribbon tab, the dockable pane, the eight 
 Part 2, after Bader's check of Part 1, is the output sheets. It is not started. Where it attaches:
 
 - Ribbon: new buttons in the Output panel after 8 Report. Part 1 adds no placeholder button.
-- Logic: Part 2 reuses the plan of R80 that button 3 writes for each neighbourhood (`plan_<NBH>.json` in the work folder), the plot table of button 2 (section 4), the element tags of section 3 that find each placed link, floor and wall again, and the level rows of button 6.
+- Logic: Part 2 reuses the plan of R80 that button 4 Check writes for each neighbourhood (`plan_<NBH>.json` in the work folder), the plot table of button 2 (section 4), the element tags of section 3 that find each placed link, floor and wall again, and the level rows of button 6.
 - Data the plan files keep for it, per plot: the official number and the number of the model, the link origin in shared coordinates (the setting out point), the rotation and mirror, the generic and yard outlines with their arcs, the four ramp corners with their levels, FFL, SSL, El @ Entry, height and steps, the unit and the prototype file, CASE and the parameters, and per wall its id, type, length, height, base and top, location line ends and plots. R325 keeps the same fields in the key plans of the answer keys (READ, round-addin.md Phase 2 part 2), so a sheet can be tested against a key.
 
