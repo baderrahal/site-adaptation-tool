@@ -133,6 +133,7 @@ Bader's decisions of 29 Oct 2026, written down in Round FOLD from his prompt of 
 ### D18. Start files
 
 - steps/START.md runs the first open phase whose Status names Lane A and whose "Starts when" phases are all done. steps/START-B.md does the same for Lane B with the Lane B rules of steps/lane-b.md.
+- Line 1 of steps/PROGRESS.md names the running phases of both lanes, a phase added by its first code PR and taken out by its end records PR, so a phase of one lane never stops the other (CHOSEN in Round FOLD, one STATE RUNNING for both lanes would run them one after the other). Never two open PRs on one file still holds, a lane waits for the merge of the other's PR on a shared record.
 - Item 1 of Start of every session in CLAUDE.md accepts a detached HEAD equal to origin/main as level with origin, for the Lane B worktree.
 - In both start files the preflight also runs git worktree prune and deletes local branches already merged into main.
 - Both keep the planning line first and the STATE line rules, and both end with exactly one last line: "PHASE DONE <id>", "BLOCKED <reason>" when the next phase of the lane waits on another, "QUESTION <ids>" only when a question blocks all work of the phase, or "LANE DONE". A question that does not block goes to steps/questions-open.md and the phase carries on.
@@ -142,4 +143,4 @@ Bader's decisions of 29 Oct 2026, written down in Round FOLD from his prompt of 
 - No link, junction or symbolic link may point into C:\02-Site Adaptation, C:\10- ROSHEN MECCA or any input root of config. The test host and every run write only under the work root.
 - .claude/hooks/guard-inputs.sh, beside guard-registry.sh, blocks mklink, New-Item with ItemType Junction or SymbolicLink, and any write command whose target is under an input root.
 - Before and after each run that reads real inputs, the run records name, size, write time and SHA-256 of every file it opens under an input root and fails on any change. That is code of the test host and the readers, so it is a join item of 4h-1, the next phase to run on real inputs (CHOSEN in Round FOLD).
-- The slip of the Q111 run of 4g3, a request file written into the real Prototypes folder through a link, is in steps/latent.md as a REAL finding closed by this guard.
+- The slip of the Q111 run of 4g3, a request file written into the real Prototypes folder through a link, goes into steps/latent.md as a REAL finding closed by this guard, with the hook.
