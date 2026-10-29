@@ -451,8 +451,8 @@ def main(argv=None):
     parser.add_argument("--steps", required=True, help="the folder of its step_<step>_<side>.json files")
     parser.add_argument("--side", default="python")
     parser.add_argument("--settings", default=str(ROOT / "config" / "project.json"))
-    parser.add_argument("--rules", default=str(ROOT / "rules" / "roshn-makkah.json"))
-    parser.add_argument("--overrides", default=str(ROOT / "config" / "overrides" / "roshn-makkah.json"))
+    parser.add_argument("--rules", help="the rules profile, else the profile config names")
+    parser.add_argument("--overrides", required=True, help="the override list in config/overrides the build ran with")
     parser.add_argument("--profile", help="the level profile, else levelProfiles.default of the rules profile")
     parser.add_argument("--seeds", default="14,7")
     parser.add_argument("--size", type=int, default=20)
@@ -463,8 +463,9 @@ def main(argv=None):
     if tree is not None:
         print("phase4_check: the report goes outside any git work tree, %s lies in %s (R369)" % (out.resolve(), tree), file=sys.stderr)
         return 2
-    plan = load(args.plan)
-    ctx = Context(plan, load_steps(args.steps, args.side), load(args.settings), load(args.rules), load(args.overrides), args.profile)
+    plan, settings = load(args.plan), load(args.settings)
+    rules = Path(args.rules) if args.rules else ROOT / settings["profile"]
+    ctx = Context(plan, load_steps(args.steps, args.side), settings, load(rules), load(args.overrides), args.profile)
     plots = [entry["plot"] for entry in plan["plots"]]
     result = {"rule": "R369", "planPlots": len(plots), "seeds": {}}
     failed = False
