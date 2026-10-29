@@ -88,57 +88,9 @@ function Get-FreezeReason {
     $null
 }
 
+# The window lister is C# source in Common, kept out of this script so no semicolon sits in it (R15)
 if (-not ('SiteAdaptation.FreezeWindows' -as [type])) {
-    Add-Type -TypeDefinition @'
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
-
-namespace SiteAdaptation
-{
-    public static class FreezeWindows
-    {
-        private delegate bool EnumProc(IntPtr window, IntPtr data);
-
-        [DllImport("user32.dll")]
-        private static extern bool EnumWindows(EnumProc callback, IntPtr data);
-
-        [DllImport("user32.dll")]
-        private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern int GetWindowText(IntPtr window, StringBuilder text, int length);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern int GetClassName(IntPtr window, StringBuilder text, int length);
-
-        [DllImport("user32.dll")]
-        private static extern bool IsWindowVisible(IntPtr window);
-
-        // Each top level window of the process as handle, class, title and whether it shows
-        public static List<string[]> Of(int processId)
-        {
-            var found = new List<string[]>();
-            EnumWindows((window, data) =>
-            {
-                uint owner;
-                GetWindowThreadProcessId(window, out owner);
-                if (owner == (uint)processId)
-                {
-                    var title = new StringBuilder(512);
-                    var name = new StringBuilder(256);
-                    GetWindowText(window, title, title.Capacity);
-                    GetClassName(window, name, name.Capacity);
-                    found.Add(new[] { window.ToInt64().ToString(), name.ToString(), title.ToString(), IsWindowVisible(window) ? "1" : "0" });
-                }
-                return true;
-            }, IntPtr.Zero);
-            return found;
-        }
-    }
-}
-'@
+    Add-Type -Path (Join-Path $PSScriptRoot '..\SiteAdaptation.Common\FreezeWindows.cs')
 }
 
 function Get-ProcessWindows([int]$ProcessId) {
