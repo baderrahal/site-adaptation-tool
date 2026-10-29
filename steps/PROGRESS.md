@@ -1,22 +1,21 @@
-STATE RUNNING, 4g3, 2026-10-29 01:42
+STATE WAITING, 2026-10-29 03:43, 4g3 done, 4h next in Lane A
 # Progress
 Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
 
 ## State
 
-- 4g3 runs on the laptop in Lane A since 2026-10-29. Left: R365 the report Excel with its D4 round trip, the C# checks on real data (D6)
-- The C# of 4g2 and 4g3 is held by unit twins only. Its parity on real inputs and the build peak run on the laptop
+- 4g3 done on 2026-10-29 in Lane A on the laptop: R365 the report Excel with D4, the C# checks of Q111 with 0 failures
+- The C# of 4g2 and 4g3 holds its parity on real inputs, the 7 keys and the whole project, net48 and net8.0 (D6)
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
-- Phases 0a to 4g2 merged, PR 41 to 81, 4g3 PR 83 to 91: the reads of button 2, steps 4 to 8 and 10 to 15 of the plan builder and its status in C#
+- Phases 0a to 4g3 merged, PR 41 to 96: the reads of button 2, steps 4 to 15 of the plan builder, the status, the level and report Excel
 - Plan: steps/01_next.md. Design: docs/design/. Rules: docs/rules/index.md. Findings: steps/investigations/round-addin.md. Part 2 waits for Bader's check of Part 1
 
 ## Done
 
-- 4g3 so far: PR 83 records, PR 85 Q112 fallback and Q113, PR 88 step 15 and roadAtFrontM, PR 91 R364 the level Excel with D4, then the handover
+- 4g3: PR 83, 85 Q112 and Q113, 88 step 15, 91 the level Excel, 93 handover, 95 laptop start, 96 R365 the report Excel, then the end records
 - 4g2: PR 74 to 81, Q105 to Q110, the walls, the check rows. 4g1: PR 69 to 73, Q098, Q099, the status block and the status in the plan. AUDIT-RULES: PR 67, 68. 4f: PR 61 to 66
 - REC, PR 56 to 60: rules, design and round file in parts, questions-open.md, latent.md, CLAUDE.md to 9 KB, R400, START.md
-- ADDIN 4e, PR 55: R354 to R357, parity on net48 and net8.0 with 0 failures, the proof 0 unexplained on 7 keys. Round 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. Earlier: PR 1 to 32
-- ADDIN 4d, PR 54: R351 to R353. 4c, PR 53: R348 to R350. Q081 and Q073, PR 52. 4b, PR 51. 4a, PR 50. 3b to 0a, PR 41 to 49
+- 4e PR 55 R354 to R357, 4d PR 54, 4c PR 53, PR 52, 4b PR 51, 4a PR 50, 3b to 0a PR 41 to 49. Round 17: PR 39, 40. DATA-5: PR 38. DATA-4: PR 36. 16: PR 34. Earlier: PR 1 to 32
 
 ## Open bugs
 
@@ -31,7 +30,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - A native2022 build with --overrides is refused on 1,346 native entries with no value (Q075)
 - Plot cut rows are not built until 5c (Q117), so Plot cut reads 0 and 7 cut plots of the IMC join count as following every rule on the whole project
-- A whole build peaked at 974.8 MiB on net48 and 845.3 on net8.0 before the review fixes of PR 75, after them UNKNOWN until the C# check of Q111
+- Report Excel: 2 Read data counts plan plots not faces (Q123), the Counts box holds the plan against itself until 5e (Q124)
 - Not in 4f: heightOffset and floor z need the site file of button 1, the past_all.csv rebuild of R385
 
 ## Bader's turn
@@ -51,10 +50,11 @@ Q064 Watcher through the job, withdrawn. Q065 zone2 IMC file, the floor scenario
 Q070 El @ Entry with no schedule. Q071 Walls, base, centre and top rule. Q072 Side road of a villa, three edges. Q074 Steps of the base and risers. Q075 Native entries with no value.
 Q076 Python checker licences. Q077 The worker beside Revit. Q078 Rounding half away from zero. Q079 Microsoft.NETCore.Platforms pinned to 3.1.0. Q082 Road level of 33 key plots.
 Q085 Plot as a shared parameter. Q086 Check point limits against the keys. Q087 Hand entries in addin.sharedParameters.
-Q119 Reads of a value several overrides touched. Q120 Mirror and rotation sets too wide. Q122 Clusters FFL by rule or as written.
+Q119 Reads of a value several overrides touched. Q120 Mirror and rotation sets too wide. Q122 Clusters FFL by rule or as written. Q123 2 Read data counts faces or plan plots.
+Q124 Counts box before the Revit read. Q125 Walls Issues row in the Issues sheet.
 
 ## Next three steps
 
-1. ADDIN 4g3 on the laptop: R365 the report Excel with D4, the C# checks on real data, the end records (steps/01_next.md)
-2. ADDIN 4h on the laptop once 4g3 is done, R366 to R369
-3. Lane A fold-in of steps/lane-b.md as the last records PR of 4h. The C# checks of Q111 run inside 4g3 and 4h (D6)
+1. ADDIN 4h in Lane A on the laptop, R366 to R369 with Bader's 9 steps, then the fold-in of steps/lane-b.md
+2. Phase 4 done after 4h. The C# checks of 4h run inside 4h (D6)
+3. Lane B phases by steps/lane-b.md, Part 2 after Bader's check of Part 1

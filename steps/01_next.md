@@ -30,7 +30,8 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 
 ## 4g3, Q112, Q113, the level and report Excel
 
-- Status: in progress on the laptop, Lane A since 2026-10-29 (Bader, 2026-10-28: Phase 4 moves to the company laptop, where the C# reads have the memory they need). D5 to D7 of steps/decisions-2026-10-28.md hold the speed rules, the C# checks and the report round trip
+- Status: done on 2026-10-29 in Lane A on the laptop, PR 95 the start records, PR 96 R365 the report Excel with D4, the C# checks of Q111 with 0 failures, then the end records. Q122 to Q125 stay open. D5 to D7 of steps/decisions-2026-10-28.md hold the speed rules, the C# checks and the report round trip
+- Done on the laptop: the C# reads and parity of PR 75 to 91 on the 7 keys and the whole project, net48 and net8.0, 228 parity lines and 0 failures, three build peaks per runtime, 973 to 1,064 MiB
 - Done on the personal PC: PR 83 records, PR 85 Q112 by the fallback and Q113, PR 88 step 15 with roadAtFrontM, Q114 and the Q116 conflicts, PR 91 R364 the level Excel with the D4 round trip of its sheet Levels, then the handover records
 - Left of 4g3, for the laptop:
   - R365 the report Excel: the top line, the Summary table of buttons 1 to 7, the box Counts agree across outputs, the box Rules applied with "[n] plots" on each line, the sheets Summary, Placed, Skipped, Overrides, Assumed, Issues, Rules, and a Python second route that opens it against 7.6 and item 9 of 7.7
