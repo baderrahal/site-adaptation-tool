@@ -404,3 +404,14 @@ def test_r401_r363_the_block_check_rows_is_a_setting_with_no_entry_of_the_status
     settings = json.loads((ROOT / "config" / "project.json").read_text(encoding="utf-8"))
     profile = json.loads((ROOT / settings["profile"]).read_text(encoding="utf-8"))
     assert "checkRows" in settings and [path for path in profile["status"]["config/project.json"] if path.split(".")[0] == "checkRows"] == []
+
+
+def test_d13_the_open_questions_are_read_from_questions_open_not_from_baders_turn(tmp_path):
+    # 4h-1 join item (D13): Bader's turn lists only the questions of the phase, so Q105 open in questions-open.md alone is open and Q005,
+    # named in Bader's turn but with no text in questions-open.md, is not
+    root = make_repo(tmp_path, open_text="Q105 Other.\n\nQ105. Other: is analysis.otherShare right.\n")
+    (root / "steps" / "PROGRESS.md").write_text("# Progress\n\n## Bader's turn\n\nQ005 Tolerance.\n\n## Next\n", encoding="utf-8")
+    rule_status.write(root)
+    config = entries(root)["config/project.json"]
+    assert config["analysis.otherShare"] == {"status": "RECOMMENDED", "question": "Q105", "where": "Q105"}
+    assert rule_status.Audit(root).open == {"Q105"} | rule_status.HELD_OPEN and rule_status.HELD_OPEN == {"Q017"}

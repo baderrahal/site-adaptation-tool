@@ -63,6 +63,9 @@ namespace CadReader
                 return 4;
             }
 
+            // D19. The drawing is read in place, so its name, size, write time and SHA-256 are recorded before the read and held after it
+            InputMark before = InputGuard.Mark(input);
+            Console.WriteLine("input " + before.Name + ", size " + before.Size + ", write time " + before.WriteTimeUtc + ", SHA-256 " + before.Sha256);
             var problems = new List<string>();
             if (headerOnly)
             {
@@ -72,7 +75,7 @@ namespace CadReader
                     Directory.CreateDirectory(outDir);
                     JsonOut.Write(Path.Combine(outDir, "header.json"), header);
                     Console.WriteLine("header, classes " + header.Classes.Count + ", entities " + header.ModelSpaceEntities);
-                    return 0;
+                    return Unchanged(input, before);
                 }
                 catch (Exception failure)
                 {
@@ -110,6 +113,19 @@ namespace CadReader
             {
                 Console.Error.WriteLine("reader notes " + problems.Count + ", first: " + problems[0]);
             }
+            return Unchanged(input, before);
+        }
+
+        // D19: exit 5 when the drawing changed while it was read, so no read of a changed input is taken
+        private static int Unchanged(string input, InputMark before)
+        {
+            string changed = InputGuard.ChangedWhileRead(input, before);
+            if (changed != null)
+            {
+                Console.Error.WriteLine(changed);
+                return 5;
+            }
+            Console.WriteLine("input unchanged after the read (D19)");
             return 0;
         }
 

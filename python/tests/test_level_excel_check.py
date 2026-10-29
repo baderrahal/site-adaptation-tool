@@ -128,7 +128,8 @@ def test_r364_one_workbook_per_nbh_and_the_cells_worked_out_again_from_the_plan_
     # Review 2 of PR 91: the cluster named in its row order on both sheets
     assert book["levels"][1][2] == "108-103-102" and book["levels"][2][2] == "108-103-102"
     # The pieces cut here by the typologyRev9 of plots.csv and keyRules.levelSplit, the same as the step levels give them
-    assert book["clusters"] == [["108-103-102", "108-103", "outside the scope DP1 DP1", "walls 2", 10.499], ["108-103-102", "102", "outside the scope DP1 DP1", "walls 2", 10.501]]
+    assert book["clusters"] == [["108-103-102", "108-103", "outside the scope DP1 DP1", "walls 2", 10.499, "10.500"],
+                                ["108-103-102", "102", "outside the scope DP1 DP1", "walls 2", 10.501, "10.500"]]
     assert want["gaps"]["cluster plots whose piece is the step piece"] == 2 and "cluster plots whose piece is not the step piece" not in want["gaps"]
     assert [row[:3] for row in book["used"]] == [["101", "heightM", 0.0006], ["102", "entryM", 0.0123], ["102", "rampFrontM", -0.002], ["103", "steps", 1]]
     # Review 2 of PR 91: the corners of the written plots of the NBH only, one of 101 with no surface, never the corner of 104 not written
@@ -173,7 +174,9 @@ FAULTS = {
     "order": (lambda book: book.move_sheet("Settings", offset=-1), "mismatch sheets"),
     "piece": (setter(lambda book: book["Clusters"]["B2"], "103-108"), "mismatch Clusters Plots"),
     "split": (setter(lambda book: book["Clusters"]["D2"], "none"), "mismatch Clusters Split"),
-    "pieceffl": (setter(lambda book: book["Clusters"]["E2"], 10.5), "mismatch Clusters FFL"),
+    "pieceffl": (setter(lambda book: book["Clusters"]["E2"], 10.5), "mismatch Clusters FFL by rule"),
+    "aswritten": (setter(lambda book: book["Clusters"]["F2"], "10.499"), "mismatch Clusters FFL as written"),
+    "clusterheader": (setter(lambda book: book["Clusters"]["E1"], "FFL"), "mismatch Clusters header"),
     "sequence": (setter(lambda book: book["Clusters"]["C2"], "DP1 DP1 outside the scope"), "mismatch Clusters Unit sequence"),
     "gap": (setter(lambda book: book["Overrides used"]["C4"], "2"), "mismatch Overrides used gap a number"),
     "none": (setter(lambda book: book["Levels"]["A1"], "NBH 012, Zone 2, road surface Road A on 5, none on 1 of 6 front corners, formulas: "), "mismatch top line prefix"),
@@ -204,3 +207,25 @@ def test_r364_the_plan_side_counts_a_level_override_the_list_lacks_and_a_piece_o
     want = check.expected(inputs_of(paths), "parsons2024Rev6", mock)
     assert want["gaps"]["level overrides with no entries"] == 1 and want["gaps"]["cluster plots whose piece is not the step piece"] == 1
     assert want["books"]["012"]["levels"][1][-1] == "Override entryM (breaks roadLevel), rampFrontM (no entry in the override list)"
+
+
+def test_r364_ffl_as_written_lists_the_written_ffls_an_override_moved_off_the_rule_in_row_order_and_is_empty_when_none_moved(made):
+    # Q122: 108 written at 10.52 and 103 at 10.5 against their rule 10.499, two values in the row order of the piece, 102 at its rule, none
+    paths, mock, _ = made
+    plots = [dict(item, levels=dict(item["levels"], ffl={"value": 10.501})) if item["plot"] == "102" else item for item in PLAN["plots"]]
+    plots.append(plot("108", "VL1", levels(10.3, 10.31, 10.52, 10.445, 0.21, 2), 10.499, A))
+    paths["plan"].write_text(json.dumps(dict(PLAN, plots=plots)), encoding="utf-8")
+    want = check.expected(inputs_of(paths), "parsons2024Rev6", mock)
+    assert [row[4:] for row in want["books"]["012"]["clusters"]] == [[10.499, "10.520, 10.500"], [10.501, None]]
+    assert check.CLUSTER_COLUMNS[4:] == ("FFL by rule", "FFL as written")
+
+
+def test_r364_the_two_ffl_columns_of_clusters_are_read_from_7_7_and_a_mock_that_names_others_is_refused(tmp_path):
+    # Q122: the names of items 36 and 37 of 7.7, read from the file as every other label of the checker is, never from the C#
+    assert check.mock_labels()["clusterFfl"] == ["FFL by rule", "FFL as written"]
+    for name in ("addin-mock.md", "design/07-mock.md"):
+        target = tmp_path / "docs" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text((check.ROOT / "docs" / name).read_text(encoding="utf-8").replace('"FFL as written"', '"FFL written"'), encoding="utf-8")
+    with pytest.raises(ValueError, match="7.7 of docs/design/07-mock.md names the FFL columns of the sheet Clusters FFL by rule, FFL written"):
+        check.mock_labels(tmp_path)

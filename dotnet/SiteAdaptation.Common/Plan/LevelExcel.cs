@@ -45,8 +45,13 @@ namespace SiteAdaptation.Common
         public const string Pieces = "Plots";
         public const string UnitSequence = "Unit sequence";
         public const string Split = "Split";
-        public static readonly string[] ClusterColumns = { Cluster, Pieces, UnitSequence, Split, Ffl };
-        public static readonly string[] ClusterFormats = { null, null, null, null, ThreeDecimals };
+        // Q122 (Bader, 2026-10-29): the FFL of the rule of the piece and the written FFLs an override moved off it, new items of 7.7. As
+        // written is a text, since a piece may hold more than one
+        public const string FflByRule = "FFL by rule";
+        public const string FflAsWritten = "FFL as written";
+        public const string WrittenJoin = ", ";
+        public static readonly string[] ClusterColumns = { Cluster, Pieces, UnitSequence, Split, FflByRule, FflAsWritten };
+        public static readonly string[] ClusterFormats = { null, null, null, null, ThreeDecimals, null };
 
         public const string Field = "Field";
         // Review 1 of PR 91, CHOSEN: the gap of every level field as a number, the step count of a steps override less the steps of the rule
@@ -554,7 +559,7 @@ namespace SiteAdaptation.Common
         }
 
         // One row per piece of the build of a cluster that holds a written plot of the NBH, in the order the plan writes the plots: the pieces the
-        // step levels give the plots of the cluster in its order, the FFL of the rule of the piece, its unit sequence and the split its pieces make
+        // step levels give the plots of the cluster in its order, the FFL of the rule of the piece and as written, its unit sequence and the split its pieces make
         private static LevelSheet ClusterSheet(Plan made, List<JObject> written, LevelResult result)
         {
             var sheet = new LevelSheet { Name = LevelExcelText.ClustersSheet, Header = LevelExcelText.ClusterColumns, Formats = LevelExcelText.ClusterFormats };
@@ -604,10 +609,37 @@ namespace SiteAdaptation.Common
                     {
                         result.Issues.Add("piece " + string.Join(LevelExcelText.ClusterJoin, piece) + ": its plots hold " + rules.Count + " FFLs of the rule, the first is listed (R364)");
                     }
-                    sheet.Rows.Add(new object[] { name, string.Join(LevelExcelText.ClusterJoin, piece), sequence, split, rules[0] });
+                    sheet.Rows.Add(new object[] { name, string.Join(LevelExcelText.ClusterJoin, piece), sequence, split, rules[0], AsWritten(made, piece) });
                 }
             }
             return sheet;
+        }
+
+        // Q122: each written FFL of the piece that rounds off the rule of its plot at 3 decimals (R385), once each in the row order, null
+        // when none moved
+        private static string AsWritten(Plan made, List<string> piece)
+        {
+            var moved = new List<string>();
+            foreach (JObject plot in piece.Where(made.ByNumber.ContainsKey).Select(number => made.ByNumber[number]))
+            {
+                JToken written = plot["levels"]?["ffl"]?["value"];
+                JToken ruled = plot["levelRule"]?["ffl"];
+                if (!IsNumber(written) || !IsNumber(ruled) || JsonOut.Round3((double)written) == JsonOut.Round3((double)ruled))
+                {
+                    continue;
+                }
+                string text = JsonOut.Round3((double)written).ToString(LevelExcelText.ThreeDecimals, CultureInfo.InvariantCulture);
+                if (!moved.Contains(text))
+                {
+                    moved.Add(text);
+                }
+            }
+            return moved.Count == 0 ? null : string.Join(LevelExcelText.WrittenJoin, moved);
+        }
+
+        private static bool IsNumber(JToken token)
+        {
+            return token != null && (token.Type == JTokenType.Float || token.Type == JTokenType.Integer);
         }
 
         private static LevelSheet SettingsSheet(LevelInputs inputs)

@@ -335,7 +335,7 @@ namespace SiteAdaptation.Tests
             Assert.True(book.Bold(book.Sheets["Levels"][1]["A"]));
             Assert.Equal(new[] { "A1:J1" }, book.Merged["Levels"].ToArray());
             Assert.Equal(Columns, book.Row("Levels", 2).Cast<string>().ToArray());
-            Assert.Equal(new[] { "Cluster", "Plots", "Unit sequence", "Split", "FFL" }, book.Row("Clusters", 1).Cast<string>().ToArray());
+            Assert.Equal(new[] { "Cluster", "Plots", "Unit sequence", "Split", "FFL by rule", "FFL as written" }, book.Row("Clusters", 1).Cast<string>().ToArray());
             Assert.Equal(new[] { "Plot No", "Field", "Gap", "Reason", "Source", "Model" }, book.Row("Overrides used", 1).Cast<string>().ToArray());
             Assert.Equal(new[] { "Setting", "Value" }, book.Row("Settings", 1).Cast<string>().ToArray());
             Assert.Equal(new[] { "Run id", "Profile", "Rules SHA-256", "Override list SHA-256", "Road surface order", "Pass limit", "Run time", "Editable columns", "Plan build id", "Plan SHA-256" },
@@ -410,7 +410,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R364_the_clusters_sheet_lists_the_pieces_of_the_build_with_the_ffl_of_their_rule_and_a_plot_outside_the_scope_by_its_label()
+        public void R364_the_clusters_sheet_lists_the_pieces_of_the_build_with_the_ffl_by_rule_and_as_written_and_a_plot_outside_the_scope_by_its_label()
         {
             WorkerAnswer answer;
             string plan;
@@ -419,8 +419,27 @@ namespace SiteAdaptation.Tests
             // rule, 108 outside the scope, the cut after the second plot of the row
             Assert.Equal(new[] { 1, 2, 3 }, book.Sheets["Clusters"].Keys.ToArray());
             // Review 2 of PR 91: the cluster named in its row order, as its unit sequence and its pieces run
-            Assert.Equal(new object[] { "108-103-102", "108-103", "outside the scope DP1 DP1", "walls 2", 10.499 }, book.Row("Clusters", 2).ToArray());
-            Assert.Equal(new object[] { "108-103-102", "102", "outside the scope DP1 DP1", "walls 2", 10.501 }, book.Row("Clusters", 3).ToArray());
+            Assert.Equal(new object[] { "108-103-102", "108-103", "outside the scope DP1 DP1", "walls 2", 10.499, "10.500" }, book.Row("Clusters", 2).ToArray());
+            Assert.Equal(new object[] { "108-103-102", "102", "outside the scope DP1 DP1", "walls 2", 10.501, "10.500" }, book.Row("Clusters", 3).ToArray());
+            Assert.Equal(new[] { "General", "General", "General", "General", "0.000", "General" }, new[] { "A", "B", "C", "D", "E", "F" }.Select(column => book.Format(book.Sheets["Clusters"][2][column])).ToArray());
+        }
+
+        [Fact]
+        public void R364_ffl_as_written_lists_the_written_ffls_an_override_moved_off_the_rule_in_row_order_and_is_empty_when_none_moved()
+        {
+            // Q122: 108 written at 10.52 and 103 at 10.5 against their rule 10.499, so two values in the row order of the piece, and 102 written
+            // at its rule, so no value
+            var made = new Made();
+            var plots = (JArray)made.Plan["plots"];
+            plots.Add(Plot("108", "VL1", Levels(10.3, 10.31, 10.52, 10.445, 0.21, 2), 10.499, new[] { "Road A", "Road A" }));
+            plots.OfType<JObject>().Single(plot => (string)plot["plot"] == "102")["levels"]["ffl"]["value"] = 10.501;
+            WorkerAnswer answer;
+            string plan;
+            Book book = RunBook(made, out answer, out plan);
+            Assert.Equal(new object[] { 10.499, "10.520, 10.500" }, book.Row("Clusters", 2).Skip(4).ToArray());
+            // An empty FFL as written is no cell at all, so Row ends at the FFL by rule
+            Assert.Equal(new object[] { 10.501 }, book.Row("Clusters", 3).Skip(4).ToArray());
+            Assert.False(book.Sheets["Clusters"][3].ContainsKey("F"));
         }
 
         [Fact]

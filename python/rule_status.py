@@ -51,6 +51,8 @@ TIES = {"frontRoad.surface": ("rampFront", None, None), "frontRoad.offsetM": ("e
         "steps": ("steps", "no code reads this field, a build takes its steps by the rule keyRules.steps codes", None)}
 # Q100 asked these five of the audit itself, so they are no evidence of a value, their answers give DOCUMENT and the ties
 AUDIT_QUESTIONS = {"Q100", "Q101", "Q102", "Q103", "Q104"}
+# Q017 is closed, its values held at RECOMMENDED until 4h-2 changes the two tests of R401 that pin them (steps/01_next.md 4h-2)
+HELD_OPEN = {"Q017"}
 NEAR = 80
 CAMEL = re.compile(r"(?<![\w.])[a-z]+[A-Z][A-Za-z]*(?![\w])")
 # Q100. A place in a client document as the records write it: a page, an appendix, a section or a sheet, held only after the revision
@@ -195,15 +197,16 @@ class Audit:
         self.rule_rows = self._rule_rows()
 
     def _questions(self):
-        progress = (self.root / "steps/PROGRESS.md").read_text(encoding="utf-8")
-        # Every question of Bader's turn is open, Q105 upward as well, but for the five the audit asked of itself
-        self.open = {q for q in Q.findall(progress.split("## Bader's turn")[1].split("## Next")[0])} - AUDIT_QUESTIONS
+        open_text = (self.root / "steps/questions-open.md").read_text(encoding="utf-8")
+        # D13: a question is open when its full text, "Qnnn. ", stands in questions-open.md, since Bader's turn lists only the questions of
+        # the phase. The title line "Qnnn Title." names it without the full stop. Not the five the audit asked of itself
+        self.open = {m.group(1) for line in open_text.splitlines() for piece in re.split(QUESTION_START, line)
+                     for m in [re.match(r"(Q\d{3})\. ", piece)] if m} - AUDIT_QUESTIONS | HELD_OPEN
         closed_text = (self.root / "steps/questions-closed.md").read_text(encoding="utf-8")
         self.closed_rows = {m.group(1): m.group(0) for m in re.finditer(r"^\| (Q\d{3}) \|[^\n]*", closed_text, re.M)}
         self.closed = set(self.closed_rows) - AUDIT_QUESTIONS
         # An answer that names Bader is a choice of Bader, an answer that does not is closed for another reason, such as Q095 closing Q088 to Q094
         self.closed_bader = {q for q, row in self.closed_rows.items() if "Bader" in row and q not in AUDIT_QUESTIONS}
-        open_text = (self.root / "steps/questions-open.md").read_text(encoding="utf-8")
         self.open_by_rule = collections.defaultdict(set)
         for line in open_text.splitlines():
             for piece in re.split(QUESTION_START, line):

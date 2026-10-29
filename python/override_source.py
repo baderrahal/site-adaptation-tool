@@ -298,11 +298,24 @@ def read_list(path):
     return data
 
 
+def to_cannot(data, source):
+    """Q075 (Bader, 2026-10-29). The entries of source with no value, which a build refuses, moved to the cannot list with no value and
+    no rule, the reason marked Q075, sorted by plot, key and field as majority.py writes it. An entry Bader marked byHand stays."""
+    moved = [item for item in data["overrides"] if item.get("source") == source and item.get("value") is None and not by_hand(item)]
+    left = [item for item in data["overrides"] if not any(item is other for other in moved)]
+    marked = [dict({name: value for name, value in item.items() if name not in ("value", "rule")}, reason=str(item.get("reason") or "") + " (Q075)")
+              for item in moved]
+    cannot = sorted((data.get("cannot") or []) + marked, key=lambda item: (link_summary.sort_key(str(item["plot"])), str(item.get("key")), str(item.get("field"))))
+    held = sum(1 for item in data["overrides"] if item.get("source") == source and item.get("value") is None and by_hand(item))
+    return left, cannot, moved, held
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="The source field of the override list (R330).")
-    parser.add_argument("command", choices=("migrate", "count"))
+    parser.add_argument("command", choices=("migrate", "count", "cannot"))
     parser.add_argument("list", help="the override list, config/overrides/<profile>.json")
     parser.add_argument("--settings", default=str(project_profile.SETTINGS_PATH))
+    parser.add_argument("--source", help="Q075. cannot: the source whose entries with no value move to the cannot list")
     args = parser.parse_args(argv)
     try:
         settings = project_profile.load_settings(args.settings)
@@ -316,6 +329,16 @@ def main(argv=None):
             # R386. The cannot and the skip lists of the list stay as they are
             majority.write_overrides(args.list, data.get("note", ""), moved, data.get("cannot"), data.get("skip"))
             print(json.dumps({"before": before, "after": counts(moved)}, indent=1))
+        elif args.command == "cannot":
+            if not args.source:
+                raise project_profile.ProfileError("cannot needs --source, the source whose entries with no value move (Q075)")
+            left, cannot, moved, held = to_cannot(data, args.source)
+            import majority
+            if moved:
+                majority.write_overrides(args.list, data.get("note", ""), left, cannot, data.get("skip"))
+            print(json.dumps({"before": {"overrides": counts(data["overrides"]), "cannot": len(data.get("cannot") or [])},
+                              "after": {"overrides": counts(left), "cannot": len(cannot)},
+                              "moved": {"total": len(moved), "bySourceField": counts(moved)["bySourceField"]}, "byHandLeft": held}, indent=1))
         else:
             print(json.dumps(counts(data["overrides"]), indent=1))
     except (project_profile.ProfileError, OSError, ValueError) as error:

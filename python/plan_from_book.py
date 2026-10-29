@@ -40,6 +40,7 @@ import data_book_retest
 import face_rings
 import floor_fit
 import footprint_check
+import input_guard
 import key_rules
 import landxml_reader
 import levels
@@ -1454,6 +1455,12 @@ def main(argv=None):
     parser.add_argument("--steps", help="R345. a folder outside the repo for the output of each step per plot, step_<step>.json")
     parser.add_argument("--steps-only", action="store_true", help="R345. write the steps that need no build and stop before it")
     args = parser.parse_args(argv)
+    # D19. Every file the build opens under an input root is held from its first open to the end, recorded beside the plan
+    with input_guard.Guard(input_guard.roots(args.settings), record=Path(args.out).with_name(Path(args.out).stem + "_inputs.json")):
+        return run_build(args)
+
+
+def run_build(args):
     done = False
     try:
         # R345. The step files of this run go first, so a run that fails leaves none and the parity finds them missing

@@ -49,7 +49,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## 4h-1, Q122, the settings and the element tags
 
-- Status: open, Lane A
+- Status: done on 2026-10-29 in Lane A on the laptop, one PR (D20), Q151 to Q153 opened, its latent findings in steps/latent.md under 4h-1
 - Starts when: 4g3 (done)
 - First (D8, D9): the Q122 code, the sheet Clusters of the level Excel with the columns FFL by rule and FFL as written, new items of 7.7. Take it from the local branch feat/addin-4g3-q122-clusters-ffl at 00d371f of the old folder "Site Adaptation Tool Lane A" if that folder and branch still exist and the code holds, else write it again, with its test
 - Rules: R367 the settings JSON kept in the project. R368 element tags, the match to the plan, the hand change and the schema versions
@@ -65,7 +65,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 - Starts when: 4h-1
 - Rules: R366 scope with the plot list syntax and the step state by hash. R369 the second method of Phase 4, seeds 14 and 7
 - R366 joins the pane as a join item of the Lane B phase open when 4h-2 ends (D9), W9 of steps/lane-b.md
-- Join items of the answer pass (Bader, 2026-10-29): Q055, El @ Entry of the 1.4 key read off its ramp on the 5 plots. Q119, a value lists the reads of the override that set the input it stands on. Q120, mirrored covers the yard outline and type only, rotationDeg a wall only where the turn decides it stands. Each measures the plan values it changes against a build before it. Q017: its values go from RECOMMENDED to CHOSEN by Bader, with the two tests of R401 that pin them while Q017 was open (test_value_status.py and ValueStatusTests, review 1 of PR 78 and Q114), and Q017 leaves Bader's turn of steps/PROGRESS.md
+- Join items of the answer pass (Bader, 2026-10-29): Q055, El @ Entry of the 1.4 key read off its ramp on the 5 plots. Q119, a value lists the reads of the override that set the input it stands on. Q120, mirrored covers the yard outline and type only, rotationDeg a wall only where the turn decides it stands. Each measures the plan values it changes against a build before it. Q017: its values go from RECOMMENDED to CHOSEN by Bader, with the two tests of R401 that pin them while Q017 was open (test_value_status.py and ValueStatusTests, review 1 of PR 78 and Q114), and Q017 leaves Bader's turn of steps/PROGRESS.md and HELD_OPEN of python/rule_status.py, which holds it open since 4h-1 (D13)
 - Design: docs/design/03a-buttons-shared-and-1.md (Steps and Scope), docs/design/13-workflow-changes.md part Order for the 9 steps
 - Done when: each rule has its tests on both runners and the second method of Phase 4 runs at seeds 14 and 7 (R369, 10-rule-ids.md)
 
