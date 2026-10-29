@@ -20,7 +20,13 @@ param(
     [string]$FloorSpec,
     [string]$RoundSpec,
     [int]$TimeoutMinutes = 30,
-    [int]$NoLogMinutes = 8
+    [int]$NoLogMinutes = 8,
+    # Lane B 5b. With -DryStart, one probe add-in of its own manifest loads beside the tool, its log and heartbeat named by the run
+    [string]$ProbeManifest,
+    # R104, Lane B 5b. The freeze guard: no first log step, no heartbeat, Revit not responding
+    [int]$FirstStepMinutes = 5,
+    [int]$HeartbeatMinutes = 10,
+    [int]$NotRespondingMinutes = 5
 )
 
 $ErrorActionPreference = 'Stop'
@@ -30,6 +36,18 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'PrototypeSets.ps1')
 # R108. The add-ins of this tool the watcher answers Load Once
 . (Join-Path $PSScriptRoot 'TestHostPaths.ps1')
+# R108 the watcher before Revit, R104 the freeze guard
+. (Join-Path $PSScriptRoot 'FreezeGuard.ps1')
+$probe = $null
+if ($ProbeManifest) {
+    if (-not $DryStart) {
+        throw '-ProbeManifest goes with -DryStart, a probe has no job of the test host.'
+    }
+    $probe = Get-ProbeAddIn -Manifest $ProbeManifest
+    if ($probe.code -notmatch '^[A-Za-z0-9_-]{1,40}$') {
+        throw "The probe manifest name is not 1 to 40 letters, digits, - or _: $($probe.code)"
+    }
+}
 $spec = $null
 if ($FloorSpec) {
     if ($Code -or $DryStart -or $Upgrade) {
@@ -89,7 +107,7 @@ $docs = Get-WorkRoot -AppData $env:APPDATA -MyDocuments ([Environment]::GetFolde
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $addins = Join-Path $env:APPDATA 'Autodesk\Revit\Addins\2024'
 $watcherExe = Join-Path $addins 'SiteAdaptationTestHost\Watcher\SiteAdaptation.DialogWatcher.exe'
-$name = if ($DryStart) { 'dry_start' } elseif ($Upgrade -or ($round -and $round.kind -eq 'siteUpgrade')) { $Code + '_upgrade' } else { $Code }
+$name = if ($probe) { 'probe_' + $probe.code } elseif ($DryStart) { 'dry_start' } elseif ($Upgrade -or ($round -and $round.kind -eq 'siteUpgrade')) { $Code + '_upgrade' } else { $Code }
 # R110. One job file per window, its path goes to that Revit alone in SITEADAPT_JOB. Other Revit windows may run beside it
 $jobPath = if ($DryStart) { $null } else { Join-Path $docs ('testhost_job_' + $name + '.json') }
 $refused = if ($jobPath) { [IO.Path]::ChangeExtension($jobPath, '.refused.json') } else { $null }
@@ -97,6 +115,10 @@ $logPath = Join-Path $docs ('testhost_' + $name + '_log.json')
 $watchPath = Join-Path $docs ('testhost_' + $name + '_watcher.json')
 $runPath = Join-Path $docs ('testhost_' + $name + '_run.json')
 $samplesPath = Join-Path $docs ('testhost_' + $name + '_samples.jsonl')
+# R104. The heartbeat the test host or the probe writes beside its log, and the pid file the watcher waits for (R108)
+$beatPath = Join-Path $docs ('testhost_' + $name + '_heartbeat.json')
+$pidPath = Join-Path $docs ('testhost_' + $name + '_watcher_pid.json')
+$journals = Join-Path $env:LOCALAPPDATA 'Autodesk\Revit\Autodesk Revit 2024\Journals'
 $sampleSeconds = [int]$config.testHost.sampleSeconds
 if ($sampleSeconds -lt 1) {
     throw 'config/project.json has no testHost.sampleSeconds of 1 or more'
@@ -131,6 +153,18 @@ $tool = Get-ToolAddIns -Repo $repo -Addins $addins
 $ourIds = $tool.ids
 $ourMarks = $tool.marks
 $ourPaths = $tool.paths
+# Lane B 5b. The probe gets Load Once as the tool does, by the id, name and DLL of its own manifest, and is installed for this run only
+$probeInstalled = $null
+if ($probe) {
+    $ourIds += $probe.id
+    $ourMarks += $probe.name
+    $ourMarks += Split-Path $probe.path -Leaf
+    $ourPaths += $probe.path
+    $probeInstalled = Join-Path $addins ('SiteAdaptationProbe_' + $probe.code + '.addin')
+    if (Test-Path -LiteralPath $probeInstalled) {
+        throw "A probe manifest is installed already at $probeInstalled. Look at it before you run again."
+    }
+}
 
 $original = $null
 $copy = $null
@@ -464,10 +498,21 @@ try {
     catch {
         $sampleFailures.Add((Get-Date).ToUniversalTime().ToString('o') + ' helpers at the start: ' + $_.Exception.Message)
     }
+    # R108, Lane B 5b. The watcher is up and waiting before Revit starts, so no security box opens with nothing to answer it
+    Remove-Item -LiteralPath $pidPath -ErrorAction SilentlyContinue
+    $watchArgs = @('--pid-file', $pidPath, '--out', $watchPath, '--stop-log', $logPath, '--minutes', '10', '--ours', ($ourIds -join ','), '--marks', ($ourMarks -join '|'), '--our-paths', ($ourPaths -join '|'))
+    $watcher = Start-WatcherFirst -WatcherExe $watcherExe -Arguments $watchArgs -ReadyPath $watchPath
+    if ($probe) {
+        Copy-Item -LiteralPath $probe.manifest -Destination $probeInstalled
+        $info.Environment['SITEADAPT_PROBE_LOG'] = $logPath
+        $info.Environment['SITEADAPT_PROBE_HEARTBEAT'] = $beatPath
+    }
     $process = [Diagnostics.Process]::Start($info)
-    $watchArgs = @('--pid', $process.Id, '--out', $watchPath, '--stop-log', $logPath, '--minutes', '10', '--ours', ($ourIds -join ','), '--marks', ($ourMarks -join '|'), '--our-paths', ($ourPaths -join '|'))
-    $watcher = Start-Process -FilePath $watcherExe -ArgumentList ($watchArgs | ForEach-Object { '"' + $_ + '"' }) -PassThru -WindowStyle Hidden
-    if ($DryStart) {
+    Set-WatchedPid -Path $pidPath -ProcessId $process.Id
+    if ($probe) {
+        "Revit $($process.Id) started at $($start.ToString('HH:mm:ss')) with the probe $($probe.name) of $($probe.manifest), the watcher answers the security dialogs"
+    }
+    elseif ($DryStart) {
         "Revit $($process.Id) started at $($start.ToString('HH:mm:ss')) with no job, the watcher answers the security dialogs"
     }
     elseif ($Upgrade) {
@@ -479,6 +524,15 @@ try {
 
     $deadline = $start.AddMinutes($TimeoutMinutes)
     $quietSince = $null
+    # R104, Lane B 5b. A job or a probe writes steps and a heartbeat, a plain dry start only answers or not
+    $hasJob = (-not $DryStart) -or [bool]$probe
+    $firstStepAt = $null
+    $notRespondingSince = $null
+    # Q151, the recommended reading until Bader answers: an image step may hold Revit busy for its whole limit (Q063)
+    if ($round -and $round.kind -eq 'image' -and -not $PSBoundParameters.ContainsKey('NotRespondingMinutes')) {
+        $NotRespondingMinutes = [int][Math]::Ceiling($imageMinutes)
+        "Freeze guard: an image job, Revit may not respond for up to $NotRespondingMinutes minutes (Q151)"
+    }
     $clock = New-LookClock -Start $start -CheckSeconds $checkSeconds -SampleSeconds $sampleSeconds
     while ($true) {
         if ($process.WaitForExit((Get-LookWait -Clock $clock -Now (Get-Date)))) {
@@ -520,7 +574,50 @@ try {
             $stopReason = "the test host wrote no log in $NoLogMinutes minutes"
             break
         }
-        if ($DryStart) {
+        # R104, Lane B 5b. The freeze guard looks in every check. It logs the windows and the journal tail, ends this Revit only and
+        # fails the open step with the reason
+        $process.Refresh()
+        if ($process.Responding) {
+            $notRespondingSince = $null
+        }
+        elseif (-not $notRespondingSince) {
+            $notRespondingSince = $now
+        }
+        $freezeClock = Read-FreezeClock -LogPath $logPath -BeatPath $beatPath -Start $start
+        if ($freezeClock.firstStepAt -and -not $firstStepAt) {
+            $firstStepAt = $freezeClock.firstStepAt
+        }
+        $freeze = Get-FreezeReason -Start $start -Now $now -FirstStepAt $firstStepAt -LastBeatAt $freezeClock.lastBeatAt -NotRespondingSince $notRespondingSince -HasJob $hasJob -FirstStepMinutes $FirstStepMinutes -HeartbeatMinutes $HeartbeatMinutes -NotRespondingMinutes $NotRespondingMinutes
+        if ($freeze) {
+            $frozen = Stop-FrozenRevit -Process $process -Reason $freeze -LogPath $logPath -JournalFolder $journals -Start $start
+            $stopReason = 'freeze guard: ' + $freeze
+            "Freeze guard: $freeze. Revit $($frozen.pid) ended, open step: $($frozen.step)"
+            'Windows of Revit at the stop:'
+            @($frozen.windows) | Select-Object handle, class, title, visible | Format-Table -AutoSize | Out-String -Width 250
+            "Journal tail of $($frozen.journal):"
+            @($frozen.journalTail)
+            break
+        }
+        if ($probe) {
+            # The probe ends its run by a result in its log, then Revit is closed as from the start screen
+            $probeResult = $null
+            try {
+                $probeResult = (Get-Content -Raw -LiteralPath $logPath -ErrorAction Stop | ConvertFrom-Json).result
+            }
+            catch {
+                # No log yet, or the probe is writing it right now
+            }
+            if ($probeResult) {
+                "The probe wrote its result $probeResult. Closing Revit."
+                $process.CloseMainWindow() | Out-Null
+                $exited = $process.WaitForExit(180000)
+                if (-not $exited) {
+                    $stopReason = 'Revit did not close after the probe in 3 minutes'
+                }
+                break
+            }
+        }
+        elseif ($DryStart) {
             # The start screen is reached when the main window has its title, Revit answers and the watcher has finished its dialogs for a minute
             $process.Refresh()
             $ready = $process.MainWindowTitle -and $process.Responding
@@ -573,6 +670,10 @@ finally {
             Remove-Item $jobPath
             'The job file was still there, the test host did not claim it. It is removed now.'
         }
+    }
+    # The probe manifest was installed for this run only, and Revit reads the add-ins root at its next start
+    if ($probeInstalled -and (Test-Path -LiteralPath $probeInstalled)) {
+        Remove-Item -LiteralPath $probeInstalled
     }
 }
 
@@ -703,6 +804,7 @@ elseif (-not $DryStart) {
 }
 
 # R200. The lock wrapper hands this exit code on, so a job whose log result is not ok, or a window that was stopped, ends with 1
-if (-not $DryStart -and ($stopReason -or $logResult -ne 'ok')) {
+# A probe ends as a job does, and a dry start that froze ends with 1 too (Lane B 5b)
+if ((((-not $DryStart) -or $probe) -and ($stopReason -or $logResult -ne 'ok')) -or ($stopReason -like 'freeze guard: *')) {
     exit 1
 }

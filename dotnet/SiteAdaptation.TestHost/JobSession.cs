@@ -29,6 +29,7 @@ namespace SiteAdaptation.TestHost
         private readonly TestHostLog log;
         private readonly TestHostRunner runner;
         private readonly DateTime deadlineUtc;
+        private readonly string beatPath;
         private readonly Dictionary<string, LinkOpening> openings = new Dictionary<string, LinkOpening>(StringComparer.OrdinalIgnoreCase);
         private readonly RunGate gate = new RunGate();
         private TestHostWatchdog watchdog;
@@ -60,6 +61,8 @@ namespace SiteAdaptation.TestHost
             log.Assemblies["common"] = typeof(Common.Placer).Assembly.Location;
             log.Assemblies["addinsFolder"] = addinsFolder;
             runner = new TestHostRunner(log, value => JsonOut.Write(logPath, value), () => DateTime.UtcNow);
+            // R104, Lane B 5b. The heartbeat the freeze guard of the run script reads, beside the log and named as it is
+            beatPath = TestHostGuard.OutputPath(documents, job.Code, TestHostGuard.IsUpgrade(job) ? "upgrade_heartbeat" : "heartbeat");
             deadlineUtc = log.StartedUtc.AddMinutes(TestHostGuard.TotalMinutesOf(job));
         }
 
@@ -141,7 +144,7 @@ namespace SiteAdaptation.TestHost
         private void Subscribe()
         {
             runner.Record(value => value.Notes.Add("Revit " + application.ControlledApplication.VersionBuild + ", the test host is waiting for the first Idling event"));
-            watchdog = new TestHostWatchdog(runner, deadlineUtc, () => DateTime.UtcNow, Kill, TimeSpan.FromSeconds(10));
+            watchdog = new TestHostWatchdog(runner, deadlineUtc, () => DateTime.UtcNow, Kill, TimeSpan.FromSeconds(10), Beat);
             application.DialogBoxShowing += OnDialog;
             application.ControlledApplication.FailuresProcessing += OnFailures;
             application.ControlledApplication.LinkedResourceOpening += OnLinkOpening;
@@ -157,6 +160,15 @@ namespace SiteAdaptation.TestHost
             {
                 application.Idling += OnFirstIdling;
             }
+        }
+
+        // A new file each time, so the write time the run script reads is the time of the last beat
+        private void Beat(string text)
+        {
+            string next = beatPath + ".next";
+            File.WriteAllText(next, text);
+            File.Copy(next, beatPath, true);
+            File.Delete(next);
         }
 
         private void Kill(string why)

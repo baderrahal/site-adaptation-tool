@@ -1,38 +1,74 @@
 # The paths the run script takes from this machine. Dot-sourced by Run-TestHost.ps1 and by the tests, it touches no file but the
-# repo manifests it reads.
+# manifests it reads.
 
-# R108. The four add-ins of this tool, each by its repo manifest and the DLL its install script puts under the add-ins root. The
-# watcher clicks Load Once only on a box that names one of these DLLs, and stops Revit on a box that looks like the tool any other way
+# R108. The four add-ins of this tool, each by the AddInId of its repo manifest. The name and the DLL come from the manifest of
+# that id installed in the add-ins root, as Revit reads it. The watcher clicks Load Once only on a box that names one of these
+# DLLs, and stops Revit on a box that looks like the tool any other way
 $ToolManifests = @(
     'dotnet\RevitPrototypeReader\SiteAdaptation.addin'
     'dotnet\SiteAdaptation.Placer\SiteAdaptationPlacer_Revit2024.addin'
     'dotnet\SiteAdaptation.TestHost\SiteAdaptationTestHost_Revit2024.addin'
     'dotnet\SiteAdaptation.AddIn\SiteAdaptationAddIn_Revit2024.addin'
 )
-# The DLL of each manifest above, in its order, under the add-ins root
-$ToolDlls = @(
-    'SiteAdaptation\RevitPrototypeReader.dll'
-    'SiteAdaptationPlacer\SiteAdaptation.Placer.dll'
-    'SiteAdaptationTestHost\SiteAdaptation.TestHost.dll'
-    'SiteAdaptationAddIn\SiteAdaptation.AddIn.dll'
-)
+
+# Each add-in of one manifest file, with the Assembly as Revit takes it, a relative one under the folder of the manifest
+function Read-AddInManifest([string]$Path) {
+    [xml]$xml = Get-Content -Raw -LiteralPath $Path
+    foreach ($addIn in @($xml.RevitAddIns.AddIn)) {
+        $assembly = [string]$addIn.Assembly
+        if ($assembly -and -not [IO.Path]::IsPathRooted($assembly)) {
+            $assembly = Join-Path (Split-Path $Path) $assembly
+        }
+        [pscustomobject]@{
+            id       = ([string]$addIn.AddInId).Trim().ToLowerInvariant()
+            name     = [string]$addIn.Name
+            assembly = $assembly
+            manifest = $Path
+        }
+    }
+}
 
 function Get-ToolAddIns([string]$Repo, [string]$Addins) {
+    $installed = @(Get-ChildItem -LiteralPath $Addins -Filter '*.addin' -File -ErrorAction SilentlyContinue | ForEach-Object { Read-AddInManifest $_.FullName })
     $ids = @()
     $marks = @()
     $paths = @()
-    foreach ($at in 0..($ToolManifests.Count - 1)) {
-        [xml]$xml = Get-Content -Raw (Join-Path $Repo $ToolManifests[$at])
-        $ids += [string]$xml.RevitAddIns.AddIn.AddInId
-        $marks += [string]$xml.RevitAddIns.AddIn.Name
-        $marks += Split-Path ([string]$xml.RevitAddIns.AddIn.Assembly) -Leaf
-        $paths += Join-Path $Addins $ToolDlls[$at]
+    $files = @()
+    foreach ($manifest in $ToolManifests) {
+        $id = @(Read-AddInManifest (Join-Path $Repo $manifest))[0].id
+        $there = @($installed | Where-Object id -eq $id)
+        if ($there.Count -ne 1) {
+            throw "The add-in $id of $manifest is not installed once in $Addins, found $($there.Count). Run the install scripts first."
+        }
+        $ids += $id
+        $marks += $there[0].name
+        $marks += Split-Path $there[0].assembly -Leaf
+        $paths += $there[0].assembly
+        $files += $there[0].manifest
     }
     [pscustomobject]@{
         manifests = $ToolManifests
+        installed = $files
         ids       = $ids
         marks     = $marks
         paths     = $paths
+    }
+}
+
+# Lane B 5b. A probe of one Revit fact runs through the test host as every Revit start does, so the watcher is up before Revit.
+# Its manifest is given from the folder the run starts in and is read here, the code is the file name of the manifest
+function Get-ProbeAddIn([string]$Manifest) {
+    $full = (Resolve-Path -LiteralPath $Manifest).Path
+    $addIn = @(Read-AddInManifest $full)
+    if ($addIn.Count -ne 1 -or -not $addIn[0].id -or -not $addIn[0].assembly) {
+        throw "The probe manifest $full holds no single add-in with an AddInId and an Assembly"
+    }
+    [pscustomobject]@{
+        id       = $addIn[0].id
+        name     = $addIn[0].name
+        path     = $addIn[0].assembly
+        manifest = $full
+        code     = [IO.Path]::GetFileNameWithoutExtension($full)
     }
 }
 
