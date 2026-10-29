@@ -19,7 +19,7 @@ Checked:
 - Revit runs of button 1, RAN, 3.3 min each, peak 2,333, 2,247 and 2,250 MiB private, least free 29.1 GiB. Run 1 failed on closing the active document, fixed, runs 2 and 3 8 of 8 steps ok
 - Badge on the 4 copies: template and no template empty, IMD existing with 4 signs, R17B stand-in existing with the parameter sign and 10 stops
 - Second method, RAN: the facts after Apply by the test host's own API reads held 30 of 30 values within 0.5 mm of the position file, largest gap 0 mm, in runs 2 and 3. Dry run Revit column equal to the value after Apply on 6 of 6 points
-- Gate, RAN: dotnet 1,092 and 986, pytest 1,986 passed, 3 skipped, before the review fixes. Parity on the 7 keys not run: no plan or build step changed (CHOSEN). No plot in button 1, so no 5 plot sample (CHOSEN)
+- Gate, RAN, on the last commit after the merge of main: dotnet net48 1,152 and net8.0 1,041 passed, pytest 2,000 passed, 3 skipped. Parity on the 7 keys not run: no plan or build step changed (CHOSEN). No plot in button 1, so no 5 plot sample (CHOSEN)
 - Reviewer, 1 pass: 2 REAL fixed with tests (sheet count, failed Browse), 1 not a fault, 4 latent. Breaker pass 1: 2 REAL (an empty second run committed, 0 of 2 before a dry run), pass 2: 3 REAL (waiting items not shown, a slope picked after the view), all fixed with tests, 1 question Q158, 17 latent in steps/latent.md
 - Revit run 3, RAN, after the fixes: second runs commit 0 on all 4 copies, the IMD copy first run commits 0 since nothing differs, 30 of 30 values at 0 mm again
 
