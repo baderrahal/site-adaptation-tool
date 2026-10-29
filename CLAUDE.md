@@ -41,7 +41,7 @@ Part 1 is the add-in. Part 2, the output sheets, waits for Bader's check of Part
 - Reviews (D12): the breaker reads a PR only when it changes build logic, numbers in a plan or an Excel, or the override list, at most 2 passes (Q097). Every other PR gets the reviewer, with the UI checklist where a window changes, one pass. The claim-checker reads only the claims of the log entry of the end records PR.
 - A REAL finding is fixed with a test, a LATENT one (no real input reaches it, Q095) goes to steps/latent.md. Parity and review on real inputs only. What is left after the passes becomes a question.
 - A fix on its third attempt stops, goes back to measuring and becomes a question. A Revit run probes first and its third attempt is a probe of the cause (D11).
-- A new question takes the next free ID, Q150 now.
+- A new question takes the next free ID, Q151 now.
 - Every fact in a report is tagged READ with a path, RAN with a count, SEARCHED with a link, CHOSEN or UNKNOWN.
 
 ## Records

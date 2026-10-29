@@ -1,6 +1,6 @@
 # Waiting on others
 
-The asks of the questions Bader closed in the answer pass of 2026-10-29 whose recommended answer asks someone or waits for a file. Each question is closed in steps/questions-closed.md with the interim answer the tool uses now, and Bader's turn no longer lists it. One line per item: the question, who is asked, for what, what the tool does until then. Who is asked is the one the recommended answer names, or CHOSEN by Code where it names no one. When the answer comes, it opens a new question or a join item, never a change to the closed one.
+The asks of the questions Bader closed in the answer pass of 2026-10-29 whose recommended answer asks someone or waits for a file. Each question is closed in steps/questions-closed.md with the interim answer the tool uses now, and Bader's turn no longer lists it. One line per item: the question, who is asked, for what, what the tool does until then. Who is asked is the one the recommended answer names, or CHOSEN by Code where it names no one. When the answer comes, it opens a new question or a join item, never a change to the closed one. Q022, Q023 and Q065 are Bader's own steps by hand, kept here since no run may write under an input root (D19) and the tool cannot do them.
 
 | Q | Who is asked | For what | What the tool does until then |
 |---|---|---|---|

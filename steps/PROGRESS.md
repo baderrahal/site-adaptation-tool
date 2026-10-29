@@ -7,7 +7,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - Round FOLD running on the laptop: the fold in of steps/lane-b.md, D9 to D19, the answer pass, the manual rules M01 to M15
 - Closed in Round FOLD so far: the D3 window rule question and the 20 answered Lane B questions, ids in steps/questions-closed.md
 - 4g3 done on 2026-10-29 in Lane A on the laptop: R365 the report Excel with D4, the C# checks of Q111 with 0 failures
-- Lane B: L0 done on 2026-10-28. 5a Revit run 3 ran on 2026-10-29, 18 of 18 steps ok, PR 97 and 99 merged, its close waits for Q147
+- Lane B: L0 done on 2026-10-28, 5a done on 2026-10-29 on the unit tests and Revit run 3 (Q147). 5b next
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
 - Plan: steps/01_next.md. Design: docs/design/. Rules: docs/rules/index.md. Lane B: steps/lane-b.md. Part 2 waits for Bader's check of Part 1
 
@@ -38,8 +38,9 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 ## Bader's turn
 
 Opened in Round FOLD, open: Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot.
-Closed in Round FOLD: 92, every question open before and the 22 Lane B questions, ids in steps/questions-closed.md. Asks of others: steps/waiting-on-others.md.
-2 questions open, full text and the recommended answers: steps/questions-open.md.
+Q150 M15 foundation depth, at least or equal.
+Closed in Round FOLD: 92, Q021, the 22 Lane B questions and 69 more in the answer pass, ids in steps/questions-closed.md. Asks of others: steps/waiting-on-others.md.
+3 questions open, full text and the recommended answers: steps/questions-open.md.
 
 ## Next three steps
 

@@ -30,7 +30,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## 4g3, Q112, Q113, the level and report Excel
 
-- Status: done on 2026-10-29 in Lane A on the laptop, PR 95 the start records, PR 96 R365 the report Excel with D4, the C# checks of Q111 with 0 failures, then the end records. Q123 to Q125 stay open. Q122 answered on 2026-10-29, its code moved to 4h (D8). D5 to D7 of steps/decisions-2026-10-28.md hold the speed rules, the C# checks and the report round trip
+- Status: done on 2026-10-29 in Lane A on the laptop, PR 95 the start records, PR 96 R365 the report Excel with D4, the C# checks of Q111 with 0 failures, then the end records. Q123 to Q125 were closed in the answer pass of Round FOLD, join items of 5e. Q122 answered on 2026-10-29, its code moved to 4h (D8). D5 to D7 of steps/decisions-2026-10-28.md hold the speed rules, the C# checks and the report round trip
 - Done on the laptop: the C# reads and parity of PR 75 to 91 on the 7 keys and the whole project, net48 and net8.0, 228 parity lines and 0 failures, three build peaks per runtime, 973 to 1,064 MiB
 - Done on the personal PC: PR 83 records, PR 85 Q112 by the fallback and Q113, PR 88 step 15 with roadAtFrontM, Q114 and the Q116 conflicts, PR 91 R364 the level Excel with the D4 round trip of its sheet Levels, then the handover records
 - Left of 4g3 at the handover, all done or moved since (PR 96, Q111, Q122 to 4h by D8):

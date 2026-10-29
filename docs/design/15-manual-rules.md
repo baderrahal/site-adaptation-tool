@@ -24,6 +24,8 @@ The manual is ROSHN Makkah Site Adaptation Manual, Phase 1, June 2024, Rev. 06, 
 
 PDF differs, M14, 2.8.A, p. 20 (PDF 23): "the boundary wall external face will be identical to the plot limit, and the 200mm will be positioned fully inside the plot." The PDF puts the outer face of the wall on the plot limit, with the 200 mm wall thickness inside the plot. The canvas text can be read as the wall standing 200 mm inside the limit. Question Q149, the canvas text kept.
 
+PDF differs, M15, 3.2.A, p. 23 (PDF 26): "Foundation Depth = 1.20m below the EGL." The PDF sets the depth at 1.20 m, the canvas text makes 1.20 m a least depth. Question Q150, the canvas text kept.
+
 Notes on the reading, none of them a difference (CHOSEN):
 
 - M03: 2.1.E gives the Phase 1 clusters as two or four units. The six-unit block and its expansion joint at the 4th unit mark are in 3.2.A, the structural part: "six (6)-unit clusters will have an expansion joint at the 4th unit mark".
