@@ -90,7 +90,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Phase changes (Bader, 2026-10-28): Rule 3 of steps/lane-b.md first, then every join item of steps/lane-b.md (J1 R367 settings, J2 R368 tags and the rest), then Q117, the optional inputs of button 4 Check, then Q103, then the buttons 2 Read data, 3 Review data, 4 Check and 7 Place villas with light mode (Masses and Links) and the check table of the UI spec with the plain rule names
 - Join item (Q117, Bader 2026-10-28): key_join.json and the past model prototype reads as inputs of button 4 Check, both optional, as a new project has no past job. Present: the Plot cut rows and the key Unit code rows are built from them. Absent: button 4 runs as today, Plot cut shows no rows and the check table says in one line that no past job was given, so no plot is counted as following every rule on Plot cut. With the key reads present, Past of the 51 missing rows and 3 question rows that offer it with no value is filled too (CHOSEN by Code, PR 81 review 2)
 - Q103 (Bader, 2026-10-27, moved from 5a): move the 19 design values a build or the add-in uses into config/project.json with a rule id, the rows of section 7 of steps/investigations/rule-status-audit.md that Q103 names, and leave the checkers of past rounds with a note
-- Join items: W2 to W5, W9 to W11, J1 to J11, J13, J14 and J16 of steps/lane-b.md
+- Join items: W2 to W5, W9 to W11, J1 to J9, J11, J13, J14 and J16 of steps/lane-b.md
 - Rules: R375 button 2. R376 button 4 Check, the check table, Use and Save overrides. R377 button 7 Place villas, link types by full path, the load and reload step, the move of a tagged link
 - Design: docs/design/03b-buttons-2-to-8.md (2 Read data, 4 Check, 7 Place villas), docs/design/07-mock.md 7.4 and item 8 of 7.7, the chip Assumed, docs/design/09-risks.md open item 9, docs/design/11-light-mode.md, docs/design/13-workflow-changes.md parts Review data and Site Adaptation Rules
 - Done when: buttons 2, 3, 4 and 7 run on one NBH, open item 9 is proven on one link, the values of Q103 are in config/project.json with a rule id, and the four UI controls hold for the Review data, Site Adaptation Rules and Check table windows
@@ -100,6 +100,7 @@ One phase per session (Q096). Bader pastes steps/START.md into a fresh session, 
 - Status: open, Lane B
 - What: Code builds and installs the add-in and runs buttons 1 to 4 and 7 on one NBH from a new project through the test host, with the runner agent under the shared window lock and the 2 GB floor, on copies only, logs outside the repo. The test host runs 7 Place villas by Buttons.Run on the plan before 5 and 6 are built (CHOSEN in Round FOLD, the new order has 7 wait for 6 in the pane)
 - Phase changes (Bader, 2026-10-28): in Masses mode, plus one NBH in Links. Measure the open item of the base boundary. Record the peak memory of one window in each mode, and run the whole NBH 03 image again (Q063) now that 64 GB is free
+- Join items: J10 of steps/lane-b.md
 - Done when: the run log, the R310 samples and the hashes of every source before and after are filed, and every failure is a fix of 5c or a question, before 5d starts
 
 ## 5d, buttons 5 Floors and ramps, 6 Levels and 8 Walls, and 7 Place villas at the FFL

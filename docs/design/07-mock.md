@@ -137,7 +137,7 @@ Check table. Title "3 Check, NBH [code], [n] plots", a line with the level profi
 
 Buttons Zoom to plot, Export to Excel, Save overrides.
 
-- How: three Buttons. Zoom to plot raises an ExternalEvent that calls UIDocument.ShowElements on the tagged elements of the plot, else zooms the active view to the face box by UIView.ZoomAndCenterRectangle. Export to Excel asks the worker to write the rows shown to `Check_<NBH>.xlsx`. Save overrides writes the rows whose Use the user changed in this session into the override list as 3.3 says, each marked byHand and no other row, and rebuilds the plan.
+- How: three Buttons. Zoom to plot raises an ExternalEvent that calls UIDocument.ShowElements on the tagged elements of the plot, else zooms the active view to the face box by UIView.ZoomAndCenterRectangle. Export to Excel asks the worker to write the rows shown to `Check_<NBH>.xlsx`. Save overrides writes the rows whose Use the user changed in this session into the override list as 3.4 says, each marked byHand and no other row, and rebuilds the plan.
 
 Filter chips: All, then one per check type (Plot cut, Floor, Hand, Unit code, Position, Level, and any other type found), each with its count, and "[n] plots follow every rule" on the right.
 
@@ -159,7 +159,7 @@ Filter chips: All, then one per check type (Plot cut, Floor, Hand, Unit code, Po
 
 Columns: Plot, NBH, Unit, Check, Tool value (rule), Past job, Rule, Use. Use is a dropdown Rule, Past, Skip. Past writes the past value to the override list with source parsons. Skip leaves the plot out and lists it in the report. Selecting a row zooms the Revit view to that plot.
 
-- How: a DataGrid, Plot, NBH, Unit, Check, Tool value (rule), Past job and Rule as read only text columns, Use a DataGridComboBoxColumn with Rule, Past and Skip, each row opening on the Use of 3.3. Past writes in the form of the table of 3.3, a gap to the rule for a level or a position and never the level or the coordinate, and is grey on a row whose field no build reads, on every row of an existing site file that is no answer key and on every row of a plot no answer key holds. Skip writes the plot to the skip list, which the report lists. A selected row raises the same ExternalEvent as Zoom to plot.
+- How: a DataGrid, Plot, NBH, Unit, Check, Tool value (rule), Past job and Rule as read only text columns, Use a DataGridComboBoxColumn with Rule, Past and Skip, each row opening on the Use of 3.4. Past writes in the form of the table of 3.4, a gap to the rule for a level or a position and never the level or the coordinate, and is grey on a row whose field no build reads, on every row of an existing site file that is no answer key and on every row of a plot no answer key holds. Skip writes the plot to the skip list, which the report lists. A selected row raises the same ExternalEvent as Zoom to plot.
 - Filled, real IMC rows (the levels as [level], the past value of a level row is the rule value plus the gap of its entry, the gap a distance):
 
 | Plot | NBH | Unit | Check | Tool value (rule) | Past job | Rule | Use |
@@ -242,7 +242,7 @@ A box "Counts agree across outputs" with columns Item, Revit, Excel for Links, F
 | Floors | not placed yet | 1,003 |
 | Levels | not placed yet | 336 |
 
-- Source: the one build of this page, plan_012.json (RAN). Excel is what the files of that build hold: the rows of the Placed sheet of kind link, 336, and of the floor kinds, generic 336, yard 331 and ramp 336, 1,003, the rows of the Levels sheet of the level Excel, 336, the same numbers as the summary above. Revit is read from the model at report time by the tags, Levels by the elements the last run of button 6 that committed set (3.8), and no Parsons build is placed yet, so it stays open until Phase 6 places NBH 012. The plan count is held against both apart and a mismatch of any two is an issue of the report. The Round 17 IMC rebuild placed another build, 336 links and 999 floors (RAN, prototypes_imc_r17b.json against plan_imc_r17b.json), and is not shown here.
+- Source: the one build of this page, plan_012.json (RAN). Excel is what the files of that build hold: the rows of the Placed sheet of kind link, 336, and of the floor kinds, generic 336, yard 331 and ramp 336, 1,003, the rows of the Levels sheet of the level Excel, 336, the same numbers as the summary above. Revit is read from the model at report time by the tags, Levels by the elements the last run of button 6 that committed set (3.9), and no Parsons build is placed yet, so it stays open until Phase 6 places NBH 012. The plan count is held against both apart and a mismatch of any two is an issue of the report. The Round 17 IMC rebuild placed another build, 336 links and 999 floors (RAN, prototypes_imc_r17b.json against plan_imc_r17b.json), and is not shown here.
 - How: a bordered range of three columns under the summary.
 
 A box "Rules applied".
@@ -259,9 +259,9 @@ Sheets: Summary, Placed, Skipped, Overrides, Issues, Rules.
 The mock wins, and where Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md, approved on the canvas) differ from it, those changes win. Each item below is a screen or a part the mock does not show, kept because a rule of section 3 needs it, because Bader approved it on the canvas (docs/design/12-ui-spec.md, U1 to U7 of steps/decisions-2026-10-28.md) or because his changes of 28 Oct 2026 give it, and Phase 6 step 6 checks the screenshots against the mock and this list, so each difference is named and none is found by chance:
 
 1. The summary of a run before any write, with Cancel and Apply, for buttons 2 to 9: after the dry run when the box is ticked, and as the confirm when it is not (section 3). Button 1 has its own Dry run and Apply in the mock.
-2. The TaskDialog of button 7 Place villas before its transaction when a link type must be loaded again, or reloaded since its file changed, with Load and Cancel and the line that Undo is cleared (3.4).
+2. The TaskDialog of button 7 Place villas before its transaction when a link type must be loaded again, or reloaded since its file changed, with Load and Cancel and the line that Undo is cleared (3.7).
 3. Leave or Set to the plan per element changed by hand, in the summary of a second run (section 3).
-4. Past grey in the Use dropdown, with its reason as a tooltip, on a row whose field no build reads, on every row of an existing site file that is no answer key, and on every row of a plot no answer key holds, which has no key or model to write (3.3).
+4. Past grey in the Use dropdown, with its reason as a tooltip, on a row whose field no build reads, on every row of an existing site file that is no answer key, and on every row of a plot no answer key holds, which has no key or model to write (3.4).
 5. The size and the short SHA-256 in grey beside each input name, and the full path as a tooltip (7.2).
 6. The line under the badge that names the signs found (7.3), and the marks on the rows of What the tool will set that differ from What the project has now, with no tick per row.
 7. The tooltip of the Settings row with the override list, the work folder and the fit schedule of the location plan, which the config file holds since the mock gives them no row (section 6).

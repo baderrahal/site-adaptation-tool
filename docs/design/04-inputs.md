@@ -3,15 +3,15 @@
 The add-in never reads an input file itself. The worker reads it read only (R1) and writes JSON into the work folder, the add-in reads that JSON, Revit takes only what the buttons place.
 
 ```text
-input files -> worker read (button 2) -> plot table -> worker build (button 3) -> plan_<NBH>.json, checks_<NBH>.json
-            -> add-in buttons 4 to 7 -> links, floors, walls in Revit -> counts -> worker -> level and report Excel
+input files -> worker read (button 2) -> plot table -> worker build (button 4 Check) -> plan_<NBH>.json, checks_<NBH>.json
+            -> add-in buttons 5 to 8 -> links, floors, walls in Revit -> counts -> worker -> level and report Excel
 ```
 
 | Input of the mock | File for IMC | Worker reader and library | Python module the C# must equal in Phase 4 | Parity tolerance |
 |---|---|---|---|---|
 | Baseplan | ROSHN Makkah Baseplan.dwg | CadReader Exploder, PlotShapes, PlotLabels, ACadSharp 3.8.0 MIT | plots.json of CadReader (R5, R22) through yard_rule.face_shapes | the same code moved, every face vertex by the points tolerance of section 5, label exact, InsUnits Meters |
 | Villa blocks | Makkah Building Footprint.dwg | CadReader blocks (R68), ACadSharp | blocks.json, project_profile.read_villa_blocks, footprint_check.block_shapes | outline vertex by the points tolerance, rotation by the angles tolerance, name and mirror exact, referenceOnly refused (R300) |
-| Villa blocks, the setbacks | the same footprint drawing, its layer MP_Setback Line, so the mock input Villa blocks carries the setbacks and they need no row of their own | CadReader pieces | wiring.setback_shapes and the bestShare of data_book.py | setback from the front by the points tolerance, a check of button 3 only, the build takes the Rev 6 setback of the profile (R127) |
+| Villa blocks, the setbacks | the same footprint drawing, its layer MP_Setback Line, so the mock input Villa blocks carries the setbacks and they need no row of their own | CadReader pieces | wiring.setback_shapes and the bestShare of data_book.py | setback from the front by the points tolerance, a check of button 4 Check only, the build takes the Rev 6 setback of the profile (R127) |
 | Curbs | Makkah Phase 1_Road Layout.dwg, layers RD-CURB-LINE and ROW | CadReader pieces, ACadSharp | cad_analysis.read_road_edges | every edge by the points tolerance |
 | Road surface | the six LandXML surfaces of siteBuild.roadSurfaces, Top Surface-02 first | Common Read run by the worker, System.Xml | landxml_reader.read_landxml, surface_lookup.Surface, c3d_connect.snap_z and road_level, the one rule of R344 the build and the data book take | the level at a point by the levels tolerance, the surface name exact, linearUnit meter |
 | DLUS and sales | the Rev 9 DLUS workbook (PH_1-DLUS) and the accommodation workbook (JN Sales Data_Base_Rev09) | CadReader xlsx reader, DocumentFormat.OpenXml 3.5.1 MIT, read row by row | area_key.area_rows, rev9_workbooks.setbacks and widths, corner_front.sales_rows, location_plan.read_table | text exact, numbers exact |
