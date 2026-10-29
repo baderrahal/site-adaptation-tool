@@ -174,6 +174,7 @@ $original = $null
 $copy = $null
 $token = $null
 $roundJob = $null
+$setUpSource = $null
 
 # R213. The new site file a newSite job makes and a linksAndFloors job places into. It is empty between rounds, never a kept file
 function Get-SiteNewFile($build) {
@@ -276,6 +277,30 @@ if ($round) {
             $original = $build.template
             $roundJob.model = $copy
             $roundJob.template = $build.template
+            # Lane B 5b. With setUp the job runs button 1 on the four copies of 3.1. The answer key copy is taken into the run folder by
+            # a file copy, its source hashed before and after (D19). The settings are config with the position file of this machine
+            # (J5 joins the paths at 5c) and the rules profile beside it, as the settings of a project are read
+            if ($round.setUp) {
+                $setUpSource = [string]$round.keyCopy
+                if (-not (Test-Path -LiteralPath $setUpSource -PathType Leaf)) {
+                    throw "The key copy of the setUp run is not there: $setUpSource"
+                }
+                $setUpPosition = [string]$round.positionFile
+                if (-not (Test-Path -LiteralPath $setUpPosition -PathType Leaf) -or -not $setUpPosition.StartsWith($docs + '\')) {
+                    throw "The position file of the setUp run is not a file under the work root $docs : $setUpPosition"
+                }
+                $setUpBefore = Get-Item -LiteralPath $setUpSource
+                $setUpHash = (Get-FileHash -LiteralPath $setUpSource).Hash
+                Copy-Item -LiteralPath $setUpSource -Destination (Join-Path $runFolder ($Code + '-SETUP-IMD.rvt'))
+                $settingsCopy = Get-Content -Raw (Join-Path $repo 'config\project.json') | ConvertFrom-Json
+                $settingsCopy.addin.position.file = $setUpPosition
+                New-Item -ItemType Directory (Join-Path $runFolder 'config') | Out-Null
+                $settingsCopy | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath (Join-Path $runFolder 'config\project.json') -Encoding utf8
+                $profileCopy = Join-Path $runFolder ([string]$config.profile)
+                New-Item -ItemType Directory -Force (Split-Path $profileCopy) | Out-Null
+                Copy-Item -LiteralPath (Join-Path $repo ([string]$config.profile)) -Destination $profileCopy
+                $roundJob.setUp = $true
+            }
             # QL20. The whole run, the exit of Revit included, ends by 15 minutes. CHOSEN: the job gets 13 and the window 15, so the
             # 2 minutes between leave Revit time to exit after the job posts it, before the window stops Revit. Tool timings
             $addinRunWindowMinutes = 15
@@ -750,6 +775,14 @@ if (-not $DryStart) {
     $same = ((Get-FileHash $original).Hash -eq $hashBefore) -and ($after.LastWriteTimeUtc -eq $before.LastWriteTimeUtc) -and ($after.Length -eq $before.Length)
     if ($round) {
         "Unchanged, $(Split-Path $original -Leaf): $same"
+        if ($setUpSource) {
+            $setUpAfter = Get-Item -LiteralPath $setUpSource
+            $setUpSame = ((Get-FileHash -LiteralPath $setUpSource).Hash -eq $setUpHash) -and ($setUpAfter.LastWriteTimeUtc -eq $setUpBefore.LastWriteTimeUtc) -and ($setUpAfter.Length -eq $setUpBefore.Length)
+            "Unchanged, $(Split-Path $setUpSource -Leaf): $setUpSame, $($setUpBefore.Length) bytes, SHA-256 $setUpHash"
+            if (-not $setUpSame) {
+                $stopReason = 'the key copy of the setUp run changed (D19)'
+            }
+        }
     }
     elseif ($Upgrade) {
         "Source prototype unchanged: $same"

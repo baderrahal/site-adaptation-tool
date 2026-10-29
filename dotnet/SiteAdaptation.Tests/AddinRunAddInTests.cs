@@ -95,6 +95,10 @@ namespace SiteAdaptation.Tests
                 Array.ConvertAll(Method(workFolder, AddinRunNames.Root).GetParameters(), parameter => parameter.ParameterType));
             Assert.NotNull(Delegate.CreateDelegate(typeof(Func<string, string>), Method(workFolder, AddinRunNames.ReadIfThere)));
             Assert.Equal(typeof(SiteAdaptation.Common.Flow.IRunState), MemberType(TypeOf(AddinRunNames.Buttons), AddinRunNames.State));
+            // Lane B 5b. The setUp mode runs button 1 by Buttons.Run(int, UIApplication) with its own window in SetUpSiteBody.Dialog
+            // GetParameters would load RevitAPIUI, which the tests do not have, so the entry is read from its source
+            Assert.Contains("public static Result " + AddinRunNames.Run + "(int number, UIApplication application)", File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Commands", "Buttons.cs")));
+            Assert.Equal(typeof(Func<IntPtr, SiteAdaptation.Common.SetUp.ISetUpSiteDialog>), MemberType(TypeOf(AddinRunNames.SetUpSiteBody), AddinRunNames.Dialog));
             Assert.Equal(RibbonLayout.Tab, TypeOf(AddinRunNames.RibbonLayout).GetField(AddinRunNames.Tab).GetRawConstantValue());
             Assert.Equal(typeof(SitePanePage), TypeOf(AddinRunNames.Page));
             // The panels and buttons of the ribbon and the least width of the pane, read at run time

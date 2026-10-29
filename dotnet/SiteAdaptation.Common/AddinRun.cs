@@ -123,6 +123,10 @@ namespace SiteAdaptation.Common
         public const string ReadIfThere = "ReadIfThere";
         public const string Buttons = "SiteAdaptation.AddIn.Buttons";
         public const string State = "State";
+        // Lane B 5b, the setUp mode of the job runs button 1 as the ribbon does, with a window of its own
+        public const string Run = "Run";
+        public const string SetUpSiteBody = "SiteAdaptation.AddIn.SetUpSiteBody";
+        public const string Dialog = "Dialog";
         public const string RibbonLayout = "SiteAdaptation.AddIn.RibbonLayout";
         public const string Tab = "Tab";
         public const string Page = "SiteAdaptation.AddIn.Pane.SitePanePage";
