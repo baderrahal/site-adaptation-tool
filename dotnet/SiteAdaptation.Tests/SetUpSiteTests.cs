@@ -254,6 +254,11 @@ namespace SiteAdaptation.Tests
             Assert.Equal(1.01, over[0].DiffMm);
             Assert.False(over[0].Pass);
             Assert.Equal("Pass limit 1 mm. 0 of 2 pass", SetUpTexts.PassLine(target.PassLimitMm, over.Count(row => row.Pass), over.Count));
+            SetUpSiteView view = SetUpPlanner.View(Template(), target, point => SiteCoordinates.ToShared(target.Position, point));
+            Assert.Equal(2, view.GapDecimals);
+            Assert.Equal(1.0, view.PassLimitMm);
+            Assert.Equal(2, view.Passing);
+            Assert.True(view.DryRunDone);
         }
 
         private static double[] Moved(double[] point, double east)

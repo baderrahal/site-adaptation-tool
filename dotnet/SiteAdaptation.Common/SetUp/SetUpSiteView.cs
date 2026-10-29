@@ -33,6 +33,9 @@ namespace SiteAdaptation.Common.SetUp
 
         public double PassLimitMm { get; set; }
 
+        // addin.position.gapDecimals, the decimals the Diff is shown and judged at (R385)
+        public int GapDecimals { get; set; }
+
         public int Passing { get; set; }
 
         // False until the dry run filled the Revit column and What the tool will set

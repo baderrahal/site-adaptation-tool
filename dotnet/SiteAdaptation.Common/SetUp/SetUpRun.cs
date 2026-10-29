@@ -18,6 +18,9 @@ namespace SiteAdaptation.Common.SetUp
         public const string SiteFormat = "site-adaptation-site-facts";
         public const int SiteFormatVersion = 1;
 
+        // docs/design/06-settings.md, the schema of the Settings entity on ProjectInformation, a sign of an existing site file
+        public const string SettingsSchema = "SiteAdaptation_Settings";
+
         private readonly ISiteDocument document;
         private readonly ISetUpSiteDialog dialog;
         private readonly ITagStep tags;

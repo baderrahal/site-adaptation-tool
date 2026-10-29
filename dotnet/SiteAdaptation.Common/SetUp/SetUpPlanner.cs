@@ -161,6 +161,7 @@ namespace SiteAdaptation.Common.SetUp
                 ParameterSheetName = target.Parameters.Sheet,
                 ParameterCount = target.Parameters.Parameters.Count,
                 PassLimitMm = target.PassLimitMm,
+                GapDecimals = target.GapDecimals,
                 CheckPoints = CheckPoints(target, revitShared),
                 DryRunDone = revitShared != null,
                 NothingDiffers = !changes.Any,
