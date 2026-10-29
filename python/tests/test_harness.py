@@ -230,6 +230,8 @@ def inputs_hook(command, tool="PowerShell", description=None):
     r"mklink /D C:\work\link C:\Temp",
     r'New-Item -ItemType Junction -Path C:\work\p -Target "C:\02-Site Adaptation\Zone 02"',
     r"New-Item -Path C:\work\p -ItemType SymbolicLink -Value 'C:\10- ROSHEN MECCA'",
+    r"New-Item -Type Junction -Path C:\work\p -Target C:\Temp",
+    r"ni -It SymbolicLink C:\work\p -Value C:\Temp",
     r'ln -s "/c/02-Site Adaptation" /c/work/link',
     r'Set-Content -Path "C:\02-Site Adaptation\request.json" -Value x',
     r'echo x > "/c/02-Site Adaptation/a.txt"',

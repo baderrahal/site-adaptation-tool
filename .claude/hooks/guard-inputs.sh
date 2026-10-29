@@ -21,13 +21,15 @@ deny() {
 }
 
 [[ "$text" =~ ${start}mklink([^a-z0-9_-]|$) ]] && deny "mklink"
-[[ "$text" =~ ${start}(new-item|ni)[^a-z0-9_-].*-itemtype[[:space:]:\'${bs}\"]+(junction|symboliclink|hardlink) ]] && deny "a link made by New-Item"
+# -ItemType may be cut to any prefix of at least -i, and -Type is its alias
+[[ "$text" =~ ${start}(new-item|ni)[^a-z0-9_-].*-(i[a-z]*|type)[[:space:]:\'${bs}\"]+(junction|symboliclink|hardlink) ]] && deny "a link made by New-Item"
 [[ "$text" =~ ${start}ln[[:space:]]+(-[a-z]*s|--symbolic) ]] && deny "ln -s"
 [[ "$text" =~ ${start}fsutil[[:space:]]+hardlink ]] && deny "fsutil hardlink"
 
 roots=("c:${bs}02-site adaptation" "c:${bs}10- roshen mecca")
 config="${CLAUDE_PROJECT_DIR:-.}/config/project.json"
-if [[ -f "$config" ]]; then
+if [[ -f "$config" ]]
+then
   line=$(grep -m1 '"inputRoot"' "$config")
   value=${line#*: \"}
   value=${value%%\"*}
@@ -38,7 +40,8 @@ fi
 
 # Each root in back or forward slashes and in the /c/ form of Git Bash, as one regular expression
 root_re=""
-for root in "${roots[@]}"; do
+for root in "${roots[@]}"
+do
   rest=${root#c:}
   rest=${rest//./${bs}.}
   rest=${rest//${bs}${bs}/[${bs}${bs}/]}
@@ -54,12 +57,14 @@ quote="[\"'${bs}]"
 
 # A command line is cut into its commands at the command separator, and, or, the pipe and new lines
 pieces=$(printf '%s' "$text" | sed -e 's/\\n/\n/g' -e 's/&&/\n/g' -e 's/||/\n/g' -e "s/${semi}/\n/g" -e 's/|/\n/g')
-while IFS= read -r piece; do
+while IFS= read -r piece
+do
   [[ "$piece" =~ $root_re ]] || continue
   [[ "$piece" =~ \>\>?[[:space:]]*${quote}*${root_re} ]] && deny "a redirect into an input root"
   [[ "$piece" =~ $writes ]] && deny "a write command on an input root"
   [[ "$piece" =~ $dotnet ]] && deny "a .NET file write that names an input root"
-  if [[ "$piece" =~ $copies ]]; then
+  if [[ "$piece" =~ $copies ]]
+  then
     [[ "$piece" =~ -dest(ination)?[[:space:]:]+${quote}*${root_re} ]] && deny "a copy into an input root"
     # With no -Destination the target is the last argument, a root followed by no quote up to the end
     trimmed=$(printf '%s' "$piece" | sed -E "s/[[:space:]\"'}${bs}${bs}]*\$//")

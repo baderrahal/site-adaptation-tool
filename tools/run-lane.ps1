@@ -39,6 +39,9 @@ if (-not $Claude) {
 }
 
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+# The prompt goes to claude through a pipe, which Windows PowerShell 5.1 would send as ASCII
+$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 
 function Invoke-Git {
     param([string]$Dir, [string[]]$GitArgs)
