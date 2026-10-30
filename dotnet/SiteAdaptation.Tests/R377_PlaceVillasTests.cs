@@ -98,6 +98,7 @@ namespace SiteAdaptation.Tests
             Func<RunContext, VillaInputs> load = context => new VillaInputs
             {
                 Plan = plan, PlanPath = Path.Combine(work, "plan_012.json"), Config = Config(), Mode = mode, Profile = "parsons2024Rev6",
+                ParameterGuids = new Dictionary<string, string> { [LinkFields.PlotNumber] = FakeVillas.PlotGuid, ["CASE"] = "c0000000-0000-0000-0000-000000000000" },
                 Footprint = footprint ?? new List<double[][]>(), LastHashes = lastHashes ?? new Dictionary<string, string>(),
             };
             run.Body = new PlaceVillasRun(run.Document, load, context => new ShapeCache(context.WorkFolder, run.Reader, path => new string('a', 64)), path => new string('a', 64),
@@ -322,13 +323,15 @@ namespace SiteAdaptation.Tests
             string plan = Path.Combine(work, "plan_012.json");
             File.WriteAllText(plan, Newtonsoft.Json.JsonConvert.SerializeObject(Plan(Plot("101", 1100, 0, false))));
             string config = Path.Combine(work, "project.json");
-            File.WriteAllText(config, new JObject { ["addin"] = new JObject { ["lightMode"] = JObject.Parse(File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "config", "project.json")))["addin"]["lightMode"] } }.ToString());
+            JToken addin = JObject.Parse(File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "config", "project.json")))["addin"];
+            File.WriteAllText(config, new JObject { ["addin"] = new JObject { ["lightMode"] = addin["lightMode"], ["sharedParameters"] = addin["sharedParameters"] } }.ToString());
             var blocks = new JObject { ["blocks"] = new JArray(new JObject { ["name"] = "VD4", ["outline"] = new JArray(Shape.Select(point => new JArray(point[0], point[1]))) }) };
             var last = new JObject { ["prototypes"] = new JObject { ["x.rvt"] = new string('e', 64) }, ["placed"] = new JArray("101") };
             VillaInputs inputs = VillaInputs.Of(plan, FileHash.Sha256(plan), config, null, "parsons2024Rev6", null, blocks, last);
             Assert.Equal(VillaModes.Masses, inputs.Mode);
             Assert.Equal(VillaModes.Links, VillaInputs.Of(plan, FileHash.Sha256(plan), config, VillaModes.Links, "p", null, blocks, null).Mode);
             Assert.Single(inputs.Footprint);
+            Assert.Equal(10, inputs.ParameterGuids.Count);
             Assert.Contains("101", inputs.LastPlaced);
             Assert.Equal(new string('e', 64), inputs.LastHashes["x.rvt"]);
         }
@@ -380,8 +383,11 @@ namespace SiteAdaptation.Tests
 
         public IReadOnlyList<VillaLinkType> LinkTypes() => Types.ToList();
 
-        public IReadOnlyList<VillaElement> Villas()
+        public const string PlotGuid = "a0000000-0000-0000-0000-000000000000";
+
+        public IReadOnlyList<VillaElement> Villas(string plotNumberGuid)
         {
+            Assert.Equal(PlotGuid, plotNumberGuid);
             return Elements.Select(element => new VillaElement
             {
                 UniqueId = element.UniqueId, IsSolid = element.IsSolid, Tag = element.Tag, PlotNumber = element.PlotNumber,
@@ -459,9 +465,14 @@ namespace SiteAdaptation.Tests
             return Base(Find(uniqueId));
         }
 
-        public ParameterWrite Write(string uniqueId, string name, string value)
+        public ParameterWrite Write(string uniqueId, string guid, string value)
         {
             FakeElement element = Find(uniqueId);
+            string name = guid == PlotGuid ? LinkFields.PlotNumber : guid == null ? null : "CASE";
+            if (name == null)
+            {
+                return ParameterWrite.Missing;
+            }
             if (name == Refuse)
             {
                 return ParameterWrite.Refused;

@@ -1,6 +1,6 @@
 ## 11. Light mode, the villa as a mass
 
-Bader's decision D2 of 28 Oct 2026, steps/decisions-2026-10-28.md, written in Lane B L0. Its rule id is given at the fold in or at 5c, join item J6 of steps/lane-b.md. Button 4 of section 3 places each villa as a link. Light mode places it first as one solid, so a test run on a whole zone stays light, and swaps the solids for the links once the shapes are right.
+Bader's decision D2 of 28 Oct 2026, steps/decisions-2026-10-28.md, written in Lane B L0. Its rule id is R404, given at 5c, join item J6 of steps/lane-b.md, written in docs/rules/08-round-rec.md with R377, the 5c part of Place villas. Button 4 of section 3 places each villa as a link. Light mode places it first as one solid, so a test run on a whole zone stays light, and swaps the solids for the links once the shapes are right.
 
 ### Villa mode
 

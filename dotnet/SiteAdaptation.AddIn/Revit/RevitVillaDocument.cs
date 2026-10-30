@@ -65,14 +65,14 @@ namespace SiteAdaptation.AddIn.Revit
             return types;
         }
 
-        public IReadOnlyList<VillaElement> Villas()
+        public IReadOnlyList<VillaElement> Villas(string plotNumberGuid)
         {
             Dictionary<string, PlacedTag> tagged = tags.Collect().GroupBy(item => item.Key.UniqueId, StringComparer.Ordinal)
                 .ToDictionary(group => group.Key, group => group.OrderByDescending(item => item.Value.Version).First().Value, StringComparer.Ordinal);
             var villas = new List<VillaElement>();
             foreach (RevitLinkInstance instance in new FilteredElementCollector(document).OfClass(typeof(RevitLinkInstance)).Cast<RevitLinkInstance>())
             {
-                Parameter plot = instance.LookupParameter(LinkFields.PlotNumber);
+                Parameter plot = plotNumberGuid == null ? null : instance.get_Parameter(new Guid(plotNumberGuid));
                 tagged.TryGetValue(instance.UniqueId, out PlacedTag tag);
                 villas.Add(new VillaElement { UniqueId = instance.UniqueId, Tag = tag, PlotNumber = plot != null && plot.HasValue ? plot.AsString() : null, Transform = Transform(instance) });
             }
@@ -162,9 +162,9 @@ namespace SiteAdaptation.AddIn.Revit
             return document.GetElement(uniqueId) is DirectShape shape ? BaseOf(shape) : null;
         }
 
-        public ParameterWrite Write(string uniqueId, string name, string value)
+        public ParameterWrite Write(string uniqueId, string guid, string value)
         {
-            Parameter parameter = document.GetElement(uniqueId)?.LookupParameter(name);
+            Parameter parameter = guid == null ? null : document.GetElement(uniqueId)?.get_Parameter(new Guid(guid));
             if (parameter == null)
             {
                 return ParameterWrite.Missing;

@@ -173,7 +173,7 @@ namespace SiteAdaptation.Common.PlaceVillas
                     id = decision.Masses ? document.PlaceSolid(villa.Shape.Points, inputs.Config.SolidHeightM, villa.Steps) : document.PlaceLink(TypeKey(decision, villa, created), villa.Steps);
                 }
                 ReadBack(decision, villa, id);
-                issues.AddRange(WriteParameters(decision.Masses, villa, id));
+                issues.AddRange(WriteParameters(decision.Masses, villa, id, inputs.ParameterGuids));
                 document.Tag(id, step.Act == Act.Move ? step.Outcome.NextTag(context.RunId, inputs.Profile) : PlacedTag.ForPlacement(villa.Item, context.RunId, inputs.Profile, id));
                 standing.Add(villa.Number);
             }
@@ -231,7 +231,8 @@ namespace SiteAdaptation.Common.PlaceVillas
                 throw new InvalidDataException(filter);
             }
             double[] offset = SharedCoordinates.Offset(survey.Position, survey.SharedPosition);
-            IReadOnlyList<VillaElement> elements = document.Villas();
+            inputs.ParameterGuids.TryGetValue(Placer.PlotParameter, out string plotGuid);
+            IReadOnlyList<VillaElement> elements = document.Villas(plotGuid);
             ILookup<string, VillaElement> linkOn = elements.Where(element => !element.IsSolid).Select(element => new { element, plot = element.Tag != null && element.Tag.Key.Kind == PlacedKinds.Link ? element.Tag.Key.Plot : element.PlotNumber?.Trim() })
                 .Where(item => !string.IsNullOrEmpty(item.plot)).ToLookup(item => item.plot, item => item.element, StringComparer.Ordinal);
             ShapeCache cache = decision.Masses ? shapes(context) : null;
@@ -424,7 +425,7 @@ namespace SiteAdaptation.Common.PlaceVillas
 
         // R85, R107. The plot number written or the run fails, except a solid whose category button 1 did not bind it on, whose tag holds
         // the plot so no later run places it twice (CHOSEN, an open question of Lane B 5c). RRE_ZZ_SP_Prototype-FFL is 5d
-        private IEnumerable<string> WriteParameters(bool masses, Villa villa, string id)
+        private IEnumerable<string> WriteParameters(bool masses, Villa villa, string id, IReadOnlyDictionary<string, string> guids)
         {
             var issues = new List<string>();
             foreach (KeyValuePair<string, Sourced<string>> parameter in villa.Plot.Parameters ?? new Dictionary<string, Sourced<string>>())
@@ -439,7 +440,7 @@ namespace SiteAdaptation.Common.PlaceVillas
                     issues.Add("plot " + villa.Number + ": " + parameter.Key + " has no value in the plan");
                     continue;
                 }
-                ParameterWrite result = document.Write(id, parameter.Key, parameter.Value.Value);
+                ParameterWrite result = document.Write(id, guids.TryGetValue(parameter.Key, out string guid) ? guid : null, parameter.Value.Value);
                 if (result == ParameterWrite.Written)
                 {
                     continue;
