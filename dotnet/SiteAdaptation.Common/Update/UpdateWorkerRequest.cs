@@ -15,7 +15,9 @@ namespace SiteAdaptation.Common.Update
 
         public static string NbhOf(string excelPath)
         {
-            string name = Path.GetFileNameWithoutExtension(excelPath ?? "");
+            // The add-in reads Windows paths, and Path of Linux, where the gate runs too, parts a name at a slash only, so both part it here
+            string path = excelPath ?? "";
+            string name = Path.GetFileNameWithoutExtension(path.Substring(path.LastIndexOfAny(new[] { '\\', '/' }) + 1));
             int at = name.IndexOf('_');
             return at > 0 ? name.Substring(0, at) : null;
         }

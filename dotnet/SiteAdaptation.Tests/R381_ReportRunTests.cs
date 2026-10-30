@@ -174,8 +174,9 @@ namespace SiteAdaptation.Tests
             Assert.True(outcome.Record.StepDone);
         }
 
-        [Fact]
-        public void R381_a_report_another_program_holds_open_or_a_worker_that_fails_leaves_step_9_not_done_with_the_file_named()
+        // Linux locks no file another program holds open, so this half runs on Windows, where the add-in runs
+        [WindowsFact]
+        public void R381_a_report_another_program_holds_open_leaves_step_9_not_done_with_the_file_named()
         {
             CheckRunLog();
             string report = Path.Combine(work, "012_Report.xlsx");
@@ -193,9 +194,16 @@ namespace SiteAdaptation.Tests
             Assert.False(outcome.Record.StepDone);
             Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(report));
             Assert.Equal(new byte[] { 7, 7 }, File.ReadAllBytes(report + WorkFiles.Marker + RunId));
+        }
 
-            File.Delete(report + WorkFiles.Marker + RunId);
-            outcome = Run(false, true, (request, folder) => { throw new InvalidOperationException("the worker ended timedOut, time limit"); }, out model, out state);
+        [Fact]
+        public void R381_a_worker_that_fails_leaves_step_9_not_done_with_the_file_named()
+        {
+            CheckRunLog();
+            File.WriteAllBytes(Path.Combine(work, "012_Report.xlsx"), new byte[] { 1, 2, 3 });
+            Model model;
+            State state;
+            RunOutcome outcome = Run(false, true, (request, folder) => { throw new InvalidOperationException("the worker ended timedOut, time limit"); }, out model, out state);
             Assert.Equal(RunEnd.RolledBack, outcome.End);
             Assert.Contains("012_Report.xlsx was not written: the worker ended timedOut, time limit", outcome.Message);
             Assert.Empty(state.Told);

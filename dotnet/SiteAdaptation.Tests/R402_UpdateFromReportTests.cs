@@ -704,6 +704,9 @@ namespace SiteAdaptation.Tests
             Assert.Equal("the files are of NBH 012 and 013, Update from report takes the files of one NBH (R402)", refusal);
             Assert.Null(UpdateWorkerRequest.Nbh(new[] { "a\\Report.xlsx" }, out refusal));
             Assert.Contains("starts with its NBH", refusal);
+            // CI on Linux: a path written with either separator gives the NBH of its file name, as the add-in on Windows reads it
+            Assert.Equal("012", UpdateWorkerRequest.NbhOf("C:\\work\\012_Levels_x.xlsx"));
+            Assert.Equal("012", UpdateWorkerRequest.NbhOf("/home/work/012_Levels_x.xlsx"));
             Assert.Equal("012", UpdateWorkerRequest.Nbh(new[] { "a\\012_Levels_x.xlsx", "b\\012_Report.xlsx" }, out refusal));
         }
 
