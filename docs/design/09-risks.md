@@ -30,5 +30,5 @@ What only a Revit run can settle, each with the phase that measures it. Until th
 9. Phase 5c: RevitLinkType.Load of an unloaded type and RevitLinkType.Reload of a loaded type whose file changed, outside any transaction, the Undo list cleared, on one link each (3.7).
 10. Phase 5d: the wait for the worker inside the transaction of button 6 within addin.workerTimeLimitS.levelExcel, the roll back when it fails, and the move after the commit onto an Excel held open, which leaves step 6 not Done (3.6).
 11. Phase 5d: the peak memory of NBH 012 placed with all 13 prototype files in one window (Risks, memory of a full NBH build).
-12. Phase 5e: the screenshots of the pane, the dialog and the check table by RenderTargetBitmap and of the ribbon by PrintWindow, in our own Revit only (section 8).
+12. Phase 5e: the screenshots of the pane, the dialog and the check table by RenderTargetBitmap and of the ribbon by PrintWindow, in our own Revit only (section 8). Measured in 5e (READ steps/ui-shots/README.md): the ribbon by PrintWindow and the live pane by RenderTargetBitmap were taken in our own Revit in Revit run 3 of Lane B 5a, 2 of the 4. The Set up site dialog and the check table in Revit are left to the Revit run after 5c of Lane B, which runs the test host and builds the check table (RevitShots of the test host, R384 in 6a).
 

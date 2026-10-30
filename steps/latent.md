@@ -312,3 +312,13 @@ From the reviewer and the breaker passes 1 and 2 of the 5b PR. Each is LATENT, n
 - Breaker 6: two level Excels picked together overwrite one another per plot, and two ticked changes of one plot and field are both applied, the last wins.
 - Breaker 7: a plan plot with no FFL, entry or steps gets no check and reads as following the rules.
 - Breaker 10: every Browse writes the worker list under the work folder, so Cancel writes that file there (under the work root, D19 holds).
+
+## 5e and 5f, breaker pass 2
+
+- D, R402: when an output is held open at the commit of Update from report, the message is the held open line alone and the saved and not saved lines are lost, they still reach the run record (ButtonFlow.cs line 253).
+- L1, R402: the steps override check reads the plan, not the override list, so a steps count saved by one Apply and not yet built, or a steps entry Bader removed by hand, is checked against the old count.
+- L2, R402: each Apply overwrites update_from_report_applied.json, two applies before a build keep the second set of plots only. Nothing reads the file yet.
+- L3, R381: the run logs given to the worker as runLog1 to runLog8 are hashed and never read, so 1 Set up site and 3 Review data read not run yet even after a logged run. No button writes a run log yet (Q175).
+- L4, R381: the newest committed run of 6 is paired with the newest committed run of 4 with no check that 6 used that plan.
+- L5, R381: revit_counts_<run id>.json is written straight to its name, not by its temporary name, and is left behind when the worker fails.
+- Wrong shape, R402: a plot number held as a number in the override list would mark the plot not savable in both routes, all 11,075 entries hold text (RAN).
