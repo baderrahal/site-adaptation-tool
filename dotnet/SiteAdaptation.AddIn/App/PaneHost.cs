@@ -55,6 +55,8 @@ namespace SiteAdaptation.AddIn
             host.Answers = new AnswerRelay(() => host.answerEvent.Raise());
             // R375. Button 2 starts CadReader.exe beside the add-in, its answer comes back through the relay
             ReadDataBody.Worker = new LaunchedWorker(LaunchedWorker.BesideAddIn(), host.Answers.Post);
+            // R402. Button 3 reads the latest read of button 2 in the work folder of the run for the NBH of the scope
+            ReviewData.ReviewDataBody.Load = context => Common.Review.ReviewLoad.Load(context.WorkFolder, ReviewData.ReviewDataBody.Nbh?.Invoke(), null);
             host.model.RunRequested += number =>
             {
                 runner.Number = number;

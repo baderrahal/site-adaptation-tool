@@ -15,6 +15,9 @@ namespace SiteAdaptation.AddIn.ReviewData
         // The rows, the checks kept and the hash of the plot table of the read, from the work folder of the run
         public static Func<RunContext, ReviewInput> Load { get; set; }
 
+        // The NBH of the scope of the document of the run, set by the entry of the button before it makes the body
+        public static Func<string> Nbh { get; set; }
+
         // Zoom to plot in the active view of Revit, set by the Revit side
         public static Action<ReviewRow> Zoom { get; set; }
 

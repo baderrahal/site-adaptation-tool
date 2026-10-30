@@ -35,7 +35,14 @@ namespace SiteAdaptation.AddIn
             Document document = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
             var flow = new ButtonFlow(State, new RevitModel(document), new TaskDialogConfirm(), InputHash.Of, () => RunIds.New(button.Number, DateTime.Now));
             Func<ButtonBody> readData = () => ReadDataBody.For(PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title));
-            ButtonBody body = button.Number == 2 && document != null ? Bodies.Of(button, null, readData) : Bodies.Of(button, () => SetUpSiteBody.For(application));
+            Func<ButtonBody> reviewData = () =>
+            {
+                Pane.DocumentSession session = document == null ? null : PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title);
+                ReviewData.ReviewDataBody.Nbh = () => session?.Settings?.Scope?.Kind == Common.Settings.ScopeKinds.Nbh ? session.Settings.Scope.Nbh : null;
+                return ReviewData.ReviewDataBody.For(application.MainWindowHandle);
+            };
+            ButtonBody body = button.Number == 2 && document != null ? Bodies.Of(button, null, readData)
+                : button.Number == 3 ? Bodies.Of(button, null, null, reviewData) : Bodies.Of(button, () => SetUpSiteBody.For(application));
             RunOutcome outcome = flow.Run(button.Number, button.Label, body, document == null ? null : document.PathName, later => Ended(application, document, button.Number, later));
             if (outcome.Message != null)
             {
@@ -95,6 +102,16 @@ namespace SiteAdaptation.AddIn
         // R375. readData makes the body of button 2 on the document of the run, built once App sets the worker
         public static ButtonBody Of(RibbonButtonSpec button, Func<ButtonBody> setUp, Func<ButtonBody> readData)
         {
+            return Of(button, setUp, readData, null);
+        }
+
+        // R402. reviewData makes the body of button 3 with the main window of Revit as owner, built once App sets the window and the load
+        public static ButtonBody Of(RibbonButtonSpec button, Func<ButtonBody> setUp, Func<ButtonBody> readData, Func<ButtonBody> reviewData)
+        {
+            if (button.Number == 3 && ReviewData.ReviewDataBody.IsSet && reviewData != null)
+            {
+                return reviewData();
+            }
             if (button.Number == 1 && SetUpSiteBody.Dialog != null && setUp != null)
             {
                 return setUp();
