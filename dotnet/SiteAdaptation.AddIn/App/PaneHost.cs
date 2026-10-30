@@ -72,13 +72,12 @@ namespace SiteAdaptation.AddIn
                 }
                 return block == null ? (Func<string, string, string>)null : block.IdOfCheck;
             };
-            // R377. Button 7 loads the plan of the latest real run of 4 Check for the NBH of the scope of the active document. Every plot of
-            // the plan is in scope, a list of plots is not applied yet
+            // R377. Button 7 loads the plan of the latest real run of 4 Check for the NBH of the scope of the active document. An NBH scope takes every plot of
+            // the plan is in scope, a list of plots places only the plots it names
             PlaceVillas.PlaceVillasBody.Load = context =>
             {
                 PaneSettings settings = host.model.Settings ?? new PaneSettings();
-                string nbh = settings.Scope.Kind == Common.Settings.ScopeKinds.Nbh ? settings.Scope.Nbh : null;
-                return Common.PlaceVillas.VillaLoad.Load(context, nbh, settings.ConfigFile, settings.VillaMode, settings.LevelProfile, null);
+                return Common.PlaceVillas.VillaLoad.Load(context, settings.Scope, settings.ConfigFile, settings.VillaMode, settings.LevelProfile);
             };
             host.model.RunRequested += number =>
             {

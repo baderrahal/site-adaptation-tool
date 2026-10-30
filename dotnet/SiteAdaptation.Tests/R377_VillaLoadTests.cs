@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.CheckTable;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.PlaceVillas;
+using SiteAdaptation.Common.ReadData;
 using SiteAdaptation.Common.Settings;
 using Xunit;
 
@@ -80,6 +82,50 @@ namespace SiteAdaptation.Tests
             Assert.Contains("one NBH", Assert.Throws<InvalidDataException>(() => VillaLoad.Load(Context(), null, config, null, "p", null)).Message);
             Assert.Contains("4 Check", Assert.Throws<InvalidDataException>(() => VillaLoad.Load(Context(), "012", config, null, "p", null)).Message);
             Assert.Contains("4 Check", Assert.Throws<InvalidDataException>(() => VillaLoad.Load(Context(), "013", config, null, "p", null)).Message);
+        }
+
+        private void ReadWithTable(params string[] rows)
+        {
+            string read = Path.Combine(work, "read_R2-1");
+            Directory.CreateDirectory(read);
+            File.WriteAllText(Path.Combine(read, ReadDataRun.RecordFile), new JObject { ["format"] = ReadDataRun.RecordFormat, ["runId"] = "R2-1" }.ToString());
+            var plots = new JArray(rows.Select(row => new JObject { ["officialNumber"] = row.Split(':')[0], ["nbhId"] = row.Split(':')[1] }));
+            File.WriteAllText(Path.Combine(read, "read_plotTable.json"), new JObject { ["plots"] = plots }.ToString());
+        }
+
+        [Fact]
+        public void R377_a_plot_list_scope_of_the_pane_places_only_the_plots_of_the_list_and_takes_their_nbh()
+        {
+            Plan("check_R4-20261030-090000", "012");
+            ReadWithTable("101:012", "102:012", "103:012", "201:013");
+
+            VillaInputs inputs = VillaLoad.Load(Context(), new SettingsScope { Kind = ScopeKinds.Plots, Plots = "101, 103" }, config, null, "p");
+
+            Assert.EndsWith(CheckRun.PlanName("012"), inputs.PlanPath);
+            Assert.True(inputs.InScope("101"));
+            Assert.True(inputs.InScope("103"));
+            Assert.False(inputs.InScope("102"));
+        }
+
+        [Fact]
+        public void R377_a_plot_list_over_two_nbhs_or_naming_no_plot_of_the_table_stops_the_load_with_the_reason()
+        {
+            Plan("check_R4-20261030-090000", "012");
+            ReadWithTable("101:012", "201:013");
+
+            Assert.Contains("one NBH", Assert.Throws<InvalidDataException>(() => VillaLoad.Load(Context(), new SettingsScope { Kind = ScopeKinds.Plots, Plots = "101, 201" }, config, null, "p")).Message);
+            Assert.Contains("999", Assert.Throws<InvalidDataException>(() => VillaLoad.Load(Context(), new SettingsScope { Kind = ScopeKinds.Plots, Plots = "999" }, config, null, "p")).Message);
+        }
+
+        [Fact]
+        public void R377_an_nbh_scope_places_every_plot_of_the_plan_and_a_whole_project_scope_stops_for_it_names_no_nbh()
+        {
+            Plan("check_R4-20261030-090000", "012");
+
+            VillaInputs inputs = VillaLoad.Load(Context(), new SettingsScope { Kind = ScopeKinds.Nbh, Nbh = "012" }, config, null, "p");
+
+            Assert.Null(inputs.InScope);
+            Assert.Contains("one NBH", Assert.Throws<InvalidDataException>(() => VillaLoad.Load(Context(), new SettingsScope(), config, null, "p")).Message);
         }
     }
 }
