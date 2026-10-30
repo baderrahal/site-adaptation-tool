@@ -175,6 +175,35 @@ $copy = $null
 $token = $null
 $roundJob = $null
 $setUpSource = $null
+$buttonsInputs = $null
+$buttonsBefore = $null
+
+# Lane B 5c (R384). The real files a buttons run reads in place: each input of the pane settings, every file of a folder input, the
+# template and the key copy. Each is held by its size, write time and SHA-256 before and after the run (D19)
+function Get-ButtonsInputs($paths) {
+    $files = [Collections.Generic.List[string]]::new()
+    foreach ($path in @($paths | Where-Object { $_ })) {
+        if (Test-Path -LiteralPath $path -PathType Container) {
+            Get-ChildItem -LiteralPath $path -File -Recurse | ForEach-Object { $files.Add($_.FullName) }
+        }
+        elseif (Test-Path -LiteralPath $path -PathType Leaf) {
+            $files.Add((Get-Item -LiteralPath $path).FullName)
+        }
+        else {
+            throw "A real input of the buttons run is not there: $path"
+        }
+    }
+    return @($files | Sort-Object -Unique)
+}
+
+function Get-InputHashes($files) {
+    $hashes = [ordered]@{}
+    foreach ($file in $files) {
+        $item = Get-Item -LiteralPath $file
+        $hashes[$file] = '{0}|{1}|{2}' -f $item.Length, $item.LastWriteTimeUtc.Ticks, (Get-FileHash -LiteralPath $file).Hash
+    }
+    return $hashes
+}
 
 # R213. The new site file a newSite job makes and a linksAndFloors job places into. It is empty between rounds, never a kept file
 function Get-SiteNewFile($build) {
@@ -305,6 +334,64 @@ if ($round) {
             # 2 minutes between leave Revit time to exit after the job posts it, before the window stops Revit. Tool timings
             $addinRunWindowMinutes = 15
             $addinRunJobMinutes = 13
+            # Lane B 5c (R384). With buttons the job runs them on one NBH of one copy: the key copy of the spec taken into the run folder
+            # by a file copy, else the new project the test host makes from the template. The settings are config with the position
+            # file of this machine and the rules profile beside it, as setUp writes them, and the pane settings of R367 name the real
+            # inputs of the spec in place. Every real input is hashed before and after (D19)
+            if ($round.buttons) {
+                $buttonsPosition = [string]$round.positionFile
+                if (-not (Test-Path -LiteralPath $buttonsPosition -PathType Leaf) -or -not $buttonsPosition.StartsWith($docs + '\')) {
+                    throw "The position file of the buttons run is not a file under the work root $docs : $buttonsPosition"
+                }
+                $buttonsSources = @($build.template)
+                if ($round.keyCopy) {
+                    $buttonsSources += [string]$round.keyCopy
+                }
+                foreach ($entry in @($round.inputs.PSObject.Properties)) {
+                    $buttonsSources += [string]$entry.Value
+                }
+                $buttonsInputs = Get-ButtonsInputs $buttonsSources
+                $buttonsBefore = Get-InputHashes $buttonsInputs
+                if ($round.keyCopy) {
+                    Copy-Item -LiteralPath ([string]$round.keyCopy) -Destination $copy
+                }
+                $settingsCopy = Get-Content -Raw (Join-Path $repo 'config\project.json') | ConvertFrom-Json
+                $settingsCopy.addin.position.file = $buttonsPosition
+                $settingsPath = Join-Path $runFolder 'config\project.json'
+                New-Item -ItemType Directory (Split-Path $settingsPath) | Out-Null
+                $settingsCopy | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $settingsPath -Encoding utf8
+                $profileCopy = Join-Path $runFolder ([string]$config.profile)
+                New-Item -ItemType Directory -Force (Split-Path $profileCopy) | Out-Null
+                Copy-Item -LiteralPath (Join-Path $repo ([string]$config.profile)) -Destination $profileCopy
+                $levelProfile = if ($round.levelProfile) { [string]$round.levelProfile } else { [string](Get-Content -Raw $profileCopy | ConvertFrom-Json).levelProfiles.default }
+                $paneInputs = [ordered]@{}
+                foreach ($entry in @($round.inputs.PSObject.Properties)) {
+                    $paneInputs[$entry.Name] = [ordered]@{ path = [string]$entry.Value }
+                }
+                $paneSettings = [ordered]@{
+                    formatVersion = 1
+                    configFile    = $settingsPath
+                    rulesFile     = $profileCopy
+                    levelProfile  = $levelProfile
+                    inputs        = $paneInputs
+                    scope         = [ordered]@{
+                        kind = 'nbh'
+                        nbh  = [string]$round.nbh
+                    }
+                    dryRunFirst   = ($round.dryRunFirst -ne $false)
+                }
+                $paneSettingsPath = Join-Path $runFolder 'pane_settings.json'
+                $paneSettings | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $paneSettingsPath -Encoding utf8
+                $roundJob.buttons = [int[]]@($round.buttons)
+                $roundJob.nbh = [string]$round.nbh
+                $roundJob.villaMode = [string]$round.villaMode
+                $roundJob.linksAfterMasses = [bool]$round.linksAfterMasses
+                $roundJob.dryRunFirst = ($round.dryRunFirst -ne $false)
+                $roundJob.paneSettings = $paneSettingsPath
+                # Two worker reads, the build of 4 Check and two runs of 7 take more than the 13 minutes of 5a. CHOSEN, tool timings
+                $addinRunWindowMinutes = 31
+                $addinRunJobMinutes = 29
+            }
             if (-not $PSBoundParameters.ContainsKey('TimeoutMinutes')) {
                 $TimeoutMinutes = $addinRunWindowMinutes
             }
@@ -781,6 +868,14 @@ if (-not $DryStart) {
             "Unchanged, $(Split-Path $setUpSource -Leaf): $setUpSame, $($setUpBefore.Length) bytes, SHA-256 $setUpHash"
             if (-not $setUpSame) {
                 $stopReason = 'the key copy of the setUp run changed (D19)'
+            }
+        }
+        if ($buttonsInputs) {
+            $buttonsAfter = Get-InputHashes $buttonsInputs
+            $buttonsChanged = @($buttonsInputs | Where-Object { $buttonsAfter[$_] -ne $buttonsBefore[$_] } | ForEach-Object { Split-Path $_ -Leaf })
+            "Real inputs of the buttons run: $($buttonsInputs.Count), unchanged $($buttonsInputs.Count - $buttonsChanged.Count)"
+            if ($buttonsChanged.Count -gt 0) {
+                $stopReason = 'a real input of the buttons run changed (D19): ' + ($buttonsChanged -join ', ')
             }
         }
     }

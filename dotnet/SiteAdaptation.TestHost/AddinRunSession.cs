@@ -46,6 +46,8 @@ namespace SiteAdaptation.TestHost
         private readonly RunGate gate = new RunGate();
         // Lane B 5b. Button 1 on the four copies of 3.1 in place of the phases of 5a, null for the job of 5a
         private readonly SetUpSiteRun setUp;
+        // Lane B 5c. The buttons of the job on one copy in place of the phases of 5a, null for a job with none
+        private readonly ButtonsRunHost buttons;
         private ExternalEvent phaseEvent;
         private AddinProbe probe;
         // Read once in Start, the read loads Theme.xaml by reflection and the wait asks on every Idling tick
@@ -71,6 +73,7 @@ namespace SiteAdaptation.TestHost
             resultPath = TestHostGuard.OutputPath(documents, job.Code, AddinRunFiles.ResultPart);
             record = new AddinRunRecord { Code = job.Code, StartedUtc = DateTime.UtcNow };
             setUp = job.SetUp == true ? new SetUpSiteRun(job, runner) : null;
+            buttons = job.Buttons != null ? new ButtonsRunHost(job, runner) : null;
         }
 
         // From OnStartup, outside any Revit event, the one place a handler is added. The handlers wait on the gate until the first tick
@@ -132,6 +135,24 @@ namespace SiteAdaptation.TestHost
             {
                 // All its steps run in this one event, each copy opened, run and closed in turn, so no wait sits between them
                 lastOk = runner.Run(setUp.Steps(app));
+                gate.End();
+                if (!lastOk)
+                {
+                    runner.Record(log => log.Result = "failed");
+                }
+                exit(ui);
+                return;
+            }
+            if (buttons != null)
+            {
+                // The buttons run in this event until one starts a worker, the wait for its end runs on the Idling clock
+                lastOk = runner.Run(buttons.Phase(app, probe)) && lastOk;
+                if (buttons.WaitSeconds.HasValue)
+                {
+                    showWait = false;
+                    schedule.Wait(DateTime.UtcNow, AnswerMinSeconds, buttons.WaitSeconds.Value);
+                    return;
+                }
                 gate.End();
                 if (!lastOk)
                 {
@@ -468,7 +489,11 @@ namespace SiteAdaptation.TestHost
                 return;
             }
             TickAction action = schedule.Tick(DateTime.UtcNow, Pending(), out WaitState? ended, out double seconds);
-            if (ended.HasValue && showWait)
+            if (ended.HasValue && buttons != null)
+            {
+                buttons.WaitEnded(ended.Value, seconds);
+            }
+            else if (ended.HasValue && showWait)
             {
                 record.Notes.Add("the wait for the pane and the tab ended " + ended.Value + " after " + seconds + " s");
             }
@@ -499,6 +524,10 @@ namespace SiteAdaptation.TestHost
             if (!schedule.Waiting)
             {
                 return 0;
+            }
+            if (buttons != null)
+            {
+                return buttons.Pending(probe);
             }
             if (!showWait)
             {

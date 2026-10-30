@@ -329,13 +329,14 @@ namespace SiteAdaptation.TestHost
             var task = e as TaskDialogShowingEventArgs;
             var box = e as MessageBoxShowingEventArgs;
             string kind = task != null ? "taskDialog" : box != null ? "messageBox" : "dialogBox";
-            int? answer = DialogAnswers.Answer(kind, e.DialogId, code => e.OverrideResult(code));
+            string message = task != null ? task.Message : box != null ? box.Message : null;
+            int? answer = DialogAnswers.Answer(kind, e.DialogId, message, code => e.OverrideResult(code));
             var entry = new DialogEntry
             {
                 Utc = DateTime.UtcNow,
                 Kind = kind,
                 DialogId = e.DialogId,
-                Message = task != null ? task.Message : box != null ? box.Message : null,
+                Message = message,
                 Answer = answer,
                 Accepted = answer.HasValue,
                 Step = runner.CurrentStep,

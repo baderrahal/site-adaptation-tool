@@ -39,6 +39,15 @@ namespace SiteAdaptation.Common
         public string Template { get; set; }
         // Lane B 5b. An addinRun job that runs button 1 on the four copies of 3.1 in place of the checks of 5a
         public bool? SetUp { get; set; }
+        // Lane B 5c (R384). An addinRun job that runs these buttons in this order on one NBH of one copy, in place of the checks of 5a.
+        // villaMode is the mode of button 7, linksAfterMasses runs 7 again in links after masses, paneSettings the settings JSON of
+        // R367 the run script writes for the pane of the copy
+        public List<int> Buttons { get; set; }
+        public string Nbh { get; set; }
+        public string VillaMode { get; set; }
+        public bool? LinksAfterMasses { get; set; }
+        public bool? DryRunFirst { get; set; }
+        public string PaneSettings { get; set; }
         public string Site { get; set; }
         // R214. The folder an image job writes to, the level of its plan view and the area [minE, minN, maxE, maxN] in shared metres
         public string ImageFolder { get; set; }
@@ -88,6 +97,9 @@ namespace SiteAdaptation.Common
         public const double MaxTotalMinutes = 29;
         // QL20. The whole addinRun job, exit included, ends by 15 minutes. A tool timing, not a project value
         public const double AddinRunMaxTotalMinutes = 15;
+        // R384. A buttons job runs two worker reads, the build of 4 Check and two runs of 7 Place villas, so it takes the cap of every
+        // other job. CHOSEN in Lane B 5c, a tool timing
+        public const double ButtonsMaxTotalMinutes = MaxTotalMinutes;
         public const string TestTag = "_TEST-";
         public const string PlaceKind = "place";
         public const string UpgradeKind = "upgrade";
@@ -263,7 +275,7 @@ namespace SiteAdaptation.Common
                 return Refuse(prototype);
             }
             // Written so that NaN fails too. R302 an image job may add its image minutes to the cap
-            double totalCap = job.Kind == AddinRunKind ? AddinRunMaxTotalMinutes
+            double totalCap = job.Kind == AddinRunKind ? AddinRunCap(job)
                 : MaxTotalMinutes + (job.Kind == ImageKind && HasImageMinutes(job) ? job.ImageMinutes.Value : 0);
             if (job.TotalMinutes.HasValue && !(job.TotalMinutes.Value > 0 && job.TotalMinutes.Value <= totalCap))
             {
@@ -302,7 +314,7 @@ namespace SiteAdaptation.Common
             }
             if (job.Kind == AddinRunKind)
             {
-                string run = AddinRunFiles.CheckJob(job, fileExists, folderExists);
+                string run = CheckButtons(job) ?? AddinRunFiles.CheckJob(job, fileExists, folderExists);
                 return run == null ? new GuardResult { Act = true, Job = job } : Refuse(run);
             }
             if (job.Kind == ReadKind || job.Kind == ImageKind)
@@ -506,7 +518,7 @@ namespace SiteAdaptation.Common
         {
             if (job.Kind == AddinRunKind)
             {
-                return Math.Min(job.TotalMinutes ?? AddinRunMaxTotalMinutes, AddinRunMaxTotalMinutes);
+                return Math.Min(job.TotalMinutes ?? AddinRunCap(job), AddinRunCap(job));
             }
             if (job.TotalMinutes.HasValue)
             {
@@ -520,6 +532,17 @@ namespace SiteAdaptation.Common
         }
 
         // The fields of the newSite and image jobs belong to those jobs alone
+        private static double AddinRunCap(TestHostJob job)
+        {
+            return job.Buttons != null ? ButtonsMaxTotalMinutes : AddinRunMaxTotalMinutes;
+        }
+
+        // R384. A buttons job the run cannot carry out is refused before Revit acts, null for a job with no buttons
+        public static string CheckButtons(TestHostJob job)
+        {
+            return ButtonsRun.Refusal(job);
+        }
+
         private static string CheckExtras(TestHostJob job)
         {
             if (job.Kind != NewSiteKind && job.Site != null)
