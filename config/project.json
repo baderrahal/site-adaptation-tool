@@ -362,6 +362,13 @@
       "checkPointLimitMm": 1.0,
       "gapDecimals": 2
     },
+    "readData": {
+      "note": "R375, Lane B 5c. The files button 2 Read data hands the worker command read beside the files of the pane, added by Code since no key named them: cadLayers, the layer list beside this file, scheduleFolder, the folder under inputRoot of the schedule of each neighbourhood of connect.neighbourhoods, as python/full_run.XLSX_FOLDER and read_steps.py take it, and dataBookFiles, the files of the data book the road levels (plotsCsv and labels, R349) and the plot table (border, R352) read, in dataBookFolder, a folder of the work root of R372 when it is no full path, as the data book of python/c3d_probe.json lies in the work root. A file not on disk stops the button and names it",
+      "cadLayers": "cad_layers.json",
+      "scheduleFolder": "01_Output/1.11 References",
+      "dataBookFolder": "data_book",
+      "dataBookFiles": {"plotsCsv": "plots.csv", "labels": "location_plan/labels.csv", "border": "phase1_border.csv"}
+    },
     "plotTable": {
       "note": "R352. The order of the footprint blocks of a face in the plot table of button 2: overlapDecimals, the decimals R385 writes the overlap of each block with its face at before the order, the largest written overlap first and the blocks of one written overlap in the order of the read. Its own setting, never a tolerance of addin.parity, which tells only how far the two sides of the parity may lie apart. CHOSEN in the review of PR 54 at 4, the decimals the table writes faceAreaM2 at: on the 36 faces of the data book with two blocks or more the 1,882 overlaps lie at least 4.99E-07 m2 from a rounding boundary of 4 decimals, 210 times the 2.37E-09 m2 of binary noise between two sides measured in Round ADDIN 4d, where at 7 decimals 27 lie within 1E-08 m2 of one, the nearest 3.5E-10 m2, and at 6 decimals 515 (round_addin logs p4dfix_r352_decimals.txt). Blocks whose overlaps differ by less than the fourth decimal are one group, which puts 15 of the 36 faces in another order than the groups within 1E-06 m2 of 4d.",
       "overlapDecimals": 4

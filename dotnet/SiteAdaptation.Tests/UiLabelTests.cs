@@ -29,7 +29,8 @@ namespace SiteAdaptation.Tests
             Assert.Contains(shown["Pane"], found => found.Text == "Needs step <n>" && found.Where.EndsWith("PaneText.cs", StringComparison.Ordinal));
             Assert.Contains(shown[UiLabels.Messages], found => found.Text == " needs step " && found.Where.EndsWith("RunTexts.cs", StringComparison.Ordinal));
             Assert.Contains(shown[UiLabels.Messages], found => found.Text == "Cancel" && found.Where.EndsWith("RevitModel.cs", StringComparison.Ordinal));
-            Assert.Equal(20, list[UiLabels.Messages].Entries.Count);
+            // 31 since Lane B 5c, the 11 messages of 2 Read data (R375)
+            Assert.Equal(31, list[UiLabels.Messages].Entries.Count);
 
             Assert.Empty(UiLabels.Offenders(list, shown));
         }
@@ -136,8 +137,8 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Empty(missing);
-            // 22 since Lane B 5b, the line of a second run of Set up site
-            Assert.Equal(22, chosen);
+            // 33 since Lane B 5c, the 11 messages of 2 Read data (R375), 22 since Lane B 5b
+            Assert.Equal(33, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
