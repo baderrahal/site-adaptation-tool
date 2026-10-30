@@ -75,6 +75,11 @@ namespace SiteAdaptation.AddIn
                 : button.Number == 4 && document != null ? Bodies.Of(button, null, null, null, checkTable)
                 : button.Number == 7 && document != null ? Bodies.Of(button, null, null, null, null, placeVillas) : Bodies.Of(button, () => SetUpSiteBody.For(application));
             RunOutcome outcome = flow.Run(button.Number, button.Label, body, document == null ? null : document.PathName, later => Ended(application, document, button.Number, later));
+            // R367. The pane takes the settings again from the entity button 1 wrote, only after its commit
+            if (button.Number == 1 && outcome.End == RunEnd.Committed && document != null)
+            {
+                PaneHost.Current.Sessions.Find(document)?.LoadFrom(new SettingsEntity(document));
+            }
             if (outcome.Message != null)
             {
                 TaskDialog.Show(RibbonLayout.Tab, outcome.Message);

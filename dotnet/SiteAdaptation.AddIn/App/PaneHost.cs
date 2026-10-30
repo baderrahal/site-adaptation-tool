@@ -129,8 +129,14 @@ namespace SiteAdaptation.AddIn
         {
             if (e.Status == RevitAPIEventStatus.Succeeded && e.Document != null)
             {
-                sessions.Opened(e.Document, e.Document.PathName, e.Document.Title);
+                DocumentSession session = sessions.Opened(e.Document, e.Document.PathName, e.Document.Title);
+                // J1. The settings kept in the project come back when it opens, a JSON R367 refuses is named and left
+                string refused = e.Document.IsFamilyDocument ? null : session.LoadFrom(new Revit.SettingsEntity(e.Document));
                 Show(sender as Application);
+                if (refused != null)
+                {
+                    TaskDialog.Show(RibbonLayout.Tab, refused);
+                }
             }
         }
 

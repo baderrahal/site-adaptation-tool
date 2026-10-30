@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.Settings;
+using SiteAdaptation.Common.Steps;
 
 namespace SiteAdaptation.AddIn.Pane
 {
@@ -49,15 +51,20 @@ namespace SiteAdaptation.AddIn.Pane
         // other buttons get theirs as they are built
         public IReadOnlyList<RunInput> Inputs(int button)
         {
-            string configFile = model.Settings == null ? null : model.Settings.ConfigFile;
-            var inputs = new List<RunInput> { new RunInput(PaneText.Settings, configFile, false) };
+            return InputsOf(model.Settings ?? new PaneSettings(), button);
+        }
+
+        // The inputs of a button by the settings of the pane, the ones the flow hashes for its run and the pane for the step state
+        public static IReadOnlyList<RunInput> InputsOf(PaneSettings settings, int button)
+        {
+            var inputs = new List<RunInput> { new RunInput(PaneText.Settings, settings.ConfigFile, false) };
             if (button == 2)
             {
-                inputs.AddRange(ReadDataBody.Inputs(model.Settings ?? new PaneSettings()));
+                inputs.AddRange(ReadDataBody.Inputs(settings));
             }
             if (button == 4)
             {
-                inputs.AddRange(CheckTable.CheckTableBody.Inputs(model.Settings ?? new PaneSettings()));
+                inputs.AddRange(CheckTable.CheckTableBody.Inputs(settings));
             }
             return inputs;
         }
@@ -65,10 +72,10 @@ namespace SiteAdaptation.AddIn.Pane
         // A run whose output move failed leaves its step not Done (03a Steps)
         public void Committed(int button, RunRecord record)
         {
-            StepStatus status = StatusOf(record);
-            if (status != null)
+            StepRun run = model.Document == null ? null : RunOf(model.Document, record);
+            if (run != null)
             {
-                model.Committed(button, status);
+                model.Committed(button, run);
             }
         }
 
@@ -76,20 +83,25 @@ namespace SiteAdaptation.AddIn.Pane
         // when that document is active again
         public static void Record(DocumentSession session, int button, RunRecord record)
         {
-            StepStatus status = StatusOf(record);
-            if (session != null && status != null)
+            StepRun run = session == null ? null : RunOf(session, record);
+            if (run != null)
             {
-                session.Done[button] = status;
+                session.Runs[button] = run;
             }
         }
 
-        private static StepStatus StatusOf(RunRecord record)
+        // R366. The run as StepStates reads it: now, the one hash over the inputs the flow hashed, the scope of the pane at the end
+        // and every output the record lists with its SHA-256
+        private static StepRun RunOf(DocumentSession session, RunRecord record)
         {
             if (!record.StepDone)
             {
                 return null;
             }
-            return record.Issues.Count == 0 ? new StepStatus(StepKind.Done) : new StepStatus(StepKind.Issues, record.Issues.Count);
+            SettingsScope scope = session.Settings.Scope;
+            var copy = new SettingsScope { Kind = scope.Kind, Nbh = scope.Nbh, Plots = scope.Plots };
+            var hashes = record.InputHashes ?? new Dictionary<string, string>();
+            return new StepRun(DateTime.UtcNow, StepHash.Combine(hashes), copy, record.Issues.Count, record.Outputs);
         }
     }
 }

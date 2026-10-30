@@ -247,6 +247,7 @@ namespace SiteAdaptation.Common.Flow
                 string reason = null;
                 try
                 {
+                    context.Transaction = transaction;
                     issues.AddRange(body.Apply(context) ?? new string[0]);
                     string difference = body.ReadBack == null ? null : body.ReadBack(context);
                     if (difference != null)

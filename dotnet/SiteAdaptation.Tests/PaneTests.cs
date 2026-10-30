@@ -7,6 +7,7 @@ using System.Threading;
 using System.Windows.Threading;
 using SiteAdaptation.AddIn;
 using SiteAdaptation.AddIn.Pane;
+using SiteAdaptation.Common.Settings;
 using SiteAdaptation.Common;
 using Xunit;
 
@@ -24,14 +25,14 @@ namespace SiteAdaptation.Tests
         {
             PaneSettings full = SettingsFile.Read(@"{
                 ""formatVersion"": 1, ""configFile"": ""C:\\Job\\project.json"", ""rulesFile"": ""C:\\Job\\rules.json"", ""levelProfile"": ""native2022"",
-                ""inputs"": { ""baseplan"": { ""path"": ""C:\\Job\\a.dwg"", ""size"": 12, ""sha256"": ""ab"" }, ""prototypes"": { ""path"": ""C:\\Job\\p"" } },
+                ""inputs"": { ""baseplan"": { ""path"": ""C:\\Job\\a.dwg"", ""size"": 12, ""sha256"": ""0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"" }, ""prototypes"": { ""path"": ""C:\\Job\\p"" } },
                 ""scope"": { ""kind"": ""plots"", ""plots"": ""2290-2299, 2311"" }, ""dryRunFirst"": false, ""villaMode"": ""links"" }");
             Assert.Equal(1, full.FormatVersion);
             Assert.Equal(@"C:\Job\project.json", full.ConfigFile);
             Assert.Equal(@"C:\Job\rules.json", full.RulesFile);
             Assert.Equal("native2022", full.LevelProfile);
             Assert.Equal(12L, full.Inputs[InputKeys.Baseplan].Size);
-            Assert.Equal("ab", full.Inputs[InputKeys.Baseplan].Sha256);
+            Assert.Equal("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", full.Inputs[InputKeys.Baseplan].Sha256);
             Assert.Null(full.Inputs[InputKeys.Prototypes].Size);
             Assert.Equal(ScopeKinds.Plots, full.Scope.Kind);
             Assert.Equal("2290-2299, 2311", full.Scope.Plots);
@@ -42,17 +43,19 @@ namespace SiteAdaptation.Tests
             PaneSettings small = SettingsFile.Read("{\"formatVersion\": 1}");
             Assert.False(small.Chosen);
             Assert.True(small.DryRunFirst);
-            Assert.Equal(VillaModes.Masses, small.VillaMode);
+            // Item 6 of the 5c join: no villaMode in the settings leaves the default to config, which the pane reads (R404)
+            Assert.Null(small.VillaMode);
             Assert.Equal(ScopeKinds.Project, small.Scope.Kind);
             Assert.Empty(small.Inputs);
             Assert.True(new PaneSettings().DryRunFirst);
-            Assert.Equal(VillaModes.Masses, new PaneSettings().VillaMode);
+            Assert.Null(new PaneSettings().VillaMode);
         }
 
         [Fact]
         public void R372_the_settings_reader_refuses_a_later_version_with_both_named_and_a_value_it_does_not_know()
         {
-            Assert.Equal("the settings file is formatVersion 2, this add-in reads up to 1", Assert.Throws<InvalidDataException>(() => SettingsFile.Read("{\"formatVersion\": 2}")).Message);
+            // J1: the reader of R367 since 5c, its words
+            Assert.Equal("the settings JSON is formatVersion 2, this add-in reads formatVersion 1 and earlier", Assert.Throws<InvalidDataException>(() => SettingsFile.Read("{\"formatVersion\": 2}")).Message);
             Assert.Contains("no whole formatVersion", Assert.Throws<InvalidDataException>(() => SettingsFile.Read("{}")).Message);
             Assert.Contains("villaMode boxes", Assert.Throws<InvalidDataException>(() => SettingsFile.Read("{\"formatVersion\": 1, \"villaMode\": \"boxes\"}")).Message);
             Assert.Contains("an input roads", Assert.Throws<InvalidDataException>(() => SettingsFile.Read("{\"formatVersion\": 1, \"inputs\": {\"roads\": {}}}")).Message);
@@ -233,15 +236,15 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 4 }, Enumerable.Range(1, 9).Select(StepPlan.Needs));
             Assert.Throws<ArgumentOutOfRangeException>(() => StepPlan.Needs(0));
             Assert.Throws<ArgumentOutOfRangeException>(() => StepPlan.Needs(10));
-            Assert.Equal(9, StepPlan.Before5c(true).Count);
+            Assert.Equal(9, StepPlan.None(true).Count);
             string changes = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "docs", "design", "13-workflow-changes.md"));
             Match odd = Regex.Match(changes, @"Each step needs the one before, and (\d) [\w ]+ needs (\d) \w+\.");
             Assert.True(odd.Success);
             Assert.Equal(int.Parse(odd.Groups[2].Value), StepPlan.Needs(int.Parse(odd.Groups[1].Value)));
-            Assert.Equal(StepKind.NeedsSettings, StepPlan.Before5c(false)[0].Kind);
-            Assert.Equal(StepKind.Ready, StepPlan.Before5c(true)[0].Kind);
-            Assert.Equal(1, StepPlan.Next(StepPlan.Before5c(true)));
-            Assert.Equal(0, StepPlan.Next(StepPlan.Before5c(false)));
+            Assert.Equal(StepKind.NeedsSettings, StepPlan.None(false)[0].Kind);
+            Assert.Equal(StepKind.Ready, StepPlan.None(true)[0].Kind);
+            Assert.Equal(1, StepPlan.Next(StepPlan.None(true)));
+            Assert.Equal(0, StepPlan.Next(StepPlan.None(false)));
         }
 
         [Fact]
@@ -343,7 +346,7 @@ namespace SiteAdaptation.Tests
             model.LoadSettings(new PaneSettings { ConfigFile = Folder + "project.json" });
             model.PickInput(InputKeys.Baseplan, Folder + "a.dwg");
             probe.Finish();
-            InputFile input = model.Settings.Inputs[InputKeys.Baseplan];
+            SettingsInput input = model.Settings.Inputs[InputKeys.Baseplan];
             Assert.Equal(1048576L, input.Size);
             Assert.StartsWith("12345678", input.Sha256);
 
@@ -849,6 +852,12 @@ namespace SiteAdaptation.Tests
                 List<Action> now = Waiting.ToList();
                 Waiting.Clear();
                 now.ForEach(answer => answer());
+            }
+
+            // The villaModeDefault of config/project.json
+            public string VillaModeDefault(string configFile)
+            {
+                return VillaModes.Masses;
             }
 
             public IReadOnlyList<string> LevelProfiles(string rulesFile, out string fallback)

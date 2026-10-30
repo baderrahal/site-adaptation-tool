@@ -7,6 +7,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.PlaceVillas;
 
 namespace SiteAdaptation.AddIn.Pane
 {
@@ -57,6 +59,9 @@ namespace SiteAdaptation.AddIn.Pane
         void Hash(string path, bool folder, Action<string> done);
 
         IReadOnlyList<string> LevelProfiles(string rulesFile, out string fallback);
+
+        // R404. villaModeDefault of addin.lightMode of the config file, null when the file is not chosen, not read or holds none
+        string VillaModeDefault(string configFile);
     }
 
     // The dialogs of Browse, so a test picks its own paths. Each gives null on Cancel. title is null for a dialog with no title of
@@ -148,6 +153,22 @@ namespace SiteAdaptation.AddIn.Pane
             }
         }
 
+        public string VillaModeDefault(string configFile)
+        {
+            if (string.IsNullOrEmpty(configFile) || !File.Exists(configFile))
+            {
+                return null;
+            }
+            try
+            {
+                return LightModeConfig.Load(configFile).VillaModeDefault;
+            }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is InvalidDataException || error is Newtonsoft.Json.JsonException)
+            {
+                return null;
+            }
+        }
+
         public static string FileSha256(string path)
         {
             using (var sha = SHA256.Create())
@@ -157,18 +178,11 @@ namespace SiteAdaptation.AddIn.Pane
             }
         }
 
-        // One line per file, its path under the folder with forward slashes, its size and its last write time in UTC ticks, the
-        // lines in ordinal order, so the same files give the same hash on every machine
+        // R366. The folder hash of the flow, InputHash, so the hash of a run and the hash the pane holds now are one method. The
+        // pane of 5a had its own lines with forward slashes and the case kept, which no run hash ever equalled
         public static string FolderSha256(string folder)
         {
-            string root = Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
-            IEnumerable<string> lines = FolderFiles(folder)
-                .Select(file => file.FullName.Substring(root.Length).Replace(Path.DirectorySeparatorChar, '/') + "|" + file.Length.ToString(CultureInfo.InvariantCulture) + "|" + file.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture))
-                .OrderBy(line => line, StringComparer.Ordinal);
-            using (var sha = SHA256.Create())
-            {
-                return Hex(sha.ComputeHash(Encoding.UTF8.GetBytes(string.Join("\n", lines))));
-            }
+            return InputHash.OfFolder(folder);
         }
 
         private static IEnumerable<FileInfo> FolderFiles(string folder)

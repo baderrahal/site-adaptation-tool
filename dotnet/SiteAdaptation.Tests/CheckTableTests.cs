@@ -11,6 +11,7 @@ using Rectangle = System.Windows.Shapes.Rectangle;
 using SiteAdaptation.AddIn;
 using SiteAdaptation.AddIn.CheckTable;
 using SiteAdaptation.AddIn.Pane;
+using SiteAdaptation.Common.Settings;
 using SiteAdaptation.Common.CheckTable;
 using SiteAdaptation.UiShots;
 using Xunit;

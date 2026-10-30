@@ -157,12 +157,16 @@ namespace SiteAdaptation.Tests
 #if NETFRAMEWORK
         // The add-in is built for net48 only, so the pane lists are held on that runtime
         [Fact]
-        public void R367_the_lists_of_common_and_of_the_pane_name_the_same_values_until_5c_joins_them()
+        public void R367_the_pane_holds_the_lists_and_the_settings_of_common_since_5c_joined_them()
         {
-            // Review 1 of 4h-1: join J1 of 5c moves the pane onto SettingsJson, till then a value one side names the other refuses
-            Assert.Equal(SiteAdaptation.AddIn.Pane.ScopeKinds.All, ScopeKinds.All);
-            Assert.Equal(SiteAdaptation.AddIn.Pane.VillaModes.All, VillaModes.All);
-            Assert.Equal(SiteAdaptation.AddIn.Pane.InputKeys.All, InputNames.All);
+            // Join J1 of 5c: the pane has no lists of its own any more, so no value one side names can be refused by the other
+            Assert.Same(InputNames.All, SiteAdaptation.AddIn.Pane.InputKeys.All);
+            Assert.Null(typeof(SiteAdaptation.AddIn.Pane.PaneSettings).Assembly.GetType("SiteAdaptation.AddIn.Pane.ScopeKinds"));
+            Assert.Null(typeof(SiteAdaptation.AddIn.Pane.PaneSettings).Assembly.GetType("SiteAdaptation.AddIn.Pane.VillaModes"));
+            var project = new ProjectSettings();
+            var pane = new SiteAdaptation.AddIn.Pane.PaneSettings(project) { ConfigFile = "project.json" };
+            Assert.Equal("project.json", project.ConfigFile);
+            Assert.Equal(SettingsJson.Write(project), SettingsJson.Write(pane.Project));
         }
 #endif
 

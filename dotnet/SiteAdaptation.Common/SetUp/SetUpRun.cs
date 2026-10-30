@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.Settings;
 
 namespace SiteAdaptation.Common.SetUp
 {
@@ -28,6 +29,10 @@ namespace SiteAdaptation.Common.SetUp
         private readonly string settingsInput;
         private readonly Func<string, IReadOnlyList<object[]>> sheetRows;
 
+        private Func<ProjectSettings> settingsNow;
+        private SettingsStore store;
+        private Func<DateTime> clock;
+
         private JObject config;
         private JObject rules;
         private JObject position;
@@ -46,6 +51,16 @@ namespace SiteAdaptation.Common.SetUp
             this.readText = readText;
             this.settingsInput = settingsInput;
             this.sheetRows = sheetRows;
+        }
+
+        // J1, J19, R367. The real run writes the Settings entity with its record, the settings of the pane at the time of Apply and
+        // lastRuns 1. With no store set, as the test host gives none, each run lists SettingsNotWritten as before
+        public SetUpRun Recording(Func<ProjectSettings> settings, ISettingsEntity entity, Func<DateTime> utcNow)
+        {
+            settingsNow = settings ?? throw new ArgumentNullException(nameof(settings));
+            store = new SettingsStore(entity);
+            clock = utcNow ?? throw new ArgumentNullException(nameof(utcNow));
+            return this;
         }
 
         // The last view the run made, the one the dialog shows or the one after Apply
@@ -175,6 +190,7 @@ namespace SiteAdaptation.Common.SetUp
                 throw new InvalidOperationException(string.Join(". ", stops));
             }
             SetUpChanges changes = SetUpPlanner.Changes(now, target);
+            int changing = View == null ? 0 : View.WillSet.Count(row => row.Differs);
             if (changes.Units)
             {
                 document.SetUnits(target.Units);
@@ -212,9 +228,30 @@ namespace SiteAdaptation.Common.SetUp
                 return issues;
             }
             context.WriteText(SiteFile, SiteJson(after, context.RunId).ToString(Newtonsoft.Json.Formatting.Indented));
-            // R367 of 4h, the Settings entity with the record of the run, joins at 5c (J1 of steps/lane-b.md)
-            issues.Add(SetUpTexts.SettingsNotWritten);
+            if (store == null)
+            {
+                issues.Add(SetUpTexts.SettingsNotWritten);
+                return issues;
+            }
+            // Written last, so a read back that differs above writes no entity, and the roll back of the flow takes this write back
+            store.Record(settingsNow(), context.Button, LastRun(context, changing, issues), RunKind.Real, context.Transaction);
             return issues;
+        }
+
+        // R367. Button 1 always works on the whole project (R366). The mode follows the tick of the settings, since the flow runs the
+        // dry run first exactly when it is on (CHOSEN). Counts names the rows of the window that differed and were set
+        private ButtonRun LastRun(RunContext context, int changing, IReadOnlyList<string> issues)
+        {
+            ProjectSettings settings = settingsNow();
+            return new ButtonRun
+            {
+                Time = clock().ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture),
+                Mode = settings.DryRunFirst ? RunModes.AfterDryRun : RunModes.Direct,
+                Scope = new SettingsScope(),
+                InputHashes = new SortedDictionary<string, string>(context.InputHashes.ToDictionary(pair => pair.Key, pair => pair.Value), StringComparer.Ordinal),
+                Counts = new SortedDictionary<string, int>(StringComparer.Ordinal) { { "set", changing } },
+                Issues = issues.ToList(),
+            };
         }
 
         // R311. The site facts read back from the document, in the shape plan_from_book.py takes by --site
