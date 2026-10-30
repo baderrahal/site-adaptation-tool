@@ -7,7 +7,7 @@ Every question open before 2026-10-29 was closed in the answer pass of Round FOL
 ## Open
 
 Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
-Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror. Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row. Q167 Manual rule on the other sheets.
+Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror. Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row. Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job. Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit.
 
 Q148. Place villas before Floors and Levels in the run after 5c (Round FOLD, review of the design PR 102). The new order of docs/design/13-workflow-changes.md has each step wait for the one before, so 7 Place villas waits for 6 Levels, and 5d builds 5 Floors and ramps and 6 Levels. The phase changes of 28 Oct 2026 give 5c the Place villas button with light mode, and the Revit run after 5c places villas in Masses and in one NBH in Links. Round FOLD wrote that the test host runs 7 by Buttons.Run on the plan before 5 and 6 are built (CHOSEN, steps/01_next.md). It does not block 5b or 5c.
 - Recommended: keep it. The test host runs 7 from the plan in the run after 5c, which measures light mode and the base boundary as 28 Oct asks, and the pane keeps the order, so a user cannot run 7 before 6.
@@ -89,3 +89,23 @@ Q166. Manual rule of a check row (W5, R381, 5e). A Summary or Issues line names 
 Q167. Manual rule on the other sheets (W7, R381, 5e). W7 asks that every report line name its manual rule ID. R381 writes it on the Summary and Issues lines only, since Placed, Skipped, Overrides, Assumed, Rules applied and Settings name no step (CHOSEN by the developer of 5e).
 - Recommended: keep it on the Summary and Issues lines.
 - Other: add a column Manual rule to every sheet, by the step of each row.
+
+Q168. The villa type of Update from report (R402, 5f). An edit of the villa type of the sheet Placed is saved as an override field unit, which no build applies today, since a build takes the unit from typologyRev9 of plots.csv alone (RAN, plan_rules.load_overrides took 8 of 9 entries of the real try, the unit one left out).
+- Recommended: keep saving it as an override field unit, and a build by keyRules applies it in Phase 6.
+- Other: refuse a change of the villa type in the window.
+
+Q169. Key of an update entry with none of its job (R402, 5f). An entry of Update from report takes the key and model of an entry of its source on the plot. A plot with no entry of its job has neither, so the change is listed as not applied with why (CHOSEN by the developer of 5f). All 9 plots of the real try had one.
+- Recommended: take the answer key whose join holds the plot.
+- Other: keep it listed as not applied.
+
+Q170. updateChecks of manualRules (R402, W3, 5f). A change is held against a manual rule only through a key updateChecks of its entry of manualRules, which Lane B 5c writes (CHOSEN by the developer of 5f).
+- Recommended: M04 oneFflPerPiece, M08 stepsAtMost and stepHeights, M09 riser, M10 oneStepUnits.
+- Other: name other checks per manual rule.
+
+Q171. Which breaks untick a change (R402, 5f). 13-workflow-changes.md unticks a change that breaks a manual rule. R402 also checks the rules of the profile, such as stepsRule and fflOverEntry.
+- Recommended: only a manual rule break unticks, as the mock says. A break of a profile rule stays ticked, with the rule named.
+- Other: a break of any rule unticks the change.
+
+Q172. heightM gap with an El @ Entry edit (R402, ties to Q162, 5f). An FFL edit is saved as heightM, a gap to levelRule.ffl of the plan, and an El @ Entry edit as entryM, a gap to levelRule.entry. When both are edited in one piece the FFL of the rebuilt plan may move twice.
+- Recommended: keep the gap to levelRule.ffl of the plan and measure the effect on the rebuilt plan in 6a.
+- Other: save an FFL edit as the gap to the edited El @ Entry.
