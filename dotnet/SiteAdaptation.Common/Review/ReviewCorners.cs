@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SiteAdaptation.Common.Review
 {
-    // R402. Corner 1 of a plot is the left front corner seen from the road: standing on the road in front of the front edge and facing
+    // R406. Corner 1 of a plot is the left front corner seen from the road: standing on the road in front of the front edge and facing
     // the plot, the end of the front edge that lies on the left. The corners then follow the ring from corner 1 along the front edge
     // to corner 2, so the ring runs on the way it started
     public static class ReviewCorners

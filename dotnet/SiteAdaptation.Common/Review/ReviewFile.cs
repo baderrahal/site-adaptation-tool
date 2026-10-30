@@ -7,7 +7,7 @@ using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common.Review
 {
-    // R402. review_<NBH>.json in the work folder, the team checks of one NBH (CHOSEN by the main session). One entry per plot the team
+    // R406. review_<NBH>.json in the work folder, the team checks of one NBH (CHOSEN by the main session). One entry per plot the team
     // marked, with the plot, the check OK or Wrong, the note, the run id of the read it checked and the hash of the plot table of that
     // read. A plot not checked has no entry. It is written by a temporary name and a rename as every work file is (R347). 4 Check
     // lists the plots marked Wrong by WrongPlots (wave 2)

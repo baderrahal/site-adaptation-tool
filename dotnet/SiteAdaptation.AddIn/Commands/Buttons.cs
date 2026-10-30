@@ -74,6 +74,16 @@ namespace SiteAdaptation.AddIn
                 : button.Number == 3 ? Bodies.Of(button, null, null, reviewData)
                 : button.Number == 4 && document != null ? Bodies.Of(button, null, null, null, checkTable)
                 : button.Number == 7 && document != null ? Bodies.Of(button, null, null, null, null, placeVillas) : Bodies.Of(button, () => SetUpSiteBody.For(application));
+            // 5f. Update from report has no number, so Bodies.Of leaves it not built, its body is made here on the active document
+            if (document != null && button == RibbonLayout.ButtonOf("UpdateFromReportCommand") && UpdateFromReportBody.Dialog != null)
+            {
+                body = UpdateFromReportBody.For(application);
+            }
+            // 5e. Button 9 is made here on the active document as Update from report is, so Bodies.Of, which the tests call, names no Revit type
+            if (document != null && button.Number == 9)
+            {
+                body = ReportBody.For(application);
+            }
             RunOutcome outcome = flow.Run(button.Number, button.Label, body, document == null ? null : document.PathName, later => Ended(application, document, button.Number, later));
             // R367. The pane takes the settings again from the entity button 1 wrote, only after its commit
             if (button.Number == 1 && outcome.End == RunEnd.Committed && document != null)
@@ -141,7 +151,7 @@ namespace SiteAdaptation.AddIn
             return Of(button, setUp, readData, null);
         }
 
-        // R402. reviewData makes the body of button 3 with the main window of Revit as owner, built once App sets the window and the load
+        // R406. reviewData makes the body of button 3 with the main window of Revit as owner, built once App sets the window and the load
         public static ButtonBody Of(RibbonButtonSpec button, Func<ButtonBody> setUp, Func<ButtonBody> readData, Func<ButtonBody> reviewData)
         {
             return Of(button, setUp, readData, reviewData, null);

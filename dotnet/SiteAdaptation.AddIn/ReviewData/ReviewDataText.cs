@@ -1,6 +1,6 @@
 namespace SiteAdaptation.AddIn.ReviewData
 {
-    // R402, docs/design/13-workflow-changes.md Review data (5c). Every text the window shows. The text test holds each against
+    // R406, docs/design/13-workflow-changes.md Review data (5c). Every text the window shows. The text test holds each against
     // docs/design/14-ui-labels.md word for word, a value written <n> as the list writes it and filled by TextTemplate
     public static class ReviewDataText
     {

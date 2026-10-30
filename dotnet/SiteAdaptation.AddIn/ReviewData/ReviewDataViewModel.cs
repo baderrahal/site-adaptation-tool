@@ -8,7 +8,7 @@ using SiteAdaptation.Common.Review;
 
 namespace SiteAdaptation.AddIn.ReviewData
 {
-    // R402, docs/design/13-workflow-changes.md Review data (5c). What the window binds to. It holds no Revit type and no rule, the state
+    // R406, docs/design/13-workflow-changes.md Review data (5c). What the window binds to. It holds no Revit type and no rule, the state
     // of Common is shown as it is. A value only the plan of 4 Check or the site file gives reads "not read yet" until they exist
     public sealed class ReviewDataViewModel : INotifyPropertyChanged
     {

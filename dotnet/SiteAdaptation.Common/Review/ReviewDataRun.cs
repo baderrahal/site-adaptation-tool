@@ -5,7 +5,7 @@ using SiteAdaptation.Common.Flow;
 
 namespace SiteAdaptation.Common.Review
 {
-    // R402. What the window shows and holds
+    // R406. What the window shows and holds
     public sealed class ReviewView
     {
         public string Nbh { get; set; }
@@ -16,7 +16,7 @@ namespace SiteAdaptation.Common.Review
         public ReviewState State { get; set; }
     }
 
-    // R402. The buttons of the window that reach outside it. Save writes review_<NBH>.json and gives its path. Zoom is set by the Revit
+    // R406. The buttons of the window that reach outside it. Save writes review_<NBH>.json and gives its path. Zoom is set by the Revit
     // side, Common holds no Revit type. Export is null while no writer of the xlsx is reachable from the add-in, as R350 has the worker
     // write them
     public sealed class ReviewCallbacks
@@ -62,7 +62,7 @@ namespace SiteAdaptation.Common.Review
         ReviewAnswer Show(ReviewView view, ReviewCallbacks callbacks);
     }
 
-    // R402, button 3 Review data. Preview reads the rows, Confirm opens the window and is true when the team saved a review, Apply sets
+    // R406, button 3 Review data. Preview reads the rows, Confirm opens the window and is true when the team saved a review, Apply sets
     // nothing in the model. load gives the rows, the checks kept and the hash of the plot table of the read, from the files of button 2
     public sealed class ReviewDataRun
     {

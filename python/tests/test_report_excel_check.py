@@ -86,9 +86,10 @@ RULES = {"levelProfiles": {"parsons2024Rev6": {"keyRules": {"note": "made up", "
 # The step summary of the build, 103 with no unit, 150 of plots.csv in 012 outside the scope as a key cover holds part of an NBH
 SUMMARY = {"plots": {number: {"written": {"unit": unit, "written": unit is not None}} for number, unit in
                      (("101", "VD4"), ("102", "DP1"), ("103", None), ("201", "VD1"), ("999", "VD1"))}}
+# R381: the steps of the order of Bader's changes of 28 Oct 2026, the link parameters under 7 Place villas, as config/project.json holds them
 STEP_OF_FIELD = {"rampType": 5, "rampFrontM": 5, "genericFloor": 5, "rampOutline": 5, "yardOutline": 5, "rampFrontFallM": 5, "entryM": 6, "heightM": 6, "steps": 6,
-                 "parameter RRE_ZZ_SP_Prototype-FFL": 6, "parameter RRE_ZZ_SP_RVT-Name": 6}
-CONFIG = {"profile": "rules/r.json", "addin": {"report": {"stepOfField": STEP_OF_FIELD, "defaultStep": 4, "wallDecisions": ["wallBase", "wallTop", "wallLine", "frontOpen"]}},
+                 "parameter RRE_ZZ_SP_Prototype-FFL": 7, "parameter RRE_ZZ_SP_RVT-Name": 7}
+CONFIG = {"profile": "rules/r.json", "addin": {"report": {"stepOfField": STEP_OF_FIELD, "defaultStep": 7, "wallDecisions": ["wallBase", "wallTop", "wallLine", "frontOpen"]}},
           "valueStatus": {"assumed": ["RECOMMENDED", "CHOSEN by Code", "UNKNOWN", "MEASURED weak"], "worstFirst": ["UNKNOWN", "CHOSEN by Code", "RECOMMENDED", "MEASURED weak"]},
           }
 PLOTS = "locationPlanNumber,typologyRev9,zone,nbhId\n101,VD4,Zone 2,012\n102,DP1,Zone 2,012\n103,,Zone 2,012\n150,,Zone 2,012\n201,VD1,Zone 3,013\n"
@@ -96,17 +97,24 @@ FILL = PatternFill(fill_type="solid", fgColor="FFDDEBF7")
 THIN = Side(style="thin")
 
 
-@pytest.fixture
-def made(tmp_path):
+def build(tmp_path, rules=RULES, summary=SUMMARY, revit=None):
     paths = {}
-    for name, content in (("plan", PLAN), ("overrides", OVERRIDES), ("checkRows", CHECK_ROWS), ("summary", SUMMARY), ("rules", RULES), ("config", CONFIG)):
+    for name, content in (("plan", PLAN), ("overrides", OVERRIDES), ("checkRows", CHECK_ROWS), ("summary", summary), ("rules", rules), ("config", CONFIG)):
         paths[name] = tmp_path / (name + ".json")
         paths[name].write_text(json.dumps(content), encoding="utf-8")
     paths["plots"] = tmp_path / "plots.csv"
     paths["plots"].write_text(PLOTS, encoding="utf-8")
+    if revit is not None:
+        paths["revit"] = tmp_path / "revit_counts.json"
+        paths["revit"].write_text(json.dumps(revit), encoding="utf-8")
     mock = check.mock_labels()
-    inputs = check.load_inputs(paths["plan"], paths["overrides"], paths["checkRows"], paths["summary"], paths["plots"], paths["rules"], paths["config"])
+    inputs = check.load_inputs(paths["plan"], paths["overrides"], paths["checkRows"], paths["summary"], paths["plots"], paths["rules"], paths["config"], paths.get("revit"))
     return paths, mock, check.expected(inputs, "parsons2024Rev6", mock)
+
+
+@pytest.fixture
+def made(tmp_path):
+    return build(tmp_path)
 
 
 def plain(value):
@@ -120,21 +128,21 @@ def write_book(path, want, mock, settings):
     summary.title = "Summary"
     summary.append([want["topLine"]])
     summary["A1"].font = Font(bold=True)
-    summary.merge_cells("A1:E1")
+    summary.merge_cells("A1:F1")
     summary.append([])
     summary.append(mock["stepColumns"])
     for line in want["steps"]:
         summary.append(line)
-    for start, name, header, lines in ((12, mock["countsBox"], mock["countColumns"], want["counts"]), (18, mock["rulesBox"], list(check.RULE_COLUMNS), want["box"])):
+    for start, name, header, lines in ((13, mock["countsBox"], mock["countColumns"], want["counts"]), (19, mock["rulesBox"], list(check.RULE_COLUMNS), want["box"])):
         summary.cell(row=start, column=1, value=name).font = Font(bold=True)
         for offset, values in enumerate([header] + lines):
             for column, value in enumerate(values, 1):
                 target = summary.cell(row=start + 1 + offset, column=column, value=value)
                 target.border = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
-                if start == 18 and column == 3 and offset > 0 and check.is_number(value):
+                if start == 19 and column == 3 and offset > 0 and check.is_number(value):
                     target.number_format = check.SHARE_FORMAT
     headers = {"Placed": mock["placed"], "Skipped": mock["skipped"], "Overrides": list(check.OVERRIDE_COLUMNS), "Assumed": mock["assumed"],
-               "Issues": list(check.ISSUE_COLUMNS), "Rules": list(check.RULE_SHEET_COLUMNS)}
+               "Issues": mock["issueColumns"], "Rules": list(check.RULE_SHEET_COLUMNS)}
     for name in mock["sheets"][1:-1]:
         sheet = book.create_sheet(name)
         sheet.append(headers[name])
@@ -159,10 +167,16 @@ def test_r365_the_plan_side_works_out_the_counts_the_c_sharp_test_asserts(made):
     assert sorted(want["books"]) == ["012", "013"]
     assert want["gaps"]["plots with no nbhId"] == 1
     assert book["topLine"] == "[file name].rvt, NBH 012, 3 plots, parsons2024Rev6, run time [n] min"
-    # Review 1 of PR 96: rampFrontM and rampFrontFallM under 5 and RVT-Name under 6 as 7.6 lists them, 2 Read data over the scope alone, 150
-    # left out, and the weak wallTop the Issues of 7 Walls
-    assert book["steps"] == [["1 Set up site"] + ["not run yet"] * 4, ["2 Read data", 2, 1, 0, 0], ["3 Check", 3, 0, 6, 6], ["4 Place villas", 2, 1, 1, 1],
-                             ["5 Floors and ramps", 4, 4, 1, 1], ["6 Levels", 2, 1, 2, 0], ["7 Walls", 1, 0, 1, 1]]
+    # R381 moved this from the buttons 1 to 7 of the mock of 25 Oct to the steps 1 to 8 of the new order: rampFrontM and rampFrontFallM under 5,
+    # entryM under 6, CASE and RVT-Name under 7 Place villas, 2 Read data over the faces of the scope, 150 left out as the scope is no whole
+    # project, and the weak wallTop the Issues of 8 Walls, each line with the words of no manual rule block
+    none = "no manual rule block"
+    assert book["steps"] == [["1 Set up site"] + ["not run yet"] * 4 + [none], ["2 Read data", 2, 1, 0, 0, none], ["3 Review data"] + ["not run yet"] * 4 + [none],
+                             ["4 Check", 3, 0, 6, 6, none], ["5 Floors and ramps", 4, 4, 1, 1, none], ["6 Levels", 2, 1, 1, 0, none],
+                             ["7 Place villas", 2, 1, 2, 1, none], ["8 Walls", 1, 0, 1, 1, none]]
+    assert book["sheets"]["Issues"][0] == ["4 Check", "101", "Level", "entryM", "override", "Past", None, none]
+    assert book["sheets"]["Issues"][-1] == ["8 Walls", None, "Weak rule", "wallTop", KEY + "wallTop.rule", None, "higherFflPlusRev6 share 0.35, weak", none]
+    assert len(book["sheets"]["Issues"]) == 7
     assert book["counts"] == [["Links", "not placed yet", 2], ["Floors", "not placed yet", 4], ["Levels", "not placed yet", "no run of button 6 yet"]]
     assert book["box"] == [["hand villa", "blockMirrorRoadSide", 0.96, "strong", "2 plots"], ["entry", "roadLevel", 0.088, "weak", "1 plots"],
                            ["wallBase", "yardLevelOfTheHigherPlot", 0.98, "strong", "1 plots"], ["wallTop", "higherFflPlusRev6", 0.35, "weak", "0 plots"], ["ssl", "fflPlusGroundSsl", "not measured", "not measured", "0 plots"]]
@@ -192,7 +206,9 @@ def test_r365_a_workbook_in_the_layout_of_the_worker_holds_with_no_mismatch(made
 
 @pytest.mark.parametrize("fault, caught", [
     (lambda book: book["Summary"].cell(row=6, column=5, value=5), "Summary row 6 Issues"),
-    (lambda book: book["Summary"].cell(row=20, column=5, value="3 plots"), "Rules applied row 20 Plots"),
+    (lambda book: book["Summary"].cell(row=21, column=5, value="3 plots"), "Rules applied row 21 Plots"),
+    (lambda book: book["Summary"].cell(row=7, column=6, value="M01"), "Summary row 7 Manual rule"),
+    (lambda book: book["Issues"].cell(row=8, column=8, value="M11"), "Issues row 8 Manual rule"),
     (lambda book: setattr(book["Summary"].cell(row=14, column=1), "border", Border()), "Summary box borders"),
     (lambda book: setattr(book["Placed"].cell(row=1, column=5), "fill", FILL), "fills on"),
     (lambda book: book["Placed"].cell(row=3, column=4, value=False), "Placed row 3 Mirror"),
@@ -218,16 +234,55 @@ def test_r365_the_labels_come_from_the_mock_files_and_their_additions_of_7_7(mad
     assert mock["sheets"] == ["Summary", "Placed", "Skipped", "Overrides", "Assumed", "Issues", "Rules", "Settings"]
     assert mock["placed"] == ["Plot", "Kind", "Type", "Mirror", "Element id"]
     assert mock["editable"] == ["Type", "Mirror"]
-    assert mock["steps"][-1] == "7 Walls" and len(mock["steps"]) == 7
+    # R381: the steps 1 to 8 of the order of docs/design/13-workflow-changes.md, 9 Report the step of the report
+    assert mock["steps"] == ["1 Set up site", "2 Read data", "3 Review data", "4 Check", "5 Floors and ramps", "6 Levels", "7 Place villas", "8 Walls"]
+    assert mock["reportStep"] == "9 Report"
+    assert mock["stepColumns"][-1] == "Manual rule"
 
 
 def test_r365_a_placed_sheet_short_of_one_floor_row_gives_the_mismatch_as_an_issue_row(made):
     paths, mock, want = made
     written = [plot for plot in PLAN["plots"] if plot["plot"] in ("101", "102")]
     placed = [row for row in want["books"]["012"]["sheets"]["Placed"]][:-1]
-    rows, issues = check.counts_box(placed, written, mock)
+    rows, issues = check.counts_box(placed, written, mock, None, "M15")
     assert rows[1] == ["Floors", "not placed yet", 3]
-    assert issues == [["8 Report", None, "Counts", "Floors", None, None, "the plan holds 4, Revit not placed yet, Excel 3 (R365)"]]
+    assert issues == [["9 Report", None, "Counts", "Floors", None, None, "the plan holds 4, Revit not placed yet, Excel 3 (R365)", "M15"]]
+
+
+def test_r381_read_data_counts_the_faces_of_plots_csv_in_the_scope_with_a_unit_as_done(tmp_path):
+    paths, mock, want = build(tmp_path, summary=dict(SUMMARY, scope="project"))
+    assert want["books"]["012"]["steps"][1] == ["2 Read data", 2, 2, 0, 0, "no manual rule block"]
+
+
+MANUAL = {"manual": {"name": "made up"},
+          "rules": [{"id": "M01", "text": "made up", "group": "Plots and clusters", "manualRef": "2.1", "checkedIn": ["4 Check", "7 Place villas"]},
+                    {"id": "M04", "text": "made up", "group": "Levels and steps", "manualRef": "2.2.A", "checkedIn": ["6 Levels", "8 Walls"]},
+                    {"id": "M02", "text": "made up", "group": "Plots and clusters", "manualRef": "2.1.E", "checkedIn": ["4 Check"]},
+                    {"id": "M15", "text": "made up", "group": "Structure", "manualRef": "3.2.A", "checkedIn": ["9 Report"]}]}
+
+
+def test_r381_every_summary_and_issues_line_names_the_manual_rule_ids_whose_steps_take_its_step(tmp_path):
+    paths, mock, want = build(tmp_path, rules=dict(RULES, manualRules=MANUAL))
+    book = want["books"]["012"]
+    assert [line[-1] for line in book["steps"]] == ["no manual rule", "no manual rule", "no manual rule", "M01, M02", "no manual rule", "M04", "M01", "M04"]
+    assert book["sheets"]["Issues"][0][-1] == "M01, M02" and book["sheets"]["Issues"][-1][-1] == "M04"
+    with pytest.raises(ValueError, match="no list rules each with a text id"):
+        build(tmp_path, rules=dict(RULES, manualRules={"rules": [{"id": "M01", "text": "made up"}]}))
+
+
+def test_r381_the_revit_counts_fill_the_revit_column_and_a_mismatch_of_any_two_is_an_issue(tmp_path):
+    floors = lambda generic, yard, ramp: {"generic": generic, "yard": yard, "ramp": ramp}
+    revit = {"format": "siteAdaptationRevitCounts", "formatVersion": 1, "levelRun": "r6",
+             "plots": {"101": {"links": 1, "floors": floors(1, 0, 1), "level": True}, "102": {"links": 1, "floors": floors(1, 0, 0), "level": False},
+                       "201": {"links": 1, "floors": floors(1, 0, 0), "level": True}}}
+    paths, mock, want = build(tmp_path, revit=revit)
+    book = want["books"]["012"]
+    assert book["counts"] == [["Links", 2, 2], ["Floors", 3, 4], ["Levels", 1, "no run of button 6 yet"]]
+    assert book["sheets"]["Issues"][-2:] == [["9 Report", None, "Counts", "Floors", None, None, "the plan holds 4, Revit 3, Excel 4 (R381)", "no manual rule block"],
+                                             ["9 Report", None, "Counts", "Levels", None, None, "the plan holds 2, Revit 1, Excel no run of button 6 yet (R381)", "no manual rule block"]]
+    assert want["books"]["013"]["counts"] == [["Links", 1, 1], ["Floors", 1, 1], ["Levels", 1, "no run of button 6 yet"]]
+    with pytest.raises(ValueError, match="no file of the counts"):
+        build(tmp_path, revit={"format": "another"})
 
 
 def test_r365_settings_with_no_block_addin_report_are_refused(made, tmp_path):

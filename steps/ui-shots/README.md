@@ -13,10 +13,11 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | review-data.png | The Review data window of button 3, NBH 012 with 5 made up plots, the first three with a plan of button 4 and corners, two checked OK and one Wrong, plot 31 selected, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | rules.png | The Site Adaptation Rules window of the ribbon button of that name, the 15 rules of the block manualRules of the rules profile, rule M06 selected, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | check-table.png | The check table window of button 4, NBH 012 with 5 made up plots and 8 rows of every kind, the first row selected, Save overrides on, the content of the window at 1280 wide with no title bar of Windows | Draft |
+| update-from-report.png | The Update from report window of 5f, the level Excel and the report Excel of NBH 012 picked, 4 changes and 1 cell not editable, one change that breaks manual rule M08 unticked, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | revit-ribbon.png | The Site Adaptation tab in Revit 2024, cut from the window by PrintWindow in Revit run 3 of 5a, 29 Oct 2026 | Taken in Revit, for Bader's check |
 | revit-pane.png | The live pane page in Revit run 3 of 5a by RenderTargetBitmap at 96 DPI, first open state, the detached document of the run active | Taken in Revit, for Bader's check |
 
-Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md) were rendered into all three in Lane B 5a PR 8, his UI answers Q135, Q139 and Q140 of 29 Oct 2026 in Lane B 5a run 3 (fixed items 12 to 14). Set up site is built in 5b (W1 of steps/lane-b.md), its PNG is setup-site.png and its lists are at the end of this file. Review data is built in 5c (W5), its PNG is review-data.png and its list is at the end of this file. Site Adaptation Rules is built in 5c (W3), its PNG is rules.png and its list is at the end of this file. The check table is built in 5c (W11), its PNG is check-table.png and its notes are at the end of this file. Update from report comes in 5f (W8), so it has no PNG yet.
+Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md) were rendered into all three in Lane B 5a PR 8, his UI answers Q135, Q139 and Q140 of 29 Oct 2026 in Lane B 5a run 3 (fixed items 12 to 14). Set up site is built in 5b (W1 of steps/lane-b.md), its PNG is setup-site.png and its lists are at the end of this file. Review data is built in 5c (W5), its PNG is review-data.png and its list is at the end of this file. Site Adaptation Rules is built in 5c (W3), its PNG is rules.png and its list is at the end of this file. The check table is built in 5c (W11), its PNG is check-table.png and its notes are at the end of this file. Update from report is built in 5f (W8), its PNG is update-from-report.png and its differences are at the end of this file.
 
 ## Render them again
 
@@ -206,7 +207,7 @@ Sizes
 
 ## Review data, review-data.png against 13-workflow-changes.md
 
-The window of button 3, built in Lane B 5c, rule R402. Its texts, columns, chips and side box are those of Review data (5c) in docs/design/13-workflow-changes.md, held by test R402_the_texts_of_the_window_are_those_of_the_workflow_changes_word_for_word. Its look is 7.3 and 7.4 of docs/design/12-ui-spec.md: the band on SA.Band with the title 20 SemiBold, the How to use line on SA.Guide, the chips with the active one filled SA.Band, the selected row on SA.Selected with a 3 px SA.Accent mark, the side box 340 wide on SA.Panel.
+The window of button 3, built in Lane B 5c, rule R406. Its texts, columns, chips and side box are those of Review data (5c) in docs/design/13-workflow-changes.md, held by test R406_the_texts_of_the_window_are_those_of_the_workflow_changes_word_for_word. Its look is 7.3 and 7.4 of docs/design/12-ui-spec.md: the band on SA.Band with the title 20 SemiBold, the How to use line on SA.Guide, the chips with the active one filled SA.Band, the selected row on SA.Selected with a 3 px SA.Accent mark, the side box 340 wide on SA.Panel.
 
 ### Sample data
 
@@ -257,3 +258,8 @@ The block manualRules of rules/roshn-makkah.json as it is in the repo, texts onl
 - The one plain line on the rule with its share and strong or weak is not shown, the rows carry no share yet. The line Why shows the why of the row instead (CHOSEN).
 - The chip Assumed has the dashed amber border of 7.4, it lists no row (item 8 of 7.7).
 - The picture is a render at 100 percent of made up plots 31 to 35, the units VL4, DT1, VL6, C10 and TH2, no coordinate and no level.
+## Update from report, differences Code knows (5f)
+
+- 12-ui-spec.md gives a new window a How to use line on SA.Guide, a side box 340 wide on SA.Panel and a selected row with the 3 px SA.Accent mark. 13-workflow-changes.md, part Update from report, gives no text for any of the three, so the window has none of them (Q179).
+- Rule check shows the plain name of each check with its rule id as tooltip (12-ui-spec.md line 11), the 9 names CHOSEN in UpdateText.RuleNames (Q176). A manual rule shows its id such as M08 until 5c gives it a plain name (Q177).
+- The chips show their count after the name, such as FFL 1, as the tiles do, where 13-workflow-changes.md gives the names only (CHOSEN).

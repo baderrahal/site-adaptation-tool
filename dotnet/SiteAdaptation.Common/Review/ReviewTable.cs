@@ -6,7 +6,7 @@ using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common.Review
 {
-    // R402. The rows of the Review data table from the plot table of button 2 (R352), one per baseplan face whose neighbourhood is the
+    // R406. The rows of the Review data table from the plot table of button 2 (R352), one per baseplan face whose neighbourhood is the
     // NBH. plotTable is the plot table as a JSON object keyed by the baseplan label. plan holds what the build of button 4 knows per
     // baseplan label and rings the baseplan ring of each plot per label, both null before that, and site is site.json of button 1
     // (SetUpRun.SiteJson). Plot No is the location plan number, the plot of R208, and the official number when the face holds none

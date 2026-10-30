@@ -4,7 +4,7 @@ using SiteAdaptation.Common.Review;
 
 namespace SiteAdaptation.AddIn.ReviewData
 {
-    // R402. The body of button 3, ReviewDataRun of Common with the window and the zoom of the Revit side. Like SetUpSiteBody it names no
+    // R406. The body of button 3, ReviewDataRun of Common with the window and the zoom of the Revit side. Like SetUpSiteBody it names no
     // Revit type, so the tests of the body load none. App sets Dialog at start, the Revit side sets Zoom, and Load gives the rows from
     // the files of button 2. While one of them is null button 3 is not built (Bodies.Of in Buttons.cs wires it)
     public static class ReviewDataBody

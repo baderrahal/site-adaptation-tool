@@ -4,7 +4,7 @@ using SiteAdaptation.Common.Review;
 
 namespace SiteAdaptation.AddIn.ReviewData
 {
-    // R402. The window of button 3 in Revit: modal, its owner the Revit main window. Show returns when the window is closed, with
+    // R406. The window of button 3 in Revit: modal, its owner the Revit main window. Show returns when the window is closed, with
     // Saved true when Save review ran in it
     public sealed class ReviewDataDialog : IReviewDialog
     {

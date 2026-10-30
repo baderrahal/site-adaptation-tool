@@ -3,7 +3,7 @@ using SiteAdaptation.Common.Review;
 
 namespace SiteAdaptation.AddIn.ReviewData
 {
-    // R402. What the buttons of the window do, apart from the window, so a test drives them with no click. A callback that throws
+    // R406. What the buttons of the window do, apart from the window, so a test drives them with no click. A callback that throws
     // leaves the window open with its reason shown
     public sealed class ReviewDataSession
     {

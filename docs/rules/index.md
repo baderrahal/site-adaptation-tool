@@ -336,7 +336,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R367 The settings JSON kept in the project.
 - R368 Element tags and the second run.
 - R369 The second method of Phase 4.
-- R375 Button 2 Read data.
+- R381 Button 9 Report.
 - R385 One rounding rule in Python and C#.
 - R386 Use and skip in the override list.
 - R387 The control point fit as a check of the schedule fit.
@@ -351,15 +351,17 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 
 - R400 Record sizes.
 - R401 The status of each plotted value.
-- R402 Review data, button 3.
+- R402 Update from report.
 - R403 Site Adaptation Rules, the manual rules.
 - R404 Light mode, the villa as a solid.
 - R377 Button 7 Place villas, the 5c part.
 - R405 The design values in config.
+- R406 Review data, button 3.
 
 ## 09-addin-r376-up.md
 
 - R376 Button 4 Check, the check table, Use and Save overrides.
+- R375 Button 2 Read data.
 - R370 Install script, manifest, one Common.
 - R371 The ribbon.
 - R372 The pane and the document.

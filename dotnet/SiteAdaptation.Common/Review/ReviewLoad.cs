@@ -9,7 +9,7 @@ using SiteAdaptation.Common.SetUp;
 
 namespace SiteAdaptation.Common.Review
 {
-    // R402. The input of button 3 from the files of the work folder: the read of button 2, its plot table and the SHA-256 of that table,
+    // R406. The input of button 3 from the files of the work folder: the read of button 2, its plot table and the SHA-256 of that table,
     // the checks of review_<NBH>.json and site.json of button 1 for the model coordinates of the corners. The NBH is the one of the
     // scope. What the build of button 4 knows of a plot is not read here, so cluster, front edge and corners stay empty until then
     public static class ReviewLoad

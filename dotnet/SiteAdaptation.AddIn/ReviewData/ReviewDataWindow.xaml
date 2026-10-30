@@ -5,7 +5,7 @@
         Title="{Binding Title}" Width="{DynamicResource SA.Size.DialogWidth}" MaxHeight="{DynamicResource SA.Size.DialogMaxHeight}"
         SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
         Background="{DynamicResource SA.Surface}">
-  <!-- R402, docs/design/12-ui-spec.md New windows of 28 Oct 2026 top to bottom. Every colour, size and font by Theme.xaml, every text
+  <!-- R406, docs/design/12-ui-spec.md New windows of 28 Oct 2026 top to bottom. Every colour, size and font by Theme.xaml, every text
        in docs/design/14-ui-labels.md under Review data -->
   <Window.Resources>
     <ResourceDictionary>

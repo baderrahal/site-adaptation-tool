@@ -33,6 +33,7 @@
     <Compile Remove="ReviewDataTests.cs" />
     <Compile Remove="RulesWindowTests.cs" />
     <Compile Remove="CheckTableTests.cs" />
+    <Compile Remove="UpdateFromReportWindowTests.cs" />
     <Compile Remove="AddinRunAddInTests.cs" />
   </ItemGroup>
 </Project>

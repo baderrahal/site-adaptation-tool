@@ -14,7 +14,7 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // R402. The window of button 3 Review data, its view model and the session that drives its buttons with no click. WPF, so net48 only
+    // R406. The window of button 3 Review data, its view model and the session that drives its buttons with no click. WPF, so net48 only
     public sealed class ReviewDataTests
     {
         private static string Part()
@@ -25,7 +25,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_the_texts_of_the_window_are_those_of_the_workflow_changes_word_for_word()
+        public void R406_the_texts_of_the_window_are_those_of_the_workflow_changes_word_for_word()
         {
             string part = Part();
 
@@ -45,7 +45,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_the_view_model_shows_the_title_the_sources_the_count_and_not_read_yet_for_what_only_button_4_gives()
+        public void R406_the_view_model_shows_the_title_the_sources_the_count_and_not_read_yet_for_what_only_button_4_gives()
         {
             var model = new ReviewDataViewModel(Shots.SampleReviewView(false));
 
@@ -69,7 +69,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_the_side_box_shows_the_selected_plot_its_sources_and_its_corners_from_corner_1_with_the_site_file_coordinates()
+        public void R406_the_side_box_shows_the_selected_plot_its_sources_and_its_corners_from_corner_1_with_the_site_file_coordinates()
         {
             var model = new ReviewDataViewModel(Shots.SampleReviewView(true));
             Assert.True(model.NoneSelected);
@@ -98,7 +98,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_the_session_marks_a_plot_ok_or_wrong_with_its_note_counts_it_and_saves_what_the_state_holds()
+        public void R406_the_session_marks_a_plot_ok_or_wrong_with_its_note_counts_it_and_saves_what_the_state_holds()
         {
             ReviewView view = Shots.SampleReviewView(true);
             IReadOnlyList<ReviewCheck> saved = null;
@@ -126,7 +126,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_a_save_that_throws_leaves_the_window_open_with_its_reason_and_zoom_and_export_say_when_they_are_not_built()
+        public void R406_a_save_that_throws_leaves_the_window_open_with_its_reason_and_zoom_and_export_say_when_they_are_not_built()
         {
             var failing = new ReviewDataSession(Shots.SampleReviewView(true), new ReviewCallbacks { Save = checks => throw new IOException("the work folder is read only") });
             failing.Save();
@@ -153,7 +153,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_the_chips_and_the_find_box_pick_the_rows_and_the_selected_plot_stays_only_while_it_is_among_them()
+        public void R406_the_chips_and_the_find_box_pick_the_rows_and_the_selected_plot_stays_only_while_it_is_among_them()
         {
             var model = new ReviewDataViewModel(Shots.SampleReviewView(true));
             model.Selected = model.Rows.Single(row => row.PlotNo == "34");
@@ -174,7 +174,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_a_check_of_an_earlier_read_shows_as_not_checked_with_its_earlier_note_in_the_side_box()
+        public void R406_a_check_of_an_earlier_read_shows_as_not_checked_with_its_earlier_note_in_the_side_box()
         {
             ReviewView view = Shots.SampleReviewView(true);
             var stale = new List<ReviewCheck> { new ReviewCheck { Plot = "31", Check = ReviewCheckValue.Wrong, Note = "front edge", RunId = "old", PlotTableHash = "old" } };
@@ -190,7 +190,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_the_window_has_the_band_the_guide_line_the_chips_the_table_and_the_side_box_340_wide_on_the_panel()
+        public void R406_the_window_has_the_band_the_guide_line_the_chips_the_table_and_the_side_box_340_wide_on_the_panel()
         {
             OnSta(() =>
             {
@@ -238,7 +238,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_the_body_factory_is_not_set_until_the_app_sets_the_window_and_the_load()
+        public void R406_the_body_factory_is_not_set_until_the_app_sets_the_window_and_the_load()
         {
             ReviewDataBody.Dialog = null;
             ReviewDataBody.Load = null;
@@ -252,10 +252,10 @@ namespace SiteAdaptation.Tests
             ReviewDataBody.Load = null;
         }
 
-        // R402. Button 3 is built in Bodies.Of once App sets the window and the pane the load, and the entry hands it the main window
+        // R406. Button 3 is built in Bodies.Of once App sets the window and the pane the load, and the entry hands it the main window
         // of Revit. In this class, as the other test of the statics, so no two tests set them at once
         [Fact]
-        public void R402_button_3_is_built_once_the_window_and_the_load_are_set_and_the_pane_sets_the_load()
+        public void R406_button_3_is_built_once_the_window_and_the_load_are_set_and_the_pane_sets_the_load()
         {
             var made = new SiteAdaptation.Common.Flow.ButtonBody();
             SiteAdaptation.AddIn.RibbonButtonSpec three = SiteAdaptation.AddIn.RibbonLayout.Button(3);

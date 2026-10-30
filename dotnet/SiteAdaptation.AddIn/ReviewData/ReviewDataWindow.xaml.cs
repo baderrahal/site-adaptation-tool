@@ -4,7 +4,7 @@ using SiteAdaptation.Common.Review;
 
 namespace SiteAdaptation.AddIn.ReviewData
 {
-    // R402. The window of button 3. It holds no logic: each button hands its click to the session, which a test drives with no click
+    // R406. The window of button 3. It holds no logic: each button hands its click to the session, which a test drives with no click
     public partial class ReviewDataWindow : Window
     {
         private readonly ReviewDataSession session;

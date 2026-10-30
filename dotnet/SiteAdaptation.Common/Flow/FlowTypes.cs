@@ -81,6 +81,9 @@ namespace SiteAdaptation.Common.Flow
         public Func<RunContext, IReadOnlyList<string>> Apply { get; set; }
         public Func<RunContext, string> ReadBack { get; set; }
 
+        // The message of a real run once it committed and moved its files, what it saved, null for none
+        public Func<RunContext, string> Done { get; set; }
+
         // Q137. A button with a window of its own asks Apply there with the summary of its preview, null for the confirm of the flow
         public Func<RunContext, RunSummary, bool> Confirm { get; set; }
 

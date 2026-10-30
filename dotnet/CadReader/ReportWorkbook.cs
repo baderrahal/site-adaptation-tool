@@ -20,6 +20,8 @@ namespace CadReader
         public const string CheckRowsRole = "checkRows";
         // Review 1 of PR 96: the step summary of the build, step 15, the unit of each plot of the scope that 2 Read data counts
         public const string SummaryRole = "summary";
+        // R381, Q124: the counts the add-in read from the model at report time, RevitCounts of Common
+        public const string RevitCountsRole = "revitCounts";
 
         public static void Command(WorkerContext run)
         {
@@ -33,6 +35,17 @@ namespace CadReader
             if (refusal != null)
             {
                 throw run.Refusal(refusal);
+            }
+            // R381, Q124: the counts the add-in read from the model, an input only when the add-in gives one, so the worker runs on the plan alone too
+            JObject revitCounts = null;
+            if (request.Inputs.Any(item => item.Role == RevitCountsRole))
+            {
+                revitCounts = PyJson.Parse(WorkFiles.ReadText(run.Input(RevitCountsRole))) as JObject;
+                string notCounts = RevitCounts.Refusal(revitCounts);
+                if (notCounts != null)
+                {
+                    throw run.Refusal(notCounts);
+                }
             }
             string overridesPath = run.Input(OverridesRole);
             var inputs = new ReportInputs
@@ -48,6 +61,7 @@ namespace CadReader
                 CheckRows = PyJson.Parse(WorkFiles.ReadText(run.Input(CheckRowsRole))) as JObject,
                 Summary = PyJson.Parse(WorkFiles.ReadText(run.Input(SummaryRole))) as JObject,
                 PlotRows = CsvRows.Read(run.Input("plotsCsv"), "locationPlanNumber", "zone", "nbhId", "typologyRev9"),
+                RevitCounts = revitCounts,
                 RunId = request.RunId,
                 Profile = request.LevelProfile,
                 Now = DateTime.UtcNow,

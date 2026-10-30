@@ -9,7 +9,7 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // R402. Button 3 Review data in Common, on net48 and net8.0. Made up numbers only, no coordinate or level of a real model
+    // R406. Button 3 Review data in Common, on net48 and net8.0. Made up numbers only, no coordinate or level of a real model
     public sealed class ReviewDataLogicTests : IDisposable
     {
         private readonly string folder = Path.Combine(Path.GetTempPath(), "review-" + Guid.NewGuid().ToString("N"));
@@ -41,7 +41,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_the_rows_are_the_plots_of_the_nbh_in_the_order_of_their_numbers_and_each_names_its_manual_rule()
+        public void R406_the_rows_are_the_plots_of_the_nbh_in_the_order_of_their_numbers_and_each_names_its_manual_rule()
         {
             List<ReviewRow> rows = ReviewTable.Rows(Table(), "012", null, null, null);
 
@@ -63,7 +63,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_a_plan_fact_gives_the_cluster_the_mirror_and_the_road_and_the_corners_start_at_the_left_front_corner_seen_from_the_road()
+        public void R406_a_plan_fact_gives_the_cluster_the_mirror_and_the_road_and_the_corners_start_at_the_left_front_corner_seen_from_the_road()
         {
             var plan = new Dictionary<string, ReviewPlanFact>
             {
@@ -82,7 +82,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_corner_one_is_the_left_front_corner_for_a_ring_either_way_round_and_for_each_front_edge()
+        public void R406_corner_one_is_the_left_front_corner_for_a_ring_either_way_round_and_for_each_front_edge()
         {
             double[][] ccw = Square();
             double[][] cw = ccw.Reverse().ToArray();
@@ -104,7 +104,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_the_shared_coordinates_come_from_the_site_file_and_the_model_coordinates_follow_the_survey_point()
+        public void R406_the_shared_coordinates_come_from_the_site_file_and_the_model_coordinates_follow_the_survey_point()
         {
             JObject site = JObject.Parse("{ 'angleToTrueNorthDeg': 0.0, 'surveyPoint': { 'position': [100.0, 200.0, 0.0], 'sharedPosition': [5000.0, 6000.0, 0.0] } }");
             var plan = new Dictionary<string, ReviewPlanFact> { ["1001"] = new ReviewPlanFact { FrontEdge = 0 } };
@@ -129,7 +129,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_a_plot_is_not_checked_until_the_team_marks_it_and_the_count_follows()
+        public void R406_a_plot_is_not_checked_until_the_team_marks_it_and_the_count_follows()
         {
             ReviewState state = State("h1");
 
@@ -147,7 +147,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_the_chips_All_Not_checked_OK_Wrong_and_the_find_box_pick_the_rows()
+        public void R406_the_chips_All_Not_checked_OK_Wrong_and_the_find_box_pick_the_rows()
         {
             ReviewState state = State("h1");
             state.Mark("3", ReviewCheckValue.Ok, "");
@@ -166,7 +166,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_save_review_writes_review_nbh_json_by_a_temporary_name_and_a_rename_with_an_entry_per_checked_plot_only()
+        public void R406_save_review_writes_review_nbh_json_by_a_temporary_name_and_a_rename_with_an_entry_per_checked_plot_only()
         {
             ReviewState state = State("h1");
             state.Mark("3", ReviewCheckValue.Ok, "");
@@ -195,7 +195,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_a_check_made_on_an_earlier_read_shows_as_not_checked_with_its_note_kept_and_is_replaced_by_a_new_mark()
+        public void R406_a_check_made_on_an_earlier_read_shows_as_not_checked_with_its_note_kept_and_is_replaced_by_a_new_mark()
         {
             var old = new ReviewCheck { Plot = "12", Check = ReviewCheckValue.Wrong, Note = "front edge", RunId = "read-0", PlotTableHash = "h0" };
             var current = new ReviewCheck { Plot = "3", Check = ReviewCheckValue.Ok, Note = "", RunId = "read-1", PlotTableHash = "h1" };
@@ -217,7 +217,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_check_reads_the_plots_marked_wrong_from_review_nbh_json_for_the_plot_table_it_holds()
+        public void R406_check_reads_the_plots_marked_wrong_from_review_nbh_json_for_the_plot_table_it_holds()
         {
             ReviewFile.Write(folder, "012", new[]
             {
@@ -232,7 +232,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_the_run_shows_the_window_with_the_title_the_band_line_and_saves_what_the_window_asks_to_save()
+        public void R406_the_run_shows_the_window_with_the_title_the_band_line_and_saves_what_the_window_asks_to_save()
         {
             var input = new ReviewInput
             {

@@ -76,3 +76,23 @@ def test_r403_the_manual_folders_hold_the_path_of_the_manual_as_the_design_names
     for folder in manual["folders"]:
         assert not [char for char in folder if ord(char) < 32], repr(folder)
         assert folder + "\\" + manual["file"] in design
+
+
+def test_r381_the_report_names_the_rules_of_the_real_block_by_the_steps_of_checked_in():
+    import report_excel_check
+    rules = json.loads(PROFILE.read_text(encoding="utf-8"))
+    pairs = report_excel_check.manual_block(rules)
+    assert [name for name, _ in pairs] == ["M%02d" % number for number in range(1, 16)]
+    assert report_excel_check.manual_of(pairs, "4 Check") == "M01, M02, M03, M06, M10, M13"
+    assert report_excel_check.manual_of(pairs, "6 Levels") == "M04, M08, M09, M10"
+    assert report_excel_check.manual_of(pairs, "9 Report") == "M15"
+    assert report_excel_check.manual_of(pairs, "2 Read data") == "no manual rule"
+
+
+def test_r402_update_from_report_reads_the_real_block_and_names_each_rule_of_no_update_checks():
+    import update_check
+    rules = json.loads(PROFILE.read_text(encoding="utf-8"))
+    found = {"lacks": [], "changes": []}
+    update_check.manual_checks(found, rules)
+    bare = ", ".join("M%02d" % number for number in range(1, 16))
+    assert found["lacks"] == ["15 manual rules of the block name no updateChecks, so no change is held against them: %s (R402)" % bare]

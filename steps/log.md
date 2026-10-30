@@ -2,6 +2,47 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Round ADDIN 5e and 5f, 2026-10-30, button 9 Report and Update from report, Lane A on the laptop
+
+Goal:
+- 5e (R381) and 5f (R402) of steps/01_next.md in one PR (D20), the last Lane A phases of Phase 4 and 5
+
+Done:
+- R381: the report Excel in the 9 steps (J12), a Manual rule cell on each line (W7), Q123 faces, Q124 Revit counts, Q125
+- R381: the body of button 9, it stops with needs step 4 until 4 Check writes a run log (Q175)
+- R402: Update from report, read back, refusal of another build, change list, rule checks, overrides, python/update_check.py
+- The window Update from report (W8), its worker command, its labels and steps/ui-shots/update-from-report.png, Draft
+- Open item 12 measured: 2 of 4 shots in our own Revit (5a run 3), the dialog and the check table after 5c
+
+Checked:
+- Gate, RAN after a laptop restart: Python 2,056 passed, 3 skipped. C# net48 1,262, net8.0 1,137, 0 failed. One R310 process test failed once before the restart and passed after it, both runtimes
+- Report, whole project, RAN: 461,749 matches, 0 mismatches per runtime, 431,245 cells equal across runtimes and inputs
+- NBH 012 Summary, RAN: 2 Read data 337 and 43 as 7.6 (Q123). 5 random plots at seed 21, 15 of 15 equal to the plan
+- Update, RAN: real copy and probes, 13 cases, 127,844 cells equal, 0 mismatches between the C# and Python routes
+- Reviewer and breaker (D20): pass 1 REAL faults fixed with tests, breaker pass 2 found 3 more, fixed with tests
+- Breaker passes ran Python only, the C# side of the fixes rests on the tests and the route compare (UNKNOWN in Revit)
+- CI of PR 110: the NBH of a file name now parts at either separator and the held open test runs on Windows only. R347 timing tests flaked once (latent)
+
+Remains:
+- Manual rule IDs read no block until Lane B 5c writes manualRules (W3, Q165). No button writes a run log yet (R383)
+- No Revit run of 9 or of Update from report. docs/rules/07 is near the 100 KB cap, the next rule text needs a new part
+
+Known bugs:
+- R402 LATENT findings in steps/latent.md under 5e and 5f, the stale list on a hand edit while the window is open
+- The window lacks the guide line, side box and row mark of the UI spec (Q179)
+
+Next:
+- Lane A is done for Phase 4 and 5. Lane B runs 5c, 5d. Phase 6 after them
+
+Your turn:
+- Opened: Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row
+- Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job
+- Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit
+- Q173 Level profile of Update from report. Q174 The plan Update from report reads. Q175 Run log format 9 Report reads
+- Q176 Plain names of the update rule checks. Q177 Manual rule ids in Rule check. Q178 A computed mirror edit breaks the hand rule
+- Q179 Guide line, side box and row mark of Update. Closed: none
+- 32 questions open, full text and the recommended answers: steps/questions-open.md
+
 ## Round ADDIN 4h-2, 2026-10-29, R366, R369 and the join items, Lane A on the laptop
 
 Goal:

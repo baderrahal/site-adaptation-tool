@@ -9,12 +9,12 @@ using Xunit;
 
 namespace SiteAdaptation.Tests
 {
-    // R402. The loader of button 3 on made up files of a work folder, no real read
-    public sealed class R402_ReviewLoadTests : IDisposable
+    // R406. The loader of button 3 on made up files of a work folder, no real read
+    public sealed class R406_ReviewLoadTests : IDisposable
     {
         private readonly string work = Path.Combine(Path.GetTempPath(), "review-load-" + Guid.NewGuid().ToString("N"));
 
-        public R402_ReviewLoadTests()
+        public R406_ReviewLoadTests()
         {
             Directory.CreateDirectory(work);
         }
@@ -50,7 +50,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_the_loader_takes_the_latest_read_its_plot_table_hash_the_checks_kept_and_the_site_file()
+        public void R406_the_loader_takes_the_latest_read_its_plot_table_hash_the_checks_kept_and_the_site_file()
         {
             Read("older", "R2-20261001-0900", "099");
             string latest = Read("newer", "R2-20261030-0900", "012");
@@ -71,7 +71,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_the_loader_takes_the_read_folder_the_record_of_step_2_names_over_the_latest()
+        public void R406_the_loader_takes_the_read_folder_the_record_of_step_2_names_over_the_latest()
         {
             string named = Read("older", "R2-20261001-0900", "012");
             Read("newer", "R2-20261030-0900", "099");
@@ -83,7 +83,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R402_the_loader_names_each_stop_a_missing_read_a_missing_plot_table_and_no_nbh()
+        public void R406_the_loader_names_each_stop_a_missing_read_a_missing_plot_table_and_no_nbh()
         {
             Assert.Contains("2 Read data", Assert.Throws<InvalidDataException>(() => ReviewLoad.Load(work, "012", null)).Message);
             string folder = Read("one", "R2-1", "012");

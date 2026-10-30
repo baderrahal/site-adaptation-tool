@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace SiteAdaptation.Common.Review
 {
-    // R402. The team checks of one NBH while the window is open. A check made on a read whose plot table hash differs from the one now
+    // R406. The team checks of one NBH while the window is open. A check made on a read whose plot table hash differs from the one now
     // is shown as not checked and keeps its earlier note visible (CHOSEN by the main session). It stays in the file until the team marks
     // the plot again, so no note is lost
     public sealed class ReviewState

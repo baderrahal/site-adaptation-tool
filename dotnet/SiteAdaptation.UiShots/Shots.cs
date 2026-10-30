@@ -18,7 +18,9 @@ using SiteAdaptation.AddIn.Theme;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common.ManualRules;
 using SiteAdaptation.Common.Review;
+using SiteAdaptation.AddIn.Update;
 using SiteAdaptation.Common.SetUp;
+using SiteAdaptation.Common.Update;
 
 namespace SiteAdaptation.UiShots
 {
@@ -34,7 +36,8 @@ namespace SiteAdaptation.UiShots
         public const string ReviewData = "review-data";
         public const string Rules = "rules";
         public const string CheckTable = "check-table";
-        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable };
+        public const string UpdateFromReport = "update-from-report";
+        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable, UpdateFromReport };
 
         private const double Dpi = 96.0;
 
@@ -49,6 +52,7 @@ namespace SiteAdaptation.UiShots
                 case ReviewData: return ReviewPage();
                 case Rules: return RulesPage();
                 case CheckTable: return CheckPage();
+                case UpdateFromReport: return UpdatePage();
                 default: throw new ArgumentException("no window " + window + ", only " + string.Join(", ", Windows), nameof(window));
             }
         }
@@ -215,6 +219,15 @@ namespace SiteAdaptation.UiShots
             return bitmap;
         }
 
+        private static BitmapSource UpdatePage()
+        {
+            FrameworkElement body = Body(LaidOutUpdate());
+            var bitmap = new RenderTargetBitmap((int)body.ActualWidth, (int)body.ActualHeight, Dpi, Dpi, PixelFormats.Pbgra32);
+            bitmap.Render(body);
+            bitmap.Freeze();
+            return bitmap;
+        }
+
         private static BitmapSource RulesPage()
         {
             RulesWindow window = LaidOutRules(SampleRulesTable(), "M06");
@@ -229,6 +242,16 @@ namespace SiteAdaptation.UiShots
         public static RulesWindow LaidOutRules(ManualRuleTable table, string selectedId)
         {
             var window = new RulesWindow(new RulesWindowSession(table, selectedId, path => false, path => { }));
+            LayOut(window);
+            return window;
+        }
+
+        // The Update from report window with the sample list, measured and arranged and not shown, so a test can read its parts
+        public static UpdateFromReportWindow LaidOutUpdate()
+        {
+            var session = new UpdateFromReportSession(new UpdateFromReportCallbacks(), () => null);
+            session.Model.Load(SampleUpdateList(), new[] { "012_Levels_parsons2024Rev6.xlsx", "012_Report.xlsx" });
+            var window = new UpdateFromReportWindow(session);
             LayOut(window);
             return window;
         }
@@ -306,6 +329,35 @@ namespace SiteAdaptation.UiShots
                 Sources = new[] { "ROSHN Makkah Baseplan.dwg", "Makkah Building Footprint.dwg" },
                 State = new ReviewState(rows, checks, "sample", "sample"),
             };
+        }
+
+        // Made up numbers only. Four changes of NBH 012: one that follows the rules, one that breaks a profile rule, one that breaks a manual
+        // rule and starts unticked, one of a cell with no number, and one cell of a column that is not editable
+        public static UpdateList SampleUpdateList()
+        {
+            var list = new UpdateList();
+            list.Changes.Add(SampleChange("102", UpdateText.Entry, 10.2, 10.15, true, null, null, null));
+            list.Changes.Add(SampleChange("103", UpdateText.Steps, 2L, 3L, true, "stepsRule", null, null));
+            list.Changes.Add(SampleChange("101", UpdateText.Ffl, 10.2, 10.25, false, "stepHeights", "M08", null));
+            list.Changes.Add(SampleChange("104", UpdateText.Entry, 10.0, null, false, null, null, "the cell holds no number"));
+            list.Ignored.Add(new IgnoredCell { Plot = "101", Column = "SSL", FileName = "012_Levels_parsons2024Rev6.xlsx", Sheet = "Levels", Why = "not editable" });
+            return list;
+        }
+
+        private static UpdateChange SampleChange(string plot, string field, object inModel, object inExcel, bool ticked, string breaks, string manual, string invalid)
+        {
+            var change = new UpdateChange { Plot = plot, Field = field, InModel = inModel, InExcel = inExcel, Ticked = ticked, Invalid = invalid };
+            // A level change the checks ran on, so the first row reads that it follows the rules
+            change.Checks.Add(SiteAdaptation.Common.Update.UpdateFromReport.FflOverEntry);
+            if (breaks != null)
+            {
+                change.Breaks.Add(breaks);
+            }
+            if (manual != null)
+            {
+                change.ManualRules.Add(manual);
+            }
+            return change;
         }
 
         // The Set up site window with a view, measured and arranged at the width of the theme and not shown, so a test can read its parts
