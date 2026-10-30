@@ -45,21 +45,47 @@ namespace SiteAdaptation.AddIn.Pane
             return status.Kind == StepKind.NeedsStep ? status.Value : 0;
         }
 
-        // CHOSEN for 5a: every button reads the Settings file only. 5c gives each button the inputs it reads by 03a and 03b
+        // CHOSEN for 5a: every button reads the Settings file. 5c gives button 2 the input files of the pane it reads (R375), the
+        // other buttons get theirs as they are built
         public IReadOnlyList<RunInput> Inputs(int button)
         {
             string configFile = model.Settings == null ? null : model.Settings.ConfigFile;
-            return new[] { new RunInput(PaneText.Settings, configFile, false) };
+            var inputs = new List<RunInput> { new RunInput(PaneText.Settings, configFile, false) };
+            if (button == 2)
+            {
+                inputs.AddRange(ReadDataBody.Inputs(model.Settings ?? new PaneSettings()));
+            }
+            return inputs;
         }
 
         // A run whose output move failed leaves its step not Done (03a Steps)
         public void Committed(int button, RunRecord record)
         {
+            StepStatus status = StatusOf(record);
+            if (status != null)
+            {
+                model.Committed(button, status);
+            }
+        }
+
+        // R375. The end of a worker run on a document that is not the active one is kept with its session, which the pane shows
+        // when that document is active again
+        public static void Record(DocumentSession session, int button, RunRecord record)
+        {
+            StepStatus status = StatusOf(record);
+            if (session != null && status != null)
+            {
+                session.Done[button] = status;
+            }
+        }
+
+        private static StepStatus StatusOf(RunRecord record)
+        {
             if (!record.StepDone)
             {
-                return;
+                return null;
             }
-            model.Committed(button, record.Issues.Count == 0 ? new StepStatus(StepKind.Done) : new StepStatus(StepKind.Issues, record.Issues.Count));
+            return record.Issues.Count == 0 ? new StepStatus(StepKind.Done) : new StepStatus(StepKind.Issues, record.Issues.Count);
         }
     }
 }

@@ -64,7 +64,31 @@ namespace SiteAdaptation.Tests
             Assert.Null(none.Path);
             Assert.False(none.IsFolder);
             model.PickConfig(Folder + "project.json");
-            Assert.All(Enumerable.Range(1, 9), button => Assert.Equal(Folder + "project.json", state.Inputs(button).Single().Path));
+            // Button 2 reads the input files of the pane beside it since 5c (R375)
+            Assert.All(Enumerable.Range(1, 9).Where(button => button != 2), button => Assert.Equal(Folder + "project.json", state.Inputs(button).Single().Path));
+            Assert.Equal(Folder + "project.json", state.Inputs(2).First().Path);
+        }
+
+        // R375. Button 2 gets the Settings file and the seven input files of the pane it reads, each by its row, Road surface as a
+        // folder, the two workbooks of the row DLUS and sales by their own names, and each name has its role in the request
+        [Fact]
+        public void R375_the_run_state_gives_button_2_the_input_files_of_the_pane_each_with_its_role()
+        {
+            var settings = new PaneSettings { ConfigFile = Folder + "project.json" };
+            settings.Pick(InputKeys.Baseplan, Folder + "baseplan.dwg");
+            settings.Pick(InputKeys.RoadSurface, Folder + "roads");
+            settings.Pick(InputKeys.Sales, Folder + "sales.xlsx");
+            settings.Pick(InputKeys.Prototypes, Folder + "prototypes");
+            var state = new PaneRunState(Loaded(settings), () => @"D:\Work", path => null);
+            List<RunInput> inputs = state.Inputs(2).ToList();
+            Assert.Equal(new[] { "Settings", "Baseplan", "Villa blocks", "Curbs", "Road surface", "DLUS schedule", "Sales schedule", "Plot numbers" }, inputs.Select(input => input.Name));
+            Assert.Equal(Folder + "baseplan.dwg", inputs[1].Path);
+            Assert.Null(inputs[2].Path);
+            Assert.True(inputs[4].IsFolder);
+            Assert.Equal(Folder + "roads", inputs[4].Path);
+            Assert.Equal(Folder + "sales.xlsx", inputs[6].Path);
+            Assert.All(inputs, input => Assert.True(SiteAdaptation.AddIn.ReadDataBody.Roles.ContainsKey(input.Name), input.Name));
+            Assert.Equal(new[] { "config", "baseplan", "villaBlocks", "curbs", "roadSurface", "dlus", "sales", "plotNumbers" }, inputs.Select(input => SiteAdaptation.AddIn.ReadDataBody.Roles[input.Name]));
         }
 
         [Fact]
