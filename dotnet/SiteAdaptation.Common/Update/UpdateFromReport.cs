@@ -36,15 +36,28 @@ namespace SiteAdaptation.Common.Update
             [UpdateText.Ffl] = "heightM", [UpdateText.Entry] = "entryM", [UpdateText.Steps] = "steps", [UpdateText.VillaType] = "unit", [UpdateText.Mirror] = "mirrored",
         };
 
+        // The decision and reason of a saved entry, in the override list and never in the window
+        public const string Decision = "Update from report";
+        public const string Reason = "Update from report <run id>";
+
+        private static readonly System.Text.RegularExpressions.Regex Slot = new System.Text.RegularExpressions.Regex("<[a-z]+>");
+
+        // A text of UpdateText with each value in its slot, in order, as TextTemplate of the add-in fills one
+        public static string Fill(string template, params object[] values)
+        {
+            int next = 0;
+            return Slot.Replace(template, match => Convert.ToString(values[next++], CultureInfo.InvariantCulture));
+        }
+
         // The decimals of the columns of the level Excel (R364): El @ Entry and Height 0.0000, FFL and SSL 0.000, Steps 0
         private const int EntryDecimals = 4;
         private const int FflDecimals = 3;
 
-        private const string NoNumber = "the cell holds no number";
-        private const string NoWhole = "the cell holds no whole number";
-        private const string Empty = "the cell is empty";
-        private const string NoType = "the cell holds no villa type";
-        private const string NoFlag = "the cell holds no TRUE or FALSE";
+        private const string NoNumber = UpdateText.NoNumber;
+        private const string NoWhole = UpdateText.NoWhole;
+        private const string Empty = UpdateText.Empty;
+        private const string NoType = UpdateText.NoType;
+        private const string NoFlag = UpdateText.NoFlag;
 
         public static string OverrideField(string field)
         {
@@ -112,16 +125,16 @@ namespace SiteAdaptation.Common.Update
             Dictionary<string, object> settings = Settings(book);
             if (settings == null || !(settings.TryGetValue(LevelExcelText.PlanBuildId, out object id) && id is string) || !(settings.TryGetValue(LevelExcelText.PlanSha, out object sha) && sha is string))
             {
-                return book.FileName + " holds no sheet Settings with the Plan build id and the Plan SHA-256, so its build is not known (R402)";
+                return Fill(UpdateText.NoSettings, book.FileName);
             }
             string built = BuildIdOf(plan);
             if ((string)id != built)
             {
-                return book.FileName + " is of another build, its Plan build id is " + id + ", the plan of the model " + built + " (R402)";
+                return Fill(UpdateText.OtherBuildId, book.FileName, id, built);
             }
             if (!string.Equals((string)sha, planSha256, StringComparison.OrdinalIgnoreCase))
             {
-                return book.FileName + " is of another build, its Plan SHA-256 is " + sha + ", the plan of the model " + planSha256 + " (R402)";
+                return Fill(UpdateText.OtherSha, book.FileName, sha, planSha256);
             }
             return null;
         }
@@ -160,7 +173,7 @@ namespace SiteAdaptation.Common.Update
                 list.Refusal = Refusal(book, plan, planSha256);
                 if (list.Refusal == null && book.Sheet(LevelExcelText.LevelsSheet) == null && book.Sheet(ReportExcelText.PlacedSheet) == null)
                 {
-                    list.Refusal = book.FileName + " holds no sheet Levels or Placed, so it is no level Excel or report Excel (R402)";
+                    list.Refusal = Fill(UpdateText.NoSheets, book.FileName);
                 }
                 if (list.Refusal != null)
                 {
@@ -170,7 +183,7 @@ namespace SiteAdaptation.Common.Update
             JObject levelProfile = rules?["levelProfiles"]?[profile] as JObject;
             if (levelProfile == null)
             {
-                list.Refusal = "the rules profile holds no level profile " + profile + " (R402)";
+                list.Refusal = Fill(UpdateText.NoLevelProfile, profile);
                 return list;
             }
             var made = new Context
@@ -274,7 +287,7 @@ namespace SiteAdaptation.Common.Update
             int header = Header(sheet, columns);
             if (header < 0)
             {
-                return book.FileName + " holds no header " + string.Join(", ", columns) + " in its sheet Levels (R402)";
+                return Fill(UpdateText.NoHeader, book.FileName, string.Join(", ", columns), sheet.Name);
             }
             Func<string, int> at = name => Array.IndexOf(columns, name);
             var seen = new HashSet<string>();
@@ -364,7 +377,7 @@ namespace SiteAdaptation.Common.Update
             int header = Header(sheet, columns);
             if (header < 0)
             {
-                return book.FileName + " holds no header " + string.Join(", ", columns) + " in its sheet Placed (R402)";
+                return Fill(UpdateText.NoHeader, book.FileName, string.Join(", ", columns), sheet.Name);
             }
             int type = Array.IndexOf(columns, ReportExcelText.Type), mirror = Array.IndexOf(columns, ReportExcelText.Mirror), element = Array.IndexOf(columns, ReportExcelText.ElementId);
             var seen = new HashSet<string>();
@@ -451,7 +464,7 @@ namespace SiteAdaptation.Common.Update
 
             public void Lack(string key, string check)
             {
-                string line = "the rules profile holds no " + key + ", so the check " + UpdateText.RuleName(check) + " is not run (R402)";
+                string line = Fill(UpdateText.Lacks, key, UpdateText.RuleName(check));
                 if (!List.Lacks.Contains(line))
                 {
                     List.Lacks.Add(line);
@@ -614,7 +627,7 @@ namespace SiteAdaptation.Common.Update
             }
             if (typologies == null)
             {
-                made.List.Lacks.Add("the rules profile holds no typologies, so the check " + UpdateText.RuleName(VillaTypeCheck) + " is not run (R402)");
+                made.List.Lacks.Add(Fill(UpdateText.Lacks, "typologies", UpdateText.RuleName(VillaTypeCheck)));
                 return;
             }
             foreach (UpdateChange change in types)
@@ -655,7 +668,7 @@ namespace SiteAdaptation.Common.Update
                 return;
             }
             var held = new HashSet<string>((overrides["overrides"] as JArray ?? new JArray()).OfType<JObject>().Where(item => Text(item["source"]) == job).Select(item => Text(item["plot"])).Where(plot => plot != null));
-            string why = UpdateText.Fill(UpdateText.NotSavable, job);
+            string why = Fill(UpdateText.NotSavable, job);
             foreach (UpdateChange change in list.Changes.Where(change => change.Invalid == null && !held.Contains(change.Plot)))
             {
                 change.Invalid = why;
@@ -678,7 +691,7 @@ namespace SiteAdaptation.Common.Update
             }
             else
             {
-                list.Lacks.Add("the rules profile holds no block manualRules, so no change breaks a manual rule (R402)");
+                list.Lacks.Add(UpdateText.NoManualBlock);
                 return;
             }
             var byCheck = new Dictionary<string, List<string>>();
@@ -702,7 +715,7 @@ namespace SiteAdaptation.Common.Update
             }
             if (bare.Count > 0)
             {
-                list.Lacks.Add(bare.Count + " manual rules of the block name no updateChecks, so no change is held against them: " + string.Join(", ", bare) + " (R402)");
+                list.Lacks.Add(Fill(UpdateText.BareManual, bare.Count, string.Join(", ", bare)));
             }
             foreach (UpdateChange change in list.Changes)
             {
@@ -722,19 +735,19 @@ namespace SiteAdaptation.Common.Update
             string job = Text(rules?["levelProfiles"]?[profile]?["job"]);
             if (job == null)
             {
-                throw new InvalidDataException("the level profile " + profile + " names no job, so an override has no source (R402)");
+                throw new InvalidDataException(Fill(UpdateText.NoJob, profile));
             }
             var applied = new UpdateApplied { List = (JObject)overrides.DeepClone() };
-            JArray entries = applied.List["overrides"] as JArray ?? throw new InvalidDataException("the override list holds no overrides (R402)");
+            JArray entries = applied.List["overrides"] as JArray ?? throw new InvalidDataException(UpdateText.NoOverrides);
             Dictionary<string, JObject> plots = (plan["plots"] as JArray ?? new JArray()).OfType<JObject>().ToDictionary(item => (string)item["plot"]);
-            string reason = UpdateText.Reason.Replace("<run id>", runId);
+            string reason = Reason.Replace("<run id>", runId);
             foreach (UpdateChange change in ticked)
             {
-                string where = "plot " + change.Plot + " " + change.Field + ": ";
+                Func<string, string> where = why => Fill(UpdateText.NotApplied, change.Plot, change.Field, why);
                 string field = OverrideField(change.Field);
                 if (change.Invalid != null || field == null)
                 {
-                    applied.NotApplied.Add(where + (change.Invalid ?? "no field of the override list") + " (R402)");
+                    applied.NotApplied.Add(where(change.Invalid ?? UpdateText.NoOverrideField));
                     continue;
                 }
                 JToken value;
@@ -743,7 +756,7 @@ namespace SiteAdaptation.Common.Update
                     JToken rule = plots.TryGetValue(change.Plot, out JObject planned) ? planned["levelRule"]?[change.Field == UpdateText.Entry ? "entry" : "ffl"] : null;
                     if (!IsNumber(rule))
                     {
-                        applied.NotApplied.Add(where + "the plan holds no levelRule of the plot, so no gap to the rule (R402)");
+                        applied.NotApplied.Add(where(UpdateText.NoLevelRule));
                         continue;
                     }
                     value = new JObject { ["gapToRuleM"] = Rounding.Fixed((double)change.InExcel - (double)rule, EntryDecimals) };
@@ -757,13 +770,13 @@ namespace SiteAdaptation.Common.Update
                 JObject origin = same.FirstOrDefault() ?? mine.FirstOrDefault(item => Text(item["source"]) == job);
                 if (origin == null)
                 {
-                    applied.NotApplied.Add(where + "no entry of source " + job + " of the plot names its key and model (R402)");
+                    applied.NotApplied.Add(where(Fill(UpdateText.NoOrigin, job)));
                     continue;
                 }
                 var entry = new JObject
                 {
                     ["plot"] = change.Plot, ["field"] = field, ["value"] = value, ["rule"] = null, ["source"] = job, ["model"] = origin["model"]?.DeepClone(), ["key"] = origin["key"]?.DeepClone(),
-                    ["decision"] = UpdateText.Decision, ["reason"] = reason, ["byHand"] = true,
+                    ["decision"] = Decision, ["reason"] = reason, ["byHand"] = true,
                 };
                 int place;
                 if (same.Count > 0)
@@ -836,7 +849,7 @@ namespace SiteAdaptation.Common.Update
             string other = list.Properties().Select(item => item.Name).FirstOrDefault(name => !keys.Contains(name));
             if (other != null)
             {
-                throw new InvalidDataException("the override list holds " + other + ", which the form of majority.overrides_text does not write (R402)");
+                throw new InvalidDataException(Fill(UpdateText.OtherKey, other));
             }
             Func<JToken, string> block = items =>
             {

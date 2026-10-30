@@ -27,12 +27,12 @@ namespace SiteAdaptation.Common.Update
             List<string> found = excelPaths.Select(NbhOf).Distinct().ToList();
             if (found.Count == 0 || found.Contains(null))
             {
-                refusal = "the file name of a report Excel starts with its NBH and an underscore, as 012_Levels_<profile>.xlsx does (R402)";
+                refusal = UpdateText.NoNbh;
                 return null;
             }
             if (found.Count > 1)
             {
-                refusal = "the files are of NBH " + string.Join(" and ", found) + ", Update from report takes the files of one NBH (R402)";
+                refusal = UpdateFromReport.Fill(UpdateText.TwoNbhs, string.Join(" and ", found));
                 return null;
             }
             return found[0];

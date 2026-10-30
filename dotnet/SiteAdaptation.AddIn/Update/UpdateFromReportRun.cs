@@ -102,7 +102,7 @@ namespace SiteAdaptation.AddIn.Update
             string planPath = UpdateWorkerRequest.PlanPath(context.WorkFolder, nbh);
             if (!File.Exists(planPath))
             {
-                throw new InvalidOperationException("the work folder holds no " + Path.GetFileName(planPath) + ", the plan of NBH " + nbh + " that 4 Check writes, so the Excel can not be compared (R402)");
+                throw new InvalidOperationException(TextTemplate.Fill(UpdateFromReportText.NoPlan, Path.GetFileName(planPath), nbh));
             }
             string runId = context.RunId + "-r" + (++reads).ToString(System.Globalization.CultureInfo.InvariantCulture);
             string output = Path.Combine(context.WorkFolder, "update_" + runId);

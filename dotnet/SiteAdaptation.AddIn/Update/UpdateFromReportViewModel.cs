@@ -164,7 +164,7 @@ namespace SiteAdaptation.AddIn.Update
 
         public bool Selected { get; }
 
-        public string Text => Label + " " + Count.ToString(CultureInfo.InvariantCulture);
+        public string Text => TextTemplate.Fill(UpdateFromReportText.ChipCount, Label, Count);
 
         public void Choose()
         {
