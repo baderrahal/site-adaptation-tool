@@ -15,7 +15,7 @@ Done:
 - Open item 12 measured: 2 of 4 shots in our own Revit (5a run 3), the dialog and the check table after 5c
 
 Checked:
-- Gate, RAN: see the last line of this list after the final run
+- Gate, RAN after a laptop restart: Python 2,056 passed, 3 skipped. C# net48 1,262, net8.0 1,137, 0 failed. One R310 process test failed once before the restart and passed after it, both runtimes
 - Report, whole project, RAN: 461,749 matches, 0 mismatches per runtime, 431,245 cells equal across runtimes and inputs
 - NBH 012 Summary, RAN: 2 Read data 337 and 43 as 7.6 (Q123). 5 random plots at seed 21, 15 of 15 equal to the plan
 - Update, RAN: real copy and probes, 13 cases, 127,844 cells equal, 0 mismatches between the C# and Python routes
