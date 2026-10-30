@@ -116,6 +116,20 @@ namespace SiteAdaptation.Common.PlaceVillas
 
         // The UniqueIds the user set to the plan
         public ICollection<string> SetToPlan { get; set; } = new HashSet<string>();
+
+        // R377. The inputs from the files of the work folder: the plan held by the SHA-256 the record of the last real run of 4 names,
+        // addin.lightMode of the Settings file, the Villa mode of the pane row, the footprint read of button 2 and the record of the last
+        // real run of 7, place_<NBH>.json, null before the first
+        public static VillaInputs Of(string planPath, string planSha256, string configPath, string pickedMode, string profile, Func<string, bool> inScope,
+            Newtonsoft.Json.Linq.JObject villaBlocksRead, Newtonsoft.Json.Linq.JObject lastRecord)
+        {
+            LightModeConfig config = LightModeConfig.Load(configPath);
+            return new VillaInputs
+            {
+                Plan = PlanSource.Open(planPath, planSha256), PlanPath = planPath, Config = config, Mode = VillaModeChoice.Resolve(pickedMode, config), Profile = profile,
+                InScope = inScope, Footprint = FootprintCheck.FromRead(villaBlocksRead), LastHashes = PlaceVillasRun.Hashes(lastRecord), LastPlaced = PlaceVillasRun.Placed(lastRecord),
+            };
+        }
     }
 
     // R377, 03b 7 Inputs. plan_<NBH>.json of the last real run of button 4, held against the SHA-256 its run record names, never a plan

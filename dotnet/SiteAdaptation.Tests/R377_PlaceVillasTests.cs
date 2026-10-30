@@ -317,6 +317,23 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R377_the_inputs_join_the_plan_the_light_mode_keys_the_pane_mode_the_footprint_and_the_last_record()
+        {
+            string plan = Path.Combine(work, "plan_012.json");
+            File.WriteAllText(plan, Newtonsoft.Json.JsonConvert.SerializeObject(Plan(Plot("101", 1100, 0, false))));
+            string config = Path.Combine(work, "project.json");
+            File.WriteAllText(config, new JObject { ["addin"] = new JObject { ["lightMode"] = JObject.Parse(File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "config", "project.json")))["addin"]["lightMode"] } }.ToString());
+            var blocks = new JObject { ["blocks"] = new JArray(new JObject { ["name"] = "VD4", ["outline"] = new JArray(Shape.Select(point => new JArray(point[0], point[1]))) }) };
+            var last = new JObject { ["prototypes"] = new JObject { ["x.rvt"] = new string('e', 64) }, ["placed"] = new JArray("101") };
+            VillaInputs inputs = VillaInputs.Of(plan, FileHash.Sha256(plan), config, null, "parsons2024Rev6", null, blocks, last);
+            Assert.Equal(VillaModes.Masses, inputs.Mode);
+            Assert.Equal(VillaModes.Links, VillaInputs.Of(plan, FileHash.Sha256(plan), config, VillaModes.Links, "p", null, blocks, null).Mode);
+            Assert.Single(inputs.Footprint);
+            Assert.Contains("101", inputs.LastPlaced);
+            Assert.Equal(new string('e', 64), inputs.LastHashes["x.rvt"]);
+        }
+
+        [Fact]
         public void R377_the_record_lists_the_hash_of_each_prototype_file_for_the_reload_of_the_next_run()
         {
             Run run = Make(Plan(Plot("101", 1100, 0, false)), VillaModes.Masses);
