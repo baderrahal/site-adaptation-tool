@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.ReadData;
+using SiteAdaptation.Common.Review;
 using SiteAdaptation.Common.Settings;
 using Xunit;
 
@@ -26,6 +27,7 @@ namespace SiteAdaptation.Tests
         private readonly Worker worker = new Worker();
         private readonly List<RunOutcome> ended = new List<RunOutcome>();
         private SettingsScope scope = new SettingsScope();
+        private int runs;
 
         private static readonly Dictionary<string, string> Roles = new Dictionary<string, string>
         {
@@ -146,6 +148,66 @@ namespace SiteAdaptation.Tests
             Assert.Equal(RunEnd.Committed, changed.End);
             Assert.Equal(3, worker.Requests.Count);
             Assert.NotEqual(worker.Requests[0].OutputFolder, worker.Requests[2].OutputFolder);
+        }
+
+        // R375, R366. A read reused is the read of its run: its record names the run id and the inputs of the run, so the latest read every
+        // later button takes is the one step 2 used
+        [Fact]
+        public void R375_an_input_changed_and_set_back_reuses_its_read_and_makes_it_the_latest_read()
+        {
+            RunOutcome first = Ended(Run());
+            string a = Path.GetDirectoryName(first.Record.Outputs.Keys.Single());
+            string curbs = state.Inputs.First(item => item.Name == "Curbs").Path;
+            File.WriteAllText(curbs, "made up curbs changed");
+            RunOutcome second = Ended(Run());
+            Assert.NotEqual(a, Path.GetDirectoryName(second.Record.Outputs.Keys.Single()));
+            File.WriteAllText(curbs, "made up curbs");
+
+            RunOutcome third = Ended(Run());
+
+            Assert.Equal(RunEnd.Committed, third.End);
+            Assert.Equal(2, worker.Requests.Count);
+            Assert.Equal(a, ReviewLoad.LatestReadFolder(work));
+            Assert.Equal(third.Record.RunId, (string)JObject.Parse(File.ReadAllText(Path.Combine(a, ReadDataRun.RecordFile)))["runId"]);
+        }
+
+        [Fact]
+        public void R375_a_baseplan_switched_to_another_file_and_back_makes_the_first_read_the_latest_again()
+        {
+            RunOutcome first = Ended(Run());
+            string a = Path.GetDirectoryName(first.Record.Outputs.Keys.Single());
+            int at = state.Inputs.FindIndex(item => item.Name == "Baseplan");
+            RunInput p1 = state.Inputs[at];
+            state.Inputs[at] = new RunInput("Baseplan", Write(Path.Combine(input, "baseplan-2.dwg"), "another made up baseplan"), false);
+            Ended(Run());
+            state.Inputs[at] = p1;
+
+            Ended(Run());
+
+            Assert.Equal(2, worker.Requests.Count);
+            Assert.Equal(a, ReviewLoad.LatestReadFolder(work));
+        }
+
+        // The folder is named by role and SHA-256, so a file moved with the same content reuses it, and its record names the new path,
+        // which 4 Check holds against the disk
+        [Fact]
+        public void R375_an_input_moved_with_the_same_content_reuses_the_read_and_its_record_names_the_new_path()
+        {
+            RunOutcome first = Ended(Run());
+            string a = Path.GetDirectoryName(first.Record.Outputs.Keys.Single());
+            int at = state.Inputs.FindIndex(item => item.Name == "Baseplan");
+            string moved = Path.Combine(input, "moved", "baseplan.dwg");
+            Directory.CreateDirectory(Path.GetDirectoryName(moved));
+            File.Move(state.Inputs[at].Path, moved);
+            state.Inputs[at] = new RunInput("Baseplan", moved, false);
+
+            RunOutcome second = Ended(Run());
+
+            Assert.Equal(RunEnd.Committed, second.End);
+            Assert.Single(worker.Requests);
+            JObject record = JObject.Parse(File.ReadAllText(Path.Combine(a, ReadDataRun.RecordFile)));
+            Assert.Equal(moved, (string)((JArray)record["inputs"]).Single(item => (string)item["role"] == "baseplan")["path"]);
+            Assert.Equal(a, ReviewLoad.LatestReadFolder(work));
         }
 
         // R375. The dry run lists every file it would read with its size and SHA-256 and says which the last read holds unchanged
@@ -294,7 +356,7 @@ namespace SiteAdaptation.Tests
         private RunOutcome Run()
         {
             var run = new ReadDataRun(Roles, worker, new WorkerDocument { Path = Path.Combine(root, "site.rvt"), SessionId = "s1" }, () => scope);
-            var flow = new ButtonFlow(state, new NoModel(), confirm, InputHash.Of, () => RunIds.New(2, DateTime.Now) + "-" + Guid.NewGuid().ToString("N").Substring(0, 6));
+            var flow = new ButtonFlow(state, new NoModel(), confirm, InputHash.Of, () => RunIds.New(2, DateTime.Now) + "-" + (++runs).ToString("D3"));
             return flow.Run(2, Label, run.Body(), Path.Combine(root, "site.rvt"), ended.Add);
         }
 

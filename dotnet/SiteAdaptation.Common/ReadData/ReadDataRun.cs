@@ -100,7 +100,13 @@ namespace SiteAdaptation.Common.ReadData
             JObject reusable = Reusable(folder, plan);
             if (reusable != null)
             {
-                done(Ended(context, folder, RunTexts.ReadReused(context.Label, (string)reusable["runId"]), Strings(reusable["issues"]), Outputs(reusable)));
+                // R375, R366. The read reused is the read of this run, so its record takes the run id and the inputs of the run: the latest
+                // read every later button takes is this folder, and a file moved with the same content is named at its new path
+                string before = (string)reusable["runId"];
+                JObject record = Recorded(context.RunId, plan, Outputs(reusable), reusable["counts"] as JObject ?? new JObject(), Strings(reusable["issues"]));
+                record["reusedFrom"] = (string)reusable["reusedFrom"] ?? before;
+                WorkFiles.WriteText(Path.Combine(folder, RecordFile), context.RunId, record.ToString(Newtonsoft.Json.Formatting.Indented));
+                done(Ended(context, folder, RunTexts.ReadReused(context.Label, before), Strings(reusable["issues"]), Outputs(reusable)));
                 return;
             }
             string work = Path.GetFullPath(context.WorkFolder);
@@ -151,18 +157,23 @@ namespace SiteAdaptation.Common.ReadData
             }
             var outputs = (answer.Outputs ?? new List<WorkerFile>()).ToDictionary(output => output.Path, output => output.Sha256, StringComparer.OrdinalIgnoreCase);
             var issues = answer.Issues ?? new List<string>();
-            var record = new JObject
-            {
-                ["format"] = RecordFormat, ["runId"] = context.RunId,
-                ["inputs"] = new JArray(plan.Inputs.Select(input => new JObject { ["role"] = input.Role, ["path"] = input.Path, ["bytes"] = input.Bytes, ["sha256"] = input.Sha256 })),
-                ["steps"] = new JArray(plan.Steps),
-                ["outputs"] = new JArray(outputs.Select(output => new JObject { ["path"] = output.Key, ["sha256"] = output.Value })),
-                ["counts"] = JObject.FromObject(answer.Counts ?? new Dictionary<string, int>()),
-                ["issues"] = new JArray(issues),
-            };
+            JObject record = Recorded(context.RunId, plan, outputs, JObject.FromObject(answer.Counts ?? new Dictionary<string, int>()), issues);
             // The record goes last, by a temporary name and a rename, so a folder is reused only once every output of it is there
             WorkFiles.WriteText(Path.Combine(folder, RecordFile), context.RunId, record.ToString(Newtonsoft.Json.Formatting.Indented));
             return Ended(context, folder, RunTexts.ReadDone(context.Label, outputs.Count, issues.Count), issues, outputs);
+        }
+
+        private static JObject Recorded(string runId, ReadPlan plan, IReadOnlyDictionary<string, string> outputs, JObject counts, IReadOnlyList<string> issues)
+        {
+            return new JObject
+            {
+                ["format"] = RecordFormat, ["runId"] = runId,
+                ["inputs"] = new JArray(plan.Inputs.Select(input => new JObject { ["role"] = input.Role, ["path"] = input.Path, ["bytes"] = input.Bytes, ["sha256"] = input.Sha256 })),
+                ["steps"] = new JArray(plan.Steps),
+                ["outputs"] = new JArray(outputs.Select(output => new JObject { ["path"] = output.Key, ["sha256"] = output.Value })),
+                ["counts"] = counts.DeepClone(),
+                ["issues"] = new JArray(issues),
+            };
         }
 
         // The scope of R366 held against the whole plot table of the read. A stop keeps the read for the next run and the step as it was

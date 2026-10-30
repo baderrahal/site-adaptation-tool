@@ -50,7 +50,51 @@ namespace SiteAdaptation.Tests
                 AngleToTrueNorthDeg = 0, PrototypeFolder = "protos", Plots = new List<PlanPlot>(),
             };
             File.WriteAllText(path, JsonConvert.SerializeObject(plan));
+            Record(folder, path);
             return path;
+        }
+
+        // The record a real run of 4 Check that ended done writes in its folder, naming each output with its SHA-256
+        private void Record(string folder, params string[] outputs)
+        {
+            File.WriteAllText(Path.Combine(work, folder, "check.json"), new JObject
+            {
+                ["format"] = "site-adaptation-check-run", ["runId"] = folder.Substring("check_".Length),
+                ["outputs"] = new JArray(outputs.Select(output => new JObject { ["path"] = output, ["sha256"] = FileHash.Sha256(output) })),
+            }.ToString());
+        }
+
+        [Fact]
+        public void R377_a_plan_changed_after_the_4_check_run_that_wrote_it_is_refused_through_the_loader()
+        {
+            string plan = Plan("check_R4-20261030-090000", "012");
+            File.AppendAllText(plan, " ");
+
+            var refused = Assert.Throws<InvalidDataException>(() => VillaLoad.Load(Context(), "012", config, null, "p", null));
+
+            Assert.Contains("SHA-256 differs", refused.Message);
+        }
+
+        // S3 of the 5c review. The last real run of 4 Check is the newest check folder: a plan_all.json of a plot list or the whole
+        // project, or a build again that ended with no record, never hands 7 an older plan of the NBH
+        [Fact]
+        public void R377_the_loader_takes_only_the_plan_the_last_4_check_record_names_and_stops_on_one_that_covers_no_nbh()
+        {
+            Plan("check_R4-20261029-100000", "012");
+            Plan("check_R4-20261030-090000", "all");
+
+            var all = Assert.Throws<InvalidDataException>(() => VillaLoad.Load(Context(), "012", config, null, "p", null));
+            Assert.Contains("built no plan of NBH 012", all.Message);
+            Assert.Contains("plan_all.json", all.Message);
+
+            Plan("check_R4-20261030-100000", "012");
+            string again = Path.Combine(work, "check_R4-20261030-100000-again");
+            Directory.CreateDirectory(again);
+            File.WriteAllText(Path.Combine(again, CheckRun.PlanName("012")), "{}");
+
+            var failed = Assert.Throws<InvalidDataException>(() => VillaLoad.Load(Context(), "012", config, null, "p", null));
+            Assert.Contains("check_R4-20261030-100000-again", failed.Message);
+            Assert.Contains("did not end done", failed.Message);
         }
 
         [Fact]
@@ -58,7 +102,7 @@ namespace SiteAdaptation.Tests
         {
             Plan("check_R4-20261029-100000", "012");
             string latest = Plan("check_R4-20261030-090000", "012");
-            Plan("check_R4-20261030-090000-again", "013");
+            Plan("check_R4-20261029-100000-again", "013");
             string read = Path.Combine(work, "read_R2-1");
             Directory.CreateDirectory(read);
             File.WriteAllText(Path.Combine(read, "read.json"), "{ \"runId\": \"R2-1\" }");
