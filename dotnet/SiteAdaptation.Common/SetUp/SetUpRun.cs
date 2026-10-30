@@ -112,7 +112,7 @@ namespace SiteAdaptation.Common.SetUp
             {
                 sheet = ReadSheet(answer.ParameterSheet);
             }
-            if (RampSlopes.Choices.Contains(answer.RampSlope))
+            if (target.RampSlopeChoices.Contains(answer.RampSlope))
             {
                 slope = answer.RampSlope;
             }

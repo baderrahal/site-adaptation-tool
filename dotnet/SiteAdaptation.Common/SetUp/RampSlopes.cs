@@ -10,9 +10,16 @@ namespace SiteAdaptation.Common.SetUp
     // profile and the floor type of each slope
     public static class RampSlopes
     {
-        // The choices are not in the rules profile yet and rules/ is Lane A's file. Join item W1 of steps/lane-b.md moves this list
-        // beside rampTypes of levelProfiles.parsons2024Rev6, then it is read from there
-        public static readonly IReadOnlyList<double> Choices = new[] { 0.5, 1.0, 2.0 }.Concat(Enumerable.Range(3, 13).Select(step => (double)step)).ToList();
+        // W1, J18. levelProfiles.<profile>.rampSlopeChoices of the rules profile beside rampTypes, the choices of the row in percent
+        public static List<double> Choices(JObject rules, string levelProfile)
+        {
+            JArray named = Profile(rules, levelProfile)["rampSlopeChoices"] as JArray;
+            if (named == null || named.Count == 0 || named.Any(item => item.Type != JTokenType.Float && item.Type != JTokenType.Integer))
+            {
+                throw new InvalidDataException("the level profile holds no list of numbers rampSlopeChoices, the choices of the row Ramp slope (R373)");
+            }
+            return named.Select(item => item.Value<double>()).ToList();
+        }
 
         // levelProfiles.<profile>.rampSlopePercent.default of the rules profile
         public static double Default(JObject rules, string levelProfile)
@@ -24,7 +31,7 @@ namespace SiteAdaptation.Common.SetUp
                 throw new InvalidDataException("the level profile holds no number rampSlopePercent.default, the default of the row Ramp slope (R373)");
             }
             double slope = value.Value<double>();
-            if (!Choices.Contains(slope))
+            if (!Choices(rules, levelProfile).Contains(slope))
             {
                 throw new InvalidDataException("rampSlopePercent.default " + Text(slope) + " is none of the choices of the row Ramp slope (R373)");
             }

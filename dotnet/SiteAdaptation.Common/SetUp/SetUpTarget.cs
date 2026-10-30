@@ -26,6 +26,7 @@ namespace SiteAdaptation.Common.SetUp
         public List<string> GenericTypes { get; set; } = new List<string>();
         public List<string> WallTypes { get; set; } = new List<string>();
         public double RampSlope { get; set; }
+        public List<double> RampSlopeChoices { get; set; }
         public string RampType { get; set; }
         public ParameterSheet Parameters { get; set; }
 
@@ -41,13 +42,15 @@ namespace SiteAdaptation.Common.SetUp
             PositionSettings settings = PositionSettings.From(config);
             JObject floors = config["floors"] as JObject ?? throw new InvalidDataException("config holds no floors block, the floor types of button 1 (R112)");
             JObject types = floors["types"] as JObject ?? throw new InvalidDataException("config holds no floors.types (R112)");
-            if (!RampSlopes.Choices.Contains(rampSlope))
+            List<double> choices = RampSlopes.Choices(rules, levelProfile);
+            if (!choices.Contains(rampSlope))
             {
                 throw new InvalidDataException("the ramp slope " + RampSlopes.Text(rampSlope) + "% is none of the choices of the row Ramp slope (R373)");
             }
             var target = new SetUpTarget
             {
                 RampSlope = rampSlope,
+                RampSlopeChoices = choices,
                 RampType = RampSlopes.TypeName(rules, levelProfile, rampSlope),
                 GenericTypes = Names(types["generic"]),
                 Parameters = parameters,
@@ -68,12 +71,12 @@ namespace SiteAdaptation.Common.SetUp
             {
                 throw new InvalidDataException("floors.types.generic of config names no floor type (R112)");
             }
-            ReadPosition(target, position);
+            ReadPosition(target, position, SetUpDefaults.SiteUnits(config));
             return target;
         }
 
         // The position file as the worker writes it, ProjectPositionFile.Written (R353)
-        private static void ReadPosition(SetUpTarget target, JObject file)
+        private static void ReadPosition(SetUpTarget target, JObject file, Dictionary<string, string> units)
         {
             if (file == null || (string)file["format"] != ProjectPositionFile.Format || file["formatVersion"]?.Type != JTokenType.Integer || (int)file["formatVersion"] != ProjectPositionFile.FormatVersion)
             {
@@ -104,7 +107,7 @@ namespace SiteAdaptation.Common.SetUp
             target.Units = new UnitState
             {
                 System = (string)(file["units"] as JObject)?["system"], Length = length, LengthAccuracy = accuracy.Value<double>(),
-                Area = SetUpDefaults.AreaUnit, Angle = SetUpDefaults.AngleUnit, Slope = SetUpDefaults.SlopeUnit,
+                Area = units["area"], Angle = units["angle"], Slope = units["slope"],
             };
         }
 
@@ -133,23 +136,37 @@ namespace SiteAdaptation.Common.SetUp
         }
     }
 
-    // R373. What config does not hold yet for button 1, each read from config when the key is there and else the value the design
-    // gives, so a run never guesses. Each key is named in the report of 5b for Lane A to add (no project value in code, CLAUDE.md)
+    // R373, J18. The settings of button 1 config holds since Lane B 5c, each refused by its name when missing, never a value of code
     public static class SetUpDefaults
     {
-        // 03a 1 Set up site step 1: area in square meters, angle and slope in degrees
-        public const string AreaUnit = "squareMeters";
-        public const string AngleUnit = "degrees";
-        public const string SlopeUnit = "slopeDegrees";
+        public static readonly string[] UnitSpecs = { "area", "angle", "slope" };
 
-        // 03a 1 Set up site Outputs: BW and the most used garden type of the IMC key (READ key_reads.json)
-        private static readonly string[] Walls = { "BW", "Generic Wall-150mm_ Garden" };
+        // addin.siteUnits, the unit of each spec 03a 1 Set up site step 1 sets, by the names SiteFacts.UnitName gives
+        public static Dictionary<string, string> SiteUnits(JObject config)
+        {
+            JObject units = (config["addin"] as JObject)?["siteUnits"] as JObject;
+            var found = new Dictionary<string, string>();
+            foreach (string spec in UnitSpecs)
+            {
+                JToken unit = units?[spec];
+                if (unit == null || unit.Type != JTokenType.String || ((string)unit).Length == 0)
+                {
+                    throw new InvalidDataException("config holds no addin.siteUnits." + spec + ", the " + spec + " unit of button 1 (R373)");
+                }
+                found[spec] = (string)unit;
+            }
+            return found;
+        }
 
-        // addin.wallTypes, a list of names, else the two of 03a
+        // addin.wallTypes, the wall types of 03a 1 Set up site Outputs
         public static List<string> WallTypes(JObject config)
         {
             JArray named = (config["addin"] as JObject)?["wallTypes"] as JArray;
-            return named != null && named.Count > 0 ? named.Select(item => (string)item).ToList() : Walls.ToList();
+            if (named == null || named.Count == 0 || named.Any(item => item.Type != JTokenType.String || ((string)item).Length == 0))
+            {
+                throw new InvalidDataException("config holds no list of names addin.wallTypes, the wall types of button 1 (R373)");
+            }
+            return named.Select(item => (string)item).ToList();
         }
 
         // siteBuild.parameterGroup, the group of the shared parameter file R212 writes

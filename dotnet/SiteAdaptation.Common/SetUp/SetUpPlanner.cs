@@ -157,7 +157,7 @@ namespace SiteAdaptation.Common.SetUp
                 Signs = Signs(now, target),
                 Stops = Stops(now, target),
                 Waiting = Waiting(target),
-                RampSlopeChoices = RampSlopes.Choices.ToList(),
+                RampSlopeChoices = target.RampSlopeChoices.ToList(),
                 RampSlope = target.RampSlope,
                 ParameterSheetName = target.Parameters.Sheet,
                 ParameterCount = target.Parameters.Parameters.Count,

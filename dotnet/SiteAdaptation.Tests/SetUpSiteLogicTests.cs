@@ -208,7 +208,8 @@ namespace SiteAdaptation.Tests
         {
             JObject rules = Rules();
 
-            Assert.Equal(new[] { 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, RampSlopes.Choices);
+            Assert.Equal(new[] { 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, RampSlopes.Choices(rules, null));
+            Assert.Equal(new[] { 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, Target().RampSlopeChoices);
             Assert.Equal(0.5, RampSlopes.Default(rules, null));
             Assert.Equal("Ramps 0.5%", RampSlopes.TypeName(rules, null, 0.5));
             Assert.Equal("Ramps 2%", RampSlopes.TypeName(rules, null, 2));
@@ -227,6 +228,27 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Generic 150mm, yard, Flat Ramps, and one Ramps type per slope below", view.WillSet.First(row => row.Label == "Floor types").Value);
             Assert.Equal("7%", view.WillSet.First(row => row.Label == "Ramp slope").Value);
             Assert.True(view.WillSet.First(row => row.Label == "Ramp slope").Differs);
+        }
+
+        // J18 of steps/lane-b.md. The wall types, the units of area, angle and slope and the ramp slope choices of W1 come from
+        // addin.wallTypes and addin.siteUnits of config and rampSlopeChoices of the level profile, the values of 03a, and each is
+        // refused by its name when missing
+        [Fact]
+        public void R373_J18_the_wall_types_the_units_and_the_ramp_slope_choices_come_from_config_and_the_rules_profile()
+        {
+            SetUpTarget target = Target();
+            Assert.Equal(new[] { "BW", "Generic Wall-150mm_ Garden" }, target.WallTypes);
+            Assert.Equal(new[] { "squareMeters", "degrees", "slopeDegrees" }, new[] { target.Units.Area, target.Units.Angle, target.Units.Slope });
+
+            JObject noWalls = (JObject)config.DeepClone();
+            ((JObject)noWalls["addin"]).Remove("wallTypes");
+            Assert.Contains("addin.wallTypes", Assert.Throws<InvalidDataException>(() => SetUpDefaults.WallTypes(noWalls)).Message);
+            JObject noSlope = (JObject)config.DeepClone();
+            ((JObject)noSlope["addin"]["siteUnits"]).Remove("slope");
+            Assert.Contains("addin.siteUnits.slope", Assert.Throws<InvalidDataException>(() => SetUpDefaults.SiteUnits(noSlope)).Message);
+            JObject rules = Rules();
+            ((JObject)rules["levelProfiles"]["parsons2024Rev6"]).Remove("rampSlopeChoices");
+            Assert.Contains("rampSlopeChoices", Assert.Throws<InvalidDataException>(() => RampSlopes.Choices(rules, null)).Message);
         }
 
         [Fact]
