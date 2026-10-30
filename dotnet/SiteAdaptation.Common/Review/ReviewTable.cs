@@ -49,7 +49,7 @@ namespace SiteAdaptation.Common.Review
                 };
                 if (fact?.FrontEdge != null && ring != null)
                 {
-                    row.FrontEdge = "edge " + (fact.FrontEdge.Value + 1).ToString(CultureInfo.InvariantCulture);
+                    row.FrontEdge = fact.FrontEdge.Value + 1;
                     row.Corners = Corners(ring, fact.FrontEdge.Value, site);
                 }
                 rows.Add(row);
@@ -91,7 +91,8 @@ namespace SiteAdaptation.Common.Review
 
         private static string Text(JToken token)
         {
-            return token == null || token.Type == JTokenType.Null ? null : token.ToString();
+            string text = token == null || token.Type == JTokenType.Null ? null : token.ToString();
+            return string.IsNullOrEmpty(text) ? null : text;
         }
     }
 }

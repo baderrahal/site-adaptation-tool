@@ -158,6 +158,49 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `Browse` the Browse of the row Shared parameters
 - `Nothing differs, Apply changes nothing.` CHOSEN, under the pass line on a second run by 03a Second run, Apply stays off
 
+### Review data
+
+Built in Lane B 5c. The labels, columns, chips and side box are those of Review data (5c) in docs/design/13-workflow-changes.md, word for word. The entries marked CHOSEN are Code's.
+
+- `3 Review data, NBH <n>, <n> plots`
+- `Read from <n>` CHOSEN, the words of 13-workflow-changes.md then the file names of the source drawings
+- `<n> of <n> checked by the team`
+- `Zoom to plot`
+- `Export to Excel`
+- `Save review`
+- `This is what the tool read from CAD and Civil 3D for each plot. Pick a plot to see its corners and sources, then mark it OK or Wrong. A plot marked Wrong is listed in 4 Check and in the report.`
+- `All`
+- `Not checked`
+- `OK`
+- `Wrong`
+- `Find plot`
+- `Plot No`
+- `CAD label`
+- `Villa type`
+- `Mirror`
+- `Cluster`
+- `Area m2`
+- `Road at front`
+- `Team check`
+- `Selected plot`
+- `NBH`
+- `Front edge`
+- `Plot corners`
+- `Corner <n>`
+- `X`
+- `Y`
+- `Shared coordinates` CHOSEN, written with a capital as a heading of the corners
+- `What is wrong`
+- `Manual rule <n>` CHOSEN, the rule M01 to M15 of docs/design/15-manual-rules.md that the row is checked by
+- `Edge <n>` CHOSEN, the front edge as its number in the ring of the plot, from 1
+- `not read yet` CHOSEN, for a value that only the plan of 4 Check gives, or the site file of 1 Set up site
+- `Yes` CHOSEN, the Mirror value
+- `No` CHOSEN, the Mirror value
+- `Pick a plot from the table.` CHOSEN, the side box with no plot selected
+- `Earlier note: <n>` CHOSEN, the note of a check made on an earlier read, which shows as Not checked now
+- `Not saved yet` CHOSEN, beside Save review after a mark
+- `Review saved.` CHOSEN, after Save review
+
 ### Check table
 
 Not built yet, Phase 5c.

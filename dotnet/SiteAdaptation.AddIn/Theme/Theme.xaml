@@ -540,4 +540,19 @@
     <Setter Property="BorderBrush" Value="{StaticResource SA.Heading}" />
   </Style>
 
+  <!-- R402, docs/design/13-workflow-changes.md Review data. The columns of its table and of the corners table of the side box are
+       Code's choice, listed in steps/ui-shots/README.md. The mark is the 3 px of SA.Size.SelectedMark on the left of the selected row -->
+  <GridLength x:Key="SA.Grid.ReviewPlot">88</GridLength>
+  <GridLength x:Key="SA.Grid.ReviewLabel">96</GridLength>
+  <GridLength x:Key="SA.Grid.ReviewType">112</GridLength>
+  <GridLength x:Key="SA.Grid.ReviewMirror">96</GridLength>
+  <GridLength x:Key="SA.Grid.ReviewCluster">112</GridLength>
+  <GridLength x:Key="SA.Grid.ReviewArea">88</GridLength>
+  <GridLength x:Key="SA.Grid.ReviewRoad">128</GridLength>
+  <GridLength x:Key="SA.Grid.ReviewCorner">72</GridLength>
+  <GridLength x:Key="SA.Grid.ReviewSideLabel">120</GridLength>
+  <Thickness x:Key="SA.Line.Mark">3,0,0,0</Thickness>
+  <sys:Double x:Key="SA.Size.FindBox">200</sys:Double>
+  <sys:Double x:Key="SA.Size.ReviewList">480</sys:Double>
+
 </ResourceDictionary>

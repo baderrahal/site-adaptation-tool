@@ -10,10 +10,11 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | pane.png | The pane in use, filled like the NBH 012 column of 7.2 of docs/design/07-mock.md, its steps in the order of docs/design/13-workflow-changes.md | Draft |
 | pane-first-open.png | The pane on first open, no settings file chosen, with the line of a past job | Draft |
 | setup-site.png | The Set up site window of button 1, an existing site file after the dry run, 7 of 7 check points pass, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
+| review-data.png | The Review data window of button 3, NBH 012 with 5 made up plots, the first three with a plan of button 4 and corners, two checked OK and one Wrong, plot 31 selected, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | revit-ribbon.png | The Site Adaptation tab in Revit 2024, cut from the window by PrintWindow in Revit run 3 of 5a, 29 Oct 2026 | Taken in Revit, for Bader's check |
 | revit-pane.png | The live pane page in Revit run 3 of 5a by RenderTargetBitmap at 96 DPI, first open state, the detached document of the run active | Taken in Revit, for Bader's check |
 
-Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md) were rendered into all three in Lane B 5a PR 8, his UI answers Q135, Q139 and Q140 of 29 Oct 2026 in Lane B 5a run 3 (fixed items 12 to 14). Set up site is built in 5b (W1 of steps/lane-b.md), its PNG is setup-site.png and its lists are at the end of this file. The check table, Review data and Site Adaptation Rules come in 5c (W5), Update from report in 5f (W8), so none of these has a PNG yet.
+Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md) were rendered into all three in Lane B 5a PR 8, his UI answers Q135, Q139 and Q140 of 29 Oct 2026 in Lane B 5a run 3 (fixed items 12 to 14). Set up site is built in 5b (W1 of steps/lane-b.md), its PNG is setup-site.png and its lists are at the end of this file. Review data is built in 5c (W5), its PNG is review-data.png and its list is at the end of this file. The check table and Site Adaptation Rules come in 5c, Update from report in 5f (W8), so none of these has a PNG yet.
 
 ## Render them again
 
@@ -200,3 +201,25 @@ Sizes
 27. Left the two tables as label and value rows with Will change, right the check point table, the pass line and the note, the foot on SA.Panel with Cancel, Dry run and Apply: held.
 28. The Floor types text, the row Ramp slope with its drop down 0.5%, 1%, 2%, then 3% to 15% and default 0.5% and its line, the Shared parameters row with its sheet and count in one line and Browse: held, tests R373_the_rows_stand_in_the_order_of_the_mock_with_the_three_rows_of_28_oct_2026, R373_the_ramp_slope_choices_are_05_1_2_then_3_to_15_percent_and_the_default_is_05 and R373_the_ramp_slope_row_holds_a_30_high_drop_down_of_16_choices_and_the_sheet_row_holds_browse.
 29. Apply off while the view holds stops or before the dry run: held, tests R373_apply_is_off_before_the_dry_run_and_while_the_view_holds_a_stop_and_on_after_the_dry_run and R373_the_buttons_of_the_window_drive_the_session_and_apply_is_off_before_the_dry_run.
+
+## Review data, review-data.png against 13-workflow-changes.md
+
+The window of button 3, built in Lane B 5c, rule R402. Its texts, columns, chips and side box are those of Review data (5c) in docs/design/13-workflow-changes.md, held by test R402_the_texts_of_the_window_are_those_of_the_workflow_changes_word_for_word. Its look is 7.3 and 7.4 of docs/design/12-ui-spec.md: the band on SA.Band with the title 20 SemiBold, the How to use line on SA.Guide, the chips with the active one filled SA.Band, the selected row on SA.Selected with a 3 px SA.Accent mark, the side box 340 wide on SA.Panel.
+
+### Sample data
+
+Made up plots of a made up NBH 012, no coordinate or level of a real model. The corners are a 20 by 25 square at 5000, 6000 of shared coordinates and the survey point of the sample site file puts the model coordinates at 100, 200. Plots 34 and 35 have no plan of button 4, so their cluster and road read "not read yet", and plot 35 has no villa type either.
+
+### Every size Code chose (CHOSEN)
+
+1. The window is 1280 wide and at most 800 high as the Set up site window.
+2. The table columns are 88, 96, 112, 96, 112, 88 and 128, Team check takes the rest. The side box label column is 120, the corner name column 72. The Find plot box is 200 wide and the table at most 480 high, then it scrolls. These are keys of Theme.xaml.
+3. The table sits left and the side box right, the band and the How to use line over both. The window has no foot, Save review is the primary button of the band as 12-ui-spec.md 7.4 puts Save overrides.
+4. The Shared coordinates of a corner stand under its X and Y in the small muted text. X and Y are the model coordinates by the survey point of site.json, and show "not read yet" while the site file gives none.
+5. A message of Zoom to plot, Export to Excel or Save review shows in a band on SA.InfoGround under the How to use line.
+
+### Known differences
+
+1. Mirror is the mirror of the footprint block of the plot table until button 4 gives the one of its plan. Cluster, Front edge, Road at front and the corners come only from the plan of button 4 and read "not read yet" before it.
+2. Every row names the manual rule M01, as the tooltip of its Plot No and as "Manual rule M01" in the side box. No other rule of M01 to M15 reads what a row shows (CHOSEN).
+3. Export to Excel says it is not built yet, no xlsx writer is reachable from the add-in (R350). Zoom to plot says the same until the Revit side sets its delegate.

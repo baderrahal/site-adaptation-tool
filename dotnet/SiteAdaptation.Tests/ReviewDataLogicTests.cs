@@ -75,7 +75,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("C3", row.Cluster);
             Assert.False(row.Mirror);
             Assert.Equal("R7", row.RoadAtFront);
-            Assert.Equal("edge 1", row.FrontEdge);
+            Assert.Equal(1, row.FrontEdge);
             Assert.Equal(new[] { 1, 2, 3, 4 }, row.Corners.Select(corner => corner.Number));
             Assert.Equal(new[] { 0.0, 10.0, 10.0, 0.0 }, row.Corners.Select(corner => corner.SharedE));
             Assert.Equal(new[] { 0.0, 0.0, 10.0, 10.0 }, row.Corners.Select(corner => corner.SharedN));

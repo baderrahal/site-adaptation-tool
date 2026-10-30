@@ -87,7 +87,8 @@ namespace SiteAdaptation.Common.Review
 
         public string RoadAtFront { get; set; }
 
-        public string FrontEdge { get; set; }
+        // The number of the front edge in the ring of the plot, from 1
+        public int? FrontEdge { get; set; }
 
         public IReadOnlyList<ReviewCorner> Corners { get; set; } = new ReviewCorner[0];
 
