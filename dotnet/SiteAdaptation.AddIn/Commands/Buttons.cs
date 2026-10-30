@@ -67,8 +67,13 @@ namespace SiteAdaptation.AddIn
                 ReviewData.ReviewDataBody.Nbh = () => session?.Settings?.Scope?.Kind == Common.Settings.ScopeKinds.Nbh ? session.Settings.Scope.Nbh : null;
                 return ReviewData.ReviewDataBody.For(application.MainWindowHandle);
             };
+            Func<ButtonBody> checkTable = () => CheckTable.CheckTableBody.For(PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title), application.MainWindowHandle);
+            // Null until the pane sets the load, so this class names the Revit side only here, where Revit types are at home
+            Func<ButtonBody> placeVillas = PlaceVillas.PlaceVillasBody.IsSet ? (Func<ButtonBody>)(() => PlaceVillas.PlaceVillasBody.For(application)) : null;
             ButtonBody body = button.Number == 2 && document != null ? Bodies.Of(button, null, readData)
-                : button.Number == 3 ? Bodies.Of(button, null, null, reviewData) : Bodies.Of(button, () => SetUpSiteBody.For(application));
+                : button.Number == 3 ? Bodies.Of(button, null, null, reviewData)
+                : button.Number == 4 && document != null ? Bodies.Of(button, null, null, null, checkTable)
+                : button.Number == 7 && document != null ? Bodies.Of(button, null, null, null, null, placeVillas) : Bodies.Of(button, () => SetUpSiteBody.For(application));
             RunOutcome outcome = flow.Run(button.Number, button.Label, body, document == null ? null : document.PathName, later => Ended(application, document, button.Number, later));
             if (outcome.Message != null)
             {
@@ -105,7 +110,7 @@ namespace SiteAdaptation.AddIn
     }
 
     // R382. The body of each button. Button 1 is built in 5b and runs once its window is set, button 2 in 5c once its worker is set,
-    // every other one stops with the text of R371 through the flow
+    // buttons 3, 4 and 7 once their windows and loads are set, every other one stops with the text of R371 through the flow
     public static class Bodies
     {
         public static ButtonBody Of(int number)
@@ -134,6 +139,27 @@ namespace SiteAdaptation.AddIn
         // R402. reviewData makes the body of button 3 with the main window of Revit as owner, built once App sets the window and the load
         public static ButtonBody Of(RibbonButtonSpec button, Func<ButtonBody> setUp, Func<ButtonBody> readData, Func<ButtonBody> reviewData)
         {
+            return Of(button, setUp, readData, reviewData, null);
+        }
+
+        // R376. checkTable makes the body of button 4 on the document of the run, built once App sets the window
+        public static ButtonBody Of(RibbonButtonSpec button, Func<ButtonBody> setUp, Func<ButtonBody> readData, Func<ButtonBody> reviewData, Func<ButtonBody> checkTable)
+        {
+            return Of(button, setUp, readData, reviewData, checkTable, null);
+        }
+
+        // R377. placeVillas makes the body of button 7 on the active document, given only once the pane set the load of its inputs
+        public static ButtonBody Of(RibbonButtonSpec button, Func<ButtonBody> setUp, Func<ButtonBody> readData, Func<ButtonBody> reviewData, Func<ButtonBody> checkTable,
+            Func<ButtonBody> placeVillas)
+        {
+            if (button.Number == 4 && CheckTable.CheckTableBody.IsSet && checkTable != null)
+            {
+                return checkTable();
+            }
+            if (button.Number == 7 && placeVillas != null)
+            {
+                return placeVillas();
+            }
             if (button.Number == 3 && ReviewData.ReviewDataBody.IsSet && reviewData != null)
             {
                 return reviewData();

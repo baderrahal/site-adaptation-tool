@@ -57,6 +57,29 @@ namespace SiteAdaptation.AddIn
             ReadDataBody.Worker = new LaunchedWorker(LaunchedWorker.BesideAddIn(), host.Answers.Post);
             // R402. Button 3 reads the latest read of button 2 in the work folder of the run for the NBH of the scope
             ReviewData.ReviewDataBody.Load = context => Common.Review.ReviewLoad.Load(context.WorkFolder, ReviewData.ReviewDataBody.Nbh?.Invoke(), null);
+            // R376. Button 4 names the manual rule of a row by check type and field from the rules file of the pane, none where the profile
+            // lists none or has no block
+            CheckTable.CheckTableBody.ManualRule = rulesFile =>
+            {
+                Common.ManualRules.ManualRuleBlock block = null;
+                try
+                {
+                    block = string.IsNullOrEmpty(rulesFile) ? null : Common.ManualRules.ManualRuleBlock.FromFile(rulesFile);
+                }
+                catch (Exception error) when (error is System.IO.IOException || error is System.IO.InvalidDataException || error is Newtonsoft.Json.JsonException)
+                {
+                    block = null;
+                }
+                return block == null ? (Func<string, string, string>)null : block.IdOfCheck;
+            };
+            // R377. Button 7 loads the plan of the latest real run of 4 Check for the NBH of the scope of the active document. Every plot of
+            // the plan is in scope, a list of plots is not applied yet
+            PlaceVillas.PlaceVillasBody.Load = context =>
+            {
+                PaneSettings settings = host.model.Settings ?? new PaneSettings();
+                string nbh = settings.Scope.Kind == Common.Settings.ScopeKinds.Nbh ? settings.Scope.Nbh : null;
+                return Common.PlaceVillas.VillaLoad.Load(context, nbh, settings.ConfigFile, settings.VillaMode, settings.LevelProfile, null);
+            };
             host.model.RunRequested += number =>
             {
                 runner.Number = number;

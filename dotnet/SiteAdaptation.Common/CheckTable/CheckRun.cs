@@ -380,7 +380,18 @@ namespace SiteAdaptation.Common.CheckTable
             JObject block = config["checkRows"] as JObject ?? throw new InvalidDataException(CheckRows.NoBlock);
             string tableHash = FileHash.Sha256(Path.Combine(plan.ReadFolder, ReadDataRun.PlotTableFile));
             List<ReviewCheck> wrong = plan.Nbh == null ? new List<ReviewCheck>() : ReviewFile.WrongPlots(context.WorkFolder, plan.Nbh, tableHash);
-            return CheckTableBuild.Compose(plan.Nbh, step, block, wrong, plan.Past, manualRule, real);
+            CheckTableView view = CheckTableBuild.Compose(plan.Nbh, step, block, wrong, plan.Past, manualRule, real);
+            view.Info = Info(plan, step, levelProfile);
+            return view;
+        }
+
+        // 7.4 of the mock, the line under the title: the level profile the build took, the override list and its entries
+        private static CheckTableInfo Info(CheckPlan plan, JObject step, string levelProfile)
+        {
+            string rulesPath = plan.Inputs.Where(input => input.Role == Rules).Select(input => input.Path).FirstOrDefault();
+            JObject rules = JObject.Parse(WorkFiles.ReadText(rulesPath));
+            JObject list = JObject.Parse(WorkFiles.ReadText(plan.OverridesPath));
+            return CheckTableInfo.Of(BuildRules.ProfileName(rules, levelProfile), Path.GetFileName(plan.OverridesPath), list, step, plan.Nbh);
         }
 
         // R80. The plan of the build in its folder, the one file buttons 5 to 8 read

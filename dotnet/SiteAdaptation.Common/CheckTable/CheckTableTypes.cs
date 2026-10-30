@@ -106,6 +106,9 @@ namespace SiteAdaptation.Common.CheckTable
 
         // False in a dry run, Save overrides is greyed
         public bool SaveAllowed { get; set; }
+
+        // The line under the title, null where the run did not give it
+        public CheckTableInfo Info { get; set; }
     }
 
     // R376. What the window reaches outside it. Save writes the override list with the choices that differ from the opening value
@@ -116,6 +119,12 @@ namespace SiteAdaptation.Common.CheckTable
 
         // The text of the Use a row would get, for the side box, null for none
         public Func<CheckRow, string, string> Gives { get; set; }
+
+        // Zoom to plot and Export to Excel of the Revit side. Each gives the message to show, or null for none. While one is null its
+        // button is grey, as the Revit side of 4 Check does not wire them yet
+        public Func<CheckRow, string> Zoom { get; set; }
+
+        public Func<string> Export { get; set; }
     }
 
     // R376. The Use of each row when the window closed and whether Save overrides ran

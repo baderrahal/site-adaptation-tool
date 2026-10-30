@@ -142,6 +142,10 @@ namespace SiteAdaptation.Tests
             Assert.Single(table.Shown);
             Assert.True(table.Shown[0].SaveAllowed);
             Assert.Equal(CheckTableBuild.NoPastJob, table.Shown[0].NoPastJobLine);
+            // The line under the title: the profile of the rules file, the list by its file name and its entries
+            Assert.Equal("made-up.json", table.Shown[0].Info.OverrideFile);
+            Assert.False(string.IsNullOrEmpty(table.Shown[0].Info.LevelProfile));
+            Assert.True(table.Shown[0].Info.Overrides >= table.Shown[0].Info.OnNbh);
             Assert.Contains("\"use\": \"rule\", \"byHand\": true}", File.ReadAllText(Path.Combine(root, "repo", "config", "overrides", "made-up.json")));
             // The second build reads the list as saved, and the record names the checks of its run with the SHA-256
             Assert.NotEqual(first.Inputs.Single(input => input.Role == "overrides").Sha256, builder.Requests[1].Inputs.Single(input => input.Role == "overrides").Sha256);
