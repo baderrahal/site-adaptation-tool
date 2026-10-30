@@ -24,7 +24,7 @@ namespace SiteAdaptation.UiShots
     // R372, control 3 of docs/design/12-ui-spec.md. The one entry that renders each window offscreen at 100 percent scale, 96
     // DPI, with the sample data below and no Revit. The command line writes the drafts, the picture test renders again and holds
     // each against its baseline. Call it on a thread of a single threaded apartment
-    public static class Shots
+    public static partial class Shots
     {
         public const string RibbonIcons = "ribbon-icons";
         public const string Pane = "pane";
@@ -32,7 +32,8 @@ namespace SiteAdaptation.UiShots
         public const string SetUpSite = "setup-site";
         public const string ReviewData = "review-data";
         public const string Rules = "rules";
-        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules };
+        public const string CheckTable = "check-table";
+        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable };
 
         private const double Dpi = 96.0;
 
@@ -46,6 +47,7 @@ namespace SiteAdaptation.UiShots
                 case SetUpSite: return SetUpPage();
                 case ReviewData: return ReviewPage();
                 case Rules: return RulesPage();
+                case CheckTable: return CheckPage();
                 default: throw new ArgumentException("no window " + window + ", only " + string.Join(", ", Windows), nameof(window));
             }
         }

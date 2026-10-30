@@ -241,7 +241,7 @@ Built in Lane B 5c. The title, band line, buttons, chips, columns and side box a
 
 ### Check table
 
-Not built yet, Phase 5c.
+Built in Lane B 5c. The title, band, buttons, chips, columns and side box are those of 7.4 of docs/design/07-mock.md and 12-ui-spec.md, with Bader's changes of 28 Oct 2026 in docs/design/13-workflow-changes.md. The entries marked CHOSEN are Code's.
 
 - `4 Check, NBH <n>, <n> plots` CHOSEN, the title of 7.4 of docs/design/07-mock.md under the number 4 of docs/design/13-workflow-changes.md
 - `4 Check, NBH all, <n> plots` CHOSEN, as the line above
@@ -258,7 +258,9 @@ Not built yet, Phase 5c.
 - `Position`
 - `Level`
 - `Parameter`
+- `Assumed`
 - `<n> plots follow every rule`
+- `No past job was given, so Plot cut shows no rows and no plot is counted as following every rule on Plot cut.` CHOSEN, the one line of Q117 when the run has no past job
 - `Plot`
 - `NBH`
 - `Unit`
@@ -266,6 +268,7 @@ Not built yet, Phase 5c.
 - `Tool value (rule)`
 - `Past job`
 - `Rule`
+- `Manual rule` CHOSEN, the column and the side box heading for the manual rule ID of the row (every check row names it, 13-workflow-changes.md)
 - `Use`
 - `Past`
 - `Skip`
@@ -276,3 +279,9 @@ Not built yet, Phase 5c.
 - `Keep the tool value.`
 - `Use the past job. Saved as an override.`
 - `Leave this plot out. It is listed in the report.`
+- `Open in Site Adaptation Rules`
+- `Why` CHOSEN, the heading of the line that says why the row is listed
+- `none` CHOSEN, for a Tool or Past job value the row holds none of
+- `Pick a row from the table.` CHOSEN, the side box with no row selected
+- `Not saved yet` CHOSEN, under the chips after a Use was changed
+- `Overrides saved.` CHOSEN, after Save overrides

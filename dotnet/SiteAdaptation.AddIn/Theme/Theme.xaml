@@ -562,4 +562,16 @@
   <GridLength x:Key="SA.Grid.RulesChecked">176</GridLength>
   <GridLength x:Key="SA.Grid.RulesPast">200</GridLength>
 
+  <!-- R376, docs/design/07-mock.md 7.4. The columns of the check table are Code's choice, listed in steps/ui-shots/README.md. The two
+       value columns take the rest of the width -->
+  <GridLength x:Key="SA.Grid.CheckPlot">72</GridLength>
+  <GridLength x:Key="SA.Grid.CheckNbh">56</GridLength>
+  <GridLength x:Key="SA.Grid.CheckUnit">64</GridLength>
+  <GridLength x:Key="SA.Grid.CheckType">96</GridLength>
+  <GridLength x:Key="SA.Grid.CheckRule">128</GridLength>
+  <GridLength x:Key="SA.Grid.CheckManual">96</GridLength>
+  <GridLength x:Key="SA.Grid.CheckUse">104</GridLength>
+  <GridLength x:Key="SA.Grid.CheckSideLabel">96</GridLength>
+  <sys:Double x:Key="SA.Size.CheckList">480</sys:Double>
+
 </ResourceDictionary>

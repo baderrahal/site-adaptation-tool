@@ -25,6 +25,7 @@ namespace SiteAdaptation.AddIn
         {
             SetUpSiteBody.Dialog = owner => new SetUpSite.SetUpSiteDialog(owner);
             ReviewData.ReviewDataBody.Dialog = owner => new ReviewData.ReviewDataDialog(owner);
+            CheckTable.CheckTableBody.Dialog = (owner, rules) => new CheckTable.CheckTableDialog(owner, rules);
         }
 
         public Result OnShutdown(UIControlledApplication application)

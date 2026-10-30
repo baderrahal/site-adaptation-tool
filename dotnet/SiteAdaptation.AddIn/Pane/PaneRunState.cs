@@ -55,6 +55,10 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 inputs.AddRange(ReadDataBody.Inputs(model.Settings ?? new PaneSettings()));
             }
+            if (button == 4)
+            {
+                inputs.AddRange(CheckTable.CheckTableBody.Inputs(model.Settings ?? new PaneSettings()));
+            }
             return inputs;
         }
 

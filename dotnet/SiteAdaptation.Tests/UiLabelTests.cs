@@ -22,7 +22,7 @@ namespace SiteAdaptation.Tests
             Dictionary<string, List<UiLabels.Found>> shown = UiLabels.Texts(Path.Combine(root, "dotnet", "SiteAdaptation.AddIn"), Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Flow", "RunTexts.cs"));
 
             Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table" }, list.Keys.ToArray());
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
             Assert.Equal(16, list["Ribbon"].Entries.Count);
             Assert.Contains(shown["Ribbon"], found => found.Text == "Update from report");
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
@@ -137,8 +137,8 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Empty(missing);
-            // 56 since Lane B 5c, 11 of Review data, the 11 messages of 2 Read data (R375) and 12 of Site Adaptation Rules, 22 since Lane B 5b
-            Assert.Equal(56, chosen);
+            // 63 since Lane B 5c, 7 of Check table, 11 of Review data, the 11 messages of 2 Read data (R375) and 12 of Site Adaptation Rules, 22 since Lane B 5b
+            Assert.Equal(63, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
@@ -164,7 +164,8 @@ namespace SiteAdaptation.Tests
             Assert.Contains("4 Check", list["Ribbon"].Entries.Select(entry => entry.Text));
             // Lane B 5b built the window of button 1, so its entries are held against its files as every built window is
             Assert.True(list["Set up site"].Built);
-            Assert.False(list["Check table"].Built);
+            // Lane B 5c built the check table
+            Assert.True(list["Check table"].Built);
         }
 
         // Review 1 of PR 92: docs/design/README.md finds a part by its number, so no two parts share one, and the label list is 14

@@ -12,10 +12,11 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | setup-site.png | The Set up site window of button 1, an existing site file after the dry run, 7 of 7 check points pass, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | review-data.png | The Review data window of button 3, NBH 012 with 5 made up plots, the first three with a plan of button 4 and corners, two checked OK and one Wrong, plot 31 selected, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | rules.png | The Site Adaptation Rules window of the ribbon button of that name, the 15 rules of the block manualRules of the rules profile, rule M06 selected, the content of the window at 1280 wide with no title bar of Windows | Draft |
+| check-table.png | The check table window of button 4, NBH 012 with 5 made up plots and 8 rows of every kind, the first row selected, Save overrides on, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | revit-ribbon.png | The Site Adaptation tab in Revit 2024, cut from the window by PrintWindow in Revit run 3 of 5a, 29 Oct 2026 | Taken in Revit, for Bader's check |
 | revit-pane.png | The live pane page in Revit run 3 of 5a by RenderTargetBitmap at 96 DPI, first open state, the detached document of the run active | Taken in Revit, for Bader's check |
 
-Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md) were rendered into all three in Lane B 5a PR 8, his UI answers Q135, Q139 and Q140 of 29 Oct 2026 in Lane B 5a run 3 (fixed items 12 to 14). Set up site is built in 5b (W1 of steps/lane-b.md), its PNG is setup-site.png and its lists are at the end of this file. Review data is built in 5c (W5), its PNG is review-data.png and its list is at the end of this file. Site Adaptation Rules is built in 5c (W3), its PNG is rules.png and its list is at the end of this file. The check table comes in 5c, Update from report in 5f (W8), so none of these has a PNG yet.
+Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md) were rendered into all three in Lane B 5a PR 8, his UI answers Q135, Q139 and Q140 of 29 Oct 2026 in Lane B 5a run 3 (fixed items 12 to 14). Set up site is built in 5b (W1 of steps/lane-b.md), its PNG is setup-site.png and its lists are at the end of this file. Review data is built in 5c (W5), its PNG is review-data.png and its list is at the end of this file. Site Adaptation Rules is built in 5c (W3), its PNG is rules.png and its list is at the end of this file. The check table is built in 5c (W11), its PNG is check-table.png and its notes are at the end of this file. Update from report comes in 5f (W8), so it has no PNG yet.
 
 ## Render them again
 
@@ -247,3 +248,12 @@ The block manualRules of rules/roshn-makkah.json as it is in the repo, texts onl
 2. The header of the table does not move for the scroll bar, so its columns sit about 17 px left of the rows while the list scrolls.
 3. Export to Excel says it is not built yet, no xlsx writer is reachable from the add-in (R350). Open the manual PDF opens the file by the shell when it is in a folder of the profile and else names the folders it looked in.
 4. The past job column carries the column of docs/design/15-manual-rules.md until the override list or the build gives a measured text.
+
+### Check table, Lane B 5c (W11)
+
+- Columns Plot, NBH, Unit, Check, Tool value (rule), Past job, Rule, Manual rule and Use, the widths in Theme.xaml under SA.Grid.Check*. Manual rule is a column of its own, CHOSEN, as every check row names its manual rule ID (docs/design/13-workflow-changes.md). A row with no rule of the profile shows it empty. The Rule column shows the id of the coded rule, the manual rule text as its tooltip.
+- The window is modal like Review data, since ICheckTableDialog returns the answer to the worker callback. 7.4 of the mock asks for a modeless window, so this differs (CHOSEN).
+- Zoom to plot and Export to Excel are grey until the Revit side gives them a callback, Save overrides is grey in a dry run and when no callback is given.
+- The one plain line on the rule with its share and strong or weak is not shown, the rows carry no share yet. The line Why shows the why of the row instead (CHOSEN).
+- The chip Assumed has the dashed amber border of 7.4, it lists no row (item 8 of 7.7).
+- The picture is a render at 100 percent of made up plots 31 to 35, the units VL4, DT1, VL6, C10 and TH2, no coordinate and no level.

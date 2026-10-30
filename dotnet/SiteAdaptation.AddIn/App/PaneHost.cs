@@ -57,6 +57,21 @@ namespace SiteAdaptation.AddIn
             ReadDataBody.Worker = new LaunchedWorker(LaunchedWorker.BesideAddIn(), host.Answers.Post);
             // R402. Button 3 reads the latest read of button 2 in the work folder of the run for the NBH of the scope
             ReviewData.ReviewDataBody.Load = context => Common.Review.ReviewLoad.Load(context.WorkFolder, ReviewData.ReviewDataBody.Nbh?.Invoke(), null);
+            // R376. Button 4 names the manual rule of a row by check type and field from the rules file of the pane, none where the profile
+            // lists none or has no block
+            CheckTable.CheckTableBody.ManualRule = rulesFile =>
+            {
+                Common.ManualRules.ManualRuleBlock block = null;
+                try
+                {
+                    block = string.IsNullOrEmpty(rulesFile) ? null : Common.ManualRules.ManualRuleBlock.FromFile(rulesFile);
+                }
+                catch (Exception error) when (error is System.IO.IOException || error is System.IO.InvalidDataException || error is Newtonsoft.Json.JsonException)
+                {
+                    block = null;
+                }
+                return block == null ? (Func<string, string, string>)null : block.IdOfCheck;
+            };
             host.model.RunRequested += number =>
             {
                 runner.Number = number;
