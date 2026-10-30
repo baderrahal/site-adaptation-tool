@@ -285,3 +285,32 @@ Built in Lane B 5c. The title, band, buttons, chips, columns and side box are th
 - `Pick a row from the table.` CHOSEN, the side box with no row selected
 - `Not saved yet` CHOSEN, under the chips after a Use was changed
 - `Overrides saved.` CHOSEN, after Save overrides
+- `Entry level by the rule` CHOSEN, the Rule column and side box name of the code name entry (max 6 words, 07-mock.md item 31)
+- `FFL by the rule` CHOSEN, the Rule column and side box name of the code name ffl and height (max 6 words, 07-mock.md item 31)
+- `Ramp front level by the rule` CHOSEN, the Rule column and side box name of the code name rampFront (max 6 words, 07-mock.md item 31)
+- `Ramp front fall by the rule` CHOSEN, the Rule column and side box name of the code name rampFrontFall (max 6 words, 07-mock.md item 31)
+- `Ramp type by the rule` CHOSEN, the Rule column and side box name of the code name rampSlope (max 6 words, 07-mock.md item 31)
+- `Link origin by the rule` CHOSEN, the Rule column and side box name of the code name linkOrigin (max 6 words, 07-mock.md item 31)
+- `Link rotation by the rule` CHOSEN, the Rule column and side box name of the code name linkRotation (max 6 words, 07-mock.md item 31)
+- `Yard outline by the rule` CHOSEN, the Rule column and side box name of the code name yardOutline (max 6 words, 07-mock.md item 31)
+- `Ramp outline by the rule` CHOSEN, the Rule column and side box name of the code name rampOutline (max 6 words, 07-mock.md item 31)
+- `Generic floor by the rule` CHOSEN, the Rule column and side box name of the code name generic (max 6 words, 07-mock.md item 31)
+- `Steps by the rule` CHOSEN, the Rule column and side box name of the code name steps (max 6 words, 07-mock.md item 31)
+- `Villa hand by the rule` CHOSEN, the Rule column and side box name of the code name hand villa (max 6 words, 07-mock.md item 31)
+- `Cluster hand by the rule` CHOSEN, the Rule column and side box name of the code name hand cluster (max 6 words, 07-mock.md item 31)
+- `Single villa hand by the rule` CHOSEN, the Rule column and side box name of the code name hand alone (max 6 words, 07-mock.md item 31)
+- `Yard outline fitted to the plot` CHOSEN, the Rule column and side box name of the code name fittedOutlineRefit (max 6 words, 07-mock.md item 31)
+- `Hand by the cluster side` CHOSEN, the Rule column and side box name of the code name clusterSide (max 6 words, 07-mock.md item 31)
+- `Origin refit to the plot frame` CHOSEN, the Rule column and side box name of the code name plotFrameRefit (max 6 words, 07-mock.md item 31)
+- `Hand by the road side` CHOSEN, the Rule column and side box name of the code name blockMirrorRoadSide (max 6 words, 07-mock.md item 31)
+- `Hand by the open end` CHOSEN, the Rule column and side box name of the code name blockMirrorOpenEnd (max 6 words, 07-mock.md item 31)
+- `Parameter <n> by the rule` CHOSEN, the Rule column and side box name of the code name parameter <name> of the override list (max 6 words, 07-mock.md item 31)
+- `Open question <n>` CHOSEN, the Rule column and side box name of the code name a question ID of majority.decidedByQuestion (max 6 words, 07-mock.md item 31)
+- `<n> m above the rule` CHOSEN, Past job column, side box and Choose line for a past value of {"gapToRuleM": n} above 0, the list keeps the value as it is
+- `<n> m below the rule` CHOSEN, Past job column, side box and Choose line for a past value of {"gapToRuleM": n} below 0, the list keeps the value as it is
+- `on the rule` CHOSEN, Past job column, side box and Choose line for a gap of 0, the list keeps the value as it is
+- `along the front <n> m, into the plot <n> m` CHOSEN, Past job column, side box and Choose line for a position gap {"gapToRuleM": [x, y]}, signs kept, the list keeps the value as it is
+- `<n> degrees above the rule` CHOSEN, Past job column, side box and Choose line for a rotation gap {"gapToRuleDeg": n} above 0, the list keeps the value as it is
+- `<n> degrees below the rule` CHOSEN, Past job column, side box and Choose line for a rotation gap {"gapToRuleDeg": n} below 0, the list keeps the value as it is
+- `Mirrored` CHOSEN, Past job column, side box and Choose line for a past value true, the list keeps the value as it is
+- `Not mirrored` CHOSEN, Past job column, side box and Choose line for a past value false, the list keeps the value as it is

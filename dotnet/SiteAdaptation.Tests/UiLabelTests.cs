@@ -19,7 +19,8 @@ namespace SiteAdaptation.Tests
         {
             string root = ThemeGateTests.RepoRoot();
             Dictionary<string, UiLabels.Window> list = UiLabels.List(File.ReadAllText(Path.Combine(root, UiLabels.ListFile)));
-            Dictionary<string, List<UiLabels.Found>> shown = UiLabels.Texts(Path.Combine(root, "dotnet", "SiteAdaptation.AddIn"), Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Flow", "RunTexts.cs"));
+            Dictionary<string, List<UiLabels.Found>> shown = UiLabels.Texts(Path.Combine(root, "dotnet", "SiteAdaptation.AddIn"), Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Flow", "RunTexts.cs"),
+                Path.Combine(root, "dotnet", "SiteAdaptation.Common", "CheckTable", "CheckShownText.cs"));
 
             Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table" }, list.Keys.ToArray());
             Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
@@ -137,8 +138,8 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Empty(missing);
-            // 63 since Lane B 5c, 7 of Check table, 11 of Review data, the 11 messages of 2 Read data (R375) and 12 of Site Adaptation Rules, 22 since Lane B 5b
-            Assert.Equal(63, chosen);
+            // 92 since the plain rule names, 29 more of Check table, 63 since Lane B 5c, 7 of Check table, 11 of Review data, the 11 messages of 2 Read data (R375) and 12 of Site Adaptation Rules, 22 since Lane B 5b
+            Assert.Equal(92, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
@@ -257,7 +258,7 @@ namespace SiteAdaptation.Tests
         // The texts of each window, and under "no window" those of a XAML file that belongs to none, the theme included
         // runTexts is RunTexts.cs of the flow, whose texts and parts of texts are the messages of a button, with the common buttons
         // of a TaskDialog the add-in names, as Cancel
-        public static Dictionary<string, List<Found>> Texts(string addin, string runTexts = null)
+        public static Dictionary<string, List<Found>> Texts(string addin, string runTexts = null, string checkTexts = null)
         {
             var texts = new Dictionary<string, List<Found>>(StringComparer.Ordinal) { { "Ribbon", new List<Found>() }, { NoWindow, new List<Found>() }, { Messages, new List<Found>() } };
             if (runTexts != null)
@@ -274,6 +275,11 @@ namespace SiteAdaptation.Tests
             foreach (string name in Folders.Keys)
             {
                 texts[name] = new List<Found>();
+            }
+            // The plain rule names and the words of a past value are in Common so the net8.0 tests reach them, they belong to the check table
+            if (checkTexts != null)
+            {
+                texts["Check table"].AddRange(CodeTexts(File.ReadAllText(checkTexts)).Select(text => new Found { Text = text, Where = Path.GetFileName(checkTexts) }));
             }
             foreach (string path in Directory.EnumerateFiles(addin, "*", SearchOption.AllDirectories).OrderBy(path => path, StringComparer.Ordinal))
             {

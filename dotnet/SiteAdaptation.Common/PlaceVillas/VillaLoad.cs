@@ -1,10 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common.CheckTable;
 using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.ReadData;
+using SiteAdaptation.Common.Scope;
 using SiteAdaptation.Common.Review;
+using SiteAdaptation.Common.Settings;
 
 namespace SiteAdaptation.Common.PlaceVillas
 {
@@ -30,6 +34,37 @@ namespace SiteAdaptation.Common.PlaceVillas
             string lastPath = Path.Combine(context.WorkFolder, "place_" + nbh + ".json");
             JObject last = File.Exists(lastPath) ? JObject.Parse(WorkFiles.ReadText(lastPath)) : null;
             return VillaInputs.Of(plan, FileHash.Sha256(plan), configPath, pickedMode, profile, inScope, blocks, last);
+        }
+
+        // R366. The scope of the pane held against the plot table of the latest read: an NBH takes every plot of its plan, a plot list takes
+        // the plots it names and the one NBH they stand in, a whole project has no one NBH and stops as it did
+        public static VillaInputs Load(RunContext context, SettingsScope scope, string configPath, string pickedMode, string profile)
+        {
+            scope = scope ?? new SettingsScope();
+            if (scope.Kind != ScopeKinds.Plots)
+            {
+                return Load(context, scope.Kind == ScopeKinds.Nbh ? scope.Nbh : null, configPath, pickedMode, profile, null);
+            }
+            string read = ReviewLoad.LatestReadFolder(context.WorkFolder);
+            string tablePath = read == null ? null : Path.Combine(read, ReadDataRun.PlotTableFile);
+            if (tablePath == null || !File.Exists(tablePath))
+            {
+                throw new InvalidDataException("a plot list needs the plot table of 2 Read data, run 2 Read data first");
+            }
+            List<ScopePlot> table = ReadDataRun.ScopePlots(JObject.Parse(WorkFiles.ReadText(tablePath))).ToList();
+            ScopeResult result = ButtonScope.Resolve(context.Button, scope, table);
+            if (!result.Ok)
+            {
+                throw new InvalidDataException("the plot list stops the button: " + string.Join(", ", result.Stops));
+            }
+            var chosen = new HashSet<string>(result.Plots, StringComparer.Ordinal);
+            List<string> nbhs = table.Where(plot => chosen.Contains(ButtonScope.WholeNumber(plot.Number))).Select(plot => (plot.Nbh ?? "").Trim()).Distinct(StringComparer.Ordinal)
+                .OrderBy(nbh => nbh, StringComparer.Ordinal).ToList();
+            if (nbhs.Count != 1 || nbhs[0].Length == 0)
+            {
+                throw new InvalidDataException("7 Place villas works on one NBH, the plot list stands in " + (nbhs.Count == 0 ? "none" : string.Join(", ", nbhs)) + ". Name the plots of one NBH");
+            }
+            return Load(context, nbhs[0], configPath, pickedMode, profile, chosen.Contains);
         }
 
         // The plan file of the check folder with the largest run id that holds one for the NBH, the folder of a build again after Save

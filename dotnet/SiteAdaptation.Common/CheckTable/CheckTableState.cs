@@ -82,7 +82,7 @@ namespace SiteAdaptation.Common.CheckTable
         }
 
         // The text a Use would give the row, for the side box. A callback gives its own, else Rule gives the tool value, Past the value
-        // it writes and Skip nothing
+        // it writes in words and Skip nothing
         public static string Gives(CheckRow row, string use, Func<CheckRow, string, string> given)
         {
             string own = given?.Invoke(row, use);
@@ -90,8 +90,7 @@ namespace SiteAdaptation.Common.CheckTable
             {
                 return own;
             }
-            JToken token = use == CheckUse.Rule ? row.ToolValue : use == CheckUse.Past ? row.PastValue : null;
-            return Text(token);
+            return use == CheckUse.Past ? CheckShown.Past(row.PastValue) : Text(use == CheckUse.Rule ? row.ToolValue : null);
         }
 
         // A value as one line: a text as it is, an object or array compact
