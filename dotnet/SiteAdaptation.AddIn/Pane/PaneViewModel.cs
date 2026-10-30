@@ -8,6 +8,8 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.Settings;
+using SiteAdaptation.Common.Steps;
 
 namespace SiteAdaptation.AddIn.Pane
 {
@@ -18,7 +20,7 @@ namespace SiteAdaptation.AddIn.Pane
         private readonly IInputProbe probe;
         private readonly IPathPicker picker;
         private DocumentSession document;
-        private IReadOnlyList<StepStatus> statuses = StepPlan.Before5c(false);
+        private IReadOnlyList<StepStatus> statuses = StepPlan.None(false);
         private bool statusesFromOutside;
         private bool refreshing;
         private bool again;
@@ -54,8 +56,8 @@ namespace SiteAdaptation.AddIn.Pane
             });
             Steps = new ReadOnlyCollection<StepRowViewModel>(RibbonLayout.Buttons.Select(button => new StepRowViewModel(button.Number, StepName(button.Number), PaneText.StepLines[button.Number - 1])).ToList());
             BoxCommand = new PaneCommand(OnBox, () => document != null);
-            ImportCommand = new PaneCommand(() => Tell(PaneText.ImportPastJob), () => document != null);
-            ExportCommand = new PaneCommand(() => Tell(PaneText.Export), () => document != null);
+            ImportCommand = new PaneCommand(ImportPreSetting, () => document != null);
+            ExportCommand = new PaneCommand(ExportPreSetting, () => document != null);
             Load(null);
         }
 
@@ -249,14 +251,14 @@ namespace SiteAdaptation.AddIn.Pane
             get { return document; }
         }
 
-        // A real run of a button that committed marks its step line in memory, the lines after it follow
-        public void Committed(int button, StepStatus status)
+        // A real run of a button that committed is kept with the document, its step line and the lines after it follow by R366
+        public void Committed(int button, StepRun run)
         {
             if (document == null)
             {
                 return;
             }
-            document.Done[button] = status;
+            document.Runs[button] = run;
             statusesFromOutside = false;
             RefreshAll();
         }
@@ -303,9 +305,13 @@ namespace SiteAdaptation.AddIn.Pane
 
         private void RefreshOnce()
         {
+            if (document != null)
+            {
+                document.Settings.VillaModeDefault = probe.VillaModeDefault(document.Settings.ConfigFile);
+            }
             if (!statusesFromOutside)
             {
-                statuses = document == null ? StepPlan.Before5c(false) : StepPlan.From(document.Settings.Chosen, document.Done);
+                statuses = document == null ? StepPlan.None(false) : StepPlan.Of(document.Settings.Chosen, document.Settings.Scope, StepsNow());
             }
             RefreshRow(SettingsRow, document == null ? null : new[] { document.Settings.ConfigFile });
             RefreshRow(RulesRow, document == null ? null : new[] { document.Settings.RulesFile });
@@ -356,7 +362,7 @@ namespace SiteAdaptation.AddIn.Pane
                 {
                     continue;
                 }
-                InputFile input = null;
+                SettingsInput input = null;
                 if (row.Keys.Count > at)
                 {
                     document.Settings.Inputs.TryGetValue(row.Keys[at], out input);
@@ -379,28 +385,106 @@ namespace SiteAdaptation.AddIn.Pane
                     input.Size = null;
                     input.Sha256 = null;
                 }
-                if (hashing.Add(path))
-                {
-                    // The hash is kept by path, so it shows on whatever document is shown when it ends, the one of the
-                    // request again after the user came back to it
-                    probe.Hash(path, row.Folder, hash =>
-                    {
-                        hashing.Remove(path);
-                        if (hash != null)
-                        {
-                            hashes[path] = new HashedInput(facts.Size, facts.Stamp, hash);
-                        }
-                        if (hash != null && document != null)
-                        {
-                            RefreshAll();
-                        }
-                    });
-                }
+                Ask(path, row.Folder, facts);
             }
             string name = names.Count == 0 ? PaneText.NotChosen : string.Join(", ", names);
             // QL15. The row shows the file name alone, at 380 wide the size and hash showed on no row, so the tooltip gives each
             // under its full path
             row.Show(true, found && names.Count == paths.Length, name, tips.Count == 0 ? null : string.Join(Environment.NewLine, tips));
+        }
+
+        // The hash is kept by path, so it shows on whatever document is shown when it ends, the one of the request again after the
+        // user came back to it
+        private void Ask(string path, bool folder, InputFacts facts)
+        {
+            if (!hashing.Add(path))
+            {
+                return;
+            }
+            probe.Hash(path, folder, hash =>
+            {
+                hashing.Remove(path);
+                if (hash != null)
+                {
+                    hashes[path] = new HashedInput(facts.Size, facts.Stamp, hash);
+                }
+                if (hash != null && document != null)
+                {
+                    RefreshAll();
+                }
+            });
+        }
+
+        // The SHA-256 of a path as the disk holds it now, null while it is not on disk or not hashed yet, and then its hash is asked
+        private string KnownHash(string path, bool folder)
+        {
+            InputFacts facts = probe.Look(path, folder);
+            if (!facts.Found)
+            {
+                return null;
+            }
+            if (hashes.TryGetValue(path, out HashedInput known) && known.Size == facts.Size && known.Stamp == facts.Stamp)
+            {
+                return known.Sha256;
+            }
+            Ask(path, folder, facts);
+            return null;
+        }
+
+        // R366, W9. Each step with a last run as StepStates reads it now: the run of this session, else the last run of the settings,
+        // the one hash over the inputs of its button by the hashes of the pane, none while one is not on disk or not hashed, and the
+        // SHA-256 of each output of its record on disk
+        private Dictionary<int, StepNow> StepsNow()
+        {
+            var steps = new Dictionary<int, StepNow>();
+            for (int step = 1; step <= StepPlan.Count; step++)
+            {
+                StepRun run = LastRun(step);
+                if (run == null)
+                {
+                    continue;
+                }
+                var now = new Dictionary<string, string>(StringComparer.Ordinal);
+                bool missing = false;
+                foreach (RunInput input in PaneRunState.InputsOf(document.Settings, step))
+                {
+                    string hash = string.IsNullOrEmpty(input.Path) ? null : KnownHash(input.Path, input.IsFolder);
+                    missing |= hash == null;
+                    now[input.Name] = hash;
+                }
+                var outputs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (string output in run.Outputs.Keys)
+                {
+                    string hash = KnownHash(output, false);
+                    if (hash != null)
+                    {
+                        outputs[output] = hash;
+                    }
+                }
+                steps[step] = new StepNow(run, missing ? null : StepHash.Combine(now), outputs);
+            }
+            return steps;
+        }
+
+        // A last run of the settings that does not read is no run, R367 refused it already when the time is no ISO text
+        private StepRun LastRun(int step)
+        {
+            if (document.Runs.TryGetValue(step, out StepRun run))
+            {
+                return run;
+            }
+            if (!document.Settings.Project.LastRuns.TryGetValue(step.ToString(CultureInfo.InvariantCulture), out ButtonRun last) || last == null)
+            {
+                return null;
+            }
+            try
+            {
+                return StepRun.From(last, null);
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
         }
 
         private void RefreshHelp()
@@ -471,11 +555,44 @@ namespace SiteAdaptation.AddIn.Pane
             }
         }
 
-        // The pre-setting has no logic in 5a, it joins R367 at 5c (W4 of steps/lane-b.md), so its buttons say they are not built
-        // yet in the words of the ribbon buttons with no body
-        private void Tell(string label)
+        // W4, R367. Import reads a pre-setting into the settings in memory, a pick as Browse is, so it reaches the document with the
+        // next real run. A file the reader refuses or cannot read is told and changes nothing
+        private void ImportPreSetting()
         {
-            Told?.Invoke(RunTexts.NotBuilt(label));
+            string path = document == null || picker == null ? null : picker.File(PaneText.ImportPastJob);
+            if (path == null)
+            {
+                return;
+            }
+            try
+            {
+                PreSetting.Import(File.ReadAllText(path), document.Settings.Project);
+            }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is InvalidDataException)
+            {
+                Told?.Invoke(error.Message);
+                return;
+            }
+            RefreshAll();
+        }
+
+        // Export writes the pre-setting of the settings in memory to the file the user names, outside any work folder or input root
+        // only as the user chooses it, since the pre-setting holds no drawing path and no coordinate
+        private void ExportPreSetting()
+        {
+            string path = document == null || picker == null ? null : picker.Save(PaneText.Export);
+            if (path == null)
+            {
+                return;
+            }
+            try
+            {
+                File.WriteAllText(path, PreSetting.Export(document.Settings.Project), new System.Text.UTF8Encoding(false));
+            }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException)
+            {
+                Told?.Invoke(error.Message);
+            }
         }
 
         private bool ScopeIs(string kind)

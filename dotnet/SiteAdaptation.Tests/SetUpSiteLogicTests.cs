@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.SetUp;
+using SiteAdaptation.Common.Settings;
 using Xunit;
 
 namespace SiteAdaptation.Tests
@@ -461,6 +462,65 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { RunId + " 1" }, tags.Asked);
             Assert.True(calls.IndexOf("tag") > calls.IndexOf("parameters") && calls.IndexOf("tag") < calls.IndexOf("commit"));
             Assert.Empty(new NoTags().Tag(RunId, 1));
+        }
+
+        // J1 and J19 of steps/lane-b.md. Button 1 writes the Settings entity of R367 with the record of its real run inside its
+        // transaction, after the tag step and before the commit, and the settings of the pane are not changed by it
+        [Fact]
+        public void R367_button_1_writes_the_settings_entity_with_its_last_run_inside_the_transaction()
+        {
+            const string hash = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            var run = new SetUpRun(document, new FakeDialog(), new FakeTags(calls), File.ReadAllText, Settings, null)
+                .Recording(() => settings, entity, () => new DateTime(2026, 10, 30, 12, 0, 0, DateTimeKind.Utc));
+            var flow = new ButtonFlow(new FakeState(work, configPath), new FakeModel(calls), null, input => hash, () => RunId);
+
+            RunOutcome outcome = flow.Run(1, "1 Set up site", run.Body(), Document);
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.Empty(outcome.Record.Issues);
+            Assert.True(calls.IndexOf("settings") > calls.IndexOf("tag") && calls.IndexOf("settings") < calls.IndexOf("commit"));
+            ProjectSettings written = SettingsJson.Read(entity.Json);
+            ButtonRun last = written.LastRuns["1"];
+            Assert.Equal("2026-10-30T12:00:00.000Z", last.Time);
+            Assert.Equal(RunModes.Direct, last.Mode);
+            Assert.Equal(ScopeKinds.Project, last.Scope.Kind);
+            Assert.Equal(hash, last.InputHashes[Settings]);
+            Assert.Equal(configPath, written.ConfigFile);
+            Assert.Empty(settings.LastRuns);
+
+            // A second run with nothing to set opens no transaction, so the entity is not written again
+            calls.Clear();
+            Assert.Equal(RunEnd.Cancelled, flow.Run(1, "1 Set up site", run.Body(), Document).End);
+            Assert.Equal(1, entity.Writes);
+        }
+
+        private sealed class RecordingEntity : ISettingsEntity
+        {
+            private readonly List<string> calls;
+
+            public RecordingEntity(List<string> calls)
+            {
+                this.calls = calls;
+            }
+
+            public string Json { get; private set; }
+            public int Writes { get; private set; }
+
+            public string Read()
+            {
+                return Json;
+            }
+
+            public void Write(string json)
+            {
+                calls.Add("settings");
+                Writes++;
+                Json = json;
+            }
         }
 
         private RunOutcome Run(FakeDocument document, FakeDialog dialog, ITagStep tags, List<string> calls)

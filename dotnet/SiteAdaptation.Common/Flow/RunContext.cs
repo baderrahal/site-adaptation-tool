@@ -34,6 +34,9 @@ namespace SiteAdaptation.Common.Flow
         public IReadOnlyList<RunInput> Inputs { get; }
         public IReadOnlyDictionary<string, string> InputHashes { get; }
 
+        // The open transaction of the real run while Apply runs, else null, so a body writes the Settings entity of R367 inside it
+        public IModelTransaction Transaction { get; internal set; }
+
         public bool DryRun
         {
             get { return DryFolder != null; }

@@ -39,6 +39,12 @@ namespace SiteAdaptation.AddIn.Pane
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
 
+        public string Save(string title)
+        {
+            var dialog = new SaveFileDialog { Title = title, OverwritePrompt = true };
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
+
         public string Folder()
         {
             using (var dialog = new System.Windows.Forms.FolderBrowserDialog { ShowNewFolderButton = false })

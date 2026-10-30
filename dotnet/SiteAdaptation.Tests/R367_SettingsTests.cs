@@ -154,15 +154,58 @@ namespace SiteAdaptation.Tests
             Assert.Contains("the number with decimals 12.5 at lastRuns.6.counts.top", refused.Message);
         }
 
+        // W4 of steps/lane-b.md. A pre-setting is the settings JSON of R367 with the job files only, never a drawing path, a scope or a
+        // last run, and Import puts its files into the settings in memory and keeps the drawing inputs and runs of the project
+        [Fact]
+        public void R367_a_pre_setting_exports_no_drawing_path_and_import_brings_only_the_job_files()
+        {
+            var job = new ProjectSettings { ConfigFile = @"D:\job\config\project.json", RulesFile = @"D:\job\rules\r.json", LevelProfile = "parsons2024Rev6", DryRunFirst = false, VillaMode = VillaModes.Links };
+            job.Inputs[InputNames.Baseplan] = new SettingsInput { Path = @"D:\job\in\base.dwg", Size = 10, Sha256 = Hash };
+            job.Inputs[InputNames.ParameterSheet] = new SettingsInput { Path = @"D:\job\sheet.xlsx", Size = 5, Sha256 = Hash };
+            job.Scope = new SettingsScope { Kind = ScopeKinds.Nbh, Nbh = "002" };
+            job.LastRuns["1"] = new ButtonRun { Time = "2026-10-30T10:00:00.000Z", Mode = RunModes.Direct, Scope = new SettingsScope() };
+
+            string text = PreSetting.Export(job);
+            Assert.DoesNotContain("base.dwg", text);
+            ProjectSettings read = SettingsJson.Read(text);
+            Assert.Equal(new[] { InputNames.ParameterSheet }, read.Inputs.Keys);
+            Assert.Null(read.Inputs[InputNames.ParameterSheet].Sha256);
+            Assert.Empty(read.LastRuns);
+            Assert.Equal(ScopeKinds.Project, read.Scope.Kind);
+
+            var here = new ProjectSettings();
+            here.Inputs[InputNames.Curbs] = new SettingsInput { Path = @"E:\new\curbs.dwg" };
+            here.LastRuns["2"] = new ButtonRun { Time = "2026-10-30T11:00:00.000Z", Mode = RunModes.Direct, Scope = new SettingsScope() };
+            PreSetting.Import(text, here);
+            Assert.Equal(job.ConfigFile, here.ConfigFile);
+            Assert.Equal(job.RulesFile, here.RulesFile);
+            Assert.Equal("parsons2024Rev6", here.LevelProfile);
+            Assert.False(here.DryRunFirst);
+            Assert.Equal(VillaModes.Links, here.VillaMode);
+            Assert.Equal(@"D:\job\sheet.xlsx", here.Inputs[InputNames.ParameterSheet].Path);
+            Assert.Equal(@"E:\new\curbs.dwg", here.Inputs[InputNames.Curbs].Path);
+            Assert.True(here.LastRuns.ContainsKey("2"));
+
+            // The settings of a project are no pre-setting, each refusal names why
+            Assert.Contains("the input baseplan", Assert.Throws<InvalidDataException>(() => PreSetting.Import(SettingsJson.Write(job), new ProjectSettings())).Message);
+            job.Inputs.Remove(InputNames.Baseplan);
+            Assert.Contains("no scope and no last run", Assert.Throws<InvalidDataException>(() => PreSetting.Import(SettingsJson.Write(job), new ProjectSettings())).Message);
+            Assert.Contains("number with decimals", Assert.Throws<InvalidDataException>(() => PreSetting.Import("{\"formatVersion\": 1, \"configFile\": 12.5}", new ProjectSettings())).Message);
+        }
+
 #if NETFRAMEWORK
         // The add-in is built for net48 only, so the pane lists are held on that runtime
         [Fact]
-        public void R367_the_lists_of_common_and_of_the_pane_name_the_same_values_until_5c_joins_them()
+        public void R367_the_pane_holds_the_lists_and_the_settings_of_common_since_5c_joined_them()
         {
-            // Review 1 of 4h-1: join J1 of 5c moves the pane onto SettingsJson, till then a value one side names the other refuses
-            Assert.Equal(SiteAdaptation.AddIn.Pane.ScopeKinds.All, ScopeKinds.All);
-            Assert.Equal(SiteAdaptation.AddIn.Pane.VillaModes.All, VillaModes.All);
-            Assert.Equal(SiteAdaptation.AddIn.Pane.InputKeys.All, InputNames.All);
+            // Join J1 of 5c: the pane has no lists of its own any more, so no value one side names can be refused by the other
+            Assert.Same(InputNames.All, SiteAdaptation.AddIn.Pane.InputKeys.All);
+            Assert.Null(typeof(SiteAdaptation.AddIn.Pane.PaneSettings).Assembly.GetType("SiteAdaptation.AddIn.Pane.ScopeKinds"));
+            Assert.Null(typeof(SiteAdaptation.AddIn.Pane.PaneSettings).Assembly.GetType("SiteAdaptation.AddIn.Pane.VillaModes"));
+            var project = new ProjectSettings();
+            var pane = new SiteAdaptation.AddIn.Pane.PaneSettings(project) { ConfigFile = "project.json" };
+            Assert.Equal("project.json", project.ConfigFile);
+            Assert.Equal(SettingsJson.Write(project), SettingsJson.Write(pane.Project));
         }
 #endif
 

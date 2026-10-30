@@ -10,6 +10,7 @@ using System.Windows.Media.Imaging;
 using SiteAdaptation.AddIn;
 using SiteAdaptation.AddIn.Icons;
 using SiteAdaptation.AddIn.Pane;
+using SiteAdaptation.Common.Settings;
 using SiteAdaptation.AddIn.ReviewData;
 using SiteAdaptation.AddIn.RulesWindow;
 using SiteAdaptation.AddIn.SetUpSite;
@@ -464,7 +465,7 @@ namespace SiteAdaptation.UiShots
             {
                 ConfigFile = Folder + "project.json",
                 RulesFile = Folder + "roshn-makkah.json",
-                Scope = new PaneScope { Kind = ScopeKinds.Nbh, Nbh = Nbh },
+                Scope = new SettingsScope { Kind = ScopeKinds.Nbh, Nbh = Nbh },
             };
             settings.Pick(InputKeys.Baseplan, Folder + "ROSHN Makkah Baseplan.dwg");
             settings.Pick(InputKeys.VillaBlocks, Folder + "Makkah Building Footprint.dwg");
@@ -517,6 +518,11 @@ namespace SiteAdaptation.UiShots
             {
                 done(string.Concat(sha.ComputeHash(Encoding.UTF8.GetBytes(name)).Select(value => value.ToString("x2"))));
             }
+        }
+
+        public string VillaModeDefault(string configFile)
+        {
+            return VillaModes.Masses;
         }
 
         public IReadOnlyList<string> LevelProfiles(string rulesFile, out string fallback)

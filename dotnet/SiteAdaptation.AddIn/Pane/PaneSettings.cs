@@ -1,25 +1,50 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common.Settings;
 
 namespace SiteAdaptation.AddIn.Pane
 {
-    // R372, docs/design/06-settings.md. The settings of one document as the pane holds them in memory. A pick changes them here
-    // only, nothing is written to the document in 5a. Join J1 of steps/lane-b.md: 5c puts R367, the settings JSON of Common
-    // built in 4h, in the place of this small reader
+    // R372, R367, docs/design/06-settings.md. The settings of one document as the pane holds them in memory, the ProjectSettings of
+    // R367 itself since join J1 of steps/lane-b.md, so the pane and the Settings entity read and write one JSON. A pick changes them
+    // here only, the entity is written with the record of a real run (SettingsStore)
     public sealed class PaneSettings
     {
-        public int FormatVersion { get; set; } = SettingsFile.Version;
-        public string ConfigFile { get; set; }
-        public string RulesFile { get; set; }
-        public string LevelProfile { get; set; }
-        public Dictionary<string, InputFile> Inputs { get; } = new Dictionary<string, InputFile>(StringComparer.Ordinal);
-        public PaneScope Scope { get; set; } = new PaneScope();
-        public bool DryRunFirst { get; set; } = true;
-        public string VillaMode { get; set; } = VillaModes.Masses;
+        public PaneSettings()
+            : this(new ProjectSettings())
+        {
+        }
+
+        public PaneSettings(ProjectSettings project)
+        {
+            Project = project ?? throw new ArgumentNullException(nameof(project));
+        }
+
+        public ProjectSettings Project { get; }
+
+        public int FormatVersion { get { return Project.FormatVersion; } set { Project.FormatVersion = value; } }
+        public string ConfigFile { get { return Project.ConfigFile; } set { Project.ConfigFile = value; } }
+        public string RulesFile { get { return Project.RulesFile; } set { Project.RulesFile = value; } }
+        public string LevelProfile { get { return Project.LevelProfile; } set { Project.LevelProfile = value; } }
+        public bool DryRunFirst { get { return Project.DryRunFirst; } set { Project.DryRunFirst = value; } }
+        public IDictionary<string, SettingsInput> Inputs { get { return Project.Inputs; } }
+
+        public SettingsScope Scope
+        {
+            get { return Project.Scope ?? (Project.Scope = new SettingsScope()); }
+            set { Project.Scope = value ?? new SettingsScope(); }
+        }
+
+        // R404. villaModeDefault of addin.lightMode of config, which the pane reads from the Settings file, null when it gives none
+        public string VillaModeDefault { get; set; }
+
+        // The pick of the row Villa mode, else the default of config. Only a pick reaches villaMode of the settings JSON
+        public string VillaMode
+        {
+            get { return Project.VillaMode ?? VillaModeDefault; }
+            set { Project.VillaMode = value; }
+        }
 
         public bool Chosen
         {
@@ -28,7 +53,7 @@ namespace SiteAdaptation.AddIn.Pane
 
         public string InputPath(string key)
         {
-            return Inputs.TryGetValue(key, out InputFile input) ? input.Path : null;
+            return Inputs.TryGetValue(key, out SettingsInput input) ? input.Path : null;
         }
 
         public void Pick(string key, string path)
@@ -37,127 +62,34 @@ namespace SiteAdaptation.AddIn.Pane
             {
                 throw new ArgumentException("no input " + key, nameof(key));
             }
-            Inputs[key] = new InputFile { Path = path };
+            Inputs[key] = new SettingsInput { Path = path };
         }
     }
 
-    public sealed class InputFile
-    {
-        public string Path { get; set; }
-        public long? Size { get; set; }
-        public string Sha256 { get; set; }
-    }
-
-    // The scope of section 3: the whole project, one neighbourhood or a list of plots
-    public sealed class PaneScope
-    {
-        public string Kind { get; set; } = ScopeKinds.Project;
-        public string Nbh { get; set; }
-        public string Plots { get; set; }
-    }
-
-    public static class ScopeKinds
-    {
-        public const string Project = "project";
-        public const string Nbh = "nbh";
-        public const string Plots = "plots";
-        public static readonly string[] All = { Project, Nbh, Plots };
-    }
-
-    // QL4, QL8, docs/design/11-light-mode.md. Masses by default, Links picked per run
-    public static class VillaModes
-    {
-        public const string Masses = "masses";
-        public const string Links = "links";
-        public static readonly string[] All = { Masses, Links };
-    }
-
-    // The inputs of 06-settings.md by their names in the settings JSON. parameterSheet, the parameter sheet Excel of the row Shared
-    // parameters of Bader's changes of 28 Oct 2026, is named by Code (CHOSEN), 06-settings.md gives it no key
+    // The inputs of 06-settings.md by their names in the settings JSON of R367, and the two the pane picks as folders
     public static class InputKeys
     {
-        public const string Baseplan = "baseplan";
-        public const string VillaBlocks = "villaBlocks";
-        public const string Curbs = "curbs";
-        public const string RoadSurface = "roadSurface";
-        public const string Dlus = "dlus";
-        public const string Sales = "sales";
-        public const string PlotNumbers = "plotNumbers";
-        public const string Prototypes = "prototypes";
-        public const string ParameterSheet = "parameterSheet";
-        public static readonly string[] All = { Baseplan, VillaBlocks, Curbs, RoadSurface, Dlus, Sales, PlotNumbers, Prototypes, ParameterSheet };
+        public const string Baseplan = InputNames.Baseplan;
+        public const string VillaBlocks = InputNames.VillaBlocks;
+        public const string Curbs = InputNames.Curbs;
+        public const string RoadSurface = InputNames.RoadSurface;
+        public const string Dlus = InputNames.Dlus;
+        public const string Sales = InputNames.Sales;
+        public const string PlotNumbers = InputNames.PlotNumbers;
+        public const string Prototypes = InputNames.Prototypes;
+        public const string ParameterSheet = InputNames.ParameterSheet;
+        public static readonly string[] All = InputNames.All;
         public static readonly string[] Folders = { RoadSurface, Prototypes };
     }
 
+    // J1. The pane reads a settings JSON by SettingsJson of R367, its small reader of 5a is gone
     public static class SettingsFile
     {
-        public const int Version = 1;
+        public const int Version = SettingsJson.Version;
 
         public static PaneSettings Read(string json)
         {
-            JObject root;
-            try
-            {
-                root = JObject.Parse(json);
-            }
-            catch (JsonException error)
-            {
-                throw new InvalidDataException("the settings file is no JSON object: " + error.Message, error);
-            }
-            JToken version = root["formatVersion"];
-            if (version == null || version.Type != JTokenType.Integer)
-            {
-                throw new InvalidDataException("the settings file has no whole formatVersion");
-            }
-            int read = version.Value<int>();
-            if (read > Version)
-            {
-                throw new InvalidDataException("the settings file is formatVersion " + read + ", this add-in reads up to " + Version);
-            }
-            var settings = new PaneSettings
-            {
-                FormatVersion = read,
-                ConfigFile = Text(root, "configFile"),
-                RulesFile = Text(root, "rulesFile"),
-                LevelProfile = Text(root, "levelProfile"),
-                DryRunFirst = root["dryRunFirst"] == null || root["dryRunFirst"].Value<bool>(),
-                VillaMode = Text(root, "villaMode") ?? VillaModes.Masses,
-            };
-            if (!VillaModes.All.Contains(settings.VillaMode))
-            {
-                throw new InvalidDataException("the settings file names villaMode " + settings.VillaMode + ", not one of " + string.Join(", ", VillaModes.All));
-            }
-            if (root["inputs"] is JObject inputs)
-            {
-                foreach (JProperty input in inputs.Properties())
-                {
-                    if (!InputKeys.All.Contains(input.Name))
-                    {
-                        throw new InvalidDataException("the settings file names an input " + input.Name + ", not one of " + string.Join(", ", InputKeys.All));
-                    }
-                    settings.Inputs[input.Name] = new InputFile
-                    {
-                        Path = Text(input.Value, "path"),
-                        Size = input.Value["size"] == null || input.Value["size"].Type == JTokenType.Null ? (long?)null : input.Value["size"].Value<long>(),
-                        Sha256 = Text(input.Value, "sha256"),
-                    };
-                }
-            }
-            if (root["scope"] is JObject scope)
-            {
-                settings.Scope = new PaneScope { Kind = Text(scope, "kind") ?? ScopeKinds.Project, Nbh = Text(scope, "nbh"), Plots = Text(scope, "plots") };
-                if (!ScopeKinds.All.Contains(settings.Scope.Kind))
-                {
-                    throw new InvalidDataException("the settings file names scope " + settings.Scope.Kind + ", not one of " + string.Join(", ", ScopeKinds.All));
-                }
-            }
-            return settings;
-        }
-
-        private static string Text(JToken parent, string name)
-        {
-            JToken value = parent[name];
-            return value == null || value.Type == JTokenType.Null ? null : value.Value<string>();
+            return new PaneSettings(SettingsJson.Read(json));
         }
     }
 
