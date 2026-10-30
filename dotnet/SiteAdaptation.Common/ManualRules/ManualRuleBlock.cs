@@ -29,6 +29,10 @@ namespace SiteAdaptation.Common.ManualRules
 
         // The values of the text for the side box, each written in the text
         public IReadOnlyList<string> Values { get; set; }
+
+        // The check types of 4 Check the rule covers, "Level" for every row of the type or "Level:steps" for the rows of one field. The
+        // profile names them, none is written in code (R376)
+        public IReadOnlyList<string> Checks { get; set; } = new string[0];
     }
 
     // R403. The manual the rules come from, named by the profile so another project names its own
@@ -107,7 +111,20 @@ namespace SiteAdaptation.Common.ManualRules
                     PastJob = Required(entry, "pastJob", id),
                     PastJobState = State(Required(entry, "pastJobState", id), id),
                     Values = Strings(entry["values"]),
+                    Checks = Strings(entry["checks"]),
                 });
+            }
+            var listed = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (ManualRule rule in rules)
+            {
+                foreach (string check in rule.Checks)
+                {
+                    if (listed.TryGetValue(check, out string other))
+                    {
+                        throw new InvalidDataException(BlockName + ": " + check + " is listed under " + other + " and " + rule.Id);
+                    }
+                    listed[check] = rule.Id;
+                }
             }
             return new ManualRuleBlock(info, rules);
         }
@@ -116,6 +133,23 @@ namespace SiteAdaptation.Common.ManualRules
         public ManualRule Find(string id)
         {
             return id != null && byId.TryGetValue(id, out ManualRule rule) ? rule : null;
+        }
+
+        // R376. The manual rule of a row of 4 Check, the rule that lists "check:field" first, else the one that lists the check type, null
+        // where no rule does
+        public string IdOfCheck(string check, string field)
+        {
+            if (check == null)
+            {
+                return null;
+            }
+            ManualRule found = null;
+            if (field != null)
+            {
+                found = Rules.FirstOrDefault(rule => rule.Checks.Contains(check + ":" + field));
+            }
+            found = found ?? Rules.FirstOrDefault(rule => rule.Checks.Contains(check));
+            return found?.Id;
         }
 
         // The id and the text for a side box, the id alone when the block does not hold it
