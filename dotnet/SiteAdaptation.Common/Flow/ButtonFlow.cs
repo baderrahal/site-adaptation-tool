@@ -35,7 +35,8 @@ namespace SiteAdaptation.Common.Flow
             {
                 return Stop(RunTexts.SaveFirst);
             }
-            int missing = state.MissingStep(number);
+            // A button with no number, Update from report, is no step of the pane and waits for none
+            int missing = number > 0 ? state.MissingStep(number) : 0;
             if (missing > 0)
             {
                 return Stop(RunTexts.NeedsStep(label, missing));
@@ -245,8 +246,11 @@ namespace SiteAdaptation.Common.Flow
                 }
             }
             var record = new RunRecord(context.RunId, context.InputHashes, issues, moved, failed);
-            state.Committed(context.Button, record);
-            string message = failed.Count == 0 ? null : RunTexts.HeldOpen(context.Label, RunTexts.Names(failed));
+            if (context.Button > 0)
+            {
+                state.Committed(context.Button, record);
+            }
+            string message = failed.Count > 0 ? RunTexts.HeldOpen(context.Label, RunTexts.Names(failed)) : body.Done?.Invoke(context);
             return new RunOutcome(RunEnd.Committed, message, record);
         }
     }

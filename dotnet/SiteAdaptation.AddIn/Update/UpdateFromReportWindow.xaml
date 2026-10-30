@@ -1,0 +1,194 @@
+<Window x:Class="SiteAdaptation.AddIn.Update.UpdateFromReportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:upd="clr-namespace:SiteAdaptation.AddIn.Update"
+        Title="{x:Static upd:UpdateFromReportText.Title}" Width="{DynamicResource SA.Size.DialogWidth}" MaxHeight="{DynamicResource SA.Size.DialogMaxHeight}"
+        SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SA.Surface}">
+  <!-- R402, 5f, docs/design/13-workflow-changes.md part Update from report top to bottom. Every colour, size and font by Theme.xaml, every text in
+       docs/design/14-ui-labels.md under Update from report -->
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/SiteAdaptation.AddIn;component/Theme/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <BooleanToVisibilityConverter x:Key="Shown" />
+
+      <Style x:Key="RowText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Body}">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+      </Style>
+      <Style x:Key="HeadText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Label}">
+        <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+      </Style>
+
+      <!-- The columns of the header and of each row, the same widths so they line up -->
+      <DataTemplate x:Key="TileCell" DataType="{x:Type upd:TileViewModel}">
+        <Border Background="{StaticResource SA.Panel}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.All}"
+                CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Box}" Margin="{StaticResource SA.Gap.Right8}">
+          <StackPanel>
+            <TextBlock Style="{StaticResource SA.Type.Count}" Text="{Binding Count}" />
+            <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.TextMuted}" Text="{Binding Label}" />
+          </StackPanel>
+        </Border>
+      </DataTemplate>
+
+      <DataTemplate x:Key="ChipCell" DataType="{x:Type upd:ChipViewModel}">
+        <Border CornerRadius="{StaticResource SA.Radius.Chip}" Padding="{StaticResource SA.Pad.Chip}" Margin="{StaticResource SA.Gap.Right8}" Cursor="Hand"
+                BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.All}" MouseLeftButtonUp="OnChip">
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Background" Value="{StaticResource SA.Surface}" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding Selected}" Value="True">
+                  <Setter Property="Background" Value="{StaticResource SA.Band}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <TextBlock Text="{Binding Text}">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Small}">
+                <Setter Property="Foreground" Value="{StaticResource SA.Text}" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Selected}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource SA.Surface}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+        </Border>
+      </DataTemplate>
+
+      <DataTemplate x:Key="ChangeRow" DataType="{x:Type upd:UpdateRowViewModel}">
+        <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
+          <Border.Style>
+            <Style TargetType="Border">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding BreaksRule}" Value="True">
+                  <Setter Property="Background" Value="{StaticResource SA.WarnGround}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <StackPanel>
+            <Grid MinHeight="{StaticResource SA.Size.Row}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{StaticResource SA.Grid.CheckDiff}" />
+                <ColumnDefinition Width="{StaticResource SA.Grid.CheckDiff}" />
+                <ColumnDefinition Width="{StaticResource SA.Grid.CheckPoint}" />
+                <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
+                <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <CheckBox Style="{StaticResource SA.Pane.Check}" VerticalAlignment="Center" IsChecked="{Binding Apply, Mode=TwoWay}" IsEnabled="{Binding CanTick}" />
+              <TextBlock Grid.Column="1" Style="{StaticResource RowText}" Text="{Binding Plot}" />
+              <TextBlock Grid.Column="2" Style="{StaticResource RowText}" Text="{Binding Field}" />
+              <TextBlock Grid.Column="3" Style="{StaticResource RowText}" Text="{Binding InModel}" />
+              <TextBlock Grid.Column="4" Style="{StaticResource RowText}" Text="{Binding InExcel}" />
+              <TextBlock Grid.Column="5" Style="{StaticResource RowText}" Text="{Binding RuleCheck}" ToolTip="{Binding RuleIds}" />
+            </Grid>
+            <Grid Margin="{StaticResource SA.Gap.Top4}" Visibility="{Binding BreaksManual, Converter={StaticResource Shown}}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{StaticResource SA.Grid.CheckDiff}" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <RadioButton Grid.Column="1" Style="{StaticResource SA.Pane.Radio}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static upd:UpdateFromReportText.KeepModel}"
+                           IsChecked="{Binding KeepModel, Mode=TwoWay}" />
+              <RadioButton Grid.Column="2" Style="{StaticResource SA.Pane.Radio}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static upd:UpdateFromReportText.ApplyAnyway}"
+                           IsChecked="{Binding ApplyAnyway, Mode=TwoWay}" />
+              <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" Margin="{StaticResource SA.Gap.Right8}" Text="{x:Static upd:UpdateFromReportText.Note}" />
+              <TextBox Grid.Column="4" Style="{StaticResource SA.Pane.Entry}" Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </Grid>
+          </StackPanel>
+        </Border>
+      </DataTemplate>
+    </ResourceDictionary>
+  </Window.Resources>
+
+  <DockPanel Background="{StaticResource SA.Surface}">
+    <!-- The foot on SA.Panel: the foot line, then Cancel, Dry run and Apply [n] changes -->
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.Panel}" Padding="{StaticResource SA.Pad.Foot}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Style="{StaticResource SA.Pane.Help}" VerticalAlignment="Center" Text="{x:Static upd:UpdateFromReportText.Foot}" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+          <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static upd:UpdateFromReportText.Cancel}" Click="OnCancel" />
+          <Button Style="{StaticResource SA.Button.DryRun}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static upd:UpdateFromReportText.DryRun}"
+                  IsEnabled="{Binding CanDryRun}" Click="OnDryRun" />
+          <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Left8}" Content="{Binding ApplyLabel}" IsEnabled="{Binding CanApply}" Click="OnApply" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.ErrorGround}" Padding="{StaticResource SA.Pad.Box}" Visibility="{Binding ShowsRefusal, Converter={StaticResource Shown}}">
+      <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.Error}" TextWrapping="Wrap" Text="{Binding RefusalLine}" />
+    </Border>
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.ErrorGround}" Padding="{StaticResource SA.Pad.Box}" Visibility="{Binding ProblemShown, Converter={StaticResource Shown}}">
+      <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.Error}" TextWrapping="Wrap" Text="{Binding ProblemLine}" />
+    </Border>
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.InfoGround}" Padding="{StaticResource SA.Pad.Box}" Visibility="{Binding DryShown, Converter={StaticResource Shown}}">
+      <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.Info}" TextWrapping="Wrap" Text="{Binding DryLine}" />
+    </Border>
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.WarnGround}" Padding="{StaticResource SA.Pad.Box}" Visibility="{Binding ShowsLacks, Converter={StaticResource Shown}}">
+      <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.Warn}" TextWrapping="Wrap" Text="{Binding LacksLine}" />
+    </Border>
+
+    <Border DockPanel.Dock="Top" Background="{StaticResource SA.Band}" Padding="{StaticResource SA.Pad.Box}">
+      <StackPanel>
+        <TextBlock Style="{StaticResource SA.Type.Title}" Foreground="{StaticResource SA.Surface}" Text="{x:Static upd:UpdateFromReportText.Title}" />
+        <StackPanel Orientation="Horizontal" Margin="{StaticResource SA.Gap.Top8}">
+          <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandText}" VerticalAlignment="Center" Text="{x:Static upd:UpdateFromReportText.PickLine}" />
+          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left16}" Content="{x:Static upd:UpdateFromReportText.Browse}" Click="OnBrowse" />
+          <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandAccent}" Margin="{StaticResource SA.Gap.Left16}" VerticalAlignment="Center" Text="{Binding FilesLine}" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="{StaticResource SA.Pad.Side}">
+        <ItemsControl ItemsSource="{Binding Tiles}" ItemTemplate="{StaticResource TileCell}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+        </ItemsControl>
+        <ItemsControl Margin="{StaticResource SA.Gap.Top16}" ItemsSource="{Binding Chips}" ItemTemplate="{StaticResource ChipCell}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+        </ItemsControl>
+        <Border Margin="{StaticResource SA.Gap.Top16}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.BorderStrong}" BorderThickness="{StaticResource SA.Line.Under}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.CheckDiff}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.CheckDiff}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.CheckPoint}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Style="{StaticResource HeadText}" Text="{x:Static upd:UpdateFromReportText.ColumnApply}" />
+            <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="{x:Static upd:UpdateFromReportText.ColumnPlot}" />
+            <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="{x:Static upd:UpdateFromReportText.ColumnField}" />
+            <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" Text="{x:Static upd:UpdateFromReportText.ColumnInModel}" />
+            <TextBlock Grid.Column="4" Style="{StaticResource HeadText}" Text="{x:Static upd:UpdateFromReportText.ColumnInExcel}" />
+            <TextBlock Grid.Column="5" Style="{StaticResource HeadText}" Text="{x:Static upd:UpdateFromReportText.ColumnRuleCheck}" />
+          </Grid>
+        </Border>
+        <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource ChangeRow}" />
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

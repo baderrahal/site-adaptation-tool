@@ -134,7 +134,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## 5e, button 9 Report
 
-- Status: open, Lane A, one session with 5f (D10)
+- Status: done on 2026-10-30 in Lane A on the laptop, one PR with 5f (D20), Q164 to Q167 and Q175 opened, its latent findings in steps/latent.md under 5e and 5f
 - Starts when: 4h-2
 - Rules: R381 button 9 Report. R384 the test host jobs moved to 6a (D10)
 - Join items: W7, J12 and J15 of steps/lane-b.md. Of the answer pass (Bader, 2026-10-29): Q123, 2 Read data counts the faces of plots.csv in the scope. Q124, the Counts box keeps its form until the Revit read fills its Revit column. Q125, one Issues row per weak wall decision
@@ -143,7 +143,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## 5f, the button Update from report
 
-- Status: open, Lane A, in the session of 5e (D10)
+- Status: done on 2026-10-30 in Lane A on the laptop, rule R402, one PR with 5e (D20), Q168 to Q174 and Q176 to Q179 opened
 - Starts when: 5e
 - What (Bader, D4 of steps/decisions-2026-10-28.md): a button reads the level Excel and the report Excel back after the team edits them, refuses an Excel whose build id or plan SHA-256 differs from the plan of the model, lists each change of an editable column against the model, checks it against the rules and applies it as an override of the list. Its rule id is given when the phase starts (CHOSEN)
 - Join items: W8 of steps/lane-b.md

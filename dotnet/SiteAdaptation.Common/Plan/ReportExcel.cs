@@ -33,11 +33,16 @@ namespace SiteAdaptation.Common
         public const string Skipped = "Skipped";
         public const string Override = "Override";
         public const string Issues = "Issues";
-        public static readonly string[] StepColumns = { Step, Done, Skipped, Override, Issues };
-        // The buttons 1 to 7 by the ribbon of item 1 of docs/addin-mock.md
-        public static readonly string[] Steps = { "1 Set up site", "2 Read data", "3 Check", "4 Place villas", "5 Floors and ramps", "6 Levels", "7 Walls" };
-        // CHOSEN: the worker holds no run log of button 1 before 5b, so its counts stay open
+        // R381, W7: the manual rule IDs of each line after the five columns of the mock, CHOSEN in 5e
+        public const string ManualRule = "Manual rule";
+        public static readonly string[] StepColumns = { Step, Done, Skipped, Override, Issues, ManualRule };
+        // R381, J12: the steps 1 to 8 of Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md, Order), 9 Report the step of the report
+        public static readonly string[] Steps = { "1 Set up site", "2 Read data", "3 Review data", "4 Check", "5 Floors and ramps", "6 Levels", "7 Place villas", "8 Walls" };
+        // CHOSEN: the worker holds no run log of button 1 or of 3 Review data, so their counts stay open
         public const string NotRun = "not run yet";
+        // CHOSEN in 5e: the words of a line when the rules profile holds no block manualRules, and when no rule of the block names its step
+        public const string NoManualBlock = "no manual rule block";
+        public const string NoManualRule = "no manual rule";
 
         public const string CountsBox = "Counts agree across outputs";
         public const string Item = "Item";
@@ -99,9 +104,12 @@ namespace SiteAdaptation.Common
 
         public const string Check = "Check";
         public const string Use = "Use";
-        public static readonly string[] IssueColumns = { Step, Plot, Check, Field, Source, Use, Why };
-        public const string ReportStep = "8 Report";
+        public static readonly string[] IssueColumns = { Step, Plot, Check, Field, Source, Use, Why, ManualRule };
+        public const string ReportStep = "9 Report";
         public const string CountsCheck = "Counts";
+        // Q125, CHOSEN in 5e: the row of a weak wall decision, its rule and share as the box Rules applied gives them
+        public const string WeakRuleCheck = "Weak rule";
+        public const string WeakWhy = "<rule> share <share>, weak";
 
         public const string Values = "Values";
         public static readonly string[] RuleSheetColumns = { Rule, Status, Basis, Plots, Values };
@@ -168,6 +176,8 @@ namespace SiteAdaptation.Common
         public JObject CheckRows { get; set; }
         public JObject Summary { get; set; }
         public List<Dictionary<string, string>> PlotRows { get; set; }
+        // R381, Q124: the counts the add-in read from the model, RevitCounts, null when the request gives none
+        public JObject RevitCounts { get; set; }
         public string RunId { get; set; }
         public string Profile { get; set; }
         public DateTime Now { get; set; }
@@ -249,7 +259,28 @@ namespace SiteAdaptation.Common
             {
                 return "the plan holds no table statusFrom, a report reads the status of each value of R401 (R365)";
             }
+            JToken manual = rules["manualRules"];
+            if (manual != null && (!(manual is JArray entries) || entries.Any(item => !(item is JObject entry) || entry["id"]?.Type != JTokenType.String
+                || !(entry["steps"] is JArray steps) || steps.Any(step => step.Type != JTokenType.String))))
+            {
+                return BadManualBlock;
+            }
             return null;
+        }
+
+        // R381, W7: the block manualRules of the rules profile that 5c writes from docs/design/15-manual-rules.md (W3), read when present
+        public const string BadManualBlock = "the block manualRules of the rules profile is no list of rules each with a text id and a list steps of the steps "
+            + "that check it, a report line names the manual rules of its step by them (R381)";
+
+        // The manual rule IDs of a line of the step, in the order of the block, or the words of no block or of no rule of the step
+        private static string ManualOf(Made made, string step)
+        {
+            if (made.Manual == null)
+            {
+                return ReportExcelText.NoManualBlock;
+            }
+            List<string> ids = made.Manual.Where(item => item.Item2.Contains(step)).Select(item => item.Item1).ToList();
+            return ids.Count == 0 ? ReportExcelText.NoManualRule : string.Join(ReportExcelText.ListJoin, ids);
         }
 
         // Each sourced value of a plot entry by its dotted path in the order of the entry, value_status.fields_of
@@ -310,6 +341,9 @@ namespace SiteAdaptation.Common
             public List<string> Assumed;
             public List<string> Worst;
             public HashSet<string> Skipped;
+            public List<Tuple<string, HashSet<string>>> Manual;
+            public string ScopeKind;
+            public List<Dictionary<string, string>> Faces;
         }
 
         public static ReportResult Build(ReportInputs inputs)
@@ -335,6 +369,10 @@ namespace SiteAdaptation.Common
                 Assumed = (inputs.Config["valueStatus"]?["assumed"] as JArray ?? new JArray()).Select(item => (string)item).ToList(),
                 Worst = (inputs.Config["valueStatus"]?["worstFirst"] as JArray ?? new JArray()).Select(item => (string)item).ToList(),
                 Skipped = new HashSet<string>((plan["summary"]["skipped"] as JArray ?? new JArray()).Select(item => (string)item)),
+                Manual = (inputs.Rules["manualRules"] as JArray)?.OfType<JObject>()
+                    .Select(item => Tuple.Create((string)item["id"], new HashSet<string>(((JArray)item["steps"]).Select(step => (string)step), StringComparer.Ordinal))).ToList(),
+                ScopeKind = Text(inputs.Summary?["scope"]),
+                Faces = inputs.PlotRows ?? new List<Dictionary<string, string>>(),
             };
             made.NotWritten = made.Missing.Where(item => item["written"]?.Type == JTokenType.Boolean && !(bool)item["written"]).ToList();
             var result = new ReportResult();
@@ -367,7 +405,7 @@ namespace SiteAdaptation.Common
             return result;
         }
 
-        // Review 1 of PR 96: the button of the Summary table an override field counts under, addin.report.stepOfField as rows 5 and 6 of 7.6 list
+        // Review 1 of PR 96 and R381: the step of the Summary table an override field counts under, addin.report.stepOfField as rows 5 to 7 of 7.6 list
         // the fields, else addin.report.defaultStep
         private static int StepOf(Made made, string field)
         {
@@ -395,8 +433,26 @@ namespace SiteAdaptation.Common
                 Name = ReportExcelText.SummarySheet,
                 TopLine = Fill(ReportExcelText.TopLine, "nbh", nbh, "n", order.Count.ToString(CultureInfo.InvariantCulture), "profile", inputs.Profile),
             };
-            summary.Tables.Add(StepTable(made, inputs.Rules["levelProfiles"][inputs.Profile]["keyRules"] as JObject ?? new JObject(), order, written, walls, placed, skipped, overrides, issues, result));
-            summary.Tables.Add(CountsTable(written, placed, issues, result, nbh));
+            JObject keyRules = inputs.Rules["levelProfiles"][inputs.Profile]["keyRules"] as JObject ?? new JObject();
+            List<string> weak = WeakWalls(made, keyRules);
+            summary.Tables.Add(StepTable(made, nbh, weak.Count, order, written, walls, placed, skipped, overrides, issues, result));
+            // Q125: one row per weak wall decision after the rows of 7.4, as 8 Walls counts them
+            string file = Text(inputs.Config["profile"]) ?? "";
+            foreach (string decision in weak)
+            {
+                JObject rule = (JObject)keyRules[decision];
+                JToken share = rule["share"];
+                string why = Fill(ReportExcelText.WeakWhy, "rule", Text(rule["rule"]) ?? "", "share",
+                    share != null && (share.Type == JTokenType.Float || share.Type == JTokenType.Integer) ? Number((double)share) : ReportExcelText.NotMeasured);
+                issues.Rows.Add(new object[]
+                {
+                    ReportExcelText.Steps[7], null, ReportExcelText.WeakRuleCheck, decision, file + " levelProfiles." + inputs.Profile + ".keyRules." + decision + ".rule", null, why,
+                    ManualOf(made, ReportExcelText.Steps[7]),
+                });
+            }
+            long[] revit = inputs.RevitCounts == null ? null
+                : RevitCounts.Totals(inputs.RevitCounts, number => made.Rows.TryGetValue(number, out Dictionary<string, string> row) && row.TryGetValue("nbhId", out string found) && found == nbh);
+            summary.Tables.Add(CountsTable(written, placed, revit, issues, result, nbh, ManualOf(made, ReportExcelText.ReportStep)));
             summary.Tables.Add(RulesBox(inputs, made, written, walls));
             book.Sheets.Add(summary);
             foreach (var item in new[]
@@ -517,14 +573,15 @@ namespace SiteAdaptation.Common
         // The rows of 7.4 of the plots of the NBH as the step checkRows of the build holds them (R363), in the order of the plan
         private static ReportTable IssuesTable(Made made, List<string> order)
         {
-            var table = new ReportTable { Header = ReportExcelText.IssueColumns, Formats = new string[7] };
+            var table = new ReportTable { Header = ReportExcelText.IssueColumns, Formats = new string[8] };
+            string manual = ManualOf(made, ReportExcelText.Steps[3]);
             foreach (string number in order)
             {
                 JObject step = made.StepPlots[number] as JObject;
                 JArray rows = (step?["written"] ?? step?["raw"])?["rows"] as JArray ?? new JArray();
                 foreach (JObject row in rows.OfType<JObject>())
                 {
-                    table.Rows.Add(new[] { ReportExcelText.Steps[2], number, Cell(row["check"]), Cell(row["field"]), Cell(row["from"]), Cell(row["use"]), Cell(row["why"]) });
+                    table.Rows.Add(new[] { ReportExcelText.Steps[3], number, Cell(row["check"]), Cell(row["field"]), Cell(row["from"]), Cell(row["use"]), Cell(row["why"]), manual });
                 }
             }
             return table;
@@ -575,55 +632,83 @@ namespace SiteAdaptation.Common
             return table;
         }
 
-        private static ReportTable StepTable(Made made, JObject keyRules, List<string> order, List<JObject> written, List<JObject> walls, ReportTable placed, ReportTable skipped,
+        // Review 1 of PR 96: the weak keyRules decisions of addin.report.wallDecisions, as 7.6 counts the weak wallTop under the walls
+        private static List<string> WeakWalls(Made made, JObject keyRules)
+        {
+            return made.WallDecisions.Where(name => keyRules[name] is JObject rule && rule["strong"]?.Type == JTokenType.Boolean && !(bool)rule["strong"]).ToList();
+        }
+
+        // R381, Q123: the faces of plots.csv of the NBH in the scope of the build. A build of the whole project or of the NBH holds every face of
+        // it, a cover only the faces of the plots its step summary lists, as a cover names plots and no face of no number
+        private static List<Dictionary<string, string>> FacesInScope(Made made, string nbh)
+        {
+            bool whole = made.ScopeKind == "project" || made.ScopeKind == "nbh=" + nbh;
+            return made.Faces.Where(row => row.TryGetValue("nbhId", out string found) && found == nbh
+                && (whole || (row.TryGetValue("locationPlanNumber", out string number) && made.Scope.ContainsKey(number ?? "")))).ToList();
+        }
+
+        // R381, J12: one row per step 1 to 8 of the order of Bader's changes of 28 Oct 2026, each with the manual rules of its step (W7)
+        private static ReportTable StepTable(Made made, string nbh, int weakWalls, List<string> order, List<JObject> written, List<JObject> walls, ReportTable placed, ReportTable skipped,
             ReportTable overrides, ReportTable issues, ReportResult result)
         {
-            var table = new ReportTable { Header = ReportExcelText.StepColumns, Formats = new string[5] };
+            var table = new ReportTable { Header = ReportExcelText.StepColumns, Formats = new string[6] };
             Func<int, string, long> outcome = (step, word) => overrides.Rows.Count(row => (string)row[2] == word && StepOf(made, (string)row[1]) == step);
             Func<ReportTable, Func<string, bool>, long> kinds = (sheet, kind) => sheet.Rows.Count(row => kind((string)row[1]));
             Func<string, bool> isFloor = kind => SiteCoordinates.FloorKinds.Contains(kind);
             var orderSet = new HashSet<string>(order);
-            // Review 1 of PR 96: Done and Skipped of 2 Read data over the one scope of the build, the plots of the step summary with a unit and with
-            // none, never the faces of plots.csv outside the scope
             foreach (string number in order.Where(number => !made.Scope.ContainsKey(number)))
             {
-                result.Issues.Add("plot " + number + " is in the plan and not in the step summary of the build, so 2 Read data counts it with no unit (R365)");
+                result.Issues.Add("plot " + number + " is in the plan and not in the step summary of the build, so its face is in no scope of 2 Read data (R381)");
             }
-            long withUnit = order.Count(number => made.Scope.TryGetValue(number, out JObject plot) && plot?["unit"]?.Type == JTokenType.String && ((string)plot["unit"]).Length > 0);
+            List<Dictionary<string, string>> faces = FacesInScope(made, nbh);
+            long withUnit = faces.Count(row => row.TryGetValue("typologyRev9", out string unit) && !string.IsNullOrEmpty(unit));
             long listed = made.Entries.Count(entry => orderSet.Contains(Text(entry["plot"]) ?? ""));
             long movedWalls = walls.Count(wall => WallValues(wall).Any(value => (made.Details[Text(value["statusFrom"]) ?? ""]?["overrides"] as JArray)?.Count > 0));
-            // Review 1 of PR 96: the Issues of 7 Walls are the weak keyRules decisions of the walls, as 7.6 counts the weak wallTop
-            long weakWalls = made.WallDecisions.Count(name => keyRules[name]?["strong"]?.Type == JTokenType.Boolean && !(bool)keyRules[name]["strong"]);
             long notWritten = order.Count - written.Count;
-            table.Rows.Add(new object[] { ReportExcelText.Steps[0], ReportExcelText.NotRun, ReportExcelText.NotRun, ReportExcelText.NotRun, ReportExcelText.NotRun });
-            table.Rows.Add(new object[] { ReportExcelText.Steps[1], withUnit, order.Count - withUnit, 0L, 0L });
-            table.Rows.Add(new object[] { ReportExcelText.Steps[2], (long)order.Count, (long)order.Count(made.Skipped.Contains), listed, (long)issues.Rows.Count });
-            table.Rows.Add(new object[] { ReportExcelText.Steps[3], kinds(placed, kind => kind == ReportExcelText.LinkKind), kinds(skipped, kind => kind == ReportExcelText.LinkKind), outcome(4, ReportExcelText.Applied), outcome(4, ReportExcelText.Left) });
-            table.Rows.Add(new object[] { ReportExcelText.Steps[4], kinds(placed, isFloor), kinds(skipped, isFloor), outcome(5, ReportExcelText.Applied), outcome(5, ReportExcelText.Left) });
-            table.Rows.Add(new object[] { ReportExcelText.Steps[5], (long)written.Count, notWritten, outcome(6, ReportExcelText.Applied), outcome(6, ReportExcelText.Left) });
-            table.Rows.Add(new object[] { ReportExcelText.Steps[6], (long)walls.Count, 0L, movedWalls, weakWalls });
+            object[] notRun = { ReportExcelText.NotRun, ReportExcelText.NotRun, ReportExcelText.NotRun, ReportExcelText.NotRun };
+            var rows = new[]
+            {
+                notRun,
+                new object[] { withUnit, faces.Count - withUnit, 0L, 0L },
+                notRun,
+                new object[] { (long)order.Count, (long)order.Count(made.Skipped.Contains), listed, (long)issues.Rows.Count },
+                new object[] { kinds(placed, isFloor), kinds(skipped, isFloor), outcome(5, ReportExcelText.Applied), outcome(5, ReportExcelText.Left) },
+                new object[] { (long)written.Count, notWritten, outcome(6, ReportExcelText.Applied), outcome(6, ReportExcelText.Left) },
+                new object[] { kinds(placed, kind => kind == ReportExcelText.LinkKind), kinds(skipped, kind => kind == ReportExcelText.LinkKind), outcome(7, ReportExcelText.Applied), outcome(7, ReportExcelText.Left) },
+                new object[] { (long)walls.Count, 0L, movedWalls, (long)weakWalls },
+            };
+            for (int index = 0; index < ReportExcelText.Steps.Length; index++)
+            {
+                table.Rows.Add(new object[] { ReportExcelText.Steps[index] }.Concat(rows[index]).Concat(new object[] { ManualOf(made, ReportExcelText.Steps[index]) }).ToArray());
+            }
             return table;
         }
 
-        // The box Counts agree across outputs: Revit open until the read of 5e fills it, Excel the rows of the Placed sheet the report built, the plan
-        // held against both apart and a mismatch of any two counts an issue of the report and the run
-        internal static ReportTable CountsTable(List<JObject> written, ReportTable placed, ReportTable issues, ReportResult result, string nbh)
+        // The box Counts agree across outputs: Revit the counts the add-in read from the model (Q124), not placed yet when the request gives none,
+        // Excel the rows of the Placed sheet the report built, the plan held against both apart. An item whose counts differ on any two is one
+        // issue naming the three, a text count compared with none
+        internal static ReportTable CountsTable(List<JObject> written, ReportTable placed, long[] revit, ReportTable issues, ReportResult result, string nbh, string manual)
         {
             var table = new ReportTable { Title = ReportExcelText.CountsBox, Header = ReportExcelText.CountColumns, Formats = new string[3], Bordered = true };
             long links = placed.Rows.Count(row => (string)row[1] == ReportExcelText.LinkKind);
             long floors = placed.Rows.Count(row => SiteCoordinates.FloorKinds.Contains((string)row[1]));
-            long planLinks = written.Count;
             long planFloors = written.Sum(plot => (plot["floors"] as JObject ?? new JObject()).Count);
-            table.Rows.Add(new object[] { ReportExcelText.Links, ReportExcelText.NotPlaced, links });
-            table.Rows.Add(new object[] { ReportExcelText.Floors, ReportExcelText.NotPlaced, floors });
-            table.Rows.Add(new object[] { ReportExcelText.Levels, ReportExcelText.NotPlaced, ReportExcelText.NoLevelRun });
-            foreach (var item in new[] { Tuple.Create(ReportExcelText.Links, planLinks, links), Tuple.Create(ReportExcelText.Floors, planFloors, floors) })
+            var items = new[]
             {
-                if (item.Item2 != item.Item3)
+                new object[] { ReportExcelText.Links, (long)written.Count, revit == null ? (object)ReportExcelText.NotPlaced : revit[0], links },
+                new object[] { ReportExcelText.Floors, planFloors, revit == null ? (object)ReportExcelText.NotPlaced : revit[1], floors },
+                new object[] { ReportExcelText.Levels, (long)written.Count, revit == null ? (object)ReportExcelText.NotPlaced : revit[2], ReportExcelText.NoLevelRun },
+            };
+            string rule = revit == null ? " (R365)" : " (R381)";
+            foreach (object[] item in items)
+            {
+                table.Rows.Add(new[] { item[0], item[2], item[3] });
+                List<long> numbers = item.Skip(1).OfType<long>().ToList();
+                if (numbers.Distinct().Count() > 1)
                 {
-                    string why = "the plan holds " + item.Item2 + ", Revit " + ReportExcelText.NotPlaced + ", Excel " + item.Item3 + " (R365)";
-                    result.Issues.Add("NBH " + nbh + " " + item.Item1 + ": " + why);
-                    issues.Rows.Add(new object[] { ReportExcelText.ReportStep, null, ReportExcelText.CountsCheck, item.Item1, null, null, why });
+                    string why = "the plan holds " + item[1] + ", Revit " + item[2] + ", Excel " + item[3] + rule;
+                    result.Issues.Add("NBH " + nbh + " " + item[0] + ": " + why);
+                    issues.Rows.Add(new object[] { ReportExcelText.ReportStep, null, ReportExcelText.CountsCheck, item[0], null, null, why, manual });
                 }
             }
             return table;

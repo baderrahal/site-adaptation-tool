@@ -26,6 +26,8 @@ namespace CadReader
             commands["levelExcel"] = LevelWorkbook.Command;
             // R365. The report Excel of button 8, made from a plan and written with OpenXml as the level Excel is
             commands["reportExcel"] = ReportWorkbook.Command;
+            // R402. The edited level Excel and report Excel read back and compared with the plan, for Update from report
+            commands["updateFromReport"] = UpdateFromReportWorker.Command;
             return commands;
         }
 

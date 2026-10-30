@@ -195,3 +195,81 @@ Not built yet, Phase 5c.
 - `Keep the tool value.`
 - `Use the past job. Saved as an override.`
 - `Leave this plot out. It is listed in the report.`
+
+### Update from report
+
+The window of the button Update from report, 5f, word for word from the part Update from report of docs/design/13-workflow-changes.md. Built in 5f, its picture is steps/ui-shots/update-from-report.png.
+
+- `Update from report`
+- `Pick the edited report Excel`
+- `Browse` CHOSEN, the button beside the line above
+- `Changes found`
+- `Follow the rules`
+- `Break a manual rule`
+- `Not editable ignored`
+- `All`
+- `FFL`
+- `El @ Entry`
+- `Steps`
+- `Villa type`
+- `Mirror`
+- `Breaks a rule`
+- `Apply`
+- `Plot`
+- `Field`
+- `In model`
+- `In Excel`
+- `Rule check`
+- `Keep the model`
+- `Apply anyway`
+- `Note` CHOSEN, the label of the note box of a change that breaks a manual rule
+- `Updates the levels, floors, links and parameters of the changed plots only.`
+- `Cancel`
+- `Dry run`
+- `Apply <n> changes`
+- `Dry run: <n> changes would be saved, <n> replaced. Nothing was changed.` CHOSEN, the line a dry run of the window shows, it saves nothing
+- `Saved <n> changes to the override list, plots changed: <n>.` CHOSEN in 5f fix, the message after Apply of a real run
+- `<n> ticked changes were not saved:` CHOSEN in 5f fix, the line above the changes Apply could not save, in the same message
+- `<name> <n>` CHOSEN in 5f fix, a chip with the count of its changes
+- `follows the rules` CHOSEN in 5f fix, the rule column of a change every check that ran holds
+- `no rule checks this field` CHOSEN in 5f fix, the rule column of a change no check ran on, not counted in Follow the rules
+- `FFL over entry by the base` CHOSEN in 5f fix, the plain name of the check fflOverEntry, its id the tooltip
+- `Steps by the steps rule` CHOSEN in 5f fix, the plain name of stepsRule
+- `Front steps within their range` CHOSEN in 5f fix, the plain name of stepsAtMost
+- `Height in the step legend` CHOSEN in 5f fix, the plain name of stepHeights
+- `Riser height within its limits` CHOSEN in 5f fix, the plain name of riser
+- `One step for one step units` CHOSEN in 5f fix, the plain name of oneStepUnits
+- `One FFL per piece` CHOSEN in 5f fix, the plain name of oneFflPerPiece
+- `Villa type of the profile` CHOSEN in 5f fix, the plain name of villaType
+- `Mirror by the hand rule` CHOSEN in 5f fix, the plain name of handRule
+- `the plot has no override entry of the job <n>, so Apply can not save it (Q169)` CHOSEN in 5f fix, the rule column of a change Apply can not save
+- `the cell holds no number` CHOSEN in 5f fix, the rule column of a cell that is no change Apply can take
+- `the cell holds no whole number` CHOSEN in 5f fix, as the line above
+- `the cell is empty` CHOSEN in 5f fix, as the line above
+- `the cell holds no villa type` CHOSEN in 5f fix, as the line above
+- `the cell holds no TRUE or FALSE` CHOSEN in 5f fix, as the line above
+- `<n> holds no sheet Settings with the Plan build id and the Plan SHA-256, so its build is not known (R402)` CHOSEN in 5f fix, the refusal line
+- `<n> is of another build, its Plan build id is <n>, the plan of the model <n> (R402)` CHOSEN in 5f fix, the refusal line
+- `<n> is of another build, its Plan SHA-256 is <n>, the plan of the model <n> (R402)` CHOSEN in 5f fix, the refusal line
+- `<n> holds no sheet Levels or Placed, so it is no level Excel or report Excel (R402)` CHOSEN in 5f fix, the refusal line
+- `the rules profile holds no level profile <n> (R402)` CHOSEN in 5f fix, the refusal line
+- `<n> holds no header <n> in its sheet <n> (R402)` CHOSEN in 5f fix, the refusal line
+- `the rules profile holds no <n>, so the check <n> is not run (R402)` CHOSEN in 5f fix, a line of the lacks, the check by its plain name
+- `the rules profile holds no block manualRules, so no change breaks a manual rule (R402)` CHOSEN in 5f fix, a line of the lacks
+- `<n> manual rules of the block name no updateChecks, so no change is held against them: <n> (R402)` CHOSEN in 5f fix, a line of the lacks
+- `plot <n> <n>: <n> (R402)` CHOSEN in 5f fix, a ticked change Apply could not save, in the dry run line and the message after Apply
+- `no field of the override list` CHOSEN in 5f fix, why in the line above
+- `the plan holds no levelRule of the plot, so no gap to the rule` CHOSEN in 5f fix, why in the line above
+- `no entry of source <n> of the plot names its key and model` CHOSEN in 5f fix, why in the line above
+- `the level profile <n> names no job, so an override has no source (R402)` CHOSEN in 5f fix, the problem line of a dry run, the message of Apply
+- `the override list holds no overrides (R402)` CHOSEN in 5f fix, as the line above
+- `the override list holds <n>, which the form of majority.overrides_text does not write (R402)` CHOSEN in 5f fix, the message of Apply
+- `the file name of a report Excel starts with its NBH and an underscore, as 012_Levels_<profile>.xlsx does (R402)` CHOSEN in 5f fix, the problem line of a pick, <profile> is a part of the name and no value
+- `the files are of NBH <n>, Update from report takes the files of one NBH (R402)` CHOSEN in 5f fix, the problem line of a pick
+- `<n> and <n> are both level Excels, Update from report takes one level Excel and one report Excel of one NBH (R402)` CHOSEN in 5f fix 2, the refusal line of two level Excels picked together
+- `<n> and <n> are both report Excels, Update from report takes one level Excel and one report Excel of one NBH (R402)` CHOSEN in 5f fix 2, the refusal line of two report Excels picked together
+- `the work folder holds no <n>, the plan of NBH <n> that 4 Check writes, so the Excel can not be compared (R402)` CHOSEN in 5f fix, the problem line of a pick
+- `the worker CadReader.exe is not beside the add-in: <n>` CHOSEN in 5f fix, the problem line of a pick
+- `the worker did not read the Excel: <n>` CHOSEN in 5f fix, the problem line of a pick, the status and message of the worker or the line below
+- `no answer` CHOSEN in 5f fix, the worker gave no answer
+- `the list the worker wrote is no JSON object` CHOSEN in 5f fix, the problem line of a pick

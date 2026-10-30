@@ -7,7 +7,7 @@ Every question open before 2026-10-29 was closed in the answer pass of Round FOL
 ## Open
 
 Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
-Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror.
+Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror. Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row. Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job. Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit. Q173 Level profile of Update from report. Q174 The plan Update from report reads. Q175 Run log format 9 Report reads. Q176 Plain names of the update rule checks. Q177 Manual rule ids in Rule check. Q178 A computed mirror edit breaks the hand rule. Q179 Guide line, side box and row mark of Update.
 
 Q148. Place villas before Floors and Levels in the run after 5c (Round FOLD, review of the design PR 102). The new order of docs/design/13-workflow-changes.md has each step wait for the one before, so 7 Place villas waits for 6 Levels, and 5d builds 5 Floors and ramps and 6 Levels. The phase changes of 28 Oct 2026 give 5c the Place villas button with light mode, and the Revit run after 5c places villas in Masses and in one NBH in Links. Round FOLD wrote that the test host runs 7 by Buttons.Run on the plan before 5 and 6 are built (CHOSEN, steps/01_next.md). It does not block 5b or 5c.
 - Recommended: keep it. The test host runs 7 from the plan in the run after 5c, which measures light mode and the base boundary as 28 Oct asks, and the pane keeps the order, so a user cannot run 7 before 6.
@@ -73,3 +73,67 @@ Q162. Reads of entryM with heightM or rampFrontM (Q119, 4h-2). Q119 asks that a 
 Q163. A yard that stands only by its mirror (Q120, breaker of 4h-2). Q120 was answered on the reading that the mirror flag only picks the outline group of the yard, so 4h-2 gives mirrored the yard outline and type only. A build of the whole project with the 149 mirrored entries left out of the list shows the mirror decides more on real plots: plot 1403 has no yard without its mirror, and 2008, 2198, 2201, 1590, 1763 and 2271 are not written at all (RAN, the breaker of 4h-2). So the yards of 1403, 2008, 2198 and 2201 stand only by a RECOMMENDED override, and in 4h-2 their yard level reads CHOSEN by Bader and plotValue DOCUMENT, inside the 37 moves of Q120.
 - Recommended: a mirror override marks every value of a yard or of a plot that would not stand without it, found by a build with and without the override as the turned walls of Q120 are.
 - Other: keep Q120 as built, the outline and type alone.
+
+Q164. Levels count and the link Z of 7 (J15, R381, 5e). 03b leaves open whether the Levels count of the box Counts agree across outputs takes the link Z of a run of 7 Place villas, which puts each link at its FFL after 6 Levels. R381 counts Levels by the run of 6 alone (CHOSEN by the developer of 5e).
+- Recommended: no. Levels stays the plots whose floors the last committed run of 6 set and read back within 1 mm. A link off its FFL after 7 becomes a check of 7 Place villas once 5d writes its run log.
+- Other: Levels counts a plot only when its floors and its link Z both hold.
+
+Q165. Shape of the block manualRules (W3, W7, R381, 5e). R381 reads manualRules of the rules profile as a list of objects, each with a text id and steps, a list of step names worded as 13-workflow-changes.md words them, such as "4 Check", and refuses any other shape (CHOSEN by the developer of 5e). Lane B 5c writes the block from docs/design/15-manual-rules.md (W3).
+- Recommended: a list with id, text, group, section and steps, the steps worded as in 13-workflow-changes.md, as R381 reads it, and 5c writes it so.
+- Other: name another shape, R381 follows it at the join.
+
+Q166. Manual rule of a check row (W5, R381, 5e). A Summary or Issues line names the manual rule IDs whose steps hold its step. A check row of 4 Check could name its own manual rule once 5c writes one on each check row (W5).
+- Recommended: take the row's own manual rule ID once 5c writes it, else the IDs of its step as now.
+- Other: keep the IDs of the step on every row.
+
+Q167. Manual rule on the other sheets (W7, R381, 5e). W7 asks that every report line name its manual rule ID. R381 writes it on the Summary and Issues lines only, since Placed, Skipped, Overrides, Assumed, Rules applied and Settings name no step (CHOSEN by the developer of 5e).
+- Recommended: keep it on the Summary and Issues lines.
+- Other: add a column Manual rule to every sheet, by the step of each row.
+
+Q168. The villa type of Update from report (R402, 5f). An edit of the villa type of the sheet Placed is saved as an override field unit, which no build applies today, since a build takes the unit from typologyRev9 of plots.csv alone (RAN, plan_rules.load_overrides took 8 of 9 entries of the real try, the unit one left out).
+- Recommended: keep saving it as an override field unit, and a build by keyRules applies it in Phase 6.
+- Other: refuse a change of the villa type in the window.
+
+Q169. Key of an update entry with none of its job (R402, 5f). An entry of Update from report takes the key and model of an entry of its source on the plot. A plot with no entry of its job has neither, so the change is listed as not applied with why (CHOSEN by the developer of 5f). All 9 plots of the real try had one.
+- Recommended: take the answer key whose join holds the plot.
+- Other: keep it listed as not applied.
+
+Q170. updateChecks of manualRules (R402, W3, 5f). A change is held against a manual rule only through a key updateChecks of its entry of manualRules, which Lane B 5c writes (CHOSEN by the developer of 5f).
+- Recommended: M04 oneFflPerPiece, M08 stepsAtMost and stepHeights, M09 riser, M10 oneStepUnits.
+- Other: name other checks per manual rule.
+
+Q171. Which breaks untick a change (R402, 5f). 13-workflow-changes.md unticks a change that breaks a manual rule. R402 also checks the rules of the profile, such as stepsRule and fflOverEntry.
+- Recommended: only a manual rule break unticks, as the mock says. A break of a profile rule stays ticked, with the rule named.
+- Other: a break of any rule unticks the change.
+
+Q172. heightM gap with an El @ Entry edit (R402, ties to Q162, 5f). An FFL edit is saved as heightM, a gap to levelRule.ffl of the plan, and an El @ Entry edit as entryM, a gap to levelRule.entry. When both are edited in one piece the FFL of the rebuilt plan may move twice.
+- Recommended: keep the gap to levelRule.ffl of the plan and measure the effect on the rebuilt plan in 6a.
+- Other: save an FFL edit as the gap to the edited El @ Entry.
+
+Q173. Level profile of Update from report (R402, 5f). The window checks each change by the rules of a level profile. The pane holds the Level profile row, which Lane B builds, and gives the window none yet, so the window takes levelProfiles.default of the rules profile, parsons2024Rev6 (CHOSEN by the developer of the window).
+- Recommended: the Level profile of the pane, once Lane B exposes it to the buttons.
+- Other: keep levelProfiles.default.
+
+Q174. The plan Update from report reads (R402, 5f). The window holds each edited Excel against the plan of the model by its build id and SHA-256. It takes plan_<NBH>.json from the work folder, the NBH read from the Excel file name before its first underscore (CHOSEN by the developer of the window).
+- Recommended: the plan of the last real run of 4 Check, named by its run record, so the plan is the one the report came from.
+- Other: keep plan_<NBH>.json of the work folder by the file name.
+
+Q175. Run log format 9 Report reads (R381, R383, 5e). The body of button 9 finds the newest run_4_<time>.json of the work folder whose committed is true, reads its outputs (role, path, sha256 and nbh, one plan, checkRows and summary per NBH) and inputs (plotsCsv, overrides), and the levelPlots of the newest committed run_6 log (CHOSEN by the developer of 5e). No button writes a run log yet, R383 is planned, so on a real model button 9 stops with 9 Report needs step 4.
+- Recommended: keep this shape as the format R383 writes for every button.
+- Other: R383 picks its own format and the reader of 9 follows it at the join.
+
+Q176. Plain names of the update rule checks (R402, 5f). 12-ui-spec.md asks every rule shown to a user to show a plain name of at most 6 words with its rule id as a tooltip. The column Rule check of Update from report shows 9 plain names drafted in UpdateText.RuleNames, for fflOverEntry, stepsRule, stepsAtMost, stepHeights, riser, oneStepUnits, oneFflPerPiece, villaType and handRule (CHOSEN by the developer of 5f).
+- Recommended: keep the 9 names as drafted, listed in docs/design/14-ui-labels.md.
+- Other: give the names to use.
+
+Q177. Manual rule ids in Rule check (R402, 5f). A change that breaks a manual rule shows its id, such as M08, in Rule check, since the manualRules block that Lane B 5c writes holds no plain name of at most 6 words yet.
+- Recommended: show the id until 5c gives each manualRules entry a plain name, then the name with the id as tooltip.
+- Other: show the full text of the manual rule.
+
+Q178. A computed mirror edit breaks the hand rule (R402, 5f). Where the plan's mirror came from the hand rules of the profile (2,457 plots, source computed), an edit of Mirror breaks the check handRule. An override mirror (61 plots) is not checked. The change stays ticked, since only a manual rule break unticks (Q171).
+- Recommended: keep it, the team sees the break and decides.
+- Other: untick such a change by default.
+
+Q179. Guide line, side box and row mark of Update (W8, 5f, review 1). 12-ui-spec.md gives a new window a How to use line on SA.Guide, a side box 340 wide on SA.Panel and a selected row with the 3 px SA.Accent mark, as the check table has. 13-workflow-changes.md, part Update from report, gives no text for any of them, so the window of 5f has none (steps/ui-shots/update-from-report.png, listed in steps/ui-shots/README.md).
+- Recommended: add a How to use line, such as "Each row is a cell the team changed. Untick a change to keep the model, then Apply.", and keep no side box and no selected row, since each row shows all it holds.
+- Other: give all three, with the words of the guide line and what the side box shows.

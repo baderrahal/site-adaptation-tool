@@ -46,7 +46,7 @@ namespace SiteAdaptation.Tests
                     Assert.Equal(96.0, bitmap.DpiX, 6);
                     Assert.True(png.Length <= RecordMax, sizes.Last());
                     Assert.True(bitmap.PixelHeight > 64, sizes.Last());
-                    if (window == Shots.SetUpSite)
+                    if (window == Shots.SetUpSite || window == Shots.UpdateFromReport)
                     {
                         Assert.Equal(1280, bitmap.PixelWidth);
                         Assert.True(bitmap.PixelHeight > 400 && bitmap.PixelHeight <= 800, sizes.Last());
@@ -60,7 +60,8 @@ namespace SiteAdaptation.Tests
                 Assert.Throws<ArgumentException>(() => Shots.Render("set-up-site"));
             });
             sizes.ForEach(output.WriteLine);
-            Assert.Equal(4, sizes.Count);
+            // 5f: Update from report renders as the fifth window, at the dialog width of Set up site
+            Assert.Equal(5, sizes.Count);
         }
 
         // Control 4, the sizes of docs/design/12-ui-spec.md read off the laid out pane: rows 32, inputs 30, Browse 28, the main
@@ -361,6 +362,42 @@ namespace SiteAdaptation.Tests
                 pixels[at * 4 + 2] = 0;
             }
             return BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixels, width * 4);
+        }
+
+        // Review 1 of 5e and 5f: the Rule check cell shows the plain name with the rule id as its tooltip (12-ui-spec.md line 11), and
+        // the Apply column is wide enough that its header and Plot read apart
+        [Fact]
+        public void R402_the_rule_check_cell_has_the_rule_id_as_tooltip_and_the_apply_column_keeps_its_header_apart()
+        {
+            OnSta(() =>
+            {
+                var window = Shots.LaidOutUpdate();
+                List<TextBlock> texts = Below<TextBlock>(Shots.Body(window)).ToList();
+                TextBlock steps = texts.Single(text => text.ToolTip as string == "stepsRule");
+                Assert.NotEqual("stepsRule", steps.Text);
+                TextBlock apply = texts.First(text => text.Text == "Apply");
+                TextBlock plot = texts.First(text => text.Text == "Plot");
+                // A TextBlock stretches over its column, so the end of the word is where its text ends, its desired width
+                Point left = apply.TranslatePoint(new Point(apply.DesiredSize.Width, 0), Shots.Body(window));
+                Point right = plot.TranslatePoint(new Point(0, 0), Shots.Body(window));
+                Assert.True(right.X - left.X >= 8, "Apply ends at " + left.X + ", Plot starts at " + right.X);
+            });
+        }
+
+        private static IEnumerable<T> Below<T>(DependencyObject root) where T : DependencyObject
+        {
+            for (int index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(root, index);
+                if (child is T found)
+                {
+                    yield return found;
+                }
+                foreach (T deeper in Below<T>(child))
+                {
+                    yield return deeper;
+                }
+            }
         }
 
         private static void OnSta(Action action)

@@ -19,10 +19,12 @@ namespace SiteAdaptation.Tests
         {
             string root = ThemeGateTests.RepoRoot();
             Dictionary<string, UiLabels.Window> list = UiLabels.List(File.ReadAllText(Path.Combine(root, UiLabels.ListFile)));
-            Dictionary<string, List<UiLabels.Found>> shown = UiLabels.Texts(Path.Combine(root, "dotnet", "SiteAdaptation.AddIn"), Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Flow", "RunTexts.cs"));
+            // Review 5f: the texts of Update from report that Common gives the window, the rule column, the refusal and the lacks, are held too
+            Dictionary<string, List<UiLabels.Found>> shown = UiLabels.Texts(Path.Combine(root, "dotnet", "SiteAdaptation.AddIn"), Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Flow", "RunTexts.cs"),
+                new Dictionary<string, string> { [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Update", "UpdateText.cs")] = "Update from report" });
 
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Check table" }, list.Keys.ToArray());
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Check table", "Update from report" }, list.Keys.ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Update from report" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
             Assert.Equal(16, list["Ribbon"].Entries.Count);
             Assert.Contains(shown["Ribbon"], found => found.Text == "Update from report");
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
@@ -30,6 +32,8 @@ namespace SiteAdaptation.Tests
             Assert.Contains(shown[UiLabels.Messages], found => found.Text == " needs step " && found.Where.EndsWith("RunTexts.cs", StringComparison.Ordinal));
             Assert.Contains(shown[UiLabels.Messages], found => found.Text == "Cancel" && found.Where.EndsWith("RevitModel.cs", StringComparison.Ordinal));
             Assert.Equal(20, list[UiLabels.Messages].Entries.Count);
+            Assert.Contains(shown["Update from report"], found => found.Text == "follows the rules" && found.Where.EndsWith("UpdateText.cs", StringComparison.Ordinal));
+            Assert.Contains(shown["Update from report"], found => found.Text == "<name> <n>" && found.Where.EndsWith("UpdateFromReportText.cs", StringComparison.Ordinal));
 
             Assert.Empty(UiLabels.Offenders(list, shown));
         }
@@ -136,8 +140,10 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Empty(missing);
-            // 22 since Lane B 5b, the line of a second run of Set up site
-            Assert.Equal(22, chosen);
+            // 22 since Lane B 5b, the line of a second run of Set up site, 25 since 5f with Browse, Note and the dry run line of Update from report,
+            // 27 with the two lines of the message after Apply, 68 with the texts of the 5f fix that Common gives the window, 70 with the two
+            // refusals of a second book of a kind
+            Assert.Equal(70, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
@@ -193,6 +199,7 @@ namespace SiteAdaptation.Tests
             { "Pane", "Pane" },
             { "Set up site", "SetUpSite" },
             { "Check table", "CheckTable" },
+            { "Update from report", "Update" },
         };
 
         private const string RibbonFile = "RibbonLayout.cs";
@@ -253,7 +260,8 @@ namespace SiteAdaptation.Tests
         // The texts of each window, and under "no window" those of a XAML file that belongs to none, the theme included
         // runTexts is RunTexts.cs of the flow, whose texts and parts of texts are the messages of a button, with the common buttons
         // of a TaskDialog the add-in names, as Cancel
-        public static Dictionary<string, List<Found>> Texts(string addin, string runTexts = null)
+        // common names a file outside the add-in by its window, a file of Common whose texts that window shows
+        public static Dictionary<string, List<Found>> Texts(string addin, string runTexts = null, IDictionary<string, string> common = null)
         {
             var texts = new Dictionary<string, List<Found>>(StringComparer.Ordinal) { { "Ribbon", new List<Found>() }, { NoWindow, new List<Found>() }, { Messages, new List<Found>() } };
             if (runTexts != null)
@@ -293,6 +301,10 @@ namespace SiteAdaptation.Tests
                 {
                     texts[window].AddRange(CodeTexts(File.ReadAllText(path)).Select(text => new Found { Text = text, Where = relative }));
                 }
+            }
+            foreach (KeyValuePair<string, string> file in common ?? new Dictionary<string, string>())
+            {
+                texts[file.Value].AddRange(CodeTexts(File.ReadAllText(file.Key)).Select(text => new Found { Text = text, Where = Path.GetFileName(file.Key) }));
             }
             return texts;
         }
