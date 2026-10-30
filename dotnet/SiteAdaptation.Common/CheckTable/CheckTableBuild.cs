@@ -105,9 +105,34 @@ namespace SiteAdaptation.Common.CheckTable
             };
         }
 
-        private static bool NoNbh(JToken value)
+        // R330, R376. The Use the list holds under the skip of each row that opens on Skip, and the line the side box shows under Why, as
+        // the table shows Skip and hides the Rule or Past the entry keeps under it. A row of no entry holds Rule. A row whose entry the list
+        // no longer holds, or holds twice, gets none, as Save refuses it then
+        public static void UnderSkip(IReadOnlyList<CheckRow> rows, JObject list, ICollection<string> defaults)
         {
-            return value == null || value.Type == JTokenType.Null || (value.Type == JTokenType.String && ((string)value).Length == 0);
+            List<JObject> entries = (list?["overrides"] as JArray ?? new JArray()).OfType<JObject>().ToList();
+            foreach (CheckRow row in rows.Where(item => item.OpenUse == CheckUse.Skip))
+            {
+                string use = CheckUse.Rule;
+                if (row.From == "override")
+                {
+                    List<JObject> hits = entries.Where(item => OverrideEdits.Matches(item, row, defaults)).ToList();
+                    use = hits.Count == 1 ? OverrideEdits.UseOf(hits[0]) : null;
+                }
+                row.UnderSkip = use;
+                if (use != null)
+                {
+                    string line = CheckShownText.UnderSkip.Replace("<n>", use);
+                    string why = CheckTableState.Text(row.Why);
+                    row.Why = why.Length == 0 ? line : why + ". " + line;
+                }
+            }
+        }
+
+        // R376. A plot with no nbhId of plots.csv, or one of spaces only, stands in the NBH of the scope
+        public static bool NoNbh(JToken value)
+        {
+            return value == null || value.Type == JTokenType.Null || (value.Type == JTokenType.String && string.IsNullOrWhiteSpace((string)value));
         }
 
         private static string NbhOf(JToken plot, string nbh)
@@ -184,7 +209,7 @@ namespace SiteAdaptation.Common.CheckTable
                     }
                     yield return new CheckRow
                     {
-                        Plot = plot.Name, Unit = (string)plots[plot.Name]["unit"], Nbh = (string)plots[plot.Name]["nbh"], Check = PlotCut, From = "join", OpenUse = CheckUse.Rule,
+                        Plot = plot.Name, Unit = (string)plots[plot.Name]["unit"], Nbh = NbhOf(plots[plot.Name], null), Check = PlotCut, From = "join", OpenUse = CheckUse.Rule,
                         Key = key.Name, PastWhy = PlotCutWhy, Why = "the key " + key.Name + " joins the plot as " + status + " (R326)",
                     };
                 }
@@ -210,7 +235,7 @@ namespace SiteAdaptation.Common.CheckTable
                 }
                 yield return new CheckRow
                 {
-                    Plot = link.Key, Unit = unit, Nbh = (string)plots[link.Key]["nbh"], Check = UnitCode, Field = "prototypeFile", From = "key", OpenUse = CheckUse.Rule,
+                    Plot = link.Key, Unit = unit, Nbh = NbhOf(plots[link.Key], null), Check = UnitCode, Field = "prototypeFile", From = "key", OpenUse = CheckUse.Rule,
                     ToolValue = unit, Key = link.Value.Code, Model = link.Value.Model, PastWhy = why,
                     Why = "the key " + link.Value.Code + " links " + link.Value.File + " of unit " + linked + ", Typology_Rev9 gives " + unit,
                 };

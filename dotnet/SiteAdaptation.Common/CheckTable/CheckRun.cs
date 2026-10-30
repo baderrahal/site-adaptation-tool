@@ -24,6 +24,7 @@ namespace SiteAdaptation.Common.CheckTable
         public const string Prototypes = "prototypes";
         public const string KeyJoin = "keyJoin";
         public const string KeyReads = "keyReads";
+        public const string OverridesRole = "overrides";
         public const string FolderPrefix = "check_";
         public const string RecordFile = "check.json";
         public const string RecordFormat = "site-adaptation-check-run";
@@ -136,7 +137,7 @@ namespace SiteAdaptation.Common.CheckTable
             }
             Add(plan, Rules, rulesPath, "the rules file is missing: " + (rulesPath ?? "the run and config name none"));
             plan.OverridesPath = OverridesPath(config, plan.ConfigPath, rulesPath);
-            Add(plan, "overrides", plan.OverridesPath, "the override list is missing: " + (plan.OverridesPath ?? "config names none"));
+            Add(plan, OverridesRole, plan.OverridesPath, "the override list is missing: " + (plan.OverridesPath ?? "config names none"));
             string prototypes = Path0(Prototypes);
             List<string> files = !string.IsNullOrEmpty(prototypes) && Directory.Exists(prototypes) ? Directory.GetFiles(prototypes, "*.rvt").OrderBy(name => name, StringComparer.Ordinal).ToList() : new List<string>();
             if (files.Count == 0)
@@ -335,7 +336,7 @@ namespace SiteAdaptation.Common.CheckTable
                     {
                         outputs[output.Path] = output.Sha256;
                     }
-                    var session = new OverrideSession(plan.OverridesPath);
+                    var session = new OverrideSession(plan.OverridesPath, plan.Inputs.Where(input => input.Role == OverridesRole).Select(input => input.Sha256).FirstOrDefault());
                     if (first && dialog != null)
                     {
                         var callbacks = new CheckTableCallbacks
@@ -347,6 +348,12 @@ namespace SiteAdaptation.Common.CheckTable
                             },
                         };
                         dialog.Show(view, callbacks);
+                    }
+                    // R376. No check.json names a plan built on another list than the one on disk, and no build again takes in an edit made
+                    // on disk while the window was open
+                    if (!session.OnDisk())
+                    {
+                        throw new InvalidDataException(OverrideSession.NotAsBuilt(plan.OverridesPath));
                     }
                     if (session.Changed)
                     {
@@ -384,16 +391,17 @@ namespace SiteAdaptation.Common.CheckTable
             string tableHash = FileHash.Sha256(Path.Combine(plan.ReadFolder, ReadDataRun.PlotTableFile));
             List<ReviewCheck> wrong = plan.Nbh == null ? new List<ReviewCheck>() : ReviewFile.WrongPlots(context.WorkFolder, plan.Nbh, tableHash);
             CheckTableView view = CheckTableBuild.Compose(plan.Nbh, step, block, wrong, plan.Past, manualRule, real);
-            view.Info = Info(plan, step, levelProfile);
+            JObject list = JObject.Parse(WorkFiles.ReadText(plan.OverridesPath));
+            CheckTableBuild.UnderSkip(view.Rows, list, (config["majority"]?["overrideDefaultSources"] as JArray ?? new JArray()).Select(item => (string)item).ToList());
+            view.Info = Info(plan, step, list, levelProfile);
             return view;
         }
 
         // 7.4 of the mock, the line under the title: the level profile the build took, the override list and its entries
-        private static CheckTableInfo Info(CheckPlan plan, JObject step, string levelProfile)
+        private static CheckTableInfo Info(CheckPlan plan, JObject step, JObject list, string levelProfile)
         {
             string rulesPath = plan.Inputs.Where(input => input.Role == Rules).Select(input => input.Path).FirstOrDefault();
             JObject rules = JObject.Parse(WorkFiles.ReadText(rulesPath));
-            JObject list = JObject.Parse(WorkFiles.ReadText(plan.OverridesPath));
             return CheckTableInfo.Of(BuildRules.ProfileName(rules, levelProfile), Path.GetFileName(plan.OverridesPath), list, step, plan.Nbh);
         }
 
@@ -438,7 +446,7 @@ namespace SiteAdaptation.Common.CheckTable
                 ["counts"] = new JObject(view.Counts.Select(item => new JProperty(item.Key, item.Value))),
                 ["rows"] = new JArray(view.Rows.Select(row => new JObject
                 {
-                    ["plot"] = row.Plot, ["unit"] = row.Unit, ["check"] = row.Check, ["field"] = row.Field, ["from"] = row.From, ["use"] = row.OpenUse,
+                    ["plot"] = row.Plot, ["unit"] = row.Unit, ["check"] = row.Check, ["field"] = row.Field, ["from"] = row.From, ["use"] = row.OpenUse, ["underSkip"] = row.UnderSkip,
                     ["rule"] = row.Rule?.DeepClone(), ["toolValue"] = row.ToolValue?.DeepClone(), ["pastForm"] = row.PastForm, ["pastValue"] = row.PastValue?.DeepClone(),
                     ["pastOffered"] = row.PastOffered, ["pastWhy"] = row.PastWhy, ["why"] = row.Why?.DeepClone(), ["key"] = row.Key, ["model"] = row.Model, ["manualRule"] = row.ManualRuleId,
                 })),

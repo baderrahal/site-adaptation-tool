@@ -114,7 +114,7 @@ namespace SiteAdaptation.Common
                 overrides.TryGetValue("notApplied", out object left);
                 found[number] = new CheckPlot
                 {
-                    Unit = string.IsNullOrEmpty(unit) ? null : unit, Nbh = string.IsNullOrEmpty(nbh) ? null : nbh, Skip = skip as string,
+                    Unit = string.IsNullOrEmpty(unit) ? null : unit, Nbh = string.IsNullOrWhiteSpace(nbh) ? null : nbh, Skip = skip as string,
                     Applied = (applied as List<string> ?? new List<string>()).ToList(), NotApplied = (left as JObject)?.DeepClone() as JObject ?? new JObject(),
                     Lacks = (plan?.Lacks ?? new List<string>()).Distinct().ToList(),
                 };

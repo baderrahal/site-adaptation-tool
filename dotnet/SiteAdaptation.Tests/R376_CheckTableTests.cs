@@ -86,6 +86,37 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "1|Hand|Skip", "1|Level|Skip", "7|Hand|Rule" }, view.Rows.Select(row => row.Plot + "|" + row.Check + "|" + row.OpenUse));
         }
 
+        // R376, R330. The side box reads Why, so a row on Skip says the use its entry holds under the skip, Rule for an entry marked
+        // "use": "rule", else Past, and Rule for a row of no entry, the use that only takes the plot off the skip list
+        [Fact]
+        public void R376_R330_a_row_on_skip_shows_the_use_its_entry_holds_under_the_skip_in_the_why_of_the_side_box()
+        {
+            JObject step = Step();
+            foreach (JObject item in (JArray)step["plots"]["1"]["rows"])
+            {
+                item["use"] = "Skip";
+            }
+            step["plots"]["1"]["rows"][0]["why"] = "the plot is not written, it lacks skip";
+            JObject list = JObject.Parse("{ 'overrides': [ { 'plot': '1', 'field': 'heightM', 'value': { 'gapToRuleM': 0.05 }, 'source': 'parsons', 'model': 'kx-site.rvt', 'key': 'kx' } ] }");
+
+            CheckTableView view = CheckTableBuild.Compose("012", step, Block(), null, null, null, true);
+            CheckTableBuild.UnderSkip(view.Rows, list, new[] { "parsons" });
+
+            CheckRow level = view.Rows.Single(row => row.Check == "Level"), hand = view.Rows.Single(row => row.Plot == "1" && row.Check == "Hand"), seven = view.Rows.Single(row => row.Plot == "7");
+            Assert.Equal(CheckUse.Past, level.UnderSkip);
+            Assert.Equal("the plot is not written, it lacks skip. Under Skip the list holds Past. Choosing Past only takes the plot off the skip list.", (string)level.Why);
+            Assert.Equal(CheckUse.Rule, hand.UnderSkip);
+            Assert.Equal("no link. Under Skip the list holds Rule. Choosing Rule only takes the plot off the skip list.", (string)hand.Why);
+            Assert.Null(seven.UnderSkip);
+            Assert.Equal("no link", (string)seven.Why);
+
+            list["overrides"][0]["use"] = "rule";
+            list["overrides"][0]["byHand"] = true;
+            view = CheckTableBuild.Compose("012", step, Block(), null, null, null, true);
+            CheckTableBuild.UnderSkip(view.Rows, list, new[] { "parsons" });
+            Assert.Equal(CheckUse.Rule, view.Rows.Single(row => row.Check == "Level").UnderSkip);
+        }
+
         // A plot of the build of an NBH that plots.csv gives no row, so no nbhId, stands in the NBH the build was asked for, the one of
         // the scope, with its rows and in the count of the title
         [Fact]

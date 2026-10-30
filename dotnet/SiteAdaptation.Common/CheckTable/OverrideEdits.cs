@@ -12,7 +12,9 @@ namespace SiteAdaptation.Common.CheckTable
     // R376, R386, R330. Save overrides of the check table. Only a row whose Use differs from its opening value is a change, and each change
     // carries "byHand": true. Rule on a row of an override marks its entry "use": "rule", Past on one the build left marks it "use":
     // "past", Past on a row of no override adds the entry of the answer key that holds the plot, its source the group of majority.groups
-    // that holds the key, and Skip adds {"plot", "reason", "byHand": true} to the list skip. The list is the text of
+    // that holds the key, and Skip adds {"plot", "reason", "byHand": true} to the list skip. On a row that opened on Skip the use its entry
+    // holds under the skip takes only the plot off the list skip and leaves the entry byte for byte, as no hand edit of it was made, so an
+    // applied override stays applied and an entry of a majority run is not frozen by a byHand it never had (R330). The list is the text of
     // majority.overrides_text, one entry per line, so every line no change touches is kept byte for byte. The text is checked as a
     // build checks it before it is written by a temporary name and a rename
     public static class OverrideEdits
@@ -105,7 +107,8 @@ namespace SiteAdaptation.Common.CheckTable
                     {
                         throw new InvalidOperationException("the override list holds no entry of plot " + row.Plot + " field " + row.Field + " that the build applied or left, it changed since the build. Run 4 Check again (R376)");
                     }
-                    string line = Line(Entry(JObject.Parse(parts.Overrides[at]), row, change.Value));
+                    JObject entry = JObject.Parse(parts.Overrides[at]);
+                    string line = row.OpenUse == CheckUse.Skip && change.Value == UseOf(entry) ? parts.Overrides[at] : Line(Entry(entry, row, change.Value));
                     if (line != parts.Overrides[at])
                     {
                         parts.Overrides[at] = line;
@@ -183,13 +186,26 @@ namespace SiteAdaptation.Common.CheckTable
             return field == "floors.ramp" ? "rampType" : field;
         }
 
+        // R330, R386. The Use an entry holds for its row, the one a plot on the skip list keeps under the skip: Rule for an entry marked
+        // "use": "rule", Past for any other, since a build applies an entry with no use
+        public static string UseOf(JObject entry)
+        {
+            return PlanOverrides.UseOf(entry) == "rule" ? CheckUse.Rule : CheckUse.Past;
+        }
+
+        // The entry of the list a row of an override names, by plot, field and the key of the row, else the default sources of a build
+        public static bool Matches(JObject item, CheckRow row, ICollection<string> defaults)
+        {
+            return Text(item["plot"]) == row.Plot && Text(item["field"]) == row.Field && (row.Key == null ? defaults.Contains(Text(item["source"])) : Text(item["key"]) == row.Key);
+        }
+
         private static int Find(List<string> lines, CheckRow row, List<string> defaults)
         {
             var hits = new List<int>();
             for (int at = 0; at < lines.Count; at++)
             {
                 JObject item = JObject.Parse(lines[at]);
-                if (Text(item["plot"]) == row.Plot && (string)item["field"] == row.Field && (row.Key == null ? defaults.Contains((string)item["source"]) : (string)item["key"] == row.Key))
+                if (Matches(item, row, defaults))
                 {
                     hits.Add(at);
                 }

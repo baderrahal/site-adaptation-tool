@@ -65,8 +65,8 @@ namespace SiteAdaptation.Common.PlaceVillas
         }
 
         // R377. The plan of NBH the last real run of 4 Check wrote and the SHA-256 its record names. The last run is the check folder with
-        // the largest run id, a build again after Save overrides ending in -again sorts after its first. A run that did not end done, or
-        // one that built no plan of the NBH, such as plan_all.json of a plot list or the whole project, stops 7, never an older plan
+        // the largest run id, a build again after Save overrides ending in -again sorts after its first. A folder with no check.json, a run
+        // that did not end done or one of before check.json was written, or one that built no plan of the NBH, such as plan_all.json of a plot list or the whole project, stops 7, never an older plan
         public static Tuple<string, string> LastPlan(string workFolder, string nbh)
         {
             string folder = Directory.Exists(workFolder)
@@ -79,7 +79,8 @@ namespace SiteAdaptation.Common.PlaceVillas
             JObject record = CheckRun.RecordOf(folder);
             if (record == null)
             {
-                throw new InvalidDataException("the last run of 4 Check, " + Path.GetFileName(folder) + ", did not end done, so it names no plan. Run 4 Check on NBH " + nbh + " again");
+                throw new InvalidDataException("the last run of 4 Check, " + Path.GetFileName(folder) + ", holds no " + CheckRun.RecordFile + ", it did not end done or came before "
+                    + CheckRun.RecordFile + " was written, so it names no plan. Run 4 Check on NBH " + nbh + " again");
             }
             List<KeyValuePair<string, string>> plans = ((JArray)record["outputs"] ?? new JArray()).OfType<JObject>()
                 .Select(output => new KeyValuePair<string, string>((string)output["path"], (string)output["sha256"]))

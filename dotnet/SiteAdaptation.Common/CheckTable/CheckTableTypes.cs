@@ -40,6 +40,10 @@ namespace SiteAdaptation.Common.CheckTable
         // Past when the build applies an override of the list for the row, else Rule, kept as the opening value
         public string OpenUse { get; set; }
 
+        // R330. On a row that opens on Skip, the Use the list holds under the skip: Rule for an entry marked "use": "rule", Past for any
+        // other entry and Rule for a row of no entry. Null on a row that does not open on Skip
+        public string UnderSkip { get; set; }
+
         public JToken Rule { get; set; }
 
         public JToken ToolValue { get; set; }

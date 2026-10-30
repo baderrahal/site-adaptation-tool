@@ -146,9 +146,49 @@ namespace SiteAdaptation.Tests
             string[] lines = File.ReadAllText(path).Split('\n');
             Assert.Contains("    {\"plot\": \"3\", \"reason\": \"by hand\", \"byHand\": true}", lines);
             Assert.DoesNotContain(lines, line => line.StartsWith("    {\"plot\": \"5\", \"reason\": ", StringComparison.Ordinal));
-            Assert.Contains("    {\"plot\": \"5\", \"field\": \"steps\", \"value\": 3, \"source\": \"parsons\", \"model\": \"kx-site.rvt\", \"key\": \"kx\", \"use\": \"past\", \"byHand\": true}", lines.Select(line => line.TrimEnd(',')));
+            // Past is the use the entry of plot 5 holds under the skip, so only the skip line goes and the entry stays byte for byte
+            Assert.Contains(List.Split('\n')[5].TrimEnd(), lines.Select(line => line.TrimEnd(',')));
             OverrideList read = PlanOverrides.Load(path, Config(), JObject.Parse("{ 'job': 'parsons' }"), "p", "project.json");
             Assert.Equal("3", read.Skip.Keys.Single());
+        }
+
+        // R376, R330. A row of a plot that opened on Skip holds under the skip the use of its entry, Rule for an entry marked "use": "rule",
+        // else Past. That same use takes only the skip line out and leaves the entry byte for byte, so an applied override stays applied
+        // and an entry majority.py wrote is never frozen as a hand edit. Only another use edits the entry and marks it byHand
+        private const string Skipped = "{\n  \"note\": \"made up\",\n  \"overrides\": [\n"
+            + "    {\"plot\": \"5\", \"field\": \"heightM\", \"value\": {\"gapToRuleM\": 0.02}, \"source\": \"parsons\", \"model\": \"kx-site.rvt\", \"key\": \"kx\", \"use\": \"rule\", \"byHand\": true},\n"
+            + "    {\"plot\": \"5\", \"field\": \"steps\", \"value\": 3, \"source\": \"parsons\", \"model\": \"kx-site.rvt\", \"key\": \"kx\"}\n  ],\n"
+            + "  \"skip\": [\n    {\"plot\": \"3\", \"reason\": \"by hand\", \"byHand\": true},\n    {\"plot\": \"5\", \"reason\": \"by hand\", \"byHand\": true}\n  ]\n}\n";
+
+        private static List<CheckRow> SkippedRows()
+        {
+            return new List<CheckRow>
+            {
+                new CheckRow { Index = 0, Plot = "5", Check = "Level", Field = "heightM", From = "override", OpenUse = CheckUse.Skip, PastForm = "gapToRuleM", PastOffered = true, Key = "kx", Model = "kx-site.rvt" },
+                new CheckRow { Index = 1, Plot = "5", Check = "Level", Field = "steps", From = "override", OpenUse = CheckUse.Skip, PastForm = "wholeNumber", PastOffered = true, Key = "kx", Model = "kx-site.rvt" },
+            };
+        }
+
+        [Fact]
+        public void R376_R330_off_skip_with_the_use_its_entry_holds_drops_only_the_skip_line_and_another_use_edits_the_entry()
+        {
+            string path = Path.Combine(folder, "list.json");
+            File.WriteAllText(path, Skipped);
+
+            Assert.Equal(2, OverrideEdits.Save(path, SkippedRows(), new[] { new CheckChoice(0, CheckUse.Rule), new CheckChoice(1, CheckUse.Past) }, Config(), "R4-10"));
+            Assert.Equal(Skipped.Replace(",\n    {\"plot\": \"5\", \"reason\": \"by hand\", \"byHand\": true}", ""), File.ReadAllText(path));
+            // The loader of a build reads the steps override as applied and heightM as ruled, as they stood under the skip
+            OverrideList read = PlanOverrides.Load(path, Config(), JObject.Parse("{ 'job': 'parsons' }"), "p", "project.json");
+            Assert.Equal(3, read.Of("5")["steps"].Value<int>());
+            Assert.True(read.Ruled["5"].ContainsKey("heightM"));
+            Assert.Equal("3", read.Skip.Keys.Single());
+
+            File.WriteAllText(path, Skipped);
+            Assert.Equal(2, OverrideEdits.Save(path, SkippedRows(), new[] { new CheckChoice(0, CheckUse.Past), new CheckChoice(1, CheckUse.Rule) }, Config(), "R4-11"));
+            string[] lines = File.ReadAllText(path).Split('\n').Select(line => line.TrimEnd(',')).ToArray();
+            Assert.Contains("    {\"plot\": \"5\", \"field\": \"heightM\", \"value\": {\"gapToRuleM\": 0.02}, \"source\": \"parsons\", \"model\": \"kx-site.rvt\", \"key\": \"kx\", \"use\": \"past\", \"byHand\": true}", lines);
+            Assert.Contains("    {\"plot\": \"5\", \"field\": \"steps\", \"value\": 3, \"source\": \"parsons\", \"model\": \"kx-site.rvt\", \"key\": \"kx\", \"use\": \"rule\", \"byHand\": true}", lines);
+            Assert.DoesNotContain(lines, line => line.StartsWith("    {\"plot\": \"5\", \"reason\": ", StringComparison.Ordinal));
         }
 
         [Fact]

@@ -171,5 +171,17 @@ namespace SiteAdaptation.Tests
             Assert.Null(inputs.InScope);
             Assert.Contains("one NBH", Assert.Throws<InvalidDataException>(() => VillaLoad.Load(Context(), new SettingsScope(), config, null, "p")).Message);
         }
+        // R377. A check folder with no check.json either did not end done or came before check.json was written, so the stop names the
+        // missing file and never says only that the run did not end done
+        [Fact]
+        public void R377_a_last_check_folder_with_no_check_json_is_named_plainly_in_the_stop()
+        {
+            Directory.CreateDirectory(Path.Combine(work, "check_R4-20261030-110000"));
+
+            var failed = Assert.Throws<InvalidDataException>(() => VillaLoad.LastPlan(work, "012"));
+
+            Assert.Equal("the last run of 4 Check, check_R4-20261030-110000, holds no check.json, it did not end done or came before check.json was written, so it names no plan. "
+                + "Run 4 Check on NBH 012 again", failed.Message);
+        }
     }
 }

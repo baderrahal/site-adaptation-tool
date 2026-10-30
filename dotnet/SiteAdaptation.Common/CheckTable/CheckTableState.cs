@@ -113,7 +113,7 @@ namespace SiteAdaptation.Common.CheckTable
 
         public int Overrides { get; set; }
 
-        // The entries on a plot of the NBH, all of them for the whole project
+        // The entries on a plot the table of the NBH keeps, one with no nbhId standing in the NBH of the scope, all of them for the whole project
         public int OnNbh { get; set; }
 
         public static CheckTableInfo Of(string levelProfile, string overrideFile, JObject overrideList, JObject step, string nbh)
@@ -123,7 +123,7 @@ namespace SiteAdaptation.Common.CheckTable
             return new CheckTableInfo
             {
                 LevelProfile = levelProfile, OverrideFile = overrideFile, Overrides = entries.Count,
-                OnNbh = nbh == null ? entries.Count : entries.Count(plot => plot != null && plots[plot] is JObject found && (string)found["nbh"] == nbh),
+                OnNbh = nbh == null ? entries.Count : entries.Count(plot => plot != null && plots[plot] is JObject found && ((string)found["nbh"] == nbh || CheckTableBuild.NoNbh(found["nbh"]))),
             };
         }
     }

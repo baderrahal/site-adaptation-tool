@@ -62,7 +62,7 @@ def plot_infos(numbers, plan, rows, skip):
     for number in numbers:
         row = rows.get(number) or {}
         record = (written.get(number) or {}).get("overrides") or (missing.get(number) or {}).get("overrides") or {}
-        found[number] = {"unit": row.get("typologyRev9") or None, "nbh": row.get("nbhId") or None, "skip": skip.get(number),
+        found[number] = {"unit": row.get("typologyRev9") or None, "nbh": row.get("nbhId") if (row.get("nbhId") or "").strip() else None, "skip": skip.get(number),
                          "applied": list(record.get("applied") or ()), "notApplied": dict(record.get("notApplied") or {}),
                          "lacks": list(dict.fromkeys(item["key"] for item in (missing.get(number) or {}).get("missing") or ()))}
     return found
