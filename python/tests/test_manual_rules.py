@@ -68,3 +68,11 @@ def test_r403_the_past_job_state_of_each_rule_follows_the_words_of_its_past_job_
     for rule in block()["rules"]:
         expected = states.get(rule["pastJob"], "differs" if rule["pastJob"].startswith("Differs") else None)
         assert rule["pastJobState"] == expected, rule["id"]
+
+
+def test_r403_the_manual_folders_hold_the_path_of_the_manual_as_the_design_names_it_and_no_control_character():
+    manual = block()["manual"]
+    design = DESIGN.read_text(encoding="utf-8")
+    for folder in manual["folders"]:
+        assert not [char for char in folder if ord(char) < 32], repr(folder)
+        assert folder + "\\" + manual["file"] in design

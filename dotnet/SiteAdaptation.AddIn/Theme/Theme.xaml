@@ -555,4 +555,11 @@
   <sys:Double x:Key="SA.Size.FindBox">200</sys:Double>
   <sys:Double x:Key="SA.Size.ReviewList">480</sys:Double>
 
+  <!-- R403, docs/design/13-workflow-changes.md Site Adaptation Rules. The columns of its table are Code's choice, listed in
+       steps/ui-shots/README.md. The Rule column takes the rest of the width -->
+  <GridLength x:Key="SA.Grid.RulesId">64</GridLength>
+  <GridLength x:Key="SA.Grid.RulesManual">112</GridLength>
+  <GridLength x:Key="SA.Grid.RulesChecked">176</GridLength>
+  <GridLength x:Key="SA.Grid.RulesPast">200</GridLength>
+
 </ResourceDictionary>

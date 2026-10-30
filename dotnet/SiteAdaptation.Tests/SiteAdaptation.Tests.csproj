@@ -31,6 +31,7 @@
     <Compile Remove="UiShotTests.cs" />
     <Compile Remove="SetUpSiteTests.cs" />
     <Compile Remove="ReviewDataTests.cs" />
+    <Compile Remove="RulesWindowTests.cs" />
     <Compile Remove="AddinRunAddInTests.cs" />
   </ItemGroup>
 </Project>
