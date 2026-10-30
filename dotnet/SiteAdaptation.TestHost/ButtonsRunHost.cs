@@ -397,7 +397,9 @@ namespace SiteAdaptation.TestHost
             }
             else
             {
-                foreach (RevitLinkInstance link in new FilteredElementCollector(document).OfClass(typeof(RevitLinkInstance)).Cast<RevitLinkInstance>())
+                // Only the links of this run, so a link a key copy held from its past job is not held against the plan
+                foreach (RevitLinkInstance link in new FilteredElementCollector(document).OfClass(typeof(RevitLinkInstance)).Cast<RevitLinkInstance>()
+                    .Where(each => !before.ContainsKey(each.UniqueId)))
                 {
                     Transform total = link.GetTotalTransform();
                     double[] origin = Metres(total.Origin);
