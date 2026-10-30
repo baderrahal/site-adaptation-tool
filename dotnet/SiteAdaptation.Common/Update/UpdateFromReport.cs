@@ -739,6 +739,42 @@ namespace SiteAdaptation.Common.Update
             return applied;
         }
 
+        private static JToken Value(object value)
+        {
+            return value == null ? JValue.CreateNull() : new JValue(value);
+        }
+
+        // The result as JSON for the worker and the second route python/update_check.py: the refusal, each change with its cells and checks,
+        // the ignored cells, the tiles, chips and lacks, and when applied the entries, the plots, the changes not applied and the list text
+        public static JObject ResultJson(UpdateList list, UpdateApplied applied)
+        {
+            var found = new JObject
+            {
+                ["refusal"] = Value(list.Refusal),
+                ["changes"] = new JArray(list.Changes.Select(change => new JObject
+                {
+                    ["file"] = change.FileName, ["sheet"] = change.Sheet, ["row"] = change.Row, ["plot"] = change.Plot, ["field"] = change.Field, ["inModel"] = Value(change.InModel), ["inExcel"] = Value(change.InExcel),
+                    ["invalid"] = Value(change.Invalid), ["breaks"] = new JArray(change.Breaks), ["manualRules"] = new JArray(change.ManualRules), ["ruleCheck"] = change.RuleCheck, ["ticked"] = change.Ticked,
+                })),
+                ["ignored"] = new JArray(list.Ignored.Select(cell => new JObject
+                {
+                    ["file"] = cell.FileName, ["sheet"] = cell.Sheet, ["row"] = cell.Row, ["plot"] = cell.Plot, ["column"] = cell.Column, ["inModel"] = Value(cell.InModel), ["inExcel"] = Value(cell.InExcel), ["why"] = cell.Why,
+                })),
+                ["tiles"] = JObject.FromObject(list.Tiles()),
+                ["chips"] = JObject.FromObject(list.Chips()),
+                ["lacks"] = new JArray(list.Lacks),
+            };
+            if (applied != null)
+            {
+                found["entries"] = new JArray(applied.Entries.Select(item => item.DeepClone()));
+                found["replaced"] = new JArray(applied.Replaced.Select(item => item.DeepClone()));
+                found["plots"] = new JArray(applied.Plots);
+                found["notApplied"] = new JArray(applied.NotApplied);
+                found["listText"] = ListText(applied.List);
+            }
+            return found;
+        }
+
         // The list as majority.overrides_text writes it, one entry per line, so Bader finds and edits a plot by hand
         public static string ListText(JObject list)
         {

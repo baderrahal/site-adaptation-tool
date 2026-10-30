@@ -373,6 +373,23 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R402_the_result_json_holds_the_changes_tiles_chips_entries_and_list_text()
+        {
+            JObject plan = MadePlan();
+            UpdateList list = UpdateFromReport.Compare(EditedBooks(plan), plan, PlanSha, MadeRules(), Profile);
+            UpdateApplied applied = UpdateFromReport.Apply(list.Changes.Where(change => change.Ticked), plan, MadeOverrides(), MadeRules(), Profile, "u4");
+            JObject json = UpdateFromReport.ResultJson(list, applied);
+            Assert.Equal(6, ((JArray)json["changes"]).Count);
+            Assert.Equal("stepsRule", (string)json["changes"][2]["breaks"][0]);
+            Assert.Equal(5, (int)json["changes"][2]["row"]);
+            Assert.Equal(3, (int)json["tiles"]["Not editable ignored"]);
+            Assert.Equal(3, (int)json["chips"]["Breaks a rule"]);
+            Assert.Equal(new[] { "102", "101", "103" }, json["plots"].Select(item => (string)item).ToArray());
+            Assert.Equal(UpdateFromReport.ListText(applied.List), (string)json["listText"]);
+            Assert.False(UpdateFromReport.ResultJson(list, null).ContainsKey("entries"));
+        }
+
+        [Fact]
         public void R402_the_list_text_holds_one_entry_per_line_as_majority_writes_it()
         {
             JObject list = MadeOverrides();
