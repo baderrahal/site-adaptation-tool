@@ -10,8 +10,11 @@ using System.Windows.Media.Imaging;
 using SiteAdaptation.AddIn;
 using SiteAdaptation.AddIn.Icons;
 using SiteAdaptation.AddIn.Pane;
+using SiteAdaptation.AddIn.ReviewData;
 using SiteAdaptation.AddIn.SetUpSite;
 using SiteAdaptation.AddIn.Theme;
+using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common.Review;
 using SiteAdaptation.Common.SetUp;
 
 namespace SiteAdaptation.UiShots
@@ -25,7 +28,8 @@ namespace SiteAdaptation.UiShots
         public const string Pane = "pane";
         public const string PaneFirstOpen = "pane-first-open";
         public const string SetUpSite = "setup-site";
-        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite };
+        public const string ReviewData = "review-data";
+        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData };
 
         private const double Dpi = 96.0;
 
@@ -37,6 +41,7 @@ namespace SiteAdaptation.UiShots
                 case Pane: return PanePage(true);
                 case PaneFirstOpen: return PanePage(false);
                 case SetUpSite: return SetUpPage();
+                case ReviewData: return ReviewPage();
                 default: throw new ArgumentException("no window " + window + ", only " + string.Join(", ", Windows), nameof(window));
             }
         }
@@ -55,11 +60,45 @@ namespace SiteAdaptation.UiShots
         }
 
         // R400 caps every file of steps/ at 100 KB, so a picture is kept in a palette of its own 256 colours, which the flat colours
-        // and the edges of the text fit in
+        // and the edges of the text fit in. The palette is the 256 colours the picture holds most of, so a flat ground keeps its
+        // exact colour and no dither noise is spread over it, which the optimal palette of WPF did on a window with large grounds
         public static byte[] Png(BitmapSource bitmap)
         {
             var opaque = new FormatConvertedBitmap(bitmap, PixelFormats.Bgr24, null, 0);
-            var indexed = new FormatConvertedBitmap(opaque, PixelFormats.Indexed8, new BitmapPalette(opaque, 256), 0);
+            byte[] bgr = new byte[opaque.PixelWidth * opaque.PixelHeight * 3];
+            opaque.CopyPixels(bgr, opaque.PixelWidth * 3, 0);
+            var counts = new Dictionary<int, int>();
+            for (int at = 0; at < bgr.Length; at += 3)
+            {
+                int key = (bgr[at + 2] << 16) | (bgr[at + 1] << 8) | bgr[at];
+                counts[key] = counts.TryGetValue(key, out int seen) ? seen + 1 : 1;
+            }
+            List<Color> colors = counts.OrderByDescending(pair => pair.Value).ThenBy(pair => pair.Key).Take(256)
+                .Select(pair => Color.FromRgb((byte)(pair.Key >> 16), (byte)(pair.Key >> 8), (byte)pair.Key)).ToList();
+            // Each pixel takes the nearest colour of the palette by its own distance, with no dither, which FormatConvertedBitmap adds
+            var nearest = new Dictionary<int, byte>();
+            byte[] index = new byte[opaque.PixelWidth * opaque.PixelHeight];
+            for (int at = 0; at < index.Length; at++)
+            {
+                int key = (bgr[at * 3 + 2] << 16) | (bgr[at * 3 + 1] << 8) | bgr[at * 3];
+                if (!nearest.TryGetValue(key, out byte found))
+                {
+                    int best = int.MaxValue;
+                    for (int item = 0; item < colors.Count; item++)
+                    {
+                        int dr = colors[item].R - (key >> 16), dg = colors[item].G - ((key >> 8) & 255), db = colors[item].B - (key & 255);
+                        int distance = dr * dr + dg * dg + db * db;
+                        if (distance < best)
+                        {
+                            best = distance;
+                            found = (byte)item;
+                        }
+                    }
+                    nearest[key] = found;
+                }
+                index[at] = found;
+            }
+            BitmapSource indexed = BitmapSource.Create(opaque.PixelWidth, opaque.PixelHeight, bitmap.DpiX, bitmap.DpiY, PixelFormats.Indexed8, new BitmapPalette(colors), index, opaque.PixelWidth);
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(indexed));
             using (var stream = new MemoryStream())
@@ -157,6 +196,75 @@ namespace SiteAdaptation.UiShots
             bitmap.Render(body);
             bitmap.Freeze();
             return bitmap;
+        }
+
+        private static BitmapSource ReviewPage()
+        {
+            ReviewDataWindow window = LaidOutReview(SampleReviewView(true));
+            FrameworkElement body = Body(window);
+            var bitmap = new RenderTargetBitmap((int)body.ActualWidth, (int)body.ActualHeight, Dpi, Dpi, PixelFormats.Pbgra32);
+            bitmap.Render(body);
+            bitmap.Freeze();
+            return bitmap;
+        }
+
+        // The Review data window with a view, laid out as the Set up site one, and the first plot selected so the side box is filled
+        public static ReviewDataWindow LaidOutReview(ReviewView view)
+        {
+            var session = new ReviewDataSession(view, new ReviewCallbacks());
+            if (session.Model.Rows.Count > 0)
+            {
+                session.Model.Selected = session.Model.Rows[0];
+            }
+            var window = new ReviewDataWindow(session);
+            LayOut(window);
+            return window;
+        }
+
+        // Made up numbers only, no coordinate and no level of a real model. Five plots of a made up NBH 012, the first three with a
+        // plan fact of button 4 and corners, two checked OK and one Wrong. withPlan false is the view before button 4 has built, every
+        // value of the plan not read yet
+        public static ReviewView SampleReviewView(bool withPlan)
+        {
+            var table = new JObject();
+            string[] types = { "VL4", "VL6", "C10", "TH2", "DP1", "DT3" };
+            for (int at = 0; at < 5; at++)
+            {
+                string label = (1001 + at).ToString();
+                table[label] = new JObject
+                {
+                    ["baseplanLabel"] = label,
+                    ["neighbourhood"] = "012",
+                    ["locationPlanNumber"] = (31 + at).ToString(),
+                    ["officialNumber"] = (1031 + at).ToString(),
+                    ["typologyRev9"] = at == 4 ? JValue.CreateNull() : (JToken)types[at % types.Length],
+                    ["footprintMirrored"] = at == 4 ? JValue.CreateNull() : (JToken)(at % 3 == 0),
+                    ["faceAreaM2"] = 300.0 + at * 12.5,
+                };
+            }
+            var plan = new Dictionary<string, ReviewPlanFact>();
+            var rings = new Dictionary<string, double[][]>();
+            for (int at = 0; withPlan && at < 3; at++)
+            {
+                double x = 5000 + at * 30, y = 6000;
+                string label = (1001 + at).ToString();
+                plan[label] = new ReviewPlanFact { Cluster = "C" + (at / 2 + 1), Mirror = at % 3 == 0, FrontEdge = 0, RoadAtFront = "R" + (at + 1) };
+                rings[label] = new[] { new[] { x, y }, new[] { x + 20, y }, new[] { x + 20, y + 25 }, new[] { x, y + 25 } };
+            }
+            JObject site = JObject.Parse("{ 'angleToTrueNorthDeg': 0.0, 'surveyPoint': { 'position': [100.0, 200.0, 0.0], 'sharedPosition': [5000.0, 6000.0, 0.0] } }");
+            List<ReviewRow> rows = ReviewTable.Rows(table, "012", plan, rings, site);
+            var checks = new List<ReviewCheck>
+            {
+                new ReviewCheck { Plot = "31", Check = ReviewCheckValue.Ok, Note = "", RunId = "sample", PlotTableHash = "sample" },
+                new ReviewCheck { Plot = "32", Check = ReviewCheckValue.Ok, Note = "", RunId = "sample", PlotTableHash = "sample" },
+                new ReviewCheck { Plot = "34", Check = ReviewCheckValue.Wrong, Note = "Front edge on the wrong side", RunId = "sample", PlotTableHash = "sample" },
+            };
+            return new ReviewView
+            {
+                Nbh = "012",
+                Sources = new[] { "ROSHN Makkah Baseplan.dwg", "Makkah Building Footprint.dwg" },
+                State = new ReviewState(rows, checks, "sample", "sample"),
+            };
         }
 
         // The Set up site window with a view, measured and arranged at the width of the theme and not shown, so a test can read its parts
