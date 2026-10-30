@@ -22,6 +22,7 @@ namespace SiteAdaptation.Common.Update
                     InModel = Cell(field, item["inModel"]), Invalid = Text(item["invalid"]), Ticked = (bool?)item["ticked"] ?? false,
                 };
                 change.InExcel = change.Invalid == null ? Cell(field, item["inExcel"]) : Plain(item["inExcel"]);
+                change.Checks.AddRange((item["checks"] as JArray ?? new JArray()).Select(value => (string)value));
                 change.Breaks.AddRange((item["breaks"] as JArray ?? new JArray()).Select(value => (string)value));
                 change.ManualRules.AddRange((item["manualRules"] as JArray ?? new JArray()).Select(value => (string)value));
                 list.Changes.Add(change);

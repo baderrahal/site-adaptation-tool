@@ -250,15 +250,19 @@ namespace SiteAdaptation.Tests
             string[] rows = list.Changes.Select(change => change.Plot + " " + change.Field + " " + Text(change.InModel) + " -> " + Text(change.InExcel) + " | " + change.RuleCheck + " | " + change.Ticked).ToArray();
             Assert.Equal(new[]
             {
-                "101 FFL 10.2 -> 10.25 | stepHeights, M08 | False",
+                "101 FFL 10.2 -> 10.25 | Height in the step legend, M08 | False",
                 "102 El @ Entry 10.2 -> 10.15 | follows the rules | True",
-                "103 Steps 2 -> 3 | stepsRule, riser, M09 | False",
+                "103 Steps 2 -> 3 | Steps by the steps rule, Riser height within its limits, M09 | False",
                 "101 Villa type VD4 -> C10 | follows the rules | True",
-                "102 Mirror True -> False | follows the rules | True",
-                "103 Villa type DP1 -> ZZ9 | villaType | True",
+                "102 Mirror True -> False | no rule checks this field | True",
+                "103 Villa type DP1 -> ZZ9 | Villa type of the profile | True",
             }, rows);
+            // Review 5f: the rule column shows plain names, the ids go to the tooltip, the checks run when the change follows them
+            Assert.Equal(new[] { "stepHeights, M08", "fflOverEntry, stepsAtMost, stepHeights, riser", "stepsRule, riser, M09", "villaType", "", "villaType" },
+                list.Changes.Select(change => change.RuleIds).ToArray());
             Assert.Equal(new[] { "101 SSL", "104 FFL", "102 Type" }, list.Ignored.Select(cell => cell.Plot + " " + cell.Column).ToArray());
-            Assert.Equal(new Dictionary<string, int> { ["Changes found"] = 6, ["Follow the rules"] = 3, ["Break a manual rule"] = 2, ["Not editable ignored"] = 3 }, list.Tiles());
+            // Breaker 5f: the Mirror change no rule checks is not counted as one that follows the rules
+            Assert.Equal(new Dictionary<string, int> { ["Changes found"] = 6, ["Follow the rules"] = 2, ["Break a manual rule"] = 2, ["Not editable ignored"] = 3 }, list.Tiles());
             Assert.Equal(new Dictionary<string, int> { ["All"] = 6, ["FFL"] = 1, ["El @ Entry"] = 1, ["Steps"] = 1, ["Villa type"] = 2, ["Mirror"] = 1, ["Breaks a rule"] = 3 }, list.Chips());
             Assert.Empty(list.Lacks);
         }
@@ -356,7 +360,7 @@ namespace SiteAdaptation.Tests
             UpdateList list = UpdateFromReport.Compare(EditedBooks(plan), plan, PlanSha, MadeRules(false), Profile);
             Assert.All(list.Changes, change => Assert.True(change.Ticked));
             Assert.Equal(0, list.Tiles()[UpdateText.BreakAManualRule]);
-            Assert.Equal(3, list.Tiles()[UpdateText.FollowTheRules]);
+            Assert.Equal(2, list.Tiles()[UpdateText.FollowTheRules]);
             Assert.Equal(new[] { "the rules profile holds no block manualRules, so no change breaks a manual rule (R402)" }, list.Lacks.ToArray());
         }
 
@@ -419,6 +423,24 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "101", "103" }, applied.Plots.ToArray());
             UpdateList unknown = UpdateFromReport.Compare(EditedBooks(plan), plan, PlanSha, MadeRules(), Profile);
             Assert.All(unknown.Changes, change => Assert.NotEqual(why, change.Invalid));
+        }
+
+        // Breaker 5f: a mirror the hand rules of the profile gave, source computed in the plan, is checked by them, and an edit of it breaks
+        // them. A mirror an override gave holds no hand of the rules, so no rule checks it
+        [Fact]
+        public void R402_a_mirror_change_of_a_plot_whose_hand_the_rules_gave_breaks_the_hand_rule()
+        {
+            JObject plan = MadePlan();
+            plan["plots"][1]["mirrored"]["source"] = "computed";
+            UpdateList list = UpdateFromReport.Compare(EditedBooks(plan), plan, PlanSha, MadeRules(), Profile);
+            UpdateChange mirror = list.Changes.Single(change => change.Field == UpdateText.Mirror);
+            Assert.Equal("Mirror by the hand rule", mirror.RuleCheck);
+            Assert.Equal("handRule", mirror.RuleIds);
+            Assert.True(mirror.Ticked);
+            Assert.Equal(2, list.Tiles()[UpdateText.FollowTheRules]);
+            Assert.Equal(4, list.Chips()[UpdateText.BreaksARule]);
+            Assert.Equal(UpdateFromReport.Checks.Length, UpdateText.RuleNames.Count);
+            Assert.All(UpdateText.RuleNames.Values, name => Assert.InRange(name.Split(' ').Length, 1, 6));
         }
 
         [Fact]

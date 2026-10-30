@@ -31,6 +31,26 @@ namespace SiteAdaptation.Common.Update
         public const string Reason = "Update from report <run id>";
         public const string Follows = "follows the rules";
         public const string BreaksJoin = ", ";
+        public const string NoRuleChecks = "no rule checks this field";
+
+        // The plain name of each level rule check by its id, at most 6 words (12-ui-spec.md), CHOSEN in the 5f fix for Bader's check
+        public static readonly Dictionary<string, string> RuleNames = new Dictionary<string, string>
+        {
+            ["fflOverEntry"] = "FFL over entry by the base",
+            ["stepsRule"] = "Steps by the steps rule",
+            ["stepsAtMost"] = "Front steps within their range",
+            ["stepHeights"] = "Height in the step legend",
+            ["riser"] = "Riser height within its limits",
+            ["oneStepUnits"] = "One step for one step units",
+            ["oneFflPerPiece"] = "One FFL per piece",
+            ["villaType"] = "Villa type of the profile",
+            ["handRule"] = "Mirror by the hand rule",
+        };
+
+        public static string RuleName(string id)
+        {
+            return id != null && RuleNames.TryGetValue(id, out string name) ? name : id;
+        }
         public const string NotSavable = "the plot has no override entry of the job <n>, so Apply can not save it (Q169)";
 
         private static readonly System.Text.RegularExpressions.Regex Slot = new System.Text.RegularExpressions.Regex("<[a-z]+>");
@@ -84,7 +104,17 @@ namespace SiteAdaptation.Common.Update
 
         public bool BreaksARule => Invalid != null || Breaks.Count > 0;
 
-        public string RuleCheck => Invalid ?? (Breaks.Count == 0 ? UpdateText.Follows : string.Join(UpdateText.BreaksJoin, Breaks.Concat(ManualRules)));
+        // The level rule checks of R402 that ran on the change, by their ids, none when no rule checks its field
+        public List<string> Checks { get; } = new List<string>();
+
+        // The plain names of the rules the change breaks and the ids of the manual rules, else whether a rule checked it at all (12-ui-spec.md)
+        public string RuleCheck => Invalid ?? (Breaks.Count > 0 ? string.Join(UpdateText.BreaksJoin, Breaks.Select(UpdateText.RuleName).Concat(ManualRules))
+            : Checks.Count == 0 ? UpdateText.NoRuleChecks : UpdateText.Follows);
+
+        // The ids of the rules the rule column names, or of the checks the change follows, for the tooltip
+        public string RuleIds => Invalid != null ? "" : string.Join(UpdateText.BreaksJoin, Breaks.Count > 0 ? Breaks.Concat(ManualRules) : Checks);
+
+        public bool FollowsTheRules => Invalid == null && Breaks.Count == 0 && Checks.Count > 0;
     }
 
     // A cell of a column that is not editable whose value differs from the plan, counted and never applied
@@ -114,7 +144,7 @@ namespace SiteAdaptation.Common.Update
             return new Dictionary<string, int>
             {
                 [UpdateText.ChangesFound] = Changes.Count,
-                [UpdateText.FollowTheRules] = Changes.Count(change => !change.BreaksARule),
+                [UpdateText.FollowTheRules] = Changes.Count(change => change.FollowsTheRules),
                 [UpdateText.BreakAManualRule] = Changes.Count(change => change.ManualRules.Count > 0),
                 [UpdateText.NotEditableIgnored] = Ignored.Count,
             };

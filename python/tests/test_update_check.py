@@ -100,14 +100,16 @@ def test_r402_an_edited_copy_lists_each_change_its_rule_check_the_tiles_and_the_
     found = check.result(books, PLAN, SHA, RULES, PROFILE, None, "u1")
     assert found["refusal"] is None
     assert [(item["plot"], item["field"], item["inModel"], item["inExcel"], item["ruleCheck"], item["ticked"]) for item in found["changes"]] == [
-        ("101", "FFL", 10.2, 10.25, "stepHeights, M08", False),
+        ("101", "FFL", 10.2, 10.25, "Height in the step legend, M08", False),
         ("102", "El @ Entry", 10.2, 10.15, "follows the rules", True),
-        ("103", "Steps", 2, 3, "stepsRule, riser, M09", False),
+        ("103", "Steps", 2, 3, "Steps by the steps rule, Riser height within its limits, M09", False),
         ("101", "Villa type", "VD4", "C10", "follows the rules", True),
-        ("102", "Mirror", True, False, "follows the rules", True),
-        ("103", "Villa type", "DP1", "ZZ9", "villaType", True)]
+        ("102", "Mirror", True, False, "no rule checks this field", True),
+        ("103", "Villa type", "DP1", "ZZ9", "Villa type of the profile", True)]
+    assert [item["checks"] for item in found["changes"]] == [["fflOverEntry", "stepsAtMost", "stepHeights", "riser"]] * 2 + [
+        ["fflOverEntry", "stepsRule", "stepsAtMost", "stepHeights", "riser"], ["villaType"], [], ["villaType"]]
     assert [(item["plot"], item["column"]) for item in found["ignored"]] == [("101", "SSL"), ("104", "FFL"), ("102", "Type")]
-    assert found["tiles"] == {"Changes found": 6, "Follow the rules": 3, "Break a manual rule": 2, "Not editable ignored": 3}
+    assert found["tiles"] == {"Changes found": 6, "Follow the rules": 2, "Break a manual rule": 2, "Not editable ignored": 3}
     assert found["chips"] == {"All": 6, "FFL": 1, "El @ Entry": 1, "Steps": 1, "Villa type": 2, "Mirror": 1, "Breaks a rule": 3}
     assert found["lacks"] == []
 
@@ -182,6 +184,16 @@ def test_r402_a_change_of_a_plot_with_no_override_entry_of_its_job_is_not_savabl
         ("102", "Mirror", why, False), ("103", "Villa type", None, True)]
     assert [(item["plot"], item["field"]) for item in found["entries"]] == [("101", "unit"), ("103", "unit")]
     assert found["notApplied"] == [] and found["plots"] == ["101", "103"]
+
+
+def test_r402_a_mirror_change_of_a_plot_whose_hand_the_rules_gave_breaks_the_hand_rule(books):
+    """Breaker 5f: the plan holds the hand of the rules as a mirror of source computed, so an edit of it breaks the hand rule."""
+    plan = copy.deepcopy(PLAN)
+    plan["plots"][1]["mirrored"]["source"] = "computed"
+    found = check.result(books, plan, SHA, RULES, PROFILE, None, "u8")
+    mirror = next(item for item in found["changes"] if item["field"] == "Mirror")
+    assert (mirror["ruleCheck"], mirror["breaks"], mirror["checks"], mirror["ticked"]) == ("Mirror by the hand rule", ["handRule"], ["handRule"], True)
+    assert found["tiles"]["Follow the rules"] == 2 and found["chips"]["Breaks a rule"] == 4
 
 
 def test_r402_the_compare_counts_each_cell_and_names_a_planted_mismatch(books):

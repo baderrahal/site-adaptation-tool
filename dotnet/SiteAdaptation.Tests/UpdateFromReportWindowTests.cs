@@ -38,6 +38,7 @@ namespace SiteAdaptation.Tests
         private static UpdateChange Change(string plot, string field, object model, object excel, bool ticked, string invalid = null, string manual = null, string breaks = null)
         {
             var change = new UpdateChange { Plot = plot, Field = field, FileName = "012_Levels_" + Profile + ".xlsx", Sheet = "Levels", Row = 3, InModel = model, InExcel = excel, Ticked = ticked, Invalid = invalid };
+            change.Checks.Add(UpdateFromReport.FflOverEntry);
             if (manual != null)
             {
                 change.ManualRules.Add(manual);
@@ -73,8 +74,10 @@ namespace SiteAdaptation.Tests
             Assert.Equal(UpdateText.Chips, UpdateFromReportText.Chips);
             Assert.Equal("Updates the levels, floors, links and parameters of the changed plots only.", UpdateFromReportText.Foot);
             Assert.Equal(new[] { "Apply", "Plot", "Field", "In model", "In Excel", "Rule check" }, UpdateFromReportText.Columns);
-            Assert.Equal(new[] { "102 El @ Entry 10.2000 10.1500 follows the rules", "103 Steps 2 3 stepsRule", "101 FFL 10.200 10.250 stepHeights, M08", "101 El @ Entry 10.0000  the cell holds no number" },
+            // Review 5f: the rule column shows the plain name of each rule, its id is the tooltip
+            Assert.Equal(new[] { "102 El @ Entry 10.2000 10.1500 follows the rules", "103 Steps 2 3 Steps by the steps rule", "101 FFL 10.200 10.250 Height in the step legend, M08", "101 El @ Entry 10.0000  the cell holds no number" },
                 model.Rows.Select(row => row.Plot + " " + row.Field + " " + row.InModel + " " + row.InExcel + " " + row.RuleCheck).ToArray());
+            Assert.Equal(new[] { "fflOverEntry", "stepsRule", "stepHeights, M08", "" }, model.Rows.Select(row => row.RuleIds).ToArray());
         }
 
         [Fact]

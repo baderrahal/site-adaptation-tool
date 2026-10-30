@@ -200,6 +200,9 @@ namespace SiteAdaptation.AddIn.Update
 
         public string RuleCheck => Change.RuleCheck;
 
+        // The ids of the rules the rule column names, for its tooltip (12-ui-spec.md)
+        public string RuleIds => Change.RuleIds;
+
         public bool BreaksManual => Change.ManualRules.Count > 0;
 
         public bool BreaksRule => Change.BreaksARule;

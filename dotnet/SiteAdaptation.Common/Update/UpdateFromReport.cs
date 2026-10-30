@@ -23,7 +23,11 @@ namespace SiteAdaptation.Common.Update
         public const string OneStepUnits = "oneStepUnits";
         public const string OneFflPerPiece = "oneFflPerPiece";
         public const string VillaTypeCheck = "villaType";
-        public static readonly string[] Checks = { FflOverEntry, StepsRule, StepsAtMost, StepHeights, Riser, OneStepUnits, OneFflPerPiece, VillaTypeCheck };
+        public const string HandRule = "handRule";
+        public static readonly string[] Checks = { FflOverEntry, StepsRule, StepsAtMost, StepHeights, Riser, OneStepUnits, OneFflPerPiece, VillaTypeCheck, HandRule };
+
+        // The source the plan gives a mirror the hand rules of the profile set, as plan_from_cad.COMPUTED names it, an override has another
+        private const string ByRule = "computed";
 
         // The field of the override list each editable column writes, as R360 names them. No build applies unit yet, the unit of a plot
         // comes from typologyRev9 of plots.csv (proposed question of 5f)
@@ -188,6 +192,7 @@ namespace SiteAdaptation.Common.Update
             }
             CheckLevels(made, rules, levelProfile);
             CheckTypes(made, rules);
+            CheckMirrors(made);
             ManualRules(list, rules);
             NotSavable(list, overrides, Text(levelProfile["job"]));
             foreach (UpdateChange change in list.Changes)
@@ -446,7 +451,7 @@ namespace SiteAdaptation.Common.Update
 
             public void Lack(string key, string check)
             {
-                string line = "the rules profile holds no " + key + ", so the check " + check + " is not run (R402)";
+                string line = "the rules profile holds no " + key + ", so the check " + UpdateText.RuleName(check) + " is not run (R402)";
                 if (!List.Lacks.Contains(line))
                 {
                     List.Lacks.Add(line);
@@ -504,8 +509,13 @@ namespace SiteAdaptation.Common.Update
                     continue;
                 }
                 var broken = new List<string>();
+                var ran = new List<string>();
                 Action<string, bool?, bool?> hold = (name, before, now) =>
                 {
+                    if (before.HasValue && now.HasValue)
+                    {
+                        ran.Add(name);
+                    }
                     if (before == true && now == false)
                     {
                         broken.Add(name);
@@ -557,6 +567,7 @@ namespace SiteAdaptation.Common.Update
                 }
                 foreach (UpdateChange change in valid)
                 {
+                    change.Checks.AddRange(ran);
                     change.Breaks.AddRange(broken);
                 }
             }
@@ -574,9 +585,10 @@ namespace SiteAdaptation.Common.Update
                 }
                 bool before = members.Select(plot => (double)made.Written[plot]["levels"]["ffl"]["value"]).Distinct().Count() == 1;
                 bool now = members.Select(plot => after[plot]).Distinct().Count() == 1;
-                if (before && !now)
+                foreach (UpdateChange change in moved)
                 {
-                    foreach (UpdateChange change in moved)
+                    change.Checks.Add(OneFflPerPiece);
+                    if (before && !now)
                     {
                         change.Breaks.Add(OneFflPerPiece);
                     }
@@ -602,12 +614,35 @@ namespace SiteAdaptation.Common.Update
             }
             if (typologies == null)
             {
-                made.List.Lacks.Add("the rules profile holds no typologies, so the check " + VillaTypeCheck + " is not run (R402)");
+                made.List.Lacks.Add("the rules profile holds no typologies, so the check " + UpdateText.RuleName(VillaTypeCheck) + " is not run (R402)");
                 return;
             }
-            foreach (UpdateChange change in types.Where(change => typologies[(string)change.InExcel] == null))
+            foreach (UpdateChange change in types)
             {
-                change.Breaks.Add(VillaTypeCheck);
+                change.Checks.Add(VillaTypeCheck);
+                if (typologies[(string)change.InExcel] == null)
+                {
+                    change.Breaks.Add(VillaTypeCheck);
+                }
+            }
+        }
+
+        // The hand rules of the profile (keyRules hand villa, hand cluster, hand alone) need the cluster side, the road side and the block
+        // mirror, which the plan does not hold. A mirror they gave is in the plan with the source computed, so it is the hand of the rules
+        // and an edit of it breaks them. A mirror an override gave holds no hand of the rules, so no rule checks it
+        private static void CheckMirrors(Context made)
+        {
+            foreach (UpdateChange change in made.List.Changes.Where(change => change.Field == UpdateText.Mirror && change.Invalid == null))
+            {
+                JToken mirrored = made.Written[change.Plot]["mirrored"];
+                if (Text(mirrored?["source"]) == ByRule && mirrored?["value"]?.Type == JTokenType.Boolean)
+                {
+                    change.Checks.Add(HandRule);
+                    if (!Equals(change.InExcel, (bool)mirrored["value"]))
+                    {
+                        change.Breaks.Add(HandRule);
+                    }
+                }
             }
         }
 
@@ -773,7 +808,7 @@ namespace SiteAdaptation.Common.Update
                 ["changes"] = new JArray(list.Changes.Select(change => new JObject
                 {
                     ["file"] = change.FileName, ["sheet"] = change.Sheet, ["row"] = change.Row, ["plot"] = change.Plot, ["field"] = change.Field, ["inModel"] = Value(change.InModel), ["inExcel"] = Value(change.InExcel),
-                    ["invalid"] = Value(change.Invalid), ["breaks"] = new JArray(change.Breaks), ["manualRules"] = new JArray(change.ManualRules), ["ruleCheck"] = change.RuleCheck, ["ticked"] = change.Ticked,
+                    ["invalid"] = Value(change.Invalid), ["checks"] = new JArray(change.Checks), ["breaks"] = new JArray(change.Breaks), ["manualRules"] = new JArray(change.ManualRules), ["ruleCheck"] = change.RuleCheck, ["ticked"] = change.Ticked,
                 })),
                 ["ignored"] = new JArray(list.Ignored.Select(cell => new JObject
                 {

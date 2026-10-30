@@ -30,6 +30,13 @@ FIELDS = {"FFL": "heightM", "El @ Entry": "entryM", "Steps": "steps", "Villa typ
 TILES = ("Changes found", "Follow the rules", "Break a manual rule", "Not editable ignored")
 CHIPS = ("All", "FFL", "El @ Entry", "Steps", "Villa type", "Mirror", "Breaks a rule")
 FOLLOWS = "follows the rules"
+NO_RULE = "no rule checks this field"
+# The plain name of each check by its id, the words of UpdateText.RuleNames of C# (12-ui-spec.md, at most 6 words)
+PLAIN = {"fflOverEntry": "FFL over entry by the base", "stepsRule": "Steps by the steps rule", "stepsAtMost": "Front steps within their range",
+         "stepHeights": "Height in the step legend", "riser": "Riser height within its limits", "oneStepUnits": "One step for one step units",
+         "oneFflPerPiece": "One FFL per piece", "villaType": "Villa type of the profile", "handRule": "Mirror by the hand rule"}
+# The source plan_from_cad gives a mirror the hand rules set
+BY_RULE = "computed"
 NOT_SAVABLE = "the plot has no override entry of the job %s, so Apply can not save it (Q169)"
 # The decimals of the level Excel columns of R364
 ENTRY_DEC, FFL_DEC = 4, 3
@@ -140,7 +147,7 @@ def changes_of(books, plan, sha, rules, profile, overrides=None):
 
     def change(book, sheet, index, plot, field, model, excel, invalid):
         made = {"file": book["file"], "sheet": sheet, "row": index + 1, "plot": plot, "field": field, "inModel": model, "inExcel": excel, "invalid": invalid,
-                "breaks": [], "manualRules": []}
+                "checks": [], "breaks": [], "manualRules": []}
         found["changes"].append(made)
         return made
 
@@ -229,6 +236,7 @@ def changes_of(books, plan, sha, rules, profile, overrides=None):
                     change(book, PLACED, index, plot, "Mirror", flag, read, None if isinstance(read, bool) else "the cell is empty" if read is None else "the cell holds no TRUE or FALSE")
     level_checks(found, edits, order, written, rules, level_profile)
     type_checks(found, rules)
+    mirror_checks(found, written)
     manual_checks(found, rules)
     job = level_profile.get("job")
     if overrides is not None and isinstance(job, str):
@@ -238,12 +246,13 @@ def changes_of(books, plan, sha, rules, profile, overrides=None):
                 item["invalid"] = NOT_SAVABLE % job
     for item in found["changes"]:
         item["ticked"] = item["invalid"] is None and not item["manualRules"]
-        item["ruleCheck"] = item["invalid"] or (FOLLOWS if not item["breaks"] else ", ".join(item["breaks"] + item["manualRules"]))
+        named = [PLAIN.get(check, check) for check in item["breaks"]] + item["manualRules"]
+        item["ruleCheck"] = item["invalid"] or (", ".join(named) if item["breaks"] else FOLLOWS if item["checks"] else NO_RULE)
     return found
 
 
 def lack(found, key, check):
-    line = "the rules profile holds no %s, so the check %s is not run (R402)" % (key, check)
+    line = "the rules profile holds no %s, so the check %s is not run (R402)" % (key, PLAIN.get(check, check))
     if line not in found["lacks"]:
         found["lacks"].append(line)
 
@@ -324,9 +333,11 @@ def level_checks(found, edits, order, written, rules, level_profile):
         steps1 = edit["steps"] if edit["steps"] is not None else (by_rule(height1) if moved and not held else steps0)
         if steps1 is None:
             continue
-        broken = []
+        broken, ran = [], []
 
         def hold(name, before, now):
+            if before is not None and now is not None:
+                ran.append(name)
             if before is True and now is False:
                 broken.append(name)
 
@@ -353,6 +364,7 @@ def level_checks(found, edits, order, written, rules, level_profile):
         if single is not None and unit in single:
             hold("oneStepUnits", steps0 == 1, steps1 == 1)
         for item in valid:
+            item["checks"].extend(ran)
             item["breaks"].extend(broken)
     pieces = {}
     for plot in order:
@@ -363,9 +375,10 @@ def level_checks(found, edits, order, written, rules, level_profile):
         moved = [item for plot in members for item in edits[plot]["changes"] if item["field"] == "FFL" and item["invalid"] is None]
         if len(members) < 2 or not moved:
             continue
-        before = len({written[plot]["levels"]["ffl"]["value"] for plot in members}) == 1
-        if before and len({after[plot] for plot in members}) != 1:
-            for item in moved:
+        broken = len({written[plot]["levels"]["ffl"]["value"] for plot in members}) == 1 and len({after[plot] for plot in members}) != 1
+        for item in moved:
+            item["checks"].append("oneFflPerPiece")
+            if broken:
                 item["breaks"].append("oneFflPerPiece")
 
 
@@ -375,11 +388,24 @@ def type_checks(found, rules):
         return
     typologies = rules.get("typologies")
     if not isinstance(typologies, dict):
-        found["lacks"].append("the rules profile holds no typologies, so the check villaType is not run (R402)")
+        found["lacks"].append("the rules profile holds no typologies, so the check %s is not run (R402)" % PLAIN["villaType"])
         return
     for item in types:
+        item["checks"].append("villaType")
         if item["inExcel"] not in typologies:
             item["breaks"].append("villaType")
+
+
+def mirror_checks(found, written):
+    """A mirror of source computed is the hand the rules of the profile gave, so an edit of it breaks them, an override mirror is not checked."""
+    for item in found["changes"]:
+        if item["field"] != "Mirror" or item["invalid"] is not None:
+            continue
+        mirrored = written[item["plot"]].get("mirrored") or {}
+        if mirrored.get("source") == BY_RULE and isinstance(mirrored.get("value"), bool):
+            item["checks"].append("handRule")
+            if item["inExcel"] is not mirrored["value"]:
+                item["breaks"].append("handRule")
 
 
 def manual_checks(found, rules):
@@ -414,7 +440,8 @@ def manual_checks(found, rules):
 def tiles_of(found):
     changes = found["changes"]
     breaks = [item for item in changes if item["invalid"] is not None or item["breaks"]]
-    tiles = dict(zip(TILES, (len(changes), len(changes) - len(breaks), sum(1 for item in changes if item["manualRules"]), len(found["ignored"]))))
+    follow = sum(1 for item in changes if item["invalid"] is None and not item["breaks"] and item["checks"])
+    tiles = dict(zip(TILES, (len(changes), follow, sum(1 for item in changes if item["manualRules"]), len(found["ignored"]))))
     chips = {"All": len(changes), "Breaks a rule": len(breaks)}
     chips.update({field: sum(1 for item in changes if item["field"] == field) for field in FIELDS})
     return tiles, {chip: chips[chip] for chip in CHIPS}
@@ -511,7 +538,7 @@ def compare(python, sharp):
             tally["conflicts"].append(where)
 
     held("refusal", python.get("refusal"), sharp.get("refusal"))
-    for name, keys in (("changes", ("file", "sheet", "row", "plot", "field", "inModel", "inExcel", "invalid", "breaks", "manualRules", "ruleCheck", "ticked")),
+    for name, keys in (("changes", ("file", "sheet", "row", "plot", "field", "inModel", "inExcel", "invalid", "checks", "breaks", "manualRules", "ruleCheck", "ticked")),
                        ("ignored", ("file", "sheet", "row", "plot", "column", "inModel", "inExcel", "why")),
                        ("entries", ("plot", "field", "value", "rule", "source", "model", "key", "decision", "reason", "byHand")),
                        ("replaced", ("plot", "field", "value", "source", "key"))):

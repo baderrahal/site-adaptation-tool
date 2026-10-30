@@ -191,6 +191,8 @@ namespace SiteAdaptation.UiShots
         private static UpdateChange SampleChange(string plot, string field, object inModel, object inExcel, bool ticked, string breaks, string manual, string invalid)
         {
             var change = new UpdateChange { Plot = plot, Field = field, InModel = inModel, InExcel = inExcel, Ticked = ticked, Invalid = invalid };
+            // A level change the checks ran on, so the first row reads that it follows the rules
+            change.Checks.Add(SiteAdaptation.Common.Update.UpdateFromReport.FflOverEntry);
             if (breaks != null)
             {
                 change.Breaks.Add(breaks);
