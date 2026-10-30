@@ -153,6 +153,11 @@ namespace SiteAdaptation.Common.CheckTable
             {
                 plan.Stops.Add("1 Set up site wrote no " + SetUpRun.SiteFile + " in the work folder");
             }
+            else
+            {
+                // R80. The survey point, the angle and the level elevations of the plan the build writes beside its steps
+                Add(plan, BuildPlan.SiteRole, Path.Combine(context.WorkFolder, SetUpRun.SiteFile), null);
+            }
             if (plan.Stops.Count == 0)
             {
                 Held(plan, config, rulesPath);
@@ -387,6 +392,12 @@ namespace SiteAdaptation.Common.CheckTable
             JObject rules = JObject.Parse(WorkFiles.ReadText(rulesPath));
             JObject list = JObject.Parse(WorkFiles.ReadText(plan.OverridesPath));
             return CheckTableInfo.Of(BuildRules.ProfileName(rules, levelProfile), Path.GetFileName(plan.OverridesPath), list, step, plan.Nbh);
+        }
+
+        // R80. The plan of the build in its folder, the one file buttons 5 to 8 read
+        public static string PlanName(string nbh)
+        {
+            return BuildPlan.FileName(nbh);
         }
 
         public static string ChecksName(string nbh)
