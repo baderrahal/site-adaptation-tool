@@ -61,6 +61,13 @@ namespace SiteAdaptation.Common
         private const double BookLevelM = 0.005;
         private const int Decimals = 3;
 
+        // A build writes its plan when it asks every step the plan is made from and names site.json of button 1, as button 4 does
+        public static bool PlanAsked(IEnumerable<string> steps, IEnumerable<WorkerFile> inputs)
+        {
+            var asked = new HashSet<string>(steps ?? new string[0], StringComparer.Ordinal);
+            return Steps.All(asked.Contains) && (inputs ?? new WorkerFile[0]).Any(input => input.Role == SiteRole);
+        }
+
         public static string FileName(string nbh)
         {
             return "plan_" + (nbh ?? "all") + ".json";

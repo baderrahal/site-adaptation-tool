@@ -343,6 +343,15 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R80_a_build_writes_the_plan_when_it_asks_every_step_of_it_and_names_site_json()
+        {
+            var site = new List<WorkerFile> { new WorkerFile { Role = "config" }, new WorkerFile { Role = "site" } };
+            Assert.True(BuildPlan.PlanAsked(new[] { "faces" }.Concat(BuildSteps.Names), site));
+            Assert.False(BuildPlan.PlanAsked(BuildSteps.Names.Where(step => step != "status"), site));
+            Assert.False(BuildPlan.PlanAsked(BuildSteps.Names, site.Take(1)));
+        }
+
+        [Fact]
         public void R80_plan_names_the_nbh_of_its_scope()
         {
             PlanInputs inputs = Inputs();
