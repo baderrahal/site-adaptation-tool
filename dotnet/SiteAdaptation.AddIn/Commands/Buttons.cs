@@ -40,6 +40,11 @@ namespace SiteAdaptation.AddIn
             {
                 body = UpdateFromReportBody.For(application);
             }
+            // 5e. Button 9 is made here on the active document as Update from report is, so Bodies.Of, which the tests call, names no Revit type
+            if (document != null && button.Number == 9)
+            {
+                body = ReportBody.For(application);
+            }
             RunOutcome outcome = flow.Run(button.Number, button.Label, body, document == null ? null : document.PathName);
             if (outcome.Message != null)
             {
