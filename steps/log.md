@@ -15,7 +15,7 @@ Done:
 - Q119 reads by the override that set each input. Q120 mirrored the yard outline and type, rotationDeg turned walls only
 
 Checked:
-- Gate, RAN: Python 2,038 passed, 3 skipped (environment skips of main). C# net48 1,155, net8.0 1,068, 0 failed
+- Gate, RAN, after the merge of main with Lane B 5b: Python 2,038 passed, 3 skipped. C# net48 1,215, net8.0 1,104, 0 failed
 - Whole project on 2a7ea18, RAN: parity 13 of 13 steps per runtime, 0 failures, status step 8,112 fields
 - Level Excel 70,519 matches, 0 mismatches per runtime. Peak net48 1,031 MiB, net8.0 1,018 MiB (RAN)
 - R369, RAN: seed 14 1,154 and seed 7 1,188 matches, 0 mismatches, on the Python and both C# step sets
