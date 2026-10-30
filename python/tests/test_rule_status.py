@@ -406,6 +406,16 @@ def test_r401_r363_the_block_check_rows_is_a_setting_with_no_entry_of_the_status
     assert "checkRows" in settings and [path for path in profile["status"]["config/project.json"] if path.split(".")[0] == "checkRows"] == []
 
 
+def test_r375_r401_the_block_addin_read_data_is_a_setting_with_no_entry_of_the_status_block():
+    """Lane B 5c: addin.readData names the files button 2 hands the worker beside the pane, the layer list, the schedule folder and the
+    data book files, which set no plotted value, as addin.workbookRoles names the roles of the workbooks."""
+    assert "addin.readData" in rule_status.BOOKKEEPING
+    settings = json.loads((ROOT / "config" / "project.json").read_text(encoding="utf-8"))
+    profile = json.loads((ROOT / settings["profile"]).read_text(encoding="utf-8"))
+    assert "readData" in settings["addin"]
+    assert [path for path in profile["status"]["config/project.json"] if path.startswith("addin.readData")] == []
+
+
 def test_d13_the_open_questions_are_read_from_questions_open_not_from_baders_turn(tmp_path):
     # 4h-1 join item (D13): Bader's turn lists only the questions of the phase, so Q105 open in questions-open.md alone is open and Q005,
     # named in Bader's turn but with no text in questions-open.md, is not

@@ -34,17 +34,45 @@ namespace SiteAdaptation.AddIn
         {
             Document document = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
             var flow = new ButtonFlow(State, new RevitModel(document), new TaskDialogConfirm(), InputHash.Of, () => RunIds.New(button.Number, DateTime.Now));
-            RunOutcome outcome = flow.Run(button.Number, button.Label, Bodies.Of(button, () => SetUpSiteBody.For(application)), document == null ? null : document.PathName);
+            Func<ButtonBody> readData = () => ReadDataBody.For(PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title));
+            ButtonBody body = button.Number == 2 && document != null ? Bodies.Of(button, null, readData) : Bodies.Of(button, () => SetUpSiteBody.For(application));
+            RunOutcome outcome = flow.Run(button.Number, button.Label, body, document == null ? null : document.PathName, later => Ended(application, document, button.Number, later));
             if (outcome.Message != null)
             {
                 TaskDialog.Show(RibbonLayout.Tab, outcome.Message);
             }
             return outcome.End == RunEnd.Cancelled ? Result.Cancelled : Result.Succeeded;
         }
+
+        // R375. The end of a worker, in the API context of Revit, goes to the document of its run, the active one or not, and to
+        // none once that document closed
+        private static void Ended(UIApplication application, Document document, int number, RunOutcome later)
+        {
+            if (document == null || !document.IsValidObject)
+            {
+                return;
+            }
+            Document active = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
+            if (later.Record != null)
+            {
+                if (active != null && active.Equals(document))
+                {
+                    State.Committed(number, later.Record);
+                }
+                else
+                {
+                    Pane.PaneRunState.Record(PaneHost.Current.Sessions.Find(document), number, later.Record);
+                }
+            }
+            if (later.Message != null)
+            {
+                TaskDialog.Show(RibbonLayout.Tab, later.Message);
+            }
+        }
     }
 
-    // R382. The body of each button. Button 1 is built in 5b and runs once its window is set, every other one stops with the text of
-    // R371 through the flow
+    // R382. The body of each button. Button 1 is built in 5b and runs once its window is set, button 2 in 5c once its worker is set,
+    // every other one stops with the text of R371 through the flow
     public static class Bodies
     {
         public static ButtonBody Of(int number)
@@ -61,9 +89,19 @@ namespace SiteAdaptation.AddIn
         // tests load none of
         public static ButtonBody Of(RibbonButtonSpec button, Func<ButtonBody> setUp)
         {
+            return Of(button, setUp, null);
+        }
+
+        // R375. readData makes the body of button 2 on the document of the run, built once App sets the worker
+        public static ButtonBody Of(RibbonButtonSpec button, Func<ButtonBody> setUp, Func<ButtonBody> readData)
+        {
             if (button.Number == 1 && SetUpSiteBody.Dialog != null && setUp != null)
             {
                 return setUp();
+            }
+            if (button.Number == 2 && ReadDataBody.Worker != null && readData != null)
+            {
+                return readData();
             }
             return new ButtonBody { NotBuilt = RunTexts.NotBuilt(button.Label) };
         }

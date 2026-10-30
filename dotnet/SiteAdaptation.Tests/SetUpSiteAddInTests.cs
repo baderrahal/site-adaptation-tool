@@ -34,6 +34,18 @@ namespace SiteAdaptation.Tests
                 Assert.Same(made, Bodies.Of(RibbonLayout.Button(1), () => made));
                 Assert.Equal("1 Set up site is not built yet.", Bodies.Of(1).NotBuilt);
                 Assert.Equal("2 Read data is not built yet.", Bodies.Of(RibbonLayout.Button(2), () => made).NotBuilt);
+                // R375. Button 2 is built once App sets its worker, and only for its own body
+                Assert.Equal("2 Read data is not built yet.", Bodies.Of(RibbonLayout.Button(2), () => made, () => made).NotBuilt);
+                ReadDataBody.Worker = new LaunchedWorker("CadReader.exe", answer => { });
+                try
+                {
+                    Assert.Same(made, Bodies.Of(RibbonLayout.Button(2), null, () => made));
+                    Assert.Equal("3 Review data is not built yet.", Bodies.Of(RibbonLayout.Button(3), () => made, () => made).NotBuilt);
+                }
+                finally
+                {
+                    ReadDataBody.Worker = null;
+                }
             }
             finally
             {

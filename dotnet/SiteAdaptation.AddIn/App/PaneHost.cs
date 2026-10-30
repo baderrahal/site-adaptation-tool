@@ -53,6 +53,8 @@ namespace SiteAdaptation.AddIn
             host.runEvent = ExternalEvent.Create(runner);
             host.answerEvent = ExternalEvent.Create(new AnswerHandler(host));
             host.Answers = new AnswerRelay(() => host.answerEvent.Raise());
+            // R375. Button 2 starts CadReader.exe beside the add-in, its answer comes back through the relay
+            ReadDataBody.Worker = new LaunchedWorker(LaunchedWorker.BesideAddIn(), host.Answers.Post);
             host.model.RunRequested += number =>
             {
                 runner.Number = number;
@@ -234,7 +236,7 @@ namespace SiteAdaptation.AddIn
     }
 
     // docs/design/02-folders.md line 42. The answers of the workers go to the document of their request in the API context of
-    // Revit, whatever document is active. 5a routes them only, the run record they write comes with the buttons
+    // Revit, whatever document is active. Since 5c each answer goes on with the run of its button there (R375)
     internal sealed class AnswerHandler : IExternalEventHandler
     {
         private readonly PaneHost host;
@@ -246,7 +248,9 @@ namespace SiteAdaptation.AddIn
 
         public void Execute(UIApplication app)
         {
-            host.Routed.AddRange(host.Answers.Route(host.OpenDocuments(app)));
+            List<RoutedAnswer> routed = host.Answers.Route(host.OpenDocuments(app));
+            host.Routed.AddRange(routed);
+            LaunchedWorker.Hand(routed);
         }
 
         public string GetName()

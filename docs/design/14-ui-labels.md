@@ -118,6 +118,17 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `Nothing changes until Apply.`
 - `Apply`
 - `Cancel`
+- `<n> did not finish, nothing was kept: <n>` CHOSEN in 5c, the end of a button whose worker did not end done (R375)
+- `no reason was given` CHOSEN in 5c, the reason of such an end that names none
+- `<n> is running already, its worker has not ended.` CHOSEN in 5c, a second click while the worker runs (docs/design/02-folders.md)
+- `Reads <n> files, <n> MiB.` CHOSEN in 5c, the counts of the confirm of 2 Read data
+- `Reuses the read of run <n>, its <n> input files are unchanged.` CHOSEN in 5c, as the line above on a second run
+- `<n>, <n> bytes, SHA-256 <n>, unchanged since the last read` CHOSEN in 5c, a file of the dry run list of 2 Read data
+- `<n>, <n> bytes, SHA-256 <n>, new or changed since the last read` CHOSEN in 5c, as the line above
+- `<n> done: <n> files written, <n> issues.` CHOSEN in 5c, the end of 2 Read data
+- `<n> done: the read of run <n> is reused, nothing was read again.` CHOSEN in 5c, the end of a second run of 2 Read data
+- `the worker ended <n>, <n>` CHOSEN in 5c, the reason of a worker that failed, was refused or ran past its time limit
+- `<n> read the files, but the scope stops it: <n>. Change the scope and run it again, the read is reused.` CHOSEN in 5c, the scope of R366 held against the plot table
 
 ### Set up site
 
