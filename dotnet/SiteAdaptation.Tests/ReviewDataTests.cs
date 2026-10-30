@@ -252,6 +252,34 @@ namespace SiteAdaptation.Tests
             ReviewDataBody.Load = null;
         }
 
+        // R402. Button 3 is built in Bodies.Of once App sets the window and the pane the load, and the entry hands it the main window
+        // of Revit. In this class, as the other test of the statics, so no two tests set them at once
+        [Fact]
+        public void R402_button_3_is_built_once_the_window_and_the_load_are_set_and_the_pane_sets_the_load()
+        {
+            var made = new SiteAdaptation.Common.Flow.ButtonBody();
+            SiteAdaptation.AddIn.RibbonButtonSpec three = SiteAdaptation.AddIn.RibbonLayout.Button(3);
+            ReviewDataBody.Dialog = null;
+            ReviewDataBody.Load = null;
+            Assert.Equal("3 Review data is not built yet.", SiteAdaptation.AddIn.Bodies.Of(three, null, null, () => made).NotBuilt);
+            ReviewDataBody.Dialog = owner => new ReviewDataDialog(owner);
+            ReviewDataBody.Load = context => null;
+            try
+            {
+                Assert.Same(made, SiteAdaptation.AddIn.Bodies.Of(three, null, null, () => made));
+                Assert.Equal("3 Review data is not built yet.", SiteAdaptation.AddIn.Bodies.Of(three, null, null).NotBuilt);
+            }
+            finally
+            {
+                ReviewDataBody.Dialog = null;
+                ReviewDataBody.Load = null;
+            }
+            string addin = Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn");
+            Assert.Contains("ReviewData.ReviewDataBody.Load = context => Common.Review.ReviewLoad.Load(context.WorkFolder,", File.ReadAllText(Path.Combine(addin, "App", "PaneHost.cs")));
+            Assert.Contains("ReviewData.ReviewDataBody.Dialog = owner => new ReviewData.ReviewDataDialog(owner);", File.ReadAllText(Path.Combine(addin, "App", "App.cs")));
+            Assert.Contains("ReviewData.ReviewDataBody.For(application.MainWindowHandle)", File.ReadAllText(Path.Combine(addin, "Commands", "Buttons.cs")));
+        }
+
         private static void AssertBody(SiteAdaptation.Common.Flow.ButtonBody body)
         {
             Assert.NotNull(body.Preview);

@@ -87,6 +87,14 @@ namespace SiteAdaptation.Common
 
         private static readonly Regex FileUnit = new Regex("-ARC-([A-Z0-9]+)-", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        // link_summary.file_unit: the unit code a prototype file name holds, upper case, null for a name of none. R376 holds the file a
+        // key links against Typology_Rev9 of the plot by it
+        public static string UnitOfFile(string name)
+        {
+            Match match = FileUnit.Match(name ?? "");
+            return match.Success ? match.Groups[1].Value.ToUpperInvariant() : null;
+        }
+
         // majority.kind_of: the kind of the typology of the profile, else of the first prefix of majority.kindByPrefix the code starts with
         public static string KindOf(string code, JObject rules, JObject kindByPrefix)
         {

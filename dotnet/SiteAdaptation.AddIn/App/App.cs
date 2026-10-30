@@ -24,6 +24,7 @@ namespace SiteAdaptation.AddIn
         private static void JoinWindows()
         {
             SetUpSiteBody.Dialog = owner => new SetUpSite.SetUpSiteDialog(owner);
+            ReviewData.ReviewDataBody.Dialog = owner => new ReviewData.ReviewDataDialog(owner);
         }
 
         public Result OnShutdown(UIControlledApplication application)

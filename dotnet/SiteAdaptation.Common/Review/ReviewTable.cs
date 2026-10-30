@@ -19,7 +19,9 @@ namespace SiteAdaptation.Common.Review
             foreach (JProperty entry in plotTable.Properties())
             {
                 var face = entry.Value as JObject;
-                if (face == null || Text(face["neighbourhood"]) != nbh)
+                // The NBH of a plot is its area key nbhId of R256, the neighbourhood of the schedule is an IM letter (CLAUDE.md). A table
+                // with no nbhId field, as the made up tables of the tests, falls back on the neighbourhood
+                if (face == null || Text(face.Property("nbhId") != null ? face["nbhId"] : face["neighbourhood"]) != nbh)
                 {
                     continue;
                 }
