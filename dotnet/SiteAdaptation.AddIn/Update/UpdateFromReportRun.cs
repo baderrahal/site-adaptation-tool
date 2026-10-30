@@ -18,6 +18,9 @@ namespace SiteAdaptation.AddIn.Update
     // buttons update the plots Apply names, and the transaction of the flow holds nothing of this run
     public sealed class UpdateFromReportRun
     {
+        // The file of the work folder that names the plots the last Apply changed, so the buttons can update those plots only
+        public const string AppliedName = "update_from_report_applied.json";
+
         private readonly IUpdateFromReportDialog dialog;
         private readonly Func<string, string> readText;
         private readonly Func<WorkerRequest, string, JObject> worker;
@@ -46,7 +49,7 @@ namespace SiteAdaptation.AddIn.Update
 
         public ButtonBody Body()
         {
-            return new ButtonBody { Preview = Preview, Confirm = Confirm, Apply = Apply, ReadBack = ReadBack };
+            return new ButtonBody { Preview = Preview, Confirm = Confirm, Apply = Apply, ReadBack = ReadBack, Done = Done };
         }
 
         // The override list of the project lies beside the config, config/overrides with the file name of the rules profile
@@ -99,11 +102,11 @@ namespace SiteAdaptation.AddIn.Update
             string planPath = UpdateWorkerRequest.PlanPath(context.WorkFolder, nbh);
             if (!File.Exists(planPath))
             {
-                throw new InvalidOperationException("the work folder holds no " + Path.GetFileName(planPath) + ", the plan of NBH " + nbh + " that 4 Check writes, so the Excel can not be compared (R402)");
+                throw new InvalidOperationException(TextTemplate.Fill(UpdateFromReportText.NoPlan, Path.GetFileName(planPath), nbh));
             }
             string runId = context.RunId + "-r" + (++reads).ToString(System.Globalization.CultureInfo.InvariantCulture);
             string output = Path.Combine(context.WorkFolder, "update_" + runId);
-            WorkerRequest request = UpdateWorkerRequest.Make(runId, document, configPath, rulesPath, planPath, profile, nbh, files, output);
+            WorkerRequest request = UpdateWorkerRequest.Make(runId, document, configPath, rulesPath, planPath, overridesPath, profile, nbh, files, output);
             JObject json = worker(request, context.WorkFolder);
             plan = Json(planPath, "the plan");
             return UpdateListJson.Read(json);
@@ -123,7 +126,24 @@ namespace SiteAdaptation.AddIn.Update
             }
             written = context.Output(overridesPath);
             File.WriteAllText(written, UpdateFromReport.ListText(applied.List), new UTF8Encoding(false));
+            var record = new JObject
+            {
+                ["runId"] = context.RunId, ["saved"] = applied.Entries.Count, ["replaced"] = applied.Replaced.Count, ["plots"] = new JArray(applied.Plots), ["notApplied"] = new JArray(applied.NotApplied),
+            };
+            File.WriteAllText(context.Output(Path.Combine(context.WorkFolder, AppliedName)), record.ToString(), new UTF8Encoding(false));
             return applied.NotApplied;
+        }
+
+        // What Apply saved and each ticked change it could not save, told once the run committed so the team sees it
+        private string Done(RunContext context)
+        {
+            var lines = new List<string> { TextTemplate.Fill(UpdateFromReportText.Saved, applied.Entries.Count, string.Join(", ", applied.Plots)) };
+            if (applied.NotApplied.Count > 0)
+            {
+                lines.Add(TextTemplate.Fill(UpdateFromReportText.NotSaved, applied.NotApplied.Count));
+                lines.AddRange(applied.NotApplied);
+            }
+            return string.Join("\n", lines);
         }
 
         // The file as it lies under its temporary name holds the entries made, read again by the parser of the worker. WorkFiles.ReadText refuses

@@ -31,6 +31,17 @@ namespace SiteAdaptation.AddIn.Update
         public const string DryRun = "Dry run";
         public const string ApplyN = "Apply <n> changes";
         public const string DryDone = "Dry run: <n> changes would be saved, <n> replaced. Nothing was changed.";
+        public const string Saved = "Saved <n> changes to the override list, plots changed: <n>.";
+        public const string NotSaved = "<n> ticked changes were not saved:";
+        // A chip with the count of its changes
+        public const string ChipCount = "<name> <n>";
+
+        // Why the picked files are not read, in the problem line
+        public const string NoPlan = "the work folder holds no <n>, the plan of NBH <n> that 4 Check writes, so the Excel can not be compared (R402)";
+        public const string WorkerMissing = "the worker CadReader.exe is not beside the add-in: <n>";
+        public const string WorkerFailed = "the worker did not read the Excel: <n>";
+        public const string WorkerNoAnswer = "no answer";
+        public const string WorkerNoJson = "the list the worker wrote is no JSON object";
 
         public static readonly string[] Tiles = { ChangesFound, FollowTheRules, BreakAManualRule, NotEditableIgnored };
         public static readonly string[] Chips = { All, Ffl, Entry, Steps, VillaType, Mirror, BreaksARule };

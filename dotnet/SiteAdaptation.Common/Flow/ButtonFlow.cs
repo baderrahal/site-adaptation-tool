@@ -250,7 +250,7 @@ namespace SiteAdaptation.Common.Flow
             {
                 state.Committed(context.Button, record);
             }
-            string message = failed.Count == 0 ? null : RunTexts.HeldOpen(context.Label, RunTexts.Names(failed));
+            string message = failed.Count > 0 ? RunTexts.HeldOpen(context.Label, RunTexts.Names(failed)) : body.Done?.Invoke(context);
             return new RunOutcome(RunEnd.Committed, message, record);
         }
     }

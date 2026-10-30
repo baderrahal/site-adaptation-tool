@@ -221,6 +221,22 @@ namespace SiteAdaptation.Tests
             Assert.Empty(state.Records);
         }
 
+        // Breaker 5f: a body tells what a real run did once it committed, Update from report the changes saved and the plots changed
+        [Fact]
+        public void R382_the_done_line_of_a_body_is_the_message_of_a_run_that_committed_and_never_of_one_that_rolled_back()
+        {
+            ButtonBody body = Body();
+            body.Done = context => "Saved 2 changes";
+            RunOutcome outcome = Flow().Run(7, Label(7), body, Document);
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.Equal("Saved 2 changes", outcome.Message);
+            body = Body(readBack: context => "off");
+            body.Done = context => "Saved 2 changes";
+            outcome = Flow().Run(7, Label(7), body, Document);
+            Assert.Equal(RunEnd.RolledBack, outcome.End);
+            Assert.DoesNotContain("Saved", outcome.Message);
+        }
+
         [Fact]
         public void R382_a_read_back_that_does_not_match_rolls_back()
         {

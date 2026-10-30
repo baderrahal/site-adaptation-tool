@@ -250,15 +250,19 @@ namespace SiteAdaptation.Tests
             string[] rows = list.Changes.Select(change => change.Plot + " " + change.Field + " " + Text(change.InModel) + " -> " + Text(change.InExcel) + " | " + change.RuleCheck + " | " + change.Ticked).ToArray();
             Assert.Equal(new[]
             {
-                "101 FFL 10.2 -> 10.25 | stepHeights, M08 | False",
+                "101 FFL 10.2 -> 10.25 | Height in the step legend, M08 | False",
                 "102 El @ Entry 10.2 -> 10.15 | follows the rules | True",
-                "103 Steps 2 -> 3 | stepsRule, riser, M09 | False",
+                "103 Steps 2 -> 3 | Steps by the steps rule, Riser height within its limits, M09 | False",
                 "101 Villa type VD4 -> C10 | follows the rules | True",
-                "102 Mirror True -> False | follows the rules | True",
-                "103 Villa type DP1 -> ZZ9 | villaType | True",
+                "102 Mirror True -> False | no rule checks this field | True",
+                "103 Villa type DP1 -> ZZ9 | Villa type of the profile | True",
             }, rows);
+            // Review 5f: the rule column shows plain names, the ids go to the tooltip, the checks run when the change follows them
+            Assert.Equal(new[] { "stepHeights, M08", "fflOverEntry, stepsAtMost, stepHeights, riser", "stepsRule, riser, M09", "villaType", "", "villaType" },
+                list.Changes.Select(change => change.RuleIds).ToArray());
             Assert.Equal(new[] { "101 SSL", "104 FFL", "102 Type" }, list.Ignored.Select(cell => cell.Plot + " " + cell.Column).ToArray());
-            Assert.Equal(new Dictionary<string, int> { ["Changes found"] = 6, ["Follow the rules"] = 3, ["Break a manual rule"] = 2, ["Not editable ignored"] = 3 }, list.Tiles());
+            // Breaker 5f: the Mirror change no rule checks is not counted as one that follows the rules
+            Assert.Equal(new Dictionary<string, int> { ["Changes found"] = 6, ["Follow the rules"] = 2, ["Break a manual rule"] = 2, ["Not editable ignored"] = 3 }, list.Tiles());
             Assert.Equal(new Dictionary<string, int> { ["All"] = 6, ["FFL"] = 1, ["El @ Entry"] = 1, ["Steps"] = 1, ["Villa type"] = 2, ["Mirror"] = 1, ["Breaks a rule"] = 3 }, list.Chips());
             Assert.Empty(list.Lacks);
         }
@@ -356,7 +360,7 @@ namespace SiteAdaptation.Tests
             UpdateList list = UpdateFromReport.Compare(EditedBooks(plan), plan, PlanSha, MadeRules(false), Profile);
             Assert.All(list.Changes, change => Assert.True(change.Ticked));
             Assert.Equal(0, list.Tiles()[UpdateText.BreakAManualRule]);
-            Assert.Equal(3, list.Tiles()[UpdateText.FollowTheRules]);
+            Assert.Equal(2, list.Tiles()[UpdateText.FollowTheRules]);
             Assert.Equal(new[] { "the rules profile holds no block manualRules, so no change breaks a manual rule (R402)" }, list.Lacks.ToArray());
         }
 
@@ -374,6 +378,69 @@ namespace SiteAdaptation.Tests
             Assert.Empty(applied.Entries);
             Assert.Equal(2, applied.NotApplied.Count);
             Assert.Equal(MadeOverrides().ToString(), applied.List.ToString());
+        }
+
+        // Breaker 5f: a plot whose Steps come from a steps override keeps that count when a build gives its levels again, so the checks after
+        // an El @ Entry edit hold the override count and not the count of the steps rule. 103 at 0.30 m holds 2 steps by the legend, the edit
+        // takes it to 0.36 m, 2 steps by the legend and 3 by the rule
+        [Fact]
+        public void R402_after_a_level_edit_a_plot_with_a_steps_override_keeps_its_override_count_in_the_checks()
+        {
+            JObject plan = MadePlan();
+            JObject plot = plan["plots"].OfType<JObject>().Single(item => (string)item["plot"] == "103");
+            plot["levels"]["entry"]["value"] = 10.0;
+            plot["levels"]["height"]["value"] = 0.3;
+            plot["levelRule"]["entry"] = 10.0;
+            plot["overrides"] = new JObject { ["applied"] = new JArray("steps"), ["notApplied"] = new JObject() };
+            string level = WriteLevelExcel(plan);
+            Edit(level, "Levels", "E5", "103", 9.94);
+            UpdateList list = UpdateFromReport.Compare(new List<UpdateBook> { UpdateWorkbook.Read(level) }, plan, PlanSha, MadeRules(), Profile);
+            UpdateChange change = list.Changes.Single();
+            Assert.Equal("103 El @ Entry", change.Plot + " " + change.Field);
+            Assert.Empty(change.Breaks);
+            Assert.Empty(change.ManualRules);
+            Assert.True(change.Ticked);
+            plot.Remove("overrides");
+            list = UpdateFromReport.Compare(new List<UpdateBook> { UpdateWorkbook.Read(level) }, plan, PlanSha, MadeRules(), Profile);
+            Assert.Equal(new[] { "stepHeights" }, list.Changes.Single().Breaks.ToArray());
+        }
+
+        // Breaker 5f: Apply takes the key and model of an entry of the job of the plot, so a plot with none has a change Apply can not save. Compare
+        // marks it at once, unticked and never applied, so the window never offers it (Q169)
+        [Fact]
+        public void R402_a_change_of_a_plot_with_no_override_entry_of_its_job_is_not_savable_unticked_and_never_applied()
+        {
+            JObject plan = MadePlan();
+            JObject overrides = MadeOverrides();
+            ((JArray)overrides["overrides"]).RemoveAt(2);
+            UpdateList list = UpdateFromReport.Compare(EditedBooks(plan), plan, PlanSha, MadeRules(), Profile, overrides);
+            string why = "the plot has no override entry of the job parsons, so Apply can not save it (Q169)";
+            Assert.Equal(new[] { "101 FFL  False", "102 El @ Entry " + why + " False", "103 Steps  False", "101 Villa type  True", "102 Mirror " + why + " False", "103 Villa type  True" },
+                list.Changes.Select(change => change.Plot + " " + change.Field + " " + change.Invalid + " " + change.Ticked).ToArray());
+            UpdateApplied applied = UpdateFromReport.Apply(list.Changes.Where(change => change.Ticked), plan, overrides, MadeRules(), Profile, "u5");
+            Assert.Equal(new[] { "101 unit", "103 unit" }, applied.Entries.Select(item => (string)item["plot"] + " " + (string)item["field"]).ToArray());
+            Assert.Empty(applied.NotApplied);
+            Assert.Equal(new[] { "101", "103" }, applied.Plots.ToArray());
+            UpdateList unknown = UpdateFromReport.Compare(EditedBooks(plan), plan, PlanSha, MadeRules(), Profile);
+            Assert.All(unknown.Changes, change => Assert.NotEqual(why, change.Invalid));
+        }
+
+        // Breaker 5f: a mirror the hand rules of the profile gave, source computed in the plan, is checked by them, and an edit of it breaks
+        // them. A mirror an override gave holds no hand of the rules, so no rule checks it
+        [Fact]
+        public void R402_a_mirror_change_of_a_plot_whose_hand_the_rules_gave_breaks_the_hand_rule()
+        {
+            JObject plan = MadePlan();
+            plan["plots"][1]["mirrored"]["source"] = "computed";
+            UpdateList list = UpdateFromReport.Compare(EditedBooks(plan), plan, PlanSha, MadeRules(), Profile);
+            UpdateChange mirror = list.Changes.Single(change => change.Field == UpdateText.Mirror);
+            Assert.Equal("Mirror by the hand rule", mirror.RuleCheck);
+            Assert.Equal("handRule", mirror.RuleIds);
+            Assert.True(mirror.Ticked);
+            Assert.Equal(2, list.Tiles()[UpdateText.FollowTheRules]);
+            Assert.Equal(4, list.Chips()[UpdateText.BreaksARule]);
+            Assert.Equal(UpdateFromReport.Checks.Length, UpdateText.RuleNames.Count);
+            Assert.All(UpdateText.RuleNames.Values, name => Assert.InRange(name.Split(' ').Length, 1, 6));
         }
 
         [Fact]
@@ -439,6 +506,14 @@ namespace SiteAdaptation.Tests
 
         // The command updateFromReport on the edited copies of 012. The plan is written first so the Excel files carry its real SHA-256, runPlan
         // then takes its place on disk to make a plan of another build
+        // The override list of the worker runs: plot 102 holds no entry of the job parsons, so its changes are not savable
+        private static JObject WorkerOverrides()
+        {
+            JObject overrides = MadeOverrides();
+            ((JArray)overrides["overrides"]).RemoveAt(2);
+            return overrides;
+        }
+
         private WorkerAnswer RunUpdate(JObject plan, bool withExcel, out int code, string id, JObject runPlan = null)
         {
             string planPath = WriteText("plan_012.json", plan.ToString());
@@ -452,6 +527,7 @@ namespace SiteAdaptation.Tests
                 Input("config", WriteText("project.json", WorkerConfig().ToString())),
                 Input("rules", WriteText("rules.json", MadeRules().ToString())),
                 Input(UpdateFromReportWorker.PlanRole, planPath),
+                Input(UpdateFromReportWorker.OverridesRole, WriteText("overrides.json", WorkerOverrides().ToString())),
             };
             if (withExcel)
             {
@@ -480,8 +556,9 @@ namespace SiteAdaptation.Tests
             Assert.NotNull(json[RunStamp.Key]);
             json.Remove(RunStamp.Key);
             string sha = FileHash.Sha256(Path.Combine(folder, "plan_012.json"));
-            UpdateList expected = UpdateFromReport.Compare(EditedBooks(plan, sha), plan, sha, MadeRules(), Profile);
+            UpdateList expected = UpdateFromReport.Compare(EditedBooks(plan, sha), plan, sha, MadeRules(), Profile, WorkerOverrides());
             Assert.True(JToken.DeepEquals(UpdateFromReport.ResultJson(expected, null), json), json.ToString());
+            Assert.Equal(2, json["changes"].Count(item => ((string)item["invalid"] ?? "").Contains("no override entry of the job parsons")));
             Assert.Equal(6, ((JArray)json["changes"]).Count);
             Assert.Equal(3, (int)json["tiles"]["Not editable ignored"]);
             Assert.Equal(6, answer.Counts["changes"]);
@@ -538,9 +615,10 @@ namespace SiteAdaptation.Tests
             Assert.Equal("012", nbh);
             Assert.Null(refusal);
             Assert.Equal(planPath, UpdateWorkerRequest.PlanPath(folder, nbh));
-            WorkerRequest request = UpdateWorkerRequest.Make("uw6", new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" }, config, rules, planPath, Profile, nbh, LastPaths, Path.Combine(folder, "out"));
+            string overrides = WriteText("overrides.json", WorkerOverrides().ToString());
+            WorkerRequest request = UpdateWorkerRequest.Make("uw6", new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" }, config, rules, planPath, overrides, Profile, nbh, LastPaths, Path.Combine(folder, "out"));
             Assert.Equal("updateFromReport", request.Command);
-            Assert.Equal(new[] { "config", "rules", "plan", "excel1", "excel2" }, request.Inputs.Select(item => item.Role).ToArray());
+            Assert.Equal(new[] { "config", "rules", "plan", "overrides", "excel1", "excel2" }, request.Inputs.Select(item => item.Role).ToArray());
             Assert.Equal(60, request.TimeLimitS);
             Assert.Equal(Profile, request.LevelProfile);
             int code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);

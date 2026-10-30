@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using Newtonsoft.Json.Linq;
+using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Update;
 
@@ -19,7 +20,7 @@ namespace SiteAdaptation.AddIn.Update
             string exe = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "CadReader.exe");
             if (!File.Exists(exe))
             {
-                throw new FileNotFoundException("the worker CadReader.exe is not beside the add-in: " + exe);
+                throw new FileNotFoundException(TextTemplate.Fill(UpdateFromReportText.WorkerMissing, exe));
             }
             Directory.CreateDirectory(workFolder);
             string requestFile = request.Write(workFolder);
@@ -33,10 +34,10 @@ namespace SiteAdaptation.AddIn.Update
             }
             if (answer == null || answer.Status != WorkerExit.Status(WorkerExit.Done))
             {
-                throw new InvalidOperationException("the worker did not read the Excel: " + (answer == null ? "no answer" : answer.Status + ", " + answer.Message));
+                throw new InvalidOperationException(TextTemplate.Fill(UpdateFromReportText.WorkerFailed, answer == null ? UpdateFromReportText.WorkerNoAnswer : answer.Status + ", " + answer.Message));
             }
             return PyJson.Parse(WorkFiles.ReadText(Path.Combine(request.OutputFolder, UpdateFromReportOutput))) as JObject
-                ?? throw new InvalidDataException("the list the worker wrote is no JSON object");
+                ?? throw new InvalidDataException(UpdateFromReportText.WorkerNoJson);
         }
 
         // The name the worker command writes, CadReader.UpdateFromReportWorker.OutputName, the add-in loads no CadReader type

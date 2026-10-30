@@ -4,35 +4,6 @@ using Newtonsoft.Json.Linq;
 
 namespace SiteAdaptation.Common.Update
 {
-    // R402. Every label of the button Update from report in one place, the tiles, chips and columns word for word from
-    // docs/design/13-workflow-changes.md part Update from report, the rest CHOSEN in Round ADDIN 5f
-    public static class UpdateText
-    {
-        public const string ChangesFound = "Changes found";
-        public const string FollowTheRules = "Follow the rules";
-        public const string BreakAManualRule = "Break a manual rule";
-        public const string NotEditableIgnored = "Not editable ignored";
-        public static readonly string[] Tiles = { ChangesFound, FollowTheRules, BreakAManualRule, NotEditableIgnored };
-
-        public const string All = "All";
-        public const string Ffl = "FFL";
-        public const string Entry = "El @ Entry";
-        public const string Steps = "Steps";
-        public const string VillaType = "Villa type";
-        public const string Mirror = "Mirror";
-        public const string BreaksARule = "Breaks a rule";
-        public static readonly string[] Chips = { All, Ffl, Entry, Steps, VillaType, Mirror, BreaksARule };
-        // The fields a change can be of, in the order the list shows them
-        public static readonly string[] Fields = { Ffl, Entry, Steps, VillaType, Mirror };
-
-        public static readonly string[] Columns = { "Apply", "Plot", "Field", "In model", "In Excel", "Rule check" };
-
-        public const string Decision = "Update from report";
-        public const string Reason = "Update from report <run id>";
-        public const string Follows = "follows the rules";
-        public const string BreaksJoin = ", ";
-    }
-
     // One sheet as read back: its rows from row 1, each cell a string, a double, a long, a bool or null, as XlsxSheet of CadReader reads it
     public sealed class UpdateSheet
     {
@@ -74,7 +45,17 @@ namespace SiteAdaptation.Common.Update
 
         public bool BreaksARule => Invalid != null || Breaks.Count > 0;
 
-        public string RuleCheck => Invalid ?? (Breaks.Count == 0 ? UpdateText.Follows : string.Join(UpdateText.BreaksJoin, Breaks.Concat(ManualRules)));
+        // The level rule checks of R402 that ran on the change, by their ids, none when no rule checks its field
+        public List<string> Checks { get; } = new List<string>();
+
+        // The plain names of the rules the change breaks and the ids of the manual rules, else whether a rule checked it at all (12-ui-spec.md)
+        public string RuleCheck => Invalid ?? (Breaks.Count > 0 ? string.Join(UpdateText.BreaksJoin, Breaks.Select(UpdateText.RuleName).Concat(ManualRules))
+            : Checks.Count == 0 ? UpdateText.NoRuleChecks : UpdateText.Follows);
+
+        // The ids of the rules the rule column names, or of the checks the change follows, for the tooltip
+        public string RuleIds => Invalid != null ? "" : string.Join(UpdateText.BreaksJoin, Breaks.Count > 0 ? Breaks.Concat(ManualRules) : Checks);
+
+        public bool FollowsTheRules => Invalid == null && Breaks.Count == 0 && Checks.Count > 0;
     }
 
     // A cell of a column that is not editable whose value differs from the plan, counted and never applied
@@ -104,7 +85,7 @@ namespace SiteAdaptation.Common.Update
             return new Dictionary<string, int>
             {
                 [UpdateText.ChangesFound] = Changes.Count,
-                [UpdateText.FollowTheRules] = Changes.Count(change => !change.BreaksARule),
+                [UpdateText.FollowTheRules] = Changes.Count(change => change.FollowsTheRules),
                 [UpdateText.BreakAManualRule] = Changes.Count(change => change.ManualRules.Count > 0),
                 [UpdateText.NotEditableIgnored] = Ignored.Count,
             };

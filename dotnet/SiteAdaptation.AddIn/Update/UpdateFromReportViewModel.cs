@@ -164,7 +164,7 @@ namespace SiteAdaptation.AddIn.Update
 
         public bool Selected { get; }
 
-        public string Text => Label + " " + Count.ToString(CultureInfo.InvariantCulture);
+        public string Text => TextTemplate.Fill(UpdateFromReportText.ChipCount, Label, Count);
 
         public void Choose()
         {
@@ -199,6 +199,9 @@ namespace SiteAdaptation.AddIn.Update
         public string InExcel => Show(Change.InExcel);
 
         public string RuleCheck => Change.RuleCheck;
+
+        // The ids of the rules the rule column names, for its tooltip (12-ui-spec.md)
+        public string RuleIds => Change.RuleIds;
 
         public bool BreaksManual => Change.ManualRules.Count > 0;
 

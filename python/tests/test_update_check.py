@@ -49,14 +49,14 @@ def settings(sheet, editable):
         sheet.append(row)
 
 
-def write_level(path):
+def write_level(path, plan=PLAN):
     book = openpyxl.Workbook()
     sheet = book.active
     sheet.title = "Levels"
     sheet.append(("NBH 012, made up top line",))
     sheet.append(check.LEVEL_COLUMNS)
     cluster = {"101": "none", "102": "102-103", "103": "102-103"}
-    for item in PLAN["plots"]:
+    for item in plan["plots"]:
         lv = {key: value["value"] for key, value in item["levels"].items()}
         sheet.append((item["plot"], item["unit"]["value"], cluster[item["plot"]], lv["roadAtFrontM"], lv["entry"], lv["ffl"], lv["ssl"], lv["height"], lv["steps"], "Rule"))
     sheet.append(("104", None, "none", None, None, None, None, None, None, "Not written: levels.ffl (no road level)"))
@@ -100,14 +100,16 @@ def test_r402_an_edited_copy_lists_each_change_its_rule_check_the_tiles_and_the_
     found = check.result(books, PLAN, SHA, RULES, PROFILE, None, "u1")
     assert found["refusal"] is None
     assert [(item["plot"], item["field"], item["inModel"], item["inExcel"], item["ruleCheck"], item["ticked"]) for item in found["changes"]] == [
-        ("101", "FFL", 10.2, 10.25, "stepHeights, M08", False),
+        ("101", "FFL", 10.2, 10.25, "Height in the step legend, M08", False),
         ("102", "El @ Entry", 10.2, 10.15, "follows the rules", True),
-        ("103", "Steps", 2, 3, "stepsRule, riser, M09", False),
+        ("103", "Steps", 2, 3, "Steps by the steps rule, Riser height within its limits, M09", False),
         ("101", "Villa type", "VD4", "C10", "follows the rules", True),
-        ("102", "Mirror", True, False, "follows the rules", True),
-        ("103", "Villa type", "DP1", "ZZ9", "villaType", True)]
+        ("102", "Mirror", True, False, "no rule checks this field", True),
+        ("103", "Villa type", "DP1", "ZZ9", "Villa type of the profile", True)]
+    assert [item["checks"] for item in found["changes"]] == [["fflOverEntry", "stepsAtMost", "stepHeights", "riser"]] * 2 + [
+        ["fflOverEntry", "stepsRule", "stepsAtMost", "stepHeights", "riser"], ["villaType"], [], ["villaType"]]
     assert [(item["plot"], item["column"]) for item in found["ignored"]] == [("101", "SSL"), ("104", "FFL"), ("102", "Type")]
-    assert found["tiles"] == {"Changes found": 6, "Follow the rules": 3, "Break a manual rule": 2, "Not editable ignored": 3}
+    assert found["tiles"] == {"Changes found": 6, "Follow the rules": 2, "Break a manual rule": 2, "Not editable ignored": 3}
     assert found["chips"] == {"All": 6, "FFL": 1, "El @ Entry": 1, "Steps": 1, "Villa type": 2, "Mirror": 1, "Breaks a rule": 3}
     assert found["lacks"] == []
 
@@ -152,6 +154,46 @@ def test_r402_with_no_manual_rules_block_nothing_is_unticked_and_the_lack_is_nam
     found = check.result(books, PLAN, SHA, rules, PROFILE, None, "u4")
     assert all(item["ticked"] for item in found["changes"]) and found["tiles"]["Break a manual rule"] == 0
     assert found["lacks"] == ["the rules profile holds no block manualRules, so no change breaks a manual rule (R402)"]
+
+
+def test_r402_after_a_level_edit_a_plot_with_a_steps_override_keeps_its_override_count_in_the_checks(tmp_path):
+    """Breaker 5f: the build keeps the count of a steps override when it gives the levels again, so 103 at 0.30 m with 2 steps by the legend
+    keeps 2 after an El @ Entry edit to 0.36 m, where the steps rule gives 3."""
+    plan = copy.deepcopy(PLAN)
+    item = plan["plots"][2]
+    item["levels"]["entry"]["value"], item["levels"]["height"]["value"], item["levelRule"]["entry"] = 10.0, 0.3, 10.0
+    item["overrides"] = {"applied": ["steps"], "notApplied": {}}
+    level = tmp_path / "012_Levels_parsons2024Rev6.xlsx"
+    write_level(level, plan)
+    edit(level, "Levels", "E5", "103", 9.94)
+    found = check.result([check.read_book(level)], plan, SHA, RULES, PROFILE, None, "u6")
+    assert [(change["plot"], change["field"], change["breaks"], change["ticked"]) for change in found["changes"]] == [("103", "El @ Entry", [], True)]
+    del item["overrides"]
+    found = check.result([check.read_book(level)], plan, SHA, RULES, PROFILE, None, "u6")
+    assert found["changes"][0]["breaks"] == ["stepHeights"]
+
+
+def test_r402_a_change_of_a_plot_with_no_override_entry_of_its_job_is_not_savable_unticked_and_never_applied(books):
+    """Breaker 5f: Apply takes the key and model of an entry of the job, so the changes of a plot with none are marked at once (Q169)."""
+    overrides = copy.deepcopy(OVERRIDES)
+    del overrides["overrides"][2]
+    found = check.result(books, PLAN, SHA, RULES, PROFILE, overrides, "u7")
+    why = "the plot has no override entry of the job parsons, so Apply can not save it (Q169)"
+    assert [(item["plot"], item["field"], item["invalid"], item["ticked"]) for item in found["changes"]] == [
+        ("101", "FFL", None, False), ("102", "El @ Entry", why, False), ("103", "Steps", None, False), ("101", "Villa type", None, True),
+        ("102", "Mirror", why, False), ("103", "Villa type", None, True)]
+    assert [(item["plot"], item["field"]) for item in found["entries"]] == [("101", "unit"), ("103", "unit")]
+    assert found["notApplied"] == [] and found["plots"] == ["101", "103"]
+
+
+def test_r402_a_mirror_change_of_a_plot_whose_hand_the_rules_gave_breaks_the_hand_rule(books):
+    """Breaker 5f: the plan holds the hand of the rules as a mirror of source computed, so an edit of it breaks the hand rule."""
+    plan = copy.deepcopy(PLAN)
+    plan["plots"][1]["mirrored"]["source"] = "computed"
+    found = check.result(books, plan, SHA, RULES, PROFILE, None, "u8")
+    mirror = next(item for item in found["changes"] if item["field"] == "Mirror")
+    assert (mirror["ruleCheck"], mirror["breaks"], mirror["checks"], mirror["ticked"]) == ("Mirror by the hand rule", ["handRule"], ["handRule"], True)
+    assert found["tiles"]["Follow the rules"] == 2 and found["chips"]["Breaks a rule"] == 4
 
 
 def test_r402_the_compare_counts_each_cell_and_names_a_planted_mismatch(books):

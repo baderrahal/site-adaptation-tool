@@ -38,6 +38,7 @@ namespace SiteAdaptation.Tests
         private static UpdateChange Change(string plot, string field, object model, object excel, bool ticked, string invalid = null, string manual = null, string breaks = null)
         {
             var change = new UpdateChange { Plot = plot, Field = field, FileName = "012_Levels_" + Profile + ".xlsx", Sheet = "Levels", Row = 3, InModel = model, InExcel = excel, Ticked = ticked, Invalid = invalid };
+            change.Checks.Add(UpdateFromReport.FflOverEntry);
             if (manual != null)
             {
                 change.ManualRules.Add(manual);
@@ -73,8 +74,10 @@ namespace SiteAdaptation.Tests
             Assert.Equal(UpdateText.Chips, UpdateFromReportText.Chips);
             Assert.Equal("Updates the levels, floors, links and parameters of the changed plots only.", UpdateFromReportText.Foot);
             Assert.Equal(new[] { "Apply", "Plot", "Field", "In model", "In Excel", "Rule check" }, UpdateFromReportText.Columns);
-            Assert.Equal(new[] { "102 El @ Entry 10.2000 10.1500 follows the rules", "103 Steps 2 3 stepsRule", "101 FFL 10.200 10.250 stepHeights, M08", "101 El @ Entry 10.0000  the cell holds no number" },
+            // Review 5f: the rule column shows the plain name of each rule, its id is the tooltip
+            Assert.Equal(new[] { "102 El @ Entry 10.2000 10.1500 follows the rules", "103 Steps 2 3 Steps by the steps rule", "101 FFL 10.200 10.250 Height in the step legend, M08", "101 El @ Entry 10.0000  the cell holds no number" },
                 model.Rows.Select(row => row.Plot + " " + row.Field + " " + row.InModel + " " + row.InExcel + " " + row.RuleCheck).ToArray());
+            Assert.Equal(new[] { "fflOverEntry", "stepsRule", "stepHeights, M08", "" }, model.Rows.Select(row => row.RuleIds).ToArray());
         }
 
         [Fact]
@@ -326,7 +329,13 @@ namespace SiteAdaptation.Tests
 
             outcome = Run(repo, session => { session.Browse(); session.DryRun(); session.Apply(); }, true, out model, out state, out asked);
             Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
-            Assert.Null(outcome.Message);
+            // Breaker 5f: the message after Apply names what was saved and the plots changed, and the run writes them for the buttons
+            Assert.Equal("Saved 1 changes to the override list, plots changed: 102.", outcome.Message);
+            JObject plots = JObject.Parse(File.ReadAllText(Path.Combine(repo.Work, UpdateFromReportRun.AppliedName)));
+            Assert.Equal(new[] { "102" }, plots["plots"].Select(item => (string)item).ToArray());
+            Assert.Equal("0_run1", (string)plots["runId"]);
+            Assert.Equal(1, (int)plots["saved"]);
+            Assert.Empty((JArray)plots["notApplied"]);
             Assert.Equal(1, model.Started);
             Assert.Empty(state.Told);
             string after = File.ReadAllText(repo.Overrides);
@@ -341,7 +350,8 @@ namespace SiteAdaptation.Tests
             Assert.Equal(1, written["overrides"].Count(item => (string)item["decision"] == "Update from report"));
             Assert.Empty(Directory.EnumerateFiles(Path.GetDirectoryName(repo.Overrides), "*.tmp-*"));
             Assert.Equal("updateFromReport", asked.Last().Command);
-            Assert.Equal(new[] { "config", "rules", "plan", "excel1" }, asked.Last().Inputs.Select(item => item.Role).ToArray());
+            Assert.Equal(new[] { "config", "rules", "plan", "overrides", "excel1" }, asked.Last().Inputs.Select(item => item.Role).ToArray());
+            Assert.Equal(repo.Overrides, asked.Last().Inputs.Single(item => item.Role == "overrides").Path);
         }
 
         [Fact]
@@ -365,6 +375,28 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Update from report 0_run1. agreed with Bader", (string)ffl["reason"]);
             Assert.Equal(beforeList["overrides"].Count() + 1, written["overrides"].Count());
             Assert.Equal(beforeList["cannot"].ToString(), written["cannot"].ToString());
+        }
+
+        // Breaker 5f: a ticked change Apply can not save is named in the message after Apply, never dropped with no word
+        [Fact]
+        public void R402_a_ticked_change_apply_can_not_save_is_named_in_the_message_after_apply()
+        {
+            Repo repo = MadeRepo();
+            Model model;
+            State state;
+            List<WorkerRequest> asked;
+            RunOutcome outcome = Run(repo, session =>
+            {
+                session.Browse();
+                session.Model.Rows[1].Change.Field = UpdateText.VillaType;
+                session.Model.Rows[1].Change.InExcel = "DP1";
+                session.Model.Rows[1].ApplyAnyway = true;
+                session.Model.Rows[0].Change.Plot = "109";
+                session.Apply();
+            }, false, out model, out state, out asked);
+            Assert.True(outcome.End == RunEnd.Committed, outcome.End + " " + outcome.Message);
+            Assert.Equal("Saved 1 changes to the override list, plots changed: 101.\n1 ticked changes were not saved:\nplot 109 El @ Entry: the plan holds no levelRule of the plot, so no gap to the rule (R402)",
+                outcome.Message);
         }
 
         [Fact]
