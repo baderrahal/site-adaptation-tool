@@ -212,6 +212,33 @@ Built in Lane B 5c. The labels, columns, chips and side box are those of Review 
 - `Not saved yet` CHOSEN, beside Save review after a mark
 - `Review saved.` CHOSEN, after Save review
 
+### Site Adaptation Rules
+
+Built in Lane B 5c. The title, band line, buttons, chips, columns and side box are those of Site Adaptation Rules (5c) in docs/design/13-workflow-changes.md, word for word. The rule texts, the groups, the sections and the pages are data of the block manualRules in the rules profile, so they are not in this list. The entries marked CHOSEN are Code's.
+
+- `Site Adaptation Rules`
+- `<n>, <n>, document <n>` CHOSEN, the manual name, its revision and its number from the profile, in the band line
+- `<n> prevails over <n>` CHOSEN, "Rev 06 prevails over Rev 01" of 13-workflow-changes.md with the two revisions from the profile
+- `Open the manual PDF`
+- `Export to Excel`
+- `All`
+- `Past job differs`
+- `ID`
+- `Rule`
+- `Manual`
+- `Checked in`
+- `Past job`
+- `Selected rule` CHOSEN, the heading of the side box
+- `Full text` CHOSEN, a label of the side box
+- `Section and page` CHOSEN, the section and printed page of the manual with the page of the PDF in brackets
+- `Values` CHOSEN, a label of the side box
+- `What the tool does` CHOSEN, "what the tool does" of 13-workflow-changes.md written with a capital as a label
+- `not read yet` CHOSEN, for the text of what the tool does, and for a past job not measured
+- `none` CHOSEN, the values of a rule whose text holds none
+- `Pick a rule from the table.` CHOSEN, the side box with no rule selected
+- `The manual PDF was not found. Looked for <n>` CHOSEN, when the PDF is in none of the folders of the profile
+- `The manual PDF did not open: <n>` CHOSEN, when the shell refuses the file
+
 ### Check table
 
 Not built yet, Phase 5c.

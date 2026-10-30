@@ -46,7 +46,7 @@ namespace SiteAdaptation.Tests
                     Assert.Equal(96.0, bitmap.DpiX, 6);
                     Assert.True(png.Length <= RecordMax, sizes.Last());
                     Assert.True(bitmap.PixelHeight > 64, sizes.Last());
-                    if (window == Shots.SetUpSite || window == Shots.ReviewData)
+                    if (window == Shots.SetUpSite || window == Shots.ReviewData || window == Shots.Rules)
                     {
                         Assert.Equal(1280, bitmap.PixelWidth);
                         Assert.True(bitmap.PixelHeight > 400 && bitmap.PixelHeight <= 800, sizes.Last());
@@ -60,7 +60,7 @@ namespace SiteAdaptation.Tests
                 Assert.Throws<ArgumentException>(() => Shots.Render("set-up-site"));
             });
             sizes.ForEach(output.WriteLine);
-            Assert.Equal(5, sizes.Count);
+            Assert.Equal(6, sizes.Count);
         }
 
         // Control 4, the sizes of docs/design/12-ui-spec.md read off the laid out pane: rows 32, inputs 30, Browse 28, the main

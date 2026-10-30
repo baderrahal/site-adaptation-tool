@@ -11,9 +11,11 @@ using SiteAdaptation.AddIn;
 using SiteAdaptation.AddIn.Icons;
 using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.AddIn.ReviewData;
+using SiteAdaptation.AddIn.RulesWindow;
 using SiteAdaptation.AddIn.SetUpSite;
 using SiteAdaptation.AddIn.Theme;
 using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common.ManualRules;
 using SiteAdaptation.Common.Review;
 using SiteAdaptation.Common.SetUp;
 
@@ -29,7 +31,8 @@ namespace SiteAdaptation.UiShots
         public const string PaneFirstOpen = "pane-first-open";
         public const string SetUpSite = "setup-site";
         public const string ReviewData = "review-data";
-        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData };
+        public const string Rules = "rules";
+        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules };
 
         private const double Dpi = 96.0;
 
@@ -42,6 +45,7 @@ namespace SiteAdaptation.UiShots
                 case PaneFirstOpen: return PanePage(false);
                 case SetUpSite: return SetUpPage();
                 case ReviewData: return ReviewPage();
+                case Rules: return RulesPage();
                 default: throw new ArgumentException("no window " + window + ", only " + string.Join(", ", Windows), nameof(window));
             }
         }
@@ -206,6 +210,40 @@ namespace SiteAdaptation.UiShots
             bitmap.Render(body);
             bitmap.Freeze();
             return bitmap;
+        }
+
+        private static BitmapSource RulesPage()
+        {
+            RulesWindow window = LaidOutRules(SampleRulesTable(), "M06");
+            FrameworkElement body = Body(window);
+            var bitmap = new RenderTargetBitmap((int)body.ActualWidth, (int)body.ActualHeight, Dpi, Dpi, PixelFormats.Pbgra32);
+            bitmap.Render(body);
+            bitmap.Freeze();
+            return bitmap;
+        }
+
+        // The Site Adaptation Rules window on a table, laid out as the others and not shown, the rule of selectedId selected
+        public static RulesWindow LaidOutRules(ManualRuleTable table, string selectedId)
+        {
+            var window = new RulesWindow(new RulesWindowSession(table, selectedId, path => false, path => { }));
+            LayOut(window);
+            return window;
+        }
+
+        // The block manualRules of the rules profile of the repo, texts only and no coordinate or level, found by walking up from the
+        // folder of the program to the folder that holds rules/roshn-makkah.json
+        public static ManualRuleTable SampleRulesTable()
+        {
+            string folder = AppDomain.CurrentDomain.BaseDirectory;
+            while (folder != null && !File.Exists(Path.Combine(folder, "rules", "roshn-makkah.json")))
+            {
+                folder = Path.GetDirectoryName(folder);
+            }
+            if (folder == null)
+            {
+                throw new FileNotFoundException("rules/roshn-makkah.json was not found above " + AppDomain.CurrentDomain.BaseDirectory);
+            }
+            return new ManualRuleTable(ManualRuleBlock.FromFile(Path.Combine(folder, "rules", "roshn-makkah.json")), null);
         }
 
         // The Review data window with a view, laid out as the Set up site one, and the first plot selected so the side box is filled

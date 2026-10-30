@@ -21,8 +21,8 @@ namespace SiteAdaptation.Tests
             Dictionary<string, UiLabels.Window> list = UiLabels.List(File.ReadAllText(Path.Combine(root, UiLabels.ListFile)));
             Dictionary<string, List<UiLabels.Found>> shown = UiLabels.Texts(Path.Combine(root, "dotnet", "SiteAdaptation.AddIn"), Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Flow", "RunTexts.cs"));
 
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Check table" }, list.Keys.ToArray());
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table" }, list.Keys.ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
             Assert.Equal(16, list["Ribbon"].Entries.Count);
             Assert.Contains(shown["Ribbon"], found => found.Text == "Update from report");
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
@@ -137,8 +137,8 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Empty(missing);
-            // 44 since Lane B 5c, 11 of Review data and the 11 messages of 2 Read data (R375), 22 since Lane B 5b
-            Assert.Equal(44, chosen);
+            // 56 since Lane B 5c, 11 of Review data, the 11 messages of 2 Read data (R375) and 12 of Site Adaptation Rules, 22 since Lane B 5b
+            Assert.Equal(56, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
@@ -194,6 +194,7 @@ namespace SiteAdaptation.Tests
             { "Pane", "Pane" },
             { "Set up site", "SetUpSite" },
             { "Review data", "ReviewData" },
+            { "Site Adaptation Rules", "RulesWindow" },
             { "Check table", "CheckTable" },
         };
 

@@ -1,0 +1,203 @@
+<Window x:Class="SiteAdaptation.AddIn.RulesWindow.RulesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:rw="clr-namespace:SiteAdaptation.AddIn.RulesWindow"
+        Title="{Binding Title}" Width="{DynamicResource SA.Size.DialogWidth}" MaxHeight="{DynamicResource SA.Size.DialogMaxHeight}"
+        SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SA.Surface}">
+  <!-- R403, docs/design/12-ui-spec.md New windows of 28 Oct 2026 top to bottom. Every colour, size and font by Theme.xaml, every text
+       in docs/design/14-ui-labels.md under Site Adaptation Rules -->
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/SiteAdaptation.AddIn;component/Theme/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <BooleanToVisibilityConverter x:Key="Shown" />
+
+      <Style x:Key="RowText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Body}">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,0,8,0" />
+      </Style>
+      <Style x:Key="HeadText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Label}">
+        <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+      </Style>
+      <Style x:Key="SideLabel" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Label}">
+        <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
+        <Setter Property="Margin" Value="{StaticResource SA.Gap.Top12}" />
+      </Style>
+      <Style x:Key="SideValue" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Body}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="{StaticResource SA.Gap.Top4}" />
+      </Style>
+
+      <!-- A chip: the active one filled SA.Band -->
+      <Style x:Key="Chip" TargetType="Button" BasedOn="{StaticResource SA.Button.Base}">
+        <Setter Property="Height" Value="Auto" />
+        <Setter Property="Padding" Value="{StaticResource SA.Pad.Chip}" />
+        <Setter Property="Margin" Value="{StaticResource SA.Gap.Right8}" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Button">
+              <Border x:Name="Box" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                      CornerRadius="{StaticResource SA.Radius.Chip}" Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+      <DataTemplate x:Key="ChipItem" DataType="{x:Type rw:RuleChipViewModel}">
+        <Button Content="{Binding Text}" Click="OnChip">
+          <Button.Style>
+            <Style TargetType="Button" BasedOn="{StaticResource Chip}">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding Active}" Value="True">
+                  <Setter Property="Background" Value="{StaticResource SA.Band}" />
+                  <Setter Property="BorderBrush" Value="{StaticResource SA.Band}" />
+                  <Setter Property="Foreground" Value="{StaticResource SA.Surface}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Button.Style>
+        </Button>
+      </DataTemplate>
+
+      <!-- A row of the table. The selected row stands on SA.Selected with the 3 px SA.Accent mark on its left -->
+      <Style x:Key="RowBox" TargetType="ListBoxItem">
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="ListBoxItem">
+              <Border x:Name="Box" MinHeight="{StaticResource SA.Size.Row}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}"
+                      BorderThickness="{StaticResource SA.Line.Under}" Background="{StaticResource SA.Surface}">
+                <Grid>
+                  <Border x:Name="Mark" HorizontalAlignment="Left" Width="{StaticResource SA.Size.SelectedMark}" Background="{StaticResource SA.Accent}" Visibility="Collapsed" Margin="-8,-4,0,-4" />
+                  <ContentPresenter VerticalAlignment="Center" />
+                </Grid>
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                  <Setter TargetName="Box" Property="Background" Value="{StaticResource SA.Selected}" />
+                  <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+      <DataTemplate x:Key="RuleRow" DataType="{x:Type rw:RuleRowViewModel}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{StaticResource SA.Grid.RulesId}" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.RulesManual}" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.RulesChecked}" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.RulesPast}" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Style="{StaticResource RowText}" Text="{Binding Id}" FontWeight="SemiBold" />
+          <TextBlock Grid.Column="1" Style="{StaticResource RowText}" Text="{Binding Text}" />
+          <TextBlock Grid.Column="2" Style="{StaticResource RowText}" Text="{Binding ManualRef}" />
+          <TextBlock Grid.Column="3" Style="{StaticResource RowText}" Text="{Binding CheckedIn}" />
+          <TextBlock Grid.Column="4" Text="{Binding PastJob}">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock" BasedOn="{StaticResource RowText}">
+                <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Differs}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource SA.Warn}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+        </Grid>
+      </DataTemplate>
+    </ResourceDictionary>
+  </Window.Resources>
+
+  <DockPanel Background="{StaticResource SA.Surface}">
+    <Border DockPanel.Dock="Top" Background="{StaticResource SA.Band}" Padding="{StaticResource SA.Pad.Box}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel>
+          <TextBlock Style="{StaticResource SA.Type.Title}" Foreground="{StaticResource SA.Surface}" Text="{Binding Title}" />
+          <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandText}" Margin="{StaticResource SA.Gap.Top4}" TextTrimming="CharacterEllipsis"
+                     Text="{Binding ManualLine}" />
+          <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.BandAccent}" Margin="{StaticResource SA.Gap.Top4}" Text="{Binding PrevailsLine}" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Left16}">
+          <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static rw:RulesWindowText.OpenManual}" Click="OnOpenManual" />
+          <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static rw:RulesWindowText.ExportToExcel}" Click="OnExport" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border DockPanel.Dock="Top" Background="{StaticResource SA.InfoGround}" Padding="{StaticResource SA.Pad.Box}" Visibility="{Binding MessageShown, Converter={StaticResource Shown}}">
+      <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.Info}" TextWrapping="Wrap" Text="{Binding Message}" />
+    </Border>
+
+    <!-- The side box, 340 wide, on SA.Panel -->
+    <Border DockPanel.Dock="Right" Width="{StaticResource SA.Size.SideBox}" Background="{StaticResource SA.Panel}" Padding="{StaticResource SA.Pad.Box}">
+      <StackPanel>
+        <TextBlock Style="{StaticResource SA.Pane.Section}" Text="{x:Static rw:RulesWindowText.SelectedRule}" />
+        <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{Binding PickText}" Visibility="{Binding NoneSelected, Converter={StaticResource Shown}}" />
+        <StackPanel Visibility="{Binding HasSelected, Converter={StaticResource Shown}}">
+          <TextBlock Style="{StaticResource SA.Type.Next}" Margin="{StaticResource SA.Gap.Top4}" Text="{Binding SideId}" />
+          <TextBlock Style="{StaticResource SideLabel}" Text="{x:Static rw:RulesWindowText.FullText}" />
+          <TextBlock Style="{StaticResource SideValue}" Text="{Binding SideText}" />
+          <TextBlock Style="{StaticResource SideLabel}" Text="{x:Static rw:RulesWindowText.Manual}" />
+          <TextBlock Style="{StaticResource SideValue}" Text="{Binding SideManual}" />
+          <TextBlock Style="{StaticResource SideLabel}" Text="{x:Static rw:RulesWindowText.SectionAndPage}" />
+          <TextBlock Style="{StaticResource SideValue}" Text="{Binding SideSection}" />
+          <TextBlock Style="{StaticResource SideLabel}" Text="{x:Static rw:RulesWindowText.Values}" />
+          <ItemsControl ItemsSource="{Binding SideValues}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Style="{StaticResource SideValue}" Text="{Binding}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Style="{StaticResource SideLabel}" Text="{x:Static rw:RulesWindowText.CheckedIn}" />
+          <TextBlock Style="{StaticResource SideValue}" Text="{Binding SideChecked}" />
+          <TextBlock Style="{StaticResource SideLabel}" Text="{x:Static rw:RulesWindowText.PastJob}" />
+          <TextBlock Style="{StaticResource SideValue}" Text="{Binding SidePastJob}" />
+          <TextBlock Style="{StaticResource SideLabel}" Text="{x:Static rw:RulesWindowText.ToolDoes}" />
+          <TextBlock Style="{StaticResource SideValue}" Text="{Binding SideToolDoes}" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <StackPanel Margin="{StaticResource SA.Pad.Side}">
+      <ItemsControl ItemsSource="{Binding Chips}" ItemTemplate="{StaticResource ChipItem}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ItemsControl>
+      <Border Margin="{StaticResource SA.Gap.Top12}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.BorderStrong}" BorderThickness="{StaticResource SA.Line.Under}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{StaticResource SA.Grid.RulesId}" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.RulesManual}" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.RulesChecked}" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.RulesPast}" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Style="{StaticResource HeadText}" Text="{x:Static rw:RulesWindowText.Id}" />
+          <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="{x:Static rw:RulesWindowText.Rule}" />
+          <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="{x:Static rw:RulesWindowText.Manual}" />
+          <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" Text="{x:Static rw:RulesWindowText.CheckedIn}" />
+          <TextBlock Grid.Column="4" Style="{StaticResource HeadText}" Text="{x:Static rw:RulesWindowText.PastJob}" />
+        </Grid>
+      </Border>
+      <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected, Mode=TwoWay}" ItemTemplate="{StaticResource RuleRow}" ItemContainerStyle="{StaticResource RowBox}"
+               BorderThickness="0" Background="{StaticResource SA.Surface}" HorizontalContentAlignment="Stretch" MaxHeight="{StaticResource SA.Size.ReviewList}"
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+    </StackPanel>
+  </DockPanel>
+</Window>
