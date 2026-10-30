@@ -56,8 +56,8 @@ namespace SiteAdaptation.AddIn.Pane
             });
             Steps = new ReadOnlyCollection<StepRowViewModel>(RibbonLayout.Buttons.Select(button => new StepRowViewModel(button.Number, StepName(button.Number), PaneText.StepLines[button.Number - 1])).ToList());
             BoxCommand = new PaneCommand(OnBox, () => document != null);
-            ImportCommand = new PaneCommand(() => Tell(PaneText.ImportPastJob), () => document != null);
-            ExportCommand = new PaneCommand(() => Tell(PaneText.Export), () => document != null);
+            ImportCommand = new PaneCommand(ImportPreSetting, () => document != null);
+            ExportCommand = new PaneCommand(ExportPreSetting, () => document != null);
             Load(null);
         }
 
@@ -555,11 +555,44 @@ namespace SiteAdaptation.AddIn.Pane
             }
         }
 
-        // The pre-setting has no logic in 5a, it joins R367 at 5c (W4 of steps/lane-b.md), so its buttons say they are not built
-        // yet in the words of the ribbon buttons with no body
-        private void Tell(string label)
+        // W4, R367. Import reads a pre-setting into the settings in memory, a pick as Browse is, so it reaches the document with the
+        // next real run. A file the reader refuses or cannot read is told and changes nothing
+        private void ImportPreSetting()
         {
-            Told?.Invoke(RunTexts.NotBuilt(label));
+            string path = document == null || picker == null ? null : picker.File(PaneText.ImportPastJob);
+            if (path == null)
+            {
+                return;
+            }
+            try
+            {
+                PreSetting.Import(File.ReadAllText(path), document.Settings.Project);
+            }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is InvalidDataException)
+            {
+                Told?.Invoke(error.Message);
+                return;
+            }
+            RefreshAll();
+        }
+
+        // Export writes the pre-setting of the settings in memory to the file the user names, outside any work folder or input root
+        // only as the user chooses it, since the pre-setting holds no drawing path and no coordinate
+        private void ExportPreSetting()
+        {
+            string path = document == null || picker == null ? null : picker.Save(PaneText.Export);
+            if (path == null)
+            {
+                return;
+            }
+            try
+            {
+                File.WriteAllText(path, PreSetting.Export(document.Settings.Project), new System.Text.UTF8Encoding(false));
+            }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException)
+            {
+                Told?.Invoke(error.Message);
+            }
         }
 
         private bool ScopeIs(string kind)

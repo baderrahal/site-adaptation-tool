@@ -114,27 +114,51 @@ namespace SiteAdaptation.Tests
         }
 
         // Bader, 28 Oct 2026: Import from past job and Export of the row Pre-setting, and Import pre-setting of the first open box,
-        // which runs Import from past job, say they are not built yet in 5a. Their logic joins R367 at 5c, W4 of steps/lane-b.md
+        // which runs Import from past job. W4 of steps/lane-b.md joins them to R367 at 5c: Export writes the pre-setting of the
+        // document to a file the user names, Import reads one into the settings in memory, a refusal is told and changes nothing
         [Fact]
-        public void R372_import_from_past_job_and_export_say_they_are_not_built_yet_and_wait_for_a_document()
+        public void R367_import_from_past_job_and_export_carry_the_pre_setting_through_a_file_and_wait_for_a_document()
         {
-            PaneViewModel model = Model(new FakeProbe());
-            var told = new List<string>();
-            model.Told += told.Add;
-            Assert.False(model.ImportCommand.CanExecute(null));
-            Assert.False(model.ExportCommand.CanExecute(null));
+            string folder = Path.Combine(Path.GetTempPath(), "pane-preset-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                string file = Path.Combine(folder, "past job.json");
+                var picker = new FakePicker(file, file, null, file);
+                var model = new PaneViewModel(new FakeProbe(), picker);
+                var told = new List<string>();
+                model.Told += told.Add;
+                Assert.False(model.ImportCommand.CanExecute(null));
+                Assert.False(model.ExportCommand.CanExecute(null));
 
-            model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
-            Assert.True(model.FirstOpen);
-            Assert.True(model.ImportCommand.CanExecute(null));
-            Assert.True(model.ExportCommand.CanExecute(null));
-            model.ImportCommand.Execute(null);
-            model.ExportCommand.Execute(null);
+                model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
+                model.LoadSettings(new PaneSettings { ConfigFile = Folder + "project.json", RulesFile = Folder + "rules.json", LevelProfile = "native2022" });
+                model.PickInput(InputKeys.Baseplan, Folder + "baseplan.dwg");
+                model.ExportCommand.Execute(null);
+                Assert.DoesNotContain("baseplan", File.ReadAllText(file));
 
-            Assert.Equal(new[] { "Import from past job is not built yet.", "Export is not built yet." }, told);
-            Assert.Null(model.Settings.ConfigFile);
-            Assert.True(model.FirstOpen);
-            Assert.Equal(new[] { "Import from past job", "Export" }, new[] { PaneText.ImportPastJob, PaneText.Export });
+                model.Load(new DocumentSession("t", Folder + "New.rvt", "New"));
+                Assert.True(model.FirstOpen);
+                model.ImportCommand.Execute(null);
+                Assert.False(model.FirstOpen);
+                Assert.Equal(Folder + "rules.json", model.Settings.RulesFile);
+                Assert.Equal("native2022", model.Settings.LevelProfile);
+                Assert.Null(model.Settings.InputPath(InputKeys.Baseplan));
+
+                // A Cancel changes nothing, a file R367 refuses is told and changes nothing
+                model.ExportCommand.Execute(null);
+                File.WriteAllText(file, "not json");
+                model.Load(new DocumentSession("u", Folder + "Other.rvt", "Other"));
+                model.ImportCommand.Execute(null);
+                Assert.Single(told);
+                Assert.Contains("no JSON object", told[0]);
+                Assert.True(model.FirstOpen);
+                Assert.Equal(new[] { PaneText.Export, PaneText.ImportPastJob, PaneText.Export, PaneText.ImportPastJob }, picker.Titles);
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
         }
 
         // Review 1 of PR 90: the box names config/project.json, which holds no formatVersion, so it picks the config file as the
@@ -889,6 +913,12 @@ namespace SiteAdaptation.Tests
             public string Folder()
             {
                 Titles.Add("folder");
+                return answers.Dequeue();
+            }
+
+            public string Save(string title)
+            {
+                Titles.Add(title);
                 return answers.Dequeue();
             }
         }

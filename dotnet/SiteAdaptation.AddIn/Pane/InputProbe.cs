@@ -71,6 +71,9 @@ namespace SiteAdaptation.AddIn.Pane
         string File(string title);
 
         string Folder();
+
+        // The file Export writes the pre-setting to (W4)
+        string Save(string title);
     }
 
     // R372, docs/design/03a-buttons-shared-and-1.md Steps. A file is hashed by its content, a folder by the list of its files with
