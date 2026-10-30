@@ -352,3 +352,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R400 Record sizes.
 - R401 The status of each plotted value.
 - R402 Review data, button 3.
+
+## 09-addin-r376-up.md
+
+- R376 Button 4 Check, the check table, Use and Save overrides.
