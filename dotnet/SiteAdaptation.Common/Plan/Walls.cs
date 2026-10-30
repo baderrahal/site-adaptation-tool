@@ -61,8 +61,8 @@ namespace SiteAdaptation.Common
 
         public static readonly string[] StepFields = { "unit", "written", "edges", "plots", "ends", "base", "top", "levelPlots", "status" };
 
-        private const string Source = "keyRules";
-        private const string PlotsSource = "locationPlan";
+        internal const string Source = "keyRules";
+        internal const string PlotsSource = "locationPlan";
 
         // The override of the list that turns a link, plan_walls.ROTATION
         private const string Rotation = "rotationDeg";
