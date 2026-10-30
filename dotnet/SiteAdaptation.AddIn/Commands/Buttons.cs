@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using SiteAdaptation.Common.Flow;
@@ -27,7 +28,32 @@ namespace SiteAdaptation.AddIn
         // not built text before it asks for a step (13-workflow-changes.md, 5c and 5f build them)
         public static Result Run(string commandName, UIApplication application)
         {
+            if (commandName == nameof(Commands.SiteAdaptationRulesCommand))
+            {
+                return Rules(application);
+            }
             return Run(RibbonLayout.ButtonOf(commandName), application);
+        }
+
+        // R403. The window changes no model element, so it takes no flow, no step and no saved project, only the rules file the pane
+        // holds for the active document
+        private static Result Rules(UIApplication application)
+        {
+            Document document = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
+            Pane.DocumentSession session = document == null ? null : PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title);
+            try
+            {
+                RulesWindow.RulesWindowBody.Show(application.MainWindowHandle, session?.Settings?.RulesFile);
+            }
+            catch (FileNotFoundException error)
+            {
+                TaskDialog.Show(RibbonLayout.Tab, error.Message + ": " + error.FileName);
+            }
+            catch (InvalidDataException error)
+            {
+                TaskDialog.Show(RibbonLayout.Tab, error.Message);
+            }
+            return Result.Succeeded;
         }
 
         private static Result Run(RibbonButtonSpec button, UIApplication application)

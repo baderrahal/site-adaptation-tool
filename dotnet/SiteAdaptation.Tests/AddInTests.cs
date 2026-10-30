@@ -119,6 +119,18 @@ namespace SiteAdaptation.Tests
             Assert.Equal("7 Place villas is not built yet.", untouched.Run(7, "7 Place villas", Bodies.Of(7), @"C:\Models\Site.rvt").Message);
         }
 
+        // R403. The window changes no model element, so the ribbon command opens it on the rules file of the pane with no flow, and a
+        // missing or bad rules file is told, never thrown into Revit
+        [Fact]
+        public void R403_the_rules_command_opens_the_window_on_the_rules_file_of_the_pane()
+        {
+            string buttons = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Commands", "Buttons.cs"));
+            Assert.Contains("if (commandName == nameof(Commands.SiteAdaptationRulesCommand))", buttons);
+            Assert.Contains("RulesWindow.RulesWindowBody.Show(application.MainWindowHandle, session?.Settings?.RulesFile)", buttons);
+            Assert.Contains("catch (FileNotFoundException", buttons);
+            Assert.Contains("catch (InvalidDataException", buttons);
+        }
+
         [Fact]
         public void R370_the_resolver_serves_its_own_folder_of_the_same_or_a_higher_version_to_the_tool_only()
         {
