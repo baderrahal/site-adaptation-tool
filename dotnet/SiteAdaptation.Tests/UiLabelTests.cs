@@ -141,8 +141,9 @@ namespace SiteAdaptation.Tests
             }
             Assert.Empty(missing);
             // 22 since Lane B 5b, the line of a second run of Set up site, 25 since 5f with Browse, Note and the dry run line of Update from report,
-            // 27 with the two lines of the message after Apply, 68 with the texts of the 5f fix that Common gives the window
-            Assert.Equal(68, chosen);
+            // 27 with the two lines of the message after Apply, 68 with the texts of the 5f fix that Common gives the window, 70 with the two
+            // refusals of a second book of a kind
+            Assert.Equal(70, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

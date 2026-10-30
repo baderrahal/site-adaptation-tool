@@ -167,7 +167,11 @@ namespace SiteAdaptation.Common.Update
 
         public static UpdateList Compare(IList<UpdateBook> books, JObject plan, string planSha256, JObject rules, string profile, JObject overrides = null)
         {
-            var list = new UpdateList();
+            var list = new UpdateList { Refusal = SecondOfAKind(books) };
+            if (list.Refusal != null)
+            {
+                return list;
+            }
             foreach (UpdateBook book in books)
             {
                 list.Refusal = Refusal(book, plan, planSha256);
@@ -203,16 +207,31 @@ namespace SiteAdaptation.Common.Update
                     return list;
                 }
             }
+            NotSavable(made, overrides, Text(levelProfile["job"]));
             CheckLevels(made, rules, levelProfile);
             CheckTypes(made, rules);
             CheckMirrors(made);
             ManualRules(list, rules);
-            NotSavable(list, overrides, Text(levelProfile["job"]));
             foreach (UpdateChange change in list.Changes)
             {
-                change.Ticked = change.Invalid == null && change.ManualRules.Count == 0;
+                change.Ticked = change.CanApply && change.ManualRules.Count == 0;
             }
             return list;
+        }
+
+        // A level Excel holds the sheet Levels and a report Excel the sheet Placed. Two of a kind list a plot twice and Apply saves one of
+        // the two silently, so the second is refused
+        private static string SecondOfAKind(IList<UpdateBook> books)
+        {
+            foreach (Tuple<string, string> kind in new[] { Tuple.Create(LevelExcelText.LevelsSheet, UpdateText.TwoLevelExcels), Tuple.Create(ReportExcelText.PlacedSheet, UpdateText.TwoReportExcels) })
+            {
+                List<UpdateBook> found = books.Where(book => book.Sheet(kind.Item1) != null).Take(2).ToList();
+                if (found.Count == 2)
+                {
+                    return Fill(kind.Item2, found[0].FileName, found[1].FileName);
+                }
+            }
+            return null;
         }
 
         private static int Header(UpdateSheet sheet, string[] header)
@@ -493,7 +512,7 @@ namespace SiteAdaptation.Common.Update
                     continue;
                 }
                 after[plot] = edit.Ffl ?? (double)fflToken;
-                List<UpdateChange> valid = edit.Changes.Where(change => change.Invalid == null).ToList();
+                List<UpdateChange> valid = edit.Changes.Where(change => change.CanApply).ToList();
                 if (valid.Count == 0 || !IsNumber(entryToken) || !IsNumber(stepsToken))
                 {
                     continue;
@@ -591,7 +610,7 @@ namespace SiteAdaptation.Common.Update
             foreach (IGrouping<string, string> piece in pieces)
             {
                 List<string> members = piece.ToList();
-                List<UpdateChange> moved = members.SelectMany(plot => made.Levels[plot].Changes).Where(change => change.Field == UpdateText.Ffl && change.Invalid == null).ToList();
+                List<UpdateChange> moved = members.SelectMany(plot => made.Levels[plot].Changes).Where(change => change.Field == UpdateText.Ffl && change.CanApply).ToList();
                 if (members.Count < 2 || moved.Count == 0)
                 {
                     continue;
@@ -620,7 +639,7 @@ namespace SiteAdaptation.Common.Update
         private static void CheckTypes(Context made, JObject rules)
         {
             JObject typologies = rules["typologies"] as JObject;
-            List<UpdateChange> types = made.List.Changes.Where(change => change.Field == UpdateText.VillaType && change.Invalid == null).ToList();
+            List<UpdateChange> types = made.List.Changes.Where(change => change.Field == UpdateText.VillaType && change.CanApply).ToList();
             if (types.Count == 0)
             {
                 return;
@@ -645,7 +664,7 @@ namespace SiteAdaptation.Common.Update
         // and an edit of it breaks them. A mirror an override gave holds no hand of the rules, so no rule checks it
         private static void CheckMirrors(Context made)
         {
-            foreach (UpdateChange change in made.List.Changes.Where(change => change.Field == UpdateText.Mirror && change.Invalid == null))
+            foreach (UpdateChange change in made.List.Changes.Where(change => change.Field == UpdateText.Mirror && change.CanApply))
             {
                 JToken mirrored = made.Written[change.Plot]["mirrored"];
                 if (Text(mirrored?["source"]) == ByRule && mirrored?["value"]?.Type == JTokenType.Boolean)
@@ -660,8 +679,9 @@ namespace SiteAdaptation.Common.Update
         }
 
         // Apply takes the key and model of an entry of the job on the plot (Q169), so a change of a plot with none can not be saved and is
-        // marked here, before the window offers it. An override list not given marks none
-        private static void NotSavable(UpdateList list, JObject overrides, string job)
+        // marked here, before the checks and before the window offers it. The rebuild keeps the cell of the model for it, so the level
+        // checks take it as no edit and a piece reads its FFL against it. An override list not given marks none
+        private static void NotSavable(Context made, JObject overrides, string job)
         {
             if (overrides == null || job == null)
             {
@@ -669,9 +689,24 @@ namespace SiteAdaptation.Common.Update
             }
             var held = new HashSet<string>((overrides["overrides"] as JArray ?? new JArray()).OfType<JObject>().Where(item => Text(item["source"]) == job).Select(item => Text(item["plot"])).Where(plot => plot != null));
             string why = Fill(UpdateText.NotSavable, job);
-            foreach (UpdateChange change in list.Changes.Where(change => change.Invalid == null && !held.Contains(change.Plot)))
+            foreach (UpdateChange change in made.List.Changes.Where(change => change.Invalid == null && !held.Contains(change.Plot)))
             {
-                change.Invalid = why;
+                change.NotSavable = why;
+                if (made.Levels.TryGetValue(change.Plot, out LevelEdit edit) && edit.Changes.Contains(change))
+                {
+                    if (change.Field == UpdateText.Entry)
+                    {
+                        edit.Entry = null;
+                    }
+                    else if (change.Field == UpdateText.Ffl)
+                    {
+                        edit.Ffl = null;
+                    }
+                    else if (change.Field == UpdateText.Steps)
+                    {
+                        edit.Steps = null;
+                    }
+                }
             }
         }
 
@@ -745,9 +780,9 @@ namespace SiteAdaptation.Common.Update
             {
                 Func<string, string> where = why => Fill(UpdateText.NotApplied, change.Plot, change.Field, why);
                 string field = OverrideField(change.Field);
-                if (change.Invalid != null || field == null)
+                if (!change.CanApply || field == null)
                 {
-                    applied.NotApplied.Add(where(change.Invalid ?? UpdateText.NoOverrideField));
+                    applied.NotApplied.Add(where(change.Invalid ?? change.NotSavable ?? UpdateText.NoOverrideField));
                     continue;
                 }
                 JToken value;
@@ -821,7 +856,7 @@ namespace SiteAdaptation.Common.Update
                 ["changes"] = new JArray(list.Changes.Select(change => new JObject
                 {
                     ["file"] = change.FileName, ["sheet"] = change.Sheet, ["row"] = change.Row, ["plot"] = change.Plot, ["field"] = change.Field, ["inModel"] = Value(change.InModel), ["inExcel"] = Value(change.InExcel),
-                    ["invalid"] = Value(change.Invalid), ["checks"] = new JArray(change.Checks), ["breaks"] = new JArray(change.Breaks), ["manualRules"] = new JArray(change.ManualRules), ["ruleCheck"] = change.RuleCheck, ["ticked"] = change.Ticked,
+                    ["invalid"] = Value(change.Invalid), ["notSavable"] = Value(change.NotSavable), ["checks"] = new JArray(change.Checks), ["breaks"] = new JArray(change.Breaks), ["manualRules"] = new JArray(change.ManualRules), ["ruleCheck"] = change.RuleCheck, ["ticked"] = change.Ticked,
                 })),
                 ["ignored"] = new JArray(list.Ignored.Select(cell => new JObject
                 {

@@ -38,6 +38,7 @@ PLAIN = {"fflOverEntry": "FFL over entry by the base", "stepsRule": "Steps by th
 # The source plan_from_cad gives a mirror the hand rules set
 BY_RULE = "computed"
 NOT_SAVABLE = "the plot has no override entry of the job %s, so Apply can not save it (Q169)"
+TWICE = "%s and %s are both %s, Update from report takes one level Excel and one report Excel of one NBH (R402)"
 # The decimals of the level Excel columns of R364
 ENTRY_DEC, FFL_DEC = 4, 3
 
@@ -125,6 +126,11 @@ def changes_of(books, plan, sha, rules, profile, overrides=None):
     """The changes, the ignored cells and the lacks, or the refusal, of the edited books against the plan, a change of a plot with no entry
     of the job in the override list marked as one Apply can not save."""
     found = {"refusal": None, "changes": [], "ignored": [], "lacks": []}
+    for sheet, kind in ((LEVELS, "level Excels"), (PLACED, "report Excels")):
+        named = [book["file"] for book in books if sheet in book["sheets"]]
+        if len(named) > 1:
+            found["refusal"] = TWICE % (named[0], named[1], kind)
+            return found
     for book in books:
         found["refusal"] = refusal(book, plan, sha)
         if found["refusal"] is None and LEVELS not in book["sheets"] and PLACED not in book["sheets"]:
@@ -147,7 +153,7 @@ def changes_of(books, plan, sha, rules, profile, overrides=None):
 
     def change(book, sheet, index, plot, field, model, excel, invalid):
         made = {"file": book["file"], "sheet": sheet, "row": index + 1, "plot": plot, "field": field, "inModel": model, "inExcel": excel, "invalid": invalid,
-                "checks": [], "breaks": [], "manualRules": []}
+                "notSavable": None, "checks": [], "breaks": [], "manualRules": []}
         found["changes"].append(made)
         return made
 
@@ -234,21 +240,29 @@ def changes_of(books, plan, sha, rules, profile, overrides=None):
                 read = cell(row, 3)
                 if not (read is flag or (isinstance(read, bool) and read == flag)):
                     change(book, PLACED, index, plot, "Mirror", flag, read, None if isinstance(read, bool) else "the cell is empty" if read is None else "the cell holds no TRUE or FALSE")
-    level_checks(found, edits, order, written, rules, level_profile)
-    type_checks(found, rules)
-    mirror_checks(found, written)
-    manual_checks(found, rules)
+    # The rebuild keeps the cell of the model for a change Apply can not save, so the checks take it as no edit
     job = level_profile.get("job")
     if overrides is not None and isinstance(job, str):
         held = {entry.get("plot") for entry in overrides.get("overrides") or [] if entry.get("source") == job}
         for item in found["changes"]:
             if item["invalid"] is None and item["plot"] not in held:
-                item["invalid"] = NOT_SAVABLE % job
+                item["notSavable"] = NOT_SAVABLE % job
+                key = {"El @ Entry": "entry", "FFL": "ffl", "Steps": "steps"}.get(item["field"])
+                if key and item["plot"] in edits and any(change is item for change in edits[item["plot"]]["changes"]):
+                    edits[item["plot"]][key] = None
+    level_checks(found, edits, order, written, rules, level_profile)
+    type_checks(found, rules)
+    mirror_checks(found, written)
+    manual_checks(found, rules)
     for item in found["changes"]:
-        item["ticked"] = item["invalid"] is None and not item["manualRules"]
+        item["ticked"] = can_apply(item) and not item["manualRules"]
         named = [PLAIN.get(check, check) for check in item["breaks"]] + item["manualRules"]
-        item["ruleCheck"] = item["invalid"] or (", ".join(named) if item["breaks"] else FOLLOWS if item["checks"] else NO_RULE)
+        item["ruleCheck"] = item["invalid"] or item["notSavable"] or (", ".join(named) if item["breaks"] else FOLLOWS if item["checks"] else NO_RULE)
     return found
+
+
+def can_apply(item):
+    return item["invalid"] is None and item.get("notSavable") is None
 
 
 def lack(found, key, check):
@@ -312,7 +326,7 @@ def level_checks(found, edits, order, written, rules, level_profile):
         if not is_number(ffl0):
             continue
         after[plot] = edit["ffl"] if edit["ffl"] is not None else ffl0
-        valid = [item for item in edit["changes"] if item["invalid"] is None]
+        valid = [item for item in edit["changes"] if can_apply(item)]
         if not valid or not is_number(entry0) or not is_number(steps0):
             continue
         unit = (planned.get("unit") or {}).get("value")
@@ -372,7 +386,7 @@ def level_checks(found, edits, order, written, rules, level_profile):
         if plot in after and edits[plot]["cluster"] not in (None, NO_CLUSTER) and is_number(ffl_rule):
             pieces.setdefault((edits[plot]["cluster"], float(ffl_rule)), []).append(plot)
     for members in pieces.values():
-        moved = [item for plot in members for item in edits[plot]["changes"] if item["field"] == "FFL" and item["invalid"] is None]
+        moved = [item for plot in members for item in edits[plot]["changes"] if item["field"] == "FFL" and can_apply(item)]
         if len(members) < 2 or not moved:
             continue
         broken = len({written[plot]["levels"]["ffl"]["value"] for plot in members}) == 1 and len({after[plot] for plot in members}) != 1
@@ -383,7 +397,7 @@ def level_checks(found, edits, order, written, rules, level_profile):
 
 
 def type_checks(found, rules):
-    types = [item for item in found["changes"] if item["field"] == "Villa type" and item["invalid"] is None]
+    types = [item for item in found["changes"] if item["field"] == "Villa type" and can_apply(item)]
     if not types:
         return
     typologies = rules.get("typologies")
@@ -399,7 +413,7 @@ def type_checks(found, rules):
 def mirror_checks(found, written):
     """A mirror of source computed is the hand the rules of the profile gave, so an edit of it breaks them, an override mirror is not checked."""
     for item in found["changes"]:
-        if item["field"] != "Mirror" or item["invalid"] is not None:
+        if item["field"] != "Mirror" or not can_apply(item):
             continue
         mirrored = written[item["plot"]].get("mirrored") or {}
         if mirrored.get("source") == BY_RULE and isinstance(mirrored.get("value"), bool):
@@ -440,7 +454,7 @@ def manual_checks(found, rules):
 def tiles_of(found):
     changes = found["changes"]
     breaks = [item for item in changes if item["invalid"] is not None or item["breaks"]]
-    follow = sum(1 for item in changes if item["invalid"] is None and not item["breaks"] and item["checks"])
+    follow = sum(1 for item in changes if can_apply(item) and not item["breaks"] and item["checks"])
     tiles = dict(zip(TILES, (len(changes), follow, sum(1 for item in changes if item["manualRules"]), len(found["ignored"]))))
     chips = {"All": len(changes), "Breaks a rule": len(breaks)}
     chips.update({field: sum(1 for item in changes if item["field"] == field) for field in FIELDS})
@@ -460,8 +474,8 @@ def apply(ticked, plan, overrides, rules, profile, run_id):
     for item in ticked:
         where = "plot %s %s: " % (item["plot"], item["field"])
         field = FIELDS.get(item["field"])
-        if item["invalid"] is not None or field is None:
-            done["notApplied"].append(where + (item["invalid"] or "no field of the override list") + " (R402)")
+        if not can_apply(item) or field is None:
+            done["notApplied"].append(where + (item["invalid"] or item.get("notSavable") or "no field of the override list") + " (R402)")
             continue
         if item["field"] in ("El @ Entry", "FFL"):
             rule = (plots.get(item["plot"], {}).get("levelRule") or {}).get("entry" if item["field"] == "El @ Entry" else "ffl")
@@ -538,7 +552,7 @@ def compare(python, sharp):
             tally["conflicts"].append(where)
 
     held("refusal", python.get("refusal"), sharp.get("refusal"))
-    for name, keys in (("changes", ("file", "sheet", "row", "plot", "field", "inModel", "inExcel", "invalid", "checks", "breaks", "manualRules", "ruleCheck", "ticked")),
+    for name, keys in (("changes", ("file", "sheet", "row", "plot", "field", "inModel", "inExcel", "invalid", "notSavable", "checks", "breaks", "manualRules", "ruleCheck", "ticked")),
                        ("ignored", ("file", "sheet", "row", "plot", "column", "inModel", "inExcel", "why")),
                        ("entries", ("plot", "field", "value", "rule", "source", "model", "key", "decision", "reason", "byHand")),
                        ("replaced", ("plot", "field", "value", "source", "key"))):

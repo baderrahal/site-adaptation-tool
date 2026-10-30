@@ -85,5 +85,7 @@ namespace SiteAdaptation.Common.Update
         // Why the picked files are not read, in the problem line. NoNbh holds no value, its slot is a part of the file name it shows
         public const string NoNbh = "the file name of a report Excel starts with its NBH and an underscore, as 012_Levels_<profile>.xlsx does (R402)";
         public const string TwoNbhs = "the files are of NBH <n>, Update from report takes the files of one NBH (R402)";
+        public const string TwoLevelExcels = "<n> and <n> are both level Excels, Update from report takes one level Excel and one report Excel of one NBH (R402)";
+        public const string TwoReportExcels = "<n> and <n> are both report Excels, Update from report takes one level Excel and one report Excel of one NBH (R402)";
     }
 }

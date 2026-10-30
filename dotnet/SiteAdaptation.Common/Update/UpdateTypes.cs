@@ -38,24 +38,30 @@ namespace SiteAdaptation.Common.Update
         public List<string> Breaks { get; } = new List<string>();
         // The ids of the manual rules of the block manualRules whose checks the change breaks
         public List<string> ManualRules { get; } = new List<string>();
-        // Why the cell can not be applied, null when it can
+        // Why the cell holds no value Apply can take, null when it holds one
         public string Invalid { get; set; }
+        // Why Apply can not save a valid change, the plot holds no override entry of the job (Q169), null when it can. Kept apart from
+        // Invalid, as such a change breaks no rule and the checks take it as no edit, the rebuild keeps the cell of the model
+        public string NotSavable { get; set; }
         // The Apply tick the window starts with
         public bool Ticked { get; set; }
 
+        // A rule break or a cell with no value Apply can take, an empty cell with them (CHOSEN in 5f), as the team must fix each in the Excel
         public bool BreaksARule => Invalid != null || Breaks.Count > 0;
+
+        public bool CanApply => Invalid == null && NotSavable == null;
 
         // The level rule checks of R402 that ran on the change, by their ids, none when no rule checks its field
         public List<string> Checks { get; } = new List<string>();
 
         // The plain names of the rules the change breaks and the ids of the manual rules, else whether a rule checked it at all (12-ui-spec.md)
-        public string RuleCheck => Invalid ?? (Breaks.Count > 0 ? string.Join(UpdateText.BreaksJoin, Breaks.Select(UpdateText.RuleName).Concat(ManualRules))
+        public string RuleCheck => Invalid ?? NotSavable ?? (Breaks.Count > 0 ? string.Join(UpdateText.BreaksJoin, Breaks.Select(UpdateText.RuleName).Concat(ManualRules))
             : Checks.Count == 0 ? UpdateText.NoRuleChecks : UpdateText.Follows);
 
         // The ids of the rules the rule column names, or of the checks the change follows, for the tooltip
-        public string RuleIds => Invalid != null ? "" : string.Join(UpdateText.BreaksJoin, Breaks.Count > 0 ? Breaks.Concat(ManualRules) : Checks);
+        public string RuleIds => !CanApply ? "" : string.Join(UpdateText.BreaksJoin, Breaks.Count > 0 ? Breaks.Concat(ManualRules) : Checks);
 
-        public bool FollowsTheRules => Invalid == null && Breaks.Count == 0 && Checks.Count > 0;
+        public bool FollowsTheRules => CanApply && Breaks.Count == 0 && Checks.Count > 0;
     }
 
     // A cell of a column that is not editable whose value differs from the plan, counted and never applied

@@ -179,11 +179,51 @@ def test_r402_a_change_of_a_plot_with_no_override_entry_of_its_job_is_not_savabl
     del overrides["overrides"][2]
     found = check.result(books, PLAN, SHA, RULES, PROFILE, overrides, "u7")
     why = "the plot has no override entry of the job parsons, so Apply can not save it (Q169)"
-    assert [(item["plot"], item["field"], item["invalid"], item["ticked"]) for item in found["changes"]] == [
+    assert all(item["invalid"] is None for item in found["changes"])
+    assert [(item["plot"], item["field"], item["notSavable"], item["ticked"]) for item in found["changes"]] == [
         ("101", "FFL", None, False), ("102", "El @ Entry", why, False), ("103", "Steps", None, False), ("101", "Villa type", None, True),
         ("102", "Mirror", why, False), ("103", "Villa type", None, True)]
     assert [(item["plot"], item["field"]) for item in found["entries"]] == [("101", "unit"), ("103", "unit")]
     assert found["notApplied"] == [] and found["plots"] == ["101", "103"]
+
+
+def test_r402_a_piece_split_across_a_savable_and_a_not_savable_plot_breaks_one_ffl_per_piece_on_the_savable_change(tmp_path):
+    """Breaker 2 of 5f: both FFLs of a piece raised alike, 102 with an entry of the job and 103 with none, as the NBH 012 pieces 2616-2615
+    and 2624-2623. The not savable edit is no edit in the checks, so the savable one breaks one FFL per piece against the unchanged plot."""
+    overrides = copy.deepcopy(OVERRIDES)
+    del overrides["overrides"][3]
+    level = tmp_path / "012_Levels_parsons2024Rev6.xlsx"
+    write_level(level)
+    edit(level, "Levels", "F4", "102", 10.35)
+    edit(level, "Levels", "F5", "103", 10.35)
+    found = check.result([check.read_book(level)], PLAN, SHA, RULES, PROFILE, overrides, "u9")
+    assert [(item["plot"], item["field"]) for item in found["changes"]] == [("102", "FFL"), ("103", "FFL")]
+    savable, held = found["changes"]
+    assert "oneFflPerPiece" in savable["breaks"] and "oneFflPerPiece" in savable["checks"] and "One FFL per piece" in savable["ruleCheck"]
+    assert (held["ruleCheck"], held["checks"], held["breaks"], held["ticked"]) == (check.NOT_SAVABLE % "parsons", [], [], False)
+    assert found["plots"] == ["102"]
+
+
+def test_r402_a_second_level_excel_or_report_excel_of_one_nbh_is_refused_with_one_line_naming_both(books, tmp_path):
+    """Breaker 2 of 5f: two level Excels of one NBH listed a plot twice and Apply saved one silently, so a second book of a kind is refused."""
+    tail = ", Update from report takes one level Excel and one report Excel of one NBH (R402)"
+    level2, report2 = dict(books[0], file="012_Levels_parsons2024Rev6 again.xlsx"), dict(books[1], file="012_Report again.xlsx")
+    found = check.result(books + [level2], PLAN, SHA, RULES, PROFILE, OVERRIDES, "u10")
+    assert found["refusal"] == "012_Levels_parsons2024Rev6.xlsx and 012_Levels_parsons2024Rev6 again.xlsx are both level Excels" + tail
+    assert found["changes"] == [] and found["ignored"] == [] and "entries" not in found
+    found = check.result([books[1], report2], PLAN, SHA, RULES, PROFILE, OVERRIDES, "u10")
+    assert found["refusal"] == "012_Report.xlsx and 012_Report again.xlsx are both report Excels" + tail
+    assert check.result(books, PLAN, SHA, RULES, PROFILE, OVERRIDES, "u10")["refusal"] is None
+
+
+def test_r402_a_not_savable_change_is_kept_apart_from_a_rule_break_and_not_counted_in_breaks_a_rule(books):
+    """Breaker 2 of 5f: Breaks a rule counts the rule breaks and the cells that hold no value Apply can take, an empty cell with them, CHOSEN."""
+    overrides = copy.deepcopy(OVERRIDES)
+    del overrides["overrides"][2]
+    found = check.result(books, PLAN, SHA, RULES, PROFILE, overrides, "u11")
+    assert found["chips"]["Breaks a rule"] == 3
+    mirror = next(item for item in found["changes"] if item["field"] == "Mirror")
+    assert (mirror["invalid"], mirror["ruleCheck"], mirror["breaks"]) == (None, check.NOT_SAVABLE % "parsons", [])
 
 
 def test_r402_a_mirror_change_of_a_plot_whose_hand_the_rules_gave_breaks_the_hand_rule(books):

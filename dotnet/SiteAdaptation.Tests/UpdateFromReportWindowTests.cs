@@ -77,7 +77,8 @@ namespace SiteAdaptation.Tests
             // Review 5f: the rule column shows the plain name of each rule, its id is the tooltip
             Assert.Equal(new[] { "102 El @ Entry 10.2000 10.1500 follows the rules", "103 Steps 2 3 Steps by the steps rule", "101 FFL 10.200 10.250 Height in the step legend, M08", "101 El @ Entry 10.0000  the cell holds no number" },
                 model.Rows.Select(row => row.Plot + " " + row.Field + " " + row.InModel + " " + row.InExcel + " " + row.RuleCheck).ToArray());
-            Assert.Equal(new[] { "fflOverEntry", "stepsRule", "stepHeights, M08", "" }, model.Rows.Select(row => row.RuleIds).ToArray());
+            // Breaker 2 of 5f: a row with no rule ids gives the tooltip no text, so WPF shows no empty tooltip
+            Assert.Equal(new[] { "fflOverEntry", "stepsRule", "stepHeights, M08", null }, model.Rows.Select(row => row.RuleIds).ToArray());
         }
 
         [Fact]
