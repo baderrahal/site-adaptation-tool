@@ -71,6 +71,37 @@ namespace SiteAdaptation.Tests
             Assert.True(view.SaveAllowed);
         }
 
+        // A plot on the skip list of the override list gets "use": "Skip" on each row of the build, so its rows open on Skip
+        [Fact]
+        public void R376_the_rows_of_a_plot_on_the_skip_list_open_on_skip()
+        {
+            JObject step = Step();
+            foreach (JObject item in (JArray)step["plots"]["1"]["rows"])
+            {
+                item["use"] = "Skip";
+            }
+
+            CheckTableView view = CheckTableBuild.Compose("012", step, Block(), null, null, null, true);
+
+            Assert.Equal(new[] { "1|Hand|Skip", "1|Level|Skip", "7|Hand|Rule" }, view.Rows.Select(row => row.Plot + "|" + row.Check + "|" + row.OpenUse));
+        }
+
+        // A plot of the build of an NBH that plots.csv gives no row, so no nbhId, stands in the NBH the build was asked for, the one of
+        // the scope, with its rows and in the count of the title
+        [Fact]
+        public void R376_a_plot_of_the_build_with_no_nbh_of_plots_csv_stays_in_the_table_of_the_nbh_of_the_scope()
+        {
+            JObject step = Step();
+            step["plots"]["11"] = JObject.Parse("{ 'unit': null, 'nbh': null, 'rows': [ { 'check': 'Unit code', 'field': 'unit', 'from': 'missing', 'use': 'Rule', 'rule': null, 'toolValue': null, 'past': { 'writes': null, 'value': null, 'why': 'no unit' }, 'why': null } ] }");
+
+            CheckTableView view = CheckTableBuild.Compose("012", step, Block(), null, null, null, true);
+
+            Assert.Equal("4 Check, NBH 012, 5 plots", view.Title);
+            CheckRow row = view.Rows.Single(item => item.Plot == "11");
+            Assert.Equal("012", row.Nbh);
+            Assert.DoesNotContain(view.Rows, item => item.Plot == "9");
+        }
+
         [Fact]
         public void R376_every_row_names_its_manual_rule_through_the_seam_by_check_type_and_field()
         {

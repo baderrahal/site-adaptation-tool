@@ -83,6 +83,9 @@ namespace SiteAdaptation.Common.PlaceVillas
             public readonly List<Villa> Villas = new List<Villa>();
             public readonly List<Step> Steps = new List<Step>();
             public readonly List<string> Listed = new List<string>();
+
+            // R404. The plots of the scope a masses run leaves to the link that stands on them, standing as placed
+            public readonly List<string> LinkStands = new List<string>();
             public readonly Dictionary<string, TypeUse> Types = new Dictionary<string, TypeUse>(StringComparer.OrdinalIgnoreCase);
             public readonly SortedDictionary<string, string> Hashes = new SortedDictionary<string, string>(StringComparer.Ordinal);
             public readonly List<FootprintRow> Footprint = new List<FootprintRow>();
@@ -138,7 +141,7 @@ namespace SiteAdaptation.Common.PlaceVillas
             VillaInputs inputs = decision.Inputs;
             var issues = new List<string>(decision.Listed);
             var created = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            var standing = new List<string>();
+            var standing = new List<string>(decision.LinkStands);
             foreach (Step step in decision.Steps)
             {
                 Villa villa = step.Villa;
@@ -266,6 +269,10 @@ namespace SiteAdaptation.Common.PlaceVillas
                 if (decision.Masses && linkOn[number].Any())
                 {
                     decision.Listed.Add("plot " + number + ": a link stands on the plot, element " + string.Join(", ", linkOn[number].Select(element => element.UniqueId)) + ", Masses places no solid beside it");
+                    if (inputs.InScope == null || inputs.InScope(number))
+                    {
+                        decision.LinkStands.Add(number);
+                    }
                     continue;
                 }
                 double[] point = PlacementMath.InternalPoint(new[] { plot.Insert.Value[0], plot.Insert.Value[1], 0.0 }, new[] { offset[0], offset[1], 0.0 });

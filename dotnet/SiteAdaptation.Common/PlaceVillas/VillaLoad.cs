@@ -23,17 +23,14 @@ namespace SiteAdaptation.Common.PlaceVillas
             {
                 throw new InvalidDataException("7 Place villas works on one NBH, the scope names none. Choose an NBH in Scope of the pane");
             }
-            string plan = LatestPlan(context.WorkFolder, nbh);
-            if (plan == null)
-            {
-                throw new InvalidDataException("the work folder holds no plan of NBH " + nbh + ", run 4 Check on it first");
-            }
+            Tuple<string, string> named = LastPlan(context.WorkFolder, nbh);
+            string plan = named.Item1;
             string read = ReviewLoad.LatestReadFolder(context.WorkFolder);
             string blocksPath = read == null ? null : Path.Combine(read, CheckRun.ReadFiles["villaBlocksRead"]);
             JObject blocks = blocksPath != null && File.Exists(blocksPath) ? JObject.Parse(WorkFiles.ReadText(blocksPath)) : null;
             string lastPath = Path.Combine(context.WorkFolder, "place_" + nbh + ".json");
             JObject last = File.Exists(lastPath) ? JObject.Parse(WorkFiles.ReadText(lastPath)) : null;
-            return VillaInputs.Of(plan, FileHash.Sha256(plan), configPath, pickedMode, profile, inScope, blocks, last);
+            return VillaInputs.Of(plan, named.Item2, configPath, pickedMode, profile, inScope, blocks, last);
         }
 
         // R366. The scope of the pane held against the plot table of the latest read: an NBH takes every plot of its plan, a plot list takes
@@ -67,16 +64,36 @@ namespace SiteAdaptation.Common.PlaceVillas
             return Load(context, nbhs[0], configPath, pickedMode, profile, chosen.Contains);
         }
 
-        // The plan file of the check folder with the largest run id that holds one for the NBH, the folder of a build again after Save
-        // overrides ending in -again, which sorts after its first
-        public static string LatestPlan(string workFolder, string nbh)
+        // R377. The plan of NBH the last real run of 4 Check wrote and the SHA-256 its record names. The last run is the check folder with
+        // the largest run id, a build again after Save overrides ending in -again sorts after its first. A run that did not end done, or
+        // one that built no plan of the NBH, such as plan_all.json of a plot list or the whole project, stops 7, never an older plan
+        public static Tuple<string, string> LastPlan(string workFolder, string nbh)
         {
-            if (!Directory.Exists(workFolder))
+            string folder = Directory.Exists(workFolder)
+                ? Directory.GetDirectories(workFolder, CheckRun.FolderPrefix + "*").OrderByDescending(item => Path.GetFileName(item), StringComparer.Ordinal).FirstOrDefault()
+                : null;
+            if (folder == null)
             {
-                return null;
+                throw new InvalidDataException("the work folder holds no plan of NBH " + nbh + ", run 4 Check on it first");
             }
-            return Directory.GetDirectories(workFolder, CheckRun.FolderPrefix + "*").OrderByDescending(folder => Path.GetFileName(folder), StringComparer.Ordinal)
-                .Select(folder => Path.Combine(folder, CheckRun.PlanName(nbh))).FirstOrDefault(File.Exists);
+            JObject record = CheckRun.RecordOf(folder);
+            if (record == null)
+            {
+                throw new InvalidDataException("the last run of 4 Check, " + Path.GetFileName(folder) + ", did not end done, so it names no plan. Run 4 Check on NBH " + nbh + " again");
+            }
+            List<KeyValuePair<string, string>> plans = ((JArray)record["outputs"] ?? new JArray()).OfType<JObject>()
+                .Select(output => new KeyValuePair<string, string>((string)output["path"], (string)output["sha256"]))
+                .Where(output => output.Key != null && Path.GetFileName(output.Key).StartsWith("plan_", StringComparison.OrdinalIgnoreCase)).ToList();
+            string name = CheckRun.PlanName(nbh);
+            foreach (KeyValuePair<string, string> output in plans)
+            {
+                if (string.Equals(Path.GetFileName(output.Key), name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return Tuple.Create(output.Key, output.Value);
+                }
+            }
+            throw new InvalidDataException("the last run of 4 Check, " + Path.GetFileName(folder) + ", built no plan of NBH " + nbh + ", it built "
+                + (plans.Count == 0 ? "none" : string.Join(", ", plans.Select(output => Path.GetFileName(output.Key)))) + ". Run 4 Check on NBH " + nbh);
         }
     }
 }

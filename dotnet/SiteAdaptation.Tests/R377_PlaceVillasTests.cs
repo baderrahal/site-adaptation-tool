@@ -221,6 +221,22 @@ namespace SiteAdaptation.Tests
             Assert.Equal(0, run.Reader.Reads);
         }
 
+        // R404. A masses run places no solid on a plot where a link stands, and that villa stands, so the run is done with each plot listed
+        [Fact]
+        public void R404_a_masses_run_over_plots_where_links_stand_places_no_solid_and_counts_those_villas_as_standing()
+        {
+            Run links = Make(Plan(Plot("101", 1100, 0, false), Plot("102", 1200, 0, false)), VillaModes.Links);
+            Apply(links, Context("r1"));
+            Run masses = Make(Plan(Plot("101", 1100, 0, false), Plot("102", 1200, 0, false)), VillaModes.Masses, links.Document);
+
+            IReadOnlyList<string> issues = Apply(masses, Context("r2"));
+
+            Assert.DoesNotContain(links.Document.Elements, element => element.IsSolid);
+            Assert.Equal(2, issues.Count(line => line.Contains("a link stands on the plot")));
+            JObject record = JObject.Parse(File.ReadAllText(Directory.GetFiles(work, "place_012.json*").Single(path => path.EndsWith("r2", StringComparison.Ordinal))));
+            Assert.Equal(new[] { "101", "102" }, record["placed"].Select(token => (string)token));
+        }
+
         [Fact]
         public void R404_a_run_that_leaves_no_villa_of_the_scope_placed_never_reports_done()
         {

@@ -37,7 +37,8 @@ namespace SiteAdaptation.Common.CheckTable
         {
             JObject plots = step["plots"] as JObject ?? new JObject();
             List<string> types = (block["types"] as JArray ?? new JArray()).Select(item => (string)item).ToList();
-            var numbers = plots.Properties().Where(item => nbh == null || (string)item.Value["nbh"] == nbh).Select(item => item.Name).ToList();
+            // A plot of the build that plots.csv gives no nbhId stands in the NBH the build was asked for, the scope of the run (CHOSEN, R376)
+            var numbers = plots.Properties().Where(item => nbh == null || (string)item.Value["nbh"] == nbh || NoNbh(item.Value["nbh"])).Select(item => item.Name).ToList();
             var held = new HashSet<string>(numbers, StringComparer.Ordinal);
             var rows = new List<CheckRow>();
             var stepRows = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -48,7 +49,7 @@ namespace SiteAdaptation.Common.CheckTable
                 stepRows[number] = made.Count;
                 foreach (JObject item in made)
                 {
-                    rows.Add(FromStep(number, plot, item, past));
+                    rows.Add(FromStep(number, plot, item, past, nbh));
                 }
             }
             foreach (ReviewCheck check in wrong ?? new ReviewCheck[0])
@@ -57,7 +58,7 @@ namespace SiteAdaptation.Common.CheckTable
                 {
                     rows.Add(new CheckRow
                     {
-                        Plot = check.Plot, Unit = (string)plots[check.Plot]["unit"], Nbh = (string)plots[check.Plot]["nbh"], Check = TeamCheck, From = "team", OpenUse = CheckUse.Rule,
+                        Plot = check.Plot, Unit = (string)plots[check.Plot]["unit"], Nbh = NbhOf(plots[check.Plot], nbh), Check = TeamCheck, From = "team", OpenUse = CheckUse.Rule,
                         PastWhy = "the team marked the plot Wrong in 3 Review data: " + check.Note, Why = check.Note,
                     });
                 }
@@ -75,6 +76,7 @@ namespace SiteAdaptation.Common.CheckTable
             for (int at = 0; at < ordered.Count; at++)
             {
                 ordered[at].Index = at;
+                ordered[at].Nbh = ordered[at].Nbh ?? nbh;
                 ordered[at].ManualRuleId = manualRule?.Invoke(ordered[at].Check, ordered[at].Field);
             }
             JObject tables = step["tables"] as JObject ?? new JObject();
@@ -103,7 +105,17 @@ namespace SiteAdaptation.Common.CheckTable
             };
         }
 
-        private static CheckRow FromStep(string number, JObject plot, JObject item, PastJob past)
+        private static bool NoNbh(JToken value)
+        {
+            return value == null || value.Type == JTokenType.Null || (value.Type == JTokenType.String && ((string)value).Length == 0);
+        }
+
+        private static string NbhOf(JToken plot, string nbh)
+        {
+            return NoNbh(plot["nbh"]) ? nbh : (string)plot["nbh"];
+        }
+
+        private static CheckRow FromStep(string number, JObject plot, JObject item, PastJob past, string nbh)
         {
             JObject offered = item["past"] as JObject ?? new JObject();
             string form = offered["writes"]?.Type == JTokenType.String ? (string)offered["writes"] : null;
@@ -111,8 +123,8 @@ namespace SiteAdaptation.Common.CheckTable
             string from = (string)item["from"];
             var row = new CheckRow
             {
-                Plot = number, Unit = (string)plot["unit"], Nbh = (string)plot["nbh"], Check = (string)item["check"], Field = (string)item["field"], From = from,
-                OpenUse = (string)item["use"] == CheckUse.Past ? CheckUse.Past : CheckUse.Rule, Rule = item["rule"], ToolValue = item["toolValue"], PastForm = form, PastValue = value,
+                Plot = number, Unit = (string)plot["unit"], Nbh = NbhOf(plot, nbh), Check = (string)item["check"], Field = (string)item["field"], From = from,
+                OpenUse = (string)item["use"] == CheckUse.Past || (string)item["use"] == CheckUse.Skip ? (string)item["use"] : CheckUse.Rule, Rule = item["rule"], ToolValue = item["toolValue"], PastForm = form, PastValue = value,
                 Why = item["why"],
             };
             KeyLink link = null;

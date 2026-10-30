@@ -112,5 +112,56 @@ namespace SiteAdaptation.Tests
             Assert.True((bool)changed["byHand"]);
             Assert.Equal("rule", (string)entry["use"]);
         }
+
+        private static string WithSkip()
+        {
+            return List.Replace("  ]\n}\n", "  ],\n  \"skip\": [\n    {\"plot\": \"3\", \"reason\": \"by hand\", \"byHand\": true},\n    {\"plot\": \"5\", \"reason\": \"by hand\", \"byHand\": true}\n  ]\n}\n");
+        }
+
+        [Fact]
+        public void R376_save_counts_only_what_it_writes_so_skip_on_a_plot_the_list_skips_already_writes_nothing()
+        {
+            string path = Path.Combine(folder, "list.json");
+            File.WriteAllText(path, WithSkip());
+
+            Assert.Equal(0, OverrideEdits.Save(path, Rows(), new[] { new CheckChoice(2, CheckUse.Skip) }, Config(), "R4-6"));
+            Assert.Equal(WithSkip(), File.ReadAllText(path));
+        }
+
+        // The skip list holds a plot, not a row, so the plot comes off it once no row of it is left on Skip
+        [Fact]
+        public void R376_rule_or_past_on_rows_that_opened_on_skip_take_the_plot_off_the_skip_list_and_a_row_left_on_skip_is_refused()
+        {
+            string path = Path.Combine(folder, "list.json");
+            File.WriteAllText(path, WithSkip());
+            List<CheckRow> rows = Rows();
+            rows[3].OpenUse = CheckUse.Skip;
+            rows.Add(new CheckRow { Index = 5, Plot = "5", Check = "Level", Field = "rampType", From = "question", OpenUse = CheckUse.Skip, PastWhy = "a question decides it" });
+
+            var refused = Assert.Throws<InvalidOperationException>(() => OverrideEdits.Save(path, rows, new[] { new CheckChoice(5, CheckUse.Rule) }, Config(), "R4-7"));
+            Assert.Contains("plot 5", refused.Message);
+            Assert.Equal(WithSkip(), File.ReadAllText(path));
+
+            Assert.Equal(2, OverrideEdits.Save(path, rows, new[] { new CheckChoice(3, CheckUse.Past), new CheckChoice(5, CheckUse.Rule) }, Config(), "R4-8"));
+            string[] lines = File.ReadAllText(path).Split('\n');
+            Assert.Contains("    {\"plot\": \"3\", \"reason\": \"by hand\", \"byHand\": true}", lines);
+            Assert.DoesNotContain(lines, line => line.StartsWith("    {\"plot\": \"5\", \"reason\": ", StringComparison.Ordinal));
+            Assert.Contains("    {\"plot\": \"5\", \"field\": \"steps\", \"value\": 3, \"source\": \"parsons\", \"model\": \"kx-site.rvt\", \"key\": \"kx\", \"use\": \"past\", \"byHand\": true}", lines.Select(line => line.TrimEnd(',')));
+            OverrideList read = PlanOverrides.Load(path, Config(), JObject.Parse("{ 'job': 'parsons' }"), "p", "project.json");
+            Assert.Equal("3", read.Skip.Keys.Single());
+        }
+
+        [Fact]
+        public void R376_a_use_on_an_override_row_the_list_holds_no_entry_for_is_refused_and_writes_nothing()
+        {
+            string path = Path.Combine(folder, "list.json");
+            File.WriteAllText(path, List);
+            List<CheckRow> rows = Rows();
+            rows[0].Field = "entryM";
+
+            var refused = Assert.Throws<InvalidOperationException>(() => OverrideEdits.Save(path, rows, new[] { new CheckChoice(0, CheckUse.Rule) }, Config(), "R4-9"));
+            Assert.Contains("plot 1", refused.Message);
+            Assert.Equal(List, File.ReadAllText(path));
+        }
     }
 }

@@ -24,7 +24,21 @@ namespace SiteAdaptation.Common.CheckTable
         // The number of changes written, 0 writes nothing
         public static int Save(string path, IReadOnlyList<CheckRow> rows, IReadOnlyList<CheckChoice> uses, JObject config, string runId)
         {
+            string text = WorkFiles.ReadText(path);
+            Edited edit = Apply(text, path, rows, uses, config);
+            if (edit.Count > 0)
+            {
+                WorkFiles.WriteText(path, runId, edit.Text);
+            }
+            return edit.Count;
+        }
+
+        // The list text with the changes of the uses on the text given, which is kept as it is when no change writes anything. A change
+        // counts only where it alters the text: Skip on a plot the list skips already writes nothing
+        public static Edited Apply(string text, string path, IReadOnlyList<CheckRow> rows, IReadOnlyList<CheckChoice> uses, JObject config)
+        {
             var byIndex = rows.ToDictionary(row => row.Index);
+            var final = rows.ToDictionary(row => row.Index, row => row.OpenUse);
             var changes = new List<KeyValuePair<CheckRow, string>>();
             foreach (CheckChoice choice in uses)
             {
@@ -45,42 +59,93 @@ namespace SiteAdaptation.Common.CheckTable
                     throw new InvalidOperationException("Past is not offered on plot " + row.Plot + " " + row.Check + ": " + (row.PastWhy ?? "no reason was given"));
                 }
                 changes.Add(new KeyValuePair<CheckRow, string>(row, choice.Use));
+                final[row.Index] = choice.Use;
             }
             if (changes.Count == 0)
             {
-                return 0;
+                return new Edited(text, 0);
             }
-            string text = WorkFiles.ReadText(path);
             Parts parts = Parts.Of(text, path);
             JObject groups = config["majority"]?["groups"] as JObject ?? throw new InvalidDataException("config holds no majority.groups, the source of an entry is the group of its key (R330)");
             List<string> defaults = (config["majority"]?["overrideDefaultSources"] as JArray ?? new JArray()).Select(item => (string)item).ToList();
+            var unskipped = new HashSet<string>(StringComparer.Ordinal);
+            int count = 0;
             foreach (KeyValuePair<CheckRow, string> change in changes)
             {
                 CheckRow row = change.Key;
                 if (change.Value == CheckUse.Skip)
                 {
-                    if (!parts.Skip.Any(line => (string)JObject.Parse(line)["plot"] == row.Plot))
+                    if (!parts.Skip.Any(line => SkipOf(line) == row.Plot))
                     {
                         parts.Skip.Add(Line(new JObject { ["plot"] = row.Plot, ["reason"] = "Skip chosen in 4 Check on the row " + row.Check + (row.Field == null ? "" : " " + row.Field), ["byHand"] = true }));
+                        count++;
                     }
                     continue;
                 }
-                int at = row.From == "override" ? Find(parts.Overrides, row, defaults) : -1;
-                if (at >= 0)
+                bool written = false;
+                if (row.OpenUse == CheckUse.Skip)
                 {
-                    parts.Overrides[at] = Line(Entry(JObject.Parse(parts.Overrides[at]), row, change.Value));
+                    // The skip list holds a plot, not a row, so it keeps the plot while any row of it is left on Skip
+                    CheckRow kept = rows.FirstOrDefault(other => other.Plot == row.Plot && final[other.Index] == CheckUse.Skip);
+                    if (kept != null)
+                    {
+                        throw new InvalidOperationException("plot " + row.Plot + " stays on the skip list while its row " + kept.Check + (kept.Field == null ? "" : " " + kept.Field)
+                            + " keeps Skip, set every row of plot " + row.Plot + " off Skip to take it off (R376)");
+                    }
+                    if (parts.Skip.RemoveAll(line => SkipOf(line) == row.Plot) > 0 || unskipped.Contains(row.Plot))
+                    {
+                        unskipped.Add(row.Plot);
+                        written = true;
+                    }
+                }
+                if (row.From == "override")
+                {
+                    int at = Find(parts.Overrides, row, defaults);
+                    if (at < 0)
+                    {
+                        throw new InvalidOperationException("the override list holds no entry of plot " + row.Plot + " field " + row.Field + " that the build applied or left, it changed since the build. Run 4 Check again (R376)");
+                    }
+                    string line = Line(Entry(JObject.Parse(parts.Overrides[at]), row, change.Value));
+                    if (line != parts.Overrides[at])
+                    {
+                        parts.Overrides[at] = line;
+                        written = true;
+                    }
                 }
                 else if (change.Value == CheckUse.Past)
                 {
                     parts.Overrides.Add(Line(New(row, groups)));
+                    written = true;
                 }
+                count += written ? 1 : 0;
             }
-            string written = parts.Text();
-            JObject check = JObject.Parse(written);
+            if (count == 0)
+            {
+                return new Edited(text, 0);
+            }
+            string edited = parts.Text();
+            JObject check = JObject.Parse(edited);
             PlanOverrides.CheckEntries(check["overrides"] as JArray ?? new JArray(), groups);
             PlanOverrides.CheckSkip(check["skip"], path + ": ");
-            WorkFiles.WriteText(path, runId, written);
-            return changes.Count;
+            return new Edited(edited, count);
+        }
+
+        public sealed class Edited
+        {
+            public Edited(string text, int count)
+            {
+                Text = text;
+                Count = count;
+            }
+
+            public string Text { get; }
+
+            public int Count { get; }
+        }
+
+        private static string SkipOf(string line)
+        {
+            return Text(JObject.Parse(line)["plot"]);
         }
 
         // The entry of an override with the Use of its row, a copy, the entry given is not changed

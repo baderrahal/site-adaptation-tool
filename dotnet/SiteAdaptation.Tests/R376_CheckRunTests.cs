@@ -202,5 +202,60 @@ namespace SiteAdaptation.Tests
             Assert.Equal("kx", links["1"].Code);
             Assert.True(links["1"].Mirrored);
         }
+
+        // R376. Two Saves in one window as the window sends them, each the rows changed since the table opened: the second writes the
+        // list one Save of the same choices writes, never an entry twice that a build refuses (R280), and rows set back after a Save
+        // leave the list as the table opened on it, so no build again
+        [Fact]
+        public void R376_two_saves_in_one_window_write_each_entry_once_and_rows_set_back_leave_the_list_as_it_opened()
+        {
+            string reads = Path.Combine(root, "key reads");
+            Directory.CreateDirectory(reads);
+            File.WriteAllText(Path.Combine(reads, "testhost_kx_prototypes.json"),
+                "{ 'documents': [ { 'kind': 'project', 'file': 'made/kx-site.rvt', 'links': [ { 'file': 'P-ARC-VL4-A.rvt', 'parameters': { 'Plot': '1' }, 'transform': { 'mirrored': true } } ] } ] }");
+            var roles = new Dictionary<string, string>(Roles) { ["Key reads"] = CheckRun.KeyReads };
+            var inputs = new[] { new RunInput("Settings", configPath, false), new RunInput("Prototypes", prototypes, true), new RunInput("Key reads", reads, true) };
+            var context = new RunContext(4, "4 Check", "R4-7", work, null, true, inputs, new Dictionary<string, string>());
+            string list = Path.Combine(root, "repo", "config", "overrides", "made-up.json");
+            string afterTwo = null, afterBack = null;
+            var builder = new Builder();
+            var table = new Table
+            {
+                Answer = (view, callbacks) =>
+                {
+                    var state = new CheckTableState(view);
+                    CheckRow hand = view.Rows.Single(row => row.Plot == "1" && row.Check == "Hand");
+                    CheckRow other = view.Rows.Single(row => row.Plot == "7");
+                    state.Set(hand.Index, CheckUse.Past);
+                    callbacks.Save(state.Choices());
+                    state.MarkSaved();
+                    state.Set(other.Index, CheckUse.Skip);
+                    callbacks.Save(state.Choices());
+                    state.MarkSaved();
+                    afterTwo = File.ReadAllText(list);
+                    state.Set(hand.Index, CheckUse.Rule);
+                    state.Set(other.Index, CheckUse.Rule);
+                    callbacks.Save(state.Choices());
+                    state.MarkSaved();
+                    afterBack = File.ReadAllText(list);
+                    return new CheckTableAnswer { Saved = true };
+                },
+            };
+            RunLater end = null;
+            ButtonBody body = new CheckRun(roles, builder, null, new WorkerDocument(), Nbh, table, null, null).Body();
+
+            body.Preview(context);
+            body.Start(context, later => end = later);
+
+            Assert.Null(end.Failure);
+            Assert.Single(afterTwo.Split('\n'), line => line.StartsWith("    {\"plot\": \"1\", \"field\": \"mirrored\"", StringComparison.Ordinal));
+            Assert.Single(afterTwo.Split('\n'), line => line.StartsWith("    {\"plot\": \"7\", \"reason\": ", StringComparison.Ordinal));
+            string copy = Path.Combine(root, "after-two.json");
+            File.WriteAllText(copy, afterTwo);
+            OverrideList read = PlanOverrides.Load(copy, JObject.Parse(File.ReadAllText(configPath)), JObject.Parse("{ 'job': 'parsons' }"), "p", "project.json");
+            Assert.Equal(true, read.Of("1")["mirrored"].Value<bool>());
+            Assert.Equal(Overrides, afterBack);
+            Assert.Single(builder.Requests);
+        }
     }
 }

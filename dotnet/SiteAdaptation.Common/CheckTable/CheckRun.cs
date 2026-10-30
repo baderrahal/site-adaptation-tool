@@ -25,6 +25,8 @@ namespace SiteAdaptation.Common.CheckTable
         public const string KeyJoin = "keyJoin";
         public const string KeyReads = "keyReads";
         public const string FolderPrefix = "check_";
+        public const string RecordFile = "check.json";
+        public const string RecordFormat = "site-adaptation-check-run";
 
         // The read outputs of button 2 the build takes by role, R354
         public static readonly IReadOnlyDictionary<string, string> ReadFiles = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -333,27 +335,28 @@ namespace SiteAdaptation.Common.CheckTable
                     {
                         outputs[output.Path] = output.Sha256;
                     }
-                    bool saved = false;
+                    var session = new OverrideSession(plan.OverridesPath);
                     if (first && dialog != null)
                     {
                         var callbacks = new CheckTableCallbacks
                         {
                             Save = choices =>
                             {
-                                int count = OverrideEdits.Save(plan.OverridesPath, view.Rows, choices, JObject.Parse(WorkFiles.ReadText(plan.ConfigPath)), runId);
-                                saved |= count > 0;
+                                session.Save(view.Rows, choices, JObject.Parse(WorkFiles.ReadText(plan.ConfigPath)), runId);
                                 return plan.OverridesPath;
                             },
                         };
                         dialog.Show(view, callbacks);
                     }
-                    if (saved)
+                    if (session.Changed)
                     {
                         // R376. The list changed, so the plan is built again on it before the step is done, the hash of the list is new
                         CheckPlan again = Checked(context);
                         Build(context, again, runId + "-again", folder + "-again", done, false);
                         return;
                     }
+                    // R377. The record goes last and only on a build that ends done, so 7 takes the plan of the last real run that ended done
+                    WorkFiles.WriteText(Path.Combine(folder, RecordFile), runId, Record(runId, outputs).ToString(Newtonsoft.Json.Formatting.Indented));
                     done(RunLater.Done(view.Title + ", " + view.Rows.Count + " rows, " + view.FollowLine, answer.Issues ?? new List<string>(), outputs));
                 }
                 catch (Exception failure) when (failure is InvalidDataException || failure is IOException || failure is InvalidOperationException)
@@ -392,6 +395,27 @@ namespace SiteAdaptation.Common.CheckTable
             JObject rules = JObject.Parse(WorkFiles.ReadText(rulesPath));
             JObject list = JObject.Parse(WorkFiles.ReadText(plan.OverridesPath));
             return CheckTableInfo.Of(BuildRules.ProfileName(rules, levelProfile), Path.GetFileName(plan.OverridesPath), list, step, plan.Nbh);
+        }
+
+        public static JObject Record(string runId, IReadOnlyDictionary<string, string> outputs)
+        {
+            return new JObject
+            {
+                ["format"] = RecordFormat, ["runId"] = runId,
+                ["outputs"] = new JArray(outputs.OrderBy(output => output.Key, StringComparer.Ordinal).Select(output => new JObject { ["path"] = output.Key, ["sha256"] = output.Value })),
+            };
+        }
+
+        // R377. The record of a real run of 4 Check that ended done in its folder, null where the run wrote none
+        public static JObject RecordOf(string folder)
+        {
+            string path = Path.Combine(folder, RecordFile);
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+            JObject record = JObject.Parse(WorkFiles.ReadText(path));
+            return (string)record["format"] == RecordFormat ? record : null;
         }
 
         // R80. The plan of the build in its folder, the one file buttons 5 to 8 read
