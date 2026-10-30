@@ -364,7 +364,7 @@ def test_r353_key_rules_site_names_the_one_level_base_of_the_keys():
 def test_r353_config_names_the_position_file_its_limit_and_the_steps_of_its_parity():
     settings = project_profile.load_settings()
     block = position_file.settings_of(settings)
-    assert block["checkPointLimitMm"] == 1.0 and block["gapDecimals"] == 2 and block["file"].endswith(".json")
+    assert block["checkPointLimitMm"] == 2.0 and block["revitCheckPointLimitMm"] == 0.1 and block["gapDecimals"] == 2 and block["file"].endswith(".json")
     steps = settings.get("addin")["parity"]["steps"]
     assert set(steps["position"]) == {"key", "projectPositionM", "angleDeg", "surveyInternalM", "surveySharedM", "baseInternalM", "baseSharedM", "levelNames",
                                       "levelElevationsM", "levelProjectElevationsM", "levelBase", "activeSite", "sites", "heldAgainst"}
@@ -416,9 +416,9 @@ def test_r353_the_cli_writes_the_file_outside_git_the_position_step_and_the_chec
     written = json.loads((tmp_path / "out" / values["addin"]["position"]["file"].replace("\\", "/").split("/")[-1]).read_text(encoding="utf-8"))
     assert written["levelBase"] == "Survey Point" and written["projectPosition"]["northM"] == 2000.0 and written["key"] == "imc" and written["activeSite"] == "Internal"
     # The check of the 6 keys with no points failed: the file records it, every failed point is an issue line, the run ends 0 as R347 has it
-    assert written["checkPoints"] == {"limitMm": 1.0, "points": 18, "pass": 12, "overLimit": 0, "noFace": 0, "otherFace": 0, "noNumber": 0, "twoFaces": 0, "merged": 0,
+    assert written["checkPoints"] == {"limitMm": 2.0, "points": 18, "pass": 12, "overLimit": 0, "noFace": 0, "otherFace": 0, "noNumber": 0, "twoFaces": 0, "merged": 0,
                                       "noPoints": 6, "failed": True}
-    assert "the check points failed: 12 of 18 pass at 1.0 mm" in out.out and "issue ima no key points" in out.out
+    assert "the check points failed: 12 of 18 pass at 2.0 mm" in out.out and "issue ima no key points" in out.out
     step = parity.load_step(tmp_path / "steps" / parity.step_name("position", "python"), "python")
     assert step["plots"]["position"]["raw"]["levelNames"] == ["Level 1", "Level 2"] and step["plots"]["position"]["raw"]["heldAgainst"] == GROUP[1:]
     assert {"config", "keyRead", "rules", "keyCopies"} | {"keyRead:" + key for key in GROUP[1:]} <= {item["role"] for item in step["run"]["inputs"]}

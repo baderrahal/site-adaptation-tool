@@ -355,7 +355,15 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R403 Site Adaptation Rules, the manual rules.
 - R404 Light mode, the villa as a solid.
 - R377 Button 7 Place villas, the 5c part.
+- R405 The design values in config.
 
 ## 09-addin-r376-up.md
 
 - R376 Button 4 Check, the check table, Use and Save overrides.
+- R370 Install script, manifest, one Common.
+- R371 The ribbon.
+- R372 The pane and the document.
+- R382 One transaction per button.
+- R373 Button 1 on an empty project.
+- R374 Button 1 on an existing site file.
+- R383 Element tags in Revit.

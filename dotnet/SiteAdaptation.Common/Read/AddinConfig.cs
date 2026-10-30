@@ -22,6 +22,10 @@ namespace SiteAdaptation.Common
             }
         }
 
+        // The whole config, from which the worker takes the design values of the run (R405). A duplicate key is refused by the
+        // command that reads the config, not here
+        internal JObject Root => root;
+
         // The config as json.loads of Python reads it (PyJson), so a text stays a text and -1E400 is -Infinity on net48 as on net8.0, where
         // Newtonsoft took a date text for a date and threw on -1E400 on net48 only, and a value refused is written as json.dumps writes it (H2)
         public static AddinConfig Load(string path)

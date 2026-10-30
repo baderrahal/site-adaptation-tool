@@ -20,6 +20,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import common
+import design_values
 import project_profile
 
 FIELDS = ("mirrored", "rampType", "entryM", "heightM", "rampFrontM")
@@ -32,6 +33,9 @@ HAND_FACTORS = ("all", "blockMirror", "clusterSide", "openEnd", "roadSide", "blo
 TABLE_FACTORS = ("all", "typology", "mirroredFactor", "typologyMirrored", "steps", "typologySteps")
 FORMULAS = ("plot", "rev9Code", "plotAndCode", "plotCodeStepsAndFacade")
 LEVEL_RULES = ("ffl", "fflDownToTheCm")
+# R339, Q103. The grain fflDownToTheCm takes the FFL down to, in mm. (mm // g) * g / 1000 is the rational (mm // 10) / 100 for g 10,
+# and a division of IEEE doubles is rounded once, so the text is the one the old literal gave
+CM_GRAIN_MM = design_values.value("levels.cmGrainMm")
 # R340. The level rules of keyRules a build carries out, optional, a profile with none builds the levels of R278
 LEVEL_WORDS = {"entry": ("roadLevel",), "rampFront": ("roadLevel",), "levelSplit": ("none", "units"), "baseHeight": ("profile", "typology"),
                "ffl": ("oneFflPerPieceAtTheHighestEntry", "oneFflPerClusterAtTheHighestEntry", "ownEntryPlusBase"), "steps": ("stepsFromHeight", "stepBands")}
@@ -645,7 +649,7 @@ def prototype_ffl(rule, ffl):
         return None
     millimetres = int(common.fixed(ffl * 1000, 0))
     if rule == "fflDownToTheCm":
-        return "%.3f" % ((millimetres // 10) / 100.0)
+        return "%.3f" % ((millimetres // CM_GRAIN_MM) * CM_GRAIN_MM / 1000.0)
     if rule == "ffl":
         return "%.3f" % (millimetres / 1000.0)
     raise project_profile.ProfileError("keyRules parameter RRE_ZZ_SP_Prototype-FFL codes %s, a build gives fflDownToTheCm or ffl (R339)" % rule)

@@ -264,6 +264,7 @@ namespace SiteAdaptation.Common
             // The config is small and read first, it names the measured peak of each large input and the floor. Before any read each
             // large input is checked against the free memory now, so a run that cannot read all of them reads none
             AddinConfig config = AddinConfig.Load(configInput.Path);
+            DesignValues.UseConfigOf(config.Root);
             foreach (WorkerFile input in inputs)
             {
                 string refusal = MemoryRefusal(input, config, freeMiB);

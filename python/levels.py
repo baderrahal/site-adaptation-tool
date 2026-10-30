@@ -6,23 +6,24 @@ metres through profile.metres. Nothing here reads a drawing or a workbook.
 import re
 
 import common
+import design_values
 import project_profile
 
 PAST_WORK_NOTE = "base height from past work"
 # The note stays while the profile says its base heights are not confirmed. A source text without these words ends it
 UNCONFIRMED = "not confirmed"
 RULE_FORM = re.compile(r"^under ([0-9.]+) is (\d+), ([0-9.]+) to under ([0-9.]+) is (\d+), ([0-9.]+) and over is (\d+)$")
-ENTRY_DECIMALS = 4
-HEIGHT_DECIMALS = 4
+ENTRY_DECIMALS = design_values.value("rounding.entryDecimals")
+HEIGHT_DECIMALS = design_values.value("rounding.heightDecimals")
 # The FFL is taken to the millimetre before the height, as the sheets write it, so a height is never worked out from a hidden fourth decimal
-FFL_DECIMALS = 3
+FFL_DECIMALS = design_values.value("rounding.fflDecimals")
 # A height is compared with the span to the millimetre, half a millimetre rounds up. The slack is explicit because a rounding of a height such as
 # 0.0995 would let binary float noise decide, and the epsilon keeps a height that is exactly on the half millimetre inside the span
 HALF_MM = 0.0005
 EPSILON = 1e-9
 # A height is rounded to a micrometre before its band is taken, so binary float noise (150.38 minus 150.0 is 0.37999999999999545)
 # cannot move a height off a limit. The closest real height is 27 micrometres from a limit
-BAND_DECIMALS = 6
+BAND_DECIMALS = design_values.value("rounding.bandDecimals")
 
 
 def count_rule(profile):

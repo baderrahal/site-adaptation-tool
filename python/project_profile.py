@@ -1,9 +1,13 @@
 import json
+import os
 from pathlib import Path, PureWindowsPath
 
 ROOT = Path(__file__).resolve().parent.parent
 SETTINGS_PATH = ROOT / "config" / "project.json"
 MM_PER_M = 1000.0
+# Q127, J5. A path of a settings file under the work root of the machine starts with this mark, so no path of a user is in git
+WORK_ROOT_MARK = "{workRoot}"
+WORK_ROOT_FOLDER = "SiteAdaptation"
 
 
 class ProfileError(Exception):
@@ -65,8 +69,36 @@ def read_object(path):
     return values
 
 
+def work_root(environ=None, home=None):
+    """Q127, R372. workRoot of %APPDATA%/SiteAdaptation/machine.json, else the SiteAdaptation folder of Documents, as WorkRoot.cs
+    gives it. A machine file that gives no full path named SiteAdaptation is refused, never passed over for the default."""
+    environ = os.environ if environ is None else environ
+    machine = Path(environ["APPDATA"]) / WORK_ROOT_FOLDER / "machine.json" if environ.get("APPDATA") else None
+    if machine is None or not machine.is_file():
+        return Path(home if home is not None else Path.home()) / "Documents" / WORK_ROOT_FOLDER
+    try:
+        root = json.loads(machine.read_text(encoding="utf-8-sig")).get("workRoot")
+    except (ValueError, AttributeError) as error:
+        raise ProfileError("%s gives no workRoot: %s" % (machine, error)) from error
+    if not isinstance(root, str) or not PureWindowsPath(root).is_absolute() or PureWindowsPath(root).name != WORK_ROOT_FOLDER:
+        raise ProfileError("%s gives no full workRoot named %s: %r" % (machine, WORK_ROOT_FOLDER, root))
+    return Path(root)
+
+
+def with_work_root(values, root=None):
+    """Q127, J5. Each text of a settings object that starts with the work root mark, that root and the rest of the path."""
+    if isinstance(values, dict):
+        return {key: with_work_root(value, root) for key, value in values.items()}
+    if isinstance(values, list):
+        return [with_work_root(value, root) for value in values]
+    if isinstance(values, str) and values.startswith(WORK_ROOT_MARK):
+        rest = values[len(WORK_ROOT_MARK):].replace("\\", "/").strip("/")
+        return str(Path(root or work_root()).joinpath(*[part for part in rest.split("/") if part]))
+    return values
+
+
 def load_profile(path):
-    return ProjectProfile(path, read_object(path))
+    return ProjectProfile(path, with_work_root(read_object(path)))
 
 
 # The project settings file reads with the same loader, so it gets the same errors
