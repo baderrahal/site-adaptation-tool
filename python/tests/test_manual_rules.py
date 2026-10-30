@@ -1,11 +1,11 @@
-"""R403: the block manualRules of rules/roshn-makkah.json is the table of docs/design/15-manual-rules.md, word for word."""
+"""R403: the block manualRules of the rules profile of config/project.json is the table of docs/design/15-manual-rules.md, word for word."""
 import json
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DESIGN = ROOT / "docs" / "design" / "15-manual-rules.md"
-PROFILE = ROOT / "rules" / "roshn-makkah.json"
+PROFILE = ROOT / json.loads((ROOT / "config" / "project.json").read_text(encoding="utf-8"))["profile"]
 HEADS = ["ID", "Rule", "Group", "Manual ref", "Checked in", "Past job", "Rev 06 section and page"]
 
 
