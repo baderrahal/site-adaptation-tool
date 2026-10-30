@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
+import project_profile
 import road_lookup
 import surface_lookup
 import surface_roles
@@ -22,7 +23,7 @@ SPOT_RADIUS = 0.05
 
 
 def load_config(path):
-    config = json.loads(Path(path).read_text(encoding="utf-8"))
+    config = project_profile.with_work_root(json.loads(Path(path).read_text(encoding="utf-8")))
     roles = {name: entry["role"] for name, entry in config["surfaces"].items()}
     roads = [name for name, role in roles.items() if role == "road"]
     if len(roads) > 1:

@@ -19,7 +19,9 @@ if ($MaxWindows -lt 1 -or $MaxWindows -gt 3) {
     throw 'MaxWindows is 1 to 3.'
 }
 $run = Join-Path $PSScriptRoot 'Run-TestHost.ps1'
-$docs = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'SiteAdaptation'
+# J8, Q127. The work root of machine.json, as Run-TestHost.ps1 takes it
+. (Join-Path $PSScriptRoot 'TestHostPaths.ps1')
+$docs = Get-WorkRoot -AppData $env:APPDATA -MyDocuments ([Environment]::GetFolderPath('MyDocuments'))
 $shell = (Get-Process -Id $PID).Path
 
 function Get-FreeGB {

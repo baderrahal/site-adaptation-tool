@@ -11,7 +11,8 @@ namespace SiteAdaptation.Placer
     {
         public static string ReportPath
         {
-            get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SiteAdaptation", "placer_report.json"); }
+            // J8, Q127. The work root of the machine, not the Documents folder of Windows
+            get { return Path.Combine(WorkRoot.OfThisMachine(), "placer_report.json"); }
         }
 
         public static PlacerReport Run(Document document, PlanFile plan, string planPath, bool real, string prototypeFile)

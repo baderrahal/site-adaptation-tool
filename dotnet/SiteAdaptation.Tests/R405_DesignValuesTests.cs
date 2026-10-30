@@ -88,6 +88,21 @@ namespace SiteAdaptation.Tests
             Assert.Contains("no designValues block", Assert.Throws<InvalidDataException>(() => DesignValues.From(new JObject())).Message);
         }
 
+        // Q127, J5. A path of config under the work root mark takes the root of the machine, a path with no mark stays as it is
+        [Fact]
+        public void Q127_J5_a_path_under_the_work_root_mark_takes_the_root_and_config_holds_no_path_of_a_user()
+        {
+            string root = Path.Combine(Path.GetTempPath(), "SiteAdaptation");
+            Assert.Equal(Path.Combine(root, "round_addin", "position", "p.json"), WorkRoot.Resolve(WorkRoot.Mark + "\\round_addin/position\\p.json", () => root));
+            Assert.Equal(root, WorkRoot.Resolve(WorkRoot.Mark, () => root));
+            Assert.Equal("relative/p.json", WorkRoot.Resolve("relative/p.json", () => throw new InvalidOperationException("no root asked for a path with no mark")));
+            foreach (string name in new[] { "project.json", "road_surfaces.json" })
+            {
+                string text = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "config", name)).Replace("\\\\", "/").ToLowerInvariant();
+                Assert.DoesNotContain("c:/users/", text);
+            }
+        }
+
         [Fact]
         public void R405_a_config_of_a_test_with_no_block_leaves_the_values_of_the_run()
         {

@@ -47,7 +47,7 @@ namespace SiteAdaptation.Common
             {
                 throw new InvalidDataException("majority.groups names no keys of the group " + group + " with its reference key (R353)");
             }
-            return new PositionSettings { File = file, CheckPointLimitMm = limitMm, RevitCheckPointLimitMm = revitLimitMm, GapDecimals = (int)decimals.Value<long>(), Key = (string)key, Group = keys.Select(item => (string)item).ToList() };
+            return new PositionSettings { File = WorkRoot.Resolve(file, WorkRoot.OfThisMachine), CheckPointLimitMm = limitMm, RevitCheckPointLimitMm = revitLimitMm, GapDecimals = (int)decimals.Value<long>(), Key = (string)key, Group = keys.Select(item => (string)item).ToList() };
         }
 
         private static double LimitMm(JObject block, string name, string rule)

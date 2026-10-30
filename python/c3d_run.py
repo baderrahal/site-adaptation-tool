@@ -13,6 +13,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+import project_profile
+
 REPO = Path(__file__).resolve().parent.parent
 CONFIG = Path(__file__).resolve().parent / "c3d_probe.json"
 # R350. The project settings whose dataBook block load_config lays over the probe settings
@@ -29,7 +31,7 @@ def load_config(path=CONFIG):
     their connect the same way."""
     config = json.loads(Path(path).read_text(encoding="utf-8"))
     if Path(path).resolve() == CONFIG.resolve():
-        settings = json.loads(SETTINGS.read_text(encoding="utf-8"))
+        settings = project_profile.with_work_root(json.loads(SETTINGS.read_text(encoding="utf-8")))
         for block in ("dataBook", "connect"):
             lay_over(config.setdefault(block, {}), settings.get(block) or {}, block)
         cad_reads(config)

@@ -39,10 +39,10 @@
     "neighbourhood": "IMC",
     "schedule": "00101-PSN-IMC-XXX-SCH-TU-090000.xlsx",
     "sheet": "MP_Phase 1_Zone21",
-    "prototypes": "C:\\Users\\bader\\Documents\\SiteAdaptation\\prototypes_imc_past.json",
+    "prototypes": "{workRoot}\\prototypes_imc_past.json",
     "prototypeFolder": "00_Revit Models\\Zone 02\\ARC\\Prototypes",
     "upgradedPrototypeFolder": "00_Revit Models\\Zone 02\\ARC\\Prototypes_2024",
-    "output": "C:\\Users\\bader\\Documents\\SiteAdaptation\\plan_imc_past.json",
+    "output": "{workRoot}\\plan_imc_past.json",
     "parameters": [
       "RRE_ZZ_SP_Plot-Number",
       "RRE_ZZ_SP_Prototype",
@@ -131,7 +131,7 @@
       "shiftSearch": 1,
       "pdfToleranceM": 1.0,
       "unitBlockKinds": ["Villa", "Duplex", "Townhouse"],
-      "r06Outlines": "C:/Users/bader/Documents/SiteAdaptation/data_book/wiring/cad/221229_MP-SK-01-03-001_R06.dwg",
+      "r06Outlines": "{workRoot}/data_book/wiring/cad/221229_MP-SK-01-03-001_R06.dwg",
       "widenM": 0.5,
       "minShare": 0.1,
       "shareTie": 0.02,
@@ -218,13 +218,13 @@
     "floorWidthStepM": 0.5,
     "cutNeighbours": ["2374", "2391", "2543", "2546"],
     "caseParameters": ["RRE_ZZ_SP_Façade-Design-Option", "RRE_ZZ_SP_Façade-Color"],
-    "planOutput": "C:\\Users\\bader\\Documents\\SiteAdaptation\\plan_imc_cad.json"
+    "planOutput": "{workRoot}\\plan_imc_cad.json"
   },
   "handCheck": {
-    "folders": ["C:\\Users\\bader\\Documents\\SiteAdaptation\\data_book\\work\\00_Revit Models\\Zone 02\\ARC\\Prototypes_2024"]
+    "folders": ["{workRoot}\\data_book\\work\\00_Revit Models\\Zone 02\\ARC\\Prototypes_2024"]
   },
   "siteBuild": {
-    "folder": "C:\\Users\\bader\\Documents\\SiteAdaptation\\round_addin",
+    "folder": "{workRoot}\\round_addin",
     "template": "C:\\ProgramData\\Autodesk\\RVT 2024\\Templates\\English\\DefaultMetric.rte",
     "newFile": null,
     "answerKey": {
@@ -233,13 +233,13 @@
       "others": [],
       "code": "KC"
     },
-    "lock": "C:\\Users\\bader\\Documents\\SiteAdaptation\\window.lock",
+    "lock": "{workRoot}\\window.lock",
     "waitMinutes": 5,
     "staleHours": 2,
     "minFreeGB": 2.0,
     "windowProcesses": ["acad", "accoreconsole", "Revit"],
     "snapshot": {
-      "dataBook": "C:\\Users\\bader\\Documents\\SiteAdaptation\\data_book",
+      "dataBook": "{workRoot}\\data_book",
       "files": ["plots.csv", "locationPlan.json", "locationPlan.md", "units.csv", "wiring.json", "retest.json", "analysis.json", "README.md"],
       "folders": ["location_plan", "landxml", "Makkah Phase 1_Road Surface C3D", "Makkah Phase 1_Road Layout", "Makkah Phase 1_Rough Grading", "ROSHN Makkah Baseplan"],
       "rev9": ["work\\Master Plan Rev.09\\01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf", "work\\Master Plan Rev.09\\PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx", "work\\Master Plan Rev.09\\TBD-PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_Rev9.0.xlsx"]
@@ -358,7 +358,7 @@
     "workerTimeLimitMinNote": "R347. The shortest time limit a launch takes, a request under it is refused before the start, so a limit typed too short never kills a sound run. CHOSEN in the second review of PR 50: 10 s, ten times the 1.0 s the worker build of the step faces took on the 2,704 unit plots of the snapshot, its start included",
     "position": {
       "note": "R353, Q068. The project position file of button 1, written by the command position of the worker (python/position_file.py the Python side) from the read of the reference key of majority.siteReference, outside git since it holds coordinates and levels: the project position of the internal origin in shared coordinates and its angle, the survey point and the project base point in internal and shared coordinates, the levels and the one Elevation Base they stand on, the units, the length accuracy and the active site with the sites, refused when it differs from any value of keyRules.site of the level profile or when the reference key differs from another key of its group of majority.groups. file is where button 1 reads it, the worker writes it under that file name into the output folder of its request. checkPointLimitMm is the pass limit of the check points of the worker against the keys, 2 mm by the answer of Q086 (Bader, 2026-10-29), revitCheckPointLimitMm that of the check points of button 1 against Revit, the Revit column after Apply against the transform of the dry run, 0.1 mm under a key of its own by the answer of Q142 (Bader, 29 Oct 2026, W2), gapDecimals the decimals the Diff is shown and judged at by R385 (docs/design/03a-buttons-shared-and-1.md 3.1 and docs/design/07-mock.md 7.3, CHOSEN by the design). Since the review of PR 54 the check points of the worker hold the baseplan against the floor corners of the keys read at full precision through the file (Q086). Since its second review every key read is held to its key by key_copies.json, the input keyCopies, and to every value of the set, the baseplan is read at full precision, the face of each point is held to the numbering of labels.csv and config/plot_numbers.json, the inputs labels and plotShifts, and a failed point is an issue of the command, which ends done. Since its third review the numbering takes the client code rows alone, a number on two faces fails its points, and a point on a vertex CadReader merged more than checkPointLimitMm fails.",
-      "file": "C:/Users/bader/Documents/SiteAdaptation/round_addin/position/position_parsons.json",
+      "file": "{workRoot}/round_addin/position/position_parsons.json",
       "checkPointLimitMm": 2.0,
       "revitCheckPointLimitMm": 0.1,
       "gapDecimals": 2
