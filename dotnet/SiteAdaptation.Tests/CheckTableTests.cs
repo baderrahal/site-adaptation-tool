@@ -299,6 +299,9 @@ namespace SiteAdaptation.Tests
             Assert.Contains("CheckTable.CheckTableBody.ManualRule = ", host);
             Assert.Contains("IdOfCheck", host);
             Assert.Contains("CheckTable.CheckTableBody.For(", File.ReadAllText(Path.Combine(addin, "Commands", "Buttons.cs")));
+            Assert.Contains("PlaceVillas.PlaceVillasBody.Load = context =>", host);
+            Assert.Contains("Common.PlaceVillas.VillaLoad.Load(", host);
+            Assert.Contains("PlaceVillas.PlaceVillasBody.For(application)", File.ReadAllText(Path.Combine(addin, "Commands", "Buttons.cs")));
         }
 
         [Fact]

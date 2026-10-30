@@ -65,8 +65,11 @@ namespace SiteAdaptation.Tests
             Assert.False(none.IsFolder);
             model.PickConfig(Folder + "project.json");
             // Button 2 reads the input files of the pane beside it since 5c (R375)
-            Assert.All(Enumerable.Range(1, 9).Where(button => button != 2), button => Assert.Equal(Folder + "project.json", state.Inputs(button).Single().Path));
+            Assert.All(Enumerable.Range(1, 9).Where(button => button != 2 && button != 4), button => Assert.Equal(Folder + "project.json", state.Inputs(button).Single().Path));
             Assert.Equal(Folder + "project.json", state.Inputs(2).First().Path);
+            // Button 4 reads the Rules file and the Prototypes folder of the pane beside it since 5c (R376)
+            Assert.Equal(new[] { "Settings", "Rules", "Prototypes" }, state.Inputs(4).Select(input => input.Name));
+            Assert.Equal(Folder + "project.json", state.Inputs(4).First().Path);
         }
 
         // R375. Button 2 gets the Settings file and the seven input files of the pane it reads, each by its row, Road surface as a
