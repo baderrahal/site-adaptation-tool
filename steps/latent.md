@@ -323,3 +323,7 @@ From the reviewer and the breaker passes 1 and 2 of the 5b PR. Each is LATENT, n
 - L5, R381: revit_counts_<run id>.json is written straight to its name, not by its temporary name, and is left behind when the worker fails.
 - Wrong shape, R402: a plot number held as a number in the override list would mark the plot not savable in both routes, all 11,075 entries hold text (RAN).
 - Fix of pass 2 B, R402: the refusal of two books of one kind names each by its file name only, so two copies of 012_Report.xlsx in two folders read 012_Report.xlsx and 012_Report.xlsx. The refusal holds, the line is unclear.
+
+## 5e and 5f, the gate and CI
+
+- Flaky, not of this branch: R347 time limit tests of WorkerRunTests failed once each on the Windows CI runner on net8.0 only (a time limit of 1 s that the stand-in worker beat, an answer read before the kill), passed on net48 in the same runs and on a rerun of the job (RAN, PR 110). R310 process tests of ParsonsModelTests failed on the laptop under load and passed after a restart and on CI (RAN).

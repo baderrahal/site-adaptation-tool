@@ -21,6 +21,7 @@ Checked:
 - Update, RAN: real copy and probes, 13 cases, 127,844 cells equal, 0 mismatches between the C# and Python routes
 - Reviewer and breaker (D20): pass 1 REAL faults fixed with tests, breaker pass 2 found 3 more, fixed with tests
 - Breaker passes ran Python only, the C# side of the fixes rests on the tests and the route compare (UNKNOWN in Revit)
+- CI of PR 110: the NBH of a file name now parts at either separator and the held open test runs on Windows only. R347 timing tests flaked once (latent)
 
 Remains:
 - Manual rule IDs read no block until Lane B 5c writes manualRules (W3, Q165). No button writes a run log yet (R383)
