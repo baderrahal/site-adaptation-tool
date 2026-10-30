@@ -216,7 +216,7 @@ namespace SiteAdaptation.TestHost
 
         // The window of button 1 with no click: it keeps what it was shown, runs Dry run with the default slope and answers Apply
         // unless a view holds a stop
-        private sealed class AnswerWindow : ISetUpSiteDialog
+        internal sealed class AnswerWindow : ISetUpSiteDialog
         {
             public JObject Seen { get; } = new JObject();
 

@@ -327,5 +327,27 @@ namespace SiteAdaptation.Common
         {
             return For(kind, dialogId).Select(code => (int?)code).FirstOrDefault(code => offer(code.Value));
         }
+
+        // R384. While a step of the buttons mode runs, the texts of the add-in dialogs it answers by their first command link, Apply of
+        // the confirm of the flow and Load of the link types to load. Null outside such a step
+        public static IReadOnlyList<string> Armed { get; set; }
+
+        // A task dialog the list does not know whose text holds an armed text is offered its first link before the usual answers,
+        // so Revit takes the link only on a dialog that has one. Every other dialog keeps the answers of For
+        public static int[] For(string kind, string dialogId, string message, IReadOnlyList<string> armed)
+        {
+            int[] usual = For(kind, dialogId);
+            bool known = dialogId != null && Known.ContainsKey(dialogId);
+            if (known || kind != "taskDialog" || armed == null || message == null || !armed.Any(text => message.IndexOf(text, StringComparison.Ordinal) >= 0))
+            {
+                return usual;
+            }
+            return new[] { FirstLink }.Concat(usual).ToArray();
+        }
+
+        public static int? Answer(string kind, string dialogId, string message, Func<int, bool> offer)
+        {
+            return For(kind, dialogId, message, Armed).Select(code => (int?)code).FirstOrDefault(code => offer(code.Value));
+        }
     }
 }
