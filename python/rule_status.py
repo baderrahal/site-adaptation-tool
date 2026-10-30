@@ -36,7 +36,7 @@ HOST = re.compile(r"(Minutes|Seconds|TimeLimit|Peak|MiB|minFreeGB|staleHours|hel
 BOOKKEEPING = ("addin.parity", "addin.sharedParameters", "answerKeys", "prototypeNames", "prototypeSets", "pastJob", "handCheck", "cadReads",
                "tableUnits", "drawings", "schedules", "profile", "inputRoot", "siteBuild.snapshot", "siteBuild.roadFolder", "testHost.order",
                "testHost.model", "pastAll", "majority.check", "project", "units_mm", "addin.workbookRoles", "valueStatus", "checkRows", "addin.report",
-               "addin.readData", "manualRules")
+               "addin.readData", "manualRules", "addin.lightMode")
 # Settings inside a bookkeeping block that still choose what a build or button 1 takes: the group the reference key of the position
 # file and the overrides follow (position_file.key_of, ProjectPositionFile.cs), and the job of a level profile (plan_rules.check_override_jobs)
 CHOOSERS = ("majority.check.group",)

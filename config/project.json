@@ -369,6 +369,15 @@
       "dataBookFolder": "data_book",
       "dataBookFiles": {"plotsCsv": "plots.csv", "labels": "location_plan/labels.csv", "border": "phase1_border.csv"}
     },
+    "lightMode": {
+      "note": "R404, D2, J4, Lane B 5c. Light mode of docs/design/11-light-mode.md, read by button 7 Place villas. villaModeDefault is the Villa mode of a run whose pane row picks none, masses for test runs and for a run Bader starts by hand (Q129), links picked per run. solidHeightM is the height of the solid of a villa in Masses, 3.0 CHOSEN by Code as one storey since no record measures it, an open question of Lane B 5c. baseBoundary is where the base of a prototype is read, lowestFloor the outer loop of the floor of the lowest level, floorType the outer loop of the floor of the type baseBoundaryFloorType, areaBoundary the loop of the area boundary lines, lowestFloor by the recommended answer of Q164 while it is open. footprintLimitMm is the limit of the largest distance between the placed base and the villa outline of the CAD footprint, taken both ways (Q130), 100 CHOSEN by Code since no record measures it, an open question of Lane B 5c. footprintSampleStepMm is the step each edge is sampled at for that distance, so it is exact to half of it, 10 CHOSEN by Code. No key sets a plotted value",
+      "villaModeDefault": "masses",
+      "solidHeightM": 3.0,
+      "baseBoundary": "lowestFloor",
+      "baseBoundaryFloorType": null,
+      "footprintLimitMm": 100.0,
+      "footprintSampleStepMm": 10.0
+    },
     "plotTable": {
       "note": "R352. The order of the footprint blocks of a face in the plot table of button 2: overlapDecimals, the decimals R385 writes the overlap of each block with its face at before the order, the largest written overlap first and the blocks of one written overlap in the order of the read. Its own setting, never a tolerance of addin.parity, which tells only how far the two sides of the parity may lie apart. CHOSEN in the review of PR 54 at 4, the decimals the table writes faceAreaM2 at: on the 36 faces of the data book with two blocks or more the 1,882 overlaps lie at least 4.99E-07 m2 from a rounding boundary of 4 decimals, 210 times the 2.37E-09 m2 of binary noise between two sides measured in Round ADDIN 4d, where at 7 decimals 27 lie within 1E-08 m2 of one, the nearest 3.5E-10 m2, and at 6 decimals 515 (round_addin logs p4dfix_r352_decimals.txt). Blocks whose overlaps differ by less than the fourth decimal are one group, which puts 15 of the 36 faces in another order than the groups within 1E-06 m2 of 4d.",
       "overlapDecimals": 4
