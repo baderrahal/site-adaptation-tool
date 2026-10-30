@@ -336,6 +336,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R367 The settings JSON kept in the project.
 - R368 Element tags and the second run.
 - R369 The second method of Phase 4.
+- R381 Button 9 Report.
 - R385 One rounding rule in Python and C#.
 - R386 Use and skip in the override list.
 - R387 The control point fit as a check of the schedule fit.
