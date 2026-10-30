@@ -52,7 +52,7 @@ Planned rules, taken from R345 to R388, each written into docs/rules.md with its
 
 The button numbers of the table are those of Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md). The ids keep their meaning by button name: R376 Check was button 3, R377 Place villas was button 4, R380 Walls was button 7 and R381 Report was button 8 in the mock of 25 Oct. RRE_ZZ_SP_Prototype-FFL moves from R379 to R377, as Place villas places each link at its FFL and writes Prototype-FFL and Levels writes no link parameter.
 
-The new windows of 13-workflow-changes.md take no planned id in this table: 3 Review data and Site Adaptation Rules take the next free id when 5c starts, Update from report when 5f starts (steps/01_next.md 5f, CHOSEN). The pre-setting joins R367 at 5c. The table holds the planned ids R345 to R388 and the written R401 only, as the test of R343 reads it, so an id from R400 up is named here once its rule is written.
+The new windows of 13-workflow-changes.md take no planned id in this table: 3 Review data and Site Adaptation Rules take the next free id when 5c starts, Update from report when 5f starts (steps/01_next.md 5f, CHOSEN). The pre-setting joins R367 at 5c. The table holds the planned ids R345 to R388 and the written R401 only, as the test of R343 reads it, so an id from R400 up is named here once its rule is written. Update from report took R402 when 5f started, written in docs/rules/08-round-rec.md (CHOSEN).
 
 Conflicts, none resolved silently:
 
