@@ -30,6 +30,8 @@ namespace SiteAdaptation.AddIn.RulesWindow
         public const string NoValues = "none";
         public const string PickARule = "Pick a rule from the table.";
         public const string PdfNotFound = "The manual PDF was not found. Looked for <n>";
+        public const string NoRulesFile = "No rules file is chosen yet. Choose it in Set up site first.";
+        public const string RulesFileMissing = "The rules file was not found: <n>";
         public const string PdfNotOpened = "The manual PDF did not open: <n>";
     }
 }

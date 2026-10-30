@@ -198,6 +198,7 @@ Built in Lane B 5c. The labels, columns, chips and side box are those of Review 
 - `Front edge`
 - `Plot corners`
 - `Corner <n>`
+- `Corner` CHOSEN, the heading of the first column of the corners table, over Corner 1 to 4
 - `X`
 - `Y`
 - `Shared coordinates` CHOSEN, written with a capital as a heading of the corners
@@ -238,6 +239,8 @@ Built in Lane B 5c. The title, band line, buttons, chips, columns and side box a
 - `Pick a rule from the table.` CHOSEN, the side box with no rule selected
 - `The manual PDF was not found. Looked for <n>` CHOSEN, when the PDF is in none of the folders of the profile
 - `The manual PDF did not open: <n>` CHOSEN, when the shell refuses the file
+- `No rules file is chosen yet. Choose it in Set up site first.` CHOSEN, the line of the ribbon command Site Adaptation Rules when the pane holds no rules file, shown in place of the window
+- `The rules file was not found: <n>` CHOSEN, the line of that command when the chosen rules file is gone, with its path
 
 ### Check table
 
@@ -259,6 +262,7 @@ Built in Lane B 5c. The title, band, buttons, chips, columns and side box are th
 - `Level`
 - `Parameter`
 - `Assumed`
+- `Team check` CHOSEN, the chip and the Check value of a plot the team marked Wrong in 3 Review data
 - `<n> plots follow every rule`
 - `No past job was given, so Plot cut shows no rows and no plot is counted as following every rule on Plot cut.` CHOSEN, the one line of Q117 when the run has no past job
 - `Plot`
