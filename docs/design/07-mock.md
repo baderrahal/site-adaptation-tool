@@ -226,13 +226,14 @@ Summary table with columns Step, Done, Skipped, Override, Issues, one row per bu
 |---|---|---|---|---|---|
 | 1 Set up site | 17 | 0 | 0 | 0 | what 3.1 sets on the default metric template: 4 floor types, 2 wall types and 11 parameters made, Level 1, Level 2 and Generic 150mm kept, the check points pass (CHOSEN by this design, UNKNOWN by a run until 5b, the Round 17 newSite run made the 14 of R212, 4 floor types and 10 parameters, READ site_report_i18.json) |
 | 2 Read data | 337 | 43 | 0 | 0 | the snapshot plots.csv, 380 faces of NBH 012, 337 unit plots, 43 faces with no unit |
-| 3 Check | 337 | 0 | 1,225 | 1,247 | 337 plots checked, the 1,225 overrides of the list and the 1,247 rows of 7.4 |
-| 4 Place villas | 336 | 1 | 371 | 0 | plan_012.json: 336 links, 2312 not written, overrides applied mirrored 11, insert 4, CASE 206, Prototype-Foundation-Type 150 |
+| 3 Review data | not run yet | not run yet | not run yet | not run yet | no run log of the window 3 Review data of 5c is an input of the report yet (CHOSEN in 5e) |
+| 4 Check | 337 | 0 | 1,225 | 1,247 | 337 plots checked, the 1,225 overrides of the list and the 1,247 rows of 7.4 |
 | 5 Floors and ramps | 1,003 | 8 | 123 | 112 | plan_012.json: generic 336, yard 331, ramp 336, the 3 floors of 2312 and 5 yards not written, rampType 10 and rampFrontM 113 applied, genericFloor 4, rampOutline 4, yardOutline 14 and rampFrontFallM 90 left (Q057) |
-| 6 Levels | 336 | 1 | 619 | 0 | plan_012.json: entryM 304, heightM 300, steps 5, Prototype-FFL 5 and RVT-Name 5 applied, 2312 with no level |
-| 7 Walls | 0 | 0 | 0 | 1 | no wall placed yet, Phase 4g codes the walls (R362), the wall top rule is weak and no garden wall rule is measured (Q071), keyRules wallTop 0.346 |
+| 6 Levels | 336 | 1 | 609 | 0 | plan_012.json: entryM 304, heightM 300, steps 5 applied, 2312 with no level |
+| 7 Place villas | 336 | 1 | 381 | 0 | plan_012.json: 336 links, 2312 not written, overrides applied mirrored 11, insert 4, CASE 206, Prototype-Foundation-Type 150, Prototype-FFL 5 and RVT-Name 5, as Place villas writes the link parameters and Levels none (W6) |
+| 8 Walls | 0 | 0 | 0 | 1 | no wall placed yet, Phase 4g codes the walls (R362), the wall top rule is weak and no garden wall rule is measured (Q071), keyRules wallTop 0.346 |
 
-- How: a table of the five columns of the mock from row 3, one row per button 1 to 7 by the numbers of the mock of 25 Oct until 5e takes the order of Bader's changes of 28 Oct 2026 (item 35 of 7.7). The Source column above is the note of this design on where each count comes from and is no column of the file. The counts of steps 4 to 6 are those of the plan of NBH 012 a real run would place, read from plan_012.json (RAN). No Parsons build has been placed in Revit yet, Phase 6 runs it.
+- How: a table of the five columns of the mock and the column "Manual rule" after Issues from row 3, one row per step 1 to 8 of the order of Bader's changes of 28 Oct 2026 since 5e (R381), 9 Report the step of the report itself. The column Manual rule names the IDs of the block manualRules of the rules profile whose steps take the step of the row, the words no manual rule block while the profile holds none and no manual rule when no rule of the block names the step (W7, CHOSEN in 5e). The Source column above is the note of this design on where each count comes from and is no column of the file. The counts of steps 5 to 7 are those of the plan of NBH 012 a real run would place, read from plan_012.json (RAN), the parameter overrides of 6 Levels of the mock of 25 Oct moved to 7 Place villas. No Parsons build has been placed in Revit yet, Phase 6 runs it.
 
 A box "Counts agree across outputs" with columns Item, Revit, Excel for Links, Floors, Levels.
 

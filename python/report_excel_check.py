@@ -4,8 +4,11 @@ openpyxl, every label and its order held against the words of docs/addin-mock.md
 plots.csv, worked out again here by its own walk with json and csv only.
 
 - workbooks: one per NBH of the plan by nbhId of plots.csv, each named <NBH>_Report.xlsx, no other xlsx in the folder
-- labels: the sheets of 7.6 with Assumed after Overrides (7.7 item 9) and Settings last (item 12), the Summary table and its buttons 1 to 7 by
-  the ribbon of item 1, the two boxes with their columns and items, the columns of Placed with Mirror after type (item 11) and of Skipped
+- labels: the sheets of 7.6 with Assumed after Overrides (7.7 item 9) and Settings last (item 12), the Summary table and its steps 1 to 8 by
+  the order of docs/design/13-workflow-changes.md with the column Manual rule of 7.6 (R381), the two boxes with their columns and items, the
+  columns of Placed with Mirror after type (item 11) and of Skipped
+- R381: the manual rule IDs of each Summary and Issues line from the block manualRules of the rules profile, the faces of plots.csv in the
+  scope for 2 Read data (Q123), one Issues row per weak wall decision (Q125) and the Revit column from the counts the add-in read (Q124)
 - Summary: the top line as the filled example of 7.6 words it, the table from row 3 with its counts walked again from the plan, the box
   Counts agree across outputs with the plan held against the rows of Placed, the box Rules applied with the plots that took each rule
   counted here from the status details, the boxes bordered and the share in its format
@@ -45,7 +48,15 @@ OVERRIDE_COLUMNS = ("Plot", "Field", "Outcome", "Why", "Reason", "Source", "Mode
 ISSUE_COLUMNS = ("Step", "Plot", "Check", "Field", "Source", "Use", "Why")
 RULE_SHEET_COLUMNS = ("Rule", "Status", "Basis", "Plots", "Values")
 BASIS = "Basis"
-REPORT_STEP = "8 Report"
+# R381, CHOSEN in 5e: the words of a line with no block manualRules or no rule of its step, the row of a weak wall decision (Q125)
+NO_MANUAL_BLOCK = "no manual rule block"
+NO_MANUAL_RULE = "no manual rule"
+WEAK_CHECK = "Weak rule"
+BAD_MANUAL = ("the block manualRules of the rules profile is no list of rules each with a text id and a list steps of the steps that check it, a report "
+              "line names the manual rules of its step by them (R381)")
+REVIT_FORMAT = "siteAdaptationRevitCounts"
+NOT_COUNTS = ("the input revitCounts is no file of the counts the add-in read from the model, format " + REVIT_FORMAT
+              + " with plots by number, each with links, floors by kind and level (R381)")
 NO_REPORT_BLOCK = ("the settings hold no block addin.report with stepOfField, defaultStep and wallDecisions, the report counts the overrides of each "
                    "button and the weak wall decisions by it (R365)")
 SETTINGS = ("Run id", "Profile", "Rules SHA-256", "Override list SHA-256", "Run time", "Editable columns", "Plan build id", "Plan SHA-256")
@@ -61,11 +72,13 @@ def mock_labels(root=ROOT):
     additions of items 9 to 12 of 7.7."""
     lines = (root / "docs" / "addin-mock.md").read_text(encoding="utf-8").splitlines()
     item = next(line for line in lines if line.startswith("6. Report Excel"))
-    ribbon = next(line for line in lines if line.startswith("1. Ribbon"))
     design = (root / "docs" / "design" / "07-mock.md").read_text(encoding="utf-8")
     part = section(design, "### 7.6", "### 7.7")
     extra = section(design, "### 7.7", "### 7.8")
-    steps = [name.strip() for group in re.findall(r"\(([^)]*)\)", ribbon) for name in group.split(",") if re.match(r"\s*[1-7] ", name)]
+    # R381, J12: the steps of Bader's changes of 28 Oct 2026, which prevail over the ribbon of item 1, one row per step before 9 Report
+    order = (root / "docs" / "design" / "13-workflow-changes.md").read_text(encoding="utf-8")
+    nine = listed(re.search(r"^- Nine numbered steps: (.*?)\.$", order, re.M).group(1))
+    steps = nine[:-1]
     boxes = re.findall(r'A box "(.*?)"', item)
     found = {
         "file": re.search(r"file (\S+\.xlsx)", item).group(1),
@@ -88,7 +101,7 @@ def mock_labels(root=ROOT):
         "countColumns": rows("Item |")[0],
         "countItems": [row[0] for line_head in found["countItems"] for row in rows(line_head + " |")],
         "sheets": listed(re.search(r"^Sheets: (.*?)\.$", part, re.M).group(1)),
-        "steps": [row[0] for row in rows("") if re.match(r"[1-7] ", row[0])],
+        "steps": [row[0] for row in rows("") if re.match(r"[1-9] ", row[0])],
     }
     disagree = [key for key in found if found[key] != mine[key]]
     if disagree:
@@ -106,7 +119,9 @@ def mock_labels(root=ROOT):
     mirror = re.search(r"The column (\w+) of the sheet Placed, after (\w+)", items[11])
     placed.insert(placed.index(title(mirror.group(2))) + 1, mirror.group(1))
     editable = [title(word) for word in re.search(r"Steps of Levels and of (\w+) and (\w+) of Placed", items[10]).groups()]
+    manual = re.search(r'the column "(.*?)" after Issues', part).group(1)
     found.update(
+        stepColumns=found["stepColumns"] + [manual], issueColumns=list(ISSUE_COLUMNS) + [manual], reportStep=nine[-1],
         sheets=sheets, placed=placed, editable=editable,
         skipped=[title(word) for word in listed(re.search(r"Skipped: (.*?)\.", part).group(1))],
         assumed=[title(word) for word in re.split(r", | and ", re.search(r"its columns (.*?) and the Q ID", items[9]).group(1))] + [BASIS],
@@ -134,13 +149,13 @@ def cell(value):
     return value if value is None or isinstance(value, (str, bool, int, float)) else ("json", value)
 
 
-def load_inputs(plan_path, overrides_path, check_rows_path, summary_path, plots_csv, rules_path, config_path):
+def load_inputs(plan_path, overrides_path, check_rows_path, summary_path, plots_csv, rules_path, config_path, revit_path=None):
     read = lambda path: json.loads(Path(path).read_text(encoding="utf-8"))
     with open(plots_csv, encoding="utf-8-sig", newline="") as handle:
         table = [row for row in csv.DictReader(handle)]
     return {"plan": read(plan_path), "planBytes": Path(plan_path).read_bytes(), "overrides": read(overrides_path), "checkRows": read(check_rows_path), "summary": read(summary_path),
             "table": table, "rows": {row["locationPlanNumber"]: row for row in table if row.get("locationPlanNumber")}, "rules": read(rules_path),
-            "config": read(config_path),
+            "config": read(config_path), "revit": read(revit_path) if revit_path else None,
             "sha": {name: hashlib.sha256(Path(path).read_bytes()).hexdigest() for name, path in (("rules", rules_path), ("overrides", overrides_path))}}
 
 
@@ -158,15 +173,47 @@ def step_of(field, block):
     return block["stepOfField"].get(field, block["defaultStep"])
 
 
-def counts_box(placed, written, mock):
-    """The box Counts agree across outputs from the rows of the Placed sheet, and an Issues row per count the plan holds apart that differs."""
+def manual_block(rules):
+    """R381, W7: the block manualRules of the rules profile as (id, steps) pairs in its order, None when the profile holds none."""
+    block = rules.get("manualRules")
+    if block is None:
+        return None
+    if not isinstance(block, list) or any(not isinstance(item, dict) or not isinstance(item.get("id"), str) or not isinstance(item.get("steps"), list)
+                                          or any(not isinstance(step, str) for step in item["steps"]) for item in block):
+        raise ValueError(BAD_MANUAL)
+    return [(item["id"], set(item["steps"])) for item in block]
+
+
+def manual_of(block, step):
+    if block is None:
+        return NO_MANUAL_BLOCK
+    return ", ".join(name for name, steps in block if step in steps) or NO_MANUAL_RULE
+
+
+def revit_counts(counts):
+    """R381, Q124: the counts the add-in read from the model, refused when they are not of the form RevitCounts of Common writes."""
+    plots = counts.get("plots") if isinstance(counts, dict) and counts.get("format") == REVIT_FORMAT else None
+    good = lambda item: isinstance(item, dict) and type(item.get("links")) is int and isinstance(item.get("level"), bool) \
+        and isinstance(item.get("floors"), dict) and all(type(value) is int for value in item["floors"].values())
+    if not isinstance(plots, dict) or not all(good(item) for item in plots.values()):
+        raise ValueError(NOT_COUNTS)
+    return plots
+
+
+def counts_box(placed, written, mock, revit=None, manual=NO_MANUAL_BLOCK):
+    """The box Counts agree across outputs: Revit the totals the add-in read or not placed yet, Excel the rows of the Placed sheet, and one Issues
+    row per item whose plan, Revit and Excel counts differ on any two, a text count compared with none."""
     links = sum(1 for row in placed if row[1] == LINK)
     floors = sum(1 for row in placed if row[1] in FLOOR_KINDS)
-    rows = [[mock["countItems"][0], NOT_PLACED, links], [mock["countItems"][1], NOT_PLACED, floors], [mock["countItems"][2], NOT_PLACED, NO_LEVEL_RUN]]
+    shown = list(revit) if revit is not None else [NOT_PLACED] * 3
+    items = [(mock["countItems"][0], len(written), shown[0], links), (mock["countItems"][1], sum(len(plot.get("floors") or {}) for plot in written), shown[1], floors),
+             (mock["countItems"][2], len(written), shown[2], NO_LEVEL_RUN)]
+    rows = [[item, revit_count, excel] for item, held, revit_count, excel in items]
     issues = []
-    for item, held, excel in ((mock["countItems"][0], len(written), links), (mock["countItems"][1], sum(len(plot.get("floors") or {}) for plot in written), floors)):
-        if held != excel:
-            issues.append([REPORT_STEP, None, "Counts", item, None, None, "the plan holds %d, Revit %s, Excel %d (R365)" % (held, NOT_PLACED, excel)])
+    for item, held, revit_count, excel in items:
+        if len({value for value in (held, revit_count, excel) if is_number(value)}) > 1:
+            issues.append([mock["reportStep"], None, "Counts", item, None, None, "the plan holds %s, Revit %s, Excel %s (%s)" % (held, revit_count, excel, "R365" if revit is None else "R381"),
+                           manual])
     return rows, issues
 
 
@@ -198,7 +245,10 @@ def expected(inputs, profile_name, mock):
     skipped_list = set((plan.get("summary") or {}).get("skipped") or [])
     step_plots = inputs["checkRows"].get("plots") or {}
     block = report_block(config)
+    manual = manual_block(inputs["rules"])
+    revit = revit_counts(inputs["revit"]) if inputs.get("revit") is not None else None
     scope = {number: item.get("written") or item.get("raw") or {} for number, item in (inputs["summary"].get("plots") or {}).items()}
+    scope_kind = inputs["summary"].get("scope")
     books = {}
     for nbh in sorted({nbh for nbh in nbh_of.values() if nbh}):
         mine_written = [plot for plot in written if nbh_of[plot["plot"]] == nbh]
@@ -243,7 +293,8 @@ def expected(inputs, profile_name, mock):
         for number in order:
             step = step_plots.get(number) or {}
             for row in (step.get("written") or step.get("raw") or {}).get("rows") or []:
-                issues.append([mock["steps"][2], number, row.get("check"), row.get("field"), row.get("from"), row.get("use"), cell(row.get("why"))])
+                issues.append([mock["steps"][3], number, row.get("check"), row.get("field"), row.get("from"), row.get("use"), cell(row.get("why")),
+                               manual_of(manual, mock["steps"][3])])
         grouped, took = {}, {}
         for number, detail in values:
             for entry in detail.get("entries") or []:
@@ -265,23 +316,38 @@ def expected(inputs, profile_name, mock):
             box.append([decision, item["rule"], share if is_number(share) else NOT_MEASURED,
                         NOT_MEASURED if not isinstance(strong, bool) else "strong" if strong else "weak",
                         mock["plotCount"].replace("[n]", str(len(took.get(prefix + decision + ".rule", ())))) ])
-        counts, unequal = counts_box(placed, mine_written, mock)
-        links, floors = counts[0][2], counts[1][2]
+        totals = None
+        if revit is not None:
+            # The plots the add-in read whose nbhId of plots.csv is this NBH, a tagged plot outside the plan counted too
+            here = [item for number, item in revit.items() if (rows.get(number) or {}).get("nbhId") == nbh]
+            totals = [sum(item["links"] for item in here), sum(sum(item["floors"].values()) for item in here), sum(1 for item in here if item["level"])]
+        placed_links = sum(1 for row in placed if row[1] == LINK)
+        placed_floors = sum(1 for row in placed if row[1] in FLOOR_KINDS)
+        counts, unequal = counts_box(placed, mine_written, mock, totals, manual_of(manual, mock["reportStep"]))
         gaps["count boxes with a mismatch"] += 1 if unequal else 0
         outcome = lambda step, word: sum(1 for row in overrides if row[2] == word and step_of(row[1], block) == step)
         moved = sum(1 for wall in walls if any((details.get(value.get("statusFrom")) or {}).get("overrides") for value in wall.values()
                                                if isinstance(value, dict) and "statusFrom" in value))
-        # Review 1 of PR 96: Done and Skipped of 2 Read data over the one scope, the plots of the step summary with a unit and with none
-        with_unit = sum(1 for number in order if (scope.get(number) or {}).get("unit"))
+        # R381, Q123: 2 Read data over the faces of plots.csv of the NBH in the scope, every face for a build of the whole project or of the NBH,
+        # else the faces of the plots the step summary lists, a face with a unit of typologyRev9 Done and the rest Skipped
+        whole = scope_kind in ("project", "nbh=" + nbh)
+        faces = [row for row in inputs["table"] if row.get("nbhId") == nbh and (whole or row.get("locationPlanNumber") in scope)]
+        with_unit = sum(1 for row in faces if row.get("typologyRev9"))
         gaps["plots of the plan not in the step summary"] += sum(1 for number in order if number not in scope)
-        weak = sum(1 for name in block["wallDecisions"] if (key_rules.get(name) or {}).get("strong") is False)
-        steps = [[mock["steps"][0]] + [NOT_RUN] * 4,
-                 [mock["steps"][1], with_unit, len(order) - with_unit, 0, 0],
-                 [mock["steps"][2], len(order), sum(1 for number in order if number in skipped_list), sum(1 for item in entries if str(item.get("plot")) in set(order)), len(issues)],
-                 [mock["steps"][3], links, sum(1 for row in skipped if row[1] == LINK), outcome(4, "Applied"), outcome(4, "Left")],
-                 [mock["steps"][4], floors, sum(1 for row in skipped if row[1] in FLOOR_KINDS), outcome(5, "Applied"), outcome(5, "Left")],
-                 [mock["steps"][5], len(mine_written), len(mine_not), outcome(6, "Applied"), outcome(6, "Left")],
-                 [mock["steps"][6], len(walls), 0, moved, weak]]
+        weak = [name for name in block["wallDecisions"] if isinstance(key_rules.get(name), dict) and key_rules[name].get("strong") is False]
+        checked = len(issues)
+        for name in weak:
+            share = key_rules[name].get("share")
+            issues.append([mock["steps"][7], None, WEAK_CHECK, name, prefix + name + ".rule", None,
+                           "%s share %s, weak" % (key_rules[name].get("rule") or "", short(share) if is_number(share) else NOT_MEASURED), manual_of(manual, mock["steps"][7])])
+        not_run = [NOT_RUN] * 4
+        steps = [not_run, [with_unit, len(faces) - with_unit, 0, 0], not_run,
+                 [len(order), sum(1 for number in order if number in skipped_list), sum(1 for item in entries if str(item.get("plot")) in set(order)), checked],
+                 [placed_floors, sum(1 for row in skipped if row[1] in FLOOR_KINDS), outcome(5, "Applied"), outcome(5, "Left")],
+                 [len(mine_written), len(mine_not), outcome(6, "Applied"), outcome(6, "Left")],
+                 [placed_links, sum(1 for row in skipped if row[1] == LINK), outcome(7, "Applied"), outcome(7, "Left")],
+                 [len(walls), 0, moved, len(weak)]]
+        steps = [[name] + values + [manual_of(manual, name)] for name, values in zip(mock["steps"], steps)]
         issues.extend(unequal)
         stamp = plan.get("run")
         books[nbh] = {"file": mock["file"].replace("<NBH>", nbh), "topLine": mock["filled"] % {"nbh": nbh, "n": len(order), "profile": profile_name},
@@ -341,25 +407,29 @@ def check_xlsx(path, want, mock, run_id=None):
     hold("row 2 blank", all(value is None for value in row_values(summary, 2, 8)), "Summary row 2")
     hold("step columns from row 3", row_values(summary, 3, len(columns)) == columns, "Summary row 3")
     rows(summary, 4, want["steps"], columns, "Summary")
-    hold("row 11 blank", all(value is None for value in row_values(summary, 11, 8)), "Summary row 11")
-    hold("counts box title", summary.cell(row=12, column=1).value == mock["countsBox"] and bool(summary.cell(row=12, column=1).font.bold), "Summary row 12")
-    hold("counts box columns", row_values(summary, 13, 3) == mock["countColumns"], "Summary row 13")
-    rows(summary, 14, want["counts"], mock["countColumns"], "Counts")
-    hold("row 17 blank", all(value is None for value in row_values(summary, 17, 8)), "Summary row 17")
-    hold("rules box title", summary.cell(row=18, column=1).value == mock["rulesBox"] and bool(summary.cell(row=18, column=1).font.bold), "Summary row 18")
-    hold("rules box columns", row_values(summary, 19, len(RULE_COLUMNS)) == list(RULE_COLUMNS), "Summary row 19")
-    rows(summary, 20, want["box"], RULE_COLUMNS, "Rules applied")
-    hold("Summary rows", summary.max_row == 19 + len(want["box"]), "Summary max_row %d against %d" % (summary.max_row, 19 + len(want["box"])))
-    boxed = [(row, column) for row in range(13, 17) for column in range(1, 4)] + [(row, column) for row in range(19, 20 + len(want["box"])) for column in range(1, 6)]
+    # R381: the rows after the step table move with its count of steps, one blank row before each box
+    blank = 4 + len(want["steps"])
+    counts_at, rules_at = blank + 1, blank + 7
+    hold("row %d blank" % blank, all(value is None for value in row_values(summary, blank, 8)), "Summary row %d" % blank)
+    hold("counts box title", summary.cell(row=counts_at, column=1).value == mock["countsBox"] and bool(summary.cell(row=counts_at, column=1).font.bold), "Summary row %d" % counts_at)
+    hold("counts box columns", row_values(summary, counts_at + 1, 3) == mock["countColumns"], "Summary row %d" % (counts_at + 1))
+    rows(summary, counts_at + 2, want["counts"], mock["countColumns"], "Counts")
+    hold("row %d blank" % (rules_at - 1), all(value is None for value in row_values(summary, rules_at - 1, 8)), "Summary row %d" % (rules_at - 1))
+    hold("rules box title", summary.cell(row=rules_at, column=1).value == mock["rulesBox"] and bool(summary.cell(row=rules_at, column=1).font.bold), "Summary row %d" % rules_at)
+    hold("rules box columns", row_values(summary, rules_at + 1, len(RULE_COLUMNS)) == list(RULE_COLUMNS), "Summary row %d" % (rules_at + 1))
+    rows(summary, rules_at + 2, want["box"], RULE_COLUMNS, "Rules applied")
+    hold("Summary rows", summary.max_row == rules_at + 1 + len(want["box"]), "Summary max_row %d against %d" % (summary.max_row, rules_at + 1 + len(want["box"])))
+    boxed = [(row, column) for row in range(counts_at + 1, counts_at + 5) for column in range(1, 4)] \
+        + [(row, column) for row in range(rules_at + 1, rules_at + 2 + len(want["box"])) for column in range(1, 6)]
     thin = lambda side: side is not None and side.style == "thin"
     hold("boxes bordered", all(thin(summary.cell(row=row, column=column).border.left) and thin(summary.cell(row=row, column=column).border.bottom)
                                for row, column in boxed), "Summary box borders")
     hold("step table not bordered", not thin(summary.cell(row=4, column=1).border.left), "Summary row 4 bordered")
     for index, row in enumerate(want["box"]):
         if is_number(row[2]):
-            hold("share format", summary.cell(row=20 + index, column=3).number_format == SHARE_FORMAT, "Rules applied row %d format" % (20 + index))
+            hold("share format", summary.cell(row=rules_at + 2 + index, column=3).number_format == SHARE_FORMAT, "Rules applied row %d format" % (rules_at + 2 + index))
     headers = {"Placed": mock["placed"], "Skipped": mock["skipped"], "Overrides": list(OVERRIDE_COLUMNS), "Assumed": mock["assumed"],
-               "Issues": list(ISSUE_COLUMNS), "Rules": list(RULE_SHEET_COLUMNS)}
+               "Issues": mock["issueColumns"], "Rules": list(RULE_SHEET_COLUMNS)}
     for name, header in headers.items():
         sheet, wanted = book[name], want["sheets"][name]
         hold(name + " header", row_values(sheet, 1, len(header)) == header, name + " row 1")
@@ -413,7 +483,7 @@ def check_folder(folder, want, mock, run_id=None):
 
 def run(args):
     mock = mock_labels()
-    inputs = load_inputs(args.plan, args.overrides, args.check_rows, args.summary, args.plots_csv, args.rules, args.config)
+    inputs = load_inputs(args.plan, args.overrides, args.check_rows, args.summary, args.plots_csv, args.rules, args.config, args.revit_counts)
     want = expected(inputs, args.profile, mock)
     books = want["books"]
     report = {"plan": Path(args.plan).name, "workbooks": sorted(book["file"] for book in books.values()),
@@ -438,6 +508,7 @@ def main(argv=None):
     parser.add_argument("--rules", help="the rules profile, by default the one config names")
     parser.add_argument("--config", default=str(project_profile.SETTINGS_PATH))
     parser.add_argument("--profile", default="parsons2024Rev6")
+    parser.add_argument("--revit-counts", help="the counts the add-in read from the model, the input revitCounts of the request when it gives one (R381)")
     parser.add_argument("--run-id", help="the run id of the reportExcel request, held against Settings when given")
     parser.add_argument("--xlsx-folder", help="the folder of the report Excel files the worker wrote of this plan, left out to check the plan side alone")
     parser.add_argument("--out", required=True, help="the report, outside the repo")

@@ -227,15 +227,15 @@ namespace SiteAdaptation.Tests
                     ["workerPeakMiB"] = new JObject { ["roles"] = new JArray("curbs"), ["files"] = new JArray(new JObject { ["name"] = "Road.dwg", ["bytes"] = 1, ["peakMiB"] = 100 }) },
                     ["workerTimeLimitS"] = new JObject { ["reportExcel"] = 600 },
                     ["workerTimeLimitMinS"] = 10,
-                    // Rows 5 Floors and ramps and 6 Levels of 7.6, as config/project.json holds them
+                    // Rows 5 Floors and ramps, 6 Levels and 7 Place villas of 7.6 in the order of Bader's changes of 28 Oct 2026, as config/project.json holds them
                     ["report"] = new JObject
                     {
                         ["stepOfField"] = new JObject
                         {
                             ["rampType"] = step(5), ["rampFrontM"] = step(5), ["genericFloor"] = step(5), ["rampOutline"] = step(5), ["yardOutline"] = step(5), ["rampFrontFallM"] = step(5),
-                            ["entryM"] = step(6), ["heightM"] = step(6), ["steps"] = step(6), ["parameter RRE_ZZ_SP_Prototype-FFL"] = step(6), ["parameter RRE_ZZ_SP_RVT-Name"] = step(6),
+                            ["entryM"] = step(6), ["heightM"] = step(6), ["steps"] = step(6), ["parameter RRE_ZZ_SP_Prototype-FFL"] = step(7), ["parameter RRE_ZZ_SP_RVT-Name"] = step(7),
                         },
-                        ["defaultStep"] = 4,
+                        ["defaultStep"] = 7,
                         ["wallDecisions"] = new JArray("wallBase", "wallTop", "wallLine", "frontOpen"),
                     },
                 },
@@ -256,19 +256,24 @@ namespace SiteAdaptation.Tests
             return new WorkerFile { Role = role, Path = path, Sha256 = FileHash.Sha256(path) };
         }
 
-        private WorkerAnswer Run(JObject plan, out int code, out string planPath, string profile = "parsons2024Rev6", string id = "rx1", JObject config = null)
+        private WorkerAnswer Run(JObject plan, out int code, out string planPath, string profile = "parsons2024Rev6", string id = "rx1", JObject config = null,
+            JObject rules = null, JObject summary = null, JObject revitCounts = null)
         {
             planPath = Write("plan_all.json", plan.ToString());
             var inputs = new List<WorkerFile>
             {
                 Input("config", Write("project.json", (config ?? MadeConfig()).ToString())),
-                Input("rules", Write("rules.json", MadeRules().ToString())),
+                Input("rules", Write("rules.json", (rules ?? MadeRules()).ToString())),
                 Input(ReportWorkbook.PlanRole, planPath),
                 Input(ReportWorkbook.OverridesRole, Write("overrides.json", MadeOverrides().ToString())),
                 Input(ReportWorkbook.CheckRowsRole, Write("step_checkRows_python.json", MadeCheckRows().ToString())),
-                Input(ReportWorkbook.SummaryRole, Write("step_summary_python.json", MadeSummary().ToString())),
+                Input(ReportWorkbook.SummaryRole, Write("step_summary_python.json", (summary ?? MadeSummary()).ToString())),
                 Input("plotsCsv", Write("plots.csv", PlotsCsv)),
             };
+            if (revitCounts != null)
+            {
+                inputs.Add(Input(ReportWorkbook.RevitCountsRole, Write("revit_counts.json", revitCounts.ToString())));
+            }
             var request = new WorkerRequest
             {
                 FormatVersion = 1, RunId = id, Command = "reportExcel", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" },
@@ -278,9 +283,9 @@ namespace SiteAdaptation.Tests
             return WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, id));
         }
 
-        private LevelExcelTests.Book RunBook(out WorkerAnswer answer, out string planPath, string nbh = "012")
+        private LevelExcelTests.Book RunBook(out WorkerAnswer answer, out string planPath, string nbh = "012", JObject rules = null, JObject summary = null, JObject revitCounts = null)
         {
-            answer = Run(MadePlan(), out int code, out planPath);
+            answer = Run(MadePlan(), out int code, out planPath, rules: rules, summary: summary, revitCounts: revitCounts);
             Assert.True(code == 0, "exit " + code + ": " + answer.Message);
             string[] paths = { Path.Combine(folder, "out", "012_Report.xlsx"), Path.Combine(folder, "out", "013_Report.xlsx") };
             Assert.Equal(paths, answer.Outputs.Select(item => item.Path).ToArray());
@@ -314,60 +319,142 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "Plot", "Kind", "Reason" }, book.Row("Skipped", 1).Cast<string>().ToArray());
             Assert.Equal(new[] { "Plot", "Field", "Outcome", "Why", "Reason", "Source", "Model" }, book.Row("Overrides", 1).Cast<string>().ToArray());
             Assert.Equal(new[] { "Plot", "Field", "Value", "Status", "Basis" }, book.Row("Assumed", 1).Cast<string>().ToArray());
-            Assert.Equal(new[] { "Step", "Plot", "Check", "Field", "Source", "Use", "Why" }, book.Row("Issues", 1).Cast<string>().ToArray());
+            Assert.Equal(new[] { "Step", "Plot", "Check", "Field", "Source", "Use", "Why", "Manual rule" }, book.Row("Issues", 1).Cast<string>().ToArray());
             Assert.Equal(new[] { "Rule", "Status", "Basis", "Plots", "Values" }, book.Row("Rules", 1).Cast<string>().ToArray());
             Assert.Equal(new[] { "Setting", "Value" }, book.Row("Settings", 1).Cast<string>().ToArray());
         }
 
+        // R381 moved this test from the buttons 1 to 7 of the mock of 25 Oct to the steps 1 to 8 of Bader's changes of 28 Oct 2026
         [Fact]
-        public void R365_the_summary_holds_the_top_line_the_table_of_buttons_1_to_7_from_row_3_and_the_box_counts_agree_across_outputs()
+        public void R381_the_summary_holds_the_top_line_the_table_of_steps_1_to_8_of_the_new_order_from_row_3_and_the_box_counts_agree_across_outputs()
         {
             LevelExcelTests.Book book = RunBook(out WorkerAnswer answer, out string plan);
             Assert.Equal(new object[] { "[file name].rvt, NBH 012, 3 plots, parsons2024Rev6, run time [n] min" }, book.Row("Summary", 1).ToArray());
             Assert.True(book.Bold(book.Sheets["Summary"][1]["A"]));
-            Assert.Equal(new[] { "A1:E1" }, book.Merged["Summary"].ToArray());
+            Assert.Equal(new[] { "A1:F1" }, book.Merged["Summary"].ToArray());
             Assert.Empty(book.Row("Summary", 2));
-            Assert.Equal(new[] { "Step", "Done", "Skipped", "Override", "Issues" }, book.Row("Summary", 3).Cast<string>().ToArray());
-            // 2 Read data: of the 3 plots of the scope in 012 101 and 102 hold a unit and 103 none, 150 of plots.csv lying outside the scope.
-            // 3 Check: the 6 entries of the list on them of the source parsons and the 6 rows of 7.4. 4: 2 links, 103 skipped, CASE applied and
-            // the mirror of 103 left. 5: 4 floors, the ramp of 102 and the 3 floors of 103 skipped, rampFrontM applied and rampFrontFallM left as
-            // row 5 of 7.6 lists them. 6: entryM and RVT-Name applied as row 6 lists them. 7: the wall heightM moved and the weak wallTop
-            Assert.Equal(new object[] { "1 Set up site", "not run yet", "not run yet", "not run yet", "not run yet" }, book.Row("Summary", 4).ToArray());
-            Assert.Equal(new object[] { "2 Read data", 2.0, 1.0, 0.0, 0.0 }, book.Row("Summary", 5).ToArray());
-            Assert.Equal(new object[] { "3 Check", 3.0, 0.0, 6.0, 6.0 }, book.Row("Summary", 6).ToArray());
-            Assert.Equal(new object[] { "4 Place villas", 2.0, 1.0, 1.0, 1.0 }, book.Row("Summary", 7).ToArray());
-            Assert.Equal(new object[] { "5 Floors and ramps", 4.0, 4.0, 1.0, 1.0 }, book.Row("Summary", 8).ToArray());
-            Assert.Equal(new object[] { "6 Levels", 2.0, 1.0, 2.0, 0.0 }, book.Row("Summary", 9).ToArray());
-            Assert.Equal(new object[] { "7 Walls", 1.0, 0.0, 1.0, 1.0 }, book.Row("Summary", 10).ToArray());
-            Assert.Empty(book.Row("Summary", 11));
-            Assert.Equal(new object[] { "Counts agree across outputs" }, book.Row("Summary", 12).ToArray());
-            Assert.True(book.Bold(book.Sheets["Summary"][12]["A"]));
-            Assert.Equal(new object[] { "Item", "Revit", "Excel" }, book.Row("Summary", 13).ToArray());
-            Assert.Equal(new object[] { "Links", "not placed yet", 2.0 }, book.Row("Summary", 14).ToArray());
-            Assert.Equal(new object[] { "Floors", "not placed yet", 4.0 }, book.Row("Summary", 15).ToArray());
-            Assert.Equal(new object[] { "Levels", "not placed yet", "no run of button 6 yet" }, book.Row("Summary", 16).ToArray());
-            Assert.All(Enumerable.Range(13, 4).SelectMany(row => book.Sheets["Summary"][row].Values), cell => Assert.True(Bordered(book, cell)));
+            Assert.Equal(new[] { "Step", "Done", "Skipped", "Override", "Issues", "Manual rule" }, book.Row("Summary", 3).Cast<string>().ToArray());
+            // 2 Read data: the scope names no whole project, so the faces of plots.csv in 012 are those of the step summary, 101 and 102 with a
+            // unit and 103 none, 150 lying outside the scope. 4 Check: the 6 entries of the list on them of the source parsons and the 6 rows of
+            // 7.4. 5: 4 floors, the ramp of 102 and the 3 floors of 103 skipped, rampFrontM applied and rampFrontFallM left. 6: entryM applied.
+            // 7: 2 links, 103 skipped, CASE and RVT-Name applied, as Levels writes no link parameter, and the mirror of 103 left. 8: the wall
+            // heightM moved and the weak wallTop
+            const string none = "no manual rule block";
+            Assert.Equal(new object[] { "1 Set up site", "not run yet", "not run yet", "not run yet", "not run yet", none }, book.Row("Summary", 4).ToArray());
+            Assert.Equal(new object[] { "2 Read data", 2.0, 1.0, 0.0, 0.0, none }, book.Row("Summary", 5).ToArray());
+            Assert.Equal(new object[] { "3 Review data", "not run yet", "not run yet", "not run yet", "not run yet", none }, book.Row("Summary", 6).ToArray());
+            Assert.Equal(new object[] { "4 Check", 3.0, 0.0, 6.0, 6.0, none }, book.Row("Summary", 7).ToArray());
+            Assert.Equal(new object[] { "5 Floors and ramps", 4.0, 4.0, 1.0, 1.0, none }, book.Row("Summary", 8).ToArray());
+            Assert.Equal(new object[] { "6 Levels", 2.0, 1.0, 1.0, 0.0, none }, book.Row("Summary", 9).ToArray());
+            Assert.Equal(new object[] { "7 Place villas", 2.0, 1.0, 2.0, 1.0, none }, book.Row("Summary", 10).ToArray());
+            Assert.Equal(new object[] { "8 Walls", 1.0, 0.0, 1.0, 1.0, none }, book.Row("Summary", 11).ToArray());
+            Assert.Empty(book.Row("Summary", 12));
+            Assert.Equal(new object[] { "Counts agree across outputs" }, book.Row("Summary", 13).ToArray());
+            Assert.True(book.Bold(book.Sheets["Summary"][13]["A"]));
+            Assert.Equal(new object[] { "Item", "Revit", "Excel" }, book.Row("Summary", 14).ToArray());
+            Assert.Equal(new object[] { "Links", "not placed yet", 2.0 }, book.Row("Summary", 15).ToArray());
+            Assert.Equal(new object[] { "Floors", "not placed yet", 4.0 }, book.Row("Summary", 16).ToArray());
+            Assert.Equal(new object[] { "Levels", "not placed yet", "no run of button 6 yet" }, book.Row("Summary", 17).ToArray());
+            Assert.All(Enumerable.Range(14, 4).SelectMany(row => book.Sheets["Summary"][row].Values), cell => Assert.True(Bordered(book, cell)));
             Assert.False(Bordered(book, book.Sheets["Summary"][3]["A"]));
             Assert.DoesNotContain(answer.Issues, issue => issue.Contains("Links") || issue.Contains("Floors"));
+        }
+
+        // Q123: a build of the whole project counts every face of plots.csv in the NBH, those with a unit of typologyRev9 Done and the rest Skipped
+        [Fact]
+        public void R381_read_data_counts_the_faces_of_plots_csv_in_the_scope_with_a_unit_as_done_and_with_none_as_skipped()
+        {
+            JObject summary = MadeSummary();
+            summary["scope"] = "project";
+            LevelExcelTests.Book book = RunBook(out WorkerAnswer answer, out string plan, summary: summary);
+            Assert.Equal(new object[] { "2 Read data", 2.0, 2.0, 0.0, 0.0, "no manual rule block" }, book.Row("Summary", 5).ToArray());
+        }
+
+        // W7: each Summary row and each Issues row names the manual rules of the block manualRules whose steps take its step, in the order of the
+        // block, made up here as 5c writes the block from docs/design/15-manual-rules.md
+        [Fact]
+        public void R381_every_summary_and_issues_line_names_the_manual_rule_ids_whose_steps_take_its_step()
+        {
+            JObject rules = MadeRules();
+            rules["manualRules"] = new JArray
+            {
+                new JObject { ["id"] = "M01", ["text"] = "made up", ["group"] = "Plots and clusters", ["section"] = "2.1", ["steps"] = new JArray("4 Check", "7 Place villas") },
+                new JObject { ["id"] = "M04", ["text"] = "made up", ["group"] = "Levels and steps", ["section"] = "2.2.A", ["steps"] = new JArray("6 Levels", "8 Walls") },
+                new JObject { ["id"] = "M02", ["text"] = "made up", ["group"] = "Plots and clusters", ["section"] = "2.1.E", ["steps"] = new JArray("4 Check") },
+                new JObject { ["id"] = "M15", ["text"] = "made up", ["group"] = "Structure", ["section"] = "3.2.A", ["steps"] = new JArray("9 Report") },
+            };
+            LevelExcelTests.Book book = RunBook(out WorkerAnswer answer, out string plan, rules: rules);
+            Assert.Equal(new object[] { "no manual rule", "no manual rule", "no manual rule", "M01, M02", "no manual rule", "M04", "M01", "M04" },
+                Enumerable.Range(4, 8).Select(row => book.Row("Summary", row)[5]).ToArray());
+            Assert.Equal(new object[] { "Step", "Plot", "Check", "Field", "Source", "Use", "Why", "Manual rule" }, book.Row("Issues", 1).ToArray());
+            Assert.Equal(new object[] { "4 Check", "101", "Level", "entryM", "override", "Past", null, "M01, M02" }, book.Row("Issues", 2).ToArray());
+            Assert.Equal("M04", book.Row("Issues", 8)[7]);
+            rules["manualRules"] = new JArray(new JObject { ["id"] = "M01", ["text"] = "made up" });
+            WorkerAnswer refused = Run(MadePlan(), out int code, out plan, id: "rx5", rules: rules);
+            Assert.Equal(2, code);
+            Assert.Contains(ReportSheets.BadManualBlock, refused.Message);
+        }
+
+        // Q125: one Issues row per weak wall decision of addin.report.wallDecisions, under 8 Walls, in each workbook as the Summary counts it
+        [Fact]
+        public void R381_each_weak_wall_decision_is_one_issues_row_of_8_walls()
+        {
+            LevelExcelTests.Book book = RunBook(out WorkerAnswer answer, out string plan);
+            Assert.Equal(new object[] { "8 Walls", null, "Weak rule", "wallTop", KeyPath + "wallTop.rule", null, "higherFflPlusRev6 share 0.35, weak", "no manual rule block" },
+                book.Row("Issues", 8).ToArray());
+            Assert.Equal(8, book.Sheets["Issues"].Count);
+        }
+
+        // Q124: the counts the add-in read from the model by its tags fill the Revit column, and each item whose plan, Revit and Excel counts
+        // disagree on any two is one issue naming the three
+        [Fact]
+        public void R381_the_revit_counts_of_the_tags_fill_the_revit_column_and_a_mismatch_of_any_two_is_an_issue()
+        {
+            var tags = new List<SiteAdaptation.Common.Tags.PlacedTag>();
+            Func<string, string, SiteAdaptation.Common.Tags.PlacedTag> tag = (plot, kind) => new SiteAdaptation.Common.Tags.PlacedTag(1,
+                new SiteAdaptation.Common.Tags.TagKey(plot, kind, ""), "r7", "parsons2024Rev6", "u-" + plot + kind, new SiteAdaptation.Common.Tags.PlacedValues(new Dictionary<string, double[]>()));
+            // 101 placed in full, the yard of 102 deleted by hand after button 5, 201 in 013, a wall that no item of the box counts
+            foreach (string[] item in new[] { new[] { "101", "link" }, new[] { "101", "generic" }, new[] { "101", "ramp" }, new[] { "102", "link" }, new[] { "102", "generic" },
+                new[] { "201", "link" }, new[] { "201", "generic" }, new[] { "101", "boundaryWall" } })
+            {
+                tags.Add(tag(item[0], item[1]));
+            }
+            JObject counts = RevitCounts.FromTags(tags, new HashSet<string> { "101", "201" }, "r6");
+            Assert.True(JToken.DeepEquals(new JObject { ["links"] = 1, ["floors"] = new JObject { ["generic"] = 1, ["yard"] = 0, ["ramp"] = 1 }, ["level"] = true }, counts["plots"]["101"]),
+                counts["plots"]["101"]?.ToString());
+            Assert.Equal("r6", (string)counts["levelRun"]);
+            LevelExcelTests.Book book = RunBook(out WorkerAnswer answer, out string plan, revitCounts: counts);
+            Assert.Equal(new object[] { "Links", 2.0, 2.0 }, book.Row("Summary", 15).ToArray());
+            Assert.Equal(new object[] { "Floors", 3.0, 4.0 }, book.Row("Summary", 16).ToArray());
+            Assert.Equal(new object[] { "Levels", 1.0, "no run of button 6 yet" }, book.Row("Summary", 17).ToArray());
+            Assert.Equal(new[] { "NBH 012 Floors: the plan holds 4, Revit 3, Excel 4 (R381)", "NBH 012 Levels: the plan holds 2, Revit 1, Excel no run of button 6 yet (R381)" },
+                answer.Issues.Where(issue => issue.StartsWith("NBH 012", StringComparison.Ordinal)).ToArray());
+            Assert.Equal(new object[] { "9 Report", null, "Counts", "Levels", null, null, "the plan holds 2, Revit 1, Excel no run of button 6 yet (R381)", "no manual rule block" },
+                book.Row("Issues", 10).ToArray());
+            Assert.DoesNotContain(answer.Issues, issue => issue.StartsWith("NBH 013", StringComparison.Ordinal));
+            JObject other = new JObject { ["format"] = "another" };
+            WorkerAnswer refused = Run(MadePlan(), out int code, out plan, id: "rx6", revitCounts: other);
+            Assert.Equal(2, code);
+            Assert.Contains(RevitCounts.NotCounts, refused.Message);
         }
 
         [Fact]
         public void R365_the_box_rules_applied_names_each_key_rule_with_its_share_strength_and_the_plots_that_took_its_value()
         {
             LevelExcelTests.Book book = RunBook(out WorkerAnswer answer, out string plan);
-            Assert.Empty(book.Row("Summary", 17));
-            Assert.Equal(new object[] { "Rules applied" }, book.Row("Summary", 18).ToArray());
-            Assert.Equal(new object[] { "Decision", "Rule", "Share", "Strength", "Plots" }, book.Row("Summary", 19).ToArray());
+            Assert.Empty(book.Row("Summary", 18));
+            Assert.Equal(new object[] { "Rules applied" }, book.Row("Summary", 19).ToArray());
+            Assert.Equal(new object[] { "Decision", "Rule", "Share", "Strength", "Plots" }, book.Row("Summary", 20).ToArray());
             // hand villa on the mirror flags of 101 and 102, entry on 102 alone as the entryM override moved that of 101 and the height of 101 the
             // heightM override touched still names keyRules.entry, wallBase on the wall of 101, wallTop on none as heightM touched the top, ssl
             // measured by no key and read by no value
-            Assert.Equal(new object[] { "hand villa", "blockMirrorRoadSide", 0.96, "strong", "2 plots" }, book.Row("Summary", 20).ToArray());
-            Assert.Equal(new object[] { "entry", "roadLevel", 0.088, "weak", "1 plots" }, book.Row("Summary", 21).ToArray());
-            Assert.Equal(new object[] { "wallBase", "yardLevelOfTheHigherPlot", 0.98, "strong", "1 plots" }, book.Row("Summary", 22).ToArray());
-            Assert.Equal(new object[] { "wallTop", "higherFflPlusRev6", 0.35, "weak", "0 plots" }, book.Row("Summary", 23).ToArray());
-            Assert.Equal(new object[] { "ssl", "fflPlusGroundSsl", "not measured", "not measured", "0 plots" }, book.Row("Summary", 24).ToArray());
-            Assert.Equal(new[] { 1, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24 }, book.Sheets["Summary"].Keys.ToArray());
-            Assert.Equal("0.000", book.Format(book.Sheets["Summary"][20]["C"]));
+            Assert.Equal(new object[] { "hand villa", "blockMirrorRoadSide", 0.96, "strong", "2 plots" }, book.Row("Summary", 21).ToArray());
+            Assert.Equal(new object[] { "entry", "roadLevel", 0.088, "weak", "1 plots" }, book.Row("Summary", 22).ToArray());
+            Assert.Equal(new object[] { "wallBase", "yardLevelOfTheHigherPlot", 0.98, "strong", "1 plots" }, book.Row("Summary", 23).ToArray());
+            Assert.Equal(new object[] { "wallTop", "higherFflPlusRev6", 0.35, "weak", "0 plots" }, book.Row("Summary", 24).ToArray());
+            Assert.Equal(new object[] { "ssl", "fflPlusGroundSsl", "not measured", "not measured", "0 plots" }, book.Row("Summary", 25).ToArray());
+            Assert.Equal(new[] { 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25 }, book.Sheets["Summary"].Keys.ToArray());
+            Assert.Equal("0.000", book.Format(book.Sheets["Summary"][21]["C"]));
         }
 
         [Fact]
@@ -411,10 +498,11 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new object[] { "102", "levels.entry", 10.25, "MEASURED weak", KeyPath + "entry.rule share 0.088" }, book.Row("Assumed", 6).ToArray());
             Assert.Equal(8, book.Sheets["Assumed"].Count);
 
-            Assert.Equal(new object[] { "3 Check", "101", "Level", "entryM", "override", "Past" }, book.Row("Issues", 2).ToArray());
-            Assert.Equal(new object[] { "3 Check", "103", "Hand", "mirrored", "override", "Rule", "plot not written" }, book.Row("Issues", 6).ToArray());
-            Assert.Equal(new object[] { "3 Check", "103", "Unit code", "unit", "missing", "Rule" }, book.Row("Issues", 7).ToArray());
-            Assert.Equal(7, book.Sheets["Issues"].Count);
+            // R381: the rows of 7.4 under 4 Check of the new order, each with its manual rule cell, then the weak wallTop under 8 Walls (Q125)
+            Assert.Equal(new object[] { "4 Check", "101", "Level", "entryM", "override", "Past", null, "no manual rule block" }, book.Row("Issues", 2).ToArray());
+            Assert.Equal(new object[] { "4 Check", "103", "Hand", "mirrored", "override", "Rule", "plot not written", "no manual rule block" }, book.Row("Issues", 6).ToArray());
+            Assert.Equal(new object[] { "4 Check", "103", "Unit code", "unit", "missing", "Rule", null, "no manual rule block" }, book.Row("Issues", 7).ToArray());
+            Assert.Equal(8, book.Sheets["Issues"].Count);
 
             Assert.Equal(new object[] { "Q053", "RECOMMENDED", "Q053", 1.0, 3.0 }, book.Row("Rules", 2).ToArray());
             Assert.Equal(new object[] { "config/project.json floors.types", "UNKNOWN", "config/project.json floors.types", 2.0, 4.0 }, book.Row("Rules", 3).ToArray());
@@ -446,7 +534,9 @@ namespace SiteAdaptation.Tests
             LevelExcelTests.Book other = RunBook(out WorkerAnswer answer, out string plan, "013");
             Assert.Equal(new object[] { "[file name].rvt, NBH 013, 1 plots, parsons2024Rev6, run time [n] min" }, other.Row("Summary", 1).ToArray());
             Assert.Equal(new object[] { "201", "generic", "Generic 150mm" }, other.Row("Placed", 3).ToArray());
-            Assert.Equal(new[] { 1 }, other.Sheets["Issues"].Keys.ToArray());
+            // R381: no row of 7.4 in 013, the weak wallTop row of Q125 alone as the Summary of each workbook counts it
+            Assert.Equal(new[] { 1, 2 }, other.Sheets["Issues"].Keys.ToArray());
+            Assert.Equal("8 Walls", other.Row("Issues", 2)[0]);
             Assert.Equal(2, answer.Counts["report workbooks"]);
             Assert.Equal(1, answer.Counts["report plots with no NBH"]);
             Assert.Equal(new[] { "1 plots of the plan have no nbhId in plots.csv, so no report lists them: 999 (R365)" }, answer.Issues.ToArray());
@@ -478,11 +568,12 @@ namespace SiteAdaptation.Tests
             ReportTable placed = ReportSheets.PlacedTable(written);
             Assert.Equal(6, placed.Rows.Count);
             placed.Rows.RemoveAt(placed.Rows.Count - 1);
-            var issues = new ReportTable { Header = ReportExcelText.IssueColumns, Formats = new string[7] };
+            var issues = new ReportTable { Header = ReportExcelText.IssueColumns, Formats = new string[8] };
             var result = new ReportResult();
-            ReportTable box = ReportSheets.CountsTable(written, placed, issues, result, "012");
+            ReportTable box = ReportSheets.CountsTable(written, placed, null, issues, result, "012", "M15");
             Assert.Equal(new object[] { "Floors", "not placed yet", 3L }, box.Rows[1]);
-            Assert.Equal(new object[] { "8 Report", null, "Counts", "Floors", null, null, "the plan holds 4, Revit not placed yet, Excel 3 (R365)" }, Assert.Single(issues.Rows));
+            // R381: the step of the report is 9 Report of the new order
+            Assert.Equal(new object[] { "9 Report", null, "Counts", "Floors", null, null, "the plan holds 4, Revit not placed yet, Excel 3 (R365)", "M15" }, Assert.Single(issues.Rows));
             Assert.Equal(new[] { "NBH 012 Floors: the plan holds 4, Revit not placed yet, Excel 3 (R365)" }, result.Issues.ToArray());
         }
     }
