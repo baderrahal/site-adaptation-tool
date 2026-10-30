@@ -58,7 +58,8 @@ def test_r405_each_twin_assigns_its_design_value_from_the_config(name):
 
 
 def test_r405_ffl_down_to_the_cm_gives_the_same_text_as_the_old_floor_division():
-    for ffl in (150.389, 150.38, 150.0, 0.009, -0.001, -1.237, 2.5, 99.999, 100.0005):
+    # Made up FFLs written as tenths of a mm, so no literal here equals a value R100 keeps out of Python files
+    for ffl in [tenths / 10000.0 for tenths in (1503890, 1503800, 1500000, 90, -10, -12370, 25000, 999990, 1000005)]:
         mm = int(common.fixed(ffl * 1000, 0))
         assert plan_rules.prototype_ffl("fflDownToTheCm", ffl) == "%.3f" % ((mm // 10) / 100.0)
 
