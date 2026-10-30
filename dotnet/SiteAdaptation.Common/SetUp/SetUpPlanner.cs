@@ -34,8 +34,9 @@ namespace SiteAdaptation.Common.SetUp
     public static class SetUpPlanner
     {
         // R331, the read back and every difference within half a mm, the angle within a millionth of a degree
-        public const double SameMm = 0.5;
-        public const double SameDeg = 1e-6;
+        // R405, Q103. designValues.samePoint of the config
+        public static double SameMm => DesignValues.Current.SameMm;
+        public static double SameDeg => DesignValues.Current.SameDeg;
 
         // 03a, the badge: the Settings entity, a shared parameter bound with a GUID or a name of the sheet, a project position other
         // than zero or a survey point or project base point off the internal origin by more than half a mm. Types and levels are no

@@ -232,8 +232,9 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R373_a_check_point_holds_the_cad_shared_point_against_the_revit_point_of_its_internal_point_in_mm_at_gap_decimals()
         {
+            // Q142 (Bader, 29 Oct 2026). Button 1 against Revit at 0.1 mm, addin.position.revitCheckPointLimitMm, a key of its own (W2)
             SetUpTarget target = Target();
-            Assert.Equal(1.0, target.PassLimitMm);
+            Assert.Equal(0.1, target.PassLimitMm);
             Assert.Equal(2, target.GapDecimals);
 
             List<CheckPointRow> before = SetUpPlanner.CheckPoints(target, null);
@@ -246,17 +247,17 @@ namespace SiteAdaptation.Tests
             Assert.All(exact, row => Assert.True(row.Pass));
             Assert.Equal(SetUpTexts.Coordinate(target.SurveyShared), exact[0].Cad);
 
-            // 1.004 mm shows 1.00 and passes at 1 mm, 1.006 mm shows 1.01 and fails, what the table shows is what is judged
-            List<CheckPointRow> off = SetUpPlanner.CheckPoints(target, point => Moved(SiteCoordinates.ToShared(target.Position, point), 0.001004));
-            Assert.Equal(1.0, off[0].DiffMm);
+            // 0.104 mm shows 0.10 and passes at 0.1 mm, 0.106 mm shows 0.11 and fails, what the table shows is what is judged
+            List<CheckPointRow> off = SetUpPlanner.CheckPoints(target, point => Moved(SiteCoordinates.ToShared(target.Position, point), 0.000104));
+            Assert.Equal(0.1, off[0].DiffMm);
             Assert.True(off[0].Pass);
-            List<CheckPointRow> over = SetUpPlanner.CheckPoints(target, point => Moved(SiteCoordinates.ToShared(target.Position, point), 0.001006));
-            Assert.Equal(1.01, over[0].DiffMm);
+            List<CheckPointRow> over = SetUpPlanner.CheckPoints(target, point => Moved(SiteCoordinates.ToShared(target.Position, point), 0.000106));
+            Assert.Equal(0.11, over[0].DiffMm);
             Assert.False(over[0].Pass);
-            Assert.Equal("Pass limit 1 mm. 0 of 2 pass", SetUpTexts.PassLine(target.PassLimitMm, over.Count(row => row.Pass), over.Count));
+            Assert.Equal("Pass limit 0.1 mm. 0 of 2 pass", SetUpTexts.PassLine(target.PassLimitMm, over.Count(row => row.Pass), over.Count));
             SetUpSiteView view = SetUpPlanner.View(Template(), target, point => SiteCoordinates.ToShared(target.Position, point));
             Assert.Equal(2, view.GapDecimals);
-            Assert.Equal(1.0, view.PassLimitMm);
+            Assert.Equal(0.1, view.PassLimitMm);
             Assert.Equal(2, view.Passing);
             Assert.True(view.DryRunDone);
         }

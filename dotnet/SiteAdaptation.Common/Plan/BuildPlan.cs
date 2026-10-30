@@ -59,7 +59,7 @@ namespace SiteAdaptation.Common
         private const string Within = "within 5 mm";
         private const string Other = "other or empty";
         private const double BookLevelM = 0.005;
-        private const int Decimals = 3;
+        private static int Decimals => DesignValues.Current.Decimals;
 
         // A build writes its plan when it asks every step the plan is made from and names site.json of button 1, as button 4 does
         public static bool PlanAsked(IEnumerable<string> steps, IEnumerable<WorkerFile> inputs)

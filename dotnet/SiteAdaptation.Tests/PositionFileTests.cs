@@ -493,8 +493,12 @@ namespace SiteAdaptation.Tests
         {
             JObject config = JObject.Parse(File.ReadAllText(WorkerRunTests.RepoConfig()));
             PositionSettings settings = PositionSettings.From(config);
-            Assert.Equal(1.0, settings.CheckPointLimitMm);
+            // Q086 (Bader, 2026-10-29). The key check at 2 mm, and button 1 against Revit at 0.1 mm under a key of its own (Q142, W2)
+            Assert.Equal(2.0, settings.CheckPointLimitMm);
+            Assert.Equal(0.1, settings.RevitCheckPointLimitMm);
             Assert.Equal(2, settings.GapDecimals);
+            ((JObject)config["addin"]["position"]).Remove("revitCheckPointLimitMm");
+            Assert.Contains("addin.position.revitCheckPointLimitMm", Assert.Throws<InvalidDataException>(() => PositionSettings.From(config)).Message);
             Assert.EndsWith(".json", settings.File);
             Assert.Equal("imc", settings.Key);
             Assert.Equal(Group, settings.Group);
@@ -649,9 +653,9 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Survey Point", (string)written["levelBase"]);
             Assert.Equal("Internal", (string)written["activeSite"]);
             // The check of the 6 keys with no points failed: the file records it, every failed point is an issue, the run ends 0 and done
-            Assert.Equal("{\"limitMm\":1.0,\"points\":18,\"pass\":12,\"overLimit\":0,\"noFace\":0,\"otherFace\":0,\"noNumber\":0,\"twoFaces\":0,\"merged\":0,\"noPoints\":6,\"failed\":true}",
+            Assert.Equal("{\"limitMm\":2.0,\"points\":18,\"pass\":12,\"overLimit\":0,\"noFace\":0,\"otherFace\":0,\"noNumber\":0,\"twoFaces\":0,\"merged\":0,\"noPoints\":6,\"failed\":true}",
                 written["checkPoints"].ToString(Newtonsoft.Json.Formatting.None));
-            Assert.StartsWith("the check points failed: 12 of 18 pass at 1.0 mm", answer.Issues[0]);
+            Assert.StartsWith("the check points failed: 12 of 18 pass at 2.0 mm", answer.Issues[0]);
             Assert.Contains("ima no key points", answer.Issues);
             JObject step = JObject.Parse(File.ReadAllText(Path.Combine(folder, "steps", StepFile.FileName(ProjectPositionFile.CheckPointsStep, "csharp"))));
             Assert.Equal(0.4, (double)step["plots"]["imc/2001/0"]["raw"]["gapMm"], 6);

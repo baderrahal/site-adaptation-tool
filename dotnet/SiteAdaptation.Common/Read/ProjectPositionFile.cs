@@ -14,6 +14,8 @@ namespace SiteAdaptation.Common
     {
         public string File { get; private set; }
         public double CheckPointLimitMm { get; private set; }
+        // Q142, W2. The pass limit of the check points of button 1 against Revit, a key of its own beside the key check of R353
+        public double RevitCheckPointLimitMm { get; private set; }
         public int GapDecimals { get; private set; }
         public string Key { get; private set; }
         public List<string> Group { get; private set; }
@@ -21,12 +23,9 @@ namespace SiteAdaptation.Common
         public static PositionSettings From(JObject config)
         {
             JObject block = (config["addin"] as JObject)?["position"] as JObject ?? throw new InvalidDataException("config holds no addin.position, the position file and the check point limit (R353)");
-            JToken limit = block["checkPointLimitMm"], decimals = block["gapDecimals"];
-            double limitMm = limit != null && (limit.Type == JTokenType.Float || limit.Type == JTokenType.Integer) ? limit.Value<double>() : double.NaN;
-            if (double.IsNaN(limitMm) || double.IsInfinity(limitMm) || limitMm <= 0)
-            {
-                throw new InvalidDataException("addin.position.checkPointLimitMm is no length in mm above 0 (R353)");
-            }
+            JToken decimals = block["gapDecimals"];
+            double limitMm = LimitMm(block, "checkPointLimitMm", "R353");
+            double revitLimitMm = LimitMm(block, "revitCheckPointLimitMm", "R373");
             if (decimals == null || decimals.Type != JTokenType.Integer || decimals.Value<long>() < 0 || decimals.Value<long>() > 6)
             {
                 throw new InvalidDataException("addin.position.gapDecimals is no whole number of decimals from 0 to 6 (R353)");
@@ -48,7 +47,18 @@ namespace SiteAdaptation.Common
             {
                 throw new InvalidDataException("majority.groups names no keys of the group " + group + " with its reference key (R353)");
             }
-            return new PositionSettings { File = file, CheckPointLimitMm = limitMm, GapDecimals = (int)decimals.Value<long>(), Key = (string)key, Group = keys.Select(item => (string)item).ToList() };
+            return new PositionSettings { File = file, CheckPointLimitMm = limitMm, RevitCheckPointLimitMm = revitLimitMm, GapDecimals = (int)decimals.Value<long>(), Key = (string)key, Group = keys.Select(item => (string)item).ToList() };
+        }
+
+        private static double LimitMm(JObject block, string name, string rule)
+        {
+            JToken limit = block[name];
+            double limitMm = limit != null && (limit.Type == JTokenType.Float || limit.Type == JTokenType.Integer) ? limit.Value<double>() : double.NaN;
+            if (double.IsNaN(limitMm) || double.IsInfinity(limitMm) || limitMm <= 0)
+            {
+                throw new InvalidDataException("addin.position." + name + " is no length in mm above 0 (" + rule + ")");
+            }
+            return limitMm;
         }
     }
 
@@ -84,8 +94,8 @@ namespace SiteAdaptation.Common
         public static readonly string[] PositionRoles = { KeyReadRole, RulesRole, KeyCopiesRole, KeyReadRole + ":*" };
         public static readonly string[] CheckPointRoles = { KeyReadRole, RulesRole, KeyCopiesRole, "baseplan", LabelsRole, PlotShiftsRole, KeyPointsRole + ":*" };
         // A level step of the file is the one of the rules within half a mm, the angle within a millionth of a degree, as R331 holds a read
-        private const double SameMm = 0.5;
-        private const double SameDeg = 1e-6;
+        private static double SameMm => DesignValues.Current.SameMm;
+        private static double SameDeg => DesignValues.Current.SameDeg;
         private static readonly string[] UnitFields = { "system", "length", "lengthSystem" };
         private static readonly string[] Points = { "surveyPoint.position", "surveyPoint.sharedPosition", "basePoint.position", "basePoint.sharedPosition" };
         private static readonly string[] PositionParts = { "eastWest", "northSouth", "elevation", "angleDeg" };

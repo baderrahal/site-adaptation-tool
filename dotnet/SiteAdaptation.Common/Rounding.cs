@@ -8,7 +8,7 @@ namespace SiteAdaptation.Common
     // 0.5005, which a double holds a little under the tie, gave 0.5 where the decimal gives 0.501, as python/common.py does
     public static class Rounding
     {
-        // The significant digits of the text a value is rounded from
+        // The significant digits of the text a value is rounded from, those of the G15 text of a double below, no project value (Q103)
         public const int Significant = 15;
 
         // A value that is not finite stays as it is, the JSON converters write it as null. A value whose digit after the asked

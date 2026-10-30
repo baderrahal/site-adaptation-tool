@@ -54,7 +54,7 @@ namespace SiteAdaptation.Common.SetUp
                 PlotParameter = floors["plotParameter"]?.Type == JTokenType.String ? (string)floors["plotParameter"] : null,
                 ParameterGroup = SetUpDefaults.ParameterGroup(config),
                 WallTypes = SetUpDefaults.WallTypes(config),
-                PassLimitMm = settings.CheckPointLimitMm,
+                PassLimitMm = settings.RevitCheckPointLimitMm,
                 GapDecimals = settings.GapDecimals,
             };
             foreach (string name in SiteCoordinates.FloorKinds.SelectMany(kind => Names(types[kind])).Concat(new[] { target.RampType }))

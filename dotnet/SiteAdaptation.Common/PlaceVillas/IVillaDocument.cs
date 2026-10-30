@@ -130,7 +130,9 @@ namespace SiteAdaptation.Common.PlaceVillas
             Newtonsoft.Json.Linq.JObject villaBlocksRead, Newtonsoft.Json.Linq.JObject lastRecord)
         {
             LightModeConfig config = LightModeConfig.Load(configPath);
-            Dictionary<string, string> guids = SetUp.ParameterSheet.FromConfig(Newtonsoft.Json.Linq.JObject.Parse(WorkFiles.ReadText(configPath))).Parameters
+            Newtonsoft.Json.Linq.JObject settings = Newtonsoft.Json.Linq.JObject.Parse(WorkFiles.ReadText(configPath));
+            DesignValues.UseConfigOf(settings);
+            Dictionary<string, string> guids = SetUp.ParameterSheet.FromConfig(settings).Parameters
                 .Where(item => item.Guid != null).ToDictionary(item => item.Name, item => item.Guid, StringComparer.Ordinal);
             return new VillaInputs
             {

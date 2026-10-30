@@ -12,12 +12,13 @@ namespace SiteAdaptation.Common
         public const string Yard = "yard";
         public const string Ramp = "ramp";
         public static readonly string[] Kinds = { Generic, Yard, Ramp };
-        public const double TopTolerance = 0.001;
-        public const double LevelTolerance = 0.001;
+        // R405, Q103. From designValues.floors of the config
+        public static double TopTolerance => DesignValues.Current.FloorTopToleranceM;
+        public static double LevelTolerance => DesignValues.Current.FloorLevelToleranceM;
         // A ramp corner sits on an outline vertex when it lies this close in plan. Both are rounded to the mm by R2
-        public const double CornerOnVertex = 0.002;
+        public static double CornerOnVertex => DesignValues.Current.FloorCornerOnVertexM;
         // Revit refuses a curve shorter than about 0.8 mm, so a shorter edge is a plan error found before any change
-        public const double ShortestEdge = 0.001;
+        public static double ShortestEdge => DesignValues.Current.FloorShortestEdgeM;
 
         private sealed class Candidate
         {

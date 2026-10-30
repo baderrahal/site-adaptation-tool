@@ -69,6 +69,7 @@ namespace SiteAdaptation.Common.SetUp
                 throw new InvalidOperationException("the run names no " + settingsInput + " file");
             }
             config = Json(settings.Path, "the settings file");
+            DesignValues.UseConfigOf(config);
             string profile = config["profile"]?.Type == JTokenType.String ? (string)config["profile"] : throw new InvalidDataException("config names no rules profile, profile (R277)");
             // The paths of config are relative to the repo root, the folder above the one config is in (its note)
             string rulesPath = Path.IsPathRooted(profile) ? profile : Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(settings.Path))), profile);

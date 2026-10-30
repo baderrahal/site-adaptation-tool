@@ -9,6 +9,7 @@ import statistics
 
 from shapely.geometry import Point
 
+import design_values
 import plot_relations
 
 # The tolerances the entry level is judged by, in metres. A level within one of them is counted in its band
@@ -18,7 +19,7 @@ BAND_LABELS = ("within5mm", "within10mm", "within30mm")
 EPSILON = 1e-9
 MIN_EDGE = 1.0
 # Two edges whose midpoints are this near the road are both candidates for the front, a corner plot
-FRONT_TIE = 1.0
+FRONT_TIE = design_values.value("fronts.frontTieM")
 FLAT_RISE = 1e-6
 MEASURED_NOTE = "measured from past work"
 

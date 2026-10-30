@@ -355,6 +355,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R403 Site Adaptation Rules, the manual rules.
 - R404 Light mode, the villa as a solid.
 - R377 Button 7 Place villas, the 5c part.
+- R405 The design values in config.
 
 ## 09-addin-r376-up.md
 

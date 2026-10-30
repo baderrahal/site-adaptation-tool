@@ -257,7 +257,10 @@ namespace SiteAdaptation.Common
             long millimetres = (long)Rounding.Fixed(ffl.Value * 1000, 0);
             if (rule == "fflDownToTheCm")
             {
-                return PyMath.FixedText(FloorDivide(millimetres, 10) / 100.0, 3);
+                // R405, Q103. (mm // g) * g / 1000 is the rational (mm // 10) / 100 for g 10, and a division of doubles rounds once, so the
+                // text is the one of the old literal
+                long grain = DesignValues.Current.CmGrainMm;
+                return PyMath.FixedText(FloorDivide(millimetres, grain) * grain / 1000.0, 3);
             }
             if (rule == "ffl")
             {

@@ -10,7 +10,8 @@ namespace SiteAdaptation.Common
 {
     public static class JsonOut
     {
-        public const int Decimals = 3;
+        // R2, R405. designValues.rounding.decimals of the config
+        public static int Decimals => DesignValues.Current.Decimals;
 
         // Negative zero would print as -0 and look like a real offset. R385: the decimal of the 15 digit text, half away from zero
         public static double Round3(double value)
@@ -167,6 +168,27 @@ namespace SiteAdaptation.Common
                     return;
                 }
                 writer.WriteValue(Rounding.Fixed(number, decimals));
+            }
+
+            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                throw new NotSupportedException();
+            }
+        }
+
+        // R311, R405. The angle to true north at designValues.rounding.angleDecimals of the config, which an attribute cannot name
+        public sealed class AngleDecimalsConverter : JsonConverter
+        {
+            public override bool CanRead { get { return false; } }
+
+            public override bool CanConvert(Type objectType)
+            {
+                return objectType == typeof(double) || objectType == typeof(double?);
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                new DecimalsConverter(SiteFacts.AngleDecimals).WriteJson(writer, value, serializer);
             }
 
             public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)

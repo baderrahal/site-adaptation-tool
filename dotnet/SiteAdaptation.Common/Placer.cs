@@ -9,11 +9,12 @@ namespace SiteAdaptation.Common
     // Every decision of Place from plan (R83 to R87). The Revit side only carries out what this class asks for
     public static class Placer
     {
-        public const double CoordinateTolerance = 0.001;
-        public const double AngleTolerance = 0.001;
-        public const double ZTolerance = 0.001;
-        public const double ReadBackOrigin = 0.001;
-        public const double ReadBackAngle = 0.01;
+        // R405, Q103. The tolerances of the placer from designValues.placer of the config
+        public static double CoordinateTolerance => DesignValues.Current.PlacerCoordinateToleranceM;
+        public static double AngleTolerance => DesignValues.Current.PlacerAngleToleranceDeg;
+        public static double ZTolerance => DesignValues.Current.PlacerZToleranceM;
+        public static double ReadBackOrigin => DesignValues.Current.PlacerReadBackOriginM;
+        public static double ReadBackAngle => DesignValues.Current.PlacerReadBackAngleDeg;
         public const string FflParameter = "RRE_ZZ_SP_Prototype-FFL";
         public const string PlotParameter = LinkFields.PlotNumber;
 

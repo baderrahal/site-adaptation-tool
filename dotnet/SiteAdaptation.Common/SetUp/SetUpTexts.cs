@@ -69,7 +69,7 @@ namespace SiteAdaptation.Common.SetUp
             return "From the parameter sheet: " + source;
         }
 
-        // The line under the check points. The limit is addin.position.checkPointLimitMm until the key of its own of Q142 joins at 5c (W2)
+        // The line under the check points at addin.position.revitCheckPointLimitMm, the key of its own of Q142 (W2)
         public static string PassLine(double limitMm, int passing, int count)
         {
             return "Pass limit " + limitMm.ToString("0.###", CultureInfo.InvariantCulture) + " mm. " + passing.ToString(CultureInfo.InvariantCulture) + " of " + count.ToString(CultureInfo.InvariantCulture) + " pass";

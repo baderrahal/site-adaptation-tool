@@ -357,9 +357,10 @@
     "workerTimeLimitMinS": 10,
     "workerTimeLimitMinNote": "R347. The shortest time limit a launch takes, a request under it is refused before the start, so a limit typed too short never kills a sound run. CHOSEN in the second review of PR 50: 10 s, ten times the 1.0 s the worker build of the step faces took on the 2,704 unit plots of the snapshot, its start included",
     "position": {
-      "note": "R353, Q068. The project position file of button 1, written by the command position of the worker (python/position_file.py the Python side) from the read of the reference key of majority.siteReference, outside git since it holds coordinates and levels: the project position of the internal origin in shared coordinates and its angle, the survey point and the project base point in internal and shared coordinates, the levels and the one Elevation Base they stand on, the units, the length accuracy and the active site with the sites, refused when it differs from any value of keyRules.site of the level profile or when the reference key differs from another key of its group of majority.groups. file is where button 1 reads it, the worker writes it under that file name into the output folder of its request. checkPointLimitMm is the pass limit of the check points of button 1, the 1 mm of R211, gapDecimals the decimals the Diff is shown and judged at by R385 (docs/design/03a-buttons-shared-and-1.md 3.1 and docs/design/07-mock.md 7.3, CHOSEN by the design). Since the review of PR 54 the check points of the worker hold the baseplan against the floor corners of the keys read at full precision through the file (Q086). Since its second review every key read is held to its key by key_copies.json, the input keyCopies, and to every value of the set, the baseplan is read at full precision, the face of each point is held to the numbering of labels.csv and config/plot_numbers.json, the inputs labels and plotShifts, and a failed point is an issue of the command, which ends done. Since its third review the numbering takes the client code rows alone, a number on two faces fails its points, and a point on a vertex CadReader merged more than checkPointLimitMm fails.",
+      "note": "R353, Q068. The project position file of button 1, written by the command position of the worker (python/position_file.py the Python side) from the read of the reference key of majority.siteReference, outside git since it holds coordinates and levels: the project position of the internal origin in shared coordinates and its angle, the survey point and the project base point in internal and shared coordinates, the levels and the one Elevation Base they stand on, the units, the length accuracy and the active site with the sites, refused when it differs from any value of keyRules.site of the level profile or when the reference key differs from another key of its group of majority.groups. file is where button 1 reads it, the worker writes it under that file name into the output folder of its request. checkPointLimitMm is the pass limit of the check points of the worker against the keys, 2 mm by the answer of Q086 (Bader, 2026-10-29), revitCheckPointLimitMm that of the check points of button 1 against Revit, the Revit column after Apply against the transform of the dry run, 0.1 mm under a key of its own by the answer of Q142 (Bader, 29 Oct 2026, W2), gapDecimals the decimals the Diff is shown and judged at by R385 (docs/design/03a-buttons-shared-and-1.md 3.1 and docs/design/07-mock.md 7.3, CHOSEN by the design). Since the review of PR 54 the check points of the worker hold the baseplan against the floor corners of the keys read at full precision through the file (Q086). Since its second review every key read is held to its key by key_copies.json, the input keyCopies, and to every value of the set, the baseplan is read at full precision, the face of each point is held to the numbering of labels.csv and config/plot_numbers.json, the inputs labels and plotShifts, and a failed point is an issue of the command, which ends done. Since its third review the numbering takes the client code rows alone, a number on two faces fails its points, and a point on a vertex CadReader merged more than checkPointLimitMm fails.",
       "file": "C:/Users/bader/Documents/SiteAdaptation/round_addin/position/position_parsons.json",
-      "checkPointLimitMm": 1.0,
+      "checkPointLimitMm": 2.0,
+      "revitCheckPointLimitMm": 0.1,
       "gapDecimals": 2
     },
     "readData": {
@@ -754,6 +755,58 @@
             "written": {"kind": "noGeometry"}
         }
       }
+    }
+  },
+  "designValues": {
+    "note": "R405, Q103 (Bader, 2026-10-27). The design values a build, the placer and button 1 take, moved out of the code in Lane B 5c, each read by python/design_values.py and DesignValues.cs and refused by its name when missing. The note of each block names the rule of each key and its row of section 7 of steps/investigations/rule-status-audit.md. The tolerances of the one-off checkers of past rounds stay in their code with a note there. Rounding.Significant and common.SIGNIFICANT stay in code, the 15 digits of the G15 text of a double (CHOSEN by Code)",
+    "placer": {
+      "note": "R83 to R87, rows C1 and C2. coordinateToleranceM and angleToleranceDeg hold the plan against the survey point and the angle of the document, zToleranceM the insert against the FFL, readBackOriginM and readBackAngleDeg a placed link read back",
+      "coordinateToleranceM": 0.001,
+      "angleToleranceDeg": 0.001,
+      "zToleranceM": 0.001,
+      "readBackOriginM": 0.001,
+      "readBackAngleDeg": 0.01
+    },
+    "floors": {
+      "note": "Rows C3 to C5 and P14. cornerOnVertexM is R2, a ramp corner on an outline vertex, both rounded to the mm. topToleranceM and levelToleranceM a placed floor read back, shortestEdgeM the shortest edge, since Revit refuses a curve under about 0.8 mm, R405",
+      "topToleranceM": 0.001,
+      "levelToleranceM": 0.001,
+      "cornerOnVertexM": 0.002,
+      "shortestEdgeM": 0.001
+    },
+    "fronts": {
+      "note": "Rows C11, C12, P7 and P90. frontTieM is R94, two candidate edges this near the road tie, a corner plot. outwardProbeM the probe of the outward side of an edge, R405. quadrantsDeg are R224 and R225, the bearings of each orientation of the sales table",
+      "frontTieM": 1.0,
+      "outwardProbeM": 0.01,
+      "quadrantsDeg": {"EN": [0.0, 90.0], "SE": [90.0, 180.0], "WS": [180.0, 270.0], "NW": [270.0, 360.0]}
+    },
+    "hands": {
+      "note": "R357, rows C9 and C10. A face is buffered by sideBandM for its side neighbours, the buffer arc by bufferSegmentsPerQuarter segments a quarter circle as shapely builds it",
+      "sideBandM": 0.05,
+      "bufferSegmentsPerQuarter": 16
+    },
+    "siteCoordinates": {
+      "note": "R211, row C13. The shared coordinates of a new site file are held to toleranceMm",
+      "toleranceMm": 1.0
+    },
+    "samePoint": {
+      "note": "R311 and R331, rows C14 and P66. A point or a level is the same within sameMm, what the rounding of R2 to 3 decimals allows, an angle within sameDeg",
+      "sameMm": 0.5,
+      "sameDeg": 1e-06
+    },
+    "levels": {
+      "note": "R339 and R340, rows C15 and P82. fflDownToTheCm takes the FFL down to cmGrainMm",
+      "cmGrainMm": 10
+    },
+    "rounding": {
+      "note": "R2, R311 and R385, rows C16 and P83. decimals of a length or level, wideDecimals of a share, angleDecimals of the angle to true north, entryDecimals, heightDecimals, fflDecimals and bandDecimals of the level sheets",
+      "decimals": 3,
+      "wideDecimals": 4,
+      "angleDecimals": 6,
+      "entryDecimals": 4,
+      "heightDecimals": 4,
+      "fflDecimals": 3,
+      "bandDecimals": 6
     }
   },
   "checkRows": {

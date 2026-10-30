@@ -78,8 +78,8 @@ namespace SiteAdaptation.Common
         public const string StepName = "hands";
 
         // majority.side_neighbours buffers a face by 0.05 m, shapely by 16 segments a quarter circle
-        private const double Band = 0.05;
-        private const double Quantum = Math.PI / 2 / 16;
+        private static double Band => DesignValues.Current.HandSideBandM;
+        private static double Quantum => Math.PI / 2 / DesignValues.Current.HandBufferSegmentsPerQuarter;
 
         // How far past an edge of the buffer a point still counts as on it, so an edge two faces share, which lies on the face the buffer is
         // of, counts as GEOS counts it, 0.05 m inside the buffer

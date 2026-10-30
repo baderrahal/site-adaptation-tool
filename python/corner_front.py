@@ -27,6 +27,7 @@ from shapely.strtree import STRtree
 import cad_analysis
 import cad_links
 import common
+import design_values
 import entry_levels
 import link_summary
 import plan_compare
@@ -37,7 +38,7 @@ import prototype_offsets
 import rev9_workbooks
 import yard_rule
 
-QUADRANTS = {"EN": (0.0, 90.0), "SE": (90.0, 180.0), "WS": (180.0, 270.0), "NW": (270.0, 360.0)}
+QUADRANTS = {name: tuple(span) for name, span in design_values.value("fronts.quadrantsDeg").items()}
 RULES = ("orientationOrCurb", "nearestCurb", "orientation", "longest", "shortest", "neighbourFront")
 
 

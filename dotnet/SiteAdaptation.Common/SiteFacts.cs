@@ -68,7 +68,7 @@ namespace SiteAdaptation.Common
 
         // R311. 1 mm across 5 km is 0.0000115 degrees, so 6 decimals hold the angle to true north within 0.05 mm at 5 km.
         // The 3 decimals of R2 are for lengths and levels
-        public const int AngleDecimals = 6;
+        public static int AngleDecimals => DesignValues.Current.AngleDecimals;
 
         // R311. The system of each unit Revit 2024 offers for the length spec, by the name UnitName gives
         private static readonly Dictionary<string, string> LengthSystems = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -218,7 +218,7 @@ namespace SiteAdaptation.Common
         public double Elevation { get; set; }
 
         // R311. Written at SiteFacts.AngleDecimals, not at the 3 decimals of R2
-        [JsonConverter(typeof(JsonOut.DecimalsConverter), SiteFacts.AngleDecimals)]
+        [JsonConverter(typeof(JsonOut.AngleDecimalsConverter))]
         public double AngleDeg { get; set; }
     }
 
