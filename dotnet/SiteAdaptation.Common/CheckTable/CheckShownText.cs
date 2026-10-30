@@ -34,5 +34,8 @@ namespace SiteAdaptation.Common.CheckTable
         public const string DegreesBelow = "<n> degrees below the rule";
         public const string Mirrored = "Mirrored";
         public const string NotMirrored = "Not mirrored";
+
+        // R330. The line under Why of a row on Skip, the Use the list holds under the skip
+        public const string UnderSkip = "Under Skip the list holds <n>. Choosing <n> only takes the plot off the skip list.";
     }
 }

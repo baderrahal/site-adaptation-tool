@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common;
 using SiteAdaptation.Common.CheckTable;
 using Xunit;
 
@@ -130,6 +132,33 @@ namespace SiteAdaptation.Tests
             // The other fields of Level and Plot cut have no rule of 4 Check in the manual, so their rows show no id
             Assert.Null(block.IdOfCheck("Level", "heightM"));
             Assert.Null(block.IdOfCheck("Plot cut", null));
+        }
+        // R376. The info line counts on the NBH each entry on a plot the table keeps, so a plot of the build with no nbhId, or one of spaces
+        // only, stands in the NBH of the scope there as it does in the rows and the title
+        [Fact]
+        public void R376_the_info_line_counts_an_entry_on_a_plot_with_no_nbh_as_the_table_keeps_it_and_an_nbh_of_spaces_is_none()
+        {
+            JObject step = R376_CheckTableTests.Step();
+            step["plots"]["11"] = JObject.Parse("{ 'unit': null, 'nbh': null, 'rows': [] }");
+            step["plots"]["12"] = JObject.Parse("{ 'unit': null, 'nbh': '  ', 'rows': [ { 'check': 'Unit code', 'field': 'unit', 'from': 'missing', 'use': 'Rule', 'rule': null, 'toolValue': null, 'past': { 'writes': null, 'value': null, 'why': 'no unit' }, 'why': null } ] }");
+            JObject overrides = JObject.Parse("{ 'overrides': [ { 'plot': '1' }, { 'plot': '9' }, { 'plot': '11' }, { 'plot': '12' } ] }");
+
+            Assert.Equal(3, CheckTableInfo.Of("p", "l", overrides, step, "012").OnNbh);
+            CheckTableView view = CheckTableBuild.Compose("012", step, R376_CheckTableTests.Block(), null, null, null, true);
+            Assert.Equal("4 Check, NBH 012, 6 plots", view.Title);
+            Assert.Equal("012", view.Rows.Single(row => row.Plot == "12").Nbh);
+        }
+
+        // R363, R376. The step checkRows takes an nbhId of spaces only as no NBH, as check_rows.plot_infos of Python does
+        [Fact]
+        public void R363_R376_the_check_rows_take_an_nbh_id_of_spaces_only_as_no_nbh()
+        {
+            var rows = new Dictionary<string, Dictionary<string, string>> { ["1"] = new Dictionary<string, string> { ["typologyRev9"] = "VL4", ["nbhId"] = "  " }, ["2"] = new Dictionary<string, string> { ["nbhId"] = "012" } };
+
+            Dictionary<string, CheckPlot> plots = CheckRows.PlotsOf(new[] { "1", "2" }, new Dictionary<string, PlotPlan>(), rows);
+
+            Assert.Null(plots["1"].Nbh);
+            Assert.Equal("012", plots["2"].Nbh);
         }
     }
 }

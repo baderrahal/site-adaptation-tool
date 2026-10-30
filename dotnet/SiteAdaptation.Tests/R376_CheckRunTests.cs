@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.CheckTable;
 using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.PlaceVillas;
 using SiteAdaptation.Common.ReadData;
 using SiteAdaptation.Common.Settings;
 using Xunit;
@@ -84,12 +85,28 @@ namespace SiteAdaptation.Tests
         {
             public List<WorkerRequest> Requests { get; } = new List<WorkerRequest>();
 
+            // When set the stand-in writes plan_<NBH>.json in the output folder and names it with its SHA-256, as the worker does
+            public bool WritesPlan { get; set; }
+
             public WorkerAnswer Run(WorkerRequest request)
             {
                 Requests.Add(request);
                 Directory.CreateDirectory(request.StepsFolder);
                 File.WriteAllText(Path.Combine(request.StepsFolder, StepFile.FileName(CheckRows.StepName, "csharp")), R376_CheckTableTests.Step().ToString());
-                return new WorkerAnswer { RunId = request.RunId, Status = WorkerExit.Status(WorkerExit.Done), Outputs = new List<WorkerFile>() };
+                var outputs = new List<WorkerFile>();
+                if (WritesPlan)
+                {
+                    string plan = Path.Combine(request.OutputFolder, CheckRun.PlanName(request.Scope.Nbh));
+                    var file = new PlanFile
+                    {
+                        Format = PlanFile.FormatName, FormatVersion = PlanFile.Version, Neighbourhood = request.Scope.Nbh,
+                        SurveyPoint = new PlanSurveyPoint { Position = new[] { 0.0, 0.0, 0.0 }, SharedPosition = new[] { 0.0, 0.0, 0.0 } },
+                        AngleToTrueNorthDeg = 0, PrototypeFolder = "protos", Plots = new List<PlanPlot>(),
+                    };
+                    File.WriteAllText(plan, Newtonsoft.Json.JsonConvert.SerializeObject(file));
+                    outputs.Add(new WorkerFile { Role = "plan", Path = plan, Sha256 = FileHash.Sha256(plan) });
+                }
+                return new WorkerAnswer { RunId = request.RunId, Status = WorkerExit.Status(WorkerExit.Done), Outputs = outputs };
             }
 
             public void Start(string requestPath, string workFolder, WorkerRequest request, Action<WorkerAnswer> ended)
@@ -256,6 +273,90 @@ namespace SiteAdaptation.Tests
             Assert.Equal(true, read.Of("1")["mirrored"].Value<bool>());
             Assert.Equal(Overrides, afterBack);
             Assert.Single(builder.Requests);
+        }
+        // R376. The plan is built on the list by the SHA-256 its inputs name. A list edited on disk between the build and the first Save
+        // is refused at that Save with the file named, never merged in, and the run ends failed with no check.json, as the plan of the
+        // run was built on another list than the one on disk
+        [Fact]
+        public void R376_a_list_edited_on_disk_after_the_build_is_refused_at_the_first_save_and_the_run_writes_no_check_json()
+        {
+            string list = Path.Combine(root, "repo", "config", "overrides", "made-up.json");
+            string edited = Overrides.Replace("0.05", "0.06");
+            string refused = null;
+            var builder = new Builder();
+            var table = new Table
+            {
+                Answer = (view, callbacks) =>
+                {
+                    File.WriteAllText(list, edited);
+                    CheckRow level = view.Rows.Single(row => row.Check == "Level");
+                    refused = Assert.Throws<InvalidOperationException>(() => callbacks.Save(new[] { new CheckChoice(level.Index, CheckUse.Rule) })).Message;
+                    return new CheckTableAnswer();
+                },
+            };
+            RunLater end = null;
+            ButtonBody body = new CheckRun(Roles, builder, null, new WorkerDocument(), Nbh, table, null, null).Body();
+
+            body.Preview(Context("R4-8", null));
+            body.Start(Context("R4-8", null), later => end = later);
+
+            Assert.Equal("made-up.json changed on disk since 4 Check built the plan on it, so Save overrides does not write over it. Close the table and run 4 Check again (R376)", refused);
+            Assert.Equal(edited, File.ReadAllText(list));
+            Assert.Equal("4 Check did not finish, nothing was kept: made-up.json on disk is not the list this run of 4 Check built the plan on or saved, so the run does not end done and writes no check.json. Run 4 Check again (R376)", end.Failure);
+            Assert.False(File.Exists(Path.Combine(work, "check_R4-8", CheckRun.RecordFile)));
+            Assert.Single(builder.Requests);
+        }
+
+        // R376. The same at the close of the window: a list edited on disk with no Save, or after the last Save of the window, is not the
+        // list the plan stands on, so no check.json names the plan and no build again takes the edit in silently
+        [Fact]
+        public void R376_a_list_edited_on_disk_while_the_window_is_open_ends_the_run_failed_with_no_check_json_with_or_without_a_save()
+        {
+            string list = Path.Combine(root, "repo", "config", "overrides", "made-up.json");
+            var builder = new Builder();
+            var table = new Table { Answer = (view, callbacks) => { File.AppendAllText(list, "\n"); return new CheckTableAnswer(); } };
+            RunLater end = null;
+            new CheckRun(Roles, builder, null, new WorkerDocument(), Nbh, table, null, null).Body().Start(Context("R4-9", null), later => end = later);
+
+            Assert.Contains("made-up.json on disk is not the list this run of 4 Check built the plan on or saved", end.Failure);
+            Assert.False(File.Exists(Path.Combine(work, "check_R4-9", CheckRun.RecordFile)));
+
+            File.WriteAllText(list, Overrides);
+            builder = new Builder();
+            table = new Table
+            {
+                Answer = (view, callbacks) =>
+                {
+                    callbacks.Save(new[] { new CheckChoice(view.Rows.Single(row => row.Check == "Level").Index, CheckUse.Rule) });
+                    File.AppendAllText(list, "\n");
+                    return new CheckTableAnswer { Saved = true };
+                },
+            };
+            end = null;
+            new CheckRun(Roles, builder, null, new WorkerDocument(), Nbh, table, null, null).Body().Start(Context("R4-10", null), later => end = later);
+
+            Assert.Contains("made-up.json on disk is not the list this run of 4 Check built the plan on or saved", end.Failure);
+            Assert.False(File.Exists(Path.Combine(work, "check_R4-10", CheckRun.RecordFile)));
+            Assert.Single(builder.Requests);
+        }
+
+        // R376, R377. F1 of the second review: a real Start runs to done, writes check.json last, and 7 Place villas opens the plan that
+        // record names through VillaLoad by the SHA-256 recorded
+        [Fact]
+        public void R376_R377_a_real_run_ends_done_and_villa_load_opens_the_plan_its_check_json_names_by_the_recorded_hash()
+        {
+            var builder = new Builder { WritesPlan = true };
+            RunLater end = null;
+            new CheckRun(Roles, builder, null, new WorkerDocument(), Nbh, new Table(), null, null).Body().Start(Context("R4-11", null), later => end = later);
+
+            Assert.Null(end.Failure);
+            string folder = Path.Combine(work, "check_R4-11");
+            Assert.True(File.Exists(Path.Combine(folder, CheckRun.RecordFile)));
+            Tuple<string, string> named = VillaLoad.LastPlan(work, "012");
+            Assert.Equal(Path.Combine(folder, "plan_012.json"), named.Item1);
+            Assert.Equal(FileHash.Sha256(named.Item1), named.Item2);
+            Assert.Equal(end.Outputs[named.Item1], named.Item2);
+            Assert.Equal("012", PlanSource.Open(named.Item1, named.Item2).Neighbourhood);
         }
     }
 }

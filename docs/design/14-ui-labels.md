@@ -318,6 +318,7 @@ Built in Lane B 5c. The title, band, buttons, chips, columns and side box are th
 - `<n> degrees below the rule` CHOSEN, Past job column, side box and Choose line for a rotation gap {"gapToRuleDeg": n} below 0, the list keeps the value as it is
 - `Mirrored` CHOSEN, Past job column, side box and Choose line for a past value true, the list keeps the value as it is
 - `Not mirrored` CHOSEN, Past job column, side box and Choose line for a past value false, the list keeps the value as it is
+- `Under Skip the list holds <n>. Choosing <n> only takes the plot off the skip list.` CHOSEN in Lane B 5c, the line under Why of a row on Skip, Rule or Past the list holds under the skip (R330)
 
 ### Update from report
 
