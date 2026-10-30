@@ -351,3 +351,4 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 
 - R400 Record sizes.
 - R401 The status of each plotted value.
+- R402 Update from report.
