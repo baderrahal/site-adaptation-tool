@@ -23,6 +23,8 @@ FIELDS = ("plots", "ends", "base", "top")
 STEP_FIELDS = ("unit", "written", "edges", "plots", "ends", "base", "top", "levelPlots", "status")
 SOURCE = "keyRules"
 PLOTS_SOURCE = "locationPlan"
+# The override of the list that turns a link, plan_from_book.moved_link
+ROTATION = "rotationDeg"
 # The candidates of key_rules.wall_base_candidates and wall_top_candidates, True for the higher plot of the wall
 BASE_RULES = {"yardLevelOfTheHigherPlot": True, "yardLevelOfTheLowerPlot": False}
 TOP_RULES = {"higherFflPlusRev6": True, "lowerFflPlusRev6": False}
@@ -114,10 +116,13 @@ def pick(writers, ffls, higher):
     return best
 
 
-def walls(order, written, rings, frames, ffls, rules):
-    """R362. The boundary walls of the plots of order the plan writes, those of written, on the rings of every face of the site by plot, the front
-    frames of the written plots as (left, right) and their FFL at 3 decimals. A wall in the order of its plot, its edge and its part."""
+def walls(order, written, rings, frames, ffls, rules, fronts=None):
+    """R362. The boundary walls of the plots of order the plan writes, those of written, on the rings of every face of the site by plot, the open
+    edges of the written plots as (left, right) and their FFL at 3 decimals. A wall in the order of its plot, its edge and its part. fronts
+    holds the front of R355 of each written plot before a turn, so turned lists the plots whose front a wall lies on, which stands only as
+    their turn opened another edge (Q120)."""
     near = rules["near"]
+    fronts = fronts or {}
     numbers = list(rings)
     bounds = [bounds_of(rings[number]) for number in numbers]
     tree = STRtree([box(*found) for found in bounds])
@@ -132,18 +137,19 @@ def walls(order, written, rings, frames, ffls, rules):
             o_low_x, o_low_y, o_high_x, o_high_y = bounds[index]
             if other == plot or o_low_x > high_x + near or o_high_x < low_x - near or o_low_y > high_y + near or o_high_y < low_y - near:
                 continue
-            frame = frames.get(other) if other in written else None
-            others.extend((other, p, q, same_edge(p, q, frame)) for p, q in edges_of(rings[other]))
+            frame, front = (frames.get(other), fronts.get(other)) if other in written else (None, None)
+            others.extend((other, p, q, same_edge(p, q, frame), same_edge(p, q, front)) for p, q in edges_of(rings[other]))
         for edge, (a, b) in enumerate(edges_of(rings[plot])):
             if same_edge(a, b, frames.get(plot)):
                 continue
-            found.extend(edge_walls(plot, edge, a, b, others, written, ffls, rules))
+            found.extend(edge_walls(plot, edge, a, b, others, written, ffls, rules, same_edge(a, b, fronts.get(plot))))
     return found
 
 
-def edge_walls(plot, edge, a, b, others, written, ffls, rules):
+def edge_walls(plot, edge, a, b, others, written, ffls, rules, turned=False):
     """R362. The walls of one edge: the edges of the other faces that lie along it within near, the parts between their ends, a part on the
-    front of a written plot open and a part another written plot comes first on left to it."""
+    front of a written plot open and a part another written plot comes first on left to it. turned is the edge on the front of plot before
+    its turn, and a part on the front of another written plot before its turn names that plot in turned (Q120)."""
     near = rules["near"]
     dx, dy = b[0] - a[0], b[1] - a[1]
     length = math.sqrt(dx * dx + dy * dy)
@@ -151,31 +157,34 @@ def edge_walls(plot, edge, a, b, others, written, ffls, rules):
         return []
     ux, uy = dx / length, dy / length
     spans = []
-    for other, p, q, front in others:
+    for other, p, q, front, before in others:
         if abs((p[0] - a[0]) * uy - (p[1] - a[1]) * ux) > near or abs((q[0] - a[0]) * uy - (q[1] - a[1]) * ux) > near:
             continue
         tp, tq = (p[0] - a[0]) * ux + (p[1] - a[1]) * uy, (q[0] - a[0]) * ux + (q[1] - a[1]) * uy
         low, high = max(0.0, min(tp, tq)), min(length, max(tp, tq))
         if high > low:
-            spans.append((other, low, high, front))
+            spans.append((other, low, high, front, before))
     # An end of another edge within near of a kept cut or of the end of the edge parts nothing
     kept = [0.0]
-    for cut in sorted(value for _, low, high, _ in spans for value in (low, high)):
+    for cut in sorted(value for _, low, high, _, _ in spans for value in (low, high)):
         if cut - kept[-1] > near and length - cut > near:
             kept.append(cut)
     kept.append(length)
     parts = []
     for start, end in zip(kept, kept[1:]):
         middle = (start + end) / 2.0
-        on = [(other, front) for other, low, high, front in spans if low <= middle <= high]
-        owners = sorted({plot} | {other for other, _ in on})
-        shut = any(front and other in written for other, front in on)
+        on = [(other, front, before) for other, low, high, front, before in spans if low <= middle <= high]
+        owners = sorted({plot} | {other for other, _, _ in on})
+        shut = any(front and other in written for other, front, _ in on)
+        # A part that stands on the front a plot had before its turn stands as the turn opened another edge
+        moved = ({plot} if turned else set()) | {other for other, _, before in on if before and other in written}
         if parts and parts[-1][2] == owners and parts[-1][3] == shut:
             parts[-1][1] = end
+            parts[-1][4] |= moved
         else:
-            parts.append([start, end, owners, shut])
+            parts.append([start, end, owners, shut, moved])
     found = []
-    for start, end, owners, shut in parts:
+    for start, end, owners, shut, moved in parts:
         writers = [other for other in owners if other in written and other in ffls]
         if shut or writers[0] != plot:
             continue
@@ -183,7 +192,7 @@ def edge_walls(plot, edge, a, b, others, written, ffls, rules):
         last = [b[0], b[1]] if end == length else [a[0] + ux * end, a[1] + uy * end]
         base, top = pick(writers, ffls, rules["higherBase"]), pick(writers, ffls, rules["higherTop"])
         found.append({"plot": plot, "edge": edge, "plots": owners, "ends": [first, last], "base": ffls[base] - rules["depth"], "top": ffls[top] + rules["rise"],
-                      "basePlot": base, "topPlot": top})
+                      "basePlot": base, "topPlot": top, "turned": [other for other in owners if other in moved]})
     return found
 
 
@@ -202,12 +211,18 @@ def ffl_of(entry):
 
 def mark(item, wall, table, applied):
     """R401. The status of each value of a wall through valueStatus, applied the overrides of each plot in the order the build applied them.
-    The base and the top take the FFL of the highest or lowest of the written plots of the wall, and the open edge of each plot decides which
-    walls stand, so every override of the plots of the wall, in their order, whose set holds the field touched it and is named, heightM the base
-    and the top, rotationDeg every value (Q112, Q113, breaker F3 of PR 79, R2 and R3 of the review of PR 85)."""
-    done = tuple(name for plot in wall["plots"] for name in applied.get(plot) or ())
+    The base and the top take the FFL of the highest or lowest of the written plots of the wall, so every override of the plots of the wall,
+    in their order, whose set holds the field touched it and is named, heightM the base and the top (Q112, Q113, breaker F3 of PR 79, R2 of the
+    review of PR 85). A turn decides only whether a wall stands, so a rotation of a plot is named only on a wall of turned, and the plots of a
+    wall come from the faces alone (Q120). The base and the top read what the overrides of the plot of their level still read (Q119)."""
+    turned = set(wall.get("turned") or ())
+
+    def kept(plot):
+        return tuple(name for name in applied.get(plot) or () if name != ROTATION or plot in turned)
+    done = tuple(name for plot in wall["plots"] for name in kept(plot))
+    reading = {"base": kept(wall["basePlot"]), "top": kept(wall["topPlot"])}
     for field in FIELDS:
-        item[field]["status"], detail, item[field]["statusFrom"] = table.of("walls." + field, item[field]["source"], None, done)
+        item[field]["status"], detail, item[field]["statusFrom"] = table.of("walls." + field, item[field]["source"], None, done, reading=reading.get(field))
         table.used[item[field]["statusFrom"]] = detail
 
 

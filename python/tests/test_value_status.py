@@ -117,12 +117,13 @@ def test_r401_q107_q112_the_detail_names_the_overrides_in_the_order_the_build_ap
 def test_r401_q112_a_value_names_every_applied_override_whose_set_holds_its_field_in_the_order_applied():
     """Q112 (Bader, 2026-10-28), the fallback: one more build per override added more than 20 percent to the time of a build of the 7 keys, so
     a value names every applied override whose set holds its field, the overrides that touched its inputs, in the order the build applied
-    them, each once, and takes the worst of the override status and the entries the one applied last still reads (R1 of the review of PR 85)."""
+    them, each once, and takes the worst of the override status and the entries every one of them still reads (Q119), where the reads of the
+    one applied last alone gave the entry of El @ Entry that entryM set."""
     ffl, entry = {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}
     table = made_table(shape={"overrideSets": {"entryM": ["levels.entry", "levels.height"], "heightM": ["levels.ffl", "levels.height", "insert"]},
                               "overrideReads": {"entryM": {"levels.height": [ffl]}, "heightM": {"levels.height": [entry, ffl]}}})
     assert table.of("levels.height", "estimate", applied=["entryM", "heightM"]) == (
-        "RECOMMENDED", {"entries": [OVERRIDE, ENTRY, FFL], "overrides": ["entryM", "heightM"]}, "levels.height from override by entryM heightM")
+        "RECOMMENDED", {"entries": [OVERRIDE, FFL], "overrides": ["entryM", "heightM"]}, "levels.height from override by entryM heightM")
     assert table.of("levels.height", "estimate", applied=["heightM", "entryM"])[1:] == (
         {"entries": [OVERRIDE, FFL], "overrides": ["heightM", "entryM"]}, "levels.height from override by heightM entryM")
     assert table.of("levels.entry", "estimate", applied=["entryM", "heightM"])[2] == "levels.entry from override by entryM"
@@ -159,16 +160,68 @@ def test_r401_q112_review1_an_override_that_sets_a_field_outright_drops_the_read
     assert table.of("levels.steps", "estimate", applied=["heightM"])[0] == "UNKNOWN"
 
 
-def test_r401_q112_review1_the_mirror_flag_that_decides_the_yard_touches_every_field_of_it():
-    """R4 of the review of PR 85: the yard of 1403 is there only by its mirror flag override, which picks the yard outline of the hand, so
-    every field of the yard names mirrored and takes the worst of the override status and its own entries (Q112, Q113)."""
-    table = real_table({KEY + "yard.rule": {"status": "MEASURED", "share": 0.97, "strength": "strong"}})
-    for field, source in (("floors.yard.type", "computed"), ("floors.yard.level", "computed"), ("floors.yard.levelElevation", "computed"),
-                          ("floors.yard.plotValue", "computed"), ("floors.yard.z", "estimate"), ("floors.yard.heightOffset", "estimate"), ("floors.yard.outline", "computed")):
+def test_r401_q120_the_mirror_flag_covers_the_yard_outline_and_type_and_a_rotation_no_wall_plots():
+    """Q120 (Bader, 2026-10-29): the mirror flag picks the outline group of the yard (plan_from_cad.py), so it touches the yard outline and
+    type alone, and the level, plotValue, z and heightOffset of the yard keep their own status, where review pass 1 of PR 85 gave them all.
+    The plots of a wall come from the faces alone, so a rotation touches no walls.plots, and its ends, base and top only where the turn
+    decides whether the wall stands (plan_walls.mark)."""
+    sets = project_profile.load_settings().get("valueStatus")["overrideSets"]
+    assert [field for field in sets["mirrored"] if field.startswith("floors.yard.")] == ["floors.yard.outline", "floors.yard.type"]
+    assert "walls.plots" not in sets["rotationDeg"] and [field for field in sets["rotationDeg"] if field.startswith("walls.")] == ["walls.ends", "walls.base", "walls.top"]
+    table = real_table({KEY + "yard.rule": dict(STRONG), KEY + "ffl.rule": dict(STRONG)})
+    for field, source in (("floors.yard.type", "computed"), ("floors.yard.outline", "computed")):
         status, detail, key = table.of(field, source, hand="alone", applied=["mirrored"])
         assert key.endswith(" by mirrored") and detail["overrides"] == ["mirrored"], field
         assert status in ("UNKNOWN", "RECOMMENDED"), field
-    assert table.of("floors.yard.levelElevation", "computed", applied=["mirrored"])[0] == "UNKNOWN"
+    for field, source in (("floors.yard.level", "computed"), ("floors.yard.levelElevation", "computed"), ("floors.yard.plotValue", "computed"),
+                          ("floors.yard.z", "estimate"), ("floors.yard.heightOffset", "estimate")):
+        status, detail, key = table.of(field, source, hand="alone", applied=["mirrored"])
+        assert (key, "overrides" in detail) == ("%s from %s" % (field, source), False), field
+    assert table.of("floors.yard.plotValue", "computed", applied=["mirrored"])[0] == "DOCUMENT"
+    assert table.of("floors.yard.z", "estimate", applied=["mirrored"])[0] == "MEASURED"
+    status, detail, key = table.of("walls.plots", "locationPlan", applied=["rotationDeg"])
+    assert (key, "overrides" in detail, detail["entries"][0]["status"]) == ("walls.plots from locationPlan", False, "DOCUMENT")
+
+
+YARD = "levelProfiles.parsons2024Rev6.yardBelowFflM"
+
+
+def names(detail):
+    """The block entries of a detail by their path, a status by its question or document."""
+    return [entry["entry"].split(" ", 1)[1] if "entry" in entry else entry.get("question") or entry.get("document") or entry.get("why") for entry in detail["entries"]]
+
+
+def test_r401_q119_a_value_reads_the_entries_every_override_that_touched_it_still_reads():
+    """Q119 (Bader, 2026-10-29): a value lists the reads of the override that set each input it stands on. Each override of overrideReads reads
+    the entries of the inputs it leaves, so an entry one of them set is read by none of the others, and the value reads what all of them still
+    read. heightM then mirrored on the insert leave the link origin alone, where the reads of mirrored, applied last, brought the FFL rule
+    though heightM set the FFL, and the yard outline of mirrored, insert and rotationDeg reads its own rule alone. The status stays."""
+    table = real_table(dict({KEY + name: dict(STRONG) for name in ("linkOrigin.rule", "ffl.rule", "hand alone.rule", "yardOutline.rule", "linkRotation.rule",
+                                                                   "entry.rule", "steps.rule")}, **{"steps.riser_added": dict(STRONG)}))
+    status, detail, key = table.of("insert", "computed", hand="alone", applied=["heightM", "mirrored"])
+    assert (status, key, names(detail)) == ("RECOMMENDED", "insert from override by heightM mirrored", ["Q053", KEY + "linkOrigin.rule"])
+    status, detail, key = table.of("floors.yard.outline", "computed", hand="alone", applied=["mirrored", "insert", "rotationDeg"])
+    assert (status, key, names(detail)) == ("RECOMMENDED", "floors.yard.outline from override by mirrored insert rotationDeg", ["Q053", KEY + "yardOutline.rule"])
+    # One override alone reads what overrideReads names for it, as before
+    assert names(table.of("floors.yard.outline", "computed", hand="alone", applied=["insert"])[1]) == [
+        "Q053", KEY + "yardOutline.rule", KEY + "linkRotation.rule", KEY + "hand alone.rule"]
+    # entryM sets El @ Entry and heightM the FFL, so the height reads neither rule and the steps the step rule and the riser
+    assert names(table.of("levels.height", "estimate", applied=["entryM", "heightM"])[1]) == ["Q053"]
+    assert names(table.of("levels.steps", "estimate", applied=["entryM", "heightM"])[1]) == ["Q053", KEY + "steps.rule", "steps.riser_added"]
+
+
+def test_r401_q119_a_value_whose_inputs_another_plot_set_reads_the_overrides_of_its_own_plot():
+    """Q119: reading names the overrides whose reads the value takes, those of the plot its input stands on, the base plot of a wall. One that
+    names none reads the entries of its own field and source, and the key names them, so two walls of the same overrides keep apart."""
+    table = real_table(dict({KEY + name: dict(STRONG) for name in ("wallBase.rule", "ffl.rule")}, **{YARD: dict(STRONG)}))
+    status, detail, key = table.of("walls.base", "keyRules", applied=["heightM"], reading=[])
+    assert (status, key, detail["overrides"]) == ("RECOMMENDED", "walls.base from override by heightM reads of none", ["heightM"])
+    assert names(detail) == ["Q053", KEY + "wallBase.rule", KEY + "ffl.rule", YARD]
+    status, detail, key = table.of("walls.base", "keyRules", applied=["heightM", "rotationDeg"], reading=["heightM", "rotationDeg"])
+    assert (key, names(detail)) == ("walls.base from override by heightM rotationDeg", ["Q053", KEY + "wallBase.rule", YARD])
+    assert table.of("walls.base", "keyRules", applied=["heightM", "rotationDeg"], reading=["rotationDeg"])[2] == "walls.base from override by heightM rotationDeg reads of rotationDeg"
+    # An override of reading the set of the field does not hold is no input of it
+    assert table.of("walls.base", "keyRules", applied=["heightM"], reading=["heightM", "entryM"])[2] == "walls.base from override by heightM"
 
 
 def test_r401_an_override_and_a_client_input_take_the_status_the_map_gives_their_source():
@@ -256,14 +309,15 @@ MADE_BLOCK = {KEY + "entry.rule": WEAK, KEY + "ffl.rule": STRONG, KEY + "steps.r
 MADE_CONFIG_BLOCK = {"floors.types.generic": {"status": "UNKNOWN", "why": "made up", "nearestSource": "floors.note"}}
 # The plots of the made row by field and status with MADE, the made block and the map of config/project.json, which ValueStatusTests.cs holds the same.
 # Since Q107 the steps and the fields of the steps read steps.riser_added and each heightOffset the elevation of its level, which the made
-# block lacks or no entry maps, so they are UNKNOWN as the worst, and since Q113 a field an override touched names it at any value
+# block lacks or no entry maps, so they are UNKNOWN as the worst, and since Q113 a field an override touched names it at any value. Since
+# Q120 the mirror flag of 4 leaves the plotValue of its yard DOCUMENT
 MADE_COUNTS = ("floors.generic.heightOffset:UNKNOWN=6 floors.generic.level:UNKNOWN=6 floors.generic.levelElevation:UNKNOWN=6 "
                "floors.generic.outline:UNKNOWN=6 floors.generic.plotValue:DOCUMENT=6 floors.generic.type:UNKNOWN=6 "
                "floors.generic.z:UNKNOWN=6 floors.ramp.corners:UNKNOWN=6 floors.ramp.heightOffset:UNKNOWN=6 floors.ramp.level:UNKNOWN=6 "
                "floors.ramp.levelElevation:UNKNOWN=6 floors.ramp.outline:UNKNOWN=6 floors.ramp.plotValue:DOCUMENT=6 "
                "floors.ramp.slopePercent:CHOSEN by Code=6 floors.ramp.type:CHOSEN by Code=5 floors.ramp.type:RECOMMENDED=1 "
                "floors.yard.heightOffset:UNKNOWN=3 floors.yard.level:UNKNOWN=3 floors.yard.levelElevation:UNKNOWN=3 "
-               "floors.yard.outline:UNKNOWN=3 floors.yard.plotValue:DOCUMENT=2 floors.yard.plotValue:RECOMMENDED=1 floors.yard.type:UNKNOWN=3 floors.yard.z:UNKNOWN=3 "
+               "floors.yard.outline:UNKNOWN=3 floors.yard.plotValue:DOCUMENT=3 floors.yard.type:UNKNOWN=3 floors.yard.z:UNKNOWN=3 "
                "insert:MEASURED strong=3 insert:RECOMMENDED=3 levels.entry:MEASURED weak=5 levels.entry:RECOMMENDED=1 "
                "levels.ffl:RECOMMENDED=1 levels.ffl:UNKNOWN=5 levels.height:MEASURED weak=4 levels.height:RECOMMENDED=2 "
                "levels.roadAtFrontM:UNKNOWN=6 levels.ssl:UNKNOWN=6 levels.steps:RECOMMENDED=1 levels.steps:UNKNOWN=5 linkName:RECOMMENDED=2 linkName:UNKNOWN=4 "
@@ -416,8 +470,8 @@ def test_r401_q107_the_plan_writes_the_shares_of_the_table_status_from_unrounded
 
 def test_r401_every_value_an_override_moves_carries_the_status_of_the_override_list(monkeypatch):
     """The second method: the made row built with no override, every value of a plot both write that differs carries the override status.
-    The yard of 4 is there only by its mirror flag override, which picks the outline of the hand and so the yard, so every field of it carries
-    it (R4 of the review of PR 85)."""
+    The yard of 4 is there only by its mirror flag override, which picks the outline group of the hand, so its outline and type carry it and
+    its level, plotValue, z and heightOffset keep their own status (Q120, where R4 of the review of PR 85 gave every field of the yard)."""
     built, plain = made_row(monkeypatch, MADE), made_row(monkeypatch, {})
     differ, carry, only = [], [], []
     for number, entry in built["plan"].items():
@@ -431,7 +485,7 @@ def test_r401_every_value_an_override_moves_carries_the_status_of_the_override_l
                 if carries:
                     carry.append((number, field))
     assert differ == carry and len(differ) > 20
-    assert only == [("4", "floors.yard." + name, True) for name in ("type", "level", "levelElevation", "outline", "plotValue", "z", "heightOffset")]
+    assert only == [("4", "floors.yard." + name, name in ("type", "outline")) for name in ("type", "level", "levelElevation", "outline", "plotValue", "z", "heightOffset")]
 
 
 def strip(value):
@@ -562,27 +616,31 @@ def test_r401_review1_pr78_the_build_marks_the_plot_an_open_question_decides():
     assert (entry["mirrored"]["status"], entry["mirrored"]["statusFrom"]) == ("RECOMMENDED", "mirrored from computed hand alone question Q900 k1")
 
 
-def test_r401_review1_pr78_the_plots_q017_decides_read_recommended_for_prototype_file_and_mirrored():
+def test_r401_review1_pr78_the_plots_q017_decides_read_chosen_by_bader_for_prototype_file_and_mirrored():
+    # 4h-2: Q017 closed by Bader on 2026-10-29, its entry reads CHOSEN by Bader, so each value takes the status of its other entries,
+    # the one a plot Q017 does not decide reads
     settings = project_profile.load_settings()
     profile = project_profile.load_profile(project_profile.profile_path(settings)).values
     table = value_status.table_of(settings, profile, "parsons2024Rev6")
     status, found, key = table.of("prototypeFile", "computed", unit="VD4", plot="2301")
-    assert (status, key) == ("RECOMMENDED", "prototypeFile from computed unit VD4 question Q017 imc")
+    assert (status, key) == ("DOCUMENT", "prototypeFile from computed unit VD4 question Q017 imc")
     last = found["entries"][-1]
-    assert (last["entry"], last["status"], last["question"]) == ("config/project.json majority.decidedByQuestion.Q017.plots.imc", "RECOMMENDED", "Q017")
-    assert table.of("mirrored", "computed", hand="villa", plot="544")[0::2] == ("RECOMMENDED", "mirrored from computed hand villa question Q017 img")
+    assert (last["entry"], last["status"], last["question"]) == ("config/project.json majority.decidedByQuestion.Q017.plots.imc", "CHOSEN by Bader", "Q017")
+    assert table.of("mirrored", "computed", hand="villa", plot="544")[0::2] == ("MEASURED", "mirrored from computed hand villa question Q017 img")
+    assert table.of("mirrored", "computed", hand="villa", plot="545")[0] == "MEASURED"
     assert table.of("prototypeFile", "computed", unit="VD4", plot="2303")[0::2] == ("DOCUMENT", "prototypeFile from computed unit VD4")
 
 
-def test_r401_q114_the_fields_that_follow_the_hand_of_2302_read_recommended_by_q017_while_it_is_open():
+def test_r401_q114_the_fields_that_follow_the_hand_of_2302_read_chosen_by_bader_by_q017_once_closed():
     settings = project_profile.load_settings()
     profile = project_profile.load_profile(project_profile.profile_path(settings)).values
     table = value_status.table_of(settings, profile, "parsons2024Rev6")
     for field, source in (("rotationDeg", "computed"), ("insert", "computed"), ("floors.yard.outline", "computed"), ("parameters.CASE", "keyRules")):
         status, found, key = table.of(field, source, hand="cluster", unit="DP4", plot="2302")
         last = found["entries"][-1]
-        assert (status, key.endswith(" question Q017 followHand imc")) == ("RECOMMENDED", True), field
-        assert (last["entry"], last["status"], last["question"]) == ("config/project.json majority.decidedByQuestion.Q017.followHand.plots.imc", "RECOMMENDED", "Q017")
+        assert (status, key.endswith(" question Q017 followHand imc")) == ("MEASURED", True), field
+        assert status == table.of(field, source, hand="cluster", unit="DP4", plot="2301")[0], field
+        assert (last["entry"], last["status"], last["question"]) == ("config/project.json majority.decidedByQuestion.Q017.followHand.plots.imc", "CHOSEN by Bader", "Q017")
         # 2301 and 544, whose hand Q017 decides as well, keep the status of their own list for these fields
         assert "question" not in table.of(field, source, hand="cluster", unit="DP4", plot="2301")[2]
     # prototypeFile and mirrored of 2302 keep the entry of Q017.plots, its key as before

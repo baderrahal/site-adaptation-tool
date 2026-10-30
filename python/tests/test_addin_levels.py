@@ -416,3 +416,14 @@ def test_r339_the_override_list_holds_the_level_misses_of_the_keys_as_gaps_and_n
             assert set(item["value"]) == {"gapToRuleM"} and abs(item["value"]["gapToRuleM"]) < 50.0
         if item["field"] == "steps":
             assert item["value"] in ("1", "2", "3")
+
+
+def test_q055_a_key_entry_parameter_off_its_own_ramp_back_is_read_off_the_ramp_back():
+    # Q055 (Bader, 2026-10-29): the 1.4 ELl@Entry typed 0.41 to 1.59 m off its own ramp on 5 plots, read El @ Entry off the ramp there
+    off = {"entry": 12.0, "entrySource": "floorParameter", "rampBack": 10.59}
+    assert majority.clean_entry(off, 0.3) == 10.59
+    # Within the limit, from another source, or with no ramp back to read, the parameter stands
+    assert majority.clean_entry(dict(off, rampBack=11.8), 0.3) == 12.0
+    assert majority.clean_entry(dict(off, entrySource="schedule"), 0.3) == 12.0
+    assert majority.clean_entry(dict(off, rampBack=None), 0.3) == 12.0
+    assert majority.clean_entry(dict(off, entry=None), 0.3) is None

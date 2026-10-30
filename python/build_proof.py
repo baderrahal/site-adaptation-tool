@@ -227,7 +227,8 @@ def held_levels(entry, row, read, block):
     rule = entry.get("levelRule")
     raw_entry = row.get("entry")
     key_entry = majority.clean_entry(row, block["entryRampM"]) if raw_entry is not None else None
-    no_entry = "the key holds no El @ Entry" if raw_entry is None else "the El @ Entry parameter of the key is off its own ramp (R270)"
+    # Q055: a key parameter off its own ramp reads El @ Entry off the ramp back, so a key with a raw entry always gives one
+    no_entry = "the key holds no El @ Entry"
     ramp = value((entry.get("floors") or {}).get("ramp"), "corners")
     front = None if not ramp or len(ramp) < 2 else (ramp[0][2] + ramp[1][2]) / 2.0
     key_corners = json.loads(row["rampCorners"]) if isinstance(row.get("rampCorners"), str) and row["rampCorners"] else row.get("rampCorners")

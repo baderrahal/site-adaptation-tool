@@ -414,4 +414,4 @@ def test_d13_the_open_questions_are_read_from_questions_open_not_from_baders_tur
     rule_status.write(root)
     config = entries(root)["config/project.json"]
     assert config["analysis.otherShare"] == {"status": "RECOMMENDED", "question": "Q105", "where": "Q105"}
-    assert rule_status.Audit(root).open == {"Q105"} | rule_status.HELD_OPEN and rule_status.HELD_OPEN == {"Q017"}
+    assert rule_status.Audit(root).open == {"Q105"}

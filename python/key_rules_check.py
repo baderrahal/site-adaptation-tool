@@ -871,12 +871,12 @@ def row_sides(plot, ctx, counted):
 
 
 def entry_of(row, block):
-    """El @ Entry of a row, None where a key parameter is off its own ramp back by more than entryRampM (R270)."""
+    """El @ Entry of a row. A key parameter off its own ramp back by more than entryRampM (R270) is read off the ramp back (Q055)."""
     entry, back = number(row.get("entry")), number(row.get("rampBack"))
     if entry is None:
         return None
     if row.get("entrySource") == "floorParameter" and back is not None and abs(entry - back) > block["entryRampM"]:
-        return None
+        return back
     return entry
 
 

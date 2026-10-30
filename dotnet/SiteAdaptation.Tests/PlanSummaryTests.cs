@@ -49,12 +49,15 @@ namespace SiteAdaptation.Tests
             Assert.Equal("{\"blockMirrorRoadSide\":1,\"clusterSide\":2,\"override\":1,\"rowPairSideOrBlockMirrorOpenEnd\":2}", Text(summary["handRules"]));
             Assert.Equal("{\"foo\":1,\"genericFloor\":1,\"insert\":1,\"mirrored\":1,\"rampFrontFallM\":1,\"rampOutline\":1,\"yardOutline\":1}", Text(summary["overridesNotApplied"]));
             Assert.Equal("{\"from\":\"keyRules.steps stepsFromHeight of parsons2024Rev6\",\"parameters\":[\"RRE_ZZ_SP_Number-of-Steps\",\"RRE_ZZ_SP_RVT-Name\"]}", Text(summary["steps"]));
-            // The status of R401 by the counts the worker writes, one source, 242 values in 44 fields, 30 of them with an assumed value
+            // The status of R401 by the counts the worker writes, one source, 242 values in 44 fields, 28 of them with an assumed value, since Q120
+            // the yard level and plotValue of 4, whose mirror flag override touches only the outline and type of its yard, no longer assumed
             Assert.Equal(string.Join(" ", ValueStatus.Counts(status, table).Select(item => item.Key.Item1 + ":" + item.Key.Item2 + "=" + item.Value)),
                 string.Join(" ", ((JObject)summary["statusByField"]).Properties().SelectMany(field => ((JObject)field.Value).Properties().Select(item => field.Name + ":" + item.Name + "=" + (int)item.Value))));
             Assert.Equal(242, ((JObject)summary["statusByField"]).Properties().Sum(field => ((JObject)field.Value).Properties().Sum(item => (int)item.Value)));
             Assert.Equal(44, ((JObject)summary["statusByField"]).Count);
-            Assert.Equal(30, ((JObject)summary["assumedByField"]).Count);
+            Assert.Equal(28, ((JObject)summary["assumedByField"]).Count);
+            Assert.Null(summary["assumedByField"]["floors.yard.level"]);
+            Assert.Null(summary["assumedByField"]["floors.yard.plotValue"]);
             Assert.Equal("[\"2\",\"4\",\"5\"] [\"4\"] [\"1\",\"2\",\"3\",\"4\",\"6\"] [\"2\",\"4\",\"6\"]", string.Join(" ", new[] { "floors.yard.outline", "mirrored",
                 "parameters.RRE_ZZ_SP_Number-of-Steps", "rotationDeg" }.Select(field => Text(summary["assumedByField"][field]))));
             Assert.Equal("{\"CHOSEN by Bader\":6,\"DOCUMENT\":6,\"MEASURED strong\":6,\"MEASURED weak\":6,\"RECOMMENDED\":5,\"UNKNOWN\":6,\"assumed\":6}", Text(summary["statusPlots"]));

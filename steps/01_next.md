@@ -61,7 +61,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## 4h-2, the scope, the step state and the second method
 
-- Status: open, Lane A
+- Status: done on 2026-10-29 in Lane A on the laptop, one PR (D20), Q159 to Q163 opened, its latent findings in steps/latent.md under 4h-2
 - Starts when: 4h-1
 - Rules: R366 scope with the plot list syntax and the step state by hash. R369 the second method of Phase 4, seeds 14 and 7
 - R366 joins the pane as a join item of the Lane B phase open when 4h-2 ends (D9), W9 of steps/lane-b.md

@@ -24,7 +24,7 @@ Round 17 gave the IDs. Each open question of the DATA-4 list kept its number as 
 | Q014 | VL6 hand: is VL6 drawn the other hand from VL4 | Yes. Round DATA-4 read both prototypes in Revit (R245, R246): the VL6 gate and driver's room sit on the right seen from the road, the VL4 gate on the left | 2026-10-25, DATA-4 |
 | Q015 | Yard 0.100 under the floor top, none in Zone 4, Zone 1 taken from Zone 2 and 3 until Q066 | As recommended: accept | Bader, 2026-10-29, answer pass |
 | Q016 | Plots 2311, 2312 by baseplan | As recommended: Plots 2311, 2312 by baseplan | Bader, 2026-10-29, answer pass |
-| Q017 | IMC 2301, 2302 and IMG 544 | As recommended: VD4 by Rev 9, the keys link DP4 on these 3 of 2,501 plots, a build links VD4 with no override, the VD4 hand of 2302 differs from its key: accept. Its status block stays RECOMMENDED until 4h-2 changes the two tests of R401 that pin it, join item | Bader, 2026-10-29, answer pass |
+| Q017 | IMC 2301, 2302 and IMG 544 | As recommended: VD4 by Rev 9, the keys link DP4 on these 3 of 2,501 plots, a build links VD4 with no override, the VD4 hand of 2302 differs from its key: accept. Its status block stays RECOMMENDED until 4h-2 changes the two tests of R401 that pin it, join item, CHOSEN by Bader since 4h-2 | Bader, 2026-10-29, answer pass |
 | Q018 | 58 past ramps listed | As recommended: 58 past ramps listed | Bader, 2026-10-29, answer pass |
 | Q019 | Schedule FFL | As recommended: Schedule FFL | Bader, 2026-10-29, answer pass |
 | Q020 | Keep the north stop | As recommended: Keep the north stop | Bader, 2026-10-29, answer pass |
