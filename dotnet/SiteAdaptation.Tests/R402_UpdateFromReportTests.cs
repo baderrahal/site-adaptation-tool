@@ -121,14 +121,14 @@ namespace SiteAdaptation.Tests
         }
 
         // The level Excel of 012 as LevelSheets makes it and LevelWorkbook writes it
-        private string WriteLevelExcel(JObject plan)
+        private string WriteLevelExcel(JObject plan, string planSha = PlanSha)
         {
             Func<string[], JObject> written = plots => new JObject { ["written"] = new JObject { ["plots"] = new JArray(plots) } };
             Func<string[], JObject> piece = plots => new JObject { ["written"] = new JObject { ["piece"] = new JArray(plots) } };
             Func<string[], JObject> row = plots => new JObject { ["written"] = new JObject { ["cluster"] = new JArray(plots) } };
             var inputs = new LevelInputs
             {
-                Plan = plan, PlanSha256 = PlanSha, Rules = MadeRules(), RulesName = "rules.json", RulesSha256 = "r", Config = new JObject { ["placerCheck"] = new JObject { ["level"] = new JObject { ["passMm"] = 1.0 } } },
+                Plan = plan, PlanSha256 = planSha, Rules = MadeRules(), RulesName = "rules.json", RulesSha256 = "r", Config = new JObject { ["placerCheck"] = new JObject { ["level"] = new JObject { ["passMm"] = 1.0 } } },
                 RoadOrder = new List<string> { "Road A" }, Overrides = MadeOverrides(), OverridesSha256 = "o",
                 Clusters = new JObject { ["plots"] = new JObject { ["102|103"] = written(new[] { "102", "103" }) } },
                 Levels = new JObject { ["plots"] = new JObject { ["101"] = piece(new[] { "101" }), ["102"] = piece(new[] { "102", "103" }), ["103"] = piece(new[] { "102", "103" }) } },
@@ -146,7 +146,7 @@ namespace SiteAdaptation.Tests
         }
 
         // The sheets Placed and Settings of the report Excel of 012 as ReportSheets makes Placed, written by ReportWorkbook
-        private string WriteReportExcel(JObject plan)
+        private string WriteReportExcel(JObject plan, string planSha = PlanSha)
         {
             var book = new ReportBook { Nbh = "012", FileName = "012_Report.xlsx" };
             var placed = new ReportSheet { Name = ReportExcelText.PlacedSheet };
@@ -156,7 +156,7 @@ namespace SiteAdaptation.Tests
             table.Rows.Add(new object[] { ReportExcelText.RunId, "rx1" });
             table.Rows.Add(new object[] { ReportExcelText.EditableColumns, "Type, Mirror" });
             table.Rows.Add(new object[] { ReportExcelText.PlanBuildId, LevelExcelText.NoBuildId });
-            table.Rows.Add(new object[] { ReportExcelText.PlanSha, PlanSha });
+            table.Rows.Add(new object[] { ReportExcelText.PlanSha, planSha });
             settings.Tables.Add(table);
             book.Sheets.Add(placed);
             book.Sheets.Add(settings);
@@ -220,11 +220,14 @@ namespace SiteAdaptation.Tests
             return new Cell(new CellValue(number)) { CellReference = reference, StyleIndex = style };
         }
 
+        // The paths of the level Excel and the report Excel the last EditedBooks wrote
+        private string[] LastPaths;
+
         // Five edits of the level Excel, two not editable, and four of the report Excel, one not editable
-        private List<UpdateBook> EditedBooks(JObject plan)
+        private List<UpdateBook> EditedBooks(JObject plan, string planSha = PlanSha)
         {
-            string level = WriteLevelExcel(plan);
-            string report = WriteReportExcel(plan);
+            string level = WriteLevelExcel(plan, planSha);
+            string report = WriteReportExcel(plan, planSha);
             Edit(level, "Levels", "F3", "101", 10.25);
             Edit(level, "Levels", "E4", "102", 10.15);
             Edit(level, "Levels", "I5", "103", 3L);
@@ -234,6 +237,7 @@ namespace SiteAdaptation.Tests
             Edit(report, "Placed", "D4", "102", false);
             Edit(report, "Placed", "C5", "102", "Generic 200");
             Edit(report, "Placed", "C7", "103", "ZZ9");
+            LastPaths = new[] { level, report };
             return new List<UpdateBook> { UpdateWorkbook.Read(level), UpdateWorkbook.Read(report) };
         }
 
@@ -404,6 +408,148 @@ namespace SiteAdaptation.Tests
             Assert.Equal("  \"cannot\": [", lines[9]);
             Assert.EndsWith("  ]\n}\n", text);
             Assert.True(JToken.DeepEquals(list, JObject.Parse(text)));
+        }
+
+        private static JObject WorkerConfig()
+        {
+            return new JObject
+            {
+                ["siteBuild"] = new JObject { ["minFreeGB"] = 2.0, ["roadSurfaces"] = new JArray("Road A") },
+                ["placerCheck"] = new JObject { ["level"] = new JObject { ["passMm"] = 1.0 } },
+                ["addin"] = new JObject
+                {
+                    ["workerPeakMiB"] = new JObject { ["roles"] = new JArray("curbs"), ["files"] = new JArray(new JObject { ["name"] = "Road.dwg", ["bytes"] = 1, ["peakMiB"] = 100 }) },
+                    ["workerTimeLimitS"] = new JObject { ["updateFromReport"] = 60 },
+                    ["workerTimeLimitMinS"] = 10,
+                },
+            };
+        }
+
+        private string WriteText(string name, string text)
+        {
+            string path = Path.Combine(folder, name);
+            File.WriteAllText(path, text);
+            return path;
+        }
+
+        private static WorkerFile Input(string role, string path)
+        {
+            return new WorkerFile { Role = role, Path = path, Sha256 = FileHash.Sha256(path) };
+        }
+
+        // The command updateFromReport on the edited copies of 012. The plan is written first so the Excel files carry its real SHA-256, runPlan
+        // then takes its place on disk to make a plan of another build
+        private WorkerAnswer RunUpdate(JObject plan, bool withExcel, out int code, string id, JObject runPlan = null)
+        {
+            string planPath = WriteText("plan_012.json", plan.ToString());
+            EditedBooks(plan, FileHash.Sha256(planPath));
+            if (runPlan != null)
+            {
+                WriteText("plan_012.json", runPlan.ToString());
+            }
+            var inputs = new List<WorkerFile>
+            {
+                Input("config", WriteText("project.json", WorkerConfig().ToString())),
+                Input("rules", WriteText("rules.json", MadeRules().ToString())),
+                Input(UpdateFromReportWorker.PlanRole, planPath),
+            };
+            if (withExcel)
+            {
+                inputs.Add(Input(UpdateFromReportWorker.LevelRole, LastPaths[0]));
+                inputs.Add(Input(UpdateFromReportWorker.ReportRole, LastPaths[1]));
+            }
+            var request = new WorkerRequest
+            {
+                FormatVersion = 1, RunId = id, Command = "updateFromReport", Document = new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" },
+                Inputs = inputs, LevelProfile = Profile, Scope = new WorkerScope { Kind = "nbh", Nbh = "012" }, OutputFolder = Path.Combine(folder, "out"), TimeLimitS = 60,
+            };
+            code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);
+            return WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, id));
+        }
+
+        [Fact]
+        public void R402_the_worker_command_gives_back_the_update_list_as_json_that_compare_gives()
+        {
+            JObject plan = MadePlan();
+            int code;
+            WorkerAnswer answer = RunUpdate(plan, true, out code, "uw1");
+            Assert.True(code == 0, "exit " + code + ": " + answer.Message);
+            string output = Path.Combine(folder, "out", UpdateFromReportWorker.OutputName);
+            Assert.Equal(new[] { output }, answer.Outputs.Select(item => item.Path).ToArray());
+            JObject json = JObject.Parse(File.ReadAllText(output));
+            Assert.NotNull(json[RunStamp.Key]);
+            json.Remove(RunStamp.Key);
+            string sha = FileHash.Sha256(Path.Combine(folder, "plan_012.json"));
+            UpdateList expected = UpdateFromReport.Compare(EditedBooks(plan, sha), plan, sha, MadeRules(), Profile);
+            Assert.True(JToken.DeepEquals(UpdateFromReport.ResultJson(expected, null), json), json.ToString());
+            Assert.Equal(6, ((JArray)json["changes"]).Count);
+            Assert.Equal(3, (int)json["tiles"]["Not editable ignored"]);
+            Assert.Equal(6, answer.Counts["changes"]);
+            Assert.Equal(3, answer.Counts["ignored"]);
+        }
+
+        [Fact]
+        public void R402_the_worker_command_gives_the_refusal_of_an_excel_of_another_build_in_its_json()
+        {
+            JObject plan = MadePlan();
+            JObject other = MadePlan();
+            other["run"] = new JObject { ["runId"] = "b2" };
+            int code;
+            WorkerAnswer answer = RunUpdate(plan, true, out code, "uw2", other);
+            Assert.True(code == 0, "exit " + code + ": " + answer.Message);
+            JObject json = JObject.Parse(File.ReadAllText(Path.Combine(folder, "out", UpdateFromReportWorker.OutputName)));
+            Assert.Contains("is of another build", (string)json["refusal"]);
+            Assert.Empty((JArray)json["changes"]);
+        }
+
+        [Fact]
+        public void R402_the_worker_command_refuses_a_request_with_no_excel_file()
+        {
+            int code;
+            WorkerAnswer answer = RunUpdate(MadePlan(), false, out code, "uw3");
+            Assert.Equal(WorkerExit.Refused, code);
+            Assert.Contains("no level Excel or report Excel", answer.Message);
+        }
+
+        [Fact]
+        public void R402_the_worker_reads_the_excel_files_in_place_and_changes_none()
+        {
+            int code;
+            WorkerAnswer answer = RunUpdate(MadePlan(), true, out code, "uw4");
+            Assert.Equal(0, code);
+            foreach (string path in LastPaths)
+            {
+                WorkerOpened opened = answer.Opened.Single(item => item.Path == path);
+                Assert.Equal(opened.Sha256Before, opened.Sha256After);
+                Assert.Equal(FileHash.Sha256(path), opened.Sha256After);
+            }
+        }
+
+        [Fact]
+        public void R402_the_time_limit_and_the_command_name_are_in_the_config_and_the_contract()
+        {
+            Assert.Contains("updateFromReport", WorkerRequest.Commands);
+            string config = Path.Combine(ThemeGateTests.RepoRoot(), "config", "project.json");
+            Assert.Equal(60, AddinConfig.Load(config).WorkerTimeLimitS("updateFromReport"));
+        }
+
+        [Fact]
+        public void R402_the_list_read_back_from_the_json_applies_as_the_list_the_worker_made()
+        {
+            JObject plan = MadePlan();
+            UpdateList list = UpdateFromReport.Compare(EditedBooks(plan), plan, PlanSha, MadeRules(), Profile);
+            UpdateList back = UpdateListJson.Read(JObject.Parse(UpdateFromReport.ResultJson(list, null).ToString()));
+            Assert.Equal(list.Tiles(), back.Tiles());
+            Assert.Equal(list.Chips(), back.Chips());
+            Assert.Equal(list.Changes.Select(change => change.RuleCheck + change.Ticked), back.Changes.Select(change => change.RuleCheck + change.Ticked));
+            UpdateApplied one = UpdateFromReport.Apply(list.Changes, plan, MadeOverrides(), MadeRules(), Profile, "u9");
+            UpdateApplied two = UpdateFromReport.Apply(back.Changes, plan, MadeOverrides(), MadeRules(), Profile, "u9");
+            Assert.Equal(UpdateFromReport.ListText(one.List), UpdateFromReport.ListText(two.List));
+            Assert.Empty(two.NotApplied);
+            Assert.Equal(one.Plots, two.Plots);
+            UpdateList refused = UpdateListJson.Read(new JObject { ["refusal"] = "one line", ["changes"] = new JArray(), ["ignored"] = new JArray(), ["lacks"] = new JArray("a lack") });
+            Assert.Equal("one line", refused.Refusal);
+            Assert.Equal(new[] { "a lack" }, refused.Lacks.ToArray());
         }
     }
 }

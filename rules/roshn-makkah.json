@@ -829,6 +829,7 @@
       "addin.workerTimeLimitS.levelExcel": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 10"},
       "addin.workerTimeLimitS.reportExcel": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 11"},
       "addin.workerTimeLimitS.exportChecks": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 12"},
+      "addin.workerTimeLimitS.updateFromReport": {"status": "CHOSEN by Code", "where": "R402, 60 s as the level Excel, two workbooks read and compared with the plan"},
       "addin.workerTimeLimitS.position": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 13"},
       "addin.workerTimeLimitMinS": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 14"},
       "addin.position.checkPointLimitMm": {"status": "CHOSEN by Code", "where": "addin.position.note"},
