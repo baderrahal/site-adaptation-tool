@@ -322,3 +322,4 @@ From the reviewer and the breaker passes 1 and 2 of the 5b PR. Each is LATENT, n
 - L4, R381: the newest committed run of 6 is paired with the newest committed run of 4 with no check that 6 used that plan.
 - L5, R381: revit_counts_<run id>.json is written straight to its name, not by its temporary name, and is left behind when the worker fails.
 - Wrong shape, R402: a plot number held as a number in the override list would mark the plot not savable in both routes, all 11,075 entries hold text (RAN).
+- Fix of pass 2 B, R402: the refusal of two books of one kind names each by its file name only, so two copies of 012_Report.xlsx in two folders read 012_Report.xlsx and 012_Report.xlsx. The refusal holds, the line is unclear.
