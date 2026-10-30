@@ -266,6 +266,8 @@ The window of the button Update from report, 5f, word for word from the part Upd
 - `the override list holds <n>, which the form of majority.overrides_text does not write (R402)` CHOSEN in 5f fix, the message of Apply
 - `the file name of a report Excel starts with its NBH and an underscore, as 012_Levels_<profile>.xlsx does (R402)` CHOSEN in 5f fix, the problem line of a pick, <profile> is a part of the name and no value
 - `the files are of NBH <n>, Update from report takes the files of one NBH (R402)` CHOSEN in 5f fix, the problem line of a pick
+- `<n> and <n> are both level Excels, Update from report takes one level Excel and one report Excel of one NBH (R402)` CHOSEN in 5f fix 2, the refusal line of two level Excels picked together
+- `<n> and <n> are both report Excels, Update from report takes one level Excel and one report Excel of one NBH (R402)` CHOSEN in 5f fix 2, the refusal line of two report Excels picked together
 - `the work folder holds no <n>, the plan of NBH <n> that 4 Check writes, so the Excel can not be compared (R402)` CHOSEN in 5f fix, the problem line of a pick
 - `the worker CadReader.exe is not beside the add-in: <n>` CHOSEN in 5f fix, the problem line of a pick
 - `the worker did not read the Excel: <n>` CHOSEN in 5f fix, the problem line of a pick, the status and message of the worker or the line below

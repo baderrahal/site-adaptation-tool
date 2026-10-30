@@ -19,7 +19,7 @@ namespace SiteAdaptation.Common.Update
                 var change = new UpdateChange
                 {
                     Plot = Text(item["plot"]), Field = field, FileName = Text(item["file"]), Sheet = Text(item["sheet"]), Row = (int?)item["row"] ?? 0,
-                    InModel = Cell(field, item["inModel"]), Invalid = Text(item["invalid"]), Ticked = (bool?)item["ticked"] ?? false,
+                    InModel = Cell(field, item["inModel"]), Invalid = Text(item["invalid"]), NotSavable = Text(item["notSavable"]), Ticked = (bool?)item["ticked"] ?? false,
                 };
                 change.InExcel = change.Invalid == null ? Cell(field, item["inExcel"]) : Plain(item["inExcel"]);
                 change.Checks.AddRange((item["checks"] as JArray ?? new JArray()).Select(value => (string)value));

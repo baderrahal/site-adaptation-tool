@@ -416,13 +416,82 @@ namespace SiteAdaptation.Tests
             UpdateList list = UpdateFromReport.Compare(EditedBooks(plan), plan, PlanSha, MadeRules(), Profile, overrides);
             string why = "the plot has no override entry of the job parsons, so Apply can not save it (Q169)";
             Assert.Equal(new[] { "101 FFL  False", "102 El @ Entry " + why + " False", "103 Steps  False", "101 Villa type  True", "102 Mirror " + why + " False", "103 Villa type  True" },
-                list.Changes.Select(change => change.Plot + " " + change.Field + " " + change.Invalid + " " + change.Ticked).ToArray());
+                list.Changes.Select(change => change.Plot + " " + change.Field + " " + change.NotSavable + " " + change.Ticked).ToArray());
+            // Breaker 2 of 5f: the why is kept apart from a cell that holds no value, Invalid stays null
+            Assert.All(list.Changes, change => Assert.Null(change.Invalid));
             UpdateApplied applied = UpdateFromReport.Apply(list.Changes.Where(change => change.Ticked), plan, overrides, MadeRules(), Profile, "u5");
             Assert.Equal(new[] { "101 unit", "103 unit" }, applied.Entries.Select(item => (string)item["plot"] + " " + (string)item["field"]).ToArray());
             Assert.Empty(applied.NotApplied);
             Assert.Equal(new[] { "101", "103" }, applied.Plots.ToArray());
             UpdateList unknown = UpdateFromReport.Compare(EditedBooks(plan), plan, PlanSha, MadeRules(), Profile);
-            Assert.All(unknown.Changes, change => Assert.NotEqual(why, change.Invalid));
+            Assert.All(unknown.Changes, change => Assert.Null(change.NotSavable));
+        }
+
+        // Breaker 2 of 5f: the team raises both FFLs of a piece alike, one plot with an entry of the job and one with none, as in the NBH 012
+        // pieces 2616-2615 and 2624-2623. Apply saves one, so the rebuild holds two FFLs in the piece. The not savable edit is no edit in the
+        // checks, so the savable one reads its break against the unchanged plot
+        [Fact]
+        public void R402_a_piece_split_across_a_savable_and_a_not_savable_plot_breaks_one_ffl_per_piece_on_the_savable_change()
+        {
+            JObject plan = MadePlan();
+            JObject overrides = MadeOverrides();
+            ((JArray)overrides["overrides"]).RemoveAt(3);
+            string level = WriteLevelExcel(plan);
+            Edit(level, "Levels", "F4", "102", 10.35);
+            Edit(level, "Levels", "F5", "103", 10.35);
+            UpdateList list = UpdateFromReport.Compare(new List<UpdateBook> { UpdateWorkbook.Read(level) }, plan, PlanSha, MadeRules(), Profile, overrides);
+            Assert.Equal(new[] { "102 FFL", "103 FFL" }, list.Changes.Select(change => change.Plot + " " + change.Field).ToArray());
+            UpdateChange savable = list.Changes[0], held = list.Changes[1];
+            Assert.Contains(UpdateFromReport.OneFflPerPiece, savable.Breaks);
+            Assert.Contains(UpdateFromReport.OneFflPerPiece, savable.Checks);
+            Assert.Contains("One FFL per piece", savable.RuleCheck);
+            Assert.Equal("the plot has no override entry of the job parsons, so Apply can not save it (Q169)", held.RuleCheck);
+            Assert.Empty(held.Checks);
+            Assert.Empty(held.Breaks);
+            Assert.False(held.Ticked);
+            UpdateApplied applied = UpdateFromReport.Apply(list.Changes.Where(change => change.Ticked), plan, overrides, MadeRules(), Profile, "u9");
+            Assert.Equal(new[] { "102" }, applied.Plots.ToArray());
+        }
+
+        // Breaker 2 of 5f: two level Excels of one NBH picked together listed a plot twice and Apply saved one of them silently, so a second
+        // book of the same kind is refused with one line naming both files
+        [Fact]
+        public void R402_a_second_level_excel_or_report_excel_of_one_nbh_is_refused_with_one_line_naming_both()
+        {
+            JObject plan = MadePlan();
+            List<UpdateBook> books = EditedBooks(plan);
+            string level2 = Path.Combine(folder, "012_Levels_" + Profile + " again.xlsx");
+            string report2 = Path.Combine(folder, "012_Report again.xlsx");
+            File.Copy(LastPaths[0], level2);
+            File.Copy(LastPaths[1], report2);
+            string tail = ", Update from report takes one level Excel and one report Excel of one NBH (R402)";
+            UpdateList twice = UpdateFromReport.Compare(new List<UpdateBook> { books[0], books[1], UpdateWorkbook.Read(level2) }, plan, PlanSha, MadeRules(), Profile, MadeOverrides());
+            Assert.Equal(books[0].FileName + " and " + Path.GetFileName(level2) + " are both level Excels" + tail, twice.Refusal);
+            Assert.Empty(twice.Changes);
+            Assert.Empty(twice.Ignored);
+            twice = UpdateFromReport.Compare(new List<UpdateBook> { books[1], UpdateWorkbook.Read(report2) }, plan, PlanSha, MadeRules(), Profile, MadeOverrides());
+            Assert.Equal(books[1].FileName + " and " + Path.GetFileName(report2) + " are both report Excels" + tail, twice.Refusal);
+            Assert.Empty(twice.Changes);
+            Assert.Null(UpdateFromReport.Compare(books, plan, PlanSha, MadeRules(), Profile, MadeOverrides()).Refusal);
+        }
+
+        // Breaker 2 of 5f: a change Apply can not save breaks no rule, so the chip Breaks a rule counts the rule breaks and the cells that hold
+        // no value Apply can take, an empty cell with them (CHOSEN), as the team must fix each of those in the Excel. Real: 2311 in the extra try
+        [Fact]
+        public void R402_a_not_savable_change_is_kept_apart_from_a_rule_break_and_not_counted_in_breaks_a_rule()
+        {
+            JObject plan = MadePlan();
+            JObject overrides = MadeOverrides();
+            ((JArray)overrides["overrides"]).RemoveAt(2);
+            UpdateList list = UpdateFromReport.Compare(EditedBooks(plan), plan, PlanSha, MadeRules(), Profile, overrides);
+            Assert.Equal(new[] { "101 FFL", "103 Steps", "103 Villa type" }, list.Chip(UpdateText.BreaksARule).Select(change => change.Plot + " " + change.Field).ToArray());
+            Assert.Equal(3, list.Chips()[UpdateText.BreaksARule]);
+            UpdateChange mirror = list.Changes.Single(change => change.Field == UpdateText.Mirror);
+            Assert.False(mirror.BreaksARule);
+            Assert.Equal("the plot has no override entry of the job parsons, so Apply can not save it (Q169)", mirror.RuleCheck);
+            Assert.Equal("", mirror.RuleIds);
+            Assert.True(new UpdateChange { Invalid = UpdateText.Empty }.BreaksARule);
+            Assert.True(new UpdateChange { Invalid = UpdateText.NoNumber }.BreaksARule);
         }
 
         // Breaker 5f: a mirror the hand rules of the profile gave, source computed in the plan, is checked by them, and an edit of it breaks
@@ -558,7 +627,7 @@ namespace SiteAdaptation.Tests
             string sha = FileHash.Sha256(Path.Combine(folder, "plan_012.json"));
             UpdateList expected = UpdateFromReport.Compare(EditedBooks(plan, sha), plan, sha, MadeRules(), Profile, WorkerOverrides());
             Assert.True(JToken.DeepEquals(UpdateFromReport.ResultJson(expected, null), json), json.ToString());
-            Assert.Equal(2, json["changes"].Count(item => ((string)item["invalid"] ?? "").Contains("no override entry of the job parsons")));
+            Assert.Equal(2, json["changes"].Count(item => ((string)item["notSavable"] ?? "").Contains("no override entry of the job parsons")));
             Assert.Equal(6, ((JArray)json["changes"]).Count);
             Assert.Equal(3, (int)json["tiles"]["Not editable ignored"]);
             Assert.Equal(6, answer.Counts["changes"]);

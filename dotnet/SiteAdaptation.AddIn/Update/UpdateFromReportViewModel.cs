@@ -183,7 +183,7 @@ namespace SiteAdaptation.AddIn.Update
         {
             this.owner = owner;
             Change = change;
-            apply = change.Ticked && change.Invalid == null;
+            apply = change.Ticked && change.CanApply;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -200,14 +200,15 @@ namespace SiteAdaptation.AddIn.Update
 
         public string RuleCheck => Change.RuleCheck;
 
-        // The ids of the rules the rule column names, for its tooltip (12-ui-spec.md)
-        public string RuleIds => Change.RuleIds;
+        // The ids of the rules the rule column names, for its tooltip (12-ui-spec.md). Null on a row with none, as WPF shows an empty
+        // tooltip box for an empty text and none for null
+        public string RuleIds => string.IsNullOrEmpty(Change.RuleIds) ? null : Change.RuleIds;
 
         public bool BreaksManual => Change.ManualRules.Count > 0;
 
         public bool BreaksRule => Change.BreaksARule;
 
-        public bool CanTick => Change.Invalid == null;
+        public bool CanTick => Change.CanApply;
 
         public bool Apply
         {
