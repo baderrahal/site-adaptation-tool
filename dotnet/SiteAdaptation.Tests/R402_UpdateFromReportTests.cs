@@ -376,6 +376,31 @@ namespace SiteAdaptation.Tests
             Assert.Equal(MadeOverrides().ToString(), applied.List.ToString());
         }
 
+        // Breaker 5f: a plot whose Steps come from a steps override keeps that count when a build gives its levels again, so the checks after
+        // an El @ Entry edit hold the override count and not the count of the steps rule. 103 at 0.30 m holds 2 steps by the legend, the edit
+        // takes it to 0.36 m, 2 steps by the legend and 3 by the rule
+        [Fact]
+        public void R402_after_a_level_edit_a_plot_with_a_steps_override_keeps_its_override_count_in_the_checks()
+        {
+            JObject plan = MadePlan();
+            JObject plot = plan["plots"].OfType<JObject>().Single(item => (string)item["plot"] == "103");
+            plot["levels"]["entry"]["value"] = 10.0;
+            plot["levels"]["height"]["value"] = 0.3;
+            plot["levelRule"]["entry"] = 10.0;
+            plot["overrides"] = new JObject { ["applied"] = new JArray("steps"), ["notApplied"] = new JObject() };
+            string level = WriteLevelExcel(plan);
+            Edit(level, "Levels", "E5", "103", 9.94);
+            UpdateList list = UpdateFromReport.Compare(new List<UpdateBook> { UpdateWorkbook.Read(level) }, plan, PlanSha, MadeRules(), Profile);
+            UpdateChange change = list.Changes.Single();
+            Assert.Equal("103 El @ Entry", change.Plot + " " + change.Field);
+            Assert.Empty(change.Breaks);
+            Assert.Empty(change.ManualRules);
+            Assert.True(change.Ticked);
+            plot.Remove("overrides");
+            list = UpdateFromReport.Compare(new List<UpdateBook> { UpdateWorkbook.Read(level) }, plan, PlanSha, MadeRules(), Profile);
+            Assert.Equal(new[] { "stepHeights" }, list.Changes.Single().Breaks.ToArray());
+        }
+
         [Fact]
         public void R402_the_result_json_holds_the_changes_tiles_chips_entries_and_list_text()
         {

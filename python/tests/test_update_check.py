@@ -49,14 +49,14 @@ def settings(sheet, editable):
         sheet.append(row)
 
 
-def write_level(path):
+def write_level(path, plan=PLAN):
     book = openpyxl.Workbook()
     sheet = book.active
     sheet.title = "Levels"
     sheet.append(("NBH 012, made up top line",))
     sheet.append(check.LEVEL_COLUMNS)
     cluster = {"101": "none", "102": "102-103", "103": "102-103"}
-    for item in PLAN["plots"]:
+    for item in plan["plots"]:
         lv = {key: value["value"] for key, value in item["levels"].items()}
         sheet.append((item["plot"], item["unit"]["value"], cluster[item["plot"]], lv["roadAtFrontM"], lv["entry"], lv["ffl"], lv["ssl"], lv["height"], lv["steps"], "Rule"))
     sheet.append(("104", None, "none", None, None, None, None, None, None, "Not written: levels.ffl (no road level)"))
@@ -152,6 +152,23 @@ def test_r402_with_no_manual_rules_block_nothing_is_unticked_and_the_lack_is_nam
     found = check.result(books, PLAN, SHA, rules, PROFILE, None, "u4")
     assert all(item["ticked"] for item in found["changes"]) and found["tiles"]["Break a manual rule"] == 0
     assert found["lacks"] == ["the rules profile holds no block manualRules, so no change breaks a manual rule (R402)"]
+
+
+def test_r402_after_a_level_edit_a_plot_with_a_steps_override_keeps_its_override_count_in_the_checks(tmp_path):
+    """Breaker 5f: the build keeps the count of a steps override when it gives the levels again, so 103 at 0.30 m with 2 steps by the legend
+    keeps 2 after an El @ Entry edit to 0.36 m, where the steps rule gives 3."""
+    plan = copy.deepcopy(PLAN)
+    item = plan["plots"][2]
+    item["levels"]["entry"]["value"], item["levels"]["height"]["value"], item["levelRule"]["entry"] = 10.0, 0.3, 10.0
+    item["overrides"] = {"applied": ["steps"], "notApplied": {}}
+    level = tmp_path / "012_Levels_parsons2024Rev6.xlsx"
+    write_level(level, plan)
+    edit(level, "Levels", "E5", "103", 9.94)
+    found = check.result([check.read_book(level)], plan, SHA, RULES, PROFILE, None, "u6")
+    assert [(change["plot"], change["field"], change["breaks"], change["ticked"]) for change in found["changes"]] == [("103", "El @ Entry", [], True)]
+    del item["overrides"]
+    found = check.result([check.read_book(level)], plan, SHA, RULES, PROFILE, None, "u6")
+    assert found["changes"][0]["breaks"] == ["stepHeights"]
 
 
 def test_r402_the_compare_counts_each_cell_and_names_a_planted_mismatch(books):

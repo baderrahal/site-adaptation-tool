@@ -495,7 +495,9 @@ namespace SiteAdaptation.Common.Update
                     JToken found = KeyLevels.StepsByRule(stepsRule, height, unit, rules, levelProfile, baseRule);
                     return found == null ? (long?)null : (long)found;
                 };
-                long? steps1 = edit.Steps ?? (edit.Entry.HasValue || edit.Ffl.HasValue ? byRule(height1) : steps0);
+                // A build applies a steps override after the steps rule, so a plot the plan gave its override count keeps that count
+                bool stepsOverride = (planned["overrides"]?["applied"] as JArray)?.Any(item => Text(item) == Fields[UpdateText.Steps]) == true;
+                long? steps1 = edit.Steps ?? (!stepsOverride && (edit.Entry.HasValue || edit.Ffl.HasValue) ? byRule(height1) : steps0);
                 if (!steps1.HasValue)
                 {
                     continue;

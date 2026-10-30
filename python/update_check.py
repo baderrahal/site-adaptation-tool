@@ -310,7 +310,10 @@ def level_checks(found, edits, order, written, rules, level_profile):
                 return None
             return steps_of(rule, height, unit, rules, level_profile, base_rule)
 
-        steps1 = edit["steps"] if edit["steps"] is not None else (by_rule(height1) if edit["entry"] is not None or edit["ffl"] is not None else steps0)
+        # plan_from_book.py sets the count of a steps override after the steps rule, so a plot that holds one keeps it in a rebuild
+        held = "steps" in ((planned.get("overrides") or {}).get("applied") or [])
+        moved = edit["entry"] is not None or edit["ffl"] is not None
+        steps1 = edit["steps"] if edit["steps"] is not None else (by_rule(height1) if moved and not held else steps0)
         if steps1 is None:
             continue
         broken = []
