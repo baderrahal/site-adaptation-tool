@@ -165,14 +165,21 @@ namespace SiteAdaptation.UiShots
 
         private static BitmapSource UpdatePage()
         {
-            var session = new UpdateFromReportSession(new UpdateFromReportCallbacks(), () => null);
-            session.Model.Load(SampleUpdateList(), new[] { "012_Levels_parsons2024Rev6.xlsx", "012_Report.xlsx" });
-            var window = new UpdateFromReportWindow(session);
-            FrameworkElement body = LayOut(window);
+            FrameworkElement body = Body(LaidOutUpdate());
             var bitmap = new RenderTargetBitmap((int)body.ActualWidth, (int)body.ActualHeight, Dpi, Dpi, PixelFormats.Pbgra32);
             bitmap.Render(body);
             bitmap.Freeze();
             return bitmap;
+        }
+
+        // The Update from report window with the sample list, measured and arranged and not shown, so a test can read its parts
+        public static UpdateFromReportWindow LaidOutUpdate()
+        {
+            var session = new UpdateFromReportSession(new UpdateFromReportCallbacks(), () => null);
+            session.Model.Load(SampleUpdateList(), new[] { "012_Levels_parsons2024Rev6.xlsx", "012_Report.xlsx" });
+            var window = new UpdateFromReportWindow(session);
+            LayOut(window);
+            return window;
         }
 
         // Made up numbers only. Four changes of NBH 012: one that follows the rules, one that breaks a profile rule, one that breaks a manual

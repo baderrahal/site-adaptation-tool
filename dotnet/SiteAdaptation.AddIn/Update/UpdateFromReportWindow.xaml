@@ -76,7 +76,7 @@
           <StackPanel>
             <Grid MinHeight="{StaticResource SA.Size.Row}">
               <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="{StaticResource SA.Grid.StepMark}" />
+                <ColumnDefinition Width="{StaticResource SA.Grid.CheckDiff}" />
                 <ColumnDefinition Width="{StaticResource SA.Grid.CheckDiff}" />
                 <ColumnDefinition Width="{StaticResource SA.Grid.CheckPoint}" />
                 <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
@@ -88,11 +88,11 @@
               <TextBlock Grid.Column="2" Style="{StaticResource RowText}" Text="{Binding Field}" />
               <TextBlock Grid.Column="3" Style="{StaticResource RowText}" Text="{Binding InModel}" />
               <TextBlock Grid.Column="4" Style="{StaticResource RowText}" Text="{Binding InExcel}" />
-              <TextBlock Grid.Column="5" Style="{StaticResource RowText}" Text="{Binding RuleCheck}" />
+              <TextBlock Grid.Column="5" Style="{StaticResource RowText}" Text="{Binding RuleCheck}" ToolTip="{Binding RuleIds}" />
             </Grid>
             <Grid Margin="{StaticResource SA.Gap.Top4}" Visibility="{Binding BreaksManual, Converter={StaticResource Shown}}">
               <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="{StaticResource SA.Grid.StepMark}" />
+                <ColumnDefinition Width="{StaticResource SA.Grid.CheckDiff}" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -172,7 +172,7 @@
         <Border Margin="{StaticResource SA.Gap.Top16}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.BorderStrong}" BorderThickness="{StaticResource SA.Line.Under}">
           <Grid>
             <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="{StaticResource SA.Grid.StepMark}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.CheckDiff}" />
               <ColumnDefinition Width="{StaticResource SA.Grid.CheckDiff}" />
               <ColumnDefinition Width="{StaticResource SA.Grid.CheckPoint}" />
               <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />

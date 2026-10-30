@@ -14,7 +14,7 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | revit-ribbon.png | The Site Adaptation tab in Revit 2024, cut from the window by PrintWindow in Revit run 3 of 5a, 29 Oct 2026 | Taken in Revit, for Bader's check |
 | revit-pane.png | The live pane page in Revit run 3 of 5a by RenderTargetBitmap at 96 DPI, first open state, the detached document of the run active | Taken in Revit, for Bader's check |
 
-Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md) were rendered into all three in Lane B 5a PR 8, his UI answers Q135, Q139 and Q140 of 29 Oct 2026 in Lane B 5a run 3 (fixed items 12 to 14). Set up site is built in 5b (W1 of steps/lane-b.md), its PNG is setup-site.png and its lists are at the end of this file. The check table, Review data and Site Adaptation Rules come in 5c (W5), Update from report in 5f (W8), so none of these has a PNG yet.
+Bader's changes of 28 Oct 2026 (docs/design/13-workflow-changes.md) were rendered into all three in Lane B 5a PR 8, his UI answers Q135, Q139 and Q140 of 29 Oct 2026 in Lane B 5a run 3 (fixed items 12 to 14). Set up site is built in 5b (W1 of steps/lane-b.md), its PNG is setup-site.png and its lists are at the end of this file. The check table, Review data and Site Adaptation Rules come in 5c (W5), so none of these has a PNG yet. Update from report is built in 5f (W8), its PNG is update-from-report.png and its differences are at the end of this file.
 
 ## Render them again
 
@@ -201,3 +201,9 @@ Sizes
 27. Left the two tables as label and value rows with Will change, right the check point table, the pass line and the note, the foot on SA.Panel with Cancel, Dry run and Apply: held.
 28. The Floor types text, the row Ramp slope with its drop down 0.5%, 1%, 2%, then 3% to 15% and default 0.5% and its line, the Shared parameters row with its sheet and count in one line and Browse: held, tests R373_the_rows_stand_in_the_order_of_the_mock_with_the_three_rows_of_28_oct_2026, R373_the_ramp_slope_choices_are_05_1_2_then_3_to_15_percent_and_the_default_is_05 and R373_the_ramp_slope_row_holds_a_30_high_drop_down_of_16_choices_and_the_sheet_row_holds_browse.
 29. Apply off while the view holds stops or before the dry run: held, tests R373_apply_is_off_before_the_dry_run_and_while_the_view_holds_a_stop_and_on_after_the_dry_run and R373_the_buttons_of_the_window_drive_the_session_and_apply_is_off_before_the_dry_run.
+
+## Update from report, differences Code knows (5f)
+
+- 12-ui-spec.md gives a new window a How to use line on SA.Guide, a side box 340 wide on SA.Panel and a selected row with the 3 px SA.Accent mark. 13-workflow-changes.md, part Update from report, gives no text for any of the three, so the window has none of them (Q179).
+- Rule check shows the plain name of each check with its rule id as tooltip (12-ui-spec.md line 11), the 9 names CHOSEN in UpdateText.RuleNames (Q176). A manual rule shows its id such as M08 until 5c gives it a plain name (Q177).
+- The chips show their count after the name, such as FFL 1, as the tiles do, where 13-workflow-changes.md gives the names only (CHOSEN).

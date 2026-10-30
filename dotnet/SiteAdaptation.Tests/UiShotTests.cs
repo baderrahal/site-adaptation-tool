@@ -364,6 +364,42 @@ namespace SiteAdaptation.Tests
             return BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixels, width * 4);
         }
 
+        // Review 1 of 5e and 5f: the Rule check cell shows the plain name with the rule id as its tooltip (12-ui-spec.md line 11), and
+        // the Apply column is wide enough that its header and Plot read apart
+        [Fact]
+        public void R402_the_rule_check_cell_has_the_rule_id_as_tooltip_and_the_apply_column_keeps_its_header_apart()
+        {
+            OnSta(() =>
+            {
+                var window = Shots.LaidOutUpdate();
+                List<TextBlock> texts = Below<TextBlock>(Shots.Body(window)).ToList();
+                TextBlock steps = texts.Single(text => text.ToolTip as string == "stepsRule");
+                Assert.NotEqual("stepsRule", steps.Text);
+                TextBlock apply = texts.First(text => text.Text == "Apply");
+                TextBlock plot = texts.First(text => text.Text == "Plot");
+                // A TextBlock stretches over its column, so the end of the word is where its text ends, its desired width
+                Point left = apply.TranslatePoint(new Point(apply.DesiredSize.Width, 0), Shots.Body(window));
+                Point right = plot.TranslatePoint(new Point(0, 0), Shots.Body(window));
+                Assert.True(right.X - left.X >= 8, "Apply ends at " + left.X + ", Plot starts at " + right.X);
+            });
+        }
+
+        private static IEnumerable<T> Below<T>(DependencyObject root) where T : DependencyObject
+        {
+            for (int index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(root, index);
+                if (child is T found)
+                {
+                    yield return found;
+                }
+                foreach (T deeper in Below<T>(child))
+                {
+                    yield return deeper;
+                }
+            }
+        }
+
         private static void OnSta(Action action)
         {
             Exception failure = null;
