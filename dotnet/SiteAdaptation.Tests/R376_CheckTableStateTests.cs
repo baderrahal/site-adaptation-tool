@@ -74,7 +74,7 @@ namespace SiteAdaptation.Tests
             CheckRow level = new CheckTableState(View()).Rows.Single(row => row.Check == "Level");
 
             Assert.Equal("0.2", CheckTableState.Gives(level, CheckUse.Rule, null));
-            Assert.Equal("{\"gapToRuleM\":0.05}", CheckTableState.Gives(level, CheckUse.Past, null));
+            Assert.Equal("0.05 m above the rule", CheckTableState.Gives(level, CheckUse.Past, null));
             Assert.Equal("", CheckTableState.Gives(level, CheckUse.Skip, null));
             Assert.Equal("given Past", CheckTableState.Gives(level, CheckUse.Past, (row, use) => "given " + use));
             Assert.Equal("", CheckTableState.Gives(new CheckRow(), CheckUse.Rule, null));

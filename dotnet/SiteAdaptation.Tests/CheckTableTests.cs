@@ -90,6 +90,27 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R376_the_rule_column_shows_the_plain_rule_name_and_the_past_job_and_side_box_show_words_and_units()
+        {
+            var session = new CheckTableSession(Shots.SampleCheckView(false), new CheckTableCallbacks { Save = choices => "list.json" }, Shots.SampleRuleLine(), id => { });
+            CheckTableViewModel model = session.Model;
+            CheckRowViewModel ffl = model.Rows.Single(row => row.Check == "Level" && row.Row.Field == "heightM");
+            CheckRowViewModel position = model.Rows.Single(row => row.Check == "Position");
+
+            Assert.Equal("FFL by the rule", ffl.RuleText);
+            Assert.Equal("Steps by the rule", model.Rows.Single(row => row.Row.Field == "steps").RuleText);
+            Assert.Equal("Yard outline fitted to the plot", model.Rows.Single(row => row.Check == "Floor").RuleText);
+            Assert.Equal("Hand by the cluster side", model.Rows.Single(row => row.Check == "Hand").RuleText);
+            Assert.Equal("Link origin by the rule", position.RuleText);
+            Assert.Equal("0.001 m above the rule", ffl.PastText);
+            Assert.Equal("along the front 0.011 m, into the plot 0.001 m", position.PastText);
+            model.Selected = ffl;
+            Assert.Equal("0.001 m above the rule", model.SidePast);
+            Assert.Equal("0.001 m above the rule", model.GivePast);
+            Assert.DoesNotContain("gapToRule", string.Join(" ", model.Rows.Select(row => row.PastText + row.RuleText)));
+        }
+
+        [Fact]
         public void R376_Past_is_grey_with_its_reason_as_the_tooltip_where_it_is_not_offered_and_a_use_set_in_the_row_shows_in_the_side_box()
         {
             var session = new CheckTableSession(Shots.SampleCheckView(false), new CheckTableCallbacks { Save = choices => "list.json" }, Shots.SampleRuleLine(), id => { });

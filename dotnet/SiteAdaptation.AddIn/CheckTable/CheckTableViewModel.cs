@@ -249,9 +249,9 @@ namespace SiteAdaptation.AddIn.CheckTable
         public string ToolText => Value(CheckTableState.Text(Row.ToolValue));
 
         // The value Past would write, else the reason there is none
-        public string PastText => Value(CheckTableState.Text(Row.PastValue ?? (Row.PastOffered || Row.PastWhy == null ? null : (JToken)Row.PastWhy)));
+        public string PastText => Value(Row.PastValue != null ? CheckShown.Past(Row.PastValue) : CheckTableState.Text(Row.PastOffered || Row.PastWhy == null ? null : (JToken)Row.PastWhy));
 
-        public string RuleText => CheckTableState.Text(Row.Rule);
+        public string RuleText => CheckShown.RuleName(CheckTableState.Text(Row.Rule));
 
         public string ManualRule => Row.ManualRuleId ?? "";
 

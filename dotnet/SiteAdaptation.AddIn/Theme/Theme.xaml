@@ -568,7 +568,7 @@
   <GridLength x:Key="SA.Grid.CheckNbh">56</GridLength>
   <GridLength x:Key="SA.Grid.CheckUnit">64</GridLength>
   <GridLength x:Key="SA.Grid.CheckType">96</GridLength>
-  <GridLength x:Key="SA.Grid.CheckRule">128</GridLength>
+  <GridLength x:Key="SA.Grid.CheckRule">176</GridLength>
   <GridLength x:Key="SA.Grid.CheckManual">96</GridLength>
   <GridLength x:Key="SA.Grid.CheckUse">104</GridLength>
   <GridLength x:Key="SA.Grid.CheckSideLabel">96</GridLength>
