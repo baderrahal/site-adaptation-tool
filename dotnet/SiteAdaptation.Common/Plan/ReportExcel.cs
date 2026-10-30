@@ -405,7 +405,7 @@ namespace SiteAdaptation.Common
             return result;
         }
 
-        // Review 1 of PR 96: the button of the Summary table an override field counts under, addin.report.stepOfField as rows 5 and 6 of 7.6 list
+        // Review 1 of PR 96 and R381: the step of the Summary table an override field counts under, addin.report.stepOfField as rows 5 to 7 of 7.6 list
         // the fields, else addin.report.defaultStep
         private static int StepOf(Made made, string field)
         {

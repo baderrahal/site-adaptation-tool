@@ -169,7 +169,7 @@ def report_block(config):
 
 
 def step_of(field, block):
-    """The button of the Summary table an override field counts under, by addin.report as rows 5 and 6 of 7.6 list the fields."""
+    """The step of the Summary table an override field counts under, by addin.report as rows 5 to 7 of 7.6 list the fields (R381)."""
     return block["stepOfField"].get(field, block["defaultStep"])
 
 
