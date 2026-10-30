@@ -136,8 +136,9 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Empty(missing);
-            // 22 since Lane B 5b, the line of a second run of Set up site, 25 since 5f with Browse, Note and the dry run line of Update from report
-            Assert.Equal(25, chosen);
+            // 22 since Lane B 5b, the line of a second run of Set up site, 25 since 5f with Browse, Note and the dry run line of Update from report,
+            // 27 with the two lines of the message after Apply
+            Assert.Equal(27, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

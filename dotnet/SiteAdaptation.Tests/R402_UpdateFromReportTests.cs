@@ -401,6 +401,26 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "stepHeights" }, list.Changes.Single().Breaks.ToArray());
         }
 
+        // Breaker 5f: Apply takes the key and model of an entry of the job of the plot, so a plot with none has a change Apply can not save. Compare
+        // marks it at once, unticked and never applied, so the window never offers it (Q169)
+        [Fact]
+        public void R402_a_change_of_a_plot_with_no_override_entry_of_its_job_is_not_savable_unticked_and_never_applied()
+        {
+            JObject plan = MadePlan();
+            JObject overrides = MadeOverrides();
+            ((JArray)overrides["overrides"]).RemoveAt(2);
+            UpdateList list = UpdateFromReport.Compare(EditedBooks(plan), plan, PlanSha, MadeRules(), Profile, overrides);
+            string why = "the plot has no override entry of the job parsons, so Apply can not save it (Q169)";
+            Assert.Equal(new[] { "101 FFL  False", "102 El @ Entry " + why + " False", "103 Steps  False", "101 Villa type  True", "102 Mirror " + why + " False", "103 Villa type  True" },
+                list.Changes.Select(change => change.Plot + " " + change.Field + " " + change.Invalid + " " + change.Ticked).ToArray());
+            UpdateApplied applied = UpdateFromReport.Apply(list.Changes.Where(change => change.Ticked), plan, overrides, MadeRules(), Profile, "u5");
+            Assert.Equal(new[] { "101 unit", "103 unit" }, applied.Entries.Select(item => (string)item["plot"] + " " + (string)item["field"]).ToArray());
+            Assert.Empty(applied.NotApplied);
+            Assert.Equal(new[] { "101", "103" }, applied.Plots.ToArray());
+            UpdateList unknown = UpdateFromReport.Compare(EditedBooks(plan), plan, PlanSha, MadeRules(), Profile);
+            Assert.All(unknown.Changes, change => Assert.NotEqual(why, change.Invalid));
+        }
+
         [Fact]
         public void R402_the_result_json_holds_the_changes_tiles_chips_entries_and_list_text()
         {
@@ -464,6 +484,14 @@ namespace SiteAdaptation.Tests
 
         // The command updateFromReport on the edited copies of 012. The plan is written first so the Excel files carry its real SHA-256, runPlan
         // then takes its place on disk to make a plan of another build
+        // The override list of the worker runs: plot 102 holds no entry of the job parsons, so its changes are not savable
+        private static JObject WorkerOverrides()
+        {
+            JObject overrides = MadeOverrides();
+            ((JArray)overrides["overrides"]).RemoveAt(2);
+            return overrides;
+        }
+
         private WorkerAnswer RunUpdate(JObject plan, bool withExcel, out int code, string id, JObject runPlan = null)
         {
             string planPath = WriteText("plan_012.json", plan.ToString());
@@ -477,6 +505,7 @@ namespace SiteAdaptation.Tests
                 Input("config", WriteText("project.json", WorkerConfig().ToString())),
                 Input("rules", WriteText("rules.json", MadeRules().ToString())),
                 Input(UpdateFromReportWorker.PlanRole, planPath),
+                Input(UpdateFromReportWorker.OverridesRole, WriteText("overrides.json", WorkerOverrides().ToString())),
             };
             if (withExcel)
             {
@@ -505,8 +534,9 @@ namespace SiteAdaptation.Tests
             Assert.NotNull(json[RunStamp.Key]);
             json.Remove(RunStamp.Key);
             string sha = FileHash.Sha256(Path.Combine(folder, "plan_012.json"));
-            UpdateList expected = UpdateFromReport.Compare(EditedBooks(plan, sha), plan, sha, MadeRules(), Profile);
+            UpdateList expected = UpdateFromReport.Compare(EditedBooks(plan, sha), plan, sha, MadeRules(), Profile, WorkerOverrides());
             Assert.True(JToken.DeepEquals(UpdateFromReport.ResultJson(expected, null), json), json.ToString());
+            Assert.Equal(2, json["changes"].Count(item => ((string)item["invalid"] ?? "").Contains("no override entry of the job parsons")));
             Assert.Equal(6, ((JArray)json["changes"]).Count);
             Assert.Equal(3, (int)json["tiles"]["Not editable ignored"]);
             Assert.Equal(6, answer.Counts["changes"]);
@@ -563,9 +593,10 @@ namespace SiteAdaptation.Tests
             Assert.Equal("012", nbh);
             Assert.Null(refusal);
             Assert.Equal(planPath, UpdateWorkerRequest.PlanPath(folder, nbh));
-            WorkerRequest request = UpdateWorkerRequest.Make("uw6", new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" }, config, rules, planPath, Profile, nbh, LastPaths, Path.Combine(folder, "out"));
+            string overrides = WriteText("overrides.json", WorkerOverrides().ToString());
+            WorkerRequest request = UpdateWorkerRequest.Make("uw6", new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" }, config, rules, planPath, overrides, Profile, nbh, LastPaths, Path.Combine(folder, "out"));
             Assert.Equal("updateFromReport", request.Command);
-            Assert.Equal(new[] { "config", "rules", "plan", "excel1", "excel2" }, request.Inputs.Select(item => item.Role).ToArray());
+            Assert.Equal(new[] { "config", "rules", "plan", "overrides", "excel1", "excel2" }, request.Inputs.Select(item => item.Role).ToArray());
             Assert.Equal(60, request.TimeLimitS);
             Assert.Equal(Profile, request.LevelProfile);
             int code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);

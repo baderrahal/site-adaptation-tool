@@ -31,6 +31,8 @@ namespace SiteAdaptation.AddIn.Update
         public const string DryRun = "Dry run";
         public const string ApplyN = "Apply <n> changes";
         public const string DryDone = "Dry run: <n> changes would be saved, <n> replaced. Nothing was changed.";
+        public const string Saved = "Saved <n> changes to the override list, plots changed: <n>.";
+        public const string NotSaved = "<n> ticked changes were not saved:";
 
         public static readonly string[] Tiles = { ChangesFound, FollowTheRules, BreakAManualRule, NotEditableIgnored };
         public static readonly string[] Chips = { All, Ffl, Entry, Steps, VillaType, Mirror, BreaksARule };

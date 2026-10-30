@@ -14,6 +14,7 @@ namespace CadReader
     public static class UpdateFromReportWorker
     {
         public const string PlanRole = "plan";
+        public const string OverridesRole = "overrides";
         public const string RulesRole = "rules";
         public const string LevelRole = "levelExcel";
         public const string ReportRole = "reportExcel";
@@ -37,12 +38,14 @@ namespace CadReader
             string planPath = run.Input(PlanRole);
             JObject plan = PyJson.Parse(WorkFiles.ReadText(planPath)) as JObject ?? throw new InvalidDataException("the plan is no JSON object (R402): " + planPath);
             JObject rules = PyJson.Parse(WorkFiles.ReadText(run.Input(RulesRole))) as JObject ?? throw new InvalidDataException("the rules profile is no JSON object (R402)");
+            // The override list, read only, so Compare marks a change of a plot Apply can not save before the window offers it
+            JObject overrides = PyJson.Parse(WorkFiles.ReadText(run.Input(OverridesRole))) as JObject ?? throw new InvalidDataException("the override list is no JSON object (R402)");
             var books = new List<UpdateBook>();
             foreach (string role in roles)
             {
                 books.Add(UpdateWorkbook.Read(run.Input(role)));
             }
-            UpdateList list = UpdateFromReport.Compare(books, plan, FileHash.Sha256(planPath), rules, request.LevelProfile);
+            UpdateList list = UpdateFromReport.Compare(books, plan, FileHash.Sha256(planPath), rules, request.LevelProfile, overrides);
             run.Counts["changes"] = list.Changes.Count;
             run.Counts["ignored"] = list.Ignored.Count;
             run.WriteJson(request.OutputFolder, OutputName, UpdateFromReport.ResultJson(list, null));

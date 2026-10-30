@@ -30,6 +30,7 @@ FIELDS = {"FFL": "heightM", "El @ Entry": "entryM", "Steps": "steps", "Villa typ
 TILES = ("Changes found", "Follow the rules", "Break a manual rule", "Not editable ignored")
 CHIPS = ("All", "FFL", "El @ Entry", "Steps", "Villa type", "Mirror", "Breaks a rule")
 FOLLOWS = "follows the rules"
+NOT_SAVABLE = "the plot has no override entry of the job %s, so Apply can not save it (Q169)"
 # The decimals of the level Excel columns of R364
 ENTRY_DEC, FFL_DEC = 4, 3
 
@@ -113,8 +114,9 @@ def number_cell(value, model, decimals):
     return shown is None or read != shown, shown, read, None
 
 
-def changes_of(books, plan, sha, rules, profile):
-    """The changes, the ignored cells and the lacks, or the refusal, of the edited books against the plan."""
+def changes_of(books, plan, sha, rules, profile, overrides=None):
+    """The changes, the ignored cells and the lacks, or the refusal, of the edited books against the plan, a change of a plot with no entry
+    of the job in the override list marked as one Apply can not save."""
     found = {"refusal": None, "changes": [], "ignored": [], "lacks": []}
     for book in books:
         found["refusal"] = refusal(book, plan, sha)
@@ -228,6 +230,12 @@ def changes_of(books, plan, sha, rules, profile):
     level_checks(found, edits, order, written, rules, level_profile)
     type_checks(found, rules)
     manual_checks(found, rules)
+    job = level_profile.get("job")
+    if overrides is not None and isinstance(job, str):
+        held = {entry.get("plot") for entry in overrides.get("overrides") or [] if entry.get("source") == job}
+        for item in found["changes"]:
+            if item["invalid"] is None and item["plot"] not in held:
+                item["invalid"] = NOT_SAVABLE % job
     for item in found["changes"]:
         item["ticked"] = item["invalid"] is None and not item["manualRules"]
         item["ruleCheck"] = item["invalid"] or (FOLLOWS if not item["breaks"] else ", ".join(item["breaks"] + item["manualRules"]))
@@ -473,7 +481,7 @@ def list_text(listing):
 
 
 def result(books, plan, sha, rules, profile, overrides, run_id, tick="default"):
-    found = changes_of(books, plan, sha, rules, profile)
+    found = changes_of(books, plan, sha, rules, profile, overrides)
     tiles, chips = tiles_of(found)
     found.update(tiles=tiles, chips=chips)
     if found["refusal"] is None and overrides is not None:

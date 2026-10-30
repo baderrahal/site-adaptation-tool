@@ -31,6 +31,16 @@ namespace SiteAdaptation.Common.Update
         public const string Reason = "Update from report <run id>";
         public const string Follows = "follows the rules";
         public const string BreaksJoin = ", ";
+        public const string NotSavable = "the plot has no override entry of the job <n>, so Apply can not save it (Q169)";
+
+        private static readonly System.Text.RegularExpressions.Regex Slot = new System.Text.RegularExpressions.Regex("<[a-z]+>");
+
+        // A text of the label list with each value in its slot, in order, as TextTemplate of the add-in fills one
+        public static string Fill(string template, params object[] values)
+        {
+            int next = 0;
+            return Slot.Replace(template, match => System.Convert.ToString(values[next++], System.Globalization.CultureInfo.InvariantCulture));
+        }
     }
 
     // One sheet as read back: its rows from row 1, each cell a string, a double, a long, a bool or null, as XlsxSheet of CadReader reads it

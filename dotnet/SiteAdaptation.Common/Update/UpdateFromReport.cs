@@ -148,7 +148,7 @@ namespace SiteAdaptation.Common.Update
             }
         }
 
-        public static UpdateList Compare(IList<UpdateBook> books, JObject plan, string planSha256, JObject rules, string profile)
+        public static UpdateList Compare(IList<UpdateBook> books, JObject plan, string planSha256, JObject rules, string profile, JObject overrides = null)
         {
             var list = new UpdateList();
             foreach (UpdateBook book in books)
@@ -189,6 +189,7 @@ namespace SiteAdaptation.Common.Update
             CheckLevels(made, rules, levelProfile);
             CheckTypes(made, rules);
             ManualRules(list, rules);
+            NotSavable(list, overrides, Text(levelProfile["job"]));
             foreach (UpdateChange change in list.Changes)
             {
                 change.Ticked = change.Invalid == null && change.ManualRules.Count == 0;
@@ -607,6 +608,22 @@ namespace SiteAdaptation.Common.Update
             foreach (UpdateChange change in types.Where(change => typologies[(string)change.InExcel] == null))
             {
                 change.Breaks.Add(VillaTypeCheck);
+            }
+        }
+
+        // Apply takes the key and model of an entry of the job on the plot (Q169), so a change of a plot with none can not be saved and is
+        // marked here, before the window offers it. An override list not given marks none
+        private static void NotSavable(UpdateList list, JObject overrides, string job)
+        {
+            if (overrides == null || job == null)
+            {
+                return;
+            }
+            var held = new HashSet<string>((overrides["overrides"] as JArray ?? new JArray()).OfType<JObject>().Where(item => Text(item["source"]) == job).Select(item => Text(item["plot"])).Where(plot => plot != null));
+            string why = UpdateText.Fill(UpdateText.NotSavable, job);
+            foreach (UpdateChange change in list.Changes.Where(change => change.Invalid == null && !held.Contains(change.Plot)))
+            {
+                change.Invalid = why;
             }
         }
 

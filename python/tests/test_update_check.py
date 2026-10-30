@@ -171,6 +171,19 @@ def test_r402_after_a_level_edit_a_plot_with_a_steps_override_keeps_its_override
     assert found["changes"][0]["breaks"] == ["stepHeights"]
 
 
+def test_r402_a_change_of_a_plot_with_no_override_entry_of_its_job_is_not_savable_unticked_and_never_applied(books):
+    """Breaker 5f: Apply takes the key and model of an entry of the job, so the changes of a plot with none are marked at once (Q169)."""
+    overrides = copy.deepcopy(OVERRIDES)
+    del overrides["overrides"][2]
+    found = check.result(books, PLAN, SHA, RULES, PROFILE, overrides, "u7")
+    why = "the plot has no override entry of the job parsons, so Apply can not save it (Q169)"
+    assert [(item["plot"], item["field"], item["invalid"], item["ticked"]) for item in found["changes"]] == [
+        ("101", "FFL", None, False), ("102", "El @ Entry", why, False), ("103", "Steps", None, False), ("101", "Villa type", None, True),
+        ("102", "Mirror", why, False), ("103", "Villa type", None, True)]
+    assert [(item["plot"], item["field"]) for item in found["entries"]] == [("101", "unit"), ("103", "unit")]
+    assert found["notApplied"] == [] and found["plots"] == ["101", "103"]
+
+
 def test_r402_the_compare_counts_each_cell_and_names_a_planted_mismatch(books):
     found = check.result(books, PLAN, SHA, RULES, PROFILE, OVERRIDES, "u5", tick="all")
     sharp = json.loads(json.dumps(found))

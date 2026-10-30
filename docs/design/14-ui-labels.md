@@ -228,3 +228,5 @@ The window of the button Update from report, 5f, word for word from the part Upd
 - `Dry run`
 - `Apply <n> changes`
 - `Dry run: <n> changes would be saved, <n> replaced. Nothing was changed.` CHOSEN, the line a dry run of the window shows, it saves nothing
+- `Saved <n> changes to the override list, plots changed: <n>.` CHOSEN in 5f fix, the message after Apply of a real run
+- `<n> ticked changes were not saved:` CHOSEN in 5f fix, the line above the changes Apply could not save, in the same message
