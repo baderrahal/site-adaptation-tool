@@ -12,7 +12,9 @@ using SiteAdaptation.AddIn.Icons;
 using SiteAdaptation.AddIn.Pane;
 using SiteAdaptation.AddIn.SetUpSite;
 using SiteAdaptation.AddIn.Theme;
+using SiteAdaptation.AddIn.Update;
 using SiteAdaptation.Common.SetUp;
+using SiteAdaptation.Common.Update;
 
 namespace SiteAdaptation.UiShots
 {
@@ -25,7 +27,8 @@ namespace SiteAdaptation.UiShots
         public const string Pane = "pane";
         public const string PaneFirstOpen = "pane-first-open";
         public const string SetUpSite = "setup-site";
-        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite };
+        public const string UpdateFromReport = "update-from-report";
+        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, UpdateFromReport };
 
         private const double Dpi = 96.0;
 
@@ -37,6 +40,7 @@ namespace SiteAdaptation.UiShots
                 case Pane: return PanePage(true);
                 case PaneFirstOpen: return PanePage(false);
                 case SetUpSite: return SetUpPage();
+                case UpdateFromReport: return UpdatePage();
                 default: throw new ArgumentException("no window " + window + ", only " + string.Join(", ", Windows), nameof(window));
             }
         }
@@ -157,6 +161,45 @@ namespace SiteAdaptation.UiShots
             bitmap.Render(body);
             bitmap.Freeze();
             return bitmap;
+        }
+
+        private static BitmapSource UpdatePage()
+        {
+            var session = new UpdateFromReportSession(new UpdateFromReportCallbacks(), () => null);
+            session.Model.Load(SampleUpdateList(), new[] { "012_Levels_parsons2024Rev6.xlsx", "012_Report.xlsx" });
+            var window = new UpdateFromReportWindow(session);
+            FrameworkElement body = LayOut(window);
+            var bitmap = new RenderTargetBitmap((int)body.ActualWidth, (int)body.ActualHeight, Dpi, Dpi, PixelFormats.Pbgra32);
+            bitmap.Render(body);
+            bitmap.Freeze();
+            return bitmap;
+        }
+
+        // Made up numbers only. Four changes of NBH 012: one that follows the rules, one that breaks a profile rule, one that breaks a manual
+        // rule and starts unticked, one of a cell with no number, and one cell of a column that is not editable
+        public static UpdateList SampleUpdateList()
+        {
+            var list = new UpdateList();
+            list.Changes.Add(SampleChange("102", UpdateText.Entry, 10.2, 10.15, true, null, null, null));
+            list.Changes.Add(SampleChange("103", UpdateText.Steps, 2L, 3L, true, "stepsRule", null, null));
+            list.Changes.Add(SampleChange("101", UpdateText.Ffl, 10.2, 10.25, false, "stepHeights", "M08", null));
+            list.Changes.Add(SampleChange("104", UpdateText.Entry, 10.0, null, false, null, null, "the cell holds no number"));
+            list.Ignored.Add(new IgnoredCell { Plot = "101", Column = "SSL", FileName = "012_Levels_parsons2024Rev6.xlsx", Sheet = "Levels", Why = "not editable" });
+            return list;
+        }
+
+        private static UpdateChange SampleChange(string plot, string field, object inModel, object inExcel, bool ticked, string breaks, string manual, string invalid)
+        {
+            var change = new UpdateChange { Plot = plot, Field = field, InModel = inModel, InExcel = inExcel, Ticked = ticked, Invalid = invalid };
+            if (breaks != null)
+            {
+                change.Breaks.Add(breaks);
+            }
+            if (manual != null)
+            {
+                change.ManualRules.Add(manual);
+            }
+            return change;
         }
 
         // The Set up site window with a view, measured and arranged at the width of the theme and not shown, so a test can read its parts

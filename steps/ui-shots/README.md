@@ -10,6 +10,7 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | pane.png | The pane in use, filled like the NBH 012 column of 7.2 of docs/design/07-mock.md, its steps in the order of docs/design/13-workflow-changes.md | Draft |
 | pane-first-open.png | The pane on first open, no settings file chosen, with the line of a past job | Draft |
 | setup-site.png | The Set up site window of button 1, an existing site file after the dry run, 7 of 7 check points pass, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
+| update-from-report.png | The Update from report window of 5f, the level Excel and the report Excel of NBH 012 picked, 4 changes and 1 cell not editable, one change that breaks manual rule M08 unticked, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | revit-ribbon.png | The Site Adaptation tab in Revit 2024, cut from the window by PrintWindow in Revit run 3 of 5a, 29 Oct 2026 | Taken in Revit, for Bader's check |
 | revit-pane.png | The live pane page in Revit run 3 of 5a by RenderTargetBitmap at 96 DPI, first open state, the detached document of the run active | Taken in Revit, for Bader's check |
 
