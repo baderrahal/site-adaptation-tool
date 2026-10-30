@@ -195,3 +195,36 @@ Not built yet, Phase 5c.
 - `Keep the tool value.`
 - `Use the past job. Saved as an override.`
 - `Leave this plot out. It is listed in the report.`
+
+### Update from report
+
+The window of the button Update from report, 5f, word for word from the part Update from report of docs/design/13-workflow-changes.md. Built in 5f, its picture is steps/ui-shots/update-from-report.png.
+
+- `Update from report`
+- `Pick the edited report Excel`
+- `Browse` CHOSEN, the button beside the line above
+- `Changes found`
+- `Follow the rules`
+- `Break a manual rule`
+- `Not editable ignored`
+- `All`
+- `FFL`
+- `El @ Entry`
+- `Steps`
+- `Villa type`
+- `Mirror`
+- `Breaks a rule`
+- `Apply`
+- `Plot`
+- `Field`
+- `In model`
+- `In Excel`
+- `Rule check`
+- `Keep the model`
+- `Apply anyway`
+- `Note` CHOSEN, the label of the note box of a change that breaks a manual rule
+- `Updates the levels, floors, links and parameters of the changed plots only.`
+- `Cancel`
+- `Dry run`
+- `Apply <n> changes`
+- `Dry run: <n> changes would be saved, <n> replaced. Nothing was changed.` CHOSEN, the line a dry run of the window shows, it saves nothing

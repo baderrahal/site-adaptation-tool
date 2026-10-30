@@ -30,6 +30,7 @@
     <Compile Remove="PaneRunStateTests.cs" />
     <Compile Remove="UiShotTests.cs" />
     <Compile Remove="SetUpSiteTests.cs" />
+    <Compile Remove="UpdateFromReportWindowTests.cs" />
     <Compile Remove="AddinRunAddInTests.cs" />
   </ItemGroup>
 </Project>

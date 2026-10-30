@@ -410,7 +410,7 @@ namespace SiteAdaptation.Tests
             Assert.True(JToken.DeepEquals(list, JObject.Parse(text)));
         }
 
-        private static JObject WorkerConfig()
+        internal static JObject WorkerConfig()
         {
             return new JObject
             {
@@ -523,6 +523,41 @@ namespace SiteAdaptation.Tests
                 Assert.Equal(opened.Sha256Before, opened.Sha256After);
                 Assert.Equal(FileHash.Sha256(path), opened.Sha256After);
             }
+        }
+
+        [Fact]
+        public void R402_the_request_of_the_add_in_names_the_files_by_role_and_the_worker_runs_it()
+        {
+            JObject plan = MadePlan();
+            string planPath = WriteText("plan_012.json", plan.ToString());
+            EditedBooks(plan, FileHash.Sha256(planPath));
+            string config = WriteText("project.json", WorkerConfig().ToString());
+            string rules = WriteText("rules.json", MadeRules().ToString());
+            string refusal;
+            string nbh = UpdateWorkerRequest.Nbh(LastPaths, out refusal);
+            Assert.Equal("012", nbh);
+            Assert.Null(refusal);
+            Assert.Equal(planPath, UpdateWorkerRequest.PlanPath(folder, nbh));
+            WorkerRequest request = UpdateWorkerRequest.Make("uw6", new WorkerDocument { Path = @"C:\Projects\a.rvt", SessionId = "s1" }, config, rules, planPath, Profile, nbh, LastPaths, Path.Combine(folder, "out"));
+            Assert.Equal("updateFromReport", request.Command);
+            Assert.Equal(new[] { "config", "rules", "plan", "excel1", "excel2" }, request.Inputs.Select(item => item.Role).ToArray());
+            Assert.Equal(60, request.TimeLimitS);
+            Assert.Equal(Profile, request.LevelProfile);
+            int code = WorkerRunner.Run(request.Write(folder), WorkerReads.Commands(), () => 90000.0, () => 0.0);
+            WorkerAnswer answer = WorkerAnswer.Read(WorkerFiles.AnswerPath(folder, "uw6"));
+            Assert.True(code == 0, "exit " + code + ": " + answer.Message);
+            Assert.Equal(6, answer.Counts["changes"]);
+        }
+
+        [Fact]
+        public void R402_the_files_of_two_nbhs_or_with_no_nbh_in_their_name_are_refused_before_any_request()
+        {
+            string refusal;
+            Assert.Null(UpdateWorkerRequest.Nbh(new[] { "a\\012_Levels_x.xlsx", "a\\013_Report.xlsx" }, out refusal));
+            Assert.Equal("the files are of NBH 012 and 013, Update from report takes the files of one NBH (R402)", refusal);
+            Assert.Null(UpdateWorkerRequest.Nbh(new[] { "a\\Report.xlsx" }, out refusal));
+            Assert.Contains("starts with its NBH", refusal);
+            Assert.Equal("012", UpdateWorkerRequest.Nbh(new[] { "a\\012_Levels_x.xlsx", "b\\012_Report.xlsx" }, out refusal));
         }
 
         [Fact]

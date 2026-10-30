@@ -34,7 +34,13 @@ namespace SiteAdaptation.AddIn
         {
             Document document = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
             var flow = new ButtonFlow(State, new RevitModel(document), new TaskDialogConfirm(), InputHash.Of, () => RunIds.New(button.Number, DateTime.Now));
-            RunOutcome outcome = flow.Run(button.Number, button.Label, Bodies.Of(button, () => SetUpSiteBody.For(application)), document == null ? null : document.PathName);
+            ButtonBody body = Bodies.Of(button, () => SetUpSiteBody.For(application));
+            // 5f. Update from report has no number, so Bodies.Of leaves it not built, its body is made here on the active document
+            if (document != null && button == RibbonLayout.ButtonOf("UpdateFromReportCommand") && UpdateFromReportBody.Dialog != null)
+            {
+                body = UpdateFromReportBody.For(application);
+            }
+            RunOutcome outcome = flow.Run(button.Number, button.Label, body, document == null ? null : document.PathName);
             if (outcome.Message != null)
             {
                 TaskDialog.Show(RibbonLayout.Tab, outcome.Message);

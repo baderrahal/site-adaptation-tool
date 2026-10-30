@@ -19,10 +19,17 @@ namespace CadReader
         public const string ReportRole = "reportExcel";
         public const string OutputName = "update_from_report.json";
 
+        // The add-in holds no OpenXml, so it can not tell a level Excel from a report Excel and names the files excel1, excel2. The sheets
+        // each holds say which it is
+        private static bool IsExcelRole(string role)
+        {
+            return role == LevelRole || role == ReportRole || (role != null && role.StartsWith(UpdateWorkerRequest.ExcelRolePrefix, System.StringComparison.Ordinal));
+        }
+
         public static void Command(WorkerContext run)
         {
             WorkerRequest request = run.Request;
-            List<string> roles = new[] { LevelRole, ReportRole }.Where(role => (request.Inputs ?? new List<WorkerFile>()).Any(input => input.Role == role)).ToList();
+            List<string> roles = (request.Inputs ?? new List<WorkerFile>()).Select(input => input.Role).Where(IsExcelRole).ToList();
             if (roles.Count == 0)
             {
                 throw run.Refusal("the request names no level Excel or report Excel to read (R402)");
