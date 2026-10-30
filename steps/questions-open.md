@@ -8,6 +8,7 @@ Every question open before 2026-10-29 was closed in the answer pass of Round FOL
 
 Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
 Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror. Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row. Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job. Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit. Q173 Level profile of Update from report. Q174 The plan Update from report reads. Q175 Run log format 9 Report reads. Q176 Plain names of the update rule checks. Q177 Manual rule ids in Rule check. Q178 A computed mirror edit breaks the hand rule. Q179 Guide line, side box and row mark of Update.
+Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q190 Where buttons 5 to 8 find the plan. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q195 Dry run of button 4. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip.
 
 Q148. Place villas before Floors and Levels in the run after 5c (Round FOLD, review of the design PR 102). The new order of docs/design/13-workflow-changes.md has each step wait for the one before, so 7 Place villas waits for 6 Levels, and 5d builds 5 Floors and ramps and 6 Levels. The phase changes of 28 Oct 2026 give 5c the Place villas button with light mode, and the Revit run after 5c places villas in Masses and in one NBH in Links. Round FOLD wrote that the test host runs 7 by Buttons.Run on the plan before 5 and 6 are built (CHOSEN, steps/01_next.md). It does not block 5b or 5c.
 - Recommended: keep it. The test host runs 7 from the plan in the run after 5c, which measures light mode and the base boundary as 28 Oct asks, and the pane keeps the order, so a user cannot run 7 before 6.
@@ -78,7 +79,7 @@ Q164. Levels count and the link Z of 7 (J15, R381, 5e). 03b leaves open whether 
 - Recommended: no. Levels stays the plots whose floors the last committed run of 6 set and read back within 1 mm. A link off its FFL after 7 becomes a check of 7 Place villas once 5d writes its run log.
 - Other: Levels counts a plot only when its floors and its link Z both hold.
 
-Q165. Shape of the block manualRules (W3, W7, R381, 5e). R381 reads manualRules of the rules profile as a list of objects, each with a text id and steps, a list of step names worded as 13-workflow-changes.md words them, such as "4 Check", and refuses any other shape (CHOSEN by the developer of 5e). Lane B 5c writes the block from docs/design/15-manual-rules.md (W3).
+Q165. Shape of the block manualRules (W3, W7, R381, 5e). CHOSEN at the merge of Lane B 5c: the block is {note, manual, rules: [{id, ..., checkedIn, ...}]}, as Lane B 5c writes it from docs/design/15-manual-rules.md (W3). R381 reads the steps of a rule from checkedIn and Update from report reads updateChecks. Before, R381 read a list of objects with a text id and steps (CHOSEN by the developer of 5e).
 - Recommended: a list with id, text, group, section and steps, the steps worded as in 13-workflow-changes.md, as R381 reads it, and 5c writes it so.
 - Other: name another shape, R381 follows it at the join.
 
@@ -137,3 +138,139 @@ Q178. A computed mirror edit breaks the hand rule (R402, 5f). Where the plan's m
 Q179. Guide line, side box and row mark of Update (W8, 5f, review 1). 12-ui-spec.md gives a new window a How to use line on SA.Guide, a side box 340 wide on SA.Panel and a selected row with the 3 px SA.Accent mark, as the check table has. 13-workflow-changes.md, part Update from report, gives no text for any of them, so the window of 5f has none (steps/ui-shots/update-from-report.png, listed in steps/ui-shots/README.md).
 - Recommended: add a How to use line, such as "Each row is a cell the team changed. Untick a change to keep the model, then Apply.", and keep no side box and no selected row, since each row shows all it holds.
 - Other: give all three, with the words of the guide line and what the side box shows.
+
+Q180. The status of designValues in the R401 block (R405, Lane B 5c). The 31 values of the designValues block equal config (RAN), but the R401 block lists their status as UNKNOWN.
+- Recommended: Bader confirms them CHOSEN by Bader, and the block says so.
+- Other: leave them UNKNOWN until a Revit run measures each.
+
+Q181. When the labels J11 and J14 change (join items, Lane B 5c). Both change labels of the approved mock, so 5c did not do them.
+- Recommended: in the PR of the window that changes those labels.
+- Other: a PR of their own before 5d.
+
+Q182. The 0.05 m side band of majority.side_neighbours (Lane B 5c). The value sits in code.
+- Recommended: move it to hands.sideBandM in config in the next code PR.
+- Other: keep it in code as a design value.
+
+Q183. The time cap of a buttons job of the test host (Lane B 5c). The job cap is 29 minutes and the window 31, CHOSEN.
+- Recommended: accept for the Revit run after 5c, and change it by the measured open and run times.
+- Other: name another cap.
+
+Q184. Plain rule names and past phrases of the check table (Lane B 5c). CheckShown.RuleName holds 21 plain names and 8 past phrases, all CHOSEN, in words and units, the list value unchanged.
+- Recommended: accept, Bader checks the wording in the shots.
+- Other: Bader sends the words he wants.
+
+Q185. A plot list over two NBHs stops button 7 (Lane B 5c). The plan is per NBH, so VillaLoad.Load with a scope of two NBHs stops with a line.
+- Recommended: yes, stop, the plan is per NBH.
+- Other: 7 places each NBH of the list in turn.
+
+Q186. Close J2 as no work (join item, Lane B 5c). Button 1 places no element of a tag kind, so it has nothing to tag.
+- Recommended: close it.
+- Other: keep it open until button 1 places a tagged element.
+
+Q187. Prefill of a new project from config, J16 (Lane B 5c). The key map from inputRoot and the drawings named first are CHOSEN only, not built.
+- Recommended: build it in 5d as CHOSEN, the key map from inputRoot and the drawings named first.
+- Other: leave the pane rows empty for the user to fill.
+
+Q188. Load the entity on a session seen with no open event (Lane B 5c). The pane reads the Settings entity on an open event only.
+- Recommended: yes, in a later PR.
+- Other: keep as is, the user presses Set up site again.
+
+Q189. Check table modal or modeless (mock 7.4, Lane B 5c). The mock 7.4 asks a modeless window, the 5c window is modal because the seam returns the answer.
+- Recommended: modal for now, modeless in 6c.
+- Other: modeless in 5d.
+
+Q190. Where buttons 5 to 8 find the plan (R80, R377, Lane B 5c). Buttons 5 to 8 need plan_<NBH>.json.
+- Recommended: plan_<NBH>.json of the latest done check_<runId> folder, as the read is found.
+- Other: the pane names the plan file.
+
+Q191. The plan name of a plot list (R80, Lane B 5c). A plot list scope has no single NBH.
+- Recommended: the nbhId its plots share, else all.
+- Other: always plan_all.json.
+
+Q192. Solid height of light mode (R404). A mass is a solid of one height.
+- Recommended: 3.0 m, one storey.
+- Other: name another height, or the storey count of the prototype.
+
+Q193. Footprint limit of the base against the CAD block (R404). The footprint flag fires when the base differs from the CAD villa block by more than the limit.
+- Recommended: 100 mm, measured on NBH 012 in 5d.
+- Other: name another limit now.
+
+Q194. Bind the RRE parameters on Generic Models in button 1 (R404). A solid of light mode is a DirectShape in Generic Models.
+- Recommended: yes, the parameter sheet gains Generic Models, until then a solid lists its plot number as an issue and its tag holds the plot.
+- Other: keep the plot in the tag only.
+
+Q195. Dry run of button 4 (R376, Lane B 5c). The dry run of 4 in Revit stops, it has no runNow.
+- Recommended: a Start body runs the dry build later into dry\<run id>, Revit does not wait.
+- Other: the dry build runs in the Revit session and waits.
+
+Q196. addin.overrideFile in config (R376). The override list path has no key in config.
+- Recommended: add "config/overrides/roshn-makkah.json".
+- Other: the pane names the override file.
+
+Q197. key_join.json and the key reads as inputs (R376). The check joins to the keys by two files that the pane does not list.
+- Recommended: two optional pane rows, Key join and Key reads.
+- Other: config names them.
+
+Q198. Past gaps of the 51 missing and 3 question rows (R376). Those rows have no past value in the check table.
+- Recommended: take them from the past_all.csv rows of the keys.
+- Other: leave the past cell empty for them.
+
+Q199. What the tool does, per manual rule (W3, 15-manual-rules.md). The Rules window shows one line of what the tool does for each of the 15 rules.
+- Recommended: Code drafts one line per rule from docs/rules and Bader checks them together.
+- Other: Bader writes them.
+
+Q200. Export to Excel of Review data and of Site Adaptation Rules (Q165 of Lane A widened). Both windows could export their table.
+- Recommended: the worker writes the xlsx (R350), the button asks the worker, for both windows.
+- Other: Review data only.
+
+Q201. Data book files on a PC with no Python (R375). plots.csv, labels.csv and phase1_border.csv come from the data book made by Python.
+- Recommended: config names them under the work root data_book, a missing one stops button 2, a later phase has the worker make them in C#.
+- Other: the worker makes them in 5d.
+
+Q202. The schedule folder in config (R375). addin.readData.scheduleFolder holds "01_Output/1.11 References".
+- Recommended: keep it in config.
+- Other: the pane names it.
+
+Q203. A worker end on a document not active (R375). The ExternalEvent runs on the document of the run, which the user may have left.
+- Recommended: the message at once in 5c, the wait of 02-folders.md in 5d.
+- Other: wait from 5c.
+
+Q204. The manual rule of a Review data row (R406). Rows name M01.
+- Recommended: M01 now, per column once manualRules is in the profile (M02 cluster, M13 front edge).
+- Other: M01 for every column.
+
+Q205. The corner table coordinates of Review data (R406). The table shows X, Y and Shared coordinates.
+- Recommended: X, Y in model coordinates, Shared coordinates the CAD value.
+- Other: both in shared coordinates.
+
+Q206. The base boundary of a prototype (R404, probe 5c_base_boundary). On VD4 the lowest floor SSL is a 4 corner rectangle of 121.0 m2, the area boundary lines make a 4 corner loop of 124.3 m2, nothing is named boundary, so the base boundary is UNKNOWN. The Revit run after 5c measures it, the result is added in the records of 5c.
+- Recommended: the outer loop of the floor of the lowest level by default, the element named in config, and the Revit run after 5c measures every candidate of the 13 prototypes against the CAD villa block of the same code and keeps the one closest on most.
+- Other: Bader or the architect names the element.
+
+Q207. No foot and no Esc in the three windows (review, 12-ui-spec.md line 97). Review data, Site Adaptation Rules and the Check table have neither a foot line nor an Esc close.
+- Recommended: add both as the spec says.
+- Other: keep the windows as the mock shows them.
+
+Q208. The How to use line of Rules (review, Lane B 5c). The mock gives no words for it.
+- Recommended: Code drafts one line, such as "Pick a rule to see what the tool does for it.", and Bader checks it.
+- Other: no line on this window.
+
+Q209. The Manual column mixes section and revision (review, 15-manual-rules.md). The column shows sections and "Rev 06" as the file gives them.
+- Recommended: show the section only, and the revision in the title.
+- Other: keep both as the file gives them.
+
+Q210. "(Q015)" in a past job text a user reads (review, CheckShownText). A past job phrase carries a question id.
+- Recommended: drop the id from the text a user reads.
+- Other: keep it as a pointer for the team.
+
+Q211. 7 after a 4 Check on a plot list (review, Lane B 5c). The 4 Check of a plot list writes plan_all only, so 7 stops.
+- Recommended: stop as now, 7 asks for a 4 Check on the NBH.
+- Other: 7 takes plan_all.json for a plot list.
+
+Q212. 4 Check stops 7 on another NBH (second review, R377). A 4 Check of one NBH makes the newest plan, so a 7 on another NBH stops.
+- Recommended: keep as R377 says, one plan per newest 4 Check.
+- Other: keep a plan per NBH so each NBH stays ready.
+
+Q213. The use of an override entry under Skip (second fix, CHOSEN UseOf). An entry with "use": "rule" gives Rule and any other value gives Past.
+- Recommended: accept.
+- Other: refuse any value but "rule" and "past".

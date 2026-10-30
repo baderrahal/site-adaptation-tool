@@ -327,3 +327,39 @@ From the reviewer and the breaker passes 1 and 2 of the 5b PR. Each is LATENT, n
 ## 5e and 5f, the gate and CI
 
 - Flaky, not of this branch: R347 time limit tests of WorkerRunTests failed once each on the Windows CI runner on net8.0 only (a time limit of 1 s that the stand-in worker beat, an answer read before the kill), passed on net48 in the same runs and on a rerun of the job (RAN, PR 110). R310 process tests of ParsonsModelTests failed on the laptop under load and passed after a restart and on CI (RAN).
+
+## Lane B 5c, reviews, breaker passes and the gate
+
+All paths under dotnet/. A line number the reviewer did not note is left out.
+- UI, Buttons.cs (SiteAdaptation.AddIn/Commands/Buttons.cs:58): a malformed rules JSON throws JsonReaderException through the Rules button, only FileNotFound and InvalidDataException are caught.
+- UI, the three windows: the tab order puts the side box before the table.
+- UI, check table window: Zoom to plot is enabled with nothing selected.
+- UI, review data and check table windows: a note typed before OK or Wrong is lost on a row change.
+- L1, ReadDataRun: the callback is not guarded against JsonException and IOException.
+- L2, CheckRun.cs:359: a JsonReaderException is not caught.
+- L3, CheckRun.cs:142: GetFiles "*.rvt" takes backup files such as name.0001.rvt.
+- L4, the NBH follow count ignores the moved set.
+- L5, RevitVillaDocument.cs:249: Line.CreateBound throws on an edge under 0.8 mm.
+- L6, SiteAdaptation.AddIn/Revit/RevitBaseShapeReader.cs: a Close that throws skips the cleanup, and arcs are tessellated.
+- L7, BuildPlan.cs: its casts throw InvalidCastException, not InvalidDataException.
+- L8, Plan/BuildPlan.cs:61: BookLevelM 0.005 sits in code, not in config.
+- L9, PlaceVillas/PlaceVillasRun.cs:221 and 572: the UnixFull branch, the notes give no more.
+- L10, DesignValues.Current is process wide, a second profile in one process reads the first.
+- L11, Outside cancel after the links are loaded says it changed nothing.
+- Three parsers of manualRules disagree (ReportExcel, UpdateFromReport, ManualRuleBlock), the real file passes all three. A later PR moves ReportExcel and UpdateFromReport to ManualRuleBlock.
+- Breaker, CheckRun.cs:219 and OverrideEdits.cs:102 and 127: the key of a past job is KC against imc.
+- Breaker, CheckRun.cs:142: the "*.rvt" filter takes every file of the prototype folder.
+- Breaker: a reload is judged on the last record only.
+- Second reviewer F2: the info count is strict on nbhId.
+- Second reviewer F3, OverrideEdits.cs:27: OverrideEdits.Save has no production caller, only tests.
+- Second reviewer F4: a plot with another nbhId is dropped.
+- Second reviewer, the stop line "did not end done" is wrong for an older folder, the wording should read "has no check.json".
+- Second breaker, CheckTableBuild.cs:41: labels.csv and plots.csv disagree on the NBH of a plot.
+- Second breaker, CheckRun.cs:346-347: the Save count is shown nowhere.
+- Second breaker, OverrideEdits.cs:202-207: Save is slow, 400 changes take 9.6 s on the real list of 11,075 overrides.
+- Second breaker, CheckRun.cs:257 and OverrideEdits.cs:197: the key case is lower against capitals.
+- Second breaker, ButtonsRunHost.cs:429-433: the plan folder rule of the test host.
+- Second breaker: a clock moved back orders the run ids wrong.
+- Second breaker: the first write turns CRLF into LF, the real list has no CR.
+- Gate, R310 tests of ParsonsModelTests (R310_a_sample_counts and R310_helpers_running_before_the_window): they fail under load on the laptop, the CIM query of Get-WindowSample (2 s) gives null childProcesses, and they pass alone and on an idle machine (RAN: 12 of 12 alone on both runtimes, 2 failed on each runtime while 3 gates ran at once).
+- Probe warning box, JobSession.cs:148-149 and 327 on: a job run of the test host deletes warnings in FailuresProcessing and answers dialog boxes, a probe has no job session, so a probe that opens an old file needs its own handlers (RAN, probe 5c_base_boundary, attempt 1 hung on a modal warning, attempt 2 with handlers ran).
