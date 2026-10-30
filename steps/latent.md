@@ -300,3 +300,15 @@ From the reviewer and the breaker passes 1 and 2 of the 5b PR. Each is LATENT, n
 - Breaker, R366: ButtonScope skips with no stop a row whose number is not a whole number, on the real plots.csv 59 rows of locationPlanNumber (30 empty, 29 joined by a bar holding 67 numbers, none a plan plot). The W9 join must feed locationPlanNumber and nbhId, since officialNumber is empty on 2,209 of 2,956 rows and the neighbourhood column holds IM letters, and must fix which column gives a unit plot: clientType takes in 42 plots the plan lacks, typologyRev9 39. StepStates compares run times with a strict greater than, two runs in one tick compare equal. ButtonScope.WholeNumber is a third copy of the R81 rule and trims no blank. No caller outside the tests until W9.
 - Review, Q119: value_status Table.of keys a value read by none as field from override with the refs of the original source, so two plots of one field with other original sources could share a key, only walls reach it and a wall field has one source. The same in ValueStatus.cs. C# refs.AddRange also drops duplicates inside held where Python does not, no config list holds one.
 - Breaker, Q055: the committed rules profile still says medianHeightM of native2022 leaves the 16 rows of u14 out, stale until a majority run with the Native reads (Q151). No parsons2024Rev6 build reads it.
+
+## 5e and 5f, review 1 and breaker pass 1
+
+- Review 6, breaker 9: ReportExcel reads manualRules as a list only and refuses any other shape, UpdateFromReport also takes an object by id. Lane B 5c writes the block (Q165), no input reaches either today.
+- Review 7, breaker 8: with revitCounts and no run of 6 the Levels row reads Revit 0 and a mismatch issue, levelRun is written but never read. levelPlots comes with the run log of 6 in 5d.
+- Review 8: UpdateFromReport.ResultJson with applied and UpdateApplied.Plots have no caller outside tests until buttons 5 to 8 take the changed plots.
+- Review 9: the tiles do not part the changes, a profile rule break with no manualRules block is in neither Follow the rules nor Break a manual rule (Q171).
+- Breaker 4: a blank Plot No cell ends the table of Levels or Placed, the edits below it are neither listed nor ignored.
+- Breaker 5: the override list is read at Preview and written at Apply, a hand edit made while the window is open is lost.
+- Breaker 6: two level Excels picked together overwrite one another per plot, and two ticked changes of one plot and field are both applied, the last wins.
+- Breaker 7: a plan plot with no FFL, entry or steps gets no check and reads as following the rules.
+- Breaker 10: every Browse writes the worker list under the work folder, so Cancel writes that file there (under the work root, D19 holds).
