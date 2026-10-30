@@ -62,10 +62,10 @@ namespace SiteAdaptation.AddIn
             this.post = post;
         }
 
-        // CadReader.exe in the folder of the add-in, where Install-SiteAdaptation.ps1 puts it
+        // CadReader.exe in the Worker folder under the add-in, where Install-SiteAdaptation.ps1 puts it with its own redirects
         public static string BesideAddIn()
         {
-            return Path.Combine(Path.GetDirectoryName(typeof(LaunchedWorker).Assembly.Location), "CadReader.exe");
+            return Path.Combine(Path.GetDirectoryName(typeof(LaunchedWorker).Assembly.Location), "Worker", "CadReader.exe");
         }
 
         public void Start(string requestPath, string workFolder, WorkerRequest request, Action<WorkerAnswer> ended)

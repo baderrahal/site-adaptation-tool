@@ -131,6 +131,17 @@ namespace SiteAdaptation.Tests
             Assert.Contains("catch (InvalidDataException", buttons);
         }
 
+        // R375 and R370. The pane starts the worker where the installer copies it, the folder name read from the script
+        [Fact]
+        public void R375_the_worker_is_started_from_the_worker_folder_the_installer_fills()
+        {
+            string script = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Install-SiteAdaptation.ps1"));
+            string folder = Regex.Match(script, @"\$workerFolder = Join-Path \$addInFolder '([^']+)'").Groups[1].Value;
+            Assert.Equal("Worker", folder);
+            string addIn = Path.GetDirectoryName(typeof(LaunchedWorker).Assembly.Location);
+            Assert.Equal(Path.Combine(addIn, folder, "CadReader.exe"), LaunchedWorker.BesideAddIn());
+        }
+
         [Fact]
         public void R370_the_resolver_serves_its_own_folder_of_the_same_or_a_higher_version_to_the_tool_only()
         {
