@@ -257,6 +257,9 @@ namespace SiteAdaptation.AddIn.CheckTable
 
         public string ManualRuleTip { get; }
 
+        // The rule id of the Rule column, the plain name is the cell. The manual rule has its own tooltip, ManualRuleTip
+        public string RuleTip => CheckTableState.Text(Row.Rule);
+
         public IReadOnlyList<UseOptionViewModel> UseOptions { get; }
 
         public string Use

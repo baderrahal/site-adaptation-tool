@@ -149,8 +149,9 @@ namespace SiteAdaptation.Tests
             // 22 since Lane B 5b, the line of a second run of Set up site. Lane B 5c added 70: 29 of the plain rule names of Check table, 7 more
             // of Check table, 11 of Review data, the 11 messages of 2 Read data (R375) and 12 of Site Adaptation Rules. 5f added 48: Browse,
             // Note and the dry run line of Update from report, the two lines of the message after Apply, the texts of the 5f fix that Common
-            // gives the window and the two refusals of a second book of a kind
-            Assert.Equal(140, chosen);
+            // gives the window and the two refusals of a second book of a kind. The UI review of 5c added 4: the heading Corner, the two lines of a
+            // Rules command with no usable rules file and the chip Team check
+            Assert.Equal(144, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 

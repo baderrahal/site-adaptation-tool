@@ -218,7 +218,7 @@ Made up plots of a made up NBH 012, no coordinate or level of a real model. The 
 1. The window is 1280 wide and at most 800 high as the Set up site window.
 2. The table columns are 88, 96, 112, 96, 112, 88 and 128, Team check takes the rest. The side box label column is 120, the corner name column 72. The Find plot box is 200 wide and the table at most 480 high, then it scrolls. These are keys of Theme.xaml.
 3. The table sits left and the side box right, the band and the How to use line over both. The window has no foot, Save review is the primary button of the band as 12-ui-spec.md 7.4 puts Save overrides.
-4. The Shared coordinates of a corner stand under its X and Y in the small muted text. X and Y are the model coordinates by the survey point of site.json, and show "not read yet" while the site file gives none.
+4. The Shared coordinates of a corner are a column of the corners table after Y, its heading on the line of Corner, X and Y (fixed in the UI review of 5c). A long pair wraps inside its column. X and Y are the model coordinates by the survey point of site.json, and show "not read yet" while the site file gives none.
 5. A message of Zoom to plot, Export to Excel or Save review shows in a band on SA.InfoGround under the How to use line.
 
 ### Known differences
@@ -252,7 +252,7 @@ The block manualRules of rules/roshn-makkah.json as it is in the repo, texts onl
 
 ### Check table, Lane B 5c (W11)
 
-- Columns Plot, NBH, Unit, Check, Tool value (rule), Past job, Rule, Manual rule and Use, the widths in Theme.xaml under SA.Grid.Check*. Manual rule is a column of its own, CHOSEN, as every check row names its manual rule ID (docs/design/13-workflow-changes.md). A row with no rule of the profile shows it empty. The Rule column shows the id of the coded rule, the manual rule text as its tooltip.
+- Columns Plot, NBH, Unit, Check, Tool value (rule), Past job, Rule, Manual rule and Use, the widths in Theme.xaml under SA.Grid.Check*. Manual rule is a column of its own, CHOSEN, as every check row names its manual rule ID (docs/design/13-workflow-changes.md). A row with no rule of the profile shows it empty. The Rule column shows the plain name of the coded rule with its rule id as the tooltip (12-ui-spec.md line 11), the Manual rule column has the manual rule text as its tooltip.
 - The window is modal like Review data, since ICheckTableDialog returns the answer to the worker callback. 7.4 of the mock asks for a modeless window, so this differs (CHOSEN).
 - Zoom to plot and Export to Excel are grey until the Revit side gives them a callback, Save overrides is grey in a dry run and when no callback is given.
 - The one plain line on the rule with its share and strong or weak is not shown, the rows carry no share yet. The line Why shows the why of the row instead (CHOSEN).

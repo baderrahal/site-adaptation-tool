@@ -549,9 +549,32 @@
   <GridLength x:Key="SA.Grid.ReviewCluster">112</GridLength>
   <GridLength x:Key="SA.Grid.ReviewArea">88</GridLength>
   <GridLength x:Key="SA.Grid.ReviewRoad">128</GridLength>
-  <GridLength x:Key="SA.Grid.ReviewCorner">72</GridLength>
+  <GridLength x:Key="SA.Grid.ReviewCorner">64</GridLength>
   <GridLength x:Key="SA.Grid.ReviewSideLabel">120</GridLength>
   <Thickness x:Key="SA.Line.Mark">3,0,0,0</Thickness>
+  <!-- The gap at the right of a table cell, so text does not touch the next column, and the mark of a selected row that reaches the
+       left edge of its row over the cell padding of SA.Pad.Cell -->
+  <Thickness x:Key="SA.Gap.Cell">0,0,8,0</Thickness>
+  <!-- The list of a table. The stock template pads its content by 1 px, which put the rows 1 px right of the header over it -->
+  <Style x:Key="SA.Table.List" TargetType="ListBox">
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Background" Value="{StaticResource SA.Surface}" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ListBox">
+          <Border Background="{TemplateBinding Background}">
+            <ScrollViewer Focusable="False">
+              <ItemsPresenter />
+            </ScrollViewer>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Thickness x:Key="SA.Margin.SelectedMark">-8,-4,0,-4</Thickness>
+  <sys:Double x:Key="SA.Size.ChipRadius">12</sys:Double>
+  <DoubleCollection x:Key="SA.Dash.Assumed">3 2</DoubleCollection>
   <sys:Double x:Key="SA.Size.FindBox">200</sys:Double>
   <sys:Double x:Key="SA.Size.ReviewList">480</sys:Double>
 

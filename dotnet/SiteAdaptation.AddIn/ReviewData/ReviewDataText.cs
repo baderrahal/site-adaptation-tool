@@ -32,6 +32,7 @@ namespace SiteAdaptation.AddIn.ReviewData
         public const string FrontEdge = "Front edge";
         public const string PlotCorners = "Plot corners";
         public const string Corner = "Corner <n>";
+        public const string CornerHead = "Corner";
         public const string X = "X";
         public const string Y = "Y";
         public const string SharedCoordinates = "Shared coordinates";

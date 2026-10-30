@@ -1,6 +1,7 @@
 <Window x:Class="SiteAdaptation.AddIn.CheckTable.CheckTableWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:th="clr-namespace:SiteAdaptation.AddIn.Theme"
         xmlns:chk="clr-namespace:SiteAdaptation.AddIn.CheckTable"
         Title="{Binding Title}" Width="{DynamicResource SA.Size.DialogWidth}" MaxHeight="{DynamicResource SA.Size.DialogMaxHeight}"
         SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
@@ -17,6 +18,7 @@
       <Style x:Key="RowText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Body}">
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="Margin" Value="{StaticResource SA.Gap.Cell}" />
       </Style>
       <Style x:Key="HeadText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Label}">
         <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
@@ -61,7 +63,7 @@
               </Style>
             </Button.Style>
           </Button>
-          <Rectangle IsHitTestVisible="False" Stroke="{StaticResource SA.Warn}" StrokeDashArray="3 2" RadiusX="12" RadiusY="12"
+          <Rectangle IsHitTestVisible="False" Stroke="{StaticResource SA.Warn}" StrokeDashArray="{StaticResource SA.Dash.Assumed}" RadiusX="{StaticResource SA.Size.ChipRadius}" RadiusY="{StaticResource SA.Size.ChipRadius}"
                      Visibility="{Binding IsAssumed, Converter={StaticResource Shown}}" />
         </Grid>
       </DataTemplate>
@@ -73,7 +75,7 @@
               <Border x:Name="Box" MinHeight="{StaticResource SA.Size.Row}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}"
                       BorderThickness="{StaticResource SA.Line.Under}" Background="{StaticResource SA.Surface}">
                 <Grid>
-                  <Border x:Name="Mark" HorizontalAlignment="Left" Width="{StaticResource SA.Size.SelectedMark}" Background="{StaticResource SA.Accent}" Visibility="Collapsed" Margin="-8,-4,0,-4" />
+                  <Border x:Name="Mark" HorizontalAlignment="Left" Width="{StaticResource SA.Size.SelectedMark}" Background="{StaticResource SA.Accent}" Visibility="Collapsed" Margin="{StaticResource SA.Margin.SelectedMark}" />
                   <ContentPresenter VerticalAlignment="Center" />
                 </Grid>
               </Border>
@@ -117,7 +119,7 @@
           <TextBlock Grid.Column="3" Style="{StaticResource RowText}" Text="{Binding Check}" />
           <TextBlock Grid.Column="4" Style="{StaticResource RowText}" Text="{Binding ToolText}" ToolTip="{Binding ToolText}" />
           <TextBlock Grid.Column="5" Style="{StaticResource RowText}" Text="{Binding PastText}" ToolTip="{Binding PastText}" />
-          <TextBlock Grid.Column="6" Style="{StaticResource RowText}" Text="{Binding RuleText}" ToolTip="{Binding ManualRuleTip}" />
+          <TextBlock Grid.Column="6" Style="{StaticResource RowText}" Text="{Binding RuleText}" ToolTip="{Binding RuleTip}" />
           <TextBlock Grid.Column="7" Style="{StaticResource RowText}" Text="{Binding ManualRule}" ToolTip="{Binding ManualRuleTip}" />
           <ComboBox Grid.Column="8" Style="{StaticResource SA.Pane.Combo}" ItemsSource="{Binding UseOptions}" DisplayMemberPath="Name" SelectedValuePath="Name"
                     SelectedValue="{Binding Use, Mode=TwoWay}" ItemContainerStyle="{StaticResource UseItem}" />
@@ -236,6 +238,7 @@
             <ColumnDefinition Width="{StaticResource SA.Grid.CheckRule}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.CheckManual}" />
             <ColumnDefinition Width="{StaticResource SA.Grid.CheckUse}" />
+            <ColumnDefinition x:Name="Gutter" Width="0" />
           </Grid.ColumnDefinitions>
           <TextBlock Style="{StaticResource HeadText}" Text="{x:Static chk:CheckTableText.Plot}" />
           <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="{x:Static chk:CheckTableText.Nbh}" />
@@ -249,7 +252,7 @@
         </Grid>
       </Border>
       <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected, Mode=TwoWay}" ItemTemplate="{StaticResource CheckRow}" ItemContainerStyle="{StaticResource RowBox}"
-               BorderThickness="0" Background="{StaticResource SA.Surface}" HorizontalContentAlignment="Stretch" MaxHeight="{StaticResource SA.Size.CheckList}"
+               Style="{StaticResource SA.Table.List}" th:TableGutter.Column="{x:Reference Gutter}" MaxHeight="{StaticResource SA.Size.CheckList}"
                ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
     </StackPanel>
   </DockPanel>

@@ -15,6 +15,7 @@ namespace SiteAdaptation.AddIn.CheckTable
         public const string NoPastJob = "No past job was given, so Plot cut shows no rows and no plot is counted as following every rule on Plot cut.";
 
         public const string All = "All";
+        public const string TeamCheck = "Team check";
         public const string PlotCut = "Plot cut";
         public const string Floor = "Floor";
         public const string Hand = "Hand";

@@ -41,6 +41,12 @@ namespace SiteAdaptation.AddIn
         {
             Document document = application.ActiveUIDocument == null ? null : application.ActiveUIDocument.Document;
             Pane.DocumentSession session = document == null ? null : PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title);
+            string problem = RulesWindow.RulesWindowBody.Problem(session?.Settings?.RulesFile);
+            if (problem != null)
+            {
+                TaskDialog.Show(RibbonLayout.Tab, problem);
+                return Result.Succeeded;
+            }
             try
             {
                 RulesWindow.RulesWindowBody.Show(application.MainWindowHandle, session?.Settings?.RulesFile);
