@@ -6,7 +6,7 @@ The rules are R420 to R427 of docs/rules/11-scanner-r420-up.md. This part holds 
 
 - Worker command scan of CadReader (WorkerReads.Commands). Request roles: config, the project file. scanCad:<n>, scanExcel:<n>, scanPdf:<n>, one per file the user gives, n from 1 in the order given. prototype:<file name>, one per prototype file given. The profile is the one config names. The output folder of the request is the run folder.
 - python/scan.py main: --settings config/project.json, --cad-read <scan_cad_<n>.json> per drawing, --excel <file> per workbook, --pdf <file> per PDF, --prototypes <folder>, --out <run folder>. Python reads no DWG, it reads the scan_cad files the worker wrote (as every Python step reads the CadReader outputs).
-- Button 2 Read data does not start the scan in 4j-1. The scanner window of Lane B starts it (steps/waiting-on-others.md, Q243).
+- Button 2 Read data does not start the scan in 4j-1. The scanner window of Lane B starts it (steps/waiting-on-others.md, Q246).
 
 ## scan_cad_<n>.json, by the worker, R420 and R421
 

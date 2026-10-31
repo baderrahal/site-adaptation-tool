@@ -234,7 +234,7 @@
     }
   },
   "scan": {
-    "note": "R420 to R427, round 4j-1. The values of the scanner of any CAD, Excel and PDF the user gives, read by python/scan.py and Common/Scan/ScanLogic.cs. ruleOf names the rule of each value. labelPattern is the label form of CadReader/PlotLabels.cs, group 1 the type and group 2 the number. plotNumberShifts are the shifts of config/plot_numbers.json and 0, a sheet number minus the shift is the CAD label. pdfJoinGapPt and pdfLineTolerancePt are joinGapPt and lineTolerancePt of dataBook.locationPlan. pairMinSegments CHOSEN by Code (Q240)",
+    "note": "R420 to R427, round 4j-1. The values of the scanner of any CAD, Excel and PDF the user gives, read by python/scan.py and Common/Scan/ScanLogic.cs. ruleOf names the rule of each value. labelPattern is the label form of CadReader/PlotLabels.cs, group 1 the type and group 2 the number. plotNumberShifts are the shifts of config/plot_numbers.json and 0, a sheet number minus the shift is the CAD label. pdfJoinGapPt and pdfLineTolerancePt are joinGapPt and lineTolerancePt of dataBook.locationPlan. pairMinSegments CHOSEN by Code (Q243)",
     "labelPattern": "^(?:(.*?)\\s+)?(\\d{1,6})$",
     "tokenSplit": "[^A-Za-z0-9]+",
     "plotNumberShifts": [0, 10, 11],

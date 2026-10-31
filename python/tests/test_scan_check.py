@@ -60,6 +60,11 @@ def test_r420_the_faces_of_a_candidate_are_counted_again_by_a_polygonize_of_its_
     assert report["candidates"][1] == {"source": "one.dwg|A + B", "faces": 2, "polygonize": 3}
 
 
+def test_r420_the_polygonize_joins_an_end_that_misses_its_corner_by_less_than_the_node_tolerance_as_the_trace_does():
+    lines = {"A": [[0, 0, 10, 0], [10, 0, 10, 10], [10, 10, 0, 10], [0, 10, 0, 0.005], [5, 0.004, 5, 10]]}
+    assert scan_check.polygon_count({"lines": lines, "arcs": {}}, ["A"]) == 2
+
+
 def test_r420_lines_held_as_a_list_of_layer_entries_are_read_the_same():
     cad = {"lines": [{"layer": "A", "lines": [[0, 0, 1, 0], [1, 0, 1, 1], [1, 1, 0, 1], [0, 1, 0, 0]]}], "arcs": []}
     assert scan_check.polygon_count(cad, ["A"]) == 1

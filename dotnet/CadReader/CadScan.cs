@@ -139,7 +139,7 @@ namespace CadReader
             foreach (PlotEntry face in PlotShapes.Build(segments, layer).Where(shape => shape.Kind == "plot_shape"))
             {
                 List<double[]> ring = PlotLabels.Ring(face);
-                double[] centroid = PlotLabels.Centroid(ring);
+                double[] centroid = Centroid(ring);
                 faces.Add(new JObject
                 {
                     ["ring"] = new JArray(ring.Select(point => (object)Point(point[0], point[1])).ToArray()),
@@ -148,6 +148,17 @@ namespace CadReader
                 });
             }
             return faces;
+        }
+
+        // R424. The centroid of a ring taken from its first point. PlotLabels.Centroid multiplies site coordinates near 2.4e6 m, and on the
+        // ROSHN baseplan its centroid of a 300 m2 face lay 0.27 m from the corner mean on net8.0 and 0.06 m on net48 (round 4j-1, Q247)
+        public static double[] Centroid(List<double[]> ring)
+        {
+            double ox = ring[0][0];
+            double oy = ring[0][1];
+            var local = ring.Select(point => new[] { point[0] - ox, point[1] - oy }).ToList();
+            double[] centre = PlotLabels.Centroid(local);
+            return new[] { centre[0] + ox, centre[1] + oy };
         }
 
         // A line, an arc and each side of a polyline as a segment of its layer, a side of bulge as the arc it bends to. Circles, hatches,

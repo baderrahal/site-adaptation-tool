@@ -154,7 +154,7 @@ def known_codes(profile, prototype_names, names):
 
 
 def old_new_pairs(profile):
-    """R426, Q242. The old and the new code of each row of typology_codes that differ, as a set of two."""
+    """R426, Q245. The old and the new code of each row of typology_codes that differ, as a set of two."""
     return {frozenset((item["old"], item["new"])) for item in profile.get("typology_codes.rows")
             if item.get("old") and item.get("new") and item["old"] != item["new"]}
 

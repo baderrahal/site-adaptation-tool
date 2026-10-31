@@ -139,6 +139,19 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R424_the_centroid_of_a_face_at_site_coordinates_is_its_corner_mean_within_a_micrometre()
+        {
+            // The corners of a 300 m2 face of the ROSHN baseplan, whose centroid PlotLabels.Centroid put 0.27 m off on net8.0
+            var ring = new List<double[]>
+            {
+                new[] { 569718.966, 2363912.146 }, new[] { 569697.339, 2363899.606 }, new[] { 569703.358, 2363889.225 }, new[] { 569724.985, 2363901.765 },
+            };
+            double[] centre = CadScan.Centroid(ring);
+            Assert.InRange(centre[0], ring.Average(p => p[0]) - 1e-6, ring.Average(p => p[0]) + 1e-6);
+            Assert.InRange(centre[1], ring.Average(p => p[1]) - 1e-6, ring.Average(p => p[1]) + 1e-6);
+        }
+
+        [Fact]
         public void R420_the_inventory_counts_each_layer_after_the_explode_of_a_nested_insert_with_no_layer_dropped()
         {
             var document = new CadDocument();

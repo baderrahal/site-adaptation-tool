@@ -10,6 +10,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+from shapely import STRtree, snap
 from shapely.geometry import LineString
 from shapely.ops import polygonize, unary_union
 
@@ -26,6 +27,10 @@ LISTS = ("inputs", "rows", "conflicts", "checks", "plots")
 KEYS = {"inputs": ("role",), "rows": ("kind", "source"), "conflicts": ("plot", "field", "sourceA", "sourceB", "valueA", "valueB"),
         "checks": ("what", "source", "plot", "value"), "plots": ("plot",)}
 SHOWN = 20
+# The node tolerance and the least face area of CadReader/PlotShapes.cs (Tolerance, MinArea), so the polygonize joins the ends and the
+# T junctions the trace joins. With no snap it counted 1145 faces where the trace counts 2992 on the ROSHN baseplan (round 4j-1)
+NODE_M = 0.01
+MIN_AREA = 0.001
 
 
 def item_key(name, item):
@@ -71,7 +76,8 @@ def chord(arc):
 
 
 def polygon_count(cad, layers):
-    """R420. The faces a polygonize of the lines and arcs of the layers makes, each arc taken as its chord, the segments noded first."""
+    """R420. The faces a polygonize of the lines and arcs of the layers makes, each arc taken as its chord, the segments snapped to
+    the node tolerance of the trace and noded first, faces under its least area left out."""
     pieces = []
     for layer in layers:
         for line in layer_items(cad.get("lines"), layer, "lines"):
@@ -81,7 +87,13 @@ def polygon_count(cad, layers):
     shapes = [LineString(piece) for piece in pieces if piece[0] != piece[1]]
     if not shapes:
         return 0
-    return len(list(polygonize(unary_union(shapes))))
+    # A line snapped to itself keeps every vertex, so each is snapped to the lines near it, an end onto a corner or into a T junction
+    tree = STRtree(shapes)
+    snapped = []
+    for index, shape in enumerate(shapes):
+        near = [shapes[other] for other in tree.query(shape, predicate="dwithin", distance=NODE_M) if other != index]
+        snapped.append(snap(shape, unary_union(near), NODE_M) if near else shape)
+    return sum(1 for face in polygonize(unary_union(snapped)) if face.area >= MIN_AREA)
 
 
 def face_counts(cads):

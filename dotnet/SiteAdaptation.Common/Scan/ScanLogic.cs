@@ -224,7 +224,7 @@ namespace SiteAdaptation.Common
             return codes;
         }
 
-        // R426, Q242. The old and the new code of each row of typology_codes that differ, each pair as one key
+        // R426, Q245. The old and the new code of each row of typology_codes that differ, each pair as one key
         public static HashSet<string> OldNewPairs(JObject profile)
         {
             var pairs = new HashSet<string>(StringComparer.Ordinal);
@@ -777,7 +777,7 @@ namespace SiteAdaptation.Common
         }
 
         // R426. A villaType row per source that gives a plot a villa type, the highest proposed, and the plots where another source gives
-        // another code, a conflict, or a check when the two are the old and the new code of one row of typology_codes (Q242)
+        // another code, a conflict, or a check when the two are the old and the new code of one row of typology_codes (Q245)
         private static void TypeRows(Dictionary<string, Dictionary<string, string>> given, HashSet<string> pairs, List<JObject> rows, List<JObject> conflicts, List<JObject> checks)
         {
             Dictionary<string, int> scores = given.Where(item => item.Value.Count > 0).ToDictionary(item => item.Key, item => item.Value.Count, StringComparer.Ordinal);
