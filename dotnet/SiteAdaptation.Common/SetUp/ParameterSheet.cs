@@ -18,7 +18,8 @@ namespace SiteAdaptation.Common.SetUp
 
     // R373, Q155 by its recommended reading. The parameters and their GUIDs come only from the parameter sheet, one sheet with one row
     // per parameter and the columns Name, GUID, Data type and Categories, never made by the tool. Until a sheet is chosen they are the
-    // ones config measured on the answer keys, addin.sharedParameters, which the read job of the test host took from the 7 keys
+    // ones config measured on the answer keys, addin.sharedParameters, which the read job of the test host took from the 7 keys, then
+    // those of addin.fixedParameters (Q156)
     public sealed class ParameterSheet
     {
         public static readonly string[] Columns = { "Name", "GUID", "Data type", "Categories" };
@@ -54,18 +55,36 @@ namespace SiteAdaptation.Common.SetUp
                 throw new InvalidDataException("config holds no addin.sharedParameters.parameters, the parameters of button 1 until a parameter sheet is chosen (R353, Q155)");
             }
             var sheet = new ParameterSheet();
-            foreach (JObject item in items.OfType<JObject>())
-            {
-                sheet.Parameters.Add(new ParameterSpec
-                {
-                    Name = Text(item["name"]),
-                    Guid = Text(item["guid"]),
-                    DataType = TextType,
-                    Categories = (item["on"] as JArray ?? new JArray()).Select(Text).Where(name => name != null).ToList(),
-                });
-            }
+            sheet.Parameters.AddRange(items.OfType<JObject>().Select(FromItem));
             Refuse(sheet.Parameters, "addin.sharedParameters");
+            // Q156. addin.fixedParameters holds the GUIDs Bader fixed, such as Plot, which no key binds as a shared parameter and no run writes
+            JArray fixedItems = ((config["addin"] as JObject)?["fixedParameters"] as JObject)?["parameters"] as JArray;
+            if (fixedItems == null)
+            {
+                return sheet;
+            }
+            List<ParameterSpec> fixedParameters = fixedItems.OfType<JObject>().Select(FromItem).ToList();
+            Refuse(fixedParameters, "addin.fixedParameters");
+            foreach (ParameterSpec item in fixedParameters)
+            {
+                if (sheet.Parameters.Any(measured => string.Equals(measured.Name, item.Name, StringComparison.Ordinal)))
+                {
+                    throw new InvalidDataException("config names " + item.Name + " in both addin.sharedParameters and addin.fixedParameters, one parameter per name (Q156)");
+                }
+                sheet.Parameters.Add(item);
+            }
             return sheet;
+        }
+
+        private static ParameterSpec FromItem(JObject item)
+        {
+            return new ParameterSpec
+            {
+                Name = Text(item["name"]),
+                Guid = Text(item["guid"]),
+                DataType = TextType,
+                Categories = (item["on"] as JArray ?? new JArray()).Select(Text).Where(name => name != null).ToList(),
+            };
         }
 
         // The rows of the sheet as a sheet reader gives them, the first holding the four column names in any order and case. A row of

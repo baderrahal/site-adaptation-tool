@@ -131,6 +131,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 - Join items: W6 of steps/lane-b.md
 - Design: docs/design/03b-buttons-2-to-8.md (5 Floors and ramps, 6 Levels, 8 Walls), docs/design/09-risks.md open items 10 and 11, docs/design/13-workflow-changes.md part Order
 - Done when (Bader, 2026-10-28): NBH 012 is placed in Masses with all 13 prototype shapes, then in Links, the peaks logged by R310, and open items 10 and 11 are measured
+- Change (Bader, 2026-10-31 16:00): 5d runs in Masses mode only, on NBH 012 with all 13 prototype shapes. Links mode is not run in 5d, it moves to 6a
 
 ## 5e, button 9 Report
 
@@ -158,6 +159,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 - What: one NBH from a new project through all 9 steps in the test host, and the fixes
 - Design: docs/design/08-install.md (Unattended runs for Phase 6), docs/design/07-mock.md 7.7, steps/history/round-addin/01-plan-0a.md (Phase 6)
 - Done when: the test host calls SiteAdaptation.AddIn.Buttons.Run for each button with no click, by a number for the 9 steps and by a name for Site Adaptation Rules and Update from report, and one NBH runs through all 9 from a new project
+- Joined from 5d (Bader, 2026-10-31 16:00): NBH 012 placed in Links mode with all 13 prototype files, its peak logged by R310
 
 ## 6b, Lane A share, IMA, IMB and IMC
 

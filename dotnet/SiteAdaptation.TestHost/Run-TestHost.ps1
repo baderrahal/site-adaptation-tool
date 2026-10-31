@@ -2,7 +2,7 @@
 # It copies the site model to <name>_TEST-<code>.rvt by a file copy, writes the job file, starts Revit 2024 with the
 # token of this run on Revit alone, runs the dialog watcher of R108 beside it and waits for Revit to exit.
 # The original model is never opened. Nothing in the registry is read or written.
-# With -Upgrade it saves one prototype as a Revit 2024 file in the upgraded prototype folder of config/project.json (R109).
+# With -Upgrade it saves one prototype as a Revit 2024 file in prototypes_2024 under the work root, never under an input root (R109, Q215).
 # With -PrototypeSet it takes the source and target folders of that set of prototypeSets instead and the job code is the
 # prefix of the set and -Code, as STH1 for the STR prototype of TH1 (R313).
 # -NewUpgradeFolder makes that folder and stops when it is there already, so it goes on the first upgrade only.
@@ -510,7 +510,11 @@ if (-not $DryStart -and -not $round) {
         # The source is the past prototype folder, kept in the config, or the source folder of a set (R313). It is only read, the
         # run checks it is unchanged
         $source = Join-Path $sourceFolder $prototype
-        $targetFolder = if ($set) { Join-Path $root $set.target } else { Join-Path $root $config.pastJob.upgradedPrototypeFolder }
+        # Q215, D19. The ARC copies go once into prototypes_2024 under the work root. The target of a set of R313 lies under the input
+        # root and is refused until the folder of a set under the work root is answered
+        $inputRoots = @($root, [string]$config.inputRoot)
+        $targetFolder = if ($set) { Join-Path $root $set.target } else { Get-UpgradeFolder -Docs $docs -InputRoots $inputRoots }
+        Assert-OutsideInputRoots -Folder $targetFolder -InputRoots $inputRoots
         $target = Join-Path $targetFolder $prototype
         if ($NewUpgradeFolder) {
             if (Test-Path $targetFolder) {
