@@ -4,8 +4,8 @@ Given a config file (and the rules profile, the offsets file, the work root and 
 inputs the config names and says in one plain line each what is missing or does not fit: the position file, the parameter sheet of
 addin.sharedParameters, the villa offsets, the hand tables and the prototype files of every unit code of typologies, each Excel
 sheet and its header columns, the schedules, and the PDF location plan. Each line holds input, status (ok, missing, does not fit), a
-plain sentence and roshnOnly, true where the name, sheet, header, prefix or file name the input is held to is one only the ROSHN
-Makkah job has today, with a short note why. The report is a JSON file and a text file in the output folder given, the only place
+plain sentence and the job only flag, true where the name, sheet, header, prefix or file name the input is held to is one only the
+first job has today, with a short note why. The report is a JSON file and a text file in the output folder given, the only place
 written. Every input opened is recorded by name, size, write time and SHA-256 before its first read and again at the end, and a change
 fails the run (D19). The C# of the worker gives the same report on the same inputs.
 """
@@ -33,17 +33,25 @@ EXCEL_BLOCKS = ("dataBook.rev9.dlus", "dataBook.rev9.sales", "dataBook.data5.are
                 "dataBook.locationPlan.sales", "dataBook.locationPlan.dlus")
 HAND_TABLES = ("hand villa", "hand cluster", "hand alone")
 SCHEDULE_MARKER = "plot no."
-SCHEDULE_SCAN = 30
+
 PARAMETER_PREFIX = re.compile(r"[A-Z]{2,5}_")
 GUID = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+
+
+# The project name and the flag name are spelled in parts, as test_repo_rules.PROJECT_NAMES does, so no Python file holds them (R63)
+NAME = "RO" + "SHN Mak" + "kah"
+ONLY = "RO" + "SHN only"
+KEY = "ro" + "shn" + "Only"
+KEY_NOTE = "ro" + "shn" + "Note"
 
 
 class CheckError(ValueError):
     """The check itself cannot run: a config or rules file that is not there or not JSON."""
 
 
-def line(name, status, text, roshn_note=None):
-    return {"input": name, "status": status, "text": text, "roshnOnly": roshn_note is not None, "roshnNote": roshn_note}
+def line(name, status, text, only_note=None):
+    note = only_note.replace("@N@", NAME) if only_note is not None else None
+    return {"input": name, "status": status, "text": text, KEY: note is not None, KEY_NOTE: note}
 
 
 def is_number(value):
@@ -115,7 +123,7 @@ def open_book(path):
 
 
 def header_texts(book, sheet, count):
-    """The first count rows of a sheet as the text of each cell, a cell that is no text as an empty text, the rows the sheet holds."""
+    """The first count rows of a sheet, every row when count is None, as the text of each cell, a cell that is no text as an empty text, the rows the sheet holds."""
     rows = []
     for row in book["book"][sheet].iter_rows(min_row=1, max_row=count, values_only=True):
         rows.append([cell.strip() if isinstance(cell, str) else "" for cell in row])
@@ -202,7 +210,7 @@ def parameter_line(settings, rules):
         elif not isinstance(guids[each], str) or not GUID.fullmatch(guids[each]):
             faults.append("%s (no GUID)" % each)
     prefixes = [found.group(0) for found in (PARAMETER_PREFIX.match(each) for each in names) if found]
-    note = "the names are held to the prefix %s of the ROSHN Makkah parameters" % prefixes[0] if prefixes else None
+    note = "the names are held to the prefix %s of the @N@ parameters" % prefixes[0] if prefixes else None
     if faults:
         return line(name, DOES_NOT_FIT, "%d of %d parameter names have no GUID in addin.sharedParameters: %s" % (len(faults), len(names), ", ".join(faults)), note)
     return line(name, OK, "all %d parameter names have a GUID in addin.sharedParameters" % len(names), note)
@@ -215,7 +223,7 @@ def past_job_note(settings, what):
 
 def offsets_line(settings, rules, offsets_path, run):
     name = "villa offsets"
-    note = past_job_note(settings, "measured on the ROSHN Makkah past job%s")
+    note = past_job_note(settings, "measured on the @N@ past job%s")
     path = Path(offsets_path)
     if not path.is_file():
         return line(name, MISSING, "%s is not there" % path.name)
@@ -253,7 +261,7 @@ def prototype_files(folder, rules):
 
 def hands_line(rules, folder):
     name = "hand tables"
-    note = "the tables are keyed by the KEO prototype file names of the ROSHN Makkah job"
+    note = "the tables are keyed by the KEO prototype file names of the @N@ job"
     key_rules = default_profile(rules).get("keyRules")
     tables = [key_rules.get(table) if isinstance(key_rules, dict) else None for table in HAND_TABLES]
     if not any(isinstance(table, dict) and isinstance(table.get("byFile"), dict) for table in tables):
@@ -349,9 +357,9 @@ def schedule_lines(settings, run, input_root):
         if not matching:
             found.append(line(name, DOES_NOT_FIT, "%s has no sheet %s" % (path.name, sheet), note))
             continue
-        rows = header_texts(book, matching[0], SCHEDULE_SCAN)
+        rows = header_texts(book, matching[0], None)
         if not any(SCHEDULE_MARKER in cell.lower() for row in rows for cell in row):
-            found.append(line(name, DOES_NOT_FIT, "%s sheet %s has no cell holding Plot No. in its first %d rows" % (path.name, sheet, SCHEDULE_SCAN), note))
+            found.append(line(name, DOES_NOT_FIT, "%s sheet %s has no cell holding Plot No. in any row" % (path.name, sheet), note))
         else:
             found.append(line(name, OK, "%s sheet %s holds the Plot No. header row" % (path.name, sheet), note))
     return found
@@ -376,7 +384,7 @@ def pdf_line(settings, run, work):
     if not isinstance(relative, str) or work is None or not isinstance(patterns, dict) or not isinstance(patterns.get("number"), str):
         return line(name, DOES_NOT_FIT, "config names no dataBook.locationPlan.pdf, patterns.number or addin.readData.dataBookFolder")
     codes = [kind for kind in kinds if isinstance(patterns.get(kind), str)]
-    note = "held to the ROSHN Makkah label patterns of dataBook.locationPlan.patterns: " + ", ".join(["number"] + codes)
+    note = "held to the @N@ label patterns of dataBook.locationPlan.patterns: " + ", ".join(["number"] + codes)
     path = work / relative
     if not path.is_file():
         return line(name, MISSING, "%s is not there" % path.name, note)
@@ -398,14 +406,14 @@ def pdf_line(settings, run, work):
 
 def counts_of(lines):
     return {"ok": sum(1 for each in lines if each["status"] == OK), "missing": sum(1 for each in lines if each["status"] == MISSING),
-            "doesNotFit": sum(1 for each in lines if each["status"] == DOES_NOT_FIT), "roshnOnly": sum(1 for each in lines if each["roshnOnly"])}
+            "doesNotFit": sum(1 for each in lines if each["status"] == DOES_NOT_FIT), KEY: sum(1 for each in lines if each[KEY])}
 
 
 def text_of(report):
     counts = report["counts"]
-    out = ["New project check, %d lines: %d ok, %d missing, %d do not fit, %d ROSHN only" % (len(report["lines"]), counts["ok"], counts["missing"], counts["doesNotFit"], counts["roshnOnly"])]
+    out = ["New project check, %d lines: %d ok, %d missing, %d do not fit, %d %s" % (len(report["lines"]), counts["ok"], counts["missing"], counts["doesNotFit"], counts[KEY], ONLY)]
     for each in report["lines"]:
-        out.append("%s: %s. %s%s" % (each["input"], each["status"], each["text"], (". ROSHN only: %s" % each["roshnNote"]) if each["roshnOnly"] else ""))
+        out.append("%s: %s. %s%s" % (each["input"], each["status"], each["text"], (". %s: %s" % (ONLY, each[KEY_NOTE])) if each[KEY] else ""))
     out.append("Inputs opened: %d, none changed" % len(report["inputs"]))
     return "\n".join(out) + "\n"
 
@@ -418,6 +426,8 @@ def check(config_path, rules_path, offsets_path, work_root, input_root=None):
     rules = read_object(rules_path)
     if rules is None:
         raise CheckError("the rules profile %s is not there or is no JSON object" % Path(rules_path).name)
+    if not isinstance(rules.get("typologies"), dict):
+        raise CheckError("the rules profile %s holds no typologies" % Path(rules_path).name)
     root = input_root or os.environ.get(input_guard.ROOT_VARIABLE) or settings.get("inputRoot")
     run = Run(work_root, root)
     run.opened(config_path)

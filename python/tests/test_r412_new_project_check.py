@@ -7,6 +7,7 @@ import pytest
 
 import input_guard
 import new_project_check
+import new_project_check as npc
 
 GUID = "7a7813d7-ad61-4bf2-a75f-6234c92957bb"
 PROTOTYPE = "KEO-ARC-C10-ZZ.rvt"
@@ -15,10 +16,10 @@ LINES = [
     ("position file", "ok", "pos.json holds the project position, the survey point, the project base point and 2 levels", None),
     ("parameter sheet", "does not fit",
      "3 of 4 parameter names have no GUID in addin.sharedParameters: AA_Two (no GUID), AA_Three (not in the sheet), AA_Four (not in the sheet)",
-     "the names are held to the prefix AA_ of the ROSHN Makkah parameters"),
-    ("villa offsets", "does not fit", "plotFrame.units of prototype_offsets.json holds no offset for the unit codes: VL3, TH1", "measured on the ROSHN Makkah past job N1"),
+     "the names are held to the prefix AA_ of the %s parameters" % npc.NAME),
+    ("villa offsets", "does not fit", "plotFrame.units of prototype_offsets.json holds no offset for the unit codes: VL3, TH1", "measured on the %s past job N1" % npc.NAME),
     ("hand tables", "does not fit", "the hand tables hold no entry for the prototype files of the unit codes: TH1",
-     "the tables are keyed by the KEO prototype file names of the ROSHN Makkah job"),
+     "the tables are keyed by the KEO prototype file names of the %s job" % npc.NAME),
     ("prototype files", "does not fit", "the prototype folder protos holds no single file for the unit codes: TH1", "files are found by the -ARC-<code>- part of the KEO file names"),
     ("Excel dlus dataBook.rev9.dlus", "does not fit", "a.xlsx sheet S1 row 2 lacks the columns: NBH", "held to the sheet S1 and the headers Plot, NBH"),
     ("Excel dlus dataBook.rev9.sales", "does not fit", "a.xlsx has no sheet Nope", "held to the sheet Nope and the headers Plot"),
@@ -28,7 +29,7 @@ LINES = [
     ("Excel dataBook.locationPlan.dlus", "does not fit", "config names no workbook, sheet, headerRow and columns in dataBook.locationPlan.dlus", None),
     ("Schedule N1", "ok", "s1.xlsx sheet Sched holds the Plot No. header row", "held to the sheet Sched and a header cell with Plot No."),
     ("location plan PDF", "ok", "plan.pdf is one page and holds text that fits the number and code patterns",
-     "held to the ROSHN Makkah label patterns of dataBook.locationPlan.patterns: number, clientCode"),
+     "held to the %s label patterns of dataBook.locationPlan.patterns: number, clientCode" % npc.NAME),
 ]
 
 
@@ -67,7 +68,7 @@ def build(tmp):
         "surveyPoint": point, "projectBasePoint": point, "levels": [{"name": "L1", "elevationM": 0.0}, {"name": "L2", "elevationM": 3.0}], "levelBase": "Project Base Point"}))
     sheet_book(work / "data_book" / "work" / "Book" / "a.xlsx", "S1", [["title"], ["Plot", "Other"], ["1", "x"]])
     made_pdf(work / "data_book" / "work" / "Book" / "plan.pdf")
-    sheet_book(root / "refs" / "s1.xlsx", "Sched", [["t"], [None], ["Plot No.", "Size"]])
+    sheet_book(root / "refs" / "s1.xlsx", "Sched", [["t"]] + [[None]] * 38 + [["Plot No.", "Size"]])
     (root / "protos" / PROTOTYPE).write_bytes(b"x")
     (config / "prototype_offsets.json").write_text(json.dumps({"plotFrame": {"units": {"C10": {}}}}))
     (config / "rules.json").write_text(json.dumps({
@@ -91,18 +92,18 @@ def run(tmp):
 
 
 def shown(report):
-    return [(each["input"], each["status"], each["text"], each["roshnNote"]) for each in report["lines"]]
+    return [(each["input"], each["status"], each["text"], each[npc.KEY_NOTE]) for each in report["lines"]]
 
 
-def test_r412_the_check_gives_one_line_per_input_with_its_status_and_roshn_note_on_made_up_inputs(tmp_path):
+def test_r412_the_check_gives_one_line_per_input_with_its_status_and_job_only_note_on_made_up_inputs(tmp_path):
     (report, paths, root), work, _, _ = run(tmp_path)
     assert shown(report) == LINES
-    assert [each["roshnOnly"] for each in report["lines"]] == [note is not None for _, _, _, note in LINES]
-    assert report["counts"] == {"ok": 4, "missing": 0, "doesNotFit": 9, "roshnOnly": 9}
+    assert [each[npc.KEY] for each in report["lines"]] == [note is not None for _, _, _, note in LINES]
+    assert report["counts"] == {"ok": 4, "missing": 0, "doesNotFit": 9, npc.KEY: 9}
     assert [each["name"] for each in report["inputs"]] == sorted(each["name"] for each in report["inputs"])
     assert all(each["unchanged"] for each in report["inputs"]) and len(report["inputs"]) == 7
     text = new_project_check.text_of(report).split("\n")
-    assert text[0] == "New project check, 13 lines: 4 ok, 0 missing, 9 do not fit, 9 ROSHN only"
+    assert text[0] == "New project check, 13 lines: 4 ok, 0 missing, 9 do not fit, 9 " + npc.ONLY
     assert text[1] == "position file: ok. pos.json holds the project position, the survey point, the project base point and 2 levels"
     assert text[-2] == "Inputs opened: 7, none changed"
 
@@ -138,7 +139,7 @@ def test_r412_a_position_file_with_a_missing_point_or_level_does_not_fit_and_nam
     report = new_project_check.check(config / "project.json", config / "rules.json", config / "prototype_offsets.json", work, root)[0]
     assert (report["lines"][0]["status"], report["lines"][0]["text"]) == (
         "does not fit", "pos.json lacks or has wrong: formatVersion, projectPosition.angleDeg, surveyPoint.sharedM, levels[1].name, levelBase")
-    assert report["lines"][0]["roshnOnly"] is False
+    assert report["lines"][0][npc.KEY] is False
 
 
 def test_r412_an_input_that_changes_while_the_check_reads_it_fails_the_run(tmp_path, monkeypatch):
@@ -172,3 +173,11 @@ def test_r412_the_report_is_written_to_the_output_folder_only_and_never_beside_a
     assert written["format"] == "site-adaptation-new-project-check" and [each["input"] for each in written["lines"]][0] == "position file"
     assert (out / "new_project_check.txt").read_text(encoding="utf-8").startswith("New project check, 13 lines")
     assert sorted(str(path) for path in tmp_path.rglob("*") if out not in path.parents and path != out) == before
+
+
+def test_r412_a_rules_profile_with_no_typologies_stops_the_check_with_its_reason(tmp_path):
+    work, root, config = build(tmp_path)
+    (config / "rules.json").write_text("{}")
+    with pytest.raises(new_project_check.CheckError) as refused:
+        new_project_check.check(config / "project.json", config / "rules.json", config / "prototype_offsets.json", work, root)
+    assert "holds no typologies" in str(refused.value)
