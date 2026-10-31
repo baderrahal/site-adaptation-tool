@@ -16,7 +16,7 @@ designBasis.mode of config/project.json, rev6 or roshnPastJob. The ROSHN Makkah 
 
 ### Door level (R408)
 
-Bader's decision C: the user picks per project. civilFile is a CSV of the civil design, one row per plot, plotColumn the official plot number and levelColumn the door level in metres. roadPlusSlope is for a project with no such file. Either way the step levels gives doorSource, El @ Entry and slopePercent, and the step floors the ramp type of that slope by the bands of config/road_surfaces.json.
+Bader's decision C: the user picks per project. civilFile is a CSV of the civil design, one row per plot, plotColumn the official plot number and levelColumn the door level in metres. roadPlusSlope is for a project with no such file. Either way the step levels gives doorSource, El @ Entry and slopePercent, and the step floors the ramp type of that slope by rampTypes.bands of config/floor_outlines.json.
 
 ### Road level (R409)
 

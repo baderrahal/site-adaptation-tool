@@ -776,7 +776,7 @@
     "modes": ["rev6", "roshnPastJob"],
     "newProjectMode": "rev6",
     "doorLevel": {
-      "note": "R408, Bader's decision C of round 4i. The entry door level, El @ Entry, is the input and the ramp slope the result. civilFile reads the door level of each plot from the civil file, roadPlusSlope gives it as the road at front plus slopePercent of the unit times the ramp depth. Either way the slope is (El @ Entry less the road at front) over the ramp depth, its ramp type by the slope band of road_surfaces.json bands, and a slope outside slopes_percent front_min to front_max of the rules profile, manual 2.3.A, is listed",
+      "note": "R408, Bader's decision C of round 4i. The entry door level, El @ Entry, is the input and the ramp slope the result. civilFile reads the door level of each plot from the civil file, roadPlusSlope gives it as the road at front plus slopePercent of the unit times the ramp depth. Either way the slope is (El @ Entry less the road at front) over the ramp depth, its ramp type by the slope band of rampTypes.bands of config/floor_outlines.json, and a slope outside slopes_percent front_min to front_max of the rules profile, manual 2.3.A, is listed",
       "source": "roadPlusSlope",
       "sources": ["civilFile", "roadPlusSlope"],
       "civilFile": {"path": null, "plotColumn": "Plot No.", "levelColumn": "El @ Entry"},
