@@ -371,6 +371,8 @@ namespace SiteAdaptation.Common.CheckTable
                     }
                     // R377. The record goes last and only on a build that ends done, so 7 takes the plan of the last real run that ended done
                     WorkFiles.WriteText(Path.Combine(folder, RecordFile), runId, Record(runId, outputs).ToString(Newtonsoft.Json.Formatting.Indented));
+                    string log = Path.Combine(context.WorkFolder, Floors.LevelsRun.RunLogName(context.RunId));
+                    WorkFiles.WriteText(log, context.RunId, RunLog(context.RunId, context.WorkFolder, plan, request).ToString(Newtonsoft.Json.Formatting.Indented));
                     done(RunLater.Done(view.Title + ", " + view.Rows.Count + " rows, " + view.FollowLine, answer.Issues ?? new List<string>(), outputs));
                 }
                 catch (Exception failure) when (failure is InvalidDataException || failure is IOException || failure is InvalidOperationException)
@@ -419,6 +421,41 @@ namespace SiteAdaptation.Common.CheckTable
                 ["format"] = RecordFormat, ["runId"] = runId,
                 ["outputs"] = new JArray(outputs.OrderBy(output => output.Key, StringComparer.Ordinal).Select(output => new JObject { ["path"] = output.Key, ["sha256"] = output.Value })),
             };
+        }
+
+        // R381. The run log of a real run of 4 Check that ended done, in the shape ReportRun.RunLog reads: the plan and the checkRows and
+        // summary steps of the last build by its NBH, and the plot table and override list that build read with the SHA-256 it took them
+        // at. A project scope names no NBH, so 9 Report stops on it by name
+        public static JObject RunLog(string runId, string workFolder, CheckPlan plan, WorkerRequest request)
+        {
+            var made = new[]
+            {
+                Tuple.Create(Report.ReportRun.PlanRole, Path.Combine(request.OutputFolder, PlanName(plan.Nbh))),
+                Tuple.Create(Report.ReportRun.CheckRowsRole, Path.Combine(request.StepsFolder, StepFile.FileName(CheckRows.StepName, "csharp"))),
+                Tuple.Create(Report.ReportRun.SummaryRole, Path.Combine(request.StepsFolder, StepFile.FileName(PlanSummary.StepName, "csharp"))),
+            };
+            var outputs = new JArray();
+            foreach (Tuple<string, string> file in made.Where(file => File.Exists(file.Item2)))
+            {
+                JObject item = LogItem(workFolder, file.Item1, file.Item2, FileHash.Sha256(file.Item2));
+                if (plan.Nbh != null)
+                {
+                    item["nbh"] = plan.Nbh;
+                }
+                outputs.Add(item);
+            }
+            var inputs = new JArray(plan.Inputs.Where(input => input.Role == Report.ReportRun.PlotsCsvRole || input.Role == Report.ReportRun.OverridesRole)
+                .Select(input => LogItem(workFolder, input.Role, input.Path, input.Sha256)));
+            return new JObject { ["runId"] = runId, ["button"] = 4, ["committed"] = true, ["inputs"] = inputs, ["outputs"] = outputs };
+        }
+
+        // A file of the work folder by its path there, so the log holds no path of the machine for it
+        private static JObject LogItem(string workFolder, string role, string path, string sha256)
+        {
+            string full = Path.GetFullPath(path);
+            string under = Path.GetFullPath(workFolder).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            string given = full.StartsWith(under, StringComparison.OrdinalIgnoreCase) ? full.Substring(under.Length) : full;
+            return new JObject { ["role"] = role, ["path"] = given, ["sha256"] = sha256 };
         }
 
         // R377. The record of a real run of 4 Check that ended done in its folder, null where the run wrote none

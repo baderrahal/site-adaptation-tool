@@ -76,6 +76,24 @@ namespace SiteAdaptation.Tests
             Assert.Equal(WatchAction.StopNoButton, SecurityDialogs.Decide(Dialog("Green Audit", null, new[] { "Always Load", "Load Once" }), OurIds, OurMarks, OurPaths));
         }
 
+        // Round 6a: every -Upgrade of a 2021 workshared prototype stopped here. Revit 2024 shows its upgrade progress as a standard dialog
+        // whose one button cancels the upgrade, so the watcher leaves it and clicks nothing. Any other button or text still stops Revit
+        [Fact]
+        public void R108_the_model_upgrade_progress_is_left_open_and_nothing_else_is()
+        {
+            string[] texts = { "Model Upgrade", "Your model is being upgraded", "What happens when the workshared model is upgraded?", "From:", "Autodesk Revit 2021",
+                "It is the central model of a workshared project. After the upgrade changes are saved, users will no longer be able to synchronize their local copies with the central model.",
+                "To:", "Autodesk Revit 2024", "Model Upgrade" };
+            SecurityDialogEntry progress = SecurityDialogs.Read("", "#32770", texts, new[] { "Cancel Upgrade" });
+            Assert.Equal(WatchAction.WaitProgress, SecurityDialogs.Decide(progress, OurIds, OurMarks, OurPaths));
+            Assert.Null(SecurityDialogs.ButtonFor(WatchAction.WaitProgress));
+
+            SecurityDialogEntry asks = SecurityDialogs.Read("", "#32770", texts, new[] { "Upgrade", "Cancel Upgrade" });
+            Assert.Equal(WatchAction.StopUnreadable, SecurityDialogs.Decide(asks, OurIds, OurMarks, OurPaths));
+            SecurityDialogEntry other = SecurityDialogs.Read("", "#32770", new[] { "Model Upgrade", "Something else" }, new[] { "Cancel Upgrade" });
+            Assert.Equal(WatchAction.StopUnreadable, SecurityDialogs.Decide(other, OurIds, OurMarks, OurPaths));
+        }
+
         [Fact]
         public void R108_any_standard_dialog_or_security_window_counts_and_the_revit_main_window_does_not()
         {

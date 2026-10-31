@@ -439,3 +439,12 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - Breaker F6, design_basis.py:79-87 and CsvRows.Read(path, out header): a civil file with a header and no rows is taken, every plot goes to noDoorLevel, and a row with an empty plot cell is kept under the empty text. Python lets a UnicodeDecodeError through where C# refuses by name. Arabic-Indic digits pass float() in Python and throw FormatException in C#. A level in mm is taken as metres and shows only in slopeOutsideManual.
 - Breaker F8, floor_fit.type_of: a door level under the road gives a negative slope, listed outside the manual, and the plan still draws Ramps 0.5%, NO_BAND never fires with the bands of floor_outlines.json.
 - Breaker F9, new_project_check.py:347, 281, 136, 431 and their C# twins: no Schedules line when connect.neighbourhoods holds no schedule, the three hand tables merged so DP2 and DP4 read ok while R411 finds no hand cluster entry (Q239), a header cell that is a number read as empty, the config and the rules read before they are marked.
+
+## Lane B 6a, review 1
+
+- ButtonsRunHostTests.cs:198-210: the test of the named commands holds the text of ReadNoApply, which is Revit bound and never runs in a test, so that it never applies rests on the code as read.
+- ButtonsRunHost.cs:457 and 462: the two Shoot overloads part by the conversion of a string over an object, a later call with another third argument would take the other.
+- DialogWatcher Program.cs:152-154: a progress window is marked handled before it is left, a dialog Revit drew in the same window after it would not be read. No Revit 2024 run showed it.
+- WindowShots.cs:113-117: a throw inside LayOut leaves the window it built unclosed until it is collected.
+- RevitShots.cs:301 and 339: the current process is not disposed, and the old bitmap is put back only on success.
+- TestHostPaths.ps1:142 Resolve-WorkRootPath is a third copy of the work root mark beside WorkRoot.Resolve and project_profile.py, held to the C# one by its test, and none of the three refuses a part of two dots. The input is the config of the repo.

@@ -93,6 +93,7 @@ namespace SiteAdaptation.Tests
                 Requests.Add(request);
                 Directory.CreateDirectory(request.StepsFolder);
                 File.WriteAllText(Path.Combine(request.StepsFolder, StepFile.FileName(CheckRows.StepName, "csharp")), R376_CheckTableTests.Step().ToString());
+                File.WriteAllText(Path.Combine(request.StepsFolder, StepFile.FileName(PlanSummary.StepName, "csharp")), "{ 'made': 'up' }");
                 var outputs = new List<WorkerFile>();
                 if (WritesPlan)
                 {
@@ -169,6 +170,44 @@ namespace SiteAdaptation.Tests
             string checks = end.Outputs.Keys.Single(path => Path.GetFileName(path) == "checks_012.json");
             Assert.Equal(FileHash.Sha256(checks), end.Outputs[checks]);
             Assert.Equal("4 Check, NBH 012, 4 plots", (string)JObject.Parse(File.ReadAllText(checks))["title"]);
+        }
+
+        // R381. 9 Report finds the last real run of 4 Check by its run log, so a real run that ends done writes one that names the files
+        // the build made and read, and a dry run writes none
+        [Fact]
+        public void R381_a_real_check_run_that_ends_done_writes_the_run_log_9_report_finds_and_a_dry_run_writes_none()
+        {
+            const string runId = "4_20261031-090000-000";
+            var builder = new Builder { WritesPlan = true };
+            string dry = Path.Combine(work, "dry", "4_20261031-085900-000");
+            new CheckRun(Roles, builder, (path, folder, request) => builder.Run(request), new WorkerDocument(), Nbh, new Table(), null, null).Body().Preview(Context("4_20261031-085900-000", dry));
+
+            Assert.Empty(Directory.GetFiles(work, "run_*.json", SearchOption.AllDirectories));
+            Assert.Throws<InvalidOperationException>(() => SiteAdaptation.Common.Report.ReportRun.CheckRun.Find(work, File.ReadAllText));
+
+            RunLater end = null;
+            new CheckRun(Roles, builder, null, new WorkerDocument(), Nbh, new Table(), null, null).Body().Start(Context(runId, null), later => end = later);
+
+            Assert.Null(end.Failure);
+            Assert.True(File.Exists(Path.Combine(work, "run_" + runId + ".json")));
+            SiteAdaptation.Common.Report.ReportRun.CheckRun found = SiteAdaptation.Common.Report.ReportRun.CheckRun.Find(work, File.ReadAllText);
+            Assert.Equal(new[] { "012" }, found.Nbhs);
+            string made = Path.Combine(work, CheckRun.FolderPrefix + runId);
+            var expected = new Dictionary<string, string>
+            {
+                ["plan"] = Path.Combine(made, "plan_012.json"),
+                ["checkRows"] = Path.Combine(made, "steps", StepFile.FileName(CheckRows.StepName, "csharp")),
+                ["summary"] = Path.Combine(made, "steps", StepFile.FileName(PlanSummary.StepName, "csharp")),
+                ["plotsCsv"] = Path.Combine(root, "plots.csv"),
+                ["overrides"] = Path.Combine(root, "repo", "config", "overrides", "made-up.json"),
+            };
+            Dictionary<string, WorkerFile> files = found.Files("012").ToDictionary(file => file.Role);
+            Assert.Equal(expected.Keys.OrderBy(role => role, StringComparer.Ordinal), files.Keys.OrderBy(role => role, StringComparer.Ordinal));
+            foreach (KeyValuePair<string, string> file in expected)
+            {
+                Assert.Equal(Path.GetFullPath(file.Value), Path.GetFullPath(files[file.Key].Path));
+                Assert.Equal(FileHash.Sha256(file.Value), files[file.Key].Sha256);
+            }
         }
 
         // Q214. The request of 4 Check names the Prototypes folder of the pane, the folder its prototype files are listed from

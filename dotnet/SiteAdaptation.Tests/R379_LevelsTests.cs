@@ -27,6 +27,10 @@ namespace SiteAdaptation.Tests
         // What the fake worker does: null writes the Excel and ends done, else the status it ends with
         private string workerEnds;
 
+        // True makes the fake worker clear the temporary files of its request run id in the work and output folders first, as
+        // WorkerRunner.Clear does
+        private bool workerClears;
+
         public R379_LevelsTests()
         {
             Directory.CreateDirectory(work);
@@ -67,6 +71,11 @@ namespace SiteAdaptation.Tests
         private WorkerAnswer Worker(WorkerRequest request, string workFolder)
         {
             asked.Add(request);
+            if (workerClears)
+            {
+                WorkFiles.DeleteRun(workFolder, request.RunId);
+                WorkFiles.DeleteRun(request.OutputFolder, request.RunId);
+            }
             if (workerEnds != null)
             {
                 return new WorkerAnswer { RunId = request.RunId, Status = workerEnds, Message = "the worker ended " + workerEnds, Seconds = 61 };
@@ -320,6 +329,25 @@ namespace SiteAdaptation.Tests
             JObject levels = JObject.Parse(File.ReadAllText(Path.Combine(work, LevelsRun.LevelsName("6_20261031-120000-000"))));
             Assert.Equal(5, ((JArray)levels["floors"]).Count);
             Assert.True(File.Exists(Path.Combine(work, LevelsRun.ExcelName("012", Profile))));
+        }
+
+        // Q274. The worker clears the temporary files of its request run id in the work folder before its command, so a request of the
+        // run id of 6 deleted levels_<run id>.json under its temporary name and 6 stopped on hashing it in Revit
+        [Fact]
+        public void R379_the_levelExcel_worker_takes_the_run_id_with_the_nbh_and_leaves_the_levels_file_of_6()
+        {
+            PlanFile plan = FloorPlans.Plan(FloorPlans.Plot("101"));
+            FakeFloors document = Placed(plan);
+            workerClears = true;
+
+            RunOutcome outcome = Flow(Make(document, plan), new FlowState(work), new FlowModel());
+
+            Assert.True(outcome.End == RunEnd.Committed, outcome.Message);
+            Assert.Single(asked);
+            Assert.Equal("6_20261031-120000-000-012", asked[0].RunId);
+            Assert.True(File.Exists(Path.Combine(work, LevelsRun.LevelsName("6_20261031-120000-000"))));
+            Assert.True(File.Exists(Path.Combine(work, LevelsRun.ExcelName("012", Profile))));
+            Assert.False(Directory.Exists(Path.Combine(work, "levelexcel_6_20261031-120000-000")));
         }
 
         // Open item 10. A worker that fails or ends past its limit makes Apply fail inside the transaction, so the flow rolls it back and

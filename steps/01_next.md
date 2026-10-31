@@ -124,7 +124,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## 5d, buttons 5 Floors and ramps, 6 Levels and 8 Walls, and 7 Place villas at the FFL
 
-- Status: open, Lane B, code and tests merged on 2026-10-31 in one PR (D20), Masses on NBH 012: 1 to 5 commit in Revit, 6 stops on Q274, 6 to 8 and the second run wait for its answer
+- Status: done 2026-10-31, Lane B, code PR 113, the Revit proof in the runs of 6a: buttons 1 to 9 commit on NBH 012 in Masses with all 13 shapes, open item 10 (the level Excel in the transaction) and 11 (peak 2444 MiB) measured. Links moved to 6a (Bader, 31 Oct 16:00)
 - Starts when: the Revit run after 5c
 - Rules: R378 button 5. R379 button 6 Levels. R380 button 8 Walls. RRE_ZZ_SP_Prototype-FFL is written by 7 Place villas, Levels writes no link parameter (W6 of steps/lane-b.md)
 - Q115 and Q116 (Bader, 2026-10-28): before button 8 places walls, measure the wall extent per kind of edge against the villa footprints and code the best rule, weak under majority.strongShare. The ramp of a plot a rotationDeg override turned goes on the open edge the walls take, as the keys do on 18 of 18
@@ -162,7 +162,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## 6a, one NBH through all 9 steps, and the test host jobs
 
-- Status: open, Lane B
+- Status: done 2026-10-31 for Masses, Lane B, one PR (D20): the test host runs 1 to 9 by number and Rules and Update from report by name with no click, NBH 012 through all 9 from a new project in 6.7 min. Links waits on Q275, Update from report stops on Q278 (Lane A)
 - Starts when: 5d and 5f
 - Rules: R384 the test host jobs of all buttons and the screenshots (moved from 5e by D10), R389 to R399 as 6a needs them
 - What: one NBH from a new project through all 9 steps in the test host, and the fixes

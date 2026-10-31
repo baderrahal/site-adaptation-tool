@@ -109,6 +109,43 @@ namespace SiteAdaptation.Tests
             Assert.True((double)theme[AddinRunNames.PaneSize] >= 1);
         }
 
+        // R384. The named commands of a buttons job: Buttons.Run(string, UIApplication) takes them as the ribbon does, each name is a
+        // command of RibbonLayout, and the host answers the window of each through the Dialog of its body
+        [Fact]
+        public void R384_the_host_finds_the_named_commands_and_the_dialogs_of_their_windows_in_the_add_in()
+        {
+            Assert.Contains("public static Result " + AddinRunNames.Run + "(string commandName, UIApplication application)",
+                File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Commands", "Buttons.cs")));
+            foreach (string command in ButtonsRun.Named)
+            {
+                Assert.Equal(0, RibbonLayout.ButtonOf(command).Number);
+            }
+            Assert.Equal(typeof(Func<IntPtr, SiteAdaptation.Common.Update.IUpdateFromReportDialog>), MemberType(TypeOf(AddinRunNames.UpdateFromReportBody), AddinRunNames.Dialog));
+            Assert.Equal(typeof(Action<IntPtr, SiteAdaptation.Common.ManualRules.ManualRuleTable, string>), MemberType(TypeOf(AddinRunNames.RulesWindowBody), AddinRunNames.Dialog));
+        }
+
+        // R403, R384. Site Adaptation Rules opens on the block of the rules file through RulesWindowBody.Dialog, so the test host opens and
+        // closes it with no click. The ribbon keeps the modal window
+        [Fact]
+        public void R403_R384_the_rules_window_opens_through_its_dialog_on_the_rules_of_the_file()
+        {
+            string rules = Path.Combine(ThemeGateTests.RepoRoot(), "rules", "roshn-makkah.json");
+            Action<IntPtr, SiteAdaptation.Common.ManualRules.ManualRuleTable, string> before = SiteAdaptation.AddIn.RulesWindow.RulesWindowBody.Dialog;
+            SiteAdaptation.Common.ManualRules.ManualRuleTable seen = null;
+            try
+            {
+                SiteAdaptation.AddIn.RulesWindow.RulesWindowBody.Dialog = (owner, table, selected) => seen = table;
+                SiteAdaptation.AddIn.RulesWindow.RulesWindowBody.Show(IntPtr.Zero, rules);
+            }
+            finally
+            {
+                SiteAdaptation.AddIn.RulesWindow.RulesWindowBody.Dialog = before;
+            }
+            Assert.NotNull(seen);
+            Assert.Equal(SiteAdaptation.Common.ManualRules.ManualRuleBlock.FromFile(rules).Rules.Count, seen.Block.Rules.Count);
+            Assert.True(seen.Block.Rules.Count > 0);
+        }
+
         // The probe walks the panels and the buttons of RibbonLayout the way AddinProbe.Labels does, and gets every button of the ribbon,
         // the ones with no number among them, so the judge holds the whole ribbon of the build that runs
         [Fact]

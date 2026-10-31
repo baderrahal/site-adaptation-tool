@@ -157,9 +157,11 @@ namespace SiteAdaptation.Common.Floors
             // levels_<run id>.json is not an input: it stands under its temporary name until the commit, which the worker refuses, and
             // the worker does not read it (Q262)
             var files = new List<WorkerFile>(inputs.ExcelInputs ?? new List<WorkerFile>());
+            // Q274. The worker deletes every temporary file of its request run id in the work folder before its command, so the request
+            // takes a run id of its own, as 9 Report does, else levels_<run id>.json of this run is gone when it is hashed
             var request = new WorkerRequest
             {
-                FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId, Command = Command, Document = inputs.Document, Inputs = files,
+                FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = context.RunId + "-" + decision.Nbh, Command = Command, Document = inputs.Document, Inputs = files,
                 LevelProfile = inputs.Profile, Scope = new WorkerScope { Kind = "nbh", Nbh = decision.Nbh }, OutputFolder = stage, TimeLimitS = inputs.TimeLimitS,
             };
             try

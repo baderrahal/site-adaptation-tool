@@ -32,12 +32,19 @@ namespace SiteAdaptation.AddIn.RulesWindow
                 throw new FileNotFoundException("the rules file was not found", rulesFile);
             }
             var table = new ManualRuleTable(ManualRuleBlock.FromFile(rulesFile), facts);
+            Dialog(mainWindow, table, selectedId);
+        }
+
+        // R384. The modal window on the table and the rule picked at once. A test host sets a window of its own with the types of Common
+        // only, which opens and closes with no click
+        public static Action<IntPtr, ManualRuleTable, string> Dialog { get; set; } = (owner, table, selectedId) =>
+        {
             var window = new RulesWindow(new RulesWindowSession(table, selectedId, null, null));
-            if (mainWindow != IntPtr.Zero)
+            if (owner != IntPtr.Zero)
             {
-                new WindowInteropHelper(window).Owner = mainWindow;
+                new WindowInteropHelper(window).Owner = owner;
             }
             window.ShowDialog();
-        }
+        };
     }
 }

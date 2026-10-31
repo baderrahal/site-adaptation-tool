@@ -5,31 +5,26 @@
 ### Lane A
 
 - Lane: A, round 4i, branch feat/addin-4i-rev6
-- Time: 2026-10-31 22:19
-- Now: the final parity from a worktree pinned at 13057e0, after main merged again for PR 114, the baseline of main c145089 first, no Revit or Civil 3D window used
-- Done: R407 to R412, breaker F1 fixed with a test, review 1, the status block, Q224 to Q242, Q255, Q256 (Q243 and Q244 renumbered for Lane D), main merged after PR 112, 113 and 114
-- Next: parity numbers, the log entry, PROGRESS to WAITING, the PR and its merge after midnight, a message to lane-d, then 4j-2 with no Revit until lane-b and lane-c are clear
+- Time: 2026-11-01 00:05
+- Now: main merged after PR 115, the gate on the merged code, then the PR of 4i
+- Done: R407 to R412, review 1, breaker F1 fixed, parity 32 runs 0 failures, past job 0 of 636,012 values differ, the log entry, PROGRESS to WAITING
+- Next: the PR and its merge, a message to lane-d, then 4j-2 with no Revit until lane-b and lane-c are clear
 - Blocked: none
 
 ### Lane B
 
-- Lane: B, phase 5d, branch feat/lane-b-5d, merged as PR 113 on 31 Oct
+- Lane: B, round 6a, branch feat/lane-b-6a, worktree Site Adaptation Tool Lane B WT
+- Time: 2026-11-01 00:10, demo freeze at 09:30
+- Now: the end records and the PR of 6a, then the queued DEMO round
+- Done: 6a for Masses, NBH 012 through buttons 1 to 9 from a new project with no click, 6.7 min, 2444 MiB peak, 10 window shots
+- Next: DEMO, the add-in installed, C:\SA-demo, the demo sheet. Links waits on Q275
+- Blocked: none
 
-### Lane C
+### Lane C and D
 
-- Lane C: NEWPROJ-UI merged as PR 112 on 31 Oct
+- Lane C: NEWPROJ-UI merged as PR 112, round SCAN-UI next. Lane D: 4j-1 the scanner merged as PR 114, 4j-1b next (Q250)
 
-### Lane D
-
-- Lane: D, round 4j-1, the scanner, branch feat/addin-4j1-scanner, worktree Site Adaptation Tool Lane D WT
-- Now: the full gate, the diff against the plan, then the PR of 4j-1
-- Done: items 1 to 8, review fixes, villa type by prototype names (Bader 31 Oct), parity 0 differ, renamed set equal, records
-- Next: PR 4j-1, then the queued round 4j-1b scan speed
-- Blocked: none. The Road Layout scan passed 40 minutes in the pair trace and was stopped (Q250, round 4j-1b)
-- Time: 2026-10-31 22:30
-- Lane B: 5d merged as PR 113 on 31 Oct (its status at 20:40 read full gate, then the PR of 5d). Lane C: NEWPROJ-UI merged as PR 112
-
-Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D 4j-1, Lane B 5d, 31 Oct 2026.
+Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane B 6a, 1 Nov 2026.
 
 ## Repo map
 
@@ -46,34 +41,32 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 
 ## What this round changed
 
-- Lane D 4j-1: a scanner of any CAD, Excel and PDF, worker command scan, python/scan.py, scan.json per run, design part 17
-- Lane B 5d: button 5 Floors and ramps, 6 Levels with the level Excel wait, 8 Walls of type BW
-- Lane B 5d: button 7 places each villa at its FFL and writes Prototype-FFL (W6)
-- Lane B 5d: plan walls leave the measured span of a cluster pair open, weak at 0.7409 (Q115), the ramp of the 18 turned plots (Q116)
-- Lane B 5d: the build takes the pane Prototypes folder (Q214), Plot takes a fixed GUID (Q156)
+- Lane B 6a: the test host runs buttons 1 to 9 by number and Rules and Update from report by name with no click (R384)
+- Lane B 6a: the test host draws every window in Revit to PNG, the shots against the boards in steps/ui-shots/README.md
+- Lane B 6a: fixes found in Revit: the run id of levelExcel (Q274), the run log of 4 Check that 9 reads, the upgrade progress left open (R108)
+- Lane B 5d: buttons 5, 6 and 8, 7 at the FFL, Q115 walls, Q116 ramps, all proven in Revit by 6a
+- Lane D 4j-1: a scanner of any CAD, Excel and PDF, worker command scan, python/scan.py, design part 17
 - Lane C NEWPROJ-UI: the New project window, the How it works page, the pane rows with no file name
 
 ## New rules
 
-- R420 to R427 of the scanner (Lane D 4j-1, docs/rules/11-scanner-r420-up.md)
-- R378 Button 5 Floors and ramps. R379 Button 6 Levels. R380 Button 8 Walls (Lane B 5d)
-- R430 to R434 of New project and saved starts (Lane C NEWPROJ-UI)
+- R384 Test host runs every button (Lane B 6a). R378 to R380 buttons 5, 6 and 8 (Lane B 5d)
+- R420 to R427 of the scanner (Lane D 4j-1). R430 to R434 of New project and saved starts (Lane C NEWPROJ-UI)
 
 ## Wiring
 
-- Lane D: worker command scan, WorkerReads.Commands to CadScan.Command. python/scan.py main. Button 2 does not start it (Q246)
-- Buttons.cs calls FloorsBody.For, LevelsBody.For and WallsBody.For for 5, 6 and 8, ButtonsRun.Known lets the test host run 1 to 8
-- FloorLoad and WallLoad find the plan of the last done 4 Check, FloorsRun, LevelsRun and WallsRun decide, RevitFloorDocument and RevitWallDocument act. LevelsRun waits for the worker command levelExcel through ReportWorkerClient, which starts Worker\CadReader.exe
+- Lane B: ButtonsRunHost runs Buttons.Run(number) and Buttons.Run(name), answers each Dialog seam with no click, WindowShots draws each window
+- Lane B: 4 Check writes run_4_<run id>.json, ReportRun.CheckRun.Find of 9 reads it. Buttons 5, 6, 8 by FloorsBody, LevelsBody, WallsBody
+- Lane D: worker command scan, WorkerReads.Commands to CadScan.Command. Button 2 does not start it (Q246)
 - Lane C: the pane opens NewProjectDialog and HowItWorksDialog, Save setup goes through SetupSave.Apply
 
 ## Open risks
 
-- Lane D: no villa type source reaches the strong share on ROSHN, lead 0.116, the user chooses (Q254). Road Layout scan time (Q250)
-- 6 Levels, 7 at the FFL and 8 Walls have not yet committed in Revit, button 6 stopped three times
-- Links mode moves to 6a, a Links run needs the pane Prototypes row on the 2024 copies (Q214, Q215)
-- The wall rule is weak, 888 of 3,427 walls differ from the keys (Q115, Q266). Lane C: Save setup waits for a real run (Q280)
+- All 336 masses are flagged by the footprint check, the masses stand right, the drawing holds plot blocks (Q276)
+- Update from report stops on the plan of 4 Check (Q278, Lane A). Links waits on the upgrade first step limit (Q275)
+- New project shows Plots found and Villa types as not read until the scanner hook C1 is built
+- Lane D: no villa type source reaches the strong share on ROSHN (Q254), Road Layout scan time (Q250)
 
 ## Next
 
-- Lane D: 4j-1b scan speed. Lane B: 6a, one NBH through all 9 steps from a new project, with Links mode
-- Lane C: Bader answers Q280 to Q287, Lane B fills IDrawingFacts (join item C1)
+- Lane B: DEMO for 1 Nov 11:00, then Links after Q275. Lane C: SCAN-UI. Lane D: 4j-1b scan speed
