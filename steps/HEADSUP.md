@@ -3,9 +3,9 @@
 ## Live status
 
 - Lane: B, phase 5d, branch feat/lane-b-5d, worktree Site Adaptation Tool Lane B WT
-- Time: 2026-10-31 18:40
-- Now: two fixes from the review and breaker passes, the Levels faults and the ramp front gap of Q116
-- Done: buttons 5, 6 and 8 coded with tests, W6 (7 at the FFL), Q115 walls, Q116 ramp on the open edge, Q214, Q215, Q156, Q220, the worker path fix, review 1 and both breaker passes
+- Time: 2026-10-31 19:10
+- Now: the last two fixes, breaker C and D in Levels and Floors, and the ramp front gap of Q116
+- Done: buttons 5, 6 and 8 with tests, W6, Q115, Q116, Q214, Q215, Q156, Q220, the worker path, the fixes of review 1 and breaker pass 1 for Levels and the worker
 - Next: merge the fixes, the gate, the Revit run of 1 to 8 on NBH 012 in Masses, the questions moved to Q260 up, records, the PR
 - Blocked: none
 
