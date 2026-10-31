@@ -631,13 +631,16 @@ namespace SiteAdaptation.Common
         }
 
         // plan_from_book.hand_step: per plot of the scope the factors, the table it takes (HandTable), its rule and the hand of its file, before an
-        // override of the list
+        // override of the list, and under rev6 with designBasis.clusters.propose the proposal of R411, which the plan takes from this step
         public static Dictionary<string, Dictionary<string, object>> Step(IEnumerable<string> numbers, IReadOnlyDictionary<string, Dictionary<string, string>> rows, HandContext context,
-            JObject keyRules, IReadOnlyDictionary<string, string> files, JObject rules, JObject config)
+            JObject keyRules, IReadOnlyDictionary<string, string> files, JObject rules, JObject config, DesignBasis basis = null)
         {
             JObject prefixes = (JObject)Majority(config)["kindByPrefix"];
             var found = new Dictionary<string, Dictionary<string, object>>();
-            foreach (string number in numbers)
+            List<string> scope = numbers.ToList();
+            Dictionary<string, ClusterProposal> proposals = basis != null && basis.Proposes ? ClusterProposals.Of(scope, rows, context.Neighbours, rules, keyRules, files)
+                : new Dictionary<string, ClusterProposal>();
+            foreach (string number in scope)
             {
                 rows.TryGetValue(number, out Dictionary<string, string> row);
                 string unit = Code(rows, number);
@@ -672,6 +675,10 @@ namespace SiteAdaptation.Common
                     ["rowPairSideOrBlockMirrorOpenEnd"] = factors["rowPairSideOrBlockMirrorOpenEnd"], ["handTable"] = table, ["handRule"] = hand.Value, ["factor"] = hand.Value == null ? null : factor,
                     ["linkFile"] = linkFile, ["mirrored"] = hand.Key,
                 };
+                proposals.TryGetValue(number, out ClusterProposal proposal);
+                found[number]["proposedCluster"] = proposal?.Cluster == null ? null : new List<string>(proposal.Cluster);
+                found[number]["proposedMirror"] = proposal?.Mirrored;
+                found[number]["proposalReason"] = proposal?.Reason;
             }
             return found;
         }

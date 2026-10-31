@@ -84,6 +84,7 @@ namespace SiteAdaptation.Tests
             public Dictionary<string, Dictionary<string, object>> Levels;
             public Dictionary<string, Dictionary<string, object>> Floors;
             public Dictionary<string, Dictionary<string, object>> Links;
+            public Dictionary<string, Dictionary<string, object>> Hands;
             public JObject Rules;
             public JObject Key;
             public LevelBuild Build;
@@ -115,14 +116,14 @@ namespace SiteAdaptation.Tests
             JObject profile = BuildRules.LevelProfile(rules, null);
             var files = new Dictionary<string, string> { ["DP2"] = Dp2File, ["VD2"] = Vd2File, ["TH1-IM"] = Th1File };
             List<string> scope = numbers.Concat(new[] { "7" }).ToList();
-            Dictionary<string, Dictionary<string, object>> hands = Hands.Step(scope, rows, context, key, files, rules, config);
+            Dictionary<string, Dictionary<string, object>> hands = Hands.Step(scope, rows, context, key, files, rules, config, basis);
             Dictionary<string, Dictionary<string, object>> links = LinkFrames.Step(scope, rows, fronts, context.Roles, hands, key, files, rules);
             LevelBuild build = KeyLevels.Of(numbers, rows, clusters, context, members => Fronts.Of(members, rows, faces, roads, limits,
                 (x, y) => new KeyValuePair<double?, string>(10.0 + x / 100.0, "road"), rules, roadEdgeM, sales), rules, key, profile, "parsons2024Rev6", basis, bands);
             return new Made
             {
                 Levels = KeyLevels.Step(scope, rows, build, key, profile, rules, KeyLevels.LaterParameters(config, profile)),
-                Floors = FloorOutlines.Step(scope, rows, build, links, key, profile, rules, 0.5, "parsons2024Rev6"), Links = links, Rules = rules, Key = key, Build = build,
+                Floors = FloorOutlines.Step(scope, rows, build, links, key, profile, rules, 0.5, "parsons2024Rev6"), Links = links, Hands = hands, Rules = rules, Key = key, Build = build,
             };
         }
 

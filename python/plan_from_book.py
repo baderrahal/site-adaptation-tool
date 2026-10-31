@@ -37,6 +37,7 @@ import cad_links
 import corner_front
 import common
 import data_book_retest
+import cluster_proposals
 import design_basis
 import face_rings
 import floor_fit
@@ -231,6 +232,9 @@ def hand_step(numbers, rows, rules, trace, files, profile, block):
             "blockMirror": factors["blockMirror"], "blockMirrorRoadSide": factors["blockMirrorRoadSide"], "blockMirrorOpenEnd": factors["blockMirrorOpenEnd"],
             "rowPairSideOrBlockMirrorOpenEnd": factors["rowPairSideOrBlockMirrorOpenEnd"], "handTable": table, "handRule": rule, "factor": factors.get(rule) if rule else None,
             "linkFile": files.get(unit) if unit else None, "mirrored": hand}
+        # R411. The proposal the build made under rev6, null on a build of the past job or with designBasis.clusters.propose false
+        proposal = (trace.get("proposals") or {}).get(number) or {}
+        found[number].update(proposedCluster=proposal.get("cluster"), proposedMirror=proposal.get("mirrored"), proposalReason=proposal.get("reason"))
     return found
 
 
@@ -915,8 +919,10 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         trace.update(front=front, snap=snap)
     frames = {number: item["frame"] for number, item in front.items()}
     roles = cad_links.cluster_roles(mine, 0, {number: item["face"] for number, item in front.items() if item["face"] is not None}, frames)
+    # R411. Under rev6 with designBasis.clusters.propose a cluster and a mirror flag proposed per unit plot by the manual, which set no value
+    proposals = cluster_proposals.proposals(numbers, rows, rules["neighbours"], profile, key, files) if design_basis.proposes(basis) else {}
     if trace is not None:
-        trace.update(roles=roles, hands={})
+        trace.update(roles=roles, hands={}, proposals=proposals)
     entries, slopes, no_door = {}, {}, []
     overrides = {} if rules is None else rules["overrides"]
     outcomes = Outcomes(overrides, numbers, [] if rules is None else rules.get("laterFields") or [], "the estimate of R209" if rules is None else rules["name"])
@@ -1160,6 +1166,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         if complete:
             if records[number]:
                 builder.entry["overrides"] = records[number]
+            if number in proposals:
+                builder.entry["proposal"] = dict(proposals[number])
             applied_of[number] = outcomes.in_order(number, records[number]["applied"]) if records[number] else ()
             value_status.mark(builder.entry, statuses, table, applied_of[number])
             if rules is not None:
@@ -1239,6 +1247,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         limits = profile.get("slopes_percent")
         plan["summary"].update(noDoorLevel=no_door, slopeOutsideManual=[{"plot": number, "slopePercent": common.fixed(slopes[number], design_basis.SLOPE_DECIMALS)}
                                                                         for number in numbers if number in entries and design_basis.outside_manual(slopes[number], limits)])
+    if proposals:
+        plan["summary"]["proposals"] = cluster_proposals.counts(proposals)
     return plan
 
 
@@ -1703,6 +1713,8 @@ def summary_lines(summary, name, named):
                      % " | ".join("%s: %s" % (name, why) for name, why in (summary.get("roadFolderNotTaken") or {}).items()))
     lines.append("front level against plots.csv %s, front rule %s" % (summary["frontLevelAgainstPlotsCsv"], summary["frontRule"]))
     lines.append("floors %s, types %s" % (summary["floorsFound"], summary["floorTypes"]))
+    if summary.get("proposals"):
+        lines.append("cluster proposals by Rev 06 (R411): proposed %d, none %d" % (summary["proposals"]["proposed"], summary["proposals"]["none"]))
     return lines
 
 

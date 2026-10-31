@@ -452,6 +452,12 @@ namespace SiteAdaptation.Common
             {
                 entry["overrides"] = record;
             }
+            // R411. The proposal of the step hands under rev6, which sets no other value of the plot
+            JObject hand = Of(steps, Hands.StepName, number);
+            if (Held(hand["proposalReason"]))
+            {
+                entry["proposal"] = new JObject { ["cluster"] = hand["proposedCluster"]?.DeepClone(), ["mirrored"] = hand["proposedMirror"]?.DeepClone(), ["reason"] = hand["proposalReason"].DeepClone() };
+            }
             return entry;
         }
 
@@ -614,6 +620,12 @@ namespace SiteAdaptation.Common
                 {
                     summary[name] = table[name].DeepClone();
                 }
+            }
+            // R411. The count of the proposals of the step hands, as plan_from_book.build adds it under rev6, none with no proposal
+            List<JObject> proposals = numbers.Select(number => Side(hands, number, "written")).Where(hand => Held(hand["proposalReason"])).ToList();
+            if (proposals.Count > 0)
+            {
+                summary["proposals"] = new JObject { ["proposed"] = proposals.Count(hand => Held(hand["proposedCluster"])), ["none"] = proposals.Count(hand => !Held(hand["proposedCluster"])) };
             }
             return summary;
         }
