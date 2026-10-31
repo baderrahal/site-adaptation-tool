@@ -201,7 +201,7 @@ namespace SiteAdaptation.Tests
             string script = Text("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
             Assert.Contains("buttons.GetMethod(AddinRunNames.Run, new[] { typeof(string), typeof(UIApplication) })", host);
             Assert.Contains("Put(AddinRunNames.UpdateFromReportBody, AddinRunNames.Dialog, (Func<IntPtr, IUpdateFromReportDialog>)(owner => new ReadNoApply(this)));", host);
-            Assert.Contains("Put(AddinRunNames.RulesWindowBody, AddinRunNames.Dialog, (Action<IntPtr, ManualRuleTable, string>)((owner, rules, selected) => Opened(rules)));", host);
+            Assert.Contains("Put(AddinRunNames.RulesWindowBody, AddinRunNames.Dialog, (Action<IntPtr, ManualRuleTable, string>)((owner, rules, selected) => Opened(rules, selected)));", host);
             Assert.Contains("Put(AddinRunNames.UpdateFromReportBody, AddinRunNames.Dialog, updateBefore);", host);
             Assert.Contains("Put(AddinRunNames.RulesWindowBody, AddinRunNames.Dialog, rulesBefore);", host);
             Assert.Contains("return new UpdateFromReportAnswer { Apply = false };", host);
@@ -629,6 +629,55 @@ namespace SiteAdaptation.Tests
         private static double[] Round(double[] point)
         {
             return point.Select(value => Math.Round(value, 9)).ToArray();
+        }
+
+        // 6a. shots of a buttons job: a PNG of each window the host answers, of the pane and of the ribbon, under shots of the run folder
+        [Fact]
+        public void R384_a_shots_job_carries_the_field_and_shots_with_no_buttons_is_refused()
+        {
+            TestHostJob job = Read(Job.Replace("\"paneSettings\"", "\"shots\": true, \"paneSettings\""));
+            Assert.True(job.Shots);
+            Assert.Null(ButtonsRun.Refusal(job));
+            Assert.Null(Read(Job).Shots);
+            Assert.Contains("shots", ButtonsRun.Refusal(Read("{\"kind\": \"addinRun\", \"shots\": true}")));
+        }
+
+        [Fact]
+        public void R384_each_shot_is_a_png_under_shots_of_the_run_folder_named_by_its_step_and_window()
+        {
+            string run = Path.Combine(Path.GetTempPath(), "run");
+            Assert.Equal(Path.Combine(run, "shots", "button1-setup-site.png"), ButtonShots.File(run, "button1", ButtonShots.SetUpSite));
+            Assert.Equal(Path.Combine(run, "shots", "end-ribbon.png"), ButtonShots.File(run, ButtonShots.End, ButtonShots.Ribbon));
+            Assert.Equal(Path.Combine(run, "shots", "SiteAdaptationRulesCommand-rules.png"), ButtonShots.File(run, ButtonsRun.RulesCommand, ButtonShots.Rules));
+        }
+
+        [Fact]
+        public void R384_the_pane_is_taken_after_button_1_only_and_once_more_at_the_end()
+        {
+            List<ButtonsStep> steps = ButtonsRun.Steps(Read(Job.Replace("\"paneSettings\"", "\"named\": [\"SiteAdaptationRulesCommand\"], \"paneSettings\"")));
+            Assert.Equal(new[] { "button1" }, steps.Where(ButtonShots.PaneAfter).Select(step => step.Name));
+            Assert.DoesNotContain(ButtonsRun.Steps(Read(Job.Replace("[1, 2, 3, 4, 7]", "[2, 3, 4, 7]"))), ButtonShots.PaneAfter);
+        }
+
+        // The host side by text, as Revit runs it: each window is drawn before the host answers it, the pane and the ribbon by RevitShots,
+        // New project and How it works at the end, and nothing of the screen or of another process
+        [Fact]
+        public void R384_the_host_draws_each_window_before_its_answer_and_grabs_no_screen()
+        {
+            string host = Text("dotnet", "SiteAdaptation.TestHost", "ButtonsRunHost.cs");
+            foreach (string window in new[] { "SetUpSite", "ReviewData", "CheckTable", "Rules", "UpdateFromReport", "NewProject", "HowItWorks", "Pane", "Ribbon" })
+            {
+                Assert.Contains("ButtonShots." + window, host);
+            }
+            Assert.Contains("RevitShots.Pane(", host);
+            Assert.Contains("RevitShots.Window(", host);
+            Assert.Contains("job.Shots == true", host);
+            int setUp = host.IndexOf("ButtonShots.SetUpSite", StringComparison.Ordinal);
+            Assert.True(setUp < host.IndexOf("new SetUpSiteRun.AnswerWindow()", StringComparison.Ordinal));
+            Assert.DoesNotContain("CopyFromScreen", host);
+            Assert.DoesNotContain("GetDesktopWindow", host);
+            string script = Text("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
+            Assert.Contains("if ($round.shots -eq $true) {\n                    $roundJob.shots = $true", script);
         }
     }
 }

@@ -53,6 +53,8 @@ namespace SiteAdaptation.Common
         public string PrototypeLoops { get; set; }
         // 6a (R384). The commands with no number run after the buttons, by their command names of RibbonLayout
         public List<string> Named { get; set; }
+        // 6a (R384). A buttons job that draws each window it answers, the pane and the ribbon to PNG under shots of the run folder
+        public bool? Shots { get; set; }
         public string Site { get; set; }
         // R214. The folder an image job writes to, the level of its plan view and the area [minE, minN, maxE, maxN] in shared metres
         public string ImageFolder { get; set; }
