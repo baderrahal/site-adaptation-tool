@@ -413,6 +413,12 @@
       "conflicts": [
       ]
     },
+    "fixedParameters": {
+      "note": "R373, Q156 (Bader, 2026-10-31, the recommended answer). The shared parameters whose GUID Bader fixed, which no key binds as a shared parameter: Plot, the floor parameter of floors.plotParameter, a project parameter in all 7 keys, takes the GUID Code made once on 2026-10-29. Button 1 binds them after those of addin.sharedParameters until a parameter sheet is chosen, and a name in both blocks is refused. No run writes this block, python/key_parameters.py writes addin.sharedParameters alone.",
+      "parameters": [
+        {"name": "Plot", "guid": "faecae98-f82c-46b5-bd80-489380545236", "on": ["Floors"]}
+      ]
+    },
     "parity": {
       "note": "R345. The tolerance of each kind of field before R385 rounds it, in metres, square metres or degrees, null for a kind compared exactly. After rounding the two sides are equal, or one unit of the last place apart only where the two unrounded values lie within the tolerance and straddle a rounding boundary of R385, each such case listed by step, plot, field and both unrounded values. docs/design/05-plan-steps.md",
       "kinds": {
