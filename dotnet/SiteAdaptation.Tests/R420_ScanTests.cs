@@ -43,7 +43,7 @@ namespace SiteAdaptation.Tests
                 ["typology_codes"] = new JObject { ["rows"] = new JArray(new JObject { ["old"] = "X3", ["new"] = "X4" }, new JObject { ["old"] = "X1", ["new"] = "X1" }, new JObject { ["old"] = "X3-0 (Q)", ["new"] = "X5" }) },
                 ["scan"] = new JObject
                 {
-                    ["labelPattern"] = "^(?:(.*?)\\s+)?(\\d{1,6})$", ["tokenSplit"] = "[^A-Za-z0-9]+", ["plotNumberShifts"] = new JArray(0, 10), ["pairMinSegments"] = 2,
+                    ["labelPattern"] = "^(?:(.*?)\\s+)?(\\d{1,6})$", ["tokenSplit"] = "[^A-Za-z0-9]+", ["plotNumberShifts"] = new JArray(0, 10), ["pairMinSegments"] = 2, ["pairThreads"] = 2,
                     ["pdfJoinGapPt"] = 0.3, ["pdfLineTolerancePt"] = 0.05, ["pdfPairDyPt"] = new JArray(1.3, 1.8), ["pdfPairDxPt"] = 1.5,
                 },
             };
@@ -139,6 +139,43 @@ namespace SiteAdaptation.Tests
         private static List<string> Checks(JObject result, string what)
         {
             return ((JArray)result["checks"]).Where(check => (string)check["what"] == what).Select(check => (string)check["source"] + "|" + (string)check["plot"] + "|" + (string)check["value"]).ToList();
+        }
+
+        [Fact]
+        public void R428_the_pair_trace_on_several_threads_writes_the_inventory_one_thread_writes()
+        {
+            var document = new CadDocument();
+            for (int index = 0; index < 4; index++)
+            {
+                string layer = new[] { "A", "B", "C", "D" }[index];
+                for (int line = 0; line <= 6; line++)
+                {
+                    document.Entities.Add(Line(document, layer, 3 * line + index, -1, 3 * line + index, 20));
+                    document.Entities.Add(Line(document, layer, -1, 3 * line + index, 20, 3 * line + index));
+                }
+            }
+            string one = CadScan.Inventory(document, "grid.dxf", "grid.dxf", 1, "00", 2, 1, null).ToString();
+            string three = CadScan.Inventory(document, "grid.dxf", "grid.dxf", 1, "00", 2, 3, null).ToString();
+            Assert.Equal(one, three);
+            Assert.Equal(4 + 6, ((JArray)JObject.Parse(three)["candidates"]).Count);
+        }
+
+        [Fact]
+        public void R421_long_lines_crossed_and_met_by_many_short_ones_trace_every_face_of_the_comb()
+        {
+            // Round 4j-1b. Two lines of 1000 m and 101 short ones between them, the odd ones crossing both long lines and the even ones
+            // ending on them, the case where a box index of a long line left the trace as slow as a loop over every piece
+            var document = new CadDocument();
+            document.Entities.Add(Line(document, "A", 0, 0, 1000, 0));
+            document.Entities.Add(Line(document, "A", 0, 5, 1000, 5));
+            for (int index = 0; index <= 100; index++)
+            {
+                double x = 10 * index;
+                document.Entities.Add(index % 2 == 1 ? Line(document, "A", x, -1, x, 6) : Line(document, "A", x, 0, x, 5));
+            }
+            JObject cad = Scan(document, "comb.dxf");
+            JObject layer = ((JArray)cad["layers"]).Cast<JObject>().Single(row => (string)row["layer"] == "A");
+            Assert.Equal(100, (int)layer["closedOutlines"]);
         }
 
         [Fact]
