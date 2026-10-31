@@ -25,6 +25,10 @@ namespace SiteAdaptation.Common.Settings
                 LevelProfile = job.LevelProfile,
                 DryRunFirst = job.DryRunFirst,
                 VillaMode = job.VillaMode,
+
+                // R436. The source picked for each value of What the tool read goes with a saved project, the conflicts of the plots
+                // belong to that project and stay
+                ScanPicks = job.ScanPicks == null ? null : new System.Collections.Generic.SortedDictionary<string, string>(job.ScanPicks, StringComparer.Ordinal),
             };
             foreach (string name in Inputs)
             {
@@ -61,6 +65,10 @@ namespace SiteAdaptation.Common.Settings
             into.LevelProfile = read.LevelProfile;
             into.DryRunFirst = read.DryRunFirst;
             into.VillaMode = read.VillaMode;
+            if (read.ScanPicks != null)
+            {
+                into.ScanPicks = read.ScanPicks;
+            }
             foreach (string name in Inputs)
             {
                 if (read.Inputs.TryGetValue(name, out SettingsInput input))

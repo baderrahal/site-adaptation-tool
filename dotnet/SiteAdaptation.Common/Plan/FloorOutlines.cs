@@ -19,6 +19,9 @@ namespace SiteAdaptation.Common
         public const string YardGroups = "the step floors of the parity harness takes the yard outlines of keyRules.yardOutline groups, keyRules of {0} codes fittedOutline, whose outlines "
             + "lie in config/floor_outlines.json, which the C# does not read (R358)";
 
+        // plan_from_book.NO_BAND, the lack of a ramp whose slope no band of the ramp types holds, under rev6
+        public const string NoBand = "no ramp type for a slope of {0} percent in the bands of rampTypes (R408)";
+
         // floor_fit.EPSILON, the width of a fitted outline a plot takes
         private const double Epsilon = 1e-9;
 
@@ -143,7 +146,7 @@ namespace SiteAdaptation.Common
                 var made = new Dictionary<string, object>
                 {
                     ["unit"] = unit, ["generic"] = null, ["rampOutline"] = null, ["rampZ"] = null, ["rampClass"] = null, ["rampType"] = null, ["yardDepth"] = null, ["yardUnit"] = null,
-                    ["yardWidth"] = null, ["yardType"] = null, ["yardOutline"] = null, ["lacks"] = new JArray(),
+                    ["yardWidth"] = null, ["yardType"] = null, ["yardOutline"] = null, ["lacks"] = new JArray(), ["yardGrade"] = null,
                 };
                 found[number] = made;
                 if (unit == null)
@@ -165,6 +168,19 @@ namespace SiteAdaptation.Common
                 if (item?.Front != null && entry != null)
                 {
                     made["rampZ"] = RampHeights(item.Front, entry.Rule);
+                }
+                if (build.Rev6)
+                {
+                    // R410. The grade of the back yard by the manual and no yard floor. R408: the ramp type of the band of the slope, the result
+                    made["yardGrade"] = DesignBasis.YardGrade(unit, rules);
+                    JToken kind = entry == null ? null : DesignBasis.RampType(entry.Slope, build.Bands);
+                    made["rampType"] = kind;
+                    if (entry != null && kind == null)
+                    {
+                        lacks.Add(Lack("floors.ramp", string.Format(CultureInfo.InvariantCulture, NoBand, SheetRows.PyRepr(entry.Slope))));
+                    }
+                    made["lacks"] = lacks;
+                    continue;
                 }
                 double? below = YardDepth(keyRules, zone ?? "");
                 made["yardDepth"] = below;

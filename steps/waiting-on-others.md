@@ -21,6 +21,20 @@ The asks of the questions Bader closed in the answer pass of 2026-10-29 whose re
 | Q071 | The architect | The wall top rule | Base at the yard level of the higher plot, centre on the plot edge, front edge open, top at FFL plus 1.7 m (weak, 0.346), wall overrides per plot side once button 8 places walls |
 | Q082 | The road designer | The road surface or road model of the fronts of 33 key plots | Those plots are listed in noRoadLevel with the reason and not written |
 
+## Lane B asks of round 4i
+
+What Lane B must add so the add-in shows and uses the work of round 4i (R407 to R412, docs/design/16-design-basis.md). Until then the plan carries the values and the add-in does not show them.
+
+| Item | Rule | What Lane B adds | What the tool does until then |
+|---|---|---|---|
+| L4i-1 | R407 | The prefill of a new project (J16, Q187) writes designBasis.mode from newProjectMode, and the pane shows the mode of the build | The mode of config, roshnPastJob for ROSHN Makkah (Q224) |
+| L4i-2 | R408 | A Settings row to pick the door level source, civilFile or roadPlusSlope, and Browse for the civil file, passed to the worker as the input of role civilFile with config/floor_outlines.json as floorOutlines | The source of config, roadPlusSlope, no civil file |
+| L4i-3 | R408 | The rows of noDoorLevel and slopeOutsideManual of the plan summary in 4 Check | They stand in the summary and the step files only |
+| L4i-4 | R409 | 2 Read data names designBasis.roadLevel.surface as the road surface of a rev6 build | The read reads every surface of siteBuild.roadSurfaces (Q234) |
+| L4i-5 | R410 | 5 Floors and ramps places no yard floor under rev6, and the report shows yardGrade | The plan holds no yard floor under rev6, yardGrade in the step floors only (Q232) |
+| L4i-6 | R411 | 3 Review data shows proposedCluster, proposedMirror and proposalReason of each plot with Confirm, and a confirmed proposal goes into the override list as a hand edit | The proposals stand in the step hands and in plan.json under proposal |
+| L4i-7 | R412 | A command for the new project check that starts the worker command newProjectCheck and shows its text report | python/new_project_check.py and the worker command run it by hand |
+
 ## The scanner window, asked of Lane B by Lane D 4j-1
 
 The scanner (R420 to R427) writes scan.json in the run folder, its shape in docs/design/17-scanner.md. Lane D builds no window. What the window needs, CHOSEN by Code until Lane B designs it (Q246):
@@ -34,14 +48,22 @@ The scanner (R420 to R427) writes scan.json in the run folder, its shape in docs
 | List the conflicts and checks by plot, with both values and both sources | conflicts and checks | nothing shows them |
 | Keep what the user took for the next read | none, a new file of the window | none |
 
+Built by Lane C SCAN-UI on 1 Nov 2026 (R435 to R440, docs/rules/12-lane-c-r430-up.md): button 2 runs the scan and opens the window What the tool read when a value is unclear or a conflict open, and the picks are kept in the settings as scanPicks and conflictPicks. Left of this list: the read takes the picks (Q292), asked below.
+
 ## Lane C NEWPROJ-UI, 31 Oct 2026
 
 The placeholders of the window New project (docs/design/18-new-project.md). Each waits for another lane, the window shows it grey or as text until then.
 
 | Item | Who is asked | For what | What the tool does until then |
 |---|---|---|---|
-| Scanner hook | Lane B, a later round (Lane D builds the scanner) | Fill IDrawingFacts through NewProjectDialog.Facts: the layer count, the survey point, the lists behind Change and View | LastReadFacts: unit plots and villa types of the latest read, the plot line layers of the layer list. Change and View grey, Survey point says Comes with the drawing scan |
 | Villa levels row | Lane A | The door level source, and with it the input and the sheets of the villa levels Excel | The row shows Comes later, Browse grey, no template, never saved |
 | Cluster proposal | Lane A | Whether New project proposes clusters | Nothing in the window |
-| Rules R430 to R434 | Lane A | Write the five rules of Lane C NEWPROJ-UI into docs/rules with their tests, from steps/HEADSUP.md, so docs/design may name their ids (R343) | The ids stand in the code, the tests and steps/HEADSUP.md only |
 | Back yard | Lane A | Whether New project sets the back yard | Nothing in the window |
+
+## Lane C SCAN-UI, 1 Nov 2026
+
+| Item | Who is asked | For what | What the tool does until then |
+|---|---|---|---|
+| The read takes the picks | Lane A (reader) and Lane D (scanner) | Button 2 reads with scanPicks and conflictPicks of the settings over the layers and columns of config (Q292) | The picks are saved with the setup, the read uses config |
+| Mirror, survey point and road level in the scan | Lane D | Rows of those kinds in scan.json, so What the tool read and New project show them (Q289, Q283) | Four value rows, the survey point dropdown grey |
+| Road Layout in the scan | Lane D, 4j-1b | A scan of the curbs drawing within the time of button 2 (Q250, Q290) | Button 2 leaves curbs and road surface out of the scan |

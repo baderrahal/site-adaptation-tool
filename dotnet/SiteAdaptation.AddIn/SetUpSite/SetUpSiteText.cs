@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using SiteAdaptation.Common.Settings;
+
 namespace SiteAdaptation.AddIn.SetUpSite
 {
     // R373, 7.3 of docs/design/12-ui-spec.md. Every text the view model of the window shows. The text test holds each against
@@ -34,6 +37,21 @@ namespace SiteAdaptation.AddIn.SetUpSite
         public const string PassLimit = "Pass limit <n> mm. <n> of <n> pass";
         public const string Browse = "Browse";
         public const string NothingDiffers = "Nothing differs, Apply changes nothing.";
+
+        // R441, the section Current files above the two tables, DRAFT of SCAN-UI with no board
+        public const string CurrentTitle = "Current files";
+        public const string CurrentHelp = "Tick each file that is the current issue. Apply waits for the site drawing.";
+        public const string CurrentTick = "Current";
+        public const string NoSiteDrawing = "No site drawing in the setup. Pick the Baseplan in the pane first.";
+        public const string SiteDrawing = "Site drawing";
+        public const string Rules = "Rules";
+
+        // Each file of the setup by its input, the names of the pane rows
+        public static readonly IReadOnlyDictionary<string, string> InputLabels = new Dictionary<string, string>
+        {
+            [InputNames.Baseplan] = "Baseplan", [InputNames.VillaBlocks] = "Villa blocks", [InputNames.Curbs] = "Curbs", [InputNames.RoadSurface] = "Road surface", [InputNames.Dlus] = "DLUS schedule",
+            [InputNames.Sales] = "Sales schedule", [InputNames.PlotNumbers] = "Plot numbers", [InputNames.ParameterSheet] = "Parameter sheet",
+        };
 
         // The rows of the two tables in the order of the mock, a row of another label stands after them
         public static readonly string[] NowOrder = { SurveyPoint, ProjectBasePoint, Levels, FloorAndWallTypes, SharedParameters, Units };

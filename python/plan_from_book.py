@@ -38,6 +38,8 @@ import cad_links
 import corner_front
 import common
 import data_book_retest
+import cluster_proposals
+import design_basis
 import face_rings
 import floor_fit
 import footprint_check
@@ -70,6 +72,8 @@ BUILD_STEPS = ("clusters", "fronts", "hands", "linkFrame", "levels", "floors", "
 FOOTPRINT = "footprint"
 # R354, Q089. The one line a build and its C# refuse an analysis with, as a build takes the footprint clusters alone
 ANALYSIS_REFUSED = "the analysis is no input of a build since Q089, a build takes the footprint clusters of R236 alone (R354)"
+# R408. A build under rev6 gives the levels of its El @ Entry by the level rules of keyRules
+REV6_NO_LEVELS = "designBasis.mode rev6 takes the levels of El @ Entry by the level rules of keyRules, the level profile %s codes no ffl (R408)"
 # R337. The source of a parameter that reads the steps, the stepBands of the level profile when keyRules codes no steps
 STEP_BANDS = "levelProfileStepBands"
 sourced = plan_from_cad.sourced
@@ -229,6 +233,9 @@ def hand_step(numbers, rows, rules, trace, files, profile, block):
             "blockMirror": factors["blockMirror"], "blockMirrorRoadSide": factors["blockMirrorRoadSide"], "blockMirrorOpenEnd": factors["blockMirrorOpenEnd"],
             "rowPairSideOrBlockMirrorOpenEnd": factors["rowPairSideOrBlockMirrorOpenEnd"], "handTable": table, "handRule": rule, "factor": factors.get(rule) if rule else None,
             "linkFile": files.get(unit) if unit else None, "mirrored": hand}
+        # R411. The proposal the build made under rev6, null on a build of the past job or with designBasis.clusters.propose false
+        proposal = (trace.get("proposals") or {}).get(number) or {}
+        found[number].update(proposedCluster=proposal.get("cluster"), proposedMirror=proposal.get("mirrored"), proposalReason=proposal.get("reason"))
     return found
 
 
@@ -279,16 +286,22 @@ def level_step(numbers, rows, trace, rules, profile):
         raise project_profile.ProfileError(LEVELS_NO_FFL % rules["name"])
     ground = profile.metres("levels.ground_ssl")
     base_rule = key.get("baseHeight")
+    rev6 = design_basis.is_rev6(rules.get("basis"))
     entries, level_rows, front = trace.get("entries") or {}, trace.get("levelRows") or {}, trace.get("front") or {}
     found = {}
     for number in numbers:
         item, entry, row = front.get(number) or {}, entries.get(number), level_rows.get(number)
         made = {"unit": (rows.get(number) or {}).get("typologyRev9") or None, "partner": rules["partners"].get(number), "piece": None, "roadAtFront": None,
-                "entry": None, "ffl": None, "ssl": None, "height": None, "steps": None, "parameters": None}
+                "entry": None, "ffl": None, "ssl": None, "height": None, "steps": None, "parameters": None, "doorSource": None, "slopePercent": None}
         if item.get("front") is not None:
             made["roadAtFront"] = plan_rules.road_at_front(item["front"])
+        if rev6 and made["unit"] is not None:
+            # R408. The source of El @ Entry under rev6, the input, and the slope it leaves, the result
+            made["doorSource"] = rules["basis"]["door"]["source"]
         if entry is not None:
             made["entry"] = trace["entryRaw"][number]
+            if rev6:
+                made["slopePercent"] = trace["slopes"][number]
         if row is not None:
             top = plan_rules.piece_top([(plan_rules.rule_entry(entries.get(other)), (entries.get(other) or {}).get("unit")) for other in row["piece"]], profile, base_rule)
             if common.fixed(top, plan_rules.FFL_DECIMALS) != row["fflRule"]:
@@ -301,7 +314,10 @@ def level_step(numbers, rows, trace, rules, profile):
     return found
 
 
-FLOOR_FIELDS = ("unit", "generic", "rampOutline", "rampZ", "rampClass", "rampType", "yardDepth", "yardUnit", "yardWidth", "yardType", "yardOutline", "lacks")
+FLOOR_FIELDS = ("unit", "generic", "rampOutline", "rampZ", "rampClass", "rampType", "yardDepth", "yardUnit", "yardWidth", "yardType", "yardOutline", "lacks",
+                "yardGrade")
+# R408. The lack of a ramp whose slope no band of the ramp types holds, under rev6
+NO_BAND = "no ramp type for a slope of %r percent in the bands of rampTypes (R408)"
 
 
 def floor_step(numbers, rows, trace, links, rules, profile, step):
@@ -318,6 +334,7 @@ def floor_step(numbers, rows, trace, links, rules, profile, step):
     if key["yardOutline"]["rule"] != "fittedOutlineRefit":
         raise project_profile.ProfileError(YARD_GROUPS % rules["name"])
     outlines = plan_rules.key_outlines(key, {"outlines": {}})
+    rev6 = design_basis.is_rev6(rules.get("basis"))
     entries, front = trace.get("entries") or {}, trace.get("front") or {}
     found = {}
     for number in numbers:
@@ -337,6 +354,15 @@ def floor_step(numbers, rows, trace, links, rules, profile, step):
             made["rampOutline"] = [list(corner) for corner in item["corners"]]
         if item.get("front") is not None and entry is not None:
             made["rampZ"] = ramp_heights(item["front"], plan_rules.rule_entry(entry))
+        if rev6:
+            # R410. The grade of the back yard by the manual and no yard floor. R408: the ramp type of the band of the slope, the result
+            made["yardGrade"] = design_basis.yard_grade(unit, profile)
+            slope = trace["slopes"].get(number) if entry is not None else None
+            made["rampType"] = None if slope is None else floor_fit.type_of(slope, trace["bands"])
+            if slope is not None and made["rampType"] is None:
+                builder.lack("floors.ramp", NO_BAND % slope)
+            made["lacks"] = builder.missing
+            continue
         below, _ = plan_rules.key_yard(key, row.get("zone") or "")
         made["yardDepth"] = below
         if below is not None and link.get("insert") is not None:
@@ -360,7 +386,7 @@ def floor_step(numbers, rows, trace, links, rules, profile, step):
 
 
 OVERRIDE_FIELDS = ("unit", "skip", "written", "applied", "notApplied", "mirrored", "insert", "rotationDeg", "roadAtFront", "entry", "ffl", "ssl", "height", "steps", "rampZ",
-                   "rampType", "rampOutline", "yardZ", "yardOutline")
+                   "rampType", "rampOutline", "yardZ", "yardOutline", "slopePercent")
 
 
 def held_plan(number, name, made, written):
@@ -388,6 +414,7 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
     outlines = plan_rules.key_outlines(key, {"outlines": {}})
     ground = profile.metres("levels.ground_ssl")
     base_rule = key.get("baseHeight")
+    rev6 = design_basis.is_rev6(rules.get("basis"))
     entries, level_rows, front = trace.get("entries") or {}, trace.get("levelRows") or {}, trace.get("front") or {}
     built, records = trace.get("built") or {}, trace.get("records") or {}
     found = {}
@@ -429,6 +456,9 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
             made["roadAtFront"] = plan_rules.road_at_front(item["front"])
             gap = plan_rules.gap_of(mine.get("entryM"))
             made["entry"] = trace["entryRaw"][number] if gap is None else entry["rule"] + gap
+            if rev6:
+                # R408. The slope of El @ Entry after its override, the result the plan writes
+                made["slopePercent"] = trace["slopes"][number] if gap is None else design_basis.slope_of(made["entry"], item["front"], item["depth"])
         if level is not None:
             gap = plan_rules.gap_of(mine.get("heightM"))
             if gap is None:
@@ -452,11 +482,16 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
         ramp_front, ramp_corners = (turned["front"], turned["corners"]) if opened else (item["front"], item["corners"])
         gap = None if opened else plan_rules.gap_of(mine.get("rampFrontM"))
         ramp_front = ramp_front if gap is None else [z + gap for z in ramp_front]
-        ramp_class = mine.get("rampType") or plan_rules.key_ramp_class(key, unit)
-        kind = lp["rampTypes"].get(ramp_class) if ramp_class is not None else None
+        if rev6 and (gap is not None or opened):
+            # R408. The slope of the front corners after the rampFrontM override or of the open edge the ramp moved to (Q116), which the plan writes
+            made["slopePercent"] = design_basis.slope_of(made["entry"], ramp_front, item["depth"])
+        # R408. Under rev6 a ramp with no rampType override takes the type of the band of its slope after the overrides, never keyRules.rampSlope
+        ramp_class = mine.get("rampType") or (None if rev6 else plan_rules.key_ramp_class(key, unit))
+        kind = lp["rampTypes"].get(ramp_class) if ramp_class is not None else floor_fit.type_of(made["slopePercent"], trace["bands"]) if rev6 else None
         if kind is not None:
             made.update(rampZ=ramp_heights(ramp_front, entry["entry"]), rampType=kind, rampOutline=[list(corner) for corner in ramp_corners])
-        below, _ = plan_rules.key_yard(key, row.get("zone") or "")
+        # R410. No yard floor under rev6
+        below = None if rev6 else plan_rules.key_yard(key, row.get("zone") or "")[0]
         if below is not None:
             yard_unit = unit if any(group["unit"] == unit for group in outlines["outlines"].get("yard") or []) else keo or unit
             group = floor_fit.outline_for(outlines, "yard", yard_unit, mirrored, floor_fit.width_key(item["frame"]["length"], step))
@@ -475,6 +510,8 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
         held_plan(number, "ramp corner Z", None if made["rampZ"] is None else [common.r3(z) for z in made["rampZ"]],
                   None if ramp is None else [corner[2] for corner in ramp["corners"]["value"]])
         held_plan(number, "ramp type", made["rampType"], None if ramp is None else ramp["type"]["value"])
+        if rev6:
+            held_plan(number, "ramp slope", None if ramp is None else common.r3(made["slopePercent"]), None if ramp is None else ramp["slopePercent"]["value"])
         held_plan(number, "yard outline", None if made["yardOutline"] is None else [plan_from_past.point(point) for loop in made["yardOutline"] for point in loop],
                   None if yard is None else [point for loop in yard["outline"]["value"]["loops"] for point in loop["points"]])
         held_plan(number, "yard Z", None if made["yardZ"] is None else common.r3(made["yardZ"]), None if yard is None else yard["z"]["value"])
@@ -531,6 +568,8 @@ SUMMARY_FIELDS = ("unit", "written")
 SUMMARY_TABLE = ("frontRule", "roadSurfacesOfFrontCorners", "floorsFound", "floorTypes", "handRules", "overridesNotApplied", "steps", "statusByField",
                  "assumedByField", "statusPlots", "conflicts")
 SUMMARY_TOP = ("frontRule", "roadSurfacesOfFrontCorners", "floorsFound", "floorTypes")
+# R408. The lists of a build under rev6 in the summary block, null in the table of a build of the past job, whose plan holds neither
+SUMMARY_REV6 = ("noDoorLevel", "slopeOutsideManual")
 
 
 def summary_step(numbers, rows, plan):
@@ -540,6 +579,7 @@ def summary_step(numbers, rows, plan):
     found = {number: {"unit": (rows.get(number) or {}).get("typologyRev9") or None, "written": number in written} for number in numbers}
     summary, rules = plan["summary"], plan["summary"].get("rules") or {}
     table = {name: summary[name] if name in SUMMARY_TOP else plan["conflicts"] if name == "conflicts" else rules.get(name) for name in SUMMARY_TABLE}
+    table.update({name: summary.get(name) for name in SUMMARY_REV6})
     return found, {"summary": table}
 
 
@@ -867,12 +907,18 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     by_levels = plan_rules.key_levels_of(key)
     stepped = set() if key is None or by_levels else plan_rules.step_parameters(key, rules["laterParameters"])
     partners = (rules.get("partners") or {}) if by_levels else {}
+    # R407. The design basis of the build, read once by rule_inputs, rev6 the manual, the past job the build of before round 4i
+    basis = None if rules is None else rules.get("basis")
+    rev6 = design_basis.is_rev6(basis)
+    if rev6 and not by_levels:
+        raise project_profile.ProfileError(REV6_NO_LEVELS % rules["name"])
     if key is not None:
         frame_section = plan_rules.key_frame_section(key)
         missing_zones = defaultdict(list)
         for number in numbers:
             row = rows.get(number) or {}
-            if row.get("typologyRev9") and (row.get("zone") or "") not in key["yard"]["table"]:
+            # R410. Under rev6 no yard floor is placed, so keyRules.yard is not read
+            if not rev6 and row.get("typologyRev9") and (row.get("zone") or "") not in key["yard"]["table"]:
                 missing_zones[row.get("zone") or "no zone"].append(number)
         if missing_zones:
             raise project_profile.ProfileError("keyRules.yard holds no yard for %s, an area missing from the table is refused and never given another value (R337)"
@@ -888,9 +934,12 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         trace.update(front=front, snap=snap, surfaces=surfaces)
     frames = {number: item["frame"] for number, item in front.items()}
     roles = cad_links.cluster_roles(mine, 0, {number: item["face"] for number, item in front.items() if item["face"] is not None}, frames)
+    # R411. Under rev6 with designBasis.clusters.propose a cluster and a mirror flag proposed per unit plot by the manual, which set no value
+    proposals = cluster_proposals.proposals(numbers, rows, rules["neighbours"], profile, key, files) if design_basis.proposes(basis) else {}
     if trace is not None:
-        trace.update(roles=roles, hands={})
-    entries, slopes = {}, {}
+        trace.update(roles=roles, hands={}, proposals=proposals)
+    # R408. slopes the slope by the rule for the step levels, finals and ends the slope and the raw El @ Entry after the overrides for the plan
+    entries, slopes, finals, ends, no_door = {}, {}, {}, {}, []
     overrides = {} if rules is None else rules["overrides"]
     outcomes = Outcomes(overrides, numbers, [] if rules is None else rules.get("laterFields") or [], "the estimate of R209" if rules is None else rules["name"])
     in_build = set(numbers)
@@ -902,23 +951,40 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             rule = None
             if rules is None:
                 value, slope = entry_estimate(item["front"], item["unit"], profile, steep, item["depth"])
+                end, final = value, slope
             else:
-                value, slope = plan_rules.entry_of(item["front"], item["unit"], rules["levelProfile"], item["depth"])
+                if rev6:
+                    # R408. El @ Entry the input, from the civil file or the road at front plus the slope of the unit, the slope the result
+                    value, why = design_basis.door_entry(basis, number, item["unit"], item["front"], item["depth"])
+                    if value is None:
+                        if number in in_build:
+                            no_door.append({"plot": number, "reason": why})
+                        if "entryM" in overrides.get(number, {}):
+                            outcomes.left(number, "entryM", why)
+                        continue
+                    slope = design_basis.slope_of(value, item["front"], item["depth"])
+                else:
+                    value, slope = plan_rules.entry_of(item["front"], item["unit"], rules["levelProfile"], item["depth"])
                 if trace is not None:
                     # R359. El @ Entry unrounded, the value the step levels holds its rounding to 4 decimals against
                     trace.setdefault("entryRaw", {})[number] = value
+                end, final = value, slope
                 if by_levels:
                     # R340. At the 4 decimals of R2, as R339 measured it, so a gap moves it onto the key exactly
                     value = rule = common.fixed(value, plan_rules.ENTRY_DECIMALS)
                 gap = plan_rules.gap_of(overrides.get(number, {}).get("entryM"))
                 # R340. With the level rules a gap moves the El @ Entry of its own plot only, so one of a plot outside the build moves nothing
                 if gap is not None and not (by_levels and number not in in_build):
-                    value = common.fixed(value + gap, plan_rules.ENTRY_DECIMALS) if by_levels else value + gap
+                    shifted = value + gap
+                    value = common.fixed(shifted, plan_rules.ENTRY_DECIMALS) if by_levels else shifted
+                    if rev6:
+                        # R408. The slope the plan writes is that of the El @ Entry the override moved, raw as the step overrides holds it
+                        end, final = shifted, design_basis.slope_of(shifted, item["front"], item["depth"])
                     outcomes.applied(number, "entryM")
                 elif gap is None and "entryM" in overrides.get(number, {}):
                     outcomes.left(number, "entryM", NO_GAP)
             entries[number] = {"unit": item["unit"], "entry": value, **({"rule": rule} if by_levels else {})}
-            slopes[number] = slope
+            slopes[number], finals[number], ends[number] = slope, final, end
         elif "entryM" in overrides.get(number, {}):
             outcomes.left(number, "entryM", "no road level at a front corner, so no El @ Entry to move")
     if rules is None:
@@ -947,6 +1013,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             if "heightM" in overrides.get(number, {}) and number not in level_rows and not by_levels:
                 outcomes.left(number, "heightM", "no FFL to move, " + ("no road level at a front corner" if front[number]["front"] is None else "the height rule gives none"))
     inputs = {"outlines": outlines, "step": floor_fit.width_step(settings), "levels": site["levels"], "floors": floors_config, "bands": outlines["rampTypes"]["bands"]}
+    if trace is not None:
+        # R408. The slope of each El @ Entry and the bands of the ramp types, for the steps floors and overrides under rev6
+        trace.update(slopes=slopes, bands=inputs["bands"])
     plots, missing, lacking, surface_count, no_level, book_check, no_road = [], [], Counter(), Counter(), [], Counter(), []
     not_measured, not_measured_plots, records, hand_rules, applied_of = {}, Counter(), {}, Counter(), {}
     # Q116. The plots whose ramp moved to the open edge a rotation override turned them to face
@@ -1065,7 +1134,10 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             if made:
                 floors["generic"] = made
             yard_unit, yard_inputs = unit, inputs
-            if key is not None:
+            if rev6:
+                # R410. The back yard is the owner's, graded by the manual, so no yard floor is placed (Q225)
+                below = None
+            elif key is not None:
                 # R337. The yard per zone of the keys and the outline fitted on them, the outline of the unit the link holds, TH1-IM the TH1 one
                 below, why = plan_rules.key_yard(key, rows[number]["zone"])
                 if why:
@@ -1087,6 +1159,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                 if turned is not None and turned["front"] is not None:
                     ramp_frame, ramp_corners, ramp_front = turned["frame"], turned["corners"], turned["front"]
                     opened_ramps.add(number)
+                    if rev6 and number in ends:
+                        # R408. The slope the plan writes is that of the front of the open edge the ramp moved to
+                        finals[number] = design_basis.slope_of(ends[number], ramp_front, item["depth"])
             if rules is not None:
                 gap = plan_rules.gap_of(mine_overrides.get("rampFrontM"))
                 if "rampFrontM" in mine_overrides and number in opened_ramps:
@@ -1094,19 +1169,26 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                 elif gap is not None:
                     ramp_front = [z + gap for z in ramp_front]
                     moved.append("rampFrontM")
+                    if rev6:
+                        # R408. The slope the plan writes is that of the front corners the override moved
+                        finals[number] = design_basis.slope_of(ends[number], ramp_front, item["depth"])
                 elif "rampFrontM" in mine_overrides:
                     outcomes.left(number, "rampFrontM", NO_GAP)
                 named = mine_overrides.get("rampType")
                 if named is not None:
                     moved.append("rampType")
-                # R337. The ramp class the keys give the Rev 9 code, the slope of the level profile only for the Round 17 build
-                ramp_class = named or (plan_rules.key_ramp_class(key, unit) if key is not None else plan_rules.slope_class(slopes[number]))
-                kind = rules["levelProfile"]["rampTypes"].get(ramp_class) if ramp_class is not None else None
+                if rev6 and not named:
+                    # R408. The ramp type of the band of the slope after the overrides, the result, never keyRules.rampSlope
+                    ramp_class, kind = None, floor_fit.type_of(finals[number], inputs["bands"])
+                else:
+                    # R337. The ramp class the keys give the Rev 9 code, the slope of the level profile only for the Round 17 build
+                    ramp_class = named or (plan_rules.key_ramp_class(key, unit) if key is not None else plan_rules.slope_class(slopes[number]))
+                    kind = rules["levelProfile"]["rampTypes"].get(ramp_class) if ramp_class is not None else None
             if key is not None and kind is None:
-                builder.lack("floors.ramp", "keyRules.rampSlope and rampTypes give no ramp type for " + unit)
+                builder.lack("floors.ramp", NO_BAND % finals[number] if rev6 and not named else "keyRules.rampSlope and rampTypes give no ramp type for " + unit)
                 made = None
             else:
-                made = ramp_floor(builder, ramp_frame, ramp_corners, ramp_front, builder.entry["levels"]["entry"]["value"], slopes[number], inputs, kind)
+                made = ramp_floor(builder, ramp_frame, ramp_corners, ramp_front, builder.entry["levels"]["entry"]["value"], finals[number], inputs, kind)
             for field in moved:
                 if made:
                     outcomes.applied(number, field)
@@ -1122,6 +1204,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         if complete:
             if records[number]:
                 builder.entry["overrides"] = records[number]
+            if number in proposals:
+                builder.entry["proposal"] = dict(proposals[number])
             applied_of[number] = outcomes.in_order(number, records[number]["applied"]) if records[number] else ()
             value_status.mark(builder.entry, statuses, table, applied_of[number], number in opened_ramps)
             if rules is not None:
@@ -1157,7 +1241,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     if trace is not None:
         trace["conflicts"] = conflicts
     survey = site["surveyPoint"]
-    return {
+    plan = {
         "format": plan_from_past.FORMAT,
         "formatVersion": plan_from_past.FORMAT_VERSION,
         "neighbourhood": nbh,
@@ -1201,6 +1285,14 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         # Q116. The plots a rotationDeg override turned to face another edge, whose ramp stays on the front of R355
         "conflicts": conflicts,
     }
+    if rev6:
+        # R408. The plots of the scope with no El @ Entry and why, and those whose slope after the overrides lies outside slopes_percent front_min to front_max
+        limits = profile.get("slopes_percent")
+        plan["summary"].update(noDoorLevel=no_door, slopeOutsideManual=[{"plot": number, "slopePercent": common.fixed(finals[number], design_basis.SLOPE_DECIMALS)}
+                                                                        for number in numbers if number in entries and design_basis.outside_manual(finals[number], limits)])
+    if proposals:
+        plan["summary"]["proposals"] = cluster_proposals.counts(proposals)
+    return plan
 
 
 # Q116. The conflict of a plot a rotationDeg override turned, PlanSummary of the C# writes the same
@@ -1301,6 +1393,9 @@ def step_inputs(args):
     return [parity.input_entry(role, path) for role, path in roles if path]
 
 
+# R408. The worker input roles of the civil file and of the floor file of the bands of the ramp types, BuildSteps.CivilRole and BandsRole of the C#
+CIVIL_ROLE = "civilFile"
+BANDS_ROLE = "floorOutlines"
 # R357. The build steps that take the prototype files, each file of the folder an input of its own, prototype:<its name>
 PROTOTYPE_STEPS = parity.LISTED_STEPS
 PROTOTYPE_ROLE = "prototype:"
@@ -1312,6 +1407,8 @@ def build_inputs(args, settings, step):
     roles = [("rules", project_profile.profile_path(settings)), ("footprintBlocks", args.footprint_blocks), ("sales", args.sales),
              ("roadPieces", Path(args.roads) / "pieces.json" if args.roads else None), ("overrides", getattr(args, "overrides", None))]
     roles += [("roadSurface:" + name, Path(args.landxml) / (name + ".xml")) for name in getattr(args, "road_names", None) or []]
+    # R408. Under rev6 the civil file of the door levels and the floor file whose bands give the ramp type of a slope
+    roles += [(CIVIL_ROLE, getattr(args, "civil_file", None)), (BANDS_ROLE, args.floors if getattr(args, "design_basis", None) == design_basis.REV6 else None)]
     found = step_inputs(args) + [parity.input_entry(role, path) for role, path in roles if path]
     if step in PROTOTYPE_STEPS and getattr(args, "prototypes", None):
         # A prototype file is a whole Revit model, so each is hashed once a run
@@ -1337,7 +1434,9 @@ def step_entries(settings, step, made, written=None):
 def write_build_step(args, settings, step, made, written=None, tables=None):
     """R345, R354 to R357. step_<step>_python.json of a build step (step_entries), with the tables of the step, R401."""
     plots = step_entries(settings, step, made, written)
-    parity.write_step(args.steps, step, "python", step_scope(args.cover), plots, settings.values, build_inputs(args, settings, step), tables)
+    # R407. The design basis of the build in the run block of each build step
+    parity.write_step(args.steps, step, "python", step_scope(args.cover), plots, settings.values, build_inputs(args, settings, step), tables,
+                      {"designBasis": getattr(args, "design_basis", None)})
     print("step %s: %d items (R345)" % (step, len(plots)))
 
 
@@ -1403,12 +1502,13 @@ def alone_table_units(units, rows, roles, key, files, kind_of):
     return found
 
 
-def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters=(), files=None):
+def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clusters=(), files=None, basis=None):
     """R277 to R280. The level profile, named or the default of R277, the hand rules, the open end of every plot and the overrides
     of the source models. R337: for a profile with keyRules also the side road, the pair of its row of units in no cluster (the
     clusters given, over every unit plot) and the kind of every plot, as majority.py gives them on the keys, the fronts of every
     unit plot of plots.csv found so a row is walked past the plots of the build. Q105: with files, the file of each code, a cluster unit that
-    takes the table of hand alone gets the row pair of the walk as if no cluster held it, for its hand alone."""
+    takes the table of hand alone gets the row pair of the walk as if no cluster held it, for its hand alone. R407: the design basis the run
+    read once, read here when none is given."""
     import majority
     name = plan_rules.profile_name(profile, args.level_profile)
     lp = plan_rules.level_profile(profile, name)
@@ -1471,6 +1571,7 @@ def rule_inputs(args, settings, profile, numbers, rows, faces, roads, sales, clu
         overrides = plan_rules.load_overrides(args.overrides, set(sources), fields, block["groups"], name, lp, set(models) or None)
     later = set((block.get("overrideKeep") or {}).get("laterFields", {}).get(lp.get("job")) or ())
     return {"name": name, "levelProfile": lp, "rounding": plan_rules.rounding_of(settings, name, key), "hands": profile.get("hands") or {}, "openEnds": open_ends, "overrides": overrides,
+            "basis": design_basis.basis_of(settings) if basis is None else basis,
             "sources": sources, "models": list(models), "keyRules": key, "roadSides": road_sides, "pairs": pairs, "kinds": kinds, "partners": partners,
             "neighbours": neighbours, "rowPairs": found if key is not None else {},
             "laterFields": [field for field in ((block.get("overrideKeep") or {}).get("laterFields", {}).get(lp.get("job")) or [])] if key is not None else [],
@@ -1519,6 +1620,10 @@ def run_build(args):
         settings = project_profile.load_settings(args.settings)
         profile = project_profile.load_profile(project_profile.profile_path(settings))
         block = settings.get("siteBuild")
+        # R407. The design basis read once for the whole run, a mode outside designBasis.modes refused before any step
+        basis = design_basis.basis_of(settings)
+        args.design_basis = basis["mode"]
+        args.civil_file = (basis.get("door") or {}).get("path") if (basis.get("door") or {}).get("source") == design_basis.CIVIL_FILE else None
         if args.cover.startswith("nbh=") or args.cover == "all":
             if not args.labels:
                 raise project_profile.ProfileError("nbh=<NBH> and all need --labels")
@@ -1580,9 +1685,11 @@ def run_build(args):
         # R277. Every build follows a level profile, the named one or levelProfiles.default
         # Q105. The file of each code, which tells the cluster units of the table of hand alone whose row pair the hand walks
         files = folder_files(folder, profile)
-        rules = rule_inputs(args, settings, profile, cover["plots"], rows, faces, roads, sales, everything, files=files)
-        # R339, R340. The road surfaces of the one setting majority.py measures the levels on
-        args.road_names = plan_rules.road_names(block, rules["levelProfile"])
+        rules = rule_inputs(args, settings, profile, cover["plots"], rows, faces, roads, sales, everything, files=files, basis=basis)
+        # R339, R340. The road surfaces of the one setting majority.py measures the levels on, R409 the one surface of rev6
+        args.road_names = plan_rules.road_names(block, rules["levelProfile"], basis)
+        if design_basis.is_rev6(basis):
+            design_basis.check_surfaces(basis, args.landxml)
         surfaces = load_roads([Path(args.landxml) / (name + ".xml") for name in args.road_names], args.scratch)
         # R337. A build by keyRules takes the clusters of every unit plot, the site as the keys were measured on (R271)
         trace = {}
@@ -1672,6 +1779,8 @@ def summary_lines(summary, name, named):
                      % " | ".join("%s: %s" % (name, why) for name, why in (summary.get("roadFolderNotTaken") or {}).items()))
     lines.append("front level against plots.csv %s, front rule %s" % (summary["frontLevelAgainstPlotsCsv"], summary["frontRule"]))
     lines.append("floors %s, types %s" % (summary["floorsFound"], summary["floorTypes"]))
+    if summary.get("proposals"):
+        lines.append("cluster proposals by Rev 06 (R411): proposed %d, none %d" % (summary["proposals"]["proposed"], summary["proposals"]["none"]))
     return lines
 
 

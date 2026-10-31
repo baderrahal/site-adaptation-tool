@@ -84,7 +84,7 @@ namespace SiteAdaptation.AddIn
 
         private static ButtonBody Body(RibbonButtonSpec button, UIApplication application, Document document)
         {
-            Func<ButtonBody> readData = () => ReadDataBody.For(PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title));
+            Func<ButtonBody> readData = () => ReadDataBody.For(PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title), application.MainWindowHandle);
             Func<ButtonBody> reviewData = () =>
             {
                 Pane.DocumentSession session = document == null ? null : PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title);

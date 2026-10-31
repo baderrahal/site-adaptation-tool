@@ -114,11 +114,16 @@ namespace SiteAdaptation.Common
 
         // R345, Q107. An output whose keys write gives to the writer with the converter of exact doubles, such as a step file by StepFile.Write,
         // the run stamp after them, so no object of the whole output is made first
-        public string WriteJson(string folder, string name, Action<JsonWriter, JsonConverter> write)
+        public string WriteJson(string folder, string name, Action<JsonWriter, JsonConverter> write, JObject run = null)
         {
             return Write(folder, name, (writer, exact, stamp) =>
             {
                 write(writer, exact);
+                // R407. Keys the run block adds after its inputs, the design basis of a build step
+                foreach (JProperty item in (run ?? new JObject()).Properties())
+                {
+                    stamp[item.Name] = item.Value.DeepClone();
+                }
                 writer.WritePropertyName(RunStamp.Key);
                 stamp.WriteTo(writer, exact);
             });

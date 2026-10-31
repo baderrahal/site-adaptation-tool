@@ -297,6 +297,11 @@ namespace SiteAdaptation.Common
                     continue;
                 }
                 List<JObject> rule = lacks.Where(lack => (string)lack["key"] == "floors." + kind).ToList();
+                if (kind == "yard" && Held(floors["yardGrade"]))
+                {
+                    // R410. A yard grade of rev6 places no yard floor, so the plot lacks none
+                    continue;
+                }
                 if (kind == "yard")
                 {
                     // R358. The step floors fits the yard on the hand of the rule, the plan on the hand after a mirror override
@@ -433,7 +438,9 @@ namespace SiteAdaptation.Common
                     JArray heights = (JArray)ovRaw["rampZ"];
                     floor["corners"] = Sourced(fields, number, key + ".corners", new JArray(outline.Select((corner, index) => new JArray(R3(corner[0]), R3(corner[1]), R3(heights[index])))));
                     floor["heightOffset"] = Sourced(fields, number, key + ".heightOffset", new JValue(Rounding.Fixed(heights.Min(Number) - elevation, Decimals)));
-                    floor["slopePercent"] = Sourced(fields, number, key + ".slopePercent", new JValue(Rounding.Fixed(Slope((string)floors["rampClass"]), Decimals)));
+                    // R408. Under rev6 the slope after the overrides of the step overrides, the result of El @ Entry, else the one the ramp class names
+                    JToken slope = ovRaw["slopePercent"];
+                    floor["slopePercent"] = Sourced(fields, number, key + ".slopePercent", new JValue(Rounding.Fixed(Held(slope) ? Number(slope) : Slope((string)floors["rampClass"]), Decimals)));
                 }
                 if (floor != null)
                 {
@@ -445,6 +452,12 @@ namespace SiteAdaptation.Common
             if (record != null)
             {
                 entry["overrides"] = record;
+            }
+            // R411. The proposal of the step hands under rev6, which sets no other value of the plot
+            JObject hand = Of(steps, Hands.StepName, number);
+            if (Held(hand["proposalReason"]))
+            {
+                entry["proposal"] = new JObject { ["cluster"] = hand["proposedCluster"]?.DeepClone(), ["mirrored"] = hand["proposedMirror"]?.DeepClone(), ["reason"] = hand["proposalReason"].DeepClone() };
             }
             return entry;
         }
@@ -601,6 +614,20 @@ namespace SiteAdaptation.Common
                 ["walls"] = WallSummary(walls, steps[Walls.StepName]["tables"]?["statusFrom"] as JObject ?? new JObject()),
                 ["rules"] = Rules(inputs, numbers, overrides, plots, table),
             };
+            // R408. The lists of a build under rev6 after the rules, as plan_from_book.build adds them, none on a build of the past job
+            foreach (string name in new[] { "noDoorLevel", "slopeOutsideManual" })
+            {
+                if (Held(table[name]))
+                {
+                    summary[name] = table[name].DeepClone();
+                }
+            }
+            // R411. The count of the proposals of the step hands, as plan_from_book.build adds it under rev6, none with no proposal
+            List<JObject> proposals = numbers.Select(number => Side(hands, number, "written")).Where(hand => Held(hand["proposalReason"])).ToList();
+            if (proposals.Count > 0)
+            {
+                summary["proposals"] = new JObject { ["proposed"] = proposals.Count(hand => Held(hand["proposedCluster"])), ["none"] = proposals.Count(hand => !Held(hand["proposedCluster"])) };
+            }
             return summary;
         }
 

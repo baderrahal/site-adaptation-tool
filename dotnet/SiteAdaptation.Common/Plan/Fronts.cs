@@ -205,8 +205,13 @@ namespace SiteAdaptation.Common
 
         // plan_rules.road_names: the road surfaces a build asks for El @ Entry and the ramp front, siteBuild.roadSurfaces in their order for
         // frontRoad roadLevel, else the one surface frontRoad names. The one setting the build steps and the level Excel take them from
-        public static List<string> RoadNames(JObject levelProfile, ReadSettings settings)
+        public static List<string> RoadNames(JObject levelProfile, ReadSettings settings, DesignBasis basis = null)
         {
+            // R409. Under rev6 the one surface of designBasis.roadLevel alone
+            if (basis != null && basis.IsRev6)
+            {
+                return new List<string> { basis.Surface };
+            }
             JToken surface = levelProfile["frontRoad"]?["surface"];
             string name = surface?.Type == JTokenType.String ? (string)surface : null;
             return name == "roadLevel" ? settings.RoadSurfaces : new List<string> { name };

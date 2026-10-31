@@ -79,11 +79,12 @@ namespace SiteAdaptation.Tests
             return rules;
         }
 
-        private sealed class Made
+        internal sealed class Made
         {
             public Dictionary<string, Dictionary<string, object>> Levels;
             public Dictionary<string, Dictionary<string, object>> Floors;
             public Dictionary<string, Dictionary<string, object>> Links;
+            public Dictionary<string, Dictionary<string, object>> Hands;
             public JObject Rules;
             public JObject Key;
             public LevelBuild Build;
@@ -92,7 +93,7 @@ namespace SiteAdaptation.Tests
         // test_level_floor_steps.made_build: six 12 m faces along a road at y = -3, plot 1 a VD2 villa, 2 and 3 a DP2 pair of the footprint,
         // 4 to 6 DP2 units in no cluster, each in Zone 2, units and zones another code or zone of a plot, the road level 10 m plus a hundredth of x,
         // and the steps linkFrame, levels and floors of it
-        private static Made MadeBuild(Action<JObject> change = null, Dictionary<string, string> units = null, Dictionary<string, string> zones = null)
+        internal static Made MadeBuild(Action<JObject> change = null, Dictionary<string, string> units = null, Dictionary<string, string> zones = null, DesignBasis basis = null, JArray bands = null)
         {
             JObject rules = MadeRules();
             change?.Invoke(rules);
@@ -115,14 +116,14 @@ namespace SiteAdaptation.Tests
             JObject profile = BuildRules.LevelProfile(rules, null);
             var files = new Dictionary<string, string> { ["DP2"] = Dp2File, ["VD2"] = Vd2File, ["TH1-IM"] = Th1File };
             List<string> scope = numbers.Concat(new[] { "7" }).ToList();
-            Dictionary<string, Dictionary<string, object>> hands = Hands.Step(scope, rows, context, key, files, rules, config);
+            Dictionary<string, Dictionary<string, object>> hands = Hands.Step(scope, rows, context, key, files, rules, config, basis);
             Dictionary<string, Dictionary<string, object>> links = LinkFrames.Step(scope, rows, fronts, context.Roles, hands, key, files, rules);
             LevelBuild build = KeyLevels.Of(numbers, rows, clusters, context, members => Fronts.Of(members, rows, faces, roads, limits,
-                (x, y) => new KeyValuePair<double?, string>(10.0 + x / 100.0, "road"), rules, roadEdgeM, sales), rules, key, profile, "parsons2024Rev6");
+                (x, y) => new KeyValuePair<double?, string>(10.0 + x / 100.0, "road"), rules, roadEdgeM, sales), rules, key, profile, "parsons2024Rev6", basis, bands);
             return new Made
             {
                 Levels = KeyLevels.Step(scope, rows, build, key, profile, rules, KeyLevels.LaterParameters(config, profile)),
-                Floors = FloorOutlines.Step(scope, rows, build, links, key, profile, rules, 0.5, "parsons2024Rev6"), Links = links, Rules = rules, Key = key, Build = build,
+                Floors = FloorOutlines.Step(scope, rows, build, links, key, profile, rules, 0.5, "parsons2024Rev6"), Links = links, Hands = hands, Rules = rules, Key = key, Build = build,
             };
         }
 
@@ -156,7 +157,10 @@ namespace SiteAdaptation.Tests
             Assert.Equal("2", Text(levels["5"]["steps"]));
             Assert.Equal("{\"parameter RRE_ZZ_SP_Prototype-FFL\":\"10.880\"}", Text(levels["5"]["parameters"]));
             Assert.All(levels["7"].Where(item => item.Key != "unit"), item => Assert.Null(item.Value));
-            Assert.Equal("unit partner piece roadAtFront entry ffl ssl height steps parameters", string.Join(" ", levels["7"].Keys));
+            Assert.Equal("unit partner piece roadAtFront entry ffl ssl height steps parameters doorSource slopePercent", string.Join(" ", levels["7"].Keys));
+            // R407. The fields of round 4i are null on a build of the past job
+            Assert.Null(levels["5"]["doorSource"]);
+            Assert.Null(levels["5"]["slopePercent"]);
         }
 
         [Fact]
@@ -219,7 +223,8 @@ namespace SiteAdaptation.Tests
             Assert.True((bool)(JToken)made.Links["4"]["mirrored"]);
             Assert.Null(made.Floors["4"]["yardOutline"]);
             Assert.Equal("[{\"key\":\"floors.yard\",\"why\":\"no fitted outline for DP2 mirrored on a plot 12.0 m wide\"}]", Text(made.Floors["4"]["lacks"]));
-            Assert.Equal("unit generic rampOutline rampZ rampClass rampType yardDepth yardUnit yardWidth yardType yardOutline lacks", string.Join(" ", made.Floors["7"].Keys));
+            Assert.Equal("unit generic rampOutline rampZ rampClass rampType yardDepth yardUnit yardWidth yardType yardOutline lacks yardGrade", string.Join(" ", made.Floors["7"].Keys));
+            Assert.Null(five["yardGrade"]);
             Assert.All(made.Floors["7"].Where(item => item.Key != "lacks"), item => Assert.Null(item.Value));
             Assert.Equal("[]", Text(made.Floors["7"]["lacks"]));
         }
@@ -307,10 +312,10 @@ namespace SiteAdaptation.Tests
         public void R358_R359_the_config_names_the_fields_of_the_steps_levels_and_floors_by_their_kind()
         {
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
-            Assert.Equal("unit:noGeometry partner:noGeometry piece:noGeometry roadAtFront:levels4 entry:levels4 ffl:levels3 ssl:levels3 height:levels4 steps:noGeometry parameters:noGeometry",
+            Assert.Equal("unit:noGeometry partner:noGeometry piece:noGeometry roadAtFront:levels4 entry:levels4 ffl:levels3 ssl:levels3 height:levels4 steps:noGeometry parameters:noGeometry doorSource:noGeometry slopePercent:levels3",
                 string.Join(" ", config.StepFields(KeyLevels.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
             Assert.Equal("unit:noGeometry generic:points3 rampOutline:points3 rampZ:levels3 rampClass:noGeometry rampType:noGeometry yardDepth:levels3 yardUnit:noGeometry "
-                + "yardWidth:points3 yardType:noGeometry yardOutline:points3 lacks:noGeometry", string.Join(" ", config.StepFields(FloorOutlines.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
+                + "yardWidth:points3 yardType:noGeometry yardOutline:points3 lacks:noGeometry yardGrade:noGeometry", string.Join(" ", config.StepFields(FloorOutlines.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
             Assert.Equal("clusters fronts hands linkFrame levels floors walls overrides parameters status checkRows summary", string.Join(" ", BuildSteps.Names));
         }
 

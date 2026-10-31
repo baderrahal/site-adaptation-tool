@@ -2,6 +2,82 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane C SCAN-UI, 2026-11-01, What the tool read and the step gates, Lane C on the laptop
+
+Goal:
+- Bader's round SCAN-UI: the window What the tool read from the board ScanResults, button 2 starts the scan (Q246), New project picks
+  from the scan (Q283), Current files in 1 Set up site, cluster confirm, door level picker, Revit pictures. Freeze 09:30 for the demo
+
+Done:
+- PR 1 of 2, tasks 1 to 4
+- R435 Scan value status and R436 Save scan picks with setup: AddIn/ScanResults, Common/Scan/ScanView.cs, ScanPicks.cs
+- R438 Button 2 scan gate and R439 Scan reuse by input hash: ScanStep.Wrap in ReadDataBody.For, ScanGate.Ask, no scan in a test host run
+- R440 Drawing facts from the scan: LatestScanFacts, layer, sheet and column dropdowns, View opens the window
+- R441 Current files gate: the section Current files and Rules in 1 Set up site, Apply waits for the site drawing, the line in button 9
+- The settings JSON gains scanPicks, conflictPicks and currentFiles at formatVersion 1 (Q288), a saved project carries scanPicks
+- Lane C rules in docs/rules/12-lane-c-r430-up.md, R430 to R434 of NEWPROJ-UI written there too
+- Reviewer with the UI checklist and breaker, one pass each: 12 REAL faults fixed with tests, 6 LATENT to steps/latent.md
+
+Checked:
+- Gate, RAN: net48 1745 passed, net8.0 1534 passed, pytest 2212 passed and 1 skipped, 0 failed
+- Pictures: steps/ui-shots/scan-results.png, setup-site.png, new-project.png, differences in steps/ui-shots/README.md
+- Second method: the review read the scan.json of the Lane D run (1218 conflicts, 332 keys shared), which led to the key with sourceB
+
+Remains:
+- PR 2: task 5 cluster confirm in 3 Review data (R442), task 6 door level picker in 4 Check (R443), on 4i (PR 116)
+- Task 7 Revit pictures when the window lock is free. The scan window shows only offscreen, a test host run skips the scan (Q295)
+
+Known bugs:
+- The read of button 2 does not take the picks yet (Q292). The first press hashes the prototypes, over 1 GB, on the Revit thread once
+
+Next:
+- PR 2 of SCAN-UI, then Lane B DEMO with the add-in of main
+
+Your turn:
+- Opened: Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out
+  of scan. Q291 Where the line Current files is shown. Q292 The read does not use the picks yet. Q293 Approve the three drafts of
+  SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan
+- Closed: Q246 Button 2 starts the scan or the window, Q283 Picks of layers, sheets, columns and coordinates, by Bader's prompt
+- 127 questions open, full text: steps/questions-open.md
+
+## 4i, 2026-10-31, the plan by Manual Rev 06 with the past job as a switch, Lane A on the laptop
+
+Goal:
+- Bader's decisions of 31 Oct: door level source C, clusters B, back yard B. The plan follows the manual on a new project, the past job behind a switch
+
+Done:
+- R407 designBasis.mode rev6 or roshnPastJob, ROSHN keeps roshnPastJob (Q224). R408 El @ Entry the input (civilFile or roadPlusSlope), the slope the result
+- R409 one named road surface, the 0.21 m of the 1.4 job in config. R410 back yard by 2.3.B and 2.3.C, no yard floor (Q225)
+- R411 cluster and mirror proposals by 2.1.A to 2.1.E (Q226, Q229). R412 read only new project check, worker command newProjectCheck
+- Review 1 and breaker 1: F1 fixed with a test (the rev6 slope after the overrides), the workbook closed, 10 LATENT lines, Q242, Q255, Q256
+- Main merged after PR 112, 113, 114 and 115, the rev6 slope of a ramp on the open edge of Q116 added in the merge
+
+Checked:
+- Past job against main c145089, RAN: whole project and the 7 keys, 0 of 636,012 values differ on the whole project, 0 differ on each key, every plan byte-equal, the new fields null
+- Parity, RAN: 13 steps, net48 and net8.0, whole project and the 7 keys, both modes, 32 runs, 0 failures, 0 refused (336,934 fields per mode on the whole project)
+- New project check on the real inputs, RAN: 14 lines, Python and C# equal on net48 and net8.0, 7 inputs unchanged
+- Status block, RAN: main c145089 655 values (Bader 55, MEASURED 51, DOCUMENT 287, RECOMMENDED 4, Code 3, UNKNOWN 255), branch 674: DOCUMENT +8, RECOMMENDED +6, UNKNOWN +5
+- Gate after the merge of PR 115, RAN: pytest 2,212 passed, 1 skipped. C# net48 1,691, net8.0 1,498, 0 failed
+
+Remains:
+- Value status of the rev6 values (Q230). The 121 IMC plots of the audit not reproduced, 116 by detached plus no proposal (Q240)
+
+Known bugs:
+- Under rev6 the one surface writes 630 of 2,704 plots (Q256) and the past override list still applies (Q255)
+- doorLevel.source reads as a note in R401, the slopes beside it read DOCUMENT (Q241). oldJobOffsetM reads UNKNOWN in the block
+
+Next:
+- Lane B adds L4i-1 to L4i-7 of steps/waiting-on-others.md. Lane A 4j-2, floor split and corner walls
+
+Your turn:
+- Opened Q224 to Q242, Q255, Q256: Q224 The mode the ROSHN config runs. Q225 The level of a yard floor under Rev 6. Q226 The hand of a detached unit.
+  Q227 Civil file format and plot match. Q228 Default slopes of road plus slope. Q229 A row with no single cluster split. Q230 Value status of the
+  Rev 6 values. Q231 Civil door level where no road level. Q232 yardGrade in plan.json. Q233 Slope limit at 3 or 4 decimals. Q234 Read step road
+  levels under Rev 6. Q235 Hand table cover per unit code. Q236 Label size in the PDF check. Q237 Folder of the Rev 9 workbooks. Q238 TH1-IM in the
+  cluster sequences. Q239 Mirror of DP2 and DP4. Q240 The 121 IMC plots of the audit. Q241 doorLevel.source reads as a note in R401. Q242 The reason
+  of an unreadable input. Q255 The override list under rev6. Q256 The one road surface covers a quarter. Closed: none
+- 121 questions open, full text: steps/questions-open.md
+
 ## Lane B 6a, 2026-10-31, one NBH through all 9 steps and the test host jobs, Lane B on the laptop
 
 Goal:
