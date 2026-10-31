@@ -47,6 +47,11 @@ namespace SiteAdaptation.Common
 
         public string Surface { get; private set; }
 
+        // R411. designBasis.clusters.propose under rev6, whether the build proposes a cluster and a mirror flag per unit plot
+        public bool Propose { get; private set; }
+
+        public bool Proposes => IsRev6 && Propose;
+
         private static InvalidDataException Refuse(string text)
         {
             return new InvalidDataException(text);
@@ -188,6 +193,12 @@ namespace SiteAdaptation.Common
                 throw Refuse("designBasis.roadLevel.surface names no road surface, a build under rev6 takes the road level from the one surface it names (R409)");
             }
             basis.Surface = (string)surface;
+            JToken propose = block["clusters"]?["propose"];
+            if (propose == null || propose.Type != JTokenType.Boolean)
+            {
+                throw Refuse("designBasis.clusters.propose must be true or false, it holds " + PyRepr(propose) + " (R411)");
+            }
+            basis.Propose = (bool)propose;
             return basis;
         }
 

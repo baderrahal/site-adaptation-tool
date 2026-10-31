@@ -392,7 +392,7 @@ namespace SiteAdaptation.Common
                     Dictionary<string, Dictionary<string, object>> links = null, hands = null;
                     if (linked)
                     {
-                        hands = Hands.Step(site.Numbers, site.Rows, context, key, files, site.Rules, site.Settings);
+                        hands = Hands.Step(site.Numbers, site.Rows, context, key, files, site.Rules, site.Settings, basis);
                         run.Counts["hands of the scope with a mirror flag"] = hands.Values.Count(item => item["mirrored"] != null);
                         run.Counts["side neighbour pairs"] = context.Neighbours.Values.Sum(sides => sides.Left.Count + sides.Right.Count);
                         if (asked.Contains(Hands.StepName))

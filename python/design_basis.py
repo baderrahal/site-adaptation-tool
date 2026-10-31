@@ -127,19 +127,32 @@ def check_yard(block):
         refuse("designBasis.backYard.floor must be true or false, it holds %r (R410)" % (floor,))
 
 
+def propose_of(block):
+    """R411. designBasis.clusters.propose, true or false, any other value refused."""
+    propose = (block.get("clusters") or {}).get("propose")
+    if not isinstance(propose, bool):
+        refuse("designBasis.clusters.propose must be true or false, it holds %r (R411)" % (propose,))
+    return propose
+
+
 def basis_of(settings):
     """R407. The design basis of a build, read once: under the past job the mode alone, under rev6 also the door level source with what it
-    reads (R408), the one road surface (R409) and the back yard floor held false (R410)."""
+    reads (R408), the one road surface (R409), the back yard floor held false (R410) and whether the build proposes clusters (R411)."""
     block = block_of(settings)
     mode = mode_of(settings)
     if mode != REV6:
         return {"mode": mode}
     check_yard(block)
-    return {"mode": mode, "door": door_of(block), "surface": surface_of(block)}
+    return {"mode": mode, "door": door_of(block), "surface": surface_of(block), "propose": propose_of(block)}
 
 
 def is_rev6(basis):
     return basis is not None and basis["mode"] == REV6
+
+
+def proposes(basis):
+    """R411. True for a build under rev6 with designBasis.clusters.propose, the one that proposes a cluster and a mirror flag per unit plot."""
+    return is_rev6(basis) and basis["propose"]
 
 
 def road_names(basis):

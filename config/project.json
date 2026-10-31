@@ -673,7 +673,10 @@
             "handRule": {"kind": "noGeometry"},
             "factor": {"kind": "noGeometry"},
             "linkFile": {"kind": "noGeometry"},
-            "mirrored": {"kind": "noGeometry"}
+            "mirrored": {"kind": "noGeometry"},
+            "proposedCluster": {"kind": "noGeometry"},
+            "proposedMirror": {"kind": "noGeometry"},
+            "proposalReason": {"kind": "noGeometry"}
         },
         "linkFrame": {
             "prototypeFile": {"kind": "noGeometry"},
