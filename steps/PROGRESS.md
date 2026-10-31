@@ -5,9 +5,9 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 ## State
 
 - 4i on 2026-10-31 in Lane A, one PR (D20): designBasis rev6 or roshnPastJob, R407 to R412, Q224 to Q242, Q255, Q256. ROSHN keeps roshnPastJob (Q224)
+- Lane D 4j-1 done on 2026-10-31, one PR: the scanner of any CAD, Excel and PDF, R420 to R427, worker command scan, python/scan.py
 - Lane B 5d on 2026-10-31, code merged, phase open: buttons 5, 6 and 8, 7 at the FFL, Q115, Q116, Q214, Q215, Q156. In Revit 1 to 5 commit, 6 stops (Q274)
-- Lane C NEWPROJ-UI done on 2026-10-31, PR 112: New project, How it works, pane text, R430 to R434, Q280 to Q287 (steps/HEADSUP.md)
-- Lane B 5c done on 2026-10-31, PR 111: buttons 2, 3, 4 and 7, Revit run on NBH 012 in Masses mode
+- Lane C NEWPROJ-UI done on 2026-10-31, PR 112: New project, How it works, pane text, R430 to R434. Lane B 5c done, PR 111: buttons 2, 3, 4 and 7
 - Lane A: 5e and 5f on 2026-10-30 (R381, R402), 4h-1 PR 107, 4h-2 PR 109, 4g3 on 2026-10-29, done for Phase 4 and 5 until 4i
 - Round FOLD done on 2026-10-29: the fold in of steps/lane-b.md, D9 to D19, the answer pass, M01 to M15. D20 on 29 Oct for Phase 4 and 5
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
@@ -15,7 +15,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## Done
 
-- 4i: one PR with code, tests and records (D20). Lane B 5d: one PR with code, tests and records (D20). Lane C NEWPROJ-UI: PR 112. Lane B 5c: PR 111. 5e and 5f: PR 110
+- 4i, Lane D 4j-1 (parity 0 differ on set A and the renamed set) and Lane B 5d: one PR each with code, tests and records (D20). Lane C NEWPROJ-UI: PR 112. Lane B 5c: PR 111. 5e and 5f: PR 110
 - 4h-2: PR 109. 4h-1: PR 107. FOLD: PR 101 to 105 and the end records
 - Lane B 5b: one PR (D20). 5a: PR 84, 86, 87, 89, 90, 92, 97, 99. L0: branch docs/laptop-l0
 - 4g3: PR 83, 85, 88, 91, 93, 95, 96 and the end records. 4g2: PR 74 to 81. 4g1: PR 69 to 73. AUDIT-RULES: PR 67, 68. 4f: PR 61 to 66
@@ -23,6 +23,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## Open bugs
 
+- Scan: the Road Layout passed 40 minutes in the pair trace (Q250). No villa type source reaches the strong share on ROSHN (Q254)
 - Full text at 73b8c42: steps/history/progress-addin-4e.md. Bugs no real input reaches: steps/latent.md (Q095)
 - Button 6 stops in Revit: its levelExcel worker clears the temporary levels file of its run id (Q274). 7 and 8 never ran in Revit
 - The wall rule keyRules.wallOpen is weak, 2,539 of 3,427 walls hold on the keys, 0.7409 (Q115, Q266)
@@ -38,20 +39,19 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## Bader's turn
 
-Opened in 5d, Lane B: Q260 Outline change of a placed floor. Q262 Level Excel and the read back values. Q263 Levels count still at its level. Q265 Ends status of walls after
-Q115. Q266 Walls on edges other units meet. Q267 Base level of a boundary wall. Q268 Scope of a wall on two plots. Q269 Untagged BW wall on a plan wall. Q270 Where a prototype set
-upgrades now. Q271 Python build takes the pane folder. Q273 6 Levels on a floor moved by hand. Q274 Run id of the levelExcel worker.
-Closed in 5d: Q148, Q190, Q214, Q215, Q216, Q218, Q219, Q220, Q221 and Q156 on the recommended answers of 31 Oct 2026. Q261 Plots of 6 not written in plan, Q264 Should 6 rewrite the
-floor tags and Q272 Front levels of a ramp on the open edge, closed by findings of 5d.
+Opened in 5d, Lane B: Q260 to Q274, closed in 5d: Q148, Q156, Q190, Q214 to Q216, Q218 to Q221, Q261, Q264, Q272, titles in steps/questions-open.md.
 Opened in 4i, Lane A: Q224 The mode the ROSHN config runs. Q225 The level of a yard floor under Rev 6. Q226 The hand of a detached unit. Q227 Civil file
 format and plot match. Q228 Default slopes of road plus slope. Q229 A row with no single cluster split. Q230 Value status of the Rev 6 values. Q231 Civil door
 level where no road level. Q232 yardGrade in plan.json. Q233 Slope limit at 3 or 4 decimals. Q234 Read step road levels under Rev 6. Q235 Hand table cover per
 unit code. Q236 Label size in the PDF check. Q237 Folder of the Rev 9 workbooks. Q238 TH1-IM in the cluster sequences. Q239 Mirror of DP2 and DP4. Q240 The 121
 IMC plots of the audit. Q241 doorLevel.source reads as a note in R401. Q242 The reason of an unreadable input. Q255 The override list under rev6. Q256 The one
 road surface covers a quarter. Closed in 4i: none.
-Opened in NEWPROJ-UI, Lane C: Q280 Save setup writes the model at once. Q281 Board rows against the nine pane inputs. Q282 Where the project name is kept. Q283 Picks of layers, sheets,
-columns and coordinates. Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve the four drafts of NEWPROJ-UI. Q287 Button messages that name a work file.
-107 questions open, full text and the recommended answers: steps/questions-open.md. Asks of others: steps/waiting-on-others.md.
+Opened in NEWPROJ-UI, Lane C: Q280 to Q287, titles in steps/questions-open.md.
+Opened in 4j-1, Lane D: Q243 Layer pairs for plot outlines in the scan. Q244 A tie in a scan proposal. Q245 Old and new code of one row agree.
+Q246 Button 2 starts the scan or the window. Q248 Villa blocks on one layer per type. Q249 A sheet whose numbers shift by area. Q250 The pair trace on the Road Layout.
+Q251 The centroid of today's plots.json. Q252 PDF tables and turned text in the scan. Q253 The header row of a scanned sheet. Q254 The order and share of villa type sources.
+Closed in 4j-1: Q247 Scan villa type takes the old CAD labels, by Bader's rule of 31 Oct 2026.
+118 questions open, full text and the recommended answers: steps/questions-open.md. Asks of others: steps/waiting-on-others.md.
 
 ## Next three steps
 

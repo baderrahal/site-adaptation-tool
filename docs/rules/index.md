@@ -381,3 +381,14 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R410 Back yard by Rev 6.
 - R411 Cluster and mirror proposals.
 - R412 Read only new project check.
+
+## 11-scanner-r420-up.md
+
+- R420 CAD layer inventory.
+- R421 Plot outline layer proposal.
+- R422 Plot number layer proposal.
+- R423 Villa block layer proposal.
+- R424 Drawing link by plot.
+- R425 Villa type value match.
+- R426 Villa type source score.
+- R427 Scan result file.

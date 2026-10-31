@@ -410,6 +410,16 @@ All paths under dotnet/. A line number the reviewer did not note is left out.
 - Lane C NEWPROJ-UI, LastReadFacts: a plot table that does not read shows Not read yet, with no log line. The block shows the latest read of the work folder and is not read again after Browse picks another drawing (reviewer, breaker).
 - Lane C NEWPROJ-UI, TemplateBook.SheetsFor: its refusal names addin.workbookRoles and dataBook.rev9, code names on the Template line of New project, reached only by a config with no such block (reviewer).
 
+## Lane D 4j-1, reviewer and breaker pass 1
+
+- ScanLogic.cs LabelNumber uses Regex.Match, which searches, where scan.py uses pattern.match, which anchors. labelPattern holds ^ and $, so both agree. A pattern with no ^ or under 2 groups would part them (reviewer, breaker).
+- Two scan inputs of one file name from two folders give one source text on both sides and their rows merge. Every real input has its own name (reviewer, breaker).
+- WorkerRunner Steps of scan lists every role as needed, so a request that names Steps scan with no Excel or PDF is refused. No caller names Steps for scan, the test sends none (reviewer).
+- ScanSources.cs reads the char box of PdfPage by reflection into its private members, a rename there throws at the first scan (reviewer).
+- scan.py raises on a profile with no scan block or an empty prototype suffix where C# refuses with a line (reviewer).
+- The prototype files of a scan are marked once and not checked after, they are named only, never read (reviewer).
+- A header that holds "|" makes a source text of two meanings. Python orders by code point and C# by UTF-16 unit, apart only past U+FFFF. No real header holds either (breaker).
+- A plot dropped as numberTwice is out of the index, so a plot of another drawing inside it gets no number conflict. 0 duplicate numbers among 3036 labels (breaker).
 ## Lane B 5d, Q116 second pass
 
 - build_proof.py:312-314: on a turned plot rampFrontM now stands in notApplied with the Q116 why, so a ramp front that missed the key would read as an explained override, not a finding. The 18 turned plots lie within 1 mm of the keys.

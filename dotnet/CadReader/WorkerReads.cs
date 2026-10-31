@@ -30,6 +30,8 @@ namespace CadReader
             commands["updateFromReport"] = UpdateFromReportWorker.Command;
             // R412. The read only check of the inputs of a new project, the report in plain words
             commands[NewProjectCheck.Command] = NewProject;
+            // R420 to R427. The scanner of any CAD, Excel and PDF the user gives, which reads them with ACadSharp, OpenXml and PdfPig, so in the worker only
+            commands["scan"] = CadScan.Command;
             return commands;
         }
 

@@ -199,3 +199,14 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 - Status: done, Lane C, laptop, 2026-10-31, one PR with code, tests and records, in the worktree Site Adaptation Tool Lane C WT
 - What: the window New project, the page How it works and the pane changes from Bader's boards of 31 Oct 2026 (docs/design/boards, docs/design/18-new-project.md), rules R430 to R434
 - Left: Q280 to Q287 for Bader, the scanner hook for a later Lane B round, the villa levels row for Lane A (steps/waiting-on-others.md), a Revit run that shows both windows
+
+## Lane D 4j-1, the scanner
+
+- Status: done, Lane D, laptop, 2026-10-31, one PR with code, tests and records, in the worktree Site Adaptation Tool Lane D WT
+- What: the scanner of any CAD, Excel and PDF the user gives for step 1 Plot and step 2 Villa type (Bader, 31 Oct 2026), rules R420 to R427, docs/design/17-scanner.md
+- Left: Q243 to Q246 and Q248 to Q254 for Bader, the scanner window for Lane B (steps/waiting-on-others.md), the Road Layout scan time (Q250)
+
+## Lane D 4j-1b, scan speed
+
+- Status: queued, Lane D, starts when the PR of 4j-1 merges
+- What: a scan of a large drawing under 10 minutes, measured per stage first, the result of set A and the renamed set the same field by field, a time cap of the profile written into the scan result where a stage cannot get under it
