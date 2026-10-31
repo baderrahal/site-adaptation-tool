@@ -3,10 +3,10 @@
 ## Live status
 
 - Lane: B, round 6a, branch feat/lane-b-6a, worktree Site Adaptation Tool Lane B WT
-- Time: 2026-10-31 23:00, demo freeze at 09:30 on 1 Nov
-- Now: window shots in the host by a developer, the 13 Revit 2024 prototype copies under the work root by a runner
-- Done: 5d merged as PR 113, Q274 fixed (levelExcel run id), R384 button 9 and the named Rules and Update from report jobs, the work root mark of the run script (f48d57e)
-- Next: the Masses run 1 to 9 with the named jobs and shots on NBH 012, the Links run, shots against the boards, review, records, PR
+- Time: 2026-10-31 23:40, demo freeze at 09:30 on 1 Nov
+- Now: Masses run of buttons 1 to 9 on NBH 012, second try (the first hung in a third party add-in at Revit start), review of the 6a code
+- Done: 5d PR 113, Q274, R384 button 9 and the named jobs, window shots, watcher leaves the Revit upgrade progress open, run script work root mark
+- Next: a shots window, records, PR, then DEMO. Links waits on Q275 (upgrade first step limit), not in the demo
 - Blocked: none
 - Lane C: NEWPROJ-UI merged as PR 112, round SCAN-UI next. Lane D: 4j-1 the scanner merged as PR 114, 4j-1b next (Q250)
 
