@@ -154,6 +154,30 @@ namespace SiteAdaptation.Tests
             Assert.Equal("5_3", generic.Tag.Run);
         }
 
+        // The breaker of 5d, Q225: a plot of the scope the plan does not write has no entry in plan.Plots and got no line
+        [Fact]
+        public void R379_a_plot_of_the_scope_the_plan_does_not_write_is_listed_with_the_reason_of_the_missing_list()
+        {
+            PlanFile plan = FloorPlans.Plan(FloorPlans.Plot("101"));
+            FakeFloors document = Placed(plan);
+
+            IReadOnlyList<string> issues = Make(document, plan, new Dictionary<string, string> { ["102"] = "the sales book gives no FFL" }).Body().Apply(Context());
+
+            Assert.Contains(issues, issue => issue.StartsWith("plot 102", StringComparison.Ordinal) && issue.Contains("the sales book gives no FFL"));
+        }
+
+        // The breaker of 5d: with no tagged floor of the scope standing 6 ended done, where 5 and 8 fail
+        [Fact]
+        public void R379_levels_fails_when_no_floor_of_the_scope_stands()
+        {
+            PlanFile plan = FloorPlans.Plan(FloorPlans.Plot("101"));
+
+            var failure = Assert.Throws<InvalidOperationException>(() => Make(new FakeFloors(), plan).Body().Apply(Context()));
+
+            Assert.Contains("run 5 Floors and ramps", failure.Message);
+            Assert.Empty(asked);
+        }
+
         [Fact]
         public void R379_a_floor_moved_by_hand_is_set_to_the_plan_and_read_back_and_tagged_with_the_plan_by_this_run()
         {

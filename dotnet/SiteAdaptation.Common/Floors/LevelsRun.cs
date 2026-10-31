@@ -82,6 +82,11 @@ namespace SiteAdaptation.Common.Floors
         {
             Decision decision = Decide(context);
             LevelRunInputs inputs = decision.Inputs;
+            if (decision.Floors.Count == 0)
+            {
+                // As 5 and 8 fail when nothing of the scope stands, so an empty run never counts as Done
+                throw new InvalidOperationException("no floor of this tool stands in the scope, so Levels is not done: " + string.Join(". ", decision.Listed.DefaultIfEmpty("the plan gives no floor")));
+            }
             List<Held> moved = decision.Floors.Where(held => held.Move).ToList();
             foreach (Held held in moved)
             {
@@ -203,6 +208,10 @@ namespace SiteAdaptation.Common.Floors
                 throw new InvalidDataException("6 Levels stops, a plot of the scope has no FFL in the plan: " + string.Join(". ", noFfl) + " (R379)");
             }
             var decision = new Decision { Inputs = inputs, View = FloorPlan.Read(document, plan, inputs.InScope, null), Nbh = plan.Neighbourhood ?? "all" };
+            // Q225. A plot of the missing list the plan does not write has no entry in plan.Plots, so it is listed, not stopped on
+            var written = new HashSet<string>((plan?.Plots ?? new List<PlanPlot>()).Where(plot => plot?.Plot != null).Select(plot => plot.Plot.Trim()), StringComparer.Ordinal);
+            decision.Listed.AddRange(inputs.NoFfl.Where(missing => !written.Contains(missing.Key.Trim()) && inScope(missing.Key.Trim())).OrderBy(missing => missing.Key, StringComparer.Ordinal)
+                .Select(missing => "plot " + missing.Key.Trim() + ": the plan does not write it, " + missing.Value + ", no level set (R379)"));
             FloorPlanView view = decision.View;
             Dictionary<string, PlannedFloor> planned = view.Floors.ToDictionary(floor => floor.Key, StringComparer.Ordinal);
             var planPlots = new HashSet<string>(view.Floors.Select(floor => floor.Plot), StringComparer.Ordinal);
