@@ -167,6 +167,7 @@ Round 17 gave the IDs. Each open question of the DATA-4 list kept its number as 
 | Q221 | Judge rows for Q146 and Q147 | As recommended: a picture check of the tab title and the icons in the Revit run of 5d, QL18 stays as it is | 2026-10-31, Bader, recommended taken in Lane B 5d |
 | Q225 | Plots of 6 not written in plan | As recommended: 6 lists each plot of the scope the plan does not write with the reason of the missing list and stops only on a written plot with no FFL, coded in 5d on the breaker finding | 2026-10-31, Lane B 5d |
 | Q228 | Should 6 rewrite the floor tags | Yes, against the recommended answer, by the REAL finding of review 1 of 5d: with the old tag a floor 6 moved reads as changed by hand at the next plan change, so 6 tags each floor it moves with the plan as 5 does | 2026-10-31, Lane B 5d |
+| Q236 | Front levels of a ramp on the open edge | As recommended, measured: the keys take the road level of the open edge with no gap, 18 of 18 within 1 mm, so on a plot whose ramp moved the rampFrontM gap measured on the R355 front is left with its why (breaker of Q116 in 5d) | 2026-10-31, Lane B 5d |
 
 ## Q089
 
