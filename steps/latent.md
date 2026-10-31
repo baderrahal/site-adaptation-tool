@@ -448,3 +448,7 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - WindowShots.cs:113-117: a throw inside LayOut leaves the window it built unclosed until it is collected.
 - RevitShots.cs:301 and 339: the current process is not disposed, and the old bitmap is put back only on success.
 - TestHostPaths.ps1:142 Resolve-WorkRootPath is a third copy of the work root mark beside WorkRoot.Resolve and project_profile.py, held to the C# one by its test, and none of the three refuses a part of two dots. The input is the config of the repo.
+
+## Lane D 4j-1b, the gate
+
+- WorkerRunTests R347_a_time_limit_that_fires_after_the_worker_answered_and_exited failed once on net48 while the pytest gate ran beside it, then passed 3 of 3 alone and in the whole net48 leg, 1694 of 1694 (RAN). A timing test under load, as the R347 timing tests of 5e.

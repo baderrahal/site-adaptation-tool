@@ -208,5 +208,6 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## Lane D 4j-1b, scan speed
 
-- Status: queued, Lane D, starts when the PR of 4j-1 merges
+- Status: done, Lane D, laptop, 2026-11-01, one PR with code, tests and records, in the worktree Site Adaptation Tool Lane D WT
 - What: a scan of a large drawing under 10 minutes, measured per stage first, the result of set A and the renamed set the same field by field, a time cap of the profile written into the scan result where a stage cannot get under it
+- Left: Q257 and Q258 for Bader, Q250 still open, the window shows the notRead row of a drawing scanned in part (steps/waiting-on-others.md)
