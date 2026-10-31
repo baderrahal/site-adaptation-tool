@@ -15,7 +15,7 @@ Done:
 - Reviewer and breaker, one pass each: 7 REAL faults fixed with tests, 10 LATENT to steps/latent.md
 
 Checked:
-- Gate, see the PR. The four pictures in steps/ui-shots with their differences from the boards
+- Gate at the PR head, RAN: net48 1525, net8.0 1341, pytest 2110 passed, 1 skipped. The four pictures in steps/ui-shots with their differences from the boards
 - Template read back by the OpenXML reader of the worker, a second method (R433)
 
 Remains:
