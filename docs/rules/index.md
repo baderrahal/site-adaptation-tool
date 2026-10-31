@@ -369,3 +369,14 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R373 Button 1 on an empty project.
 - R374 Button 1 on an existing site file.
 - R383 Element tags in Revit.
+
+## 11-scanner-r420-up.md
+
+- R420 CAD layer inventory.
+- R421 Plot outline layer proposal.
+- R422 Plot number layer proposal.
+- R423 Villa block layer proposal.
+- R424 Drawing link by plot.
+- R425 Villa type value match.
+- R426 Villa type source score.
+- R427 Scan result file.

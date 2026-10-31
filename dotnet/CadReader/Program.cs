@@ -17,6 +17,11 @@ namespace CadReader
             {
                 return WorkerRunner.Run(args[1], WorkerReads.Commands(), WorkerMemory.FreeMiB);
             }
+            // R420. The renamed proof set of the scanner, a drawing whose layers carry other names, so no rule of the scan rests on a name
+            if (args.Length == 4 && args[0] == "--rename-layers")
+            {
+                return LayerRename.Run(args[1], args[2], args[3], Console.Out, Console.Error);
+            }
             string layersPath = null;
             bool headerOnly = false, exact = false;
             var positional = new List<string>();
@@ -42,6 +47,7 @@ namespace CadReader
             if (positional.Count != 2)
             {
                 Console.Error.WriteLine("Usage: CadReader <file.dwg|file.dxf> <output folder> [--layers cad_layers.json] [--header-only] [--exact]");
+                Console.Error.WriteLine("       CadReader --rename-layers <in.dwg|in.dxf> <out.dxf> <map.json>");
                 return 1;
             }
             string input = positional[0];
@@ -137,6 +143,86 @@ namespace CadReader
             }
             string beside = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ConfigName);
             return File.Exists(beside) ? LayerConfig.Load(beside) : new LayerConfig();
+        }
+    }
+
+    // R420. The layers of a drawing renamed by a map of old name to new name and the drawing written as a DXF by the DxfWriter of
+    // ACadSharp, for the renamed proof set only. The input is read in place and held unchanged (D19), the output is never the input
+    public static class LayerRename
+    {
+        public static int Run(string input, string output, string mapPath, TextWriter info, TextWriter error)
+        {
+            if (!File.Exists(input) || !File.Exists(mapPath))
+            {
+                error.WriteLine("File not found: " + (File.Exists(input) ? mapPath : input));
+                return 2;
+            }
+            if (!string.Equals(Path.GetExtension(output), ".dxf", StringComparison.OrdinalIgnoreCase) || string.Equals(Path.GetFullPath(input), Path.GetFullPath(output), StringComparison.OrdinalIgnoreCase))
+            {
+                error.WriteLine("The output is a .dxf file other than the input: " + output);
+                return 1;
+            }
+            Dictionary<string, string> map;
+            try
+            {
+                map = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(mapPath)).Properties().ToDictionary(item => item.Name, item => (string)item.Value, StringComparer.Ordinal);
+            }
+            catch (Exception failure)
+            {
+                error.WriteLine("Could not read the layer map: " + failure.GetType().Name + ": " + failure.Message);
+                return 4;
+            }
+            InputMark before = InputGuard.Mark(input);
+            ACadSharp.CadDocument document;
+            try
+            {
+                document = CadExtractor.Open(input, new List<string>());
+            }
+            catch (Exception failure)
+            {
+                error.WriteLine("Could not read " + input + ": " + failure.GetType().Name + ": " + failure.Message);
+                return 3;
+            }
+            foreach (KeyValuePair<string, string> pair in map)
+            {
+                if (string.IsNullOrEmpty(pair.Value) || !document.Layers.TryGetValue(pair.Key, out ACadSharp.Tables.Layer layer))
+                {
+                    error.WriteLine("The map renames a layer the drawing does not hold, or to no name: " + pair.Key);
+                    return 4;
+                }
+                if (!string.Equals(pair.Key, pair.Value, StringComparison.OrdinalIgnoreCase) && document.Layers.Contains(pair.Value) && !map.ContainsKey(pair.Value))
+                {
+                    error.WriteLine("The drawing holds the layer " + pair.Value + " already, the map renames " + pair.Key + " to it");
+                    return 4;
+                }
+            }
+            // Every layer taken first and renamed after, so a map that swaps two names finds both
+            List<KeyValuePair<ACadSharp.Tables.Layer, string>> layers = map.Select(pair => { document.Layers.TryGetValue(pair.Key, out ACadSharp.Tables.Layer layer); return new KeyValuePair<ACadSharp.Tables.Layer, string>(layer, pair.Value); }).ToList();
+            for (int index = 0; index < layers.Count; index++)
+            {
+                layers[index].Key.Name = "~rename~" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+            foreach (KeyValuePair<ACadSharp.Tables.Layer, string> layer in layers)
+            {
+                layer.Key.Name = layer.Value;
+            }
+            try
+            {
+                ACadSharp.IO.DxfWriter.Write(output, document, false, null, null);
+            }
+            catch (Exception failure)
+            {
+                error.WriteLine("The DxfWriter could not write " + output + ": " + failure.GetType().Name + ": " + failure.Message);
+                return 3;
+            }
+            info.WriteLine("layers renamed " + layers.Count + ", written " + Path.GetFileName(output));
+            string changed = InputGuard.ChangedWhileRead(input, before);
+            if (changed != null)
+            {
+                error.WriteLine(changed);
+                return 5;
+            }
+            return 0;
         }
     }
 }

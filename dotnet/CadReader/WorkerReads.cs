@@ -28,6 +28,8 @@ namespace CadReader
             commands["reportExcel"] = ReportWorkbook.Command;
             // R402. The edited level Excel and report Excel read back and compared with the plan, for Update from report
             commands["updateFromReport"] = UpdateFromReportWorker.Command;
+            // R420 to R427. The scanner of any CAD, Excel and PDF the user gives, which reads them with ACadSharp, OpenXml and PdfPig, so in the worker only
+            commands["scan"] = CadScan.Command;
             return commands;
         }
 

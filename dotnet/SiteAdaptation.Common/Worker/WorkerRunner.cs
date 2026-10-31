@@ -63,10 +63,16 @@ namespace SiteAdaptation.Common
             // R353. The project position file of a key read and the check points of button 1, steps of the command position
             [ProjectPositionFile.PositionStep] = ProjectPositionFile.PositionRoles,
             [ProjectPositionFile.CheckPointsStep] = ProjectPositionFile.CheckPointRoles,
+            // R420 to R427. The scan of the files the user gives, the CAD, Excel and PDF files by number and the prototype files by name
+            [ScanStep] = new[] { "config", "scanCad:*", "scanExcel:*", "scanPdf:*", "prototype:*" },
         };
 
+        // R427. The step of the command scan
+        public const string ScanStep = "scan";
+
         public static readonly Dictionary<string, string> StepCommand = Steps.Keys.ToDictionary(step => step,
-            step => step == FaceStep.Name || BuildSteps.Names.Contains(step) ? "build" : step == ProjectPositionFile.PositionStep || step == ProjectPositionFile.CheckPointsStep ? "position" : "read");
+            step => step == FaceStep.Name || BuildSteps.Names.Contains(step) ? "build" : step == ProjectPositionFile.PositionStep || step == ProjectPositionFile.CheckPointsStep ? "position"
+                : step == ScanStep ? "scan" : "read");
 
         // R349. The role of a road surface file in a request, roadSurface:<file name with no extension>, one per LandXML file
         public const string RoadSurfaceRole = "roadSurface:";
