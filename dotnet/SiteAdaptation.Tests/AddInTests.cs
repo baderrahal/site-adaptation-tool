@@ -172,6 +172,19 @@ namespace SiteAdaptation.Tests
             Assert.Equal(Path.Combine(addIn, folder, "CadReader.exe"), LaunchedWorker.BesideAddIn());
         }
 
+        // Revit run of 5d: button 6 stopped on a worker looked for beside the add-in, where the installer puts none. The level, report and
+        // update waits look where button 2 starts it
+        [Fact]
+        public void R379_the_waits_of_6_9_and_update_look_for_the_worker_in_the_worker_folder()
+        {
+            Assert.False(File.Exists(LaunchedWorker.BesideAddIn()));
+            string work = Path.Combine(Path.GetTempPath(), "sa_worker_path_" + Guid.NewGuid().ToString("N"));
+            var report = Assert.Throws<FileNotFoundException>(() => SiteAdaptation.AddIn.Report.ReportWorkerClient.Run(null, work));
+            var update = Assert.Throws<FileNotFoundException>(() => SiteAdaptation.AddIn.Update.UpdateWorkerClient.Read(null, work));
+            Assert.EndsWith(LaunchedWorker.BesideAddIn(), report.Message);
+            Assert.EndsWith(LaunchedWorker.BesideAddIn(), update.Message);
+        }
+
         [Fact]
         public void R370_the_resolver_serves_its_own_folder_of_the_same_or_a_higher_version_to_the_tool_only()
         {
