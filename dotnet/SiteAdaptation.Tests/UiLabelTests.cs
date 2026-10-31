@@ -28,8 +28,8 @@ namespace SiteAdaptation.Tests
                     [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Update", "UpdateText.cs")] = "Update from report",
                 });
 
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report" }, list.Keys.ToArray());
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "How it works" }, list.Keys.ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "How it works" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
             Assert.Equal(16, list["Ribbon"].Entries.Count);
             Assert.Contains(shown["Ribbon"], found => found.Text == "Update from report");
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
@@ -42,6 +42,20 @@ namespace SiteAdaptation.Tests
             Assert.Contains(shown["Update from report"], found => found.Text == "<name> <n>" && found.Where.EndsWith("UpdateFromReportText.cs", StringComparison.Ordinal));
 
             Assert.Empty(UiLabels.Offenders(list, shown));
+        }
+
+        // Lane C NEWPROJ-UI: no file name ending in .json in any text of the add-in a user reads, in the label list or in the code. A message
+        // that puts a file name of a constant into its text is not seen here (steps/HEADSUP.md, Open risks)
+        [Fact]
+        public void NEWPROJ_no_text_of_any_window_names_a_json_file()
+        {
+            string root = ThemeGateTests.RepoRoot();
+            Dictionary<string, UiLabels.Window> list = UiLabels.List(File.ReadAllText(Path.Combine(root, UiLabels.ListFile)));
+            Dictionary<string, List<UiLabels.Found>> shown = UiLabels.Texts(Path.Combine(root, "dotnet", "SiteAdaptation.AddIn"), Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Flow", "RunTexts.cs"));
+            var json = new Regex(@"\.json\b", RegexOptions.IgnoreCase);
+
+            Assert.Empty(list.Values.SelectMany(window => window.Entries).Where(entry => json.IsMatch(entry.Text)).Select(entry => entry.Text));
+            Assert.Empty(shown.Values.SelectMany(found => found).Where(found => json.IsMatch(found.Text)).Select(found => found.Where + ": " + found.Text));
         }
 
         [Fact]
@@ -119,8 +133,11 @@ namespace SiteAdaptation.Tests
             string root = ThemeGateTests.RepoRoot();
             // The messages of a button are written in 3 of the design, What every button shares, the work folder in 6 and Bader's
             // changes of 28 Oct 2026 in 13
+            // Lane C NEWPROJ-UI: the boards of docs/design/boards, Bader's of 31 Oct 2026, their text with the markup taken out
             string source = string.Join("\n", new[] { "12-ui-spec.md", "13-workflow-changes.md", "07-mock.md", "03a-buttons-shared-and-1.md", "06-settings.md" }
-                .Select(name => File.ReadAllText(Path.Combine(root, "docs", "design", name))));
+                .Select(name => File.ReadAllText(Path.Combine(root, "docs", "design", name)))
+                .Concat(Directory.GetFiles(Path.Combine(root, "docs", "design", "boards"), "*.dc.html").OrderBy(path => path, StringComparer.Ordinal)
+                    .Select(path => System.Net.WebUtility.HtmlDecode(Regex.Replace(File.ReadAllText(path), "<[^>]+>", "")))));
             Dictionary<string, UiLabels.Window> list = UiLabels.List(File.ReadAllText(Path.Combine(root, UiLabels.ListFile)));
             var missing = new List<string>();
             int chosen = 0;
@@ -151,8 +168,8 @@ namespace SiteAdaptation.Tests
             // Note and the dry run line of Update from report, the two lines of the message after Apply, the texts of the 5f fix that Common
             // gives the window and the two refusals of a second book of a kind. The UI review of 5c added 4: the heading Corner, the two lines of a
             // Rules command with no usable rules file and the chip Team check. The second logic review of 5c added 1, the line under Why of a
-            // row on Skip
-            Assert.Equal(145, chosen);
+            // row on Skip. Lane C NEWPROJ-UI added 21: 3 of the pane, Settings among them, and 18 of New project
+            Assert.Equal(166, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
@@ -212,6 +229,8 @@ namespace SiteAdaptation.Tests
             { "Site Adaptation Rules", "RulesWindow" },
             { "Check table", "CheckTable" },
             { "Update from report", "Update" },
+            { "New project", "NewProject" },
+            { "How it works", "HowItWorks" },
         };
 
         private const string RibbonFile = "RibbonLayout.cs";

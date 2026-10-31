@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Theme for Code</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#0052CC}a:hover{color:#003F9E}
+.st{font-size:15px;font-weight:600;color:#1B3349}
+.sw{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:30px;border-bottom:1px solid #EEF1F5}
+.k{font-size:13px;color:#1B1F24;font-family:Consolas,'Cascadia Mono',monospace}
+.hx{font-size:13px;color:#4A5663;font-family:Consolas,'Cascadia Mono',monospace}
+.t{display:grid;grid-template-columns:160px minmax(0,1fr);gap:12px;align-items:baseline;min-height:32px;border-bottom:1px solid #EEF1F5}
+.b1{height:34px;min-width:96px;padding:0 18px;font:inherit;font-size:14px;border-radius:3px;cursor:pointer}
+.chip{font-size:12px;font-weight:600;padding:3px 9px;border-radius:12px;white-space:nowrap}
+.rule{font-size:13px;color:#1B1F24;line-height:20px}
+</style>
+</helmet>
+<div style="width:1040px;height:880px;box-sizing:border-box;background:#FFFFFF;font-family:'Libre Franklin','Franklin Gothic Book','Segoe UI',sans-serif;color:#1B1F24;display:flex;flex-direction:column">
+  <div style="display:flex;flex-direction:column;gap:4px;padding:22px 32px;background:#1B3349;color:#FFFFFF">
+    <div style="font-size:22px;font-weight:600">Theme for Code</div>
+    <div style="font-size:14px;color:#DCE8F5">One file, Theme.xaml. Every window reads from it. No colour, font or size anywhere else.</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:36px;padding:24px 32px">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div class="st">Colours</div>
+      <sc-for list="{{colors}}" as="c" hint-placeholder-count="18">
+        <div class="sw"><div style="width:30px;height:20px;border-radius:3px;background:{{c.hex}};border:1px solid #C3CCD6"></div><div class="k">{{c.key}}</div><div class="hx">{{c.hex}}</div></div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:22px">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="st">Type, Libre Franklin, bundled with the add-in</div>
+        <div class="t"><div class="k">SA.Type.Title</div><div style="font-size:20px;font-weight:600;color:#1B3349">20 SemiBold</div></div>
+        <div class="t"><div class="k">SA.Type.Next</div><div style="font-size:18px;font-weight:600;color:#1B3349">18 SemiBold</div></div>
+        <div class="t"><div class="k">SA.Type.Section</div><div style="font-size:15px;font-weight:600;color:#1B3349">15 SemiBold</div></div>
+        <div class="t"><div class="k">SA.Type.Body</div><div style="font-size:13px">13 Regular, labels, cells, help</div></div>
+        <div class="t"><div class="k">SA.Type.Small</div><div style="font-size:12px;color:#4A5663">12 Regular, the smallest size</div></div>
+        <div class="t"><div class="k">SA.Type.Numbers</div><div style="font-size:13px;font-variant-numeric:tabular-nums">Tabular figures, 1,247 and 0.00 mm</div></div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="st">Sizes</div>
+        <div class="t"><div class="k">SA.Space</div><div style="font-size:13px">4, 8, 12, 16, 24 only</div></div>
+        <div class="t"><div class="k">SA.Height</div><div style="font-size:13px">Main button 34, button 28 to 32, row 32</div></div>
+        <div class="t"><div class="k">SA.Radius</div><div style="font-size:13px">3 on controls, 12 on chips</div></div>
+        <div class="t"><div class="k">SA.Pane.Width</div><div style="font-size:13px">380 start</div></div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="st">Controls</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="b1" type="button" style="color:#FFFFFF;background:#0052CC;border:1px solid #0052CC;font-weight:600">Apply</button>
+          <button class="b1" type="button" style="color:#1B3349;background:#FFFFFF;border:1px solid #1B3349">Dry run</button>
+          <button class="b1" type="button" style="color:#1B1F24;background:#FFFFFF;border:1px solid #B8C2CD">Cancel</button>
+          <button class="b1" type="button" disabled="disabled" style="color:#6B7682;background:#F0F2F5;border:1px solid #D5DCE4;cursor:default">Disabled</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span class="chip" style="color:#0B6B2E;background:#E6F4EA">Done</span>
+          <span class="chip" style="color:#7A4B00;background:#FFF4D6">1,247 issues</span>
+          <span class="chip" style="color:#0A3D91;background:#E6EEFB">Ready</span>
+          <span class="chip" style="color:#4A5663;background:#F0F2F5">Needs step 4</span>
+          <span class="chip" style="color:#B42318;background:#FDECEA">Failed</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin:0 32px;display:flex;flex-direction:column;gap:6px;padding:16px 18px;background:#EAF3FC;border:1px solid #C9DDF3;border-radius:3px">
+    <div class="st" style="color:#0A3D91">Rules for Code</div>
+    <div class="rule">1. Colours, fonts, sizes and icons come only from Theme.xaml by key. A test fails on any colour or font size in another file.</div>
+    <div class="rule">2. Layout, labels and order follow these artboards. Nothing smaller than 12.</div>
+    <div class="rule">3. Every section has one help line. Every rule shows its plain name, with its id as a tooltip.</div>
+    <div class="rule">4. A change to the look is a question for Bader, never a choice by Code.</div>
+    <div class="rule">5. Each window gets a Revit screenshot beside its artboard, and every difference is listed.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1040,"height":880}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      colors: [
+        { key: 'SA.Surface', hex: '#FFFFFF' },
+        { key: 'SA.Panel', hex: '#F5F7FA' },
+        { key: 'SA.Band', hex: '#1B3349' },
+        { key: 'SA.BandText', hex: '#DCE8F5' },
+        { key: 'SA.BandAccent', hex: '#9ED9FD' },
+        { key: 'SA.Guide', hex: '#EAF3FC' },
+        { key: 'SA.Border', hex: '#D5DCE4' },
+        { key: 'SA.BorderStrong', hex: '#B8C2CD' },
+        { key: 'SA.Text', hex: '#1B1F24' },
+        { key: 'SA.TextMuted', hex: '#4A5663' },
+        { key: 'SA.Heading', hex: '#1B3349' },
+        { key: 'SA.Accent', hex: '#0052CC' },
+        { key: 'SA.Selected', hex: '#E3ECF8' },
+        { key: 'SA.IconAccent', hex: '#00AEE6' },
+        { key: 'SA.IconTick', hex: '#2F9E2A' },
+        { key: 'SA.Ok', hex: '#0B6B2E' },
+        { key: 'SA.Warn', hex: '#7A4B00' },
+        { key: 'SA.Error', hex: '#B42318' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

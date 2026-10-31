@@ -106,5 +106,12 @@ namespace SiteAdaptation.AddIn.Pane
             fallback = profiles["default"] == null ? null : profiles["default"].Value<string>();
             return profiles.Properties().Where(profile => profile.Value.Type == JTokenType.Object).Select(profile => profile.Name).ToList();
         }
+
+        // The text of project of the rules file, its own name for the job it holds the rules of, null when it gives none
+        public static string Name(string json)
+        {
+            JToken project = JObject.Parse(json)["project"];
+            return project != null && project.Type == JTokenType.String && ((string)project).Trim().Length > 0 ? ((string)project).Trim() : null;
+        }
     }
 }

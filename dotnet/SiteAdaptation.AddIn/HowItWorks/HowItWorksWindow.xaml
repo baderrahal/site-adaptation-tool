@@ -1,0 +1,123 @@
+<Window x:Class="SiteAdaptation.AddIn.HowItWorks.HowItWorksWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:how="clr-namespace:SiteAdaptation.AddIn.HowItWorks"
+        Title="{x:Static how:HowItWorksText.Title}" Width="{DynamicResource SA.Size.SetupWidth}" MaxHeight="{DynamicResource SA.Size.DialogMaxHeight}"
+        SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SA.Surface}">
+  <!-- Lane C NEWPROJ-UI, docs/design/boards/HowItWorks.dc.html top to bottom. Every colour, size and font by Theme.xaml, every text in
+       docs/design/14-ui-labels.md under How it works -->
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/SiteAdaptation.AddIn;component/Theme/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+
+      <Style x:Key="HeadText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Label}">
+        <Setter Property="Foreground" Value="{StaticResource SA.Heading}" />
+      </Style>
+      <Style x:Key="CellText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Body}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="{StaticResource SA.Gap.Right8}" />
+      </Style>
+
+      <DataTemplate x:Key="StepRow" DataType="{x:Type how:HowRow}">
+        <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.HowStep}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.HowWhat}" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.HowButton}" />
+            </Grid.ColumnDefinitions>
+            <Grid Width="{StaticResource SA.Size.HowMark}" Height="{StaticResource SA.Size.HowMark}" HorizontalAlignment="Left" VerticalAlignment="Top">
+              <Ellipse Fill="{StaticResource SA.Band}" />
+              <TextBlock Style="{StaticResource SA.Type.Small}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Surface}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding Number}" />
+            </Grid>
+            <TextBlock Grid.Column="1" Style="{StaticResource CellText}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Heading}" Text="{Binding What}" />
+            <TextBlock Grid.Column="2" Style="{StaticResource CellText}" Text="{Binding Needs}" />
+            <TextBlock Grid.Column="3" Style="{StaticResource CellText}" Text="{Binding Gives}" />
+            <TextBlock Grid.Column="4" Style="{StaticResource CellText}" Text="{Binding Button}" />
+          </Grid>
+        </Border>
+      </DataTemplate>
+    </ResourceDictionary>
+  </Window.Resources>
+
+  <DockPanel Background="{StaticResource SA.Surface}">
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.Panel}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Over}" Padding="{StaticResource SA.Pad.Foot}">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Style="{StaticResource SA.Button.Base}" Height="{StaticResource SA.Size.MainButton}" Content="{x:Static how:HowItWorksText.Close}" Click="OnClose" />
+        <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static how:HowItWorksText.OpenNewProject}" IsEnabled="{Binding CanOpenNew}" Click="OnOpenNew" />
+      </StackPanel>
+    </Border>
+
+    <!-- The two notes of the board: when the tool stops, and that Dry run writes nothing -->
+    <Grid DockPanel.Dock="Bottom" Margin="{StaticResource SA.Pad.Side}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <Border Background="{StaticResource SA.Guide}" BorderBrush="{StaticResource SA.GuideBorder}" BorderThickness="{StaticResource SA.Line.All}"
+              CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Box}" Margin="{StaticResource SA.Gap.Right8}">
+        <StackPanel>
+          <TextBlock Style="{StaticResource SA.Type.Step}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Info}" Text="{x:Static how:HowItWorksText.StopsTitle}" />
+          <TextBlock Style="{StaticResource SA.Type.Body}" Margin="{StaticResource SA.Gap.Top4}" TextWrapping="Wrap" Text="{x:Static how:HowItWorksText.StopsLine}" />
+        </StackPanel>
+      </Border>
+      <Border Grid.Column="1" Background="{StaticResource SA.Guide}" BorderBrush="{StaticResource SA.GuideBorder}" BorderThickness="{StaticResource SA.Line.All}"
+              CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Box}" Margin="{StaticResource SA.Gap.Left8}">
+        <StackPanel>
+          <TextBlock Style="{StaticResource SA.Type.Step}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Info}" Text="{x:Static how:HowItWorksText.DryTitle}" />
+          <TextBlock Style="{StaticResource SA.Type.Body}" Margin="{StaticResource SA.Gap.Top4}" TextWrapping="Wrap" Text="{x:Static how:HowItWorksText.DryLine}" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <Border DockPanel.Dock="Top" Background="{StaticResource SA.Band}" Padding="{StaticResource SA.Pad.Side}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Margin="{StaticResource SA.Gap.Right24}">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource SA.Type.Title}" Foreground="{StaticResource SA.Surface}" VerticalAlignment="Center" Text="{x:Static how:HowItWorksText.Title}" />
+            <Border Margin="{StaticResource SA.Gap.Left8}" Background="{StaticResource SA.BandAccent}" CornerRadius="{StaticResource SA.Radius.Chip}"
+                    Padding="{StaticResource SA.Pad.Chip}" VerticalAlignment="Center">
+              <TextBlock Style="{StaticResource SA.Type.Small}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Band}" Text="{x:Static how:HowItWorksText.Badge}" />
+            </Border>
+          </StackPanel>
+          <TextBlock Style="{StaticResource SA.Type.Step}" Foreground="{StaticResource SA.BandText}" Margin="{StaticResource SA.Gap.Top4}" TextWrapping="Wrap" Text="{x:Static how:HowItWorksText.Line}" />
+          <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandAccent}" Margin="{StaticResource SA.Gap.Top4}" Text="{x:Static how:HowItWorksText.ApplyLine}" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+          <TextBlock Style="{StaticResource SA.Type.Count}" Foreground="{StaticResource SA.Surface}" HorizontalAlignment="Right" Text="{Binding Count}" />
+          <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandText}" HorizontalAlignment="Right" Text="{Binding CountLine}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <StackPanel Margin="{StaticResource SA.Pad.Side}">
+      <Border Background="{StaticResource SA.Panel}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{StaticResource SA.Grid.HowStep}" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.HowWhat}" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.HowButton}" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Style="{StaticResource HeadText}" Text="{x:Static how:HowItWorksText.ColumnStep}" />
+          <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="{x:Static how:HowItWorksText.ColumnWhat}" />
+          <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="{x:Static how:HowItWorksText.ColumnNeeds}" />
+          <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" Text="{x:Static how:HowItWorksText.ColumnGives}" />
+          <TextBlock Grid.Column="4" Style="{StaticResource HeadText}" Text="{x:Static how:HowItWorksText.ColumnButton}" />
+        </Grid>
+      </Border>
+      <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource StepRow}" />
+    </StackPanel>
+  </DockPanel>
+</Window>

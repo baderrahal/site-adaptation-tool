@@ -9,6 +9,7 @@ Every question open before 2026-10-29 was closed in the answer pass of Round FOL
 Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
 Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror. Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row. Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job. Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit. Q173 Level profile of Update from report. Q174 The plan Update from report reads. Q175 Run log format 9 Report reads. Q176 Plain names of the update rule checks. Q177 Manual rule ids in Rule check. Q178 A computed mirror edit breaks the hand rule. Q179 Guide line, side box and row mark of Update.
 Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q190 Where buttons 5 to 8 find the plan. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q195 Dry run of button 4. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip. Q214 The build reads pastJob, not the pane. Q215 Where the 2024 prototypes come from. Q216 Rows of 4 Check with no past job. Q217 Follow every rule count, table against chip. Q218 Config files beside a user's config. Q219 First run of 7 against the step limit. Q220 Judge rows of J10 test the old claim. Q221 Judge rows for Q146 and Q147. Q222 The NBH 03 image of Q063. Q223 The test host gives up after a refused raise.
+Q280 Save setup writes the model at once. Q281 Board rows against the nine pane inputs. Q282 Where the project name is kept. Q283 Picks of layers, sheets, columns and coordinates. Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve the four drafts of NEWPROJ-UI. Q287 Button messages that name a work file.
 
 Q148. Place villas before Floors and Levels in the run after 5c (Round FOLD, review of the design PR 102). The new order of docs/design/13-workflow-changes.md has each step wait for the one before, so 7 Place villas waits for 6 Levels, and 5d builds 5 Floors and ramps and 6 Levels. The phase changes of 28 Oct 2026 give 5c the Place villas button with light mode, and the Revit run after 5c places villas in Masses and in one NBH in Links. Round FOLD wrote that the test host runs 7 by Buttons.Run on the plan before 5 and 6 are built (CHOSEN, steps/01_next.md). It does not block 5b or 5c.
 - Recommended: keep it. The test host runs 7 from the plan in the run after 5c, which measures light mode and the base boundary as 28 Oct asks, and the pane keeps the order, so a user cannot run 7 before 6.
@@ -315,3 +316,35 @@ Q222. The NBH 03 image of Q063 was not run (Revit run after 5c). Its spec (area 
 Q223. The test host gives up after one refused raise of its phase event (Revit run after 5c). One Denied in the first run, the second run held 18 of 21. Latent line in steps/latent.md.
 - Recommended: retry a refused raise on the next tick, a test host change in 5d.
 - Other: keep one raise and run again on a Denied.
+
+Q280. Save setup writes the model at once (Lane C NEWPROJ-UI). R367 writes the Settings entity only inside the transaction of a real run, so Save setup puts the setup into the pane in memory and the next real run of a button writes it. The foot line of the board says the next person who opens the project sees the same setup, which holds only after that run.
+- Recommended: Save setup writes the Settings entity in a transaction of its own, a change of R367 by Bader, in a later round.
+- Other: keep it, the setup reaches the model with the next real run.
+
+Q281. Board rows against the nine pane inputs (Lane C NEWPROJ-UI). The board has five files, the pane nine inputs. Code maps Site drawing to baseplan and Plot list to the sales workbook (addin.workbookRoles), and Villa blocks, Curbs, the DLUS workbook, Plot numbers and Prototypes keep their rows in the pane only (CHOSEN, docs/design/18-new-project.md).
+- Recommended: keep the mapping, the other inputs stay in the pane.
+- Other: add a row for each of them to New project.
+
+Q282. Where the project name is kept (Lane C NEWPROJ-UI). The settings JSON has no name field, so the Project name box shows the document title read only.
+- Recommended: keep it read only, the name is the title of the model.
+- Other: add a name to the settings JSON, a change of its format.
+
+Q283. Picks of layers, sheets, columns and coordinates (Lane C NEWPROJ-UI). Each would change a config file (cad_layers, dataBook.rev9, the position file), so Change and View are grey and the help lines of the board stay as text.
+- Recommended: with the scanner round, Save setup writes a copy of the config files into the work folder with the picks and the settings name that copy.
+- Other: keep them read only.
+
+Q284. Villa mode row the boards drop (Lane C NEWPROJ-UI). The Pane board shows no Villa mode row under the dry run box. Q129 and Q133 set it.
+- Recommended: keep the row.
+- Other: drop it and take villaModeDefault of config only.
+
+Q285. Name the Rules row shows (Lane C NEWPROJ-UI). The row shows the field project of the rules file, "ROSHN Makkah Phase 1", the board "ROSHN Makkah".
+- Recommended: keep the project field as it is.
+- Other: Lane A adds a short name to the rules profile.
+
+Q286. Approve the four drafts of NEWPROJ-UI (Lane C NEWPROJ-UI). steps/ui-shots/new-project.png, how-it-works.png, pane.png and pane-first-open.png with the differences listed in steps/ui-shots/README.md.
+- Recommended: approve each as drafted, then each is copied into baseline/.
+- Other: name the changes per picture.
+
+Q287. Button messages that name a work file (Lane C NEWPROJ-UI). The test NEWPROJ_no_text_of_any_window_names_a_json_file holds every text literal of the add-in, but a message that adds a file name from a constant still names one, as the stop of 3 Review data names read.json (ReviewLoad.Load).
+- Recommended: a later round rewords those messages by what the file holds.
+- Other: keep them, they name work files, not settings.

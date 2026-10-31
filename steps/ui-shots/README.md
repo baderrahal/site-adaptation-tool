@@ -14,6 +14,8 @@ Control 3 of docs/design/12-ui-spec.md, UI controls. Each PNG is a render of a w
 | rules.png | The Site Adaptation Rules window of the ribbon button of that name, the 15 rules of the block manualRules of the rules profile, rule M06 selected, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | check-table.png | The check table window of button 4, NBH 012 with 5 made up plots and 8 rows of every kind, the first row selected, Save overrides on, the content of the window at 1280 wide with no title bar of Windows | Draft |
 | update-from-report.png | The Update from report window of 5f, the level Excel and the report Excel of NBH 012 picked, 4 changes and 1 cell not editable, one change that breaks manual rule M08 unticked, made up numbers, the content of the window at 1280 wide with no title bar of Windows | Draft |
+| new-project.png | The New project window of Lane C NEWPROJ-UI, the site drawing and the plot list found, road levels and the parameter sheet missing as on the board, sample counts 337 plots and 14 villa types, the content of the window at 1080 wide with no title bar of Windows | Draft (Q286) |
+| how-it-works.png | The How it works page of Lane C NEWPROJ-UI, the 9 steps, the content of the window at 1080 wide with no title bar of Windows | Draft (Q286) |
 | revit-ribbon.png | The Site Adaptation tab in Revit 2024, cut from the window by PrintWindow in Revit run 3 of 5a, 29 Oct 2026 | Taken in Revit, for Bader's check |
 | revit-pane.png | The live pane page in Revit run 3 of 5a by RenderTargetBitmap at 96 DPI, first open state, the detached document of the run active | Taken in Revit, for Bader's check |
 
@@ -263,3 +265,31 @@ The block manualRules of rules/roshn-makkah.json as it is in the repo, texts onl
 - 12-ui-spec.md gives a new window a How to use line on SA.Guide, a side box 340 wide on SA.Panel and a selected row with the 3 px SA.Accent mark. 13-workflow-changes.md, part Update from report, gives no text for any of the three, so the window has none of them (Q179).
 - Rule check shows the plain name of each check with its rule id as tooltip (12-ui-spec.md line 11), the 9 names CHOSEN in UpdateText.RuleNames (Q176). A manual rule shows its id such as M08 until 5c gives it a plain name (Q177).
 - The chips show their count after the name, such as FFL 1, as the tiles do, where 13-workflow-changes.md gives the names only (CHOSEN).
+
+## Lane C NEWPROJ-UI, the differences from the boards of 31 Oct 2026
+
+The boards are docs/design/boards/. pane.png and pane-first-open.png were rendered again in this round. No Revit screenshot was taken in this round: no Revit window ran and the add-in was not installed, so each picture is the offscreen render only (UNKNOWN in Revit).
+
+New project (new-project.png, board NewProject.dc.html):
+1. Height follows the content, about 776, capped at 800 by SA.Size.DialogMaxHeight. The board is 860.
+2. Band and body padding 16 (SA.Pad.Side), board 20 and 24, and 18 and 24.
+3. Row lines SA.Border, placeholder text SA.TextMuted, stop box border SA.Border. The board uses #EEF1F5, #6B7682 and #E8D08A, which are not tokens.
+4. Browse and Get template are SA.Button.Base, 28 high, 13 SA.Text. The board has 26 high, 12 Heading. Foot buttons 13, board 14 with min width 96.
+5. Status marks are the pane's 18 px marks, the Missing one a filled amber disc. The board has a 14 px tick and a bare "!".
+6. The ready count leaves out Villa levels, which waits on Lane A: "2 of 4" where the board's sample says "3 of 5". The row shows Comes later.
+7. Survey point says Comes with the drawing scan. Change and View are grey until the scanner of a later Lane B round. The site row has no "Layers found" line yet. Villa types shows "<n> types" without "<n> without a level".
+8. The Project name box is read only, the document title (Q282).
+9. A long file name is cut at 200 with an ellipsis, its full path in the tooltip.
+
+How it works (how-it-works.png, board HowItWorks.dc.html):
+1. Height follows the content, about 660, board 860.
+2. Padding 16, board 20 and 24. Row lines SA.Border, board #EEF1F5.
+3. Open New project is grey when no project is open.
+
+Pane (pane.png and pane-first-open.png, boards Pane.dc.html and PaneFirst.dc.html):
+1. The Villa mode row stays under the dry run box (Q284). The board drops it.
+2. The Next step box keeps its name with no number and its short line ("Generic, yard and ramp floors. Dry run is on."), its name in SA.Text and the line in SA.TextMuted. The board shows "5 Floors and ramps", a longer sentence, Heading and #1B1F24.
+3. The buttons of Help stand at the right edge across the label and value columns, as those of Pre-setting do. The label column is 124 (SA.Grid.Label), the board's 96.
+4. No 1 px line between sections. The boards draw one in #DCE2E9, not a token.
+5. The Rules row shows the project field of the rules file, "ROSHN Makkah Phase 1" in the real file (Q285). The sample shows "ROSHN Makkah".
+6. First open: steps 1 to 4 keep their line under the name and a grey chip. The board shows the name and plain "Needs step n". The sample document has a saved path, so the band shows its name, where the board says "not saved". The Setup mark is the filled amber disc, the board an amber ring.
