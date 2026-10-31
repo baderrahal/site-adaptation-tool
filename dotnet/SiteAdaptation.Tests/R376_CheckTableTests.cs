@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common;
 using SiteAdaptation.Common.CheckTable;
 using SiteAdaptation.Common.Review;
 using Xunit;
@@ -19,9 +20,11 @@ namespace SiteAdaptation.Tests
 }");
         }
 
+        // The step file the worker writes through StepFile.Build, each plot as its raw and its written side (R345). The flat text below
+        // is what the build gives per plot
         internal static JObject Step()
         {
-            return JObject.Parse(@"{
+            return Wrapped(JObject.Parse(@"{
   'plots': {
     '1': { 'unit': 'VL4', 'nbh': '012', 'rows': [
       { 'check': 'Level', 'field': 'heightM', 'from': 'override', 'use': 'Past', 'rule': 'R278', 'toolValue': 0.2, 'past': { 'writes': 'gapToRuleM', 'value': { 'gapToRuleM': 0.05 }, 'why': null }, 'why': null },
@@ -33,7 +36,24 @@ namespace SiteAdaptation.Tests
     '9': { 'unit': 'VL4', 'nbh': '013', 'rows': [] }
   },
   'tables': { 'assumed': { }, 'chips': { 'All': 3, 'followEveryRule': 3 } }
-}");
+}"));
+        }
+
+        internal static JObject Wrapped(JObject flat)
+        {
+            var plots = new Dictionary<string, Dictionary<string, object>>();
+            foreach (JProperty plot in ((JObject)flat["plots"]).Properties())
+            {
+                plots[plot.Name] = ((JObject)plot.Value).Properties().ToDictionary(item => item.Name, item => (object)item.Value);
+            }
+            return StepFile.Build(CheckRows.StepName, "csharp", "nbh=012", plots, new ParityField[0], flat["tables"] as JObject);
+        }
+
+        // One plot of a step file, its raw and written sides alike as StepFile.Build writes a value of no decimals
+        internal static JObject Sides(string flat)
+        {
+            JObject plot = JObject.Parse(flat);
+            return new JObject { ["raw"] = plot.DeepClone(), ["written"] = plot };
         }
 
         internal static PastJob Past()
@@ -76,7 +96,7 @@ namespace SiteAdaptation.Tests
         public void R376_the_rows_of_a_plot_on_the_skip_list_open_on_skip()
         {
             JObject step = Step();
-            foreach (JObject item in (JArray)step["plots"]["1"]["rows"])
+            foreach (JObject item in (JArray)step["plots"]["1"]["written"]["rows"])
             {
                 item["use"] = "Skip";
             }
@@ -92,11 +112,11 @@ namespace SiteAdaptation.Tests
         public void R376_R330_a_row_on_skip_shows_the_use_its_entry_holds_under_the_skip_in_the_why_of_the_side_box()
         {
             JObject step = Step();
-            foreach (JObject item in (JArray)step["plots"]["1"]["rows"])
+            foreach (JObject item in (JArray)step["plots"]["1"]["written"]["rows"])
             {
                 item["use"] = "Skip";
             }
-            step["plots"]["1"]["rows"][0]["why"] = "the plot is not written, it lacks skip";
+            step["plots"]["1"]["written"]["rows"][0]["why"] = "the plot is not written, it lacks skip";
             JObject list = JObject.Parse("{ 'overrides': [ { 'plot': '1', 'field': 'heightM', 'value': { 'gapToRuleM': 0.05 }, 'source': 'parsons', 'model': 'kx-site.rvt', 'key': 'kx' } ] }");
 
             CheckTableView view = CheckTableBuild.Compose("012", step, Block(), null, null, null, true);
@@ -123,7 +143,7 @@ namespace SiteAdaptation.Tests
         public void R376_a_plot_of_the_build_with_no_nbh_of_plots_csv_stays_in_the_table_of_the_nbh_of_the_scope()
         {
             JObject step = Step();
-            step["plots"]["11"] = JObject.Parse("{ 'unit': null, 'nbh': null, 'rows': [ { 'check': 'Unit code', 'field': 'unit', 'from': 'missing', 'use': 'Rule', 'rule': null, 'toolValue': null, 'past': { 'writes': null, 'value': null, 'why': 'no unit' }, 'why': null } ] }");
+            step["plots"]["11"] = Sides("{ 'unit': null, 'nbh': null, 'rows': [ { 'check': 'Unit code', 'field': 'unit', 'from': 'missing', 'use': 'Rule', 'rule': null, 'toolValue': null, 'past': { 'writes': null, 'value': null, 'why': 'no unit' }, 'why': null } ] }");
 
             CheckTableView view = CheckTableBuild.Compose("012", step, Block(), null, null, null, true);
 
@@ -181,6 +201,47 @@ namespace SiteAdaptation.Tests
             Assert.False(seven.PastOffered);
             Assert.Equal("no answer key holds plot 7", seven.PastWhy);
             Assert.Equal(new[] { "1", "1", "2", "3", "7" }, view.Rows.Select(row => row.Plot));
+        }
+
+        // R376, R345. The worker writes the step checkRows in the StepFile form, each plot as raw and written, and the table reads the
+        // written side as the plan does. Plot 21 has no unit and no nbhId, so its Unit code row of the build stands in NBH 012 and the
+        // plot does not follow every rule. Its raw side is emptied, so a row the table finds came from the written side
+        [Fact]
+        public void R376_R345_a_step_in_the_step_file_form_gives_the_unit_code_row_of_a_plot_with_no_unit_and_leaves_it_out_of_follow_every_rule()
+        {
+            JObject step = Wrapped(JObject.Parse(@"{
+  'plots': {
+    '21': { 'unit': null, 'nbh': null, 'rows': [
+      { 'check': 'Unit code', 'field': 'unit', 'from': 'missing', 'use': 'Rule', 'rule': null, 'toolValue': null, 'past': { 'writes': null, 'value': null, 'why': 'no unit' }, 'why': null } ] },
+    '22': { 'unit': 'VL4', 'nbh': '012', 'rows': [] },
+    '23': { 'unit': 'TH2', 'nbh': '012', 'rows': [] }
+  },
+  'tables': { 'assumed': { }, 'chips': { 'All': 1, 'followEveryRule': 2 } }
+}"));
+            step["plots"]["21"]["raw"]["rows"] = new JArray();
+
+            CheckTableView view = CheckTableBuild.Compose("012", step, Block(), null, null, null, true);
+
+            CheckRow unit = Assert.Single(view.Rows);
+            Assert.Equal("21", unit.Plot);
+            Assert.Equal("Unit code", unit.Check);
+            Assert.Equal("unit", unit.Field);
+            Assert.Equal("012", unit.Nbh);
+            Assert.Null(unit.Unit);
+            Assert.Equal("4 Check, NBH 012, 3 plots", view.Title);
+            Assert.Equal(2, view.FollowEveryRule);
+            Assert.Contains(new KeyValuePair<string, int>("Unit code", 1), view.Counts);
+        }
+
+        // R376, R345. A plot of no written side is not the StepFile form, so the table stops on it and never shows it as following every rule
+        [Fact]
+        public void R376_R345_a_plot_of_the_step_with_no_written_side_stops_the_table()
+        {
+            JObject step = Step();
+            step["plots"]["2"] = JObject.Parse("{ 'unit': 'TH2', 'nbh': '012', 'rows': [] }");
+
+            Assert.Contains("plot 2", Assert.Throws<System.IO.InvalidDataException>(() => CheckTableBuild.Compose("012", step, Block(), null, null, null, true)).Message);
+            Assert.Contains("plot 2", Assert.Throws<System.IO.InvalidDataException>(() => CheckTableInfo.Of("p", "l", null, step, "012")).Message);
         }
 
         [Fact]
