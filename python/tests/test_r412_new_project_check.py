@@ -181,3 +181,20 @@ def test_r412_a_rules_profile_with_no_typologies_stops_the_check_with_its_reason
     with pytest.raises(new_project_check.CheckError) as refused:
         new_project_check.check(config / "project.json", config / "rules.json", config / "prototype_offsets.json", work, root)
     assert "holds no typologies" in str(refused.value)
+
+
+def test_r412_every_workbook_the_check_opens_is_closed_before_it_ends(tmp_path, monkeypatch):
+    # The read only workbook of openpyxl holds its file open until closed, review 1 of round 4i
+    opened, closed = [], []
+    load = openpyxl.load_workbook
+
+    def spy(*args, **kwargs):
+        book = load(*args, **kwargs)
+        opened.append(book)
+        shut = book.close
+        book.close = lambda: (closed.append(book), shut())
+        return book
+
+    monkeypatch.setattr(openpyxl, "load_workbook", spy)
+    run(tmp_path)
+    assert opened and len(closed) == len(opened) and all(any(book is shut for shut in closed) for book in opened)

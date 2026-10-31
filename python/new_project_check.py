@@ -97,6 +97,13 @@ class Run:
         if key not in self.marks:
             self.marks[key] = (str(path), input_guard.mark(path))
 
+    def close(self):
+        # A read only openpyxl workbook keeps its file open until closed, so a check never leaves a handle on an input
+        for book in self.cache.values():
+            if book is not None:
+                book["book"].close()
+        self.cache = {}
+
     def json_object(self, path):
         self.opened(path)
         return read_object(path)
@@ -439,6 +446,7 @@ def check(config_path, rules_path, offsets_path, work_root, input_root=None):
     lines += [excel_line(settings, block, run, work) for block in EXCEL_BLOCKS]
     lines += schedule_lines(settings, run, root)
     lines.append(pdf_line(settings, run, work))
+    run.close()
     changed = []
     inputs = []
     for path, before in run.marks.values():
