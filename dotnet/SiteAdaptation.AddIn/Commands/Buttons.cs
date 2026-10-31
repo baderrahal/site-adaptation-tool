@@ -97,11 +97,13 @@ namespace SiteAdaptation.AddIn
             // R378, R379. Made on the settings of the session of the document, so the test host runs each step by Run as the ribbon does
             Func<ButtonBody> floors = () => Floors.FloorsBody.For(application, PaneHost.Current?.Sessions.Seen(document, document.PathName, document.Title)?.Settings);
             Func<ButtonBody> levels = () => Floors.LevelsBody.For(application, PaneHost.Current?.Sessions.Seen(document, document.PathName, document.Title)?.Settings);
+            Func<ButtonBody> walls = () => BoundaryWalls.WallsBody.For(application, PaneHost.Current?.Sessions.Seen(document, document.PathName, document.Title)?.Settings);
             ButtonBody body = button.Number == 2 && document != null ? Bodies.Of(button, null, readData)
                 : button.Number == 3 ? Bodies.Of(button, null, null, reviewData)
                 : button.Number == 4 && document != null ? Bodies.Of(button, null, null, null, checkTable)
                 : button.Number == 5 && document != null ? Bodies.Of(button, null, null, null, null, null, floors, null)
                 : button.Number == 6 && document != null ? Bodies.Of(button, null, null, null, null, null, null, levels)
+                : button.Number == 8 && document != null ? Bodies.Of(button, null, null, null, null, null, null, null, walls)
                 : button.Number == 7 && document != null ? Bodies.Of(button, null, null, null, null, placeVillas) : Bodies.Of(button, () => SetUpSiteBody.For(application));
             // 5f. Update from report has no number, so Bodies.Of leaves it not built, its body is made here on the active document
             if (document != null && button == RibbonLayout.ButtonOf("UpdateFromReportCommand") && UpdateFromReportBody.Dialog != null)
@@ -193,6 +195,17 @@ namespace SiteAdaptation.AddIn
         public static ButtonBody Of(RibbonButtonSpec button, Func<ButtonBody> setUp, Func<ButtonBody> readData, Func<ButtonBody> reviewData, Func<ButtonBody> checkTable)
         {
             return Of(button, setUp, readData, reviewData, checkTable, null);
+        }
+
+        // R380. walls makes the body of button 8 on the active document
+        public static ButtonBody Of(RibbonButtonSpec button, Func<ButtonBody> setUp, Func<ButtonBody> readData, Func<ButtonBody> reviewData, Func<ButtonBody> checkTable,
+            Func<ButtonBody> placeVillas, Func<ButtonBody> floors, Func<ButtonBody> levels, Func<ButtonBody> walls)
+        {
+            if (button.Number == 8 && walls != null)
+            {
+                return walls();
+            }
+            return Of(button, setUp, readData, reviewData, checkTable, placeVillas, floors, levels);
         }
 
         // R378, R379. floors and levels make the bodies of buttons 5 and 6 on the active document

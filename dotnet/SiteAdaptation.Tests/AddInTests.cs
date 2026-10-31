@@ -137,6 +137,18 @@ namespace SiteAdaptation.Tests
             Assert.Equal("7 Place villas is not built yet.", Bodies.Of(RibbonLayout.Button(7), null, null, null, null, null, () => floors, () => levels).NotBuilt);
         }
 
+        // R380. Button 8 takes the body the entry makes on the active document and no other button takes it, with none it stays not built
+        [Fact]
+        public void R380_button_8_takes_its_own_body_and_no_other()
+        {
+            var walls = new ButtonBody();
+            RibbonButtonSpec eight = RibbonLayout.Button(8);
+
+            Assert.Same(walls, Bodies.Of(eight, null, null, null, null, null, null, null, () => walls));
+            Assert.Equal("8 Walls is not built yet.", Bodies.Of(eight, null, null, null, null, null, null, null, null).NotBuilt);
+            Assert.Equal("6 Levels is not built yet.", Bodies.Of(RibbonLayout.Button(6), null, null, null, null, null, null, null, () => walls).NotBuilt);
+        }
+
         // R403. The window changes no model element, so the ribbon command opens it on the rules file of the pane with no flow, and a
         // missing or bad rules file is told, never thrown into Revit
         [Fact]

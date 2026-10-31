@@ -783,6 +783,10 @@
       "cornerOnVertexM": 0.002,
       "shortestEdgeM": 0.001
     },
+    "walls": {
+      "note": "R380. readBackM holds a boundary wall placed by button 8 read back on its line, base and top, the 1 mm of 03b 8 Walls Checks",
+      "readBackM": 0.001
+    },
     "fronts": {
       "note": "Rows C11, C12, P7 and P90. frontTieM is R94, two candidate edges this near the road tie, a corner plot. outwardProbeM the probe of the outward side of an edge, R405. quadrantsDeg are R224 and R225, the bearings of each orientation of the sales table",
       "frontTieM": 1.0,
