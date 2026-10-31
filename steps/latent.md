@@ -409,3 +409,8 @@ All paths under dotnet/. A line number the reviewer did not note is left out.
 - Lane C NEWPROJ-UI, SavedStarts.List: a refused saved project is left out with no word to the user, the skipped list has no caller in the add-in (reviewer).
 - Lane C NEWPROJ-UI, LastReadFacts: a plot table that does not read shows Not read yet, with no log line. The block shows the latest read of the work folder and is not read again after Browse picks another drawing (reviewer, breaker).
 - Lane C NEWPROJ-UI, TemplateBook.SheetsFor: its refusal names addin.workbookRoles and dataBook.rev9, code names on the Template line of New project, reached only by a config with no such block (reviewer).
+
+## Lane B 5d, Q116 second pass
+
+- build_proof.py:312-314: on a turned plot rampFrontM now stands in notApplied with the Q116 why, so a ramp front that missed the key would read as an explained override, not a finding. The 18 turned plots lie within 1 mm of the keys.
+- The 18 turned plots keep a rampFrontM entry in the override list that the build always leaves, an edit of it has no effect but the why in notApplied.
