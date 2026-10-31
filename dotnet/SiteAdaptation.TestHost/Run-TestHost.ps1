@@ -467,7 +467,7 @@ if ($round) {
 if (-not $DryStart -and -not $round) {
     $root = if ($env:SITE_ADAPTATION_INPUT) { $env:SITE_ADAPTATION_INPUT } else { $config.inputRoot }
     $original = Join-Path $root $config.testHost.model
-    $planPath = if ($spec -and $spec.plan) { $spec.plan } else { $config.pastJob.output }
+    $planPath = if ($spec -and $spec.plan) { $spec.plan } else { Resolve-WorkRootPath -Path $config.pastJob.output -Docs $docs }
     $sourceFolder = if ($set) { Join-Path $root $set.source } else { Join-Path $root $config.pastJob.prototypeFolder }
 
     if ($set) {
