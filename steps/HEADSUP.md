@@ -3,11 +3,11 @@
 ## Live status
 
 - Lane: D, round 4j-1, the scanner, branch feat/addin-4j1-scanner, worktree Site Adaptation Tool Lane D WT
-- Now: the ROSHN and renamed scans again after the centroid fix, then reviewer and breaker
-- Done: items 1 to 8 of the plan, ROSHN set A and the renamed set scanned, parity, main merged after PR 112
+- Now: rerun of set A and the renamed set after the centroid fix, reviewer and breaker running
+- Done: items 1 to 8 of the plan, ROSHN set A and the renamed set scanned, parity 0 differ on set A, main merged after PR 112, Q243 to Q251 written
 - Next: rerun the parity, reviews, records, PR
 - Blocked: none. The Road Layout scan passed 40 minutes in the pair trace and was stopped (Q250)
-- Time: 2026-10-31 19:50
+- Time: 2026-10-31 20:05
 
 Lane C, done: NEWPROJ-UI merged as PR 112 on 2026-10-31 (its status at 18:57 read full gate, then PR and merge).
 
