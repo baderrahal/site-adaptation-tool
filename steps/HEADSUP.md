@@ -2,41 +2,53 @@
 
 ## Live status
 
-- Lane: D, round 4j-1, the scanner, branch feat/addin-4j1-scanner
-- Now: the scan on the ROSHN copies, net8.0 first, then net48 and Python, then the parity and the renamed set
-- Done: plan item 1 spec (R420 to R427, docs/design/17-scanner.md, scan block of the profile), items 2 to 8 code and tests, the .NET gate 1517 net48 and 1340 net8.0 green
-- Next: parity numbers, the renamed set, reviewer and breaker, records, PR
-- Blocked: none
-- Time: 2026-10-31, after the code of items 2 to 8
+- Lane: D, round 4j-1, the scanner, branch feat/addin-4j1-scanner, worktree Site Adaptation Tool Lane D WT
+- Now: the ROSHN and renamed scans again after the centroid fix, then reviewer and breaker
+- Done: items 1 to 8 of the plan, ROSHN set A and the renamed set scanned, parity, main merged after PR 112
+- Next: rerun the parity, reviews, records, PR
+- Blocked: none. The Road Layout scan passed 40 minutes in the pair trace and was stopped (Q250)
+- Time: 2026-10-31 19:50
+
+Lane C, done: NEWPROJ-UI merged as PR 112 on 2026-10-31 (its status at 18:57 read full gate, then PR and merge).
+
+Rewritten by each round, never appended, each lane keeps the lines of the others. Last: Lane D 4j-1 and Lane C NEWPROJ-UI, 31 Oct 2026.
 
 ## Repo map
 
-- config/: project.json, the project settings, and the layer, area and plot number lists
-- rules/: the rules profile of each project, roshn-makkah.json, its scan block new in 4j-1
-- docs/rules/: the rules by part, index.md finds a rule by id
-- docs/design/: the add-in design by part, its README names each part
-- python/: the readers, the build and the checkers, the twin of the C# side, tests in python/tests
-- dotnet/: the C# solution, CadReader the worker, SiteAdaptation.Common the logic, AddIn the Revit add-in, Tests
-- steps/: the live state, the log, the plan, the questions and the history of old rounds
-- tools/: the run scripts of the test host
+- .claude and .github: agents, hooks, the AI MAX skill, the gate workflow
+- config and rules: project.json with the files beside it, the override list, the rules profile with its scan block (4j-1)
+- docs: rules (Lane A, and R420 to R427 of Lane D in part 11), design parts and boards, the mock, the repo map
+- dotnet/CadReader: the worker, reads CAD, PDF and xlsx, writes the Excel files and the scan
+- dotnet/SiteAdaptation.AddIn: the Revit add-in, ribbon, pane and windows
+- dotnet/SiteAdaptation.Common: the logic of the add-in and the worker, no Revit type, Scan/ the scan logic
+- dotnet/SiteAdaptation.Tests and UiShots: the gate tests, the offscreen renders of the windows
+- dotnet, others: the placer, the test host, the prototype reader, the Civil 3D probe and watchers
+- python and tools: the readers of the past rounds, the test checker with scan.py, the laptop run scripts
+- steps: progress, log, plan, questions, ui-shots, the history of the rounds
 
 ## What this round changed
 
-- A scanner of any CAD, Excel and PDF the user gives, the worker command scan and python/scan.py
-- Written in progress, the final list comes with the PR
+- Lane D 4j-1: a scanner of any CAD, Excel and PDF the user gives, the worker command scan and its twin python/scan.py (R420 to R427)
+- Lane D 4j-1: scan.json per run in the run folder, docs/design/17-scanner.md, the window needs in steps/waiting-on-others.md
+- Lane C NEWPROJ-UI: the window New project, the page How it works, the pane rows Setup, Rules and Help, Save setup (R367)
+- Lane C NEWPROJ-UI: no add-in text names a .json file, a saved project ROSHN Makkah, boards and design part 18
 
 ## New rules
 
-- R420 to R427 in docs/rules/11-scanner-r420-up.md
+- R420 to R427 of Lane D, the CAD layer inventory, the three layer proposals, the drawing link, the villa type match and score, the scan file
+- R430 to R434 of Lane C, the files the tool needs, the check before saving, Save setup, the template workbook, saved projects
 
 ## Wiring
 
-- Worker command scan, WorkerReads.Commands to CadScan.Command. python/scan.py main. Button 2 does not start it yet (the scanner window of Lane B)
+- Lane D: worker command scan, WorkerReads.Commands to CadScan.Command. python/scan.py main. Button 2 does not start it (Q246)
+- Lane C: pane box Open New project to NewProjectDialog.Show, Help to HowItWorksDialog.Show, Save setup to SetupSave.Apply
 
 ## Open risks
 
-- Pair candidates of the face trace on large drawings, time not measured yet
+- Lane D: the villa type proposal takes the CAD labels, which agree with the 7 keys on 495 of 2323 plots (Q247)
+- Lane D: the pair trace of the scan on the Road Layout passed 40 minutes (Q250)
+- Lane C: Save setup reaches the model only with the next real run (Q280). The scanner hook NewProjectDialog.Facts is empty until Lane B
 
 ## Next
 
-- The PR of 4j-1
+- Lane D: the PR of 4j-1. Lane C: Bader answers Q280 to Q287. Lane B fills IDrawingFacts from scan.json

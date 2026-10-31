@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>How it works</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.st{font-size:15px;font-weight:600;color:#1B3349}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;line-height:18px}
+.tbl th{text-align:left;font-weight:600;color:#1B3349;background:#F5F7FA;border-bottom:1px solid #D5DCE4;padding:8px 10px}
+.tbl td{padding:8px 10px;border-bottom:1px solid #EEF1F5;vertical-align:top}
+.n{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:12px;background:#1B3349;color:#FFFFFF;font-size:12px;font-weight:600}
+.b1{height:34px;min-width:96px;padding:0 18px;font:inherit;font-size:14px;border-radius:3px;cursor:pointer}
+</style>
+</helmet>
+<div style="width:1080px;height:860px;box-sizing:border-box;background:#FFFFFF;font-family:'Libre Franklin','Franklin Gothic Book','Segoe UI',sans-serif;color:#1B1F24;display:flex;flex-direction:column;border:1px solid #9AA6B2;box-shadow:0 8px 24px rgba(27,51,73,.18)">
+  <div style="display:flex;align-items:center;justify-content:space-between;height:32px;padding:0 12px;border-bottom:1px solid #D5DCE4;font-family:'Segoe UI',sans-serif;font-size:12px">
+    <div>Site Adaptation</div><div style="font-size:14px;color:#5A6672">&#215;</div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:20px 24px;background:#1B3349;color:#FFFFFF">
+    <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:20px;font-weight:600">How it works</div>
+        <div style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px;color:#1B3349;background:#9ED9FD">Read once</div>
+      </div>
+      <div style="font-size:14px;line-height:20px;color:#DCE8F5;max-width:660px">The tool puts each villa on its plot at the right level. It works in nine steps, one button each, always in this order. Each step needs the one before.</div>
+      <div style="font-size:13px;color:#9ED9FD">Nothing changes in the model until you press Apply.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+      <div style="font-size:28px;font-weight:600;font-variant-numeric:tabular-nums">9 steps</div>
+      <div style="font-size:13px;color:#DCE8F5">9 buttons in the pane</div>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;padding:16px 24px;overflow:hidden">
+    <table class="tbl">
+      <thead><tr><th style="width:44px">Step</th><th style="width:210px">What happens</th><th>It needs</th><th>It gives</th><th style="width:130px">Button</th></tr></thead>
+      <tbody>
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="9">
+          <tr><td><span class="n">{{r.n}}</span></td><td style="font-weight:600;color:#1B3349">{{r.what}}</td><td>{{r.needs}}</td><td>{{r.gives}}</td><td>{{r.btn}}</td></tr>
+        </sc-for>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="display:flex;gap:16px;padding:0 24px 16px">
+    <div style="flex:1;display:flex;flex-direction:column;gap:6px;padding:14px 16px;background:#EAF3FC;border:1px solid #C9DDF3;border-radius:3px">
+      <div style="font-size:14px;font-weight:600;color:#0A3D91">When the tool stops</div>
+      <div style="font-size:13px;line-height:19px">It says what is missing, which step needs it, and who to ask. Fix that and press the button again.</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:6px;padding:14px 16px;background:#EAF3FC;border:1px solid #C9DDF3;border-radius:3px">
+      <div style="font-size:14px;font-weight:600;color:#0A3D91">Before you apply</div>
+      <div style="font-size:13px;line-height:19px">Use Dry run. It shows every change as a table and writes nothing to the model.</div>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 24px;background:#F5F7FA;border-top:1px solid #D5DCE4">
+    <button class="b1" type="button" style="color:#1B1F24;background:#FFFFFF;border:1px solid #B8C2CD">Close</button>
+    <button class="b1" type="button" style="color:#FFFFFF;background:#0052CC;border:1px solid #0052CC;font-weight:600">Open New project</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1080,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      rows: [
+        { n: '1', what: 'Set up the site', needs: 'Site drawing, parameter sheet', gives: 'Coordinates, levels, types and parameters in the model', btn: '1 Set up site' },
+        { n: '2', what: 'Read the data', needs: 'Your CAD, Excel and PDF files', gives: 'One list of plots with villa type and cluster, and what was read from each file', btn: '2 Read data' },
+        { n: '3', what: 'Review the data', needs: 'The list from step 2', gives: 'Plots, villa types and clusters you confirm', btn: '3 Review data' },
+        { n: '4', what: 'Check the rules', needs: 'Confirmed plots, road levels or door levels', gives: 'Door level, ramp slope and floor split for each plot, and the issues', btn: '4 Check' },
+        { n: '5', what: 'Make floors and ramps', needs: 'The check from step 4', gives: 'Generic, yard and ramp floors', btn: '5 Floors and ramps' },
+        { n: '6', what: 'Set the levels', needs: 'Floors from step 5', gives: 'Floor level, entry level and steps of each villa', btn: '6 Levels' },
+        { n: '7', what: 'Place the villas', needs: 'Levels from step 6', gives: 'Villas on their plots at their floor level', btn: '7 Place villas' },
+        { n: '8', what: 'Build the walls', needs: 'Placed villas, plot edges', gives: 'Boundary and garden walls, corner plots included', btn: '8 Walls' },
+        { n: '9', what: 'Make the report', needs: 'The run of steps 1 to 8', gives: 'Excel report the team can edit and read back', btn: '9 Report' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

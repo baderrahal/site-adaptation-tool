@@ -151,7 +151,7 @@ namespace CadReader
         }
 
         // R424. The centroid of a ring taken from its first point. PlotLabels.Centroid multiplies site coordinates near 2.4e6 m, and on the
-        // ROSHN baseplan its centroid of a 300 m2 face lay 0.27 m from the corner mean on net8.0 and 0.06 m on net48 (round 4j-1, Q247)
+        // ROSHN baseplan its centroid of a 300 m2 face lay 0.27 m from the corner mean on net8.0 and 0.06 m on net48 (round 4j-1, Q251)
         public static double[] Centroid(List<double[]> ring)
         {
             double ox = ring[0][0];

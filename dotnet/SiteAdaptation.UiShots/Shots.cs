@@ -37,7 +37,9 @@ namespace SiteAdaptation.UiShots
         public const string Rules = "rules";
         public const string CheckTable = "check-table";
         public const string UpdateFromReport = "update-from-report";
-        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable, UpdateFromReport };
+        public const string NewProject = "new-project";
+        public const string HowItWorks = "how-it-works";
+        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable, UpdateFromReport, NewProject, HowItWorks };
 
         private const double Dpi = 96.0;
 
@@ -53,6 +55,8 @@ namespace SiteAdaptation.UiShots
                 case Rules: return RulesPage();
                 case CheckTable: return CheckPage();
                 case UpdateFromReport: return UpdatePage();
+                case NewProject: return NewProjectPage();
+                case HowItWorks: return HowItWorksPage();
                 default: throw new ArgumentException("no window " + window + ", only " + string.Join(", ", Windows), nameof(window));
             }
         }
@@ -368,12 +372,13 @@ namespace SiteAdaptation.UiShots
             return window;
         }
 
-        // A window that is not shown builds no visual tree of its own, so its content is measured at the width of the theme and the
-        // height it asks for, capped by the MaxHeight of the theme, and arranged there. Its data context comes down the logical tree
+        // A window that is not shown builds no visual tree of its own, so its content is measured at the width the window takes from the
+        // theme, the dialog width when it names none, and the height it asks for, capped by the MaxHeight of the theme, and arranged there.
+        // Its data context comes down the logical tree
         public static FrameworkElement LayOut(Window window)
         {
             var body = (FrameworkElement)window.Content;
-            double width = (double)window.FindResource("SA.Size.DialogWidth");
+            double width = double.IsNaN(window.Width) ? (double)window.FindResource("SA.Size.DialogWidth") : window.Width;
             double cap = (double)window.FindResource("SA.Size.DialogMaxHeight");
             for (int pass = 0; pass < 3; pass++)
             {
@@ -463,6 +468,7 @@ namespace SiteAdaptation.UiShots
                 model.SetNbhCodes(new[] { Sample.Nbh });
                 model.SetSteps(Sample.Steps());
             }
+            model.SetSavedStarts(new[] { Sample.SavedProject });
             var page = new SitePanePage(model);
             double width = (double)page.FindResource("SA.Size.Pane");
             // The rows of an ItemsControl come after the first layout pass, so the height is taken once it holds still
@@ -489,6 +495,9 @@ namespace SiteAdaptation.UiShots
     internal static class Sample
     {
         public const string Nbh = "012";
+
+        // The saved project of Start from the boards name, a sample file name, no file of a user
+        public const string SavedProject = "ROSHN Makkah";
         private const string Folder = @"C:\Sample\";
 
         public static readonly Dictionary<string, Tuple<long, string>> Files = new Dictionary<string, Tuple<long, string>>(StringComparer.OrdinalIgnoreCase)
@@ -575,6 +584,12 @@ namespace SiteAdaptation.UiShots
         public string VillaModeDefault(string configFile)
         {
             return VillaModes.Masses;
+        }
+
+        // The name the Pane board shows on the Rules row
+        public string RulesName(string rulesFile)
+        {
+            return string.IsNullOrEmpty(rulesFile) ? null : "ROSHN Makkah";
         }
 
         public IReadOnlyList<string> LevelProfiles(string rulesFile, out string fallback)

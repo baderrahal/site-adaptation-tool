@@ -63,6 +63,8 @@ namespace SiteAdaptation.Tests
             Assert.Contains("no JSON object", Assert.Throws<InvalidDataException>(() => SettingsFile.Read("not json")).Message);
         }
 
+        // Lane C NEWPROJ-UI, docs/design/boards/PaneFirst.dc.html: the box sets up the project in New project, the Setup row says Not done,
+        // the inputs are filled from the setup and the steps after 4 stand in one row
         [Fact]
         public void R372_with_no_settings_file_the_pane_shows_the_first_open_state()
         {
@@ -70,15 +72,23 @@ namespace SiteAdaptation.Tests
             model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
 
             Assert.True(model.FirstOpen);
-            Assert.Equal(new[] { "Start here", "Choose the settings file", PaneText.StartLine, "Choose settings file" }, new[] { model.BoxLabel, model.BoxName, model.BoxLine, model.BoxButton });
+            Assert.False(model.InUse);
+            Assert.Equal(new[] { "Start here", "Set up this project", PaneText.StartLine, "Open New project" }, new[] { model.BoxLabel, model.BoxName, model.BoxLine, model.BoxButton });
             Assert.True(model.BoxButtonShown);
             Assert.True(model.BoxCommand.CanExecute(null));
-            Assert.Equal("Not chosen", model.SettingsRow.FileName);
+            Assert.Equal("Setup", model.SettingsRow.Label);
+            Assert.Equal("Not done", model.SettingsRow.FileName);
             Assert.True(model.SettingsRow.Shown);
             Assert.False(model.SettingsRow.Found);
-            Assert.Equal("The drawings and schedules the tool reads. 0 of 8 found.", model.InputHelp);
-            Assert.Equal(new[] { "Needs settings", "Needs step 1", "Needs step 2", "Needs step 3", "Needs step 4", "Needs step 5", "Needs step 6", "Needs step 7", "Needs step 4" }, model.Steps.Select(step => step.ChipText));
+            Assert.Null(model.SettingsRow.ToolTip);
+            Assert.Equal("Filled from your setup. You can change any of them after.", model.InputHelp);
+            Assert.Equal(new[] { "Needs setup", "Needs step 1", "Needs step 2", "Needs step 3", "Needs step 4", "Needs step 5", "Needs step 6", "Needs step 7", "Needs step 4" }, model.Steps.Select(step => step.ChipText));
             Assert.All(model.Steps, step => Assert.Equal(MarkKind.Waiting, step.Mark));
+            Assert.Equal(new[] { "Set up site", "Read data", "Review data", "Check", "Floors and ramps to 9 Report" }, model.ShownSteps.Select(step => step.Name));
+            Assert.Equal("Needs step 4", model.ShownSteps.Last().ChipText);
+            Assert.Equal("Or start from a saved project:", model.StartSavedLine);
+            model.SetSavedStarts(new[] { "Job A", "Job B" });
+            Assert.Equal("Or start from a saved project such as Job A:", model.StartSavedLine);
         }
 
         // Bader, 28 Oct 2026 (docs/design/13-workflow-changes.md, Pane): the row Shared parameters for the parameter sheet Excel,
@@ -153,7 +163,7 @@ namespace SiteAdaptation.Tests
                 Assert.Single(told);
                 Assert.Contains("no JSON object", told[0]);
                 Assert.True(model.FirstOpen);
-                Assert.Equal(new[] { PaneText.Export, PaneText.ImportPastJob, PaneText.Export, PaneText.ImportPastJob }, picker.Titles);
+                Assert.Equal(new[] { PaneText.Export, PaneText.UseSaved, PaneText.Export, PaneText.UseSaved }, picker.Titles);
             }
             finally
             {
@@ -161,35 +171,43 @@ namespace SiteAdaptation.Tests
             }
         }
 
-        // Review 1 of PR 90: the box names config/project.json, which holds no formatVersion, so it picks the config file as the
-        // Browse of the Settings row does
+        // Lane C NEWPROJ-UI: the box on first open, Edit and Open of the Setup row and New project of the row Help each ask the Revit side
+        // for New project, How it works asks for its page with no document too. No settings file is picked by its path in the pane
         [Fact]
-        public void R372_the_box_on_first_open_picks_the_config_file_as_browse_of_the_settings_row_does_and_leaves_first_open()
+        public void NEWPROJ_the_box_the_setup_row_and_the_help_row_ask_for_new_project_and_how_it_works()
         {
             var probe = new FakeProbe();
             probe.Add(Folder + "project.json", 2048, "a1b2c3d4" + new string('0', 56));
             var picker = new FakePicker(Folder + "project.json");
             PaneViewModel model = new PaneViewModel(probe, picker);
+            int asked = 0;
+            int how = 0;
+            model.NewProjectRequested += () => asked++;
+            model.HowItWorksRequested += () => how++;
+            Assert.False(model.NewProjectCommand.CanExecute(null));
+            Assert.True(model.HowItWorksCommand.CanExecute(null));
+            model.HowItWorksCommand.Execute(null);
+            Assert.Equal(1, how);
+
             model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
-
             model.BoxCommand.Execute(null);
-            Assert.Equal(new string[] { null }, picker.Titles);
+            model.Browse(model.SettingsRow);
+            model.NewProjectCommand.Execute(null);
+            Assert.Equal(3, asked);
+            Assert.Empty(picker.Titles);
+            Assert.True(model.FirstOpen);
+
+            model.LoadSettings(new PaneSettings { ConfigFile = Folder + "project.json" });
             Assert.False(model.FirstOpen);
-            Assert.Equal(Folder + "project.json", model.Settings.ConfigFile);
-            Assert.Equal("project.json", model.SettingsRow.FileName);
+            Assert.Equal("Saved for this project", model.SettingsRow.FileName);
             Assert.True(model.SettingsRow.Found);
-            Assert.Equal(Folder + "project.json" + Environment.NewLine + "0.00 MiB a1b2c3d4", model.SettingsRow.ToolTip);
+            Assert.Null(model.SettingsRow.ToolTip);
             Assert.Equal("Run 1 Set up site", model.BoxButton);
+            Assert.Equal(9, model.ShownSteps.Count);
 
-            var cancelled = new PaneViewModel(probe, new FakePicker((string)null));
-            cancelled.Load(new DocumentSession("t", Folder + "Other.rvt", "Other"));
-            cancelled.BoxCommand.Execute(null);
-            Assert.True(cancelled.FirstOpen);
-
-            var browsed = new PaneViewModel(probe, new FakePicker(Folder + "project.json"));
-            browsed.Load(new DocumentSession("u", Folder + "Third.rvt", "Third"));
-            browsed.Browse(browsed.SettingsRow);
-            Assert.Equal(Folder + "project.json", browsed.Settings.ConfigFile);
+            probe.Projects[Folder + "rules.json"] = "Job rules";
+            model.PickRules(Folder + "rules.json");
+            Assert.Equal("Job rules", model.RulesRow.FileName);
         }
 
         // Review 1 of PR 90: each workbook of DLUS and sales by its role in a dialog of its own, so the two never swap and a Cancel
@@ -337,11 +355,14 @@ namespace SiteAdaptation.Tests
             Assert.Equal(Folder + "plots.pdf" + Environment.NewLine + "2.91 MiB 7061ac0d", plots.ToolTip);
             Assert.Equal(3056293L, model.Settings.Inputs[InputKeys.PlotNumbers].Size);
             Assert.StartsWith("7061ac0d", model.Settings.Inputs[InputKeys.PlotNumbers].Sha256);
+            // NEWPROJ-UI: the Setup and Rules rows show no file name ending in .json and no path, the Rules row the name its file gives,
+            // else the file name with no extension
             Assert.True(model.RulesRow.Found);
-            Assert.Equal(Folder + "rules.json" + Environment.NewLine + "0.00 MiB 205000fc", model.RulesRow.ToolTip);
+            Assert.Equal("rules", model.RulesRow.FileName);
+            Assert.Null(model.RulesRow.ToolTip);
             Assert.False(model.SettingsRow.Found);
-            Assert.Equal("project.json", model.SettingsRow.FileName);
-            Assert.Equal(Folder + "project.json", model.SettingsRow.ToolTip);
+            Assert.Equal("Saved for this project", model.SettingsRow.FileName);
+            Assert.Null(model.SettingsRow.ToolTip);
             Assert.Equal("The drawings and schedules the tool reads. 1 of 8 found.", model.InputHelp);
 
             model.PickInput(InputKeys.Dlus, Folder + "dlus.xlsx");
@@ -355,7 +376,6 @@ namespace SiteAdaptation.Tests
             Assert.True(dlus.Found);
             // QL15: each full path with its own size and short hash right under it
             Assert.Equal(string.Join(Environment.NewLine, Folder + "dlus.xlsx", "1.00 MiB aaaaaaaa", Folder + "sales.xlsx", "2.00 MiB bbbbbbbb"), dlus.ToolTip);
-            Assert.Equal(Folder + "project.json", model.SettingsRow.ToolTip);
             Assert.Throws<ArgumentException>(() => model.PickInput("roads", "a"));
         }
 
@@ -879,6 +899,13 @@ namespace SiteAdaptation.Tests
             }
 
             // The villaModeDefault of config/project.json
+            public string RulesName(string rulesFile)
+            {
+                return Projects.TryGetValue(rulesFile ?? "", out string project) ? project : null;
+            }
+
+            public Dictionary<string, string> Projects { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
             public string VillaModeDefault(string configFile)
             {
                 return VillaModes.Masses;

@@ -35,22 +35,34 @@ The four panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Dry run is on.` CHOSEN, the spec asks one plain line that says dry run is on or off and gives no words
 - `Dry run is off.` CHOSEN, as the line above
 - `Start here`
-- `Choose the settings file`
-- `It names the drawings, the rules and the prototypes for this job. The tool fills the rest of this panel from it.`
-- `Choose settings file`
-- `Or start from a past job:` the first open line of Bader's changes of 28 Oct 2026 in three parts, the second its link
-- `Import pre-setting`
-- `It brings the settings, rules, level profile, ramp slopes, parameter sheet and overrides of that job.`
+- `Set up this project` the first open box of docs/design/boards/PaneFirst.dc.html, Lane C NEWPROJ-UI
+- `Tell the tool where your files are. It reads them, shows what it found, and saves your setup. No file editing.`
+- `Open New project`
+- `Or start from a saved project such as <name>:` the first open line in five parts, the second and fourth its links, <name> the first saved project of Start from
+- `Or start from a saved project:` CHOSEN in NEWPROJ-UI, the same line when no saved project is in the work root
+- `Use a saved project` the link and the button of the row Pre-setting, they run Import of a pre-setting
+- `. New here? Read`
+- `first.`
 - `Rules and settings for this job. Set once.`
-- `Settings`
+- `Settings` CHOSEN, the name of the config file among the inputs of a run that the step hashes of R366 hold, no longer shown since NEWPROJ-UI
+- `Setup`
+- `Saved for this project`
+- `Not done`
+- `From setup`
+- `Edit`
+- `Open`
+- `Change`
+- `Help`
+- `How it works`
+- `New project`
 - `Rules`
 - `Level profile`
 - `Pre-setting`
-- `Import from past job`
 - `Export`
 - `Input files`
 - `The drawings and schedules the tool reads. All <n> found.`
 - `The drawings and schedules the tool reads. <m> of <n> found.`
+- `Filled from your setup. You can change any of them after.`
 - `Baseplan`
 - `Villa blocks`
 - `Curbs`
@@ -90,7 +102,8 @@ The four panels and their buttons of 7.1 of docs/design/12-ui-spec.md, Bader's c
 - `Done with <n> issues`
 - `Ready`
 - `Needs step <n>`
-- `Needs settings`
+- `Needs setup`
+- `<name> to <n> <name>` CHOSEN in NEWPROJ-UI, the one row of the steps after 4 on first open, as Floors and ramps to 9 Report of the PaneFirst board
 
 ### Button messages
 
@@ -397,3 +410,132 @@ The window of the button Update from report, 5f, word for word from the part Upd
 - `the worker did not read the Excel: <n>` CHOSEN in 5f fix, the problem line of a pick, the status and message of the worker or the line below
 - `no answer` CHOSEN in 5f fix, the worker gave no answer
 - `the list the worker wrote is no JSON object` CHOSEN in 5f fix, the problem line of a pick
+
+### New project
+
+The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boards/NewProject.dc.html. Its picture is steps/ui-shots/new-project.png. The rows of the files table are SetupRows, the rule Files the tool needs of docs/design/18-new-project.md.
+
+- `New project`
+- `Start here`
+- `Tell the tool where your files are. It reads them, shows what it found, and saves your settings. No file editing.`
+- `Using another project's settings? Pick them under Start from.`
+- `<n> of <n>`
+- `files ready`
+- `Project name`
+- `Start from`
+- `Empty project`
+- `<name> (saved)`
+- `<name> is kept as a saved start, not built in.`
+- `Files the tool needs`
+- `Each file comes from a team. Send them the template if it is missing.`
+- `File`
+- `Who gives it`
+- `Used by`
+- `Pick and check`
+- `Status`
+- `Site drawing (CAD)`
+- `Civil team`
+- `Buttons 1 to 4`
+- `Pick plots, roads, curbs below.`
+- `Layers found: <n>.` shown before the line above once the scanner of a later Lane B round gives the layer count
+- `Plot list (Excel)`
+- `Sales team`
+- `Button 3`
+- `Pick the sheet and the columns for plot, code and cluster.`
+- `Villa levels (Excel)`
+- `Architect`
+- `Buttons 4 and 5`
+- `Floor level and door level for each villa type.`
+- `Road levels (civil file)`
+- `Button 4`
+- `Optional. Without it the tool uses road level plus slope.`
+- `Parameter sheet (Excel)`
+- `BIM team`
+- `Button 1`
+- `The shared parameters the tool adds to the model.`
+- `Browse`
+- `Get template`
+- `Found`
+- `Missing`
+- `Comes later` CHOSEN, the status of Villa levels, whose input waits on Lane A (steps/waiting-on-others.md)
+- `Not chosen` CHOSEN, the file of a row with no pick, as the pane says it
+- `What the tool read from the drawing`
+- `Coordinates are read from the CAD. You only confirm them.`
+- `Survey point`
+- `Plots found`
+- `Villa types`
+- `Change`
+- `View`
+- `<n> plots on layer <name>`
+- `<n> types` CHOSEN, the board adds the count without a level, which waits on the villa levels of Lane A
+- `Not read yet. Run 2 Read data.` CHOSEN, a fact no read of 2 Read data gives yet
+- `Comes with the drawing scan` CHOSEN, a fact only the scanner of a later Lane B round gives
+- `The tool stops here`
+- `The site drawing is missing, so buttons 1 to 4 cannot read the plots.` CHOSEN, the stop line of the row Site drawing in the words of the board's line
+- `What to do: ask the civil team for the drawing, then press Browse.` CHOSEN, as the line above
+- `The plot list is missing, so button 3 cannot check the plots.` CHOSEN, as the line above
+- `What to do: ask the sales team for the list, or press Get template and fill it.` CHOSEN, as the line above
+- `The parameter sheet is missing, so button 1 cannot add the shared parameters.`
+- `What to do: ask the BIM team for the sheet, or press Get template and fill it.`
+- `No saved project is chosen, so no button has its rules.` CHOSEN, the stop line of settings that name no config file
+- `What to do: pick a saved project under Start from.` CHOSEN, as the line above
+- `The saved project names settings this computer does not hold, so no button has its rules.` CHOSEN in the review of NEWPROJ-UI, the stop line of a config file not on disk
+- `All the files a button needs are found.` CHOSEN, the line after Check files when nothing stops
+- `Template saved: <name>` CHOSEN, the line after Get template
+- `The template was not written: <name>` CHOSEN, the line when Get template fails, with why
+- `it would lie in the input folder, which the tool never writes` CHOSEN, why in the line above (R1)
+- `a file of that name is there, pick another name` CHOSEN in the review of NEWPROJ-UI, why Get template writes nothing over a file
+- `pick a saved project first, it names the input folder the tool never writes` CHOSEN in the review of NEWPROJ-UI, why in the line above when no config names inputRoot
+- `Save keeps your settings in the project folder. The next person who opens it sees the same setup.`
+- `Cancel`
+- `Check files`
+- `Save setup`
+
+### How it works
+
+The page How it works of Lane C NEWPROJ-UI, word for word from docs/design/boards/HowItWorks.dc.html. Its picture is steps/ui-shots/how-it-works.png. The Button column is the ribbon label of each step.
+
+- `How it works`
+- `Read once`
+- `The tool puts each villa on its plot at the right level. It works in nine steps, one button each, always in this order. Each step needs the one before.`
+- `Nothing changes in the model until you press Apply.`
+- `<n> steps`
+- `<n> buttons in the pane`
+- `Step`
+- `What happens`
+- `It needs`
+- `It gives`
+- `Button`
+- `Set up the site`
+- `Read the data`
+- `Review the data`
+- `Check the rules`
+- `Make floors and ramps`
+- `Set the levels`
+- `Place the villas`
+- `Build the walls`
+- `Make the report`
+- `Site drawing, parameter sheet`
+- `Your CAD, Excel and PDF files`
+- `The list from step 2`
+- `Confirmed plots, road levels or door levels`
+- `The check from step 4`
+- `Floors from step 5`
+- `Levels from step 6`
+- `Placed villas, plot edges`
+- `The run of steps 1 to 8`
+- `Coordinates, levels, types and parameters in the model`
+- `One list of plots with villa type and cluster, and what was read from each file`
+- `Plots, villa types and clusters you confirm`
+- `Door level, ramp slope and floor split for each plot, and the issues`
+- `Generic, yard and ramp floors`
+- `Floor level, entry level and steps of each villa`
+- `Villas on their plots at their floor level`
+- `Boundary and garden walls, corner plots included`
+- `Excel report the team can edit and read back`
+- `When the tool stops`
+- `It says what is missing, which step needs it, and who to ask. Fix that and press the button again.`
+- `Before you apply`
+- `Use Dry run. It shows every change as a table and writes nothing to the model.`
+- `Close`
+- `Open New project`
