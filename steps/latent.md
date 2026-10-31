@@ -392,3 +392,9 @@ All paths under dotnet/. A line number the reviewer did not note is left out.
 - BuildSteps.cs:281: Path.IsPathRooted of .NET Framework takes C:foo and \foo, which resolve against the current folder.
 - Walls.cs Opening and plan_walls.opening: an edge whose two ends lie equally far from the front middle picks its end by floating point noise, the same in both languages.
 - Walls.cs Pieces and plan_walls.pieces: a span over the whole part, or leaving 0.3 m or less, drops the wall with no line, the same in both languages. How often on real edges is UNKNOWN.
+
+## Lane B 5d, Q116 breaker pass 1
+
+- plan_from_book.py open_ramp and Fronts.OpenRamp: a turn of 90 degrees would put the front setback depth of ramp_outline.setback along a side edge, untested. The override list holds 18 turns near 180 degrees and 3 under 5 degrees, none of 90.
+- open_edge and OpenEdge keep the first edge on a tie, a front made of two collinear ring segments could flip to the other half under a small turn. The 3 real small turns did not move a ramp.
+- Fronts.OpenRamp has no polygon check where open_ramp needs a Polygon face, no real input reaches the difference.
