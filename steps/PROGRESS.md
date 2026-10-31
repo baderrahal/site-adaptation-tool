@@ -1,4 +1,4 @@
-STATE RUNNING, 5c Lane B, 2026-10-31 07:30
+STATE RUNNING, 5c Lane B, 2026-10-31 08:30
 # Progress
 Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
 
@@ -8,7 +8,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - Lane A is done for Phase 4 and 5: 4h-1 PR 107, 4h-2 PR 109, 4g3 on 2026-10-29
 - Round FOLD done on 2026-10-29: the fold in of steps/lane-b.md, D9 to D19, the answer pass, M01 to M15. D20 on 29 Oct for Phase 4 and 5
 - Two lanes in one repo, each a live session, tools/run-lane.ps1 retired: Lane A here, Lane B in the worktree Site Adaptation Tool Lane B WT
-- Lane B: 5c done on 2026-10-31, PR pending: buttons 2, 3, 4 and 7 with the Revit run after 5c on NBH 012 in Masses mode. Links mode not run (Q215). 5b done on 2026-10-29. 5d next
+- Lane B: 5c done on 2026-10-31, PR pending: buttons 2, 3, 4 and 7, Revit run on NBH 012 in Masses mode. Links not run (Q215), J10 measured, Q146 UNKNOWN, NBH 03 image not run (Q222). 5d next
 - ADDIN Part 1 (R300 to R399): the add-in inside Revit 2024 in C#, net48, option B, parsons2024Rev6 for every build (Q050)
 - Plan: steps/01_next.md. Design: docs/design/. Rules: docs/rules/index.md. Lane B: steps/lane-b.md. Part 2 waits for Bader's check of Part 1
 
@@ -48,9 +48,10 @@ manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with 
 rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209
 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip.
 Q214 The build reads pastJob, not the pane. Q215 Where the 2024 prototypes come from. Q216 Rows of 4 Check with no past job. Q217 Follow every rule count, table against chip. Q218
-Config files beside a user's config. Q219 First run of 7 against the step limit.
+Config files beside a user's config. Q219 First run of 7 against the step limit. Q220 Judge rows of J10 test the old claim. Q221 Judge rows for Q146 and Q147. Q222 The NBH 03 image of
+Q063. Q223 The test host gives up after a refused raise.
 Closed in 5c: none.
-72 questions open, full text and the recommended answers: steps/questions-open.md. Asks of others: steps/waiting-on-others.md.
+76 questions open, full text and the recommended answers: steps/questions-open.md. Asks of others: steps/waiting-on-others.md.
 
 ## Next three steps
 

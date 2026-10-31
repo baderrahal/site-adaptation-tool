@@ -367,3 +367,4 @@ All paths under dotnet/. A line number the reviewer did not note is left out.
 - Revit run after 5c, Run-TestHost.ps1:355-357: keyCopy with buttons copies onto the new project path that the job then makes, the host refuses it.
 - Revit run after 5c, probe 1b: the probe subscribed to Idling inside Idling, so 1b stays UNKNOWN. Probe 1a answers the need of the run.
 - Revit run after 5c: an ExtentReports FileNotFoundException at Revit shutdown, seen in every window and not from the tool.
+- Revit run after 5c, AddinRun.cs:262-268 and AddinRunSession.cs:516-524: the host raises its phase event once and never again after a refusal (Denied), a refused raise ends the run (Q223).
