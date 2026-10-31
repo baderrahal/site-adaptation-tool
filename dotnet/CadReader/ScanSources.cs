@@ -45,11 +45,11 @@ namespace CadReader
         private static readonly MethodInfo CharOf = typeof(PdfPage).GetMethod("Char", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingMethodException("PdfPage", "Char");
 
-        // Every page in order, its characters boxed as PdfPage boxes them, from the top left, then joined into lines by ScanLogic.PdfLines
-        // with y from the bottom left
+        // Every page in order, its characters boxed as PdfPage boxes them, from the top left, then joined into lines by ScanLogic.PdfLines as
+        // the location plan joins them (R179)
         public static ScanPdf Pdf(string path, double gap, double tolerance)
         {
-            var pages = new List<List<string>>();
+            var pages = new List<List<TextLine>>();
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (PdfDocument document = PdfDocument.Open(stream))
             {
@@ -59,7 +59,7 @@ namespace CadReader
                     Page page = document.GetPage(number);
                     double height = page.Height;
                     List<PageChar> chars = page.Letters.Select(letter => (PageChar)Call(CharOf, letter, descents, height, path)).ToList();
-                    pages.Add(ScanLogic.PdfLines(chars, height, gap, tolerance));
+                    pages.Add(ScanLogic.PdfLines(chars, gap, tolerance));
                 }
             }
             return new ScanPdf { Name = Path.GetFileName(path), Pages = pages };

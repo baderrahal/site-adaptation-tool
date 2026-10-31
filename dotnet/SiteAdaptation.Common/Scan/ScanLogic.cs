@@ -19,6 +19,9 @@ namespace SiteAdaptation.Common
         public int PairMinSegments { get; private set; }
         public double PdfJoinGapPt { get; private set; }
         public double PdfLineTolerancePt { get; private set; }
+        public double PdfPairDyLow { get; private set; }
+        public double PdfPairDyHigh { get; private set; }
+        public double PdfPairDxPt { get; private set; }
 
         public static ScanSettings From(JObject profile)
         {
@@ -27,6 +30,11 @@ namespace SiteAdaptation.Common
             if (shifts == null || shifts.Count == 0 || shifts.Any(item => item.Type != JTokenType.Integer))
             {
                 throw new InvalidDataException("scan.plotNumberShifts of the rules profile is no list of whole numbers (R426)");
+            }
+            JArray dy = block["pdfPairDyPt"] as JArray;
+            if (dy == null || dy.Count != 2 || dy.Any(item => item.Type != JTokenType.Float && item.Type != JTokenType.Integer) || (double)dy[0] > (double)dy[1])
+            {
+                throw new InvalidDataException("scan.pdfPairDyPt of the rules profile is no band of two numbers, the low first (R426)");
             }
             return new ScanSettings
             {
@@ -37,6 +45,9 @@ namespace SiteAdaptation.Common
                     : throw new InvalidDataException("scan.pairMinSegments of the rules profile is no whole number of 1 or more (R421)"),
                 PdfJoinGapPt = Number(block, "pdfJoinGapPt"),
                 PdfLineTolerancePt = Number(block, "pdfLineTolerancePt"),
+                PdfPairDyLow = (double)dy[0],
+                PdfPairDyHigh = (double)dy[1],
+                PdfPairDxPt = Number(block, "pdfPairDxPt"),
             };
         }
 
@@ -87,11 +98,11 @@ namespace SiteAdaptation.Common
         public List<ScanSheet> Sheets { get; set; }
     }
 
-    // R426. The text lines of every page of a PDF file, page 1 first
+    // R426. The text lines of every page of a PDF file, page 1 first, each with its box in page points from the top left (R179)
     public sealed class ScanPdf
     {
         public string Name { get; set; }
-        public List<List<string>> Pages { get; set; }
+        public List<List<TextLine>> Pages { get; set; }
     }
 
     // R421 to R427. The scan result of the files of a run from neutral inputs: the scan_cad files of R420, the sheets of each Excel file,
@@ -132,48 +143,11 @@ namespace SiteAdaptation.Common
             return letters;
         }
 
-        // R426. The text lines of a page: the characters with text, y from the bottom left as the page height minus top, rows of the same y
-        // within the tolerance of the first of the row, each row joined into words where a character starts within the gap of the end of the
-        // one before, the words joined by a space
-        public static List<string> PdfLines(IEnumerable<PageChar> chars, double height, double gap, double tolerance)
+        // R426, R179. The text lines of a page as the location plan reads them, rows of the top within the line tolerance cut where a
+        // character starts more than the gap after the end of the one before, with no size band. Turned characters join no line (Q252)
+        public static List<TextLine> PdfLines(IEnumerable<PageChar> chars, double gap, double tolerance)
         {
-            var picked = chars.Where(found => SheetRows.PyStrip(found.Text ?? "").Length > 0)
-                .Select(found => new { found.Text, found.X0, found.X1, Y = height - found.Top })
-                .OrderByDescending(found => found.Y).ThenBy(found => found.X0).ToList();
-            var rows = new List<List<int>>();
-            for (int index = 0; index < picked.Count; index++)
-            {
-                if (rows.Count > 0 && Math.Abs(picked[index].Y - picked[rows[rows.Count - 1][0]].Y) <= tolerance)
-                {
-                    rows[rows.Count - 1].Add(index);
-                }
-                else
-                {
-                    rows.Add(new List<int> { index });
-                }
-            }
-            var lines = new List<string>();
-            foreach (List<int> row in rows)
-            {
-                List<int> ordered = row.OrderBy(index => picked[index].X0).ToList();
-                var words = new List<string>();
-                string word = picked[ordered[0]].Text;
-                for (int at = 1; at < ordered.Count; at++)
-                {
-                    if (picked[ordered[at]].X0 - picked[ordered[at - 1]].X1 <= gap)
-                    {
-                        word += picked[ordered[at]].Text;
-                    }
-                    else
-                    {
-                        words.Add(word);
-                        word = picked[ordered[at]].Text;
-                    }
-                }
-                words.Add(word);
-                lines.Add(string.Join(" ", words));
-            }
-            return lines;
+            return LocationPlan.TextLines(chars.Where(found => found.Upright), double.NegativeInfinity, double.PositiveInfinity, gap, tolerance);
         }
 
         // R425. The code of a prototype file name by prototypeNames of config, the part after the prefix, the discipline and a dash up to the
@@ -224,6 +198,17 @@ namespace SiteAdaptation.Common
             return codes;
         }
 
+        // R425, R426. The codes of the prototype file names given, by prototypeNames of config, the codes that score a villaType source
+        public static HashSet<string> PrototypeCodes(JObject prototypeNames, IEnumerable<string> names)
+        {
+            List<string> files = names.ToList();
+            if (files.Count > 0 && prototypeNames == null)
+            {
+                throw new InvalidDataException("config names no prototypeNames, the prefix, discipline and suffix a prototype file name is read by (R425)");
+            }
+            return new HashSet<string>(files.Select(name => PrototypeCode(name, prototypeNames)).Where(code => code != null), StringComparer.Ordinal);
+        }
+
         // R426, Q245. The old and the new code of each row of typology_codes that differ, each pair as one key
         public static HashSet<string> OldNewPairs(JObject profile)
         {
@@ -255,8 +240,9 @@ namespace SiteAdaptation.Common
             return token != null && token.Type == JTokenType.String ? (string)token : "";
         }
 
-        // R425. The codes a value holds, matched with case: the whole value when it is a code, else each of its tokens that is one, in
-        // ordinal order. Two or more make the value a check
+        // R425. The codes a value holds, matched with case: the whole value when it is a code, else each code that lies in it as a run bounded
+        // by the start, the end or a character of the split, the longest code first and a matched run not used again, so a code that holds a
+        // split character is kept whole. In ordinal order, two or more make the value a check
         public static List<string> ValueCodes(string value, HashSet<string> codes, Regex split)
         {
             string text = SheetRows.PyStrip(value ?? "");
@@ -268,7 +254,26 @@ namespace SiteAdaptation.Common
             {
                 return new List<string> { text };
             }
-            return split.Split(text).Where(token => token.Length > 0 && codes.Contains(token)).Distinct(StringComparer.Ordinal).OrderBy(token => token, StringComparer.Ordinal).ToList();
+            var used = new bool[text.Length];
+            var found = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (string code in codes.Where(code => code.Length > 0).OrderByDescending(code => code.Length).ThenBy(code => code, StringComparer.Ordinal))
+            {
+                for (int at = text.IndexOf(code, StringComparison.Ordinal); at >= 0; at = at + 1 < text.Length ? text.IndexOf(code, at + 1, StringComparison.Ordinal) : -1)
+                {
+                    int end = at + code.Length;
+                    bool bounded = (at == 0 || split.IsMatch(text[at - 1].ToString())) && (end == text.Length || split.IsMatch(text[end].ToString()));
+                    if (!bounded || Enumerable.Range(at, code.Length).Any(index => used[index]))
+                    {
+                        continue;
+                    }
+                    for (int index = at; index < end; index++)
+                    {
+                        used[index] = true;
+                    }
+                    found.Add(code);
+                }
+            }
+            return found.ToList();
         }
 
         // R421. The number of a label as PlotLabels.Parse takes it: the last line with text, matched whole by labelPattern, its group 2
@@ -312,10 +317,10 @@ namespace SiteAdaptation.Common
             return plots.Contains(number) ? number : null;
         }
 
-        private static string LinePlot(string line, int shift, ICollection<string> plots, Regex split)
+        // R426. The number tokens of a line, the tokens of the split of only the digits 0 to 9
+        private static List<string> NumberTokens(string line, Regex split)
         {
-            List<string> hits = split.Split(line).Where(token => token.Length > 0).Select(token => PlotOf(token, shift, plots)).Where(found => found != null).ToList();
-            return hits.Count == 1 ? hits[0] : null;
+            return split.Split(line).Where(token => token.Length > 0 && token.All(letter => letter >= '0' && letter <= '9')).ToList();
         }
 
         public static string PointText(double[] point)
@@ -504,23 +509,30 @@ namespace SiteAdaptation.Common
             return cad;
         }
 
-        // R421. The faces that cover a plot, each holding exactly one label, with its number, label text and label layer
-        private static List<Face> Covered(List<Face> faces, List<Label> labels)
+        // R421. The labels each face holds, in the order of the faces, and the labels inside no face
+        private static List<List<Label>> Held(List<Face> faces, List<Label> labels, List<Label> outside)
         {
-            var held = new Dictionary<Face, List<Label>>();
-            var index = new FaceIndex(faces);
+            List<List<Label>> held = faces.Select(face => new List<Label>()).ToList();
+            var position = new Dictionary<Face, int>();
+            for (int index = 0; index < faces.Count; index++)
+            {
+                position[faces[index]] = index;
+            }
+            var faceIndex = new FaceIndex(faces);
             foreach (Label label in labels)
             {
-                foreach (Face face in index.Holding(label.X, label.Y))
+                bool any = false;
+                foreach (Face face in faceIndex.Holding(label.X, label.Y))
                 {
-                    if (!held.TryGetValue(face, out List<Label> found))
-                    {
-                        held[face] = found = new List<Label>();
-                    }
-                    found.Add(label);
+                    held[position[face]].Add(label);
+                    any = true;
+                }
+                if (!any)
+                {
+                    outside.Add(label);
                 }
             }
-            return faces.Where(face => held.TryGetValue(face, out List<Label> found) && found.Count == 1).Select(face => face.Plot(held[face][0])).ToList();
+            return held;
         }
 
         // R420. One cadLayer row per layer of a file
@@ -535,13 +547,17 @@ namespace SiteAdaptation.Common
         {
             List<Label> labels = cad.Texts.Where(text => text.Number != null).ToList();
             var plotsOf = new Dictionary<string, List<Face>>(StringComparer.Ordinal);
+            var heldOf = new Dictionary<string, List<List<Label>>>(StringComparer.Ordinal);
+            var outsideOf = new Dictionary<string, List<Label>>(StringComparer.Ordinal);
             var scores = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (JToken candidate in cad.Read["candidates"] as JArray ?? new JArray())
             {
                 List<string> layers = ((JArray)candidate["layers"]).Select(Str).OrderBy(name => name, StringComparer.Ordinal).ToList();
                 string source = cad.Source + "|" + string.Join(LayerJoin, layers);
                 List<Face> faces = ((JArray)candidate["faces"]).Select(FaceOf).ToList();
-                plotsOf[source] = Covered(faces, labels);
+                outsideOf[source] = new List<Label>();
+                heldOf[source] = Held(faces, labels, outsideOf[source]);
+                plotsOf[source] = Enumerable.Range(0, faces.Count).Where(index => heldOf[source][index].Count == 1).Select(index => faces[index].Plot(heldOf[source][index][0])).ToList();
                 scores[source] = plotsOf[source].Count;
                 rows.Add(Row("plotOutline", source, faces.Count.ToString(CultureInfo.InvariantCulture) + " faces", scores[source], false));
             }
@@ -553,6 +569,15 @@ namespace SiteAdaptation.Common
             foreach (JObject found in rows.Where(found => (string)found["kind"] == "plotOutline" && (string)found["source"] == proposed))
             {
                 found["proposedUse"] = Use["plotOutline"];
+            }
+            // R421. No plot is left out in silence: a face of the proposal of two or more labels, and a label in no face of it
+            foreach (List<Label> held in heldOf[proposed].Where(held => held.Count > 1))
+            {
+                checks.Add(Check("manyLabels", proposed, "", string.Join(", ", held.Select(label => label.Number).OrderBy(number => number, StringComparer.Ordinal))));
+            }
+            foreach (Label label in outsideOf[proposed])
+            {
+                checks.Add(Check("labelOutside", cad.Source + "|" + label.Layer, label.Number, label.Text));
             }
             return new Proposal { Source = proposed, Score = scores[proposed], Plots = plotsOf[proposed], Cad = cad };
         }
@@ -633,8 +658,19 @@ namespace SiteAdaptation.Common
             }
         }
 
-        private static void AddValue(Dictionary<string, Dictionary<string, List<string>>> sources, string source, string plot, string value)
+        // R426. The kinds of the villaType sources in the order the lead is sought in
+        private const int BlockKind = 0, TextKind = 1, ExcelKind = 2, PdfKind = 3;
+
+        private sealed class Sources
         {
+            public readonly Dictionary<string, Dictionary<string, List<string>>> Values = new Dictionary<string, Dictionary<string, List<string>>>(StringComparer.Ordinal);
+            public readonly Dictionary<string, int> Kinds = new Dictionary<string, int>(StringComparer.Ordinal);
+        }
+
+        private static void AddValue(Sources all, int kind, string source, string plot, string value)
+        {
+            Dictionary<string, Dictionary<string, List<string>>> sources = all.Values;
+            all.Kinds[source] = kind;
             if (SheetRows.PyStrip(value ?? "").Length == 0)
             {
                 return;
@@ -651,7 +687,7 @@ namespace SiteAdaptation.Common
         }
 
         // R426. The block names and the texts inside each plot of the plot drawing, by file and by insert or text layer
-        private static void CadSources(List<Cad> cads, FaceIndex index, Dictionary<string, Dictionary<string, List<string>>> sources)
+        private static void CadSources(List<Cad> cads, FaceIndex index, Sources sources)
         {
             foreach (Cad cad in cads)
             {
@@ -659,14 +695,14 @@ namespace SiteAdaptation.Common
                 {
                     foreach (Face face in index.Holding(insert.X, insert.Y))
                     {
-                        AddValue(sources, cad.Source + "|block|" + insert.Layer, face.Number, insert.Text);
+                        AddValue(sources, BlockKind, cad.Source + "|block|" + insert.Layer, face.Number, insert.Text);
                     }
                 }
                 foreach (Label text in cad.Texts)
                 {
                     foreach (Face face in index.Holding(text.X, text.Y))
                     {
-                        AddValue(sources, cad.Source + "|text|" + text.Layer, face.Number, text.Text);
+                        AddValue(sources, TextKind, cad.Source + "|text|" + text.Layer, face.Number, text.Text);
                     }
                 }
             }
@@ -674,7 +710,7 @@ namespace SiteAdaptation.Common
 
         // R426. Each sheet joined to the plots by the column and the shift that match the most plot numbers, a tie joins none, then every
         // other column of the sheet one source. Two columns of one header text are one source, the later column taking the join score
-        private static void ExcelSources(ScanWorkbook excel, ICollection<string> plots, List<int> shifts, Dictionary<string, Dictionary<string, List<string>>> sources, List<JObject> checks)
+        private static void ExcelSources(ScanWorkbook excel, ICollection<string> plots, List<int> shifts, Sources sources, List<JObject> checks)
         {
             foreach (ScanSheet sheet in excel.Sheets)
             {
@@ -708,22 +744,36 @@ namespace SiteAdaptation.Common
                     {
                         if (other != keyColumn && other < row.Count)
                         {
-                            AddValue(sources, prefix + sheet.Headers[other] + "|shift " + keyShift.ToString(CultureInfo.InvariantCulture), plot, row[other]);
+                            AddValue(sources, ExcelKind, prefix + sheet.Headers[other] + "|shift " + keyShift.ToString(CultureInfo.InvariantCulture), plot, row[other]);
                         }
                     }
                 }
             }
         }
 
-        // R426. Each line of a PDF file that holds one number token of a plot under the shift that matches the most plots of the file, by page
-        private static void PdfSources(ScanPdf pdf, ICollection<string> plots, List<int> shifts, Regex split, Dictionary<string, Dictionary<string, List<string>>> sources, List<JObject> checks)
+        // R426, R180. Each code line of a page paired with the number line under it by the label pairs of the location plan, a number line
+        // one that holds no code and one number token, joined under the shift that matches the most plots of the file. Text on one line joins
+        // nothing (Q252)
+        private static void PdfSources(ScanPdf pdf, ICollection<string> plots, ScanSettings settings, HashSet<string> codes, Sources sources,
+            List<JObject> checks)
         {
+            var pairs = new List<Tuple<int, string, string>>();
+            for (int page = 0; page < pdf.Pages.Count; page++)
+            {
+                List<TextLine> codeLines = pdf.Pages[page].Where(line => ValueCodes(line.Text, codes, settings.TokenSplit).Count > 0).ToList();
+                List<TextLine> numberLines = pdf.Pages[page].Where(line => ValueCodes(line.Text, codes, settings.TokenSplit).Count == 0 && NumberTokens(line.Text, settings.TokenSplit).Count == 1).ToList();
+                List<int> loneCodes, loneNumbers;
+                foreach (int[] pair in LocationPlan.PairLabels(codeLines, numberLines, settings.PdfPairDyLow, settings.PdfPairDyHigh, settings.PdfPairDxPt, out loneCodes, out loneNumbers))
+                {
+                    pairs.Add(Tuple.Create(page + 1, codeLines[pair[0]].Text, NumberTokens(numberLines[pair[1]].Text, settings.TokenSplit)[0]));
+                }
+            }
             var scores = new Dictionary<string, int>(StringComparer.Ordinal);
             var byText = new Dictionary<string, int>(StringComparer.Ordinal);
-            foreach (int shift in shifts)
+            foreach (int shift in settings.PlotNumberShifts)
             {
                 string text = pdf.Name + "|shift " + shift.ToString(CultureInfo.InvariantCulture);
-                scores[text] = pdf.Pages.SelectMany(page => page).Select(line => LinePlot(line, shift, plots, split)).Where(found => found != null).Distinct(StringComparer.Ordinal).Count();
+                scores[text] = pairs.Select(pair => PlotOf(pair.Item3, shift, plots)).Where(found => found != null).Distinct(StringComparer.Ordinal).Count();
                 byText[text] = shift;
             }
             string chosen = Pick(scores, "pdfShift", checks);
@@ -732,32 +782,32 @@ namespace SiteAdaptation.Common
                 return;
             }
             int keyShift = byText[chosen];
-            for (int page = 0; page < pdf.Pages.Count; page++)
+            foreach (Tuple<int, string, string> pair in pairs)
             {
-                foreach (string line in pdf.Pages[page])
+                string plot = PlotOf(pair.Item3, keyShift, plots);
+                if (plot != null)
                 {
-                    string plot = LinePlot(line, keyShift, plots, split);
-                    if (plot != null)
-                    {
-                        AddValue(sources, string.Format(CultureInfo.InvariantCulture, "{0}|page {1}|shift {2}", pdf.Name, page + 1, keyShift), plot, line);
-                    }
+                    AddValue(sources, PdfKind, string.Format(CultureInfo.InvariantCulture, "{0}|page {1}|shift {2}", pdf.Name, pair.Item1, keyShift), plot, pair.Item2);
                 }
             }
         }
 
-        // R425. The one code each plot of a source gives. A value or a plot with two codes is a check row and gives none
+        // R425. The one code each plot of a source gives. A value or a plot with two codes is a check row, and a plot with such a value or
+        // two codes gives none
         private static Dictionary<string, string> SourceCodes(string source, Dictionary<string, List<string>> valuesByPlot, HashSet<string> codes, Regex split, List<JObject> checks)
         {
             var given = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (KeyValuePair<string, List<string>> plot in valuesByPlot)
             {
                 var found = new SortedSet<string>(StringComparer.Ordinal);
+                bool twice = false;
                 foreach (string value in plot.Value)
                 {
                     List<string> matched = ValueCodes(value, codes, split);
                     if (matched.Count > 1)
                     {
                         checks.Add(Check("twoCodes", source, plot.Key, SheetRows.PyStrip(value)));
+                        twice = true;
                     }
                     else if (matched.Count == 1)
                     {
@@ -768,7 +818,7 @@ namespace SiteAdaptation.Common
                 {
                     checks.Add(Check("twoCodes", source, plot.Key, string.Join(", ", found)));
                 }
-                else if (found.Count == 1)
+                else if (found.Count == 1 && !twice)
                 {
                     given[plot.Key] = found.Min;
                 }
@@ -776,27 +826,54 @@ namespace SiteAdaptation.Common
             return given;
         }
 
-        // R426. A villaType row per source that gives a plot a villa type, the highest proposed, and the plots where another source gives
-        // another code, a conflict, or a check when the two are the old and the new code of one row of typology_codes (Q245)
-        private static void TypeRows(Dictionary<string, Dictionary<string, string>> given, HashSet<string> pairs, List<JObject> rows, List<JObject> conflicts, List<JObject> checks)
+        // R426. A villaType row per source whose score is above 0, the score the plots it gives a prototype code. The lead is the highest
+        // score of the first kind that scores, blocks, texts, Excel then PDF, a tie there no lead. The lead is proposed only when its share of
+        // the plots any source gives a prototype code reaches majority.strongShare, else a check row names the best source of each kind. The
+        // plots where another source gives another code than the lead are conflicts, or a check when the two are the old and the new code of
+        // one row of typology_codes (Q245)
+        private static void TypeRows(Dictionary<string, Dictionary<string, string>> given, Dictionary<string, int> kinds, HashSet<string> prototypeCodes, double strongShare,
+            HashSet<string> pairs, List<JObject> rows, List<JObject> conflicts, List<JObject> checks)
         {
-            Dictionary<string, int> scores = given.Where(item => item.Value.Count > 0).ToDictionary(item => item.Key, item => item.Value.Count, StringComparer.Ordinal);
-            string proposed = Pick(scores, "villaType", checks);
+            Dictionary<string, int> scores = given.ToDictionary(item => item.Key, item => item.Value.Values.Count(code => prototypeCodes.Contains(code)), StringComparer.Ordinal);
+            scores = scores.Where(item => item.Value > 0).ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal);
+            int covered = given.Values.SelectMany(plots => plots.Where(plot => prototypeCodes.Contains(plot.Value)).Select(plot => plot.Key)).Distinct(StringComparer.Ordinal).Count();
+            List<int> order = scores.Keys.Select(source => kinds[source]).Distinct().OrderBy(kind => kind).ToList();
+            string lead = null;
+            bool proposed = false;
+            if (order.Count > 0)
+            {
+                lead = Pick(scores.Where(item => kinds[item.Key] == order[0]).ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal), "villaType", checks);
+            }
+            if (lead != null)
+            {
+                Func<string, string> share = source => Rounding.Fixed((double)scores[source] / covered, 3).ToString("F3", CultureInfo.InvariantCulture);
+                proposed = (double)scores[lead] / covered >= strongShare;
+                if (!proposed)
+                {
+                    var parts = new List<string> { lead + " " + share(lead) };
+                    foreach (int kind in order.Skip(1))
+                    {
+                        string best = scores.Where(item => kinds[item.Key] == kind).OrderByDescending(item => item.Value).ThenBy(item => item.Key, StringComparer.Ordinal).First().Key;
+                        parts.Add(best + " " + share(best));
+                    }
+                    checks.Add(Check("noStrongSource", "villaType", "", string.Join(" | ", parts)));
+                }
+            }
             List<string> ordered = scores.Keys.OrderBy(source => source, StringComparer.Ordinal).ToList();
             foreach (string source in ordered)
             {
                 string found = string.Join(", ", given[source].Values.Distinct(StringComparer.Ordinal).OrderBy(code => code, StringComparer.Ordinal));
-                rows.Add(Row("villaType", source, found, scores[source], source == proposed));
+                rows.Add(Row("villaType", source, found, scores[source], proposed && source == lead));
             }
-            if (proposed == null)
+            if (lead == null)
             {
                 return;
             }
-            foreach (string source in ordered.Where(source => source != proposed))
+            foreach (string source in given.Keys.Where(source => source != lead).OrderBy(source => source, StringComparer.Ordinal))
             {
                 foreach (KeyValuePair<string, string> plot in given[source].OrderBy(item => item.Key, StringComparer.Ordinal))
                 {
-                    if (!given[proposed].TryGetValue(plot.Key, out string ours) || ours == plot.Value)
+                    if (!given[lead].TryGetValue(plot.Key, out string ours) || ours == plot.Value)
                     {
                         continue;
                     }
@@ -806,15 +883,15 @@ namespace SiteAdaptation.Common
                     }
                     else
                     {
-                        conflicts.Add(Conflict(plot.Key, "villa type", ours, proposed, plot.Value, source));
+                        conflicts.Add(Conflict(plot.Key, "villa type", ours, lead, plot.Value, source));
                     }
                 }
             }
         }
 
         // R421 to R427. The scan result of the files of a run, every list in the order of docs/design/17-scanner.md
-        public static JObject Result(ScanSettings settings, HashSet<string> codes, HashSet<string> pairs, IEnumerable<JObject> cadReads, IEnumerable<ScanWorkbook> excels,
-            IEnumerable<ScanPdf> pdfs, JArray inputs)
+        public static JObject Result(ScanSettings settings, HashSet<string> codes, HashSet<string> prototypeCodes, double strongShare, HashSet<string> pairs, IEnumerable<JObject> cadReads,
+            IEnumerable<ScanWorkbook> excels, IEnumerable<ScanPdf> pdfs, JArray inputs)
         {
             var rows = new List<JObject>();
             var conflicts = new List<JObject>();
@@ -823,6 +900,11 @@ namespace SiteAdaptation.Common
             List<Cad> cads = cadReads.Select(read => CadOf(read, settings.LabelPattern)).ToList();
             foreach (Cad cad in cads)
             {
+                // R420. What the explode did not read, so no content is left out in silence
+                foreach (JToken missed in cad.Read["notRead"] as JArray ?? new JArray())
+                {
+                    checks.Add(Check("notRead", Str(missed["source"]), "", Str(missed["value"])));
+                }
                 rows.AddRange(CadRows(cad));
                 Proposal proposal = OutlineProposal(cad, rows, checks);
                 if (proposal != null)
@@ -867,7 +949,7 @@ namespace SiteAdaptation.Common
                     LinkConflicts(drawing.Source, plots, index, proposal, conflicts);
                 }
             }
-            var sources = new Dictionary<string, Dictionary<string, List<string>>>(StringComparer.Ordinal);
+            var sources = new Sources();
             CadSources(cads, index, sources);
             var known = new HashSet<string>(numbers, StringComparer.Ordinal);
             foreach (ScanWorkbook excel in excels)
@@ -876,18 +958,20 @@ namespace SiteAdaptation.Common
             }
             foreach (ScanPdf pdf in pdfs)
             {
-                PdfSources(pdf, known, settings.PlotNumberShifts, settings.TokenSplit, sources, checks);
+                PdfSources(pdf, known, settings, codes, sources, checks);
             }
             var given = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
-            foreach (string source in sources.Keys.OrderBy(source => source, StringComparer.Ordinal))
+            foreach (string source in sources.Values.Keys.OrderBy(source => source, StringComparer.Ordinal))
             {
-                given[source] = SourceCodes(source, sources[source], codes, settings.TokenSplit, checks);
+                given[source] = SourceCodes(source, sources.Values[source], codes, settings.TokenSplit, checks);
             }
-            TypeRows(given, pairs, rows, conflicts, checks);
+            TypeRows(given, sources.Kinds, prototypeCodes, strongShare, pairs, rows, conflicts, checks);
             foreach (JObject found in rows)
             {
                 string source = (string)found["source"];
-                found["conflicts"] = conflicts.Count(item => (string)item["sourceA"] == source || (string)item["sourceB"] == source);
+                string kind = (string)found["kind"];
+                string[] fields = kind == "villaType" ? new[] { "villa type" } : kind == "plotOutline" ? new[] { "number", "location", "label" } : new string[0];
+                found["conflicts"] = conflicts.Count(item => fields.Contains((string)item["field"]) && ((string)item["sourceA"] == source || (string)item["sourceB"] == source));
             }
             List<JObject> orderedRows = rows.OrderBy(found => Array.IndexOf(Kinds, (string)found["kind"])).ThenBy(found => (string)found["source"], StringComparer.Ordinal).ToList();
             List<JObject> orderedConflicts = conflicts.OrderBy(item => (string)item["plot"], StringComparer.Ordinal).ThenBy(item => (string)item["field"], StringComparer.Ordinal)

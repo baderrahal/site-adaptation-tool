@@ -4,7 +4,6 @@ types against a plot table of button 2 and on the plots of each answer key, and 
 """
 
 import argparse
-import json
 import math
 import sys
 from collections import defaultdict
@@ -28,7 +27,7 @@ KEYS = {"inputs": ("role",), "rows": ("kind", "source"), "conflicts": ("plot", "
         "checks": ("what", "source", "plot", "value"), "plots": ("plot",)}
 SHOWN = 20
 # The node tolerance and the least face area of CadReader/PlotShapes.cs (Tolerance, MinArea), so the polygonize joins the ends and the
-# T junctions the trace joins. With no snap it counted 1145 faces where the trace counts 2992 on the ROSHN baseplan (round 4j-1)
+# T junctions the trace joins. With no snap it counted 1145 faces where the trace counts 2992 on the real baseplan (round 4j-1)
 NODE_M = 0.01
 MIN_AREA = 0.001
 

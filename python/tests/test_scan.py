@@ -3,13 +3,15 @@ temporary folder and character lists of a PDF page."""
 
 import json
 
+import pytest
 from openpyxl import Workbook
 
+import project_profile
 import scan
 from minimal_pdf import build_pdf
 
 BLOCK = {"labelPattern": "^(?:(.*?)\\s+)?(\\d{1,6})$", "tokenSplit": "[^A-Za-z0-9]+", "plotNumberShifts": [0, 10, 11], "pairMinSegments": 4,
-         "pdfJoinGapPt": 0.3, "pdfLineTolerancePt": 0.05}
+         "pdfJoinGapPt": 0.3, "pdfLineTolerancePt": 0.05, "pdfPairDyPt": [1.3, 1.8], "pdfPairDxPt": 1.5}
 CODES = {"X1", "X2", "X3"}
 PAIRS = {frozenset(("X2", "X3"))}
 NAMES = {"prefix": "P-", "discipline": "D", "suffix": "-S-"}
@@ -41,8 +43,8 @@ def two_plots():
                [text("T", "101", 5, 5), text("T", "102", 25, 5)])
 
 
-def result(cads, excels=(), pdfs=(), inputs=()):
-    return scan.scan_result(BLOCK, CODES, PAIRS, list(cads), list(excels), list(pdfs), list(inputs))
+def result(cads, excels=(), pdfs=(), inputs=(), prototypes=CODES, strong=0.9):
+    return scan.scan_result(BLOCK, CODES, PAIRS, set(prototypes), strong, list(cads), list(excels), list(pdfs), list(inputs))
 
 
 def kind_rows(found, kind):
@@ -158,6 +160,24 @@ def test_r425_two_codes_in_one_value_is_a_check_and_gives_no_villa_type():
     assert [item["villaType"] for item in found["plots"]] == [{}, {"one.dwg|block|V": "X1"}]
 
 
+def test_r425_a_plot_with_one_value_of_two_codes_gets_no_villa_type_even_beside_a_value_of_one_code():
+    drawing = two_plots()
+    drawing["inserts"] += [insert("V", "X1_X2", 5, 5), insert("V", "X1", 6, 6), insert("V", "X1", 25, 5)]
+    found = result([drawing])
+    assert {"what": "twoCodes", "source": "one.dwg|block|V", "plot": "101", "value": "X1_X2"} in found["checks"]
+    assert [item["villaType"] for item in found["plots"]] == [{}, {"one.dwg|block|V": "X1"}]
+
+
+def test_r425_a_code_is_found_as_a_bounded_run_the_longest_first_and_a_span_once():
+    codes = {"X1", "X1-0 (B)", "X2"}
+    split = BLOCK["tokenSplit"]
+    assert scan.value_codes("unit X1-0 (B) left", codes, split) == ["X1-0 (B)"]
+    assert scan.value_codes("X1-0 (B)/X2", codes, split) == ["X1-0 (B)", "X2"]
+    assert scan.value_codes("X1-0 (B) X1", codes, split) == ["X1", "X1-0 (B)"]
+    # A code inside a longer run of letters or digits is no code
+    assert scan.value_codes("AX1 X10 X1B", codes, split) == []
+
+
 def test_r425_a_plot_two_values_give_two_codes_is_a_check():
     drawing = two_plots()
     drawing["inserts"] += [insert("V", "X1", 5, 5), insert("V", "X2", 6, 6)]
@@ -186,13 +206,54 @@ def test_r426_the_old_and_new_code_of_one_row_is_a_check_not_a_conflict():
     assert found["plots"][0]["villaType"] == {"one.dwg|block|V": "X2", "one.dwg|text|K": "X3"}
 
 
-def test_r426_a_tie_of_two_sources_proposes_no_villa_type():
+def test_r426_a_tie_of_two_sources_of_the_lead_kind_proposes_no_villa_type():
     drawing = two_plots()
-    drawing["inserts"] += [insert("V", "X1", 5, 5)]
-    drawing["texts"] += [text("K", "X1", 6, 6)]
+    drawing["inserts"] += [insert("V", "X1", 5, 5), insert("W", "X1", 6, 6)]
     found = result([drawing])
     assert all(item["proposedUse"] == "check" for item in kind_rows(found, "villaType"))
-    assert {"what": "tie", "source": "villaType", "plot": "", "value": "one.dwg|block|V or one.dwg|text|K"} in found["checks"]
+    assert {"what": "tie", "source": "villaType", "plot": "", "value": "one.dwg|block|V or one.dwg|block|W"} in found["checks"]
+
+
+def test_r426_a_block_source_of_a_lower_score_leads_a_text_source_of_a_higher_and_a_weak_share_proposes_none():
+    drawing = two_plots()
+    drawing["inserts"] += [insert("V", "X1", 5, 5)]
+    drawing["texts"] += [text("K", "X1", 6, 6), text("K", "X2", 26, 6)]
+    found = result([drawing])
+    rows = {item["source"]: item for item in kind_rows(found, "villaType")}
+    assert (rows["one.dwg|block|V"]["score"], rows["one.dwg|text|K"]["score"]) == (1, 2)
+    assert all(item["proposedUse"] == "check" for item in rows.values())
+    assert {"what": "noStrongSource", "source": "villaType", "plot": "", "value": "one.dwg|block|V 0.500 | one.dwg|text|K 1.000"} in found["checks"]
+    # The same lead holds the strong share once the share asked is 0.5
+    rows = {item["source"]: item for item in kind_rows(result([drawing], strong=0.5), "villaType")}
+    assert rows["one.dwg|block|V"]["proposedUse"] == "villa type" and rows["one.dwg|text|K"]["proposedUse"] == "check"
+
+
+def test_r426_a_source_of_profile_codes_only_scores_0_and_a_lead_of_the_strong_share_is_proposed():
+    drawing = two_plots()
+    drawing["inserts"] += [insert("V", "X1", 5, 5)]
+    drawing["texts"] += [text("K", "X2", 6, 6), text("K", "X2", 26, 6)]
+    found = result([drawing], prototypes={"X1"})
+    assert kind_rows(found, "villaType") == [
+        {"kind": "villaType", "source": "one.dwg|block|V", "found": "X1", "proposedUse": "villa type", "score": 1, "conflicts": 1}]
+    # The profile code is still the villa type of its source on each plot and a conflict against the lead
+    assert [item["villaType"] for item in found["plots"]] == [{"one.dwg|block|V": "X1", "one.dwg|text|K": "X2"}, {"one.dwg|text|K": "X2"}]
+    assert found["conflicts"] == [{"plot": "101", "field": "villa type", "valueA": "X1", "sourceA": "one.dwg|block|V", "valueB": "X2", "sourceB": "one.dwg|text|K"}]
+
+
+def test_r426_a_profile_code_counts_as_found_but_adds_nothing_to_the_score():
+    drawing = two_plots()
+    drawing["inserts"] += [insert("V", "X1", 5, 5), insert("V", "X2", 25, 5)]
+    rows = kind_rows(result([drawing], prototypes={"X1"}), "villaType")
+    assert [(item["found"], item["score"], item["proposedUse"]) for item in rows] == [("X1, X2", 1, "villa type")]
+
+
+def test_r426_the_conflicts_of_villa_type_are_held_against_the_lead_proposed_or_not():
+    drawing = two_plots()
+    drawing["inserts"] += [insert("V", "X1", 5, 5)]
+    drawing["texts"] += [text("K", "X2", 6, 6), text("K", "X1", 26, 6)]
+    found = result([drawing])
+    assert all(item["proposedUse"] == "check" for item in kind_rows(found, "villaType"))
+    assert found["conflicts"] == [{"plot": "101", "field": "villa type", "valueA": "X1", "sourceA": "one.dwg|block|V", "valueB": "X2", "sourceB": "one.dwg|text|K"}]
 
 
 def workbook(tmp_path, rows, name="table.xlsx"):
@@ -230,24 +291,63 @@ def test_r426_a_cell_is_its_text_and_a_whole_number_has_no_decimals():
 
 
 def char(value, x0, x1, top):
-    return {"text": value, "x0": x0, "x1": x1, "top": top}
+    return {"text": value, "x0": x0, "x1": x1, "top": top, "bottom": top + 8, "size": 8, "upright": True}
 
 
-def test_r426_pdf_characters_join_into_words_by_the_gap_and_lines_by_the_tolerance():
+def test_r426_pdf_characters_join_into_text_lines_by_the_gap_and_the_tolerance_as_the_location_plan():
     chars = [char("X", 10, 15, 100), char("1", 15.2, 20, 100.04), char("1", 30, 35, 100), char("0", 35, 40, 100), char("1", 40, 45, 100),
-             char(" ", 45, 47, 100), char("Z", 10, 15, 120)]
-    # A gap of 0.2 joins X1, the gap of 10 parts the number, the row at top 120 lies lower on the page and comes after
-    assert scan.pdf_lines(chars, 800, 0.3, 0.05) == ["X1 101", "Z"]
+             char(" ", 45, 47, 100), char("Z", 10, 15, 120), dict(char("Q", 50, 55, 120), upright=False)]
+    # A gap of 0.2 joins X1, the gap of 10 parts the number into a line of its own, the row at top 120 comes after, an upright false
+    # character is left out
+    assert [line["text"] for line in scan.pdf_lines(chars, 0.3, 0.05)] == ["X1", "101", "Z"]
     # A tolerance under the 0.04 between the two rows parts the 1 at top 100.04 from its row
-    assert scan.pdf_lines(chars, 800, 0.3, 0.01) == ["X 101", "1", "Z"]
+    assert [line["text"] for line in scan.pdf_lines(chars, 0.3, 0.01)] == ["X", "101", "1", "Z"]
+    assert scan.pdf_lines(chars, 0.3, 0.05)[1]["top"] == 100 and scan.pdf_lines(chars, 0.3, 0.05)[1]["x"] == 38.5
 
 
-def test_r426_a_pdf_line_joins_by_its_one_number_token_under_the_shift_of_the_most_plots():
-    # Shift 11 gives 101 and 102, shift 10 gives 102 alone. The line of page 2 holds two numbers of plots under shift 11 and joins none
-    pdf = {"name": "list.pdf", "pages": [["X1 112", "X2 113", "note"], ["X2 112 113"]]}
+def line(value, top, x):
+    return {"text": value, "top": top, "x": x}
+
+
+def test_r426_a_pdf_code_line_pairs_with_the_number_line_under_it_by_r180():
+    lines = [line("X1", 100, 50), line("112", 101.5, 50.5), line("X2", 110, 80), line("113", 111.6, 80), line("X1", 120, 20), line("112 113", 121.5, 20),
+             line("X2", 130, 120), line("101", 133, 120), line("X1", 140, 160), line("X2 112", 141.5, 160)]
+    # The nearest pair by dx and the distance from the middle of the band comes first. The number line of two numbers, the number line
+    # 3 pt under its code line and a number line that holds a code pair with nothing
+    assert scan.page_pairs(lines, CODES, BLOCK["tokenSplit"], BLOCK["pdfPairDyPt"], BLOCK["pdfPairDxPt"]) == [("X2", "113"), ("X1", "112")]
+
+
+def test_r426_a_pdf_pair_joins_by_its_number_under_the_shift_of_the_most_plots():
+    # Shift 11 gives 101 and 102, shift 10 gives 102 alone
+    pdf = {"name": "list.pdf", "pages": [[line("X1", 100, 50), line("112", 101.5, 50), line("X2", 110, 50), line("113", 111.5, 50)], [line("note", 100, 50)]]}
     found = result([two_plots()], pdfs=[pdf])
     assert [item["source"] for item in kind_rows(found, "villaType")] == ["list.pdf|page 1|shift 11"]
     assert [item["villaType"] for item in found["plots"]] == [{"list.pdf|page 1|shift 11": "X1"}, {"list.pdf|page 1|shift 11": "X2"}]
+
+
+def test_r421_a_face_of_two_labels_a_label_in_no_face_and_a_part_not_read_are_check_rows():
+    drawing = two_plots()
+    drawing["candidates"][1]["faces"].append(face(40, 0))
+    drawing["texts"] += [text("T", "104", 45, 5), text("T", "103", 42, 2), text("U", "X 109", 99, 99)]
+    drawing["notRead"] = [{"source": "one.dwg|block|Q", "value": "a proxy entity"}]
+    found = result([drawing])
+    assert {"what": "manyLabels", "source": "one.dwg|A + B", "plot": "", "value": "103, 104"} in found["checks"]
+    assert {"what": "labelOutside", "source": "one.dwg|U", "plot": "109", "value": "X 109"} in found["checks"]
+    assert {"what": "notRead", "source": "one.dwg|block|Q", "plot": "", "value": "a proxy entity"} in found["checks"]
+    assert [item["what"] for item in found["checks"]] == sorted(item["what"] for item in found["checks"])
+
+
+def test_r427_a_row_counts_only_the_conflicts_of_its_own_fields():
+    drawing = two_plots()
+    drawing["inserts"] += [insert("V", "X1", 5, 5), insert("V", "X1", 25, 5)]
+    drawing["texts"] += [text("K", "X2", 6, 6)]
+    other = cad("two.dwg", [{"layers": ["A"], "faces": [face(100, 0)]}], [text("T", "101", 105, 5)])
+    found = result([drawing, other])
+    assert sorted(item["field"] for item in found["conflicts"]) == ["location", "villa type"]
+    counts = {(item["kind"], item["source"]): item["conflicts"] for item in found["rows"]}
+    assert counts[("plotOutline", "one.dwg|A + B")] == 1 and counts[("plotOutline", "two.dwg|A")] == 1
+    assert counts[("villaType", "one.dwg|block|V")] == 1 and counts[("villaType", "one.dwg|text|K")] == 1
+    assert counts[("villaBlock", "one.dwg|V")] == 0 and counts[("plotNumber", "one.dwg|T")] == 0 and counts[("cadLayer", "one.dwg|A")] == 0
 
 
 def test_r427_the_lists_keep_the_order_and_field_texts_of_the_design():
@@ -266,8 +366,17 @@ def settings_files(tmp_path):
     profile.write_text(json.dumps({"typologies": {"X1": {"keo_file": "X1"}, "X2": {"keo_file": "X1"}}, "typology_codes": {"rows": [{"old": "X2", "new": "X3"}]},
                                    "scan": BLOCK}), encoding="utf-8")
     settings = tmp_path / "project.json"
-    settings.write_text(json.dumps({"profile": str(profile), "prototypeNames": NAMES}), encoding="utf-8")
+    settings.write_text(json.dumps({"profile": str(profile), "prototypeNames": NAMES, "majority": {"strongShare": 0.9}}), encoding="utf-8")
     return settings
+
+
+def test_r426_a_run_with_no_strong_share_in_config_is_refused(tmp_path):
+    settings = settings_files(tmp_path)
+    values = json.loads(settings.read_text(encoding="utf-8"))
+    for broken in ({}, {"strongShare": None}, {"strongShare": 0}):
+        settings.write_text(json.dumps(dict(values, majority=broken)), encoding="utf-8")
+        with pytest.raises(project_profile.ProfileError):
+            scan.strong_share(project_profile.load_settings(settings))
 
 
 def test_r427_main_writes_scan_python_with_the_inputs_in_role_order_and_a_guard_record(tmp_path):
@@ -285,8 +394,10 @@ def test_r427_main_writes_scan_python_with_the_inputs_in_role_order_and_a_guard_
     written = json.loads((out / scan.OUTPUT).read_text(encoding="utf-8"))
     assert [item["role"] for item in written["inputs"]] == ["config", "scanCad:1", "scanExcel:1", "prototype:P-D-X4-S-1.rvt"]
     assert written["inputs"][1] == {"role": "scanCad:1", "name": "one.dwg", "size": 1, "sha256": "0" * 64}
-    # X4 is a code only by the prototype file name, the join column Plot gives no source
+    # X4 is a code only by the prototype file name. X1 of the sheet is a profile code only, so its source scores 0 and has no row but
+    # stays the villa type of the plot by that source
     assert written["plots"][0]["villaType"] == {"one.dwg|block|V": "X4", "table.xlsx|S1|Kind|shift 0": "X1"}
+    assert [item["source"] for item in written["rows"] if item["kind"] == "villaType"] == ["one.dwg|block|V"]
     record = json.loads((out / scan.RECORD).read_text(encoding="utf-8"))
     assert {item["name"] for item in record["inputs"]} == {"project.json", "scan_cad_1.json", "table.xlsx", "P-D-X4-S-1.rvt"}
     assert all(item["unchanged"] for item in record["inputs"])
@@ -295,4 +406,7 @@ def test_r427_main_writes_scan_python_with_the_inputs_in_role_order_and_a_guard_
 def test_r426_a_pdf_file_is_read_by_pdfplumber_into_the_lines_of_each_page(tmp_path):
     path = tmp_path / "list.pdf"
     path.write_bytes(build_pdf([(20, 700, "X1 112"), (20, 650, "X2 113")], [], [], width=300, height=800))
-    assert scan.read_pdf(path, BLOCK["pdfJoinGapPt"], BLOCK["pdfLineTolerancePt"]) == {"name": "list.pdf", "pages": [["X1 112", "X2 113"]]}
+    found = scan.read_pdf(path, BLOCK["pdfJoinGapPt"], BLOCK["pdfLineTolerancePt"])
+    assert found["name"] == "list.pdf" and [[item["text"] for item in page] for page in found["pages"]] == [["X1 112", "X2 113"]]
+    # The top is measured from the top of the page, so the line higher on the page has the smaller top
+    assert found["pages"][0][0]["top"] < found["pages"][0][1]["top"] and found["pages"][0][0]["x"] > 20

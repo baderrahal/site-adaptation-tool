@@ -119,7 +119,28 @@ namespace CadReader
                 ["inserts"] = inserts,
                 ["lines"] = lines,
                 ["arcs"] = arcs,
+                ["notRead"] = NotRead(exploder, name),
             };
+        }
+
+        // R420. What the explode did not read: each external reference by its block name, the depth limit hits and the cycles when above 0,
+        // the counts CadExtractor gives in layers.json
+        private static JArray NotRead(Exploder exploder, string name)
+        {
+            var found = new JArray();
+            foreach (string xref in exploder.XrefInserts.Keys.OrderBy(key => key, StringComparer.Ordinal))
+            {
+                found.Add(new JObject { ["source"] = name + "|xref " + xref, ["value"] = "external reference" });
+            }
+            if (exploder.DepthLimitHits > 0)
+            {
+                found.Add(new JObject { ["source"] = name + "|depth limit", ["value"] = exploder.DepthLimitHits.ToString(CultureInfo.InvariantCulture) });
+            }
+            if (exploder.Cycles > 0)
+            {
+                found.Add(new JObject { ["source"] = name + "|cycle", ["value"] = exploder.Cycles.ToString(CultureInfo.InvariantCulture) });
+            }
+            return found;
         }
 
         private static KeyValuePair<string, JObject> Candidate(string[] layers, JArray faces)
@@ -150,8 +171,8 @@ namespace CadReader
             return faces;
         }
 
-        // R424. The centroid of a ring taken from its first point. PlotLabels.Centroid multiplies site coordinates near 2.4e6 m, and on the
-        // ROSHN baseplan its centroid of a 300 m2 face lay 0.27 m from the corner mean on net8.0 and 0.06 m on net48 (round 4j-1, Q251)
+        // R424. The centroid of a ring taken from its first point. PlotLabels.Centroid multiplies site coordinates near 2.4e6 m, and on a
+        // real baseplan its centroid of a 300 m2 face lay 0.27 m from the corner mean on net8.0 and 0.06 m on net48 (round 4j-1, Q251)
         public static double[] Centroid(List<double[]> ring)
         {
             double ox = ring[0][0];
@@ -303,7 +324,8 @@ namespace CadReader
             }
             Read<JObject> profile = Guarded(profilePath, _ => JObject.Parse(WorkFiles.ReadText(profilePath)));
             ScanSettings settings;
-            HashSet<string> codes, pairs;
+            HashSet<string> codes, pairs, prototypeCodes;
+            double strongShare;
             List<WorkerFile> prototypes = request.Inputs.Where(input => input.Role != null && input.Role.StartsWith(BuildSteps.PrototypeRole, StringComparison.Ordinal))
                 .OrderBy(input => input.Role, StringComparer.Ordinal).ToList();
             foreach (WorkerFile input in prototypes.Where(input => input.Role.Substring(BuildSteps.PrototypeRole.Length) != Path.GetFileName(input.Path)))
@@ -315,6 +337,10 @@ namespace CadReader
                 settings = ScanSettings.From(profile.Value);
                 codes = ScanLogic.KnownCodes(profile.Value, config.Value["prototypeNames"] as JObject, prototypes.Select(input => Path.GetFileName(input.Path)));
                 pairs = ScanLogic.OldNewPairs(profile.Value);
+                prototypeCodes = ScanLogic.PrototypeCodes(config.Value["prototypeNames"] as JObject, prototypes.Select(input => Path.GetFileName(input.Path)));
+                JToken share = config.Value["majority"]?["strongShare"];
+                strongShare = share != null && (share.Type == JTokenType.Float || share.Type == JTokenType.Integer) && (double)share > 0 && (double)share <= 1 ? (double)share
+                    : throw new InvalidDataException("config names no majority.strongShare above 0 and at most 1, the share the lead villa type source must reach (R426)");
             }
             catch (InvalidDataException refused)
             {
@@ -370,7 +396,7 @@ namespace CadReader
             {
                 inputs.Add(InputRow(prototype.Role, InputGuard.Mark(prototype.Path)));
             }
-            JObject result = ScanLogic.Result(settings, codes, pairs, cads, excels, pdfs, inputs);
+            JObject result = ScanLogic.Result(settings, codes, prototypeCodes, strongShare, pairs, cads, excels, pdfs, inputs);
             run.WriteJson(request.OutputFolder, ResultFile, result);
             run.Counts["scan rows"] = ((JArray)result["rows"]).Count;
             run.Counts["scan conflicts"] = ((JArray)result["conflicts"]).Count;

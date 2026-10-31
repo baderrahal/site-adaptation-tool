@@ -40,11 +40,11 @@ namespace SiteAdaptation.Tests
             return new JObject
             {
                 ["typologies"] = new JObject { ["X1"] = new JObject { ["keo_file"] = "X1" }, ["X2"] = new JObject { ["keo_file"] = "X1" }, ["X3"] = new JObject() },
-                ["typology_codes"] = new JObject { ["rows"] = new JArray(new JObject { ["old"] = "X3", ["new"] = "X4" }, new JObject { ["old"] = "X1", ["new"] = "X1" }) },
+                ["typology_codes"] = new JObject { ["rows"] = new JArray(new JObject { ["old"] = "X3", ["new"] = "X4" }, new JObject { ["old"] = "X1", ["new"] = "X1" }, new JObject { ["old"] = "X3-0 (Q)", ["new"] = "X5" }) },
                 ["scan"] = new JObject
                 {
                     ["labelPattern"] = "^(?:(.*?)\\s+)?(\\d{1,6})$", ["tokenSplit"] = "[^A-Za-z0-9]+", ["plotNumberShifts"] = new JArray(0, 10), ["pairMinSegments"] = 2,
-                    ["pdfJoinGapPt"] = 0.3, ["pdfLineTolerancePt"] = 0.05,
+                    ["pdfJoinGapPt"] = 0.3, ["pdfLineTolerancePt"] = 0.05, ["pdfPairDyPt"] = new JArray(1.3, 1.8), ["pdfPairDxPt"] = 1.5,
                 },
             };
         }
@@ -123,9 +123,12 @@ namespace SiteAdaptation.Tests
             return document;
         }
 
-        private static JObject Result(IEnumerable<JObject> cads, IEnumerable<ScanWorkbook> excels = null, IEnumerable<ScanPdf> pdfs = null)
+        // The prototype codes stand for the codes of the prototype file names a scan is given, the share for majority.strongShare
+        private static JObject Result(IEnumerable<JObject> cads, IEnumerable<ScanWorkbook> excels = null, IEnumerable<ScanPdf> pdfs = null, IEnumerable<string> prototypes = null,
+            double share = 0.9)
         {
-            return ScanLogic.Result(Settings, Codes(), ScanLogic.OldNewPairs(Profile()), cads, excels ?? new ScanWorkbook[0], pdfs ?? new ScanPdf[0], new JArray());
+            var prototypeCodes = new HashSet<string>(prototypes ?? new[] { "X1", "X2", "X3", "X4" }, StringComparer.Ordinal);
+            return ScanLogic.Result(Settings, Codes(), prototypeCodes, share, ScanLogic.OldNewPairs(Profile()), cads, excels ?? new ScanWorkbook[0], pdfs ?? new ScanPdf[0], new JArray());
         }
 
         private static JObject RowOf(JObject result, string kind, string source)
@@ -141,10 +144,10 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R424_the_centroid_of_a_face_at_site_coordinates_is_its_corner_mean_within_a_micrometre()
         {
-            // The corners of a 300 m2 face of the ROSHN baseplan, whose centroid PlotLabels.Centroid put 0.27 m off on net8.0
+            // A parallelogram of 300 m2 turned 30 degrees, at coordinates of the size of a site grid and of no project
             var ring = new List<double[]>
             {
-                new[] { 569718.966, 2363912.146 }, new[] { 569697.339, 2363899.606 }, new[] { 569703.358, 2363889.225 }, new[] { 569724.985, 2363901.765 },
+                new[] { 500010.0, 2400020.0 }, new[] { 500031.651, 2400032.5 }, new[] { 500025.651, 2400042.892 }, new[] { 500004.0, 2400030.392 },
             };
             double[] centre = CadScan.Centroid(ring);
             Assert.InRange(centre[0], ring.Average(p => p[0]) - 1e-6, ring.Average(p => p[0]) + 1e-6);
@@ -270,6 +273,7 @@ namespace SiteAdaptation.Tests
         {
             CadDocument document = Plots("1", 0, 0, "2", 20, 0, "3", 40, 0);
             document.Entities.Add(Text(document, "N", "X1/X2", 3, 3));
+            document.Entities.Add(Text(document, "N", "X1", 7, 3));
             document.Entities.Add(Text(document, "N", "type X2", 23, 3));
             document.Entities.Add(Text(document, "N", "x1", 43, 3));
 
@@ -281,6 +285,91 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "X2" }, ScanLogic.ValueCodes(" X2 ", Codes(), Settings.TokenSplit));
             Assert.Equal(new[] { "X1", "X3", "X4" }, ScanLogic.ValueCodes("X4 X3-X1 X1", Codes(), Settings.TokenSplit));
             Assert.Empty(ScanLogic.ValueCodes("x2", Codes(), Settings.TokenSplit));
+        }
+
+        [Fact]
+        public void R425_a_code_that_holds_a_split_character_is_matched_whole_the_longest_first_and_a_run_is_not_used_again()
+        {
+            Assert.Equal(new[] { "X3-0 (Q)" }, ScanLogic.ValueCodes("type X3-0 (Q) left", Codes(), Settings.TokenSplit));
+            Assert.Equal(new[] { "X3" }, ScanLogic.ValueCodes("X3-0", Codes(), Settings.TokenSplit));
+            Assert.Equal(new[] { "X1", "X3-0 (Q)" }, ScanLogic.ValueCodes("X3-0 (Q)/X1", Codes(), Settings.TokenSplit));
+            Assert.Empty(ScanLogic.ValueCodes("AX3 X3B", Codes(), Settings.TokenSplit));
+        }
+
+        [Fact]
+        public void R426_a_block_source_of_a_lower_score_leads_over_a_text_source_and_a_share_under_the_strong_share_proposes_none()
+        {
+            CadDocument document = Plots("1", 0, 0, "2", 20, 0, "3", 40, 0, "4", 60, 0);
+            document.Entities.Add(Insert(document, "V", "X1", 2, 2));
+            foreach (double x in new[] { 3.0, 23.0, 43.0, 63.0 })
+            {
+                document.Entities.Add(Text(document, "N", "X2", x, 3));
+            }
+            JObject cad = Scan(document, "f.dxf");
+
+            JObject weak = Result(new[] { cad });
+            Assert.Equal("X1 check 1", Short(RowOf(weak, "villaType", "f.dxf|block|V")));
+            Assert.Equal("X2 check 4", Short(RowOf(weak, "villaType", "f.dxf|text|N")));
+            Assert.Equal(new[] { "villaType||f.dxf|block|V 0.250 | f.dxf|text|N 1.000" }, Checks(weak, "noStrongSource"));
+            JObject conflict = (JObject)weak["conflicts"].Single();
+            Assert.Equal("1|villa type|X1|f.dxf|block|V|X2|f.dxf|text|N", string.Join("|", new[] { "plot", "field", "valueA", "sourceA", "valueB", "sourceB" }.Select(key => (string)conflict[key])));
+            Assert.Equal(1, (int)RowOf(weak, "villaType", "f.dxf|block|V")["conflicts"]);
+            Assert.Equal(0, (int)RowOf(weak, "plotOutline", "f.dxf|A")["conflicts"]);
+
+            JObject strong = Result(new[] { cad }, share: 0.25);
+            Assert.Equal("X1 villa type 1", Short(RowOf(strong, "villaType", "f.dxf|block|V")));
+            Assert.Empty(Checks(strong, "noStrongSource"));
+        }
+
+        [Fact]
+        public void R426_a_source_of_profile_codes_only_scores_0_and_gets_no_row_but_gives_its_codes_and_its_conflicts_with_the_lead()
+        {
+            CadDocument document = Plots("1", 0, 0, "2", 20, 0);
+            document.Entities.Add(Insert(document, "V", "X1", 2, 2));
+            document.Entities.Add(Insert(document, "V", "X1", 22, 2));
+            document.Entities.Add(Text(document, "N", "X3", 3, 3));
+            document.Entities.Add(Text(document, "N", "X3", 23, 3));
+
+            JObject result = Result(new[] { Scan(document, "f.dxf") }, prototypes: new[] { "X1" });
+            Assert.Equal("X1 villa type 2", Short(RowOf(result, "villaType", "f.dxf|block|V")));
+            Assert.DoesNotContain(((JArray)result["rows"]).Cast<JObject>(), row => (string)row["source"] == "f.dxf|text|N");
+            Assert.Equal("{\"f.dxf|block|V\":\"X1\",\"f.dxf|text|N\":\"X3\"}", result["plots"][0]["villaType"].ToString(Newtonsoft.Json.Formatting.None));
+            Assert.Equal(new[] { "1|f.dxf|block|V|f.dxf|text|N", "2|f.dxf|block|V|f.dxf|text|N" }, result["conflicts"].Select(item => (string)item["plot"] + "|" + (string)item["sourceA"] + "|" + (string)item["sourceB"]).ToArray());
+            Assert.Equal(2, (int)RowOf(result, "villaType", "f.dxf|block|V")["conflicts"]);
+        }
+
+        [Fact]
+        public void R421_a_face_of_two_labels_a_label_outside_the_outline_and_what_the_explode_did_not_read_are_check_rows()
+        {
+            CadDocument document = Plots("1", 0, 0, "2", 20, 0, "3", 40, 0);
+            document.Entities.Add(Text(document, "T", "4", 3, 3));
+            document.Entities.Add(Text(document, "T", "8", 500, 500));
+            // A chain of blocks deeper than the depth limit of the explode
+            BlockRecord deepest = null;
+            for (int depth = Exploder.DepthLimit + 1; depth >= 0; depth--)
+            {
+                var block = new BlockRecord("D" + depth);
+                document.BlockRecords.Add(block);
+                if (deepest != null)
+                {
+                    block.Entities.Add(new Insert(deepest));
+                }
+                deepest = block;
+            }
+            document.Entities.Add(new Insert(deepest) { Layer = Layer(document, "C") });
+            var xref = new BlockRecord("OUTSIDE");
+            document.BlockRecords.Add(xref);
+            xref.Flags = ACadSharp.Blocks.BlockTypeFlags.XRef;
+            xref.BlockEntity.XRefPath = ".\\outside.dwg";
+            document.Entities.Add(new Insert(xref) { Layer = Layer(document, "C") });
+
+            JObject cad = Scan(document, "f.dxf");
+            Assert.Equal(new[] { "f.dxf|xref OUTSIDE external reference", "f.dxf|depth limit 1" }, cad["notRead"].Select(item => (string)item["source"] + " " + (string)item["value"]).ToArray());
+            JObject result = Result(new[] { cad });
+            Assert.Equal(new[] { "f.dxf|A||1, 4" }, Checks(result, "manyLabels"));
+            Assert.Equal(new[] { "f.dxf|T|8|8" }, Checks(result, "labelOutside"));
+            Assert.Equal(new[] { "f.dxf|depth limit||1", "f.dxf|xref OUTSIDE||external reference" }, Checks(result, "notRead"));
+            Assert.Equal(new[] { "2", "3" }, result["plots"].Select(plot => (string)plot["plot"]).ToArray());
         }
 
         [Fact]
@@ -367,39 +456,46 @@ namespace SiteAdaptation.Tests
 
         private static PageChar Char(string text, double x0, double x1, double top)
         {
-            return new PageChar { Text = text, X0 = x0, X1 = x1, Top = top, Bottom = top + 1 };
+            return new PageChar { Text = text, X0 = x0, X1 = x1, Top = top, Bottom = top + 1, Upright = true };
         }
 
         [Fact]
-        public void R426_pdf_characters_join_into_words_by_the_gap_and_into_lines_by_the_tolerance_from_the_bottom_left()
+        public void R426_pdf_characters_join_into_lines_by_the_gap_and_the_tolerance_of_the_top_as_the_location_plan_and_turned_ones_join_none()
         {
             var chars = new List<PageChar>
             {
                 Char("7", 10, 11, 50),
                 Char("X", 20, 21, 20.04), Char("1", 21.2, 22, 20),
-                Char("1", 10, 11, 20), Char("2", 11.2, 12, 20), Char(" ", 12, 13, 20),
+                Char("1", 10, 11, 20), Char("2", 11.2, 12, 20),
             };
-            Assert.Equal(new[] { "12 X1", "7" }, ScanLogic.PdfLines(chars, 100, 0.3, 0.05));
+            PageChar turned = Char("9", 30, 31, 20);
+            turned.Upright = false;
+            chars.Add(turned);
+            Assert.Equal(new[] { "12", "X1", "7" }, ScanLogic.PdfLines(chars, 0.3, 0.05).Select(line => line.Text).ToArray());
         }
 
         [Fact]
-        public void R426_a_pdf_line_of_one_plot_number_under_the_best_shift_gives_its_codes_page_by_page()
+        public void R426_a_pdf_code_line_pairs_with_the_number_line_under_it_and_text_on_one_line_or_two_numbers_join_nothing()
         {
             string path = Path.Combine(folder, "plan.pdf");
             var builder = new PdfDocumentBuilder();
             PdfDocumentBuilder.AddedFont font = builder.AddStandard14Font(Standard14Font.Helvetica);
-            builder.AddPage(400, 300).AddText("11 X1", 10, new PdfPoint(50, 200), font);
+            PdfPageBuilder first = builder.AddPage(400, 300);
+            first.AddText("X1", 1, new PdfPoint(50, 200), font);
+            first.AddText("11", 1, new PdfPoint(50, 198.5), font);
             PdfPageBuilder second = builder.AddPage(400, 300);
-            second.AddText("12 X2", 10, new PdfPoint(50, 200), font);
-            second.AddText("11 12 X1", 10, new PdfPoint(50, 100), font);
+            second.AddText("12 X2", 1, new PdfPoint(50, 200), font);
+            second.AddText("X2", 1, new PdfPoint(100, 100), font);
+            second.AddText("12 13", 1, new PdfPoint(100, 98.5), font);
             File.WriteAllBytes(path, builder.Build());
 
             ScanPdf pdf = ScanSources.Pdf(path, Settings.PdfJoinGapPt, Settings.PdfLineTolerancePt);
-            Assert.Equal(new[] { "11 X1|12 X2|11 12 X1" }, new[] { string.Join("|", pdf.Pages.SelectMany(page => page)) });
+            Assert.Equal(new[] { "X1", "11" }, pdf.Pages[0].Select(line => line.Text).ToArray());
             JObject result = Result(new[] { Scan(Plots("1", 0, 0, "2", 20, 0), "f.dxf") }, null, new[] { pdf });
-            Assert.Equal("X1 check 1", Short(RowOf(result, "villaType", "plan.pdf|page 1|shift 10")));
-            Assert.Equal("X2 check 1", Short(RowOf(result, "villaType", "plan.pdf|page 2|shift 10")));
-            Assert.Equal(new[] { "villaType||plan.pdf|page 1|shift 10 or plan.pdf|page 2|shift 10" }, Checks(result, "tie"));
+            Assert.Equal("X1 villa type 1", Short(RowOf(result, "villaType", "plan.pdf|page 1|shift 10")));
+            Assert.DoesNotContain(((JArray)result["rows"]).Cast<JObject>(), row => ((string)row["source"]).Contains("page 2"));
+            Assert.Equal("{\"plan.pdf|page 1|shift 10\":\"X1\"}", result["plots"][0]["villaType"].ToString(Newtonsoft.Json.Formatting.None));
+            Assert.Equal("{}", result["plots"][1]["villaType"].ToString(Newtonsoft.Json.Formatting.None));
         }
 
         [Fact]
@@ -450,6 +546,7 @@ namespace SiteAdaptation.Tests
                 ["profile"] = profile,
                 ["prototypeNames"] = new JObject { ["prefix"] = "P-", ["discipline"] = "ARC", ["suffix"] = "-S-" },
                 ["siteBuild"] = new JObject { ["minFreeGB"] = 2.0 },
+                ["majority"] = new JObject { ["strongShare"] = 0.9 },
                 ["addin"] = new JObject { ["workerPeakMiB"] = new JObject { ["roles"] = new JArray("curbs"), ["files"] = new JArray(new JObject { ["name"] = "Road.dwg", ["bytes"] = 1, ["peakMiB"] = 100 }) }, ["workerTimeLimitS"] = new JObject { ["scan"] = 60 }, ["workerTimeLimitMinS"] = 10 },
             }.ToString());
             var request = new WorkerRequest

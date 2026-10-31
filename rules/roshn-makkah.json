@@ -234,14 +234,16 @@
     }
   },
   "scan": {
-    "note": "R420 to R427, round 4j-1. The values of the scanner of any CAD, Excel and PDF the user gives, read by python/scan.py and Common/Scan/ScanLogic.cs. ruleOf names the rule of each value. labelPattern is the label form of CadReader/PlotLabels.cs, group 1 the type and group 2 the number. plotNumberShifts are the shifts of config/plot_numbers.json and 0, a sheet number minus the shift is the CAD label. pdfJoinGapPt and pdfLineTolerancePt are joinGapPt and lineTolerancePt of dataBook.locationPlan. pairMinSegments CHOSEN by Code (Q243)",
+    "note": "R420 to R427, round 4j-1. The values of the scanner of any CAD, Excel and PDF the user gives, read by python/scan.py and Common/Scan/ScanLogic.cs. ruleOf names the rule of each value. labelPattern is the label form of CadReader/PlotLabels.cs, group 1 the type and group 2 the number. plotNumberShifts are the shifts of config/plot_numbers.json and 0, a sheet number minus the shift is the CAD label. pdfJoinGapPt, pdfLineTolerancePt, pdfPairDyPt and pdfPairDxPt are joinGapPt, lineTolerancePt, pairDyPt and pairDxPt of dataBook.locationPlan, the label pairs of R180. pairMinSegments CHOSEN by Code (Q243)",
     "labelPattern": "^(?:(.*?)\\s+)?(\\d{1,6})$",
     "tokenSplit": "[^A-Za-z0-9]+",
     "plotNumberShifts": [0, 10, 11],
     "pairMinSegments": 100,
     "pdfJoinGapPt": 0.3,
     "pdfLineTolerancePt": 0.05,
-    "ruleOf": {"labelPattern": "R421", "tokenSplit": "R425", "plotNumberShifts": "R426", "pairMinSegments": "R421", "pdfJoinGapPt": "R426", "pdfLineTolerancePt": "R426"}
+    "pdfPairDyPt": [1.3, 1.8],
+    "pdfPairDxPt": 1.5,
+    "ruleOf": {"labelPattern": "R421", "tokenSplit": "R425", "plotNumberShifts": "R426", "pairMinSegments": "R421", "pdfJoinGapPt": "R426", "pdfLineTolerancePt": "R426", "pdfPairDyPt": "R426", "pdfPairDxPt": "R426"}
   },
   "manualRules": {
     "note": "R403, join item W3. M01 to M15 of docs/design/15-manual-rules.md, the canvas texts approved by Bader on 28 Oct 2026, held here per project and never in code. The window Site Adaptation Rules and the lookup of Common read this block. sectionPage carries the section and the printed page with the page of the PDF file in brackets, as the Round FOLD read of the manual took them (READ, 29 Oct 2026). pastJob is the column of the design table, the window shows a measured one from the override list or the build when it is given. Questions Q149 and Q150 keep the canvas text of M14 and M15.",

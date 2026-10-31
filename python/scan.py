@@ -20,6 +20,7 @@ from shapely.strtree import STRtree
 
 import common
 import input_guard
+import location_plan
 import plot_relations
 import project_profile
 
@@ -28,6 +29,10 @@ RECORD = "scan_python_inputs.json"
 KINDS = ("cadLayer", "plotOutline", "plotNumber", "villaBlock", "villaType")
 LAYER_JOIN = " + "
 TIE_JOIN = " or "
+# The conflict fields a row counts, R424 on the plot outlines and R426 on the villa type sources, the other kinds count none
+# The kinds of villa type source in the order the lead is taken from (R426, Bader 31 Oct 2026)
+SOURCE_KINDS = ("block", "text", "excel", "pdf")
+FIELDS_OF = {"plotOutline": ("number", "location", "label"), "villaType": ("villa type",)}
 USE = {"plotOutline": "plot outlines", "plotNumber": "plot numbers", "villaBlock": "villa blocks", "villaType": "villa type"}
 
 
@@ -89,19 +94,26 @@ class Faces:
 
 
 def covered(faces, labels):
-    """R421. The faces that cover a plot, each holding exactly one label, with its number, label text and label layer."""
+    """R421. The faces that cover a plot, each holding exactly one label, with its number, label text and label layer, then the label
+    numbers of each face that holds two or more, and the labels inside no face."""
     faces = [face_of(face) for face in faces]
     held = defaultdict(list)
     index = Faces(faces)
+    outside = []
     for label in labels:
-        for face in index.holding(label["x"], label["y"]):
+        found = index.holding(label["x"], label["y"])
+        for face in found:
             held[id(face)].append(label)
-    plots = []
+        if not found:
+            outside.append(label)
+    plots, many = [], []
     for face in faces:
         if len(held[id(face)]) == 1:
             label = held[id(face)][0]
             plots.append(dict(face, number=label["number"], label=label["text"], layer=label["layer"]))
-    return plots
+        elif len(held[id(face)]) > 1:
+            many.append(sorted(label["number"] for label in held[id(face)]))
+    return plots, many, outside
 
 
 def pick(scores):
@@ -160,14 +172,27 @@ def old_new_pairs(profile):
 
 
 def value_codes(value, codes, split):
-    """R425. The codes a value holds, matched with case: the whole value when it is a code, else each of its tokens that is one, in
-    ordinal order. Two or more make the value a check."""
+    """R425. The codes a value holds, matched with case, in ordinal order: the whole value when it is a code, else each code found as a
+    run bounded by the start, the end or a character of tokenSplit, the longest code first and a matched span never used again, so a code
+    that holds a blank or a dash is found whole and not as its shorter head. Two or more make the value a check."""
     text = str(value if value is not None else "").strip()
     if not text:
         return []
     if text in codes:
         return [text]
-    return sorted({token for token in re.split(split, text) if token and token in codes})
+    bound = re.compile(split)
+    edge = lambda at: at < 0 or at >= len(text) or bound.fullmatch(text[at]) is not None
+    used = [False] * len(text)
+    found = set()
+    for code in sorted((code for code in codes if code), key=lambda code: (-len(code), code)):
+        start = text.find(code)
+        while start >= 0:
+            end = start + len(code)
+            if edge(start - 1) and edge(end) and not any(used[start:end]):
+                used[start:end] = [True] * len(code)
+                found.add(code)
+            start = text.find(code, start + 1)
+    return sorted(found)
 
 
 def plot_of(text, shift, plots):
@@ -213,43 +238,34 @@ def read_excel(path):
     return {"name": Path(path).name, "sheets": sheets}
 
 
-def pdf_lines(chars, height, gap, tolerance):
-    """R426. The text lines of a page: characters with text, y from the bottom left as page height minus top, rows of the same y within
-    tolerance, each row joined into words where a character starts within gap of the end of the one before, words joined by a space."""
-    picked = sorted(({"text": c["text"], "x0": c["x0"], "x1": c["x1"], "y": height - c["top"]} for c in chars if (c.get("text") or "").strip()),
-                    key=lambda c: (-c["y"], c["x0"]))
-    rows = []
-    for c in picked:
-        if rows and abs(c["y"] - rows[-1][0]["y"]) <= tolerance:
-            rows[-1].append(c)
-        else:
-            rows.append([c])
-    lines = []
-    for found in rows:
-        found.sort(key=lambda c: c["x0"])
-        words, word = [], [found[0]]
-        for c in found[1:]:
-            if c["x0"] - word[-1]["x1"] <= gap:
-                word.append(c)
-            else:
-                words.append(word)
-                word = [c]
-        words.append(word)
-        lines.append(" ".join("".join(c["text"] for c in item) for item in words))
-    return lines
+def pdf_lines(chars, gap, tolerance):
+    """R426, R179. The text lines of a page as the location plan makes them, the upright characters of any size: the same top within
+    tolerance and each character starting within gap of the end of the one before, each line with its text, top and centre in page
+    points, as LocationPlan.TextLines of the C# side."""
+    return location_plan.text_lines([c for c in chars if c.get("upright", True)], (float("-inf"), float("inf")), gap, tolerance)
 
 
 def read_pdf(path, gap, tolerance):
     """R426. The text lines of every page of a PDF file, by pdfplumber."""
     with pdfplumber.open(str(path)) as pdf:
-        pages = [pdf_lines(page.chars, float(page.height), gap, tolerance) for page in pdf.pages]
+        pages = [pdf_lines(page.chars, gap, tolerance) for page in pdf.pages]
     return {"name": Path(path).name, "pages": pages}
 
 
-def line_plot(text, shift, plots, split):
-    """R426. The plot of a PDF line that holds exactly one number token matching a plot under the shift, else None."""
-    hits = [found for found in (plot_of(token, shift, plots) for token in re.split(split, text) if token) if found is not None]
-    return hits[0] if len(hits) == 1 else None
+def number_token(text, split):
+    """R426. The one number token of a line, None when it holds none or more than one."""
+    found = [token for token in re.split(split, text) if token.isascii() and token.isdigit()]
+    return found[0] if len(found) == 1 else None
+
+
+def page_pairs(lines, codes, split, dy_band, dx_max):
+    """R426, R180. Each line that holds a code paired with a line of no code and one number token whose top lies within dy_band under
+    its top and whose centre lies within dx_max, nearest first and one to one, by the pairs of location_plan. Returns the code text and
+    the number token of each pair."""
+    code_lines = [line for line in lines if value_codes(line["text"], codes, split)]
+    number_lines = [line for line in lines if not value_codes(line["text"], codes, split) and number_token(line["text"], split) is not None]
+    pairs, _, _ = location_plan.pair_labels(code_lines, number_lines, dy_band, dx_max)
+    return [(code_lines[i]["text"], number_token(number_lines[k]["text"], split)) for i, k in pairs]
 
 
 def cad_rows(cad):
@@ -259,13 +275,14 @@ def cad_rows(cad):
 
 
 def outline_proposal(cad, pattern, rows, checks):
-    """R421. The plotOutline rows of a file, its proposed source and score and the plots of that source."""
+    """R421. The plotOutline rows of a file, its proposed source and score and the plots of that source. Each face of the proposed
+    outline with two or more labels is a manyLabels check and each label inside no face of it a labelOutside check."""
     labels = labels_of(cad["texts"], pattern)
     plots_of, scores = {}, {}
     for candidate in cad["candidates"]:
         source = cad["source"] + "|" + LAYER_JOIN.join(sorted(candidate["layers"]))
         plots_of[source] = covered(candidate["faces"], labels)
-        scores[source] = len(plots_of[source])
+        scores[source] = len(plots_of[source][0])
         rows.append(row("plotOutline", source, "%d faces" % len(candidate["faces"]), scores[source], False))
     proposed, tied = pick(scores)
     if tied:
@@ -275,7 +292,10 @@ def outline_proposal(cad, pattern, rows, checks):
     for found in rows:
         if found["kind"] == "plotOutline" and found["source"] == proposed:
             found["proposedUse"] = USE["plotOutline"]
-    return {"source": proposed, "score": scores[proposed], "plots": plots_of[proposed], "cad": cad}
+    plots, many, outside = plots_of[proposed]
+    checks.extend(check("manyLabels", proposed, "", ", ".join(numbers)) for numbers in many)
+    checks.extend(check("labelOutside", cad["source"] + "|" + label["layer"], label["number"], label["text"]) for label in outside)
+    return {"source": proposed, "score": scores[proposed], "plots": plots, "cad": cad}
 
 
 def number_rows(proposal, rows, checks):
@@ -332,9 +352,10 @@ def link_conflicts(drawing, plots, index, other):
     return links, found
 
 
-def add_value(sources, source, plot, value):
+def add_value(sources, kind, source, plot, value):
     if str(value).strip():
         sources[source][plot].append(value)
+        sources.kinds[source] = kind
 
 
 def cad_sources(cads, index, sources):
@@ -342,10 +363,10 @@ def cad_sources(cads, index, sources):
     for cad in cads:
         for insert in cad["inserts"]:
             for face in index.holding(insert["x"], insert["y"]):
-                add_value(sources, cad["source"] + "|block|" + insert["layer"], face["number"], insert["block"])
+                add_value(sources, "block", cad["source"] + "|block|" + insert["layer"], face["number"], insert["block"])
         for text in cad["texts"]:
             for face in index.holding(text["x"], text["y"]):
-                add_value(sources, cad["source"] + "|text|" + text["layer"], face["number"], text["text"])
+                add_value(sources, "text", cad["source"] + "|text|" + text["layer"], face["number"], text["text"])
 
 
 def excel_sources(excel, plots, shifts, sources, checks):
@@ -371,78 +392,117 @@ def excel_sources(excel, plots, shifts, sources, checks):
                 continue
             for other, header in enumerate(sheet["headers"]):
                 if other != column and other < len(found):
-                    add_value(sources, prefix + header + "|shift " + str(shift), plot, found[other])
+                    add_value(sources, "excel", prefix + header + "|shift " + str(shift), plot, found[other])
 
 
-def pdf_sources(pdf, plots, shifts, split, sources, checks):
-    """R426. Each line of a PDF file that holds one number token of a plot under the shift that matches the most plots of the file, by
-    page."""
+def pdf_sources(pdf, plots, block, codes, sources, checks):
+    """R426. The code line and number line pairs of R180 of each page of a PDF file, joined to the plots by the number under the shift
+    that matches the most plots of the file, by page."""
+    split = block["tokenSplit"]
+    pages = [page_pairs(page, codes, split, block["pdfPairDyPt"], block["pdfPairDxPt"]) for page in pdf["pages"]]
     scores = {}
-    for shift in shifts:
-        scores[pdf["name"] + "|shift " + str(shift)] = len({line_plot(line, shift, plots, split) for page in pdf["pages"] for line in page} - {None})
+    for shift in block["plotNumberShifts"]:
+        scores[pdf["name"] + "|shift " + str(shift)] = len({plot_of(token, shift, plots) for pairs in pages for _, token in pairs} - {None})
     chosen, tied = pick(scores)
     if tied:
         checks.append(tie_check("pdfShift", tied))
     if chosen is None:
         return
     shift = int(chosen.rsplit(" ", 1)[1])
-    for number, page in enumerate(pdf["pages"], start=1):
-        for line in page:
-            plot = line_plot(line, shift, plots, split)
+    for number, pairs in enumerate(pages, start=1):
+        for text, token in pairs:
+            plot = plot_of(token, shift, plots)
             if plot is not None:
-                add_value(sources, "%s|page %d|shift %d" % (pdf["name"], number, shift), plot, line)
+                add_value(sources, "pdf", "%s|page %d|shift %d" % (pdf["name"], number, shift), plot, text)
 
 
 def source_codes(source, values_by_plot, codes, split, checks):
-    """R425. The one code each plot of a source gives. A value or a plot with two codes is a check row and gives none."""
+    """R425. The one code each plot of a source gives. A value or a plot with two codes is a check row, and a plot that holds such a
+    value or two codes gets none from the source."""
     given = {}
     for plot, values in values_by_plot.items():
-        found = set()
+        found, many = set(), False
         for value in values:
             matched = value_codes(value, codes, split)
             if len(matched) > 1:
                 checks.append(check("twoCodes", source, plot, str(value).strip()))
+                many = True
             elif matched:
                 found.add(matched[0])
         if len(found) > 1:
             checks.append(check("twoCodes", source, plot, ", ".join(sorted(found))))
-        elif found:
+        elif found and not many:
             given[plot] = found.pop()
     return given
 
 
-def type_rows(given, pairs, rows, conflicts, checks):
-    """R426. A villaType row per source that gives a plot a villa type, the highest proposed, and the plots where another source gives
-    another code, a conflict, or a check when the two are the old and the new code of one row of typology_codes."""
-    scores = {source: len(found) for source, found in given.items() if found}
-    proposed, tied = pick(scores)
-    if tied:
-        checks.append(tie_check("villaType", tied))
+def share_text(share):
+    return "%.3f" % common.fixed(share, 3)
+
+
+def type_rows(given, kinds, prototypes, strong, pairs, rows, conflicts, checks):
+    """R426. A villaType row per source whose score is above 0, the score the plots it gives a prototype code. The lead is the source of
+    the highest score in the first kind of SOURCE_KINDS with a score above 0, a tie in that kind no lead. It is proposed when its share of
+    the plots any source gives a prototype code is at least strong, else every source is a check and noStrongSource names the lead and
+    the best of each later kind with their shares. A plot where any other source gives another code than the lead, a profile code too,
+    is a conflict, or a check when the two are the old and the new code of one row of typology_codes."""
+    scores = {source: sum(1 for code in found.values() if code in prototypes) for source, found in given.items()}
+    scores = {source: score for source, score in scores.items() if score > 0}
+    by_kind = defaultdict(dict)
+    for source, score in scores.items():
+        by_kind[kinds[source]][source] = score
+    order = [kind for kind in SOURCE_KINDS if kind in by_kind]
+    lead, proposed = None, None
+    if order:
+        lead, tied = pick(by_kind[order[0]])
+        if tied:
+            checks.append(tie_check("villaType", tied))
+    if lead is not None:
+        total = len({plot for found in given.values() for plot, code in found.items() if code in prototypes})
+        share = scores[lead] / total
+        if share >= strong:
+            proposed = lead
+        else:
+            parts = [lead + " " + share_text(share)]
+            for kind in order[1:]:
+                best = min(by_kind[kind], key=lambda source: (-by_kind[kind][source], source))
+                parts.append(best + " " + share_text(by_kind[kind][best] / total))
+            checks.append(check("noStrongSource", "villaType", "", " | ".join(parts)))
     for source in sorted(scores):
         rows.append(row("villaType", source, ", ".join(sorted(set(given[source].values()))), scores[source], source == proposed))
-    if proposed is None:
+    if lead is None:
         return
-    for source in sorted(scores):
-        if source == proposed:
+    for source in sorted(given):
+        if source == lead:
             continue
         for plot, code in sorted(given[source].items()):
-            ours = given[proposed].get(plot)
+            ours = given[lead].get(plot)
             if ours is None or ours == code:
                 continue
             if frozenset((ours, code)) in pairs:
                 checks.append(check("oldNewPair", source, plot, ours + ", " + code))
             else:
-                conflicts.append(conflict(plot, "villa type", ours, proposed, code, source))
+                conflicts.append(conflict(plot, "villa type", ours, lead, code, source))
 
 
-def scan_result(block, codes, pairs, cads, excels, pdfs, inputs):
-    """R421 to R427. The scan result of the files of a run, every list in the order of docs/design/17-scanner.md."""
+class Sources(defaultdict):
+    """The values of each villa type source by plot, with the kind of each source."""
+
+    def __init__(self):
+        super().__init__(lambda: defaultdict(list))
+        self.kinds = {}
+
+
+def scan_result(block, codes, pairs, prototypes, strong, cads, excels, pdfs, inputs):
+    """R421 to R427. The scan result of the files of a run, every list in the order of docs/design/17-scanner.md. prototypes are the codes
+    of the prototype file names, strong the share majority.strongShare."""
     pattern = re.compile(block["labelPattern"])
     split, shifts = block["tokenSplit"], block["plotNumberShifts"]
     rows, conflicts, checks = [], [], []
     proposals = []
     for cad in cads:
         rows.extend(cad_rows(cad))
+        checks.extend(check("notRead", item["source"], "", item["value"]) for item in cad.get("notRead") or [])
         proposal = outline_proposal(cad, pattern, rows, checks)
         if proposal is not None:
             proposals.append(proposal)
@@ -469,16 +529,17 @@ def scan_result(block, codes, pairs, cads, excels, pdfs, inputs):
         for proposal in proposals:
             if proposal is not drawing:
                 conflicts.extend(link_conflicts(drawing["source"], plots, index, proposal)[1])
-    sources = defaultdict(lambda: defaultdict(list))
+    sources = Sources()
     cad_sources(cads, index, sources)
     for excel in excels:
         excel_sources(excel, plots, shifts, sources, checks)
     for pdf in pdfs:
-        pdf_sources(pdf, plots, shifts, split, sources, checks)
+        pdf_sources(pdf, plots, block, codes, sources, checks)
     given = {source: source_codes(source, sources[source], codes, split, checks) for source in sorted(sources)}
-    type_rows(given, pairs, rows, conflicts, checks)
+    type_rows(given, sources.kinds, prototypes, strong, pairs, rows, conflicts, checks)
     for found in rows:
-        found["conflicts"] = sum(1 for item in conflicts if found["source"] in (item["sourceA"], item["sourceB"]))
+        fields = FIELDS_OF.get(found["kind"], ())
+        found["conflicts"] = sum(1 for item in conflicts if item["field"] in fields and found["source"] in (item["sourceA"], item["sourceB"]))
     rows.sort(key=lambda item: (KINDS.index(item["kind"]), item["source"]))
     conflicts.sort(key=lambda item: (item["plot"], item["field"], item["sourceA"], item["sourceB"], item["valueA"], item["valueB"]))
     unique = {tuple(item.values()): item for item in checks}
@@ -486,6 +547,14 @@ def scan_result(block, codes, pairs, cads, excels, pdfs, inputs):
     plot_rows = [{"plot": number, "label": plots[number]["label"], "centroid": point_text(plots[number]["centroid"]),
                   "villaType": {source: given[source][number] for source in sorted(given) if number in given[source]}} for number in sorted(plots)]
     return {"inputs": inputs, "rows": rows, "conflicts": conflicts, "checks": checks, "plots": plot_rows}
+
+
+def strong_share(settings):
+    """R426. majority.strongShare of config, a run with no share between 0 and 1 there is refused."""
+    share = settings.get("majority.strongShare")
+    if isinstance(share, bool) or not isinstance(share, (int, float)) or not 0 < share <= 1:
+        raise project_profile.ProfileError(settings.path.name + " gives no majority.strongShare between 0 and 1: " + repr(share))
+    return share
 
 
 def load_json(path):
@@ -518,7 +587,9 @@ def run(settings_path, cad_paths, excel_paths, pdf_paths, prototypes, out):
         pdfs = [read_pdf(path, block["pdfJoinGapPt"], block["pdfLineTolerancePt"]) for path in pdf_paths]
         codes = known_codes(profile, settings.get("prototypeNames"), names)
         pairs = old_new_pairs(profile)
-    result = scan_result(block, codes, pairs, cads, excels, pdfs, inputs)
+        prototypes = {code for code in (prototype_code(name, settings.get("prototypeNames")) for name in names) if code}
+        strong = strong_share(settings)
+    result = scan_result(block, codes, pairs, prototypes, strong, cads, excels, pdfs, inputs)
     common.write_json(out / OUTPUT, result)
     return result
 
