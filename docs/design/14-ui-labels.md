@@ -503,6 +503,8 @@ The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boar
 - `Cancel`
 - `Check files`
 - `Save setup`
+- `The scan reads no survey point yet` CHOSEN, the one line of the Survey point dropdown once a scan is there (R440, Q283)
+- `Villa type sheet and column` CHOSEN, the row of the sheet and column dropdowns of the plot list (R440, Q283)
 
 ### How it works
 

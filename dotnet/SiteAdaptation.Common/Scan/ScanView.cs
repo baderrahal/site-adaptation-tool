@@ -112,8 +112,9 @@ namespace SiteAdaptation.Common.Scan
     public static class ScanView
     {
         public const string VillaTypeKind = "villaType";
+        public const string PlotOutlineKind = "plotOutline";
 
-        private static readonly string[] ValueKinds = { "plotOutline", "plotNumber", "villaBlock", VillaTypeKind };
+        private static readonly string[] ValueKinds = { PlotOutlineKind, "plotNumber", "villaBlock", VillaTypeKind };
         private static readonly string[] ValueLabels = { ScanViewText.PlotOutline, ScanViewText.PlotNumber, ScanViewText.VillaBlock, ScanViewText.VillaType };
         private static readonly Regex Slot = new Regex(@"<[a-z]+>");
         private static readonly Regex CadFound = new Regex(@"^(\d+) closed outlines, (\d+) texts, (\d+) blocks");

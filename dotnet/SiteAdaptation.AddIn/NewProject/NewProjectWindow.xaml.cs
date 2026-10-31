@@ -15,6 +15,11 @@ namespace SiteAdaptation.AddIn.NewProject
             DataContext = model;
         }
 
+        private void OnView(object sender, RoutedEventArgs e)
+        {
+            model.ViewScan();
+        }
+
         private void OnBrowse(object sender, RoutedEventArgs e)
         {
             if ((sender as FrameworkElement)?.DataContext is SetupRowViewModel row)

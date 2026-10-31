@@ -394,4 +394,7 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R434 Saved projects of the work root.
 - R435 Scan value status.
 - R436 Save scan picks with setup.
+- R438 Button 2 scan gate.
+- R439 Scan reuse by input hash.
+- R440 Drawing facts from the scan.
 - R441 Current files gate.

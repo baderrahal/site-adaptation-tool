@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.AddIn.Pane;
+using SiteAdaptation.Common.Scan;
 using SiteAdaptation.Common.Settings;
 
 namespace SiteAdaptation.AddIn.NewProject
@@ -116,9 +117,19 @@ namespace SiteAdaptation.AddIn.NewProject
         private bool checkedOk;
         private string templateLine = string.Empty;
 
+        // R440, Q283. The scan the facts came from, the window What the tool read it opens, and the picks of the dropdowns and the window
+        private readonly DrawingFactsResult facts;
+        private readonly Func<string, ProjectSettings, ProjectSettings> viewScan;
+        private readonly Dictionary<string, string> scanPicks = new Dictionary<string, string>(StringComparer.Ordinal);
+        private IDictionary<string, string> conflictPicks;
+        private int layerIndex;
+        private int sheetIndex;
+        private int columnIndex;
+
         public NewProjectViewModel(ProjectSettings current, string projectName, IReadOnlyList<SavedStart> starts, DrawingFactsResult facts, Func<string, bool, bool> there,
-            IPathPicker picker, Func<string, string> readText)
+            IPathPicker picker, Func<string, string> readText, Func<string, ProjectSettings, ProjectSettings> viewScan = null)
         {
+            this.viewScan = viewScan;
             this.current = current ?? new ProjectSettings();
             this.there = there;
             this.picker = picker;
@@ -129,6 +140,15 @@ namespace SiteAdaptation.AddIn.NewProject
             SavedHint = starts == null || starts.Count == 0 ? string.Empty : TextTemplate.Fill(NewProjectText.SavedHint, starts[0].Name);
             Rows = SetupRows.All.Select(row => new SetupRowViewModel(row)).ToList();
             facts = facts ?? new DrawingFactsResult();
+            this.facts = facts;
+            ScanFactsData scan = facts.Scan;
+            LayerChoices = scan == null ? new List<string>() : scan.LayerChoices.Select(source => source.Shown).ToList();
+            layerIndex = scan == null || scan.LayerChoices.Count == 0 ? -1 : Math.Max(0, scan.LayerChoices.FindIndex(source => source.Raw == (Pick(ScanView.PlotOutlineKind) ?? scan.LayerProposed)));
+            SheetChoices = scan == null ? new List<string>() : scan.Sheets.Select(sheet => sheet.Shown).ToList();
+            string villa = Pick(ScanView.VillaTypeKind) ?? scan?.VillaTypeProposed;
+            sheetIndex = scan == null || scan.Sheets.Count == 0 ? -1 : Math.Max(0, scan.Sheets.FindIndex(sheet => sheet.Columns.Any(column => column.Raw == villa)));
+            columnIndex = sheetIndex < 0 ? -1 : Math.Max(0, scan.Sheets[sheetIndex].Columns.FindIndex(column => column.Raw == villa));
+            SurveyChoices = new[] { facts.SurveyPoint ?? (scan == null ? NewProjectText.FromScan : NewProjectText.NoSurveyPoint) };
             Rows.Single(row => row.Row.Id == SetupRows.Site).LayersFound(facts.Layers);
             SurveyPoint = facts.SurveyPoint ?? NewProjectText.FromScan;
             PlotsFound = facts.Plots == null ? NewProjectText.NotRead : TextTemplate.Fill(NewProjectText.PlotsOnLayer, TextTemplate.Count(facts.Plots.Value), facts.PlotLayer ?? NewProjectText.FromScan);
@@ -145,8 +165,88 @@ namespace SiteAdaptation.AddIn.NewProject
         public string PlotsFound { get; }
         public string VillaTypes { get; }
 
-        // The pick and list of Change and View come with the scanner of a later Lane B round (steps/waiting-on-others.md)
+        // Change waits for a later round, View opens What the tool read on the scan the facts came from
         public bool CanChange { get { return false; } }
+
+        public bool CanView => facts.ScanPath != null && viewScan != null;
+
+        public IReadOnlyList<string> SurveyChoices { get; }
+
+        // The scan reads no survey point, so its dropdown holds one line and stays grey (Q283)
+        public bool HasSurvey => facts.SurveyPoint != null;
+
+        public IReadOnlyList<string> LayerChoices { get; }
+
+        public bool HasLayers => LayerChoices.Count > 0;
+
+        public int LayerIndex
+        {
+            get { return layerIndex; }
+            set
+            {
+                if (value >= 0 && value < LayerChoices.Count && Set(ref layerIndex, value))
+                {
+                    scanPicks[ScanView.PlotOutlineKind] = facts.Scan.LayerChoices[value].Raw;
+                }
+            }
+        }
+
+        public IReadOnlyList<string> SheetChoices { get; }
+
+        public bool HasSheets => SheetChoices.Count > 0;
+
+        public int SheetIndex
+        {
+            get { return sheetIndex; }
+            set
+            {
+                if (value >= 0 && value < SheetChoices.Count && Set(ref sheetIndex, value))
+                {
+                    columnIndex = 0;
+                    Changed(nameof(ColumnChoices));
+                    Changed(nameof(ColumnIndex));
+                    scanPicks[ScanView.VillaTypeKind] = facts.Scan.Sheets[value].Columns[0].Raw;
+                }
+            }
+        }
+
+        public IReadOnlyList<string> ColumnChoices => sheetIndex < 0 ? new List<string>() : facts.Scan.Sheets[sheetIndex].Columns.Select(column => column.Column).ToList();
+
+        public int ColumnIndex
+        {
+            get { return columnIndex; }
+            set
+            {
+                if (sheetIndex >= 0 && value >= 0 && value < facts.Scan.Sheets[sheetIndex].Columns.Count && Set(ref columnIndex, value))
+                {
+                    scanPicks[ScanView.VillaTypeKind] = facts.Scan.Sheets[sheetIndex].Columns[value].Raw;
+                }
+            }
+        }
+
+        // View: What the tool read on the scan with the picks so far, its picks kept for Save setup, Cancel there keeps those before
+        public void ViewScan()
+        {
+            if (!CanView)
+            {
+                return;
+            }
+            ProjectSettings picked = viewScan(facts.ScanPath, Next());
+            if (picked == null)
+            {
+                return;
+            }
+            foreach (KeyValuePair<string, string> pick in picked.ScanPicks ?? new SortedDictionary<string, string>())
+            {
+                scanPicks[pick.Key] = pick.Value;
+            }
+            conflictPicks = picked.ConflictPicks;
+        }
+
+        private string Pick(string kind)
+        {
+            return current.ScanPicks != null && current.ScanPicks.TryGetValue(kind, out string raw) ? raw : null;
+        }
 
         public string Ready { get { return ready; } private set { Set(ref ready, value); } }
         public bool StopShown { get { return stopShown; } private set { Set(ref stopShown, value); } }
@@ -256,7 +356,7 @@ namespace SiteAdaptation.AddIn.NewProject
 
         private SetupDraft Draft()
         {
-            var draft = new SetupDraft { StartText = start?.Start?.Text };
+            var draft = new SetupDraft { StartText = start?.Start?.Text, ScanPicks = new Dictionary<string, string>(scanPicks), ConflictPicks = conflictPicks };
             foreach (KeyValuePair<string, string> pick in picks)
             {
                 draft.Picks[pick.Key] = pick.Value;

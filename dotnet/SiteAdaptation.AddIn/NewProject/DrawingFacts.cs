@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.ReadData;
 using SiteAdaptation.Common.Review;
+using SiteAdaptation.Common.Scan;
 
 namespace SiteAdaptation.AddIn.NewProject
 {
@@ -17,6 +18,11 @@ namespace SiteAdaptation.AddIn.NewProject
         public int? Plots { get; set; }
         public string PlotLayer { get; set; }
         public int? VillaTypes { get; set; }
+
+        // R440. The scan.json the facts come from and what it offers the dropdowns, null when no scan is in the work folder
+        public string ScanPath { get; set; }
+
+        public ScanFactsData Scan { get; set; }
     }
 
     // The hook of the scanner of a later Lane B round (steps/waiting-on-others.md): it gives the layers of the drawing, the survey point
@@ -79,6 +85,28 @@ namespace SiteAdaptation.AddIn.NewProject
             {
                 return null;
             }
+        }
+    }
+
+    // R440, Q283. The facts of the latest scan of the work folder, the scan button 2 starts, else those of the latest read. A scan that
+    // does not read gives the facts of the read, never a guess
+    public sealed class LatestScanFacts : IDrawingFacts
+    {
+        public DrawingFactsResult Read(string configFile, string workFolder)
+        {
+            string path = string.IsNullOrEmpty(workFolder) ? null : ScanStep.Latest(workFolder);
+            if (path != null)
+            {
+                try
+                {
+                    ScanFactsData scan = ScanFacts.Of(WorkFiles.ReadText(path));
+                    return new DrawingFactsResult { Layers = scan.Layers, Plots = scan.Plots, PlotLayer = scan.PlotLayer, VillaTypes = scan.VillaTypes, ScanPath = path, Scan = scan };
+                }
+                catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is JsonException || error is InvalidCastException)
+                {
+                }
+            }
+            return new LastReadFacts().Read(configFile, workFolder);
         }
     }
 }

@@ -34,7 +34,7 @@ namespace SiteAdaptation.AddIn.ScanResults
         }
 
         // Export to Excel asks where, the work folder first, never over a file (ScanPicks.Export refuses one)
-        private static string PickExport()
+        public static string PickExport()
         {
             var dialog = new SaveFileDialog { DefaultExt = TemplateBook.Extension, AddExtension = true, OverwritePrompt = false, FileName = ScanResultsText.Title + TemplateBook.Extension };
             return dialog.ShowDialog() == true ? dialog.FileName : null;
