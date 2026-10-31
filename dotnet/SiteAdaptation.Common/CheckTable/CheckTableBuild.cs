@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common.Review;
@@ -35,7 +36,7 @@ namespace SiteAdaptation.Common.CheckTable
         public static CheckTableView Compose(string nbh, JObject step, JObject block, IReadOnlyList<ReviewCheck> wrong, PastJob past,
             Func<string, string, string> manualRule, bool saveAllowed)
         {
-            JObject plots = step["plots"] as JObject ?? new JObject();
+            JObject plots = WrittenPlots(step);
             List<string> types = (block["types"] as JArray ?? new JArray()).Select(item => (string)item).ToList();
             // A plot of the build that plots.csv gives no nbhId stands in the NBH the build was asked for, the scope of the run (CHOSEN, R376)
             var numbers = plots.Properties().Where(item => nbh == null || (string)item.Value["nbh"] == nbh || NoNbh(item.Value["nbh"])).Select(item => item.Name).ToList();
@@ -127,6 +128,23 @@ namespace SiteAdaptation.Common.CheckTable
                     row.Why = why.Length == 0 ? line : why + ". " + line;
                 }
             }
+        }
+
+        // R376, R345. The plots of the step checkRows, each by the written side of the step file the worker writes, as BuildPlan reads a
+        // step. A plot of no written side is not that form, and read flat it would give no row and follow every rule, so it stops here
+        public static JObject WrittenPlots(JObject step)
+        {
+            var plots = new JObject();
+            foreach (JProperty plot in (step?["plots"] as JObject ?? new JObject()).Properties())
+            {
+                plots[plot.Name] = plot.Value["written"] as JObject ?? throw new InvalidDataException(NoWritten(plot.Name));
+            }
+            return plots;
+        }
+
+        public static string NoWritten(string plot)
+        {
+            return "the step " + CheckRows.StepName + " holds plot " + plot + " with no written side, not the step file form (R345)";
         }
 
         // R376. A plot with no nbhId of plots.csv, or one of spaces only, stands in the NBH of the scope

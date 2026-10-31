@@ -139,8 +139,8 @@ namespace SiteAdaptation.Tests
         public void R376_the_info_line_counts_an_entry_on_a_plot_with_no_nbh_as_the_table_keeps_it_and_an_nbh_of_spaces_is_none()
         {
             JObject step = R376_CheckTableTests.Step();
-            step["plots"]["11"] = JObject.Parse("{ 'unit': null, 'nbh': null, 'rows': [] }");
-            step["plots"]["12"] = JObject.Parse("{ 'unit': null, 'nbh': '  ', 'rows': [ { 'check': 'Unit code', 'field': 'unit', 'from': 'missing', 'use': 'Rule', 'rule': null, 'toolValue': null, 'past': { 'writes': null, 'value': null, 'why': 'no unit' }, 'why': null } ] }");
+            step["plots"]["11"] = R376_CheckTableTests.Sides("{ 'unit': null, 'nbh': null, 'rows': [] }");
+            step["plots"]["12"] = R376_CheckTableTests.Sides("{ 'unit': null, 'nbh': '  ', 'rows': [ { 'check': 'Unit code', 'field': 'unit', 'from': 'missing', 'use': 'Rule', 'rule': null, 'toolValue': null, 'past': { 'writes': null, 'value': null, 'why': 'no unit' }, 'why': null } ] }");
             JObject overrides = JObject.Parse("{ 'overrides': [ { 'plot': '1' }, { 'plot': '9' }, { 'plot': '11' }, { 'plot': '12' } ] }");
 
             Assert.Equal(3, CheckTableInfo.Of("p", "l", overrides, step, "012").OnNbh);

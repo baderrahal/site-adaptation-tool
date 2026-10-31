@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.AddIn.CheckTable;
+using SiteAdaptation.Common;
 using SiteAdaptation.Common.CheckTable;
 using SiteAdaptation.Common.ManualRules;
 using SiteAdaptation.Common.Review;
@@ -64,7 +66,7 @@ namespace SiteAdaptation.UiShots
         // the manual rule ids by the profile of the repo. dryRun true is the table of a dry run, Save overrides grey
         public static CheckTableView SampleCheckView(bool dryRun)
         {
-            JObject step = JObject.Parse(@"{
+            JObject step = Wrapped(JObject.Parse(@"{
   'plots': {
     '31': { 'unit': 'VL4', 'nbh': '012', 'rows': [
       { 'check': 'Level', 'field': 'heightM', 'from': 'override', 'use': 'Past', 'rule': 'ffl', 'toolValue': 'FFL by the rule', 'past': { 'writes': 'gapToRuleM', 'value': { 'gapToRuleM': 0.001 }, 'why': null }, 'why': 'an override of the list' },
@@ -78,7 +80,7 @@ namespace SiteAdaptation.UiShots
     '35': { 'unit': 'TH2', 'nbh': '012', 'rows': [] }
   },
   'tables': { 'assumed': { 'rampSlope': { 'status': 'CHOSEN' } }, 'chips': { 'All': 5, 'followEveryRule': 2 } }
-}");
+}"));
             JObject block = JObject.Parse("{ 'types': ['Plot cut', 'Floor', 'Hand', 'Unit code', 'Position', 'Level'], 'fields': { } }");
             var past = new PastJob
             {
@@ -94,6 +96,17 @@ namespace SiteAdaptation.UiShots
             CheckTableView view = CheckTableBuild.Compose("012", step, block, wrong, past, rules.IdOfCheck, !dryRun);
             view.Info = new CheckTableInfo { LevelProfile = "parsons2024Rev6", OverrideFile = "roshn-makkah.json", Overrides = 12, OnNbh = 5 };
             return view;
+        }
+
+        // The step file the worker writes, each plot as its raw and its written side (R345)
+        private static JObject Wrapped(JObject flat)
+        {
+            var plots = new Dictionary<string, Dictionary<string, object>>();
+            foreach (JProperty plot in ((JObject)flat["plots"]).Properties())
+            {
+                plots[plot.Name] = ((JObject)plot.Value).Properties().ToDictionary(item => item.Name, item => (object)item.Value);
+            }
+            return StepFile.Build(CheckRows.StepName, "csharp", "nbh=012", plots, new ParityField[0], flat["tables"] as JObject);
         }
     }
 }

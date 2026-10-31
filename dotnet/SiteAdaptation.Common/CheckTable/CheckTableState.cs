@@ -118,7 +118,7 @@ namespace SiteAdaptation.Common.CheckTable
 
         public static CheckTableInfo Of(string levelProfile, string overrideFile, JObject overrideList, JObject step, string nbh)
         {
-            JObject plots = step?["plots"] as JObject ?? new JObject();
+            JObject plots = CheckTableBuild.WrittenPlots(step);
             List<string> entries = (overrideList?["overrides"] as JArray ?? new JArray()).OfType<JObject>().Select(item => item["plot"]?.ToString()).ToList();
             return new CheckTableInfo
             {
