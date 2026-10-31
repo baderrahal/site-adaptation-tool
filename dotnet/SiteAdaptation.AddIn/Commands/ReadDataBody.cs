@@ -40,10 +40,28 @@ namespace SiteAdaptation.AddIn
             };
         }
 
-        public static ButtonBody For(DocumentSession session)
+        // R438, Q246. The read runs after the scan of the same files, reused when they did not change, and the gate of the window What
+        // the tool read. owner is the Revit main window the window opens over
+        public static ButtonBody For(DocumentSession session, IntPtr owner)
         {
             Func<SettingsScope> scope = () => new SettingsScope { Kind = session.Settings.Scope.Kind, Nbh = session.Settings.Scope.Nbh, Plots = session.Settings.Scope.Plots };
-            return new ReadDataRun(Roles, Worker, new WorkerDocument { Path = session.Path, SessionId = session.SessionId }, scope).Body();
+            var document = new WorkerDocument { Path = session.Path, SessionId = session.SessionId };
+            ButtonBody read = new ReadDataRun(Roles, Worker, document, scope).Body();
+            // A run of the test host has no one to pick in the window and runs its read as before, so the runs of Lane B keep their
+            // time and never wait on a window (CHOSEN, SCAN-UI)
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(TestHostGuard.JobVariable)))
+            {
+                return read;
+            }
+            return ScanStep.Wrap(read, Worker, document, () => ScanInputs(session.Settings),
+                path => ScanResults.ScanGate.Ask(path, session.Settings, owner, WorkFiles.ReadText));
+        }
+
+        // The inputs of the read with the Settings file, whose role config the scan needs, and the Prototypes folder
+        public static IReadOnlyList<WorkerFile> ScanInputs(PaneSettings settings)
+        {
+            var pane = new List<RunInput>(Inputs(settings)) { new RunInput(PaneText.Settings, settings.ConfigFile, false) };
+            return ScanStep.Inputs(pane, Roles, settings.InputPath(InputKeys.Prototypes));
         }
     }
 

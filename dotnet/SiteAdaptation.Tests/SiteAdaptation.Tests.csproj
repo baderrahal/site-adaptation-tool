@@ -38,5 +38,6 @@
     <Compile Remove="AddinRunAddInTests.cs" />
     <Compile Remove="NewProjectTests.cs" />
     <Compile Remove="ScanResultsTests.cs" />
+    <Compile Remove="ScanGateTests.cs" />
   </ItemGroup>
 </Project>

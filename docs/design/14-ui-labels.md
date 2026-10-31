@@ -616,3 +616,4 @@ The window What the tool read of Lane C SCAN-UI, word for word from docs/design/
 - `No source covers enough plots. The best covers <n> of <n>.` CHOSEN, the line for a value other than the villa type
 - `What to do: pick the source in the row Villa type, or ask the master planner which file is current.`
 - `What to do: pick the source in the row <name>.` CHOSEN, the line for a value other than the villa type
+- `Your picks are saved with the setup.` CHOSEN, the pane line of button 2 after Use these picks (R438)

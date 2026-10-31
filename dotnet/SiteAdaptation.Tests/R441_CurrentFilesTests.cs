@@ -135,6 +135,22 @@ namespace SiteAdaptation.Tests
             Assert.Null(kept);
         }
 
+        [Fact]
+        public void R436_a_saved_project_carries_the_value_picks_and_not_the_conflict_picks()
+        {
+            ProjectSettings job = Setup();
+            job.ScanPicks = new SortedDictionary<string, string> { ["villaType"] = "feet.dwg|block|BLOCKS" };
+            job.ConflictPicks = new SortedDictionary<string, string> { ["1|villa type"] = "feet.dwg|block|BLOCKS" };
+            string saved = PreSetting.Export(job);
+            var into = new ProjectSettings();
+            PreSetting.Import(saved, into);
+            Assert.Equal("feet.dwg|block|BLOCKS", into.ScanPicks["villaType"]);
+            Assert.Null(into.ConflictPicks);
+            var kept = new ProjectSettings { ScanPicks = new SortedDictionary<string, string> { ["plotOutline"] = "site.dwg|A" } };
+            PreSetting.Import(PreSetting.Export(new ProjectSettings()), kept);
+            Assert.Equal("site.dwg|A", kept.ScanPicks["plotOutline"]);
+        }
+
         private sealed class FakeDialog : ISetUpSiteDialog
         {
             public SetUpSiteAnswer Answer { get; set; }

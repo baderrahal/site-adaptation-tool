@@ -287,9 +287,28 @@ namespace SiteAdaptation.Common.ReadData
             return string.IsNullOrEmpty(line) ? message : string.IsNullOrEmpty(message) ? line : line + Environment.NewLine + message;
         }
 
+        // The prototypes are over a gigabyte together, so a hash is kept per path, size and write time and a second press of button 2
+        // on files that did not change hashes nothing on the Revit thread
+        private static readonly Dictionary<string, string> Hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         private static WorkerFile Marked(string role, string path)
         {
-            return new WorkerFile { Role = role, Path = path, Sha256 = FileHash.Sha256(path) };
+            var file = new FileInfo(path);
+            string key = file.FullName + "|" + file.Length + "|" + file.LastWriteTimeUtc.Ticks;
+            string hash;
+            lock (Hashes)
+            {
+                Hashes.TryGetValue(key, out hash);
+            }
+            if (hash == null)
+            {
+                hash = FileHash.Sha256(path);
+                lock (Hashes)
+                {
+                    Hashes[key] = hash;
+                }
+            }
+            return new WorkerFile { Role = role, Path = path, Sha256 = hash };
         }
 
         private static IEnumerable<string> Scans(string workFolder)

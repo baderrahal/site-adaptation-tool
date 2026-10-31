@@ -5,6 +5,7 @@ namespace SiteAdaptation.AddIn.ScanResults
     public static class ScanResultsText
     {
         public const string Title = "What the tool read";
+        public const string PicksSaved = "Your picks are saved with the setup.";
         public const string Badge = "Check before step 3";
         public const string Line = "The tool read your files and proposes where each value comes from. If a pick is wrong, change it from the list. Nothing changes in the model.";
         public const string FilesRead = "files read";
