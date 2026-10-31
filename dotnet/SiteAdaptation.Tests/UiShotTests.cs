@@ -51,23 +51,29 @@ namespace SiteAdaptation.Tests
                         Assert.Equal(1280, bitmap.PixelWidth);
                         Assert.True(bitmap.PixelHeight > 400 && bitmap.PixelHeight <= 800, sizes.Last());
                     }
+                    else if (window == Shots.NewProject || window == Shots.HowItWorks)
+                    {
+                        Assert.Equal(1080, bitmap.PixelWidth);
+                        Assert.True(bitmap.PixelHeight > 400 && bitmap.PixelHeight <= 800, sizes.Last());
+                    }
                     else if (window != Shots.RibbonIcons)
                     {
                         Assert.Equal(380, bitmap.PixelWidth);
-                        Assert.True(bitmap.PixelHeight > 1000, sizes.Last());
+                        Assert.True(bitmap.PixelHeight > (window == Shots.Pane ? 1000 : 600), sizes.Last());
                     }
                 }
                 Assert.Throws<ArgumentException>(() => Shots.Render("set-up-site"));
             });
             sizes.ForEach(output.WriteLine);
-            // 5f: Update from report renders as the eighth window, at the dialog width of Set up site, after the three of Lane B 5c
-            Assert.Equal(8, sizes.Count);
+            // 5f: Update from report renders as the eighth window. Lane C NEWPROJ-UI: New project and How it works the ninth and tenth, at 1080
+            Assert.Equal(10, sizes.Count);
         }
 
         // Control 4, the sizes of docs/design/12-ui-spec.md read off the laid out pane: rows 32, inputs 30, Browse 28, the main
-        // button 34, radius 3, the step marks 26, and the project name at the right of the band as 7.2 of the mock
+        // button 34, radius 3, the step marks 26. Lane C NEWPROJ-UI: the project name under Project on the left of the band as the boards
+        // show it, and on first open no input row, no Scope and five step rows
         [Fact]
-        public void R372_the_pane_has_rows_32_inputs_30_with_radius_3_and_the_project_name_at_the_right_of_the_band()
+        public void R372_the_pane_has_rows_32_inputs_30_with_radius_3_and_the_project_name_under_project_in_the_band()
         {
             var counts = new List<string>();
             OnSta(() =>
@@ -76,26 +82,26 @@ namespace SiteAdaptation.Tests
                 {
                     SitePanePage page = Shots.LaidOutPane(inUse);
                     List<FrameworkElement> all = Visuals(page).OfType<FrameworkElement>().ToList();
-                    List<Button> browse = all.OfType<Button>().Where(button => "Browse".Equals(button.Content)).ToList();
-                    Assert.Equal(10, browse.Count);
+                    List<Button> browse = all.OfType<Button>().Where(button => "Browse".Equals(button.Content) && Shown(button)).ToList();
+                    Assert.Equal(inUse ? 8 : 0, browse.Count);
                     Assert.All(browse, button => Assert.Equal(32.0, ((FrameworkElement)VisualTreeHelper.GetParent(button)).ActualHeight));
                     Assert.All(browse, button => Assert.Equal(28.0, button.ActualHeight));
-                    List<Control> inputs = all.OfType<Control>().Where(control => control is ComboBox || control is TextBox).ToList();
-                    Assert.Equal(3, inputs.Count);
+                    List<Control> inputs = all.OfType<Control>().Where(control => (control is ComboBox || control is TextBox) && Shown(control)).ToList();
+                    Assert.Equal(inUse ? 3 : 0, inputs.Count);
                     Assert.All(inputs, input => Assert.Equal(30.0, input.ActualHeight));
                     Assert.All(inputs, input => Assert.Contains(Visuals(input).OfType<Border>(), border => border.CornerRadius.TopLeft == 3.0
                         && border.BorderBrush == page.FindResource("SA.Border")));
                     Button primary = all.OfType<Button>().Single(button => button.Style == page.FindResource("SA.Button.Primary"));
                     Assert.Equal(34.0, primary.ActualHeight);
-                    Assert.Equal(9, all.OfType<Ellipse>().Count(mark => mark.ActualWidth == 26.0));
+                    Assert.Equal(inUse ? 9 : 5, all.OfType<Ellipse>().Count(mark => mark.ActualWidth == 26.0));
 
                     // Review 1 of PR 90: the Level profile and Neighbourhood drop downs and the Plot list box start at one x
                     List<double> lefts = inputs.Select(input => input.TransformToAncestor(page).Transform(new Point(0, 0)).X).ToList();
                     Assert.All(lefts, left => Assert.Equal(lefts[0], left, 3));
 
                     // Review 1 of PR 90: one section after the other at 16, a value of the spacing scale of the spec
-                    List<StackPanel> sections = all.OfType<StackPanel>().Where(panel => panel.Margin == (Thickness)page.FindResource("SA.Pad.Section")).ToList();
-                    Assert.Equal(4, sections.Count);
+                    List<StackPanel> sections = all.OfType<StackPanel>().Where(panel => panel.Margin == (Thickness)page.FindResource("SA.Pad.Section") && Shown(panel)).ToList();
+                    Assert.Equal(inUse ? 4 : 3, sections.Count);
                     for (int at = 1; at < sections.Count; at++)
                     {
                         double bottom = sections[at - 1].TransformToAncestor(page).Transform(new Point(0, sections[at - 1].ActualHeight)).Y;
@@ -104,9 +110,11 @@ namespace SiteAdaptation.Tests
                     }
 
                     TextBlock name = all.OfType<TextBlock>().Single(block => block.Text == "01101-PSN-IMC-R17B-TEST-NEW");
-                    double right = name.TransformToAncestor(page).Transform(new Point(name.ActualWidth, 0)).X;
-                    Assert.Equal(page.ActualWidth - 16, right, 1);
-                    counts.Add((inUse ? "in use" : "first open") + ": " + browse.Count + " rows of 32, " + inputs.Count + " inputs of 30, name right edge " + right);
+                    TextBlock project = all.OfType<TextBlock>().First(block => block.Text == "Project");
+                    Point left = name.TransformToAncestor(page).Transform(new Point(0, 0));
+                    Assert.Equal(16.0, left.X, 1);
+                    Assert.True(left.Y >= project.TransformToAncestor(page).Transform(new Point(0, project.ActualHeight)).Y, "the name stands under Project");
+                    counts.Add((inUse ? "in use" : "first open") + ": " + browse.Count + " rows of 32, " + inputs.Count + " inputs of 30, name left edge " + left.X);
                 }
             });
             counts.ForEach(output.WriteLine);
@@ -125,8 +133,8 @@ namespace SiteAdaptation.Tests
                     SitePanePage page = Shots.LaidOutPane(inUse);
                     List<FrameworkElement> all = Visuals(page).OfType<FrameworkElement>().ToList();
                     List<TextBlock> lines = all.OfType<TextBlock>().Where(block => PaneText.StepLines.Contains(block.Text)
-                        && block.DataContext is StepRowViewModel).ToList();
-                    Assert.Equal(9, lines.Count);
+                        && block.DataContext is StepRowViewModel && Shown(block)).ToList();
+                    Assert.Equal(inUse ? 9 : 4, lines.Count);
                     var one = new TextBlock { Style = (Style)page.FindResource("SA.Pane.Detail"), Text = "Ag" };
                     one.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                     foreach (TextBlock line in lines)
@@ -139,8 +147,9 @@ namespace SiteAdaptation.Tests
                         Assert.Equal(40.0, row.ActualHeight);
                     }
 
-                    List<Grid> rows = all.OfType<Button>().Where(button => "Browse".Equals(button.Content))
+                    List<Grid> rows = all.OfType<Button>().Where(button => "Browse".Equals(button.Content) && Shown(button))
                         .Select(button => (Grid)VisualTreeHelper.GetParent(button)).ToList();
+                    Assert.Equal(inUse ? 8 : 0, rows.Count);
                     int detailed = 0;
                     foreach (Grid row in rows)
                     {
@@ -156,7 +165,7 @@ namespace SiteAdaptation.Tests
                             Assert.All(sizes, size => Assert.DoesNotContain(size, new TextRange(name.ContentStart, name.ContentEnd).Text));
                         }
                     }
-                    Assert.Equal(32.0, rows.First().ActualHeight);
+                    Assert.All(rows, row => Assert.Equal(32.0, row.ActualHeight));
                     counts.Add((inUse ? "in use" : "first open") + ": " + lines.Count + " step lines on one line in rows of 40, " + rows.Count
                         + " input rows with the file name only, " + detailed + " with a size in the tooltip");
                     if (inUse)
@@ -176,29 +185,49 @@ namespace SiteAdaptation.Tests
             }
         }
 
-        // Bader, 28 Oct 2026, 7.2 of docs/design/12-ui-spec.md: the row Pre-setting right under Level profile with its two buttons,
-        // the row Shared parameters right after Prototypes, and on first open only the line of a past job with its link
+        // Bader, 28 Oct 2026, 7.2 of docs/design/12-ui-spec.md: the row Pre-setting right under Level profile with its two buttons and the
+        // row Shared parameters right after Prototypes. Lane C NEWPROJ-UI, the Pane and PaneFirst boards: the rows Setup, Rules and Help, and
+        // on first open only the line of a saved project with its links Use a saved project and How it works
         [Fact]
-        public void R372_the_pane_shows_pre_setting_under_level_profile_shared_parameters_after_prototypes_and_the_past_job_line_on_first_open()
+        public void R372_the_pane_shows_pre_setting_under_level_profile_shared_parameters_after_prototypes_and_the_saved_project_line_on_first_open()
         {
-            string spec = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "docs", "design", "12-ui-spec.md"));
-            string line = Regex.Match(spec, @"""(Or start from a past job: [^""]+)""").Groups[1].Value;
-            Assert.StartsWith("Or start from a past job: Import pre-setting. ", line);
+            string line = "Or start from a saved project such as ROSHN Makkah: Use a saved project. New here? Read How it works first.";
             var counts = new List<string>();
             OnSta(() =>
             {
                 foreach (bool inUse in new[] { true, false })
                 {
                     SitePanePage page = Shots.LaidOutPane(inUse);
-                    List<FrameworkElement> all = Visuals(page).OfType<FrameworkElement>().ToList();
+                    List<FrameworkElement> all = Visuals(page).OfType<FrameworkElement>().Where(Shown).ToList();
                     Func<FrameworkElement, Point> at = element => element.TransformToAncestor(page).Transform(new Point(0, 0));
                     Func<string, TextBlock> label = text => all.OfType<TextBlock>().Single(block => block.Text == text);
 
+                    Assert.Equal(at(label("Setup")).Y + 32, at(label("Rules")).Y, 3);
                     Assert.Equal(at(label("Level profile")).Y + 32, at(label("Pre-setting")).Y, 3);
-                    Assert.Equal(at(label("Prototypes")).Y + 32, at(label("Shared parameters")).Y, 3);
-                    Assert.Equal(inUse ? "The drawings and schedules the tool reads. All 8 found." : "The drawings and schedules the tool reads. 0 of 8 found.", Model(page).InputHelp);
+                    Assert.Equal(at(label(inUse ? "Help" : "Rules")).Y + 32, at(label("Level profile")).Y, 3);
+                    Assert.Equal(inUse ? "The drawings and schedules the tool reads. All 8 found." : "Filled from your setup. You can change any of them after.", Model(page).InputHelp);
                     Assert.True(at(label("Pre-setting")).Y < at(label("Input files")).Y);
-                    foreach (string text in new[] { PaneText.ImportPastJob, PaneText.Export })
+                    if (inUse)
+                    {
+                        Assert.Equal(at(label("Prototypes")).Y + 32, at(label("Shared parameters")).Y, 3);
+                        Assert.Equal("Saved for this project", label("Saved for this project").Text);
+                        Assert.Equal("ROSHN Makkah", label("ROSHN Makkah").Text);
+                        foreach (string text in new[] { PaneText.HowItWorks, PaneText.NewProject, PaneText.Edit, PaneText.Change })
+                        {
+                            Button button = all.OfType<Button>().Single(item => text.Equals(item.Content));
+                            Assert.Equal(28.0, button.ActualHeight);
+                            Assert.True(at(button).X + button.ActualWidth <= page.ActualWidth - 16, text + " runs past the pane at " + (at(button).X + button.ActualWidth));
+                        }
+                        Assert.Same(Model(page).HowItWorksCommand, all.OfType<Button>().Single(item => PaneText.HowItWorks.Equals(item.Content)).Command);
+                        Assert.Same(Model(page).NewProjectCommand, all.OfType<Button>().Single(item => PaneText.NewProject.Equals(item.Content)).Command);
+                        Assert.Same(Model(page).NewProjectCommand, all.OfType<Button>().Single(item => PaneText.Edit.Equals(item.Content)).Command);
+                    }
+                    else
+                    {
+                        Assert.Equal(2, all.OfType<TextBlock>().Count(block => block.Text == PaneText.FromSetup));
+                        Assert.Same(Model(page).NewProjectCommand, all.OfType<Button>().Single(item => PaneText.Open.Equals(item.Content)).Command);
+                    }
+                    foreach (string text in new[] { PaneText.UseSaved, PaneText.Export })
                     {
                         Button button = all.OfType<Button>().Single(item => text.Equals(item.Content));
                         Assert.Equal(28.0, button.ActualHeight);
@@ -206,31 +235,30 @@ namespace SiteAdaptation.Tests
                         Assert.True(at(button).X + button.ActualWidth <= page.ActualWidth - 16, text + " runs past the pane at " + (at(button).X + button.ActualWidth));
                         Assert.Same(text == PaneText.Export ? Model(page).ExportCommand : Model(page).ImportCommand, button.Command);
                     }
-                    Button import = all.OfType<Button>().Single(item => PaneText.ImportPastJob.Equals(item.Content));
+                    Button import = all.OfType<Button>().Single(item => PaneText.UseSaved.Equals(item.Content));
                     Button export = all.OfType<Button>().Single(item => PaneText.Export.Equals(item.Content));
                     Assert.Equal(page.ActualWidth - 16, at(export).X + export.ActualWidth, 1);
-                    Assert.True(at(import).X >= at(label("Pre-setting")).X + label("Pre-setting").DesiredSize.Width + 8, "Import from past job stands on the label");
-                    ComboBox profile = all.OfType<ComboBox>().First();
-                    double gap = at(import).Y - (at(profile).Y + profile.ActualHeight);
-                    Assert.Equal(3.0, gap, 3);
-                    counts.Add((inUse ? "in use" : "first open") + ": Import from past job at x " + at(import).X + ", " + gap + " under Level profile");
+                    Assert.True(at(import).X >= at(label("Pre-setting")).X + label("Pre-setting").DesiredSize.Width + 8, "Use a saved project stands on the label");
+                    counts.Add((inUse ? "in use" : "first open") + ": Use a saved project at x " + at(import).X);
 
                     // Every row label shows in full, Shared parameters the widest, with a gap of 8 before the file name
                     double column = ((GridLength)page.FindResource("SA.Grid.Label")).Value;
-                    foreach (string text in Model(page).InputRows.Select(row => row.Label).Concat(new[] { "Settings", "Rules", "Level profile", "Pre-setting" }))
+                    foreach (string text in Model(page).InputRows.Select(row => row.Label).Concat(new[] { "Setup", "Rules", "Help", "Level profile", "Pre-setting" }))
                     {
                         var measure = new TextBlock { Text = text, Style = (Style)page.FindResource("SA.Type.Body") };
                         measure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                         Assert.True(measure.DesiredSize.Width + 8 <= column, text + " is " + measure.DesiredSize.Width + " wide in a column of " + column);
                     }
 
-                    TextBlock pastJob = all.OfType<TextBlock>().Single(block => new TextRange(block.ContentStart, block.ContentEnd).Text == line);
-                    Hyperlink link = pastJob.Inlines.OfType<Hyperlink>().Single();
-                    Assert.Equal("Import pre-setting", new TextRange(link.ContentStart, link.ContentEnd).Text);
-                    Assert.Same(Model(page).ImportCommand, link.Command);
-                    Assert.Equal(inUse ? Visibility.Collapsed : Visibility.Visible, pastJob.Visibility);
-                    Assert.Equal(inUse, pastJob.ActualHeight == 0);
-                    counts.Add((inUse ? "in use" : "first open") + ": past job line " + pastJob.ActualHeight + " high");
+                    TextBlock saved = Visuals(page).OfType<TextBlock>().Single(block => block.Inlines.OfType<Hyperlink>().Any());
+                    Assert.Equal(line, new TextRange(saved.ContentStart, saved.ContentEnd).Text);
+                    List<Hyperlink> links = saved.Inlines.OfType<Hyperlink>().ToList();
+                    Assert.Equal(new[] { "Use a saved project", "How it works" }, links.Select(link => new TextRange(link.ContentStart, link.ContentEnd).Text));
+                    Assert.Same(Model(page).ImportCommand, links[0].Command);
+                    Assert.Same(Model(page).HowItWorksCommand, links[1].Command);
+                    Assert.Equal(inUse ? Visibility.Collapsed : Visibility.Visible, saved.Visibility);
+                    Assert.Equal(inUse, saved.ActualHeight == 0);
+                    counts.Add((inUse ? "in use" : "first open") + ": saved project line " + saved.ActualHeight + " high");
                 }
             });
             counts.ForEach(output.WriteLine);
@@ -239,7 +267,7 @@ namespace SiteAdaptation.Tests
         // Review 1 of PR 92: with no document the link cannot run, so it takes the look of the grey buttons, SA.Wait and no
         // underline, from its style in Theme.xaml, and with a document the accent and the underline
         [Fact]
-        public void R372_the_link_import_pre_setting_is_accent_and_underlined_only_while_its_command_can_run()
+        public void R372_the_link_use_a_saved_project_is_accent_and_underlined_only_while_its_command_can_run()
         {
             var looks = new List<string>();
             OnSta(() =>
@@ -248,7 +276,7 @@ namespace SiteAdaptation.Tests
                 {
                     SitePanePage page = Shots.LaidOutPane(false, open);
                     PaneViewModel model = Model(page);
-                    Hyperlink link = Visuals(page).OfType<TextBlock>().SelectMany(block => block.Inlines.OfType<Hyperlink>()).Single();
+                    Hyperlink link = Visuals(page).OfType<TextBlock>().SelectMany(block => block.Inlines.OfType<Hyperlink>()).Single(item => item.Command == model.ImportCommand);
                     Color accent = ((SolidColorBrush)page.FindResource("SA.Accent")).Color;
                     Color wait = ((SolidColorBrush)page.FindResource("SA.Wait")).Color;
                     Color shown = ((SolidColorBrush)link.Foreground).Color;
@@ -268,6 +296,19 @@ namespace SiteAdaptation.Tests
             looks.ForEach(output.WriteLine);
             string xaml = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Pane", "SitePanePage.xaml"));
             Assert.DoesNotMatch(@"<Hyperlink[^>]*\bForeground=", xaml);
+        }
+
+        // A page laid out offscreen is never IsVisible, so an element counts as shown when it and every element above it is Visible
+        private static bool Shown(FrameworkElement element)
+        {
+            for (DependencyObject at = element; at != null; at = VisualTreeHelper.GetParent(at))
+            {
+                if (at is UIElement item && item.Visibility != Visibility.Visible)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static PaneViewModel Model(SitePanePage page)

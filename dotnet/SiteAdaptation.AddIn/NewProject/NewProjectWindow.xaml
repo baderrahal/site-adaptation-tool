@@ -1,0 +1,241 @@
+<Window x:Class="SiteAdaptation.AddIn.NewProject.NewProjectWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:np="clr-namespace:SiteAdaptation.AddIn.NewProject"
+        Title="{x:Static np:NewProjectText.Title}" Width="{DynamicResource SA.Size.SetupWidth}" MaxHeight="{DynamicResource SA.Size.DialogMaxHeight}"
+        SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SA.Surface}">
+  <!-- Lane C NEWPROJ-UI, docs/design/boards/NewProject.dc.html top to bottom. Every colour, size and font by Theme.xaml, every text in
+       docs/design/14-ui-labels.md under New project -->
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/SiteAdaptation.AddIn;component/Theme/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <BooleanToVisibilityConverter x:Key="Shown" />
+
+      <Style x:Key="HeadText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Label}">
+        <Setter Property="Foreground" Value="{StaticResource SA.Heading}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+      </Style>
+      <Style x:Key="CellText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Body}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="{StaticResource SA.Gap.Right8}" />
+      </Style>
+      <Style x:Key="HelpText" TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Small}">
+        <Setter Property="Foreground" Value="{StaticResource SA.TextMuted}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+      </Style>
+
+      <DataTemplate x:Key="FileRow" DataType="{x:Type np:SetupRowViewModel}">
+        <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
+          <Border.Style>
+            <Style TargetType="Border">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding IsMissing}" Value="True">
+                  <Setter Property="Background" Value="{StaticResource SA.WarnGround}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.SetupFile}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.SetupWho}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.SetupUsed}" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.SetupStatus}" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Style="{StaticResource CellText}" Text="{Binding File}" />
+            <TextBlock Grid.Column="1" Style="{StaticResource CellText}" Text="{Binding Who}" />
+            <TextBlock Grid.Column="2" Style="{StaticResource CellText}" Text="{Binding UsedBy}" />
+            <StackPanel Grid.Column="3" Margin="{StaticResource SA.Gap.Right8}">
+              <!-- A long file name is cut with an ellipsis, its full path in the tooltip, so Browse and Get template keep their place -->
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" MaxWidth="{StaticResource SA.Size.SetupFileName}" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}"
+                           TextTrimming="CharacterEllipsis" Text="{Binding FileName}" ToolTip="{Binding ToolTip}" />
+                <Button Grid.Column="1" Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static np:NewProjectText.Browse}"
+                        IsEnabled="{Binding CanBrowse}" Click="OnBrowse" />
+                <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" Content="{x:Static np:NewProjectText.GetTemplate}" Click="OnTemplate"
+                        Visibility="{Binding HasTemplate, Converter={StaticResource Shown}}" />
+              </Grid>
+              <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top4}" Text="{Binding Help}" />
+            </StackPanel>
+            <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Top">
+              <Grid Width="{StaticResource SA.Size.RowMark}" Height="{StaticResource SA.Size.RowMark}" Margin="{StaticResource SA.Gap.Right8}">
+                <Path Data="{StaticResource SA.Mark.Found}" Stroke="{StaticResource SA.Ok}" StrokeThickness="{StaticResource SA.Size.MarkStroke}"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="{Binding IsFound, Converter={StaticResource Shown}}" />
+                <Grid Visibility="{Binding IsMissing, Converter={StaticResource Shown}}">
+                  <Path Data="{StaticResource SA.Mark.Missing}" Fill="{StaticResource SA.Warn}" />
+                  <Path Data="{StaticResource SA.Mark.MissingSign}" Stroke="{StaticResource SA.Surface}" StrokeThickness="{StaticResource SA.Size.MarkStroke}"
+                        StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                </Grid>
+              </Grid>
+              <TextBlock VerticalAlignment="Center" Text="{Binding StatusText}">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock" BasedOn="{StaticResource SA.Type.Small}">
+                    <Setter Property="FontWeight" Value="{StaticResource SA.Type.Label.Weight}" />
+                    <Setter Property="Foreground" Value="{StaticResource SA.Wait}" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsFound}" Value="True">
+                        <Setter Property="Foreground" Value="{StaticResource SA.Ok}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding IsMissing}" Value="True">
+                        <Setter Property="Foreground" Value="{StaticResource SA.Warn}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+            </StackPanel>
+          </Grid>
+        </Border>
+      </DataTemplate>
+    </ResourceDictionary>
+  </Window.Resources>
+
+  <DockPanel Background="{StaticResource SA.Surface}">
+    <!-- The foot on SA.Panel: the save line, then Cancel, Check files and Save setup -->
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource SA.Panel}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Over}" Padding="{StaticResource SA.Pad.Foot}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Style="{StaticResource HelpText}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right24}" Text="{x:Static np:NewProjectText.Foot}" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal">
+          <Button Style="{StaticResource SA.Button.Base}" Height="{StaticResource SA.Size.MainButton}" Content="{x:Static np:NewProjectText.Cancel}" Click="OnCancel" />
+          <Button Style="{StaticResource SA.Button.DryRun}" Height="{StaticResource SA.Size.MainButton}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static np:NewProjectText.CheckFiles}" Click="OnCheck" />
+          <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Left8}" Content="{x:Static np:NewProjectText.SaveSetup}" Click="OnSave" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border DockPanel.Dock="Top" Background="{StaticResource SA.Band}" Padding="{StaticResource SA.Pad.Side}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Margin="{StaticResource SA.Gap.Right24}">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource SA.Type.Title}" Foreground="{StaticResource SA.Surface}" VerticalAlignment="Center" Text="{x:Static np:NewProjectText.Title}" />
+            <Border Margin="{StaticResource SA.Gap.Left8}" Background="{StaticResource SA.BandAccent}" CornerRadius="{StaticResource SA.Radius.Chip}"
+                    Padding="{StaticResource SA.Pad.Chip}" VerticalAlignment="Center">
+              <TextBlock Style="{StaticResource SA.Type.Small}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Band}" Text="{x:Static np:NewProjectText.Badge}" />
+            </Border>
+          </StackPanel>
+          <TextBlock Style="{StaticResource SA.Type.Step}" Foreground="{StaticResource SA.BandText}" Margin="{StaticResource SA.Gap.Top4}" TextWrapping="Wrap" Text="{x:Static np:NewProjectText.Line}" />
+          <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandAccent}" Margin="{StaticResource SA.Gap.Top4}" Text="{x:Static np:NewProjectText.StartHint}" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+          <TextBlock Style="{StaticResource SA.Type.Count}" Foreground="{StaticResource SA.Surface}" HorizontalAlignment="Right" Text="{Binding Ready}" />
+          <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandText}" HorizontalAlignment="Right" Text="{x:Static np:NewProjectText.ReadyLine}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="{StaticResource SA.Pad.Side}">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Style="{StaticResource HeadText}" Margin="{StaticResource SA.Gap.Right8}" Text="{x:Static np:NewProjectText.ProjectName}" />
+          <TextBox Style="{StaticResource SA.Pane.Entry}" Width="{StaticResource SA.Size.SetupName}" IsReadOnly="True" Text="{Binding ProjectName, Mode=OneWay}" />
+          <TextBlock Style="{StaticResource HeadText}" Margin="{StaticResource SA.Gap.Left16}" Text="{x:Static np:NewProjectText.StartFrom}" />
+          <ComboBox Style="{StaticResource SA.Pane.Combo}" Width="{StaticResource SA.Size.SetupStart}" Margin="{StaticResource SA.Gap.Left8}"
+                    ItemsSource="{Binding Starts}" SelectedItem="{Binding Start}" />
+          <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Left8}" VerticalAlignment="Center" Text="{Binding SavedHint}" />
+        </StackPanel>
+
+        <TextBlock Style="{StaticResource SA.Type.Section}" Foreground="{StaticResource SA.Heading}" Margin="{StaticResource SA.Gap.Top16}" Text="{x:Static np:NewProjectText.FilesTitle}" />
+        <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top4}" Text="{x:Static np:NewProjectText.FilesHelp}" />
+        <Border Margin="{StaticResource SA.Gap.Top8}" Background="{StaticResource SA.Panel}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.SetupFile}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.SetupWho}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.SetupUsed}" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.SetupStatus}" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Style="{StaticResource HeadText}" Text="{x:Static np:NewProjectText.ColumnFile}" />
+            <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="{x:Static np:NewProjectText.ColumnWho}" />
+            <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="{x:Static np:NewProjectText.ColumnUsed}" />
+            <TextBlock Grid.Column="3" Style="{StaticResource HeadText}" Text="{x:Static np:NewProjectText.ColumnPick}" />
+            <TextBlock Grid.Column="4" Style="{StaticResource HeadText}" Text="{x:Static np:NewProjectText.ColumnStatus}" />
+          </Grid>
+        </Border>
+        <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource FileRow}" />
+
+        <Grid Margin="{StaticResource SA.Gap.Top16}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.SetupStop}" />
+          </Grid.ColumnDefinitions>
+          <!-- What the current readers give. Change and View wait for the scanner of a later Lane B round (steps/waiting-on-others.md) -->
+          <StackPanel Margin="{StaticResource SA.Gap.Right24}">
+            <TextBlock Style="{StaticResource SA.Type.Section}" Foreground="{StaticResource SA.Heading}" Text="{x:Static np:NewProjectText.ReadTitle}" />
+            <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top4}" Text="{x:Static np:NewProjectText.ReadHelp}" />
+            <Border Margin="{StaticResource SA.Gap.Top8}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{StaticResource SA.Grid.SetupFact}" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="{StaticResource SA.Grid.SetupFactButton}" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource CellText}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Text="{x:Static np:NewProjectText.SurveyPoint}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource CellText}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Text="{Binding SurveyPoint}" />
+                <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" HorizontalAlignment="Left" Content="{x:Static np:NewProjectText.Change}" IsEnabled="{Binding CanChange}" />
+              </Grid>
+            </Border>
+            <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{StaticResource SA.Grid.SetupFact}" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="{StaticResource SA.Grid.SetupFactButton}" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource CellText}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Text="{x:Static np:NewProjectText.PlotsFound}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource CellText}" VerticalAlignment="Center" Text="{Binding PlotsFound}" />
+                <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" HorizontalAlignment="Left" Content="{x:Static np:NewProjectText.Change}" IsEnabled="{Binding CanChange}" />
+              </Grid>
+            </Border>
+            <Border Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.Under}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{StaticResource SA.Grid.SetupFact}" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="{StaticResource SA.Grid.SetupFactButton}" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource CellText}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center" Text="{x:Static np:NewProjectText.VillaTypes}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource CellText}" VerticalAlignment="Center" Text="{Binding VillaTypes}" />
+                <Button Grid.Column="2" Style="{StaticResource SA.Button.Base}" HorizontalAlignment="Left" Content="{x:Static np:NewProjectText.View}" IsEnabled="{Binding CanChange}" />
+              </Grid>
+            </Border>
+            <TextBlock Style="{StaticResource HelpText}" Margin="{StaticResource SA.Gap.Top8}" Text="{Binding TemplateLine}" />
+          </StackPanel>
+
+          <StackPanel Grid.Column="1" VerticalAlignment="Top">
+            <Border Background="{StaticResource SA.WarnGround}" BorderBrush="{StaticResource SA.Border}" BorderThickness="{StaticResource SA.Line.All}"
+                    CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Box}" Visibility="{Binding StopShown, Converter={StaticResource Shown}}">
+              <StackPanel>
+                <TextBlock Style="{StaticResource SA.Type.Step}" FontWeight="{StaticResource SA.Type.Label.Weight}" Foreground="{StaticResource SA.Warn}" Text="{x:Static np:NewProjectText.StopTitle}" />
+                <TextBlock Style="{StaticResource SA.Type.Body}" Margin="{StaticResource SA.Gap.Top4}" TextWrapping="Wrap" Text="{Binding StopLine}" />
+                <TextBlock Style="{StaticResource SA.Type.Body}" Margin="{StaticResource SA.Gap.Top4}" TextWrapping="Wrap" Text="{Binding TodoLine}" />
+              </StackPanel>
+            </Border>
+            <Border Background="{StaticResource SA.OkGround}" CornerRadius="{StaticResource SA.Radius.Control}" Padding="{StaticResource SA.Pad.Box}"
+                    Visibility="{Binding CheckedOk, Converter={StaticResource Shown}}">
+              <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.Ok}" TextWrapping="Wrap" Text="{x:Static np:NewProjectText.AllFound}" />
+            </Border>
+          </StackPanel>
+        </Grid>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

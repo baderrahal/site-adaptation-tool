@@ -11,14 +11,8 @@
       </ResourceDictionary.MergedDictionaries>
       <BooleanToVisibilityConverter x:Key="Shown" />
 
-      <DataTemplate x:Key="FileRow" DataType="{x:Type pane:FileRowViewModel}">
-        <Grid Height="{StaticResource SA.Size.Row}">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
-            <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
+      <!-- The found or missing mark of a row, the file rows and the Setup and Rules rows of NEWPROJ-UI -->
+      <DataTemplate x:Key="RowMark" DataType="{x:Type pane:FileRowViewModel}">
           <Grid Width="{StaticResource SA.Size.RowMark}" Height="{StaticResource SA.Size.RowMark}" HorizontalAlignment="Left" VerticalAlignment="Center"
                 Visibility="{Binding Shown, Converter={StaticResource Shown}}">
             <Path Data="{StaticResource SA.Mark.Found}" Stroke="{StaticResource SA.Ok}" StrokeThickness="{StaticResource SA.Size.MarkStroke}"
@@ -39,6 +33,17 @@
                     StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
             </Grid>
           </Grid>
+      </DataTemplate>
+
+      <DataTemplate x:Key="FileRow" DataType="{x:Type pane:FileRowViewModel}">
+        <Grid Height="{StaticResource SA.Size.Row}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
+            <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <ContentControl Content="{Binding}" ContentTemplate="{StaticResource RowMark}" />
           <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="{Binding Label}" />
           <TextBlock Grid.Column="2" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}"
                      TextTrimming="CharacterEllipsis" ToolTip="{Binding ToolTip}" Text="{Binding FileName}" />
@@ -145,17 +150,12 @@
 
   <DockPanel Background="{StaticResource SA.Surface}">
     <Border DockPanel.Dock="Top" Background="{StaticResource SA.Band}" Padding="{StaticResource SA.Pad.Box}">
-      <!-- 7.2 of the mock: the project name aligned right in the top row -->
-      <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="Auto" />
-          <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <TextBlock Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.BandAccent}" VerticalAlignment="Center" Text="Project" />
-        <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Project}" Foreground="{StaticResource SA.Surface}" Margin="{StaticResource SA.Gap.Left8}"
-                   HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                   Text="{Binding ProjectName}" ToolTip="{Binding ProjectName}" />
-      </Grid>
+      <!-- The Pane and PaneFirst boards of 31 Oct 2026: "Project" over the project name, both on the left -->
+      <StackPanel>
+        <TextBlock Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.BandAccent}" Text="Project" />
+        <TextBlock Style="{StaticResource SA.Type.Project}" Foreground="{StaticResource SA.Surface}" Margin="{StaticResource SA.Gap.Top4}"
+                   TextTrimming="CharacterEllipsis" Text="{Binding ProjectName}" ToolTip="{Binding ProjectName}" />
+      </StackPanel>
     </Border>
 
     <Border DockPanel.Dock="Top" Background="{StaticResource SA.Guide}" BorderBrush="{StaticResource SA.GuideBorder}"
@@ -167,13 +167,9 @@
         <Button Style="{StaticResource SA.Button.Primary}" Margin="{StaticResource SA.Gap.Top12}" HorizontalAlignment="Left"
                 Content="{Binding BoxButton}" Command="{Binding BoxCommand}"
                 Visibility="{Binding BoxButtonShown, Converter={StaticResource Shown}}" />
-        <!-- Bader, 28 Oct 2026: the first open box adds the line of a past job, its link runs Import from past job -->
+        <!-- PaneFirst board: a saved project by Use a saved project, which runs Import of a pre-setting, and How it works -->
         <TextBlock Style="{StaticResource SA.Pane.Help}" Margin="{StaticResource SA.Gap.Top12}" TextWrapping="Wrap"
-                   Visibility="{Binding FirstOpen, Converter={StaticResource Shown}}">
-          <Run Text="Or start from a past job:" />
-          <Hyperlink Style="{StaticResource SA.Pane.Link}" Command="{Binding ImportCommand}">Import pre-setting</Hyperlink><Run Text="." />
-          <Run Text="It brings the settings, rules, level profile, ramp slopes, parameter sheet and overrides of that job." />
-        </TextBlock>
+                   Visibility="{Binding FirstOpen, Converter={StaticResource Shown}}"><Run Text="{Binding StartSavedLine, Mode=OneWay}" /> <Hyperlink Style="{StaticResource SA.Pane.Link}" Command="{Binding ImportCommand}"><Run Text="{x:Static pane:PaneText.UseSaved}" /></Hyperlink><Run Text="{x:Static pane:PaneText.NewHere}" /> <Hyperlink Style="{StaticResource SA.Pane.Link}" Command="{Binding HowItWorksCommand}"><Run Text="{x:Static pane:PaneText.HowItWorks}" /></Hyperlink> <Run Text="{x:Static pane:PaneText.FirstSuffix}" /></TextBlock>
       </StackPanel>
     </Border>
 
@@ -181,9 +177,55 @@
       <StackPanel IsEnabled="{Binding HasDocument}" Margin="{StaticResource SA.Gap.Bottom16}">
         <StackPanel Margin="{StaticResource SA.Pad.Section}">
           <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Project" />
-          <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Rules and settings for this job. Set once." />
-          <ContentControl Margin="{StaticResource SA.Gap.Top8}" Content="{Binding SettingsRow}" ContentTemplate="{StaticResource FileRow}" />
-          <ContentControl Content="{Binding RulesRow}" ContentTemplate="{StaticResource FileRow}" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Rules and settings for this job. Set once." Visibility="{Binding InUse, Converter={StaticResource Shown}}" />
+          <!-- NEWPROJ-UI: the Setup row opens New project, Edit in use and Open on first open. No file name of the settings is shown -->
+          <Grid Height="{StaticResource SA.Size.Row}" Margin="{StaticResource SA.Gap.Top8}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ContentControl Content="{Binding SettingsRow}" ContentTemplate="{StaticResource RowMark}" />
+            <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="{Binding SettingsRow.Label}" />
+            <TextBlock Grid.Column="2" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}"
+                       TextTrimming="CharacterEllipsis" Text="{Binding SettingsRow.FileName}" />
+            <Button Grid.Column="3" Style="{StaticResource SA.Button.Base}" VerticalAlignment="Center" Content="{x:Static pane:PaneText.Edit}"
+                    Command="{Binding NewProjectCommand}" Visibility="{Binding InUse, Converter={StaticResource Shown}}" />
+            <Button Grid.Column="3" Style="{StaticResource SA.Button.Base}" VerticalAlignment="Center" Content="{x:Static pane:PaneText.Open}"
+                    Command="{Binding NewProjectCommand}" Visibility="{Binding FirstOpen, Converter={StaticResource Shown}}" />
+          </Grid>
+          <!-- The Rules row shows the project its rules file names, Change picks another rules file. On first open it comes from the setup -->
+          <Grid Height="{StaticResource SA.Size.Row}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ContentControl Content="{Binding RulesRow}" ContentTemplate="{StaticResource RowMark}" Visibility="{Binding InUse, Converter={StaticResource Shown}}" />
+            <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="{Binding RulesRow.Label}" />
+            <TextBlock Grid.Column="2" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Margin="{StaticResource SA.Gap.Right8}"
+                       TextTrimming="CharacterEllipsis" Text="{Binding RulesRow.FileName}" Visibility="{Binding InUse, Converter={StaticResource Shown}}" />
+            <TextBlock Grid.Column="2" Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center"
+                       Text="{x:Static pane:PaneText.FromSetup}" Visibility="{Binding FirstOpen, Converter={StaticResource Shown}}" />
+            <Button Grid.Column="3" Style="{StaticResource SA.Button.Base}" VerticalAlignment="Center" Content="{x:Static pane:PaneText.Change}"
+                    DataContext="{Binding RulesRow}" Click="OnBrowse" Visibility="{Binding DataContext.InUse, RelativeSource={RelativeSource AncestorType=Grid}, Converter={StaticResource Shown}}" />
+          </Grid>
+          <!-- Pane board: the row Help with How it works and New project, in use only. The two buttons are wider than the value column,
+               so they stand at the right edge as those of Pre-setting do -->
+          <Grid Height="{StaticResource SA.Size.Row}" Visibility="{Binding InUse, Converter={StaticResource Shown}}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
+              <ColumnDefinition Width="{StaticResource SA.Grid.Label}" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="{x:Static pane:PaneText.Help}" />
+            <StackPanel Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+              <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static pane:PaneText.HowItWorks}" Command="{Binding HowItWorksCommand}" />
+              <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static pane:PaneText.NewProject}" Command="{Binding NewProjectCommand}" />
+            </StackPanel>
+          </Grid>
           <Grid Height="{StaticResource SA.Size.Row}">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="{StaticResource SA.Grid.Mark}" />
@@ -191,7 +233,10 @@
               <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="Level profile" />
-            <ComboBox Grid.Column="2" Style="{StaticResource SA.Pane.Combo}" ItemsSource="{Binding LevelProfiles}" SelectedItem="{Binding LevelProfile}" />
+            <ComboBox Grid.Column="2" Style="{StaticResource SA.Pane.Combo}" ItemsSource="{Binding LevelProfiles}" SelectedItem="{Binding LevelProfile}"
+                      Visibility="{Binding InUse, Converter={StaticResource Shown}}" />
+            <TextBlock Grid.Column="2" Style="{StaticResource SA.Type.Body}" Foreground="{StaticResource SA.TextMuted}" VerticalAlignment="Center"
+                       Text="{x:Static pane:PaneText.FromSetup}" Visibility="{Binding FirstOpen, Converter={StaticResource Shown}}" />
           </Grid>
           <!-- Bader, 28 Oct 2026: the row Pre-setting under Level profile. A pre-setting never holds drawing paths or coordinates.
                The two buttons are wider than the value column, so they stand at the right edge as Browse does -->
@@ -203,7 +248,7 @@
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="1" Style="{StaticResource SA.Type.Body}" VerticalAlignment="Center" Text="Pre-setting" />
             <StackPanel Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-              <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static pane:PaneText.ImportPastJob}"
+              <Button Style="{StaticResource SA.Button.Base}" Margin="{StaticResource SA.Gap.Right8}" Content="{x:Static pane:PaneText.UseSaved}"
                       Command="{Binding ImportCommand}" />
               <Button Style="{StaticResource SA.Button.Base}" Content="{x:Static pane:PaneText.Export}" Command="{Binding ExportCommand}" />
             </StackPanel>
@@ -213,10 +258,12 @@
         <StackPanel Margin="{StaticResource SA.Pad.Section}">
           <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Input files" />
           <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{Binding InputHelp}" />
-          <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding InputRows}" ItemTemplate="{StaticResource FileRow}" />
+          <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding InputRows}" ItemTemplate="{StaticResource FileRow}"
+                        Visibility="{Binding InUse, Converter={StaticResource Shown}}" />
         </StackPanel>
 
-        <StackPanel Margin="{StaticResource SA.Pad.Section}">
+        <!-- PaneFirst board: no Scope section on first open -->
+        <StackPanel Margin="{StaticResource SA.Pad.Section}" Visibility="{Binding InUse, Converter={StaticResource Shown}}">
           <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Scope" />
           <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Which plots the next button works on." />
           <RadioButton Margin="{StaticResource SA.Gap.Top8}" Style="{StaticResource SA.Pane.Radio}" GroupName="Scope" Content="Whole project" IsChecked="{Binding ScopeWhole}" />
@@ -253,8 +300,8 @@
 
         <StackPanel Margin="{StaticResource SA.Pad.Section}">
           <TextBlock Style="{StaticResource SA.Pane.Section}" Text="Steps" />
-          <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Run them in order. Each one waits for the one before." />
-          <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding Steps}" ItemTemplate="{StaticResource StepRow}" />
+          <TextBlock Style="{StaticResource SA.Pane.Help}" Text="Run them in order. Each one waits for the one before." Visibility="{Binding InUse, Converter={StaticResource Shown}}" />
+          <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding ShownSteps}" ItemTemplate="{StaticResource StepRow}" />
         </StackPanel>
       </StackPanel>
     </ScrollViewer>

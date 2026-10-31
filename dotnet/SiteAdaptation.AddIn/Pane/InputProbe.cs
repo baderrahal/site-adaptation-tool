@@ -60,6 +60,9 @@ namespace SiteAdaptation.AddIn.Pane
 
         IReadOnlyList<string> LevelProfiles(string rulesFile, out string fallback);
 
+        // The project the rules file names, which the Rules row shows in place of its file name, null when it names none or is not read
+        string RulesName(string rulesFile);
+
         // R404. villaModeDefault of addin.lightMode of the config file, null when the file is not chosen, not read or holds none
         string VillaModeDefault(string configFile);
     }
@@ -153,6 +156,22 @@ namespace SiteAdaptation.AddIn.Pane
             catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is Newtonsoft.Json.JsonException)
             {
                 return new string[0];
+            }
+        }
+
+        public string RulesName(string rulesFile)
+        {
+            if (string.IsNullOrEmpty(rulesFile) || !File.Exists(rulesFile))
+            {
+                return null;
+            }
+            try
+            {
+                return RulesProfiles.Name(File.ReadAllText(rulesFile));
+            }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is Newtonsoft.Json.JsonException)
+            {
+                return null;
             }
         }
 

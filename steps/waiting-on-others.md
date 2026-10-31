@@ -34,3 +34,15 @@ What Lane B must add so the add-in shows and uses the work of round 4i (R407 to 
 | L4i-5 | R410 | 5 Floors and ramps places no yard floor under rev6, and the report shows yardGrade | The plan holds no yard floor under rev6, yardGrade in the step floors only (Q232) |
 | L4i-6 | R411 | 3 Review data shows proposedCluster, proposedMirror and proposalReason of each plot with Confirm, and a confirmed proposal goes into the override list as a hand edit | The proposals stand in the step hands and in plan.json under proposal |
 | L4i-7 | R412 | A command for the new project check that starts the worker command newProjectCheck and shows its text report | python/new_project_check.py and the worker command run it by hand |
+
+## Lane C NEWPROJ-UI, 31 Oct 2026
+
+The placeholders of the window New project (docs/design/18-new-project.md). Each waits for another lane, the window shows it grey or as text until then.
+
+| Item | Who is asked | For what | What the tool does until then |
+|---|---|---|---|
+| Scanner hook | Lane B, a later round (Lane D builds the scanner) | Fill IDrawingFacts through NewProjectDialog.Facts: the layer count, the survey point, the lists behind Change and View | LastReadFacts: unit plots and villa types of the latest read, the plot line layers of the layer list. Change and View grey, Survey point says Comes with the drawing scan |
+| Villa levels row | Lane A | The door level source, and with it the input and the sheets of the villa levels Excel | The row shows Comes later, Browse grey, no template, never saved |
+| Cluster proposal | Lane A | Whether New project proposes clusters | Nothing in the window |
+| Rules R430 to R434 | Lane A | Write the five rules of Lane C NEWPROJ-UI into docs/rules with their tests, from steps/HEADSUP.md, so docs/design may name their ids (R343) | The ids stand in the code, the tests and steps/HEADSUP.md only |
+| Back yard | Lane A | Whether New project sets the back yard | Nothing in the window |

@@ -21,3 +21,4 @@ Parts 01 to 10 are docs/addin-design.md of Round ADDIN Phase 3b, cut in Round RE
 | 14-ui-labels.md | Lane B 5a | The label list of the text test, every window text grouped by window |
 | 15-manual-rules.md | Round FOLD | The manual rules M01 to M15 of the canvas with their Rev 06 section and page, for manualRules of the rules profile (W3) |
 | 16-design-basis.md | Round 4i | The design basis switch, Manual Rev 06 or the past job: door level, road level surface, back yard, cluster proposals, the new project check |
+| 18-new-project.md | Lane C NEWPROJ-UI | New project, How it works and the pane changes from Bader's boards of 31 Oct 2026 in boards/, the five rules of the round |

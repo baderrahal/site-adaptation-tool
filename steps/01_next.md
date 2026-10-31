@@ -191,3 +191,9 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 - What: the mock check by screenshots, both Excel files compared item by item, an image of every new file, the clean up, then steps/bader-addin.md for Bader's check of Part 1
 - Design: docs/design/08-install.md, docs/design/07-mock.md 7.7, steps/history/round-addin/01-plan-0a.md (Phase 6)
 - Done when: Bader has the check sheet of Part 1
+
+## Lane C NEWPROJ-UI, New project, How it works and the pane text
+
+- Status: done, Lane C, laptop, 2026-10-31, one PR with code, tests and records, in the worktree Site Adaptation Tool Lane C WT
+- What: the window New project, the page How it works and the pane changes from Bader's boards of 31 Oct 2026 (docs/design/boards, docs/design/18-new-project.md), rules R430 to R434
+- Left: Q280 to Q287 for Bader, the scanner hook for a later Lane B round, the villa levels row for Lane A (steps/waiting-on-others.md), a Revit run that shows both windows
