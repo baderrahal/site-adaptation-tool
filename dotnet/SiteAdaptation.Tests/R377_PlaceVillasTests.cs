@@ -54,6 +54,7 @@ namespace SiteAdaptation.Tests
                 Insert = new Sourced<double[]> { Value = new[] { east, 2000.0, 5.0 } },
                 RotationDeg = new Sourced<double?> { Value = rotation },
                 Mirrored = new Sourced<bool?> { Value = mirrored },
+                Levels = new PlanLevels { Ffl = new Sourced<double?> { Value = 5.0 } },
                 Parameters = new Dictionary<string, Sourced<string>> { [LinkFields.PlotNumber] = new Sourced<string> { Value = number }, ["CASE"] = new Sourced<string> { Value = "A" } },
             };
         }
@@ -92,13 +93,14 @@ namespace SiteAdaptation.Tests
             public List<IReadOnlyList<string>> Asked = new List<IReadOnlyList<string>>();
         }
 
-        private Run Make(PlanFile plan, string mode, FakeVillas document = null, Dictionary<string, string> lastHashes = null, List<double[][]> footprint = null)
+        private Run Make(PlanFile plan, string mode, FakeVillas document = null, Dictionary<string, string> lastHashes = null, List<double[][]> footprint = null,
+            Dictionary<string, string> guids = null)
         {
             var run = new Run { Document = document ?? new FakeVillas() };
             Func<RunContext, VillaInputs> load = context => new VillaInputs
             {
                 Plan = plan, PlanPath = Path.Combine(work, "plan_012.json"), Config = Config(), Mode = mode, Profile = "parsons2024Rev6",
-                ParameterGuids = new Dictionary<string, string> { [LinkFields.PlotNumber] = FakeVillas.PlotGuid, ["CASE"] = "c0000000-0000-0000-0000-000000000000" },
+                ParameterGuids = new Dictionary<string, string>(guids ?? new Dictionary<string, string>()) { [LinkFields.PlotNumber] = FakeVillas.PlotGuid, ["CASE"] = "c0000000-0000-0000-0000-000000000000" },
                 Footprint = footprint ?? new List<double[][]>(), LastHashes = lastHashes ?? new Dictionary<string, string>(),
             };
             run.Body = new PlaceVillasRun(run.Document, load, context => new ShapeCache(context.WorkFolder, run.Reader, path => new string('a', 64)), path => new string('a', 64),
@@ -132,9 +134,10 @@ namespace SiteAdaptation.Tests
             Assert.Equal("VD4-102", solids[1].Name);
             Assert.Equal(1, run.Reader.Reads);
             Assert.Empty(run.Document.Created);
-            // 5c places by insert, rotation and mirror, the Z at the FFL is 5d, so the internal origin holds no Z
-            Assert.Equal(0.0, solids[0].Steps.Move[2]);
+            // W6, the solid stands at the FFL of the plan like the link
+            Assert.Equal(5.0, solids[0].Steps.Move[2]);
             Assert.Equal(new[] { 100.0, 0.0 }, solids[0].Tag.Placed.Values["origin"]);
+            Assert.Equal(new[] { 5.0 }, solids[0].Tag.Placed.Values["z"]);
         }
 
         [Fact]
@@ -363,6 +366,109 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "101" }, record["placed"].Select(token => (string)token));
             Assert.Equal(new Dictionary<string, string> { [Path.Combine(prototypes, "VD4.rvt")] = new string('a', 64) }, PlaceVillasRun.Hashes(record));
         }
+
+        private const string FflGuid = "f0000000-0000-0000-0000-000000000000";
+        private const string StepsGuid = "f1000000-0000-0000-0000-000000000000";
+        private const string NameGuid = "f2000000-0000-0000-0000-000000000000";
+
+        private PlanPlot LevelPlot(string number, double ffl)
+        {
+            PlanPlot plot = Plot(number, 1100, 0, false);
+            plot.Insert.Value[2] = ffl;
+            plot.Levels.Ffl.Value = ffl;
+            plot.Parameters[Placer.FflParameter] = new Sourced<string> { Value = ffl.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) };
+            plot.Parameters[StepsName] = new Sourced<string> { Value = "3" };
+            plot.Parameters[RvtName] = new Sourced<string> { Value = number + " | VD4" };
+            return plot;
+        }
+
+        private const string StepsName = "RRE_ZZ_SP_Number-of-Steps";
+        private const string RvtName = "RRE_ZZ_SP_RVT-Name";
+
+        private Run LevelRun(PlanFile plan, string mode, FakeVillas document = null)
+        {
+            var guids = new Dictionary<string, string> { [Placer.FflParameter] = FflGuid, [StepsName] = StepsGuid, [RvtName] = NameGuid };
+            Run run = Make(plan, mode, document, guids: guids);
+            run.Document.Names[FflGuid] = Placer.FflParameter;
+            run.Document.Names[StepsGuid] = StepsName;
+            run.Document.Names[NameGuid] = RvtName;
+            return run;
+        }
+
+        // W6. Button 7 places each link with its Z at the FFL of the plan and writes the level parameters with the others
+        [Fact]
+        public void R377_W6_a_link_stands_at_the_ffl_of_the_plan_and_writes_prototype_ffl_steps_and_rvt_name()
+        {
+            Run run = LevelRun(Plan(LevelPlot("101", 612.345)), VillaModes.Links);
+            IReadOnlyList<string> issues = Apply(run, Context());
+            FakeElement link = run.Document.Elements.Single();
+            Assert.Equal(612.345, link.Steps.Move[2], 9);
+            Assert.Equal(new[] { 612.345 }, link.Tag.Placed.Values["z"]);
+            Assert.Equal("612.345", link.Parameters[Placer.FflParameter]);
+            Assert.Equal("3", link.Parameters[StepsName]);
+            Assert.Equal("101 | VD4", link.Parameters[RvtName]);
+            Assert.DoesNotContain(issues, line => line.Contains(Placer.FflParameter));
+        }
+
+        [Fact]
+        public void R377_W6_the_z_is_read_back_within_1_mm_on_links_and_on_masses()
+        {
+            foreach (string mode in VillaModes.All)
+            {
+                var document = new FakeVillas { OffReadBackZ = 0.002 };
+                Run run = LevelRun(Plan(LevelPlot("101", 612.345)), mode, document);
+                var error = Assert.ThrowsAny<Exception>(() => Apply(run, Context(mode)));
+                Assert.Contains("plot 101", error.Message);
+                var near = new FakeVillas { OffReadBackZ = 0.0009 };
+                Apply(LevelRun(Plan(LevelPlot("101", 612.345)), mode, near), Context(mode + "near"));
+                Assert.Equal(612.345, near.Elements.Single().Steps.Move[2], 9);
+            }
+        }
+
+        // W6. A document whose survey point has a shared elevation moves the internal Z by the same offset as the floors of button 5
+        [Fact]
+        public void R377_W6_the_internal_z_is_the_ffl_less_the_shared_elevation_of_the_survey_point()
+        {
+            var document = new FakeVillas { SharedZ = 600.0 };
+            PlanFile plan = Plan(LevelPlot("101", 612.345));
+            plan.SurveyPoint.SharedPosition = new[] { 1000.0, 2000.0, 600.0 };
+            Apply(LevelRun(plan, VillaModes.Links, document), Context());
+            Assert.Equal(12.345, document.Elements.Single().Steps.Move[2], 9);
+        }
+
+        [Fact]
+        public void R377_W6_a_plot_with_no_ffl_or_an_insert_z_off_its_ffl_is_skipped_and_listed()
+        {
+            PlanPlot none = LevelPlot("101", 612.345);
+            none.Levels.Ffl = null;
+            PlanPlot off = LevelPlot("102", 612.345);
+            off.Insert.Value[2] = 612.5;
+            Run run = LevelRun(Plan(none, off, LevelPlot("103", 600.0)), VillaModes.Links);
+            IReadOnlyList<string> issues = Apply(run, Context());
+            Assert.Contains(issues, line => line.Contains("plot 101") && line.Contains("levels.ffl"));
+            Assert.Contains(issues, line => line.Contains("plot 102") && line.Contains("insert Z"));
+            Assert.Equal(new[] { "103" }, run.Document.Elements.Select(element => element.Tag.Key.Plot));
+        }
+
+        // W6. A villa a 5c run placed at Z 0 holds no z in its tag, so a run of 5d moves it to the FFL in place, never as changed by hand
+        [Fact]
+        public void R377_W6_a_villa_of_5c_at_z_0_is_moved_to_the_ffl_in_place()
+        {
+            foreach (string mode in VillaModes.All)
+            {
+                Run first = LevelRun(Plan(LevelPlot("101", 612.345)), mode);
+                Apply(first, Context("r1" + mode));
+                FakeElement placed = first.Document.Elements.Single();
+                placed.Steps = new PlacementSteps { Move = new[] { placed.Steps.Move[0], placed.Steps.Move[1], 0.0 }, RotationRad = placed.Steps.RotationRad, MirrorNormal = placed.Steps.MirrorNormal };
+                PlacedTag tag = placed.Tag;
+                placed.Tag = new PlacedTag(tag.Version, tag.Key, tag.Run, tag.Profile, tag.PlacedId, new PlacedValues(tag.Placed.Values.Where(item => item.Key != "z").ToDictionary(item => item.Key, item => item.Value.ToArray())));
+                Run second = LevelRun(Plan(LevelPlot("101", 612.345)), mode, first.Document);
+                Assert.Contains("move 1", second.Body.Body().Preview(Context("r2" + mode)).Counts);
+                Apply(second, Context("r2" + mode));
+                Assert.Equal(placed.UniqueId, first.Document.Elements.Single().UniqueId);
+                Assert.Equal(612.345, first.Document.Elements.Single().Steps.Move[2], 9);
+            }
+        }
     }
 
     internal sealed class FakeElement
@@ -387,6 +493,9 @@ namespace SiteAdaptation.Tests
         public string Refuse;
         public bool MissingOnSolids;
         public double? OffReadBack;
+        public double OffReadBackZ;
+        public double SharedZ;
+        public readonly Dictionary<string, string> Names = new Dictionary<string, string>();
         public int Reshaped;
         private int next;
 
@@ -394,7 +503,7 @@ namespace SiteAdaptation.Tests
 
         public SurveyReading Survey()
         {
-            return new SurveyReading { Position = new[] { 0.0, 0.0, 0.0 }, SharedPosition = new[] { 1000.0, 2000.0, 0.0 }, AngleToTrueNorthDeg = 0 };
+            return new SurveyReading { Position = new[] { 0.0, 0.0, 0.0 }, SharedPosition = new[] { 1000.0, 2000.0, SharedZ }, AngleToTrueNorthDeg = 0 };
         }
 
         public IReadOnlyList<VillaLinkType> LinkTypes() => Types.ToList();
@@ -473,18 +582,19 @@ namespace SiteAdaptation.Tests
             {
                 transform.Origin = new[] { transform.Origin[0] + 0.01, transform.Origin[1], transform.Origin[2] };
             }
+            transform.Origin = new[] { transform.Origin[0], transform.Origin[1], transform.Origin[2] + OffReadBackZ };
             return transform;
         }
 
         public IReadOnlyList<double[]> ReadBackBase(string uniqueId)
         {
-            return Base(Find(uniqueId));
+            return Base(Find(uniqueId)).Select(point => new[] { point[0], point[1], point[2] + OffReadBackZ }).ToList();
         }
 
         public ParameterWrite Write(string uniqueId, string guid, string value)
         {
             FakeElement element = Find(uniqueId);
-            string name = guid == PlotGuid ? LinkFields.PlotNumber : guid == null ? null : "CASE";
+            string name = guid == PlotGuid ? LinkFields.PlotNumber : guid == null ? null : Names.TryGetValue(guid, out string named) ? named : "CASE";
             if (name == null)
             {
                 return ParameterWrite.Missing;
@@ -521,7 +631,8 @@ namespace SiteAdaptation.Tests
         private static IReadOnlyList<double[]> Base(FakeElement element)
         {
             double turn = element.Steps.RotationRad * 180 / Math.PI;
-            return ShapeMath.Place(element.Shape, element.Steps.Move, turn, element.Steps.MirrorNormal != null);
+            double z = element.Steps.Move.Length > 2 ? element.Steps.Move[2] : 0;
+            return ShapeMath.Place(element.Shape, element.Steps.Move, turn, element.Steps.MirrorNormal != null).Select(point => new[] { point[0], point[1], z }).ToList();
         }
 
         private static PlacedTransform Transform(PlacementSteps steps)
