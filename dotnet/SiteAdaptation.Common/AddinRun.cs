@@ -157,6 +157,9 @@ namespace SiteAdaptation.Common
         public const string CheckTableBody = "SiteAdaptation.AddIn.CheckTable.CheckTableBody";
         public const string LaunchedWorker = "SiteAdaptation.AddIn.LaunchedWorker";
         public const string Ends = "Ends";
+        public const string ButtonOf = "ButtonOf";
+        public const string UpdateFromReportBody = "SiteAdaptation.AddIn.UpdateFromReportBody";
+        public const string RulesWindowBody = "SiteAdaptation.AddIn.RulesWindow.RulesWindowBody";
         public const string Button = "Button";
     }
 
@@ -756,8 +759,14 @@ namespace SiteAdaptation.Common
         public const string ResultFile = "buttons_result.json";
         public const string PaneSettingsFile = "pane_settings.json";
 
-        // The buttons built by 5c and 5d, in the order of the pane
-        public static readonly int[] Known = { 1, 2, 3, 4, 5, 6, 7, 8 };
+        // The buttons built by 5c to 5e, in the order of the pane
+        public static readonly int[] Known = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+        // The commands with no number a job may name, the command names of RibbonLayout, run after the numbered buttons by
+        // Buttons.Run(name, app) of the add-in, each window answered with no click and closed with no change (6a)
+        public const string RulesCommand = "SiteAdaptationRulesCommand";
+        public const string UpdateCommand = "UpdateFromReportCommand";
+        public static readonly string[] Named = { RulesCommand, UpdateCommand };
 
         // 2 Read data and 4 Check start the worker and return, their end comes later through the ExternalEvent of the add-in
         public static bool Waits(int button)
@@ -776,7 +785,7 @@ namespace SiteAdaptation.Common
         {
             if (job.Buttons == null)
             {
-                return null;
+                return job.Named == null ? null : "named runs after the buttons of a buttons job, the job names no buttons";
             }
             if (job.Buttons.Count == 0)
             {
@@ -822,6 +831,34 @@ namespace SiteAdaptation.Common
             {
                 return "prototypeLoops must name a JSON file by its full path, not " + job.PrototypeLoops;
             }
+            return NamedRefusal(job);
+        }
+
+        private static string NamedRefusal(TestHostJob job)
+        {
+            if (job.Named == null)
+            {
+                return null;
+            }
+            if (job.Named.Count == 0)
+            {
+                return "named names no command";
+            }
+            string unknown = job.Named.FirstOrDefault(command => !Named.Contains(command));
+            if (unknown != null)
+            {
+                return "named may name only " + string.Join(" and ", Named) + ", not " + unknown;
+            }
+            string twice = job.Named.GroupBy(command => command).Where(group => group.Count() > 1).Select(group => group.Key).FirstOrDefault();
+            if (twice != null)
+            {
+                return "named names " + twice + " twice";
+            }
+            // It reads the level Excel of 6 and the report Excel of 9 this run wrote, not those of an earlier run
+            if (job.Named.Contains(UpdateCommand) && !(job.Buttons.Contains(6) && job.Buttons.Contains(9)))
+            {
+                return UpdateCommand + " needs buttons 6 and 9 in the job, it reads the two Excel files they write";
+            }
             return null;
         }
 
@@ -832,7 +869,41 @@ namespace SiteAdaptation.Common
             {
                 steps.Add(new ButtonsStep(7, Settings.VillaModes.Links));
             }
+            steps.AddRange((job.Named ?? new List<string>()).Select(command => new ButtonsStep(command)));
             return steps;
+        }
+
+        // A named command commits nothing in the job, so its window answered is the end it should have
+        public static string NamedOutcome(bool answered, bool committed)
+        {
+            return committed ? ButtonOutcomes.Committed : answered ? ButtonOutcomes.Closed : ButtonOutcomes.Stopped;
+        }
+
+        // No named command needs another, so a named step never stops the run
+        public static bool GoesOn(ButtonsStep step, string outcome)
+        {
+            return step.Command != null || GoesOn(step.Button, outcome);
+        }
+
+        // R402. The level Excel of 6 and the report Excel of 9 of the NBH in the work folder, in that order, the two files Update from
+        // report reads. Null with why when either is not there once, as two level Excels of two profiles leave the pick open
+        public static List<string> UpdateFiles(string workFolder, string nbh, out string missing)
+        {
+            string[] levels = Directory.Exists(workFolder) ? Directory.GetFiles(workFolder, Floors.LevelsRun.ExcelName(nbh, "*"), SearchOption.TopDirectoryOnly) : new string[0];
+            string report = Path.Combine(workFolder, Report.ReportRun.ReportName(nbh));
+            if (levels.Length != 1)
+            {
+                missing = levels.Length == 0 ? "no " + Floors.LevelsRun.ExcelName(nbh, "<profile>") + " in the work folder"
+                    : "more than one level Excel of " + nbh + ": " + string.Join(", ", levels.Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal));
+                return null;
+            }
+            if (!File.Exists(report))
+            {
+                missing = "no " + Path.GetFileName(report) + " in the work folder";
+                return null;
+            }
+            missing = null;
+            return new List<string> { levels[0], report };
         }
 
         // A step the next one needs must commit. 3 Review data saves nothing in the job, so its window ends Cancelled and the run goes on
@@ -850,14 +921,24 @@ namespace SiteAdaptation.Common
             VillaMode = villaMode;
         }
 
+        // A command with no number, run by its command name
+        public ButtonsStep(string command)
+        {
+            Command = command;
+        }
+
+        // 0 for a named command
         public int Button { get; }
+
+        // Null for a numbered button
+        public string Command { get; }
 
         // Null for every button but 7
         public string VillaMode { get; }
 
         public string Name
         {
-            get { return "button" + Button + (VillaMode == null ? "" : "_" + VillaMode); }
+            get { return Command ?? "button" + Button + (VillaMode == null ? "" : "_" + VillaMode); }
         }
     }
 
@@ -869,6 +950,8 @@ namespace SiteAdaptation.Common
         public const string Cancelled = "cancelled";
         public const string Stopped = "stopped";
         public const string TimedOut = "timedOut";
+        // A named command whose window the host answered and closed with no change
+        public const string Closed = "closed";
     }
 
     // R404, docs/design/11-light-mode.md "one NBH in Links and the base boundary of each villa solid measured against the prototype,

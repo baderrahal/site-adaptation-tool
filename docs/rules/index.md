@@ -372,3 +372,4 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R378 Button 5 Floors and ramps.
 - R379 Button 6 Levels.
 - R380 Button 8 Walls.
+- R384 Test host runs every button.

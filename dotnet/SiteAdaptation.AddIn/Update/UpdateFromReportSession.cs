@@ -5,31 +5,6 @@ using SiteAdaptation.Common.Update;
 
 namespace SiteAdaptation.AddIn.Update
 {
-    // R402. What the window asks of the run, apart from the window: Read gives the list of the picked files through the worker, Preview the
-    // entries Apply would save with no write. A callback that throws leaves the window open with its reason shown
-    public sealed class UpdateFromReportCallbacks
-    {
-        public Func<IReadOnlyList<string>, UpdateList> Read { get; set; }
-
-        public Func<IReadOnlyList<UpdateChange>, UpdateApplied> Preview { get; set; }
-    }
-
-    // What the window hands back: Apply false for Cancel or a closed window, else the ticked changes in the order of the list and the note
-    // of each one that has a note
-    public sealed class UpdateFromReportAnswer
-    {
-        public bool Apply { get; set; }
-
-        public List<UpdateChange> Ticked { get; } = new List<UpdateChange>();
-
-        public Dictionary<UpdateChange, string> Notes { get; } = new Dictionary<UpdateChange, string>();
-    }
-
-    public interface IUpdateFromReportDialog
-    {
-        UpdateFromReportAnswer Show(UpdateFromReportCallbacks callbacks);
-    }
-
     // R402. What the buttons of the window do, so a test drives them with no click. The window holds the level Excel and the report Excel of
     // one NBH, so a third pick starts a new pair
     public sealed class UpdateFromReportSession

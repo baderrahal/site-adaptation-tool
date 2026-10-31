@@ -50,7 +50,7 @@ namespace SiteAdaptation.Tests
 
         [Theory]
         [InlineData("[]", "masses", false, "names no button")]
-        [InlineData("[1, 9]", "masses", false, "only 1, 2, 3, 4, 5, 6, 7 and 8")]
+        [InlineData("[1, 10]", "masses", false, "only 1, 2, 3, 4, 5, 6, 7, 8 and 9")]
         [InlineData("[2, 2]", "masses", false, "twice")]
         [InlineData("[4, 2]", "masses", false, "order of the pane")]
         [InlineData("[7]", "solid", false, "villaMode")]
@@ -89,7 +89,7 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R378_R379_a_job_may_run_buttons_5_and_6_in_the_order_of_the_pane()
         {
-            Assert.Equal(new[] { 1, 2, 3, 4, 5, 6, 7, 8 }, ButtonsRun.Known);
+            Assert.Equal(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, ButtonsRun.Known);
             Assert.False(ButtonsRun.Waits(5));
             Assert.False(ButtonsRun.Waits(6));
         }
@@ -98,8 +98,115 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R380_a_job_may_run_button_8_after_7()
         {
-            Assert.Equal(8, ButtonsRun.Known.Last());
+            Assert.True(Array.IndexOf(ButtonsRun.Known, 8) == Array.IndexOf(ButtonsRun.Known, 7) + 1);
             Assert.False(ButtonsRun.Waits(8));
+        }
+
+        // R381. Button 9 of 5e runs in a job after 8 and waits for reportExcel inside its body, as 6 waits for levelExcel, so the job
+        // waits for no worker after it returns, and Update from report after it needs its commit
+        [Fact]
+        public void R381_R384_a_job_may_run_button_9_after_8_and_it_waits_inside_its_body()
+        {
+            Assert.Equal(9, ButtonsRun.Known.Last());
+            Assert.False(ButtonsRun.Waits(9));
+            Assert.Null(ButtonsRun.WorkerCommand(9));
+            Assert.True(ButtonsRun.GoesOn(9, ButtonOutcomes.Committed));
+            Assert.False(ButtonsRun.GoesOn(9, ButtonOutcomes.Stopped));
+            Assert.Null(ButtonsRun.Refusal(Read("{\"buttons\": [4, 5, 6, 7, 8, 9], \"nbh\": \"012\", \"villaMode\": \"masses\", \"paneSettings\": \"p.json\"}")));
+        }
+
+        private const string NamedJob = "{\"kind\": \"addinRun\", \"buttons\": [6, 9], \"nbh\": \"012\", \"paneSettings\": \"p.json\","
+            + " \"named\": [\"SiteAdaptationRulesCommand\", \"UpdateFromReportCommand\"]}";
+
+        // R384, R402, R403. The commands with no number run after the numbered buttons by Buttons.Run of their command name, in the order
+        // of the job, each step named by its command
+        [Fact]
+        public void R384_the_named_commands_run_after_the_numbered_buttons_by_their_command_name()
+        {
+            TestHostJob job = Read(NamedJob);
+            Assert.Equal(new[] { ButtonsRun.RulesCommand, ButtonsRun.UpdateCommand }, job.Named);
+            Assert.Equal(new[] { "SiteAdaptationRulesCommand", "UpdateFromReportCommand" }, ButtonsRun.Named);
+            Assert.Null(ButtonsRun.Refusal(job));
+            List<ButtonsStep> steps = ButtonsRun.Steps(job);
+            Assert.Equal(new[] { "button6", "button9", "SiteAdaptationRulesCommand", "UpdateFromReportCommand" }, steps.Select(step => step.Name));
+            Assert.Equal(new string[] { null, null, ButtonsRun.RulesCommand, ButtonsRun.UpdateCommand }, steps.Select(step => step.Command));
+            Assert.Equal(new[] { 6, 9, 0, 0 }, steps.Select(step => step.Button));
+            Assert.Null(Read(Job).Named);
+            Assert.DoesNotContain(ButtonsRun.Steps(Read(Job)), step => step.Command != null);
+        }
+
+        [Theory]
+        [InlineData("[6, 9]", "[]", "named names no command")]
+        [InlineData("[6, 9]", "[\"PlaceVillasCommand\"]", "named may name only SiteAdaptationRulesCommand and UpdateFromReportCommand, not PlaceVillasCommand")]
+        [InlineData("[6, 9]", "[\"SiteAdaptationRulesCommand\", \"SiteAdaptationRulesCommand\"]", "named names SiteAdaptationRulesCommand twice")]
+        [InlineData("[6]", "[\"UpdateFromReportCommand\"]", "UpdateFromReportCommand needs buttons 6 and 9 in the job")]
+        [InlineData("[9]", "[\"UpdateFromReportCommand\"]", "UpdateFromReportCommand needs buttons 6 and 9 in the job")]
+        [InlineData("null", "[\"SiteAdaptationRulesCommand\"]", "named runs after the buttons of a buttons job")]
+        public void R384_a_named_command_the_run_cannot_carry_out_is_refused_with_its_reason(string buttons, string named, string reason)
+        {
+            TestHostJob job = Read("{\"kind\": \"addinRun\", \"buttons\": " + buttons + ", \"nbh\": \"012\", \"paneSettings\": \"p.json\", \"named\": " + named + "}");
+            Assert.Contains(reason, ButtonsRun.Refusal(job));
+            Assert.Null(ButtonsRun.Refusal(Read("{\"kind\": \"addinRun\", \"buttons\": [1], \"nbh\": \"012\", \"paneSettings\": \"p.json\", \"named\": [\"SiteAdaptationRulesCommand\"]}")));
+        }
+
+        // A named command commits nothing in the job: its window is answered and closed with no change. A window the host did not answer
+        // is a stop, written with the step, and the run goes on, as no named command needs another
+        [Fact]
+        public void R384_a_named_command_ends_closed_when_its_window_was_answered_and_never_stops_the_run()
+        {
+            Assert.Equal(ButtonOutcomes.Closed, ButtonsRun.NamedOutcome(true, false));
+            Assert.Equal(ButtonOutcomes.Stopped, ButtonsRun.NamedOutcome(false, false));
+            Assert.Equal(ButtonOutcomes.Committed, ButtonsRun.NamedOutcome(true, true));
+            var rules = new ButtonsStep(ButtonsRun.RulesCommand);
+            Assert.True(ButtonsRun.GoesOn(rules, ButtonOutcomes.Stopped));
+            Assert.True(ButtonsRun.GoesOn(rules, ButtonOutcomes.Closed));
+            Assert.False(ButtonsRun.GoesOn(new ButtonsStep(9, null), ButtonOutcomes.Stopped));
+            Assert.True(ButtonsRun.GoesOn(new ButtonsStep(3, null), ButtonOutcomes.Cancelled));
+        }
+
+        // R402. Update from report reads the level Excel of 6 and the report Excel of 9 of the NBH in the work folder of the run, in that
+        // order, and with either not there once it reads nothing and says which
+        [Fact]
+        public void R402_R384_update_from_report_reads_the_level_and_report_excel_of_the_nbh_in_the_work_folder()
+        {
+            string work = Path.Combine(Path.GetTempPath(), "r384_named_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(work);
+            try
+            {
+                string level = Path.Combine(work, SiteAdaptation.Common.Floors.LevelsRun.ExcelName("012", "parsons2024Rev6"));
+                string report = Path.Combine(work, SiteAdaptation.Common.Report.ReportRun.ReportName("012"));
+                File.WriteAllText(level, "x");
+                File.WriteAllText(Path.Combine(work, SiteAdaptation.Common.Floors.LevelsRun.ExcelName("013", "parsons2024Rev6")), "x");
+                string missing;
+                Assert.Null(ButtonsRun.UpdateFiles(work, "012", out missing));
+                Assert.Contains("012_Report.xlsx", missing);
+                File.WriteAllText(report, "x");
+                Assert.Equal(new[] { level, report }, ButtonsRun.UpdateFiles(work, "012", out missing));
+                Assert.Null(missing);
+                File.WriteAllText(Path.Combine(work, SiteAdaptation.Common.Floors.LevelsRun.ExcelName("012", "native2022")), "x");
+                Assert.Null(ButtonsRun.UpdateFiles(work, "012", out missing));
+                Assert.Contains("native2022", missing);
+                Assert.Contains("parsons2024Rev6", missing);
+            }
+            finally
+            {
+                Directory.Delete(work, true);
+            }
+        }
+
+        [Fact]
+        public void R384_the_host_runs_a_named_command_by_buttons_run_of_its_name_and_answers_its_window_with_no_click()
+        {
+            string host = Text("dotnet", "SiteAdaptation.TestHost", "ButtonsRunHost.cs");
+            string script = Text("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
+            Assert.Contains("buttons.GetMethod(AddinRunNames.Run, new[] { typeof(string), typeof(UIApplication) })", host);
+            Assert.Contains("Put(AddinRunNames.UpdateFromReportBody, AddinRunNames.Dialog, (Func<IntPtr, IUpdateFromReportDialog>)(owner => new ReadNoApply(this)));", host);
+            Assert.Contains("Put(AddinRunNames.RulesWindowBody, AddinRunNames.Dialog, (Action<IntPtr, ManualRuleTable, string>)((owner, rules, selected) => Opened(rules)));", host);
+            Assert.Contains("Put(AddinRunNames.UpdateFromReportBody, AddinRunNames.Dialog, updateBefore);", host);
+            Assert.Contains("Put(AddinRunNames.RulesWindowBody, AddinRunNames.Dialog, rulesBefore);", host);
+            Assert.Contains("return new UpdateFromReportAnswer { Apply = false };", host);
+            Assert.Contains("if ($round.named) {", script);
+            Assert.Contains("$roundJob.named = [string[]]@($round.named)", script);
         }
 
         [Fact]
@@ -205,7 +312,7 @@ namespace SiteAdaptation.Tests
             Assert.Contains("return buttons.Pending(probe);", session);
             Assert.Contains("buttons.WaitEnded(ended.Value, seconds);", session);
             Assert.Contains("buttons.GetMethod(AddinRunNames.Run, new[] { typeof(int), typeof(UIApplication) })", host);
-            Assert.Contains("DialogAnswers.Armed = Armed(step.Button);", host);
+            Assert.Contains("DialogAnswers.Armed = Armed(step);", host);
             Assert.Contains("DialogAnswers.Armed = null;", host);
             Assert.Contains("JsonOut.Write(Path.Combine(folder, ButtonsRun.ResultFile), result);", host);
             // The windows and the run state of the add-in are put back at the end of the run
