@@ -107,9 +107,10 @@ namespace SiteAdaptation.Common
         public double Seconds { get; set; }
         public string Library { get; set; }
 
+        // The Revit run of 5d: a refusal before the config was read died in this write where no config/project.json lies above the worker
         public string ToJson()
         {
-            return JsonOut.ToJson(this);
+            return DesignValues.Known ? JsonOut.ToJson(this) : JsonOut.ToJsonUnrounded(this);
         }
 
         public static WorkerAnswer Read(string path)
