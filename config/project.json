@@ -734,7 +734,9 @@
             "base": {"kind": "levels", "decimals": 3},
             "top": {"kind": "levels", "decimals": 3},
             "levelPlots": {"kind": "noGeometry"},
-            "status": {"kind": "noGeometry"}
+            "status": {"kind": "noGeometry"},
+            "irregular": {"kind": "noGeometry"},
+            "lineInsideM": {"kind": "levels", "decimals": 3}
         },
         "overrides": {
             "unit": {"kind": "noGeometry"},

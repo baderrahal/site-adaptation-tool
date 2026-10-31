@@ -130,7 +130,8 @@ def test_r362_parity_walls_the_plan_places_on_the_made_up_row_after_the_override
         "walls.plots": {"DOCUMENT": 13}, "walls.ends": {"UNKNOWN": 13}, "walls.base": {"MEASURED weak": 9, "RECOMMENDED": 4},
         "walls.top": {"MEASURED weak": 9, "RECOMMENDED": 4}}}
     made, tables = plan_walls.step(built["scope"], built["rows"], built["trace"])
-    assert made["7"] == {"unit": None, "written": False, "edges": [], "plots": [], "ends": [], "base": [], "top": [], "levelPlots": [], "status": []}
+    assert made["7"] == {"unit": None, "written": False, "edges": [], "plots": [], "ends": [], "base": [], "top": [], "levelPlots": [], "status": [],
+                         "irregular": None, "lineInsideM": None}
     assert (made["3"]["edges"], made["3"]["plots"], made["3"]["levelPlots"]) == ([1, 2], [["3"], ["3", "4"]], [["3", "3"], ["4", "4"]])
     assert made["3"]["status"][0]["base"] == {"status": "RECOMMENDED", "statusFrom": "walls.base from override by heightM"}
     assert sorted(tables["statusFrom"]) == ["walls.base from keyRules", "walls.base from override by heightM", "walls.base from override by heightM reads of none",

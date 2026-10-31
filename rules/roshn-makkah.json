@@ -147,7 +147,9 @@
     "boundary_wall_top_above_ffl": 1700,
     "boundary_wall_continuity_limit": 500,
     "garden_wall_top_above_ffl": 1700,
-    "utility_cabinet_raise": 100
+    "utility_cabinet_raise": 100,
+    "irregular_tolerance_deg": 2.0,
+    "irregular_tolerance_source": "Rev 06, 2.8.A irregular plots at corners or next to sikkas, the boundary wall on the exact plot shape, its outer face on the plot limit and the wall of plot.boundary_wall_thickness fully inside. The degrees a corner may stand off 90 and an edge off straight, round 4j-2 measurement on the 7 keys (2,501 plots): the largest deviation of a 4 corner face 1.003, the smallest of a real irregular corner 44.5, 41 plots irregular at any tolerance from 1.1 to 44 (R415, R416)"
   },
   "hands": {
     "source": "Round 17, the majority rule on the Parsons IMC key with the Prototypes_2024 files (R274). mirrored by the mirror flag of the Building Footprint block of the plot and its open end, the side of the row with no unit plot beside it, seen from the road. A pair the key never showed falls back to the block mirror flag alone",
@@ -567,6 +569,7 @@
       "rev6.boundary_wall_continuity_limit": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
       "rev6.garden_wall_top_above_ffl": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
       "rev6.utility_cabinet_raise": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "rev6.irregular_tolerance_deg": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
       "hands.villa.rule": {"status": "MEASURED", "share": 0.913, "strength": "strong", "measuredBy": "hands.villa"},
       "hands.alone.rule": {"status": "MEASURED", "share": 0.938, "strength": "strong", "measuredBy": "hands.alone"},
       "hands.cluster.rule": {"status": "MEASURED", "share": 0.981, "strength": "strong", "measuredBy": "hands.cluster"},
@@ -921,6 +924,9 @@
       "designBasis.roadLevel.oldJobOffsetM": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designBasis.backYard.floor": {"status": "RECOMMENDED", "question": "Q225", "where": "designBasis.backYard.note"},
       "designBasis.clusters.propose": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
+      "designBasis.split.test": {"status": "RECOMMENDED", "question": "Q257", "where": "designBasis.split.note"},
+      "designBasis.split.units": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
+      "designBasis.split.walls": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designValues.placer.coordinateToleranceM": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designValues.placer.angleToleranceDeg": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designValues.placer.zToleranceM": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},

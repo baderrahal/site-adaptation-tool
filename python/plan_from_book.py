@@ -1227,6 +1227,11 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             missing.append({"plot": number, "written": complete, "missing": builder.missing, **({"overrides": records[number]} if records[number] and not complete else {})})
             lacking.update(entry["key"] for entry in builder.missing)
     walls = []
+    # R415, R416. Under rev6 each plot of the scope with a face regular or irregular, and the move of each wall inside an irregular plot
+    lines = plan_walls.line_rules(profile) if rev6 else None
+    irregulars = None if lines is None else plan_walls.irregular_of(numbers, {plot: list(shape.exterior.coords)[:-1] for plot, shape in faces.items()
+                                                                           if shape is not None and shape.geom_type == "Polygon"}, lines["tolerance"])
+    wall_lines = None if lines is None else []
     if wall_rules is not None:
         # R362. The boundary walls of the written plots on the faces of the whole site, on the FFL after the overrides at the decimals of the plan
         written = {entry["plot"]: entry for entry in plots}
@@ -1243,12 +1248,17 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         for index, cluster in enumerate(clusters if numbered else numbered_clusters(clusters, number_of)):
             for plot in cluster["plots"]:
                 kin[plot] = (index, (rows.get(plot) or {}).get("typologyRev9") or None)
-        for wall in plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules, faced, kin):
+        placed = plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules, faced, kin)
+        if lines is not None:
+            plan_walls.inside(placed, rings, set(ffls), irregulars, lines["half"])
+        for wall in placed:
             item = plan_walls.entry(wall)
             plan_walls.mark(item, wall, statuses, applied_of)
             walls.append(item)
+            if wall_lines is not None:
+                wall_lines.append(wall["lineInsideM"])
     if trace is not None:
-        trace["walls"] = walls
+        trace.update(walls=walls, irregular=irregulars, wallLines=wall_lines)
     conflicts = [] if key is None else turned_ramps(plots, frames, faces, applied_of, opened_ramps)
     if trace is not None:
         trace["conflicts"] = conflicts
