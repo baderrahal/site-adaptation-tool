@@ -181,6 +181,19 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `Apply`
 - `Browse` the Browse of the row Shared parameters
 - `Nothing differs, Apply changes nothing.` CHOSEN, under the pass line on a second run by 03a Second run, Apply stays off
+- `Current files` CHOSEN, DRAFT of SCAN-UI, the section of the step 0 gate above the two tables (R441)
+- `Tick each file that is the current issue. Apply waits for the site drawing.` CHOSEN, DRAFT, its help line
+- `Current` CHOSEN, DRAFT, the tick of each file
+- `Site drawing` CHOSEN, DRAFT, beside the Baseplan row
+- `Rules` the dropdown of the saved rules profiles, the name of the pane row
+- `Baseplan` the files of the setup by the names of the pane rows
+- `Villa blocks`
+- `Curbs`
+- `Road surface`
+- `DLUS schedule` CHOSEN, the name of the pane row
+- `Sales schedule` CHOSEN, the name of the pane row
+- `Plot numbers`
+- `Parameter sheet` CHOSEN, the row of the parameter sheet
 
 ### Review data
 

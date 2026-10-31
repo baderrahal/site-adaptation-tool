@@ -17,6 +17,10 @@ namespace SiteAdaptation.AddIn.SetUpSite
         private string problem = "";
         private double? dryRunSlope;
 
+        // R441. The ticks of Current by input and the rules profile chosen, kept across the views a dry run or a sheet gives back
+        private readonly Dictionary<string, bool> ticks = new Dictionary<string, bool>(StringComparer.Ordinal);
+        private int rulesIndex = -1;
+
         public SetUpSiteViewModel(SetUpSiteView view)
         {
             Load(view);
@@ -63,7 +67,34 @@ namespace SiteAdaptation.AddIn.SetUpSite
         public bool StopsShown => StopsLine.Length > 0;
 
         // The dry run has filled the view, no stop is found, something differs, and the slope is the one the view was made with
-        public bool CanApply => view.Stops.Count == 0 && view.DryRunDone && !view.NothingDiffers && SameSlope && (!dryRunSlope.HasValue || Math.Abs(dryRunSlope.Value - SelectedSlope) < 1e-9);
+        public bool CanApply => SiteTicked && view.Stops.Count == 0 && view.DryRunDone && !view.NothingDiffers && SameSlope && (!dryRunSlope.HasValue || Math.Abs(dryRunSlope.Value - SelectedSlope) < 1e-9);
+
+        public IReadOnlyList<CurrentFileViewModel> CurrentFiles { get; private set; }
+
+        public bool CurrentShown => view.CurrentFiles != null;
+
+        // Apply stays grey until the site drawing is ticked Current (R441)
+        public bool SiteTicked => view.CurrentFiles == null || CurrentFiles.Any(row => row.Site && row.Current);
+
+        public IReadOnlyList<string> RulesChoices { get; private set; }
+
+        public int RulesIndex
+        {
+            get { return rulesIndex; }
+            set
+            {
+                if (value >= 0 && value < RulesChoices.Count && value != rulesIndex)
+                {
+                    rulesIndex = value;
+                    Changed(nameof(RulesIndex));
+                }
+            }
+        }
+
+        // The ticked inputs and the rules file chosen, what Apply hands on
+        public List<string> TickedInputs => CurrentFiles.Where(row => row.Current).Select(row => row.Input).ToList();
+
+        public string ChosenRules => rulesIndex >= 0 && rulesIndex < view.RulesProfiles.Count ? view.RulesProfiles[rulesIndex].Path : null;
 
         public int RampIndex
         {
@@ -100,7 +131,26 @@ namespace SiteAdaptation.AddIn.SetUpSite
             WillSet = Ordered(view.WillSet, SetUpSiteText.WillOrder, true);
             CheckPoints = view.CheckPoints.Select(point => new CheckPointViewModel(point)).ToList();
             StopsLine = StopsText();
+            List<CurrentFileRow> files = view.CurrentFiles ?? new List<CurrentFileRow>();
+            foreach (CurrentFileRow row in files.Where(row => !ticks.ContainsKey(row.Input)))
+            {
+                ticks[row.Input] = row.Current;
+            }
+            CurrentFiles = files.Select(row => new CurrentFileViewModel(this, row, ticks[row.Input])).ToList();
+            RulesChoices = view.RulesProfiles.Select(choice => choice.Name).ToList();
+            if (rulesIndex < 0 || rulesIndex >= RulesChoices.Count)
+            {
+                rulesIndex = view.RulesProfiles.FindIndex(choice => string.Equals(choice.Path, view.RulesFile, StringComparison.OrdinalIgnoreCase));
+            }
             Changed(string.Empty);
+        }
+
+        // A tick of Current changed, so Apply may turn on or off
+        public void Ticked(string input, bool current)
+        {
+            ticks[input] = current;
+            Changed(nameof(SiteTicked));
+            Changed(nameof(CanApply));
         }
 
         // Keeps the slope the user chose across the view that a dry run or a sheet gives back
@@ -223,5 +273,48 @@ namespace SiteAdaptation.AddIn.SetUpSite
         public bool Passes { get; }
 
         public bool Fails { get; }
+    }
+
+    // R441. One file of the section Current files, its tick handed back to the window model
+    public sealed class CurrentFileViewModel : INotifyPropertyChanged
+    {
+        private readonly SetUpSiteViewModel model;
+        private bool current;
+
+        public CurrentFileViewModel(SetUpSiteViewModel model, CurrentFileRow row, bool current)
+        {
+            this.model = model;
+            Input = row.Input;
+            Label = SetUpSiteText.InputLabels.TryGetValue(row.Input, out string label) ? label : row.Input;
+            FileName = row.FileName;
+            Site = row.Site;
+            this.current = current;
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public string Input { get; }
+
+        public string Label { get; }
+
+        public string FileName { get; }
+
+        public bool Site { get; }
+
+        public string SiteLine => Site ? SetUpSiteText.SiteDrawing : "";
+
+        public bool Current
+        {
+            get { return current; }
+            set
+            {
+                if (value != current)
+                {
+                    current = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Current)));
+                    model.Ticked(Input, value);
+                }
+            }
+        }
     }
 }

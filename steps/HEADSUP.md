@@ -3,9 +3,9 @@
 ## Live status
 
 - Lane: C, round SCAN-UI, branch feat/lane-c-scan-ui, worktree Site Adaptation Tool Lane C WT
-- Time: 2026-10-31 22:55
-- Now: the plan is written, the shared settings fields, then task 4 Current files in 1 Set up site, helper A on task 1
-- Done: the board ScanResults copied into docs/design/boards
+- Time: 2026-10-31 23:35
+- Now: task 1 by helper A, me on task 3 New project picks from the scan
+- Done: the board copied, the settings fields, task 4 Current files in 1 Set up site with R441 and its tests
 - Next: task 1 the window What the tool read, task 7 Revit pictures, tasks 2 and 3, tasks 5 and 6 after 4i merges
 - Blocked: none. Tasks 5 and 6 wait for 4i on main
 - Lane D: 4j-1 merged as PR 114 (c145089). Lane B: 5d merged as PR 113, 6a and DEMO tonight

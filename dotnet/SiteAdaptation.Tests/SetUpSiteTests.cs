@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using SiteAdaptation.AddIn.SetUpSite;
+using SiteAdaptation.Common.Settings;
 using SiteAdaptation.Common.SetUp;
 using SiteAdaptation.UiShots;
 using Xunit;
@@ -391,6 +392,37 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R441_apply_stays_grey_until_the_site_drawing_is_ticked_and_hands_on_the_ticks_and_the_rules()
+        {
+            var session = new SetUpSiteSession(Shots.SampleSetUpView(true, true), new SetUpSiteCallbacks(), () => null);
+            SetUpSiteViewModel model = session.Model;
+            Assert.True(model.CurrentShown);
+            Assert.True(model.CanApply);
+            CurrentFileViewModel site = model.CurrentFiles.Single(row => row.Site);
+            site.Current = false;
+            Assert.False(model.CanApply);
+            session.Apply();
+            Assert.False(session.Answer.Apply);
+            site.Current = true;
+            Assert.True(model.CanApply);
+            Assert.Equal(0, model.RulesIndex);
+            session.Apply();
+            Assert.True(session.Answer.Apply);
+            Assert.Equal(new[] { InputNames.Baseplan, InputNames.VillaBlocks }, session.Answer.CurrentFiles);
+            Assert.Equal("rules.json", session.Answer.RulesFile);
+        }
+
+        [Fact]
+        public void R441_a_view_no_current_files_dialog_filled_shows_no_section_and_waits_for_no_tick()
+        {
+            SetUpSiteView view = Shots.SampleSetUpView(true, true);
+            view.CurrentFiles = null;
+            var model = new SetUpSiteViewModel(view);
+            Assert.False(model.CurrentShown);
+            Assert.True(model.CanApply);
+        }
+
+        [Fact]
         public void R373_the_ramp_slope_row_holds_a_30_high_drop_down_of_16_choices_and_the_sheet_row_holds_browse()
         {
             OnSta(() =>
@@ -399,7 +431,7 @@ namespace SiteAdaptation.Tests
                 var model = (SetUpSiteViewModel)Shots.Body(window).DataContext;
                 List<FrameworkElement> all = Visuals(Shots.Body(window)).OfType<FrameworkElement>().ToList();
 
-                ComboBox ramp = all.OfType<ComboBox>().Single();
+                ComboBox ramp = all.OfType<ComboBox>().Single(box => box.ItemsSource == model.RampChoices);
                 Assert.Equal(30.0, ramp.ActualHeight);
                 Assert.Equal(16, ramp.Items.Count);
                 Assert.Equal(0, ramp.SelectedIndex);

@@ -189,6 +189,45 @@
           <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <StackPanel Margin="{StaticResource SA.Pad.Side}">
+          <!-- R441, step 0 gate: the files of the setup each with a tick Current, and the Rules dropdown. Apply waits for the site drawing -->
+          <StackPanel Margin="{StaticResource SA.Gap.Bottom16}" Visibility="{Binding CurrentShown, Converter={StaticResource Shown}}">
+            <TextBlock Style="{StaticResource SA.Pane.Section}" Text="{x:Static set:SetUpSiteText.CurrentTitle}" />
+            <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{x:Static set:SetUpSiteText.CurrentHelp}" />
+            <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding CurrentFiles}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type set:CurrentFileViewModel}">
+                  <Border MinHeight="{StaticResource SA.Size.Row}" Padding="{StaticResource SA.Pad.Cell}" BorderBrush="{StaticResource SA.Border}"
+                          BorderThickness="{StaticResource SA.Line.Under}">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{StaticResource SA.Grid.SetUpLabel}" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Style="{StaticResource RowText}" Text="{Binding Label}" />
+                      <TextBlock Grid.Column="1" Style="{StaticResource RowText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Text="{Binding FileName}" ToolTip="{Binding FileName}" />
+                      <TextBlock Grid.Column="2" Style="{StaticResource SA.Type.Small}" Foreground="{StaticResource SA.Info}" VerticalAlignment="Center"
+                                 Margin="{StaticResource SA.Gap.Left8}" Text="{Binding SiteLine}" Visibility="{Binding Site, Converter={StaticResource Shown}}" />
+                      <CheckBox Grid.Column="3" Style="{StaticResource SA.Pane.Check}" Margin="{StaticResource SA.Gap.Left8}" VerticalAlignment="Center"
+                                Content="{x:Static set:SetUpSiteText.CurrentTick}" IsChecked="{Binding Current, Mode=TwoWay}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Border Padding="{StaticResource SA.Pad.Cell}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="{StaticResource SA.Grid.SetUpLabel}" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource RowText}" Text="{x:Static set:SetUpSiteText.Rules}" />
+                <ComboBox Grid.Column="1" Style="{StaticResource SA.Pane.Combo}" HorizontalAlignment="Stretch"
+                          ItemsSource="{Binding RulesChoices}" SelectedIndex="{Binding RulesIndex, Mode=TwoWay}" />
+              </Grid>
+            </Border>
+          </StackPanel>
           <TextBlock Style="{StaticResource SA.Pane.Section}" Text="{x:Static set:SetUpSiteText.NowTitle}" />
           <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding Now}" ItemTemplate="{StaticResource SetRow}" />
           <TextBlock Style="{StaticResource SA.Pane.Section}" Margin="{StaticResource SA.Gap.Top16}" Text="{x:Static set:SetUpSiteText.WillTitle}" />

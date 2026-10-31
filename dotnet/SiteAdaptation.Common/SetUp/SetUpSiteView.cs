@@ -49,6 +49,14 @@ namespace SiteAdaptation.Common.SetUp
 
         // True on a second run of a document that holds every value, so Apply says it changes nothing
         public bool NothingDiffers { get; set; }
+
+        // R441, the section Current files and the Rules dropdown, filled by CurrentFilesDialog. Null where no such dialog wraps the
+        // window, as a run of the tests, and then Apply waits for no tick. A list, even empty, holds Apply until the site drawing is ticked
+        public List<CurrentFileRow> CurrentFiles { get; set; }
+
+        public List<RulesChoice> RulesProfiles { get; set; } = new List<RulesChoice>();
+
+        public string RulesFile { get; set; }
     }
 
     // The window of button 1 in the add-in, a stand-in in the test host and the tests, so the run is driven with no click
@@ -75,6 +83,11 @@ namespace SiteAdaptation.Common.SetUp
 
         // The sheet chosen by Browse, null when the pane's own stays
         public string ParameterSheet { get; set; }
+
+        // R441. The inputs ticked Current and the rules profile chosen, null where the window gave none, so a stand-in keeps the settings
+        public List<string> CurrentFiles { get; set; }
+
+        public string RulesFile { get; set; }
     }
 
     public sealed class SetUpRow

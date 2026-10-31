@@ -60,7 +60,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
             {
                 return;
             }
-            Answer = new SetUpSiteAnswer { Apply = true, RampSlope = Model.SelectedSlope, ParameterSheet = Model.ChosenSheet };
+            Answer = new SetUpSiteAnswer { Apply = true, RampSlope = Model.SelectedSlope, ParameterSheet = Model.ChosenSheet, CurrentFiles = Model.TickedInputs, RulesFile = Model.ChosenRules };
             Finished?.Invoke();
         }
 

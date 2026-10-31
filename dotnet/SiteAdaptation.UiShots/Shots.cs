@@ -413,6 +413,15 @@ namespace SiteAdaptation.UiShots
                 view.Signs.AddRange(new[] { "Settings entity found", "Survey point off the internal origin" });
             }
             view.RampSlopeChoices.AddRange(new[] { 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 });
+            // R441, the section Current files, DRAFT of SCAN-UI, the site drawing ticked so Apply shows as it does after a dry run
+            view.CurrentFiles = new List<CurrentFileRow>
+            {
+                new CurrentFileRow { Input = InputNames.Baseplan, FileName = "site.dwg", Site = true, Current = true },
+                new CurrentFileRow { Input = InputNames.VillaBlocks, FileName = "footprints.dwg", Current = true },
+                new CurrentFileRow { Input = InputNames.Sales, FileName = "plot list.xlsx", Current = false },
+            };
+            view.RulesProfiles = new List<RulesChoice> { new RulesChoice { Name = "Sample project", Path = "rules.json" } };
+            view.RulesFile = "rules.json";
             view.Now.AddRange(new[]
             {
                 new SetUpRow { Label = "Survey point", Value = "E 1000.000, N 2000.000, Z 0.000" },
