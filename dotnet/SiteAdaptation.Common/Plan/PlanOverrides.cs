@@ -50,6 +50,9 @@ namespace SiteAdaptation.Common
 
         // R365. The type of the yard outline the plan places, which floorTypes of the plan summary counts
         public string YardType { get; set; }
+
+        // Q116. The ramp moved to the open edge a rotation override turned the plot to face, so the plot is no conflict of the plan
+        public bool RampOnOpenEdge { get; set; }
     }
 
     // R360, R337, R340, R280, R386. Step 12 of the plan builder: what a build does with each override of each plot, applied or left with why, as
@@ -534,7 +537,7 @@ namespace SiteAdaptation.Common
         public static Dictionary<string, PlotPlan> Of(IReadOnlyList<string> numbers, IReadOnlyDictionary<string, Dictionary<string, string>> rows, LevelBuild build,
             IReadOnlyDictionary<string, FrontItem> linkFronts, HandContext context, IReadOnlyDictionary<string, Dictionary<string, object>> hands, JObject keyRules,
             JObject levelProfile, JObject rules, JObject config, IReadOnlyDictionary<string, string> files, OverrideList list, string profileName, double step,
-            string rulesName = "the rules profile")
+            string rulesName = "the rules profile", Func<double, double, KeyValuePair<double?, string>> roadLevel = null)
         {
             if ((string)keyRules["yardOutline"]["rule"] != "fittedOutlineRefit")
             {
@@ -574,7 +577,8 @@ namespace SiteAdaptation.Common
                 var made = new Dictionary<string, object>
                 {
                     ["unit"] = unit, ["skip"] = skipped, ["written"] = false, ["applied"] = null, ["notApplied"] = null, ["mirrored"] = null, ["insert"] = null, ["rotationDeg"] = null,
-                    ["roadAtFront"] = null, ["entry"] = null, ["ffl"] = null, ["ssl"] = null, ["height"] = null, ["steps"] = null, ["rampZ"] = null, ["rampType"] = null, ["yardZ"] = null, ["yardOutline"] = null,
+                    ["roadAtFront"] = null, ["entry"] = null, ["ffl"] = null, ["ssl"] = null, ["height"] = null, ["steps"] = null, ["rampZ"] = null, ["rampType"] = null, ["rampOutline"] = null, ["yardZ"] = null,
+                    ["yardOutline"] = null,
                 };
                 var parameters = new Dictionary<string, object> { ["unit"] = unit, ["written"] = false, ["parameters"] = null, ["sources"] = null, ["lacks"] = null, ["linkName"] = null };
                 found[number] = new PlotPlan { Overrides = made, Parameters = parameters };
@@ -679,6 +683,7 @@ namespace SiteAdaptation.Common
                 double[] insert = link["insert"] as double[];
                 StepValue rotation = link["rotationDeg"] as StepValue;
                 JToken mirrored = insert == null ? null : (JToken)link["mirrored"];
+                bool turnedLink = false;
                 // plan_from_book.moved_link: the insert by its gap along the link axes of the hand, the rotation by its gap in degrees
                 foreach (string field in new[] { "insert", "rotationDeg" })
                 {
@@ -703,6 +708,7 @@ namespace SiteAdaptation.Common
                     {
                         double turn = (double)rotation.Written + BuildFace.Number(gap);
                         rotation = new StepValue { Raw = turn, Written = LinkFrames.PlanRotation(turn) };
+                        turnedLink = true;
                     }
                     outcomes.Applied(number, field);
                 }
@@ -764,6 +770,16 @@ namespace SiteAdaptation.Common
                     // plan_from_book.build: the ramp of Step 8 with the rampFrontM gap and the ramp type of a rampType override, then the yard
                     var moved = new List<string>();
                     double[] front = item.Front;
+                    double[][] outline = item.Corners;
+                    FrontItem open = turnedLink && roadLevel != null
+                        ? Fronts.OpenRamp(item.Face, item.Frame, Convert.ToDouble(rotation.Written, CultureInfo.InvariantCulture), (bool)mirrored, item.Depth, roadLevel) : null;
+                    // Q116. With no road level at an open corner the ramp stays on the front and the plot stays in the conflicts
+                    if (open?.Front != null)
+                    {
+                        front = open.Front;
+                        outline = open.Corners;
+                        found[number].RampOnOpenEdge = true;
+                    }
                     JToken gap = GapOf(mine["rampFrontM"]);
                     if (gap != null)
                     {
@@ -787,6 +803,7 @@ namespace SiteAdaptation.Common
                     {
                         made["rampZ"] = FloorOutlines.RampHeights(front, entryWritten.Value);
                         made["rampType"] = kind.DeepClone();
+                        made["rampOutline"] = outline;
                     }
                     foreach (string field in moved)
                     {

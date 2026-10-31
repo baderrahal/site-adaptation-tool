@@ -425,7 +425,8 @@ namespace SiteAdaptation.Common
                 else if (kind == "ramp" && Held(ov["rampZ"]) && Held(ov["rampType"]))
                 {
                     floor = new JObject { ["type"] = Sourced(fields, number, key + ".type", ov["rampType"].DeepClone()) };
-                    JArray outline = (JArray)floors["rampOutline"];
+                    // Q116. The outline after the overrides, on the open edge of a turned plot, the rule outline in a step file before it
+                    JArray outline = (JArray)(Held(ov["rampOutline"]) ? ov["rampOutline"] : floors["rampOutline"]);
                     var rings = new JArray();
                     rings.Add(outline.DeepClone());
                     FloorBase(floor, fields, number, key, level, elevation, Loops(rings), unit);
