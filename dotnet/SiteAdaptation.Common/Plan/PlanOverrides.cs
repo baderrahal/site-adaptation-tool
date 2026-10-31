@@ -67,6 +67,8 @@ namespace SiteAdaptation.Common
 
         // plan_from_book.NO_GAP, LEFT and plan_rules.USE_RULE, the lines a build leaves an override with
         public const string NoGap = "the override holds no gap to the rule";
+        // plan_from_book.OPEN_EDGE_GAP, Q116. The rampFront gap holds the road of the front of R355, not of the open edge of a turned plot
+        public const string OpenEdgeGap = "measured on the front of R355, the ramp moved to the open edge (Q116)";
         public const string UseRule = "use rule, the override list marks the entry to follow the rule (R386)";
         private const string ParameterWord = "parameter ";
         private const string KeyRulesSource = "keyRules";
@@ -781,7 +783,11 @@ namespace SiteAdaptation.Common
                         found[number].RampOnOpenEdge = true;
                     }
                     JToken gap = GapOf(mine["rampFrontM"]);
-                    if (gap != null)
+                    if (found[number].RampOnOpenEdge && mine.Property("rampFrontM") != null)
+                    {
+                        outcomes.Leave(number, "rampFrontM", OpenEdgeGap);
+                    }
+                    else if (gap != null)
                     {
                         front = front.Select(z => z + BuildFace.Number(gap)).ToArray();
                         moved.Add("rampFrontM");

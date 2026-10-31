@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 using Xunit;
 
@@ -99,6 +100,21 @@ namespace SiteAdaptation.Tests
             Assert.DoesNotContain("rotationDeg", From(built, "6", "floors.ramp.outline"));
             OverrideParameterStepTests.Built dry = OverrideParameterStepTests.Build(OverrideParameterStepTests.Made(), backDry: true);
             Assert.All(new[] { "floors.ramp.outline", "floors.ramp.corners", "floors.ramp.heightOffset" }, field => Assert.DoesNotContain("rotationDeg", From(dry, "2", field)));
+        }
+
+        // test_turned_ramp.test_q116_r362_a_turned_plot_leaves_its_ramp_front_gap_measured_on_the_front_of_r355
+        [Fact]
+        public void Q116_R362_a_turned_plot_leaves_its_ramp_front_gap_measured_on_the_front_of_r355()
+        {
+            JObject two = (JObject)OverrideParameterStepTests.Made().Found["2"].DeepClone();
+            two["rampFrontM"] = new JObject { ["gapToRuleM"] = 0.05 };
+            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(new OverrideList(new Dictionary<string, JObject> { ["2"] = two }));
+            PlotPlan plan = built.Plans["2"];
+            Assert.True(plan.RampOnOpenEdge);
+            Assert.Equal("10.24 10.12", string.Join(" ", ((double[])plan.Overrides["rampZ"]).Take(2).Select(z => Rounding.Fixed(z, 3))));
+            Assert.DoesNotContain("rampFrontM", (List<string>)plan.Overrides["applied"]);
+            Assert.Equal("measured on the front of R355, the ramp moved to the open edge (Q116)", (string)((JObject)plan.Overrides["notApplied"])["rampFrontM"]);
+            Assert.All(new[] { "floors.ramp.corners", "floors.ramp.heightOffset" }, field => Assert.DoesNotContain("rampFrontM", From(built, "2", field)));
         }
     }
 }
