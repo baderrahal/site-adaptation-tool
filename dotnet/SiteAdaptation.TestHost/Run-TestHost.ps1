@@ -373,6 +373,10 @@ if ($round) {
                 # R375. Button 2 reads the layer list beside the config it is given, so the copy of config takes it along
                 $layersName = [string]$settingsCopy.addin.readData.cadLayers
                 Copy-Item -LiteralPath (Join-Path $repo (Join-Path 'config' $layersName)) -Destination (Join-Path (Split-Path $settingsPath) $layersName)
+                # R376. 4 Check reads the outline and offset files beside the config and, with no addin.overrideFile, the override list in
+                # overrides beside it, which Save overrides writes. The run takes copies, so a Save writes the run folder and never the repo
+                Get-ChildItem -LiteralPath (Join-Path $repo 'config') -File -Filter '*.json' | Where-Object { $_.Name -ne 'project.json' -and $_.Name -ne $layersName } | Copy-Item -Destination (Split-Path $settingsPath)
+                Copy-Item -LiteralPath (Join-Path $repo 'config\overrides') -Destination (Split-Path $settingsPath) -Recurse
                 $profileCopy = Join-Path $runFolder ([string]$config.profile)
                 New-Item -ItemType Directory -Force (Split-Path $profileCopy) | Out-Null
                 Copy-Item -LiteralPath (Join-Path $repo ([string]$config.profile)) -Destination $profileCopy

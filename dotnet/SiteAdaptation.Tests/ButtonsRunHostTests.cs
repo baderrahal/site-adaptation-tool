@@ -225,6 +225,21 @@ namespace SiteAdaptation.Tests
             Assert.Contains("Copy-Item -LiteralPath (Join-Path $repo (Join-Path 'config' $layersName)) -Destination (Join-Path (Split-Path $settingsPath) $layersName)", script);
         }
 
+        // R376. 4 Check stops when floor_outlines.json and prototype_offsets.json are not beside the settings file, and with no
+        // addin.overrideFile it takes the override list from overrides beside it, where Save overrides writes. The copy takes the
+        // config folder along, so a Save writes the copy of the run and never the repo
+        [Fact]
+        public void R376_the_run_script_copies_the_config_folder_and_its_override_list_beside_the_config_of_a_buttons_run()
+        {
+            string script = Text("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
+            int buttons = script.IndexOf("            if ($round.buttons) {", StringComparison.Ordinal);
+            int written = script.IndexOf("$settingsCopy | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $settingsPath", buttons, StringComparison.Ordinal);
+            int files = script.IndexOf("Get-ChildItem -LiteralPath (Join-Path $repo 'config') -File -Filter '*.json' | Where-Object { $_.Name -ne 'project.json' -and $_.Name -ne $layersName } | Copy-Item -Destination (Split-Path $settingsPath)", buttons, StringComparison.Ordinal);
+            int overrides = script.IndexOf("Copy-Item -LiteralPath (Join-Path $repo 'config\\overrides') -Destination (Split-Path $settingsPath) -Recurse", buttons, StringComparison.Ordinal);
+            int pane = script.IndexOf("$paneSettingsPath = Join-Path $runFolder 'pane_settings.json'", buttons, StringComparison.Ordinal);
+            Assert.True(buttons > 0 && files > written && overrides > written && pane > files && pane > overrides);
+        }
+
         // R375 and D19. The work folder of a buttons run lies in its run folder, so a data book folder of config with no full path
         // would point under it. The copy names the data book of the work root in full and hashes its files as real inputs
         [Fact]
