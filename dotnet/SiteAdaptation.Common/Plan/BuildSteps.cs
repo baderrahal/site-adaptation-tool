@@ -439,7 +439,8 @@ namespace SiteAdaptation.Common
                         {
                             // R360. The plots after the overrides of the list, on the fronts of the links and the levels of the build
                             Dictionary<string, PlotPlan> plans = PlanOverrides.Of(site.Numbers, site.Rows, build, fronts, context, hands, key, levelProfile, site.Rules, site.Settings, files, list,
-                                profileName, FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), site.RulesName);
+                                profileName, FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), site.RulesName,
+                                (x, y) => TinSurface.RoadLevel(surfaces, x, y, snap));
                             run.Counts["plots the plan writes"] = plans.Values.Count(plan => (bool)plan.Overrides["written"]);
                             run.Counts["overrides applied"] = plans.Values.Sum(plan => (plan.Overrides["applied"] as List<string>)?.Count ?? 0);
                             if (asked.Contains(PlanOverrides.StepName))
