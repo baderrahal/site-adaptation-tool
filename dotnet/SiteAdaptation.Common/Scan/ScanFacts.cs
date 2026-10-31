@@ -56,10 +56,14 @@ namespace SiteAdaptation.Common.Scan
                 string file = bar < 0 ? raw : raw.Substring(0, bar);
                 facts.Layers = Rows(scan).Count(row => (string)row["kind"] == "cadLayer" && ((string)row["source"] ?? "").StartsWith(file + "|", StringComparison.Ordinal));
             }
-            facts.VillaTypes = (scan["plots"] as JArray ?? new JArray()).OfType<JObject>()
-                .Select(plot => plot["villaType"]?.Type == JTokenType.String ? ((string)plot["villaType"]).Trim() : "")
-                .Where(code => code.Length > 0).Distinct(StringComparer.Ordinal).Count();
             ScanValueRow villa = view.Values.FirstOrDefault(value => value.Kind == ScanView.VillaTypeKind);
+            // Review of SCAN-UI: villaType of a plot is an object of source to code. The codes of the proposed source count, else
+            // those of every source
+            facts.VillaTypes = (scan["plots"] as JArray ?? new JArray()).OfType<JObject>()
+                .SelectMany(plot => (plot["villaType"] as JObject ?? new JObject()).Properties()
+                    .Where(source => villa?.Proposed == null || source.Name == villa.Proposed)
+                    .Select(source => source.Value.Type == JTokenType.String ? ((string)source.Value).Trim() : ""))
+                .Where(code => code.Length > 0).Distinct(StringComparer.Ordinal).Count();
             if (villa != null)
             {
                 facts.VillaTypeProposed = villa.Proposed;

@@ -113,6 +113,7 @@ namespace SiteAdaptation.Common.Scan
     {
         public const string VillaTypeKind = "villaType";
         public const string PlotOutlineKind = "plotOutline";
+        public const string ConfigRole = "config";
 
         private static readonly string[] ValueKinds = { PlotOutlineKind, "plotNumber", "villaBlock", VillaTypeKind };
         private static readonly string[] ValueLabels = { ScanViewText.PlotOutline, ScanViewText.PlotNumber, ScanViewText.VillaBlock, ScanViewText.VillaType };
@@ -151,7 +152,9 @@ namespace SiteAdaptation.Common.Scan
                 data.Values.Add(value);
             }
 
-            foreach (JObject input in inputs)
+            // Review of SCAN-UI: the settings file is an input of the scan as role config, no file the user gave, so it has no row
+            List<JObject> given = inputs.Where(input => Text(input["role"]) != ConfigRole).ToList();
+            foreach (JObject input in given)
             {
                 string name = Text(input["name"]);
                 string role = Text(input["role"]);
@@ -202,12 +205,14 @@ namespace SiteAdaptation.Common.Scan
                 };
                 string saved = null;
                 settings.ConflictPicks?.TryGetValue(conflict.Key, out saved);
-                conflict.Picked = saved != null && (saved == a || saved == b);
-                conflict.Selected = conflict.Picked ? saved : a;
+                // Review of SCAN-UI: the scanner writes one conflict per other source of a plot and field, so a pick saved on one of
+                // them settles the others too, though it may name neither of their two sources
+                conflict.Picked = saved != null;
+                conflict.Selected = saved == a || saved == b ? saved : a;
                 data.Conflicts.Add(conflict);
             }
 
-            data.FilesRead = inputs.Count;
+            data.FilesRead = given.Count;
             data.PlotsFound = plots;
             data.ConflictCount = conflicts.Count;
             return data;

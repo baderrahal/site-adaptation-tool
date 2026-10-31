@@ -74,7 +74,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
         public bool CurrentShown => view.CurrentFiles != null;
 
         // Apply stays grey until the site drawing is ticked Current (R441)
-        public bool SiteTicked => view.CurrentFiles == null || CurrentFiles.Any(row => row.Site && row.Current);
+        public bool SiteTicked => view.CurrentFiles == null || Common.SetUp.CurrentFiles.CanApply(CurrentFiles.Select(row => new CurrentFileRow { Site = row.Site, Current = row.Current }));
 
         public IReadOnlyList<string> RulesChoices { get; private set; }
 

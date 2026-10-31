@@ -102,8 +102,10 @@ namespace SiteAdaptation.Tests
             Assert.NotNull(session.Answer);
             Assert.Equal(new[] { "villaType" }, session.Answer.ScanPicks.Keys);
             Assert.Equal(Excel, session.Answer.ScanPicks["villaType"]);
-            Assert.Equal(new[] { "2|villa type" }, session.Answer.ConflictPicks.Keys);
+            // Review of SCAN-UI: every conflict is saved with the choice it shows, the proposed where the user changed nothing
+            Assert.Equal(new[] { "1|villa type", "2|villa type", "3|villa type" }, session.Answer.ConflictPicks.Keys);
             Assert.Equal(Excel, session.Answer.ConflictPicks["2|villa type"]);
+            Assert.Equal("feet.dwg|block|BLOCKS", session.Answer.ConflictPicks["1|villa type"]);
             Assert.Equal(VillaModes.Links, session.Answer.VillaMode);
             Assert.Null(current.ScanPicks);
             Assert.Null(current.ConflictPicks);

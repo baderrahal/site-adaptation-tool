@@ -102,7 +102,7 @@ namespace SiteAdaptation.AddIn.NewProject
                     ScanFactsData scan = ScanFacts.Of(WorkFiles.ReadText(path));
                     return new DrawingFactsResult { Layers = scan.Layers, Plots = scan.Plots, PlotLayer = scan.PlotLayer, VillaTypes = scan.VillaTypes, ScanPath = path, Scan = scan };
                 }
-                catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is JsonException || error is InvalidCastException)
+                catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is JsonException || error is InvalidCastException || error is FormatException)
                 {
                 }
             }

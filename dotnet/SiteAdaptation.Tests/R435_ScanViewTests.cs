@@ -149,7 +149,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R435_a_conflict_is_open_until_a_saved_pick_names_one_of_its_two_sources()
+        public void R435_a_conflict_is_open_until_a_pick_is_saved_for_its_plot_and_field()
         {
             string text = Scan(true, 3).ToString();
             ScanViewData open = ScanView.Read(text, new ProjectSettings());
@@ -173,14 +173,15 @@ namespace SiteAdaptation.Tests
                 },
             };
             ScanViewData picked = ScanView.Read(text, settings);
-            Assert.Equal(new[] { false, false, true }, picked.Conflicts.Select(conflict => conflict.Open));
+            // Review of SCAN-UI: a pick naming neither source settles the conflict too, another conflict of that plot and field named it
+            Assert.Equal(new[] { false, false, false }, picked.Conflicts.Select(conflict => conflict.Open));
             Assert.Equal("B2 from list.xlsx", picked.Conflicts[0].SelectedChoice);
             Assert.Equal("A1 from feet.dwg", picked.Conflicts[1].SelectedChoice);
             Assert.Equal("feet.dwg|block|BLOCKS", picked.Conflicts[2].Selected);
-            Assert.True(picked.NeedsWindow);
+            Assert.False(picked.NeedsWindow);
 
-            settings.ConflictPicks["3|villa type"] = "feet.dwg|block|BLOCKS";
-            Assert.False(ScanView.Read(text, settings).NeedsWindow);
+            settings.ConflictPicks.Remove("3|villa type");
+            Assert.True(ScanView.Read(text, settings).NeedsWindow);
         }
 
         [Fact]
@@ -198,6 +199,30 @@ namespace SiteAdaptation.Tests
             Assert.Equal("1 villa type sources", view.Files[2].Found);
             Assert.Equal("1 villa type sources", view.Files[3].Found);
             Assert.Equal(new[] { "Read", "Not read", "Read", "Read", "Read" }, view.Files.Select(file => file.Status));
+        }
+
+        [Fact]
+        public void R435_the_settings_file_of_role_config_is_no_file_row_and_not_counted()
+        {
+            JObject scan = Scan(true, 0);
+            ((JArray)scan["inputs"]).Insert(0, new JObject { ["role"] = "config", ["name"] = "project.json", ["size"] = 1, ["sha256"] = "00" });
+            ScanViewData data = ScanView.Read(scan.ToString(), new ProjectSettings());
+            Assert.DoesNotContain(data.Files, file => file.Name == "project.json");
+            Assert.Equal(5, data.FilesRead);
+        }
+
+        [Fact]
+        public void R435_a_pick_saved_on_one_conflict_of_a_plot_and_field_settles_the_others_of_that_plot_and_field()
+        {
+            JObject scan = Scan(true, 0);
+            ((JArray)scan["conflicts"]).Add(Conflict("7", "villa type", "A1", "feet.dwg|block|BLOCKS", "B2", "list.xlsx|Sheet 1|Type|shift 0"));
+            ((JArray)scan["conflicts"]).Add(Conflict("7", "villa type", "A1", "feet.dwg|block|BLOCKS", "C3", "pages.pdf|page 2|shift 100"));
+            var settings = new ProjectSettings { ConflictPicks = new SortedDictionary<string, string> { ["7|villa type"] = "pages.pdf|page 2|shift 100" } };
+            ScanViewData data = ScanView.Read(scan.ToString(), settings);
+            Assert.All(data.Conflicts, conflict => Assert.False(conflict.Open));
+            Assert.Equal("feet.dwg|block|BLOCKS", data.Conflicts[0].Selected);
+            Assert.Equal("pages.pdf|page 2|shift 100", data.Conflicts[1].Selected);
+            Assert.False(data.NeedsWindow);
         }
 
         [Fact]

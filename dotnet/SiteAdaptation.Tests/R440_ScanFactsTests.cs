@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common.Scan;
 using SiteAdaptation.Common.Settings;
 using Xunit;
@@ -13,9 +14,9 @@ namespace SiteAdaptation.Tests
         public void R440_the_facts_count_the_layers_of_the_plot_drawing_the_plots_and_the_villa_types_and_name_the_proposed_layer()
         {
             var scan = R435_ScanViewTests.Scan(true, 0);
-            scan["plots"][0]["villaType"] = "A1";
-            scan["plots"][1]["villaType"] = "B2";
-            scan["plots"][2]["villaType"] = "A1";
+            scan["plots"][0]["villaType"] = new JObject { ["feet.dwg|block|BLOCKS"] = "A1", ["list.xlsx|Sheet 1|Type|shift 0"] = "C3" };
+            scan["plots"][1]["villaType"] = new JObject { ["feet.dwg|block|BLOCKS"] = "B2" };
+            scan["plots"][2]["villaType"] = new JObject { ["feet.dwg|block|BLOCKS"] = "A1" };
             ScanFactsData facts = ScanFacts.Of(scan.ToString());
             Assert.Equal(2, facts.Layers);
             Assert.Equal(5, facts.Plots);
@@ -59,6 +60,15 @@ namespace SiteAdaptation.Tests
             Assert.Equal("site.dwg|OUTLINE + EDGE", next.ScanPicks["plotOutline"]);
             Assert.Equal("feet.dwg|block|BLOCKS", next.ConflictPicks["1|villa type"]);
             Assert.False(current.ScanPicks.ContainsKey("plotOutline"));
+        }
+    
+
+        [Fact]
+        public void R440_with_no_proposed_villa_type_source_the_codes_of_every_source_count()
+        {
+            var scan = R435_ScanViewTests.Scan(false, 0);
+            scan["plots"][0]["villaType"] = new JObject { ["feet.dwg|block|BLOCKS"] = "A1", ["list.xlsx|Sheet 1|Type|shift 0"] = "C3" };
+            Assert.Equal(2, ScanFacts.Of(scan.ToString()).VillaTypes);
         }
     }
 }

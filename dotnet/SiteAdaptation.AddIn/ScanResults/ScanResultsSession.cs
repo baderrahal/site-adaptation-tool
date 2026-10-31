@@ -40,12 +40,11 @@ namespace SiteAdaptation.AddIn.ScanResults
                 }
             }
             var conflicts = new Dictionary<string, string>(StringComparer.Ordinal);
+            // Review of SCAN-UI: Use these picks takes the choice each conflict shows, the proposed where the user changed nothing, so
+            // the next press of button 2 does not open the window again on conflicts the user saw and left
             foreach (ScanConflictViewModel conflict in Model.AllConflicts)
             {
-                if (conflict.Picked)
-                {
-                    conflicts[conflict.Key] = conflict.Selected.Source;
-                }
+                conflicts[conflict.Key] = conflict.Selected.Source;
             }
             Answer = ScanPicks.Apply(values, conflicts, settings);
             Finished?.Invoke();
