@@ -4,6 +4,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## State
 
+- Lane D 4j-1 done on 2026-10-31, one PR: the scanner of any CAD, Excel and PDF, R420 to R427, worker command scan, python/scan.py
 - Lane B 5d on 2026-10-31, code merged, phase open: buttons 5, 6 and 8, 7 at the FFL, Q115, Q116, Q214, Q215, Q156. In Revit 1 to 5 commit, 6 stops (Q274)
 - Lane C NEWPROJ-UI done on 2026-10-31, PR 112: New project, How it works, pane text, R430 to R434, Q280 to Q287 (steps/HEADSUP.md)
 - Lane B 5c done on 2026-10-31, PR 111: buttons 2, 3, 4 and 7, Revit run on NBH 012 in Masses mode
@@ -15,6 +16,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## Done
 
+- Lane D 4j-1: one PR with code, tests and records (D20), parity 0 differ on set A and the renamed set, both runtimes
 - Lane B 5d: one PR with code, tests and records (D20). Lane C NEWPROJ-UI: PR 112. Lane B 5c: PR 111. 5e and 5f: PR 110
 - 4h-2: PR 109. 4h-1: PR 107. FOLD: PR 101 to 105 and the end records
 - Lane B 5b: one PR (D20). 5a: PR 84, 86, 87, 89, 90, 92, 97, 99. L0: branch docs/laptop-l0
@@ -23,6 +25,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## Open bugs
 
+- Scan: the Road Layout passed 40 minutes in the pair trace (Q250). No villa type source reaches the strong share on ROSHN (Q254)
 - Full text at 73b8c42: steps/history/progress-addin-4e.md. Bugs no real input reaches: steps/latent.md (Q095)
 - Button 6 stops in Revit: its levelExcel worker clears the temporary levels file of its run id (Q274). 7 and 8 never ran in Revit
 - The wall rule keyRules.wallOpen is weak, 2,539 of 3,427 walls hold on the keys, 0.7409 (Q115, Q266)
@@ -44,10 +47,14 @@ Closed in 5d: Q148, Q190, Q214, Q215, Q216, Q218, Q219, Q220, Q221 and Q156 on t
 floor tags and Q272 Front levels of a ramp on the open edge, closed by findings of 5d.
 Opened in NEWPROJ-UI, Lane C: Q280 Save setup writes the model at once. Q281 Board rows against the nine pane inputs. Q282 Where the project name is kept. Q283 Picks of layers, sheets,
 columns and coordinates. Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve the four drafts of NEWPROJ-UI. Q287 Button messages that name a work file.
-86 questions open, full text and the recommended answers: steps/questions-open.md. Asks of others: steps/waiting-on-others.md.
+Opened in 4j-1, Lane D: Q243 Layer pairs for plot outlines in the scan. Q244 A tie in a scan proposal. Q245 Old and new code of one row agree.
+Q246 Button 2 starts the scan or the window. Q248 Villa blocks on one layer per type. Q249 A sheet whose numbers shift by area. Q250 The pair trace on the Road Layout.
+Q251 The centroid of today's plots.json. Q252 PDF tables and turned text in the scan. Q253 The header row of a scanned sheet. Q254 The order and share of villa type sources.
+Closed in 4j-1: Q247 Scan villa type takes the old CAD labels, by Bader's rule of 31 Oct 2026.
+97 questions open, full text and the recommended answers: steps/questions-open.md. Asks of others: steps/waiting-on-others.md.
 
 ## Next three steps
 
-1. Bader answers Q274, then Lane B ends 5d: the run id fix, window G again for 6, 7 and 8 and the second run
+1. Lane D 4j-1b, the scan speed of large drawings (Q250), queued. Bader answers Q274, then Lane B ends 5d: the run id fix, window G again for 6, 7 and 8 and the second run
 2. 6a on Lane B, Links mode joined from 5d, then Phase 6
 3. Bader answers Q280 to Q287 of Lane C, then Part 2 after Bader's check of Part 1

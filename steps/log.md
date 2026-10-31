@@ -2,6 +2,45 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane D 4j-1, 2026-10-31, the scanner of any CAD, Excel and PDF, Lane D on the laptop
+
+Goal:
+- Step 1 Plot and step 2 Villa type for any project: a scanner of the CAD, Excel and PDF the user gives, no project name in code (Bader, 31 Oct)
+
+Done:
+- R420 to R427: worker command scan (CadScan, ScanSources, Common/Scan/ScanLogic) and its twin python/scan.py, scan.json per run
+- Layer inventory after the explode, outline, number and villa block proposals by plots covered, drawing link, villa type match
+- Villa type scored by prototype names, blocks first (Bader, 31 Oct, Q247 closed). The window needs in steps/waiting-on-others.md
+- Reviewer and breaker, one pass each: REAL faults fixed with tests, PDF pairs by R180, codes kept whole, check rows, centroid
+
+Checked:
+- Gate, RAN: net48 1622, net8.0 1435, 0 failed. pytest after the records below
+- ROSHN set A, RAN on copies, baseplan and footprint, 3 workbooks, the location plan, 13 prototypes: 2964 plots by the pair
+  MP_PLOT_LINE + MP_PLOT_SUBD, best single layer 392. Today's reader 2962 plots, 2991 faces, the scan 2992
+- Parity, RAN: net48, net8.0 and Python, rows 1548, conflicts 2808, checks 268, plots 11856 fields equal, 0 differ
+- Renamed set, RAN: DXF copies with every layer renamed, every file renamed, 258 rows, 468 conflicts, 67 checks, 2964 plots
+  equal to set A by the names mapped back, all three runtimes. 20 inputs unchanged by hash in every run
+- Villa type against the 7 keys, 2557 plots: the plot table of button 2 0.993, the PDF 0.219, the labels 0.213, blocks 0.006 to 0.638
+- Times, RAN: 184 to 299 s per C# runtime, Python 94 to 99 s
+
+Remains:
+- No source at the strong share, lead MP_VL4 blocks 0.116, the user chooses (Q254). Road Layout not scanned (Q250, 4j-1b)
+- Button 2 does not start the scan, the scanner window of Lane B (Q246). The second face method parts on 143 of 162 candidates
+
+Known bugs:
+- PlotLabels.Centroid off 0.27 m at site coordinates in today's plots.json (Q251). Latent lines in steps/latent.md
+
+Next:
+- Lane D 4j-1b scan speed, queued
+
+Your turn:
+- Opened Q243 to Q246 and Q248 to Q254: Q243 Layer pairs for plot outlines in the scan. Q244 A tie in a scan proposal. Q245 Old
+  and new code of one row agree. Q246 Button 2 starts the scan or the window. Q248 Villa blocks on one layer per type. Q249 A sheet
+  whose numbers shift by area. Q250 The pair trace on the Road Layout. Q251 The centroid of today's plots.json. Q252 PDF tables and
+  turned text in the scan. Q253 The header row of a scanned sheet. Q254 The order and share of villa type sources
+- Closed Q247 Scan villa type takes the old CAD labels
+- 97 questions open, full text: steps/questions-open.md
+
 ## Lane B 5d, 2026-10-31, buttons 5, 6 and 8 and 7 at the FFL, Lane B on the laptop
 
 Goal:
