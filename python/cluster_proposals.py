@@ -1,4 +1,4 @@
-"""R411, round 4i. The cluster and mirror proposals of a build under rev6 with designBasis.clusters.propose, by the manual Rev 06 2.1.A to
+"""R411, round 4i. The cluster and mirror proposals of a build with designBasis.clusters.propose under the mode of the manual, by Rev 06 2.1.A to
 2.1.E: a detached unit alone with no hand, an attached unit in the one split of its row of attached units into the clusters of the rules
 profile, each half of a cluster the hand keyRules hand cluster gives the prototype file for its side, else no proposal with the reason. A
 proposal sets no value of the plan. ClusterProposals.cs of the C# gives the same. docs/design/16-design-basis.md"""
