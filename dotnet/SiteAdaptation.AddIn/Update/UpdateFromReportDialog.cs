@@ -1,6 +1,7 @@
 using System;
 using System.Windows.Interop;
 using Microsoft.Win32;
+using SiteAdaptation.Common.Update;
 
 namespace SiteAdaptation.AddIn.Update
 {

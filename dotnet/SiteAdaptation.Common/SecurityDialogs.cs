@@ -33,6 +33,7 @@ namespace SiteAdaptation.Common
         StopOurs,
         StopUnreadable,
         StopNoButton,
+        WaitProgress,
     }
 
     // R108. How the watcher reads an add-in security dialog of Revit and what it does with it.
@@ -90,6 +91,10 @@ namespace SiteAdaptation.Common
         // a box that looks like this tool in any other way stops Revit
         public static WatchAction Decide(SecurityDialogEntry entry, ICollection<string> ourIds, IEnumerable<string> ourMarks, IEnumerable<string> ourPaths)
         {
+            if (IsUpgradeProgress(entry))
+            {
+                return WatchAction.WaitProgress;
+            }
             if (string.IsNullOrWhiteSpace(entry.AddInName) && entry.AddInId == null)
             {
                 return WatchAction.StopUnreadable;
@@ -112,7 +117,18 @@ namespace SiteAdaptation.Common
             return WatchAction.DoNotLoad;
         }
 
-        // The one button each action clicks, null for a stop
+        // Round 6a, R108. Revit 2024 shows the upgrade of an older workshared file as a standard dialog whose one button cancels it, a
+        // progress the upgrade job of R109 waits for, so it is left open. A dialog with any other button or text is not it
+        public const string UpgradeProgress = "Your model is being upgraded";
+        public const string CancelUpgrade = "Cancel Upgrade";
+
+        public static bool IsUpgradeProgress(SecurityDialogEntry entry)
+        {
+            return (entry.Text ?? "").IndexOf(UpgradeProgress, StringComparison.OrdinalIgnoreCase) >= 0
+                && entry.Buttons != null && entry.Buttons.Count == 1 && string.Equals(entry.Buttons[0].Trim(), CancelUpgrade, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // The one button each action clicks, null for a stop or a wait
         public static string ButtonFor(WatchAction action)
         {
             switch (action)

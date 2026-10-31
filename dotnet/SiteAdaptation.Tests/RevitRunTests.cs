@@ -277,6 +277,22 @@ namespace SiteAdaptation.Tests
         }
 
         // Q215 (Bader, 2026-10-31). -Upgrade wrote the 2024 prototypes into the input root against D19, they are made once under the work root
+        // Round 6a: -Upgrade read pastJob.output of config as "{workRoot}\plan_imc_past.json" with the mark not taken, so no upgrade ran.
+        // The run script takes the mark as WorkRoot.Resolve does
+        [WindowsFact]
+        public void R109_the_run_script_takes_the_work_root_mark_of_a_config_path_as_work_root_resolve_does()
+        {
+            string root = Path.Combine(Path.GetTempPath(), "sa-mark-" + Guid.NewGuid().ToString("N"), WorkRoot.Folder);
+            foreach (string path in new[] { WorkRoot.Mark + "\\plan_imc_past.json", WorkRoot.Mark + "/sub/plan.json", @"C:\Other\plan.json" })
+            {
+                Tuple<int, string, string> run = Pwsh("Resolve-WorkRootPath -Path " + Quoted(path) + " -Docs " + Quoted(root));
+                Assert.True(run.Item1 == 0, run.Item3);
+                Assert.Equal(WorkRoot.Resolve(path, () => root), run.Item2);
+            }
+            string script = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1"));
+            Assert.Contains("Resolve-WorkRootPath -Path $config.pastJob.output -Docs $docs", script);
+        }
+
         [WindowsFact]
         public void R109_Q215_the_upgrade_folder_lies_under_the_work_root_and_never_under_an_input_root()
         {

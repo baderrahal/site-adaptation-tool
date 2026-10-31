@@ -349,7 +349,7 @@ namespace SiteAdaptation.TestHost
             }
         }
 
-        private static RunShot Saved(string name, string file, BitmapSource bitmap, string detail)
+        public static RunShot Saved(string name, string file, BitmapSource bitmap, string detail)
         {
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(bitmap));

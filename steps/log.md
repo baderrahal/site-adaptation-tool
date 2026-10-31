@@ -2,6 +2,38 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B 6a, 2026-10-31, one NBH through all 9 steps and the test host jobs, Lane B on the laptop
+
+Goal:
+- 6a of steps/01_next.md: the test host runs every button with no click, one NBH from a new project through all 9, with Links joined from 5d
+
+Done:
+- R384: buttons 1 to 9 by number, Site Adaptation Rules and Update from report by name, shots of every window drawn in Revit
+- Fixes with tests: Q274 the run id of levelExcel, the run log of 4 Check that 9 reads, the work root mark of the run script
+- R108: the watcher leaves the upgrade progress of Revit 2024 open and stops on any other dialog
+- The footprint flags of 336 of 336 masses measured: the masses stand right, 305 inside their block, the drawing holds plot blocks (Q276)
+
+Checked:
+- Gate at f007959, clean build, RAN: net48 1647, net8.0 1454, pytest 2162 passed, 1 skipped, 1 failed on the R401 block of Q277, fixed, its 25 pass
+- Revit LB6A at f007959, RAN: 1 to 9 commit on NBH 012 in Masses from a new project, 6.7 min, peak 2444 MiB, least free 16.7 GiB, 42 of 42 inputs unchanged
+- Times, s: open 19.3, 1 2.5, 2 57.8, 3 1.1, 4 25.7, 5 23.6, 6 4.7, 7 8.5, 8 4.1, 9 3.7, Rules 0.3. 336 masses, 1003 floors, the level and report Excel written
+- Shots: 10 PNGs none blank, the differences from the boards in steps/ui-shots/README.md. Review 1 APPROVE, 6 latent lines
+
+Remains:
+- Links: the upgrades of the 13 prototypes stop on the first log step limit (Q275), 1 of 13 saved unchecked
+- Update from report stops, it looks for the plan in the work folder root (Q278, Lane A told)
+
+Known bugs:
+- Revit hung once at start in a third party add-in before ours (try 1), not seen again. Latent lines: steps/latent.md under Lane B 6a
+
+Next:
+- DEMO on Lane B, then Links after Q275
+
+Your turn:
+- Opened Q275 First log step limit of an upgrade job. Q276 What the footprint check of R404 measures. Q277 Footprint block names unlike the unit.
+  Q278 Where Update from report finds the plan. Closed Q274 by the fix of the round.
+- 100 questions open, full text: steps/questions-open.md
+
 ## Lane D 4j-1, 2026-10-31, the scanner of any CAD, Excel and PDF, Lane D on the laptop
 
 Goal:
