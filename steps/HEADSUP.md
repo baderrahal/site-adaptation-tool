@@ -3,10 +3,10 @@
 ## Live status
 
 - Lane: B, phase 5d, branch feat/lane-b-5d, worktree Site Adaptation Tool Lane B WT
-- Time: 2026-10-31 20:05
-- Now: the cause of the third stop of button 6 in Revit (a temporary levels file not found), measured before any fix (D11)
+- Time: 2026-10-31 20:40
+- Now: the full gate from a clean build, then the PR of 5d
 - Done: buttons 5, 6 and 8 with tests, W6, Q115, Q116 and its front fix, Q214, Q215, Q156, Q220, the worker path, review 1, breaker pass 1, review 2, update from main after PR 112
-- Next: the cause of 6, the gate, the PR, the merge, a message to all lanes
+- Next: the PR, its checks and merge, a message to all lanes, then stop. 6, 7 and 8 in Revit wait for Q274
 - Blocked: none
 - Lane C: NEWPROJ-UI merged as PR 112 on 31 Oct
 
