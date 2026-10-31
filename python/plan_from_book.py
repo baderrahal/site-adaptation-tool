@@ -448,8 +448,9 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
                 raise ValueError("the step overrides gives plot %s the steps %r and the build took %r (R360)" % (number, made["steps"], level["steps"]))
         if not plot["written"]:
             continue
-        ramp_front, ramp_corners = (item["front"], item["corners"]) if turned is None or turned["front"] is None else (turned["front"], turned["corners"])
-        gap = plan_rules.gap_of(mine.get("rampFrontM"))
+        opened = turned is not None and turned["front"] is not None
+        ramp_front, ramp_corners = (turned["front"], turned["corners"]) if opened else (item["front"], item["corners"])
+        gap = None if opened else plan_rules.gap_of(mine.get("rampFrontM"))
         ramp_front = ramp_front if gap is None else [z + gap for z in ramp_front]
         ramp_class = mine.get("rampType") or plan_rules.key_ramp_class(key, unit)
         kind = lp["rampTypes"].get(ramp_class) if ramp_class is not None else None
@@ -682,6 +683,8 @@ def moved_link(builder, frame, overrides, number, outcomes):
 
 # R337. Why a build leaves an override of a field it never places
 NO_GAP = "the override holds no gap to the rule"
+# Q116. key_levels measures rampFront against the road of the front of R355, which the open edge of a turned plot does not hold
+OPEN_EDGE_GAP = "measured on the front of R355, the ramp moved to the open edge (Q116)"
 LEFT = {"rampOutline": "an outline gap, a build places the ramp outline of R127", "yardOutline": "an outline gap, a build places the fitted yard outline",
         "genericFloor": "an outline gap, a build places the whole face", "rampFrontFallM": "a ramp front fall is not applied (Q057)"}
 
@@ -1086,7 +1089,9 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                     opened_ramps.add(number)
             if rules is not None:
                 gap = plan_rules.gap_of(mine_overrides.get("rampFrontM"))
-                if gap is not None:
+                if "rampFrontM" in mine_overrides and number in opened_ramps:
+                    outcomes.left(number, "rampFrontM", OPEN_EDGE_GAP)
+                elif gap is not None:
                     ramp_front = [z + gap for z in ramp_front]
                     moved.append("rampFrontM")
                 elif "rampFrontM" in mine_overrides:

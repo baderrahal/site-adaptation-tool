@@ -85,3 +85,17 @@ def test_q116_r401_the_ramp_a_turn_moved_carries_the_status_of_the_override_and_
     # With no road level on the open edge the ramp stays and names no turn
     dry = made_build(monkeypatch, copy.deepcopy(MADE), back_dry=True)
     assert all("rotationDeg" not in dry["plan"]["2"]["floors"]["ramp"][field]["statusFrom"] for field in ("outline", "corners", "heightOffset"))
+
+
+def test_q116_r362_a_turned_plot_leaves_its_ramp_front_gap_measured_on_the_front_of_r355(monkeypatch):
+    # The rampFrontM gap holds the road of the front of R355 less the key ramp front, so on the open edge it would count the road gap twice
+    overrides = {"2": dict(copy.deepcopy(MADE["2"]), rampFrontM={"gapToRuleM": 0.05})}
+    built = made_build(monkeypatch, overrides)
+    plan = built["plan"]["2"]
+    corners = plan["floors"]["ramp"]["corners"]["value"]
+    assert [corner[2] for corner in corners[:2]] == [10.24, 10.12]
+    why = "measured on the front of R355, the ramp moved to the open edge (Q116)"
+    made, _ = steps_of(built)
+    assert "rampFrontM" not in made["2"]["applied"] and made["2"]["notApplied"]["rampFrontM"] == why
+    assert [round(z, 3) for z in made["2"]["rampZ"][:2]] == [10.24, 10.12]
+    assert all("rampFrontM" not in plan["floors"]["ramp"][field]["statusFrom"] for field in ("corners", "heightOffset"))
