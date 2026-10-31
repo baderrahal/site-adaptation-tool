@@ -4,11 +4,11 @@
 
 ### Lane A
 
-- Lane: A, round 4i, branch feat/addin-4i-rev6
-- Time: 2026-11-01 00:40
-- Now: the gate green after PR 115, the PR of 4i and its checks
-- Done: R407 to R412, review 1, breaker F1 fixed, parity 32 runs 0 failures, past job 0 of 636,012 values differ, the log entry, PROGRESS to WAITING
-- Next: the PR and its merge, a message to lane-d, then 4j-2 with no Revit until lane-b and lane-c are clear
+- Lane: A, round 4j-2, branch feat/addin-4j2-split-walls
+- Time: 2026-11-01 01:20
+- Now: two read only helpers measure the past splits and the walls of irregular plots on the 7 keys, no Revit or Civil 3D window
+- Done: 4i merged as PR 116 (d303e46), the 4j-2 plan in steps/01_next.md, R413 to R417 planned
+- Next: the split test and the walls by the measurements, parity, the PR before 09:30 or a PAUSED status
 - Blocked: none
 
 ### Lane B
