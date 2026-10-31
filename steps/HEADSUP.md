@@ -2,11 +2,11 @@
 
 ## Live status
 
-- Lane: B, round 6a, branch feat/lane-b-6a, worktree Site Adaptation Tool Lane B WT
-- Time: 2026-11-01 00:10, demo freeze at 09:30
-- Now: the end records and the PR of 6a, then the queued DEMO round
-- Done: 6a for Masses, NBH 012 through buttons 1 to 9 from a new project with no click, 6.7 min, 2444 MiB peak, 10 window shots
-- Next: DEMO, the add-in installed, C:\SA-demo, the demo sheet. Links waits on Q275
+- Lane: B, round DEMO, branch feat/lane-b-demo, worktree Site Adaptation Tool Lane B WT
+- Time: 2026-11-01 00:35, demo freeze at 09:30
+- Now: a Revit probe of the base boundary of the 13 prototypes and of DT3 against its mass, then the install and C:\SA-demo
+- Done: 6a merged as PR 115
+- Next: install, demo inputs and saved project, demo models, footprint picture, demo sheet, PR. Wait for Lane C SCAN-UI
 - Blocked: none
 - Lane C: NEWPROJ-UI merged as PR 112, round SCAN-UI next. Lane D: 4j-1 the scanner merged as PR 114, 4j-1b next (Q250)
 
