@@ -56,6 +56,11 @@ namespace SiteAdaptation.Tests
                         Assert.Equal(1080, bitmap.PixelWidth);
                         Assert.True(bitmap.PixelHeight > 400 && bitmap.PixelHeight <= 800, sizes.Last());
                     }
+                    else if (window == Shots.ScanResults)
+                    {
+                        Assert.Equal(1400, bitmap.PixelWidth);
+                        Assert.True(bitmap.PixelHeight > 400 && bitmap.PixelHeight <= 800, sizes.Last());
+                    }
                     else if (window != Shots.RibbonIcons)
                     {
                         Assert.Equal(380, bitmap.PixelWidth);
@@ -65,8 +70,8 @@ namespace SiteAdaptation.Tests
                 Assert.Throws<ArgumentException>(() => Shots.Render("set-up-site"));
             });
             sizes.ForEach(output.WriteLine);
-            // 5f: Update from report renders as the eighth window. Lane C NEWPROJ-UI: New project and How it works the ninth and tenth, at 1080
-            Assert.Equal(10, sizes.Count);
+            // 5f: Update from report renders as the eighth window. Lane C NEWPROJ-UI: New project and How it works the ninth and tenth, at 1080, Lane C SCAN-UI: What the tool read the eleventh, at 1400
+            Assert.Equal(11, sizes.Count);
         }
 
         // Control 4, the sizes of docs/design/12-ui-spec.md read off the laid out pane: rows 32, inputs 30, Browse 28, the main

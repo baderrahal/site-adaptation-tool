@@ -6,6 +6,7 @@ using SiteAdaptation.AddIn.Revit;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.Report;
+using SiteAdaptation.Common.SetUp;
 
 namespace SiteAdaptation.AddIn
 {
@@ -19,7 +20,9 @@ namespace SiteAdaptation.AddIn
             Document document = application.ActiveUIDocument.Document;
             var run = new ReportRun(PaneText.Settings, WorkFiles.ReadText, (levelPlots, levelRun) => RevitCountsReader.Read(document, levelPlots, levelRun),
                 ReportWorkerClient.Run, new WorkerDocument { Path = document.PathName, SessionId = "report" });
-            return run.Body();
+            // R441, the line Current files of the setup after the lines of the report
+            DocumentSession session = PaneHost.Current.Sessions.Seen(document, document.PathName, document.Title);
+            return CurrentFiles.WithReportLine(run.Body(), () => session.Settings.Project);
         }
     }
 }

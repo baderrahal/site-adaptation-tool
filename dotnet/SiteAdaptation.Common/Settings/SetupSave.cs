@@ -9,6 +9,11 @@ namespace SiteAdaptation.Common.Settings
     {
         public string StartText { get; set; }
         public IDictionary<string, string> Picks { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        // R436, R440. The scan picks of the window, laid over those the settings hold, null for none
+        public IDictionary<string, string> ScanPicks { get; set; }
+
+        public IDictionary<string, string> ConflictPicks { get; set; }
     }
 
     // R432, Save setup. The settings of the project with the draft laid over them, in the settings JSON of R367 and nothing else, so
@@ -52,6 +57,18 @@ namespace SiteAdaptation.Common.Settings
                 {
                     next.Inputs[pick.Key] = new SettingsInput { Path = pick.Value };
                 }
+            }
+            if (draft.ScanPicks != null && draft.ScanPicks.Count > 0)
+            {
+                next.ScanPicks = next.ScanPicks ?? new SortedDictionary<string, string>(StringComparer.Ordinal);
+                foreach (KeyValuePair<string, string> pick in draft.ScanPicks)
+                {
+                    next.ScanPicks[pick.Key] = pick.Value;
+                }
+            }
+            if (draft.ConflictPicks != null && draft.ConflictPicks.Count > 0)
+            {
+                next.ConflictPicks = new SortedDictionary<string, string>(draft.ConflictPicks, StringComparer.Ordinal);
             }
             return SettingsJson.Read(SettingsJson.Write(next));
         }

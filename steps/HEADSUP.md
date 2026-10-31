@@ -4,8 +4,8 @@
 
 ### Lane D
 
-- Lane: D, round 4j-1b, scan speed, branch feat/addin-4j1b-speed. Time: 2026-11-01 01:45. Blocked: none
-- Now: reviewer and breaker on the PlotShapes index, then the PR, before the 09:30 freeze
+- Lane: D, round 4j-1b, scan speed, branch feat/addin-4j1b-speed. Time: 2026-11-01 02:30. Blocked: none
+- Now: review fixes in, set A, the renamed set and the Road Layout run again, then the PR, before the 09:30 freeze
 - Done: measured, PlotShapes by a cell index, threads (R428), cap (R429), set A and renamed equal to 4j-1, Road Layout 462 to 484 s, gates green
 
 ### Lane A
@@ -17,9 +17,9 @@
 
 - Lane B 6a, 00:10, demo freeze at 09:30: NBH 012 through buttons 1 to 9 from a new project with no click, 6.7 min, 2444 MiB peak,
   10 window shots. Merged as PR 115. Next DEMO, the add-in installed, C:\SA-demo, the demo sheet. Links waits on Q275
-- Lane C: NEWPROJ-UI merged as PR 112, round SCAN-UI next
+- Lane C SCAN-UI, 01:40, freeze 09:30: tasks 1 to 4 (R435 to R441) merged as PR 117, then tasks 5 and 6 on 4i, task 7 when the window lock is free
 
-Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D 4j-1b, Lane A 4i, Lane B 6a, 1 Nov 2026.
+Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D 4j-1b, Lane C SCAN-UI, Lane A 4i, Lane B 6a, 1 Nov 2026.
 
 ## Repo map
 
@@ -36,24 +36,24 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 - Lane B 5d: buttons 5, 6 and 8, 7 at the FFL, Q115 walls, Q116 ramps, all proven in Revit by 6a
 - Lane D 4j-1: a scanner of any CAD, Excel and PDF, worker command scan, python/scan.py, design part 17. 4j-1b: speed and a time cap
 - Lane A 4i: the design basis switch, the Rev 6 back yard slopes, the new project check (R407 to R412)
-- Lane C NEWPROJ-UI: the New project window, the How it works page, the pane rows with no file name
+- Lane C NEWPROJ-UI: the New project window, the How it works page. SCAN-UI: What the tool read, opened by button 2 after the scan, New project dropdowns, Current files in 1 Set up site
 
 ## New rules
 
 - R384 Test host runs every button (Lane B 6a). R378 to R380 buttons 5, 6 and 8 (Lane B 5d)
-- R420 to R429 of the scanner (Lane D 4j-1, 4j-1b). R407 to R412 (Lane A 4i). R430 to R434 of New project and saved starts (Lane C NEWPROJ-UI)
+- R420 to R429 of the scanner (Lane D 4j-1, 4j-1b). R407 to R412 (Lane A 4i). R435 to R441 (Lane C SCAN-UI). R430 to R434 of New project and saved starts (Lane C NEWPROJ-UI)
 
 ## Wiring
 
 - Lane B: ButtonsRunHost runs Buttons.Run(number) and Buttons.Run(name), answers each Dialog seam with no click, WindowShots draws each window. 4 Check writes run_4_<run id>.json, ReportRun.CheckRun.Find of 9 reads it. Buttons 5, 6, 8 by FloorsBody, LevelsBody, WallsBody
 - Lane D: worker command scan, WorkerReads.Commands to CadScan.Command. Button 2 does not start it (Q246)
-- Lane C: the pane opens NewProjectDialog and HowItWorksDialog, Save setup goes through SetupSave.Apply
+- Lane C: the pane opens NewProjectDialog and HowItWorksDialog. Buttons calls ReadDataBody.For, ScanStep.Wrap runs the scan, ScanGate.Ask opens ScanResultsDialog, NewProjectDialog.Facts is LatestScanFacts
 
 ## Open risks
 
 - All 336 masses are flagged by the footprint check, the masses stand right, the drawing holds plot blocks (Q276). Update from report stops on the plan of 4 Check (Q278, Lane A). Links waits on the upgrade first step limit (Q275)
-- New project shows Plots found and Villa types as not read until the scanner hook C1 is built. Lane D: no villa type source reaches the strong share on ROSHN (Q254), a large drawing scanned in part past the cap (Q258)
+- New project shows Plots found and Villa types as not read until the scanner hook C1 is built. Lane D: no villa type source reaches the strong share on ROSHN (Q254), a large drawing scanned in part past the cap (Q258). Lane C: the read of button 2 does not take the picks yet (Q292)
 
 ## Next
 
-- Lane B: DEMO for 1 Nov 11:00, then Links after Q275. Lane C: SCAN-UI. Lane D: Bader's answers to Q243 to Q258. Lane A: 4j-2
+- Lane B: DEMO for 1 Nov 11:00, then Links after Q275. Lane C: tasks 5 and 6 on 4i, task 7. Lane D: Bader's answers to Q243 to Q258. Lane A: 4j-2

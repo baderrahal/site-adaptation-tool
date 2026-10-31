@@ -12,11 +12,12 @@ namespace SiteAdaptation.Common.Settings
 {
     public sealed class TemplateSheet
     {
-        public TemplateSheet(string name, int headerRow, IReadOnlyList<string> headers)
+        public TemplateSheet(string name, int headerRow, IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows = null)
         {
             Name = name;
             HeaderRow = headerRow;
             Headers = headers;
+            Rows = rows ?? new IReadOnlyList<string>[0];
         }
 
         public string Name { get; }
@@ -25,6 +26,9 @@ namespace SiteAdaptation.Common.Settings
         public int HeaderRow { get; }
 
         public IReadOnlyList<string> Headers { get; }
+
+        // R436, the rows under the header of an export. A template has none
+        public IReadOnlyList<IReadOnlyList<string>> Rows { get; }
     }
 
     // R433, Get template of the New project window. An empty workbook with the sheet names and the header row the readers of that
@@ -138,14 +142,25 @@ namespace SiteAdaptation.Common.Settings
 
         private static string Sheet(TemplateSheet sheet)
         {
-            string last = Column(Math.Max(sheet.Headers.Count, 1)) + sheet.HeaderRow;
+            int width = Math.Max(Math.Max(sheet.Headers.Count, sheet.Rows.Count == 0 ? 0 : sheet.Rows.Max(row => row.Count)), 1);
+            string last = Column(width) + (sheet.HeaderRow + sheet.Rows.Count);
             var text = new StringBuilder("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><dimension ref=\"A1:").Append(last).Append("\"/><sheetData>");
-            text.Append("<row r=\"").Append(sheet.HeaderRow).Append("\">");
-            for (int at = 0; at < sheet.Headers.Count; at++)
+            Row(text, sheet.HeaderRow, sheet.Headers);
+            for (int at = 0; at < sheet.Rows.Count; at++)
             {
-                text.Append("<c r=\"").Append(Column(at + 1)).Append(sheet.HeaderRow).Append("\" t=\"inlineStr\"><is><t>").Append(SecurityElement.Escape(sheet.Headers[at])).Append("</t></is></c>");
+                Row(text, sheet.HeaderRow + 1 + at, sheet.Rows[at]);
             }
-            return text.Append("</row></sheetData></worksheet>").ToString();
+            return text.Append("</sheetData></worksheet>").ToString();
+        }
+
+        private static void Row(StringBuilder text, int number, IReadOnlyList<string> cells)
+        {
+            text.Append("<row r=\"").Append(number).Append("\">");
+            for (int at = 0; at < cells.Count; at++)
+            {
+                text.Append("<c r=\"").Append(Column(at + 1)).Append(number).Append("\" t=\"inlineStr\"><is><t>").Append(SecurityElement.Escape(cells[at])).Append("</t></is></c>");
+            }
+            text.Append("</row>");
         }
 
         private static string Column(int number)

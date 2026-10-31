@@ -12,13 +12,14 @@ namespace SiteAdaptation.AddIn.NewProject
     public static class NewProjectDialog
     {
         // The hook of the scanner of a later Lane B round, which sets its own reader here at start (steps/waiting-on-others.md)
-        public static IDrawingFacts Facts { get; set; } = new LastReadFacts();
+        public static IDrawingFacts Facts { get; set; } = new LatestScanFacts();
 
         public static ProjectSettings Show(IntPtr owner, ProjectSettings current, string projectName, string workRoot, string workFolder, IPathPicker picker)
         {
             IReadOnlyList<SavedStart> starts = SavedStarts.List(SavedStarts.Folder(workRoot));
             DrawingFactsResult facts = Facts.Read(current?.ConfigFile, workFolder);
-            var model = new NewProjectViewModel(current, projectName, starts, facts, There, picker, WorkFolder.ReadIfThere);
+            var model = new NewProjectViewModel(current, projectName, starts, facts, There, picker, WorkFolder.ReadIfThere,
+                (path, settings) => ScanResults.ScanResultsDialog.Show(owner, path, settings, ScanResults.ScanGate.PickExport));
             var window = new NewProjectWindow(model);
             if (owner != IntPtr.Zero)
             {

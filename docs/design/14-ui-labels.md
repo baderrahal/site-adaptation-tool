@@ -181,6 +181,20 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `Apply`
 - `Browse` the Browse of the row Shared parameters
 - `Nothing differs, Apply changes nothing.` CHOSEN, under the pass line on a second run by 03a Second run, Apply stays off
+- `Current files` CHOSEN, DRAFT of SCAN-UI, the section of the step 0 gate above the two tables (R441)
+- `Tick each file that is the current issue. Apply waits for the site drawing.` CHOSEN, DRAFT, its help line
+- `Current` CHOSEN, DRAFT, the tick of each file
+- `No site drawing in the setup. Pick the Baseplan in the pane first.` CHOSEN, DRAFT, when the setup holds no Baseplan
+- `Site drawing` CHOSEN, DRAFT, beside the Baseplan row
+- `Rules` the dropdown of the saved rules profiles, the name of the pane row
+- `Baseplan` the files of the setup by the names of the pane rows
+- `Villa blocks`
+- `Curbs`
+- `Road surface`
+- `DLUS schedule` CHOSEN, the name of the pane row
+- `Sales schedule` CHOSEN, the name of the pane row
+- `Plot numbers`
+- `Parameter sheet` CHOSEN, the row of the parameter sheet
 
 ### Review data
 
@@ -490,6 +504,8 @@ The window New project of Lane C NEWPROJ-UI, word for word from docs/design/boar
 - `Cancel`
 - `Check files`
 - `Save setup`
+- `The scan reads no survey point yet` CHOSEN, the one line of the Survey point dropdown once a scan is there (R440, Q283)
+- `Villa type sheet and column` CHOSEN, the row of the sheet and column dropdowns of the plot list (R440, Q283)
 
 ### How it works
 
@@ -539,3 +555,68 @@ The page How it works of Lane C NEWPROJ-UI, word for word from docs/design/board
 - `Use Dry run. It shows every change as a table and writes nothing to the model.`
 - `Close`
 - `Open New project`
+
+### What the tool read
+
+The window What the tool read of Lane C SCAN-UI, word for word from docs/design/boards/ScanResults.dc.html. Its picture is steps/ui-shots/scan-results.png. Its rows are ScanView (R435) and the texts of the rows are ScanViewText of Common. The rows Mirror, Survey point and Road level of the board wait for readers of a later round.
+
+- `What the tool read`
+- `Check before step 3`
+- `The tool read your files and proposes where each value comes from. If a pick is wrong, change it from the list. Nothing changes in the model.`
+- `files read`
+- `plots found`
+- `conflicts`
+- `Where each value comes from`
+- `The tool picks the source that covers the most plots. The others stay as checks.`
+- `Value`
+- `Source`
+- `Covers`
+- `Checks`
+- `Status`
+- `Files read`
+- `Every file you gave, and what the tool found inside.`
+- `File`
+- `Kind`
+- `What it found`
+- `Conflicts`
+- `Two files disagree on these plots. Pick the right one.`
+- `Plot`
+- `Use`
+- `Show all <n>`
+- `Use the proposed for all`
+- `Your picks are saved with the setup. Step 2 Read data uses them next time.`
+- `Cancel`
+- `Export to Excel`
+- `Use these picks`
+- `Saved <name>.` CHOSEN, the foot line after Export to Excel wrote the file
+- `Plot outline`
+- `Plot number`
+- `Villa block` CHOSEN, the third kind of scan row, the board has no row for it
+- `Villa type`
+- `Location` CHOSEN, the value column of a conflict on the place of a plot
+- `Label` CHOSEN, the value column of a conflict on the text of a plot label
+- `Clear`
+- `Pick`
+- `Read`
+- `Not read` CHOSEN, the chip of a file that a check notRead names
+- `CAD`
+- `Excel`
+- `PDF`
+- `Prototype` CHOSEN, the kind of a prototype file the user gave
+- `<name>, layer <name>`
+- `<name>, blocks on <name>` CHOSEN, the board writes blocks in plots
+- `<name>, texts on <name>` CHOSEN, a villa type read from the texts inside the plots
+- `<name>, sheet <name>, column <name>` CHOSEN, a villa type read from an Excel column
+- `<name>, page <n>` CHOSEN, a villa type read from a PDF page
+- `<n> plots`
+- `<n> of <n>`
+- `<n> files`
+- `<n> layers, <n> closed outlines, <n> texts, <n> blocks` CHOSEN, the board gives two shorter lines
+- `<n> villa type sources` CHOSEN, what an Excel or PDF file gave
+- `<name> from <name>`
+- `<name> is not clear`
+- `No source matches your prototype names on enough plots. The best covers <n> of <n>.`
+- `No source covers enough plots. The best covers <n> of <n>.` CHOSEN, the line for a value other than the villa type
+- `What to do: pick the source in the row Villa type, or ask the master planner which file is current.`
+- `What to do: pick the source in the row <name>.` CHOSEN, the line for a value other than the villa type
+- `Your picks are saved with the setup.` CHOSEN, the pane line of button 2 after Use these picks (R438)

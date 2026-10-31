@@ -104,6 +104,16 @@ namespace SiteAdaptation.Common.Settings
             }
             Scope(settings.Scope, "the scope");
             OneOf(settings.VillaMode, VillaModes.All, "villaMode");
+            Picks(settings.ScanPicks, "scanPicks");
+            Picks(settings.ConflictPicks, "conflictPicks");
+            foreach (string entry in settings.CurrentFiles ?? new List<string>())
+            {
+                string name = (entry ?? "").Split('|')[0];
+                if (!InputNames.All.Contains(name))
+                {
+                    throw new InvalidDataException("the settings JSON ticks " + name + " as a current file, not one of " + string.Join(", ", InputNames.All));
+                }
+            }
             foreach (KeyValuePair<string, ButtonRun> last in settings.LastRuns)
             {
                 ButtonRun run = last.Value;
@@ -127,6 +137,14 @@ namespace SiteAdaptation.Common.Settings
                 {
                     throw new InvalidDataException("the settings JSON gives the count " + count.Key + " of the last run of button " + last.Key + " the value " + count.Value.ToString(CultureInfo.InvariantCulture));
                 }
+            }
+        }
+
+        private static void Picks(SortedDictionary<string, string> picks, string what)
+        {
+            if (picks != null && picks.Any(pick => string.IsNullOrEmpty(pick.Key) || string.IsNullOrEmpty(pick.Value)))
+            {
+                throw new InvalidDataException("the settings JSON holds an empty pick in " + what);
             }
         }
 

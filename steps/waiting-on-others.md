@@ -49,14 +49,22 @@ The scanner (R420 to R427) writes scan.json in the run folder, its shape in docs
 | Keep what the user took for the next read | none, a new file of the window | none |
 | Say when a drawing was scanned in part, the pairs left by the time cap (R429, 4j-1b) | the check row notRead "<file>\|layer pairs" and notTraced of scan_cad | the row is in scan.json, nothing shows it |
 
+Built by Lane C SCAN-UI on 1 Nov 2026 (R435 to R440, docs/rules/12-lane-c-r430-up.md): button 2 runs the scan and opens the window What the tool read when a value is unclear or a conflict open, and the picks are kept in the settings as scanPicks and conflictPicks. Left of this list: the read takes the picks (Q292), asked below.
+
 ## Lane C NEWPROJ-UI, 31 Oct 2026
 
 The placeholders of the window New project (docs/design/18-new-project.md). Each waits for another lane, the window shows it grey or as text until then.
 
 | Item | Who is asked | For what | What the tool does until then |
 |---|---|---|---|
-| Scanner hook | Lane B, a later round (Lane D builds the scanner) | Fill IDrawingFacts through NewProjectDialog.Facts: the layer count, the survey point, the lists behind Change and View | LastReadFacts: unit plots and villa types of the latest read, the plot line layers of the layer list. Change and View grey, Survey point says Comes with the drawing scan |
 | Villa levels row | Lane A | The door level source, and with it the input and the sheets of the villa levels Excel | The row shows Comes later, Browse grey, no template, never saved |
 | Cluster proposal | Lane A | Whether New project proposes clusters | Nothing in the window |
-| Rules R430 to R434 | Lane A | Write the five rules of Lane C NEWPROJ-UI into docs/rules with their tests, from steps/HEADSUP.md, so docs/design may name their ids (R343) | The ids stand in the code, the tests and steps/HEADSUP.md only |
 | Back yard | Lane A | Whether New project sets the back yard | Nothing in the window |
+
+## Lane C SCAN-UI, 1 Nov 2026
+
+| Item | Who is asked | For what | What the tool does until then |
+|---|---|---|---|
+| The read takes the picks | Lane A (reader) and Lane D (scanner) | Button 2 reads with scanPicks and conflictPicks of the settings over the layers and columns of config (Q292) | The picks are saved with the setup, the read uses config |
+| Mirror, survey point and road level in the scan | Lane D | Rows of those kinds in scan.json, so What the tool read and New project show them (Q289, Q283) | Four value rows, the survey point dropdown grey |
+| Road Layout in the scan | Lane D, 4j-1b | A scan of the curbs drawing within the time of button 2 (Q250, Q290) | Button 2 leaves curbs and road surface out of the scan |

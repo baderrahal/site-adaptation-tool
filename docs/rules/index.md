@@ -395,3 +395,17 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R427 Scan result file.
 - R428 Parallel pair trace.
 - R429 Scan time cap.
+
+## 12-lane-c-r430-up.md
+
+- R430 Five setup rows of New project.
+- R431 Read only setup check.
+- R432 Save setup in R367 format.
+- R433 Template workbook of a row.
+- R434 Saved projects of the work root.
+- R435 Scan value status.
+- R436 Save scan picks with setup.
+- R438 Button 2 scan gate.
+- R439 Scan reuse by input hash.
+- R440 Drawing facts from the scan.
+- R441 Current files gate.
