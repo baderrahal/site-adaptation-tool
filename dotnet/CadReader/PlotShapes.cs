@@ -168,15 +168,135 @@ namespace CadReader
             return sweep;
         }
 
+        // Round 4j-1b. The items whose boxes may meet a box, by the cells of a grid, in ascending order, so a loop over them makes the same
+        // tests in the same order as a loop over every item and only skips the pairs whose boxes cannot meet. An item over more than
+        // WideCells cells is kept on a list every query returns, so a long line costs no more than before
+        private sealed class CellIndex
+        {
+            private const int WideCells = 256;
+            private readonly double size;
+            private readonly Dictionary<long, List<int>> cells = new Dictionary<long, List<int>>();
+            private readonly List<int> wide = new List<int>();
+
+            public CellIndex(double size)
+            {
+                this.size = size;
+            }
+
+            // A cell size of about one item per cell over the box of every item, never under ten times the node tolerance
+            public static double SizeFor(IEnumerable<double[]> boxes)
+            {
+                double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+                int count = 0;
+                foreach (double[] box in boxes)
+                {
+                    minX = Math.Min(minX, box[0]);
+                    minY = Math.Min(minY, box[1]);
+                    maxX = Math.Max(maxX, box[2]);
+                    maxY = Math.Max(maxY, box[3]);
+                    count++;
+                }
+                if (count == 0)
+                {
+                    return 1.0;
+                }
+                double span = Math.Max(maxX - minX, maxY - minY);
+                return Math.Max(span / Math.Sqrt(count), 10 * Tolerance);
+            }
+
+            private static long Key(long x, long y)
+            {
+                return (x << 32) ^ (y & 0xFFFFFFFFL);
+            }
+
+            private long Cell(double value)
+            {
+                return (long)Math.Floor(value / size);
+            }
+
+            private bool Wide(double[] box)
+            {
+                return (double)(Cell(box[2]) - Cell(box[0]) + 1) * (Cell(box[3]) - Cell(box[1]) + 1) > WideCells;
+            }
+
+            public void Add(int item, double[] box)
+            {
+                if (Wide(box))
+                {
+                    wide.Add(item);
+                    return;
+                }
+                for (long x = Cell(box[0]); x <= Cell(box[2]); x++)
+                {
+                    for (long y = Cell(box[1]); y <= Cell(box[3]); y++)
+                    {
+                        long key = Key(x, y);
+                        if (!cells.TryGetValue(key, out List<int> list))
+                        {
+                            cells[key] = list = new List<int>();
+                        }
+                        list.Add(item);
+                    }
+                }
+            }
+
+            // Null when the box is wide itself, the caller then takes every item as before
+            public List<int> Near(double[] box)
+            {
+                if (Wide(box))
+                {
+                    return null;
+                }
+                var found = new HashSet<int>(wide);
+                for (long x = Cell(box[0]); x <= Cell(box[2]); x++)
+                {
+                    for (long y = Cell(box[1]); y <= Cell(box[3]); y++)
+                    {
+                        if (cells.TryGetValue(Key(x, y), out List<int> list))
+                        {
+                            found.UnionWith(list);
+                        }
+                    }
+                }
+                List<int> near = found.ToList();
+                near.Sort();
+                return near;
+            }
+        }
+
+        private static double[] LineBox(double[] a, double[] b, double grow)
+        {
+            return new[] { Math.Min(a[0], b[0]) - grow, Math.Min(a[1], b[1]) - grow, Math.Max(a[0], b[0]) + grow, Math.Max(a[1], b[1]) + grow };
+        }
+
+        // The box an arc piece lies in, its whole circle, so a node near any part of it is found
+        private static double[] PieceBox(Graph graph, Edge piece)
+        {
+            if (piece.IsArc)
+            {
+                double reach = piece.Radius + Tolerance;
+                return new[] { piece.Cx - reach, piece.Cy - reach, piece.Cx + reach, piece.Cy + reach };
+            }
+            return LineBox(graph.Nodes[piece.A], graph.Nodes[piece.B], Tolerance);
+        }
+
         // Two straight pieces that cross without sharing an end get a node at the crossing, the split below then cuts both
         private static void AddCrossingNodes(Graph graph)
         {
             var lines = graph.Pieces.Where(piece => !piece.IsArc).ToList();
+            List<double[]> boxes = lines.Select(line => LineBox(graph.Nodes[line.A], graph.Nodes[line.B], 0)).ToList();
+            var index = new CellIndex(CellIndex.SizeFor(boxes));
+            for (int line = 0; line < lines.Count; line++)
+            {
+                index.Add(line, boxes[line]);
+            }
             for (int first = 0; first < lines.Count; first++)
             {
                 double[] a = graph.Nodes[lines[first].A];
                 double[] b = graph.Nodes[lines[first].B];
-                for (int second = first + 1; second < lines.Count; second++)
+                List<int> near = index.Near(boxes[first]);
+                IEnumerable<int> seconds = near == null ? Enumerable.Range(first + 1, lines.Count - first - 1) : near.Where(second => second > first);
+                foreach (int second in seconds)
                 {
                     double[] c = graph.Nodes[lines[second].A];
                     double[] d = graph.Nodes[lines[second].B];
@@ -207,12 +327,19 @@ namespace CadReader
         private static void SplitAtJunctions(Graph graph)
         {
             AddCrossingNodes(graph);
+            List<double[]> points = graph.Nodes.Select(node => new[] { node[0], node[1], node[0], node[1] }).ToList();
+            var nodes = new CellIndex(CellIndex.SizeFor(points));
+            for (int node = 0; node < points.Count; node++)
+            {
+                nodes.Add(node, points[node]);
+            }
             int count = graph.Pieces.Count;
             for (int index = 0; index < count; index++)
             {
                 Edge piece = graph.Pieces[index];
                 var hits = new List<KeyValuePair<double, int>>();
-                for (int node = 0; node < graph.Nodes.Count; node++)
+                List<int> near = nodes.Near(PieceBox(graph, piece));
+                foreach (int node in near ?? Enumerable.Range(0, graph.Nodes.Count).ToList())
                 {
                     if (node == piece.A || node == piece.B)
                     {

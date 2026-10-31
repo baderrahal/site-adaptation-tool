@@ -46,6 +46,15 @@ namespace CadReader
 
         public static JObject Inventory(CadDocument document, string name, string path, long size, string sha256, int pairMinSegments)
         {
+            return Inventory(document, name, path, size, sha256, pairMinSegments, null);
+        }
+
+        // Round 4j-1b. The same inventory with the time of each stage handed to log, so the slow stage is measured, never written into
+        // the scan result
+        public static JObject Inventory(CadDocument document, string name, string path, long size, string sha256, int pairMinSegments, Action<string> log)
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            Action<string> stage = what => { log?.Invoke(name + " | " + what + " | " + clock.Elapsed.TotalSeconds.ToString("F1", CultureInfo.InvariantCulture) + " s"); clock.Restart(); };
             // No plot line layer and no keep or drop list, so every piece reaches the sink and none is dropped (R420)
             var config = new LayerConfig { PlotLineLayers = new List<string>(), PlotLabelLayers = new List<string>() };
             var layers = new SortedDictionary<string, LayerParts>(StringComparer.Ordinal);
@@ -60,6 +69,7 @@ namespace CadReader
             };
             var exploder = new Exploder(config, piece => AddPiece(piece, partsOf), piece => { });
             exploder.Run(document.ModelSpace.Entities.ToList());
+            stage("explode");
             foreach (ACadSharp.Tables.Layer layer in document.Layers)
             {
                 partsOf(layer.Name);
@@ -76,6 +86,7 @@ namespace CadReader
                 partsOf(block.Layer).Blocks++;
                 inserts.Add(new JObject { ["layer"] = block.Layer ?? "", ["block"] = block.Name ?? "", ["x"] = R(block.InsertPoint[0]), ["y"] = R(block.InsertPoint[1]) });
             }
+            stage("texts and inserts");
             var rows = new JArray();
             var candidates = new List<KeyValuePair<string, JObject>>();
             foreach (KeyValuePair<string, LayerParts> layer in layers)
@@ -90,6 +101,7 @@ namespace CadReader
                     candidates.Add(Candidate(new[] { layer.Key }, faces));
                 }
             }
+            stage("single layer faces, " + layers.Count + " layers");
             List<string> large = layers.Where(layer => layer.Value.Segments.Count >= pairMinSegments).Select(layer => layer.Key).ToList();
             for (int first = 0; first < large.Count; first++)
             {
@@ -97,10 +109,12 @@ namespace CadReader
                 {
                     List<PlotShapes.Seg> both = layers[large[first]].Segments.Concat(layers[large[second]].Segments).ToList();
                     candidates.Add(Candidate(new[] { large[first], large[second] }, Faces(both, large[first] + ScanLogic.LayerJoin + large[second])));
+                    stage("pair " + large[first] + ScanLogic.LayerJoin + large[second] + ", " + both.Count + " segments");
                 }
             }
             var lines = new JObject();
             var arcs = new JObject();
+            stage("pairs done, " + large.Count + " large layers");
             foreach (KeyValuePair<string, LayerParts> layer in layers.Where(layer => layer.Value.Segments.Count > 0))
             {
                 lines[layer.Key] = layer.Value.Lines;
@@ -352,7 +366,7 @@ namespace CadReader
             {
                 string path = run.Input(cad.Value.Role);
                 var problems = new List<string>();
-                Read<JObject> read = Guarded(path, mark => Inventory(CadExtractor.Open(path, problems), Path.GetFileName(path), path, mark.Size, mark.Sha256, settings.PairMinSegments));
+                Read<JObject> read = Guarded(path, mark => Inventory(CadExtractor.Open(path, problems), Path.GetFileName(path), path, mark.Size, mark.Sha256, settings.PairMinSegments, Console.Error.WriteLine));
                 run.WriteJson(request.OutputFolder, FileName(cad.Key), read.Value);
                 cads.Add(read.Value);
                 inputs.Add(InputRow(cad.Value.Role, read.Mark));

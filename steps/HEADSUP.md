@@ -2,12 +2,12 @@
 
 ## Live status
 
-- Lane: D, round 4j-1, the scanner, branch feat/addin-4j1-scanner, worktree Site Adaptation Tool Lane D WT
-- Now: the full gate, the diff against the plan, then the PR of 4j-1
-- Done: items 1 to 8, review fixes, villa type by prototype names (Bader 31 Oct), parity 0 differ, renamed set equal, records
-- Next: PR 4j-1, then the queued round 4j-1b scan speed
-- Blocked: none. The Road Layout scan passed 40 minutes in the pair trace and was stopped (Q250, round 4j-1b)
-- Time: 2026-10-31 22:30
+- Lane: D, round 4j-1b, scan speed, branch feat/addin-4j1b-speed, worktree Site Adaptation Tool Lane D WT
+- Now: the Road Layout scan timed after the PlotShapes grid index, then set A and the renamed set against 4j-1
+- Done: 4j-1 merged as PR 114. Item 1 measured, the pair trace takes 2277 s for 220 of 3003 pairs of the Road Layout. Item 2 coded, today's reader 21 of 21 outputs equal by SHA-256
+- Next: parity and the compare with 4j-1, a time cap only if still over 10 minutes, records, PR
+- Blocked: none
+- Time: 2026-10-31 23:20
 - Lane B: 5d merged as PR 113 on 31 Oct (its status at 20:40 read full gate, then the PR of 5d). Lane C: NEWPROJ-UI merged as PR 112
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D 4j-1, Lane B 5d, 31 Oct 2026.
