@@ -746,7 +746,8 @@
             "rampZ": {"kind": "levels", "decimals": 3},
             "rampType": {"kind": "noGeometry"},
             "yardZ": {"kind": "levels", "decimals": 3},
-            "yardOutline": {"kind": "points", "decimals": 3}
+            "yardOutline": {"kind": "points", "decimals": 3},
+            "slopePercent": {"kind": "levels", "decimals": 3}
         },
         "parameters": {
             "unit": {"kind": "noGeometry"},

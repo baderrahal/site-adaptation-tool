@@ -50,6 +50,10 @@ namespace SiteAdaptation.Common
 
         // R365. The type of the yard outline the plan places, which floorTypes of the plan summary counts
         public string YardType { get; set; }
+
+        // R408. Under rev6 the slope of El @ Entry and the front corners after the overrides of a plot with El @ Entry, a skip plot as well,
+        // for the list of the slopes outside the manual
+        public double? Slope { get; set; }
     }
 
     // R360, R337, R340, R280, R386. Step 12 of the plan builder: what a build does with each override of each plot, applied or left with why, as
@@ -267,6 +271,18 @@ namespace SiteAdaptation.Common
         }
 
         // override_source.default_sources: majority.overrideDefaultSources, jobs of majority.groups, each once
+        // R408. Under rev6 the plots of the scope whose slope after the overrides lies outside slopes_percent front_min to front_max of the rules
+        // profile, as plan_from_book.build lists them, null under the past job
+        public static JArray Outside(IEnumerable<string> numbers, LevelBuild build, Dictionary<string, PlotPlan> plans, JObject rules)
+        {
+            if (!build.Rev6)
+            {
+                return null;
+            }
+            var slopes = plans.Where(plan => plan.Value.Slope.HasValue).ToDictionary(plan => plan.Key, plan => plan.Value.Slope.Value);
+            return DesignBasis.OutsideList(numbers, slopes, (JObject)rules["slopes_percent"]);
+        }
+
         public static List<string> DefaultSources(JObject config, string configName)
         {
             JToken found = config["majority"]?["overrideDefaultSources"];
@@ -575,6 +591,7 @@ namespace SiteAdaptation.Common
                 {
                     ["unit"] = unit, ["skip"] = skipped, ["written"] = false, ["applied"] = null, ["notApplied"] = null, ["mirrored"] = null, ["insert"] = null, ["rotationDeg"] = null,
                     ["roadAtFront"] = null, ["entry"] = null, ["ffl"] = null, ["ssl"] = null, ["height"] = null, ["steps"] = null, ["rampZ"] = null, ["rampType"] = null, ["yardZ"] = null, ["yardOutline"] = null,
+                    ["slopePercent"] = null,
                 };
                 var parameters = new Dictionary<string, object> { ["unit"] = unit, ["written"] = false, ["parameters"] = null, ["sources"] = null, ["lacks"] = null, ["linkName"] = null };
                 found[number] = new PlotPlan { Overrides = made, Parameters = parameters };
@@ -602,6 +619,12 @@ namespace SiteAdaptation.Common
                         {
                             outcomes.Leave(number, "entryM", NoGap);
                         }
+                    }
+                    if (build.Rev6)
+                    {
+                        // R408. The slope of El @ Entry after its override, the result the plan writes
+                        found[number].Slope = gap == null ? entry.Slope : DesignBasis.SlopeOf((double)made["entry"], item.Front, item.Depth.Value);
+                        made["slopePercent"] = found[number].Slope;
                     }
                 }
                 else if (mine.Property("entryM") != null && item?.Front != null && build.Rev6 && build.NoDoorWhy.TryGetValue(number, out string noDoor))
@@ -666,7 +689,7 @@ namespace SiteAdaptation.Common
                     Tuple<List<string>, JObject> record = outcomes.Plot(number, false, new[] { skipped != null ? "skip" : "unit" }, list, later, profileName);
                     made["applied"] = record?.Item1;
                     made["notApplied"] = record?.Item2;
-                    made["roadAtFront"] = made["entry"] = made["ffl"] = made["ssl"] = made["height"] = made["steps"] = null;
+                    made["roadAtFront"] = made["entry"] = made["ffl"] = made["ssl"] = made["height"] = made["steps"] = made["slopePercent"] = null;
                     found[number].Lacks = new List<string> { skipped != null ? "skip" : "unit" };
                     continue;
                 }
@@ -774,6 +797,12 @@ namespace SiteAdaptation.Common
                     {
                         front = front.Select(z => z + BuildFace.Number(gap)).ToArray();
                         moved.Add("rampFrontM");
+                        if (build.Rev6)
+                        {
+                            // R408. The slope of the front corners after the rampFrontM override, which the plan writes
+                            found[number].Slope = DesignBasis.SlopeOf((double)made["entry"], front, item.Depth.Value);
+                            made["slopePercent"] = found[number].Slope;
+                        }
                     }
                     else if (mine.Property("rampFrontM") != null)
                     {
@@ -784,10 +813,10 @@ namespace SiteAdaptation.Common
                     {
                         moved.Add("rampType");
                     }
-                    // R408. Under rev6 a ramp with no rampType override takes the type of the band of its slope, never keyRules.rampSlope
+                    // R408. Under rev6 a ramp with no rampType override takes the type of the band of its slope after the overrides, never keyRules.rampSlope
                     bool byBand = build.Rev6 && !Truthy(named);
                     JToken rampClass = Truthy(named) ? named : byBand ? null : keyRules["rampSlope"]["table"][unit];
-                    JToken kind = byBand ? DesignBasis.RampType(entry.Slope, build.Bands) : rampClass != null && rampClass.Type == JTokenType.String ? levelProfile["rampTypes"][(string)rampClass] : null;
+                    JToken kind = byBand ? DesignBasis.RampType(found[number].Slope.Value, build.Bands) : rampClass != null && rampClass.Type == JTokenType.String ? levelProfile["rampTypes"][(string)rampClass] : null;
                     bool ramp = kind != null && kind.Type != JTokenType.Null;
                     noRamp = !ramp;
                     if (ramp)
@@ -803,7 +832,7 @@ namespace SiteAdaptation.Common
                         }
                         else
                         {
-                            outcomes.Leave(number, field, "no ramp floor, " + (byBand ? string.Format(CultureInfo.InvariantCulture, FloorOutlines.NoBand, SheetRows.PyRepr(entry.Slope))
+                            outcomes.Leave(number, field, "no ramp floor, " + (byBand ? string.Format(CultureInfo.InvariantCulture, FloorOutlines.NoBand, SheetRows.PyRepr(found[number].Slope.Value))
                                 : "keyRules.rampSlope and rampTypes give no ramp type for " + unit));
                         }
                     }

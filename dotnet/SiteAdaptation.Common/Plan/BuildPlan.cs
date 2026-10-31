@@ -437,8 +437,8 @@ namespace SiteAdaptation.Common
                     JArray heights = (JArray)ovRaw["rampZ"];
                     floor["corners"] = Sourced(fields, number, key + ".corners", new JArray(outline.Select((corner, index) => new JArray(R3(corner[0]), R3(corner[1]), R3(heights[index])))));
                     floor["heightOffset"] = Sourced(fields, number, key + ".heightOffset", new JValue(Rounding.Fixed(heights.Min(Number) - elevation, Decimals)));
-                    // R408. Under rev6 the slope of the step levels, the result of El @ Entry, else the one the ramp class names
-                    JToken slope = Of(steps, KeyLevels.StepName, number, "raw")["slopePercent"];
+                    // R408. Under rev6 the slope after the overrides of the step overrides, the result of El @ Entry, else the one the ramp class names
+                    JToken slope = ovRaw["slopePercent"];
                     floor["slopePercent"] = Sourced(fields, number, key + ".slopePercent", new JValue(Rounding.Fixed(Held(slope) ? Number(slope) : Slope((string)floors["rampClass"]), Decimals)));
                 }
                 if (floor != null)

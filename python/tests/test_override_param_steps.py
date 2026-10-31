@@ -228,7 +228,7 @@ def test_r360_r361_the_config_names_the_fields_of_the_steps_overrides_and_parame
         "unit": ("noGeometry", None), "skip": ("noGeometry", None), "written": ("noGeometry", None), "applied": ("noGeometry", None), "notApplied": ("noGeometry", None),
         "mirrored": ("noGeometry", None), "insert": ("points", 3), "rotationDeg": ("angles", 3), "roadAtFront": ("levels", 4), "entry": ("levels", 4), "ffl": ("levels", 3), "ssl": ("levels", 3),
         "height": ("levels", 4), "steps": ("noGeometry", None), "rampZ": ("levels", 3), "rampType": ("noGeometry", None), "yardZ": ("levels", 3),
-        "yardOutline": ("points", 3)}
+        "yardOutline": ("points", 3), "slopePercent": ("levels", 3)}
     assert tuple(steps["overrides"]) == plan_from_book.OVERRIDE_FIELDS and tuple(steps["parameters"]) == plan_from_book.PARAMETER_FIELDS
     assert all(field["kind"] == "noGeometry" for field in steps["parameters"].values())
     assert plan_from_book.BUILD_STEPS[-5:-3] == ("overrides", "parameters") and plan_from_book.PARITY_STEPS[-5:-3] == ("overrides", "parameters")

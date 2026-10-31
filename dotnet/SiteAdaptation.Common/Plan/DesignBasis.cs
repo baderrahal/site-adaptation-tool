@@ -238,6 +238,13 @@ namespace SiteAdaptation.Common
             return written < BuildFace.Number(slopes["front_min"]) || written > BuildFace.Number(slopes["front_max"]);
         }
 
+        // plan_from_book.build: the plots of numbers with a slope whose slope lies outside the manual, each with that slope at 3 decimals
+        public static JArray OutsideList(IEnumerable<string> numbers, IReadOnlyDictionary<string, double> slopes, JObject limits)
+        {
+            return new JArray(numbers.Where(number => slopes.ContainsKey(number) && OutsideManual(slopes[number], limits))
+                .Select(number => new JObject { ["plot"] = number, ["slopePercent"] = Rounding.Fixed(slopes[number], SlopeDecimals) }));
+        }
+
         // floor_fit.type_of: the ramp type of a slope from the bands, the first whose upper limit lies above it, null for none
         public static JToken RampType(double slope, JArray bands)
         {

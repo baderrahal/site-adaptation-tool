@@ -7,7 +7,7 @@ import common
 import design_basis
 import plan_from_book
 import project_profile
-from test_r407_design_basis import basis_settings, civil_csv, rev6_build
+from test_r407_design_basis import PAST_JOB, basis_settings, civil_csv, rev6_build
 
 DEPTH = 5.52
 # The road levels of the made up row at the two front corners of plots 5 and 6, 10 m plus a hundredth of x
@@ -114,3 +114,57 @@ def test_r408_the_civil_file_is_an_input_of_the_build_steps_by_its_role_with_the
     roles = {item["role"]: item for item in plan_from_book.build_inputs(args, project_profile.load_settings(), "levels")}
     assert roles[plan_from_book.CIVIL_ROLE]["path"] == str(path) and roles[plan_from_book.BANDS_ROLE]["path"] == str(floors)
     assert len(roles[plan_from_book.CIVIL_ROLE]["sha256"]) == 64
+
+
+def slope_build(monkeypatch, overrides):
+    """The made up row under rev6 with roadPlusSlope at 1.5 percent, in the band Ramps 2% and inside the manual, and the override list given."""
+    settings = basis_settings(mode="rev6", door={"source": "roadPlusSlope", "slopePercent": {"default": 1.5}})
+    return rev6_build(monkeypatch, settings, overrides=overrides)
+
+
+def final_slope(road, entry_gap=0.0, front_gap=0.0):
+    # El @ Entry of the rule at 4 decimals moved by its gap, less the road at front moved by its gap, over the ramp depth
+    rule = common.fixed(road + 1.5 / 100.0 * DEPTH, 4)
+    return (rule + entry_gap - (road + front_gap)) / DEPTH * 100.0
+
+
+def test_r408_an_entry_override_gives_the_slope_ramp_type_and_outside_list_of_the_moved_el_at_entry(monkeypatch):
+    built = slope_build(monkeypatch, {"5": {"entryM": {"gapToRuleM": -0.06}}})
+    slope = final_slope(ROAD_5, entry_gap=-0.06)
+    # By hand 1.5 less 6 cm over 5.52 m, 0.413 percent, under front_min 0.5 and in the band under 1.25
+    assert common.fixed(slope, 3) == 0.413
+    ramp = built["plan"]["5"]["floors"]["ramp"]
+    assert ramp["slopePercent"]["value"] == 0.413 and ramp["type"]["value"] == "Ramps 0.5%"
+    assert built["overrides"]["5"]["slopePercent"] == pytest.approx(slope, abs=1e-9) and built["overrides"]["5"]["rampType"] == "Ramps 0.5%"
+    assert built["summary"]["slopeOutsideManual"] == [{"plot": "5", "slopePercent": 0.413}]
+    assert built["summaryStep"][1]["summary"]["slopeOutsideManual"] == [{"plot": "5", "slopePercent": 0.413}]
+    # The step levels keeps the slope by the rule, the step before the overrides
+    assert built["levels"]["5"]["slopePercent"] == pytest.approx(1.5, abs=1e-12) and built["floors"]["5"]["rampType"] == "Ramps 2%"
+
+
+def test_r408_a_ramp_front_override_gives_the_slope_ramp_type_and_outside_list_of_the_moved_front(monkeypatch):
+    built = slope_build(monkeypatch, {"6": {"rampFrontM": {"gapToRuleM": 0.07}}})
+    slope = final_slope(ROAD_6, front_gap=0.07)
+    # By hand 1.5 less 7 cm over 5.52 m, 0.232 percent
+    assert common.fixed(slope, 3) == 0.232
+    ramp = built["plan"]["6"]["floors"]["ramp"]
+    assert ramp["slopePercent"]["value"] == 0.232 and ramp["type"]["value"] == "Ramps 0.5%"
+    # The slope the plan writes is that of its own corners, the back pair at El @ Entry and the front pair at the moved road
+    corners = [corner[2] for corner in ramp["corners"]["value"]]
+    assert abs((corners[2] + corners[3] - corners[0] - corners[1]) / 2.0 / DEPTH * 100.0 - ramp["slopePercent"]["value"]) < 0.05
+    assert built["overrides"]["6"]["slopePercent"] == pytest.approx(slope, abs=1e-9) and built["overrides"]["6"]["rampType"] == "Ramps 0.5%"
+    assert built["summary"]["slopeOutsideManual"] == [{"plot": "6", "slopePercent": 0.232}]
+    assert built["summaryStep"][1]["summary"]["slopeOutsideManual"] == [{"plot": "6", "slopePercent": 0.232}]
+    assert built["levels"]["6"]["slopePercent"] == pytest.approx(1.5, abs=1e-12)
+
+
+def test_r408_a_plot_with_no_override_keeps_the_slope_of_the_rule(monkeypatch):
+    built = slope_build(monkeypatch, {})
+    for number in ("4", "5", "6"):
+        ramp = built["plan"][number]["floors"]["ramp"]
+        assert ramp["slopePercent"]["value"] == 1.5 and ramp["type"]["value"] == "Ramps 2%"
+        assert built["overrides"][number]["slopePercent"] == built["levels"][number]["slopePercent"]
+    assert built["summary"]["slopeOutsideManual"] == []
+    # The step overrides of a build of the past job carries no slope
+    past = rev6_build(monkeypatch, basis_settings(mode=PAST_JOB))
+    assert {number: made["slopePercent"] for number, made in past["overrides"].items()} == dict.fromkeys(past["overrides"])
