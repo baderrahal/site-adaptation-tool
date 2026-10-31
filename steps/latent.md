@@ -398,3 +398,8 @@ All paths under dotnet/. A line number the reviewer did not note is left out.
 - plan_from_book.py open_ramp and Fronts.OpenRamp: a turn of 90 degrees would put the front setback depth of ramp_outline.setback along a side edge, untested. The override list holds 18 turns near 180 degrees and 3 under 5 degrees, none of 90.
 - open_edge and OpenEdge keep the first edge on a tie, a front made of two collinear ring segments could flip to the other half under a small turn. The 3 real small turns did not move a ramp.
 - Fronts.OpenRamp has no polygon check where open_ramp needs a Polygon face, no real input reaches the difference.
+
+## Lane B 5d, review 2 of the fixes
+
+- RevitFloorDocument.cs:101: ChangeTypeId drops its return value. If Revit made a new element on a type change, the next lookup of the old UniqueId fails and the run rolls back, loud. Not probed in Revit 2024.
+- FloorPlan.cs:212-225 Named: a tag of 5d from before the type and plot values reads them from the floor as it stands, so a type the user changed by hand on such a floor reads as a plan change and 5 sets it to the plan with no line. Only floors of the 5d test runs hold such tags.
