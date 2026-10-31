@@ -66,7 +66,7 @@ namespace SiteAdaptation.Common
         }
 
         // plan_from_book.turned_ramps: each written plot with a ramp whose rotationDeg override turned the edge its walls leave open off the
-        // edge the rule leaves open, both by Walls.OpenEdge, listed until the ramp moves to the open edge in 5d
+        // edge the rule leaves open, both by Walls.OpenEdge, but a plot whose ramp moved to the open edge (RampOnOpenEdge, Fronts.OpenRamp)
         public static List<JObject> Conflicts(IEnumerable<string> numbers, IReadOnlyDictionary<string, PlotPlan> plans, IReadOnlyDictionary<string, FrontItem> fronts,
             IReadOnlyDictionary<string, BuildFace> faces)
         {
@@ -76,7 +76,7 @@ namespace SiteAdaptation.Common
                 plans.TryGetValue(number, out PlotPlan plan);
                 fronts.TryGetValue(number, out FrontItem item);
                 faces.TryGetValue(number, out BuildFace face);
-                if (!Written(plan) || !AppliedOf(plan).Contains("rotationDeg") || plan.Overrides["rampType"] == null || item?.Frame == null || face == null)
+                if (!Written(plan) || plan.RampOnOpenEdge || !AppliedOf(plan).Contains("rotationDeg") || plan.Overrides["rampType"] == null || item?.Frame == null || face == null)
                 {
                     continue;
                 }

@@ -251,7 +251,8 @@ namespace SiteAdaptation.AddIn.Revit
             return GeometryCreationUtilities.CreateExtrusionGeometry(new List<CurveLoop> { loop }, XYZ.BasisZ, UnitMath.MetresToFeet(heightM));
         }
 
-        // The outer loop of the lowest downward face of the solid, every corner, from the geometry Revit holds and not from the shape
+        // The outer loop of the lowest downward face of the solid, every corner with its Z for the FFL of W6, from the geometry Revit
+        // holds and not from the shape
         private static IReadOnlyList<double[]> BaseOf(DirectShape shape)
         {
             PlanarFace lowest = null;
@@ -270,7 +271,7 @@ namespace SiteAdaptation.AddIn.Revit
                 return null;
             }
             CurveLoop outer = lowest.GetEdgesAsCurveLoops().OrderByDescending(loop => Math.Abs(SignedArea(loop))).First();
-            return outer.SelectMany(curve => curve.Tessellate().Take(curve.Tessellate().Count - 1)).Select(point => new[] { UnitMath.FeetToMetres(point.X), UnitMath.FeetToMetres(point.Y) }).ToList();
+            return outer.SelectMany(curve => curve.Tessellate().Take(curve.Tessellate().Count - 1)).Select(point => new[] { UnitMath.FeetToMetres(point.X), UnitMath.FeetToMetres(point.Y), UnitMath.FeetToMetres(point.Z) }).ToList();
         }
 
         private static double SignedArea(CurveLoop loop)

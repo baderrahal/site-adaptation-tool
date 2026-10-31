@@ -30,6 +30,7 @@ namespace SiteAdaptation.Common
         public double FloorLevelToleranceM { get; private set; }
         public double FloorCornerOnVertexM { get; private set; }
         public double FloorShortestEdgeM { get; private set; }
+        public double WallReadBackM { get; private set; }
         public double FrontTieM { get; private set; }
         public double FrontOutwardProbeM { get; private set; }
         public IReadOnlyDictionary<string, double[]> Quadrants { get; private set; }
@@ -68,6 +69,7 @@ namespace SiteAdaptation.Common
                 FloorLevelToleranceM = Number(block, "floors.levelToleranceM"),
                 FloorCornerOnVertexM = Number(block, "floors.cornerOnVertexM"),
                 FloorShortestEdgeM = Number(block, "floors.shortestEdgeM"),
+                WallReadBackM = Number(block, "walls.readBackM"),
                 FrontTieM = Number(block, "fronts.frontTieM"),
                 FrontOutwardProbeM = Number(block, "fronts.outwardProbeM"),
                 Quadrants = quadrants,
@@ -133,6 +135,18 @@ namespace SiteAdaptation.Common
                         current = Load(path ?? throw new InvalidDataException("no config of the run gave the design values and no config/project.json lies above " + AppDomain.CurrentDomain.BaseDirectory + " (R405)"));
                     }
                     return current;
+                }
+            }
+        }
+
+        // True when Current has values to give, from a config of the run or the config/project.json above the assembly
+        public static bool Known
+        {
+            get
+            {
+                lock (Gate)
+                {
+                    return current != null || RepoConfig(AppDomain.CurrentDomain.BaseDirectory) != null;
                 }
             }
         }

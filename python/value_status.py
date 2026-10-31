@@ -220,13 +220,21 @@ def fields_of(entry):
     return found
 
 
-def mark(entry, table, hand=None, applied=()):
+# Q116. The override that moves the ramp of a plot only where its turn moved the ramp to the open edge, and the fields of that ramp
+ROTATION = "rotationDeg"
+RAMP_FIELDS = "floors.ramp."
+
+
+def mark(entry, table, hand=None, applied=(), ramp_moved=False):
     """Writes status and statusFrom, the key of its detail in table.used, beside each sourced value of the entry, hand the hand table the
-    plot took and applied the overrides of the list the build applied on it, in the order it applied them."""
+    plot took and applied the overrides of the list the build applied on it, in the order it applied them. A rotation override is named on
+    the ramp only when ramp_moved, the turn having moved the ramp to the open edge (Q116), as the turn decides the ramp only there."""
     found = fields_of(entry)
     unit, plot = (found.get("unit") or {}).get("value"), entry.get("plot")
+    left = [name for name in applied if name != ROTATION]
     for field, item in found.items():
-        item["status"], detail, item["statusFrom"] = table.of(field, item["source"], hand, applied, unit, plot)
+        mine = applied if ramp_moved or not field.startswith(RAMP_FIELDS) else left
+        item["status"], detail, item["statusFrom"] = table.of(field, item["source"], hand, mine, unit, plot)
         table.used[item["statusFrom"]] = detail
 
 

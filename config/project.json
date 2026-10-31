@@ -414,6 +414,12 @@
       "conflicts": [
       ]
     },
+    "fixedParameters": {
+      "note": "R373, Q156 (Bader, 2026-10-31, the recommended answer). The shared parameters whose GUID Bader fixed, which no key binds as a shared parameter: Plot, the floor parameter of floors.plotParameter, a project parameter in all 7 keys, takes the GUID Code made once on 2026-10-29. Button 1 binds them after those of addin.sharedParameters until a parameter sheet is chosen, and a name in both blocks is refused. No run writes this block, python/key_parameters.py writes addin.sharedParameters alone.",
+      "parameters": [
+        {"name": "Plot", "guid": "faecae98-f82c-46b5-bd80-489380545236", "on": ["Floors"]}
+      ]
+    },
     "parity": {
       "note": "R345. The tolerance of each kind of field before R385 rounds it, in metres, square metres or degrees, null for a kind compared exactly. After rounding the two sides are equal, or one unit of the last place apart only where the two unrounded values lie within the tolerance and straddle a rounding boundary of R385, each such case listed by step, plot, field and both unrounded values. docs/design/05-plan-steps.md",
       "kinds": {
@@ -739,6 +745,7 @@
             "steps": {"kind": "noGeometry"},
             "rampZ": {"kind": "levels", "decimals": 3},
             "rampType": {"kind": "noGeometry"},
+            "rampOutline": {"kind": "points", "decimals": 3},
             "yardZ": {"kind": "levels", "decimals": 3},
             "yardOutline": {"kind": "points", "decimals": 3}
         },
@@ -783,6 +790,10 @@
       "levelToleranceM": 0.001,
       "cornerOnVertexM": 0.002,
       "shortestEdgeM": 0.001
+    },
+    "walls": {
+      "note": "R380. readBackM holds a boundary wall placed by button 8 read back on its line, base and top, the 1 mm of 03b 8 Walls Checks",
+      "readBackM": 0.001
     },
     "fronts": {
       "note": "Rows C11, C12, P7 and P90. frontTieM is R94, two candidate edges this near the road tie, a corner plot. outwardProbeM the probe of the outward side of an edge, R405. quadrantsDeg are R224 and R225, the bearings of each orientation of the sales table",
@@ -857,7 +868,7 @@
     "cannotWhy": "the cannot list holds no past value of the plot and field (R272)"
   },
   "valueStatus": {
-    "note": "R401. The status of each sourced value of a plot of the plan, by its field and its source, from the block status of the rules profile. fields holds a field, parameters.* for every parameter, and per source the list of the block entries the code that computes the value reads, each by its path in the rules profile (profile) or in this file (config), where {levelProfile} is the level profile of the build, {parameter} the parameter name, {hand} the hand table the plot took and {unit} the unit code of the plot, or the status itself. prototypeFile lists the unit of the location plan, the file of the prototype folder named with it and the keo_file of its typology, which the code reads for every typology (Q110). A field majority.decidedByQuestion lists for a plot under an open question adds the block entry of that question and key, majority.decidedByQuestion.<Q>.plots.<key>, so it takes the worst of its list, RECOMMENDED by that question while it is open (review 1 of PR 78). A value takes the worst status of its list in the order of worstFirst, else the status of the first entry, and lists each (Q107). sources holds a source for every field. A pair neither holds, or an entry the block lacks, is UNKNOWN. overrideSets names per override of the list every field it moves or decides, the mirror flag the outline and type of the yard as it picks the outline group of the hand, a rotation override the ends, base and top of a wall, named only on a wall that stands on the front of R355 the turn moved from, as the turn decides only whether a wall stands and the plots of a wall come from the faces (Q120), which then takes the status of the source override, and the value names every applied override whose set holds the field, the overrides that touched its inputs, in the order the build applied them (Q112, Q113). worstFirst names the statuses worst first. overrideReads names per override the fields it moves that the code still computes from other entries, with those entries, so such a field takes the worst of the override status and them, and a field of overrideSets it does not name the override sets outright (Q107). A value several overrides touched names them all and reads the entries every override that set an input it stands on still reads for its field, as each reads the inputs it leaves, none when one sets it outright (Q119, R1 of the review of PR 85). The base and the top of a wall read those of the overrides of the plot of their level, and the entries of their own field where that plot holds none. A field such an override touched takes the worst of the override status and the entries overrideReads names for it, also where it equals its value with no override (Q113). assumed names the statuses the plan summary lists by plot, MEASURED with its strength.",
+    "note": "R401. The status of each sourced value of a plot of the plan, by its field and its source, from the block status of the rules profile. fields holds a field, parameters.* for every parameter, and per source the list of the block entries the code that computes the value reads, each by its path in the rules profile (profile) or in this file (config), where {levelProfile} is the level profile of the build, {parameter} the parameter name, {hand} the hand table the plot took and {unit} the unit code of the plot, or the status itself. prototypeFile lists the unit of the location plan, the file of the prototype folder named with it and the keo_file of its typology, which the code reads for every typology (Q110). A field majority.decidedByQuestion lists for a plot under an open question adds the block entry of that question and key, majority.decidedByQuestion.<Q>.plots.<key>, so it takes the worst of its list, RECOMMENDED by that question while it is open (review 1 of PR 78). A value takes the worst status of its list in the order of worstFirst, else the status of the first entry, and lists each (Q107). sources holds a source for every field. A pair neither holds, or an entry the block lacks, is UNKNOWN. overrideSets names per override of the list every field it moves or decides, the mirror flag the outline and type of the yard as it picks the outline group of the hand, a rotation override the ends, base and top of a wall, named only on a wall that stands on the front of R355 the turn moved from, as the turn decides only whether a wall stands and the plots of a wall come from the faces (Q120), and the outline, corners and heightOffset of the ramp, named only on a plot whose ramp the turn moved to the open edge (Q116), which then takes the status of the source override, and the value names every applied override whose set holds the field, the overrides that touched its inputs, in the order the build applied them (Q112, Q113). worstFirst names the statuses worst first. overrideReads names per override the fields it moves that the code still computes from other entries, with those entries, so such a field takes the worst of the override status and them, and a field of overrideSets it does not name the override sets outright (Q107). A value several overrides touched names them all and reads the entries every override that set an input it stands on still reads for its field, as each reads the inputs it leaves, none when one sets it outright (Q119, R1 of the review of PR 85). The base and the top of a wall read those of the overrides of the plot of their level, and the entries of their own field where that plot holds none. A field such an override touched takes the worst of the override status and the entries overrideReads names for it, also where it equals its value with no override (Q113). assumed names the statuses the plan summary lists by plot, MEASURED with its strength.",
     "sources": {
       "override": {"status": "RECOMMENDED", "question": "Q053", "where": "steps/investigations/rule-status-audit.md section 6"},
       "locationPlan": {"status": "DOCUMENT", "document": "the location plan, labels.csv of the data book"},
@@ -913,7 +924,7 @@
       "rampType": ["floors.ramp.type"],
       "mirrored": ["mirrored", "insert", "rotationDeg", "parameters.CASE", "parameters.RRE_ZZ_SP_Prototype-Foundation-Type", "floors.yard.outline", "floors.yard.type"],
       "insert": ["insert", "floors.yard.outline"],
-      "rotationDeg": ["rotationDeg", "floors.yard.outline", "walls.ends", "walls.base", "walls.top"]
+      "rotationDeg": ["rotationDeg", "floors.yard.outline", "walls.ends", "walls.base", "walls.top", "floors.ramp.outline", "floors.ramp.corners", "floors.ramp.heightOffset"]
     },
     "overrideReads": {
       "entryM": {
@@ -961,6 +972,9 @@
         "floors.yard.outline": [{"profile": "levelProfiles.{levelProfile}.keyRules.yardOutline.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.linkRotation.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.hand {hand}.rule"}]
       },
       "rotationDeg": {
+        "floors.ramp.outline": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampOutline.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.frontOpen.rule"}],
+        "floors.ramp.corners": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampOutline.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.rampFront.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}],
+        "floors.ramp.heightOffset": [{"profile": "levelProfiles.{levelProfile}.keyRules.rampFront.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.entry.rule"}, {"status": "UNKNOWN", "why": "the elevation of the level of the floor in the new site file, which heightOffset is computed from and no block entry maps (R401, Q107)"}],
         "floors.yard.outline": [{"profile": "levelProfiles.{levelProfile}.keyRules.yardOutline.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.linkOrigin.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.hand {hand}.rule"}],
         "walls.ends": [{"profile": "levelProfiles.{levelProfile}.keyRules.wallLine.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.frontOpen.rule"}, {"config": "keyPlans.wallEdgeM"}, {"status": "UNKNOWN", "why": "no key rule measures where a boundary wall starts and ends along its edge, a build runs it along the whole edge or part of it another face meets (R362)"}],
         "walls.base": [{"profile": "levelProfiles.{levelProfile}.keyRules.wallBase.rule"}, {"profile": "levelProfiles.{levelProfile}.keyRules.ffl.rule"}, {"profile": "levelProfiles.{levelProfile}.yardBelowFflM"}],

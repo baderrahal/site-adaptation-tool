@@ -8,10 +8,10 @@ from test_override_param_steps import MADE
 
 
 def test_r362_q116_a_plot_a_rotation_override_turned_to_another_open_edge_is_listed_in_the_conflicts_with_its_ramp_on_the_front(monkeypatch):
-    built = made_build(monkeypatch, copy.deepcopy(MADE))
+    built = made_build(monkeypatch, copy.deepcopy(MADE), back_dry=True)
     conflicts = built["trace"]["conflicts"]
-    # 2 is turned by about 180 degrees, so its walls leave open the back edge while its ramp stays on the front of R355, 6 turned by 1.5
-    # degrees keeps the front open and is no conflict
+    # 2 is turned by about 180 degrees, so its walls leave open the back edge, where no road level is found, so its ramp stays on the front
+    # of R355 (Q116), 6 turned by 1.5 degrees keeps the front open and is no conflict
     assert conflicts == [{"plot": "2", "field": "floors.ramp", "kept": plan_from_book.TURNED_KEPT, "other": plan_from_book.TURNED_OTHER,
                           "otherSource": "override rotationDeg", "question": "Q116"}]
     assert built["plan"]["2"]["overrides"]["applied"].count("rotationDeg") == 1 and "ramp" in built["plan"]["2"]["floors"] and built["conflicts"] == conflicts
@@ -25,7 +25,7 @@ def summary_of(built):
 
 
 def test_r365_r401_parity_summary_the_step_holds_the_counts_and_names_of_the_plan_summary_and_the_conflicts(monkeypatch):
-    built = made_build(monkeypatch, copy.deepcopy(MADE))
+    built = made_build(monkeypatch, copy.deepcopy(MADE), back_dry=True)
     plots, tables = summary_of(built)
     summary, rules = built["summary"], built["summary"]["rules"]
     # One source: the table is the summary the plan writes, the counts of step 15 and the status of R401 beside them

@@ -252,25 +252,16 @@ namespace SiteAdaptation.Common
             {
                 throw new WorkerStop(WorkerExit.Refused, "the request names no config, the settings file of the pane");
             }
-            foreach (WorkerFile input in inputs)
-            {
-                if (string.IsNullOrEmpty(input.Path))
-                {
-                    throw new WorkerStop(WorkerExit.Refused, "the input " + input.Role + " is not chosen");
-                }
-                if (WorkFiles.IsTemporary(input.Path))
-                {
-                    throw new WorkerStop(WorkerExit.Refused, "the input " + input.Role + " has a temporary name and is never read: " + input.Path);
-                }
-                if (!File.Exists(input.Path))
-                {
-                    throw new WorkerStop(WorkerExit.Refused, "the input " + input.Role + " is not on disk: " + input.Path);
-                }
-            }
-            // The config is small and read first, it names the measured peak of each large input and the floor. Before any read each
-            // large input is checked against the free memory now, so a run that cannot read all of them reads none
+            // The config is small and read first, it names the measured peak of each large input and the floor, and its design values
+            // round the answer of any later refusal. Before any read each large input is checked against the free memory now, so a run
+            // that cannot read all of them reads none
+            Usable(configInput);
             AddinConfig config = AddinConfig.Load(configInput.Path);
             DesignValues.UseConfigOf(config.Root);
+            foreach (WorkerFile input in inputs)
+            {
+                Usable(input);
+            }
             foreach (WorkerFile input in inputs)
             {
                 string refusal = MemoryRefusal(input, config, freeMiB);
@@ -328,6 +319,22 @@ namespace SiteAdaptation.Common
             WorkFiles.CommitAll(context.Written, request.RunId);
             answer.Outputs.AddRange(outputs);
             return WorkerExit.Done;
+        }
+
+        private static void Usable(WorkerFile input)
+        {
+            if (string.IsNullOrEmpty(input.Path))
+            {
+                throw new WorkerStop(WorkerExit.Refused, "the input " + input.Role + " is not chosen");
+            }
+            if (WorkFiles.IsTemporary(input.Path))
+            {
+                throw new WorkerStop(WorkerExit.Refused, "the input " + input.Role + " has a temporary name and is never read: " + input.Path);
+            }
+            if (!File.Exists(input.Path))
+            {
+                throw new WorkerStop(WorkerExit.Refused, "the input " + input.Role + " is not on disk: " + input.Path);
+            }
         }
 
         // The version and the file of Common and of Newtonsoft.Json this process loaded

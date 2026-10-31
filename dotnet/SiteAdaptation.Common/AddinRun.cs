@@ -454,8 +454,10 @@ namespace SiteAdaptation.Common
         public const string LoadOn = "the pane loads again on ";
         public const string AnswerToOwn = "an answer goes to its own document while another is active";
         public const string AnswerAfterClose = "an answer for a closed document is dropped with its issue";
-        public const string DetachedNoPath = "a detached document has no PathName";
-        public const string DetachedTitleEmpty = "a detached document has an empty Title";
+        public const string DetachedNoPath = "a detached document has a PathName ending _detached.rvt";
+        public const string DetachedTitleEmpty = "a detached document has a Title ending _detached";
+        // Q220. Revit run 3 of 5a and the run after 5c measured the name Revit gives a detached document, so the rows hold that
+        public const string DetachedSuffix = "_detached";
         public const string DetachedStop = "a button on a detached document asks for a save first";
         public const string UnsavedNoPath = "a document never saved has no PathName";
         public const string UnsavedStop = "a document never saved has no work folder and asks for a save";
@@ -491,8 +493,10 @@ namespace SiteAdaptation.Common
             RunDocument detached = record.Documents.FirstOrDefault(document => document.Made == RunDocument.Detached);
             RunDocument unsaved = record.Documents.FirstOrDefault(document => document.Label == "unsaved");
             RunDocument saved = record.Documents.FirstOrDefault(document => document.Label == "first");
-            checks.Add(One("2", DetachedNoPath, detached, document => string.IsNullOrEmpty(document.PathName), document => "PathName '" + document.PathName + "'"));
-            checks.Add(One("2", DetachedTitleEmpty, detached, document => string.IsNullOrEmpty(document.Title), document => "Title '" + document.Title + "'"));
+            checks.Add(One("2", DetachedNoPath, detached,
+                document => (document.PathName ?? "").EndsWith(DetachedSuffix + ".rvt", StringComparison.OrdinalIgnoreCase), document => "PathName '" + document.PathName + "'"));
+            checks.Add(One("2", DetachedTitleEmpty, detached,
+                document => (document.Title ?? "").EndsWith(DetachedSuffix, StringComparison.OrdinalIgnoreCase), document => "Title '" + document.Title + "'"));
             checks.Add(Unasked(DetachedStop, detached, record.SaveFirst) ?? One("2", DetachedStop, detached != null && record.SaveFirst != null ? detached : null,
                 document => document.ButtonStop == record.SaveFirst, document => "the button stop '" + document.ButtonStop + "'"));
             checks.Add(One("2", UnsavedNoPath, unsaved, document => string.IsNullOrEmpty(document.PathName), document => "PathName '" + document.PathName + "', Title '" + document.Title + "'"));
@@ -752,8 +756,8 @@ namespace SiteAdaptation.Common
         public const string ResultFile = "buttons_result.json";
         public const string PaneSettingsFile = "pane_settings.json";
 
-        // The buttons built by 5c, in the order of the pane
-        public static readonly int[] Known = { 1, 2, 3, 4, 7 };
+        // The buttons built by 5c and 5d, in the order of the pane
+        public static readonly int[] Known = { 1, 2, 3, 4, 5, 6, 7, 8 };
 
         // 2 Read data and 4 Check start the worker and return, their end comes later through the ExternalEvent of the add-in
         public static bool Waits(int button)

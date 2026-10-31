@@ -89,13 +89,13 @@ namespace SiteAdaptation.Common
         }
 
         // What a build took besides its steps, as BuildSteps takes it: the level profile of the request or the default (Q050), the override
-        // sources of R330, the prototype folder of R357 and the NBH of the scope
+        // sources of R330, the prototype folder of R357, that of the request first (Q214), and the NBH of the scope
         public static PlanInputs InputsOf(JObject settings, JObject rules, string levelProfile, string configName, JObject site, Dictionary<string, Dictionary<string, string>> rows,
-            WorkerScope scope, IEnumerable<string> numbers)
+            WorkerScope scope, IEnumerable<string> numbers, string prototypeFolder)
         {
             return new PlanInputs
             {
-                Nbh = NbhOf(scope, numbers, rows), Site = site, Settings = settings, PrototypeFolder = BuildSteps.PrototypeFolder(settings),
+                Nbh = NbhOf(scope, numbers, rows), Site = site, Settings = settings, PrototypeFolder = BuildSteps.PrototypeFolder(settings, prototypeFolder),
                 ProfileName = BuildRules.ProfileName(rules, levelProfile), LevelProfile = BuildRules.LevelProfile(rules, levelProfile),
                 KeyRules = BuildRules.KeyRules(rules, levelProfile, string.Join(", ", BuildSteps.Names)), OverrideSources = PlanOverrides.DefaultSources(settings, configName), Rows = rows,
                 Rules = rules, WidthStep = FloorOutlines.WidthStep(settings, configName),
@@ -425,7 +425,8 @@ namespace SiteAdaptation.Common
                 else if (kind == "ramp" && Held(ov["rampZ"]) && Held(ov["rampType"]))
                 {
                     floor = new JObject { ["type"] = Sourced(fields, number, key + ".type", ov["rampType"].DeepClone()) };
-                    JArray outline = (JArray)floors["rampOutline"];
+                    // Q116. The outline after the overrides, on the open edge of a turned plot, the rule outline in a step file before it
+                    JArray outline = (JArray)(Held(ov["rampOutline"]) ? ov["rampOutline"] : floors["rampOutline"]);
                     var rings = new JArray();
                     rings.Add(outline.DeepClone());
                     FloorBase(floor, fields, number, key, level, elevation, Loops(rings), unit);

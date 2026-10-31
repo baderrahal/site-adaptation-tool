@@ -24,6 +24,15 @@ namespace SiteAdaptation.Common
             return JsonConvert.SerializeObject(payload, Settings(Formatting.Indented));
         }
 
+        // R347, R405. For the answer of a worker that stopped before any config of the run gave the design values: the decimals of R2
+        // are one of them, so its numbers go out as they are rather than the refusal being lost
+        public static string ToJsonUnrounded(object payload)
+        {
+            JsonSerializerSettings settings = Build(Formatting.Indented, false);
+            settings.Converters.Clear();
+            return JsonConvert.SerializeObject(payload, settings);
+        }
+
         public static JsonSerializerSettings Settings(Formatting formatting)
         {
             return Build(formatting, true);

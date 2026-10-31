@@ -24,6 +24,10 @@ namespace SiteAdaptation.Common
         public string Command { get; set; }
         public List<WorkerFile> Inputs { get; set; } = new List<WorkerFile>();
         public string LevelProfile { get; set; }
+
+        // Q214. The Prototypes folder of the pane a build takes, null takes the folder of pastJob in config (R357)
+        public string PrototypeFolder { get; set; }
+
         public WorkerScope Scope { get; set; }
         public string OutputFolder { get; set; }
 
@@ -103,9 +107,10 @@ namespace SiteAdaptation.Common
         public double Seconds { get; set; }
         public string Library { get; set; }
 
+        // The Revit run of 5d: a refusal before the config was read died in this write where no config/project.json lies above the worker
         public string ToJson()
         {
-            return JsonOut.ToJson(this);
+            return DesignValues.Known ? JsonOut.ToJson(this) : JsonOut.ToJsonUnrounded(this);
         }
 
         public static WorkerAnswer Read(string path)

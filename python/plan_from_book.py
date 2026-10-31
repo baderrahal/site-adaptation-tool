@@ -22,6 +22,7 @@ link parameters by the rules measured on its answer keys and places their overri
 import argparse
 import csv
 import json
+import math
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -359,7 +360,7 @@ def floor_step(numbers, rows, trace, links, rules, profile, step):
 
 
 OVERRIDE_FIELDS = ("unit", "skip", "written", "applied", "notApplied", "mirrored", "insert", "rotationDeg", "roadAtFront", "entry", "ffl", "ssl", "height", "steps", "rampZ",
-                   "rampType", "yardZ", "yardOutline")
+                   "rampType", "rampOutline", "yardZ", "yardOutline")
 
 
 def held_plan(number, name, made, written):
@@ -407,6 +408,7 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
         fit_unit = unit if unit in section["units"] else keo
         builder = plan_from_past.PlotBuilder(number)
         plan_from_cad.link_values(builder, unit, item["face"], item["frame"], trace["roles"].get(number), section, files, mirrored, fit_unit)
+        turned = None
         if builder.has("insert"):
             frame = item["frame"]
             insert = list(cad_links.predicted_origin(frame, mirrored, section["units"].get(fit_unit or unit)))
@@ -420,6 +422,7 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
             gap = mine["rotationDeg"].get("gapToRuleDeg") if isinstance(mine.get("rotationDeg"), dict) else None
             if gap is not None:
                 rotation = plan_from_past.plan_rotation(rotation) + gap
+                turned = open_ramp(item["face"], frame, plan_from_past.plan_rotation(rotation), mirrored, item.get("depth"), trace["surfaces"], trace["snap"])
             made.update(mirrored=mirrored, insert=insert, rotationDeg=rotation)
         if entry is not None:
             # R364. The unrounded mean of the two front corners, which no override moves
@@ -445,12 +448,14 @@ def override_step(numbers, rows, trace, hands, files, rules, profile, step):
                 raise ValueError("the step overrides gives plot %s the steps %r and the build took %r (R360)" % (number, made["steps"], level["steps"]))
         if not plot["written"]:
             continue
-        gap = plan_rules.gap_of(mine.get("rampFrontM"))
-        ramp_front = item["front"] if gap is None else [z + gap for z in item["front"]]
+        opened = turned is not None and turned["front"] is not None
+        ramp_front, ramp_corners = (turned["front"], turned["corners"]) if opened else (item["front"], item["corners"])
+        gap = None if opened else plan_rules.gap_of(mine.get("rampFrontM"))
+        ramp_front = ramp_front if gap is None else [z + gap for z in ramp_front]
         ramp_class = mine.get("rampType") or plan_rules.key_ramp_class(key, unit)
         kind = lp["rampTypes"].get(ramp_class) if ramp_class is not None else None
         if kind is not None:
-            made.update(rampZ=ramp_heights(ramp_front, entry["entry"]), rampType=kind)
+            made.update(rampZ=ramp_heights(ramp_front, entry["entry"]), rampType=kind, rampOutline=[list(corner) for corner in ramp_corners])
         below, _ = plan_rules.key_yard(key, row.get("zone") or "")
         if below is not None:
             yard_unit = unit if any(group["unit"] == unit for group in outlines["outlines"].get("yard") or []) else keo or unit
@@ -678,6 +683,8 @@ def moved_link(builder, frame, overrides, number, outcomes):
 
 # R337. Why a build leaves an override of a field it never places
 NO_GAP = "the override holds no gap to the rule"
+# Q116. key_levels measures rampFront against the road of the front of R355, which the open edge of a turned plot does not hold
+OPEN_EDGE_GAP = "measured on the front of R355, the ramp moved to the open edge (Q116)"
 LEFT = {"rampOutline": "an outline gap, a build places the ramp outline of R127", "yardOutline": "an outline gap, a build places the fitted yard outline",
         "genericFloor": "an outline gap, a build places the whole face", "rampFrontFallM": "a ramp front fall is not applied (Q057)"}
 
@@ -878,7 +885,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                      key=link_summary.sort_key)
     front = fronts(members, rows, faces, roads, limits, surfaces, snap, profile, block.get("corner") if sales is not None else None, sales)
     if trace is not None:
-        trace.update(front=front, snap=snap)
+        trace.update(front=front, snap=snap, surfaces=surfaces)
     frames = {number: item["frame"] for number, item in front.items()}
     roles = cad_links.cluster_roles(mine, 0, {number: item["face"] for number, item in front.items() if item["face"] is not None}, frames)
     if trace is not None:
@@ -942,6 +949,8 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     inputs = {"outlines": outlines, "step": floor_fit.width_step(settings), "levels": site["levels"], "floors": floors_config, "bands": outlines["rampTypes"]["bands"]}
     plots, missing, lacking, surface_count, no_level, book_check, no_road = [], [], Counter(), Counter(), [], Counter(), []
     not_measured, not_measured_plots, records, hand_rules, applied_of = {}, Counter(), {}, Counter(), {}
+    # Q116. The plots whose ramp moved to the open edge a rotation override turned them to face
+    opened_ramps = set()
     # R401. The status of each sourced value from the block status of the rules profile, the map and the block read once per build
     statuses = value_status.table_of(settings, profile, None if rules is None else rules["name"])
     if trace is not None:
@@ -1071,11 +1080,19 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             if made:
                 made["z"]["source"] = made["heightOffset"]["source"] = ESTIMATE
                 floors["yard"] = made
-            ramp_front, kind, ramp_class, moved, named = item["front"], None, "rule", [], None
+            ramp_frame, ramp_corners, ramp_front, kind, ramp_class, moved, named = item["frame"], item["corners"], item["front"], None, "rule", [], None
+            if "rotationDeg" in outcomes.done[number]:
+                turned = open_ramp(item["face"], item["frame"], builder.entry["rotationDeg"]["value"], builder.entry["mirrored"]["value"], item.get("depth"), surfaces, snap)
+                # Q116. With no road level at an open corner the ramp stays on the front and the plot stays in the conflicts
+                if turned is not None and turned["front"] is not None:
+                    ramp_frame, ramp_corners, ramp_front = turned["frame"], turned["corners"], turned["front"]
+                    opened_ramps.add(number)
             if rules is not None:
                 gap = plan_rules.gap_of(mine_overrides.get("rampFrontM"))
-                if gap is not None:
-                    ramp_front = [z + gap for z in item["front"]]
+                if "rampFrontM" in mine_overrides and number in opened_ramps:
+                    outcomes.left(number, "rampFrontM", OPEN_EDGE_GAP)
+                elif gap is not None:
+                    ramp_front = [z + gap for z in ramp_front]
                     moved.append("rampFrontM")
                 elif "rampFrontM" in mine_overrides:
                     outcomes.left(number, "rampFrontM", NO_GAP)
@@ -1089,7 +1106,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
                 builder.lack("floors.ramp", "keyRules.rampSlope and rampTypes give no ramp type for " + unit)
                 made = None
             else:
-                made = ramp_floor(builder, item["frame"], item["corners"], ramp_front, builder.entry["levels"]["entry"]["value"], slopes[number], inputs, kind)
+                made = ramp_floor(builder, ramp_frame, ramp_corners, ramp_front, builder.entry["levels"]["entry"]["value"], slopes[number], inputs, kind)
             for field in moved:
                 if made:
                     outcomes.applied(number, field)
@@ -1106,7 +1123,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
             if records[number]:
                 builder.entry["overrides"] = records[number]
             applied_of[number] = outcomes.in_order(number, records[number]["applied"]) if records[number] else ()
-            value_status.mark(builder.entry, statuses, table, applied_of[number])
+            value_status.mark(builder.entry, statuses, table, applied_of[number], number in opened_ramps)
             if rules is not None:
                 hand_rules[str(rule)] += 1
             plots.append(builder.entry)
@@ -1125,13 +1142,18 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
         opened = {plot: plan_walls.open_edge(rings[plot], faced[plot], written[plot]["rotationDeg"]["value"], written[plot]["mirrored"]["value"],
                                              "rotationDeg" in (applied_of.get(plot) or ())) for plot in faced}
         # Q120. The fronts before a turn, so a wall names the rotation of a plot only where the turn decides whether it stands
-        for wall in plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules, faced):
+        # Q115. The footprint cluster and the unit of each plot, for the span keyRules.wallOpen leaves open between two units of one cluster
+        kin = {plot: (None, (rows.get(plot) or {}).get("typologyRev9") or None) for plot in rings}
+        for index, cluster in enumerate(clusters if numbered else numbered_clusters(clusters, number_of)):
+            for plot in cluster["plots"]:
+                kin[plot] = (index, (rows.get(plot) or {}).get("typologyRev9") or None)
+        for wall in plan_walls.walls(numbers, set(ffls), rings, opened, ffls, wall_rules, faced, kin):
             item = plan_walls.entry(wall)
             plan_walls.mark(item, wall, statuses, applied_of)
             walls.append(item)
     if trace is not None:
         trace["walls"] = walls
-    conflicts = [] if key is None else turned_ramps(plots, frames, faces, applied_of)
+    conflicts = [] if key is None else turned_ramps(plots, frames, faces, applied_of, opened_ramps)
     if trace is not None:
         trace["conflicts"] = conflicts
     survey = site["surveyPoint"]
@@ -1186,20 +1208,43 @@ TURNED_KEPT = "the ramp on the front of R355"
 TURNED_OTHER = "the open edge the rotationDeg override turned the link to face, which the walls leave open (R362)"
 
 
-def turned_ramps(plots, frames, faces, applied_of):
+def turned_ramps(plots, frames, faces, applied_of, opened=()):
     """Q116. Each written plot with a ramp whose rotationDeg override turned the edge its walls leave open off the edge the rule leaves open,
-    both by plan_walls.open_edge, so the ramp on the front of R355 meets a wall, listed until the ramp moves to the open edge in 5d."""
+    both by plan_walls.open_edge, so the ramp on the front of R355 meets a wall, but a plot whose ramp the build moved to the open edge
+    (opened, open_ramp), which leaves only a plot with no road level at a corner of its open edge."""
     found = []
     for entry in plots:
         plot = entry["plot"]
         face, frame = faces.get(plot), frames.get(plot)
-        if "rotationDeg" not in (applied_of.get(plot) or ()) or "ramp" not in entry["floors"] or not frame or face is None or face.geom_type != "Polygon":
+        if plot in opened or "rotationDeg" not in (applied_of.get(plot) or ()) or "ramp" not in entry["floors"] or not frame or face is None or face.geom_type != "Polygon":
             continue
         ring, front, mirrored = list(face.exterior.coords)[:-1], (frame["left"], frame["right"]), entry["mirrored"]["value"]
         rule = plan_walls.open_edge(ring, front, plan_from_past.plan_rotation(cad_links.rotation_of(frame, mirrored)), mirrored, True)
         if plan_walls.open_edge(ring, front, entry["rotationDeg"]["value"], mirrored, True) != rule:
             found.append({"plot": plot, "field": "floors.ramp", "kept": TURNED_KEPT, "other": TURNED_OTHER, "otherSource": "override rotationDeg", "question": "Q116"})
     return found
+
+
+def open_ramp(face, frame, rotation, mirrored, depth, surfaces, snap):
+    """Q116 (Bader, 2026-10-28), R355, R362. The ramp of a plot a rotation override turned to leave open another edge than the rule
+    leaves open, both by plan_walls.open_edge as turned_ramps compares them: the frame of corner_front.frame_for on the edge the walls
+    leave open, the ramp outline of R127 on it with the front setback depth and the road level of R344 at its two front corners as fronts
+    takes them, front None when a corner has none. None when the turn keeps the open edge of the rule or the plot has no polygon face,
+    front frame or depth."""
+    if face is None or face.geom_type != "Polygon" or frame is None or depth is None:
+        return None
+    ring, front = list(face.exterior.coords)[:-1], (frame["left"], frame["right"])
+    rule = plan_walls.open_edge(ring, front, plan_from_past.plan_rotation(cad_links.rotation_of(frame, mirrored)), mirrored, True)
+    first, second = plan_walls.open_edge(ring, front, rotation, mirrored, True)
+    if (first, second) == tuple(rule):
+        return None
+    # The open edge is picked by the turn, not by a curb, so its frame holds no curb distance
+    edge = {"first": first, "second": second, "length": math.dist(first, second), "distance": None, "out": corner_front.outward(face, first, second)}
+    made = corner_front.frame_for(face, edge)
+    corners = ramp_outline.outline(made, depth)
+    levels_found = [road_level(surfaces, corner, snap) for corner in corners[:2]]
+    return {"frame": made, "corners": corners, "surfaces": [name for _, name in levels_found],
+            "front": [z for z, _ in levels_found] if all(z is not None for z, _ in levels_found) else None}
 
 
 def nbh_plots(labels_path, nbh):

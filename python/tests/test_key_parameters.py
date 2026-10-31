@@ -92,6 +92,20 @@ def test_r353_the_block_is_written_into_the_addin_block_of_config_and_every_othe
         key_parameters.block(key_parameters.collect({}, NAMES), NAMES, [])
 
 
+def test_r353_q156_a_write_over_the_block_of_config_keeps_the_fixed_block_of_bader(tmp_path):
+    text = project_profile.SETTINGS_PATH.read_text(encoding="utf-8")
+    fixed = json.loads(text)["addin"]["fixedParameters"]
+    assert fixed["parameters"] == [{"name": "Plot", "guid": "faecae98-f82c-46b5-bd80-489380545236", "on": ["Floors"]}]
+    path = tmp_path / "project.json"
+    path.write_text(text, encoding="utf-8")
+    keys = json.loads(text)["addin"]["sharedParameters"]["keys"]
+    files = {key: made_file(key=key) for key in keys}
+    key_parameters.write_block(path, key_parameters.block(key_parameters.collect(files, NAMES), NAMES, keys))
+    written = json.loads(path.read_text(encoding="utf-8"))
+    assert written["addin"]["fixedParameters"] == fixed
+    assert path.read_text(encoding="utf-8").count('"fixedParameters"') == 1
+
+
 def test_r353_config_holds_one_guid_of_the_keys_for_every_name_but_those_noguid_lists_with_why():
     settings = project_profile.load_settings()
     block = settings.get("addin")["sharedParameters"]

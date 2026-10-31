@@ -32,6 +32,7 @@ The rule behind each path is in docs/rules.md under the id given here.
 - Lane C NEWPROJ-UI (R430 to R434): Common/Settings/SetupRows.cs, SetupCheck.cs, SetupSave.cs, SavedStarts.cs and TemplateBook.cs the logic, AddIn/NewProject the window New project with the scanner hook DrawingFacts.cs, AddIn/HowItWorks the page How it works, docs/design/18-new-project.md the design, docs/design/boards the boards
 - Round FOLD (D17, D19): tools/run-lane.ps1 -Lane A or B runs one lane, one phase session after another, Lane A in the repo folder, Lane B in the detached worktree "Site Adaptation Tool Lane B WT" it makes, the output under the work root in runner, steps/STOP-A and steps/STOP-B (ignored) stop it. .claude/hooks/guard-inputs.sh blocks every link command and every write into an input root, test_d19 of python/tests/test_harness.py.
 - docs/rules.md holds the rules with ids R1 and up. docs/addin-mock.md holds the approved mock of Round ADDIN.
+- steps/HEADSUP.md holds the live status of each lane and a one page heads-up of the last round, rewritten by each round (Bader, 31 Oct 2026).
 - steps/log.md holds the round log. steps/PROGRESS.md holds the live state. steps/history/ holds old rounds, steps/investigations/ the findings of a round, steps/questions-closed.md the closed questions.
 
 ## Rules in short

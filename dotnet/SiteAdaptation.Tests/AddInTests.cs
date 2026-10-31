@@ -120,6 +120,35 @@ namespace SiteAdaptation.Tests
             Assert.Equal("7 Place villas is not built yet.", untouched.Run(7, "7 Place villas", Bodies.Of(7), @"C:\Models\Site.rvt").Message);
         }
 
+        // R378, R379. Buttons 5 and 6 take the body the entry makes on the active document, each only its own, and with none they stay
+        // not built, so Bodies.Of names no Revit type
+        [Fact]
+        public void R378_R379_buttons_5_and_6_take_their_own_body_and_no_other()
+        {
+            var floors = new ButtonBody();
+            var levels = new ButtonBody();
+            RibbonButtonSpec five = RibbonLayout.Button(5);
+            RibbonButtonSpec six = RibbonLayout.Button(6);
+
+            Assert.Same(floors, Bodies.Of(five, null, null, null, null, null, () => floors, () => levels));
+            Assert.Same(levels, Bodies.Of(six, null, null, null, null, null, () => floors, () => levels));
+            Assert.Equal("5 Floors and ramps is not built yet.", Bodies.Of(five, null, null, null, null, null, null, () => levels).NotBuilt);
+            Assert.Equal("6 Levels is not built yet.", Bodies.Of(six).NotBuilt);
+            Assert.Equal("7 Place villas is not built yet.", Bodies.Of(RibbonLayout.Button(7), null, null, null, null, null, () => floors, () => levels).NotBuilt);
+        }
+
+        // R380. Button 8 takes the body the entry makes on the active document and no other button takes it, with none it stays not built
+        [Fact]
+        public void R380_button_8_takes_its_own_body_and_no_other()
+        {
+            var walls = new ButtonBody();
+            RibbonButtonSpec eight = RibbonLayout.Button(8);
+
+            Assert.Same(walls, Bodies.Of(eight, null, null, null, null, null, null, null, () => walls));
+            Assert.Equal("8 Walls is not built yet.", Bodies.Of(eight, null, null, null, null, null, null, null, null).NotBuilt);
+            Assert.Equal("6 Levels is not built yet.", Bodies.Of(RibbonLayout.Button(6), null, null, null, null, null, null, null, () => walls).NotBuilt);
+        }
+
         // R403. The window changes no model element, so the ribbon command opens it on the rules file of the pane with no flow, and a
         // missing or bad rules file is told, never thrown into Revit
         [Fact]
@@ -141,6 +170,19 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Worker", folder);
             string addIn = Path.GetDirectoryName(typeof(LaunchedWorker).Assembly.Location);
             Assert.Equal(Path.Combine(addIn, folder, "CadReader.exe"), LaunchedWorker.BesideAddIn());
+        }
+
+        // Revit run of 5d: button 6 stopped on a worker looked for beside the add-in, where the installer puts none. The level, report and
+        // update waits look where button 2 starts it
+        [Fact]
+        public void R379_the_waits_of_6_9_and_update_look_for_the_worker_in_the_worker_folder()
+        {
+            Assert.False(File.Exists(LaunchedWorker.BesideAddIn()));
+            string work = Path.Combine(Path.GetTempPath(), "sa_worker_path_" + Guid.NewGuid().ToString("N"));
+            var report = Assert.Throws<FileNotFoundException>(() => SiteAdaptation.AddIn.Report.ReportWorkerClient.Run(null, work));
+            var update = Assert.Throws<FileNotFoundException>(() => SiteAdaptation.AddIn.Update.UpdateWorkerClient.Read(null, work));
+            Assert.EndsWith(LaunchedWorker.BesideAddIn(), report.Message);
+            Assert.EndsWith(LaunchedWorker.BesideAddIn(), update.Message);
         }
 
         [Fact]
