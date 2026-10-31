@@ -255,6 +255,19 @@ namespace SiteAdaptation.Tests
             Assert.Contains("$bookFolder = Join-Path $docs $bookFolder", script);
         }
 
+        // R357 and D19. The build of 4 Check reads pastJob.upgradedPrototypeFolder under the input root, which a buttons run never
+        // writes. With a prototypes input the copy of config names that folder in full, so the build reads the folder of the spec
+        [Fact]
+        public void R357_the_run_script_names_the_prototypes_input_as_the_prototype_folder_of_the_build()
+        {
+            string script = Text("dotnet", "SiteAdaptation.TestHost", "Run-TestHost.ps1");
+            int buttons = script.IndexOf("            if ($round.buttons) {", StringComparison.Ordinal);
+            int named = script.IndexOf("$settingsCopy.pastJob.upgradedPrototypeFolder = [string]$round.inputs.prototypes", buttons, StringComparison.Ordinal);
+            int written = script.IndexOf("$settingsCopy | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $settingsPath", buttons, StringComparison.Ordinal);
+            Assert.True(buttons > 0 && named > buttons && written > named);
+            Assert.Contains("if ($round.inputs.prototypes) {", script);
+        }
+
         private static double[] Round(double[] point)
         {
             return point.Select(value => Math.Round(value, 9)).ToArray();

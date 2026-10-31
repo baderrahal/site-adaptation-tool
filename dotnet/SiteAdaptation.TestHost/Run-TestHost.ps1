@@ -362,6 +362,11 @@ if ($round) {
                 foreach ($bookFile in @($settingsCopy.addin.readData.dataBookFiles.PSObject.Properties)) {
                     $buttonsSources += Join-Path $bookFolder ([string]$bookFile.Value)
                 }
+                # R357 and D19. The build reads pastJob.upgradedPrototypeFolder under the input root, which a run never makes there, so a
+                # prototypes input of the spec is named in full and the build reads that folder in place, hashed with the inputs above
+                if ($round.inputs.prototypes) {
+                    $settingsCopy.pastJob.upgradedPrototypeFolder = [string]$round.inputs.prototypes
+                }
                 $buttonsInputs = Get-ButtonsInputs $buttonsSources
                 $buttonsBefore = Get-InputHashes $buttonsInputs
                 if ($round.keyCopy) {
