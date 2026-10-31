@@ -73,6 +73,9 @@ namespace SiteAdaptation.AddIn.SetUpSite
 
         public bool CurrentShown => view.CurrentFiles != null;
 
+        // Breaker of SCAN-UI: with no site drawing to tick Apply can never turn on, so the section says why
+        public bool NoSiteShown => view.CurrentFiles != null && !CurrentFiles.Any(row => row.Site);
+
         // Apply stays grey until the site drawing is ticked Current (R441)
         public bool SiteTicked => view.CurrentFiles == null || Common.SetUp.CurrentFiles.CanApply(CurrentFiles.Select(row => new CurrentFileRow { Site = row.Site, Current = row.Current }));
 

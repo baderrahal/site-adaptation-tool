@@ -413,6 +413,17 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R441_a_setup_with_no_site_drawing_says_so_and_apply_stays_grey()
+        {
+            SetUpSiteView view = Shots.SampleSetUpView(true, true);
+            view.CurrentFiles = view.CurrentFiles.Where(row => !row.Site).ToList();
+            var model = new SetUpSiteViewModel(view);
+            Assert.True(model.NoSiteShown);
+            Assert.False(model.CanApply);
+            Assert.False(new SetUpSiteViewModel(Shots.SampleSetUpView(true, true)).NoSiteShown);
+        }
+
+        [Fact]
         public void R441_a_view_no_current_files_dialog_filled_shows_no_section_and_waits_for_no_tick()
         {
             SetUpSiteView view = Shots.SampleSetUpView(true, true);

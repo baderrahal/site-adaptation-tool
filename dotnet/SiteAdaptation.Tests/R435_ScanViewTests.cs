@@ -124,7 +124,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R435_a_saved_pick_that_names_a_source_wins_over_the_proposal_and_one_that_names_none_is_ignored()
+        public void R435_a_saved_pick_that_names_a_source_wins_over_the_proposal_and_one_that_names_none_asks_again()
         {
             var settings = new ProjectSettings
             {
@@ -140,8 +140,9 @@ namespace SiteAdaptation.Tests
             Assert.Equal("Clear", villa.Status);
             Assert.Equal("list.xlsx|Sheet 1|Type|shift 0", villa.Selected);
             Assert.Equal("3 of 5", villa.Covers);
-            Assert.False(view.NeedsWindow);
-            Assert.Equal("site.dwg|OUTLINE", view.Values.Single(value => value.Kind == "plotOutline").Selected);
+            // Breaker of SCAN-UI: the plot outline pick names no source of this scan, so it asks again
+            Assert.Null(view.Values.Single(value => value.Kind == "plotOutline").Selected);
+            Assert.True(view.NeedsWindow);
 
             ScanViewData proposed = ScanView.Read(Scan(true, 0).ToString(), new ProjectSettings { ScanPicks = settings.ScanPicks });
             Assert.Equal("list.xlsx|Sheet 1|Type|shift 0", proposed.Values.Single(value => value.Kind == "villaType").Selected);
@@ -149,7 +150,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R435_a_conflict_is_open_until_a_pick_is_saved_for_its_plot_and_field()
+        public void R435_a_conflict_is_open_until_a_saved_pick_names_one_of_its_two_sources()
         {
             string text = Scan(true, 3).ToString();
             ScanViewData open = ScanView.Read(text, new ProjectSettings());
@@ -167,21 +168,20 @@ namespace SiteAdaptation.Tests
             {
                 ConflictPicks = new SortedDictionary<string, string>(StringComparer.Ordinal)
                 {
-                    ["1|villa type"] = "list.xlsx|Sheet 1|Type|shift 0",
-                    ["2|villa type"] = "feet.dwg|block|BLOCKS",
-                    ["3|villa type"] = "neither.dwg|X",
+                    ["1|villa type|list.xlsx|Sheet 1|Type|shift 0"] = "list.xlsx|Sheet 1|Type|shift 0",
+                    ["2|villa type|list.xlsx|Sheet 1|Type|shift 0"] = "feet.dwg|block|BLOCKS",
+                    ["3|villa type|list.xlsx|Sheet 1|Type|shift 0"] = "neither.dwg|X",
                 },
             };
             ScanViewData picked = ScanView.Read(text, settings);
-            // Review of SCAN-UI: a pick naming neither source settles the conflict too, another conflict of that plot and field named it
-            Assert.Equal(new[] { false, false, false }, picked.Conflicts.Select(conflict => conflict.Open));
+            Assert.Equal(new[] { false, false, true }, picked.Conflicts.Select(conflict => conflict.Open));
             Assert.Equal("B2 from list.xlsx", picked.Conflicts[0].SelectedChoice);
             Assert.Equal("A1 from feet.dwg", picked.Conflicts[1].SelectedChoice);
             Assert.Equal("feet.dwg|block|BLOCKS", picked.Conflicts[2].Selected);
-            Assert.False(picked.NeedsWindow);
+            Assert.True(picked.NeedsWindow);
 
-            settings.ConflictPicks.Remove("3|villa type");
-            Assert.True(ScanView.Read(text, settings).NeedsWindow);
+            settings.ConflictPicks["3|villa type|list.xlsx|Sheet 1|Type|shift 0"] = "feet.dwg|block|BLOCKS";
+            Assert.False(ScanView.Read(text, settings).NeedsWindow);
         }
 
         [Fact]
@@ -212,17 +212,33 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R435_a_pick_saved_on_one_conflict_of_a_plot_and_field_settles_the_others_of_that_plot_and_field()
+        public void R435_two_conflicts_of_one_plot_and_field_keep_a_pick_each_by_their_other_source()
         {
             JObject scan = Scan(true, 0);
             ((JArray)scan["conflicts"]).Add(Conflict("7", "villa type", "A1", "feet.dwg|block|BLOCKS", "B2", "list.xlsx|Sheet 1|Type|shift 0"));
             ((JArray)scan["conflicts"]).Add(Conflict("7", "villa type", "A1", "feet.dwg|block|BLOCKS", "C3", "pages.pdf|page 2|shift 100"));
-            var settings = new ProjectSettings { ConflictPicks = new SortedDictionary<string, string> { ["7|villa type"] = "pages.pdf|page 2|shift 100" } };
+            ScanViewData open = ScanView.Read(scan.ToString(), new ProjectSettings());
+            Assert.NotEqual(open.Conflicts[0].Key, open.Conflicts[1].Key);
+            var settings = new ProjectSettings { ConflictPicks = new SortedDictionary<string, string> { [open.Conflicts[0].Key] = "list.xlsx|Sheet 1|Type|shift 0" } };
             ScanViewData data = ScanView.Read(scan.ToString(), settings);
-            Assert.All(data.Conflicts, conflict => Assert.False(conflict.Open));
-            Assert.Equal("feet.dwg|block|BLOCKS", data.Conflicts[0].Selected);
-            Assert.Equal("pages.pdf|page 2|shift 100", data.Conflicts[1].Selected);
-            Assert.False(data.NeedsWindow);
+            Assert.False(data.Conflicts[0].Open);
+            Assert.Equal("list.xlsx|Sheet 1|Type|shift 0", data.Conflicts[0].Selected);
+            Assert.True(data.Conflicts[1].Open);
+            Assert.True(data.NeedsWindow);
+        }
+
+        [Fact]
+        public void R435_a_scan_with_no_villa_type_source_or_no_plot_outline_asks_for_a_pick()
+        {
+            JObject scan = Scan(true, 0);
+            foreach (JToken row in ((JArray)scan["rows"]).Where(row => (string)row["kind"] == "villaType" || (string)row["kind"] == "plotOutline").ToList())
+            {
+                row.Remove();
+            }
+            ScanViewData data = ScanView.Read(scan.ToString(), new ProjectSettings());
+            Assert.Equal("Pick", data.Values.Single(value => value.Kind == "villaType").Status);
+            Assert.Equal("Pick", data.Values.Single(value => value.Kind == "plotOutline").Status);
+            Assert.True(data.NeedsWindow);
         }
 
         [Fact]
@@ -231,22 +247,22 @@ namespace SiteAdaptation.Tests
             var current = new ProjectSettings
             {
                 ScanPicks = new SortedDictionary<string, string>(StringComparer.Ordinal) { ["plotNumber"] = "site.dwg|NUMBERS" },
-                ConflictPicks = new SortedDictionary<string, string>(StringComparer.Ordinal) { ["1|villa type"] = "feet.dwg|block|BLOCKS" },
+                ConflictPicks = new SortedDictionary<string, string>(StringComparer.Ordinal) { ["1|villa type|list.xlsx|Sheet 1|Type|shift 0"] = "feet.dwg|block|BLOCKS" },
                 VillaMode = VillaModes.Masses,
             };
 
             ProjectSettings next = ScanPicks.Apply(
                 new Dictionary<string, string> { ["villaType"] = "list.xlsx|Sheet 1|Type|shift 0", ["plotOutline"] = "" },
-                new Dictionary<string, string> { ["1|villa type"] = "list.xlsx|Sheet 1|Type|shift 0", ["2|villa type"] = "feet.dwg|block|BLOCKS" },
+                new Dictionary<string, string> { ["1|villa type|list.xlsx|Sheet 1|Type|shift 0"] = "list.xlsx|Sheet 1|Type|shift 0", ["2|villa type|list.xlsx|Sheet 1|Type|shift 0"] = "feet.dwg|block|BLOCKS" },
                 current);
 
             Assert.Equal(new[] { "plotNumber", "villaType" }, next.ScanPicks.Keys);
             Assert.Equal("list.xlsx|Sheet 1|Type|shift 0", next.ScanPicks["villaType"]);
-            Assert.Equal("list.xlsx|Sheet 1|Type|shift 0", next.ConflictPicks["1|villa type"]);
-            Assert.Equal("feet.dwg|block|BLOCKS", next.ConflictPicks["2|villa type"]);
+            Assert.Equal("list.xlsx|Sheet 1|Type|shift 0", next.ConflictPicks["1|villa type|list.xlsx|Sheet 1|Type|shift 0"]);
+            Assert.Equal("feet.dwg|block|BLOCKS", next.ConflictPicks["2|villa type|list.xlsx|Sheet 1|Type|shift 0"]);
             Assert.Equal(VillaModes.Masses, next.VillaMode);
             Assert.Single(current.ScanPicks);
-            Assert.Equal("feet.dwg|block|BLOCKS", current.ConflictPicks["1|villa type"]);
+            Assert.Equal("feet.dwg|block|BLOCKS", current.ConflictPicks["1|villa type|list.xlsx|Sheet 1|Type|shift 0"]);
 
             // The round trip: what the settings JSON holds reads back as the picks
             ProjectSettings again = SettingsJson.Read(SettingsJson.Write(next));

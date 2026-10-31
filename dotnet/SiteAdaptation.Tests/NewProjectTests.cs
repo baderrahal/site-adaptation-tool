@@ -245,12 +245,16 @@ namespace SiteAdaptation.Tests
             {
                 shownWith = settings;
                 ProjectSettings next = SettingsJson.Read(SettingsJson.Write(settings));
-                next.ConflictPicks = new SortedDictionary<string, string> { ["1|villa type"] = "feet.dwg|block|BLOCKS" };
+                next.ConflictPicks = new SortedDictionary<string, string> { ["1|villa type|list.xlsx|Sheet 1|Type|shift 0"] = "feet.dwg|block|BLOCKS" };
                 return next;
             });
             Assert.True(model.HasLayers);
             Assert.Equal(0, model.LayerIndex);
             Assert.True(model.HasSheets);
+            // Breaker of SCAN-UI: no Excel source is proposed, so the sheet and column stay empty until the user picks
+            Assert.Equal(-1, model.SheetIndex);
+            Assert.Empty(model.ColumnChoices);
+            model.SheetIndex = 0;
             Assert.Equal(new[] { "Type" }, model.ColumnChoices);
             Assert.False(model.HasSurvey);
             Assert.Equal(new[] { "The scan reads no survey point yet" }, model.SurveyChoices);
@@ -261,8 +265,8 @@ namespace SiteAdaptation.Tests
             Assert.Equal("site.dwg|OUTLINE + EDGE", shownWith.ScanPicks["plotOutline"]);
             model.Save();
             Assert.Equal("site.dwg|OUTLINE + EDGE", model.Result.ScanPicks["plotOutline"]);
-            Assert.False(model.Result.ScanPicks.ContainsKey("villaType"));
-            Assert.Equal("feet.dwg|block|BLOCKS", model.Result.ConflictPicks["1|villa type"]);
+            Assert.Equal("list.xlsx|Sheet 1|Type|shift 0", model.Result.ScanPicks["villaType"]);
+            Assert.Equal("feet.dwg|block|BLOCKS", model.Result.ConflictPicks["1|villa type|list.xlsx|Sheet 1|Type|shift 0"]);
         }
 
         [Fact]

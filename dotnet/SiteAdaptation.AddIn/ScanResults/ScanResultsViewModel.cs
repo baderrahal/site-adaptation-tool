@@ -97,8 +97,13 @@ namespace SiteAdaptation.AddIn.ScanResults
         }
 
         // The proposed side, the plot drawing or the lead source, for Use the proposed for all
+        // Breaker of SCAN-UI: a conflict already picked, by hand or from the settings, keeps its pick
         internal void UseProposed()
         {
+            if (row.Picked)
+            {
+                return;
+            }
             row.Selected = row.SourceA;
             row.Picked = true;
             Changed(nameof(Selected));

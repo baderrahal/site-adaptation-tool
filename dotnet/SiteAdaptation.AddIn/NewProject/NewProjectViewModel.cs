@@ -143,11 +143,12 @@ namespace SiteAdaptation.AddIn.NewProject
             this.facts = facts;
             ScanFactsData scan = facts.Scan;
             LayerChoices = scan == null ? new List<string>() : scan.LayerChoices.Select(source => source.Shown).ToList();
-            layerIndex = scan == null || scan.LayerChoices.Count == 0 ? -1 : Math.Max(0, scan.LayerChoices.FindIndex(source => source.Raw == (Pick(ScanView.PlotOutlineKind) ?? scan.LayerProposed)));
+            // Breaker of SCAN-UI: a source no dropdown holds leaves it empty, never its first line as if it were the source
+            layerIndex = scan == null ? -1 : scan.LayerChoices.FindIndex(source => source.Raw == (Pick(ScanView.PlotOutlineKind) ?? scan.LayerProposed));
             SheetChoices = scan == null ? new List<string>() : scan.Sheets.Select(sheet => sheet.Shown).ToList();
             string villa = Pick(ScanView.VillaTypeKind) ?? scan?.VillaTypeProposed;
-            sheetIndex = scan == null || scan.Sheets.Count == 0 ? -1 : Math.Max(0, scan.Sheets.FindIndex(sheet => sheet.Columns.Any(column => column.Raw == villa)));
-            columnIndex = sheetIndex < 0 ? -1 : Math.Max(0, scan.Sheets[sheetIndex].Columns.FindIndex(column => column.Raw == villa));
+            sheetIndex = scan == null ? -1 : scan.Sheets.FindIndex(sheet => sheet.Columns.Any(column => column.Raw == villa));
+            columnIndex = sheetIndex < 0 ? -1 : scan.Sheets[sheetIndex].Columns.FindIndex(column => column.Raw == villa);
             SurveyChoices = new[] { facts.SurveyPoint ?? (scan == null ? NewProjectText.FromScan : NewProjectText.NoSurveyPoint) };
             Rows.Single(row => row.Row.Id == SetupRows.Site).LayersFound(facts.Layers);
             SurveyPoint = facts.SurveyPoint ?? NewProjectText.FromScan;

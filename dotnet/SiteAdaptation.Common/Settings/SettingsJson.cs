@@ -106,8 +106,9 @@ namespace SiteAdaptation.Common.Settings
             OneOf(settings.VillaMode, VillaModes.All, "villaMode");
             Picks(settings.ScanPicks, "scanPicks");
             Picks(settings.ConflictPicks, "conflictPicks");
-            foreach (string name in settings.CurrentFiles ?? new List<string>())
+            foreach (string entry in settings.CurrentFiles ?? new List<string>())
             {
+                string name = (entry ?? "").Split('|')[0];
                 if (!InputNames.All.Contains(name))
                 {
                     throw new InvalidDataException("the settings JSON ticks " + name + " as a current file, not one of " + string.Join(", ", InputNames.All));

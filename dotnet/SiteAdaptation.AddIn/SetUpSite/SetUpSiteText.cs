@@ -42,6 +42,7 @@ namespace SiteAdaptation.AddIn.SetUpSite
         public const string CurrentTitle = "Current files";
         public const string CurrentHelp = "Tick each file that is the current issue. Apply waits for the site drawing.";
         public const string CurrentTick = "Current";
+        public const string NoSiteDrawing = "No site drawing in the setup. Pick the Baseplan in the pane first.";
         public const string SiteDrawing = "Site drawing";
         public const string Rules = "Rules";
 

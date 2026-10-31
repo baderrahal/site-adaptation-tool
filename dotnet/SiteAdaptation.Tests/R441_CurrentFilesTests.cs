@@ -18,7 +18,7 @@ namespace SiteAdaptation.Tests
             settings.Inputs[InputNames.Baseplan] = new SettingsInput { Path = @"C:\in\site.dwg" };
             settings.Inputs[InputNames.Sales] = new SettingsInput { Path = @"C:\in\plot list.xlsx" };
             settings.Inputs[InputNames.Prototypes] = new SettingsInput { Path = @"C:\in\prototypes" };
-            settings.CurrentFiles = ticked.Length == 0 ? null : ticked.ToList();
+            settings.CurrentFiles = ticked.Length == 0 ? null : ticked.Select(name => CurrentFiles.Entry(name, Path.GetFileName(settings.Inputs[name].Path))).ToList();
             return settings;
         }
 
@@ -48,7 +48,7 @@ namespace SiteAdaptation.Tests
         {
             ProjectSettings before = Setup();
             ProjectSettings next = CurrentFiles.Apply(before, new[] { InputNames.Sales, InputNames.Baseplan, InputNames.Sales }, @"C:\work\rules\other.json");
-            Assert.Equal(new[] { InputNames.Baseplan, InputNames.Sales }, next.CurrentFiles);
+            Assert.Equal(new[] { "baseplan|site.dwg", "sales|plot list.xlsx" }, next.CurrentFiles);
             Assert.Equal(@"C:\work\rules\other.json", next.RulesFile);
             Assert.Null(before.CurrentFiles);
             Assert.Null(before.RulesFile);
@@ -59,7 +59,7 @@ namespace SiteAdaptation.Tests
         public void R441_null_ticks_of_a_stand_in_keep_the_ticks_the_settings_hold()
         {
             ProjectSettings next = CurrentFiles.Apply(Setup(InputNames.Baseplan), null, null);
-            Assert.Equal(new[] { InputNames.Baseplan }, next.CurrentFiles);
+            Assert.Equal(new[] { "baseplan|site.dwg" }, next.CurrentFiles);
         }
 
         [Fact]
@@ -81,6 +81,15 @@ namespace SiteAdaptation.Tests
             Assert.Null(read.ScanPicks);
             Assert.Null(read.ConflictPicks);
             Assert.DoesNotContain("currentFiles", SettingsJson.Write(read));
+        }
+
+        [Fact]
+        public void R441_a_new_file_picked_for_a_ticked_input_is_not_ticked()
+        {
+            ProjectSettings settings = Setup(InputNames.Baseplan);
+            settings.Inputs[InputNames.Baseplan] = new SettingsInput { Path = @"C:\in\site rev 2.dwg" };
+            Assert.False(CurrentFiles.Rows(settings)[0].Current);
+            Assert.Equal("Current files: none ticked", CurrentFiles.ReportLine(settings));
         }
 
         [Fact]
@@ -126,7 +135,7 @@ namespace SiteAdaptation.Tests
             dialog.Show(new SetUpSiteView(), callbacks);
             Assert.Equal(2, inner.Shown.CurrentFiles.Count);
             Assert.Equal(2, inner.Callbacks.DryRun(0.5).CurrentFiles.Count);
-            Assert.Equal(new[] { InputNames.Baseplan }, kept.CurrentFiles);
+            Assert.Equal(new[] { "baseplan|site.dwg" }, kept.CurrentFiles);
             Assert.Equal(@"C:\work\rules\a.json", kept.RulesFile);
 
             kept = null;

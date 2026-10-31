@@ -53,12 +53,12 @@ namespace SiteAdaptation.Tests
             var draft = new SetupDraft
             {
                 ScanPicks = new Dictionary<string, string> { ["plotOutline"] = "site.dwg|OUTLINE + EDGE" },
-                ConflictPicks = new Dictionary<string, string> { ["1|villa type"] = "feet.dwg|block|BLOCKS" },
+                ConflictPicks = new Dictionary<string, string> { ["1|villa type|list.xlsx|Sheet 1|Type|shift 0"] = "feet.dwg|block|BLOCKS" },
             };
             ProjectSettings next = SetupSave.Apply(draft, current);
             Assert.Equal("site.dwg|NUMBERS", next.ScanPicks["plotNumber"]);
             Assert.Equal("site.dwg|OUTLINE + EDGE", next.ScanPicks["plotOutline"]);
-            Assert.Equal("feet.dwg|block|BLOCKS", next.ConflictPicks["1|villa type"]);
+            Assert.Equal("feet.dwg|block|BLOCKS", next.ConflictPicks["1|villa type|list.xlsx|Sheet 1|Type|shift 0"]);
             Assert.False(current.ScanPicks.ContainsKey("plotOutline"));
         }
     

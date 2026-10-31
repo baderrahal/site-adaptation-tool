@@ -66,8 +66,12 @@ namespace SiteAdaptation.Common.ReadData
         // R439. scan.json of the newest scan folder whose inputs are the same files by name, size and SHA-256 as these, else null. The
         // SHA-256 an input carries is taken as its hash, Inputs takes it from the file just before, so a prototype of a gigabyte is not
         // hashed twice in one press
-        public static string Reusable(string workFolder, IReadOnlyList<WorkerFile> inputs)
+        // Breaker of SCAN-UI: stamps are the files a scan also depends on, the rules profile and the worker, so a scan older than any of
+        // them is made again after a new profile or a new install
+        public static string Reusable(string workFolder, IReadOnlyList<WorkerFile> inputs, IEnumerable<string> stamps = null)
         {
+            DateTime newest = (stamps ?? new string[0]).Where(path => !string.IsNullOrEmpty(path) && File.Exists(path))
+                .Select(path => File.GetLastWriteTimeUtc(path)).DefaultIfEmpty(DateTime.MinValue).Max();
             if (inputs == null || inputs.Count == 0 || inputs.Any(item => string.IsNullOrEmpty(item.Path) || !File.Exists(item.Path)))
             {
                 return null;
@@ -76,6 +80,10 @@ namespace SiteAdaptation.Common.ReadData
             List<string> hashed = null;
             foreach (string scan in Scans(workFolder))
             {
+                if (File.GetLastWriteTimeUtc(scan) < newest)
+                {
+                    continue;
+                }
                 JArray listed;
                 try
                 {
@@ -138,7 +146,8 @@ namespace SiteAdaptation.Common.ReadData
         // scan.json: go on starts the read as before with the line of the gate first, stop ends the run with its line and writes
         // nothing. CHOSEN by Code in SCAN-UI: a scan that fails or runs past its time limit never blocks the read, the read goes on with
         // one line that says why the scan did not finish
-        public static ButtonBody Wrap(ButtonBody read, IWorkerStart worker, WorkerDocument document, Func<IReadOnlyList<WorkerFile>> scanInputs, Func<string, ScanGateAnswer> gate)
+        public static ButtonBody Wrap(ButtonBody read, IWorkerStart worker, WorkerDocument document, Func<IReadOnlyList<WorkerFile>> scanInputs, Func<string, ScanGateAnswer> gate,
+            Func<IEnumerable<string>> stamps = null)
         {
             if (read == null || scanInputs == null || gate == null)
             {
@@ -159,7 +168,7 @@ namespace SiteAdaptation.Common.ReadData
                     return read.Preview(context);
                 },
                 Apply = read.Apply, ReadBack = read.ReadBack, Done = read.Done, Confirm = read.Confirm, Outside = read.Outside,
-                Start = (context, done) => Start(read, worker, document, scanInputs, gate, context, done),
+                Start = (context, done) => Start(read, worker, document, scanInputs, gate, stamps, context, done),
             };
         }
 
@@ -171,7 +180,8 @@ namespace SiteAdaptation.Common.ReadData
             }
         }
 
-        private static void Start(ButtonBody read, IWorkerStart worker, WorkerDocument document, Func<IReadOnlyList<WorkerFile>> scanInputs, Func<string, ScanGateAnswer> gate, RunContext context, Action<RunLater> done)
+        private static void Start(ButtonBody read, IWorkerStart worker, WorkerDocument document, Func<IReadOnlyList<WorkerFile>> scanInputs, Func<string, ScanGateAnswer> gate,
+            Func<IEnumerable<string>> stamps, RunContext context, Action<RunLater> done)
         {
             string work = Path.GetFullPath(context.WorkFolder);
             lock (Running)
@@ -197,7 +207,7 @@ namespace SiteAdaptation.Common.ReadData
             try
             {
                 IReadOnlyList<WorkerFile> inputs = scanInputs();
-                string reused = Reusable(work, inputs);
+                string reused = Reusable(work, inputs, stamps?.Invoke());
                 if (reused != null)
                 {
                     scanned(reused, null);

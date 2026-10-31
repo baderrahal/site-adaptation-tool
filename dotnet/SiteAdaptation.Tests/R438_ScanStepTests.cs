@@ -266,5 +266,35 @@ namespace SiteAdaptation.Tests
                 ended(answer);
             }
         }
+
+        [Fact]
+        public void R439_a_scan_older_than_the_rules_profile_or_the_worker_is_not_reused()
+        {
+            string work = Path.Combine(Path.GetTempPath(), "sa_r439_" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                Directory.CreateDirectory(work);
+                string input = Path.Combine(work, "site.dwg");
+                File.WriteAllText(input, "x");
+                string sha = FileHash.Sha256(input);
+                string scan = Path.Combine(work, "scan_2_20261101-010000-000", "scan.json");
+                Directory.CreateDirectory(Path.GetDirectoryName(scan));
+                File.WriteAllText(scan, new JObject { ["inputs"] = new JArray { new JObject { ["role"] = "scanCad:1", ["name"] = "site.dwg", ["size"] = 1, ["sha256"] = sha } } }.ToString());
+                File.SetLastWriteTimeUtc(scan, new DateTime(2026, 11, 1, 1, 0, 0, DateTimeKind.Utc));
+                string rules = Path.Combine(work, "rules.json");
+                File.WriteAllText(rules, "{}");
+                var inputs = new[] { new WorkerFile { Role = "scanCad:1", Path = input, Sha256 = sha } };
+
+                File.SetLastWriteTimeUtc(rules, new DateTime(2026, 10, 31, 0, 0, 0, DateTimeKind.Utc));
+                Assert.Equal(scan, ScanStep.Reusable(work, inputs, new[] { rules }));
+                File.SetLastWriteTimeUtc(rules, new DateTime(2026, 11, 1, 2, 0, 0, DateTimeKind.Utc));
+                Assert.Null(ScanStep.Reusable(work, inputs, new[] { rules }));
+                Assert.Equal(scan, ScanStep.Reusable(work, inputs));
+            }
+            finally
+            {
+                Directory.Delete(work, true);
+            }
+        }
     }
 }

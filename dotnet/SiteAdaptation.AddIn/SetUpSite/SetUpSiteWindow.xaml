@@ -193,6 +193,8 @@
           <StackPanel Margin="{StaticResource SA.Gap.Bottom16}" Visibility="{Binding CurrentShown, Converter={StaticResource Shown}}">
             <TextBlock Style="{StaticResource SA.Pane.Section}" Text="{x:Static set:SetUpSiteText.CurrentTitle}" />
             <TextBlock Style="{StaticResource SA.Pane.Help}" Text="{x:Static set:SetUpSiteText.CurrentHelp}" />
+            <TextBlock Style="{StaticResource SA.Pane.Help}" Foreground="{StaticResource SA.Warn}" Text="{x:Static set:SetUpSiteText.NoSiteDrawing}"
+                       Visibility="{Binding NoSiteShown, Converter={StaticResource Shown}}" />
             <ItemsControl Margin="{StaticResource SA.Gap.Top8}" ItemsSource="{Binding CurrentFiles}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type set:CurrentFileViewModel}">

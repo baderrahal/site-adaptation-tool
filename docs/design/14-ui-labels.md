@@ -184,6 +184,7 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `Current files` CHOSEN, DRAFT of SCAN-UI, the section of the step 0 gate above the two tables (R441)
 - `Tick each file that is the current issue. Apply waits for the site drawing.` CHOSEN, DRAFT, its help line
 - `Current` CHOSEN, DRAFT, the tick of each file
+- `No site drawing in the setup. Pick the Baseplan in the pane first.` CHOSEN, DRAFT, when the setup holds no Baseplan
 - `Site drawing` CHOSEN, DRAFT, beside the Baseplan row
 - `Rules` the dropdown of the saved rules profiles, the name of the pane row
 - `Baseplan` the files of the setup by the names of the pane rows

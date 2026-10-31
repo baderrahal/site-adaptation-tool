@@ -46,7 +46,7 @@ namespace SiteAdaptation.Common.Scan
             ScanViewData view = ScanView.Read(scanJsonText, new ProjectSettings());
             var facts = new ScanFactsData { Plots = view.PlotsFound };
             ScanValueRow outline = view.Values.FirstOrDefault(value => value.Kind == ScanView.PlotOutlineKind);
-            if (outline != null)
+            if (outline != null && outline.Sources.Count > 0)
             {
                 facts.LayerChoices.AddRange(outline.Sources);
                 facts.LayerProposed = outline.Proposed;

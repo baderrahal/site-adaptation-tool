@@ -28,7 +28,7 @@ namespace SiteAdaptation.Common.Settings
         // The source picked for each conflict of the scan, keyed "<plot>|<field>" (R436)
         public SortedDictionary<string, string> ConflictPicks { get; set; }
 
-        // The inputs ticked Current in 1 Set up site, by their names here (R441)
+        // The inputs ticked Current in 1 Set up site, each "<input name>|<file name>", so a new file of the input is not ticked (R441)
         public List<string> CurrentFiles { get; set; }
     }
 

@@ -54,7 +54,8 @@ namespace SiteAdaptation.AddIn
                 return read;
             }
             return ScanStep.Wrap(read, Worker, document, () => ScanInputs(session.Settings),
-                path => ScanResults.ScanGate.Ask(path, session.Settings, owner, WorkFiles.ReadText));
+                path => ScanResults.ScanGate.Ask(path, session.Settings, owner, WorkFiles.ReadText),
+                () => new[] { session.Settings.RulesFile, LaunchedWorker.BesideAddIn() });
         }
 
         // The inputs of the read with the Settings file, whose role config the scan needs, and the Prototypes folder

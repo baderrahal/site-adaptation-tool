@@ -52,9 +52,16 @@ namespace SiteAdaptation.Common.SetUp
                 {
                     continue;
                 }
-                rows.Add(new CurrentFileRow { Input = name, FileName = Path.GetFileName(input.Path), Site = name == InputNames.Baseplan, Current = ticked.Contains(name) });
+                string file = Path.GetFileName(input.Path);
+                rows.Add(new CurrentFileRow { Input = name, FileName = file, Site = name == InputNames.Baseplan, Current = ticked.Contains(Entry(name, file)) });
             }
             return rows;
+        }
+
+        // Breaker of SCAN-UI: a tick holds the input and the name of its file, so a new file picked for the input is not ticked
+        public static string Entry(string input, string fileName)
+        {
+            return input + "|" + fileName;
         }
 
         public static bool CanApply(IEnumerable<CurrentFileRow> rows)
@@ -69,7 +76,9 @@ namespace SiteAdaptation.Common.SetUp
             ProjectSettings next = SettingsJson.Read(SettingsJson.Write(current ?? new ProjectSettings()));
             if (ticked != null)
             {
-                next.CurrentFiles = ticked.Distinct(StringComparer.Ordinal).OrderBy(name => Array.IndexOf(InputNames.All, name)).ToList();
+                next.CurrentFiles = ticked.Distinct(StringComparer.Ordinal).OrderBy(name => Array.IndexOf(InputNames.All, name))
+                    .Where(name => next.Inputs.TryGetValue(name, out SettingsInput input) && input != null && !string.IsNullOrEmpty(input.Path))
+                    .Select(name => Entry(name, Path.GetFileName(next.Inputs[name].Path))).ToList();
             }
             if (!string.IsNullOrEmpty(rulesFile))
             {

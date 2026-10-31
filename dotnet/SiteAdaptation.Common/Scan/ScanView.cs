@@ -35,12 +35,12 @@ namespace SiteAdaptation.Common.Scan
         public string Status { get { return IsPick ? ScanViewText.Pick : ScanViewText.Clear; } }
         public string Covers { get { return CoversOf(Selected); } }
         public string Checks { get { return ChecksOf(Selected); } }
-        public int Best { get { return Sources.Max(source => source.Score); } }
+        public int Best { get { return Sources.Count == 0 ? 0 : Sources.Max(source => source.Score); } }
 
         // The source counted when none is selected is the best of the kind, the first of the highest score
         private ScanSource Counted(string raw)
         {
-            return Sources.FirstOrDefault(source => source.Raw == raw) ?? Sources.OrderByDescending(source => source.Score).First();
+            return Sources.FirstOrDefault(source => source.Raw == raw) ?? Sources.OrderByDescending(source => source.Score).FirstOrDefault() ?? new ScanSource();
         }
 
         public string CoversOf(string raw)
@@ -89,7 +89,7 @@ namespace SiteAdaptation.Common.Scan
         // True once the user, or the settings, picked a side. A conflict not picked is Open
         public bool Picked { get; set; }
         public bool Open { get { return !Picked; } }
-        public string Key { get { return ScanView.ConflictKey(Plot, Field); } }
+        public string Key { get { return ScanView.ConflictKey(Plot, Field, SourceB); } }
         public string SelectedChoice { get { return Selected == SourceB ? ChoiceB : ChoiceA; } }
     }
 
@@ -134,7 +134,8 @@ namespace SiteAdaptation.Common.Scan
             for (int at = 0; at < ValueKinds.Length; at++)
             {
                 List<JObject> ofKind = rows.Where(row => Text(row["kind"]) == ValueKinds[at]).ToList();
-                if (ofKind.Count == 0)
+                // Breaker of SCAN-UI: a plot outline or villa type the scan found no source for is a value to pick, so the gate opens
+                if (ofKind.Count == 0 && ValueKinds[at] != PlotOutlineKind && ValueKinds[at] != VillaTypeKind)
                 {
                     continue;
                 }
@@ -148,7 +149,8 @@ namespace SiteAdaptation.Common.Scan
                 value.Proposed = proposed == null ? null : Text(proposed["source"]);
                 string picked = null;
                 settings.ScanPicks?.TryGetValue(ValueKinds[at], out picked);
-                value.Selected = picked != null && value.Sources.Any(source => source.Raw == picked) ? picked : value.Proposed;
+                // Breaker of SCAN-UI: a saved pick that names no source of this scan, a file renamed by a new revision, asks again
+                value.Selected = picked == null ? value.Proposed : value.Sources.Any(source => source.Raw == picked) ? picked : null;
                 data.Values.Add(value);
             }
 
@@ -205,10 +207,8 @@ namespace SiteAdaptation.Common.Scan
                 };
                 string saved = null;
                 settings.ConflictPicks?.TryGetValue(conflict.Key, out saved);
-                // Review of SCAN-UI: the scanner writes one conflict per other source of a plot and field, so a pick saved on one of
-                // them settles the others too, though it may name neither of their two sources
-                conflict.Picked = saved != null;
-                conflict.Selected = saved == a || saved == b ? saved : a;
+                conflict.Picked = saved != null && (saved == a || saved == b);
+                conflict.Selected = conflict.Picked ? saved : a;
                 data.Conflicts.Add(conflict);
             }
 
@@ -230,9 +230,10 @@ namespace SiteAdaptation.Common.Scan
             };
         }
 
-        public static string ConflictKey(string plot, string field)
+        // Breaker of SCAN-UI: the scanner writes one conflict per other source of a plot and field, so the other source is in the key
+        public static string ConflictKey(string plot, string field, string sourceB)
         {
-            return plot + "|" + field;
+            return plot + "|" + field + "|" + sourceB;
         }
 
         public static string FileOf(string source)

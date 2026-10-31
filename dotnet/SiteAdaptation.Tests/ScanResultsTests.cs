@@ -103,9 +103,9 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "villaType" }, session.Answer.ScanPicks.Keys);
             Assert.Equal(Excel, session.Answer.ScanPicks["villaType"]);
             // Review of SCAN-UI: every conflict is saved with the choice it shows, the proposed where the user changed nothing
-            Assert.Equal(new[] { "1|villa type", "2|villa type", "3|villa type" }, session.Answer.ConflictPicks.Keys);
-            Assert.Equal(Excel, session.Answer.ConflictPicks["2|villa type"]);
-            Assert.Equal("feet.dwg|block|BLOCKS", session.Answer.ConflictPicks["1|villa type"]);
+            Assert.Equal(new[] { "1|villa type|list.xlsx|Sheet 1|Type|shift 0", "2|villa type|list.xlsx|Sheet 1|Type|shift 0", "3|villa type|list.xlsx|Sheet 1|Type|shift 0" }, session.Answer.ConflictPicks.Keys);
+            Assert.Equal(Excel, session.Answer.ConflictPicks["2|villa type|list.xlsx|Sheet 1|Type|shift 0"]);
+            Assert.Equal("feet.dwg|block|BLOCKS", session.Answer.ConflictPicks["1|villa type|list.xlsx|Sheet 1|Type|shift 0"]);
             Assert.Equal(VillaModes.Links, session.Answer.VillaMode);
             Assert.Null(current.ScanPicks);
             Assert.Null(current.ConflictPicks);
@@ -131,7 +131,7 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
-        public void R436_use_the_proposed_for_all_picks_the_first_side_of_every_conflict_and_saves_them_all()
+        public void R436_use_the_proposed_for_all_picks_the_first_side_of_every_conflict_not_picked_and_saves_them_all()
         {
             ScanResultsSession session = Session(true, 40);
             session.Model.AllConflicts[5].Selected = session.Model.AllConflicts[5].Choices[1];
@@ -139,12 +139,14 @@ namespace SiteAdaptation.Tests
 
             session.UseProposedForAll();
 
+            // Breaker of SCAN-UI: the pick made by hand on conflict 5 stays, every other conflict takes the proposed
             Assert.All(session.Model.AllConflicts, conflict => Assert.True(conflict.Picked));
-            Assert.All(session.Model.AllConflicts, conflict => Assert.Same(conflict.Choices[0], conflict.Selected));
+            Assert.Same(session.Model.AllConflicts[5].Choices[1], session.Model.AllConflicts[5].Selected);
+            Assert.All(session.Model.AllConflicts.Where((conflict, at) => at != 5), conflict => Assert.Same(conflict.Choices[0], conflict.Selected));
             Assert.False(session.Model.Data.NeedsWindow);
             session.UseThesePicks();
             Assert.Equal(40, session.Answer.ConflictPicks.Count);
-            Assert.All(session.Answer.ConflictPicks.Values, pick => Assert.Equal(Block, pick));
+            Assert.Equal(39, session.Answer.ConflictPicks.Values.Count(pick => pick == Block));
         }
 
         [Fact]
