@@ -46,12 +46,12 @@ namespace CadReader
 
         public static JObject Inventory(CadDocument document, string name, string path, long size, string sha256, int pairMinSegments)
         {
-            return Inventory(document, name, path, size, sha256, pairMinSegments, 1, null);
+            return Inventory(document, name, path, size, sha256, pairMinSegments, 1, double.MaxValue, null);
         }
 
         // Round 4j-1b. The same inventory with the time of each stage handed to log, so the slow stage is measured, never written into
         // the scan result
-        public static JObject Inventory(CadDocument document, string name, string path, long size, string sha256, int pairMinSegments, int pairThreads, Action<string> log)
+        public static JObject Inventory(CadDocument document, string name, string path, long size, string sha256, int pairMinSegments, int pairThreads, double pairTimeCapS, Action<string> log)
         {
             var clock = System.Diagnostics.Stopwatch.StartNew();
             Action<string> stage = what => { log?.Invoke(name + " | " + what + " | " + clock.Elapsed.TotalSeconds.ToString("F1", CultureInfo.InvariantCulture) + " s"); clock.Restart(); };
@@ -115,8 +115,14 @@ namespace CadReader
             }
             var traced = new JArray[pairs.Count];
             var logLock = new object();
+            // R429. Past pairTimeCapS no pair is begun, the pairs left untraced are written as not read, never left out in silence
+            var pairClock = System.Diagnostics.Stopwatch.StartNew();
             System.Threading.Tasks.Parallel.For(0, pairs.Count, new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = pairThreads }, at =>
             {
+                if (pairClock.Elapsed.TotalSeconds > pairTimeCapS)
+                {
+                    return;
+                }
                 var own = System.Diagnostics.Stopwatch.StartNew();
                 List<PlotShapes.Seg> both = layers[pairs[at][0]].Segments.Concat(layers[pairs[at][1]].Segments).ToList();
                 traced[at] = Faces(both, pairs[at][0] + ScanLogic.LayerJoin + pairs[at][1]);
@@ -126,9 +132,27 @@ namespace CadReader
                         + own.Elapsed.TotalSeconds.ToString("F1", CultureInfo.InvariantCulture) + " s");
                 }
             });
+            var notTraced = new JArray();
             for (int at = 0; at < pairs.Count; at++)
             {
-                candidates.Add(Candidate(pairs[at], traced[at]));
+                if (traced[at] == null)
+                {
+                    notTraced.Add(string.Join(ScanLogic.LayerJoin, pairs[at]));
+                }
+                else
+                {
+                    candidates.Add(Candidate(pairs[at], traced[at]));
+                }
+            }
+            JArray notRead = NotRead(exploder, name);
+            if (notTraced.Count > 0)
+            {
+                notRead.Add(new JObject
+                {
+                    ["source"] = name + "|layer pairs",
+                    ["value"] = notTraced.Count.ToString(CultureInfo.InvariantCulture) + " of " + pairs.Count.ToString(CultureInfo.InvariantCulture)
+                        + " not traced, time cap " + pairTimeCapS.ToString("0.###", CultureInfo.InvariantCulture) + " s, listed under notTraced",
+                });
             }
             var lines = new JObject();
             var arcs = new JObject();
@@ -151,7 +175,8 @@ namespace CadReader
                 ["inserts"] = inserts,
                 ["lines"] = lines,
                 ["arcs"] = arcs,
-                ["notRead"] = NotRead(exploder, name),
+                ["notRead"] = notRead,
+                ["notTraced"] = notTraced,
             };
         }
 
@@ -384,7 +409,7 @@ namespace CadReader
             {
                 string path = run.Input(cad.Value.Role);
                 var problems = new List<string>();
-                Read<JObject> read = Guarded(path, mark => Inventory(CadExtractor.Open(path, problems), Path.GetFileName(path), path, mark.Size, mark.Sha256, settings.PairMinSegments, settings.PairThreads, Console.Error.WriteLine));
+                Read<JObject> read = Guarded(path, mark => Inventory(CadExtractor.Open(path, problems), Path.GetFileName(path), path, mark.Size, mark.Sha256, settings.PairMinSegments, settings.PairThreads, settings.PairTimeCapS, Console.Error.WriteLine));
                 run.WriteJson(request.OutputFolder, FileName(cad.Key), read.Value);
                 cads.Add(read.Value);
                 inputs.Add(InputRow(cad.Value.Role, read.Mark));

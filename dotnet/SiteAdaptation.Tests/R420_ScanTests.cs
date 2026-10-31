@@ -43,7 +43,7 @@ namespace SiteAdaptation.Tests
                 ["typology_codes"] = new JObject { ["rows"] = new JArray(new JObject { ["old"] = "X3", ["new"] = "X4" }, new JObject { ["old"] = "X1", ["new"] = "X1" }, new JObject { ["old"] = "X3-0 (Q)", ["new"] = "X5" }) },
                 ["scan"] = new JObject
                 {
-                    ["labelPattern"] = "^(?:(.*?)\\s+)?(\\d{1,6})$", ["tokenSplit"] = "[^A-Za-z0-9]+", ["plotNumberShifts"] = new JArray(0, 10), ["pairMinSegments"] = 2, ["pairThreads"] = 2,
+                    ["labelPattern"] = "^(?:(.*?)\\s+)?(\\d{1,6})$", ["tokenSplit"] = "[^A-Za-z0-9]+", ["plotNumberShifts"] = new JArray(0, 10), ["pairMinSegments"] = 2, ["pairThreads"] = 2, ["pairTimeCapS"] = 600,
                     ["pdfJoinGapPt"] = 0.3, ["pdfLineTolerancePt"] = 0.05, ["pdfPairDyPt"] = new JArray(1.3, 1.8), ["pdfPairDxPt"] = 1.5,
                 },
             };
@@ -142,6 +142,28 @@ namespace SiteAdaptation.Tests
         }
 
         [Fact]
+        public void R429_layer_pairs_past_the_time_cap_are_not_traced_and_written_as_not_read()
+        {
+            var document = new CadDocument();
+            foreach (string layer in new[] { "A", "B", "C", "D" })
+            {
+                for (int line = 0; line <= 3; line++)
+                {
+                    document.Entities.Add(Line(document, layer, 3 * line, -1, 3 * line, 10));
+                    document.Entities.Add(Line(document, layer, -1, 3 * line, 10, 3 * line));
+                }
+            }
+            JObject cad = CadScan.Inventory(document, "grid.dxf", "grid.dxf", 1, "00", 2, 2, 1e-9, null);
+            Assert.Equal(4, ((JArray)cad["candidates"]).Count);
+            Assert.Equal(new[] { "A + B", "A + C", "A + D", "B + C", "B + D", "C + D" }, ((JArray)cad["notTraced"]).Select(item => (string)item).ToArray());
+            JObject entry = ((JArray)cad["notRead"]).Cast<JObject>().Single();
+            Assert.Equal("grid.dxf|layer pairs", (string)entry["source"]);
+            Assert.Equal("6 of 6 not traced, time cap 0 s, listed under notTraced", (string)entry["value"]);
+            JObject result = Result(new[] { cad });
+            Assert.Contains("grid.dxf|layer pairs||6 of 6 not traced, time cap 0 s, listed under notTraced", Checks(result, "notRead"));
+        }
+
+        [Fact]
         public void R428_the_pair_trace_on_several_threads_writes_the_inventory_one_thread_writes()
         {
             var document = new CadDocument();
@@ -154,8 +176,8 @@ namespace SiteAdaptation.Tests
                     document.Entities.Add(Line(document, layer, -1, 3 * line + index, 20, 3 * line + index));
                 }
             }
-            string one = CadScan.Inventory(document, "grid.dxf", "grid.dxf", 1, "00", 2, 1, null).ToString();
-            string three = CadScan.Inventory(document, "grid.dxf", "grid.dxf", 1, "00", 2, 3, null).ToString();
+            string one = CadScan.Inventory(document, "grid.dxf", "grid.dxf", 1, "00", 2, 1, 600, null).ToString();
+            string three = CadScan.Inventory(document, "grid.dxf", "grid.dxf", 1, "00", 2, 3, 600, null).ToString();
             Assert.Equal(one, three);
             Assert.Equal(4 + 6, ((JArray)JObject.Parse(three)["candidates"]).Count);
         }

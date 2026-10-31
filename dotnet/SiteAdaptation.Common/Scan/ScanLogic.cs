@@ -18,6 +18,7 @@ namespace SiteAdaptation.Common
         public List<int> PlotNumberShifts { get; private set; }
         public int PairMinSegments { get; private set; }
         public int PairThreads { get; private set; }
+        public double PairTimeCapS { get; private set; }
         public double PdfJoinGapPt { get; private set; }
         public double PdfLineTolerancePt { get; private set; }
         public double PdfPairDyLow { get; private set; }
@@ -46,6 +47,8 @@ namespace SiteAdaptation.Common
                     : throw new InvalidDataException("scan.pairMinSegments of the rules profile is no whole number of 1 or more (R421)"),
                 PairThreads = block["pairThreads"]?.Type == JTokenType.Integer && (int)block["pairThreads"] >= 1 ? (int)block["pairThreads"]
                     : throw new InvalidDataException("scan.pairThreads of the rules profile is no whole number of 1 or more (R428)"),
+                PairTimeCapS = block["pairTimeCapS"] != null && (block["pairTimeCapS"].Type == JTokenType.Integer || block["pairTimeCapS"].Type == JTokenType.Float) && (double)block["pairTimeCapS"] > 0
+                    ? (double)block["pairTimeCapS"] : throw new InvalidDataException("scan.pairTimeCapS of the rules profile is no number above 0 (R429)"),
                 PdfJoinGapPt = Number(block, "pdfJoinGapPt"),
                 PdfLineTolerancePt = Number(block, "pdfLineTolerancePt"),
                 PdfPairDyLow = (double)dy[0],
