@@ -2,6 +2,44 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## 4i, 2026-10-31, the plan by Manual Rev 06 with the past job as a switch, Lane A on the laptop
+
+Goal:
+- Bader's decisions of 31 Oct: door level source C, clusters B, back yard B. The plan follows the manual on a new project, the past job behind a switch
+
+Done:
+- R407 designBasis.mode rev6 or roshnPastJob, ROSHN keeps roshnPastJob (Q224). R408 El @ Entry the input (civilFile or roadPlusSlope), the slope the result
+- R409 one named road surface, the 0.21 m of the 1.4 job in config. R410 back yard by 2.3.B and 2.3.C, no yard floor (Q225)
+- R411 cluster and mirror proposals by 2.1.A to 2.1.E (Q226, Q229). R412 read only new project check, worker command newProjectCheck
+- Review 1 and breaker 1: F1 fixed with a test (the rev6 slope after the overrides), the workbook closed, 10 LATENT lines, Q242, Q255, Q256
+- Main merged after PR 112 and PR 113, the rev6 slope of a ramp on the open edge of Q116 added in the merge
+
+Checked:
+- Past job against main d2f252a, RAN: PASTJOB
+- Parity, RAN: PARITY
+- New project check on the real inputs, RAN: 14 lines, Python and C# equal on net48 and net8.0, 7 inputs unchanged
+- Status block, RAN: main 639 values, branch 658, DOCUMENT +8, RECOMMENDED +6, UNKNOWN +5, 0 entries changed
+- Gate, RAN: pytest 2,159 passed 1 skipped before the merge, 170 after. C# net48 1,647, net8.0 1,460, 0 failed
+
+Remains:
+- Value status of the rev6 values (Q230). The 121 IMC plots of the audit not reproduced, 116 by detached plus no proposal (Q240)
+
+Known bugs:
+- Under rev6 the one surface writes 630 of 2,704 plots (Q256) and the past override list still applies (Q255)
+- doorLevel.source reads as a note in R401, the slopes beside it read DOCUMENT (Q241). oldJobOffsetM reads UNKNOWN in the block
+
+Next:
+- Lane B adds L4i-1 to L4i-7 of steps/waiting-on-others.md. Lane A 4j-2, floor split and corner walls
+
+Your turn:
+- Opened Q224 to Q242, Q255, Q256: Q224 The mode the ROSHN config runs. Q225 The level of a yard floor under Rev 6. Q226 The hand of a detached unit.
+  Q227 Civil file format and plot match. Q228 Default slopes of road plus slope. Q229 A row with no single cluster split. Q230 Value status of the
+  Rev 6 values. Q231 Civil door level where no road level. Q232 yardGrade in plan.json. Q233 Slope limit at 3 or 4 decimals. Q234 Read step road
+  levels under Rev 6. Q235 Hand table cover per unit code. Q236 Label size in the PDF check. Q237 Folder of the Rev 9 workbooks. Q238 TH1-IM in the
+  cluster sequences. Q239 Mirror of DP2 and DP4. Q240 The 121 IMC plots of the audit. Q241 doorLevel.source reads as a note in R401. Q242 The reason
+  of an unreadable input. Q255 The override list under rev6. Q256 The one road surface covers a quarter. Closed: none
+- OPENCOUNT questions open, full text: steps/questions-open.md
+
 ## Lane B 5d, 2026-10-31, buttons 5, 6 and 8 and 7 at the FFL, Lane B on the laptop
 
 Goal:

@@ -4,7 +4,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 
 ## State
 
-- 4i on 2026-10-31 in Lane A, one PR (D20): designBasis rev6 or roshnPastJob, R407 to R412, Q224 to Q244. ROSHN keeps roshnPastJob (Q224)
+- 4i on 2026-10-31 in Lane A, one PR (D20): designBasis rev6 or roshnPastJob, R407 to R412, Q224 to Q242, Q255, Q256. ROSHN keeps roshnPastJob (Q224)
 - Lane B 5d on 2026-10-31, code merged, phase open: buttons 5, 6 and 8, 7 at the FFL, Q115, Q116, Q214, Q215, Q156. In Revit 1 to 5 commit, 6 stops (Q274)
 - Lane C NEWPROJ-UI done on 2026-10-31, PR 112: New project, How it works, pane text, R430 to R434, Q280 to Q287 (steps/HEADSUP.md)
 - Lane B 5c done on 2026-10-31, PR 111: buttons 2, 3, 4 and 7, Revit run on NBH 012 in Masses mode
@@ -34,7 +34,7 @@ Live state of the tool, at most 60 lines and 6 KB with no line over 200 characte
 - The reader angleToTrueNorthDeg has 3 decimals and is not brought into 0 to 360, the placer takes 0 only
 - 4 yards that stand only by a mirror override read a status stronger than their evidence (Q163)
 - The tab title of the ribbon sits behind the overflow mark at 1536 logical px (Q146). 4 Check dry run has no worker start (Q195)
-- Under rev6 the one road surface covers 630 of 2,704 plots (Q244), the past override list still applies (Q243)
+- Under rev6 the one road surface covers 630 of 2,704 plots (Q256), the past override list still applies (Q255)
 
 ## Bader's turn
 
@@ -47,7 +47,7 @@ Opened in 4i, Lane A: Q224 The mode the ROSHN config runs. Q225 The level of a y
 format and plot match. Q228 Default slopes of road plus slope. Q229 A row with no single cluster split. Q230 Value status of the Rev 6 values. Q231 Civil door
 level where no road level. Q232 yardGrade in plan.json. Q233 Slope limit at 3 or 4 decimals. Q234 Read step road levels under Rev 6. Q235 Hand table cover per
 unit code. Q236 Label size in the PDF check. Q237 Folder of the Rev 9 workbooks. Q238 TH1-IM in the cluster sequences. Q239 Mirror of DP2 and DP4. Q240 The 121
-IMC plots of the audit. Q241 doorLevel.source reads as a note in R401. Q242 The reason of an unreadable input. Q243 The override list under rev6. Q244 The one
+IMC plots of the audit. Q241 doorLevel.source reads as a note in R401. Q242 The reason of an unreadable input. Q255 The override list under rev6. Q256 The one
 road surface covers a quarter. Closed in 4i: none.
 Opened in NEWPROJ-UI, Lane C: Q280 Save setup writes the model at once. Q281 Board rows against the nine pane inputs. Q282 Where the project name is kept. Q283 Picks of layers, sheets,
 columns and coordinates. Q284 Villa mode row the boards drop. Q285 Name the Rules row shows. Q286 Approve the four drafts of NEWPROJ-UI. Q287 Button messages that name a work file.
@@ -57,4 +57,4 @@ columns and coordinates. Q284 Villa mode row the boards drop. Q285 Name the Rule
 
 1. Bader answers Q274, then Lane B ends 5d: the run id fix, window G again for 6, 7 and 8 and the second run
 2. 6a on Lane B, Links mode joined from 5d, then Phase 6. Lane A 4j-2, floor split and corner walls, queued after 4i
-3. Bader answers Q224 to Q244 of 4i (Q224 and Q243 first) and Q280 to Q287 of Lane C, then Part 2 after Bader's check of Part 1
+3. Bader answers Q224 to Q242, Q255, Q256 of 4i (Q224 and Q255 first) and Q280 to Q287 of Lane C, then Part 2 after Bader's check of Part 1
