@@ -50,7 +50,7 @@ namespace SiteAdaptation.Tests
 
         [Theory]
         [InlineData("[]", "masses", false, "names no button")]
-        [InlineData("[1, 8]", "masses", false, "only 1, 2, 3, 4, 5, 6 and 7")]
+        [InlineData("[1, 9]", "masses", false, "only 1, 2, 3, 4, 5, 6, 7 and 8")]
         [InlineData("[2, 2]", "masses", false, "twice")]
         [InlineData("[4, 2]", "masses", false, "order of the pane")]
         [InlineData("[7]", "solid", false, "villaMode")]
