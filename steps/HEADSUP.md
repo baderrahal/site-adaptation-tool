@@ -22,9 +22,9 @@
 
 ### Lane C and D
 
-- Lane C: round SCAN-UI, branch feat/lane-c-scan-ui, worktree Site Adaptation Tool Lane C WT, 2026-11-01 01:40, freeze 09:30
-- Lane C now: the PR of tasks 1 to 4, then tasks 5 and 6 on 4i in a second PR, task 7 when the window lock is free. Blocked: none
-- Lane C done: tasks 1 to 4 (R435 to R441), review and breaker fixes. Lane D: 4j-1 merged as PR 114, 4j-1b next (Q250)
+- Lane C: round SCAN-UI, branch feat/lane-c-scan-ui-2, worktree Site Adaptation Tool Lane C WT, 2026-11-01 02:50, freeze 09:30
+- Lane C now: PR 2 with tasks 5 and 6 (R442, R443), review, gate. Task 7 from the shots of the DEMO run of Lane B. Blocked: none
+- Lane C done: PR 117 tasks 1 to 4 (R435 to R441), tasks 5 and 6 built. Lane D: 4j-1 merged as PR 114, 4j-1b next (Q250)
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane C SCAN-UI, 1 Nov 2026.
 
@@ -36,14 +36,14 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 
 ## What this round changed
 
-- Lane C SCAN-UI: What the tool read, opened by button 2 after the scan, New project dropdowns, Current files in 1 Set up site
+- Lane C SCAN-UI: What the tool read after the scan of button 2, New project dropdowns, Current files, cluster confirm, door level from
 - Lane A 4i: the plan by Manual Rev 06 behind designBasis.mode, door level source, cluster proposals, new project check
 - Lane B 6a: the test host runs every button with no click and draws each window in Revit, fixes found in Revit
 - Lane D 4j-1: the scanner of any CAD, Excel and PDF, worker command scan, python/scan.py
 
 ## New rules
 
-- R435 to R441 (Lane C SCAN-UI), R430 to R434 now written too. R407 to R412 (Lane A 4i). R384 (Lane B 6a). R420 to R427 (Lane D)
+- R435 to R443 (Lane C SCAN-UI), R430 to R434 now written too. R407 to R412 (Lane A 4i). R384 (Lane B 6a). R420 to R427 (Lane D)
 
 ## Wiring
 

@@ -43,6 +43,17 @@ namespace SiteAdaptation.Common.Review
         // The plain reason buttons 5 to 8 give for a plot of clusterUnconfirmed
         public const string NotConfirmedReason = "cluster not confirmed in 3 Review data";
 
+        // Review of SCAN-UI: the reason of the plan names questions and rules, Q229 or (R411), which no window text shows
+        public static string Plain(string reason)
+        {
+            if (string.IsNullOrEmpty(reason))
+            {
+                return reason;
+            }
+            string plain = System.Text.RegularExpressions.Regex.Replace(reason, @"\s*\((?:R\d+|Q\d{3})\)|,\s*Q\d{3}|\s*Q\d{3}", "");
+            return plain.Trim().TrimEnd(',').Trim();
+        }
+
         private readonly Dictionary<string, ClusterMark> marks;
         private readonly HashSet<string> confirmed;
         private readonly string planSha256;
@@ -156,7 +167,7 @@ namespace SiteAdaptation.Common.Review
                     Plot = plot,
                     Cluster = cluster?.Select(item => (string)item).ToList(),
                     Mirrored = mirrored?.Type == JTokenType.Boolean ? (bool?)(bool)mirrored : null,
-                    Reason = (string)proposal["reason"],
+                    Reason = Plain((string)proposal["reason"]),
                 });
             }
             return found;

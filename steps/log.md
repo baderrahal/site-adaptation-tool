@@ -9,14 +9,16 @@ Goal:
   from the scan (Q283), Current files in 1 Set up site, cluster confirm, door level picker, Revit pictures. Freeze 09:30 for the demo
 
 Done:
-- PR 1 of 2, tasks 1 to 4
+- PR 117 with tasks 1 to 4, PR 2 with tasks 5 and 6
 - R435 Scan value status and R436 Save scan picks with setup: AddIn/ScanResults, Common/Scan/ScanView.cs, ScanPicks.cs
 - R438 Button 2 scan gate and R439 Scan reuse by input hash: ScanStep.Wrap in ReadDataBody.For, ScanGate.Ask, no scan in a test host run
 - R440 Drawing facts from the scan: LatestScanFacts, layer, sheet and column dropdowns, View opens the window
 - R441 Current files gate: the section Current files and Rules in 1 Set up site, Apply waits for the site drawing, the line in button 9
 - The settings JSON gains scanPicks, conflictPicks and currentFiles at formatVersion 1 (Q288), a saved project carries scanPicks
 - Lane C rules in docs/rules/12-lane-c-r430-up.md, R430 to R434 of NEWPROJ-UI written there too
-- Reviewer with the UI checklist and breaker, one pass each: 12 REAL faults fixed with tests, 6 LATENT to steps/latent.md
+- R442 Cluster confirm marks: column Cluster with the proposal and mirror of 4i, Confirmed, Confirm all proposed, clusterUnconfirmed
+  in review_<NBH>.json for buttons 5 to 8. R443 Door level source counts: Door level from in 4 Check, doorLevelSource kept
+- Reviewer with the UI checklist and breaker, one pass each on PR 117: 12 REAL faults fixed with tests, 6 LATENT to steps/latent.md
 
 Checked:
 - Gate, RAN: net48 1745 passed, net8.0 1534 passed, pytest 2212 passed and 1 skipped, 0 failed
@@ -24,21 +26,21 @@ Checked:
 - Second method: the review read the scan.json of the Lane D run (1218 conflicts, 332 keys shared), which led to the key with sourceB
 
 Remains:
-- PR 2: task 5 cluster confirm in 3 Review data (R442), task 6 door level picker in 4 Check (R443), on 4i (PR 116)
-- Task 7 Revit pictures when the window lock is free. The scan window shows only offscreen, a test host run skips the scan (Q295)
+- Task 7 Revit pictures from the DEMO run of Lane B, which owns the install. The scan window shows only offscreen, a test host run skips the scan (Q295)
 
 Known bugs:
 - The read of button 2 does not take the picks yet (Q292). The first press hashes the prototypes, over 1 GB, on the Revit thread once
 
 Next:
-- PR 2 of SCAN-UI, then Lane B DEMO with the add-in of main
+- Lane B DEMO with the add-in of main, Lane B joins the skip of clusterUnconfirmed (Q296)
 
 Your turn:
 - Opened: Q288 Scan picks in the settings at version 1. Q289 Board rows the scan does not read. Q290 Curbs and road surface left out
   of scan. Q291 Where the line Current files is shown. Q292 The read does not use the picks yet. Q293 Approve the three drafts of
-  SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan
+  SCAN-UI. Q294 Rules chosen in Set up site, when used. Q295 Test host runs skip the scan. Q296 A cluster confirm against a
+  rebuilt plan. Q297 The build takes the door level pick. Q298 Door level row under the past job
 - Closed: Q246 Button 2 starts the scan or the window, Q283 Picks of layers, sheets, columns and coordinates, by Bader's prompt
-- 127 questions open, full text: steps/questions-open.md
+- 130 questions open, full text: steps/questions-open.md
 
 ## 4i, 2026-10-31, the plan by Manual Rev 06 with the past job as a switch, Lane A on the laptop
 

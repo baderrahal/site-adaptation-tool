@@ -241,7 +241,7 @@ Built in Lane B 5c. The labels, columns, chips and side box are those of Review 
 - `Review saved.` CHOSEN, after Save review
 - `Confirmed` CHOSEN, DRAFT, the column of the tick of the cluster confirm (R442), Bader's prompt of 1 Nov 2026 with no board
 - `Confirm all proposed` CHOSEN, DRAFT, the button in the band that ticks every plot with a cluster proposal (R442)
-- `Tick Confirmed for each cluster and mirror that 4 Check proposed, or click Confirm all proposed, then Save review. Buttons 5 to 8 skip a plot whose proposed cluster is not confirmed.` CHOSEN, DRAFT, the second help line, shown while the plan of 4 Check proposes a cluster
+- `Tick Confirmed for each cluster and mirror that 4 Check proposed, or click Confirm all proposed, then Save review. A plot whose proposed cluster is not confirmed is marked for buttons 5 to 8.` CHOSEN, DRAFT, the second help line, shown while the plan of 4 Check proposes a cluster
 - `<n> mirror <n>` CHOSEN, DRAFT, the Cluster value of a plot with a proposal of R411, the plots of the cluster joined by + then yes, no or none
 - `yes` CHOSEN, DRAFT, the mirror of a proposal, the half mirrored
 - `no` CHOSEN, DRAFT, the mirror of a proposal, the half as drawn

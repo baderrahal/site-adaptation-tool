@@ -86,7 +86,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("14 mirror none", ClusterConfirm.Shown(clusters.MarkOf("14")));
             Assert.Equal("No proposal", ClusterConfirm.Shown(clusters.MarkOf("15")));
             Assert.Null(ClusterConfirm.Shown(clusters.MarkOf("16")));
-            Assert.Equal("no single partner (Q229)", clusters.MarkOf("15").Reason);
+            Assert.Equal("no single partner", clusters.MarkOf("15").Reason);
             Assert.Equal(new[] { true, true, true, false, false }, new[] { "12", "13", "14", "15", "16" }.Select(clusters.HasProposal));
         }
 
@@ -268,6 +268,16 @@ namespace SiteAdaptation.Tests
             {
                 return act(shown, callbacks);
             }
+        }
+
+        [Fact]
+        public void R442_the_reason_shown_names_no_question_and_no_rule()
+        {
+            Assert.Equal("unit VL4 is detached, Rev 06 2.1.A sets a detached unit alone and gives it no hand, so no mirror flag",
+                ClusterConfirm.Plain("unit VL4 is detached, Rev 06 2.1.A sets a detached unit alone and gives it no hand, so no mirror flag, Q226 (R411)"));
+            Assert.Equal("the row 1 of units A, B splits into no clusters of the rules profile, Rev 06 2.1.E, so no proposal",
+                ClusterConfirm.Plain("the row 1 of units A, B splits into no clusters of the rules profile, Rev 06 2.1.E, so no proposal, Q229 (R411)"));
+            Assert.Null(ClusterConfirm.Plain(null));
         }
     }
 }
