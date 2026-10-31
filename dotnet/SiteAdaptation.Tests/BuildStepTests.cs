@@ -1067,7 +1067,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("alone", step["7"]["unitClass"]);
             Assert.Null(step["7"]["handTable"]);
             Assert.Equal("villa cluster alone", villa["handTable"] + " " + step["2"]["handTable"] + " " + step["4"]["handTable"]);
-            Assert.Equal(24, step["7"].Count);
+            Assert.Equal(27, step["7"].Count);
         }
 
         // test_build_steps.no_cluster_table, Q098: the file of DP2 holds no table of hand cluster, as no footprint cluster of the 7 keys holds a
@@ -1170,7 +1170,7 @@ namespace SiteAdaptation.Tests
         {
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
             Assert.Equal("unit kind pairKind unitClass cluster clusterCode clusterSide clusterRole clusterIndex clusterUnits left right openEnd roadSide rowPair blockMirror "
-                + "blockMirrorRoadSide blockMirrorOpenEnd rowPairSideOrBlockMirrorOpenEnd handTable handRule factor linkFile mirrored", string.Join(" ", config.StepFields(Hands.StepName).Select(field => field.Name)));
+                + "blockMirrorRoadSide blockMirrorOpenEnd rowPairSideOrBlockMirrorOpenEnd handTable handRule factor linkFile mirrored proposedCluster proposedMirror proposalReason", string.Join(" ", config.StepFields(Hands.StepName).Select(field => field.Name)));
             Assert.All(config.StepFields(Hands.StepName), field => Assert.Equal("noGeometry", field.Kind));
         }
 

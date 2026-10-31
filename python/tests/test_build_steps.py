@@ -696,7 +696,8 @@ def test_r357_the_hand_of_a_plot_is_the_table_of_its_file_read_by_the_factor_of_
     assert step["1"] == {"unit": "VD2", "kind": "villa", "pairKind": "villa", "unitClass": "villa", "cluster": None, "clusterCode": None, "clusterSide": None,
                          "clusterRole": None, "clusterIndex": None, "clusterUnits": None, "left": [], "right": ["2"], "openEnd": "left", "roadSide": "left", "rowPair": None,
                          "blockMirror": "no", "blockMirrorRoadSide": "no left", "blockMirrorOpenEnd": "no left", "rowPairSideOrBlockMirrorOpenEnd": "alone no left",
-                         "handTable": "villa", "handRule": "blockMirrorRoadSide", "factor": "no left", "linkFile": VD2_FILE, "mirrored": True}
+                         "handTable": "villa", "handRule": "blockMirrorRoadSide", "factor": "no left", "linkFile": VD2_FILE, "mirrored": True,
+                         "proposedCluster": None, "proposedMirror": None, "proposalReason": None}
     assert step["2"]["unitClass"] == "cluster" and step["2"]["cluster"] == ["2", "3"] and step["2"]["clusterSide"] == "left" and step["2"]["clusterRole"] == "pair"
     assert (step["2"]["clusterIndex"], step["2"]["clusterUnits"], step["2"]["mirrored"]) == (1, 2, False)
     assert (step["3"]["clusterSide"], step["3"]["clusterIndex"], step["3"]["mirrored"], step["3"]["factor"]) == ("right", 2, True, "right")
@@ -775,7 +776,7 @@ def test_r357_the_config_names_the_fields_of_the_step_hands_all_exact():
     fields = project_profile.load_settings().get("addin")["parity"]["steps"]["hands"]
     assert list(fields) == ["unit", "kind", "pairKind", "unitClass", "cluster", "clusterCode", "clusterSide", "clusterRole", "clusterIndex", "clusterUnits", "left", "right",
                             "openEnd", "roadSide", "rowPair", "blockMirror", "blockMirrorRoadSide", "blockMirrorOpenEnd", "rowPairSideOrBlockMirrorOpenEnd", "handTable", "handRule",
-                            "factor", "linkFile", "mirrored"]
+                            "factor", "linkFile", "mirrored", "proposedCluster", "proposedMirror", "proposalReason"]
     assert all(field == {"kind": "noGeometry"} for field in fields.values())
 
 
