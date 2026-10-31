@@ -4,9 +4,9 @@
 
 ### Lane D
 
-- Lane: D, round 4j-1b, scan speed, branch feat/addin-4j1b-speed. Time: 2026-11-01 01:10. Blocked: none
-- Now: the Road Layout with the time cap, set A and the renamed set against 4j-1, then the gate and the PR, before the 09:30 freeze
-- Done: measured per stage, PlotShapes by a cell index (today's reader 21 of 21 files equal), threads (R428), time cap (R429)
+- Lane: D, round 4j-1b, scan speed, branch feat/addin-4j1b-speed. Time: 2026-11-01 01:45. Blocked: none
+- Now: reviewer and breaker on the PlotShapes index, then the PR, before the 09:30 freeze
+- Done: measured, PlotShapes by a cell index, threads (R428), cap (R429), set A and renamed equal to 4j-1, Road Layout 462 to 484 s, gates green
 
 ### Lane A
 
