@@ -72,4 +72,4 @@ Changes Lane B needs in files it may not edit while Phase 4 is open.
 - J20, fold in. R104 and R108 changed in 5b: the watcher starts before Revit and waits for its pid file, the add-ins of the tool are named by the installed manifests, a probe runs by -DryStart -ProbeManifest, and the freeze guard ends a window with no first log step in 5 minutes, no heartbeat for 10 or no answer for 5 (Q154 for an image job). Their text goes into docs/rules at the fold in with J9.
 ## Open Lane B questions
 
-Q148 Place villas before Floors and Levels after 5c. Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Full text in steps/questions-open.md. Q146 and Q147 were closed in the answer pass of 2026-10-29.
+Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Full text in steps/questions-open.md. Q146 and Q147 were closed in the answer pass of 2026-10-29.

@@ -6,13 +6,9 @@ Every question open before 2026-10-29 was closed in the answer pass of Round FOL
 
 ## Open
 
-Q148 Place villas before Floors and Levels after 5c. Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
+Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
 Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror. Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row. Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job. Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit. Q173 Level profile of Update from report. Q174 The plan Update from report reads. Q175 Run log format 9 Report reads. Q176 Plain names of the update rule checks. Q177 Manual rule ids in Rule check. Q178 A computed mirror edit breaks the hand rule. Q179 Guide line, side box and row mark of Update.
-Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q190 Where buttons 5 to 8 find the plan. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q195 Dry run of button 4. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip. Q214 The build reads pastJob, not the pane. Q215 Where the 2024 prototypes come from. Q216 Rows of 4 Check with no past job. Q217 Follow every rule count, table against chip. Q218 Config files beside a user's config. Q219 First run of 7 against the step limit. Q220 Judge rows of J10 test the old claim. Q221 Judge rows for Q146 and Q147. Q222 The NBH 03 image of Q063. Q223 The test host gives up after a refused raise.
-
-Q148. Place villas before Floors and Levels in the run after 5c (Round FOLD, review of the design PR 102). The new order of docs/design/13-workflow-changes.md has each step wait for the one before, so 7 Place villas waits for 6 Levels, and 5d builds 5 Floors and ramps and 6 Levels. The phase changes of 28 Oct 2026 give 5c the Place villas button with light mode, and the Revit run after 5c places villas in Masses and in one NBH in Links. Round FOLD wrote that the test host runs 7 by Buttons.Run on the plan before 5 and 6 are built (CHOSEN, steps/01_next.md). It does not block 5b or 5c.
-- Recommended: keep it. The test host runs 7 from the plan in the run after 5c, which measures light mode and the base boundary as 28 Oct asks, and the pane keeps the order, so a user cannot run 7 before 6.
-- Other: move Place villas and light mode to 5d, after 5 and 6, and the run after 5c places nothing.
+Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q195 Dry run of button 4. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip. Q217 Follow every rule count, table against chip. Q222 The NBH 03 image of Q063. Q223 The test host gives up after a refused raise.
 
 Q149. M14, the boundary wall of an irregular plot (Round FOLD, docs/design/15-manual-rules.md). The canvas text reads "boundary wall 200 mm inside the plot limit". The Rev 06 manual, 2.8.A, p. 20 (PDF 23), reads "the boundary wall external face will be identical to the plot limit, and the 200mm will be positioned fully inside the plot", the outer face on the limit and the 200 mm wall thickness inside it. The canvas text is kept until Bader answers. It does not block, M14 is checked by 8 Walls in 5d.
 - Recommended: the PDF reading, the outer face of the wall on the plot limit and its 200 mm inside the plot, and the canvas text written so.
@@ -179,10 +175,6 @@ Q189. Check table modal or modeless (mock 7.4, Lane B 5c). The mock 7.4 asks a m
 - Recommended: modal for now, modeless in 6c.
 - Other: modeless in 5d.
 
-Q190. Where buttons 5 to 8 find the plan (R80, R377, Lane B 5c). Buttons 5 to 8 need plan_<NBH>.json.
-- Recommended: plan_<NBH>.json of the latest done check_<runId> folder, as the read is found.
-- Other: the pane names the plan file.
-
 Q191. The plan name of a plot list (R80, Lane B 5c). A plot list scope has no single NBH.
 - Recommended: the nbhId its plots share, else all.
 - Other: always plan_all.json.
@@ -276,37 +268,9 @@ Q213. The use of an override entry under Skip (second fix, CHOSEN UseOf). An ent
 - Recommended: accept.
 - Other: refuse any value but "rule" and "past".
 
-Q214. The build reads pastJob, not the pane Prototypes row (Revit run after 5c). 4 Check lists the pane folder (CheckRun.cs:141) but the worker build reads pastJob.upgradedPrototypeFolder of config (BuildSteps.cs:272-290). Window 6 ended refused on a folder the pane did not name.
-- Recommended: the build takes the pane folder, config is the default.
-- Other: both stay as they are and the pane row is only a list.
-
-Q215. Where the 2024 prototypes come from on a PC (Revit run after 5c). Prototypes_2024 is not on disk, only the 2021 Prototypes. The -Upgrade mode of the run script writes into inputRoot (Run-TestHost.ps1:481-487), against D19. Links mode was not run in the Revit run after 5c for this reason. The R405 fix and the base shape cache were measured in Revit.
-- Recommended: make the 2024 copies once under the work root and point config at them.
-- Other: the add-in upgrades each 2021 prototype on every link, about 100 s each.
-
-Q216. Rows of 4 Check with no past job (Revit run after 5c, window 10). NBH 012 shows 1237 rows, mostly Level 814 and Parameter 366, with Floor 37, Hand 13, Position 4 and Unit code 3.
-- Recommended: Bader looks at the table before 5d and says whether Level and Parameter rows show with no past job.
-- Other: with no past job only the rule rows show.
-
 Q217. Follow every rule count, table against build chip (Revit run after 5c, latent L4). The table says 9 plots follow every rule and the build chip says 6, the chip counts the moved set.
 - Recommended: the table takes the build's count.
 - Other: the chip takes the table's count.
-
-Q218. Config files beside a user's config (Revit run after 5c). The test host needed cad_layers.json and the other config files copied beside its config. It is not known that the installed add-in finds them beside a user's config.
-- Recommended: check it in the install of 5d.
-- Other: the add-in carries them in its own folder.
-
-Q219. First run of 7 against the step limit (Revit run after 5c, windows 7 to 9). On a PC the first run of 7 opens 13 prototypes at about 100 s each and passes the 20 minute step of the test host (3 timeouts, 1204.6 s, 1209.9 s and 1208.0 s).
-- Recommended: the 2024 folder of Q215 ends it, the loop cache keeps a second run short (window 10: 201.6 s).
-- Other: raise the step limit of the test host.
-
-Q220. The J10 judge rows test the old claim (Revit run after 5c). A detached document keeps PathName '<name>_detached.rvt' and Title '<name>_detached', measured in 5a run 3 and again in the run after 5c. The rows DetachedNoPath and DetachedTitleEmpty (AddinRun.cs) test an empty path and title.
-- Recommended: change the two rows to the measured values.
-- Other: leave the rows, J10 stays not held.
-
-Q221. Q146 and Q147 have no judge rows (Revit run after 5c). The tab title text, the first show of a hidden pane (not separable from a pane Revit restores, QL18) and the 16 px icons are not measured. The save stop on a detached document held.
-- Recommended: a picture check of the tab title and the icons in the next run of 5d, QL18 stays as it is.
-- Other: add judge rows for the title text and the icons.
 
 Q222. The NBH 03 image of Q063 was not run (Revit run after 5c). Its spec (area bounds, imageLevel) went with round_17.
 - Recommended: Bader names the area and the level.

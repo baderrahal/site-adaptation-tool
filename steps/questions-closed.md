@@ -155,6 +155,15 @@ Round 17 gave the IDs. Each open question of the DATA-4 list kept its number as 
 | Q145 | Revit run 3 of 5a, was QL20 | Allow Revit run 3 with the fix: one Idling handler added once in OnStartup outside any Revit event, a flag for started and finished, each phase from the ExternalEvent, the job capped at 15 minutes, one probe only if it fails, no fourth run. Run 3 ran on 2026-10-29, 18 of 18 steps ok | 2026-10-29, Lane B 5a |
 | Q146 | Tab title hidden behind the overflow mark | As recommended: accept it as Revit's tab strip, the user reaches the tab through the overflow mark or drags it forward once, and the run judge gains a check that the title shows, reported, not held. Join item of the Revit run after 5c | Bader, 2026-10-29, answer pass |
 | Q147 | Close 5a with three items not seen in Revit | As recommended: 5a done, Lane B, laptop, on the unit tests and Revit run 3. The save stop on a detached document, the first show of a hidden pane and the 16 px icons become checks of the Revit run after 5c. Bader approves revit-ribbon.png and revit-pane.png with the differences listed in steps/ui-shots/README.md. 5a marked done, its three items join the Revit run after 5c | Bader, 2026-10-29, answer pass |
+| Q148 | Place villas before Floors and Levels after 5c | As recommended: kept. The run after 5c ran 7 from the plan before 5 and 6 were built, 5d builds 5 and 6 and the pane keeps the order | 2026-10-31, Bader, recommended taken in Lane B 5d |
+| Q190 | Where buttons 5 to 8 find the plan | As recommended: plan_<NBH>.json of the latest done check_<runId> folder, as the read is found | 2026-10-31, Bader, recommended taken in Lane B 5d |
+| Q214 | The build reads pastJob, not the pane | As recommended: the build takes the pane Prototypes folder, config is the default | 2026-10-31, Bader, recommended taken in Lane B 5d |
+| Q215 | Where the 2024 prototypes come from | As recommended: the 2024 copies are made once under the work root and config points at them | 2026-10-31, Bader, recommended taken in Lane B 5d |
+| Q216 | Rows of 4 Check with no past job | As recommended, Bader skipped the look at the table: the rows show as built, Level and Parameter rows included with no past job | 2026-10-31, Bader, recommended taken in Lane B 5d |
+| Q218 | Config files beside a user's config | As recommended: checked in the install of 5d | 2026-10-31, Bader, recommended taken in Lane B 5d |
+| Q219 | First run of 7 against the step limit | As recommended: the 2024 folder of Q215 ends it, the loop cache keeps a second run short | 2026-10-31, Bader, recommended taken in Lane B 5d |
+| Q220 | Judge rows of J10 test the old claim | As recommended: the two judge rows take the measured values | 2026-10-31, Bader, recommended taken in Lane B 5d |
+| Q221 | Judge rows for Q146 and Q147 | As recommended: a picture check of the tab title and the icons in the Revit run of 5d, QL18 stays as it is | 2026-10-31, Bader, recommended taken in Lane B 5d |
 
 ## Q089
 
