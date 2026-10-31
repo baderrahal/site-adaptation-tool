@@ -9,6 +9,7 @@ Every question open before 2026-10-29 was closed in the answer pass of Round FOL
 Q149 M14 boundary wall of an irregular plot. Q150 M15 foundation depth, at least or equal. Q151 Q075 moved without the majority run. Q152 Mode of the last run of a button. Q153 A lone copy of a tagged element.
 Q154 Freeze guard limit for an image job. Q155 The parameter sheet of button 1. Q156 The GUID of Plot. Q157 The type button 1 copies new types from. Q158 Step 1 Done on a model already set up. Q159 Q055 reads 11 more 1.4 plots off the ramp. Q160 A plot list takes unit plots only. Q161 A changed step reruns every higher step. Q162 Reads of entryM with heightM or rampFrontM. Q163 A yard that stands only by its mirror. Q164 Levels count and the link Z of 7. Q165 Shape of the block manualRules. Q166 Manual rule of a check row. Q167 Manual rule on the other sheets. Q168 The villa type of Update from report. Q169 Key of an update entry with none of its job. Q170 updateChecks of manualRules. Q171 Which breaks untick a change. Q172 heightM gap with an El @ Entry edit. Q173 Level profile of Update from report. Q174 The plan Update from report reads. Q175 Run log format 9 Report reads. Q176 Plain names of the update rule checks. Q177 Manual rule ids in Rule check. Q178 A computed mirror edit breaks the hand rule. Q179 Guide line, side box and row mark of Update.
 Q180 designValues status in the R401 block. Q181 Timing of the labels J11 and J14. Q182 Side band of majority.side_neighbours. Q183 Time cap of a buttons job. Q184 Plain rule names of the check table. Q185 A plot list over two NBHs. Q186 Close J2 as no work. Q187 Prefill of a new project, J16. Q188 Entity load on a session unseen. Q189 Check table modal or modeless. Q191 The plan name of a plot list. Q192 Solid height of light mode. Q193 Footprint limit of the base. Q194 RRE parameters on Generic Models. Q195 Dry run of button 4. Q196 addin.overrideFile in config. Q197 key_join.json and key reads as inputs. Q198 Past gaps of the missing and question rows. Q199 What the tool does per manual rule. Q200 Export to Excel of the two windows. Q201 Data book files with no Python. Q202 The schedule folder in config. Q203 A worker end on a document not active. Q204 Manual rule of a Review data row. Q205 Corner table coordinates of Review data. Q206 Base boundary of a prototype. Q207 No foot and no Esc in the windows. Q208 How to use line of Rules. Q209 Manual column mixes section and revision. Q210 Q015 in a past job text. Q211 7 after a plot list 4 Check. Q212 4 Check stops 7 on another NBH. Q213 Use of an override entry under Skip. Q217 Follow every rule count, table against chip. Q222 The NBH 03 image of Q063. Q223 The test host gives up after a refused raise.
+Q224 Outline change of a placed floor. Q225 Plots of 6 not written in plan. Q226 Level Excel and the read back values. Q227 Levels count still at its level. Q228 Should 6 rewrite the floor tags.
 
 Q149. M14, the boundary wall of an irregular plot (Round FOLD, docs/design/15-manual-rules.md). The canvas text reads "boundary wall 200 mm inside the plot limit". The Rev 06 manual, 2.8.A, p. 20 (PDF 23), reads "the boundary wall external face will be identical to the plot limit, and the 200mm will be positioned fully inside the plot", the outer face on the limit and the 200 mm wall thickness inside it. The canvas text is kept until Bader answers. It does not block, M14 is checked by 8 Walls in 5d.
 - Recommended: the PDF reading, the outer face of the wall on the plot limit and its 200 mm inside the plot, and the canvas text written so.
@@ -279,3 +280,23 @@ Q222. The NBH 03 image of Q063 was not run (Revit run after 5c). Its spec (area 
 Q223. The test host gives up after one refused raise of its phase event (Revit run after 5c). One Denied in the first run, the second run held 18 of 21. Latent line in steps/latent.md.
 - Recommended: retry a refused raise on the next tick, a test host change in 5d.
 - Other: keep one raise and run again on a Denied.
+
+Q224. Outline change of a placed floor (Lane B 5d, R378). Button 5 lists a tagged floor whose outline the plan changed and leaves it. SketchEditScope opens its own transaction, so it cannot run inside the transaction of the flow.
+- Recommended: In 5, delete the tagged floor and place it again inside the transaction, listing the old UniqueId.
+- Other: A SketchEditScope step before the transaction, as Load is in 7.
+
+Q225. Plots of 6 not written in plan (Lane B 5d, R379). 03b says 6 stops on a plot of the scope with no FFL, which could stop every NBH with one plot the plan does not write. The code stops only on a written plot with no FFL.
+- Recommended: List the plots of the missing list of the plan with written false as issues of 6 and stop only on a written plot with no FFL, as the code does.
+- Other: Stop on any plot of the scope with no FFL, as 03b reads.
+
+Q226. Level Excel and the read back values (Lane B 5d, R379, R364). 03b makes the level Excel from the plan and the values the add-in read back. The worker writes the plan values only, levels_<run id>.json is passed as an input it does not read.
+- Recommended: The Levels sheet reads levels_<run id>.json and shows the level read back beside the plan.
+- Other: The Excel keeps the plan values only.
+
+Q227. Levels count still at its level (Lane B 5d, R379, R381). 03b section 9 counts a plot whose floors still stand at the level the last run of 6 read back. 9 counts levelPlots of the run log of 6 today.
+- Recommended: RevitCountsReader takes levels_<run id>.json of the last committed run of 6 and counts a plot only while its tagged floors stand within 1 mm of it.
+- Other: Keep the count of the run log.
+
+Q228. Should 6 rewrite the floor tags (Lane B 5d, R379, R368). 6 moves floors to the plan levels and leaves their tags. The second run of 5 compares the floor with the plan first, so a floor 6 set reads as placed.
+- Recommended: No, as the code does.
+- Other: 6 rewrites the tag of every floor it moves.
