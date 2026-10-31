@@ -275,5 +275,43 @@ namespace SiteAdaptation.Tests
                 Directory.Delete(folder, true);
             }
         }
+
+        // Q215 (Bader, 2026-10-31). -Upgrade wrote the 2024 prototypes into the input root against D19, they are made once under the work root
+        [WindowsFact]
+        public void R109_Q215_the_upgrade_folder_lies_under_the_work_root_and_never_under_an_input_root()
+        {
+            string documents = Path.Combine(Path.GetTempPath(), "sa-upgrade-" + Guid.NewGuid().ToString("N"));
+            string root = Path.Combine(documents, WorkRoot.Folder);
+            string inputs = Path.Combine(documents, "inputs");
+            Directory.CreateDirectory(root);
+            Directory.CreateDirectory(inputs);
+            try
+            {
+                Tuple<int, string, string> run = Pwsh("Get-UpgradeFolder -Docs " + Quoted(root) + " -InputRoots @(" + Quoted(inputs) + ")");
+                Assert.True(run.Item1 == 0, run.Item3);
+                Assert.Equal(Path.Combine(root, "prototypes_2024"), run.Item2);
+                Assert.False(Directory.Exists(run.Item2));
+
+                string inside = Path.Combine(inputs, WorkRoot.Folder);
+                var refused = new[]
+                {
+                    "Get-UpgradeFolder -Docs " + Quoted(inside) + " -InputRoots @(" + Quoted(inputs) + ")",
+                    "Get-UpgradeFolder -Docs " + Quoted(inside.ToUpperInvariant()) + " -InputRoots @(" + Quoted(inputs + "\\") + ")",
+                    "Assert-OutsideInputRoots -Folder " + Quoted(Path.Combine(inputs, "Prototypes_2024", "STR")) + " -InputRoots @(" + Quoted(root) + ", " + Quoted(inputs) + ")",
+                    "Assert-OutsideInputRoots -Folder " + Quoted(inputs) + " -InputRoots @(" + Quoted(inputs) + ")",
+                };
+                foreach (string command in refused)
+                {
+                    Tuple<int, string, string> stop = Pwsh("try {\n" + command + " | Out-Null\n'taken'\n} catch { 'refused' }");
+                    Assert.True(stop.Item2 == "refused", command + " gave " + stop.Item2 + " " + stop.Item3);
+                }
+                Tuple<int, string, string> sibling = Pwsh("Assert-OutsideInputRoots -Folder " + Quoted(inputs + "2") + " -InputRoots @(" + Quoted(inputs) + ")\n'taken'");
+                Assert.Equal("taken", sibling.Item2);
+            }
+            finally
+            {
+                Directory.Delete(documents, true);
+            }
+        }
     }
 }
