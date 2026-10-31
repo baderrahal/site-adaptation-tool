@@ -368,3 +368,14 @@ All paths under dotnet/. A line number the reviewer did not note is left out.
 - Revit run after 5c, probe 1b: the probe subscribed to Idling inside Idling, so 1b stays UNKNOWN. Probe 1a answers the need of the run.
 - Revit run after 5c: an ExtentReports FileNotFoundException at Revit shutdown, seen in every window and not from the tool.
 - Revit run after 5c, AddinRun.cs:262-268 and AddinRunSession.cs:516-524: the host raises its phase event once and never again after a refusal (Denied), a refused raise ends the run (Q223).
+
+## Lane B 5d, review 1
+
+- BuildSteps.cs:242-250 against CheckRun.cs:145: 4 Check names only the *.rvt files of the Prototypes folder, the build refuses any other file in it, such as Thumbs.db or desktop.ini. The prototype folders of today hold only .rvt files.
+- WallsRun.cs:100: no check of the wall height before Wall.Create, a plan wall with its top at or under its base rolls the run back with a Revit message that names no plot. The rule puts the top 1.7 m over the higher FFL and the base at the yard level.
+- RevitWallDocument.cs:66-80: setting a tagged wall to the plan leaves its location line as the user set it, so the centre read back fails. Reached only through SetToPlan, which nothing fills.
+- FloorLoad.cs:32 and WallLoad.cs:26-30: no load fills SetToPlan, so the set to plan path of 03b for an element changed by hand is reached only by tests.
+- plan_walls.py:74 against Walls.cs:125-135: a wallOpen of null is no table in Python and a refusal in C#. No rules file holds a null wallOpen.
+- LevelsRun.cs:190-243: a plot whose floor the plan view skipped with a reason is not named in the Levels preview.
+- rules/roshn-makkah.json, R401 block: the three values of addin.fixedParameters read UNKNOWN though Q156 is closed by Bader's answer, rule_status.py does not read the closed row.
+- FloorPlan.cs:206-225 and FloorsRun.Apply repeat FloorPlacer.SetCorners and its place loop, still called by PlaceFromPlan.cs:42 of the old placer, two copies of R114 that can drift.
