@@ -428,6 +428,10 @@ if ($round) {
                 if ($round.named) {
                     $roundJob.named = [string[]]@($round.named)
                 }
+                # 6a (R384). Each window the host answers, the pane and the ribbon drawn to PNG under shots of the run folder
+                if ($round.shots -eq $true) {
+                    $roundJob.shots = $true
+                }
                 # R404 and D19. The loops the host reads of each prototype for its corner compare after 7, kept across runs by the SHA-256
                 # of each file in a JSON file of the work root, so a 2021 prototype is opened once in all runs and not once in each
                 if ($round.prototypeLoops) {

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.CheckTable;
@@ -26,7 +27,8 @@ namespace SiteAdaptation.TestHost
     // until the add-in handed the end on, then the next phase goes on. After 7 each placed solid and link is read by the Revit API
     // here, a route of its own apart from the read back of the add-in. The named commands of the job run after the buttons by Buttons.Run
     // of their names, Site Adaptation Rules opens and closes, Update from report reads the two Excel files of the run and applies nothing.
-    // Everything goes into buttons_result.json of the run folder
+    // Everything goes into buttons_result.json of the run folder. With shots true (6a) each window is drawn to PNG under shots of the run
+    // folder before its answer, the pane after 1 and at the end, the ribbon, New project and How it works at the end (ButtonShots)
     internal sealed class ButtonsRunHost
     {
         private const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
@@ -45,6 +47,8 @@ namespace SiteAdaptation.TestHost
         private readonly HostState state;
         private readonly JObject result = new JObject();
         private readonly JArray entries = new JArray();
+        private readonly JArray shots = new JArray();
+        private readonly List<string> shotNotes = new List<string>();
         private UIApplication ui;
         private AddinProbe probe;
         private Assembly addIn;
@@ -83,6 +87,10 @@ namespace SiteAdaptation.TestHost
             result["dryRunFirst"] = job.DryRunFirst != false;
             result["startedUtc"] = DateTime.UtcNow;
             result["steps"] = entries;
+            if (job.Shots == true)
+            {
+                result["shots"] = shots;
+            }
         }
 
         // Set when the last phase ended on a worker start, the most the wait for its end may last in seconds
@@ -173,9 +181,13 @@ namespace SiteAdaptation.TestHost
             Put(AddinRunNames.Buttons, AddinRunNames.State, state);
             Put(AddinRunNames.SetUpSiteBody, AddinRunNames.Dialog, (Func<IntPtr, ISetUpSiteDialog>)(owner => new SeenSetUp(this)));
             Put(AddinRunNames.ReviewDataBody, AddinRunNames.Dialog, (Func<IntPtr, IReviewDialog>)(owner => new NoReview(this)));
-            Put(AddinRunNames.CheckTableBody, AddinRunNames.Dialog, (Func<IntPtr, string, ICheckTableDialog>)((owner, rules) => new KeepUses(this)));
+            Put(AddinRunNames.CheckTableBody, AddinRunNames.Dialog, (Func<IntPtr, string, ICheckTableDialog>)((owner, rules) => new KeepUses(this, rules)));
             Put(AddinRunNames.UpdateFromReportBody, AddinRunNames.Dialog, (Func<IntPtr, IUpdateFromReportDialog>)(owner => new ReadNoApply(this)));
-            Put(AddinRunNames.RulesWindowBody, AddinRunNames.Dialog, (Action<IntPtr, ManualRuleTable, string>)((owner, rules, selected) => Opened(rules)));
+            Put(AddinRunNames.RulesWindowBody, AddinRunNames.Dialog, (Action<IntPtr, ManualRuleTable, string>)((owner, rules, selected) => Opened(rules, selected)));
+            if (job.Shots == true)
+            {
+                Noted("the pane was not shown", ShowPane);
+            }
             result["model"] = Path.GetFileName(job.Model);
             result["privateMiBAtOpen"] = PrivateMiB();
             stopped = false;
@@ -244,6 +256,10 @@ namespace SiteAdaptation.TestHost
             entry["endedUtc"] = DateTime.UtcNow;
             entry["seconds"] = Math.Round((DateTime.UtcNow - startedUtc).TotalSeconds, 1);
             entry["privateMiB"] = PrivateMiB();
+            if (job.Shots == true && ButtonShots.PaneAfter(step))
+            {
+                Pane(step.Name);
+            }
             if (step.Button == 7 && committed)
             {
                 try
@@ -340,6 +356,10 @@ namespace SiteAdaptation.TestHost
         private string Write()
         {
             DialogAnswers.Armed = null;
+            if (job.Shots == true && document != null)
+            {
+                Noted("the end shots stopped", EndShots);
+            }
             if (swapped)
             {
                 Put(AddinRunNames.Buttons, AddinRunNames.State, stateBefore);
@@ -362,8 +382,122 @@ namespace SiteAdaptation.TestHost
             return "written " + ButtonsRun.ResultFile + " of " + entries.Count + " steps";
         }
 
+        // The pane shown and the tab of the add-in made active at the open, so the pane page is laid out and the ribbon shows the tab
+        private void ShowPane()
+        {
+            Directory.CreateDirectory(Path.Combine(folder, ButtonShots.Folder));
+            if (probe.PaneId() is DockablePaneId id)
+            {
+                ui.GetDockablePane(id).Show();
+            }
+            string tab = probe.Tab();
+            if (tab != null)
+            {
+                RevitShots.ActivateTab(tab, shotNotes);
+            }
+        }
+
+        // The pane page as RevitShots.Pane draws it in the addinRun job, with no least width to hold
+        private void Pane(string step)
+        {
+            Kept(step, ButtonShots.Pane, () => new[] { RevitShots.Pane(probe.PageType(), ButtonShots.File(folder, step, ButtonShots.Pane), PaneShown(), null) });
+        }
+
+        // A shot never stops the open or the write of the result, what stopped it goes into shotNotes
+        private void Noted(string what, Action action)
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception failure)
+            {
+                shotNotes.Add(what + ": " + Why(failure));
+            }
+        }
+
+        private static string Why(Exception failure)
+        {
+            Exception inner = failure is TargetInvocationException && failure.InnerException != null ? failure.InnerException : failure;
+            return inner.GetType().Name + " " + inner.Message;
+        }
+
+        private bool? PaneShown()
+        {
+            return probe.PaneId() is DockablePaneId id ? ui.GetDockablePane(id).IsShown() : (bool?)null;
+        }
+
+        // After the last step: the pane, the main window by PrintWindow and the ribbon cut from it, then New project and How it works
+        // built on the pane state as the pane opens them, drawn and closed with nothing saved
+        private void EndShots()
+        {
+            Pane(ButtonShots.End);
+            Kept(ButtonShots.End, ButtonShots.Ribbon, () =>
+            {
+                List<RunShot> window = RevitShots.Window(ui.MainWindowHandle, RevitShots.RibbonBounds(shotNotes),
+                    ButtonShots.File(folder, ButtonShots.End, ButtonShots.Window), ButtonShots.File(folder, ButtonShots.End, ButtonShots.Ribbon));
+                RunShot ribbon = window.FirstOrDefault(shot => shot.Name == ButtonShots.Ribbon);
+                if (ribbon != null && probe.Tab() != null)
+                {
+                    RevitShots.ReadTab(ribbon, probe.Tab(), shotNotes);
+                }
+                return window;
+            });
+            object model = Member(Get(AddinRunNames.PaneHost, AddinRunNames.Current), AddinRunNames.Model);
+            object open = Member(model, AddinRunNames.PaneDocument);
+            if (open != null)
+            {
+                Shoot(ButtonShots.End, ButtonShots.NewProject, "NewProject", open, probe.Root());
+            }
+            Shoot(ButtonShots.End, ButtonShots.HowItWorks, "HowItWorks", open != null);
+        }
+
+        // One window of the add-in built by WindowShots from the live view its button gave the Dialog, drawn offscreen and closed by
+        // WindowShots.Draw before the host answers the Dialog. A shot that fails is kept with its error and the step goes on
+        private void Shoot(string window, string build, params object[] args)
+        {
+            Shoot((string)current["step"], window, build, args);
+        }
+
+        private void Shoot(string step, string window, string build, params object[] args)
+        {
+            if (job.Shots != true)
+            {
+                return;
+            }
+            Kept(step, window, () =>
+            {
+                Type made = addIn.GetType(AddinRunNames.WindowShots, true);
+                object built = made.GetMethod(build).Invoke(null, args);
+                var drawn = (System.Windows.Media.Imaging.BitmapSource)made.GetMethod(AddinRunNames.Draw).Invoke(null, new[] { built });
+                return new[] { RevitShots.Saved(window, ButtonShots.File(folder, step, window), drawn, "drawn offscreen by WindowShots." + build) };
+            });
+        }
+
+        // Each shot with its file, size, colours and black share, or the error that stopped it, and the run goes on
+        private void Kept(string step, string window, Func<IEnumerable<RunShot>> take)
+        {
+            try
+            {
+                foreach (RunShot shot in take().ToList())
+                {
+                    JObject kept = JObject.FromObject(shot, JsonSerializer.Create(new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore }));
+                    kept.AddFirst(new JProperty("step", step));
+                    shots.Add(kept);
+                }
+            }
+            catch (Exception failure)
+            {
+                shots.Add(new JObject { ["step"] = step, ["name"] = window, ["failed"] = Why(failure) });
+            }
+        }
+
         private void Save()
         {
+            if (job.Shots == true)
+            {
+                result["shotNotes"] = new JArray(shotNotes);
+            }
             JsonOut.Write(Path.Combine(folder, ButtonsRun.ResultFile), result);
         }
 
@@ -715,6 +849,7 @@ namespace SiteAdaptation.TestHost
 
             public SetUpSiteAnswer Show(SetUpSiteView view, SetUpSiteCallbacks callbacks)
             {
+                host.Shoot(ButtonShots.SetUpSite, "SetUp", view, callbacks);
                 var window = new SetUpSiteRun.AnswerWindow();
                 SetUpSiteAnswer answer = window.Show(view, callbacks);
                 host.current["setUpStops"] = window.Stops;
@@ -734,6 +869,7 @@ namespace SiteAdaptation.TestHost
 
             public ReviewAnswer Show(ReviewView view, ReviewCallbacks callbacks)
             {
+                host.Shoot(ButtonShots.ReviewData, "Review", view, callbacks);
                 host.current["review"] = new JObject { ["nbh"] = view.Nbh, ["rows"] = view.State?.Rows?.Count, ["sources"] = view.Sources == null ? null : new JArray(view.Sources) };
                 return new ReviewAnswer { Saved = false };
             }
@@ -741,8 +877,9 @@ namespace SiteAdaptation.TestHost
 
         // Site Adaptation Rules with no click: the window opens on the table of the rules file of the pane and closes, it changes nothing.
         // A rules file with no usable block shows its line in place of the window, so the step is not answered
-        private void Opened(ManualRuleTable rules)
+        private void Opened(ManualRuleTable rules, string selected)
         {
+            Shoot(ButtonShots.Rules, "Rules", rules, selected);
             current["rulesWindow"] = new JObject { ["rules"] = rules.Block.Rules.Count, ["revision"] = rules.Block.Manual?.Revision };
             answered = true;
         }
@@ -778,6 +915,7 @@ namespace SiteAdaptation.TestHost
                     window["ignored"] = list.Ignored.Count;
                     window["lacks"] = new JArray(list.Lacks);
                     window["tiles"] = new JObject(list.Tiles().Select(pair => new JProperty(pair.Key, pair.Value)));
+                    host.Shoot(ButtonShots.UpdateFromReport, "Update", callbacks, list, files);
                     host.answered = list.Refusal == null;
                 }
                 catch (Exception failure)
@@ -792,14 +930,17 @@ namespace SiteAdaptation.TestHost
         private sealed class KeepUses : ICheckTableDialog
         {
             private readonly ButtonsRunHost host;
+            private readonly string rules;
 
-            public KeepUses(ButtonsRunHost host)
+            public KeepUses(ButtonsRunHost host, string rules)
             {
                 this.host = host;
+                this.rules = rules;
             }
 
             public CheckTableAnswer Show(CheckTableView view, CheckTableCallbacks callbacks)
             {
+                host.Shoot(ButtonShots.CheckTable, "Check", view, callbacks, rules);
                 host.current["checkTable"] = new JObject
                 {
                     ["title"] = view.Title, ["rows"] = view.Rows.Count, ["followEveryRule"] = view.FollowEveryRule, ["saveAllowed"] = view.SaveAllowed,

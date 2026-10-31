@@ -158,6 +158,10 @@ namespace SiteAdaptation.Common
         public const string LaunchedWorker = "SiteAdaptation.AddIn.LaunchedWorker";
         public const string Ends = "Ends";
         public const string ButtonOf = "ButtonOf";
+        // 6a. The windows of the add-in built offscreen from the view of their Dialog and drawn for the shots of a buttons job
+        public const string WindowShots = "SiteAdaptation.AddIn.WindowShots";
+        public const string Draw = "Draw";
+        public const string PaneDocument = "Document";
         public const string UpdateFromReportBody = "SiteAdaptation.AddIn.UpdateFromReportBody";
         public const string RulesWindowBody = "SiteAdaptation.AddIn.RulesWindow.RulesWindowBody";
         public const string Button = "Button";
@@ -785,7 +789,8 @@ namespace SiteAdaptation.Common
         {
             if (job.Buttons == null)
             {
-                return job.Named == null ? null : "named runs after the buttons of a buttons job, the job names no buttons";
+                return job.Named != null ? "named runs after the buttons of a buttons job, the job names no buttons"
+                    : job.Shots == true ? "shots draws the windows of a buttons job, the job names no buttons" : null;
             }
             if (job.Buttons.Count == 0)
             {
