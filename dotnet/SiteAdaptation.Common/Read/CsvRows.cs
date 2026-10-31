@@ -27,28 +27,7 @@ namespace SiteAdaptation.Common
         // columns named, plan_from_book.csv_rows: a header that lacks one and a file of no row refused with its line (G1)
         public static List<Dictionary<string, string>> Read(string path, params string[] columns)
         {
-            byte[] bytes = WorkFiles.ReadBytes(path);
-            int start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
-            string text;
-            try
-            {
-                text = new UTF8Encoding(false, true).GetString(bytes, start, bytes.Length - start);
-            }
-            catch (DecoderFallbackException)
-            {
-                int at = FirstInvalid(bytes, start);
-                throw new InvalidDataException(Path.GetFileName(path) + " is no UTF-8 text, the byte 0x" + bytes[at].ToString("X2") + " at " + at + " is none, as Python reads it with utf-8-sig (R345)");
-            }
-            List<Dictionary<string, string>> rows;
-            List<string> header;
-            try
-            {
-                rows = Parse(text, out header);
-            }
-            catch (CsvError failure)
-            {
-                throw new InvalidDataException(Path.GetFileName(path) + " is no CSV as Python reads it: " + failure.Message + " (R345)");
-            }
+            List<Dictionary<string, string>> rows = Read(path, out List<string> header);
             if (columns.Length > 0)
             {
                 List<string> missing = columns.Where(column => !header.Contains(column)).ToList();
@@ -62,6 +41,31 @@ namespace SiteAdaptation.Common
                 }
             }
             return rows;
+        }
+
+        // R408. The rows of the file and its header, so a reader of other columns, the civil file of the door levels, refuses a column by its own line
+        public static List<Dictionary<string, string>> Read(string path, out List<string> header)
+        {
+            byte[] bytes = WorkFiles.ReadBytes(path);
+            int start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
+            string text;
+            try
+            {
+                text = new UTF8Encoding(false, true).GetString(bytes, start, bytes.Length - start);
+            }
+            catch (DecoderFallbackException)
+            {
+                int at = FirstInvalid(bytes, start);
+                throw new InvalidDataException(Path.GetFileName(path) + " is no UTF-8 text, the byte 0x" + bytes[at].ToString("X2") + " at " + at + " is none, as Python reads it with utf-8-sig (R345)");
+            }
+            try
+            {
+                return Parse(text, out header);
+            }
+            catch (CsvError failure)
+            {
+                throw new InvalidDataException(Path.GetFileName(path) + " is no CSV as Python reads it: " + failure.Message + " (R345)");
+            }
         }
 
         // R345, G2 of the fourth review of PR 55. The csv module of Python with strict: the line it gives for a file it refuses

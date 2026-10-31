@@ -26,6 +26,11 @@ namespace SiteAdaptation.Common
         // R357. The role of a prototype file, prototype:<its file name>, one per file of the prototype folder
         public const string PrototypeRole = "prototype:";
 
+        // R408. The input roles of the civil file of the door levels and of the floor file whose rampTypes.bands give the ramp type of a slope, read
+        // under rev6 alone, plan_from_book.CIVIL_ROLE and BANDS_ROLE
+        public const string CivilRole = "civilFile";
+        public const string BandsRole = "floorOutlines";
+
         public static readonly string[] HandRoles = { "rules", "plotsCsv", "labels", "baseplanRead", "villaBlocksRead", "curbsRead", "workbooksRead", PrototypeRole + "*" };
 
         // R359. The levels read the clusters, the fronts with their road levels and the row pairs of the hands, with no prototype file
@@ -174,14 +179,14 @@ namespace SiteAdaptation.Common
             }
 
             // R349, R344. The road surfaces of the level profile in their order, plan_rules.road_names, each the input roadSurface:<name>, every
-            // one of the order and no other, the first surface of each file, refused when not in meter
-            public List<TinSurface> Surfaces(JObject levelProfile)
+            // one of the order and no other, the first surface of each file, refused when not in meter. R409: under rev6 the one surface of the basis
+            public List<TinSurface> Surfaces(JObject levelProfile, DesignBasis basis)
             {
                 if (surfaces != null)
                 {
                     return surfaces;
                 }
-                List<string> order = Fronts.RoadNames(levelProfile, ReadSettings.Load(run.Input("config")));
+                List<string> order = Fronts.RoadNames(levelProfile, ReadSettings.Load(run.Input("config")), basis);
                 List<string> roles = run.Request.Inputs.Select(input => input.Role).Where(role => role != null && role.StartsWith(WorkerRunner.RoadSurfaceRole, StringComparison.Ordinal)).ToList();
                 List<string> extra = roles.Where(role => !order.Contains(role.Substring(WorkerRunner.RoadSurfaceRole.Length))).ToList();
                 List<string> missing = order.Where(name => !roles.Contains(WorkerRunner.RoadSurfaceRole + name)).ToList();
@@ -341,9 +346,14 @@ namespace SiteAdaptation.Common
             var tables = new Dictionary<string, JObject>();
             // R80. What the plan of the build takes besides its steps, when the request asks for it
             PlanInputs planned = null;
+            // R407. The design basis of the run, in the run block of each step file
+            string mode = null;
             try
             {
                 var site = new Site(run, config);
+                // R407. The design basis read once for the whole run, a mode outside designBasis.modes refused before any step
+                DesignBasis basis = DesignBasis.Of(site.Settings, () => run.Input(CivilRole));
+                mode = basis.Mode;
                 if (BuildPlan.PlanAsked(asked, request.Inputs))
                 {
                     JObject siteFile = PyMath.ReadJson(run.Input(BuildPlan.SiteRole), BuildPlan.SiteRole) as JObject ?? throw new InvalidDataException("site.json of button 1 is no JSON object (R80)");
@@ -362,7 +372,7 @@ namespace SiteAdaptation.Common
                 {
                     ReadSettings read = ReadSettings.Load(run.Input("config"));
                     double snap = read.SnapM;
-                    List<TinSurface> surfaces = site.Surfaces(levelProfile);
+                    List<TinSurface> surfaces = site.Surfaces(levelProfile, basis);
                     double[] limits = Fronts.Limits(site.Rules, site.Settings, site.RulesName);
                     double roadEdgeM = BuildFace.Number(site.Settings["siteBuild"]["corner"]["roadEdgeM"]);
                     Dictionary<string, FrontItem> fronts = Fronts.Of(site.Numbers, site.Rows, site.Faces, site.Roads, limits,
@@ -393,7 +403,7 @@ namespace SiteAdaptation.Common
                     Dictionary<string, Dictionary<string, object>> links = null, hands = null;
                     if (linked)
                     {
-                        hands = Hands.Step(site.Numbers, site.Rows, context, key, files, site.Rules, site.Settings);
+                        hands = Hands.Step(site.Numbers, site.Rows, context, key, files, site.Rules, site.Settings, basis);
                         run.Counts["hands of the scope with a mirror flag"] = hands.Values.Count(item => item["mirrored"] != null);
                         run.Counts["side neighbour pairs"] = context.Neighbours.Values.Sum(sides => sides.Left.Count + sides.Right.Count);
                         if (asked.Contains(Hands.StepName))
@@ -412,7 +422,7 @@ namespace SiteAdaptation.Common
                     {
                         string profileName = BuildRules.ProfileName(site.Rules, request.LevelProfile);
                         OverrideList list = null;
-                        if (asked.Contains(FloorOutlines.StepName) || afterOverrides)
+                        if ((asked.Contains(FloorOutlines.StepName) || afterOverrides) && !basis.IsRev6)
                         {
                             // plan_from_book.build refuses a unit plot of a zone keyRules.yard holds no yard for, before any step file
                             FloorOutlines.CheckZones(site.Numbers, site.Rows, key);
@@ -429,10 +439,12 @@ namespace SiteAdaptation.Common
                         // R359. The fronts of the plots whose levels the build works out, with the road levels of the surfaces of the level profile
                         ReadSettings read = ReadSettings.Load(run.Input("config"));
                         double snap = read.SnapM;
-                        List<TinSurface> surfaces = site.Surfaces(levelProfile);
+                        List<TinSurface> surfaces = site.Surfaces(levelProfile, basis);
                         double[] limits = Fronts.Limits(site.Rules, site.Settings, site.RulesName);
+                        // R408. The bands of the ramp types of the floor file, the type of the slope of El @ Entry under rev6
+                        JArray bands = basis.IsRev6 ? DesignBasis.Bands(PyMath.ReadJson(run.Input(BandsRole), BandsRole) as JObject) : null;
                         LevelBuild build = KeyLevels.Of(site.Numbers, site.Rows, site.Clusters, context, members => Fronts.Of(members, site.Rows, site.Faces, site.Roads, limits,
-                            (x, y) => TinSurface.RoadLevel(surfaces, x, y, snap), site.Rules, roadEdgeM, site.Sales, site.RulesName), site.Rules, key, levelProfile, profileName);
+                            (x, y) => TinSurface.RoadLevel(surfaces, x, y, snap), site.Rules, roadEdgeM, site.Sales, site.RulesName), site.Rules, key, levelProfile, profileName, basis, bands);
                         run.Counts["plots with El @ Entry"] = build.Entries.Count;
                         run.Counts["row partners"] = build.Partners.Count;
                         if (asked.Contains(KeyLevels.StepName))
@@ -521,7 +533,7 @@ namespace SiteAdaptation.Common
                             {
                                 // R365, Q116. The plan summary of step 15 from the plots after the overrides, the fronts of the build and the status of every value
                                 Tuple<Dictionary<string, Dictionary<string, object>>, JObject> summary = PlanSummary.Step(site.Numbers, plans, build.Fronts, hands, status, statusTable,
-                                    site.Settings, key, profileName, KeyLevels.LaterParameters(site.Settings, levelProfile), site.Faces);
+                                    site.Settings, key, profileName, KeyLevels.LaterParameters(site.Settings, levelProfile), site.Faces, build.NoDoor, PlanOverrides.Outside(site.Numbers, build, plans, site.Rules));
                                 made[PlanSummary.StepName] = summary.Item1;
                                 tables[PlanSummary.StepName] = summary.Item2;
                                 run.Counts["conflicts of the scope"] = ((JArray)summary.Item2["summary"]["conflicts"]).Count;
@@ -541,7 +553,7 @@ namespace SiteAdaptation.Common
                 tables.TryGetValue(step.Key, out JObject held);
                 // Q107. Streamed, so the step of a whole build is never made a second tree of raw and written values
                 stepFiles[step.Key] = run.WriteJson(request.StepsFolder, StepFile.FileName(step.Key, "csharp"), (writer, exact) => StepFile.Write(writer, exact, step.Key, "csharp", StepFile.ScopeText(request.Scope),
-                    step.Value, config.StepFields(step.Key), held));
+                    step.Value, config.StepFields(step.Key), held), new JObject { ["designBasis"] = mode });
             }
             if (planned != null)
             {

@@ -20,6 +20,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import common
+import design_basis
 import design_values
 import project_profile
 
@@ -277,9 +278,12 @@ def check_key_rules(rules):
                                                    % (rules["ffl"]["rule"], word, ", ".join(needed)))
 
 
-def road_names(site_build, lp):
+def road_names(site_build, lp, basis=None):
     """R339, R340. The road surfaces a build asks for El @ Entry and the ramp front, the one setting plan_from_book.py and majority.py
-    take them from: siteBuild.roadSurfaces in their order for frontRoad roadLevel, else the one surface frontRoad names."""
+    take them from: siteBuild.roadSurfaces in their order for frontRoad roadLevel, else the one surface frontRoad names. R409: under the
+    design basis rev6 the one surface of designBasis.roadLevel alone."""
+    if design_basis.is_rev6(basis):
+        return design_basis.road_names(basis)
     surface = lp["frontRoad"]["surface"]
     return list(site_build["roadSurfaces"]) if surface == ROAD_LEVEL else [surface]
 

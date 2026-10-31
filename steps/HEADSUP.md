@@ -2,12 +2,26 @@
 
 ## Live status
 
+### Lane A
+
+- Lane: A, round 4i, branch feat/addin-4i-rev6
+- Time: 2026-11-01 00:40
+- Now: the gate green after PR 115, the PR of 4i and its checks
+- Done: R407 to R412, review 1, breaker F1 fixed, parity 32 runs 0 failures, past job 0 of 636,012 values differ, the log entry, PROGRESS to WAITING
+- Next: the PR and its merge, a message to lane-d, then 4j-2 with no Revit until lane-b and lane-c are clear
+- Blocked: none
+
+### Lane B
+
 - Lane: B, round 6a, branch feat/lane-b-6a, worktree Site Adaptation Tool Lane B WT
 - Time: 2026-11-01 00:10, demo freeze at 09:30
 - Now: the end records and the PR of 6a, then the queued DEMO round
 - Done: 6a for Masses, NBH 012 through buttons 1 to 9 from a new project with no click, 6.7 min, 2444 MiB peak, 10 window shots
 - Next: DEMO, the add-in installed, C:\SA-demo, the demo sheet. Links waits on Q275
 - Blocked: none
+
+### Lane C and D
+
 - Lane C: NEWPROJ-UI merged as PR 112, round SCAN-UI next. Lane D: 4j-1 the scanner merged as PR 114, 4j-1b next (Q250)
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane B 6a, 1 Nov 2026.

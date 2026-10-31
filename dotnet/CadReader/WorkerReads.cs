@@ -28,6 +28,8 @@ namespace CadReader
             commands["reportExcel"] = ReportWorkbook.Command;
             // R402. The edited level Excel and report Excel read back and compared with the plan, for Update from report
             commands["updateFromReport"] = UpdateFromReportWorker.Command;
+            // R412. The read only check of the inputs of a new project, the report in plain words
+            commands[NewProjectCheck.Command] = NewProject;
             // R420 to R427. The scanner of any CAD, Excel and PDF the user gives, which reads them with ACadSharp, OpenXml and PdfPig, so in the worker only
             commands["scan"] = CadScan.Command;
             return commands;
@@ -727,6 +729,81 @@ namespace CadReader
             {
                 made[PlotTable.StepName] = table;
             }
+        }
+
+        // R412. The command newProjectCheck: the inputs config names for a project read and the report written as JSON and as text into the
+        // output folder of the request, nothing else written. The request names the inputs config, rules and offsets
+        private static void NewProject(WorkerContext run)
+        {
+            WorkerRequest request = run.Request;
+            if (string.IsNullOrEmpty(request.OutputFolder))
+            {
+                throw run.Refusal("a newProjectCheck names no output folder for its report (R412)");
+            }
+            string config = run.Input(NewProjectCheck.ConfigRole), rules = run.Input(NewProjectCheck.RulesRole), offsets = run.Input(NewProjectCheck.OffsetsRole);
+            NewProjectReport report;
+            try
+            {
+                report = NewProjectCheck.Check(config, rules, offsets, WorkRoot.OfThisMachine(), null, CheckReaders());
+                NewProjectCheck.KeepApart(request.OutputFolder, report.Paths, report.InputRoot);
+            }
+            catch (InvalidDataException refused)
+            {
+                throw run.Refusal(refused.Message);
+            }
+            run.WriteJson(request.OutputFolder, NewProjectCheck.JsonName, report.ToJson());
+            byte[] text = new System.Text.UTF8Encoding(false).GetBytes(report.Text());
+            run.WriteFile(request.OutputFolder, NewProjectCheck.TextName, stream => stream.Write(text, 0, text.Length));
+            run.Counts["lines"] = report.Lines.Count;
+            run.Counts["ok"] = report.Count(NewProjectCheck.Ok);
+            run.Counts["missing"] = report.Count(NewProjectCheck.Missing);
+            run.Counts["does not fit"] = report.Count(NewProjectCheck.DoesNotFit);
+            run.Counts["ROSHN only"] = report.Lines.Count(line => line.RoshnOnly);
+        }
+
+        // R412. What the check reads of a workbook and of a PDF, with OpenXml and PdfPig which only the worker loads. A file that cannot be
+        // opened gives null, the sheet rows are the cells of XlsxSheet as texts
+        public static NewProjectReaders CheckReaders()
+        {
+            return new NewProjectReaders
+            {
+                SheetNames = path =>
+                {
+                    try
+                    {
+                        using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        using (DocumentFormat.OpenXml.Packaging.SpreadsheetDocument book = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(stream, false))
+                        {
+                            return book.WorkbookPart.Workbook.Sheets.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().Select(item => item.Name?.Value ?? "").ToList();
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        return null;
+                    }
+                },
+                Rows = (path, sheet, count) =>
+                {
+                    IEnumerable<object[]> rows = XlsxSheet.Read(path, sheet).Rows;
+                    return (count < 0 ? rows : rows.Take(count)).Select(row => (IReadOnlyList<string>)row.Select(cell => cell is string text ? SheetRows.PyStrip(text) : "").ToList()).ToList();
+                },
+                Pdf = path =>
+                {
+                    try
+                    {
+                        using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        using (UglyToad.PdfPig.PdfDocument document = UglyToad.PdfPig.PdfDocument.Open(stream))
+                        {
+                            string text = document.NumberOfPages == 0 ? "" : string.Concat(document.GetPage(1).Letters.Select(letter => letter.Value));
+                            return new PdfFacts { Pages = document.NumberOfPages, Tokens = text.Split((char[])null, StringSplitOptions.RemoveEmptyEntries) };
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        return null;
+                    }
+                },
+            };
         }
     }
 }
