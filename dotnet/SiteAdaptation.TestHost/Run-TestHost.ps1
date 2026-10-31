@@ -417,6 +417,15 @@ if ($round) {
                 $roundJob.linksAfterMasses = [bool]$round.linksAfterMasses
                 $roundJob.dryRunFirst = ($round.dryRunFirst -ne $false)
                 $roundJob.paneSettings = $paneSettingsPath
+                # R404 and D19. The loops the host reads of each prototype for its corner compare after 7, kept across runs by the SHA-256
+                # of each file in a JSON file of the work root, so a 2021 prototype is opened once in all runs and not once in each
+                if ($round.prototypeLoops) {
+                    $loopsPath = [string]$round.prototypeLoops
+                    if (-not $loopsPath.EndsWith('.json') -or -not $loopsPath.StartsWith($docs + '\')) {
+                        throw "The prototype loops file of the buttons run is not a JSON file under the work root $docs : $loopsPath"
+                    }
+                    $roundJob.prototypeLoops = $loopsPath
+                }
                 # Two worker reads, the build of 4 Check and two runs of 7 take more than the 13 minutes of 5a. CHOSEN, tool timings
                 $addinRunWindowMinutes = 31
                 $addinRunJobMinutes = 29

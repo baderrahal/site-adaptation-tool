@@ -41,7 +41,6 @@ namespace SiteAdaptation.TestHost
         private readonly HostState state;
         private readonly JObject result = new JObject();
         private readonly JArray entries = new JArray();
-        private readonly Dictionary<string, List<double[]>> loops = new Dictionary<string, List<double[]>>(StringComparer.OrdinalIgnoreCase);
         private UIApplication ui;
         private AddinProbe probe;
         private Assembly addIn;
@@ -62,6 +61,7 @@ namespace SiteAdaptation.TestHost
         private int dialogsBefore;
         private DateTime startedUtc;
         private Dictionary<string, bool> before;
+        private HostLoopCache hostLoops;
 
         public ButtonsRunHost(TestHostJob job, TestHostRunner runner)
         {
@@ -86,6 +86,11 @@ namespace SiteAdaptation.TestHost
         private string Settings
         {
             get { return Path.Combine(folder, "config", "project.json"); }
+        }
+
+        private string LoopsFile
+        {
+            get { return job.PrototypeLoops ?? Path.Combine(work, HostLoopCache.DefaultFile); }
         }
 
         // What the wait waits for: 1 while the add-in holds the end of a worker it started and did not hand on
@@ -376,6 +381,9 @@ namespace SiteAdaptation.TestHost
             var villas = new JArray();
             if (step.VillaMode == VillaModes.Masses)
             {
+                hostLoops = HostLoopCache.Load(LoopsFile, FileHash.Sha256);
+                entry["prototypeLoops"] = LoopsFile;
+                entry["loopsAtStart"] = hostLoops.AtStart;
                 foreach (string id in solids)
                 {
                     Element solid = document.GetElement(id);
@@ -394,6 +402,7 @@ namespace SiteAdaptation.TestHost
                     }
                     villas.Add(villa);
                 }
+                entry["loopsRead"] = hostLoops.Read;
             }
             else
             {
@@ -464,38 +473,37 @@ namespace SiteAdaptation.TestHost
             return Math.Round(Distance(Internal(plot.Insert.Value, toInternal), bySurvey) * 1000, 3);
         }
 
-        // The outer loop of the sketch of the lowest floor of the prototype, in its internal plan coordinates, read once per file. A
-        // prototype the session holds open is read in place and left open
+        // The outer loop of the sketch of the lowest floor of the prototype, in its internal plan coordinates, read once per file by
+        // the loop file of the job
         private List<double[]> PrototypeLoop(string path)
         {
-            if (loops.TryGetValue(path, out List<double[]> known))
-            {
-                return known;
-            }
-            Document prototype = ui.Application.Documents.Cast<Document>().FirstOrDefault(each => !each.IsLinked && string.Equals(each.PathName, path, StringComparison.OrdinalIgnoreCase));
-            bool opened = prototype == null;
-            if (opened)
-            {
-                prototype = ui.Application.OpenDocumentFile(path);
-            }
+            return hostLoops.Get(path, ReadCopy);
+        }
+
+        // D3, D19. The prototype is copied into the run, the copy opened detached and closed with no save and deleted, never the
+        // original. The dialogs and warnings of the open are answered by the session
+        private List<double[]> ReadCopy(string path)
+        {
+            string copies = Path.Combine(work, "copies");
+            Directory.CreateDirectory(copies);
+            string copy = Path.Combine(copies, Guid.NewGuid().ToString("N") + Path.GetExtension(path));
+            File.Copy(path, copy);
+            Document prototype = null;
             try
             {
+                prototype = ui.Application.OpenDocumentFile(ModelPathUtils.ConvertUserVisiblePathToModelPath(copy), new OpenOptions { DetachFromCentralOption = DetachFromCentralOption.DetachAndPreserveWorksets });
                 Floor lowest = new FilteredElementCollector(prototype).OfClass(typeof(Floor)).Cast<Floor>().Where(floor => floor.get_BoundingBox(null) != null)
                     .OrderBy(floor => floor.get_BoundingBox(null).Min.Z).FirstOrDefault();
                 if (lowest == null || !(prototype.GetElement(lowest.SketchId) is Sketch sketch))
                 {
                     throw new InvalidDataException(Path.GetFileName(path) + " holds no floor with a sketch");
                 }
-                List<double[]> outer = sketch.Profile.Cast<CurveArray>().Select(array => array.Cast<Curve>().SelectMany(Corners).ToList()).OrderByDescending(Area).First();
-                loops[path] = outer;
-                return outer;
+                return sketch.Profile.Cast<CurveArray>().Select(array => array.Cast<Curve>().SelectMany(Corners).ToList()).OrderByDescending(Area).First();
             }
             finally
             {
-                if (opened)
-                {
-                    prototype.Close(false);
-                }
+                prototype?.Close(false);
+                File.Delete(copy);
             }
         }
 

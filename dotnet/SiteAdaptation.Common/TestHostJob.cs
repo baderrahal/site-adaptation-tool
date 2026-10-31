@@ -48,6 +48,9 @@ namespace SiteAdaptation.Common
         public bool? LinksAfterMasses { get; set; }
         public bool? DryRunFirst { get; set; }
         public string PaneSettings { get; set; }
+        // R404, D19. The JSON file under the work root that keeps the loop of each prototype the host reads for its corner compare
+        // after 7, across runs, by the SHA-256 of the file. With none the host keeps it in the work folder of the run
+        public string PrototypeLoops { get; set; }
         public string Site { get; set; }
         // R214. The folder an image job writes to, the level of its plan view and the area [minE, minN, maxE, maxN] in shared metres
         public string ImageFolder { get; set; }
