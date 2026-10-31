@@ -710,25 +710,16 @@ namespace SiteAdaptation.Common.Update
             }
         }
 
-        // The block manualRules of the rules profile, a list of entries or an object by id, each entry naming the checks it holds by
-        // updateChecks. Lane B 5c writes the block from docs/design/15-manual-rules.md, a block of no updateChecks holds no change
+        // The list rules of the block manualRules of the rules profile (R403), each entry naming the checks it holds by updateChecks. Lane B
+        // 5c writes the block from docs/design/15-manual-rules.md, a block of no updateChecks holds no change
         private static void ManualRules(UpdateList list, JObject rules)
         {
-            JToken block = rules["manualRules"];
-            IEnumerable<Tuple<string, JObject>> entries;
-            if (block is JArray array)
-            {
-                entries = array.OfType<JObject>().Select(item => Tuple.Create(Text(item["id"]), item));
-            }
-            else if (block is JObject named)
-            {
-                entries = named.Properties().Where(item => item.Value is JObject).Select(item => Tuple.Create(Text(item.Value["id"]) ?? item.Name, (JObject)item.Value));
-            }
-            else
+            if (!(rules["manualRules"]?["rules"] is JArray array))
             {
                 list.Lacks.Add(UpdateText.NoManualBlock);
                 return;
             }
+            IEnumerable<Tuple<string, JObject>> entries = array.OfType<JObject>().Select(item => Tuple.Create(Text(item["id"]), item));
             var byCheck = new Dictionary<string, List<string>>();
             var bare = new List<string>();
             foreach (Tuple<string, JObject> entry in entries.Where(item => item.Item1 != null))

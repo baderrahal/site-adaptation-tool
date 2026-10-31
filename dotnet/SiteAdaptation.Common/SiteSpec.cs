@@ -67,7 +67,7 @@ namespace SiteAdaptation.Common
     public static class SiteCoordinates
     {
         public const double MetresPerFoot = 0.3048;
-        public const double ToleranceMm = 1.0;
+        public static double ToleranceMm => DesignValues.Current.SiteToleranceMm;
         public static readonly string[] FloorKinds = { "generic", "yard", "ramp" };
         private const double MaxPlanM = 1e8;
         private const double MaxElevationM = 1e4;

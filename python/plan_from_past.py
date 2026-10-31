@@ -14,6 +14,7 @@ from pathlib import Path, PureWindowsPath
 from shapely.geometry import Polygon
 
 import common
+import design_values
 import excel_reader
 import full_run
 import link_summary
@@ -39,7 +40,7 @@ JOB_KEYS = ("neighbourhood", "schedule", "sheet", "prototypes", "prototypeFolder
 FLOOR_KINDS = ("generic", "yard", "ramp")
 FLOOR_KEYS = ("types", "levels", "plotParameter", "yardBelowFflM", "yardShareTie", "yardMinShare")
 # A ramp corner sits on an outline vertex when it lies this close in plan, in metres. Both are rounded to the mm by R2
-CORNER_ON_VERTEX = 0.002
+CORNER_ON_VERTEX = design_values.value("floors.cornerOnVertexM")
 # An arc end must lie this close to its circle, in metres
 ARC_FIT = 0.001
 # A top face loop is the sketch loop again when the area they do not share is under this share of the sketch loop.

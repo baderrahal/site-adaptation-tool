@@ -19,19 +19,25 @@ namespace SiteAdaptation.Tests
         {
             string root = ThemeGateTests.RepoRoot();
             Dictionary<string, UiLabels.Window> list = UiLabels.List(File.ReadAllText(Path.Combine(root, UiLabels.ListFile)));
-            // Review 5f: the texts of Update from report that Common gives the window, the rule column, the refusal and the lacks, are held too
+            // Review 5f: the texts of Update from report that Common gives the window, the rule column, the refusal and the lacks, are held too,
+            // as the plain rule names and the words of a past value of the check table that Common gives so the net8.0 tests reach them
             Dictionary<string, List<UiLabels.Found>> shown = UiLabels.Texts(Path.Combine(root, "dotnet", "SiteAdaptation.AddIn"), Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Flow", "RunTexts.cs"),
-                new Dictionary<string, string> { [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Update", "UpdateText.cs")] = "Update from report" });
+                new Dictionary<string, string>
+                {
+                    [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "CheckTable", "CheckShownText.cs")] = "Check table",
+                    [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Update", "UpdateText.cs")] = "Update from report",
+                });
 
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Check table", "Update from report" }, list.Keys.ToArray());
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Update from report" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report" }, list.Keys.ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
             Assert.Equal(16, list["Ribbon"].Entries.Count);
             Assert.Contains(shown["Ribbon"], found => found.Text == "Update from report");
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
             Assert.Contains(shown["Pane"], found => found.Text == "Needs step <n>" && found.Where.EndsWith("PaneText.cs", StringComparison.Ordinal));
             Assert.Contains(shown[UiLabels.Messages], found => found.Text == " needs step " && found.Where.EndsWith("RunTexts.cs", StringComparison.Ordinal));
             Assert.Contains(shown[UiLabels.Messages], found => found.Text == "Cancel" && found.Where.EndsWith("RevitModel.cs", StringComparison.Ordinal));
-            Assert.Equal(20, list[UiLabels.Messages].Entries.Count);
+            // 31 since Lane B 5c, the 11 messages of 2 Read data (R375)
+            Assert.Equal(31, list[UiLabels.Messages].Entries.Count);
             Assert.Contains(shown["Update from report"], found => found.Text == "follows the rules" && found.Where.EndsWith("UpdateText.cs", StringComparison.Ordinal));
             Assert.Contains(shown["Update from report"], found => found.Text == "<name> <n>" && found.Where.EndsWith("UpdateFromReportText.cs", StringComparison.Ordinal));
 
@@ -140,10 +146,13 @@ namespace SiteAdaptation.Tests
                 }
             }
             Assert.Empty(missing);
-            // 22 since Lane B 5b, the line of a second run of Set up site, 25 since 5f with Browse, Note and the dry run line of Update from report,
-            // 27 with the two lines of the message after Apply, 68 with the texts of the 5f fix that Common gives the window, 70 with the two
-            // refusals of a second book of a kind
-            Assert.Equal(70, chosen);
+            // 22 since Lane B 5b, the line of a second run of Set up site. Lane B 5c added 70: 29 of the plain rule names of Check table, 7 more
+            // of Check table, 11 of Review data, the 11 messages of 2 Read data (R375) and 12 of Site Adaptation Rules. 5f added 48: Browse,
+            // Note and the dry run line of Update from report, the two lines of the message after Apply, the texts of the 5f fix that Common
+            // gives the window and the two refusals of a second book of a kind. The UI review of 5c added 4: the heading Corner, the two lines of a
+            // Rules command with no usable rules file and the chip Team check. The second logic review of 5c added 1, the line under Why of a
+            // row on Skip
+            Assert.Equal(145, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
@@ -169,7 +178,8 @@ namespace SiteAdaptation.Tests
             Assert.Contains("4 Check", list["Ribbon"].Entries.Select(entry => entry.Text));
             // Lane B 5b built the window of button 1, so its entries are held against its files as every built window is
             Assert.True(list["Set up site"].Built);
-            Assert.False(list["Check table"].Built);
+            // Lane B 5c built the check table
+            Assert.True(list["Check table"].Built);
         }
 
         // Review 1 of PR 92: docs/design/README.md finds a part by its number, so no two parts share one, and the label list is 14
@@ -198,6 +208,8 @@ namespace SiteAdaptation.Tests
         {
             { "Pane", "Pane" },
             { "Set up site", "SetUpSite" },
+            { "Review data", "ReviewData" },
+            { "Site Adaptation Rules", "RulesWindow" },
             { "Check table", "CheckTable" },
             { "Update from report", "Update" },
         };

@@ -13,6 +13,30 @@ namespace SiteAdaptation.Common
     {
         public const string Folder = "SiteAdaptation";
         public const string MachineFile = "machine.json";
+        // Q127, J5. A path of config under the work root of the machine starts with Mark, so no path of a user is in git
+        public const string Mark = "{workRoot}";
+
+        // The path with Mark taken for the root, a path with no mark as it is
+        public static string Resolve(string path, Func<string> root)
+        {
+            if (path == null || !path.StartsWith(Mark, StringComparison.Ordinal))
+            {
+                return path;
+            }
+            string[] parts = path.Substring(Mark.Length).Replace('\\', '/').Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            string at = root();
+            foreach (string part in parts)
+            {
+                at = Path.Combine(at, part);
+            }
+            return at;
+        }
+
+        // The work root of this machine and user, from the folders Windows gives
+        public static string OfThisMachine()
+        {
+            return Of(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), ReadIfThere);
+        }
 
         public static string MachinePath(string appData)
         {

@@ -31,7 +31,8 @@ RULES = {"typologies": {"VD4": {}, "DP1": {}, "C10": {}},
                    "legend": [[0.1, 1], [0.2, 1], [0.27, 2], [0.37, 2], [0.44, 3], [0.54, 3]], "base_height": {"default": 100, "VD4": 200}, "one_step_only": ["C10"]},
          "levelProfiles": {PROFILE: {"job": "parsons", "stepBands": [[0.205, 1], [0.38, 2], [99.0, 3]],
                                      "keyRules": {"steps": {"rule": "stepsFromHeight"}, "baseHeight": {"rule": "profile"}}}},
-         "manualRules": [{"id": "M08", "text": "made up", "updateChecks": ["stepsAtMost", "stepHeights"]}, {"id": "M09", "text": "made up", "updateChecks": ["riser"]}]}
+         "manualRules": {"rules": [{"id": "M08", "text": "made up", "updateChecks": ["stepsAtMost", "stepHeights"]},
+                                   {"id": "M09", "text": "made up", "updateChecks": ["riser"]}]}}
 
 
 def entry(number, field, value, source, key):

@@ -424,13 +424,11 @@ def mirror_checks(found, written):
 
 def manual_checks(found, rules):
     block = rules.get("manualRules")
-    if isinstance(block, list):
-        entries = [(item.get("id"), item) for item in block if isinstance(item, dict)]
-    elif isinstance(block, dict):
-        entries = [(item.get("id") if isinstance(item.get("id"), str) else name, item) for name, item in block.items() if isinstance(item, dict)]
-    else:
+    listed = block.get("rules") if isinstance(block, dict) else None
+    if not isinstance(listed, list):
         found["lacks"].append("the rules profile holds no block manualRules, so no change breaks a manual rule (R402)")
         return
+    entries = [(item.get("id"), item) for item in listed if isinstance(item, dict)]
     by_check, bare = {}, []
     for ident, item in entries:
         if not isinstance(ident, str):

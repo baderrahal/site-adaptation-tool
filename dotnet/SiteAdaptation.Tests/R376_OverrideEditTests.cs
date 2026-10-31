@@ -1,0 +1,207 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Newtonsoft.Json.Linq;
+using SiteAdaptation.Common;
+using SiteAdaptation.Common.CheckTable;
+using Xunit;
+
+namespace SiteAdaptation.Tests
+{
+    // R376, R386. Use and Save overrides on a made up override list, held against PlanOverrides.Load, the C# of plan_rules.load_overrides
+    // that the parity of 4g3 holds to Python
+    public sealed class R376_OverrideEditTests : IDisposable
+    {
+        private readonly string folder = Path.Combine(Path.GetTempPath(), "override-edit-" + Guid.NewGuid().ToString("N"));
+
+        private const string List = "{\n  \"note\": \"made up\",\n  \"overrides\": [\n"
+            + "    {\"plot\": \"1\", \"field\": \"heightM\", \"value\": {\"gapToRuleM\": 0.05}, \"source\": \"parsons\", \"model\": \"kx-site.rvt\", \"key\": \"kx\"},\n"
+            + "    {\"plot\": \"4\", \"field\": \"rampFrontFallM\", \"value\": {\"gapToRuleM\": 1e-05}, \"source\": \"parsons\", \"model\": \"kx-site.rvt\", \"key\": \"kx\", \"reason\": \"é kept\"},\n"
+            + "    {\"plot\": \"5\", \"field\": \"steps\", \"value\": 3, \"source\": \"parsons\", \"model\": \"kx-site.rvt\", \"key\": \"kx\"}\n  ],\n"
+            + "  \"cannot\": [\n    {\"plot\": \"8\", \"field\": \"entryM\", \"reason\": \"none\"}\n  ]\n}\n";
+
+        public R376_OverrideEditTests()
+        {
+            Directory.CreateDirectory(folder);
+        }
+
+        public void Dispose()
+        {
+            Directory.Delete(folder, true);
+        }
+
+        private static JObject Config()
+        {
+            return JObject.Parse("{ 'majority': { 'groups': { 'native': ['n1'], 'parsons': ['kx', 'ky'] }, 'overrideDefaultSources': ['parsons'] } }");
+        }
+
+        private static List<CheckRow> Rows()
+        {
+            return new List<CheckRow>
+            {
+                new CheckRow { Index = 0, Plot = "1", Check = "Level", Field = "heightM", From = "override", OpenUse = CheckUse.Past, PastForm = "gapToRuleM", PastOffered = true, Key = "kx", Model = "kx-site.rvt" },
+                new CheckRow { Index = 1, Plot = "2", Check = "Hand", Field = "mirrored", From = "missing", OpenUse = CheckUse.Rule, PastForm = "trueOrFalse", PastValue = true, PastOffered = true, Key = "ky", Model = "ky-site.rvt" },
+                new CheckRow { Index = 2, Plot = "3", Check = "Team check", From = "team", OpenUse = CheckUse.Rule, PastWhy = "the team marked it" },
+                new CheckRow { Index = 3, Plot = "5", Check = "Level", Field = "steps", From = "override", OpenUse = CheckUse.Past, PastForm = "wholeNumber", PastOffered = true, Key = "kx", Model = "kx-site.rvt" },
+                new CheckRow { Index = 4, Plot = "7", Check = "Hand", Field = "mirrored", From = "missing", OpenUse = CheckUse.Rule, PastForm = "trueOrFalse", PastWhy = "no answer key holds plot 7" },
+            };
+        }
+
+        [Fact]
+        public void R376_save_writes_only_the_changed_rows_keeps_every_other_entry_cell_for_cell_and_the_build_reads_them_back()
+        {
+            string path = Path.Combine(folder, "list.json");
+            File.WriteAllText(path, List);
+            var uses = new[] { new CheckChoice(0, CheckUse.Rule), new CheckChoice(1, CheckUse.Past), new CheckChoice(2, CheckUse.Skip), new CheckChoice(3, CheckUse.Past) };
+
+            int changed = OverrideEdits.Save(path, Rows(), uses, Config(), "R4-1");
+
+            Assert.Equal(3, changed);
+            string text = File.ReadAllText(path);
+            string[] lines = text.Split('\n');
+            // Plot 4 and the cannot entry stay byte for byte, plot 5 set back to its opening Past is no change
+            Assert.Contains(List.Split('\n')[4], lines);
+            Assert.Contains(List.Split('\n')[5].TrimEnd(), lines.Select(line => line.TrimEnd(',')));
+            Assert.Contains("    {\"plot\": \"8\", \"field\": \"entryM\", \"reason\": \"none\"}", lines);
+            Assert.Contains("    {\"plot\": \"1\", \"field\": \"heightM\", \"value\": {\"gapToRuleM\": 0.05}, \"source\": \"parsons\", \"model\": \"kx-site.rvt\", \"key\": \"kx\", \"use\": \"rule\", \"byHand\": true},", lines);
+            Assert.Contains(lines, line => line.StartsWith("    {\"plot\": \"2\", \"field\": \"mirrored\", \"value\": true, \"source\": \"parsons\", \"model\": \"ky-site.rvt\", \"key\": \"ky\"", StringComparison.Ordinal) && line.Contains("\"byHand\": true"));
+            Assert.Contains(lines, line => line.StartsWith("    {\"plot\": \"3\", \"reason\": ", StringComparison.Ordinal) && line.EndsWith("\"byHand\": true}", StringComparison.Ordinal));
+            Assert.False(File.Exists(path + ".tmp-R4-1"));
+
+            OverrideList read = PlanOverrides.Load(path, Config(), JObject.Parse("{ 'job': 'parsons' }"), "p", "project.json");
+            Assert.Equal("3", read.Skip.Keys.Single());
+            Assert.True(read.Ruled["1"].ContainsKey("heightM"));
+            Assert.Equal(true, read.Of("2")["mirrored"].Value<bool>());
+            Assert.Equal(3, read.Of("5")["steps"].Value<int>());
+        }
+
+        [Fact]
+        public void R376_a_row_set_back_to_its_opening_value_is_no_change_and_the_list_is_not_written()
+        {
+            string path = Path.Combine(folder, "list.json");
+            File.WriteAllText(path, List);
+            DateTime before = File.GetLastWriteTimeUtc(path);
+
+            Assert.Equal(0, OverrideEdits.Save(path, Rows(), new[] { new CheckChoice(0, CheckUse.Past), new CheckChoice(1, CheckUse.Rule) }, Config(), "R4-2"));
+            Assert.Equal(List, File.ReadAllText(path));
+            Assert.Equal(before, File.GetLastWriteTimeUtc(path));
+        }
+
+        [Fact]
+        public void R376_past_where_it_is_not_offered_is_refused_with_its_reason_and_the_list_kept()
+        {
+            string path = Path.Combine(folder, "list.json");
+            File.WriteAllText(path, List);
+
+            var refused = Assert.Throws<InvalidOperationException>(() => OverrideEdits.Save(path, Rows(), new[] { new CheckChoice(4, CheckUse.Past) }, Config(), "R4-3"));
+            Assert.Contains("no answer key holds plot 7", refused.Message);
+            Assert.Equal(List, File.ReadAllText(path));
+        }
+
+        [Fact]
+        public void R376_rule_on_an_override_row_marks_use_rule_and_past_on_a_row_the_build_left_marks_use_past()
+        {
+            List<CheckRow> rows = Rows();
+            rows[0].OpenUse = CheckUse.Rule;
+            JObject entry = JObject.Parse("{ 'plot': '1', 'field': 'heightM', 'value': 1, 'use': 'rule', 'byHand': true }");
+
+            JObject changed = OverrideEdits.Entry(entry, rows[0], CheckUse.Past);
+
+            Assert.Equal("past", (string)changed["use"]);
+            Assert.True((bool)changed["byHand"]);
+            Assert.Equal("rule", (string)entry["use"]);
+        }
+
+        private static string WithSkip()
+        {
+            return List.Replace("  ]\n}\n", "  ],\n  \"skip\": [\n    {\"plot\": \"3\", \"reason\": \"by hand\", \"byHand\": true},\n    {\"plot\": \"5\", \"reason\": \"by hand\", \"byHand\": true}\n  ]\n}\n");
+        }
+
+        [Fact]
+        public void R376_save_counts_only_what_it_writes_so_skip_on_a_plot_the_list_skips_already_writes_nothing()
+        {
+            string path = Path.Combine(folder, "list.json");
+            File.WriteAllText(path, WithSkip());
+
+            Assert.Equal(0, OverrideEdits.Save(path, Rows(), new[] { new CheckChoice(2, CheckUse.Skip) }, Config(), "R4-6"));
+            Assert.Equal(WithSkip(), File.ReadAllText(path));
+        }
+
+        // The skip list holds a plot, not a row, so the plot comes off it once no row of it is left on Skip
+        [Fact]
+        public void R376_rule_or_past_on_rows_that_opened_on_skip_take_the_plot_off_the_skip_list_and_a_row_left_on_skip_is_refused()
+        {
+            string path = Path.Combine(folder, "list.json");
+            File.WriteAllText(path, WithSkip());
+            List<CheckRow> rows = Rows();
+            rows[3].OpenUse = CheckUse.Skip;
+            rows.Add(new CheckRow { Index = 5, Plot = "5", Check = "Level", Field = "rampType", From = "question", OpenUse = CheckUse.Skip, PastWhy = "a question decides it" });
+
+            var refused = Assert.Throws<InvalidOperationException>(() => OverrideEdits.Save(path, rows, new[] { new CheckChoice(5, CheckUse.Rule) }, Config(), "R4-7"));
+            Assert.Contains("plot 5", refused.Message);
+            Assert.Equal(WithSkip(), File.ReadAllText(path));
+
+            Assert.Equal(2, OverrideEdits.Save(path, rows, new[] { new CheckChoice(3, CheckUse.Past), new CheckChoice(5, CheckUse.Rule) }, Config(), "R4-8"));
+            string[] lines = File.ReadAllText(path).Split('\n');
+            Assert.Contains("    {\"plot\": \"3\", \"reason\": \"by hand\", \"byHand\": true}", lines);
+            Assert.DoesNotContain(lines, line => line.StartsWith("    {\"plot\": \"5\", \"reason\": ", StringComparison.Ordinal));
+            // Past is the use the entry of plot 5 holds under the skip, so only the skip line goes and the entry stays byte for byte
+            Assert.Contains(List.Split('\n')[5].TrimEnd(), lines.Select(line => line.TrimEnd(',')));
+            OverrideList read = PlanOverrides.Load(path, Config(), JObject.Parse("{ 'job': 'parsons' }"), "p", "project.json");
+            Assert.Equal("3", read.Skip.Keys.Single());
+        }
+
+        // R376, R330. A row of a plot that opened on Skip holds under the skip the use of its entry, Rule for an entry marked "use": "rule",
+        // else Past. That same use takes only the skip line out and leaves the entry byte for byte, so an applied override stays applied
+        // and an entry majority.py wrote is never frozen as a hand edit. Only another use edits the entry and marks it byHand
+        private const string Skipped = "{\n  \"note\": \"made up\",\n  \"overrides\": [\n"
+            + "    {\"plot\": \"5\", \"field\": \"heightM\", \"value\": {\"gapToRuleM\": 0.02}, \"source\": \"parsons\", \"model\": \"kx-site.rvt\", \"key\": \"kx\", \"use\": \"rule\", \"byHand\": true},\n"
+            + "    {\"plot\": \"5\", \"field\": \"steps\", \"value\": 3, \"source\": \"parsons\", \"model\": \"kx-site.rvt\", \"key\": \"kx\"}\n  ],\n"
+            + "  \"skip\": [\n    {\"plot\": \"3\", \"reason\": \"by hand\", \"byHand\": true},\n    {\"plot\": \"5\", \"reason\": \"by hand\", \"byHand\": true}\n  ]\n}\n";
+
+        private static List<CheckRow> SkippedRows()
+        {
+            return new List<CheckRow>
+            {
+                new CheckRow { Index = 0, Plot = "5", Check = "Level", Field = "heightM", From = "override", OpenUse = CheckUse.Skip, PastForm = "gapToRuleM", PastOffered = true, Key = "kx", Model = "kx-site.rvt" },
+                new CheckRow { Index = 1, Plot = "5", Check = "Level", Field = "steps", From = "override", OpenUse = CheckUse.Skip, PastForm = "wholeNumber", PastOffered = true, Key = "kx", Model = "kx-site.rvt" },
+            };
+        }
+
+        [Fact]
+        public void R376_R330_off_skip_with_the_use_its_entry_holds_drops_only_the_skip_line_and_another_use_edits_the_entry()
+        {
+            string path = Path.Combine(folder, "list.json");
+            File.WriteAllText(path, Skipped);
+
+            Assert.Equal(2, OverrideEdits.Save(path, SkippedRows(), new[] { new CheckChoice(0, CheckUse.Rule), new CheckChoice(1, CheckUse.Past) }, Config(), "R4-10"));
+            Assert.Equal(Skipped.Replace(",\n    {\"plot\": \"5\", \"reason\": \"by hand\", \"byHand\": true}", ""), File.ReadAllText(path));
+            // The loader of a build reads the steps override as applied and heightM as ruled, as they stood under the skip
+            OverrideList read = PlanOverrides.Load(path, Config(), JObject.Parse("{ 'job': 'parsons' }"), "p", "project.json");
+            Assert.Equal(3, read.Of("5")["steps"].Value<int>());
+            Assert.True(read.Ruled["5"].ContainsKey("heightM"));
+            Assert.Equal("3", read.Skip.Keys.Single());
+
+            File.WriteAllText(path, Skipped);
+            Assert.Equal(2, OverrideEdits.Save(path, SkippedRows(), new[] { new CheckChoice(0, CheckUse.Past), new CheckChoice(1, CheckUse.Rule) }, Config(), "R4-11"));
+            string[] lines = File.ReadAllText(path).Split('\n').Select(line => line.TrimEnd(',')).ToArray();
+            Assert.Contains("    {\"plot\": \"5\", \"field\": \"heightM\", \"value\": {\"gapToRuleM\": 0.02}, \"source\": \"parsons\", \"model\": \"kx-site.rvt\", \"key\": \"kx\", \"use\": \"past\", \"byHand\": true}", lines);
+            Assert.Contains("    {\"plot\": \"5\", \"field\": \"steps\", \"value\": 3, \"source\": \"parsons\", \"model\": \"kx-site.rvt\", \"key\": \"kx\", \"use\": \"rule\", \"byHand\": true}", lines);
+            Assert.DoesNotContain(lines, line => line.StartsWith("    {\"plot\": \"5\", \"reason\": ", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void R376_a_use_on_an_override_row_the_list_holds_no_entry_for_is_refused_and_writes_nothing()
+        {
+            string path = Path.Combine(folder, "list.json");
+            File.WriteAllText(path, List);
+            List<CheckRow> rows = Rows();
+            rows[0].Field = "entryM";
+
+            var refused = Assert.Throws<InvalidOperationException>(() => OverrideEdits.Save(path, rows, new[] { new CheckChoice(0, CheckUse.Rule) }, Config(), "R4-9"));
+            Assert.Contains("plot 1", refused.Message);
+            Assert.Equal(List, File.ReadAllText(path));
+        }
+    }
+}

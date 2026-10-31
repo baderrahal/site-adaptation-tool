@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using SiteAdaptation.Common.Flow;
+using SiteAdaptation.Common.Settings;
+using SiteAdaptation.Common.Steps;
 
 namespace SiteAdaptation.AddIn.Pane
 {
@@ -45,21 +47,61 @@ namespace SiteAdaptation.AddIn.Pane
             return status.Kind == StepKind.NeedsStep ? status.Value : 0;
         }
 
-        // CHOSEN for 5a: every button reads the Settings file only. 5c gives each button the inputs it reads by 03a and 03b
+        // CHOSEN for 5a: every button reads the Settings file. 5c gives button 2 the input files of the pane it reads (R375), the
+        // other buttons get theirs as they are built
         public IReadOnlyList<RunInput> Inputs(int button)
         {
-            string configFile = model.Settings == null ? null : model.Settings.ConfigFile;
-            return new[] { new RunInput(PaneText.Settings, configFile, false) };
+            return InputsOf(model.Settings ?? new PaneSettings(), button);
+        }
+
+        // The inputs of a button by the settings of the pane, the ones the flow hashes for its run and the pane for the step state
+        public static IReadOnlyList<RunInput> InputsOf(PaneSettings settings, int button)
+        {
+            var inputs = new List<RunInput> { new RunInput(PaneText.Settings, settings.ConfigFile, false) };
+            if (button == 2)
+            {
+                inputs.AddRange(ReadDataBody.Inputs(settings));
+            }
+            if (button == 4)
+            {
+                inputs.AddRange(CheckTable.CheckTableBody.Inputs(settings));
+            }
+            return inputs;
         }
 
         // A run whose output move failed leaves its step not Done (03a Steps)
         public void Committed(int button, RunRecord record)
         {
+            StepRun run = model.Document == null ? null : RunOf(model.Document, record);
+            if (run != null)
+            {
+                model.Committed(button, run);
+            }
+        }
+
+        // R375. The end of a worker run on a document that is not the active one is kept with its session, which the pane shows
+        // when that document is active again
+        public static void Record(DocumentSession session, int button, RunRecord record)
+        {
+            StepRun run = session == null ? null : RunOf(session, record);
+            if (run != null)
+            {
+                session.Runs[button] = run;
+            }
+        }
+
+        // R366. The run as StepStates reads it: now, the one hash over the inputs the flow hashed, the scope of the pane at the end
+        // and every output the record lists with its SHA-256
+        private static StepRun RunOf(DocumentSession session, RunRecord record)
+        {
             if (!record.StepDone)
             {
-                return;
+                return null;
             }
-            model.Committed(button, record.Issues.Count == 0 ? new StepStatus(StepKind.Done) : new StepStatus(StepKind.Issues, record.Issues.Count));
+            SettingsScope scope = session.Settings.Scope;
+            var copy = new SettingsScope { Kind = scope.Kind, Nbh = scope.Nbh, Plots = scope.Plots };
+            var hashes = record.InputHashes ?? new Dictionary<string, string>();
+            return new StepRun(DateTime.UtcNow, StepHash.Combine(hashes), copy, record.Issues.Count, record.Outputs);
         }
     }
 }

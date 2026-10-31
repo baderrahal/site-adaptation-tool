@@ -1,6 +1,6 @@
 {
   "note": "Bader decided that Top Surface-02 is the finished road for the ramps, so its role is road. The other five design surfaces stay design and none of them is confirmed. A ramp corner that does not match the road is a design choice and is not forced to match. The role proposal of the ramp test only suggests, this file is the only place roles live.",
-  "folder": "C:/Users/bader/Documents/SiteAdaptation",
+  "folder": "{workRoot}",
   "landxml": "Makkah Phase 1_Road Surface C3D.xml",
   "prototypes": "prototypes.json",
   "rampTypes": ["Ramps 0.5%", "Ramps 2%", "Flat Ramps"],

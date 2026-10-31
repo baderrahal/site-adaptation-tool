@@ -7,6 +7,7 @@ using System.Threading;
 using System.Windows.Threading;
 using SiteAdaptation.AddIn;
 using SiteAdaptation.AddIn.Pane;
+using SiteAdaptation.Common.Settings;
 using SiteAdaptation.Common;
 using Xunit;
 
@@ -24,14 +25,14 @@ namespace SiteAdaptation.Tests
         {
             PaneSettings full = SettingsFile.Read(@"{
                 ""formatVersion"": 1, ""configFile"": ""C:\\Job\\project.json"", ""rulesFile"": ""C:\\Job\\rules.json"", ""levelProfile"": ""native2022"",
-                ""inputs"": { ""baseplan"": { ""path"": ""C:\\Job\\a.dwg"", ""size"": 12, ""sha256"": ""ab"" }, ""prototypes"": { ""path"": ""C:\\Job\\p"" } },
+                ""inputs"": { ""baseplan"": { ""path"": ""C:\\Job\\a.dwg"", ""size"": 12, ""sha256"": ""0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"" }, ""prototypes"": { ""path"": ""C:\\Job\\p"" } },
                 ""scope"": { ""kind"": ""plots"", ""plots"": ""2290-2299, 2311"" }, ""dryRunFirst"": false, ""villaMode"": ""links"" }");
             Assert.Equal(1, full.FormatVersion);
             Assert.Equal(@"C:\Job\project.json", full.ConfigFile);
             Assert.Equal(@"C:\Job\rules.json", full.RulesFile);
             Assert.Equal("native2022", full.LevelProfile);
             Assert.Equal(12L, full.Inputs[InputKeys.Baseplan].Size);
-            Assert.Equal("ab", full.Inputs[InputKeys.Baseplan].Sha256);
+            Assert.Equal("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", full.Inputs[InputKeys.Baseplan].Sha256);
             Assert.Null(full.Inputs[InputKeys.Prototypes].Size);
             Assert.Equal(ScopeKinds.Plots, full.Scope.Kind);
             Assert.Equal("2290-2299, 2311", full.Scope.Plots);
@@ -42,17 +43,19 @@ namespace SiteAdaptation.Tests
             PaneSettings small = SettingsFile.Read("{\"formatVersion\": 1}");
             Assert.False(small.Chosen);
             Assert.True(small.DryRunFirst);
-            Assert.Equal(VillaModes.Masses, small.VillaMode);
+            // Item 6 of the 5c join: no villaMode in the settings leaves the default to config, which the pane reads (R404)
+            Assert.Null(small.VillaMode);
             Assert.Equal(ScopeKinds.Project, small.Scope.Kind);
             Assert.Empty(small.Inputs);
             Assert.True(new PaneSettings().DryRunFirst);
-            Assert.Equal(VillaModes.Masses, new PaneSettings().VillaMode);
+            Assert.Null(new PaneSettings().VillaMode);
         }
 
         [Fact]
         public void R372_the_settings_reader_refuses_a_later_version_with_both_named_and_a_value_it_does_not_know()
         {
-            Assert.Equal("the settings file is formatVersion 2, this add-in reads up to 1", Assert.Throws<InvalidDataException>(() => SettingsFile.Read("{\"formatVersion\": 2}")).Message);
+            // J1: the reader of R367 since 5c, its words
+            Assert.Equal("the settings JSON is formatVersion 2, this add-in reads formatVersion 1 and earlier", Assert.Throws<InvalidDataException>(() => SettingsFile.Read("{\"formatVersion\": 2}")).Message);
             Assert.Contains("no whole formatVersion", Assert.Throws<InvalidDataException>(() => SettingsFile.Read("{}")).Message);
             Assert.Contains("villaMode boxes", Assert.Throws<InvalidDataException>(() => SettingsFile.Read("{\"formatVersion\": 1, \"villaMode\": \"boxes\"}")).Message);
             Assert.Contains("an input roads", Assert.Throws<InvalidDataException>(() => SettingsFile.Read("{\"formatVersion\": 1, \"inputs\": {\"roads\": {}}}")).Message);
@@ -111,27 +114,51 @@ namespace SiteAdaptation.Tests
         }
 
         // Bader, 28 Oct 2026: Import from past job and Export of the row Pre-setting, and Import pre-setting of the first open box,
-        // which runs Import from past job, say they are not built yet in 5a. Their logic joins R367 at 5c, W4 of steps/lane-b.md
+        // which runs Import from past job. W4 of steps/lane-b.md joins them to R367 at 5c: Export writes the pre-setting of the
+        // document to a file the user names, Import reads one into the settings in memory, a refusal is told and changes nothing
         [Fact]
-        public void R372_import_from_past_job_and_export_say_they_are_not_built_yet_and_wait_for_a_document()
+        public void R367_import_from_past_job_and_export_carry_the_pre_setting_through_a_file_and_wait_for_a_document()
         {
-            PaneViewModel model = Model(new FakeProbe());
-            var told = new List<string>();
-            model.Told += told.Add;
-            Assert.False(model.ImportCommand.CanExecute(null));
-            Assert.False(model.ExportCommand.CanExecute(null));
+            string folder = Path.Combine(Path.GetTempPath(), "pane-preset-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                string file = Path.Combine(folder, "past job.json");
+                var picker = new FakePicker(file, file, null, file);
+                var model = new PaneViewModel(new FakeProbe(), picker);
+                var told = new List<string>();
+                model.Told += told.Add;
+                Assert.False(model.ImportCommand.CanExecute(null));
+                Assert.False(model.ExportCommand.CanExecute(null));
 
-            model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
-            Assert.True(model.FirstOpen);
-            Assert.True(model.ImportCommand.CanExecute(null));
-            Assert.True(model.ExportCommand.CanExecute(null));
-            model.ImportCommand.Execute(null);
-            model.ExportCommand.Execute(null);
+                model.Load(new DocumentSession("s", Folder + "Site.rvt", "Site"));
+                model.LoadSettings(new PaneSettings { ConfigFile = Folder + "project.json", RulesFile = Folder + "rules.json", LevelProfile = "native2022" });
+                model.PickInput(InputKeys.Baseplan, Folder + "baseplan.dwg");
+                model.ExportCommand.Execute(null);
+                Assert.DoesNotContain("baseplan", File.ReadAllText(file));
 
-            Assert.Equal(new[] { "Import from past job is not built yet.", "Export is not built yet." }, told);
-            Assert.Null(model.Settings.ConfigFile);
-            Assert.True(model.FirstOpen);
-            Assert.Equal(new[] { "Import from past job", "Export" }, new[] { PaneText.ImportPastJob, PaneText.Export });
+                model.Load(new DocumentSession("t", Folder + "New.rvt", "New"));
+                Assert.True(model.FirstOpen);
+                model.ImportCommand.Execute(null);
+                Assert.False(model.FirstOpen);
+                Assert.Equal(Folder + "rules.json", model.Settings.RulesFile);
+                Assert.Equal("native2022", model.Settings.LevelProfile);
+                Assert.Null(model.Settings.InputPath(InputKeys.Baseplan));
+
+                // A Cancel changes nothing, a file R367 refuses is told and changes nothing
+                model.ExportCommand.Execute(null);
+                File.WriteAllText(file, "not json");
+                model.Load(new DocumentSession("u", Folder + "Other.rvt", "Other"));
+                model.ImportCommand.Execute(null);
+                Assert.Single(told);
+                Assert.Contains("no JSON object", told[0]);
+                Assert.True(model.FirstOpen);
+                Assert.Equal(new[] { PaneText.Export, PaneText.ImportPastJob, PaneText.Export, PaneText.ImportPastJob }, picker.Titles);
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
         }
 
         // Review 1 of PR 90: the box names config/project.json, which holds no formatVersion, so it picks the config file as the
@@ -233,15 +260,15 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 4 }, Enumerable.Range(1, 9).Select(StepPlan.Needs));
             Assert.Throws<ArgumentOutOfRangeException>(() => StepPlan.Needs(0));
             Assert.Throws<ArgumentOutOfRangeException>(() => StepPlan.Needs(10));
-            Assert.Equal(9, StepPlan.Before5c(true).Count);
+            Assert.Equal(9, StepPlan.None(true).Count);
             string changes = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "docs", "design", "13-workflow-changes.md"));
             Match odd = Regex.Match(changes, @"Each step needs the one before, and (\d) [\w ]+ needs (\d) \w+\.");
             Assert.True(odd.Success);
             Assert.Equal(int.Parse(odd.Groups[2].Value), StepPlan.Needs(int.Parse(odd.Groups[1].Value)));
-            Assert.Equal(StepKind.NeedsSettings, StepPlan.Before5c(false)[0].Kind);
-            Assert.Equal(StepKind.Ready, StepPlan.Before5c(true)[0].Kind);
-            Assert.Equal(1, StepPlan.Next(StepPlan.Before5c(true)));
-            Assert.Equal(0, StepPlan.Next(StepPlan.Before5c(false)));
+            Assert.Equal(StepKind.NeedsSettings, StepPlan.None(false)[0].Kind);
+            Assert.Equal(StepKind.Ready, StepPlan.None(true)[0].Kind);
+            Assert.Equal(1, StepPlan.Next(StepPlan.None(true)));
+            Assert.Equal(0, StepPlan.Next(StepPlan.None(false)));
         }
 
         [Fact]
@@ -343,7 +370,7 @@ namespace SiteAdaptation.Tests
             model.LoadSettings(new PaneSettings { ConfigFile = Folder + "project.json" });
             model.PickInput(InputKeys.Baseplan, Folder + "a.dwg");
             probe.Finish();
-            InputFile input = model.Settings.Inputs[InputKeys.Baseplan];
+            SettingsInput input = model.Settings.Inputs[InputKeys.Baseplan];
             Assert.Equal(1048576L, input.Size);
             Assert.StartsWith("12345678", input.Sha256);
 
@@ -851,6 +878,12 @@ namespace SiteAdaptation.Tests
                 now.ForEach(answer => answer());
             }
 
+            // The villaModeDefault of config/project.json
+            public string VillaModeDefault(string configFile)
+            {
+                return VillaModes.Masses;
+            }
+
             public IReadOnlyList<string> LevelProfiles(string rulesFile, out string fallback)
             {
                 fallback = string.IsNullOrEmpty(rulesFile) ? null : Profiles.FirstOrDefault();
@@ -880,6 +913,12 @@ namespace SiteAdaptation.Tests
             public string Folder()
             {
                 Titles.Add("folder");
+                return answers.Dequeue();
+            }
+
+            public string Save(string title)
+            {
+                Titles.Add(title);
                 return answers.Dequeue();
             }
         }

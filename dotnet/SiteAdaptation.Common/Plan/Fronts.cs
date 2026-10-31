@@ -197,14 +197,11 @@ namespace SiteAdaptation.Common
     {
         public const string StepName = "fronts";
 
-        // entry_levels.FRONT_TIE, how near another candidate edge makes a tie, and the probe of corner_front.outward, in metres
-        private const double FrontTie = 1.0;
-        private const double Probe = 0.01;
-
-        private static readonly Dictionary<string, double[]> Quadrants = new Dictionary<string, double[]>
-        {
-            ["EN"] = new[] { 0.0, 90.0 }, ["SE"] = new[] { 90.0, 180.0 }, ["WS"] = new[] { 180.0, 270.0 }, ["NW"] = new[] { 270.0, 360.0 },
-        };
+        // entry_levels.FRONT_TIE, how near another candidate edge makes a tie, and the probe of corner_front.outward, in metres, and the
+        // bearings of each orientation, from designValues.fronts of the config (R405, Q103)
+        private static double FrontTie => DesignValues.Current.FrontTieM;
+        private static double Probe => DesignValues.Current.FrontOutwardProbeM;
+        private static IReadOnlyDictionary<string, double[]> Quadrants => DesignValues.Current.Quadrants;
 
         // plan_rules.road_names: the road surfaces a build asks for El @ Entry and the ramp front, siteBuild.roadSurfaces in their order for
         // frontRoad roadLevel, else the one surface frontRoad names. The one setting the build steps and the level Excel take them from

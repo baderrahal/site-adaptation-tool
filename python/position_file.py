@@ -37,6 +37,7 @@ from pathlib import Path
 import cad_links
 import cad_units
 import common
+import design_values
 import face_index
 import face_rings
 import key_rules
@@ -51,8 +52,8 @@ FORMAT_VERSION = 1
 POINTS_FORMAT = "site-adaptation-key-points"
 STEPS = ("position", "checkPoints")
 # A point or a level of the file is the one of the rules within half a mm, an angle within a millionth of a degree, as R331 holds a read
-SAME_MM = 0.5
-SAME_DEG = 1e-6
+SAME_MM = design_values.value("samePoint.sameMm")
+SAME_DEG = design_values.value("samePoint.sameDeg")
 UNIT_FIELDS = ("system", "length", "lengthSystem")
 
 

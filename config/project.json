@@ -39,10 +39,10 @@
     "neighbourhood": "IMC",
     "schedule": "00101-PSN-IMC-XXX-SCH-TU-090000.xlsx",
     "sheet": "MP_Phase 1_Zone21",
-    "prototypes": "C:\\Users\\bader\\Documents\\SiteAdaptation\\prototypes_imc_past.json",
+    "prototypes": "{workRoot}\\prototypes_imc_past.json",
     "prototypeFolder": "00_Revit Models\\Zone 02\\ARC\\Prototypes",
     "upgradedPrototypeFolder": "00_Revit Models\\Zone 02\\ARC\\Prototypes_2024",
-    "output": "C:\\Users\\bader\\Documents\\SiteAdaptation\\plan_imc_past.json",
+    "output": "{workRoot}\\plan_imc_past.json",
     "parameters": [
       "RRE_ZZ_SP_Plot-Number",
       "RRE_ZZ_SP_Prototype",
@@ -131,7 +131,7 @@
       "shiftSearch": 1,
       "pdfToleranceM": 1.0,
       "unitBlockKinds": ["Villa", "Duplex", "Townhouse"],
-      "r06Outlines": "C:/Users/bader/Documents/SiteAdaptation/data_book/wiring/cad/221229_MP-SK-01-03-001_R06.dwg",
+      "r06Outlines": "{workRoot}/data_book/wiring/cad/221229_MP-SK-01-03-001_R06.dwg",
       "widenM": 0.5,
       "minShare": 0.1,
       "shareTie": 0.02,
@@ -218,13 +218,13 @@
     "floorWidthStepM": 0.5,
     "cutNeighbours": ["2374", "2391", "2543", "2546"],
     "caseParameters": ["RRE_ZZ_SP_Façade-Design-Option", "RRE_ZZ_SP_Façade-Color"],
-    "planOutput": "C:\\Users\\bader\\Documents\\SiteAdaptation\\plan_imc_cad.json"
+    "planOutput": "{workRoot}\\plan_imc_cad.json"
   },
   "handCheck": {
-    "folders": ["C:\\Users\\bader\\Documents\\SiteAdaptation\\data_book\\work\\00_Revit Models\\Zone 02\\ARC\\Prototypes_2024"]
+    "folders": ["{workRoot}\\data_book\\work\\00_Revit Models\\Zone 02\\ARC\\Prototypes_2024"]
   },
   "siteBuild": {
-    "folder": "C:\\Users\\bader\\Documents\\SiteAdaptation\\round_addin",
+    "folder": "{workRoot}\\round_addin",
     "template": "C:\\ProgramData\\Autodesk\\RVT 2024\\Templates\\English\\DefaultMetric.rte",
     "newFile": null,
     "answerKey": {
@@ -233,13 +233,13 @@
       "others": [],
       "code": "KC"
     },
-    "lock": "C:\\Users\\bader\\Documents\\SiteAdaptation\\window.lock",
+    "lock": "{workRoot}\\window.lock",
     "waitMinutes": 5,
     "staleHours": 2,
     "minFreeGB": 2.0,
     "windowProcesses": ["acad", "accoreconsole", "Revit"],
     "snapshot": {
-      "dataBook": "C:\\Users\\bader\\Documents\\SiteAdaptation\\data_book",
+      "dataBook": "{workRoot}\\data_book",
       "files": ["plots.csv", "locationPlan.json", "locationPlan.md", "units.csv", "wiring.json", "retest.json", "analysis.json", "README.md"],
       "folders": ["location_plan", "landxml", "Makkah Phase 1_Road Surface C3D", "Makkah Phase 1_Road Layout", "Makkah Phase 1_Rough Grading", "ROSHN Makkah Baseplan"],
       "rev9": ["work\\Master Plan Rev.09\\01101-PSN-ZZZ-XXX-DWG-TU-005000.pdf", "work\\Master Plan Rev.09\\PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_(Rev9)_Accomodation_Schedule.xlsx", "work\\Master Plan Rev.09\\TBD-PSN-ZZZ-XXX-SCH-TM-000201- DLUS Schedule_Rev9.0.xlsx"]
@@ -358,14 +358,39 @@
     "workerTimeLimitMinS": 10,
     "workerTimeLimitMinNote": "R347. The shortest time limit a launch takes, a request under it is refused before the start, so a limit typed too short never kills a sound run. CHOSEN in the second review of PR 50: 10 s, ten times the 1.0 s the worker build of the step faces took on the 2,704 unit plots of the snapshot, its start included",
     "position": {
-      "note": "R353, Q068. The project position file of button 1, written by the command position of the worker (python/position_file.py the Python side) from the read of the reference key of majority.siteReference, outside git since it holds coordinates and levels: the project position of the internal origin in shared coordinates and its angle, the survey point and the project base point in internal and shared coordinates, the levels and the one Elevation Base they stand on, the units, the length accuracy and the active site with the sites, refused when it differs from any value of keyRules.site of the level profile or when the reference key differs from another key of its group of majority.groups. file is where button 1 reads it, the worker writes it under that file name into the output folder of its request. checkPointLimitMm is the pass limit of the check points of button 1, the 1 mm of R211, gapDecimals the decimals the Diff is shown and judged at by R385 (docs/design/03a-buttons-shared-and-1.md 3.1 and docs/design/07-mock.md 7.3, CHOSEN by the design). Since the review of PR 54 the check points of the worker hold the baseplan against the floor corners of the keys read at full precision through the file (Q086). Since its second review every key read is held to its key by key_copies.json, the input keyCopies, and to every value of the set, the baseplan is read at full precision, the face of each point is held to the numbering of labels.csv and config/plot_numbers.json, the inputs labels and plotShifts, and a failed point is an issue of the command, which ends done. Since its third review the numbering takes the client code rows alone, a number on two faces fails its points, and a point on a vertex CadReader merged more than checkPointLimitMm fails.",
-      "file": "C:/Users/bader/Documents/SiteAdaptation/round_addin/position/position_parsons.json",
-      "checkPointLimitMm": 1.0,
+      "note": "R353, Q068. The project position file of button 1, written by the command position of the worker (python/position_file.py the Python side) from the read of the reference key of majority.siteReference, outside git since it holds coordinates and levels: the project position of the internal origin in shared coordinates and its angle, the survey point and the project base point in internal and shared coordinates, the levels and the one Elevation Base they stand on, the units, the length accuracy and the active site with the sites, refused when it differs from any value of keyRules.site of the level profile or when the reference key differs from another key of its group of majority.groups. file is where button 1 reads it, the worker writes it under that file name into the output folder of its request. checkPointLimitMm is the pass limit of the check points of the worker against the keys, 2 mm by the answer of Q086 (Bader, 2026-10-29), revitCheckPointLimitMm that of the check points of button 1 against Revit, the Revit column after Apply against the transform of the dry run, 0.1 mm under a key of its own by the answer of Q142 (Bader, 29 Oct 2026, W2), gapDecimals the decimals the Diff is shown and judged at by R385 (docs/design/03a-buttons-shared-and-1.md 3.1 and docs/design/07-mock.md 7.3, CHOSEN by the design). Since the review of PR 54 the check points of the worker hold the baseplan against the floor corners of the keys read at full precision through the file (Q086). Since its second review every key read is held to its key by key_copies.json, the input keyCopies, and to every value of the set, the baseplan is read at full precision, the face of each point is held to the numbering of labels.csv and config/plot_numbers.json, the inputs labels and plotShifts, and a failed point is an issue of the command, which ends done. Since its third review the numbering takes the client code rows alone, a number on two faces fails its points, and a point on a vertex CadReader merged more than checkPointLimitMm fails.",
+      "file": "{workRoot}/round_addin/position/position_parsons.json",
+      "checkPointLimitMm": 2.0,
+      "revitCheckPointLimitMm": 0.1,
       "gapDecimals": 2
+    },
+    "readData": {
+      "note": "R375, Lane B 5c. The files button 2 Read data hands the worker command read beside the files of the pane, added by Code since no key named them: cadLayers, the layer list beside this file, scheduleFolder, the folder under inputRoot of the schedule of each neighbourhood of connect.neighbourhoods, as python/full_run.XLSX_FOLDER and read_steps.py take it, and dataBookFiles, the files of the data book the road levels (plotsCsv and labels, R349) and the plot table (border, R352) read, in dataBookFolder, a folder of the work root of R372 when it is no full path, as the data book of python/c3d_probe.json lies in the work root. A file not on disk stops the button and names it",
+      "cadLayers": "cad_layers.json",
+      "scheduleFolder": "01_Output/1.11 References",
+      "dataBookFolder": "data_book",
+      "dataBookFiles": {"plotsCsv": "plots.csv", "labels": "location_plan/labels.csv", "border": "phase1_border.csv"}
+    },
+    "lightMode": {
+      "note": "R404, D2, J4, Lane B 5c. Light mode of docs/design/11-light-mode.md, read by button 7 Place villas. villaModeDefault is the Villa mode of a run whose pane row picks none, masses for test runs and for a run Bader starts by hand (Q129), links picked per run. solidHeightM is the height of the solid of a villa in Masses, 3.0 CHOSEN by Code as one storey since no record measures it, an open question of Lane B 5c. baseBoundary is where the base of a prototype is read, lowestFloor the outer loop of the floor of the lowest level, floorType the outer loop of the floor of the type baseBoundaryFloorType, areaBoundary the loop of the area boundary lines, lowestFloor by the recommended answer of Q164 while it is open. footprintLimitMm is the limit of the largest distance between the placed base and the villa outline of the CAD footprint, taken both ways (Q130), 100 CHOSEN by Code since no record measures it, an open question of Lane B 5c. footprintSampleStepMm is the step each edge is sampled at for that distance, so it is exact to half of it, 10 CHOSEN by Code. No key sets a plotted value",
+      "villaModeDefault": "masses",
+      "solidHeightM": 3.0,
+      "baseBoundary": "lowestFloor",
+      "baseBoundaryFloorType": null,
+      "footprintLimitMm": 100.0,
+      "footprintSampleStepMm": 10.0
     },
     "plotTable": {
       "note": "R352. The order of the footprint blocks of a face in the plot table of button 2: overlapDecimals, the decimals R385 writes the overlap of each block with its face at before the order, the largest written overlap first and the blocks of one written overlap in the order of the read. Its own setting, never a tolerance of addin.parity, which tells only how far the two sides of the parity may lie apart. CHOSEN in the review of PR 54 at 4, the decimals the table writes faceAreaM2 at: on the 36 faces of the data book with two blocks or more the 1,882 overlaps lie at least 4.99E-07 m2 from a rounding boundary of 4 decimals, 210 times the 2.37E-09 m2 of binary noise between two sides measured in Round ADDIN 4d, where at 7 decimals 27 lie within 1E-08 m2 of one, the nearest 3.5E-10 m2, and at 6 decimals 515 (round_addin logs p4dfix_r352_decimals.txt). Blocks whose overlaps differ by less than the fourth decimal are one group, which puts 15 of the 36 faces in another order than the groups within 1E-06 m2 of 4d.",
       "overlapDecimals": 4
+    },
+    "wallTypes": ["BW", "Generic Wall-150mm_ Garden"],
+    "wallTypesNote": "R373, J18. The wall types button 1 sets, those of 03a 1 Set up site Outputs, BW and the most used garden type of the IMC key (READ key_reads.json in 5b)",
+    "siteUnits": {
+      "note": "R373, J18. The units button 1 sets beside the length of the position file, by the names SiteFacts.UnitName gives, 03a 1 Set up site step 1: area in square meters, angle and slope in degrees",
+      "area": "squareMeters",
+      "angle": "degrees",
+      "slope": "slopeDegrees"
     },
     "sharedParameters": {
       "note": "R353. The shared parameters button 1 binds and every button reads and writes by GUID (docs/design/03a-buttons-shared-and-1.md 3.1), read from the answer keys by the read job of the test host (testhost_<code>_parameters.json) and written by python/key_parameters.py: per name its GUID, the categories the keys bind it to, how many keys hold it and routes, the routes of the read that held the GUID, the SharedParameterElement and the parameters of the elements. projectParameterIn names the keys that bind a project parameter of the name. noGuid lists each name with no GUID and why, a project parameter holds none, and button 1 stops on a name of config with no GUID. conflicts lists each name the keys disagree on, two GUIDs, elements of another GUID, or keys that bind it shared and keys that hold it only as a project parameter. The block is a measure the run alone writes, a hand entry here is refused until Q087 and so is a run that reads fewer keys than this block (Q085, Q087).",
@@ -739,6 +764,58 @@
             "written": {"kind": "noGeometry"}
         }
       }
+    }
+  },
+  "designValues": {
+    "note": "R405, Q103 (Bader, 2026-10-27). The design values a build, the placer and button 1 take, moved out of the code in Lane B 5c, each read by python/design_values.py and DesignValues.cs and refused by its name when missing. The note of each block names the rule of each key and its row of section 7 of steps/investigations/rule-status-audit.md. The tolerances of the one-off checkers of past rounds stay in their code with a note there. Rounding.Significant and common.SIGNIFICANT stay in code, the 15 digits of the G15 text of a double (CHOSEN by Code)",
+    "placer": {
+      "note": "R83 to R87, rows C1 and C2. coordinateToleranceM and angleToleranceDeg hold the plan against the survey point and the angle of the document, zToleranceM the insert against the FFL, readBackOriginM and readBackAngleDeg a placed link read back",
+      "coordinateToleranceM": 0.001,
+      "angleToleranceDeg": 0.001,
+      "zToleranceM": 0.001,
+      "readBackOriginM": 0.001,
+      "readBackAngleDeg": 0.01
+    },
+    "floors": {
+      "note": "Rows C3 to C5 and P14. cornerOnVertexM is R2, a ramp corner on an outline vertex, both rounded to the mm. topToleranceM and levelToleranceM a placed floor read back, shortestEdgeM the shortest edge, since Revit refuses a curve under about 0.8 mm, R405",
+      "topToleranceM": 0.001,
+      "levelToleranceM": 0.001,
+      "cornerOnVertexM": 0.002,
+      "shortestEdgeM": 0.001
+    },
+    "fronts": {
+      "note": "Rows C11, C12, P7 and P90. frontTieM is R94, two candidate edges this near the road tie, a corner plot. outwardProbeM the probe of the outward side of an edge, R405. quadrantsDeg are R224 and R225, the bearings of each orientation of the sales table",
+      "frontTieM": 1.0,
+      "outwardProbeM": 0.01,
+      "quadrantsDeg": {"EN": [0.0, 90.0], "SE": [90.0, 180.0], "WS": [180.0, 270.0], "NW": [270.0, 360.0]}
+    },
+    "hands": {
+      "note": "R357, rows C9 and C10. A face is buffered by sideBandM for its side neighbours, the buffer arc by bufferSegmentsPerQuarter segments a quarter circle as shapely builds it",
+      "sideBandM": 0.05,
+      "bufferSegmentsPerQuarter": 16
+    },
+    "siteCoordinates": {
+      "note": "R211, row C13. The shared coordinates of a new site file are held to toleranceMm",
+      "toleranceMm": 1.0
+    },
+    "samePoint": {
+      "note": "R311 and R331, rows C14 and P66. A point or a level is the same within sameMm, what the rounding of R2 to 3 decimals allows, an angle within sameDeg",
+      "sameMm": 0.5,
+      "sameDeg": 1e-06
+    },
+    "levels": {
+      "note": "R339 and R340, rows C15 and P82. fflDownToTheCm takes the FFL down to cmGrainMm",
+      "cmGrainMm": 10
+    },
+    "rounding": {
+      "note": "R2, R311 and R385, rows C16 and P83. decimals of a length or level, wideDecimals of a share, angleDecimals of the angle to true north, entryDecimals, heightDecimals, fflDecimals and bandDecimals of the level sheets",
+      "decimals": 3,
+      "wideDecimals": 4,
+      "angleDecimals": 6,
+      "entryDecimals": 4,
+      "heightDecimals": 4,
+      "fflDecimals": 3,
+      "bandDecimals": 6
     }
   },
   "checkRows": {

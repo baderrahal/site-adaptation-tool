@@ -52,7 +52,7 @@ BASIS = "Basis"
 NO_MANUAL_BLOCK = "no manual rule block"
 NO_MANUAL_RULE = "no manual rule"
 WEAK_CHECK = "Weak rule"
-BAD_MANUAL = ("the block manualRules of the rules profile is no list of rules each with a text id and a list steps of the steps that check it, a report "
+BAD_MANUAL = ("the block manualRules of the rules profile holds no list rules each with a text id and a list checkedIn of the steps that check it, a report "
               "line names the manual rules of its step by them (R381)")
 REVIT_FORMAT = "siteAdaptationRevitCounts"
 NOT_COUNTS = ("the input revitCounts is no file of the counts the add-in read from the model, format " + REVIT_FORMAT
@@ -174,14 +174,16 @@ def step_of(field, block):
 
 
 def manual_block(rules):
-    """R381, W7: the block manualRules of the rules profile as (id, steps) pairs in its order, None when the profile holds none."""
+    """R381, W7: the list rules of the block manualRules of the rules profile (R403) as (id, checkedIn) pairs in its order, None when the
+    profile holds no block."""
     block = rules.get("manualRules")
     if block is None:
         return None
-    if not isinstance(block, list) or any(not isinstance(item, dict) or not isinstance(item.get("id"), str) or not isinstance(item.get("steps"), list)
-                                          or any(not isinstance(step, str) for step in item["steps"]) for item in block):
+    entries = block.get("rules") if isinstance(block, dict) else None
+    if not isinstance(entries, list) or any(not isinstance(item, dict) or not isinstance(item.get("id"), str) or not isinstance(item.get("checkedIn"), list)
+                                            or any(not isinstance(step, str) for step in item["checkedIn"]) for item in entries):
         raise ValueError(BAD_MANUAL)
-    return [(item["id"], set(item["steps"])) for item in block]
+    return [(item["id"], set(item["checkedIn"])) for item in entries]
 
 
 def manual_of(block, step):

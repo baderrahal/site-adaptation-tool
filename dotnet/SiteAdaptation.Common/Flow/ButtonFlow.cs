@@ -27,9 +27,21 @@ namespace SiteAdaptation.Common.Flow
         // The label is the one of the ribbon, such as "7 Place villas", given by the add-in
         public RunOutcome Run(int number, string label, ButtonBody body, string documentPath)
         {
+            return Run(number, label, body, documentPath, null);
+        }
+
+        // R375. ended takes the end of a body with Start, which comes after this returns Started, or before when the work ends at
+        // once. The flow does not tell the state of that end, the caller does, on the document of the run, which may no longer be
+        // the active one when the end comes (docs/design/02-folders.md, Revit does not wait)
+        public RunOutcome Run(int number, string label, ButtonBody body, string documentPath, Action<RunOutcome> ended)
+        {
             if (body.NotBuilt != null)
             {
                 return Stop(body.NotBuilt);
+            }
+            if (body.Start != null && ended == null)
+            {
+                return Stop(RunTexts.ChangedNothing(label, RunTexts.Failed("the run has no way to take the end of its worker")));
             }
             if (!SavedPath.Is(documentPath))
             {
@@ -110,7 +122,46 @@ namespace SiteAdaptation.Common.Flow
                     return Stop(RunTexts.ChangedSinceDryRun(label, changed));
                 }
             }
-            return Real(body, new RunContext(number, label, runId, work, null, true, inputs, hashes));
+            var real = new RunContext(number, label, runId, work, null, true, inputs, hashes);
+            return body.Start != null ? Later(body, real, ended) : Real(body, real);
+        }
+
+        // R375. A body with no model element opens no transaction. Its end is taken once, a failure is the whole message of the stop
+        // and records nothing, a done end records the run with the outputs the work wrote on their names
+        private static RunOutcome Later(ButtonBody body, RunContext context, Action<RunOutcome> ended)
+        {
+            int taken = 0;
+            Action<RunLater> end = later =>
+            {
+                if (System.Threading.Interlocked.Exchange(ref taken, 1) == 1)
+                {
+                    return;
+                }
+                ended(Ended(context, later));
+            };
+            try
+            {
+                body.Start(context, end);
+            }
+            catch (Exception failure)
+            {
+                if (System.Threading.Interlocked.Exchange(ref taken, 1) == 1)
+                {
+                    return new RunOutcome(RunEnd.Started, null, null);
+                }
+                return Stop(RunTexts.ChangedNothing(context.Label, RunTexts.Failed(failure.Message)));
+            }
+            return new RunOutcome(RunEnd.Started, null, null);
+        }
+
+        private static RunOutcome Ended(RunContext context, RunLater later)
+        {
+            if (later == null || later.Failure != null)
+            {
+                return Stop(later == null ? RunTexts.LaterFailed(context.Label, null) : later.Failure);
+            }
+            var record = new RunRecord(context.RunId, context.InputHashes, later.Issues, later.Outputs, new string[0]);
+            return new RunOutcome(RunEnd.Committed, later.Message, record);
         }
 
         private static RunOutcome Stop(string message)
@@ -197,6 +248,7 @@ namespace SiteAdaptation.Common.Flow
                 string reason = null;
                 try
                 {
+                    context.Transaction = transaction;
                     issues.AddRange(body.Apply(context) ?? new string[0]);
                     string difference = body.ReadBack == null ? null : body.ReadBack(context);
                     if (difference != null)

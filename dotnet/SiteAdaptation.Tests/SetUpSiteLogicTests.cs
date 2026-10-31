@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
 using SiteAdaptation.Common.SetUp;
+using SiteAdaptation.Common.Settings;
 using Xunit;
 
 namespace SiteAdaptation.Tests
@@ -208,7 +209,8 @@ namespace SiteAdaptation.Tests
         {
             JObject rules = Rules();
 
-            Assert.Equal(new[] { 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, RampSlopes.Choices);
+            Assert.Equal(new[] { 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, RampSlopes.Choices(rules, null));
+            Assert.Equal(new[] { 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, Target().RampSlopeChoices);
             Assert.Equal(0.5, RampSlopes.Default(rules, null));
             Assert.Equal("Ramps 0.5%", RampSlopes.TypeName(rules, null, 0.5));
             Assert.Equal("Ramps 2%", RampSlopes.TypeName(rules, null, 2));
@@ -229,11 +231,33 @@ namespace SiteAdaptation.Tests
             Assert.True(view.WillSet.First(row => row.Label == "Ramp slope").Differs);
         }
 
+        // J18 of steps/lane-b.md. The wall types, the units of area, angle and slope and the ramp slope choices of W1 come from
+        // addin.wallTypes and addin.siteUnits of config and rampSlopeChoices of the level profile, the values of 03a, and each is
+        // refused by its name when missing
+        [Fact]
+        public void R373_J18_the_wall_types_the_units_and_the_ramp_slope_choices_come_from_config_and_the_rules_profile()
+        {
+            SetUpTarget target = Target();
+            Assert.Equal(new[] { "BW", "Generic Wall-150mm_ Garden" }, target.WallTypes);
+            Assert.Equal(new[] { "squareMeters", "degrees", "slopeDegrees" }, new[] { target.Units.Area, target.Units.Angle, target.Units.Slope });
+
+            JObject noWalls = (JObject)config.DeepClone();
+            ((JObject)noWalls["addin"]).Remove("wallTypes");
+            Assert.Contains("addin.wallTypes", Assert.Throws<InvalidDataException>(() => SetUpDefaults.WallTypes(noWalls)).Message);
+            JObject noSlope = (JObject)config.DeepClone();
+            ((JObject)noSlope["addin"]["siteUnits"]).Remove("slope");
+            Assert.Contains("addin.siteUnits.slope", Assert.Throws<InvalidDataException>(() => SetUpDefaults.SiteUnits(noSlope)).Message);
+            JObject rules = Rules();
+            ((JObject)rules["levelProfiles"]["parsons2024Rev6"]).Remove("rampSlopeChoices");
+            Assert.Contains("rampSlopeChoices", Assert.Throws<InvalidDataException>(() => RampSlopes.Choices(rules, null)).Message);
+        }
+
         [Fact]
         public void R373_a_check_point_holds_the_cad_shared_point_against_the_revit_point_of_its_internal_point_in_mm_at_gap_decimals()
         {
+            // Q142 (Bader, 29 Oct 2026). Button 1 against Revit at 0.1 mm, addin.position.revitCheckPointLimitMm, a key of its own (W2)
             SetUpTarget target = Target();
-            Assert.Equal(1.0, target.PassLimitMm);
+            Assert.Equal(0.1, target.PassLimitMm);
             Assert.Equal(2, target.GapDecimals);
 
             List<CheckPointRow> before = SetUpPlanner.CheckPoints(target, null);
@@ -246,17 +270,17 @@ namespace SiteAdaptation.Tests
             Assert.All(exact, row => Assert.True(row.Pass));
             Assert.Equal(SetUpTexts.Coordinate(target.SurveyShared), exact[0].Cad);
 
-            // 1.004 mm shows 1.00 and passes at 1 mm, 1.006 mm shows 1.01 and fails, what the table shows is what is judged
-            List<CheckPointRow> off = SetUpPlanner.CheckPoints(target, point => Moved(SiteCoordinates.ToShared(target.Position, point), 0.001004));
-            Assert.Equal(1.0, off[0].DiffMm);
+            // 0.104 mm shows 0.10 and passes at 0.1 mm, 0.106 mm shows 0.11 and fails, what the table shows is what is judged
+            List<CheckPointRow> off = SetUpPlanner.CheckPoints(target, point => Moved(SiteCoordinates.ToShared(target.Position, point), 0.000104));
+            Assert.Equal(0.1, off[0].DiffMm);
             Assert.True(off[0].Pass);
-            List<CheckPointRow> over = SetUpPlanner.CheckPoints(target, point => Moved(SiteCoordinates.ToShared(target.Position, point), 0.001006));
-            Assert.Equal(1.01, over[0].DiffMm);
+            List<CheckPointRow> over = SetUpPlanner.CheckPoints(target, point => Moved(SiteCoordinates.ToShared(target.Position, point), 0.000106));
+            Assert.Equal(0.11, over[0].DiffMm);
             Assert.False(over[0].Pass);
-            Assert.Equal("Pass limit 1 mm. 0 of 2 pass", SetUpTexts.PassLine(target.PassLimitMm, over.Count(row => row.Pass), over.Count));
+            Assert.Equal("Pass limit 0.1 mm. 0 of 2 pass", SetUpTexts.PassLine(target.PassLimitMm, over.Count(row => row.Pass), over.Count));
             SetUpSiteView view = SetUpPlanner.View(Template(), target, point => SiteCoordinates.ToShared(target.Position, point));
             Assert.Equal(2, view.GapDecimals);
-            Assert.Equal(1.0, view.PassLimitMm);
+            Assert.Equal(0.1, view.PassLimitMm);
             Assert.Equal(2, view.Passing);
             Assert.True(view.DryRunDone);
         }
@@ -461,6 +485,65 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { RunId + " 1" }, tags.Asked);
             Assert.True(calls.IndexOf("tag") > calls.IndexOf("parameters") && calls.IndexOf("tag") < calls.IndexOf("commit"));
             Assert.Empty(new NoTags().Tag(RunId, 1));
+        }
+
+        // J1 and J19 of steps/lane-b.md. Button 1 writes the Settings entity of R367 with the record of its real run inside its
+        // transaction, after the tag step and before the commit, and the settings of the pane are not changed by it
+        [Fact]
+        public void R367_button_1_writes_the_settings_entity_with_its_last_run_inside_the_transaction()
+        {
+            const string hash = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+            var calls = new List<string>();
+            var document = new FakeDocument(Template()) { Calls = calls };
+            var entity = new RecordingEntity(calls);
+            var settings = new ProjectSettings { ConfigFile = configPath, DryRunFirst = false };
+            var run = new SetUpRun(document, new FakeDialog(), new FakeTags(calls), File.ReadAllText, Settings, null)
+                .Recording(() => settings, entity, () => new DateTime(2026, 10, 30, 12, 0, 0, DateTimeKind.Utc));
+            var flow = new ButtonFlow(new FakeState(work, configPath), new FakeModel(calls), null, input => hash, () => RunId);
+
+            RunOutcome outcome = flow.Run(1, "1 Set up site", run.Body(), Document);
+
+            Assert.Equal(RunEnd.Committed, outcome.End);
+            Assert.Empty(outcome.Record.Issues);
+            Assert.True(calls.IndexOf("settings") > calls.IndexOf("tag") && calls.IndexOf("settings") < calls.IndexOf("commit"));
+            ProjectSettings written = SettingsJson.Read(entity.Json);
+            ButtonRun last = written.LastRuns["1"];
+            Assert.Equal("2026-10-30T12:00:00.000Z", last.Time);
+            Assert.Equal(RunModes.Direct, last.Mode);
+            Assert.Equal(ScopeKinds.Project, last.Scope.Kind);
+            Assert.Equal(hash, last.InputHashes[Settings]);
+            Assert.Equal(configPath, written.ConfigFile);
+            Assert.Empty(settings.LastRuns);
+
+            // A second run with nothing to set opens no transaction, so the entity is not written again
+            calls.Clear();
+            Assert.Equal(RunEnd.Cancelled, flow.Run(1, "1 Set up site", run.Body(), Document).End);
+            Assert.Equal(1, entity.Writes);
+        }
+
+        private sealed class RecordingEntity : ISettingsEntity
+        {
+            private readonly List<string> calls;
+
+            public RecordingEntity(List<string> calls)
+            {
+                this.calls = calls;
+            }
+
+            public string Json { get; private set; }
+            public int Writes { get; private set; }
+
+            public string Read()
+            {
+                return Json;
+            }
+
+            public void Write(string json)
+            {
+                calls.Add("settings");
+                Writes++;
+                Json = json;
+            }
         }
 
         private RunOutcome Run(FakeDocument document, FakeDialog dialog, ITagStep tags, List<string> calls)

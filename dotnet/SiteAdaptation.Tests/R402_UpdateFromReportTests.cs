@@ -89,8 +89,8 @@ namespace SiteAdaptation.Tests
                 + "\"keyRules\": {\"ffl\": {\"rule\": \"oneFflPerPieceAtTheHighestEntry\"}, \"levelSplit\": {\"rule\": \"none\"}, \"steps\": {\"rule\": \"stepsFromHeight\"}, \"baseHeight\": {\"rule\": \"profile\"}}}}}");
             if (manual)
             {
-                rules["manualRules"] = JArray.Parse("[{\"id\": \"M08\", \"text\": \"At most 3 added steps, made up\", \"updateChecks\": [\"stepsAtMost\", \"stepHeights\"]}, "
-                    + "{\"id\": \"M09\", \"text\": \"Riser 100 to 180 mm, made up\", \"updateChecks\": [\"riser\"]}]");
+                rules["manualRules"] = JObject.Parse("{\"rules\": [{\"id\": \"M08\", \"text\": \"At most 3 added steps, made up\", \"updateChecks\": [\"stepsAtMost\", \"stepHeights\"]}, "
+                    + "{\"id\": \"M09\", \"text\": \"Riser 100 to 180 mm, made up\", \"updateChecks\": [\"riser\"]}]}");
             }
             return rules;
         }

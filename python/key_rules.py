@@ -20,13 +20,14 @@ from shapely.geometry import Point
 
 import cad_links
 import common
+import design_values
 import floor_fit
 import ramp_outline
 
 POINTS = ("surveyPoint.position", "surveyPoint.sharedPosition", "basePoint.position", "basePoint.sharedPosition")
 # A point or a level is the same within half a mm, what the rounding of R2 to 3 decimals allows, an angle within a millionth of a degree (R311)
-SAME_MM = 0.5
-SAME_DEG = 1e-6
+SAME_MM = design_values.value("samePoint.sameMm")
+SAME_DEG = design_values.value("samePoint.sameDeg")
 UNIT_FIELDS = ("system", "length", "lengthSystem")
 EPSILON = 1e-9
 

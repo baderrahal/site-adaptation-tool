@@ -260,16 +260,17 @@ namespace SiteAdaptation.Common
                 return "the plan holds no table statusFrom, a report reads the status of each value of R401 (R365)";
             }
             JToken manual = rules["manualRules"];
-            if (manual != null && (!(manual is JArray entries) || entries.Any(item => !(item is JObject entry) || entry["id"]?.Type != JTokenType.String
-                || !(entry["steps"] is JArray steps) || steps.Any(step => step.Type != JTokenType.String))))
+            if (manual != null && (!(manual["rules"] is JArray entries) || entries.Any(item => !(item is JObject entry) || entry["id"]?.Type != JTokenType.String
+                || !(entry["checkedIn"] is JArray steps) || steps.Any(step => step.Type != JTokenType.String))))
             {
                 return BadManualBlock;
             }
             return null;
         }
 
-        // R381, W7: the block manualRules of the rules profile that 5c writes from docs/design/15-manual-rules.md (W3), read when present
-        public const string BadManualBlock = "the block manualRules of the rules profile is no list of rules each with a text id and a list steps of the steps "
+        // R381, W7: the block manualRules of the rules profile that 5c writes from docs/design/15-manual-rules.md (W3, R403), read when present.
+        // Its list rules gives each rule the steps that check it in checkedIn, worded as 13-workflow-changes.md words them
+        public const string BadManualBlock = "the block manualRules of the rules profile holds no list rules each with a text id and a list checkedIn of the steps "
             + "that check it, a report line names the manual rules of its step by them (R381)";
 
         // The manual rule IDs of a line of the step, in the order of the block, or the words of no block or of no rule of the step
@@ -369,8 +370,8 @@ namespace SiteAdaptation.Common
                 Assumed = (inputs.Config["valueStatus"]?["assumed"] as JArray ?? new JArray()).Select(item => (string)item).ToList(),
                 Worst = (inputs.Config["valueStatus"]?["worstFirst"] as JArray ?? new JArray()).Select(item => (string)item).ToList(),
                 Skipped = new HashSet<string>((plan["summary"]["skipped"] as JArray ?? new JArray()).Select(item => (string)item)),
-                Manual = (inputs.Rules["manualRules"] as JArray)?.OfType<JObject>()
-                    .Select(item => Tuple.Create((string)item["id"], new HashSet<string>(((JArray)item["steps"]).Select(step => (string)step), StringComparer.Ordinal))).ToList(),
+                Manual = (inputs.Rules["manualRules"]?["rules"] as JArray)?.OfType<JObject>()
+                    .Select(item => Tuple.Create((string)item["id"], new HashSet<string>(((JArray)item["checkedIn"]).Select(step => (string)step), StringComparer.Ordinal))).ToList(),
                 ScopeKind = Text(inputs.Summary?["scope"]),
                 Faces = inputs.PlotRows ?? new List<Dictionary<string, string>>(),
             };

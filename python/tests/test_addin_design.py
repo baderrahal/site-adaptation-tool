@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+import project_profile
 import record_parts
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -130,7 +131,8 @@ def round_outputs():
     """The coordinates and levels of the outputs of the round under siteBuild.folder of config: the filled mock, the NBH 012 plan
     and its mock values, and the survey point, base point, position and levels of the 7 key reads. None when the folder is not
     on disk, as on the Linux runner."""
-    folder = Path(json.loads(SETTINGS.read_text(encoding="utf-8"))["siteBuild"]["folder"])
+    # Q127, J5. siteBuild.folder under the work root mark of config, the root of this machine
+    folder = Path(project_profile.load_settings(SETTINGS).get("siteBuild.folder"))
     if not (folder / "design" / "mock_filled.md").exists():
         return None
     real = [value for shown, value, unit in written_numbers((folder / "design" / "mock_filled.md").read_text(encoding="utf-8")) if value >= 100]

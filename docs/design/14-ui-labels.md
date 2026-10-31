@@ -118,6 +118,17 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `Nothing changes until Apply.`
 - `Apply`
 - `Cancel`
+- `<n> did not finish, nothing was kept: <n>` CHOSEN in 5c, the end of a button whose worker did not end done (R375)
+- `no reason was given` CHOSEN in 5c, the reason of such an end that names none
+- `<n> is running already, its worker has not ended.` CHOSEN in 5c, a second click while the worker runs (docs/design/02-folders.md)
+- `Reads <n> files, <n> MiB.` CHOSEN in 5c, the counts of the confirm of 2 Read data
+- `Reuses the read of run <n>, its <n> input files are unchanged.` CHOSEN in 5c, as the line above on a second run
+- `<n>, <n> bytes, SHA-256 <n>, unchanged since the last read` CHOSEN in 5c, a file of the dry run list of 2 Read data
+- `<n>, <n> bytes, SHA-256 <n>, new or changed since the last read` CHOSEN in 5c, as the line above
+- `<n> done: <n> files written, <n> issues.` CHOSEN in 5c, the end of 2 Read data
+- `<n> done: the read of run <n> is reused, nothing was read again.` CHOSEN in 5c, the end of a second run of 2 Read data
+- `the worker ended <n>, <n>` CHOSEN in 5c, the reason of a worker that failed, was refused or ran past its time limit
+- `<n> read the files, but the scope stops it: <n>. Change the scope and run it again, the read is reused.` CHOSEN in 5c, the scope of R366 held against the plot table
 
 ### Set up site
 
@@ -158,9 +169,82 @@ An entry marked CHOSEN in 5a was worded in 5a PR 2 or PR 5, where docs/design/ g
 - `Browse` the Browse of the row Shared parameters
 - `Nothing differs, Apply changes nothing.` CHOSEN, under the pass line on a second run by 03a Second run, Apply stays off
 
+### Review data
+
+Built in Lane B 5c. The labels, columns, chips and side box are those of Review data (5c) in docs/design/13-workflow-changes.md, word for word. The entries marked CHOSEN are Code's.
+
+- `3 Review data, NBH <n>, <n> plots`
+- `Read from <n>` CHOSEN, the words of 13-workflow-changes.md then the file names of the source drawings
+- `<n> of <n> checked by the team`
+- `Zoom to plot`
+- `Export to Excel`
+- `Save review`
+- `This is what the tool read from CAD and Civil 3D for each plot. Pick a plot to see its corners and sources, then mark it OK or Wrong. A plot marked Wrong is listed in 4 Check and in the report.`
+- `All`
+- `Not checked`
+- `OK`
+- `Wrong`
+- `Find plot`
+- `Plot No`
+- `CAD label`
+- `Villa type`
+- `Mirror`
+- `Cluster`
+- `Area m2`
+- `Road at front`
+- `Team check`
+- `Selected plot`
+- `NBH`
+- `Front edge`
+- `Plot corners`
+- `Corner <n>`
+- `Corner` CHOSEN, the heading of the first column of the corners table, over Corner 1 to 4
+- `X`
+- `Y`
+- `Shared coordinates` CHOSEN, written with a capital as a heading of the corners
+- `What is wrong`
+- `Manual rule <n>` CHOSEN, the rule M01 to M15 of docs/design/15-manual-rules.md that the row is checked by
+- `Edge <n>` CHOSEN, the front edge as its number in the ring of the plot, from 1
+- `not read yet` CHOSEN, for a value that only the plan of 4 Check gives, or the site file of 1 Set up site
+- `Yes` CHOSEN, the Mirror value
+- `No` CHOSEN, the Mirror value
+- `Pick a plot from the table.` CHOSEN, the side box with no plot selected
+- `Earlier note: <n>` CHOSEN, the note of a check made on an earlier read, which shows as Not checked now
+- `Not saved yet` CHOSEN, beside Save review after a mark
+- `Review saved.` CHOSEN, after Save review
+
+### Site Adaptation Rules
+
+Built in Lane B 5c. The title, band line, buttons, chips, columns and side box are those of Site Adaptation Rules (5c) in docs/design/13-workflow-changes.md, word for word. The rule texts, the groups, the sections and the pages are data of the block manualRules in the rules profile, so they are not in this list. The entries marked CHOSEN are Code's.
+
+- `Site Adaptation Rules`
+- `<n>, <n>, document <n>` CHOSEN, the manual name, its revision and its number from the profile, in the band line
+- `<n> prevails over <n>` CHOSEN, "Rev 06 prevails over Rev 01" of 13-workflow-changes.md with the two revisions from the profile
+- `Open the manual PDF`
+- `Export to Excel`
+- `All`
+- `Past job differs`
+- `ID`
+- `Rule`
+- `Manual`
+- `Checked in`
+- `Past job`
+- `Selected rule` CHOSEN, the heading of the side box
+- `Full text` CHOSEN, a label of the side box
+- `Section and page` CHOSEN, the section and printed page of the manual with the page of the PDF in brackets
+- `Values` CHOSEN, a label of the side box
+- `What the tool does` CHOSEN, "what the tool does" of 13-workflow-changes.md written with a capital as a label
+- `not read yet` CHOSEN, for the text of what the tool does, and for a past job not measured
+- `none` CHOSEN, the values of a rule whose text holds none
+- `Pick a rule from the table.` CHOSEN, the side box with no rule selected
+- `The manual PDF was not found. Looked for <n>` CHOSEN, when the PDF is in none of the folders of the profile
+- `The manual PDF did not open: <n>` CHOSEN, when the shell refuses the file
+- `No rules file is chosen yet. Choose it in Set up site first.` CHOSEN, the line of the ribbon command Site Adaptation Rules when the pane holds no rules file, shown in place of the window
+- `The rules file was not found: <n>` CHOSEN, the line of that command when the chosen rules file is gone, with its path
+
 ### Check table
 
-Not built yet, Phase 5c.
+Built in Lane B 5c. The title, band, buttons, chips, columns and side box are those of 7.4 of docs/design/07-mock.md and 12-ui-spec.md, with Bader's changes of 28 Oct 2026 in docs/design/13-workflow-changes.md. The entries marked CHOSEN are Code's.
 
 - `4 Check, NBH <n>, <n> plots` CHOSEN, the title of 7.4 of docs/design/07-mock.md under the number 4 of docs/design/13-workflow-changes.md
 - `4 Check, NBH all, <n> plots` CHOSEN, as the line above
@@ -177,7 +261,10 @@ Not built yet, Phase 5c.
 - `Position`
 - `Level`
 - `Parameter`
+- `Assumed`
+- `Team check` CHOSEN, the chip and the Check value of a plot the team marked Wrong in 3 Review data
 - `<n> plots follow every rule`
+- `No past job was given, so Plot cut shows no rows and no plot is counted as following every rule on Plot cut.` CHOSEN, the one line of Q117 when the run has no past job
 - `Plot`
 - `NBH`
 - `Unit`
@@ -185,6 +272,7 @@ Not built yet, Phase 5c.
 - `Tool value (rule)`
 - `Past job`
 - `Rule`
+- `Manual rule` CHOSEN, the column and the side box heading for the manual rule ID of the row (every check row names it, 13-workflow-changes.md)
 - `Use`
 - `Past`
 - `Skip`
@@ -195,6 +283,42 @@ Not built yet, Phase 5c.
 - `Keep the tool value.`
 - `Use the past job. Saved as an override.`
 - `Leave this plot out. It is listed in the report.`
+- `Open in Site Adaptation Rules`
+- `Why` CHOSEN, the heading of the line that says why the row is listed
+- `none` CHOSEN, for a Tool or Past job value the row holds none of
+- `Pick a row from the table.` CHOSEN, the side box with no row selected
+- `Not saved yet` CHOSEN, under the chips after a Use was changed
+- `Overrides saved.` CHOSEN, after Save overrides
+- `Entry level by the rule` CHOSEN, the Rule column and side box name of the code name entry (max 6 words, 07-mock.md item 31)
+- `FFL by the rule` CHOSEN, the Rule column and side box name of the code name ffl and height (max 6 words, 07-mock.md item 31)
+- `Ramp front level by the rule` CHOSEN, the Rule column and side box name of the code name rampFront (max 6 words, 07-mock.md item 31)
+- `Ramp front fall by the rule` CHOSEN, the Rule column and side box name of the code name rampFrontFall (max 6 words, 07-mock.md item 31)
+- `Ramp type by the rule` CHOSEN, the Rule column and side box name of the code name rampSlope (max 6 words, 07-mock.md item 31)
+- `Link origin by the rule` CHOSEN, the Rule column and side box name of the code name linkOrigin (max 6 words, 07-mock.md item 31)
+- `Link rotation by the rule` CHOSEN, the Rule column and side box name of the code name linkRotation (max 6 words, 07-mock.md item 31)
+- `Yard outline by the rule` CHOSEN, the Rule column and side box name of the code name yardOutline (max 6 words, 07-mock.md item 31)
+- `Ramp outline by the rule` CHOSEN, the Rule column and side box name of the code name rampOutline (max 6 words, 07-mock.md item 31)
+- `Generic floor by the rule` CHOSEN, the Rule column and side box name of the code name generic (max 6 words, 07-mock.md item 31)
+- `Steps by the rule` CHOSEN, the Rule column and side box name of the code name steps (max 6 words, 07-mock.md item 31)
+- `Villa hand by the rule` CHOSEN, the Rule column and side box name of the code name hand villa (max 6 words, 07-mock.md item 31)
+- `Cluster hand by the rule` CHOSEN, the Rule column and side box name of the code name hand cluster (max 6 words, 07-mock.md item 31)
+- `Single villa hand by the rule` CHOSEN, the Rule column and side box name of the code name hand alone (max 6 words, 07-mock.md item 31)
+- `Yard outline fitted to the plot` CHOSEN, the Rule column and side box name of the code name fittedOutlineRefit (max 6 words, 07-mock.md item 31)
+- `Hand by the cluster side` CHOSEN, the Rule column and side box name of the code name clusterSide (max 6 words, 07-mock.md item 31)
+- `Origin refit to the plot frame` CHOSEN, the Rule column and side box name of the code name plotFrameRefit (max 6 words, 07-mock.md item 31)
+- `Hand by the road side` CHOSEN, the Rule column and side box name of the code name blockMirrorRoadSide (max 6 words, 07-mock.md item 31)
+- `Hand by the open end` CHOSEN, the Rule column and side box name of the code name blockMirrorOpenEnd (max 6 words, 07-mock.md item 31)
+- `Parameter <n> by the rule` CHOSEN, the Rule column and side box name of the code name parameter <name> of the override list (max 6 words, 07-mock.md item 31)
+- `Open question <n>` CHOSEN, the Rule column and side box name of the code name a question ID of majority.decidedByQuestion (max 6 words, 07-mock.md item 31)
+- `<n> m above the rule` CHOSEN, Past job column, side box and Choose line for a past value of {"gapToRuleM": n} above 0, the list keeps the value as it is
+- `<n> m below the rule` CHOSEN, Past job column, side box and Choose line for a past value of {"gapToRuleM": n} below 0, the list keeps the value as it is
+- `on the rule` CHOSEN, Past job column, side box and Choose line for a gap of 0, the list keeps the value as it is
+- `along the front <n> m, into the plot <n> m` CHOSEN, Past job column, side box and Choose line for a position gap {"gapToRuleM": [x, y]}, signs kept, the list keeps the value as it is
+- `<n> degrees above the rule` CHOSEN, Past job column, side box and Choose line for a rotation gap {"gapToRuleDeg": n} above 0, the list keeps the value as it is
+- `<n> degrees below the rule` CHOSEN, Past job column, side box and Choose line for a rotation gap {"gapToRuleDeg": n} below 0, the list keeps the value as it is
+- `Mirrored` CHOSEN, Past job column, side box and Choose line for a past value true, the list keeps the value as it is
+- `Not mirrored` CHOSEN, Past job column, side box and Choose line for a past value false, the list keeps the value as it is
+- `Under Skip the list holds <n>. Choosing <n> only takes the plot off the skip list.` CHOSEN in Lane B 5c, the line under Why of a row on Skip, Rule or Past the list holds under the skip (R330)
 
 ### Update from report
 

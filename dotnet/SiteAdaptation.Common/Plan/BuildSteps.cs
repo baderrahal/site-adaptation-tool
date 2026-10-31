@@ -328,9 +328,16 @@ namespace SiteAdaptation.Common
             var made = new Dictionary<string, Dictionary<string, Dictionary<string, object>>>();
             // R401. The tables of a step its plots point to by key, written once in its step file
             var tables = new Dictionary<string, JObject>();
+            // R80. What the plan of the build takes besides its steps, when the request asks for it
+            PlanInputs planned = null;
             try
             {
                 var site = new Site(run, config);
+                if (BuildPlan.PlanAsked(asked, request.Inputs))
+                {
+                    JObject siteFile = PyMath.ReadJson(run.Input(BuildPlan.SiteRole), BuildPlan.SiteRole) as JObject ?? throw new InvalidDataException("site.json of button 1 is no JSON object (R80)");
+                    planned = BuildPlan.InputsOf(site.Settings, site.Rules, request.LevelProfile, Path.GetFileName(run.Input("config")), siteFile, site.Rows, request.Scope, site.Numbers);
+                }
                 JObject levelProfile = BuildRules.LevelProfile(site.Rules, request.LevelProfile);
                 BuildRules.KeyRules(site.Rules, request.LevelProfile, string.Join(", ", Names));
                 // F3. The settings a build reads as numbers, as rule_inputs of Python holds them before any step is written
@@ -355,10 +362,10 @@ namespace SiteAdaptation.Common
                 }
                 bool checks = asked.Contains(CheckRows.StepName);
                 bool summed = asked.Contains(PlanSummary.StepName);
-                bool planned = asked.Contains(PlanOverrides.StepName) || asked.Contains(LinkParameters.StepName) || asked.Contains(ValueStatus.StepName) || asked.Contains(Walls.StepName)
+                bool afterOverrides = asked.Contains(PlanOverrides.StepName) || asked.Contains(LinkParameters.StepName) || asked.Contains(ValueStatus.StepName) || asked.Contains(Walls.StepName)
                     || checks || summed;
-                bool linked = asked.Contains(Hands.StepName) || asked.Contains(LinkFrames.StepName) || asked.Contains(FloorOutlines.StepName) || planned;
-                bool leveled = asked.Contains(KeyLevels.StepName) || asked.Contains(FloorOutlines.StepName) || planned;
+                bool linked = asked.Contains(Hands.StepName) || asked.Contains(LinkFrames.StepName) || asked.Contains(FloorOutlines.StepName) || afterOverrides;
+                bool leveled = asked.Contains(KeyLevels.StepName) || asked.Contains(FloorOutlines.StepName) || afterOverrides;
                 if (linked || leveled)
                 {
                     double roadEdgeM = BuildFace.Number(site.Settings["siteBuild"]["corner"]["roadEdgeM"]);
@@ -394,13 +401,13 @@ namespace SiteAdaptation.Common
                     {
                         string profileName = BuildRules.ProfileName(site.Rules, request.LevelProfile);
                         OverrideList list = null;
-                        if (asked.Contains(FloorOutlines.StepName) || planned)
+                        if (asked.Contains(FloorOutlines.StepName) || afterOverrides)
                         {
                             // plan_from_book.build refuses a unit plot of a zone keyRules.yard holds no yard for, before any step file
                             FloorOutlines.CheckZones(site.Numbers, site.Rows, key);
                         }
                         WallRules wallRules = null;
-                        if (planned)
+                        if (afterOverrides)
                         {
                             // R360, R386. The override list as plan_rules.load_overrides loads it, its skip plots plots of plots.csv, before any step file
                             list = PlanOverrides.Load(run.Input("overrides"), site.Settings, levelProfile, profileName, Path.GetFileName(run.Input("config")));
@@ -428,7 +435,7 @@ namespace SiteAdaptation.Common
                                 FloorOutlines.WidthStep(site.Settings, Path.GetFileName(run.Input("config"))), profileName);
                             run.Counts["floors of the scope with a yard outline"] = made[FloorOutlines.StepName].Values.Count(item => item["yardOutline"] != null);
                         }
-                        if (planned)
+                        if (afterOverrides)
                         {
                             // R360. The plots after the overrides of the list, on the fronts of the links and the levels of the build
                             Dictionary<string, PlotPlan> plans = PlanOverrides.Of(site.Numbers, site.Rows, build, fronts, context, hands, key, levelProfile, site.Rules, site.Settings, files, list,
@@ -515,13 +522,26 @@ namespace SiteAdaptation.Common
             {
                 throw run.Refusal(refused.Message);
             }
+            var stepFiles = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (KeyValuePair<string, Dictionary<string, Dictionary<string, object>>> step in made)
             {
                 run.Counts[step.Key + " items"] = step.Value.Count;
                 tables.TryGetValue(step.Key, out JObject held);
                 // Q107. Streamed, so the step of a whole build is never made a second tree of raw and written values
-                run.WriteJson(request.StepsFolder, StepFile.FileName(step.Key, "csharp"), (writer, exact) => StepFile.Write(writer, exact, step.Key, "csharp", StepFile.ScopeText(request.Scope),
+                stepFiles[step.Key] = run.WriteJson(request.StepsFolder, StepFile.FileName(step.Key, "csharp"), (writer, exact) => StepFile.Write(writer, exact, step.Key, "csharp", StepFile.ScopeText(request.Scope),
                     step.Value, config.StepFields(step.Key), held));
+            }
+            if (planned != null)
+            {
+                // R80, R347. The plan from the step files just written, an output of the run moved onto its name with them
+                try
+                {
+                    BuildPlan.Write(run, stepFiles, planned);
+                }
+                catch (InvalidDataException refused)
+                {
+                    throw run.Refusal(refused.Message);
+                }
             }
         }
     }

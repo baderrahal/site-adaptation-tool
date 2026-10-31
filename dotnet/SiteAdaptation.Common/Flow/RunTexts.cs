@@ -67,6 +67,53 @@ namespace SiteAdaptation.Common.Flow
             return label + " changed the model, but " + string.Join(", ", files) + " was not saved: another program holds it open. Close it and run the button again.";
         }
 
+        // R375. The end of a button whose worker did not end done, its reason named
+        public static string LaterFailed(string label, string reason)
+        {
+            return label + " did not finish, nothing was kept: " + (reason ?? "no reason was given");
+        }
+
+        // R375. Button 2, its worker started, ended and reused. Each count is a number, each file a file name
+        public static string ReadRunning(string label)
+        {
+            return label + " is running already, its worker has not ended.";
+        }
+
+        public static string ReadCounts(int files, double mib)
+        {
+            return "Reads " + files + " files, " + System.Math.Round(mib, 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " MiB.";
+        }
+
+        public static string ReadReuses(int files, string runId)
+        {
+            return "Reuses the read of run " + runId + ", its " + files + " input files are unchanged.";
+        }
+
+        public static string ReadFile(string file, long bytes, string sha256, bool unchanged)
+        {
+            return file + ", " + bytes + " bytes, SHA-256 " + sha256 + (unchanged ? ", unchanged since the last read" : ", new or changed since the last read");
+        }
+
+        public static string ReadDone(string label, int outputs, int issues)
+        {
+            return label + " done: " + outputs + " files written, " + issues + " issues.";
+        }
+
+        public static string ReadReused(string label, string runId)
+        {
+            return label + " done: the read of run " + runId + " is reused, nothing was read again.";
+        }
+
+        public static string ReadWorker(string status, string message)
+        {
+            return "the worker ended " + status + ", " + message;
+        }
+
+        public static string ReadScope(string label, IEnumerable<string> stops)
+        {
+            return label + " read the files, but the scope stops it: " + string.Join(". ", stops) + ". Change the scope and run it again, the read is reused.";
+        }
+
         public static string DryHeldOpen(string file)
         {
             return file + " was not saved: another program holds it open.";

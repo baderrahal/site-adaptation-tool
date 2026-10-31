@@ -24,7 +24,8 @@ namespace SiteAdaptation.Placer
                 TaskDialog.Show(Title, "Open the project document to place into first.");
                 return Result.Cancelled;
             }
-            string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SiteAdaptation");
+            // J8, Q127. The work root of the machine, not the Documents folder of Windows
+            string folder = WorkRoot.OfThisMachine();
             string planPath = PickPlan(folder);
             if (planPath == null)
             {

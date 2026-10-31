@@ -254,10 +254,11 @@ def test_r381_read_data_counts_the_faces_of_plots_csv_in_the_scope_with_a_unit_a
     assert want["books"]["012"]["steps"][1] == ["2 Read data", 2, 2, 0, 0, "no manual rule block"]
 
 
-MANUAL = [{"id": "M01", "text": "made up", "group": "Plots and clusters", "section": "2.1", "steps": ["4 Check", "7 Place villas"]},
-          {"id": "M04", "text": "made up", "group": "Levels and steps", "section": "2.2.A", "steps": ["6 Levels", "8 Walls"]},
-          {"id": "M02", "text": "made up", "group": "Plots and clusters", "section": "2.1.E", "steps": ["4 Check"]},
-          {"id": "M15", "text": "made up", "group": "Structure", "section": "3.2.A", "steps": ["9 Report"]}]
+MANUAL = {"manual": {"name": "made up"},
+          "rules": [{"id": "M01", "text": "made up", "group": "Plots and clusters", "manualRef": "2.1", "checkedIn": ["4 Check", "7 Place villas"]},
+                    {"id": "M04", "text": "made up", "group": "Levels and steps", "manualRef": "2.2.A", "checkedIn": ["6 Levels", "8 Walls"]},
+                    {"id": "M02", "text": "made up", "group": "Plots and clusters", "manualRef": "2.1.E", "checkedIn": ["4 Check"]},
+                    {"id": "M15", "text": "made up", "group": "Structure", "manualRef": "3.2.A", "checkedIn": ["9 Report"]}]}
 
 
 def test_r381_every_summary_and_issues_line_names_the_manual_rule_ids_whose_steps_take_its_step(tmp_path):
@@ -265,8 +266,8 @@ def test_r381_every_summary_and_issues_line_names_the_manual_rule_ids_whose_step
     book = want["books"]["012"]
     assert [line[-1] for line in book["steps"]] == ["no manual rule", "no manual rule", "no manual rule", "M01, M02", "no manual rule", "M04", "M01", "M04"]
     assert book["sheets"]["Issues"][0][-1] == "M01, M02" and book["sheets"]["Issues"][-1][-1] == "M04"
-    with pytest.raises(ValueError, match="no list of rules each with a text id"):
-        build(tmp_path, rules=dict(RULES, manualRules=[{"id": "M01", "text": "made up"}]))
+    with pytest.raises(ValueError, match="no list rules each with a text id"):
+        build(tmp_path, rules=dict(RULES, manualRules={"rules": [{"id": "M01", "text": "made up"}]}))
 
 
 def test_r381_the_revit_counts_fill_the_revit_column_and_a_mismatch_of_any_two_is_an_issue(tmp_path):

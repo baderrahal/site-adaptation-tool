@@ -175,6 +175,35 @@ $copy = $null
 $token = $null
 $roundJob = $null
 $setUpSource = $null
+$buttonsInputs = $null
+$buttonsBefore = $null
+
+# Lane B 5c (R384). The real files a buttons run reads in place: each input of the pane settings, every file of a folder input, the
+# template and the key copy. Each is held by its size, write time and SHA-256 before and after the run (D19)
+function Get-ButtonsInputs($paths) {
+    $files = [Collections.Generic.List[string]]::new()
+    foreach ($path in @($paths | Where-Object { $_ })) {
+        if (Test-Path -LiteralPath $path -PathType Container) {
+            Get-ChildItem -LiteralPath $path -File -Recurse | ForEach-Object { $files.Add($_.FullName) }
+        }
+        elseif (Test-Path -LiteralPath $path -PathType Leaf) {
+            $files.Add((Get-Item -LiteralPath $path).FullName)
+        }
+        else {
+            throw "A real input of the buttons run is not there: $path"
+        }
+    }
+    return @($files | Sort-Object -Unique)
+}
+
+function Get-InputHashes($files) {
+    $hashes = [ordered]@{}
+    foreach ($file in $files) {
+        $item = Get-Item -LiteralPath $file
+        $hashes[$file] = '{0}|{1}|{2}' -f $item.Length, $item.LastWriteTimeUtc.Ticks, (Get-FileHash -LiteralPath $file).Hash
+    }
+    return $hashes
+}
 
 # R213. The new site file a newSite job makes and a linksAndFloors job places into. It is empty between rounds, never a kept file
 function Get-SiteNewFile($build) {
@@ -301,10 +330,113 @@ if ($round) {
                 Copy-Item -LiteralPath (Join-Path $repo ([string]$config.profile)) -Destination $profileCopy
                 $roundJob.setUp = $true
             }
+            # R405. A plain addinRun, with neither setUp nor buttons, takes a copy of the config of the repo in config of the run folder,
+            # since the folder of Revit has no config above it and the test host reads its design values there before its first write
+            if (-not $round.setUp -and -not $round.buttons) {
+                $plainConfig = Join-Path $runFolder 'config'
+                New-Item -ItemType Directory $plainConfig | Out-Null
+                Copy-Item -LiteralPath (Join-Path $repo 'config\project.json') -Destination (Join-Path $plainConfig 'project.json')
+            }
             # QL20. The whole run, the exit of Revit included, ends by 15 minutes. CHOSEN: the job gets 13 and the window 15, so the
             # 2 minutes between leave Revit time to exit after the job posts it, before the window stops Revit. Tool timings
             $addinRunWindowMinutes = 15
             $addinRunJobMinutes = 13
+            # Lane B 5c (R384). With buttons the job runs them on one NBH of one copy: the key copy of the spec taken into the run folder
+            # by a file copy, else the new project the test host makes from the template. The settings are config with the position
+            # file of this machine and the rules profile beside it, as setUp writes them, and the pane settings of R367 name the real
+            # inputs of the spec in place. Every real input is hashed before and after (D19)
+            if ($round.buttons) {
+                $buttonsPosition = [string]$round.positionFile
+                if (-not (Test-Path -LiteralPath $buttonsPosition -PathType Leaf) -or -not $buttonsPosition.StartsWith($docs + '\')) {
+                    throw "The position file of the buttons run is not a file under the work root $docs : $buttonsPosition"
+                }
+                $settingsCopy = Get-Content -Raw (Join-Path $repo 'config\project.json') | ConvertFrom-Json
+                $settingsCopy.addin.position.file = $buttonsPosition
+                # R375. A data book folder of config with no full path lies in the work root, not in the work folder of the run, so the
+                # copy names it in full and its files are real inputs read in place
+                $bookFolder = [string]$settingsCopy.addin.readData.dataBookFolder
+                if (-not [IO.Path]::IsPathRooted($bookFolder)) {
+                    $bookFolder = Join-Path $docs $bookFolder
+                    $settingsCopy.addin.readData.dataBookFolder = $bookFolder
+                }
+                $buttonsSources = @($build.template)
+                if ($round.keyCopy) {
+                    $buttonsSources += [string]$round.keyCopy
+                }
+                foreach ($entry in @($round.inputs.PSObject.Properties)) {
+                    $buttonsSources += [string]$entry.Value
+                }
+                foreach ($bookFile in @($settingsCopy.addin.readData.dataBookFiles.PSObject.Properties)) {
+                    $buttonsSources += Join-Path $bookFolder ([string]$bookFile.Value)
+                }
+                # R357 and D19. The build reads pastJob.upgradedPrototypeFolder under the input root, which a run never makes there, so a
+                # prototypes input of the spec is named in full and the build reads that folder in place, hashed with the inputs above
+                if ($round.inputs.prototypes) {
+                    $settingsCopy.pastJob.upgradedPrototypeFolder = [string]$round.inputs.prototypes
+                }
+                $buttonsInputs = Get-ButtonsInputs $buttonsSources
+                $buttonsBefore = Get-InputHashes $buttonsInputs
+                if ($round.keyCopy) {
+                    Copy-Item -LiteralPath ([string]$round.keyCopy) -Destination $copy
+                }
+                $settingsPath = Join-Path $runFolder 'config\project.json'
+                New-Item -ItemType Directory (Split-Path $settingsPath) | Out-Null
+                $settingsCopy | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $settingsPath -Encoding utf8
+                # R375. Button 2 reads the layer list beside the config it is given, so the copy of config takes it along
+                $layersName = [string]$settingsCopy.addin.readData.cadLayers
+                Copy-Item -LiteralPath (Join-Path $repo (Join-Path 'config' $layersName)) -Destination (Join-Path (Split-Path $settingsPath) $layersName)
+                # R376. 4 Check reads the outline and offset files beside the config and, with no addin.overrideFile, the override list in
+                # overrides beside it, which Save overrides writes. The run takes copies, so a Save writes the run folder and never the repo
+                Get-ChildItem -LiteralPath (Join-Path $repo 'config') -File -Filter '*.json' | Where-Object { $_.Name -ne 'project.json' -and $_.Name -ne $layersName } | Copy-Item -Destination (Split-Path $settingsPath)
+                Copy-Item -LiteralPath (Join-Path $repo 'config\overrides') -Destination (Split-Path $settingsPath) -Recurse
+                $profileCopy = Join-Path $runFolder ([string]$config.profile)
+                New-Item -ItemType Directory -Force (Split-Path $profileCopy) | Out-Null
+                Copy-Item -LiteralPath (Join-Path $repo ([string]$config.profile)) -Destination $profileCopy
+                $levelProfile = if ($round.levelProfile) { [string]$round.levelProfile } else { [string](Get-Content -Raw $profileCopy | ConvertFrom-Json).levelProfiles.default }
+                $paneInputs = [ordered]@{}
+                foreach ($entry in @($round.inputs.PSObject.Properties)) {
+                    $paneInputs[$entry.Name] = [ordered]@{ path = [string]$entry.Value }
+                }
+                $paneSettings = [ordered]@{
+                    formatVersion = 1
+                    configFile    = $settingsPath
+                    rulesFile     = $profileCopy
+                    levelProfile  = $levelProfile
+                    inputs        = $paneInputs
+                    scope         = [ordered]@{
+                        kind = 'nbh'
+                        nbh  = [string]$round.nbh
+                    }
+                    dryRunFirst   = ($round.dryRunFirst -ne $false)
+                }
+                $paneSettingsPath = Join-Path $runFolder 'pane_settings.json'
+                $paneSettings | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $paneSettingsPath -Encoding utf8
+                # R377. The base shapes an earlier run read, each named by the SHA-256 of its prototype, so a run starts as a second run of
+                # the add-in would and skips the open of each 2021 prototype in Revit 2024, about 100 s each
+                if ($round.baseShapes) {
+                    $shapesFolder = Join-Path $runFolder 'work\buttons\base_shapes'
+                    New-Item -ItemType Directory -Force $shapesFolder | Out-Null
+                    Get-ChildItem -LiteralPath ([string]$round.baseShapes) -File -Filter '*.json' | Copy-Item -Destination $shapesFolder
+                }
+                $roundJob.buttons = [int[]]@($round.buttons)
+                $roundJob.nbh = [string]$round.nbh
+                $roundJob.villaMode = [string]$round.villaMode
+                $roundJob.linksAfterMasses = [bool]$round.linksAfterMasses
+                $roundJob.dryRunFirst = ($round.dryRunFirst -ne $false)
+                $roundJob.paneSettings = $paneSettingsPath
+                # R404 and D19. The loops the host reads of each prototype for its corner compare after 7, kept across runs by the SHA-256
+                # of each file in a JSON file of the work root, so a 2021 prototype is opened once in all runs and not once in each
+                if ($round.prototypeLoops) {
+                    $loopsPath = [string]$round.prototypeLoops
+                    if (-not $loopsPath.EndsWith('.json') -or -not $loopsPath.StartsWith($docs + '\')) {
+                        throw "The prototype loops file of the buttons run is not a JSON file under the work root $docs : $loopsPath"
+                    }
+                    $roundJob.prototypeLoops = $loopsPath
+                }
+                # Two worker reads, the build of 4 Check and two runs of 7 take more than the 13 minutes of 5a. CHOSEN, tool timings
+                $addinRunWindowMinutes = 31
+                $addinRunJobMinutes = 29
+            }
             if (-not $PSBoundParameters.ContainsKey('TimeoutMinutes')) {
                 $TimeoutMinutes = $addinRunWindowMinutes
             }
@@ -781,6 +913,14 @@ if (-not $DryStart) {
             "Unchanged, $(Split-Path $setUpSource -Leaf): $setUpSame, $($setUpBefore.Length) bytes, SHA-256 $setUpHash"
             if (-not $setUpSame) {
                 $stopReason = 'the key copy of the setUp run changed (D19)'
+            }
+        }
+        if ($buttonsInputs) {
+            $buttonsAfter = Get-InputHashes $buttonsInputs
+            $buttonsChanged = @($buttonsInputs | Where-Object { $buttonsAfter[$_] -ne $buttonsBefore[$_] } | ForEach-Object { Split-Path $_ -Leaf })
+            "Real inputs of the buttons run: $($buttonsInputs.Count), unchanged $($buttonsInputs.Count - $buttonsChanged.Count)"
+            if ($buttonsChanged.Count -gt 0) {
+                $stopReason = 'a real input of the buttons run changed (D19): ' + ($buttonsChanged -join ', ')
             }
         }
     }

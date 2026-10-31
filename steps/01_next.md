@@ -101,7 +101,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## 5c, buttons 2 Read data, 3 Review data, 4 Check and 7 Place villas
 
-- Status: open, Lane B, one session with the Revit run after 5c (D10)
+- Status: done 2026-10-31, Lane B, PR pending, one session with the Revit run after 5c (D10)
 - Starts when: 4h-1 and 5b
 - First (D15): no new copy from the personal PC. Check the laptop inputs by key_copies.json and the hashes of Q126. Then put together the inputs the Q111 run of 4g3 lacked, the location plan, the tables and the position, from C:\02-Site Adaptation, and run the 7 read steps 4g3 could not run, before any button work
 - Phase changes (Bader, 2026-10-28): Rule 3 of steps/lane-b.md first, then every join item of steps/lane-b.md (J1 R367 settings, J2 R368 tags and the rest), then Q117, the optional inputs of button 4 Check, then Q103, then the buttons 2 Read data, 3 Review data, 4 Check and 7 Place villas with light mode (Masses and Links) and the check table of the UI spec with the plain rule names
@@ -114,7 +114,7 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 
 ## Revit run after 5c, on the laptop by Code
 
-- Status: open, Lane B, in the session of 5c (D10)
+- Status: done 2026-10-31 for Masses on NBH 012, Lane B, PR pending (D10). Links mode not run (Q215), base boundary Q206, J10, Q146, Q147 and the NBH 03 image (Q063) stay with their questions and the PR notes
 - Starts when: 5c, in the same session
 - First (D11): list each Revit API behaviour the run needs that no run measured, one small probe per item
 - What: Code builds and installs the add-in and runs buttons 1 to 4 and 7 on one NBH from a new project through the test host, with the runner agent under the shared window lock and the 2 GB floor, on copies only, logs outside the repo. The test host runs 7 Place villas by Buttons.Run on the plan before 5 and 6 are built (CHOSEN in Round FOLD, the new order has 7 wait for 6 in the pane)

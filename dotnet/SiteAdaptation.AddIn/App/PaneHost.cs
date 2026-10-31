@@ -53,6 +53,32 @@ namespace SiteAdaptation.AddIn
             host.runEvent = ExternalEvent.Create(runner);
             host.answerEvent = ExternalEvent.Create(new AnswerHandler(host));
             host.Answers = new AnswerRelay(() => host.answerEvent.Raise());
+            // R375. Button 2 starts CadReader.exe beside the add-in, its answer comes back through the relay
+            ReadDataBody.Worker = new LaunchedWorker(LaunchedWorker.BesideAddIn(), host.Answers.Post);
+            // R406. Button 3 reads the latest read of button 2 in the work folder of the run for the NBH of the scope
+            ReviewData.ReviewDataBody.Load = context => Common.Review.ReviewLoad.Load(context.WorkFolder, ReviewData.ReviewDataBody.Nbh?.Invoke(), null);
+            // R376. Button 4 names the manual rule of a row by check type and field from the rules file of the pane, none where the profile
+            // lists none or has no block
+            CheckTable.CheckTableBody.ManualRule = rulesFile =>
+            {
+                Common.ManualRules.ManualRuleBlock block = null;
+                try
+                {
+                    block = string.IsNullOrEmpty(rulesFile) ? null : Common.ManualRules.ManualRuleBlock.FromFile(rulesFile);
+                }
+                catch (Exception error) when (error is System.IO.IOException || error is System.IO.InvalidDataException || error is Newtonsoft.Json.JsonException)
+                {
+                    block = null;
+                }
+                return block == null ? (Func<string, string, string>)null : block.IdOfCheck;
+            };
+            // R377. Button 7 loads the plan of the latest real run of 4 Check for the NBH of the scope of the active document. An NBH scope takes every plot of
+            // the plan is in scope, a list of plots places only the plots it names
+            PlaceVillas.PlaceVillasBody.Load = context =>
+            {
+                PaneSettings settings = host.model.Settings ?? new PaneSettings();
+                return Common.PlaceVillas.VillaLoad.Load(context, settings.Scope, settings.ConfigFile, settings.VillaMode, settings.LevelProfile);
+            };
             host.model.RunRequested += number =>
             {
                 runner.Number = number;
@@ -102,8 +128,14 @@ namespace SiteAdaptation.AddIn
         {
             if (e.Status == RevitAPIEventStatus.Succeeded && e.Document != null)
             {
-                sessions.Opened(e.Document, e.Document.PathName, e.Document.Title);
+                DocumentSession session = sessions.Opened(e.Document, e.Document.PathName, e.Document.Title);
+                // J1. The settings kept in the project come back when it opens, a JSON R367 refuses is named and left
+                string refused = e.Document.IsFamilyDocument ? null : session.LoadFrom(new Revit.SettingsEntity(e.Document));
                 Show(sender as Application);
+                if (refused != null)
+                {
+                    TaskDialog.Show(RibbonLayout.Tab, refused);
+                }
             }
         }
 
@@ -234,7 +266,7 @@ namespace SiteAdaptation.AddIn
     }
 
     // docs/design/02-folders.md line 42. The answers of the workers go to the document of their request in the API context of
-    // Revit, whatever document is active. 5a routes them only, the run record they write comes with the buttons
+    // Revit, whatever document is active. Since 5c each answer goes on with the run of its button there (R375)
     internal sealed class AnswerHandler : IExternalEventHandler
     {
         private readonly PaneHost host;
@@ -246,7 +278,9 @@ namespace SiteAdaptation.AddIn
 
         public void Execute(UIApplication app)
         {
-            host.Routed.AddRange(host.Answers.Route(host.OpenDocuments(app)));
+            List<RoutedAnswer> routed = host.Answers.Route(host.OpenDocuments(app));
+            host.Routed.AddRange(routed);
+            LaunchedWorker.Hand(routed);
         }
 
         public string GetName()

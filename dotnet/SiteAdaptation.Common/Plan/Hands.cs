@@ -78,14 +78,22 @@ namespace SiteAdaptation.Common
         public const string StepName = "hands";
 
         // majority.side_neighbours buffers a face by 0.05 m, shapely by 16 segments a quarter circle
-        private const double Band = 0.05;
-        private const double Quantum = Math.PI / 2 / 16;
+        private static double Band => DesignValues.Current.HandSideBandM;
+        private static double Quantum => Math.PI / 2 / DesignValues.Current.HandBufferSegmentsPerQuarter;
 
         // How far past an edge of the buffer a point still counts as on it, so an edge two faces share, which lies on the face the buffer is
         // of, counts as GEOS counts it, 0.05 m inside the buffer
         private const double Slack = 1e-9;
 
         private static readonly Regex FileUnit = new Regex("-ARC-([A-Z0-9]+)-", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        // link_summary.file_unit: the unit code a prototype file name holds, upper case, null for a name of none. R376 holds the file a
+        // key links against Typology_Rev9 of the plot by it
+        public static string UnitOfFile(string name)
+        {
+            Match match = FileUnit.Match(name ?? "");
+            return match.Success ? match.Groups[1].Value.ToUpperInvariant() : null;
+        }
 
         // majority.kind_of: the kind of the typology of the profile, else of the first prefix of majority.kindByPrefix the code starts with
         public static string KindOf(string code, JObject rules, JObject kindByPrefix)

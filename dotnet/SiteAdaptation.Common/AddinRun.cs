@@ -21,6 +21,14 @@ namespace SiteAdaptation.Common
         public const string WindowPng = "window.png";
         public const string RibbonPng = "ribbon.png";
 
+        // R405. The config of a plain addinRun, the copy the run script writes in config of the run folder, else that of the repo above
+        // start, the folder of the test host, since the folder of Revit has none above it. Null when neither is there
+        public static string Config(string runFolder, string start)
+        {
+            string copy = Path.Combine(runFolder, "config", "project.json");
+            return File.Exists(copy) ? copy : DesignValues.RepoConfig(start);
+        }
+
         private static string Tail
         {
             get { return TestHostGuard.NewSiteTag + ".rvt"; }
@@ -137,6 +145,19 @@ namespace SiteAdaptation.Common
         public const string Theme = "SiteAdaptation.AddIn.Theme.ThemeDictionary";
         public const string ThemeLoad = "Load";
         public const string PaneSize = "SA.Size.Pane";
+        // Lane B 5c (R384). What the buttons mode of the test host sets and reads of the add-in
+        public const string PaneSettings = "SiteAdaptation.AddIn.Pane.PaneSettings";
+        public const string PaneRunState = "SiteAdaptation.AddIn.Pane.PaneRunState";
+        public const string InputsOf = "InputsOf";
+        public const string Record = "Record";
+        public const string Seen = "Seen";
+        public const string Settings = "Settings";
+        public const string Load = "Load";
+        public const string ReviewDataBody = "SiteAdaptation.AddIn.ReviewData.ReviewDataBody";
+        public const string CheckTableBody = "SiteAdaptation.AddIn.CheckTable.CheckTableBody";
+        public const string LaunchedWorker = "SiteAdaptation.AddIn.LaunchedWorker";
+        public const string Ends = "Ends";
+        public const string Button = "Button";
     }
 
     // R104. The phases of the job. After a failed phase the job goes on at the first of the phases that always run, which show the
@@ -721,5 +742,217 @@ namespace SiteAdaptation.Common
             double share = pixels == 0 ? 1.0 : black / (double)pixels;
             return new ShotPixels { Colours = colours.Count, BlackShare = Rounding.Fixed(share, 3), Blank = colours.Count < 2 || share >= BlackLimit };
         }
+    }
+
+    // Lane B 5c, the Revit run after 5c (R384). The buttons mode of the addinRun job runs the buttons of the add-in one after the other
+    // on one NBH of one copy, each by Buttons.Run as the ribbon runs it. What the job asks and decides lives here, ButtonsRunHost of the
+    // test host carries it out in Revit
+    public static class ButtonsRun
+    {
+        public const string ResultFile = "buttons_result.json";
+        public const string PaneSettingsFile = "pane_settings.json";
+
+        // The buttons built by 5c, in the order of the pane
+        public static readonly int[] Known = { 1, 2, 3, 4, 7 };
+
+        // 2 Read data and 4 Check start the worker and return, their end comes later through the ExternalEvent of the add-in
+        public static bool Waits(int button)
+        {
+            return button == 2 || button == 4;
+        }
+
+        // The command of addin.workerTimeLimitS whose limit the wait of the button takes
+        public static string WorkerCommand(int button)
+        {
+            return button == 2 ? ReadData.ReadDataRun.Command : button == 4 ? CheckTable.CheckRun.Command : null;
+        }
+
+        // Null for a job with no buttons or one the run can carry out, else why not
+        public static string Refusal(TestHostJob job)
+        {
+            if (job.Buttons == null)
+            {
+                return null;
+            }
+            if (job.Buttons.Count == 0)
+            {
+                return "buttons names no button";
+            }
+            int unknown = job.Buttons.FirstOrDefault(button => !Known.Contains(button));
+            if (job.Buttons.Any(button => !Known.Contains(button)))
+            {
+                return "buttons may name only " + string.Join(", ", Known.Take(Known.Length - 1)) + " and " + Known.Last() + ", not " + unknown;
+            }
+            int twice = job.Buttons.GroupBy(button => button).Where(group => group.Count() > 1).Select(group => group.Key).FirstOrDefault();
+            if (twice != 0)
+            {
+                return "buttons names button " + twice + " twice";
+            }
+            if (!job.Buttons.SequenceEqual(job.Buttons.OrderBy(button => button)))
+            {
+                return "buttons must run in the order of the pane, " + string.Join(", ", job.Buttons) + " is not";
+            }
+            if (job.SetUp == true)
+            {
+                return "a job runs setUp or buttons, not both";
+            }
+            if (string.IsNullOrWhiteSpace(job.Nbh))
+            {
+                return "buttons needs the NBH of its scope, every button of 5c runs on one NBH";
+            }
+            if (job.Buttons.Contains(7) && !Settings.VillaModes.All.Contains(job.VillaMode))
+            {
+                return "button 7 needs villaMode " + string.Join(" or ", Settings.VillaModes.All) + ", not " + (job.VillaMode ?? "none");
+            }
+            if (job.LinksAfterMasses == true && (!job.Buttons.Contains(7) || job.VillaMode != Settings.VillaModes.Masses))
+            {
+                return "linksAfterMasses needs button 7 in " + Settings.VillaModes.Masses;
+            }
+            if (string.IsNullOrWhiteSpace(job.PaneSettings))
+            {
+                return "buttons needs the pane settings the run script writes";
+            }
+            // A loop file named in part would land beside wherever Revit runs, not in the work root the run script checked
+            if (job.PrototypeLoops != null && (!Path.IsPathRooted(job.PrototypeLoops)
+                || !string.Equals(Path.GetExtension(job.PrototypeLoops), ".json", StringComparison.OrdinalIgnoreCase)))
+            {
+                return "prototypeLoops must name a JSON file by its full path, not " + job.PrototypeLoops;
+            }
+            return null;
+        }
+
+        public static List<ButtonsStep> Steps(TestHostJob job)
+        {
+            List<ButtonsStep> steps = job.Buttons.Select(button => new ButtonsStep(button, button == 7 ? job.VillaMode : null)).ToList();
+            if (job.LinksAfterMasses == true)
+            {
+                steps.Add(new ButtonsStep(7, Settings.VillaModes.Links));
+            }
+            return steps;
+        }
+
+        // A step the next one needs must commit. 3 Review data saves nothing in the job, so its window ends Cancelled and the run goes on
+        public static bool GoesOn(int button, string outcome)
+        {
+            return outcome == ButtonOutcomes.Committed || (button == 3 && outcome == ButtonOutcomes.Cancelled);
+        }
+    }
+
+    public sealed class ButtonsStep
+    {
+        public ButtonsStep(int button, string villaMode)
+        {
+            Button = button;
+            VillaMode = villaMode;
+        }
+
+        public int Button { get; }
+
+        // Null for every button but 7
+        public string VillaMode { get; }
+
+        public string Name
+        {
+            get { return "button" + Button + (VillaMode == null ? "" : "_" + VillaMode); }
+        }
+    }
+
+    // How a step of the buttons mode ended, as the test host sees it from outside the flow: Buttons.Run gives a Result only, so a
+    // commit is told by the Committed of its run state and a stop by the dialog the add-in shows
+    public static class ButtonOutcomes
+    {
+        public const string Committed = "committed";
+        public const string Cancelled = "cancelled";
+        public const string Stopped = "stopped";
+        public const string TimedOut = "timedOut";
+    }
+
+    // R404, docs/design/11-light-mode.md "one NBH in Links and the base boundary of each villa solid measured against the prototype,
+    // every corner". Points in metres in the internal plan coordinates of the document
+    public static class BaseCorners
+    {
+        // The loop of the prototype carried as the plan places the link of the plot: Y flipped when mirrored, since the mirror plane
+        // of PlacementMath holds the turned X axis, then turned by rotationDeg and moved to the insert
+        public static List<double[]> Carry(IReadOnlyList<double[]> loop, double[] insert, double rotationDeg, bool mirrored)
+        {
+            double turn = rotationDeg * Math.PI / 180;
+            double cos = Math.Cos(turn);
+            double sin = Math.Sin(turn);
+            return loop.Select(point =>
+            {
+                double x = point[0];
+                double y = mirrored ? -point[1] : point[1];
+                return new[] { insert[0] + cos * x - sin * y, insert[1] + sin * x + cos * y };
+            }).ToList();
+        }
+
+        // Each corner of the solid to the nearest corner of the prototype and each corner of the prototype to the nearest of the solid,
+        // in plan, so the start and the turn of a loop do not matter. Held when both have corners and every gap is within holdMm
+        public static CornerMatch Compare(IReadOnlyList<double[]> placed, IReadOnlyList<double[]> expected, double holdMm)
+        {
+            List<double> gaps = placed.Select(point => Nearest(point, expected)).ToList();
+            List<double> back = expected.Select(point => Nearest(point, placed)).ToList();
+            double max = gaps.Concat(back).DefaultIfEmpty(double.PositiveInfinity).Max();
+            return new CornerMatch
+            {
+                Placed = placed.Count,
+                Expected = expected.Count,
+                MaxMm = max,
+                Within = gaps.Count(gap => gap <= holdMm),
+                Held = placed.Count > 0 && expected.Count > 0 && max <= holdMm,
+            };
+        }
+
+        private static double Nearest(double[] point, IReadOnlyList<double[]> others)
+        {
+            return others.Count == 0 ? double.PositiveInfinity : others.Min(other => Math.Sqrt(Math.Pow(point[0] - other[0], 2) + Math.Pow(point[1] - other[1], 2))) * 1000;
+        }
+    }
+
+    public sealed class CornerMatch
+    {
+        public int Placed { get; set; }
+        public int Expected { get; set; }
+
+        // The largest gap both ways in mm, infinite when one side has no corner
+        public double MaxMm { get; set; }
+
+        // The corners of the solid within the hold
+        public int Within { get; set; }
+        public bool Held { get; set; }
+    }
+
+    // R377, R84. A link read back by the test host against the plan: its origin in plan within holdMm, its turn read from the X axis of
+    // its transform within holdDeg and its mirror from the hand of its basis
+    public static class LinkCheck
+    {
+        public static LinkMatch Compare(double[] origin, double[] axisX, double[] axisY, double[] axisZ, double[] expected, double rotationDeg, bool mirrored,
+            double holdMm, double holdDeg)
+        {
+            double off = Math.Sqrt(Math.Pow(origin[0] - expected[0], 2) + Math.Pow(origin[1] - expected[1], 2)) * 1000;
+            double read = Math.Atan2(axisX[1], axisX[0]) * 180 / Math.PI;
+            double gap = Math.Abs(read - rotationDeg) % 360;
+            gap = gap > 180 ? 360 - gap : gap;
+            double hand = (axisX[1] * axisY[2] - axisX[2] * axisY[1]) * axisZ[0] + (axisX[2] * axisY[0] - axisX[0] * axisY[2]) * axisZ[1]
+                + (axisX[0] * axisY[1] - axisX[1] * axisY[0]) * axisZ[2];
+            bool flipped = hand < 0;
+            return new LinkMatch
+            {
+                OriginOffMm = off,
+                RotationDeg = read,
+                RotationOffDeg = gap,
+                Mirrored = flipped,
+                Held = off <= holdMm && gap <= holdDeg && flipped == mirrored,
+            };
+        }
+    }
+
+    public sealed class LinkMatch
+    {
+        public double OriginOffMm { get; set; }
+        public double RotationDeg { get; set; }
+        public double RotationOffDeg { get; set; }
+        public bool Mirrored { get; set; }
+        public bool Held { get; set; }
     }
 }

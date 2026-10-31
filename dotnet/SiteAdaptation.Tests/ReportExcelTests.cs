@@ -376,12 +376,16 @@ namespace SiteAdaptation.Tests
         public void R381_every_summary_and_issues_line_names_the_manual_rule_ids_whose_steps_take_its_step()
         {
             JObject rules = MadeRules();
-            rules["manualRules"] = new JArray
+            rules["manualRules"] = new JObject
             {
-                new JObject { ["id"] = "M01", ["text"] = "made up", ["group"] = "Plots and clusters", ["section"] = "2.1", ["steps"] = new JArray("4 Check", "7 Place villas") },
-                new JObject { ["id"] = "M04", ["text"] = "made up", ["group"] = "Levels and steps", ["section"] = "2.2.A", ["steps"] = new JArray("6 Levels", "8 Walls") },
-                new JObject { ["id"] = "M02", ["text"] = "made up", ["group"] = "Plots and clusters", ["section"] = "2.1.E", ["steps"] = new JArray("4 Check") },
-                new JObject { ["id"] = "M15", ["text"] = "made up", ["group"] = "Structure", ["section"] = "3.2.A", ["steps"] = new JArray("9 Report") },
+                ["manual"] = new JObject { ["name"] = "made up" },
+                ["rules"] = new JArray
+                {
+                    new JObject { ["id"] = "M01", ["text"] = "made up", ["group"] = "Plots and clusters", ["manualRef"] = "2.1", ["checkedIn"] = new JArray("4 Check", "7 Place villas") },
+                    new JObject { ["id"] = "M04", ["text"] = "made up", ["group"] = "Levels and steps", ["manualRef"] = "2.2.A", ["checkedIn"] = new JArray("6 Levels", "8 Walls") },
+                    new JObject { ["id"] = "M02", ["text"] = "made up", ["group"] = "Plots and clusters", ["manualRef"] = "2.1.E", ["checkedIn"] = new JArray("4 Check") },
+                    new JObject { ["id"] = "M15", ["text"] = "made up", ["group"] = "Structure", ["manualRef"] = "3.2.A", ["checkedIn"] = new JArray("9 Report") },
+                },
             };
             LevelExcelTests.Book book = RunBook(out WorkerAnswer answer, out string plan, rules: rules);
             Assert.Equal(new object[] { "no manual rule", "no manual rule", "no manual rule", "M01, M02", "no manual rule", "M04", "M01", "M04" },
@@ -389,7 +393,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new object[] { "Step", "Plot", "Check", "Field", "Source", "Use", "Why", "Manual rule" }, book.Row("Issues", 1).ToArray());
             Assert.Equal(new object[] { "4 Check", "101", "Level", "entryM", "override", "Past", null, "M01, M02" }, book.Row("Issues", 2).ToArray());
             Assert.Equal("M04", book.Row("Issues", 8)[7]);
-            rules["manualRules"] = new JArray(new JObject { ["id"] = "M01", ["text"] = "made up" });
+            rules["manualRules"] = new JObject { ["rules"] = new JArray(new JObject { ["id"] = "M01", ["text"] = "made up" }) };
             WorkerAnswer refused = Run(MadePlan(), out int code, out plan, id: "rx5", rules: rules);
             Assert.Equal(2, code);
             Assert.Contains(ReportSheets.BadManualBlock, refused.Message);

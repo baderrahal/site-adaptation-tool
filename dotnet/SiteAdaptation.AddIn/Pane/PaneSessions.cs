@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using SiteAdaptation.Common;
+using SiteAdaptation.Common.Settings;
+using SiteAdaptation.Common.Steps;
 
 namespace SiteAdaptation.AddIn.Pane
 {
@@ -115,12 +118,30 @@ namespace SiteAdaptation.AddIn.Pane
         public string Title { get; set; }
         public PaneSettings Settings { get; set; }
 
-        // The steps whose real run committed in this session, by button, until R366 keeps the step state with the document
-        public Dictionary<int, StepStatus> Done { get; } = new Dictionary<int, StepStatus>();
+        // R366. The last real run of each step that committed in this session, with the outputs of its record. A step with none here
+        // takes its last run from lastRuns of the settings, which hold no outputs, so it is held by its hash and scope alone (CHOSEN)
+        public Dictionary<int, StepRun> Runs { get; } = new Dictionary<int, StepRun>();
 
         public bool HasPath
         {
             get { return SavedPath.Is(Path); }
+        }
+
+        // J1. The settings of the Settings entity of R367 when the document holds one, else the defaults. A JSON the reader refuses
+        // leaves the defaults and gives its message, so the pane names it and a later real run writes settings the reader takes
+        public string LoadFrom(ISettingsEntity entity)
+        {
+            try
+            {
+                ProjectSettings read = new SettingsStore(entity).Load();
+                Settings = read == null ? new PaneSettings() : new PaneSettings(read);
+                return null;
+            }
+            catch (InvalidDataException error)
+            {
+                Settings = new PaneSettings();
+                return error.Message;
+            }
         }
     }
 }

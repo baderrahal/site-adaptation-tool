@@ -3,9 +3,11 @@ import math
 from decimal import Decimal, ROUND_HALF_UP, localcontext
 from pathlib import Path
 
-DECIMALS = 3
-WIDE_DECIMALS = 4
-# R385. The significant digits of the text a value is rounded from
+import design_values
+
+DECIMALS = design_values.value("rounding.decimals")
+WIDE_DECIMALS = design_values.value("rounding.wideDecimals")
+# R385. The significant digits of the text a value is rounded from, the 15 digits of the text of a double, no project value (Q103)
 SIGNIFICANT = 15
 
 

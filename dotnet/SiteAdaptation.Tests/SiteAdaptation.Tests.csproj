@@ -30,6 +30,10 @@
     <Compile Remove="PaneRunStateTests.cs" />
     <Compile Remove="UiShotTests.cs" />
     <Compile Remove="SetUpSiteTests.cs" />
+    <Compile Remove="ReviewDataTests.cs" />
+    <Compile Remove="R406_UiFixTests.cs" />
+    <Compile Remove="RulesWindowTests.cs" />
+    <Compile Remove="CheckTableTests.cs" />
     <Compile Remove="UpdateFromReportWindowTests.cs" />
     <Compile Remove="AddinRunAddInTests.cs" />
   </ItemGroup>

@@ -90,6 +90,42 @@ namespace SiteAdaptation.Common.Flow
         // What a real run sets outside its transaction, such as a setting of the application, opened before the transaction starts
         // and disposed after it commits or rolls back, null for none
         public Func<RunContext, IDisposable> Outside { get; set; }
+
+        // R375, docs/design/02-folders.md Revit does not wait. A body that changes no model element and whose work ends later, as the
+        // worker of button 2: the real run opens no transaction, Start begins the work and returns, and the end it hands back once is
+        // recorded by the flow and given to the caller of the run. Null for a body that runs in the transaction
+        public Action<RunContext, Action<RunLater>> Start { get; set; }
+    }
+
+    // R375. The end of the work a body started: a failure that keeps the step as it was, or the issues and every output on its name
+    // with its SHA-256
+    public sealed class RunLater
+    {
+        private RunLater(string failure, string message, IReadOnlyList<string> issues, IReadOnlyDictionary<string, string> outputs)
+        {
+            Failure = failure;
+            Message = message;
+            Issues = issues ?? new string[0];
+            Outputs = outputs ?? new Dictionary<string, string>();
+        }
+
+        // The whole message of a work that did not end done, its reason named, null when it did
+        public string Failure { get; }
+
+        // The text to tell when it ended done, null for none
+        public string Message { get; }
+        public IReadOnlyList<string> Issues { get; }
+        public IReadOnlyDictionary<string, string> Outputs { get; }
+
+        public static RunLater Failed(string reason)
+        {
+            return new RunLater(reason ?? "no reason was given", null, null, null);
+        }
+
+        public static RunLater Done(string message, IReadOnlyList<string> issues, IReadOnlyDictionary<string, string> outputs)
+        {
+            return new RunLater(null, message, issues, outputs);
+        }
     }
 
     public enum RunEnd
@@ -98,6 +134,9 @@ namespace SiteAdaptation.Common.Flow
         Cancelled,
         RolledBack,
         Committed,
+
+        // R375. The work of the body goes on outside Revit, its end comes later to the caller of the run
+        Started,
     }
 
     // R382. A real run that committed, for the step line of the pane. A file whose move failed keeps its temporary name and the

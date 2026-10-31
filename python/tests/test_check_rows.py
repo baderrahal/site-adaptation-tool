@@ -293,3 +293,8 @@ def test_r363_the_step_check_rows_of_a_build_with_the_tables_assumed_and_chips(m
     assert made["3"]["rows"][1]["past"]["value"] == {"gapToRuleM": 0.1} and list(made) == numbers
     assert tables["chips"]["All"] == sum(len(item["rows"]) for item in made.values())
     assert tables["assumed"] and all(item["status"] not in ("DOCUMENT", "MEASURED strong") for item in tables["assumed"].values())
+
+
+def test_r363_r376_an_nbh_id_of_spaces_only_is_no_nbh():
+    found = check_rows.plot_infos(["1", "2"], {"plots": []}, {"1": {"typologyRev9": "VL4", "nbhId": "  "}, "2": {"nbhId": "012"}}, {})
+    assert found["1"]["nbh"] is None and found["2"]["nbh"] == "012"

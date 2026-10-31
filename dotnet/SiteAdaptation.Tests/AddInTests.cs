@@ -14,6 +14,7 @@ using System.Windows.Media.Imaging;
 using SiteAdaptation.AddIn;
 using SiteAdaptation.AddIn.Icons;
 using SiteAdaptation.AddIn.Theme;
+using SiteAdaptation.Common;
 using SiteAdaptation.Common.Flow;
 using Xunit;
 
@@ -117,6 +118,29 @@ namespace SiteAdaptation.Tests
             Assert.Contains("Site Adaptation Rules is not built yet.", told);
             Assert.Contains("Update from report is not built yet.", told);
             Assert.Equal("7 Place villas is not built yet.", untouched.Run(7, "7 Place villas", Bodies.Of(7), @"C:\Models\Site.rvt").Message);
+        }
+
+        // R403. The window changes no model element, so the ribbon command opens it on the rules file of the pane with no flow, and a
+        // missing or bad rules file is told, never thrown into Revit
+        [Fact]
+        public void R403_the_rules_command_opens_the_window_on_the_rules_file_of_the_pane()
+        {
+            string buttons = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Commands", "Buttons.cs"));
+            Assert.Contains("if (commandName == nameof(Commands.SiteAdaptationRulesCommand))", buttons);
+            Assert.Contains("RulesWindow.RulesWindowBody.Show(application.MainWindowHandle, session?.Settings?.RulesFile)", buttons);
+            Assert.Contains("catch (FileNotFoundException", buttons);
+            Assert.Contains("catch (InvalidDataException", buttons);
+        }
+
+        // R375 and R370. The pane starts the worker where the installer copies it, the folder name read from the script
+        [Fact]
+        public void R375_the_worker_is_started_from_the_worker_folder_the_installer_fills()
+        {
+            string script = File.ReadAllText(Path.Combine(ThemeGateTests.RepoRoot(), "dotnet", "SiteAdaptation.AddIn", "Install-SiteAdaptation.ps1"));
+            string folder = Regex.Match(script, @"\$workerFolder = Join-Path \$addInFolder '([^']+)'").Groups[1].Value;
+            Assert.Equal("Worker", folder);
+            string addIn = Path.GetDirectoryName(typeof(LaunchedWorker).Assembly.Location);
+            Assert.Equal(Path.Combine(addIn, folder, "CadReader.exe"), LaunchedWorker.BesideAddIn());
         }
 
         [Fact]
@@ -340,6 +364,49 @@ namespace SiteAdaptation.Tests
             {
                 throw new Xunit.Sdk.XunitException("on the STA thread: " + failure);
             }
+        }
+
+        // The Revit run after 5c: button 2, 3 or 4 pressed first in a session reached a write of JsonOut before any config was used,
+        // since inside Revit no config/project.json lies above the folder of Revit
+        [Fact]
+        public void R405_a_button_on_a_session_whose_settings_name_a_config_takes_its_values_before_the_body()
+        {
+            string folder = R405_DesignValuesTests.RunFolderWithConfig();
+            try
+            {
+                string config = Path.Combine(folder, "config", "project.json");
+                string seen = null;
+                ButtonBody body = Bodies.WithDesignValues(config, 4, () =>
+                {
+                    seen = DesignValues.Current.Source;
+                    return new ButtonBody();
+                });
+                Assert.Null(body.NotBuilt);
+                Assert.Equal(config, seen);
+            }
+            finally
+            {
+                DesignValues.Use(DesignValues.Load(R405_DesignValuesTests.RepoConfigPath()));
+                Directory.Delete(folder, true);
+            }
+        }
+
+        [Fact]
+        public void R405_a_button_whose_config_cannot_be_read_stops_with_the_R405_text_and_button_1_still_runs()
+        {
+            string missing = Path.Combine(Path.GetTempPath(), "sa_r405_" + Guid.NewGuid().ToString("N"), "config", "project.json");
+            bool made = false;
+            ButtonBody body = Bodies.WithDesignValues(missing, 3, () =>
+            {
+                made = true;
+                return new ButtonBody();
+            });
+            Assert.False(made);
+            Assert.Contains("(R405)", body.NotBuilt);
+            Assert.Contains(missing, body.NotBuilt);
+            Assert.Null(Bodies.WithDesignValues(missing, 1, () => new ButtonBody()).NotBuilt);
+            Assert.Null(Bodies.WithDesignValues(null, 2, () => new ButtonBody()).NotBuilt);
+            Assert.Null(DesignValues.UseConfigFile(null));
         }
     }
 }
