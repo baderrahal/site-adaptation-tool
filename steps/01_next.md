@@ -150,6 +150,15 @@ One phase per session (Q096). Two lanes run the phases (D10, D17): tools/run-lan
 - Design: items 10 to 12 of docs/design/07-mock.md 7.7, the sheets Levels and Placed and the Settings sheet of both Excel files, docs/design/13-workflow-changes.md part Update from report
 - Done when: an edited copy of each Excel of one NBH gives the list of its changes, each one checked against the rules, the overrides it applies match the edits cell by cell, an Excel of another build is refused with one line, and the four UI controls hold for the Update from report window
 
+## 4i, the plan by Manual Rev 06 with the past job as a switch
+
+- Status: done on 2026-10-31 in Lane A, one PR with code, tests and records (D20), rules R407 to R412, Q224 to Q241 opened
+- Starts when: the audit of 30 Oct 2026, Bader's decisions of 31 Oct 2026: door level source C, clusters B, back yard B
+- What: designBasis.mode rev6 or roshnPastJob (R407), El @ Entry as the input and the slope the result (R408), the one named road surface (R409), the back yard by 2.3.B and 2.3.C with no yard floor (R410), cluster and mirror proposals (R411), the read only new project check (R412). The ROSHN config keeps roshnPastJob (Q224)
+- Join items: the Lane B asks of round 4i in steps/waiting-on-others.md
+- Design: docs/design/16-design-basis.md
+- Done when: the past job equals the build of main field for field on the whole project and the 7 keys, parity holds on the 13 steps on both runtimes in both modes, and the status block is measured again
+
 ## 6a, one NBH through all 9 steps, and the test host jobs
 
 - Status: open, Lane B
