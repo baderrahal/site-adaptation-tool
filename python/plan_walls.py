@@ -9,6 +9,11 @@ no measured rule, so a build places none (conflict 8 of docs/design/10-rule-ids.
 measures, so the ends of a wall carry UNKNOWN through valueStatus. Since Q115 keyRules.wallOpen clusterPairSpan leaves open the part of an edge
 two written units of one footprint cluster share that the keys leave open for their pair of units, the party wall of the two villas, measured
 from the end of the edge at the front of R355 of the plot, a weak rule on the keys.
+
+R415, R416 since round 4j-2, Manual Rev 06 2.8.A. A plot is irregular when its face, its edges that run on within the tolerance of the rules
+profile merged, is not 4 corners each within that tolerance of 90 degrees. Under the Rev 6 mode of designBasis each wall of an irregular
+written plot runs with its outer face on the plot line, so its ends move half of plot.boundary_wall_thickness inside that plot. Under the past
+job no plot is told irregular and every wall keeps its centre on the edge as the keys hold it on irregular plots as on regular ones.
 """
 import math
 from collections import Counter
@@ -22,7 +27,7 @@ import project_profile
 import value_status
 
 FIELDS = ("plots", "ends", "base", "top")
-STEP_FIELDS = ("unit", "written", "edges", "plots", "ends", "base", "top", "levelPlots", "status")
+STEP_FIELDS = ("unit", "written", "edges", "plots", "ends", "base", "top", "levelPlots", "status", "irregular", "lineInsideM")
 SOURCE = "keyRules"
 PLOTS_SOURCE = "locationPlan"
 # The override of the list that turns a link, plan_from_book.moved_link
@@ -37,6 +42,12 @@ SPAN_RULES = ("clusterPairSpan",)
 SPAN_LINE = "keyRules.wallOpen of %s holds no span table a build leaves an edge open by, it takes %s with spans of two numbers, the first under the second (R362, Q115)"
 RULE_LINE = "keyRules.%s of %s holds no rule a build places boundary walls by, it takes %s (R362)"
 NUMBER_LINE = "%s is no number of 0 or more, a build places no boundary wall without it (R362)"
+# R415. A corner of 45 degrees or more off 90 is no rectangle corner at any tolerance, so the tolerance lies above 0 and under 45
+TOLERANCE_LIMIT = 45.0
+TOLERANCE_LINE = "rev6.irregular_tolerance_deg is no number over 0 and under 45, a build under the Rev 6 mode tells no irregular plot without it (R415)"
+THICKNESS = "plot.boundary_wall_thickness"
+RIGHT_ANGLE = 90.0
+RECTANGLE_CORNERS = 4
 
 
 def is_number(value):
@@ -244,6 +255,76 @@ def pieces(start, end, gap, near):
     return found
 
 
+def line_rules(profile):
+    """R415, R416. What a build under the Rev 6 mode reads for the walls of irregular plots: tolerance the degrees of
+    rev6.irregular_tolerance_deg, refused when it is no number over 0 and under 45, and half of plot.boundary_wall_thickness in metres."""
+    tolerance = held(profile.values, "rev6.irregular_tolerance_deg")
+    if not is_number(tolerance) or not 0 < tolerance < TOLERANCE_LIMIT:
+        raise project_profile.ProfileError(TOLERANCE_LINE)
+    return {"tolerance": float(tolerance), "half": profile.metres(THICKNESS) / 2.0}
+
+
+def turn_of(before, at, after):
+    """The turn in degrees from the edge before to at onto the edge at to after, positive to the left, 0 for an edge that runs on."""
+    ax, ay, bx, by = at[0] - before[0], at[1] - before[1], after[0] - at[0], after[1] - at[1]
+    return math.degrees(math.atan2(ax * by - ay * bx, ax * bx + ay * by))
+
+
+def corners(ring, tolerance):
+    """R415. The turns of the corners of a ring after its repeated vertices are dropped and each vertex where the edges run on within
+    tolerance degrees is merged, the first such vertex in ring order each time until none is left, so a collinear vertex parts no edge."""
+    points = [point for index, point in enumerate(ring) if index == 0 or point != ring[index - 1]]
+    while len(points) > 1 and points[-1] == points[0]:
+        points.pop()
+    while len(points) >= 3:
+        turns = [turn_of(points[index - 1], points[index], points[(index + 1) % len(points)]) for index in range(len(points))]
+        straight = next((index for index, turn in enumerate(turns) if abs(turn) <= tolerance), None)
+        if straight is None:
+            return turns
+        del points[straight]
+    return []
+
+
+def irregular(ring, tolerance):
+    """R415, Manual Rev 06 2.8. A face is irregular when its corners after the merge of corners are not 4, each within tolerance of 90."""
+    turns = corners(ring, tolerance)
+    return len(turns) != RECTANGLE_CORNERS or any(abs(abs(turn) - RIGHT_ANGLE) > tolerance for turn in turns)
+
+
+def irregular_of(numbers, rings, tolerance):
+    """R415. Each plot of numbers with a face, irregular or not."""
+    return {number: irregular(rings[number], tolerance) for number in numbers if number in rings}
+
+
+def inside(found, rings, written, irregulars, half):
+    """R416, Manual Rev 06 2.8.A. Under the Rev 6 mode a wall that stands on an irregular written plot runs with its outer face on the plot
+    line, so its ends move half the thickness inside that plot: the plot it is filed under when that one is irregular, also when the other
+    plot is irregular too, as the wall is written once, else the first irregular written plot of its plots. A wall on no irregular written
+    plot keeps its centre on the edge. Each wall gets lineInsideM, the move, 0.0 or half."""
+    for wall in found:
+        plot = wall["plot"]
+        targets = [other for other in wall["plots"] if other in written and irregulars.get(other)]
+        target = plot if plot in targets else (targets[0] if targets else None)
+        if target is None:
+            wall["lineInsideM"] = 0.0
+            continue
+        ring = rings[plot]
+        a, b = ring[wall["edge"]], ring[(wall["edge"] + 1) % len(ring)]
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        length = math.sqrt(dx * dx + dy * dy)
+        ux, uy = dx / length, dy / length
+        twice = 0.0
+        for p, q in edges_of(ring):
+            twice += p[0] * q[1] - q[0] * p[1]
+        # The inside of the plot lies left of the edge on an anticlockwise ring and right of it on a clockwise one, the other plot of the edge
+        # on the far side
+        nx, ny = (-uy, ux) if twice > 0 else (uy, -ux)
+        if target != plot:
+            nx, ny = -nx, -ny
+        wall["ends"] = [[end[0] + nx * half, end[1] + ny * half] for end in wall["ends"]]
+        wall["lineInsideM"] = half
+
+
 def entry(wall):
     """The wall as the plan writes it, each value with its source, the plot and edge it runs along and the plots of its base and top."""
     sources = {"plots": PLOTS_SOURCE, "ends": SOURCE, "base": SOURCE, "top": SOURCE}
@@ -284,11 +365,15 @@ def summary(items, details):
 
 def step(numbers, rows, trace):
     """R362. The step walls of the parity harness: per plot of the scope the walls the plan places from it, their edges, plots, ends, base and
-    top, the plots of the base and top and the status of each value, and the table statusFrom of their details."""
+    top, the plots of the base and top and the status of each value, and the table statusFrom of their details. R415, R416: under the Rev 6
+    mode irregular for a plot with a face and lineInsideM the move of each wall inside a plot, both null under the past job."""
     built, items, details = trace.get("built") or {}, trace.get("walls") or [], trace.get("statusFrom") or {}
-    by_plot, used, found = {}, set(), {}
-    for item in items:
+    irregulars, lines = trace.get("irregular"), trace.get("wallLines")
+    by_plot, line_of, used, found = {}, {}, set(), {}
+    for index, item in enumerate(items):
         by_plot.setdefault(item["plot"], []).append(item)
+        if lines is not None:
+            line_of.setdefault(item["plot"], []).append(lines[index])
     for number in numbers:
         mine = by_plot.get(number, [])
         used.update(item[field]["statusFrom"] for item in mine for field in FIELDS)
@@ -296,5 +381,7 @@ def step(numbers, rows, trace):
                          "edges": [item["edge"] for item in mine], "plots": [item["plots"]["value"] for item in mine], "ends": [item["ends"]["value"] for item in mine],
                          "base": [item["base"]["value"] for item in mine], "top": [item["top"]["value"] for item in mine],
                          "levelPlots": [[item["basePlot"], item["topPlot"]] for item in mine],
-                         "status": [{field: {"status": item[field]["status"], "statusFrom": item[field]["statusFrom"]} for field in FIELDS} for item in mine]}
+                         "status": [{field: {"status": item[field]["status"], "statusFrom": item[field]["statusFrom"]} for field in FIELDS} for item in mine],
+                         "irregular": None if irregulars is None else irregulars.get(number),
+                         "lineInsideM": None if lines is None else line_of.get(number, [])}
     return found, {"statusFrom": {key: details[key] for key in sorted(used)}}

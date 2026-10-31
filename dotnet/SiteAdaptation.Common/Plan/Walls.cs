@@ -24,6 +24,15 @@ namespace SiteAdaptation.Common
         public IReadOnlyDictionary<string, double[]> Open { get; set; }
     }
 
+    // R415, R416. What a build under rev6 reads for the walls of irregular plots, plan_walls.line_rules of Python: the degrees of
+    // rev6.irregular_tolerance_deg and half of plot.boundary_wall_thickness in metres
+    public sealed class WallLine
+    {
+        public double Tolerance { get; set; }
+
+        public double Half { get; set; }
+    }
+
     // R362. A boundary wall of a build: the plot and edge it runs along, the plots it stands on, its two ends, base and top, the plots of the
     // base and the top, and per value its source, status and the key of its detail (R401)
     public sealed class PlanWall
@@ -47,6 +56,9 @@ namespace SiteAdaptation.Common
         // Q120. The plots whose front of R355 before their turn the wall lies on, so it stands as their turn opened another edge
         public List<string> Turned { get; set; } = new List<string>();
 
+        // R416. The move of the centre line inside an irregular plot under rev6, 0.0 or half the thickness, null under the past job
+        public double? LineInsideM { get; set; }
+
         public Dictionary<string, string[]> Status { get; } = new Dictionary<string, string[]>(StringComparer.Ordinal);
     }
 
@@ -62,7 +74,7 @@ namespace SiteAdaptation.Common
 
         public static readonly string[] Fields = { "plots", "ends", "base", "top" };
 
-        public static readonly string[] StepFields = { "unit", "written", "edges", "plots", "ends", "base", "top", "levelPlots", "status" };
+        public static readonly string[] StepFields = { "unit", "written", "edges", "plots", "ends", "base", "top", "levelPlots", "status", "irregular", "lineInsideM" };
 
         internal const string Source = "keyRules";
         internal const string PlotsSource = "locationPlan";
@@ -426,6 +438,111 @@ namespace SiteAdaptation.Common
             return found;
         }
 
+        // plan_walls.line_rules, R415 and R416: the tolerance refused when it is no number over 0 and under 45, as a corner 45 degrees or more
+        // off 90 is no rectangle corner at any tolerance, and half of plot.boundary_wall_thickness in metres
+        public static WallLine LineRules(JObject rules, string rulesName)
+        {
+            JToken tolerance = (rules["rev6"] as JObject)?["irregular_tolerance_deg"];
+            if (!IsNumber(tolerance) || !(BuildFace.Number(tolerance) > 0) || !(BuildFace.Number(tolerance) < 45.0))
+            {
+                throw new InvalidDataException("rev6.irregular_tolerance_deg is no number over 0 and under 45, a build under the Rev 6 mode tells no irregular plot without it (R415)");
+            }
+            return new WallLine { Tolerance = BuildFace.Number(tolerance), Half = Fronts.Metres(rules, rulesName, rules["plot"]?["boundary_wall_thickness"], "plot.boundary_wall_thickness") / 2.0 };
+        }
+
+        // plan_walls.turn_of: the turn in degrees from the edge before to at onto the edge at to after, positive to the left
+        private static double TurnOf(double[] before, double[] at, double[] after)
+        {
+            double ax = at[0] - before[0], ay = at[1] - before[1], bx = after[0] - at[0], by = after[1] - at[1];
+            return Math.Atan2(ax * by - ay * bx, ax * bx + ay * by) * (180.0 / Math.PI);
+        }
+
+        private static bool SamePoint(double[] a, double[] b)
+        {
+            return a[0] == b[0] && a[1] == b[1];
+        }
+
+        // plan_walls.corners, R415: the turns of the corners of a ring after its repeated vertices are dropped and each vertex where the edges
+        // run on within tolerance degrees is merged, the first such vertex in ring order each time until none is left
+        public static List<double> Corners(double[][] ring, double tolerance)
+        {
+            var points = ring.Where((point, index) => index == 0 || !SamePoint(point, ring[index - 1])).ToList();
+            while (points.Count > 1 && SamePoint(points[points.Count - 1], points[0]))
+            {
+                points.RemoveAt(points.Count - 1);
+            }
+            while (points.Count >= 3)
+            {
+                List<double> turns = Enumerable.Range(0, points.Count).Select(index => TurnOf(points[(index - 1 + points.Count) % points.Count], points[index], points[(index + 1) % points.Count])).ToList();
+                int straight = turns.FindIndex(turn => Math.Abs(turn) <= tolerance);
+                if (straight < 0)
+                {
+                    return turns;
+                }
+                points.RemoveAt(straight);
+            }
+            return new List<double>();
+        }
+
+        // plan_walls.irregular, R415 and Manual Rev 06 2.8: a face whose corners after the merge are not 4, each within tolerance of 90
+        public static bool Irregular(double[][] ring, double tolerance)
+        {
+            List<double> turns = Corners(ring, tolerance);
+            return turns.Count != 4 || turns.Any(turn => Math.Abs(Math.Abs(turn) - 90.0) > tolerance);
+        }
+
+        // plan_walls.irregular_of, R415: each plot of numbers with a face, irregular or not
+        public static Dictionary<string, bool> IrregularOf(IEnumerable<string> numbers, IReadOnlyDictionary<string, double[][]> rings, double tolerance)
+        {
+            var found = new Dictionary<string, bool>(StringComparer.Ordinal);
+            foreach (string number in numbers)
+            {
+                if (rings.TryGetValue(number, out double[][] ring) && !found.ContainsKey(number))
+                {
+                    found[number] = Irregular(ring, tolerance);
+                }
+            }
+            return found;
+        }
+
+        // plan_walls.inside, R416 and Manual Rev 06 2.8.A: under rev6 a wall on an irregular written plot moves half the thickness inside the
+        // plot it is filed under when that one is irregular, also when the other is too as the wall is written once, else inside the first
+        // irregular written plot of its plots. A wall on no irregular written plot keeps its centre on the edge
+        public static void Inside(IList<PlanWall> walls, IReadOnlyDictionary<string, double[][]> rings, ISet<string> written, IReadOnlyDictionary<string, bool> irregular, double half)
+        {
+            foreach (PlanWall wall in walls)
+            {
+                List<string> targets = wall.Plots.Where(other => written.Contains(other) && irregular.TryGetValue(other, out bool yes) && yes).ToList();
+                string target = targets.Contains(wall.Plot) ? wall.Plot : targets.FirstOrDefault();
+                if (target == null)
+                {
+                    wall.LineInsideM = 0.0;
+                    continue;
+                }
+                double[][] ring = rings[wall.Plot];
+                double[] a = ring[wall.Edge], b = ring[(wall.Edge + 1) % ring.Length];
+                double dx = b[0] - a[0], dy = b[1] - a[1];
+                double length = Math.Sqrt(dx * dx + dy * dy);
+                double ux = dx / length, uy = dy / length;
+                double twice = 0.0;
+                for (int index = 0; index < ring.Length; index++)
+                {
+                    double[] p = ring[index], q = ring[(index + 1) % ring.Length];
+                    twice += p[0] * q[1] - q[0] * p[1];
+                }
+                // The inside of the plot lies left of the edge on an anticlockwise ring and right of it on a clockwise one, the other plot of the
+                // edge on the far side
+                double nx = twice > 0 ? -uy : uy, ny = twice > 0 ? ux : -ux;
+                if (target != wall.Plot)
+                {
+                    nx = -nx;
+                    ny = -ny;
+                }
+                wall.Ends = wall.Ends.Select(end => new[] { end[0] + nx * half, end[1] + ny * half }).ToArray();
+                wall.LineInsideM = half;
+            }
+        }
+
         private static double? Ffl(PlotPlan plan)
         {
             object value = plan?.Overrides != null && plan.Overrides.TryGetValue("ffl", out object held) ? held : null;
@@ -443,7 +560,7 @@ namespace SiteAdaptation.Common
         // The walls of the plots of order a build writes, on the faces of the whole site and the fronts of the build, the FFL after the
         // overrides at the 3 decimals of the plan, as plan_from_book.build takes them
         public static List<PlanWall> OfPlans(IList<string> order, IReadOnlyDictionary<string, PlotPlan> plans, IReadOnlyDictionary<string, BuildFace> faces,
-            IReadOnlyDictionary<string, FrontItem> fronts, WallRules rules, IReadOnlyDictionary<string, string[]> kin = null)
+            IReadOnlyDictionary<string, FrontItem> fronts, WallRules rules, IReadOnlyDictionary<string, string[]> kin = null, WallLine line = null, IReadOnlyDictionary<string, bool> irregular = null)
         {
             var ffls = new Dictionary<string, double>(StringComparer.Ordinal);
             foreach (KeyValuePair<string, PlotPlan> item in plans)
@@ -470,7 +587,20 @@ namespace SiteAdaptation.Common
                 }
             }
             // Q120. The fronts before a turn, so a wall names the rotation of a plot only where the turn decides whether it stands
-            return Of(order, new HashSet<string>(ffls.Keys, StringComparer.Ordinal), rings, frames, ffls, rules, faced, kin);
+            var written = new HashSet<string>(ffls.Keys, StringComparer.Ordinal);
+            List<PlanWall> walls = Of(order, written, rings, frames, ffls, rules, faced, kin);
+            if (line != null && irregular != null)
+            {
+                // R416. Under rev6 the walls of an irregular plot move inside it, plan_from_book.build after plan_walls.walls
+                Inside(walls, rings, written, irregular, line.Half);
+            }
+            return walls;
+        }
+
+        // R415. The rings of the faces a build takes, as OfPlans takes them, for IrregularOf
+        public static Dictionary<string, double[][]> RingsOf(IReadOnlyDictionary<string, BuildFace> faces)
+        {
+            return faces.Where(item => item.Value != null).ToDictionary(item => item.Key, item => item.Value.Ring, StringComparer.Ordinal);
         }
 
         internal static List<string> AppliedOf(PlotPlan plan)
@@ -498,8 +628,10 @@ namespace SiteAdaptation.Common
             }
         }
 
-        // plan_walls.step: per plot of the scope the walls the plan places from it
-        public static Dictionary<string, Dictionary<string, object>> Step(IEnumerable<string> numbers, IReadOnlyDictionary<string, PlotPlan> plans, IReadOnlyList<PlanWall> walls)
+        // plan_walls.step: per plot of the scope the walls the plan places from it. R415, R416: irregular holds the plots with a face under rev6,
+        // so irregular and lineInsideM are null under the past job, where it is null
+        public static Dictionary<string, Dictionary<string, object>> Step(IEnumerable<string> numbers, IReadOnlyDictionary<string, PlotPlan> plans, IReadOnlyList<PlanWall> walls,
+            IReadOnlyDictionary<string, bool> irregular = null)
         {
             var found = new Dictionary<string, Dictionary<string, object>>();
             foreach (string number in numbers)
@@ -513,6 +645,8 @@ namespace SiteAdaptation.Common
                     ["ends"] = mine.Select(wall => wall.Ends).ToList(), ["base"] = mine.Select(wall => wall.Base).ToList(), ["top"] = mine.Select(wall => wall.Top).ToList(),
                     ["levelPlots"] = mine.Select(wall => new List<string> { wall.BasePlot, wall.TopPlot }).ToList(),
                     ["status"] = new JArray(mine.Select(wall => new JObject(Fields.Select(field => new JProperty(field, new JObject { ["status"] = wall.Status[field][1], ["statusFrom"] = wall.Status[field][2] }))))),
+                    ["irregular"] = irregular != null && irregular.TryGetValue(number, out bool odd) ? (object)odd : null,
+                    ["lineInsideM"] = irregular == null ? null : mine.Select(wall => wall.LineInsideM ?? 0.0).ToList(),
                 };
             }
             return found;

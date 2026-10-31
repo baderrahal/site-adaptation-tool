@@ -382,6 +382,8 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R410 Back yard by Rev 6.
 - R411 Cluster and mirror proposals.
 - R412 Read only new project check.
+- R415 Irregular plot by tolerance.
+- R416 Boundary wall face on plot line.
 
 ## 11-scanner-r420-up.md
 

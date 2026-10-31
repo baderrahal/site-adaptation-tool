@@ -77,13 +77,14 @@ def test_r62_the_rev_6_block_holds_the_new_values_and_no_code_reads_it_yet():
     assert profile.get("rev6") == {
         "back_slope_to_front_min_percent": 0.3, "back_slope_to_front_max_percent": 0.5, "th_back_slope_percent": 2.0,
         "boundary_wall_top_above_ffl": 1700, "boundary_wall_continuity_limit": 500, "garden_wall_top_above_ffl": 1700,
-        "utility_cabinet_raise": 100}
+        "utility_cabinet_raise": 100, "irregular_tolerance_deg": 2.0, "irregular_tolerance_source": profile.get("rev6.irregular_tolerance_source")}
+    assert "2.8.A" in profile.get("rev6.irregular_tolerance_source")
     # The front setback and the one step typologies left rev6 when the plan from CAD began to read them (R126, R127)
     assert profile.metres("ramp.front_setback.default") == 5.52 and profile.metres("ramp.front_setback.C10") == 5.5
     assert profile.get("steps.one_step_only") == ["C10", "VL4", "VL6"]
     python_files = [path for path in (ROOT / "python").glob("*.py")]
     # Since Round ADDIN 3a the wall top rule of R335 and its second method read rev6.boundary_wall_top_above_ffl, since 4g2 the walls of a build
-    # of R362 as well, nothing else reads the block
+    # of R362 as well, nothing else reads the block. Since 4j-2 plan_walls.py reads rev6.irregular_tolerance_deg for R415 too
     # R407. Since round 4i rev6 is also the name of a mode of designBasis of config, which these files name and never read the block by
     modes = ["design_basis.py", "plan_from_book.py", "plan_rules.py"]
     for name in modes:
@@ -94,6 +95,7 @@ def test_r62_the_rev_6_block_holds_the_new_values_and_no_code_reads_it_yet():
     for name in readers:
         text = (ROOT / "python" / name).read_text(encoding="utf-8")
         assert all(text[at:].startswith("rev6.boundary_wall_top_above_ffl") or text[at:].startswith('rev6"]["boundary_wall_top_above_ffl')
+                   or (name == "plan_walls.py" and text[at:].startswith("rev6.irregular_tolerance_deg"))
                    for at in [index for index in range(len(text)) if text.startswith("rev6", index)])
 
 
