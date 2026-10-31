@@ -3,11 +3,11 @@
 ## Live status
 
 - Lane: C, round NEWPROJ-UI, branch feat/lane-c-new-project, worktree Site Adaptation Tool Lane C WT
-- Now: rules renumbered to R430 to R434 and questions to Q280 to Q287 after Lane D and Lane A took R420 to R427 and Q224 to Q242. Gate again, then the PR
-- Done: plan items 1 to 8, reviewer and breaker passes with 7 REAL faults fixed with tests, records drafted
-- Next: gate on both runners, merge from main, diff against the plan, PR, merge
+- Now: full gate on both runners after the renumbering (R430 to R434, Q280 to Q287) and the line ending fix
+- Done: plan items 1 to 8, reviewer and breaker passes, 7 REAL faults fixed with tests, records and log entry written
+- Next: gate green, diff against the plan, PR, merge, messages to the other lanes
 - Blocked: none
-- Time: 2026-10-31 18:45
+- Time: 2026-10-31 18:57
 
 Rewritten by each round, never appended. Last: Lane C NEWPROJ-UI, 31 Oct 2026.
 
