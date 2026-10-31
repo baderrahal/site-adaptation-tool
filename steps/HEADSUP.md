@@ -5,10 +5,10 @@
 ### Lane A
 
 - Lane: A, round 4i, branch feat/addin-4i-rev6
-- Time: 2026-10-31 21:50
-- Now: the final parity on the merged code, 13 steps, net48 and net8.0, the whole project and the 7 keys, in both modes, after the baseline of main at d2f252a
-- Done: R407 to R412, breaker F1 fixed with a test, review 1, the status block (main 639, branch 658 values), Q224 to Q242, Q255, Q256, main merged after PR 112 and PR 113, C# gate 1,647 and 1,460
-- Next: the log entry, PROGRESS to WAITING, the PR, its checks and merge about 23:15, a message to lane-d, then the queued round 4j-2
+- Time: 2026-10-31 22:19
+- Now: the final parity from a worktree pinned at 13057e0, after main merged again for PR 114, the baseline of main c145089 first, no Revit or Civil 3D window used
+- Done: R407 to R412, breaker F1 fixed with a test, review 1, the status block, Q224 to Q242, Q255, Q256 (Q243 and Q244 renumbered for Lane D), main merged after PR 112, 113 and 114
+- Next: parity numbers, the log entry, PROGRESS to WAITING, the PR and its merge after midnight, a message to lane-d, then 4j-2 with no Revit until lane-b and lane-c are clear
 - Blocked: none
 
 ### Lane B
