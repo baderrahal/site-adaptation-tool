@@ -3,13 +3,12 @@
 ## Live status
 
 - Lane: D, round 4j-1, the scanner, branch feat/addin-4j1-scanner, worktree Site Adaptation Tool Lane D WT
-- Now: rerun of set A and the renamed set after the review fixes and Bader's villa type rule, then records and the PR
-- Done: items 1 to 8, reviewer and breaker pass 1 fixed, villa type scored by prototype names (Bader 31 Oct), main merged after PR 113
-- Next: parity, records, PR 4j-1, then the queued round 4j-1b scan speed
+- Now: the full gate, the diff against the plan, then the PR of 4j-1
+- Done: items 1 to 8, review fixes, villa type by prototype names (Bader 31 Oct), parity 0 differ, renamed set equal, records
+- Next: PR 4j-1, then the queued round 4j-1b scan speed
 - Blocked: none. The Road Layout scan passed 40 minutes in the pair trace and was stopped (Q250, round 4j-1b)
-- Time: 2026-10-31 21:40
-- Lane B: 5d merged as PR 113 on 31 Oct (its status at 20:40 read full gate, then the PR of 5d)
-- Lane C: NEWPROJ-UI merged as PR 112 on 31 Oct
+- Time: 2026-10-31 22:30
+- Lane B: 5d merged as PR 113 on 31 Oct (its status at 20:40 read full gate, then the PR of 5d). Lane C: NEWPROJ-UI merged as PR 112
 
 Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane D 4j-1, Lane B 5d, 31 Oct 2026.
 
@@ -28,8 +27,7 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 
 ## What this round changed
 
-- Lane D 4j-1: a scanner of any CAD, Excel and PDF the user gives, the worker command scan and its twin python/scan.py
-- Lane D 4j-1: scan.json per run, docs/design/17-scanner.md, the window needs in steps/waiting-on-others.md
+- Lane D 4j-1: a scanner of any CAD, Excel and PDF, worker command scan, python/scan.py, scan.json per run, design part 17
 - Lane B 5d: button 5 Floors and ramps, 6 Levels with the level Excel wait, 8 Walls of type BW
 - Lane B 5d: button 7 places each villa at its FFL and writes Prototype-FFL (W6)
 - Lane B 5d: plan walls leave the measured span of a cluster pair open, weak at 0.7409 (Q115), the ramp of the 18 turned plots (Q116)
@@ -46,13 +44,12 @@ Rewritten by each round, never appended, the other lanes' lines kept. Last: Lane
 
 - Lane D: worker command scan, WorkerReads.Commands to CadScan.Command. python/scan.py main. Button 2 does not start it (Q246)
 - Buttons.cs calls FloorsBody.For, LevelsBody.For and WallsBody.For for 5, 6 and 8, ButtonsRun.Known lets the test host run 1 to 8
-- FloorLoad and WallLoad find the plan of the last done 4 Check, FloorsRun, LevelsRun and WallsRun decide, RevitFloorDocument and RevitWallDocument act
-- LevelsRun waits for the worker command levelExcel through ReportWorkerClient, which starts Worker\CadReader.exe
+- FloorLoad and WallLoad find the plan of the last done 4 Check, FloorsRun, LevelsRun and WallsRun decide, RevitFloorDocument and RevitWallDocument act. LevelsRun waits for the worker command levelExcel through ReportWorkerClient, which starts Worker\CadReader.exe
 - Lane C: the pane opens NewProjectDialog and HowItWorksDialog, Save setup goes through SetupSave.Apply
 
 ## Open risks
 
-- Lane D: whether a villa type source reaches the strong share on ROSHN, measured in the rerun (Q254). Road Layout scan time (Q250)
+- Lane D: no villa type source reaches the strong share on ROSHN, lead 0.116, the user chooses (Q254). Road Layout scan time (Q250)
 - 6 Levels, 7 at the FFL and 8 Walls have not yet committed in Revit, button 6 stopped three times
 - Links mode moves to 6a, a Links run needs the pane Prototypes row on the 2024 copies (Q214, Q215)
 - The wall rule is weak, 888 of 3,427 walls differ from the keys (Q115, Q266). Lane C: Save setup waits for a real run (Q280)

@@ -168,6 +168,7 @@ Round 17 gave the IDs. Each open question of the DATA-4 list kept its number as 
 | Q261 | Plots of 6 not written in plan | As recommended: 6 lists each plot of the scope the plan does not write with the reason of the missing list and stops only on a written plot with no FFL, coded in 5d on the breaker finding | 2026-10-31, Lane B 5d |
 | Q264 | Should 6 rewrite the floor tags | Yes, against the recommended answer, by the REAL finding of review 1 of 5d: with the old tag a floor 6 moved reads as changed by hand at the next plan change, so 6 tags each floor it moves with the plan as 5 does | 2026-10-31, Lane B 5d |
 | Q272 | Front levels of a ramp on the open edge | As recommended, measured: the keys take the road level of the open edge with no gap, 18 of 18 within 1 mm, so on a plot whose ramp moved the rampFrontM gap measured on the R355 front is left with its why (breaker of Q116 in 5d) | 2026-10-31, Lane B 5d |
+| Q247 | Scan villa type takes the old CAD labels | Bader's rule: a villa type source scores by its match with the prototype names given, the villa blocks inside plots are checked before text labels, the losing sources stay checks, and with no source at the strong share the user chooses in the scanner window (R426, Q254 for the order and share Code chose) | 2026-10-31, Bader, Lane D 4j-1 |
 
 ## Q089
 
