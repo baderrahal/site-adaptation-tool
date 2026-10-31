@@ -54,6 +54,8 @@ namespace SiteAdaptation.Common
         // R408. Under rev6 the slope of El @ Entry and the front corners after the overrides of a plot with El @ Entry, a skip plot as well,
         // for the list of the slopes outside the manual
         public double? Slope { get; set; }
+        // Q116. The ramp moved to the open edge a rotation override turned the plot to face, so the plot is no conflict of the plan
+        public bool RampOnOpenEdge { get; set; }
     }
 
     // R360, R337, R340, R280, R386. Step 12 of the plan builder: what a build does with each override of each plot, applied or left with why, as
@@ -68,6 +70,8 @@ namespace SiteAdaptation.Common
 
         // plan_from_book.NO_GAP, LEFT and plan_rules.USE_RULE, the lines a build leaves an override with
         public const string NoGap = "the override holds no gap to the rule";
+        // plan_from_book.OPEN_EDGE_GAP, Q116. The rampFront gap holds the road of the front of R355, not of the open edge of a turned plot
+        public const string OpenEdgeGap = "measured on the front of R355, the ramp moved to the open edge (Q116)";
         public const string UseRule = "use rule, the override list marks the entry to follow the rule (R386)";
         private const string ParameterWord = "parameter ";
         private const string KeyRulesSource = "keyRules";
@@ -550,7 +554,7 @@ namespace SiteAdaptation.Common
         public static Dictionary<string, PlotPlan> Of(IReadOnlyList<string> numbers, IReadOnlyDictionary<string, Dictionary<string, string>> rows, LevelBuild build,
             IReadOnlyDictionary<string, FrontItem> linkFronts, HandContext context, IReadOnlyDictionary<string, Dictionary<string, object>> hands, JObject keyRules,
             JObject levelProfile, JObject rules, JObject config, IReadOnlyDictionary<string, string> files, OverrideList list, string profileName, double step,
-            string rulesName = "the rules profile")
+            string rulesName = "the rules profile", Func<double, double, KeyValuePair<double?, string>> roadLevel = null)
         {
             if ((string)keyRules["yardOutline"]["rule"] != "fittedOutlineRefit")
             {
@@ -590,8 +594,8 @@ namespace SiteAdaptation.Common
                 var made = new Dictionary<string, object>
                 {
                     ["unit"] = unit, ["skip"] = skipped, ["written"] = false, ["applied"] = null, ["notApplied"] = null, ["mirrored"] = null, ["insert"] = null, ["rotationDeg"] = null,
-                    ["roadAtFront"] = null, ["entry"] = null, ["ffl"] = null, ["ssl"] = null, ["height"] = null, ["steps"] = null, ["rampZ"] = null, ["rampType"] = null, ["yardZ"] = null, ["yardOutline"] = null,
-                    ["slopePercent"] = null,
+                    ["roadAtFront"] = null, ["entry"] = null, ["ffl"] = null, ["ssl"] = null, ["height"] = null, ["steps"] = null, ["rampZ"] = null, ["rampType"] = null, ["rampOutline"] = null, ["yardZ"] = null,
+                    ["yardOutline"] = null, ["slopePercent"] = null,
                 };
                 var parameters = new Dictionary<string, object> { ["unit"] = unit, ["written"] = false, ["parameters"] = null, ["sources"] = null, ["lacks"] = null, ["linkName"] = null };
                 found[number] = new PlotPlan { Overrides = made, Parameters = parameters };
@@ -707,6 +711,7 @@ namespace SiteAdaptation.Common
                 double[] insert = link["insert"] as double[];
                 StepValue rotation = link["rotationDeg"] as StepValue;
                 JToken mirrored = insert == null ? null : (JToken)link["mirrored"];
+                bool turnedLink = false;
                 // plan_from_book.moved_link: the insert by its gap along the link axes of the hand, the rotation by its gap in degrees
                 foreach (string field in new[] { "insert", "rotationDeg" })
                 {
@@ -731,6 +736,7 @@ namespace SiteAdaptation.Common
                     {
                         double turn = (double)rotation.Written + BuildFace.Number(gap);
                         rotation = new StepValue { Raw = turn, Written = LinkFrames.PlanRotation(turn) };
+                        turnedLink = true;
                     }
                     outcomes.Applied(number, field);
                 }
@@ -792,8 +798,28 @@ namespace SiteAdaptation.Common
                     // plan_from_book.build: the ramp of Step 8 with the rampFrontM gap and the ramp type of a rampType override, then the yard
                     var moved = new List<string>();
                     double[] front = item.Front;
+                    double[][] outline = item.Corners;
+                    FrontItem open = turnedLink && roadLevel != null
+                        ? Fronts.OpenRamp(item.Face, item.Frame, Convert.ToDouble(rotation.Written, CultureInfo.InvariantCulture), (bool)mirrored, item.Depth, roadLevel) : null;
+                    // Q116. With no road level at an open corner the ramp stays on the front and the plot stays in the conflicts
+                    if (open?.Front != null)
+                    {
+                        front = open.Front;
+                        outline = open.Corners;
+                        found[number].RampOnOpenEdge = true;
+                        if (build.Rev6)
+                        {
+                            // R408. The slope the plan writes is that of the front of the open edge the ramp moved to
+                            found[number].Slope = DesignBasis.SlopeOf((double)made["entry"], front, item.Depth.Value);
+                            made["slopePercent"] = found[number].Slope;
+                        }
+                    }
                     JToken gap = GapOf(mine["rampFrontM"]);
-                    if (gap != null)
+                    if (found[number].RampOnOpenEdge && mine.Property("rampFrontM") != null)
+                    {
+                        outcomes.Leave(number, "rampFrontM", OpenEdgeGap);
+                    }
+                    else if (gap != null)
                     {
                         front = front.Select(z => z + BuildFace.Number(gap)).ToArray();
                         moved.Add("rampFrontM");
@@ -823,6 +849,7 @@ namespace SiteAdaptation.Common
                     {
                         made["rampZ"] = FloorOutlines.RampHeights(front, entryWritten.Value);
                         made["rampType"] = kind.DeepClone();
+                        made["rampOutline"] = outline;
                     }
                     foreach (string field in moved)
                     {

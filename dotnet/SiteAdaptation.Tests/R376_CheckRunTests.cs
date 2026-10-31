@@ -171,6 +171,22 @@ namespace SiteAdaptation.Tests
             Assert.Equal("4 Check, NBH 012, 4 plots", (string)JObject.Parse(File.ReadAllText(checks))["title"]);
         }
 
+        // Q214. The request of 4 Check names the Prototypes folder of the pane, the folder its prototype files are listed from
+        [Fact]
+        public void R357_Q214_the_request_of_4_check_names_the_prototypes_folder_of_the_pane()
+        {
+            var builder = new Builder();
+            ButtonBody body = new CheckRun(Roles, builder, null, new WorkerDocument(), Nbh, new Table(), null, null).Body();
+
+            body.Preview(Context("R4-1", null));
+            body.Start(Context("R4-1", null), later => { });
+
+            WorkerRequest request = builder.Requests[0];
+            Assert.Equal(Path.GetFullPath(prototypes), request.PrototypeFolder);
+            Assert.All(request.Inputs.Where(input => input.Role.StartsWith(BuildSteps.PrototypeRole, StringComparison.Ordinal)),
+                input => Assert.Equal(request.PrototypeFolder, Path.GetDirectoryName(input.Path)));
+        }
+
         [Fact]
         public void R376_the_dry_run_builds_into_the_dry_folder_and_greys_save_overrides()
         {

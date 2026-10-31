@@ -2,6 +2,42 @@
 
 Newest entry first. The top entry is one page at most. Older rounds keep a short stub here and the detail lives in steps/history/.
 
+## Lane B 5d, 2026-10-31, buttons 5, 6 and 8 and 7 at the FFL, Lane B on the laptop
+
+Goal:
+- 5d of steps/01_next.md, Masses only on NBH 012 (Bader, 31 Oct 16:00), one PR with code, tests and records (D20)
+
+Done:
+- R378 button 5 Floors and ramps, R379 button 6 Levels with the levelExcel wait, R380 button 8 Walls, W6 button 7 at the FFL
+- Q115 keyRules.wallOpen, weak at 0.7409. Q116 ramp of the 18 turned plots on the open edge, 18 of 18 on the key edge
+- Q214 build takes the pane folder, Q215 upgrades under the work root, Q156 Plot by addin.fixedParameters, Q220, the worker path
+- Review 1, breaker pass 1, Q116 breaker: 9 REAL faults fixed with tests, review 2 and the Q116 second pass approve
+- Questions of 5d moved to Q260 up, Lane A holds Q224 to Q242
+
+Checked:
+- Gate at 6326583, clean build, RAN: net48 1603, net8.0 1416, pytest 2120 passed, 1 skipped. Records tests again at the PR head
+- Q115 parity, RAN: 18 made-up cases, Python and C# equal on every wall. Q116 on the 18 turned plots, RAN: front pair 18 of 18 within 1.0005 mm of the keys
+- Revit windows 8, 8e, 8f and G on NBH 012, RAN: 1 to 4 commit in all, 5 commits in 8e, 8f and G, 1003 floors. 6 stops in each
+- Window G: peak private 2379 MiB, least free 23.34 GiB, inputs 42 of 42 unchanged by SHA-256 in every window
+
+Remains:
+- 6, 7 and 8 have not committed in Revit, the second run not run (Q274). Links mode joins 6a
+- Open items 10 and 11 not measured, Q221 picture and Q218 not answered in the run
+
+Known bugs:
+- The levelExcel worker clears the temporary levels file of its run id (Q274). Latent lines: steps/latent.md under Lane B 5d
+
+Next:
+- Bader answers Q274, then 5d ends with the fix and window G again, then 6a
+
+Your turn:
+- Opened Q260, Q262, Q263, Q265 to Q271, Q273, Q274:
+  Q260 Outline change of a placed floor. Q262 Level Excel and the read back values. Q263 Levels count still at its level. Q265 Ends status of walls after Q115.
+  Q266 Walls on edges other units meet. Q267 Base level of a boundary wall. Q268 Scope of a wall on two plots. Q269 Untagged BW wall on a plan wall.
+  Q270 Where a prototype set upgrades now. Q271 Python build takes the pane folder. Q273 6 Levels on a floor moved by hand. Q274 Run id of the levelExcel worker.
+- Closed Q148, Q156, Q190, Q214, Q215, Q216, Q218, Q219, Q220, Q221 as recommended, Q261, Q264, Q272 by findings
+- 86 questions open, full text: steps/questions-open.md
+
 ## Lane C NEWPROJ-UI, 2026-10-31, New project, How it works and the pane text, Lane C on the laptop
 
 Goal:

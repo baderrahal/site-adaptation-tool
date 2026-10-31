@@ -368,7 +368,52 @@ All paths under dotnet/. A line number the reviewer did not note is left out.
 - Revit run after 5c, probe 1b: the probe subscribed to Idling inside Idling, so 1b stays UNKNOWN. Probe 1a answers the need of the run.
 - Revit run after 5c: an ExtentReports FileNotFoundException at Revit shutdown, seen in every window and not from the tool.
 - Revit run after 5c, AddinRun.cs:262-268 and AddinRunSession.cs:516-524: the host raises its phase event once and never again after a refusal (Denied), a refused raise ends the run (Q223).
-<<<<<<< HEAD
+
+## Lane B 5d, review 1
+
+- BuildSteps.cs:242-250 against CheckRun.cs:145: 4 Check names only the *.rvt files of the Prototypes folder, the build refuses any other file in it, such as Thumbs.db or desktop.ini. The prototype folders of today hold only .rvt files.
+- WallsRun.cs:100: no check of the wall height before Wall.Create, a plan wall with its top at or under its base rolls the run back with a Revit message that names no plot. The rule puts the top 1.7 m over the higher FFL and the base at the yard level.
+- RevitWallDocument.cs:66-80: setting a tagged wall to the plan leaves its location line as the user set it, so the centre read back fails. Reached only through SetToPlan, which nothing fills.
+- FloorLoad.cs:32 and WallLoad.cs:26-30: no load fills SetToPlan, so the set to plan path of 03b for an element changed by hand is reached only by tests.
+- plan_walls.py:74 against Walls.cs:125-135: a wallOpen of null is no table in Python and a refusal in C#. No rules file holds a null wallOpen.
+- LevelsRun.cs:190-243: a plot whose floor the plan view skipped with a reason is not named in the Levels preview.
+- rules/roshn-makkah.json, R401 block: the three values of addin.fixedParameters read UNKNOWN though Q156 is closed by Bader's answer, rule_status.py does not read the closed row.
+- FloorPlan.cs:206-225 and FloorsRun.Apply repeat FloorPlacer.SetCorners and its place loop, still called by PlaceFromPlan.cs:42 of the old placer, two copies of R114 that can drift.
+
+## Lane B 5d, breaker pass 1
+
+- FloorsRun.cs:138 and WallsRun.cs:133: floors_ and walls_<NBH>.json hold the elements of the scope of the run only, so a run on a plot list drops the other plots from LastPlaced. Only the case name of a plot placed again changes, Gone or New.
+- FloorPlan.cs:190: the mid point of an arc is not in the outline values, an arc that flips with the same ends counts as equal. The real plan holds 0 arcs.
+- FloorPlan.cs:173: the vertices of all loops are pooled, a vertex moved from one loop of a yard to the other counts as equal (47 yards of 2 loops in the plan of NBH 012).
+- FloorPlan.cs:171: a floor moved to another level with the same top counts as placed. It needs a change of floorSettings.levels, none seen.
+- WallsRun.cs:166 and 294: an untagged BW wall along a whole edge that wallOpen cuts in two matches neither piece, both are placed over it with a line. No real model holds BW walls yet.
+- WallLoad.cs:23 and 28: PlanSource.Open checks the hash of the plan, WallPlan.Parse reads the file again with no check.
+- ParameterSheet.cs:68-74: a name in both blocks that differs only in case, or one GUID in both blocks, is not refused. RevitFloorDocument writes Plot by name, so a model with a project parameter Plot gets one of two.
+- BuildSteps.cs:281: Path.IsPathRooted of .NET Framework takes C:foo and \foo, which resolve against the current folder.
+- Walls.cs Opening and plan_walls.opening: an edge whose two ends lie equally far from the front middle picks its end by floating point noise, the same in both languages.
+- Walls.cs Pieces and plan_walls.pieces: a span over the whole part, or leaving 0.3 m or less, drops the wall with no line, the same in both languages. How often on real edges is UNKNOWN.
+
+## Lane B 5d, Q116 breaker pass 1
+
+- plan_from_book.py open_ramp and Fronts.OpenRamp: a turn of 90 degrees would put the front setback depth of ramp_outline.setback along a side edge, untested. The override list holds 18 turns near 180 degrees and 3 under 5 degrees, none of 90.
+- open_edge and OpenEdge keep the first edge on a tie, a front made of two collinear ring segments could flip to the other half under a small turn. The 3 real small turns did not move a ramp.
+- Fronts.OpenRamp has no polygon check where open_ramp needs a Polygon face, no real input reaches the difference.
+
+## Lane B 5d, review 2 of the fixes
+
+- RevitFloorDocument.cs:101: ChangeTypeId drops its return value. If Revit made a new element on a type change, the next lookup of the old UniqueId fails and the run rolls back, loud. Not probed in Revit 2024.
+- FloorPlan.cs:212-225 Named: a tag of 5d from before the type and plot values reads them from the floor as it stands, so a type the user changed by hand on such a floor reads as a plan change and 5 sets it to the plan with no line. Only floors of the 5d test runs hold such tags.
+
+- Lane C NEWPROJ-UI, TemplateBook.cs Write: a sheet name over 31 characters, one with []:*?/\ or two roles giving one sheet name make an xlsx Excel repairs, and a header with outer spaces loses them. The real names of dataBook.rev9 are 27 and 24 characters and clean (breaker).
+- Lane C NEWPROJ-UI, NewProjectViewModel.GetTemplate: a relative inputRoot, an 8.3 short name, a subst drive or a UNC alias of the input folder slips past WorkFolder.Inside. inputRoot of config is a full drive path (breaker).
+- Lane C NEWPROJ-UI, SavedStarts.List: a refused saved project is left out with no word to the user, the skipped list has no caller in the add-in (reviewer).
+- Lane C NEWPROJ-UI, LastReadFacts: a plot table that does not read shows Not read yet, with no log line. The block shows the latest read of the work folder and is not read again after Browse picks another drawing (reviewer, breaker).
+- Lane C NEWPROJ-UI, TemplateBook.SheetsFor: its refusal names addin.workbookRoles and dataBook.rev9, code names on the Template line of New project, reached only by a config with no such block (reviewer).
+
+## Lane B 5d, Q116 second pass
+
+- build_proof.py:312-314: on a turned plot rampFrontM now stands in notApplied with the Q116 why, so a ramp front that missed the key would read as an explained override, not a finding. The 18 turned plots lie within 1 mm of the keys.
+- The 18 turned plots keep a rampFrontM entry in the override list that the build always leaves, an edit of it has no effect but the why in notApplied.
 
 ## 4i, review 1 and breaker pass 1
 
@@ -384,11 +429,3 @@ No real input reaches these, since the ROSHN config runs roshnPastJob (Q224) and
 - Breaker F6, design_basis.py:79-87 and CsvRows.Read(path, out header): a civil file with a header and no rows is taken, every plot goes to noDoorLevel, and a row with an empty plot cell is kept under the empty text. Python lets a UnicodeDecodeError through where C# refuses by name. Arabic-Indic digits pass float() in Python and throw FormatException in C#. A level in mm is taken as metres and shows only in slopeOutsideManual.
 - Breaker F8, floor_fit.type_of: a door level under the road gives a negative slope, listed outside the manual, and the plan still draws Ramps 0.5%, NO_BAND never fires with the bands of floor_outlines.json.
 - Breaker F9, new_project_check.py:347, 281, 136, 431 and their C# twins: no Schedules line when connect.neighbourhoods holds no schedule, the three hand tables merged so DP2 and DP4 read ok while R411 finds no hand cluster entry (Q239), a header cell that is a number read as empty, the config and the rules read before they are marked.
-
-=======
-- Lane C NEWPROJ-UI, TemplateBook.cs Write: a sheet name over 31 characters, one with []:*?/\ or two roles giving one sheet name make an xlsx Excel repairs, and a header with outer spaces loses them. The real names of dataBook.rev9 are 27 and 24 characters and clean (breaker).
-- Lane C NEWPROJ-UI, NewProjectViewModel.GetTemplate: a relative inputRoot, an 8.3 short name, a subst drive or a UNC alias of the input folder slips past WorkFolder.Inside. inputRoot of config is a full drive path (breaker).
-- Lane C NEWPROJ-UI, SavedStarts.List: a refused saved project is left out with no word to the user, the skipped list has no caller in the add-in (reviewer).
-- Lane C NEWPROJ-UI, LastReadFacts: a plot table that does not read shows Not read yet, with no log line. The block shows the latest read of the work folder and is not read again after Browse picks another drawing (reviewer, breaker).
-- Lane C NEWPROJ-UI, TemplateBook.SheetsFor: its refusal names addin.workbookRoles and dataBook.rev9, code names on the Template line of New project, reached only by a config with no such block (reviewer).
->>>>>>> origin/main

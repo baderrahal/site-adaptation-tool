@@ -64,7 +64,7 @@ namespace SiteAdaptation.Tests
         // test_level_floor_steps.made_build and test_override_param_steps.row_build: the row of six 12 m faces, the plots of faceless DP2 units with no
         // face, the plots of dry with no road level past their left corner, the step scope the plots and 7, a number with no row
         internal static Built Build(OverrideList list, Action<JObject> change = null, string[] faceless = null, string[] dry = null, Action<JObject> changeRules = null,
-            DesignBasis basis = null, JArray bands = null)
+            bool backDry = false, DesignBasis basis = null, JArray bands = null)
         {
             faceless = faceless ?? new string[0];
             dry = dry ?? new string[0];
@@ -91,12 +91,15 @@ namespace SiteAdaptation.Tests
             JObject profile = BuildRules.LevelProfile(rules, null);
             var files = new Dictionary<string, string> { ["DP2"] = Dp2File, ["VD2"] = Vd2File, ["TH1-IM"] = Th1File };
             Dictionary<string, Dictionary<string, object>> hands = Hands.Step(scope, rows, context, key, files, rules, config, basis);
-            LevelBuild build = KeyLevels.Of(scope, rows, clusters, context, members => Fronts.Of(members, rows, faces, roads, limits,
-                (x, y) => dry.Any(plot => x > 12.0 * (int.Parse(plot) - 1) + 1e-9 && x <= 12.0 * int.Parse(plot) + 1e-9) ? new KeyValuePair<double?, string>(null, null)
-                    : new KeyValuePair<double?, string>(10.0 + x / 100.0, "road"), rules, roadEdgeM, sales), rules, key, profile, "parsons2024Rev6", basis, bands);
+            // test_level_floor_steps.made_build: back_dry gives no road level past y = 20
+            Func<double, double, KeyValuePair<double?, string>> level = (x, y) => dry.Any(plot => x > 12.0 * (int.Parse(plot) - 1) + 1e-9 && x <= 12.0 * int.Parse(plot) + 1e-9)
+                || (backDry && y > 20.0) ? new KeyValuePair<double?, string>(null, null) : new KeyValuePair<double?, string>(10.0 + x / 100.0, "road");
+            LevelBuild build = KeyLevels.Of(scope, rows, clusters, context, members => Fronts.Of(members, rows, faces, roads, limits, level, rules, roadEdgeM, sales), rules, key, profile,
+                "parsons2024Rev6", basis, bands);
             return new Built
             {
-                Plans = PlanOverrides.Of(scope, rows, build, fronts, context, hands, key, profile, rules, config, files, list, "parsons2024Rev6", 0.5), Hands = hands,
+                Plans = PlanOverrides.Of(scope, rows, build, fronts, context, hands, key, profile, rules, config, files, list, "parsons2024Rev6", 0.5, "the rules profile", level),
+                Hands = hands,
                 Links = LinkFrames.Step(scope, rows, fronts, context.Roles, hands, key, files, rules), Build = build, Config = config, Rules = rules, Faces = faces, Fronts = fronts,
             };
         }
@@ -313,7 +316,7 @@ namespace SiteAdaptation.Tests
         {
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
             Assert.Equal("unit:noGeometry skip:noGeometry written:noGeometry applied:noGeometry notApplied:noGeometry mirrored:noGeometry insert:points3 rotationDeg:angles3 roadAtFront:levels4 entry:levels4 "
-                + "ffl:levels3 ssl:levels3 height:levels4 steps:noGeometry rampZ:levels3 rampType:noGeometry yardZ:levels3 yardOutline:points3 slopePercent:levels3",
+                + "ffl:levels3 ssl:levels3 height:levels4 steps:noGeometry rampZ:levels3 rampType:noGeometry rampOutline:points3 yardZ:levels3 yardOutline:points3 slopePercent:levels3",
                 string.Join(" ", config.StepFields(PlanOverrides.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
             Assert.Equal(string.Join(" ", config.StepFields(PlanOverrides.StepName).Select(field => field.Name)), string.Join(" ", Build(Made()).Plans["5"].Overrides.Keys));
         }

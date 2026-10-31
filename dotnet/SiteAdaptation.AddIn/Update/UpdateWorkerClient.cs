@@ -17,7 +17,8 @@ namespace SiteAdaptation.AddIn.Update
     {
         public static JObject Read(WorkerRequest request, string workFolder)
         {
-            string exe = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "CadReader.exe");
+            // The installer puts the worker in its own folder, where button 2 starts it (Revit run of 5d)
+            string exe = LaunchedWorker.BesideAddIn();
             if (!File.Exists(exe))
             {
                 throw new FileNotFoundException(TextTemplate.Fill(UpdateFromReportText.WorkerMissing, exe));

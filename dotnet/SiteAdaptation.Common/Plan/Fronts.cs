@@ -363,6 +363,33 @@ namespace SiteAdaptation.Common
             return new FrontFrame { N = normal, R = right, Left = firstLeft ? edge.First : edge.Second, Right = firstLeft ? edge.Second : edge.First, Length = edge.Length, Distance = edge.Distance, Tied = false };
         }
 
+        // plan_from_book.open_ramp (Q116, R355, R362): on a plot a rotation turned to leave open another edge than the rule leaves open, both by
+        // Walls.OpenEdge, the frame of FrameFor on the edge the walls leave open, the ramp outline on it and the road level at its two front
+        // corners, Front null when a corner has none. Null when the turn keeps the open edge of the rule or the plot has no face, frame or depth
+        public static FrontItem OpenRamp(BuildFace face, FrontFrame frame, double rotation, bool mirrored, double? depth, Func<double, double, KeyValuePair<double?, string>> roadLevel)
+        {
+            if (face == null || frame == null || !depth.HasValue)
+            {
+                return null;
+            }
+            double[][] front = { frame.Left, frame.Right };
+            double[][] rule = Walls.OpenEdge(face.Ring, front, LinkFrames.PlanRotation(LinkFrames.RotationOf(frame, mirrored)), mirrored, true);
+            double[][] open = Walls.OpenEdge(face.Ring, front, rotation, mirrored, true);
+            if (rule.Zip(open, (one, other) => one.SequenceEqual(other)).All(same => same))
+            {
+                return null;
+            }
+            // The open edge is picked by the turn, not by a curb, so its frame holds no curb distance
+            FrontFrame made = FrameFor(new RoadEdge { First = open[0], Second = open[1], Length = PyMath.Dist(open[0], open[1]), Distance = double.NaN, Out = Outward(face, open[0], open[1]) });
+            double[][] corners = Outline(made, depth.Value);
+            KeyValuePair<double?, string>[] levels = corners.Take(2).Select(corner => roadLevel(corner[0], corner[1])).ToArray();
+            return new FrontItem
+            {
+                Face = face, Frame = made, Depth = depth, Corners = corners, Surfaces = levels.Select(level => level.Value).ToArray(),
+                Front = levels.All(level => level.Key.HasValue) ? levels.Select(level => level.Key.Value).ToArray() : null,
+            };
+        }
+
         // corner_front.pick of the rule orientation: the road edge whose outward normal bears into the quadrant of the Orientation of the
         // sales row, the nearest the middle of the quadrant, of every road edge when none bears into it, the first of the ring on a tie,
         // null when the row holds no Orientation of the four

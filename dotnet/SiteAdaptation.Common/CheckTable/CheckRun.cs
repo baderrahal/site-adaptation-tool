@@ -80,6 +80,9 @@ namespace SiteAdaptation.Common.CheckTable
             public string ReadFolder { get; set; }
             public string Nbh { get; set; }
             public PastJob Past { get; set; }
+
+            // Q214. The Prototypes folder of the pane the build takes its prototype files from
+            public string PrototypeFolder { get; set; }
         }
 
         public CheckPlan Plan(RunContext context)
@@ -143,6 +146,10 @@ namespace SiteAdaptation.Common.CheckTable
             if (files.Count == 0)
             {
                 plan.Stops.Add("the Prototypes folder holds no prototype file: " + (prototypes ?? "none chosen"));
+            }
+            else
+            {
+                plan.PrototypeFolder = Path.GetFullPath(prototypes);
             }
             files.ForEach(file => Add(plan, BuildSteps.PrototypeRole + Path.GetFileName(file), file, null));
             foreach (string name in BesideConfig)
@@ -288,7 +295,7 @@ namespace SiteAdaptation.Common.CheckTable
             {
                 FormatVersion = WorkerRequest.CurrentFormatVersion, RunId = runId, Document = document, Command = Command, Inputs = plan.Inputs.ToList(),
                 Scope = plan.Nbh == null ? new WorkerScope { Kind = "project" } : new WorkerScope { Kind = ScopeKinds.Nbh, Nbh = plan.Nbh },
-                LevelProfile = levelProfile, OutputFolder = folder, StepsFolder = Path.Combine(folder, "steps"),
+                LevelProfile = levelProfile, PrototypeFolder = plan.PrototypeFolder, OutputFolder = folder, StepsFolder = Path.Combine(folder, "steps"),
                 Steps = new[] { FaceStep.Name }.Concat(BuildSteps.Names).ToList(), TimeLimitS = AddinConfig.Load(plan.ConfigPath).WorkerTimeLimitS(Command),
             };
         }

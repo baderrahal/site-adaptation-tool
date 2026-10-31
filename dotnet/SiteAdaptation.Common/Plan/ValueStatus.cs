@@ -346,10 +346,13 @@ namespace SiteAdaptation.Common
                     hand?.TryGetValue("handTable", out handTable);
                     // Q107, Q112. In the order the build applied them, so the status names the overrides that touched a value in that order
                     List<string> applied = plan.AppliedOrder ?? plan.Overrides["applied"] as List<string> ?? new List<string>();
+                    // value_status.mark, Q116: a rotation override is named on the ramp only where the turn moved the ramp to the open edge
+                    List<string> left = applied.Where(name => name != "rotationDeg").ToList();
                     fields = new JObject();
                     foreach (Tuple<string, string> item in Sources(plan))
                     {
-                        Tuple<string, JObject, string> status = table.Of(item.Item1, item.Item2, handTable as string, applied, plan.Overrides["unit"] as string, number);
+                        List<string> mine = plan.RampOnOpenEdge || !item.Item1.StartsWith("floors.ramp.", StringComparison.Ordinal) ? applied : left;
+                        Tuple<string, JObject, string> status = table.Of(item.Item1, item.Item2, handTable as string, mine, plan.Overrides["unit"] as string, number);
                         // Q107. The key of the detail, the detail once in the table statusFrom of the step file (Tables)
                         fields[item.Item1] = new JObject { ["source"] = item.Item2, ["status"] = status.Item1, ["statusFrom"] = status.Item3 };
                     }

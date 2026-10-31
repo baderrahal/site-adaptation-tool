@@ -19,6 +19,9 @@ namespace SiteAdaptation.Common
         public double Rise { get; set; }
 
         public double Near { get; set; }
+
+        // Q115. The span keyRules.wallOpen leaves open by unit pair, start and end from the front end of the edge, null for no wallOpen
+        public IReadOnlyDictionary<string, double[]> Open { get; set; }
     }
 
     // R362. A boundary wall of a build: the plot and edge it runs along, the plots it stands on, its two ends, base and top, the plots of the
@@ -112,7 +115,41 @@ namespace SiteAdaptation.Common
             {
                 HigherBase = (string)key["wallBase"]["rule"] == "yardLevelOfTheHigherPlot", HigherTop = (string)key["wallTop"]["rule"] == "higherFflPlusRev6",
                 Depth = BuildFace.Number(depth), Rise = Fronts.Metres(rules, rulesName, rise, "rev6.boundary_wall_top_above_ffl"), Near = BuildFace.Number(near),
+                Open = OpenSpans(key["wallOpen"], name),
             };
+        }
+
+        // plan_walls.open_spans, Q115: the spans of keyRules.wallOpen by unit pair, null when the profile holds no wallOpen
+        private static Dictionary<string, double[]> OpenSpans(JToken entry, string name)
+        {
+            if (entry == null)
+            {
+                return null;
+            }
+            var spans = (entry as JObject)?["spans"] as JObject;
+            JToken rule = (entry as JObject)?["rule"];
+            if (spans == null || rule == null || rule.Type != JTokenType.String || (string)rule != "clusterPairSpan"
+                || spans.Properties().Any(span => !(span.Value is JArray pair) || pair.Count != 2 || !pair.All(IsNumber) || !(BuildFace.Number(pair[0]) < BuildFace.Number(pair[1]))))
+            {
+                throw new InvalidDataException("keyRules.wallOpen of " + name + " holds no span table a build leaves an edge open by, it takes clusterPairSpan with spans of two numbers, the first under the second (R362, Q115)");
+            }
+            return spans.Properties().ToDictionary(span => span.Name, span => new[] { BuildFace.Number(span.Value[0]), BuildFace.Number(span.Value[1]) }, StringComparer.Ordinal);
+        }
+
+        // Q115. The footprint cluster and the unit of each plot with a face, as plan_from_book.build gives kin to plan_walls.walls: the index of
+        // the cluster or null, then Typology_Rev9 or null
+        public static Dictionary<string, string[]> Kin(IReadOnlyDictionary<string, BuildFace> faces, IReadOnlyList<SiteCluster> clusters, IReadOnlyDictionary<string, Dictionary<string, string>> rows)
+        {
+            Func<string, string> unit = plot => rows.TryGetValue(plot, out Dictionary<string, string> row) && row.TryGetValue("typologyRev9", out string held) && !string.IsNullOrEmpty(held) ? held : null;
+            var kin = faces.Where(item => item.Value != null).ToDictionary(item => item.Key, item => new[] { null, unit(item.Key) }, StringComparer.Ordinal);
+            for (int index = 0; index < (clusters?.Count ?? 0); index++)
+            {
+                foreach (string plot in clusters[index].Plots)
+                {
+                    kin[plot] = new[] { index.ToString(System.Globalization.CultureInfo.InvariantCulture), unit(plot) };
+                }
+            }
+            return kin;
         }
 
         private static bool SameEdge(double[] a, double[] b, double[][] frame)
@@ -216,7 +253,7 @@ namespace SiteAdaptation.Common
         // written plots as left and right and their FFL at 3 decimals, in the order of the plot, its edge and its part. fronts holds the front of
         // R355 of each written plot before a turn, so Turned lists the plots whose front a wall lies on (Q120)
         public static List<PlanWall> Of(IList<string> order, ISet<string> written, IReadOnlyDictionary<string, double[][]> rings, IReadOnlyDictionary<string, double[][]> frames,
-            IReadOnlyDictionary<string, double> ffls, WallRules rules, IReadOnlyDictionary<string, double[][]> fronts = null)
+            IReadOnlyDictionary<string, double> ffls, WallRules rules, IReadOnlyDictionary<string, double[][]> fronts = null, IReadOnlyDictionary<string, string[]> kin = null)
         {
             fronts = fronts ?? new Dictionary<string, double[][]>();
             double near = rules.Near;
@@ -256,7 +293,7 @@ namespace SiteAdaptation.Common
                     {
                         continue;
                     }
-                    found.AddRange(EdgeWalls(plot, edge, a, b, others, written, ffls, rules, SameEdge(a, b, ownFront)));
+                    found.AddRange(EdgeWalls(plot, edge, a, b, others, written, ffls, rules, SameEdge(a, b, ownFront), kin, ownFront));
                 }
             }
             return found;
@@ -266,7 +303,7 @@ namespace SiteAdaptation.Common
         // written plot open and a part another written plot comes first on left to it. turned is the edge on the front of plot before its turn,
         // and a part on the front of another written plot before its turn names that plot in Turned (Q120)
         private static IEnumerable<PlanWall> EdgeWalls(string plot, int edge, double[] a, double[] b, List<Other> others, ISet<string> written, IReadOnlyDictionary<string, double> ffls,
-            WallRules rules, bool turned)
+            WallRules rules, bool turned, IReadOnlyDictionary<string, string[]> kin, double[][] ownFront)
         {
             double near = rules.Near;
             double dx = b[0] - a[0], dy = b[1] - a[1];
@@ -332,16 +369,61 @@ namespace SiteAdaptation.Common
                 {
                     continue;
                 }
-                double start = part.Start, end = part.End;
-                double[] first = start == 0.0 ? new[] { a[0], a[1] } : new[] { a[0] + ux * start, a[1] + uy * start };
-                double[] last = end == length ? new[] { b[0], b[1] } : new[] { a[0] + ux * end, a[1] + uy * end };
                 string basePlot = Pick(writers, ffls, rules.HigherBase), topPlot = Pick(writers, ffls, rules.HigherTop);
-                yield return new PlanWall
+                foreach (double[] piece in Pieces(part.Start, part.End, Opening(part.Owners, written, a, b, length, rules, kin, ownFront), near))
                 {
-                    Plot = plot, Edge = edge, Plots = part.Owners, Ends = new[] { first, last }, Base = ffls[basePlot] - rules.Depth, Top = ffls[topPlot] + rules.Rise,
-                    BasePlot = basePlot, TopPlot = topPlot, Turned = part.Owners.Where(part.Moved.Contains).ToList(),
-                };
+                    double start = piece[0], end = piece[1];
+                    double[] first = start == 0.0 ? new[] { a[0], a[1] } : new[] { a[0] + ux * start, a[1] + uy * start };
+                    double[] last = end == length ? new[] { b[0], b[1] } : new[] { a[0] + ux * end, a[1] + uy * end };
+                    yield return new PlanWall
+                    {
+                        Plot = plot, Edge = edge, Plots = part.Owners, Ends = new[] { first, last }, Base = ffls[basePlot] - rules.Depth, Top = ffls[topPlot] + rules.Rise,
+                        BasePlot = basePlot, TopPlot = topPlot, Turned = part.Owners.Where(part.Moved.Contains).ToList(),
+                    };
+                }
             }
+        }
+
+        // plan_walls.opening, Q115: the part of the edge keyRules.wallOpen leaves open for two written units of one footprint cluster whose pair
+        // the table holds, start and end along the edge from a, measured from the end nearer the middle of the front of R355, else null
+        private static double[] Opening(List<string> owners, ISet<string> written, double[] a, double[] b, double length, WallRules rules, IReadOnlyDictionary<string, string[]> kin, double[][] front)
+        {
+            if (rules.Open == null || rules.Open.Count == 0 || kin == null || front == null || owners.Count != 2 || !owners.All(other => written.Contains(other) && kin.ContainsKey(other)))
+            {
+                return null;
+            }
+            string[] first = kin[owners[0]], second = kin[owners[1]];
+            if (first[0] == null || first[0] != second[0] || string.IsNullOrEmpty(first[1]) || string.IsNullOrEmpty(second[1]))
+            {
+                return null;
+            }
+            if (!rules.Open.TryGetValue(string.Join("|", new[] { first[1], second[1] }.OrderBy(unit => unit, StringComparer.Ordinal)), out double[] span))
+            {
+                return null;
+            }
+            double[] middle = { (front[0][0] + front[1][0]) / 2.0, (front[0][1] + front[1][1]) / 2.0 };
+            double toA = (a[0] - middle[0]) * (a[0] - middle[0]) + (a[1] - middle[1]) * (a[1] - middle[1]);
+            double toB = (b[0] - middle[0]) * (b[0] - middle[0]) + (b[1] - middle[1]) * (b[1] - middle[1]);
+            return toA <= toB ? span : new[] { length - span[1], length - span[0] };
+        }
+
+        // plan_walls.pieces, Q115: the part start to end less the open gap, each piece left longer than near
+        private static List<double[]> Pieces(double start, double end, double[] gap, double near)
+        {
+            if (gap == null || gap[1] <= start || gap[0] >= end)
+            {
+                return new List<double[]> { new[] { start, end } };
+            }
+            var found = new List<double[]>();
+            if (gap[0] - start > near)
+            {
+                found.Add(new[] { start, gap[0] });
+            }
+            if (end - gap[1] > near)
+            {
+                found.Add(new[] { gap[1], end });
+            }
+            return found;
         }
 
         private static double? Ffl(PlotPlan plan)
@@ -361,7 +443,7 @@ namespace SiteAdaptation.Common
         // The walls of the plots of order a build writes, on the faces of the whole site and the fronts of the build, the FFL after the
         // overrides at the 3 decimals of the plan, as plan_from_book.build takes them
         public static List<PlanWall> OfPlans(IList<string> order, IReadOnlyDictionary<string, PlotPlan> plans, IReadOnlyDictionary<string, BuildFace> faces,
-            IReadOnlyDictionary<string, FrontItem> fronts, WallRules rules)
+            IReadOnlyDictionary<string, FrontItem> fronts, WallRules rules, IReadOnlyDictionary<string, string[]> kin = null)
         {
             var ffls = new Dictionary<string, double>(StringComparer.Ordinal);
             foreach (KeyValuePair<string, PlotPlan> item in plans)
@@ -388,7 +470,7 @@ namespace SiteAdaptation.Common
                 }
             }
             // Q120. The fronts before a turn, so a wall names the rotation of a plot only where the turn decides whether it stands
-            return Of(order, new HashSet<string>(ffls.Keys, StringComparer.Ordinal), rings, frames, ffls, rules, faced);
+            return Of(order, new HashSet<string>(ffls.Keys, StringComparer.Ordinal), rings, frames, ffls, rules, faced, kin);
         }
 
         internal static List<string> AppliedOf(PlotPlan plan)

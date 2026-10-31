@@ -19,7 +19,7 @@ namespace SiteAdaptation.Tests
         private static Tuple<Dictionary<string, Dictionary<string, object>>, JObject> Made(out Dictionary<string, Dictionary<string, object>> status,
             out ValueStatusTable table)
         {
-            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(OverrideParameterStepTests.Made());
+            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(OverrideParameterStepTests.Made(), backDry: true);
             table = ValueStatus.Table(built.Config, built.Rules, "parsons2024Rev6");
             status = ValueStatus.Step(Numbers, built.Plans, built.Hands, table);
             JObject key = BuildRules.KeyRules(built.Rules, null, PlanSummary.StepName);
@@ -76,8 +76,8 @@ namespace SiteAdaptation.Tests
         {
             Assert.Equal("the ramp on the front of R355", PlanSummary.TurnedKept);
             Assert.Equal("the open edge the rotationDeg override turned the link to face, which the walls leave open (R362)", PlanSummary.TurnedOther);
-            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(OverrideParameterStepTests.Made());
-            // 2 turned by about 180 degrees, 6 by 1.5 degrees, which keeps the front open
+            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(OverrideParameterStepTests.Made(), backDry: true);
+            // 2 turned by about 180 degrees with no road level on its open edge, so its ramp stays on the front (Q116), 6 by 1.5 degrees, which keeps the front open
             Assert.Equal("2", string.Join(" ", PlanSummary.Conflicts(Numbers, built.Plans, built.Build.Fronts, built.Faces).Select(item => (string)item["plot"])));
             OverrideParameterStepTests.Built plain = OverrideParameterStepTests.Build(new OverrideList(null));
             Assert.Empty(PlanSummary.Conflicts(Numbers, plain.Plans, plain.Build.Fronts, plain.Faces));
@@ -87,7 +87,7 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R365_review1_a_plan_whose_written_is_missing_or_null_does_not_throw_and_is_not_counted()
         {
-            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(OverrideParameterStepTests.Made());
+            OverrideParameterStepTests.Built built = OverrideParameterStepTests.Build(OverrideParameterStepTests.Made(), backDry: true);
             ValueStatusTable table = ValueStatus.Table(built.Config, built.Rules, "parsons2024Rev6");
             Dictionary<string, Dictionary<string, object>> status = ValueStatus.Step(Numbers, built.Plans, built.Hands, table);
             var plans = new Dictionary<string, PlotPlan>(built.Plans)

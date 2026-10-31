@@ -369,6 +369,9 @@ Written by python/rules_index.py from the parts of docs/rules/, never by hand. T
 - R373 Button 1 on an empty project.
 - R374 Button 1 on an existing site file.
 - R383 Element tags in Revit.
+- R378 Button 5 Floors and ramps.
+- R379 Button 6 Levels.
+- R380 Button 8 Walls.
 
 ## 10-addin-r407-up.md
 
