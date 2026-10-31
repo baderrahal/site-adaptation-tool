@@ -123,5 +123,14 @@ namespace SiteAdaptation.Common.Review
         public string ReadRunId { get; set; }
 
         public IReadOnlyList<string> Sources { get; set; }
+
+        // R442. The cluster proposals of the plan of the last done 4 Check, none before 4 Check or on a plan of the past job
+        public IReadOnlyList<ClusterMark> Proposals { get; set; }
+
+        // R442. The SHA-256 of that plan, null with no plan
+        public string PlanSha256 { get; set; }
+
+        // R442. The cluster confirm review_<NBH>.json keeps
+        public ClusterSaved ClusterSaved { get; set; }
     }
 }
