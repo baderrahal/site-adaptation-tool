@@ -8,7 +8,8 @@ Goal:
 - Bader's round SCAN-UI: the window What the tool read from the board ScanResults, button 2 starts the scan (Q246), New project picks
   from the scan (Q283), Current files in 1 Set up site, cluster confirm, door level picker, Revit pictures. Freeze 09:30 for the demo
 
-Done (PR 1 of 2, tasks 1 to 4):
+Done:
+- PR 1 of 2, tasks 1 to 4
 - R435 Scan value status and R436 Save scan picks with setup: AddIn/ScanResults, Common/Scan/ScanView.cs, ScanPicks.cs
 - R438 Button 2 scan gate and R439 Scan reuse by input hash: ScanStep.Wrap in ReadDataBody.For, ScanGate.Ask, no scan in a test host run
 - R440 Drawing facts from the scan: LatestScanFacts, layer, sheet and column dropdowns, View opens the window
