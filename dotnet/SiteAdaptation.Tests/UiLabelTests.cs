@@ -26,10 +26,11 @@ namespace SiteAdaptation.Tests
                 {
                     [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "CheckTable", "CheckShownText.cs")] = "Check table",
                     [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Update", "UpdateText.cs")] = "Update from report",
+                    [Path.Combine(root, "dotnet", "SiteAdaptation.Common", "Scan", "ScanViewText.cs")] = "What the tool read",
                 });
 
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "How it works" }, list.Keys.ToArray());
-            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "How it works" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "How it works", "What the tool read" }, list.Keys.ToArray());
+            Assert.Equal(new[] { "Ribbon", "Pane", "Button messages", "Set up site", "Review data", "Site Adaptation Rules", "Check table", "Update from report", "New project", "How it works", "What the tool read" }, list.Values.Where(window => window.Built).Select(window => window.Name).ToArray());
             Assert.Equal(16, list["Ribbon"].Entries.Count);
             Assert.Contains(shown["Ribbon"], found => found.Text == "Update from report");
             Assert.Contains(shown["Pane"], found => found.Text == "Browse" && found.Where.EndsWith(".xaml", StringComparison.Ordinal));
@@ -168,8 +169,9 @@ namespace SiteAdaptation.Tests
             // Note and the dry run line of Update from report, the two lines of the message after Apply, the texts of the 5f fix that Common
             // gives the window and the two refusals of a second book of a kind. The UI review of 5c added 4: the heading Corner, the two lines of a
             // Rules command with no usable rules file and the chip Team check. The second logic review of 5c added 1, the line under Why of a
-            // row on Skip. Lane C NEWPROJ-UI added 21: 3 of the pane, Settings among them, and 18 of New project
-            Assert.Equal(173, chosen);
+            // row on Skip. Lane C NEWPROJ-UI added 21: 3 of the pane, Settings among them, and 18 of New project. Lane C SCAN-UI added
+            // 14 of What the tool read and 7 of the section Current files of Set up site
+            Assert.Equal(187, chosen);
             Assert.True(matched > 100, matched.ToString());
         }
 
@@ -231,6 +233,7 @@ namespace SiteAdaptation.Tests
             { "Update from report", "Update" },
             { "New project", "NewProject" },
             { "How it works", "HowItWorks" },
+            { "What the tool read", "ScanResults" },
         };
 
         private const string RibbonFile = "RibbonLayout.cs";

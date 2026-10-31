@@ -39,7 +39,8 @@ namespace SiteAdaptation.UiShots
         public const string UpdateFromReport = "update-from-report";
         public const string NewProject = "new-project";
         public const string HowItWorks = "how-it-works";
-        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable, UpdateFromReport, NewProject, HowItWorks };
+        public const string ScanResults = "scan-results";
+        public static readonly string[] Windows = { RibbonIcons, Pane, PaneFirstOpen, SetUpSite, ReviewData, Rules, CheckTable, UpdateFromReport, NewProject, HowItWorks, ScanResults };
 
         private const double Dpi = 96.0;
 
@@ -57,6 +58,7 @@ namespace SiteAdaptation.UiShots
                 case UpdateFromReport: return UpdatePage();
                 case NewProject: return NewProjectPage();
                 case HowItWorks: return HowItWorksPage();
+                case ScanResults: return ScanResultsPage();
                 default: throw new ArgumentException("no window " + window + ", only " + string.Join(", ", Windows), nameof(window));
             }
         }
