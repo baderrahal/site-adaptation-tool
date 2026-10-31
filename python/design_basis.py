@@ -1,7 +1,8 @@
 """R407 to R410, round 4i. The design basis of a build, designBasis of config/project.json read once per run: rev6 the Site Adaptation
 Manual Rev 06 of the client, the other mode of designBasis.modes the past job as the keys measured it. Under the past job nothing but the
 mode is read, so a build is the build of before round 4i. Under rev6 El @ Entry is the input and the ramp slope the result (R408), the road level comes
-from the one surface designBasis.roadLevel names (R409) and the back yard is a grade with no floor (R410). DesignBasis.cs of the C#
+from the one surface designBasis.roadLevel names (R409), the back yard is a grade with no floor (R410) and designBasis.split.test turns on the
+split of a cluster by slope and steps (R414). DesignBasis.cs of the C#
 gives the same, each refusal with the same line. docs/design/16-design-basis.md"""
 import csv
 import math
@@ -135,15 +136,33 @@ def propose_of(block):
     return propose
 
 
+def whole(value):
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def split_of(block):
+    """R414. designBasis.split: test true or false, units the size of a cluster it tests and walls the walls it tries in order, each a wall
+    after a unit inside the cluster, any other value refused."""
+    split = block.get("split") if isinstance(block.get("split"), dict) else {}
+    test, units, walls = split.get("test"), split.get("units"), split.get("walls")
+    if not isinstance(test, bool):
+        refuse("designBasis.split.test must be true or false, it holds %r (R414)" % (test,))
+    if not whole(units) or units < 2 or not isinstance(walls, list) or not walls or not all(whole(wall) and 0 < wall < units for wall in walls):
+        refuse("designBasis.split.units must be a whole number of 2 or more and designBasis.split.walls a list of the walls it tries in order, each a "
+               "wall after a unit inside the cluster (R414)")
+    return {"test": test, "units": units, "walls": list(walls)}
+
+
 def basis_of(settings):
     """R407. The design basis of a build, read once: under the past job the mode alone, under rev6 also the door level source with what it
-    reads (R408), the one road surface (R409), the back yard floor held false (R410) and whether the build proposes clusters (R411)."""
+    reads (R408), the one road surface (R409), the back yard floor held false (R410), whether the build proposes clusters (R411) and the
+    split test of a cluster (R414)."""
     block = block_of(settings)
     mode = mode_of(settings)
     if mode != REV6:
         return {"mode": mode}
     check_yard(block)
-    return {"mode": mode, "door": door_of(block), "surface": surface_of(block), "propose": propose_of(block)}
+    return {"mode": mode, "door": door_of(block), "surface": surface_of(block), "propose": propose_of(block), "split": split_of(block)}
 
 
 def is_rev6(basis):
@@ -153,6 +172,11 @@ def is_rev6(basis):
 def proposes(basis):
     """R411. True for a build under rev6 with designBasis.clusters.propose, the one that proposes a cluster and a mirror flag per unit plot."""
     return is_rev6(basis) and basis["propose"]
+
+
+def splits(basis):
+    """R414. True for a build under rev6 with designBasis.split.test, the one that tests each cluster for a split by slope and steps."""
+    return is_rev6(basis) and basis["split"]["test"]
 
 
 def road_names(basis):

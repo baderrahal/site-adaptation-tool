@@ -30,6 +30,9 @@ namespace SiteAdaptation.Common
         public double Top { get; set; }
 
         public double Ffl { get; set; }
+
+        // R414. The result of the split test of its cluster, none, walls n, middle or noFit, null where no test ran
+        public string SplitTest { get; set; }
     }
 
     // R359. What the levels of a build take, as plan_from_book.build gives them: the row partners, the plots whose levels it works out, their
@@ -308,6 +311,74 @@ namespace SiteAdaptation.Common
             return new HashSet<string>((fields ?? new JArray()).Where(field => field.Type == JTokenType.String && ((string)field).StartsWith(ParameterWord, StringComparison.Ordinal)).Select(field => (string)field));
         }
 
+        // plan_rules.wall_name: the name of the one wall after unit wall in a cluster of count units, middle or walls n
+        public static string WallName(int wall, int count)
+        {
+            return count % 2 == 0 && wall == count / 2 ? "middle" : "walls " + wall.ToString(CultureInfo.InvariantCulture);
+        }
+
+        // plan_rules.part_fits: every unit of the part holds its slope of the unrounded El @ Entry inside slopes_percent front_min to front_max as
+        // the plan writes it and its steps at most steps.front_max, on the FFL of the part less El @ Entry by the rule (manual 2.3.A, 2.4.A)
+        public static bool PartFits(IReadOnlyList<string> part, IReadOnlyDictionary<string, EntryLevel> entries, JObject keyRules, JObject rules, JObject levelProfile)
+        {
+            JObject baseRule = keyRules["baseHeight"] as JObject;
+            double ffl = Rounding.Fixed(PieceTop(part.Select(plot => Tuple.Create((double?)entries[plot].Rule, entries[plot].Unit)), rules, baseRule).Value, 3);
+            JObject limits = (JObject)rules["slopes_percent"];
+            double most = BuildFace.Number(rules["steps"]["front_max"]);
+            foreach (string plot in part)
+            {
+                EntryLevel entry = entries[plot];
+                JToken steps = StepsByRule((string)keyRules["steps"]["rule"], Rounding.Fixed(ffl - entry.Rule, 4), entry.Unit, rules, levelProfile, baseRule);
+                if (DesignBasis.OutsideManual(entry.Slope, limits) || steps == null || steps.Type == JTokenType.Null || BuildFace.Number(steps) > most)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // plan_rules.split_test, manual 2.2.B: each cluster of designBasis.split.units whose plots all hold El @ Entry whole when every unit fits,
+        // else the first wall of split.walls where both parts fit, else whole as noFit, with the mark of each plot. Any other cluster is not tested
+        public static Tuple<Dictionary<string, List<string>>, Dictionary<string, string>> SplitTest(IReadOnlyDictionary<string, EntryLevel> entries,
+            IReadOnlyDictionary<string, ClusterRole> roles, DesignBasis basis, JObject keyRules, JObject rules, JObject levelProfile)
+        {
+            var pieces = new Dictionary<string, List<string>>();
+            var marks = new Dictionary<string, string>();
+            foreach (ClusterRole role in roles.Values)
+            {
+                List<string> ordered = role.Plots.ToList();
+                if (ordered.Count != basis.SplitUnits || marks.ContainsKey(ordered[0]) || !ordered.All(entries.ContainsKey))
+                {
+                    continue;
+                }
+                var parts = new List<List<string>> { ordered };
+                string mark = "none";
+                if (!PartFits(ordered, entries, keyRules, rules, levelProfile))
+                {
+                    mark = "noFit";
+                    foreach (int wall in basis.SplitWalls)
+                    {
+                        var cut = new List<List<string>> { ordered.Take(wall).ToList(), ordered.Skip(wall).ToList() };
+                        if (cut.All(part => PartFits(part, entries, keyRules, rules, levelProfile)))
+                        {
+                            parts = cut;
+                            mark = WallName(wall, ordered.Count);
+                            break;
+                        }
+                    }
+                }
+                foreach (List<string> part in parts)
+                {
+                    foreach (string plot in part)
+                    {
+                        pieces[plot] = part;
+                        marks[plot] = mark;
+                    }
+                }
+            }
+            return Tuple.Create(pieces, marks);
+        }
+
         // plan_from_book.build: the plots of the clusters of the scope, the scope and the row partner of each plot of the scope, by their numbers,
         // their fronts with the road levels, El @ Entry of each with a road level at both front corners and the levels by key_level_rows
         public static LevelBuild Of(IReadOnlyList<string> numbers, IReadOnlyDictionary<string, Dictionary<string, string>> rows, IEnumerable<SiteCluster> clusters, HandContext context,
@@ -361,6 +432,17 @@ namespace SiteAdaptation.Common
             // The code of plots.csv as it stands, an empty one kept empty, as key_levels takes it for the split of a cluster
             var units = ordered.ToDictionary(number => number, number => rows.TryGetValue(number, out Dictionary<string, string> row) && row.TryGetValue("typologyRev9", out string code) ? code : (string)null);
             Dictionary<string, List<string>> pieces = KeyPieces(keyRules, entries.Keys.ToList(), context.Roles, partners, units);
+            var marks = new Dictionary<string, string>();
+            if (basis != null && basis.Splits)
+            {
+                // R414. The pieces of the split test replace those of its clusters
+                Tuple<Dictionary<string, List<string>>, Dictionary<string, string>> tested = SplitTest(entries, context.Roles, basis, keyRules, rules, levelProfile);
+                foreach (KeyValuePair<string, List<string>> item in tested.Item1)
+                {
+                    pieces[item.Key] = item.Value;
+                }
+                marks = tested.Item2;
+            }
             JObject baseRule = keyRules["baseHeight"] as JObject;
             var levels = new Dictionary<string, LevelRow>();
             // plan_rules.key_level_rows: one FFL per piece at its highest El @ Entry by the rule plus the base of that unit, to the mm
@@ -370,7 +452,7 @@ namespace SiteAdaptation.Common
                 double? top = PieceTop(piece.Select(other => entries.TryGetValue(other, out EntryLevel held) ? Tuple.Create((double?)held.Rule, held.Unit) : Tuple.Create((double?)null, (string)null)), rules, baseRule);
                 if (top.HasValue)
                 {
-                    levels[entry.Key] = new LevelRow { Piece = piece, Top = top.Value, Ffl = Rounding.Fixed(top.Value, 3) };
+                    levels[entry.Key] = new LevelRow { Piece = piece, Top = top.Value, Ffl = Rounding.Fixed(top.Value, 3), SplitTest = marks.TryGetValue(entry.Key, out string mark) ? mark : null };
                 }
             }
             var made = new LevelBuild { Partners = partners, Members = ordered, Fronts = fronts, Entries = entries, Rows = levels, Basis = basis, Bands = bands };
@@ -403,6 +485,7 @@ namespace SiteAdaptation.Common
                     ["unit"] = unit, ["partner"] = build.Partners.TryGetValue(number, out string partner) ? partner : null, ["piece"] = null,
                     ["roadAtFront"] = item?.Front == null ? null : (object)RoadAtFront(item.Front), ["entry"] = entry == null ? null : (object)entry.Raw,
                     ["ffl"] = null, ["ssl"] = null, ["height"] = null, ["steps"] = null, ["parameters"] = null, ["doorSource"] = null, ["slopePercent"] = null,
+                    ["splitTest"] = null,
                 };
                 if (build.Rev6 && unit != null)
                 {
@@ -422,6 +505,8 @@ namespace SiteAdaptation.Common
                     made["height"] = height;
                     made["steps"] = StepsByRule(stepsRule, Rounding.Fixed(height, 4), entry.Unit, rules, levelProfile, baseRule);
                     made["parameters"] = LevelParameters(keyRules, level.Ffl, later);
+                    // R414. The result of the split test of its cluster, the mark of a double wall, null where no test ran
+                    made["splitTest"] = level.SplitTest;
                 }
                 found[number] = made;
             }

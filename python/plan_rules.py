@@ -542,6 +542,8 @@ BAND_DECIMALS = 6
 NO_SPLIT = "none"
 MIDDLE = "middle"
 WALLS = "walls "
+# R414. The mark of a cluster the split test finds no part that fits for, which stays whole
+NO_FIT = "noFit"
 
 
 def key_entry(front, code, lp, depth):
@@ -669,6 +671,49 @@ def level_parameters(rules, ffl, later):
 def rule_entry(item):
     """R340. El @ Entry the rule gives a plot, before the entryM gap of its own override, the entry itself for a plot with none."""
     return None if item is None else item.get("rule", item.get("entry"))
+
+
+def wall_name(wall, count):
+    """R414. The name of the one wall after unit wall in a cluster of count units, as split_pattern names it: middle or walls n."""
+    return MIDDLE if count % 2 == 0 and wall == count // 2 else WALLS + str(wall)
+
+
+def part_fits(part, entries, slopes, key, profile, lp):
+    """R414, manual 2.3.A and 2.4.A. True when every unit of part holds its front yard slope inside slopes_percent front_min to front_max as
+    the plan writes it, on the slope of the unrounded El @ Entry (design_basis.outside_manual), and its steps at most steps.front_max, the
+    steps of keyRules.steps on the FFL of the part by piece_ffl less El @ Entry by the rule, as key_level_rows takes them."""
+    base_rule = key.get("baseHeight")
+    ffl = piece_ffl([(rule_entry(entries[plot]), entries[plot]["unit"]) for plot in part], profile, base_rule)
+    for plot in part:
+        height = common.fixed(ffl - rule_entry(entries[plot]), ENTRY_DECIMALS)
+        steps = steps_by_rule(key["steps"]["rule"], height, entries[plot]["unit"], profile, lp, base_rule)
+        if design_basis.outside_manual(slopes[plot], profile.get("slopes_percent")) or steps is None or steps > profile.get("steps.front_max"):
+            return False
+    return True
+
+
+def split_test(entries, slopes, roles, split, key, profile, lp):
+    """R414, manual 2.2.B. The pieces of each cluster of split units (the roles of R236, its plots in row order) whose plots all hold El @ Entry:
+    whole when every unit fits (part_fits), else the first wall of split walls where both parts fit, each part its own FFL by piece_top,
+    else whole as noFit. The mark of each plot names the result, none, walls n, middle or noFit, a split the place of a double wall and
+    construction joint. A cluster of another size or with a plot with no El @ Entry is not tested and keeps the pieces of key_pieces."""
+    pieces, marks = {}, {}
+    for role in roles.values():
+        ordered = list(role["plots"])
+        if ordered[0] in marks or len(ordered) != split["units"] or not all(plot in entries and plot in slopes for plot in ordered):
+            continue
+        parts, mark = [ordered], NO_SPLIT
+        if not part_fits(ordered, entries, slopes, key, profile, lp):
+            mark = NO_FIT
+            for wall in split["walls"]:
+                cut = [ordered[:wall], ordered[wall:]]
+                if all(part_fits(part, entries, slopes, key, profile, lp) for part in cut):
+                    parts, mark = cut, wall_name(wall, len(ordered))
+                    break
+        for part in parts:
+            for plot in part:
+                pieces[plot], marks[plot] = part, mark
+    return pieces, marks
 
 
 def key_level_rows(entries, pieces, profile, lp, key):
