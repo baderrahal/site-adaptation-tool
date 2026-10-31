@@ -17,6 +17,8 @@ namespace SiteAdaptation.Tests
     public sealed class R375_ReadDataTests : IDisposable
     {
         private const string Label = "2 Read data";
+        // SavedPath holds the Windows paths Revit gives, so the document is named in that form and runs on the Linux leg of CI too
+        private const string Document = @"C:\Models\site.rvt";
         private readonly string root = Path.Combine(Path.GetTempPath(), "sa-read-" + Guid.NewGuid().ToString("N"));
         private readonly string work;
         private readonly string input;
@@ -341,8 +343,8 @@ namespace SiteAdaptation.Tests
             Action<RunLater> keep = null;
             var body = new ButtonBody { Preview = context => new RunSummary("one", null), Start = (context, end) => keep = end };
             var flow = new ButtonFlow(state, model, confirm, InputHash.Of, () => "2_20261030-000000-000");
-            Assert.Equal(RunEnd.Stopped, flow.Run(2, Label, body, Path.Combine(root, "site.rvt")).End);
-            Assert.Equal(RunEnd.Started, flow.Run(2, Label, body, Path.Combine(root, "site.rvt"), ended.Add).End);
+            Assert.Equal(RunEnd.Stopped, flow.Run(2, Label, body, Document).End);
+            Assert.Equal(RunEnd.Started, flow.Run(2, Label, body, Document, ended.Add).End);
             keep(RunLater.Done(null, new[] { "an issue" }, null));
             keep(RunLater.Failed("a second end"));
             RunOutcome only = Assert.Single(ended);
@@ -350,14 +352,14 @@ namespace SiteAdaptation.Tests
             Assert.Equal(new[] { "an issue" }, only.Record.Issues);
             Assert.Equal(0, model.Started);
             body.Start = (context, end) => throw new IOException("the request could not be written");
-            Assert.Equal(Label + " changed nothing, the model is as it was. The run failed: the request could not be written", flow.Run(2, Label, body, Path.Combine(root, "site.rvt"), ended.Add).Message);
+            Assert.Equal(Label + " changed nothing, the model is as it was. The run failed: the request could not be written", flow.Run(2, Label, body, Document, ended.Add).Message);
         }
 
         private RunOutcome Run()
         {
-            var run = new ReadDataRun(Roles, worker, new WorkerDocument { Path = Path.Combine(root, "site.rvt"), SessionId = "s1" }, () => scope);
+            var run = new ReadDataRun(Roles, worker, new WorkerDocument { Path = Document, SessionId = "s1" }, () => scope);
             var flow = new ButtonFlow(state, new NoModel(), confirm, InputHash.Of, () => RunIds.New(2, DateTime.Now) + "-" + (++runs).ToString("D3"));
-            return flow.Run(2, Label, run.Body(), Path.Combine(root, "site.rvt"), ended.Add);
+            return flow.Run(2, Label, run.Body(), Document, ended.Add);
         }
 
         private RunOutcome Ended(RunOutcome started)
