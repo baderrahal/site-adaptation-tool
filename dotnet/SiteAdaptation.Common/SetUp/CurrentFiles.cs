@@ -52,7 +52,7 @@ namespace SiteAdaptation.Common.SetUp
                 {
                     continue;
                 }
-                string file = Path.GetFileName(input.Path);
+                string file = FileName(input.Path);
                 rows.Add(new CurrentFileRow { Input = name, FileName = file, Site = name == InputNames.Baseplan, Current = ticked.Contains(Entry(name, file)) });
             }
             return rows;
@@ -62,6 +62,12 @@ namespace SiteAdaptation.Common.SetUp
         public static string Entry(string input, string fileName)
         {
             return input + "|" + fileName;
+        }
+
+        // The name after the last folder mark of either kind, since the settings keep Windows paths and the gate also runs on Linux
+        public static string FileName(string path)
+        {
+            return path.Substring(path.LastIndexOfAny(new[] { '\\', '/' }) + 1);
         }
 
         public static bool CanApply(IEnumerable<CurrentFileRow> rows)
@@ -78,7 +84,7 @@ namespace SiteAdaptation.Common.SetUp
             {
                 next.CurrentFiles = ticked.Distinct(StringComparer.Ordinal).OrderBy(name => Array.IndexOf(InputNames.All, name))
                     .Where(name => next.Inputs.TryGetValue(name, out SettingsInput input) && input != null && !string.IsNullOrEmpty(input.Path))
-                    .Select(name => Entry(name, Path.GetFileName(next.Inputs[name].Path))).ToList();
+                    .Select(name => Entry(name, FileName(next.Inputs[name].Path))).ToList();
             }
             if (!string.IsNullOrEmpty(rulesFile))
             {
