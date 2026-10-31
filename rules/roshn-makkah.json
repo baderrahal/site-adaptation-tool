@@ -876,7 +876,7 @@
       "designValues.floors.levelToleranceM": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designValues.floors.cornerOnVertexM": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designValues.floors.shortestEdgeM": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
-      "designValues.walls.readBackM": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
+      "designValues.walls.readBackM": {"status": "RECOMMENDED", "question": "Q233", "where": "Q233"},
       "designValues.fronts.frontTieM": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designValues.fronts.outwardProbeM": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "designValues.fronts.quadrantsDeg.EN": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
