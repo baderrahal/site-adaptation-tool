@@ -21,6 +21,19 @@ The asks of the questions Bader closed in the answer pass of 2026-10-29 whose re
 | Q071 | The architect | The wall top rule | Base at the yard level of the higher plot, centre on the plot edge, front edge open, top at FFL plus 1.7 m (weak, 0.346), wall overrides per plot side once button 8 places walls |
 | Q082 | The road designer | The road surface or road model of the fronts of 33 key plots | Those plots are listed in noRoadLevel with the reason and not written |
 
+## The scanner window, asked of Lane B by Lane D 4j-1
+
+The scanner (R420 to R427) writes scan.json in the run folder, its shape in docs/design/17-scanner.md. Lane D builds no window. What the window needs, CHOSEN by Code until Lane B designs it (Q246):
+
+| Need | From scan.json | What the tool does until then |
+|---|---|---|
+| Pick the files to scan, CAD, Excel, PDF and the prototype folder | the roles of a scan request, scanCad, scanExcel, scanPdf, prototype | the worker command scan runs from a request written by hand or a test |
+| Show each layer of each drawing with its counts | rows of kind cadLayer | nothing shows them |
+| Show the proposed layer of plot outlines, plot numbers and villa blocks, the others as checks, and let the user take another | rows plotOutline, plotNumber, villaBlock, proposedUse and score | button 2 reads the layers of config/cad_layers.json |
+| Show the villa type source proposed and the others | rows villaType | the plot table of button 2 reads the sales sheet of config |
+| List the conflicts and checks by plot, with both values and both sources | conflicts and checks | nothing shows them |
+| Keep what the user took for the next read | none, a new file of the window | none |
+
 ## Lane C NEWPROJ-UI, 31 Oct 2026
 
 The placeholders of the window New project (docs/design/18-new-project.md). Each waits for another lane, the window shows it grey or as text until then.

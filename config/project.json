@@ -344,7 +344,8 @@
       "reportExcel": 600,
       "updateFromReport": 60,
       "exportChecks": 600,
-      "position": 600
+      "position": 600,
+      "scan": 600
     },
     "workerTimeLimitNote": "R347, R348. read 300 s, measured in Round ADDIN 4c: a whole read of button 2 in the worker, the three drawings, the six road surfaces and the two Rev 9 workbooks, took 20.2 to 21.2 s on net48 and 16.8 to 17.0 s on net8.0 over three runs each (round_addin logs p4c_button2_time.txt), so 300 s is about 14 times the longest, room for a slower PC and the location plan read 4d adds, which measures it again. After the review of PR 53 the same read took 20.9 to 47.0 s on net48 and 21.5 to 32.6 s on net8.0 as the free memory of the PC went from 4.4 to 6.6 GiB, the build before the review as long as the head in the same state (p4cfix_button2_time.txt, p4cfix_time_compare_floor1.txt and _floor2.txt), so 300 s is over 6 times the longest. 600 s for the read until 4c, 28 times the 21.2 s of the Road Layout read alone. 60 s for the level Excel, the other commands 600 s until the PR that builds each measures it (CHOSEN in docs/design/02-folders.md). updateFromReport 60 s, CHOSEN by Code in 5f as the level Excel: it reads two small workbooks and compares them with a plan, no measure yet",
     "report": {

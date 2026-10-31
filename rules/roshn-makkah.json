@@ -234,6 +234,18 @@
       "yardBelowFflM": null
     }
   },
+  "scan": {
+    "note": "R420 to R427, round 4j-1. The values of the scanner of any CAD, Excel and PDF the user gives, read by python/scan.py and Common/Scan/ScanLogic.cs. ruleOf names the rule of each value. labelPattern is the label form of CadReader/PlotLabels.cs, group 1 the type and group 2 the number. plotNumberShifts are the shifts of config/plot_numbers.json and 0, a sheet number minus the shift is the CAD label. pdfJoinGapPt, pdfLineTolerancePt, pdfPairDyPt and pdfPairDxPt are joinGapPt, lineTolerancePt, pairDyPt and pairDxPt of dataBook.locationPlan, the label pairs of R180. pairMinSegments CHOSEN by Code (Q243)",
+    "labelPattern": "^(?:(.*?)\\s+)?(\\d{1,6})$",
+    "tokenSplit": "[^A-Za-z0-9]+",
+    "plotNumberShifts": [0, 10, 11],
+    "pairMinSegments": 100,
+    "pdfJoinGapPt": 0.3,
+    "pdfLineTolerancePt": 0.05,
+    "pdfPairDyPt": [1.3, 1.8],
+    "pdfPairDxPt": 1.5,
+    "ruleOf": {"labelPattern": "R421", "tokenSplit": "R425", "plotNumberShifts": "R426", "pairMinSegments": "R421", "pdfJoinGapPt": "R426", "pdfLineTolerancePt": "R426", "pdfPairDyPt": "R426", "pdfPairDxPt": "R426"}
+  },
   "manualRules": {
     "note": "R403, join item W3. M01 to M15 of docs/design/15-manual-rules.md, the canvas texts approved by Bader on 28 Oct 2026, held here per project and never in code. The window Site Adaptation Rules and the lookup of Common read this block. sectionPage carries the section and the printed page with the page of the PDF file in brackets, as the Round FOLD read of the manual took them (READ, 29 Oct 2026). pastJob is the column of the design table, the window shows a measured one from the override list or the build when it is given. Questions Q149 and Q150 keep the canvas text of M14 and M15.",
     "manual": {"name": "ROSHN Makkah Site Adaptation Manual", "revision": "Rev 06", "olderRevision": "Rev 01", "number": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000", "file": "Site adaptation manual_Roshn Makkah rev6.PDF", "folders": ["C:\\10- ROSHEN MECCA"]},
@@ -628,7 +640,22 @@
       "levelProfiles.native2022.medianHeightM.VL4": {"status": "UNKNOWN", "nearestSource": "levelProfiles.native2022.source", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "levelProfiles.native2022.medianHeightM.VL6": {"status": "UNKNOWN", "nearestSource": "levelProfiles.native2022.source", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "levelProfiles.native2022.steps": {"status": "UNKNOWN", "why": "null or empty"},
-      "levelProfiles.native2022.yardBelowFflM": {"status": "UNKNOWN", "why": "null or empty"}
+      "levelProfiles.native2022.yardBelowFflM": {"status": "UNKNOWN", "why": "null or empty"},
+      "scan.tokenSplit": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "scan.plotNumberShifts": {"status": "RECOMMENDED", "question": "Q249", "where": "Q249"},
+      "scan.pairMinSegments": {"status": "RECOMMENDED", "question": "Q243", "where": "Q243"},
+      "scan.pdfJoinGapPt": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "scan.pdfLineTolerancePt": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "scan.pdfPairDyPt": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "scan.pdfPairDxPt": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "scan.ruleOf.labelPattern": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "scan.ruleOf.tokenSplit": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "scan.ruleOf.plotNumberShifts": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "scan.ruleOf.pairMinSegments": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "scan.ruleOf.pdfJoinGapPt": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "scan.ruleOf.pdfLineTolerancePt": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "scan.ruleOf.pdfPairDyPt": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"},
+      "scan.ruleOf.pdfPairDxPt": {"status": "DOCUMENT", "document": "01101-PSN-ZZZ-XXX-RPT-ZZ-001000 Rev 06, June 2024, with Rev 01 Dec 2022 for foundations", "pageOrSheet": "UNKNOWN", "source": "source"}
     },
     "config/project.json": {
       "analysis.toleranceM": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 2 row 1"},
@@ -858,6 +885,7 @@
       "addin.workerTimeLimitS.updateFromReport": {"status": "CHOSEN by Code", "where": "addin.workerTimeLimitNote"},
       "addin.workerTimeLimitS.exportChecks": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 12"},
       "addin.workerTimeLimitS.position": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 13"},
+      "addin.workerTimeLimitS.scan": {"status": "UNKNOWN", "why": "no Q, no share, no Bader line and no CHOSEN mark"},
       "addin.workerTimeLimitMinS": {"status": "CHOSEN by Bader", "question": "Q104", "where": "steps/investigations/status-review.md table 1 row 14"},
       "addin.position.checkPointLimitMm": {"status": "CHOSEN by Bader", "question": "Q086", "where": "addin.position.note"},
       "addin.position.revitCheckPointLimitMm": {"status": "CHOSEN by Bader", "question": "Q086", "where": "addin.position.note"},
