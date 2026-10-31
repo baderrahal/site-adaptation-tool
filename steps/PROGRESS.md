@@ -1,4 +1,4 @@
-STATE WAITING
+STATE RUNNING, 6a, 2026-10-31 20:29
 # Progress
 Live state of the tool, at most 60 lines and 6 KB with no line over 200 characters (R400). The state of 4e in full: steps/history/progress-addin-4e.md.
 
