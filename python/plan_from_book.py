@@ -292,7 +292,8 @@ def level_step(numbers, rows, trace, rules, profile):
     for number in numbers:
         item, entry, row = front.get(number) or {}, entries.get(number), level_rows.get(number)
         made = {"unit": (rows.get(number) or {}).get("typologyRev9") or None, "partner": rules["partners"].get(number), "piece": None, "roadAtFront": None,
-                "entry": None, "ffl": None, "ssl": None, "height": None, "steps": None, "parameters": None, "doorSource": None, "slopePercent": None}
+                "entry": None, "ffl": None, "ssl": None, "height": None, "steps": None, "parameters": None, "doorSource": None, "slopePercent": None,
+                "splitTest": None}
         if item.get("front") is not None:
             made["roadAtFront"] = plan_rules.road_at_front(item["front"])
         if rev6 and made["unit"] is not None:
@@ -310,6 +311,8 @@ def level_step(numbers, rows, trace, rules, profile):
             made.update(piece=list(row["piece"]), ffl=top, ssl=ffl + ground, height=ffl - rule,
                         steps=plan_rules.steps_by_rule(key["steps"]["rule"], common.fixed(ffl - rule, plan_rules.ENTRY_DECIMALS), entry["unit"], profile, lp, base_rule),
                         parameters=plan_rules.level_parameters(key, ffl, rules["laterParameters"]))
+            # R414. The result of the split test of its cluster, the mark of a double wall, null where no test ran
+            made["splitTest"] = row.get("splitTest")
         found[number] = made
     return found
 
@@ -802,12 +805,21 @@ def not_applied_why(records):
             for field, whys in sorted(found.items())}
 
 
-def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, lp):
+def key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, lp, basis=None, slopes=None):
     """R340. FFL, SSL, height and steps by the level rules of keyRules, as R339 measured them: one FFL per piece at its highest El @ Entry
     plus the base of that unit to the mm, then the heightM gap moves the FFL onto the key with its SSL, height and steps, and a steps
-    override sets the steps. An override of a plot with no FFL is left with why."""
+    override sets the steps. An override of a plot with no FFL is left with why. R414: under rev6 with designBasis.split.test the pieces
+    of the split test replace those of its clusters, each row of them marked with splitTest."""
     units = {number: (rows.get(number) or {}).get("typologyRev9") for number in front}
-    level_rows = plan_rules.key_level_rows(entries, plan_rules.key_pieces(key, list(entries), roles, partners, units), profile, lp, key)
+    pieces = plan_rules.key_pieces(key, list(entries), roles, partners, units)
+    marks = {}
+    if design_basis.splits(basis):
+        found, marks = plan_rules.split_test(entries, slopes, roles, basis["split"], key, profile, lp)
+        pieces.update(found)
+    level_rows = plan_rules.key_level_rows(entries, pieces, profile, lp, key)
+    for number, mark in marks.items():
+        if number in level_rows:
+            level_rows[number]["splitTest"] = mark
     ground = profile.metres("levels.ground_ssl")
     for number, row in level_rows.items():
         # R340. An override moves the levels of its own plot only, so those of a plot outside the build move nothing written
@@ -990,7 +1002,7 @@ def build(numbers, rows, number_of, faces, roads, clusters, profile, settings, f
     if rules is None:
         level_rows = plan_from_cad.plot_levels(profile, mine, entries)
     elif by_levels:
-        level_rows = key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, rules["levelProfile"])
+        level_rows = key_levels(entries, key, roles, partners, rows, overrides, outcomes, numbers, front, profile, rules["levelProfile"], basis, slopes)
         if trace is not None:
             # R359. The El @ Entry and the levels of each plot with the FFL by the rule kept apart, for the step levels
             trace.update(entries=entries, levelRows=level_rows)

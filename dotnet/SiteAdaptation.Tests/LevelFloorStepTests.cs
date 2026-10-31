@@ -92,8 +92,9 @@ namespace SiteAdaptation.Tests
 
         // test_level_floor_steps.made_build: six 12 m faces along a road at y = -3, plot 1 a VD2 villa, 2 and 3 a DP2 pair of the footprint,
         // 4 to 6 DP2 units in no cluster, each in Zone 2, units and zones another code or zone of a plot, the road level 10 m plus a hundredth of x,
-        // and the steps linkFrame, levels and floors of it
-        internal static Made MadeBuild(Action<JObject> change = null, Dictionary<string, string> units = null, Dictionary<string, string> zones = null, DesignBasis basis = null, JArray bands = null)
+        // clusters other clusters of the footprint, and the steps linkFrame, levels and floors of it
+        internal static Made MadeBuild(Action<JObject> change = null, Dictionary<string, string> units = null, Dictionary<string, string> zones = null, DesignBasis basis = null, JArray bands = null,
+            List<SiteCluster> clusters = null)
         {
             JObject rules = MadeRules();
             change?.Invoke(rules);
@@ -107,7 +108,7 @@ namespace SiteAdaptation.Tests
             });
             var roads = new RoadLines(new[] { new[] { new[] { -50.0, -3.0 }, new[] { 100.0, -3.0 } }, new[] { new[] { -3.0, -10.0 }, new[] { -3.0, 40.0 } } });
             var sales = new JObject { ["1"] = new JObject { ["Orientation"] = "WS" } };
-            var clusters = new List<SiteCluster> { new SiteCluster { Code = "Duplex_DP2", Plots = new List<string> { "2", "3" }, Source = "footprint" } };
+            clusters = clusters ?? new List<SiteCluster> { new SiteCluster { Code = "Duplex_DP2", Plots = new List<string> { "2", "3" }, Source = "footprint" } };
             double[] limits = Fronts.Limits(rules, config);
             double roadEdgeM = (double)config["siteBuild"]["corner"]["roadEdgeM"];
             Dictionary<string, FrontItem> fronts = Fronts.Of(numbers, rows, faces, roads, limits, (x, y) => new KeyValuePair<double?, string>(null, null), rules, roadEdgeM, sales);
@@ -157,7 +158,7 @@ namespace SiteAdaptation.Tests
             Assert.Equal("2", Text(levels["5"]["steps"]));
             Assert.Equal("{\"parameter RRE_ZZ_SP_Prototype-FFL\":\"10.880\"}", Text(levels["5"]["parameters"]));
             Assert.All(levels["7"].Where(item => item.Key != "unit"), item => Assert.Null(item.Value));
-            Assert.Equal("unit partner piece roadAtFront entry ffl ssl height steps parameters doorSource slopePercent", string.Join(" ", levels["7"].Keys));
+            Assert.Equal("unit partner piece roadAtFront entry ffl ssl height steps parameters doorSource slopePercent splitTest", string.Join(" ", levels["7"].Keys));
             // R407. The fields of round 4i are null on a build of the past job
             Assert.Null(levels["5"]["doorSource"]);
             Assert.Null(levels["5"]["slopePercent"]);
@@ -312,7 +313,7 @@ namespace SiteAdaptation.Tests
         public void R358_R359_the_config_names_the_fields_of_the_steps_levels_and_floors_by_their_kind()
         {
             AddinConfig config = AddinConfig.Load(WorkerRunTests.RepoConfig());
-            Assert.Equal("unit:noGeometry partner:noGeometry piece:noGeometry roadAtFront:levels4 entry:levels4 ffl:levels3 ssl:levels3 height:levels4 steps:noGeometry parameters:noGeometry doorSource:noGeometry slopePercent:levels3",
+            Assert.Equal("unit:noGeometry partner:noGeometry piece:noGeometry roadAtFront:levels4 entry:levels4 ffl:levels3 ssl:levels3 height:levels4 steps:noGeometry parameters:noGeometry doorSource:noGeometry slopePercent:levels3 splitTest:noGeometry",
                 string.Join(" ", config.StepFields(KeyLevels.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));
             Assert.Equal("unit:noGeometry generic:points3 rampOutline:points3 rampZ:levels3 rampClass:noGeometry rampType:noGeometry yardDepth:levels3 yardUnit:noGeometry "
                 + "yardWidth:points3 yardType:noGeometry yardOutline:points3 lacks:noGeometry yardGrade:noGeometry", string.Join(" ", config.StepFields(FloorOutlines.StepName).Select(field => field.Name + ":" + field.Kind + field.Decimals)));

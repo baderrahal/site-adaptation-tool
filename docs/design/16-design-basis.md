@@ -13,6 +13,7 @@ designBasis.mode of config/project.json, rev6 or roshnPastJob. The ROSHN Makkah 
 | Road level | designBasis.roadLevel.surface alone (R409) | siteBuild.roadSurfaces in their order |
 | Back yard | the grade of 2.3.B and 2.3.C, no floor (R410, Q225) | the flat floor of keyRules.yard |
 | Clusters and mirror | proposed with reasons, confirmed in 3 Review data (R411) | footprint clusters and the hand rules of keyRules |
+| Floor split | with designBasis.split.test, a cluster of split.units split at the first of split.walls where both parts hold slope and steps, the mark splitTest (R414), off until Q257 and Q258 | the pieces of keyRules.levelSplit |
 
 ### Door level (R408)
 
@@ -36,4 +37,4 @@ A read only check of the inputs of a new project, the report in plain words. It 
 
 ### Parity
 
-The new fields join the steps they belong to, so the parity harness keeps 13 steps: doorSource exact, El @ Entry and slopePercent by the levels tolerance in levels, yardGrade exact in floors, proposedCluster, proposedMirror and proposalReason exact in hands.
+The new fields join the steps they belong to, so the parity harness keeps 13 steps: doorSource exact, El @ Entry and slopePercent by the levels tolerance in levels, yardGrade exact in floors, proposedCluster, proposedMirror and proposalReason exact in hands. Round 4j-2 adds splitTest exact in levels (R414).
