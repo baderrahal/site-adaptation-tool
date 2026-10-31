@@ -379,3 +379,16 @@ All paths under dotnet/. A line number the reviewer did not note is left out.
 - LevelsRun.cs:190-243: a plot whose floor the plan view skipped with a reason is not named in the Levels preview.
 - rules/roshn-makkah.json, R401 block: the three values of addin.fixedParameters read UNKNOWN though Q156 is closed by Bader's answer, rule_status.py does not read the closed row.
 - FloorPlan.cs:206-225 and FloorsRun.Apply repeat FloorPlacer.SetCorners and its place loop, still called by PlaceFromPlan.cs:42 of the old placer, two copies of R114 that can drift.
+
+## Lane B 5d, breaker pass 1
+
+- FloorsRun.cs:138 and WallsRun.cs:133: floors_ and walls_<NBH>.json hold the elements of the scope of the run only, so a run on a plot list drops the other plots from LastPlaced. Only the case name of a plot placed again changes, Gone or New.
+- FloorPlan.cs:190: the mid point of an arc is not in the outline values, an arc that flips with the same ends counts as equal. The real plan holds 0 arcs.
+- FloorPlan.cs:173: the vertices of all loops are pooled, a vertex moved from one loop of a yard to the other counts as equal (47 yards of 2 loops in the plan of NBH 012).
+- FloorPlan.cs:171: a floor moved to another level with the same top counts as placed. It needs a change of floorSettings.levels, none seen.
+- WallsRun.cs:166 and 294: an untagged BW wall along a whole edge that wallOpen cuts in two matches neither piece, both are placed over it with a line. No real model holds BW walls yet.
+- WallLoad.cs:23 and 28: PlanSource.Open checks the hash of the plan, WallPlan.Parse reads the file again with no check.
+- ParameterSheet.cs:68-74: a name in both blocks that differs only in case, or one GUID in both blocks, is not refused. RevitFloorDocument writes Plot by name, so a model with a project parameter Plot gets one of two.
+- BuildSteps.cs:281: Path.IsPathRooted of .NET Framework takes C:foo and \foo, which resolve against the current folder.
+- Walls.cs Opening and plan_walls.opening: an edge whose two ends lie equally far from the front middle picks its end by floating point noise, the same in both languages.
+- Walls.cs Pieces and plan_walls.pieces: a span over the whole part, or leaving 0.3 m or less, drops the wall with no line, the same in both languages. How often on real edges is UNKNOWN.
