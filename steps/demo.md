@@ -12,9 +12,9 @@ Everything sits in C:\SA-demo. The add-in is installed per user from main 326422
 
 | Step | What to press | What it shows | Time |
 |---|---|---|---|
-| New project | Start from: ROSHN Makkah, then Check files, then Save setup | the files filled in one click, every row Found, What the tool read | under 1 min |
-| 1 Set up site | Run, then Apply | coordinates, levels, types and parameters from CAD | 2 s |
-| 2 Read data | Run | reads the drawings and schedules. The first time it scans the drawing, 3 to 5 min, after that reused | 50 s plus the scan |
+| New project | Start from: ROSHN Makkah, then Browse each file in C:\SA-demo\inputs, Check files, Save setup | config, rules, Masses and the scan picks from the saved project, every file Found. A saved project holds no drawing path (R434, Q296) | 1 to 2 min |
+| 1 Set up site | Run, tick the Baseplan Current, then Apply | coordinates, levels, types and parameters from CAD. Apply stays grey until the Baseplan is ticked | 2 s |
+| 2 Read data | Run. If What the tool read opens, press Use the proposed for all, then Use these picks | reads the drawings and schedules, every row Clear from the saved picks. The first time it scans the drawings, about 3 min, then reused | 50 s plus the scan |
 | 3 Review data | Run, look, Close | what was read, row by row | at once |
 | 4 Check | Run | the check table, 337 plots, 1237 rows, rules against the past job | 30 s |
 | 5 Floors and ramps | Run, Apply | Generic, yard and ramp floors, 1003 floors | 30 s |
