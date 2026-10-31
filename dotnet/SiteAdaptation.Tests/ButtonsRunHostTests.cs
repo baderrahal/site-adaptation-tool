@@ -89,9 +89,17 @@ namespace SiteAdaptation.Tests
         [Fact]
         public void R378_R379_a_job_may_run_buttons_5_and_6_in_the_order_of_the_pane()
         {
-            Assert.Equal(new[] { 1, 2, 3, 4, 5, 6, 7 }, ButtonsRun.Known);
+            Assert.Equal(new[] { 1, 2, 3, 4, 5, 6, 7, 8 }, ButtonsRun.Known);
             Assert.False(ButtonsRun.Waits(5));
             Assert.False(ButtonsRun.Waits(6));
+        }
+
+        // R380. Button 8 of 5d runs in a job after 7 and waits for no worker
+        [Fact]
+        public void R380_a_job_may_run_button_8_after_7()
+        {
+            Assert.Equal(8, ButtonsRun.Known.Last());
+            Assert.False(ButtonsRun.Waits(8));
         }
 
         [Fact]
